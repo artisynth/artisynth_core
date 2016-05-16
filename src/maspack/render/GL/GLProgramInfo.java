@@ -38,6 +38,8 @@ public class GLProgramInfo {
    private boolean hasVertexColors;
    private boolean hasVertexTextures;
    
+   private boolean selecting;
+   
    private boolean useRoundPoints;
    
    private boolean hasInstanceColors;
@@ -67,6 +69,8 @@ public class GLProgramInfo {
       hasVertexTextures = false;
       
       useRoundPoints = false;
+      
+      selecting = false;
       
       mode = RenderingMode.DEFAULT;
 
@@ -99,6 +103,7 @@ public class GLProgramInfo {
       result = prime * result + (hasLineScaleOffset ? 1231 : 1237);
       result = prime * result + (hasLineColors ? 1231 : 1237);
       result = prime * result + (useRoundPoints ? 1231 : 1237);
+      result = prime * result + (selecting ? 1231 : 1237);
       result = prime * result + (hasVertexColors ? 1231 : 1237);
       result = prime * result + (hasVertexNormals ? 1231 : 1237);
       result = prime * result + (hasVertexTextures ? 1231 : 1237);
@@ -149,6 +154,9 @@ public class GLProgramInfo {
          return false;
       }
       if (useRoundPoints != other.useRoundPoints) {
+         return false;
+      }
+      if (selecting != other.selecting) {
          return false;
       }
       if (mode != other.mode) {
@@ -221,6 +229,10 @@ public class GLProgramInfo {
       return shading;
    }
 
+   public boolean isSelecting() {
+     return selecting;
+   }
+   
    public ColorInterpolation getColorInterpolation() {
       return colorInterp;
    }
@@ -303,6 +315,8 @@ public class GLProgramInfo {
       
       out.useRoundPoints = this.useRoundPoints;
 
+      out.selecting = this.selecting;
+      
       out.hasInstanceColors = this.hasInstanceColors;     
       out.hasLineScaleOffset = this.hasLineScaleOffset;
       out.hasLineColors = this.hasLineColors;
@@ -361,6 +375,10 @@ public class GLProgramInfo {
       this.shading=shading;
    }
 
+   public void setSelecting(boolean set) {
+      this.selecting = set;
+   }
+   
    public void setColorInterpolation(ColorInterpolation colorInterp) {
       this.colorInterp=colorInterp;
    }

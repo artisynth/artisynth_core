@@ -322,6 +322,9 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
       ++bindVersion;
    }
       
+   /**
+    * @return version incremented when attributes need to be re-bound
+    */
    public int getBindVersion() {
       return bindVersion;
    }

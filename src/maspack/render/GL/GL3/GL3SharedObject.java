@@ -5,6 +5,7 @@ import java.util.HashSet;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
+import javax.media.opengl.GL4;
 
 /**
  * Holds pointers to VBOs, attribute info, to be used in creating VAOs.

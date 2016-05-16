@@ -25,7 +25,7 @@ public class GLRenderBuffer extends GLResourceBase {
       bind(gl);
       if (this.width != width || this.height != height || this.format != format || this.nsamples != nsamples) {
          // Create secondary FBO
-         if (nsamples > 1 && (gl instanceof GL2GL3)) {
+         if (nsamples > 1 && (gl.isGL2GL3())) {
             GL2GL3 gl23 = (GL2GL3)gl;
             gl23.glRenderbufferStorageMultisample (GL.GL_RENDERBUFFER, nsamples, format, width, height);
          } else {

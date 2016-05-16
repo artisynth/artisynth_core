@@ -18,11 +18,13 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       VertexArrayObject vao;
       GL3SharedObject lastInstance;
       int lastInstanceBindVersion;
+      int lastOffset;
 
       public InstanceInfo(VertexArrayObject vao) {
          this.vao = vao.acquire ();
          this.lastInstance = null;
          lastInstanceBindVersion = -1;
+         lastOffset = -1;
       }
       
       public boolean bind (GL3 gl, GL3SharedObject point) {
@@ -113,17 +115,18 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       }
    }
    
-   public void bindInstanced(GL3 gl, GL3SharedObject point, int gidx) {
+   public void bindInstanced(GL3 gl, GL3SharedObject point, int gidx, int offset) {
       // check if correct instances
       maybeUpdateInstances(gl);
       instances[gidx].bind (gl, point);
 
       // extra instance attributes
       int bv = pointGLO.getBindVersion ();
-      if (bv != instances[gidx].lastInstanceBindVersion) {
-         pointGLO.bindInstancedVertices (gl, gidx);
+      if (bv != instances[gidx].lastInstanceBindVersion || offset != instances[gidx].lastOffset) {
+         pointGLO.bindInstancedVertices (gl, gidx, offset);
          pointVBO.bind (gl, pointGLO.numPoints (gidx));
          instances[gidx].lastInstanceBindVersion = bv;
+         instances[gidx].lastOffset = offset;
       }
    }
    
@@ -194,14 +197,30 @@ public class GL3RenderObjectPoints extends GL3ResourceBase implements GL3Drawabl
       unbind(gl);
    }
    
+   public void drawPointGroup (GL3 gl, int mode, int gidx, int offset, int count) {
+      bind (gl);
+      pointGLO.drawPoints (gl, mode, gidx, offset, count);
+      unbind(gl);
+   }
+   
    public void drawInstancedPointGroup(GL3 gl, GL3SharedObject point, int gidx) {
-      bindInstanced (gl, point, gidx);
+      bindInstanced (gl, point, gidx, 0);
       pointGLO.drawInstancedPoints (gl, point, gidx);
+      unbindInstanced(gl, gidx);
+   }
+   
+   public void drawInstancedPointGroup(GL3 gl, GL3SharedObject point, int gidx, int offset, int count) {
+      bindInstanced (gl, point, gidx, offset);
+      pointGLO.drawInstancedPoints (gl, point, gidx, count);
       unbindInstanced(gl, gidx);
    }
    
    public void drawInstancedPointGroup(GL3 gl, GL3Object point, int gidx) {
       drawInstancedPointGroup (gl, point.getShared (), gidx);
+   }
+   
+   public void drawInstancedPointGroup(GL3 gl, GL3Object point, int gidx, int offset, int count) {
+      drawInstancedPointGroup (gl, point.getShared (), gidx, offset, count);
    }
 
    public static GL3RenderObjectPoints generate (

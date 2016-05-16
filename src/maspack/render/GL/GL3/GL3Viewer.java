@@ -34,6 +34,7 @@ import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
+import maspack.render.GL.GLProgramInfo;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLSupport;
@@ -59,6 +60,9 @@ public class GL3Viewer extends GLViewer {
 
    // Programs
    GL3ProgramManager myProgManager = null;
+   GLShaderProgram myCommittedProgram = null;
+   GLProgramInfo myCommittedProgramInfo = null;
+   
    GL3SharedResources myGLResources = null;    // holds shared context and cache
    // Resources that stick with this viewer
    GL3RenderObjectManager myRenderObjectManager = null;
@@ -328,7 +332,6 @@ public class GL3Viewer extends GLViewer {
    @Override
    public void dispose () {
       myGLResources.deregisterViewer (this);
-      myGLResources = null;
       super.dispose ();
    }
    
@@ -343,7 +346,7 @@ public class GL3Viewer extends GLViewer {
       }
 
       if (selectTrigger) {
-         mySelector.setupSelection (drawable);
+         mySelector.setupSelection (gl);
          selectEnabled = true;
          selectTrigger = false;
       }
@@ -363,7 +366,7 @@ public class GL3Viewer extends GLViewer {
       }
       if (selectEnabled) {
          selectEnabled = false;
-         mySelector.processSelection (drawable);
+         mySelector.processSelection (gl);
       }
       else {
          fireRerenderListeners();
@@ -403,9 +406,14 @@ public class GL3Viewer extends GLViewer {
    private void doDisplay(GLAutoDrawable drawable, int flags) {
       
       // updates projection matrix
-      if (resetViewVolume && resizeEnabled) {
+      if (resetViewVolume && autoResizeEnabled) {
          resetViewVolume(gl);
          resetViewVolume = false;
+      }
+      
+      if (resetViewport && autoViewportEnabled) {
+         setViewport (gl, 0, 0, width, height);
+         resetViewport = false;
       }
 
       int nclips = Math.min (2*myClipPlanes.size (), maxClipPlanes);
@@ -417,9 +425,7 @@ public class GL3Viewer extends GLViewer {
       maybeUpdateState(gl);
 
       // clear background/depth
-      if (!isSelecting()) {
-         gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
-      }
+      gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       gl.glClear(GL.GL_COLOR_BUFFER_BIT |  GL.GL_DEPTH_BUFFER_BIT);
 
       if (!isSelecting()) {
@@ -560,10 +566,11 @@ public class GL3Viewer extends GLViewer {
       frameCapture.activateFBO(gl);
 
       // disable resetting of view volume during capture
-      boolean savedResetView = resetViewVolume;
-      resetViewVolume = false;
+      boolean autoResize = setAutoResizeEnabled (false);
+      boolean autoViewport = setAutoViewportEnabled(false);
       doDisplay (drawable, flags);
-      resetViewVolume  = savedResetView;
+      setAutoResizeEnabled(autoResize);
+      setAutoViewportEnabled(autoViewport);
 
       fireRerenderListeners();
 
@@ -746,20 +753,39 @@ public class GL3Viewer extends GLViewer {
    }
 
    protected void maybeUpdateMaterials(GL3 gl) {
-      if (myCurrentMaterialModified) {
-         if (isSelecting ()) {
-            myProgManager.setMaterials (gl, myCurrentMaterial, mySelectingColor, myCurrentMaterial, mySelectingColor);
-         } else {
-            // set all colors
-            if (myHighlightColorActive) {
-               myHighlightColor[3] = myCurrentMaterial.getAlpha();
+      
+      if (isSelecting ()) {
+         
+         //         if (myCurrentMaterialModified || mySelectingColorModified || myCommittedColor != ActiveColor.SELECTING) {
+         //            myProgManager.setMaterials (gl, myCurrentMaterial, mySelectingColor, myCurrentMaterial, mySelectingColor);
+         //            myCurrentMaterialModified = false;
+         //            mySelectingColorModified = false;
+         //            myCommittedColor = ActiveColor.SELECTING;
+         //         }
+         if (mySelectingColorModified && myCommittedProgramInfo != null && myCommittedProgramInfo.isSelecting ()) {
+            myProgManager.setSelectionColor (gl, myCommittedProgram, mySelectingColor);
+            mySelectingColorModified = false;
+         }
+      } else {
+         
+         if (myCurrentMaterial.getAlpha () != myHighlightColor[3]) {
+            myHighlightColor[3] = myCurrentMaterial.getAlpha ();
+            myHighlightColorModified = true;
+         }
+         
+         if (myCurrentMaterialModified || myHighlightColorModified || myCommittedColor != myActiveColor) {
+            if (myActiveColor == ActiveColor.HIGHLIGHT) {
                myProgManager.setMaterials (gl, myCurrentMaterial, myHighlightColor, myCurrentMaterial, myHighlightColor);
+               myHighlightColorModified = false;
             } else {
                myProgManager.setMaterials (gl, myCurrentMaterial, myCurrentMaterial.getDiffuse(), myCurrentMaterial, myBackColor);
             }
+            myCurrentMaterialModified = false;
+            myCommittedColor = myActiveColor;
          }
-         myCurrentMaterialModified = false; // reset flag since state is now updated
+         
       }
+      
    }
 
    protected void maybeUpdateMatrices(GL3 gl) {
@@ -778,6 +804,8 @@ public class GL3Viewer extends GLViewer {
       if (rad < Double.MIN_NORMAL) {
          return;
       }
+      
+      // XXX used instanced rendering?
 
       // scale and translate model matrix
       pushModelMatrix();
@@ -1046,6 +1074,15 @@ public class GL3Viewer extends GLViewer {
       myProgramInfo.setNormalMapEnabled (false);
       myProgramInfo.setBumpMapEnabled (false);
       
+      if (isSelecting ()) {
+         myProgramInfo.setSelecting (true);
+         hasNormals = false;
+         hasColors = false;
+         hasTextures = false;
+      } else {
+         myProgramInfo.setSelecting (false);
+      }
+      
       switch(mode) {
          case INSTANCED_POINTS:
          case INSTANCED_AFFINES:
@@ -1107,7 +1144,7 @@ public class GL3Viewer extends GLViewer {
       }
       
       // myProgramInfo.setVertexColorsEnabled (hasColors);
-      if (!hasColors || !isVertexColoringEnabled() || myHighlightColorActive) {
+      if (!hasColors || !isVertexColoringEnabled() || isSelecting () || (myActiveColor != ActiveColor.DEFAULT)) {
          myProgramInfo.setVertexColorMixing (ColorMixing.NONE);
          myProgramInfo.setVertexColorsEnabled (false);
          myProgramInfo.setLineColorsEnabled (false);
@@ -1167,8 +1204,17 @@ public class GL3Viewer extends GLViewer {
       } else {
          prog = myProgManager.getProgram (gl, myProgramInfo);
       }
-      prog.use (gl);
       
+      // only update program if different
+      if (prog != myCommittedProgram) {
+         prog.use (gl);
+         if (isSelecting ()) {
+            myProgManager.setSelectionColor (gl, prog, mySelectingColor);
+            mySelectingColorModified = false;
+         }
+         myCommittedProgram = prog;
+         myCommittedProgramInfo = myProgramInfo.clone ();
+      }
       maybeBindTextures(gl, prog);
       
       return prog;
@@ -1737,12 +1783,7 @@ public class GL3Viewer extends GLViewer {
    //======================================================================
 
    @Override
-   public void drawTriangles(RenderObject robj) {
-      drawTriangles(robj, robj.getTriangleGroupIdx ());
-   }
-
-   @Override
-   public void drawTriangles(RenderObject robj, int gidx) {
+   public void drawTriangles(RenderObject robj, int gidx, int offset, int count) {
 
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
 
@@ -1751,7 +1792,7 @@ public class GL3Viewer extends GLViewer {
       updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), 
          robj.hasColors (), robj.hasTextureCoords ());
 
-      gro.drawTriangleGroup (gl, GL.GL_TRIANGLES, gidx);
+      gro.drawTriangleGroup (gl, GL.GL_TRIANGLES, gidx, offset, count);
 
       //      if (bumptex != null) {
       //         myProgManager.unbindTexture (gl, "bump_map", bumptex);
@@ -1767,11 +1808,6 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawLines(RenderObject robj) {
-      drawLines(robj, robj.getLineGroupIdx ());
-   }
-
-   @Override
    public void drawLines(RenderObject robj, int gidx) {
       
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
@@ -1782,17 +1818,12 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawPoints(RenderObject robj) {
-      drawPoints(robj, robj.getPointGroupIdx ());
-   }
-
-   @Override
    public void drawPoints(RenderObject robj, int gidx) {
       GL3RenderObjectPrimitives gro = myRenderObjectManager.getPrimitives (gl, robj);
       
       maybeUpdateState(gl);
-      
       updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
+      
       gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
    }
 
@@ -1817,9 +1848,6 @@ public class GL3Viewer extends GLViewer {
       gro.drawElements (gl, getDrawPrimitive(mode), offset, count);
    }
    
-   
-   
-   @Override
    public void drawVertices(RenderObject robj, int[] idxs, DrawMode mode) {
       
       GL3SharedRenderObjectPrimitives gro = myGLResources.getPrimitives (gl, robj);
@@ -1847,14 +1875,9 @@ public class GL3Viewer extends GLViewer {
       
    };
 
-
    @Override
-   public void drawLines(RenderObject robj,LineStyle style, double rad) {
-      drawLines(robj, robj.getLineGroupIdx (), style, rad);
-   }
-
-   @Override
-   public void drawLines(RenderObject robj, int gidx, LineStyle style, double rad) {
+   public void drawLines(RenderObject robj, int gidx, int offset, int count,
+      LineStyle style, double rad) {
 
       GL3RenderObjectLines gro = myRenderObjectManager.getLines (gl, robj);
 
@@ -1865,7 +1888,7 @@ public class GL3Viewer extends GLViewer {
             // maybe change point size and draw points
             setLineWidth (gl, (float)rad);
             updateProgram (gl, RenderingMode.DEFAULT, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
-            gro.drawLineGroup (gl, GL.GL_LINES, gidx);
+            gro.drawLineGroup (gl, GL.GL_LINES, gidx, offset, count);
             break;
          }
          default: {
@@ -1878,7 +1901,7 @@ public class GL3Viewer extends GLViewer {
                case CYLINDER: {
                   GL3Primitive primitive = getPrimitive (gl, PrimitiveType.CYLINDER);
                   gro.setRadius (gl, (float)rad);
-                  gro.drawInstancedLineGroup (gl, primitive, gidx);
+                  gro.drawInstancedLineGroup (gl, primitive, gidx, offset, count);
                   break;
                }
                case SOLID_ARROW: {
@@ -1892,15 +1915,15 @@ public class GL3Viewer extends GLViewer {
                   float[] coneBoundary = {1, 0, -arrowLen, 1};
                   
                   gro.setRadiusOffsets (gl, (float)rad, null, coneBoundary);
-                  gro.drawInstancedLineGroup (gl, cylinder, gidx);
+                  gro.drawInstancedLineGroup (gl, cylinder, gidx, offset, count);
                   gro.setRadiusOffsets (gl, arrowRad, coneBoundary, null);
-                  gro.drawInstancedLineGroup (gl, cone, gidx);
+                  gro.drawInstancedLineGroup (gl, cone, gidx, offset, count);
                   break;
                }
                case SPINDLE: {
                   gro.setRadius (gl, (float)rad);
                   GL3Primitive spindle = getPrimitive (gl, PrimitiveType.SPINDLE);
-                  gro.drawInstancedLineGroup (gl, spindle, gidx);
+                  gro.drawInstancedLineGroup (gl, spindle, gidx, offset, count);
                   break;
                }
                default:
@@ -1914,12 +1937,8 @@ public class GL3Viewer extends GLViewer {
    }
 
    @Override
-   public void drawPoints(RenderObject robj, PointStyle style, double rad) {
-      drawPoints(robj, robj.getPointGroupIdx (), style, rad);
-   }
-
-   @Override
-   public void drawPoints(RenderObject robj, int gidx, PointStyle style, double rad) {
+   public void drawPoints(RenderObject robj, int gidx, int offset, int count,
+      PointStyle style, double rad) {
 
       GL3RenderObjectPoints gro = myRenderObjectManager.getPoints (gl, robj);
 
@@ -1935,9 +1954,10 @@ public class GL3Viewer extends GLViewer {
             if (fold != frad) {
                setPointSize (gl, frad);
             }
-            updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), robj.hasColors (), robj.hasTextureCoords ());
+            updateProgram (gl, RenderingMode.POINTS, robj.hasNormals (), 
+               robj.hasColors (), robj.hasTextureCoords ());
             
-            gro.drawPointGroup (gl, GL.GL_POINTS, gidx);
+            gro.drawPointGroup (gl, GL.GL_POINTS, gidx, offset, count);
 
             if (changed) {
                setPointSize(gl, fold);
@@ -1955,7 +1975,7 @@ public class GL3Viewer extends GLViewer {
             gro.setRadius(gl, (float)rad);
             updateProgram (gl, RenderingMode.INSTANCED_POINTS, robj.hasNormals (), 
                robj.hasColors (), robj.hasTextureCoords ());
-            gro.drawInstancedPointGroup (gl, point, gidx);
+            gro.drawInstancedPointGroup (gl, point, gidx, offset, count);
             break;
          }
       }

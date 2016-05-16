@@ -305,10 +305,16 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
    public int numLineGroups() {
       return lineGroupOffsets.length-1;
    }
+   
+   /**
+    * Bind with a line-offset (e.g. offset=k will bind starting at kth line) 
+    * @param gl
+    * @param gidx
+    * @param offset
+    */
+   public void bindInstancedVertices(GL3 gl, int gidx, int offset) {
 
-   public void bindInstancedVertices(GL3 gl, int gidx) {
-
-      int vstart = 2*lineGroupOffsets[gidx];
+      int vstart = 2*(lineGroupOffsets[gidx]+offset);
       if (positionInfo != null ) {
          GL3AttributeStorage storage = positionPutter.storage ();
          vbos[positionInfo.vboIndex].bind (gl);
@@ -357,15 +363,23 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
    }
    
    public void drawLines(GL3 gl, int mode, int gidx){
-      int vstart = lineGroupOffsets[gidx];
-      int vcount = lineGroupOffsets[gidx+1]-vstart;
-      gl.glDrawArrays (mode, 2*vstart, 2*vcount);  // 2 vertices per line
+      int lstart = lineGroupOffsets[gidx];
+      int lcount = lineGroupOffsets[gidx+1]-lstart;
+      gl.glDrawArrays (mode, 2*lstart, 2*lcount);  // 2 vertices per line
+   }
+   
+   public void drawLines(GL3 gl, int mode, int gidx, int offset, int count){
+      int lstart = lineGroupOffsets[gidx]+offset;
+      gl.glDrawArrays (mode, 2*lstart, 2*count);  // 2 vertices per line
    }
 
    public void drawInstancedLines(GL3 gl, GL3SharedObject line, int gidx) {
-      int vstart = lineGroupOffsets[gidx];
-      int vcount = lineGroupOffsets[gidx+1]-vstart;
-      line.drawInstanced (gl, vcount);
+      int lcount = lineGroupOffsets[gidx+1]-lineGroupOffsets[gidx];
+      line.drawInstanced (gl, lcount);
+   }
+   
+   public void drawInstancedLines(GL3 gl, GL3SharedObject line, int gidx, int count) {
+      line.drawInstanced (gl, count);   
    }
 
    public static GL3SharedRenderObjectLines generate (

@@ -72,6 +72,10 @@ public class FrameBufferObject {
    public FrameBufferObject (int x, int y, int w, int h) {
       this(x,y,w,h,-1, false);
    }
+
+   public void configure(GL gl, int w, int h, int nsamples) {
+      configure(gl, x, y, w, h, nsamples, gammaCorrected);
+   }
    
    public void configure(GL gl, int w, int h, int nsamples, boolean gammaCorrected) {
       configure(gl, x, y, w, h, nsamples, gammaCorrected);
@@ -113,7 +117,7 @@ public class FrameBufferObject {
     * values before calling this function. Creates framebuffer with depth buffer
     * and one texture.
     */
-   private void init (GL2GL3 gl) {
+   private void init (GL gl) {
       dispose(gl);  // maybe clean FBO
       
       int[] buff = new int[1];
@@ -230,7 +234,7 @@ public class FrameBufferObject {
     * Create a renderBuffer configured as a depth buffer and attach it to the
     * FBO
     */
-   private void addDepthBuffer (GL2GL3 gl) {
+   private void addDepthBuffer (GL gl) {
       // IntBuffer numSamps = allocInts (1);
       // gl.glGetIntegerv(GL.GL_MAX_SAMPLES, numSamps);
       // System.out.println ("numSamps=" + numSamps.get(0));
@@ -254,7 +258,7 @@ public class FrameBufferObject {
     * Create a renderBuffer configured as an RGB buffer and attach it to the
     * FBO
     */
-   private void addRgbBuffer (GL2GL3 gl) {
+   private void addRgbBuffer (GL gl) {
       // IntBuffer numSamps = allocInts (1);
       // gl.glGetIntegerv(GL.GL_MAX_SAMPLES, numSamps);
       // System.out.println ("numSamps=" + numSamps.get(0));
@@ -311,7 +315,7 @@ public class FrameBufferObject {
     * 
     * @see #deactivate
     */
-   public void activate (GL2GL3 gl) {
+   public void activate (GL gl) {
       if (!initialized) {
          init(gl);
       }
@@ -389,7 +393,7 @@ public class FrameBufferObject {
     * @param gl      the current GL object.
     * @return  The ARGB pixels as integers.
     */
-   public int[] getPixelsARGB (GL2GL3 gl) {
+   public int[] getPixelsARGB (GL gl) {
 
       // Get the canvas RGB pixels as bytes and set up counters.
       ByteBuffer pixelsBGRA = getPixelsBGRA (gl);
@@ -447,21 +451,22 @@ public class FrameBufferObject {
     * @param height  the height of the canvas.
     * @return  The RGBA pixels as bytes.
     */
-   private ByteBuffer getPixelsBGRA (GL2GL3 gl) {
+   private ByteBuffer getPixelsBGRA (GL gl) {
       return getPixels(gl, GL.GL_BGRA);
    }
    
-   public ByteBuffer getPixels(GL2GL3 gl, int format) {
+   public ByteBuffer getPixels(GL gl, int format) {
       int size = width * height * 4; // 4 bytes per RGBA pixel
       ByteBuffer pixels = BufferUtilities.newNativeByteBuffer(size);
 
-      if (numMultiSamples > 1) {
+      if (numMultiSamples > 1 && gl.isGL2GL3 ()) {
+         GL2GL3 gl23 = (GL2GL3)gl;
          // System.out.println ("blitting");
          // read from multisample, write to single sample
          gl.glBindFramebuffer(GL2GL3.GL_READ_FRAMEBUFFER, FBOhandle);
          gl.glBindFramebuffer(GL2GL3.GL_DRAW_FRAMEBUFFER, FBNhandle);
          // Blit the multisampled FBO to the normal FBO
-         gl.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, 
+         gl23.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, 
             GL.GL_COLOR_BUFFER_BIT, GL.GL_LINEAR);
          // Bind the normal FBO for reading
          gl.glBindFramebuffer(GL2GL3.GL_READ_FRAMEBUFFER, FBNhandle);
@@ -477,9 +482,9 @@ public class FrameBufferObject {
          format, 
          GL.GL_UNSIGNED_BYTE,
          pixels);
-
-      // detach
-      gl.glBindFramebuffer (GL.GL_FRAMEBUFFER, 0);
+      
+      // rebind as draw
+      gl.glBindFramebuffer (GL2GL3.GL_DRAW_FRAMEBUFFER, FBOhandle);
 
       return pixels;
    }

@@ -211,59 +211,58 @@ implements ScalableUnits {
       }
       renderer.setShading(savedShading);
    }
+   
+   private void drawPointsSelecting (Renderer renderer, int gidx, RenderProps props) {
+   
+      PointStyle style = props.getPointStyle ();
+      double size = 0;
+      switch (style) {
+         case POINT: {
+            size = props.getPointSize();
+            break;
+         }
+         case CUBE:
+         case SPHERE: 
+         default: {
+            size = props.getPointRadius();
+            break;
+         }
+      }
+      
+      if (size > 0) {
+         int[] points = myRob.getPoints (gidx);
+         for (int i=0; i<points.length; ++i) {
+            renderer.beginSelectionQuery (points[i]);
+            renderer.drawPoints (myRob, gidx, i, 1, style, size);
+            renderer.endSelectionQuery ();
+         }
+      }
+   }
 
    public void render (Renderer renderer, int flags) {
       RenderProps props = myRenderProps;
-      if (renderer.isSelecting()) {
-         PointStyle style = props.getPointStyle();
-         if (style == PointStyle.POINT) {
-            int size = props.getPointSize();
-            if (size > 0) {
-               renderer.setPointSize (size);
-            }
-            else {
-               return;
-            }
-         }           
-         for (int i=0; i<size(); i++) {
-            Point pnt = get(i);        
-            if (pnt.getRenderProps() == null && renderer.isSelectable (pnt)) {
-               float[] v0 = pnt.myRenderCoords;
-               renderer.beginSelectionQuery (i);
-               switch (style) {
-                  case POINT: {
-                     renderer.drawPoint (v0);
-                     break;
-                  }
-                  case CUBE: {
-                     renderer.drawCube (v0, 2*props.getPointRadius ());
-                  }
-                  case SPHERE: {
-                     renderer.drawSphere (v0, props.getPointRadius());
-                     break;
-                  }
-               }
-               renderer.endSelectionQuery ();
-            }
-         }
-         if (style == PointStyle.POINT) {
-            renderer.setPointSize (1);
-         }
-      }
-      else if (myRob != null) {
+      if (myRob != null) {
          int numReg = myRob.numPoints(REG_GRP);
          int numSel = myRob.numPoints(SEL_GRP);
 
          // draw selected first
-         if (numSel > 0) {
-            drawPoints (renderer, SEL_GRP, props, /*selected=*/true);
-         }
-         if (numReg > 0) {
-            drawPoints (renderer, REG_GRP, props, /*selected=*/false);
+         if (renderer.isSelecting ()) {
+            if (numSel > 0) {
+               drawPointsSelecting (renderer, SEL_GRP, props);
+            }
+            if (numReg > 0) {
+               drawPointsSelecting (renderer, REG_GRP, props);
+            }
+         } else {
+            if (numSel > 0) {
+               drawPoints (renderer, SEL_GRP, props, /*selected=*/true);
+            }
+            if (numReg > 0) {
+               drawPoints (renderer, REG_GRP, props, /*selected=*/false);
+            }
          }
 
       }
-      //renderer.drawPoints (myRenderProps, iterator());
    }
 
    // public void prerender (RenderList list) {

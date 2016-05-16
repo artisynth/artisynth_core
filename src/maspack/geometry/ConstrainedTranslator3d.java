@@ -67,28 +67,23 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
          return;
       }
       
-      if (!(renderer instanceof GLViewer)) {
-         return;
-      }
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
       
-      GLViewer viewer = (GLViewer)renderer;
-      
-      Shading savedShading = viewer.setShading (Shading.NONE);
-      viewer.setLineWidth(myLineWidth);
-      
-      viewer.pushModelMatrix();
-      viewer.translateModelMatrix(myXDraggerToWorld.p);
-      viewer.scaleModelMatrix(mySize);
+      renderer.pushModelMatrix();
+      Vector3d t = myXDraggerToWorld.p;
+      renderer.translateModelMatrix(t.x, t.y, t.z);
+      renderer.scaleModelMatrix(mySize);
       
       if (renderObject == null) {
          renderObject = createRenderable(); 
       }
       
       int gidx = selected ? 1 : 0;
-      viewer.drawLines(renderObject, gidx);
+      renderer.drawLines(renderObject, gidx);
       
-      viewer.popModelMatrix();
-      viewer.setShading (savedShading);
+      renderer.popModelMatrix();
+      renderer.setShading (savedShading);
    }
    
    private RenderObject createRenderable() {

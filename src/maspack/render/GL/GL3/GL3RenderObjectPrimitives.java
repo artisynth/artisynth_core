@@ -86,15 +86,33 @@ public class GL3RenderObjectPrimitives extends GL3ResourceBase implements GL3Dra
       unbind(gl);
    }
    
+   public void drawPointGroup (GL3 gl, int mode, int gidx, int offset, int count) {
+      bind (gl);
+      glo.drawPointGroup (gl, mode, gidx, offset, count);
+      unbind(gl);
+   }
+   
    public void drawLineGroup (GL3 gl, int mode, int gidx) {
       bind(gl);
       glo.drawLineGroup (gl, mode, gidx);
       unbind(gl);
    }
    
+   public void drawLineGroup (GL3 gl, int mode, int gidx, int offset, int count) {
+      bind(gl);
+      glo.drawLineGroup (gl, mode, gidx, offset, count);
+      unbind(gl);
+   }
+   
    public void drawTriangleGroup (GL3 gl, int mode, int gidx) {
       bind(gl);
       glo.drawTriangleGroup (gl, mode, gidx);
+      unbind(gl);
+   }
+   
+   public void drawTriangleGroup (GL3 gl, int mode, int gidx, int offset, int count) {
+      bind(gl);
+      glo.drawTriangleGroup (gl, mode, gidx, offset, count);
       unbind(gl);
    }
    

@@ -104,37 +104,37 @@ public class GLTextureLoader implements GLGarbageSource {
       ContentFormat format = content.getFormat ();
       switch(format) {
          case GRAYSCALE_ALPHA_BYTE_2:
-            if (gl instanceof GL3) {
+            if (gl.isGL3 ()) {
                glFormat = GL3.GL_RG;
                swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_GREEN};
-            } else if (gl instanceof GL2) {
+            } else if (gl.isGL2 ()) {
                glFormat = GL2.GL_LUMINANCE_ALPHA;
             }
             glType = GL.GL_UNSIGNED_BYTE;
             break;
          case GRAYSCALE_ALPHA_SHORT_2: 
-            if (gl instanceof GL3) {
+            if (gl.isGL3()) {
                glFormat = GL3.GL_RG;
                swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_GREEN};
-            } else if (gl instanceof GL2) {
+            } else if (gl.isGL2()) {
                glFormat = GL2.GL_LUMINANCE_ALPHA;
             }
             glType = GL.GL_UNSIGNED_SHORT;
             break;
          case GRAYSCALE_BYTE:
-            if (gl instanceof GL3) {
+            if (gl.isGL3()) {
                glFormat = GL3.GL_RED;
                swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_ALPHA};
-            } else if (gl instanceof GL2) {
+            } else if (gl.isGL2()) {
                glFormat = GL2.GL_LUMINANCE;
             }
             glType = GL.GL_UNSIGNED_BYTE;
             break;
          case GRAYSCALE_SHORT:
-            if (gl instanceof GL3) {
+            if (gl.isGL3()) {
                glFormat = GL3.GL_RED;
                swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_ALPHA};
-            } else if (gl instanceof GL2) {
+            } else if (gl.isGL2()) {
                glFormat = GL2.GL_LUMINANCE;
             }
             glType = GL.GL_UNSIGNED_SHORT;

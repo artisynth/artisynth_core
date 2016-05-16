@@ -23,13 +23,13 @@ import maspack.render.RenderObject;
 import maspack.render.RenderObjectFactory;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.Transrotator3d;
-import maspack.render.GL.GLViewer;
 import maspack.render.GL.test.MultiViewer.SimpleSelectable;
 import maspack.render.GL.test.MultiViewer.SimpleViewerApp;
 
@@ -369,23 +369,19 @@ public class MultiViewerTesterBase {
       @Override
       public void render(Renderer renderer, int flags) {
 
-         if (!(renderer instanceof GLViewer)) {
-            return;
-         }
-         GLViewer viewer = (GLViewer)renderer;
-
          renderer.setFaceStyle(props.getFaceStyle());
          renderer.setPropsShading (props);
          renderer.setFaceColoring (props, selected);
 
          if (trans != null) {
-            viewer.pushModelMatrix();
-            viewer.mulModelMatrix(trans);
+            renderer.pushModelMatrix();
+            renderer.mulModelMatrix(trans);
          }
 
+         ColorMixing vmix = renderer.getVertexColorMixing ();
          boolean enableVertexColoring = false;
-         if (selected && viewer.isVertexColoringEnabled()) {
-            viewer.setVertexColoringEnabled(false);
+         if (selected && vmix != ColorMixing.NONE) {
+            renderer.setVertexColorMixing (vmix);
             enableVertexColoring = true;
          }
 
@@ -405,9 +401,9 @@ public class MultiViewerTesterBase {
             if (lstyle == LineStyle.LINE) {
                if (didFlatDraw) {
                   dOffset += depthOffInc;
-                  viewer.setDepthOffset(dOffset);
+                  renderer.setDepthOffset(dOffset);
                }
-               viewer.setLineWidth(props.getLineWidth());
+               renderer.setLineWidth(props.getLineWidth());
                renderer.drawLines(myRO);
                didFlatDraw = true;
             } else {
@@ -422,7 +418,7 @@ public class MultiViewerTesterBase {
             if (pstyle == PointStyle.POINT) {
                if (didFlatDraw) {
                   dOffset += depthOffInc;
-                  viewer.setDepthOffset(dOffset);
+                  renderer.setDepthOffset(dOffset);
                }
                renderer.setPointSize(props.getPointSize());
                renderer.drawPoints(myRO);
@@ -433,15 +429,15 @@ public class MultiViewerTesterBase {
          }
 
          if (dOffset != 0) {
-            viewer.setDepthOffset(0);
+            renderer.setDepthOffset(0);
          }
 
          if (enableVertexColoring) {
-            viewer.setVertexColoringEnabled(true);
+            renderer.setVertexColorMixing (vmix);
          }
 
          if (trans != null) {
-            viewer.popModelMatrix();
+            renderer.popModelMatrix();
          }
       }
 

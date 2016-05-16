@@ -17,6 +17,14 @@ public class SortUtilitities {
          this.start = start;
          this.count = count;
       }
+      
+      @Override
+      public Integer set (int index, Integer element) {
+         int idx = index+start;
+         Integer old = idxs[idx];
+         idxs[idx] = element;
+         return old;
+      }
 
       @Override
       public Integer get (int index) {

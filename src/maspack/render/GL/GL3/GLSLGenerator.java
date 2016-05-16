@@ -65,6 +65,10 @@ public class GLSLGenerator {
       new StringIntPair("bump_map", 2)
    };
    
+   public static final StringIntPair[] UNIFORMS = {
+      new StringIntPair("selection_color", 0)
+   };
+   
    public static final StringIntPair[] UNIFORM_BLOCKS = {
        new StringIntPair("Materials", 0),
        new StringIntPair("Matrices", 1),
@@ -143,6 +147,9 @@ public class GLSLGenerator {
    //    Material front_material;
    //    Material back_material;
    // };
+   // 
+   // // per-object selection color
+   // uniform vec4 selection_color;
 
    //==========================================================
    // Program Inputs:
@@ -211,7 +218,9 @@ public class GLSLGenerator {
 
    private static void buildVertexShaderHeader(StringBuilder hb, GLProgramInfo info) {
       addVertexInfo(hb, info);
-      addVertexLighting(hb, info.getShading(), info.numLights());
+      if (!info.isSelecting ()) {
+         addVertexLighting(hb, info.getShading(), info.numLights());
+      }
       addVertexClipping(hb, info.numClipPlanes());
    }
 
@@ -256,13 +265,14 @@ public class GLSLGenerator {
       appendln(mb);
 
       RenderingMode mode = info.getMode();
+      boolean computeNormals = !info.isSelecting () && info.hasVertexNormals() && info.getShading() != Shading.NONE;
       
       // transform vertex using instance info
       switch (mode) {
          case INSTANCED_AFFINES:
             appendln(mb, "   // instance vertex, affine transform");
             appendln(mb, "   position = (instance_affine_matrix *  vec4(vertex_position, 1.0) ).xyz;");
-            if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
+            if (computeNormals) {
                appendln(mb, "   normal = (instance_normal_matrix *  vec4(vertex_normal, 0.0) ).xyz;");
             }
             appendln(mb);
@@ -270,7 +280,7 @@ public class GLSLGenerator {
          case INSTANCED_FRAMES:
             appendln(mb, "   // instance vertex, scale-rotate-translate");
             appendln(mb, "   position = qrot(instance_orientation, (instance_scale * vertex_position)) + instance_position;");
-            if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
+            if (computeNormals) {
                appendln(mb, "   normal = qrot(instance_orientation, vertex_normal);");
             }
             appendln(mb);
@@ -296,7 +306,7 @@ public class GLSLGenerator {
                appendln(mb, "   position = position + line_offset*u;");
             }
             
-            if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
+            if (computeNormals) {
                appendln(mb, "   // transform normal");
                appendln(mb, "   normal = vec3( vertex_normal.xy*line_length, vertex_normal.z*line_radius);");
                appendln(mb, "   normal = zrot(u, normal);");
@@ -313,14 +323,14 @@ public class GLSLGenerator {
          case INSTANCED_POINTS:
             appendln(mb, "   // instance vertex, scale-translate");
             appendln(mb, "   position = instance_scale * vertex_position + instance_position;");
-            if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
+            if (!info.isSelecting () && info.hasVertexNormals() && info.getShading() != Shading.NONE) {
                appendln(mb, "   normal = vertex_normal;");
             }
             break;
          case DEFAULT:
          case POINTS:
             appendln(mb, "   position = vertex_position;");
-            if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
+            if (computeNormals) {
                appendln(mb, "   normal = vertex_normal;");
             }
             break;
@@ -333,7 +343,7 @@ public class GLSLGenerator {
 
       // vertex colors
       ColorInterpolation cinterp = info.getColorInterpolation();
-      if (info.getVertexColorMixing () != ColorMixing.NONE) {
+      if (!info.isSelecting () && info.getVertexColorMixing () != ColorMixing.NONE) {
          switch (mode) {
             case INSTANCED_POINTS:
             case INSTANCED_FRAMES:
@@ -392,100 +402,102 @@ public class GLSLGenerator {
       }
       
       // do lighting computations
-      switch (info.getShading()) {
-         case FLAT:
-         //case GOURAUD:
-            if (info.numLights() > 0) {
-               appendln(mb, "   // per-vertex lighting computations");
-               appendln(mb, "   // compute camera position/normal");
-               appendln(mb, "   vec4 camera_position = vm_matrix * vec4(position, 1.0);");
-               if (info.hasVertexNormals()) {
-                  appendln(mb, "   vec4 camera_normal = normal_matrix * vec4(normal, 0.0);");
-               } else {
-                  appendln(mb, "   vec4 camera_normal = -camera_position;  // assume pointed at camera");
+      if (!info.isSelecting ()) {
+         switch (info.getShading()) {
+            case FLAT:
+            //case GOURAUD:
+               if (info.numLights() > 0) {
+                  appendln(mb, "   // per-vertex lighting computations");
+                  appendln(mb, "   // compute camera position/normal");
+                  appendln(mb, "   vec4 camera_position = vm_matrix * vec4(position, 1.0);");
+                  if (info.hasVertexNormals()) {
+                     appendln(mb, "   vec4 camera_normal = normal_matrix * vec4(normal, 0.0);");
+                  } else {
+                     appendln(mb, "   vec4 camera_normal = -camera_position;  // assume pointed at camera");
+                  }
+                  appendln(mb, "   vec3 nfront = normalize(camera_normal.xyz);");
+                  appendln(mb, "   vec3 nback = -nfront;");
+                  appendln(mb, "   vec3 eye = normalize(-camera_position.xyz);");
+                  appendln(mb, "   ");
+                  appendln(mb, "   // accumulated light colors");
+                  appendln(mb, "   vec3 fldiff = vec3(0.0);  // front");
+                  appendln(mb, "   vec3 flambi = vec3(0.0);");
+                  appendln(mb, "   vec3 flspec = vec3(0.0);");
+                  appendln(mb, "   vec3 bldiff = vec3(0.0);  // back");
+                  appendln(mb, "   vec3 blambi = vec3(0.0);");
+                  appendln(mb, "   vec3 blspec = vec3(0.0);");
+                  appendln(mb, "   ");
+                  appendln(mb, "   // lights");
+                  appendln(mb, "   for (int i=0; i<" + info.numLights() + "; ++i) {");
+                  appendln(mb, "      vec3  light_to_vertex = camera_position.xyz-light[i].position.xyz;");
+                  appendln(mb, "      float lightdist = length(light_to_vertex);");
+                  appendln(mb, "      light_to_vertex = light_to_vertex/lightdist;");                  
+                  appendln(mb, "      vec3 light_direction = normalize(light[i].direction.xyz);");
+                  appendln(mb, "      ");
+                  appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero if non-spotlight");
+                  appendln(mb, "      float coslimit = light[i].direction.w;");
+                  appendln(mb, "      if (coslimit > 0) {");
+                  appendln(mb, "         // check angle");
+                  appendln(mb, "         float coslight = dot(light_direction, light_to_vertex);");
+                  appendln(mb, "         if (coslight < coslimit) {");
+                  appendln(mb, "            spotatt = 0;");
+                  appendln(mb, "         } else {");
+                  appendln(mb, "            spotatt = pow(coslight, light[i].attenuation.w);");
+                  appendln(mb, "         }");
+                  appendln(mb, "      }");
+                  appendln(mb, "      ");
+                  appendln(mb, "      // distance attenuation doesn't affect directional lights");
+                  appendln(mb, "      float att = mix(1.0, 1.0 / (light[i].attenuation.x + light[i].attenuation.y*lightdist +");
+                  appendln(mb, "         light[i].attenuation.z*lightdist*lightdist), light[i].position.w);");
+                  appendln(mb, "      att *= spotatt;  // combine into a single attenuation parameter");
+                  appendln(mb, "      ");
+                  appendln(mb, "      // determine direction either from point or direction using direction indicator");
+                  appendln(mb, "      light_direction = mix(light_direction, light_to_vertex, light[i].position.w);");
+                  appendln(mb, "      vec2 ds = blinnPhongCoeffs( nfront, -light_direction, eye, front_material.specular.a);");
+                  appendln(mb, "      flambi += intensity_scale*light[i].ambient.rgb;");
+                  appendln(mb, "      fldiff += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
+                  appendln(mb, "      flspec += intensity_scale*att*ds.y*light[i].specular.rgb;");
+                  appendln(mb);
+                  appendln(mb, "      ds = blinnPhongCoeffs( nback, -light_direction, eye, back_material.specular.a);");
+                  appendln(mb, "      blambi += intensity_scale*light[i].ambient.rgb;");
+                  appendln(mb, "      bldiff += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
+                  appendln(mb, "      blspec += intensity_scale*att*ds.y*light[i].specular.rgb;");
+                  appendln(mb, "   }");
+                  appendln(mb, "   ");
+                  appendln(mb, "   // accumulate");
+                  appendln(mb, "   lightOut.front_ambient  = flambi;");
+                  appendln(mb, "   lightOut.front_diffuse  = fldiff;");
+                  appendln(mb, "   lightOut.front_specular = flspec;");
+                  appendln(mb, "   lightOut.back_ambient   = blambi;");
+                  appendln(mb, "   lightOut.back_diffuse   = bldiff;");
+                  appendln(mb, "   lightOut.back_specular  = blspec;");
+                  appendln(mb);
                }
-               appendln(mb, "   vec3 nfront = normalize(camera_normal.xyz);");
-               appendln(mb, "   vec3 nback = -nfront;");
-               appendln(mb, "   vec3 eye = normalize(-camera_position.xyz);");
-               appendln(mb, "   ");
-               appendln(mb, "   // accumulated light colors");
-               appendln(mb, "   vec3 fldiff = vec3(0.0);  // front");
-               appendln(mb, "   vec3 flambi = vec3(0.0);");
-               appendln(mb, "   vec3 flspec = vec3(0.0);");
-               appendln(mb, "   vec3 bldiff = vec3(0.0);  // back");
-               appendln(mb, "   vec3 blambi = vec3(0.0);");
-               appendln(mb, "   vec3 blspec = vec3(0.0);");
-               appendln(mb, "   ");
-               appendln(mb, "   // lights");
-               appendln(mb, "   for (int i=0; i<" + info.numLights() + "; ++i) {");
-               appendln(mb, "      vec3  light_to_vertex = camera_position.xyz-light[i].position.xyz;");
-               appendln(mb, "      float lightdist = length(light_to_vertex);");
-               appendln(mb, "      light_to_vertex = light_to_vertex/lightdist;");                  
-               appendln(mb, "      vec3 light_direction = normalize(light[i].direction.xyz);");
-               appendln(mb, "      ");
-               appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero if non-spotlight");
-               appendln(mb, "      float coslimit = light[i].direction.w;");
-               appendln(mb, "      if (coslimit > 0) {");
-               appendln(mb, "         // check angle");
-               appendln(mb, "         float coslight = dot(light_direction, light_to_vertex);");
-               appendln(mb, "         if (coslight < coslimit) {");
-               appendln(mb, "            spotatt = 0;");
-               appendln(mb, "         } else {");
-               appendln(mb, "            spotatt = pow(coslight, light[i].attenuation.w);");
-               appendln(mb, "         }");
-               appendln(mb, "      }");
-               appendln(mb, "      ");
-               appendln(mb, "      // distance attenuation doesn't affect directional lights");
-               appendln(mb, "      float att = mix(1.0, 1.0 / (light[i].attenuation.x + light[i].attenuation.y*lightdist +");
-               appendln(mb, "         light[i].attenuation.z*lightdist*lightdist), light[i].position.w);");
-               appendln(mb, "      att *= spotatt;  // combine into a single attenuation parameter");
-               appendln(mb, "      ");
-               appendln(mb, "      // determine direction either from point or direction using direction indicator");
-               appendln(mb, "      light_direction = mix(light_direction, light_to_vertex, light[i].position.w);");
-               appendln(mb, "      vec2 ds = blinnPhongCoeffs( nfront, -light_direction, eye, front_material.specular.a);");
-               appendln(mb, "      flambi += intensity_scale*light[i].ambient.rgb;");
-               appendln(mb, "      fldiff += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
-               appendln(mb, "      flspec += intensity_scale*att*ds.y*light[i].specular.rgb;");
-               appendln(mb);
-               appendln(mb, "      ds = blinnPhongCoeffs( nback, -light_direction, eye, back_material.specular.a);");
-               appendln(mb, "      blambi += intensity_scale*light[i].ambient.rgb;");
-               appendln(mb, "      bldiff += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
-               appendln(mb, "      blspec += intensity_scale*att*ds.y*light[i].specular.rgb;");
-               appendln(mb, "   }");
-               appendln(mb, "   ");
-               appendln(mb, "   // accumulate");
-               appendln(mb, "   lightOut.front_ambient  = flambi;");
-               appendln(mb, "   lightOut.front_diffuse  = fldiff;");
-               appendln(mb, "   lightOut.front_specular = flspec;");
-               appendln(mb, "   lightOut.back_ambient   = blambi;");
-               appendln(mb, "   lightOut.back_diffuse   = bldiff;");
-               appendln(mb, "   lightOut.back_specular  = blspec;");
-               appendln(mb);
-            }
-            break;
-         case SMOOTH:
-         case METAL:
-            // forward along direction information for vertices
-            if (info.numLights() > 0) {
-               appendln(mb, "   // per-fragment lighting info, vertex normal and eye directions");
-               appendln(mb, "   vec4 camera_position = vm_matrix * vec4(position, 1.0);");
-               if (info.hasVertexNormals()) {
-                  appendln(mb, "   vec4 camera_normal = normal_matrix * vec4(normal, 0.0);");
-               } else {
-                  appendln(mb, "   vec4 camera_normal = -camera_position;  // assume pointed at camera");
+               break;
+            case SMOOTH:
+            case METAL:
+               // forward along direction information for vertices
+               if (info.numLights() > 0) {
+                  appendln(mb, "   // per-fragment lighting info, vertex normal and eye directions");
+                  appendln(mb, "   vec4 camera_position = vm_matrix * vec4(position, 1.0);");
+                  if (info.hasVertexNormals()) {
+                     appendln(mb, "   vec4 camera_normal = normal_matrix * vec4(normal, 0.0);");
+                  } else {
+                     appendln(mb, "   vec4 camera_normal = -camera_position;  // assume pointed at camera");
+                  }
+                  appendln(mb, "   surfOut.normal = normalize(camera_normal.xyz);");
+                  appendln(mb, "   surfOut.to_eye = -camera_position.xyz;");
+                  appendln(mb, "");
                }
-               appendln(mb, "   surfOut.normal = normalize(camera_normal.xyz);");
-               appendln(mb, "   surfOut.to_eye = -camera_position.xyz;");
-               appendln(mb, "");
-            }
-            break;
-         case NONE:
-            break;
-
+               break;
+            case NONE:
+               break;
+   
+         }
       }
       
       // textures
-      if (info.hasVertexTextures()) {
+      if (!info.isSelecting () && info.hasVertexTextures()) {
          appendln(mb, "   // forward vertex texture coordinates");
          appendln(mb, "   textureOut.texcoord = (texture_matrix*vec4(vertex_texcoord, 0, 1)).xy;");
          appendln(mb);
@@ -536,13 +548,13 @@ public class GLSLGenerator {
       
       appendln(hb, "// vertex inputs");
       appendln(hb, "in vec3 vertex_position;");
-      if (info.hasVertexNormals() && info.getShading() != Shading.NONE) {
+      if (!info.isSelecting () && info.hasVertexNormals() && info.getShading() != Shading.NONE) {
          appendln(hb, "in vec3 vertex_normal;");
       }
-      if (info.hasVertexColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
+      if (!info.isSelecting () && info.hasVertexColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
          appendln(hb, "in vec4 vertex_color;");
       }
-      if (info.hasVertexTextures()) {
+      if (!info.isSelecting () && info.hasVertexTextures()) {
          appendln(hb, "in vec2 vertex_texcoord;");
       }
       
@@ -552,7 +564,7 @@ public class GLSLGenerator {
             appendln(hb, "// instance inputs");
             appendln(hb, "in float instance_scale;");
             appendln(hb, "in vec3  instance_position;"); 
-            if (info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
+            if (!info.isSelecting () && info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }
             break;
@@ -560,7 +572,7 @@ public class GLSLGenerator {
             appendln(hb);
             appendln(hb, "// instance inputs");
             appendln(hb, "in vec3  instance_position;");
-            if (info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
+            if (!info.isSelecting () && info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }
             appendln(hb, "in float instance_scale;");
@@ -572,7 +584,7 @@ public class GLSLGenerator {
             appendln(hb, "in float instance_scale;");
             appendln(hb, "in mat4  instance_affine_matrix;");
             appendln(hb, "in vec4  instance_normal_matrix;"); 
-            if (info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
+            if (!info.isSelecting () && info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }
             break;
@@ -586,7 +598,7 @@ public class GLSLGenerator {
                appendln(hb, "in vec4  line_bottom_scale_offset;");
                appendln(hb, "in vec4  line_top_scale_offset;");
             }
-            if (info.hasLineColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
+            if (!info.isSelecting () && info.hasLineColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  line_bottom_color;");
                appendln(hb, "in vec4  line_top_color;");
             }
@@ -601,14 +613,15 @@ public class GLSLGenerator {
    private static void addVertexOutputs(StringBuilder hb, GLProgramInfo info) {
       
       RenderingMode instanced = info.getMode();
-      boolean hasColors = (info.getVertexColorMixing () != ColorMixing.NONE)
+      boolean hasColors = (!info.isSelecting ()) 
+                          && (info.getVertexColorMixing () != ColorMixing.NONE)
                           && (info.hasVertexColors()
                              || ((instanced == RenderingMode.INSTANCED_POINTS 
                                   || instanced == RenderingMode.INSTANCED_FRAMES
                                   || instanced == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
                              || (instanced == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
       
-      boolean hasTextures = info.hasVertexTextures();
+      boolean hasTextures = !info.isSelecting () && info.hasVertexTextures();
       
       if (hasColors) {
          appendln(hb, "// per-vertex color info");
@@ -827,7 +840,9 @@ public class GLSLGenerator {
 
    private static void buildFragmentShaderHeader(StringBuilder hb, GLProgramInfo info) {
       addFragmentInfo(hb, info);
-      addFragmentLighting(hb, info.getShading(), info.numLights());
+      if (!info.isSelecting ()) {
+         addFragmentLighting(hb, info.getShading(), info.numLights());
+      }
    }
 
    private static void addFragmentInfo(StringBuilder hb, GLProgramInfo info) {
@@ -836,15 +851,21 @@ public class GLSLGenerator {
       appendln(hb, "out vec4 fragment_color;");
       appendln(hb);
       
+      if (info.isSelecting ()) {
+         appendln(hb, "uniform vec4 selection_color;  // fragment color for selection");
+         appendln(hb);
+      }
+      
       RenderingMode instanced = info.getMode();
-      boolean hasColors = (info.getVertexColorMixing () != ColorMixing.NONE)
+      boolean hasColors = !info.isSelecting () 
+         && (info.getVertexColorMixing () != ColorMixing.NONE)
          && (info.hasVertexColors()
             || ((instanced == RenderingMode.INSTANCED_POINTS 
                  || instanced == RenderingMode.INSTANCED_FRAMES
                  || instanced == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
             || (instanced == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
 
-      boolean hasTextures = info.hasVertexTextures();
+      boolean hasTextures = !info.isSelecting () && info.hasVertexTextures();
       
       if (hasColors) {
          appendln(hb, "// fragment colors from previous shader");
@@ -1032,20 +1053,22 @@ public class GLSLGenerator {
    
    private static void buildFragmentShaderFunctions(StringBuilder fb, GLProgramInfo info) {
 
-      if (hasFragmentLighting (info.getShading ())) {
-         addBlinnPhong(fb);
-      }
+      if (!info.isSelecting ()) {
+         if (hasFragmentLighting (info.getShading ())) {
+            addBlinnPhong(fb);
+         }
 
-      if (info.getColorInterpolation() == ColorInterpolation.HSV) {
-         addHSVtoRGB(fb);
-      }
-      
-      if (hasFragmentLighting (info.getShading ()) && info.hasNormalMap ()) {
-         addNormalPerturbation(fb);
-      }
-      
-      if (hasFragmentLighting (info.getShading ()) && info.hasBumpMap ()) {
-         addBumpPerturbation(fb);
+         if (info.getColorInterpolation() == ColorInterpolation.HSV) {
+            addHSVtoRGB(fb);
+         }
+
+         if (hasFragmentLighting (info.getShading ()) && info.hasNormalMap ()) {
+            addNormalPerturbation(fb);
+         }
+
+         if (hasFragmentLighting (info.getShading ()) && info.hasBumpMap ()) {
+            addBumpPerturbation(fb);
+         }
       }
 
    }
@@ -1071,224 +1094,229 @@ public class GLSLGenerator {
       
       // do lighting computations
       boolean lights = false;
-      if (info.getShading() != Shading.NONE && info.numLights() > 0) {
-         
-         lights = true;
-         appendln(mb, "   vec3 ambient, diffuse, specular, emission;");
-         appendln(mb, "   Material material;");
-         switch (info.getShading()) {
-            case FLAT:
-            //case GOURAUD:
-                  appendln(mb, "   // imported per-vertex lighting");
-                  appendln(mb, "   if( gl_FrontFacing ) {");
-                  appendln(mb, "      ambient  = lightIn.front_ambient;");
-                  appendln(mb, "      diffuse  = lightIn.front_diffuse;");
-                  appendln(mb, "      specular = lightIn.front_specular;");
-                  appendln(mb, "      material = front_material;");
-                  appendln(mb, "   } else {");
-                  appendln(mb, "      diffuse  = lightIn.back_diffuse;");
-                  appendln(mb, "      ambient  = lightIn.back_ambient;");
-                  appendln(mb, "      specular = lightIn.back_specular;");
-                  appendln(mb, "      material = back_material;");
-                  appendln(mb, "   }");
-                  appendln(mb);
+      if (!info.isSelecting ()) {
+         if (info.getShading() != Shading.NONE && info.numLights() > 0) {
+            
+            lights = true;
+            appendln(mb, "   vec3 ambient, diffuse, specular, emission;");
+            appendln(mb, "   Material material;");
+            switch (info.getShading()) {
+               case FLAT:
+               //case GOURAUD:
+                     appendln(mb, "   // imported per-vertex lighting");
+                     appendln(mb, "   if( gl_FrontFacing ) {");
+                     appendln(mb, "      ambient  = lightIn.front_ambient;");
+                     appendln(mb, "      diffuse  = lightIn.front_diffuse;");
+                     appendln(mb, "      specular = lightIn.front_specular;");
+                     appendln(mb, "      material = front_material;");
+                     appendln(mb, "   } else {");
+                     appendln(mb, "      diffuse  = lightIn.back_diffuse;");
+                     appendln(mb, "      ambient  = lightIn.back_ambient;");
+                     appendln(mb, "      specular = lightIn.back_specular;");
+                     appendln(mb, "      material = back_material;");
+                     appendln(mb, "   }");
+                     appendln(mb);
+                     break;
+               case SMOOTH:
+               case METAL:
+                     appendln(mb, "   // fragment normal and eye location for lighting");
+                     
+                     if (!info.hasVertexNormals ()) {
+                        appendln(mb, "   // compute normal using derivatives");
+                        appendln(mb, "   vec3 deyedx = dFdx(surfIn.to_eye);");
+                        appendln(mb, "   vec3 deyedy = dFdy(surfIn.to_eye);");
+                        appendln(mb, "   vec3 normal = normalize( cross( deyedx, deyedy ) );");
+                     } else {
+                        appendln(mb, "   vec3 normal = normalize(surfIn.normal);");
+                     }
+                     appendln(mb, "   vec3 eye = normalize(surfIn.to_eye);");
+                     appendln(mb, "   ");
+                     if (hasTextures) {
+                        if (info.hasNormalMap()) {
+                           appendln(mb, "   // normal-map purturbation");
+                           appendln(mb, "   normal = perturbNormal(-surfIn.to_eye, normal);");
+                           appendln(mb, "   ");
+                        }
+                        if (info.hasBumpMap()) {
+                           appendln(mb, "   // bump-map normal purturbation");
+                           appendln(mb, "   normal = perturbNormalBump(-surfIn.to_eye, normal, computedHdxy());");
+                           appendln(mb, "   ");
+                        }
+                     }
+                     appendln(mb, "   // choose material based on face orientation");
+                     appendln(mb, "   if (gl_FrontFacing) {");
+                     appendln(mb, "      material = front_material;");
+                     appendln(mb, "   } else {");
+                     appendln(mb, "      material = back_material;");
+                     appendln(mb, "      normal = -normal;  // flip fragment normal");
+                     appendln(mb, "   }");
+                     appendln(mb, "   ");
+                     
+                     appendln(mb, "   // per-fragment lighting computations");
+                     appendln(mb, "   for (int i=0; i<" + info.numLights() + "; ++i) {");
+                     appendln(mb, "      vec3 light_to_vertex = -surfIn.to_eye-light[i].position.xyz;");
+                     appendln(mb, "      float lightdist = length(light_to_vertex);");
+                     appendln(mb, "      light_to_vertex = normalize(light_to_vertex);");                  
+                     appendln(mb, "      // determine direction either from point or direction using direction indicator");
+                     appendln(mb, "      vec3 light_direction = normalize(light[i].direction.xyz);");
+                     appendln(mb, "      ");
+                     appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero if non-spotlight");
+                     appendln(mb, "      float coslimit = light[i].direction.w;");
+                     appendln(mb, "      if (coslimit > 0) {");
+                     appendln(mb, "         // check angle");
+                     appendln(mb, "         float coslight = dot(light_direction, light_to_vertex);");
+                     appendln(mb, "         if (coslight < coslimit) {");
+                     appendln(mb, "            spotatt = 0;");
+                     appendln(mb, "         } else {");
+                     appendln(mb, "            spotatt = pow(coslight, light[i].attenuation.w);");
+                     appendln(mb, "         }");
+                     appendln(mb, "      }");
+                     appendln(mb, "      ");
+                     appendln(mb, "      // distance attenuation doesn't affect directional lights");
+                     appendln(mb, "      float att = mix(1.0, 1.0 / (light[i].attenuation.x + light[i].attenuation.y*lightdist +");
+                     appendln(mb, "         light[i].attenuation.z*lightdist*lightdist), light[i].position.w);");
+                     appendln(mb, "      att *= spotatt;  // combine into a single attenuation parameter");
+                     appendln(mb, "      ");
+                     appendln(mb, "      // position vs directional light");
+                     appendln(mb, "      light_direction = mix(light_direction, light_to_vertex, light[i].position.w);");
+                     appendln(mb, "      vec2 ds = blinnPhongCoeffs( normal, -light_direction, eye, material.specular.a);");
+                     appendln(mb, "      ambient  += intensity_scale*light[i].ambient.rgb;");
+                     appendln(mb, "      diffuse  += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
+                     appendln(mb, "      specular += intensity_scale*att*ds.y*light[i].specular.rgb;");
+                     appendln(mb, "      ");
+                     appendln(mb, "   }");
+                     appendln(mb, "   ");
                   break;
-            case SMOOTH:
-            case METAL:
-                  appendln(mb, "   // fragment normal and eye location for lighting");
-                  
-                  if (!info.hasVertexNormals ()) {
-                     appendln(mb, "   // compute normal using derivatives");
-                     appendln(mb, "   vec3 deyedx = dFdx(surfIn.to_eye);");
-                     appendln(mb, "   vec3 deyedy = dFdy(surfIn.to_eye);");
-                     appendln(mb, "   vec3 normal = normalize( cross( deyedx, deyedy ) );");
-                  } else {
-                     appendln(mb, "   vec3 normal = normalize(surfIn.normal);");
-                  }
-                  appendln(mb, "   vec3 eye = normalize(surfIn.to_eye);");
-                  appendln(mb, "   ");
-                  if (hasTextures) {
-                     if (info.hasNormalMap()) {
-                        appendln(mb, "   // normal-map purturbation");
-                        appendln(mb, "   normal = perturbNormal(-surfIn.to_eye, normal);");
-                        appendln(mb, "   ");
-                     }
-                     if (info.hasBumpMap()) {
-                        appendln(mb, "   // bump-map normal purturbation");
-                        appendln(mb, "   normal = perturbNormalBump(-surfIn.to_eye, normal, computedHdxy());");
-                        appendln(mb, "   ");
-                     }
-                  }
-                  appendln(mb, "   // choose material based on face orientation");
-                  appendln(mb, "   if (gl_FrontFacing) {");
-                  appendln(mb, "      material = front_material;");
-                  appendln(mb, "   } else {");
-                  appendln(mb, "      material = back_material;");
-                  appendln(mb, "      normal = -normal;  // flip fragment normal");
-                  appendln(mb, "   }");
-                  appendln(mb, "   ");
-                  
-                  appendln(mb, "   // per-fragment lighting computations");
-                  appendln(mb, "   for (int i=0; i<" + info.numLights() + "; ++i) {");
-                  appendln(mb, "      vec3 light_to_vertex = -surfIn.to_eye-light[i].position.xyz;");
-                  appendln(mb, "      float lightdist = length(light_to_vertex);");
-                  appendln(mb, "      light_to_vertex = normalize(light_to_vertex);");                  
-                  appendln(mb, "      // determine direction either from point or direction using direction indicator");
-                  appendln(mb, "      vec3 light_direction = normalize(light[i].direction.xyz);");
-                  appendln(mb, "      ");
-                  appendln(mb, "      float spotatt = 1.0;  // spot attentuation initially zero if non-spotlight");
-                  appendln(mb, "      float coslimit = light[i].direction.w;");
-                  appendln(mb, "      if (coslimit > 0) {");
-                  appendln(mb, "         // check angle");
-                  appendln(mb, "         float coslight = dot(light_direction, light_to_vertex);");
-                  appendln(mb, "         if (coslight < coslimit) {");
-                  appendln(mb, "            spotatt = 0;");
-                  appendln(mb, "         } else {");
-                  appendln(mb, "            spotatt = pow(coslight, light[i].attenuation.w);");
-                  appendln(mb, "         }");
-                  appendln(mb, "      }");
-                  appendln(mb, "      ");
-                  appendln(mb, "      // distance attenuation doesn't affect directional lights");
-                  appendln(mb, "      float att = mix(1.0, 1.0 / (light[i].attenuation.x + light[i].attenuation.y*lightdist +");
-                  appendln(mb, "         light[i].attenuation.z*lightdist*lightdist), light[i].position.w);");
-                  appendln(mb, "      att *= spotatt;  // combine into a single attenuation parameter");
-                  appendln(mb, "      ");
-                  appendln(mb, "      // position vs directional light");
-                  appendln(mb, "      light_direction = mix(light_direction, light_to_vertex, light[i].position.w);");
-                  appendln(mb, "      vec2 ds = blinnPhongCoeffs( normal, -light_direction, eye, material.specular.a);");
-                  appendln(mb, "      ambient  += intensity_scale*light[i].ambient.rgb;");
-                  appendln(mb, "      diffuse  += intensity_scale*att*ds.x*light[i].diffuse.rgb;");
-                  appendln(mb, "      specular += intensity_scale*att*ds.y*light[i].specular.rgb;");
-                  appendln(mb, "      ");
-                  appendln(mb, "   }");
-                  appendln(mb, "   ");
-               break;
-            case NONE:
-               // never here
-               break;
-         }
-      } else {
-         appendln(mb, "   // material to use;");
-         appendln(mb, "   Material material;");
-         appendln(mb, "   if( gl_FrontFacing ) {");
-         appendln(mb, "      material = front_material;");
-         appendln(mb, "   } else {");
-         appendln(mb, "      material = back_material;");
-         appendln(mb, "   }");
-      }
-      
-      // combine colors
-      boolean hasFragmentColors = (info.getVertexColorMixing () != ColorMixing.NONE)
-         && (info.hasVertexColors()
-            || ((mode == RenderingMode.INSTANCED_POINTS 
-                 || mode == RenderingMode.INSTANCED_FRAMES
-                 || mode == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
-            || (mode == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
-
-      appendln(mb, "   // compute final color, starting with material");
-      appendln(mb, "   vec4 fdiffuse = material.diffuse;");
-      appendln(mb, "   vec3 fspecular = material.specular.rgb;");
-      appendln(mb, "   vec3 femission = material.emission.rgb;");
-      appendln(mb);
-      
-      if (hasFragmentColors) {
-         // mix colors
-         appendln(mb, "   // incoming vertex color");
-         if (cinterp == ColorInterpolation.HSV) {
-            appendln(mb, "   vec4 vcolor = hsva2rgba(colorIn.diffuse);");
+               case NONE:
+                  // never here
+                  break;
+            }
          } else {
-            appendln(mb, "   vec4 vcolor = colorIn.diffuse;");
+            appendln(mb, "   // material to use;");
+            appendln(mb, "   Material material;");
+            appendln(mb, "   if( gl_FrontFacing ) {");
+            appendln(mb, "      material = front_material;");
+            appendln(mb, "   } else {");
+            appendln(mb, "      material = back_material;");
+            appendln(mb, "   }");
          }
-         appendln(mb, "   // mix");
-         ColorMixing cmix = info.getVertexColorMixing();
-         switch (cmix) {
-            case DECAL:
-               if (info.isMixVertexColorDiffuse ()) {
-                  appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse.rgb,vcolor.rgb,vcolor.a), fdiffuse.a); // decal");
-               }
-               if (info.isMixVertexColorSpecular ()) {
-                  appendln(mb, "   fspecular = mix(fspecular,vcolor.rgb,vcolor.a); // decal");
-               }
-               if (info.isMixVertexColorEmission ()) {
-                  appendln(mb, "   femission = mix(femission,vcolor.rgb,vcolor.a); // decal");
-               }
-               break;
-            case MODULATE:
-               if (info.isMixVertexColorDiffuse ()) {
-                  appendln(mb, "   fdiffuse  = fdiffuse*vcolor;      // modulate");
-               }
-               if (info.isMixVertexColorSpecular ()) {
-                  appendln(mb, "   fspecular = fspecular*vcolor.rgb; // modulate");
-               }
-               if (info.isMixVertexColorEmission ()) {
-                  appendln(mb, "   femission = femission*vcolor.rgb; // modulate");
-               }
-               break;
-            case REPLACE:
-               if (info.isMixVertexColorDiffuse ()) {
-                  appendln(mb, "   fdiffuse  = vcolor;     // replace");
-               }
-               if (info.isMixVertexColorSpecular ()) {
-                  appendln(mb, "   fspecular = vcolor.rgb; // replace");
-               }
-               if (info.isMixVertexColorEmission ()) {
-                  appendln(mb, "   femission = vcolor.rgb; // replace");
-               }
-               break;
-            case NONE:
-               appendln(mb, "   // vcolor ignored");
-            default:
-         }
-      }
+         
+         // combine colors
+         boolean hasFragmentColors = (info.getVertexColorMixing () != ColorMixing.NONE)
+            && (info.hasVertexColors()
+               || ((mode == RenderingMode.INSTANCED_POINTS 
+                    || mode == RenderingMode.INSTANCED_FRAMES
+                    || mode == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
+               || (mode == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
 
-      if (hasTextures && info.hasColorMap ()) {
-         appendln(mb, "   // grab texture color and mix");
-         appendln(mb, "   vec4 texture_color = texture( color_map, textureIn.texcoord );");
-         ColorMixing cmix = info.getTextureColorMixing();
-         switch (cmix) {
-            case DECAL:
-               if (info.isMixTextureColorDiffuse ()) {
-                  appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse.rgb,texture_color.rgb,texture_color.a), fdiffuse.a); // decal");
-               }
-               if (info.isMixTextureColorSpecular ()) {
-                  appendln(mb, "   fspecular = mix(fspecular,texture_color.rgb,texture_color.a); // decal");
-               }
-               if (info.isMixTextureColorEmission ()) {
-                  appendln(mb, "   femission = mix(femission,texture_color.rgb,texture_color.a); // decal");
-               }
-               break;
-            case MODULATE:
-               if (info.isMixTextureColorDiffuse ()) {
-                  appendln(mb, "   fdiffuse  = fdiffuse*texture_color;      // modulate");
-               }
-               if (info.isMixTextureColorSpecular ()) {
-                  appendln(mb, "   fspecular = fspecular*texture_color.rgb; // modulate");
-               }
-               if (info.isMixTextureColorDiffuse ()) {
-                  appendln(mb, "   femission = femission*texture_color.rgb; // modulate");
-               }
-               break;
-            case REPLACE:
-               if (info.isMixTextureColorDiffuse ()) {
-                  appendln(mb, "   fdiffuse  = texture_color;     // replace");
-               }
-               if (info.isMixTextureColorSpecular ()) {
-                  appendln(mb, "   fspecular = texture_color.rgb; // replace");
-               }
-               if (info.isMixTextureColorDiffuse ()) {
-                  appendln(mb, "   femission = texture_color.rgb; // replace");
-               }
-               break;
-            case NONE:
-               appendln(mb, "   // texture_color ignored");
-               break;
-            default:
-         }
+         appendln(mb, "   // compute final color, starting with material");
+         appendln(mb, "   vec4 fdiffuse = material.diffuse;");
+         appendln(mb, "   vec3 fspecular = material.specular.rgb;");
+         appendln(mb, "   vec3 femission = material.emission.rgb;");
          appendln(mb);
+         
+         if (hasFragmentColors) {
+            // mix colors
+            appendln(mb, "   // incoming vertex color");
+            if (cinterp == ColorInterpolation.HSV) {
+               appendln(mb, "   vec4 vcolor = hsva2rgba(colorIn.diffuse);");
+            } else {
+               appendln(mb, "   vec4 vcolor = colorIn.diffuse;");
+            }
+            appendln(mb, "   // mix");
+            ColorMixing cmix = info.getVertexColorMixing();
+            switch (cmix) {
+               case DECAL:
+                  if (info.isMixVertexColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse.rgb,vcolor.rgb,vcolor.a), fdiffuse.a); // decal");
+                  }
+                  if (info.isMixVertexColorSpecular ()) {
+                     appendln(mb, "   fspecular = mix(fspecular,vcolor.rgb,vcolor.a); // decal");
+                  }
+                  if (info.isMixVertexColorEmission ()) {
+                     appendln(mb, "   femission = mix(femission,vcolor.rgb,vcolor.a); // decal");
+                  }
+                  break;
+               case MODULATE:
+                  if (info.isMixVertexColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = fdiffuse*vcolor;      // modulate");
+                  }
+                  if (info.isMixVertexColorSpecular ()) {
+                     appendln(mb, "   fspecular = fspecular*vcolor.rgb; // modulate");
+                  }
+                  if (info.isMixVertexColorEmission ()) {
+                     appendln(mb, "   femission = femission*vcolor.rgb; // modulate");
+                  }
+                  break;
+               case REPLACE:
+                  if (info.isMixVertexColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = vcolor;     // replace");
+                  }
+                  if (info.isMixVertexColorSpecular ()) {
+                     appendln(mb, "   fspecular = vcolor.rgb; // replace");
+                  }
+                  if (info.isMixVertexColorEmission ()) {
+                     appendln(mb, "   femission = vcolor.rgb; // replace");
+                  }
+                  break;
+               case NONE:
+                  appendln(mb, "   // vcolor ignored");
+               default:
+            }
+         }
+
+         if (hasTextures && info.hasColorMap ()) {
+            appendln(mb, "   // grab texture color and mix");
+            appendln(mb, "   vec4 texture_color = texture( color_map, textureIn.texcoord );");
+            ColorMixing cmix = info.getTextureColorMixing();
+            switch (cmix) {
+               case DECAL:
+                  if (info.isMixTextureColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = vec4(mix(fdiffuse.rgb,texture_color.rgb,texture_color.a), fdiffuse.a); // decal");
+                  }
+                  if (info.isMixTextureColorSpecular ()) {
+                     appendln(mb, "   fspecular = mix(fspecular,texture_color.rgb,texture_color.a); // decal");
+                  }
+                  if (info.isMixTextureColorEmission ()) {
+                     appendln(mb, "   femission = mix(femission,texture_color.rgb,texture_color.a); // decal");
+                  }
+                  break;
+               case MODULATE:
+                  if (info.isMixTextureColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = fdiffuse*texture_color;      // modulate");
+                  }
+                  if (info.isMixTextureColorSpecular ()) {
+                     appendln(mb, "   fspecular = fspecular*texture_color.rgb; // modulate");
+                  }
+                  if (info.isMixTextureColorDiffuse ()) {
+                     appendln(mb, "   femission = femission*texture_color.rgb; // modulate");
+                  }
+                  break;
+               case REPLACE:
+                  if (info.isMixTextureColorDiffuse ()) {
+                     appendln(mb, "   fdiffuse  = texture_color;     // replace");
+                  }
+                  if (info.isMixTextureColorSpecular ()) {
+                     appendln(mb, "   fspecular = texture_color.rgb; // replace");
+                  }
+                  if (info.isMixTextureColorDiffuse ()) {
+                     appendln(mb, "   femission = texture_color.rgb; // replace");
+                  }
+                  break;
+               case NONE:
+                  appendln(mb, "   // texture_color ignored");
+                  break;
+               default:
+            }
+            appendln(mb);
+         }
       }
-   
+      
+      
       // lighting
-      if (lights) {
+      if (info.isSelecting ()) {
+         appendln(mb, "   fragment_color = selection_color;");
+      } else if (lights) {
          appendln(mb, "   // apply lighting");
          appendln(mb, "   ambient  = fdiffuse.rgb*ambient*material.power.x;");
          appendln(mb, "   diffuse  = fdiffuse.rgb*diffuse*material.power.y;");

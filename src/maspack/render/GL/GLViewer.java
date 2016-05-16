@@ -73,8 +73,8 @@ import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionFilter;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
-import maspack.util.InternalErrorException;
 import maspack.util.FunctionTimer;
+import maspack.util.InternalErrorException;
 
 /**
  * @author John E Lloyd and ArtiSynth team members
@@ -85,6 +85,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public enum GLVersion {
       GL2, GL3
    }
+   
+   // Disposal
+   GLGarbageBin<GLResource> myGLGarbageBin;
 
    // More control over blending
    public static enum BlendFactor {
@@ -158,7 +161,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected ViewState myViewState = null;
    protected LinkedList<ViewState> viewStateStack = null;
    protected ViewerState myCommittedViewerState = null;    // "committed" viewer state
-   boolean myMultiSampleEnabled = false;
+   
+   private static final int DEFAULT_MULTISAMPLES = 8;
 
    // Bits to indicate when state variables have been set to non-default values
    static private final int BACK_COLOR_BIT = 0x0001;
@@ -298,7 +302,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected ProjectionFrustrum myFrustum = null;
    LinkedList<ProjectionFrustrum> frustrumStack = null;
 
-   protected boolean resetViewVolume = false;
+   protected boolean resetViewVolume = false;  // adjusting view volume based on screen width/height
+   protected boolean resetViewport = false;
 
    public static final double AUTO_FIT = -1.0; // generic value to trigger an auto-fit
 
@@ -316,7 +321,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected RotationMode myRotationMode = DEFAULT_ROTATION_MODE;
 
    // enable or disable viewier re-scaling (disable when taking movie)
-   protected boolean resizeEnabled = true;
+   protected boolean autoResizeEnabled = true;
+   protected boolean autoViewportEnabled = true;
 
    // program info
    protected GLLightManager lightManager = null;         
@@ -336,14 +342,24 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected float DEFAULT_MATERIAL_SHININESS = 32f;
    
    protected float[] myHighlightColor = Arrays.copyOf (DEFAULT_HIGHLIGHT_COLOR, 4);
-   protected boolean myHighlightColorActive = false;
+   protected boolean myHighlightColorModified = true;
    protected HighlightStyle myHighlightStyle = HighlightStyle.COLOR;
+   
    protected float[] mySelectingColor = Arrays.copyOf (DEFAULT_SELECTING_COLOR, 4); // color to use when selecting (color selection)
+   protected boolean mySelectingColorModified = true;
    
    protected Material myCurrentMaterial = Material.createDiffuse(DEFAULT_MATERIAL_COLOR, 32f);
    protected float[] myBackColor = null;
    protected boolean myCurrentMaterialModified = true;  // trigger for detecting when material is updated
    protected float[] backgroundColor = Arrays.copyOf (DEFAULT_BACKGROUND_COLOR, 4);
+   
+   protected static enum ActiveColor {
+      DEFAULT,
+      HIGHLIGHT,
+      SELECTING
+   }
+   protected ActiveColor myActiveColor = ActiveColor.DEFAULT;     // which front color is currently active
+   protected ActiveColor myCommittedColor = null;  // color actually pushed to GPU
    
    // texture properties
    protected ColorMapProps myColorMapProps = null;
@@ -719,12 +735,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * visible through the viewport
     */
    protected void setPick (double x, double y, double w, double h, boolean ignoreDepthTest) {
-
       if (ignoreDepthTest) {
-         mySelector = new GLOcclusionSelector(this);
+         if (mySelector == null || mySelector.getClass () != GLOcclusionSelector.class) {
+            trash(mySelector);
+            mySelector = new GLOcclusionSelector(this);
+         }
       }
       else {
-         mySelector = new GLColorSelector(this);
+         if (mySelector == null || mySelector.getClass () != GLColorSelector.class) {
+            trash (mySelector);
+            mySelector = new GLColorSelector(this);
+         }
       }
       mySelector.setRectangle (x, y, w, h);
       selectTrigger = true;
@@ -853,7 +874,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       this.myFrustum.far = far;
       this.myFrustum.explicit = setExplicit;
       this.myFrustum.orthographic = false;
-      resetViewVolume = true;
 
       computeProjectionMatrix ();
    }
@@ -884,7 +904,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       this.myFrustum.fov = fieldOfView;
       this.myFrustum.explicit = false;
       this.myFrustum.orthographic = false;
-      resetViewVolume = true;
 
       computeProjectionMatrix ();
    }
@@ -912,7 +931,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       this.myFrustum.far = far;
       this.myFrustum.fieldHeight = fieldHeight;
       this.myFrustum.orthographic = true;
-      resetViewVolume = true;
 
       computeProjectionMatrix ();
    }
@@ -947,7 +965,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       this.myFrustum.far = far;
       this.myFrustum.orthographic = true;
       this.myFrustum.fieldHeight = myFrustum.top-myFrustum.bottom;
-      resetViewVolume = true;
 
       computeProjectionMatrix ();
 
@@ -1365,7 +1382,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void zoom (double s) {
       if (myFrustum.orthographic) {
          myFrustum.fieldHeight *= s;
-         resetViewVolume = true;
          computeProjectionMatrix ();  // update projection matrix
       }
       else {
@@ -1513,6 +1529,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public GLViewer () {   
 
+      myGLGarbageBin = new GLGarbageBin<> ();
+      
       myFrustum = new ProjectionFrustrum();
       frustrumStack = new LinkedList<>();
 
@@ -1562,6 +1580,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       System.out.println("OpenGL Version: " + version + " (" + buff[0] + "," + buff[1] + ")");
       
       setMultiSampleEnabled (true);
+      myActiveColor = ActiveColor.DEFAULT;
 
    }
    
@@ -1569,8 +1588,28 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myViewerState.multiSampleEnabled;
    }
    
+   public int numMultiSamples() {
+      return DEFAULT_MULTISAMPLES;
+   }
+   
    public void setMultiSampleEnabled(boolean set) {
       myViewerState.multiSampleEnabled = set;
+   }
+   
+   /**
+    * Mark resource for disposal
+    * @param resource
+    */
+   protected void trash(GLResource resource) {
+      myGLGarbageBin.trash (resource);
+   }
+   
+   /**
+    * Clean garbage by disposing resources
+    * @param gl context
+    */
+   protected void garbage(GL gl) {
+      myGLGarbageBin.garbage (gl);
    }
 
    /**
@@ -1578,6 +1617,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    public void dispose(GLAutoDrawable drawable) {
       myCommittedViewerState = null;
+      
+      GL gl = drawable.getGL ();
+      if (mySelector != null) {
+         mySelector.dispose (gl);
+      }
+      garbage (gl);
    }
    
    public void addMouseInputListener (MouseInputListener l) {
@@ -1628,15 +1673,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void reshape (GLAutoDrawable drawable, int x, int y, int w, int h) {
       this.drawable = drawable;
-      GL gl = drawable.getGL ();
       
       width = w;
       height = h;
 
-      // only resize view volume if not recording
-      if (resizeEnabled) {
-         resetViewVolume(gl);
-      }
+      // screen size changed, so be prepared to adjust viewport/view volume
+      resetViewVolume = true;
+      resetViewport = true;
       repaint();
       
       this.drawable = null;
@@ -1686,6 +1729,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myViewerState.lineWidth;
    }
    
+   /**
+    * Sets the viewer's viewport. 
+    * @param gl
+    * @param x
+    * @param y
+    * @param width
+    * @param height
+    */
    public void setViewport(GL gl, int x, int y, int width, int height) {
       gl.glViewport(x, y, width, height);
    }
@@ -1719,6 +1770,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
                myFrustum.near, myFrustum.far, myFrustum.explicit);
          }
       }
+
       setViewport(gl, 0, 0, width, height);
    }
 
@@ -2723,15 +2775,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return selectEnabled;
    }
 
+   @Override
    public boolean setHighlightStyle (HighlightStyle style) {
-      if (style == HighlightStyle.NONE) {
-         // turn off highlighting if currently selected
-         if (myHighlightColorActive) {
-            myHighlightColorActive = false;
-            // indicate that we may need to update color state
-            myCurrentMaterialModified = true;
-         }
-      }
       switch (style) {
          case NONE:
          case COLOR: {
@@ -2760,6 +2805,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void setHighlightColor (Color color) {
       color.getRGBComponents (myHighlightColor);
+      myHighlightColorModified = true;
    }
 
    @Override
@@ -2776,9 +2822,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       }
    }
 
+   /**
+    * Special color used for selection (primarily for color-based selection,
+    * although since the renderbuffers are typically not drawn, can be
+    * used for any selection method).
+    * @param color
+    */
    public void setSelectingColor (Color color) {
       color.getRGBComponents (mySelectingColor);
-      myCurrentMaterialModified = true;
+      mySelectingColorModified = true;
    }
 
    /**
@@ -2795,7 +2847,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       mySelectingColor[1] = g;
       mySelectingColor[2] = b;
       mySelectingColor[3] = a;
-      myCurrentMaterialModified = true;
+      mySelectingColorModified = true;
    }
 
    public void getSelectingColor (float[] rgba) {
@@ -2979,15 +3031,40 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public abstract void awaitScreenShotCompletion();
 
    /**
-    * Allows you explicitly enable or disable resizing of viewer
-    * (may want to disable while recording video)
+    * Allows you to explicitly enable or disable resizing of viewer
+    * (may want to disable while recording video or while selecting)
+    * @return old value
     */
-   public void setResizeEnabled(boolean enabled) {
-      resizeEnabled = enabled;
+   public boolean setAutoResizeEnabled(boolean enabled) {
+      boolean old = autoResizeEnabled;
+      if (enabled & !old) {
+         resetViewVolume = true;  // trigger reset
+      }
+      autoResizeEnabled = enabled;
+      return old;
+   }
+   
+   public boolean isAutoResizeEnabled() {
+      return autoResizeEnabled;
+   }
+   
+   /**
+    * Allows you to explicitly enable or disable automatic viewport
+    * adjustment based on screen width/height
+    * (may want to disable while recording video or while selecting)
+    * @return old value
+    */
+   public boolean setAutoViewportEnabled(boolean enabled) {
+      boolean old = autoViewportEnabled;
+      if (enabled & !old) {
+         resetViewport = true;  // trigger reset
+      }
+      autoViewportEnabled = enabled;
+      return old;
    }
 
-   public boolean isResizeEnabled() {
-      return resizeEnabled;
+   public boolean isAutoViewportEnabled() {
+      return autoViewportEnabled;
    }
 
    public abstract void setupScreenShot (
@@ -3225,7 +3302,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
       invalidateProjectionMatrix();
    }
-
+  
    /**
     * Alternative to gluPickMatrix, pre-multiplies by appropriate matrix to
     * reduce size
@@ -3249,7 +3326,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       pickMatrix.set(1, 3, (viewport[3] - 2 * (y - viewport[1])) / deltay);
       pickMatrix.set(2, 3, 0);
       pickMatrix.set(3,3, 1);
-
+      
       // pre-multiply
       projectionMatrix.mul(pickMatrix, projectionMatrix);
 
@@ -3790,17 +3867,17 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * {@inheritDoc}
     */
    public boolean setHighlighting (boolean enable) {
-      boolean prev = myHighlightColorActive;
+      boolean prev = (myActiveColor == ActiveColor.HIGHLIGHT);
       if (myHighlightStyle == HighlightStyle.COLOR) {
-         if (enable != myHighlightColorActive) {
-            myHighlightColorActive = enable;
+         if (enable != prev) {
             // indicate that we may need to update color state
-            myCurrentMaterialModified = true; 
             if (enable) {
                myNonDefaultColorSettings |= HIGHLIGHTING_BIT;
+               myActiveColor = ActiveColor.HIGHLIGHT;
             }
             else {
                myNonDefaultColorSettings &= ~HIGHLIGHTING_BIT;
+               myActiveColor = ActiveColor.DEFAULT;
             }
          }
       }
@@ -3817,7 +3894,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    @Override
    public boolean getHighlighting() {
       // for now, only color highlighting is implemented
-      return myHighlightColorActive;
+      return myActiveColor == ActiveColor.HIGHLIGHT;
    }
 
    @Override
@@ -4118,6 +4195,46 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    //=======================================================
    
    @Override
+   public void drawPoints(RenderObject robj) {
+      drawPoints(robj, robj.getPointGroupIdx ());
+   }
+   
+   @Override
+   public void drawPoints (RenderObject robj, PointStyle style, double rad) {
+      drawPoints(robj, robj.getPointGroupIdx (), style, rad);
+   }
+   
+   @Override
+   public void drawPoints(RenderObject robj, int gidx, PointStyle style, double rad) {
+      drawPoints(robj, gidx, 0, robj.numPoints (gidx), style, rad);
+   }
+   
+   @Override
+   public void drawLines (RenderObject robj) {
+      drawLines(robj, robj.getLineGroupIdx ());
+   }
+   
+   @Override
+   public void drawLines (RenderObject robj, LineStyle style, double rad) {
+      drawLines(robj, robj.getLineGroupIdx (), style, rad);
+   }
+   
+   @Override
+   public void drawLines(RenderObject robj, int gidx, LineStyle style, double rad) {
+      drawLines(robj, gidx, 0, robj.numLines (gidx), style, rad);
+   }
+   
+   @Override
+   public void drawTriangles(RenderObject robj) {
+      drawTriangles(robj, robj.getTriangleGroupIdx ());
+   }
+   
+   @Override
+   public void drawTriangles(RenderObject robj, int gidx) {
+      drawTriangles(robj, gidx, 0, robj.numTriangles (gidx));
+   }
+   
+   @Override
    public void draw (RenderObject robj) {
       drawPoints (robj);
       drawLines (robj);
@@ -4194,10 +4311,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * @return current color being used by this viewer
     */
    private float[] getCurrentColor() {
-      if (myHighlightColorActive) {
-         return myHighlightColor;
-      } else {
-         return myCurrentMaterial.getDiffuse();
+      switch (myActiveColor) {
+         case HIGHLIGHT:
+            return myHighlightColor;
+         case SELECTING:
+            return mySelectingColor;
+         case DEFAULT:
+         default:
+            return myCurrentMaterial.getDiffuse();
       }
    }
 
@@ -4427,7 +4548,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          if (getColorInterpolation() != DEFAULT_COLOR_INTERPOLATION) {
             setColorInterpolation (DEFAULT_COLOR_INTERPOLATION);
          }
-         if (myHighlightColorActive) {
+         if (myActiveColor == ActiveColor.HIGHLIGHT) {
             setHighlighting (false);
          }
          myNonDefaultColorSettings = 0;

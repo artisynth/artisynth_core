@@ -1625,6 +1625,17 @@ public interface Renderer {
    public void drawTriangles (RenderObject robj, int gidx);
    
    /**
+    * Draws a selection of triangles in the specified triangle group of the
+    * render object, using the current material and shading.
+    *
+    * @param robj render object
+    * @param gidx triangle group index
+    * @param offset triangle offset at which to start rendering
+    * @param count number of triangles to draw
+    */
+   public void drawTriangles (RenderObject robj, int gidx, int offset, int count);
+   
+   /**
     * Draws all the lines in the first line group of the
     * specified render object, using the current material and shading.
     * 
@@ -1675,6 +1686,26 @@ public interface Renderer {
    public void drawLines (RenderObject robj, int gidx, LineStyle style, double rad);
    
    /**
+    * Draws a selection of lines in the specified line group of the supplied
+    * render object, using the current material and shading.  The lines are
+    * drawn either as pixel-based lines or as solid primitives, according to
+    * the specified line style. For lines drawn using the style {@link
+    * LineStyle#LINE}, the argument <code>rad</code> gives the line width,
+    * whereas for solid primitives ({@link LineStyle#CYLINDER}, {@link
+    * LineStyle#SOLID_ARROW}, {@link LineStyle#SPINDLE}), it gives
+    * the nominal radius.
+    * 
+    * @param robj render object
+    * @param gidx line group index
+    * @param offset line offset at which to begin drawing
+    * @param count number of lines to draw
+    * @param style line style to use for drawing
+    * @param rad radius for solid lines or width for pixel-based lines
+    */
+   public void drawLines (RenderObject robj, int gidx, int offset, int count,
+      LineStyle style, double rad);
+   
+   /**
     * Draws all the points in the first point group of the
     * specified render object, using the current material and shading.
     * 
@@ -1716,10 +1747,30 @@ public interface Renderer {
     * {@link PointStyle#SPHERE} it gives the sphere radius.
     * 
     * @param robj render object
+    * @param gidx point group index
     * @param style point style to use for drawing
     * @param rad radius for spheres or width for pixel-based points
     */
    public void drawPoints (RenderObject robj, int gidx, PointStyle style, double rad);
+   
+   /**
+    * Draws a selection of points in the specified point group of the supplied
+    * render object, using the current material and shading. The points are
+    * drawn either as pixel-based points or as solids, according to the
+    * specified points style. For points drawn using the style {@link
+    * PointStyle#POINT}, the argument <code>rad</code> gives the point size,
+    * whereas for {@link PointStyle#CUBE} it gives the cube half-width, and for
+    * {@link PointStyle#SPHERE} it gives the sphere radius.
+    * 
+    * @param robj render object
+    * @param gidx point group index
+    * @param offset point offset at which to begin within the point group
+    * @param count number of points to draw
+    * @param style point style to use for drawing
+    * @param rad radius for spheres or width for pixel-based points
+    */
+   public void drawPoints (RenderObject robj, int gidx, int offset, int count, 
+      PointStyle style, double rad);
    
    /**
     * Draws all the vertices associated with the specified RenderObject,
@@ -1729,16 +1780,6 @@ public interface Renderer {
     * @param mode drawing mode to be used for drawing the vertices
     */
    public void drawVertices (RenderObject robj, DrawMode mode);
-   
-   /**
-    * Draws a selection of vertices associated with the specified RenderObject,
-    * using a specified drawing mode and the current material and shading.
-    * 
-    * @param robj render object
-    * @param idxs vertex indices
-    * @param mode drawing mode to be used for drawing the vertices
-    */
-   public void drawVertices (RenderObject robj, int[] idxs, DrawMode mode);
    
    /**
     * Draws a selection of vertices associated with the specified RenderObject,

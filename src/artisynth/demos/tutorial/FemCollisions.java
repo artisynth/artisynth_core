@@ -153,8 +153,6 @@ public class FemCollisions extends RootModel {
       
       // Enable transparency blending
       GLViewer viewer = getMainViewer();
-      if (viewer instanceof GL2Viewer) {
-         ((GL2Viewer)viewer).setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
-      }
+      viewer.setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
    }
 }

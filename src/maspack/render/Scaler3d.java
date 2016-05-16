@@ -64,27 +64,23 @@ public class Scaler3d extends Dragger3dBase {
       if (!myVisibleP) {
          return;
       }
-      if (!(renderer instanceof GLViewer)) {
-         return;
-      }
-      GLViewer viewer = (GLViewer)renderer;
-
-      Shading savedShading = viewer.setShading (Shading.NONE);
-      viewer.setLineWidth(myLineWidth);
+    
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
       
-      viewer.pushModelMatrix();
-      viewer.mulModelMatrix(myXDraggerToWorld);
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myXDraggerToWorld);
       
       float[] coords = new float[3];
       if (myDragMode != DragMode.OFF && mySelectedComponent != NONE) { 
-         viewer.setColor(1.0f, 1.0f, 0f);
-         viewer.setPointSize(3);
+         renderer.setColor(1.0f, 1.0f, 0f);
+         renderer.setPointSize(3);
          myPnt0.get(coords);
-         viewer.drawPoint(coords);
-         viewer.setPointSize(1);
+         renderer.drawPoint(coords);
+         renderer.setPointSize(1);
       }
       
-      viewer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(mySize);
 
       if (renderObject == null) {
          renderObject = createScalerRenderable();
@@ -92,14 +88,14 @@ public class Scaler3d extends Dragger3dBase {
       
       // draw selected component first
       if (mySelectedComponent != 0) {
-         viewer.drawLines(renderObject, mySelectedComponent);
+         renderer.drawLines(renderObject, mySelectedComponent);
       }
-      viewer.drawLines(renderObject, 0);
+      renderer.drawLines(renderObject, 0);
       
-      viewer.popModelMatrix();
+      renderer.popModelMatrix();
       
-      viewer.setLineWidth(1);
-      viewer.setShading (savedShading);
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
 
    }
    

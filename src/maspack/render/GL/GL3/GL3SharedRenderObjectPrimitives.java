@@ -204,12 +204,27 @@ public class GL3SharedRenderObjectPrimitives extends GL3SharedRenderObjectVertic
       drawElements (gl, mode, pointsInfo[gidx].count, pointsInfo[gidx].type, pointsInfo[gidx].offset);
    }
 
+   public void drawPointGroup(GL3 gl, int mode, int gidx, int offset, int count) {
+      drawElements (gl, mode, count, pointsInfo[gidx].type, 
+         pointsInfo[gidx].offset + offset*pointsInfo[gidx].stride);
+   }
+   
    public void drawLineGroup(GL3 gl, int mode, int gidx) {
       drawElements (gl, mode, linesInfo[gidx].count, linesInfo[gidx].type, linesInfo[gidx].offset);
    }
 
+   public void drawLineGroup(GL3 gl, int mode, int gidx, int offset, int count) {
+      drawElements (gl, mode, 2*count, linesInfo[gidx].type, 
+         linesInfo[gidx].offset+2*linesInfo[gidx].type*offset);
+   }
+   
    public void drawTriangleGroup(GL3 gl, int mode, int gidx) {
       drawElements (gl, mode, trianglesInfo[gidx].count, trianglesInfo[gidx].type, trianglesInfo[gidx].offset);
+   }
+   
+   public void drawTriangleGroup(GL3 gl, int mode, int gidx, int offset, int count) {
+      drawElements (gl, mode, 3*count, trianglesInfo[gidx].type, 
+         trianglesInfo[gidx].offset+3*trianglesInfo[gidx].stride*offset);
    }
 
    public static GL3SharedRenderObjectPrimitives generate (

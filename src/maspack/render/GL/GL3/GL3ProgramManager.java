@@ -12,8 +12,8 @@ import java.util.Map.Entry;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AffineTransform2dBase;
+import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix4d;
 import maspack.matrix.Plane;
@@ -27,7 +27,6 @@ import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLProgramInfo;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
-import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
 
@@ -292,6 +291,7 @@ public class GL3ProgramManager {
       GLProgramInfo select = new GLProgramInfo();  // basic flat program
       
       // use rounded points by default
+      select.setSelecting (true);
       RenderingMode mode = info.getMode ();
       if (mode == RenderingMode.POINTS) {
          select.setRoundPointsEnabled (info.hasRoundPoints ());
@@ -307,7 +307,6 @@ public class GL3ProgramManager {
       select.setInstanceColorsEnabled (false);
       select.setLineColorsEnabled (false);
       select.setShading (Shading.NONE);
-      
       
       return getProgram(gl, select);
    }
@@ -458,7 +457,14 @@ public class GL3ProgramManager {
    public void setUniform4f(GL3 gl, GLShaderProgram prog, String name, float[] v) {
       int loc = prog.getUniformLocation (gl, name);
       if (loc >= 0) {
-         gl.glUniform4fv (loc, 4, v, 0);
+         gl.glUniform4fv (loc, 1, v, 0);
+      }
+   }
+   
+   public void setSelectionColor(GL3 gl, GLShaderProgram prog, float[] rgba) {
+      int loc = prog.getUniformLocation (gl, "selection_color");
+      if (loc >= 0) {
+         gl.glUniform4fv (loc, 1, rgba, 0);
       }
    }
 

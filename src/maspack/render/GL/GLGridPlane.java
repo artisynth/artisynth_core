@@ -873,11 +873,7 @@ public class GLGridPlane implements HasProperties {
 
    private void drawGrid (Renderer renderer) {
 
-      if (!(renderer instanceof GLViewer)) {
-         return;
-      }
-      GLViewer viewer = (GLViewer)renderer;
-
+      
       if (myMinSize == 0) {
          return;
       }
@@ -1045,17 +1041,17 @@ public class GLGridPlane implements HasProperties {
          (float)xmin, (float)xmax, (float)ymin, (float)ymax,
          myXAxisRGB, myYAxisRGB, myMajorRGB, minorRGB);
 
-      Shading savedShading = viewer.setShading (Shading.NONE);
-      viewer.setLineWidth(myLineWidth);
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
 
-      viewer.pushModelMatrix();
-      viewer.mulModelMatrix(XGridToWorld);
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(XGridToWorld);
 
-      viewer.drawLines (rcacheInfo.getRenderObject());
+      renderer.drawLines (rcacheInfo.getRenderObject());
 
-      viewer.popModelMatrix();
-      viewer.setLineWidth(1);
-      viewer.setShading (savedShading);
+      renderer.popModelMatrix();
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
 
       if (myAutoSizedP &&
       (majorCellSize != myResolution.getMajorCellSize() ||

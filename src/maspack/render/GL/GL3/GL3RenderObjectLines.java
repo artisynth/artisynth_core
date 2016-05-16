@@ -18,11 +18,13 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       VertexArrayObject vao;
       GL3SharedObject lastInstance;
       int lastInstanceBindVersion;
+      int lastOffset;
 
       public InstanceInfo(VertexArrayObject vao) {
          this.vao = vao.acquire ();
          this.lastInstance = null;
          lastInstanceBindVersion = -1;
+         lastOffset = -1;
       }
       
       public boolean bind (GL3 gl, GL3SharedObject line) {
@@ -114,17 +116,19 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       }
    }
    
-   public void bindInstanced(GL3 gl, GL3SharedObject line, int gidx) {
+   public void bindInstanced(GL3 gl, GL3SharedObject line, int gidx, int offset) {
       // check if correct instances
       maybeUpdateInstances(gl);
       instances[gidx].bind (gl, line);
       
       // extra instance attributes
       int bv = lineGLO.getBindVersion ();
-      if (bv != instances[gidx].lastInstanceBindVersion) {
-         lineGLO.bindInstancedVertices (gl, gidx);
+      if (bv != instances[gidx].lastInstanceBindVersion 
+         || offset != instances[gidx].lastOffset) {
+         lineGLO.bindInstancedVertices (gl, gidx, offset);
          lineVBO.bind (gl, lineGLO.numLines(gidx));
          instances[gidx].lastInstanceBindVersion = bv;
+         instances[gidx].lastOffset = offset;
       }
       
    }
@@ -200,15 +204,33 @@ public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable
       unbind(gl);
    }
    
+   public void drawLineGroup (GL3 gl, int mode, int gidx, int offset, int count) {
+      bind (gl);
+      lineGLO.drawLines (gl, mode, gidx, offset, count);
+      unbind(gl);
+   }
+   
    public void drawInstancedLineGroup(GL3 gl, GL3SharedObject line, int gidx) {
-      bindInstanced (gl, line, gidx);
+      bindInstanced (gl, line, gidx, 0);
       lineGLO.drawInstancedLines (gl, line, gidx);
+      unbindInstanced(gl, gidx);
+   }
+   
+   public void drawInstancedLineGroup(GL3 gl, GL3SharedObject line, int gidx, 
+      int offset, int count) {
+      bindInstanced (gl, line, gidx, offset);
+      lineGLO.drawInstancedLines (gl, line, gidx, count);
       unbindInstanced(gl, gidx);
    }
    
    public void drawInstancedLineGroup(GL3 gl, GL3Object line, int gidx) {
       GL3SharedObject sline = line.getShared();
       drawInstancedLineGroup(gl, sline, gidx);
+   }
+   
+   public void drawInstancedLineGroup(GL3 gl, GL3Object line, int gidx, int offset, int count) {
+      GL3SharedObject sline = line.getShared();
+      drawInstancedLineGroup(gl, sline, gidx, offset, count);
    }
 
    public static GL3RenderObjectLines generate (

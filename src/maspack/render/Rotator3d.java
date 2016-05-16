@@ -67,17 +67,13 @@ public class Rotator3d extends Dragger3dBase {
       if (!myVisibleP) {
          return;
       }
-      if (!(renderer instanceof GLViewer)) {
-         return;
-      }
-      GLViewer viewer = (GLViewer)renderer;
       
-      viewer.pushModelMatrix();
-      viewer.mulModelMatrix(myXDraggerToWorld);
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myXDraggerToWorld);
 
-      Shading savedShading = viewer.setShading (Shading.NONE);
-      viewer.setLineWidth(myLineWidth);
-      viewer.scaleModelMatrix(mySize);
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
+      renderer.scaleModelMatrix(mySize);
       
       if (renderObject == null || !renderObject.isValid()) {
          renderObject = createRotatorRenderable();
@@ -85,11 +81,11 @@ public class Rotator3d extends Dragger3dBase {
       
       // highlight appropriate axis
       if (mySelectedComponent != 0) {
-         viewer.drawLines(renderObject, mySelectedComponent);
+         renderer.drawLines(renderObject, mySelectedComponent);
       }
-      viewer.drawLines(renderObject, 0);
+      renderer.drawLines(renderObject, 0);
          
-      viewer.popModelMatrix();
+      renderer.popModelMatrix();
       
       if (myDragMode != DragMode.OFF) {
          switch (mySelectedComponent) {
@@ -105,26 +101,26 @@ public class Rotator3d extends Dragger3dBase {
                RigidTransform3d X = new RigidTransform3d (myXDraggerToWorld0);
                X.p.set (myXDraggerToWorld.p);
                
-               viewer.pushModelMatrix();
-               viewer.mulModelMatrix(X);
+               renderer.pushModelMatrix();
+               renderer.mulModelMatrix(X);
 
-               viewer.setColor(0.5f, 0.5f, 0.5f);
+               renderer.setColor(0.5f, 0.5f, 0.5f);
                myPnt0.get(coords);
-               viewer.drawLine(coords0, coords);
+               renderer.drawLine(coords0, coords);
 
-               viewer.setColor(1, 1, 0);
+               renderer.setColor(1, 1, 0);
                myRotPnt.get(coords);
-               viewer.drawLine(coords0,coords);
+               renderer.drawLine(coords0,coords);
                
-               viewer.popModelMatrix();
+               renderer.popModelMatrix();
 
                break;
             }
          }
       }
 
-      viewer.setLineWidth(1);
-      viewer.setShading (savedShading);
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
    }
 
    private static void addLineLoop (RenderObject robj, int pidx0, int numv) {

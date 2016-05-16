@@ -12,8 +12,10 @@ public class GLGarbageBin<T extends GLResource> implements GLGarbageSource {
       trash = new ArrayList<>();
    }
 
-   public synchronized void dispose(T resource) {
-      trash.add (resource);  
+   public synchronized void trash(T resource) {
+      if (resource != null) {
+         trash.add (resource);
+      }
    }
 
    @Override

@@ -13,9 +13,8 @@ import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.render.Renderer.Shading;
 import maspack.render.Renderer.DrawMode;
-import maspack.render.GL.GLViewer;
+import maspack.render.Renderer.Shading;
 import maspack.util.InternalErrorException;
 
 public class Jack3d extends Dragger3dBase {
@@ -54,24 +53,19 @@ public class Jack3d extends Dragger3dBase {
          return;
       }
 
-      if (!(renderer instanceof GLViewer)) {
-         return;
-      }
-      GLViewer viewer = (GLViewer)renderer;
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myXDraggerToWorld);
 
-      viewer.pushModelMatrix();
-      viewer.mulModelMatrix(myXDraggerToWorld);
-
-      Shading savedShading = viewer.setShading (Shading.NONE);
-      viewer.setLineWidth(myLineWidth);
-      viewer.setPointSize(3);
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
+      renderer.setPointSize(3);
 
       float[] coords = new float[3];
-      viewer.setColor(1, 1, 0);
+      renderer.setColor(1, 1, 0);
       myPnt0.get(coords);
-      viewer.drawPoint(coords);
+      renderer.drawPoint(coords);
 
-      viewer.scaleModelMatrix(mySize);
+      renderer.scaleModelMatrix(mySize);
 
       if (renderObject == null) {
          renderObject = createJackRenderable();
@@ -79,13 +73,13 @@ public class Jack3d extends Dragger3dBase {
 
       // draw selected component first
       if (mySelectedComponent != 0) {
-         viewer.drawLines(renderObject, mySelectedComponent);
+         renderer.drawLines(renderObject, mySelectedComponent);
       }
-      viewer.drawLines(renderObject, 0);
+      renderer.drawLines(renderObject, 0);
 
-      viewer.setLineWidth(1);
-      viewer.setShading (savedShading);
-      viewer.popModelMatrix();
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
+      renderer.popModelMatrix();
 
    }
 

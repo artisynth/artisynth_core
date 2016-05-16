@@ -23,7 +23,6 @@ import javax.media.opengl.glu.GLU;
 import javax.swing.JFrame;
 import javax.swing.event.MouseInputListener;
 
-import artisynth.core.femmodels.FemElement3d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -42,12 +41,10 @@ import maspack.render.RenderProps;
 import maspack.render.TextureContent;
 import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLClipPlane;
-import maspack.render.GL.GLColorSelector;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLLightManager;
 import maspack.render.GL.GLMouseAdapter;
-import maspack.render.GL.GLOcclusionSelector;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLTextRenderer;
 import maspack.render.GL.GLTexture;
@@ -186,40 +183,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             setupLight(gl, light, intensityScale);
          }
       }
-   }
-
-   /**
-    * Performs a selection operation on a sub-region of the viewport.
-    * 
-    * @param x
-    * x coordinate of the selection region center
-    * @param y
-    * y coordinate of the selection region center
-    * @param w
-    * selection region width
-    * @param h
-    * selection region height
-    * @param ignoreDepthTest
-    * select all objects in the pick frustum, not just those which are
-    * visible through the viewport
-    */
-   public void setPick (
-      double x, double y, double w, double h,
-      boolean ignoreDepthTest) {
-
-//      if (myUseGLSelectSelection) {
-//         mySelector = new GLSelectSelector (this);
-//      }
-//      else 
-      if (ignoreDepthTest) {
-         mySelector = new GLOcclusionSelector(this);
-      }
-      else {
-         mySelector = new GLColorSelector(this);
-      }
-      mySelector.setRectangle (x, y, w, h);
-      selectTrigger = true;
-      repaint();
    }
 
    public GL getGL() {
@@ -493,7 +456,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    @Override
    public void dispose () {
       myGLResources.deregisterViewer (this);
-      myGLResources = null;
       super.dispose ();
    }
 
@@ -533,7 +495,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // XXX gl.glPushMatrix();
       if (selectTrigger) {
-         mySelector.setupSelection (drawable);
+         mySelector.setupSelection (gl);
          selectEnabled = true;  // moved until after selection initialization
          selectTrigger = false;
       }
@@ -543,6 +505,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       drawable.setAutoSwapBufferMode (selectEnabled ? false : true);
       if (myProfiling) {
          myTimer.start();
+         myGLColorCount = 0;
       }
       doDisplay (drawable, flags);
       if (myProfiling) {
@@ -550,10 +513,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          System.out.printf (
             "render time (msec): %9.4f %s\n", 
             myTimer.getTimeUsec()/1000.0, isSelecting() ? "(SELECT)" : "");
+         System.out.println ("Color changes: " + myGLColorCount);
       }
       if (selectEnabled) {
          selectEnabled = false;
-         mySelector.processSelection (drawable);
+         mySelector.processSelection (gl);
       }
       else {
          fireRerenderListeners();
@@ -579,11 +543,17 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
       
-      // for non-timed garbage collection
-      myGLResources.maybeRunGarbageCollection (gl);
+      garbage (gl);
       
       this.drawable = null;
       this.gl = null;
+   }
+   
+   @Override
+   protected void garbage (GL gl) {
+      super.garbage (gl);
+      // for non-timed garbage collection
+      myGLResources.maybeRunGarbageCollection (gl);
    }
 
    private void offscreenCapture (int flags) {
@@ -596,23 +566,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       // Draw the scene into pbuffer
       gl.glPushMatrix();
-      if (selectEnabled) {
-         mySelector.setupSelection (drawable);
-      }
 
       // disable resetting of view volume during capture
-      boolean savedResetView = resetViewVolume;
-      resetViewVolume = false;
+      boolean autoResize = setAutoResizeEnabled (false);
+      boolean autoViewport = setAutoViewportEnabled(false);
       doDisplay (drawable, flags);
-      resetViewVolume  = savedResetView;
+      setAutoResizeEnabled(autoResize);
+      setAutoViewportEnabled(autoViewport);
 
-      if (selectEnabled) {
-         mySelector.processSelection (drawable);
-         selectEnabled = false;
-      }
-      else {
-         fireRerenderListeners();
-      }
+      
+      
+      fireRerenderListeners();
+      
       gl.glPopMatrix();
 
       // further drawing will go to screen
@@ -631,7 +596,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glDepthFunc (GL2.GL_ALWAYS);
 
       if (!selectEnabled) {
-         gl.glColor3f (1, 0, 0);
+         setGLColor (gl, 1f, 0f, 0f, 1f);
       }
       gl.glBegin (GL2.GL_LINES);
       gl.glVertex3d (l, 0.0, 0.0);
@@ -639,7 +604,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glEnd();
 
       if (!selectEnabled) {
-         gl.glColor3f (0, 1, 0);
+         setGLColor (gl, 0f, 1f, 0f, 1f);
       }
       gl.glBegin (GL2.GL_LINES);
       gl.glVertex3d (0, l, 0.0);
@@ -647,7 +612,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glEnd();
 
       if (!selectEnabled) {
-         gl.glColor3f (0, 0, 1);
+         setGLColor (gl, 0f, 0f, 1f, 1f);
       }
       gl.glBegin (GL2.GL_LINES);
       gl.glVertex3d (0, 0, l);
@@ -730,27 +695,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    private void doDisplay (GLAutoDrawable drawable, int flags) {
       GL2 gl = drawable.getGL().getGL2();
 
-      // updates projection matrix
-      if (resetViewVolume && resizeEnabled) {
+      // updates view matrix
+      if (resetViewVolume && autoResizeEnabled) {
          resetViewVolume(gl);
          resetViewVolume = false;
       }
       
-      //      if (isSelecting()) {
-      //         // XXX if we don't do this, selection breaks. This is since
-      //         // begin/finish 2D rendering was redone to push/pop the
-      //         // matrices in GLViewer.
-      //         invalidateProjectionMatrix(); // XXX should have been triggered by
-      //                                       // actual projection modification
-      //      }
-
-      if (isSelecting()) {
-         gl.glClearColor (0f, 0f, 0f, 0f);  
-      }
-      else {
-         gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+      if (resetViewport && autoViewportEnabled) {
+         setViewport (gl, 0, 0, width, height);
+         resetViewport = false;
       }
 
+      gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       gl.glClear (GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 
       // updates view matrix
@@ -796,14 +752,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (cp.isClippingEnabled()) {
             cp.getPlaneValues (myClipPlaneValues );
             myClipPlaneValues[3] += cp.getOffset();
-//            double[] v = myClipPlaneValues;
-//            System.out.println (v[0]+" "+v[1]+" "+v[2]);
-//            double[] M = new double[16];
-//            gl.glGetDoublev(GL2.GL_MODELVIEW_MATRIX, M, 0);
-//            RigidTransform3d TME = new RigidTransform3d();
-//            GLSupport.GLMatrixToTransform (TME, M);
-//            TME.mulInverseLeft (getViewMatrix(), TME);
-//            System.out.println ("TMW=\n" + TME.toString ("%8.3f"));
             
             gl.glClipPlane (clipIdx, myClipPlaneValues, 0);
             gl.glEnable (clipIdx);
@@ -1082,29 +1030,69 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    
    public void maybeUpdateMaterials(GL2 gl) {
 
-      // only update if not selecting
+      // might need to update underlying material
       if (myCurrentMaterialModified) {
-         if (isSelecting ()) {
-            gl.glColor4fv (mySelectingColor, 0);
-            myCurrentMaterial.apply (gl);
-            gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectingColor, 0);   // apply front/back color
-         } else {
-            // set all colors
-            if (myHighlightColorActive) {
-               myHighlightColor[3] = myCurrentMaterial.getAlpha ();
-               gl.glColor4fv (myHighlightColor, 0);
-               myCurrentMaterial.apply (gl);
-               gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myHighlightColor, 0); // apply front/back color
-            } else {
-               gl.glColor4fv (myCurrentMaterial.getDiffuse(), 0);
-               myCurrentMaterial.apply (gl);
-               if (myBackColor != null) {
-                  gl.glMaterialfv (GL2.GL_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myBackColor, 0); // apply back color
-               }
-            }
+         myCurrentMaterial.apply (gl);
+         if (myBackColor != null) {
+            gl.glMaterialfv (GL2.GL_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myBackColor, 0); // apply back color
          }
-         myCurrentMaterialModified = false; // reset flag since state is now updated
+         float[] c = myCurrentMaterial.getDiffuse ();
+         setGLColor (gl, c[0], c[1], c[2], c[3]);
+         myCommittedColor = ActiveColor.DEFAULT;
+         myCurrentMaterialModified = false;
       }
+      
+      // update colors
+      if (isSelecting ()) {
+         if (mySelectingColorModified || (myCommittedColor != ActiveColor.SELECTING) ) {
+            // update selection color
+            // gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, mySelectingColor, 0);   // apply front/back color
+            float[] c = mySelectingColor;
+            setGLColor (gl, c[0], c[1], c[2], c[3]);
+            mySelectingColorModified = false;
+            myCommittedColor = ActiveColor.SELECTING;   
+         }
+         
+      } else {
+         
+         // highlighting 
+         switch (myActiveColor) {
+            case DEFAULT: {
+               if (myCommittedColor != ActiveColor.DEFAULT) {
+                  float[] c = myCurrentMaterial.getDiffuse ();
+                  setGLColor (gl, c[0], c[1], c[2], c[3]);
+                  if (myBackColor != null) {
+                     gl.glMaterialfv (GL2.GL_FRONT, GL2.GL_AMBIENT_AND_DIFFUSE, myCurrentMaterial.getDiffuse (), 0);   // apply front/back color
+                     gl.glMaterialfv (GL2.GL_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myBackColor, 0); // apply back color
+                  } else {
+                     gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myCurrentMaterial.getDiffuse (), 0);   // apply front/back color
+                  }
+                  myCommittedColor = myActiveColor;
+               }
+               break;
+            }
+            
+            case HIGHLIGHT: {
+               if (myCurrentMaterial.getAlpha () != myHighlightColor[3]) {
+                  myHighlightColor[3] = myCurrentMaterial.getAlpha ();
+                  myHighlightColorModified = true;
+               }
+               
+               if (myHighlightColorModified || myCommittedColor != ActiveColor.HIGHLIGHT) {
+                  gl.glMaterialfv (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myHighlightColor, 0);   // apply front/back color
+                  float[] c = myHighlightColor;
+                  setGLColor (gl, c[0], c[1], c[2], c[3]);
+                  myHighlightColorModified = false;
+                  myCommittedColor = myActiveColor;
+               }
+               break;
+            }
+            default:
+               break;
+            
+         }         
+      }
+      
    }
 
    // Made public for debugging purposes
@@ -2097,168 +2085,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setShading (savedShading);
       setHighlighting (savedHighlighting);
    }
-
-   // public static void drawLineStrip (
-   //    Renderer renderer, Iterable<float[]> vertexList, RenderProps props,
-   //    LineStyle lineStyle, boolean isSelected) {
-
-   //    if ( !(renderer instanceof GL2Viewer) ){
-   //       return;
-   //    }
-
-   //    GL2Viewer viewer = (GL2Viewer)renderer;
-
-   //    GL2 gl = viewer.getGL2();
-   //    viewer.maybeUpdateState(gl);
-
-   //    switch (lineStyle) {
-   //       case LINE: {
-   //          viewer.setLightingEnabled (false);
-   //          // draw regular points first
-   //          gl.glLineWidth (props.getLineWidth());
-   //          gl.glBegin (GL2.GL_LINE_STRIP);
-   //          viewer.setColor (props.getLineColorArray(), isSelected);
-   //          for (float[] v : vertexList) {
-   //             gl.glVertex3fv (v, 0);
-   //          }
-   //          gl.glEnd();
-   //          gl.glLineWidth (1);
-   //          viewer.setLightingEnabled (true);
-   //          break;
-   //       }
-   //       case ELLIPSOID:
-   //       case SOLID_ARROW:
-   //       case CYLINDER: {
-   //          viewer.setMaterialAndShading (
-   //             props, props.getLineMaterial(), isSelected);
-   //          float[] v0 = null;
-   //          for (float[] v1 : vertexList) {
-   //             if (v0 != null) {
-   //                if (lineStyle == LineStyle.ELLIPSOID) {
-   //                   viewer.drawSpindle (props, v0, v1);
-   //                }
-   //                else if (lineStyle == LineStyle.SOLID_ARROW) {
-   //                   viewer.drawArrow (props, v0, v1);
-   //                }
-   //                else {
-   //                   viewer.drawCylinder (props, v0, v1);
-   //                }
-   //             }
-   //             else {
-   //                v0 = new float[3];
-   //             }
-   //             v0[0] = v1[0];
-   //             v0[1] = v1[1];
-   //             v0[2] = v1[2];
-   //          }
-   //          viewer.restoreShading (props);
-   //       }
-   //    }
-   // }
-
-//   public void drawLines (
-//      RenderProps props, Iterator<? extends RenderableLine> iterator) {
-//
-//      GL2 gl = getGL2();
-//      maybeUpdateState(gl);
-//
-//      LineStyle lineStyle = props.getLineStyle();
-//      switch (lineStyle) {
-//         case LINE: {
-//            setLightingEnabled (false);
-//            // draw regular points first
-//            gl.glLineWidth (props.getLineWidth());
-//            if (isSelecting()) {
-//               // don't worry about color in selection mode
-//               int i = 0;
-//               while (iterator.hasNext()) {
-//                  RenderableLine line = iterator.next();
-//                  if (line.getRenderProps() == null) {
-//                     if (isSelectable (line)) {
-//                        beginSelectionQuery (i);
-//                        gl.glBegin (GL2.GL_LINES);
-//                        gl.glVertex3fv (line.getRenderCoords0(), 0);
-//                        gl.glVertex3fv (line.getRenderCoords1(), 0);
-//                        gl.glEnd();
-//                        endSelectionQuery ();
-//                     }
-//                  }
-//                  i++;
-//               }
-//            }
-//            else {
-//               gl.glBegin (GL2.GL_LINES);
-//               setColor (props.getLineColorArray(), false);
-//               while (iterator.hasNext()) {
-//                  RenderableLine line = iterator.next();
-//                  if (line.getRenderProps() == null) {
-//                     if (line.getRenderColor() == null) {
-//                        float[] c = (line.isSelected () ? mySelectedColor : props.getLineColorArray());
-//                        setGLColor (gl, c, 0);
-//                     }
-//                     else {
-//                        float[] c = (line.isSelected () ? mySelectedColor : line.getRenderColor());
-//                        setGLColor (gl, c, 0);
-//                     }
-//                     gl.glVertex3fv (line.getRenderCoords0(), 0);
-//                     gl.glVertex3fv (line.getRenderCoords1(), 0);
-//                  }
-//               }
-//               gl.glEnd();
-//            }
-//            gl.glLineWidth (1);
-//            setLightingEnabled (true);
-//            break;
-//         }
-//         case ELLIPSOID:
-//         case SOLID_ARROW:
-//         case CYLINDER: {
-//            // GLU glu = getGLU();
-//            setLineLighting (props, /*selected=*/false);
-//            int i = 0;
-//            double rad = props.getLineRadius();
-//            while (iterator.hasNext()) {
-//               RenderableLine line = iterator.next();
-//               float[] v0 = line.getRenderCoords0();
-//               float[] v1 = line.getRenderCoords1();
-//               if (line.getRenderProps() == null) {
-//                  if (isSelecting()) {
-//                     if (isSelectable (line)) {
-//                        beginSelectionQuery (i);
-//                        if (lineStyle == LineStyle.ELLIPSOID) {
-//                           drawSpindle (v0, v1, props.getLineRadius());
-//                        }
-//                        else if (lineStyle == LineStyle.SOLID_ARROW) {
-//                           drawArrow (v0, v1, rad, /*capped=*/true);
-//                        }
-//                        else {
-//                           drawCylinder (v0, v1, rad, /*capped=*/false);
-//                        }
-//                        endSelectionQuery ();
-//                     }
-//                  }
-//                  else {
-//                     Material mat = props.getLineMaterial();
-//                     setMaterial (mat, line.getRenderColor(), line.isSelected());
-//                     if (lineStyle == LineStyle.ELLIPSOID) {
-//                        drawSpindle (v0, v1, props.getLineRadius());
-//                     }
-//                     else if (lineStyle == LineStyle.SOLID_ARROW) {
-//                        drawArrow (v0, v1, rad, /*capped=*/true);
-//                     }
-//                     else {
-//                        drawCylinder (v0, v1, rad, /*capped=*/false);
-//                     }
-//                  }
-//               }
-//               i++;
-//            }
-//            restoreShading (props);
-//            break;
-//         }
-//      }
-//   }
-
+  
    public void drawAxes (
       RigidTransform3d X, double[] lens, int width, boolean highlight) {
 
@@ -2276,18 +2103,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          X = RigidTransform3d.IDENTITY;
       }
       
-//      boolean wasSelected = false;
-//      if (selected) {
-//         wasSelected = getSelectionHighlighting();
-//         setSelectionHighlighting (true);
-//      }
+      //      boolean wasSelected = false;
+      //      if (selected) {
+      //         wasSelected = getSelectionHighlighting();
+      //         setSelectionHighlighting (true);
+      //      }
 
       gl.glBegin (GL2.GL_LINES);
       for (int i = 0; i < 3; i++) {
          if (lens[i] != 0) {
             if (!highlight && !selectEnabled) {
-               gl.glColor3f (
-                  i == 0 ? 1f : 0f, i == 1 ? 1f : 0f, i == 2 ? 1f : 0f);
+               setGLColor (gl, 
+                  i == 0 ? 1f : 0f, i == 1 ? 1f : 0f, i == 2 ? 1f : 0f, 1f);
             }
             gl.glVertex3d (X.p.x, X.p.y, X.p.z);
             X.R.getColumn (i, u);
@@ -2409,6 +2236,17 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          return false;
       }
    }
+   
+   int myGLColorCount = 0;
+   private void setGLColor(GL2 gl, float r, float g, float b, float a) {
+      gl.glColor4f (r, g, b, a);
+      ++myGLColorCount;
+   }
+   private void setGLColor4ub(GL2 gl, byte r, byte g, byte b, byte a) {
+      gl.glColor4ub (r, g, b, a);
+      ++myGLColorCount;
+   }
+   
 
    private void setVertexColor (GL2 gl, byte[] color, boolean useHSV) {
       if (!isSelecting() && color != null) {
@@ -2420,11 +2258,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
             // convert color to HSV representation
             ColorUtils.RGBtoHSV (myColorBuf, myColorBuf);
-            gl.glColor4f (
+            setGLColor (gl, 
                myColorBuf[0], myColorBuf[1], myColorBuf[2], color[3]);
          }
          else {
-            gl.glColor4ub (
+            setGLColor4ub (gl, 
                color[0], color[1], color[2], color[3]);
          }
       }
@@ -2439,10 +2277,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                c[offset], c[offset+1], c[offset+2], c[offset+3]};
 
             ColorUtils.RGBtoHSV (cbuf, cbuf);
-            gl.glColor4fv (cbuf, 0);
+            setGLColor(gl, cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
          }
          else {
-            gl.glColor4fv (c, offset);
+            setGLColor(gl, c[offset], c[offset+1], c[offset+2], c[offset+3]);
          }
       }
    }
@@ -2910,16 +2748,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       gl.glPopMatrix();
    }
-   
-   @Override
-   public void drawTriangles(RenderObject robj) {
-      drawTriangles(robj, robj.getTriangleGroupIdx ());
-   }
 
    protected int enableVertexColoring(boolean useHSV) {
       gl.glColorMaterial (GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT_AND_DIFFUSE);
       // if selection color is active, ignore material color
-      if (!myHighlightColorActive) {
+      if (myActiveColor == ActiveColor.DEFAULT) {
          gl.glEnable (GL2.GL_COLOR_MATERIAL);
       }
       int savedShading = getGLShadeModel();
@@ -2936,7 +2769,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (savedShading == GL2.GL_FLAT) {
          gl.glShadeModel (savedShading);
       }
-      if (!myHighlightColorActive) {
+      if (myActiveColor == ActiveColor.DEFAULT) {
          gl.glDisable (GL2.GL_COLOR_MATERIAL);
       }
       if (useHSV) {
@@ -2945,9 +2778,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    @Override
-   public void drawTriangles(RenderObject robj, int gidx) {
+   public void drawTriangles(RenderObject robj, int gidx, int offset, int count) {
 
-      if (!robj.hasTriangles()) {
+      if (count == 0) {
          return;
       }
       
@@ -2960,7 +2793,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
+      boolean useColors = hasColors && !selecting && !(myActiveColor == ActiveColor.HIGHLIGHT);
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
       
       boolean hasTexture = robj.hasTextureCoords ();
@@ -2974,7 +2807,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          savedShading = enableVertexColoring (useHSV);
       }
 
+      int totalTriangleCount = robj.numTriangles (gidx);
       boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && ((offset == 0) && (count == totalTriangleCount))
          && (3*robj.numTriangles (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
       GL2VersionedObject gvo = null;
     
@@ -3013,12 +2848,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          robj.readLock ();
 
          int[] tris = robj.getTriangles (gidx);
-         int triangleCount = robj.numTriangles (gidx);
          int triangleStride = robj.getTriangleStride();
 
          int idx = 0;
-         for (int i=0; i<triangleCount; ++i) {
-            idx = i*triangleStride;
+         for (int i=0; i<count; ++i) {
+            idx = (i+offset)*triangleStride;
             for (int j=0; j<triangleStride; ++j) {
                int vidx = tris[idx+j];
                if (!selecting && useColors) {
@@ -3194,16 +3028,15 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          return rv.equals(other.rv);
       }
    }
-
-   @Override
-   public void drawLines (RenderObject robj) {
-      drawLines(robj, 0);
-   }
    
    @Override
    public void drawLines(RenderObject robj, int gidx) {
-      int lineCount = robj.numLines (gidx);
-      if (lineCount == 0) {
+      drawSimpleLines(robj, gidx, 0, robj.numLines (gidx));
+   }
+      
+   public void drawSimpleLines(RenderObject robj, int gidx, int offset, int count) {
+      
+      if (count == 0) {
          return;
       }
       
@@ -3216,7 +3049,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
+      boolean useColors = hasColors && !selecting && (myActiveColor==ActiveColor.DEFAULT);
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor
@@ -3225,7 +3058,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          savedShading = enableVertexColoring (useHSV);
       }
 
+      int totalLineCount = robj.numLines (gidx);
       boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && ((offset == 0) && (count == totalLineCount))
          && (2*robj.numLines (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
 
       boolean compile = true;
@@ -3263,8 +3098,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          int[] lines = robj.getLines (gidx);
          int lineStride = robj.getLineStride ();
 
-         for (int i=0; i<lineCount; ++i) {
-            int baseIdx = i*lineStride;
+         for (int i=0; i<count; ++i) {
+            int baseIdx = (i+offset)*lineStride;
             for (int j=0; j<2; j++) {
                int vidx = lines[baseIdx+j];
                if (!selecting && useColors) {
@@ -3300,16 +3135,16 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
    }
    
-   private void drawSolidLines(RenderObject robj, int gidx, LineStyle style, float rad) {
+   private void drawSolidLines(RenderObject robj, int gidx, 
+      int offset, int count, LineStyle style, float rad) {
       
-      int lineCount = robj.numLines (gidx);
-      if (lineCount == 0) {
+      if (count == 0) {
          return;
       }
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
+      boolean useColors = hasColors && !selecting && (myActiveColor==ActiveColor.DEFAULT);
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -3318,7 +3153,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          savedShading = enableVertexColoring (useHSV);
       }
 
+      int totalLineCount = robj.numLines (gidx);
       boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && ((offset == 0) && (count == totalLineCount))
          && (2*robj.numLines (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
       
       GL2VersionedObject gvo = null;
@@ -3359,8 +3196,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          switch (style) {
             case CYLINDER: {
                if (!selecting && useColors) {
-                  for (int i=0; i<lineCount; ++i) {
-                     int baseIdx = lineStride*i;
+                  for (int i=0; i<count; ++i) {
+                     int baseIdx = lineStride*(i+offset);
                      int vidx1 = lines[baseIdx];
                      int vidx2 = lines[baseIdx+1];
                      float[] p0 = robj.getVertexPosition(vidx1);
@@ -3372,8 +3209,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                         p0, c0, p1, c1, true, useHSV);
                   }
                } else {
-                  for (int i=0; i<lineCount; ++i) {
-                     int baseIdx = lineStride*i;
+                  for (int i=0; i<count; ++i) {
+                     int baseIdx = lineStride*(i+offset);
                      int vidx1 = lines[baseIdx];
                      int vidx2 = lines[baseIdx+1];
                      float[] p0 = robj.getVertexPosition(vidx1);
@@ -3386,8 +3223,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             }
             case SPINDLE:
                if (!selecting && useColors) {
-                  for (int i=0; i<lineCount; ++i) {
-                     int baseIdx = lineStride*i;
+                  for (int i=0; i<count; ++i) {
+                     int baseIdx = lineStride*(i+offset);
                      int vidx1 = lines[baseIdx];
                      int vidx2 = lines[baseIdx+1];
                      float[] p0 = robj.getVertexPosition(vidx1);
@@ -3399,8 +3236,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                         p0, c0, p1, c1, isHSVColorInterpolationEnabled());
                   }
                } else {
-                  for (int i=0; i<lineCount; ++i) {
-                     int baseIdx = lineStride*i;
+                  for (int i=0; i<count; ++i) {
+                     int baseIdx = lineStride*(i+offset);
                      int vidx1 = lines[baseIdx];
                      int vidx2 = lines[baseIdx+1];
                      float[] p0 = robj.getVertexPosition(vidx1);
@@ -3413,8 +3250,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                float arad = rad*3;
                float aheight = arad*2;
                if (!selecting && useColors) {
-                  for (int i=0; i<lineCount; ++i) {
-                     int baseIdx = lineStride*i;
+                  for (int i=0; i<count; ++i) {
+                     int baseIdx = lineStride*(i+offset);
                      int vidx1 = lines[baseIdx];
                      int vidx2 = lines[baseIdx+1];
                      float[] p0 = robj.getVertexPosition(vidx1);
@@ -3426,8 +3263,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
                         p0, c0, p1, c1, isHSVColorInterpolationEnabled(), true);
                   }
                } else {
-                  for (int i=0; i<lineCount; ++i) {
-                     int baseIdx = lineStride*i;
+                  for (int i=0; i<count; ++i) {
+                     int baseIdx = lineStride*(i+offset);
                      int vidx1 = lines[baseIdx];
                      int vidx2 = lines[baseIdx+1];
                      float[] p0 = robj.getVertexPosition(vidx1);
@@ -3457,41 +3294,36 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          disableVertexColoring (useHSV, savedShading);
       }
    }
-
-   @Override
-   public void drawLines (RenderObject robj, LineStyle style, double rad) {
-      drawLines(robj, robj.getLineGroupIdx (), style, rad);
-   }
    
    @Override
-   public void drawLines(RenderObject robj, int gidx, LineStyle style, double rad) {
+   public void drawLines(RenderObject robj, int gidx, int offset,
+      int count, LineStyle style, double rad) {
       maybeUpdateState(gl);
 
       switch (style) {
          case LINE: {
             // maybe change line width
             setLineWidth (gl, (float)rad);
-            drawLines(robj, gidx);
+            drawSimpleLines(robj, gidx, offset, count);
             break;
          }
          case CYLINDER:
          case SPINDLE:
          case SOLID_ARROW:
-            drawSolidLines(robj, gidx, style, (float)rad);
+            drawSolidLines(robj, gidx, offset, count, style, (float)rad);
             break;
       }
-   }
-
-   @Override
-   public void drawPoints(RenderObject robj) {
-      drawPoints(robj, robj.getPointGroupIdx ());
-   }
+   }   
    
    @Override
    public void drawPoints(RenderObject robj, int gidx) {
-      
-      int pointCount = robj.numPoints (gidx);
-      if (pointCount == 0) {
+      drawSimplePoints(robj, gidx, 0, robj.numPoints (gidx));
+   }
+   
+   private void drawSimplePoints(RenderObject robj, int gidx,
+      int offset, int count) {
+
+      if (count == 0) {
          return;
       }
 
@@ -3504,7 +3336,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
+      boolean useColors = hasColors && !selecting && (myActiveColor==ActiveColor.DEFAULT);
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -3513,7 +3345,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          savedShading = enableVertexColoring (useHSV);
       }
 
+      int totalPointCount = robj.numPoints (gidx);
       boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+         && ((offset == 0) && (count == totalPointCount))
          && (robj.numPoints (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
       
       GL2VersionedObject gvo = null;
@@ -3548,8 +3382,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          robj.readLock ();  // prevent writes while reading
          
          int[] points = robj.getPoints (gidx);
-         for (int i=0; i<pointCount; ++i) {
-            int vidx = points[i];
+         for (int i=0; i<count; ++i) {
+            int vidx = points[i+offset];
             if (!selecting && robj.hasColors() && hasVertexColoring()) {
                setVertexColor (gl, robj.getVertexColor(vidx), useHSV);
             }
@@ -3583,19 +3417,22 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
    }
 
-   private void drawSolidPoints(RenderObject robj, int gidx, PointStyle style, double rad) {
+   private void drawSolidPoints(RenderObject robj, int gidx, 
+      int offset, int count,
+      PointStyle style, double rad) {
       
-      int pointCount = robj.numPoints (gidx);
-      if (pointCount == 0) {
+      if (count == 0) {
          return;
       }
+      
+      int totalPointCount = robj.numPoints (gidx);
       
       GL2 gl = getGL2();
       maybeUpdateState(gl);
 
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
+      boolean useColors = hasColors && !selecting && (myActiveColor==ActiveColor.DEFAULT);
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -3615,7 +3452,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
       
       
-      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient()) 
+      boolean useDisplayList = (!selecting || !hasColors) && (!robj.isTransient())
+         && ((offset == 0) && (count == totalPointCount))
          && (robj.numPoints (gidx) > DISPLAY_LIST_VERTEX_MINIMUM);
       
       GL2VersionedObject gvo = null;
@@ -3649,8 +3487,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          robj.readLock ();
 
          int[] points = robj.getPoints(gidx);
-         for (int i=0; i<pointCount; ++i) {
-            int vidx = points[i];
+         for (int i=0; i<count; ++i) {
+            int vidx = points[i+offset];
             if (!selecting && useColors) {
                setVertexColor (gl, robj.getVertexColor (vidx), useHSV);
             }
@@ -3683,25 +3521,22 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          disableVertexColoring (useHSV, savedShading);
       }
    }
-
-   @Override
-   public void drawPoints (RenderObject robj, PointStyle style, double rad) {
-      drawPoints(robj, robj.getPointGroupIdx (), style, rad);
-   }
    
    @Override
-   public void drawPoints(RenderObject robj, int gidx, PointStyle style, double rad) {
+   public void drawPoints(RenderObject robj, int gidx, int offset, int count,
+      PointStyle style, double rad) {
+      
       switch (style) { 
          case POINT: {
             // maybe change point size and draw points
             setPointSize(gl, (float)rad);
-            drawPoints(robj, gidx);
+            drawSimplePoints(robj, gidx, offset, count);
             break;
          }
          case SPHERE: 
          case CUBE:{
             // draw spheres
-            drawSolidPoints(robj, gidx, style, rad);
+            drawSolidPoints(robj, gidx, offset, count, style, rad);
          }
       }
 
@@ -3719,7 +3554,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
+      boolean useColors = hasColors && !selecting && (myActiveColor==ActiveColor.DEFAULT);
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -3898,7 +3733,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
+      boolean useColors = hasColors && !selecting && (myActiveColor==ActiveColor.DEFAULT);
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -4018,7 +3853,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
    }
    
-   @Override
    public void drawVertices(RenderObject robj, int[] idxs, DrawMode mode) {
 
       boolean enableLighting = false;
@@ -4030,7 +3864,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
       boolean selecting = isSelecting();
       boolean hasColors = (robj.hasColors() && hasVertexColoring());
-      boolean useColors = hasColors && !selecting && !myHighlightColorActive;
+      boolean useColors = hasColors && !selecting && (myActiveColor==ActiveColor.DEFAULT);
       boolean useHSV = isHSVColorInterpolationEnabled (); // && !isLightingEnabled ();
 
       // if use vertex colors, get them to track glColor      
@@ -4144,7 +3978,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       maybeUpdateState(gl);
 
       if (getVertexColorMixing() != ColorMixing.REPLACE ||
-          isSelecting() || myHighlightColorActive) {
+          isSelecting() || (myActiveColor == ActiveColor.DEFAULT)) {
          // only REPLACE color mixing is supported
          hasColorData = false;
       }

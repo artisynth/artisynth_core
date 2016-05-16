@@ -305,9 +305,15 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
       return pointGroupOffsets[gidx+1]-pointGroupOffsets[gidx];
    }
    
+   
    public void bindInstancedVertices(GL3 gl, int gidx) {
+      bindInstancedVertices (gl, gidx, 0)
+      ;
+   }
+   
+   public void bindInstancedVertices(GL3 gl, int gidx, int offset) {
 
-      int vstart = pointGroupOffsets[gidx];
+      int vstart = pointGroupOffsets[gidx]+offset;
       
       int loc = pposAttr.getLocation ();
       if (positionInfo != null ) {
@@ -342,11 +348,21 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
       int vcount = pointGroupOffsets[gidx+1]-vstart;
       gl.glDrawArrays (mode, vstart, vcount);  // 1 vertex per point
    }
+   
+   public void drawPoints(GL3 gl, int mode, int gidx, int offset, int count){
+      int vstart = pointGroupOffsets[gidx] + offset;
+      gl.glDrawArrays (mode, vstart, count);  // 1 vertex per point
+   }
 
    public void drawInstancedPoints(GL3 gl, GL3SharedObject point, int gidx) {
       int vstart = pointGroupOffsets[gidx];
       int vcount = pointGroupOffsets[gidx+1]-vstart;
       point.drawInstanced (gl, vcount);
+   }
+   
+   public void drawInstancedPoints(GL3 gl, GL3SharedObject point, int gidx, 
+      int count) {
+      point.drawInstanced (gl, count);
    }
 
    public static GL3SharedRenderObjectPoints generate (

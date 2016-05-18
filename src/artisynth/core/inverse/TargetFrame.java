@@ -6,20 +6,19 @@
  */
 package artisynth.core.inverse;
 
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.RigidTransform3d;
-import maspack.geometry.GeometryTransformer;
-import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
+import maspack.geometry.GeometryTransformer;
+import maspack.matrix.RigidTransform3d;
 
-public class TargetFrame extends Frame {
+public class TargetFrame extends RigidBody {
 
    public TargetFrame () {
    }
 
    public TargetFrame (RigidTransform3d X) {
-      super (X);
+      super ();
+      setPose(X);
    }
    
    @Override

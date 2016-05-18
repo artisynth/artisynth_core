@@ -246,8 +246,10 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
        
        for(int j =0; j<mechMod.bodyConnectors ().size(); j++)
        {
-          System.out.println(mechMod.bodyConnectors ().get (j).getName());
-          if(mechMod.bodyConnectors ().get (j).getName()==myForceTargets.get (i).getName())
+//          System.out.println(mechMod.bodyConnectors ().get (j).getName());
+//          System.out.println(myForceTargets.get (i).getName());
+
+          if(myForceTargets.get (i).getName().startsWith (mechMod.bodyConnectors ().get (j).getName()))
           {
              target_idx[idx]=cons_ind;
              idx++;
@@ -276,6 +278,9 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
          ForceTarget target = myForceTargets.get(i);
          target.addForceJacobian(myForJacobian, i,target_idx[i]);
       }
+      
+//      System.out.println("Jc = "+myForJacobian);
+
 
       // fold attachments into targets on dynamic components (same as constraint
       // jacobians)

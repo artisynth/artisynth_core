@@ -1826,7 +1826,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       gl.glLoadIdentity();
 
       gl.glDisable (GL2.GL_LIGHTING);
-      gl.glColor3f (0.5f, 0.5f, 0.5f);
+      setGLColor(gl, 0.5f, 0.5f, 0.5f, 1.0f);
 
       double x0 = 2 * myDragBox.x / (double)width - 1;
       double x1 = x0 + 2 * myDragBox.width / (double)width;
@@ -1948,12 +1948,12 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       drawable.setAutoSwapBufferMode (selectEnabled ? false : true);
       
       // re-enable multisample if not enabled
-      boolean ms = gl.glIsEnabled(GL.GL_MULTISAMPLE);
-      if (!ms) {
-         System.out.println("Re-enabling multisample AA");
-         gl.glEnable(GL.GL_MULTISAMPLE);
-         myMultiSampleEnabled = true;
-      }
+      //      boolean ms = gl.glIsEnabled(GL.GL_MULTISAMPLE);
+      //      if (!ms) {
+      //         System.out.println("Re-enabling multisample AA");
+      //         gl.glEnable(GL.GL_MULTISAMPLE);
+      //         myMultiSampleEnabled = true;
+      //      }
 
       gl.glPushMatrix();
       if (selectEnabled) {
@@ -1961,6 +1961,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       }
       if (myProfiling) {
          myTimer.start();
+         myGLColorCount = 0;
       }
       doDisplay (drawable, flags);
       if (myProfiling) {
@@ -1968,6 +1969,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          System.out.printf (
             "render time (msec): %9.4f %s\n", 
             myTimer.getTimeUsec()/1000.0, isSelecting() ? "(SELECT)" : "");
+         System.out.println("Color changes: " + myGLColorCount);
       }
       if (selectEnabled) {
          mySelector.processSelection (drawable);
@@ -2054,7 +2056,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       gl.glDepthFunc (GL2.GL_ALWAYS);
 
       if (!selectEnabled) {
-         gl.glColor3f (1, 0, 0);
+         setGLColor(gl, 1, 0, 0, 1);
       }
       gl.glBegin (GL2.GL_LINES);
       gl.glVertex3d (l, 0.0, 0.0);
@@ -2062,7 +2064,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       gl.glEnd();
 
       if (!selectEnabled) {
-         gl.glColor3f (0, 1, 0);
+         setGLColor(gl, 0, 1, 0, 1);
       }
       gl.glBegin (GL2.GL_LINES);
       gl.glVertex3d (0, l, 0.0);
@@ -2070,7 +2072,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       gl.glEnd();
 
       if (!selectEnabled) {
-         gl.glColor3f (0, 0, 1);
+         setGLColor(gl, 0, 0, 1, 1);
       }
       gl.glBegin (GL2.GL_LINES);
       gl.glVertex3d (0, 0, l);
@@ -2443,6 +2445,12 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       return mySelectedMaterial;
    }
 
+   int myGLColorCount = 0;
+   public void setGLColor(GL2 gl, float r, float g, float b, float a) {
+      gl.glColor4f(r, g, b, a);
+      ++myGLColorCount;
+   }
+   
    public void setColor (float[] rgb, boolean selected) {
       if (!selectEnabled) {
          if (selected && myHighlighting == SelectionHighlighting.Color) {
@@ -2452,10 +2460,10 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
             myCurrentColor = rgb;
          }
          if (myCurrentColor.length == 3) {
-            gl.glColor3fv (myCurrentColor, 0);
+            setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], 1f);
          }
          else {
-            gl.glColor4fv (myCurrentColor, 0);
+            setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], myCurrentColor[3]);
          }
       }
    }
@@ -2466,10 +2474,10 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
             myCurrentColor = rgb;
          }
          if (myCurrentColor.length == 3) {
-            gl.glColor3fv (myCurrentColor, 0);
+            setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], 1f);
          }
          else {
-            gl.glColor4fv (myCurrentColor, 0);
+            setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], myCurrentColor[3]);
          }
       }
    }
@@ -2478,7 +2486,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       if (!selectEnabled) {
          float[] rgba = color.getColorComponents (null);
          myCurrentColor = rgba;
-         gl.glColor4fv (myCurrentColor, 0);
+         setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], myCurrentColor[3]);
       }
    }
 
@@ -2494,10 +2502,10 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          if (myCurrentColor != c) {
             myCurrentColor = c;
             if (myCurrentColor.length == 3) {
-               gl.glColor3fv (myCurrentColor, 0);
+               setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], 0);
             }
             else {
-               gl.glColor4fv (myCurrentColor, 0);
+               setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], myCurrentColor[3]);
             }
          }
       }
@@ -2505,13 +2513,13 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
 
    public void setColor (float r, float g, float b) {
       if (!selectEnabled) {
-         gl.glColor3f (r, g, b);
+         setGLColor (gl, r, g, b, 1f);
       }
    }
 
    public void setColor (float r, float g, float b, float a) {
       if (!selectEnabled) {
-         gl.glColor4f (r, g, b, a);
+         setGLColor (gl, r, g, b, a);
       }
    }
 
@@ -2603,10 +2611,10 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
          if (c != myCurrentColor) {
             myCurrentColor = c;
             if (myCurrentColor.length == 3) {
-               gl.glColor3fv (myCurrentColor, 0);
+               setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], 1f);
             }
             else {
-               gl.glColor4fv (myCurrentColor, 0);
+               setGLColor (gl, myCurrentColor[0], myCurrentColor[1], myCurrentColor[2], myCurrentColor[3]);
             }
          }
       }
@@ -3538,7 +3546,7 @@ public class GLViewer implements GLEventListener, GLRenderer, HasProperties {
       gl.glBegin (GL2.GL_LINES);
       for (int i = 0; i < 3; i++) {
          if (!selected && !selectEnabled) {
-            gl.glColor3f (i == 0 ? 1f : 0f, i == 1 ? 1f : 0f, i == 2 ? 1f : 0f);
+            setGLColor(gl, i == 0 ? 1f : 0f, i == 1 ? 1f : 0f, i == 2 ? 1f : 0f, 1);
          }
          gl.glVertex3d (X.p.x, X.p.y, X.p.z);
          X.R.getColumn (i, u);

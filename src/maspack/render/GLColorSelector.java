@@ -324,7 +324,7 @@ public class GLColorSelector extends GLSelector {
       colorId >>= 8;
       int r = 0xff & colorId;
       //myGl.glColor4f (r/255f, g/255f, b/255f, a/255f);
-      myGl.glColor4f (r/255f, g/255f, b/255f, 1);
+      myViewer.setGLColor(myGl, r/255f, g/255f, b/255f, 1);
       myCurrentIdx = idx;
    }
 
@@ -334,7 +334,7 @@ public class GLColorSelector extends GLSelector {
             "endSelectionQuery() called without previous call to "+
             "beginSelectionQuery()");
       }
-      myGl.glColor3f (0f, 0f, 0f);
+      // myGl.glColor4f (0f, 0f, 0f, 1f);
       myCurrentIdx = -1;
    }
 

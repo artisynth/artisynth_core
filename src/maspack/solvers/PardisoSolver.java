@@ -1658,7 +1658,9 @@ public class PardisoSolver implements DirectSolver {
          throw new IllegalArgumentException ("tolExp should not be negative");
       }   
       
-      // XXX detect zero bug early
+      // Some versions of Pardiso have a bug whereby iterative solves fail when
+      // the RHS is zero. So check for rhs == 0 and simple return x = 0 when
+      // this is the case.
       boolean rhs0 = true;      // assume RHS is zero
       for (int i=0; i<b.length; i++) {
          if (b[i] != 0) {

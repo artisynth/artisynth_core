@@ -372,20 +372,21 @@ public class GL3Viewer extends GLViewer {
          fireRerenderListeners();
       }
 
-      if (frameCapture != null) {
-         synchronized(frameCapture) {
+      GLFrameCapture fc = frameCapture;
+      if (fc != null) {
+         synchronized(fc) {
             if (grab) {
-               offscreenCapture (flags);
+               offscreenCapture (fc, flags);
                grab = false;
             }
             if (grabWaitComplete) {
-               frameCapture.waitForCompletion();
+               fc.waitForCompletion();
                // reset
                grabWaitComplete = false;
             }
             if (grabClose) {
-               frameCapture.waitForCompletion();
-               frameCapture.dispose(gl);
+               fc.waitForCompletion();
+               fc.dispose(gl);
                frameCapture = null;
             }
          }
@@ -554,7 +555,7 @@ public class GL3Viewer extends GLViewer {
 
    }
 
-   private void offscreenCapture (int flags) {
+   private void offscreenCapture (GLFrameCapture fc, int flags) {
 
       boolean savedSelecting = selectEnabled;
       selectEnabled = false;
@@ -563,7 +564,7 @@ public class GL3Viewer extends GLViewer {
       gl.setSwapInterval (1);
 
       // Set rendering commands to go to offscreen frame buffer
-      frameCapture.activateFBO(gl);
+      fc.activateFBO(gl);
 
       // disable resetting of view volume during capture
       boolean autoResize = setAutoResizeEnabled (false);
@@ -575,8 +576,8 @@ public class GL3Viewer extends GLViewer {
       fireRerenderListeners();
 
       // further drawing will go to screen
-      frameCapture.deactivateFBO(gl);
-      frameCapture.capture(gl);
+      fc.deactivateFBO(gl);
+      fc.capture(gl);
 
       selectEnabled = savedSelecting;
 
@@ -632,13 +633,14 @@ public class GL3Viewer extends GLViewer {
    public void setupScreenShot(
       int w, int h, int samples, File file, String format) {
       boolean gammaCorrection = isGammaCorrectionEnabled();
-      if (frameCapture == null) {
+      GLFrameCapture fc = frameCapture;
+      if (fc == null) {
          frameCapture = 
             new GLFrameCapture (w, h, samples, gammaCorrection, file, format);
       }
       else {
-         synchronized(frameCapture) {
-            frameCapture.reconfigure(gl, w, h, samples, gammaCorrection, file, format);
+         synchronized(fc) {
+            fc.reconfigure(gl, w, h, samples, gammaCorrection, file, format);
          }
       }
       grab = true;

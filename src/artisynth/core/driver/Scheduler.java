@@ -260,6 +260,7 @@ public class Scheduler {
          lastYieldMsec = realStartMsec;
          RootModel root = getRootModel();
 
+         root.setStopRequest (false);
          while (myAlive) {
             double t0 = myTime;
             double t1;
@@ -285,7 +286,9 @@ public class Scheduler {
                   myStopReq = true;
                }
             }
-            if (t1 == -1 || TimeBase.compare (myTime, endTime) >= 0) {
+            if (t1 == -1 ||
+                TimeBase.compare (myTime, endTime) >= 0 ||
+                root.getStopRequest()) {
                myStopReq = true;
             }
             if (myStopReq) {

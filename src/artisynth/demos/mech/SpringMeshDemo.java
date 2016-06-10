@@ -282,6 +282,12 @@ public class SpringMeshDemo extends RootModel {
 
          addInputProbe (inprobe);
 
+         // for (int i=0; i<3; i++) {
+         //    inprobe = new NumericInputProbe (
+         //       mech, "particles/0:targetPosition", i*2.2, i*2.2+2);
+         //    addInputProbe (inprobe);
+         // }
+
          NumericOutputProbe collector =
             new NumericOutputProbe (
                mech, "particles/pnt7:position",
@@ -331,11 +337,16 @@ public class SpringMeshDemo extends RootModel {
    // }
    // }
 
+   //int cnt = 0;
+
    public StepAdjustment advance (double t0, double t1, int flags) {
       // MechModel model = (MechModel)models().getByNumber (0);
       // SolveMatrixTest tester = new SolveMatrixTest();
       // System.out.println ("error=" + tester.testStiffness (model, 1e-8));
 
+      //if ((++cnt % 100) == 0) {
+      //   setStopRequest (true);
+      //}
       return super.advance (t0, t1, flags);
    }
 

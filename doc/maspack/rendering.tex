@@ -3775,6 +3775,255 @@ clear all primitives and their associated groups within the render
 object, while leaving vertices and attributes alone, allowing new
 primitives to then be constructed.
 
+\subsection{Drawing primitive subsets}
+\label{drawingPrimitiveSubsets:sec}
+
+In some circumstances, it may be useful to draw only a subset of the
+primitives in a render object, or to draw a subset of the vertices
+using a specified primitive type.  There may be several reasons why
+this is necessary. The application may wish to draw different
+primitive subsets using different settings of the graphics context
+(such as different colors).  Or, an application may use a single
+render object for drawing a collection of objects that are
+individually selectable. Then when rendering in selection mode
+(Section \ref{objectSelection:sec}), it is it is necessary to render
+the objects separately so that the selection mechanism can distinquish
+them.
+
+The two renderer methods for rendering primitive subsets are:
+%
+\begin{lstlisting}
+   void drawVertices (
+      RenderObject robj, VertexIndexArray idxs, DrawMode mode);
+
+   void drawVertices (
+      RenderObject robj, VertexIndexArray idxs, 
+      int offset, int count, DrawMode mode);
+\end{lstlisting}
+%
+Each of these draws primitive subsets for the render object {\tt
+robj}, using the vertices specified by {\tt idxs} and the primitive
+type specified by {\tt mode}.
+\javaclass[maspack.render]{VertexIndexArray} is a dynamically-sized
+integer array specialized for vertices.  The second method allows a
+subset of {\tt idxs} to be specified by an {\tt offset} and {\tt
+count}, so that the same index array can be used to draw different
+features.
+
+The following example creates a render object containing three
+squares, and then uses {\tt drawVertices()} to render each square
+individually using a different color:
+%
+\begin{lstlisting}[caption={Example of rendering separate features from
+the same render object.},
+label=threeSquares:lst]
+   RenderObject myRob;
+   VertexIndexArray myIdxs;
+
+   void addSquare (
+      RenderObject robj, VertexIndexArray idxs,
+      float x0, float y0, float x1, float y1, 
+      float x2, float y2, float x3, float y3) {
+
+      // create the four vertices uses to define the square, based on
+      // four points in the x-y plane
+
+      int v0 = robj.vertex (x0, y0, 0);
+      int v1 = robj.vertex (x1, y1, 0);
+      int v2 = robj.vertex (x2, y2, 0);
+      int v3 = robj.vertex (x3, y3, 0);
+
+      // use these vertices to define the four line segments needed
+      // to draw the square
+
+      robj.addLine (v0, v1);
+      robj.addLine (v1, v2);
+      robj.addLine (v2, v3);
+      robj.addLine (v3, v0);
+
+      // and add the vertex indices for the line segments to the vertex
+      // index array
+
+      idxs.add (v0); idxs.add (v1); 
+      idxs.add (v1); idxs.add (v2); 
+      idxs.add (v2); idxs.add (v3); 
+      idxs.add (v3); idxs.add (v0); 
+   }
+
+   RenderObject createRenderObj (VertexIndexArray idxs) {
+      // create a render object consisting of three squares, along with
+      // an index array to keep track of all the vertices
+      
+      RenderObject robj = new RenderObject();
+      addSquare (robj, idxs, -4f, -1f, -2f, -1f, -2f,  1f, -4f,  1f);
+      addSquare (robj, idxs, -1f, -1f,  1f, -1f,  1f,  1f, -1f,  1f);
+      addSquare (robj, idxs,  2f, -1f,  4f, -1f,  4f,  1f,  2f,  1f);
+      return robj;         
+   }
+
+   public void render (Renderer renderer, int flags) {
+      if (myRob == null) {
+         // create render object and index array on demand
+         myIdxs = new VertexIndexArray();
+         myRob = createRenderObj (myIdxs);
+      }
+      // render each square separately using a different color
+      renderer.setLineWidth (4);
+      renderer.setColor (Color.RED);
+      renderer.drawVertices (myRob, myIdxs,  0, 8, DrawMode.LINES);
+      renderer.setColor (Color.GREEN);
+      renderer.drawVertices (myRob, myIdxs,  8, 8, DrawMode.LINES);
+      renderer.setColor (Color.BLUE);
+      renderer.drawVertices (myRob, myIdxs, 16, 8, DrawMode.LINES);
+   }
+\end{lstlisting}
+%
+Each square is added to the render object using the method {\tt
+addSquare()}, which creates and adds the necessary vertices and line
+segments, and also stores the line segment vertex indices in an index
+array. The {\tt render()} method then uses subsets of this index
+array, specified by the offset/length pairs $(0, 8)$, $(8, 8)$, and
+$(16, 8)$, to render each square individually (using a different
+color) via a call to {\tt drawVertices()}.  The result is shown in
+Figure \ref{threeSquares:fig}.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/threeSquares}
+\else
+ \includegraphics[width=5.00in]{images/threeSquares}
+\fi
+\end{center}
+\caption{Three squares drawn individually from the same render object.}
+\label{threeSquares:fig}
+\end{figure}
+%
+
+In the above example, each square uses the same number of vertices (8)
+to draw its line segments, making it easy to determine the
+offset/length pairs required for each square. However, in more
+general cases a render object may contain features with variable
+numbers of vertices, and so determining the offset/length pairs
+may be more difficult.  In
+such cases the application may find it useful to instead collect the
+vertex indices inside a \javaclass[maspack.render]{FeatureIndexArray},
+which allows them to be grouped on a per-feature basis, with each
+feature identified by a number. The usage model looks like this:
+%
+\begin{lstlisting}
+   FeatureIndexArray fidxs = new FeatureIndexArray();
+   ...
+   for (each feature fnum) {
+      fidxs.beginFeature (fnum);
+      for (each feature vertex vidx) {
+         fidxs.add (vidx);
+      }
+   }
+   fidxs.endFeature();   
+\end{lstlisting}
+%
+After the feature index array has been built, the vertex index buffer
+can be obtained using {\tt fidxs.getVertices()}, and the feature
+number and offset/length pair for each feature can be recovered using
+%
+\begin{lstlisting}
+   int fnum = fidxs.getFeature (fidx);
+   int offset = fidxs.getFeatureOffset (fidx);
+   int length = fidxs.getFeatureLength (fidx);
+\end{lstlisting}
+%
+where {\tt fidx} is the index of the feature within the {\tt
+FeatureIndexArray}. In some situations the feature number {\tt fnum}
+and {\tt fidx} may be the same, but in others they may be different.
+For example, each feature may be associated with an application
+component that has a unique number used for selection (Section
+\ref{objectSelection:sec}), in which case the feature number can be
+set to the selection number.
+
+The three squares example of Listing \ref{threeSquares:lst} can be
+reimplemented using {\tt FeatureIndexArray} as follows:
+%
+\begin{lstlisting}[caption={Primitive subset rendering using
+a FeatureVertexArray.},
+label=featureVertexArray:lst]
+   RenderObject myRob;
+   FeatureIndexArray myFidxs;
+
+   void addSquare (
+      RenderObject robj, FeatureIndexArray fidxs, int fnum,
+      float x0, float y0, float x1, float y1, 
+      float x2, float y2, float x3, float y3) {
+
+      // create the four vertices uses to define the square, based on
+      // four points in the x-y plane
+
+      int v0 = robj.vertex (x0, y0, 0);
+      int v1 = robj.vertex (x1, y1, 0);
+      int v2 = robj.vertex (x2, y2, 0);
+      int v3 = robj.vertex (x3, y3, 0);
+
+      // use these vertices to define the four line segments needed
+      // to draw the square
+
+      robj.addLine (v0, v1);
+      robj.addLine (v1, v2);
+      robj.addLine (v2, v3);
+      robj.addLine (v3, v0);
+
+      // and add the vertex indices for the line segments to the feature
+      // index array for the feature identified by fnum:
+
+      fidxs.beginFeature (fnum);
+      fidxs.addVertex (v0); fidxs.addVertex (v1); 
+      fidxs.addVertex (v1); fidxs.addVertex (v2); 
+      fidxs.addVertex (v2); fidxs.addVertex (v3); 
+      fidxs.addVertex (v3); fidxs.addVertex (v0); 
+      fidxs.endFeature();
+   }
+
+   RenderObject createRenderObj (FeatureIndexArray idxs) {
+      
+      RenderObject robj = new RenderObject();
+      addSquare (robj, idxs, 0, -4f, -1f, -2f, -1f, -2f,  1f, -4f,  1f);
+      addSquare (robj, idxs, 1, -1f, -1f,  1f, -1f,  1f,  1f, -1f,  1f);
+      addSquare (robj, idxs, 2,  2f, -1f,  4f, -1f,  4f,  1f,  2f,  1f);
+      return robj;         
+   }
+
+   RenderObject myRob;
+   FeatureIndexArray myFidxs;
+
+   void drawSquare (
+      Renderer renderer, RenderObject robj,
+      FeatureIndexArray fidxs, int fidx) {
+
+      // draw a single square using the vertex indices associated
+      // with the feature fidx
+      renderer.drawVertices (
+         robj, fidxs.getVertices(),
+         fidxs.getFeatureOffset(fnum), fidxs.getFeatureLength(fnum),
+         DrawMode.LINES);
+   }
+
+   public void render (Renderer renderer, int flags) {
+      if (myRob == null) {
+         // create render object and feature index array on demand
+         myFidxs = new FeatureIndexArray();
+         myRob = createRenderObj (myFidxs);
+      }
+      // render each square separately using a different color      
+      renderer.setLineWidth (4);
+      renderer.setColor (Color.RED);
+      drawSquare (renderer, myRob, myFidxs, 0);
+      renderer.setColor (Color.GREEN);
+      drawSquare (renderer, myRob, myFidxs, 1);
+      renderer.setColor (Color.BLUE);
+      drawSquare (renderer, myRob, myFidxs, 2);
+   }
+\end{lstlisting}
+%
+
 \section{Texture mapping}
 \label{mappings:sec}
 
@@ -4547,7 +4796,7 @@ not} in selection mode, then these calls simply do nothing. However,
 conditionalizing the calls may be useful for code clarity or efficiency.
 \end{sideblock}
 
-It is also necessary to indicate to the viewer how many selection
+It is also necessary to indicate to the renderer how many selection
 queries we need, and what should be selected in response to a
 particular query. This is done by creating appropriate declarations
 for {\tt numSelectionQueriesNeeded()} and {\tt getSelection()}
@@ -4586,15 +4835,15 @@ selection frustum. If a component is associated with multiple queries
 multiple times.
 \end{sideblock}
 
-\begin{sideblock}
-It is {\it not} possible to specify selection query blocks within the
-drawing of a single render object (Section \ref{renderObjects:sec}).
-Objects which normally use a single render object to draw a number of
-subcomponents must therefore render those components separately
-during a selection repaint (as determined by {\tt
-renderer.isSelecting()}) in order to surround them with selection
-queries and hence allow them to be individually selected.
-\end{sideblock}
+%\begin{sideblock}
+%It is {\it not} possible to specify selection query blocks within the
+%drawing of a single render object (Section \ref{renderObjects:sec}).
+%Objects which normally use a single render object to draw a number of
+%subcomponents must therefore render those components separately
+%during a selection repaint (as determined by {\tt
+%renderer.isSelecting()}) in order to surround them with selection
+%queries and hence allow them to be individually selected.
+%\end{sideblock}
 
 Note that the use of {\tt beginSelectionQuery(qid)} and {\tt
 endSelectionQuery()} is conceptually similar to surrounding the render
@@ -4615,7 +4864,7 @@ it's {\tt prerender()} method (Section \ref{prerenderingAndRendering:sec}):
    }
 \end{lstlisting}
 Rendering and selection of each component is then handled by
-the viewer.
+the renderer.
 
 However, if for some reason (efficiency, perhaps) it is necessary
 for {\tt Foo} to render the components inside its own
@@ -4666,6 +4915,47 @@ a selection render is being performed.  This method returns {\tt
 true} if {\tt s.isSelectable()} returns {\tt true} {\it and} if {\tt
 s} is allowed by any selection filter that is currently active in
 the viewer. 
+
+In some cases, some of the selectable components within a class may
+normally be rendered at once using a single render object. However,
+when a selection render is performed, each such component must be
+rendered using a separate draw operation surrounded by the appropriate
+calls to {\tt begin/endSelectionQuery()}. This can be done either by
+rendering each component using its own render method, or by rendering
+primitive subsets of the render object as described in Section
+\ref{drawingPrimitiveSubsets:sec}. If the latter is done using a
+\javaclass[maspack.render]{FeatureIndexBuffer}, then the feature
+number can be used to store the selection query ID. For example, in
+the example of Listing \ref{featureVertexArray:lst}, the {\tt
+render()} method can be rewritten to normally draw all the squares at
+once (using the default color) with a single call to
+\javamethod[maspack.render.Renderer]{draw(RenderObject)}, or, when
+selecting, to render each square separately within a selection query
+block:
+%
+\begin{lstlisting}
+   public void render (Renderer renderer, int flags) {
+      if (myRob == null) {
+         // create render object and feature index array on demand
+         myFidxs = new FeatureIndexArray();
+         myRob = createRenderObj (myFidxs);
+      }
+      renderer.setLineWidth (4);
+      if (renderer.isSelecting()) {
+         // render each square separately surrounded by a selection query
+         for (int fidx=0; fidx<3; fidx++) {
+            renderer.beginSelectionQuery (myFidxs.getFeature(fidx));
+            drawSquare (renderer, myRob, myFidxs, fidx);
+            renderer.endSelectionQuery();
+         }
+      }
+      else {
+         // render all squares at once (using the default color)
+         renderer.draw (myRob);
+      }
+   }
+\end{lstlisting}
+%
 
 Finally, what if some of the components in the above example wish to
 manage their own selection? This can be detected if a component's {\tt

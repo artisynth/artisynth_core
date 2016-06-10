@@ -100,7 +100,10 @@ public class RootModel extends RenderableModelBase
 
    // flag to stop advancing - which we need if we are in the midst of 
    // lots of small adaptive steps
-   protected boolean myStopRequested = false;
+   protected boolean myStopAdvance = false;
+
+   // flag to tell scheduler to stop simulation
+   protected boolean myStopRequest = false;
 
    protected boolean myModelInfoValid = false;
    private ModelInfo myRootInfo;
@@ -1546,8 +1549,20 @@ public class RootModel extends RenderableModelBase
     * This is used by the scheduler to interrupts the current call to advance
     * and cause state to be restored to that of the start time for the advance.
     */
-   public synchronized void requestStop() {
-      myStopRequested = true;
+   public synchronized void stopAdvance() {
+      myStopAdvance = true;
+   }
+
+   /**
+    * If set true, tells the scheduler to stop simulating this root model.
+    * Will be set to false by the scheduler when simulation is started.
+    */
+   public void setStopRequest (boolean req) {
+      myStopRequest = req;
+   }
+
+   public boolean getStopRequest() {
+      return myStopRequest;
    }
 
    protected void advanceModel (
@@ -1595,7 +1610,7 @@ public class RootModel extends RenderableModelBase
                }
             }
          }
-         while (myAdaptiveStepping && s < 1 && !myStopRequested);
+         while (myAdaptiveStepping && s < 1 && !myStopAdvance);
          if (!(myAdaptiveStepping && s < 1)) {
             // then we have advanced to tb:
             info.updateStepInfo (s);
@@ -1612,7 +1627,7 @@ public class RootModel extends RenderableModelBase
       if (t0 == 0) {
          applyOutputProbes (myRootInfo.outputProbes, t0, myRootInfo);
       }
-      while (ta < t1) {
+      while (ta < t1 && !myStopRequest) {
          double tb = getNextAdvanceTime (
             myRootInfo.outputProbes, getMaxStepSize(), ta, t1);
          //setDefaultInputs (ta, tb);

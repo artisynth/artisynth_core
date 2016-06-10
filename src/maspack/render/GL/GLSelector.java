@@ -124,6 +124,7 @@ public abstract class GLSelector extends GLResourceBase {
 
       Vector2d zRange = new Vector2d();
       myViewer.getZRange(zRange);
+      myViewer.pushProjectionMatrix();
       myViewer.setViewVolume(/*near=*/zRange.x, /*far=*/zRange.y);
       
       savedResize = myViewer.isAutoResizeEnabled ();
@@ -172,7 +173,8 @@ public abstract class GLSelector extends GLResourceBase {
          mySavedViewport[2], mySavedViewport[3]);
       myViewer.setAutoResizeEnabled (savedResize);
       myViewer.setAutoViewportEnabled (savedViewport);
-      
+
+      myViewer.popProjectionMatrix();
       myViewer.clearPickMatrix();
       
       if (!myMaxQStack.isEmpty()) {

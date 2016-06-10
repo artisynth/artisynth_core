@@ -1382,6 +1382,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void zoom (double s) {
       if (myFrustum.orthographic) {
          myFrustum.fieldHeight *= s;
+         myFrustum.top *= s;
+         myFrustum.bottom *= s;
+         myFrustum.left *= s;
+         myFrustum.right *= s;
          computeProjectionMatrix ();  // update projection matrix
       }
       else {
@@ -1789,32 +1793,54 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       Point3d pmax = new Point3d();
       getBounds(pmin, pmax);
 
-      // find max z depth
+
       Vector3d zdir = getEyeZDirection();
-      double worldDist = Math.abs(getEye().dot(zdir));
-      double [] x = {pmin.x, pmax.x};
-      double [] y = {pmin.y, pmax.y};
-      double [] z = {pmin.z, pmax.z};
-      double minz = Double.POSITIVE_INFINITY;
-      double maxz = Double.NEGATIVE_INFINITY;
-      for (int i=0; i<2; i++) {
-         for (int j=0; j<2; j++) {
-            for (int k=0; k<2; k++) {
-               double d = x[i]*zdir.x + y[j]*zdir.y + z[k]*zdir.z;
-               maxz = Math.max(maxz, d);
-               minz = Math.min(minz, d);
-            }
-         }
+
+      // John Lloyd, June 2016. Try to get a more robust estimate of the
+      // view volume, based on the center and maximum "radius" of the 
+      // bounding box
+
+      Point3d cent = new Point3d();
+      Vector3d diag = new Vector3d();
+      cent.add (pmax, pmin);
+      cent.scale (0.5);
+      diag.sub (pmax, pmin);
+
+      cent.transform (getViewMatrix());
+      double worldDist = -cent.z;
+      double radius = diag.norm()/2;
+      if (radius == 0) {
+         // can happen if model contains only one or more co-located points
+         radius = worldDist*0.01;
       }
+      // add 20% to radius for good measure
+      zRange.y = worldDist + 1.2*radius;
+      zRange.x = worldDist - 1.2*radius;
 
-      // add 50% for good measure
-      double d = maxz-minz;
-      minz = minz-d/2;
-      maxz = maxz+d/2;
+      // // find max z depth
+      // double worldDist = Math.abs(getEye().dot(zdir));
+      // double [] x = {pmin.x, pmax.x};
+      // double [] y = {pmin.y, pmax.y};
+      // double [] z = {pmin.z, pmax.z};
+      // double minz = Double.POSITIVE_INFINITY;
+      // double maxz = Double.NEGATIVE_INFINITY;
+      // for (int i=0; i<2; i++) {
+      //    for (int j=0; j<2; j++) {
+      //       for (int k=0; k<2; k++) {
+      //          double d = x[i]*zdir.x + y[j]*zdir.y + z[k]*zdir.z;
+      //          maxz = Math.max(maxz, d);
+      //          minz = Math.min(minz, d);
+      //       }
+      //    }
+      // }
 
-      zRange.y = maxz + worldDist;
-      zRange.x = 2*(minz + worldDist)-zRange.y;
-
+      // // add 50% for good measure
+      // double d = maxz-minz;
+      // minz = minz-d/2;
+      // maxz = maxz+d/2;
+      
+      // zRange.y = maxz + worldDist;
+      // zRange.x = 2*(minz + worldDist)-zRange.y;
    }
 
    public void setViewVolume (double near, double far) {
@@ -3263,7 +3289,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       double h = myFrustum.top-myFrustum.bottom;
       double d = myFrustum.far-myFrustum.near;
       
-      
       // adjust offset to account for proper bin depth
       double zoffset = 0;
       if (myFrustum.depthBitOffset != 0) {
@@ -3291,7 +3316,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (pickMatrix != null) {
          Matrix4d p = new Matrix4d(pvals);
          projectionMatrix.mul(pickMatrix, p);
-
          //         System.out.println("Pick projection:");
          //         System.out.println(projectionMatrix);
       } else {
@@ -3299,7 +3323,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          //         System.out.println("Projection:");
          //         System.out.println(projectionMatrix);
       }
-
       invalidateProjectionMatrix();
    }
   

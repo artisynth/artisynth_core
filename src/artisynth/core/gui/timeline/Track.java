@@ -425,10 +425,9 @@ public class Track extends JPanel {
    /**
     * delete a probe from the track, need to give the index of the probe
     * 
-    * @param indexProbe
+    * @param pinfo
     * @param isParentTrackDeleted
     */
-
    public void deleteProbe (ProbeInfo pinfo, boolean isParentTrackDeleted) {
       if (confirmDelete ("Delete this probe?", isParentTrackDeleted)) {
          RemoveComponentsCommand rmCmd = new RemoveComponentsCommand (

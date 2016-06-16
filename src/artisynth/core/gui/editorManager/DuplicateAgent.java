@@ -19,6 +19,7 @@ import artisynth.core.gui.selectionManager.*;
 import maspack.matrix.*;
 import maspack.geometry.*;
 import maspack.render.*;
+import maspack.render.GL.GLViewer;
 import maspack.util.*;
 import maspack.widgets.ButtonMasks;
 

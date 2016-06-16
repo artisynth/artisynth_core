@@ -31,7 +31,6 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.NumericalException;
-import maspack.matrix.Point3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseMatrixNd;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -42,7 +41,7 @@ import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
@@ -108,8 +107,8 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    public static boolean abortOnInvertedElems = false;
 
    private int myNumInverted = 0; // counts number of inverted elements
-   static maspack.render.Material myInvertedMaterial =
-      maspack.render.Material.createDiffuse(1f, 0f, 0f, 0f, 32f);
+//   static maspack.render.Material myInvertedMaterial =
+//      maspack.render.Material.createDiffuse(1f, 0f, 0f, 0f, 32f);
    // private boolean myIncompressibleP = false;
    private double myIncompCompliance = 0;
    public static IncompMethod DEFAULT_HARD_INCOMP = IncompMethod.OFF;
@@ -1046,6 +1045,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       //         }
       //      }
       mesh.setFixed(false);
+      mesh.setColorsFixed(false);
       
       return mc;
    }
@@ -1532,7 +1532,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       }
    }
 
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       super.render(renderer, flags);
    }
 
@@ -1830,7 +1830,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    }
    
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       // TODO Auto-generated method stub
       updatePosState();
       super.updateBounds(pmin, pmax);

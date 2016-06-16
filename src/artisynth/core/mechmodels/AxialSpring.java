@@ -19,13 +19,10 @@ import java.io.*;
 
 import maspack.render.*;
 
-import javax.media.opengl.*;
-
 import java.util.*;
 
 public class AxialSpring extends PointSpringBase
-   implements RenderableLine, ScalableUnits,
-              CopyableComponent {
+   implements ScalableUnits, CopyableComponent {
    protected Point myPnt0;
    protected Point myPnt1;
    protected SegmentData mySeg = new SegmentData (null, null);
@@ -203,20 +200,20 @@ public class AxialSpring extends PointSpringBase
       dowrite (pw, fmt, ref);
    }
 
-   public float[] getRenderCoords0() {
-      return myPnt0.myRenderCoords;
-   }
-
-   public float[] getRenderCoords1() {
-      return myPnt1.myRenderCoords;
-   }
-
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+//   public float[] getRenderCoords0() {
+//      return myPnt0.myRenderCoords;
+//   }
+//
+//   public float[] getRenderCoords1() {
+//      return myPnt1.myRenderCoords;
+//   }
+//
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myPnt0.updateBounds (pmin, pmax);
       myPnt1.updateBounds (pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       renderer.drawLine (
          myRenderProps, myPnt0.myRenderCoords, myPnt1.myRenderCoords,
          isSelected());

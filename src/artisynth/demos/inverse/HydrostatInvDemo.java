@@ -7,7 +7,8 @@ import java.util.ArrayList;
 
 import maspack.properties.PropertyMode;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
 import artisynth.core.femmodels.MuscleBundle;
 import artisynth.core.gui.FemControlPanel;
 import artisynth.core.inverse.TrackingController;
@@ -119,7 +120,7 @@ public class HydrostatInvDemo extends HydrostatDemo
    
    public void setupRenderProps() {
       
-      RenderProps.setFaceStyle(hydro, Faces.FRONT);
+      RenderProps.setFaceStyle(hydro, FaceStyle.FRONT);
       RenderProps.setFaceColor(hydro, new Color(0.8f, 0.8f, 1f));
       RenderProps.setVisible(hydro.getElements(), false);
       RenderProps.setPointSize(hydro.getNodes(), 0);

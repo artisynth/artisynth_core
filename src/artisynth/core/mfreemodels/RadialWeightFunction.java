@@ -133,7 +133,7 @@ public abstract class RadialWeightFunction extends MFreeWeightFunction {
       centroid.set(center);
    }
 
-   public void updateBounds(Point3d min, Point3d max) {
+   public void updateBounds(Vector3d min, Vector3d max) {
       
       Point3d myMin = new Point3d(center);
       myMin.add(-myRadius, -myRadius, -myRadius);

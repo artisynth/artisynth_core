@@ -14,8 +14,6 @@ import maspack.util.*;
 import maspack.properties.*;
 import maspack.render.*;
 
-import javax.media.opengl.*;
-
 import java.util.*;
 import java.io.*;
 
@@ -274,7 +272,7 @@ public class PlanarPoint extends Point implements PlanarComponent {
       myRenderCoords[2] = (float)myPos3d.z;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myPos3d.updateBounds (pmin, pmax);
    }
 

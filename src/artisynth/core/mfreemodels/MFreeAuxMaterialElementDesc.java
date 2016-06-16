@@ -15,10 +15,11 @@ import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix3d;
-import maspack.matrix.Point3d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -149,7 +150,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       return null;
    }
 
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       super.updateBounds(pmin, pmax);
       if (myElement != null)
          myElement.updateBounds(pmin, pmax);
@@ -512,14 +513,14 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    }
 
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       // this is just stub code for now
       if (false) {
-         maspack.render.Material mat = myRenderProps.getFaceMaterial();
-         renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
+         Shading savedShading = renderer.setPropsShading (myRenderProps);
+         renderer.setFaceColoring (
+            myRenderProps, myWidgetColor, isSelected());
          myElement.renderWidget (renderer, myRenderProps, 0);
-         renderer.restoreShading (myRenderProps);
+         renderer.setShading (savedShading);
       }      
    }
 

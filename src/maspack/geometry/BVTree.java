@@ -20,14 +20,14 @@ import java.util.Collection;
  * 
  * @author lloyd
  */
-public abstract class BVTree implements GLRenderable {
+public abstract class BVTree implements IsRenderable {
    // protected int myMaxDepth = -1;
    protected int myMaxLeafElements = 2;
    protected double myMargin = 0;
    protected static final double INF = Double.POSITIVE_INFINITY;
 
    protected RigidTransform3d myBvhToWorld = RigidTransform3d.IDENTITY;
-
+   
    /**
     * Returns an approximate "radius" for this bounding volume hierarchy.
     * This is just the radius of the root bounding volume.
@@ -605,7 +605,7 @@ public abstract class BVTree implements GLRenderable {
    /**
     * {@inheritDoc}
     */
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       if (getRoot() != null) {
          getRoot().updateBounds (min, max);
       }
@@ -620,14 +620,14 @@ public abstract class BVTree implements GLRenderable {
    /**
     * {@inheritDoc}
     */
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (getRoot() != null) {
          recursivelyRender (renderer, flags, getRoot());
       }
    }
 
    protected void recursivelyRender (
-      GLRenderer renderer, int flags, BVNode node) {
+      Renderer renderer, int flags, BVNode node) {
       node.render (renderer, flags);
       BVNode child = node.myFirstChild;
       while (child != null) {

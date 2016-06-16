@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.io.IOException;
 
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import artisynth.core.femmodels.FemMarker;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.materials.SimpleAxialMuscle;
@@ -18,7 +19,7 @@ public class FemBeamWithMuscle extends FemBeam {
       Muscle mus = new Muscle (/*name=*/null, /*restLength=*/0);
       mus.setMaterial (
          new SimpleAxialMuscle (/*stiffness=*/20, /*damping=*/10, /*maxf=*/10));
-      RenderProps.setLineStyle (mus, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (mus, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineColor (mus, Color.RED);
       RenderProps.setLineRadius (mus, 0.03);
       return mus;

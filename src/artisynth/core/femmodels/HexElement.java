@@ -14,7 +14,7 @@ import java.util.Map;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
 import maspack.util.InternalErrorException;
 import artisynth.core.modelbase.ModelComponent;
@@ -35,6 +35,7 @@ public class HexElement extends FemElement3d {
    private static double[] myDefaultIntegrationCoords;
    
    private static IntegrationPoint3d myWarpingPoint;
+   private static FemElementRenderer myRenderer;
    
    private IntegrationPoint3d[] myIntegrationPoints = null;
    private boolean myIPointsMapToNodes = true;
@@ -399,13 +400,19 @@ public class HexElement extends FemElement3d {
 //       }
    }
 
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
+   }
+
    public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
-      renderer.drawHex (props, size,
-                        myNodes[0].myRenderCoords, myNodes[1].myRenderCoords, 
-                        myNodes[2].myRenderCoords, myNodes[3].myRenderCoords,
-                        myNodes[4].myRenderCoords, myNodes[5].myRenderCoords, 
-                        myNodes[6].myRenderCoords, myNodes[7].myRenderCoords);
+      Renderer renderer, double size, RenderProps props) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.renderWidget (renderer, this, size, props);
    }
 
    static int[] edgeIdxs = new int[] 
@@ -424,16 +431,6 @@ public class HexElement extends FemElement3d {
          0, 4, 5, 1,
          3, 2, 6, 7
       };
-
-//    public void renderEdges (GLRenderer renderer, RenderProps props) {
-//       GL2 gl = renderer.getGL2().getGL2();
-//       gl.glBegin (GL2.GL_LINES);
-//       for (int i=0; i<24; i+=2) {
-//          gl.glVertex3fv (myNodes[edgeIdxs[i  ]].myRenderCoords, 0);
-//          gl.glVertex3fv (myNodes[edgeIdxs[i+1]].myRenderCoords, 0);
-//       }
-//       gl.glEnd();
-//    }
 
 //    public void computeWarping() {
 //       if (!myStiffnessValidP) {

@@ -23,9 +23,9 @@ public class ConvexPoly2d {
    }
 
    public class Vertex2d {
-      Point2d pnt;
-      Vertex2d next;
-      Vertex2d prev;
+      public Point2d pnt;
+      public Vertex2d next;
+      public Vertex2d prev;
 
       Vertex2d (Point2d p) {
          pnt = new Point2d(p);
@@ -42,11 +42,11 @@ public class ConvexPoly2d {
 
    Vertex2d head;
 
-   ConvexPoly2d() {
+   public ConvexPoly2d() {
       head = null;
    }
 
-   ConvexPoly2d (ConvexPoly2d poly) {
+   public ConvexPoly2d (ConvexPoly2d poly) {
       if (poly.head != null) {
          Vertex2d v = poly.head;
          do {
@@ -57,7 +57,7 @@ public class ConvexPoly2d {
       }
    }
 
-   ConvexPoly2d(Double... coords) {
+   public ConvexPoly2d(Double... coords) {
       int numv = coords.length/2;
       for (int i=0; i<numv; i++) {
          addVertex (coords[i*2], coords[i*2+1]);

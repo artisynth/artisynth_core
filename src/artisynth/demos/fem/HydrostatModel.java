@@ -11,8 +11,9 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.widgets.LabeledComponentBase;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemElement3d;
@@ -213,7 +214,7 @@ public class HydrostatModel extends FemMuscleModel {
    public void setupRenderProps() {
       setSurfaceRendering (SurfaceRender.Shaded);
       // RenderProps.setAlpha (this, 0.5);
-      RenderProps.setFaceStyle (this, Faces.NONE);
+      RenderProps.setFaceStyle (this, Renderer.FaceStyle.NONE);
       RenderProps.setLineWidth (this, 1);
 
       RenderProps.setPointSize (getNodes(), 4);
@@ -221,7 +222,7 @@ public class HydrostatModel extends FemMuscleModel {
       // RenderProps.setFaceStyle (getNodes(), Faces.BACK);
 
       for (MuscleBundle b : getMuscleBundles()) {
-         RenderProps.setLineStyle (b, LineStyle.ELLIPSOID);
+         RenderProps.setLineStyle (b, Renderer.LineStyle.SPINDLE);
          RenderProps.setLineRadius (b, 0.5);
       }
 
@@ -347,7 +348,7 @@ public class HydrostatModel extends FemMuscleModel {
 	    }
 	 }
 	 addMuscleBundle(b);
-	 RenderProps.setLineStyle(b, LineStyle.ELLIPSOID);
+	 RenderProps.setLineStyle(b, Renderer.LineStyle.SPINDLE);
 	 RenderProps.setLineColor(b, PlotTraceInfo.getPaletteColors()[b
 	       .getNumber()]);
 

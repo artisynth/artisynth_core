@@ -9,28 +9,27 @@ package artisynth.core.probes;
 import java.awt.Color;
 import java.io.File;
 import java.util.LinkedList;
-import java.util.List;
 
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.RenderableComponent;
+import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import maspack.geometry.GeometryTransformer;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.IsRenderable;
+import maspack.render.ColorMapProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
-import maspack.render.TextureProps;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.RenderableComponent;
-import artisynth.core.modelbase.RenderableComponentBase;
-import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
 
 public class ImagePlaneProbe extends InputProbe implements RenderableComponent,
 TransformableGeometry {
@@ -52,7 +51,7 @@ TransformableGeometry {
 
       super (e);
       double r = getRadius (e);
-      planeMesh = MeshFactory.createPlane (r, r);
+      planeMesh = MeshFactory.createRectangle (r, r, /*texture=*/true);
       planeMesh.transform (sagittalProjection);
       imageDirectory = new File (directoryName);
       if (!imageDirectory.exists() || !imageDirectory.isDirectory())
@@ -66,12 +65,12 @@ TransformableGeometry {
 
       RenderProps props = createRenderProps();
       props.setFaceColor (Color.white);
-      props.setFaceStyle (Faces.FRONT_AND_BACK);
-      TextureProps tprops = props.getTextureProps();
+      props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
+      ColorMapProps tprops = props.getColorMap();
       if (tprops == null)
-         tprops = new TextureProps();
+         tprops = new ColorMapProps();
       tprops.setEnabled (true);
-      props.setTextureProps (tprops);
+      props.setColorMap (tprops);
       setRenderProps (props);
 
       setImage (0);
@@ -105,10 +104,9 @@ TransformableGeometry {
       int frameNum = (int)(t * frameRate) + 1;
       String filename =
          String.format (fileNameFormat, imageBasename, frameNum, imageFileExt);
-      TextureProps tprops = myRenderProps.getTextureProps();
+      ColorMapProps tprops = myRenderProps.getColorMap();
       tprops.setFileName (imageDirectory.getAbsolutePath() + "/" + filename);
-      tprops.setTexture (null);
-      myRenderProps.setTextureProps (tprops);
+      myRenderProps.setColorMap (tprops);
    }
 
    public RenderProps createRenderProps() {
@@ -131,7 +129,6 @@ TransformableGeometry {
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       gtr.transform (planeMesh);
-      myRenderProps.clearMeshDisplayList();
    }
    
    public void addTransformableDependencies (
@@ -152,8 +149,8 @@ TransformableGeometry {
    
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
       }
       return code;
    }
@@ -163,14 +160,14 @@ TransformableGeometry {
       // list.addIfVisible (imagePlane);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       planeMesh.render (
-         renderer, myRenderProps, isSelected() ? GLRenderer.SELECTED : 0);
+         renderer, myRenderProps, isSelected() ? Renderer.HIGHLIGHT : 0);
       //renderer.drawMesh (
       //   myRenderProps, planeMesh, isSelected() ? GLRenderer.SELECTED : 0);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       planeMesh.updateBounds (pmin, pmax);
    }
 
@@ -200,8 +197,8 @@ TransformableGeometry {
 
    public double getRadius (ModelComponent e) {
       double radius = 1.0;
-      if (e instanceof GLRenderable) {
-         GLRenderable r = (GLRenderable)e;
+      if (e instanceof IsRenderable) {
+         IsRenderable r = (IsRenderable)e;
          Point3d max = new Point3d (-inf, -inf, -inf);
          Point3d min = new Point3d (inf, inf, inf);
          r.updateBounds (min, max);

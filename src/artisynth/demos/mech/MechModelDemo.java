@@ -6,6 +6,7 @@ import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import artisynth.core.mechmodels.AxialSpring;
 import artisynth.core.mechmodels.FrameMarker;
@@ -94,7 +95,7 @@ public class MechModelDemo extends RootModel {
       props = mk0.createRenderProps();
       // props.setColor (Color.GREEN);
       props.setPointRadius (0.5);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       mk0.setRenderProps (props);
       myMech.addFrameMarker (mk0, base, new Point3d (lenx0 / 2, leny0 / 2, 0));
 
@@ -116,7 +117,7 @@ public class MechModelDemo extends RootModel {
       AxialSpring spr1 = new AxialSpring (50, 10, 0);
 
       props = spr0.createRenderProps();
-      props.setLineStyle (RenderProps.LineStyle.CYLINDER);
+      props.setLineStyle (Renderer.LineStyle.CYLINDER);
       props.setLineRadius (0.2);
       props.setLineColor (Color.RED);
       spr0.setRenderProps (props);

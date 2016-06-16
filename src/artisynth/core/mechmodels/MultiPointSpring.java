@@ -20,7 +20,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -1625,7 +1625,7 @@ public class MultiPointSpring extends PointSpringBase
       super.writeItems (pw, fmt, ancestor);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       // just update bounds for the via points, since the wrap segments will
       // hug the wrappables, and bounds are updated elsewhere to account for
       // wrappables.
@@ -1678,7 +1678,7 @@ public class MultiPointSpring extends PointSpringBase
       }
    }
 
-   void dorender (GLRenderer renderer, RenderProps props) {
+   void dorender (Renderer renderer, RenderProps props) {
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
          if (seg instanceof WrapSegment) {
@@ -1706,13 +1706,13 @@ public class MultiPointSpring extends PointSpringBase
          else {
             renderer.drawLine (
                props, seg.myPntB.myRenderCoords,
-               seg.myPntA.myRenderCoords, /*isCapped=*/false,
-               getRenderColor(), isSelected());
+               seg.myPntA.myRenderCoords, getRenderColor(),
+               /*isCapped=*/false, isSelected());
          }
       }
    }     
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, myRenderProps);
    }
 

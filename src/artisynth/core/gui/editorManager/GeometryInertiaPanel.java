@@ -17,7 +17,7 @@ import java.util.*;
 
 import maspack.matrix.*;
 import maspack.geometry.*;
-import maspack.render.GLViewer;
+import maspack.render.GL.GLViewer;
 import maspack.spatialmotion.*;
 import maspack.properties.PropertyUtils;
 import maspack.util.InternalErrorException;
@@ -118,7 +118,7 @@ ActionListener, ValueChangeListener {
          pointSlices = s.pointSlices;
          density = s.density;
          meshFileName = s.meshFileName;
-         meshXform = s.meshXform.clone();
+         meshXform = s.meshXform.copy();
          inertia.set (s.inertia);
          inertiaMethod = s.inertiaMethod;
       }
@@ -164,7 +164,7 @@ ActionListener, ValueChangeListener {
                settings.meshFileName = body.getMeshFileName();
             }
             if (body.getMeshFileTransform() != null) {
-               settings.meshXform = body.getMeshFileTransform().clone();
+               settings.meshXform = body.getMeshFileTransform().copy();
             }
             if (body.getMesh() != null) {
                myFileMesh = body.getMesh().copy();
@@ -180,7 +180,7 @@ ActionListener, ValueChangeListener {
             if (myFileMesh != null) {
                settings.meshFileName = body.getMeshFileName();
                if (body.getMeshFileTransform() != null) {
-                  settings.meshXform = body.getMeshFileTransform().clone();
+                  settings.meshXform = body.getMeshFileTransform().copy();
                }
             }
          }
@@ -207,7 +207,7 @@ ActionListener, ValueChangeListener {
       else {
          GLViewer viewer = Main.getMain().getViewer();
          double w =
-            (viewer.distancePerPixel (viewer.getCenter()) * viewer.getWidth());
+            (viewer.distancePerPixel (viewer.getCenter()) * viewer.getScreenWidth());
          settings.pointRadius = w / 8;
          settings.boxWidths.set (w / 8, w / 8, w / 8);
       }
@@ -905,7 +905,7 @@ ActionListener, ValueChangeListener {
       
       GLViewer viewer = Main.getMain().getViewer();
       double width = viewer.distancePerPixel (viewer.getCenter()) * 
-         viewer.getWidth() / 6;
+         viewer.getScreenWidth() / 6;
       
       double scale = 1;
       if (width > scale) {

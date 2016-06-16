@@ -8,8 +8,6 @@ package maspack.geometry;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Line;
 import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
@@ -17,10 +15,12 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.Dragger3dBase;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
 import maspack.render.MouseRayEvent;
 //import maspack.render.Dragger3dBase.DragMode;
+import maspack.render.RenderObject;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
+import maspack.render.GL.GLViewer;
 
 /**
  * A translational dragger that keeps its origin attached to the surface
@@ -53,6 +53,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
    private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
    private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
+   private static RenderObject renderObject = null;
 
    public ConstrainedTranslator3d() {
       super();
@@ -61,45 +62,57 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    public void getSelection (LinkedList<Object> list, int qid) {
    }
    
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (!myVisibleP) {
          return;
       }
+      
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
+      
+      renderer.pushModelMatrix();
+      Vector3d t = myXDraggerToWorld.p;
+      renderer.translateModelMatrix(t.x, t.y, t.z);
+      renderer.scaleModelMatrix(mySize);
+      
+      if (renderObject == null) {
+         renderObject = createRenderable(); 
+      }
+      
+      int gidx = selected ? 1 : 0;
+      renderer.drawLines(renderObject, gidx);
+      
+      renderer.popModelMatrix();
+      renderer.setShading (savedShading);
+   }
+   
+   private RenderObject createRenderable() {
+      RenderObject ro = new RenderObject();
+      
+      int xcolor = ro.addColor(1.0f,   0f,   0f, 1.0f);
+      int ycolor = ro.addColor(  0f, 1.0f,   0f, 1.0f);
+      int zcolor = ro.addColor(  0f,   0f, 1.0f, 1.0f);
+      int YELLOW = ro.addColor(1.0f, 1.0f,   0f, 1.0f);
+      
+      ro.createLineGroup();
+      ro.createLineGroup();
 
-      GL2 gl = renderer.getGL2().getGL2();
+      ro.lineGroup(0);
+      ro.setCurrentColor(xcolor);
+      ro.addLine(new float[]{-1,0,0}, new float[]{1,0,0}); // x-axis
+      ro.setCurrentColor(ycolor);
+      ro.addLine(new float[]{0,-1,0}, new float[]{0,1,0}); // y-axis
+      ro.setCurrentColor(zcolor);
+      ro.addLine(new float[]{0,0,-1}, new float[]{0,0,1}); // z-axis
 
-      renderer.setLightingEnabled (false);
-      renderer.setLineWidth (myLineWidth);
+      ro.setCurrentColor(YELLOW);
 
-      gl.glPushMatrix();
-      gl.glTranslated (
-         myXDraggerToWorld.p.x, myXDraggerToWorld.p.y, myXDraggerToWorld.p.z);
-
-      gl.glBegin (GL2.GL_LINES);
-
-      if (selected)
-         gl.glColor3d (1, 1, 0);
-
-      if (!selected)
-         gl.glColor3d (1, 0, 0);
-      gl.glVertex3d (-mySize, 0, 0);
-      gl.glVertex3d (mySize, 0, 0);
-
-      if (!selected)
-         gl.glColor3d (0, 1, 0);
-      gl.glVertex3d (0, -mySize, 0);
-      gl.glVertex3d (0, mySize, 0);
-
-      if (!selected)
-         gl.glColor3d (0, 0, 1);
-      gl.glVertex3d (0, 0, -mySize);
-      gl.glVertex3d (0, 0, mySize);
-
-      gl.glEnd();
-
-      gl.glPopMatrix();
-
-      renderer.setLightingEnabled (true);
+      ro.lineGroup(1);
+      ro.addLine(new float[]{-1,0,0}, new float[]{1,0,0}); // x-axis
+      ro.addLine(new float[]{0,-1,0}, new float[]{0,1,0}); // y-axis
+      ro.addLine(new float[]{0,0,-1}, new float[]{0,0,1}); // z-axis
+            
+      return ro;
    }
 
    public boolean mousePressed (MouseRayEvent e) {
@@ -177,6 +190,9 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    }
 
    private void updateLocation (MouseRayEvent e) {
+      if (mesh == null) {
+         return;
+      }
       Line ray = e.getRay();
       Point3d origin = ray.getOrigin();
       Vector3d direction = ray.getDirection();
@@ -189,11 +205,13 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
          myXDraggerToWorld.p.scaledAdd (duv.x, direction, origin);
       }
       else {
-         GLViewer viewer = e.getViewer();
+         Renderer renderer = e.getViewer();
 
          Point3d location = new Point3d (myXDraggerToWorld.p);
+         RigidTransform3d EyeToWorld = renderer.getViewMatrix();
+         EyeToWorld.invert();
 
-         viewer.getEyeToWorld().R.getColumn (2, planeNormal);
+         EyeToWorld.R.getColumn (2, planeNormal);
          plane.set (planeNormal, location);
          plane.intersectRay (planeLocation, direction, origin);
 
@@ -201,7 +219,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
             query.nearestFaceToPoint (
                location, coords, mesh, planeLocation);
 
-         duv.x = myXDraggerToWorld.p.distance (viewer.getEyeToWorld().p);
+         duv.x = myXDraggerToWorld.p.distance (EyeToWorld.p);
          duv.y = coords.x;
          duv.z = coords.y;
 

@@ -9,9 +9,9 @@ package artisynth.core.modelbase;
 import java.util.LinkedList;
 import java.util.Map;
 
-import maspack.matrix.Point3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.matrix.Vector3d;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 
@@ -31,10 +31,10 @@ implements RenderableComponent {
    public void prerender (RenderList list) {
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
-   public abstract void render (GLRenderer renderer, int flags);
+   public abstract void render (Renderer renderer, int flags);
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }
@@ -45,8 +45,8 @@ implements RenderableComponent {
 
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
       }
       return code;
    }

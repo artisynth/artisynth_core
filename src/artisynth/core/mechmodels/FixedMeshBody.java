@@ -21,9 +21,8 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
-import maspack.render.RenderList;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
@@ -124,7 +123,7 @@ public class FixedMeshBody extends MeshComponent {
       setMesh (mesh, fileName, X);            
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myMeshInfo.myMesh.updateBounds (pmin, pmax);
    }
 
@@ -134,7 +133,6 @@ public class FixedMeshBody extends MeshComponent {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
-         myRenderProps.clearMeshDisplayList();
       }
    }
 
@@ -159,9 +157,6 @@ public class FixedMeshBody extends MeshComponent {
    
    public void transformMesh (AffineTransform3dBase X) {
       getMesh().transform (X);
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
    }
 
    public void transformGeometry (
@@ -171,13 +166,7 @@ public class FixedMeshBody extends MeshComponent {
       RigidTransform3d Xpose = new RigidTransform3d();
       Xpose.set (myState.XFrameToWorld);
       gtr.transform (Xpose);
-      if (myMeshInfo.transformGeometryAndPose (gtr, null)) {
-         // mesh vertices were transformed in addition to the mesh transform
-         // so clear the display list (if set)
-         if (myRenderProps != null) {
-            myRenderProps.clearMeshDisplayList();
-         }
-      }
+      myMeshInfo.transformGeometryAndPose (gtr, null);
       setPose (Xpose);      
    }   
 

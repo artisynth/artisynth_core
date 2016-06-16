@@ -6,12 +6,11 @@ import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.probes.*;
 import artisynth.core.util.*;
-
 import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.util.*;
 
 import java.io.*;

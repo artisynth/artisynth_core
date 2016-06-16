@@ -182,7 +182,11 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
     * {@inheritDoc}
     */
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      @SuppressWarnings("unchecked")
       Deque<ScanToken> tokens = (Deque<ScanToken>)ref;
+      if (tokens == null) {
+         tokens = new ArrayDeque<> ();
+      }
       rtok.scanToken ('[');
       tokens.offer (ScanToken.BEGIN);
       while (rtok.nextToken() != ']') {

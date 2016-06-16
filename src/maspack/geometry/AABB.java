@@ -6,10 +6,12 @@
  */
 package maspack.geometry;
 
-import maspack.matrix.*;
-import maspack.render.*;
-
-import javax.media.opengl.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderList;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 
 public class AABB extends BVNode {
 
@@ -531,7 +533,7 @@ public class AABB extends BVNode {
       }
    }
 
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       myMax.updateBounds (min, max);
       myMin.updateBounds (min, max);
    }
@@ -539,33 +541,33 @@ public class AABB extends BVNode {
    public void prerender (RenderList list) {
    }
    
-   public void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();      
-      renderer.setLightingEnabled (false);
+   public void render (Renderer renderer, int flags) {
+      
+      renderer.setShading (Shading.NONE);
       renderer.setColor (0, 1f, 0);
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      gl.glVertex3d (myMin.x, myMin.y, myMin.z);
-      gl.glVertex3d (myMax.x, myMin.y, myMin.z);
-      gl.glVertex3d (myMax.x, myMax.y, myMin.z);
-      gl.glVertex3d (myMin.x, myMax.y, myMin.z);
-      gl.glEnd();
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      gl.glVertex3d (myMin.x, myMin.y, myMax.z);
-      gl.glVertex3d (myMax.x, myMin.y, myMax.z);
-      gl.glVertex3d (myMax.x, myMax.y, myMax.z);
-      gl.glVertex3d (myMin.x, myMax.y, myMax.z);
-      gl.glEnd();
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (myMin.x, myMin.y, myMin.z);
-      gl.glVertex3d (myMin.x, myMin.y, myMax.z);
-      gl.glVertex3d (myMax.x, myMin.y, myMin.z);
-      gl.glVertex3d (myMax.x, myMin.y, myMax.z);
-      gl.glVertex3d (myMax.x, myMax.y, myMin.z);
-      gl.glVertex3d (myMax.x, myMax.y, myMax.z);
-      gl.glVertex3d (myMin.x, myMax.y, myMin.z);
-      gl.glVertex3d (myMin.x, myMax.y, myMax.z);
-      gl.glEnd();
-      renderer.setLightingEnabled (true);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
+      renderer.addVertex (myMin.x, myMin.y, myMin.z);
+      renderer.addVertex (myMax.x, myMin.y, myMin.z);
+      renderer.addVertex (myMax.x, myMax.y, myMin.z);
+      renderer.addVertex (myMin.x, myMax.y, myMin.z);
+      renderer.endDraw();
+      renderer.beginDraw (DrawMode.LINE_LOOP);
+      renderer.addVertex (myMin.x, myMin.y, myMax.z);
+      renderer.addVertex (myMax.x, myMin.y, myMax.z);
+      renderer.addVertex (myMax.x, myMax.y, myMax.z);
+      renderer.addVertex (myMin.x, myMax.y, myMax.z);
+      renderer.endDraw();
+      renderer.beginDraw (DrawMode.LINES);
+      renderer.addVertex (myMin.x, myMin.y, myMin.z);
+      renderer.addVertex (myMin.x, myMin.y, myMax.z);
+      renderer.addVertex (myMax.x, myMin.y, myMin.z);
+      renderer.addVertex (myMax.x, myMin.y, myMax.z);
+      renderer.addVertex (myMax.x, myMax.y, myMin.z);
+      renderer.addVertex (myMax.x, myMax.y, myMax.z);
+      renderer.addVertex (myMin.x, myMax.y, myMin.z);
+      renderer.addVertex (myMin.x, myMax.y, myMax.z);
+      renderer.endDraw();
+      renderer.setShading (Shading.FLAT);
    }
 
 }

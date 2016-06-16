@@ -649,9 +649,6 @@ public class FemMeshComp extends FemMeshBase
       }
       surf.buildNodeVertexMap();
 
-      // we manually control display lists, so this should work
-      mesh.setUseDisplayList(true);
-
       return surf;
    }
 
@@ -1046,7 +1043,7 @@ public class FemMeshComp extends FemMeshBase
          c = Math.max (0, Math.min (c, 1.0));
          myColorMap.getRGB(c, colorArray);
          mesh.setColor (
-            i, colorArray[0], colorArray[1], colorArray[2], alpha);           
+            i, colorArray[0], colorArray[1], colorArray[2], alpha);
       }
    }
 

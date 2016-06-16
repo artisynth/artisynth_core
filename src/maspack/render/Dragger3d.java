@@ -7,8 +7,13 @@
 package maspack.render;
 
 
-public interface Dragger3d extends GLSelectable {
+
+public interface Dragger3d extends IsSelectable {
    //public boolean isSelected();
+   
+   public enum DraggerType {
+      None, Rotator, Translator, Transrotator, Scalar, ConstrainedTranslator, Jack
+   };
    
    public final int CONSTRAIN = 0x01;
    public final int REPOSITION = 0x02;

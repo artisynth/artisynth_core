@@ -8,15 +8,13 @@ package artisynth.core.mfreemodels;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import artisynth.core.mfreemodels.MFreeMuscleBundle.DirectionRenderType;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -142,9 +140,8 @@ public class MFreeMuscleElementDescList
    }
 
    private void renderDirections (
-      GLRenderer renderer, double len, DirectionRenderType type, boolean selected) {
+      Renderer renderer, double len, DirectionRenderType type, boolean selected) {
 
-      //GL2 gl = renderer.getGL2().getGL2();
       Matrix3d F = new Matrix3d();
       Vector3d dir = new Vector3d();
       float[] coords0 = new float[3];
@@ -171,11 +168,10 @@ public class MFreeMuscleElementDescList
       }
    }
 
-   private void dorender (GLRenderer renderer, int flags, boolean selected) {
+   private void dorender (Renderer renderer, int flags, boolean selected) {
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
-      //GL2 gl = renderer.getGL2().getGL2();
       boolean selecting = renderer.isSelecting();
 
       if (!addDescsInPrerender) {
@@ -209,8 +205,8 @@ public class MFreeMuscleElementDescList
       }      
       //renderer.setMaterial (myRenderProps.getFaceMaterial(), false);
       if (widgetSize > 0) {
-         renderer.setMaterialAndShading (
-            myRenderProps, myRenderProps.getFaceMaterial(), false);
+         Shading savedShading = renderer.setPropsShading (myRenderProps);
+         renderer.setFaceColoring (myRenderProps, /*highlight=*/false);
          for (int i = 0; i < size(); i++) {
             MFreeMuscleElementDesc desc = get (i);
             if (desc.getRenderProps() == null &&
@@ -224,22 +220,21 @@ public class MFreeMuscleElementDescList
                   }
                }
                else {
-                  maspack.render.Material mat = myRenderProps.getFaceMaterial();
-                  renderer.updateMaterial (
-                     myRenderProps, mat, desc.myWidgetColor, desc.isSelected());
+                  renderer.setFaceColoring (
+                     myRenderProps, desc.myWidgetColor, desc.isSelected());
                   desc.myElement.renderWidget (
                      renderer, widgetSize, myRenderProps,0);
                }
             }
          }
-         renderer.restoreShading (myRenderProps);
+         renderer.setShading (savedShading);
       }
       if (directionLength > 0) {
          renderDirections (renderer, directionLength, renderType, selected);
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, flags, /*selected=*/true);
       dorender (renderer, flags, /*selected=*/false);
    }

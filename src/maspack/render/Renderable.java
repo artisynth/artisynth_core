@@ -6,11 +6,8 @@
  */
 package maspack.render;
 
-import java.util.*;
-import maspack.matrix.*;
-import javax.media.opengl.*;
 
-public interface Renderable extends GLSelectable, HasRenderProps {
+public interface Renderable extends IsSelectable, HasRenderProps {
    // /**
    // * Returns the render properities assigned to this object. If no
    // * render properties are assigned, this routines returns null.
@@ -58,9 +55,9 @@ public interface Renderable extends GLSelectable, HasRenderProps {
    // // */
    // // void render (GLRenderer renderer);
 
-   // // void updateBounds (Point3d pmin, Point3d pmax);
+   // // void updateBounds (Vector3d pmin, Vector3d pmax);
 
    // void handleSelection (
-   // LinkedList<GLRenderable> path, int[] namestack, int idx);
+   // LinkedList<IsRenderable> path, int[] namestack, int idx);
 
 }

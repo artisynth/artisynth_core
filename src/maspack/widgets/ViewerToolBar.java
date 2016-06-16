@@ -32,16 +32,17 @@ import javax.swing.border.Border;
 import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
-import maspack.render.GLClipPlane;
-import maspack.render.GLGridPlane;
-import maspack.render.GLViewer;
-import maspack.render.GLViewerListener;
-import maspack.render.GLViewerEvent;
-import maspack.render.GLViewer.DraggerType;
+import maspack.render.Dragger3d.DraggerType;
+import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLViewer;
+import maspack.render.RenderListener;
+import maspack.render.RendererEvent;
 import maspack.util.InternalErrorException;
 
 public class ViewerToolBar extends JToolBar 
-   implements ActionListener, GLViewerListener {
+   implements ActionListener, RenderListener {
+   private static final long serialVersionUID = -5831854489618084709L;
 
    private static HashMap<String,ImageIcon> myIcons =
        new HashMap<String,ImageIcon>();
@@ -83,6 +84,7 @@ public class ViewerToolBar extends JToolBar
    };
 
    private class AxialViewMenuItem extends JMenuItem {
+      private static final long serialVersionUID = -7023461128958734796L;
       private AxisAlignedRotation myAxialView;
       private Viewpoint myViewpoint;
 
@@ -260,7 +262,7 @@ public class ViewerToolBar extends JToolBar
       super ("viewer toolbar");
       JPopupMenu.setDefaultLightWeightPopupEnabled (false);
       myViewer = viewer;
-      myViewer.addViewerListener (this);
+      myViewer.addRenderListener (this);
       myGridDisplayEnabled = allowGridDisplay;
 
       // just get a stub icon for now ...
@@ -314,7 +316,7 @@ public class ViewerToolBar extends JToolBar
       ClipPlaneControl ctrl = new ClipPlaneControl (clipPlane);
 
       ctrl.setColor (getClipPlaneColor (myClipPlaneControls.size()));
-      if (myViewer.numFreeGlClipPlanes() > 0) {
+      if (myViewer.numFreeClipPlanes() > 0) {
          ctrl.setActive (true);
       }
       else {
@@ -330,6 +332,12 @@ public class ViewerToolBar extends JToolBar
       myButtonIndex--;
       ctrl.dispose();
       revalidate();
+   }
+   
+   public void clearClipPlanes() {
+      for (ClipPlaneControl ctrl : myClipPlaneControls) {
+         removeClipPlane (ctrl);
+      }
    }
 
    private JPopupMenu createViewPopup (ArrayList<AxialViewMenuItem> itemList) {
@@ -520,7 +528,7 @@ public class ViewerToolBar extends JToolBar
             else {
                menu.add(myEnableSlicingItem);
                myEnableSlicingItem.setEnabled (
-                  myViewer.numFreeGlClipPlanes() > 0);
+                  myViewer.numFreeClipPlanes() > 0);
             }
             if (myClipPlane.isGridVisible()) {
                menu.add (myHideGridItem);
@@ -654,7 +662,7 @@ public class ViewerToolBar extends JToolBar
             if (myClipPlane.isSlicingEnabled()) {
                numPlanesNeeded++;
             }
-            if (myViewer.numFreeGlClipPlanes() >= numPlanesNeeded) {
+            if (myViewer.numFreeClipPlanes() >= numPlanesNeeded) {
                setActive (true);
             }
          }
@@ -750,13 +758,13 @@ public class ViewerToolBar extends JToolBar
       }
    }
 
-   public void renderOccurred (GLViewerEvent e) {
+   public void renderOccurred (RendererEvent e) {
       updateWidgets();
    }
    
    public void dispose() {
       if (myViewer != null) {
-         myViewer.removeViewerListener (this);
+         myViewer.removeRenderListener (this);
       }
    }
    

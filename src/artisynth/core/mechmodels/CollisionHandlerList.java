@@ -42,7 +42,7 @@ public class CollisionHandlerList
             list.addIfVisible (ch);
          }
          else {
-            ch.prerender (null);
+            ch.prerender (myRenderProps);
          }
       }
    }
@@ -57,7 +57,7 @@ public class CollisionHandlerList
       return true;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       for (CollisionHandler ch : this) {
          if (ch.getRenderProps() == null) {
             ch.render (renderer, myRenderProps, flags);

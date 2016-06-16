@@ -62,8 +62,21 @@ public class AffineTransform2d extends AffineTransform2dBase {
    public AffineTransform2d (Vector2d p, Matrix2d A) {
       this.A = new Matrix2d (A);
       this.p = new Vector2d (p);
-      M = A;
-      b = p;
+      M = this.A;
+      b = this.p;
+   }
+   
+   /**
+    * Creates an AffineTransform2d and initializes it
+    * from an existing on
+    * 
+    * @param T initializing transform
+    */
+   public AffineTransform2d (AffineTransform2dBase T) {
+      this.A = new Matrix2d (T.getMatrix ());
+      this.p = new Vector2d (T.getOffset ());
+      M = this.A;
+      b = this.p;
    }
 
    /**
@@ -181,6 +194,11 @@ public class AffineTransform2d extends AffineTransform2dBase {
    public void setRandom() {
       A.setRandom();
       p.setRandom();
+   }
+   
+   @Override
+   public AffineTransform2d copy () {
+      return new AffineTransform2d(this);
    }
 
 }

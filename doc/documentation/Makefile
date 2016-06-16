@@ -14,18 +14,14 @@ $(PDF_DIR)/documentation.pdf: documentation.pdf
 #	echo chunked not supported for documentation docs
 
 documentation.pdf: documentation.tex
-	pdflatex documentation.tex
-	pdflatex documentation.tex
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) documentation.ps
 
 documentation.xml: documentation.tex
 	latexml documentation.tex >documentation.xml
 
 $(HTML_DIR)/documentation.html: documentation.tex
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml documentation.tex >documentation.xml
-	$(LATEXMLPOST) documentation.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/documentation.html
+	$(BUILD_HTML)
 	rm -f documentation.xml
 
 install_html: html

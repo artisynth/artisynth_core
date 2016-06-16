@@ -8,22 +8,26 @@ package artisynth.core.femmodels;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.RenderObject;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import artisynth.core.femmodels.MuscleBundle.DirectionRenderType;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.RenderableComponentList;
 
 public class MuscleElementDescList
    extends RenderableComponentList<MuscleElementDesc> {
 
    protected static final long serialVersionUID = 1;
+
+   private RenderObject myWidgetRob = null;   
+   private byte[] myRobFlags = null;
 
    public MuscleElementDescList() {
       this (null, null);
@@ -46,9 +50,6 @@ public class MuscleElementDescList
       new PropertyList (MuscleElementDescList.class,
                         RenderableComponentList.class);
 
-//    protected float[] myExcitationColor = null;
-//    protected PropertyMode myExcitationColorMode = PropertyMode.Inherited;
-
    static {
 //       myProps.addInheritable (
 //          "excitationColor", "color of activated muscles", null);
@@ -58,51 +59,93 @@ public class MuscleElementDescList
       return myProps;
    }
 
-//    public Color getExcitationColor() {
-//       if (myExcitationColor == null) {
-//          return null;
-//       }
-//       else {
-//          return new Color (
-//             myExcitationColor[0], myExcitationColor[1], myExcitationColor[2]);
-//       }
-//    }
-
-//    public void setExcitationColor (Color color) {
-//       if (color == null) {
-//          myExcitationColor = null;
-//       }
-//       else {
-//          myExcitationColor = color.getRGBColorComponents(null);
-//       }
-//       myExcitationColorMode =
-//          PropertyUtils.propagateValue (
-//             this, "excitationColor", color, myExcitationColorMode);
-//    }
-
-//    public PropertyMode getExcitationColorMode() {
-//       return myExcitationColorMode;
-//    }
-
-//    public void setExcitationColorMode (PropertyMode mode) {
-//       myExcitationColorMode =
-//          PropertyUtils.setModeAndUpdate (
-//             this, "excitationColor", myExcitationColorMode, mode);
-//    }
-
    /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {
       return RenderProps.createLineFaceProps (this);
    }
 
-   boolean addDescsInPrerender = true;
+   private static final int REG_GRP = 0;
+   private static final int SEL_GRP = 1;
+   private static final int GRP_MASK = 0x1;
+   private static final int IS_LIST_RENDERED = 0x40;
+
+   private byte getRobFlags (MuscleElementDesc desc) {
+      if (desc.getRenderProps() != null) {
+         return (byte)0;
+      }
+      else {
+         byte flags = IS_LIST_RENDERED;
+         if (desc.isSelected()) {
+            flags |= SEL_GRP;
+         }
+         return flags;
+      }
+   }
+
+   private static final int BUILD = 1;   
+
+   private double getWidgetSize() {
+      ModelComponent parent = getParent();
+      if (parent instanceof MuscleBundle) {
+         MuscleBundle bundle = (MuscleBundle)parent;
+         return bundle.getElementWidgetSize();
+      }
+      else {
+         return 0;
+      }
+   }
+
+   private int renderObjectsNeedUpdating () {
+      if (myRobFlags == null) {
+         return BUILD;
+      }
+      if ((getWidgetSize() != 0) != (myWidgetRob != null)) {
+         return BUILD;
+      }
+      for (int i = 0; i < size(); i++) {
+         byte flags = getRobFlags(get(i));
+         if (flags != myRobFlags[i]) {
+            return BUILD;
+         }
+      }
+      return 0;      
+   }
+
+   protected void buildRenderObjects() {
+
+      // allocate per-element flag storage that will be used to determine when
+      // the render object needs to be rebuilt
+      myRobFlags = new byte[size()];      
+      for (int i=0; i<size(); i++) {
+         MuscleElementDesc desc = get (i);
+         // note: flags default to 0 if elem.getRenderProps() != null
+         if (desc.getRenderProps() == null) {
+            myRobFlags[i] = getRobFlags(desc); 
+         }
+      }
+
+      double wsize = getWidgetSize();
+      if (wsize > 0) {
+         RenderObject r = new RenderObject();
+         r.createTriangleGroup();
+         r.createTriangleGroup();
+         for (int i=0; i<size(); i++) {
+            MuscleElementDesc desc = get (i);
+            if (desc.getRenderProps() == null) {
+               int group = desc.isSelected() ? SEL_GRP : REG_GRP;
+               r.triangleGroup (group);
+               FemElementRenderer.addWidgetFaces (r, desc.myElement);
+            }
+         }
+         myWidgetRob = r;
+      }
+      else {
+         myWidgetRob = null;
+      }
+   }
 
    public void prerender (RenderList list) {
-      // don't add element descs to the render list. Instead, render them
-      // ourselves, to make sure that selected elements are rendered
-      // first. However, this means that you can't properly render elements
-      // transparently.
 
       for (int i=0; i<size(); i++) {
          MuscleElementDesc desc = get(i);
@@ -117,23 +160,41 @@ public class MuscleElementDescList
             desc.setExcitationColors (myRenderProps);
          }
       }
-      if (addDescsInPrerender) {
-         // add desc with their own renderProps inside prerender, as
-         // usual. We add the selected elements first, so that they
-         // will render first and be more visible.
-         for (int i = 0; i < size(); i++) {
+
+      // add desc with their own renderProps inside prerender, as
+      // usual. We add the selected elements first, so that they
+      // will render first and be more visible.
+      for (int i = 0; i < size(); i++) {
+         MuscleElementDesc desc = get(i);
+         if (desc.isSelected() && desc.getRenderProps() != null) {
+            list.addIfVisible (desc);
+         }
+      }
+      for (int i = 0; i < size(); i++) {
+         MuscleElementDesc desc = get(i);
+         if (!desc.isSelected() && desc.getRenderProps() != null) {
+            list.addIfVisible (desc);
+         }
+      }         
+
+      if (renderObjectsNeedUpdating () != 0) {
+         buildRenderObjects();
+      }
+      if (myWidgetRob != null) {
+         double wsize = getWidgetSize();
+         RenderObject r = myWidgetRob;
+         int pidx = 0;
+         for (int i=0; i<size(); i++) {
             MuscleElementDesc desc = get(i);
-            if (desc.isSelected() && desc.getRenderProps() != null) {
-               list.addIfVisible (desc);
+            if (desc.getRenderProps() == null) {
+               pidx = FemElementRenderer.updateWidgetPositions (
+                  r, desc.myElement, wsize, pidx);
             }
          }
-         for (int i = 0; i < size(); i++) {
-            MuscleElementDesc desc = get(i);
-            if (!desc.isSelected() && desc.getRenderProps() != null) {
-               list.addIfVisible (desc);
-            }
-         }         
-      }
+         FemElementRenderer.updateWidgetNormals (r, REG_GRP);
+         FemElementRenderer.updateWidgetNormals (r, SEL_GRP);
+         r.notifyPositionsModified();      
+      }      
    }
 
    public boolean rendersSubComponents() {
@@ -141,10 +202,9 @@ public class MuscleElementDescList
    }
 
    private void renderDirections (
-      GLRenderer renderer, double len, DirectionRenderType type,
+      Renderer renderer, double len, DirectionRenderType type,
       boolean selected) {
 
-      //GL2 gl = renderer.getGL2().getGL2();
       Matrix3d F = new Matrix3d();
       Vector3d dir = new Vector3d();
       float[] coords0 = new float[3];
@@ -171,81 +231,58 @@ public class MuscleElementDescList
       }
    }
 
-   private void dorender (GLRenderer renderer, int flags, boolean selected) {
+   private void dorender (Renderer renderer, int flags, boolean selected) {
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
-//      GL2 gl = renderer.getGL2().getGL2();
       boolean selecting = renderer.isSelecting();
 
-      if (!addDescsInPrerender) {
-         // we render all descs ourselves, taking care to render selected descs
-         // first. This provides the maximum visibility for selected descs,
-         // but means the transparency won't work properly.
-         for (int i = 0; i < size(); i++) {
-            MuscleElementDesc desc = get (i);
-            if (desc.isSelected() == selected &&
-                desc.getRenderProps() != null &&
-                desc.getRenderProps().isVisible()) {
-               if (selecting) {
-                  if (renderer.isSelectable(desc)) {
-                     renderer.beginSelectionQuery (i);
-                     desc.render (renderer, flags);
-                     renderer.endSelectionQuery ();
-                  }
-               }
-               else {
-                  desc.render (renderer, flags);
-               }
-            }
-         }
-      }
-      double widgetSize = 0;
       double directionLength = 0;
       ModelComponent parent = getParent();
       MuscleBundle.DirectionRenderType renderType =
          MuscleBundle.DirectionRenderType.ELEMENT;
       if (parent instanceof MuscleBundle) {
          MuscleBundle bundle = (MuscleBundle)parent;
-         widgetSize = bundle.getElementWidgetSize();
          directionLength = bundle.getDirectionRenderLen();
          renderType = bundle.getDirectionRenderType();
       }      
-      //renderer.setMaterial (myRenderProps.getFaceMaterial(), false);
-      if (widgetSize > 0) {
-         renderer.setMaterialAndShading (
-            myRenderProps, myRenderProps.getFaceMaterial(), false);
-         for (int i = 0; i < size(); i++) {
-            MuscleElementDesc desc = get (i);
-            if (desc.getRenderProps() == null &&
-                desc.isSelected() == selected) {
-               if (selecting) {
-                  if (renderer.isSelectable (desc)) {
-                     renderer.beginSelectionQuery (i);
-                     desc.myElement.renderWidget (
-                        renderer, widgetSize, myRenderProps);
-                     renderer.endSelectionQuery ();
-                  }
-               }
-               else {
-                  maspack.render.Material mat = myRenderProps.getFaceMaterial();
-                  renderer.updateMaterial (
-                     myRenderProps, mat, desc.myWidgetColor, desc.isSelected());
-                  desc.myElement.renderWidget (
-                     renderer, widgetSize, myRenderProps);
-               }               
-            }
-         }
-         renderer.restoreShading (myRenderProps);
-      }
       if (directionLength > 0) {
          renderDirections (renderer, directionLength, renderType, selected);
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
-      dorender (renderer, flags, /*selected=*/true);
-      dorender (renderer, flags, /*selected=*/false);
+   protected void drawWidgets (
+      Renderer renderer, RenderObject r, RenderProps props, int group) {
+
+      if (r.numTriangles(group) > 0) {
+         r.triangleGroup (group);
+         renderer.setFaceColoring (props, group == SEL_GRP);
+         renderer.drawTriangles (r);
+      }
+   }
+
+   public void render (Renderer renderer, int flags) {
+      RenderProps props = myRenderProps;
+      if (renderer.isSelecting()) {
+         for (int i=0; i<size(); i++) {
+            MuscleElementDesc desc = get(i);        
+            if (desc.getRenderProps() == null && renderer.isSelectable (desc)) {
+               renderer.beginSelectionQuery (i);
+               desc.render (renderer, myRenderProps, flags);
+               renderer.endSelectionQuery ();
+            }
+         }
+      }
+      else {
+         dorender (renderer, flags, /*selected=*/true);
+         dorender (renderer, flags, /*selected=*/false);
+
+         RenderObject r = myWidgetRob;
+         if (r != null) {
+            drawWidgets (renderer, r, props, SEL_GRP);
+            drawWidgets (renderer, r, props, REG_GRP);
+         }
+      }
    }
 
    /**
@@ -265,6 +302,13 @@ public class MuscleElementDescList
       if (qid >= 0 && qid < 2*size()) {
          list.addLast (get (qid%size()));
       }
+   }
+
+   public void notifyParentOfChange (ComponentChangeEvent e) {
+      if (e instanceof StructureChangeEvent) {
+         myWidgetRob = null;
+      }
+      super.notifyParentOfChange (e);
    }
 }
 

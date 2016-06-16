@@ -992,7 +992,7 @@ public class HalfEdge extends Feature implements Boundable {
       return aFace.isPointInside (x, y, z);
    }
 
-   public void updateBounds (Point3d min, Point3d max) {
+   public void updateBounds (Vector3d min, Vector3d max) {
       tail.pnt.updateBounds (min, max);
       head.pnt.updateBounds (min, max);
    }

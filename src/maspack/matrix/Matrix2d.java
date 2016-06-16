@@ -31,6 +31,17 @@ public class Matrix2d extends Matrix2dBase {
    }
 
    /**
+    * Creates a matrix and initializes to provided values
+    * @param m00 top-left
+    * @param m01 top-right
+    * @param m10 bottom-left
+    * @param m11 bottom-right
+    */
+   public Matrix2d(double m00, double m01, double m10, double m11) {
+      set(m00, m01, m10, m11);
+   }
+   
+   /**
     * Creates a matrix and initializes its elements from an array of values.
     * 
     * @param vals
@@ -304,6 +315,11 @@ public class Matrix2d extends Matrix2dBase {
 
       this.m10 = 0;
       this.m11 = m11;
+   }
+   
+   @Override
+   public Matrix2d clone () {
+      return (Matrix2d)super.clone();
    }
 
 }

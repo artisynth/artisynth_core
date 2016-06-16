@@ -173,4 +173,9 @@ public class RotationMatrix2d extends Matrix2dBase {
       double ang = 2 * Math.PI * (generator.nextDouble() - 0.5);
       setAngle (ang);
    }
+   
+   @Override
+   public RotationMatrix2d clone () {
+      return new RotationMatrix2d (this);
+   }
 }

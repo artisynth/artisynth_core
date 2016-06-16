@@ -4,7 +4,8 @@ import java.awt.Color;
 
 import maspack.matrix.Point3d;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import artisynth.core.materials.LinearAxialMuscle;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
@@ -48,7 +49,7 @@ public class MultiMuscleDemo extends MultiSpringDemo {
       mechMod.addMultiPointSpring (muscle);
 
       RenderProps.setLineColor (mechMod, Color.BLUE);
-      RenderProps.setLineStyle (muscle, LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (muscle, LineStyle.SPINDLE);
       RenderProps.setLineRadius (muscle, 0.1);      
       RenderProps.setLineColor (muscle, Color.RED);
    }

@@ -50,6 +50,7 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
       MediaLocator oml;
       if ((oml = createMediaLocator("file:"+dataPath + "/" + fileName)) == null) {
          System.err.println("Cannot build media locator from: " + fileName);
+         in.close();
          throw new Exception("Movie write failed: Can't build Medialocator");
       }
       System.out.println ("output file = " + fileName);
@@ -60,6 +61,7 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
       }
       
       doIt (width, height, (int) frameRate, inputFiles, oml);
+      in.close();
    }
 
 
@@ -270,12 +272,14 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
         return ml;
 
      if (url.startsWith(File.separator)) {
-       if ((ml = new MediaLocator("file:" + url)) != null)
+       if ((ml = new MediaLocator("file:" + url)) != null) {
           return ml;
+       }
      } else {
        String file = "file:" + System.getProperty("user.dir") + File.separator + url;
-       if ((ml = new MediaLocator(file)) != null)
+       if ((ml = new MediaLocator(file)) != null) {
           return ml;
+       }
      }
 
      return null;

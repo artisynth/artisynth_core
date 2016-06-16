@@ -18,12 +18,15 @@ import maspack.geometry.Vertex3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.PolarDecomposition3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.properties.PropertyUtils;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.util.NumberFormat;
@@ -42,17 +45,31 @@ import artisynth.core.util.ScanToken;
  * definition.
  */
 public class MeshComponent extends RenderableComponentBase
-implements TransformableGeometry, ScalableUnits {
+   implements TransformableGeometry, ScalableUnits {
 
    protected MeshInfo myMeshInfo;
 
    public static PropertyList myProps = new PropertyList(
       MeshComponent.class, RenderableComponentBase.class);
+   
+   static final public ColorInterpolation 
+      DEFAULT_COLOR_INTERPOLATION = ColorInterpolation.RGB;
+   protected ColorInterpolation myColorInterp = DEFAULT_COLOR_INTERPOLATION;
+
+   static final public ColorMixing 
+      DEFAULT_VERTEX_COLOR_MIXING = ColorMixing.REPLACE;
+   protected ColorMixing myVertexColorMixing = DEFAULT_VERTEX_COLOR_MIXING;
 
    static {
       myProps.add(
          "renderProps * *", "render properties for this component",
          createDefaultRenderProps());
+      myProps.add (
+         "colorInterpolation", "interpolation for vertex coloring", 
+         DEFAULT_COLOR_INTERPOLATION);
+      myProps.add (
+         "vertexColorMixing", "color mixing for vertex coloring", 
+         DEFAULT_VERTEX_COLOR_MIXING);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -78,9 +95,8 @@ implements TransformableGeometry, ScalableUnits {
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setFixed (true);
-      }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
+         mesh.setColorInterpolation (getColorInterpolation());
+         mesh.setVertexColorMixing (getVertexColorMixing());
       }
    }
 
@@ -108,6 +124,34 @@ implements TransformableGeometry, ScalableUnits {
 
    public void setMesh(MeshBase mesh) {
       setMesh (mesh, null, null);
+   }
+   
+   public ColorInterpolation getColorInterpolation() {
+      return myColorInterp;
+   }
+   
+   public void setColorInterpolation (ColorInterpolation interp) {
+      if (interp != myColorInterp) {
+         MeshBase mesh = getMesh();
+         if (mesh != null) {
+            mesh.setColorInterpolation (interp);
+         }
+         myColorInterp = interp;
+      }
+   }
+
+   public ColorMixing getVertexColorMixing() {
+      return myVertexColorMixing;
+   }
+   
+   public void setVertexColorMixing (ColorMixing cmix) {
+      if (cmix != myVertexColorMixing) {
+         MeshBase mesh = getMesh();
+         if (mesh != null) {
+            mesh.setVertexColorMixing (cmix);
+         }
+         myVertexColorMixing = cmix;
+      }
    }
 
    public Vertex3d getVertex (int idx) {
@@ -165,22 +209,22 @@ implements TransformableGeometry, ScalableUnits {
    public void prerender(RenderList list) {
       MeshBase mesh = getMesh();
       if (mesh != null) {
-         mesh.saveRenderInfo(myRenderProps);
-         if (!mesh.isFixed() && mesh.myUseDisplayList) {
-            mesh.clearDisplayList(myRenderProps);
+         if (!mesh.isFixed()) {
+            mesh.notifyVertexPositionsModified();
          }
+         mesh.prerender (myRenderProps);
       }
    }
 
    public void render(
-      GLRenderer renderer, RenderProps props, int flags) {
+      Renderer renderer, RenderProps props, int flags) {
       myMeshInfo.render (renderer, props, flags);
    }
 
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       if (isSelected() || isParentOrGrandParentSelected()) {
-         flags |= GLRenderer.SELECTED;
+         flags |= Renderer.HIGHLIGHT;
       }
       render(renderer, getRenderProps(), flags);
    }
@@ -200,7 +244,7 @@ implements TransformableGeometry, ScalableUnits {
    }
 
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       getMesh().updateBounds(pmin, pmax);
    }
 
@@ -252,9 +296,6 @@ implements TransformableGeometry, ScalableUnits {
       // information may override this method to instead use
       // myMeshInfo.transformGeometryAndPose(). 
       myMeshInfo.transformGeometry (gtr);
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
    }   
    
    public void addTransformableDependencies (

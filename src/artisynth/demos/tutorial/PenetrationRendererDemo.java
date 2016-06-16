@@ -4,7 +4,7 @@ import java.awt.Color;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
 import artisynth.core.driver.Main;
 import artisynth.core.mechmodels.CollisionHandler;
@@ -37,7 +37,7 @@ public class PenetrationRendererDemo extends RootModel {
       mech.setDefaultCollisionBehavior (true, 0.20);
 
       // make ball transparent so that contacts can be seen more clearly
-      RenderProps.setFaceStyle (ball, RenderProps.Faces.NONE);
+      RenderProps.setFaceStyle (ball, Renderer.FaceStyle.NONE);
       RenderProps.setDrawEdges (ball, true);
       RenderProps.setEdgeColor (ball, Color.WHITE);
       

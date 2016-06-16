@@ -12,8 +12,8 @@ import maspack.matrix.*;
 
 import java.util.*;
 
-public abstract class RenderableModelBase extends ModelBase implements
-RenderableComponent {
+public abstract class RenderableModelBase extends ModelBase
+   implements RenderableComponent {
    protected RenderProps myRenderProps = null;
 
    public static PropertyList myProps =
@@ -23,7 +23,7 @@ RenderableComponent {
 
    static {
       myProps.add (
-         "renderProps * *", "render properties for this constraint",
+         "renderProps * *", "render properties for this model",
          defaultRenderProps);
    }
 
@@ -73,7 +73,7 @@ RenderableComponent {
    }
 
    protected void recursivelyUpdateBounds (
-      CompositeComponent comp, Point3d pmin, Point3d pmax) {
+      CompositeComponent comp, Vector3d pmin, Vector3d pmax) {
 
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
@@ -87,11 +87,11 @@ RenderableComponent {
 
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       recursivelyUpdateBounds (this, pmin, pmax);
    }
 
-   public abstract void render (GLRenderer renderer, int flags);
+   public abstract void render (Renderer renderer, int flags);
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }
@@ -109,8 +109,8 @@ RenderableComponent {
 
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
       }
       return code;
    }

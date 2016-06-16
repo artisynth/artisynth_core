@@ -28,10 +28,9 @@ import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderablePoint;
 import maspack.render.RenderableUtils;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
@@ -46,7 +45,7 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
 
 public class Point extends DynamicComponentBase
-   implements RenderablePoint, TransformableGeometry, ScalableUnits,
+   implements TransformableGeometry, ScalableUnits,
               DynamicComponent, Traceable, MotionTargetComponent, 
               CopyableComponent, CollidableDynamicComponent {
 
@@ -593,7 +592,7 @@ public class Point extends DynamicComponentBase
       myRenderCoords[2] = (float)pos.z;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       getPosition().updateBounds (pmin, pmax);
    }
 
@@ -601,7 +600,7 @@ public class Point extends DynamicComponentBase
       return true;
    }
    
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
 
       // Exception handling code for Cormac's bug report, Jan 23, 2012
       try {

@@ -14,22 +14,15 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
-import maspack.render.GLHSVShader;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
-import maspack.render.GLViewer;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.util.ArraySupport;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.util.ArraySupport;
 
 /**
  * Implements a mesh consisting of a set of polylines.
@@ -37,7 +30,8 @@ import maspack.util.ArraySupport;
 public class PolylineMesh extends MeshBase {
    protected ArrayList<Polyline> myLines = new ArrayList<Polyline>();
 
-   public static boolean useDisplayListsIfPossible = true;
+   PolylineMeshRenderer myMeshRenderer = null;
+
    protected AABBTree myBVTree = null;
    protected boolean myBVTreeValid = false;
    protected int renderSkip = 0;   // render every 1+skip lines
@@ -110,47 +104,6 @@ public class PolylineMesh extends MeshBase {
       }
       setMeshToWorld (old.XMeshToWorld);
    }
-
-//   public void setFromWavefrontReader (WavefrontReader wfr) throws IOException {
-//      setFromWavefrontReader (wfr, null);
-//   }
-
-//   public void setFromWavefrontReader (WavefrontReader wfr, String groupName)
-//      throws IOException {
-//
-//      if (groupName == null) {
-//         String[] nameList = wfr.getPolylineGroupNames();
-//         if (nameList.length > 0) {
-//            groupName = nameList[0];
-//         }
-//         else {
-//            // will result in a null mesh since 'default' not a polyhedral group
-//            groupName = "default";
-//         }
-//      }
-//      if (!wfr.hasGroup (groupName)) {
-//         throw new IllegalArgumentException ("Group '"+groupName+"' unknown");
-//      }
-//      wfr.setGroup (groupName);
-//
-//      ArrayList<Point3d> vtxList = new ArrayList<Point3d>();
-//      int[][] indices = wfr.getLocalLineIndicesAndVertices (vtxList);
-//
-//      for (int i=0; i<vtxList.size(); i++) {
-//         // add by reference since points have already been copied 
-//         addVertex (vtxList.get(i), /* byReference= */true);
-//      }
-//      if (indices != null) {
-//         for (int k=0; k<indices.length; k++) {
-//            addLine (indices[k]);
-//         }
-//      }
-//
-//      setName (groupName.equals ("default") ? null : groupName);
-//      if (wfr.getRenderProps() != null) {
-//         setRenderProps (wfr.getRenderProps());
-//      }
-//   }
 
    /**
     * Reads the contents of this mesh from a ReaderTokenizer. The input is
@@ -283,6 +236,10 @@ public class PolylineMesh extends MeshBase {
       }
    }
 
+   public Polyline getLine(int i) {
+      return myLines.get(i);
+   }
+
    /**
     * Sets the vertex points and line associated with this mesh.
     * 
@@ -400,394 +357,24 @@ public class PolylineMesh extends MeshBase {
    }
 
    FunctionTimer timer = new FunctionTimer();
-
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
-
-      gl.glPushMatrix();
-      if (isRenderBuffered()) {
-         renderer.mulTransform (myXMeshToWorldRender);
-      }
-      else {
-         renderer.mulTransform (XMeshToWorld);
-      }  
-      
-//      // check display list
-//      boolean useDisplayList = false;
-//      int displayList = 0;
-//
-//      if (useDisplayListsIfPossible && isUsingDisplayList() && !renderer.isSelecting()) {
-//         useDisplayList = true;
-//         displayList = props.getMeshDisplayList();
-//      }
-//         
-//      if (!useDisplayList || displayList < 1) {
-//         if (useDisplayList) {
-//            displayList = props.allocMeshDisplayList (gl);
-//            if (displayList > 0) {
-//               gl.glNewList (displayList, GL2.GL_COMPILE);
-//            }
-//         }
-      
-         switch (props.getLineStyle()) {
-            case CYLINDER:
-               renderCylinders(renderer, props, flags);
-               break;
-            case LINE:
-            case ELLIPSOID:
-            case SOLID_ARROW:
-               renderLines(renderer, props, flags);
-               break;
-         }
-//         if (useDisplayList && displayList > 0) {
-//            gl.glEndList();
-//            gl.glCallList (displayList);
-//         }
-//      }
-//      else {
-//         gl.glCallList (displayList);
-//      }
-
-      gl.glPopMatrix();
-   }
    
-   private boolean setupHSVInterpolation (GL2 gl) {
-      // create special HSV shader to interpolate colors in HSV space
-      int prog = GLHSVShader.getShaderProgram(gl);
-      if (prog > 0) {
-         gl.glUseProgramObjectARB (prog);
-         return true;
-      }
-      else {
-         // HSV interpolaation not supported on this system
-         return false;
-      }
-   }
-   
-   float[] myColorBuf = new float[4];
-   private void setVertexColor (GL2 gl, float[] color, boolean useHSV) {
-      if (color != null) {
-         if (useHSV) {
-            // convert color to HSV representation
-            GLSupport.RGBtoHSV (myColorBuf, color);
-            gl.glColor4f (
-               myColorBuf[0], myColorBuf[1], myColorBuf[2], myColorBuf[3]);
-         }
-         else {
-            gl.glColor4f (
-               color[0], color[1], color[2], color[3]);
-         }
-      }
-   }
-   
-   protected void renderCylinders(GLRenderer renderer, RenderProps props, int flags) {
+   public void prerender (RenderProps props) {
+      super.prerender (props);
       
-      GL2 gl = renderer.getGL2().getGL2();
-      
-      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
-      boolean reenableLighting = false;
-      
-      if (props.getLineColor() != null && !renderer.isSelecting()) {
-         renderer.setMaterialAndShading (
-            props, props.getLineMaterial(), (flags & GLRenderer.SELECTED) != 0);
+      if (myMeshRenderer == null) {
+         myMeshRenderer = new PolylineMeshRenderer (this);
       }
-      boolean cull = gl.glIsEnabled(GL2.GL_CULL_FACE);
-      if (cull) {
-         gl.glDisable (GL2.GL_CULL_FACE);
-      }
-
-      boolean useDisplayList = false;
-      int displayList = 0;
-      boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
-      
-      if (useDisplayListsIfPossible && isUsingDisplayList() && 
-    		  !(renderer.isSelecting() && useVertexColors) ) {
-         useDisplayList = true;
-         displayList = props.getMeshDisplayList();
-      }
-         
-      if (!useDisplayList || displayList < 1) {
-         if (useDisplayList) {
-            displayList = props.allocMeshDisplayList (gl);
-            if (displayList > 0) {
-               renderer.validateInternalDisplayLists(props);
-               gl.glNewList (displayList, GL2.GL_COMPILE);
-            }
-         }
-         
-         if ((flags & MeshRenderer.IS_SELECTING) != 0) {
-            useVertexColors = false;
-         }
-         boolean useHSVInterpolation =
-            (flags & GLRenderer.HSV_COLOR_INTERPOLATION) != 0;
-         useHSVInterpolation =false;
-         if (useVertexColors && useHSVInterpolation) {
-            useHSVInterpolation = setupHSVInterpolation (gl);
-         }
-         if (useVertexColors) {
-            gl.glEnable(GL2.GL_COLOR_MATERIAL);
-            gl.glColorMaterial(GL2.GL_FRONT, GL2.GL_DIFFUSE);
-            reenableLighting = renderer.isLightingEnabled();
-            if (reenableLighting) {
-               renderer.setLightingEnabled (false);
-            }
-            renderer.setShadeModel (RenderProps.Shading.FLAT);
-         }
-         
-         // draw all the cylinders
-         boolean useRenderVtxs = isRenderBuffered() && !isFixed();
-         float[] posa = new float[3];
-         float[] posb = new float[3];
-         float[] postmp = posb;
-         int nslices =  props.getLineSlices();
-         double r = props.getLineRadius();
-
-         int[] indexOffs = getFeatureIndexOffsets();
-         ArrayList<float[]> colors = getColors();
-         int[] colorIndices = getColorIndices();
-         
-         for (int i=0; i<myLines.size(); i=i+1+renderSkip) {
-            Polyline line = myLines.get(i);
-           
-            Vertex3d[] vtxs = line.getVertices();
-            Point3d pnta = useRenderVtxs ? vtxs[0].myRenderPnt : vtxs[0].pnt;
-            getFloatPoint(pnta, posa);
-            int lineOff = indexOffs[i];
-            
-            for (int k=1; k<line.numVertices(); k++) {
-               Point3d pntb = useRenderVtxs ? vtxs[k].myRenderPnt : vtxs[k].pnt;
-               getFloatPoint(pntb, posb);
-               
-               if (useVertexColors) {
-                  float[] color0 = colors.get(colorIndices[lineOff+k-1]);
-                  float[] color1 = colors.get(colorIndices[lineOff+k]);
-                  drawColoredCylinder(
-                     gl, nslices, r, r, posa, color0, posb, color1, false);
-                  
-               } else {
-                  renderer.drawCylinder(props, posa, posb, true);
-               }
-               postmp = posa;
-               posa = posb;
-               posb = postmp;               
-            }
-         }
-         
-         if (useVertexColors) {
-            gl.glDisable(GL2.GL_COLOR_MATERIAL);
-            if (reenableLighting) {
-               renderer.setLightingEnabled (true);
-            }
-         }
-         if (useVertexColors && useHSVInterpolation) {
-            // turn off special HSV interpolating shader
-            gl.glUseProgramObjectARB (0);
-         }
-         
-         if (useDisplayList && displayList > 0) {
-            gl.glEndList();
-            gl.glCallList (displayList);
-         }
-      }
-      else {
-         gl.glCallList (displayList);
-      }
-
-      if (cull) {
-         gl.glEnable(GL2.GL_CULL_FACE);
-      }
-      renderer.restoreShading (props);
-      renderer.setShadeModel (savedShadeModel);
-      
-   }
-   
-   private void getFloatPoint(Point3d pnt, float[] flt) {
-      flt[0] = (float)pnt.x;
-      flt[1] = (float)pnt.y;
-      flt[2] = (float)pnt.z;
-   }
-   
-   Vector3d utmp = new Vector3d();
-   RigidTransform3d Xtmp = new RigidTransform3d();
-   
-   double[] cosBuff = {1, 0, -1, 0, 1};
-   double[] sinBuff = {0, 1, 0, -1, 0};
-   
-   // draws colored cylinders, currently ignores lighting
-   public void drawColoredCylinder (GL2 gl, int nslices, double base,
-      double top, float[] coords0, float[] color0, float[] coords1, 
-      float[] color1, boolean capped) {
-      
-      utmp.set (coords1[0] - coords0[0], coords1[1] - coords0[1], coords1[2]
-         - coords0[2]);
-
-      Xtmp.p.set (coords0[0], coords0[1], coords0[2]);
-      Xtmp.R.setZDirection (utmp);
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, Xtmp);
-
-      double h = utmp.norm();
-      
-      // fill angle buffer
-      if (nslices+1 != cosBuff.length) {
-         cosBuff = new double[nslices+1];
-         sinBuff = new double[nslices+1];
-         cosBuff[0] = 1;
-         sinBuff[0] = 0;
-         cosBuff[nslices] = 1;
-         sinBuff[nslices] = 0;
-         for (int i=1; i<nslices; i++) {
-            double ang = i / (double)nslices * 2 * Math.PI;
-            cosBuff[i] = Math.cos(ang);
-            sinBuff[i] = Math.sin(ang);
-         }
-      }
-      
-      // draw sides
-      gl.glBegin(GL2.GL_QUAD_STRIP);
-
-      double c1,s1;
-      for (int i = 0; i <= nslices; i++) {
-         c1 = cosBuff[i];
-         s1 = sinBuff[i];
-         gl.glNormal3d(-c1, -s1, 0);
-         
-         gl.glColor4fv (color0, 0);
-         gl.glVertex3d (base * c1, base * s1, 0);
-         
-         gl.glColor4fv (color1, 0);
-         gl.glVertex3d (top * c1, top * s1, h);
-      }
-      
-      gl.glEnd();
-      
-      
-      if (capped) { // draw top cap first
-         gl.glColor4fv(color1, 0);
-         if (top > 0) {
-            gl.glBegin (GL2.GL_POLYGON);
-            gl.glNormal3d (0, 0, 1);
-            for (int i = 0; i < nslices; i++) {
-               gl.glVertex3d (top * cosBuff[i], top * sinBuff[i], h);
-            }
-            gl.glEnd();
-         }
-         // now draw bottom cap
-         gl.glColor4fv(color0, 0);
-         if (base > 0) {
-            gl.glBegin (GL2.GL_POLYGON);
-            gl.glNormal3d (0, 0, -1);
-            for (int i = 0; i < nslices; i++) {
-               gl.glVertex3d (base * cosBuff[i], base * sinBuff[i], 0);
-            }
-            gl.glEnd();
-         }
-      }
-      gl.glPopMatrix();
-      
+      myMeshRenderer.prerender(props);
    }
 
-   protected void renderLines(GLRenderer renderer, RenderProps props, int flags ) {
-      
-      GL2 gl = renderer.getGL2().getGL2();
-      
-      boolean reenableLighting = false;
-      int savedLineWidth = renderer.getLineWidth();
-      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
-
-      renderer.setLineWidth (props.getLineWidth());
-
-      if (props.getLineColor() != null && !renderer.isSelecting()) {
-         reenableLighting = renderer.isLightingEnabled();
-         
-         renderer.setLightingEnabled (false);
-         float[] color;
-         if ((flags & GLRenderer.SELECTED) != 0) {
-            color = new float[3];
-            renderer.getSelectionColor().getRGBColorComponents (color);
-         }
-         else {
-            color = props.getLineColorArray();
-         }
-         float alpha = (float)props.getAlpha();
-         renderer.setColor (color[0], color[1], color[2], alpha);
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myMeshRenderer == null) {
+         throw new IllegalStateException (
+            "render() called before prerender()");
       }
-
-      boolean useDisplayList = false;
-      int displayList = 0;
-      boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
-      
-      if (useDisplayListsIfPossible && isUsingDisplayList() && 
-    		  !(renderer.isSelecting() && useVertexColors)) {
-         useDisplayList = true;
-         displayList = props.getMeshDisplayList();
-      }
-         
-      if (!useDisplayList || displayList < 1) {
-         if (useDisplayList) {
-            displayList = props.allocMeshDisplayList (gl);
-            if (displayList > 0) {
-               gl.glNewList (displayList, GL2.GL_COMPILE);
-            }
-         }
-         
-         boolean useHSVInterpolation =
-            (flags & GLRenderer.HSV_COLOR_INTERPOLATION) != 0;
-         useHSVInterpolation =false;
-         if (useVertexColors && useHSVInterpolation) {
-            useHSVInterpolation = setupHSVInterpolation (gl);
-         }
-         
-         boolean useRenderVtxs = isRenderBuffered() && !isFixed();
-         if (useVertexColors) {
-            reenableLighting = renderer.isLightingEnabled();
-            renderer.setLightingEnabled (false);
-            renderer.setShadeModel (RenderProps.Shading.FLAT);
-         }
-         
-         int[] indexOffs = getFeatureIndexOffsets();
-         ArrayList<float[]> colors = getColors();
-         int[] colorIndices = getColorIndices();
-         
-         for (int i=0; i<myLines.size(); i=i+1+renderSkip) {
-            Polyline line = myLines.get(i);
-            gl.glBegin (GL2.GL_LINE_STRIP);
-            Vertex3d[] vtxs = line.getVertices();
-            int lineOff = indexOffs[i];
-            
-            for (int k=0; k<line.numVertices(); k++) {
-               Point3d pnt = useRenderVtxs ? vtxs[k].myRenderPnt : vtxs[k].pnt;
-
-               if (useVertexColors) {
-                  int cidx = colorIndices[lineOff+k];
-                  float[] color = (cidx != -1 ? colors.get(cidx) : null);
-                  setVertexColor (gl, color, useHSVInterpolation);
-               }
-               gl.glVertex3d (pnt.x, pnt.y, pnt.z);
-            }
-            gl.glEnd ();
-            
-            if (useVertexColors && useHSVInterpolation) {
-               // turn off special HSV interpolating shader
-               gl.glUseProgramObjectARB (0);
-            }
-         }
-         if (useDisplayList && displayList > 0) {
-            gl.glEndList();
-            gl.glCallList (displayList);
-         }
-      }
-      else {
-         gl.glCallList (displayList);
-      }
-
-      if (reenableLighting) {
-         renderer.setLightingEnabled (true);
-      }
-      renderer.setLineWidth (savedLineWidth);
-      renderer.setShadeModel (savedShadeModel);
+      myMeshRenderer.render(renderer, props, flags);
    }
-
+   
    /** 
     * Creates a copy of this mesh.
     */

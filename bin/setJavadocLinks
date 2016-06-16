@@ -1,43 +1,77 @@
 #!/usr/bin/perl 
-
-# Goes through a set of html files and sets all javadoc method
-# references so that they match the named locations within the
-# corresponding javadoc file, thus ensuring that links through the
-# reference navigate to the correct file location.
 #
-# A javadoc class reference should look like
+# Processes an HTML or PostScript file to set the correct hypertext
+# links for javadoc references. Each reference is specified by either
+#
+# @JDOCBEGIN/<className>@JDOCEND
+#
+# for classes, or 
+#
+# @JDOCBEGIN/<className>.<methodName>(<argSignature>)@JDOCEND
+#
+# for methods. <className> should be a fully qualified class name
+# (i.e., all package components should be present). The <argSignature>
+# for a method should be a comma separated list of argument types.
+# The signature does not have to be complete; it only needs to
+# be complete enough to distinquish it from other methods with
+# the same name.
+#
+# This program also replaces the string
+#
+# @ARTISYNTHDOCBASE
+#
+# which the URL for the base directory for ArtiSynth documentation,
+# as specified by the variable docBase.
+#
+# Javadoc URLs are created from the specification by
+#
+# 1) replacing '.' with '/' and '$' with '.' in <className> and
+# locating the Javadoc file for the class;
+# 
+# 2) for methods, parsing the (possibly incomplete) <argSignature>
+# and finding the matching method and location in the Javadoc file;
+#
+# 3) removing @JDOCEND and replacing @JDOCBEGIN with the leading part
+# of the URL to the javadoc directory, indicated by the jdocUrl
+# variable.
+#
+# For example, the class specification
 #
 # @JDOCBEGIN/artisynth.core.models.ModelBase@JDOCEND
 #
-# while a method reference should look like
+# would be replaced with
 #
-# @JDOCBEGIN/artisynth.core.models.ModelBase.method(args)@JDOCEND
+# $jdocUrl/artisynth/core/models/ModelBase.html
 #
-# where "args" may be either empty, or an abbreviated version
-# of the list of argument types. It is used to match the method to
-# the appropriate javadoc entry.
+# while the method specification
 #
-# Class references get turned into
+# @JDOCBEGIN/maspack.matrix.MatrixNd.mul(MatrixNd,MatrixNd)@JDOCEND
 #
-# $JDOC_URL/artisynth/core/models/ModelBase.html
+# would be replaced with
 #
-# while method references get turned into
+# @jdocUrl/maspack.matrix.MatrixNd.mul(MatrixNd,MatrixNd)
 #
-# $jdocUrl/artisynth/core/models/ModelBase.html#method(argtypes)
+# As mention above, the argument signature for methods only needs
+# to be complete enough to unambiguously match the method. In the
+# above example, MatrixNd has only three methods named 'mul':
 #
-# where $jdocUrl is a base URL for the javadocs and "argtypes" is
-# the fully expanded argument type list for the method, based on
-# matching the info provided by "args".
+#   mul(DenseMatrixBase,DenseMatrixBase)
+#   mul(MatrixNd,MatrixNd)
+#   mul(MatrixNd)
+#
+# and so an argument signature of (MatrixNd,) or (,MatrixNd) would be
+# sufficient to provide a match. If the method name is unqiue, the
+# argument signature can even be empty.
 
-# location of the javadoc files relative to the directory in which
-# this command is being run
-$jdocDir = "../javadocs";
+# specifies the output file. "-" indicates standard output.
+$outfileName = "-";
 
-# base URL for the javadocs to be placed in the output html files
-$jdocUrl = "../javadocs";
+# if not zero, indicates that this program is being run on post
+$postscript = 0;
 
 sub printUsageAndExit {
-    print "Usage: fixJavadocLinks [--jdocDir <dir>] [--jdocUrl <url>] <file>\n";
+    print "Usage: fixJavadocLinks [--jdocDir <dir>] [--jdocUrl <url>]";
+    print "       [--docBase <url>] [--out <outfile>] [--postscript] <infile>\n";
     exit 1;
 }
 
@@ -55,34 +89,109 @@ while ($_ = $ARGV[0], /^-/) {
 	    printUsageAndExit();
 	}
     }
+    elsif (/^--docBase$/) {
+	$docBase = shift;
+	if (!defined $docBase) {
+	    printUsageAndExit();
+	}
+    }
+    elsif (/^--out$/) {
+	$outfileName = shift;
+	if (!defined $outfileName) {
+	    printUsageAndExit();
+	}
+    }
+    elsif (/^--postscript$/) {
+	$postscript = 1;
+    }
     else {
 	printUsageAndExit();
     }
 }
 
-$fileName = $ARGV[0];
-if (!defined $fileName) {
+if (!defined $docBase) {
+    # URL for base directory of the ArtiSynth documentation. By default,
+    # this is  "../..", meaning that it is assumed to be two directories
+    # up from the current HTML file. When setting links in PostScript
+    # files, docBase should be set to a network based URL, such
+    # as http://www.artisynth.org/doc.
+    $docBase = "../..";
+}
+
+if (!defined $jdocUrl) {
+    # base URL for the javadocs to be placed in the output html files
+    $jdocUrl = "$docBase/javadocs";
+}
+
+if (!defined $jdocDir) {
+    # location of the javadoc files relative to the directory in which
+    # this command is being run. This is used for actually finding the
+    # javadoc files so that they can be parsed and their methods located.
+    $jdocDir = "../javadocs";
+}
+
+$infileName = $ARGV[0];
+if (!defined $infileName) {
     printUsageAndExit();
 }
 
-open (INPUT, $fileName) or warn "Can't open $inFileName: $!\n";
+open (INPUT, $infileName) or warn "Can't open $infileName: $!\n";
+#if ($postscript) {
+#    binmode INPUT;
+#}
+if ($outfileName ne "-") {
+    open (OUTPUT, ">", $outfileName) or warn "Can't open $outfileName: $!\n";
+    #if ($postscript) {
+    #    binmode OUTPUT;
+    #}
+}
+
 while (<INPUT>) { 
-	s/\@JDOCBEGIN\/([^\s()]*)\@JDOCEND/replaceDots($1)/eg;
-	s/\@JDOCBEGIN\/([^\s()]*)\.([^.(]*)\(([^)]*)\)\@JDOCEND/fixMethodRef($1,$2,$3)/eg;
-	s/\@JDOCBEGIN\//$jdocUrl\//g;
+    s/\@ARTISYNTHDOCBASE/$docBase/g;
+    s/\@JDOCBEGIN\/([^\s()]*)\@JDOCEND/replaceDots($1)/eg;
+    if ($postscript) {
+        s/\@JDOCBEGIN\/([^\s()]*)\.([^.(]*)\\\(([^)]*)\\\)\@JDOCEND/fixMethodRef($1,$2,$3)/eg;
+    }
+    else {
+        s/\@JDOCBEGIN\/([^\s()]*)\.([^.(]*)\(([^)]*)\)\@JDOCEND/fixMethodRef($1,$2,$3)/eg;
+    }
+    s/\@JDOCBEGIN\//$jdocUrl\//g;
+    if ($outfileName ne "-") {
+        print OUTPUT $_;
+    }
+    else {
         print $_;
+    }
 }
 close INPUT;
+if ($outfileName ne "-") {
+    close OUTPUT;
+}
 
 sub replaceDots {
     my $className = $_[0];
-    my $str = $className;
-    $str =~ s/\./\//g;
-    $str =~ s/\#/\./g;
-    if (!(-e "$jdocDir/$str.html")) {
+    # sometime $ might have been turned into %24; if so, set it back:
+    $className =~ s/\%24/\$/g;
+    # this appears instead of a dollar sign in postscript output:
+    $className =~ s/\\\\protect\\040\\\\T1\\\\textdollar\\040/\$/g;
+    my $classFile = $className;
+    $classFile =~ s/\./\//g;
+    $classFile =~ s/\$/\./g;
+    my $classLink; # this will be the filename, plus any '#' tag
+    # see if classFile has a '#' tag at the end. If so, remove it and place
+    # it at the end, after the ".html"
+    if ( $classFile =~ m/(^.*)(\#[^#]*$)/ ) {
+        $classFile = "$1.html";
+        $classLink = "$1.html$2";
+    }
+    else {
+        $classFile = "$classFile.html";
+        $classLink = $classFile;
+    }
+    if (!(-e "$jdocDir/$classFile")) {
        warn "WARNING: class $className not found\n";
     }
-    return "\@JDOCBEGIN/$str.html";
+    return "\@JDOCBEGIN/$classLink";
 }
 
 # Returns the substitution string for a matched method reference.  The
@@ -135,7 +244,12 @@ sub fixMethodRef {
             warn "WARNING: method $methodName not found for class $className\n";
         }
     }
-    return "\@JDOCBEGIN/$classFile\#$methodName\($methodArgs\)";
+    if ($postscript) {
+        return "\@JDOCBEGIN/$classFile\#$methodName\\\($methodArgs\\\)";
+    }
+    else {
+        return "\@JDOCBEGIN/$classFile\#$methodName\($methodArgs\)";
+    }
 }
 
 # Finds or creates the table of named methods contained within
@@ -157,4 +271,3 @@ sub getMethodTable {
     $allMethodTables{$file} = { %methodTable };
     return %methodTable;
 }
-

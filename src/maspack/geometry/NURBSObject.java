@@ -6,19 +6,20 @@
  */
 package maspack.geometry;
 
-import java.util.LinkedList;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
-import maspack.matrix.Point3d;
-import maspack.matrix.Vector4d;
-import maspack.matrix.RigidTransform3d;
 import maspack.matrix.AffineTransform3dBase;
-import maspack.render.GLSelectable;
-import maspack.render.*;
-import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
-
-import java.io.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.Vector4d;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderable;
+import maspack.render.Renderer;
 
 /**
  * Base class for a NURBS curve or surface.
@@ -39,9 +40,10 @@ public abstract class NURBSObject implements Renderable {
    protected RenderProps myRenderProps;
    protected static final boolean DEFAULT_DRAW_CONTROL_SHAPE = true;
    protected boolean myDrawControlShapeP = DEFAULT_DRAW_CONTROL_SHAPE;
-
+   
    protected NURBSObject() {
       myRenderProps = createRenderProps();
+      myRenderProps.setPointSize (3);
       myCtrlPnts = new ArrayList<Vector4d>();
       myCtrlPntSelected = new ArrayList<Boolean>();
    }
@@ -160,7 +162,7 @@ public abstract class NURBSObject implements Renderable {
       }
    }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d tmp = new Point3d();
       for (int i=0; i<myCtrlPnts.size(); i++) {
          Vector4d cpnt = myCtrlPnts.get(i);
@@ -172,40 +174,19 @@ public abstract class NURBSObject implements Renderable {
       }
    }
 
-//   private void drawControlPoint (GLRenderer renderer, int i, Point3d tmp) {
-//      GL2 gl = renderer.getGL2();
-//      renderer.setPointSize (
-//         myCtrlPntSelected.get(i) ? myPointSize + 1 : myPointSize);
-//      gl.glBegin (GL2.GL_POINTS);
-//      Vector4d cpnt = myCtrlPnts.get(i);
-//      tmp.set (cpnt.x, cpnt.y, cpnt.z);
-//      // if (myXObjToWorld != RigidTransform3d.IDENTITY) {
-//      //    tmp.transform (myXObjToWorld);
-//      // }
-//      gl.glVertex3d (tmp.x, tmp.y, tmp.z);
-//      gl.glEnd();
-//   } 
-
    private void drawControlPoint (
-      GLRenderer renderer, RenderProps props, int i, Point3d tmp) {
+      Renderer renderer, RenderProps props, int i, Point3d tmp) {
 
-      GL2 gl = renderer.getGL2().getGL2();
       int psize = props.getPointSize();
       boolean selected = myCtrlPntSelected.get(i); 
       renderer.setPointSize (selected ? psize+1 : psize);
-      renderer.setColor (props.getPointColorArray(), selected);
-      gl.glBegin (GL2.GL_POINTS);
+      renderer.setPointColoring (props, selected);
       Vector4d cpnt = myCtrlPnts.get(i);
-      tmp.set (cpnt.x, cpnt.y, cpnt.z);
-      // if (myXObjToWorld != RigidTransform3d.IDENTITY) {
-      //    tmp.transform (myXObjToWorld);
-      // }
-      gl.glVertex3d (tmp.x, tmp.y, tmp.z);
-      gl.glEnd();
+      renderer.drawPoint (cpnt.x, cpnt.y, cpnt.z);
    } 
 
    protected void drawControlPoints (
-      GLRenderer renderer, RenderProps props, int flags) {
+      Renderer renderer, RenderProps props, int flags) {
 
       Point3d tmp = new Point3d();
       boolean selecting = renderer.isSelecting();
@@ -308,12 +289,12 @@ public abstract class NURBSObject implements Renderable {
       return myRenderProps;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render (renderer, myRenderProps, /*flags=*/0);
    }
 
    public abstract void render (
-      GLRenderer renderer, RenderProps props, int flags);
+      Renderer renderer, RenderProps props, int flags);
 
    /**
     * Applies an affine transformation to the control points this NURBS

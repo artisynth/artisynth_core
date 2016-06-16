@@ -22,10 +22,11 @@ import maspack.matrix.Point3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.Shading;
+import maspack.render.color.ColorUtils;
 import maspack.util.ArraySort;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
@@ -292,7 +293,7 @@ public class MFreeMuscleElementDesc
       return 0;
    }
    
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       super.updateBounds(pmin, pmax);
       if (myElement != null)
 	 myElement.updateBounds(pmin, pmax);
@@ -310,14 +311,14 @@ public class MFreeMuscleElementDesc
             if (myDirectionColor == null) {
                myDirectionColor = new float[3];
             }
-            baseColor = props.getLineColorArray();
-            GLSupport.interpolateColor (
+            baseColor = props.getLineColorF();
+            ColorUtils.interpolateColor (
                myDirectionColor, baseColor, excitationColor, s);
             if (myWidgetColor == null) {
                myWidgetColor = new float[3];
             }
-            baseColor = props.getFaceColorArray();
-            GLSupport.interpolateColor (
+            baseColor = props.getFaceColorF();
+            ColorUtils.interpolateColor (
                myWidgetColor, baseColor, excitationColor, s);
          }
          else {
@@ -335,7 +336,7 @@ public class MFreeMuscleElementDesc
    }
    
 
-   protected void renderINodeDirection(GLRenderer renderer, RenderProps props,
+   protected void renderINodeDirection(Renderer renderer, RenderProps props,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
       
       ArrayList<MFreeIntegrationPoint3d> ipnts = myElement.getIntegrationPoints();
@@ -369,14 +370,14 @@ public class MFreeMuscleElementDesc
             coords1[2] = coords0[2] + (float)dir.z;
             
             renderer.drawLine(
-               props, coords0, coords1, /* capped= */false,
-               myDirectionColor, /* selected= */false);   
+               props, coords0, coords1, myDirectionColor,
+               /*capped=*/false, /*highlight=*/false);   
          }
       }
       
    }
    
-   protected void renderElementDirection(GLRenderer renderer, RenderProps props,
+   protected void renderElementDirection(Renderer renderer, RenderProps props,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
       
       myElement.computeRenderCoordsAndGradient (F, coords0);
@@ -408,13 +409,13 @@ public class MFreeMuscleElementDesc
       coords1[2] = coords0[2] + (float)dir.z;
             
       renderer.drawLine (
-         props, coords0, coords1, /*capped=*/false,
-         myDirectionColor, isSelected());
+         props, coords0, coords1, myDirectionColor,
+         /*capped=*/false, isSelected());
       
    }
    
    void renderDirection (
-      GLRenderer renderer, RenderProps props,
+      Renderer renderer, RenderProps props,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len, DirectionRenderType type) {
 
       
@@ -430,7 +431,7 @@ public class MFreeMuscleElementDesc
    }
       
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       double widgetSize = 0;
       double directionLength = 0;
       ModelComponent gparent = getGrandParent();
@@ -443,11 +444,11 @@ public class MFreeMuscleElementDesc
          renderType = bundle.getDirectionRenderType();
       }      
       if (widgetSize != 0) {
-         maspack.render.Material mat = myRenderProps.getFaceMaterial();
-         renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
+         Shading savedShading = renderer.setPropsShading (myRenderProps);
+         renderer.setFaceColoring (
+            myRenderProps, myWidgetColor, isSelected());
          myElement.renderWidget (renderer, widgetSize, myRenderProps, 0);
-         renderer.restoreShading (myRenderProps);
+         renderer.setShading (savedShading);
       }
       if (directionLength > 0) {
          Matrix3d F = new Matrix3d();

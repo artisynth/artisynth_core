@@ -15,6 +15,7 @@ import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import maspack.interpolation.Interpolation;
@@ -116,8 +117,8 @@ public class FemBeam3d extends RootModel {
    }
 
    public void build (String[] args) {
-      //this (name, "hex", 24, 12, /*options=*/0); // ADD_BLOCKS
-      build ("hex", 8, 4, /*options=*/0); // ADD_BLOCKS
+      //build ("hex", 8, 4, /*options=*/0); // ADD_BLOCKS
+      build ("hex", 24, 12, /*options=*/0); // ADD_BLOCKS
 
       myMechMod.setIntegrator (Integrator.Trapezoidal);
       myFemMod.setMaterial (new MooneyRivlinMaterial());
@@ -291,12 +292,12 @@ public class FemBeam3d extends RootModel {
    public void setRenderProperties (FemModel3d mod, double length) {
       
       mod.setSurfaceRendering (SurfaceRender.Shaded);
-      RenderProps.setShading (mod, RenderProps.Shading.FLAT);
+      RenderProps.setShading (mod, Renderer.Shading.FLAT);
       RenderProps.setFaceColor (mod, new Color (0.7f, 0.7f, 0.9f));
       RenderProps.setLineWidth (mod.getElements(), 2);
       RenderProps.setLineColor (mod.getElements(), Color.blue);
       RenderProps.setPointRadius (mod, 0.01*length);
-      RenderProps.setPointStyle (mod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (mod.getNodes(), Color.GREEN);
    }
 
@@ -359,7 +360,7 @@ public class FemBeam3d extends RootModel {
             muscle.setFirstPoint (lastMkr);
             muscle.setSecondPoint (mkr);
             RenderProps.setLineRadius (muscle, 0.01);
-            RenderProps.setLineStyle (muscle, RenderProps.LineStyle.ELLIPSOID);
+            RenderProps.setLineStyle (muscle, Renderer.LineStyle.SPINDLE);
             RenderProps.setLineColor (muscle, color);
             if (useFemMuscleModel) {
                bundle.addFibre (muscle);

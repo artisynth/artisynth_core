@@ -14,12 +14,13 @@ import java.util.Deque;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
-import maspack.matrix.Point3d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.Shading;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -152,7 +153,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       return null;
    }
 
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       super.updateBounds(pmin, pmax);
       if (myElement != null)
          myElement.updateBounds(pmin, pmax);
@@ -526,8 +527,13 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       pw.println ("]");
    }
 
+
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
+      render (renderer, myRenderProps, flags);
+   }
+
+   public void render(Renderer renderer, RenderProps props, int flags) {
       
       double widgetSize = 0;
       double rad = 0;
@@ -542,24 +548,21 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
          renderType = bundle.getFractionRenderType();
       }  
       
-      if (widgetSize != 0) {
-         maspack.render.Material mat = myRenderProps.getFaceMaterial();
-         renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
-         myElement.renderWidget (renderer, widgetSize, myRenderProps);
-         renderer.restoreShading (myRenderProps);
-      }
-      
-      if (rad > 0) {
-         maspack.render.Material mat = myRenderProps.getPointMaterial();
-         renderer.setMaterialAndShading (
-            myRenderProps, mat, myWidgetColor, isSelected());
-         renderFraction (
-            renderer, myRenderProps, rad, renderType);
+      if (widgetSize != 0 || rad > 0) {
+         Shading savedShading = renderer.setPropsShading (props);
+         renderer.setFaceColoring (props, myWidgetColor, isSelected());
+         if (widgetSize != 0) {
+            myElement.renderWidget (renderer, widgetSize, props);
+         }
+         if (rad > 0) {
+            renderFraction (
+               renderer, props, rad, renderType);
+         }
+         renderer.setShading (savedShading);
       }
    }
    
-   public void renderFraction( GLRenderer renderer, RenderProps props, double rad, FractionRenderType renderType ) {
+   public void renderFraction( Renderer renderer, RenderProps props, double rad, FractionRenderType renderType ) {
       switch(renderType) {
          case ELEMENT:
          case ELEMENT_SCALED:
@@ -573,7 +576,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    }
    
    Matrix3d RF = new Matrix3d();
-   private void renderElementFraction(  GLRenderer renderer, RenderProps props, double rad, boolean scaled) {
+   private void renderElementFraction(  Renderer renderer, RenderProps props, double rad, boolean scaled) {
       
       
       myElement.computeRenderCoordsAndGradient(RF, rcoords);
@@ -593,10 +596,10 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
          }
       }
       
-      renderer.drawSphere(props, rcoords, r);
+      renderer.drawSphere(rcoords, r);
    }
    
-   private void renderINodeFraction(  GLRenderer renderer, RenderProps props, double rad, boolean scaled) {
+   private void renderINodeFraction(  Renderer renderer, RenderProps props, double rad, boolean scaled) {
       
       IntegrationPoint3d[] ipnt = myElement.getIntegrationPoints();
       
@@ -614,7 +617,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
          
          if (drawSphere) {
             ipnt[i].computeCoordsForRender(rcoords, myElement.getNodes());
-            renderer.drawSphere(props, rcoords, r);  
+            renderer.drawSphere(rcoords, r);  
          }
          
          

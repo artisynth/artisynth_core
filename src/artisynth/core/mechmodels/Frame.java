@@ -6,18 +6,44 @@
  */
 package artisynth.core.mechmodels;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.MotionTarget.TargetActivity;
-import artisynth.core.util.ScalableUnits;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import maspack.geometry.GeometryTransformer;
-import maspack.matrix.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.spatialmotion.*;
-
-import javax.media.opengl.*;
-
-import java.util.*;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.Matrix;
+import maspack.matrix.Matrix6d;
+import maspack.matrix.Matrix6dBlock;
+import maspack.matrix.Matrix6x3Block;
+import maspack.matrix.MatrixBlock;
+import maspack.matrix.Point3d;
+import maspack.matrix.Quaternion;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.properties.PropertyUtils;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.spatialmotion.SpatialInertia;
+import maspack.spatialmotion.Twist;
+import maspack.spatialmotion.Wrench;
+import artisynth.core.mechmodels.MotionTarget.TargetActivity;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.HasCoordinateFrame;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.Traceable;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.util.ScalableUnits;
 
 public class Frame extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits, DynamicComponent,
@@ -793,46 +819,15 @@ public class Frame extends DynamicComponentBase
       myRenderFrame.set (myState.XFrameToWorld);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myState.pos.updateBounds (pmin, pmax);
    }
 
-   public static void drawAxes (
-      GLRenderer renderer, RigidTransform3d XFrameToWorld, 
-      float len, boolean selected) {
-      
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
-      renderer.setLightingEnabled (false);
-      GLViewer.mulTransform (gl, XFrameToWorld);
-      if (selected) {
-         renderer.setColor (renderer.getSelectionColor());
-      }
-      gl.glBegin (GL2.GL_LINES);
-      if (!selected) {
-         renderer.setColor (1f, 0f, 0f);
-      }
-      gl.glVertex3f (0f, 0f, 0f);
-      gl.glVertex3f (len, 0f, 0f);
-      if (!selected) {
-         renderer.setColor (0f, 1f, 0f);
-      }
-      gl.glVertex3f (0f, 0f, 0f);
-      gl.glVertex3f (0f, len, 0f);
-      if (!selected) {
-         renderer.setColor (0f, 0f, 1f);
-      }
-      gl.glVertex3f (0f, 0f, 0f);
-      gl.glVertex3f (0f, 0f, len);
-      gl.glEnd();
-      renderer.setLightingEnabled (true);
-      gl.glPopMatrix();
-   }
-
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
-         //renderer.setLineWidth (myRenderProps.getLineWidth());
-         renderer.drawAxes (myRenderProps, myRenderFrame, myAxisLength, isSelected());
+         int lineWidth = myRenderProps.getLineWidth();
+         renderer.drawAxes (
+            myRenderFrame, myAxisLength, lineWidth, isSelected());
          //renderer.setLineWidth (1);
       }
    }

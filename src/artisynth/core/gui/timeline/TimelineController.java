@@ -41,7 +41,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import maspack.properties.Property;
-import maspack.render.GLViewer;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
 import maspack.widgets.BooleanSelector;
@@ -135,7 +134,6 @@ public class TimelineController extends Timeline
    
    private Line2D myWayShadow;
    private JSplitPane mainSplitPane;
-   private GLViewer myViewer;
    private JPopupMenu myPopup;
    private WayPointTrackListener wayTrackListener;
 
@@ -157,9 +155,7 @@ public class TimelineController extends Timeline
    /**
     * Creates the timeline
     */
-   public TimelineController (
-      String title, Main main, GLViewer glViewer) {
-      myViewer = glViewer;
+   public TimelineController (String title, Main main) {
       myMain = main;
       myScheduler = main.getScheduler();
       
@@ -692,13 +688,13 @@ public class TimelineController extends Timeline
    
    public void updateAllProbeDisplays() {
       for (Track inTrack : myInTracks) {
-         for (ProbeInfo probeInfo : inTrack.probeInfos) {
+         for (ProbeInfo probeInfo : inTrack.getProbeInfos()) {
             probeInfo.setAppropriateColor ();               
             probeInfo.updateProbeDisplays();
          }
       }
       for (Track outTrack : myOutTracks) {
-         for (ProbeInfo probeInfo : outTrack.probeInfos) {
+         for (ProbeInfo probeInfo : outTrack.getProbeInfos()) {
             probeInfo.setAppropriateColor ();
             probeInfo.updateProbeDisplays();
          }
@@ -727,7 +723,7 @@ public class TimelineController extends Timeline
    protected void setAllNumericDisplays() {
       for (Track inTrack : myInTracks) {
          if (inTrack.isExpanded()) {
-            for (ProbeInfo probeInfo : inTrack.probeInfos) {
+            for (ProbeInfo probeInfo : inTrack.getProbeInfos()) {
                probeInfo.setNumericProbeDisplay();
             }
          }
@@ -735,7 +731,7 @@ public class TimelineController extends Timeline
 
       for (Track outTrack : myOutTracks) {
          if (outTrack.isExpanded()) {
-            for (ProbeInfo probeInfo : outTrack.probeInfos) {
+            for (ProbeInfo probeInfo : outTrack.getProbeInfos()) {
                probeInfo.setNumericProbeDisplay();
             }
          }
@@ -1625,7 +1621,7 @@ public class TimelineController extends Timeline
 
       for (Track inTrack : myInTracks) {
          if (inTrack.isVisible()) {
-            for (ProbeInfo probeInfo : inTrack.probeInfos) {
+            for (ProbeInfo probeInfo : inTrack.getProbeInfos()) {
                probeInfo.setAppropSizeAndLocation (true);
                probeTrack.add (probeInfo.getDisplayArea());
             }
@@ -1634,7 +1630,7 @@ public class TimelineController extends Timeline
 
       for (Track outTrack : myOutTracks) {
          if (outTrack.isVisible()) {
-            for (ProbeInfo probeInfo : outTrack.probeInfos) {
+            for (ProbeInfo probeInfo : outTrack.getProbeInfos()) {
                probeInfo.setAppropSizeAndLocation (true);
                probeTrack.add (probeInfo.getDisplayArea());
             }
@@ -2169,6 +2165,9 @@ public class TimelineController extends Timeline
             pInfo.updateLabelText();
             pInfo.getProbe().setTrack (activeTrack.getTrackNumber());
          }
+         else {
+            origTrack.markProbesUnsorted();
+         }
       }
 
       return isExecuted;
@@ -2232,7 +2231,7 @@ public class TimelineController extends Timeline
       double max = 0;
 
       for (Track inTrack : myInTracks) {
-         for (ProbeInfo probeInfo : inTrack.probeInfos) {
+         for (ProbeInfo probeInfo : inTrack.getProbeInfos()) {
             double t = probeInfo.getStopTime();
             if (t > max) {
                max = t;
@@ -2241,7 +2240,7 @@ public class TimelineController extends Timeline
       }
 
       for (Track outTrack : myOutTracks) {
-         for (ProbeInfo probeInfo : outTrack.probeInfos) {
+         for (ProbeInfo probeInfo : outTrack.getProbeInfos()) {
             double t = probeInfo.getStopTime();
             if (t > max) {
                max = t;
@@ -2271,7 +2270,7 @@ public class TimelineController extends Timeline
       double cursorTime = timescale.getTimescaleCursorTime();
 
       for (Track inTrack : myInTracks) {
-         for (ProbeInfo probeInfo : inTrack.probeInfos) {
+         for (ProbeInfo probeInfo : inTrack.getProbeInfos()) {
             probeInfo.setProbeWithTime (cursorTime);
          }
       }
@@ -2279,13 +2278,13 @@ public class TimelineController extends Timeline
 
    public void saveAllProbes() {
       for (Track inTrack : myInTracks) {
-         for (ProbeInfo probeInfo : inTrack.probeInfos) {
+         for (ProbeInfo probeInfo : inTrack.getProbeInfos()) {
             probeInfo.saveProbe();
          }
       }
 
       for (Track outTrack : myOutTracks) {
-         for (ProbeInfo probeInfo : outTrack.probeInfos) {
+         for (ProbeInfo probeInfo : outTrack.getProbeInfos()) {
             probeInfo.saveProbe();
          }
       }

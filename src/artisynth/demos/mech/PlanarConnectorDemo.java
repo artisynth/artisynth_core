@@ -4,6 +4,7 @@ import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
@@ -78,7 +79,7 @@ public class PlanarConnectorDemo extends RootModel {
       
       RenderProps props = connector.createRenderProps();
       props.setPointColor (Color.blue);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       props.setPointRadius (0.25);
       connector.setRenderProps (props);
 

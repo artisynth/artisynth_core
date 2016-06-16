@@ -7,7 +7,8 @@ import javax.swing.JSeparator;
 
 import maspack.matrix.*;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import maspack.widgets.LabeledComponentBase;
 import artisynth.core.femmodels.*;
 import artisynth.core.gui.ControlPanel;
@@ -102,7 +103,7 @@ public class FemMuscleBeams extends RootModel {
       beamFibres.addMuscleExciter(allFibres);
       
       // Render properties
-      RenderProps.setLineStyle(beamFibres.getMuscleBundles(), LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle(beamFibres.getMuscleBundles(), LineStyle.SPINDLE);
       RenderProps.setLineRadius(beamFibres.getMuscleBundles(), 0.0002);
       RenderProps.setLineColor(topFibres, Color.RED);
       RenderProps.setLineColor(middleFibres, Color.GREEN);

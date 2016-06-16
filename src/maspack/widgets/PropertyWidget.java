@@ -9,6 +9,7 @@ package maspack.widgets;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Font;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
@@ -16,7 +17,7 @@ import javax.swing.JComponent;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EmptyBorder;
 
-import maspack.geometry.Rectangle;
+import maspack.geometry.Rectangle2d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.RigidTransform3d;
@@ -30,7 +31,7 @@ import maspack.properties.Property;
 import maspack.properties.PropertyInfo;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLGridResolution;
+import maspack.render.GL.GLGridResolution;
 import maspack.util.DoubleInterval;
 import maspack.util.EnumRange;
 import maspack.util.IntegerInterval;
@@ -247,7 +248,7 @@ public class PropertyWidget {
             SymmetricMatrix3d.class.isAssignableFrom (type) ||
             AxisAngle.class.isAssignableFrom (type) ||
             RigidTransform3d.class.isAssignableFrom (type) ||
-            Rectangle.class.isAssignableFrom(type) ||
+            Rectangle2d.class.isAssignableFrom(type) ||
             // Material.class.isAssignableFrom (type) ||
             // MuscleMaterial.class.isAssignableFrom (type) ||
             Enum.class.isAssignableFrom (type) ||
@@ -522,7 +523,7 @@ public class PropertyWidget {
                new PropChangeListener (prop));
             transformField.setStretchable (true);
          }
-         else if (Rectangle.class.isAssignableFrom(type)) {
+         else if (Rectangle2d.class.isAssignableFrom(type)) {
             RectangleField rectField = (RectangleField)widget;
             rectField.addValueChangeListener (new PropChangeListener (prop));
             if (info.getPrintFormat() != null &&
@@ -598,6 +599,10 @@ public class PropertyWidget {
          else if (GLGridResolution.class.isAssignableFrom (type)) {
             GridResolutionField resField = (GridResolutionField)widget;
             resField.addValueChangeListener (new PropChangeListener (prop));
+         }
+         else if (Font.class.isAssignableFrom (type)) {
+            FontField fontField = (FontField)widget;
+            fontField.addValueChangeListener (new PropChangeListener (prop));
          }
          else if (CompositeProperty.class.isAssignableFrom (type)) {
             if (widget instanceof CompositePropertyWidget) {
@@ -725,7 +730,7 @@ public class PropertyWidget {
       //     return new ViscoelasticBehaviorPanel (
       //        "viscoBehavior", info.getNullValueOK());
       // }
-      else if (Rectangle.class.isAssignableFrom(type)) {
+      else if (Rectangle2d.class.isAssignableFrom(type)) {
          return new RectangleField();
       }
       else if (AxisAngle.class.isAssignableFrom (type)) {
@@ -750,6 +755,9 @@ public class PropertyWidget {
       }
       else if (GLGridResolution.class.isAssignableFrom (type)) {
          return new GridResolutionField();
+      }
+      else if (Font.class.isAssignableFrom (type)) {
+         return new FontField ();
       }
       else if (CompositeProperty.class.isAssignableFrom (type)) {
          Class<?>[] subclasses = PropertyUtils.findCompositePropertySubclasses(type);

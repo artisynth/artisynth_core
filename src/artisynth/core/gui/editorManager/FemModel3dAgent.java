@@ -40,10 +40,11 @@ import maspack.properties.PropTreeCell;
 import maspack.properties.Property;
 import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dEvent;
-import maspack.render.GLViewer;
 import maspack.render.MouseRayEvent;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Transrotator3d;
+import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 import maspack.widgets.AxisAngleField;
 import maspack.widgets.DoubleField;
@@ -445,7 +446,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       
       PolygonalMesh mesh = fem.getSurfaceMesh();      
       RenderProps props = mesh.createRenderProps();
-      props.setFaceStyle (RenderProps.Faces.NONE);
+      props.setFaceStyle (Renderer.FaceStyle.NONE);
       props.setDrawEdges (true);
       props.setLineColor (Color.LIGHT_GRAY);
       mesh.setRenderProps (props);
@@ -466,7 +467,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       GLViewer viewer = myMain.getMain().getViewer();
       rotator.setDraggerToWorld (X);
       rotator.setSize (
-         viewer.distancePerPixel (viewer.getCenter()) * viewer.getWidth() / 6);
+         viewer.distancePerPixel (viewer.getCenter()) * viewer.getScreenWidth() / 6);
       rotator.addListener (new FemModelDraggerListener());
       myMain.getWorkspace().getViewerManager().addDragger (rotator);
       
@@ -748,7 +749,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       
       GLViewer viewer = myMain.getMain().getViewer();      
       double width = viewer.distancePerPixel (viewer.getCenter()) * 
-         viewer.getWidth() / 6;
+         viewer.getScreenWidth() / 6;
       
       // Grid fields
       double gridWidth = DEFAULT_GRID_DIM.x;
@@ -1212,8 +1213,8 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
 
       GLViewer viewer = myMain.getMain().getViewer();  
       double distancePerPixel = viewer.distancePerPixel (viewer.getCenter());
-      double width = distancePerPixel * viewer.getWidth() / 4;
-      double height = distancePerPixel * viewer.getHeight() / 4;
+      double width = distancePerPixel * viewer.getScreenWidth() / 4;
+      double height = distancePerPixel * viewer.getScreenHeight() / 4;
       
       double meshScale = 1;
       if (meshScale * meshWidth > width || meshScale * meshHeight > height) {
@@ -1298,6 +1299,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          mesh.setRenderProps (mesh.createRenderProps());
          mesh.setMeshToWorld (RigidTransform3d.IDENTITY);
          mesh.setFixed (false);
+         mesh.setColorsFixed (false);
          
          
          RigidTransform3d rigidX = new RigidTransform3d();

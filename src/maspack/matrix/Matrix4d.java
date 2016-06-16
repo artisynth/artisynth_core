@@ -305,4 +305,8 @@ public class Matrix4d extends Matrix4dBase {
       m32 = 0;
       m33 = vals[3];
    }
+   
+   public Matrix4d clone() {
+      return new Matrix4d(this);
+   }
 }

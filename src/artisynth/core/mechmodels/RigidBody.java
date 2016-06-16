@@ -16,19 +16,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.media.opengl.GL2;
-
-import maspack.geometry.BVFeatureQuery;
+import maspack.geometry.GeometryTransformer;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.GeometryTransformer;
-import maspack.geometry.RigidTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
-import maspack.matrix.MatrixBlock;
-import maspack.matrix.Matrix6x1Block;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
@@ -37,9 +31,9 @@ import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
@@ -48,14 +42,11 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.Range;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
-import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
 
@@ -643,7 +634,6 @@ public class RigidBody extends Frame
             }
          }
       }
-      myRenderProps.clearMeshDisplayList();
    }
 
    /**
@@ -925,7 +915,7 @@ public class RigidBody extends Frame
       return RenderProps.createMeshProps (this);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
          mesh.updateBounds (pmin, pmax);
@@ -935,14 +925,14 @@ public class RigidBody extends Frame
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
-         renderer.setLineWidth (myRenderProps.getLineWidth());
-         drawAxes (renderer, myRenderFrame, (float)myAxisLength, isSelected());
-         renderer.setLineWidth (1);
+         int lineWidth = myRenderProps.getLineWidth();
+         renderer.drawAxes (
+            myRenderFrame, myAxisLength, lineWidth, isSelected());
       }
       if (isSelected()) {
-         flags |= GLRenderer.SELECTED;
+         flags |= Renderer.HIGHLIGHT;
       }
       myMeshInfo.render (renderer, myRenderProps, flags);
    }
@@ -964,11 +954,6 @@ public class RigidBody extends Frame
          if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
             if (myMeshInfo.transformGeometryAndPose (
                   gtr, myTransformConstrainer)) {
-               // mesh was transformed in addition to having its transform set
-               // so clear the display list (if set)
-               if (myRenderProps != null) {
-                  myRenderProps.clearMeshDisplayList();
-               }
                if (myInertiaMethod == InertiaMethod.Density) {
                   setInertiaFromMesh (myDensity);
                }
@@ -990,7 +975,6 @@ public class RigidBody extends Frame
       if (mesh != null) {
          mesh.scale (s);
          mesh.setMeshToWorld (myState.XFrameToWorld);
-         myRenderProps.clearMeshDisplayList();
       }
       
       myDensity /= (s * s * s);

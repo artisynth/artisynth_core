@@ -80,7 +80,7 @@ public class DelaunayInterpolator {
          idxs[2] = myIdx2;
       }
 
-      public void updateBounds (Point3d min, Point3d max) {
+      public void updateBounds (Vector3d min, Vector3d max) {
          myP0.updateBounds (min, max);
          myP1.updateBounds (min, max);
          myP2.updateBounds (min, max);
@@ -287,7 +287,7 @@ public class DelaunayInterpolator {
          indices[3] = myIndices[3];
       }
 
-      public void updateBounds (Point3d min, Point3d max) {
+      public void updateBounds (Vector3d min, Vector3d max) {
          myP0.updateBounds (min, max);
          myP1.updateBounds (min, max);
          myP2.updateBounds (min, max);

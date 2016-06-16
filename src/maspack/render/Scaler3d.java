@@ -6,23 +6,21 @@
  */
 package maspack.render;
 
-import java.awt.event.InputEvent;
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AffineTransform3d;
-import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Line;
 import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 
 public class Scaler3d extends Dragger3dBase {
    protected AffineTransform3d myTransform;
    protected AffineTransform3d myIncrementalTransform;
-   protected int myCircleRes = 20;
    protected int mySelectedComponent = NONE;
    protected Point3d myPnt0 = new Point3d();
 
@@ -40,13 +38,15 @@ public class Scaler3d extends Dragger3dBase {
    static final int YZ_PLANE = 5;
    static final int ZX_PLANE = 6;
 
-   private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
-   private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
-   private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
+   private static final Line xAxis = new Line (0, 0, 0, 1, 0, 0);
+   private static final Line yAxis = new Line (0, 0, 0, 0, 1, 0);
+   private static final Line zAxis = new Line (0, 0, 0, 0, 0, 1);
 
-   private static Plane xyPlane = new Plane (0, 0, 1, 0);
-   private static Plane yzPlane = new Plane (1, 0, 0, 0);
-   private static Plane zxPlane = new Plane (0, 1, 0, 0);
+   private static final Plane xyPlane = new Plane (0, 0, 1, 0);
+   private static final Plane yzPlane = new Plane (1, 0, 0, 0);
+   private static final Plane zxPlane = new Plane (0, 1, 0, 0);
+   
+   private static RenderObject renderObject = null;
 
    public Scaler3d() {
       super();
@@ -60,120 +60,125 @@ public class Scaler3d extends Dragger3dBase {
       //myViewer = viewer;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (!myVisibleP) {
          return;
       }
-      GL2 gl = renderer.getGL2().getGL2();
+    
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
+      
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myXDraggerToWorld);
+      
+      float[] coords = new float[3];
+      if (myDragMode != DragMode.OFF && mySelectedComponent != NONE) { 
+         renderer.setColor(1.0f, 1.0f, 0f);
+         renderer.setPointSize(3);
+         myPnt0.get(coords);
+         renderer.drawPoint(coords);
+         renderer.setPointSize(1);
+      }
+      
+      renderer.scaleModelMatrix(mySize);
 
-      renderer.setLightingEnabled (false);
-      renderer.setLineWidth (myLineWidth);
+      if (renderObject == null) {
+         renderObject = createScalerRenderable();
+      }
+      
+      // draw selected component first
+      if (mySelectedComponent != 0) {
+         renderer.drawLines(renderObject, mySelectedComponent);
+      }
+      renderer.drawLines(renderObject, 0);
+      
+      renderer.popModelMatrix();
+      
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
 
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, myXDraggerToWorld);
+   }
+   
+   private static void addLineStrip (RenderObject robj, int pidx0, int numv) {
+      robj.beginBuild (DrawMode.LINE_STRIP);
+      for (int i=0; i<numv; i++) {
+         robj.addVertex (pidx0+i);
+      }
+      robj.endBuild();
+   }
 
-      if (myDragMode != DragMode.OFF) { 
-         gl.glColor3d (1f, 1f, 0f);
-         renderer.setPointSize (3);
-         gl.glBegin (GL2.GL_POINTS);
-         gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
-         gl.glEnd();
-         renderer.setPointSize (1);
+   private static void addLine (RenderObject robj, int pidx0, int pidx1) {
+      int vidx0 = robj.addVertex (pidx0);
+      int vidx1 = robj.addVertex (pidx1);
+      robj.addLine (vidx0, vidx1);
+   }
+
+   private static RenderObject createScalerRenderable() {
+      
+      final float TRANS_BOX_SIZE = 0.4f;
+      
+      RenderObject robj = new RenderObject();
+      
+      int RED    = robj.addColor (1.0f, 0.0f, 0.0f, 1.0f);
+      int GREEN  = robj.addColor (0.0f, 1.0f, 0.0f, 1.0f);
+      int BLUE   = robj.addColor (0.0f, 0.0f, 1.0f, 1.0f);
+      int GRAY   = robj.addColor (0.5f, 0.5f, 0.5f, 1.0f);
+      int YELLOW = robj.addColor (1.0f, 1.0f, 0.0f, 1.0f);
+      
+      int p0     = robj.addPosition (0.0f, 0.0f, 0.0f);
+      int px     = robj.addPosition (1.0f, 0.0f, 0.0f);
+      int py     = robj.addPosition (0.0f, 1.0f, 0.0f);
+      int pz     = robj.addPosition (0.0f, 0.0f, 1.0f);
+
+      float size = TRANS_BOX_SIZE;
+      
+      robj.addPosition (0.0f, size, 0.0f);
+      robj.addPosition (0.0f, size, size);
+      robj.addPosition (0.0f, 0.0f, size);
+      robj.addPosition (size, 0.0f, size);
+      robj.addPosition (size, 0.0f, 0.0f);
+      robj.addPosition (size, size, 0.0f);
+      robj.addPosition (0.0f, size, 0.0f);
+
+      int pbox = pz+1;      
+
+      for (int i=0; i<7; i++) {
+         robj.createLineGroup();
       }
 
-      if (mySelectedComponent == X_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (1f, 0, 0);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (mySize, 0.0, 0.0);
-      gl.glEnd();
+      robj.lineGroup (0);
 
-      if (mySelectedComponent == Y_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 1f, 0);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (0, mySize, 0.0);
-      gl.glEnd();
+      robj.setCurrentColor (RED);
+      addLine (robj, p0, px);
+      robj.setCurrentColor (GREEN);
+      addLine (robj, p0, py);
+      robj.setCurrentColor (BLUE);
+      addLine (robj, p0, pz);
 
-      if (mySelectedComponent == Z_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 0, 1f);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (0, 0, mySize);
-      gl.glEnd();
+      robj.setCurrentColor (GRAY);
+      addLineStrip (robj, pbox, 7);
 
-      double len = myPlaneBoxRelativeSize * mySize;
+      robj.setCurrentColor (YELLOW);
+      
+      robj.lineGroup (X_AXIS);
+      addLine (robj, p0, px);
+      robj.lineGroup (Y_AXIS);
+      addLine (robj, p0, py);
+      robj.lineGroup (Z_AXIS);
+      addLine (robj, p0, pz);
 
-      // gl.glDisable (GL2.GL_CULL_FACE);
-
-      // x-y plane box
-      if (mySelectedComponent == XY_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (len, 0, 0);
-      gl.glVertex3d (len, len, 0);
-      gl.glVertex3d (0, len, 0);
-      gl.glEnd();
-
-      // y-z plane box
-      if (mySelectedComponent == YZ_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (0, len, 0);
-      gl.glVertex3d (0, len, len);
-      gl.glVertex3d (0, 0, len);
-      gl.glEnd();
-
-      // z-x plane box
-      if (mySelectedComponent == ZX_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (0, 0, len);
-      gl.glVertex3d (len, 0, len);
-      gl.glVertex3d (len, 0, 0);
-      gl.glEnd();
-
-      gl.glPopMatrix();
-
-      renderer.setLineWidth (1);
-      renderer.setLightingEnabled (true);
-
-      // gl.glEnable (GL2.GL_CULL_FACE);
-
+      robj.lineGroup (YZ_PLANE);
+      addLineStrip (robj, pbox, 3);
+      robj.lineGroup (ZX_PLANE);
+      addLineStrip (robj, pbox+2, 3);
+      robj.lineGroup (XY_PLANE);
+      addLineStrip (robj, pbox+4, 3);
+   
+      return robj;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }
-
-   private boolean rotationSelectCheck (
-      double d, double tempDist, double minDist, double lineDist) {
-      return d != Double.POSITIVE_INFINITY && tempDist < lineDist &&
-         tempDist < minDist;
-   };
 
    private int checkComponentSelection (Line ray, double distancePerPixel) {
       Line draggerRay = new Line (ray);

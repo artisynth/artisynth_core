@@ -28,13 +28,12 @@ import maspack.properties.PropertyList;
 import maspack.render.Dragger3dBase;
 import maspack.render.Dragger3dEvent;
 import maspack.render.Dragger3dListener;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
-import maspack.render.GLViewer.DraggerType;
+import maspack.render.Renderer;
+import maspack.render.Dragger3d.DraggerType;
+import maspack.render.GL.GLViewer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
+import maspack.render.Renderer.FaceStyle;
 import maspack.render.Rotator3d;
 import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
@@ -123,8 +122,8 @@ public abstract class CutPlaneProbe extends OutputProbe
     * Reconstructs a plane mesh according to the resolution
     */
    protected void rebuildMesh() {
-      myPlaneSurface = MeshFactory.createPlane(mySize.x, mySize.y,
-         (int)myResolution.x, (int)myResolution.y);
+      myPlaneSurface = MeshFactory.createRectangle(mySize.x, mySize.y,
+         (int)myResolution.x, (int)myResolution.y, /*texture=*/true);
       myPlaneSurface.setMeshToWorld(XGridToWorld);
       mySurfaceBoundaries = extractBoundaries(myPlaneSurface);
    }
@@ -212,7 +211,7 @@ public abstract class CutPlaneProbe extends OutputProbe
    public void prerender(RenderList list) {
    }
 
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       if (myPlaneSurface != null) {
          //renderer.drawMesh(myRenderProps, myPlaneSurface, flags);
          myPlaneSurface.render (renderer, myRenderProps, flags);
@@ -226,13 +225,13 @@ public abstract class CutPlaneProbe extends OutputProbe
       }
    }
 
-   protected void drawBoundary(GLRenderer renderer, boolean selected) {
+   protected void drawBoundary(Renderer renderer, boolean selected) {
       for (Vertex3d[] boundary : mySurfaceBoundaries) {
          drawContour(boundary, renderer, selected);
       }
    }
 
-   protected void drawContour(Vertex3d[] contour, GLRenderer renderer,
+   protected void drawContour(Vertex3d[] contour, Renderer renderer,
       boolean selected) {
 
       float[] coords0 = new float[3];
@@ -257,7 +256,7 @@ public abstract class CutPlaneProbe extends OutputProbe
    }
 
    protected void drawContour(List<? extends Point3d> contour,
-      GLRenderer renderer, boolean selected) {
+      Renderer renderer, boolean selected) {
 
       float[] coords0 = new float[3];
       float[] coords1 = new float[3];
@@ -400,7 +399,7 @@ public abstract class CutPlaneProbe extends OutputProbe
 
    public RenderProps createRenderProps() {
       RenderProps props = RenderProps.createLineFaceProps(this);
-      props.setFaceStyle(Faces.FRONT_AND_BACK);
+      props.setFaceStyle(FaceStyle.FRONT_AND_BACK);
       props.setVisible(true);
       return props;
    }
@@ -440,14 +439,14 @@ public abstract class CutPlaneProbe extends OutputProbe
    
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
       }
       return code;
    }
 
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       if (myPlaneSurface != null) {
          myPlaneSurface.updateBounds(pmin, pmax);
       }

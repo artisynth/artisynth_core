@@ -7,7 +7,6 @@
 package maspack.geometry;
 
 import java.awt.Color;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -15,13 +14,15 @@ import java.util.ArrayList;
 
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector4d;
 import maspack.matrix.RigidTransform3d;
-import maspack.render.*;
-import maspack.util.*;
-
-import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
+import maspack.matrix.Vector4d;
+import maspack.render.PointEdgeRenderProps;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Base class for 2 and 3 dimensional NURBS curves
@@ -820,39 +821,39 @@ public abstract class NURBSCurveBase extends NURBSObject {
    /**
     * {@inheritDoc}
     */
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
       boolean selecting = renderer.isSelecting();
-      GL2 gl = renderer.getGL2().getGL2();
+      
       int numc = numControlPoints();
       if (numc == 0) {
          return;
       }
 
-      gl.glPushMatrix();
+      renderer.pushModelMatrix();
       if (myXObjToWorld != RigidTransform3d.IDENTITY) {
-         renderer.mulTransform (myXObjToWorld);
+         renderer.mulModelMatrix (myXObjToWorld);
       }
 
-      renderer.setLightingEnabled (false);
+      renderer.setShading (Shading.NONE);
 
       if (myDrawControlShapeP) {
          // draw the control polygon
          if (props.getDrawEdges()) {
             renderer.setLineWidth (props.getEdgeWidth());
             if (!selecting) {
-               renderer.setColor (props.getEdgeOrLineColorArray());
+               renderer.setColor (props.getEdgeOrLineColorF());
             }
             if (myClosedP) {
-               gl.glBegin (GL2.GL_LINE_LOOP);
+               renderer.beginDraw (DrawMode.LINE_LOOP);
             }
             else {
-               gl.glBegin (GL2.GL_LINE_STRIP);
+               renderer.beginDraw (DrawMode.LINE_STRIP);
             }
             for (int i = 0; i < numc; i++) {
                Vector4d cpnt = myCtrlPnts.get(i);
-               gl.glVertex3d (cpnt.x, cpnt.y, cpnt.z);
+               renderer.addVertex (cpnt.x, cpnt.y, cpnt.z);
             }
-            gl.glEnd();
+            renderer.endDraw();
          }
 
          // draw the control points
@@ -861,7 +862,7 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       //draw the curve itself
       if (!selecting) {
-         renderer.setColor (props.getLineColorArray());
+         renderer.setColor (props.getLineColorF());
       }
 
       double len = computeControlPolygonLength();
@@ -870,20 +871,20 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       Point3d pnt = new Point3d();
       renderer.setLineWidth (props.getLineWidth());
-      gl.glBegin (GL2.GL_LINE_STRIP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       double[] urange = new double[2];
       getRange (urange);
       for (int i = 0; i < nsegs + 1; i++) {
          eval (pnt, urange[0] + (urange[1]-urange[0])*i/nsegs);
-         gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+         renderer.addVertex (pnt);
       }
-      gl.glEnd();
+      renderer.endDraw();
 
       renderer.setLineWidth (1);
 
-      renderer.setLightingEnabled (true);
+      renderer.setShading (Shading.FLAT);
 
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
    }
 
    /**

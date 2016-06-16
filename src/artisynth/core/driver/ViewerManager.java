@@ -6,24 +6,37 @@
  */
 package artisynth.core.driver;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
-import java.awt.Color;
-import java.awt.event.*;
-import java.util.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
-import artisynth.core.gui.selectionManager.SelectionManager;
-import artisynth.core.modelbase.*;
-import artisynth.core.workspace.RootModel;
-
-import javax.swing.*;
+import javax.swing.JPopupMenu;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.event.MouseInputListener;
 
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.render.GLRenderer.SelectionHighlighting;
-import maspack.widgets.*;
+import artisynth.core.gui.selectionManager.SelectionManager;
+import artisynth.core.workspace.RootModel;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.RotationMatrix3d;
+import maspack.render.Dragger3d;
+import maspack.render.IsRenderable;
+import maspack.render.RenderList;
+import maspack.render.Renderer;
+import maspack.render.Renderer.HighlightStyle;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.BlendFactor;
+import maspack.render.GL.GLViewerFrame;
+import maspack.render.GL.GLViewerPanel;
+import maspack.widgets.ButtonMasks;
+import maspack.widgets.GuiUtils;
+import maspack.widgets.PropertyDialog;
+import maspack.widgets.ViewerPopupManager;
 
 /**
  * Driver class for model rendering. Each time the top-level model needs to be
@@ -32,15 +45,12 @@ import maspack.widgets.*;
  */
 
 public class ViewerManager {
-   private LinkedList<GLRenderable> myRenderables =
-      new LinkedList<GLRenderable>();
+   private LinkedList<IsRenderable> myRenderables =
+      new LinkedList<IsRenderable>();
    private LinkedList<Dragger3d> myDraggers = new LinkedList<Dragger3d>();
 
    // Flags for special "refresh" rendering
-   public static final int DEFAULT_REFRESH_FLAGS = 
-      (GLRenderer.REFRESH |
-       GLRenderer.CLEAR_MESH_DISPLAY_LISTS | 
-       GLRenderer.SORT_FACES);
+   public static final int DEFAULT_REFRESH_FLAGS = Renderer.SORT_FACES;
    private int myRefreshRenderFlags = DEFAULT_REFRESH_FLAGS;
 
    boolean myDefaultDrawAxes = false;
@@ -114,12 +124,12 @@ public class ViewerManager {
       return myDefaultAxisLength;
    }
 
-   public void addRenderable (GLRenderable r) {
+   public void addRenderable (IsRenderable r) {
       myRenderables.add (r);
       myRenderList = null;
    }
 
-   public void removeRenderable (GLRenderable r) {
+   public void removeRenderable (IsRenderable r) {
       myRenderables.remove (r);
       myRenderList = null;
 
@@ -191,18 +201,18 @@ public class ViewerManager {
       }
    }
 
-   public void setSelectionHighlighting (SelectionHighlighting mode) {
+   public void setSelectionHighlightStyle (HighlightStyle mode) {
       for (GLViewer v : myViewers) {
-         v.setSelectionHighlighting (mode);
+         v.setHighlightStyle (mode);
       }
    }
 
-   public SelectionHighlighting getSelectionHighlighting () {
+   public HighlightStyle getSelectionHighlightStyle() {
       if (myViewers.size() > 0) {
-         return myViewers.get(0).getSelectionHighlighting();
+         return myViewers.get(0).getHighlightStyle();
       }
       else {
-         return SelectionHighlighting.None;
+         return HighlightStyle.NONE;
       }
    }
 
@@ -249,10 +259,10 @@ public class ViewerManager {
       }
       viewer.setExternalRenderList (getRenderList());
       if (myDefaultOrthographic) {
-         viewer.autoFitOrtho (0);
+         viewer.autoFitOrtho ();
       }
       else {
-         viewer.autoFitPerspective (0);
+         viewer.autoFitPerspective ();
       }
 
       if (myDefaultDrawAxes) {
@@ -265,6 +275,7 @@ public class ViewerManager {
       }
       viewer.setGridVisible (myDefaultDrawGrid);
       viewer.setBackgroundColor (myBackgroundColor);
+      viewer.setBlendDestFactor(GLViewer.DEFAULT_DST_BLENDING);
    }
 
    public void setBackgroundColor (Color color) {
@@ -300,12 +311,8 @@ public class ViewerManager {
       return list;
    }
 
-   /**
-    * causes the repaint of the viewers
-    * 
-    */
-
    public void render() {
+      // System.out.println("vm_render");
       myRenderList = buildRenderList();
       for (GLViewer v : myViewers) {
          v.setExternalRenderList (myRenderList);
@@ -313,6 +320,10 @@ public class ViewerManager {
       }
    }
    
+   /**
+    * causes the repaint of the viewers
+    * 
+    */
    public void paint() {
       for (GLViewer v : myViewers) {
          v.paint();

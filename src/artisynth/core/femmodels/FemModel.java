@@ -23,7 +23,7 @@ import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderableUtils;
 import maspack.solvers.IterativeSolver.ToleranceType;
 import maspack.util.DoubleInterval;
@@ -214,9 +214,13 @@ public abstract class FemModel extends MechSystemBase
       //myNu = DEFAULT_NU;
       //myE = DEFAULT_E;
       myDensity = DEFAULT_DENSITY;
+      myDensityMode = PropertyMode.Inherited;
       mySurfaceRendering = DEFAULT_SURFACE_RENDERING;
+      mySurfaceRenderingMode = PropertyMode.Inherited;
       myStressPlotRanging = DEFAULT_STRESS_PLOT_RANGING;
+      myStressPlotRangingMode = PropertyMode.Inherited;
       myStressPlotRange = DEFAULT_STRESS_PLOT_RANGE;
+      myStressPlotRangeMode = PropertyMode.Inherited;
       myWarpingP = DEFAULT_WARPING;
       myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
       myMassDamping = DEFAULT_MASS_DAMPING;
@@ -747,7 +751,7 @@ public abstract class FemModel extends MechSystemBase
       myForcesNeedUpdating = false;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       if (myMinBound != null) {
          myMinBound.updateBounds (pmin, pmax);
       }
@@ -759,7 +763,7 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
    }
 
    protected void updateLocalAttachmentPos() {

@@ -14,6 +14,7 @@ import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
 import maspack.util.InternalErrorException;
 import artisynth.core.driver.Main;
 import artisynth.core.femmodels.FemFactory;
@@ -112,7 +113,7 @@ public class SimpleCollide extends RootModel {
 //      fem.setPoissonsRatio (myPoissonsRatio);
 //      fem.setYoungsModulus (myYoungsModulus);
       fem.setLinearMaterial (myYoungsModulus, myPoissonsRatio, true);
-      RenderProps.setPointStyle (fem, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (fem, Renderer.PointStyle.SPHERE);
       RenderProps.setLineWidth (fem, 0);
       RenderProps.setPointRadius (fem, mySize / 30.0);
       RenderProps.setVisible (fem.getNodes(), false);

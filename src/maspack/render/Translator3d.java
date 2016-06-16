@@ -6,14 +6,18 @@
  */
 package maspack.render;
 
-import java.util.*;
-import java.awt.event.InputEvent;
+import java.util.LinkedList;
 
-import maspack.matrix.*;
-import maspack.util.*;
-
-import javax.media.opengl.GLDrawable;
-import javax.media.opengl.GL2;
+import maspack.matrix.Line;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLViewer;
+import maspack.util.InternalErrorException;
 
 public class Translator3d extends Dragger3dBase {
 
@@ -33,17 +37,19 @@ public class Translator3d extends Dragger3dBase {
    static final int Y_AXIS = 2;
    static final int Z_AXIS = 3;
 
-   static final int XY_PLANE = 4;
+   static final int ZX_PLANE = 4;
    static final int YZ_PLANE = 5;
-   static final int ZX_PLANE = 6;
+   static final int XY_PLANE = 6;
+   
+   private static final Line xAxis = new Line (0, 0, 0, 1, 0, 0);
+   private static final Line yAxis = new Line (0, 0, 0, 0, 1, 0);
+   private static final Line zAxis = new Line (0, 0, 0, 0, 0, 1);
 
-   private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
-   private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
-   private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
-
-   private static Plane xyPlane = new Plane (0, 0, 1, 0);
-   private static Plane yzPlane = new Plane (1, 0, 0, 0);
-   private static Plane zxPlane = new Plane (0, 1, 0, 0);
+   private static final Plane xyPlane = new Plane (0, 0, 1, 0);
+   private static final Plane yzPlane = new Plane (1, 0, 0, 0);
+   private static final Plane zxPlane = new Plane (0, 1, 0, 0);
+   
+   private static RenderObject renderObject = null;
 
    public Translator3d() {
       super();
@@ -56,111 +62,120 @@ public class Translator3d extends Dragger3dBase {
       setSize (size);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (!myVisibleP) {
          return;
       }
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, myXDraggerToWorld);
+      
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
+      
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myXDraggerToWorld);
+      
+      float[] coords = new float[3];
+      if (myDragMode != DragMode.OFF && mySelectedComponent != NONE) { 
+         renderer.setColor(1.0f, 1.0f, 0f);
+         renderer.setPointSize(3);
+         myPnt0.get(coords);
+         renderer.drawPoint(coords);
+         renderer.setPointSize(1);
+      }
+      
+      renderer.scaleModelMatrix(mySize);
 
-      renderer.setLightingEnabled (false);
-      renderer.setLineWidth (myLineWidth);
+      if (renderObject == null) {
+         renderObject = createTranslatorRenderable();
+      }
+      
+      // draw selected component first
+      if (mySelectedComponent != 0) {
+         renderer.drawLines(renderObject, mySelectedComponent);
+      }
+      renderer.drawLines(renderObject, 0);
+      
+      renderer.popModelMatrix();
+      
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
+   }
+   
+   private static void addLineStrip (RenderObject robj, int pidx0, int numv) {
+      robj.beginBuild (DrawMode.LINE_STRIP);
+      for (int i=0; i<numv; i++) {
+         robj.addVertex (pidx0+i);
+      }
+      robj.endBuild();
+   }
 
-      if (myDragMode != DragMode.OFF) {      
-         gl.glColor3d (1f, 1f, 0f);
-         renderer.setPointSize (3);
-         gl.glBegin (GL2.GL_POINTS);
-         gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
-         gl.glEnd();
-         renderer.setPointSize (1);
+   private static void addLine (RenderObject robj, int pidx0, int pidx1) {
+      int vidx0 = robj.addVertex (pidx0);
+      int vidx1 = robj.addVertex (pidx1);
+      robj.addLine (vidx0, vidx1);
+   }
+
+   private static RenderObject createTranslatorRenderable() {
+      
+      final float TRANS_BOX_SIZE = 0.4f;
+      
+      RenderObject robj = new RenderObject();
+      
+      int RED    = robj.addColor (1.0f, 0.0f, 0.0f, 1.0f);
+      int GREEN  = robj.addColor (0.0f, 1.0f, 0.0f, 1.0f);
+      int BLUE   = robj.addColor (0.0f, 0.0f, 1.0f, 1.0f);
+      int GRAY   = robj.addColor (0.5f, 0.5f, 0.5f, 1.0f);
+      int YELLOW = robj.addColor (1.0f, 1.0f, 0.0f, 1.0f);
+      
+      int p0     = robj.addPosition (0.0f, 0.0f, 0.0f);
+      int px     = robj.addPosition (1.0f, 0.0f, 0.0f);
+      int py     = robj.addPosition (0.0f, 1.0f, 0.0f);
+      int pz     = robj.addPosition (0.0f, 0.0f, 1.0f);
+
+      float size = TRANS_BOX_SIZE;
+      
+      robj.addPosition (0.0f, size, 0.0f);
+      robj.addPosition (0.0f, size, size);
+      robj.addPosition (0.0f, 0.0f, size);
+      robj.addPosition (size, 0.0f, size);
+      robj.addPosition (size, 0.0f, 0.0f);
+      robj.addPosition (size, size, 0.0f);
+      robj.addPosition (0.0f, size, 0.0f);
+
+      int pbox = pz+1;      
+
+      for (int i=0; i<7; i++) {
+         robj.createLineGroup();
       }
 
-      if (mySelectedComponent == X_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (1f, 0, 0);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (mySize, 0.0, 0.0);
-      gl.glEnd();
+      robj.lineGroup (0);
 
-      if (mySelectedComponent == Y_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 1f, 0);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (0, mySize, 0.0);
-      gl.glEnd();
+      robj.setCurrentColor (RED);
+      addLine (robj, p0, px);
+      robj.setCurrentColor (GREEN);
+      addLine (robj, p0, py);
+      robj.setCurrentColor (BLUE);
+      addLine (robj, p0, pz);
 
-      if (mySelectedComponent == Z_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 0, 1f);
-      }
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0.0, 0.0);
-      gl.glVertex3d (0, 0, mySize);
-      gl.glEnd();
+      robj.setCurrentColor (GRAY);
+      addLineStrip (robj, pbox, 7);
 
-      double len = myPlaneBoxRelativeSize * mySize;
+      robj.setCurrentColor (YELLOW);
+      
+      robj.lineGroup (X_AXIS);
+      addLine (robj, p0, px);
+      robj.lineGroup (Y_AXIS);
+      addLine (robj, p0, py);
+      robj.lineGroup (Z_AXIS);
+      addLine (robj, p0, pz);
 
-      // gl.glDisable (GL2.GL_CULL_FACE);
-
-      // circle in x-y plane
-
-      if (mySelectedComponent == XY_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (len, 0, 0);
-      gl.glVertex3d (len, len, 0);
-      gl.glVertex3d (0, len, 0);
-      gl.glEnd();
-
-      // circle in y-z plane
-      if (mySelectedComponent == YZ_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (0, len, 0);
-      gl.glVertex3d (0, len, len);
-      gl.glVertex3d (0, 0, len);
-      gl.glEnd();
-
-      // circle in z-x plane
-      if (mySelectedComponent == ZX_PLANE) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0.5, 0.5, 0.5);
-      }
-
-      gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glVertex3d (0, 0, len);
-      gl.glVertex3d (len, 0, len);
-      gl.glVertex3d (len, 0, 0);
-      gl.glEnd();
-
-      renderer.setLineWidth (1);
-      renderer.setLightingEnabled (true);
-
-      // gl.glEnable (GL2.GL_CULL_FACE);
-      gl.glPopMatrix();
+      robj.lineGroup (YZ_PLANE);
+      addLineStrip (robj, pbox, 3);
+      robj.lineGroup (ZX_PLANE);
+      addLineStrip (robj, pbox+2, 3);
+      robj.lineGroup (XY_PLANE);
+      addLineStrip (robj, pbox+4, 3);
+   
+      return robj;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {
@@ -180,8 +195,7 @@ public class Translator3d extends Dragger3dBase {
       int resultAxisOrPlane = NONE;
 
       RigidTransform3d draggerToEye = new RigidTransform3d();
-      draggerToEye.mulInverseLeft (
-         e.getViewer().getEyeToWorld(), myXDraggerToWorld);
+      draggerToEye.mul (e.getViewer().getViewMatrix(), myXDraggerToWorld);
 
       // Line resultAxis = new Line (0, 0, 0, 0, 0, 0);
 
@@ -331,32 +345,37 @@ public class Translator3d extends Dragger3dBase {
       del.sub (p1, p0);
       // if (dragIsConstrained(e)) {
       if (dragIsConstrained()) {
-         GLViewer viewer = e.getViewer();
+         Renderer renderer = e.getViewer();
          boolean constrainedToGrid = false;
-         if (viewer.getGridVisible()) {
-            GLGridPlane grid = viewer.getGrid();
-            RigidTransform3d XDraggerToGrid = new RigidTransform3d();
-            XDraggerToGrid.mulInverseLeft (
-               grid.getGridToWorld(), myXDraggerToWorld);
-            if (XDraggerToGrid.R.isAxisAligned (EPS)) {
-               // if the dragger orientation is axis-aligned with grid
-               // coordinates, then adjust constrained motions so that the
-               // dragger center always lies on a grid point. (Otherwise, this
-               // can't necessarily be done without causing the dragger to move
-               // off the specified line or plane of translation).
-               Point3d pa = new Point3d(del);
-               pa.transform (XDraggerToGrid);
-               grid.alignPoint (pa, pa);
-               pa.inverseTransform (XDraggerToGrid);
-               del.set (pa);
-               constrainToFixture (del);
-               constrainedToGrid = true;
+         
+         if (renderer instanceof GLViewer) {
+            GLViewer viewer = (GLViewer)renderer;
+            if (viewer.getGridVisible()) {
+               GLGridPlane grid = viewer.getGrid();
+               RigidTransform3d XDraggerToGrid = new RigidTransform3d();
+               XDraggerToGrid.mulInverseLeft (
+                  grid.getGridToWorld(), myXDraggerToWorld);
+               if (XDraggerToGrid.R.isAxisAligned (EPS)) {
+                  // if the dragger orientation is axis-aligned with grid
+                  // coordinates, then adjust constrained motions so that the
+                  // dragger center always lies on a grid point. (Otherwise, this
+                  // can't necessarily be done without causing the dragger to move
+                  // off the specified line or plane of translation).
+                  Point3d pa = new Point3d(del);
+                  pa.transform (XDraggerToGrid);
+                  grid.alignPoint (pa, pa);
+                  pa.inverseTransform (XDraggerToGrid);
+                  del.set (pa);
+                  constrainToFixture (del);
+                  constrainedToGrid = true;
+               }
             }
          }
+         
          if (!constrainedToGrid) {
             // if not possible to constrain to grid, just constrain the step
             // size
-            double s = getConstrainedStepSize(viewer);
+            double s = getConstrainedStepSize();
             del.x = s*Math.round(del.x/s);
             del.y = s*Math.round(del.y/s);
             del.z = s*Math.round(del.z/s);

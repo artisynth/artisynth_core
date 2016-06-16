@@ -999,6 +999,7 @@ public class MFreeFactory {
       MeshBase out = orig.copy();
       out.replaceVertices (vtxs);
       out.setFixed(false);
+      out.setColorsFixed(false);
       
       // copy other properties
       out.setName(orig.getName());

@@ -18,6 +18,7 @@ import javax.swing.*;
 import javax.swing.event.*;
 
 import maspack.render.*;
+import maspack.render.GL.GLViewer;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.util.*;

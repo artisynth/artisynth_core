@@ -17,7 +17,7 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix6x1;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.util.InternalErrorException;
 import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
@@ -241,18 +241,8 @@ public class BeamBody extends DeformableBody {
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
-      // // debugging to ckeck deformed frames
-      // RigidTransform3d X0 = new RigidTransform3d (-1, 0, 0.2);
-      // //RigidTransform3d X0 = new RigidTransform3d (0.8, -0.2, 0);
-      //    X0.R.setRpy (0, 0, Math.PI/2);
-      // RigidTransform3d X = new RigidTransform3d ();
-      // computeDeformedFrame (X, X0);
-      // X.mul (getPose(), X);
-
-      // GL2 gl = renderer.getGL2().getGL2();
-      // drawAxes (gl, X, 0.5f);
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)

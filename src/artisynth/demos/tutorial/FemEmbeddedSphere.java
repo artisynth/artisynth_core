@@ -60,7 +60,7 @@ public class FemEmbeddedSphere extends RootModel {
       fem.setSurfaceRendering (SurfaceRender.Shaded);
       RenderProps.setLineColor (fem, Color.BLUE);
       RenderProps.setFaceColor (fem, new Color (0.5f, 0.5f, 1f));
-      RenderProps.setAlpha(fem, 0.2);   // translucent
+      RenderProps.setAlpha(fem, 0.2);   // transparent
    }
    
    // FemMeshComp render properties

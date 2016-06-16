@@ -1,15 +1,13 @@
 package artisynth.core.renderables;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import artisynth.core.modelbase.RenderableComponentBase;
 
 public class GridPlane extends RenderableComponentBase {
@@ -49,14 +47,13 @@ public class GridPlane extends RenderableComponentBase {
    }
 
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       
-      boolean selected = ((flags & GLRenderer.SELECTED) != 0);
+      boolean highlight = ((flags & Renderer.HIGHLIGHT) != 0);
       RenderProps props = getRenderProps();
       
-      GL2 gl = renderer.getGL2();
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, XGridToWorld);
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(XGridToWorld);
       
       float [] coords0 = new float[3];
       float[] coords1 = new float[3];
@@ -68,7 +65,7 @@ public class GridPlane extends RenderableComponentBase {
       for (int i=0; i <= (int)(myResolution.x); i++) {
          coords0[0] = (float)(-mySize.x/2 + i*dx);
          coords1[0] = coords0[0];
-         renderer.drawLine(props, coords0, coords1, selected);
+         renderer.drawLine(props, coords0, coords1, highlight);
       }
 
       // draw lines parallel to x axis
@@ -78,10 +75,10 @@ public class GridPlane extends RenderableComponentBase {
       for (int i=0; i <= (int)(myResolution.y); i++) {
          coords0[1] = (float)(-mySize.y/2 + i*dy);
          coords1[1] = coords0[1];
-         renderer.drawLine(props, coords0, coords1, selected);
+         renderer.drawLine(props, coords0, coords1, highlight);
       }
       
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
    }
 
    /**
@@ -166,7 +163,7 @@ public class GridPlane extends RenderableComponentBase {
    }
    
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       double x = mySize.x/2;
       double y = mySize.y/2;
       

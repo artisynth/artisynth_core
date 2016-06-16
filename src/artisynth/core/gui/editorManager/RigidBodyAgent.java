@@ -31,10 +31,11 @@ import maspack.properties.PropTreeCell;
 import maspack.properties.Property;
 import maspack.render.Dragger3dAdapter;
 import maspack.render.Dragger3dEvent;
-import maspack.render.GLViewer;
 import maspack.render.MouseRayEvent;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Transrotator3d;
+import maspack.render.GL.GLViewer;
 import maspack.util.InternalErrorException;
 import maspack.widgets.AffineTransformWidget;
 import maspack.widgets.AxisAngleField;
@@ -202,7 +203,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       body.setPose (X);
       
       RenderProps props = body.createRenderProps();
-      props.setFaceStyle (RenderProps.Faces.NONE);
+      props.setFaceStyle (Renderer.FaceStyle.NONE);
       props.setDrawEdges (true);
       props.setLineColor (Color.LIGHT_GRAY);
       body.setRenderProps (props);
@@ -212,7 +213,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       GLViewer viewer = myMain.getMain().getViewer();
       rotator.setDraggerToWorld (X);
       rotator.setSize (
-         viewer.distancePerPixel (viewer.getCenter()) * viewer.getWidth() / 6);
+         viewer.distancePerPixel (viewer.getCenter()) * viewer.getScreenWidth() / 6);
       rotator.addListener (new RigidBodyDraggerListener());
       myMain.getWorkspace().getViewerManager().addDragger (rotator);
       
@@ -322,7 +323,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       if (myGeometrySettings == null) {
          GLViewer viewer = myMain.getMain().getViewer();  
          double width = viewer.distancePerPixel (viewer.getCenter()) * 
-            viewer.getWidth() / 6;
+            viewer.getScreenWidth() / 6;
          
          double boxScale = 1;
          if (width > boxScale) {
@@ -409,8 +410,8 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
 
       GLViewer viewer = myMain.getMain().getViewer();
       double distancePerPixel = viewer.distancePerPixel (viewer.getCenter());
-      double width = distancePerPixel * viewer.getWidth() / 4;
-      double height = distancePerPixel * viewer.getHeight() / 4;
+      double width = distancePerPixel * viewer.getScreenWidth() / 4;
+      double height = distancePerPixel * viewer.getScreenHeight() / 4;
       
       double meshScale = 1;
       if (meshScale * meshWidth > width || meshScale * meshHeight > height) {
@@ -479,7 +480,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
       else if (source == geometrySelector) {
          GLViewer viewer = myMain.getMain().getViewer();  
          double width = viewer.distancePerPixel (viewer.getCenter()) * 
-            viewer.getWidth() / 6;
+            viewer.getScreenWidth() / 6;
          
          if (geometrySelector.getValue() == GeometryType.Mesh) {
             File file =

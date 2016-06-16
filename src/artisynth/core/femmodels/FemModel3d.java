@@ -61,7 +61,7 @@ import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderableUtils;
 import maspack.render.color.ColorMapBase;
@@ -221,8 +221,7 @@ public class FemModel3d extends FemModel
    protected ColorMapBase myColorMap;
    protected PropertyMode myColorMapMode = PropertyMode.Inherited;
 
-   static maspack.render.Material myInvertedMaterial =
-   maspack.render.Material.createDiffuse(1f, 0f, 0f, 0f, 32f);
+   static float[] myInvertedColor = new float[] { 1f, 0f, 0f};
 
    public static PropertyList myProps =
    new PropertyList(FemModel3d.class, FemModel.class);
@@ -318,6 +317,7 @@ public class FemModel3d extends FemModel
       myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
       myMassDamping = DEFAULT_MASS_DAMPING;
       myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
+      myElementWidgetSizeMode = PropertyMode.Inherited;
       myHardIncompMethod = DEFAULT_HARD_INCOMP;
       mySoftIncompMethod = DEFAULT_SOFT_INCOMP;
       myColorMap = defaultColorMap.copy();
@@ -1314,7 +1314,8 @@ public class FemModel3d extends FemModel
          if (myWarnOnInvertedElems) {
             System.out.println(
                "Warning: " + myNumInverted + " inverted elements; min detJ=" +
-               myMinDetJ + ", element " + myMinDetJElement.getNumber());
+               myMinDetJ + ", element " + 
+               ComponentUtils.getPathName(myMinDetJElement));
          }
          if (myAbortOnInvertedElems) {
             throw new NumericalException("Inverted elements");
@@ -1576,7 +1577,7 @@ public class FemModel3d extends FemModel
       }
    }
 
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
    }
 
    public DoubleInterval getNodalPlotRange(SurfaceRender rendering) {
@@ -2630,6 +2631,7 @@ public class FemModel3d extends FemModel
    
    public FemMeshComp addMesh(String name, MeshBase mesh) {
       mesh.setFixed(false);
+      mesh.setColorsFixed(false);
       FemMeshComp surf = FemMeshComp.createEmbedded(this, mesh);
       surf.setName(name);
       surf.setCollidable (Collidability.INTERNAL);
@@ -3010,6 +3012,20 @@ public class FemModel3d extends FemModel
          stepAdjust.recommendAdjustment(
             0.5, "detJ "+myMinDetJ+" below limit of "+detJStepReductionLimit +
             ", element " + myMinDetJElement.getNumber());
+      }
+      // update forces if any of the meshes use stress/strain plotting.  This
+      // will happen anyway if updateForcesAtStepEnd is true.
+      boolean updateForces = getUpdateForcesAtStepEnd();
+      if (!updateForces) {
+         for (FemMeshComp mc : myMeshList) {
+            if (mc.isStressOrStrainRendering (mc.getSurfaceRendering())) {
+               updateForces = true;
+               break;
+            }
+         }
+      }
+      if (updateForces) {
+         applyForces (t1);
       }
    }
 

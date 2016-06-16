@@ -15,7 +15,7 @@ import maspack.util.Clonable;
  * fields. A primary motivation for such objects is computational speed.
  */
 public abstract class Matrix3dBase extends DenseMatrixBase implements
-java.io.Serializable, Clonable {
+   java.io.Serializable, Clonable {
    /**
     * Matrix element (0,0)
     */
@@ -691,7 +691,7 @@ java.io.Serializable, Clonable {
     * @param M2
     * right-hand matrix
     */
-   protected void mul (Matrix3dBase M1, Matrix3dBase M2) {
+   public void mul (Matrix3dBase M1, Matrix3dBase M2) {
       double tmp00 = M1.m00 * M2.m00 + M1.m01 * M2.m10 + M1.m02 * M2.m20;
       double tmp01 = M1.m00 * M2.m01 + M1.m01 * M2.m11 + M1.m02 * M2.m21;
       double tmp02 = M1.m00 * M2.m02 + M1.m01 * M2.m12 + M1.m02 * M2.m22;
@@ -2154,9 +2154,9 @@ java.io.Serializable, Clonable {
       }
    }
 
-   public Object clone() {
+   public Matrix3dBase clone() {
       try {
-         return super.clone();
+         return (Matrix3dBase)super.clone();
       }
       catch (CloneNotSupportedException e) { // shouldn't happen
          throw new InternalErrorException ("clone failed for Matrix3dBase");

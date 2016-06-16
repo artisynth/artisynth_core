@@ -6,8 +6,9 @@ import java.io.IOException;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
-import maspack.render.RenderProps.PointStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.PointStyle;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.PointForce;
 
@@ -25,7 +26,7 @@ public class PointForceDemo extends FrameSpringDemo {
       myMechMod.addFrameMarker (m, myHand2,
                                 new Point3d (0, 0, myHand2.getPose().p.z / 3));
 
-      RenderProps.setPointStyle (m, PointStyle.SPHERE);
+      RenderProps.setPointStyle (m, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (m, Color.RED);
       RenderProps.setPointRadius (m, 0.01);
 

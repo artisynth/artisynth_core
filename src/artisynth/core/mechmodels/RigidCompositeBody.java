@@ -12,7 +12,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Map;
 
-import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
@@ -21,9 +20,9 @@ import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.HierarchyNode;
 import maspack.render.RenderList;
 import maspack.spatialmotion.SpatialInertia;
@@ -561,7 +560,6 @@ public class RigidCompositeBody extends RigidBody implements
          MeshBase mesh = mc.getMesh();
          mesh.scale(s);
          mesh.setMeshToWorld(myState.XFrameToWorld);
-         mc.getRenderProps().clearMeshDisplayList();
       }
       
    }
@@ -771,7 +769,7 @@ public class RigidCompositeBody extends RigidBody implements
       return true;
    }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
     
       for (RigidMeshComp mc : myMeshList) {
          mc.updateBounds(pmin, pmax);

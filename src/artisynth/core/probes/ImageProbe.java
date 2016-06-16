@@ -8,11 +8,10 @@ package artisynth.core.probes;
 
 import java.io.File;
 
-import maspack.render.RenderProps;
-import maspack.render.TextureProps;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.util.TimeBase;
+import maspack.render.RenderProps;
+import maspack.render.ColorMapProps;
 
 public class ImageProbe extends InputProbe {
    protected RigidBody imagePlane;
@@ -48,11 +47,11 @@ public class ImageProbe extends InputProbe {
       RenderProps props = imagePlane.getRenderProps();
       // props.setFaceColor (Color.white);
       // props.setFaceStyle(Faces.FRONT_AND_BACK);
-      TextureProps tprops = props.getTextureProps();
+      ColorMapProps tprops = props.getColorMap();
       if (tprops == null)
-         tprops = new TextureProps();
+         tprops = new ColorMapProps();
       tprops.setEnabled (true);
-      props.setTextureProps (tprops);
+      props.setColorMap (tprops);
       imagePlane.setRenderProps (props);
 
       setImage (0);
@@ -76,10 +75,9 @@ public class ImageProbe extends InputProbe {
       int frameNum = (int)(t * frameRate) + 1;
       String filename =
          String.format (fileNameFormat, imageBasename, frameNum, imageFileExt);
-      TextureProps tprops = imagePlane.getRenderProps().getTextureProps();
+      ColorMapProps tprops = imagePlane.getRenderProps().getColorMap();
       tprops.setFileName (imageDirectory.getAbsolutePath() + "/" + filename);
-      tprops.setTexture (null);
-      imagePlane.getRenderProps().setTextureProps (tprops);
+      imagePlane.getRenderProps().setColorMap (tprops);
    }
 
    private String createFileNameFormat (double rate, double duration) {

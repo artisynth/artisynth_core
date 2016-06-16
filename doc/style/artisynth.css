@@ -328,6 +328,14 @@ div.informaltable thead, div.informaltable tfoot
     font-weight: bold;
 }
 
+/**
+ Added this because LaTeXML often marks table entries as tbody, resulting
+ in boldface, even when we don't expect it.
+*/
+tbody th {
+  font-weight: normal;
+}
+
 div.mediaobject img {
     border: 1px solid silver;
     margin-bottom: 0.8em;
@@ -391,9 +399,19 @@ li.bibitem  {margin-top: .5em; margin-bottom: .5em; }
   font-weight:bold;
 }
 
+/** Fix part title size **/
+.ltx_title_part {
+  font-size: 200%;
+}
+
+/** Fix chapter title size **/
+.ltx_title_chapter {
+  font-size: 180%;
+}
+
 /** Fix section title size **/
 .ltx_title_section {
-  font-size: 150%;
+  font-size: 140%;
 }
 
 /**
@@ -483,7 +501,7 @@ dt.ltx_item  {
 */
 .ltx_font_sansserif {
   color: navy;
-  font-size:90%;
+  font-size:100%;
 }
 
 /**

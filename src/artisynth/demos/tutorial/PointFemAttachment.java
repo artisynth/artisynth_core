@@ -26,7 +26,7 @@ public class PointFemAttachment extends RootModel {
    // create a spring connecting a and b and add it to a mech model
    private void addSpring (MechModel mech, double stiffness, Point a, Point b) {
       AxialSpring spring = new AxialSpring (stiffness, 0, 0);
-      RenderProps.setEllipsoidalLines (spring, 0.01, Color.RED);
+      RenderProps.setSpindleLines (spring, 0.01, Color.RED);
       mech.attachAxialSpring (a, b, spring);
    }
 

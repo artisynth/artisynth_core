@@ -6,20 +6,26 @@
  */
 package artisynth.core.mechmodels;
 
-import maspack.geometry.*;
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.spatialmotion.*;
+import java.util.Map;
 
-import java.util.*;
-import java.io.*;
-
-import artisynth.core.modelbase.*;
-import maspack.render.*;
-
-import javax.media.opengl.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
+import maspack.properties.HasProperties;
+import maspack.properties.PropertyList;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.DrawMode;
+import maspack.spatialmotion.PlanarCoupling;
+import maspack.spatialmotion.RigidBodyConstraint;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
 
 /**
  * Auxiliary class used to solve constrained rigid body problems.
@@ -37,7 +43,7 @@ public class PlanarConnector extends BodyConnector
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createFaceProps (null);
-      props.setFaceStyle (RenderProps.Faces.FRONT_AND_BACK);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       return props;
    }
 
@@ -174,7 +180,7 @@ public class PlanarConnector extends BodyConnector
       setBodies (bodyA, TCA, null, XPW);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       computeRenderVtxs (getCurrentTDW());
       for (int i = 0; i < myRenderVtxs.length; i++) {
          myRenderVtxs[i].updateBounds (pmin, pmax);
@@ -192,28 +198,29 @@ public class PlanarConnector extends BodyConnector
       myRenderCoords[2] = (float)TFW.p.z;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       Vector3d nrm = new Vector3d (0, 0, 1);
       RigidTransform3d TDW = getCurrentTDW();
 
       computeRenderVtxs (TDW);
       nrm.transform (TDW);
-
-      GL2 gl = renderer.getGL2().getGL2();
+      
       RenderProps props = myRenderProps;
 
-      renderer.setMaterialAndShading (
-         props, props.getFaceMaterial(), isSelected());
-      renderer.setFaceMode (props.getFaceStyle());
-      gl.glBegin (GL2.GL_POLYGON);
-      gl.glNormal3d (nrm.x, nrm.y, nrm.z);
-      for (int i = 0; i < myRenderVtxs.length; i++) {
-         Point3d p = myRenderVtxs[i];
-         gl.glVertex3d (p.x, p.y, p.z);
-      }
-      gl.glEnd();
-      renderer.restoreShading (props);
-      renderer.setDefaultFaceMode();
+      Shading savedShading = renderer.setPropsShading (props);
+      renderer.setFaceColoring (props, isSelected());
+      renderer.setFaceStyle (props.getFaceStyle());
+
+      renderer.beginDraw (DrawMode.TRIANGLE_STRIP);
+      renderer.setNormal (nrm.x, nrm.y, nrm.z);
+      renderer.addVertex (myRenderVtxs[3]);
+      renderer.addVertex (myRenderVtxs[0]);
+      renderer.addVertex (myRenderVtxs[2]);
+      renderer.addVertex (myRenderVtxs[1]);
+      renderer.endDraw();
+
+      renderer.setShading (savedShading);
+      renderer.setFaceStyle (FaceStyle.FRONT); // set default
       renderer.drawPoint (myRenderProps, myRenderCoords, isSelected());
    }
 

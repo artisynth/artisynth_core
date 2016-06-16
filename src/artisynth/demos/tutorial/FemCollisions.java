@@ -3,13 +3,6 @@ package artisynth.demos.tutorial;
 import java.awt.Color;
 import java.io.IOException;
 
-import maspack.geometry.MeshFactory;
-import maspack.geometry.PolygonalMesh;
-import maspack.matrix.AxisAngle;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
-import maspack.render.GLViewer.BlendType;
-import maspack.render.RenderProps;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemFactory.FemElementType;
 import artisynth.core.femmodels.FemMeshComp;
@@ -20,6 +13,15 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderProps;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.BlendFactor;
+import maspack.render.GL.GL2.GL2Viewer;
 
 public class FemCollisions extends RootModel {
    
@@ -130,7 +132,7 @@ public class FemCollisions extends RootModel {
       beam.setElementWidgetSize(0.8);
       RenderProps.setLineWidth(beam.getElements(), 0);
       
-      // Make beam blue, and give it a translucent surface
+      // Make beam blue, and give it a transparent surface
       RenderProps.setFaceColor(beam, Color.BLUE);
       beam.setSurfaceRendering(SurfaceRender.Shaded);
       RenderProps.setAlpha(beam.getMeshComp("surface"), 0.4);
@@ -150,6 +152,7 @@ public class FemCollisions extends RootModel {
       super.attach(driver);
       
       // Enable transparency blending
-      getMainViewer().setDBlending(BlendType.GL_ONE_MINUS_SRC_ALPHA);
+      GLViewer viewer = getMainViewer();
+      viewer.setBlendDestFactor (BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
    }
 }

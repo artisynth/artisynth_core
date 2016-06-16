@@ -13,10 +13,10 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.TreePath;
 
-import maspack.render.GLSelectable;
-import maspack.render.GLSelectionEvent;
-import maspack.render.GLSelectionFilter;
-import maspack.render.GLSelectionListener;
+import maspack.render.IsSelectable;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionFilter;
+import maspack.render.ViewerSelectionListener;
 import maspack.util.*;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.navpanel.NavPanelNode;
@@ -29,7 +29,7 @@ import artisynth.core.modelbase.*;
 public class SelectionManager {
 
    protected ViewerSelectionHandler myViewerSelectionHandler;
-   protected ViewerSelectionFilter myViewerSelectionFilter;
+   protected MyViewerSelectionFilter myViewerSelectionFilter;
    protected LinkedList<ModelComponent> mySelectedItems;
    // Cached selection list, expanded to include dependencies.
    protected LinkedList<ModelComponent> myDependencyExpandedSelection;
@@ -56,7 +56,7 @@ public class SelectionManager {
 
    public SelectionManager() {
       myViewerSelectionHandler = new ViewerSelectionHandler();
-      myViewerSelectionFilter = new ViewerSelectionFilter();
+      myViewerSelectionFilter = new MyViewerSelectionFilter();
       mySelectedItems = new LinkedList<ModelComponent>();
       mySelectionListeners = new LinkedList<SelectionListener>();
       myFilters = new ArrayList<SelectionFilter>();
@@ -77,7 +77,7 @@ public class SelectionManager {
       return myViewerSelectionHandler;
    }
    
-   public ViewerSelectionFilter getViewerSelectionFilter() {
+   public MyViewerSelectionFilter getViewerSelectionFilter() {
       return myViewerSelectionFilter;
    }
    
@@ -570,11 +570,11 @@ public class SelectionManager {
    /**
     * Means by which the GLViewer interacts with the selection manager
     */
-   private class ViewerSelectionHandler implements GLSelectionListener {
+   private class ViewerSelectionHandler implements ViewerSelectionListener {
       /**
        * Means by which the GLViewer interacts with the selection manager
        */
-      public void itemsSelected (GLSelectionEvent e) {
+      public void itemsSelected (ViewerSelectionEvent e) {
          LinkedList<ModelComponent> added = new LinkedList<ModelComponent>();
          LinkedList<ModelComponent> removed = new LinkedList<ModelComponent>();
          // HashSet is used to make sure each component is processed only once,
@@ -583,8 +583,8 @@ public class SelectionManager {
          HashSet<ModelComponent> handled = new HashSet<ModelComponent>();
 
          // multiple selection mode
-         boolean multiple = ((e.getFlags() & GLSelectionEvent.MULTIPLE) != 0);
-         boolean dragging = ((e.getFlags() & GLSelectionEvent.DRAG) != 0);
+         boolean multiple = ((e.getFlags() & ViewerSelectionEvent.MULTIPLE) != 0);
+         boolean dragging = ((e.getFlags() & ViewerSelectionEvent.DRAG) != 0);
          boolean done = false;
 
          // Let V be the set of items picked in the viewer, and S
@@ -599,11 +599,10 @@ public class SelectionManager {
          //
          // Sanchez, July 4th: Modified to select first valid item
          if (e != null && e.numSelectedQueries() > 0) {
-            LinkedList<Object>[] itemPaths = e.getSelectedObjects();
-            for (int i = 0; i < itemPaths.length; i++) {
-               LinkedList<Object> path = itemPaths[i];
+            List<LinkedList<?>> itemPaths = e.getSelectedObjects();
+            for (LinkedList<?> path : itemPaths) {
                // loop backwards through items
-               Iterator<Object> pit = path.descendingIterator();
+               Iterator<?> pit = path.descendingIterator();
                while (pit.hasNext()) {
                   Object item = pit.next();
                   if (item instanceof ModelComponent) {
@@ -667,8 +666,8 @@ public class SelectionManager {
    /**
     * Means by which the GLViewer prefilters selectable objects.
     */
-   private class ViewerSelectionFilter implements GLSelectionFilter {
-      public boolean isSelectable (GLSelectable s) {
+   private class MyViewerSelectionFilter implements ViewerSelectionFilter {
+      public boolean isSelectable (IsSelectable s) {
          if (s instanceof ModelComponent) {
             return objectIsValid ((ModelComponent)s);
          }

@@ -6,8 +6,6 @@
  */
 package artisynth.core.femmodels;
 
-import javax.media.opengl.GL2;
-
 import java.io.*;
 import java.util.*;
 
@@ -16,7 +14,7 @@ import maspack.util.*;
 import maspack.geometry.*;
 import maspack.properties.*;
 import maspack.util.InternalErrorException;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderableUtils;
 import maspack.render.RenderProps;
 import artisynth.core.materials.LinearMaterial;
@@ -200,7 +198,6 @@ public abstract class FemElement3d extends FemElement
          IntegrationPoint3d[] ipnts = getIntegrationPoints(); 
          MatrixNd M = new MatrixNd (npvals, npvals);
          for (int k=0; k<ipnts.length; k++) {
-            Vector3d coords = ipnts[k].getCoords();
             double[] H = ipnts[k].getPressureWeights().getBuffer();
             for (int i=0; i<npvals; i++) {
                for (int j=0; j<npvals; j++) {
@@ -452,7 +449,6 @@ public abstract class FemElement3d extends FemElement
 
       Point3d pnt = new Point3d();
       IntegrationPoint3d[] ipnts = getIntegrationPoints();
-      IntegrationData3d[] idata = getIntegrationData();
       for (int i=0; i<ipnts.length; i++) {
          IntegrationPoint3d pt = ipnts[i];
          // compute the current position of the integration point in pnt:
@@ -470,7 +466,7 @@ public abstract class FemElement3d extends FemElement
       return vol;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       for (int i = 0; i < numNodes(); i++) {
          myNodes[i].getPosition().updateBounds (pmin, pmax);
       }
@@ -1241,82 +1237,8 @@ public abstract class FemElement3d extends FemElement
       myWarper.computeRotation (F, P);
    }
 
-   /** 
-    * Helper method to set the normal and vertices for a triangle.
-    */
-   private void setTriangle (GL2 gl, float[] v0, float[] v1, float[] v2) {
-      float ax = v1[0]-v0[0];
-      float ay = v1[1]-v0[1];
-      float az = v1[2]-v0[2];
-      float bx = v2[0]-v0[0];
-      float by = v2[1]-v0[1];
-      float bz = v2[2]-v0[2];
-      gl.glNormal3f (ay*bz-az*by, az*bx-ax*bz, ax*by-ay*bx);
-      gl.glVertex3fv (v0, 0);
-      gl.glVertex3fv (v1, 0);
-      gl.glVertex3fv (v2, 0);
-   }   
-
-   /** 
-    * Helper method to render an element widget by drawing a set of triangular
-    * faces formed from the element nodes. Scaling of the widget is obtained by
-    * applying a scale transformation about the centroid of the nodes.
-    */   
-   public void renderWidget (
-      GLRenderer renderer, double scale, int[] trifaces, RenderProps props) {
-
-      int nnodes = numNodes();
-
-      float cx = 0;
-      float cy = 0;
-      float cz = 0;
-
-      // compute the centroid of the nodes
-      for (int i=0; i<nnodes; i++) {
-         FemNode3d n = myNodes[i];
-         cx += n.myRenderCoords[0];
-         cy += n.myRenderCoords[1];
-         cz += n.myRenderCoords[2];
-      }
-      cx /= nnodes;
-      cy /= nnodes;
-      cz /= nnodes;
-
-      // set up a scaling transform about the nodal centroid
-      float s = (float)scale;
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
-      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
-      gl.glScalef (s, s, s);
-
-      boolean normalizeEnabled = gl.glIsEnabled (GL2.GL_NORMALIZE);
-      if (!normalizeEnabled) {
-         gl.glEnable (GL2.GL_NORMALIZE);
-      }
-
-      // draw the triangular faces
-      gl.glBegin (GL2.GL_TRIANGLES);
-      for (int i=0; i<trifaces.length; i+=3) {
-         setTriangle (gl,
-            myNodes[trifaces[i]].myRenderCoords, 
-            myNodes[trifaces[i+1]].myRenderCoords,
-            myNodes[trifaces[i+2]].myRenderCoords);
-      }
-      gl.glEnd ();
-
-      if (!normalizeEnabled) {
-         gl.glDisable (GL2.GL_NORMALIZE);
-      }
-      gl.glPopMatrix();
-   }
-
-   public void renderWidget (GLRenderer renderer, RenderProps props) {
-      renderWidget (renderer, myElementWidgetSize, props);
-   }
-
-   public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
-   }
+   public abstract void renderWidget (
+      Renderer renderer, double size, RenderProps props);
 
    public double computeDirectedRenderSize (Vector3d dir) {
       IntegrationPoint3d ipnt = getWarpingPoint();
@@ -1333,23 +1255,6 @@ public abstract class FemElement3d extends FemElement
       IntegrationData3d idata = getWarpingData();
       ipnt.computeGradientForRender (F, getNodes(), idata.myInvJ0);
       ipnt.computeCoordsForRender (coords, getNodes());
-   }
-
-   public void render(GLRenderer renderer, RenderProps rprops, int flags) {
-      super.render (renderer, rprops, flags);
-      if (myElementWidgetSize > 0) {         
-         maspack.render.Material mat = rprops.getFaceMaterial();
-         if (isInverted()) {
-            mat = FemModel3d.myInvertedMaterial;
-         }
-         renderer.setMaterialAndShading (rprops, mat, isSelected());
-         renderWidget (renderer, rprops);
-         renderer.restoreShading (rprops);
-      }
-   }
-   
-   public void render (GLRenderer renderer, int flags) {
-      render(renderer, myRenderProps, flags);
    }
 
    protected int getNodeIndex (FemNode3d n) {
@@ -1409,100 +1314,6 @@ public abstract class FemElement3d extends FemElement
    }
 
    static int numEdgeSegs = 10;
-
-   /**
-    * Draw the edge of a quadrayic element by interpolating the shape functions
-    * of three nodes (indicated by the indices <code>i0</code>,
-    * <code>i1</code>, and <code>i2</code>) between the set of natural
-    * coordinates indicated by <code>ncoords</code> and <code>ncoords1</code>.
-    * Typically, these correspond to the natural coordinates of node
-    * <code>i0</code> and <code>i2</code>, but not necessarly in the case of
-    * condensed elements.
-    *
-    * The value of <code>ncoords</code> is modified by this method.
-    */
-   protected void drawQuadEdge (
-      GL2 gl, Vector3d ncoords, Vector3d ncoords1, int i0, int i1, int i2) {
-
-      float[] p0 = myNodes[i0].getRenderCoords();
-      float[] p1 = myNodes[i1].getRenderCoords();
-      float[] p2 = myNodes[i2].getRenderCoords();
-
-      double dx = (ncoords1.x-ncoords.x)/numEdgeSegs;
-      double dy = (ncoords1.y-ncoords.y)/numEdgeSegs;
-      double dz = (ncoords1.z-ncoords.z)/numEdgeSegs;
-
-      gl.glBegin (GL2.GL_LINE_STRIP);      
-      for (int i=0; i<=numEdgeSegs; i++) {
-         float n0 = (float)getN (i0, ncoords);
-         float n1 = (float)getN (i1, ncoords);
-         float n2 = (float)getN (i2, ncoords);
-         float px = n0*p0[0] + n1*p1[0] + n2*p2[0];
-         float py = n0*p0[1] + n1*p1[1] + n2*p2[1];
-         float pz = n0*p0[2] + n1*p1[2] + n2*p2[2];
-         ncoords.x += dx;
-         ncoords.y += dy;
-         ncoords.z += dz;
-         gl.glVertex3d (px, py, pz);
-      }
-      gl.glEnd();      
-   }
-
-   public void renderEdges (GLRenderer renderer, RenderProps props) {
-      int[] idxs = getEdgeIndices();
-      GL2 gl = renderer.getGL2();
-      gl.glBegin (GL2.GL_LINES);
-      int n = 2;
-      for (int i=0; i<idxs.length; i+=(n+1)) {
-         n = idxs[i];
-         if (n == 2) {
-            gl.glVertex3fv (myNodes[idxs[i+1]].myRenderCoords, 0);
-            gl.glVertex3fv (myNodes[idxs[i+2]].myRenderCoords, 0);
-         }
-      }
-      gl.glEnd();
-
-      Vector3d ncoords0 = new Vector3d();
-      Vector3d ncoords1 = new Vector3d();
-      for (int i=0; i<idxs.length; i+=(n+1)) {
-         n = idxs[i];
-         if (n == 3) {
-            getNodeCoords (ncoords0, idxs[i+1]);            
-            getNodeCoords (ncoords1, idxs[i+3]);            
-            drawQuadEdge (
-               gl, ncoords0, ncoords1, idxs[i+1], idxs[i+2], idxs[i+3]);
-         }
-      }
-   }
-   
-   public void renderWidgetEdges(GLRenderer renderer, RenderProps props) {
-      renderWidgetEdges(renderer, myElementWidgetSize, props);
-   }
-   
-   public void renderWidgetEdges(GLRenderer renderer, double size, RenderProps props) {
-      // determine centre and adjust scale
-      
-      float cx=0, cy=0, cz=0;
-      
-      for (int i=0; i<myNodes.length; i++) {
-         cx += myNodes[i].myRenderCoords[0];
-         cy += myNodes[i].myRenderCoords[1];
-         cz += myNodes[i].myRenderCoords[2];
-      }
-      cx = cx/myNodes.length;
-      cy = cy/myNodes.length;
-      cz = cz/myNodes.length;
-
-      float s = (float)size;
-      GL2 gl = renderer.getGL2();
-      gl.glPushMatrix();
-      gl.glTranslatef (cx*(1-s), cy*(1-s), cz*(1-s));
-      gl.glScalef (s, s, s);
-
-      renderEdges(renderer, props);
-  
-      gl.glPopMatrix();
-   }
 
    /**
     * Support methods for computing the extrapolants that map values at an
@@ -1698,7 +1509,6 @@ public abstract class FemElement3d extends FemElement
 
       VectorNd weights = new VectorNd (numNodes());
       IntegrationPoint3d[] ipnts = getIntegrationPoints();       
-      IntegrationData3d[] idata = getIntegrationData();
       double wtotal = 0;
       for (int k=0; k<ipnts.length; k++) {
          IntegrationPoint3d pnt = ipnts[k];

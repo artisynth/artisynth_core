@@ -6,27 +6,25 @@
  */
 package artisynth.core.renderables;
 
-import java.util.List;
-
-import maspack.geometry.MeshBase;
-import maspack.geometry.Vertex3d;
-import maspack.geometry.GeometryTransformer;
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
-import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
-import maspack.render.RenderList;
-import maspack.render.RenderProps;
-import maspack.render.RenderablePoint;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScalableUnits;
+import maspack.geometry.GeometryTransformer;
+import maspack.geometry.MeshBase;
+import maspack.geometry.Vertex3d;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.properties.PropertyList;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
 
 public class VertexComponent extends RenderableComponentBase implements 
-   RenderablePoint, TransformableGeometry, ScalableUnits {
+   TransformableGeometry, ScalableUnits {
    Vertex3d myVertex;
    float[] myRenderCoords = new float[3];
    
@@ -52,15 +50,14 @@ public class VertexComponent extends RenderableComponentBase implements
 
    @Override
    public void prerender(RenderList list) {
-      myVertex.saveRenderInfo();
-      Point3d rp = myVertex.myRenderPnt;
+      Point3d rp = myVertex.getWorldPoint ();
       myRenderCoords[0] = (float)rp.x;
       myRenderCoords[1] = (float)rp.y;
       myRenderCoords[2] = (float)rp.z;
    }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       
       RenderProps rprops = getRenderProps();
       if (rprops == null) {
@@ -113,13 +110,12 @@ public class VertexComponent extends RenderableComponentBase implements
       // nothing
    }
 
-   @Override
    public float[] getRenderCoords() {
       return myRenderCoords;
    }
    
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       myVertex.getWorldPoint().updateBounds(pmin, pmax);
    }
    

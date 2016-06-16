@@ -14,8 +14,6 @@ import maspack.render.*;
 import maspack.util.*;
 
 import java.util.*;
-import javax.media.opengl.*;
-
 import java.io.*;
 
 /**
@@ -23,11 +21,10 @@ import java.io.*;
  */
 public class TetElement extends FemElement3d {
 
-   
-
    //   private StiffnessWarper3d myWarper = null;
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
+   private static FemElementRenderer myRenderer;
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
@@ -285,47 +282,20 @@ public class TetElement extends FemElement3d {
       return myFaceIdxs;
    }
 
-   public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
-      renderer.drawTet (props, size,
-                        myNodes[0].myRenderCoords, myNodes[1].myRenderCoords, 
-                        myNodes[2].myRenderCoords, myNodes[3].myRenderCoords);
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
    }
 
-//    protected void renderEdges (GLRenderer renderer, RenderProps props) {
-//       GL2 gl = renderer.getGL2().getGL2();
-//       float[] coords0 = myNodes[0].myRenderCoords;
-//       float[] coords1 = myNodes[1].myRenderCoords;
-//       float[] coords2 = myNodes[2].myRenderCoords;
-//       float[] coords3 = myNodes[3].myRenderCoords;
-
-//       // renderer.setColor (0f, 0f, 1f);
-
-//       if (props.getLineStyle() == RenderProps.LineStyle.LINE) {
-//          gl.glBegin (GL2.GL_LINES);
-//          gl.glVertex3fv (coords0, 0);
-//          gl.glVertex3fv (coords1, 0);
-//          gl.glVertex3fv (coords0, 0);
-//          gl.glVertex3fv (coords2, 0);
-//          gl.glVertex3fv (coords0, 0);
-//          gl.glVertex3fv (coords3, 0);
-//          gl.glVertex3fv (coords1, 0);
-//          gl.glVertex3fv (coords2, 0);
-//          gl.glVertex3fv (coords2, 0);
-//          gl.glVertex3fv (coords3, 0);
-//          gl.glVertex3fv (coords3, 0);
-//          gl.glVertex3fv (coords1, 0);
-//          gl.glEnd();
-//       }
-//       else {
-//          renderer.drawCylinder (props, coords0, coords1);
-//          renderer.drawCylinder (props, coords0, coords2);
-//          renderer.drawCylinder (props, coords0, coords3);
-//          renderer.drawCylinder (props, coords1, coords2);
-//          renderer.drawCylinder (props, coords2, coords3);
-//          renderer.drawCylinder (props, coords3, coords1);
-//       }
-//    }
+   public void renderWidget (
+      Renderer renderer, double size, RenderProps props) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.renderWidget (renderer, this, size, props);
+   }
 
    /**
     * {@inheritDoc}

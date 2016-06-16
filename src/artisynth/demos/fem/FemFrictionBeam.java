@@ -78,7 +78,7 @@ public class FemFrictionBeam extends RootModel {
 
       myPlate.setPose (new RigidTransform3d (0, 0, -(femw+plateh)/2));
 
-      RenderProps.setPointStyle (myFem, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (myFem, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (myFem, 0.001);
       RenderProps.setPointColor (myFem, Color.GREEN);
 

@@ -20,11 +20,11 @@ import maspack.properties.PropertyInfo.Edit;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.color.ColorUtils;
 import maspack.render.Renderable;
 import maspack.spatialmotion.Wrench;
 import maspack.util.*;
@@ -328,15 +328,9 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
          if (myRenderColor == null) {
             myRenderColor = new float[3];
          }
-         float[] baseColor = props.getLineColorArray();
-//          float[] tmp = new float[3];
-//          GLSupport.RGBtoHSV (myRenderColor, baseColor);
-//          GLSupport.RGBtoHSV (tmp, myExcitationColor);
-//          GLSupport.interpolateColor (
-//             myRenderColor, myRenderColor, tmp, getNetExcitation());
-//          GLSupport.HSVtoRGB (myRenderColor, myRenderColor);
+         float[] baseColor = props.getLineColorF();
          double s = Math.min(getNetExcitation()/getMaxColoredExcitation(), 1);
-         GLSupport.interpolateColor (
+         ColorUtils.interpolateColor (
             myRenderColor, baseColor, myExcitationColor, s);
       }
       else {
@@ -345,10 +339,10 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
    }
 
    @Override
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       renderer.drawLine (
          myRenderProps, myPnt0.myRenderCoords, myPnt1.myRenderCoords,
-         /*capped=*/false, myRenderColor, isSelected());
+         myRenderColor, /*capped=*/false, isSelected());
    }
 
    /**

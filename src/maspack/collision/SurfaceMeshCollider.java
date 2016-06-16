@@ -5,8 +5,6 @@ import java.util.Hashtable;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.PolygonalMesh;
@@ -15,8 +13,10 @@ import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
 import maspack.render.RenderList;
 import maspack.util.InternalErrorException;
 
@@ -414,7 +414,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
    //    }
    // }
 
-   public class ContactInfoRenderer implements GLRenderable {
+   public class ContactInfoRenderer implements IsRenderable {
 
       IdentityHashMap<PolygonalMesh,IdentityHashMap<PolygonalMesh,ContactInfo>> renderableContactInfos =
          new IdentityHashMap<PolygonalMesh,IdentityHashMap<PolygonalMesh,ContactInfo>>();
@@ -480,11 +480,11 @@ public class SurfaceMeshCollider implements AbstractCollider {
          }
       }
 
-      public void render (GLRenderer renderer, int flags) {
-         GL2 gl = renderer.getGL2().getGL2();
-         renderer.setLightingEnabled (false);
-         gl.glDisable (GL2.GL_LINE_STIPPLE);
-         gl.glEnable (GL2.GL_LINE_SMOOTH);
+      public void render (Renderer renderer, int flags) {
+         
+         renderer.setShading (Shading.NONE);
+         //gl.glDisable (GL2.GL_LINE_STIPPLE);
+         //gl.glEnable (GL2.GL_LINE_SMOOTH);
          renderer.setLineWidth (6);
          synchronized (renderableContactInfos) {
             for (PolygonalMesh m0 : renderableContactInfos.keySet()) {
@@ -500,12 +500,9 @@ public class SurfaceMeshCollider implements AbstractCollider {
          if (edge != null) {
             renderer.setColor (1, 1, 1f);
             renderer.setLineWidth (26);
-            gl.glBegin (GL2.GL_LINES);
-            Point3d p = edge.tail.getWorldPoint();
-            gl.glVertex3d (p.x, p.y, p.z);
-            p = edge.head.getWorldPoint();
-            gl.glVertex3d (p.x, p.y, p.z);
-            gl.glEnd();
+            Point3d p0 = edge.tail.getWorldPoint();
+            Point3d p1 = edge.head.getWorldPoint();
+            renderer.drawLine (p0, p1);
          }
          if (face != null) {
             renderer.setColor (1, 0.2f, 0.6f);
@@ -519,41 +516,39 @@ public class SurfaceMeshCollider implements AbstractCollider {
          if (point != null) {
             renderer.setColor (1, 1, 1f);
             renderer.setPointSize (40);
-            gl.glBegin (GL2.GL_POINTS);
-            gl.glVertex3d (point.x, point.y, point.z);
-            gl.glEnd();
+            renderer.drawPoint (point);
             renderer.setPointSize (1);
          }
          renderer.setLineWidth (1);
-         renderer.setLightingEnabled (true);
+         renderer.setShading (Shading.FLAT);
       }
 
-      void renderFace (GLRenderer renderer, Face aFace) {
-         GL2 gl = renderer.getGL2().getGL2();
+      void renderFace (Renderer renderer, Face aFace) {
+         
          renderer.setLineWidth (26);
-         gl.glBegin (GL2.GL_LINE_LOOP);
+         renderer.beginDraw (DrawMode.LINE_LOOP);
          Point3d p = aFace.getEdge (0).tail.getWorldPoint();
-         gl.glVertex3d (p.x, p.y, p.z);
+         renderer.addVertex (p);
          p = aFace.getEdge (0).head.getWorldPoint();
-         gl.glVertex3d (p.x, p.y, p.z);
+         renderer.addVertex (p);
          p = aFace.getEdge (1).head.getWorldPoint();
-         gl.glVertex3d (p.x, p.y, p.z);
-         gl.glEnd();
+         renderer.addVertex (p);
+         renderer.endDraw();
       }
 
-      void renderMeshNormals (GLRenderer renderer, PolygonalMesh mesh) {
-         GL2 gl = renderer.getGL2().getGL2();
+      void renderMeshNormals (Renderer renderer, PolygonalMesh mesh) {
+         
          Point3d p = new Point3d();
          renderer.setLineWidth (20);
-         gl.glBegin (GL2.GL_LINES);
+         renderer.beginDraw (DrawMode.LINES);
          for (Face f : mesh.getFaces()) {
             renderer.setColor (1, 1, 0.5f);
             f.computeWorldCentroid (p);
-            gl.glVertex3d (p.x, p.y, p.z);
+            renderer.addVertex (p);
             p.scaledAdd (0.3, f.getWorldNormal());
-            gl.glVertex3d (p.x, p.y, p.z);
+            renderer.addVertex (p);
          }
-         gl.glEnd();
+         renderer.endDraw();
          renderer.setLineWidth (1);
       }
 
@@ -564,7 +559,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
       public void prerender (RenderList list) {
       }
 
-      public void updateBounds (Point3d pmin, Point3d pmax) {
+      public void updateBounds (Vector3d pmin, Vector3d pmax) {
       }
    }
 

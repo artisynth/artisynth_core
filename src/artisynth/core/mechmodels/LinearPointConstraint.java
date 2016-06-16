@@ -15,7 +15,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 
 /**
  * 
@@ -197,7 +197,7 @@ public class LinearPointConstraint extends ConstrainerBase {
    }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
    }
 
 }

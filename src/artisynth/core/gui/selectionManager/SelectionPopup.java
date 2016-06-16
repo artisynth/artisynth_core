@@ -195,7 +195,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             addMenuItem ("Set render props ...");
          }
       }
-
+      
       if (oneSelectedIsInvisible) {
          addMenuItem ("Set visible");
       }

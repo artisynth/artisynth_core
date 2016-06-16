@@ -22,7 +22,7 @@ import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import artisynth.core.femmodels.FemNode3d;
@@ -369,7 +369,7 @@ public class MFreeNode3d extends FemNode3d implements MFreePoint3d, Boundable {
    }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       RenderProps myProps = getRenderProps();
       if (myProps.isVisible()) {
          super.render(renderer, flags);
@@ -377,7 +377,7 @@ public class MFreeNode3d extends FemNode3d implements MFreePoint3d, Boundable {
       }
    }
    
-   public void renderWidget(GLRenderer renderer, RenderProps props, int flags) {
+   public void renderWidget(Renderer renderer, RenderProps props, int flags) {
 
       if (myBoundaryMesh != null && renderBoundary) {
          if (!renderMeshValid) {
@@ -445,7 +445,7 @@ public class MFreeNode3d extends FemNode3d implements MFreePoint3d, Boundable {
    }
    
    @Override 
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       
       if (myBoundaryMesh != null) {
          updateBoundaryMesh();

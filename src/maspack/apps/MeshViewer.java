@@ -6,38 +6,48 @@
  */
 package maspack.apps;
 
-import java.io.*;
-import java.lang.reflect.Constructor;
-import java.util.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Vector;
 
-import javax.swing.event.*;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JColorChooser;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JToolBar;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MouseInputAdapter;
 import javax.swing.filechooser.FileFilter;
 
-import maspack.render.GLViewer;
-import maspack.render.GLGridPlane;
-import maspack.render.GLViewerListener;
-import maspack.render.GLViewerEvent;
-import maspack.render.GLViewerFrame;
-import maspack.render.Material;
-import maspack.render.RenderProps;
-import maspack.render.RenderProps.Shading;
-import maspack.render.RenderProps.Faces;
-import maspack.widgets.MenuAdapter;
-import maspack.widgets.PropertyDialog;
-import maspack.widgets.PropertyPanel;
-import maspack.widgets.RenderPropsPanel;
-import maspack.widgets.ValueChangeEvent;
-import maspack.widgets.ValueChangeListener;
-import maspack.widgets.ViewerToolBar;
-import maspack.widgets.ViewerKeyListener;
-import maspack.widgets.ViewerPopupManager;
-import maspack.widgets.GridDisplay;
-import maspack.widgets.GuiUtils;
-
-import maspack.properties.*;
 import maspack.geometry.Face;
 import maspack.geometry.LaplacianSmoother;
 import maspack.geometry.MeshBase;
@@ -45,13 +55,38 @@ import maspack.geometry.PointMesh;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.PolylineMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.io.*;
-import maspack.matrix.Vector3d;
-import maspack.matrix.Point3d;
-import maspack.matrix.AffineTransform3d;
-import maspack.matrix.RigidTransform3d;
+import maspack.geometry.io.GenericMeshReader;
+import maspack.geometry.io.GenericMeshWriter;
+import maspack.geometry.io.MeshReader;
+import maspack.geometry.io.WavefrontReader;
+import maspack.geometry.io.XyzbReader;
 import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.AxisAngle;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.properties.HasProperties;
+import maspack.properties.Property;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyUtils;
+import maspack.render.RenderListener;
+import maspack.render.RenderProps;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.Shading;
+import maspack.render.RendererEvent;
+import maspack.widgets.GridDisplay;
+import maspack.widgets.GuiUtils;
+import maspack.widgets.MenuAdapter;
+import maspack.widgets.PropertyDialog;
+import maspack.widgets.RenderPropsPanel;
+import maspack.widgets.ValueChangeEvent;
+import maspack.widgets.ValueChangeListener;
+import maspack.widgets.ViewerKeyListener;
+import maspack.widgets.ViewerPopupManager;
+import maspack.widgets.ViewerToolBar;
 import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
@@ -59,7 +94,7 @@ import argparser.IntHolder;
 import argparser.StringHolder;
 
 public class MeshViewer extends GLViewerFrame
-   implements ActionListener, HasProperties, GLViewerListener {
+   implements ActionListener, HasProperties, RenderListener {
 
    private static final long serialVersionUID = 1L;
    ArrayList<MeshBase> myMeshes = new ArrayList<MeshBase> (0);
@@ -200,11 +235,16 @@ public class MeshViewer extends GLViewerFrame
       return infoList;
    }
 
+   private void exit(int retval) {
+      remove(viewer.getCanvas());
+      System.exit (retval);
+   }
+   
    private class KeyHandler extends KeyAdapter {
       public void keyTyped (KeyEvent e) {
          switch (e.getKeyChar()) {
             case 'q': {
-               System.exit (0);
+               exit(0);
                break;
             }
             case 's': {
@@ -323,15 +363,15 @@ public class MeshViewer extends GLViewerFrame
    private RenderProps createRenderProps (MeshBase mesh) {
       RenderProps props = mesh.createRenderProps();
 
-      props.setShading (smooth.value ? Shading.GOURARD : Shading.FLAT);
+      props.setShading (smooth.value ? Shading.SMOOTH : Shading.FLAT);
       if (noDrawFaces.value) {
-         props.setFaceStyle (Faces.NONE);
+         props.setFaceStyle (FaceStyle.NONE);
       }
       else if (oneSided.value) {
-         props.setFaceStyle (Faces.FRONT);
+         props.setFaceStyle (FaceStyle.FRONT);
       }
       else {
-         props.setFaceStyle (Faces.FRONT_AND_BACK);
+         props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
       props.setDrawEdges (drawEdges.value);
       if (edgeColor[0] != -1) {
@@ -448,7 +488,7 @@ public class MeshViewer extends GLViewerFrame
       myMeshes.add (mesh);
       if (mesh instanceof PointMesh &&
           ((PointMesh)mesh).getNormals() == null) {
-         RenderProps.setShading (mesh, RenderProps.Shading.NONE);
+         RenderProps.setShading (mesh, Shading.NONE);
       }
       viewer.addRenderable (mesh);     
       myLastMeshName = name;
@@ -496,7 +536,7 @@ public class MeshViewer extends GLViewerFrame
          myRenderProps = RenderProps.createMeshProps(null);
       }
 
-      viewer.autoFitPerspective (0);
+      viewer.autoFitPerspective ();
       if (backgroundColor[0] != -1) {
          viewer.setBackgroundColor (
             backgroundColor[0], backgroundColor[1], backgroundColor[2]);
@@ -523,7 +563,7 @@ public class MeshViewer extends GLViewerFrame
 
       viewer.addKeyListener (new KeyHandler());
       viewer.addKeyListener (new ViewerKeyListener(viewer));
-      viewer.addViewerListener (this);
+      viewer.addRenderListener (this);
 
       myPopupManager = new ViewerPopupManager (viewer);
 
@@ -553,7 +593,6 @@ public class MeshViewer extends GLViewerFrame
             LaplacianSmoother.smooth (
                pmesh, mySmoothingCount, mySmoothingLambda, mySmoothingMu);
             pmesh.notifyVertexPositionsModified();
-            pmesh.clearDisplayList();
          }
       }
       viewer.rerender();
@@ -577,7 +616,6 @@ public class MeshViewer extends GLViewerFrame
             }
             if (modified) {
                pmesh.notifyVertexPositionsModified();
-               pmesh.clearDisplayList();
                if (m == myMeshes.get(myMeshes.size()-1)) {
                   // if last mesh in list, need to update label text as well
                   setLabelText (myLastMeshName, m);
@@ -645,7 +683,7 @@ public class MeshViewer extends GLViewerFrame
          viewer.clearRenderables();
          myMeshes.clear();
          addMesh (file.getName(), mesh);
-         viewer.autoFitPerspective (0);
+         viewer.autoFitPerspective ();
          viewer.rerender();
       }
       return mesh != null;
@@ -769,7 +807,7 @@ public class MeshViewer extends GLViewerFrame
             myPopupManager.createPropertyDialog ("OK Cancel");
          dialog.setVisible(true);
       } else if (cmd.equals ("Quit")) {
-         System.exit (0);
+         exit(0);
       }
       else if (cmd.equals ("Load mesh ...")) {
          int retVal = myMeshChooser.showOpenDialog(this);
@@ -810,17 +848,6 @@ public class MeshViewer extends GLViewerFrame
       }
       else if (cmd.equals("Orthographic view")) {
          viewer.setOrthographicView(true);
-      }
-      else if (cmd.equals("Sort faces")) {
-
-         for (MeshBase mesh : myMeshes) {
-
-            if (mesh instanceof PolygonalMesh) {
-               mesh.clearDisplayList();
-               ((PolygonalMesh)mesh).sortFaces(viewer.getZDirection());
-            }
-         }
-         viewer.rerender();
       }
    }
 
@@ -896,13 +923,13 @@ public class MeshViewer extends GLViewerFrame
 
             if (meshClass == null) {
                System.out.println ("can't find class " + className.value);
-               System.exit (1);
+               return;
             }
             if (!meshBaseClass.isAssignableFrom (meshClass)) {
                System.out.println (
                   className.value+" is not an instance of "+
                   meshBaseClass.getName());
-               System.exit (1);
+               return;
             }
 
             WavefrontReader reader = new WavefrontReader (meshFile);
@@ -1067,7 +1094,7 @@ public class MeshViewer extends GLViewerFrame
       // call this to prevent awful looking fonts:
       System.setProperty("awt.useSystemAAFontSettings","on");
 
-      MeshViewer frame =
+      final MeshViewer frame =
          new MeshViewer ("MeshViewer", infoList, width.value, height.value);
       frame.setMeshQueue (meshQueue);
       frame.setVisible (true);
@@ -1088,7 +1115,7 @@ public class MeshViewer extends GLViewerFrame
          public void windowDeactivated(WindowEvent arg0) {}
 
          @Override
-         public void windowClosing(WindowEvent arg0) {System.exit(0);}
+         public void windowClosing(WindowEvent arg0) {frame.exit(0);}
 
          @Override
          public void windowClosed(WindowEvent arg0) {}
@@ -1125,7 +1152,7 @@ public class MeshViewer extends GLViewerFrame
    /**
     * interface face method for GLViewerListener.
     */
-   public void renderOccurred (GLViewerEvent e) {
+   public void renderOccurred (RendererEvent e) {
       updateWidgets();
    }
 

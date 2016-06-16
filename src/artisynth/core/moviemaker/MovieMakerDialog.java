@@ -50,8 +50,7 @@ import javax.swing.border.EtchedBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import maspack.render.FrameBufferObject;
-import maspack.render.GLViewer;
+import maspack.render.GL.FrameBufferObject;
 import maspack.util.IntegerInterval;
 import maspack.util.InternalErrorException;
 import maspack.widgets.DoubleField;
@@ -67,10 +66,8 @@ import artisynth.core.driver.Main;
 import artisynth.core.driver.MainFrame;
 import artisynth.core.driver.Scheduler;
 import artisynth.core.driver.ViewerManager;
-import artisynth.core.driver.Scheduler.Action;
 import artisynth.core.modelbase.HasAudio;
 import artisynth.core.moviemaker.MovieMaker.Method;
-import artisynth.core.probes.WayPoint;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ConvertRawToWav;
 import artisynth.core.workspace.RootModel;
@@ -394,10 +391,8 @@ implements ActionListener, ValueChangeListener {
          }
       });
       sizeOptions.addWidget (resizeHeight);
-      int nDefaultSamples = 1;
-      if (myFrame.getViewer().isMultiSampleEnabled()) {
-    	  nDefaultSamples = FrameBufferObject.defaultSamples;
-      }
+      int nDefaultSamples = FrameBufferObject.defaultMultiSamples;
+      
       resizeSamples = new IntegerField("# samples", nDefaultSamples);
       resizeSamples.setToolTipText(
          "Number of samples to use for anti-aliasing. \n" + 
@@ -822,7 +817,7 @@ implements ActionListener, ValueChangeListener {
             String movieFileName = filename.getText();
             myMain.setFrameRate (savedFrameRate);
             myMovieMaker.setGrabbing (false);
-            myFrame.getViewer().clearOffscreenBuffer();
+            myFrame.getViewer().cleanupScreenShots();
 
             stopButton.setEnabled (false);
             frameButton.setEnabled(false);

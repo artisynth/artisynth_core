@@ -24,6 +24,8 @@ import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.properties.PropertyUtils;
 import maspack.render.RenderableUtils;
 import maspack.util.DataBuffer;
 import maspack.util.IntHolder;
@@ -78,6 +80,9 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected static boolean DEFAULT_PROFILING = false;
    protected static boolean DEFAULT_UPDATE_FORCES_AT_STEP_END = false;
 
+   private boolean myUpdateForcesAtStepEnd = DEFAULT_UPDATE_FORCES_AT_STEP_END;
+   PropertyMode myUpdateForcesAtStepEndMode = PropertyMode.Inherited;   
+
    SparseBlockMatrix myMassMatrix;   
 
    protected static PosStabilization myDefaultStabilization =
@@ -118,7 +123,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       myProps.add (
          "penetrationLimit", 
          "collision penetration limit for step reduction", -1);
-      myProps.add (
+      myProps.addInheritable (
          "updateForcesAtStepEnd",
          "update forces values at the end of each step", 
          DEFAULT_UPDATE_FORCES_AT_STEP_END);
@@ -147,10 +152,12 @@ public abstract class MechSystemBase extends RenderableModelBase
       setDynamicsEnabled (DEFAULT_DYNAMICS_ENABLED);
       setPenetrationLimit (-1);
       setProfiling (DEFAULT_PROFILING);
+      myUpdateForcesAtStepEnd = DEFAULT_UPDATE_FORCES_AT_STEP_END;
+      myUpdateForcesAtStepEndMode = PropertyMode.Inherited;
       // mySolver will be null if setDefaultValues() called from constructor
       if (mySolver != null) {
          setStabilization (myDefaultStabilization);
-         setUpdateForcesAtStepEnd (DEFAULT_UPDATE_FORCES_AT_STEP_END);
+         mySolver.setUpdateForcesAtStepEnd (DEFAULT_UPDATE_FORCES_AT_STEP_END);
       }
    }
 
@@ -163,11 +170,22 @@ public abstract class MechSystemBase extends RenderableModelBase
       myDynamicsEnabled = enable;
    }
 
+   private void allocateSolver (MechSystemSolver oldSolver) {
+      if (oldSolver != null) {
+         mySolver = new MechSystemSolver (this, oldSolver);
+      }
+      else {
+         mySolver = new MechSystemSolver (this);
+         mySolver.setStabilization (getStabilization());
+         mySolver.setUpdateForcesAtStepEnd (getUpdateForcesAtStepEnd());
+      }
+   }
+
    public MechSystemBase (String name) {
       super (name);
-      mySolver = new MechSystemSolver (this);
-      setStabilization (myDefaultStabilization);
-      setUpdateForcesAtStepEnd (DEFAULT_UPDATE_FORCES_AT_STEP_END);
+      allocateSolver (/*oldSolver=*/null);
+      //setStabilization (myDefaultStabilization);
+      //setUpdateForcesAtStepEnd (DEFAULT_UPDATE_FORCES_AT_STEP_END);
    }
 
    /**
@@ -1506,12 +1524,29 @@ public abstract class MechSystemBase extends RenderableModelBase
       mySolver.setStabilization (stablizer);
    }
 
-   public boolean getUpdateForcesAtStepEnd () {
-      return mySolver.getUpdateForcesAtStepEnd ();
+   public void setUpdateForcesAtStepEnd (boolean enable) {
+      myUpdateForcesAtStepEnd = enable;
+      myUpdateForcesAtStepEndMode =
+      PropertyUtils.propagateValue(
+         this, "updateForcesAtStepEnd",
+         myUpdateForcesAtStepEnd, myUpdateForcesAtStepEndMode);
+      if (mySolver != null) {
+         mySolver.setUpdateForcesAtStepEnd (enable);
+      }
    }
 
-   public void setUpdateForcesAtStepEnd (boolean enable) {
-      mySolver.setUpdateForcesAtStepEnd (enable);
+   public boolean getUpdateForcesAtStepEnd() {
+      return myUpdateForcesAtStepEnd;
+   }
+
+   public void setUpdateForcesAtStepEndMode (PropertyMode mode) {
+      myUpdateForcesAtStepEndMode =
+      PropertyUtils.setModeAndUpdate(
+         this, "updateForcesAtStepEnd", myUpdateForcesAtStepEndMode, mode);
+   }
+
+   public PropertyMode getUpdateForcesAtStepEndMode() {
+      return myUpdateForcesAtStepEndMode;
    }
 
    /** 
@@ -1653,12 +1688,17 @@ public abstract class MechSystemBase extends RenderableModelBase
       msb.myParametricPosStateSize = 0;
       msb.myProfilingP = myProfilingP;
 
+      msb.setUpdateForcesAtStepEndMode (myUpdateForcesAtStepEndMode);
+      if (myUpdateForcesAtStepEndMode == PropertyMode.Explicit) {
+         msb.setUpdateForcesAtStepEnd (myUpdateForcesAtStepEnd);
+      }      
+
       msb.myMassMatrix = null;
 
       //msb.myStabilization = myStabilization;
       msb.myDynamicsEnabled = myDynamicsEnabled;
 
-      msb.mySolver = new MechSystemSolver (this, mySolver);
+      msb.allocateSolver (mySolver);
       //msb.myPosSolver = new KKTSolver();
       msb.myRg = new VectorNd(0);
       msb.myBg = new VectorNd(0);

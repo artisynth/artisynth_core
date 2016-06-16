@@ -11,34 +11,35 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Arrays;
 
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AffineTransform3d;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.Matrix3d;
 import maspack.properties.HasProperties;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
+import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.util.InternalErrorException;
 
 /**
  * A "mesh" is a geometric object defined by a set of vertices, which are then
  * connected in some specific way.
  */
 public abstract class MeshBase implements Renderable, Cloneable {
-   
-   private boolean fastRemoval = false;
    
    public RigidTransform3d XMeshToWorld = new RigidTransform3d();
    protected boolean myXMeshToWorldIsIdentity = true;
@@ -63,13 +64,14 @@ public abstract class MeshBase implements Renderable, Cloneable {
 
    protected RenderProps myRenderProps = null;
    protected boolean isFixed = true;
+   protected boolean myColorsFixed = true;
+   protected boolean myTextureCoordsFixed = true;
+   protected boolean myVertexColoringP = false;
+   protected boolean myFeatureColoringP = false;
    
-   // Allow ability to directly control display list
-   // even for non-fixed mesh (e.g. when model is paused,
-   // but rotating view)
-   public boolean myUseDisplayList = false;  
-   public boolean myDisplayListValid = false;
-
+   int version = 0;          // used for detecting changes
+   boolean modified = true;
+   
    protected boolean myRenderBufferedP = false;
    RigidTransform3d myXMeshToWorldRender;
    protected Point3d myLocalMinCoords = new Point3d();
@@ -79,6 +81,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
    protected Point3d myWorldMinCoords = new Point3d();
    protected Point3d myWorldMaxCoords = new Point3d();
    protected boolean myWorldBoundsValid = false;
+
+   protected ColorInterpolation myColorInterp = ColorInterpolation.RGB;
+   protected ColorMixing myVertexColorMixing = ColorMixing.REPLACE;
 
    //protected int myWorldCoordCounter = 0;
 
@@ -92,6 +97,48 @@ public abstract class MeshBase implements Renderable, Cloneable {
       return myName;
    }
 
+   /**
+    * Returns the interpolation method to be used for vertex-based coloring.
+    * 
+    * @return color interpolation method.
+    */
+   public ColorInterpolation getColorInterpolation() {
+      return myColorInterp;
+   }
+   
+   /**
+    * Sets the interpolation method to be used for vertex-based coloring.
+    * 
+    * @param interp new color interpolation method
+    * @return previous color interpolation method
+    */
+   public ColorInterpolation setColorInterpolation(ColorInterpolation interp) {
+      ColorInterpolation prev = myColorInterp;
+      myColorInterp = interp;
+      return prev;
+   }
+   
+   /**
+    * Returns the color mixing method to be used for vertex-based coloring.
+    * 
+    * @return color mixing method.
+    */
+   public ColorMixing getVertexColorMixing() {
+      return myVertexColorMixing;
+   }
+   
+   /**
+    * Sets the color mixing method to be used for vertex-based coloring.
+    * 
+    * @param cmix new color mixing method
+    * @return previous color mixing method
+    */
+   public ColorMixing setVertexColorMixing(ColorMixing cmix) {
+      ColorMixing prev = myVertexColorMixing;
+      myVertexColorMixing = cmix;
+      return prev;
+   }
+   
    /** 
     * Invalidates bounding box information. Can also be overriden to
     * mark any bounding volume hierarchies as invalid and in need of
@@ -114,12 +161,31 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
    
    /**
+    * A version number that changes for ANY modifications,
+    * including vertex position changes
+    * @return version number
+    */
+   public int getVersion() {
+      if (modified) {
+         ++version;
+         modified = false;
+      }
+      return version;
+   }
+   
+   protected void notifyModified() {
+      modified = true;
+   }
+
+   /**
     * Notifies this mesh that vertex positions have been modified, and cached
     * data dependent on these positions should be invalidated.
     */
    public void notifyVertexPositionsModified() {
       invalidateBoundingInfo();
-      clearDisplayList();
+      if (isFixed()) {
+         notifyModified();
+      }
       myAutoNormalsValidP = false;
    }
    
@@ -129,6 +195,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    protected void notifyStructureChanged() {
       clearBoundingInfo();
+      notifyModified();
       myIndexOffsets = null;
       // normals may be cleared too, but that will be handled elsewhere
       myAutoNormalsValidP = false;
@@ -143,9 +210,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
 
    /**
     * Sets whether or not this mesh to is to be considered ``fixed''. A fixed
-    * mesh is one for which the vertex coordinate values are considered
-    * constant. Rendering speeds can therefore be improved by pre-allocating
-    * appropriate graphical display buffers.
+    * mesh is one for which the vertex coordinate values and normals are
+    * considered constant. Rendering speeds can therefore be improved by
+    * pre-allocating appropriate graphical display buffers.
     * 
     * <p>
     * By default, a mesh is set to be fixed unless the vertices are created
@@ -156,7 +223,10 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * @see #isFixed
     */
    public void setFixed (boolean fixed) {
-      isFixed = fixed;
+      if (fixed != isFixed()) {
+         isFixed = fixed;
+         notifyModified();
+      }
    }
 
    /**
@@ -180,9 +250,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
    }
    
-   protected boolean myVertexColoringP = false;
-   protected boolean myFeatureColoringP = false;
-   
    /**
     * Enables vertex coloring for this mesh. This creates a default color for
     * each existing vertex, and sets the color indices to the same as those
@@ -205,6 +272,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          }
          myVertexColoringP = true;
          myFeatureColoringP = false;
+         notifyModified();
       }
   }
 
@@ -240,6 +308,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          }
          myVertexColoringP = false;
          myFeatureColoringP = true;
+         notifyModified(); 
       }
    }
 
@@ -298,6 +367,16 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public void getMeshToWorld (RigidTransform3d X) {
       X.set (XMeshToWorld);
+   }
+
+   // XXX may want to remove, once mesh renderers move into geometry
+   public RigidTransform3d getXMeshToWorldRender() {
+      return myXMeshToWorldRender;
+   }
+
+   // XXX may want to remove, once mesh renderers move into geometry
+   public float[] getRenderNormal (int idx) {
+      return myRenderNormals[idx];
    }
 
    /**
@@ -569,10 +648,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * @return true if the vertex was present
     */
    public boolean removeVertexFast (Vertex3d vtx) {
-      return doRemoveVertexFast (vtx);
-   }
-   
-   protected boolean doRemoveVertexFast (Vertex3d vtx) {
       int idx = vtx.getIndex();
       int last = myVertices.size()-1;
       if (idx >= 0 && idx <= last ) {
@@ -602,27 +677,22 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public boolean removeVertex (Vertex3d vtx) {
       
-      if (fastRemoval) {
-         return doRemoveVertexFast (vtx);
-      } else {
-     
-         if (myVertices.remove (vtx)) {
-            if (myVertexColoringP) {
-               myColors.remove (vtx.idx);
-               myColorIndices = null; // will be rebuilt on demand
-            }
-            // reindex subsequent vertices
-            
-            for (int i=vtx.getIndex(); i<myVertices.size(); i++) {
-               myVertices.get(i).setIndex (i);
-            }
-            vtx.setMesh (null);
-            notifyStructureChanged();
-            return true;
+      if (myVertices.remove (vtx)) {
+         if (myVertexColoringP) {
+            myColors.remove (vtx.idx);
+            myColorIndices = null; // will be rebuilt on demand
          }
-         else {
-            return false;
+         // reindex subsequent vertices
+         
+         for (int i=vtx.getIndex(); i<myVertices.size(); i++) {
+            myVertices.get(i).setIndex (i);
          }
+         vtx.setMesh (null);
+         notifyStructureChanged();
+         return true;
+      }
+      else {
+         return false;
       }
    }
    
@@ -831,7 +901,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    /**
     * {@inheritDoc}
     */
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       if (myVertices.size() > 0) {
          if (!myWorldBoundsValid) {
             recomputeWorldBounds();
@@ -882,7 +952,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          clearNormals(); // auto normals will be regenerated
       }
       invalidateBoundingInfo();
-      clearDisplayList();
+      notifyModified();
    }
 
    /**
@@ -909,7 +979,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
          clearNormals(); // auto normals will be regenerated
       }
       invalidateBoundingInfo();
-      clearDisplayList();
+      notifyModified();
    }
 
    // /**
@@ -1101,6 +1171,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myLocalMaxCoords.set (0, 0, 0);
       myWorldMinCoords.set (0, 0, 0);
       myWorldMaxCoords.set (0, 0, 0);
+      notifyModified();
    }
 
    /**
@@ -1124,7 +1195,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
 
    public void prerender (RenderList list) {
-      saveRenderInfo (myRenderProps);
+      prerender (myRenderProps);
+   }
+   
+   public void prerender (RenderProps props) {
+      saveRenderInfo (myRenderProps);      
    }
 
    protected int[] copyWithOffset (int[] idxs, int off) {
@@ -1135,37 +1210,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
       return newIdxs;
    }
    
-   /**
-    * Gives control over display lists even if not fixed mesh
-    * (for rendering while paused and mesh isn't changing)
-    */
-   public void setUseDisplayList(boolean set) {
-      myUseDisplayList = set;
-   }
-
-   public void clearDisplayList() {
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
-      }
-      myDisplayListValid = false;
-   }
-   
-   public void clearDisplayList(RenderProps props) {
-      props.clearMeshDisplayList();
-      myDisplayListValid = false;
-   }
-   
-   public boolean isDisplayListValid(RenderProps rprops) {
-      if (isFixed) {
-         return (rprops.getMeshDisplayList() > 0);
-      }
-      return (myDisplayListValid && (rprops.getMeshDisplayList() > 0));
-   }
-   
-   public boolean isUsingDisplayList() {
-      return (myUseDisplayList || isFixed);
-   }
-
    protected void printIdxs (String name, int[] idxs) {
       System.out.print (name + ":");
       for (int i=0; i<idxs.length; i++) {
@@ -1233,7 +1277,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
             myVertices.get (i).saveRenderInfo();
          }
       }
-      if (props.getShading() != RenderProps.Shading.FLAT) {
+      if (props.getShading() != Shading.FLAT) {
          if (maybeRebuildVertexRenderNormals() || !isFixed()) {
             updateVertexRenderNormals();
          }
@@ -1311,7 +1355,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
          mesh.myRenderProps = null;
       }
       mesh.setFixed (isFixed());
-      mesh.myDisplayListValid = false;
+      mesh.setColorsFixed (isColorsFixed());
+      mesh.setTextureCoordsFixed (isTextureCoordsFixed ());
+      mesh.setColorInterpolation (getColorInterpolation());
       mesh.setRenderBuffered (isRenderBuffered());
 
       mesh.myLocalMinCoords = new Point3d();
@@ -1321,7 +1367,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mesh.myWorldMinCoords = new Point3d();
       mesh.myWorldMaxCoords = new Point3d();
       mesh.myWorldBoundsValid = false;
-
+      
+      mesh.myXMeshToWorldRender = null;
+      
       mesh.setName(getName());
       return mesh;      
    }
@@ -1497,12 +1545,12 @@ public abstract class MeshBase implements Renderable, Cloneable {
    /**
     * {@inheritDoc}
     */
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render (renderer, myRenderProps, flags);
    }
 
    public abstract void render (
-      GLRenderer renderer, RenderProps props, int flags);
+      Renderer renderer, RenderProps props, int flags);
       
    /**
     * Base method for testing if two meshes are equal. Two MeshBase objects are
@@ -1581,14 +1629,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
          }
       }
       return true;
-   }
-   
-   public void setFastRemoval(boolean set) {
-      fastRemoval = set;
-   }
-   
-   public boolean isFastRemoval() {
-      return fastRemoval;
    }
    
 //   public void setVertexColor(int i, Color color) {
@@ -1763,11 +1803,15 @@ public abstract class MeshBase implements Renderable, Cloneable {
          if (myNormalIndices == null) {
             autoGenerateNormals();
             myRenderNormalsValidP = false;
-            myAutoNormalsValidP = true;               
+            myAutoNormalsValidP = true; 
+            notifyModified();              
          }
          else if (!myAutoNormalsValidP) {
             autoUpdateNormals();
-            myAutoNormalsValidP = true;               
+            myAutoNormalsValidP = true; 
+            if (isFixed()) {
+               notifyModified();                         
+            }
          }
       }
       return myNormals;         
@@ -1837,6 +1881,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
          throw new IndexOutOfBoundsException ("No normals defined for this mesh");
       }
       normals.get(idx).set(nrml);
+      if (isFixed()) {
+         notifyModified();              
+      }
    }
 
    /**
@@ -1942,13 +1989,14 @@ public abstract class MeshBase implements Renderable, Cloneable {
                "Number of normals must equal number of vertices when " +
             "indices argument is null");
          }
-         int[] newIndices = createIndices (indices);
+         int[] newIndices = createIndices (indices, normals.size());
          
          myNormals = newNormals;      
          myNormalIndices = newIndices;
       }
       myRenderNormalsValidP = false;
       myNormalsExplicitP = true;
+      notifyModified();
    }
 
    /**
@@ -1976,9 +2024,10 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myNormalIndices = null;
       myNormalsExplicitP = false;
       myRenderNormalsValidP = false;      
+      notifyModified();
    }
 
-   private int[] createIndices (int[] indices) {
+   private int[] createIndices (int[] indices, int numAttributes) {
 
       int[] newIndices = null;
       if (indices == null) {
@@ -1993,6 +2042,14 @@ public abstract class MeshBase implements Renderable, Cloneable {
                " (num features * vertices per feature)");
          }
          newIndices = Arrays.copyOf (indices, reqLength);
+      }
+      for (int i=0; i<newIndices.length; i++) {
+         int idx = newIndices[i];
+         if (idx < 0 || idx >= numAttributes) {
+            throw new IllegalArgumentException (
+               "Attribute index "+idx+" out of range, num attributes=" +
+               numAttributes + ", i=" + i);
+         }
       }
       return newIndices;
    }
@@ -2085,7 +2142,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       else {
          mycolor[3] = 1f;
       }
-      
+      if (isColorsFixed()) {
+         notifyModified();                    
+      }
    }
 
    /**
@@ -2102,6 +2161,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       float[] mycolor = myColors.get(idx);
       color.getRGBComponents (mycolor);
+      if (isColorsFixed()) {
+         notifyModified();                    
+      }
    }
 
    /**
@@ -2124,6 +2186,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mycolor[1] = g;
       mycolor[2] = b;
       mycolor[3] = a;
+      if (isColorsFixed()) {
+         notifyModified();                    
+      }
    }
 
    /**
@@ -2146,6 +2211,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mycolor[1] = (float)g;
       mycolor[2] = (float)b;
       mycolor[3] = (float)a;
+      if (isColorsFixed()) {
+         notifyModified();                    
+      }
    }
    
    /**
@@ -2247,13 +2315,14 @@ public abstract class MeshBase implements Renderable, Cloneable {
                "Number of colors must equal number of vertices when " +
                "indices argument is null");
          }
-         int[] newIndices = createIndices (indices);
+         int[] newIndices = createIndices (indices, colors.size());
 
          myColors = newColors;      
          myColorIndices = newIndices;
       }
       myVertexColoringP = false;
       myFeatureColoringP = false;
+      notifyModified();      
    }
 
    /**
@@ -2266,8 +2335,45 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myColorIndices = null;
       myVertexColoringP = false;
       myFeatureColoringP = false;
+      notifyModified();
    }
 
+   /**
+    * Sets whether or not colors should be considered ``fixed''.  This is
+    * used as a hint to determine how to cache rendering info for the mesh.
+    */
+   public void setColorsFixed(boolean set) {
+      if (myColorsFixed != set) {
+         myColorsFixed = set;
+         notifyModified();
+      }
+   }
+   
+   /**
+    * See {@link #setColorsFixed(boolean)}
+    */
+   public boolean isColorsFixed() {
+      return myColorsFixed;
+   }
+
+   /**
+    * Sets whether or not texture coordinates should be considered ``fixed''.  This is
+    * used as a hint to determine how to cache rendering info for the mesh.
+    */
+   public void setTextureCoordsFixed(boolean set) {
+      if (myTextureCoordsFixed != set) {
+         myTextureCoordsFixed = set;
+         notifyModified();
+      }
+   }
+   
+   /**
+    * See {@link #setTextureCoordsFixed(boolean)}
+    */
+   public boolean isTextureCoordsFixed() {
+      return myTextureCoordsFixed;
+   }
+   
    /**
     * Returns all the texture coordinates associated with this mesh, or
     * <code>null</code> if this mesh does not have texture coordinates. These
@@ -2336,6 +2442,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
             "No texture coordinate defined for this mesh");
       }
       myTextureCoords.get(idx).set(coords);
+      notifyModified();              
    }
 
    /**
@@ -2413,11 +2520,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
                "Number of coords must equal number of vertices when " +
                "indices argument is null");
          }
-         int[] newIndices = createIndices (indices);
-         
+         int[] newIndices = createIndices (indices, coords.size());
          myTextureCoords = newCoords;      
          myTextureIndices = newIndices;
       }
+      notifyModified();              
    }
 
    /**
@@ -2428,6 +2535,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    public void clearTextureCoords() {
       myTextureCoords = null;
       myTextureIndices = null;
+      notifyModified();              
    }
-
+   
 }

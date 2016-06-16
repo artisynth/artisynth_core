@@ -102,6 +102,18 @@ Clonable {
       set (values);
    }
 
+   /**
+    * Creates a vector from an array of floats. The vector size is determined
+    * by the size of this array.
+    * 
+    * @param values
+    * element values for the new vector
+    */
+   public VectorNd (float[] values) {
+      resetSize (values.length);
+      set (values);
+   }
+
    // public VectorNd (VectorNd v1)
    // {
    // resetSize (v1.size);
@@ -418,6 +430,18 @@ Clonable {
     * array from which values are copied
     */
    public void set (double[] values) {
+      for (int i = 0; i < size; i++) {
+         buf[i] = values[i];
+      }
+   }
+
+   /**
+    * Sets the elements of this vector from an array of floats.
+    * 
+    * @param values
+    * array from which values are copied
+    */
+   public void set (float[] values) {
       for (int i = 0; i < size; i++) {
          buf[i] = values[i];
       }

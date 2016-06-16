@@ -8,14 +8,10 @@ package artisynth.core.mfreemodels;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import artisynth.core.femmodels.FemElement3d;
-import artisynth.core.femmodels.FemModel3d;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.ClassAliases;
 
@@ -67,8 +63,7 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
       return true;
    }
 
-   private void dorender (GLRenderer renderer, boolean selected) {
-      //GL2 gl = renderer.getGL2().getGL2();
+   private void dorender (Renderer renderer, boolean selected) {
       if (!addElementsInPrerender) {
          // we render all elements ourselves, taking care to render selected
          // elements first. This provides the maximum visibility for selected
@@ -93,12 +88,12 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
       }      
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, /*selected=*/true);
       dorender (renderer, /*selected=*/false);
       
-      renderer.setMaterialAndShading (
-         myRenderProps, myRenderProps.getFaceMaterial(), false);
+      Shading savedShading = renderer.setPropsShading (myRenderProps);
+      renderer.setFaceColoring (myRenderProps, /*highlight=*/false);
       for (int i = 0; i < size(); i++) {
          double widgetSize;
          MFreeElement3d elem = get (i);
@@ -113,13 +108,12 @@ public class MFreeElement3dList extends RenderableComponentList<MFreeElement3d> 
                }
             }
             else {
-               maspack.render.Material mat = myRenderProps.getFaceMaterial();
-               renderer.updateMaterial (myRenderProps, mat, elem.isSelected());
+               renderer.setFaceColoring (myRenderProps, elem.isSelected());
                elem.renderWidget (renderer, myRenderProps, 0);
             }
          }
       }
-      renderer.restoreShading (myRenderProps);
+      renderer.setShading (savedShading);
       
    }
 

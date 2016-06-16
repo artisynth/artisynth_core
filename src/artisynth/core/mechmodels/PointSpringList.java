@@ -9,8 +9,7 @@ package artisynth.core.mechmodels;
 import java.util.LinkedList;
 
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;

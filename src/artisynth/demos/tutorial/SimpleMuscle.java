@@ -57,7 +57,7 @@ public class SimpleMuscle extends RootModel
       // set render properties for the components
       RenderProps.setSphericalPoints (p1, 0.06, Color.BLUE);
       RenderProps.setSphericalPoints (mkr, 0.06, Color.BLUE);
-      RenderProps.setEllipsoidalLines (muscle, 0.02, Color.RED);
+      RenderProps.setSpindleLines (muscle, 0.02, Color.RED);
    }
 
 }

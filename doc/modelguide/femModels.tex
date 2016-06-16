@@ -10,7 +10,7 @@
 	\fi %
 }
 
-\section{Finite Element Models}
+\chapter{Finite Element Models}
 \label{FEMModels:sec}
 
 This section details how to construct three-dimensional finite element models,
@@ -29,7 +29,7 @@ in Figure \ref{fig:fem:masseter}.
 	         maxilla. \label{fig:fem:masseter}} 
 \end{figure}
 
-\subsection{Overview}
+\section{Overview}
 \label{sec:fem:overview}
 
 The finite element method (FEM) is a numerical technique used for solving a 
@@ -60,7 +60,7 @@ For an in-depth coverage of the nonlinear finite element method, as applied
 to continuum mechanics, the reader is referred to the textbook by Bonet and 
 Wood \cite{bonet:fem:2000}.
 
-\subsubsection{FemModel3d}
+\subsection{FemModel3d}
 \label{sec:fem:structure}
 
 The basic type of finite element model is implemented in the class 
@@ -126,7 +126,7 @@ component of damping can be applied separately to each FEM node.  Thus, the
 mass component reduces to the same system as Equation \eqref{eqn:pointdamping},
 which is why it is referred to as ``particle damping''.
 
-\subsubsection{Component Structure}
+\subsection{Component Structure}
 
 Each \javaclass[artisynth.core.femmodels]{FemModel3d} contains three 
 lists of sub-components:
@@ -158,10 +158,10 @@ An example showing each of these components is shown in Figure \ref{fig:fem}.
 	%\subfigure[][Geometry \label{fig:fem:geometry}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded_geometry.png}}
 	\setlengthLaTeXML{\imglength}{1.5in}{1.2in}
 	\begin{tabular}{cccc}
-	\includegraphics[width=\imglength]{images/fem_embedded.png} & 
-	\includegraphics[width=\imglength]{images/fem_embedded_nodes.png} &
-	\includegraphics[width=\imglength]{images/fem_embedded_elements.png} &
-	\includegraphics[width=\imglength]{images/fem_embedded_geometry.png}\\
+	\includegraphics[width=\imglength]{images/fem_embedded} & 
+	\includegraphics[width=\imglength]{images/fem_embedded_nodes} &
+	\includegraphics[width=\imglength]{images/fem_embedded_elements} &
+	\includegraphics[width=\imglength]{images/fem_embedded_geometry}\\
 	(a) FEM model & (b) Nodes & (c) Elements & (d) Geometry
 	\end{tabular}
 	\caption{Sub-components of \javaclass[artisynth.core.femmodels]{FemModel3d}. \label{fig:fem}}
@@ -325,7 +325,7 @@ method
 MeshComponentList<FemMeshComp> getMeshComps();   // return the list of meshes in a FEM
 \end{lstlisting}
 
-\subsubsection{Materials}
+\subsection{Materials}
 \label{sec:fem:materials}
 
 The stress-strain relationship within each element is defined by a ``material''
@@ -399,7 +399,7 @@ incompressibility.
 \end{table}
 
 
-\subsubsection{Boundary conditions}
+\subsection{Boundary conditions}
 \label{sec:fem:boundary}
 
 Boundary conditions can be implemented in one of several ways:
@@ -432,7 +432,7 @@ with other components.  This will be covered in Section
 \ref{sec:fem:collision}.
 
 
-\subsection{FEM model creation}
+\section{FEM model creation}
 
 Creating a finite element model in ArtiSynth typically follows the pattern:
 \begin{lstlisting}[]
@@ -467,7 +467,7 @@ Building the FEM structure can be done with the use of factory
 methods for simple shapes, by loading external files, or by writing code
 to manually assemble the nodes and elements.
 
-\subsubsection{Factory methods}
+\subsection{Factory methods}
 
 For simple shapes such as beams and ellipsoids, there are factory methods to 
 automatically build the node and element structure.  These methods are found
@@ -501,7 +501,7 @@ FemFactory.createGrid(beam, FemElementType.Hex,
 mech.addModel(beam);
 \end{lstlisting}
 
-\subsubsection{Loading external FEM meshes}
+\subsection{Loading external FEM meshes}
 
 For more complex geometries, volumetric meshes can be loaded from external
 files.  A list of supported file types is provided in Table 
@@ -559,7 +559,7 @@ is used to find a path within the ArtiSynth source tree that is relative to the
 current model's source file.  Note the try-catch block.  Most of these readers 
 throw an {\tt IOException} if the read fails.
 
-\subsubsection{Generating from surfaces}
+\subsection{Generating from surfaces}
 
 There are two ways a FEM model can be generated from a surface: by using a
 FEM mesh generator, and by extruding a surface along its normal direction.
@@ -614,7 +614,7 @@ surface has a high curvature relative to the total extrusion thickness,
 then some elements will be inverted.
 \end{sideblock}
 
-\subsubsection{Building elements in code}
+\subsection{Building elements in code}
 
 A finite element model's structure can also be manually constructed in code.  
 \javaclass[artisynth.core.femmodels]{FemModel3d} has the methods:
@@ -641,7 +641,7 @@ the function
 This returns the concatenated coordinate list for an ``ideal'' element of
 the given type.
 
-\subsubsection{Example: a simple beam model}
+\subsection{Example: a simple beam model}
 \label{sec:fem:example:fembeam}
 
 \begin{figure}[ht]
@@ -671,7 +671,7 @@ all left-hand boundary nodes are identified (line 46).
 Rendering properties are then assigned to the FEM model on line 52.  These 
 will be discussed further in Section \ref{sec:fem:rendering}.
 
-\subsection{FEM Geometry}
+\section{FEM Geometry}
 \label{sec:fem:geometry}
 
 Associated with each FEM model is a list of geometry with the heading 
@@ -687,7 +687,7 @@ the FEM.  The attachments enforce the shape function interpolation in Equation
 \eqref{eqn:fem:interp} to hold at each mesh vertex, with constant shape function
 coefficients.
 
-\subsubsection{Surface meshes}
+\subsection{Surface meshes}
 
 By default, every {\tt FemModel3d} has an auto-generated geometry representing
 the ``surface mesh''.  The surface mesh consists of all un-shared element faces
@@ -712,7 +712,7 @@ However, doing so is normally not necessary.  It is always possible to add
 additional mesh geometries to a finite element model, and the visibility
 settings can be changed so that the default surface mesh is not rendered.  
 
-\subsubsection{Embedding geometry within an FEM}
+\subsection{Embedding geometry within an FEM}
 
 Any geometry of type \javaclass[maspack.geometry]{MeshBase} can be added to
 a {\tt FemModel3d}.  To do so, first position the mesh so that its vertices 
@@ -725,7 +725,7 @@ FemMeshComp addMesh ( String name, MeshBase mesh );
 The latter is a convenience routine that also gives the newly embedded
 {\tt FemMeshComp} a name.
 
-\subsubsection{Example: a beam with an embedded sphere}
+\subsection{Example: a beam with an embedded sphere}
 
 \begin{figure}[ht]
 	\centering
@@ -748,7 +748,7 @@ centered inside the beam, so it does not need to be repositioned.  At Line
 with the name ``sphere''.  The full model is shown in Figure 
 \ref{fig:fem:embedded}.
 
-\subsection{Node attachments}
+\section{Node attachments}
 \label{sec:fem:nodeattachments}
 
 To couple FEM models to other dynamic components, the ``attachment''
@@ -786,7 +786,7 @@ There are also convenience routines inside {\tt MechModel} that will create
 the appropriate attachments automatically (see Section 
 \ref{sec:mech:pointattachments}).
 
-\subsubsection{Connecting nodes to rigid bodies or particles}
+\subsection{Connecting nodes to rigid bodies or particles}
 
 Since
 \javaclass[artisynth.core.femmodels]{FemNode3d} is a subclass of
@@ -825,7 +825,7 @@ or
 %
 which attaches {\tt node2} to {\tt node1}.
 
-\subsubsection{Example: connecting a beam to a block}
+\subsection{Example: connecting a beam to a block}
 
 \begin{figure}[ht]
 	\centering
@@ -850,7 +850,7 @@ attachments are explicitly created.  They could also have been attached using
    mech.attachPoint (node, block);  // attach node to rigid block
 \end{lstlisting}
 
-\subsubsection{Connecting nodes directly to elements}
+\subsection{Connecting nodes directly to elements}
 
 Typically, nodes do not align in a way that makes it
 possible to connect them to other FEM models and/or points based on
@@ -937,7 +937,7 @@ This will find the nearest element to the node in question and use
 that to create the attachment. If the node is outside the FEM model,
 then it will be attached to the nearest point on the FEM's surface.
 
-\subsubsection{Example: connecting two FEMs together}
+\subsection{Example: connecting two FEMs together}
 \label{connectingTwoFems:sec}
 
 % FemBeamWithFemSphere
@@ -971,7 +971,7 @@ search uses a bounding volume hierarchy for efficiency (see
 within the beam, then {\tt mech.attachPoint()}
 is used to attach it to the nodes of the element (line 39).
 
-\subsubsection{Nodal-based attachments}
+\subsection{Nodal-based attachments}
 \label{sec:fem:nodalAttachments}
 
 The example of Section \ref{connectingTwoFems:sec} uses element-based
@@ -1031,7 +1031,7 @@ the nodes equals {\tt pos}. In some cases, the specified nodes
 may not provide enough support for the last condition to be
 met, in which case the methods return {\tt false}.
 
-\subsubsection{Example: element vs. nodal-based attachments}
+\subsection{Example: element vs. nodal-based attachments}
 
 \begin{figure}[ht]
 \centering
@@ -1180,7 +1180,7 @@ spring anchor points at the right will cause the spring tension to
 vary and further illustrate the difference between the element
 and nodal-based attachments.
 
-\subsection{FEM markers}
+\section{FEM markers}
 
 Just as there are {\tt FrameMarker}s to act as anchor points on a frame or
 rigid body (Section \ref{FrameMarkers:sec}), there are also {\tt FemMarker}s 
@@ -1280,7 +1280,7 @@ modified. Alternatively, when a 3D force $\f$ is applied to the
 marker, it is distributed to the attached nodes according to the nodel
 weights, as described in Equation \eqref{pointFemForces:eqn}.
 
-\subsubsection{Example: attaching a FEM beam to a muscle}
+\subsection{Example: attaching a FEM beam to a muscle}
 
 \begin{figure}[ht]
 	\centering
@@ -1297,7 +1297,7 @@ is given below.
 \lstset{numbers=none}
 This example can be found in {\tt artisynth.demos.tutorial.FemBeamWithMuscle}.
 This model extends the {\tt FemBeam} example, adding a {\tt FemMarker} for the
-spring to attach to.  The method {\tt createMarker(...)} on lines 28--34
+spring to attach to.  The method {\tt createMarker(...)} on lines 29--35
 is used to create and add a marker to the FEM.  Since the element is initially
 set to {\tt null}, when it is added to the FEM, the model searches for the
 containing or nearest element.  The loaded model is shown in Figure 
@@ -1305,7 +1305,7 @@ containing or nearest element.  The loaded model is shown in Figure
 
 % FemBeamWithMuscle
 
-\subsection{Frame attachments}
+\section{Frame attachments}
 \label{sec:fem:frameattachments}
 
 It is also possible to attach frame components, including rigid
@@ -1386,7 +1386,7 @@ methods also require the current desired pose of the frame {\tt TFW}
 unambiguously specify the frame's origin, they do not specify the
 desired orientation.
 
-\subsubsection{Example: attaching frames to a FEM beam}
+\subsection{Example: attaching frames to a FEM beam}
 
 \begin{figure}[ht]
 	\centering
@@ -1469,10 +1469,10 @@ cause it to settle into the state shown in Figure
 be applied to the attached block and frame using
 pull manipulator, causing the FEM model to deform 
 (see the section ``Pull Manipulator'' in the
-\href{../uiguide/uiguide.html}{
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}).
 
-\subsubsection{Adding joints to FEM models}
+\subsection{Adding joints to FEM models}
 
 The ability to connect frames to FEM models, as described in Section
 \ref{sec:fem:frameattachments}, makes it possible to interconnect
@@ -1505,7 +1505,7 @@ frame within an FEM to define such transforms).  Methods or
 constructors which utilize $\T_{CA}$ or $\T_{DB}$ can therefore
 not be used with FEM models.
 
-\subsubsection{Example: two FEM beams connected by a joint}
+\subsection{Example: two FEM beams connected by a joint}
 
 \begin{figure}[ht]
 	\centering
@@ -1574,10 +1574,10 @@ cause it drop and flex under gravity, as shown in
 be applied to the beams using
 pull manipulator 
 (see the section ``Pull Manipulator'' in the
-\href{../uiguide/uiguide.html}{
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}).
 
-\subsection{Incompressiblity}
+\section{Incompressiblity}
 
 FEM incompressibility within ArtiSynth is enforced by trying to ensure
 that the volume of a FEM remains locally constant. This, in turn, is
@@ -1604,7 +1604,7 @@ more like `hard' incompressibility, with an infinite bulk modulus
 corresponding to perfect incompressibilty. However, very large bulk
 modulus values will generally produce stability problems.
 
-\subsubsection{Volume regions and locking}
+\subsection{Volume regions and locking}
 \label{VolumeRegions:sec}
 
 Both hard and soft incompressibility can be applied to different
@@ -1647,7 +1647,7 @@ a large number of volumetric constraints and hence locking. It is
 therefore not commonly used and is provided mostly for debugging and
 diagnostic purposes.
 
-\subsubsection{Hard incompressibility}
+\subsection{Hard incompressibility}
 \label{HardIncomp:sec}
 
 Hard incompressibility is controlled by the {\sf incompressible}
@@ -1689,7 +1689,7 @@ It can also be applied to linear materials, which are not themselves
 able to emulate true incompressible behavior
 (Section \ref{IncompLinearMaterials:sec}).
 
-\subsubsection{Soft incompressibility}
+\subsection{Soft incompressibility}
 \label{SoftIncomp:sec}
 
 Soft incompressibility enforces incompressibility using a restoring
@@ -1756,7 +1756,7 @@ equal to the number of nodes.
 
 \end{description}
 
-\subsubsection{Incompressibility and linear materials}
+\subsection{Incompressibility and linear materials}
 \label{IncompLinearMaterials:sec}
 
 Within a linear material, incompressibility is controlled by Poisson's
@@ -1776,7 +1776,7 @@ FEM completely flat if enough force is applied. If true incompressible
 behavior is desired with a linear material, then one must also use
 hard incompressibility (Section \ref{HardIncomp:sec}).
 
-\subsubsection{Using incompressibility in practice}
+\subsection{Using incompressibility in practice}
 
 As mentioned above, when modeling incompressible models, we have found
 that the best practice is to use, if possible, either a hex or
@@ -1796,7 +1796,7 @@ incompressibilty often results in less stable behavior, this is not
 always the case: in some situations the stronger enforcement afforded
 by hard incompressibility actually improves stabilty.
 
-\subsection{Muscle activated FEM models}
+\section{Muscle activated FEM models}
 \label{sec:fem:muscle}
 
 Finite element muscle models are an extension to regular FEM models.  As such,
@@ -1810,7 +1810,7 @@ activated.  There are two types of muscles supported:
 \end{description}
 In this section, both types will be described.
 
-\subsubsection{FemMuscleModel}
+\subsection{FemMuscleModel}
 
 The main class for FEM-based muscles is 
 \javaclass[artisynth.core.femmodels]{FemMuscleModel}, a subclass 
@@ -1888,7 +1888,7 @@ interface.  To add or remove a component to the exciter, use
 If a gain factor is specified, the activation is scaled by the gain for that
 component.
 
-\subsubsection{Fibre-based muscles}
+\subsection{Fibre-based muscles}
 \label{sec:fem:fibremuscle}
 
 In fibre-based muscles, a set of point-to-point muscle fibres are added between
@@ -1941,7 +1941,7 @@ In these fibre-based muscles, force is only exerted between the anchor
 points of the fibres; it is a discrete approximation.  These models
 are typically more stable than material-based ones.
 
-\subsubsection{Material-based muscles}
+\subsection{Material-based muscles}
 \label{sec:fem:materialmuscle}
 
 In material-based muscles, the constitutive law is augmented with additional
@@ -2012,7 +2012,7 @@ beam.addMuscleBundle(bundle);
 \end{lstlisting}
 \lstset{numbers=none}
 
-\subsubsection{Example: comparison with two beam examples}
+\subsection{Example: comparison with two beam examples}
 
 \begin{figure}[ht]
 	\centering
@@ -2041,7 +2041,7 @@ highly deformed.  Fibre-based muscles are, in general, more stable.  However,
 they can lead to bulging and other deformation artifacts due to their discrete
 nature.
 
-\subsection{Collisions}
+\section{Collisions}
 \label{sec:fem:collision}
 
 As described in Section \ref{sec:mechii:collisions}, collisions can be enabled 
@@ -2059,7 +2059,7 @@ collisions with any embedded mesh inside a FEM.  Any forces resulting from
 the collision are then automatically transfered back to the underlying nodes 
 of the model using Equation \eqref{pointFemForces:eqn}.
 
-\subsubsection{Example: FEM collisions}
+\subsection{Example: FEM collisions}
 
 \begin{figure}[ht]
 	\centering
@@ -2086,7 +2086,7 @@ mech.setCollisionBehavior(ellipsoid, embeddedSphere, true);  // sphere-ellipsoid
 Notice in the figure that the surface of the green block passes through
 the table and ellipsoid; only the embedded sphere has collisions enabled.
 
-\subsection{Rendering and Visualizations}
+\section{Rendering and Visualizations}
 \label{sec:fem:rendering}
 
 In addition to the standard {\tt RenderProps} that control how the
@@ -2188,7 +2188,7 @@ Any synchronization of colors and labels must be done manually by the developer.
 It is recommended to do this in the {\tt RootModel}'s {\tt prerender(...)} method,
 so that colors are updated every time the model's rendering configuration changes.
 
-\subsubsection{Example: stress and strain plotting}
+\subsection{Example: stress and strain plotting}
 
 \begin{figure}[ht]
 	\centering

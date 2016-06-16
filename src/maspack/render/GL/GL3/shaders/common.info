@@ -1,0 +1,13 @@
+{
+	"name": "common",
+	"vertex_shader": {
+    	    "header": "common_vertex_header.glsl",
+    	    "main": "common_vertex_main.glsl"
+    	    "inputs": [ {"name": "vertex_position", "type": "vec4"} ],
+         },
+    "fragment_shader": {
+            "header": "common_fragment_header.glsl",
+            "main": "common_fragment_main.glsl",
+        	"outputs": [ {"name": "fragment_color", "type": "vec4"} ],
+    	 }
+}

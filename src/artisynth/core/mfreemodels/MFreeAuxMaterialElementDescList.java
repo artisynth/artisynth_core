@@ -8,13 +8,12 @@ package artisynth.core.mfreemodels;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer.Shading;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 
@@ -73,11 +72,10 @@ public class MFreeAuxMaterialElementDescList
       return true;
    }
 
-   private void dorender (GLRenderer renderer, int flags, boolean selected) {
+   private void dorender (Renderer renderer, int flags, boolean selected) {
       // This code is taken mostly verbatim from FemElement3dList.
       // Should find a way to avoid duplicate code ...
 
-//      GL2 gl = renderer.getGL2().getGL2();
       boolean selecting = renderer.isSelecting();
       if (!addDescsInPrerender) {
          // we render all descs ourselves, taking care to render selected descs
@@ -106,8 +104,8 @@ public class MFreeAuxMaterialElementDescList
       
       //renderer.setMaterial (myRenderProps.getFaceMaterial(), false);
       if (widgetSize > 0) {
-         renderer.setMaterialAndShading (
-            myRenderProps, myRenderProps.getFaceMaterial(), false);
+         Shading savedShading = renderer.setPropsShading (myRenderProps);
+         renderer.setFaceColoring (myRenderProps, /*highlight=*/false);
          for (int i = 0; i < size(); i++) {
             MFreeAuxMaterialElementDesc desc = get (i);
             if (desc.getRenderProps() == null &&
@@ -120,19 +118,18 @@ public class MFreeAuxMaterialElementDescList
                   }
                }
                else {
-                  maspack.render.Material mat = myRenderProps.getFaceMaterial();
-                  renderer.updateMaterial (
-                     myRenderProps, mat, desc.myWidgetColor, desc.isSelected());
+                  renderer.setFaceColoring (
+                     myRenderProps, desc.myWidgetColor, desc.isSelected());
                   desc.myElement.renderWidget (renderer, myRenderProps, 0);
                }
             }
          }
-         renderer.restoreShading (myRenderProps);
+         renderer.setShading (savedShading);
       }
      
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       dorender (renderer, flags, /*selected=*/true);
       dorender (renderer, flags, /*selected=*/false);
    }

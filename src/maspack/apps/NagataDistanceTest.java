@@ -7,20 +7,25 @@
 package maspack.apps;
 
 import java.awt.Color;
+import java.util.ArrayList;
 
-import javax.media.opengl.*;
-
-import java.util.*;
-
-import maspack.render.*;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.NagataInterpolator;
 import maspack.geometry.PolygonalMesh;
-import maspack.matrix.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
+import maspack.render.HasRenderProps;
+import maspack.render.IsRenderable;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
+import maspack.render.GL.GLViewer;
 
-
-public class NagataDistanceTest implements GLRenderable, HasRenderProps {
+public class NagataDistanceTest implements IsRenderable, HasRenderProps {
 
    RenderProps myRenderProps = createRenderProps();
    ArrayList<Point3d> myPoints = new ArrayList<Point3d>();
@@ -171,7 +176,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
             }
          }
       }
-      RenderProps.setFaceStyle (myFineMesh, RenderProps.Faces.FRONT_AND_BACK);
+      RenderProps.setFaceStyle (myFineMesh, Renderer.FaceStyle.FRONT_AND_BACK);
 
       myInterp.setBoundsForCurve (myCurveBounds, myCurvePos, myCurveDir);
    }
@@ -195,9 +200,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
    public void prerender (RenderList list) {
    }
 
-   public void render (GLRenderer renderer, int flags) {
-
-      GL2 gl = renderer.getGL2().getGL2();
+   public void render (Renderer renderer, int flags) {
 
       float[] coords0 = new float[3];
       float[] coords1 = new float[3];
@@ -224,20 +227,20 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
       double xi1 = myCurveBounds[1];
       myInterp.interpolateVertex (pos0, myCurvePos.x, myCurvePos.y);
       myInterp.interpolateCurve (pos, xi0, pos0, myCurvePos, myCurveDir);
-      renderer.setLightingEnabled (false);      
-      gl.glBegin (GL2.GL_LINE_STRIP);
+      renderer.setShading (Shading.NONE);
+      renderer.beginDraw (DrawMode.LINE_STRIP);
       renderer.setColor (1f, 1f, 0f);
-      gl.glVertex3d (pos.x, pos.y, pos.z);
+      renderer.addVertex (pos);
       for (int i=0; i<nsegs; i++) {
          double xi = xi0 + (i+1)*(xi1-xi0)/(double)nsegs;
          myInterp.interpolateCurve (pos, xi, pos0, myCurvePos, myCurveDir);
-         gl.glVertex3d (pos.x, pos.y, pos.z);         
+         renderer.addVertex (pos);
       }
-      gl.glEnd();
-      renderer.setLightingEnabled (true);      
+      renderer.endDraw();
+      renderer.setShading (Shading.FLAT);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       for (int i=0; i<myPoints.size(); i++) {
          myPoints.get(i).updateBounds (pmin, pmax);
       }
@@ -257,7 +260,7 @@ public class NagataDistanceTest implements GLRenderable, HasRenderProps {
       MeshViewer frame = new MeshViewer (meshes, 640, 480);
       frame.addRenderable (tester);
       GLViewer viewer = frame.getViewer();
-      viewer.autoFitOrtho (0);
+      viewer.autoFitOrtho ();
       frame.setVisible (true);
 
    }

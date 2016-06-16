@@ -1,4 +1,3 @@
-
 ROOT_DIR = ../../../..
 PACKAGE_NAME = artisynth.core.renderables
 

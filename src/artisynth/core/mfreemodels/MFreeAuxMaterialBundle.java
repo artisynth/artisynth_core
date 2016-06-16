@@ -11,13 +11,13 @@ import java.util.List;
 
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
@@ -212,7 +212,7 @@ public class MFreeAuxMaterialBundle extends CompositeComponentBase
       list.addIfVisible (myElementDescs);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
    }
    
    /**
@@ -226,13 +226,13 @@ public class MFreeAuxMaterialBundle extends CompositeComponentBase
       return -1;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
       }
       return code;
    }

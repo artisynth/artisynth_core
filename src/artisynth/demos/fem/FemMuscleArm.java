@@ -12,6 +12,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.PointToPointMuscle;
@@ -123,9 +124,9 @@ public class FemMuscleArm extends MuscleArm
         
         RenderProps rp = new RenderProps(model.getRenderProps());
         rp.setFaceColor(Color.RED);
-        rp.setLineStyle(RenderProps.LineStyle.LINE);
-        rp.setPointStyle(RenderProps.PointStyle.POINT);
-        rp.setShading(RenderProps.Shading.GOURARD);
+        rp.setLineStyle(Renderer.LineStyle.LINE);
+        rp.setPointStyle(Renderer.PointStyle.POINT);
+        rp.setShading(Renderer.Shading.SMOOTH);
         rp.setLineColor(Color.WHITE);
         muscle.setRenderProps(rp);
 

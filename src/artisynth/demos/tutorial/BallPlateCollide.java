@@ -26,7 +26,8 @@ public class BallPlateCollide extends RootModel {
       mech.setDefaultCollisionBehavior (true, 0.20);
 
       // make ball transparent so that contacts can be seen more clearly
-      RenderProps.setFaceStyle (ball, RenderProps.Faces.NONE);
+      RenderProps.setFaceStyle (ball, Renderer.FaceStyle.NONE);
+      RenderProps.setShading (ball, Renderer.Shading.NONE);
       RenderProps.setDrawEdges (ball, true);
       RenderProps.setEdgeColor (ball, Color.WHITE);
 

@@ -7,20 +7,21 @@
 package maspack.render;
 
 import java.awt.Color;
+
 import javax.media.opengl.GL2;
 
 public class Material {
-   private float[] ambient;
+
+   private float[] diffuse;  // ambient color will always track diffuse
    private float[] specular;
-   private float[] diffuse;
    private float[] emission;
-   private float[] temp;
+   private float[] power;
    private float shininess;
 
-   public static final float[] default_ambient = {0.1f, 0.1f, 0.1f, 1f};
    public static final float[] default_specular = {0.1f, 0.1f, 0.1f, 1f};
    public static final float[] default_diffuse = {0.8f, 0.8f, 0.8f, 1f};
    public static final float[] default_emission = {0f, 0f, 0f, 1f};
+   public static final float[] default_power = {1f, 1f, 1f, 1f};
 
    public static final int BLACK = 0;
    public static final int WHITE = 1;
@@ -34,51 +35,19 @@ public class Material {
    public static final int GRAY = 9;
    public static final int SILVER = 10;
 
-   // static public int rgbPack (double r, double g, double b)
-   // {
-   // int ri = Math.min(Math.max(0,r*255),255);
-   // int gi = Math.min(Math.max(0,g*255),255);
-   // int bi = Math.min(Math.max(0,b*255),255);
-   // return (((bi)<<16) + ((gi)<<8) + (ri));
-   // }
-
-   // static public int rgbaPack (double r, double g, double b, double a)
-   // {
-   // int ri = Math.min(Math.max(0,r*255),255);
-   // int gi = Math.min(Math.max(0,g*255),255);
-   // int bi = Math.min(Math.max(0,b*255),255);
-   // int ai = Math.min(Math.max(0,a*255),255);
-   // return (((ai)<<24) + ((bi)<<16) + ((gi)<<8) + (ri));
-   // }
-
-   // static public void rgbUnpack (float[] vec, int rgb)
-   // {
-   // vec[0] = ((rgb) & 0xff)/255f;
-   // vec[1] = ((rgb>>8) & 0xff)/255f;
-   // vec[2] = ((rgb>>16) & 0xff)/255f;
-   // }
-
-   // static public void rgbaUnpack (float[] vec, int rgba)
-   // {
-   // vec[0] = ((rgb) & 0xff)/255f;
-   // vec[1] = ((rgb>>8) & 0xff)/255f;
-   // vec[2] = ((rgb>>16) & 0xff)/255f;
-   // }
-
    public Material() {
-      ambient = new float[4];
-      specular = new float[4];
       diffuse = new float[4];
+      specular = new float[4];
       emission = new float[4];
-      temp = new float[4];
+      power = new float[4];
       setDefaults();
    }
    
    private void setDefaults() {
-      setAmbient(default_ambient);
       setSpecular(default_specular);
       setDiffuse(default_diffuse);
       setEmission(default_emission);
+      setPower(default_power);
    }
 
    public Material (Material mat) {
@@ -86,65 +55,32 @@ public class Material {
       set (mat);
    }
 
-   public Material (float[] diff, float[] amb, float[] spec, float[] em, float shin) {
+   public Material (float[] diff, float[] spec, float[] em, float shin) {
       this();
-      set (diff, amb, spec, em, shin);
+      set (diff, spec, em, shin);
    }
    
-   public Material (Color diff, Color amb, Color spec, Color em, float shin) {
+   public Material (Color diff, Color spec, Color em, float shin) {
       this();
-      set (diff, amb, spec, em, shin);
+      set (diff, spec, em, shin);
    }
    
-   
-   public void set (float[] diff, float[] amb, float[] spec, float[] em, float shin) {
+   public void set (float[] diff, float[] spec, float[] em, float shin) {
       setDiffuse (diff);
-      setAmbient (amb);
       setSpecular (spec);
       setEmission(em);
       setShininess (shin);
    }
    
-   public void set (Color diff, Color amb, Color spec, Color em, float shin) {
+   public void set (Color diff, Color spec, Color em, float shin) {
       setDiffuse (diff);
-      setAmbient (amb);
       setSpecular (spec);
       setEmission(em);
       setShininess (shin);
    }
 
    public void set (Material mat) {
-      set (mat.diffuse, mat.ambient, mat.specular, mat.emission, mat.shininess);
-   }
-
-   public void setAmbient (float r, float g, float b, float a) {
-      ambient[0] = r;
-      ambient[1] = g;
-      ambient[2] = b;
-      ambient[3] = a;
-   }
-
-   public void setAmbient (Color c) {
-      c.getComponents (ambient);
-   }
-   
-   public void setAmbient (float[] amb) {
-      ambient[0] = amb[0];
-      ambient[1] = amb[1];
-      ambient[2] = amb[2];
-      if (amb.length > 3) {
-         ambient[3] = amb[3];
-      }
-      
-   }
-
-   // public void setAmbient (long rgba)
-   // {
-   // unpack (ambient, rgba);
-   // }
-
-   public float[] getAmbient() {
-      return ambient;
+      set (mat.diffuse, mat.specular, mat.emission, mat.shininess);
    }
 
    public void setShininess (float s) {
@@ -152,7 +88,7 @@ public class Material {
          s = 0;
       }
       else if (s > 128) {
-         s = 128;
+         s = 128; // max supported under GL
       }
       shininess = s;
    }
@@ -161,11 +97,11 @@ public class Material {
       return shininess;
    }
 
-   public void setSpecular (float r, float g, float b, float a) {
+   public void setSpecular (float r, float g, float b) {
       specular[0] = r;
       specular[1] = g;
       specular[2] = b;
-      specular[3] = a;
+      specular[3] = 1.0f;
    }
    
    public void setSpecular(Color c) {
@@ -176,8 +112,15 @@ public class Material {
       specular[0] = spec[0];
       specular[1] = spec[1];
       specular[2] = spec[2];
+      specular[3] = 1.0f;
+   }
+   
+   public void getSpecular (float[] spec) {
+      spec[0] = specular[0];
+      spec[1] = specular[1];
+      spec[2] = specular[2];
       if (spec.length > 3) {
-         specular[3] = spec[3];
+         spec[3] = 1.0f;
       }
    }
 
@@ -211,15 +154,24 @@ public class Material {
       }
    }
 
+   public void getDiffuse (float[] diff) {
+      diff[0] = diffuse[0];
+      diff[1] = diffuse[1];
+      diff[2] = diffuse[2];
+      if (diff.length > 3) {
+         diff[3] = diffuse[3];
+      }
+   }
+
    public float[] getDiffuse() {
       return diffuse;
    }
 
-   public void setEmission(float r, float g, float b, float a) {
+   public void setEmission(float r, float g, float b) {
       emission[0] = r;
       emission[1] = g;
       emission[2] = b;
-      emission[3] = a;
+      emission[3] = 1.0f;
    }
    
    public void setEmission (Color c) {
@@ -230,13 +182,70 @@ public class Material {
       emission[0] = em[0];
       emission[1] = em[1];
       emission[2] = em[2];
+      emission[3] = 1.0f;
+   }
+   
+   public void getEmission(float[] em) {
+      em[0] = emission[0];
+      em[1] = emission[1];
+      em[2] = emission[2];
       if (em.length > 3) {
-         emission[3] = em[3];
+         em[3] = 1.0f;
       }
    }
    
    public float[] getEmission() {
       return emission;
+   }
+   
+   public void setPower(float[] p) {
+      power[0] = p[0];
+      power[1] = p[1];
+      power[2] = p[2];
+      power[3] = p[3];
+   }
+   
+   public void getPower(float[] p) {
+      p[0] = power[0];
+      p[1] = power[1];
+      p[2] = power[2];
+      p[3] = power[3];
+   }
+   
+   public float[] getPower() {
+      return power;
+   }
+   
+   public void setAmbientPower(float a) {
+      power[0] = a;
+   }
+   
+   public float getAmbientPower() {
+      return power[0];
+   }
+   
+   public void setDiffusePower(float d) {
+      power[1] = d;
+   }
+   
+   public float getDiffusePower() {
+      return power[1];
+   }
+   
+   public void setSpecularPower(float s) {
+      power[2] = s;
+   }
+   
+   public float getSpecularPower() {
+      return power[2];
+   }
+   
+   public void setEmissionPower(float e) {
+      power[3] = e;
+   }
+   
+   public float getEmissionPower() {
+      return power[3];
    }
    
    public void apply (GL2 gl) {
@@ -251,22 +260,32 @@ public class Material {
       apply (gl, sides, null);
    }
 
+   private void applyMat(GL2 gl, int sides, int target, float[] v, float scale) {
+      float[] m = new float[4];
+      for (int i=0; i<3; ++i) {
+         m[i] = v[i]*scale;
+      }
+      m[3] = v[3];
+      gl.glMaterialfv(sides, target, m, 0);
+   }
+   
    public void apply (GL2 gl, int sides, float[] diffuseOverride) {
       
-      gl.glMaterialfv(sides, GL2.GL_EMISSION, emission, 0);
-      gl.glMaterialfv (sides, GL2.GL_AMBIENT, ambient, 0);
+      float[] diff = diffuse;
+      
+      applyMat(gl, sides, GL2.GL_EMISSION, emission, power[3]);
+      applyMat(gl, sides, GL2.GL_SPECULAR, specular, power[2]);
       gl.glMaterialf (sides, GL2.GL_SHININESS, shininess);
-      gl.glMaterialfv (sides, GL2.GL_SPECULAR, specular, 0);
       if (diffuseOverride != null) {
+         float[] temp = new float[4];
          temp[0] = diffuseOverride[0];
          temp[1] = diffuseOverride[1];
          temp[2] = diffuseOverride[2];
          temp[3] = diffuse[3];
-         gl.glMaterialfv (sides, GL2.GL_DIFFUSE, temp, 0);
+         diff = temp;
       }
-      else {
-         gl.glMaterialfv (sides, GL2.GL_DIFFUSE, diffuse, 0);
-      }
+      applyMat(gl, sides, GL2.GL_DIFFUSE, diff, power[1]);
+      applyMat(gl, sides, GL2.GL_AMBIENT, diff, power[0]);
    }
 
    private String floatArrayToString (float[] array) {
@@ -275,12 +294,11 @@ public class Material {
 
    public String toString() {
       String s = "";
-
-      s += floatArrayToString (ambient) + "\n";
       s += floatArrayToString (specular) + "\n";
       s += floatArrayToString (diffuse) + "\n";
       s += floatArrayToString (emission) + "\n";
-      s += shininess;
+      s += shininess + "\n";
+      s += floatArrayToString (power);
       return s;
    }
 
@@ -292,8 +310,12 @@ public class Material {
       // is used in light model equation
       diffuse[3] = (float)a;
    }
+   
+   public float getAlpha() {
+      return diffuse[3];
+   }
 
-   public boolean isTranslucent() {
+   public boolean isTransparent() {
       // return (ambient[3] != 1.0f || specular[3] != 1.0f 
       //   || diffuse[3] != 1.0f || emission[3] != 1.0f);
       
@@ -305,12 +327,12 @@ public class Material {
    public static Material createDiffuse (
       float r, float g, float b, float a, float shine) {
       Material mat = new Material();
-      mat.setAmbient (default_ambient);
       mat.setShininess (shine);
       mat.setSpecular (default_specular);
       mat.setEmission(default_emission);
       mat.setDiffuse (r, g, b, 1f);
       mat.setAlpha (a);
+      mat.setPower (default_power);
       return mat;
    }
 
@@ -384,9 +406,6 @@ public class Material {
     */
    public boolean equal (Material mat) {
       for (int i = 0; i < 3; i++) {
-         if (ambient[i] != mat.ambient[i]) {
-            return false;
-         }
          if (specular[i] != mat.specular[i]) {
             return false;
          }
@@ -394,6 +413,9 @@ public class Material {
             return false;
          }
          if (emission[i] != mat.emission[i]) {
+            return false;
+         }
+         if (power[i] != mat.power[i]) {
             return false;
          }
       }
@@ -404,6 +426,11 @@ public class Material {
       if (diffuse[3] != mat.diffuse[3]) {
          return false;
       }
+      
+      if (power[3] != mat.power[3]) {
+         return false;
+      }
       return true;
    }
+
 }

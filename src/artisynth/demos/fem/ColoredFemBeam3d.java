@@ -12,7 +12,7 @@ public class ColoredFemBeam3d extends FemBeam3d {
       super.build (args);
 
       PolygonalMesh surf = myFemMod.getSurfaceMesh();
-      surf.setVertexColoringEnabled ();
+      surf.setVertexColoringEnabled();
       
       RainbowColorMap rcm = new RainbowColorMap();
       Point3d pmin = new Point3d(Point3d.POSITIVE_INFINITY);

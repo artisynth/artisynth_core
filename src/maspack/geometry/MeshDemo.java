@@ -7,9 +7,9 @@
 package maspack.geometry;
 
 import maspack.matrix.*;
-import maspack.render.GLViewerFrame;
-import maspack.render.Material;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLViewerFrame;
+
 import java.awt.Color;
 
 /**
@@ -48,7 +48,7 @@ public class MeshDemo {
 
       GLViewerFrame frame = new GLViewerFrame ("MeshDemo", 400, 400);
       frame.getViewer().addRenderable (myMesh);
-      frame.getViewer().autoFitPerspective (0);
+      frame.getViewer().autoFitPerspective ();
 
       frame.setVisible (true);
    }

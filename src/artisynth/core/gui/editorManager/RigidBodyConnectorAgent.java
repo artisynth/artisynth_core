@@ -6,23 +6,33 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */package artisynth.core.gui.editorManager;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import java.awt.event.ActionEvent;
+import java.util.HashMap;
 
-import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.JButton;
 
-import maspack.render.*;
-import maspack.geometry.*;
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.properties.*;
-import artisynth.core.driver.*;
-import artisynth.core.gui.*;
-import artisynth.core.gui.selectionManager.*;
-import artisynth.core.mechmodels.*;
-import artisynth.core.modelbase.*;
+import maspack.matrix.Line;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.render.MouseRayEvent;
+import maspack.render.RenderProps;
+import maspack.render.GL.GLViewer;
+import maspack.util.InternalErrorException;
+import artisynth.core.driver.Main;
+import artisynth.core.gui.selectionManager.SelectionEvent;
+import artisynth.core.gui.selectionManager.SelectionFilter;
+import artisynth.core.mechmodels.BodyConnector;
+import artisynth.core.mechmodels.ConnectableBody;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.SphericalJoint;
+import artisynth.core.modelbase.ComponentList;
+import artisynth.core.modelbase.ComponentListView;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.MutableCompositeComponent;
 import artisynth.core.workspace.RootModel;
 
 /**

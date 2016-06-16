@@ -8,12 +8,12 @@ package maspack.render;
 
 import java.awt.Color;
 import java.awt.event.*;
-
 import java.util.LinkedList;
 
 import maspack.matrix.*;
+import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLViewer;
 import maspack.util.*;
-import maspack.util.Round;
 
 public abstract class DrawToolBase extends DragToolBase {
 
@@ -67,7 +67,7 @@ public abstract class DrawToolBase extends DragToolBase {
    }
 
    private void getTransformFromNearPlane(RigidTransform3d X) {
-      X.set (myViewer.getEyeToWorld());
+      X.invert (myViewer.getViewMatrix());
       // multiply by 1.01 to make sure we are slightly inside the view
       // plane, so that we don't get clipped.
       X.mulXyz (0, 0, -1.01*myViewer.getViewPlaneDistance());
@@ -264,7 +264,7 @@ public abstract class DrawToolBase extends DragToolBase {
       return 10;
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    /**

@@ -6,26 +6,44 @@
  */
 package maspack.apps;
 
-import java.io.*;
 import java.awt.Color;
-import javax.swing.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.widgets.*;
+import javax.swing.JToolBar;
+
+import maspack.geometry.MeshFactory;
+import maspack.geometry.NURBSCurve2d;
+import maspack.geometry.Polygon2d;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.QuadBezierDistance2d;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector4d;
+import maspack.render.DrawToolEvent;
+import maspack.render.DrawToolListener;
+import maspack.render.IsRenderableBase;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
+import maspack.render.GL.GLViewer;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.ReaderTokenizer;
+import maspack.widgets.DraggerToolBar;
 import maspack.widgets.DraggerToolBar.ButtonType;
-import maspack.render.*;
-import maspack.geometry.*;
-
-import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
+import maspack.widgets.ViewerFrame;
 
 public class NURBSCurve2dTest implements DrawToolListener {
 
    ViewerFrame myFrame;
    GLViewer myViewer;
 
-   private static class DistanceGrid extends GLRenderableBase {
+   private static class DistanceGrid extends IsRenderableBase {
 
       double myX;
       double myY;
@@ -63,12 +81,11 @@ public class NURBSCurve2dTest implements DrawToolListener {
          myDist = new double[nx*ny];
       }
       
-      public void render (GLRenderer renderer, int flags) {
-         GL2 gl = renderer.getGL2();
+      public void render (Renderer renderer, int flags) {
 
-         renderer.setLightingEnabled (false);
+         renderer.setShading (Shading.NONE);
 
-         gl.glBegin (GL2.GL_LINES);        
+         renderer.beginDraw (DrawMode.LINES);        
          for (int i=0; i<myGrid.length; i++) {
             Vector2d g = myGrid[i];
             Vector2d n = myNear[i];
@@ -79,24 +96,24 @@ public class NURBSCurve2dTest implements DrawToolListener {
                renderer.setColor (0f, 1f, 1f);
             }
             if (!g.equals(n)) {
-               gl.glVertex3d (g.x, g.y, 0);
-               gl.glVertex3d (n.x, n.y, 0);
+               renderer.addVertex (g.x, g.y, 0);
+               renderer.addVertex (n.x, n.y, 0);
             }
          }
-         gl.glEnd();
+         renderer.endDraw();
 
-         renderer.setColor (Color.WHITE);
+         renderer.setColor (1f, 1f, 1f);
          renderer.setPointSize (2);
-         gl.glBegin (GL2.GL_POINTS);        
+         renderer.beginDraw (DrawMode.POINTS);        
          for (int i=0; i<myGrid.length; i++) {
             Vector2d g = myGrid[i];
             Vector2d n = myNear[i];
             if (g.equals(n)) {
-               gl.glVertex3d (g.x, g.y, 0);
+               renderer.addVertex (g.x, g.y, 0);
             }
          }
-         gl.glEnd();
-         renderer.setLightingEnabled (true);
+         renderer.endDraw();
+         renderer.setShading (Shading.FLAT);
          renderer.setPointSize (1);
       }
 

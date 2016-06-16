@@ -7,42 +7,46 @@
  */
 package artisynth.core.driver;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.*;
-import java.net.URL;
-import java.util.*;
-import java.util.regex.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import javax.swing.*;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
 
-import maspack.collision.SurfaceMeshCollider;
-import maspack.geometry.ConstrainedTranslator3d;
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.GeometryTransformer;
-import maspack.geometry.GeometryTransformer.UndoState;
-import maspack.graph.Tree;
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.render.GLRenderer.SelectionHighlighting;
-import maspack.util.*;
-import maspack.solvers.PardisoSolver;
-import maspack.widgets.ButtonMasks;
-import maspack.widgets.PropertyWindow;
-import maspack.widgets.RenderPropsDialog;
-import maspack.widgets.ViewerToolBar;
-import maspack.widgets.ViewerKeyListener;
 import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
 import argparser.IntHolder;
 import argparser.StringHolder;
+import artisynth.core.driver.ModelInfo.ModelType;
+import artisynth.core.driver.Scheduler.Action;
+import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.Timeline;
 import artisynth.core.gui.editorManager.EditorManager;
@@ -54,23 +58,76 @@ import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.timeline.TimelineController;
 import artisynth.core.inverse.InverseManager;
+import artisynth.core.mechmodels.CollisionHandler;
+import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.MechSystem;
+import artisynth.core.mechmodels.MechSystemBase;
+import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
-import artisynth.core.modelbase.*;
-import artisynth.core.probes.WayPoint;
-import artisynth.core.probes.Probe;
-import artisynth.core.probes.NumericProbeBase;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentChangeListener;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.HasCoordinateFrame;
+import artisynth.core.modelbase.Model;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.moviemaker.MovieMaker;
-import artisynth.core.util.*;
+import artisynth.core.probes.NumericProbeBase;
+import artisynth.core.probes.Probe;
+import artisynth.core.probes.WayPoint;
+import artisynth.core.util.AliasTable;
+import artisynth.core.util.ArtisynthIO;
+import artisynth.core.util.ArtisynthPath;
+import artisynth.core.util.ClassAliases;
+import artisynth.core.util.MatlabInterface;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RenderProbe;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.workspace.Workspace;
-import artisynth.core.driver.Scheduler.Action;
-import artisynth.core.mechmodels.Frame;
-import artisynth.core.mechmodels.*;
-import artisynth.core.femmodels.*;
-import artisynth.core.modelmenu.*;
+import maspack.collision.SurfaceMeshCollider;
+import maspack.geometry.ConstrainedTranslator3d;
+import maspack.geometry.GeometryTransformer;
+import maspack.geometry.GeometryTransformer.UndoState;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.AffineTransform3d;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.render.Dragger3dAdapter;
+import maspack.render.Dragger3dBase;
+import maspack.render.Dragger3dEvent;
+import maspack.render.Renderable;
+import maspack.render.Renderer.HighlightStyle;
+import maspack.render.RotatableScaler3d;
+import maspack.render.Rotator3d;
+import maspack.render.Translator3d;
+import maspack.render.Transrotator3d;
+import maspack.render.GL.GLMouseAdapter;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.GLVersion;
+import maspack.render.GL.GLViewerFrame;
+import maspack.solvers.PardisoSolver;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import maspack.widgets.ButtonMasks;
+import maspack.widgets.PropertyWindow;
+import maspack.widgets.RenderPropsDialog;
+import maspack.widgets.ViewerKeyListener;
+import maspack.widgets.ViewerToolBar;
 
 /**
  * the main class for artisynth
@@ -108,16 +165,21 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected JFrame myJythonFrame = null;
    protected ViewerManager myViewerManager;
    protected AliasTable myDemoModels;
-   protected Tree<MenuEntry> myDemoMenu = null;	// a tree containing the demo menu hierarchy description
+   protected ModelHistory myModelHistory = null;              // storage for model history
    protected AliasTable myScripts;
    protected final static String PROJECT_NAME = "ArtiSynth";
    protected MatlabInterface myMatlabConnection;
+   protected AxisAngle myDefaultViewOrientation = 
+      new AxisAngle(AxisAngle.ROT_X_90);
 
    protected String myModelName;
-   protected String[] myModelArgs;
+   protected String[] myModelArgs;    // command-line supplied arguments
+   protected ModelInfo lastModelInfo; // for re-loading a model with the same parameters
    protected int myFlags = 0;
    protected double myMaxStep = -1;
    protected boolean disposed = false;
+
+   protected GLVersion myGLVersion = GLVersion.GL3;
 
    protected String myModelSaveFormat = "%g"; // "%.8g";
 
@@ -216,10 +278,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myDemoModels.getAliases();
    }
 
-   public Tree<MenuEntry> getDemoMenu() {
-      return myDemoMenu;
-   }
-
    public String getDemoClassName (String classNameOrAlias) {
       String name = myDemoModels.getName (classNameOrAlias);
       if (name != null) {
@@ -255,6 +313,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myScripts.getName (alias);
    }
 
+   public GLVersion getGLVersion() {
+      return myGLVersion;
+   }
+
    /**
     * Returns the current model name. This is either the name of the root model,
     * or the command or file name associated with it.
@@ -266,16 +328,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public Main() {
-      this (PROJECT_NAME, 800, 600);
+      this (PROJECT_NAME, 800, 600, GLVersion.GL3);
    }
 
    /**
     * read the demo names from demosFile
     */
-   private void readDemoNames() {
-      URL url = ArtisynthPath.findResource (demosFilename.value);
+   private void readDemoNames(String filename) {
+      URL url = ArtisynthPath.findResource (filename);
       if (url == null) {
-         System.out.println ("Warning: demosFile: " + demosFilename.value
+         System.out.println ("Warning: demosFile: " + filename
                              + " not found");
       }
       else {
@@ -284,7 +346,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
          catch (Exception e) {
             System.out.println ("Warning: error reading demosFile: "
-                                + demosFilename.value);
+                                + filename);
             System.out.println (e.getMessage());
          }
       }
@@ -293,31 +355,67 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
+   String getDemosFilename() {
+      return demosFilename.value;
+   }
+   
+   String getDemosMenuFilename() {
+      return demosMenuFilename.value;
+   }
+   
    /**
-    * Reads the demo menu stuff
+    * Reads model history information
     */
-   private void readDemoMenu() {
-
-      // if no file specified, exit
-      if (demosMenuFilename.value.equals("")) {
+   private void readModelHistory(String filename) {
+      
+      // no history
+      if (filename == null || "".equals(filename)) {
          return;
-      }	
+      }
 
-      File file = ArtisynthPath.findFile(demosMenuFilename.value);
+      File file = ArtisynthPath.findFile(filename);
       if (file == null) {
-         System.out.println ("Warning: demosMenuFile '" + demosMenuFilename.value + "' not found");
-         myDemoMenu = null;		// ensure it's null
+         System.out.println ("Warning: history file '" + filename + "' not found");
+         myModelHistory = new ModelHistory();
       }
       else {
+         historyFilename.value = file.getAbsolutePath(); // store for future use
          try {
-            myDemoMenu = DemoMenuParser.parseXML(file.getAbsolutePath());            
+            myModelHistory = new ModelHistory();  
+            myModelHistory.read(file);
+            
          } catch (Exception e) {
-            System.out.println ("Warning: error reading demosMenuFile: "
-               + demosMenuFilename.value);
+            System.out.println ("Warning: error reading history file: "
+               + filename);
             System.out.println (e.getMessage());
-            myDemoMenu = null;		// ensure it's null
+            myModelHistory = null;          // ensure it's null
          }
       }
+   }
+   
+   public ModelHistory getModelHistory() {
+      return myModelHistory;
+   }
+
+   /**
+    * Write history information
+    */
+   private void saveModelHistory(String filename) {
+      // no history
+      if (filename == null || "".equals(filename)) {
+         return;
+      }
+      
+      try {
+         myModelHistory.save(new File(filename));
+         historyFilename.value = filename;  // store for future reference in loading
+      } catch (Exception e) {
+         System.out.println ("Warning: error reading history file: "
+            + filename);
+         System.out.println (e.getMessage());
+         myModelHistory = null;          // ensure it's null
+      }
+      
    }
 
    public void addDemoName(String alias, String className) {
@@ -412,7 +510,51 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
    }
+   
+   private static class MainFrameConstructor implements Runnable {
+      Main myMain;
+      String myName;
+      int myWidth;
+      int myHeight;
+      public MainFrameConstructor(String windowName, Main main, int width, int height) {
+         myMain = main;
+         myName = windowName;
+         myWidth = width;
+         myHeight = height;
+      }
 
+      @Override
+      public void run() {
+         myMain.myFrame = new MainFrame (myName, myMain, myWidth, myHeight);
+         myMain.myFrame.setLocation(10, 10); // stay away from multiple monitor divide
+      }
+   }
+   
+   private static class ViewerResizer implements Runnable {
+      MainFrame myFrame;
+      int myWidth;
+      int myHeight;
+      
+      public ViewerResizer(MainFrame frame, int width, int height) {
+         myFrame = frame;
+         myWidth = width;
+         myHeight = height;
+      }
+      
+      public void run() {
+         myFrame.setViewerSize (myWidth, myHeight);
+      };
+   }
+
+   protected void setViewerSize (int w, int h) {
+      // execute in AWT thread to prevent deadlock
+      try {
+         SwingUtilities.invokeAndWait(new ViewerResizer(myFrame, w, h));
+      } catch (InvocationTargetException | InterruptedException e) {
+         e.printStackTrace();
+      }
+   }
+   
    /**
     * to create the new window frame
     * 
@@ -421,19 +563,23 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @param height
     */
 
-   public Main (String windowName, int width, int height) {
+   public Main (String windowName, int width, int height, GLVersion glVersion) {
       myMain = this;
+
+      myGLVersion = glVersion;
+
       if (demosFilename.value != null) {
-         readDemoNames();
-      }
-      else {
-         myDemoModels = new AliasTable();         
-         if (demosMenuFilename.value != null) {
-            readDemoMenu();	// reads a demo menu if it exists
-         }
+         readDemoNames(demosFilename.value);
+      } else {
+         myDemoModels = new AliasTable(); // default: an empty alias table
       }
       readScriptNames();
-
+      
+      // potentially read model history
+      if (historyFilename.value != null) {
+         readModelHistory(historyFilename.value);
+      }
+      
       myEditorManager = new EditorManager (this);
       myUndoManager = new UndoManager();
       myInverseManager = new InverseManager(this);
@@ -446,16 +592,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (width > 0) {
          ToolTipManager.sharedInstance().setLightWeightPopupEnabled (false);
 
-         myFrame = new MainFrame (windowName, this, width, height);
-
+         // execute in AWT thread to prevent deadlock
+         try {
+            SwingUtilities.invokeAndWait(new MainFrameConstructor(windowName, this, width, height));
+         } catch (InvocationTargetException | InterruptedException e) {
+            e.printStackTrace();
+         }
+         
          myMenuBarHandler = myFrame.getMenuBarHandler();
-         myKeyHandler = new GenericKeyHandler(this);
          mySelectionManager.setNavPanel (myFrame.getNavPanel());
          myFrame.getNavPanel().setSelectionManager (mySelectionManager);
 
+         myKeyHandler = new GenericKeyHandler(this);
+         
          //myFrame.setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
          myViewer = myFrame.getViewer();
-         myViewer.addViewerListener (myMenuBarHandler);
+         myViewer.addRenderListener (myMenuBarHandler);
 
          myViewerManager = new ViewerManager (myViewer);
 
@@ -464,7 +616,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.setDefaultDrawAxes (drawAxes.value);
          myViewerManager.setDefaultAxisLength (axisLength.value);
 
-         AxisAngle REW = getDefaultViewOrientation();
+         AxisAngle REW = getDefaultViewOrientation(getRootModel());
          myViewer.setDefaultAxialView (
             AxisAlignedRotation.getNearest (new RotationMatrix3d(REW)));
          initializeViewer (myViewer, REW);
@@ -485,8 +637,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.addDragger (rotator3d);
          myViewerManager.addDragger (transrotator3d);
          myViewerManager.addDragger (constrainedTranslator3d);
-         myFrame.setViewerSize (width, height);
          
+         setViewerSize (width, height);
+
          myPullController = new PullController (mySelectionManager);
       }
       createWorkspace();
@@ -532,12 +685,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return framesPerSecond.value;
    }
 
-   private AxisAngle getDefaultViewOrientation () {
-      AxisAngle REW = AxisAngle.ROT_X_90;
-      if (getRootModel() != null) {
-         REW = getRootModel().getDefaultViewOrientation();
+   private AxisAngle getDefaultViewOrientation (RootModel root) {
+      if (root != null) {
+         AxisAngle REW = root.getDefaultViewOrientation();
+         if (!REW.equals (new AxisAngle(0, 0, 0, 0))) {
+            return REW;
+         }
       }
-      return REW;
+      return myDefaultViewOrientation;
+   }
+   
+   void setDefaultViewOrientation (AxisAngle REW) {
+      myDefaultViewOrientation = new AxisAngle(REW);
    }
 
    public GLViewerFrame createViewerFrame() {
@@ -547,7 +706,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       GLViewer viewer = frame.getViewer();
       // ViewerToolBar toolBar = new ViewerToolBar(viewer, this);
 
-      AxisAngle REW = getDefaultViewOrientation();
+      AxisAngle REW = getDefaultViewOrientation(getRootModel());
       myViewerManager.addViewer (viewer);
       ViewerToolBar toolBar = 
          new ViewerToolBar (viewer, /*addGridPanel=*/true);
@@ -816,15 +975,20 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * 
     */
    private void createTimeline() {
+      
       if (getScheduler().isPlaying()) {
          getScheduler().stopRequest();
+         System.out.println("waiting for stop");
          waitForStop();
       }
-      TimelineController timeline = 
-         new TimelineController ("Timeline", this, myViewer);
+      
+      TimelineController timeline = new TimelineController ("Timeline", this);
+      
+      
       mySelectionManager.addSelectionListener(timeline);
       timeline.setMultipleSelectionMask (
          myViewer.getMouseHandler().getMultipleSelectionMask());
+      
       myTimeline = timeline;
       //}
 
@@ -879,15 +1043,26 @@ public class Main implements DriverInterface, ComponentChangeListener {
       setMaxStep (maxStep.value);
 
       if (myFrame != null) {
-         myFrame.setVisible (true);
+         
+         // Prevent deadlock by AWT thread
+         try {
+            SwingUtilities.invokeAndWait( new Runnable() {
+               @Override
+               public void run() {
+                  myFrame.setVisible (true);
+                  createTimeline (); //TODO               
+               }
+            });
+         } catch (InvocationTargetException | InterruptedException e) {
+            e.printStackTrace();
+         }
 
          RenderProbe renderProbe =
             new RenderProbe (this, 1/framesPerSecond.value);
          // renderProbe.setMovieOptions(movieOptions);
          getScheduler().setRenderProbe (renderProbe);
 
-         createTimeline (); //TODO
-
+         
          if (myTimeline instanceof TimelineController) {
             myScheduler.addListener ((TimelineController)myTimeline);
          }
@@ -911,6 +1086,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             createJythonConsole (/*useGui=*/false);
          }
       }
+      
    }
 
    public RootModel getRootModel() {
@@ -1094,6 +1270,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       getWorkspace().setRootModel (newRoot);
       // mainViewer should already be set if constructed with build() method:
       newRoot.setMainViewer (myViewer); 
+      if (myViewer != null) {
+         myViewer.clearClipPlanes();
+      }
 
       if (myFrame != null) {
          myMenuBarHandler.enableShowPlay();
@@ -1103,16 +1282,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
             SwingUtilities.invokeLater (new Runnable() {
                   public void run() {
                      myFrame.updateNavBar();
+                     myMenuBarHandler.clearClipPlaneControls ();
                   }
                });
          }
          else {
             myFrame.updateNavBar();
+            myMenuBarHandler.clearClipPlaneControls ();
          }
 
          // reset all the viewers
          myViewerManager.clearRenderables();
-         myViewerManager.resetViewers (newRoot.getDefaultViewOrientation());
+         myViewerManager.resetViewers (getDefaultViewOrientation(newRoot));
       }
 
       // model scheduler initialization called within initialize
@@ -1169,7 +1350,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
 
       public void run() {
-         myStatus = loadModel (myClassName, myModelName, myModelArgs);
+         myStatus = doLoadModel (myClassName, myModelName, myModelArgs);
       }
 
       public boolean getStatus() {
@@ -1236,7 +1417,65 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   public boolean loadModel (
+   // Entry-point for loading model.  If successful, add to history
+   // if available.
+   public boolean loadModel(ModelInfo info) {
+     
+      boolean success = false;
+      
+      if (info.getType() == ModelType.FILE) {
+         try {
+            success = loadModelFile(new File(info.getClassNameOrFile()));
+         } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+         }
+      } else {
+         success = doLoadModel(info.getClassNameOrFile(), info.getShortName(),
+            info.getArgs());
+      }
+      
+      if (success) {
+         if (myModelHistory != null) {
+            myModelHistory.update(info, 
+               new Date(System.currentTimeMillis()));
+            try {
+               // XXX save every time?  Can't seem to get it to save on exit
+               myModelHistory.save(new File(historyFilename.value));
+            } catch (IOException e) {
+            }
+            if (myMenuBarHandler != null) {
+               myMenuBarHandler.updateHistoryMenu();
+            }
+         }
+         lastModelInfo = info;
+      }
+      
+      return success;
+   }
+   
+   // Entry-point for loading model.  If successful, add to history
+   // if available.
+   public boolean loadModel(
+      String className, String modelName, String[] modelArgs) {
+     
+      //      boolean success = doLoadModel(className, modelName, modelArgs);
+      //      if (success) {
+      //         if (myModelHistory != null) {
+      //            myModelHistory.update(new ModelInfo(className, modelName, modelArgs), new Date());
+      //            // XXX save every time?  Can't seem to get it to save on exit
+      //            try {
+      //               myModelHistory.save(new File(historyFilename.value));
+      //            } catch (IOException e) {
+      //            }
+      //         }
+      //      }
+      //      
+      //      return success;
+      return loadModel(new ModelInfo(className, modelName, modelArgs));
+   }
+   
+   private boolean doLoadModel (
       String className, String modelName, String[] modelArgs) {
 
       // If we are not in the AWT event thread, switch to that thread
@@ -1301,7 +1540,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (newRoot == null) {
             // load empty model since some state info from existing model 
             // has been cleared, causing it to crash
-            loadModel (
+            doLoadModel (
                "artisynth.core.workspace.RootModel", "EmptyModel", modelArgs);
             if (myViewerManager != null) {
                myViewerManager.render();
@@ -1370,22 +1609,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             InputEvent.ALT_DOWN_MASK);
       }
       else if (prefs.equalsIgnoreCase("laptop")) {
-         
-         mouse.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
-         mouse.setTranslateButtonMask (
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
-         mouse.setZoomButtonMask (
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK);
-         
-         mouse.setSelectionButtonMask (
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
-         mouse.setMultipleSelectionMask(InputEvent.SHIFT_DOWN_MASK);
-         // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);         
-         
-         mouse.setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
-         mouse.setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
-         mouse.setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK 
-            | InputEvent.ALT_DOWN_MASK);
+         mouse.setLaptopConfig();
       }
       else if (prefs.equalsIgnoreCase ("mac")) {
          
@@ -1460,6 +1684,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder yup = new BooleanHolder (false);
    protected static BooleanHolder drawAxes = new BooleanHolder (false);
    protected static BooleanHolder drawGrid = new BooleanHolder (false);
+   protected static StringHolder axialView = new StringHolder("xz");
    protected static BooleanHolder orthographic = new BooleanHolder (false);
    protected static BooleanHolder startWithTimeline = new BooleanHolder (true);
    protected static BooleanHolder startWithJython = new BooleanHolder (false);
@@ -1478,6 +1703,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static StringHolder demosFilename = new StringHolder();
    protected static StringHolder demosMenuFilename =
       new StringHolder("demoMenu.xml");
+   protected static StringHolder historyFilename = new StringHolder();
    protected static StringHolder scriptsFilename =
       new StringHolder (".artisynthScripts");
    protected static StringHolder scriptFile = 
@@ -1505,6 +1731,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
+   protected static IntHolder glVersion = new IntHolder (3);
 
    protected static IntHolder flags = new IntHolder();
 
@@ -1626,11 +1853,15 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-demosFile %s #demo file (e.g. .demoModels)", demosFilename);
       parser.addOption(
          "-demosMenu %s #demo menu file (e.g. .demoMenu.xml)", demosMenuFilename);
+      parser.addOption(
+         "-historyFile %s #model history file (e.g. .history)", historyFilename);
       parser.addOption (
          "-scriptsFile %s #script file (e.g. .artisynthModels)",scriptsFilename);
       parser.addOption (
          "-mousePrefs %s #kees for pure mouse controls", mousePrefs);
       parser.addOption ("-ortho %v #use orthographic viewing", orthographic);
+      parser.addOption (
+         "-axialView %s{xy,xz} #initial view of x-y or x-z axes", axialView);
       parser.addOption (
          "-noTimeline %v{false} #do not start with a timeline",
          startWithTimeline);
@@ -1685,6 +1916,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-openMatlabConnection %v " +
          "#open a MATLAB connection if possible", openMatlab);
+      parser.addOption (
+         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
 
       Locale.setDefault(Locale.CANADA);
 
@@ -1805,16 +2038,29 @@ public class Main implements DriverInterface, ComponentChangeListener {
       if (noGui.value == true) {
          width.value = -1;
       }
-      Main m = new Main (PROJECT_NAME, width.value, height.value);
+      GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
+      Main m = new Main (PROJECT_NAME, width.value, height.value, glv);
 
       m.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
+      if (axialView.value.equals ("xy")) {
+         m.setDefaultViewOrientation (AxisAngle.IDENTITY);
+      }
+      else if (axialView.value.equals ("xz")) {
+         m.setDefaultViewOrientation (AxisAngle.ROT_X_90);
+      }
+      else {
+         throw new InternalErrorException (
+            "Unknown axial view: " + axialView.value);
+      }
 
       if (m.myFrame != null) {
          m.myViewer.setBackgroundColor (bgColor[0], bgColor[1], bgColor[2]);
          // XXX this should be done in the Main constructor, but needs
          // to be done here instead because of sizing effects
          m.myMenuBarHandler.initToolbar();
-         m.myFrame.setViewerSize (width.value, height.value);
+         // need to set viewer size here, after it has become visible,
+         // because setting it earlier can cause incorrect results
+         m.setViewerSize (width.value, height.value);
       }
 
       if (mousePrefs.value != null && m.myViewer != null) {
@@ -1843,6 +2089,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
          m.getViewer().setOrthographicView (true);
       }
 
+      // XXX store model arguments for future use?
+      if (modelArgsFound) {
+         m.myModelArgs = modelArgs.toArray(new String[modelArgs.size()]);
+      }
+      
       if (modelName.value != null) {
          // load the specified model. See first if the name corresponds to a file
          File file = new File (modelName.value);
@@ -1874,7 +2125,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
                   }
                }
                // load the model
-               m.loadModel (className, name, modelArgs.toArray(new String[0]));
+               ModelInfo mi = new ModelInfo (
+                  className, name, modelArgs.toArray(new String[0]));
+               m.loadModel (mi);
             }
          }
       }
@@ -1996,7 +2249,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myModelFile;
    }
    
-   public void loadModelFile (File file) throws IOException {
+   public boolean loadModelFile (File file) throws IOException {
       RootModel newRoot = null;
       clearRootModel();
       ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (file);
@@ -2035,6 +2288,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
       setRootModel (newRoot, modelName, null);
+      return true;
    }
    
    public void reloadModel() throws IOException {
@@ -2051,7 +2305,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             if (name == null) {
                name = "ArtiSynth";
             }
-            loadModel(rootClass.getName(), name, myModelArgs);
+            loadModel(lastModelInfo);
          }
       }
    }
@@ -2141,6 +2395,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
             myJythonConsole.dispose();
             myJythonConsole = null;
          }
+         // potentially save model history
+         if (historyFilename.value != null) {
+            saveModelHistory(historyFilename.value);
+         }
          disposed = true;
       }
    }
@@ -2151,7 +2409,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    public void quit () {
       dispose();
-      DisplayListManager.requestReset();
       exit (0);
    }
 
@@ -2273,7 +2530,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             else if (pe.getPropertyName().equals ("defaultViewOrientation")) {
                if (myViewerManager != null) {
                   myViewerManager.resetViewers (
-                     getRootModel().getDefaultViewOrientation());
+                     getDefaultViewOrientation(getRootModel()));
                }
             }
          }
@@ -2441,7 +2698,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       private AffineTransform3dBase getIncrementalTransform (Dragger3dEvent e) {
          Dragger3dBase dragger = (Dragger3dBase)e.getSource();
          AffineTransform3dBase transform =
-            e.getIncrementalTransform().clone();
+            e.getIncrementalTransform().copy();
          if (e.getSource() instanceof Rotator3d ||
             e.getSource() instanceof Transrotator3d ||
             e.getSource() instanceof Translator3d ||
@@ -2453,7 +2710,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       private AffineTransform3dBase getOverallTransform (Dragger3dEvent e) {
          Dragger3dBase dragger = (Dragger3dBase)e.getSource();
-         AffineTransform3dBase transform = e.getTransform().clone();
+         AffineTransform3dBase transform = e.getTransform().copy();
          if (e.getSource() instanceof Rotator3d ||
             e.getSource() instanceof Transrotator3d || 
             e.getSource() instanceof Translator3d || 
@@ -2628,7 +2885,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             radius =
                Math.max (radius,
                   myViewer.distancePerPixel (myViewer.getCenter())
-                  * myViewer.getWidth() / 6);
+                  * myViewer.getScreenWidth() / 6);
 
             if (mySelectionMode == SelectionMode.Translate) {
                translator3d.setVisible (true);
@@ -2688,8 +2945,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    private class RestoreSelectionHighlightingHandler extends WindowAdapter {
       public void windowClosed (WindowEvent e) {
-         myViewerManager.setSelectionHighlighting (
-            SelectionHighlighting.Color);
+         myViewerManager.setSelectionHighlightStyle (
+            HighlightStyle.COLOR);
          myViewerManager.render();
       }
    }
@@ -2714,9 +2971,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       if (w instanceof RenderPropsDialog) {
          // disable selection highlighting while the window is active
-         if (myViewerManager.getSelectionHighlighting() ==
-             SelectionHighlighting.Color) {
-            myViewerManager.setSelectionHighlighting (SelectionHighlighting.None);
+         if (myViewerManager.getSelectionHighlightStyle() ==
+             HighlightStyle.COLOR) {
+            myViewerManager.setSelectionHighlightStyle (HighlightStyle.NONE);
             myViewerManager.render();
             ((RenderPropsDialog)w).addWindowListener (
                myRestoreSelectionHighlightingHandler);

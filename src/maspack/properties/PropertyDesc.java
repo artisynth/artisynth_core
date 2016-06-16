@@ -7,6 +7,7 @@
 package maspack.properties;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
@@ -92,6 +93,7 @@ public class PropertyDesc implements PropertyInfo {
       SCANABLE,
       DIMENSION,
       POINT,
+      FONT,
       OTHER
    };
 
@@ -375,6 +377,9 @@ public class PropertyDesc implements PropertyInfo {
       }
       else if (java.awt.Point.class.isAssignableFrom (cls)) {
          code = TypeCode.POINT;
+      }
+      else if (Font.class.isAssignableFrom (cls)) {
+         code = TypeCode.FONT;
       }
       else {
          code = TypeCode.OTHER;
@@ -1658,6 +1663,11 @@ public class PropertyDesc implements PropertyInfo {
             pw.println ("[ " + loc.x + " " + loc.y + " ]");
             break;
          }
+         case FONT: {
+            Font font = (Font)value;
+            Write.writeFont (pw, font);
+            break;
+         }
          case SCANABLE: {
             if (value != null && myValueClass != value.getClass()) {
                if (myValueClass.isAssignableFrom (value.getClass())) {
@@ -1798,6 +1808,9 @@ public class PropertyDesc implements PropertyInfo {
             int y = rtok.scanInteger();
             rtok.scanToken (']');
             return new java.awt.Point (x, y);
+         }
+         case FONT: {
+            return Scan.scanFont (rtok);
          }
          case SCANABLE: {
             Class<?> valueClass = myValueClass;

@@ -22,9 +22,11 @@ public class AxisAngle {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double ANGLE_EPSILON = 10 * DOUBLE_PREC;
 
-   public static AxisAngle IDENTITY = new AxisAngle();
+   public static final AxisAngle IDENTITY = new AxisAngle();
 
-   public static AxisAngle ROT_X_90 = new AxisAngle(1, 0, 0, Math.toRadians(90));
+   public static final AxisAngle ROT_X_90 = new AxisAngle(1, 0, 0, Math.toRadians(90));
+   public static final AxisAngle ROT_Y_90 = new AxisAngle(0, 1, 0, Math.toRadians(90));
+   public static final AxisAngle ROT_Z_90 = new AxisAngle(0, 0, 1, Math.toRadians(90));
 
    /**
     * Rotation axis.

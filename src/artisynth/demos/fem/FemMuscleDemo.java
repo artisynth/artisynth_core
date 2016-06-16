@@ -8,6 +8,7 @@ import java.util.List;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.widgets.BooleanSelector;
 import maspack.widgets.DoubleFieldSlider;
 import maspack.widgets.GuiUtils;
@@ -136,7 +137,7 @@ public class FemMuscleDemo extends RootModel {
 
       RenderProps.setLineWidth(tissue, 2);
       RenderProps.setLineColor(tissue, Color.PINK);
-      RenderProps.setPointStyle(tissue, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle(tissue, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius(tissue, 0.03);
       RenderProps.setPointColor(tissue, Color.PINK);
       RenderProps.setFaceColor(tissue, Color.PINK.darker());
@@ -269,10 +270,10 @@ public class FemMuscleDemo extends RootModel {
 
    protected void setBundleRenderProps(MuscleBundle bundle, Color color) {
       RenderProps.setLineColor(bundle, color);
-      RenderProps.setLineStyle(bundle, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle(bundle, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineRadius(bundle, 0.001);
       RenderProps
-         .setLineStyle(bundle.getElements(), RenderProps.LineStyle.LINE);
+         .setLineStyle(bundle.getElements(), Renderer.LineStyle.LINE);
       RenderProps.setLineWidth(bundle.getElements(), 3);
       RenderProps.setLineRadius(bundle.getElements(), 0.0010);
       RenderProps.setFaceColor(bundle, color);

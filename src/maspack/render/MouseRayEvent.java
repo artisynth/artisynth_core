@@ -6,10 +6,13 @@
  */
 package maspack.render;
 
-import java.awt.*;
+import java.awt.Component;
 import java.awt.event.MouseEvent;
 
-import maspack.matrix.*;
+import maspack.matrix.Line;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.GL.GLViewer;
 
 public class MouseRayEvent extends MouseEvent {
    protected double myViewPlaneWidth;
@@ -32,8 +35,8 @@ public class MouseRayEvent extends MouseEvent {
             e.getModifiersEx(), e.getX(), e.getY(), e.getClickCount(),
             e.isPopupTrigger());
 
-      de.myScreenWidth = viewer.getWidth();
-      de.myScreenHeight = viewer.getHeight();
+      de.myScreenWidth = viewer.getScreenWidth();
+      de.myScreenHeight = viewer.getScreenHeight();
 
       double vph = viewer.getViewPlaneHeight();
       double vpw = viewer.getViewPlaneWidth();
@@ -54,7 +57,7 @@ public class MouseRayEvent extends MouseEvent {
          de.myRay = new Line (0, 0, 0, vx, vy, -de.myViewPlaneDistance);
       }
       RigidTransform3d XWorldToBase = new RigidTransform3d();
-      viewer.getWorldToEye (XWorldToBase);
+      viewer.getViewMatrix (XWorldToBase);
       de.myRay.inverseTransform (XWorldToBase);
 
       de.myViewer = viewer;

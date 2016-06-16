@@ -7,6 +7,7 @@
 
 package maspack.dicom;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import maspack.dicom.DicomPixelBuffer.PixelType;
@@ -251,6 +252,38 @@ public class DicomImage {
    }
    
    /**
+    * Fills a buffer with pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param time time index
+    * @param type pixel output type
+    * @param scanline offset between x-y rows 
+    * @param pageline offset between slices
+    * @param pixels pixel buffer to fill
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    */
+   public void getPixels(int x, int y, int z, 
+      int dx, int dy, int dz,
+      int nx, int ny, int nz, 
+      int time,
+      PixelType type,
+      int scanline,
+      int pageline,
+      ByteBuffer pixels,
+      DicomPixelInterpolator interp) {
+      
+      z = timeOffsets[time] + z;
+      getPixels(x,y,z,dx,dy,dz,nx,ny,nz,type, scanline, pageline, pixels, interp);
+   }
+   
+   /**
     * Fills a buffer with RGB pixel values from the image
     * @param x starting x voxel position
     * @param y starting y voxel position
@@ -271,7 +304,7 @@ public class DicomImage {
       int nx, int ny, int nz, 
       int time,
       byte[] pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       z = timeOffsets[time] + z;
       return getPixelsRGB(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
@@ -298,7 +331,7 @@ public class DicomImage {
       int nx, int ny, int nz, 
       int time,
       byte[] pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       z = timeOffsets[time] + z;
       
       return getPixelsByte(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
@@ -325,7 +358,7 @@ public class DicomImage {
       int nx, int ny, int nz, 
       int time,
       short[] pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       z = timeOffsets[time] + z;
       
       return getPixelsShort(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
@@ -352,10 +385,46 @@ public class DicomImage {
       int nx, int ny, int nz, 
       int time,
       DicomPixelBuffer pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       z = timeOffsets[time] + z;
       
       return getPixels(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
+   }
+   
+   /**
+    * Fills a buffer with RGB pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param type output pixel type
+    * @param scanline xy row offset
+    * @param pageline offset between slices
+    * @param pixels pixel buffer to fill
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @return the next unfilled index in the pixel buffer
+    */
+   public int getPixels(int x, int y, int z, 
+      int dx, int dy, int dz,
+      int nx, int ny, int nz, PixelType type, int scanline,
+      int pageline, ByteBuffer pixels,
+      DicomPixelInterpolator interp) {
+
+      int offset = 0;
+      for (int i=0; i<nz; i++) {
+         int idx = z+dz*i;
+         int pos = pixels.position ();
+         slices[idx].getPixels(x, y, dx, dy, nx, ny, type, scanline, pixels, interp);
+         if (pageline > 0) {
+            pixels.position (pos+pageline);
+         }
+      }
+      return offset;
    }
    
    /**
@@ -376,7 +445,7 @@ public class DicomImage {
    public int getPixelsRGB(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, byte[] pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
 
       int offset = 0;
       for (int i=0; i<nz; i++) {
@@ -404,7 +473,7 @@ public class DicomImage {
    public int getPixelsByte(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, byte[] pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       int offset = 0;
       for (int i=0; i<nz; i++) {
@@ -432,7 +501,7 @@ public class DicomImage {
    public int getPixelsShort(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, short[] pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       int offset = 0;
       for (int i=0; i<nz; i++) {
@@ -461,7 +530,7 @@ public class DicomImage {
       int dx, int dy, int dz,
       int nx, int ny, int nz,
       DicomPixelBuffer pixels,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       int offset = 0;
       for (int i=0; i<nz; i++) {

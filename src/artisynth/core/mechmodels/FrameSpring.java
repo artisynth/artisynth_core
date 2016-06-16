@@ -13,21 +13,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Deque;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix6dBlock;
-import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.Twist;
@@ -193,7 +189,7 @@ public class FrameSpring extends Spring
       // nothing to do
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myFrameA.getPose().p.updateBounds (pmin, pmax);
       if (myFrameB != null) {
          myFrameB.getPose().p.updateBounds (pmin, pmax);
@@ -202,8 +198,8 @@ public class FrameSpring extends Spring
 
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
       }
       return code;
    }
@@ -216,17 +212,16 @@ public class FrameSpring extends Spring
       return -1;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
 
       myRenderFrame.set (myFrameA.myRenderFrame);
       myRenderFrame.mul (myX1A);
       myRenderFrame.p.get (myRenderPnt1);
 
+      int lineWidth = myRenderProps.getLineWidth();
       if (myAxisLength > 0) {
-         renderer.setLineWidth (myRenderProps.getLineWidth());
-         Frame.drawAxes (
-            renderer, myRenderFrame, (float)myAxisLength, isSelected());
-         renderer.setLineWidth (1);
+         renderer.drawAxes (
+            myRenderFrame, myAxisLength, lineWidth, isSelected());
       }
 
       if (myFrameB != null) {
@@ -239,10 +234,8 @@ public class FrameSpring extends Spring
       myRenderFrame.p.get (myRenderPnt2);
          
       if (myAxisLength > 0) {
-         renderer.setLineWidth (myRenderProps.getLineWidth());
-         Frame.drawAxes (
-            renderer, myRenderFrame, (float)myAxisLength, isSelected());
-         renderer.setLineWidth (1);
+         renderer.drawAxes (
+            myRenderFrame, myAxisLength, lineWidth, isSelected());
       }
 
       renderer.drawLine (

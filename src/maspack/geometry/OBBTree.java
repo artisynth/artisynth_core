@@ -11,16 +11,14 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.Collection;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.OBB.Method;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderableUtils;
-import maspack.render.GLSupport;
+import maspack.render.GL.GLSupport;
 import maspack.util.InternalErrorException;
 //import maspack.util.ScanSupport;
 import maspack.util.RandomGenerator;
@@ -198,7 +196,7 @@ public class OBBTree extends BVTree {
    }
 
    public void recursiveRender (
-      GLRenderer renderer, int flags, BVNode node, int level) {
+      Renderer renderer, int flags, BVNode node, int level) {
       if (node.isLeaf()) {
          ((OBB)node).render (renderer, flags);
       }
@@ -229,13 +227,12 @@ public class OBBTree extends BVTree {
       return recursiveDepth (root, 0);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (root != null) {
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glPushMatrix();
-         renderer.mulTransform (myBvhToWorld);
+         renderer.pushModelMatrix();
+         renderer.mulModelMatrix (myBvhToWorld);
          recursiveRender (renderer, flags, root, 0);
-         gl.glPopMatrix();
+         renderer.popModelMatrix();
       }
    }
 

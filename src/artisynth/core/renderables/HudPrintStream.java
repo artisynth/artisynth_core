@@ -11,14 +11,10 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
 import maspack.matrix.Point2d;
-import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.RenderList;
-
-import com.jogamp.opengl.util.awt.TextRenderer;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
 
 /**
  * Simple component to print info on the main viewer
@@ -50,12 +46,6 @@ public class HudPrintStream extends TextComponentBase {
       HudPrintStream.class, TextComponentBase.class);
 
    static {
-      // change default font size
-      PropertyDesc info = myProps.get("fontSize");
-      info.setDefaultValue(defaultFontSize);
-      info = myProps.get("textSize");
-      info.setDefaultValue(defaultTextSize);
-      
       myProps.add("position", "display position", Point2d.ZERO);
       myProps.add("lineSpacing", "height of line proportional to font size",
          defaultLineSpacing);
@@ -81,12 +71,12 @@ public class HudPrintStream extends TextComponentBase {
 
    @Override
    protected void setDefaults() {
-      myFont = new Font(defaultFontName, 0, defaultFontSize);
-      myTextRenderer = new TextRenderer(myFont);
+      myFont = new Font(defaultFontName, Font.PLAIN, defaultFontSize);
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;
+      myFontSize = defaultFontSize;
 
       myPos = new Point2d();
       myMaxDisplayLines = defaultNumDisplayLines;
@@ -108,7 +98,7 @@ public class HudPrintStream extends TextComponentBase {
 //   }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
 
       if (!isSelectable() && renderer.isSelecting()) {
          return;
@@ -117,16 +107,16 @@ public class HudPrintStream extends TextComponentBase {
       FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
 
       // Position is assumed to be ([0,1], [0,1])
-      int sw = renderer.getWidth();
-      int sh = renderer.getHeight();
+      int sw = renderer.getScreenWidth();
+      int sh = renderer.getScreenHeight();
       renderPos.set(myPos.x * sw, myPos.y * sh);
 
       // print from top to bottom
-      float fSize = (float)myTextSize/getFontSize();
       // for consistency, assume line top as 0.75 font size
-      double t = 0.75 * myTextSize;
-      double vc = 0.25 * myTextSize;
-      double b = -vc;
+      Rectangle2D box = renderer.getTextBounds (myFont, "X", myTextSize);
+      double t = box.getHeight ()+box.getY ();
+      // double vc = box.getY ()+box.getHeight ()/2;
+      double b = box.getY ();
       double a;
       
       double dy = myTextSize * myLineSpacing;
@@ -169,11 +159,9 @@ public class HudPrintStream extends TextComponentBase {
       }
       
       // render lines top to bottom
-      myTextRenderer.begin3DRendering();
-      
       float[] rgb = new float[3];
       rprops.getFaceColor(rgb);
-      myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
+      renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
 
       myScrollOffset = Math.min(myScrollOffset, myNumLines - nLines);
       int offset = myScrollOffset;
@@ -185,13 +173,14 @@ public class HudPrintStream extends TextComponentBase {
 
       int j = 0;
       String str;
+      float[] loc = new float[3];
       for (int i = 0; i < nLines; i++) {
          // text left computation
          j =
             (myLineIdx + i + 2 * myBufferSize - nLines - offset + 1)
                % myBufferSize;
          str = myTextLines[j];
-         Rectangle2D box = myTextRenderer.getBounds(str);
+         box = renderer.getTextBounds(myFont, str, myTextSize);
          double w = box.getWidth();
          // double h = box.getHeight();
          double dx = 0;
@@ -207,11 +196,11 @@ public class HudPrintStream extends TextComponentBase {
                break;
          }
 
-         myTextRenderer.draw3D(str, (float)(renderPos.x + dx),
-            (float)(renderPos.y - i * dy), 0, fSize);
+         loc[0] = (float)(renderPos.x + dx);
+         loc[1] = (float)(renderPos.y - i * dy);
+         renderer.drawText(myFont, str, loc, myTextSize);
 
       }
-      myTextRenderer.end3DRendering();
       
       if (!saved2d) {
          renderer.end2DRendering();
@@ -376,7 +365,7 @@ public class HudPrintStream extends TextComponentBase {
 
    @Override
    public int getRenderHints() {
-      return (GLRenderable.TRANSLUCENT | GLRenderable.TWO_DIMENSIONAL);
+      return (IsRenderable.TRANSPARENT | IsRenderable.TWO_DIMENSIONAL);
    }
 
    // handles *SOME* control characters
@@ -530,7 +519,7 @@ public class HudPrintStream extends TextComponentBase {
    @Override
    public void setVerticalAlignment(VerticalAlignment vAlignment) {
       if (!isFullScreen) {
-         setVerticalAlignment(vAlignment);
+         super.setVerticalAlignment (vAlignment);
       } else {
          lastVAlignment = vAlignment;
       }

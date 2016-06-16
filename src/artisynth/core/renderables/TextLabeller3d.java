@@ -12,8 +12,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.media.opengl.GL2;
-
+import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.PointList;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
@@ -22,13 +22,8 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.properties.PropertyDesc;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
-import artisynth.core.mechmodels.Point;
-import artisynth.core.mechmodels.PointList;
-
-import com.jogamp.opengl.util.awt.TextRenderer;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
 
 
 public class TextLabeller3d extends TextComponentBase {
@@ -75,7 +70,6 @@ public class TextLabeller3d extends TextComponentBase {
    
    // intermediate variables
    RigidTransform3d myTransform = new RigidTransform3d();
-   private double[] GLMatrix = new double[16];
    RotationMatrix3d rEye = new RotationMatrix3d();
    Point3d renderPos = new Point3d();
    double[] xdir = new double[3];
@@ -98,12 +92,12 @@ public class TextLabeller3d extends TextComponentBase {
    @Override
    protected void setDefaults() {
       myFont = new Font(defaultFontName, 0, defaultFontSize);
-      myTextRenderer = new TextRenderer(myFont);
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
-      
       myTextSize = defaultTextSize;
+      myFontSize = defaultFontSize;
+      
       myTextOffset = new Point2d(defaultTextOffset);
       myItems = new ArrayList<LabelItem>();
       
@@ -117,7 +111,7 @@ public class TextLabeller3d extends TextComponentBase {
 //   }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
     
       if (!isSelectable() && renderer.isSelecting()) {
          return;
@@ -125,28 +119,28 @@ public class TextLabeller3d extends TextComponentBase {
       
       FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
       rprops.getFaceColor(rgb);
-      GL2 gl = renderer.getGL2().getGL2();
-      float fTextSize = (float)(myTextSize/getFontSize());
+
       Point3d tmp = new Point3d();
       
       // for consistency, assume line top as 3/4 font size
-      double t = myTextSize*0.75;
-      double vc = myTextSize* 0.25;
+      Rectangle2D box = renderer.getTextBounds (myFont, "X", myTextSize);
+      double t = box.getY ()+box.getHeight ();
+      double vc = box.getY () + box.getHeight ()/2;
       
-      rEye.set(renderer.getEyeToWorld().R);
+      rEye.invert(renderer.getViewMatrix().R);
       rEye.getColumn(0, xdir);
       rEye.getColumn(1, ydir);
       myTransform.R.set(rEye);
       
-      myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
-      myTextRenderer.begin3DRendering();
-      
+      renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
+     
+      float[] loc = new float[3];
       for (LabelItem label : myItems) {
          renderPos.setZero();
          
          // text orientation computation
-         Rectangle2D box = myTextRenderer.getBounds(label.text);
-         double w = box.getWidth() * fTextSize;
+         box = renderer.getTextBounds(myFont, label.text, myTextSize);
+         double w = box.getWidth();
          
          switch(hAlignment) {
             case LEFT:
@@ -190,23 +184,19 @@ public class TextLabeller3d extends TextComponentBase {
          renderPos.add(tmp);
          myTransform.p.set(renderPos);
          
-         gl.glPushMatrix();
-         GLSupport.transformToGLMatrix (GLMatrix, myTransform);
-         gl.glMultMatrixd (GLMatrix, 0);
+         renderer.pushModelMatrix();
+         renderer.mulModelMatrix(myTransform);
          
-         myTextRenderer.draw3D(label.text, 0,0,0, fTextSize);
-         myTextRenderer.flush();
+         renderer.drawText(myFont, label.text, loc, myTextSize);
          
-         gl.glPopMatrix();
+         renderer.popModelMatrix();
       }
 
-      myTextRenderer.end3DRendering();
-      
    }
    
    @Override
    public int getRenderHints() {
-      return GLRenderable.TRANSLUCENT; // for clear background
+      return IsRenderable.TRANSPARENT; // for clear background
    }
    
    /**
@@ -261,7 +251,7 @@ public class TextLabeller3d extends TextComponentBase {
    public int addItem(String text, Point3d pos, AffineTransform3dBase trans, boolean byRef) {
       if (!byRef) {
          pos = new Point3d(pos);
-         trans = trans.clone ();
+         trans = trans.copy ();
       }
       LabelItem item = new LabelItem(text, pos, trans, nextLabelId++);
       myItems.add(item);

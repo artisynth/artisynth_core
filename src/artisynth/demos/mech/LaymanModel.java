@@ -8,13 +8,12 @@ import artisynth.core.materials.RotAxisFrameMaterial;
 import artisynth.core.util.*;
 import artisynth.core.gui.*;
 import artisynth.core.driver.Main;
-
 import maspack.geometry.*;
 import maspack.properties.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.util.*;
 
 import java.io.*;
@@ -150,7 +149,7 @@ public class LaymanModel extends MechModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       SphericalJoint joint = new SphericalJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setPointStyle (joint, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
       RenderProps.setPointRadius (joint, 0.035);
       joint.setAxisLength (0);
@@ -169,7 +168,7 @@ public class LaymanModel extends MechModel {
       XDB.mulInverseLeft (bodyB.getPose(), TDW);
       TCA.mulInverseLeft (bodyA.getPose(), TDW);
       RevoluteJoint joint = new RevoluteJoint (bodyA, TCA, bodyB, XDB);
-      RenderProps.setLineStyle (joint, RenderProps.LineStyle.CYLINDER);
+      RenderProps.setLineStyle (joint, LineStyle.CYLINDER);
       RenderProps.setLineColor (joint, Color.BLUE);
       RenderProps.setLineRadius (joint, 0.025);
       joint.setAxisLength (0.05);
@@ -339,7 +338,7 @@ public class LaymanModel extends MechModel {
 
       RenderProps r = new RenderProps();
       r.setFaceColor (new Color (0.8f, 0.8f, 1f));
-      r.setPointStyle (RenderProps.PointStyle.SPHERE);
+      r.setPointStyle (Renderer.PointStyle.SPHERE);
       r.setPointColor (new Color (88f / 255f, 106f / 255f, 155f / 255f));
       r.setLineColor (new Color (0.6f, 1f, 0.6f));
       r.setLineStyle (LineStyle.CYLINDER);

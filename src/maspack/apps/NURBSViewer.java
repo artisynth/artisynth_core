@@ -6,21 +6,24 @@
  */
 package maspack.apps;
 
-import java.awt.event.MouseEvent;
 import java.awt.Color;
-import java.io.BufferedReader;
+import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.Reader;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.event.MouseInputAdapter;
 
+import argparser.ArgParser;
+import argparser.BooleanHolder;
+import argparser.DoubleHolder;
+import argparser.IntHolder;
+import argparser.StringHolder;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.NURBSCurve3d;
 import maspack.geometry.NURBSMesh;
@@ -33,17 +36,12 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
-import maspack.render.GLSelectionEvent;
-import maspack.render.GLSelectionListener;
-import maspack.render.GLViewer;
-import maspack.render.GLViewerFrame;
-import maspack.render.Material;
 import maspack.render.RenderProps;
-import argparser.ArgParser;
-import argparser.BooleanHolder;
-import argparser.DoubleHolder;
-import argparser.IntHolder;
-import argparser.StringHolder;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionListener;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewer.GLVersion;
+import maspack.render.GL.GLViewerFrame;
 
 public class NURBSViewer extends GLViewerFrame {
    private static final long serialVersionUID = 1L;
@@ -53,10 +51,10 @@ public class NURBSViewer extends GLViewerFrame {
 
    ArrayList<Vector4d> selectedPnts = new ArrayList<Vector4d>();
 
-   class SelectionHandler implements GLSelectionListener {
+   class SelectionHandler implements ViewerSelectionListener {
       private void clearSelection() {
          selectedPnts.clear();
-         for (Iterator it = nurbsList.iterator(); it.hasNext();) {
+         for (Iterator<NURBSObject> it = nurbsList.iterator(); it.hasNext();) {
             NURBSObject nurbsObj = (NURBSObject)it.next();
             for (int i = 0; i < nurbsObj.numControlPoints(); i++) {
                nurbsObj.selectControlPoint (i, false);
@@ -65,7 +63,7 @@ public class NURBSViewer extends GLViewerFrame {
 
       }
 
-      public void itemsSelected (GLSelectionEvent e) {
+      public void itemsSelected (ViewerSelectionEvent e) {
          boolean holdSelection, selectAll;
 
          long modEx = e.getModifiersEx();
@@ -76,9 +74,8 @@ public class NURBSViewer extends GLViewerFrame {
             clearSelection();
          }
          if (e.numSelectedQueries() > 0) {
-            LinkedList[] itemPaths = e.getSelectedObjects();
-            for (int i = 0; i < itemPaths.length; i++) {
-               LinkedList path = itemPaths[i];
+            List<LinkedList<?>> itemPaths = e.getSelectedObjects();
+            for (LinkedList<?> path : itemPaths) {
                if (path.getFirst() instanceof NURBSObject) {
                   NURBSObject nurbsObj = (NURBSObject)path.getFirst();
                   if (path.size() > 1 && path.get (1) instanceof Integer) {
@@ -125,16 +122,16 @@ public class NURBSViewer extends GLViewerFrame {
       public void mouseDragged (MouseEvent e) {
          if (dragging) {
             RigidTransform3d XV = new RigidTransform3d();
-            viewer.getWorldToEye (XV);
+            viewer.getViewMatrix (XV);
             Vector3d del =
                new Vector3d (e.getX() - lastX, lastY - e.getY(), 0);
             del.inverseTransform (XV);
             del.scale (viewer.centerDistancePerPixel());
             Vector4d del4d = new Vector4d (del.x, del.y, del.z, 0);
-            for (Iterator it = selectedPnts.iterator(); it.hasNext();) {
+            for (Iterator<Vector4d> it = selectedPnts.iterator(); it.hasNext();) {
                ((Vector4d)it.next()).add (del4d);
             }
-            for (Enumeration en = meshTable.keys(); en.hasMoreElements();) {
+            for (Enumeration<NURBSObject> en = meshTable.keys(); en.hasMoreElements();) {
                NURBSSurface surf = (NURBSSurface)en.nextElement();
                NURBSMesh mesh = (NURBSMesh)meshTable.get (surf);
                mesh.updateVertices (surf);
@@ -176,6 +173,11 @@ public class NURBSViewer extends GLViewerFrame {
 
    public NURBSViewer (int w, int h) {
       super ("NURBSViewer", w, h);
+      init();
+   }
+
+   public NURBSViewer (int w, int h, GLVersion version) {
+      super ("NURBSViewer", w, h, version);
       init();
    }
 
@@ -224,8 +226,8 @@ public class NURBSViewer extends GLViewerFrame {
 
    void collide (PolygonalMesh mesh) {
       if (colmesh != null) {
-         for (Iterator it = mesh.getVertices().iterator(); it.hasNext();) {
-            collidePoint (((Vertex3d)it.next()).pnt);
+         for (Iterator<Vertex3d> it = mesh.getVertices().iterator(); it.hasNext();) {
+            collidePoint (it.next().pnt);
          }
       }
    }
@@ -246,13 +248,14 @@ public class NURBSViewer extends GLViewerFrame {
    static BooleanHolder addCircle = new BooleanHolder (false);
    static BooleanHolder addMesh = new BooleanHolder (false);
    static BooleanHolder collider = new BooleanHolder (false);
+   static IntHolder glVersion = new IntHolder (2);
 
    public static void main (String[] args) {
       StringHolder fileName = new StringHolder();
       IntHolder width = new IntHolder (400);
       IntHolder height = new IntHolder (400);
 
-      ArgParser parser = new ArgParser ("java maspack.geometry.NURBSCurveTest");
+      ArgParser parser = new ArgParser ("java maspack.geometry.NURBSViewer");
       parser.addOption ("-width %d #width (pixels)", width);
       parser.addOption ("-height %d #height (pixels)", height);
       parser.addOption ("-drawAxes %v #draw coordinate axes", drawAxes);
@@ -263,12 +266,15 @@ public class NURBSViewer extends GLViewerFrame {
       parser.addOption (
          "-collider %v #create a colliding object for meshes", collider);
       parser.addOption ("-axisLength %f #coordinate axis length", axisLength);
+      parser.addOption (
+         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
 
       parser.matchAllArgs (args);
 
       NURBSViewer viewFrame = null;
       try {
-         viewFrame = new NURBSViewer (width.value, height.value);
+         GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
+         viewFrame = new NURBSViewer (width.value, height.value, glv);
          GLViewer viewer = viewFrame.getViewer();
          if (fileName.value != null) {
             viewFrame.addNURBS (new File (fileName.value));
@@ -289,7 +295,7 @@ public class NURBSViewer extends GLViewerFrame {
             viewFrame.addNURBS (circle);
          }
 
-         viewer.autoFitPerspective (0);
+         viewer.autoFitPerspective ();
          if (drawAxes.value) {
             if (axisLength.value > 0) {
                viewer.setAxisLength (axisLength.value);

@@ -319,8 +319,6 @@ public class ArticulatedDemo extends RootModel {
 
    ControlPanel myControlPanel;
 
-   GLViewer myViewer;
-
    public void addControlPanel (MechModel mech) {
       myControlPanel = new ControlPanel ("options", "");
       myControlPanel.addWidget (mech, "integrator");

@@ -4,6 +4,7 @@ import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
@@ -77,7 +78,7 @@ public class AttachedBeamBody extends RootModel {
       props = mk0.createRenderProps();
       // props.setColor (Color.GREEN);
       props.setPointRadius (0.1);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       mk0.setRenderProps (props);
       //mechMod.addFrameMarker (mk0, myBase, new Point3d (lenx0 / 2, leny0 / 2, 0));
 
@@ -263,7 +264,7 @@ public class AttachedBeamBody extends RootModel {
 
 
       RenderProps.setPointColor (mechMod, Color.BLUE);
-      RenderProps.setPointStyle (mechMod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mechMod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (mechMod, 0.05);
 
       FrameMarker mkr = new FrameMarker ("mkr1");
@@ -275,7 +276,7 @@ public class AttachedBeamBody extends RootModel {
       AxialSpring spr0 = new AxialSpring (10, 1, 0); // 50, 10, 0);
 
       props = spr0.createRenderProps();
-      props.setLineStyle (RenderProps.LineStyle.ELLIPSOID);
+      props.setLineStyle (Renderer.LineStyle.SPINDLE);
       props.setLineRadius (0.05);
       props.setLineColor (Color.RED);
       spr0.setRenderProps (props);

@@ -7,16 +7,20 @@
 package artisynth.core.probes;
 
 import java.awt.Color;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.util.TimeBase;
-import maspack.render.*;
-import maspack.properties.*;
+import maspack.interpolation.NumericListKnot;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
-import maspack.interpolation.*;
-
-import java.util.*;
+import maspack.properties.Property;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyMode;
+import maspack.render.HasRenderProps;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import artisynth.core.modelbase.ModelComponent;
 
 public class PointTracingProbe extends TracingProbe {
    ModelComponent myComponent;
@@ -57,7 +61,7 @@ public class PointTracingProbe extends TracingProbe {
          // if component point color is explicitly set, set the
          // line and point colors of render props to match
          if (compProps.getPointColorMode() == PropertyMode.Explicit) {
-            Color pointColor = compProps.getPointColor();
+            float[] pointColor = compProps.getPointColorF();
             newProps.setPointColor (pointColor);
             newProps.setLineColor (pointColor);
          }
@@ -137,7 +141,7 @@ public class PointTracingProbe extends TracingProbe {
       }
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       if (myNumericList == null) {
          return;
       }
@@ -151,7 +155,7 @@ public class PointTracingProbe extends TracingProbe {
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myNumericList == null || myNumericList.isEmpty()) {
          return;
       }

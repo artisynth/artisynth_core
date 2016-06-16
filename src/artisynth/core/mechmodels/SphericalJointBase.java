@@ -10,7 +10,7 @@ import java.util.Map;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.spatialmotion.SphericalCoupling;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
@@ -29,7 +29,7 @@ public class SphericalJointBase extends JointBase
       myCoupling.setContactDistance (1e-8);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
       float[] coords =
          new float[] { (float)myRenderFrameD.p.x, (float)myRenderFrameD.p.y,

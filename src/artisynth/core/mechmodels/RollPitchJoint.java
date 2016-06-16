@@ -9,11 +9,11 @@ package artisynth.core.mechmodels;
 import java.awt.Color;
 import java.util.Map;
 
-import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.RollPitchCoupling;
@@ -117,7 +117,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       RigidTransform3d TFW = getCurrentTCW();
       TFW.p.updateBounds (pmin, pmax);
    }
@@ -192,7 +192,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       setPitchRange (new DoubleInterval (min, max));
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
       float[] coords =
          new float[] { (float)myRenderFrameD.p.x, (float)myRenderFrameD.p.y,

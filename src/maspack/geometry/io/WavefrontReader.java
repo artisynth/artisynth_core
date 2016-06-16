@@ -1,14 +1,34 @@
 package maspack.geometry.io;
 
 import java.awt.Color;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 
-import maspack.util.*;
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.geometry.*;
-
-import java.util.*;
+import maspack.geometry.MeshBase;
+import maspack.geometry.PointMesh;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.PolylineMesh;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.Vector4d;
+import maspack.render.BumpMapProps;
+import maspack.render.ColorMapProps;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
+import maspack.util.ArraySupport;
+import maspack.util.ReaderTokenizer;
+import maspack.util.TestSupport;
 
 /**
  * Interprets a subset of the Alias-Wavefront OBJ file format. Groups are
@@ -1094,9 +1114,7 @@ public class WavefrontReader extends MeshReaderBase {
          double r = rtok.scanNumber();
          double g = rtok.scanNumber();
          double b = rtok.scanNumber();
-         // ignore for now
-         System.out.println("Ignorning specular info: (r,g,b) = ("
-            + r + "," + b + "," + g + ")");
+         props.setSpecular (new Color((float)r, (float)g, (float)b));
       }
       else if (rtok.sval.equals("d") || rtok.sval.equals("Tr")) {
          double alpha = rtok.scanNumber();
@@ -1118,21 +1136,54 @@ public class WavefrontReader extends MeshReaderBase {
          // we need period
          int savePeriod = rtok.getCharSetting('.');
          rtok.wordChar('.');
+         int saveDash = rtok.getCharSetting ('-');
+         rtok.wordChar ('-');
 
          String map = rtok.scanWord();
          if (map != null) {
             // set texture properties
-            props.setFaceStyle(RenderProps.Faces.FRONT_AND_BACK);
-            props.setShading(RenderProps.Shading.GOURARD);
-            TextureProps tprops = new TextureProps();
+            props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
+            props.setShading(Shading.SMOOTH);
+            ColorMapProps tprops = props.getColorMap ();
+            if (tprops == null) {
+               tprops = new ColorMapProps();
+            }
             tprops.setFileName(currPath + "/" + map);
             tprops.setEnabled(true);
-            tprops.setMode(TextureProps.Mode.MODULATE);
-            props.setTextureProps(tprops);
+            tprops.setColorMixing(ColorMixing.MODULATE);
+            props.setColorMap(tprops);
          }
 
          // restore period state
          rtok.setCharSetting('.', savePeriod);
+         rtok.setCharSetting ('-', saveDash);
+      }
+      // eg map_Kd lenna.tga # the diffuse texture map
+      else if (rtok.sval.equals("bump") || rtok.sval.equals("map_bump")) {
+
+         // we need period
+         int savePeriod = rtok.getCharSetting('.');
+         rtok.wordChar('.');
+         int saveDash = rtok.getCharSetting ('-');
+         rtok.wordChar ('-');
+         
+         String map = rtok.scanWord();
+         if (map != null) {
+            // set texture properties
+            props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
+            props.setShading(Shading.SMOOTH);
+            BumpMapProps tprops = props.getBumpMap ();
+            if (tprops == null) {
+               tprops = new BumpMapProps();
+            }
+            tprops.setFileName(currPath + "/" + map);
+            tprops.setEnabled(true);
+            props.setBumpMap(tprops);
+         }
+
+         // restore period state
+         rtok.setCharSetting('.', savePeriod);
+         rtok.setCharSetting ('-', saveDash);
       }
       else {
          return false;
@@ -1620,7 +1671,17 @@ public class WavefrontReader extends MeshReaderBase {
       ArrayList<Vector3d> textureCoords = new ArrayList<Vector3d>();
       int[] tindices = getLocalTextureIndicesAndVertices (textureCoords);
       if (tindices != null) {
-         mesh.setTextureCoords (textureCoords, tindices);
+         // for now, make sure we don't have partial texture coordinates
+         boolean incompleteTexture = false;
+         for (int i=0; i<tindices.length; i++) {
+            if (tindices[i] == -1) {
+               incompleteTexture = true;
+               break;
+            }
+         }
+         if (!incompleteTexture) {
+            mesh.setTextureCoords (textureCoords, tindices);
+         }
       }
       ArrayList<Vector3d> normals = new ArrayList<Vector3d>();
       int[] nindices = getLocalNormalIndicesAndVertices (normals);

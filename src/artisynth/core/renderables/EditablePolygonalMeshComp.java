@@ -18,7 +18,8 @@ public class EditablePolygonalMeshComp extends EditableMeshComp {
    public EditablePolygonalMeshComp (PolygonalMesh mesh) {
       super(mesh);
       pmesh = mesh;
-      myFaceList = new FaceList<FaceComponent>(FaceComponent.class, "faces", "f");
+      myFaceList = new FaceList<FaceComponent>(FaceComponent.class, 
+         "faces", "f", pmesh);
       add(myFaceList);
       updateFaces();
    }

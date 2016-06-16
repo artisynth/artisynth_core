@@ -13,9 +13,9 @@ import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.RotationMatrix3d;
-import maspack.render.GLViewer;
-import maspack.render.GLRenderable;
-import maspack.render.GLClipPlane;
+import maspack.render.IsRenderable;
+import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLViewer;
 
 /**
  * This is the base class for all EditWidgets. An EditWidget is responsible for
@@ -76,7 +76,7 @@ public abstract class EditingAgent {
    /**
     * Returns the center point of a renderable object.
     */
-   public Point3d getCenter (GLRenderable r) {
+   public Point3d getCenter (IsRenderable r) {
       Point3d max = new Point3d (-inf, -inf, -inf);
       Point3d min = new Point3d (inf, inf, inf);
       r.updateBounds (min, max);

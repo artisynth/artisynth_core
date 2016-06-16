@@ -4,6 +4,14 @@
 DOC_DIR = ..
 HTML_DIR = ../html/maspack
 
+SOURCES = \
+	maspack.tex \
+	../texinputs/artisynthDoc.tex \
+	properties.tex \
+	rendering.tex
+
+EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.png images/*.jpg)))
+
 .PHONY: html pdf chunked
 
 html: $(HTML_DIR)/maspack.html $(COPIED_IMAGE_FILES)
@@ -15,20 +23,15 @@ $(PDF_DIR)/maspack.pdf: maspack.pdf
 
 #chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
 
-maspack.pdf: maspack.tex
-	pdflatex maspack.tex
-	pdflatex maspack.tex
-	pdflatex maspack.tex
+maspack.pdf: $(SOURCES) $(EPS_FILES)
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) maspack.ps
 
 maspack.xml: maspack.tex
 	latexml maspack.tex >maspack.xml
 
-$(HTML_DIR)/maspack.html: maspack.tex
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml maspack.tex >maspack.xml
-	$(LATEXMLPOST) maspack.xml
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/maspack.html
+$(HTML_DIR)/maspack.html: $(SOURCES)
+	$(BUILD_HTML)
 	rm -f maspack.xml
 
 install_html: html

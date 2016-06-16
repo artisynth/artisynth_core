@@ -6,21 +6,35 @@
  */
 package artisynth.core.mechmodels;
 
-import maspack.geometry.*;
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.properties.*;
-import maspack.render.*;
-import maspack.spatialmotion.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Map;
 
-import java.util.*;
-import java.io.*;
-
-import artisynth.core.modelbase.*;
-import artisynth.core.util.*;
-import maspack.render.*;
-
-import javax.media.opengl.*;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
+import maspack.properties.HasProperties;
+import maspack.properties.PropertyList;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.DrawMode;
+import maspack.spatialmotion.SegmentedPlanarCoupling;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import maspack.util.Scan;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.util.ScanToken;
 
 /**
  * Auxiliary class used to solve constrained rigid body problems.
@@ -53,7 +67,7 @@ public class SegmentedPlanarConnector extends BodyConnector
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointFaceProps (null);
-      props.setFaceStyle (RenderProps.Faces.FRONT_AND_BACK);
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       return props;
    }
 
@@ -278,7 +292,7 @@ public class SegmentedPlanarConnector extends BodyConnector
    // myDerivatives[0] = Gdot.dot (mmVelBA);
    // }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       RigidTransform3d TDW = getCurrentTDW();
       for (int i = 0; i < mySegPlaneCoupling.numPlanes(); i++) {
          computeRenderVtxs (i, TDW);
@@ -299,36 +313,37 @@ public class SegmentedPlanarConnector extends BodyConnector
       myRenderCoords[2] = (float)TFW.p.z;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       Vector3d nrm = new Vector3d (0, 0, 1);
       RigidTransform3d TDW = getCurrentTDW();
 
-      GL2 gl = renderer.getGL2().getGL2();
       RenderProps props = myRenderProps;
 
-      renderer.setMaterialAndShading (props, props.getFaceMaterial(), isSelected());
-      renderer.setFaceMode (props.getFaceStyle());
+      Shading savedShading = renderer.setPropsShading (props);
+      renderer.setFaceColoring (props, isSelected());
+      renderer.setFaceStyle (props.getFaceStyle());
       ArrayList<Plane> planes = mySegPlaneCoupling.getPlanes();
 
       for (int i = 0; i < planes.size(); i++) {
          Plane plane = planes.get (i);
          nrm.set (plane.getNormal());
          computeRenderVtxs (i, TDW);
-         gl.glBegin (GL2.GL_POLYGON);
+
+         renderer.beginDraw (DrawMode.TRIANGLE_STRIP);
          if (myRenderNormalReversedP) {
-            gl.glNormal3d (-nrm.x, -nrm.y, -nrm.z);
+            renderer.setNormal (-nrm.x, -nrm.y, -nrm.z);
          }
          else {
-            gl.glNormal3d (nrm.x, nrm.y, nrm.z);
+            renderer.setNormal (nrm.x, nrm.y, nrm.z);
          }
-         for (int k = 0; k < myRenderVtxs.length; k++) {
-            Point3d p = myRenderVtxs[k];
-            gl.glVertex3d (p.x, p.y, p.z);
-         }
-         gl.glEnd();
+         renderer.addVertex (myRenderVtxs[3]);
+         renderer.addVertex (myRenderVtxs[0]);
+         renderer.addVertex (myRenderVtxs[2]);
+         renderer.addVertex (myRenderVtxs[1]);
+         renderer.endDraw();
       }
-      renderer.restoreShading (props);
-      renderer.setDefaultFaceMode();
+      renderer.setShading (savedShading);
+      renderer.setFaceStyle (FaceStyle.FRONT);
       renderer.drawPoint (myRenderProps, myRenderCoords, isSelected());
    }
 

@@ -10,6 +10,7 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.ArrayList;
 
 import javax.swing.*;
 import javax.swing.event.*;
@@ -222,6 +223,9 @@ public class ProbeInfo implements Clonable, ActionListener {
    }
 
    public void setStopTime (double t) {
+      if (t == getProbe().getStartTime()){
+         (new Throwable()).printStackTrace();
+      }
       getProbe().setStopTime (t);
    }
 
@@ -1119,7 +1123,7 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
       else if (nameOfAction == "Delete") {
          Track track = myTrack; // myTrack will be nulled by delete operation
-         track.deleteProbe (myIndex, false);
+         track.deleteProbe (this, false);
          track.refreshTrackChanges();
          return;
       }
@@ -1517,8 +1521,8 @@ public class ProbeInfo implements Clonable, ActionListener {
                if (stretchFromStartP || cropFromStartP) {
                   // if this is not the first probe, then check if overlap occurs
                   if (pInfo.myIndex != 0) {
-                     ProbeInfo prevProbe = myTrack.probeInfos.get (
-                        pInfo.myIndex - 1);
+                     ArrayList<ProbeInfo> pinfos = myTrack.getProbeInfos();
+                     ProbeInfo prevProbe = pinfos.get (pInfo.myIndex - 1);
 
                      if (pInfo.getStartTime() < prevProbe.getStopTime()) {
                         pInfo.setStartTime(prevProbe.getStopTime());
@@ -1527,9 +1531,10 @@ public class ProbeInfo implements Clonable, ActionListener {
                }
                else if (stretchFromStopP || cropFromStopP) {                  
                   // if this is not the last probe, then check if overlap occurs
-                  if (pInfo.myIndex != myTrack.probeInfos.size() - 1) {
-                     ProbeInfo nextProbe = myTrack.probeInfos.get (
-                        pInfo.myIndex + 1);
+                  
+                  if (pInfo.myIndex != myTrack.numProbeInfos()-1) {
+                     ArrayList<ProbeInfo> pinfos = myTrack.getProbeInfos();
+                     ProbeInfo nextProbe = pinfos.get (pInfo.myIndex + 1);
 
                      if (pInfo.getStopTime() > nextProbe.getStartTime()) {
                         pInfo.setStopTime (nextProbe.getStartTime());

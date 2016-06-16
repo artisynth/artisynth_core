@@ -7,7 +7,9 @@
 package maspack.render;
 
 import maspack.matrix.*;
+import maspack.render.GL.GLViewer;
 import maspack.util.Round;
+
 import java.util.LinkedList;
 
 public abstract class Dragger3dBase extends DragToolBase {
@@ -178,7 +180,7 @@ public abstract class Dragger3dBase extends DragToolBase {
       myXDraggerToWorld.p.set (pos);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d pnt = new Point3d (myXDraggerToWorld.p);
       pnt.x -= mySize;
       pnt.y -= mySize;

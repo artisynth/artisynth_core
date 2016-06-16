@@ -93,7 +93,7 @@ public abstract class JointBase extends BodyConnector  {
    //    return TDW;
    // }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d pend = new Point3d();
       Vector3d del = new Vector3d (myAxisLength, myAxisLength, myAxisLength);
       pend.set (getCurrentTDW().p);
@@ -114,16 +114,17 @@ public abstract class JointBase extends BodyConnector  {
       myRenderFrameC.set (TCW);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
+      int lineWidth = myRenderProps.getLineWidth();
       if (myDrawFrameD) {
          renderer.drawAxes (
-            myRenderProps, myRenderFrameD, myAxisLength, isSelected());
+            myRenderFrameD, myAxisLength, lineWidth, isSelected());
       }
       
       if (myDrawFrameC) {
          // second frame
          renderer.drawAxes (
-            myRenderProps, myRenderFrameC, myAxisLength, isSelected());
+            myRenderFrameC, myAxisLength, lineWidth, isSelected());
       }
    }
 

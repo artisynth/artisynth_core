@@ -9,6 +9,7 @@ import java.util.Random;
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.MeshFactory;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
@@ -17,6 +18,8 @@ import maspack.matrix.Vector3d;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemModel3d;
@@ -61,8 +64,8 @@ public class FemCollision extends RootModel {
       try {
 
          MechModel mechmod = new MechModel();
-         mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
-         //mechmod.setIntegrator(Integrator.BackwardEuler);
+         //mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
+         mechmod.setIntegrator(Integrator.BackwardEuler);
          //mechmod.setProfiling (true);
 
          CollisionManager collisions = mechmod.getCollisionManager();
@@ -75,7 +78,8 @@ public class FemCollision extends RootModel {
          
          RigidBody table = new RigidBody("table");
          table.setDynamic (false);
-         table.setMesh (new PolygonalMesh (new File (rbpath + "box.obj")), null);
+         //table.setMesh (new PolygonalMesh (new File (rbpath+ "box.obj")), null);
+         table.setMesh (MeshFactory.createBox (2, 2, 2));
          AffineTransform3d trans = new AffineTransform3d();
          trans.setIdentity();
          trans.applyScaling (4, 2, 0.5);
@@ -85,15 +89,16 @@ public class FemCollision extends RootModel {
                new Vector3d (1, 0, 0.8077474533228615),
                new AxisAngle (1, 0, 0, Math.toRadians (mu == 0 ? 0.0 : 1.5))));
          if (wireFrame) {
-            RenderProps.setFaceStyle (table, RenderProps.Faces.NONE);
+            RenderProps.setFaceStyle (table, Renderer.FaceStyle.NONE);
             RenderProps.setDrawEdges (table, true);
          }
          mechmod.addRigidBody (table);
 
          if (incBox0) {
             box0 = new RigidBody("box0");
-            box0.setMesh (
-               new PolygonalMesh (new File (rbpath + "box.obj")), null);
+            //box0.setMesh (
+            //   new PolygonalMesh (new File (rbpath + "box.obj")), null);
+            box0.setMesh (MeshFactory.createBox (2, 2, 2));
             trans.setIdentity();
             trans.applyScaling (1.5, 1.5, 0.5);
             box0.transformGeometry (trans);
@@ -103,7 +108,7 @@ public class FemCollision extends RootModel {
                new Vector3d (-0.5, 0, 3.5), new AxisAngle()));
             RenderProps.setFaceColor (box0, Color.GREEN.darker());
             if (wireFrame) {
-               RenderProps.setFaceStyle (box0, RenderProps.Faces.NONE);
+               RenderProps.setFaceStyle (box0, Renderer.FaceStyle.NONE);
                RenderProps.setDrawEdges (box0, true);
             }
             mechmod.addRigidBody (box0);
@@ -142,6 +147,7 @@ public class FemCollision extends RootModel {
             RenderProps.setFaceColor (fem0, new Color (0.5f, 0f, 0f));
 //            RenderProps.setAlpha(fem0, 0.33);
             RenderProps.setAlpha(fem0, 0.5);
+            RenderProps.setShading(fem0, Shading.NONE);
             RenderProps.setDrawEdges(fem0, true);
             RenderProps.setVisible(fem0.getElements(), false);
             RenderProps.setVisible(fem0.getNodes(), false);
@@ -174,6 +180,7 @@ public class FemCollision extends RootModel {
             fem1.setSurfaceRendering (
                wireFrame ? SurfaceRender.None : SurfaceRender.Shaded);
             RenderProps.setAlpha(fem1, 0.5);
+            RenderProps.setShading(fem1, Shading.NONE);
             RenderProps.setDrawEdges(fem1, true);
             RenderProps.setVisible(fem1.getElements(), false);
             RenderProps.setVisible(fem1.getNodes(), false);
@@ -224,7 +231,7 @@ public class FemCollision extends RootModel {
 //      fem.setPoissonsRatio (myPoissonsRatio);
 //      fem.setYoungsModulus (myYoungsModulus);
       fem.setLinearMaterial (myYoungsModulus, myPoissonsRatio, true);
-      RenderProps.setPointStyle (fem, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (fem, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (fem, mySize / 50);
       return fem;
    }

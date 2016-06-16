@@ -85,7 +85,7 @@ public class RigidTransform2d extends AffineTransform2dBase {
       M = R;
       b = p;
    }
-
+   
    /**
     * Creates a new transformation with the specified translation vector and
     * rotation matrix.
@@ -114,8 +114,8 @@ public class RigidTransform2d extends AffineTransform2dBase {
    public RigidTransform2d (Vector2d p, double ang) {
       this.R = new RotationMatrix2d (ang);
       this.p = new Vector2d (p);
-      M = R;
-      b = p;
+      M = this.R;
+      b = this.p;
    }
 
    /**
@@ -362,6 +362,11 @@ public class RigidTransform2d extends AffineTransform2dBase {
    public void fit (ArrayList<Point2d> p, ArrayList<Point2d> q)
       throws ImproperSizeException {
       fit (p, q, false /* no scaling */);
+   }
+   
+   @Override
+   public RigidTransform2d copy() {
+      return new RigidTransform2d(this);
    }
 
 }

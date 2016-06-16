@@ -25,8 +25,6 @@ import java.io.*;
 import java.util.*;
 import java.awt.Color;
 
-import javax.media.opengl.*;
-
 import maspack.render.*;
 import maspack.widgets.GuiUtils;
 
@@ -143,11 +141,11 @@ public class SpringMeshDemo extends RootModel {
       // X.R.setAxisAngle (1, 0, 0, -Math.PI/2);
       // viewer.setTransform (X);
 
-      RenderProps.setPointStyle (msmod, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (msmod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (msmod, 2);
       RenderProps.setPointColor (msmod, Color.RED);
       RenderProps.setLineRadius (msmod, 0.5);
-      RenderProps.setLineStyle (msmod, RenderProps.LineStyle.CYLINDER);
+      RenderProps.setLineStyle (msmod, Renderer.LineStyle.CYLINDER);
 
       // PlaneCollider collider =
       // new PlaneCollider("plane",
@@ -155,13 +153,9 @@ public class SpringMeshDemo extends RootModel {
       // collider.setRenderPosition (new Point3d(0, 0, 0), 25);
       // collider.addMechModel (msmod);
 
-      Material gray = Material.createSpecial (Material.GRAY);
-      Material green = Material.createSpecial (Material.GREEN);
-      Material red = Material.createSpecial (Material.RED);
-
       RenderProps props = (new Particle()).createRenderProps();
       props.setPointRadius (2);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (Renderer.PointStyle.SPHERE);
       props.setPointColor (Color.GREEN);
 
       Particle p0 = new Particle (5, -10, 0, 20);
@@ -288,6 +282,12 @@ public class SpringMeshDemo extends RootModel {
 
          addInputProbe (inprobe);
 
+         // for (int i=0; i<3; i++) {
+         //    inprobe = new NumericInputProbe (
+         //       mech, "particles/0:targetPosition", i*2.2, i*2.2+2);
+         //    addInputProbe (inprobe);
+         // }
+
          NumericOutputProbe collector =
             new NumericOutputProbe (
                mech, "particles/pnt7:position",
@@ -337,11 +337,16 @@ public class SpringMeshDemo extends RootModel {
    // }
    // }
 
+   //int cnt = 0;
+
    public StepAdjustment advance (double t0, double t1, int flags) {
       // MechModel model = (MechModel)models().getByNumber (0);
       // SolveMatrixTest tester = new SolveMatrixTest();
       // System.out.println ("error=" + tester.testStiffness (model, 1e-8));
 
+      //if ((++cnt % 100) == 0) {
+      //   setStopRequest (true);
+      //}
       return super.advance (t0, t1, flags);
    }
 

@@ -18,6 +18,7 @@ import maspack.matrix.*;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import maspack.spatialmotion.*;
@@ -100,7 +101,7 @@ public class FemSkinDemo extends RootModel {
       RenderProps.setLineWidth (elements, 2);
       RenderProps.setLineColor (elements, Color.BLUE);
       Renderable nodes = femMod.getNodes();
-      RenderProps.setPointStyle (nodes, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (nodes, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (nodes, 0.010);
       RenderProps.setPointColor (nodes, new Color (153, 0, 204));
       RenderProps.setFaceColor (femMod, new Color (128, 128, 255));
@@ -123,7 +124,7 @@ public class FemSkinDemo extends RootModel {
    public void build (String[] args) {
 
       myMech = new MechModel ("mech");
-      RenderProps.setPointStyle (myMech, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (myMech, Renderer.PointStyle.SPHERE);
 
       double midw = 0.6;
 
@@ -199,7 +200,7 @@ public class FemSkinDemo extends RootModel {
       skinBody.setName("skin");
       
       RenderProps.setDrawEdges (skinBody, true);
-      RenderProps.setFaceStyle (skinBody, RenderProps.Faces.NONE);
+      RenderProps.setFaceStyle (skinBody, Renderer.FaceStyle.NONE);
       
       myMech.addMeshBody (skinBody);
 

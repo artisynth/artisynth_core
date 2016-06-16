@@ -15,6 +15,7 @@ import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
@@ -86,7 +87,7 @@ public class AttachDemo extends RootModel {
       //fem.setPoissonsRatio (myPoissonsRatio);
       //fem.setYoungsModulus (myYoungsModulus);
       fem.setSurfaceRendering (SurfaceRender.Shaded);
-      RenderProps.setPointStyle (fem, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (fem, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (fem, 0.02);
       RenderProps.setLineColor (fem, Color.BLUE);
       RenderProps.setPointColor (fem, new Color (153, 0, 204));

@@ -41,6 +41,10 @@ public class RigidBodyCollision extends RootModel {
 
    boolean wireFrame = true;
 
+   void setWireFrame (RigidBody body) {
+      RenderProps.setWireFrame (body, true);
+   }
+
    public void build (String[] args) throws IOException {
 
       try {
@@ -62,8 +66,7 @@ public class RigidBodyCollision extends RootModel {
          mechmod.addRigidBody (table);
          boxes.add (table);
          if (wireFrame) {
-            RenderProps.setFaceStyle (table, RenderProps.Faces.NONE);
-            RenderProps.setDrawEdges (table, true);
+            setWireFrame (table);
          }
 
          box0 = new RigidBody("box0"); // middle box in pile
@@ -75,8 +78,7 @@ public class RigidBodyCollision extends RootModel {
 
          addBox (box0, Color.GREEN);
          if (wireFrame) {
-            RenderProps.setFaceStyle (box0, RenderProps.Faces.NONE);
-            RenderProps.setDrawEdges (box0, true);
+            setWireFrame (box0);
          }
 
          box1 = new RigidBody("box1"); // long thin box, bottom of pile
@@ -87,8 +89,7 @@ public class RigidBodyCollision extends RootModel {
          box1.setInertia (SpatialInertia.createBoxInertia (1, 1, 0.1, 4));
          addBox (box1, Color.YELLOW);
          if (wireFrame) {
-            RenderProps.setFaceStyle (box1, RenderProps.Faces.NONE);
-            RenderProps.setDrawEdges (box1, true);
+            setWireFrame (box1);
          }
 
          box2 = new RigidBody("box2"); // left hand box falling on unsupported end of
@@ -100,8 +101,7 @@ public class RigidBodyCollision extends RootModel {
          box2.setInertia (SpatialInertia.createBoxInertia (20, 1, 1, 1));
          addBox (box2, Color.BLUE);
          if (wireFrame) {
-            RenderProps.setFaceStyle (box2, RenderProps.Faces.NONE);
-            RenderProps.setDrawEdges (box2, true);
+            setWireFrame (box2);
          }
 
          box3 = new RigidBody("box3"); // top box in pile
@@ -114,8 +114,7 @@ public class RigidBodyCollision extends RootModel {
          addBox (box3, Color.CYAN);
          //box3.getMesh().name = "box3";
          if (wireFrame) {
-            RenderProps.setFaceStyle (box3, RenderProps.Faces.NONE);
-            RenderProps.setDrawEdges (box3, true);
+            setWireFrame (box3);
          }
 
          box4 = new RigidBody("box4"); // solo box off to the right.
@@ -130,8 +129,7 @@ public class RigidBodyCollision extends RootModel {
          addBox (box4, Color.RED);
          //box4.getMesh().name = "box4";
          if (wireFrame) {
-            RenderProps.setFaceStyle (box4, RenderProps.Faces.NONE);
-            RenderProps.setDrawEdges (box4, true);
+            setWireFrame (box4);
          }
 
          mechmod.setDefaultCollisionBehavior (true, 0.05);

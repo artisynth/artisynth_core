@@ -1146,7 +1146,7 @@ Clonable {
       R.set(this.R);
    }
 
-   public ScaledRigidTransform3d clone() {
+   public ScaledRigidTransform3d copy() {
       return new ScaledRigidTransform3d (this);
    }
 

@@ -10,8 +10,7 @@ import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
+import maspack.render.GL.GLViewer;
 
 /**
  * Class that listens to key events, and executes a scroll-up, scroll-down or
@@ -30,7 +29,7 @@ public class HudKeyListener implements KeyListener {
       new KeyCombo(0, '`', 0);
 
    HudPrintStream myHud;
-   GLRenderer myRenderer;
+   GLViewer myViewer;
    KeyCombo myScrollUpKeys = defaultScrollUpKeys;
    KeyCombo myScrollDownKeys = defaultScrollDownKeys;
    KeyCombo myFullscreenKeys = defaultFullscreenKeys;
@@ -65,7 +64,7 @@ public class HudKeyListener implements KeyListener {
     */
    public HudKeyListener (HudPrintStream hud) {
       myHud = hud;
-      myRenderer = null;
+      myViewer = null;
    }
 
    /**
@@ -73,12 +72,12 @@ public class HudKeyListener implements KeyListener {
     * 
     * @param hud
     * the HudPrintStream object to control
-    * @param renderer
-    * (optional) a renderer use to trigger re-render events after changes
+    * @param viewer
+    * (optional) a viewer used to trigger re-render events after changes
     */
-   public HudKeyListener (HudPrintStream hud, GLRenderer renderer) {
+   public HudKeyListener (HudPrintStream hud, GLViewer viewer) {
       myHud = hud;
-      myRenderer = renderer;
+      myViewer = viewer;
    }
 
    @Override
@@ -108,8 +107,8 @@ public class HudKeyListener implements KeyListener {
    }
    
    private void rerender() {
-	   if (myRenderer != null) {
-		   myRenderer.rerender();
+	   if (myViewer != null) {
+		   myViewer.rerender();
 	   }
    }
 
@@ -179,25 +178,25 @@ public class HudKeyListener implements KeyListener {
       return kl;
    }
 
-   /**
-    * Creates and registers a HudKeyListener object
-    * 
-    * @param hud
-    * the HudPrintStream to control
-    * @param comp
-    * the component on which to listen for key events
-    * @param renderer
-    * renderer object for triggering rerender events
-    * @return the created HudKeyListener
-    */
-   public static HudKeyListener createListener(HudPrintStream hud,
-      Component comp, GLRenderer renderer) {
-      HudKeyListener kl = new HudKeyListener(hud, renderer);
-      if (comp != null) {
-         comp.addKeyListener(kl);
-      }
-      return kl;
-   }
+//   /**
+//    * Creates and registers a HudKeyListener object
+//    * 
+//    * @param hud
+//    * the HudPrintStream to control
+//    * @param comp
+//    * the component on which to listen for key events
+//    * @param renderer
+//    * renderer object for triggering rerender events
+//    * @return the created HudKeyListener
+//    */
+//   public static HudKeyListener createListener(HudPrintStream hud,
+//      Component comp, Renderer renderer) {
+//      HudKeyListener kl = new HudKeyListener(hud, renderer);
+//      if (comp != null) {
+//         comp.addKeyListener(kl);
+//      }
+//      return kl;
+//   }
 
    /**
     * Creates and registers a HudKeyListener object

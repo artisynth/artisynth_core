@@ -18,7 +18,7 @@ import java.io.*;
 import java.util.*;
 
 public class PointForce extends ModelComponentBase 
-   implements RenderableLine, RenderableComponent, ScalableUnits, 
+   implements RenderableComponent, ScalableUnits, 
    ForceComponent, TransformableGeometry, CopyableComponent {
 
    public static double DEFAULT_FORCE_SCALING = 1;
@@ -151,11 +151,11 @@ public class PointForce extends ModelComponentBase
 
    protected RenderProps myRenderProps = null;
 
-   public float[] getRenderCoords0() {
+   private float[] getRenderCoords0() {
       return myPnt.myRenderCoords;
    }
 
-   public float[] getRenderCoords1() {
+   private float[] getRenderCoords1() {
       myTail.scaledAdd (-myAxisLength, myU, myPnt.getPosition());
 
       myTailCoords[0] = (float)myTail.x;
@@ -181,15 +181,15 @@ public class PointForce extends ModelComponentBase
       // nothing to do
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myPnt.updateBounds (pmin, pmax);
       myTail.updateBounds (pmin, pmax);
    }
 
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
       }
       return code;
    }
@@ -202,16 +202,12 @@ public class PointForce extends ModelComponentBase
       return -1;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myMag > 0) {
       renderer.drawArrow (
-         myRenderProps, myPnt.myRenderCoords, getRenderCoords1(),
+         myRenderProps, getRenderCoords1(), getRenderCoords0(),
          true /* capped */, isSelected());
       }
-   }
-
-   public float[] getRenderColor() {
-      return null;
    }
 
    public void getSelection (LinkedList<Object> list, int qid) {

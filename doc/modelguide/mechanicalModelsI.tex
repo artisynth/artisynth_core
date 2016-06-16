@@ -1,13 +1,13 @@
 %!TEX root = modelguide.tex
 
-\section{Mechanical Models I}
+\chapter{Mechanical Models I}
 \label{MechModelsI:sec}
 
 This section details how to build basic multibody-type mechanical
 models consisting of particles, springs, rigid bodies, joints, and
 other constraints.
 
-\subsection{Springs and particles}
+\section{Springs and particles}
 \label{ParticlesAndSprings:sec}
 
 The most basic type of mechanical model consists simply of particles
@@ -19,7 +19,7 @@ more general base class \javaclass[artisynth.core.mechmodels]{Point},
 which is used to also implement spatial points such as {\tt markers}
 which do not have a mass.
 
-\subsubsection{Axial springs and materials}
+\subsection{Axial springs and materials}
 \label{AxialSprings:sec}
 
 An axial spring is a simple spring that connects two points and is
@@ -51,7 +51,7 @@ artisynth.core.materials}. Setting or querying a spring's material
 may be done with the methods {\tt setMaterial()} and {\tt
 getMaterial()}.
 
-\subsubsection{Example: A simple particle-spring model}
+\subsection{Example: A simple particle-spring model}
 \label{ParticleSpringExample:sec}
 
 \begin{figure}[t]
@@ -120,7 +120,7 @@ initially appear as in Figure \ref{ParticleSpring:fig}.  Running
 the model (Section \ref{LoadingAndRunning:sec}) will
 cause the second particle to fall and swing about under gravity.
 
-\subsubsection{Dynamic, parametric, and attached components}
+\subsection{Dynamic, parametric, and attached components}
 \label{DynamicVsParametric:sec}
 
 By default, a dynamic component is advanced through time in response
@@ -181,7 +181,7 @@ master component(s) to which it is attached.
 
 \end{description}
 
-\subsubsection{Custom axial materials}
+\subsection{Custom axial materials}
 
 Application authors may create their
 own axial materials by subclassing 
@@ -212,7 +212,7 @@ respectively, while the last method should return {\tt true} if
 $\partial f(l, \dot l, a) / \partial \dot l \equiv 0$; i.e., if it is
 always equals to 0.
 
-\subsubsection{Damping parameters}
+\subsection{Damping parameters}
 
 Mechanical models usually contain damping forces in addition to
 spring-type restorative forces. Damping generates forces that reduce
@@ -256,7 +256,7 @@ property is {\it inherited} (Section
 explicitly, it inherits the nearest explicitly set value in an
 ancestor component.
 
-\subsection{Rigid bodies}
+\section{Rigid bodies}
 
 Rigid bodies are implemented in ArtiSynth by the class
 \javaclass[artisynth.core.mechmodels]{RigidBody}, which is a dynamic
@@ -271,12 +271,16 @@ The combined position and orientation of this frame with respect to
 world coordinates defines the body's {\it pose}, and the associated 6
 degrees of freedom describe its ``position'' state.
 
-\subsubsection{Frame markers}
+\subsection{Frame markers}
 \label{FrameMarkers:sec}
 
 \begin{figure}[t]
 \begin{center}
- \includegraphics[width=2.5in]{images/frameMarker}
+ \iflatexml
+   \includegraphics[width=2.5in]{images/frameMarker}
+ \else
+   \includegraphics[width=2.5in]{images/frameMarker.idr}
+ \fi
 \end{center}
 \caption{A force $\f$ applied to a frame marker attached to a rigid
 body. The marker is located at the point $\r$ with respect to the body
@@ -329,7 +333,7 @@ generates a spatial force $\hat\f$ (Section
 \label{RigidBodySpring:fig}
 \end{figure}
 
-\subsubsection{Example: A simple rigid body-spring model}
+\subsection{Example: A simple rigid body-spring model}
 \label{RigidBodySpringExample:sec}
 
 A simple rigid body-spring model is defined in
@@ -405,7 +409,7 @@ initially appear as in Figure \ref{RigidBodySpring:fig}.  Running the
 model (Section \ref{LoadingAndRunning:sec}) will cause the rigid body
 to fall and swing about under gravity.
 
-\subsubsection{Creating rigid bodies}
+\subsection{Creating rigid bodies}
 
 As illustrated above, rigid bodies can be created using factory
 methods supplied by \javaclass[artisynth.core.mechmodels]{RigidBody}.
@@ -449,7 +453,7 @@ constructor, and then set the mesh and inertia properties explicitly:
 \end{lstlisting}
 %
 
-\subsubsection{Pose and velocity}
+\subsection{Pose and velocity}
 
 A body's pose can be set and
 queried using the methods
@@ -504,7 +508,7 @@ to control its pose during the simulation, but in that case it is
 better to set its {\it target pose} and/or {\it target velocity}, as
 described in Section \ref{ControllerImplementation:sec}.
 
-\subsubsection{Inertia and meshes}
+\subsection{Inertia and meshes}
 
 The ``mass'' of a rigid body is described by its spatial inertia
 (Section \ref{SpatialInertia:sec}), implemented by a
@@ -601,7 +605,7 @@ using
 \end{lstlisting}
 %
 
-\subsubsection{Damping parameters}
+\subsection{Damping parameters}
 \label{RigidBodyDamping:sec}
 
 As with particles, it is possible to set damping parameters for rigid
@@ -639,7 +643,7 @@ Frame and rotary damping can also be set for individual bodies using
 their own (inherited) {\tt frameDamping} and {\tt rotaryDamping}
 properties.
 
-\subsection{Joints and connectors}
+\section{Joints and connectors}
 \label{JointsAndConnectors:sec}
 
 In a typical mechanical model, many of the rigid bodies are
@@ -647,7 +651,7 @@ interconnected, either using spring-type components that exert binding
 forces on the bodies, or through joint-type connectors that enforce
 the connection using hard constraints.
 
-\subsubsection{Joints and coordinate frames}
+\subsection{Joints and coordinate frames}
 
 Consider two bodies A and B. The pose of body B with respect to body A
 can be described by the 6 DOF rigid transform $\T_{BA}$.  If bodies A
@@ -661,7 +665,11 @@ frames A and B of the associated bodies by auxiliary transformations.
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=2.5in]{images/jointExample}
+ \iflatexml
+   \includegraphics[width=2.5in]{images/jointExample}
+ \else
+   \includegraphics[width=2.5in]{images/jointExample.idr}
+ \fi
 \end{center}
 \caption{Coordinate frames D and C for a revolute joint.}
 \label{jointExample:fig}
@@ -692,7 +700,11 @@ and the joint is said to be in the {\it zero state}.
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=2.5in]{images/jointFrames}
+ \iflatexml
+   \includegraphics[width=2.5in]{images/jointFrames}
+ \else
+   \includegraphics[width=2.5in]{images/jointFrames.idr}
+ \fi
 \end{center}
 \caption{2D schematic showing the joint frames D and C, along with
 the intermediate frame G that accounts for numeric error
@@ -725,7 +737,11 @@ relative poses of A and B.
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=3.74in]{images/jointBodyFrames}
+ \iflatexml
+   \includegraphics[width=3.74in]{images/jointBodyFrames}
+ \else
+   \includegraphics[width=3.74in]{images/jointBodyFrames.idr}
+ \fi
 \end{center}
 \caption{Transforms connecting joint coordinate frames C and D with
 rigid bodies A and B.}
@@ -748,7 +764,7 @@ the joint transform $\T_{CD}$:
 (See Section \ref{RigidTransforms:sec} for a discussion of determining
 transforms between related coordinate frames).
 
-\subsubsection{Creating Joints}
+\subsection{Creating Joints}
 \label{CreatingJoints:sec}
 
 Joint components in ArtiSynth are implemented by subclasses of
@@ -873,7 +889,7 @@ or
 \end{lstlisting}
 %
 
-\subsubsection{Example:  A simple revolute joint}
+\subsection{Example:  A simple revolute joint}
 \label{RigidBodyJoint:sec}
 
 \begin{figure}[ht]
@@ -992,16 +1008,23 @@ initially appear as in Figure \ref{RigidBodyJoint:fig}.  Running the
 model (Section \ref{LoadingAndRunning:sec}) will cause {\tt bodyA} to
 fall and swing under gravity.
 
-\subsubsection{Commonly used joints}
+\subsection{Commonly used joints}
 \label{CommonJoints:sec}
 
 \begin{figure}
 \begin{center}
 \begin{tabular}{cc}
-\includegraphics[width=1.75in]{images/revoluteJoint}&
-\includegraphics[width=1.75in]{images/rollPitchJoint}\\
-\includegraphics[width=1.75in]{images/sphericalJoint}&
-\includegraphics[width=1.75in]{images/planarConnector}\\
+ \iflatexml
+   \includegraphics[width=1.75in]{images/revoluteJoint}&
+   \includegraphics[width=1.75in]{images/rollPitchJoint}\\
+   \includegraphics[width=1.75in]{images/sphericalJoint}&
+   \includegraphics[width=1.75in]{images/planarConnector}\\
+ \else
+   \includegraphics[width=1.75in]{images/revoluteJoint.idr}&
+   \includegraphics[width=1.75in]{images/rollPitchJoint.idr}\\
+   \includegraphics[width=1.75in]{images/sphericalJoint.idr}&
+   \includegraphics[width=1.75in]{images/planarConnector.idr}\\
+ \fi
 \end{tabular}
 \end{center}
 \caption{Commonly used joints. Clockwise from
@@ -1040,21 +1063,25 @@ body may assume any orientation about the point.
 
 \end{description}
 
-% LATER \subsubsection{Joint Compliance}
+% LATER \subsection{Joint Compliance}
 % LATER \label{JointCompliance:sec}
 
-\subsection{Frame springs}
+\section{Frame springs}
 \label{FrameSprings:sec}
 
 Another way to connect two rigid bodies together is to use a {\it
 frame spring}, which is a six dimensional spring that generates
 restoring forces and moments between coordinate frames.
 
-\subsubsection{Frame spring coordinate frames}
+\subsection{Frame spring coordinate frames}
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=3in]{images/frameSpring}
+ \iflatexml
+   \includegraphics[width=3in]{images/frameSpring}
+ \else
+   \includegraphics[width=3in]{images/frameSpring.idr}
+ \fi
 \end{center}
 \caption{A frame spring connecting two coordinate frames D and C.}
 \label{frameSpring:fig}
@@ -1089,7 +1116,11 @@ The forces acting on D are equal and opposite, so that
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=3in]{images/frameSpringBodies}
+ \iflatexml
+   \includegraphics[width=3in]{images/frameSpringBodies}
+ \else
+   \includegraphics[width=3in]{images/frameSpringBodies.idr}
+ \fi
 \end{center}
 \caption{A frame spring connecting two rigid bodies A and B.}
 \label{frameSpringBodies:fig}
@@ -1101,7 +1132,7 @@ joint. As with joints, C and D generally do not coincide with the body
 frames, and are instead offset from them by fixed transforms $\T_{CA}$
 and $\T_{DB}$ (Figure \ref{frameSpringBodies:fig}).
 
-\subsubsection{Frame materials}
+\subsection{Frame materials}
 
 The restoring forces (\ref{ftauC:eqn}) generated in a frame spring
 depend on the {\it frame material} associated with the spring. Frame
@@ -1146,7 +1177,7 @@ different axes will result in anisotropic behavior.
 Other frame materials offering nonlinear behaviour may be defined in
 {\tt artisynth.core.materials}.
 
-\subsubsection{Creating frame springs}
+\subsection{Creating frame springs}
 \label{CreatingFrameSprings:sec}
 
 Frame springs are implemented by the class
@@ -1190,7 +1221,7 @@ As with joints, a frame spring can be connected to only a single body,
 by specifying {\tt frameB} as {\tt null}. Frame B is then taken to be
 the world coordinate frame W.
 
-\subsubsection{Example: Two bodies connected by a frame spring}
+\subsection{Example: Two bodies connected by a frame spring}
 
 \begin{figure}[ht]
 \begin{center}
@@ -1287,10 +1318,10 @@ Running the model (Section \ref{LoadingAndRunning:sec}) will cause
 arrests the motion. To get a sense of the spring's behavior, one can
 interactively apply forces to {\tt lumbar1} using the pull manipulator
 (see the section ``Pull Manipulator'' in the
-\href{../uiguide/uiguide.html}{
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}).
 
-\subsection{Attachments}
+\section{Attachments}
 \label{Attachments:sec}
 
 ArtiSynth provides the ability to rigidly attach dynamic components to
@@ -1300,7 +1331,7 @@ MechModel} special {\it attachment} components that manage the
 attachment physics as described briefly in Section
 \ref{PhysicsSimulation:sec}.
 
-\subsubsection{Point attachments}
+\subsection{Point attachments}
 \label{sec:mech:pointattachments}
 
 Point attachments allow particles and other point-based components to
@@ -1343,7 +1374,7 @@ calling
 \end{lstlisting}
 %
 
-\subsubsection{Example: model with particle attachments}
+\subsection{Example: model with particle attachments}
 
 \begin{figure}[ht]
 \begin{center}
@@ -1446,7 +1477,7 @@ and initially appear as in Figure \ref{ParticleAttachment:fig}.
 Running the model (Section \ref{LoadingAndRunning:sec}) will cause the
 box to fall and swing under gravity.
 
-\subsubsection{Frame attachments}
+\subsection{Frame attachments}
 \label{sec:mech:frameattachments}
 
 Frame attachments allow rigid bodies and other frame-based components to
@@ -1493,7 +1524,7 @@ less accurate) than creating a single rigid body through mesh merging
 or similar techniques.
 \end{sideblock}
 
-\subsubsection{Example: model with frame attachments}
+\subsection{Example: model with frame attachments}
 
 \begin{figure}[ht]
 \begin{center}

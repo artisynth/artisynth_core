@@ -6,13 +6,12 @@
  */
 package artisynth.core.femmodels;
 
-import javax.media.opengl.GL2;
 import java.util.*;
 
 import artisynth.core.mechmodels.*;
 import maspack.matrix.*;
 import maspack.util.*;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
 
 public class PyramidElement extends FemElement3d {
@@ -26,6 +25,7 @@ public class PyramidElement extends FemElement3d {
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
    private static IntegrationPoint3d myWarpingPoint;
+   private static FemElementRenderer myRenderer;   
 
    /**
     * {@inheritDoc}
@@ -265,13 +265,19 @@ public class PyramidElement extends FemElement3d {
       return elems;
    }
 
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
+   }
+
    public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
-      renderer.drawPyramid (
-         props, size,
-         myNodes[0].myRenderCoords, myNodes[1].myRenderCoords, 
-         myNodes[2].myRenderCoords, myNodes[3].myRenderCoords,
-         myNodes[4].myRenderCoords);
+      Renderer renderer, double size, RenderProps props) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.renderWidget (renderer, this, size, props);
    }
 
    static int[] myEdgeIdxs = new int[] 

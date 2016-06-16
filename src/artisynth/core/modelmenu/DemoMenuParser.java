@@ -9,6 +9,7 @@ package artisynth.core.modelmenu;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -16,7 +17,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.UIManager;
 import javax.xml.parsers.DocumentBuilder;
@@ -24,8 +26,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-
-import java.lang.reflect.Modifier;
 
 import maspack.graph.Node;
 import maspack.graph.Tree;
@@ -58,7 +58,7 @@ import artisynth.core.workspace.RootModel;
 public class DemoMenuParser {
 
    public enum MenuType {
-      ROOT, DIVIDER, MENU, MODEL, LABEL
+      ROOT, DIVIDER, MENU, MODEL, LABEL, HISTORY
    }
 
    public static class SimpleErrorHandler implements ErrorHandler {
@@ -80,25 +80,31 @@ public class DemoMenuParser {
    public static final String MENU_TAG_TEXT = "text";
    public static final String MENU_TAG_ICON = "icon";
    public static final String DIVIDER_TAG = "separator";
+   public static final String HISTORY_TAG = "history";
+   public static final String HISTORY_TAG_SIZE = "size";
+   public static final String HISTORY_TAG_COMPACT = "compact";
    public static final String LABEL_TAG = "label";
    public static final String LABEL_TAG_ICON = "icon";
    public static final String LABEL_TAG_TEXT = "text";
-   public static final String DEMO_TAG = "model";
-   public static final String DEMO_TAG_TEXT = "text";
-   public static final String DEMO_TAG_CLASS = "class";
-   public static final String DEMO_TAG_ICON = "icon";
+   public static final String MODEL_TAG = "model";
+   public static final String MODEL_TAG_TEXT = "text";
+   public static final String MODEL_TAG_CLASS = "class";
+   public static final String MODEL_TAG_ARGS = "args";
+   public static final String MODEL_TAG_ICON = "icon";
    public static final String DEMOFILE_TAG = "demosFile";
    public static final String DEMOFILE_TAG_FILENAME = "file";
-   public static final String DEMOPACKAGE_TAG = "package";
-   public static final String DEMOPACKAGE_TAG_SRC = "source";
-   public static final String DEMOPACKAGE_TAG_VIEW = "view";
-   public static final String DEMOPACKAGE_TAG_VIEW_FLAT = "flat";
-   public static final String DEMOPACKAGE_TAG_VIEW_HIERARCHICAL =
+   public static final String DEMOFILE_TAG_ARGS = "args";
+   public static final String PACKAGE_TAG = "package";
+   public static final String PACKAGE_TAG_SRC = "source";
+   public static final String PACKAGE_TAG_ARGS = "args";
+   public static final String PACKAGE_TAG_VIEW = "view";
+   public static final String PACKAGE_TAG_VIEW_FLAT = "flat";
+   public static final String PACKAGE_TAG_VIEW_HIERARCHICAL =
       "hierarchical";
-   public static final String DEMOPACKAGE_TAG_BASECLASS = "base";
-   public static final String DEMOPACKAGE_TAG_REGEX = "regex";
+   public static final String PACKAGE_TAG_BASECLASS = "base";
+   public static final String PACKAGE_TAG_REGEX = "regex";
    // 0 for not compact, 1 for compact, 2 for very compact
-   public static final String DEMOPACKAGE_TAG_COMPACT = "compact"; 
+   public static final String PACKAGE_TAG_COMPACT = "compact"; 
    public static final String XMLINCLUDE_TAG = "include";
    public static final String XMLINCLUDE_TAG_FILE = "file";
    public static final String HIDDEN_TAG = "hidden";
@@ -114,7 +120,7 @@ public class DemoMenuParser {
    public static final String ALL_TAG_FONTSIZE = "fontsize";
 
    public static Tree<MenuEntry> parseXML(String filename) throws IOException,
-   ParserConfigurationException, SAXException {
+      ParserConfigurationException, SAXException {
 
       // get path of filename
       File file = new File(filename);
@@ -246,7 +252,7 @@ public class DemoMenuParser {
          node.addChild(new Node<MenuEntry>(label));
 
          // add a demo
-      } else if (el.getNodeName().equals(DEMO_TAG)) {
+      } else if (el.getNodeName().equals(MODEL_TAG)) {
          DemoEntry demo = parseDemo(el, localPath);
          if (demo != null) {
             node.addChild(new Node<MenuEntry>(demo));
@@ -264,9 +270,8 @@ public class DemoMenuParser {
          }
 
          // parse an entire package
-      } else if (el.getNodeName().equals(DEMOPACKAGE_TAG)) {
-         ArrayList<DemoModel> models = new ArrayList<DemoModel>();
-         Tree<MenuEntry> newEntries = parsePackage(el, models);
+      } else if (el.getNodeName().equals(PACKAGE_TAG)) {
+         Tree<MenuEntry> newEntries = parsePackage(el);
 
          if (newEntries != null) {
             Node<MenuEntry> root = newEntries.getRootElement();
@@ -278,6 +283,13 @@ public class DemoMenuParser {
             // demos.addAll(models);
          }
 
+      // parse history tag
+      } else if (el.getNodeName().equals(HISTORY_TAG)) {
+         HistoryEntry hist = parseHistory(el, localPath);
+         if (hist != null) {
+            node.addChild(new Node<MenuEntry>(hist));
+         }
+         
       } else if (el.getNodeName().equals(XMLINCLUDE_TAG)) {
 
          Tree<MenuEntry> newEntries = parseXML(el, localPath);
@@ -402,6 +414,11 @@ public class DemoMenuParser {
 
       ArrayList<DemoEntry> demos = new ArrayList<DemoEntry>();
       String file = el.getAttribute(DEMOFILE_TAG_FILENAME);
+      String argsStr = el.getAttribute(PACKAGE_TAG_ARGS);
+      String[] args = null;
+      if (argsStr != null && !"".equals(argsStr)) {
+         args = splitArgs(argsStr);
+      }
 
       AliasTable myDemoModels = null;
       String fullFile = findFile(file, localPath);
@@ -427,7 +444,7 @@ public class DemoMenuParser {
       while (li.hasNext()) {
          Map.Entry<String,String> entry = li.next();
          try {
-            Class clazz = Class.forName (entry.getValue());
+            Class<?> clazz = Class.forName (entry.getValue());
             if (!RootModel.class.isAssignableFrom(clazz) ||
                 Modifier.isAbstract (clazz.getModifiers())) {
                li.remove();
@@ -441,7 +458,7 @@ public class DemoMenuParser {
 
       String[] aliases = myDemoModels.getAliases();
       for (int i = 0; i < aliases.length; i++) {
-         demos.add(new DemoEntry(aliases[i], myDemoModels.getName(aliases[i])));
+         demos.add(new DemoEntry(myDemoModels.getName(aliases[i]), aliases[i], args));
       }
 
       // set fonts for all entries
@@ -454,13 +471,33 @@ public class DemoMenuParser {
 
       return demos;
    }
+   
+   private static String[] splitArgs(String argsStr) {
+      List<String> matchList = new ArrayList<String>();
+      Pattern regex = Pattern.compile("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'");
+      Matcher regexMatcher = regex.matcher(argsStr);
+      while (regexMatcher.find()) {
+          if (regexMatcher.group(1) != null) {
+              // Add double-quoted string without the quotes
+              matchList.add(regexMatcher.group(1));
+          } else if (regexMatcher.group(2) != null) {
+              // Add single-quoted string without the quotes
+              matchList.add(regexMatcher.group(2));
+          } else {
+              // Add unquoted word
+              matchList.add(regexMatcher.group());
+          }
+      } 
+      return matchList.toArray(new String[matchList.size()]);
+   }
 
    private static DemoEntry parseDemo(Element el, String localPath) {
-      String name, file, icon;
+      String name, file, icon, argsStr;
 
-      file = el.getAttribute(DEMO_TAG_CLASS);
-      name = el.getAttribute(DEMO_TAG_TEXT);
-      icon = el.getAttribute(DEMO_TAG_ICON);
+      file = el.getAttribute(MODEL_TAG_CLASS);
+      name = el.getAttribute(MODEL_TAG_TEXT);
+      icon = el.getAttribute(MODEL_TAG_ICON);
+      argsStr = el.getAttribute(MODEL_TAG_ARGS);
 
       // must be non-null
       if (file.equals("")) {
@@ -471,8 +508,15 @@ public class DemoMenuParser {
       if (name.equals("")) {
          name = file;
       }
+      
+      String[] args = null;
+      if (argsStr != null && !"".equals(argsStr)) {
+         args = splitArgs(argsStr);
+      }
+      
+     // separate model args to a list of strings
 
-      DemoEntry demo = new DemoEntry(name, file);
+      DemoEntry demo = new DemoEntry(file, name, args);
       if (!icon.equals("")) {
          String fullicon = findFile(icon, localPath);
          if (fullicon != null) {
@@ -488,6 +532,32 @@ public class DemoMenuParser {
       }
 
       return demo;
+   }
+   
+   private static HistoryEntry parseHistory(Element el, String localPath) {
+      String sizeStr, compactStr;
+
+      sizeStr = el.getAttribute(HISTORY_TAG_SIZE);
+      compactStr = el.getAttribute(HISTORY_TAG_COMPACT);
+
+      int size = 4;
+      if (sizeStr != null && ! "".equals(sizeStr)) {
+         size = Integer.parseInt(sizeStr);
+      }
+      
+      int compact = 0;
+      if (compactStr != null && !"".equals(compactStr)) {
+         compact = Integer.parseInt(compactStr);
+      }
+      
+      HistoryEntry entry = new HistoryEntry(size,compact);
+
+      Font myFont = parseFont(el);
+      if (myFont != null) {
+         entry.setFont(myFont);
+      }
+
+      return entry;
    }
 
    private static MenuEntry parseMenu(Element el, String localPath) {
@@ -515,18 +585,22 @@ public class DemoMenuParser {
       return m;
    }
 
-   private static Tree<MenuEntry> parsePackage(Element el,
-      ArrayList<DemoModel> models) {
+   private static Tree<MenuEntry> parsePackage(Element el) {
 
       Tree<MenuEntry> menu = new Tree<MenuEntry>(new MenuEntry("root"));
       Node<MenuEntry> root = menu.getRootElement();
-      models.clear();
 
-      String view = el.getAttribute(DEMOPACKAGE_TAG_VIEW);
-      String pkg = el.getAttribute(DEMOPACKAGE_TAG_SRC);
-      String baseClass = el.getAttribute(DEMOPACKAGE_TAG_BASECLASS);
-      String compactStr = el.getAttribute(DEMOPACKAGE_TAG_COMPACT);
-      String regex = el.getAttribute(DEMOPACKAGE_TAG_REGEX);
+      String view = el.getAttribute(PACKAGE_TAG_VIEW);
+      String pkg = el.getAttribute(PACKAGE_TAG_SRC);
+      String baseClass = el.getAttribute(PACKAGE_TAG_BASECLASS);
+      String compactStr = el.getAttribute(PACKAGE_TAG_COMPACT);
+      String regex = el.getAttribute(PACKAGE_TAG_REGEX);
+      
+      String argsStr = el.getAttribute(PACKAGE_TAG_ARGS);
+      String[] args = null;
+      if (argsStr != null && !"".equals(argsStr)) {
+         args = splitArgs(argsStr);
+      }
 
       int compact = 0;
       if (!compactStr.equals("")) {
@@ -595,16 +669,12 @@ public class DemoMenuParser {
          }
       }
 
-      for (String cls : clsList) {
-         models.add(new DemoModel(cls, cls));
-      }
-
       if (!pkg.equals("") && !pkg.endsWith(".")) {
          pkg = pkg + "."; // add a dot to the prefix
       }
 
       // if the view is flat, simply list packages
-      if (view.equals(DEMOPACKAGE_TAG_VIEW_FLAT)) {
+      if (view.equals(PACKAGE_TAG_VIEW_FLAT)) {
 
          // finds greatest common prefix of class list (used for compacting)
          String prefix = getPrefix(new ArrayList<String>(clsList));
@@ -622,14 +692,14 @@ public class DemoMenuParser {
                // remove prefix
                title = cls.substring(prefix.length());
             }
-            DemoEntry demo = new DemoEntry(title, cls);
+            DemoEntry demo = new DemoEntry(cls, title, args);
             root.addChild(new Node<MenuEntry>(demo));
          }
          sortMenu(root, new MenuCompareByNameButDemosLast());
 
          // default to hierarchical
       } else {
-         menu = getPackageMenuTree(clsList, pkg, compact);
+         menu = getPackageMenuTree(clsList, pkg, compact, args);
          root = menu.getRootElement();
          sortMenu(root, new MenuCompareByNameButDemosLast()); // sort first
          insertDividersInPackageMenu(root); // then insert dividers
@@ -762,7 +832,7 @@ public class DemoMenuParser {
    }
 
    private static Tree<MenuEntry> getPackageMenuTree(ArrayList<String> clsList,
-      String pkg, int compact) {
+      String pkg, int compact, String[] args) {
       Tree<MenuEntry> menu = new Tree<MenuEntry>(new MenuEntry("root"));
       Node<MenuEntry> root = menu.getRootElement();
       Node<MenuEntry> base;
@@ -783,7 +853,7 @@ public class DemoMenuParser {
             if (j < sections.length - 1) {
                newEntry = new MenuEntry(sections[j]);
             } else {
-               newEntry = new DemoEntry(sections[j], cls);
+               newEntry = new DemoEntry(cls, sections[j], args);
             }
             Node<MenuEntry> newNode = new Node<MenuEntry>(newEntry);
             base.addChild(newNode);

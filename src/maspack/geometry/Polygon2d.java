@@ -6,19 +6,24 @@
  */
 package maspack.geometry;
 
-import maspack.matrix.*;
-import maspack.util.NumberFormat;
-
-import java.util.ListIterator;
+import java.io.IOException;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
+import maspack.matrix.AffineTransform2dBase;
+import maspack.matrix.Point2d;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.render.PointLineRenderProps;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderable;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
+import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.render.*;
-import java.io.IOException;
-
-import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
 
 public class Polygon2d implements Renderable {
    Vertex2d firstVertex;
@@ -463,7 +468,7 @@ public class Polygon2d implements Renderable {
    public void prerender (RenderList list) {
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Vertex2d vtx = firstVertex;
       if (vtx != null) {
          Point3d tmp = new Point3d();
@@ -476,31 +481,30 @@ public class Polygon2d implements Renderable {
       }
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render (renderer, myRenderProps, /*flags=*/0);
    }
 
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
 
-      GL2 gl = renderer.getGL2().getGL2();
-      renderer.setLightingEnabled (false);
+      renderer.setShading (Shading.NONE);
 
       renderer.setLineWidth (myRenderProps.getLineWidth());
-      renderer.setColor (props.getLineColorArray(), /*selected=*/false);
-      //gl.glBegin (GL2.GL_LINE_STRIP);
-      gl.glBegin (GL2.GL_LINE_LOOP);
+      renderer.setLineColoring (props, /*highlight=*/false);
+      //renderer.beginDraw (VertexDrawMode.LINE_STRIP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       Vertex2d vtx = firstVertex;
       if (vtx != null) {
          do {
-            gl.glVertex3d (vtx.pnt.x, vtx.pnt.y, 0);
+            renderer.addVertex (vtx.pnt.x, vtx.pnt.y, 0);
             vtx = vtx.next;
          }
          while (vtx != firstVertex);
       }
-      gl.glEnd();
+      renderer.endDraw();
       renderer.setLineWidth (1);
 
-      renderer.setLightingEnabled (true);
+      renderer.setShading (Shading.FLAT);
    }
 
    public int getRenderHints() {

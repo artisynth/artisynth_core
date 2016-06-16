@@ -8,28 +8,22 @@ package artisynth.core.renderables;
 
 import java.awt.Font;
 import java.awt.geom.Rectangle2D;
-import java.util.List;
 
-import javax.media.opengl.GL2;
-
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
 import maspack.geometry.GeometryTransformer;
-import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
-import maspack.properties.PropertyDesc;
+import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLSupport;
-import maspack.render.RenderList;
+import maspack.render.IsRenderable;
 import maspack.render.RenderProps;
-import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
-
-import com.jogamp.opengl.util.awt.TextRenderer;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.Shading;
 
 
 /**
@@ -42,8 +36,6 @@ import com.jogamp.opengl.util.awt.TextRenderer;
 public class TextComponent3d extends TextComponentBase implements 
    TransformableGeometry {
 
-   public static int defaultFontSize = 64;
-   public static double defaultTextSize = 1.0;
    public static boolean defaultByReference = false;
    
    protected String myText;
@@ -53,7 +45,6 @@ public class TextComponent3d extends TextComponentBase implements
    
    // intermediate variables
    RigidTransform3d myTransform = new RigidTransform3d();
-   private double[] GLMatrix = new double[16];
    RotationMatrix3d rEye = new RotationMatrix3d();
    Point3d renderPos = new Point3d();
    double[] xdir = new double[3];
@@ -64,16 +55,9 @@ public class TextComponent3d extends TextComponentBase implements
 
    
    static {
-      // change default font size
-      PropertyDesc info = myProps.get("fontSize");
-      info.setDefaultValue(defaultFontSize);
-      info = myProps.get("textSize");
-      info.setDefaultValue(defaultTextSize);
-      
       myProps.add("text", "text to display", "");
       myProps.add("position", "display position", Point3d.ZERO);
       myProps.add("orientation", "orientation relative to world", AxisAngle.IDENTITY);
-      
       myProps.add("followEye isFollowingEye *", "text relative to eye", true);
    }
 
@@ -83,17 +67,20 @@ public class TextComponent3d extends TextComponentBase implements
    
    protected void setDefaults() {
       myFont = new Font(defaultFontName, 0, defaultFontSize);
-      myTextRenderer = new TextRenderer(myFont);
       myRenderProps = createDefaultRenderProps();
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
+      myTextSize = defaultTextSize;
+      myFontSize = defaultFontSize;
       
       myText = "";
       myPos = new Point3d();
       myOrientation = new AxisAngle();
-      myTextSize = defaultTextSize;
       followEye = true;
-      
+   }
+   
+   public TextComponent3d() {
+      setDefaults ();
    }
    
    /**
@@ -178,39 +165,21 @@ public class TextComponent3d extends TextComponentBase implements
    public AxisAngle getOrientation() {
       return myOrientation;
    }
-   
-//   @Override
-//   public void renderx(GLRenderer renderer, int flags) {
-//      if (isSelectable() || !renderer.isSelecting()) {
-//         render(renderer, 0);
-//      }
-//   }
-//
     
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       
       if (!isSelectable() && renderer.isSelecting()) {
          return;
       }
-      
-      RenderProps rprops = getRenderProps();
-      rprops.getFaceColor(rgb);
-      
-      if (isSelected()) {
-         renderer.getSelectionColor().getRGBColorComponents(rgb);   
-      }
-      
-      float fTextSize = (float)(myTextSize/getFontSize());
-      
+
       // text orientation computation
-      Rectangle2D box = myTextRenderer.getBounds(myText);
-      double w = box.getWidth() * fTextSize;
-      // for consistency, assume line top as 3/4 font size
-      double t = myTextSize*0.75;
-      double vc = myTextSize* 0.25;
+      Rectangle2D box = renderer.getTextBounds(myFont, myText, myTextSize);
+      double w = box.getWidth();
+      double t = box.getY ()+box.getHeight ();
+      double vc = box.getY ()+box.getHeight ()/2;
       
-      rEye.set(renderer.getEyeToWorld().R);
+      rEye.invert(renderer.getViewMatrix().R);
       if (followEye) {
          rEye.getColumn(0, xdir);
       } else {
@@ -254,23 +223,25 @@ public class TextComponent3d extends TextComponentBase implements
       renderPos.add(myPos);
       myTransform.p.set(renderPos);
       
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
-      GLSupport.transformToGLMatrix (GLMatrix, myTransform);
-      gl.glMultMatrixd (GLMatrix, 0);
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myTransform);
+       
+      RenderProps rprops = getRenderProps();
+      Shading savedShading = renderer.setShading (rprops.getShading ());
+      renderer.setFaceColoring (rprops, isSelected());
+      FaceStyle savedFaceStyle = renderer.setFaceStyle (rprops.getFaceStyle ());
+      final float[] ZERO = {0,0,0};
+      renderer.drawText(myFont, myText, ZERO, myTextSize);
+      renderer.setFaceStyle (savedFaceStyle);
+      renderer.setShading (savedShading);
       
-      myTextRenderer.begin3DRendering();            
-      myTextRenderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
-      myTextRenderer.draw3D(myText, 0,0,0,fTextSize);
-      myTextRenderer.end3DRendering();
-      
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
       
    }
    
    @Override
    public int getRenderHints() {
-      return GLRenderable.TRANSLUCENT; // for transparent background
+      return IsRenderable.TRANSPARENT; // for transparent background
    }   
    
    /**
@@ -288,7 +259,7 @@ public class TextComponent3d extends TextComponentBase implements
    }
 
    @Override
-   public void updateBounds(Point3d pmin, Point3d pmax) {
+   public void updateBounds(Vector3d pmin, Vector3d pmax) {
       myPos.updateBounds(pmin, pmax);
    }
    
@@ -330,17 +301,6 @@ public class TextComponent3d extends TextComponentBase implements
    
    public int numSelectionQueriesNeeded() {
       return -1;
-   }
-
-   /**
-    * Sets the base font size.  This should be used only to adjust
-    * the resolution of the font.  For controlling the text size,
-    * use {@link #setTextSize(double)}.
-    * @param size
-    */
-   @Override
-   public void setFontSize(int size) {
-      super.setFontSize(size);
    }
 
 }

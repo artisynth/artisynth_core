@@ -14,6 +14,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.driver.Main;
 import artisynth.core.femmodels.SkinMeshBody;
@@ -135,7 +136,7 @@ public class SkinDemo extends RootModel {
         
       RenderProps rp = new RenderProps(model.getRenderProps());
       rp.setFaceColor(Color.GRAY);
-      rp.setShading(RenderProps.Shading.FLAT);
+      rp.setShading(Renderer.Shading.FLAT);
       rb.setRenderProps(rp);
 
       rb.setFrameDamping (10);
@@ -191,10 +192,10 @@ public class SkinDemo extends RootModel {
       muscle.setSecondPoint(l);
         
       RenderProps rp = new RenderProps(model.getRenderProps());
-      rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
+      rp.setLineStyle(Renderer.LineStyle.SPINDLE);
       rp.setLineRadius(len/20);
-      rp.setLineSlices(10);
-      rp.setShading(RenderProps.Shading.GOURARD);
+      //rp.setLineSlices(10);
+      rp.setShading(Renderer.Shading.SMOOTH);
       rp.setLineColor(Color.RED);
       muscle.setRenderProps(rp);
         
@@ -212,7 +213,7 @@ public class SkinDemo extends RootModel {
          s.setSecondPoint(l2);
          model.addAxialSpring(s);
          RenderProps props = new RenderProps();
-         props.setLineStyle(RenderProps.LineStyle.CYLINDER);
+         props.setLineStyle(Renderer.LineStyle.CYLINDER);
          props.setLineRadius(0.0);
          s.setRenderProps(props);
       }
@@ -239,8 +240,8 @@ public class SkinDemo extends RootModel {
       spring.setSecondPoint(fixed);
         
       RenderProps rp = new RenderProps(model.getRenderProps());
-      rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
-      rp.setShading(RenderProps.Shading.FLAT);
+      rp.setLineStyle(Renderer.LineStyle.SPINDLE);
+      rp.setShading(Renderer.Shading.FLAT);
       rp.setLineColor(Color.WHITE);
       spring.setRenderProps(rp);
         
@@ -261,7 +262,7 @@ public class SkinDemo extends RootModel {
       //        Particle load = new Particle(mass,new Point3d(0,0,0));
         
       RenderProps rp = new RenderProps(model.getRenderProps());
-      rp.setShading(RenderProps.Shading.GOURARD);
+      rp.setShading(Renderer.Shading.SMOOTH);
       rp.setPointColor(Color.ORANGE);
       rp.setPointRadius(len/20);
       load.setRenderProps(rp);
@@ -286,7 +287,7 @@ public class SkinDemo extends RootModel {
       //lowerArm.addMarker(endPoint);
         
       RenderProps rp = new RenderProps(model.getRenderProps());
-      rp.setShading(RenderProps.Shading.GOURARD);
+      rp.setShading(Renderer.Shading.SMOOTH);
       rp.setPointColor(Color.ORANGE);
       rp.setPointRadius(len/20);
       endPoint.setRenderProps(rp);
@@ -298,10 +299,10 @@ public class SkinDemo extends RootModel {
       // set render properties for model
        
       RenderProps rp = new RenderProps();
-      rp.setPointStyle(RenderProps.PointStyle.SPHERE);
+      rp.setPointStyle(Renderer.PointStyle.SPHERE);
       rp.setPointColor(Color.LIGHT_GRAY);
       rp.setPointRadius(0.0);
-      rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
+      //rp.setLineStyle(Renderer.LineStyle.ELLIPSOID);
       rp.setLineColor(Color.WHITE);
       rp.setLineRadius(0.4);
       model.setRenderProps(rp);
@@ -357,7 +358,7 @@ public class SkinDemo extends RootModel {
       skinMesh.addFrame (model.rigidBodies().get(1));
       skinMesh.computeWeights();
       model.addMeshBody (skinMesh);
-      RenderProps.setFaceStyle (skinMesh, RenderProps.Faces.NONE);
+      RenderProps.setFaceStyle (skinMesh, Renderer.FaceStyle.NONE);
       RenderProps.setDrawEdges (skinMesh, true);
       RenderProps.setLineColor (skinMesh, Color.GRAY);
       mySkinMesh = skinMesh;

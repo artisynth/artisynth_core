@@ -18,7 +18,6 @@ import maspack.render.*;
 import maspack.properties.*;
 import artisynth.core.util.*;
 import java.util.*;
-import javax.media.opengl.*;
 
 public class MultiPointSpringList<S extends MultiPointSpring>
    extends PointSpringList<S> {
@@ -34,7 +33,7 @@ public class MultiPointSpringList<S extends MultiPointSpring>
       setRenderProps (createRenderProps());
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       for (int i=0; i<size(); i++) {
          MultiPointSpring spr = get (i);
          if (spr.getRenderProps() == null) {

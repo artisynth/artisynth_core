@@ -1,5 +1,11 @@
 \documentclass{article}
 \usepackage{amsmath}
+
+% Add search paths for input files
+\makeatletter
+\def\input@path{{../}{../../}{../texinputs/}}
+\makeatother
+
 \input{artisynthDoc}
 
 \setcounter{tocdepth}{5}
@@ -979,7 +985,7 @@ rigid bodies, or whether or not a component is dynamic.
 
 The underlying software architecture of the property interface is 
 described in the 
-\href{../maspack/maspack.html#Properties}{maspack documentation}.
+\href{\artisynthDocBase/html/maspack/maspack.html#Properties}{maspack documentation}.
 
 \subsection{Property Panels}
 \label{propertyPanelsSec}
@@ -1080,7 +1086,8 @@ in the context menu:
 \item[Edit render props]\mbox{}
 
 This will create a special property panel allowing the render properties for
-the selected components to be set (see Section \ref{renderPropSettingsSec}).
+the selected components to be set (see Section \ref{renderPropSettingsSec}
+and Figure \ref{renderpropsFig}).
 
 \item[Clear render props]\mbox{}
 
@@ -1134,10 +1141,14 @@ Whether or not the component is visible.
 \item[alpha:]
 The transparency for polygonal faces (range 0 to 1. Default is 1, for
 opaque).
-\item[shading:]
-How polygons are shaded ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}).
+\item[shading:] 
+How polygons are shaded ({\tt FLAT}, {\tt SMOOTH},
+{\tt METAL} and {\tt NONE}).  For viewer implementations there may be no
+difference between {\tt SMOOTH} and {\tt METAL}.
 \item[shininess:]
-Shininess parameter for polygons (range 0 to 32).
+Shininess parameter for polygons (range 0 to 128). Default is 32.
+\item[specular:]
+If not {\tt null}, specifies the specular reflectance color.
 \end{description}
 
 \item[Face related properties:]
@@ -1152,9 +1163,20 @@ Color used for drawing faces.
 Color used for drawing backs of faces. If null, {\tt faceColor} is used.
 \item[drawEdges:] 	
 If true, face edgesof the polygons are drawn explicitly.
-\item[textureProps:] 
-Sets texture mapping properties for the face. If null, no texture
-mapping is performed.
+\end{description}
+
+\item[Texture mapping properties:]
+\hfil \\
+\begin{description}
+\item[colorMap:]
+If not {\tt null}, specifies the image source file and properties
+for color mapping.
+\item[normalMap:]
+If not {\tt null}, specifies the image source file and properties
+for normal mapping.
+\item[bumpMap:]
+If not {\tt null}, specifies the image source file and properties
+for bump mapping.
 \end{description}
 
 \item[Edge related properties:]
@@ -1170,15 +1192,13 @@ Edge width in pixels.
 \hfil \\
 \begin{description}
 \item[lineStyle:] 
-How lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt ELLIPSOID}).
+How lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt SPINDLE}).
 \item[lineColor:]
 The color for lines.
 \item[lineWidth:]
 Line width in pixels when {\tt LINE} style is selected.
 \item[lineRadius:]
-Cylinder radius when {\tt CYLINDER} or {\tt ELLIPSOID} style is selected.
-\item[lineSlices:]
-Number of slices used to render {\tt CYLINDER} or {\tt ELLIPSOID} style lines.
+Cylinder radius when {\tt CYLINDER} or {\tt SPINDLE} style is selected.
 \end{description}
 
 \item[Point related properties:]
@@ -1192,11 +1212,26 @@ The color for points.
 Point size in pixels when {\tt POINT} style is selected.
 \item[pointRadius:] 	
 Sphere radius used when {\tt SPHERE} style is selected.
-\item[pointSlices:] 
-Number of slices used to render {\tt SPHERE} style spheres.
 \end{description}
 
 \end{description}
+
+A typical panel for editing render properties is shown in Figure
+\ref{renderpropsFig}. Texture mapping properties, if present, are
+normally hidden by default and can be exposed by clicking on the {\sf
+expand...} button.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/renderProps}
+\else
+\includegraphics[width=3in]{images/renderProps}
+\fi
+\end{center}
+\caption{A typical panel for ajusting render properties.}%
+\label{renderpropsFig}
+\end{figure}
 
 \section{The Timeline}
 \label{TimelineSec}
@@ -3836,6 +3871,7 @@ following XML elements are defined:
 {\tt menu:} & creates a sub-menu\\
 {\tt package:} & finds and lists all models from a specified Java package\\
 {\tt demosFile:} & imports all models from a file in plaintext format\\
+{\tt history:} & adds a set of recently loaded models\\
 {\tt include:} & imports a menu from another XML file\\
 {\tt hidden: } & convenience element for hidding menu entries (i.e. commenting
    them out)
@@ -3886,6 +3922,7 @@ must be a sub-class of \javaclass[artisynth.core.workspace]{RootModel}.
 \noindent \textbf{Attributes:}\\
 \begin{tabular}{ll}
    {\tt class*:} & the class to load when the entry is selected\\
+   {\tt args:} & command-line style arguments to be passed to the model\\
    {\tt text:} & the text to display in the menu (default: the class name)\\
    {\tt icon:} & filename of an icon (relative or absolute path)\\
    {\tt fontname:} & font family for the displayed text\\
@@ -3999,9 +4036,15 @@ are provided in Figure \ref{fig:packagemenu}.
 \hline
 compact & flat & hierarchical \\
 \hline
+\iflatexml
 0 & \menuimage{f0.png} & \menuimage{h0.png}\\
 1 & \menuimage{f1.png} & \menuimage{h1.png}\\
 2 & \menuimage{f2.png} & \menuimage{h2.png}\\
+\else
+%0 & \menuimage{f0.eps} & \menuimage{h0.eps}\\
+%1 & \menuimage{f1.eps} & \menuimage{h1.eps}\\
+%2 & \menuimage{f2.eps} & \menuimage{h2.eps}\\
+\fi
 \hline
 \end{tabular}
 \caption{View options for the XML element {\tt <package source="artisynth" base=%
@@ -4014,6 +4057,7 @@ compact & flat & hierarchical \\
    {\tt source*:} & the package to search for models\\
    {\tt base:} & the base class from which all models must inherit 
       (default: {\tt RootModel})\\
+   {\tt args:} & command-line style arguments to be passed to the models\\
    {\tt view:} & display format \{\quot{flat}, \quot{hierarchicial}\} (default:
       \quot{hierarchical})\\
    {\tt compact:} & level of compactness \{0, 1, 2\} (default: 0)\\
@@ -4088,6 +4132,24 @@ The following line loads all models from the original default ArtiSynth
 \end{lstlisting}
 If font information is provided, it is applied to all model entries that are
 created.
+
+\subsubsection{History}
+
+If model history tracking is enabled, then a set of \emph{recent items} can
+be added to the menu.  To enable history tracking, pass the following command-%
+line parameter to ArtiSynth on load:\\
+\hspace{4ex}\textbf{-historyFile <filename>}\\
+The {\tt history} element then specifies the number of most recently loaded
+models to add to the history menu.
+
+\noindent \textbf{Attributes:}\\
+\begin{tabular}{ll}
+   {\tt size:} & number of recent models to add (default: "4")\\
+   {\tt fontname:} & font family for the displayed text\\
+   {\tt fontstyle:} & font style, from \{\quot{}, \quot{bold}, \quot{italic},
+      \quot{bold italic}\}\\
+   {\tt fontsize:} & font size
+\end{tabular}
 
 \subsubsection{Importing other XML files}
 

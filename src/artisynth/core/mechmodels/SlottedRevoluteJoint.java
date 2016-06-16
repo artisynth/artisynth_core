@@ -13,14 +13,13 @@ import java.io.*;
 import maspack.matrix.*;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import maspack.spatialmotion.SlottedRevoluteCoupling;
 import maspack.util.*;
-
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
@@ -60,7 +59,7 @@ public class SlottedRevoluteJoint extends JointBase
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointLineProps (host);
       props.setLineColor (Color.BLUE);
-      props.setLineStyle (RenderProps.LineStyle.CYLINDER);
+      props.setLineStyle (LineStyle.CYLINDER);
       return props;
    }
 
@@ -351,7 +350,7 @@ public class SlottedRevoluteJoint extends JointBase
       }
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d p0 = new Point3d();
       Point3d p1 = new Point3d();
       computeAxisEndPoints (getCurrentTCW());
@@ -371,11 +370,11 @@ public class SlottedRevoluteJoint extends JointBase
       computeSlotEdges();
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
 
       renderer.drawLine (myRenderProps, myAxisPnt0, myAxisPnt1,
-                         /* capped= */true, isSelected());
+                         /*color=*/null, /*capped=*/true, isSelected());
       renderer.drawLineStrip (
          myRenderProps, mySlotEdge0, LineStyle.LINE, isSelected());
       renderer.drawLineStrip (

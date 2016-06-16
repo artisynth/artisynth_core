@@ -6,16 +6,19 @@
  */
 package maspack.render;
 
-import java.util.*;
+import java.util.LinkedList;
 
-import maspack.matrix.*;
-import maspack.util.*;
-
-import javax.media.opengl.GLDrawable;
-import javax.media.opengl.GL2;
+import maspack.matrix.Line;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
+import maspack.util.InternalErrorException;
 
 public class Jack3d extends Dragger3dBase {
-   protected int myCircleRes = 20;
+   protected int myCircleRes = 64;
    protected int mySelectedComponent = 0;
    protected Point3d myPnt0 = new Point3d();
 
@@ -25,9 +28,9 @@ public class Jack3d extends Dragger3dBase {
    static final int Y_AXIS = 2;
    static final int Z_AXIS = 3;
 
-   static final int XY_CIRCLE = 4;
-   static final int YZ_CIRCLE = 5;
-   static final int ZX_CIRCLE = 6;
+   static final int X_ROTATE = 4;
+   static final int Y_ROTATE = 5;
+   static final int Z_ROTATE = 6;
 
    private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
    private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
@@ -36,108 +39,255 @@ public class Jack3d extends Dragger3dBase {
    private static Plane xyPlane = new Plane (0, 0, 1, 0);
    private static Plane yzPlane = new Plane (1, 0, 0, 0);
    private static Plane zxPlane = new Plane (0, 1, 0, 0);
+   
+   private static RenderObject renderObject = null;
 
    public Jack3d (double size) {
       super();
       setSize (size);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
+
       if (!myVisibleP) {
          return;
       }
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, myXDraggerToWorld);
 
-      renderer.setLightingEnabled (false);
-      renderer.setLineWidth (myLineWidth);
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myXDraggerToWorld);
 
-      gl.glColor3d (1f, 1f, 0f);
-      renderer.setPointSize (3);
-      gl.glBegin (GL2.GL_POINTS);
-      gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
-      gl.glEnd();
-      renderer.setPointSize (1);
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
+      renderer.setPointSize(3);
 
-      gl.glColor3d (0, 0, 1f);
+      float[] coords = new float[3];
+      renderer.setColor(1, 1, 0);
+      myPnt0.get(coords);
+      renderer.drawPoint(coords);
 
-      // gl.glLoadName (X_AXIS);
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (mySize, 0.0, 0.0);
-      gl.glVertex3d (-mySize, 0.0, 0.0);
-      gl.glEnd();
+      renderer.scaleModelMatrix(mySize);
 
-      // gl.glLoadName (Y_AXIS);
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, mySize, 0.0);
-      gl.glVertex3d (0, -mySize, 0.0);
-      gl.glEnd();
-
-      // gl.glLoadName (Z_AXIS);
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (0, 0, mySize);
-      gl.glVertex3d (0, 0, -mySize);
-      gl.glEnd();
-
-      // circle in x-y plane
-      // gl.glLoadName (XY_CIRCLE);
-      gl.glColor3d (0, 1f, 0f);
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      for (int i = 0; i < myCircleRes; i++) {
-         double ang = 2 * Math.PI * i / myCircleRes;
-         gl.glVertex3d (mySize * Math.cos (ang), mySize * Math.sin (ang), 0.0);
+      if (renderObject == null) {
+         renderObject = createJackRenderable();
       }
-      gl.glEnd();
 
-      // circle in y-z plane
-      // gl.glLoadName (YZ_CIRCLE);
-      gl.glColor3d (0, 1f, 0f);
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      for (int i = 0; i < myCircleRes; i++) {
-         double ang = 2 * Math.PI * i / myCircleRes;
-         gl.glVertex3d (0.0, mySize * Math.cos (ang), mySize * Math.sin (ang));
+      // draw selected component first
+      if (mySelectedComponent != 0) {
+         renderer.drawLines(renderObject, mySelectedComponent);
       }
-      gl.glEnd();
+      renderer.drawLines(renderObject, 0);
 
-      // circle in z-x plane
-      // gl.glLoadName (ZX_CIRCLE);
-      gl.glColor3d (0, 1f, 0f);
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      for (int i = 0; i < myCircleRes; i++) {
-         double ang = 2 * Math.PI * i / myCircleRes;
-         gl.glVertex3d (mySize * Math.cos (ang), 0.0, -mySize * Math.sin (ang));
-      }
-      gl.glEnd();
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
+      renderer.popModelMatrix();
 
-      renderer.setLineWidth (1);
-      renderer.setLightingEnabled (true);
-      gl.glPopMatrix();
    }
 
-//   public void handleSelection (LinkedList list, int[] namestack, int idx) {
-//      int id = namestack[idx];
-//      switch (id) {
-//         case X_AXIS:
-//         case Y_AXIS:
-//         case Z_AXIS:
-//         case XY_CIRCLE:
-//         case YZ_CIRCLE:
-//         case ZX_CIRCLE: {
-//            mySelectedComponent = id;
-//            setSelected (true);
-//            break;
-//         }
-//         default: {
-//            mySelectedComponent = NONE;
-//            break;
-//         }
-//      }
-//   }
+   private static void addLineLoop (RenderObject robj, int pidx0, int numv) {
+      robj.beginBuild (DrawMode.LINE_LOOP);
+      for (int i=0; i<numv; i++) {
+         robj.addVertex (pidx0+i);
+      }
+      robj.endBuild();
+   }
+
+   private static void addLine (RenderObject robj, int pidx0, int pidx1) {
+      int vidx0 = robj.addVertex (pidx0);
+      int vidx1 = robj.addVertex (pidx1);
+      robj.addLine (vidx0, vidx1);
+   }
+
+   private RenderObject createJackRenderable() {
+
+      final int QUARTER_CIRCLE_RESOLUTION = 32;
+      final int FULL_CIRCLE_RESOLUTION = 4*QUARTER_CIRCLE_RESOLUTION;
+
+      RenderObject robj = new RenderObject();
+
+      int RED    = robj.addColor (1.0f, 0.0f, 0.0f, 1.0f);
+      int GREEN  = robj.addColor (0.0f, 1.0f, 0.0f, 1.0f);
+      int BLUE   = robj.addColor (0.0f, 0.0f, 1.0f, 1.0f);
+      int GRAY   = robj.addColor (0.5f, 0.5f, 0.5f, 1.0f);
+      int YELLOW = robj.addColor (1.0f, 1.0f, 0.0f, 1.0f);
+      
+      int px     = robj.addPosition (1.0f, 0.0f, 0.0f);
+      int py     = robj.addPosition (0.0f, 1.0f, 0.0f);
+      int pz     = robj.addPosition (0.0f, 0.0f, 1.0f);
+      int nx     = robj.addPosition (-1.0f, 0.0f, 0.0f);
+      int ny     = robj.addPosition (0.0f, -1.0f, 0.0f);
+      int nz     = robj.addPosition (0.0f, 0.0f, -1.0f);
+
+      // circle around x-axis
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         robj.addPosition (0f, (float)Math.cos(ang), (float)Math.sin(ang));
+      }
+      int protx = nz+1;
+      
+      // y-axis
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         robj.addPosition ((float)Math.cos(ang), 0f, -(float)Math.sin(ang));
+      }
+      int proty = protx+FULL_CIRCLE_RESOLUTION+1;
+      
+      // z-axis
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         robj.addPosition ((float)Math.cos(ang), (float)Math.sin (ang), 0f);
+      }
+      int protz = proty+FULL_CIRCLE_RESOLUTION+1;
+
+      for (int i=0; i<7; i++) {
+         robj.createLineGroup();
+      }
+
+      robj.lineGroup (0);
+
+      robj.setCurrentColor (RED);
+      addLine (robj, nx, px);
+      robj.setCurrentColor (GREEN);
+      addLine (robj, ny, py);
+      robj.setCurrentColor (BLUE);
+      addLine (robj, nz, pz);
+      
+      robj.setCurrentColor (RED);
+      addLineLoop (robj, protx, FULL_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (GREEN);
+      addLineLoop (robj, proty, FULL_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (BLUE);
+      addLineLoop (robj, protz, FULL_CIRCLE_RESOLUTION+1);
+
+      robj.setCurrentColor (YELLOW);
+
+      robj.lineGroup (X_AXIS);
+      addLine (robj, nx, px);
+      robj.lineGroup (Y_AXIS);
+      addLine (robj, ny, py);
+      robj.lineGroup (Z_AXIS);
+      addLine (robj, nz, pz);
+
+      robj.lineGroup (X_ROTATE);
+      addLineLoop (robj, protx, FULL_CIRCLE_RESOLUTION+1);
+      robj.lineGroup (Y_ROTATE);
+      addLineLoop (robj, proty, FULL_CIRCLE_RESOLUTION+1);
+      robj.lineGroup (Z_ROTATE);
+      addLineLoop (robj, protz, FULL_CIRCLE_RESOLUTION+1);
+
+      return robj;
+   }
+
+   //   public void handleSelection (LinkedList list, int[] namestack, int idx) {
+   //      int id = namestack[idx];
+   //      switch (id) {
+   //         case X_AXIS:
+   //         case Y_AXIS:
+   //         case Z_AXIS:
+   //         case XY_CIRCLE:
+   //         case YZ_CIRCLE:
+   //         case ZX_CIRCLE: {
+   //            mySelectedComponent = id;
+   //            setSelected (true);
+   //            break;
+   //         }
+   //         default: {
+   //            mySelectedComponent = NONE;
+   //            break;
+   //         }
+   //      }
+   //   }
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }
-   
+
+   public boolean rotationSelectCheck (
+      double d, double tempDist, double lineDist, double minDist) {
+      return d != inf && tempDist < lineDist && tempDist < minDist;
+   }
+
+   private int checkComponentSelection (MouseRayEvent e) {
+
+      Line draggerRay = new Line (e.getRay());
+      draggerRay.inverseTransform (myXDraggerToWorld);
+
+      // double distancePerPixel = e.distancePerPixel (myXDraggerToWorld.p);
+      // double lineDist = 5*distancePerPixel; // was 0.05*mySize
+
+      double lineDist = 5 * e.distancePerPixel (myXDraggerToWorld.p);
+      double minDist = Double.POSITIVE_INFINITY;
+      double l, d, tempDist;
+      int resultAxisOrPlane = NONE;
+
+      RigidTransform3d draggerToEye = new RigidTransform3d();
+      draggerToEye.mul (e.getViewer().getViewMatrix(), myXDraggerToWorld);
+
+      // Line resultAxis = new Line (0, 0, 0, 0, 0, 0);
+
+      Point3d p = new Point3d();
+
+      // check axes first
+
+      l = xAxis.nearestPoint (p, draggerRay);
+      tempDist = draggerRay.distance (p);
+      if (l >= -mySize && l <= mySize && tempDist < lineDist) {
+         resultAxisOrPlane = X_AXIS;
+         minDist = tempDist;
+      }
+
+      l = yAxis.nearestPoint (p, draggerRay);
+      tempDist = draggerRay.distance (p);
+      if (l >=-mySize && l <= mySize && tempDist < lineDist && tempDist < minDist) {
+         resultAxisOrPlane = Y_AXIS;
+         minDist = tempDist;
+      }
+
+      l = zAxis.nearestPoint (p, draggerRay);
+      tempDist = draggerRay.distance (p);
+      if (l >= -mySize && l <= mySize && tempDist < lineDist && tempDist < minDist) {
+         resultAxisOrPlane = Z_AXIS;
+         minDist = tempDist;
+      }
+
+      if (resultAxisOrPlane != NONE) {
+         return resultAxisOrPlane;
+      }
+
+      // now check rotators, and if there is any that are selected and
+      // closer to the mouse than any of the axes, then select it.
+      double len = mySize;
+
+      d = draggerRay.intersectPlane (p, yzPlane);
+      tempDist = Math.abs (p.norm() - mySize);
+      if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
+         resultAxisOrPlane = X_ROTATE;
+         minDist = tempDist;
+      }
+
+      d = draggerRay.intersectPlane (p, zxPlane);
+      tempDist = Math.abs (p.norm() - mySize);
+      if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
+         resultAxisOrPlane = Y_ROTATE;
+         minDist = tempDist;
+      }
+
+      d = draggerRay.intersectPlane (p, xyPlane);
+      tempDist = Math.abs (p.norm() - mySize);
+      if (rotationSelectCheck (d, tempDist, lineDist, minDist)) {
+         resultAxisOrPlane = Z_ROTATE;
+      }
+
+      // if any of the axes or rotators are selected, then
+      // return the axis or rotator that the mouse is closest to.
+      if (resultAxisOrPlane != NONE) {
+         return resultAxisOrPlane;
+      }
+
+
+      return resultAxisOrPlane;
+   }
+
    private void intersectRayAndFixture (Point3d p, Line ray) {
       Line draggerRay = new Line (ray);
       draggerRay.inverseTransform (myXDraggerToWorld);
@@ -158,17 +308,17 @@ public class Jack3d extends Dragger3dBase {
             p.x = p.y = 0;
             break;
          }
-         case XY_CIRCLE: {
+         case Z_ROTATE: {
             draggerRay.intersectPlane (p, xyPlane);
             p.z = 0;
             break;
          }
-         case YZ_CIRCLE: {
+         case X_ROTATE: {
             draggerRay.intersectPlane (p, yzPlane);
             p.x = 0;
             break;
          }
-         case ZX_CIRCLE: {
+         case Y_ROTATE: {
             draggerRay.intersectPlane (p, zxPlane);
             p.y = 0;
             break;
@@ -191,15 +341,15 @@ public class Jack3d extends Dragger3dBase {
             myXDraggerToWorld.mulXyz (del.x, del.y, del.z);
             break;
          }
-         case XY_CIRCLE: {
+         case Z_ROTATE: {
             planeNormal = xyPlane.getNormal();
             break;
          }
-         case YZ_CIRCLE: {
+         case X_ROTATE: {
             planeNormal = yzPlane.getNormal();
             break;
          }
-         case ZX_CIRCLE: {
+         case Y_ROTATE: {
             planeNormal = zxPlane.getNormal();
             break;
          }
@@ -215,9 +365,19 @@ public class Jack3d extends Dragger3dBase {
       }
    }
 
-//   public void draggerSelected (MouseRayEvent e) {
-//      intersectRayAndFixture (myPnt0, e.getRay());
-//   }
+   //   public void draggerSelected (MouseRayEvent e) {
+   //      intersectRayAndFixture (myPnt0, e.getRay());
+   //   }
+
+   public boolean mouseMoved ( MouseRayEvent e ) {
+      int comp = checkComponentSelection (e);
+      if (comp != mySelectedComponent) {
+         mySelectedComponent = comp;
+         e.getViewer().repaint();
+         return true;
+      }
+      return false;
+   }
 
    public boolean mouseReleased (MouseRayEvent e) {
       mySelectedComponent = NONE;

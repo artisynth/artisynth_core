@@ -6,14 +6,18 @@
  */
 package maspack.render;
 
-import java.util.*;
-import java.awt.event.InputEvent;
+import java.util.LinkedList;
 
-import maspack.matrix.*;
-import maspack.util.*;
-
-import javax.media.opengl.GLDrawable;
-import javax.media.opengl.GL2;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.Line;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.GL.GLViewer;
+import maspack.util.InternalErrorException;
 
 public class Rotator3d extends Dragger3dBase {
    protected int mySelectedComponent = NONE;
@@ -28,7 +32,6 @@ public class Rotator3d extends Dragger3dBase {
    protected RigidTransform3d myXDraggerToWorld0 = new RigidTransform3d();
 
    protected GLViewer myViewer; // hack to get repaint
-   private int myNumCircleSides = 64;
 
    static final int NONE = 0;
 
@@ -38,14 +41,16 @@ public class Rotator3d extends Dragger3dBase {
 
    static final int OUTER_SPHERE = 4;
 
-   private static Line xAxis = new Line (0, 0, 0, 1, 0, 0);
-   private static Line yAxis = new Line (0, 0, 0, 0, 1, 0);
-   private static Line zAxis = new Line (0, 0, 0, 0, 0, 1);
+   private static final Line xAxis = new Line (0, 0, 0, 1, 0, 0);
+   private static final Line yAxis = new Line (0, 0, 0, 0, 1, 0);
+   private static final Line zAxis = new Line (0, 0, 0, 0, 0, 1);
 
-   private static Plane xyPlane = new Plane (0, 0, 1, 0);
-   private static Plane yzPlane = new Plane (1, 0, 0, 0);
-   private static Plane zxPlane = new Plane (0, 1, 0, 0);
+   private static final Plane xyPlane = new Plane (0, 0, 1, 0);
+   private static final Plane yzPlane = new Plane (1, 0, 0, 0);
+   private static final Plane zxPlane = new Plane (0, 1, 0, 0);
 
+   private static RenderObject renderObject = null;
+   
    public Rotator3d() {
       super();
       myTransform = new RigidTransform3d();
@@ -58,99 +63,129 @@ public class Rotator3d extends Dragger3dBase {
       myViewer = viewer;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (!myVisibleP) {
          return;
       }
-      GL2 gl = renderer.getGL2().getGL2();
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, myXDraggerToWorld);
+      
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix(myXDraggerToWorld);
 
-      renderer.setLightingEnabled (false);
-      renderer.setLineWidth (myLineWidth);
-
-      if (mySelectedComponent == X_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
+      Shading savedShading = renderer.setShading (Shading.NONE);
+      renderer.setLineWidth(myLineWidth);
+      renderer.scaleModelMatrix(mySize);
+      
+      if (renderObject == null || !renderObject.isValid()) {
+         renderObject = createRotatorRenderable();
       }
-      else {
-         gl.glColor3d (1f, 0, 0);
+      
+      // highlight appropriate axis
+      if (mySelectedComponent != 0) {
+         renderer.drawLines(renderObject, mySelectedComponent);
       }
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      for (int i = 0; i < myNumCircleSides; i++) {
-         double ang = 2 * Math.PI * i / myNumCircleSides;
-         gl.glVertex3d (0.0, mySize * Math.cos (ang), mySize * Math.sin (ang));
-      }
-      gl.glEnd();
-
-      if (mySelectedComponent == Y_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 1f, 0);
-      }
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      for (int i = 0; i < myNumCircleSides; i++) {
-         double ang = 2 * Math.PI * i / myNumCircleSides;
-         gl.glVertex3d (mySize * Math.sin (ang), 0.0, mySize * Math.cos (ang));
-      }
-      gl.glEnd();
-
-      if (mySelectedComponent == Z_AXIS) {
-         gl.glColor3d (1f, 1f, 0);
-      }
-      else {
-         gl.glColor3d (0, 0, 1f);
-      }
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      for (int i = 0; i < myNumCircleSides; i++) {
-         double ang = 2 * Math.PI * i / myNumCircleSides;
-         gl.glVertex3d (mySize * Math.cos (ang), mySize * Math.sin (ang), 0.0);
-      }
-      gl.glEnd();
-
-      gl.glPopMatrix();
-
+      renderer.drawLines(renderObject, 0);
+         
+      renderer.popModelMatrix();
+      
       if (myDragMode != DragMode.OFF) {
          switch (mySelectedComponent) {
             case X_AXIS:
             case Y_AXIS:
             case Z_AXIS: {
 
+               final float[] coords0 = new float[]{0,0,0};
+               float[] coords = new float[3];
 
                // Draw rotation lines using the orientation at the time the drag was
                // started
                RigidTransform3d X = new RigidTransform3d (myXDraggerToWorld0);
                X.p.set (myXDraggerToWorld.p);
-               gl.glPushMatrix();
-               GLViewer.mulTransform (gl, X);
+               
+               renderer.pushModelMatrix();
+               renderer.mulModelMatrix(X);
 
-               gl.glBegin (GL2.GL_LINES);
-               gl.glColor3f (0.5f, 0.5f, 0.5f);
-               gl.glVertex3d (0, 0, 0);
-               gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
-               gl.glColor3f (1f, 1f, 0);
-               gl.glVertex3d (0, 0, 0);
-               gl.glVertex3d (myRotPnt.x, myRotPnt.y, myRotPnt.z);
-               gl.glEnd();
+               renderer.setColor(0.5f, 0.5f, 0.5f);
+               myPnt0.get(coords);
+               renderer.drawLine(coords0, coords);
 
-               gl.glPopMatrix();
+               renderer.setColor(1, 1, 0);
+               myRotPnt.get(coords);
+               renderer.drawLine(coords0,coords);
+               
+               renderer.popModelMatrix();
 
-               // gl.glBegin (GL2.GL_LINES);
-               // gl.glColor3f (0.5f, 0.5f, 0.5f);
-               // gl.glVertex3d (0, 0, 0);
-               // gl.glVertex3d (myPnt0.x, myPnt0.y, myPnt0.z);
-               // gl.glColor3f (1f, 1f, 0);
-               // gl.glVertex3d (0, 0, 0);
-               // gl.glVertex3d (myRotPnt.x, myRotPnt.y, myRotPnt.z);
-               // gl.glEnd();
                break;
             }
          }
       }
 
-      renderer.setLineWidth (1);
-      renderer.setLightingEnabled (true);
-      // gl.glEnable (GL2.GL_CULL_FACE);
+      renderer.setLineWidth(1);
+      renderer.setShading (savedShading);
+   }
+
+   private static void addLineLoop (RenderObject robj, int pidx0, int numv) {
+      robj.beginBuild (DrawMode.LINE_LOOP);
+      for (int i=0; i<numv; i++) {
+         robj.addVertex (pidx0+i);
+      }
+      robj.endBuild();
+   }
+   
+   private RenderObject createRotatorRenderable() {
+      
+      final int QUARTER_CIRCLE_RESOLUTION = 32;
+      final int FULL_CIRCLE_RESOLUTION = 4*QUARTER_CIRCLE_RESOLUTION;
+
+      RenderObject rotr = new RenderObject();
+
+      int xcolor = rotr.addColor(1f, 0f, 0f, 1f);
+      int ycolor = rotr.addColor(0f, 1f, 0f, 1f);  
+      int zcolor = rotr.addColor(0f, 0f, 1f, 1f);
+      int YELLOW = rotr.addColor(1f, 1f, 0f, 1f);
+
+      // circle around x-axis
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         rotr.addPosition (0f, (float)Math.cos(ang), (float)Math.sin(ang));
+      }
+      int protx = 0;
+      
+      // y-axis
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         rotr.addPosition ((float)Math.cos(ang), 0f, -(float)Math.sin(ang));
+      }
+      int proty = protx+FULL_CIRCLE_RESOLUTION+1;
+      
+      // z-axis
+      for (int i = 0; i <= FULL_CIRCLE_RESOLUTION; i++) {
+         double ang = 2 * Math.PI * i / (FULL_CIRCLE_RESOLUTION);
+         rotr.addPosition ((float)Math.cos(ang), (float)Math.sin (ang), 0f);
+      }
+      int protz = proty+FULL_CIRCLE_RESOLUTION+1;
+
+      for (int i=0; i<4; i++) {
+         rotr.createLineGroup();
+      }     
+
+      rotr.lineGroup (0);
+      rotr.setCurrentColor(xcolor);
+      addLineLoop (rotr, protx, FULL_CIRCLE_RESOLUTION+1);
+      rotr.setCurrentColor(ycolor);
+      addLineLoop (rotr, proty, FULL_CIRCLE_RESOLUTION+1);
+      rotr.setCurrentColor(zcolor);
+      addLineLoop (rotr, protz, FULL_CIRCLE_RESOLUTION+1);
+
+      rotr.setCurrentColor(YELLOW);
+
+      rotr.lineGroup (X_AXIS);
+      addLineLoop (rotr, protx, FULL_CIRCLE_RESOLUTION+1);
+      rotr.lineGroup (Y_AXIS);
+      addLineLoop (rotr, proty, FULL_CIRCLE_RESOLUTION+1);
+      rotr.lineGroup (Z_AXIS);
+      addLineLoop (rotr, protz, FULL_CIRCLE_RESOLUTION+1);
+
+      return rotr;
    }
 
    public boolean rotationSelectCheck (

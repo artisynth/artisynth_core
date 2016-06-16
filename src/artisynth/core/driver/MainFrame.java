@@ -24,8 +24,8 @@ import javax.swing.JTextArea;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 
-import maspack.render.GLViewer;
-import maspack.render.GLViewerPanel;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerPanel;
 import artisynth.core.gui.navpanel.NavigationPanel;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.RootModel;
@@ -139,6 +139,7 @@ public class MainFrame extends JFrame {
     */
 
    public MainFrame (String name, Main main, int width, int height) {
+      
       super (name);
 
       JPopupMenu.setDefaultLightWeightPopupEnabled (false);
@@ -158,7 +159,7 @@ public class MainFrame extends JFrame {
 
       myMain = main;
       baseName = name;
-      GLPanel = new GLViewerPanel (width, height);
+      GLPanel = new GLViewerPanel (width, height, myMain.getGLVersion());
 
       myNavPanel = new NavigationPanel();
       myNavPanel.setLayout (new FlowLayout (FlowLayout.LEFT));
@@ -168,6 +169,7 @@ public class MainFrame extends JFrame {
 
       addWindowListener (new WindowAdapter() {
             public void windowClosing (WindowEvent e) {
+               GLPanel.dispose();  // cleanly close JOGL context
                Main.exit (0);
             }
 
@@ -245,14 +247,14 @@ public class MainFrame extends JFrame {
       GLPanel.setSize (w, h);
       pack();
       // hack! pack() seems to increase the x size a bit, so
-      // if the size is not what we want, we adust for the difference
-      // and resize
+      // if the size is not what we want, reset the size of the
+      // whole window to compensate
       Dimension dim = GLPanel.getSize();
       if (dim.width != w || dim.height != h) {
-         w -= (dim.width - w);
-         h -= (dim.height - h);
-         GLPanel.setSize (w, h);
-         pack();
+         Dimension windim = getSize();
+         windim.width -= (dim.width - w);
+         windim.height -= (dim.height - h);
+         setSize (windim);
       }
    }
 

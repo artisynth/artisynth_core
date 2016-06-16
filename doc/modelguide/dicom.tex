@@ -21,7 +21,7 @@
 }{\end{itemize}}
 
 
-\section{DICOM Images}
+\chapter{DICOM Images}
 \label{sec:dicom}
 
 Some models are be derived from image data, and it may be useful to show the model
@@ -50,7 +50,7 @@ The main classes related to the reading and displaying of DICOM images are:
 \end{lstdescription}
 If the purpose is simply to display a DICOM volume in the ArtiSynth viewer, then only the last three classes will be of interest.  Readers who simply want to display a DICOM image in their model can skip to Section \ref{sec:dicom:loading}.
 
-\subsection{The DICOM file format}
+\section{The DICOM file format}
 
 For a complete description of the DICOM format, see the specification page at \url{http://medical.nema.org/standard.html}.  A brief
 description is provided here.  Another excellent resource is the blog by Roni Zaharia: \url{http://dicomiseasy.blogspot.ca/}.
@@ -137,7 +137,7 @@ This layout is depicted in Figure \ref{fig:dicom:attribute}.  A list of importan
    \end{tabular}
 \end{table}
 
-\subsection{The DICOM classes}
+\section{The DICOM classes}
 
 Each \javaclass[maspack.dicom]{DicomElement} represents a single attribute contained in a DICOM file.
 The \javaclass[maspack.dicom]{DicomHeader} contains the collection of \lstinline{DicomElement}s defined in a file, 
@@ -147,7 +147,7 @@ the decoded \lstinline{DicomPixelBuffer} for a single slice (or `frame').  All s
 \javaclass[maspack.dicom]{DicomImage}, which can be used to extract 3D voxels and spatial locations from the set of slices.  
 These five classes are described in further detail in the following sections.
 
-\subsubsection{\texttt{DicomElement}}
+\subsection{\texttt{DicomElement}}
 
 The \javaclass[maspack.dicom]{DicomElement} class is a simple container for DICOM attribute information.  It has
 three main properties:
@@ -156,11 +156,11 @@ three main properties:
 \item a \emph{value representation} (VR)
 \item a value
 \end{tightemize}
-These properties can be obtained using the corresponding \lstinline{get} function: \lstinline{getTag()}, \lstinline{getVR()}, \lstinline{getValue()}.  The tag refers to the concatenated group/element tag. For example, the \emph{transfer syntax UID} which corresponds to group 0x0002 and element 0x0010 has a numeric tag of 0x00020010. The VR is represented by an enumerated type, \javaclass[maspack.dicom]{DicomElement\#VR}.  The `value' is the \emph{raw} value extracted from the DICOM file.  In most cases, this will be a \lstinline{String}.  For raw numeric values (i.e.~stored in the DICOM file in binary form) such as the unsigned short (US), the `value' property is exactly the numeric value.
+These properties can be obtained using the corresponding \lstinline{get} function: \lstinline{getTag()}, \lstinline{getVR()}, \lstinline{getValue()}.  The tag refers to the concatenated group/element tag. For example, the \emph{transfer syntax UID} which corresponds to group 0x0002 and element 0x0010 has a numeric tag of 0x00020010. The VR is represented by an enumerated type, \javaclass[maspack.dicom]{DicomElement\$VR}.  The `value' is the \emph{raw} value extracted from the DICOM file.  In most cases, this will be a \lstinline{String}.  For raw numeric values (i.e.~stored in the DICOM file in binary form) such as the unsigned short (US), the `value' property is exactly the numeric value.
 
 For VRs such as the integer string (IS) or decimal string (DS), the string will still need to be parsed in order to extract the appropriate sequence of numeric values.  There are static utility functions for handling this within \lstinline{DicomElement}.  For a `best-guess' of the desired parsed value based on the VR, one can use the method \lstinline{getParsedValue()}.  Often, however, the desired value is also context-dependent, so the user should know a priori what type of value(s) to expect.  Parsing can also be done automatically by querying for values directly through the \lstinline{DicomHeader} object.  
 
-\subsubsection{\texttt{DicomHeader}}
+\subsection{\texttt{DicomHeader}}
 
 When a DICOM file is parsed, all meta-data (attributes apart from the actual pixel data) 
 is assembled into a \javaclass[maspack.dicom]{DicomHeader} object.  This essentially acts
@@ -184,7 +184,7 @@ If the tag does not exist in the header, then the \lstinline{getIntValue(...)} a
 \lstinline{getDecimalValue(...)} will return the supplied \lstinline{defaultValue}.  All other methods
 will return \lstinline{null}.
 
-\subsubsection{\texttt{DicomPixelBuffer}}
+\subsection{\texttt{DicomPixelBuffer}}
 
 The \javaclass[maspack.dicom]{DicomPixelBuffer} contains the decoded image information of an image slice.
 There are three possible pixel types currently supported:
@@ -214,7 +214,7 @@ public int getPixels(
 These methods populate an output array or buffer with converted pixel values, which can later
 be passed to a renderer.  For further details on these methods, refer to the Javadoc documentation.
 
-\subsubsection{\texttt{DicomSlice}}
+\subsection{\texttt{DicomSlice}}
 
 A single DICOM file contains both header information, and one or more image `frames' (slices).  In
 ArtiSynth, we separate each frame and attach them to the corresponding header information in
@@ -225,7 +225,7 @@ a \javaclass[maspack.dicom]{DicomSlice}.  Thus, each slice contains a single \ls
 For convenience, the \lstinline{DicomSlice} also has all the same methods 
 for extracting and converting between pixel types as the \lstinline{DicomPixelBuffer}.
 
-\subsubsection{\texttt{DicomImage}}
+\subsection{\texttt{DicomImage}}
 
 An complete DICOM acquisition typically consists of multiple slices forming a 3D image stack,
 and potentially contains multiple 3D stacks to form a dynamic 3D+time image.  The collection
@@ -255,7 +255,7 @@ The inputs \{\lstinline{x, y, z}\} refer to voxel indices, and \lstinline{time} 
 
 The \lstinline{DicomImage} also contains spatial transform information for converting between voxel indices and patient-centered spatial locations.  The affine transform can be acquired with the method \lstinline{getPixelTransform()}.  This allows the image to be placed in the appropriate 3D location, to correspond with any derived data such as segmentations.  The spatial transformation is automatically extracted from the DICOM header information embedded in the files.
 
-\subsection{Loading a \texttt{DicomImage} \label{sec:dicom:loading}}
+\section{Loading a \texttt{DicomImage} \label{sec:dicom:loading}}
 
 DICOM files and folders are read using the \javaclass[maspack.dicom]{DicomReader} class.  The 
 reader populates a supplied \lstinline{DicomImage} with slices, forming the full 3D(+time)
@@ -295,7 +295,7 @@ public DicomImage read(DicomImage im, List<File> files);
 \end{lstlisting}
 which will load all specified files.
 
-\subsubsection{Time-dependent images}
+\subsection{Time-dependent images}
 
 In most cases, time-dependent images will be properly assembled using the previously mentioned
 methods in the \lstinline{DicomReader}.  Each slice \emph{should} have a temporal position
@@ -317,7 +317,7 @@ stack (or 0 if \lstinline{im == null}).  For example, if the original
 image has temporal positions \{0, 1, 2\}, then all appended slices will have
 a temporal position of three.
 
-\subsubsection{Image formats \label{sec:dicom:formats}}
+\subsection{Image formats \label{sec:dicom:formats}}
 
 The \lstinline{DicomReader} attempts to automatically decode any pixel information 
 embedded in the DICOM files.  Unfortunately, there are virtually an unlimited number
@@ -343,7 +343,7 @@ The install path must also be added to your system's \texttt{PATH} environment v
 so that ArtiSynth can locate the \texttt{identify} and \texttt{convert} utilities.
 \end{sideblock}
 
-\subsection{The \texttt{DicomViewer}}
+\section{The \texttt{DicomViewer}}
 
 Once a \lstinline{DicomImage} is loaded, it can be displayed in a model by using the
 \javaclass[artisynth.core.renderables]{DicomViewer} component.  The viewer
@@ -466,7 +466,7 @@ public DicomViewer(String name, List<File> files);
 These constructors generate a new \lstinline{DicomImage} internal to the viewer.  The image
 can be retreived from the viewer using the \lstinline{getImage()} method.
 
-\subsection{DICOM example}
+\section{DICOM example}
 
 Examples of DICOM use can be found in the \texttt{artisynth.core.demos.dicom} package.
 These demos automatically download sample DICOM data from \url{http://www.osirix-viewer.com/datasets/}.

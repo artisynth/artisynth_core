@@ -54,7 +54,7 @@ public interface Boundable {
     * @param min minimum values to be updated
     * @param max maximum values to be updated
     */
-   public void updateBounds (Point3d min, Point3d max);
+   public void updateBounds (Vector3d min, Vector3d max);
    
    /**
     * Computes the covariance of the element, assuming a uniform density

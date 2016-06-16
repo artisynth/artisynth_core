@@ -6,24 +6,40 @@
  */
 package artisynth.core.femmodels;
 
-import artisynth.core.util.ScanToken;
-import artisynth.core.util.ScalableUnits;
-import artisynth.core.modelbase.PropertyChangeListener;
-import artisynth.core.modelbase.PropertyChangeEvent;
-import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.MaterialBase;
-import artisynth.core.modelbase.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.*;
-import maspack.matrix.*;
-import maspack.util.*;
-
-import java.util.*;
-import java.io.*;
-
-import javax.media.opengl.*;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import artisynth.core.materials.FemMaterial;
+import artisynth.core.materials.MaterialBase;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
 
 public abstract class FemElement extends RenderableComponentBase
    implements ScalableUnits, CopyableComponent, PropertyChangeListener {
@@ -199,7 +215,6 @@ public abstract class FemElement extends RenderableComponentBase
    
    public void updateRestVolumeAndMass() {
       if (!myRestVolumeValidP) {
-         double oldVol = myRestVolume;
          double newVol = computeRestVolumes();
          updateNodeMasses ((newVol*myDensity)-myMass);
          myMass = newVol*myDensity;
@@ -279,41 +294,42 @@ public abstract class FemElement extends RenderableComponentBase
       // nothing to do
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       // nothing to do
    }
 
-   protected abstract void renderEdges (GLRenderer renderer, RenderProps props);
+   //protected abstract void renderEdges (Renderer renderer, RenderProps props);
 
-   public void render(GLRenderer renderer, RenderProps rprops, int flags) {
-      
-      if (rprops.getLineWidth() > 0) {
-         switch (rprops.getLineStyle()) {
-            case LINE: {
-               //GL2 gl = renderer.getGL2();
-               renderer.setLightingEnabled (false);
-               renderer.setLineWidth (rprops.getLineWidth());
-               renderer.setColor (
-                  rprops.getLineColorArray(), isSelected());
-               renderEdges (renderer, rprops);
-               renderer.setLineWidth (1);
-               renderer.setLightingEnabled (true);
-               break;
-            }
-            case CYLINDER: {
-               renderer.setMaterialAndShading (
-                  rprops, myRenderProps.getLineMaterial(), isSelected());
-               renderEdges (renderer,rprops);
-               renderer.restoreShading (rprops);
-               break;
-            }
-            default:
-               break;
-         }
-      }
-   }
+   public abstract void render(
+      Renderer renderer, RenderProps rprops, int flags);
+//   
+//      
+//      if (rprops.getLineWidth() > 0) {
+//         switch (rprops.getLineStyle()) {
+//            case LINE: {
+//               renderer.setLightingEnabled (false);
+//               renderer.setLineWidth (rprops.getLineWidth());
+//               renderer.setColor (
+//                  rprops.getLineColorArray(), isSelected());
+//               renderEdges (renderer, rprops);
+//               renderer.setLineWidth (1);
+//               renderer.setLightingEnabled (true);
+//               break;
+//            }
+//            case CYLINDER: {
+//               renderer.setMaterialAndShading (
+//                  rprops, myRenderProps.getLineMaterial(), isSelected());
+//               renderEdges (renderer,rprops);
+//               renderer.restoreShading (rprops);
+//               break;
+//            }
+//            default:
+//               break;
+//         }
+//      }
+//   }
    
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render(renderer, myRenderProps, flags);
    }
 

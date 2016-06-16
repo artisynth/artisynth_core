@@ -1,0 +1,14 @@
+{
+	"name": "diffuse_texture",
+	"dependencies":["common", "texture_base"],
+	"defines": ["DIFFUSE_TEXTURE_NONE", "DIFFUSE_TEXTURE_REPLACE", "DIFFUSE_TEXTURE_DECAL", "DIFFUSE_TEXTURE_BLEND"],
+	"uniforms": [ {"name": "diffuse_texture", "type": "sampler2D"},
+	              {"name": "diffuse_texture_environment", "type": "vec4"}
+	            ],
+    "fragment_shader": {
+            "inputs": [{"name": "fragment_color", "type":"vec4"}],
+            "outputs": [{"name": "fragment_color", "type":"vec4"}],
+            "header": "diffuse_texture_fragment_header.glsl",
+    	    "main": "diffuse_texture_fragment_main.glsl"
+    	 }
+}

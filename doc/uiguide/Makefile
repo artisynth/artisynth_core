@@ -8,6 +8,11 @@ HTML_DIR = ../html/uiguide
 
 html: $(HTML_DIR)/uiguide.html
 
+IMG_FILES = $(wildcard images/*.png images/*.jpg images/menu/*.png)
+EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
+
+eps: $(EPS_FILES)
+
 pdf: $(PDF_DIR)/uiguide.pdf
 
 $(PDF_DIR)/uiguide.pdf: uiguide.pdf
@@ -15,20 +20,15 @@ $(PDF_DIR)/uiguide.pdf: uiguide.pdf
 
 #chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
 
-uiguide.pdf: uiguide.tex
-	pdflatex uiguide.tex
-	pdflatex uiguide.tex
-	pdflatex uiguide.tex # extra extra invocation for cross references
+uiguide.pdf: uiguide.tex $(EPS_FILES)
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) uiguide.ps
 
 uiguide.xml: uiguide.tex
 	latexml uiguide.tex >uiguide.xml
 
 $(HTML_DIR)/uiguide.html: uiguide.tex
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml uiguide.tex >uiguide.xml
-	$(LATEXMLPOST) uiguide.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/uiguide.html
+	$(BUILD_HTML)
 	rm -f uiguide.xml
 
 install_html: html

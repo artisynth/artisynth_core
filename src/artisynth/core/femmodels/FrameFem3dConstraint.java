@@ -602,6 +602,6 @@ public class FrameFem3dConstraint extends ConstrainerBase {
    //    return a;
    // }
   
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
    }
 }

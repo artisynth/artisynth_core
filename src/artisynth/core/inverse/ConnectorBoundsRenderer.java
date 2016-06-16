@@ -4,19 +4,19 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import javax.media.opengl.GL2;
-
 import artisynth.core.modelbase.MonitorBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
 
 public class ConnectorBoundsRenderer extends MonitorBase {
 
@@ -186,15 +186,15 @@ public class ConnectorBoundsRenderer extends MonitorBase {
    }
 
    @Override
-   public void render (GLRenderer gl, int flags) {
-      super.render (gl, flags);
+   public void render (Renderer renderer, int flags) {
+      super.render (renderer, flags);
 //      System.out.println ("CBR-ren");
       for (LineInfo line : lines) {
-         gl.drawLine (line.props, line.p0, line.p1, isSelected ());
+         renderer.drawLine (line.props, line.p0, line.p1, isSelected ());
       }
 
       for (TriInfo tri : planes) {
-         drawTriangle (gl, tri);
+         drawTriangle (renderer, tri);
       }
    }
 
@@ -211,22 +211,21 @@ public class ConnectorBoundsRenderer extends MonitorBase {
    private double myPlaneSize = 1d;
    private Point3d[] myRenderVtxs;
 
-   public void drawTriangle (GLRenderer renderer, TriInfo tri) {
-      GL2 gl = renderer.getGL2 ().getGL2 ();
+   public void drawTriangle (Renderer renderer, TriInfo tri) {
+      
       RenderProps props = tri.props;
 
-      renderer.setMaterialAndShading (
-         props, props.getFaceMaterial (), isSelected ());
-      renderer.setFaceMode (props.getFaceStyle ());
-      gl.glBegin (GL2.GL_POLYGON);
-      gl.glNormal3d (tri.nrm.x, tri.nrm.y, tri.nrm.z);
+      Shading savedShading = renderer.setPropsShading (props);
+      renderer.setFaceColoring (props, isSelected());
+      renderer.setFaceStyle (props.getFaceStyle ());
+      renderer.beginDraw (DrawMode.TRIANGLES);
+      renderer.setNormal (tri.nrm);
       for (int i = 0; i < tri.pts.length; i++) {
-         Point3d p = tri.pts[i];
-         gl.glVertex3d (p.x, p.y, p.z);
+         renderer.addVertex (tri.pts[i]);
       }
-      gl.glEnd ();
-      renderer.restoreShading (props);
-      renderer.setDefaultFaceMode ();
+      renderer.endDraw();
+      renderer.setShading (savedShading);
+      renderer.setFaceStyle (FaceStyle.FRONT);
    }
 
    public class TriInfo {
@@ -245,7 +244,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
          nrm.cross (v1, v2);
          nrm.normalize ();
          props.setFaceColor (color);
-         props.setFaceStyle (Faces.FRONT_AND_BACK);
+         props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
          props.setAlpha (0.4);
       }
 

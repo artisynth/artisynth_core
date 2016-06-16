@@ -6,24 +6,31 @@
  */
 package artisynth.core.mechmodels;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.util.*;
-import maspack.render.*;
-
-import java.util.*;
-
-import maspack.matrix.*;
-import maspack.geometry.*;
-import maspack.properties.*;
-
-import java.io.*;
-
-import maspack.render.*;
-import maspack.util.*;
-
-import javax.media.opengl.*;
-
 import java.awt.Color;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Deque;
+
+import maspack.geometry.GeometryTransformer;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Matrix;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.Vector3d;
+import maspack.properties.HasProperties;
+import maspack.properties.PropertyList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.FaceStyle;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
 
 public class SoftPlaneCollider extends RenderableComponentBase implements
 ScalableUnits, ForceComponent, TransformableGeometry {
@@ -38,6 +45,7 @@ ScalableUnits, ForceComponent, TransformableGeometry {
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createMeshProps (host);
       props.setFaceColor (new Color (0.5f, 0.5f, 0.5f));
+      props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       props.setAlpha (0.8);
       props.setShininess (32);
       return props;
@@ -204,14 +212,12 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       return super.postscanItem (tokens, ancestor);
    }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myCenter.updateBounds (pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
-      // GLU glu = renderer.getGLU();
-
+   public void render (Renderer renderer, int flags) {
+      
       Point3d renderCenter = new Point3d();
       myPlane.set (myNormal, myCenter);
       myPlane.project (renderCenter, myCenter);
@@ -220,35 +226,25 @@ ScalableUnits, ForceComponent, TransformableGeometry {
       Vector3d nrml = myPlane.getNormal();
       X.R.setZDirection (nrml);
       X.p.set (renderCenter);
-      gl.glPushMatrix();
-      GLViewer.mulTransform (gl, X);
+      renderer.pushModelMatrix();
+      renderer.mulModelMatrix (X);
 
-      
-      if (!renderer.isSelecting()) {
-    	  gl.glEnable (GL2.GL_BLEND);
-          gl.glBlendFunc (GL2.GL_SRC_ALPHA, GL2.GL_ONE);
-      }
-      gl.glDepthMask (false);
-      gl.glDisable (GL2.GL_CULL_FACE);
+      Shading savedShading = renderer.setPropsShading (myRenderProps);
+      renderer.setFaceColoring (myRenderProps, isSelected());
+      renderer.setFaceStyle (myRenderProps.getFaceStyle());
 
-      renderer.setMaterialAndShading (myRenderProps, myRenderProps.getFaceMaterial(), false);
-      gl.glBegin (GL2.GL_POLYGON);
-      gl.glNormal3d (nrml.x, nrml.y, nrml.z);
-      gl.glVertex3d (mySize, mySize, 0);
-      gl.glVertex3d (-mySize, mySize, 0);
-      gl.glVertex3d (-mySize, -mySize, 0);
-      gl.glVertex3d (mySize, -mySize, 0);
-      gl.glEnd();
-      renderer.restoreShading (myRenderProps);
+      renderer.beginDraw (Renderer.DrawMode.TRIANGLE_STRIP);
+      renderer.setNormal (nrml.x, nrml.y, nrml.z);
+      renderer.addVertex (mySize, -mySize, 0);
+      renderer.addVertex (mySize, mySize, 0);
+      renderer.addVertex (-mySize, -mySize, 0);
+      renderer.addVertex (-mySize, mySize, 0);
+      renderer.endDraw();
 
-      gl.glEnable (GL2.GL_CULL_FACE);
-      gl.glDepthMask (true);
-      
-      if (!renderer.isSelecting()) {
-    	  gl.glDisable (GL2.GL_BLEND);
-      }
+      renderer.setShading (savedShading);
+      renderer.setFaceStyle (FaceStyle.FRONT); // set default
 
-      gl.glPopMatrix();
+      renderer.popModelMatrix();
    }
 
    public void transformGeometry (AffineTransform3dBase X) {

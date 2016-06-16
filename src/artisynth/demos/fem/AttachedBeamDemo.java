@@ -15,6 +15,7 @@ import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.*;
+import maspack.render.Renderer;
 import maspack.util.*;
 import maspack.widgets.DoubleFieldSlider;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
@@ -48,14 +49,14 @@ public class AttachedBeamDemo extends RootModel {
    private double EPS = 1e-9;
 
    private void setPointRenderProps (Renderable r, Color color) {
-      RenderProps.setPointStyle (r, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (r, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (r, 0.02);
       RenderProps.setPointColor (r, color);
    }
 
    private AxialSpring createSpring (String name) {
       AxialSpring spring = new AxialSpring (name, 1000.0, 200, 0);
-      RenderProps.setLineStyle (spring, RenderProps.LineStyle.ELLIPSOID);
+      RenderProps.setLineStyle (spring, Renderer.LineStyle.SPINDLE);
       RenderProps.setLineRadius (spring, 0.04);
       RenderProps.setLineColor (spring, Color.RED);
       return spring;

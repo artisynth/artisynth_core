@@ -6,36 +6,81 @@
  */
 package maspack.apps;
 
-import java.io.*;
-import java.lang.reflect.Constructor;
-import java.util.*;
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
-import javax.swing.event.*;
-import javax.swing.*;
-import javax.swing.filechooser.FileFilter;
+import javax.swing.JFileChooser;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JToolBar;
+import javax.swing.event.MenuEvent;
 
-import javax.media.opengl.*;
-
-import maspack.render.*;
-import maspack.widgets.*;
-import maspack.util.*;
-import maspack.widgets.DraggerToolBar.ButtonType;
-import maspack.render.DrawToolBase.FrameBinding;
-import maspack.properties.*;
-import maspack.geometry.*;
-import maspack.geometry.io.*;
-import maspack.matrix.*;
 import argparser.ArgParser;
-import argparser.BooleanHolder;
-import argparser.DoubleHolder;
 import argparser.IntHolder;
 import argparser.StringHolder;
+import maspack.geometry.HalfEdge;
+import maspack.geometry.LaplacianSmoother;
+import maspack.geometry.MeshBase;
+import maspack.geometry.NURBSCurve2d;
+import maspack.geometry.NURBSCurve3d;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.QuadBezierDistance2d;
+import maspack.geometry.Vertex3d;
+import maspack.geometry.io.GenericMeshReader;
+import maspack.geometry.io.GenericMeshWriter;
+import maspack.geometry.io.XyzbReader;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
+import maspack.properties.HasProperties;
+import maspack.properties.Property;
+import maspack.properties.PropertyList;
+import maspack.properties.PropertyUtils;
+import maspack.render.Dragger3d;
+import maspack.render.DrawToolBase.FrameBinding;
+import maspack.render.DrawToolEvent;
+import maspack.render.DrawToolListener;
+import maspack.render.RenderListener;
+import maspack.render.RenderProps;
+import maspack.render.RenderableBase;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionListener;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import maspack.widgets.DraggerToolBar;
+import maspack.widgets.DraggerToolBar.ButtonType;
+import maspack.widgets.MenuAdapter;
+import maspack.widgets.PropertyDialog;
+import maspack.widgets.RenderPropsPanel;
+import maspack.widgets.SplineTool;
+import maspack.widgets.ValueChangeEvent;
+import maspack.widgets.ValueChangeListener;
+import maspack.widgets.ViewerFrame;
 
 public class MeshThicken extends ViewerFrame 
-   implements ActionListener, DrawToolListener, GLViewerListener,
-              HasProperties, GLSelectionListener {
+   implements ActionListener, DrawToolListener, RenderListener,
+              HasProperties, ViewerSelectionListener {
 
    private static final long serialVersionUID = 1L;
    ArrayList<Region> myRegions = new ArrayList<Region>();
@@ -89,7 +134,7 @@ public class MeshThicken extends ViewerFrame
       public RenderProps createRenderProps() {
          RenderProps props = new RenderProps();
          props.setFaceColor (new Color(0.5f, 0.5f, 1f));
-         props.setFaceStyle (RenderProps.Faces.FRONT_AND_BACK);
+         props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
          return props;
       }
 
@@ -324,11 +369,11 @@ public class MeshThicken extends ViewerFrame
          pw.flush();
       }
 
-      public void render (GLRenderer renderer, int flags) {
+      public void render (Renderer renderer, int flags) {
          render (renderer, myRenderProps, /*flags=*/0);
       }
 
-      public void render (GLRenderer renderer, RenderProps props, int flags) {
+      public void render (Renderer renderer, RenderProps props, int flags) {
 
          if (!myVisibleP) {
             return;
@@ -336,14 +381,14 @@ public class MeshThicken extends ViewerFrame
          if (myCurve != null) {
             myCurve.render (renderer, flags);
          }
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glPushMatrix();
+         
+         renderer.pushModelMatrix();
          RigidTransform3d X = new RigidTransform3d (myFrame);
          X.mulXyz (0, 0, myHeight);
-         renderer.mulTransform (X);
+         renderer.mulModelMatrix (X);
 
          //draw the curve itself
-         renderer.setMaterial (props.getFaceMaterial(), mySelectedP);
+         renderer.setFaceColoring (props, mySelectedP);
 
          double len = myCurve.computeControlPolygonLength();
          double res = myResolution*renderer.distancePerPixel (X.p);
@@ -351,19 +396,21 @@ public class MeshThicken extends ViewerFrame
 
          Point3d pnt0 = new Point3d();
          Point3d pnt1 = new Point3d();
+         Point3d pnt2 = new Point3d();
+         Point3d pnt3 = new Point3d();
          Vector3d nrm = new Vector3d();
          Vector3d zdir = new Vector3d(0, 0, 1);
          //myFrame.R.getColumn (2, zdir);
 
-         renderer.setFaceMode (props.getFaceStyle());
+         renderer.setFaceStyle (props.getFaceStyle());
 
-         gl.glBegin (GL2.GL_QUADS);
+         renderer.beginDraw (DrawMode.TRIANGLES);
          double[] urange = new double[2];
          myCurve.getRange (urange);
          myCurve.eval (pnt0, urange[0]);
          double depth = myHeight+myBackHeight;
          for (int i=1; i<=nsegs; i++) {
-            myCurve.eval (pnt1, urange[0] + (urange[1]-urange[0])*i/nsegs);
+            myCurve.eval (pnt3, urange[0] + (urange[1]-urange[0])*i/nsegs);
             if (myOrientation < 0) {
                nrm.sub (pnt1, pnt0);
             }
@@ -373,21 +420,23 @@ public class MeshThicken extends ViewerFrame
             nrm.cross (zdir);
             nrm.normalize();
             //nrm.negate();
-            gl.glNormal3d (nrm.x, nrm.y, nrm.z);
-            gl.glVertex3d (pnt0.x, pnt0.y, pnt0.z);
-            pnt0.scaledAdd (-depth, zdir);
-            gl.glVertex3d (pnt0.x, pnt0.y, pnt0.z);
-            pnt1.scaledAdd (-depth, zdir);
-            gl.glVertex3d (pnt1.x, pnt1.y, pnt1.z);
-            pnt1.scaledAdd (depth, zdir);
-            gl.glVertex3d (pnt1.x, pnt1.y, pnt1.z);
-            pnt0.set (pnt1);
-         }
-         gl.glEnd();         
-         
-         renderer.setDefaultFaceMode();
 
-         gl.glPopMatrix();
+            pnt1.scaledAdd (-depth, zdir, pnt0);
+            pnt2.scaledAdd (-depth, zdir, pnt3);
+            renderer.setNormal (nrm.x, nrm.y, nrm.z);
+            renderer.addVertex (pnt0); // first triangle
+            renderer.addVertex (pnt1);
+            renderer.addVertex (pnt2); 
+            renderer.addVertex (pnt0); // second triangle
+            renderer.addVertex (pnt2);
+            renderer.addVertex (pnt3);
+            pnt0.set (pnt3);
+         }
+         renderer.endDraw();         
+         
+         renderer.setFaceStyle (FaceStyle.FRONT); // set default
+
+         renderer.popModelMatrix();
       }
 
       public boolean isSelectable() {
@@ -683,7 +732,7 @@ public class MeshThicken extends ViewerFrame
          }
          removeMesh();
          myMesh = mesh;
-         RenderProps.setFaceStyle (mesh, RenderProps.Faces.FRONT_AND_BACK);
+         RenderProps.setFaceStyle (mesh, Renderer.FaceStyle.FRONT_AND_BACK);
          RenderProps.setBackColor (mesh, new Color (1f, 204/255f, 51/355f));
          viewer.addRenderable (myMesh);
          viewer.repaint();
@@ -1024,11 +1073,11 @@ public class MeshThicken extends ViewerFrame
       }
    }
 
-   public void itemsSelected (GLSelectionEvent e) {
+   public void itemsSelected (ViewerSelectionEvent e) {
       deselectRegions();
-      LinkedList<Object>[] itemPaths = e.getSelectedObjects();
-      for (int i=0; i<itemPaths.length; i++) {
-         Object obj = itemPaths[i].getFirst();
+      List<LinkedList<?>> itemPaths = e.getSelectedObjects();
+      for (List<?> path : itemPaths) {
+         Object obj = path.get (0);
          if (obj instanceof Region) {
             ((Region)obj).setSelected (true);
          }

@@ -59,6 +59,17 @@ public enum AxisAlignedRotation {
       getMatrix (R);
       return R;
    }
+   
+   public AxisAngle getAxisAngle() {
+      AxisAngle axisAng = new AxisAngle();
+      getAxisAngle (axisAng);
+      return axisAng;
+   }
+   
+   public void getAxisAngle (AxisAngle axisAng) {
+      RotationMatrix3d R = getMatrix();
+      R.getAxisAngle (axisAng);
+   }
 
    public void getMatrix (RotationMatrix3d R) {
       R.m00 = myX.x;

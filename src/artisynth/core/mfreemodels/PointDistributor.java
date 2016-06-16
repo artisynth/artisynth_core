@@ -7,13 +7,11 @@
 package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.BVTree;
 import maspack.geometry.OBB;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.TriangleIntersector;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -21,7 +19,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.util.ArrayIndexComparator;
+import maspack.util.SortUtilitities;
 
 public class PointDistributor {
 
@@ -467,14 +465,12 @@ public class PointDistributor {
       double err = 0;
       Point3d center = new Point3d();
       int cell,nCellPoints;
-      ArrayIndexComparator<Integer> comparator = new ArrayIndexComparator<Integer>(cells);
       
       do {
          discreteVoronoi(cells,controls,points);
          iters++;
          
-         Integer[] idxs = comparator.createIndexArray();
-         Arrays.sort(idxs, comparator);
+         int[] idxs = SortUtilitities.sortIndices(cells);
       
          cell = -1;
          nCellPoints = 0;

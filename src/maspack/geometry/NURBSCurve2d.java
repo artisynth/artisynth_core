@@ -6,22 +6,9 @@
  */
 package maspack.geometry;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Reader;
-import java.util.ArrayList;
-
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
-import maspack.matrix.RigidTransform3d;
-import maspack.geometry.io.WavefrontReader;
-import maspack.render.*;
-import maspack.util.*;
-
-import javax.media.opengl.GL2;
-import javax.media.opengl.GLDrawable;
 
 /**
  * Implements a NURBS curve

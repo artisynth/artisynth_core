@@ -13,6 +13,9 @@ import artisynth.core.modelbase.ModelComponent;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
+import maspack.render.Renderer;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
 import maspack.spatialmotion.SolidCoupling;
 
 /**

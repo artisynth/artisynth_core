@@ -12,24 +12,19 @@ public class MeshRenderProps extends RenderProps {
    public static PropertyList myProps =
       new PropertyList (MeshRenderProps.class, RenderProps.class);
 
-   protected static TextureProps defaultTextureProps = new TextureProps();
-
    static {
       myProps.remove ("lineStyle");
       myProps.remove ("lineRadius");
-      myProps.remove ("lineSlices");
+      //myProps.remove ("lineSlices");
 
       myProps.remove ("pointStyle");
       myProps.remove ("pointRadius");
-      myProps.remove ("pointSlices");
+      //myProps.remove ("pointSlices");
 
-      myProps.get ("textureProps").setDefaultValue (defaultTextureProps);
    }
 
    protected void setDefaultValues() {
       super.setDefaultValues();
-      setTextureProps (new TextureProps());
-      //setTextureProps (null);
    }
 
    public PropertyList getAllPropertyInfo() {

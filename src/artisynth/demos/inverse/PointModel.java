@@ -10,7 +10,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.inverse.TrackingController;
 import artisynth.core.materials.LinearAxialMuscle;
@@ -173,10 +174,10 @@ public class PointModel extends RootModel
       // set render properties for model
       
       RenderProps rp = new RenderProps();
-      rp.setPointStyle(RenderProps.PointStyle.SPHERE);
+      rp.setPointStyle(Renderer.PointStyle.SPHERE);
       rp.setPointColor(Color.LIGHT_GRAY);
       rp.setPointRadius(len/30);
-      rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
+      rp.setLineStyle(LineStyle.SPINDLE);
       rp.setLineColor(Color.RED);
       rp.setLineRadius(len/25);
       model.setRenderProps(rp);

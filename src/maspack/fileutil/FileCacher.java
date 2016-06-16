@@ -216,7 +216,7 @@ public class FileCacher {
 
    }
    
-   public InputStream getInputStream(URIx uri) throws FileSystemException{
+   public InputStream getInputStream(URIx uri) throws FileSystemException {
       
       FileObject remoteFile = null; // will resolve next
 

@@ -11,7 +11,7 @@ import maspack.render.*;
 public abstract class ControllerBase extends ControllerMonitorBase
    implements Controller {
 
-   public void render (GLRenderer gl, int flags) {
+   public void render (Renderer gl, int flags) {
    }
 
 }

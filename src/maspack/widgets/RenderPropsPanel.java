@@ -17,9 +17,25 @@ import java.util.*;
 import maspack.properties.*;
 import maspack.util.InternalErrorException;
 
-public class RenderPropsPanel extends PropertyPanel {
+public class RenderPropsPanel extends PropertyPanel
+   implements ValueChangeListener {
 
-   maspack.render.Material mat = new maspack.render.Material();
+   private static final long serialVersionUID = -8163801337166221686L;
+   protected LinkedList<Component> myExpandedWidgets = null;
+   protected LabeledToggleButton myExpandButton;
+   protected boolean myExpandedP;   
+
+   protected static LabeledToggleButton createExpandButton () {
+      LabeledToggleButton button =
+         new LabeledToggleButton (
+            "expand ...", false, 
+            GuiUtils.loadIcon (
+               ExpandablePropertyPanel.class, "icons/ExpandIcon.png"), 
+            GuiUtils.loadIcon (
+               ExpandablePropertyPanel.class, "icons/ContractIcon.png"));
+      return button;
+   }
+
    PropTreeCell node = new PropTreeCell();
 
    // public RenderPropsPanelX (Iterable<? extends Property> propList)
@@ -64,6 +80,17 @@ public class RenderPropsPanel extends PropertyPanel {
       }
    }
 
+   private LabeledToggleButton addWidgetExpansionButton (
+      LinkedList<Component> widgets) {
+
+      LabeledToggleButton button = createExpandButton();
+      button.addValueChangeListener (this);
+      widgets.add (createSeparator());
+      widgets.add (createLabel (" Texture mapping ..."));
+      widgets.add (button);
+      return button;
+   }
+
    private LabeledComponentBase maybeAddWidget (
       LinkedList<Component> widgets, String name, double min, double max,
       Iterable<? extends Property> propList) {
@@ -101,6 +128,7 @@ public class RenderPropsPanel extends PropertyPanel {
       LinkedList<Object> sectionList;
 
       LinkedList<Component> widgets = new LinkedList<Component>();
+      LinkedList<Component> mappingWidgets = new LinkedList<Component>();
 
       // for (Property p : propList)
       // { System.out.print (p.getName());
@@ -115,7 +143,19 @@ public class RenderPropsPanel extends PropertyPanel {
       maybeAddWidget (widgets, "visible", propList);
       maybeAddWidget (widgets, "alpha", 0, 1, propList);
       maybeAddWidget (widgets, "shading", propList);
+
       maybeAddWidget (widgets, "shininess", 0, INF, propList);
+      maybeAddWidget (widgets, "specular", propList);
+
+      maybeAddWidget (mappingWidgets, "colorMap", propList);
+      maybeAddWidget (mappingWidgets, "normalMap", propList);
+      maybeAddWidget (mappingWidgets, "bumpMap", propList);
+      //maybeAddWidget (widgets, "emission", propList);
+      //maybeAddWidget (widgets, "ambience", 0, 1, propList);
+      if (mappingWidgets.size() > 0) {
+         myExpandButton = addWidgetExpansionButton (widgets);
+         myExpandedWidgets = mappingWidgets;
+      }
 
       int baseIdx = widgets.size();
 
@@ -123,7 +163,6 @@ public class RenderPropsPanel extends PropertyPanel {
       maybeAddWidget (widgets, "faceColor", propList);
       maybeAddWidget (widgets, "backColor", propList);
       maybeAddWidget (widgets, "drawEdges", propList);
-      maybeAddWidget (widgets, "textureProps", propList);
       if (widgets.size() - baseIdx > 0) {
          addSection (widgets, baseIdx, " Faces ...");
       }
@@ -155,18 +194,67 @@ public class RenderPropsPanel extends PropertyPanel {
          addSection (widgets, baseIdx, " Points ...");
       }
       addWidgets (widgets);
+      for (Component w : mappingWidgets) {
+         doAddWidget (w, myWidgets.size());
+      }
    }
 
-   protected boolean addSection (LinkedList<Component> widgets, int idx, String name) {
-      JSeparator sep = new JSeparator();
-      sep.setAlignmentX (JLabel.LEFT_ALIGNMENT);
-      widgets.add (idx, sep);
+   private JLabel createLabel (String name) {
       JLabel label = new JLabel (name);
       label.setHorizontalTextPosition (JLabel.LEFT);
       label.setAlignmentX (JLabel.LEFT_ALIGNMENT);
       GuiUtils.setItalicFont (label);
-      widgets.add (idx + 1, label);
+      return label;
+   }
+
+   private JSeparator createSeparator() {
+      JSeparator sep = new JSeparator();
+      sep.setAlignmentX (JLabel.LEFT_ALIGNMENT);
+      return sep;
+   }
+
+   protected boolean addSection (
+      LinkedList<Component> widgets, int idx, String name) {
+
+      widgets.add (idx, createSeparator());
+      widgets.add (idx + 1, createLabel(name));
       return true;
+   }
+
+   protected void doSetExpanded (boolean expanded) {
+      if (expanded != myExpandedP) {
+         if (expanded) {
+            int buttonIdx = GuiUtils.indexOfComponent (this, myExpandButton);
+            remove (myExpandButton);
+            for (int i=0; i<myExpandedWidgets.size(); i++) {
+               add (myExpandedWidgets.get(i), buttonIdx+i);
+            }
+            add (myExpandButton, buttonIdx+myExpandedWidgets.size());
+         }
+         else {
+            for (int i=0; i<myExpandedWidgets.size(); i++) {
+               remove (myExpandedWidgets.get(i));
+            }
+         }
+         myExpandedP = expanded;
+         updateExpandButton(expanded);
+         repackContainingWindow();
+      }
+   }
+   
+   protected void updateExpandButton(boolean expanded) {
+      if (expanded) {
+         myExpandButton.setLabelText ("close ...");
+      } else {
+         myExpandButton.setLabelText ("expand ...");
+      }
+   }
+
+   public void valueChange (ValueChangeEvent evt) {
+      Object source = evt.getSource();
+      if (source == myExpandButton) {
+         doSetExpanded (myExpandButton.getBooleanValue());
+      }
    }
 
    public static void main (String[] args) {

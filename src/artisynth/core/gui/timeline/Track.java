@@ -8,6 +8,8 @@ import java.awt.Shape;
 import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Collections;
 import java.util.LinkedList;
 
 import javax.swing.*;
@@ -45,7 +47,8 @@ public class Track extends JPanel {
    protected boolean isExpanded;
 
    private TimelineController myController;
-   protected ArrayList<ProbeInfo> probeInfos;
+   private ArrayList<ProbeInfo> probeInfos;
+   private boolean probeInfoSorted = true;
    private TrackListener myListener;
 
    private JToggleButton[] toggleButtons;
@@ -101,6 +104,10 @@ public class Track extends JPanel {
       nameLabel = new JLabel (nameTrack, SwingConstants.LEFT);
       toggleButtons = new JToggleButton[2];
       isExpanded = false;
+   }
+   
+   void markProbesUnsorted() {
+      probeInfoSorted = false;
    }
 
    /**
@@ -196,8 +203,9 @@ public class Track extends JPanel {
    }
 
    public int getProbeIndex (Probe probe) {
-      for (int i = 0; i < probeInfos.size(); i++) {
-         if (probeInfos.get (i).getProbe() == probe) {
+      ArrayList<ProbeInfo> pinfos = getProbeInfos();
+      for (int i = 0; i < pinfos.size(); i++) {
+         if (pinfos.get (i).getProbe() == probe) {
             return i;
          }
       }
@@ -296,13 +304,13 @@ public class Track extends JPanel {
 
    private void updateProbeIndices() {
       for (int i = 0; i < probeInfos.size(); i++) {
-         probeInfos.get (i).setIndex (i);
+         probeInfos.get(i).setIndex (i);
       }
    }
    
    public void updateProbeSizesAndLocations() {
       for (int i = 0; i < probeInfos.size(); i++) {
-         probeInfos.get (i).setAppropSizeAndLocation (true);
+         probeInfos.get(i).setAppropSizeAndLocation (true);
       }
    }
    
@@ -320,6 +328,7 @@ public class Track extends JPanel {
       int insertionPoint = calcInsertionPoint (range, newProbe);
 
       myController.getProbeTrack().add (newProbe.getDisplayArea());
+      // Note: probeInfos will be updated because of call to calcInsertionPoint
       probeInfos.add (insertionPoint, newProbe);
       updateProbeIndices();
 
@@ -338,7 +347,8 @@ public class Track extends JPanel {
       range[1] = pinfo.getStopTime();
       double duration = range[1]-range[0];
 
-      for (ProbeInfo probeInfo : probeInfos) {
+      ArrayList<ProbeInfo> pinfos = getProbeInfos();
+      for (ProbeInfo probeInfo : pinfos) {
          // if there is overlap with existing probes, slide to the next slot
          if (probeInfo.isOverlapping (range[0], range[1])) {
             // slide the new probe to the next slot
@@ -368,7 +378,8 @@ public class Track extends JPanel {
     */
 
    public boolean hasSpaceForProbe (Probe newProbe) {
-      for (ProbeInfo pinfo : probeInfos) {
+      ArrayList<ProbeInfo> pinfos = getProbeInfos();
+      for (ProbeInfo pinfo : pinfos) {
          // return false if there is any overlap with probe.
          // assume that startTime <= stopTime.
          if (pinfo.isOverlapping (newProbe)) {
@@ -378,21 +389,49 @@ public class Track extends JPanel {
       return true;
    } 
    
+   private class ProbeInfoOrdering implements Comparator<ProbeInfo> {
+      public boolean equals (Object obj) {
+         return obj instanceof ProbeInfoOrdering;
+      }
+      
+      public int compare (ProbeInfo pinfo0, ProbeInfo pinfo1) {
+         double st0 = pinfo0.getStartTime();
+         double st1 = pinfo1.getStartTime();
+         if (st0 < st1) {
+            return -1;
+         }
+         else if (st0 == st1) {
+            return 0;
+         }
+         else {
+            return 1;
+         }
+      }
+   }
+   
    public ArrayList<ProbeInfo> getProbeInfos() {
+      if (!probeInfoSorted) {
+         Collections.sort (probeInfos, new ProbeInfoOrdering());
+         updateProbeIndices();
+         probeInfoSorted = true;
+      }
       return probeInfos;
    } 
+   
+   public int numProbeInfos() {
+      return probeInfos.size();
+   }
 
    /**
     * delete a probe from the track, need to give the index of the probe
     * 
-    * @param indexProbe
+    * @param pinfo
     * @param isParentTrackDeleted
     */
-
-   public void deleteProbe (int indexProbe, boolean isParentTrackDeleted) {
+   public void deleteProbe (ProbeInfo pinfo, boolean isParentTrackDeleted) {
       if (confirmDelete ("Delete this probe?", isParentTrackDeleted)) {
          RemoveComponentsCommand rmCmd = new RemoveComponentsCommand (
-            "delete probe", probeInfos.get (indexProbe).getProbe());
+            "delete probe", pinfo.getProbe());
          myController.myMain.getUndoManager().saveStateAndExecute (rmCmd);
          myController.myMain.rerender();
       }
@@ -401,13 +440,14 @@ public class Track extends JPanel {
    public boolean deleteProbe (Probe probe) {
       int idx = getProbeIndex (probe);
       if (idx != -1) {
-         ProbeInfo info = probeInfos.remove (idx);
+         ArrayList<ProbeInfo> pinfos = getProbeInfos();
+         ProbeInfo info = pinfos.remove (idx);
          info.dispose();
 
          myController.refreshProbeTrackDisplay();
 
-         for (int i = 0; i < probeInfos.size(); i++) {
-            probeInfos.get (i).setIndex (i);
+         for (int i = 0; i < pinfos.size(); i++) {
+            pinfos.get (i).setIndex (i);
          }
          refreshTrackChanges();
          return true;
@@ -430,6 +470,7 @@ public class Track extends JPanel {
       pInfo.setStopTime (range[1]);     
       
       pInfo.setParentTrack (this);
+      // Note: probeInfos will be updated because of call to calcInsertionPoint
       probeInfos.add (insertionPoint, pInfo);
       updateProbeIndices();
       updateProbeSizesAndLocations();
@@ -492,8 +533,9 @@ public class Track extends JPanel {
 
       double earliestTime;
 
-      if (probeInfos.size() > 0) {
-         earliestTime = probeInfos.get(0).getStartTime();
+      ArrayList<ProbeInfo> pinfos = getProbeInfos();
+      if (pinfos.size() > 0) {
+         earliestTime = pinfos.get(0).getStartTime();
 
          wayProbe.invalidateAfterTime (earliestTime);
 
@@ -656,6 +698,9 @@ public class Track extends JPanel {
 
    public boolean isDragValid (ProbeInfo pInfo, boolean isMove) {
       // check for overlap with every probe from this track
+      // Note: don't call getProbeInfos() because probes don't need to
+      // to be sorted and this methods may be called from the mouse
+      // methods which cause the probe order to be changed
       for (ProbeInfo probeInfo : probeInfos) {
          if (!isMove || !myController.selectedProbes.contains (probeInfo)) {
             
@@ -779,23 +824,26 @@ public class Track extends JPanel {
    }
 
    public void appendProbes (LinkedList<Probe> list) {
-      for (int i = 0; i < probeInfos.size(); i++) {
-         list.add (probeInfos.get (i).getProbe());
+      ArrayList<ProbeInfo> pinfos = getProbeInfos();
+      for (int i = 0; i < pinfos.size(); i++) {
+         list.add (pinfos.get(i).getProbe());
       }
    }
 
    public void updateProbeData() {
-      for (int i = 0; i < probeInfos.size(); i++) {
-         probeInfos.get (i).updateProbeData();
-         probeInfos.get (i).updateLabelText();
+      ArrayList<ProbeInfo> pinfos = getProbeInfos();
+      for (int i = 0; i < pinfos.size(); i++) {
+         pinfos.get(i).updateProbeData();
+         pinfos.get(i).updateLabelText();
       }      
    }
 
    public void dispose() {
-      for (ProbeInfo pInfo : probeInfos) {
+      ArrayList<ProbeInfo> pinfos = getProbeInfos();
+      for (ProbeInfo pInfo : pinfos) {
          pInfo.dispose();
       }
-      probeInfos.clear(); 
+      pinfos.clear(); 
    }   
 
    private void showPopupMenu (Component component, int x, int y) {

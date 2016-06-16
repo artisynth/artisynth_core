@@ -64,7 +64,7 @@ public class MeshInfo {
          return T;
       }
       else {
-         return myFileTransform.clone();
+         return myFileTransform.copy();
       }
    }
 
@@ -364,25 +364,25 @@ public class MeshInfo {
  
    public void prerender (RenderProps props) {
       if (myMesh != null) {
-         myMesh.saveRenderInfo(props);
+         myMesh.prerender (props);
       }
    }
 
    public void render (
-      GLRenderer renderer, RenderProps props, boolean selected) {
-      int flags = selected ? GLRenderer.SELECTED : 0;
+      Renderer renderer, RenderProps props, boolean selected) {
+      int flags = selected ? Renderer.HIGHLIGHT : 0;
       render(renderer, props, flags);         
    }
    
    public void render (
-      GLRenderer renderer, RenderProps props, boolean selected, 
+      Renderer renderer, RenderProps props, boolean selected, 
       int flags) {
-      flags |= selected ? GLRenderer.SELECTED : 0;
+      flags |= selected ? Renderer.HIGHLIGHT : 0;
       render(renderer, props, flags);
    }
    
    public void render (
-      GLRenderer renderer, RenderProps props, int flags) {
+      Renderer renderer, RenderProps props, int flags) {
 
       if (myMesh != null) {
          myMesh.render (renderer, props, flags);
@@ -393,7 +393,7 @@ public class MeshInfo {
       MeshInfo out = new MeshInfo();
       out.myFileName = myFileName;
       out.myMeshModifiedP = myMeshModifiedP;
-      out.myFileTransform = myFileTransform.clone();
+      out.myFileTransform = myFileTransform.copy();
       out.myMesh = myMesh.copy();
       return out;
    }

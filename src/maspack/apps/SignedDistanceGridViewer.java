@@ -7,48 +7,31 @@
 package maspack.apps;
 
 import java.awt.event.MouseEvent;
-import java.awt.Color;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.event.MouseInputAdapter;
 
-import argparser.ArgParser;
-import argparser.BooleanHolder;
-import argparser.DoubleHolder;
-import argparser.IntHolder;
-import argparser.StringHolder;
 import maspack.geometry.SignedDistanceGridCell;
-import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.Vector4d;
-import maspack.render.GLSelectionEvent;
-import maspack.render.GLSelectionListener;
-import maspack.render.GLViewer;
-import maspack.render.GLViewerFrame;
-import maspack.render.Material;
-import maspack.render.RenderProps;
+import maspack.render.ViewerSelectionEvent;
+import maspack.render.ViewerSelectionListener;
+import maspack.render.GL.GLViewerFrame;
 
 public class SignedDistanceGridViewer extends GLViewerFrame {
    private static final long serialVersionUID = 1L;
    ArrayList<SignedDistanceGridCell> gridCellList = new ArrayList<SignedDistanceGridCell> (10);
    ArrayList<int[]> selectedPnts = new ArrayList<int[]>();
 
-   class SelectionHandler implements GLSelectionListener {
+   class SelectionHandler implements ViewerSelectionListener {
       private void clearSelection() {
          selectedPnts.clear();
       }
 
-      public void itemsSelected (GLSelectionEvent e) {
+      public void itemsSelected (ViewerSelectionEvent e) {
          boolean holdSelection, selectAll;
          long modEx = e.getModifiersEx();
          holdSelection = ((modEx & MouseEvent.SHIFT_DOWN_MASK) != 0);
@@ -57,13 +40,12 @@ public class SignedDistanceGridViewer extends GLViewerFrame {
             clearSelection();
          }
          if (e.numSelectedQueries() > 0) {
-            LinkedList[] itemPaths = e.getSelectedObjects();
-            for (int i = 0; i < itemPaths.length; i++) {
-               LinkedList path = itemPaths[i];
+            List<LinkedList<?>> itemPaths = e.getSelectedObjects();
+            for (LinkedList<?> path : itemPaths) {
                if (path.getFirst() instanceof SignedDistanceGridCell) {
                   SignedDistanceGridCell gridCell = (SignedDistanceGridCell)path.getFirst();
                   if (path.size() > 1 && path.get (1) instanceof Integer) {
-                     int idx = ((Integer)path.get (1)).intValue();
+                     // int idx = ((Integer)path.get (1)).intValue();
                      if (!gridCell.isSelected ()) {
                         gridCell.selectPoint (true);
                         selectedPnts.add (gridCell.getPoint());
@@ -106,14 +88,16 @@ public class SignedDistanceGridViewer extends GLViewerFrame {
       public void mouseDragged (MouseEvent e) {
          if (dragging) {
             RigidTransform3d XV = new RigidTransform3d();
-            viewer.getWorldToEye (XV);
+            viewer.getViewMatrix (XV);
             Vector3d del =
                new Vector3d (e.getX() - lastX, lastY - e.getY(), 0);
             del.inverseTransform (XV);
             del.scale (viewer.centerDistancePerPixel());
-            Vector4d del4d = new Vector4d (del.x, del.y, del.z, 0);
-            for (Iterator it = selectedPnts.iterator(); it.hasNext();) {
-               ((Vector4d)it.next()).add (del4d);
+            for (Iterator<int[]> it = selectedPnts.iterator(); it.hasNext();) {
+               int[] next = it.next ();
+               next[0] += del.x;
+               next[1] += del.y;
+               next[2] += del.z;
             }
             lastX = e.getX();
             lastY = e.getY();

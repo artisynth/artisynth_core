@@ -6,16 +6,15 @@
  */
 package artisynth.core.femmodels;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.*;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderProps;
 
 public class QuadpyramidElement extends FemElement3d {
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
    private static IntegrationPoint3d myWarpingPoint;
+   private static FemElementRenderer myRenderer;
 
    static final int NUM_NODES = 13;
 
@@ -316,9 +315,25 @@ public class QuadpyramidElement extends FemElement3d {
       return myFaceIdxs;
    }
 
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      // Note: proper edge rendering for a pyramid needs to be handled
+      // differently - the coordinate interpolation along
+      // the edges leading to the apex must be handled in a special way 
+      // (because the shape functions are determined from condensation 
+      // and the natural coordinates correspond to a cube).
+      // See the commented out function renderEdges, below
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
+   }
+
    public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
-      renderWidget (renderer, size, myWidgetFaces, props);
+      Renderer renderer, double size, RenderProps props) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.renderWidget (renderer, this, size, props);
    }
 
    public FemNode3d[][] triangulateFace (FaceNodes3d face) {
@@ -335,32 +350,32 @@ public class QuadpyramidElement extends FemElement3d {
       }
    } 
 
-   /** 
-    * Need to override renderEdges because the coordinate interpolation along
-    * the edges leading to the apex must be handled in a special way (because
-    * the shape functions are determined from condensation and the natural
-    * coordinates correspond to a cube).
-    */   
-   public void renderEdges (GLRenderer renderer, RenderProps props) {
-      int[] idxs = getEdgeIndices();
-      GL2 gl = renderer.getGL2().getGL2();
-
-      Vector3d ncoords0 = new Vector3d();
-      Vector3d ncoords1 = new Vector3d();
-      int n = 3; // all edges have three nodes
-      for (int i=0; i<idxs.length; i+=(n+1)) {
-         getNodeCoords (ncoords0, idxs[i+1]);            
-         if (idxs[i+3] == 4) {
-            // if last node is apex, use middle node and extrapolate
-            getNodeCoords (ncoords1, idxs[i+2]);            
-            ncoords1.combine (-1, ncoords0, 2, ncoords1);
-         }
-         else {
-            getNodeCoords (ncoords1, idxs[i+3]);            
-         }
-         drawQuadEdge (
-            gl, ncoords0, ncoords1, idxs[i+1], idxs[i+2], idxs[i+3]);
-      }
-   }
+//   /** 
+//    * Need to override renderEdges because the coordinate interpolation along
+//    * the edges leading to the apex must be handled in a special way (because
+//    * the shape functions are determined from condensation and the natural
+//    * coordinates correspond to a cube).
+//    */   
+//   public void renderEdges (Renderer renderer, RenderProps props) {
+//      
+//      int[] idxs = getEdgeIndices();
+//
+//      Vector3d ncoords0 = new Vector3d();
+//      Vector3d ncoords1 = new Vector3d();
+//      int n = 3; // all edges have three nodes
+//      for (int i=0; i<idxs.length; i+=(n+1)) {
+//         getNodeCoords (ncoords0, idxs[i+1]);            
+//         if (idxs[i+3] == 4) {
+//            // if last node is apex, use middle node and extrapolate
+//            getNodeCoords (ncoords1, idxs[i+2]);            
+//            ncoords1.combine (-1, ncoords0, 2, ncoords1);
+//         }
+//         else {
+//            getNodeCoords (ncoords1, idxs[i+3]);            
+//         }
+//         drawQuadEdge (
+//            renderer, ncoords0, ncoords1, idxs[i+1], idxs[i+2], idxs[i+3]);
+//      }
+//   }
 
 }

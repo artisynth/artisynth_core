@@ -7,9 +7,10 @@
 package maspack.render;
 
 import java.util.LinkedList;
+
 import maspack.matrix.Point3d;
 
-public abstract class RenderableBase extends GLRenderableBase
+public abstract class RenderableBase extends IsRenderableBase
    implements Renderable {
 
    protected RenderProps myRenderProps;

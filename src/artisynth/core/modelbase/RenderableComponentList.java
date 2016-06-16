@@ -68,7 +68,7 @@ ComponentList<C> implements RenderableComponentListView<C>, RenderableComponent 
          RenderableComponentBase.updateRenderProps (this, myRenderProps, props);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       for (int i = 0; i < size(); i++) {
          ModelComponent comp = get (i);
          if (comp instanceof Renderable) {
@@ -94,13 +94,13 @@ ComponentList<C> implements RenderableComponentListView<C>, RenderableComponent 
       return false;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
    }
 
    public int getRenderHints() {
       int code = 0;
-      if (myRenderProps != null && myRenderProps.getAlpha() != 1) {
-         code |= TRANSLUCENT;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= TRANSPARENT;
       }
       return code;
    }

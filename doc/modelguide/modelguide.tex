@@ -2,7 +2,7 @@
 %   about 28 and 23 sections, with about 375 words/sec, so we can
 %   expect this to be around 45,000 words, or about 120 pages.
 
-\documentclass{article}
+\documentclass{book}
 
 % Add search paths for input files
 \makeatletter
@@ -22,7 +22,7 @@
 
 \title{ArtiSynth Modeling Guide}
 \author{John Lloyd and Antonio S\'anchez}
-\setpubdate{Last update: Dec 1, 2015}
+\setpubdate{Last update: Jun 15, 2016}
 
 \iflatexml
 \date{}
@@ -65,6 +65,8 @@
 
 \begin{document}
 
+\frontmatter
+
 %\layout
 \maketitle
 
@@ -74,7 +76,8 @@
 
 % basic links to other docs: http://www.artisynth.org/doc/html/xxx/xxx.html#sec
 
-\section{Introduction}
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{\protect\numberline{}Preface}
 
 This guide describes how to create mechanical and biomechanical models
 in ArtiSynth using its Java API. 
@@ -88,7 +91,8 @@ of file paths using {\tt File}, as well as the collection classes
 {\tt ArrayList} and {\tt LinkedList} defined in {\tt java.util.*}, is
 also assumed.
 
-\subsection{How to read this guide}
+\section*{How to read this guide}
+\addcontentsline{toc}{section}{\protect\numberline{}How to read this guide}
 
 Section \ref{Overview:sec} offers a general overview of ArtiSynth's
 software design, and briefly describes the algorithms used for
@@ -117,6 +121,8 @@ More experienced readers may wish to find an appropriate example and
 then work backwards into the text and preceeding sections for any
 needed explanatory detail.
 
+\mainmatter
+
 \input{overview}
 
 \input{supportingClasses}
@@ -137,7 +143,8 @@ needed explanatory detail.
 \bibliographystyle{plain}
 \bibliography{references}
 \else
-\section*{References}
+\chapter*{References}
+\addcontentsline{toc}{chapter}{\protect\numberline{}References}
 \bibliographystyle{plain}
 \begin{btSect}{references}
 \btPrintCited

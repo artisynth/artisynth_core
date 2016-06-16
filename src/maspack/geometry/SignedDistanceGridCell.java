@@ -8,20 +8,17 @@ package maspack.geometry;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL2;
-
-import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLSelectable;
+import maspack.render.IsRenderable;
+import maspack.render.IsSelectable;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderList;
-
 
 // This is a class to make grid points renderable and selectable.
 
 
-public class SignedDistanceGridCell implements GLSelectable {
+public class SignedDistanceGridCell implements IsSelectable {
 
    private int vertex[] = new int[3];
    private double distance;
@@ -77,32 +74,30 @@ public class SignedDistanceGridCell implements GLSelectable {
    public void prerender (RenderList list) {
    }
    
-   public void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
+   public void render (Renderer renderer, int flags) {
+      
       double meshVertex[] = new double[3];
       meshVertex = myGrid.getMeshCoordinatesFromGrid (
          vertex[0], vertex[1], vertex[2]);
       
-      gl.glEnable (GL2.GL_POINT_SMOOTH);   // Render the point.
       renderer.setPointSize (3);
       renderer.setColor (pointColour);
-      gl.glBegin (GL2.GL_POINTS);
-      gl.glVertex3d (meshVertex[0], meshVertex[1], meshVertex[2]);
-      gl.glEnd();
+      renderer.drawPoint (meshVertex[0], meshVertex[1], meshVertex[2]);
 
       Vector3d normal = new Vector3d();
       normal = myGrid.getNormal (vertex[0], vertex[1], vertex[2]);
       
       renderer.setLineWidth (1);  // Render the normal.
-      gl.glBegin (GL2.GL_LINES);
-      gl.glVertex3d (meshVertex[0], meshVertex[1], meshVertex[2]);
-      gl.glVertex3d (meshVertex[0] + normal.x * 0.1,
-                     meshVertex[1] + normal.y * 0.1,
-                     meshVertex[2] + normal.z * 0.1);
-      gl.glEnd ();
+      renderer.drawLine (
+         meshVertex[0],
+         meshVertex[1],
+         meshVertex[2],
+         meshVertex[0]+normal.x*0.1,
+         meshVertex[1]+normal.y*0.1,
+         meshVertex[2]+normal.z*0.1);
    }
    
-//   public void handleSelection (LinkedList<GLRenderable> pathlist, int[] namestack, int idx) {
+//   public void handleSelection (LinkedList<IsRenderable> pathlist, int[] namestack, int idx) {
 //	   pathlist.add (this);
 //      System.out.println (
 //         "Index: " + myIndex +
@@ -143,7 +138,7 @@ public class SignedDistanceGridCell implements GLSelectable {
       pointColour[2] = b;
    }
    
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
    
 }

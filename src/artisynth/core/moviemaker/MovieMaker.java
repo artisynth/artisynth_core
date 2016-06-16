@@ -22,8 +22,8 @@ import java.util.LinkedHashMap;
 
 import javax.imageio.ImageIO;
 
-import maspack.render.FrameBufferObject;
-import maspack.render.GLViewer;
+import maspack.render.GL.FrameBufferObject;
+import maspack.render.GL.GLViewer;
 import maspack.util.NumberFormat;
 import maspack.util.StreamGobbler;
 import maspack.widgets.GuiUtils;
@@ -42,7 +42,7 @@ public class MovieMaker {
    private double frameRate = 31.25; // frame rate in 1/s (31.25 would be better)
    private Rectangle movieArea;
    private Dimension viewerResize;
-   private int aasamples = FrameBufferObject.defaultSamples;
+   private int aasamples = FrameBufferObject.defaultMultiSamples;
    private boolean alwaysOnTop = true;
 
    private double audioRate = 44100;
@@ -197,25 +197,27 @@ public class MovieMaker {
             aasamples, new File (getFrameFileName (frameCounter)), myFormat);
          //myViewer.getCanvas ().display ();
          myViewer.repaint();
-         // XXX Bit of a hack here. We wait for the repaint to take effect
-         // unless a stop request is pending, because if a stop request
-         // is pending that means the GUI thread is likely waiting for
-         // said stop request, in which case it won't be able to do the
-         // paint and hence clear the grab. This still isn't completely
-         // robust, because we still get timeouts ...
-         int cnt = 0;
-         while (myViewer.grabPending() && 
-                !Main.getMain().getScheduler().stopRequestPending() && 
-            cnt++ < 500) {
-            try {
-               Thread.sleep (10);
-            }
-            catch (Exception e){
-            }
-         }
-         if (myViewer.grabPending()) {
-            System.out.println ("deadlock timeout");
-         }
+         // No longer true, since grabs are spawned off on a new thread.
+         // Instead, we wait before "render" for all frames to be saved
+         //         // XXX Bit of a hack here. We wait for the repaint to take effect
+         //         // unless a stop request is pending, because if a stop request
+         //         // is pending that means the GUI thread is likely waiting for
+         //         // said stop request, in which case it won't be able to do the
+         //         // paint and hence clear the grab. This still isn't completely
+         //         // robust, because we still get timeouts ...
+         //         int cnt = 0;
+         //         while (myViewer.grabPending() && 
+         //         !Main.getMain().getScheduler().stopRequestPending() && 
+         //         cnt++ < 500) {
+         //            try {
+         //               Thread.sleep (10);
+         //            }
+         //            catch (Exception e){
+         //            }
+         //         }
+         //         if (myViewer.grabPending()) {
+         //            System.out.println ("deadlock timeout");
+         //         }
       }
    }
 
@@ -332,6 +334,9 @@ public class MovieMaker {
          System.out.println ("No frames grabbed, no movie to make");
          return;
       }
+      
+      // wait for all frames to be done writing
+      myViewer.awaitScreenShotCompletion();
 
       Method method = myMethodMap.get (myMethodName);
       if (myMethodName.equals (INTERNAL_METHOD)) { 

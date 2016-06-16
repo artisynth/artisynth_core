@@ -7,14 +7,13 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
 
 public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
    private static final long serialVersionUID = 1L;
@@ -297,52 +296,25 @@ public class MeshIntersectionContour extends ArrayList<MeshIntersectionPoint> {
       }
    }
 
-   void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
+   void render (Renderer renderer, int flags) {
+      
       renderer.setLineWidth (44);
-      gl.glDisable (GL2.GL_LINE_STIPPLE);
+      //gl.glDisable (GL2.GL_LINE_STIPPLE);
       if (isClosed) {
          renderer.setColor (0f, 0f, 1f);
       }
       else {
          renderer.setColor (1f, 0f, 1f);
       }
-      int i;
-      do {
-         i = gl.glGetError();
-      }
-      while (i != GL2.GL_NO_ERROR);
-      gl.glBegin (GL2.GL_LINE_LOOP);
-      /*
-       * System.out.println("contour"); gl.glVertex3d (0,0,0); gl.glVertex3d
-       * (0,1,0); gl.glVertex3d (1,1,0); gl.glVertex3d (1,0,0);
-       */
+
+      renderer.beginDraw (DrawMode.LINE_LOOP);
+
       for (MeshIntersectionPoint p : this) {
-         gl.glVertex3d (p.x, p.y, p.z);
-         // System.out.println(p);
+         renderer.addVertex (p);
       }
-      gl.glEnd();
+      renderer.endDraw();
       // System.out.println("contour end"+" err="+gl.glGetError());
       renderer.setLineWidth (1);
-
-//       renderer.setColor (0f, 1f, 0f);
-//       renderer.setPointSize (10);
-//       gl.glBegin (GL2.GL_POINTS);
-//       for (Vertex3d v : insideVertices0) {
-//          Point3d p3 = v.getWorldPoint();
-//          gl.glVertex3d (p3.x, p3.y, p3.z);
-//       }
-//       for (Vertex3d v : insideVertices1) {
-//          Point3d p3 = v.getWorldPoint();
-//          gl.glVertex3d (p3.x, p3.y, p3.z);
-//       }
-//       gl.glEnd();
-
-//       renderer.setColor (1f, 0f, 0f);
-//       gl.glBegin (GL2.GL_POINTS);
-//       for (MeshIntersectionPoint p : this)
-//          gl.glVertex3d (p.x, p.y, p.z);
-//       gl.glEnd();
 
       renderer.setPointSize (1);
    }

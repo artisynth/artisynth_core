@@ -840,34 +840,6 @@ public class MeshCollider implements AbstractCollider {
             if (!keep[j])
                region.points.remove (j);
          }
-
-         /*
-          * GLViewerFrame vf = new GLViewerFrame("",500,500); final
-          * ContactRegion lregion = region; final Point3d lcenter = center;
-          * vf.getViewer().addRenderable (new GLRenderable() { public void
-          * prerender(RenderList list) { // TODO Auto-generated method stub
-          *  } public void updateBounds(Point3d pmin, Point3d pmax) {
-          * pmin.set(-10,-10,-10); pmax.set(10,10,10); }
-          * 
-          * public int getRenderHints() { // TODO Auto-generated method stub
-          * return 0; }
-          * 
-          * public void render(GLRenderer renderer) { GL2 gl = renderer.getGL2().getGL2();
-          * renderer.setLightingEnabled (false); gl.glBegin(GL2.GL_POINTS);
-          * renderer.setColor(1,0,0); for(int i = 0; i < lregion.points.size(); i++) {
-          * Point3d cp = lregion.points.get(i); gl.glVertex3d(cp.x, cp.y, cp.z); }
-          * gl.glEnd();
-          * 
-          * gl.glBegin(GL2.GL_LINES); renderer.setColor(0,1,0); for(int i = 0; i <
-          * axes.size(); i++) { Point3d ap = new Point3d(); ap.add (lcenter,
-          * axes.get(i)); gl.glVertex3d(lcenter.x, lcenter.y, lcenter.z);
-          * gl.glVertex3d(ap.x, ap.y, ap.z); }
-          * 
-          * renderer.setColor(0,0,1); Point3d np = new Point3d(); np.add (lcenter,
-          * lregion.normal); gl.glVertex3d(lcenter.x, lcenter.y, lcenter.z);
-          * gl.glVertex3d(np.x, np.y, np.z); gl.glEnd(); } }); vf.setVisible
-          * (true); vf.getViewer().autoFitAutomatic();
-          */
       }
    }
 

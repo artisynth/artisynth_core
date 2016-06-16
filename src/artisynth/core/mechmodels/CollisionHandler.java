@@ -8,16 +8,13 @@ package artisynth.core.mechmodels;
 
 import java.util.*;
 
-import javax.media.opengl.GL2;
-
 import maspack.collision.*;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.render.*;
-import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer.Shading;
 import maspack.util.*;
-
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
@@ -25,7 +22,7 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.util.TimeBase;
 
 public class CollisionHandler extends ConstrainerBase 
-   implements HasRenderProps, GLRenderable {
+   implements HasRenderProps, Renderable {
 
    SignedDistanceCollider mySDCollider;
    LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals0;
@@ -39,6 +36,7 @@ public class CollisionHandler extends ConstrainerBase
    PolygonalMesh myMesh0;
    PolygonalMesh myMesh1;
    AbstractCollider myCollider;
+   CollisionRenderer myRenderer;
 
    double myFriction;
    double myPenetrationTol = 0.001;
@@ -337,10 +335,10 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
-   private boolean isPair (String name0, String name1) {
-      return (myCollidable0.getName().equals (name0) &&
-              myCollidable1.getName().equals (name1));
-   }
+//   private boolean isPair (String name0, String name1) {
+//      return (myCollidable0.getName().equals (name0) &&
+//              myCollidable1.getName().equals (name1));
+//   }
 
    public double computeCollisionConstraints (double t) {
 
@@ -868,7 +866,6 @@ public class CollisionHandler extends ConstrainerBase
    public int addBilateralConstraints (
       SparseBlockMatrix GT, VectorNd dg, int numb) {
 
-      int numb0 = numb;
       double[] dbuf = (dg != null ? dg.getBuffer() : null);
 
       for (ContactConstraint c : myBilaterals0.values()) {
@@ -1127,7 +1124,7 @@ public class CollisionHandler extends ConstrainerBase
 
    /* ===== Begin Render methods ===== */
 
-   private class FaceSeg {
+   class FaceSeg {
       Face face;
       Point3d p0;
       Point3d p1;
@@ -1147,7 +1144,7 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
-   private class LineSeg {
+   class LineSeg {
       float[] coords0;
       float[] coords1;
 
@@ -1165,7 +1162,7 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
-   private class ConstraintSeg extends LineSeg {
+   class ConstraintSeg extends LineSeg {
       float lambda;
 
       public ConstraintSeg (
@@ -1175,11 +1172,11 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
-   private ArrayList<LineSeg> myLineSegments;
-   private ArrayList<LineSeg> myRenderSegments; // for rendering
-   private ArrayList<FaceSeg> myFaceSegments; 
-   private ArrayList<FaceSeg> myRenderFaces; // for rendering
-   private ArrayList<ConstraintSeg> myRenderConstraints; // for rendering
+   ArrayList<LineSeg> myLineSegments;
+   //private ArrayList<LineSeg> myRenderSegments; // for rendering
+   ArrayList<FaceSeg> myFaceSegments; 
+   //private ArrayList<FaceSeg> myRenderFaces; // for rendering
+   //private ArrayList<ConstraintSeg> myRenderConstraints; // for rendering
 
    void clearRenderData() {
       myLineSegments = new ArrayList<LineSeg>();
@@ -1190,70 +1187,78 @@ public class CollisionHandler extends ConstrainerBase
       myLineSegments.add (new LineSeg (pnt0, nrm, len));
    }
 
-   private synchronized void saveRenderData() {
-      myRenderSegments = myLineSegments;
-      myRenderFaces = myFaceSegments;
-      myRenderContactInfo = myLastContactInfo;
-   }
-
+//   private synchronized void saveRenderData() {
+//      myRenderSegments = myLineSegments;
+//      myRenderFaces = myFaceSegments;
+//      myRenderContactInfo = myLastContactInfo;
+//   }
+//
    void initialize() {
-      myRenderSegments = null;
-      myRenderFaces = null;
+      //myRenderSegments = null;
+      //myRenderFaces = null;
       myLineSegments = null;
       myLastContactInfo = null;
    }
 
-   private double getMaxLambda (Collection<ContactConstraint> cons, double max) {
-      for (ContactConstraint c : cons) {
-         double lam = c.myLambda;
-         if (lam > max) {
-            max = lam;
-         }
+//   private double getMaxLambda (Collection<ContactConstraint> cons, double max) {
+//      for (ContactConstraint c : cons) {
+//         double lam = c.myLambda;
+//         if (lam > max) {
+//            max = lam;
+//         }
+//      }
+//      return max;
+//   }
+//
+//   private double getMaxLambda () {
+//      double max = 0;
+//      max = getMaxLambda (myBilaterals0.values(), max);
+//      max = getMaxLambda (myBilaterals1.values(), max);
+//      max = getMaxLambda (myUnilaterals, max);
+//      return max;
+//   }
+//
+//   private double maxlam = 0.20;
+
+//   private void addConstraintRenderInfo (
+//      Collection<ContactConstraint> cons, double nrmlLen) {
+//
+//      Point3d pos = new Point3d();
+//      for (ContactConstraint c : cons) {
+//         double lam = c.myLambda;
+//         pos.add (c.myCpnt0.myPoint, c.myCpnt1.myPoint);
+//         pos.scale (0.5);
+//         myRenderConstraints.add (
+//            new ConstraintSeg (
+//               pos, c.myNormal, nrmlLen*(lam/maxlam), c.myLambda));
+//      }
+//   }
+
+   public void prerender (RenderProps props) {
+      if (myRenderer == null) {
+         myRenderer = new CollisionRenderer();
       }
-      return max;
-   }
-
-   private double getMaxLambda () {
-      double max = 0;
-      max = getMaxLambda (myBilaterals0.values(), max);
-      max = getMaxLambda (myBilaterals1.values(), max);
-      max = getMaxLambda (myUnilaterals, max);
-      return max;
-   }
-
-   private double maxlam = 0.20;
-
-   private void addConstraintRenderInfo (
-      Collection<ContactConstraint> cons, double nrmlLen) {
-
-      Point3d pos = new Point3d();
-      for (ContactConstraint c : cons) {
-         double lam = c.myLambda;
-         pos.add (c.myCpnt0.myPoint, c.myCpnt1.myPoint);
-         pos.scale (0.5);
-         myRenderConstraints.add (
-            new ConstraintSeg (
-               pos, c.myNormal, nrmlLen*(lam/maxlam), c.myLambda));
-      }
-   }
-
-   public void prerender (RenderList list) {
       if (myDrawIntersectionFaces &&
           myLastContactInfo != null &&
           myFaceSegments == null) {
          myFaceSegments = new ArrayList<FaceSeg>();
          buildFaceSegments(myLastContactInfo, myFaceSegments);
       }
-      saveRenderData();
-      if (myDrawConstraints) {
-         double nrmlLen = getContactNormalLen();
-         if (nrmlLen > 0) {
-            myRenderConstraints = new ArrayList<ConstraintSeg>();
-            addConstraintRenderInfo (myBilaterals0.values(), nrmlLen);
-            addConstraintRenderInfo (myBilaterals1.values(), nrmlLen);
-            addConstraintRenderInfo (myUnilaterals, nrmlLen);
-         }
-      }
+      myRenderer.prerender (this, props);
+   }
+
+   public void prerender (RenderList list) {
+      prerender (myRenderProps);
+      // saveRenderData();
+      // if (myDrawConstraints) {
+      //    double nrmlLen = getContactNormalLen();
+      //    if (nrmlLen > 0) {
+      //       myRenderConstraints = new ArrayList<ConstraintSeg>();
+      //       addConstraintRenderInfo (myBilaterals0.values(), nrmlLen);
+      //       addConstraintRenderInfo (myBilaterals1.values(), nrmlLen);
+      //       addConstraintRenderInfo (myUnilaterals, nrmlLen);
+      //    }
+      // }
       // if (myMethod == Method.CONTOUR_REGION) {
       //    myRBContact.prerender (list);
       // }
@@ -1329,224 +1334,21 @@ public class CollisionHandler extends ConstrainerBase
       return RenderProps.createRenderProps (this);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       render (renderer, myRenderProps, flags);
    }
 
    // Twist lastmomentumchange = null;
 
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
+   public void render (Renderer renderer, RenderProps props, int flags) {
 
-      GL2 gl = renderer.getGL2();
-
-      ArrayList<LineSeg> renderSegments = null;
-      ArrayList<FaceSeg> renderFaces = null;
-      ArrayList<ConstraintSeg> renderConstraints = null;
-      ContactInfo renderContactInfo = null;
-      
-      synchronized (this) {
-         renderSegments = myRenderSegments;
-         renderFaces = myRenderFaces;
-         renderContactInfo = myRenderContactInfo;
-         renderConstraints = myRenderConstraints;
+      if (myRenderer == null) {
+         myRenderer = new CollisionRenderer();
       }
-
-      // Magnitude of offset vector to add to rendered contour lines.  The
-      // offset is needed because the contours coexist with polygonal surfaces,
-      // and rendering the latter would otherwise obscure rendering the former.
-      double offsetMag = 1.0*renderer.centerDistancePerPixel();
-
-      renderer.getZDirection();
-      Vector3d offDir = new Vector3d(renderer.getZDirection());
-
-      // System.out.println("Z direction" + offDir);
-      double scale = offsetMag/offDir.norm();
-      offDir.scale(scale);
-
-      if (renderConstraints != null) {
-         for (LineSeg seg : renderConstraints) {
-            renderer.drawLine (
-               props, seg.coords0, seg.coords1, /*selected=*/false);
-         }
-      }
-
-      //       if (myRigidBodyPairP && myRBContact != null) {
-      //          myRBContact.render (renderer);
-      //       }
-      if (renderSegments != null) {
-         for (LineSeg seg : renderSegments) {
-            renderer.drawLine (
-               props, seg.coords0, seg.coords1, /*selected=*/false);
-         }
-      }
-
-      if (myDrawIntersectionContours && 
-         props.getEdgeWidth() > 0 &&
-         renderContactInfo != null) {
-
-         renderer.setLineWidth (props.getEdgeWidth());
-         float[] rgb = props.getEdgeColorArray();
-         if (rgb == null) {
-            rgb = props.getLineColorArray();
-         }
-         renderer.setColor (rgb, false);
-         renderer.setLightingEnabled (false);
-
-
-         // offset lines
-         if (renderContactInfo.contours != null) {
-            for (MeshIntersectionContour contour : renderContactInfo.contours) {
-               gl.glBegin (GL2.GL_LINE_LOOP);
-               for (MeshIntersectionPoint p : contour) {
-                  gl.glVertex3d (p.x + offDir.x, p.y + offDir.y, p.z + offDir.z);
-               }
-               gl.glEnd();
-            }
-         } else if (renderContactInfo.intersections != null){
-            // use intersections to render lines
-            gl.glBegin(GL2.GL_LINES);
-            for (TriTriIntersection tsect : renderContactInfo.intersections) {
-               gl.glVertex3d(tsect.points[0].x + offDir.x, 
-                  tsect.points[0].y + offDir.y, tsect.points[0].z + offDir.z);
-               gl.glVertex3d(tsect.points[1].x + offDir.x,
-                  tsect.points[1].y + offDir.y, tsect.points[1].z + offDir.z);
-            }
-            gl.glEnd();
-         }
-
-         renderer.setLightingEnabled (true);
-         renderer.setLineWidth (1);
-      }
-
-      float[] coords = new float[3];
-      if (myDrawIntersectionPoints && renderContactInfo != null) {
-
-         if (renderContactInfo.intersections != null) {
-            for (TriTriIntersection tsect : renderContactInfo.intersections) {
-               for (Point3d pnt : tsect.points) {
-                  pnt.get(coords);
-                  renderer.drawPoint(props, coords, false);
-               }
-            }
-         }
-
-         if (renderContactInfo.points0 != null) {
-            for (ContactPenetratingPoint cpp : renderContactInfo.points0) {
-               if (cpp.distance > 0) {
-                  cpp.vertex.getWorldPoint().get(coords);
-                  renderer.drawPoint(props, coords, false);
-                  //cpp.position.get(coords);
-                  //renderer.drawPoint(props, coords, false);
-               }
-            }
-         }
-
-         if (renderContactInfo.points1 != null) {
-            for (ContactPenetratingPoint cpp : renderContactInfo.points1) {
-               if (cpp.distance > 0) {
-                  cpp.vertex.getWorldPoint().get(coords);
-                  renderer.drawPoint(props, coords, false);
-                  // cpp.position.get(coords);
-                  // renderer.drawPoint(props, coords, false);
-               }
-            }
-         }
-
-         if (renderContactInfo.edgeEdgeContacts != null) {
-            for (EdgeEdgeContact eec : renderContactInfo.edgeEdgeContacts) {
-               eec.point0.get(coords);
-               renderer.drawPoint(props, coords, false);
-               eec.point1.get(coords);
-               renderer.drawPoint(props, coords, false);
-            }
-         }
-      }
-
-      if (myDrawIntersectionFaces && renderFaces != null) {
-         gl.glPushMatrix();
-
-         Material faceMat = props.getFaceMaterial();
-         Shading shading = props.getShading();
-         if (shading != Shading.NONE) {
-            faceMat.apply (gl, GL2.GL_FRONT_AND_BACK);
-            gl.glLightModelf (GL2.GL_LIGHT_MODEL_TWO_SIDE, 1);
-         }
-
-         if (props.getFaceStyle() != RenderProps.Faces.NONE) {
-            RenderProps.Shading savedShadeModel = renderer.getShadeModel();
-
-            if (shading == Shading.NONE) {
-               renderer.setLightingEnabled (false);
-               renderer.setColor (
-                  props.getFaceColorArray(), false);
-            }
-            else if (shading != Shading.FLAT && !renderer.isSelecting()) {
-               renderer.setShadeModel (RenderProps.Shading.GOURARD);
-            }
-            else { // shading == Shading.FLAT
-               renderer.setShadeModel (RenderProps.Shading.FLAT);
-            }
-
-            byte[] savedCullFaceEnabled = new byte[1];
-            int[] savedCullFaceMode = new int[1];
-
-            gl.glGetBooleanv (GL2.GL_CULL_FACE, savedCullFaceEnabled, 0);
-            gl.glGetIntegerv (GL2.GL_CULL_FACE_MODE, savedCullFaceMode, 0);
-
-            RenderProps.Faces faces = props.getFaceStyle();
-            switch (faces) {
-               case FRONT_AND_BACK: {
-                  gl.glDisable (GL2.GL_CULL_FACE);
-                  break;
-               }
-               case FRONT: {
-                  gl.glCullFace (GL2.GL_BACK);
-                  break;
-               }
-               case BACK: {
-                  gl.glCullFace (GL2.GL_FRONT);
-                  break;
-               }
-               default:
-                  break;
-            }
-
-            // offset
-            offDir.scale(0.5);   // half as far as lines
-
-            // draw faces
-            gl.glBegin(GL2.GL_TRIANGLES);
-            for (FaceSeg seg : renderFaces) {
-               gl.glNormal3d(seg.nrm.x, seg.nrm.y, seg.nrm.z);
-               gl.glVertex3d(
-                  seg.p0.x + offDir.x, seg.p0.y + offDir.y, seg.p0.z + offDir.z);
-               gl.glVertex3d(
-                  seg.p1.x + offDir.x, seg.p1.y + offDir.y, seg.p1.z + offDir.z);
-               gl.glVertex3d(
-                  seg.p2.x + offDir.x, seg.p2.y + offDir.y, seg.p2.z + offDir.z);
-            }
-            gl.glEnd();
-
-            if (savedCullFaceEnabled[0] != 0) {
-               gl.glEnable (GL2.GL_CULL_FACE);
-            }
-            else {
-               gl.glDisable (GL2.GL_CULL_FACE);
-            }
-            gl.glCullFace (savedCullFaceMode[0]);
-
-
-            if (shading == Shading.NONE) {
-               renderer.setLightingEnabled (true);
-            }
-            renderer.setShadeModel (savedShadeModel);
-         }
-         gl.glPopMatrix();
-      }
-
+      myRenderer.render (renderer, this, props, flags);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       if (myRenderContactInfo != null && myRenderContactInfo.contours != null) {
          for (MeshIntersectionContour contour : myRenderContactInfo.contours) {
             for (MeshIntersectionPoint p : contour) {

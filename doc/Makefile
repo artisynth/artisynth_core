@@ -77,8 +77,8 @@ CLEAN::	$(SUBDIRS)
 
 .PHONY: HTML
 HTML::	$(SUBDIRS)
-        # Does not work. Need to call makeHTML instead. See script
-	# itself for details.
+        # Does not work because of some environment issues related to
+	# LaTeXML. Need to call ./makeHTML instead.
 	$(RUN_MAKE_IN_SUBDIRS)
 
 .PHONY: XHTML
@@ -99,6 +99,11 @@ CLEAN_ALL: CLEAN
 #CHUNKED:: $(SUBDIRS)
 #	$(RUN_MAKE_IN_SUBDIRS)
 
+install_all: install_dir install_javadocs install_html install_pdf 
+
+install_dir:
+	ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) mkdir -p $(WEB_DOC_DIR)
+
 install_html: HTML
 	rsync -va --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html
@@ -108,7 +113,7 @@ install_pdf: PDF
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
 
 install_javadocs:
-	rsync -va --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
+	rsync -va --delete --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/javadocs
 
 test:

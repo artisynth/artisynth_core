@@ -15,7 +15,8 @@ import maspack.matrix.Matrix;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.Vector3d;
 import maspack.render.*;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
+import maspack.render.color.ColorUtils;
 import maspack.properties.*;
 import maspack.properties.PropertyInfo.Edit;
 import maspack.spatialmotion.Wrench;
@@ -345,15 +346,9 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
          if (myRenderColor == null) {
             myRenderColor = new float[3];
          }
-         float[] baseColor = props.getLineColorArray();
-//          float[] tmp = new float[3];
-//          GLSupport.RGBtoHSV (myRenderColor, baseColor);
-//          GLSupport.RGBtoHSV (tmp, myExcitationColor);
-//          GLSupport.interpolateColor (
-//             myRenderColor, myRenderColor, tmp, getNetExcitation());
-//          GLSupport.HSVtoRGB (myRenderColor, myRenderColor);
+         float[] baseColor = props.getLineColorF();
          double s = Math.min(getNetExcitation()/getMaxColoredExcitation(), 1);
-         GLSupport.interpolateColor (
+         ColorUtils.interpolateColor (
             myRenderColor, baseColor, myExcitationColor, s);
       }
       else {

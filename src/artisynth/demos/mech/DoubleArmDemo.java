@@ -6,16 +6,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-import javax.swing.JFrame;
-
-import maspack.geometry.MeshFactory;
-import maspack.geometry.PolygonalMesh;
-import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
-import maspack.render.RenderProps;
-import maspack.spatialmotion.SpatialInertia;
-import maspack.widgets.LabeledComponentBase;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.mechmodels.AxialSpring;
 import artisynth.core.mechmodels.FrameMarker;
@@ -25,8 +15,15 @@ import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.RevoluteJoint;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.util.ArtisynthPath;
-import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.spatialmotion.SpatialInertia;
 
 public class DoubleArmDemo extends RootModel {
    
@@ -110,7 +107,7 @@ public class DoubleArmDemo extends RootModel {
        
        RenderProps rp = new RenderProps(model.getRenderProps());
        rp.setFaceColor(Color.GRAY);
-       rp.setShading(RenderProps.Shading.FLAT);
+       rp.setShading(Renderer.Shading.FLAT);
        rb.setRenderProps(rp);
 
        rb.setFrameDamping (10);
@@ -195,10 +192,10 @@ public class DoubleArmDemo extends RootModel {
        muscle2.setSecondPoint(tl);
        
        RenderProps rp = new RenderProps(model.getRenderProps());
-       rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
+       rp.setLineStyle(Renderer.LineStyle.SPINDLE);
        rp.setLineRadius(len/20);
-       rp.setLineSlices(10);
-       rp.setShading(RenderProps.Shading.GOURARD);
+       //rp.setLineSlices(10);
+       rp.setShading(Renderer.Shading.SMOOTH);
        rp.setLineColor(Color.RED);
        muscle.setRenderProps(rp);
        muscle2.setRenderProps(rp);
@@ -219,7 +216,7 @@ public class DoubleArmDemo extends RootModel {
           s.setSecondPoint(l2);
           model.addAxialSpring(s);
           RenderProps props = new RenderProps();
-          props.setLineStyle(RenderProps.LineStyle.CYLINDER);
+          props.setLineStyle(Renderer.LineStyle.CYLINDER);
           props.setLineRadius(0.0);
           s.setRenderProps(props);
           
@@ -251,7 +248,7 @@ public class DoubleArmDemo extends RootModel {
        //lowerArm.addMarker(endPoint);
        
        RenderProps rp = new RenderProps(model.getRenderProps());
-       rp.setShading(RenderProps.Shading.GOURARD);
+       rp.setShading(Renderer.Shading.SMOOTH);
        rp.setPointColor(Color.ORANGE);
        rp.setPointRadius(len/20);
        endPoint.setRenderProps(rp);
@@ -262,10 +259,10 @@ public class DoubleArmDemo extends RootModel {
       // set render properties for model
       
       RenderProps rp = new RenderProps();
-      rp.setPointStyle(RenderProps.PointStyle.SPHERE);
+      rp.setPointStyle(Renderer.PointStyle.SPHERE);
       rp.setPointColor(Color.LIGHT_GRAY);
       rp.setPointRadius(0.0);
-      rp.setLineStyle(RenderProps.LineStyle.ELLIPSOID);
+      rp.setLineStyle(Renderer.LineStyle.SPINDLE);
       rp.setLineColor(Color.WHITE);
       rp.setLineRadius(0.4);
       model.setRenderProps(rp);

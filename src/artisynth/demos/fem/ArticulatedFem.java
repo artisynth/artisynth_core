@@ -35,7 +35,8 @@ import artisynth.core.util.*;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 import maspack.render.*;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import artisynth.core.driver.*;
 
 import java.awt.*;
@@ -131,7 +132,7 @@ public class ArticulatedFem extends RootModel {
          RenderProps.setLineColor (femMod.getElements(), Color.BLUE);
 
          RenderProps.setPointStyle (
-            femMod.getNodes(), RenderProps.PointStyle.SPHERE);
+            femMod.getNodes(), Renderer.PointStyle.SPHERE);
          RenderProps.setPointRadius (femMod.getNodes(), 0.005);
 
          femMod.setSurfaceRendering (SurfaceRender.Shaded);

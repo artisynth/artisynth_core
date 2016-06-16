@@ -56,7 +56,7 @@ public class BlockTestX extends RootModel {
 
       FrameMarker marker = new FrameMarker();
       msmod.addFrameMarker (marker, myBlock, new Point3d (0.5, -0.25, 0.25));
-      RenderProps.setPointStyle (marker, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (marker, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (marker, 0.05);
 
       myBase = RigidBody.createBox ("base", 2, 2, 0.25, 1000);
@@ -67,7 +67,7 @@ public class BlockTestX extends RootModel {
       msmod.setDefaultCollisionBehavior (true, 0.2);
 
       if (seeContacts) {
-         RenderProps.setFaceStyle (myBlock, RenderProps.Faces.NONE);
+         RenderProps.setFaceStyle (myBlock, Renderer.FaceStyle.NONE);
          RenderProps.setDrawEdges (myBlock, true);
 
          CollisionManager collisions = msmod.getCollisionManager();

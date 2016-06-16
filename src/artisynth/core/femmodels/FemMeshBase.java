@@ -10,21 +10,23 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
 import maspack.matrix.AffineTransform3dBase;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.Vertex3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.DoubleInterval;
@@ -61,18 +63,23 @@ public abstract class FemMeshBase extends SkinMeshBase {
    protected PropertyMode myStressPlotRangingMode = PropertyMode.Inherited;
    protected PropertyMode mySurfaceRenderingMode = PropertyMode.Inherited;
    
+   // When stress or strain rendering is requested for this component, the
+   // shading and coloring properties for the mesh are modified and their
+   // previous values are stored in these variables so that they can be
+   // restored when stress/strain rendering is turned off
    protected ArrayList<float[]> mySavedColors;
    protected int[] mySavedColorIndices;
    protected boolean mySavedVertexColoring;
    protected boolean mySavedFeatureColoring;
+   protected ColorMixing mySavedColorMixing;
+   protected Shading mySavedShading;
+   protected PropertyMode mySavedShadingMode;
    
    protected ColorMapBase myColorMap = defaultColorMap.copy();
    protected PropertyMode myColorMapMode = PropertyMode.Inherited;
    
    protected static double EPS = 1e-10;
    FemModel3d myFem;
-
-   private float[] colorArray = new float[3];
    
    public static PropertyList myProps =
    new PropertyList (FemMeshBase.class, MeshComponent.class);
@@ -97,6 +104,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
    public FemMeshBase () {
       super();
+      setColorInterpolation (ColorInterpolation.HSV);
    }
 
    public FemMeshBase (FemModel3d fem) {
@@ -116,7 +124,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       PolygonalMesh mesh = new PolygonalMesh();
       doSetMesh (mesh, null, null);
       mesh.setFixed (false);
-      mesh.setUseDisplayList(true);
+      mesh.setColorsFixed (false);
    }
 
    /** 
@@ -126,20 +134,18 @@ public abstract class FemMeshBase extends SkinMeshBase {
    }
 
    public void setMeshFromInfo () {
-      // Overloaded from super class. Is called by super.setMesh() and by scan
+      // Overridden from super class. Is called by super.setMesh() and by scan
       // (whenever a mesh is scanned) to set mesh properties and auxiliary
       // data structures specific to the class.
       MeshBase mesh = getMesh();
       if (mesh != null) {
          mesh.setFixed (false);
-         mesh.setUseDisplayList (true);
-      }
-      if (myRenderProps != null) {
-         myRenderProps.clearMeshDisplayList();
+         mesh.setColorsFixed (false);
+         mesh.setColorInterpolation (getColorInterpolation());
       }
    }
 
-   private boolean isStressOrStrainRendering (SurfaceRender mode) {
+   boolean isStressOrStrainRendering (SurfaceRender mode) {
       return (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress);
    }
    
@@ -170,13 +176,27 @@ public abstract class FemMeshBase extends SkinMeshBase {
             mesh.setFeatureColoringEnabled();
          }
       }
+      mesh.setVertexColorMixing (mySavedColorMixing);
    }
    
+   protected void restoreShading() {
+      if (mySavedShading != null) {
+         myRenderProps.setShading (mySavedShading);
+         myRenderProps.setShadingMode (mySavedShadingMode);
+      }
+   }
+
    protected void saveMeshColoring (MeshBase mesh) {
       mySavedColors = mesh.getColors();
       mySavedColorIndices = mesh.getColorIndices();
       mySavedVertexColoring = mesh.getVertexColoringEnabled();
       mySavedFeatureColoring = mesh.getFeatureColoringEnabled();
+      mySavedColorMixing = mesh.getVertexColorMixing();
+   }
+
+   protected void saveShading() {
+      mySavedShadingMode = myRenderProps.getShadingMode();
+      mySavedShading = myRenderProps.getShading();
    }
    
    public void setSurfaceRendering (SurfaceRender mode) {
@@ -211,8 +231,11 @@ public abstract class FemMeshBase extends SkinMeshBase {
             
             if (newStressOrStrain != oldStressOrStrain) {
                if (newStressOrStrain) {
+                  saveShading();
                   saveMeshColoring (mesh);
                   mesh.setVertexColoringEnabled();
+                  mesh.setVertexColorMixing (ColorMixing.REPLACE);
+                  myRenderProps.setShading (Shading.NONE);
                   // enable stress/strain rendering *after* vertex coloring set
                   mySurfaceRendering = mode; 
                   updateVertexColors(); // not sure we need this here
@@ -221,6 +244,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
                   // disable stress/strain rendering *before* restoring colors
                   mySurfaceRendering = mode;                  
                   restoreMeshColoring (mesh);
+                  restoreShading();
                }
             }
          }
@@ -304,37 +328,31 @@ public abstract class FemMeshBase extends SkinMeshBase {
    
    @Override
    public void prerender(RenderList list) {
-      super.prerender(list);
-      
       if (isStressOrStrainRendering (mySurfaceRendering)) {
          updateVertexColors();
       }
+      super.prerender(list);
    }
    
    @Override
    public void render(
-      GLRenderer renderer, RenderProps props, int flags) {
+      Renderer renderer, RenderProps props, int flags) {
 
       // highlight if either fem or mesh is selected
       if (isSelected() || (myFem != null && myFem.isSelected() )) {
-         flags |= GLRenderer.SELECTED;
+         flags |= Renderer.HIGHLIGHT;
       }
 
-      if (isStressOrStrainRendering (mySurfaceRendering)) {
-         
-         if ( (flags & GLRenderer.REFRESH) != 0) {
-            updateVertexColors();
-         }
-         
-         // only enable vertex colors if not selecting
-         // During selection, requires VERTEX_COLORING in order to
-         //    skip using display list
-         if (renderer.isSelecting() || !((flags & GLRenderer.SELECTED) != 0)) {
-            flags |= (GLRenderer.VERTEX_COLORING |
-                      GLRenderer.HSV_COLOR_INTERPOLATION);
-         }
-         
-      } else if (mySurfaceRendering == SurfaceRender.None) {
+      // PropertyMode oldShadingMode = null;
+      // Shading oldShading = null;
+      
+      // if (isStressOrStrainRendering (mySurfaceRendering)) {
+      //    renderer.setVertexColorMixing (ColorMixing.REPLACE);
+      //    oldShadingMode = props.getShadingMode ();
+      //    oldShading = props.getShading ();
+      //    props.setShading (Shading.NONE);
+      // } else
+      if (mySurfaceRendering == SurfaceRender.None) {
          return;
       }
       
@@ -345,14 +363,15 @@ public abstract class FemMeshBase extends SkinMeshBase {
       if (renderer.isSelecting()) {
          renderer.endSelectionQuery ();
       }
+      
+      // if (oldShading != null) {
+      //    props.setShading (oldShading);
+      //    props.setShadingMode (oldShadingMode);
+      // }
    }
    
    public void setColorMap(ColorMapBase map) {
       myColorMap = map;
-      MeshBase mesh = getMesh();
-      if (mesh != null) {
-         mesh.clearDisplayList(myRenderProps);
-      }
       myColorMapMode =
          PropertyUtils.propagateValue (
             this, "colorMap", map, myColorMapMode);
@@ -484,6 +503,28 @@ public abstract class FemMeshBase extends SkinMeshBase {
       else {
          fmb.myFem = myFem;
       }
+
+      if (mySavedColors != null) {
+         fmb.mySavedColors = new ArrayList<float[]>(mySavedColors.size());
+         for (float[] c : mySavedColors) {
+            fmb.mySavedColors.add (Arrays.copyOf (c, c.length));
+         }
+      }
+      else {
+         fmb.mySavedColors = null;
+      }
+      if (mySavedColorIndices != null) {
+         fmb.mySavedColorIndices =
+            Arrays.copyOf (mySavedColorIndices, mySavedColorIndices.length);
+      }
+      else {
+         fmb.mySavedColorIndices = null;
+      }
+      fmb.mySavedVertexColoring = mySavedVertexColoring;
+      fmb.mySavedFeatureColoring = mySavedFeatureColoring;
+      fmb.mySavedColorMixing = mySavedColorMixing;
+      fmb.mySavedShading = mySavedShading;
+      fmb.mySavedShadingMode = mySavedShadingMode;
       
       return fmb;
    }

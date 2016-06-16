@@ -5,8 +5,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 
-import javax.media.opengl.GL2;
-
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.PolygonalMesh;
@@ -14,7 +12,8 @@ import maspack.geometry.TriTriIntersection;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
 
 public class ContactRegion {
    // triangle triangle intersections
@@ -479,9 +478,8 @@ public class ContactRegion {
       }
    }
 
-   void render (GLRenderer renderer, int flags) {
+   void render (Renderer renderer, int flags) {
 
-      GL2 gl = renderer.getGL2().getGL2();
       renderer.setColor (0f, 0f, 1f);
       if (contour != null) {
          contour.render (renderer, flags); // draw the contour
@@ -489,51 +487,49 @@ public class ContactRegion {
 
       renderer.setColor (0f, 1f, 1f);
       renderer.setLineWidth (4);
-      gl.glBegin (GL2.GL_LINE_LOOP);
+      renderer.beginDraw (DrawMode.LINE_LOOP);
       for (Point3d p : points)
-         gl.glVertex3d (p.x, p.y, p.z); // draw convex hull with a heavier line
-      gl.glEnd();
+         renderer.addVertex (p); // draw convex hull with a heavier line
+      renderer.endDraw();
       renderer.setLineWidth (1);
 
       renderer.setPointSize (10);
-      gl.glBegin (GL2.GL_POINTS); // emphasize the convex-hull points in case
+      renderer.beginDraw (DrawMode.POINTS); // emphasize the convex-hull points in case
                                  // they are same as contour.
       for (Point3d p : points)
-         gl.glVertex3d (p.x, p.y, p.z);
-      gl.glEnd();
+         renderer.addVertex (p);
+      renderer.endDraw();
       renderer.setPointSize (1);
 
       renderer.setLineWidth (4);
       renderer.setColor (0f, 1f, 0f); // draw a line through centroid along the normal
+      Point3d n0 = new Point3d();
       Point3d n1 = new Point3d();
-      gl.glBegin (GL2.GL_LINES);
-      n1.set (centroid);
-      n1.scaledAdd (minProjectedDistance, normal);
-      gl.glVertex3d (n1.x, n1.y, n1.z);
+      n0.set (centroid);
+      n0.scaledAdd (minProjectedDistance, normal);
       n1.set (centroid);
       n1.scaledAdd (0.5, normal);
-      gl.glVertex3d (n1.x, n1.y, n1.z);
-      gl.glEnd();
+      renderer.drawLine (n0, n1);
       renderer.setLineWidth (1);
 
       renderer.setPointSize (15);
-      gl.glBegin (GL2.GL_POINTS);
+      renderer.beginDraw (DrawMode.POINTS);
       n1.set (centroid);
-      gl.glVertex3d (n1.x, n1.y, n1.z);
+      renderer.addVertex (n1);
       n1.scaledAdd (0.5, normal);
-      gl.glVertex3d (n1.x, n1.y, n1.z);
+      renderer.addVertex (n1);
       n1.set (centroid);
       n1.scaledAdd (minProjectedDistance, normal);
-      gl.glVertex3d (n1.x, n1.y, n1.z);
+      renderer.addVertex (n1);
       n1.set (centroid);
       n1.scaledAdd (maxProjectedDistance, normal);
-      gl.glVertex3d (n1.x, n1.y, n1.z);
+      renderer.addVertex (n1);
       if (depth > maxProjectedDistance - minProjectedDistance) {
          n1.set (centroid);
          n1.scaledAdd (depth, normal);
-         gl.glVertex3d (n1.x, n1.y, n1.z);
+         renderer.addVertex (n1);
       }
-      gl.glEnd();
+      renderer.endDraw();
       renderer.setPointSize (1);
    }
 }

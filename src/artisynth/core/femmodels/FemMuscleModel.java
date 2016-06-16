@@ -36,10 +36,10 @@ import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
 import artisynth.core.femmodels.MuscleBundle.DirectionRenderType;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.GenericMuscle;
@@ -956,7 +956,7 @@ public class FemMuscleModel extends FemModel3d
 //      }
    }
 
-   protected void renderElementDirection(GLRenderer renderer, RenderProps props, FemElement3d elem,
+   protected void renderElementDirection(Renderer renderer, RenderProps props, FemElement3d elem,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
       
       IntegrationData3d[] idata = elem.getIntegrationData();   
@@ -989,13 +989,13 @@ public class FemMuscleModel extends FemModel3d
 
          props.getLineColor(myDirectionColor);
          renderer.drawLine(
-            props, coords0, coords1, /* capped= */false,
-            myDirectionColor, /* selected= */false);
+            props, coords0, coords1, myDirectionColor,
+            /*capped=*/false, /*highlight=*/false);
       }
       
    }
    
-   protected void renderIPointDirection(GLRenderer renderer, RenderProps props, FemElement3d elem,
+   protected void renderIPointDirection(Renderer renderer, RenderProps props, FemElement3d elem,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
       
       IntegrationPoint3d[] ipnt = elem.getIntegrationPoints();
@@ -1024,15 +1024,15 @@ public class FemMuscleModel extends FemModel3d
             
             props.getLineColor(myDirectionColor);
             renderer.drawLine(
-               props, coords0, coords1, /* capped= */false,
-               myDirectionColor, /* selected= */false);
+               props, coords0, coords1, myDirectionColor,
+               /*capped=*/false, /*highlight=*/false);
          }
       }
       
    }
    
    void renderDirection(
-      GLRenderer renderer, RenderProps props, FemElement3d elem,
+      Renderer renderer, RenderProps props, FemElement3d elem,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
 
       switch(myDirectionRenderType) {
@@ -1050,7 +1050,7 @@ public class FemMuscleModel extends FemModel3d
 //      myDrawFibers = enable;
 //   }
    
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       super.render(renderer, flags);
       
 //      if (myFiberMesh != null) {

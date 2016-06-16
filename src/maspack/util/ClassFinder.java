@@ -169,6 +169,7 @@ public class ClassFinder {
                   System.out.println(
                      "Error: Class " + className + "' could not be initialized: " +
                      err.toString() + ", " + err.getMessage());
+                  err.printStackTrace();
                }
             }
          }

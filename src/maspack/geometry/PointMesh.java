@@ -6,7 +6,6 @@
  */
 package maspack.geometry;
 
-import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -14,21 +13,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
-import javax.media.opengl.GL2;
-
-import jogamp.opengl.glu.error.Error;
 import maspack.geometry.io.WavefrontReader;
 import maspack.geometry.io.XyzbReader;
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
-import maspack.render.GLRenderer;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.PointStyle;
-import maspack.render.RenderProps.Shading;
+import maspack.render.Renderer;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -37,7 +29,8 @@ import maspack.util.ReaderTokenizer;
  */
 public class PointMesh extends MeshBase {
 
-   public static boolean useDisplayListsIfPossible = true;
+   PointMeshRenderer myMeshRenderer = null;
+
    protected AABBTree myBVTree = null;
    protected boolean myBVTreeValid = false;
    // if > 0, causes normals to be rendered
@@ -77,7 +70,7 @@ public class PointMesh extends MeshBase {
    public void setNormalRenderLen (double len) {
       if (myNormalRenderLen != len) {
          myNormalRenderLen = len;
-         clearDisplayList();
+         notifyModified();
       }
    }
 
@@ -205,164 +198,20 @@ public class PointMesh extends MeshBase {
       pw.flush();
    }
 
-   public void render (GLRenderer renderer, RenderProps props, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
-
-      gl.glPushMatrix();
-      if (isRenderBuffered()) {
-         renderer.mulTransform (myXMeshToWorldRender);
+   public void prerender (RenderProps props) {
+      super.prerender (props);
+      if (myMeshRenderer == null) {
+         myMeshRenderer = new PointMeshRenderer (this);
       }
-      else {
-         renderer.mulTransform (XMeshToWorld);
-      } 
+      myMeshRenderer.prerender (props);
+   }
 
-      boolean reenableLighting = false;
-      int savedPointSize = renderer.getPointSize();
-      int savedLineWidth = renderer.getLineWidth();
-      RenderProps.Shading savedShadeModel = renderer.getShadeModel();
-
-      renderer.setPointSize( props.getPointSize());
-      
-      Shading shading = props.getShading();
-      boolean selected = ((flags & GLRenderer.SELECTED) != 0);
-      
-      if (props.getPointColor() != null && !renderer.isSelecting()) {
-         if (shading != Shading.NONE) {
-            renderer.setMaterial(
-               props.getPointMaterial(), selected);
-         }
-         else {
-            reenableLighting = renderer.isLightingEnabled();
-            renderer.setLightingEnabled (false);
-            float[] color;
-            if ((flags & GLRenderer.SELECTED) != 0) {
-               color = new float[3];
-               renderer.getSelectionColor().getRGBColorComponents (color);
-            }
-            else {
-               color = props.getPointColorArray();
-            }
-            float alpha = (float)props.getAlpha();
-            renderer.setColor (color[0], color[1], color[2], alpha);
-         }
+   public void render (Renderer renderer, RenderProps props, int flags) {
+      if (myMeshRenderer == null) {
+         throw new IllegalStateException (
+            "render() called before prerender()");
       }
-
-      boolean useDisplayList = false;
-      int displayList = 0;
-      boolean useVertexColors = (flags & GLRenderer.VERTEX_COLORING) != 0;
-      
-      if (useDisplayListsIfPossible && isUsingDisplayList() 
-    		  && !(renderer.isSelecting() && useVertexColors) ) {
-    		    //&& !(props.getPointStyle()==PointStyle.SPHERE)) {
-         useDisplayList = true;
-         displayList = props.getMeshDisplayList();
-      }
-         
-      if (props.getPointStyle() == PointStyle.SPHERE) {
-         useDisplayList = false;
-      }
-
-      if (!useDisplayList || displayList < 1) {
-         if (useDisplayList) {
-            renderer.validateInternalDisplayLists(props);
-            displayList = props.allocMeshDisplayList (gl);
-            if (displayList > 0) {
-               gl.glNewList (displayList, GL2.GL_COMPILE);
-            }
-         }
-         
-         boolean useRenderVtxs = isRenderBuffered() && !isFixed();
-         float[] coords = new float[3];
-         int[] colorIndices = getColorIndices();
-         ArrayList<float[]> colors = getColors();
-         switch (props.getPointStyle()) {
-            case SPHERE: {
-               for (int i=0; i<myVertices.size(); i++) {
-                  Vertex3d vtx = myVertices.get(i);
-                  Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
-                  pnt.get(coords);
-                  
-                  if (useVertexColors) {
-                     float[] pointColor = colors.get(colorIndices[i]);
-                     renderer.updateMaterial(props, props.getPointMaterial(),
-                        pointColor, selected);
-                  }
-                  renderer.checkAndPrintGLError();
-                  renderer.drawSphere(props, coords);
-                  renderer.checkAndPrintGLError();
-               }
-               break;
-            }
-            case POINT:
-               gl.glBegin (GL2.GL_POINTS);
-               ArrayList<Vector3d> normals = getNormals();
-               int numn = normals != null ? normals.size() : 0;
-               Vector3d zDir = renderer.getZDirection();
-               for (int i=0; i<myVertices.size(); i++) {
-                  Vertex3d vtx = myVertices.get(i);
-                  Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
-                  
-                  if (shading != Shading.NONE) {
-                     if (i < numn) {
-                        Vector3d nrm = myNormals.get(i);
-                        gl.glNormal3d (nrm.x, nrm.y, nrm.z);
-                     } else {
-                        gl.glNormal3d(zDir.x, zDir.y, zDir.z);
-                     }
-                  }
-                  gl.glVertex3d (pnt.x, pnt.y, pnt.z);
-               }
-               gl.glEnd ();
-         }
-         
-
-         // render normals
-         if (myNormals != null && myNormalRenderLen > 0) {
-            if (props.getLineColor() != null && !renderer.isSelecting()) {
-               if (shading != Shading.NONE) {
-                  renderer.setMaterial(
-                     props.getLineMaterial(), (flags & GLRenderer.SELECTED) != 0);
-               }
-               else {
-                  float[] color = props.getLineColorArray();
-                  float alpha = (float)props.getAlpha();
-                  renderer.setColor (color[0], color[1], color[2], alpha);
-               }
-            }
-            renderer.setLineWidth (1);
-            gl.glBegin (GL2.GL_LINES);
-            for (int i=0; i<myVertices.size(); i++) {
-               Vertex3d vtx = myVertices.get(i);
-               Point3d pnt = useRenderVtxs ? vtx.myRenderPnt : vtx.pnt;
-               Vector3d nrm = myNormals.get(i);
-               double s = myNormalRenderLen;
-               gl.glVertex3d (pnt.x, pnt.y, pnt.z);
-               gl.glVertex3d (pnt.x+s*nrm.x, pnt.y+s*nrm.y, pnt.z+s*nrm.z);
-            }
-            gl.glEnd ();
-         }
-         if (useDisplayList && displayList > 0) {
-            gl.glEndList();
-            renderer.checkAndPrintGLError();
-            gl.glCallList (displayList);
-            renderer.checkAndPrintGLError();
-         }
-      }
-      else {
-         gl.glCallList (displayList);
-      }
-
-      if (reenableLighting) {
-         renderer.setLightingEnabled (true);
-      }
-      renderer.setPointSize (savedPointSize);
-      renderer.setLineWidth (savedLineWidth);
-      renderer.setShadeModel (savedShadeModel);
-
-      gl.glPopMatrix();
-      
-      renderer.checkAndPrintGLError();
-      
+      myMeshRenderer.render (renderer, props, flags);
    }
 
    /** 
@@ -496,5 +345,5 @@ public class PointMesh extends MeshBase {
       }
       return removed;
    }
-
+   
 }

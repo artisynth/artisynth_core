@@ -12,12 +12,12 @@ import maspack.util.*;
 import maspack.properties.*;
 import maspack.render.*;
 import maspack.spatialmotion.*;
+
 import java.util.*;
 
 import maspack.render.*;
 import artisynth.core.modelbase.*;
 
-import javax.media.opengl.*;
 import java.awt.Color;
 import java.io.*;
 
@@ -101,7 +101,7 @@ public class FullPlanarJoint extends BodyConnector
       return defaultRenderProps (this);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       RigidTransform3d TDW = getCurrentTDW();
       TDW.p.updateBounds (pmin, pmax);
    }
@@ -111,10 +111,11 @@ public class FullPlanarJoint extends BodyConnector
       myRenderFrame.set (TDW);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (myAxisLength != 0) {
+         int lineWidth = myRenderProps.getLineWidth();
          renderer.drawAxes (
-            myRenderProps, myRenderFrame, myAxisLength, isSelected());
+            myRenderFrame, myAxisLength, lineWidth, isSelected());
       }
 //       Point3d p0 = new Point3d();
 //       Point3d p1 = new Point3d();

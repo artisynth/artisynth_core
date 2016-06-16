@@ -16,11 +16,10 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.*;
 
-import maspack.render.GLGridPlane;
-import maspack.render.GLViewer;
-import maspack.render.GLGridResolution;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLGridResolution;
+import maspack.render.GL.GLViewer;
 import maspack.util.Disposable;
-import artisynth.core.driver.Main;
 
 public class GridDisplay extends GridResolutionField 
    implements ActionListener, Disposable {
@@ -71,13 +70,11 @@ public class GridDisplay extends GridResolutionField
                }
             }
          });
-      //Main.getWorkspace().registerWindow (myPropDialog);
       myPropDialog.setVisible (true);
    }
 
    void removePropertyDialog() {
       if (myPropDialog != null) {
-         //Main.getWorkspace().deregisterWindow (myPropDialog);
          myPropDialog.dispose();
          myPropDialog = null;
       }

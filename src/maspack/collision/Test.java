@@ -5,7 +5,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.Random;
 
-import javax.media.opengl.GL2;
 import javax.swing.JFrame;
 
 import maspack.collision.ContactInfo;
@@ -15,12 +14,12 @@ import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
-import maspack.render.GLViewerFrame;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
 
 public class Test {
    PolygonalMesh mesh1, mesh2;
@@ -174,7 +173,7 @@ public class Test {
       PolygonalMesh mesh, GLViewerFrame frame, Color col) {
       RenderProps rp = mesh.getRenderProps();
       rp.setDrawEdges (true);
-      rp.setFaceStyle (RenderProps.Faces.NONE);
+      rp.setFaceStyle (Renderer.FaceStyle.NONE);
       rp.setLineColor (col);
       mesh.setRenderProps (rp);
       frame.getViewer().addRenderable (mesh);
@@ -188,29 +187,13 @@ public class Test {
     * (!bvh.getRoot().includesFace(f)) throw new RuntimeException("missing
     * face"); }
     */
-   class RenderableAxes implements GLRenderable {
+   class RenderableAxes implements IsRenderable {
 
-      public void render (GLRenderer renderer, int flags) {
-         GL2 gl = renderer.getGL2().getGL2();
-         renderer.setLightingEnabled (false);
+      public void render (Renderer renderer, int flags) {
 
          double axisSize = 1000.0;
-         renderer.setColor (1, 0, 0);
-         gl.glBegin (GL2.GL_LINES);
-         gl.glVertex3d (0, 0, 0);
-         gl.glVertex3d (axisSize, 0, 0);
-         gl.glEnd();
-         renderer.setColor (0, 1, 0);
-         gl.glBegin (GL2.GL_LINES);
-         gl.glVertex3d (0, 0, 0);
-         gl.glVertex3d (0, axisSize, 0);
-         gl.glEnd();
-         renderer.setColor (0, 0, 1);
-         gl.glBegin (GL2.GL_LINES);
-         gl.glVertex3d (0, 0, 0);
-         gl.glVertex3d (0, 0, axisSize);
-         gl.glEnd();
-         renderer.setLightingEnabled (true);
+         renderer.drawAxes (
+            RigidTransform3d.IDENTITY, axisSize, 1, /*highlight=*/false);
       }
 
       public int getRenderHints() {
@@ -220,7 +203,7 @@ public class Test {
       public void prerender (RenderList list) {
       }
 
-      public void updateBounds (Point3d pmin, Point3d pmax) {
+      public void updateBounds (Vector3d pmin, Vector3d pmax) {
       }
    }
 

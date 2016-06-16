@@ -6,39 +6,55 @@
  */
 package maspack.apps;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 import java.io.File;
-import java.lang.reflect.Constructor;
-import java.util.*;
-import java.awt.*;
-import java.awt.event.*;
 
-import javax.swing.event.*;
-import javax.swing.*;
-import javax.media.opengl.GL2;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
+import javax.swing.event.MouseInputAdapter;
 
-import maspack.render.*;
-import maspack.render.RenderProps.Shading;
-import maspack.render.RenderProps.Faces;
-import maspack.widgets.PropertyDialog;
-import maspack.widgets.RenderPropsPanel;
-import maspack.widgets.ValueChangeEvent;
-import maspack.widgets.ValueChangeListener;
-import maspack.matrix.*;
 import maspack.collision.ContactInfo;
 import maspack.collision.ContactPenetratingPoint;
 import maspack.collision.MeshIntersectionContour;
 import maspack.collision.MeshIntersectionPoint;
 import maspack.collision.SurfaceMeshCollider;
 import maspack.geometry.PolygonalMesh;
-import maspack.properties.*;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.properties.PropertyUtils;
+import maspack.render.Dragger3dAdapter;
+import maspack.render.Dragger3dEvent;
+import maspack.render.IsRenderable;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.Shading;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Transrotator3d;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
+import maspack.widgets.PropertyDialog;
+import maspack.widgets.RenderPropsPanel;
+import maspack.widgets.ValueChangeEvent;
+import maspack.widgets.ValueChangeListener;
 import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
 import argparser.IntHolder;
-import argparser.StringHolder;
 
 public class MeshCollisionViewer extends GLViewerFrame
-   implements ActionListener, GLRenderable {
+   implements ActionListener, IsRenderable {
    private static final long serialVersionUID = 1L;
 
    PolygonalMesh myMesh1;
@@ -71,15 +87,15 @@ public class MeshCollisionViewer extends GLViewerFrame
    private RenderProps createRenderProps (PolygonalMesh mesh) {
       RenderProps props = mesh.createRenderProps();
 
-      props.setShading (smooth.value ? Shading.GOURARD : Shading.FLAT);
+      props.setShading (smooth.value ? Shading.SMOOTH : Shading.FLAT);
       if (noDrawFaces.value) {
-         props.setFaceStyle (Faces.NONE);
+         props.setFaceStyle (FaceStyle.NONE);
       }
       else if (oneSided.value) {
-         props.setFaceStyle (Faces.FRONT);
+         props.setFaceStyle (FaceStyle.FRONT);
       }
       else {
-         props.setFaceStyle (Faces.FRONT_AND_BACK);
+         props.setFaceStyle (FaceStyle.FRONT_AND_BACK);
       }
       props.setDrawEdges (drawEdges.value);
       if (edgeColor[0] != -1) {
@@ -129,7 +145,7 @@ public class MeshCollisionViewer extends GLViewerFrame
       myDragger2.setDraggerToWorld (X);
       myMesh2.setMeshToWorld (X);
 
-      viewer.autoFitPerspective (0);
+      viewer.autoFitPerspective ();
       viewer.setBackgroundColor (0f, 0, 0.2f);
 
       if (drawAxes.value) {
@@ -197,7 +213,7 @@ public class MeshCollisionViewer extends GLViewerFrame
    public void prerender (RenderList list) {
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
    }
 
    public int getRenderHints() {
@@ -207,40 +223,38 @@ public class MeshCollisionViewer extends GLViewerFrame
    private int contourWidth = 2;
    private float[] contourColor = new float [] { 1f, 1f, 0 };
 
-   public void render (GLRenderer renderer, int flags) {
-      GL2 gl = renderer.getGL2().getGL2();
+   public void render (Renderer renderer, int flags) {
 
-      if (contourWidth > 0 &&
-          myContactInfo != null) {
-         renderer.setLightingEnabled (false);
+      if (contourWidth > 0 && myContactInfo != null) {
+         renderer.setShading (Shading.NONE);
          renderer.setLineWidth (contourWidth);
          renderer.setPointSize (contourWidth);
-         renderer.setColor (contourColor, false);
+         renderer.setColor (contourColor, /*highlight=*/false);
 
          if (myContactInfo.contours != null) {
             for (MeshIntersectionContour contour : myContactInfo.contours) {
-               gl.glBegin (GL2.GL_LINE_LOOP);
+               renderer.beginDraw (DrawMode.LINE_LOOP);
                for (MeshIntersectionPoint p : contour) {
-                  gl.glVertex3d (p.x, p.y, p.z);
+                  renderer.addVertex (p);
                }
-               gl.glEnd();
+               renderer.endDraw();
             }
          }
          Point3d pnt = new Point3d();
-         gl.glBegin (GL2.GL_POINTS);
+         renderer.beginDraw (DrawMode.POINTS);
          for (ContactPenetratingPoint p : myContactInfo.points0) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh1.getMeshToWorld());
-            gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+            renderer.addVertex (pnt);
          }
          for (ContactPenetratingPoint p : myContactInfo.points1) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh2.getMeshToWorld());
-            gl.glVertex3d (pnt.x, pnt.y, pnt.z);
+            renderer.addVertex (pnt);
          }
-         gl.glEnd();
+         renderer.endDraw();
 
-         renderer.setLightingEnabled (true);
+         renderer.setShading (Shading.FLAT);
          renderer.setLineWidth (1);
          renderer.setPointSize (1);
       }
@@ -249,7 +263,6 @@ public class MeshCollisionViewer extends GLViewerFrame
    public void actionPerformed (ActionEvent e) {
       String cmd = e.getActionCommand();
 
-      System.out.println ("cmd="+ cmd);
       if (cmd.equals ("Hide dragger1")) {
          myDragger1.setVisible (false);
       }

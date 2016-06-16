@@ -59,7 +59,7 @@ public class ConstrainedParticle extends RootModel {
       MeshComponent body = new FixedMeshBody (mesh);
       mech.addMeshBody (body);
 
-      RenderProps.setPointStyle (mech, RenderProps.PointStyle.SPHERE);
+      RenderProps.setPointStyle (mech, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (mech, 0.02);
       RenderProps.setPointColor (mech, Color.RED);
 

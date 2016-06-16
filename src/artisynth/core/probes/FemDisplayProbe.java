@@ -7,35 +7,42 @@
 package artisynth.core.probes;
 
 import java.awt.Color;
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
 
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.BVIntersector;
+import maspack.geometry.PolygonalMesh;
 import maspack.geometry.TriangleIntersector;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.PolygonalMesh;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer.DraggerType;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
+import maspack.render.Dragger3d.DraggerType;
+import maspack.render.RenderProps;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
-import maspack.render.RenderList;
-import maspack.render.RenderProps;
-import maspack.util.*;
-import artisynth.core.modelbase.*;
+import maspack.util.DoubleInterval;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemIntersector;
 import artisynth.core.femmodels.FemModel.Ranging;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.util.*;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.util.ScanToken;
 
 /**
  * A probe that allows you to examine the stress/strain inside a {@link FemModel3d}.
@@ -368,7 +375,6 @@ public class FemDisplayProbe extends CutPlaneProbe {
       } catch (Exception e) {
          System.err.println("cough cough.");
       }
-      rprops.clearMeshDisplayList();
 
    }
 
@@ -537,27 +543,24 @@ public class FemDisplayProbe extends CutPlaneProbe {
    public int getRenderHints() {
       int code = super.getRenderHints();
       if (myBackgroundAlpha < 1) {
-         code |= GLRenderable.TRANSLUCENT;
+         code |= IsRenderable.TRANSPARENT;
       }
       return code;
    }
 
    @Override
-   public synchronized void render (GLRenderer renderer, int flags) {
+   public synchronized void render (Renderer renderer, int flags) {
 
       RenderProps rprops = getRenderProps();
 
       if (myPlaneSurface != null) {
 
-         if ((flags & GLRenderer.REFRESH) != 0) {
-            updateVertexColoring();
-         }
+//         if ((flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
+//            updateVertexColoring();
+//         }
          
          if (mySurfaceRendering != SurfaceRender.None) {
-            int rflags = 
-               (flags | GLRenderer.VERTEX_COLORING | 
-               GLRenderer.HSV_COLOR_INTERPOLATION);
-            myPlaneSurface.render (renderer, rprops, rflags);
+            myPlaneSurface.render (renderer, rprops, 0);
             //renderer.drawMesh(rprops, myPlaneSurface,
             //   flags | GLRenderer.VERTEX_COLORING | GLRenderer.HSV_COLOR_INTERPOLATION);
          }
@@ -617,6 +620,8 @@ public class FemDisplayProbe extends CutPlaneProbe {
       createVtxMap();
       lastDraggerType = getDragger();
       myPlaneSurface.setFixed(false);
+      myPlaneSurface.setColorsFixed(false);
+      myPlaneSurface.setColorInterpolation (ColorInterpolation.HSV);
       myPlaneSurface.setVertexColoringEnabled();
       super.setDragger(DraggerType.None);
 

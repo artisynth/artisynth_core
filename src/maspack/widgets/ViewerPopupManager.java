@@ -15,6 +15,7 @@ import javax.swing.*;
 
 import maspack.properties.*;
 import maspack.render.*;
+import maspack.render.GL.GLViewer;
 import maspack.util.*;
 
 /**
@@ -41,7 +42,7 @@ public class ViewerPopupManager implements ActionListener {
    public void actionPerformed (ActionEvent e) {
    }
 
-   private class DialogHandle implements GLViewerListener {
+   private class DialogHandle implements RenderListener {
       
       PropertyDialog myDialog;
 
@@ -49,7 +50,7 @@ public class ViewerPopupManager implements ActionListener {
          myDialog = dialog;
       }
 
-      public void renderOccurred (GLViewerEvent e) {
+      public void renderOccurred (RendererEvent e) {
          myDialog.updateWidgetValues();
       }
    }      
@@ -63,7 +64,7 @@ public class ViewerPopupManager implements ActionListener {
    public void registerDialog (PropertyDialog dialog) {
       DialogHandle handle = new DialogHandle (dialog);
       myDialogHandles.add (handle);
-      myViewer.addViewerListener (handle);
+      myViewer.addRenderListener (handle);
       dialog.addWindowListener (new WindowAdapter() {
             public void windowClosed (WindowEvent e) {
                deregisterDialog (e.getWindow());
@@ -77,7 +78,7 @@ public class ViewerPopupManager implements ActionListener {
          for (int i=0; i<myDialogHandles.size(); i++) {
             DialogHandle handle = myDialogHandles.get(i);
             if (handle.myDialog == dialog) {
-               myViewer.removeViewerListener (handle);
+               myViewer.removeRenderListener (handle);
                myDialogHandles.remove (handle);
                return;
             }

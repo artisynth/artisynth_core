@@ -6,8 +6,6 @@
  */
 package artisynth.core.femmodels;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.*;
 import maspack.render.*;
 
@@ -36,6 +34,7 @@ public class QuadtetElement extends FemElement3d {
 
    private static IntegrationPoint3d[] myDefaultIntegrationPoints = null;
    private static IntegrationPoint3d myWarpingPoint;
+   private static FemElementRenderer myRenderer;
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
@@ -316,9 +315,19 @@ public class QuadtetElement extends FemElement3d {
       return myFaceIdxs;
    }
 
+   public void render(Renderer renderer, RenderProps props, int flags) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.render (renderer, this, props);
+   }
+
    public void renderWidget (
-      GLRenderer renderer, double size, RenderProps props) {
-      renderWidget (renderer, size, myWidgetFaces, props);
+      Renderer renderer, double size, RenderProps props) {
+      if (myRenderer == null) {
+         myRenderer= new FemElementRenderer (this);
+      }
+      myRenderer.renderWidget (renderer, this, size, props);
    }
 
    public void updateWarpingStiffness() {

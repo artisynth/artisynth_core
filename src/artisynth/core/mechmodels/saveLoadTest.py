@@ -59,7 +59,7 @@ testSaveLoadFull ("artisynth.models.tongue3d.FemMuscleTongueDemo", 0, "%g", 0.2,
 testSaveLoadFull ("artisynth.models.dynjaw.JawLarynxDemo", 1, "%g", 1.0, 0.10)
 testSaveLoad ("artisynth.demos.mech.SkinDemo")
 # JawDemo needs delay since rendering sets Jaw textureProps.enabled=false
-testSaveLoadFell ("artisynth.models.dynjaw.JawDemo", 0.5, "%g", 1.0, 0.10)
+testSaveLoadFull ("artisynth.models.dynjaw.JawDemo", 0.5, "%g", 1.0, 0.10)
 testSaveLoad ("artisynth.models.dangTongue.FemTongueDemo")
 testSaveLoadFull ("artisynth.demos.fem.FemMuscleArm", 0, "%g", 1.0, 0.10)
 
@@ -91,6 +91,7 @@ testSaveLoad ("artisynth.demos.tutorial.SimpleMuscle")
 testSaveLoad ("artisynth.demos.tutorial.CylinderWrapping")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithPanel")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProbes")
+testSaveLoad ("artisynth.demos.tutorial.SphericalTextureMapping")
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 
 

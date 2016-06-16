@@ -152,7 +152,19 @@ public class MeshFactory {
             Vertex3d v1 = vtxMap.getOrCreate (mesh, x+dx, y, 0, XLM);
             Vertex3d v2 = vtxMap.getOrCreate (mesh, x+dx, y+dy, 0, XLM);
             Vertex3d v3 = vtxMap.getOrCreate (mesh, x, y+dy, 0, XLM);
-            mesh.addFace (v0, v1, v2, v3);
+            Face f = mesh.addFace (v0, v1, v2, v3);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (j == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
          }
       }
    }
@@ -734,14 +746,31 @@ public class MeshFactory {
    }
 
    /**
-    * Create a open planar mesh, composed of two triangles, centered on the
-    * origin and with normals directed along the z axis. Texture coordinates
-    * are also created for each triangle.
+    * Legacy method to create a rectangle with texture coordinates;
+    * calls {@link #createRectangle(double,double,boolean)
+    * createRectangle(wx,wy,true)}.
+    * 
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @return created rectangular mesh
+    */
+   public static PolygonalMesh createPlane (double wx, double wy) {
+      return createRectangle (wx, wy, /*addTextureCoords=*/true);
+   }
+   
+   /**
+    * Create a open rectanglar mesh, composed of two triangles, in the x-y
+    * plane, centered on the origin and with normals directed along the z axis. 
+    * Texture coordinates can optionally be created for each triangle so that
+    * (0,0) and (1,1) correspond to the lower left and upper right corners.
     *
     * @param wx width in the x direction
     * @param wy width in the y direction
+    * @param addTextureCoords if <code>true</code>, generates texture 
+    * coordinates
     */
-   public static PolygonalMesh createPlane(double wx, double wy) {
+   public static PolygonalMesh createRectangle (
+      double wx, double wy, boolean addTextureCoords) {
       Point3d[] plist = new Point3d[4];
       plist[0] = new Point3d(wx / 2, wy / 2, 0);
       plist[1] = new Point3d(-wx / 2, wy / 2, 0);
@@ -752,28 +781,50 @@ public class MeshFactory {
       PolygonalMesh mesh = new PolygonalMesh();
       mesh.set(plist, faceIndices);
 
-      ArrayList<Vector3d> vt = new ArrayList<Vector3d>();
-      vt.add(new Point3d(1, 1, 0));
-      vt.add(new Point3d(0, 1, 0));
-      vt.add(new Point3d(0, 0, 0));
-      vt.add(new Point3d(1, 0, 0));
-      mesh.setTextureCoords (vt, mesh.createVertexIndices());
+      if (addTextureCoords) {
+         ArrayList<Vector3d> vt = new ArrayList<Vector3d>();
+         vt.add(new Point3d(1, 1, 0));
+         vt.add(new Point3d(0, 1, 0));
+         vt.add(new Point3d(0, 0, 0));
+         vt.add(new Point3d(1, 0, 0));         
+         mesh.setTextureCoords (vt, mesh.createVertexIndices());
+      }
       return mesh;
+   }
+
+   /**
+    * Legacy method to create a rectangle with texture coordinates;
+    * calls {@link #createRectangle(double,double,int,int,boolean)
+    * createRectangle(wx,wy,xdiv,ydiv,true)}.
+    * 
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param xdiv number of divisions in x (&gt;=1)
+    * @param ydiv number of divisions in y (&gt;=1)
+    * @return created rectangular mesh
+    */
+   public static PolygonalMesh createPlane (
+      double wx, double wy, int xdiv, int ydiv) {
+      return createRectangle (wx, wy, xdiv, ydiv, /*addTextureCoords=*/true);
    }
    
    /**
-    * Create a open planar mesh, composed of triangles, centered on the
-    * origin and with normals directed along the z axis. Texture coordinates
-    * are also created for each triangle.
+    * Create a open rectangular mesh, composed of triangles, in the x-y
+    * plane, centered on the origin and with normals directed along the z axis. 
+    * Texture coordinates can optionally be created created for each triangle
+    * so that (0,0) and (1,1) correspond to the lower left and upper right 
+    * corners.
     *
     * @param wx width in the x direction
     * @param wy width in the y direction
     * @param xdiv number of divisions in x (&gt;=1)
     * @param ydiv number of divisions in y (&gt;=1)
-    * 
+    * @param addTextureCoords if <code>true</code>, generates texture 
+    * coordinates
+    * @return created mesh
     */
-   public static PolygonalMesh createPlane (
-      double wx, double wy, int xdiv, int ydiv) {
+   public static PolygonalMesh createRectangle (
+      double wx, double wy, int xdiv, int ydiv, boolean addTextureCoords) {
       
       Point3d[] plist = new Point3d[(xdiv+1)*(ydiv+1)];
       int[][] faceIndices = new int[xdiv*ydiv*2][];
@@ -789,7 +840,10 @@ public class MeshFactory {
       for (int j=0; j<=ydiv; j++) {
          for (int i=0; i<=xdiv; i++) {
             plist[i+j*(xdiv+1)] = new Point3d(xoffset+i*dx, yoffset + j*dy, 0);
-            vt.add(new Point3d(i*dxt,j*dyt, 0));
+            if (addTextureCoords) {
+               vt.add(new Point3d(i*dxt,j*dyt, 0));
+            }
+              
             if (i < xdiv && j < ydiv) {
                int idx1 = i+j*(xdiv+1);
                int idx2 = (i+1)+j*(xdiv+1);
@@ -810,7 +864,9 @@ public class MeshFactory {
       PolygonalMesh mesh = new PolygonalMesh();
       mesh.set(plist, faceIndices);
       
-      mesh.setTextureCoords (vt, mesh.createVertexIndices());
+      if (addTextureCoords) {
+         mesh.setTextureCoords (vt, mesh.createVertexIndices());
+      }
       return mesh;
    }
 
@@ -884,6 +940,24 @@ public class MeshFactory {
    }
       
 
+   /**
+    * Creates a triangle-based box mesh, with a specified mesh resolution in
+    * each direction, and centered at a defined center point.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    * @param center center of the box
+    * @param nx number of subdivisions along x
+    * @param ny number of subdivisions along y
+    * @param nz number of subdivisions along z
+    */
+   public static PolygonalMesh createBox(double wx, double wy, double wz,
+      Point3d center, int nx, int ny, int nz) {
+      PolygonalMesh mesh = createQuadBox (wx, wy, wz, center, nx, ny, nz);
+      mesh.triangulate ();
+      return mesh;
+   }
 
 
    private static class MidEdgeVertexList extends ArrayList<MidEdgeVertex> {
@@ -1066,7 +1140,19 @@ public class MeshFactory {
                getOrCreateVertex(i + 1, j + 1, 0, vtxs, offset, dx, mesh);
             faceVtxs[3] =
                getOrCreateVertex(i + 1, j, 0, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            Face f = mesh.addFace(faceVtxs);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (j == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
 
             faceVtxs[0] = getOrCreateVertex(i, j, nz, vtxs, offset, dx, mesh);
             faceVtxs[3] =
@@ -1075,7 +1161,19 @@ public class MeshFactory {
                getOrCreateVertex(i + 1, j + 1, nz, vtxs, offset, dx, mesh);
             faceVtxs[1] =
                getOrCreateVertex(i + 1, j, nz, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            f = mesh.addFace(faceVtxs);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (j == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
          }
       }
 
@@ -1089,8 +1187,20 @@ public class MeshFactory {
                getOrCreateVertex(i + 1, 0, k + 1, vtxs, offset, dx, mesh);
             faceVtxs[1] =
                getOrCreateVertex(i + 1, 0, k, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
-
+            Face f = mesh.addFace(faceVtxs);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (k == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (k == nz-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
+            
             faceVtxs[0] = getOrCreateVertex(i, ny, k, vtxs, offset, dx, mesh);
             faceVtxs[1] =
                getOrCreateVertex(i, ny, k + 1, vtxs, offset, dx, mesh);
@@ -1098,7 +1208,19 @@ public class MeshFactory {
                getOrCreateVertex(i + 1, ny, k + 1, vtxs, offset, dx, mesh);
             faceVtxs[3] =
                getOrCreateVertex(i + 1, ny, k, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            f = mesh.addFace(faceVtxs);
+            if (i == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (i == nx-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (k == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (k == nz-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
          }
       }
 
@@ -1112,7 +1234,19 @@ public class MeshFactory {
                getOrCreateVertex(0, j + 1, k + 1, vtxs, offset, dx, mesh);
             faceVtxs[1] =
                getOrCreateVertex(0, j, k + 1, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            Face f = mesh.addFace(faceVtxs);
+            if (j == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (k == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (k == nz-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
 
             faceVtxs[0] = getOrCreateVertex(nx, j, k, vtxs, offset, dx, mesh);
             faceVtxs[1] =
@@ -1121,7 +1255,19 @@ public class MeshFactory {
                getOrCreateVertex(nx, j + 1, k + 1, vtxs, offset, dx, mesh);
             faceVtxs[3] =
                getOrCreateVertex(nx, j, k + 1, vtxs, offset, dx, mesh);
-            mesh.addFace(faceVtxs);
+            f = mesh.addFace(faceVtxs);
+            if (j == 0) {
+               f.firstHalfEdge ().setHard (true);
+            } 
+            if (j == ny-1) {
+               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
+            }
+            if (k == 0) {
+               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
+            }
+            if (k == nz-1) {
+               f.firstHalfEdge ().getNext ().setHard (true);
+            }
          }
       }
       
@@ -1508,26 +1654,149 @@ public class MeshFactory {
       return createQuadSphere(r, nslices, 0, 0, 0);
    }
 
+   /**
+    * Creates a spherical triangular mesh, centered on the origin,
+    * with a radius <code>r</code>. The mesh is constructed using spherical
+    * coordinates, with a resolution of <code>nslices</code> about the
+    * equator and <code>nslices/2</code> longitudinally.
+    * 
+    * @param r radius of the sphere
+    * @param nslices mesh resolution
+    * @return created spherical mesh
+    */
    public static PolygonalMesh createSphere(double r, int nslices) {
       PolygonalMesh mesh = createQuadSphere(r, nslices);
       mesh.triangulate();
       return mesh;
    }
 
+   /**
+    * Creates a spherical triangular mesh, centered on the origin,
+    * with a radius <code>r</code>. The mesh is constructed using spherical
+    * coordinates, with a resolution of <code>nslices</code> about the
+    * equator and <code>nlevels</code> longitudinally.
+    * 
+    * @param r radius of the sphere
+    * @param nslices equatorial mesh resolution
+    * @param nlevels longitudinal mesh resolution
+    * @return created spherical mesh
+    */
    public static PolygonalMesh createSphere(
       double r, int nslices, int nlevels) {
-      PolygonalMesh mesh = createQuadSphere(r, nslices, nlevels, 0, 0, 0);
+      return createSphere (r, nslices, nlevels, false);
+   }
+
+   /**
+    * Creates a spherical triangular mesh, centered on the origin,
+    * with a radius <code>r</code>. The mesh is constructed using spherical
+    * coordinates, with a resolution of <code>nslices</code> about the
+    * equator and <code>nlevels</code> longitudinally. Texture coordinates
+    * can optionally be created, where (0,0) and (1,1) map
+    * to the spherical coordinates (-PI,PI) (south pole) and (PI,0)
+    * (north pole). 
+    * 
+    * @param r radius of the sphere
+    * @param nslices equatorial mesh resolution
+    * @param nlevels longitudinal mesh resolution
+    * @param addTextureCoords if <code>true</code>, generates texture
+    * coordinates
+    * @return created spherical mesh
+    */
+   public static PolygonalMesh createSphere(
+      double r, int nslices, int nlevels, boolean addTextureCoords) {
+      PolygonalMesh mesh = 
+         createQuadSphere(r, nslices, nlevels, 0, 0, 0, addTextureCoords);
       mesh.triangulate();
       return mesh;
    }
 
    public static PolygonalMesh createQuadSphere(
       double r, int nslices, double x, double y, double z) {
-      return createQuadSphere(r, nslices, nslices / 2, x, y, z);
+      return createQuadSphere(r, nslices, nslices / 2, x, y, z, false);
+   }
+   
+   private static double clamp01 (double x) {
+      if (x < 0) {
+         return 0;
+      }
+      else if (x > 1) {
+         return 1;
+      }
+      else {
+         return x;
+      }
+   }
+   
+   private static void computeThetaPair (
+      double[] theta, Vertex3d v0, Vertex3d v1, Point3d origin) {
+      
+      double EPS = 1e-8;
+      theta[0] = Math.atan2 (v0.pnt.y-origin.y, v0.pnt.x-origin.x);
+      if (theta[0] >= Math.PI-EPS) {
+         theta[0] = -Math.PI;
+      }
+      theta[1] = Math.atan2 (v1.pnt.y-origin.y, v1.pnt.x-origin.x);
+      if (theta[1] <= -Math.PI+EPS) {
+         theta[1] = Math.PI;
+      }
+   }
+   
+   private static double computePhi (Vertex3d v, Point3d origin, double r) {
+      return Math.acos ((v.pnt.z-origin.z)/r);
+   }
+   
+   private static Vector3d createSphereTexel (double the, double phi) {
+      return new Vector3d (
+         clamp01((Math.PI+the)/(2*Math.PI)), clamp01(1.0-phi/Math.PI), 0);
+   }
+   
+   public static void computeTextureCoordsForSphere (
+      PolygonalMesh mesh, Point3d origin, double r, double tol) {
+      
+      ArrayList<Vector3d> vt = new ArrayList<Vector3d>();
+      double[] theta = new double[2];
+      for (int i=0; i<mesh.numFaces(); i++) {
+         Face face = mesh.getFace(i);
+         Vertex3d vtxs[] = face.getVertices();
+      
+         if (vtxs.length == 4) {
+            computeThetaPair (theta, vtxs[0], vtxs[1], origin);
+            double phi0 = computePhi (vtxs[0], origin, r);
+            double phi2 = computePhi (vtxs[2], origin, r);
+            vt.add (createSphereTexel (theta[0], phi0));
+            vt.add (createSphereTexel (theta[1], phi0));
+            vt.add (createSphereTexel (theta[1], phi2));
+            vt.add (createSphereTexel (theta[0], phi2));
+         }
+         else if (Math.abs(vtxs[0].pnt.z-vtxs[1].pnt.z) <= tol) {
+            // vtxs[2] corresponds to the north pole
+            computeThetaPair (theta, vtxs[0], vtxs[1], origin);
+            double phi0 = computePhi (vtxs[0], origin, r);
+            double phi2 = 0;
+            vt.add (createSphereTexel (theta[0], phi0));
+            vt.add (createSphereTexel (theta[1], phi0));
+            vt.add (createSphereTexel ((theta[0]+theta[1])/2, phi2));
+         }
+         else {
+            // vtxs[0] corresponds to the south pole
+            computeThetaPair (theta, vtxs[2], vtxs[1], origin);
+            double phi2 = computePhi (vtxs[2], origin, r);
+            double phi0 = Math.PI;
+            vt.add (createSphereTexel ((theta[0]+theta[1])/2, phi0));
+            vt.add (createSphereTexel (theta[1], phi2));
+            vt.add (createSphereTexel (theta[0], phi2));
+         }
+      }
+      int[] indices = new int[vt.size()];
+      for (int i=0; i<indices.length; i++) {
+         indices[i] = i;
+      }
+      mesh.setTextureCoords (vt, indices);
    }
    
    public static PolygonalMesh createQuadSphere(
-      double r, int nslices, int nlevels, double x, double y, double z) {
+      double r, int nslices, int nlevels, 
+      double x, double y, double z, boolean addTextureCoords) {
       
       double tol = computeSphericalPointTolerance (
          r, 2*Math.PI, Math.PI, nslices, nlevels);
@@ -1536,6 +1805,10 @@ public class MeshFactory {
       RigidTransform3d XLM = new RigidTransform3d (x, y, z);
       addQuadSphericalSection (
          mesh, r, Math.PI, Math.PI, nslices, nlevels, XLM, vtxMap);
+      if (addTextureCoords) {
+         Point3d origin = new Point3d (x, y, z);
+         computeTextureCoordsForSphere (mesh, origin, r, tol);
+      }
       return mesh;
    }
 

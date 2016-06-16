@@ -8,12 +8,17 @@ package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
+import artisynth.core.femmodels.AuxiliaryMaterial;
+import artisynth.core.femmodels.FemElement;
+import artisynth.core.femmodels.FemNodeNeighbor;
+import artisynth.core.femmodels.IntegrationData3d;
+import artisynth.core.femmodels.IntegrationPoint3d;
+import artisynth.core.materials.FemMaterial;
+import artisynth.core.materials.LinearMaterial;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Boundable;
-import maspack.geometry.MeshRenderer;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.PolygonalMeshRenderer;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.Matrix3d;
@@ -29,17 +34,11 @@ import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.GLRenderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 import maspack.util.InternalErrorException;
-import artisynth.core.femmodels.AuxiliaryMaterial;
-import artisynth.core.femmodels.FemElement;
-import artisynth.core.femmodels.FemNodeNeighbor;
-import artisynth.core.femmodels.IntegrationData3d;
-import artisynth.core.femmodels.IntegrationPoint3d;
-import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.LinearMaterial;
 
 public class MFreeElement3d extends FemElement implements Boundable {
 
@@ -571,7 +570,7 @@ public class MFreeElement3d extends FemElement implements Boundable {
       return -1;
    }
    
-   public void updateBounds(Point3d min, Point3d max) {
+   public void updateBounds(Vector3d min, Vector3d max) {
       
       if (myBoundaryMesh != null) {
          myBoundaryMesh.updateBounds(min, max);
@@ -668,26 +667,34 @@ public class MFreeElement3d extends FemElement implements Boundable {
       return vol;
    }
 
-   private MeshRenderer myMeshRenderer = new MeshRenderer();
+   private PolygonalMeshRenderer myRenderInfo = null;
    
    @Override
    public void prerender (RenderList list) {
       super.prerender(list);
       renderMeshValid = false;
+      
+      if (myRenderInfo == null) {
+         myRenderInfo = new PolygonalMeshRenderer (myBoundaryMesh);
+      }
+      myRenderInfo.prerender (getRenderProps());
    }
    
-   @Override
-   protected void renderEdges(GLRenderer renderer, RenderProps props) {
+   protected void renderEdges(Renderer renderer, RenderProps props) {
       if (myBoundaryMesh != null) {
-         myMeshRenderer.renderEdges(renderer, myBoundaryMesh, props, 0);
+         int flags = 0;
+         if (isSelected ()) {
+            flags = Renderer.HIGHLIGHT;
+         }
+         myRenderInfo.renderEdges(renderer, props, flags);
       }
    }
 
-   public void renderWidget(GLRenderer renderer, RenderProps props, int flags) {
+   public void renderWidget(Renderer renderer, RenderProps props, int flags) {
       renderWidget(renderer, myElementWidgetSize, props, flags);
    }
 
-   public void renderWidget(GLRenderer renderer, double size,
+   public void renderWidget(Renderer renderer, double size,
       RenderProps props, int flags) {
 
       if (myBoundaryMesh != null && size > 0) {
@@ -706,12 +713,11 @@ public class MFreeElement3d extends FemElement implements Boundable {
          trans.setTranslation(cntr);
          trans.applyScaling(size, size, size);
          
-         GL2 gl = renderer.getGL2().getGL2();
-         gl.glPushMatrix();
-         renderer.mulTransform(trans);
+         renderer.pushModelMatrix();
+         renderer.mulModelMatrix (trans);
          //renderer.drawMesh(props, myBoundaryMesh, 0);
          myBoundaryMesh.render (renderer, props, 0);
-         gl.glPopMatrix();
+         renderer.popModelMatrix();
          
       }
    }
@@ -737,7 +743,7 @@ public class MFreeElement3d extends FemElement implements Boundable {
    }
    
    @Override
-   public void render(GLRenderer renderer, int flags) {
+   public void render(Renderer renderer, int flags) {
       RenderProps myProps = getRenderProps();
       if (myProps.isVisible()) {
          super.render(renderer, flags);
@@ -800,5 +806,28 @@ public class MFreeElement3d extends FemElement implements Boundable {
       return myNodes[idx].getPosition();
    }
    
+   public void render(
+      Renderer renderer, RenderProps rprops, int flags) {
+      
+      Shading savedShading = renderer.setLineShading (rprops);
+      renderer.setLineColoring (rprops, isSelected());
+      if (rprops.getLineWidth() > 0) {
+         switch (rprops.getLineStyle()) {
+            case LINE: {
+               renderer.setLineWidth (rprops.getLineWidth());
+               renderEdges (renderer, rprops);
+               renderer.setLineWidth (1);
+               break;
+            }
+            case CYLINDER: {
+               renderEdges (renderer,rprops);
+               break;
+            }
+            default:
+               break;
+         }
+      }
+      renderer.setShading (savedShading);
+   }   
    
 }

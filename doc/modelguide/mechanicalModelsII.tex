@@ -1,12 +1,12 @@
 %!TEX root = modelguide.tex
 
-\section{Mechanical Models II}
+\chapter{Mechanical Models II}
 \label{MechModelsII:sec}
 
 This section provides additional material on building basic
 multibody-type mechanical models.
 
-\subsection{Simulation control properties}
+\section{Simulation control properties}
 
 Both \javaclass[artisynth.core.workspace]{RootModel} and
 \javaclass[artisynth.core.mechmodels]{MechModel} contain properties
@@ -94,7 +94,7 @@ problems involving FEM collisions.
 
 \end{description}
 
-\subsection{Units}
+\section{Units}
 \label{sec:mechii:units}
 
 ArtiSynth is primarily ``unitless'', in the sense that it does not
@@ -155,7 +155,7 @@ fundamental units of mass ($m$), distance ($d$), and time ($t$).}
 \label{Units:tab}
 \end{table}
 
-\subsubsection{Scaling units}
+\subsection{Scaling units}
 
 For convenience, many ArtiSynth components, including {\tt MechModel},
 implement the interface
@@ -216,10 +216,10 @@ shown above is run, it should behave exactly the same as the
 non-scaled version.
 \end{sideblock}
 
-%\subsection{Multi-point springs}
+%\section{Multi-point springs}
 %OPTIONAL
-%\subsubsection{Operation}
-%\subsubsection{Example: A single multi-point spring}
+%\subsection{Operation}
+%\subsection{Example: A single multi-point spring}
 
 %\begin{figure}[ht]
 %\begin{center}
@@ -242,7 +242,7 @@ non-scaled version.
 
 % MultiPointSpring
 
-\subsection{Render properties}
+\section{Render properties}
 \label{RenderProperties:sec}
 
 All ArtiSynth components that are renderable maintain a property {\tt
@@ -262,7 +262,7 @@ Render properties can also be set in the GUI by selecting one or more
 components and the choosing {\sf Set render props ...}  in the
 right-click context menu. More details on setting render properties
 through the GUI can be found in the section ``Render properties'' in the
-\href{../uiguide/uiguide.html}{
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
 For many components, the default value of {\tt renderProps} is {\tt
@@ -276,17 +276,20 @@ properties are inherited by default, and so only those properties
 which are explicitly set will differ from those specified in ancestor
 components.
 
-\subsubsection{Render property taxonomy}
+\subsection{Render property taxonomy}
 
 In general, the properties in {\tt RenderProps} are used to control
-the color, size, style, and resolution of the three primary rendering
+the color, size, and style of the three primary rendering
 primitives: faces, lines, and points. Table \ref{RenderProps:tab}
 contains a complete list. Values for the {\tt shading}, {\tt
 faceStyle}, {\tt lineStyle} and {\tt pointStyle} properties are
-defined using the enumerated types {\tt RenderProps.Shading}, {\tt
-RenderProps.Faces}, {\tt RenderProps.LineStyle}, and {\tt
-RenderProps.PointStyle}.  Colors are specified using {\tt
-java.awt.Color}.
+defined using the following enumerated types:
+\javaclass[maspack.render]{Renderer\$Shading}, 
+\javaclass[maspack.render]{Renderer\$FaceStyle}, 
+\javaclass[maspack.render]{Renderer\$PointStyle}, 
+and 
+\javaclass[maspack.render]{Renderer\$LineStyle}.
+Colors are specified using {\tt java.awt.Color}.
 
 \begin{table}
 \begin{center}
@@ -294,43 +297,49 @@ java.awt.Color}.
 \hline property & purpose & usual default value \\ \hline
 %Generic properties:
 visible & whether or not the component is visible & {\tt true} \\
-alpha & transparency for polygonal faces (range 0 to 1) & 1 (opaque) \\
-shading & polygon shading: ({\tt FLAT}, {\tt GOURARD}, {\tt PHONG}) & {\tt FLAT}\\
-shininess & shininess parameter for polygons (range 0 to 32) & 32 \\
+alpha & transparency for diffuse colors (range 0 to 1) & 1 (opaque) \\
+shading & shading style: 
+({\tt FLAT}, {\tt SMOOTH}, {\tt METAL}, {\tt NONE}) & {\tt FLAT}\\
+shininess & shininess parameter (range 0 to 128) & 32 \\
+specular & specular color components & {\tt null} \\
 %Face related properties &
 \hline
 faceStyle &
 which polygonal faces are drawn ({\tt FRONT}, {\tt BACK},
 {\tt FRONT\_AND\_BACK}, {\tt NONE}) & {\tt FRONT} \\
 faceColor &
-color used for drawing faces & {\tt GREY} \\
+diffuse color for drawing faces & {\tt GRAY} \\
 backColor &
-color used for drawing backs of faces. If {\tt null}, {\tt faceColor} is used. &
-{\tt null} \\
-drawEdges & if true, polygon edges are drawn explicitly & {\tt false} \\
+diffuse color used for the backs of faces. 
+If {\tt null}, {\tt faceColor} is used. & {\tt null} \\
+drawEdges & hint that polygon edges should be drawn explicitly & {\tt false} \\
+%Texture mapping properties &
+\hline
+colorMap & color mapping properties 
+(see Section \ref{TextureMapping:sec}) & {\tt null} \\
+normalMap & normal mapping properties 
+(see Section \ref{TextureMapping:sec}) & {\tt null} \\
+bumpMap & bump mapping properties 
+(see Section \ref{TextureMapping:sec}) & {\tt null} \\
 % Edge related properties &
 \hline
-edgeColor & color for edges & {\tt GREY} \\
+edgeColor & diffuse color for edges & {\tt null} \\
 edgeWidth & edge width in pixels & 1 \\
 % Line related properties &
 \hline
 lineStyle: &
-how lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt ELLIPSOID}) & 
+how lines are drawn ({\tt CYLINDER}, {\tt LINE}, or {\tt SPINDLE}) & 
 {\tt LINE} \\
-lineColor & color for lines & {\tt GREY} \\
+lineColor & diffuse color for lines & {\tt GRAY} \\
 lineWidth & width in pixels when {\tt LINE} style is selected & 1 \\
-lineRadius & radius when {\tt CYLINDER} or {\tt ELLIPSOID} style is selected &
+lineRadius & radius when {\tt CYLINDER} or {\tt SPINDLE} style is selected &
 1 \\
-lineSlices &
-number of slices used to render {\tt CYLINDER} or {\tt ELLIPSOID} style lines &
-32 \\
 % Point related properties &
 \hline
 pointStyle & how points are drawn ({\tt SPHERE} or {\tt POINT}) & {\tt POINT} \\
-pointColor & color for points & {\tt GREY} \\
+pointColor & diffuse color for points & {\tt GRAY} \\
 pointSize & point size in pixels when {\tt POINT} style is selected & 1 \\
 pointRadius & sphere radius when {\tt SPHERE} style is selected & 1 \\
-pointSlices & number of slices used to render {\tt SPHERE} style spheres & 32 \\
 \hline
 \end{tabular}
 \end{center}
@@ -340,7 +349,7 @@ pointSlices & number of slices used to render {\tt SPHERE} style spheres & 32 \\
 
 To increase and improve their visibility, both the line and point
 primitives are associated with styles ({\tt CYLINDER}, {\tt
-ELLIPSOID}, and {\tt SPHERE}) that allow them to be rendered using 3D
+SPINDLE}, and {\tt SPHERE}) that allow them to be rendered using 3D
 surface geometry.
 
 Exactly how a component interprets its render properties is up to the
@@ -361,7 +370,7 @@ the method
 will create and return a {\tt RenderProps} object suitable for that
 component.
 
-\subsubsection{Setting render properties}
+\subsection{Setting render properties}
 \label{SettingRenderProperties:sec}
 
 When setting render properties, it is important to note that
@@ -406,6 +415,36 @@ setting a large number of properties at once:
 
    particle.setRenderProps (props);
 \end{lstlisting}
+
+For setting each of the color properties within {\tt RenderProps},
+one can use either {\tt Color} objects or {\tt float[]} arrays
+of length 3 giving the RGB values. Specifically, there
+are methods of the form
+%
+\begin{lstlisting}[]
+   props.setXXXColor (Color color)
+   props.setXXXColor (float[] rgb)
+\end{lstlisting}
+%
+as well as the static methods
+%
+\begin{lstlisting}[]
+   RenderProps.setXXXColor (Renderable r, Color color)
+   RenderProps.setXXXColor (Renderable r, float[] rgb)
+\end{lstlisting}
+%
+where {\tt XXX} corresponds to {\tt Point}, {\tt Line}, {\tt Face},
+{\tt Edge}, and {\tt Back}. For {\tt Edge} and {\tt Back}, both {\tt
+color} and {\tt rgb} can be given as {\tt null} to clear the indicated
+color. For the specular color, the associated methods are
+%
+\begin{lstlisting}[]
+   props.setSpecular (Color color)
+   props.setSpecular (float[] rgb)
+   RenderProps.setSpecular (Renderable r, Color color)
+   RenderProps.setSpecular (Renderable r, float[] rgb)
+\end{lstlisting}
+%
 
 \begin{sideblock}
 Note that even though components may use a subclass of {\tt
@@ -463,7 +502,226 @@ all particles in the list to be rendered green by default. Lastly,
 setting {\tt pointColor} for {\tt p3} will cause it to be rendered as
 red.
 
-\subsection{Point-to-point muscles}
+\subsection{Texture mapping}
+\label{TextureMapping:sec}
+
+Render properties can also be set to apply texture mapping to objects
+containing polygonal meshes in which texture coordinates have been
+set. Supported is provided for color, normal and bump mapping,
+although normal and bump mapping are only available under the OpenGL 3
+version of the ArtiSynth renderer.
+
+Texture mapping is controlled through the {\sf colorMap}, {\sf
+normalMap}, and {\sf bumpMap} properties of {\tt RenderProps}.  These
+are composite properties with a default value of {\tt null}, but
+applications can set them to instances of
+\javaclass[maspack.render]{ColorMapProps},
+\javaclass[maspack.render]{NormalMapProps}, and
+\javaclass[maspack.render]{BumpMapProps}, respectively, to provide the
+source images and parameters for the associated mapping. The two
+most important properties exported by all of these
+{\tt MapProps} objects are:
+
+\begin{description}
+
+\item[enabled]\mbox{}
+
+A boolean indicating whether or not the mapping is enabled.
+
+\item[fileName]\mbox{}
+
+A string giving the file name of the supporting source image.
+
+\end{description}
+
+{\tt NormalMapProps} and {\tt BumpMapProps} also export {\sf scaling},
+which scales the x-y components of the normal map or the depth of the
+bump map. Other exported properties control mixing with underlying
+colors, and how texture coordinates are both filtered and managed when
+they fall outside the canonical range $[0,1]$.  Full details on
+texture mapping and its support by the ArtiSynth renderer are given in
+the ``Rendering'' section of the \href{\artisynthDocBase/html/maspack/maspack.html}{Maspack
+Reference Manual}.
+
+To set up a texture map, one creates an instance of the appropriate
+{\tt MapProps} object and uses this to set either the {\sf colorMap},
+{\sf normalMap}, or {\sf bumpMap} property of {\tt RenderProps}.  
+For a specific renderable, the map properties can be set
+using the static methods
+%
+\begin{lstlisting}[]
+   void RenderProps.setColorMap (Renderable r, ColorMapProps tprops);
+   void RenderProps.setNormalMap (Renderable r, NormalMapProps tprops);
+   void RenderProps.setBumpMap (Renderable r, BumpMapProps tprops);
+\end{lstlisting}
+%
+When
+initializing the {\tt PropMaps} object, it is often sufficient to just
+set {\sf enabled} to {\tt true} and {\tt fileName} to the full path
+name of the source image.  Normal and bump maps also often require
+adjustment of their {\sf scaling} properties.  The following static
+methods are available for setting the {\sf enabled} and
+{\sf fileName} subproperties within a renderable:
+%
+\begin{lstlisting}[]
+   void RenderProps.setColorMapEnabled (Renderable r, boolean enabled);
+   void RenderProps.setColorMapFileName (Renderable r, String fileName);
+
+   void RenderProps.setNormalMapEnabled (Renderable r, boolean enabled);
+   void RenderProps.setNormalMapFileName (Renderable r, String fileName);
+
+   void RenderProps.setBumpMapEnabled (Renderable r, boolean enabled);
+   void RenderProps.setBumpMapFileName (Renderable r, String fileName);
+\end{lstlisting}
+%
+
+\begin{sideblock}
+Normal and bump mapping only work under the OpenGL 3 version of the
+ArtiSynth viewer, and also do not work if the {\sf shading} property
+of {\tt RenderProps} is set to {\tt NONE} or {\tt FLAT}.
+\end{sideblock}
+
+\begin{sideblock}
+Texture mapping properties can be set within ancestor nodes of the
+component hierarchy, to allow file names and other parameters to be
+propagated throughout the hierarchy. However, when this is done, it is
+still necessary to ensure that the corresponding mapping
+properties for the relevant descendants are non-{\tt null}.  That's
+because mapping properties themselves are not inherited; only their
+subproperties are. If a mapping property for any given object is {\tt
+null}, the associated mapping will be disabled. A non-{\tt null}
+mapping property for an object will be created automatically by
+calling one of the {\tt setXXXEnabled()} methods listed above.  So 
+when setting up ancestor-controlled mapping, one may use a
+construction like this:
+%
+\begin{verbatim}
+      RenderProps.setColorMap (ancestor, tprops);
+      RenderProps.setColorMapEnabled (descendant0, true);
+      RenderProps.setColorMapEnabled (descendant1, true);
+\end{verbatim}
+%
+Then {\sf colorMap} sub-properties set within {\tt ancestor} will
+be inherited by {\tt descendant0} and {\tt descendant1}.
+\end{sideblock}
+
+As indicated above, texture mapping will only be applied to components
+containing rendered polygonal meshes for which appropriate texture
+coordinates have been set. Determining such texture coordinates that
+produce appropriate results for a given source image is often
+non-trivial; this so-called ``u-v mapping problem'' is difficult in
+general and is highly dependent on the mesh geometry. ArtiSynth users
+can handle the problem of assigning texture coordinates in several
+ways:
+
+\begin{itemize}
+
+\item Use meshes which already have appropriate texture coordinates
+defined for a given source image. This generally means that mesh is
+specified by a file that contains the required texture coordinates.
+The mesh should then be read from this file (Section
+\ref{MeshFileIO:sec}) and then used in the construction of the
+relevant components. For example, the application can read in a mesh
+containing texture coordinates and then use it to create a {\tt
+RigidBody} via the method
+\javamethod*[artisynth.core.mechmodels]{RigidBody.createFromMesh()}.
+
+\item Use a simple mesh object with predefined
+texture coordinates. The class \javaclass[maspack.geometry]{MeshFactory}
+provides the methods
+%
+\begin{lstlisting}[]
+   PolygonalMesh createRectangle (width, height, xdivs, ydivs, addTextureCoords);
+  
+   PolygonalMesh createSphere (radius, nslices, nlevels, addTextureCoords)
+\end{lstlisting}
+%
+which create rectangular and spherical meshes, along with canonical
+canonical texture coordinates if {\tt addTextureCoords} is {\tt true}.
+Coordinates generated by {\tt createSphere()} are defined so that
+$(0,0)$ and $(1,1)$ map to the spherical coordinates $(-\pi,\pi)$ (at
+the south pole) and $(\pi,0)$ (at the north pole). Source images can
+be relatively easy to find for objects with canonical coordinates.
+
+\item Compute custom texture coordinates and set them within the mesh
+using \javamethod*[maspack.geometry.MeshBase]{setTextureCoords()}.
+
+\end{itemize}
+
+An example where texture mapping is applied to spherical meshes to
+make them appear like tennis balls is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.SphericalTextureMapping
+\end{verbatim}
+%
+and listing for this is given below:
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/sphericalMapping}
+\else
+ \includegraphics[width=4.5in]{images/sphericalMapping}
+\fi
+\end{center}
+\caption{Color and bump mapping applied to spherical meshes. Left:
+color mapping only. Middle: bump mapping only. Right: combined color
+and bump mapping.}
+\label{sphericalMapping:fig}
+\end{figure}
+
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/SphericalTextureMapping.java}
+\lstset{numbers=none}
+
+The {\tt build()} method uses the internal method {\tt createBall()}
+to generate three rigid bodies, each defined using a spherical mesh
+that has been created with
+\javamethodAlt{maspack.geometry.MeshFactory.createSphere(double,int,int,boolean)}%
+{MeshFactory.createSphere()} with {\tt addTextureCoords} set to {\tt
+true}.  The remainder of the {\tt build()} method sets up the render
+properties and the texture mappings. Two texture mappings are defined:
+a color mapping and bump mapping, based on the images {\tt
+TennisBallColorMap.jpg} and {\tt TennisBallBumpMap.jpg} (Figure
+\ref{mappingImages:fig}), both located in the subdirectory {\tt data}
+relative to the demo source file.
+\javamethod[maspack.util]{PathFinder.expand()} is used to determine
+the full data folder name relative to the source directory.
+For the bump map, it is important to set the {\sf scaling} property
+to adjust the depth applitude to relative to the sphere radius.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{c}
+   \iflatexml
+      \includegraphics[]{images/TennisBallColorMap}\\
+      \includegraphics[]{images/TennisBallBumpMap}
+   \else
+      \includegraphics[width=3in]{images/TennisBallColorMap}\\
+      \includegraphics[width=3in]{images/TennisBallBumpMap}
+   \fi
+\end{tabular}
+\end{center}
+\caption{Color and bump map images used in the texture mapping example.
+These map to spherical coordinates on the mesh.}
+\label{mappingImages:fig}
+\end{figure}
+
+Color mapping is applied to balls 0 and 2, and bump mapping to balls 1
+and 2. To illustrate setting mapping properities in an ancestor
+component, the color mapping is arranged by setting the {\sf colorMap}
+render property of the {\tt MechModel}, and then, as described above,
+enabling color mapping within the individual balls.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+SphericalTextureMapping} from the {\sf Models} menu. The model should
+load and initially appear as in Figure
+\ref{sphericalMapping:fig}. Note that if ArtiSynth is run with the
+legacy OpenGL 2 viewer (commmand line option {\tt -GLVersion 2}), bump
+mapping will not be supported and will not appear.
+
+\section{Point-to-point muscles}
 \label{PointToPointMuscles:sec}
 
 Point-to-point muscles are a simple type of component in biomechanical
@@ -471,9 +729,8 @@ models that provide muscle-activated forces acting along a line
 between two points. ArtiSynth provides this through
 \javaclass[artisynth.core.mechmodels]{Muscle}, which is a subclass of
 \javaclass[artisynth.core.mechmodels]{AxialSpring} that generates an
-active muscle force in response to its {\tt
-excitation} property. The excitation property can be set and queried
-using the methods
+active muscle force in response to its {\tt excitation} property. The
+excitation property can be set and queried using the methods
 %
 \begin{lstlisting}[]
    setExcitation (double a);
@@ -481,7 +738,7 @@ using the methods
 \end{lstlisting}
 %
 
-\subsubsection{Muscle materials}
+\subsection{Muscle materials}
 \label{sec:mechii:musclematerials}
 
 As with {\tt AxialSpring}s, {\tt Muscle} components use an
@@ -518,7 +775,7 @@ available in ArtiSynth include
 
 % LATER: describe muscles in more detail
 
-\subsubsection{Example: Muscle attached to a rigid body}
+\subsection{Example: Muscle attached to a rigid body}
 \label{SimpleMuscleExample:sec}
 
 \begin{figure}[ht]
@@ -555,10 +812,10 @@ with a {\tt SimpleAxialMuscle} material:
 \end{lstlisting}
 %
 Also, so that the muscle renders differently, the rendering style
-for lines is set to {\tt ELLIPSOID} using the convenience method
+for lines is set to {\tt SPINDLE} using the convenience method
 %
 \begin{lstlisting}[]
-      RenderProps.setEllipsoidalLines (muscle, 0.02, Color.RED);
+      RenderProps.setSpindleLines (muscle, 0.02, Color.RED);
 \end{lstlisting}
 %
 
@@ -573,21 +830,21 @@ editing panel that allows the muscle's properties to be adjusted
 interactively. Adjusting the {\tt excitation} property using the
 adjacent slider will cause the muscle force to vary.
 
-% LATER \subsubsection{Multi-point muscles}
+% LATER \subsection{Multi-point muscles}
 
-% LATER \subsection{Mesh components}
+% LATER \section{Mesh components}
 %OPTIONAL 
-% LATER \subsubsection{Fixed meshes}
-% LATER \subsubsection{Simple mesh example}
+% LATER \subsection{Fixed meshes}
+% LATER \subsection{Simple mesh example}
 
 % SimpleMesh
 
-% LATER \subsubsection{Skinned meshes}
-% LATER \subsubsection{Simple skinned mesh example}
+% LATER \subsection{Skinned meshes}
+% LATER \subsection{Simple skinned mesh example}
 
 % SimpleSkinnedMesh
 
-\subsection{Collision Handling}
+\section{Collision Handling}
 \label{sec:mechii:collisions}
 
 Collision handling in ArtiSynth is implemented by a collision
@@ -603,9 +860,9 @@ accurate than other aspects of the simulation.  ArtiSynth therefore
 provides a number of ways to selectively control collision handling
 between different pairs of bodies.
 
-%\subsubsection{Collidable bodies}
+%\subsection{Collidable bodies}
 
-\subsubsection{Enabling collisions in code}
+\subsection{Enabling collisions in code}
 
 Collisions can be enabled as either a default behavior between all
 bodies, a default behavior between certain {\it types} of
@@ -698,7 +955,7 @@ between adjacent bodies connected by joints, since otherwise these
 would be forced into a state of permanent collision.
 \end{sideblock}
 
-\subsubsection{Example: Collision with a plane}
+\subsection{Example: Collision with a plane}
 \label{JointedCollide:sec}
 
 \begin{figure}[ht]
@@ -766,7 +1023,7 @@ cause the jointed assembly to collide with and slide off the inclined
 plane.
 
 
-\subsubsection{Self-collision and collidable hierarchies}
+\subsection{Self-collision and collidable hierarchies}
 \label{SelfCollision:sec}
 
 At present, {\tt ArtiSynth} does not support the detection or handling
@@ -792,12 +1049,16 @@ it need only be a descendent of A.
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=5in]{images/CollidableGroups}
+ \iflatexml
+   \includegraphics[width=5in]{images/CollidableGroups}
+ \else
+   \includegraphics[width=5in]{images/CollidableGroups.idr}
+ \fi
 \end{center}
 \caption{A collection of collidable components, where A possesses
 sub-collidables A1, A2, and A3, B is solitary, and C possesses
 sub-collidables C1 and C2. Internal collisions are enabled among those
-sub-collidables which are shaded grey.}
+sub-collidables which are shaded gray.}
 \label{CollidableGroups:fig}
 \end{figure}
 
@@ -843,7 +1104,7 @@ collidable} property enables the collision.
 This is best illustrated with some examples. Refer to Figure
 \ref{CollidableGroups:fig}, assume that components A, B and C are
 deformable, and that self-collision is allowed among those
-sub-collidables which are shaded grey (A1 and A2 for A, B1 and B2 for
+sub-collidables which are shaded gray (A1 and A2 for A, B1 and B2 for
 B). Then:
 %
 \begin{lstlisting}[]
@@ -869,7 +1130,7 @@ B). Then:
 \end{lstlisting}
 %
 
-\subsubsection{Collidability}
+\subsection{Collidability}
 \label{collidability:sec}
 
 Each collidable component maintains a {\tt collidable} property
@@ -879,7 +1140,7 @@ which specifically enables or disables the ability of that collidable
 to collide with other collidables.
 
 The {\tt collidable} property value is of the enumerated type
-\javaclass[artisynth.core.mechmodels]{Collidable\#Collidability}, which
+\javaclass[artisynth.core.mechmodels]{Collidable\$Collidability}, which
 has four possible settings:
 
 \begin{description}
@@ -912,7 +1173,7 @@ collisions to actually occur between two collidables, a default or
 override collision behavior must also be specified for them in the
 MechModel.
 
-\subsubsection{Implementation and limitations}
+\subsection{Implementation and limitations}
 
 The ArtiSynth collision mechanism works by finding intersections
 between the surface meshes of each collidable object.  These surface
@@ -993,7 +1254,7 @@ collisions between rigid bodies specifies a minimum distance between
 contact points and therefore can be used to reduce the number of
 contact constraints and improve computation time.
 
-\subsubsection{Contact rendering}
+\subsection{Contact rendering}
 
 The {\tt MechModel}'s collision manager component contains render
 properties that can be used to render the contact points, normals, and
@@ -1018,9 +1279,6 @@ Width (in pixels) of the contact normal if the {\tt Line} line style is used
 
 \item[lineRadius] \mbox{}
 Radius of the contact normal if a solid line style is used
-
-\item[lineSlices] \mbox{}
-Number of slices in the contact normal for a solid line style
 
 \item[lineColor] \mbox{}
 Color of the contact normal
@@ -1084,7 +1342,7 @@ contours with be draw and shown in Figure \ref{BallPlateCollide:fig}.
 \label{BallPlateCollide:fig}
 \end{figure}
 
-\subsection{Transforming geometry}
+\section{Transforming geometry}
 \label{TransformingGeometry:sec}
 
 Certain ArtiSynth components, including {\tt MechModel}, implement the
@@ -1150,7 +1408,7 @@ axis:
 \end{lstlisting}
 %
 
-\subsubsection{Nonlinear transformations}
+\subsection{Nonlinear transformations}
 
 The \javaclass[artisynth.core.modelbase]{TransformableGeometry}
 interface also supports general, non-linear geometric transforms.
@@ -1272,7 +1530,7 @@ to implement the deformation of choice by overriding the single
 \javaclass[maspack.geometry.DeformationTransformer]{getDeformation()}
 method.
 
-\subsubsection{Example: the FemModelDeformer class}
+\subsection{Example: the FemModelDeformer class}
 \label{FemModelDeformer:sec}
 
 An FEM-based geometric transformation of a {\tt MechModel} is
@@ -1368,7 +1626,7 @@ To easily select a large number of nodes without also selecting
 model components or grid elements, one can specify {\tt FemNode}
 in the selection filter widget. (See the sections
 ``Manipulation Tools'' and ``Selection filering'' in the
-\href{../uiguide/uiguide.html}{ArtiSynth User Interface Guide}.)
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{ArtiSynth User Interface Guide}.)
 
 \item After the grid has been deformed, choose {\sf deform} from the
 {\sf Application} menu in the ArtiSynth toolbar to transform the model.
@@ -1412,7 +1670,7 @@ is mainly intended to illustrate the capabilities of
 \javaclass[artisynth.core.modelbase]{TransformableGeometry} interface.
 \end{sideblock}
 
-\subsubsection{Implementation and behavior}
+\subsection{Implementation and behavior}
 
 As indicated above, the management of transforming the geometry for one
 or more components is handled by the
@@ -1500,7 +1758,7 @@ attached.
 
 \end{enumerate}
 
-\subsubsection{Use in model registration}
+\subsection{Use in model registration}
 
 Transforming model geometry can obviously be used as part of the
 process of creating subject-specific biomechanical and anatomical
@@ -1513,7 +1771,7 @@ restLength} properties of the springs will be unchanged, whereas the
 intial lengths may be, resulting in a different applied forces and
 physical behaviour.
 
-\subsection{General component arrangements}
+\section{General component arrangements}
 
 As discussed in Section \ref{MechModel:sec} and elsewhere, a {\tt
 MechModel} provides a number of predefined child components for
@@ -1556,13 +1814,13 @@ MechModel} will recursively traverse the component hierarchy and
 update whatever internal structures are needed to run the
 simulation.
 
-\subsubsection{Container components}
+\subsection{Container components}
 
 The generic class \javaclass[artisynth.core.modelbase]{ComponentList}
 can be used as a container for model components of a specific type.
 It can be created using a declaration of the form
 %
-\begin{lstlisting}
+\begin{lstlisting}[]
    ComponentList<Particle> list = new ComponentList<Type> (Type.class, name);
 \end{lstlisting}
 %
@@ -1635,7 +1893,7 @@ hierarchies. Generally either\\
 {\tt RenderableComponentList<ModelComponent>} are
 best suited to implement hierarchical groupings.
 
-\subsubsection{Example: a net formed from balls and springs}
+\subsection{Example: a net formed from balls and springs}
 
 A simple example showing an arrangement of balls and springs formed into
 a net is defined in
@@ -1805,7 +2063,7 @@ by default because they are empty.
 \label{NetDemoNav:fig}
 \end{figure}
 
-\subsubsection{Adding containers to other models}
+\subsection{Adding containers to other models}
 
 In addition to {\tt MechModel}, application-defined containers can be
 added to any model that inherits from

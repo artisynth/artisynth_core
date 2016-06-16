@@ -12,13 +12,14 @@ public class LineEdgeRenderProps extends RenderProps {
    public static PropertyList myProps =
       new PropertyList (LineEdgeRenderProps.class, RenderProps.class);
 
-   private static int myDefaultLineSlices = 16;
+   //private static int myDefaultLineSlices = 16;
 
    static {
       myProps.remove ("alpha");
       myProps.remove ("shading");
       myProps.remove ("shininess");
-
+      myProps.remove ("ambience");
+      
       myProps.remove ("faceStyle");
       myProps.remove ("faceColor");
       myProps.remove ("backColor");
@@ -30,17 +31,16 @@ public class LineEdgeRenderProps extends RenderProps {
       myProps.remove ("pointColor");
       myProps.remove ("pointSize");
       myProps.remove ("pointRadius");
-      myProps.remove ("pointSlices");
 
-      myProps.get ("lineSlices").setDefaultValue (
-         myDefaultLineSlices);
+//      myProps.get ("lineSlices").setDefaultValue (
+//         myDefaultLineSlices);
 
       // myProps.createGroup("Edges...", "edgeWidth", "edgeColor");
    }
 
    protected void setDefaultValues() {
       super.setDefaultValues();
-      myLineSlices = myDefaultLineSlices;
+      //myLineSlices = myDefaultLineSlices;
    }
 
    public PropertyList getAllPropertyInfo() {

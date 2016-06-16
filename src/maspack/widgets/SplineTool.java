@@ -11,9 +11,8 @@ import java.awt.event.*;
 
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.GL.GLViewer;
 import maspack.geometry.*;
-
-import javax.media.opengl.*;
 
 public class SplineTool extends DrawToolBase {
 
@@ -257,7 +256,7 @@ public class SplineTool extends DrawToolBase {
       return false;
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       if (!myVisibleP) {
          return;
       }

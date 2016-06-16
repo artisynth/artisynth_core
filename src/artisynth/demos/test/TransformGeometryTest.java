@@ -489,7 +489,7 @@ public class TransformGeometryTest {
    private AffineTransform3dBase createXYZScalingTransform (
       Vector3d scale, AffineTransform3dBase X, RigidTransform3d TBW) {
 
-      AffineTransform3dBase Xmod = X.clone();
+      AffineTransform3dBase Xmod = X.copy();
       scale.set (1, 1, 1);
       if (X instanceof AffineTransform3d) {
          RigidTransform3d TBWnew = new RigidTransform3d(TBW);

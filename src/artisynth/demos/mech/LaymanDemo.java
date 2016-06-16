@@ -14,7 +14,7 @@ import maspack.properties.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
-import maspack.render.RenderProps.LineStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.util.*;
 
 import java.io.*;

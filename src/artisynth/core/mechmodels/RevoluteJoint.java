@@ -22,7 +22,8 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderer;
+import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.RevoluteCoupling;
 import maspack.util.DoubleInterval;
@@ -44,7 +45,7 @@ public class RevoluteJoint extends JointBase
    protected static RenderProps defaultRenderProps (HasProperties host) {
       RenderProps props = RenderProps.createPointLineProps (host);
       props.setLineColor (Color.BLUE);
-      props.setLineStyle (RenderProps.LineStyle.CYLINDER);
+      props.setLineStyle (LineStyle.CYLINDER);
       return props;
    }
 
@@ -197,7 +198,7 @@ public class RevoluteJoint extends JointBase
       p1.scaledAdd (myAxisLength, uW, p0);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       Point3d p0 = new Point3d();
       Point3d p1 = new Point3d();
       computeAxisEndPoints (p0, p1, getCurrentTDW());
@@ -205,7 +206,7 @@ public class RevoluteJoint extends JointBase
       p1.updateBounds (pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
 
       if (myAxisLength > 0) {
@@ -217,7 +218,7 @@ public class RevoluteJoint extends JointBase
          float[] coords1 = new float[] { (float)p1.x, (float)p1.y, (float)p1.z };
    
          renderer.drawLine (myRenderProps, coords0, coords1,
-                            /* capped= */true, isSelected());
+                            /*color=*/null, /*capped=*/true, isSelected());
       }
    }
 

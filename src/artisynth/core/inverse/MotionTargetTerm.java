@@ -19,8 +19,9 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
-import maspack.render.RenderProps.Faces;
-import maspack.render.RenderProps.PointStyle;
+import maspack.render.Renderer;
+import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.PointStyle;
 import maspack.spatialmotion.Twist;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.mechmodels.Frame;
@@ -335,7 +336,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public void initTargetRenderProps() {
       targetRenderProps = new RenderProps();
       targetRenderProps.setDrawEdges(true);
-      targetRenderProps.setFaceStyle(Faces.NONE);
+      targetRenderProps.setFaceStyle(FaceStyle.NONE);
       targetRenderProps.setLineColor(Color.CYAN);
       targetRenderProps.setLineWidth(2);
       targetRenderProps.setPointColor(Color.CYAN);
@@ -350,7 +351,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public void initSourceRenderProps() {
       sourceRenderProps = new RenderProps();
       sourceRenderProps.setDrawEdges(true);
-      sourceRenderProps.setFaceStyle(Faces.NONE);
+      sourceRenderProps.setFaceStyle(FaceStyle.NONE);
       sourceRenderProps.setLineColor(Color.CYAN);
       sourceRenderProps.setLineWidth(2);
       sourceRenderProps.setPointColor(Color.CYAN);
@@ -543,7 +544,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
             source.getMeshFileName());
          tframe.setRenderProps (source.getRenderProps ());
          RenderProps.setDrawEdges (tframe, true);
-         RenderProps.setFaceStyle (tframe, Faces.NONE);
+         RenderProps.setFaceStyle (tframe, FaceStyle.NONE);
       }
       
       myController.targetFrames.add (tframe);

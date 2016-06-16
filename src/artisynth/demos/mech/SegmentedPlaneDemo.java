@@ -4,6 +4,8 @@ import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer;
+import maspack.render.Renderer.PointStyle;
 import maspack.util.*;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
@@ -78,13 +80,14 @@ public class SegmentedPlaneDemo extends RootModel {
             // 3, -1,
             // 6, -4,
             // });
+
             new double[] { -6, 4, -3, 1, -1, 0, 1, 0, 3, 1, 6, 4, });
       segPlanes.setUnilateral (true);
       segPlanes.setPlaneSize (10);
       
       RenderProps props = segPlanes.createRenderProps();
       props.setPointColor (Color.blue);
-      props.setPointStyle (RenderProps.PointStyle.SPHERE);
+      props.setPointStyle (PointStyle.SPHERE);
       props.setPointRadius (0.25);
       segPlanes.setRenderProps (props);
 

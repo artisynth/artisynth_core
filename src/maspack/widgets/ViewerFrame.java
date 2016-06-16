@@ -6,19 +6,38 @@
  */
 package maspack.widgets;
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 
-import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JColorChooser;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JToolBar;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MouseInputAdapter;
 
-import maspack.render.*;
+import maspack.render.IsRenderable;
+import maspack.render.RenderListener;
+import maspack.render.RendererEvent;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GL2.GL2Viewer;
 import maspack.widgets.DraggerToolBar.ButtonType;
 
 //import javax.swing.JToolBar;
 
 public class ViewerFrame extends JFrame
-   implements ActionListener, GLViewerListener {
+   implements ActionListener, RenderListener {
    
    private static final long serialVersionUID = 1L;
    protected GLViewer viewer;
@@ -38,31 +57,31 @@ public class ViewerFrame extends JFrame
 
    public ViewerFrame (String name, int width, int height) {
       super (name);
-      viewer = new GLViewer (width, height);
+      viewer = new GL2Viewer (width, height);
       getContentPane().add (viewer.getCanvas());
-      viewer.addViewerListener (this);
+      viewer.addRenderListener (this);
       pack();
    }
 
-   public ViewerFrame (GLViewer shareWith, String name, int width, int height) {
+   public ViewerFrame (GL2Viewer shareWith, String name, int width, int height) {
       this (shareWith, name, width, height, false);
    }
 
-   public ViewerFrame (GLViewer shareWith, String name, int width,
+   public ViewerFrame (GL2Viewer shareWith, String name, int width,
                        int height, boolean undecorated) {
       super (name);
-      viewer = new GLViewer (shareWith, width, height);
+      viewer = new GL2Viewer(shareWith, width, height);
       setUndecorated (undecorated);
       getContentPane().add (viewer.getCanvas());
-      viewer.addViewerListener (this);
+      viewer.addRenderListener (this);
       pack();
    }
 
-   public void addRenderable (GLRenderable r) {
+   public void addRenderable (IsRenderable r) {
       viewer.addRenderable(r);
    }
 
-   public void removeRenderable (GLRenderable r) {
+   public void removeRenderable (IsRenderable r) {
       viewer.removeRenderable(r);
    }
 
@@ -294,7 +313,7 @@ public class ViewerFrame extends JFrame
    /**
     * interface face method for GLViewerListener.
     */
-   public void renderOccurred (GLViewerEvent e) {
+   public void renderOccurred (RendererEvent e) {
       updateWidgets();
    }
 

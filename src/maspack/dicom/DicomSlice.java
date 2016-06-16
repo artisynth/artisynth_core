@@ -7,6 +7,8 @@
 
 package maspack.dicom;
 
+import java.nio.ByteBuffer;
+
 import maspack.dicom.DicomPixelBuffer.PixelType;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -113,6 +115,38 @@ public class DicomSlice {
    }
    
    /**
+    * Populates a buffer of pixels from the slice, 
+    * interpolated using an interpolator
+    * 
+    * @param x starting x voxel
+    * @param y starting y voxel
+    * @param dx voxel step in x direction
+    * @param dy voxel step in y direction
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param type pixel type to convert to
+    * @param scanline width of line (stride between lines)
+    * @param pixels buffer array to fill
+    * @param interp interpolator for converting pixels to appropriate form
+    */
+   public void getPixels(int x, int y, 
+      int dx, int dy,
+      int nx, int ny, PixelType type, int scanline,
+      ByteBuffer pixels,
+      DicomPixelInterpolator interp) {
+    
+      
+      for (int i=0; i<ny; i++) {
+         int idx = (y + dy*i)*info.cols+x;
+         int p = pixels.position ();
+         pixelBuff.getPixels (idx, dx, nx, type, pixels, interp);
+         if (scanline > 0) {
+            pixels.position (p+scanline);
+         }
+      }
+   }
+   
+   /**
     * Populates an array of RGB(byte) pixels from the slice, 
     * interpolated using an interpolator
     * 
@@ -130,10 +164,10 @@ public class DicomSlice {
    public int getPixelsRGB(int x, int y, 
       int dx, int dy,
       int nx, int ny, byte[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
     
       for (int i=0; i<ny; i++) {
-         int idx = (y + dy*i)*nx;
+         int idx = (y + dy*i)*info.cols+x;
          offset = pixelBuff.getPixelsRGB(idx, dx, nx, pixels, offset, interp);
       }
       
@@ -158,10 +192,10 @@ public class DicomSlice {
    public int getPixelsByte(int x, int y, 
       int dx, int dy,
       int nx, int ny, byte[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       for (int i=0; i<ny; i++) {
-         int idx = (y + dy*i)*info.cols + x;
+         int idx = (y + dy*i)*info.cols+x;
          offset = pixelBuff.getPixelsByte(idx, dx, nx, pixels, offset, interp);
       }
       
@@ -186,7 +220,7 @@ public class DicomSlice {
    public int getPixelsShort(int x, int y,
       int dx, int dy, 
       int nx, int ny, short[] pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       for (int i=0; i<ny; i++) {
          int idx = (y + dy*i)*info.cols + x;
@@ -214,7 +248,7 @@ public class DicomSlice {
       int dx, int dy,
       int nx, int ny,
       DicomPixelBuffer pixels, int offset,
-      DicomPixelConverter interp) {
+      DicomPixelInterpolator interp) {
       
       for (int i=0; i<ny; i++) {
          int idx = (y + dy*i)*info.cols + x;

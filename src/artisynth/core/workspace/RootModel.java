@@ -26,12 +26,12 @@ import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.GLRenderable;
-import maspack.render.GLRenderer;
-import maspack.render.GLViewer;
+import maspack.render.IsRenderable;
+import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
+import maspack.render.GL.GLViewer;
 import maspack.util.Disposable;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -70,7 +70,7 @@ import artisynth.core.probes.Probe;
 import artisynth.core.probes.TracingProbe;
 import artisynth.core.probes.WayPoint;
 import artisynth.core.probes.WayPointProbe;
-import artisynth.core.renderables.GLRenderableHolder;
+import artisynth.core.renderables.IsRenderableHolder;
 import artisynth.core.util.*;
 
 /**
@@ -100,7 +100,10 @@ public class RootModel extends RenderableModelBase
 
    // flag to stop advancing - which we need if we are in the midst of 
    // lots of small adaptive steps
-   protected boolean myStopRequested = false;
+   protected boolean myStopAdvance = false;
+
+   // flag to tell scheduler to stop simulation
+   protected boolean myStopRequest = false;
 
    protected boolean myModelInfoValid = false;
    private ModelInfo myRootInfo;
@@ -111,12 +114,14 @@ public class RootModel extends RenderableModelBase
 
    private static final Point3d DEFAULT_VIEWER_CENTER = new Point3d();
    private static final Point3d DEFAULT_VIEWER_EYE = new Point3d (0, -1, 0);
-   private static final AxisAngle DEFAULT_VIEW_ORIENTATION = AxisAngle.ROT_X_90;
+   private static final AxisAngle DEFAULT_VIEW_ORIENTATION = 
+      new AxisAngle(0,0,0,0);
    private static final double DEFAULT_MIN_STEP_SIZE = 1e-7;
    private static final double DEFAULT_MAX_STEP_SIZE = 0.01;
    private static final boolean DEFAULT_ADAPTIVE_STEPPING = false;
 
-   AxisAngle myDefaultViewOrientation = new AxisAngle (DEFAULT_VIEW_ORIENTATION);
+   AxisAngle myDefaultViewOrientation = 
+      new AxisAngle (DEFAULT_VIEW_ORIENTATION);
    
    GLViewer myMainViewer;
    
@@ -515,8 +520,7 @@ public class RootModel extends RenderableModelBase
    @Override
    public void setDefaultValues() {
       super.setDefaultValues();
-      myDefaultViewOrientation =
-         new AxisAngle (DEFAULT_VIEW_ORIENTATION);
+      myDefaultViewOrientation = new AxisAngle (DEFAULT_VIEW_ORIENTATION);
    }
 
    public boolean getAdaptiveStepping() {
@@ -632,16 +636,16 @@ public class RootModel extends RenderableModelBase
       myControllers.add (controller);
    }
 
-   public GLRenderableHolder addRenderable(GLRenderable renderable) {
-      GLRenderableHolder holder = new GLRenderableHolder(renderable);
+   public IsRenderableHolder addRenderable(Renderable renderable) {
+      IsRenderableHolder holder = new IsRenderableHolder(renderable);
       addRenderable(holder);
       return holder;
    }
    
-   public boolean removeRenderable(GLRenderable renderable) {
+   public boolean removeRenderable(Renderable renderable) {
       for (RenderableComponent rc : myRenderables) {
-         if (rc instanceof GLRenderableHolder) {
-            GLRenderableHolder holder = (GLRenderableHolder)rc;
+         if (rc instanceof IsRenderableHolder) {
+            IsRenderableHolder holder = (IsRenderableHolder)rc;
             if (renderable == holder.getRenderable()) {
                removeRenderable(holder);
                return true;
@@ -739,8 +743,8 @@ public class RootModel extends RenderableModelBase
    }
 
    /**
-    * Obtains the default orientation that is used for viewing this
-    * model.
+    * Obtains the default orientation that should be used for viewing this
+    * model. A value of 0 indicates that no orientation is specified.
     * 
     * @return default rotational transform from eye to world coordinates
     */
@@ -750,15 +754,18 @@ public class RootModel extends RenderableModelBase
 
    /**
     * Sets the default orientation that should be used for viewing
-    * this model.
+    * this model to <code>REW</code>. Setting a value of 0 indicates
+    * that no orientation is specified and so the viewer should
+    * use its default view. 
     * 
-    * @param R rotational transform from eye to world coordinates
+    * @param REW rotational transform from eye to world coordinates
     */
-   public void setDefaultViewOrientation (AxisAngle R) {
-      if (!myDefaultViewOrientation.equals (R)) {
-         myDefaultViewOrientation.set (R);
+   public void setDefaultViewOrientation (AxisAngle REW) {
+      if (!myDefaultViewOrientation.equals (REW)) {
+         myDefaultViewOrientation.set (REW);
          componentChanged (
             new PropertyChangeEvent (this, "defaultViewOrientation"));
+
       }
    }
 
@@ -1146,7 +1153,7 @@ public class RootModel extends RenderableModelBase
       list.addIfVisible (myRenderables);
    }
 
-   public void updateBounds (Point3d pmin, Point3d pmax) {
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
       for (Model m : myModels) {
          if (m instanceof Renderable) {
             ((Renderable)m).updateBounds (pmin, pmax);
@@ -1156,7 +1163,7 @@ public class RootModel extends RenderableModelBase
       myRenderables.updateBounds(pmin, pmax);
    }
 
-   public void render (GLRenderer renderer, int flags) {
+   public void render (Renderer renderer, int flags) {
       // no actual rendering; all-subcomponents render themselves
       // after being assembled in the RenderList
    }
@@ -1542,8 +1549,20 @@ public class RootModel extends RenderableModelBase
     * This is used by the scheduler to interrupts the current call to advance
     * and cause state to be restored to that of the start time for the advance.
     */
-   public synchronized void requestStop() {
-      myStopRequested = true;
+   public synchronized void stopAdvance() {
+      myStopAdvance = true;
+   }
+
+   /**
+    * If set true, tells the scheduler to stop simulating this root model.
+    * Will be set to false by the scheduler when simulation is started.
+    */
+   public void setStopRequest (boolean req) {
+      myStopRequest = req;
+   }
+
+   public boolean getStopRequest() {
+      return myStopRequest;
    }
 
    protected void advanceModel (
@@ -1591,7 +1610,7 @@ public class RootModel extends RenderableModelBase
                }
             }
          }
-         while (myAdaptiveStepping && s < 1 && !myStopRequested);
+         while (myAdaptiveStepping && s < 1 && !myStopAdvance);
          if (!(myAdaptiveStepping && s < 1)) {
             // then we have advanced to tb:
             info.updateStepInfo (s);
@@ -1608,7 +1627,7 @@ public class RootModel extends RenderableModelBase
       if (t0 == 0) {
          applyOutputProbes (myRootInfo.outputProbes, t0, myRootInfo);
       }
-      while (ta < t1) {
+      while (ta < t1 && !myStopRequest) {
          double tb = getNextAdvanceTime (
             myRootInfo.outputProbes, getMaxStepSize(), ta, t1);
          //setDefaultInputs (ta, tb);
@@ -1651,7 +1670,7 @@ public class RootModel extends RenderableModelBase
    }
 
    /**
-    * {@inheritDoc}q
+    * {@inheritDoc}
     */
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       super.scan (rtok, ref);

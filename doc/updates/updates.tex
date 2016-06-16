@@ -21,7 +21,7 @@
 %\section*{Next}
 
 %\subsection*{Wrapping surfaces}
-\section*{May 8, 2016}
+\section*{Jun 16, 2016}
 
 \subsection*{OpenGL rendering replaced by new rendering interface}
 
@@ -81,7 +81,7 @@ be now be written as
       renderer.addVertex (0f, -l, 0f);
       renderer.addVertex (l, 0f, 0f);
       renderer.addVertex (-l, 0f, 0f);
-      renderer.endDraw ();.glEnd();
+      renderer.endDraw ();
       renderer.setShading (savedShading);
       renderer.popModelMatrix();
    }
@@ -94,12 +94,12 @@ examples, is given in the ``Rendering'' chapter of the
 {Maspack Reference Manual}. The new {\tt Renderer} interface itself is
 described in the ``Renderer Interface'' section.
 
-This update entails changes to the API. For application code that does
-not explicitly implement component {\tt render()} methods or
+This update entails changes to the ArtiSynth API. For application code
+that does not explicitly implement component {\tt render()} methods or
 manipulate the viewer, those changes should be limited to {\it API
 changes involving RenderProps}, described below.  For application code
 those does implement {\tt render()} methods or manipulate the viewer,
-further changes described under {\it API changes involving the
+further changes as described under {\it API changes involving the
 renderer} or {\it API changes involving the viewer} will likely be
 necessary.
 
@@ -201,7 +201,7 @@ XXX} is {\tt Face}, {\tt Line}, {\tt Point}, etc., have been renamed to
 \end{itemize}
 
 The renaming is summarized in the first part of the table, {\it Changes
-involving RenderProps}, in the section {\it Summary of changes}, below.
+involving RenderProps}, in the {\it Summary of changes} section below.
 
 \subsubsection*{API changes involving the renderer}
 
@@ -275,7 +275,7 @@ can be replaced with
 
 \item The static method {\tt
 Frame.drawAxes(renderer,frame,length,selected)} (located in {\tt
-core.mechmodels.Frame}), has been replaced with the renderer method
+core.mechmodels.Frame}) has been replaced with the renderer method
 {\tt drawAxes(frame,length,lineWidth,highlighted)}.  Code fragments of
 the form
 \begin{verbatim}
@@ -349,15 +349,15 @@ Full details are given in the section
 \end{itemize}
 
 These changes are summarized in the second part of the table, {\it Changes
-involving the renderer}, in the section {\it Summary of changes}, below.
+involving the renderer}, in the {\it Summary of changes} section below.
 
 \subsubsection*{API changes involving the viewer}
 
 API changes involving the viewer take the form of class renaming and
 method refactorization, including moving some classes into the
 subpackage {\tt render.GL}, as described in the third part of the table, {\it
-Changes involving the viewer}, in the section {\it Summary of
-changes}, below.
+Changes involving the viewer}, in the {\it Summary of
+changes} section below.
 
 A complete description of the viewer is
 given in the ``Viewers'' section of the
@@ -366,12 +366,20 @@ given in the ``Viewers'' section of the
 
 \subsubsection*{Summary of changes}
 
+\iflatexml
 \begin{tabular}{ll}
+\hline
 {Old name/signature} & {New name/signature}\\
 \hline
+\multicolumn{2}{l}{\it Changes involving RenderProps:}\\
+\else
+
+{\it Changes involving RenderProps:}
+
+\begin{tabular}{p{.47\textwidth}p{.47\textwidth}}
 \hline
-& \\
-\multicolumn{2}{l}{\it Changes involving RenderProps}\\
+{Old name/signature} & {New name/signature}\\
+\fi
 \hline
 \multicolumn{2}{l}{Classes and enums}\\
 \hline
@@ -400,9 +408,15 @@ given in the ``Viewers'' section of the
 {\tt TextureProps.setSphereMapping()} & removed, not supported \\
 {\tt TextureProps.setAutomatic()} & removed, not supported \\
 \hline
-\hline
-& \\
-\multicolumn{2}{l}{\it Changes involving the renderer}\\
+\iflatexml
+\multicolumn{2}{l}{\it Changes involving the renderer:}\\
+\else
+\end{tabular}
+
+{\it Changes involving the renderer:}
+
+\begin{tabular}{p{.47\textwidth}p{.47\textwidth}}
+\fi
 \hline
 \multicolumn{2}{l}{Classes and enums}\\
 \hline
@@ -410,9 +424,9 @@ given in the ``Viewers'' section of the
 {\tt render.GLSelectable} & {\tt render.IsSelectable} \\
 {\tt render.GLSelectionListener} & {\tt render.ViewerSelectionListener} \\
 {\tt render.GLSelectionEvent} & {\tt render.ViewerSelectionEvent} \\
+{\tt render.GLSupport} & {\tt render.GL.GLSupport}\\
 {\tt core.renderables.GLRenderableHolder} & 
 {\tt core.renderables.IsRenderableHolder} \\
-{\tt render.GLSupport} & {\tt render.GL.GLSupport}\\
 \hline
 \multicolumn{2}{l}{Flags}\\
 \hline
@@ -447,9 +461,15 @@ replaced with
 {\tt gl.glNormal3f}, etc. & {\tt Renderer.setNormal()}\\
 {\tt gl.glEnd()} & {\tt Renderer.endDraw()}\\
 \hline
-\hline
-& \\
-\multicolumn{2}{l}{\it Changes involving the viewer}\\
+\iflatexml
+\multicolumn{2}{l}{\it Changes involving the viewer:}\\
+\else
+\end{tabular}
+
+{\it Changes involving the viewer:}
+
+\begin{tabular}{p{.47\textwidth}p{.47\textwidth}}
+\fi
 \hline
 \multicolumn{2}{l}{Classes and enums}\\
 \hline
@@ -516,7 +536,7 @@ calls to the viewer methods {\tt beginGL()} and {\tt endGL()} so that
 the renderer's graphics state will not be affected by the direct GL
 calls.
 
-\section*{January 24, 2016}
+\section*{Jan 24, 2016}
 
 \subsection*{New mesh interface for normals, colors, and texture coordinates}
 
@@ -601,7 +621,7 @@ Base class & Old name & New Name \\
 {\tt PolylineMesh} & {\tt getNumLines()} & {\tt numLines()}\\
 \end{tabular}
 
-\section*{December 3, 2015}
+\section*{Dec 3, 2015}
 
 \subsection*{New mechanisms for transforming geometry}
 
@@ -750,7 +770,7 @@ links that cannot be located.
 For more details, see the Javadoc References section in
 \href{\artisynthDocBase/html/documentation/documentation.html}{Writing Documentation for ArtiSynth}.
 
-\section*{August 27, 2015}
+\section*{Aug 27, 2015}
 
 \subsection*{ArtiSynth 3.2 released}
 
@@ -817,7 +837,7 @@ Old name & New Name \\
 {\tt removeMesh(String} & {\tt removeMeshComp(String)} \\
 \end{tabular}
 
-\section*{August 24, 2015}
+\section*{Aug 24, 2015}
 
 \subsection*{Method renaming}
 
@@ -855,7 +875,7 @@ that is added to the spring. Documentation is being prepared. In the
 meantime, see the example {\tt
 artisynth.demos.tutorial.CylinderWrapping}.
 
-\section*{March 16, 2015}
+\section*{Mar 16, 2015}
 
 \subsection*{MATLAB interface revised and documented}
 

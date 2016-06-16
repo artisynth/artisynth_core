@@ -755,6 +755,7 @@ public class RenderObject implements Versioned {
     * Whether or not any normals have been defined.
     */
    public boolean hasNormals() {
+      
       return (normals.size () > 0);
    }
 

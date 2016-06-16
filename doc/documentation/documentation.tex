@@ -7,7 +7,7 @@
 
 \title{Writing Documentation for ArtiSynth}
 \author{John Lloyd}
-\setpubdate{Last update: Dec 1, 2015}
+\setpubdate{Last update: Jun 15, 2016}
 \iflatexml
 \date{}
 \fi
@@ -608,22 +608,38 @@ detail to locate the link, and the second specifies the visible text.
 {\tt \BKS javaclass} and {\tt \BKS javamethod} both work by creating a call
 to {\tt \BKS href} with a place-holder link of the form
 
- {\tt \{@JDOCBEGIN /}{\it classOrMethodName} {\tt @JDOCEND\}}
+ {\tt \{@JDOCBEGIN/}{\it classOrMethodName} {\tt @JDOCEND\}}
 
-This propagates to the output HTML file, which is then processed by
-the Perl script {\tt setJavadocLinks} (located in {\tt
+This propagates to the output HTML or PostScript file, which is then
+processed by the Perl script {\tt setJavadocLinks} (located in {\tt
 \$ARTISYNTH\_HOME/bin}) to convert '{\tt .}' characters to '{\tt /}'
 characters, prepend the appropriate root link for the Javadocs (such
 as {\tt http://www.\-artisynth.org/doc/javadocs}), and, for methods,
 find and append the appropriate suffix to locate the method within the
 class's Javadoc file.
 
-\begin{sideblock}
-{\bf Note:}\\
-At present, working hyperlinks are only produced for HTML output.
-Links are not produced for PDF output because of the difficulty
-in performing these postprocessing functions in LaTeX itself.
-\end{sideblock}
+\subsection{Documentation references}
+
+Sometimes one may wish to provide a link to a complete ArtiSynth
+document, such as the
+\href{\artisynthDocBase/html/maspack/maspack.html}{Maspack Reference
+Manual}. This requires knowing the base URL for the ArtiSynth
+documents, which can be expressed using the macro
+{\tt \BKS artisynthDocBase}. Using this, the above reference to the Maspack
+manual was coded as follows:
+%
+\begin{lstlisting}
+\href{\artisynthDocBase/html/maspack/maspack.html}{Maspack Reference Manual}.
+\end{lstlisting}
+%
+Internally, {\tt \BKS artisynthDocBase} simply expands to
+
+ {\tt @ARTISYNTHDOCBASE}
+
+This propagates to the output HTML or PostScript file, after which it
+is set
+to the approproate URL by the Perl script {\tt setJavadocLinks}
+described above.
 
 \section{Adding a New Document}
 

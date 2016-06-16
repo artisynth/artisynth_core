@@ -232,7 +232,7 @@ public class InverseManager {
 
    private void configureTargetMotionProbe(NumericProbeBase probe,
       ArrayList<MotionTargetComponent> targets, String filename) {
-      System.out.println ("configuring motion probe");
+//      System.out.println ("configuring motion probe");
       ArrayList<Property> props = new ArrayList<Property>();
       for (ModelComponent target : targets) {
          if (target instanceof Point) {
@@ -279,7 +279,7 @@ public class InverseManager {
 
    private void configureTargetForceProbe(NumericProbeBase probe,
       ArrayList<ForceTarget> targets, String filename) {
-      System.out.println ("configuring force probe");
+//      System.out.println ("configuring force probe");
       ArrayList<Property> props = new ArrayList<Property>();
       for (ForceTarget target : targets) {
          props.add(target.getProperty("targetLambda"));

@@ -215,7 +215,7 @@ public class IsRenderableHolder extends RenderableComponentBase {
    
    @Override
    public void prerender(RenderList list) {
-      // list.addIfVisible(this);
+      myRenderable.prerender(list);
    }
    
    @Override

@@ -5,7 +5,6 @@ DOC_DIR = ..
 HTML_DIR = ../html/modelguide
 
 SOURCES = \
-	../texinputs/artisynthDoc.tex \
 	modelguide.tex \
 	overview.tex \
 	supportingClasses.tex \
@@ -14,7 +13,11 @@ SOURCES = \
 	simulationControl.tex \
 	femModels.tex \
         dicom.tex \
-	appendix.tex
+	appendix.tex \
+	../texinputs/artisynthDoc.tex
+
+IMG_FILES = $(wildcard images/*.png images/*.jpg)
+EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 
 .PHONY: html pdf chunked
 
@@ -29,12 +32,11 @@ $(PDF_DIR)/modelguide.pdf: modelguide.pdf
 
 #chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
 
-modelguide.pdf: $(SOURCES)
-	pdflatex modelguide.tex
+modelguide.pdf: $(SOURCES) $(EPS_FILES)
+	latex modelguide.tex #extra call because of bibtex
 	bibtex modelguide1
-	pdflatex modelguide.tex	
-	pdflatex modelguide.tex
-	rm -rf $(LATEX_JUNK_FILES)
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) modelguide.ps
 
 multipoint.pdf: multipoint.tex
 	pdflatex multipoint.tex	
@@ -44,12 +46,8 @@ modelguide.xml: $(SOURCES)
 	latexml modelguide.tex >modelguide.xml
 
 $(HTML_DIR)/modelguide.html: $(SOURCES)
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml modelguide.tex >modelguide.xml
-	$(LATEXMLPOST) modelguide.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/modelguide.html
-#	rm -f modelguide.xml
+	$(BUILD_HTML)
+	rm -f modelguide.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/modelguide

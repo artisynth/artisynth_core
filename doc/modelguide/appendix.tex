@@ -17,7 +17,11 @@ coordinate frames.
 
 \begin{figure}[t]
 \begin{center}
-\includegraphics[width=2in]{images/rotationAB}
+ \iflatexml
+   \includegraphics[width=2in]{images/rotationAB}
+ \else
+   \includegraphics[width=2in]{images/rotationAB.idr}
+ \fi
 \end{center}
 \caption{Two coordinate frames A and B rotated with respect
 to each other.}
@@ -87,7 +91,11 @@ It is straightforward to show that
 
 \begin{figure}[t]
 \begin{center}
- \includegraphics[width=4.5in]{images/rotationsABC}
+ \iflatexml
+   \includegraphics[width=4.5in]{images/rotationsABC}
+ \else
+   \includegraphics[width=4.5in]{images/rotationsABC.idr}
+ \fi
 \end{center}
 \caption{Schematic illustration of three coordinate frames A, B, and C
 and the rotational transforms relating them.}
@@ -196,7 +204,11 @@ position and orientation between coordinate frames.
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=3.25in]{images/framesAB}
+ \iflatexml
+   \includegraphics[width=3.25in]{images/framesAB}
+ \else
+   \includegraphics[width=3.25in]{images/framesAB.idr}
+ \fi
 \end{center}
 \caption{A position vector $\p_{BA}$ and rotation matrix
 $\R_{BA}$ describing the position and orientation of frame B
@@ -215,7 +227,11 @@ the {\it pose} of B with respect to A.
 
 \begin{figure}[t]
 \begin{center}
- \includegraphics[width=3.75in]{images/pointsAB}
+ \iflatexml
+   \includegraphics[width=3.75in]{images/pointsAB}
+ \else
+   \includegraphics[width=3.75in]{images/pointsAB.idr}
+ \fi
 \end{center}
 \caption{Point vectors ${}^A\q$ and ${}^B\q$ describing
 the position of a point $\q$ with respect to frames A and B.}
@@ -273,7 +289,11 @@ B with respect to A (Figure \ref{transformAB:fig}).
 
 \begin{figure}[t]
 \begin{center}
- \includegraphics[width=3in]{images/transformAB}
+ \iflatexml
+   \includegraphics[width=3in]{images/transformAB}
+ \else
+   \includegraphics[width=3in]{images/transformAB.idr}
+ \fi
 \end{center}
 \caption{The transform matrix $\T_{BA}$ from B to A.}
 \label{transformAB:fig}
@@ -311,7 +331,11 @@ so that
 
 \begin{figure}[t]
 \begin{center}
- \includegraphics[width=4.5in]{images/transformABC}
+ \iflatexml
+   \includegraphics[width=4.5in]{images/transformABC}
+ \else
+   \includegraphics[width=4.5in]{images/transformABC.idr}
+ \fi
 \end{center}
 \caption{Three coordinate frames A, B, and C and the transforms
 relating each one to the other.}
@@ -343,7 +367,11 @@ $\y'$, and $\z'$, but these are generally no longer orthonormal.
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=3.25in]{images/affineAB}
+ \iflatexml
+    \includegraphics[width=3.25in]{images/affineAB}
+ \else
+    \includegraphics[width=3.25in]{images/affineAB.idr}
+ \fi
 \end{center}
 \caption{A position vector $\p_{BA}$ and a general matrix $\A_{BA}$
 describing the affine position and basis transform of frame B with respect to
@@ -385,7 +413,11 @@ $\A$ is orthogonal (so that $\A^T \, \A = \I$) but with $\det \A =
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=3.25in]{images/angularvelAB}
+ \iflatexml
+    \includegraphics[width=3.25in]{images/angularvelAB}
+ \else
+    \includegraphics[width=3.25in]{images/angularvelAB.idr}
+ \fi
 \end{center}
 \caption{Frame B rotating with respect to frame A.}
 \label{angularvelAB:fig}
@@ -448,7 +480,11 @@ acting through the frame's origin:
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=3.25in]{images/rigidAB}
+ \iflatexml
+   \includegraphics[width=3.25in]{images/rigidAB}
+ \else
+   \includegraphics[width=3.25in]{images/rigidAB.idr}
+ \fi
 \end{center}
 \caption{Two frames A and B rigidly connected within a rigid body
 and moving with respect to a third frame C.}

@@ -5,8 +5,10 @@ DOC_DIR = ..
 HTML_DIR = ../html/matlabAndJython
 
 SOURCES = \
-	../texinputs/artisynthDoc.tex \
-	matlabAndJython.tex
+	matlabAndJython.tex \
+	../texinputs/artisynthDoc.tex
+
+EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.png images/*.jpg)))
 
 .PHONY: html pdf chunked
 
@@ -16,28 +18,21 @@ html: $(HTML_DIR)/matlabAndJython.html $(COPIED_IMAGE_FILES)
 
 pdf: $(PDF_DIR)/matlabAndJython.pdf
 
-$(PDF_DIR)/matlabAndJython.pdf: matlabAndJython.pdf
+$(PDF_DIR)/matlabAndJython.pdf: matlabAndJython.pdf 
 	cp matlabAndJython.pdf $(PDF_DIR)
 
 #chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
 
-matlabAndJython.pdf: $(SOURCES)
-	pdflatex matlabAndJython.tex
-	#bibtex matlabAndJython1
-	#pdflatex matlabAndJython.tex	
-	pdflatex matlabAndJython.tex
-	rm -rf $(LATEX_JUNK_FILES)
+matlabAndJython.pdf: $(SOURCES) $(EPS_FILES)
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) matlabAndJython.ps 
 
 matlabAndJython.xml: $(SOURCES)
 	latexml matlabAndJython.tex >matlabAndJython.xml
 
 $(HTML_DIR)/matlabAndJython.html: $(SOURCES)
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml matlabAndJython.tex >matlabAndJython.xml
-	$(LATEXMLPOST) matlabAndJython.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/matlabAndJython.html
-#	rm -f matlabAndJython.xml
+	$(BUILD_HTML)
+	rm -f matlabAndJython.xml
 
 install_html: html
 	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/matlabAndJython

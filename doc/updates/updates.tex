@@ -90,7 +90,7 @@ be now be written as
 
 Complete documentation for the new rendering interface, with detailed
 examples, is given in the ``Rendering'' chapter of the
-\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+\href{\artisynthDocBase/html/maspack/maspack.html}%
 {Maspack Reference Manual}. The new {\tt Renderer} interface itself is
 described in the ``Renderer Interface'' section.
 
@@ -116,12 +116,12 @@ through its subproperties {\sf colorMap}, {\sf normalMap}, and {\sf bumpMap}.
 
 Texture maps can be set up either directly through the renderer, as
 described in the ``Texture mapping'' section of the
-\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+\href{\artisynthDocBase/html/maspack/maspack.html}%
 {Maspack Reference Manual}, or by setting the {\sf colorMap}, {\sf
 normalMap}, or {\sf bumpMap} rendering subproperties of ArtiSynth
 components that contain polygonal meshes (as described in the
 ``Texture mapping'' section of the
-\href{http://www.artisynth.org/doc/html/modelguide/modelguide.html}%
+\href{\artisynthDocBase/html/modelguide/modelguide.html}%
 {ArtiSynth Modeling Guide}).
 
 \subsubsection*{API changes involving RenderProps}
@@ -200,40 +200,8 @@ XXX} is {\tt Face}, {\tt Line}, {\tt Point}, etc., have been renamed to
 
 \end{itemize}
 
-The renaming is summarized in the following table:
-
-\begin{tabular}{ll}
-\hline
-Old name & New name\\
-\hline
-\multicolumn{2}{l}{Renamed classes and enums}\\
-\hline
-{\tt render.RenderProps.PointStyle} & {\tt render.Renderer.PointStyle} \\
-{\tt render.RenderProps.LineStyle} & {\tt render.Renderer.LineStyle} \\
-{\tt render.RenderProps.Faces} & {\tt render.Renderer.FaceStyle} \\
-{\tt render.RenderProps.Shading} & {\tt render.Renderer.Shading} \\
-{\tt render.TextureProps} & {\tt render.ColorMapProps} \\
-{\tt render.TextureProps.Mode} & {\tt render.Renderer.ColorMixing} \\
-\hline
-\multicolumn{2}{l}{Renamed enum fields}\\
-\hline
-{\tt Shading.GOURARD} & {\tt Shading.SMOOTH}\\
-{\tt Shading.PHONG} & {\tt Shading.SMOOTH}\\
-{\tt LineStyle.ELLIPSOID} & {\tt LineStyle.SPINDLE}\\
-\hline
-\multicolumn{2}{l}{Renamed methods}\\
-\hline
-{\tt RenderProps.setTextureProps()} & {\tt RenderProps.setColorMap()} \\
-{\tt RenderProps.setTextureXXX()} & {\tt RenderProps.setColorMapXXX()} \\
-{\tt RenderProps.set/getPointSlices()} & removed, not needed \\
-{\tt RenderProps.set/getLineSlices()} & removed, not needed \\
-{\tt RenderProps.getXXXMaterial()} & removed, not needed \\
-{\tt RenderProps.getXXXColorArray()} & {\tt RenderProps.getXXXColorF()} \\
-{\tt TextureProps.setMode()} & {\tt ColorMapProps.setColorMixing()} \\
-{\tt TextureProps.setSphereMapping()} & removed, not supported \\
-{\tt TextureProps.setAutomatic()} & removed, not supported \\
-\hline
-\end{tabular}
+The renaming is summarized in the first part of the table, {\it Changes
+involving RenderProps}, in the section {\it Summary of changes}, below.
 
 \subsubsection*{API changes involving the renderer}
 
@@ -242,7 +210,7 @@ method refactoring, and the addition of enough renderer functionality
 so that calls to OpenGl are no longer needed to draw
 objects. A complete description of this additional functionality is
 given in the ``Rendering'' chapter of the
-\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+\href{\artisynthDocBase/html/maspack/maspack.html}%
 {Maspack Reference Manual}.
 
 Changes associated with renaming and reactoring include:
@@ -375,18 +343,68 @@ can be replaced with
 \end{verbatim}
 Full details are given in the section
 ``Drawing using draw mode'' of the
-\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
+\href{\artisynthDocBase/html/maspack/maspack.html}%
 {Maspack Reference Manual}.
 
 \end{itemize}
 
-These changes are summarized in the following table:
+These changes are summarized in the second part of the table, {\it Changes
+involving the renderer}, in the section {\it Summary of changes}, below.
+
+\subsubsection*{API changes involving the viewer}
+
+API changes involving the viewer take the form of class renaming and
+method refactorization, including moving some classes into the
+subpackage {\tt render.GL}, as described in the third part of the table, {\it
+Changes involving the viewer}, in the section {\it Summary of
+changes}, below.
+
+A complete description of the viewer is
+given in the ``Viewers'' section of the
+\href{\artisynthDocBase/html/maspack/maspack.html}%
+{Maspack Reference Manual}.
+
+\subsubsection*{Summary of changes}
 
 \begin{tabular}{ll}
+{Old name/signature} & {New name/signature}\\
 \hline
-Old name/signature & New name/signature\\
 \hline
-\multicolumn{2}{l}{Renamed classes and enums}\\
+& \\
+\multicolumn{2}{l}{\it Changes involving RenderProps}\\
+\hline
+\multicolumn{2}{l}{Classes and enums}\\
+\hline
+{\tt render.RenderProps.PointStyle} & {\tt render.Renderer.PointStyle} \\
+{\tt render.RenderProps.LineStyle} & {\tt render.Renderer.LineStyle} \\
+{\tt render.RenderProps.Faces} & {\tt render.Renderer.FaceStyle} \\
+{\tt render.RenderProps.Shading} & {\tt render.Renderer.Shading} \\
+{\tt render.TextureProps} & {\tt render.ColorMapProps} \\
+{\tt render.TextureProps.Mode} & {\tt render.Renderer.ColorMixing} \\
+\hline
+\multicolumn{2}{l}{Enum fields}\\
+\hline
+{\tt Shading.GOURARD} & {\tt Shading.SMOOTH}\\
+{\tt Shading.PHONG} & {\tt Shading.SMOOTH}\\
+{\tt LineStyle.ELLIPSOID} & {\tt LineStyle.SPINDLE}\\
+\hline
+\multicolumn{2}{l}{Renamed methods}\\
+\hline
+{\tt RenderProps.setTextureProps()} & {\tt RenderProps.setColorMap()} \\
+{\tt RenderProps.setTextureXXX()} & {\tt RenderProps.setColorMapXXX()} \\
+{\tt RenderProps.set/getPointSlices()} & removed, not needed \\
+{\tt RenderProps.set/getLineSlices()} & removed, not needed \\
+{\tt RenderProps.getXXXMaterial()} & removed, not needed \\
+{\tt RenderProps.getXXXColorArray()} & {\tt RenderProps.getXXXColorF()} \\
+{\tt TextureProps.setMode()} & {\tt ColorMapProps.setColorMixing()} \\
+{\tt TextureProps.setSphereMapping()} & removed, not supported \\
+{\tt TextureProps.setAutomatic()} & removed, not supported \\
+\hline
+\hline
+& \\
+\multicolumn{2}{l}{\it Changes involving the renderer}\\
+\hline
+\multicolumn{2}{l}{Classes and enums}\\
 \hline
 {\tt render.GLRenderable} & {\tt render.IsRenderable} \\
 {\tt render.GLSelectable} & {\tt render.IsSelectable} \\
@@ -396,7 +414,7 @@ Old name/signature & New name/signature\\
 {\tt core.renderables.IsRenderableHolder} \\
 {\tt render.GLSupport} & {\tt render.GL.GLSupport}\\
 \hline
-\multicolumn{2}{l}{Renamed flags}\\
+\multicolumn{2}{l}{Flags}\\
 \hline
 {\tt GLRenderer.SELECTED} & {\tt GLRenderer.HIGHLIGHT}\\
 {\tt GLRenderable.TRANSLUCENT} & {\tt IsRenderable.TRANSPARENT}\\
@@ -429,19 +447,11 @@ replaced with
 {\tt gl.glNormal3f}, etc. & {\tt Renderer.setNormal()}\\
 {\tt gl.glEnd()} & {\tt Renderer.endDraw()}\\
 \hline
-\end{tabular}
-
-\subsubsection*{API changes involving the viewer}
-
-API changes involving the viewer take the form of class renaming
-and method refactorization, including moving some classes into the
-subpackage {\tt render.GL}, as decribed below:
-
-\begin{tabular}{ll}
 \hline
-Old name/signature & New name/signature\\
+& \\
+\multicolumn{2}{l}{\it Changes involving the viewer}\\
 \hline
-\multicolumn{2}{l}{Renamed classes and enums}\\
+\multicolumn{2}{l}{Classes and enums}\\
 \hline
 {\tt render.GLClipPlane} & {\tt render.GL.GLClipPlane} \\
 {\tt render.GLViewer} & {\tt render.GL.GLViewer} \\
@@ -463,12 +473,8 @@ Old name/signature & New name/signature\\
 {\tt GLViewer.set/getSBlending()} & {\tt GLViewer.set/getBlendSourceFactor()}\\
 {\tt GLViewer.getHeight()} & {\tt GLViewer.getScreenHeight()}\\
 \hline
+\hline
 \end{tabular}
-
-A complete description of the viewer is
-given in the ``Viewers'' section of the
-\href{http://www.artisynth.org/doc/html/maspack/maspack.html}%
-{Maspack Reference Manual}.
 
 \subsubsection*{Legacy rendering with OpenGL 2}
 
@@ -516,7 +522,7 @@ calls.
 
 The interface for setting normals, colors, and texture coordinates in
 meshes has been redesigned. Full documentation can be found in Section
-3.5 (``Meshes'') of the \href{../modelguide/modelguide.html}{ArtiSynth
+3.5 (``Meshes'') of the \href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
 Modeling Guide}. These changes have been made partly in preparation
 for switching to the upcoming new rendering interface.  Some of the
 main changes are:
@@ -608,7 +614,7 @@ nonlinear deformation field.
 
 Full details, and a demonstration example, as given in the section
 ``Transforming geometry'' of the
-\href{../modelguide/modelguide.html}{ArtiSynth Modeling Guide}.
+\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth Modeling Guide}.
 
 \subsection*{Adding application-defined menu items}
 
@@ -641,7 +647,7 @@ The {\sf Application} menu will only appear if {\tt getMenuItems()} returns
 \end{sideblock}
 
 For more details, see the section ``Application-Defined Menu Items'', in the
-\href{../modelguide/modelguide.html}{ArtiSynth Modeling Guide}.
+\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth Modeling Guide}.
 
 \subsection*{Updates to the Pardiso library}
 
@@ -742,7 +748,7 @@ links that cannot be located.
 \end{itemize}
 
 For more details, see the Javadoc References section in
-\href{../documentation/documentation.html}{Writing Documentation for ArtiSynth}.
+\href{\artisynthDocBase/html/documentation/documentation.html}{Writing Documentation for ArtiSynth}.
 
 \section*{August 27, 2015}
 
@@ -858,7 +864,7 @@ functionality has been added to enable ArtiSynth to be run and
 scripted within MATLAB. The Jython interface has also been revised so
 that the scripting commands are essentially the same in both
 interfaces. A new document,
-\href{http://www.artisynth.org/doc/html/matlabAndJython/matlabAndJython.html}%
+\href{\artisynthDocBase/html/matlabAndJython/matlabAndJython.html}%
 {Interfacing ArtiSynth to MATLAB and Jython}, has been prepared that
 describes both interfaces in detail.
 
@@ -980,7 +986,7 @@ mesh.
 
 More details are given in the Collision Handling section (currently
 5.6) of the
-\href{http://www.artisynth.org/doc/html/modelguide/modelguide.html}%
+\href{\artisynthDocBase/html/modelguide/modelguide.html}%
 {ArtiSynth Modeling Guide}.
 
 \subsection*{Removal of FemMeshVertex}
@@ -1540,7 +1546,7 @@ and
 to maintain back-pointers to a component's references (although these
 methods are still available for other purposes).
 
-The \href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}%
+The \href{\artisynthDocBase/html/artisynth/artisynth.html}%
 {ArtiSynth Reference Manual} has been updated to reflect these
 changes.
 
@@ -1565,7 +1571,7 @@ method to remove the references and update the component's internals
 as required. {\tt updateReferences()} also contains support for undo
 operations; more details are given in the {\tt Component References}
 section of the 
-\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}%
+\href{\artisynthDocBase/html/artisynth/artisynth.html}%
 {ArtiSynth Reference Manual}.
 
 \subsection*{Gains now working in ExcitationComponents}
@@ -1751,7 +1757,7 @@ some of these methods.
 
 Details on {\tt CompositeComponent} and {\tt MutableCompositeComponent}
 can be found in the 
-\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}%
+\href{\artisynthDocBase/html/artisynth/artisynth.html}%
 {ArtiSynth Reference Manual}.
 
 \subsection*{Enforcement of name uniqueness}
@@ -1795,7 +1801,7 @@ be resolved on the first scan pass is stored in a special "token
 queue", which is then processed later in a {\tt postscan()}
 method. The details are beyond the scope of this update. However,
 comprehensive documentation is available in the
-\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}%
+\href{\artisynthDocBase/html/artisynth/artisynth.html}%
 {ArtiSynth Reference Manual}.
 
 In addition to adding {\tt postscan()}, the scan/write code was
@@ -2601,7 +2607,7 @@ GLRenderer} renderer methods {\tt beginSelectionQuery()}, {\tt
 endSelectionQuery()}, {\tt beginSubSelection()}, and {\tt
 endSubSelection()}. Users who work with selection code inside render
 methods should consult the updated 
-\href{http://www.artisynth.org/doc/html/maspack/maspack.html#S3.SS3}%
+\href{\artisynthDocBase/html/maspack/maspack.html#S3.SS3}%
 {Object Selection}
 documentation in the maspack
 reference manual.
@@ -2847,7 +2853,7 @@ required {\tt .jar} files and native libraries from the webserver. On
 Windows systems, you can execute {\tt updateArtisynthLibs.bat}
 instead. For more details on this, see Section 6.2, Downloading
 Libraries, of the online 
-\href{http://www.artisynth.org/doc/html/installation/installation.html}%
+\href{\artisynthDocBase/html/installation/installation.html}%
 {Installation Guide}.
 
 In the future, you will not usually need to run {\tt
@@ -3548,7 +3554,7 @@ output produced by \href{http://dlmf.nist.gov/LaTeXML}{LaTeXML}.  If
 you update {\tt \$ARTISYNTH\_HOME/doc}, you will see that all the {\tt
 .txt} files have been replaced with {\tt .tex} files. For details
 about the changes, please see the (revised)
-\href{http://www.artisynth.org/doc/html/documentation/documentation.html}%
+\href{\artisynthDocBase/html/documentation/documentation.html}%
 {Documentation Manual}.
 
 The new HTML files have already been uploaded to
@@ -3665,7 +3671,7 @@ framework:
 \end{itemize}
 
 Full details about model advancement are contained in the (fledgling)
-\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html}{ArtiSynth
+\href{\artisynthDocBase/html/artisynth/artisynth.html}{ArtiSynth
 Reference Manual}.
 
 \subsection*{Adaptive stepping}
@@ -3700,14 +3706,14 @@ instability around t = 1, but completes the simulation without element
 inversion.
 
 Full details on adaptive stepping are given in the
-\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html#AdaptiveStepping}%
+\href{\artisynthDocBase/html/artisynth/artisynth.html#AdaptiveStepping}%
 {reference manual}.
 
 \subsection*{State for Probes, Monitors and Controllers}
 
 Probes, monitors, and controllers can now contain state. Details are
 given in the
-\href{http://www.artisynth.org/doc/html/artisynth/artisynth.html#ModelAgentState}%
+\href{\artisynthDocBase/html/artisynth/artisynth.html#ModelAgentState}%
 {reference manual}.
 
 \section*{April 21, 2012}
@@ -5199,7 +5205,7 @@ Permission setting is done by a revised script called {\tt setMagicPerms},
 located on the server.
 
 For more details, see the 
-\href{../documentation/documentation.html#Installing}{documentation} document.
+\href{\artisynthDocBase/html/documentation/documentation.html#Installing}{documentation} document.
 
 \section*{Sept 20, 2009}
 

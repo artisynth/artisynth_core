@@ -56,7 +56,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
 
       ArrayList<Point3d> polyPts = new ArrayList<Point3d> ();
       viter = bounds.getBoundNormals ().iterator ();
-      prev = viter.next ();
+      prev = bounds.getBoundNormals ().get (bounds.getBoundNormals ().size ()-1);
       while (viter.hasNext ()) {
          Vector3d cur = viter.next ();
          tmp.cross (prev, cur);
@@ -71,11 +71,11 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       prevPt = firstPt;
       while (piter.hasNext ()) {
          Point3d curPt = piter.next ();
-         planes.add (new TriInfo (p0, prevPt, curPt, Color.MAGENTA));
-         // lines.add (new LineInfo (p0, tmp, Color.ORANGE));
+         planes.add (new TriInfo (p0, prevPt, curPt, Color.LIGHT_GRAY));
+          lines.add (new LineInfo (p0, tmp, Color.RED));
          prevPt = curPt;
       }
-      planes.add (new TriInfo (p0, prevPt, firstPt, Color.MAGENTA));
+      planes.add (new TriInfo (p0, prevPt, firstPt, Color.LIGHT_GRAY));
 
    }
 

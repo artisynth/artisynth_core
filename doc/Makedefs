@@ -2,10 +2,18 @@ ifndef ARTISYNTH_WEB_ACCOUNT
 ARTISYNTH_WEB_ACCOUNT = $(USER)
 endif
 
+ifndef DOC_DIR_BASE
+   DOC_DIR_BASE = doc
+endif
+
+ifndef DOC_URL_BASE
+   DOC_URL_BASE = http://www.artisynth.org/$(DOC_DIR_BASE)
+endif
+
 WEBSERVER = artisynth.magic.ubc.ca
 WEB_HOME = /ubc/magic/home/wwwrun/docs/artisynth
 WEB_DOC_DIR = $(WEB_HOME)/artisynth/doc
-WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_HOME)/artisynth/doc
+WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_DOC_DIR)
 WEB_HTML_URL = $(WEB_DOC_URL)/html
 FIX_PERMISSIONS = \
   ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) $(WEB_HOME)/bin/fixMagicPerms 
@@ -14,12 +22,15 @@ LATEX_JUNK_FILES = *.log *.aux *.out *.toc *.bbl *.blg *.cb *.cb2
 PDF_DIR = $(DOC_DIR)/pdf
 
 BIN_DIR = $(DOC_DIR)/../bin
-#JAVADOC_URL = http://www.artisynth.org/doc/javadocs
+JAVADOC_PDF_URL = http://www.artisynth.org/$(DOC_DIR_BASE)/javadocs
 JAVADOC_URL = ../../javadocs
 LATEXMLPOST = latexmlpost --mathimages --format=html4 --css=$(DOC_DIR)/style/artisynth.css \
  --destination=$@
 FIX_HTML_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR)/javadocs \
  --jdocUrl $(JAVADOC_URL) $@ | $(BIN_DIR)/fixLatexmlOutput
+
+FIX_POSTSCRIPT_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR)/javadocs \
+ --jdocUrl $(JAVADOC_PDF_URL) --docBase $(DOC_URL_BASE) --postscript
 
 # Set TEXINPUTS so latex can find the latexml and docbook input files.
 # The reason for the second entry, ../$(DOC_DIR)/texinputs, is because
@@ -37,6 +48,43 @@ define MAKE_HTML_DIR_IF_NECESSARY
     		mkdir $(HTML_DIR) ; \
 	fi
 endef
+
+#
+# assumes that first prerequisite is the primary .tex file
+#
+define BUILD_PDF
+	latex $<
+	latex $<
+	dvips $(basename $@)
+	$(FIX_POSTSCRIPT_OUTPUT) --out _tmp_.ps $(basename $@).ps
+	mv _tmp_.ps $(basename $@).ps
+	ps2pdf $(basename $@).ps
+endef
+
+#
+# assumes that first prerequisite is the primary .tex file
+#
+define BUILD_HTML
+	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml $< > $(basename $<).xml
+	$(LATEXMLPOST) $(basename $<).xml
+	$(FIX_HTML_OUTPUT) > _tmp_.html
+	mv _tmp_.html $@
+endef
+
+# These rules were taken from 
+# http://www-rohan.sdsu.edu/~aty/bibliog/latex/PSconv.html
+#	pngtopnm $< | pnmtops -nocenter -equalpixels -dpi 72 -noturn -rle - > $@
+
+# using eps2:file.eps creates a more compact eps file
+%.eps: %.png
+	convert $< eps2:$@
+
+%.eps: %.jpg
+	convert $< eps2:$@
+
+%.eps: %.pdf
+	convert $< eps2:$@
 
 .PHONY: clean CLEAN HTML PDF CHUNKED
 

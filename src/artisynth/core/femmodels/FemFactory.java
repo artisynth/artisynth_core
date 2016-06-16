@@ -2946,7 +2946,7 @@ public class FemFactory {
       fem.addElement(createTet(newn, 7, 11, 12, 13));
       fem.addElement(createTet(newn, 8, 12, 9, 13));
    }
-
+   
    /**
     * Creates a subdvided FEM model by subdividing all the elements of an
     * existing model into eight sub-elements, adding additional nodes as
@@ -2963,6 +2963,10 @@ public class FemFactory {
     * existing FEM model to be refined.
     */
    public static FemModel3d subdivideFem(FemModel3d femr, FemModel3d fem0) {
+      return subdivideFem(femr, fem0, true);
+   }
+
+   public static FemModel3d subdivideFem(FemModel3d femr, FemModel3d fem0, boolean addMarkers) {
       if (fem0 == null) {
          throw new IllegalArgumentException("fem0 must not be null");
       }
@@ -3005,10 +3009,13 @@ public class FemFactory {
             subdividePyramid(femr, (PyramidElement)e, edgeNodeMap, copyMap);
          }
       }
-      for (FemMarker m : fem0.myMarkers) {
-         FemMarker newm = new FemMarker(m.getPosition());
-         newm.setName(m.getName());
-         fem0.addMarker(newm);
+      
+      if (addMarkers) {
+         for (FemMarker m : fem0.myMarkers) {
+            FemMarker newm = new FemMarker(m.getPosition());
+            newm.setName(m.getName());
+            fem0.addMarker(newm);
+         }
       }
       // Doesn't clone attachments yet. Should do this ...
       // for (DynamicAttachment a : fem1.myAttachments) {

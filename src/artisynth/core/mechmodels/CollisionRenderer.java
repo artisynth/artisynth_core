@@ -202,10 +202,11 @@ public class CollisionRenderer {
             r.addTriangle (v0idx, v1idx, v2idx);     
          }
       }
-      if (myRob != null) {
-         myRob.dispose();
-      }
+      RenderObject oldRob = myRob;
       myRob = r;
+      if (oldRob != null) {
+         oldRob.dispose();
+      }
    }
 
    private void drawLines (

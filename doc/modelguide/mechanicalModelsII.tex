@@ -262,7 +262,7 @@ Render properties can also be set in the GUI by selecting one or more
 components and the choosing {\sf Set render props ...}  in the
 right-click context menu. More details on setting render properties
 through the GUI can be found in the section ``Render properties'' in the
-\href{../uiguide/uiguide.html}{
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{
 ArtiSynth User Interface Guide}.
 
 For many components, the default value of {\tt renderProps} is {\tt
@@ -540,7 +540,7 @@ bump map. Other exported properties control mixing with underlying
 colors, and how texture coordinates are both filtered and managed when
 they fall outside the canonical range $[0,1]$.  Full details on
 texture mapping and its support by the ArtiSynth renderer are given in
-the ``Rendering'' section of the \href{../maspack/maspack.html}{Maspack
+the ``Rendering'' section of the \href{\artisynthDocBase/html/maspack/maspack.html}{Maspack
 Reference Manual}.
 
 To set up a texture map, one creates an instance of the appropriate
@@ -1049,7 +1049,11 @@ it need only be a descendent of A.
 
 \begin{figure}[ht]
 \begin{center}
- \includegraphics[width=5in]{images/CollidableGroups}
+ \iflatexml
+   \includegraphics[width=5in]{images/CollidableGroups}
+ \else
+   \includegraphics[width=5in]{images/CollidableGroups.idr}
+ \fi
 \end{center}
 \caption{A collection of collidable components, where A possesses
 sub-collidables A1, A2, and A3, B is solitary, and C possesses
@@ -1622,7 +1626,7 @@ To easily select a large number of nodes without also selecting
 model components or grid elements, one can specify {\tt FemNode}
 in the selection filter widget. (See the sections
 ``Manipulation Tools'' and ``Selection filering'' in the
-\href{../uiguide/uiguide.html}{ArtiSynth User Interface Guide}.)
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{ArtiSynth User Interface Guide}.)
 
 \item After the grid has been deformed, choose {\sf deform} from the
 {\sf Application} menu in the ArtiSynth toolbar to transform the model.

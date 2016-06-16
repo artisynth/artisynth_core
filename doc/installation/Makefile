@@ -1,6 +1,8 @@
 DOC_DIR = ..
 HTML_DIR = ../html/installation
 
+EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.png images/*.jpg)))
+
 .PHONY: html pdf chunked
 
 html: $(HTML_DIR)/windowsInstallation.html \
@@ -14,61 +16,46 @@ pdf: $(PDF_DIR)/windowsInstallation.pdf \
 $(PDF_DIR)/windowsInstallation.pdf: windowsInstallation.pdf
 	cp windowsInstallation.pdf $(PDF_DIR)
 
-windowsInstallation.pdf: windowsInstallation.tex installation.tex
-	pdflatex windowsInstallation.tex
-	pdflatex windowsInstallation.tex
-	pdflatex windowsInstallation.tex
-	rm -rf $(LATEX_JUNK_FILES)
+windowsInstallation.pdf: windowsInstallation.tex installation.tex $(EPS_FILES)
+	latex windowsInstallation.tex
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) windowsInstallation.ps 
 
 windowsInstallation.xml: windowsInstallation.tex installation.tex
 	latexml windowsInstallation.tex >windowsInstallation.xml
 
 $(HTML_DIR)/windowsInstallation.html: windowsInstallation.tex installation.tex
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml windowsInstallation.tex >windowsInstallation.xml
-	$(LATEXMLPOST) windowsInstallation.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/windowsInstallation.html
+	$(BUILD_HTML)
 	rm -f windowsInstallation.xml
 
 $(PDF_DIR)/linuxInstallation.pdf: linuxInstallation.pdf
 	cp linuxInstallation.pdf $(PDF_DIR)
 
-linuxInstallation.pdf: linuxInstallation.tex installation.tex
-	pdflatex linuxInstallation.tex
-	pdflatex linuxInstallation.tex
-	pdflatex linuxInstallation.tex
-	rm -rf $(LATEX_JUNK_FILES)
+linuxInstallation.pdf: linuxInstallation.tex installation.tex $(EPS_FILES)
+	latex linuxInstallation.tex
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) linuxInstallation.ps 
 
 linuxInstallation.xml: linuxInstallation.tex installation.tex
 	latexml linuxInstallation.tex >linuxInstallation.xml
 
 $(HTML_DIR)/linuxInstallation.html: linuxInstallation.tex installation.tex
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml linuxInstallation.tex >linuxInstallation.xml
-	$(LATEXMLPOST) linuxInstallation.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/linuxInstallation.html
+	$(BUILD_HTML)
 	rm -f linuxInstallation.xml
 
 $(PDF_DIR)/macosInstallation.pdf: macosInstallation.pdf
 	cp macosInstallation.pdf $(PDF_DIR)
 
-macosInstallation.pdf: macosInstallation.tex installation.tex
-	pdflatex macosInstallation.tex
-	pdflatex macosInstallation.tex
-	pdflatex macosInstallation.tex
-	rm -rf $(LATEX_JUNK_FILES)
+macosInstallation.pdf: macosInstallation.tex installation.tex $(EPS_FILES)
+	latex macosInstallation.tex
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) macosInstallation.ps 
 
 macosInstallation.xml: macosInstallation.tex installation.tex
 	latexml macosInstallation.tex >macosInstallation.xml
 
 $(HTML_DIR)/macosInstallation.html: macosInstallation.tex installation.tex
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml macosInstallation.tex >macosInstallation.xml
-	$(LATEXMLPOST) macosInstallation.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/macosInstallation.html
+	$(BUILD_HTML)
 	rm -f macosInstallation.xml
 
 install_html: html

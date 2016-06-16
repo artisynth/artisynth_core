@@ -985,7 +985,7 @@ rigid bodies, or whether or not a component is dynamic.
 
 The underlying software architecture of the property interface is 
 described in the 
-\href{../maspack/maspack.html#Properties}{maspack documentation}.
+\href{\artisynthDocBase/html/maspack/maspack.html#Properties}{maspack documentation}.
 
 \subsection{Property Panels}
 \label{propertyPanelsSec}
@@ -4036,9 +4036,15 @@ are provided in Figure \ref{fig:packagemenu}.
 \hline
 compact & flat & hierarchical \\
 \hline
+\iflatexml
 0 & \menuimage{f0.png} & \menuimage{h0.png}\\
 1 & \menuimage{f1.png} & \menuimage{h1.png}\\
 2 & \menuimage{f2.png} & \menuimage{h2.png}\\
+\else
+%0 & \menuimage{f0.eps} & \menuimage{h0.eps}\\
+%1 & \menuimage{f1.eps} & \menuimage{h1.eps}\\
+%2 & \menuimage{f2.eps} & \menuimage{h2.eps}\\
+\fi
 \hline
 \end{tabular}
 \caption{View options for the XML element {\tt <package source="artisynth" base=%

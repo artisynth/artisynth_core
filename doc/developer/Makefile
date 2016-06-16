@@ -14,19 +14,14 @@ $(PDF_DIR)/codingStandard.pdf: codingStandard.pdf
 	cp codingStandard.pdf $(PDF_DIR)
 
 codingStandard.pdf: codingStandard.tex
-	pdflatex codingStandard.tex
-	pdflatex codingStandard.tex
-	rm -rf $(LATEX_JUNK_FILES)
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) codingStandard.ps
 
 codingStandard.xml: codingStandard.tex
 	latexml codingStandard.tex >codingStandard.xml
 
 $(HTML_DIR)/codingStandard.html: codingStandard.tex
-	$(MAKE_HTML_DIR_IF_NECESSARY)
-	latexml codingStandard.tex >codingStandard.xml
-	$(LATEXMLPOST) codingStandard.xml 
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $(HTML_DIR)/codingStandard.html
+	$(BUILD_HTML)
 	rm -f codingStandard.xml
 
 install_html: html

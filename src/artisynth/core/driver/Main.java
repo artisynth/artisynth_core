@@ -179,7 +179,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected double myMaxStep = -1;
    protected boolean disposed = false;
 
-   protected GLVersion myGLVersion = GLVersion.GL2;
+   protected GLVersion myGLVersion = GLVersion.GL3;
 
    protected String myModelSaveFormat = "%g"; // "%.8g";
 
@@ -328,7 +328,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    public Main() {
-      this (PROJECT_NAME, 800, 600, GLVersion.GL2);
+      this (PROJECT_NAME, 800, 600, GLVersion.GL3);
    }
 
    /**
@@ -1731,7 +1731,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder useArticulatedTransforms =
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
-   protected static IntHolder glVersion = new IntHolder (2);
+   protected static IntHolder glVersion = new IntHolder (3);
 
    protected static IntHolder flags = new IntHolder();
 

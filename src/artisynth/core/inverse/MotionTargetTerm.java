@@ -10,6 +10,7 @@ import java.awt.Color;
 import java.nio.file.attribute.UserPrincipalNotFoundException;
 import java.util.ArrayList;
 
+import maspack.geometry.PolygonalMesh;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -78,9 +79,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public static double DEFAULT_Kp = 100;
    protected double Kp = DEFAULT_Kp;
    
-   private static final int POINT_ENTRY_SIZE = 3;
-   private static final int FRAME_POS_SIZE = 6;
-   private static final int FRAME_VEL_SIZE = 7;
+   private static final int POINT_POS_SIZE = 3;
+   private static final int POINT_VEL_SIZE = 3;
+   private static final int FRAME_POS_SIZE = 7;
+   private static final int FRAME_VEL_SIZE = 6;
 
    protected VectorNd myCurrentVel = null;
    
@@ -374,13 +376,13 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       MotionTargetComponent target = null;
       
       if (source instanceof Point) {
-         myTargetVelSize += POINT_ENTRY_SIZE;
-         myTargetPosSize += POINT_ENTRY_SIZE;
+         myTargetVelSize += POINT_VEL_SIZE;
+         myTargetPosSize += POINT_POS_SIZE;
          target = addTargetPoint((Point)source);
       }
       else if (source instanceof Frame) {
-         myTargetVelSize += FRAME_POS_SIZE;
-         myTargetPosSize += FRAME_VEL_SIZE;
+         myTargetVelSize += FRAME_VEL_SIZE;
+         myTargetPosSize += FRAME_POS_SIZE;
          target = addTargetFrame((RigidBody)source);
       }
       
@@ -407,13 +409,13 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       }
       
       if (source instanceof Point) {
-         myTargetVelSize -= POINT_ENTRY_SIZE;
-         myTargetPosSize -= POINT_ENTRY_SIZE;
+         myTargetVelSize -= POINT_VEL_SIZE;
+         myTargetPosSize -= POINT_POS_SIZE;
          removeTargetPoint((Point)myTargets.get (idx)); // remove ref particle created in doAddTarget
       }
       else if (source instanceof Frame) {
-         myTargetVelSize -= FRAME_POS_SIZE;
-         myTargetPosSize -= FRAME_VEL_SIZE;
+         myTargetVelSize -= FRAME_VEL_SIZE;
+         myTargetPosSize -= FRAME_POS_SIZE;
          removeTargetFrame((Frame)myTargets.get (idx)); // remove ref body created in doAddTarget
       }
       
@@ -440,7 +442,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          double w = myTargetWeights.get(t);
          
          if (target instanceof Point) {
-            for (int i=0; i< POINT_ENTRY_SIZE; i++) {
+            for (int i=0; i< POINT_VEL_SIZE; i++) {
                myTargetWgts.set(idx++, w);
             }
          } else if (target instanceof Frame) {
@@ -526,6 +528,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    private TargetFrame addTargetFrame(RigidBody source)
    {
       TargetFrame tframe = new TargetFrame();
+      tframe.setPose (source.getPose ());
       tframe.setName((source.getName() != null ? source.getName() : String.format(
          "rb%d", source.getNumber())) + "_ref");
 
@@ -535,11 +538,14 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 
       myTargets.add(tframe);
 
-      // XXX add mesh to TargetFrame
-//      if (source.getMesh() != null) {
-//         tframe.setMesh(new PolygonalMesh(source.getMesh()),
-//            source.getMeshFileName());
-//      }
+      // add mesh to TargetFrame
+      if (source.getMesh() != null) {
+         tframe.setMesh(new PolygonalMesh(source.getMesh()),
+            source.getMeshFileName());
+         tframe.setRenderProps (source.getRenderProps ());
+         RenderProps.setDrawEdges (tframe, true);
+         RenderProps.setFaceStyle (tframe, FaceStyle.NONE);
+      }
       
       myController.targetFrames.add (tframe);
       return tframe;

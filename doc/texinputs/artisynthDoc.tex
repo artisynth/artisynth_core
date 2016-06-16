@@ -92,7 +92,8 @@
 \newcommand{\javabase}{}
 \newcommand{\setjavabase}[1]{\renewcommand{\javabase}{#1}}
 
-\iflatexml
+\def\artisynthDocBase{@ARTISYNTHDOCBASE}
+
 \newcommand{\javaclassx}[2][]{%
 % Includes code to prevent an extra '.' at the front if #1 is empty. It
 % works like this: if '#1' is empty, then '#1.' expands to '.', and so 
@@ -116,21 +117,6 @@
 \href{@JDOCBEGIN/\concatnames{\javabase}{#1}{#2}@JDOCEND}{\removeargs{#2}}}
 \newcommand{\javamethodNoArgs}[2][]{%
 \href{@JDOCBEGIN/\concatnames{}{#1}{#2}@JDOCEND}{\removeargs{#2}}}
-\else
-\def\javaurl{http://www.artisynth.org/doc/javadocs/}
-\newcommand{\javaclassx}[2][]{{\color{darkblue}#2}}
-%\href{\javaurl\dottoslash{\concatnames{\javabase}{#1}{#2}}.html}{#2}}
-\newcommand{\javamethodArgsx}[2][]{{\color{darkblue}#2}}
-\newcommand{\javamethodNoArgsx}[2][]{{\color{darkblue}\removeargs{#2}}}
-%\newcommand{\javaclass}[2][]{{\color{darkblue}\StrSubstitute[0]{#2}{\$}{.}}}
-\newcommand{\javaclass}[2][]{{\color{darkblue}\dollartodot{#2}}}
-\newcommand{\javaclassAlt}[2]{{\color{darkblue}{#2}}}
-%\href{\javaurl\dottoslash{\concatnames{\javabase}{#1}{#2}}.html}{#2}}
-\newcommand{\javamethodArgs}[2][]{{\color{darkblue}#2}}
-\newcommand{\javamethodNoArgs}[2][]{{\color{darkblue}\removeargs{#2}}}
-\newcommand{\javamethodAlt}[2]{{\color{darkblue}{#2}}}
-\newcommand{\javamethodAltx}[2]{{\color{darkblue}{#2}}}
-\fi
 
 \newcommand{\javamethod}{\@ifstar\javamethodNoArgs\javamethodArgs}
 \newcommand{\javamethodx}{\@ifstar\javamethodNoArgsx\javamethodArgsx}

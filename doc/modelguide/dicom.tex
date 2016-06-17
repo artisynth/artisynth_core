@@ -24,7 +24,7 @@
 \chapter{DICOM Images}
 \label{sec:dicom}
 
-Some models are be derived from image data, and it may be useful to show the model
+Some models are derived from image data, and it may be useful to show the model
 and image in the same space.  For this purpose, a DICOM image widget has been designed,
 capable of displaying 3D DICOM volumes as a set of three perpendicular planes.  An
 example widget and its property panel is shown in Figure \ref{fig:dicom:heart}.
@@ -191,25 +191,25 @@ There are three possible pixel types currently supported:
 \begin{tightemize}
    \item byte grayscale values (\lstinline{PixelType.BYTE})
    \item short grayscale values (\lstinline{PixelType.SHORT})
-   \item byte RGB values, with layout \lstinline{RGBRGB...RGB} (\lstinline{PixelType.RGB})
+   \item byte RGB values, with layout \lstinline{RGBRGB...RGB} (\lstinline{PixelType.BYTE_RGB})
 \end{tightemize}
 The pixel buffer stores all pixels in one of these types.  The pixels can be queried for directly
 using \lstinline{getPixel(idx)} to get a single pixel, or \lstinline{getBuffer()} to get the
-entire pixel buffer.  Alternatively, a \javaclass[maspack.dicom]{DicomPixelConverter} object
+entire pixel buffer.  Alternatively, a \javaclass[maspack.dicom]{DicomPixelInterpolator} object
 can be passed in to convert between pixel types via one of the following methods:
 \begin{lstlisting}[]
 public int getPixelsByte (
-   int x, int dx, int nx, byte[] pixels, int offset, DicomPixelConverter interp);
+   int x, int dx, int nx, byte[] pixels, int offset, DicomPixelInterpolator interp);
 
 public int getPixelsShort (
-   int x, int dx, int nx, short[] pixels, int offset, DicomPixelConverter interp);
+   int x, int dx, int nx, short[] pixels, int offset, DicomPixelInterpolator interp);
 
 public int getPixelsRGB (
-   int x, int dx, int nx, byte[] pixels, int offset, DicomPixelConverter interp);
+   int x, int dx, int nx, byte[] pixels, int offset, DicomPixelInterpolator interp);
 
 public int getPixels(
    int x, int dx, int nx, DicomPixelBuffer pixels, int offset, 
-   DicomPixelConverter interp);
+   DicomPixelInterpolator interp);
 \end{lstlisting}
 These methods populate an output array or buffer with converted pixel values, which can later
 be passed to a renderer.  For further details on these methods, refer to the Javadoc documentation.
@@ -237,19 +237,19 @@ it has the following methods:
 \begin{lstlisting}[]
 public int getPixelsByte (
    int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, 
-   int time, byte[] pixels, DicomPixelConverter interp);
+   int time, byte[] pixels, DicomPixelInterpolator interp);
 
 public int getPixelsShort (
    int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, 
-   int time, short[] pixels, DicomPixelConverter interp);
+   int time, short[] pixels, DicomPixelInterpolator interp);
 
 public int getPixelsRGB (
    int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, 
-   int time, byte[] pixels, DicomPixelConverter interp);
+   int time, byte[] pixels, DicomPixelInterpolator interp);
 
 public int getPixels (
    int x, int y, int z, int dx, int dy, int dz, int nx, int ny, int nz, 
-   int time, DicomPixelBuffer pixels, DicomPixelConverter interp);
+   int time, DicomPixelBuffer pixels, DicomPixelInterpolator interp);
 \end{lstlisting}
 The inputs \{\lstinline{x, y, z}\} refer to voxel indices, and \lstinline{time} refers to the time instance index, starting at zero.  The four voxel dimensions of the image can be queried with: \lstinline{getNumCols()} \lstinline{getNumRows()}, \lstinline{getNumSlices()}, and \lstinline{getNumTimes()}.
 

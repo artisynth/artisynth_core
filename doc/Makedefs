@@ -38,9 +38,13 @@ FIX_POSTSCRIPT_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR)/javadocs
 # directory with respect to which DOC_DIR is indicated.
 # NOTE: windows requires semi-colon instead of colon (at least for texlive)
 ifeq ($(OS),Windows_NT)
-export TEXINPUTS:="$(TEXINPUTS);$(DOC_DIR)/texinputs;../$(DOC_DIR)/texinputs;"
+export TEXINPUTS:=$(TEXINPUTS);$(DOC_DIR)/texinputs;../$(DOC_DIR)/texinputs;
+# $(info Windows)
+# $(info TEXINPUTS: $(TEXINPUTS))
 else
-export TEXINPUTS:=$(TEXINPUTS):$(DOC_DIR)/texinputs:../$(DOC_DIR)/texinputs:    
+export TEXINPUTS:=$(TEXINPUTS):$(DOC_DIR)/texinputs:../$(DOC_DIR)/texinputs:
+# $(info Linux/OSX)
+# $(info TEXINPUTS: $(TEXINPUTS))
 endif
 
 define MAKE_HTML_DIR_IF_NECESSARY

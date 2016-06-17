@@ -1,5 +1,11 @@
 #!/bin/bash
 # find all Java packages in a given directory
+
+# Allow overwriting of FIND on windows
+if [ -z "$FIND" ]; then
+	export FIND=find
+fi  
+
 DIR=.
 USAGE="Usage: $0 [-d <dir>]"
 while [ "$1" ]; do
@@ -17,9 +23,11 @@ while [ "$1" ]; do
    fi
    shift
 done
-for d in `find $DIR -type d` ; do
-   count=`ls -1 $d/*.java 2>/dev/null | wc -l`
+for d in `$FIND $DIR -type d` ; do
+   # switch slashes on windows
+   dd=`echo "$d" | tr '\' '/'`
+   count=`ls -1 $dd/*.java 2>/dev/null | wc -l`
    if [ $count != 0 ] ; then
-      echo $d | sed "s|^$DIR/||" | sed 's|/|.|g'
+      echo $dd | sed "s|^$DIR/||" | sed 's|/|.|g'
    fi
 done

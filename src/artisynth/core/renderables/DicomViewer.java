@@ -482,7 +482,7 @@ public class DicomViewer extends RenderableComponentBase {
    /**
     * @return the current pixel interpolator
     */
-   public DicomPixelInterpolator getPixelConverter() {
+   public DicomPixelInterpolator getPixelInterpolator() {
       return texture.getWindowConverter ();
    }
    

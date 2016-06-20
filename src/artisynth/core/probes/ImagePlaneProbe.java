@@ -158,6 +158,7 @@ TransformableGeometry {
    public void prerender (RenderList list) {
       // drawMesh is called in render()
       // list.addIfVisible (imagePlane);
+      planeMesh.prerender (myRenderProps);
    }
 
    public void render (Renderer renderer, int flags) {

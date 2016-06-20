@@ -209,6 +209,9 @@ public abstract class CutPlaneProbe extends OutputProbe
 
    @Override
    public void prerender(RenderList list) {
+      if (myPlaneSurface != null) {
+         myPlaneSurface.prerender (myRenderProps);
+      }
    }
 
    public void render(Renderer renderer, int flags) {

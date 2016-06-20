@@ -548,6 +548,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
       return code;
    }
 
+
    @Override
    public synchronized void render (Renderer renderer, int flags) {
 
@@ -555,15 +556,15 @@ public class FemDisplayProbe extends CutPlaneProbe {
 
       if (myPlaneSurface != null) {
 
-//         if ((flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
-//            updateVertexColoring();
-//         }
-         
-         if (mySurfaceRendering != SurfaceRender.None) {
-            myPlaneSurface.render (renderer, rprops, 0);
-            //renderer.drawMesh(rprops, myPlaneSurface,
-            //   flags | GLRenderer.VERTEX_COLORING | GLRenderer.HSV_COLOR_INTERPOLATION);
-         }
+//       if ((flags & Renderer.UPDATE_RENDER_CACHE) != 0) {
+//          updateVertexColoring();
+//       }
+       
+       if (mySurfaceRendering != SurfaceRender.None) {
+          myPlaneSurface.render (renderer, rprops, 0);
+          //renderer.drawMesh(rprops, myPlaneSurface,
+          //   flags | GLRenderer.VERTEX_COLORING | GLRenderer.HSV_COLOR_INTERPOLATION);
+       }
 
          if (drawIntersections) {
             for (LinkedList<Point3d> contour : myIntersections) {

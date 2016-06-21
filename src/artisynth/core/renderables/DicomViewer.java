@@ -59,7 +59,7 @@ public class DicomViewer extends RenderableComponentBase {
       myProps.add("drawXZ * *", "draw XY plane", true);
       myProps.add("drawXY * *", "draw XY plane", true);
       myProps.add("drawBox * *", "draw image box", true);
-      myProps.addReadOnly("pixelConverter", "pixel converter");
+      myProps.addReadOnly("pixelInterpolator", "pixel converter");
    }
    
    public PropertyList getAllPropertyInfo() {

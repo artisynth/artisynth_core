@@ -15,6 +15,7 @@ import maspack.render.RenderObject;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.FaceStyle;
+import maspack.render.Renderer.Shading;
 import maspack.render.ColorMapProps;
 import maspack.util.PathFinder;
 
@@ -144,6 +145,7 @@ public class MappingDemo extends RootModel {
          renderer.setColor (greenGold);                    // base color
          renderer.setSpecular (yellowGold);                // reflected color
 
+         renderer.setShading (Shading.SMOOTH);
          // set texture, normal and bump mappings if their properties are
 
          if (myTextureMapEnabled) {

@@ -13,6 +13,7 @@ import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.net.URL;
+import java.io.*;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -53,7 +54,7 @@ public class MainFrame extends JFrame {
 
    /** set the main frame constants */
 
-   private static final String ABOUT_ARTISYNTH_TEXT = "ArtiSynth 3.1";
+   private static String myArtiSynthVersion = null;
    private static final String ABOUT_MODEL_NO_DESC = "No description available";
    private static final String ABOUT_MODEL_NOT_LOADED = "No model loaded.";
    private static final String ABOUT_MODEL_TITLE = "About model";
@@ -323,15 +324,32 @@ public class MainFrame extends JFrame {
       frameHelp.setVisible (true);
    }
 
+   public String getArtiSynthVersion() {
+      if (myArtiSynthVersion == null) {
+         try {
+            BufferedReader reader = 
+               new BufferedReader (new FileReader (
+                  ArtisynthPath.getHomeRelativeFile ("VERSION", ".")));
+            myArtiSynthVersion = reader.readLine();
+            reader.close();
+         }
+         catch (IOException e) {
+            myArtiSynthVersion = 
+               "Version unknown: " + 
+               "can't find or read VERSION file in install directory";
+         }
+      }
+      return myArtiSynthVersion;
+   }
+   
    /**
     * display about artisynth dialog andreio: fixed memory allocation issues
     * 
     */
-
    public void displayAboutArtisynth() {
       
       frameHelp.setFrameTitleAndText (
-         ABOUT_ARTISYNTH_TITLE, ABOUT_ARTISYNTH_TEXT);
+         ABOUT_ARTISYNTH_TITLE, getArtiSynthVersion());
       frameHelp.setVisible (true);
    }
 

@@ -70,7 +70,11 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       @Override
       public void run () {
          while (!terminate) {
-            master.display ();
+            try {
+               master.display ();
+            } catch(Exception e) {
+            	e.printStackTrace();
+            }
             try {
                Thread.sleep (redrawInterval);
             } catch (InterruptedException e) {

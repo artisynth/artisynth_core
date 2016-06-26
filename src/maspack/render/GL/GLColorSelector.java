@@ -78,8 +78,8 @@ public class GLColorSelector extends GLSelector {
             lcolorId += r;
             int colorId = (int)(lcolorId & (0xFFFFFFFF));
             if (colorId != 0) {
-               int id = colorId/ID_STEP-ID_OFFSET + myQueryBase; // color id are incremented by 1
-               if (id < 0 || id >= myTotalMaxQ) {
+               int id = colorId/ID_STEP-ID_OFFSET+ myQueryBase; // color id are incremented by 1
+               if (id < 0 || id > myTotalMaxQ) {
                   if (!badIdWarningIssued) {
                      System.out.printf (
                         "Warning: Color selection id 0x%x out of range; "+
@@ -187,7 +187,8 @@ public class GLColorSelector extends GLSelector {
          flushQueries (myGl);
       }
       
-      int colorId = (myIdxBase+idx+ID_OFFSET+1-myQueryBase)*ID_STEP;
+      int colorId = (myIdxBase+idx+ID_OFFSET+1-myQueryBase)*ID_STEP; //
+      
       int r = 0xff & colorId;
       colorId >>= 8;
       int g = 0xff & colorId;

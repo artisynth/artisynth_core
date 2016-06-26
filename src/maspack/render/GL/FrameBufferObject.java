@@ -483,6 +483,8 @@ public class FrameBufferObject {
          GL.GL_UNSIGNED_BYTE,
          pixels);
       
+      // GLSupport.showImage(pixels, width, height);
+      
       // rebind as draw
       gl.glBindFramebuffer (GL2GL3.GL_DRAW_FRAMEBUFFER, FBOhandle);
 

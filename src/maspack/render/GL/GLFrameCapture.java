@@ -3,10 +3,12 @@ package maspack.render.GL;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import javax.imageio.ImageIO;
+import javax.media.opengl.GL2;
 import javax.media.opengl.GL2GL3;
 
 import maspack.threads.SimpleThreadManager;
@@ -64,6 +66,7 @@ public class GLFrameCapture {
    
    public void activateFBO(GL2GL3 gl) {
       fbo.activate(gl);
+      gl.glClear (GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
    }
    
    public void deactivateFBO(GL2GL3 gl) {
@@ -94,7 +97,7 @@ public class GLFrameCapture {
          if (format.equalsIgnoreCase("jpg") || format.equalsIgnoreCase("jpeg")) {
             image = new BufferedImage (width, height, BufferedImage.TYPE_INT_RGB);
          } else {
-            image = new BufferedImage (width, height, BufferedImage.TYPE_INT_ARGB);
+            image = new BufferedImage (width, height, BufferedImage.TYPE_INT_RGB);
          }
          
          image.setRGB (0, 0,
@@ -118,7 +121,6 @@ public class GLFrameCapture {
 
       // Get the ARGB pixels as integers.
       int[] pixelsARGB = fbo.getPixelsARGB (gl);
-
       if (imageThreadManager == null) {
          imageThreadManager = new SimpleThreadManager("GLFrameCapture", 1, 5000);
       }

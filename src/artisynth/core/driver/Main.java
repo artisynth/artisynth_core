@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.media.opengl.GLProfile;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
@@ -115,9 +116,11 @@ import maspack.render.Rotator3d;
 import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLMouseAdapter;
+import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
+import maspack.render.GL.GLSupport.GLVersionInfo;
 import maspack.solvers.PardisoSolver;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -565,9 +568,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    public Main (String windowName, int width, int height, GLVersion glVersion) {
       myMain = this;
-
+      
+      // check if GL3 version is supported
+      //      GLProfile glpmin = GLProfile.getMinimum(true);
+      //      GLProfile glpmax = GLProfile.getMaximum(true);
+      if (glVersion == GLVersion.GL3) {
+         GLVersionInfo vinfo = GLSupport.getGLVersionSupported();
+         
+         if ( (vinfo.getMajorVersion() < myGLVersion.getMajorVersion()) ||
+            ((vinfo.getMajorVersion() == myGLVersion.getMajorVersion()) && 
+               (vinfo.getMinorVersion() < myGLVersion.getMinorVersion()))) {
+            System.err.println("WARNING: " + glVersion.toString() + " is not supported on this system.");
+            System.err.println("     Required: OpenGL " + glVersion.getMajorVersion() + "." + glVersion.getMinorVersion());
+            System.err.println("     Available: OpenGL " + vinfo.getMajorVersion() + "." + vinfo.getMinorVersion());
+            glVersion = GLVersion.GL2;
+         }
+      }
+      
       myGLVersion = glVersion;
-
+      
       if (demosFilename.value != null) {
          readDemoNames(demosFilename.value);
       } else {

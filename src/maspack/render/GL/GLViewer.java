@@ -83,7 +83,24 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    HasProperties, Viewer {
 
    public enum GLVersion {
-      GL2, GL3
+      GL2(2, 1), 
+      GL3(3, 3);
+      
+      int major;
+      int minor;
+      
+      GLVersion(int major, int minor) {
+         this.major = major;
+         this.minor = minor;
+      }
+      
+      public int getMajorVersion() {
+         return major;
+      }
+      
+      public int getMinorVersion() {
+         return minor;
+      }
    }
    
    // Disposal

@@ -18,6 +18,12 @@ import java.nio.ByteBuffer;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
+import javax.media.opengl.GL3;
+import javax.media.opengl.GLAutoDrawable;
+import javax.media.opengl.GLCapabilities;
+import javax.media.opengl.GLDrawableFactory;
+import javax.media.opengl.GLEventListener;
+import javax.media.opengl.GLProfile;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -405,5 +411,98 @@ public class GLSupport {
          return false;
       }
       return true;
+   }
+   
+   public static class GLVersionInfo {
+      String renderer;
+      int majorVersion;
+      int minorVersion;
+      String version;
+      
+      public GLVersionInfo(String renderer, String version, int major, int minor) {
+         this.renderer = renderer;
+         this.version = version;
+         this.majorVersion = major;
+         this.minorVersion = minor;
+      }
+      
+      public String getVersionString() {
+         return version;
+      }
+      
+      public int getMajorVersion() {
+         return majorVersion;
+      }
+      
+      public int getMinorVersion() {
+         return minorVersion;
+      }
+      
+      public String getRenderer() {
+         return renderer;
+      }
+   }
+   
+   
+   private static class GLVersionListener implements GLEventListener {
+
+      volatile boolean valid = false;
+      
+      GLVersionInfo vinfo = null;
+      
+      @Override
+      public void init(GLAutoDrawable drawable) {
+         GL gl = drawable.getGL();
+         
+         String renderer = gl.glGetString(GL.GL_RENDERER);
+         String version = gl.glGetString(GL.GL_VERSION);
+         int[] buff = new int[2];
+         gl.glGetIntegerv(GL3.GL_MAJOR_VERSION, buff, 0);
+         gl.glGetIntegerv(GL3.GL_MINOR_VERSION, buff, 1);
+         int major = buff[0];
+         int minor = buff[1];
+         
+         vinfo = new GLVersionInfo(renderer, version, major, minor);
+         valid = true;
+      }
+
+      @Override
+      public void dispose(GLAutoDrawable drawable) {}
+
+      @Override
+      public void display(GLAutoDrawable drawable) {}
+
+      @Override
+      public void reshape(
+         GLAutoDrawable drawable, int x, int y, int width, int height) {}
+      
+      public GLVersionInfo getVersionInfo() {
+         return vinfo;
+      }
+      
+      public boolean isValid() {
+         return valid;
+      }
+         
+   }
+   
+   public static GLVersionInfo getGLVersionSupported() {
+      
+      GLProfile glp = GLProfile.getDefault();
+      GLCapabilities glc = new GLCapabilities(glp);
+
+      GLAutoDrawable dummy = GLDrawableFactory.getFactory(glp).createDummyAutoDrawable(null, true, glc, null);
+      GLVersionListener listener = new GLVersionListener();
+      dummy.addGLEventListener (listener);      
+      dummy.display(); // triggers GLContext object creation and native realization.
+      
+      while (!listener.isValid()) {
+      }
+      GLVersionInfo vinfo = listener.getVersionInfo();
+      
+      dummy.disposeGLEventListener(listener, true);
+      dummy.destroy();
+      
+      return vinfo;
    }
 }

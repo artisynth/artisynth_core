@@ -125,9 +125,11 @@ public class SurfaceMeshContourIxer {
             //break;
          } catch (DegeneratePairCaseException e) {
             System.out.println ("Caught a DegeneratePairCaseException, points perturbed and retrying");
+            mesh0.notifyVertexPositionsModified ();
+            mesh1.notifyVertexPositionsModified ();
          } catch (DegenerateLoopCaseException e) {
             if (exceptCntr > 5) {
-               System.out.println("Contour code failed! Giving up after 5 tries");
+               System.out.println("SurfaceMeshContourIxer failed! Giving up after 5 tries");
                break;
             }
             System.out.println ("Caught a DegenerateLoopCaseException, points perturbed and retrying");

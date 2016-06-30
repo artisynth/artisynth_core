@@ -84,6 +84,7 @@ public class EllipsoidWrapTest extends RootModel {
       spring.setDrawKnots (false);
       spring.setDrawABPoints (true);
       spring.setWrapDamping (100);
+      spring.setMaxWrapIterations (10);
 
       addModel (mechMod);
 
@@ -103,8 +104,8 @@ public class EllipsoidWrapTest extends RootModel {
       panel.addWidget (mech, "gravity");
       panel.addWidget (mech, "multiPointSprings/spring:drawKnots");
       panel.addWidget (mech, "multiPointSprings/spring:drawABPoints");
-      panel.addWidget (mech, "multiPointSprings/spring:drawABPoints");
       panel.addWidget (mech, "multiPointSprings/spring:wrapDamping");
+      panel.addWidget (mech, "multiPointSprings/spring:maxWrapIterations");
       addControlPanel (panel);
       Main.getMain().arrangeControlPanels (this);
    }

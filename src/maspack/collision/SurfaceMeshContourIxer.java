@@ -97,6 +97,7 @@ public class SurfaceMeshContourIxer {
 
       ArrayList<MeshIntersectionPoint> allMips = new ArrayList<MeshIntersectionPoint>();
       // Try getting allMips continuously until no DegenerateCases are caught
+      boolean intersected;
       while (true) {
          // Clear old saved results
          mySavedEdgeFaceResults.clear ();
@@ -111,6 +112,15 @@ public class SurfaceMeshContourIxer {
 
          try {
             getAllMIPs(allMips, nodes0, nodes1);
+
+            if (allMips.size() > 0) {
+               buildContours (myContours, allMips);
+               intersected = true;
+            }
+            else {
+               intersected = false;
+            }
+      
             break;
          } catch (DegenerateCaseException e) {
             System.out.println ("Caught a DegenerateCaseException, points perturbed and retrying");
@@ -119,17 +129,9 @@ public class SurfaceMeshContourIxer {
             continue;
          }
       }
-      
-      boolean intersected;
-      if (allMips.size() > 0) {
-         intersected = true;
-         buildContours (myContours, allMips);
-      }
-      else {
-         intersected = false;
-      }
-      
+
       return intersected;
+      
    }
    
    /**
@@ -142,27 +144,27 @@ public class SurfaceMeshContourIxer {
     */
    protected void buildContours (
             List<IntersectionContour> contours, 
-            ArrayList<MeshIntersectionPoint> mips) {
+            ArrayList<MeshIntersectionPoint> mips) throws DegenerateCaseException{
       while (mips.size() > 0) {
-         try {
+         //try {
             IntersectionContour contour = getOneContour (mips);
             if (contour != null) {
                contours.add (contour);
             }
-         } catch (DegenerateCaseException e) {
-            if (myHandleDegen) {
-               System.out.println("Caught a DegenerateCaseException while getting contours!");
-               System.out.println(e.getMessage ());
-               System.out.println("  This means it wasn't caught in getAllMips and we have some thinking to do.");
-               System.out.println("  Please yell at Andrew Ho to do something about it.");
-            } else {
-               System.out.println ("Caught a DegenerateCaseException! Degeneracy handling is disabled.");
-               System.out.println ("Use SurfaceMeshContourIxer.setHandleDegen(true) to perturb " +
-               		"\n  vertices slightly to try to resolve this case.");
-               mips.clear ();
-               break;
-            }
-         }
+         //} catch (DegenerateCaseException e) {
+         //   if (myHandleDegen) {
+         //      System.out.println("Caught a DegenerateCaseException while getting contours!");
+         //      System.out.println(e.getMessage ());
+         //      System.out.println("  This means it wasn't caught in getAllMips and we have some thinking to do.");
+         //      System.out.println("  Please yell at Andrew Ho to do something about it.");
+         //   } else {
+         //      System.out.println ("Caught a DegenerateCaseException! Degeneracy handling is disabled.");
+         //      System.out.println ("Use SurfaceMeshContourIxer.setHandleDegen(true) to perturb " +
+         //      		"\n  vertices slightly to try to resolve this case.");
+         //      mips.clear ();
+         //      break;
+         //   }
+         //}
       }
    }
    
@@ -348,7 +350,7 @@ public class SurfaceMeshContourIxer {
     */
    protected void perturbVertices (Face f) {
       double dx, dy, dz;
-      double eps = 1e-16;
+      double eps = 1e-12;
       for (Vertex3d v : f.getVertices ()) {
          dx = Math.random() * eps;
          dy = Math.random() * eps;

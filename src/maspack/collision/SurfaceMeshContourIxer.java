@@ -36,8 +36,7 @@ public class SurfaceMeshContourIxer {
    HashMap<EdgeFacePair, MeshIntersectionPoint> 
       mySavedEdgeFaceResults = new HashMap<EdgeFacePair, MeshIntersectionPoint>(); 
    
-   protected boolean myHandleDegen = true; 
-   
+   private final boolean myHandleDegen = true; 
    
    /*
     * Each contour is a list of MeshIntersectionPoints, each of which represents
@@ -60,9 +59,9 @@ public class SurfaceMeshContourIxer {
     * 
     * @param handle true if degenerate cases should be handled by perturbation, false otherwise.
     */
-   public void setHandleDegen (boolean handle) {
-      myHandleDegen = handle;
-   }
+   //public void setHandleDegen (boolean handle) {
+   //   myHandleDegen = handle;
+   //}
    
    public List<IntersectionContour> getContours () {
       return myContours;
@@ -98,6 +97,7 @@ public class SurfaceMeshContourIxer {
       ArrayList<MeshIntersectionPoint> allMips = new ArrayList<MeshIntersectionPoint>();
       // Try getting allMips continuously until no DegenerateCases are caught
       boolean intersected;
+      int exceptCntr = 0;
       while (true) {
          // Clear old saved results
          mySavedEdgeFaceResults.clear ();
@@ -121,17 +121,27 @@ public class SurfaceMeshContourIxer {
                intersected = false;
             }
       
-            break;
-         } catch (DegenerateCaseException e) {
-            System.out.println ("Caught a DegenerateCaseException, points perturbed and retrying");
+            return intersected;
+            //break;
+         } catch (DegeneratePairCaseException e) {
+            System.out.println ("Caught a DegeneratePairCaseException, points perturbed and retrying");
+         } catch (DegenerateLoopCaseException e) {
+            if (exceptCntr > 5) {
+               System.out.println("Contour code failed! Giving up after 5 tries");
+               break;
+            }
+            System.out.println ("Caught a DegenerateLoopCaseException, points perturbed and retrying");
+            System.out.println (e.getMessage ());
+            perturbVertices (mesh0);
+            perturbVertices (mesh1);
             mesh0.notifyVertexPositionsModified ();
             mesh1.notifyVertexPositionsModified ();
+            exceptCntr++;
             continue;
          }
       }
 
-      return intersected;
-      
+      return false;
    }
    
    /**
@@ -144,7 +154,7 @@ public class SurfaceMeshContourIxer {
     */
    protected void buildContours (
             List<IntersectionContour> contours, 
-            ArrayList<MeshIntersectionPoint> mips) throws DegenerateCaseException{
+            ArrayList<MeshIntersectionPoint> mips) throws DegenerateLoopCaseException{
       while (mips.size() > 0) {
          //try {
             IntersectionContour contour = getOneContour (mips);
@@ -180,8 +190,7 @@ public class SurfaceMeshContourIxer {
     */
    protected IntersectionContour getOneContour (
       ArrayList<MeshIntersectionPoint> mips) 
-
-         throws DegenerateCaseException {
+         throws DegenerateLoopCaseException {
       if (mips.size() == 0) { 
           return null;
       }
@@ -276,7 +285,7 @@ public class SurfaceMeshContourIxer {
          if (nextMip == null) {
             System.out.println("mips.size(): " + mips.size());
             System.out.println("contour.size(): " + contour.size());
-            throw new DegenerateCaseException ("Couldn't find next intersection point!");
+            throw new DegenerateLoopCaseException ("Couldn't find next intersection point!");
          }
          
          mip = nextMip;
@@ -288,7 +297,7 @@ public class SurfaceMeshContourIxer {
             if (contour.myIsOpen) {
                System.out.println("Open contour");
             }
-            throw new DegenerateCaseException ("Warning! nextMip wasn't in mips!!! aborting");
+            throw new DegenerateLoopCaseException ("Warning! nextMip wasn't in mips!!! aborting");
          }
       }
 
@@ -306,13 +315,13 @@ public class SurfaceMeshContourIxer {
     * @param nodes0 first list of BVs from BVTree.intersectTree
     * @param nodes1 second list of BVs from BVTree.intersectTree (same length as nodes0)
     * 
-    * @throws DegenerateCaseException if a degenerate case is detected. 
+    * @throws DegeneratePairCaseException if a degenerate case is detected. 
     *           Points of those faces are perturbed before this exception is re-thrown 
     */
    protected void getAllMIPs (
          ArrayList<MeshIntersectionPoint> allMips, 
          ArrayList<BVNode> nodes0, ArrayList<BVNode> nodes1) 
-         throws DegenerateCaseException {
+         throws DegeneratePairCaseException {
       assert nodes0.size() == nodes1.size();
       
       for (int i=0; i<nodes0.size(); i++) {
@@ -334,12 +343,18 @@ public class SurfaceMeshContourIxer {
                         perturbVertices (f0);
                         perturbVertices (f1);
 //                        System.out.println("Found " + numFound + " ixps");
-                        throw new DegenerateCaseException();
+                        throw new DegeneratePairCaseException();
                      }
                   }
                }
             }
          }
+      }
+   }
+   
+   protected void perturbVertices (PolygonalMesh mesh) {
+      for (Face f : mesh.getFaces()) {
+         perturbVertices(f);
       }
    }
    
@@ -495,11 +510,26 @@ public class SurfaceMeshContourIxer {
    }
    
    public static class DegenerateCaseException extends Exception {
-
       public DegenerateCaseException () {
          super();
       }
       public DegenerateCaseException (String string) {
+         super(string);
+      }
+   }
+   public static class DegeneratePairCaseException extends DegenerateCaseException {
+      public DegeneratePairCaseException () {
+         super();
+      }
+      public DegeneratePairCaseException (String string) {
+         super(string);
+      }
+   }
+   public static class DegenerateLoopCaseException extends DegenerateCaseException {
+      public DegenerateLoopCaseException () {
+         super();
+      }
+      public DegenerateLoopCaseException (String string) {
          super(string);
       }
    }

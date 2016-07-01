@@ -1381,7 +1381,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myViewState.myCenter.add (offset);
       Point3d eye = getEye();
       eye.add(offset);
-      setEye(eye);
+      setEyeToWorld (eye, myViewState.myCenter, getActualUpVector()); 
 
       repaint();
    }
@@ -1416,7 +1416,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
             reye.inverseTransform (viewMatrix);
          }
          eye.scaledAdd (s - 1, reye);
-         setEye(eye);
+         setEyeToWorld (eye, myViewState.myCenter, getActualUpVector());
       }
       repaint();
    }
@@ -2805,6 +2805,22 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
+    * Returns the actual up vector. This can differ from the default value
+    * returned by getUpVector() if the rotation mode is CONTINUOUS, in which
+    * case the up vector is allowed to deviate from the default value.
+    */
+   private Vector3d getActualUpVector() {
+      Vector3d up = new Vector3d();
+      if (myRotationMode == RotationMode.CONTINUOUS) {
+         viewMatrix.R.getRow(1, up);         
+      }
+      else {
+         up.set (myViewState.myUp);
+      }
+      return up;
+   }
+
+   /**
     * {@inheritDoc}
     */
    public boolean hasSelection() {
@@ -3116,7 +3132,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public abstract boolean grabPending();
 
    public void setRotationMode (RotationMode mode) {
-      myRotationMode = mode;
+      if (myRotationMode != mode) {
+         myRotationMode = mode;
+         if (mode == RotationMode.DEFAULT) {
+            // reset eye transform so that up vector matches the default up vector
+            setEyeToWorld (getEye(), myViewState.myCenter, getUpVector());
+         }
+      }
    }
 
    public RotationMode getRotationMode() {

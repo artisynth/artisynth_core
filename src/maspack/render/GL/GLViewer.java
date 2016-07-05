@@ -1594,11 +1594,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       GL gl = drawable.getGL ();
       String renderer = gl.glGetString(GL.GL_RENDERER);
       String version = gl.glGetString(GL.GL_VERSION);
-      int[] buff = new int[2];
-      gl.glGetIntegerv(GL3.GL_MAJOR_VERSION, buff, 0);
-      gl.glGetIntegerv(GL3.GL_MINOR_VERSION, buff, 1);
       System.out.println("GL Renderer: " + renderer);
-      System.out.println("OpenGL Version: " + version + " (" + buff[0] + "," + buff[1] + ")");
+      System.out.println("OpenGL Version: " + version);
       
       setMultiSampleEnabled (true);
       myActiveColor = ActiveColor.DEFAULT;

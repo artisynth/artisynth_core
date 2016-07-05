@@ -21,6 +21,8 @@ import javax.media.opengl.awt.GLJPanel;
 
 import maspack.render.TextureContent;
 import maspack.render.TextureContent.ContentFormat;
+import maspack.render.GL.GLSupport.GLVersionInfo;
+import maspack.render.GL.GLSupport.GLVersionListener;
 import maspack.util.BufferUtilities;
 import maspack.util.Rectangle;
 
@@ -43,7 +45,6 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    HashMap<TextureContent, GLTexture> textureMap;
    
    GLTextureLoader textureLoader;
-   
    long garbageCollectionInterval;
    boolean garbageTimerEnabled;
    MasterRedrawThread masterRedrawThread;
@@ -149,10 +150,19 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
          final GLProfile glp = glCapabilities.getGLProfile();
          masterDrawable = GLDrawableFactory.getFactory(glp).createDummyAutoDrawable(null, true, glCapabilities, null);
          
+         GLVersionListener glv = new GLVersionListener ();
          masterDrawable.addGLEventListener (this);
          masterDrawable.addGLEventListener (garbageman);
+         masterDrawable.addGLEventListener (glv);
          
          masterDrawable.display(); // triggers GLContext object creation and native realization.
+         
+         while(!glv.isValid ()) {
+         }
+         GLVersionInfo version = glv.getVersionInfo ();
+         System.out.println (version.getVersionString ());
+         
+         masterDrawable.removeGLEventListener (glv);
          
          if (garbageTimerEnabled) {
             masterRedrawThread = new MasterRedrawThread (masterDrawable, garbageCollectionInterval);

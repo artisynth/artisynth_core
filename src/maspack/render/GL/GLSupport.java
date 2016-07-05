@@ -14,7 +14,10 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
+import java.io.IOException;
+import java.io.StringReader;
 import java.nio.ByteBuffer;
+import java.util.Scanner;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
@@ -36,6 +39,7 @@ import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.util.BufferUtilities;
+import maspack.util.ReaderTokenizer;
 
 public class GLSupport {
 
@@ -444,7 +448,7 @@ public class GLSupport {
    }
    
    
-   private static class GLVersionListener implements GLEventListener {
+   public static class GLVersionListener implements GLEventListener {
 
       volatile boolean valid = false;
       
@@ -455,12 +459,24 @@ public class GLSupport {
          GL gl = drawable.getGL();
          
          String renderer = gl.glGetString(GL.GL_RENDERER);
+         GLSupport.checkAndPrintGLError (gl);
          String version = gl.glGetString(GL.GL_VERSION);
-         int[] buff = new int[2];
-         gl.glGetIntegerv(GL3.GL_MAJOR_VERSION, buff, 0);
-         gl.glGetIntegerv(GL3.GL_MINOR_VERSION, buff, 1);
-         int major = buff[0];
-         int minor = buff[1];
+         GLSupport.checkAndPrintGLError (gl);
+         
+         // XXX on older machines, must parse version string
+         Scanner scanf = new Scanner (version.trim ().split (" ", 2)[0]);
+         scanf.useDelimiter ("\\.");
+         int major = scanf.nextInt ();
+         int minor = scanf.nextInt ();
+         scanf.close ();
+         
+         // int[] buff = new int[2];
+         // gl.glGetIntegerv(GL3.GL_MAJOR_VERSION, buff, 0);
+         // GLSupport.checkAndPrintGLError (gl);
+         // gl.glGetIntegerv(GL3.GL_MINOR_VERSION, buff, 1);
+         // GLSupport.checkAndPrintGLError (gl);
+         // int major = buff[0];
+         // int minor = buff[1];
          
          vinfo = new GLVersionInfo(renderer, version, major, minor);
          valid = true;
@@ -486,11 +502,22 @@ public class GLSupport {
          
    }
    
-   public static GLVersionInfo getGLVersionSupported() {
+   public static GLVersionInfo getMinGLVersionSupported() {
+      // get minimum profile
+      GLProfile glp = GLProfile.get (GLProfile.GL_PROFILE_LIST_MIN, true);
+      return getVersionInfo(glp);
+   }
+   
+   public static GLVersionInfo getMaxGLVersionSupported() {
+      // get maximum profile
+      GLProfile glp = GLProfile.get (GLProfile.GL_PROFILE_LIST_MAX, true);
+      return getVersionInfo(glp);
+   }
+   
       
-      GLProfile glp = GLProfile.getDefault();
+   public static GLVersionInfo getVersionInfo(GLProfile glp) {
+      
       GLCapabilities glc = new GLCapabilities(glp);
-
       GLAutoDrawable dummy = GLDrawableFactory.getFactory(glp).createDummyAutoDrawable(null, true, glc, null);
       GLVersionListener listener = new GLVersionListener();
       dummy.addGLEventListener (listener);      
@@ -499,7 +526,6 @@ public class GLSupport {
       while (!listener.isValid()) {
       }
       GLVersionInfo vinfo = listener.getVersionInfo();
-      
       dummy.disposeGLEventListener(listener, true);
       dummy.destroy();
       

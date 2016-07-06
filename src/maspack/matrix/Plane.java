@@ -550,6 +550,10 @@ public class Plane implements java.io.Serializable {
       return normal;
    }
 
+   public void setNormal(Vector3d nrm) {
+      normal.set(nrm);
+   }
+   
    /**
     * Returns the offset for this plane.
     * 
@@ -557,6 +561,10 @@ public class Plane implements java.io.Serializable {
     */
    public double getOffset() {
       return offset;
+   }
+   
+   public void setOffset(double o) {
+      offset = o;
    }
 
    /**

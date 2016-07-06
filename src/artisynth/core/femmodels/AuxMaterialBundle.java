@@ -180,6 +180,11 @@ public class AuxMaterialBundle extends CompositeComponentBase
       setDefaultValues();
    }
 
+   
+   public AuxMaterialBundle(String name, FemMaterial mat) {
+      this(name);
+      setMaterial(mat);
+   }
 
    public FemMaterial getMaterial() {
       return myMat;

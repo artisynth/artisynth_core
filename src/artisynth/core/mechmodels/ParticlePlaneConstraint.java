@@ -56,6 +56,7 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
 
    static {
       myProps.add ("renderProps", "render properties", defaultRenderProps(null));
+      myProps.add ("planeSize", "plane size", defaultPlaneSize);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -99,6 +100,16 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
       addParticle (p);
    }
 
+   public void setPlane(Plane p) {
+      myNrm.set (p.normal);
+      myOff = p.getOffset();
+      myCenter.scale(myOff, myNrm);
+   }
+   
+   public Plane getPlane() {
+      return new Plane(myNrm, myOff);
+   }
+   
    public Point3d getCenter() {
       return new Point3d (myCenter);
    }

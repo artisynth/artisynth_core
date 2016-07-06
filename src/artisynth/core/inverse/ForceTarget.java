@@ -111,14 +111,12 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
    
    @Override
    public void render (Renderer renderer, int flags) {
-      System.out.println ("ForceTarget-ren");
       renderer.drawArrow (getRenderProps (), start, end, true, isSelected ());
    }
 
    @Override
    public void prerender (RenderList list) {
       super.prerender (list);
-      System.out.println ("ForceTarget-preren");
       if (myConstraint instanceof PlanarConnector) {
          RigidTransform3d TDW = myConstraint.getCurrentTDW ();
          startvec = TDW.p;

@@ -122,6 +122,7 @@ public class TrackingController extends ControllerBase
    // component and reference lists for associated targets/sources/exciters
    protected PointList<TargetPoint> targetPoints;
    protected RenderableComponentList<TargetFrame> targetFrames;
+   protected RenderableComponentList<ForceTarget> targetForces;
    protected ComponentList<ExcitationComponent> exciters;
    protected ReferenceList sourcePoints;
    protected ReferenceList sourceFrames;
@@ -210,6 +211,13 @@ public class TrackingController extends ControllerBase
       // always show this component, even if it's empty:
       targetFrames.setNavpanelVisibility (NavpanelVisibility.ALWAYS);
       add (targetFrames);
+      
+      // list of target reaction forces that store/show the target forces
+      targetForces =
+         new RenderableComponentList<ForceTarget> (ForceTarget.class, "targetForces");
+      // always show this component, even if it's empty:
+      targetForces.setNavpanelVisibility (NavpanelVisibility.ALWAYS);
+      add (targetForces);
 
       // list of excitations that store the computed excitations from the tracking simulation
       exciters =

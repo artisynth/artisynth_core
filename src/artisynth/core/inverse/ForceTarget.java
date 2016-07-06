@@ -1,19 +1,22 @@
 package artisynth.core.inverse;
 
+import artisynth.core.mechmodels.BodyConnector;
+import artisynth.core.mechmodels.PlanarConnector;
+import artisynth.core.mechmodels.SphericalJoint;
+import artisynth.core.modelbase.RenderableComponentBase;
 import maspack.matrix.Matrix1x1Block;
-import maspack.matrix.Matrix3x3Block;
 import maspack.matrix.Matrix3x3DiagBlock;
 import maspack.matrix.MatrixBlock;
+import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.HasProperties;
-import maspack.properties.Property;
 import maspack.properties.PropertyList;
-import artisynth.core.mechmodels.PlanarConnector;
-import artisynth.core.mechmodels.BodyConnector;
-import artisynth.core.mechmodels.SphericalJoint;
-import artisynth.core.mechmodels.BodyConnector;
-import artisynth.core.modelbase.ModelComponentBase;
+import maspack.render.LineRenderProps;
+import maspack.render.RenderList;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
 
 /**
  * Force Target base class
@@ -21,16 +24,26 @@ import artisynth.core.modelbase.ModelComponentBase;
  * @author Ian Stavness, Benedikt Sagl
  *
  */
-public class ForceTarget extends ModelComponentBase implements HasProperties {
+public class ForceTarget extends RenderableComponentBase implements HasProperties {
    protected VectorNd myTargetLambda = null;
    protected BodyConnector myConstraint;
 //   public static double[] lam = { 0 };
 //   public static VectorNd DEFAULT_FORCE_TARGET = new VectorNd (lam);
 
+
+   public static final double DEFAULT_ARROW_SIZE = 1d;
+   double arrowSize = DEFAULT_ARROW_SIZE;
+
+   static private RenderProps defaultRenderProps = new LineRenderProps ();
+
    public static PropertyList myProps = new PropertyList (ForceTarget.class);
 
    static {
+      myProps.add (
+         "renderProps * *", "render properties for this component",
+         defaultRenderProps);
       myProps.add ("targetLambda", "force targets", null);
+      myProps.add ("arrowSize * *", "arrow size", DEFAULT_ARROW_SIZE);
    }
    
    public PropertyList getAllPropertyInfo () {
@@ -38,9 +51,11 @@ public class ForceTarget extends ModelComponentBase implements HasProperties {
    }
 
    public ForceTarget () {
+      setRenderProps (createRenderProps ());
    }
 
    public ForceTarget (VectorNd lam, BodyConnector con) {
+      this();
       myTargetLambda = new VectorNd(lam);
       myConstraint = con;
       setName (con.getName ()+"_target");
@@ -82,4 +97,56 @@ public class ForceTarget extends ModelComponentBase implements HasProperties {
       }
       return bi++;
    }
+   
+   float[] start = new float[3];
+   float[] end = new float[3];
+   Vector3d startvec = new Vector3d ();
+   Vector3d endvec = new Vector3d ();
+   
+   private void set (float[] dest, Vector3d src) {
+      dest[0] = (float)src.get (0);
+      dest[1] = (float)src.get (1);
+      dest[2] = (float)src.get (2);
+   }
+   
+   @Override
+   public void render (Renderer renderer, int flags) {
+      System.out.println ("ForceTarget-ren");
+      renderer.drawArrow (getRenderProps (), start, end, true, isSelected ());
+   }
+
+   @Override
+   public void prerender (RenderList list) {
+      super.prerender (list);
+      System.out.println ("ForceTarget-preren");
+      if (myConstraint instanceof PlanarConnector) {
+         RigidTransform3d TDW = myConstraint.getCurrentTDW ();
+         startvec = TDW.p;
+         endvec.transform (TDW, Vector3d.Z_UNIT);
+         endvec.scale (arrowSize/endvec.norm ());
+         endvec.scale (myTargetLambda.get (0));
+         endvec.add (startvec);
+         set (start, startvec);
+         set (end, endvec);
+      }
+      else if (myConstraint instanceof SphericalJoint) {
+         startvec = myConstraint.getCurrentTCW ().p;
+         endvec.x = myTargetLambda.get (0) * arrowSize;
+         endvec.y = myTargetLambda.get (1) * arrowSize;
+         endvec.z = myTargetLambda.get (2) * arrowSize;
+         endvec.add (startvec);
+         set (start, startvec);
+         set (end, endvec);
+      }
+   }
+   
+   public void setArrowSize (double size) {
+      arrowSize = size;
+   }
+
+   public double getArrowSize () {
+      return arrowSize;
+   }
+
+
 }

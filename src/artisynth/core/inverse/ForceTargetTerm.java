@@ -305,17 +305,22 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    
    
    */
-   public void addForceTarget(BodyConnector con) {
-      addForceTarget (con, new VectorNd (con.numBilateralConstraints ()));
+   public ForceTarget addForceTarget(BodyConnector con) {
+      ForceTarget forceTarget = addForceTarget (
+         con, new VectorNd (con.numBilateralConstraints ()));
+      myController.targetForces.add (forceTarget);
+      return forceTarget;
    }
 
    
-   public void addForceTarget(BodyConnector con, VectorNd lam)
+   public ForceTarget addForceTarget(BodyConnector con, VectorNd lam)
    {
-      myForceTargets.add (new ForceTarget(lam,con));
+      ForceTarget forceTarget = new ForceTarget(lam,con);
+      myForceTargets.add (forceTarget);
       double weight=1;
       myTargetForceWeights.add(weight);
       myTargetForSize += con.numBilateralConstraints ();
+      return forceTarget;
    }  
    
    private void updateWeightsVector() {

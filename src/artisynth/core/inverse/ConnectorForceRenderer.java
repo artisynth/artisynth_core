@@ -85,6 +85,7 @@ public class ConnectorForceRenderer extends MonitorBase {
    }
 
    public void prerender (SphericalJoint myConnector) {
+      // TODO: fix activation scale here (divide by timestep?)
       startvec = myConnector.getCurrentTCW ().p;
       endvec.x = myConnector.getActivation (0) * arrowSize;
       endvec.y = myConnector.getActivation (1) * arrowSize;

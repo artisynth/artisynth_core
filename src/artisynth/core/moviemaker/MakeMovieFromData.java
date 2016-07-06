@@ -56,7 +56,7 @@ public class MakeMovieFromData implements ControllerListener, DataSinkListener {
       System.out.println ("output file = " + fileName);
       
       Vector<String> inputFiles = new Vector<String> ();
-      for (int i = 1; i < nFrames; i++) {
+      for (int i = 0; i < nFrames; i++) {
          inputFiles.addElement (frameFileNames[i]);
       }
       

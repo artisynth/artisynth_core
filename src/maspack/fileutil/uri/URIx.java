@@ -67,7 +67,7 @@ public class URIx {
 
    private static final String PATH_RESERVED = "?#[]@ ";
    private static final String STANDARD_RESERVED = "/?#[]@ ";
-   private static final String PASSWORD_RESERVED = "/?#[]@ ";
+   private static final String PASSWORD_RESERVED = ":/?#[]@ ";
    private static final String QUERY_RESERVED = "+/?#[]";
    private static final String FRAGMENT_RESERVED = "/?#[] ";
    // private static final String ZIP_FRAGMENT_RESERVED = "!/?#[]";

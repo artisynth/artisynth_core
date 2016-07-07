@@ -44,20 +44,13 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
   // protected ArrayList<ForceTargetComponent> myForceSources;                    // ONE LIST!!!! + seperate weigh variables; uses lambda + target lambda for error
    protected ArrayList<ForceTarget> myForceTargets;            //NEW INTERFACE? + in seperated variables??? or use the same ones?
    protected VectorNd myForTargetWgts;
-      protected ArrayList<Double> myTargetForceWeights;                                                                     //NEW SECOND WEIGHT VARIABLE FOR FORCES?
-  
-   protected RenderProps targetRenderProps;
-   protected RenderProps sourceRenderProps;
+   protected ArrayList<Double> myTargetForceWeights;                                                                     //NEW SECOND WEIGHT VARIABLE FOR FORCES?
  
    protected VectorNd myTargetLam = null;
  
-   
-   //double[] values={0,1,0,0};                  //////////////////////////////////////////////////////////////////////////
-  // protected MatrixNd myForJacobian = new MatrixNd (1, 4, values);   
    protected SparseBlockMatrix myForJacobian = null;
    protected VectorNd myTargetFor;
    protected int myTargetForSize;
-   
 
    public static boolean DEFAULT_NORMALIZE_H = false;
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
@@ -70,12 +63,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    
    static double[] val={1,1};
    public static VectorNd DEFAULT_WEIGHTS= new VectorNd (val);
-   
-   private static final int POINT_ENTRY_SIZE = 3;
-   private static final int FRAME_POS_SIZE = 6;
-   private static final int FRAME_VEL_SIZE = 7;
-
-   protected VectorNd myCurrentVel = null;
 
    public static PropertyList myProps =
       new PropertyList(ForceTargetTerm.class, LeastSquaresTermBase.class);
@@ -104,42 +91,22 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       super();
       myMech = trackingController.getMech();
       myController = trackingController;
-      myForceTargets = new ArrayList<ForceTarget>();
-      
-  
+      myForceTargets = new ArrayList<ForceTarget>();  
       myTargetForceWeights = new ArrayList<Double>();
-      initTargetRenderProps();
-      initSourceRenderProps();
-   }
-
-   public void updateTarget(double t0, double t1) {
-           updateTargetForce();
-     
    }
    
-   public void updateTargetForce()
-   {
-      if (myTargetFor == null || myTargetFor.size() != myTargetForSize)
-         myTargetFor = new VectorNd(myTargetForSize);
-      double[] buf = myTargetFor.getBuffer();
-      
+   public void updateTargetForce (double t0, double t1) {
+      if (myTargetFor == null || myTargetFor.size () != myTargetForSize)
+         myTargetFor = new VectorNd (myTargetForSize);
+      double[] buf = myTargetFor.getBuffer ();
       
       int idx = 0;
-      for (int i = 0; i < myForceTargets.size(); i++) {
-         ForceTarget target = myForceTargets.get(i);
+      for (int i = 0; i < myForceTargets.size (); i++) {
+         ForceTarget target = myForceTargets.get (i);
          VectorNd lambda = target.getTargetLambda ();
-       
-            buf[i] = lambda.get (0);   //work only for planar constraints
-        
+         lambda.get (buf, idx);
       }
-//   System.out.println(myTargetFor);
-   /*for (int i=0; i<myForceTargets.size();i++)
-      {
-         myTargetFor.
-         double[] val={1};
-         myForTargetWgts= new VectorNd (val);
-      }*/
-   
+//      System.out.println("targetForce = "+myTargetFor); 
    }
    
  /*  public void updateForceError()
@@ -167,53 +134,12 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    }
 
    public void setEnabled(boolean enabled) {
+      // TODO: use enabled flag
       this.enabled = enabled;
-      // if (myMech != null && myMech instanceof MechModel) {
-      // ((MechModel)myMech).setDynamicsEnabled(enabled);
-      // }
-   }
-
-   private VectorNd myVel = new VectorNd();
-
-   public VectorNd getCurrentVel() {
-      if (myVel.size() != myMech.getActiveVelStateSize()) {
-         myVel.setSize(myMech.getActiveVelStateSize());
-      }
-      myMech.getActiveVelState(myVel);
-      return myVel;
    }
 
    double[] tmpBuf = new double[3];
 
-   public void initTargetRenderProps() {
-      targetRenderProps = new RenderProps();
-      targetRenderProps.setDrawEdges(true);
-      targetRenderProps.setFaceStyle(FaceStyle.NONE);
-      targetRenderProps.setLineColor(Color.CYAN);
-      targetRenderProps.setLineWidth(2);
-      targetRenderProps.setPointColor(Color.CYAN);
-      targetRenderProps.setPointStyle(PointStyle.SPHERE);
-      // set target point radius explicitly
-//      targetRenderProps.setPointRadius (myController.targetsPointRadius);
-      
-      myController.targetPoints.setRenderProps (targetRenderProps);
-      myController.targetFrames.setRenderProps (targetRenderProps);
-      
-      // RENDERPROPS FOR FORCE TARGET????
-   }
-   
-   public void initSourceRenderProps() {
-      sourceRenderProps = new RenderProps();
-      sourceRenderProps.setDrawEdges(true);
-      sourceRenderProps.setFaceStyle(FaceStyle.NONE);
-      sourceRenderProps.setLineColor(Color.CYAN);
-      sourceRenderProps.setLineWidth(2);
-      sourceRenderProps.setPointColor(Color.CYAN);
-      sourceRenderProps.setPointStyle(PointStyle.SPHERE);
-      // modRenderProps.setAlpha(0.5);
-   }
-
-   
    
    public SparseBlockMatrix getForceJacobian() {
       if (myForJacobian == null) {
@@ -370,14 +296,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       myTargetForceWeights.clear ();
    }
 
-   private void updateModelVelocity() {
-      int n = myMech.getActiveVelStateSize();
-      if (myCurrentVel == null || myCurrentVel.size() != n)
-         myCurrentVel = new VectorNd(n);
-      myMech.getActiveVelState(myCurrentVel);
-   }
-
-
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
     * @param H LHS matrix to fill
@@ -393,9 +311,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       
 //      System.out.println("using pre-comp data");
 
-      updateTarget(t0, t1); // set myTargetVel
-      updateModelVelocity(); // set myCurrentVel
-//      fixTargetPositions();   // XXX not sure why this is needed
+      updateTargetForce (t0, t1); // set myTargetForce
       
       VectorNd cbar = new VectorNd (myTargetForSize);
       // XXX do useTimestepScaling, useNormalizeH on targetVel
@@ -471,9 +387,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       super.setWeight(w);
    }
 
-   public RenderProps getTargetRenderProps() {
-      return targetRenderProps;
-   }
+
    public void setTargetWeights(VectorNd wgts) {
       
       if (wgts.size() == myForceTargets.size()) {
@@ -532,13 +446,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       return out;
    }
 
-   /**
-    * Render props for the sources
-    */
-   public RenderProps getSourceRenderProps() {
-      return sourceRenderProps;
-   }
-
    
    /**
     * Sets whether or not to normalize the contribution to <code>H</code>
@@ -575,11 +482,6 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       
    }
 
-  /* public void setForJacobian(double[] val)
-   {
-      //myForJacobian= new MatrixNd (1, 4, val);
-      myForJacobian= new MatrixNd (1,  val.length, val);
-   }*/
    public ArrayList<ForceTarget> getForceTargets()
    {
       return myForceTargets;

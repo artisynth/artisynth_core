@@ -7,7 +7,6 @@
 package artisynth.core.femmodels;
 
 import maspack.matrix.*;
-import maspack.util.*;
 
 /** 
  * Provides some general utilities for FEM computations. Some of these
@@ -131,56 +130,45 @@ public class FemUtilities {
       double dia = s*(1-nu)/(1-2*nu);
       double off = s*nu/(1-2*nu);
       double di2 = 0.5*s;
-
+      
       double gjx = gj.x*dv;
       double gjy = gj.y*dv;
       double gjz = gj.z*dv;
-
-      double dm00 = dia*gjx;
-      double dm01 = off*gjy;
-      double dm02 = off*gjz;
       
-      double dm10 = off*gjx;
-      double dm11 = dia*gjy;
-      //double dm12 = dm02;
+      double dgjx = dia*gjx;
+      double dgjy = dia*gjy;
+      double dgjz = dia*gjz;
       
-      //double dm20 = dm10;
-      //double dm21 = dm01;
-      double dm22 = dia*gjz;
+      double ogjx = off*gjx;
+      double ogjy = off*gjy;
+      double ogjz = off*gjz;
       
-      double dm30 = di2*gjy;
-      double dm31 = di2*gjx;
-      //double dm32 = 0;
-      
-      //double dm40 = 0;
-      double dm41 = di2*gjz;
-      //double dm42 = dm30;
-      
-      //double dm50 = dm22;
-      //double dm51 = 0;
-      //double dm52 = dm31;
+      double d2gjx = di2*gjx;
+      double d2gjy = di2*gjy;
+      double d2gjz = di2*gjz;
 
       double gix = gi.x;
       double giy = gi.y;
       double giz = gi.z;
 
-      double giy_dm30 = giy*dm30;
-      double gix_dm31 = gix*dm31;
-      double giz_dm22 = giz*dm22;
+      double gixd2gjx = gix*d2gjx;
+      double giyd2gjy = giy*d2gjy;
+      double gizd2gjz = giz*d2gjz;
+      
+      K.m00 += gix*dgjx + giyd2gjy + gizd2gjz;
+      K.m01 += gix*ogjy + giy*d2gjx;
+      K.m02 += gix*ogjz + giz*d2gjx;
 
-      K.m00 += gix*dm00 + giy_dm30 + giz_dm22;
-      K.m01 += gix*dm01 + giy*dm31;
-      K.m02 += gix*dm02 + giz*dm31;
+      K.m10 += giy*ogjx + gix*d2gjy;
+      K.m11 += giy*dgjy + gixd2gjx + gizd2gjz;
+      K.m12 += giy*ogjz + giz*d2gjy;
 
-      K.m10 += giy*dm10 + gix*dm30;
-      K.m11 += giy*dm11 + gix_dm31 + giz*dm41;
-      K.m12 += giy*dm02 + giz*dm30;
+      K.m20 += giz*ogjx + gix*d2gjz;
+      K.m21 += giz*ogjy + giy*d2gjz;
+      K.m22 += giz*dgjz + giyd2gjy + gixd2gjx;
 
-      K.m20 += giz*dm10 + gix*dm22;
-      K.m21 += giz*dm01 + giy*dm41;
-      K.m22 += giz_dm22 + giy_dm30 + gix_dm31;
    }
-
+   
    /** 
     * Adds pressure stiffness to the matrix Kij via the formula
     * <pre>

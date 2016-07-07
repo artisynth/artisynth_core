@@ -6,45 +6,39 @@
  */
 package artisynth.core.inverse;
 
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.mechmodels.MotionTargetComponent;
-import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.util.TimeBase;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
-import maspack.render.RenderProps;
-import maspack.render.Renderer;
-import maspack.render.Renderer.FaceStyle;
-import maspack.render.Renderer.PointStyle;
 
 /**
- * Force error term for the TrackingController
+ * Reaction force error term for the TrackingController
  * 
  * @author Ian Stavness, Benedikt Sagl
  *
  */
 public class ForceTargetTerm extends LeastSquaresTermBase {
 
-   public static final boolean DEFAULT_USE_PD_CONTROL = false;
-   boolean usePDControl = DEFAULT_USE_PD_CONTROL;
+   public static final double DEFAULT_WEIGHT = 1d;
+   
    boolean debug = false;
    boolean enabled = true;
-   double CONSTR_FOR_SIZE=1;
 
-   protected MechSystemBase myMech;    // mech system, used to compute forces
    protected TrackingController myController; // controller to which this term is associated
+   protected MechSystemBase myMech;    // mech system, used to compute forces
       
-  // protected ArrayList<ForceTargetComponent> myForceSources;                    // ONE LIST!!!! + seperate weigh variables; uses lambda + target lambda for error
+   // protected ArrayList<ForceTargetComponent> myForceSources;                    // ONE LIST!!!! + seperate weigh variables; uses lambda + target lambda for error
    protected ArrayList<ForceTarget> myForceTargets;            //NEW INTERFACE? + in seperated variables??? or use the same ones?
-   protected VectorNd myForTargetWgts;
-   protected ArrayList<Double> myTargetForceWeights;                                                                     //NEW SECOND WEIGHT VARIABLE FOR FORCES?
+   protected VectorNd myTargetWgts = null; // size of myTargetForceSize
+   protected ArrayList<Double> myTargetWeights;                                                                     //NEW SECOND WEIGHT VARIABLE FOR FORCES?
  
    protected VectorNd myTargetLam = null;
  
@@ -55,86 +49,55 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    public static boolean DEFAULT_NORMALIZE_H = false;
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
    
-   public static double DEFAULT_Kd = 1.0;
-   protected double Kd = DEFAULT_Kd;
-
-   public static double DEFAULT_Kp = 100;
-   protected double Kp = DEFAULT_Kp;
-   
-   static double[] val={1,1};
-   public static VectorNd DEFAULT_WEIGHTS= new VectorNd (val);
-
    public static PropertyList myProps =
       new PropertyList(ForceTargetTerm.class, LeastSquaresTermBase.class);
 
    static {
-      myProps.add("targetWeights", "Weights for each target", DEFAULT_WEIGHTS);
-      myProps.add(
-         "Kd", "derivative gain", DEFAULT_Kd);
-      myProps.add(
-         "Kp", "proportional gain", DEFAULT_Kd);
+      myProps.add("targetWeights", "Weights for each target", null);
+//      myProps.add ("MyTargetForce","force targets", DEFAULT_FT);
       myProps.add(
          "normalizeH", "normalize contribution by frobenius norm",                              
          DEFAULT_NORMALIZE_H);
-      //myProps.add ("MyTargetForce","force targets", DEFAULT_FT);
-      myProps.addReadOnly (
-         "derr", "derivative error at current timestep");
-      myProps.addReadOnly (
-         "perr", "proporational error at current timestep");
    }
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
    
-   public ForceTargetTerm (TrackingController trackingController) {
+   public ForceTargetTerm (TrackingController controller) {
+      this(controller, DEFAULT_WEIGHT);
+   }
+   
+   public ForceTargetTerm (TrackingController controller, double weight) {
       super();
-      myMech = trackingController.getMech();
-      myController = trackingController;
+      myMech = controller.getMech();
+      myController = controller;
       myForceTargets = new ArrayList<ForceTarget>();  
-      myTargetForceWeights = new ArrayList<Double>();
+      myTargetWeights = new ArrayList<Double>();
    }
    
    public void updateTargetForce (double t0, double t1) {
+      if (!isEnabled ()) {
+         return;
+      }
       if (myTargetFor == null || myTargetFor.size () != myTargetForSize)
          myTargetFor = new VectorNd (myTargetForSize);
       double[] buf = myTargetFor.getBuffer ();
-      
+
       int idx = 0;
       for (int i = 0; i < myForceTargets.size (); i++) {
          ForceTarget target = myForceTargets.get (i);
          VectorNd lambda = target.getTargetLambda ();
          lambda.get (buf, idx);
       }
-//      System.out.println("targetForce = "+myTargetFor); 
+      // System.out.println("targetForce = "+myTargetFor);
    }
-   
- /*  public void updateForceError()
-   {
-      int idx = 0;
-      for (int i = 0; i < myForceTargets.size(); i++)
-      {
-         ForceTarget target = myForceTargets.get(i);
-         idx = calcForError (forceError, idx, target);
-      }
-   }
-   */
-   /*private int calcForError(VectorNd forError, int idx, ForceTarget target) { // forError muss nur int sien, weil nur 1 lambda pro constraint oder?
-     VectorNd error=new VectorNd(target.getTargetLambda());
-      error.sub (myMotionForceTerm.getLambda());    // from constraint
-     
-      
-     
-   }*/
-   
-  
 
    public boolean isEnabled() {
       return enabled;
    }
 
    public void setEnabled(boolean enabled) {
-      // TODO: use enabled flag
       this.enabled = enabled;
    }
 
@@ -148,153 +111,152 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       return myForJacobian;
    }
 
-   private void createForceJacobian() {
+   private void createForceJacobian () {
       MechModel mechMod = (MechModel)myMech;
-    int[] target_idx= new int [myForceTargets.size()];
-  
-    int idx=0;
-    int cons_ind=0;
-    System.out.println(mechMod.bodyConnectors ().size());
-    SparseBlockMatrix GT=new SparseBlockMatrix ();
-    VectorNd dg= new VectorNd();
-    mechMod.getBilateralConstraints (GT, dg);
-    System.out.println(GT.colSize ());
-    System.out.println(GT.rowSize ());
-    System.out.println(GT.getSize ());
-    System.out.println(GT.numBlocks ());
-    System.out.println(GT.getBlock (0, 0));
-    System.out.println(GT.getBlock (0, 1));
-    System.out.println(GT.getBlock (0, 2));
-    System.out.println(GT.getBlock (1, 0));
-    int[] constraint_blocksize=new int[mechMod.bodyConnectors ().size()];
-    for (int i=0; i < myForceTargets.size(); i++)
-    {
-       cons_ind=0;
-       
-       for(int j =0; j<mechMod.bodyConnectors ().size(); j++)
-       {
-//          System.out.println(mechMod.bodyConnectors ().get (j).getName());
-//          System.out.println(myForceTargets.get (i).getName());
-
-          if(myForceTargets.get (i).getName().startsWith (mechMod.bodyConnectors ().get (j).getName()))
-          {
-             target_idx[idx]=cons_ind;
-             idx++;
-                
-          }
-          if(mechMod.bodyConnectors ().get (j).isEnabled ()==true)
-          {
-          System.out.println(mechMod.bodyConnectors ().get (j).numBilateralConstraints ());
-          constraint_blocksize[cons_ind]=mechMod.bodyConnectors ().get (j).numBilateralConstraints ();
-          cons_ind++;
-          }
-          
-       }
-     /*  if(mechMod.bodyConnectors ().get (i).isEnabled ()==true)
-       {
-         // dynsize[i]=1;
-          
-       }*/
-    }
-    int[] dynsize=new int[cons_ind];
-    Arrays.fill (dynsize, 1);
-      myForJacobian= new SparseBlockMatrix (new int[0], constraint_blocksize);
-      
-
-      for (int i = 0; i < myForceTargets.size(); i++) {
-         ForceTarget target = myForceTargets.get(i);
-         target.addForceJacobian(myForJacobian, i,target_idx[i]);
+      SparseBlockMatrix GT = new SparseBlockMatrix ();
+      VectorNd dg = new VectorNd ();
+      mechMod.getBilateralConstraints (GT, dg);
+      if (debug) {
+         System.out.println ("num con = " + mechMod.bodyConnectors ().size ());
+         System.out.println (GT.colSize ());
+         System.out.println (GT.rowSize ());
+         System.out.println (GT.getSize ());
+         System.out.println (GT.numBlocks ());
+         System.out.println (GT.getBlock (0, 0));
+         System.out.println (GT.getBlock (0, 1));
+         System.out.println (GT.getBlock (0, 2));
+         System.out.println (GT.getBlock (1, 0));
       }
       
-//      System.out.println("Jc = "+myForJacobian);
+      // find the number of bilateral constraints for each connector
+      int[] connectorSizes = new int[mechMod.bodyConnectors ().size ()];
+      int[] targetToConnectorMap = new int[myForceTargets.size ()];
 
+      int targetIdx = 0;
+      for (ForceTarget ft : myForceTargets) {
+         int connectorIdx = 0;
+         for (BodyConnector connector : mechMod.bodyConnectors ()) {
+            
+            if (debug) {
+               System.out.println(connector.getName());
+               System.out.println(ft.getName());
+            }
 
-      // fold attachments into targets on dynamic components (same as constraint
-      // jacobians)
-    //  myMech.reduceVelocityJacobian(myVelJacobian);
-   }
-   /**
-    * Removes a target to the term for trajectory error
-    * @param source
-    */
-   protected void removeTarget(MotionTargetComponent source) {
-       
-      //TO DO!!!!
+            if (ft.getConnector ()==connector) {
+               targetToConnectorMap[targetIdx] = connectorIdx;
+               targetIdx++;
+            }
+            
+            if (connector.isEnabled () == true) {
+               if (debug) { System.out.println (
+                  connector.numBilateralConstraints ()); }
+               connectorSizes[connectorIdx] =
+                  connector.numBilateralConstraints ();
+               connectorIdx++;
+            }
+
+         }
+      }
       
+      myForJacobian = new SparseBlockMatrix (new int[0], connectorSizes);
+      for (int i = 0; i < myForceTargets.size (); i++) {
+         ForceTarget target = myForceTargets.get (i);
+         // TODO: non-enabled connectors should not add to Jacobian -- need to fix
+         target.addForceJacobian (myForJacobian, i, targetToConnectorMap[i]);
+      }
+
+      if (debug) {
+         System.out.println("Jc = "+myForJacobian);
+      }
+   }
+
+   /**
+    * Adds a target to track the reaction force of the specified body connector
+    * @param con body connector to track
+    * @return the component used to keep track of this force target
+    */
+   public ForceTarget addForceTarget(BodyConnector con) {
+      return addForceTarget (con, 1d);
    }
    
-   /*
+   /**
+    * Adds a target to track the reaction force of the specified body connector
+    * @param con body connector to track
+    * @param weight used in error tracking
+    * @return the component used to keep track of this force target
+    */
+   public ForceTarget addForceTarget(BodyConnector con, double weight) {
+      return addForceTarget (
+         con, new VectorNd(con.numBilateralConstraints ()), weight);
+   }
    
+   /**
+    * Adds a target to track the reaction force of the specified body connector
+    * @param con body connector to track
+    * @param targetLambda target reaction force for the connector
+    * @return the component used to keep track of this force target
+    */
+   public ForceTarget addForceTarget(BodyConnector con, 
+      VectorNd targetLambda) {   
+      return addForceTarget (con, targetLambda, 1d);
+   }
    
-   Implement REMOVE method
-   
-   
-   
-   */
-   public ForceTarget addForceTarget(BodyConnector con) {
-      ForceTarget forceTarget = addForceTarget (
-         con, new VectorNd (con.numBilateralConstraints ()));
+   /**
+    * Adds a target to track the reaction force of the specified body connector
+    * @param con body connector to track
+    * @param targetLambda target reaction force for the connector
+    * @param weight used in error tracking
+    * @return the component used to keep track of this force target
+    */
+   public ForceTarget addForceTarget(BodyConnector con, 
+      VectorNd targetLambda, double weight) {   
+      ForceTarget forceTarget = new ForceTarget(con, targetLambda);
+      myTargetWeights.add(weight);
+      myTargetForSize += con.numBilateralConstraints ();
+      myForceTargets.add (forceTarget);
       myController.targetForces.add (forceTarget);
       return forceTarget;
    }
-
    
-   public ForceTarget addForceTarget(BodyConnector con, VectorNd lam)
-   {
-      ForceTarget forceTarget = new ForceTarget(lam,con);
-      myForceTargets.add (forceTarget);
-      double weight=1;
-      myTargetForceWeights.add(weight);
-      myTargetForSize += con.numBilateralConstraints ();
-      return forceTarget;
-   }  
-   
-   private void updateWeightsVector() {
-      
-      myForTargetWgts = new VectorNd(myForceTargets.size());
-      
-      int idx = 0;
-      for (int t = 0; t< myForceTargets.size(); t++) {
-         ForceTarget target = myForceTargets.get(t);
-         double w = myTargetForceWeights.get(t);
-         
-         myForTargetWgts.set(idx++,w);
+   /**
+    * Removes a target to the term for reaction force error
+    * @param source
+    */
+   protected void removeForceTarget(ForceTarget forceTarget) {
+      if (myForceTargets.contains (forceTarget)) {
+         myTargetForSize -=
+            forceTarget.getConnector ().numBilateralConstraints ();
+         myForceTargets.remove (forceTarget);
+         myController.targetForces.remove (forceTarget);
       }
-    
-      
-      
    }
    
-   
    /**
-    * Adds a target to track
-    * @param source point or frame on the model you wish to drive to
-    *        a target position
-    * @param weight used in error tracking
-    * @return the created point or frame that will be used as a target
+    * Removes all force targets
     */
-      
-   /**
-    * Adds a target to track
-    * @param target point or frame on the model you wish to drive to
-    *        a target position
-    * @return the created point or frame that will be used as a target
-    */
- 
-   /**
-    * Removes targets
-    */
-   public void clearTargets() {
-     
-      myForceTargets.clear();
-     
-      myTargetForceWeights.clear();
-      
-      myController.targetPoints.clear ();
-      myController.targetFrames.clear ();
-      myForceTargets.clear();
-      myTargetForceWeights.clear ();
+   public void clearTargets () {
+      myForceTargets.clear ();
+      myTargetWeights.clear ();
+      myTargetWgts = null;
+      myTargetForSize = 0;
+      myController.targetForces.clear ();
    }
+   
+   private void updateWeightsVector () {
+
+      myTargetWgts = new VectorNd (myForceTargets.size ());
+
+      int idx = 0;
+      for (int t = 0; t < myForceTargets.size (); t++) {
+         double w = myTargetWeights.get (t);
+         int targetSize = myForceTargets.get (t).getTargetLambda ().size ();
+         for (int i = 0; i < targetSize; i++) {
+            myTargetWgts.set (idx++, w);
+         }
+      }
+   }
+   
+
 
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
@@ -332,9 +294,9 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       }
       
       // apply weights
-      if (myForTargetWgts != null) {
-         MotionForceInverseData.diagMul(myForTargetWgts,Hc,Hc);
-         MotionForceInverseData.pointMul(myForTargetWgts,cbar,cbar);
+      if (myTargetWgts != null) {
+         MotionForceInverseData.diagMul(myTargetWgts,Hc,Hc);
+         MotionForceInverseData.pointMul(myTargetWgts,cbar,cbar);
       }
       if (myWeight >= 0) {
           Hc.scale(myWeight);
@@ -352,97 +314,40 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       }
       
       return rowoff + Hc.rowSize();
-      
-
-      
-      
-      
-//      return myForceTerm.getTerm(H, b, rowoff, t0, t1,
-//          myCurrentVel, myTargetFor, myForTargetWgts,  getForceJacobian(), normalizeH);
-      
-      
    }
-   
-   
-  /* public VectorNd getMyTargetForce()
-   {
-      return myForceTargets.get(0).getMyTargetForce ();
-   }
-   
-   public void setMyTargetForce(VectorNd tarlam)
-   {
-
-     
-      myForceTargets.get (0).setMyTargetForce (tarlam);
-         updateTargetForce ();
-         
-   }*/
-
 
    /**
     * Weight used to scale the contribution of this term in the quadratic optimization problem
     */
    @Override
-   public void setWeight(double w) {
-      super.setWeight(w);
+   public void setWeight (double w) {
+      super.setWeight (w);
    }
 
+   public void setTargetWeights (VectorNd wgts) {
 
-   public void setTargetWeights(VectorNd wgts) {
-      
-      if (wgts.size() == myForceTargets.size()) {
-         myTargetForceWeights.clear();
-         for (int i=0; i<myForceTargets.size(); i++) {
-            myTargetForceWeights.add(wgts.get(i));
+      if (wgts.size () == myForceTargets.size ()) {
+         myTargetWeights.clear ();
+         for (int i = 0; i < myForceTargets.size (); i++) {
+            myTargetWeights.add (wgts.get (i));
          }
-         updateWeightsVector();
+         updateWeightsVector ();
       }
-      
+
    }
    
-   /**
-    * Proportional gain for PD controller
-    * 
-    */
-   public void setKp(double k) {
-      Kp = k;
-   }
-   
-   /**
-    * Returns the Proportional gain for PD controller.  See {@link #setKp(double)}.
-    * @return proportional error gain
-    */
-   public double getKp() {
-      return Kp;
-   }
-   public void setKd(double k) {
-      Kd = k;
-   }
-   public double getKd() {
-      return Kd;
-   }
-   public double getPerr() {
-      // updated in getTerm()
-//      updatePositionError ();
-      return 0;
-   }
-   
-   public double getDerr() {
-      // updated in getTerm()
-//      updateVelocityError ();
-      return 0;
-   }
-   public void getTargetWeights(VectorNd out) {
-      
-      if (out.size() == myForceTargets.size()) {
-         for (int i=0; i<myForceTargets.size(); i++) {
-            out.set(i, myTargetForceWeights.get(i));
-            }
+   public void getTargetWeights (VectorNd out) {
+
+      if (out.size () == myForceTargets.size ()) {
+         for (int i = 0; i < myForceTargets.size (); i++) {
+            out.set (i, myTargetWeights.get (i));
          }
-         }
-   public VectorNd getTargetWeights() {
-      VectorNd out = new VectorNd(myForceTargets.size());
-      getTargetWeights(out);
+      }
+   }
+
+   public VectorNd getTargetWeights () {
+      VectorNd out = new VectorNd (myForceTargets.size ());
+      getTargetWeights (out);
       return out;
    }
 
@@ -458,7 +363,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
     * @param set
     */
    public void setNormalizeH(boolean set) {
-      normalizeH = set;
+      myController.getData().normalizeH = set;
    }
    
    /**
@@ -468,7 +373,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
     * <code>H</code> and <code>b</code>
     */
    public boolean getNormalizeH() {
-      return normalizeH;
+      return myController.getData().normalizeH;
    }
 
    @Override
@@ -479,11 +384,9 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    @Override
    protected void compute (double t0, double t1) {
       getTerm (H,f,0,t0,t1);
-      
    }
 
-   public ArrayList<ForceTarget> getForceTargets()
-   {
+   public ArrayList<ForceTarget> getForceTargets () {
       return myForceTargets;
    }
 }

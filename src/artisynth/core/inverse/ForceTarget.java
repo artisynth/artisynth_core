@@ -26,10 +26,9 @@ import maspack.render.Renderer;
  */
 public class ForceTarget extends RenderableComponentBase implements HasProperties {
    protected VectorNd myTargetLambda = null;
-   protected BodyConnector myConstraint;
+   protected BodyConnector myConnector;
 //   public static double[] lam = { 0 };
 //   public static VectorNd DEFAULT_FORCE_TARGET = new VectorNd (lam);
-
 
    public static final double DEFAULT_ARROW_SIZE = 1d;
    double arrowSize = DEFAULT_ARROW_SIZE;
@@ -54,10 +53,18 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
       setRenderProps (createRenderProps ());
    }
 
-   public ForceTarget (VectorNd lam, BodyConnector con) {
+   public ForceTarget (BodyConnector con) { 
+      this(con, new VectorNd (con.numBilateralConstraints ()));
+   }
+      
+   public ForceTarget (BodyConnector con, VectorNd targetLambda) {
       this();
-      myTargetLambda = new VectorNd(lam);
-      myConstraint = con;
+      if (con.numBilateralConstraints () != targetLambda.size ()) {
+         System.err.println("provided target wrong size, got "+targetLambda.size ()+
+            " expecting "+ con.numBilateralConstraints ());
+      }
+      myTargetLambda = new VectorNd(targetLambda);
+      myConnector = con;
       setName (con.getName ()+"_target");
    }
 
@@ -69,31 +76,27 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
       return myTargetLambda;
    }
 
-   public void setConstraint (BodyConnector cons) {
-      myConstraint = cons;
+   public void setConstraint (BodyConnector connector) {
+      myConnector = connector;
    }
 
-   public BodyConnector getConstraint () {
-      return myConstraint;
-   }
-
-   public String getConstraintName () {
-      return myConstraint.getName ();
+   public BodyConnector getConnector () {
+      return myConnector;
    }
 
    public int addForceJacobian (SparseBlockMatrix J, int bi, int solve_index) {
       MatrixBlock blk = null;
-      if (myConstraint instanceof PlanarConnector) {
+      if (myConnector instanceof PlanarConnector) {
          blk = new Matrix1x1Block ();
          blk.set (0, 0, 1d);
          J.addBlock (bi, solve_index, blk);
       }
-      else if (myConstraint instanceof SphericalJoint) {
+      else if (myConnector instanceof SphericalJoint) {
          blk = new Matrix3x3DiagBlock (1d, 1d, 1d);
          J.addBlock (bi, solve_index, blk);
       }
       else {
-         System.err.println("ForceTarget.addForceJacobian: unsupported constraint type: "+myConstraint.getClass ());
+         System.err.println("ForceTarget.addForceJacobian: unsupported connector type: "+myConnector.getClass ());
       }
       return bi++;
    }
@@ -117,8 +120,8 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
    @Override
    public void prerender (RenderList list) {
       super.prerender (list);
-      if (myConstraint instanceof PlanarConnector) {
-         RigidTransform3d TDW = myConstraint.getCurrentTDW ();
+      if (myConnector instanceof PlanarConnector) {
+         RigidTransform3d TDW = myConnector.getCurrentTDW ();
          startvec = TDW.p;
          endvec.transform (TDW, Vector3d.Z_UNIT);
          endvec.scale (arrowSize/endvec.norm ());
@@ -127,8 +130,8 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
          set (start, startvec);
          set (end, endvec);
       }
-      else if (myConstraint instanceof SphericalJoint) {
-         startvec = myConstraint.getCurrentTCW ().p;
+      else if (myConnector instanceof SphericalJoint) {
+         startvec = myConnector.getCurrentTCW ().p;
          endvec.x = myTargetLambda.get (0) * arrowSize;
          endvec.y = myTargetLambda.get (1) * arrowSize;
          endvec.z = myTargetLambda.get (2) * arrowSize;

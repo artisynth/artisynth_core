@@ -39,13 +39,14 @@ import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.TimeBase;
 
 /**
- * Tracking error term for the TrackingController
+ * Motion tracking error term for the TrackingController
  * 
- * @author Ian Stavness, with modifications by Antonio Sanchez
+ * @author Ian Stavness, Antonio Sanchez
  *
  */
 public class MotionTargetTerm extends LeastSquaresTermBase {
-   public static final double defaultWeight = 1;
+
+   public static final double DEFAULT_WEIGHT = 1d;
    
    public static final boolean DEFAULT_USE_PD_CONTROL = false;
    boolean usePDControl = DEFAULT_USE_PD_CONTROL;
@@ -118,7 +119,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
    
    public MotionTargetTerm (TrackingController controller) {
-      this(controller, defaultWeight);
+      this(controller, DEFAULT_WEIGHT);
    }
    
    public MotionTargetTerm (TrackingController controller, double weight) {
@@ -472,7 +473,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @return the created point or frame that will be used as a target
     */
    public MotionTargetComponent addTarget(MotionTargetComponent target) {
-      return doAddTarget(target, 1.0);
+      return doAddTarget(target, 1d);
    }
 
    /**
@@ -719,8 +720,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          target.addTargetJacobian(myVelJacobian, i);
       }
 
-      // fold attachments into targets on dynamic components (same as constraint
-      // jacobians)
+      // fold attachments into targets on dynamic components 
+      // (same as constraint jacobians)
       myMech.reduceVelocityJacobian(myVelJacobian);
    }
 

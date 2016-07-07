@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import artisynth.core.inverse.ConnectorForceRenderer;
+import artisynth.core.inverse.ForceTarget;
 import artisynth.core.inverse.ForceTargetTerm;
 import artisynth.core.inverse.TargetPoint;
 import artisynth.core.inverse.TrackingController;
@@ -271,9 +272,11 @@ public class ForceTargetDemo extends RootModel{
       double[] lam={-3.5};
       VectorNd tarlam= new VectorNd (lam);
       if(cons==true)
-      {mft.addForceTarget (con, tarlam);}
+      {ForceTarget ft = mft.addForceTarget (con);
+      ft.setTargetLambda (tarlam);}
       if(two_cons==true)
-      { mft.addForceTarget (con2, tarlam);}
+      { ForceTarget ft = mft.addForceTarget (con2);
+      ft.setTargetLambda (tarlam);}
       if(force==true)
       {myTrackingController.addForceTargetTerm (mft);}
 //      myTrackingController.getSolver().setBounds(0.01, 0.99);
@@ -311,7 +314,7 @@ public class ForceTargetDemo extends RootModel{
       Property proparr[]=new Property[mft.getForceTargets ().size()];
       for(int i=0;i<mft.getForceTargets ().size();i++)
       {
-      System.out.println(mft.getForceTargets ().get(i).getConstraintName());
+      System.out.println(mft.getForceTargets ().get(i).getConnector().getName());
        proparr[i]=mft.getForceTargets().get(i).getProperty ("targetLambda");
       }
       NumericInputProbe forprobe = new NumericInputProbe();

@@ -8,7 +8,10 @@ package artisynth.core.modelmenu;
 
 import java.awt.Font;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,12 +27,15 @@ import javax.swing.UIManager;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-
-import maspack.graph.Node;
-import maspack.graph.Tree;
-import maspack.util.ClassFinder;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -41,6 +47,9 @@ import org.xml.sax.SAXParseException;
 import artisynth.core.util.AliasTable;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.RootModel;
+import maspack.graph.Node;
+import maspack.graph.Tree;
+import maspack.util.ClassFinder;
 
 /**
  * 
@@ -57,7 +66,7 @@ import artisynth.core.workspace.RootModel;
  */
 public class DemoMenuParser {
 
-   public enum MenuType {
+   public static enum MenuType {
       ROOT, DIVIDER, MENU, MODEL, LABEL, HISTORY
    }
 
@@ -119,6 +128,142 @@ public class DemoMenuParser {
    // "strikethrough";
    public static final String ALL_TAG_FONTSIZE = "fontsize";
 
+   public static void writeXML(String filename, Tree<MenuEntry> menu) {
+      writeXML(new File(filename), menu);
+   }
+   
+   public static void writeXML(File file, Tree<MenuEntry> menu) {
+      FileOutputStream fout = null;
+      try {
+         File parent = file.getParentFile();
+         // try to make directory structure if not already exists
+         if (parent != null && !parent.exists()) {
+            try {
+               parent.mkdirs();
+            } catch (Exception e) {}
+         }
+         fout = new FileOutputStream(file);
+         writeXML(fout, menu);
+      } catch (FileNotFoundException e) {
+         System.err.println("File not found: " + file.getAbsolutePath());
+      } finally {
+         try {
+            if (fout != null) {
+               fout.close();
+            }
+         } catch (IOException e) {
+         }
+      }
+   }
+   
+   public static void writeXML(OutputStream out, Tree<MenuEntry> menu) {
+
+      SchemaFactory schemaFactory =
+         SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
+      String schemaLoc =
+         ArtisynthPath.getSrcRelativePath(DemoMenuParser.class, "modelmenu.xsd");
+      File schemaLocation = new File(schemaLoc);
+      Schema schema;
+      try {
+         schema = schemaFactory.newSchema(schemaLocation);
+      } catch (SAXException e) {
+         e.printStackTrace();
+         return;
+      }
+
+      DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+      factory.setValidating(false);
+      factory.setNamespaceAware(true);
+      factory.setSchema(schema);
+
+      DocumentBuilder builder;
+      try {
+         builder = factory.newDocumentBuilder();
+      } catch (ParserConfigurationException e) {
+         e.printStackTrace();
+         return;
+      }
+      builder.setErrorHandler(new SimpleErrorHandler());
+      
+      Document dom = builder.newDocument();
+      buildDocument(dom, menu);
+      
+      // Use a Transformer for output
+      TransformerFactory tFactory = TransformerFactory.newInstance();
+      Transformer transformer;
+      try {
+         transformer = tFactory.newTransformer();
+         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+      } catch (TransformerConfigurationException e) {
+         e.printStackTrace();
+         return;
+      }
+
+      DOMSource source = new DOMSource(dom);
+      StreamResult result = new StreamResult(out);
+      try {
+         transformer.transform(source, result);
+      } catch (TransformerException e) {
+         e.printStackTrace();
+         return;
+      }
+   }
+   
+   static void buildDocument(Document dom, Tree<MenuEntry> menu) {
+      
+      Node<MenuEntry> root = menu.getRootElement();
+      root.getData();
+      
+      Element modelMenu = dom.createElement("ModelMenu");
+      modelMenu.setAttribute("xmlns", "http://www.artisynth.org");
+      modelMenu.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+      modelMenu.setAttribute("xsi:schemaLocation", "http://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd");
+      
+      dom.appendChild(modelMenu);
+      for (Node<MenuEntry> child : root.getChildren()) {
+         buildElement(dom, modelMenu, child);
+      }
+   }
+   
+   static void buildElement(Document dom, Element parent, Node<MenuEntry> node) {
+      
+      MenuEntry data = node.getData();
+      MenuType type = data.getType();
+      
+      // recursively add menu
+      Element el = null;
+      switch(type) {
+         case DIVIDER:
+            el = dom.createElement(DIVIDER_TAG);
+            break;
+         case HISTORY:
+            el = buildHistory(dom, (HistoryEntry)data);
+            break;
+         case LABEL:
+            el = buildLabel(dom, (LabelEntry)data);
+            break;
+         case MENU:
+            el = buildMenu(dom, (MenuEntry)data);
+            for (Node<MenuEntry> child : node.getChildren()) {
+               buildElement(dom, el, child);
+            }
+            break;
+         case MODEL:
+            el = buildDemo(dom, (DemoEntry)data);
+            break;
+         case ROOT:
+            break;
+         default:
+            break;
+       
+      }  
+      
+      if (parent != null && el != null) {
+         parent.appendChild(el);
+      }
+   }
+   
    public static Tree<MenuEntry> parseXML(String filename) throws IOException,
       ParserConfigurationException, SAXException {
 
@@ -131,8 +276,7 @@ public class DemoMenuParser {
       SchemaFactory schemaFactory =
          SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
       String schemaLoc =
-         ArtisynthPath
-         .getSrcRelativePath(DemoMenuParser.class, "modelmenu.xsd");
+         ArtisynthPath.getSrcRelativePath(DemoMenuParser.class, "modelmenu.xsd");
       File schemaLocation = new File(schemaLoc);
       Schema schema = schemaFactory.newSchema(schemaLocation);
 
@@ -143,8 +287,8 @@ public class DemoMenuParser {
 
       DocumentBuilder builder = factory.newDocumentBuilder();
       builder.setErrorHandler(new SimpleErrorHandler());
-
       Document dom = builder.parse(filename);
+      
       return parseDocument(dom, localPath);
    }
 
@@ -308,19 +452,31 @@ public class DemoMenuParser {
       } // end checking type
 
    }
+   
+   private static void addFontAttributes(Element el, Font font) {
+      if (font != null) {
+         el.setAttribute(ALL_TAG_FONTNAME, font.getFontName());
+         el.setAttribute(ALL_TAG_FONTSIZE, Integer.toString(font.getSize()));
+         String style = "";
+         if (font.isBold()) {
+            style += ALL_TAG_FONTSTYLE_BOLD;
+         }
+         if (font.isItalic()) {
+            style += ALL_TAG_FONTSTYLE_ITALIC;
+         }
+         el.setAttribute(ALL_TAG_FONTSTYLE, style);
+      }
+   }
 
    // get font information from element
    private static Font parseFont(Element el) {
 
-      boolean modified = false;
-
-      // Map<TextAttribute, Integer> fontAttributes = new HashMap<TextAttribute,
-      // Integer>();
-      // fontAttributes.put(TextAttribute.UNDERLINE,
-      // TextAttribute.UNDERLINE_ON);
-      // Font boldUnderline = new Font("Serif",Font.BOLD,
-      // 12).deriveFont(fontAttributes);
-
+      boolean specified = el.hasAttribute(ALL_TAG_FONTNAME) || el.hasAttribute(ALL_TAG_FONTSIZE) 
+         || el.hasAttribute(ALL_TAG_FONTSTYLE);
+      if (!specified) {
+         return null;
+      }
+      
       Font defaultFont = UIManager.getFont("Menu.font");
       int size = defaultFont.getSize();
       String name = defaultFont.getName();
@@ -332,34 +488,23 @@ public class DemoMenuParser {
       String fontName = el.getAttribute(ALL_TAG_FONTNAME);
       String fontSize = el.getAttribute(ALL_TAG_FONTSIZE);
       String fontStyle = el.getAttribute(ALL_TAG_FONTSTYLE);
-
+      
       if (!fontName.equals("")) {
-         modified = true;
          name = fontName;
       }
       if (!fontSize.equals("")) {
          size = Integer.parseInt(fontSize);
-         modified = true; 
       }
       if (!fontStyle.equals("")) {
          // we need to check if they actually put something
-         modified = true;
          if (fontStyle.contains(ALL_TAG_FONTSTYLE_BOLD)) {
             style |= Font.BOLD;
          }
          if (fontStyle.contains(ALL_TAG_FONTSTYLE_ITALIC)) {
             style |= Font.ITALIC;
          }
-      } else {
-         // if they purposely set style to ""
-         if (el.hasAttribute(ALL_TAG_FONTSTYLE)) {
-            modified = true;
-         }
       }
 
-      if (!modified) {
-         return null;
-      }
       return new Font(name, style, size);
    }
 
@@ -386,6 +531,24 @@ public class DemoMenuParser {
       return menu;
    }
 
+   private static Element buildLabel(Document dom, LabelEntry label) {
+      Element el = dom.createElement(LABEL_TAG);
+      String icon = label.getIcon();
+      if (icon != null) {
+         el.setAttribute(LABEL_TAG_ICON, icon);
+      }
+      String text = label.getTitle();
+      if (text != null) {
+         el.setAttribute(LABEL_TAG_TEXT, text);
+      }
+      
+      Font font = label.getFont();
+      if (font != null) {
+         addFontAttributes(el, font);
+      }
+      return el;
+   }
+   
    private static LabelEntry parseLabel(Element el, String localPath) {
 
       String text = el.getAttribute(LABEL_TAG_TEXT);
@@ -472,6 +635,29 @@ public class DemoMenuParser {
       return demos;
    }
    
+   private static String mergeArgs(String[] args) {
+      StringBuilder argBuilder = new StringBuilder();
+      
+      for (String arg : args) {
+         argBuilder.append(' ');
+         if (!arg.contains(" ")) {
+            argBuilder.append(arg);
+         } else if (!arg.contains("\"")) {
+            argBuilder.append('"');
+            argBuilder.append(arg);
+            argBuilder.append('"');
+         } else if (!arg.contains("\'")) {
+            argBuilder.append('\'');
+            argBuilder.append(arg);
+            argBuilder.append('\'');
+         } else {
+            System.err.println("Error: cannot append argument: " + arg + " because it has spaces and both types of quotes");
+         }
+      }
+      
+      return argBuilder.toString().trim();
+   }
+   
    private static String[] splitArgs(String argsStr) {
       List<String> matchList = new ArrayList<String>();
       Pattern regex = Pattern.compile("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'");
@@ -491,6 +677,35 @@ public class DemoMenuParser {
       return matchList.toArray(new String[matchList.size()]);
    }
 
+   private static Element buildDemo(Document dom, DemoEntry demo) {
+      String name, file, icon, argsStr;
+      Font font;
+
+      file = demo.getModel().getClassNameOrFile();
+      name = demo.getTitle();
+      icon = demo.getIcon();
+      String[] args = demo.getModel().getArgs();
+      font = demo.getFont();
+      
+      Element el = dom.createElement(MODEL_TAG);
+      el.setAttribute(MODEL_TAG_CLASS, file);
+      el.setAttribute(MODEL_TAG_TEXT, name);
+      if (icon != null) {
+         el.setAttribute(MODEL_TAG_ICON, icon);
+      }
+      if (args != null) {
+         // combine into single string
+         argsStr = mergeArgs(args);
+         el.setAttribute(MODEL_TAG_ARGS, argsStr);
+      }
+      
+      if (font != null) {
+         addFontAttributes(el, font);
+      }
+      
+      return el;
+   }
+   
    private static DemoEntry parseDemo(Element el, String localPath) {
       String name, file, icon, argsStr;
 
@@ -534,6 +749,19 @@ public class DemoMenuParser {
       return demo;
    }
    
+   private static Element buildHistory(Document dom, HistoryEntry entry) {
+
+      Element el = dom.createElement(HISTORY_TAG);
+      int size = entry.getSize();
+      int compact = entry.getCompact();
+      
+      el.setAttribute(HISTORY_TAG_SIZE, Integer.toString(size));
+      el.setAttribute(HISTORY_TAG_COMPACT, Integer.toString(compact));
+      addFontAttributes(el, entry.getFont());
+
+      return el;
+   }
+   
    private static HistoryEntry parseHistory(Element el, String localPath) {
       String sizeStr, compactStr;
 
@@ -560,6 +788,17 @@ public class DemoMenuParser {
       return entry;
    }
 
+   private static Element buildMenu(Document dom, MenuEntry entry) {
+      Element el = dom.createElement(MENU_TAG);
+      el.setAttribute(MENU_TAG_TEXT, entry.getTitle());
+      String icon = entry.getIcon();
+      if (icon != null) {
+         el.setAttribute(MENU_TAG_ICON, icon);
+      }
+      addFontAttributes(el, entry.getFont());
+      return el;
+   }
+   
    private static MenuEntry parseMenu(Element el, String localPath) {
 
       String name = el.getAttribute(MENU_TAG_TEXT);
@@ -658,12 +897,11 @@ public class DemoMenuParser {
       ListIterator<String> li = clsList.listIterator();
       while (li.hasNext()) {
          try {
-            Class clazz = Class.forName (li.next());
+            Class<?> clazz = Class.forName (li.next());
             if (Modifier.isAbstract (clazz.getModifiers())) {
                li.remove();
             }            
-         }
-         catch (Exception e) {
+         } catch (Exception e) {
             // shouldn't happen - remove class if it does
             li.remove();
          }

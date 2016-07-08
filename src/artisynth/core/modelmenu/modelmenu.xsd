@@ -104,7 +104,7 @@
 	<!-- Attributes Types -->
 	<xs:attributeGroup name="fontAttr">
 		<xs:attribute name="fontname" type="xs:string" use="optional" />
-		<xs:attribute name="fontstyle" type="xs:string" default="bold" use="optional" />
+		<xs:attribute name="fontstyle" type="xs:string" use="optional" />
 		<xs:attribute name="fontsize" type="xs:integer" use="optional" />
 	</xs:attributeGroup>
 

@@ -59,6 +59,7 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.HasMenuItems;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelmenu.ArtisynthModelMenu;
+import artisynth.core.modelmenu.DemoMenuParser;
 import artisynth.core.modelmenu.ModelActionEvent;
 import artisynth.core.modelmenu.ModelActionListener;
 import artisynth.core.probes.Probe;
@@ -221,8 +222,9 @@ public class MenuBarHandler implements
       myMenuBar.add(menu);
 
       // Create the menu with models (taken from .demoModels)
-      menu = createDemosMenu("Models");
+      menu = new JMenu("Models");
       myMenuBar.add(menu);
+      createDemosMenu(menu);
 
       menu = createScriptsMenu("Scripts");
       if (menu != null) {
@@ -445,44 +447,78 @@ public class MenuBarHandler implements
       }
       return modelsMenu;
    }
-
-   private JMenu createDemosMenu(String menuTitle) {
-
-      JMenu menu = new JMenu(menuTitle);
-      myModelsMenuGenerator = null;
+   
+   private void populateModelMenu(JMenu menu) {
+      // clear
+      menu.removeAll();
+      // build from tree
+      myModelsMenuGenerator.buildMenu(menu, this, myMain.getModelHistory());
+      // add demo entries from menu
+      AliasTable demoTable = myMain.getDemoTable();
+      AliasTable generatedTable = myModelsMenuGenerator.getDemoTable();
+      for (Entry<String,String> entry : generatedTable.getEntries()) {
+         demoTable.addEntry(entry.getKey(), entry.getValue());
+      }
+   }
+   
+   private class BackgroundModelMenuThread extends Thread {
       
-      String menuFilename = myMain.getDemosMenuFilename(); 
-      if (menuFilename != null) {
-         myModelsMenuGenerator = readDemoMenu(menuFilename);
+      JMenu menu;
+      File menuFile;
+      
+      public BackgroundModelMenuThread(File file, JMenu menu) {
+         super("ModelMenu Loader");
+         menuFile = file;
+         this.menu = menu;
       }
-
-      // read from demonames
-      if (myModelsMenuGenerator == null) {
-         VerticalGridLayout menuGrid = new VerticalGridLayout(MAX_MENU_ROWS, 0);
-         menu.getPopupMenu().setLayout(menuGrid);
-
-         AliasTable demoTable = myMain.getDemoTable();
-         for (Entry<String,String> entry : demoTable.getEntries()) {
-            String demoName = entry.getKey();
-            String demoClass = entry.getValue();
-            JMenuItem item = makeMenuItem(demoName, demoName);
-            item.setToolTipText(demoClass);
-            menu.add(item);
+      
+      @Override
+      public void run() {
+         if (menuFile != null) {
+            ArtisynthModelMenu generator =  readDemoMenu(menuFile.getAbsolutePath());
+            populateModelMenu(menu);
+            // save as cache
+            File cachedMenu = getMenuCacheFile(menuFile);
+            generator.write(cachedMenu);
+            
+            myModelsMenuGenerator = generator;
          }
+      }
+      
+   }
+   
+   private File getMenuCacheFile(File file) {
+      String cacheFileName = ArtisynthPath.getHomeDir() + "/tmp/.cache/menu/" + file.getName();
+      File cachedMenu = new File(cacheFileName);
+      return cachedMenu;
+   }
 
+   private void createDemosMenu(JMenu menu) {
+
+      myModelsMenuGenerator = null;
+      String menuFilename = myMain.getDemosMenuFilename();
+      
+      File menuFile = new File(menuFilename);
+      
+      // look for cached menu
+      File cachedMenu = getMenuCacheFile(menuFile);
+      if (cachedMenu.exists()) {
+         // read and display cached version, real menu to be created in background
+         myModelsMenuGenerator = readDemoMenu(cachedMenu.getAbsolutePath());
+         populateModelMenu(menu);
+         
+         // background thread to update menu later
+         BackgroundModelMenuThread thread = new BackgroundModelMenuThread(menuFile, menu);
+         thread.start();
+         
       } else {
-         // build from tree
-         myModelsMenuGenerator.buildMenu(menu, this, myMain.getModelHistory());
-         // add demo entries from menu
-         AliasTable demoTable = myMain.getDemoTable();
-         AliasTable generatedTable = myModelsMenuGenerator.getDemoTable();
-         for (Entry<String,String> entry : generatedTable.getEntries()) {
-            demoTable.addEntry(entry.getKey(), entry.getValue());
-         }
-
+         // read and create menu now
+         myModelsMenuGenerator = readDemoMenu(menuFile.getAbsolutePath());
+         populateModelMenu(menu);
+         // save as cache
+         myModelsMenuGenerator.write(cachedMenu);
+         
       }
-
-      return menu;
    }
    
    public void updateHistoryMenu() {

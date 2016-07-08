@@ -13,12 +13,9 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
+import javax.swing.SwingUtilities;
 import javax.xml.parsers.ParserConfigurationException;
 
-import maspack.graph.Node;
-import maspack.graph.Tree;
-
-import org.python.modules.synchronize;
 import org.xml.sax.SAXException;
 
 import artisynth.core.driver.ModelHistory;
@@ -27,6 +24,8 @@ import artisynth.core.driver.ModelInfo;
 import artisynth.core.driver.VerticalGridLayout;
 import artisynth.core.util.AliasTable;
 import artisynth.core.util.ArtisynthPath;
+import maspack.graph.Node;
+import maspack.graph.Tree;
 
 public class ArtisynthModelMenu {
 
@@ -53,9 +52,31 @@ public class ArtisynthModelMenu {
       
    }
    
-   public void buildMenu(JMenu menu, ModelActionListener actionListener, ModelHistory hist) { 
+   public void write(File file) {
+      DemoMenuParser.writeXML(file, menuTree);
+   }
+   
+   public void write(String filename) {
+      DemoMenuParser.writeXML(filename, menuTree);
+   }
+   
+   public void buildMenu(final JMenu menu, final ModelActionListener actionListener, 
+      final ModelHistory hist) { 
       historyList = null;
-      buildJMenu(menu, actionListener, hist);
+      try {
+         if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeAndWait(new Runnable() {
+               @Override
+               public void run() {
+                  buildJMenu(menu, actionListener, hist);  
+               }
+            });
+         } else {
+            buildJMenu(menu, actionListener, hist);
+         }
+      } catch (Exception e) {
+         e.printStackTrace();
+      }
       root = menu;
    }
 
@@ -119,30 +140,30 @@ public class ArtisynthModelMenu {
       return false;
    }
 
-   // recursively find the number of model entries under a node
-   private int numModelEntries(Node<MenuEntry> node) {
-
-      int num = 0;
-      MenuEntry entry = node.getData();
-
-      switch (entry.getType()) {
-         case MENU: {
-            for (Node<MenuEntry> child : node.getChildren()) {
-               num += numModelEntries(child);
-            }
-            break;
-         }
-         case MODEL: {
-            if (entry instanceof DemoEntry) {
-               num++;
-            }
-            break;
-         }
-         default:
-            break;
-      }
-      return num;
-   }
+   //   // recursively find the number of model entries under a node
+   //   private int numModelEntries(Node<MenuEntry> node) {
+   //
+   //      int num = 0;
+   //      MenuEntry entry = node.getData();
+   //
+   //      switch (entry.getType()) {
+   //         case MENU: {
+   //            for (Node<MenuEntry> child : node.getChildren()) {
+   //               num += numModelEntries(child);
+   //            }
+   //            break;
+   //         }
+   //         case MODEL: {
+   //            if (entry instanceof DemoEntry) {
+   //               num++;
+   //            }
+   //            break;
+   //         }
+   //         default:
+   //            break;
+   //      }
+   //      return num;
+   //   }
 
    // recursively build menu from supplied tree
    private void buildMenu(JMenu menu, Node<MenuEntry> menuNode, 
@@ -359,5 +380,16 @@ public class ArtisynthModelMenu {
          }
          
       }
+   }
+   
+   public static void main(String[] args) {
+      File file = new File("demoMenu.xml");
+      long l1 = System.nanoTime();
+      ArtisynthModelMenu menu = new ArtisynthModelMenu(file);
+      menu.write(".demoMenu.xml.cache");
+      long l2 = System.nanoTime();
+      double time = (l2-l1)/1000000000.0;
+      System.out.println("Menu built in " + time + " s");
+      System.exit(0);
    }
 }

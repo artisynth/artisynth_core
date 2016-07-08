@@ -365,6 +365,22 @@ public class VectorNi implements java.io.Serializable, Clonable {
    }
 
    /**
+    * Copies the elements of this vector into an array of int,
+    * starting at a particular location.
+    * 
+    * @param values
+    * array into which values are copied
+    * @param idx starting point within values where copying should begin
+    * @return updated idx value
+    */
+   public int get (int[] values, int idx) {
+      for (int i = 0; i < size; i++) {
+         values[idx++] = buf[i];
+      }
+      return idx;
+   }
+
+   /**
     * Sets a single element of this vector.
     * 
     * @param i
@@ -423,6 +439,22 @@ public class VectorNi implements java.io.Serializable, Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = values[i];
       }
+   }
+
+   /**
+    * Sets the elements of this vector from an array of ints,
+    * starting from a particular location.
+    * 
+    * @param values
+    * array into which values are copied
+    * @param idx starting point within values from which copying should begin
+    * @return updated idx value
+    */
+   public int set (int[] values, int idx) {
+      for (int i = 0; i < size; i++) {
+         buf[i] = values[idx++];
+      }
+      return idx;
    }
 
    /**

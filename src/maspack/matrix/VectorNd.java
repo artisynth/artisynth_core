@@ -367,11 +367,13 @@ Clonable {
     * @param values
     * array into which values are copied
     * @param idx starting point within values where copying should begin
+    * @return updated idx value
     */
-   public void get (double[] values, int idx) {
+   public int get (double[] values, int idx) {
       for (int i = 0; i < size; i++) {
          values[idx++] = buf[i];
       }
+      return idx;
    }
 
    /**
@@ -455,11 +457,13 @@ Clonable {
     * @param values
     * array into which values are copied
     * @param idx starting point within values from which copying should begin
+    * @return updated idx value
     */
-   public void set (double[] values, int idx) {
+   public int set (double[] values, int idx) {
       for (int i = 0; i < size; i++) {
          buf[i] = values[idx++];
       }
+      return idx;
    }
 
    /**

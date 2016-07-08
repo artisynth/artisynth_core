@@ -10,27 +10,30 @@ package maspack.fileutil;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
-
-import maspack.fileutil.jsch.SimpleIdentityRepository;
-import maspack.fileutil.uri.URIx;
-import maspack.fileutil.uri.URIxMatcher;
-import maspack.fileutil.vfs.SimpleIdRepoFactory;
 
 import org.apache.commons.vfs2.AllFileSelector;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
-import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.UserAuthenticator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemConfigBuilder;
 import org.apache.commons.vfs2.impl.StandardFileSystemManager;
+import org.apache.commons.vfs2.provider.http.HttpFileSystemConfigBuilder;
 import org.apache.commons.vfs2.provider.sftp.IdentityRepositoryFactory;
 import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder;
+import org.apache.commons.vfs2.provider.webdav.WebdavFileSystemConfigBuilder;
+import org.apache.http.ssl.TrustStrategy;
 
 import com.jcraft.jsch.IdentityRepository;
 import com.jcraft.jsch.JSchException;
+
+import maspack.fileutil.jsch.SimpleIdentityRepository;
+import maspack.fileutil.uri.URIx;
+import maspack.fileutil.uri.URIxMatcher;
+import maspack.fileutil.vfs.SimpleIdRepoFactory;
 
 public class FileCacher {
 
@@ -97,6 +100,22 @@ public class FileCacher {
          opts, "no");
       SftpFileSystemConfigBuilder.getInstance().setUserDirIsRoot(opts, true);
       SftpFileSystemConfigBuilder.getInstance().setTimeout(opts, 10000);
+      
+      TrustStrategy[] ts = {new UnsafeTrustStrategy()};
+      HttpFileSystemConfigBuilder httpBuilder = HttpFileSystemConfigBuilder.getInstance();
+      WebdavFileSystemConfigBuilder webdavBuilder = WebdavFileSystemConfigBuilder.getInstance();
+      
+      // allow all SSL connections
+      httpBuilder.setTrustStrategies(opts, ts);
+      webdavBuilder.setTrustStrategies(opts, ts);
+
+      // silly deprecated UBC cipher suite
+      String[] ciphers = httpBuilder.getDefaultSSLCipherSuites();
+      ciphers = Arrays.copyOf(ciphers, ciphers.length+1);
+      ciphers[ciphers.length-1] = "SSL_RSA_WITH_RC4_128_SHA";
+      
+      httpBuilder.setEnabledSSLCipherSuites(opts, ciphers);
+      webdavBuilder.setEnabledSSLCipherSuites(opts, ciphers);
 
    }
 

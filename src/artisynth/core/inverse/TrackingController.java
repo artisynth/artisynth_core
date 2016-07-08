@@ -500,8 +500,12 @@ public class TrackingController extends ControllerBase
     * @param excitations input muscle excitations
     * 
     */
-   public void getForces(VectorNd forces, VectorNd excitations) {
+   public void updateForces(double t, VectorNd forces, VectorNd excitations) {
       setExcitations(excitations, /* idx= */0);
+      // for FemMuscleMaterial, need to invalidate fem stress before
+      // updateForces()
+      invalidateStressIfFem(myMech);
+      myMech.updateForces (t);
       myMech.getActiveForces(forces);
    }
 
@@ -525,10 +529,6 @@ public class TrackingController extends ControllerBase
       for (int i = 0; i < myExciters.numTargets (); i++) {
          myExciters.getTarget(i).setExcitation(buf[idx++]);
       }
-      // for FemMuscleMaterial, need to invalidate fem stress before
-      // updateForces()
-      invalidateStressIfFem(myMech);
-      myMech.updateForces(/* t= */0);
       return idx;
    }
 

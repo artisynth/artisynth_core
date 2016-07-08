@@ -33,8 +33,10 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
 //      System.out.println("N="+N.toString ("%3.1f"));
 //      System.out.println("Hc="+myController.getData ().getHc ().toString ("%3.1f"));
       H.mul (N, myController.getData ().getHc ()); // assumes Hc targets one spherical joint
-//      System.out.println("H="+H.toString ("%3.1f"));
-//      System.out.println("P="+P.toString ("%3.1f"));
+      f.mul (N, myController.getData ().getC0 ());
+      f.negate ();
+//      System.out.println("H="+H.toString ("%g"));
+//      System.out.println("f="+f.toString ("%g"));      
    }
    
    public void addHalfspaceBound(Vector3d n) {

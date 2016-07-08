@@ -89,8 +89,9 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
          ForceTarget target = myForceTargets.get (i);
          VectorNd lambda = target.getTargetLambda ();
          lambda.get (buf, idx);
+         idx += lambda.size ();
       }
-      // System.out.println("targetForce = "+myTargetFor);
+//       System.out.println("targetForce = "+myTargetFor);
    }
 
    public boolean isEnabled() {

@@ -49,10 +49,22 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public static final double DEFAULT_WEIGHT = 1d;
    
    public static final boolean DEFAULT_USE_PD_CONTROL = false;
-   boolean usePDControl = DEFAULT_USE_PD_CONTROL;
+   protected boolean usePDControl = DEFAULT_USE_PD_CONTROL;
 
    public static final boolean DEFAULT_DELTA_ACTIVATIONS = false;
-   boolean useDeltaAct = DEFAULT_DELTA_ACTIVATIONS;
+   protected boolean useDeltaAct = DEFAULT_DELTA_ACTIVATIONS;
+   
+   public static boolean DEFAULT_USE_TIMESTEP_SCALING = false;
+   protected boolean useTimestepScaling = DEFAULT_USE_TIMESTEP_SCALING;
+
+   public static boolean DEFAULT_USE_KKT_FACTORANDSOLVE = false;
+   protected boolean useKKTFactorAndSolve = DEFAULT_USE_KKT_FACTORANDSOLVE;
+
+   public static boolean DEFAULT_USE_TRAPEZOIDAL_SOLVER = false;
+   protected boolean useTrapezoidalSolver = DEFAULT_USE_TRAPEZOIDAL_SOLVER;
+
+   public static boolean DEFAULT_NORMALIZE_H = false;
+   protected boolean normalizeH = DEFAULT_NORMALIZE_H;
    
    boolean debug = false;
    boolean enabled = true;
@@ -93,15 +105,15 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 
    static {
       myProps.add("useTimestepScaling", "flag for scaling motion term H and vbar by 1/h", 
-         MotionTerm.DEFAULT_USE_TIMESTEP_SCALING);
+         DEFAULT_USE_TIMESTEP_SCALING);
       myProps.add("useKKTFactorAndSolve", "flag for re-factoring at each internal KKT solve", 
-         MotionTerm.DEFAULT_USE_KKT_FACTORANDSOLVE);
+         DEFAULT_USE_KKT_FACTORANDSOLVE);
       myProps.add(
          "usePDControl * *", "use PD controller for motion term",
          MotionTargetTerm.DEFAULT_USE_PD_CONTROL);
       myProps.add(
          "normalizeH", "normalize contribution by frobenius norm",
-         MotionTerm.DEFAULT_NORMALIZE_H);
+         DEFAULT_NORMALIZE_H);
       myProps.add(
          "Kd", "derivative gain", DEFAULT_Kd);
       myProps.add(

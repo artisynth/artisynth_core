@@ -72,7 +72,7 @@ public class MotionTermDeltaAct extends MotionTerm
       myMechSysSolver.updateMassMatrix(t0);
       myMechSysSolver.mulActiveInertias(Mv, curVel);
 
-      myController.getForces(F, ex);
+      myController.updateForces(t1, F, ex);
       myController.updateConstraints(t1);
       myMechSysSolver.addMassForces(F, t0);
 
@@ -117,7 +117,7 @@ public class MotionTermDeltaAct extends MotionTerm
          double a_j = ex.get (j);
          ex.set(j, a_j + delta);
 
-         myController.getForces(F, ex);
+         myController.updateForces(t1, F, ex);
          myController.updateConstraints(t1);
          myMechSysSolver.addMassForces(F, t0);
 

@@ -134,8 +134,8 @@ public class MotionForceInverseData
 
       // fp = passive forces with zero muscle activation
       ex.setZero();
-      myController.getForces(fp, ex);
       myController.updateConstraints(t1);
+      myController.updateForces(t1, fp, ex);
       myMechSysSolver.addMassForces(fp, t0);
 
       // bf = M v + h fp
@@ -196,7 +196,7 @@ public class MotionForceInverseData
             ex.set(j - 1, 0.0);
          }
          ex.set(j, 1.0);
-         myController.getForces(fa, ex); 
+         myController.updateForces(t1, fa, ex); 
          fa.sub (fa, fp);
          fa.scale (h);
          
@@ -264,7 +264,9 @@ public class MotionForceInverseData
 //         System.out.println("vTarget = [" + targetVel.toString(fmt) + "]';");
 
          System.out.println("vbar = [" + v0.toString(fmt) + "]';");
-         System.out.println("Hm_j = [" + Hm_j.toString(fmt) + "]';");
+         System.out.println("Hm_j = [" + Hm_j.toString(fmt) + "]';"); 
+         System.out.println("Hc = [\n" + Hc.toString("%02.1f") + "]';");
+         System.out.println("c0 = [\n" + c0.toString("%02.4f") + "]';");
       }
       
       // XXX now done in motion target term

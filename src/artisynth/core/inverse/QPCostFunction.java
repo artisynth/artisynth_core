@@ -80,7 +80,7 @@ public class QPCostFunction {
    
    /**
     * Solves the Quadratic Program of the form:
-    * min { x^T*Q*x + x^T*L }, subject to A*x &lt;= b, Aeq*x = beq
+    * min { x^T*Q*x + x^T*P }, subject to A*x &lt;= b, Aeq*x = beq
     * @return x
     */
    public VectorNd solve(double t0, double t1) {

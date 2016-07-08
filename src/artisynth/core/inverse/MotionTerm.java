@@ -117,7 +117,7 @@ public class MotionTerm
 
       // fp = passive forces with zero muscle activation
       ex.setZero();
-      myController.getForces(fp, ex);
+      myController.updateForces(t1, fp, ex);
       myController.updateConstraints(t1);
       myMechSysSolver.addMassForces(fp, t0);
 
@@ -160,7 +160,7 @@ public class MotionTerm
             ex.set(j - 1, 0.0);
          }
          ex.set(j, 1.0);
-         myController.getForces(fa, ex); 
+         myController.updateForces(t1, fa, ex); 
          fa.sub (fa, fp);
          fa.scale (h);
          
@@ -292,7 +292,7 @@ public class MotionTerm
       }
 
       ex.set(col,exj);
-      myController.getForces(out, ex);
+      myController.updateForces(0, out, ex);
       ex.set(col,exi);
       out.sub(currForce);
       out.scale((1.0/da));

@@ -464,21 +464,21 @@ public class MenuBarHandler implements
    private class BackgroundModelMenuThread extends Thread {
       
       JMenu menu;
-      File menuFile;
+      String menuFilename;
       
-      public BackgroundModelMenuThread(File file, JMenu menu) {
+      public BackgroundModelMenuThread(String filename, JMenu menu) {
          super("ModelMenu Loader");
-         menuFile = file;
+         menuFilename = filename;
          this.menu = menu;
       }
       
       @Override
       public void run() {
-         if (menuFile != null) {
-            ArtisynthModelMenu generator =  readDemoMenu(menuFile.getAbsolutePath());
+         if (menuFilename != null) {
+            ArtisynthModelMenu generator = readDemoMenu(menuFilename);
             populateModelMenu(menu);
             // save as cache
-            File cachedMenu = getMenuCacheFile(menuFile);
+            File cachedMenu = getMenuCacheFile(menuFilename);
             generator.write(cachedMenu);
             
             myModelsMenuGenerator = generator;
@@ -487,8 +487,9 @@ public class MenuBarHandler implements
       
    }
    
-   private File getMenuCacheFile(File file) {
-      String cacheFileName = ArtisynthPath.getHomeDir() + "/tmp/.cache/menu/" + file.getName();
+   private File getMenuCacheFile(String menuFilename) {
+      String cacheFileName = 
+         ArtisynthPath.getHomeDir() + "/tmp/.cache/menu/" + menuFilename;
       File cachedMenu = new File(cacheFileName);
       return cachedMenu;
    }
@@ -501,19 +502,20 @@ public class MenuBarHandler implements
       File menuFile = new File(menuFilename);
       
       // look for cached menu
-      File cachedMenu = getMenuCacheFile(menuFile);
+      File cachedMenu = getMenuCacheFile(menuFilename);
       if (cachedMenu.exists()) {
          // read and display cached version, real menu to be created in background
-         myModelsMenuGenerator = readDemoMenu(cachedMenu.getAbsolutePath());
+         myModelsMenuGenerator = readDemoMenu(menuFilename);
          populateModelMenu(menu);
          
          // background thread to update menu later
-         BackgroundModelMenuThread thread = new BackgroundModelMenuThread(menuFile, menu);
+         BackgroundModelMenuThread thread = 
+            new BackgroundModelMenuThread(menuFilename, menu);
          thread.start();
          
       } else {
          // read and create menu now
-         myModelsMenuGenerator = readDemoMenu(menuFile.getAbsolutePath());
+         myModelsMenuGenerator = readDemoMenu(menuFilename);
          populateModelMenu(menu);
          // save as cache
          myModelsMenuGenerator.write(cachedMenu);

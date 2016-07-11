@@ -55,6 +55,7 @@ public class FaceComponent extends RenderableComponentBase {
       HalfEdge he = he0;
       do {
          he.getHead ().saveRenderInfo ();
+         he = he.getNext();
       } while (he != he0);
       myFace.computeRenderNormal ();
    }

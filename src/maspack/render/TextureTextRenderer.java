@@ -139,7 +139,12 @@ public abstract class TextureTextRenderer implements TextRenderer {
       Glyph[] glyphs = textstore.createGlyphs (vec, null);
 
       // determine origin and scale
-      float[] origin = { loc[0], loc[1], loc[2] };
+      float[] origin = new float[3];
+      origin[0] = loc[0];
+      origin[1] = loc[1];
+      if (loc.length > 2) {
+         origin[2] = loc[2];
+      }
       // scale distances by this number, font-size independent
       float scale = emsize / font.getSize ();
 

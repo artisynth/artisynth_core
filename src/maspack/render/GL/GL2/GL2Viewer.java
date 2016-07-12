@@ -633,6 +633,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    
    public double drawText(Font font, String str, float[] pos, double emSize) {
       
+      if (font == null) {
+         font = getDefaultFont();
+      }
+
       boolean savedBlending = isBlendingEnabled ();
       boolean savedTexture = isTextureMappingEnabled ();
       boolean savedDepth = isDepthWriteEnabled ();

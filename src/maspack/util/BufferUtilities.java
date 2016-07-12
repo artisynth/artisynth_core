@@ -3,6 +3,7 @@ package maspack.util;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 
 import com.jogamp.common.nio.Buffers;
 
@@ -29,6 +30,11 @@ public class BufferUtilities {
    public static ByteBuffer newNativeByteBuffer(int size) {
       ByteBuffer buff = Buffers.newDirectByteBuffer (size);
       buff.order (ByteOrder.nativeOrder ());
+      return buff;
+   }
+   
+   public static FloatBuffer newNativeFloatBuffer(int size) {
+      FloatBuffer buff = Buffers.newDirectFloatBuffer (size);
       return buff;
    }
 

@@ -592,6 +592,10 @@ public class GL3Viewer extends GLViewer {
    public double drawText(Font font, String str, float[] pos, double emSize) {
       GL3 gl = getGL ().getGL3();
       
+      if (font == null) {
+         font = getDefaultFont();
+      }
+      
       boolean savedBlending = isBlendingEnabled ();
       boolean savedTexture = isTextureMappingEnabled ();
       boolean savedDepth = isDepthWriteEnabled ();

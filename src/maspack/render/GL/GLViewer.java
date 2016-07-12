@@ -23,7 +23,6 @@ import java.util.NoSuchElementException;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
-import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLContext;
 import javax.media.opengl.GLEventListener;

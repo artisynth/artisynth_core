@@ -3,6 +3,7 @@ package artisynth.core.inverse;
 import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.PlanarConnector;
 import artisynth.core.mechmodels.SphericalJoint;
+import artisynth.core.mechmodels.SphericalJointBase;
 import artisynth.core.modelbase.MonitorBase;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -67,8 +68,8 @@ public class ConnectorForceRenderer extends MonitorBase {
       if (myConnector instanceof PlanarConnector) {
          prerender ((PlanarConnector)myConnector);
       }
-      else if (myConnector instanceof SphericalJoint) {
-         prerender ((SphericalJoint)myConnector);
+      else if (myConnector instanceof SphericalJointBase) {
+         prerender ((SphericalJointBase)myConnector);
       }
       else {
          throw new RuntimeException (
@@ -84,7 +85,7 @@ public class ConnectorForceRenderer extends MonitorBase {
       renderer.drawArrow (getRenderProps (), start, end, true, isSelected ());
    }
 
-   public void prerender (SphericalJoint myConnector) {
+   public void prerender (SphericalJointBase myConnector) {
       // TODO: fix activation scale here (divide by timestep?)
       startvec = myConnector.getCurrentTCW ().p;
       endvec.x = myConnector.getActivation (0) * arrowSize;

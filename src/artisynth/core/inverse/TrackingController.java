@@ -844,6 +844,13 @@ public class TrackingController extends ControllerBase
    }
    
    /**
+    * Returns the reaction force target term, responsible for force error
+    */
+   public ForceTargetTerm getForceTargetTerm() {
+      return myForceTerm;
+   }
+   
+   /**
     * Returns the motion target term, responsible for trajectory error
     */
    public MotionTargetTerm getMotionTargetTerm() {

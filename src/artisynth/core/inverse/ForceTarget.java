@@ -3,6 +3,7 @@ package artisynth.core.inverse;
 import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.PlanarConnector;
 import artisynth.core.mechmodels.SphericalJoint;
+import artisynth.core.mechmodels.SphericalJointBase;
 import artisynth.core.modelbase.RenderableComponentBase;
 import maspack.matrix.Matrix1x1Block;
 import maspack.matrix.Matrix3x3DiagBlock;
@@ -91,7 +92,7 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
          blk.set (0, 0, 1d);
          J.addBlock (bi, solve_index, blk);
       }
-      else if (myConnector instanceof SphericalJoint) {
+      else if (myConnector instanceof SphericalJointBase) {
          blk = new Matrix3x3DiagBlock (1d, 1d, 1d);
          J.addBlock (bi, solve_index, blk);
       }
@@ -130,7 +131,7 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
          set (start, startvec);
          set (end, endvec);
       }
-      else if (myConnector instanceof SphericalJoint) {
+      else if (myConnector instanceof SphericalJointBase) {
          startvec = myConnector.getCurrentTCW ().p;
          endvec.x = myTargetLambda.get (0) * arrowSize;
          endvec.y = myTargetLambda.get (1) * arrowSize;

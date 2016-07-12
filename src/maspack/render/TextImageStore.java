@@ -42,17 +42,18 @@ public class TextImageStore {
 
    // RGBA color model
    private static final ComponentColorModel RGBA_COLOR =
-      new ComponentColorModel (
-         ColorSpace.getInstance (ColorSpace.CS_sRGB), new int[] { 8, 8, 8, 8 },
-         true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
+   new ComponentColorModel (
+      ColorSpace.getInstance (ColorSpace.CS_sRGB), new int[] { 8, 8, 8, 8 },
+      true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
    static final int GLYPH_BORDER = 2; // # pixels around the border of each
-                                      // character
+   // character
    static final boolean DEFAULT_ANTIALIASING = true;
    static final int DEFAULT_FONT_SIZE = 32;
    static final Font DEFAULT_FONT =
-      new Font (Font.SERIF, Font.PLAIN, DEFAULT_FONT_SIZE);
+   new Font (Font.SERIF, Font.PLAIN, DEFAULT_FONT_SIZE);
    static final Color DEFAULT_COLOR = Color.WHITE;
    public static boolean DEBUG = false;
+   boolean antialiased = false;
 
    JFrame debugFrame;
 
@@ -355,9 +356,9 @@ public class TextImageStore {
 
       // sRGBA color model
       WritableRaster raster =
-         Raster.createInterleavedRaster (
-            DataBuffer.TYPE_BYTE, packer.getWidth (), packer.getHeight (), 4,
-            null);
+      Raster.createInterleavedRaster (
+         DataBuffer.TYPE_BYTE, packer.getWidth (), packer.getHeight (), 4,
+         null);
       image = new BufferedImage (RGBA_COLOR, raster, false, null);
       dirty = null;
 
@@ -369,6 +370,7 @@ public class TextImageStore {
          RenderingHints.KEY_FRACTIONALMETRICS,
          RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 
+      this.antialiased = false;
       setAntialiasing (antialiasing);
       // graphics.setComposite (AlphaComposite.Src);
 
@@ -408,16 +410,22 @@ public class TextImageStore {
     * @param set
     */
    public void setAntialiasing (boolean set) {
-      if (set) {
-         graphics.setRenderingHint (
-            RenderingHints.KEY_TEXT_ANTIALIASING,
-            RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+      if (set != antialiased) {
+         clear();
+         antialiased = set;
+         if (set) {
+            graphics.setRenderingHint (
+               RenderingHints.KEY_TEXT_ANTIALIASING,
+               RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+         }
+         else {
+            graphics.setRenderingHint (
+               RenderingHints.KEY_TEXT_ANTIALIASING,
+               RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+         }
       }
-      else {
-         graphics.setRenderingHint (
-            RenderingHints.KEY_TEXT_ANTIALIASING,
-            RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-      }
+
    }
 
    /**
@@ -434,7 +442,7 @@ public class TextImageStore {
     */
    public Glyph[] createGlyphs (String str, Glyph[] out) {
       GlyphVector glyphvec =
-         defaultFont.createGlyphVector (graphics.getFontRenderContext (), str);
+      defaultFont.createGlyphVector (graphics.getFontRenderContext (), str);
       return createGlyphs (glyphvec, out);
    }
 
@@ -456,7 +464,7 @@ public class TextImageStore {
     */
    public GlyphVector createGlyphVector (Font font, String str) {
       GlyphVector glyphvec =
-         font.createGlyphVector (graphics.getFontRenderContext (), str);
+      font.createGlyphVector (graphics.getFontRenderContext (), str);
       return glyphvec;
    }
 
@@ -480,7 +488,7 @@ public class TextImageStore {
       for (int i = 0; i < glyphvec.getNumGlyphs (); ++i) {
          int code = glyphvec.getGlyphCode (i);
          out[i] =
-            (new Glyph (new GlyphId (glyphvec.getFont (), code), glyphvec, i));
+         (new Glyph (new GlyphId (glyphvec.getFont (), code), glyphvec, i));
       }
 
       return out;
@@ -555,17 +563,17 @@ public class TextImageStore {
       int x = Math.min (dirty.x (), rect.x ());
       int y = Math.min (dirty.y (), rect.y ());
       int w =
+      Math.max (
+         Math.max (dirty.width (), rect.width ()),
          Math.max (
-            Math.max (dirty.width (), rect.width ()),
-            Math.max (
-               rect.x () + rect.width () - dirty.x (),
-               dirty.x () + dirty.width () - rect.x ()));
+            rect.x () + rect.width () - dirty.x (),
+            dirty.x () + dirty.width () - rect.x ()));
       int h =
+      Math.max (
+         Math.max (dirty.height (), rect.height ()),
          Math.max (
-            Math.max (dirty.height (), rect.height ()),
-            Math.max (
-               rect.y () + rect.height () - dirty.y (),
-               dirty.y () + dirty.height () - rect.y ()));
+            rect.y () + rect.height () - dirty.y (),
+            dirty.y () + dirty.height () - rect.y ()));
 
       dirty = new Rectangle (x, y, w, h);
    }
@@ -607,8 +615,8 @@ public class TextImageStore {
       int rowWidth = region.width () * pixelWidth;
 
       int pos =
-         (imageHeight - region.y () - 1) * imagePixelWidth
-         + region.x () * pixelWidth;
+      (imageHeight - region.y () - 1) * imagePixelWidth
+      + region.x () * pixelWidth;
       for (int i = 0; i < region.height (); ++i) {
          out.put (data, pos, rowWidth);
          pos -= imagePixelWidth; // advance up a row
@@ -634,8 +642,8 @@ public class TextImageStore {
     */
    public int getPixelSize () {
       int bitsize =
-         DataBuffer.getDataTypeSize (
-            image.getRaster ().getDataBuffer ().getDataType ());
+      DataBuffer.getDataTypeSize (
+         image.getRaster ().getDataBuffer ().getDataType ());
       return bitsize / 8;
    }
 
@@ -701,9 +709,9 @@ public class TextImageStore {
       // new single glyph vector
       Font glyphFont = glyph.getFont ();
       GlyphVector vec =
-         glyphFont.createGlyphVector (
-            graphics.getFontRenderContext (),
-            new int[] { glyph.getGlyphCode () });
+      glyphFont.createGlyphVector (
+         graphics.getFontRenderContext (),
+         new int[] { glyph.getGlyphCode () });
 
       // determine required glyph size
       GlyphMetrics metrics = vec.getGlyphMetrics (0);
@@ -711,7 +719,7 @@ public class TextImageStore {
 
       // pack glyph into backing store
       Rectangle packed =
-         packer.pack ((int)rect.getWidth (), (int)rect.getHeight ());
+      packer.pack ((int)rect.getWidth (), (int)rect.getHeight ());
       if (packed == null) {
          return null; // didn't fit
       }
@@ -841,7 +849,7 @@ public class TextImageStore {
       protected void paintComponent (Graphics g) {
          super.paintComponent (g);
          g.drawImage (image, 0, 0, null); // see javadoc for more info on the
-                                          // parameters
+         // parameters
       }
    }
 
@@ -873,11 +881,11 @@ public class TextImageStore {
 
       TextImageStore.DEBUG = true;
       TextImageStore content =
-         new TextImageStore (
-            new BinaryTreeRectanglePacker (width, height), true);
+      new TextImageStore (
+         new BinaryTreeRectanglePacker (width, height), true);
 
-      
-      
+
+
       content.debugFrame.setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
 
       content.setFont (new Font(Font.MONOSPACED, Font.PLAIN, 32));
@@ -886,11 +894,11 @@ public class TextImageStore {
 
       content.upload ("The quick brown fox jumps over the lazy dog".toLowerCase ());
       content.upload ("The quick brown fox jumps over the lazy dog".toUpperCase ());
-      
+
       Font font = new Font (Font.SERIF, Font.BOLD, 64);
       content.setFont (font);
       content.upload (
-         "Praesent semper consequat rhoncus. Cras quis massa mauris. Proin maximus iaculis blandit. Quisque sed massa mattis nulla laoreet cursus. Nulla iaculis auctor urna at faucibus. Nulla gravida nulla at mauris gravida, sit amet pellentesque ante aliquam. Ut pulvinar urna vel congue ullamcorper. Cras ac libero a ipsum molestie auctor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nullam non feugiat libero, ut ultrices diam. Morbi sed efficitur lacus. Fusce semper arcu ac varius lacinia. Mauris non mauris facilisis, imperdiet est vitae, luctus urna. Nam dapibus sit amet nibh in lobortis. Vivamus gravida commodo magna, id fringilla quam congue sed. Nullam ut turpis elit.");
+      "Praesent semper consequat rhoncus. Cras quis massa mauris. Proin maximus iaculis blandit. Quisque sed massa mattis nulla laoreet cursus. Nulla iaculis auctor urna at faucibus. Nulla gravida nulla at mauris gravida, sit amet pellentesque ante aliquam. Ut pulvinar urna vel congue ullamcorper. Cras ac libero a ipsum molestie auctor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nullam non feugiat libero, ut ultrices diam. Morbi sed efficitur lacus. Fusce semper arcu ac varius lacinia. Mauris non mauris facilisis, imperdiet est vitae, luctus urna. Nam dapibus sit amet nibh in lobortis. Vivamus gravida commodo magna, id fringilla quam congue sed. Nullam ut turpis elit.");
       content.upload ("The quick brown fox jumps over the lazy dog".toLowerCase ());
       content.upload ("The quick brown fox jumps over the lazy dog".toUpperCase ());
 

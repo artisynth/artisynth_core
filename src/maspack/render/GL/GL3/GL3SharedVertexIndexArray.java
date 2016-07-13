@@ -65,6 +65,9 @@ public class GL3SharedVertexIndexArray extends GL3ResourceBase {
 
    @Override
    public boolean isValid () {
+      if (ibo == null) {
+         return false;
+      }
       return ibo.isValid ();
    }
    

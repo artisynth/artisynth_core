@@ -1844,12 +1844,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public static void main (String[] args) {
       IntHolder width = new IntHolder (750);
       IntHolder height = new IntHolder (500);
-
+      
       // some interfaces (like Matlab) may pass args in as null
       if (args == null) {
          args = new String[0];
       }
-
+      
       ArgParser parser = new ArgParser ("java artisynth.core.driver.Main", false);
       parser.addOption ("-help %v #prints help message", printHelp);
       parser.addOption ("-width %d #width (pixels)", width);
@@ -1983,7 +1983,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // Separate program arguments from model arguments introduced by -M
       ArrayList<String> progArgs = new ArrayList<String>();
       ArrayList<String> modelArgs = new ArrayList<String>();
-      boolean modelArgsFound=false;
+      ArrayList<String> scriptArgs = new ArrayList<String>();
+      boolean modelArgsFound = false;
+      boolean scriptArgsFound = false;
+      
       for (String arg : args) {
          if (modelArgsFound) {
             modelArgs.add (arg);
@@ -2009,16 +2012,40 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // Match arguments one at a time so we can avoid exitOnError if we are
       // running inside matlab
       String[] pargs = progArgs.toArray(new String[0]);
+      int lastSwitch = -1;
       int idx = 0;
       while (idx < pargs.length) {
          try {
+            int pidx = idx;
             idx = parser.matchArg (pargs, idx);
             String unmatched;
             if ((unmatched=parser.getUnmatchedArgument()) != null) {
-               System.out.println (
-                  "Unrecognized argument: " + unmatched +
-                  "\nUse -help for help information");
-               return;
+               
+               boolean valid = false;
+               
+               // if the last switch was a script file, append to set of arguments
+               if (lastSwitch >= 0) { 
+                  
+                  if ("-script".equals(pargs[lastSwitch].toLowerCase())) {
+                     scriptArgs.add(unmatched);
+                     scriptArgsFound = true;
+                     valid = true;
+                  } else if ("-model".equals(pargs[lastSwitch].toLowerCase())) {
+                     modelArgs.add(unmatched);
+                     modelArgsFound = true;
+                     valid = true;
+                  }
+               
+               }
+               
+               if (!valid) {
+                  System.out.println (
+                     "Unrecognized argument: " + unmatched +
+                     "\nUse -help for help information");
+                  return;
+               }
+            } else {
+               lastSwitch = pidx;
             }
          }
          catch (Exception e) {
@@ -2166,14 +2193,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
       
       if (scriptFile.value != null) {
          if (m.myFrame != null) {
-            m.myMenuBarHandler.runScript(scriptFile.value);
+            String[] sargs = null;
+            if (scriptArgsFound) {
+               sargs = scriptArgs.toArray(new String[0]);
+            }
+            m.myMenuBarHandler.runScript(scriptFile.value, sargs);
          }
          else {
             if (m.myJythonConsole == null) {
                m.createJythonConsole (/*guiBased=*/false);
             }
             try {
-               m.myJythonConsole.executeScript (scriptFile.value);
+               String[] sargs = null;
+               if (scriptArgsFound) {
+                  sargs = scriptArgs.toArray(new String[0]);
+               }
+               m.myJythonConsole.executeScript (scriptFile.value, sargs);
             }
             catch (Exception e) {
                System.out.println (

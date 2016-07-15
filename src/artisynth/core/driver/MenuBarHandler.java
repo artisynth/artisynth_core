@@ -1570,12 +1570,16 @@ public class MenuBarHandler implements
    }
 
    public void runScript(String scriptName) {
+      runScript(scriptName, null);
+   }
+   
+   public void runScript(String scriptName, String[] args) {
       setJythonConsoleVisible(true);
       File[] files = ArtisynthPath.findFiles(scriptName);
       if (files != null && files.length > 0) {
          String pathName = protectWindowsSlashes (files[0].getPath());
          try {
-            myMain.myJythonConsole.executeScript (pathName);
+            myMain.myJythonConsole.executeScript (pathName, args);
          }
          catch (Exception e) {
             System.out.println ("Error executing script '"+pathName+"':");

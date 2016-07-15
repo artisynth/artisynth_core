@@ -59,6 +59,27 @@ public class ArtisynthJythonConsole {
    }
 
    public void executeScript (String fileName) throws IOException {
+      executeScript(fileName, null);
+   }
+   
+   public void executeScript (String fileName, String[] args) throws IOException {
+      if (args != null) {
+    	 // pass in sys arguments through this dummy object
+         myConsole.exec(
+            "import sys\n" +
+            "class ArgSetter:\n"+
+            "    def __init__(self, vargs):\n"+
+            "        self.vargs = vargs\n"+
+            "        sys.argv = vargs\n");
+         PyObject argClass = myConsole.get("ArgSetter");
+         PyObject[] pyargs = new PyObject[args.length];
+         for (int i=0; i<args.length; ++i) {
+            pyargs[i] = new PyString(args[i]);
+         }
+         PyList pylist = new PyList(pyargs);
+         argClass.__call__(pylist);
+      }
+      
       if (myConsole instanceof JythonFrameConsole) {
          ((JythonFrameConsole)myConsole).executeScript (fileName);
       }

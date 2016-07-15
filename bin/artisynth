@@ -185,8 +185,8 @@ JAVA_OPTS="$JAVA_OPTS $MEM_LIMIT"
 # John Lloyd: Sep 17, 2010: removed logging of regular output. The
 # files simply got too big, especially with debugging statements
 if [ $SILENT = yes ] ; then
-    java $JAVA_OPTS artisynth.core.driver.Launcher ${MAIN_OPTS[@]} > /dev/null 2>&1
-else 
+    java $JAVA_OPTS artisynth.core.driver.Launcher "${MAIN_OPTS[@]}" > /dev/null 2>&1
+else
     # java $JAVA_OPTS artisynth.core.driver.Launcher ${MAIN_OPTS[@]} 2>&1 | tee -a $LOG     
-    java $JAVA_OPTS artisynth.core.driver.Launcher ${MAIN_OPTS[@]}
+    java $JAVA_OPTS artisynth.core.driver.Launcher "${MAIN_OPTS[@]}"
 fi

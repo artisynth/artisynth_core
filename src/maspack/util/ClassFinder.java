@@ -16,7 +16,25 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.regex.Pattern;
 
+/**
+ * Searches the classpath for classes that match supplied criteria
+ * @author Antonio
+ *
+ */
 public class ClassFinder {
+   
+   static Logger myLogger = null;
+   
+   static void setLogger(Logger logger) {
+      myLogger = logger;
+   }
+   
+   private static Logger getLogger() {
+      if (myLogger == null) {
+         return Logger.getSystemLogger();
+      }
+      return myLogger;
+   }
 
    public static ArrayList<String> findClassNames(String pkg, Class<?> base) {
       return findClassNames(pkg, ".*", base);
@@ -33,8 +51,9 @@ public class ClassFinder {
             clsNames.add(cls.getName());
          }
       } catch (Exception e) {
-         System.out.println("Error loading classes");
-         e.printStackTrace();
+         Logger logger = getLogger();
+         logger.trace("Error loading classes");
+         logger.trace(e);
       }
       return clsNames;
    }
@@ -162,14 +181,17 @@ public class ClassFinder {
                   }
 
                } catch (Exception e) {
-                  System.out.println(
+                  Logger logger = getLogger();
+                  logger.debug(
                      "Class " + className + "' could not be initialized: " +
-                     e.toString() + ", " + e.getMessage());
+                        e.toString() + ", " + e.getMessage());
+                  logger.trace(e);
                } catch (Error err) {
-                  System.out.println(
+                  Logger logger = getLogger();
+                  logger.debug(
                      "Error: Class " + className + "' could not be initialized: " +
-                     err.toString() + ", " + err.getMessage());
-                  err.printStackTrace();
+                        err.toString() + ", " + err.getMessage());
+                  logger.trace(err);
                }
             }
          }

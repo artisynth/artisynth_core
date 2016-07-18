@@ -7,16 +7,16 @@
 
 package maspack.fileutil;
 
-import java.io.*;
-import java.util.*;
-import java.util.regex.Pattern;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.util.HashSet;
 import java.util.regex.Matcher;
-import java.net.UnknownHostException;
+import java.util.regex.Pattern;
 
-import maspack.util.*;
+import maspack.fileutil.uri.URIx;
 import maspack.util.Logger.LogLevel;
-import maspack.fileutil.*;
-import maspack.fileutil.uri.*;
+import maspack.util.PathFinder;
 
 /**
  * Class to ensure that necessary native libraries are installed on this
@@ -656,7 +656,7 @@ public class NativeLibraryManager {
    void grabFile (File libFile, LibDesc desc, boolean checkHash) {
       
       FileGrabber grabber = new FileGrabber();
-      grabber.setVerbosityLevel (0);
+      grabber.setVerbosityLevel (LogLevel.ALL);
       if ((myFlags & VERBOSE) != 0) {
          FileTransferListener listener = myTransferListener;
          if (listener == null) {

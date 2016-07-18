@@ -24,6 +24,7 @@ import maspack.render.TextureContent.ContentFormat;
 import maspack.render.GL.GLSupport.GLVersionInfo;
 import maspack.render.GL.GLSupport.GLVersionListener;
 import maspack.util.BufferUtilities;
+import maspack.util.Logger;
 import maspack.util.Rectangle;
 
 /**
@@ -160,7 +161,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
          while(!glv.isValid ()) {
          }
          GLVersionInfo version = glv.getVersionInfo ();
-         System.out.println (version.getVersionString ());
+         Logger.getSystemLogger().debug (version.getVersionString ());
          
          masterDrawable.removeGLEventListener (glv);
          
@@ -369,12 +370,12 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    
    @Override
    public void init (GLAutoDrawable drawable) {
-      System.out.println("Master drawable initialized");
+      Logger.getSystemLogger().debug("Master drawable initialized");
    }
 
    @Override
    public void dispose (GLAutoDrawable drawable) {
-      System.out.println("Master drawable disposed");
+      Logger.getSystemLogger().debug("Master drawable disposed");
       textureLoader.clearAllTextures (); // clean up
    }
    

@@ -45,6 +45,7 @@ import maspack.render.GL.GL3.GL3SharedPrimitive.PrimitiveType;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
 import maspack.util.BufferUtilities;
 import maspack.util.InternalErrorException;
+import maspack.util.Logger;
 
 public class GL3Viewer extends GLViewer {
 
@@ -274,7 +275,7 @@ public class GL3Viewer extends GLViewer {
       // trigger rebuild of renderables
       buildInternalRenderList();
 
-      System.out.println("GL3 initialized");
+      Logger.getSystemLogger().debug("GL3 initialized");
       
       gl.glEnable (GL.GL_BLEND);
       gl.glBlendFunc (GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
@@ -322,7 +323,7 @@ public class GL3Viewer extends GLViewer {
       eaFlex.dispose (gl);
       eaFlex = null;
 
-      System.out.println("GL3 disposed");
+      Logger.getSystemLogger().debug("GL3 disposed");
       
       // nullify stuff
       this.gl = null;
@@ -454,7 +455,7 @@ public class GL3Viewer extends GLViewer {
       for (int i=0; i<myProgManager.numClipPlanes (); ++i) {
          boolean enabled = gl.glIsEnabled (GL3.GL_CLIP_DISTANCE0 + i);
          if (enabled) {
-            System.out.println ("Why is this enabled?");
+            Logger.getSystemLogger().debug("Why is this enabled?");
          }
       }
       

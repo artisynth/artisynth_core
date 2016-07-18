@@ -54,6 +54,7 @@ import maspack.render.GL.GL2.RenderObjectKey.DrawType;
 import maspack.render.color.ColorUtils;
 import maspack.util.BooleanHolder;
 import maspack.util.InternalErrorException;
+import maspack.util.Logger;
 
 /**
  * @author John E Lloyd and ArtiSynth team members
@@ -299,11 +300,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       this.gl = drawable.getGL().getGL2();
 
       if (DEBUG) {
-         System.out.println("GL: " + gl);
-         System.out.println ("Dev id : ");
+         Logger.getSystemLogger().debug("GL: " + gl);
+         Logger.getSystemLogger().debug("Dev id : ");
          GLContext context = drawable.getContext ();
          String contextHC = Integer.toHexString(System.identityHashCode(context));
-         System.out.println("Context: " + context.getClass ().getName () + "@" + contextHC + " (shared=" + context.isShared () + ")");
+         Logger.getSystemLogger().debug("Context: " + context.getClass ().getName () + "@" + contextHC + " (shared=" + context.isShared () + ")");
       }
 
       gl.setSwapInterval (1);
@@ -356,7 +357,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       buildInternalRenderList();
 
       if (DEBUG) {
-         System.out.println("GL2 initialized");
+         Logger.getSystemLogger().debug("GL2 initialized");
       }
       
    }
@@ -445,7 +446,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       myTextRenderer = null;
 
       if (DEBUG) {
-         System.out.println("GL2 disposed");
+         Logger.getSystemLogger().debug("GL2 disposed");
       }
 
       // nullify stuff
@@ -513,7 +514,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          System.out.printf (
             "render time (msec): %9.4f %s\n", 
             myTimer.getTimeUsec()/1000.0, isSelecting() ? "(SELECT)" : "");
-         System.out.println ("Color changes: " + myGLColorCount);
+         Logger.getSystemLogger().debug("Color changes: " + myGLColorCount);
       }
       if (selectEnabled) {
          selectEnabled = false;
@@ -2829,7 +2830,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
-               System.out.println (" invalid object disposed " + gvo);
+               Logger.getSystemLogger().debug(" invalid object disposed " + gvo);
             }
          }
          if (gvo == null || gvo.disposeInvalid (gl)) {
@@ -2842,7 +2843,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
       if (compile) {
          if (DEBUG) {
-            System.out.println("Compiling dl:" + gvo.getDisplayList ().getListId ());
+            Logger.getSystemLogger().debug("Compiling dl:" + gvo.getDisplayList ().getListId ());
          }
          if (gvo != null) {
             gvo.beginCompile (gl);
@@ -3080,7 +3081,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
-               System.out.println (" invalid object disposed " + gvo);
+               Logger.getSystemLogger().debug(" invalid object disposed " + gvo);
             }
          }
          if (gvo == null || gvo.disposeInvalid (gl)) {
@@ -3177,7 +3178,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
-               System.out.println (" invalid object disposed " + gvo);
+               Logger.getSystemLogger().debug(" invalid object disposed " + gvo);
             }
          }
          if (gvo == null || gvo.disposeInvalid (gl)) {
@@ -3367,7 +3368,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
-               System.out.println (" invalid object disposed " + gvo);
+               Logger.getSystemLogger().debug(" invalid object disposed " + gvo);
             }
          }
          if (gvo == null || gvo.disposeInvalid (gl)) {
@@ -3474,7 +3475,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
-               System.out.println (" invalid object disposed " + gvo);
+               Logger.getSystemLogger().debug(" invalid object disposed " + gvo);
             }
          }
          if (gvo == null || gvo.disposeInvalid (gl)) {
@@ -3588,7 +3589,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
-               System.out.println (" invalid object disposed " + gvo);
+               Logger.getSystemLogger().debug(" invalid object disposed " + gvo);
             }
          }
          if (gvo == null || gvo.disposeInvalid (gl)) {
@@ -3768,7 +3769,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          if (gvo != null) {
             boolean iv = gvo.disposeInvalid (gl);
             if (iv == true) {
-               System.out.println (" invalid object disposed " + gvo);
+               Logger.getSystemLogger().debug(" invalid object disposed " + gvo);
             }
          }
          if (gvo == null || gvo.disposeInvalid (gl)) {

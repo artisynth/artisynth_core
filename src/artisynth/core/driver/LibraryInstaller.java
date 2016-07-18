@@ -6,15 +6,22 @@
  */
 package artisynth.core.driver;
 
-import java.util.*;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.LinkedList;
 
-import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ArtisynthIO;
-import maspack.util.ReaderTokenizer;
-import maspack.fileutil.*;
+import artisynth.core.util.ArtisynthPath;
+import maspack.fileutil.DefaultConsoleFileTransferListener;
+import maspack.fileutil.FileGrabber;
+import maspack.fileutil.FileTransferListener;
+import maspack.fileutil.NativeLibraryManager;
 import maspack.fileutil.NativeLibraryManager.SystemType;
-import maspack.fileutil.uri.*;
+import maspack.fileutil.uri.URIx;
+import maspack.fileutil.uri.URIxSyntaxException;
+import maspack.util.Logger.LogLevel;
+import maspack.util.ReaderTokenizer;
  
 /**
  * Class to installer Artisynth libraries (both jar files and native binaries).
@@ -255,7 +262,7 @@ public class LibraryInstaller {
       boolean allOK = true;
       if (myJarnames.size() > 0) {
          FileGrabber grabber = new FileGrabber();
-         grabber.setVerbosityLevel (0);
+         grabber.setVerbosityLevel (LogLevel.ALL);
          FileTransferListener listener =
             new DefaultConsoleFileTransferListener();
          grabber.addTransferListener(listener);

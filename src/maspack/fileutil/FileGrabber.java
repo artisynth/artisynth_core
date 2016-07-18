@@ -13,17 +13,17 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.UserAuthenticator;
+
 import maspack.fileutil.jsch.SimpleIdentityRepository;
 import maspack.fileutil.uri.URIx;
 import maspack.fileutil.uri.URIxMatcher;
 import maspack.fileutil.uri.URIxScheme;
 import maspack.fileutil.uri.URIxSyntaxException;
 import maspack.util.Logger;
-import maspack.util.StreamLogger;
 import maspack.util.Logger.LogLevel;
-
-import org.apache.commons.vfs2.FileSystemException;
-import org.apache.commons.vfs2.UserAuthenticator;
+import maspack.util.StreamLogger;
 
 /**
  * Downloads files from URIs satisfying the generic/zip URI syntax according to
@@ -124,8 +124,7 @@ public class FileGrabber {
 
    // defaults
    public static int DEFAULT_OPTIONS = 0;
-   public static int DEFAULT_LOG_LEVEL =
-      LogLevel.values().length - LogLevel.INFO.ordinal(); // info and up
+   public static LogLevel DEFAULT_LOG_LEVEL = LogLevel.INFO; // info and up
    public static Logger DEFAULT_LOGGER = new StreamLogger();
    
    public int myOptions = DEFAULT_OPTIONS;
@@ -861,27 +860,6 @@ public class FileGrabber {
    public static Logger getLogger() {
       return logger;
    }
-   
-   /**
-    * Sets the verbosity level of this FileGrabber. A level of 0 will not print
-    * anything, level of 6 will print everything
-    * 
-    * @param level
-    * between 0 (off) and 6 (print everything).
-    */
-   public void setVerbosityLevel(int level) {
-
-      // reverse order
-      level = Logger.NUM_LEVELS + 1 - level;
-
-      // if level is in an invalid range, print everything
-      if (level < 0 || level > Logger.NUM_LEVELS) {
-         level = 0;
-      }
-
-      logger.setLogLevel(level);
-
-   }
 
    /**
     * Sets the verbosity level of this FileGrabber. Any messages ranked higher
@@ -893,7 +871,6 @@ public class FileGrabber {
     */
    public void setVerbosityLevel(LogLevel level) {
       logger.setLogLevel(level);
-
    }
 
    /**

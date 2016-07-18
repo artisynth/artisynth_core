@@ -6,19 +6,20 @@
  */
 package maspack.util;
 
+import java.awt.Color;
 import java.io.PrintStream;
+import java.util.Arrays;
 
+/**
+ * Allows different colours for log levels.  Works on *nix
+ * terminals, and on eclipse with the ANSI Console plugin 
+ * http://www.mihai-nita.net/eclipse
+ * 
+ * @author Antonio Sanchez
+ * Creation date: 21 Oct 2012
+ *
+ */
 public class ANSIColorLogger extends StreamLogger {
-
-   /**
-    * Allows different colours for log levels.  Works on *nix
-    * terminals, and on eclipse with the ANSI Console plugin 
-    * http://www.mihai-nita.net/eclipse
-    * 
-    * @author Antonio Sanchez
-    * Creation date: 21 Oct 2012
-    *
-    */
    
    public enum ANSIColor {
       NONE ("", ""),
@@ -55,15 +56,14 @@ public class ANSIColorLogger extends StreamLogger {
 
    // still use bright to stand out
    public static ANSIColor[] DEFAULT_COLOURS_DARK =
-   { ANSIColor.GREEN, ANSIColor.BRIGHT_BLUE, ANSIColor.NONE,
+   { ANSIColor.GREEN, ANSIColor.GREEN, ANSIColor.BRIGHT_BLUE, ANSIColor.NONE,
     ANSIColor.YELLOW, ANSIColor.BRIGHT_RED, ANSIColor.RED };
 
    public static ANSIColor[] DEFAULT_COLOURS_BRIGHT =
-   {  ANSIColor.BRIGHT_GREEN, ANSIColor.BRIGHT_BLUE,
+   {  ANSIColor.BRIGHT_GREEN, ANSIColor.BRIGHT_GREEN, ANSIColor.BRIGHT_BLUE,
     ANSIColor.NONE, ANSIColor.BRIGHT_YELLOW,
     ANSIColor.BRIGHT_RED, ANSIColor.RED };
 
-   public static ANSIColorLogger log = new ANSIColorLogger();
    private ANSIColor[] colour = new ANSIColor[NUM_LEVELS];
    
    public ANSIColorLogger () {
@@ -144,6 +144,21 @@ public class ANSIColorLogger extends StreamLogger {
       out.println(colour[idx].end());
    }
    
+   @Override
+   public ANSIColorLogger clone() throws CloneNotSupportedException {
+      ANSIColorLogger logger = (ANSIColorLogger)super.clone();
+      this.colour = Arrays.copyOf(this.colour, this.colour.length);
+      return logger;
+   }
+   
+   private static ANSIColorLogger defaultLogger = new ANSIColorLogger();
+   /**
+    * @return the static default ANSIColorLogger
+    */
+   public static ANSIColorLogger getDefaultLogger() {
+      return defaultLogger;
+   }
+
    public static void main(String[] args) {
       
       String msg = "This is a test message";
@@ -166,7 +181,5 @@ public class ANSIColorLogger extends StreamLogger {
       log.error(msg);
       log.fatal(msg);      
       
-      
    }
-
 }

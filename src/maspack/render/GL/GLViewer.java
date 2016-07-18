@@ -29,6 +29,7 @@ import javax.media.opengl.GLEventListener;
 import javax.media.opengl.awt.GLCanvas;
 import javax.swing.event.MouseInputListener;
 
+import artisynth.core.driver.Main;
 import maspack.matrix.AffineTransform2d;
 import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.AffineTransform3d;
@@ -74,6 +75,7 @@ import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
+import maspack.util.Logger;
 
 /**
  * @author John E Lloyd and ArtiSynth team members
@@ -1593,8 +1595,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       GL gl = drawable.getGL ();
       String renderer = gl.glGetString(GL.GL_RENDERER);
       String version = gl.glGetString(GL.GL_VERSION);
-      System.out.println("GL Renderer: " + renderer);
-      System.out.println("OpenGL Version: " + version);
+      
+      Logger logger = Logger.getSystemLogger();
+      logger.info("GL Renderer: " + renderer);
+      logger.info("OpenGL Version: " + version);
       
       setMultiSampleEnabled (true);
       myActiveColor = ActiveColor.DEFAULT;

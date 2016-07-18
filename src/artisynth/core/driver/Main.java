@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.media.opengl.GLProfile;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
@@ -117,13 +116,15 @@ import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
 import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLSupport.GLVersionInfo;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
-import maspack.render.GL.GLSupport.GLVersionInfo;
 import maspack.solvers.PardisoSolver;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
+import maspack.util.Logger;
+import maspack.util.Logger.LogLevel;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.widgets.ButtonMasks;
@@ -153,6 +154,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected UndoManager myUndoManager;
    protected InverseManager myInverseManager;
    protected MovieMaker myMovieMaker;
+   protected Logger myLogger;
 
    protected static boolean myRunningUnderMatlab = false;
 
@@ -664,6 +666,51 @@ public class Main implements DriverInterface, ComponentChangeListener {
       createWorkspace();
    }
 
+   /**
+    * Returns a logger to be used by this main application.  If this instance of Main does not have
+    * an associated logger, then the system logger is returned.
+    * @return a logger to use by this instance of the main application
+    */
+   public Logger getLogger() {
+      if (myLogger == null) {
+         return Logger.getSystemLogger();
+      }
+      return myLogger;
+   }
+   
+   /**
+    * Sets an application-specific logger
+    * @param logger logger to use in this main application
+    */
+   public void setLogger(Logger logger) {
+      myLogger = logger;
+   }
+   
+   /**
+    * @return the current log level
+    */
+   public LogLevel getLogLevel() {
+      return getLogger().getLogLevel();
+   }
+   
+   /**
+    * Sets the current log level for this application.  If no logger is specified using 
+    * {@link #setLogger(Logger)}, then the system logger is cloned and assigned in
+    * order to set the log level.
+    * @param level
+    */
+   public void setLogLevel(LogLevel level) {
+      if (myLogger == null) {
+         try {
+            myLogger = Logger.getSystemLogger().clone();
+         } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+            return;
+         }
+      }
+      myLogger.setLogLevel(level);
+   }
+   
    /**
     * to set the timeline visible or not
     * 
@@ -1602,7 +1649,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
     */
    public void setMouseBindings (String prefs) {
 
-      System.out.println ("Setting mouse bindings to '"+prefs+"'");
+      getLogger().info ("Setting mouse bindings to '"+prefs+"'");
       GLMouseAdapter mouse = (GLMouseAdapter)myViewer.getMouseHandler();
       if (mouse == null) {
          mouse = new GLMouseAdapter(myViewer);
@@ -1751,6 +1798,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
    protected static IntHolder glVersion = new IntHolder (3);
+   protected static StringHolder logLevel = new StringHolder(Logger.LogLevel.WARN.toString());
 
    protected static IntHolder flags = new IntHolder();
 
@@ -1937,6 +1985,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "#open a MATLAB connection if possible", openMatlab);
       parser.addOption (
          "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
+      parser.addOption("-logLevel %s", logLevel);
 
       Locale.setDefault(Locale.CANADA);
 
@@ -2061,6 +2110,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          return;
       }
 
+      // Set system logger level
+      Logger.getSystemLogger().setLogLevel(LogLevel.find(logLevel.value));
+      
       MechSystemSolver.myDefaultHybridSolveP = !disableHybridSolves.value;
       if (numSolverThreads.value > 0) {
          PardisoSolver.setDefaultNumThreads (numSolverThreads.value);

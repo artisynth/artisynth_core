@@ -26,6 +26,7 @@ public class PointDistributor {
    public static int DEFAULT_MAX_ITERS = 20;
    public static double DEFAULT_THRESHOLD = 1e-10;
    
+   // create a grid of points
    public static Point3d[] getGrid(double[] size, int[] res, Point3d centre) {
       
       int nPnts = res[0]*res[1]*res[2];
@@ -55,10 +56,12 @@ public class PointDistributor {
       
    }
    
+   // face-centered cubic sphere packing
    private static int getFCCsize(int nx, int ny, int nz) {
       return 4*nx*ny*nz-2*(nx*ny+nx*nz+ny*nz)+nz+ny+nz;
    }
    
+   // face-centered cubic sphere packing
    public static Point3d[] getFCC(double[] size, int[] res, Point3d centre) {
       
       int nPnts = getFCCsize(res[0],res[1],res[2]);
@@ -99,6 +102,7 @@ public class PointDistributor {
       
    }
    
+   // fills a mesh with spheres based on face-centered cubic packing
    public static Point3d[] sphereFCCFill(PolygonalMesh mesh, double r) {
       
       ArrayList<Point3d> pnts = new ArrayList<Point3d>();
@@ -165,6 +169,7 @@ public class PointDistributor {
       return pnts.toArray(new Point3d[pnts.size()]);
    }
    
+   // fills a mesh based on a regular grid of points
    public static Point3d[] sphereGridFill(PolygonalMesh mesh, double r) {
       
       ArrayList<Point3d> pnts = new ArrayList<Point3d>();
@@ -395,6 +400,7 @@ public class PointDistributor {
       
    }
    
+   // Lloyd sampling (relaxation)
    public static void lloydSample(Point3d[] out, Point3d[] in) {
       lloydSample(out, in, DEFAULT_THRESHOLD, DEFAULT_MAX_ITERS);
    }

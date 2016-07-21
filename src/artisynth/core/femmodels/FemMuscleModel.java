@@ -61,7 +61,7 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 
 public class FemMuscleModel extends FemModel3d
-   implements AuxiliaryMaterial, ExcitationComponent {
+implements AuxiliaryMaterial, ExcitationComponent {
 
    protected MuscleBundleList myMuscleList;
    protected MuscleMaterial myMuscleMat;
@@ -74,10 +74,10 @@ public class FemMuscleModel extends FemModel3d
    private double myDirectionRenderLen = DEFAULT_DIRECTION_RENDER_LEN;
    private DirectionRenderType myDirectionRenderType = DEFAULT_FIBER_RENDER_TYPE;
    private RenderProps myFiberRenderProps = new RenderProps(DEFAULT_FIBER_RENDER_PROPS); 
-      
+
    PropertyMode myDirectionRenderTypeMode = PropertyMode.Inherited;
    PropertyMode myDirectionRenderLenMode = PropertyMode.Inherited;
-//   private boolean myDrawFibers = false;
+   //   private boolean myDrawFibers = false;
 
    protected float[] myExcitationColor = null;
    protected PropertyMode myExcitationColorMode = PropertyMode.Inherited;
@@ -86,8 +86,8 @@ public class FemMuscleModel extends FemModel3d
 
    // fields related to fiber mesh and making the entire muscle an
    // excitation component
-//   protected PolylineMesh myFiberMesh = null;
-//   protected boolean myFiberMeshActive = false;
+   //   protected PolylineMesh myFiberMesh = null;
+   //   protected boolean myFiberMeshActive = false;
    protected Vector3d myTmpDir = new Vector3d();
    private double myExcitation = 0;
    protected ExcitationSourceList myExcitationSources;
@@ -99,7 +99,7 @@ public class FemMuscleModel extends FemModel3d
    protected static final double maxActivation = 1.0;
 
    public static PropertyList myProps =
-      new PropertyList(FemMuscleModel.class, FemModel3d.class);
+   new PropertyList(FemMuscleModel.class, FemModel3d.class);
 
    static {
       myProps.add ("activations", "muscle activations", null);
@@ -130,16 +130,16 @@ public class FemMuscleModel extends FemModel3d
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
-   
+
    private static RenderProps createDefaultFiberRenderProps() {
-      
+
       if (DEFAULT_FIBER_RENDER_PROPS == null) {
          RenderProps props = new RenderProps();
          props.setLineColor(new Color(0f,1f,1f));
          props.setLineStyle(LineStyle.LINE);
          DEFAULT_FIBER_RENDER_PROPS = props;
       }
-      
+
       return DEFAULT_FIBER_RENDER_PROPS;
    }
 
@@ -161,8 +161,8 @@ public class FemMuscleModel extends FemModel3d
          myExcitationColor = color.getRGBColorComponents(null);
       }
       myExcitationColorMode =
-         PropertyUtils.propagateValue(
-            this, "excitationColor", color, myExcitationColorMode);
+      PropertyUtils.propagateValue(
+         this, "excitationColor", color, myExcitationColorMode);
    }
 
    public PropertyMode getExcitationColorMode() {
@@ -171,8 +171,8 @@ public class FemMuscleModel extends FemModel3d
 
    public void setExcitationColorMode(PropertyMode mode) {
       myExcitationColorMode =
-         PropertyUtils.setModeAndUpdate(
-            this, "excitationColor", myExcitationColorMode, mode);
+      PropertyUtils.setModeAndUpdate(
+         this, "excitationColor", myExcitationColorMode, mode);
    }
 
    public double getMaxColoredExcitation() {
@@ -182,9 +182,9 @@ public class FemMuscleModel extends FemModel3d
    public void setMaxColoredExcitation(double excitation) {
       myMaxColoredExcitation = excitation;
       myMaxColoredExcitationMode =
-         PropertyUtils.propagateValue(
-            this, "maxColoredExcitation", excitation,
-            myMaxColoredExcitationMode);
+      PropertyUtils.propagateValue(
+         this, "maxColoredExcitation", excitation,
+         myMaxColoredExcitationMode);
    }
 
    public PropertyMode getMaxColoredExcitationMode() {
@@ -193,8 +193,8 @@ public class FemMuscleModel extends FemModel3d
 
    public void setMaxColoredExcitationMode(PropertyMode mode) {
       myMaxColoredExcitationMode =
-         PropertyUtils.setModeAndUpdate(
-            this, "maxColoredExcitation", myMaxColoredExcitationMode, mode);
+      PropertyUtils.setModeAndUpdate(
+         this, "maxColoredExcitation", myMaxColoredExcitationMode, mode);
    }
 
    /**
@@ -324,9 +324,9 @@ public class FemMuscleModel extends FemModel3d
    public FemMuscleModel (String name) {
       super(name);
       myMuscleList =
-         new MuscleBundleList("bundles", "b");
+      new MuscleBundleList("bundles", "b");
       myExciterList =
-         new ComponentList<MuscleExciter>(MuscleExciter.class, "exciters", "x");
+      new ComponentList<MuscleExciter>(MuscleExciter.class, "exciters", "x");
       addFixed (myMuscleList);
       addFixed (myExciterList);
       setMuscleMaterial(createDefaultMuscleMaterial());
@@ -335,9 +335,9 @@ public class FemMuscleModel extends FemModel3d
    public void setDirectionRenderLen(double size) {
       myDirectionRenderLen = size;
       myDirectionRenderLenMode =
-         PropertyUtils.propagateValue(
-            this, "directionRenderLen",
-            myDirectionRenderLen, myDirectionRenderLenMode);
+      PropertyUtils.propagateValue(
+         this, "directionRenderLen",
+         myDirectionRenderLen, myDirectionRenderLenMode);
    }
 
    public double getDirectionRenderLen() {
@@ -346,28 +346,28 @@ public class FemMuscleModel extends FemModel3d
 
    public void setDirectionRenderLenMode(PropertyMode mode) {
       myDirectionRenderLenMode =
-         PropertyUtils.setModeAndUpdate(
-            this, "directionRenderLen", myDirectionRenderLenMode, mode);
+      PropertyUtils.setModeAndUpdate(
+         this, "directionRenderLen", myDirectionRenderLenMode, mode);
    }
 
    public PropertyMode getDirectionRenderLenMode() {
       return myDirectionRenderLenMode;
    }
-   
+
    public void setFiberRenderProps(RenderProps props) {
       myFiberRenderProps = props;
    }
-   
+
    public RenderProps getFiberRenderProps() {
       return myFiberRenderProps;
    }
-   
+
    public void setDirectionRenderType(DirectionRenderType type) {
       myDirectionRenderType = type;
       myDirectionRenderTypeMode =
-         PropertyUtils.propagateValue(
-            this, "directionRenderType",
-            myDirectionRenderType, myDirectionRenderTypeMode);
+      PropertyUtils.propagateValue(
+         this, "directionRenderType",
+         myDirectionRenderType, myDirectionRenderTypeMode);
    }
 
    public DirectionRenderType getDirectionRenderType() {
@@ -376,8 +376,8 @@ public class FemMuscleModel extends FemModel3d
 
    public void setDirectionRenderTypeMode(PropertyMode mode) {
       myDirectionRenderTypeMode =
-         PropertyUtils.setModeAndUpdate(
-            this, "directionRenderType", myDirectionRenderTypeMode, mode);
+      PropertyUtils.setModeAndUpdate(
+         this, "directionRenderType", myDirectionRenderTypeMode, mode);
    }
 
    public PropertyMode getDirectionRenderTypeMode() {
@@ -404,7 +404,7 @@ public class FemMuscleModel extends FemModel3d
    public void setMuscleMaterial(MuscleMaterial mat) {
       if (mat == null) {
          throw new IllegalArgumentException(
-            "MuscleMaterial not allowed to be null for MuscleBundle");
+         "MuscleMaterial not allowed to be null for MuscleBundle");
       }
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial(
          this, "muscleMaterial", myMuscleMat, mat);
@@ -448,7 +448,7 @@ public class FemMuscleModel extends FemModel3d
    public ComponentList<MuscleExciter> getMuscleExciters() {
       return myExciterList;
    }
-   
+
    public void clearMuscleExciters() {
       myExciterList.clear();
    }
@@ -465,20 +465,20 @@ public class FemMuscleModel extends FemModel3d
       myMuscleMat.scaleMass(s);
    }
 
-//   private static int addVertex(PolygonalMesh mesh, FemNode3d n) {
-//      int index = -1;
-//      // for(Vertex3d v:mesh.getVertices())
-//      // {
-//      //
-//      // }
-//      index = mesh.getVertices().indexOf(n.getPosition());
-//      if (index == -1) {
-//         index =
-//            mesh.getVertices().indexOf(
-//               mesh.addVertex(n.getPosition(), true));
-//      }
-//      return index;
-//   }
+   //   private static int addVertex(PolygonalMesh mesh, FemNode3d n) {
+   //      int index = -1;
+   //      // for(Vertex3d v:mesh.getVertices())
+   //      // {
+   //      //
+   //      // }
+   //      index = mesh.getVertices().indexOf(n.getPosition());
+   //      if (index == -1) {
+   //         index =
+   //            mesh.getVertices().indexOf(
+   //               mesh.addVertex(n.getPosition(), true));
+   //      }
+   //      return index;
+   //   }
 
    // @Override
    // public void updateForces (double t, StepAdjust stepAdjust) {
@@ -596,13 +596,13 @@ public class FemMuscleModel extends FemModel3d
       invalidateStressAndStiffness();
    }
 
-//   public void setFiberMesh(PolylineMesh mesh) {
-//      myFiberMesh = mesh;
-//   }
-//
-//   public PolylineMesh getFiberMesh() {
-//      return myFiberMesh;
-//   }
+   //   public void setFiberMesh(PolylineMesh mesh) {
+   //      myFiberMesh = mesh;
+   //   }
+   //
+   //   public PolylineMesh getFiberMesh() {
+   //      return myFiberMesh;
+   //   }
 
    public boolean hasSymmetricTangent() {
       MuscleMaterial mat = getMuscleMaterial();
@@ -614,19 +614,19 @@ public class FemMuscleModel extends FemModel3d
       }
    }
 
-//   public void addTangent(
-//      Matrix6d D, SymmetricMatrix3d stress, IntegrationPoint3d pt,
-//      IntegrationData3d dt, FemMaterial baseMat) {
-//
-//      MuscleMaterial mat = getMuscleMaterial();
-//      if (mat != null && dt.myFrame != null) {
-//         myTmpDir.x = dt.myFrame.m00;
-//         myTmpDir.y = dt.myFrame.m10;
-//         myTmpDir.z = dt.myFrame.m20;
-//         mat.addTangent(D, stress, getNetExcitation(), myTmpDir, pt, baseMat);
-//      }
-//   }
-   
+   //   public void addTangent(
+   //      Matrix6d D, SymmetricMatrix3d stress, IntegrationPoint3d pt,
+   //      IntegrationData3d dt, FemMaterial baseMat) {
+   //
+   //      MuscleMaterial mat = getMuscleMaterial();
+   //      if (mat != null && dt.myFrame != null) {
+   //         myTmpDir.x = dt.myFrame.m00;
+   //         myTmpDir.y = dt.myFrame.m10;
+   //         myTmpDir.z = dt.myFrame.m20;
+   //         mat.addTangent(D, stress, getNetExcitation(), myTmpDir, pt, baseMat);
+   //      }
+   //   }
+
    public void computeTangent(
       Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
       IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
@@ -639,7 +639,7 @@ public class FemMuscleModel extends FemModel3d
          mat.computeTangent(D, stress, getNetExcitation(), myTmpDir, def, baseMat);
       }
    }
-   
+
    public void computeTangent(
       Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
       Matrix3d Q, FemMaterial baseMat) {
@@ -653,25 +653,25 @@ public class FemMuscleModel extends FemModel3d
             D, stress, getNetExcitation(), myTmpDir, def, baseMat);
       }
    }
-   
 
-//   public void addStress(
-//      SymmetricMatrix3d sigma, IntegrationPoint3d pt,
-//      IntegrationData3d dt, FemMaterial baseMat) {
-//
-//      MuscleMaterial mat = getMuscleMaterial();
-//      if (mat != null && dt.myFrame != null) {
-//         myTmpDir.x = dt.myFrame.m00;
-//         myTmpDir.y = dt.myFrame.m10;
-//         myTmpDir.z = dt.myFrame.m20;
-//         mat.addStress(sigma, getNetExcitation(), myTmpDir, pt, baseMat);
-//      }
-//   }
-   
+
+   //   public void addStress(
+   //      SymmetricMatrix3d sigma, IntegrationPoint3d pt,
+   //      IntegrationData3d dt, FemMaterial baseMat) {
+   //
+   //      MuscleMaterial mat = getMuscleMaterial();
+   //      if (mat != null && dt.myFrame != null) {
+   //         myTmpDir.x = dt.myFrame.m00;
+   //         myTmpDir.y = dt.myFrame.m10;
+   //         myTmpDir.z = dt.myFrame.m20;
+   //         mat.addStress(sigma, getNetExcitation(), myTmpDir, pt, baseMat);
+   //      }
+   //   }
+
    public void computeStress(
       SymmetricMatrix3d sigma, SolidDeformation def,
       IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-      
+
       MuscleMaterial mat = getMuscleMaterial();
       if (mat != null && dt.myFrame != null) {
          myTmpDir.x = dt.myFrame.m00;
@@ -680,11 +680,11 @@ public class FemMuscleModel extends FemModel3d
          mat.computeStress (sigma, getNetExcitation(), myTmpDir, def, baseMat);
       }
    }
-   
+
    public void computeStress(
       SymmetricMatrix3d sigma, SolidDeformation def,
       Matrix3d Q, FemMaterial baseMat) {
-      
+
       MuscleMaterial mat = getMuscleMaterial();
       if (mat != null) {
          myTmpDir.x = Q.m00;
@@ -693,18 +693,18 @@ public class FemMuscleModel extends FemModel3d
          mat.computeStress (sigma, getNetExcitation(), myTmpDir, def, baseMat);
       }
    }
-   
-//   public void transformGeometry (
-//      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-//      super.transformGeometry (gtr, context, flags);
-//   }
+
+   //   public void transformGeometry (
+   //      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+   //      super.transformGeometry (gtr, context, flags);
+   //   }
 
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags) {
       context.addTransformableDescendants (myMuscleList, flags);
       super.addTransformableDependencies (context, flags);
    } 
-   
+
    /**
     * @return the number of fibre segments per sphere
     */
@@ -725,7 +725,7 @@ public class FemMuscleModel extends FemModel3d
       dir.setZero();
 
       int nsegs = 0;
-      
+
       Vector3d segmentSum = new Vector3d(); //for computing sign of direction vector
 
       // System.out.println("p=[");
@@ -739,10 +739,10 @@ public class FemMuscleModel extends FemModel3d
 
             if (seg != null) {
                tmp.sub(seg.myVtx1.pnt, seg.myVtx0.pnt);
-               
+
                if (tmp.norm() >= 1e-8 * rad) {
-//                  System.out.println(seg.myVtx0.getPosition() + " " +
-//                     seg.myVtx1.getPosition());
+                  //                  System.out.println(seg.myVtx0.getPosition() + " " +
+                  //                     seg.myVtx1.getPosition());
                   nsegs++;
                   // prepare to average directions using SVD
                   computeCov(tmp2, tmp);
@@ -752,7 +752,7 @@ public class FemMuscleModel extends FemModel3d
             }
          }
       }
-//      System.out.println("];");
+      //      System.out.println("];");
 
       if (nsegs > 0) {
 
@@ -774,10 +774,10 @@ public class FemMuscleModel extends FemModel3d
          if (dir.dot(segmentSum)<0) {
             dir.scale(-1);
          }
-         
-         
-//          System.out.println("c=["+pos + " " + rad + "];");
-//          System.out.println("dir=[" + dir +"];\n");
+
+
+         //          System.out.println("c=["+pos + " " + rad + "];");
+         //          System.out.println("dir=[" + dir +"];\n");
 
          return nsegs;
       }
@@ -933,32 +933,32 @@ public class FemMuscleModel extends FemModel3d
          bundle.setFibresActive(active);
       }
    }
-   
+
    public MuscleBundle addFiberMeshBundle(double rad, PolylineMesh mesh) {
       MuscleBundle bundle = new MuscleBundle();
       addMuscleBundle(bundle);
       bundle.addFiberMeshElements(rad, mesh);
       return bundle;
    }
-   
+
    public void prerender(RenderList list) {
       super.prerender(list);
       myMuscleList.prerender(list);
-//      if (myFiberMeshActive) {
-         double dirLen = getDirectionRenderLen();
-         if (dirLen > 0) {
-            for (FemElement3d e : getElements()) {
-               // This is to ensure that the invJ0 in the warping data is
-               // updated in the current (simulation) thread:
-               e.getWarpingData();
-            }
+      //      if (myFiberMeshActive) {
+      double dirLen = getDirectionRenderLen();
+      if (dirLen > 0) {
+         for (FemElement3d e : getElements()) {
+            // This is to ensure that the invJ0 in the warping data is
+            // updated in the current (simulation) thread:
+            e.getWarpingData();
          }
-//      }
+      }
+      //      }
    }
 
    protected void renderElementDirection(Renderer renderer, RenderProps props, FemElement3d elem,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
-      
+
       IntegrationData3d[] idata = elem.getIntegrationData();   
       elem.computeRenderCoordsAndGradient(F, coords0);
       int ndirs = 0;
@@ -977,6 +977,8 @@ public class FemMuscleModel extends FemModel3d
          dir.normalize();
 
          F.mul(dir, dir);
+         double size = elem.computeDirectedRenderSize (dir);      
+         dir.scale (0.5*size);
          dir.scale(len);
 
          coords0[0] -= (float)dir.x / 2;
@@ -992,45 +994,48 @@ public class FemMuscleModel extends FemModel3d
             props, coords0, coords1, myDirectionColor,
             /*capped=*/false, /*highlight=*/false);
       }
-      
+
    }
-   
+
    protected void renderIPointDirection(Renderer renderer, RenderProps props, FemElement3d elem,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
-      
+
       IntegrationPoint3d[] ipnt = elem.getIntegrationPoints();
       IntegrationData3d[] idata = elem.getIntegrationData();   
-      
+
       for (int i=0; i<ipnt.length; i++) {
          Matrix3d Frame = idata[i].myFrame;
-         
+
          if (Frame != null) {
-         
+
             dir.x = Frame.m00;
             dir.y = Frame.m10;
             dir.z = Frame.m20;
-            
+
             ipnt[i].computeGradientForRender(F, elem.getNodes(), idata[i].myInvJ0);
             ipnt[i].computeCoordsForRender(coords0, elem.getNodes());
             F.mul(dir,dir);
-            dir.scale(len);
             
+            double size = elem.computeDirectedRenderSize (dir);
+            dir.scale(0.5*size);
+            dir.scale(len);
+
             coords0[0] -= (float)dir.x / 2;
             coords0[1] -= (float)dir.y / 2;
             coords0[2] -= (float)dir.z / 2;
             coords1[0] = coords0[0] + (float)dir.x;
             coords1[1] = coords0[1] + (float)dir.y;
             coords1[2] = coords0[2] + (float)dir.z;
-            
+
             props.getLineColor(myDirectionColor);
             renderer.drawLine(
                props, coords0, coords1, myDirectionColor,
                /*capped=*/false, /*highlight=*/false);
          }
       }
-      
+
    }
-   
+
    void renderDirection(
       Renderer renderer, RenderProps props, FemElement3d elem,
       float[] coords0, float[] coords1, Matrix3d F, Vector3d dir, double len) {
@@ -1046,36 +1051,36 @@ public class FemMuscleModel extends FemModel3d
 
    }
 
-//   public void setDrawFibers(boolean enable) {
-//      myDrawFibers = enable;
-//   }
-   
+   //   public void setDrawFibers(boolean enable) {
+   //      myDrawFibers = enable;
+   //   }
+
    public void render(Renderer renderer, int flags) {
       super.render(renderer, flags);
-      
-//      if (myFiberMesh != null) {
-//         myFiberMesh.render(renderer, myRenderProps, /* flags= */0);
-//      }
-//      if (myDrawFibers) {
-         RenderProps fiberRenderProps = myFiberRenderProps;
-         if (fiberRenderProps == null) {
-            fiberRenderProps = DEFAULT_FIBER_RENDER_PROPS;
-         }
-         
-         double dirLen = getDirectionRenderLen();
-         if (dirLen > 0) {
-            Matrix3d F = new Matrix3d();
-            Vector3d dir = new Vector3d();
-            float[] coords0 = new float[3];
-            float[] coords1 = new float[3];
-            for (FemElement3d e : getElements()) {
-               
-               renderDirection(
-                  renderer, fiberRenderProps, e, coords0, coords1, F, dir, dirLen);
-            }
+
+      //      if (myFiberMesh != null) {
+      //         myFiberMesh.render(renderer, myRenderProps, /* flags= */0);
+      //      }
+      //      if (myDrawFibers) {
+      RenderProps fiberRenderProps = myFiberRenderProps;
+      if (fiberRenderProps == null) {
+         fiberRenderProps = DEFAULT_FIBER_RENDER_PROPS;
+      }
+
+      double dirLen = getDirectionRenderLen();
+      if (dirLen > 0) {
+         Matrix3d F = new Matrix3d();
+         Vector3d dir = new Vector3d();
+         float[] coords0 = new float[3];
+         float[] coords1 = new float[3];
+         for (FemElement3d e : getElements()) {
+
+            renderDirection(
+               renderer, fiberRenderProps, e, coords0, coords1, F, dir, dirLen);
          }
       }
-//   }
+   }
+   //   }
 
    /**
     * {@inheritDoc}
@@ -1093,11 +1098,11 @@ public class FemMuscleModel extends FemModel3d
     * {@inheritDoc}
     */
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-      throws IOException {
+   throws IOException {
       rtok.nextToken();
       if (scanAttributeName (rtok, "excitationSources")) {
          myExcitationSources =
-            ExcitationUtils.scan (rtok, "excitationSources", tokens);
+         ExcitationUtils.scan (rtok, "excitationSources", tokens);
          return true;
       }
       rtok.pushBack();
@@ -1108,7 +1113,7 @@ public class FemMuscleModel extends FemModel3d
     * {@inheritDoc}
     */
    protected boolean postscanItem (
-   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
       if (postscanAttributeName (tokens, "excitationSources")) {
          myExcitationSources.postscan (tokens, ancestor);

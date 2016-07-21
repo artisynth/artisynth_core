@@ -354,13 +354,13 @@ public class MuscleElementDesc
          } else {
             dir.set(myDir);
          }
-
-         double size = myElement.computeDirectedRenderSize (dir);
          
          if (drawLine) {
             ipnt[i].computeGradientForRender(F, myElement.getNodes(), idata[i].myInvJ0);
             ipnt[i].computeCoordsForRender(coords0, myElement.getNodes());
             F.mul(dir,dir);
+            
+            double size = myElement.computeDirectedRenderSize (dir);
             dir.scale(0.5*size);
             dir.scale(len);
             

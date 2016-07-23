@@ -81,9 +81,9 @@ public class GL3Viewer extends GLViewer {
 
    // screenshot
    private GLFrameCapture frameCapture = null;
-   private boolean grab = false;
-   private boolean grabWaitComplete = false; // wait
-   private boolean grabClose = false;        // clean up
+   private volatile boolean grab = false;
+   private volatile boolean grabWaitComplete = false; // wait
+   private volatile boolean grabClose = false;        // clean up
 
    // buffer filling
    static final PositionBufferPutter DEFAULT_POSITON_PUTTER = PositionBufferPutter.getDefault ();

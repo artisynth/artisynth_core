@@ -69,7 +69,7 @@ public class ArtisynthPath {
       return num;
    }
 
-   static private String getSrcPath (Class clazz, boolean rootOnly) {
+   static private String getSrcPath (Class<?> clazz, boolean rootOnly) {
       URL url = clazz.getResource (clazz.getSimpleName()+".class");
       if (url == null) {
          return null;

@@ -94,9 +94,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    private static double[] GLMatrix = new double[16];
    
    private GLFrameCapture frameCapture = null;
-   private boolean grab = false;
-   private boolean grabWaitComplete = false; // wait
-   private boolean grabClose = false;
+   private volatile boolean grab = false;
+   private volatile boolean grabWaitComplete = false; // wait
+   private volatile boolean grabClose = false;
 
    // Lighting parameters
    protected float lmodel_ambient[] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -524,7 +524,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          fireRerenderListeners();
       }
       // gl.glPopMatrix();
-
+      gl.glFlush();
+      
       GLFrameCapture fc = frameCapture;
       if (fc != null) {
          synchronized(fc) {

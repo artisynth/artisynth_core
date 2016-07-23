@@ -24,6 +24,7 @@ import javax.imageio.ImageIO;
 
 import maspack.render.GL.FrameBufferObject;
 import maspack.render.GL.GLViewer;
+import maspack.util.Logger;
 import maspack.util.NumberFormat;
 import maspack.util.StreamGobbler;
 import maspack.widgets.GuiUtils;
@@ -186,38 +187,42 @@ public class MovieMaker {
     */
    public synchronized void grab () throws Exception {
       frameCounter++;
-      System.out.println ("frame " + frameCounter);
+      Main.getMain().getLogger().info("capturing frame " + frameCounter);
       if (grabMode == MovieMaker.ONSCREEN_MODE) {
          BufferedImage img = robot.createScreenCapture (movieArea);
          File file = new File (getFrameFileName (frameCounter));
          ImageIO.write (img, myFormat, file);
       }
       else {
+         
          myViewer.setupScreenShot (viewerResize.width, viewerResize.height,
             aasamples, new File (getFrameFileName (frameCounter)), myFormat);
-         //myViewer.getCanvas ().display ();
          myViewer.repaint();
-         // No longer true, since grabs are spawned off on a new thread.
-         // Instead, we wait before "render" for all frames to be saved
-         //         // XXX Bit of a hack here. We wait for the repaint to take effect
-         //         // unless a stop request is pending, because if a stop request
-         //         // is pending that means the GUI thread is likely waiting for
-         //         // said stop request, in which case it won't be able to do the
-         //         // paint and hence clear the grab. This still isn't completely
-         //         // robust, because we still get timeouts ...
-         //         int cnt = 0;
-         //         while (myViewer.grabPending() && 
-         //         !Main.getMain().getScheduler().stopRequestPending() && 
-         //         cnt++ < 500) {
-         //            try {
-         //               Thread.sleep (10);
-         //            }
-         //            catch (Exception e){
-         //            }
-         //         }
-         //         if (myViewer.grabPending()) {
-         //            System.out.println ("deadlock timeout");
-         //         }
+         
+         // XXX Note: we need to wait for grab to be complete, otherwise
+         // model can advance before frame capture is complete, leading to
+         // incorrect rendering at the supplied time.
+         //
+         // Bit of a hack here. We wait for the repaint to take effect
+         // unless a stop request is pending, because if a stop request
+         // is pending that means the GUI thread is likely waiting for
+         // said stop request, in which case it won't be able to do the
+         // paint and hence clear the grab. This still isn't completely
+         // robust, because we still get timeouts ...
+         int cnt = 0;
+         while (myViewer.grabPending() && 
+            !Main.getMain().getScheduler().stopRequestPending() && 
+            cnt++ < 500) {
+            try {
+               Thread.sleep(20);
+               Thread.yield();  // yield to other threads
+            } catch (Exception e){
+            }
+         }
+         
+         if (myViewer.grabPending()) {
+            Main.getMain().getLogger().warn("deadlock timeout");
+         }
       }
    }
 
@@ -227,7 +232,7 @@ public class MovieMaker {
     */
    public synchronized void forceGrab () throws Exception {
       frameCounter++;
-      System.out.println ("frame " + frameCounter);
+      Main.getMain().getLogger().info ("frame " + frameCounter);
       if (grabMode == MovieMaker.ONSCREEN_MODE) {
          BufferedImage img = robot.createScreenCapture (movieArea);
          File file = new File (getFrameFileName (frameCounter));
@@ -276,7 +281,7 @@ public class MovieMaker {
     * Grabs rectangle and writes to disk.
     */
    public synchronized void grab (String filename) throws Exception {
-      System.out.println ("grab");
+      Main.getMain().getLogger().info ("grab");
 
       if (!filename.toLowerCase().endsWith (myFormat)) {
          filename = filename + "." + myFormat;
@@ -331,7 +336,7 @@ public class MovieMaker {
     */
    public void render (String fn) throws Exception { 
       if (lastFrameCount == 0) { 
-         System.out.println ("No frames grabbed, no movie to make");
+         Main.getMain().getLogger().info ("No frames grabbed, no movie to make");
          return;
       }
       
@@ -384,7 +389,7 @@ public class MovieMaker {
          //       Process proc = Runtime.getRuntime().exec (
          //          cmdArray, /*env=*/null, null);
 
-         System.out.println ("Executing " + finalCmd);
+         Main.getMain().getLogger().info ("Executing " + finalCmd);
          ProcessBuilder procBuild = new ProcessBuilder(cmdArray);
          procBuild.directory(new File(dataPath));
          Process proc = procBuild.start();
@@ -400,7 +405,7 @@ public class MovieMaker {
          int exitVal = proc.waitFor ();
 
          if (exitVal != 0) { 
-            System.out.println (
+            Main.getMain().getLogger().error (
                "\nMovie creation failed with exit value: " + exitVal + "\n");
          }
       }
@@ -417,7 +422,7 @@ public class MovieMaker {
       File firstFrame = new File (getFrameFileName (1));
       File posterImage = new File (dataPath + File.separator + fn + "." + myFormat);
 
-      System.out.println("Copying " + firstFrame.getName () + 
+      Main.getMain().getLogger().info("Copying " + firstFrame.getName () + 
          " to " + posterImage.getName ());
 
       try {

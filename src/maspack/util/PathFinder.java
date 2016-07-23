@@ -170,6 +170,9 @@ public class PathFinder {
    }
       
    public static String findClassDir (Object obj) {
+      if (obj instanceof Class<?>) {
+         return findClassDir((Class<?>)obj);
+      }
       return findClassDir (obj.getClass());
    }
       

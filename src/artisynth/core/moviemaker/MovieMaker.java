@@ -22,16 +22,15 @@ import java.util.LinkedHashMap;
 
 import javax.imageio.ImageIO;
 
-import maspack.render.GL.FrameBufferObject;
-import maspack.render.GL.GLViewer;
-import maspack.util.Logger;
-import maspack.util.NumberFormat;
-import maspack.util.StreamGobbler;
-import maspack.widgets.GuiUtils;
 import argparser.DoubleHolder;
 import argparser.IntHolder;
 import artisynth.core.driver.Main;
 import artisynth.core.workspace.RootModel;
+import maspack.render.GL.FrameBufferObject;
+import maspack.render.GL.GLViewer;
+import maspack.util.NumberFormat;
+import maspack.util.StreamGobbler;
+import maspack.widgets.GuiUtils;
 
 public class MovieMaker {   
 
@@ -194,7 +193,6 @@ public class MovieMaker {
          ImageIO.write (img, myFormat, file);
       }
       else {
-         
          myViewer.setupScreenShot (viewerResize.width, viewerResize.height,
             aasamples, new File (getFrameFileName (frameCounter)), myFormat);
          myViewer.repaint();
@@ -211,7 +209,8 @@ public class MovieMaker {
          // robust, because we still get timeouts ...
          int cnt = 0;
          while (myViewer.grabPending() && 
-            !Main.getMain().getScheduler().stopRequestPending() && 
+            // XXX wait for 10 seconds regardless of stop pending
+            // !Main.getMain().getScheduler().stopRequestPending() &&   
             cnt++ < 500) {
             try {
                Thread.sleep(20);
@@ -223,6 +222,7 @@ public class MovieMaker {
          if (myViewer.grabPending()) {
             Main.getMain().getLogger().warn("deadlock timeout");
          }
+         myViewer.repaint();
       }
    }
 

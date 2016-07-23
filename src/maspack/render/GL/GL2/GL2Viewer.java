@@ -93,9 +93,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    double[] sinBuff = {0, 1, 0, -1, 0};
    private static double[] GLMatrix = new double[16];
    
-   private GLFrameCapture frameCapture = null;
+   private volatile GLFrameCapture frameCapture = null;
    private volatile boolean grab = false;
-   private volatile boolean grabWaitComplete = false; // wait
    private volatile boolean grabClose = false;
 
    // Lighting parameters
@@ -484,7 +483,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    }
 
    public void display (GLAutoDrawable drawable, int flags) {
-
+      
       this.drawable = drawable;
       this.gl = drawable.getGL ().getGL2 ();
       
@@ -527,21 +526,18 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       gl.glFlush();
       
       GLFrameCapture fc = frameCapture;
-      if (fc != null) {
+      if (fc != null && (grab || grabClose)) {
          synchronized(fc) {
             if (grab) {
                offscreenCapture (fc, flags);
+               fc.unlock();
                grab = false;
-            }
-            if (grabWaitComplete) {
-               fc.waitForCompletion();
-               // reset
-               grabWaitComplete = false;
             }
             if (grabClose) {
                fc.waitForCompletion();
                fc.dispose(gl);
                frameCapture = null;
+               grabClose = false;
             }
          }
       }
@@ -577,8 +573,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       setAutoResizeEnabled(autoResize);
       setAutoViewportEnabled(autoViewport);
 
-      
-      
       fireRerenderListeners();
       
       gl.glPopMatrix();
@@ -2153,11 +2147,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       boolean gammaCorrection = isGammaCorrectionEnabled();
       GLFrameCapture fc = frameCapture;
       if (fc == null) {
-         frameCapture = 
-            new GLFrameCapture (w, h, samples, gammaCorrection, file, format);
+         fc = new GLFrameCapture (w, h, samples, gammaCorrection, file, format);
+         fc.lock();
+         frameCapture = fc;
       }
       else {
          synchronized(fc) {
+            fc.lock();  // lock until screen capture is complete
             fc.reconfigure(gl, w, h, samples, gammaCorrection, file, format);
          }
       }
@@ -2171,9 +2167,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    public void awaitScreenShotCompletion() {
       if (frameCapture != null) {
-         grabWaitComplete = true;  // signal to wait after next grab
-         repaint();                // execute in render thread
-         // frameCapture.waitForCompletion();
+         frameCapture.waitForCompletion();
       }
    }
 
@@ -2183,7 +2177,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    public void cleanupScreenShots () {
       grabClose = true;
-      repaint();  // execute in render thread
+      repaint();  // execute in render thread to delete resources
    }
 
    @Override

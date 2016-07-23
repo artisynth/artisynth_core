@@ -80,9 +80,8 @@ public class GL3Viewer extends GLViewer {
    ElementArray eaFlex = null;
 
    // screenshot
-   private GLFrameCapture frameCapture = null;
+   private volatile GLFrameCapture frameCapture = null;
    private volatile boolean grab = false;
-   private volatile boolean grabWaitComplete = false; // wait
    private volatile boolean grabClose = false;        // clean up
 
    // buffer filling
@@ -374,21 +373,18 @@ public class GL3Viewer extends GLViewer {
       }
 
       GLFrameCapture fc = frameCapture;
-      if (fc != null) {
+      if (fc != null && (grab || grabClose)) {
          synchronized(fc) {
             if (grab) {
                offscreenCapture (fc, flags);
+               fc.unlock();
                grab = false;
-            }
-            if (grabWaitComplete) {
-               fc.waitForCompletion();
-               // reset
-               grabWaitComplete = false;
             }
             if (grabClose) {
                fc.waitForCompletion();
                fc.dispose(gl);
                frameCapture = null;
+               grabClose = false;
             }
          }
       }
@@ -562,7 +558,7 @@ public class GL3Viewer extends GLViewer {
       selectEnabled = false;
 
       // Initialize the OpenGL context FOR THE FBO
-      gl.setSwapInterval (1);
+      // gl.setSwapInterval (1);
 
       // Set rendering commands to go to offscreen frame buffer
       fc.activateFBO(gl);
@@ -640,11 +636,13 @@ public class GL3Viewer extends GLViewer {
       boolean gammaCorrection = isGammaCorrectionEnabled();
       GLFrameCapture fc = frameCapture;
       if (fc == null) {
-         frameCapture = 
-            new GLFrameCapture (w, h, samples, gammaCorrection, file, format);
+         fc = new GLFrameCapture (w, h, samples, gammaCorrection, file, format);
+         fc.lock();
+         frameCapture = fc;
       }
       else {
          synchronized(fc) {
+            fc.lock();
             fc.reconfigure(gl, w, h, samples, gammaCorrection, file, format);
          }
       }
@@ -658,9 +656,7 @@ public class GL3Viewer extends GLViewer {
 
    public void awaitScreenShotCompletion() {
       if (frameCapture != null) {
-         grabWaitComplete = true;  // signal to wait after next grab
-         repaint();                // execute in render thread
-         // frameCapture.waitForCompletion();
+          frameCapture.waitForCompletion();
       }
    }
 

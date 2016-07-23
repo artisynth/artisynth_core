@@ -3,7 +3,6 @@ package maspack.render.GL;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -20,6 +19,7 @@ public class GLFrameCapture {
    private File file;
    private String format;
    private FrameBufferObject fbo;
+   private volatile boolean lock;
    
    public GLFrameCapture(
       int w, int h, int nsamples, boolean gammaCorrected, 
@@ -33,10 +33,26 @@ public class GLFrameCapture {
       this.file = file;
       this.format = format;
       fbo = new FrameBufferObject(x, y, w, h, nsamples, gammaCorrected);
+      lock = false;
    }
    
    public FrameBufferObject getFBO() {
       return fbo;
+   }
+   
+   /**
+    * Don't allow two threads (or same thread twice) locking this object
+    */
+   public synchronized void lock() {
+      while (lock) {
+         // poll until free
+         Thread.yield();
+      }
+      lock = true;
+   }
+   
+   public synchronized void unlock() {
+      lock = false;
    }
    
    //   public void reconfigure(int w, int h, File file, String format) {

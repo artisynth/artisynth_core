@@ -8,18 +8,18 @@
 package maspack.fileutil;
 
 
-public class FileGrabberException extends RuntimeException {
+public class FileTransferException extends RuntimeException {
 
    /**
     * 
     */
    private static final long serialVersionUID = 2507562867513637080L;
    
-   public FileGrabberException(String msg) {
+   public FileTransferException(String msg) {
       super(msg);
    }
    
-   public FileGrabberException(String msg, Throwable cause) {
+   public FileTransferException(String msg, Throwable cause) {
       super(msg, cause);
    }
    

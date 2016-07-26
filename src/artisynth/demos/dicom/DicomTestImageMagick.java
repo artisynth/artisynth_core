@@ -10,7 +10,7 @@ import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 import maspack.dicom.DicomImageDecoderImageMagick;
-import maspack.fileutil.FileGrabber;
+import maspack.fileutil.FileManager;
 
 /**
  * Dicom image of the wrist, using ImageMagick to decode
@@ -32,11 +32,11 @@ public class DicomTestImageMagick extends RootModel {
       
       // grab remote zip file with DICOM data
       String localDir = ArtisynthPath.getSrcRelativePath(this, "data/WRIX");
-      FileGrabber fileGrabber = new FileGrabber(localDir, "zip:" + dicom_url + "!/");
-      fileGrabber.setConsoleProgressPrinting(true);
-      fileGrabber.setOptions(FileGrabber.DOWNLOAD_ZIP); // download zip file first
+      FileManager fileManager = new FileManager(localDir, "zip:" + dicom_url + "!/");
+      fileManager.setConsoleProgressPrinting(true);
+      fileManager.setOptions(FileManager.DOWNLOAD_ZIP); // download zip file first
       // download dicom image
-      File dicomPath = fileGrabber.get(dicom_folder);
+      File dicomPath = fileManager.get(dicom_folder);
       
       // restrict to files ending in .dcm
       Pattern dcmPattern = Pattern.compile(".*\\.dcm");

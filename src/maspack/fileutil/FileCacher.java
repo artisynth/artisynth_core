@@ -10,6 +10,7 @@ package maspack.fileutil;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -27,7 +28,6 @@ import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder;
 import org.apache.commons.vfs2.provider.webdav.WebdavFileSystemConfigBuilder;
 import org.apache.http.ssl.TrustStrategy;
 
-import com.jcraft.jsch.IdentityRepository;
 import com.jcraft.jsch.JSchException;
 
 import maspack.fileutil.jsch.SimpleIdentityRepository;
@@ -41,7 +41,7 @@ public class FileCacher {
    static {
       System.setProperty(
          "org.apache.commons.logging.Log",
-         "org.apache.commons.logging.impl.NoOpLog");
+      "org.apache.commons.logging.impl.NoOpLog");
       System.setProperty(
          "org.apache.commons.logging.simplelog.defaultlog", "fatal");
    }
@@ -53,7 +53,7 @@ public class FileCacher {
    HashMap<URIxMatcher,SimpleIdentityRepository> identMap;
    SimpleIdRepoFactory myIdFactory;
    boolean initialized = false;
-   
+
    public FileCacher () {
 
       authMap = new HashMap<URIxMatcher,UserAuthenticator>();
@@ -63,7 +63,7 @@ public class FileCacher {
       fsOpts = new FileSystemOptions();
       manager = new StandardFileSystemManager();
       initialized = false;
-      
+
    }
 
    public void initialize() throws FileSystemException {
@@ -84,13 +84,12 @@ public class FileCacher {
    }
 
    public void
-      addIdentityRepository(URIxMatcher matcher, IdentityRepository repo) {
-
+   addIdentityRepository(URIxMatcher matcher, SimpleIdentityRepository repo) {
+      identMap.put(matcher, repo);
    }
 
    public static void setDefaultFsOptions(FileSystemOptions opts)
-      throws FileSystemException
-   {
+   throws FileSystemException {
 
       // SSH Defaults
       // Don't check host key
@@ -100,11 +99,14 @@ public class FileCacher {
          opts, "no");
       SftpFileSystemConfigBuilder.getInstance().setUserDirIsRoot(opts, true);
       SftpFileSystemConfigBuilder.getInstance().setTimeout(opts, 10000);
-      
+
+      /**
+       * Allow connection to silly UBC servers who don't update their credentials
+       */
       TrustStrategy[] ts = {new UnsafeTrustStrategy()};
       HttpFileSystemConfigBuilder httpBuilder = HttpFileSystemConfigBuilder.getInstance();
       WebdavFileSystemConfigBuilder webdavBuilder = WebdavFileSystemConfigBuilder.getInstance();
-      
+
       // allow all SSL connections
       httpBuilder.setTrustStrategies(opts, ts);
       webdavBuilder.setTrustStrategies(opts, ts);
@@ -113,7 +115,7 @@ public class FileCacher {
       String[] ciphers = httpBuilder.getDefaultSSLCipherSuites();
       ciphers = Arrays.copyOf(ciphers, ciphers.length+1);
       ciphers[ciphers.length-1] = "SSL_RSA_WITH_RC4_128_SHA";
-      
+
       httpBuilder.setEnabledSSLCipherSuites(opts, ciphers);
       webdavBuilder.setEnabledSSLCipherSuites(opts, ciphers);
 
@@ -121,7 +123,6 @@ public class FileCacher {
 
    public static void setAuthenticator(FileSystemOptions opts,
       UserAuthenticator auth) throws FileSystemException  {
-
       DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(
          opts, auth);
    }
@@ -156,19 +157,14 @@ public class FileCacher {
 
       // For atomic operation, first download to temporary directory
       File tmpCacheFile = new File(cacheFile.getAbsolutePath() + TMP_EXTENSION);
-      
       URIx cacheURI = new URIx(cacheFile.getAbsoluteFile());
       URIx tmpCacheURI = new URIx(tmpCacheFile.getAbsoluteFile());
       FileObject localTempFile =
-         manager.resolveFile(tmpCacheURI.toString(true));
+      manager.resolveFile(tmpCacheURI.toString(true));
       FileObject localCacheFile =
-         manager.resolveFile(cacheURI.toString(true));
+      manager.resolveFile(cacheURI.toString(true));
 
       FileObject remoteFile = null; // will resolve next
-
-      // clear authenticators
-      setAuthenticator(fsOpts, null);
-      setIdentityFactory(fsOpts, null);
 
       // loop through authenticators until we either succeed or cancel
       boolean cancel = false;
@@ -176,7 +172,6 @@ public class FileCacher {
          remoteFile = resolveRemote(uri);
       }
 
-     
       if (remoteFile == null || !remoteFile.exists()) {
          throw new FileSystemException("Cannot find remote file <" + uri.toString()+ ">",
             new FileNotFoundException( "<" + uri.toString() + ">"));
@@ -198,7 +193,7 @@ public class FileCacher {
             localTempFile.copyFrom(remoteFile, new AllFileSelector());
             // fileSystem.close();
          }
-         
+
          if (monitor != null) {
             monitor.fireCompleteEvent(localTempFile);
          }
@@ -206,7 +201,7 @@ public class FileCacher {
          // try to delete local file
          localTempFile.delete();
          throw new RuntimeException("Failed to complete transfer of " +
-            remoteFile.getURL() + " to " + localTempFile.getURL(), e);
+         remoteFile.getURL() + " to " + localTempFile.getURL(), e);
       } finally {
          // close files if we need to
          localTempFile.close();
@@ -228,16 +223,29 @@ public class FileCacher {
       } catch (Exception e) {
          localCacheFile.delete(); // delete if possible
          throw new RuntimeException("Failed to atomically move " +
-            "to " + localCacheFile.getURL(), e);
+         "to " + localCacheFile.getURL(), e);
       }
 
       return cacheFile;
 
    }
    
-   public InputStream getInputStream(URIx uri) throws FileSystemException {
+   public boolean copy(File from, URIx to, FileTransferMonitor monitor) throws FileSystemException {
+      return copy(new URIx(from), to, monitor);
+   }
+   
+   public boolean copy(File from, URIx to) throws FileSystemException {
+      return copy(new URIx(from), to);
+   }
+
+   public boolean copy(URIx from, URIx to) throws FileSystemException {
+      return copy(from, to, null);
+   }
+   
+   public boolean copy(URIx from, URIx to, FileTransferMonitor monitor) throws FileSystemException {
       
-      FileObject remoteFile = null; // will resolve next
+      FileObject fromFile = null;
+      FileObject toFile = null;
 
       // clear authenticators
       setAuthenticator(fsOpts, null);
@@ -245,11 +253,71 @@ public class FileCacher {
 
       // loop through authenticators until we either succeed or cancel
       boolean cancel = false;
+      while (toFile == null && cancel == false) {
+         toFile = resolveRemote(to);
+      }
+
+      cancel = false;
+      while (fromFile == null && cancel == false) {
+         fromFile = resolveRemote(from);
+      }
+
+      if (fromFile == null || !fromFile.exists()) {
+         throw new FileSystemException("Cannot find source file <" + from.toString()+ ">",
+            new FileNotFoundException( "<" + from.toString() + ">"));
+      }
+      
+      if (toFile == null) {
+         throw new FileSystemException("Cannot find destination <" + to.toString()+ ">",
+            new FileNotFoundException( "<" + to.toString() + ">"));
+      }
+
+      // monitor the file transfer progress
+      if (monitor != null) {
+         monitor.monitor(fromFile, toFile, -1, fromFile.getName().getBaseName());
+         monitor.start();
+         monitor.fireStartEvent(toFile);
+      }
+
+      // transfer content
+      try {
+         if (fromFile.isFile()) {
+            toFile.copyFrom(fromFile, Selectors.SELECT_SELF);
+         } else if (fromFile.isFolder()) {
+            // final FileObject fileSystem = manager.createFileSystem(remoteFile);
+            toFile.copyFrom(fromFile, new AllFileSelector());
+            // fileSystem.close();
+         }
+
+         if (monitor != null) {
+            monitor.fireCompleteEvent(toFile);
+         }
+      } catch (Exception e) {
+         throw new FileTransferException("Failed to complete transfer of " + fromFile.getURL() + " to " + toFile.getURL(), e);
+      } finally {
+         // close files if we need to
+         fromFile.close();
+         toFile.close();
+         if (monitor != null) {
+            monitor.release(toFile);
+            monitor.stop();
+         }
+      }
+
+      return true;
+
+   }
+
+   public InputStream getInputStream(URIx uri) throws FileSystemException {
+
+      FileObject remoteFile = null; // will resolve next
+
+      // loop through authenticators until we either succeed or cancel
+      boolean cancel = false;
       while (remoteFile == null && cancel == false) {
          remoteFile = resolveRemote(uri);
       }
 
-     
       if (remoteFile == null || !remoteFile.exists()) {
          throw new FileSystemException("Cannot find remote file <" + uri.toString()+ ">",
             new FileNotFoundException( "<" + uri.toString() + ">"));
@@ -262,12 +330,42 @@ public class FileCacher {
       } catch (Exception e) {
          remoteFile.close();
          throw new RuntimeException("Failed to open " +
-            remoteFile.getURL(), e);
+         remoteFile.getURL(), e);
       } finally {
       }
 
       return stream;
-      
+
+   }
+   
+   public OutputStream getOutputStream(URIx uri) throws FileSystemException {
+
+      FileObject remoteFile = null; // will resolve next
+
+      // loop through authenticators until we either succeed or cancel
+      boolean cancel = false;
+      while (remoteFile == null && cancel == false) {
+         remoteFile = resolveRemote(uri);
+      }
+
+      if (remoteFile == null) {
+         throw new FileSystemException("Cannot find remote file <" + uri.toString()+ ">",
+            new FileNotFoundException( "<" + uri.toString() + ">"));
+      }
+
+      // open stream content
+      OutputStream stream = null;
+      try {
+         stream = remoteFile.getContent().getOutputStream();
+      } catch (Exception e) {
+         throw new RuntimeException("Failed to open " +
+         remoteFile.getURL(), e);
+      } finally {
+         remoteFile.close();
+      }
+
+      return stream;
+
    }
 
    private FileObject resolveRemote(URIx uri) throws FileSystemException  {
@@ -275,10 +373,13 @@ public class FileCacher {
       FileObject remoteFile = null;
       URIx base = uri.getBaseURI(); // base determines the first protocol
 
+      // clear authenticators
+      setAuthenticator(fsOpts, null);
+      setIdentityFactory(fsOpts, null);
+      
       // first try to find matching identity
       for (URIxMatcher matcher : identMap.keySet()) {
          if (matcher.matches(base)) {
-
             // set identity, try to resolve file
             myIdFactory.setIdentityRepository(identMap.get(matcher));
             setIdentityFactory(fsOpts, myIdFactory);
@@ -287,11 +388,11 @@ public class FileCacher {
             if (remoteFile != null) {
                return remoteFile;
             }
-
          }
       }
 
       // then try authenticator
+      setIdentityFactory(fsOpts, null);
       for (URIxMatcher matcher : authMap.keySet()) {
          if (matcher.matches(base)) {
             // we have found an authenticator
@@ -303,13 +404,13 @@ public class FileCacher {
             }
          }
       }
-
-      // finally try without authentication?
+      
+      // try without authentication last (otherwise it seems to resolve, which is bad)
       remoteFile = tryGettingRemote(uri);
       if (remoteFile != null) {
          return remoteFile;
       }
-
+      
       return null;
    }
 
@@ -334,7 +435,7 @@ public class FileCacher {
 
    private Throwable getBaseThrowable(Throwable b) {
       Throwable out = b;
-      while (out.getCause() != null) {
+      while (out.getCause() != null && out.getCause() != out) {
          out = out.getCause();
       }
       return out;

@@ -11,7 +11,8 @@ public enum URIxScheme {
    
    GZ("gz",0), BZ2("bz2",0), ZIP("zip",0), JAR("jar",0), TAR("tar",0), 
    TGZ("tgz",0), TBZ2("tbz2",0), FILE("file",1), HTTP("http",1), 
-   HTTPS("https",1), FTP("ftp",1), SFTP("sftp",1);
+   HTTPS("https",1), FTP("ftp",1), SFTP("sftp",1), WEBDAV("webdav", 1),
+   WEBDAVS("webdavs", 1);
       
    public static int ZIP_TYPE = 0;
    public static int OTHER_TYPE = 1;

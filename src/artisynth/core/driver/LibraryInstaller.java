@@ -14,7 +14,7 @@ import java.util.LinkedList;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ArtisynthPath;
 import maspack.fileutil.DefaultConsoleFileTransferListener;
-import maspack.fileutil.FileGrabber;
+import maspack.fileutil.FileManager;
 import maspack.fileutil.FileTransferListener;
 import maspack.fileutil.NativeLibraryManager;
 import maspack.fileutil.NativeLibraryManager.SystemType;
@@ -261,7 +261,7 @@ public class LibraryInstaller {
    public boolean verifyJars (boolean updateLibs) throws Exception {
       boolean allOK = true;
       if (myJarnames.size() > 0) {
-         FileGrabber grabber = new FileGrabber();
+         FileManager grabber = new FileManager();
          grabber.setVerbosityLevel (LogLevel.ALL);
          FileTransferListener listener =
             new DefaultConsoleFileTransferListener();
@@ -269,7 +269,7 @@ public class LibraryInstaller {
          grabber.getTransferMonitor().setPollSleep(100);  // 100ms
          grabber.setDownloadDir (myLibDir);
          grabber.setRemoteSource (myRemoteSource);
-         int options = (updateLibs ? FileGrabber.CHECK_HASH : 0);
+         int options = (updateLibs ? FileManager.CHECK_HASH : 0);
          for (String jarname : myJarnames) {
             File jfile = new File (myLibDir, jarname);
             if (!jfile.exists()) {

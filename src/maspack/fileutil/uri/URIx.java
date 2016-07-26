@@ -111,6 +111,28 @@ public class URIx {
          set(uri);
       }
    }
+   
+   public URIx(URIx base, String relPath) {
+      this(base);
+      if (!base.isZip()) {
+         // if relPath starts with /, path is absolute
+         // if relpath starts with //, overwrites userinfo as well
+         if (relPath.startsWith("//")) {
+            setSchemeSpecificPart(relPath.substring(2));
+         } else if (relPath.startsWith("/")) {
+            setPath(relPath);
+         } else {
+            setPath(concatPaths(path, relPath));
+         }
+      } else {
+         // if relPath starts with /, fragment is absolute
+         if (relPath.startsWith("/")) {
+            setFragment(relPath);
+         } else {
+            setFragment(concatPaths(fragment, relPath));
+         }
+      }
+   }
 
    public void set (URIx uri) {
       setScheme(uri.getScheme());
@@ -706,7 +728,11 @@ public class URIx {
    }
 
    public void set(String uri) throws URIxSyntaxException {
-
+      
+      if (uri == null) {
+         uri = "";
+      }
+      
       String schemeStr = getSchemeStr(uri);
       URIxScheme scheme = null;
 

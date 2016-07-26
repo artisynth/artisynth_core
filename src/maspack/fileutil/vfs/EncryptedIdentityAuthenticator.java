@@ -9,8 +9,8 @@ package maspack.fileutil.vfs;
 
 import java.io.File;
 
-import maspack.fileutil.AESCrypter;
-import maspack.fileutil.HexCoder;
+import maspack.crypt.AESCryptor;
+import maspack.crypt.Base16;
 
 public class EncryptedIdentityAuthenticator  {
 
@@ -18,18 +18,18 @@ public class EncryptedIdentityAuthenticator  {
    File identity = null;
    byte[] encryptedPassword = null;
    String user = null;
-   AESCrypter myCrypter = null;
+   AESCryptor myCrypter = null;
 
-   public EncryptedIdentityAuthenticator (AESCrypter crypter) {
+   public EncryptedIdentityAuthenticator (AESCryptor crypter) {
       myCrypter = crypter;
    }
 
-   public EncryptedIdentityAuthenticator (AESCrypter crypter, File privateKey, 
+   public EncryptedIdentityAuthenticator (AESCryptor crypter, File privateKey, 
       String username, String password) {
       this(crypter, privateKey, username, password, false);
    }
 
-   public EncryptedIdentityAuthenticator (AESCrypter crypter, File privateKey, String username,
+   public EncryptedIdentityAuthenticator (AESCryptor crypter, File privateKey, String username,
       String password, boolean plainPassword) {
       this(crypter);
       this.user = username;
@@ -41,7 +41,7 @@ public class EncryptedIdentityAuthenticator  {
             return;
          }
       } else {
-         encryptedPassword = HexCoder.decode(password);
+         encryptedPassword = Base16.decode(password);
       }
       this.identity = privateKey;
    }

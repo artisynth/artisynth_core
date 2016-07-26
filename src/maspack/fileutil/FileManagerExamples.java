@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class FileGrabberExamples {
+public class FileManagerExamples {
 
    private static String host = "http://artisynth.magic.ubc.ca/artisynth/files/";
    private static String local = "tmp/";
@@ -30,7 +30,7 @@ public class FileGrabberExamples {
       System.out.println("Running example1...");
       
       // get a single big file
-      FileGrabber grabber = new FileGrabber();
+      FileManager grabber = new FileManager();
       try {
          File file = grabber.get (local+example1_file, host+example1_file);
          FileReader reader = new FileReader (file);
@@ -53,7 +53,7 @@ public class FileGrabberExamples {
       try {
          FileReader reader = 
             new FileReader( 
-               FileGrabber.staticGet(local+example2_file, host+example1_file));
+               FileManager.staticGet(local+example2_file, host+example1_file));
          
          // read a character
          System.out.println( local+example2_file + "[0]: " + reader.read() );
@@ -69,13 +69,13 @@ public class FileGrabberExamples {
       System.out.println("Running example3...");
       
       // get a bunch of files:
-      FileGrabber grabber =
-         new FileGrabber (local+example3_folder, host + example3_folder);
+      FileManager grabber =
+         new FileManager (local+example3_folder, host + example3_folder);
 
       try {
          for (int i=0; i<example3_files.length; i++) {
             FileReader reader =
-               new FileReader (grabber.get (example3_files[i], FileGrabber.CHECK_HASH));
+               new FileReader (grabber.get (example3_files[i], FileManager.CHECK_HASH));
             
             System.out.println( example3_files[i]+ "[0]: " + reader.read() );
             reader.close();
@@ -97,13 +97,13 @@ public class FileGrabberExamples {
       
       // get a library file. Names of needed library files obtained from a config
       // file; e.g., $ARTISYNTH_HOME/lib/LIB_MANIFEST
-      FileGrabber grabber =
-         new FileGrabber(example5_lib_dir, host + example5_lib_dir);
+      FileManager grabber =
+         new FileManager(example5_lib_dir, host + example5_lib_dir);
 
       int options = 0;
       if (updateRequested) {
          // select this if we want to try to get the latest version of the file
-         options = FileGrabber.CHECK_HASH;
+         options = FileManager.CHECK_HASH;
       }
       try {
          File libFile = grabber.get (example5_lib, options);
@@ -120,26 +120,26 @@ public class FileGrabberExamples {
       System.out.println("Running errorChecks ...");
       
       // no internet
-      FileGrabber fg = new FileGrabber("tmp", "http://www.ece.ubc.ca.err");
+      FileManager fg = new FileManager("tmp", "http://www.ece.ubc.ca.err");
       File f;
       
       try {
          f = fg.getRemote("mesh.elem");
-      } catch (FileGrabberException e) {
+      } catch (FileTransferException e) {
          System.err.println(e.getMessage());
       }
       
       fg.setRemoteSource("http://www.ece.ubc.ca/~antonios/files");
       try {
          f = fg.getRemote("fake.file");
-      } catch (FileGrabberException e) {
+      } catch (FileTransferException e) {
          System.err.println(e.getMessage());
       }
 
       try {
          String fhash = fg.getLocalHash("fake.file");
          System.out.println("Hash: " + fhash);
-      } catch (FileGrabberException e) {
+      } catch (FileTransferException e) {
          System.err.println(e.getMessage());
       }
       
@@ -147,7 +147,7 @@ public class FileGrabberExamples {
          String fhash = fg.getRemoteHash("mesh.elem");
          f = fg.getRemote("mesh.elem"); 
          System.out.println("Hash: " + fhash + ", " + fg.getLocalHash(f));
-      } catch (FileGrabberException e) {
+      } catch (FileTransferException e) {
          System.err.println(e.getMessage());
       }
       

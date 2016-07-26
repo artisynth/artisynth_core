@@ -655,48 +655,48 @@ public class NativeLibraryManager {
 
    void grabFile (File libFile, LibDesc desc, boolean checkHash) {
       
-      FileGrabber grabber = new FileGrabber();
-      grabber.setVerbosityLevel (LogLevel.ALL);
+      FileManager Manager = new FileManager();
+      Manager.setVerbosityLevel (LogLevel.ALL);
       if ((myFlags & VERBOSE) != 0) {
          FileTransferListener listener = myTransferListener;
          if (listener == null) {
             listener = new DefaultConsoleFileTransferListener();
          }
-         grabber.addTransferListener(listener);
-         grabber.getTransferMonitor().setPollSleep(100);  // 100ms
+         Manager.addTransferListener(listener);
+         Manager.getTransferMonitor().setPollSleep(100);  // 100ms
       }
       String localLibFile = libFile.toString();
       String remoteLibFile =
          myRemoteHost+"/"+getNativeDirectoryName()+"/"+getFileName(desc);
       boolean grab = true;
       if (checkHash) {
-         grab = !grabber.equalsHash(
+         grab = !Manager.equalsHash(
          new File(localLibFile), new URIx(remoteLibFile));
       }
       if (grab) {
-         grabber.getRemote (localLibFile, remoteLibFile);
+         Manager.getRemote (localLibFile, remoteLibFile);
       }
    }
 
    // void updateFile (File libFile, LibDesc desc) throws URIxSyntaxException {
       
-   //    FileGrabber grabber = new FileGrabber();
-   //    grabber.setVerbosityLevel (0);
+   //    FileManager Manager = new FileManager();
+   //    Manager.setVerbosityLevel (0);
    //    if ((myFlags & VERBOSE) != 0) {
    //       FileTransferListener listener = myTransferListener;
    //       if (listener == null) {
    //          listener = new DefaultConsoleFileTransferListener();
    //       }
-   //       grabber.addTransferListener(listener);
-   //       grabber.getTransferMonitor().setPollSleep(100);  // 100ms
+   //       Manager.addTransferListener(listener);
+   //       Manager.getTransferMonitor().setPollSleep(100);  // 100ms
    //    }
    //    String localLibFile = libFile.toString();
    //    String remoteLibFile =
    //       myRemoteHost+"/"+getNativeDirectoryName()+"/"+getFileName(desc);
-   //    boolean match = grabber.equalsHash(
+   //    boolean match = Manager.equalsHash(
    //       new File(localLibFile), new URIx(remoteLibFile));
    //    if (!match) {
-   //       grabber.getRemote (localLibFile, remoteLibFile);
+   //       Manager.getRemote (localLibFile, remoteLibFile);
    //    }
    // }
 

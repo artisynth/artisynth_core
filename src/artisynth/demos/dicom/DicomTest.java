@@ -9,7 +9,7 @@ import artisynth.core.renderables.DicomViewer;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
-import maspack.fileutil.FileGrabber;
+import maspack.fileutil.FileManager;
 
 /**
  * DICOM image of the brain, raw encoding, using REGEX to limit files
@@ -23,10 +23,10 @@ public class DicomTest extends RootModel {
       
       // download the BRAINIX dicom data if it does not already exist
       String localDir = ArtisynthPath.getSrcRelativePath(this, "data/BRAINIX");
-      FileGrabber fileGrabber = new FileGrabber(localDir, "zip:" + dicom_url + "!/");
-      fileGrabber.setConsoleProgressPrinting(true);
-      fileGrabber.setOptions(FileGrabber.DOWNLOAD_ZIP); // download zip file first
-      File dicomPath = fileGrabber.get(dicom_folder);   // do the download
+      FileManager fileManager = new FileManager(localDir, "zip:" + dicom_url + "!/");
+      fileManager.setConsoleProgressPrinting(true);
+      fileManager.setOptions(FileManager.DOWNLOAD_ZIP); // download zip file first
+      File dicomPath = fileManager.get(dicom_folder);   // do the download
       
       // I'm actually interested in the folder:
       //    BRAINIX/BRAINIX/IRM cerebrale, neuro-crane/T2W-FE-EPI - 501

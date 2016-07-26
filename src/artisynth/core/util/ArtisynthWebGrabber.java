@@ -7,11 +7,11 @@
 package artisynth.core.util;
 
 import maspack.fileutil.DefaultConsoleFileTransferListener;
-import maspack.fileutil.FileGrabber;
+import maspack.fileutil.FileManager;
 import maspack.fileutil.FileTransferListener;
 import maspack.fileutil.uri.URIx;
 
-public class ArtisynthWebGrabber extends FileGrabber {
+public class ArtisynthWebGrabber extends FileManager {
 
    private static final String ARTISYNTH_SOURCE = 
       "http://artisynth.magic.ubc.ca/artisynth/files/data/";

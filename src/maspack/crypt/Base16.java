@@ -5,9 +5,14 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.fileutil;
+package maspack.crypt;
 
-public class HexCoder {
+/**
+ * Hex-encoded string
+ * @author antonio
+ *
+ */
+public class Base16 {
    
    private static String byteToHexChar(byte val) {
 
@@ -56,9 +61,12 @@ public class HexCoder {
     */
    public static byte[] decode(String str) {
 
+      if (str.startsWith("0x") || str.startsWith("0X")) {
+         str = str.substring(2);
+      }
+
       int len = str.length()/2;
       byte[] out = new byte[len];
-
       for (int i = 0; i < str.length()/2; i++) {
 
          int a = hexCharToNibble(str.charAt(i*2));

@@ -5,7 +5,7 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.fileutil;
+package maspack.crypt;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +14,11 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Utility for creating file hashes
+ * @author antonio
+ *
+ */
 public class Hasher {
 
    public static final String SHA1 = "SHA1";
@@ -46,7 +51,7 @@ public class Hasher {
          md5sum = hash(file, MD5);
       } catch (NoSuchAlgorithmException e) {}
      
-      return HexCoder.encode(md5sum);
+      return Base16.encode(md5sum);
    }
 
    public static String md5(String fileName) throws IOException {
@@ -60,7 +65,7 @@ public class Hasher {
          sha1sum = hash(file, SHA1);
       } catch (NoSuchAlgorithmException e) {}
      
-      return HexCoder.encode(sha1sum);
+      return Base16.encode(sha1sum);
       
    }
 

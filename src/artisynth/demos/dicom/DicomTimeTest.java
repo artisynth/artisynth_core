@@ -13,7 +13,7 @@ import artisynth.core.workspace.RootModel;
 import maspack.dicom.DicomImage;
 import maspack.dicom.DicomImageDecoderImageMagick;
 import maspack.dicom.DicomReader;
-import maspack.fileutil.FileGrabber;
+import maspack.fileutil.FileManager;
 
 /**
  * DICOM image of the heart, with time
@@ -47,12 +47,12 @@ public class DicomTimeTest extends RootModel {
       
       // prepare utility for downloading DICOM sample
       String localDir = ArtisynthPath.getSrcRelativePath(this, "data/MAGIX");
-      FileGrabber fileGrabber = new FileGrabber(localDir, "zip:" + dicom_url + "!/");
-      fileGrabber.setConsoleProgressPrinting(true);
-      fileGrabber.setOptions(FileGrabber.DOWNLOAD_ZIP); // download zip file first
+      FileManager fileManager = new FileManager(localDir, "zip:" + dicom_url + "!/");
+      fileManager.setConsoleProgressPrinting(true);
+      fileManager.setOptions(FileManager.DOWNLOAD_ZIP); // download zip file first
       
       // download dicom data
-      File dicomPath = fileGrabber.get(dicom_root); // extract all of the dicom root
+      File dicomPath = fileManager.get(dicom_root); // extract all of the dicom root
       
       // 
       DicomImage im = null;
@@ -63,7 +63,7 @@ public class DicomTimeTest extends RootModel {
          for (int i=0; i<dicom_folders.length; i++) {
             File  file = new File(dicomPath, dicom_folders[i]);
             if (!file.exists()) {
-               fileGrabber.get(dicom_root + dicom_folders[i]);
+               fileManager.get(dicom_root + dicom_folders[i]);
             }
             
             // restrict to files ending in .dcm

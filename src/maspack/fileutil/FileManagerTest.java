@@ -9,46 +9,46 @@ package maspack.fileutil;
 
 import java.io.File;
 
+import com.jcraft.jsch.JSchException;
+
+import maspack.crypt.AESCryptor;
 import maspack.fileutil.jsch.IdentityFile;
 import maspack.fileutil.jsch.SimpleIdentityRepository;
 import maspack.fileutil.uri.ExactMatcher;
 import maspack.fileutil.vfs.ConsoleUserAuthenticator;
 import maspack.fileutil.vfs.EncryptedUserAuthenticator;
-import maspack.fileutil.vfs.PasswordCryptor;
 import maspack.fileutil.vfs.SimpleIdRepoFactory;
-import maspack.util.PathFinder;
 import maspack.util.Logger.LogLevel;
+import maspack.util.PathFinder;
 
-import com.jcraft.jsch.JSchException;
+public class FileManagerTest {
 
-public class FileGrabberTest {
-
-   String localDir = PathFinder.expand ("${srcdir FileGrabberTest}/");
+   String localDir = PathFinder.expand ("${srcdir FileManagerTest}/");
 
    public static void main(String args[]) {
-      FileGrabberTest test = new FileGrabberTest();
+      FileManagerTest test = new FileManagerTest();
       test.run();
    }
 
    private void run() {
 
-      FileGrabber grabber = new FileGrabber(localDir+"cache/", "file://" + localDir);
-      grabber.setVerbosityLevel(LogLevel.TRACE);
+      FileManager Manager = new FileManager(localDir+"cache/", "file://" + localDir);
+      Manager.setVerbosityLevel(LogLevel.TRACE);
 
-      grabber.addTransferListener(new DefaultConsoleFileTransferListener());
+      Manager.addTransferListener(new DefaultConsoleFileTransferListener());
 
-      addAuthenticators(grabber);
+      addAuthenticators(Manager);
 
       File elem1=null, node1=null, elem2=null, node2=null, elem3=null, node3=null;
       try {
-         // elem1 = grabber.get("mesh1.elem", "http://dl.dropbox.com/u/64872258/mesh.elem");
-         node1 = grabber.get("mesh1.node", "https://www.ece.ubc.ca/~antonios/priv/mesh.node");
-         elem2 = grabber.get("mesh2.elem", "tgz:data/mesh.tar.gz!/mesh.elem");
-         node2 = grabber.get("mesh2.node", "tgz:sftp://artisynth@shellmix.com/files/mesh.tar.gz!/mesh.node");
-         elem3 = grabber.get("masseter/mesh.elem", "tgz:sftp://artisynth@shellmix.com/files/mesh2.tar.gz!/mesh.elem"); 
-         node3 = grabber.get("masseter/mesh.node", "tgz:sftp://artisynth@shellmix.com/files/mesh2.tar.gz!/mesh.node");
+         // elem1 = Manager.get("mesh1.elem", "http://dl.dropbox.com/u/64872258/mesh.elem");
+         node1 = Manager.get("mesh1.node", "https://www.ece.ubc.ca/~antonios/priv/mesh.node");
+         elem2 = Manager.get("mesh2.elem", "tgz:data/mesh.tar.gz!/mesh.elem");
+         node2 = Manager.get("mesh2.node", "tgz:sftp://artisynth@shellmix.com/files/mesh.tar.gz!/mesh.node");
+         elem3 = Manager.get("masseter/mesh.elem", "tgz:sftp://artisynth@shellmix.com/files/mesh2.tar.gz!/mesh.elem"); 
+         node3 = Manager.get("masseter/mesh.node", "tgz:sftp://artisynth@shellmix.com/files/mesh2.tar.gz!/mesh.node");
 
-      } catch (FileGrabberException e) {
+      } catch (FileTransferException e) {
          e.printStackTrace();
       }
 
@@ -63,12 +63,12 @@ public class FileGrabberTest {
 
    }
 
-   private void addAuthenticators(FileGrabber fileGrabber) {
+   private void addAuthenticators(FileManager fileManager) {
 
-      byte [] masterKey = PasswordCryptor.generateKeyFromPassphrase("helloworld", PasswordCryptor.AES128);
-      PasswordCryptor SystemCryptor;
+      byte [] masterKey = AESCryptor.generateKeyFromPassphrase("helloworld");
+      AESCryptor SystemCryptor;
       try {
-         SystemCryptor = new PasswordCryptor(masterKey);
+         SystemCryptor = new AESCryptor(masterKey);
       } catch (Exception e) {
          e.printStackTrace();
          return;
@@ -77,13 +77,13 @@ public class FileGrabberTest {
       // console authenticator for https
       ConsoleUserAuthenticator conAuth = new ConsoleUserAuthenticator();
       ExactMatcher eceMatcher = new ExactMatcher("https", "www.ece.ubc.ca");
-      fileGrabber.addUserAuthenticator(eceMatcher, conAuth);
+      fileManager.addUserAuthenticator(eceMatcher, conAuth);
 
       // encrypted authenticator for ssh
       EncryptedUserAuthenticator encAuth = new EncryptedUserAuthenticator(SystemCryptor, null, "artisynth", "artisynth");
       ExactMatcher artiMatcher = new ExactMatcher("sftp","shellmix.com");
       artiMatcher.setUser("artisynth"); // also force user to be artisynth
-      fileGrabber.addUserAuthenticator(artiMatcher, encAuth);
+      fileManager.addUserAuthenticator(artiMatcher, encAuth);
 
       // identity stuff
       IdentityFile id1;
@@ -108,8 +108,8 @@ public class FileGrabberTest {
       ExactMatcher repo2Matcher = new ExactMatcher("sftp", "shellmix.com","/files/mesh2.tar.gz");
       repo2Matcher.setFragment("/mesh.node");
 
-      fileGrabber.addIdentityRepository(repo1Matcher, repo1);
-      fileGrabber.addIdentityRepository(repo2Matcher, repo2);
+      fileManager.addIdentityRepository(repo1Matcher, repo1);
+      fileManager.addIdentityRepository(repo2Matcher, repo2);
 
    }
 

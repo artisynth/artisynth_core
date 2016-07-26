@@ -9,6 +9,7 @@ package maspack.fileutil;
 
 import java.io.File;
 
+import maspack.crypt.AESCryptor;
 import maspack.fileutil.jsch.IdentityFile;
 import maspack.fileutil.vfs.SimpleIdRepoFactory;
 
@@ -33,11 +34,10 @@ public class RSAIdentityTest {
       byte[] passbytes =
          new byte[] { 'a', 'r', 't', 'i', 's', 'y', 'n', 't', 'h' };
 
-      byte[] key =
-         AESCrypter.generateKeyFromPassphrase("dolly", AESCrypter.AES192);
-      AESCrypter crypt;
+      byte[] key = AESCryptor.generateKeyFromPassphrase("dolly");
+      AESCryptor crypt;
       try {
-         crypt = new AESCrypter(key);
+         crypt = new AESCryptor(key);
          String encrypted = crypt.encrypt(passphrase);
          String decrypted = crypt.decrypt(encrypted);
          System.out.printf("Orig: %s, Encrypted: %s, Decrypted: %s \n", passphrase, encrypted, decrypted);

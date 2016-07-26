@@ -90,7 +90,6 @@ public class SimpleIdentityRepository implements IdentityRepository {
       identities.removeAllElements();
    }
 
-
    // prevent explicit adding of blobs
    public synchronized boolean add(byte[] blob) {
       return false;

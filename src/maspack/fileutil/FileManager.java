@@ -12,10 +12,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.UserAuthenticator;
 
+import maspack.crypt.Hasher;
 import maspack.fileutil.jsch.SimpleIdentityRepository;
 import maspack.fileutil.uri.URIx;
 import maspack.fileutil.uri.URIxMatcher;
@@ -34,16 +37,16 @@ import maspack.util.StreamLogger;
  * A typical use will look like this:
  * 
  * <pre>
- * <code> FileGrabber grabber = new FileGrabber("data", "http://www.fileserver.com");
- * grabber.get("localFile", "remoteFile");</code>
+ * <code> FileManager Manager = new FileManager("data", "http://www.fileserver.com");
+ * Manager.get("localFile", "remoteFile");</code>
  * </pre>
  * 
- * By default, the FileGrabber will simply return the localFile if it exists. To
+ * By default, the FileManager will simply return the localFile if it exists. To
  * force updates from a remote location, you can set options:
  * 
  * <pre>
- * <code> int options = FileGrabber.CHECK_HASH;
- * grabber.get("localFile", "remoteFile", options);</code>
+ * <code> int options = FileManager.CHECK_HASH;
+ * Manager.get("localFile", "remoteFile", options);</code>
  * </pre>
  * 
  * The CHECK_HASH flag downloads the remote file if its sha1 hash differs from
@@ -57,13 +60,13 @@ import maspack.util.StreamLogger;
  * <code> boolean download = true;
  * File dest = new File("localFile");
  * URI source = new URI("remoteFile");
- * File local = grabber.getLocal(dest);
+ * File local = Manager.getLocal(dest);
  * 
  * if (local != null) {
  *    boolean match = false;
  *    try {
- *       match = grabber.equalsHash(dest, source);
- *    } catch (FileGrabberException e) {
+ *       match = Manager.equalsHash(dest, source);
+ *    } catch (FileManagerException e) {
  *       System.out.println(e.getMessage());
  *    }
  *    download = !match;
@@ -71,8 +74,8 @@ import maspack.util.StreamLogger;
  * 
  * if (download) {
  *    try {
- *       local = grabber.getRemote(dest, source);
- *    } catch (FileGrabberException e) {
+ *       local = Manager.getRemote(dest, source);
+ *    } catch (FileManagerException e) {
  *       System.out.println(e.getMessage());
  *    }
  * } 
@@ -90,12 +93,12 @@ import maspack.util.StreamLogger;
  * @author "Antonio Sanchez" Creation date: 13 Nov 2012
  * 
  */
-public class FileGrabber {
-   
+public class FileManager {
+
    private FileTransferMonitor myTransferMonitor = null; // monitors transfers
    private FileTransferListener
-      myDefaultConsoleListener = null; // default console listener
-   private static FileGrabber staticGrabber = null; // used for static grabs
+   myDefaultConsoleListener = null; // default console listener
+   private static FileManager staticManager = null; // used for static grabs
    private FileCacher cacher; // actually downloads files
    private static Logger logger; // used for logging messages
 
@@ -103,40 +106,43 @@ public class FileGrabber {
    private File downloadDir; // default directory to save files to
    private URIx remoteSource; // default base for resolving relative URIs
 
+   public ArrayList<FileTransferException> exceptionStack;
+
    // options
    /**
     * Always read from remote if possible
     */
    public static final int FORCE_REMOTE = 0x01;
-   
+
    /**
     * Check file hashes, and if different, get from remote
     */
    public static final int CHECK_HASH = 0x02;
-   
+
    /**
     * If file is in a remote zip file, get a local copy
     * of the entire zip file first
     */
    public static final int DOWNLOAD_ZIP = 0x10;
-   
+
    // public static final int CHECK_DATE_SIZE = 0x08;
 
    // defaults
    public static int DEFAULT_OPTIONS = 0;
    public static LogLevel DEFAULT_LOG_LEVEL = LogLevel.INFO; // info and up
    public static Logger DEFAULT_LOGGER = new StreamLogger();
-   
+
    public int myOptions = DEFAULT_OPTIONS;
-   
+
    File lastFile = null;
    boolean lastWasRemote = false;
-   
+
 
    // initialiazes some objects
    private void init() {
       cacher = new FileCacher();
       logger = DEFAULT_LOGGER;
+      exceptionStack = new ArrayList<>();
       setVerbosityLevel(DEFAULT_LOG_LEVEL);
    }
 
@@ -144,7 +150,7 @@ public class FileGrabber {
     * Default constructor, sets the local directory to the current path, and
     * sets the default URI to be empty.
     */
-   public FileGrabber () {
+   public FileManager () {
       init();
       File currDir = new File(""); // use current directory
       setDownloadDir(currDir);
@@ -159,7 +165,7 @@ public class FileGrabber {
     * @param remoteSource
     * the remote base URI to download files from
     */
-   public FileGrabber (File downloadDir, URIx remoteSource) {
+   public FileManager (File downloadDir, URIx remoteSource) {
       init();
       setDownloadDir(downloadDir);
       setRemoteSource(remoteSource);
@@ -171,7 +177,7 @@ public class FileGrabber {
     * @param downloadPath
     * the local path to save files to
     */
-   public FileGrabber (String downloadPath) {
+   public FileManager (String downloadPath) {
       init();
       setDownloadDir(downloadPath);
       setRemoteSource((URIx)null);
@@ -186,7 +192,7 @@ public class FileGrabber {
     * @param remoteSourceName
     * the remote base URI
     */
-   public FileGrabber (String downloadPath, String remoteSourceName) {
+   public FileManager (String downloadPath, String remoteSourceName) {
       init();
       setRemoteSource(remoteSourceName);
       setDownloadDir(downloadPath);
@@ -199,7 +205,11 @@ public class FileGrabber {
     * default download directory
     */
    public void setDownloadDir(File dir) {
-      downloadDir = new File(dir.getAbsolutePath());
+      if (dir != null) {
+         downloadDir = new File(dir.getAbsolutePath());
+      } else {
+         downloadDir = new File("");
+      }
    }
 
    /**
@@ -264,6 +274,25 @@ public class FileGrabber {
       return remoteSource;
    }
 
+   public List<? extends Exception> getExceptions() {
+      return exceptionStack;
+   }
+   
+   public Exception getLastException() {
+      if (exceptionStack.isEmpty()) {
+         return null;
+      }
+      return exceptionStack.get(exceptionStack.size()-1);
+   }
+
+   public void clearExceptions() {
+      exceptionStack.clear();
+   }
+
+   public boolean hasExceptions() {
+      return (exceptionStack.size() > 0);
+   }
+
    /**
     * Converts a relative URI to an absolute one, using the remoteSource as a
     * base. If the supplied URI string is absolute, the corresponding URI object
@@ -326,12 +355,12 @@ public class FileGrabber {
       return getAbsoluteFile(new File(relPath));
    }
 
-   
+
    // adds an extension onto a uri
    private static URIx mergeExtension(URIx base, String extension) {
-      
+
       URIx merged = new URIx(base);
-      
+
       if (merged.isZip()) {
          String fn = base.getFragment() + extension;
          merged.setFragment(fn);
@@ -339,18 +368,18 @@ public class FileGrabber {
          String fn = base.getPath(false) + extension;
          merged.setPath(fn);
       }
-      
+
       return merged;
-      
+
    }
-   
+
    // make first character l
    private static String uncap(String word) {
       char chars[] = word.toCharArray();
       chars[0] = Character.toLowerCase(chars[0]);
       return new String( chars );
    }
-   
+
    /**
     * Fetches a hash file from a remote location. The hash file is assumed to
     * have the form &lt;uri&gt;.sha1
@@ -358,17 +387,17 @@ public class FileGrabber {
     * @param uriStr
     * the URI of the file to obtain the hash
     * @return the hex-encoded hash value string
-    * @throws FileGrabberException if cannot retrieve remote hash
+    * @throws FileTransferException if cannot retrieve remote hash
     * @throws URIxSyntaxException if uriStr is malformed
     */
-   public String getRemoteHash(String uriStr) throws FileGrabberException, URIxSyntaxException {
-      
+   public String getRemoteHash(String uriStr) throws FileTransferException, URIxSyntaxException {
+
       URIx uri = getAbsoluteURI(uriStr);
       return getRemoteHash(uri);
-      
+
    }
-   
-   
+
+
    /**
     * Fetches a hash file from a remote location. The hash file is assumed to
     * have the form &lt;uri&gt;.sha1
@@ -377,7 +406,7 @@ public class FileGrabber {
     * the URI of the file to obtain the hash
     * @return the hex-encoded hash value string
     */
-   public String getRemoteHash(URIx uri) throws FileGrabberException {
+   public String getRemoteHash(URIx uri) throws FileTransferException {
 
       uri = getAbsoluteURI(uri);
 
@@ -391,7 +420,7 @@ public class FileGrabber {
          cacher.initialize();
       } catch (FileSystemException e) {
          cacher.release();
-         throw new FileGrabberException("Failed to initialize FileCacher", e);
+         throw new FileTransferException("Failed to initialize FileCacher", e);
       }
 
       try {
@@ -403,9 +432,9 @@ public class FileGrabber {
 
       } catch (FileSystemException e) {
          String msg = decodeVFSMessage(e);
-         throw new FileGrabberException("Cannot obtain remote hash: " + uncap(msg), e);
+         throw new FileTransferException("Cannot obtain remote hash: " + uncap(msg), e);
       } catch (IOException e) {
-         throw new FileGrabberException("Cannot read hash from input stream: " + uncap(e.getMessage()), e);
+         throw new FileTransferException("Cannot read hash from input stream: " + uncap(e.getMessage()), e);
       } finally {
          closeQuietly(in);
          cacher.release();
@@ -425,46 +454,46 @@ public class FileGrabber {
       }
    }
 
-   
+
    /**
     * Gets the sha1 hash of a local file
     * 
     * @param fileName file to compute the hash of
     * @return the 20-byte hash as a hex-encoded String
-    * @throws FileGrabberException if fails to generate hash of local file
+    * @throws FileTransferException if fails to generate hash of local file
     */
    public String getLocalHash(String fileName) {
       return getLocalHash(new File(fileName));
    }
-   
+
    /**
     * Gets the sha1 hash of a local file
     * 
     * @param file
     * to compute the hash of
     * @return the 20-byte hash as a hex-encoded String
-    * @throws FileGrabberException if fails to generate hash of local file
+    * @throws FileTransferException if fails to generate hash of local file
     */
    public String getLocalHash(File file) {
 
       file = getAbsoluteFile(file);
 
       if (!file.canRead()) {
-         throw new FileGrabberException("Cannot compute hash of local file: " 
-            + file.getPath() + " does not exist");
+         throw new FileTransferException("Cannot compute hash of local file: " 
+         + file.getPath() + " does not exist");
       } else if (file.isDirectory()) {
-         throw new FileGrabberException("Cannot compute hash of local file: " 
-            + file.getPath() + " is a directory");
+         throw new FileTransferException("Cannot compute hash of local file: " 
+         + file.getPath() + " is a directory");
       }
 
-      
+
       String hash = null;
       try {
          hash = Hasher.sha1(file);
       } catch (IOException e) {
-         throw new FileGrabberException("Failed to read local file " + file.getPath(), e);
+         throw new FileTransferException("Failed to read local file " + file.getPath(), e);
       }
-      
+
       return hash;
    }
 
@@ -476,10 +505,10 @@ public class FileGrabber {
     * @param uri
     * remote file of which to determine hash
     * @return true if hashes are equal, false otherwise
-    * @throws FileGrabberException
+    * @throws FileTransferException
     * if can't get either hash
     */
-   public boolean equalsHash(File file, URIx uri) throws FileGrabberException {
+   public boolean equalsHash(File file, URIx uri) throws FileTransferException {
 
       String localHash = getLocalHash(file);
       String remoteHash = getRemoteHash(uri);
@@ -491,14 +520,14 @@ public class FileGrabber {
       return localHash.equalsIgnoreCase(remoteHash);
 
    }
-   
-   public boolean equalsHash(String relPath) throws FileGrabberException {
-      
+
+   public boolean equalsHash(String relPath) throws FileTransferException {
+
       File localFile = getAbsoluteFile(relPath);
       URIx localURI = getAbsoluteURI(relPath);
-      
+
       return equalsHash(localFile, localURI);
-      
+
    }
 
    // extracts file name from URI
@@ -511,7 +540,7 @@ public class FileGrabber {
       } else {
          fileName =  uri.getRawPath();
       }
-      
+
       // get final part of path
       int idx = fileName.lastIndexOf('/'); // this is the only separator in uri's
       if (idx >= 0) {
@@ -527,9 +556,9 @@ public class FileGrabber {
             fileName = fileName.substring(idx+1);
          }
       }
-      
+
       return fileName;
-      
+
    }
 
    /**
@@ -572,48 +601,47 @@ public class FileGrabber {
     * @param source
     * the source URI
     * @return a File reference to the new local copy
-    * @throws FileGrabberException
+    * @throws FileTransferException
     * if downloading the remote file fails
     */
-   public File getRemote(File dest, URIx source) throws FileGrabberException {
+   public File getRemote(File dest, URIx source) throws FileTransferException {
 
       // ensure that source is a file, and not a path
-      String srcFile = extractFileName(source);
-      if (srcFile.equals("") ) { //|| srcFile.endsWith("/")) {
+      if (isDirectory(source) ) { //|| srcFile.endsWith("/")) {
          throw new IllegalArgumentException("Source URI must refer to a file: <" + source + ">"); 
       }
-      
+
       if (dest == null) {    
          // if source is relative, take that
          if (source.isRelative()) {
             dest = new File(source.getPath(false));
          } else {
             // otherwise, simply extract the file name from source
-            dest = new File(srcFile);
+            dest = new File(extractFileName(source));
          }
       } else if (dest.isDirectory()) {
-         
+         String srcFile = extractFileName(source);
          if (source.isRelative()) {            
             srcFile = source.getPath(false);
          }
          dest = new File(dest,srcFile);
-         
+
       }
 
       // make absolute
       dest = getAbsoluteFile(dest);
       source = getAbsoluteURI(source);
-      
+
       try {
          cacher.initialize();
          logger.debug("Downloading file " + source.toString() + " to "
-            + dest.getAbsolutePath() + "...");
+         + dest.getAbsolutePath() + "...");
          // download file
          cacher.cache(source, dest, myTransferMonitor);
       } catch (FileSystemException e) {
-         
+
          String msg = decodeVFSMessage(e);
-         throw new FileGrabberException(msg, e);
+         throw new FileTransferException(msg, e);
 
       } finally {
          cacher.release();
@@ -624,15 +652,76 @@ public class FileGrabber {
       return dest;
 
    }
-   
+
+   private boolean isDirectory(URIx uri) {
+      String filename = extractFileName(uri);
+      if ("".equals(filename) ) {
+         return true;
+      }
+      return false;
+   }
+
+   /**
+    * Uploads a local file to the remote destination if it exists. If dest is null or a
+    * directory, appends source filename
+    * 
+    * @param source
+    * the source file
+    * @param dest
+    * the destination uri 
+    * @throws FileTransferException
+    * if uploading the file fails
+    */
+   public void putRemote(File source, URIx dest) throws FileTransferException {
+
+      // ensure that source is a file, and not a directory
+      if (source.isDirectory() ) { //|| srcFile.endsWith("/")) {
+         throw new IllegalArgumentException("Source file must refer to a file: <" + source + ">"); 
+      }
+
+      if (dest == null) {    
+         // if source is relative, take that
+         if (!source.isAbsolute()) {
+            dest = new URIx(source.getPath());
+         } else {
+            // otherwise, simply extract the file name from source
+            dest = new URIx(source.getName());
+         }
+      } else if (isDirectory(dest)) {
+         if (source.isAbsolute()) {
+            dest = new URIx(dest, source.getName());
+         } else {
+            dest = new URIx(dest, source.getPath());
+         }
+      }
+
+      // make absolute
+      dest = getAbsoluteURI(dest);
+      source = getAbsoluteFile(source);
+
+      try {
+         cacher.initialize();
+         logger.debug("Uploading file " + source.getAbsolutePath() + " to "
+         + dest.toString() + "...");
+         // download file
+         cacher.copy(source, dest, myTransferMonitor);
+      } catch (FileSystemException e) {
+         String msg = decodeVFSMessage(e);
+         throw new FileTransferException(msg, e);
+      } finally {
+         cacher.release();
+      }
+
+   }
+
    private static Throwable getRootThrowable(Throwable t) {
-      
+
       Throwable root = t;
-      while (root.getCause() != null) {
+      while (root.getCause() != null && root.getCause() != root) {
          root = root.getCause();
       }
       return root;
-      
+
    }
 
    /**
@@ -645,10 +734,10 @@ public class FileGrabber {
     * the source URI
     * @return a File reference to the new local copy
     * @throws URIxSyntaxException if the source URI is malformed
-    * @throws FileGrabberException if grabbing the remote file fails
+    * @throws FileTransferException if grabbing the remote file fails
     */
    public File getRemote(String destName, String sourceName)
-      throws FileGrabberException, URIxSyntaxException {
+   throws FileTransferException, URIxSyntaxException {
 
       URIx remote = new URIx(sourceName);
 
@@ -663,14 +752,14 @@ public class FileGrabber {
    /**
     * {@link #getRemote(String, String)} with dest=null
     */
-   public File getRemote(String sourceName) throws FileGrabberException {
+   public File getRemote(String sourceName) throws FileTransferException {
       return getRemote(null, sourceName);
    }
 
    /**
     * {@link #getRemote(File, URIx)} with dest=null
     */
-   public File getRemote(URIx source) throws FileGrabberException {
+   public File getRemote(URIx source) throws FileTransferException {
       return getRemote(null, source);
    }
 
@@ -692,12 +781,11 @@ public class FileGrabber {
     * @param options
     * set of options, either FORCE_REMOTE or CHECK_HASH
     * @return File handle to local file
-    * @throws FileGrabberException only if there is no local copy of the file 
+    * @throws FileTransferException only if there is no local copy of the file 
     * at the end of the function call
     */
-   public File get(File dest, URIx source, int options)
-      throws FileGrabberException {
-      
+   public File get(File dest, URIx source, int options) throws FileTransferException {
+
       // default destination if none provided
       if (dest == null) {
          if (source.isRelative()) {
@@ -719,20 +807,20 @@ public class FileGrabber {
 
       // download zip file first if requested
       if ( source.isZip() && (options & DOWNLOAD_ZIP) != 0) {
-                 
+
          // get zip file
          URIx zipSource = source.getBaseURI();
          File zipDest = getAbsoluteFile(extractFileName(zipSource));
          File zipFile = get(zipDest, zipSource, options);
-         
+
          // replace source URI
          source.setBaseURI(new URIx(zipFile));
-         
+
          // XXX no longer need to check hash, since zip's hash would
          // have changed, although we do need to replace if re-downloaded zip
          // options = options & (~CHECK_HASH);
       }
-      
+
       // check if we need to actually fetch file
       boolean fetch = true;
       if ((options & FORCE_REMOTE) == 0) {
@@ -747,10 +835,11 @@ public class FileGrabber {
                   if (fetch) {
                      logger.debug("Hash matches");
                   }
-               } catch (FileGrabberException e) {
+               } catch (FileTransferException e) {
                   logger.debug(
                      "Cannot obtain hash, assuming it doesn't match, "
                      + e.getMessage());
+                  exceptionStack.add(e);
                   fetch = true;
                }
             } else {
@@ -764,9 +853,10 @@ public class FileGrabber {
       if (fetch) {
          try {
             dest = getRemote(dest, source);
-         } catch (FileGrabberException e) {
+         } catch (FileTransferException e) {
             String msg = "Failed to fetch remote file <" + source + ">";
             logger.error(msg +", " +e.getMessage());
+            exceptionStack.add(e);
          }
       } else {
          logger.debug("File '" + dest
@@ -777,8 +867,8 @@ public class FileGrabber {
       // and we have no local copy
       if (dest == null || !dest.exists()) {
          String msg = "Unable to find or create file " + dest + " <" 
-            + source.toString() + ">";
-         throw new FileGrabberException(msg);
+         + source.toString() + ">";
+         throw new FileTransferException(msg);
       }
       lastFile = dest;
       lastWasRemote = fetch;
@@ -790,7 +880,7 @@ public class FileGrabber {
     * Downloads a file using the default options
     * @see #get(File, URIx, int)
     */
-   public File get(File path, URIx source) throws FileGrabberException {
+   public File get(File path, URIx source) throws FileTransferException {
       return get(path, source, myOptions);
    }
 
@@ -798,9 +888,9 @@ public class FileGrabber {
     * Downloads a file using same relative path for source and destination
     * @see #get(String, String, int)
     */
-   public File get(String sourceName, int options) throws FileGrabberException {
+   public File get(String sourceName, int options) throws FileTransferException {
       return get(null, sourceName, options);
-      
+
    }
 
    /**
@@ -808,7 +898,7 @@ public class FileGrabber {
     * and default options
     * @see #get(String, String, int)
     */
-   public File get(String sourceName) throws FileGrabberException {
+   public File get(String sourceName) throws FileTransferException {
       return get(null, sourceName, myOptions);
    }
 
@@ -817,20 +907,20 @@ public class FileGrabber {
     * object, respectively, and downloads the remote file according to the 
     * supplied options.
     * @throws URIxSyntaxException if the sourceName is malformed
-    * @throws FileGrabberException if download fails.
+    * @throws FileTransferException if download fails.
     * @see #get(File, URIx, int)
     */
    public File get(String destName, String sourceName, int options)
-      throws URIxSyntaxException, FileGrabberException {
+   throws URIxSyntaxException, FileTransferException {
 
       // try to make URI from sourceName
       URIx source = new URIx(sourceName);
-      
+
       File dest = null;
       if (destName != null) {
          dest = new File(destName);
       }
-      
+
       return get(dest, source, options);
 
    }
@@ -840,9 +930,143 @@ public class FileGrabber {
     * @see #get(String, String, int)
     */
    public File get(String destName, String sourceName)
-      throws FileGrabberException {
+   throws FileTransferException {
       return get(destName, sourceName, myOptions);
    }
+
+   /**
+    * Uploads a file, according to options. Works with absolute paths and
+    * destination URIs, otherwise combines path and dest URI with downloadDir and
+    * remoteSource, respectively. If the destination is null or a directory,
+    * then the filename of source is appended.
+    * 
+    * If there is any internal problem, (such as failing to obtain a hash, or
+    * failing to download a file), the function will log the error message and
+    * continue.
+    * 
+    * @param source
+    * the source file to upload
+    * @param dest
+    * the remote URI to upload to
+    * @param options
+    * set of options, either FORCE_REMOTE or CHECK_HASH
+    * @throws FileTransferException if the upload fails
+    */
+   public void put(File source, URIx dest, int options)  throws FileTransferException {
+
+      // default destination if none provided
+      if (dest == null) {
+         if (!source.isAbsolute()) {
+            dest = new URIx(source.getPath());
+         } else {
+            dest = new URIx(source.getName());
+         }
+      } else if (isDirectory(dest)) {
+         if (!source.isAbsolute()) {
+            dest = new URIx(dest, source.getPath());
+         } else {
+            dest = new URIx(dest, source.getName());
+         }
+      }
+
+      // convert to absolute
+      dest = getAbsoluteURI(dest);
+      source = getAbsoluteFile(source);
+
+      // XXX TODO: check if we need to actually upload file
+      boolean push = true;
+
+      //      if ((options & FORCE_REMOTE) == 0) {
+      //         // check if file exists
+      //         if (dest.canRead()) {
+      //
+      //            // check hash if options say so
+      //            if ((options & CHECK_HASH) != 0) {
+      //               try {
+      //                  fetch = !equalsHash(dest, source);
+      //                  if (fetch) {
+      //                     logger.debug("Hash matches");
+      //                  }
+      //               } catch (FileTransferException e) {
+      //                  logger.debug(
+      //                     "Cannot obtain hash, assuming it doesn't match, "
+      //                     + e.getMessage());
+      //                  exceptionStack.add(e);
+      //                  fetch = true;
+      //               }
+      //            } else {
+      //               // file exists, so let it be
+      //               fetch = false;
+      //            }
+      //         }
+      //      }
+
+      // download file if we need to
+      if (push) {
+         putRemote(source, dest);
+      } else {
+         logger.debug("File '" + dest
+            + "' exists and does not need to be uploaded.");
+      }
+
+   }
+
+   /**
+    * Uploads a file using the default options
+    * @see #put(File, URIx, int)
+    */
+   public void put(File path, URIx dest) throws FileTransferException {
+      put(path, dest, myOptions);
+   }
+
+   /**
+    * Uploads a file using same relative path for source and destination
+    * @see #put(String, String, int)
+    */
+   public void put(String source, int options) throws FileTransferException {
+      put(source, null, options);
+
+   }
+
+   /**
+    * Uploads a file using same relative path for source and destination
+    * and default options
+    * @see #put(String, String, int)
+    */
+   public void put(String source) throws FileTransferException {
+      put(source, null, myOptions);
+   }
+
+   /**
+    * Converts the supplied source path and dest URI to a File and URI
+    * object, respectively, and downloads the remote file according to the 
+    * supplied options.
+    * @throws URIxSyntaxException if the dest is malformed
+    * @throws FileTransferException if upload fails.
+    * @see #put(File, URIx, int)
+    */
+   public void put(String source, String dest, int options)
+   throws URIxSyntaxException, FileTransferException {
+
+      // try to make URI from sourceName
+      URIx dst = null;
+      if (dest != null) {
+         dst = new URIx(dest);
+      }
+      
+      File src = new File(source);
+      put(src, dst, options);
+   }
+
+   /**
+    * Downloads a file with default options
+    * @see #put(String, String, int)
+    */
+   public void put(String source, String dest)
+   throws FileTransferException {
+      put(source, dest, myOptions);
+   }
+
 
    /**
     * Sets the logger for printing messages, defaults
@@ -862,7 +1086,7 @@ public class FileGrabber {
    }
 
    /**
-    * Sets the verbosity level of this FileGrabber. Any messages ranked higher
+    * Sets the verbosity level of this FileManager. Any messages ranked higher
     * than the supplied "level" will be printed.
     * 
     * @param level
@@ -931,7 +1155,7 @@ public class FileGrabber {
    }
 
    /**
-    * Gets the set of listeners for all transfers handled by this FileGrabber
+    * Gets the set of listeners for all transfers handled by this FileManager
     * object
     * 
     * @return Array of FileTransferListeners
@@ -941,7 +1165,7 @@ public class FileGrabber {
       if (myDefaultConsoleListener != null) {
          // remove this from the list:
          FileTransferListener[] xlist =
-            new FileTransferListener[list.length-1];
+         new FileTransferListener[list.length-1];
          int k = 0;
          for (int i=0; i<list.length; i++) {
             if (list[i] != myDefaultConsoleListener) {
@@ -995,7 +1219,7 @@ public class FileGrabber {
    }
 
    /**
-    * Adds an authenticator for HTTPS, SFTP, that can respond to
+    * Adds an authenticator for HTTPS, SFTP, WEBDAVS, that can respond to
     * domain/username/password requests. This authenticator is used for any URIs
     * that match patterns provided in `matcher'
     * 
@@ -1024,40 +1248,40 @@ public class FileGrabber {
    }
 
    /**
-    * Returns a FileGrabber object used for {@link #staticGet(File, URIx)}.
+    * Returns a FileManager object used for {@link #staticGet(File, URIx)}.
     * Creates one if it does not yet exist.
     * 
-    * @return the static FileGrabber object
+    * @return the static FileManager object
     */
-   public static FileGrabber getStaticGrabber() {
-      if (staticGrabber == null) {
-         staticGrabber = new FileGrabber();
+   public static FileManager getStaticManager() {
+      if (staticManager == null) {
+         staticManager = new FileManager();
       }
-      return staticGrabber;
+      return staticManager;
    }
 
    /**
-    * Sets the FileGrabber used for {@link #staticGet(File, URIx)}.
+    * Sets the FileManager used for {@link #staticGet(File, URIx)}.
     * 
-    * @param grabber
-    * the FileGrabber to set for static operations
+    * @param Manager
+    * the FileManager to set for static operations
     */
-   public static void setStaticGrabber(FileGrabber grabber) {
-      staticGrabber = grabber;
+   public static void setStaticManager(FileManager Manager) {
+      staticManager = Manager;
    }
 
    /**
     * Static convenience method for downloading a file in a single shot. This
-    * uses a static copy of a FileGrabber objects, creating one with default
+    * uses a static copy of a FileManager objects, creating one with default
     * options if it doesn't exist.
     * 
     * @see #get(File, URIx, int)
     */
    public static File staticGet(File dest, URIx source, int options)
-      throws FileGrabberException {
+   throws FileTransferException {
 
-      staticGrabber = getStaticGrabber();
-      return staticGrabber.get(dest, source, options);
+      staticManager = getStaticManager();
+      return staticManager.get(dest, source, options);
 
    }
 
@@ -1067,7 +1291,7 @@ public class FileGrabber {
     * @see #staticGet(File, URIx, int)
     */
    public static File staticGet(File dest, URIx source)
-      throws FileGrabberException {
+   throws FileTransferException {
       return staticGet(dest, source, DEFAULT_OPTIONS);
    }
 
@@ -1077,11 +1301,11 @@ public class FileGrabber {
     * @see #get(String, String, int)
     */
    public static File staticGet(String destName, String sourceName, int options)
-      throws FileGrabberException {
-      
-      staticGrabber = getStaticGrabber();
-      return staticGrabber.get(destName, sourceName, options);
-      
+   throws FileTransferException {
+
+      staticManager = getStaticManager();
+      return staticManager.get(destName, sourceName, options);
+
    }
 
    /**
@@ -1090,38 +1314,38 @@ public class FileGrabber {
     * @see #get(String, String, int)
     */
    public static File staticGet(String destName, String sourceName)
-      throws FileGrabberException {
+   throws FileTransferException {
       return staticGet(destName, sourceName, DEFAULT_OPTIONS);
    }
 
    // Decode VFS messages to create our own message string
    private static String decodeVFSMessage(Throwable t) {
-      
+
       Throwable root = getRootThrowable(t);
-      
+
       String msg = null;
-      
+
       if (root instanceof java.net.UnknownHostException) {
          msg = "Cannot connect to server <" + root.getMessage() +
-            ">, check your internet connection or the server address";
+         ">, check your internet connection or the server address";
       } else if (root instanceof FileNotFoundException) {
          msg = "Cannot find file " + root.getMessage();        
       } else {
          msg = root.getMessage();
       }
-      
+
       return msg;
-      
+
    }
-   
+
    public void setOptions(int options) {
       myOptions = options;
    }
-   
+
    public int getOptions() {
       return myOptions;
    }
-   
+
    protected static String concatPaths(String path1, String path2) {
 
       String separator = "/";
@@ -1130,7 +1354,7 @@ public class FileGrabber {
          path1 = path1.replace("\\", "/");
          out = path1;
       }      
-      
+
       if (path2 != null) {
          path2 = path2.replace("\\", "/");
          if (out != null) {
@@ -1142,10 +1366,10 @@ public class FileGrabber {
             out = path2;
          }
       }
-      
+
       return out;
    }
-   
+
    /**
     * Returns an input stream for the file located at either {@code localCopy}
     * or {@code source} (according to options). Works with absolute paths and
@@ -1165,10 +1389,10 @@ public class FileGrabber {
     * @param options
     * set of options, from {@code FORCE_REMOTE, DOWNLOAD_ZIP, CHECK_HASH}
     * @return File input stream
-    * @throws FileGrabberException if we cannot open the stream
+    * @throws FileTransferException if we cannot open the stream
     */
    public InputStream getInputStream(File localCopy, URIx source, int options) {
-      
+
       // default local copy if none provided
       if (localCopy == null) {
          if (source.isRelative()) {
@@ -1187,23 +1411,23 @@ public class FileGrabber {
       // convert to absolute
       localCopy = getAbsoluteFile(localCopy);
       source = getAbsoluteURI(source);
-      
+
       // download zip file first if requested
       if ( source.isZip() && (options & DOWNLOAD_ZIP) != 0) {
-                 
+
          // get zip file
          URIx zipSource = source.getBaseURI();
          File zipDest = getAbsoluteFile(extractFileName(zipSource));
          File zipFile = get(zipDest, zipSource, options);
-         
+
          // replace source URI
          source.setBaseURI(new URIx(zipFile));
-         
+
          // XXX no longer need to check hash, since zip's hash would
          // have changed, although we do need to replace if re-downloaded zip
          // options = options & (~CHECK_HASH);
       }
-      
+
       // check if we need to open remote stream
       boolean fetch = true;
       if ((options & FORCE_REMOTE) == 0) {
@@ -1218,10 +1442,11 @@ public class FileGrabber {
                   if (fetch) {
                      logger.debug("Hash matches");
                   }
-               } catch (FileGrabberException e) {
+               } catch (FileTransferException e) {
                   logger.debug(
                      "Cannot obtain hash, assuming it doesn't match, "
                      + e.getMessage());
+                  exceptionStack.add(e);
                   fetch = true;
                }
             } else {
@@ -1237,14 +1462,14 @@ public class FileGrabber {
          try {
             cacher.initialize();
             logger.debug("Opening stream from " + source.toString());
-            
+
             // open remote stream
             in = cacher.getInputStream(source);
-            
+
          } catch (FileSystemException e) {
             cacher.release();
             String msg = "Failed to open remote file <" + source + ">";
-            throw new FileGrabberException(msg, e);
+            throw new FileTransferException(msg, e);
          }
       } else {
          logger.debug("Local file '" + localCopy + "' exists.");
@@ -1252,28 +1477,28 @@ public class FileGrabber {
             in = new FileInputStream(localCopy);
          } catch (IOException e) {
             String msg = "Failed to open local file <" + localCopy + ">";
-            throw new FileGrabberException(msg, e);
+            throw new FileTransferException(msg, e);
          }
       }
-      
+
       lastFile = null;
       lastWasRemote = fetch;
-      
+
       return in;
    }
-   
+
    public InputStream getInputStream(URIx source, int options)
-      throws FileGrabberException {
-      
+   throws FileTransferException {
+
       return getInputStream(null, source, options);
    }
-   
+
    public InputStream getInputStream(URIx source) {
       return getInputStream(null, source, myOptions);
    }
-   
+
    public InputStream getInputStream(String localCopy, String sourceName, 
-      int options) throws FileGrabberException {
+      int options) throws FileTransferException {
       URIx source = new URIx(sourceName);
       File local = null;
       if (localCopy != null) {
@@ -1281,9 +1506,9 @@ public class FileGrabber {
       }
       return getInputStream(local, source, options);
    }
-   
+
    public InputStream getInputStream(String localCopy, String sourceName) 
-      throws FileGrabberException {
+   throws FileTransferException {
       URIx source = new URIx(sourceName);
       File local = null;
       if (localCopy != null) {
@@ -1291,32 +1516,32 @@ public class FileGrabber {
       }
       return getInputStream(local, source, myOptions);
    }
-   
+
    public InputStream getInputStream(String sourceName, int options) 
-      throws FileGrabberException {
+   throws FileTransferException {
       // try to make URI from sourceName
       URIx source = new URIx(sourceName);
       return getInputStream(null, source, options);
    }
-   
-   public InputStream getInputStream(String sourceName) throws FileGrabberException {
+
+   public InputStream getInputStream(String sourceName) throws FileTransferException {
       return getInputStream(null, sourceName, myOptions);
    }
-   
+
    /**
     * Must be called to free resources after streams have been read.
     */
    public void closeStreams() {
       cacher.release();
    }
-   
+
    /**
     * Gets the last file retrieved.  
     */
    public File getLastFile() {
       return lastFile;
    }
-   
+
    /**
     * Returns true if the last file was fetched from remote,
     * false if last file was a local copy
@@ -1324,5 +1549,5 @@ public class FileGrabber {
    public boolean wasLastRemote() {
       return lastWasRemote;
    }
-   
+
 }

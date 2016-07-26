@@ -900,7 +900,7 @@ updated.
 \subsection*{ArtiSynth server renamed}
 
 The domain name of the ArtiSynth file server (used by some applications
-to access files using {\tt maspack.fileutil.FileGrabber}) has
+to access files using {\tt maspack.fileutil.FileManager}) has
 been changed from 
 \begin{verbatim}
 www.magic.ubc.ca
@@ -2862,7 +2862,7 @@ velocities between the two primary frames.
 The latest update to ArtiSynth features automatic downloading of
 library files from the ArtiSynth webserver. This reduces
 (significantly, in some cases) the size of the core distribution.  The
-downloading features uses Antonio's new {\tt FileGrabber} utility,
+downloading features uses Antonio's new {\tt FileManager} utility,
 described below.
 
 After you perform the most recent update, you will notice that most of
@@ -2950,9 +2950,9 @@ Note also that {\tt factor(Matrix)} has been renamed to {\tt
 analyzeAndFactor(Matrix)}, and the {\tt factorAndSolve()}
 methods have been renamed to {\tt autoFactorAndSolve()}.
 
-\subsection*{FileGrabber}
+\subsection*{FileManager}
 
-Antonio has implemented a new class called {\tt maspack.fileutil.FileGrabber}
+Antonio has implemented a new class called {\tt maspack.fileutil.FileManager}
 that allows an application to locate a local system
 file, and if the file is not there, try to download it from a
 specified URI. The idea is to use this to retrieve large data files
@@ -2960,7 +2960,7 @@ from a server, without having to check them into the ArtiSynth version
 control system. Usage can be illustrated through a few examples:
 
 \begin{lstlisting}[]
-   FileGrabber grabber = new FileGrabber();
+   FileManager grabber = new FileManager();
    File file = grabber.get (
       "bigmesh.obj", "http://www.mysever.org/meshes/bigmesh.obj");
 \end{lstlisting}
@@ -2968,13 +2968,13 @@ This will try to obtain a {\tt File} handle for {\tt bigmesh.obj},
 looking first on the local system and then, if not found, trying to
 download it from the URI specified by the second argument.
 
-By default, {\tt FileGrabber} looks for local files in the current
+By default, {\tt FileManager} looks for local files in the current
 working directory. However, it is possible to specify the local
 directory explictly, as well as a default base URI that should be used
 to obtain remote files:
 
 \begin{lstlisting}[]
-   FileGrabber grabber = new FileGrabber();
+   FileManager grabber = new FileManager();
    grabber.setDownloadDir ("/home/joe/meshes");
    grabber.setRemoteSource ("http://www.mysever.org/meshes");
    File file1 = grabber.get ("boneMesh.obj");
@@ -2988,16 +2988,16 @@ and {\tt muscleMesh.obj} within the local directory,
 and if not found will try to download them from the
 remote directory.
 
-Finally, it is also possible for {\tt FileGrabber} to "update" a
+Finally, it is also possible for {\tt FileManager} to "update" a
 file by checking to see if the local version is consistent with the
 version on the server, and downloading the server version if it is
 not. This is done by checking hashes, and is enabled with a 
 {\tt CHECK\_HASH} option:
 \begin{lstlisting}[]
-   File file1 = grabber.get ("boneMesh.obj", FileGrabber.CHECK_HASH);
+   File file1 = grabber.get ("boneMesh.obj", FileManager.CHECK_HASH);
 \end{lstlisting}
 
-Note that these examples are not complete; {\tt FileGrabber} contains a large
+Note that these examples are not complete; {\tt FileManager} contains a large
 variety of methods to provide considerable flexibility of use.
 
 \section*{October 16, 2012}

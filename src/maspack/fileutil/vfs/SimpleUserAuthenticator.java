@@ -11,100 +11,51 @@ package maspack.fileutil.vfs;
 import org.apache.commons.vfs2.UserAuthenticationData;
 import org.apache.commons.vfs2.UserAuthenticationData.Type;
 import org.apache.commons.vfs2.UserAuthenticator;
-import org.apache.commons.vfs2.util.CryptorFactory;
 import org.apache.commons.vfs2.util.UserAuthenticatorUtils;
 
-import maspack.crypt.Cryptor;
-import maspack.fileutil.VFSCryptor;
-
-public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable<EncryptedUserAuthenticator> {
+public class SimpleUserAuthenticator implements UserAuthenticator,
+   Comparable<SimpleUserAuthenticator> {
 
    String username;
    String domain;
-   String encryptedPassword;
-   Cryptor myCryptor;
+   String password;
 
-   public EncryptedUserAuthenticator () {
-      myCryptor = null;
+   public SimpleUserAuthenticator () {
       domain = null;
       username = null;
-      encryptedPassword = null;
+      password = null;
    }
-
-   public Cryptor getCryptor() {
-      if (myCryptor == null) {
-         return new VFSCryptor(CryptorFactory.getCryptor());
-      }
-      return myCryptor;
-   }
-
-   /**
-    * Set Cryptor for encrypting/decrypting password
-    * @param crypt
-    */
-   public void setCryptor(Cryptor crypt) {
-      myCryptor = crypt;
-   }
-
+   
    public void setDomain(String domain) {
       this.domain = domain;
    }
-
+   
    public void setUserName(String userName) {
       this.username = userName;
    }
-
-   /**
-    * Will encrypt password for internal storage using this authenticator's Cryptor
-    * @param password
-    */
-   public void setPlainPassword(String password) {
-      String epass;
-      try {
-         epass = getCryptor().encrypt(password);
-      } catch (Exception e) {
-         throw new RuntimeException("Failed to securely store password", e);
-      }
-      this.encryptedPassword = epass;
+   
+   public void setPassword(String password) {
+      this.password = password;
+   }
+      
+   
+   public SimpleUserAuthenticator (String domain, String username,
+      String password) {
+      setDomain(domain);
+      setUserName(username);
+      setPassword(password);
    }
    
    /**
-    * Set an already encrypted password, which must be able to be decrypted
-    * using this authenticator's Cryptor
-    * @param encryptedPassword
+    * This is a test javadoc
+    * @param username The user's name
+    * @param password The user's password
     */
-   public void setEncryptedPassword(String encryptedPassword) {
-      this.encryptedPassword = encryptedPassword;
-   }
-
-   public EncryptedUserAuthenticator (Cryptor crypter) {
-      myCryptor = crypter;
-   }
-
-   public EncryptedUserAuthenticator (Cryptor crypter, String domain, String username,
+   public SimpleUserAuthenticator (String username,
       String password) {
-      this(crypter);
-      setDomain(domain);
-      setUserName(username);
-      setPlainPassword(password);
-   }
-
-   public EncryptedUserAuthenticator (String domain, String username,
-      String password) {
-      this();
-      setCryptor(null);
-      setDomain(domain);
-      setUserName(username);
-      setPlainPassword(password);
-   }
-
-   public EncryptedUserAuthenticator (String username,
-      String password) {
-      this();
-      setCryptor(null);
       setDomain(null);
       setUserName(username);
-      setPlainPassword(password);
+      setPassword(password);
    }
 
    public UserAuthenticationData requestAuthentication(
@@ -122,13 +73,10 @@ public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable
                UserAuthenticatorUtils.toChar(username));
          } else if (type == UserAuthenticationData.PASSWORD) {
             try {
-               // unfortunately, we have to pass it in plaintext, but the original password
-               // could be encrypted from the get-go using the global Cryptor
-               String passwd = getCryptor().decrypt(encryptedPassword);
-               char[] chars = UserAuthenticatorUtils.toChar(passwd);
+               // unfortunately, we seem to have to pass it in plaintext
                data.setData(
                   UserAuthenticationData.PASSWORD,
-                  chars);
+                  UserAuthenticatorUtils.toChar(password));
             } catch (Exception e) {
                e.printStackTrace();
             }
@@ -150,11 +98,8 @@ public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable
       if (domain != null) {
          str += domain + ":";
       }
-      if (encryptedPassword != null) {
-         try {
-            str += getCryptor().decrypt(encryptedPassword) + ":";
-         } catch (Exception e) {
-         }
+      if (password != null) {
+         str += password + ":";
       }
 
       return str.hashCode();
@@ -174,48 +119,66 @@ public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable
          return false;
       }
 
-      if (obj instanceof EncryptedUserAuthenticator) {
-         return equals((EncryptedUserAuthenticator)obj);
-      } else if (obj instanceof UserAuthenticator) {
-         return equals((UserAuthenticator)obj);
+      if (obj instanceof SimpleUserAuthenticator) {
+         return equals((SimpleUserAuthenticator)obj);
+      } else if (obj instanceof SimpleUserAuthenticator) {
+         return equals((SimpleUserAuthenticator)obj);
       }
 
       return false;
    }
 
-   public boolean equals(EncryptedUserAuthenticator obj) {
+   public boolean equals(SimpleUserAuthenticator obj) {
 
       return (equals(this.domain, obj.domain) &&
-      equals(this.username, obj.username) && equals(
-         this.encryptedPassword, obj.encryptedPassword));
+         equals(this.username, obj.username) && equals(
+            this.password, obj.password));
    }
 
-   private static final Type[] ALL_AUTH_DATA = { UserAuthenticationData.DOMAIN, UserAuthenticationData.USERNAME,
-                                                 UserAuthenticationData.PASSWORD };
+   private static final Type[] ALL_AUTH_DATA =
+   { UserAuthenticationData.DOMAIN, UserAuthenticationData.USERNAME,
+    UserAuthenticationData.PASSWORD };
 
    public boolean equals(UserAuthenticator obj) {
 
       UserAuthenticationData data = obj.requestAuthentication(ALL_AUTH_DATA);
 
-      String str = new String(data.getData(UserAuthenticationData.DOMAIN));
-      if (!equals(str, domain)) {
-         return false;
-      }
-
-      str = new String(data.getData(UserAuthenticationData.USERNAME));
-      if (!equals(str, username)) {
-         return false;
-      }
-
-      str = new String(data.getData(UserAuthenticationData.PASSWORD));
       try {
-         // encrypt password
-         str = getCryptor().encrypt(str);
-         if (!equals(str, encryptedPassword)) {
+         String str = new String(data.getData(UserAuthenticationData.DOMAIN));
+         if (!equals(str, domain)) {
+            return false;
+         }
+      } catch (NullPointerException e) {
+         // no domain
+         if (domain != null) {
+            return false;
+         }
+      }
+
+      try {
+         String str = new String(data.getData(UserAuthenticationData.USERNAME));
+         if (!equals(str, username)) {
+            return false;
+         }
+      } catch (NullPointerException e) {
+         // no username
+         if (username != null) {
+            return false;
+         }
+      }
+
+      try {
+         String str = new String(data.getData(UserAuthenticationData.PASSWORD));
+
+         if (!equals(str, password)) {
             return false;
          }
       } catch (Exception e) {
-      } 
+         // no password
+         if (password != null) {
+            return false;
+         }
+      }
 
       return true;
    }
@@ -230,13 +193,13 @@ public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable
    /**
     * {@inheritDoc}
     */
-   public int compareTo(final EncryptedUserAuthenticator other) {
+   public int compareTo(final SimpleUserAuthenticator other) {
 
       int result = compareString(domain, other.domain);
       if (result != 0) {
          result = compareString(username, other.username);
          if (result != 0) {
-            result = compareString(encryptedPassword, other.encryptedPassword);
+            result = compareString(password, other.password);
          }
       }
       return result;
@@ -273,7 +236,7 @@ public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable
       } else {
          out += "(null)";
       }
-      if (encryptedPassword != null) {
+      if (password != null) {
          out += ":****";
       }
       return out;

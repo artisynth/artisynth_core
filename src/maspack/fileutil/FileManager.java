@@ -236,7 +236,7 @@ public class FileManager {
     * @param uri
     */
    public void setRemoteSource(URIx uri) {
-
+      
       if (uri == null) {
          remoteSource = null;
       } else if (uri.isRelative()) {

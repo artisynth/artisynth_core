@@ -53,7 +53,7 @@ public class ExactMatcher implements URIxMatcher {
       this.scheme = scheme;
    }
    public void setScheme(String pattern) {
-      scheme = URIxScheme.getScheme(pattern);
+      scheme = URIxScheme.findScheme(pattern);
    }
    public void setHost(String pattern) {
       host = pattern;

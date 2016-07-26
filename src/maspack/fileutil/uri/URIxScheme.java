@@ -7,38 +7,71 @@
 
 package maspack.fileutil.uri;
 
-public enum URIxScheme {
+import java.util.HashMap;
+
+public class URIxScheme {
    
-   GZ("gz",0), BZ2("bz2",0), ZIP("zip",0), JAR("jar",0), TAR("tar",0), 
-   TGZ("tgz",0), TBZ2("tbz2",0), FILE("file",1), HTTP("http",1), 
-   HTTPS("https",1), FTP("ftp",1), SFTP("sftp",1), WEBDAV("webdav", 1),
-   WEBDAVS("webdavs", 1);
-      
-   public static int ZIP_TYPE = 0;
-   public static int OTHER_TYPE = 1;
+   public static final int ZIP_TYPE = 1;
+   private static HashMap<String,URIxScheme> schemeMap = new HashMap<>();
+   
+   public static final URIxScheme GZ = createScheme("gz", ZIP_TYPE);
+   public static final URIxScheme BZ2 = createScheme("bz2", ZIP_TYPE);
+   public static final URIxScheme TGZ = createScheme("tgz", ZIP_TYPE);
+   public static final URIxScheme TBZ2 = createScheme("tbz2", ZIP_TYPE);
+   public static final URIxScheme FILE = createScheme("file", 0);
+   public static final URIxScheme HTTP = createScheme("http", 0);
+   public static final URIxScheme HTTPS = createScheme("https", 0);
+   public static final URIxScheme FTP = createScheme("ftp", 0);
+   public static final URIxScheme SFTP = createScheme("sftp", 0);
+   public static final URIxScheme WEBDAV = createScheme("webdav", 0, new String[]{"webdav", "dav"});
+   public static final URIxScheme WEBDAVS = createScheme("webdavs", 0, new String[]{"webdavs", "davs"});
+   
    private String name;
    private int type;
+   private String[] aliases;
    
-   URIxScheme(String name, int type) {
-      this.type = type;
+   private URIxScheme(String name, int type) {
+      this(name, type, new String[]{name});
+   }
+   
+   private URIxScheme(String name, int type, String[] aliases) {
       this.name = name;
+      this.type = type;
+      if (aliases == null) {
+         aliases = new String[]{ name };
+      }
+      this.aliases = aliases;
    }
    
    public boolean isZipType() {
-      return type == ZIP_TYPE;
+      return (type & ZIP_TYPE) > 0;
    }
    
    public String toString() {
       return name;
    }
    
-   public static URIxScheme getScheme(String str) {
-      for (URIxScheme scheme : URIxScheme.values()) {
-         if (scheme.toString().equals(str)) {
-            return scheme;
+   public static URIxScheme createScheme(String str, int typemask) {
+      return createScheme(str, typemask, new String[]{str});
+   }
+   
+   public static URIxScheme createScheme(String str, int typemask, String[] aliases) {
+      URIxScheme scheme = new URIxScheme(str, typemask, aliases);
+      synchronized (schemeMap) {
+         for (String alias : scheme.aliases) {
+            schemeMap.put(alias, scheme);
          }
       }
-      return null;
+      return scheme;
+   }
+   
+   public static URIxScheme findScheme(String str) {
+      URIxScheme scheme = null;
+      synchronized(schemeMap) {
+         scheme = schemeMap.get(str);
+         scheme = createScheme(str, 0, new String[]{str});
+      }
+      return scheme;
    }
    
 }

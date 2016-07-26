@@ -231,7 +231,7 @@ public class URIx {
       if (scheme == null) {
          return true;
       }
-      URIxScheme s = URIxScheme.getScheme(scheme);
+      URIxScheme s = URIxScheme.findScheme(scheme);
       if (s == null) {
          return false;
       }
@@ -394,7 +394,7 @@ public class URIx {
    public void setScheme(String scheme) throws URIxSyntaxException {
       URIxScheme s = null;
       if (scheme != null) {
-         s = URIxScheme.getScheme(scheme);
+         s = URIxScheme.findScheme(scheme);
          if (s == null) {
             throw new URIxSyntaxException("Unsupported scheme '" + scheme + "'");
          }
@@ -758,7 +758,7 @@ public class URIx {
             }
          }
       } else {
-         scheme = URIxScheme.getScheme(schemeStr);
+         scheme = URIxScheme.findScheme(schemeStr);
          if (scheme == null) {
             // abort!!
             throw new URIxSyntaxException(uri, "unsupported scheme type '"

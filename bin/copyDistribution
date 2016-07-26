@@ -58,5 +58,6 @@ cd $SOURCE_DIR/src
 cd $SOURCE_DIR
 EXCLUDES="--exclude=CVS"
 EXCLUDES="--exclude=.svn"
+EXCLUDES="--exclude=.private" # files restricted to users with r/w svn access
 tar cf - $EXCLUDES $EXCLUDE_FILE `cat DIST_MANIFEST` | (cd $TARGET_DIR; tar xvf -)
 echo "done"

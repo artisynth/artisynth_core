@@ -42,11 +42,15 @@ public class ModelInfo {
    }
    
    public ModelType getType() {
+      // lazy initialization
+      if (type == null) {
+         type = detectType(classNameOrFile);
+      }
       return type;
    }
    
    public ModelInfo(String classNameOrFile, String shortName, String[] args) {
-      this(detectType(classNameOrFile), classNameOrFile, shortName, args);
+      this(null, classNameOrFile, shortName, args);
    }
    
    

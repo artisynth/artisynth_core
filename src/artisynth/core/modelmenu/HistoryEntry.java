@@ -2,7 +2,7 @@ package artisynth.core.modelmenu;
 
 import artisynth.core.modelmenu.DemoMenuParser.MenuType;
 
-public class HistoryEntry extends MenuEntry {
+public class HistoryEntry extends MenuNode {
    private int size;
    private int compact;
    

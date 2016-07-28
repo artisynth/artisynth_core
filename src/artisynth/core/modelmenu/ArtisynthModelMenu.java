@@ -31,7 +31,7 @@ public class ArtisynthModelMenu {
 
    public static int DEFAULT_MAX_ROWS = 15;
 
-   Tree<MenuEntry> menuTree;
+   Tree<MenuNode> menuTree;
    AliasTable demoTable;
    int maxRows;
 
@@ -86,16 +86,16 @@ public class ArtisynthModelMenu {
          menu.getPopupMenu().setLayout(menuGrid);
       }
       // climb through tree and build menus
-      for (Node<MenuEntry> node : menuTree.getRootElement().getChildren()) {
+      for (Node<MenuNode> node : menuTree.getRootElement().getChildren()) {
          if (!isMenuEmpty(node)) {
             buildMenu(menu, node, maxRows, actionListener, hist); // recursively builds menu
          }
       }
    }
 
-   private boolean isMenuEmpty(Node<MenuEntry> node) {
+   private boolean isMenuEmpty(Node<MenuNode> node) {
 
-      MenuEntry entry = node.getData();
+      MenuNode entry = node.getData();
 
       switch (entry.getType()) {
          case DIVIDER:
@@ -115,12 +115,12 @@ public class ArtisynthModelMenu {
 
    // Recursively find if there are any model entries under a node.
    // Faster than actually counting entries.
-   private boolean hasModelEntries(Node<MenuEntry> node) {
-      MenuEntry entry = node.getData();
+   private boolean hasModelEntries(Node<MenuNode> node) {
+      MenuNode entry = node.getData();
 
       switch (entry.getType()) {
          case MENU: {
-            for (Node<MenuEntry> child : node.getChildren()) {
+            for (Node<MenuNode> child : node.getChildren()) {
                boolean hasModels = hasModelEntries(child);
                if (hasModels) {
                   return true;
@@ -166,10 +166,10 @@ public class ArtisynthModelMenu {
    //   }
 
    // recursively build menu from supplied tree
-   private void buildMenu(JMenu menu, Node<MenuEntry> menuNode, 
+   private void buildMenu(JMenu menu, Node<MenuNode> menuNode, 
       int maxRows, ModelActionListener actionListener, ModelHistory hist) {
 
-      MenuEntry entry = menuNode.getData();
+      MenuNode entry = menuNode.getData();
 
       switch (entry.getType()) {
          case MENU:
@@ -189,7 +189,7 @@ public class ArtisynthModelMenu {
             }
 
             // loop through all children
-            for (Node<MenuEntry> child : menuNode.getChildren()) {
+            for (Node<MenuNode> child : menuNode.getChildren()) {
                if (!isMenuEmpty(child)) {
                   buildMenu(newMenu, child, maxRows, actionListener, hist);
                }

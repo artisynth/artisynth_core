@@ -268,6 +268,65 @@ public class ArtisynthPath {
    }
 
    /**
+    * Finds the Artisynth temporary directory.  Uses the ARTISYNTH_TMP 
+    * environment variable, if defined.  Otherwise, it will search for a 
+    * folder named "tmp/".  If none are found, a "tmp/" directory will be 
+    * created in the ARTISYNTH_HOME directory.
+    * 
+    * @see ArtisynthPath#findFiles(String)
+    * @see ArtisynthPath#getHomeDir()
+    * @return Artisynth tmp directory
+    */
+   public static File getTempDir() {
+      File tmp = null;
+      
+      String tmpEnv  = System.getenv ("ARTISYNTH_TMP");
+      if (tmpEnv == null) {
+         tmp = findFile("tmp/");
+      } else {
+         tmp = new File(tmpEnv);
+      }
+      if (tmp == null) {
+         tmp = new File(ArtisynthPath.getHomeDir() + "/tmp/");
+      }
+      if (!tmp.exists()) {
+         tmp.mkdirs();
+      }
+      
+      return tmp;
+   }
+   
+   /**
+    * Finds the Artisynth cache directory.  Uses the ARTISYNTH_CACHE 
+    * environment variable if defined.  Otherwise, it will search for a folder 
+    * named ".cache".  If none are found, a ".cache/" directory will be created
+    * in the ARTISYNTH_TMP directory.
+    * 
+    * @see ArtisynthPath#findFiles(String)
+    * @see #getTempDir()
+    * @return Artisynth cache directory
+    */
+   public static File getCacheDir() {
+      File cache = null;
+      
+      String cacheEnv  = System.getenv ("ARTISYNTH_CACHE");
+      if (cacheEnv == null) {
+         cache = findFile(".cache/");
+      } else {
+         cache = new File(cacheEnv);
+      }
+      if (cache == null) {
+         cache = new File(ArtisynthPath.getTempDir() + "/.cache/");
+      }
+      if (!cache.exists()) {
+         cache.mkdirs();
+      }
+      
+      return cache;
+   }
+  
+   
+   /**
     * Returns the Artisynth home directory, as specified by the ARTISYNTH_HOME
     * environment variable. If this variable is not set, an attempt is made to
     * infer the home location from the location of this class, and if that is

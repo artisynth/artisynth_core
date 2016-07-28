@@ -9,7 +9,7 @@ package artisynth.core.modelmenu;
 import artisynth.core.driver.ModelInfo;
 import artisynth.core.modelmenu.DemoMenuParser.MenuType;
 
-public class DemoEntry extends MenuEntry {
+public class DemoEntry extends MenuNode {
    private ModelInfo model;
 
    public DemoEntry(String filename, String[] args) {
@@ -38,7 +38,7 @@ public class DemoEntry extends MenuEntry {
    @Override
    public boolean equals(Object obj) {
       if (!(obj instanceof DemoEntry)) { return false; }
-      boolean res = super.equals((MenuEntry) obj);
+      boolean res = super.equals((MenuNode) obj);
       res = res && (model.equals(((DemoEntry) obj).model));
       return res;
    }

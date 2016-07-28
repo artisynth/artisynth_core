@@ -66,7 +66,7 @@ import maspack.util.StreamLogger;
  *    boolean match = false;
  *    try {
  *       match = Manager.equalsHash(dest, source);
- *    } catch (FileManagerException e) {
+ *    } catch (FileTransferException e) {
  *       System.out.println(e.getMessage());
  *    }
  *    download = !match;
@@ -75,7 +75,7 @@ import maspack.util.StreamLogger;
  * if (download) {
  *    try {
  *       local = Manager.getRemote(dest, source);
- *    } catch (FileManagerException e) {
+ *    } catch (FileTransferException e) {
  *       System.out.println(e.getMessage());
  *    }
  * } 

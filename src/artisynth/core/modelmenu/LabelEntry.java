@@ -8,7 +8,7 @@ package artisynth.core.modelmenu;
 
 import artisynth.core.modelmenu.DemoMenuParser.MenuType;
 
-public class LabelEntry extends MenuEntry {
+public class LabelEntry extends MenuNode {
    public LabelEntry(String text) {
       super(text);
    }

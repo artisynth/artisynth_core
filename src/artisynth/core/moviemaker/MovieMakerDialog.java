@@ -733,13 +733,13 @@ implements ActionListener, ValueChangeListener {
          // XXX: removed, since prevents zoom in orthographic projection
          // Main.getMain().getViewer().setResizeEnabled(false);   
 
-         tmpDirectory = ArtisynthPath.getHomeDir() + "/tmp";
+         tmpDirectory = ArtisynthPath.getTempDir().getAbsolutePath();
 
          // test if tmp directory exists
          File testdir = new File (tmpDirectory);
          if (!testdir.exists()) {
             System.out.println ("Creating:" + tmpDirectory);
-            testdir.mkdir();
+            testdir.mkdirs();
          }
          else if (!testdir.isDirectory()) {
             System.err.println ("Error: " + tmpDirectory + " as file");
@@ -1114,7 +1114,7 @@ implements ActionListener, ValueChangeListener {
          stopButton.setEnabled (false);
          startButton.setEnabled (false);
 
-         tmpDirectory = ArtisynthPath.getHomeDir() + "/tmp";
+         tmpDirectory = ArtisynthPath.getTempDir().getAbsolutePath();
 
          // test if tmp directory exists
          File testdir = new File (tmpDirectory);

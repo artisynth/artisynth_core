@@ -59,7 +59,6 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.HasMenuItems;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelmenu.ArtisynthModelMenu;
-import artisynth.core.modelmenu.DemoMenuParser;
 import artisynth.core.modelmenu.ModelActionEvent;
 import artisynth.core.modelmenu.ModelActionListener;
 import artisynth.core.probes.Probe;
@@ -422,13 +421,12 @@ public class MenuBarHandler implements
    /**
     * Reads the demo menu stuff
     */
-   ArtisynthModelMenu readDemoMenu(String filename) {
+   public ArtisynthModelMenu readDemoMenu(String filename) {
 
       // if no file specified, exit
       if (filename==null || filename.equals("")) {
          return null;
       } 
-
       ArtisynthModelMenu modelsMenu = null;
       File file = ArtisynthPath.findFile(filename);
       if (file == null) {
@@ -464,21 +462,21 @@ public class MenuBarHandler implements
    private class BackgroundModelMenuThread extends Thread {
       
       JMenu menu;
-      String menuFilename;
+      File menuFile;
       
-      public BackgroundModelMenuThread(String filename, JMenu menu) {
+      public BackgroundModelMenuThread(File menuFile, JMenu menu) {
          super("ModelMenu Loader");
-         menuFilename = filename;
+         this.menuFile = menuFile;
          this.menu = menu;
       }
       
       @Override
       public void run() {
-         if (menuFilename != null) {
-            ArtisynthModelMenu generator = readDemoMenu(menuFilename);
+         if (menuFile != null && menuFile.exists()) {
+            ArtisynthModelMenu generator = readDemoMenu(menuFile.getAbsolutePath());
             populateModelMenu(menu);
             // save as cache
-            File cachedMenu = getMenuCacheFile(menuFilename);
+            File cachedMenu = getMenuCacheFile(menuFile.getName());
             generator.write(cachedMenu);
             
             myModelsMenuGenerator = generator;
@@ -488,9 +486,7 @@ public class MenuBarHandler implements
    }
    
    private File getMenuCacheFile(String menuFilename) {
-      String cacheFileName = 
-         ArtisynthPath.getHomeDir() + "/tmp/.cache/menu/" + menuFilename;
-      File cachedMenu = new File(cacheFileName);
+      File cachedMenu = new File(ArtisynthPath.getCacheDir(), "/menu/" + menuFilename);
       return cachedMenu;
    }
 
@@ -499,23 +495,27 @@ public class MenuBarHandler implements
       myModelsMenuGenerator = null;
       String menuFilename = myMain.getDemosMenuFilename();
       
-      File menuFile = new File(menuFilename);
+      File menuFile = ArtisynthPath.findFile(menuFilename);
       
       // look for cached menu
-      File cachedMenu = getMenuCacheFile(menuFilename);
+      File cachedMenu = getMenuCacheFile(menuFile.getName());
       if (cachedMenu.exists()) {
          // read and display cached version, real menu to be created in background
-         myModelsMenuGenerator = readDemoMenu(menuFilename);
+         // file exists, so should be read correctly
+         myModelsMenuGenerator = readDemoMenu(cachedMenu.getAbsolutePath());
          populateModelMenu(menu);
          
          // background thread to update menu later
-         BackgroundModelMenuThread thread = 
-            new BackgroundModelMenuThread(menuFilename, menu);
-         thread.start();
+         if (menuFile != null && menuFile.exists()) {
+            BackgroundModelMenuThread thread = new BackgroundModelMenuThread(menuFile, menu);
+            thread.start();
+         }
          
       } else {
          // read and create menu now
-         myModelsMenuGenerator = readDemoMenu(menuFilename);
+         if (menuFile != null && menuFile.exists()) {
+            myModelsMenuGenerator = readDemoMenu(menuFile.getAbsolutePath());
+         }
          populateModelMenu(menu);
          // save as cache
          myModelsMenuGenerator.write(cachedMenu);

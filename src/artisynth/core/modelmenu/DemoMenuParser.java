@@ -128,11 +128,11 @@ public class DemoMenuParser {
    // "strikethrough";
    public static final String ALL_TAG_FONTSIZE = "fontsize";
 
-   public static void writeXML(String filename, Tree<MenuEntry> menu) {
+   public static void writeXML(String filename, Tree<MenuNode> menu) {
       writeXML(new File(filename), menu);
    }
    
-   public static void writeXML(File file, Tree<MenuEntry> menu) {
+   public static void writeXML(File file, Tree<MenuNode> menu) {
       FileOutputStream fout = null;
       try {
          File parent = file.getParentFile();
@@ -156,7 +156,7 @@ public class DemoMenuParser {
       }
    }
    
-   public static void writeXML(OutputStream out, Tree<MenuEntry> menu) {
+   public static void writeXML(OutputStream out, Tree<MenuNode> menu) {
 
       SchemaFactory schemaFactory =
          SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
@@ -210,9 +210,9 @@ public class DemoMenuParser {
       }
    }
    
-   static void buildDocument(Document dom, Tree<MenuEntry> menu) {
+   static void buildDocument(Document dom, Tree<MenuNode> menu) {
       
-      Node<MenuEntry> root = menu.getRootElement();
+      Node<MenuNode> root = menu.getRootElement();
       root.getData();
       
       Element modelMenu = dom.createElement("ModelMenu");
@@ -221,14 +221,14 @@ public class DemoMenuParser {
       modelMenu.setAttribute("xsi:schemaLocation", "http://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd");
       
       dom.appendChild(modelMenu);
-      for (Node<MenuEntry> child : root.getChildren()) {
+      for (Node<MenuNode> child : root.getChildren()) {
          buildElement(dom, modelMenu, child);
       }
    }
    
-   static void buildElement(Document dom, Element parent, Node<MenuEntry> node) {
+   static void buildElement(Document dom, Element parent, Node<MenuNode> node) {
       
-      MenuEntry data = node.getData();
+      MenuNode data = node.getData();
       MenuType type = data.getType();
       
       // recursively add menu
@@ -244,8 +244,8 @@ public class DemoMenuParser {
             el = buildLabel(dom, (LabelEntry)data);
             break;
          case MENU:
-            el = buildMenu(dom, (MenuEntry)data);
-            for (Node<MenuEntry> child : node.getChildren()) {
+            el = buildMenu(dom, (MenuNode)data);
+            for (Node<MenuNode> child : node.getChildren()) {
                buildElement(dom, el, child);
             }
             break;
@@ -264,7 +264,7 @@ public class DemoMenuParser {
       }
    }
    
-   public static Tree<MenuEntry> parseXML(String filename) throws IOException,
+   public static Tree<MenuNode> parseXML(String filename) throws IOException,
       ParserConfigurationException, SAXException {
 
       // get path of filename
@@ -292,13 +292,13 @@ public class DemoMenuParser {
       return parseDocument(dom, localPath);
    }
 
-   private static Tree<MenuEntry> parseDocument(Document dom, String localPath) {
+   private static Tree<MenuNode> parseDocument(Document dom, String localPath) {
 
-      Tree<MenuEntry> menu = new Tree<MenuEntry>(new MenuEntry("Models"));
+      Tree<MenuNode> menu = new Tree<MenuNode>(new MenuNode("Models"));
       Element docEle = dom.getDocumentElement();
 
       NodeList nl = docEle.getChildNodes();
-      Node<MenuEntry> root = menu.getRootElement();
+      Node<MenuNode> root = menu.getRootElement();
 
       for (int i = 0; i < nl.getLength(); i++) {
          if (nl.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
@@ -352,9 +352,9 @@ public class DemoMenuParser {
     * If a menu entry has only a single child, it merges it with this one and
     * the new title becomes "title1 (title2)"
     */
-   public static void compactMenu(Tree<MenuEntry> menu) {
+   public static void compactMenu(Tree<MenuNode> menu) {
       // compact menu
-      Node<MenuEntry> root = menu.getRootElement();
+      Node<MenuNode> root = menu.getRootElement();
 
       compactMenuNode(root, new MergeTitleFunction() {
          public String merge(String title1, String title2) {
@@ -363,15 +363,15 @@ public class DemoMenuParser {
       });
    }
 
-   private static void parseElement(Node<MenuEntry> node, Element el,
+   private static void parseElement(Node<MenuNode> node, Element el,
       String localPath) {
 
       // recursively add menu
       if (el.getNodeName().equals(MENU_TAG)) {
-         MenuEntry newEntry = parseMenu(el, localPath);
+         MenuNode newEntry = parseMenu(el, localPath);
          if (newEntry != null) {
 
-            Node<MenuEntry> newNode = new Node<MenuEntry>(newEntry);
+            Node<MenuNode> newNode = new Node<MenuNode>(newEntry);
             node.addChild(newNode);
 
             // add all children
@@ -388,18 +388,18 @@ public class DemoMenuParser {
          // add a divider
       } else if (el.getNodeName().equals(DIVIDER_TAG)) {
          DividerEntry div = new DividerEntry("<divider>");
-         node.addChild(new Node<MenuEntry>(div));
+         node.addChild(new Node<MenuNode>(div));
 
          // add a text label
       } else if (el.getNodeName().equals(LABEL_TAG)) {
          LabelEntry label = parseLabel(el, localPath);
-         node.addChild(new Node<MenuEntry>(label));
+         node.addChild(new Node<MenuNode>(label));
 
          // add a demo
       } else if (el.getNodeName().equals(MODEL_TAG)) {
          DemoEntry demo = parseDemo(el, localPath);
          if (demo != null) {
-            node.addChild(new Node<MenuEntry>(demo));
+            node.addChild(new Node<MenuNode>(demo));
             // add to demo list
             // demos.add(demo.getModel());
          }
@@ -409,19 +409,19 @@ public class DemoMenuParser {
          ArrayList<DemoEntry> newEntries = parseDemoFile(el, localPath);
 
          for (int j = 0; j < newEntries.size(); j++) {
-            node.addChild(new Node<MenuEntry>(newEntries.get(j)));
+            node.addChild(new Node<MenuNode>(newEntries.get(j)));
             // demos.add(newEntries.get(j).getModel());
          }
 
          // parse an entire package
       } else if (el.getNodeName().equals(PACKAGE_TAG)) {
-         Tree<MenuEntry> newEntries = parsePackage(el);
+         Tree<MenuNode> newEntries = parsePackage(el);
 
          if (newEntries != null) {
-            Node<MenuEntry> root = newEntries.getRootElement();
+            Node<MenuNode> root = newEntries.getRootElement();
 
             // ignore root, and add all children
-            for (Node<MenuEntry> daughter : root.getChildren()) {
+            for (Node<MenuNode> daughter : root.getChildren()) {
                node.addChild(daughter);
             }
             // demos.addAll(models);
@@ -431,16 +431,16 @@ public class DemoMenuParser {
       } else if (el.getNodeName().equals(HISTORY_TAG)) {
          HistoryEntry hist = parseHistory(el, localPath);
          if (hist != null) {
-            node.addChild(new Node<MenuEntry>(hist));
+            node.addChild(new Node<MenuNode>(hist));
          }
          
       } else if (el.getNodeName().equals(XMLINCLUDE_TAG)) {
 
-         Tree<MenuEntry> newEntries = parseXML(el, localPath);
+         Tree<MenuNode> newEntries = parseXML(el, localPath);
 
          if (newEntries != null) {
-            Node<MenuEntry> root = newEntries.getRootElement();
-            for (Node<MenuEntry> daughter : root.getChildren()) {
+            Node<MenuNode> root = newEntries.getRootElement();
+            for (Node<MenuNode> daughter : root.getChildren()) {
                node.addChild(daughter);
             }
          }
@@ -508,14 +508,14 @@ public class DemoMenuParser {
       return new Font(name, style, size);
    }
 
-   private static Tree<MenuEntry> parseXML(Element el, String localPath) {
+   private static Tree<MenuNode> parseXML(Element el, String localPath) {
 
       String file = el.getAttribute(XMLINCLUDE_TAG_FILE);
 
       // find included file
       String incfile = findFile(file, localPath);
 
-      Tree<MenuEntry> menu = null;
+      Tree<MenuNode> menu = null;
 
       if (incfile != null) {
          try {
@@ -627,7 +627,7 @@ public class DemoMenuParser {
       // set fonts for all entries
       Font myFont = parseFont(el);
       if (myFont != null) {
-         for (MenuEntry demo : demos) {
+         for (MenuNode demo : demos) {
             demo.setFont(myFont);
          }
       }
@@ -788,7 +788,7 @@ public class DemoMenuParser {
       return entry;
    }
 
-   private static Element buildMenu(Document dom, MenuEntry entry) {
+   private static Element buildMenu(Document dom, MenuNode entry) {
       Element el = dom.createElement(MENU_TAG);
       el.setAttribute(MENU_TAG_TEXT, entry.getTitle());
       String icon = entry.getIcon();
@@ -799,7 +799,7 @@ public class DemoMenuParser {
       return el;
    }
    
-   private static MenuEntry parseMenu(Element el, String localPath) {
+   private static MenuNode parseMenu(Element el, String localPath) {
 
       String name = el.getAttribute(MENU_TAG_TEXT);
       String icon = el.getAttribute(MENU_TAG_ICON);
@@ -807,7 +807,7 @@ public class DemoMenuParser {
          name = "<unknown>";
       }
 
-      MenuEntry m = new MenuEntry(name);
+      MenuNode m = new MenuNode(name);
       if (!icon.equals("")) {
          String fullicon = findFile(icon, localPath);
          if (fullicon != null) {
@@ -824,10 +824,10 @@ public class DemoMenuParser {
       return m;
    }
 
-   private static Tree<MenuEntry> parsePackage(Element el) {
+   private static Tree<MenuNode> parsePackage(Element el) {
 
-      Tree<MenuEntry> menu = new Tree<MenuEntry>(new MenuEntry("root"));
-      Node<MenuEntry> root = menu.getRootElement();
+      Tree<MenuNode> menu = new Tree<MenuNode>(new MenuNode("root"));
+      Node<MenuNode> root = menu.getRootElement();
 
       String view = el.getAttribute(PACKAGE_TAG_VIEW);
       String pkg = el.getAttribute(PACKAGE_TAG_SRC);
@@ -931,7 +931,7 @@ public class DemoMenuParser {
                title = cls.substring(prefix.length());
             }
             DemoEntry demo = new DemoEntry(cls, title, args);
-            root.addChild(new Node<MenuEntry>(demo));
+            root.addChild(new Node<MenuNode>(demo));
          }
          sortMenu(root, new MenuCompareByNameButDemosLast());
 
@@ -953,23 +953,23 @@ public class DemoMenuParser {
    }
 
    // recursively set the font for all items in the tree
-   public static void setFont(Node<MenuEntry> node, Font font) {
+   public static void setFont(Node<MenuNode> node, Font font) {
       node.getData().setFont(font);
-      for (Node<MenuEntry> child : node.getChildren()) {
+      for (Node<MenuNode> child : node.getChildren()) {
          setFont(child, font);
       }
    }
 
    // sorts a menu, respecting dividers
-   public static void sortMenu(Node<MenuEntry> root,
-      Comparator<Node<MenuEntry>> comparer) {
+   public static void sortMenu(Node<MenuNode> root,
+      Comparator<Node<MenuNode>> comparer) {
 
       // sort children, respecting dividers
       int start = 0;
       int end = 0;
 
       // create array of children
-      List<Node<MenuEntry>> children = root.getChildren();
+      List<Node<MenuNode>> children = root.getChildren();
 
       while (start < children.size()) {
 
@@ -991,13 +991,13 @@ public class DemoMenuParser {
       }
 
       if (root.getNumberOfChildren() > 0) {
-         for (Node<MenuEntry> child : root.getChildren()) {
+         for (Node<MenuNode> child : root.getChildren()) {
             sortMenu(child, comparer);
          }
       }
    }
 
-   public static void sortMenu(Node<MenuEntry> root) {
+   public static void sortMenu(Node<MenuNode> root) {
       sortMenu(root, new MenuCompareByNameButDemosLast());
    }
 
@@ -1040,9 +1040,9 @@ public class DemoMenuParser {
    }
 
    // divides models from packages with a divider
-   private static void insertDividersInPackageMenu(Node<MenuEntry> root) {
+   private static void insertDividersInPackageMenu(Node<MenuNode> root) {
 
-      List<Node<MenuEntry>> children = root.getChildren();
+      List<Node<MenuNode>> children = root.getChildren();
       MenuType typeA, typeB;
 
       int i = 1;
@@ -1053,7 +1053,7 @@ public class DemoMenuParser {
          typeB = children.get(i - 1).getData().getType();
          if ((typeA != typeB) && (typeA != MenuType.DIVIDER)
             && (typeB != MenuType.DIVIDER)) {
-            root.insertChildAt(i, new Node<MenuEntry>(new DividerEntry(
+            root.insertChildAt(i, new Node<MenuNode>(new DividerEntry(
                "<inserted divider>")));
             i = i++; // skip divider
          }
@@ -1061,7 +1061,7 @@ public class DemoMenuParser {
       }
 
       // recursively add dividers
-      for (Node<MenuEntry> child : children) {
+      for (Node<MenuNode> child : children) {
          if (child.getNumberOfChildren() > 0) {
             insertDividersInPackageMenu(child);
          }
@@ -1069,11 +1069,11 @@ public class DemoMenuParser {
 
    }
 
-   private static Tree<MenuEntry> getPackageMenuTree(ArrayList<String> clsList,
+   private static Tree<MenuNode> getPackageMenuTree(ArrayList<String> clsList,
       String pkg, int compact, String[] args) {
-      Tree<MenuEntry> menu = new Tree<MenuEntry>(new MenuEntry("root"));
-      Node<MenuEntry> root = menu.getRootElement();
-      Node<MenuEntry> base;
+      Tree<MenuNode> menu = new Tree<MenuNode>(new MenuNode("root"));
+      Node<MenuNode> root = menu.getRootElement();
+      Node<MenuNode> base;
 
       // first, create naive ragged-array structure
       for (int i = 0; i < clsList.size(); i++) {
@@ -1083,17 +1083,17 @@ public class DemoMenuParser {
             title = title.substring(pkg.length());
          }
          String[] sections = title.split("\\."); // split at periods
-         MenuEntry newEntry;
+         MenuNode newEntry;
          base = root;
 
          // tack on to tree
          for (int j = 0; j < sections.length; j++) {
             if (j < sections.length - 1) {
-               newEntry = new MenuEntry(sections[j]);
+               newEntry = new MenuNode(sections[j]);
             } else {
                newEntry = new DemoEntry(cls, sections[j], args);
             }
-            Node<MenuEntry> newNode = new Node<MenuEntry>(newEntry);
+            Node<MenuNode> newNode = new Node<MenuNode>(newEntry);
             base.addChild(newNode);
             base = newNode;
          }
@@ -1105,14 +1105,14 @@ public class DemoMenuParser {
       // merge items with single children to prevent excessive menu levels
       if (compact == 1) {
 
-         List<Node<MenuEntry>> packageRoot = root.getChildren();
+         List<Node<MenuNode>> packageRoot = root.getChildren();
          MergeTitleFunction mergeTitle = new MergeTitleFunction() {
             public String merge(String title1, String title2) {
                return title1 + "." + title2;
             }
          };
 
-         for (Node<MenuEntry> node : packageRoot) {
+         for (Node<MenuNode> node : packageRoot) {
             compactMenuNode(node, mergeTitle);
          }
 
@@ -1129,19 +1129,19 @@ public class DemoMenuParser {
       return menu;
    }
 
-   private static void compactMenuNode(Node<MenuEntry> node,
+   private static void compactMenuNode(Node<MenuNode> node,
       MergeTitleFunction mergeStrings) {
 
       if (node.getNumberOfChildren() == 1) {
          // merge the nodes
          String thisTitle = node.getData().getTitle();
-         Node<MenuEntry> child = node.getChild(0); // get first child
+         Node<MenuNode> child = node.getChild(0); // get first child
          String thatTitle = child.getData().getTitle();
 
          // copy data and children
          node.setData(child.getData());
          node.getData().setTitle(mergeStrings.merge(thisTitle, thatTitle));
-         for (Node<MenuEntry> grandChild : child.getChildren()) {
+         for (Node<MenuNode> grandChild : child.getChildren()) {
             node.addChild(grandChild);
          }
          child.clear(); // kill the single child
@@ -1151,7 +1151,7 @@ public class DemoMenuParser {
 
          // otherwise, try compacting the children
       } else {
-         for (Node<MenuEntry> child : node.getChildren()) {
+         for (Node<MenuNode> child : node.getChildren()) {
 
             if (child.getNumberOfChildren() > 0) {
                compactMenuNode(child, mergeStrings);

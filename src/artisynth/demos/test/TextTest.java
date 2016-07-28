@@ -11,6 +11,7 @@ import java.util.HashMap;
 
 import artisynth.core.renderables.TextComponent3d;
 import artisynth.core.renderables.TextComponentBase.HorizontalAlignment;
+import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
@@ -97,12 +98,12 @@ public class TextTest extends RootModel {
       RenderProps.setFaceStyle (text, FaceStyle.FRONT);
       addRenderable (text);
       
-      PrintWriter writer = new PrintWriter ("tmp/texttest.txt");
+      PrintWriter writer = new PrintWriter (ArtisynthPath.getTempDir().getAbsolutePath() + "/texttest.txt");
       write (writer, new NumberFormat ("%g"), null);
       writer.close ();
 
       ArrayDeque<ScanToken> tokens = new ArrayDeque<> ();
-      ReaderTokenizer rtok = new ReaderTokenizer (new FileReader ("tmp/texttest.txt"));
+      ReaderTokenizer rtok = new ReaderTokenizer (new FileReader (ArtisynthPath.getTempDir().getAbsolutePath() + "/texttest.txt"));
       scan (rtok, tokens);
       rtok.close ();
    }

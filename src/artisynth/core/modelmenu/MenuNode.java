@@ -10,16 +10,16 @@ import java.awt.Font;
 
 import artisynth.core.modelmenu.DemoMenuParser.MenuType;
 
-public class MenuEntry implements Comparable<MenuEntry> {
+public class MenuNode implements Comparable<MenuNode> {
 
    private String title;
    private String icon;
    private Font menuFont;
 
-   public MenuEntry() {
+   public MenuNode() {
       menuFont = null;
    }
-   public MenuEntry(String title) {
+   public MenuNode(String title) {
       this.title = title;
    }
    public String getIcon() {
@@ -40,9 +40,9 @@ public class MenuEntry implements Comparable<MenuEntry> {
 
    @Override
    public boolean equals(Object obj) {
-      if (!(obj instanceof MenuEntry)) { return false; }
+      if (!(obj instanceof MenuNode)) { return false; }
 
-      MenuEntry mObj = (MenuEntry) obj;
+      MenuNode mObj = (MenuNode) obj;
       boolean res = (title.equals(mObj.title));
 
       if (icon != null) {
@@ -53,7 +53,7 @@ public class MenuEntry implements Comparable<MenuEntry> {
       return res;
    }
 
-   public int compareTo(MenuEntry o) {
+   public int compareTo(MenuNode o) {
       return title.compareTo(o.title); // sort based on titles
    }
    

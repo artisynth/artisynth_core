@@ -11,8 +11,8 @@ import java.util.Comparator;
 import maspack.graph.Node;
 
 public class MenuCompareByNameButDemosLast implements
-Comparator<Node<MenuEntry>> {
-   public int compare(Node<MenuEntry> o1, Node<MenuEntry> o2) {
+Comparator<Node<MenuNode>> {
+   public int compare(Node<MenuNode> o1, Node<MenuNode> o2) {
 
       // if one has no children, put it first
       if ((o1.getNumberOfChildren() == 0) && (o2.getNumberOfChildren() == 0)) {

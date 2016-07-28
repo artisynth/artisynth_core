@@ -8,7 +8,7 @@ package artisynth.core.modelmenu;
 
 import artisynth.core.modelmenu.DemoMenuParser.MenuType;
 
-public class DividerEntry extends MenuEntry {
+public class DividerEntry extends MenuNode {
 
    public DividerEntry(String title) {
       super(title);

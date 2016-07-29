@@ -93,10 +93,10 @@ endef
 .PHONY: clean CLEAN HTML PDF CHUNKED
 
 CLEAN clean::
-	rm -rf *~ *.pdf *.xml *.html
+	rm -rf *~ *.pdf *.dvi *.xml *.html
 	rm -rf *.log *.aux *.out *.toc *.bbl *.blg
 	rm -rf LaTeXML????* *.cb *.cb2 # files produced by LaTeXML
-	rm -rf *.fdb_latexmk *.synctex.gz # files produced by SublimeText
+	rm -rf *.fdb_latexmk *.synctex.gz *.fls # files produced by latexmk
 
 HTML::	html
 

@@ -52,6 +52,9 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
       return bounds;
    }
    
+   public MatrixNd getMatrixOfBoundNormals() {
+      return N;
+   }
    
 
 }

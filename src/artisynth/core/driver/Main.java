@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -1885,6 +1886,44 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
 
    /**
+    * Checks the supplied program arguments in <code>pargs</code> starting
+    * at the supplied index to see if what follows is an argument list
+    * delimited by '[' and ']'. If lone square brackets are desired as
+    * actual arguments, they must be escaped with a back-slash (i.e. "\[" 
+    * and "\]").  If an argument contains only backslashes and is terminated
+    * by a square bracket, then one of the backslashes is removed (i.e. 
+    * "\\[" becomes "\[", "\\\[" becomes "\\[", etc...).  
+    * 
+    * @param pargs program arguments
+    * @param idx starting index
+    * @param argList list of arguments to populate if found
+    * @return next index to process, equal to <code>idx</code> if no arguments are found
+    */
+   private static int maybeCollectArgs(String[] pargs, int idx, List<String> argList) {
+      String arg = pargs[idx].trim();
+      if ("[".equals(arg)) {
+         while (++idx < pargs.length) {
+            arg = pargs[idx].trim();
+            if ("]".equals(arg)) {
+               return idx+1;
+            } else if (arg.endsWith("]") || arg.endsWith("[")) {
+               boolean allbs = true;
+               for (int i=arg.length()-1; i-->0; ) {
+                  if (arg.charAt(i) != '\\') {
+                     allbs = false;
+                  }
+               }
+               if (allbs) {
+                  arg = arg.substring(1);
+               }
+            }
+            argList.add(arg);
+         }
+      }
+      return idx;
+   }
+   
+   /**
     * the main entry point
     * 
     * @param args
@@ -1909,8 +1948,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption ("-drawAxes %v #draw coordinate axes", drawAxes);
       parser.addOption ("-drawGrid %v #draw grid", drawGrid);
       parser.addOption ("-axisLength %f #coordinate axis length", axisLength);
-      parser.addOption ("-model %s #name of model to start with", modelName);
-      parser.addOption ("-script %s #script to run immediately", scriptFile);
       parser.addOption ("-play %v #play model immediately", play);
       parser.addOption (
          "-playFor %f #play model immediately for x seconds", playFor);
@@ -1986,6 +2023,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
       parser.addOption("-logLevel %s", logLevel);
+      
+      // parser.addOption ("-model %s #name of model to start, with optional "
+      //   + "argument list delimited by square brackets", modelName);
+      //parser.addOption ("-script %s #script to run immediately, with optional "
+      //   + "argument list delimited by square brackets", scriptFile);
 
       Locale.setDefault(Locale.CANADA);
 
@@ -2066,29 +2108,55 @@ public class Main implements DriverInterface, ComponentChangeListener {
       while (idx < pargs.length) {
          try {
             int pidx = idx;
-            idx = parser.matchArg (pargs, idx);
+            // check for list of arguments:
+            if ("-model".equals(pargs[pidx])) {
+               modelName.value = pargs[++idx];
+               int nidx = maybeCollectArgs(pargs, ++idx, modelArgs);
+               if (nidx != idx) {
+                  idx = nidx;
+                  modelArgsFound = true;
+               }
+            } else if ("-script".equals(pargs[pidx])) {
+               scriptFile.value = pargs[++idx];
+               int nidx = maybeCollectArgs(pargs, ++idx, scriptArgs);
+               if (nidx != idx) {
+                  idx = nidx;
+                  scriptArgsFound = true;
+               }
+            } else {
+               idx = parser.matchArg (pargs, idx);
+            }
+            
             String unmatched;
             if ((unmatched=parser.getUnmatchedArgument()) != null) {
                
                boolean valid = false;
+               //               // if the last switch was a script file, append to set of arguments
+               //               if (lastSwitch >= 0) { 
+               //                  if ("-script".equals(pargs[lastSwitch].toLowerCase())) {
+               //                     scriptArgs.add(unmatched);
+               //                     scriptArgsFound = true;
+               //                     valid = true;
+               //                  } else if ("-model".equals(pargs[lastSwitch].toLowerCase())) {
+               //                     modelArgs.add(unmatched);
+               //                     modelArgsFound = true;
+               //                     valid = true;
+               //                  }
+               //               
+               //               }
                
-               // if the last switch was a script file, append to set of arguments
-               if (lastSwitch >= 0) { 
-                  
-                  if ("-script".equals(pargs[lastSwitch].toLowerCase())) {
-                     scriptArgs.add(unmatched);
-                     scriptArgsFound = true;
-                     valid = true;
-                  } else if ("-model".equals(pargs[lastSwitch].toLowerCase())) {
-                     modelArgs.add(unmatched);
-                     modelArgsFound = true;
-                     valid = true;
-                  }
+               System.out.println ("modelArgs: " + modelArgs.size());
+               for (String a : modelArgs) {
+                  System.out.println (" " + a);
+               }
                
+               System.out.println ("scriptArgs: " + scriptArgs.size());
+               for (String a : scriptArgs) {
+                  System.out.println (" " + a);
                }
                
                if (!valid) {
-                  System.out.println (
+                  System.err.println (
                      "Unrecognized argument: " + unmatched +
                      "\nUse -help for help information");
                   return;
@@ -2103,10 +2171,17 @@ public class Main implements DriverInterface, ComponentChangeListener {
             return;
          }
       }
-
+      
       // parser.matchAllArgs (progArgs.toArray(new String[0]));
       if (printOptions.value || printHelp.value) {
          System.out.println (parser.getOptionsMessage (2));
+         System.out.println ("  -model <string> [ <string>... ]");
+         System.out.println ("                        name of model to start, with optional arguments");
+         System.out.println ("                        delimited by square brackets");
+         System.out.println ("  -script <string> [ <string>... ]");
+         System.out.println ("                        script to run immediately, with optional arguments");
+         System.out.println ("                        delimited by square brackets");
+         System.out.println();
          return;
       }
 
@@ -2119,9 +2194,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       
       FemModel3d.abortOnInvertedElems = abortOnInvertedElems.value;
-//      if (posCorrection.value.equals ("Default")) {
-//         MechSystemBase.setDefaultStabilization (PosStabilization.Default);
-//      }
+      //      if (posCorrection.value.equals ("Default")) {
+      //         MechSystemBase.setDefaultStabilization (PosStabilization.Default);
+      //      }
       if (posCorrection.value.equals("GlobalMass")) {
          MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass);
       }

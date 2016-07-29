@@ -1900,6 +1900,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @return next index to process, equal to <code>idx</code> if no arguments are found
     */
    private static int maybeCollectArgs(String[] pargs, int idx, List<String> argList) {
+      
+      // no more following arguments
+      if (idx >= pargs.length) {
+         return idx;
+      }
+      
       String arg = pargs[idx].trim();
       if ("[".equals(arg)) {
          while (++idx < pargs.length) {

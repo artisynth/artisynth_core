@@ -1925,6 +1925,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
             }
             argList.add(arg);
          }
+         
+         // never found closing bracket
+         throw new RuntimeException("Argument list not closed");
       }
       return idx;
    }
@@ -2151,16 +2154,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
                //               
                //               }
                
-               System.out.println ("modelArgs: " + modelArgs.size());
-               for (String a : modelArgs) {
-                  System.out.println (" " + a);
-               }
-               
-               System.out.println ("scriptArgs: " + scriptArgs.size());
-               for (String a : scriptArgs) {
-                  System.out.println (" " + a);
-               }
-               
                if (!valid) {
                   System.err.println (
                      "Unrecognized argument: " + unmatched +
@@ -2172,8 +2165,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
             }
          }
          catch (Exception e) {
-            System.out.println (
+            System.err.println (
                "Error parsing options: "+ e.getMessage());
+            
+            if (modelArgs.size() > 0) {
+               System.out.println ("modelArgs: " + modelArgs.size());
+               for (String a : modelArgs) {
+                  System.out.println (" " + a);
+               }
+            }
+            
+            if (scriptArgs.size() > 0) {
+               System.out.println ("scriptArgs: " + scriptArgs.size());
+               for (String a : scriptArgs) {
+                  System.out.println (" " + a);
+               }
+            }
             return;
          }
       }

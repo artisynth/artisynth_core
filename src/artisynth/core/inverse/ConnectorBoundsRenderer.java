@@ -61,6 +61,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
          Vector3d cur = viter.next ();
          tmp.cross (prev, cur);
          tmp.normalize ();
+         tmp.add (p0);
          polyPts.add (new Point3d (tmp));
          lines.add (new LineInfo (p0, tmp, Color.ORANGE));
          prev = cur;
@@ -72,7 +73,7 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       while (piter.hasNext ()) {
          Point3d curPt = piter.next ();
          planes.add (new TriInfo (p0, prevPt, curPt, Color.LIGHT_GRAY));
-          lines.add (new LineInfo (p0, tmp, Color.RED));
+          //lines.add (new LineInfo (p0, tmp, Color.RED));
          prevPt = curPt;
       }
       planes.add (new TriInfo (p0, prevPt, firstPt, Color.LIGHT_GRAY));

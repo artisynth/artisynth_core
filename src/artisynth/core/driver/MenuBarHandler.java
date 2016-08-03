@@ -446,14 +446,14 @@ public class MenuBarHandler implements
       return modelsMenu;
    }
    
-   private void populateModelMenu(JMenu menu) {
+   private void populateModelMenu(ArtisynthModelMenu generator, JMenu menu) {
       // clear
       menu.removeAll();
       // build from tree
-      myModelsMenuGenerator.buildMenu(menu, this, myMain.getModelHistory());
+      generator.buildMenu(menu, this, myMain.getModelHistory());
       // add demo entries from menu
       AliasTable demoTable = myMain.getDemoTable();
-      AliasTable generatedTable = myModelsMenuGenerator.getDemoTable();
+      AliasTable generatedTable = generator.getDemoTable();
       for (Entry<String,String> entry : generatedTable.getEntries()) {
          demoTable.addEntry(entry.getKey(), entry.getValue());
       }
@@ -474,11 +474,10 @@ public class MenuBarHandler implements
       public void run() {
          if (menuFile != null && menuFile.exists()) {
             ArtisynthModelMenu generator = readDemoMenu(menuFile.getAbsolutePath());
-            populateModelMenu(menu);
+            populateModelMenu(generator, menu);
             // save as cache
             File cachedMenu = getMenuCacheFile(menuFile.getName());
             generator.write(cachedMenu);
-            
             myModelsMenuGenerator = generator;
          }
       }
@@ -503,7 +502,7 @@ public class MenuBarHandler implements
          // read and display cached version, real menu to be created in background
          // file exists, so should be read correctly
          myModelsMenuGenerator = readDemoMenu(cachedMenu.getAbsolutePath());
-         populateModelMenu(menu);
+         populateModelMenu(myModelsMenuGenerator, menu);
          
          // background thread to update menu later
          if (menuFile != null && menuFile.exists()) {
@@ -516,7 +515,7 @@ public class MenuBarHandler implements
          if (menuFile != null && menuFile.exists()) {
             myModelsMenuGenerator = readDemoMenu(menuFile.getAbsolutePath());
          }
-         populateModelMenu(menu);
+         populateModelMenu(myModelsMenuGenerator, menu);
          // save as cache
          myModelsMenuGenerator.write(cachedMenu);
          

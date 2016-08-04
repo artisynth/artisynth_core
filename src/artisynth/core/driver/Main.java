@@ -573,11 +573,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myMain = this;
       
       // check if GL3 version is supported
-      //      GLProfile glpmin = GLProfile.getMinimum(true);
-      //      GLProfile glpmax = GLProfile.getMaximum(true);
       if (width > 0 && glVersion == GLVersion.GL3) {
          GLVersionInfo vinfo = GLSupport.getMaxGLVersionSupported();
-         
          if ( (vinfo.getMajorVersion() < myGLVersion.getMajorVersion()) ||
             ((vinfo.getMajorVersion() == myGLVersion.getMajorVersion()) && 
                (vinfo.getMinorVersion() < myGLVersion.getMinorVersion()))) {
@@ -587,7 +584,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
             glVersion = GLVersion.GL2;
          }
       }
-      
       myGLVersion = glVersion;
       
       if (demosFilename.value != null) {

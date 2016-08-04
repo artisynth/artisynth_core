@@ -14,14 +14,11 @@ import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
-import java.io.IOException;
-import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.util.Scanner;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2GL3;
-import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLDrawableFactory;
@@ -39,7 +36,6 @@ import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.util.BufferUtilities;
-import maspack.util.ReaderTokenizer;
 
 public class GLSupport {
 
@@ -524,10 +520,11 @@ public class GLSupport {
       dummy.display(); // triggers GLContext object creation and native realization.
       
       while (!listener.isValid()) {
+         Thread.yield(); // let other threads do stuff
       }
       GLVersionInfo vinfo = listener.getVersionInfo();
       dummy.disposeGLEventListener(listener, true);
-      dummy.destroy();
+      // dummy.destroy(); // XXX should be auto-destroyed.  We have reports that manually calling destroy sometimes crashes the JVM.
       
       return vinfo;
    }

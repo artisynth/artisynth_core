@@ -26,8 +26,8 @@ public class GLProgramInfo {
    public static final byte MIX_DIFFUSE_FLAG = 0x2;
    public static final byte MIX_SPECULAR_FLAG = 0x4;
    public static final byte MIX_EMISSION_FLAG = 0x8;
-   public static final byte DEFAULT_VERTEX_COLOR_MIX_MASK = MIX_DIFFUSE_FLAG | MIX_EMISSION_FLAG;
-   public static final byte DEFAULT_TEXTURE_COLOR_MIX_MASK = MIX_DIFFUSE_FLAG | MIX_EMISSION_FLAG;
+   public static final byte DEFAULT_VERTEX_COLOR_MIX_MASK = MIX_DIFFUSE_FLAG;
+   public static final byte DEFAULT_TEXTURE_COLOR_MIX_MASK = MIX_DIFFUSE_FLAG;
    
    private int numLights;
    private int numClipPlanes;

@@ -1288,7 +1288,7 @@ public class GLSLGenerator {
                   if (info.isMixTextureColorSpecular ()) {
                      appendln(mb, "   fspecular = fspecular*texture_color.rgb; // modulate");
                   }
-                  if (info.isMixTextureColorDiffuse ()) {
+                  if (info.isMixTextureColorEmission ()) {
                      appendln(mb, "   femission = femission*texture_color.rgb; // modulate");
                   }
                   break;
@@ -1299,7 +1299,7 @@ public class GLSLGenerator {
                   if (info.isMixTextureColorSpecular ()) {
                      appendln(mb, "   fspecular = texture_color.rgb; // replace");
                   }
-                  if (info.isMixTextureColorDiffuse ()) {
+                  if (info.isMixTextureColorEmission ()) {
                      appendln(mb, "   femission = texture_color.rgb; // replace");
                   }
                   break;
@@ -1321,7 +1321,7 @@ public class GLSLGenerator {
          appendln(mb, "   ambient  = fdiffuse.rgb*ambient*material.power.x;");
          appendln(mb, "   diffuse  = fdiffuse.rgb*diffuse*material.power.y;");
          appendln(mb, "   specular = fspecular*specular*material.power.z;");
-         appendln(mb, "   emission = femission*emission*material.power.w;");
+         appendln(mb, "   emission = femission*material.power.w;  // emission only material-related");
          appendln(mb, "   fragment_color = vec4(max(diffuse+specular+emission, ambient), fdiffuse.a);");
       } else {
          appendln(mb, "   fragment_color = fdiffuse;");

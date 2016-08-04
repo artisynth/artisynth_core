@@ -29,7 +29,6 @@ import javax.media.opengl.GLEventListener;
 import javax.media.opengl.awt.GLCanvas;
 import javax.swing.event.MouseInputListener;
 
-import artisynth.core.driver.Main;
 import maspack.matrix.AffineTransform2d;
 import maspack.matrix.AffineTransform2dBase;
 import maspack.matrix.AffineTransform3d;

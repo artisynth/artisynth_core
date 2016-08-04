@@ -502,4 +502,11 @@ public class MultiViewer {
       }
    }
 
+   public void rerender() {
+      for (SimpleViewerApp app : windows) {
+         app.viewer.rerender();
+      }
+      
+   }
+
 }

@@ -222,8 +222,12 @@ public class GL3Viewer extends GLViewer {
       super.init (drawable);
 
       this.drawable = drawable;
-      this.gl = drawable.getGL().getGL3();
+      this.gl = GL3Utilities.wrap(drawable.getGL().getGL3());
 
+      String glslVersion = gl.glGetString(GL3.GL_SHADING_LANGUAGE_VERSION);
+      Logger logger = Logger.getSystemLogger();
+      logger.info("GLSL Version: " + glslVersion);
+      
       gl.setSwapInterval (1);
 
       int[] buff = new int[1];
@@ -298,7 +302,7 @@ public class GL3Viewer extends GLViewer {
       super.dispose (drawable);
 
       this.drawable = drawable;
-      this.gl = drawable.getGL ().getGL3 ();
+      this.gl = GL3Utilities.wrap(drawable.getGL ().getGL3 ());
       
       if (this.primitives != null) {
          for (int i=0; i<primitives.length; ++i) {
@@ -339,7 +343,7 @@ public class GL3Viewer extends GLViewer {
    public void display(GLAutoDrawable drawable, int flags) {
 
       this.drawable = drawable;
-      this.gl = drawable.getGL ().getGL3 ();
+      this.gl = GL3Utilities.wrap(drawable.getGL ().getGL3 ());
 
       if (!myInternalRenderListValid) {
          buildInternalRenderList();
@@ -1118,7 +1122,7 @@ public class GL3Viewer extends GLViewer {
                   myProgramInfo.setTextureColorMixing (myColorMapProps.getColorMixing ());
                   myProgramInfo.setMixTextureColorDiffuse (myColorMapProps.getDiffuseColoring ());
                   myProgramInfo.setMixTextureColorSpecular (myColorMapProps.getSpecularColoring ());
-                  myProgramInfo.setMixTextureColorEmission (myColorMapProps.getDiffuseColoring ());
+                  myProgramInfo.setMixTextureColorEmission (myColorMapProps.getEmissionColoring ());
                } else {
                   myProgramInfo.setColorMapEnabled (false);
                }
@@ -1196,6 +1200,11 @@ public class GL3Viewer extends GLViewer {
       return bound;
    }
    
+   //   private static File[] debugShaders = {
+   //      ArtisynthPath.getSrcRelativeFile(GL3Viewer.class, "shaders/test_vertex.glsl"),
+   //      ArtisynthPath.getSrcRelativeFile(GL3Viewer.class, "shaders/test_fragment.glsl")
+   //   };
+   
    protected GLShaderProgram updateProgram(GL3 gl, RenderingMode mode,
       boolean hasNormals, boolean hasColors, boolean hasTextures) {     
            
@@ -1206,6 +1215,7 @@ public class GL3Viewer extends GLViewer {
          prog = myProgManager.getSelectionProgram (gl, myProgramInfo);
       } else {
          prog = myProgManager.getProgram (gl, myProgramInfo);
+         // prog = myProgManager.getProgram(gl, debugShaders, debugShaders);
       }
       
       // only update program if different

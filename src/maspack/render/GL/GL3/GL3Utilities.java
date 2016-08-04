@@ -4,6 +4,15 @@ import javax.media.opengl.GL3;
 
 public class GL3Utilities {
 
+   public static boolean debug = false;
+   
+   public static GL3 wrap(GL3 gl) {
+      if (debug) {
+         return new GL3Debug(gl);
+      }
+      return gl;
+   }
+   
    public static int getGLType(GL3AttributeStorage.StorageType type) {
       switch(type) {
          case FLOAT:

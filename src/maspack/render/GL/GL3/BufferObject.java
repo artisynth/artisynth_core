@@ -130,7 +130,6 @@ public class BufferObject extends GL3ResourceBase {
    }
    
    public void bind(GL3 gl) {
-      // System.out.println ("Buffer bound: " + boId + " (target: " + target + ")");
       gl.glBindBuffer(target, boId);
    }
    

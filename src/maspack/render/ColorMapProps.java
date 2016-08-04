@@ -23,6 +23,9 @@ public class ColorMapProps extends TextureMapProps {
    protected boolean mySpecularColoring;
    protected PropertyMode mySpecularColoringMode;
    protected static boolean defaultSpecularColoring = true;
+   protected boolean myEmissionColoring;
+   protected PropertyMode myEmissionColoringMode;
+   protected static boolean defaultEmissionColoring = false;
 
    public ColorMapProps() {
       setDefaultModes();
@@ -52,6 +55,9 @@ public class ColorMapProps extends TextureMapProps {
       myProps.addInheritable (
          "specularColoring:Inherited", 
          "apply color map to specular color", defaultSpecularColoring);
+      myProps.addInheritable (
+         "emissionColoring:Inherited", 
+         "apply color map to emission color", defaultEmissionColoring);
    }
 
    public Property getProperty (String name) {
@@ -137,6 +143,25 @@ public class ColorMapProps extends TextureMapProps {
       PropertyUtils.setModeAndUpdate (this, "specularColoring", mySpecularColoringMode, mode);
    }
    
+   // emission
+   public boolean getEmissionColoring() {
+      return myEmissionColoring;
+   }
+
+   public void setEmissionColoring (boolean set) {
+      myEmissionColoring = set;
+      myEmissionColoringMode = PropertyUtils.propagateValue (this, "emissionColoring", set, myEmissionColoringMode);
+   }
+
+   public PropertyMode getEmissionColoringMode() {
+      return myEmissionColoringMode;
+   }
+
+   public void setEmissionColoringMode (PropertyMode mode) {
+      myEmissionColoringMode =
+      PropertyUtils.setModeAndUpdate (this, "emissionColoring", myEmissionColoringMode, mode);
+   }
+   
    public void set (ColorMapProps props) {
       super.set (props);
       myColorMixing = props.myColorMixing;
@@ -145,6 +170,8 @@ public class ColorMapProps extends TextureMapProps {
       myDiffuseColoringMode = props.myDiffuseColoringMode;
       mySpecularColoring = props.mySpecularColoring;
       mySpecularColoringMode = props.mySpecularColoringMode;
+      myEmissionColoring = props.myEmissionColoring;
+      myEmissionColoringMode = props.myEmissionColoringMode;
    }
 
    public boolean equals (ColorMapProps props) {
@@ -154,7 +181,9 @@ public class ColorMapProps extends TextureMapProps {
          myDiffuseColoring == props.myDiffuseColoring &&
          myDiffuseColoringMode == props.myDiffuseColoringMode &&  
          mySpecularColoring == props.mySpecularColoring &&
-         mySpecularColoringMode == props.mySpecularColoringMode);
+         mySpecularColoringMode == props.mySpecularColoringMode &&
+         myEmissionColoring == props.myEmissionColoring &&
+         myEmissionColoringMode == props.myEmissionColoringMode);
    }
 
    public boolean equals (TextureMapProps obj) {
@@ -177,7 +206,8 @@ public class ColorMapProps extends TextureMapProps {
       return (super.toString ()
       + ", colorMixing=" + myColorMixing
       + ", diffuseColoring=" + myDiffuseColoring
-      + ", specularColoring=" + mySpecularColoring);
+      + ", specularColoring=" + mySpecularColoring
+      + ", emissionColoring=" + myEmissionColoring);
    }
 
    public ColorMapProps clone() {
@@ -188,6 +218,8 @@ public class ColorMapProps extends TextureMapProps {
       myDiffuseColoringMode = props.myDiffuseColoringMode;  
       mySpecularColoring = props.mySpecularColoring;
       mySpecularColoringMode = props.mySpecularColoringMode;
+      myEmissionColoring = props.myEmissionColoring;
+      myEmissionColoringMode = props.myEmissionColoringMode;
       return props;
    }
 

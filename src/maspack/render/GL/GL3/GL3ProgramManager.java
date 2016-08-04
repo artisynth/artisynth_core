@@ -153,6 +153,8 @@ public class GL3ProgramManager {
    private GLShaderProgram createProgram(GL3 gl, GLProgramInfo key) {
       // generate source
       String[] shaders = GLSLGenerator.getShaderScripts(key);
+      System.out.println(shaders[0]);
+      System.out.println(shaders[1]);
       return createProgram(gl, shaders);
    }
 

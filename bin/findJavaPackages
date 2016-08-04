@@ -25,7 +25,7 @@ while [ "$1" ]; do
 done
 for d in `$FIND $DIR -type d` ; do
    # switch slashes on windows
-   dd=`echo "$d" | tr '\' '/'`
+   dd=`echo "$d" | sed -e 's|\\\|/|g'` # tr '\\' 'b'` # tr now triggers warnings
    count=`ls -1 $dd/*.java 2>/dev/null | wc -l`
    if [ $count != 0 ] ; then
       echo $dd | sed "s|^$DIR/||" | sed 's|/|.|g'

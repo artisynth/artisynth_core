@@ -29,6 +29,7 @@ import maspack.render.GL.GLProgramInfo.RenderingMode;
 import maspack.render.GL.GLShaderProgram;
 import maspack.render.GL.GLTexture;
 import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
+import maspack.util.Logger;
 
 public class GL3ProgramManager {
 
@@ -153,8 +154,9 @@ public class GL3ProgramManager {
    private GLShaderProgram createProgram(GL3 gl, GLProgramInfo key) {
       // generate source
       String[] shaders = GLSLGenerator.getShaderScripts(key);
-      System.out.println(shaders[0]);
-      System.out.println(shaders[1]);
+      Logger logger = Logger.getSystemLogger();
+      logger.info(shaders[0]);
+      logger.info(shaders[1]);
       return createProgram(gl, shaders);
    }
 

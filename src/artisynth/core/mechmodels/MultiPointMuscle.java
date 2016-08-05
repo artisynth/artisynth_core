@@ -354,6 +354,7 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
       else {
          myRenderColor = null;
       }
+      super.prerender (list);
    }
 
    /**

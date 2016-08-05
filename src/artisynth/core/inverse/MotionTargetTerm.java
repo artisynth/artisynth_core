@@ -547,7 +547,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 
       tframe.setState(source);
       tframe.setTargetActivity(TargetActivity.PositionVelocity);
-      tframe.setAxisLength(1.0);
+//      tframe.setAxisLength(1.0);
 
       myTargets.add(tframe);
 

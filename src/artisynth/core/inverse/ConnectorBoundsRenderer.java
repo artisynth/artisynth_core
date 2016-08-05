@@ -23,8 +23,14 @@ public class ConnectorBoundsRenderer extends MonitorBase {
    
    ArrayList<LineInfo> lines = new ArrayList<LineInfo> ();
    ArrayList<TriInfo> planes = new ArrayList<TriInfo> ();
+   double mySize = 1d;
 
    public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Point3d p0) {
+      this (bounds, p0, 1d);
+   }
+   
+   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Point3d p0, double size) {
+      mySize = size;
       setRenderProps (createRenderProps ());
       addRenderables(bounds, p0);
    }
@@ -61,9 +67,10 @@ public class ConnectorBoundsRenderer extends MonitorBase {
          Vector3d cur = viter.next ();
          tmp.cross (prev, cur);
          tmp.normalize ();
+         tmp.scale (mySize);
          tmp.add (p0);
          polyPts.add (new Point3d (tmp));
-         lines.add (new LineInfo (p0, tmp, Color.ORANGE));
+         lines.add (new LineInfo (p0, tmp, Color.WHITE));
          prev = cur;
       }
 

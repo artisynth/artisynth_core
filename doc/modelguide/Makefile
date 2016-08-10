@@ -50,7 +50,7 @@ $(HTML_DIR)/modelguide.html: $(SOURCES)
 	rm -f modelguide.xml
 
 install_html: html
-	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/modelguide
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/modelguide
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/modelguide
 
 install_pdf: pdf

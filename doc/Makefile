@@ -31,7 +31,7 @@ javadocs: #make the javadocs
         fi
 	javadoc -author -d javadocs -public -sourcepath $(ROOT_DIR)/src \
 		-windowtitle "Artisynth API documentation" \
-		-J-Xms500m -J-Xmx500m \
+		-J-Xms500m -J-Xmx500m -encoding UTF-8 \
 		`$(FIND_PACKAGES) -d $(ROOT_DIR)/src | tr '\n' ' ' | tr '\r' ' '`
 
 # This command needs to be run on the webserver
@@ -105,15 +105,15 @@ install_dir:
 	ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) mkdir -p $(WEB_DOC_DIR)
 
 install_html: HTML
-	rsync -va --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
+	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html
 
 install_pdf: PDF
-	rsync -va --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
+	rsync -rCtO --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
 
 install_javadocs:
-	rsync -va --delete --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
+	rsync -rCtO --delete --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/javadocs
 
 test:

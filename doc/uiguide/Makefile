@@ -32,7 +32,7 @@ $(HTML_DIR)/uiguide.html: uiguide.tex
 	rm -f uiguide.xml
 
 install_html: html
-	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/uiguide
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/uiguide
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/uiguide
 
 install_pdf: pdf

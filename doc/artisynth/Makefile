@@ -27,7 +27,7 @@ $(HTML_DIR)/artisynth.html: artisynth.tex
 	rm -f artisynth.xml
 
 install_html: html
-	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/artisynth
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/artisynth
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/artisynth
 
 install_pdf: pdf

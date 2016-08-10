@@ -35,7 +35,7 @@ $(HTML_DIR)/maspack.html: $(SOURCES)
 	rm -f maspack.xml
 
 install_html: html
-	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/maspack
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/maspack
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/maspack
 
 install_pdf: pdf

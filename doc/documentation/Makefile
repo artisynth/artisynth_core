@@ -25,7 +25,7 @@ $(HTML_DIR)/documentation.html: documentation.tex
 	rm -f documentation.xml
 
 install_html: html
-	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/documentation
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/documentation
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/documentation
 
 install_pdf: pdf

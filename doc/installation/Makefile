@@ -59,7 +59,7 @@ $(HTML_DIR)/macosInstallation.html: macosInstallation.tex installation.tex
 	rm -f macosInstallation.xml
 
 install_html: html
-	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/installation
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/installation
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/installation
 
 install_pdf: pdf

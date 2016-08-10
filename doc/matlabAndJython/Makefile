@@ -35,7 +35,7 @@ $(HTML_DIR)/matlabAndJython.html: $(SOURCES)
 	rm -f matlabAndJython.xml
 
 install_html: html
-	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/matlabAndJython
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/matlabAndJython
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/matlabAndJython
 
 install_pdf: pdf

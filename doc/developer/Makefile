@@ -25,7 +25,7 @@ $(HTML_DIR)/codingStandard.html: codingStandard.tex
 	rm -f codingStandard.xml
 
 install_html: html
-	rsync -rCt $(HTML_DIR)/ $(WEB_DOC_URL)/html/developer
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/developer
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/developer
 
 install_pdf: pdf

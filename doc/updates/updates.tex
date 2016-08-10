@@ -21,6 +21,198 @@
 %\section*{Next}
 
 %\subsection*{Wrapping surfaces}
+
+\section*{Aug 10, 2016}
+
+\subsection*{Refactoring of maspack.collision}
+
+The package {\tt maspack.collision}, which is used to compute
+collisions between polyhedral meshes, is currently being refactored to
+improve its efficiency and reliability. Many of these changes will be
+invisible to most users. However, the following classes in
+{\tt maspack.collision} have been renamed:
+
+\begin{tabular}{lll}
+\hline
+Old name & New name \\
+\hline
+{\tt MeshIntersectionPoint} & {\tt IntersectionPoint}\\
+{\tt MeshIntersectionContour} & {\tt IntersectionContour}\\
+{\tt ContactPenetratingPoint} & {\tt PenetratingPoint}\\
+{\tt ContactRegion} & {\tt ContactPlane}\\
+\hline
+\end{tabular}
+
+In addition, the collider {\tt SurfaceMeshCollider} and the
+intersection contour generator {\tt SurfaceMeshContourIxer} now both
+use the same {\tt IntersectionContour} to describe contours.  The
+merge has resulted in the following method name changes within {\tt
+IntersectionContour}:
+
+\begin{tabular}{lll}
+\hline
+Old method & New method \\
+\hline
+{\tt getArea()} & {\tt computePlanarArea()}\\
+{\tt isOpen()} & {\tt !isClosed()}\\
+\hline
+\end{tabular}
+
+\begin{sideblock}
+Note also that {\tt SurfaceMeshContourIxer} is now deprecated. The
+plan is to replace its functionality with {\tt SurfaceMeshCollider}.
+\end{sideblock}
+
+\subsection*{Introduction of contact regions for AJL collision}
+
+A major change has been made to the postprocessing done by the AJL
+collision scheme (which uses {\tt SurfaceMeshCollider}).  AJL
+collisions work by determining the intersection contours between two
+meshes. Previously, these contours were then processed to determine
+which interpenetrating vertices, faces, and edges they contained, and
+which contours were nested inside which. However, this scheme was
+flawed: for closed meshes, there are no ``inner'' or ``outer''
+contours; instead, there are only connected {\it penetration regions} on
+each mesh, which are bounded by one or more contours.  Moreover, these
+regions are not necessarily symmetric: the regions on one mesh may be
+different in both number and contour composition. To properly describe
+this, contours (represented by the class {\tt IntersectionContour}) no
+longer contain lists of interior features. Instead, the {\tt
+ContactInfo} class (which stores the contact information produced by
+the collider method {\tt getContacts()}) now contains a list of
+penetration regions for each mesh. Each region is described by the
+class {\tt PenetrationRegion}, which stores the bounding contours
+along with the vertices, faces and edges which are completely or
+partially inside that region. These attributes may be queried using
+the following methods:
+
+%
+\begin{lstlisting}[]
+HashSet<MeshIntersectionContour> getContours()  // gets the bounding contours
+
+int numInsideVertices()                         // number of inside vertices
+HashSet<Vertex3d> getInsideVertices()           // gets the inside vertices
+boolean isVertexInside(vtx)                     // true if vtx is inside
+
+int numInsideFaces()                            // number of inside faces
+HashSet<Face> getInsideFaces()                  // gets the inside faces
+boolean isFaceInside(face)                      // true if face is inside
+
+int numInsideEdges()                            // number of inside edges
+HashSet<HalfEdge> getInsideEdges()              // gets the inside edges
+boolean isEdgeInside(edge)                      // true if edge is inside
+
+double getArea()                                // gets the area of the region
+\end{lstlisting}
+%
+
+Note in particular the method {\tt getArea()}, which returns the exact
+area of the the penetration region. This quantity is computed on
+demand and then cached.
+
+\begin{sideblock}
+Note that the above only pertains to collisons preformed with AJL
+collisions.  AJL collisions are not enabled in ArtiSynth by default
+(although we are working toward changing this). For the moment, AJL
+collisions are enabled using either the command line option {\tt
+-useAjlCollisions} or by calling {\tt
+SurfaceMeshCollider.setAjlCollision(enable)}.
+\end{sideblock}
+
+\subsection*{Changes to ContactInfo}
+
+Changes have been made to the class {\tt ContactInfo}, which stores
+the contact information produced by the collider method {\tt
+getContacts()}. All of the fields have been made private to {\tt
+maspack.collision} and the following accessors should instead be used
+to obtain its information:
+%
+\begin{lstlisting}[]
+PolygonalMesh getMesh0()                         // first collision mesh
+PolygonalMesh getMesh1()                         // second collision mesh
+List<ContactPlane> getContactPlanes()            // all contact planes
+List<PenetratingPoint> getPenetratingPoints0()   // mesh0 vertices inside mesh1
+List<PenetratingPoint> getPenetratingPoints1()   // mesh1 vertices inside mesh0
+\end{lstlisting}
+%
+A {\tt ContactPlane}, as returned by {\tt getContactPlanes()}, is a
+planar approximation to two matching penetration regions on each mesh,
+with the convex hull of the contours projected onto the plane. It is
+typically used to generate contact constraints between rigid bodies.
+
+When contact is determined using AJL collision detection, the
+following information is also available:
+%
+\begin{lstlisting}[]
+List<PenetrationRegion> getPenetrationRegions0() // regions for mesh0
+List<PenetrationRegion> getPenetrationRegions1() // regions for mesh1
+List<IntersectionContour> getContours()          // mesh intersection contours
+List<EdgeEdgeContact> getEdgeEdgeContacts()      // edge-edge contacts
+\end{lstlisting}
+%
+
+Finally, when {\bf not} using AJL collisions, it is possible to
+retreive the individual triangle-triangle intersections between the
+meshes:
+%
+\begin{lstlisting}[]
+List<TriTriIntersection> getIntersections()      // triangle intersections 
+\end{lstlisting}
+%
+Note, however, that this functionality may be removed in the future.
+
+\subsection*{New command line syntax for models and script arguments; -M removed}
+
+A new syntax has been added for passing command line arguments to
+either the {\tt build()} method for RootModels that are loaded with
+the {\tt -model} option, or to a Jython script that is invoked with
+the {\tt -script} option. The syntax involves placing the desired
+arguments immediately after the model or script specification,
+enclosed inside square brackets {\tt [ ]}.
+
+For example, for a model,
+\begin{verbatim}
+artisynth -model artisynth.models.stuff.MyModel [ -foo bar ]
+\end{verbatim}
+will pass the strings {\tt "-foo"} and {\tt "bar"} to the {\tt
+build()} method of {\tt MyModel} (via the {\tt args} argument).  This
+functionality replaces the previous use of the {\tt -M} argument (in
+which all arguments following {\tt -M} were passed to the {\tt
+build()} method).
+
+For a script,
+\begin{verbatim}
+artisynth -script myscript.py [ -xxx 123 -off ]
+\end{verbatim}
+will pass the strings {\tt "-xxx"}, {\tt "123"} and {\tt "-off"} to
+the script {\tt myscript.py}, which can then retrieve them from
+{\tt sys.argv}:
+%
+\begin{lstlisting}[]
+import sys
+print('Number of arguments:' + str(len(sys.argv)))
+print('Argument List:' + str(sys.argv)) 
+\end{lstlisting}
+%
+(thanks to Antonio for this synopsis).
+
+\subsection*{FileGrabber changed to FileManager}
+
+The class {\tt FileGrabber}, in {\tt maspack.fileutils}, has been
+renamed to {\tt FileManager}, and additional functionality has been
+added to allow it to also upload files onto a server using
+a variety of ``put'' methods:
+%
+\begin{lstlisting}[]
+   put (File source, URIx dest, int options)
+   put (File path, URIx dest) 
+   put (String source, int options)
+   put (String source)
+   put (String source, String dest, int options)
+   put (String source, String dest)
+\end{lstlisting}
+%
+
 \section*{Jun 16, 2016}
 
 \subsection*{OpenGL rendering replaced by new rendering interface}

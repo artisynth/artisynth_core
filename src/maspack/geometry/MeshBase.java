@@ -81,6 +81,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    protected Point3d myWorldMinCoords = new Point3d();
    protected Point3d myWorldMaxCoords = new Point3d();
    protected boolean myWorldBoundsValid = false;
+   protected double myWorldRadius = -1;
 
    protected ColorInterpolation myColorInterp = ColorInterpolation.RGB;
    protected ColorMixing myVertexColorMixing = ColorMixing.REPLACE;
@@ -148,6 +149,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       //bvHierarchyValid = false;
       myLocalBoundsValid = false;
       myWorldBoundsValid = false;
+      myWorldRadius = -1;
    }
 
    /** 
@@ -158,6 +160,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       //bvHierarchyValid = false;
       myLocalBoundsValid = false;
       myWorldBoundsValid = false;
+      myWorldRadius = -1;
    }
    
    /**
@@ -206,6 +209,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    protected void invalidateWorldCoords() {
       myWorldBoundsValid = false;
+      myWorldRadius = -1;
    }
 
    /**
@@ -411,6 +415,30 @@ public abstract class MeshBase implements Renderable, Cloneable {
       XMeshToWorld.set (X);
       myXMeshToWorldIsIdentity = X.equals (RigidTransform3d.IDENTITY);
       invalidateWorldCoords();
+   }
+   
+   public void transformToWorld (Point3d pnt) {
+      if (!myXMeshToWorldIsIdentity) {
+         pnt.transform (XMeshToWorld);
+      }
+   }
+
+   public void transformToLocal (Point3d pnt) {
+      if (!myXMeshToWorldIsIdentity) {
+         pnt.inverseTransform (XMeshToWorld);
+      }
+   }
+
+   public void transformToWorld (Vector3d pnt) {
+      if (!myXMeshToWorldIsIdentity) {
+         pnt.transform (XMeshToWorld.R);
+      }
+   }
+
+   public void transformToLocal (Vector3d pnt) {
+      if (!myXMeshToWorldIsIdentity) {
+         pnt.inverseTransform (XMeshToWorld.R);
+      }
    }
 
    /**
@@ -887,15 +915,19 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * @return approximate radius for this mesh
     */
    public double getRadius () {
-      if (myVertices.size() > 0) {
-         if (!myWorldBoundsValid) {
-            recomputeWorldBounds();
+      if (myWorldRadius == -1) {
+         // compute world radius
+         if (myVertices.size() > 0) {
+            if (!myWorldBoundsValid) {
+               recomputeWorldBounds();
+            }
+            myWorldRadius = 0.5*myWorldMinCoords.distance (myWorldMaxCoords);
          }
-         return 0.5*myWorldMinCoords.distance (myWorldMaxCoords);
+         else {
+            myWorldRadius = 0;
+         }
       }
-      else {
-         return 0;
-      }
+      return myWorldRadius;
    }
 
    /**
@@ -1367,6 +1399,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
       mesh.myWorldMinCoords = new Point3d();
       mesh.myWorldMaxCoords = new Point3d();
       mesh.myWorldBoundsValid = false;
+      mesh.myWorldRadius = -1;
       
       mesh.myXMeshToWorldRender = null;
       
@@ -2537,5 +2570,4 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myTextureIndices = null;
       notifyModified();              
    }
-   
 }

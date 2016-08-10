@@ -1215,8 +1215,8 @@ public class MechSystemSolver {
       }
       myGT = new SparseNumberedBlockMatrix ();
       mySys.getBilateralConstraints (myGT, myGdot);
-      //myGT.checkConsistency();
-
+      //myGT.checkConsistency();      
+      
       if (oldStructure == null || !myGT.blockStructureEquals (oldStructure)) {
          myGTVersion++;
       }
@@ -2196,16 +2196,6 @@ public class MechSystemSolver {
       }
       updateBilateralConstraints ();
       updateUnilateralConstraints ();
-      // if (TimeBase.equals (t, 0.37)) {
-      //    for (int bj=0; bj<myNT.numBlockCols(); bj++) {
-      //       System.out.println ("col " + bj);
-      //       MatrixBlock blk = myNT.firstBlockInCol(bj);
-      //       while (blk != null) {
-      //          System.out.println (" row "+blk.getBlockRow()+"\n" + blk);
-      //          blk = blk.down();
-      //       }
-      //    }
-      // }
       
       // myVel.setSize (velSize);
       if (myGsize > 0 || myNsize > 0) {
@@ -2486,9 +2476,8 @@ public class MechSystemSolver {
       mySys.getActiveForces (myF);
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
-      
-      KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
 
+      KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
       mySys.setActiveVelState (myUtmp);
 
       if (useGlobalFriction) {
@@ -2504,15 +2493,6 @@ public class MechSystemSolver {
       mySys.setActivePosState (myQ);
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
 
-      // if (t1 == 0.32) {
-      //    try {
-      //       myGT.write (
-      //          "GT.txt", "# GT", 
-      //          Matrix.WriteFormat.CRS, velSize, myGT.colSize());
-      //    }
-      //    catch (Exception e) {
-      //    }
-      // }
    }
 
    private double computeForceResidual (

@@ -13,6 +13,7 @@ import maspack.util.*;
 import maspack.geometry.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
+import artisynth.core.driver.Main;
 
 /**
  * Information for a contact constraint formed by a single contact point.

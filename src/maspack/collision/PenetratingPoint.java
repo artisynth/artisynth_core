@@ -8,7 +8,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 
-public class ContactPenetratingPoint implements Comparable<ContactPenetratingPoint> {
+public class PenetratingPoint implements Comparable<PenetratingPoint> {
    // the vertex projected
    public Vertex3d vertex;
 
@@ -24,7 +24,7 @@ public class ContactPenetratingPoint implements Comparable<ContactPenetratingPoi
    public double distance; // distance from interpenetrating point to surface,
                            // in world coordinates
    
-   public ContactPenetratingPoint (
+   public PenetratingPoint (
       Vertex3d aVertex, Face opposingFace,
       Vector2d pointBarycentricCoords, Point3d nearestFacePoint,
       Vector3d dispToNearestFace) {
@@ -40,7 +40,7 @@ public class ContactPenetratingPoint implements Comparable<ContactPenetratingPoi
       }
    }
 
-   public ContactPenetratingPoint (
+   public PenetratingPoint (
       Vertex3d vertex, Vector3d normal, double distanceToSurface) {
       
       this.vertex = vertex;
@@ -53,7 +53,7 @@ public class ContactPenetratingPoint implements Comparable<ContactPenetratingPoi
    }
 
    @Override
-   public int compareTo(ContactPenetratingPoint o) {
+   public int compareTo(PenetratingPoint o) {
       if (this.distance < o.distance) {
          return -1;
       } else if (this.distance == o.distance) {
@@ -62,7 +62,7 @@ public class ContactPenetratingPoint implements Comparable<ContactPenetratingPoi
       return 1;
    }
    
-   public static class DistanceComparator implements Comparator<ContactPenetratingPoint> {
+   public static class DistanceComparator implements Comparator<PenetratingPoint> {
 
       private int one = 1;
       
@@ -82,7 +82,7 @@ public class ContactPenetratingPoint implements Comparable<ContactPenetratingPoi
       }
       
       @Override
-      public int compare(ContactPenetratingPoint o1, ContactPenetratingPoint o2) {
+      public int compare(PenetratingPoint o1, PenetratingPoint o2) {
          if (o1.distance > o2.distance) {
             return one;
          } else if (o1.distance < o2.distance) {
@@ -92,7 +92,27 @@ public class ContactPenetratingPoint implements Comparable<ContactPenetratingPoi
          }
       }
    }
-  
+
+   public static class IndexComparator
+      implements Comparator<PenetratingPoint> {
+
+      @Override
+      public int compare (
+         PenetratingPoint p0, PenetratingPoint p1) {
+
+         int idx0 = p0.vertex.getIndex();
+         int idx1 = p1.vertex.getIndex();
+         if (idx0 < idx1) {
+            return -1;
+         }
+         else if (idx0 == idx1) {
+            return 0;
+         }
+         else {
+            return 1;
+         }
+      }
+   }  
    
    public static DistanceComparator createMaxDistanceComparator() {
       return new DistanceComparator(true);

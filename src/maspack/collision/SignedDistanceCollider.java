@@ -23,7 +23,7 @@ public class SignedDistanceCollider implements AbstractCollider {
    
    // mesh0 is rigid/fixed, mesh1 is deformable.
    public ContactInfo getContacts (
-      PolygonalMesh mesh0, PolygonalMesh mesh1, boolean isRigidBodyRigidBody) {
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
       
       this.mesh0 = mesh0;
       this.mesh1 = mesh1;
@@ -79,8 +79,8 @@ public class SignedDistanceCollider implements AbstractCollider {
          if (distance <= 0) {
             if (!mesh0.meshToWorldIsIdentity())
                normal.transform (mesh0.getMeshToWorld());
-            contactInfo.points1.add (
-               new ContactPenetratingPoint (v1, normal, distance * -1.0));
+            contactInfo.myPoints1.add (
+               new PenetratingPoint (v1, normal, distance * -1.0));
          }
       }
       ContactInfo tmp = contactInfo;

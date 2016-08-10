@@ -20,7 +20,7 @@
 
 \title{Interfacing ArtiSynth to MATLAB and Jython}
 \author{John Lloyd}
-\setpubdate{March 7, 2015}
+\setpubdate{Last update: Aug 9, 2016}
 
 \iflatexml
 \date{}
@@ -895,22 +895,28 @@ Directions for setting {\tt ARTISYNTH\_PATH} are given in the
 "Environment variables" section of the {\it Installation Guide}.
 \end{sideblock}
 
-\subsection{Running scripts in batch mode}
+\subsection{Specifying scripts on the command line}
 \label{JythonBatchScripting:sec}
 
-It is possible to run ArtiSynth and execute a Jython script in "batch"
-mode, {\it without} starting the GUI or explicitly opening the Jython
-console.  This can be useful when running ArtiSynth remotely, or in
-parallel on a cluster of machines.
-
-To run a Jython script in batch mode, simply run ArtiSynth from the
-command line with the following options:
+It is possible to specify Jython scripts directly on the ArtiSynth
+command line using the {\tt -script} option. For example,
+%
+\begin{lstlisting}[]
+   artisynth -script experiment.py
+\end{lstlisting}
+%
+will start ArtiSynth and then immediately invoke the script {\tt
+experiment.py}. Scripts can also be run in "batch" mode, {\it without}
+starting the GUI or explicitly opening the Jython console.  This can
+be useful when running ArtiSynth remotely, or in parallel on a cluster
+of machines. To run a script in batch mode, simply 
+add the {\tt -noGui} command line option:
 %
 \begin{lstlisting}[]
    artisynth -noGui -script experiment.py
 \end{lstlisting}
 %
-Since there is no GUI, Jython will be initiated using a terminal
+Since there is no GUI, Jython will then be initiated using a terminal
 console instead of the usual GUI-based text window. When the script
 finishes, the console will remain available for interactive operation.
 
@@ -918,6 +924,25 @@ One may also simply start with a Jython console, with no initial script:
 %
 \begin{lstlisting}[]
    artisynth -noGui -showJythonConsole
+\end{lstlisting}
+%
+
+Finally, arguments may be passed to scripts invoked using {\tt
+-script}, by placing them immediately after the script specification,
+enclosed within square brackets {\tt [ ]}. For example,
+%
+\begin{lstlisting}[]
+   artisynth -script myscript.py [ -xxx 123 -off ]
+\end{lstlisting}
+%
+will pass the strings {\tt "-xxx"}, {\tt "123"} and {\tt "-off"} to
+the script {\tt myscript.py}. Scripts can retrieve arguments from
+{\tt sys.argv}:
+%
+\begin{lstlisting}[]
+   import sys
+   print('Number of arguments:' + str(len(sys.argv)))
+   print('Argument List:' + str(sys.argv)) 
 \end{lstlisting}
 %
 

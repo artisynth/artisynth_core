@@ -5,17 +5,17 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 
-import maspack.geometry.Face;
+import maspack.geometry.*;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.TriTriIntersection;
 import maspack.geometry.Vertex3d;
-import maspack.matrix.Point3d;
+import maspack.matrix.*;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
 
-public class ContactRegion {
+public class ContactPlane {
    // triangle triangle intersections
    public ArrayList<TriTriIntersection> intersections =
       new ArrayList<TriTriIntersection>();
@@ -26,10 +26,10 @@ public class ContactRegion {
 
    /*
     * contour is a list of edge-face intersection points representing a closed
-    * loop intersection between two opposing regions of mesh.
+    * loop intersection between two matching regions of mesh.
     */
-   public MeshIntersectionContour contour;
-
+   public IntersectionContour contour;
+   
    /* points is a subset of the contour points, reduced to a pseudo-convex hull. */
    public ArrayList<Point3d> points; // = new ArrayList<Point3d>();
 
@@ -38,8 +38,8 @@ public class ContactRegion {
     * coexist. The former requires points to be ArrayList<MeshIntersectionPoint>
     * and the latter requires points to be ArrayList<Point3d>
     */
-   public ArrayList<MeshIntersectionPoint> mPoints =
-      new ArrayList<MeshIntersectionPoint>();
+   public ArrayList<IntersectionPoint> mPoints =
+      new ArrayList<IntersectionPoint>();
 
    /*
     * normal and centroid define a plane which is an approximate fit to the
@@ -72,83 +72,124 @@ public class ContactRegion {
     * determining a normal.
     */
    private double epsilonPointTolerance = 1e-8;
-   private double sTotal0To1, sTotal;
 
-   /*
-    * This is set to false in compute() if the region is degenerate, ie. does
-    * not have enough information on which to base a collision response.
-    */
-   public boolean isValid = true;
-   public ContactInfo contactInfo;
-
-   public ContactRegion() {
+   public ContactPlane() {
    }
 
-   public ContactRegion (MeshIntersectionContour aContour,
-   ContactInfo aContactInfo, double pointTol) {
-      contour = aContour;
-      contactInfo = aContactInfo;
-      pointTolerance = pointTol;
-      compute();
-   }
+   double sTotal;
 
-   MeshIntersectionPoint getPoint (int i) { // Allow index wraparound.
-      if (i >= mPoints.size())
-         return mPoints.get (i - mPoints.size());
-      else
-         return mPoints.get (i);
-   }
-
-   MeshIntersectionPoint removePoint (int i) { // Allow index wraparound.
-      if (i >= mPoints.size())
-         return mPoints.remove (i - mPoints.size());
-      else
-         return mPoints.remove (i);
-   }
-
-   void compute() {
-      /*
-       * Remove contour points that are closer than pointTolerance to a
-       * neighbour
-       */
-      MeshIntersectionPoint p1;
-      Vector3d dist = new Vector3d();
-      p1 = contour.get (contour.size() - 1); // last point -- it's a
-                                             // neighbour of the first.
-      for (MeshIntersectionPoint mip : contour) {
-         dist.sub (p1, mip);
-         if (dist.norm() >= epsilonPointTolerance) {
-            mPoints.add (mip);
-            p1 = mip;
+//   public boolean build (MeshIntersectionContour aContour, double pointTol) {
+//      if (aContour.isClosed && aContour.size() > 1) {
+//         contour = aContour;
+//         pointTolerance = pointTol;
+//         PenetrationRegion region0 = new PenetrationRegion();
+//         PenetrationRegion region1 = new PenetrationRegion();
+//         region0.setInsideVertices (aContour.insideVertices0);
+//         region1.setInsideVertices (aContour.insideVertices1);
+//         region0.setInsideFaces (aContour.insideFaces0);
+//         region1.setInsideFaces (aContour.insideFaces1);
+//         return compute(region0, region1);
+//      }
+//      else {
+//         return false;
+//      }
+//   }
+//
+   public boolean build (
+      PenetrationRegion region0, PenetrationRegion region1, double pointTol) {
+      contour = null;
+      if (region0.myContours.size() == 1) {
+         IntersectionContour c = region0.getFirstContour();
+         if (c.isClosed && c.size() > 1) {
+            contour = region0.getFirstContour();
          }
       }
-
-      if (mPoints.isEmpty()) {
-         points = new ArrayList<Point3d>();
-         return;
+      else {
+         Vector3d areaVec = new Vector3d();
+         Vector3d centroid = new Vector3d();
+         double maxa = 0;
+         IntersectionContour maxc = null;
+         for (IntersectionContour c : region0.myContours) {
+            if (c.isClosed && c.size() >= 3) {
+               c.fitPlane (areaVec, centroid, pointTol);
+               double a = areaVec.norm();
+               if (a > maxa) {
+                  maxc = c;
+                  maxa = a;
+               }
+            }
+         }
+         if (maxc == null) {
+            for (IntersectionContour c : region0.myContours) {
+               if (c.isClosed && c.size() > 1) {
+                  maxc = c;
+                  break;
+               }
+            }            
+         }
+         if (maxc != null) {
+            contour = maxc;
+         }
       }
-
-      /* Compute the centroid of all the points. */
-      for (MeshIntersectionPoint mip : mPoints)
-         centroid.add (mip);
-      centroid.scale (1.0d / mPoints.size());
-
-      normal = new Vector3d();
-      int v0s = contour.insideVertices0.size();
-      int v1s = contour.insideVertices1.size();
-      int vTot = v0s + v1s;
-
-      if (mPoints.size() >= 3) {
-         // Fit a plane to the contour.
-         normalContact();
+      pointTolerance = pointTol;
+      if (contour != null) {
+         return compute(region0, region1);
       }
       else {
-         if ((v0s == 0 | v1s == 0) & (vTot == 1 | vTot == 2)) {
-            vertexFaceContact();
+         return false;
+      }
+   }
+   
+   public ContactPlane (
+      PenetrationRegion region0, PenetrationRegion region1, double pointTol) {
+      build (region0, region1, pointTol);
+   }
+
+   double turn (Point3d p0, Point3d p1, Point3d p2, Vector3d nrm) {
+      Vector3d del01 = new Vector3d();
+      Vector3d del12 = new Vector3d();
+      Vector3d xprod = new Vector3d();
+
+      del01.sub (p1, p0);
+      del12.sub (p2, p1);
+      xprod.cross (del01, del12);
+      return xprod.dot (nrm);
+   }
+
+   boolean compute (PenetrationRegion region0, PenetrationRegion region1) {
+
+      Vector3d areaVec = new Vector3d();
+      mPoints = contour.fitPlane (areaVec, centroid, epsilonPointTolerance);
+
+      if (mPoints.size() == 0) {
+         points = new ArrayList<Point3d>();
+         return false;
+      }
+      normal = new Vector3d();
+
+      if (mPoints.size() >= 3) {
+         normal.normalize (areaVec);
+         //normal.negate();
+         // Fit a plane to the contour.
+         if (!normalContact (region0, region1)) {
+            return false;
+         }
+      }
+      else {
+         int v0s = region0.numInsideVertices();
+         int v1s = region1.numInsideVertices();
+         int vTot = v0s + v1s;
+    
+         if ((v0s == 0 || v1s == 0) & (vTot == 1 || vTot == 2)) {
+            if (!vertexFaceContact(region0, region1)) {
+               return false;
+            }
          }
          else {
             if (vTot == 0) {
-               edgeEdgeContact();
+               if (!edgeEdgeContact(region0, region1)) {
+                  return false;
+               }
             }
             else {
                /*
@@ -159,12 +200,9 @@ public class ContactRegion {
                 */
                System.out.println (
                   "non-edge-edge contact with v0s=" + v0s +
-                  " v1s=" + v1s + " f0s=" + contour.insideFaces0.size() +
-                  " f1s=" + contour.insideFaces1.size());
-               isValid = false;
-               // throw new InternalErrorException("non-edge-edge contact with
-               // v0s="+v0s+" v1s="+v1s+" f0s="+faces0.size()+"
-               // f1s="+faces1.size());
+                  " v1s=" + v1s + " f0s=" + region0.numInsideFaces() +
+                  " f1s=" + region1.numInsideFaces());
+               return false;
             }
          }
       }
@@ -177,10 +215,11 @@ public class ContactRegion {
       depth *= 0.5;
 
       /* Filter the points to remove one of any pair closer than pointTolerance. */
+      Vector3d dist = new Vector3d();
       points = new ArrayList<Point3d>();
-      p1 = mPoints.get (mPoints.size() - 1); // last point -- it's a
+      Point3d p1 = mPoints.get (mPoints.size() - 1); // last point -- it's a
                                              // neighbour of the first.
-      for (MeshIntersectionPoint mip : mPoints) {
+      for (IntersectionPoint mip : mPoints) {
          dist.sub (p1, mip);
          if (dist.norm() >= pointTolerance) {
             points.add (mip);
@@ -191,15 +230,17 @@ public class ContactRegion {
       if (points.size() == 0) {
          points.add (centroid);
       }
+      return true;
    }
 
    /*
     * Handle the case where there are insufficient contact points in the contour
     * to define a plane. and there are no penetrating vertices in either region.
     */
-   void edgeEdgeContact() {
+   boolean edgeEdgeContact (
+      PenetrationRegion region0, PenetrationRegion region1) {
       HashSet<HalfEdge> edges = new HashSet<HalfEdge>();
-      for (MeshIntersectionPoint mip : contour)
+      for (IntersectionPoint mip : contour)
          edges.add (mip.edge);
       if (edges.size() != 2) {
          /*
@@ -212,8 +253,7 @@ public class ContactRegion {
          // printDiagnostics(vertices0, vertices1);
          // throw new InternalErrorException("unknown contact type: edge-edge
          // with "+edges.size()+" edges");
-         isValid = false;
-         return;
+         return false;
       }
       HalfEdge edge0, edge1;
       Iterator<HalfEdge> itr = edges.iterator();
@@ -234,8 +274,9 @@ public class ContactRegion {
       vedge0.cross (vedge0, vedge1);
       depth = Math.abs (c.dot (vedge0)) / vedge0.norm();
       minProjectedDistance = maxProjectedDistance = 0;
-      checkNormalDirection (contour.insideFaces0, contour.insideFaces1);
-      return;
+      checkNormalDirection (
+         region0.getInsideFaces(), region1.getInsideFaces());
+      return true;
    }
 
    /*
@@ -252,26 +293,29 @@ public class ContactRegion {
    void checkNormalDirection (
       LinkedHashSet<Face> faces0, LinkedHashSet<Face> faces1) {
       Vector3d tmp = new Vector3d(), tot = new Vector3d();
-      MeshIntersectionPoint c0 = contour.get (contour.size() - 1);
+      IntersectionPoint c0 = contour.get (contour.size()-1);
       /*
        * Find each pair of interlocking triangles, one from each region, and add
        * its contribution to the total.
        */
-      for (MeshIntersectionPoint c1 : contour) {
-         if (c0.edgeRegion != c1.edgeRegion) {
+      for (IntersectionPoint c1 : contour) {
+         if (c0.edgeOnMesh0 != c1.edgeOnMesh0) {
             tmp.sub (c1, c0);
             // edgeRegion=true ==> edge is mesh0, face is mesh1,
             // c0 is in interior of a face in mesh1, c1 is in interior of a face
             // in mesh0
-            if (c0.edgeRegion)
+            if (c0.edgeOnMesh0) {
                tot.add (tmp);
-            else
+            }
+            else {
                tot.sub (tmp);
+            }
          }
          c0 = c1;
       }
-      if (normal.dot (tot) < 0)
+      if (normal.dot (tot) < 0) {
          negateNormal();
+      }
    }
 
    /*
@@ -279,17 +323,18 @@ public class ContactRegion {
     * to define a plane. and one region has 1 or 2 penetrating vertices while
     * the other region has none.
     */
-   void vertexFaceContact() {
+   boolean vertexFaceContact(
+      PenetrationRegion region0, PenetrationRegion region1) {
       LinkedHashSet<Face> fs;
-      ArrayList<Vertex3d> vs;
+      LinkedHashSet<Vertex3d> vs;
 
-      if (contour.insideVertices0.size() > 0) {
-         vs = contour.insideVertices0;
-         fs = contour.insideFaces1;
+      if (region0.numInsideVertices() > 0) {
+         vs = region0.myInsideVertices;
+         fs = region1.getInsideFaces();
       }
       else {
-         vs = contour.insideVertices1;
-         fs = contour.insideFaces0;
+         vs = region1.myInsideVertices;
+         fs = region0.getInsideFaces();
       }
       depth = 0;
       for (Vertex3d v : vs) {
@@ -306,35 +351,15 @@ public class ContactRegion {
          depth = Math.max (depth, d);
          minProjectedDistance = maxProjectedDistance = 0;
       }
+      return true;
    }
 
    /*
     * Handle the case where there are enough contact points in the contour to
     * define a plane.
     */
-   void normalContact() {
-      /* For each point calculate a radius vector from the centroid to the point */
-      for (MeshIntersectionPoint mip : mPoints) {
-         mip.radiusVector = new Vector3d();
-         mip.radiusVector.sub (mip, centroid);
-      }
-      /*
-       * Fit a plane to the points. Plane goes through the centroid. Plane
-       * normal is the average of the cross products of vectors from the
-       * centroid to neighbouring points.
-       */
-      Vector3d cp = new Vector3d();
-      int pSize = mPoints.size();
-      MeshIntersectionPoint pLast = mPoints.get (pSize - 1);
-      for (int i = 0; i < pSize; i++) {
-         MeshIntersectionPoint pThis = mPoints.get (i);
-         cp.cross (pThis.radiusVector, pLast.radiusVector);
-         normal.add (cp);
-         pThis.radiusArea = cp.norm(); // Use this area later to detect &
-                                       // remove concavities in the contour.
-         pLast = pThis;
-      }
-      normal.normalize();
+   boolean normalContact(
+      PenetrationRegion region0, PenetrationRegion region1) {
 
       /*
        * Project each point into the plane. Calculate the radius of the
@@ -344,16 +369,18 @@ public class ContactRegion {
        * removed from the contour.
        */
       Point3d proj = new Point3d();
-      for (MeshIntersectionPoint mip : mPoints) {
+      for (IntersectionPoint mip : mPoints) {
          proj.sub (mip, centroid);
          double s = proj.dot (normal); // signed distance from plane to the mip
                                        // along normal
-         if (s < minProjectedDistance)
+         if (s < minProjectedDistance) {
             minProjectedDistance = s;
-         if (s > maxProjectedDistance)
+         }
+         if (s > maxProjectedDistance) {
             maxProjectedDistance = s;
+         }
          proj.scaledAdd (-s, normal);
-         mip.radius = proj.norm();
+         //mip.radius = proj.norm();
       }
 
       /*
@@ -363,30 +390,27 @@ public class ContactRegion {
       depth = maxProjectedDistance - minProjectedDistance;
 
       /*
-       * Remove concave points to make the points a convex hull. A point is
-       * concave if the area of the triangle formed by the centroid and the
-       * point's two neighbours is larger than the sum of the areas of the two
-       * triangles formed by the point with the centroid and each of its two
-       * neighbours.
+       * Remove concave points to make the points a convex hull. A point p1 is
+       * concave with respect to the preceding and following points p0 and p2
+       * if the point sequence p0, p1, p2 forms a right turn with respect to
+       * the normal.
        */
       boolean removedPoint;
+      Vector3d xprod = new Vector3d();
       do {
          removedPoint = false;
-         MeshIntersectionPoint p1;
-         MeshIntersectionPoint p2 = mPoints.get (0);
-         MeshIntersectionPoint p3 = mPoints.get (1);
+         IntersectionPoint p0;
+         IntersectionPoint p1 = mPoints.get (0);
+         IntersectionPoint p2 = mPoints.get (1);
          int i = 2;
          for (int k = 1; k <= mPoints.size(); k++) {
+            p0 = p1;
             p1 = p2;
-            p2 = p3;
-            p3 = getPoint (i);
-            cp.cross (p3.radiusVector, p1.radiusVector);
-            double combinedArea = cp.norm();
-            if (combinedArea > (p3.radiusArea + p2.radiusArea)) {
-               removePoint (i - 1);
-               p3.radiusArea = combinedArea;
+            p2 = mPoints.get (i%mPoints.size());
+            if (turn (p0, p1, p2, normal) < 0) {
+               mPoints.remove ((i-1)%mPoints.size());
                removedPoint = true;
-               p2 = p1;
+               p1 = p0;              
             }
             else {
                i++;
@@ -394,53 +418,74 @@ public class ContactRegion {
          }
       }
       while (removedPoint);
+      
       /*
        * Adjust depth so it is greater than or equal to the maximum distance
        * from a vertex of either region to the opposing face of that vertex.
        * 
-       * Also try to figure out which way the normal should point. It's required
-       * by RigidBodyContact to point in the direction of the force to be
-       * applied to mesh0 to stop it from penetrating mesh1. For pathological
-       * contours this may be ambiguous, but in the simple case where the
-       * contour fits well to a plane, the ContactRegion normal should point
-       * from the penetrating vertices of mesh0 to the opposing faces of mesh1.
+       * Also try to figure out which way the normal should point. It's
+       * required by RigidBodyContact to point in the direction of the force to
+       * be applied to mesh0 to stop it from penetrating mesh1. For
+       * pathological contours this may be ambiguous, but in the simple case
+       * where the contour fits well to a plane, the ContactRegion normal
+       * should point from the penetrating vertices of mesh0 to the opposing
+       * faces of mesh1.
        * 
        * If the contour is too confusing to distinguish a direction then throw
        * an error.
        */
-      if (contour.insideVertices0.size() + contour.insideVertices1.size() == 0) {
-         checkNormalDirection (contour.insideFaces0, contour.insideFaces1);
+      if (region0.numInsideVertices() + region1.numInsideVertices() == 0) {
+         checkNormalDirection (
+            region0.getInsideFaces(), region1.getInsideFaces());
       }
       else {
-         sTotal = 0;
-         for (Vertex3d v : contour.insideVertices0)
-            for (Face f : contour.insideFaces1)
-               checkDistanceToFace (v.getWorldPoint(), f);
-         sTotal0To1 = sTotal;
-         if (sTotal0To1 < 0)
+         double dTotal = 0;
+         BVFeatureQuery query = new BVFeatureQuery();
+         Point3d wpnt = new Point3d();
+         Point3d nearest = new Point3d();
+         Vector2d coords = new Vector2d();
+         Vector3d diff = new Vector3d();
+         
+         for (Vertex3d v : region0.myInsideVertices) {
+            v.getWorldPoint (wpnt);
+            if (query.isInsideOrientedMesh (region1.myMesh, wpnt, 0)) {
+               query.getFaceForInsideOrientedTest (nearest, coords);
+               region1.myMesh.transformToWorld (nearest);
+               diff.sub (wpnt, nearest);
+               
+               double d = diff.dot(normal);
+               dTotal += d;
+               if (d < 0) {
+                  d = -d;
+               }
+               if (d > depth) {
+                  depth = d;
+               }
+            }               
+         }
+         
+         for (Vertex3d v : region1.myInsideVertices) {
+            v.getWorldPoint (wpnt);
+            if (query.isInsideOrientedMesh (region0.myMesh, wpnt, 0)) {
+               query.getFaceForInsideOrientedTest (nearest, coords);
+               region0.myMesh.transformToWorld (nearest);
+               diff.sub (wpnt, nearest);
+
+               double d = diff.dot(normal);
+               dTotal -= d;
+               if (d < 0) {
+                  d = -d;
+               }
+               if (d > depth) {
+                  depth = d;
+               }
+            }               
+         }
+         if (dTotal > 0) {
             negateNormal();
-         sTotal = 0;
-         for (Vertex3d v : contour.insideVertices1)
-            for (Face f : contour.insideFaces0)
-               checkDistanceToFace (v.getWorldPoint(), f);
-         if (sTotal > 0) {
-            // 0 to 1 direction should now be opposite to the normal,
-            // ie. sTotal < 0
-            if (sTotal0To1 < 0) {
-               System.out.println (
-                  "ambiguous collision normal - 0 to 1: " + sTotal0To1 +
-                  " - 1 to 0: " + sTotal);
-               isValid = false;
-               /*
-                * contour.collider.dumpScenario(contour);
-                * contour.collider.dumpMeshes(); throw new
-                * InternalErrorException("ambiguous collision normal - 0 to 1:
-                * "+sTotal0To1+" - 1 to 0: "+sTotal);
-                */
-            }
-            negateNormal(); // normal should point from mesh1 to mesh0
          }
       }
+      return true;
    }
 
    void negateNormal() {

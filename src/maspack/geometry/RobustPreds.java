@@ -13,7 +13,7 @@ import maspack.matrix.Vector3d;
 public class RobustPreds {
    private static boolean nativeSupportLoaded = false;
 
-   public static void initialize() {
+   private static void initialize() {
 //      try {
 //	 System.out.println("loading GetCW");
 //         System.loadLibrary ("GetCW");
@@ -47,23 +47,39 @@ public class RobustPreds {
 //      System.out.println("Current CW: " + jniGetCW() );
    }
 
-   public static boolean isInitialized() {
+   private static boolean isInitialized() {
       return nativeSupportLoaded;
    }
 
    public static boolean orient3d (
-      Vertex3d v0, Vertex3d v1, Vertex3d v2, Vertex3d v3) {
+      Vertex3d v0, Vertex3d v1, Vertex3d v2, Vertex3d v3, 
+      boolean v3OnMesh0) {
       Point3d p0 = v0.getWorldPoint();
       Point3d p1 = v1.getWorldPoint();
       Point3d p2 = v2.getWorldPoint();
       Point3d p3 = v3.getWorldPoint();
 
+      int i0 = v0.getIndex();
+      int i1 = v1.getIndex();
+      int i2 = v2.getIndex();
+      int i3 = v3.getIndex();
+      if (v3OnMesh0) {
+         int numv = v0.getMesh().numVertices();
+         i0 += numv;
+      }
+      else {
+         int numv = v3.getMesh().numVertices();
+         i1 += numv;
+         i2 += numv;
+         i3 += numv;
+      }
+      
       if (!nativeSupportLoaded)
          initialize();
       int result =
          jniOrient3d (
-            v0.uniqueIndex, p0.x, p0.y, p0.z, v1.uniqueIndex, p1.x, p1.y, p1.z,
-            v2.uniqueIndex, p2.x, p2.y, p2.z, v3.uniqueIndex, p3.x, p3.y, p3.z);
+            i0, p0.x, p0.y, p0.z, i1, p1.x, p1.y, p1.z,
+            i2, p2.x, p2.y, p2.z, i3, p3.x, p3.y, p3.z);
       //System.out.println("Current CW: " + jniGetCW() );
       if (result < 0)
          throw new RuntimeException ("RobustPreds failed with rc=" + result);
@@ -71,7 +87,7 @@ public class RobustPreds {
    }
 
    public static boolean intersectEdgeFace (
-      HalfEdge edge, Face face, Point3d intersectionPoint) {
+      HalfEdge edge, Face face, Point3d intersectionPoint, boolean edgeOnMesh0) {
       // if (!edge.isPrimary()) throw new RuntimeException("non-primary edge");
       Vertex3d seg0, seg1, tri0, tri1, tri2;
       Point3d ps0, ps1, pt0, pt1, pt2;
@@ -89,11 +105,41 @@ public class RobustPreds {
       pt2 = tri2.getWorldPoint();
       if (!nativeSupportLoaded)
          initialize();
+
+      int is0 = seg0.getIndex();
+      int is1 = seg1.getIndex();
+      int it0 = tri0.getIndex();
+      int it1 = tri1.getIndex();
+      int it2 = tri2.getIndex();
+      if (edgeOnMesh0) {
+         int numv1 = tri0.getMesh().numVertices();
+         is0 += numv1;
+         is1 += numv1;
+      }
+      else {
+         int numv0 = seg0.getMesh().numVertices();
+         it0 += numv0;
+         it1 += numv0;
+         it2 += numv0;         
+      }
+//      MeshBase mesh0 = seg0.getMesh();
+//      MeshBase mesh1 = tri0.getMesh();
+//      if (mesh0First && mesh1.getVertex(0).uniqueIndex != 0) {
+//         (new Throwable()).printStackTrace();
+//         System.out.println ("XXX " + mesh0.getVertex(0).uniqueIndex + 
+//            " " + mesh1.getVertex(0).uniqueIndex);        
+//      }
+      
+//      int is0 = seg0.uniqueIndex;
+//      int is1 = seg1.uniqueIndex;
+//      int it0 = tri0.uniqueIndex;
+//      int it1 = tri1.uniqueIndex;
+//      int it2 = tri2.uniqueIndex;
       int rc =
          jniIntersectSegmentTriangle (
-            seg0.uniqueIndex, ps0.x, ps0.y, ps0.z, seg1.uniqueIndex, ps1.x,
-            ps1.y, ps1.z, tri0.uniqueIndex, pt0.x, pt0.y, pt0.z,
-            tri1.uniqueIndex, pt1.x, pt1.y, pt1.z, tri2.uniqueIndex, pt2.x,
+            is0, ps0.x, ps0.y, ps0.z, is1, ps1.x,
+            ps1.y, ps1.z, it0, pt0.x, pt0.y, pt0.z,
+            it1, pt1.x, pt1.y, pt1.z, it2, pt2.x,
             pt2.y, pt2.z, intersectionPoint);
       //System.out.println("Current CW: " + jniGetCW() );
       /*
@@ -159,20 +205,20 @@ public class RobustPreds {
    }
 
 //   public static native int jniGetCW();
-   public static native int jniInit (Point3d p);
+   private static native int jniInit (Point3d p);
 
-   public static native int jniOrient3d (
+   private static native int jniOrient3d (
       int i0, double p0x, double p0y, double p0z, int i1, double p1x,
       double p1y, double p1z, int i2, double p2x, double p2y, double p2z,
       int i3, double p3x, double p3y, double p3z);
 
-   public static native int jniIntersectSegmentTriangle (
+   private static native int jniIntersectSegmentTriangle (
       int is0, double s0x, double s0y, double s0z, int is1, double s1x,
       double s1y, double s1z, int it0, double t0x, double t0y, double t0z,
       int it1, double t1x, double t1y, double t1z, int it2, double t2x,
       double t2y, double t2z, Point3d p);
 
-   public static native int jniClosestIntersection (
+   private static native int jniClosestIntersection (
       double ax, double ay, double az, double bx, double by, double bz,
       double c0x, double c0y, double c0z, double c1x, double c1y, double c1z,
       double c2x, double c2y, double c2z, double d0x, double d0y, double d0z,
@@ -186,7 +232,7 @@ public class RobustPreds {
 
       initialize();
 
-      Vector3d p3 = new Vector3d (-1, 0, 1);
+      Vector3d p3 = new Vector3d (-1, 0, 0);
       int result =
          jniOrient3d (
             1, p0.x, p0.y, p0.z, 2, p1.x, p1.y, p1.z, 3, p2.x, p2.y, p2.z, 4,

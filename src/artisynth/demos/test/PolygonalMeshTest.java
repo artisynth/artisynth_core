@@ -12,6 +12,7 @@ import artisynth.core.util.*;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.collision.*;
 import maspack.properties.*;
 
 public class PolygonalMeshTest extends MeshTestBase {
@@ -66,8 +67,21 @@ public class PolygonalMeshTest extends MeshTestBase {
       MechModel msmod = new MechModel ("msmod");
       PolygonalMesh mesh = null;
 
-      mesh = MeshFactory.createSphere (/*radius=*/2.0, /*nsegs=*/24);
+      //mesh = MeshFactory.createSphere (/*radius=*/2.0, /*nsegs=*/24);
+      
       //mesh = readBoxMesh();
+      mesh = SurfaceMeshIntersectorTest.createLegoMesh (
+         1.0, 1.0, 0.1,
+         "XXXXXXXXXX",
+         "X        X",
+         "X XXXXXX X",
+         "X X    X X",
+         "X X XX X X",
+         "X X    X X",
+         "X XXXXXX X",
+         "X        X",
+         "X        X",
+         "XXXXXXXXXX");
 
       myMesh = mesh;
 

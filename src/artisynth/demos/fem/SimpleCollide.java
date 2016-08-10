@@ -28,6 +28,7 @@ import artisynth.core.gui.ControlPanel;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.CollisionManager;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ModelComponent;
@@ -550,6 +551,12 @@ public class SimpleCollide extends RootModel {
       // mySeparation = 1.09;
       // mySeparation = .615;
 
+      CollisionManager cm = mechMod.getCollisionManager();
+      cm.setDrawIntersectionContours(true);
+      RenderProps.setEdgeWidth (cm, 2);
+      RenderProps.setEdgeColor (cm, Color.YELLOW);
+      RenderProps.setVisible (cm, true);
+
       setTopObject (ObjectType.FemEllipsoid);
       setBottomObject (ObjectType.Box);
 
@@ -595,7 +602,7 @@ public class SimpleCollide extends RootModel {
 //
       iprobe.setActive (true);
       addInputProbe (iprobe);
-
+      addBreakPoint (1.34);
    }
 
    public void attach (DriverInterface driver) {

@@ -20,7 +20,6 @@ public class EdgeEdgeContact {
     */
    public Vector3d point1ToPoint0Normal = new Vector3d();
    public double displacement;
-   public SurfaceMeshCollider collider;
 
    // fraction along line segment from tail to head, of point0 and point1.
    public double s0, s1;
@@ -28,16 +27,16 @@ public class EdgeEdgeContact {
    // work vector
    Vector3d w = new Vector3d();
 
-   public EdgeEdgeContact (SurfaceMeshCollider aCollider) {
-      collider = aCollider;
+   public EdgeEdgeContact () {
       point0 = new Point3d();
       point1 = new Point3d();
    }
 
-   public boolean calculate (HalfEdge e0, HalfEdge e1) {
+   public boolean calculate (
+      SurfaceMeshCollider collider, HalfEdge e0, HalfEdge e1) {
       edge0 = e0;
       edge1 = e1;
-      return calculate();
+      return calculate(collider);
    }
 
    static double insideLim = 0.25;
@@ -47,13 +46,15 @@ public class EdgeEdgeContact {
     * which means close to being inside a volume swept by translating the face
     * along its normal.
     */
-   boolean isPointInsideFace (Point3d p, Face f) {
-      collider.getNearestPoint (f, p);
-      Point3d pointToFace = collider.nearesttmp;
-      pointToFace.sub (p);
-      if (pointToFace.dot (pointToFace) == 0)
+   boolean isPointInsideFace (
+      SurfaceMeshCollider collider, Point3d p, Face f) {
+      Point3d nearest = new Point3d();
+      collider.getNearestPoint (nearest, f, p);
+      nearest.sub (p);
+      if (nearest.dot (nearest) == 0) {
          return true;
-      double x = pointToFace.angle (f.getWorldNormal());
+      }
+      double x = nearest.angle (f.getWorldNormal());
       return x < insideLim;
    }
 
@@ -64,7 +65,7 @@ public class EdgeEdgeContact {
     * (between their vertices). Then at least one of these points must be on the
     * inside of both faces adjacent to the other edge.
     */
-   public boolean calculate() {
+   public boolean calculate(SurfaceMeshCollider collider) {
       Point3d p0 = edge0.tail.getWorldPoint();
       point0.sub (edge0.head.getWorldPoint(), p0);
       // temp value of point0 = direction vector of edge0
@@ -79,24 +80,27 @@ public class EdgeEdgeContact {
       double a = point0.dot (point0), b = point0.dot (point1), c =
          point1.dot (point1), d = point0.dot (w), e = point1.dot (w);
       double f = (a * c) - (b * b);
-      if (f == 0)
+      if (f == 0) {
          return false;
+      }
       s0 = ((b * e) - (c * d)) / f;
-      if (s0 < 0 | s0 > 1)
+      if (s0 < 0 | s0 > 1) {
          return false;
+      }
       s1 = ((a * e) - (b * d)) / f;
-      if (s1 < 0 | s1 > 1)
+      if (s1 < 0 | s1 > 1) {
          return false;
+      }
       point0.scale (s0);
       point0.add (p0);
       point1.scale (s1);
       point1.add (p1);
-      if (!((isPointInsideFace (point0, edge1.getFace()) &
-             isPointInsideFace (point0, edge1.opposite.getFace())) |
-            (isPointInsideFace (point1, edge0.getFace()) &
-             isPointInsideFace (point1, edge0.opposite.getFace()))))
+      if (!((isPointInsideFace (collider, point0, edge1.getFace()) &&
+             isPointInsideFace (collider, point0, edge1.opposite.getFace())) ||
+            (isPointInsideFace (collider, point1, edge0.getFace()) &&
+             isPointInsideFace (collider, point1, edge0.opposite.getFace())))) {
          return false;
-
+      }
       /*
        * Use the cross product of the two edge directions to set the direction
        * of the point0ToPoint1 vector, instead of point1 - point0, to prevent
@@ -104,8 +108,9 @@ public class EdgeEdgeContact {
        */
       w.sub (point0, point1);
       displacement = w.norm();
-      if (w.dot (point1ToPoint0Normal) < 0)
+      if (w.dot (point1ToPoint0Normal) < 0) {
          point1ToPoint0Normal.negate();
+      }
       return true;
    }
 

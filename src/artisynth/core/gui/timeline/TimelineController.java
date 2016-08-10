@@ -511,9 +511,9 @@ public class TimelineController extends Timeline
       return probeTrackHeight;
    }
 
-   public void updateWidgets (boolean refreshCursor) {
+   private void updateWidgets (RootModel rootModel, boolean refreshCursor) {
       double t = getCurrentTime();
-      updateProbesAndWaypoints();
+      updateProbesAndWaypoints(rootModel);
       
       myToolBar.updateToolbarState();
       setAllWaypointDisplay();
@@ -526,7 +526,7 @@ public class TimelineController extends Timeline
       setAllMutable (!myScheduler.isPlaying());
    }
 
-   public void updateDisplay() {
+   private void updateDisplay() {
       timelinePane.revalidate();
       workspacePane.revalidate();
       repaintVisibleWindow();
@@ -546,11 +546,15 @@ public class TimelineController extends Timeline
 //         if ((myCode & REFRESH_COMPONENTS) == REFRESH_COMPONENTS) {
 //            resetAll();
 //         }
-         if ((myCode & REFRESH_WIDGETS) == REFRESH_WIDGETS) {
-            updateWidgets (refreshCursor);
-         }
-         if ((myCode & REFRESH_DISPLAY) == REFRESH_DISPLAY) {
-            updateDisplay();
+         // 
+         RootModel rootModel = myMain.getRootModel();
+         if (rootModel != null) {
+            if ((myCode & REFRESH_WIDGETS) == REFRESH_WIDGETS) {
+               updateWidgets (rootModel, refreshCursor);
+            }
+            if ((myCode & REFRESH_DISPLAY) == REFRESH_DISPLAY) {
+               updateDisplay();
+            }
          }
       }
    }
@@ -759,6 +763,7 @@ public class TimelineController extends Timeline
       // Assume that caller has ensured the scheduler is not running
       //myScheduler.stopRequest();
       //myScheduler.waitForPlayingToStop();
+      RootModel rootModel = myMain.getRootModel();
 
       int count = myInTracks.size();
       for (int i = 0; i < count; i++) {
@@ -774,12 +779,12 @@ public class TimelineController extends Timeline
       Track suitableTrack;
 
       // Process all the input probes into proper places
-      for (Probe p : myMain.getRootModel().getInputProbes()) {
+      for (Probe p : rootModel.getInputProbes()) {
          addProbe (p);
       }
 
       // Process all the output probes into proper places
-      for (Probe p : myMain.getRootModel().getOutputProbes()) {
+      for (Probe p : rootModel.getOutputProbes()) {
          if (!(p instanceof WayPointProbe)) {
             addProbe (p);
          }
@@ -802,7 +807,7 @@ public class TimelineController extends Timeline
       expandToggle.setSelected (false);
       muteToggle.setSelected (false);
       
-      updateWidgets (/*refreshCursor=*/true);
+      updateWidgets (rootModel, /*refreshCursor=*/true);
       updateDisplay();
       //requestUpdate (UPDATE_WIDGETS | REFRESH_CURSOR);
    }
@@ -973,12 +978,12 @@ public class TimelineController extends Timeline
     * 
     * @return true if probes needed updating, false otherwise.
     */   
-   public boolean updateProbesAndWaypoints () {
+   public boolean updateProbesAndWaypoints (RootModel rootModel) {
       boolean updateWasNeeded = false;
       for (ProbeInfo info : myProbeMap.values()) {
          info.myMark = true;
       }
-      for (Probe p : myMain.getRootModel().getInputProbes()) {
+      for (Probe p : rootModel.getInputProbes()) {
          ProbeInfo info = myProbeMap.get(p);
          if (info != null) {
             info.myMark = false;
@@ -988,7 +993,7 @@ public class TimelineController extends Timeline
             updateWasNeeded = true;
          }
       }
-      for (Probe p : myMain.getRootModel().getOutputProbes()) {
+      for (Probe p : rootModel.getOutputProbes()) {
          ProbeInfo info = myProbeMap.get(p);
          if (info != null) {
             info.myMark = false;

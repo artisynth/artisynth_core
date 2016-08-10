@@ -1,6 +1,6 @@
 package maspack.collision;
 
-import maspack.collision.MeshIntersectionPoint;
+import maspack.collision.IntersectionPoint;
 import maspack.geometry.BVNode;
 import maspack.geometry.BVTree;
 import maspack.geometry.Boundable;
@@ -33,8 +33,8 @@ public class SurfaceMeshContourIxer {
    public PolygonalMesh mesh1;
    
    // Avoid repeating edge/face collision checks (expensive)
-   HashMap<EdgeFacePair, MeshIntersectionPoint> 
-      mySavedEdgeFaceResults = new HashMap<EdgeFacePair, MeshIntersectionPoint>(); 
+   HashMap<EdgeFacePair, IntersectionPoint> 
+      mySavedEdgeFaceResults = new HashMap<EdgeFacePair, IntersectionPoint>(); 
    
    private final boolean myHandleDegen = true; 
    
@@ -48,20 +48,6 @@ public class SurfaceMeshContourIxer {
 
    public SurfaceMeshContourIxer () {
    }
-   
-   /**
-    * Call this method to change how this class handles degenerate intersection cases
-    * that it detects. By default, it is true. If true, upon detection of a degenerate 
-    * case, vertices of the two faces in question will be perturbed slightly, and the 
-    * intersection code will attempt to run again, until all degenerate cases are resolved.
-    * This behaviour might be undesirable, and in this case, you can call setHandleDegen(false) 
-    * to disable it
-    * 
-    * @param handle true if degenerate cases should be handled by perturbation, false otherwise.
-    */
-   //public void setHandleDegen (boolean handle) {
-   //   myHandleDegen = handle;
-   //}
    
    public List<IntersectionContour> getContours () {
       return myContours;
@@ -94,7 +80,7 @@ public class SurfaceMeshContourIxer {
       if (!mesh0.isTriangular() | !mesh1.isTriangular())
          throw new IllegalArgumentException ("collision with non-triangular mesh");
 
-      ArrayList<MeshIntersectionPoint> allMips = new ArrayList<MeshIntersectionPoint>();
+      ArrayList<IntersectionPoint> allMips = new ArrayList<IntersectionPoint>();
       // Try getting allMips continuously until no DegenerateCases are caught
       boolean intersected;
       int exceptCntr = 0;
@@ -156,7 +142,7 @@ public class SurfaceMeshContourIxer {
     */
    protected void buildContours (
             List<IntersectionContour> contours, 
-            ArrayList<MeshIntersectionPoint> mips) throws DegenerateLoopCaseException{
+            ArrayList<IntersectionPoint> mips) throws DegenerateLoopCaseException{
       while (mips.size() > 0) {
          //try {
             IntersectionContour contour = getOneContour (mips);
@@ -191,17 +177,17 @@ public class SurfaceMeshContourIxer {
     * if <code>mips</code> is empty
     */
    protected IntersectionContour getOneContour (
-      ArrayList<MeshIntersectionPoint> mips) 
+      ArrayList<IntersectionPoint> mips) 
          throws DegenerateLoopCaseException {
       if (mips.size() == 0) { 
           return null;
       }
       IntersectionContour contour = new IntersectionContour ();
-      contour.myIsOpen = false;
+      contour.setClosed (true);
 
-      MeshIntersectionPoint firstMip = mips.get (0);
-      MeshIntersectionPoint mip = firstMip;
-      MeshIntersectionPoint nextMip = null;
+      IntersectionPoint firstMip = mips.get (0);
+      IntersectionPoint mip = firstMip;
+      IntersectionPoint nextMip = null;
 
       // Start the contour
       contour.add (mip);
@@ -227,11 +213,11 @@ public class SurfaceMeshContourIxer {
           * opposite direction. If we already did that, then we're finished. 
           */
          if (thisEdgesFace == null) {
-            if (contour.myIsOpen) {
+            if (!contour.isClosed()) {
                // We're finished, since we already did this
                break;
             }
-            contour.myIsOpen = true;
+            contour.setClosed (false);
             nextMip = firstMip;
             contour.reverse ();
             mip = nextMip;
@@ -296,7 +282,7 @@ public class SurfaceMeshContourIxer {
             // This shouldn't happen
             System.out.println("mips.size(): " + mips.size());
             System.out.println("contour.size(): " + contour.size());
-            if (contour.myIsOpen) {
+            if (!contour.isClosed()) {
                System.out.println("Open contour");
             }
             throw new DegenerateLoopCaseException ("Warning! nextMip wasn't in mips!!! aborting");
@@ -321,7 +307,7 @@ public class SurfaceMeshContourIxer {
     *           Points of those faces are perturbed before this exception is re-thrown 
     */
    protected void getAllMIPs (
-         ArrayList<MeshIntersectionPoint> allMips, 
+         ArrayList<IntersectionPoint> allMips, 
          ArrayList<BVNode> nodes0, ArrayList<BVNode> nodes1) 
          throws DegeneratePairCaseException {
       assert nodes0.size() == nodes1.size();
@@ -337,8 +323,8 @@ public class SurfaceMeshContourIxer {
                   Face f1 = (Face) b1;
                   
                   int numFound = 0;
-                  numFound += doFaceFaceCollision (allMips, f0, f1);
-                  numFound += doFaceFaceCollision (allMips, f1, f0);
+                  numFound += doFaceFaceCollision (allMips, f0, f1, true);
+                  numFound += doFaceFaceCollision (allMips, f1, f0, false);
                   
                   if (myHandleDegen) {
                      if (numFound != 0 && numFound != 2) {
@@ -385,7 +371,9 @@ public class SurfaceMeshContourIxer {
     *  
     * @return the number of edge/face collisions detected in this call.
     */
-   protected int doFaceFaceCollision (ArrayList<MeshIntersectionPoint> allMips, Face f0, Face f1) { 
+   protected int doFaceFaceCollision (
+      ArrayList<IntersectionPoint> allMips, 
+      Face f0, Face f1, boolean edgeOnMesh0) { 
       int numFound = 0;
       // Faces assumed to be triangular here!
       for (int eidx = 0; eidx<3; eidx++) {
@@ -400,8 +388,8 @@ public class SurfaceMeshContourIxer {
             continue;
          }
          
-         MeshIntersectionPoint mip = new MeshIntersectionPoint (); 
-         boolean collided = robustIntersectionWithFace(e, f1, mip);
+         IntersectionPoint mip = new IntersectionPoint (); 
+         boolean collided = robustIntersectionWithFace(e, f1, mip, edgeOnMesh0);
          if (collided) {
             mySavedEdgeFaceResults.put (pair, mip);
             allMips.add (mip);
@@ -418,7 +406,7 @@ public class SurfaceMeshContourIxer {
     * Test for intersection using adaptive exact arithmetic and SOS tiebreaking.
     */
    protected boolean robustIntersectionWithFace (
-      HalfEdge he, Face face, MeshIntersectionPoint mip) {
+      HalfEdge he, Face face, IntersectionPoint mip, boolean edgeOnMesh0) {
 
       HalfEdge he0 = face.firstHalfEdge();
       Vertex3d v = he0.tail;
@@ -438,10 +426,11 @@ public class SurfaceMeshContourIxer {
          return false;
 
 
-      if (!RobustPreds.intersectEdgeFace (he, face, mip))
+      if (!RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0))
          return false;
       mip.edge = he;
       mip.face = face;
+      mip.edgeOnMesh0 = edgeOnMesh0;
       return true;
    }
 

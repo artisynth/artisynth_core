@@ -682,10 +682,22 @@ instance, an axial spring (Section \ref{ParticlesAndSprings:sec})
 refers to two points. When it is added to the hierarchy, those two
 points should already be present in the hierarchy.
 
-The {\tt build()} method supplies a {\tt String} array as an argument.
-(This is analogous to the {\tt args} argument passed to static {\tt
-main()} methods.) These is reserved for future use to supply
-application-supplied arguments.
+The {\tt build()} method supplies a {\tt String} array as an argument,
+which can be used to transmit application arguments in a manner
+analogous to the {\tt args} argument passed to static {\tt main()}
+methods. In cases where the model is specified directly on the
+ArtiSynth command line (using the {\tt -model <classname>} option), it
+is possible to also specify arguments for the {\tt build()} method.
+This is done by enclosing the desired
+arguments within square brackets {\tt [ ]} immediately following the
+{\tt -model} option. So, for example,
+%
+\begin{verbatim}
+> artisynth -model projects.MyModel [ -foo 123 ]
+\end{verbatim}
+%
+would cause the strings {\tt "-foo"} and {\tt "123"} to
+be passed to the {\tt build()} method of {\tt MyModel}.
 
 \subsection{Making models visible to ArtiSynth}
 

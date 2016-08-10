@@ -2215,7 +2215,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       FemModel3d.noIncompressStiffnessDamping = noIncompressDamping.value;
       CollisionHandler.useSignedDistanceCollider =
          useSignedDistanceCollider.value;
-      SurfaceMeshCollider.useAjlCollision = useAjlCollision.value;
+      SurfaceMeshCollider.setAjlCollision (useAjlCollision.value);
 
       if (noGui.value == true) {
          width.value = -1;

@@ -27,23 +27,23 @@ public class CollisionMetrics {
    }
 
    void report (ContactInfo info) {
-      // if (info != null) histogramDepths(info.regions);
-      if (info != null) {
-         if (info.regions != null)
-            nContactRegions += info.regions.size();
-         if (info.points0 != null)
-            nCpps += info.points0.size();
-         if (info.points1 != null)
-            nCpps += info.points1.size();
-      }
-      long time = System.nanoTime();
-      totalTime += time;
-      if (!timeReported) {
-         // if (Main.getScheduler().getTime() > reportTime) {
-         //    elapsedRealTime += System.nanoTime();
-         //    reportTime();
-         // }
-      }
+//      // if (info != null) histogramDepths(info.regions);
+//      if (info != null) {
+//         if (info.regions != null)
+//            nContactRegions += info.regions.size();
+//         if (info.points0 != null)
+//            nCpps += info.points0.size();
+//         if (info.points1 != null)
+//            nCpps += info.points1.size();
+//      }
+//      long time = System.nanoTime();
+//      totalTime += time;
+//      if (!timeReported) {
+//         // if (Main.getScheduler().getTime() > reportTime) {
+//         //    elapsedRealTime += System.nanoTime();
+//         //    reportTime();
+//         // }
+//      }
    }
 
    void reportTime() {
@@ -101,14 +101,14 @@ public class CollisionMetrics {
    public int[] regionDepths;
    public float regionDepthFactor = 200.0f;
 
-   public void histogramDepths (ArrayList<ContactRegion> regions) {
+   public void histogramDepths (ArrayList<ContactPlane> regions) {
       if (regionDepths == null) {
          regionDepths = new int[100];
          for (int i = 0; i < regionDepths.length; i++)
             regionDepths[i] = 0;
       }
       if (regions != null) {
-         for (ContactRegion r : regions) {
+         for (ContactPlane r : regions) {
             // System.out.println("depth"+r.depth);
             if (r.depth < 0)
                throw new RuntimeException ("negative depth");

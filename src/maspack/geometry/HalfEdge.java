@@ -202,6 +202,20 @@ public class HalfEdge extends Feature implements Boundable {
    public Face getFace() {
       return face;
    }
+   
+   /**
+    * Returns the face opposite to this half-edge, if any
+    * 
+    * @return opposite face, or <code>null</code>.
+    */
+   public Face getOppositeFace() {
+      if (opposite != null) {
+         return opposite.face;
+      }
+      else {
+         return null;
+      }
+   }
 
    /**
     * Returns the last hard edge (if any) incident on this half-edge's head

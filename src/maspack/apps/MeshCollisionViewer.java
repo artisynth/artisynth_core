@@ -22,9 +22,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.MouseInputAdapter;
 
 import maspack.collision.ContactInfo;
-import maspack.collision.ContactPenetratingPoint;
-import maspack.collision.MeshIntersectionContour;
-import maspack.collision.MeshIntersectionPoint;
+import maspack.collision.PenetratingPoint;
+import maspack.collision.IntersectionContour;
+import maspack.collision.IntersectionPoint;
 import maspack.collision.SurfaceMeshCollider;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Point3d;
@@ -80,7 +80,7 @@ public class MeshCollisionViewer extends GLViewerFrame
          myMesh.getMeshToWorld (X);
          X.mul (Xinc);
          myMesh.setMeshToWorld (X);
-         myContactInfo = myCollider.getContacts (myMesh1, myMesh2, false);
+         myContactInfo = myCollider.getContacts (myMesh1, myMesh2);
       }
    }
 
@@ -167,7 +167,7 @@ public class MeshCollisionViewer extends GLViewerFrame
 
       viewer.addRenderable (this);
 
-      SurfaceMeshCollider.useAjlCollision = true;
+      SurfaceMeshCollider.setAjlCollision(true);
       myCollider = new SurfaceMeshCollider ();
    }
 
@@ -225,16 +225,18 @@ public class MeshCollisionViewer extends GLViewerFrame
 
    public void render (Renderer renderer, int flags) {
 
-      if (contourWidth > 0 && myContactInfo != null) {
+      ContactInfo cinfo = myContactInfo;
+      
+      if (contourWidth > 0 && cinfo != null) {
          renderer.setShading (Shading.NONE);
          renderer.setLineWidth (contourWidth);
          renderer.setPointSize (contourWidth);
          renderer.setColor (contourColor, /*highlight=*/false);
 
-         if (myContactInfo.contours != null) {
-            for (MeshIntersectionContour contour : myContactInfo.contours) {
+         if (cinfo.getContours() != null) {
+            for (IntersectionContour contour : cinfo.getContours()) {
                renderer.beginDraw (DrawMode.LINE_LOOP);
-               for (MeshIntersectionPoint p : contour) {
+               for (IntersectionPoint p : contour) {
                   renderer.addVertex (p);
                }
                renderer.endDraw();
@@ -242,12 +244,12 @@ public class MeshCollisionViewer extends GLViewerFrame
          }
          Point3d pnt = new Point3d();
          renderer.beginDraw (DrawMode.POINTS);
-         for (ContactPenetratingPoint p : myContactInfo.points0) {
+         for (PenetratingPoint p : cinfo.getPenetratingPoints0()) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh1.getMeshToWorld());
             renderer.addVertex (pnt);
          }
-         for (ContactPenetratingPoint p : myContactInfo.points1) {
+         for (PenetratingPoint p : cinfo.getPenetratingPoints1()) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh2.getMeshToWorld());
             renderer.addVertex (pnt);

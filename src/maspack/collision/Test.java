@@ -81,7 +81,7 @@ public class Test {
       SurfaceMeshCollider collider = new SurfaceMeshCollider();
       vw.rerender();
 
-      info = collider.getContacts (mesh1, mesh2, true);
+      info = collider.getContacts (mesh1, mesh2);
       // if (info != null) vw.addRenderable(info);
       // vw.rerender();
 
@@ -99,7 +99,7 @@ public class Test {
          // mesh1.invalidateWorldCoords();
          // mesh1.invalidateFaceNormals();
          mesh1.updateFaceNormals();
-         info = collider.getContacts (mesh1, mesh2, true);
+         info = collider.getContacts (mesh1, mesh2);
          // if (info != null) vw.addRenderable(info);
          vw.rerender();
       }

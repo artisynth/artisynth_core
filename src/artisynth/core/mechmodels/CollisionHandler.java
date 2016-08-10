@@ -347,9 +347,9 @@ public class CollisionHandler extends ConstrainerBase
       myMesh0 = myCollidable0.getCollisionMesh();
       myMesh1 = myCollidable1.getCollisionMesh();
 
-      boolean needContours = (myMethod==CollisionBehavior.Method.CONTOUR_REGION);
+      //boolean needContours = (myMethod==CollisionBehavior.Method.CONTOUR_REGION);
 
-      ContactInfo info = myCollider.getContacts (myMesh0, myMesh1, needContours);
+      ContactInfo info = myCollider.getContacts (myMesh0, myMesh1);
       double maxpen;
       switch (myMethod) {
          case VERTEX_PENETRATION: 
@@ -373,7 +373,7 @@ public class CollisionHandler extends ConstrainerBase
       return maxpen;
    }
 
-   Collidable getCollidable (ContactPenetratingPoint cpp) {
+   Collidable getCollidable (PenetratingPoint cpp) {
       if (cpp.vertex.getMesh() == myMesh0) {
          return myCollidable0;
       }
@@ -397,7 +397,7 @@ public class CollisionHandler extends ConstrainerBase
    }      
 
    double setVertexFace (
-      ContactConstraint cons, ContactPenetratingPoint cpp,
+      ContactConstraint cons, PenetratingPoint cpp,
       CollidableBody collidable0, CollidableBody collidable1) {
 
       //cons.setContactPoint2 (cpp.position, cpp.face, cpp.coords);
@@ -537,36 +537,36 @@ public class CollisionHandler extends ConstrainerBase
       for (EdgeEdgeContact eec : eecs) {
          // Check if the contact has already been corrected by other contact
          // corrections.
-         if (eec.calculate()) {
+         //if (eec.calculate()) {
 
-            ContactPoint pnt0, pnt1;
-            pnt0 = new ContactPoint (eec.point0, eec.edge0, eec.s0);
-            pnt1 = new ContactPoint (eec.point1, eec.edge1, eec.s1);
+         ContactPoint pnt0, pnt1;
+         pnt0 = new ContactPoint (eec.point0, eec.edge0, eec.s0);
+         pnt1 = new ContactPoint (eec.point1, eec.edge1, eec.s1);
 
-            ContactConstraint cons = getContact (
-               myBilaterals0, pnt0, pnt1, false, eec.displacement);
-            // As long as the constraint exists and is not already marked 
-            // as active, then we add it
-            if (cons != null) {
-               cons.setActive (true);
+         ContactConstraint cons = getContact (
+            myBilaterals0, pnt0, pnt1, false, eec.displacement);
+         // As long as the constraint exists and is not already marked 
+         // as active, then we add it
+         if (cons != null) {
+            cons.setActive (true);
 
-               double dist = setEdgeEdge (cons, eec, collidable0, collidable1);
-               if (!cons.isControllable()) {
-                  cons.setActive (false);
-                  continue;
-               } 
-               cons.setDistance (dist);
-               if (-dist > maxpen) {
-                  maxpen = -dist;
-               }               
-            }
+            double dist = setEdgeEdge (cons, eec, collidable0, collidable1);
+            if (!cons.isControllable()) {
+               cons.setActive (false);
+               continue;
+            } 
+            cons.setDistance (dist);
+            if (-dist > maxpen) {
+               maxpen = -dist;
+            }               
          }
+         //}
       }
       return maxpen;
    }
 
    double computeVertexPenetrationConstraints (
-      ArrayList<ContactPenetratingPoint> points,
+      ArrayList<PenetratingPoint> points,
       CollidableBody collidable0, CollidableBody collidable1) {
 
       double nrmlLen = getContactNormalLen();
@@ -576,7 +576,7 @@ public class CollisionHandler extends ConstrainerBase
 
       updateAttachedVertices();
 
-      for (ContactPenetratingPoint cpp : points) {
+      for (PenetratingPoint cpp : points) {
          ContactPoint pnt0, pnt1;
          pnt0 = new ContactPoint (cpp.vertex);
          pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
@@ -668,17 +668,17 @@ public class CollisionHandler extends ConstrainerBase
       clearContactActivity();
       if (info != null) {
          maxpen = computeVertexPenetrationConstraints (
-            info.points0, collidable0, collidable1);
+            info.getPenetratingPoints0(), collidable0, collidable1);
          if (!hasLowDOF (collidable1) || doBodyFaceContact) {
             double pen = computeVertexPenetrationConstraints (
-               info.points1, collidable1, collidable0);
+               info.getPenetratingPoints1(), collidable1, collidable0);
             if (pen > maxpen) {
                maxpen = pen;
             }
          }
          if (myMethod == CollisionBehavior.Method.VERTEX_EDGE_PENETRATION) {
             double pen = computeEdgePenetrationConstraints (
-               info.edgeEdgeContacts, collidable0, collidable1);
+               info.getEdgeEdgeContacts(), collidable0, collidable1);
             if (pen > maxpen) {
                maxpen = pen;
             }
@@ -705,7 +705,7 @@ public class CollisionHandler extends ConstrainerBase
       int numc = 0;
       if (info != null) {
 
-         for (ContactRegion region : info.regions) {
+         for (ContactPlane region : info.getContactPlanes()) {
             for (Point3d p : region.points) {
                if (numc >= myMaxUnilaterals)
                   break;
@@ -1241,8 +1241,12 @@ public class CollisionHandler extends ConstrainerBase
       if (myDrawIntersectionFaces &&
           myLastContactInfo != null &&
           myFaceSegments == null) {
-         myFaceSegments = new ArrayList<FaceSeg>();
-         buildFaceSegments(myLastContactInfo, myFaceSegments);
+         ArrayList<TriTriIntersection> intersections = 
+            myLastContactInfo.getIntersections();
+         if (intersections != null) {
+            myFaceSegments = new ArrayList<FaceSeg>();
+            buildFaceSegments (intersections, myFaceSegments);
+         }
       }
       myRenderer.prerender (this, props);
    }
@@ -1292,7 +1296,8 @@ public class CollisionHandler extends ConstrainerBase
 
    }
 
-   protected void buildFaceSegments (ContactInfo info, ArrayList<FaceSeg> faces) {
+   protected void buildFaceSegments (
+      ArrayList<TriTriIntersection> intersections, ArrayList<FaceSeg> faces) {
 
       BVFeatureQuery query = new BVFeatureQuery();
 
@@ -1300,7 +1305,7 @@ public class CollisionHandler extends ConstrainerBase
       PolygonalMesh mesh1 = myCollidable1.getCollisionMesh();
 
       // mark faces as visited and add segments
-      for (TriTriIntersection isect : info.intersections) {
+      for (TriTriIntersection isect : intersections) {
          isect.face0.setVisited();
          isect.face1.setVisited();
 
@@ -1308,7 +1313,7 @@ public class CollisionHandler extends ConstrainerBase
       }
 
       // mark interior faces and add segments
-      for (TriTriIntersection isect : info.intersections) {
+      for (TriTriIntersection isect : intersections) {
          if (isect.face0.getMesh() != mesh0) {
             findInsideFaces(isect.face0, query, mesh0, faces);
             findInsideFaces(isect.face1, query, mesh1, faces);
@@ -1318,7 +1323,7 @@ public class CollisionHandler extends ConstrainerBase
          }
       }
 
-      for (TriTriIntersection isect : info.intersections) {
+      for (TriTriIntersection isect : intersections) {
          isect.face0.clearVisited();
          isect.face1.clearVisited();
       }
@@ -1349,10 +1354,14 @@ public class CollisionHandler extends ConstrainerBase
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
-      if (myRenderContactInfo != null && myRenderContactInfo.contours != null) {
-         for (MeshIntersectionContour contour : myRenderContactInfo.contours) {
-            for (MeshIntersectionPoint p : contour) {
-               p.updateBounds (pmin, pmax);
+      if (myRenderContactInfo != null) {
+         ArrayList<IntersectionContour> contours = 
+            myRenderContactInfo.getContours();
+         if (contours != null) {
+            for (IntersectionContour contour : contours) {
+               for (IntersectionPoint p : contour) {
+                  p.updateBounds (pmin, pmax);
+               }
             }
          }
       }

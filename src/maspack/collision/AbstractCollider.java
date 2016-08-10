@@ -5,7 +5,7 @@ import maspack.geometry.PolygonalMesh;
 public interface AbstractCollider {
    
    public ContactInfo getContacts (
-      PolygonalMesh mesh0, PolygonalMesh mesh1, boolean isRigidBodyRigidBody);
+      PolygonalMesh mesh0, PolygonalMesh mesh1);
 
    public double getEpsilon();
 

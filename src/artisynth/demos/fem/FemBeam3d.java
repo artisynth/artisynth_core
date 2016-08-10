@@ -207,7 +207,6 @@ public class FemBeam3d extends RootModel {
       }
       myMechMod = addMechModel (myFemMod);
 
-
       if ((options & ADD_BLOCKS) != 0) {
          
          double wx, wy, wz;

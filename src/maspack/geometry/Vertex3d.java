@@ -8,6 +8,7 @@ package maspack.geometry;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
@@ -20,6 +21,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.util.Clonable;
 import maspack.util.InternalErrorException;
+import maspack.util.ArraySupport;
 
 /**
  * Vertex for a 3D dimensional polyhedral object.
@@ -35,8 +37,8 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    //private Point3d myWorldPnt;
    MeshBase myMesh;
    //public int myWorldCoordCnt = -1;
-   public int uniqueIndex;
-   static int nextUniqueIndex = 0;
+   //public int uniqueIndex;
+   //static int nextUniqueIndex = 0;
 
    protected HalfEdgeNode incidentHedges;
    protected boolean hedgesSorted = false; 
@@ -114,7 +116,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       // this.faceList = null;
       this.incidentHedges = null;
       this.hedgesSorted = false;
-      uniqueIndex = nextUniqueIndex++;
+      //uniqueIndex = nextUniqueIndex++;
    }
 
    /**
@@ -127,7 +129,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
    public Vertex3d (int idx) {
       this();
       this.idx = idx;
-      uniqueIndex = nextUniqueIndex++;
+      //uniqueIndex = nextUniqueIndex++;
    }
 
    /**
@@ -146,7 +148,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       this.incidentHedges = null;
       this.hedgesSorted = false;
       this.idx = idx;
-      uniqueIndex = nextUniqueIndex++;
+      //uniqueIndex = nextUniqueIndex++;
    }
    
    /**
@@ -188,7 +190,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     */
    public Vertex3d (Point3d pnt) {
       this (pnt, 0);
-      uniqueIndex = nextUniqueIndex++;
+      //uniqueIndex = nextUniqueIndex++;
    }
 
    /**
@@ -764,11 +766,9 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
     * value should not be modified.
     */
    public void getWorldPoint(Point3d pnt) {
-      if (myMesh == null || myMesh.myXMeshToWorldIsIdentity) {
-         pnt.set(this.pnt);
-      }
-      else {
-         pnt.transform (myMesh.XMeshToWorld, this.pnt);
+      pnt.set(this.pnt);
+      if (myMesh != null) {
+         myMesh.transformToWorld (pnt);
       }
    }
    
@@ -813,7 +813,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
           //vtx.myWorldPnt = null;
           vtx.myMesh = null;
           //vtx.myWorldCoordCnt = -1;
-          vtx.uniqueIndex = -1;
+          //vtx.uniqueIndex = -1;
           vtx.incidentHedges = null;
           vtx.hedgesSorted = false;
           vtx.hedgesModCount = 0;
@@ -851,4 +851,11 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       return 1;
    }
    
+   public static int[] getIndices (Collection<Vertex3d> vtxs) {
+      ArrayList<Integer> list = new ArrayList<Integer>();
+      for (Vertex3d v : vtxs) {
+         list.add (v.getIndex());
+      }
+      return ArraySupport.toIntArray (list);      
+   }
 }

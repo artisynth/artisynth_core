@@ -474,14 +474,6 @@ public class SignedDistanceGrid implements IsRenderable {
          minz -= 1;
          dz = 1;
       }
-      Vector3d nrm000 = getNormal (minx  , miny  , minz  );
-      Vector3d nrm001 = getNormal (minx  , miny  , minz+1);
-      Vector3d nrm010 = getNormal (minx  , miny+1, minz  );
-      Vector3d nrm011 = getNormal (minx  , miny+1, minz+1);
-      Vector3d nrm100 = getNormal (minx+1, miny  , minz  );
-      Vector3d nrm101 = getNormal (minx+1, miny  , minz+1);
-      Vector3d nrm110 = getNormal (minx+1, miny+1, minz  );
-      Vector3d nrm111 = getNormal (minx+1, miny+1, minz+1);
 
       // Now use trilinear interpolation to get the normal at 'point'.
       double w000 = (1-dx)*(1-dy)*(1-dz);
@@ -493,16 +485,28 @@ public class SignedDistanceGrid implements IsRenderable {
       double w110 = dx*dy*(1-dz);
       double w111 = dx*dy*dz;
 
-      norm.setZero();
-      norm.scaledAdd (w000, nrm000);
-      norm.scaledAdd (w001, nrm001);
-      norm.scaledAdd (w010, nrm010);
-      norm.scaledAdd (w011, nrm011);
-      norm.scaledAdd (w100, nrm100);
-      norm.scaledAdd (w101, nrm101);
-      norm.scaledAdd (w110, nrm110);
-      norm.scaledAdd (w111, nrm111);
-      norm.scale(-1.0);
+      if (norm != null) {
+
+         Vector3d nrm000 = getNormal (minx  , miny  , minz  );
+         Vector3d nrm001 = getNormal (minx  , miny  , minz+1);
+         Vector3d nrm010 = getNormal (minx  , miny+1, minz  );
+         Vector3d nrm011 = getNormal (minx  , miny+1, minz+1);
+         Vector3d nrm100 = getNormal (minx+1, miny  , minz  );
+         Vector3d nrm101 = getNormal (minx+1, miny  , minz+1);
+         Vector3d nrm110 = getNormal (minx+1, miny+1, minz  );
+         Vector3d nrm111 = getNormal (minx+1, miny+1, minz+1);
+
+         norm.setZero();
+         norm.scaledAdd (w000, nrm000);
+         norm.scaledAdd (w001, nrm001);
+         norm.scaledAdd (w010, nrm010);
+         norm.scaledAdd (w011, nrm011);
+         norm.scaledAdd (w100, nrm100);
+         norm.scaledAdd (w101, nrm101);
+         norm.scaledAdd (w110, nrm110);
+         norm.scaledAdd (w111, nrm111);
+         norm.scale(-1.0);
+      }
 
       return w000*getPhiAtPoint (minx  , miny  , minz  ) +
       w001*getPhiAtPoint (minx  , miny  , minz+1) +

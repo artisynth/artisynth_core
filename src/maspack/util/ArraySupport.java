@@ -316,5 +316,56 @@ public class ArraySupport {
       System.out.println ("");
    }
 
+   public static String toString (int[] a1) {
+      StringBuilder builder = new StringBuilder();
+      for (int i=0; i<a1.length; i++) {
+         if (i > 0) {
+            builder.append (" ");
+         }
+         builder.append (a1[i]);
+      }
+      return builder.toString();
+   }
+
+   public static String toString (long[] a1) {
+      StringBuilder builder = new StringBuilder();
+      for (int i=0; i<a1.length; i++) {
+         if (i > 0) {
+            builder.append (" ");
+         }
+         builder.append (a1[i]);
+      }
+      return builder.toString();
+   }
+
+   public static String toString (NumberFormat fmt, double[] a1) {
+      StringBuilder builder = new StringBuilder();
+      for (int i=0; i<a1.length; i++) {
+         if (i > 0) {
+            builder.append (" ");
+         }
+         builder.append (fmt.format(a1[i]));
+      }
+      return builder.toString();
+   }
+
+   public static String toString (double[] a1) {
+      return toString (new NumberFormat ("%g"), a1);
+   }
+
+   public static String toString (NumberFormat fmt, float[] a1) {
+      StringBuilder builder = new StringBuilder();
+      for (int i=0; i<a1.length; i++) {
+         if (i > 0) {
+            builder.append (" ");
+         }
+         builder.append (fmt.format(a1[i]));
+      }
+      return builder.toString();
+   }
+
+   public static String toString (float[] a1) {
+      return toString (new NumberFormat ("%g"), a1);
+   }
 
 }

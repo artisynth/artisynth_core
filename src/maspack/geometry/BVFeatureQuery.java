@@ -310,7 +310,7 @@ public class BVFeatureQuery {
     * numerical tolerance computed from the meshes overall dimensions.
     *
     * <p> The method works by inspecting the nearest face, edge or vertex to
-    * the point. Hance the mesh does not need to be closed, and the method is
+    * the point. Hence the mesh does not need to be closed, and the method is
     * faster, though possibly less numerically robust, than {@link
     * #isInsideMesh(PolygonalMesh,Point3d)}, which uses ray casting.
     *
@@ -331,7 +331,7 @@ public class BVFeatureQuery {
     * to the point.
     *
     * <p> The method works by inspecting the nearest face, edge or vertex to
-    * the point. Hance the mesh does not need to be closed, and the method is
+    * the point. Hence the mesh does not need to be closed, and the method is
     * faster, though possibly less numerically robust, than {@link
     * #isInsideMesh(PolygonalMesh,Point3d,double)}, which uses ray casting.
     *

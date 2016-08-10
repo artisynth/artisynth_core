@@ -67,7 +67,7 @@ public class MeshFactory {
       }
    }
 
-   private static class VertexMap extends HashMap<GriddedPoint,Vertex3d> {
+   public static class VertexMap extends HashMap<GriddedPoint,Vertex3d> {
 
       double myTol;
 
@@ -96,7 +96,9 @@ public class MeshFactory {
          PolygonalMesh mesh, double x, double y, double z, RigidTransform3d XLM) {
          
          Point3d pm = new Point3d (x, y, z);
-         pm.transform (XLM);
+         if (XLM != null) {
+            pm.transform (XLM);
+         }
          Vertex3d vtx = (Vertex3d)get (pm);
          if (vtx == null) {
             vtx = new Vertex3d (pm);

@@ -111,7 +111,6 @@ public class ArtisynthDataManager {
    /**
     * Gets the current en/de-cryptor to be used for storing passwords.
     * If no cryptor was set, we use a default one provided by VFS2 
-    * @param cryptor en/de-cryptor
     */
    public Cryptor getCryptor() {
       if (cryptor == null) {

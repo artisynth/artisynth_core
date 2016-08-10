@@ -130,12 +130,12 @@ public class CollisionRenderer {
           handler.getLastContactInfo() != null) {
 
          r.lineGroup (CONTOUR_GRP);
-         ContactInfo contactInfo = handler.getLastContactInfo();
+         ContactInfo cinfo = handler.getLastContactInfo();
          // offset lines
-         if (contactInfo.contours != null) {
-            for (MeshIntersectionContour contour : contactInfo.contours) {
+         if (cinfo.getContours() != null) {
+            for (IntersectionContour contour : cinfo.getContours()) {
                int vidx0 = r.numVertices();
-               for (MeshIntersectionPoint p : contour) {
+               for (IntersectionPoint p : contour) {
                   r.addVertex (
                      r.addPosition ((float)p.x, (float)p.y, (float)p.z));
                }
@@ -143,9 +143,9 @@ public class CollisionRenderer {
                r.addLineLoop (vidx0, vidx1);
             }
          }
-         else if (contactInfo.intersections != null){
+         else if (cinfo.getIntersections() != null){
             // use intersections to render lines
-            for (TriTriIntersection tsect : contactInfo.intersections) {
+            for (TriTriIntersection tsect : cinfo.getIntersections()) {
                addLineSeg (r, tsect.points[0], tsect.points[1]);
             }
          }
@@ -154,36 +154,35 @@ public class CollisionRenderer {
       if (handler.myDrawIntersectionPoints &&
           handler.getLastContactInfo() != null) {
          
-         ContactInfo contactInfo = handler.getLastContactInfo();
+         ContactInfo cinfo = handler.getLastContactInfo();
 
-         if (contactInfo.intersections != null) {
-            for (TriTriIntersection tsect : contactInfo.intersections) {
+         if (cinfo.getIntersections() != null) {
+            for (TriTriIntersection tsect : cinfo.getIntersections()) {
                for (Point3d pnt : tsect.points) {
                   addPoint (r, pnt);
                }
             }
          }
 
-         if (contactInfo.points0 != null) {
-            for (ContactPenetratingPoint cpp : contactInfo.points0) {
-               if (cpp.distance > 0) {
-                  addPoint (r, cpp.vertex.getWorldPoint());
-               }
+         for (PenetratingPoint cpp : cinfo.getPenetratingPoints0()) {
+            if (cpp.distance > 0) {
+               addPoint (r, cpp.vertex.getWorldPoint());
             }
          }
 
-         if (contactInfo.points1 != null) {
-            for (ContactPenetratingPoint cpp : contactInfo.points1) {
-               if (cpp.distance > 0) {
-                  addPoint (r, cpp.vertex.getWorldPoint());
-               }
+         for (PenetratingPoint cpp : cinfo.getPenetratingPoints1()) {
+            if (cpp.distance > 0) {
+               addPoint (r, cpp.vertex.getWorldPoint());
             }
          }
 
-         if (contactInfo.edgeEdgeContacts != null) {
-            for (EdgeEdgeContact eec : contactInfo.edgeEdgeContacts) {
-               addPoint (r, eec.point0);
-               addPoint (r, eec.point1);
+         if (handler.myMethod == 
+             CollisionBehavior.Method.VERTEX_EDGE_PENETRATION) {
+            if (cinfo.getEdgeEdgeContacts() != null) {
+               for (EdgeEdgeContact eec : cinfo.getEdgeEdgeContacts()) {
+                  addPoint (r, eec.point0);
+                  addPoint (r, eec.point1);
+               }
             }
          }
       }
@@ -252,7 +251,6 @@ public class CollisionRenderer {
          // XXX paranoid
          return;
       }
-            
       if (r.numLines(CONSTRAINT_GRP) > 0) {
          r.lineGroup (CONSTRAINT_GRP);
          drawLines (renderer, r, props);

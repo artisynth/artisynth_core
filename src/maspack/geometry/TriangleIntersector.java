@@ -8,7 +8,7 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 
 public class TriangleIntersector {
-   public double epsilon = 1e-24;
+   private double epsilon = 1e-24;
 
    public void setEpsilon (double e) {
       epsilon = e;

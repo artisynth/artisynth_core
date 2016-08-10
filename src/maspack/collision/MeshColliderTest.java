@@ -1,6 +1,7 @@
 package maspack.collision;
 
 import javax.swing.JFrame;
+import java.util.ArrayList;
 
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
@@ -53,13 +54,16 @@ public class MeshColliderTest {
       MeshCollider collider = new MeshCollider();
 
       // first way
-      ContactInfo info = collider.getContacts (mesh0, mesh1, true);
+      ContactInfo info = collider.getContacts (mesh0, mesh1);
 
-      if (info == null)
+      if (info == null) {
          return false;
-      if (info.regions.size() != 1)
+      }
+      ArrayList<ContactPlane> regions = info.getContactPlanes();     
+      if (regions.size() != 1) {
          return false;
-      ContactRegion region = info.regions.get (0);
+      }
+      ContactPlane region = regions.get (0);
       if (region.points.size() != 1)
          return false;
       if (!region.points.get (0).epsilonEquals (
@@ -70,12 +74,14 @@ public class MeshColliderTest {
          return false;
 
       // second way
-      info = collider.getContacts (mesh1, mesh0, true);
-      if (info == null)
+      info = collider.getContacts (mesh1, mesh0);
+      if (info == null) {
          return false;
-      if (info.regions.size() != 1)
+      }
+      regions = info.getContactPlanes();     
+      if (regions.size() != 1)
          return false;
-      region = info.regions.get (0);
+      region = regions.get (0);
       if (region.points.size() != 1)
          return false;
       if (!region.points.get (0).epsilonEquals (
@@ -105,13 +111,15 @@ public class MeshColliderTest {
       MeshCollider collider = new MeshCollider();
 
       // first way
-      ContactInfo info = collider.getContacts (mesh0, mesh1, true);
+      ContactInfo info = collider.getContacts (mesh0, mesh1);
 
-      if (info == null)
+      if (info == null) {
          return false;
-      if (info.regions.size() != 1)
+      }
+      ArrayList<ContactPlane> regions = info.getContactPlanes();
+      if (regions.size() != 1)
          return false;
-      ContactRegion region = info.regions.get (0);
+      ContactPlane region = regions.get (0);
       if (region.points.size() != 1)
          return false;
       if (!region.points.get (0).epsilonEquals (
@@ -122,13 +130,15 @@ public class MeshColliderTest {
          return false;
 
       // second way
-      info = collider.getContacts (mesh1, mesh0, true);
+      info = collider.getContacts (mesh1, mesh0);
 
-      if (info == null)
+      if (info == null) {
          return false;
-      if (info.regions.size() != 1)
+      }
+      regions = info.getContactPlanes();
+      if (regions.size() != 1)
          return false;
-      region = info.regions.get (0);
+      region = regions.get (0);
       if (region.points.size() != 1)
          return false;
       if (!region.points.get (0).epsilonEquals (
@@ -158,13 +168,15 @@ public class MeshColliderTest {
       MeshCollider collider = new MeshCollider();
 
       // first way
-      ContactInfo info = collider.getContacts (mesh0, mesh1, true);
+      ContactInfo info = collider.getContacts (mesh0, mesh1);
 
-      if (info == null)
+      if (info == null) {
          return false;
-      if (info.regions.size() != 1)
+      }
+      ArrayList<ContactPlane> regions = info.getContactPlanes();
+      if (regions.size() != 1)
          return false;
-      ContactRegion region = info.regions.get (0);
+      ContactPlane region = regions.get (0);
       if (region.points.size() != 1)
          return false;
       if (!region.points.get (0).epsilonEquals (
@@ -174,13 +186,13 @@ public class MeshColliderTest {
          return false;
 
       // first way
-      info = collider.getContacts (mesh1, mesh0, true);
+      info = collider.getContacts (mesh1, mesh0);
 
       if (info == null)
          return false;
-      if (info.regions.size() != 1)
+      if (regions.size() != 1)
          return false;
-      region = info.regions.get (0);
+      region = regions.get (0);
       if (region.points.size() != 1)
          return false;
       if (!region.points.get (0).epsilonEquals (
@@ -208,13 +220,15 @@ public class MeshColliderTest {
       MeshCollider collider = new MeshCollider();
 
       // first way
-      ContactInfo info = collider.getContacts (mesh0, mesh1, true);
+      ContactInfo info = collider.getContacts (mesh0, mesh1);
 
-      if (info == null)
+      if (info == null) {
          return false;
-      if (info.regions.size() != 1)
+      }
+      ArrayList<ContactPlane> regions = info.getContactPlanes();
+      if (regions.size() != 1)
          return false;
-      ContactRegion region = info.regions.get (0);
+      ContactPlane region = regions.get (0);
       if (region.points.size() != 1)
          return false;
       if (!region.points.get (0).epsilonEquals (
@@ -225,13 +239,13 @@ public class MeshColliderTest {
          return false;
 
       // second way
-      info = collider.getContacts (mesh1, mesh0, true);
+      info = collider.getContacts (mesh1, mesh0);
 
       if (info == null)
          return false;
-      if (info.regions.size() != 1)
+      if (regions.size() != 1)
          return false;
-      region = info.regions.get (0);
+      region = regions.get (0);
       if (region.points.size() != 1)
          return false;
       if (!region.points.get (0).epsilonEquals (
@@ -261,13 +275,15 @@ public class MeshColliderTest {
       MeshCollider collider = new MeshCollider();
 
       // first way
-      ContactInfo info = collider.getContacts (mesh0, mesh1, true);
+      ContactInfo info = collider.getContacts (mesh0, mesh1);
 
-      if (info == null)
+      if (info == null) {
          return false;
-      if (info.regions.size() != 1)
+      }
+      ArrayList<ContactPlane> regions = info.getContactPlanes();
+      if (regions.size() != 1)
          return false;
-      ContactRegion region = info.regions.get (0);
+      ContactPlane region = regions.get (0);
       if (region.points.size() != 2)
          return false;
       if (!(region.points.get (0).epsilonEquals (
@@ -284,13 +300,15 @@ public class MeshColliderTest {
          return false;
 
       // second way
-      info = collider.getContacts (mesh1, mesh0, true);
+      info = collider.getContacts (mesh1, mesh0);
 
-      if (info == null)
+      if (info == null) {
          return false;
-      if (info.regions.size() != 1)
+      }
+      regions = info.getContactPlanes();
+      if (regions.size() != 1)
          return false;
-      region = info.regions.get (0);
+      region = regions.get (0);
       if (region.points.size() != 2)
          return false;
       if (!(region.points.get (0).epsilonEquals (
@@ -323,20 +341,24 @@ public class MeshColliderTest {
       MeshCollider collider = new MeshCollider();
 
       // first way
-      ContactInfo info = collider.getContacts (mesh0, mesh1, true);
+      ContactInfo info = collider.getContacts (mesh0, mesh1);
 
-      if (info == null)
+      if (info == null) {
          return false;
-      if (info.regions.size() != 6)
+      }
+      if (info.getContactPlanes().size() != 6) {
          return false;
+      }
 
       // second way
-      info = collider.getContacts (mesh1, mesh0, true);
+      info = collider.getContacts (mesh1, mesh0);
 
-      if (info == null)
+      if (info == null) {
+         return false;         
+      }
+      if (info.getContactPlanes().size() != 6) {
          return false;
-      if (info.regions.size() != 6)
-         return false;
+      }
 
       return true;
    }
@@ -346,7 +368,7 @@ public class MeshColliderTest {
       final PolygonalMesh mesh1 = m1;
 
       MeshCollider collider = new MeshCollider();
-      final ContactInfo info = collider.getContacts (mesh0, mesh1, true);
+      final ContactInfo info = collider.getContacts (mesh0, mesh1);
       // final ContactInfo info = new ContactInfo(mesh0, mesh1);
       // System.out.println("intersections " + info.intersections.size());
       // System.out.println("regions " + info.regions.size());
@@ -379,15 +401,22 @@ public class MeshColliderTest {
             if (info != null) {
                renderer.setColor (0, 0, 1);
                renderer.setPointSize (6);
-               renderer.beginDraw (DrawMode.POINTS);
-               for (TriTriIntersection isect : info.intersections)
-                  for (Point3d p : isect.points)
-                     renderer.addVertex (p);
-               renderer.endDraw();
+               
+               ArrayList<TriTriIntersection> intersections = 
+                  info.getIntersections();
+               if (intersections != null) {
+                  renderer.beginDraw (DrawMode.POINTS);
+                  for (TriTriIntersection isect : intersections) {
+                     for (Point3d p : isect.points) {
+                        renderer.addVertex (p);
+                     }
+                  }
+                  renderer.endDraw();
+               }
 
                renderer.setColor (1, 0, 0);
                renderer.beginDraw (DrawMode.LINES);
-               for (ContactRegion region : info.regions) {
+               for (ContactPlane region : info.getContactPlanes()) {
                   Point3d avg = new Point3d();
                   int np = 0;
                   for (Point3d rp : region.points) {

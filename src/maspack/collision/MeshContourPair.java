@@ -1,19 +1,23 @@
 package maspack.collision;
 
 public class MeshContourPair {
-    MeshIntersectionContour contour1;
-    MeshIntersectionContour contour2;
+    IntersectionContour contour1;
+    IntersectionContour contour2;
     
-    public MeshContourPair (MeshIntersectionContour c1, MeshIntersectionContour c2) {
+    public MeshContourPair (IntersectionContour c1, IntersectionContour c2) {
         contour1 = c1;
         contour2 = c2;
      }
 
-    public boolean equals(MeshContourPair aPair) {
-	return (
-		(contour1 == aPair.contour1 && contour2 == aPair.contour2)
-		|| (contour1 == aPair.contour2 && contour2 == aPair.contour1)
-	);
+    public boolean equals(Object obj) {
+       if (obj instanceof MeshContourPair) {
+          MeshContourPair pair = (MeshContourPair)obj;
+          return ((contour1 == pair.contour1 && contour2 == pair.contour2) ||
+                  (contour1 == pair.contour2 && contour2 == pair.contour1));
+       }
+       else {
+          return false;
+       }
     }
 
     public int hashCode() {

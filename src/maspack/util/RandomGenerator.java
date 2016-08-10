@@ -30,7 +30,7 @@ public class RandomGenerator {
    }
 
    public static double nextDouble (double min, double max) {
-      double x = randGen.nextDouble();
+      double x = get().nextDouble();
       return (max-min)*x + min;
    }
 

@@ -7,6 +7,7 @@
 package maspack.geometry;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
@@ -14,6 +15,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.util.InternalErrorException;
+import maspack.util.ArraySupport;
 
 public class Face extends Feature implements Boundable {
    HalfEdge he0; // half edge associated with first vertex
@@ -124,11 +126,17 @@ public class Face extends Feature implements Boundable {
          return getNormal();
       }
       else {
-         Vector3d wnrm = new Vector3d (getNormal());
-         wnrm.transform (mesh.XMeshToWorld);
+         Vector3d wnrm = new Vector3d();
+         wnrm.transform (mesh.XMeshToWorld.R, getNormal());
          return wnrm;
-         //updateWorldNormal (mesh);
-         //return myWorldNormal;
+      }
+   }
+
+   public void getWorldNormal (Vector3d nrm) {
+      nrm.set(getNormal());
+      MeshBase mesh = he0.head.myMesh;
+      if (mesh != null) {
+         mesh.transformToWorld (nrm);
       }
    }
 
@@ -770,6 +778,21 @@ public class Face extends Feature implements Boundable {
 
       area /= 2;
       return area;
+   }
+
+   /**
+    * Computes the circumference of this face.
+    */
+   public double computeCircumference() {
+      double circ = 0;
+      HalfEdge he0 = firstHalfEdge();
+      HalfEdge he = he0;
+      do {
+         circ += he.length();
+         he = he.next;
+      }
+      while (he != he0);
+      return circ;
    }
 
    public Vector3d getRenderNormal() {
@@ -1793,5 +1816,12 @@ public class Face extends Feature implements Boundable {
    public void setFlags(int flags) {
       myFlags = flags;
    }
-
+   
+   public static int[] getIndices (Collection<Face> faces) {
+      ArrayList<Integer> list = new ArrayList<Integer>();
+      for (Face f : faces) {
+         list.add (f.getIndex());
+      }
+      return ArraySupport.toIntArray (list);      
+   }
 }

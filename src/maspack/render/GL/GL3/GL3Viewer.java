@@ -335,8 +335,8 @@ public class GL3Viewer extends GLViewer {
 
    @Override
    public void dispose () {
-      myGLResources.deregisterViewer (this);
       super.dispose ();
+      myGLResources.deregisterViewer (this);
    }
    
    @Override

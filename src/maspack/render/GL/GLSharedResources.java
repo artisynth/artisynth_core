@@ -151,19 +151,11 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
          final GLProfile glp = glCapabilities.getGLProfile();
          masterDrawable = GLDrawableFactory.getFactory(glp).createDummyAutoDrawable(null, true, glCapabilities, null);
          
-         GLVersionListener glv = new GLVersionListener ();
          masterDrawable.addGLEventListener (this);
          masterDrawable.addGLEventListener (garbageman);
-         masterDrawable.addGLEventListener (glv);
          
          masterDrawable.display(); // triggers GLContext object creation and native realization.
          
-         while(!glv.isValid ()) {
-         }
-         GLVersionInfo version = glv.getVersionInfo ();
-         Logger.getSystemLogger().debug (version.getVersionString ());
-         
-         masterDrawable.removeGLEventListener (glv);
          
          if (garbageTimerEnabled) {
             masterRedrawThread = new MasterRedrawThread (masterDrawable, garbageCollectionInterval);

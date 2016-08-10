@@ -479,7 +479,8 @@ public class GLSupport {
       }
 
       @Override
-      public void dispose(GLAutoDrawable drawable) {}
+      public void dispose(GLAutoDrawable drawable) {
+      }
 
       @Override
       public void display(GLAutoDrawable drawable) {}
@@ -518,14 +519,14 @@ public class GLSupport {
       GLVersionListener listener = new GLVersionListener();
       dummy.addGLEventListener (listener);      
       dummy.display(); // triggers GLContext object creation and native realization.
-      
+
       while (!listener.isValid()) {
          Thread.yield(); // let other threads do stuff
       }
       GLVersionInfo vinfo = listener.getVersionInfo();
       dummy.disposeGLEventListener(listener, true);
-      // dummy.destroy(); // XXX should be auto-destroyed.  We have reports that manually calling destroy sometimes crashes the JVM.
-      
+      dummy.destroy(); // XXX should be auto-destroyed.  We have reports that manually calling destroy sometimes crashes the JVM.
+
       return vinfo;
    }
 }

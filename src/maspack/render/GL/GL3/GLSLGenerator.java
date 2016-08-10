@@ -1098,7 +1098,10 @@ public class GLSLGenerator {
          if (info.getShading() != Shading.NONE && info.numLights() > 0) {
             
             lights = true;
-            appendln(mb, "   vec3 ambient, diffuse, specular, emission;");
+            appendln(mb, "   vec3 ambient = vec3(0.0);");
+            appendln(mb, "   vec3 diffuse = vec3(0.0);");
+            appendln(mb, "   vec3 specular = vec3(0.0);");
+            appendln(mb, "   vec3 emission = vec3(0.0);");
             appendln(mb, "   Material material;");
             switch (info.getShading()) {
                case FLAT:

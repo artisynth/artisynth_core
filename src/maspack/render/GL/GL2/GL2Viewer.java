@@ -455,8 +455,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    @Override
    public void dispose () {
-      myGLResources.deregisterViewer (this);
       super.dispose ();
+      myGLResources.deregisterViewer (this);
    }
 
    protected void drawDragBox (GL2 gl) {

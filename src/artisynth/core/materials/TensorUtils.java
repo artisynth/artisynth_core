@@ -879,6 +879,40 @@ public class TensorUtils {
       DR.mul(T, D1);
       DR.mulTranspose(T);
    }
+   
+   public static void main(String[] args) {
+      
+      Matrix6d D = new Matrix6d();
+      LinearMaterial lmat = new LinearMaterial(150, 0.25, false);
+      
+      lmat.computeTangent(D, null, null, null, null);
+      
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.set(RotationMatrix3d.ROT_X_90);
+      RotationMatrix3d Rinv = new RotationMatrix3d();
+      Rinv.transpose(R);
+      
+      // rotate D
+      Matrix6d Dr = new Matrix6d();
+      Matrix6d Dur = new Matrix6d();
+      TensorUtils.rotateTangent(Dr, D, R);
+      TensorUtils.rotateTangent(Dur, Dr, Rinv);
+      if (!D.epsilonEquals(Dur, 1e-5)) {
+         System.err.println("Rotated tangents not equal");
+      } else {
+         System.out.println("Rotated tangents are equal");
+      }
+      
+      // alternative rotation
+      TensorUtils.rotateTangent2(Dr, D, R);
+      TensorUtils.rotateTangent2(Dur, Dr, Rinv);
+      if (!D.epsilonEquals(Dur, 1e-5)) {
+         System.err.println("Rotated tangents not equal");
+      } else {
+         System.out.println("Rotated tangents are equal");
+      }
+      
+   }
 
 
 }

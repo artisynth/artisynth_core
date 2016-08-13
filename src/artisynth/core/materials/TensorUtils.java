@@ -809,6 +809,76 @@ public class TensorUtils {
          DR.set (DX);
       }
    }
+   
+   /**
+    * Creates a 6x6 rotation matrix for transforming the elasticity tensor
+    * From <a href=http://www.brown.edu/Departments/Engineering/Courses/EN224/anis_general/anis_general.htm>Brown University Notes</a>
+    * @param T output 6x6 matrix
+    * @param R 3D rotation matrix
+    */
+   public static void createElasticityRotation(Matrix6d T, Matrix3dBase R) {
+      
+      // top left
+      T.m00 = R.m00*R.m00;
+      T.m01 = R.m01*R.m01;
+      T.m02 = R.m02*R.m02;
+      T.m10 = R.m10*R.m10;
+      T.m11 = R.m11*R.m11;
+      T.m12 = R.m12*R.m12;
+      T.m20 = R.m20*R.m20;
+      T.m21 = R.m21*R.m21;
+      T.m22 = R.m22*R.m22;
+      
+      // top right
+      T.m03 = 2*R.m01*R.m02;
+      T.m04 = 2*R.m02*R.m00;
+      T.m05 = 2*R.m00*R.m01;
+      T.m13 = 2*R.m11*R.m12;
+      T.m14 = 2*R.m12*R.m10;
+      T.m15 = 2*R.m10*R.m11;
+      T.m23 = 2*R.m21*R.m22;
+      T.m24 = 2*R.m22*R.m20;
+      T.m25 = 2*R.m20*R.m21;
+      
+      // bottom left
+      T.m30 = R.m10*R.m20;
+      T.m31 = R.m11*R.m21;
+      T.m32 = R.m12*R.m22;
+      T.m40 = R.m20*R.m00;
+      T.m41 = R.m21*R.m01;
+      T.m42 = R.m22*R.m02;
+      T.m50 = R.m00*R.m10;
+      T.m51 = R.m01*R.m11;
+      T.m52 = R.m02*R.m12;
+      
+      // bottom right
+      T.m33 = R.m11*R.m22+R.m12*R.m21;
+      T.m34 = R.m12*R.m20+R.m10*R.m22;
+      T.m35 = R.m10*R.m21+R.m11*R.m20;
+      T.m43 = R.m21*R.m02+R.m22*R.m01;
+      T.m44 = R.m22*R.m00+R.m20*R.m02;
+      T.m45 = R.m20*R.m01+R.m21*R.m00;
+      T.m53 = R.m01*R.m12+R.m02*R.m11;
+      T.m54 = R.m02*R.m10+R.m00*R.m12;
+      T.m55 = R.m00*R.m11+R.m01*R.m10;
+   }
+   
+   
+   /**
+    * Rotates a 6x6 material tangent matrix into a new coordinate system.
+    * The rotation is specified by a rotation matrix R that transforms
+    * from the new coordinate system into the current one.
+    *
+    * @param DR result is returned here
+    * @param D1 original tangent matrix to rotate
+    * @param R rotation matrix
+    */
+   public static void rotateTangent2 (Matrix6d DR, Matrix6d D1, Matrix3dBase R) {
+      Matrix6d T = new Matrix6d();
+      createElasticityRotation(T, R);
+      DR.mul(T, D1);
+      DR.mulTranspose(T);
+   }
 
 
 }

@@ -743,66 +743,66 @@ public class TensorUtils {
       DX.set (D1);
       for (int idx=0; idx<4; idx++) {
          DT.set (DX);
-         // DX.m00 = rotationSum (DT, idx, 0, 0, 0, 0, R);
-         // DX.m01 = rotationSum (DT, idx, 0, 0, 1, 1, R);
-         // DX.m02 = rotationSum (DT, idx, 0, 0, 2, 2, R);
-         // DX.m03 = rotationSum (DT, idx, 0, 0, 0, 1, R);
-         // DX.m04 = rotationSum (DT, idx, 0, 0, 1, 2, R);
-         // DX.m05 = rotationSum (DT, idx, 0, 0, 0, 2, R);
+         DX.m00 = rotationSum (DT, idx, 0, 0, 0, 0, R);
+         DX.m01 = rotationSum (DT, idx, 0, 0, 1, 1, R);
+         DX.m02 = rotationSum (DT, idx, 0, 0, 2, 2, R);
+         DX.m03 = rotationSum (DT, idx, 0, 0, 0, 1, R);
+         DX.m04 = rotationSum (DT, idx, 0, 0, 1, 2, R);
+         DX.m05 = rotationSum (DT, idx, 0, 0, 0, 2, R);
 
-         // DX.m11 = rotationSum (DT, idx, 1, 1, 1, 1, R);
-         // DX.m12 = rotationSum (DT, idx, 1, 1, 2, 2, R);
-         // DX.m13 = rotationSum (DT, idx, 1, 1, 0, 1, R);
-         // DX.m14 = rotationSum (DT, idx, 1, 1, 1, 2, R);
-         // DX.m15 = rotationSum (DT, idx, 1, 1, 0, 2, R);
+         DX.m11 = rotationSum (DT, idx, 1, 1, 1, 1, R);
+         DX.m12 = rotationSum (DT, idx, 1, 1, 2, 2, R);
+         DX.m13 = rotationSum (DT, idx, 1, 1, 0, 1, R);
+         DX.m14 = rotationSum (DT, idx, 1, 1, 1, 2, R);
+         DX.m15 = rotationSum (DT, idx, 1, 1, 0, 2, R);
 
-         // DX.m22 = rotationSum (DT, idx, 2, 2, 2, 2, R);
-         // DX.m23 = rotationSum (DT, idx, 2, 2, 0, 1, R);
-         // DX.m24 = rotationSum (DT, idx, 2, 2, 1, 2, R);
-         // DX.m25 = rotationSum (DT, idx, 2, 2, 0, 2, R);
+         DX.m22 = rotationSum (DT, idx, 2, 2, 2, 2, R);
+         DX.m23 = rotationSum (DT, idx, 2, 2, 0, 1, R);
+         DX.m24 = rotationSum (DT, idx, 2, 2, 1, 2, R);
+         DX.m25 = rotationSum (DT, idx, 2, 2, 0, 2, R);
 
-         // DX.m33 = rotationSum (DT, idx, 0, 1, 0, 1, R);
-         // DX.m34 = rotationSum (DT, idx, 0, 1, 1, 2, R);
-         // DX.m35 = rotationSum (DT, idx, 0, 1, 0, 2, R);
+         DX.m33 = rotationSum (DT, idx, 0, 1, 0, 1, R);
+         DX.m34 = rotationSum (DT, idx, 0, 1, 1, 2, R);
+         DX.m35 = rotationSum (DT, idx, 0, 1, 0, 2, R);
 
-         // DX.m44 = rotationSum (DT, idx, 1, 2, 1, 2, R);
-         // DX.m45 = rotationSum (DT, idx, 1, 2, 0, 2, R);
+         DX.m44 = rotationSum (DT, idx, 1, 2, 1, 2, R);
+         DX.m45 = rotationSum (DT, idx, 1, 2, 0, 2, R);
 
-         // DX.m55 = rotationSum (DT, idx, 0, 2, 0, 2, R);
+         DX.m55 = rotationSum (DT, idx, 0, 2, 0, 2, R);
 
-         // // take advantage of symmetry
-         // DX.setLowerToUpper();
+         // take advantage of symmetry
+         DX.setLowerToUpper();
 
-         for (int i=0; i<3; i++) {
-            for (int j=0; j<3; j++) {
-               for (int k=0; k<3; k++) {
-                  for (int l=0; l<3; l++) {
-                     double sum = 0;
-                     for (int a=0; a<3; a++) {
-                        switch (idx) {
-                           case 0: {
-                              sum += R.get(i,a)*getTanMat(DT,a*3+j,k*3+l);
-                              break;
-                           }
-                           case 1:{
-                              sum += R.get(j,a)*getTanMat(DT,i*3+a,k*3+l);  
-                              break;
-                           }
-                           case 2: {
-                              sum += R.get(k,a)*getTanMat(DT,i*3+j,a*3+l);  
-                              break;
-                           }
-                           case 3:{
-                              sum += R.get(l,a)*getTanMat(DT,i*3+j,k*3+a);  
-                              break;
-                           }
-                        }
-                     }
-                     setTanMat (DX, i*3+j, k*3+l, sum);
-                  }
-               }
-            } 
-         }
+         // for (int i=0; i<3; i++) {
+         //    for (int j=0; j<3; j++) {
+         //       for (int k=0; k<3; k++) {
+         //          for (int l=0; l<3; l++) {
+         //             double sum = 0;
+         //             for (int a=0; a<3; a++) {
+         //                switch (idx) {
+         //                   case 0: {
+         //                      sum += R.get(i,a)*getTanMat(DT,a*3+j,k*3+l);
+         //                      break;
+         //                   }
+         //                   case 1:{
+         //                      sum += R.get(j,a)*getTanMat(DT,i*3+a,k*3+l);  
+         //                      break;
+         //                   }
+         //                   case 2: {
+         //                      sum += R.get(k,a)*getTanMat(DT,i*3+j,a*3+l);  
+         //                      break;
+         //                   }
+         //                   case 3:{
+         //                      sum += R.get(l,a)*getTanMat(DT,i*3+j,k*3+a);  
+         //                      break;
+         //                   }
+         //                }
+         //             }
+         //             setTanMat (DX, i*3+j, k*3+l, sum);
+         //          }
+         //       }
+         //    } 
+         // }
       }
 
       if (DR == D1) {
@@ -884,11 +884,18 @@ public class TensorUtils {
       
       Matrix6d D = new Matrix6d();
       LinearMaterial lmat = new LinearMaterial(150, 0.25, false);
-      
-      lmat.computeTangent(D, null, null, null, null);
+
+      //lmat.computeTangent(D, null, null, null, null);
+
+      // Just create a general symmetric D for testing
+      D.setRandom();
+      Matrix6d DT = new Matrix6d();
+      DT.transpose (D);
+      D.add (DT);
       
       RotationMatrix3d R = new RotationMatrix3d();
-      R.set(RotationMatrix3d.ROT_X_90);
+      R.setRandom();
+      //R.set(RotationMatrix3d.ROT_X_90);
       RotationMatrix3d Rinv = new RotationMatrix3d();
       Rinv.transpose(R);
       
@@ -899,13 +906,20 @@ public class TensorUtils {
       TensorUtils.rotateTangent(Dur, Dr, Rinv);
       if (!D.epsilonEquals(Dur, 1e-5)) {
          System.err.println("Rotated tangents not equal");
+         Matrix6d Derr = new Matrix6d();
+         Derr.sub (D, Dur);
+         System.out.println ("D=\n" + D.toString("%12.8f"));
+         System.out.println ("Dr=\n" + Dr.toString("%12.8f"));
+         System.out.println ("Err=\n" + Derr.toString("%12.8f"));
       } else {
          System.out.println("Rotated tangents are equal");
       }
       
       // alternative rotation
       TensorUtils.rotateTangent2(Dr, D, R);
+      System.out.println ("Dr=\n" + Dr.toString("%12.8f"));
       TensorUtils.rotateTangent2(Dur, Dr, Rinv);
+
       if (!D.epsilonEquals(Dur, 1e-5)) {
          System.err.println("Rotated tangents not equal");
       } else {

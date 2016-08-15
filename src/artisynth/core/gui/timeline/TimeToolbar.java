@@ -18,6 +18,7 @@ import maspack.util.NumberFormat;
 import maspack.widgets.ButtonCreator;
 import artisynth.core.driver.GenericKeyHandler;
 import artisynth.core.driver.Main;
+import artisynth.core.workspace.RootModel;
 
 public class TimeToolbar extends JToolBar {
    private static final long serialVersionUID = 1L;
@@ -175,7 +176,7 @@ public class TimeToolbar extends JToolBar {
    //    timestepPanel.add (msecLabel);
    // }
 
-   private void refreshToolbar() {
+   private void refreshToolbar(RootModel root) {
       boolean timeIsZero = (parent.myScheduler.getTime() == 0);
       if (!parent.myScheduler.isPlaying ()) {
          //resetButton.setEnabled (!timeIsZero);
@@ -184,7 +185,7 @@ public class TimeToolbar extends JToolBar {
          playButton.setActionCommand ("Play");
          playButton.setToolTipText ("Play");
          singleStepButton.setEnabled (true);
-         fastForwardButton.setEnabled (parent.isNextValidWayAvailable());
+         fastForwardButton.setEnabled (parent.isNextValidWayAvailable(root));
       }
       else {
          //resetButton.setEnabled (true);
@@ -203,18 +204,18 @@ public class TimeToolbar extends JToolBar {
       timeLabel.setText (timefmt.format(t));
    }
 
-   public void updateToolbarState () {      
+   public void updateToolbarState (RootModel root) {      
       //updateStepTime();
       validateZoom();      
-      refreshToolbar ();
-      validateFastForward();
+      refreshToolbar (root);
+      validateFastForward(root);
    }
 
-   public void validateFastForward() {
+   public void validateFastForward(RootModel root) {
       // For all buttons check to see if there is a valid
       // waypoint existing after the current time, then
       // enable the button.
-      boolean enabled = parent.isNextValidWayAvailable();
+      boolean enabled = parent.isNextValidWayAvailable(root);
       if (enabled != fastForwardButton.isEnabled()) {
          fastForwardButton.setEnabled (enabled);
       }
@@ -307,7 +308,7 @@ public class TimeToolbar extends JToolBar {
             parent.saveAllProbes();
          }
          
-         updateToolbarState();
+         updateToolbarState(parent.myMain.getRootModel());
          parent.requestUpdateDisplay();
       }
    }

@@ -610,7 +610,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
          
          Timeline timeline = myMain.getTimeline();
          if (timeline != null) {
-            timeline.updateProbes();
+            timeline.updateProbes(myMain.getRootModel());
          }
          
          dispose();

@@ -475,7 +475,7 @@ ValueChangeListener {
          
          Timeline timeline = myMain.getTimeline();
          if (timeline != null) {
-            timeline.updateProbes();
+            timeline.updateProbes(myMain.getRootModel());
          }
          
          dispose();

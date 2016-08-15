@@ -11,6 +11,7 @@ import artisynth.core.gui.probeEditor.NumericProbeEditor;
 import artisynth.core.gui.NumericProbeDisplayLarge;
 import artisynth.core.probes.WayPoint;
 import artisynth.core.probes.Probe;
+import artisynth.core.workspace.RootModel;
 
 public abstract class Timeline extends JFrame {
    private static final long serialVersionUID = 1L;
@@ -26,7 +27,7 @@ public abstract class Timeline extends JFrame {
    public abstract void requestUpdateDisplay();
    public abstract void requestUpdateWidgets();
    public abstract void requestResetAll();
-   public abstract void updateProbes();
+   public abstract void updateProbes(RootModel root);
    //public abstract void pauseTimeline();
    //public abstract void playTimeline();
    //public abstract void playTimeline (long endTime);

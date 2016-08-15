@@ -2688,7 +2688,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
                myFrame.getNavPanel().updateStructure (c);
                if (root != null &&
                    (c == root.getInputProbes() || c == root.getOutputProbes())) {
-                  myTimeline.updateProbes();
+                  myTimeline.updateProbes(root);
                }
             }
             if (!getScheduler().isPlaying()) {

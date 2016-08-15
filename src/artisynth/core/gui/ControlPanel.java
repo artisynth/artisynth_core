@@ -633,10 +633,15 @@ public class ControlPanel extends ModelComponentBase
       rtok.nextToken();
       if (scanAttributeName (rtok, "options")) {
          String options = rtok.scanQuotedString ('"');
-         if (options != null && myFrame != null) {
-            OptionPanel optpanel = myFrame.addOptionPanel (options);
-            optpanel.addMouseListener (new MouseHandler());
-            myFrame.pack();
+         if (options != null) {
+            if (myFrame != null) {
+               OptionPanel optpanel = myFrame.addOptionPanel (options);
+               optpanel.addMouseListener (new MouseHandler());
+               myFrame.pack();
+            }
+            else {
+               myOptionsString = options;
+            }
          }
          return true;
       }

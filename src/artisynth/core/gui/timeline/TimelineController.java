@@ -172,7 +172,7 @@ public class TimelineController extends Timeline
       mainSplitPane.addKeyListener (keyHandler);
       addKeyListener (keyHandler);
 
-      myToolBar.updateToolbarState();
+      myToolBar.updateToolbarState(main.getRootModel());
       
       //mySelectionListener = timelineSelectionHandler;
 
@@ -515,7 +515,7 @@ public class TimelineController extends Timeline
       double t = getCurrentTime();
       updateProbesAndWaypoints(rootModel);
       
-      myToolBar.updateToolbarState();
+      myToolBar.updateToolbarState(rootModel);
       setAllWaypointDisplay();
       updateAllProbeDisplays();
       updateTimeDisplay (t);
@@ -791,14 +791,14 @@ public class TimelineController extends Timeline
       }
       
       // Process the waypoints
-      refreshWayPoints();
+      refreshWayPoints(rootModel);
 //       for (WayPoint wayPoint : getWayPoints().getPoints ()) {
 //          addWayPointFromRoot (wayPoint);
 //       }
 
       //setAppropriateVirtualWaypoint (false);
       //timescale.updateTimeCursor (0);
-      myToolBar.updateToolbarState ();
+      myToolBar.updateToolbarState (rootModel);
       
       closeProbeEditors();
       myProbeEditors = new ArrayList<NumericProbeEditor>();
@@ -1009,7 +1009,7 @@ public class TimelineController extends Timeline
             updateWasNeeded = true;
          }
       }
-      if (refreshWayPoints()) {
+      if (refreshWayPoints(rootModel)) {
          updateWasNeeded = true;
       }
       return updateWasNeeded;
@@ -1018,8 +1018,7 @@ public class TimelineController extends Timeline
    /**
     * Updates probes when probes are added or removed from the RootModel.
     */
-   public void updateProbes() {
-      RootModel root = myMain.getRootModel();
+   public void updateProbes(RootModel root) {
       
       LinkedList<Probe> inList = new LinkedList<Probe>();
       for (int i = 0; i < myInTracks.size(); i++) {
@@ -1039,7 +1038,7 @@ public class TimelineController extends Timeline
       for (int i = 0; i < myOutTracks.size(); i++) {
          myOutTracks.get (i).updateProbeData();
       }
-      refreshWayPoints();
+      refreshWayPoints(root);
       refreshProbeTrackDisplay();
       requestUpdateDisplay();
    }
@@ -1126,7 +1125,7 @@ public class TimelineController extends Timeline
     */
    public void addWayPointFromUser (boolean isBreakPoint) {
       addWayPoint (timescale.getTimescaleCursorTime(), isBreakPoint);
-      myToolBar.validateFastForward();
+      myToolBar.validateFastForward(myMain.getRootModel());
    }
    
    /**
@@ -1172,12 +1171,12 @@ public class TimelineController extends Timeline
       }
    }
 
-   private boolean wayPointsNeedRefreshing() {
-      if (wayInfos.size() != getWayPoints().size()) {
+   private boolean wayPointsNeedRefreshing(RootModel root) {
+      if (wayInfos.size() != root.getWayPoints().size()) {
          return true;
       }
       int idx = 0;
-      for (WayPoint wayPoint : getWayPoints().getPoints()) {
+      for (WayPoint wayPoint : root.getWayPoints().getPoints()) {
          if (wayInfos.get(idx++).myWaypoint != wayPoint) {
             return true;
          }
@@ -1187,9 +1186,9 @@ public class TimelineController extends Timeline
 
    // Refresh the set of waypoint from info the RootModel. Return true if
    // changes were made, and false otherwise.
-   private boolean refreshWayPoints() {
-      myToolBar.updateToolbarState();
-      if (!wayPointsNeedRefreshing()) {
+   private boolean refreshWayPoints(RootModel root) {
+      myToolBar.updateToolbarState(root);
+      if (!wayPointsNeedRefreshing(root)) {
          return false;
       }
       // remove all way infos ...
@@ -1202,7 +1201,7 @@ public class TimelineController extends Timeline
       
       // now add new ones from rootModel ...
       int idx = 0;
-      for (WayPoint wayPoint : getWayPoints().getPoints ()) {
+      for (WayPoint wayPoint : root.getWayPoints().getPoints ()) {
          WayPointInfo info = new WayPointInfo (this, wayPoint);
          wayInfos.add (info);
          info.setIndex (idx++);
@@ -1240,16 +1239,18 @@ public class TimelineController extends Timeline
    }
 
    public void loadWayPoints() {
-      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
+      RootModel root = myMain.getRootModel();
+      WayPointProbe wayPoints = root.getWayPoints();
       wayPoints.load();
-      refreshWayPoints();
+      refreshWayPoints(root);
    }
 
    public void loadWayPointsFrom() {
-      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
+      RootModel root = myMain.getRootModel();
+      WayPointProbe wayPoints = root.getWayPoints();
       setAttachedFileFromUser (wayPoints, "Load From");
       wayPoints.load();
-      refreshWayPoints();
+      refreshWayPoints(root);
    }
 
    private void setAttachedFileFromUser (WayPointProbe wayPoints, String text) {
@@ -1349,7 +1350,7 @@ public class TimelineController extends Timeline
             addWayPoint (t*i, myBreakpointSelector.getBooleanValue());
          }
          
-         myToolBar.validateFastForward();
+         myToolBar.validateFastForward(myMain.getRootModel());
       }         
    }
    
@@ -1416,9 +1417,10 @@ public class TimelineController extends Timeline
    
    /**
     * Checks to see if there are any valid waypoints after the current time.
+    * @param root TODO
     */
-   public boolean isNextValidWayAvailable() {
-      return getWayPoints().getValidAfter (getCurrentTime()) != null;
+   public boolean isNextValidWayAvailable(RootModel root) {
+      return root.getWayPoints().getValidAfter (getCurrentTime()) != null;
    }
    
    public boolean rootModelExists() {
@@ -2306,7 +2308,7 @@ public class TimelineController extends Timeline
          zoomLevel--;
       }
 
-      myToolBar.updateToolbarState ();
+      myToolBar.updateToolbarState (myMain.getRootModel());
       timescale.updateTimescaleSizeAndScale (timelineDuration, zoomLevel);
       updateComponentSizes();
       updateComponentLocations();

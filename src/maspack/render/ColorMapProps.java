@@ -73,6 +73,7 @@ public class ColorMapProps extends TextureMapProps {
       myColorMixingMode = INHERITED;
       myDiffuseColoringMode = INHERITED;
       mySpecularColoringMode = INHERITED;
+      myEmissionColoringMode = INHERITED;
    }
 
    protected void setDefaultValues() {
@@ -80,6 +81,7 @@ public class ColorMapProps extends TextureMapProps {
       myColorMixing = defaultColorMixing;
       myDiffuseColoring = defaultDiffuseColoring;
       mySpecularColoring = defaultSpecularColoring;
+      myEmissionColoring = defaultEmissionColoring;
    }
    
    // mixing

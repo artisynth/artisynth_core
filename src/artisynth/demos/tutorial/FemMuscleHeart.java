@@ -57,6 +57,7 @@ public class FemMuscleHeart extends RootModel {
       PolygonalMesh heartMesh = new PolygonalMesh();
       wfr.readMesh(heartMesh);
       heartMesh.triangulate();          // triangulate for interaction
+      heartMesh.getRenderProps().getBumpMap().setScaling(0.01f);
       
       // FEM heart:
       //    - FEM mesh of heart convex hull
@@ -198,11 +199,6 @@ public class FemMuscleHeart extends RootModel {
       
       addInputProbe(probe);
       
-   }
-   
-   @Override
-   public void attach(DriverInterface driver) {
-      super.attach(driver);
    }
    
 }

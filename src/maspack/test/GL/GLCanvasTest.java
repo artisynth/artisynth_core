@@ -1,4 +1,4 @@
-package maspack.render.GL.test;
+package maspack.test.GL;
 
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;

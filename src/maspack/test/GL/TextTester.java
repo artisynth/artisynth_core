@@ -1,4 +1,4 @@
-package maspack.render.GL.test;
+package maspack.test.GL;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -18,9 +18,9 @@ import maspack.render.RenderList;
 import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
+import maspack.test.GL.MultiViewer.SimpleSelectable;
 import maspack.render.TextImageStore;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.test.MultiViewer.SimpleSelectable;
 
 public class TextTester extends GL2vsGL3Tester {
    

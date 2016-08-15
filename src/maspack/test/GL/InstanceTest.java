@@ -1,4 +1,4 @@
-package maspack.render.GL.test;
+package maspack.test.GL;
 
 import java.util.LinkedList;
 
@@ -10,8 +10,8 @@ import maspack.render.RenderObject;
 import maspack.render.Renderer;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
-import maspack.render.GL.test.MultiViewer.SimpleSelectable;
-import maspack.render.GL.test.MultiViewer.SimpleViewerApp;
+import maspack.test.GL.MultiViewer.SimpleSelectable;
+import maspack.test.GL.MultiViewer.SimpleViewerApp;
 
 public class InstanceTest extends GL2vsGL3Tester {
    

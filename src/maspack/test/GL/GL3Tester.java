@@ -1,4 +1,4 @@
-package maspack.render.GL.test;
+package maspack.test.GL;
 
 public class GL3Tester extends MultiViewerTesterBase {
 

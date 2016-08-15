@@ -1,8 +1,8 @@
-package maspack.render.GL.test;
+package maspack.test.GL;
 
 import maspack.geometry.PolygonalMesh;
 
-public class SingleGL2Tester extends MultiViewerTesterBase {
+public class MultiGL2Tester extends MultiViewerTesterBase {
 
    protected static void addRenderObjects(MultiViewer tester) {
 
@@ -21,8 +21,9 @@ public class SingleGL2Tester extends MultiViewerTesterBase {
    public static void main(String[] args) {
 
       MultiViewer rot = new MultiViewer();
-      rot.addGL2Viewer("GL2 Viewer", 30, 30, 640, 480);
-      // rot.syncMouseListeners();
+      rot.addGL2Viewer("GL2 Viewer 1", 30, 30, 640, 480);
+      rot.addGL2Viewer("GL2 Viewer 2", 670, 30, 640, 480);
+      rot.syncViews();
 
       addRenderObjects(rot);
 

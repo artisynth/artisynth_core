@@ -1,4 +1,4 @@
-package maspack.render.GL.test;
+package maspack.test.GL;
 
 import java.awt.Color;
 import java.util.LinkedList;
@@ -8,8 +8,8 @@ import maspack.matrix.Vector3d;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.GL.test.MultiViewer.SimpleSelectable;
 import maspack.render.Renderer.FaceStyle;
+import maspack.test.GL.MultiViewer.SimpleSelectable;
 
 public class VolumePrimitivesTest extends GL2vsGL3Tester {
    

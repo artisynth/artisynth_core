@@ -1,4 +1,4 @@
-package maspack.render.GL.test;
+package maspack.test.GL;
 
 import java.awt.Color;
 import java.awt.event.KeyEvent;

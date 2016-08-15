@@ -12,7 +12,7 @@ endif
 
 WEBSERVER = artisynth.magic.ubc.ca
 WEB_HOME = /ubc/magic/home/wwwrun/docs/artisynth
-WEB_DOC_DIR = $(WEB_HOME)/artisynth/doc
+WEB_DOC_DIR = $(WEB_HOME)/artisynth/$(DOC_DIR_BASE)
 WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_DOC_DIR)
 WEB_HTML_URL = $(WEB_DOC_URL)/html
 FIX_PERMISSIONS = \

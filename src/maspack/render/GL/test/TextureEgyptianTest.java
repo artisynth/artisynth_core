@@ -5,8 +5,6 @@ import java.awt.Color;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import artisynth.core.mechmodels.FixedMeshBody;
-import artisynth.core.util.ArtisynthPath;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.AxisAngle;
@@ -25,6 +23,7 @@ import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.widgets.LabeledComponentBase;
 import maspack.widgets.PropertyWidget;
+import maspack.util.PathFinder;
 
 public class TextureEgyptianTest extends GL3Tester {
    
@@ -49,22 +48,21 @@ public class TextureEgyptianTest extends GL3Tester {
       rprops.setSpecular (new Color(255, 113, 0));
       rprops.setFaceStyle (FaceStyle.FRONT_AND_BACK);
       plane.transform (new RigidTransform3d(Vector3d.ZERO, AxisAngle.ROT_X_90));
+
+      String srcDir = PathFinder.findSourceDir (this);
       
       ColorMapProps dprops = new ColorMapProps ();
-      dprops.setFileName (ArtisynthPath.getSrcRelativePath (
-                             this, "/data/specular_map.jpg"));
+      dprops.setFileName (srcDir + "/data/specular_map.jpg");
       dprops.setColorMixing (ColorMixing.MODULATE);
       dprops.setEnabled (true);
       
       NormalMapProps normalProps = new NormalMapProps ();
-      normalProps.setFileName (ArtisynthPath.getSrcRelativePath (
-                                  this, "/data/foil_normal_map2.png"));
+      normalProps.setFileName (srcDir + "/data/foil_normal_map2.png");
       normalProps.setScaling (0.3f);
       normalProps.setEnabled (true);
       
       BumpMapProps bumpProps = new BumpMapProps ();
-      bumpProps.setFileName (ArtisynthPath.getSrcRelativePath (
-                                this, "/data/egyptian_friz_2.png"));
+      bumpProps.setFileName (srcDir + "/data/egyptian_friz_2.png");
       bumpProps.setScaling (2.5f);
       bumpProps.setEnabled (true);
       
@@ -72,10 +70,10 @@ public class TextureEgyptianTest extends GL3Tester {
       rprops.setNormalMap (normalProps);
       rprops.setBumpMap (bumpProps);
       
-      FixedMeshBody fm = new FixedMeshBody(plane);
-      fm.setRenderProps(rprops);
+      //FixedMeshBody fm = new FixedMeshBody(plane);
+      //fm.setRenderProps(rprops);
       
-      mv.addRenderable (fm);
+      mv.addRenderable (plane);
       
       if (false) {
          
@@ -115,20 +113,20 @@ public class TextureEgyptianTest extends GL3Tester {
 
       mv.autoFitViewers ();
       
-      LabeledComponentBase base = PropertyWidget.create ("Color texture", fm.getRenderProps ().getColorMap (), "enabled");
+      LabeledComponentBase base = PropertyWidget.create ("Color texture", rprops.getColorMap (), "enabled");
       controls.add(base);
-      base = PropertyWidget.create ("Normal map", fm.getRenderProps ().getNormalMap (), "enabled");
+      base = PropertyWidget.create ("Normal map", rprops.getNormalMap (), "enabled");
       controls.add(base);
-      base = PropertyWidget.create ("Bump map", fm.getRenderProps ().getBumpMap (), "enabled");
+      base = PropertyWidget.create ("Bump map", rprops.getBumpMap (), "enabled");
       controls.add(base);
       
-      base = PropertyWidget.create ("Specular", fm.getRenderProps ().getColorMap (), "specularColoring");
+      base = PropertyWidget.create ("Specular", rprops.getColorMap (), "specularColoring");
       controls.add (base);
       
-      base = PropertyWidget.create ("Bump map scale", fm.getRenderProps ().getBumpMap (), "scaling");
+      base = PropertyWidget.create ("Bump map scale", rprops.getBumpMap (), "scaling");
       controls.add (base);
       
-      base = PropertyWidget.create ("Normal map scale", fm.getRenderProps ().getNormalMap (), "scaling");
+      base = PropertyWidget.create ("Normal map scale", rprops.getNormalMap (), "scaling");
       controls.add (base);
       
       

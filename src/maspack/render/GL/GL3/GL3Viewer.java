@@ -19,7 +19,6 @@ import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLProfile;
 import javax.swing.event.MouseInputListener;
 
-import artisynth.core.util.ArtisynthPath;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.ColorMapProps;
@@ -46,6 +45,7 @@ import maspack.render.GL.GL3.GLSLGenerator.StringIntPair;
 import maspack.util.BufferUtilities;
 import maspack.util.InternalErrorException;
 import maspack.util.Logger;
+import maspack.util.PathFinder;
 
 public class GL3Viewer extends GLViewer {
 
@@ -1745,19 +1745,24 @@ public class GL3Viewer extends GLViewer {
       drawTriangles (coords);
    }
 
+   static File getShaderFile (String name) {
+      String dirName = PathFinder.expand ("${srcdir GL3Viewer}/shaders/");
+      return new File (dirName + name);
+   }
+
    static File[] DEBUG_NORMAL_SHADERS = new File[] {
-       ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/camera_normal_vertex.glsl"),
-       ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/camera_normal_fragment.glsl")
+      getShaderFile ("camera_normal_vertex.glsl"),
+      getShaderFile ("camera_normal_fragment.glsl")
    };
    
    static File[] DEBUG_CLIP_SHADERS = new File[] {
-       ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/clip_debug_vertex.glsl"),
-       ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/clip_debug_fragment.glsl")
+      getShaderFile ("clip_debug_vertex.glsl"),
+      getShaderFile ("clip_debug_fragment.glsl")
    };
    
    static File[] DEBUG_INSTANCE_SHADERS = new File[] {
-      ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/instance_debug_vertex.glsl"),
-      ArtisynthPath.getSrcRelativeFile (GL3Viewer.class, "shaders/instance_debug_fragment.glsl")
+      getShaderFile ("instance_debug_vertex.glsl"),
+      getShaderFile ("instance_debug_fragment.glsl")
    };
    
    public void drawTriangles (Iterable<float[]> points) {

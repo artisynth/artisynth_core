@@ -7,7 +7,6 @@ import java.io.IOException;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import artisynth.core.mechmodels.FixedMeshBody;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.io.WavefrontReader;
 import maspack.render.RenderProps;
@@ -15,6 +14,7 @@ import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
 import maspack.widgets.LabeledComponentBase;
 import maspack.widgets.PropertyWidget;
+import maspack.util.PathFinder;
 
 public class TextureHeartTest extends GL2vsGL3Tester {
    
@@ -25,7 +25,8 @@ public class TextureHeartTest extends GL2vsGL3Tester {
       JPanel controls = new JPanel ();
       frame.add (controls);
       
-      String heartObjFilename = "src/maspack/render/GL/test/data/heart/HumanHeart.obj";
+      String heartObjFilename =
+         PathFinder.findSourceDir(this) + "/data/heart/HumanHeart.obj";
       WavefrontReader reader = null;
       try {
          reader = new WavefrontReader (new File(heartObjFilename));
@@ -41,24 +42,25 @@ public class TextureHeartTest extends GL2vsGL3Tester {
          rprops.setSpecular (new Color(0.4f, 0.4f, 0.4f));
          rprops.getBumpMap ().setScaling (0.5f);
          rprops.setShininess (128);
-         mesh.setRenderProps(rprops);
+         //mesh.setRenderProps(rprops);
          
-         FixedMeshBody fm = new FixedMeshBody (mesh);
-         fm.setRenderProps (mesh.getRenderProps ());
-         LabeledComponentBase base = PropertyWidget.create ("Map", fm.getRenderProps ().getColorMap (), "enabled");
+         //FixedMeshBody fm = new FixedMeshBody (mesh);
+         //fm.setRenderProps (mesh.getRenderProps ());
+         //RenderProps rprops = mesh.getRenderProps();
+         LabeledComponentBase base = PropertyWidget.create ("Map", rprops.getColorMap (), "enabled");
          controls.add(base);
-         base = PropertyWidget.create ("Bump map", fm.getRenderProps ().getBumpMap (), "enabled");
+         base = PropertyWidget.create ("Bump map", rprops.getBumpMap (), "enabled");
          controls.add(base);
-         base = PropertyWidget.create ("Lighting", fm.getRenderProps (), "shading");
+         base = PropertyWidget.create ("Lighting", rprops, "shading");
          controls.add(base);
          
-         base = PropertyWidget.create ("Specular", fm.getRenderProps ().getColorMap (), "specularColoring");
+         base = PropertyWidget.create ("Specular", rprops.getColorMap (), "specularColoring");
          controls.add (base);
          
-         base = PropertyWidget.create ("Bump map scale", fm.getRenderProps ().getBumpMap (), "scaling");
+         base = PropertyWidget.create ("Bump map scale", rprops.getBumpMap (), "scaling");
          controls.add (base);
          
-         mv.addRenderable (fm);
+         mv.addRenderable (mesh);
       } catch (IOException e) {
          e.printStackTrace();
       }

@@ -10,8 +10,6 @@ package maspack.dicom;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import artisynth.core.modelbase.PropertyChangeEvent;
-import artisynth.core.modelbase.PropertyChangeListener;
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
 import maspack.properties.Property;
@@ -80,13 +78,6 @@ public abstract class DicomPixelInterpolator implements CompositeProperty {
          throw new InternalErrorException("cannot clone super in DicomPixelConverter");
       }
       return dpc;
-   }
-   
-   protected void notifyHostOfPropertyChange (String name) {
-      if (myPropHost instanceof PropertyChangeListener) {
-         ((PropertyChangeListener)myPropHost).propertyChanged (
-            new PropertyChangeEvent (this, name));
-      }
    }
    
    public boolean isWritable() {

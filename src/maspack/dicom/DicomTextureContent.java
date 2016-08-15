@@ -66,6 +66,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       
       // Full dynamic range
       window = new DicomWindowPixelInterpolator();
+      
       int maxIntensity = image.getMaxIntensity();
       int minIntensity = image.getMinIntensity();
       int c = (maxIntensity+minIntensity) >> 1;

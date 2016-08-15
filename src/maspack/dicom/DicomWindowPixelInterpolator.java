@@ -182,7 +182,6 @@ public class DicomWindowPixelInterpolator extends DicomPixelInterpolator {
          if (currentPreset == customPreset) {
             customPreset.center = center;
          }
-         notifyHostOfPropertyChange("windowCenter");
       }
    }
    
@@ -215,8 +214,6 @@ public class DicomWindowPixelInterpolator extends DicomPixelInterpolator {
          if (currentPreset == customPreset) {
             customPreset.width = width;
          }
-         
-         notifyHostOfPropertyChange("windowWidth");
       }
       
    }

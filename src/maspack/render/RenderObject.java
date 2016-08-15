@@ -564,6 +564,9 @@ public class RenderObject implements Versioned {
     * Whether or not any positions have been defined.
     */
    public boolean hasPositions() {
+      if (positions == null) {
+         return false;
+      }
       return (positions.size () > 0);
    }
 
@@ -755,7 +758,9 @@ public class RenderObject implements Versioned {
     * Whether or not any normals have been defined.
     */
    public boolean hasNormals() {
-      
+      if (normals == null) {
+         return false;
+      }
       return (normals.size () > 0);
    }
 
@@ -1033,6 +1038,9 @@ public class RenderObject implements Versioned {
     * Whether or not any colors have been defined.
     */
    public boolean hasColors() {
+      if (colors == null) {
+         return false;
+      }
       return (colors.size () > 0);
    }
 
@@ -1215,6 +1223,9 @@ public class RenderObject implements Versioned {
     * Whether or not any texture coordinates have been defined.
     */
    public boolean hasTextureCoords() {
+      if (texcoords == null) {
+         return false;
+      }
       return (texcoords.size () > 0);
    }
 
@@ -1837,6 +1848,9 @@ public class RenderObject implements Versioned {
     * Number of point primitives defined.
     */
    public int numPoints() {
+      if (currentPointGroup == null) {
+         return 0;
+      }
       return currentPointGroup.size()/POINT_STRIDE;
    }
    
@@ -1937,7 +1951,9 @@ public class RenderObject implements Versioned {
     * Number of point primitives defined in a point group.
     */
    public int numPoints(int pgroup) {
-      
+      if (points == null || points.size() <= pgroup) {
+         return 0;
+      }
       int np = points.get(pgroup).size()/POINT_STRIDE;
       
       return np;
@@ -2165,6 +2181,9 @@ public class RenderObject implements Versioned {
     * Number of line primitives defined
     */
    public int numLines() {
+      if (currentLineGroup == null) {
+         return 0;
+      }
       return currentLineGroup.size()/LINE_STRIDE;
    }
 
@@ -2259,7 +2278,9 @@ public class RenderObject implements Versioned {
     * Number of line primitives defined in a group.
     */
    public int numLines(int lgroup) {
-      
+      if (lines == null || lines.size() <= lgroup) {
+         return 0;
+      }
       int n = lines.get(lgroup).size()/LINE_STRIDE;
       
       return n;
@@ -2498,6 +2519,9 @@ public class RenderObject implements Versioned {
     * Number of triangle primitives defined.
     */
    public int numTriangles() {
+      if (currentTriangleGroup == null) {
+         return 0;
+      }
       return currentTriangleGroup.size()/TRIANGLE_STRIDE;
    }
 
@@ -2593,7 +2617,9 @@ public class RenderObject implements Versioned {
     * Number of triangle primitives defined in a group.
     */
    public int numTriangles(int tgroup) {
-      
+      if (triangles == null || triangles.size() <= tgroup) {
+         return 0;
+      }
       int s = triangles.get(tgroup).size()/TRIANGLE_STRIDE;
       
       return s;

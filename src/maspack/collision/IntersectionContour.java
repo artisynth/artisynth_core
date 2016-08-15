@@ -37,6 +37,29 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
    void setClosed (boolean closed) {
       isClosed = closed;
    }
+
+   /**
+    * Returns <code>true</code> if this contour divides the specified mesh
+    * into "inside" and "outside" regions. The contour will be bounded if
+    *
+    * <ul>
+    * <li>it is closed;
+    * <li>both endpoints of the contour lie on boundary edges of the mesh
+    * </ul>
+    *
+    * @return <code>true</code> if this contour divides the mesh
+    */
+   public boolean dividesMesh (PolygonalMesh mesh) {
+      if (isClosed()) {
+         return true;
+      }
+      else {
+         HalfEdge he0 = getFirst().edge;
+         HalfEdge heL = getLast().edge;
+         return (he0.opposite == null && edgeOnMesh(he0, mesh) &&
+                 heL.opposite == null && edgeOnMesh(heL, mesh));
+      }
+   }
    
    public void reverse() {
       // int k = size();
@@ -174,7 +197,8 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
 
       double dmax = 0;
       boolean clockwise = true;
-      for (int i=0; i<csize; i++) {
+      int nsegs = isClosed ? csize : csize-1;
+      for (int i=0; i<nsegs; i++) {
 
          IntersectionPoint pa = get((i)%csize);
          IntersectionPoint pb = get((i+1)%csize);
@@ -499,6 +523,34 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
       face.firstHalfEdge().getHead().getWorldPoint (p0);
 
       return computePlanarArea (face.getWorldNormal(), p0, clockwiseContour);
+   }
+
+   /**
+    * Returns the first point of this contour, or null if the contour is empty.
+    *
+    * @return first point of this contour, or <code>null</code>
+    */
+   public IntersectionPoint getFirst() {
+      if (size() > 0) {
+         return get(0);
+      }
+      else {
+         return null;
+      }
+   }
+
+   /**
+    * Returns the last point of this contour, or null if the contour is empty.
+    *
+    * @return last point of this contour, or <code>null</code>
+    */
+   public IntersectionPoint getLast() {
+      if (size() > 0) {
+         return get(size()-1);
+      }
+      else {
+         return null;
+      }
    }
 
    boolean isDegenerate() {

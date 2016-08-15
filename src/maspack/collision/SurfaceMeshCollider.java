@@ -187,9 +187,16 @@ public class SurfaceMeshCollider implements AbstractCollider {
       else {
          return null;
       }
-
    }
 
+   public ArrayList<IntersectionContour> getContours (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      
+      ArrayList<IntersectionContour> contours = 
+         meshIntersector.findContours (mesh0, mesh1);
+      return contours.size() > 0 ? contours : null;
+   }
+   
    /*
     * For each penetrating vertex, find the closest opposing face and add a
     * corresponding new element to the list of ContactPenetratingPoints

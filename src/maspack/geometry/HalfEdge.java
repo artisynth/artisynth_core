@@ -965,46 +965,47 @@ public class HalfEdge extends Feature implements Boundable {
 //      return true;
 //   }
 
-   /*
-    * Test using an approximate test that does not use exact arithmetic. If it
-    * returns true, the result should be checked with exact arithmetic. The
-    * approximate test is assumed to be significantly faster, but this has not
-    * been verified by measurement. Should try getting rid of the
-    * aFace.isPointInside test and going straight to exact result.
-    */
-   public boolean intersectionWithFace (Face aFace) {
-      Vertex3d v = aFace.he0.tail;
-      if (v == head)
-         return false;
-      if (v == tail)
-         return false;
-      v = aFace.he0.head;
-      if (v == head)
-         return false;
-      if (v == tail)
-         return false;
-      v = aFace.he0.next.head;
-      if (v == head)
-         return false;
-      if (v == tail)
-         return false;
-
-      // aFace.updateWorldCoordinates();
-      Vector3d n = aFace.getWorldNormal();
-      Point3d w = aFace.he0.head.getWorldPoint();
-      Point3d hp = head.getWorldPoint();
-      double h = (w.x - hp.x) * n.x + (w.y - hp.y) * n.y + (w.z - hp.z) * n.z;
-      Point3d tp = tail.getWorldPoint();
-      double t = (w.x - tp.x) * n.x + (w.y - tp.y) * n.y + (w.z - tp.z) * n.z;
-      if ((h < 0) == (t < 0))
-         return false;
-      t = Math.abs (t);
-      double lambda = t / (t + Math.abs (h));
-      double x = (hp.x - tp.x) * lambda + tp.x;
-      double y = (hp.y - tp.y) * lambda + tp.y;
-      double z = (hp.z - tp.z) * lambda + tp.z;
-      return aFace.isPointInside (x, y, z);
-   }
+//   /*
+//    * Test using an approximate test that does not use exact arithmetic. If it
+//    * returns true, the result should be checked with exact arithmetic. The
+//    * approximate test is assumed to be significantly faster, but this has not
+//    * been verified by measurement. Should try getting rid of the
+//    * aFace.isPointInside test and going straight to exact result.
+//    */
+//   public boolean intersectionWithFace (Face aFace) {
+//      Vertex3d v = aFace.he0.tail;
+//      if (v == head)
+//         return false;
+//      if (v == tail)
+//         return false;
+//      v = aFace.he0.head;
+//      if (v == head)
+//         return false;
+//      if (v == tail)
+//         return false;
+//      v = aFace.he0.next.head;
+//      if (v == head)
+//         return false;
+//      if (v == tail)
+//         return false;
+//
+//      // aFace.updateWorldCoordinates();
+//      Vector3d n = aFace.getWorldNormal();
+//      Point3d w = aFace.he0.head.getWorldPoint();
+//      Point3d hp = head.getWorldPoint();
+//      double h = (w.x - hp.x) * n.x + (w.y - hp.y) * n.y + (w.z - hp.z) * n.z;
+//      Point3d tp = tail.getWorldPoint();
+//      double t = (w.x - tp.x) * n.x + (w.y - tp.y) * n.y + (w.z - tp.z) * n.z;
+//      if ((h < 0 && t < 0) || (h > 0 && t > 0)) {
+//         return false;
+//      }
+//      t = Math.abs (t);
+//      double lambda = t / (t + Math.abs (h));
+//      double x = (hp.x - tp.x) * lambda + tp.x;
+//      double y = (hp.y - tp.y) * lambda + tp.y;
+//      double z = (hp.z - tp.z) * lambda + tp.z;
+//      return aFace.isPointInside (x, y, z);
+//   }
 
    public void updateBounds (Vector3d min, Vector3d max) {
       tail.pnt.updateBounds (min, max);
@@ -1053,6 +1054,10 @@ public class HalfEdge extends Feature implements Boundable {
             throw new ArrayIndexOutOfBoundsException ("idx=" + idx);
          }
       }
+   }
+   
+   public String indexStr() {
+      return "[ " + head.getIndex() + " " + tail.getIndex() + " ]";
    }
 
 }

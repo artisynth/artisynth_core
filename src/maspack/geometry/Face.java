@@ -1559,6 +1559,192 @@ public class Face extends Feature implements Boundable {
    public Point3d getPoint (int idx) {
       return getVertex(idx).pnt;
    }
+   
+   public static boolean debugIntersect = false;
+   
+   private static  double orient3d (Vector3d r0, Vector3d r1, Vector3d r2) {
+      Vector3d xprod = new Vector3d();
+      xprod.cross (r0, r1);
+      return r2.dot(xprod);
+   }
+   
+   public int intersectsEdge (HalfEdge he, Point3d pnt) {
+      Vertex3d v = he0.tail;
+      if (v == he.head) {
+         return 0;
+      }
+      if (v == he.tail) {
+         return 0;
+      }
+      v = he0.head;
+      if (v == he.head) {
+         return 0;
+      }
+      if (v == he.tail) {
+         return 0;
+      }
+      v = he0.next.head;
+      if (v == he.head) {
+         return 0;
+      }
+      if (v == he.tail) {
+         return 0;   
+      }
+      
+      Point3d p0 = new Point3d();
+      Point3d p1 = new Point3d();
+      Point3d p2 = new Point3d();
+      he0.head.getWorldPoint (p0);
+      he0.next.head.getWorldPoint (p1);
+      he0.tail.getWorldPoint (p2);
+      
+      Point3d ph = new Point3d();
+      Point3d pt = new Point3d();
+      he.head.getWorldPoint(ph);
+      he.tail.getWorldPoint(pt);
+      
+      Vector3d r0 = new Vector3d();
+      Vector3d r1 = new Vector3d();
+      Vector3d r2 = new Vector3d();
+
+      double tol = referenceArea*ph.distance(pt)*insideTriangleTolerance;
+      
+      r1.sub (p1, p0);
+      r2.sub (p2, p0);
+      r0.sub (pt, p0);
+      double t = orient3d (r1, r2, r0);
+      r0.sub (ph, p0);
+      double h = orient3d (r1, r2, r0);
+      double coordSign;
+
+      // if (h < -tol && t < -tol) || (h > tol && t > tol) then both
+      // the head and tail of the edge are definitely on the same
+      // side of the face plane and there is no intersection.
+      // Otherwise, if (-tol <= h <= tol || -tol <= t <= tol),
+      // then head or tail are too close to the face plane to
+      // tell and we return "don't know" (-1).
+      if (debugIntersect) {
+         System.out.println ("   p0 " + p0.toString("%16.12f"));
+         System.out.println ("   p1 " + p1.toString("%16.12f"));
+         System.out.println ("   p2 " + p2.toString("%16.12f"));
+         System.out.println ("   ph " + ph.toString("%16.12f"));
+         System.out.println ("   pt " + pt.toString("%16.12f"));
+      }
+      if (debugIntersect) {
+         System.out.println (" dbg0 h=" + h + " t=" + t + " tol=" + tol);
+      }
+      if (h < -tol) {
+         if (t <= tol) {
+            if (debugIntersect) {
+               System.out.println (" dbg exit 1");
+            }
+            return t < -tol ? 0 : -1;
+         }
+         coordSign = -1;
+      }
+      else if (h <= tol) {
+         if (debugIntersect) {
+            System.out.println (" dbg2 exit 2");
+         }
+         return -1;
+      }
+      else {
+         if (t >= -tol) {
+            if (debugIntersect) {
+               System.out.println (" dbg3 exit 3");
+            }
+            return t > tol ? 0 : -1;
+         }
+         coordSign = 1;
+      }
+      
+      Vector3d rt = new Vector3d();
+      
+      r0.sub (p0, ph);
+      r1.sub (p1, ph);
+      r2.sub (p2, ph);
+      rt.sub (pt, ph);
+      
+      // b0, b1 and b2 are the non-normalized barycentric coordinates
+      // of the intersection point with respect to the three triangle
+      // vertices. If any bi < -tol, then the intersection point is
+      // definitely *outside* the triangle. If any -tol <= bi <= tol,
+      // then the intersection point is too close to an edge to tell.
+      double b0 = coordSign*orient3d (r2, r1, rt);
+      if (b0 <= tol) {            
+         if (debugIntersect) {
+            System.out.println (" dbg4 b0=" + b0);
+         }
+         return b0 < -tol ? 0 : -1;
+      }
+      double b1 = coordSign*orient3d (r0, r2, rt);
+      if (b1 <= tol) {
+         if (debugIntersect) {
+            System.out.println (" dbg5 b1=" + b1);
+         }
+         return b1 < -tol ? 0 : -1;
+      }
+      double b2 = coordSign*orient3d (r1, r0, rt);
+      if (b2 <= tol) {
+         if (debugIntersect) {
+            System.out.println (" dbg6 b2=" + b2);
+         }
+         return b2 < -tol ? 0 : -1;
+      }
+      if (debugIntersect) {
+         System.out.println (" dbg7 b0="+b0+" b1=" + b1+" b2=" + b2);
+      }
+      pnt.combine (b0, p0, b1, p1);
+      pnt.scaledAdd (b2, p2);
+      pnt.scale (1/(b0 + b1 + b2));
+      return 1;
+   }
+   
+   /*
+    * Intersects this face with a half edge. If the test returns 
+    * returns true, the result should be checked with exact arithmetic. The
+    * approximate test is assumed to be significantly faster, but this has not
+    * been verified by measurement. Should try getting rid of the
+    * aFace.isPointInside test and going straight to exact result.
+    */
+   public boolean intersectsEdge (HalfEdge he) {
+      Vertex3d v = he0.tail;
+      if (v == he.head)
+         return false;
+      if (v == he.tail)
+         return false;
+      v = he0.head;
+      if (v == he.head)
+         return false;
+      if (v == he.tail)
+         return false;
+      v = he0.next.head;
+      if (v == he.head)
+         return false;
+      if (v == he.tail)
+         return false;
+
+      // aFace.updateWorldCoordinates();
+      Vector3d n = getWorldNormal();
+      Point3d w = he0.head.getWorldPoint();
+      Point3d hp = he.head.getWorldPoint();
+      double h = (w.x - hp.x) * n.x + (w.y - hp.y) * n.y + (w.z - hp.z) * n.z;
+      Point3d tp = he.tail.getWorldPoint();
+      double t = (w.x - tp.x) * n.x + (w.y - tp.y) * n.y + (w.z - tp.z) * n.z;
+      //if ((h < 0) == (t < 0)) {
+      if ((h < 0 && t < 0) || (h > 0 && t > 0)) {
+         if (debugIntersect) {
+            System.out.println (" fail x h=" + h + " " + t);
+         }
+         return false;
+      }
+      t = Math.abs (t);
+      double lambda = t / (t + Math.abs (h));
+      double x = (hp.x - tp.x) * lambda + tp.x;
+      double y = (hp.y - tp.y) * lambda + tp.y;
+      double z = (hp.z - tp.z) * lambda + tp.z;
+      return isPointInside (x, y, z);
+   }
 
    /*
     * x, y, z are world coordinates of a point already determined to be on the
@@ -1575,6 +1761,8 @@ public class Face extends Feature implements Boundable {
       if (myNormal == null)
          computeNormal(); // Make sure referenceArea is current.
 
+      double tol = referenceArea*insideTriangleTolerance;
+      
       Point3d p0 = he0.tail.getWorldPoint();
       double xp0 = x - p0.x;
       double yp0 = y - p0.y;
@@ -1588,8 +1776,10 @@ public class Face extends Feature implements Boundable {
       double za = xp0 * yp1 - yp0 * xp1;
       double q0 = Math.sqrt (xa * xa + ya * ya + za * za);
       double q = referenceArea - q0;
-      if (q < 0)
+      if (q < -tol) {
+         if (debugIntersect) System.out.println (" fail 1 q=" + q + " ra=" + referenceArea);
          return false;
+      }
 
       Point3d p2 = he0.next.head.getWorldPoint();
       double xp2 = x - p2.x;
@@ -1600,8 +1790,10 @@ public class Face extends Feature implements Boundable {
       za = xp0 * yp2 - yp0 * xp2;
       q0 = Math.sqrt (xa * xa + ya * ya + za * za);
       q = q - q0;
-      if (q < 0)
+      if (q < -tol) {
+         if (debugIntersect) System.out.println (" fail 2 q=" + q + " ra=" + referenceArea);
          return false;
+      }
 
       xa = yp1 * zp2 - zp1 * yp2;
       ya = zp1 * xp2 - xp1 * zp2;
@@ -1610,8 +1802,10 @@ public class Face extends Feature implements Boundable {
       q = q - q0;
       if (q < 0) { // q can only be > 0 due to rounding errors. If it is >= 0,
          // the point is inside.
-         if (q < -insideTriangleTolerance * referenceArea)
+         if (q < -tol) {
+            if (debugIntersect) System.out.println (" fail 3 q=" + q + " ra=" + referenceArea);
             return false;
+         }
       }
       return true;
    }
@@ -1823,5 +2017,19 @@ public class Face extends Feature implements Boundable {
          list.add (f.getIndex());
       }
       return ArraySupport.toIntArray (list);      
+   }
+   
+   public String indexStr() {
+      StringBuilder sbuild = new StringBuilder();
+      sbuild.append ("[");
+      HalfEdge he = he0;
+      do {
+         sbuild.append (" ");
+         sbuild.append (he.head.getIndex());
+         he = he.next;
+      }
+      while (he != he0);
+      sbuild.append (" ]");
+      return sbuild.toString();
    }
 }

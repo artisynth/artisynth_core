@@ -1395,6 +1395,49 @@ public class MeshFactory {
 //   }
 
    /**
+    * Creates an open cylindrical mesh centered on the origin with the
+    * main axis aligned with the z axis. All faces are triangles.
+    *
+    * @param r outer radius of the cylinder
+    * @param h height of the cylinder
+    * @param nslices number of segments about the z axis
+    * @param nh number of height segments along the z axis 
+    */
+   public static PolygonalMesh createOpenCylinder (
+      double r, double h, int nslices, int nh) {
+
+      PolygonalMesh mesh = createOpenQuadCylinder (r, h, nslices, nh);
+      mesh.triangulate();
+      return mesh;
+   }
+
+   /**
+    * Creates an open quad cylindrical mesh centered on the origin with the
+    * main axis aligned with the z axis. All faces are quads.
+    *
+    * @param r outer radius of the cylinder
+    * @param h height of the cylinder
+    * @param nslices number of segments about the z axis
+    * @param nh number of height segments along the z axis 
+    */
+   public static PolygonalMesh createOpenQuadCylinder (
+      double r, double h, int nslices, int nh) {
+
+      if (nslices < 3) {
+         throw new IllegalArgumentException(
+            "argument nslices must be at least 3");
+      }
+      // set map tolerance to be 0.01 times smallest spacing between vertices
+      double tol = Math.min(0.01*h/nh, 0.01*r*Math.sin(2*Math.PI/nslices));
+      VertexMap vtxMap = new VertexMap (tol);
+      PolygonalMesh mesh = new PolygonalMesh();
+      RigidTransform3d XLM = new RigidTransform3d();
+      addQuadCylindricalSection (
+         mesh, r, h, 2*Math.PI, nh, nslices, /*outward=*/true, XLM, vtxMap);
+      return mesh;
+   }
+
+   /**
     * Creates a quad cylindrical mesh centered on the origin with the main axis
     * aligned with the z axis. All faces are quads except for those at the
     * center of each end cap.

@@ -21,10 +21,14 @@ public class SurfaceMeshIntersector {
    PolygonalMesh myMesh1;  // second mesh to be intersected
 
    /*
-    * List of contours. Each contour is a list of MeshIntersectionPoints, each
-    * of which represents the intersection of a HalfEdge and a Face.
+    * Temporary reference to the list of generated contours, used to
+    * find the index of contour, for debugging purposes only.
     */
    ArrayList<IntersectionContour> myContours;
+
+   private int getContourIndex (IntersectionContour c) {
+      return myContours.indexOf(c);
+   }
 
    ArrayList<PenetrationRegion> myRegions0; // penetration regions on mesh0
    ArrayList<PenetrationRegion> myRegions1; // penetration regions on mesh1
@@ -133,15 +137,15 @@ public class SurfaceMeshIntersector {
       return prefix + p.toString ("%g");
    }
    
-   private boolean addWorkPoint (IntersectionContour contour) {
-      if (contour.add (myWorkPoint)) {
-         myWorkPoint = new IntersectionPoint();
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
+//   private boolean addWorkPoint (IntersectionContour contour) {
+//      if (contour.add (myWorkPoint)) {
+//         myWorkPoint = new IntersectionPoint();
+//         return true;
+//      }
+//      else {
+//         return false;
+//      }
+//   }
    
 //   private boolean addContourPoint (
 //      MeshIntersectionPoint mip, MeshIntersectionContour contour) {
@@ -180,7 +184,7 @@ public class SurfaceMeshIntersector {
           * Give the edge a chance to remember the closest intersecting face to
           * each vertex.
           */
-         setEdgeIntersectionPoints (mip);
+         addIntersectionToEdge (mip);
          return true;
       }
       if (otherContour == contour) {
@@ -205,6 +209,13 @@ public class SurfaceMeshIntersector {
          setDegenerate();
       }
       return false;      
+   }
+   
+   private void removeContourPoint (IntersectionPoint mip) {
+      EdgeFacePair edgeFace = new EdgeFacePair (mip.edge, mip.face);
+
+      myEdgeFaceIntersections.remove (edgeFace);
+      removeIntersectionFromEdge (mip);
    }
    
    /*
@@ -251,15 +262,16 @@ public class SurfaceMeshIntersector {
 
    public boolean findContoursAndRegions (
       ContactInfo cinfo, PolygonalMesh mesh0, PolygonalMesh mesh1) {
-      cinfo.myContours = findContours (mesh0, mesh1);
-      if (cinfo.myContours.size() > 0) {
+      ArrayList<IntersectionContour> contours = findContours (mesh0, mesh1);
+      cinfo.myContours = contours;
+      if (contours.size() > 0) {
          cinfo.myRegions0 = new ArrayList<PenetrationRegion>();
          cinfo.myRegions1 = new ArrayList<PenetrationRegion>();
          myContours = cinfo.myContours;
-         createRegions (cinfo.myRegions0, myMesh0, myMesh1, false);
-         createRegions (cinfo.myRegions1, myMesh1, myMesh0, true);
+         createRegions (cinfo.myRegions0, contours, myMesh0, myMesh1, false);
+         createRegions (cinfo.myRegions1, contours, myMesh1, myMesh0, true);
       }
-      return cinfo.myContours.size() > 0;
+      return contours.size() > 0;
    }
 
    /**
@@ -323,7 +335,10 @@ public class SurfaceMeshIntersector {
                         // check edgeFaceIntersections to see if this edge/face
                         // pair is already accounted for
                         if (myEdgeFaceIntersections.get (edgeFacePair) == null) {
-                           if (he.intersectionWithFace (f0)) {
+                           //if (robustIntersectionWithFace (
+                           //     he, f0, myWorkPoint, edgeOnMesh0)) {
+                           if (intersectEdgeFace (
+                              he, f0, myWorkPoint, edgeOnMesh0)) {
                               IntersectionContour c =
                                  findIntersectionContour (he, f0, edgeOnMesh0);
                               if (c != null) {
@@ -354,10 +369,6 @@ public class SurfaceMeshIntersector {
    private IntersectionContour findIntersectionContour (
       HalfEdge edge, Face f, boolean edgeOnMesh0) {
 
-      if (!robustIntersectionWithFace (
-         edge, f, myWorkPoint, edgeOnMesh0)) {
-         return null;
-      }
       IntersectionContour contour = new IntersectionContour();
       IntersectionPoint mip = myWorkPoint;
       if (!addContourPoint (myWorkPoint, contour)) {
@@ -382,6 +393,10 @@ public class SurfaceMeshIntersector {
                traceIntersectionContour (contour, edgeFace, edgeOnMesh0);
             }
          }
+      }
+      if (contour.size() == 1) {
+         removeContourPoint (contour.get(0));
+         return null;
       }
       return contour;
       /*
@@ -434,8 +449,8 @@ public class SurfaceMeshIntersector {
             edge = nextEdge.opposite; // Move to next edge and face in the same
                                       // mesh radiating from the same vertex.
             if (edge == null) {
-               System.out.println (
-                  "SurfaceMeshIntersector.traceIntersectionContour - open mesh");
+               //System.out.println (
+               //   "SurfaceMeshIntersector.traceIntersectionContour - open mesh");
                contour.openMesh = true;
                edgeFace = null; // throw new RuntimeException("open mesh");
             }
@@ -452,8 +467,8 @@ public class SurfaceMeshIntersector {
             else {
                edge = edge.opposite;
                if (edge == null) {
-                  System.out.println (
-                     "SurfaceMeshIntersector.traceIntersectionContour - open mesh");
+                  //System.out.println (
+//                  /   "SurfaceMeshIntersector.traceIntersectionContour - open mesh");
                   contour.openMesh = true;
                   edgeFace = null; // throw new RuntimeException("open mesh");
                }
@@ -473,7 +488,7 @@ public class SurfaceMeshIntersector {
     * Remember all the intersection points for the edge, in sorted order of
     * increasing distance from edge.tail. Mark coincident mips.
     */
-   void setEdgeIntersectionPoints (IntersectionPoint mip) {
+   void addIntersectionToEdge (IntersectionPoint mip) {
       ArrayList<IntersectionPoint> mips = myEdgeMips.get (mip.edge);
       if (mips == null) {
          mips = new ArrayList<IntersectionPoint>();
@@ -505,6 +520,26 @@ public class SurfaceMeshIntersector {
       }
    }
 
+   void removeIntersectionFromEdge (IntersectionPoint mip) {
+      ArrayList<IntersectionPoint> mips = myEdgeMips.get (mip.edge);
+      if (mips == null) {
+         throw new InternalErrorException (
+            "No edge intersections found for edge + " + mip.edge.indexStr());
+      }
+      int i = mips.indexOf (mip);
+      if (i == -1) {
+         throw new InternalErrorException (
+            "Intersection point not found on edge + " + mip.edge.indexStr());
+      }         
+      if (mip.isCoincident) {
+         // XXX need to fix this
+      }
+      mips.remove (i);
+      if (mips.isEmpty()) {
+         myEdgeMips.remove (mip.edge);
+      }
+   }
+   
    /**
     * Check if an edge belongs to a specified mesh.
     */
@@ -555,7 +590,8 @@ public class SurfaceMeshIntersector {
    String debugMipEdge = "";
 
    IntersectionPoint nearestInsideMip (
-      IntersectionPoint p, HalfEdge edge, boolean clockwiseContour) {
+      IntersectionPoint p, HalfEdge edge, 
+      PolygonalMesh mesh, boolean clockwiseContour) {
 
       ArrayList<IntersectionPoint> mips = myEdgeMips.get (edge.getPrimary());
 
@@ -571,7 +607,7 @@ public class SurfaceMeshIntersector {
             for (int j=0; j<mips.size(); j++) {
                IntersectionPoint mp = mips.get(j);
                String prefix = (j == k ? "* " : "  ");
-               prefix += fmt.format (myContours.indexOf(mp.contour));
+               prefix += fmt.format (getContourIndex(mp.contour));
                prefix += (mp.isCoincident ? "C " : "  ");
                System.out.println (prefix + mp.toString("%g"));
             }
@@ -585,14 +621,16 @@ public class SurfaceMeshIntersector {
                // return that coincident point.
                IntersectionContour c = p.contour;
                IntersectionPoint pPlus2 = c.getWrapped(p.contourIndex+2); 
-               if (pPlus2.edge == p.edge && pPlus2.isCoincident) {
+               // pPlus2 could be null if contour is open
+               if (pPlus2 != null && pPlus2.edge == p.edge && pPlus2.isCoincident) {
                   int kPlus2 = mips.indexOf (pPlus2);
                   if (kPlus2 == k+1 || kPlus2 == k-1) {
                      return pPlus2;
                   }
                }
-               IntersectionPoint pBack2 = c.getWrapped(p.contourIndex-2); 
-               if (pBack2.edge == p.edge && pBack2.isCoincident) {
+               IntersectionPoint pBack2 = c.getWrapped(p.contourIndex-2);
+               // pBack2 could be null if contour is open
+               if (pBack2 != null && pBack2.edge == p.edge && pBack2.isCoincident) {
                   int kBack2 = mips.indexOf (pBack2);
                   if (kBack2 == k+1 || kBack2 == k-1) {
                      return pBack2;
@@ -600,13 +638,19 @@ public class SurfaceMeshIntersector {
                }
             }
             if (headIsInside) {
-               if (k < mips.size()-1) {
-                  return mips.get(k+1);
+               while (k < mips.size()-1) {
+                  IntersectionPoint mip = mips.get(++k);
+                  if (mip.contour.dividesMesh (mesh)) {
+                     return mip;
+                  }
                }
             }
             else {
-               if (k > 0) {
-                  return mips.get(k-1);
+               while (k > 0) {
+                  IntersectionPoint mip = mips.get(--k);
+                  if (mip.contour.dividesMesh (mesh)) {
+                     return mip;
+                  }                 
                }
             }
          }
@@ -703,14 +747,28 @@ public class SurfaceMeshIntersector {
       return v;
    }
 
-   IntersectionPoint nearestMipToVertex (HalfEdge edge, Vertex3d v) {
+   IntersectionPoint nearestMipToVertex (
+      HalfEdge edge, Vertex3d v, PolygonalMesh mesh) {
       ArrayList<IntersectionPoint> mips = myEdgeMips.get (edge);
       if (mips != null && mips.size() > 0) {
-         return (v == edge.getTail() ? mips.get(0) : mips.get(mips.size()-1));
+         if (v == edge.getTail()) {
+            for (int k=0; k<mips.size(); k++) {
+               IntersectionPoint mip = mips.get(k);
+               if (mip.contour.dividesMesh (mesh)) {
+                  return mip;
+               }
+            }
+         }
+         else {
+            for (int k=mips.size()-1; k>=0; k--) {
+               IntersectionPoint mip = mips.get(k);
+               if (mip.contour.dividesMesh (mesh)) {
+                  return mip;
+               }
+            }            
+         }
       }
-      else {
-         return null;
-      }
+      return null;
    }
 
    PenetrationRegion createRegion (
@@ -743,7 +801,7 @@ public class SurfaceMeshIntersector {
 
                region.myInsideEdges.add (faceEdge.getPrimary());
                IntersectionPoint insideMip =
-                  nearestInsideMip (mip, faceEdge, clockwiseContour);
+                  nearestInsideMip (mip, faceEdge, mesh0, clockwiseContour);
                if (insideMip == null) {
                   Vertex3d v = getInsideVertex (mip, faceEdge, clockwiseContour);
                   if (v != null) {
@@ -775,7 +833,7 @@ public class SurfaceMeshIntersector {
                   if (v == vtx) {
                      v = edge.tail;
                   }
-                  IntersectionPoint mip = nearestMipToVertex (edge, vtx);
+                  IntersectionPoint mip = nearestMipToVertex (edge, vtx, mesh0);
                   if (mip != null) {
                      if (region.myContours.add(mip.contour)) {
                         contoursToTrace.offerLast (mip.contour);
@@ -924,11 +982,11 @@ public class SurfaceMeshIntersector {
    private String getName (PenetrationRegion r) {
       String str = "[ ";
       for (IntersectionContour c : r.myContours) {
-         str += ""+myContours.indexOf(c) + " ";
+         str += ""+getContourIndex(c) + " ";
       }
       return str + "]";
    }
-
+   
    public ArrayList<PenetrationRegion> getContainedRegions (
       PenetrationRegion region, Face face,
       ArrayList<PenetrationRegion> nested,
@@ -1181,7 +1239,8 @@ public class SurfaceMeshIntersector {
    }
 
    int createRegions (
-      ArrayList<PenetrationRegion> regions, 
+      ArrayList<PenetrationRegion> regions,
+      ArrayList<IntersectionContour> contours,
       PolygonalMesh mesh0, PolygonalMesh mesh1, boolean clockwiseContour) {
 
       int oldSize = regions.size();
@@ -1191,8 +1250,13 @@ public class SurfaceMeshIntersector {
       HashMap<Face,ArrayList<PenetrationRegion>> singleFaceRegions =
          new HashMap<Face,ArrayList<PenetrationRegion>>();
 
-      unusedContours.addAll (myContours);
-      for (IntersectionContour contour : myContours) {
+      for (IntersectionContour c : contours) {
+         if (c.dividesMesh (mesh0)) {
+            unusedContours.add (c);
+         }
+      }
+      unusedContours.addAll (contours);
+      for (IntersectionContour contour : contours) {
          if (unusedContours.contains(contour)) {
             PenetrationRegion region =
                createRegion (contour, mesh0, mesh1, clockwiseContour);
@@ -1286,7 +1350,7 @@ public class SurfaceMeshIntersector {
       HalfEdge he = he0;
       do {
          if (he != excludeEdge & he != excludeEdge.opposite) {
-            if (robustIntersectionWithFace (he.getPrimary(),
+            if (intersectEdgeFace (he.getPrimary(),
                otherFace, myWorkPoint, edgeOnMesh0)) {
                if (addContourPoint (myWorkPoint, contour)) {
                   myWorkPoint = new IntersectionPoint();
@@ -1314,7 +1378,7 @@ public class SurfaceMeshIntersector {
       HalfEdge he0 = face.firstHalfEdge();
       HalfEdge he = he0;
       do {
-         if (robustIntersectionWithFace (he.getPrimary(),
+         if (intersectEdgeFace (he.getPrimary(),
             otherFace, myWorkPoint, edgeOnMesh0)) {
             if (addContourPoint(myWorkPoint, contour)) {
                myWorkPoint = new IntersectionPoint();
@@ -1327,38 +1391,86 @@ public class SurfaceMeshIntersector {
       return null;
    }
 
+   private boolean intersectEdgeFace (
+      HalfEdge he, Face face, IntersectionPoint mip, boolean edgeOnMesh0) {
+      
+      int intersects = face.intersectsEdge (he, mip);
+      
+//      boolean robust = RobustPreds.intersectEdgeFace (
+//         he, face, mip, edgeOnMesh0);
+//      if (intersects != -1 && (intersects == 1 != robust)) { 
+//         System.out.println (
+//            "FAIL! robust=" + robust + " intersects=" + intersects);
+//         Face.debugIntersect = true;
+//         face.intersectsEdge (he, new Point3d());
+//         Face.debugIntersect = false;
+//      }
+//      intersects = (robust ? 1 : 0);
+      
+      if (intersects == -1) {
+         if (RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0)) {
+            intersects = 1;
+         }
+         else {
+            intersects = 0;
+         }
+      }
+      
+      // int intersects = 0;
+      // if (face.intersectsEdge (he)) {
+      //    if (RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0)) {
+      //       intersects = 1;
+      //    }
+      //    else {
+      //       intersects = 0;
+      //    }
+      // }
+      // else {
+      //    intersects = 0;
+      // }
+      
+      if (intersects == 0) {
+         return false;
+      }
+      else {
+         mip.edge = he;
+         mip.face = face;
+         mip.edgeOnMesh0 = edgeOnMesh0;
+         return true;     
+      }
+   }
    /*
     * Test for intersection using adaptive exact arithmetic and SOS tiebreaking.
     */
-   public boolean robustIntersectionWithFace (
-      HalfEdge he, Face face, IntersectionPoint mip, boolean edgeOnMesh0) {
-
-      HalfEdge he0 = face.firstHalfEdge();
-      Vertex3d v = he0.tail;
-      if (v == he.head)
-         return false;
-      if (v == he.tail)
-         return false;
-      v = he0.head;
-      if (v == he.head)
-         return false;
-      if (v == he.tail)
-         return false;
-      v = he0.getNext().head;
-      if (v == he.head)
-         return false;
-      if (v == he.tail)
-         return false;
-      // face.updateWorldCoordinates();
-
-      if (!RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0)) {
-         return false;
-      }
-
-      mip.edge = he;
-      mip.face = face;
-      mip.edgeOnMesh0 = edgeOnMesh0;
-      return true;
-   }
+//   private boolean robustIntersectionWithFace (
+//      HalfEdge he, Face face, IntersectionPoint mip, boolean edgeOnMesh0) {
+//
+//      HalfEdge he0 = face.firstHalfEdge();
+//      Vertex3d v = he0.tail;
+//      if (v == he.head)
+//         return false;
+//      if (v == he.tail)
+//         return false;
+//      v = he0.head;
+//      if (v == he.head)
+//         return false;
+//      if (v == he.tail)
+//         return false;
+//      v = he0.getNext().head;
+//      if (v == he.head)
+//         return false;
+//      if (v == he.tail)
+//         return false;
+//      // face.updateWorldCoordinates();
+//
+//      if (!RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0)) {
+//         return false;
+//      }
+//
+//      mip.edge = he;
+//      mip.face = face;
+//      mip.edgeOnMesh0 = edgeOnMesh0;
+//      return true;
+//   }
 
 }

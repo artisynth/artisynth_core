@@ -494,34 +494,34 @@ public class ContactPlane {
       maxProjectedDistance = -maxProjectedDistance;
    }
 
-   /*
-    * Calculate the distance from an origin, along the normal, to a face. Do
-    * nothing if the ray from the origin along the normal does not intersect the
-    * face. Set depth to this distance if it is greater than the current depth.
-    */
-   void checkDistanceToFace (Point3d origin, Face face) {
-      Vector3d n = face.getWorldNormal();
-      double s = normal.dot (n);
-      if (Math.abs (s) < 1e-7)
-         return;
-      s = (face.getPoint0DotNormal() - origin.dot (n)) / s;
-      double x = normal.x * s + origin.x;
-      double y = normal.y * s + origin.y;
-      double z = normal.z * s + origin.z;
-      if (face.isPointInside (x, y, z)) {
-         sTotal = sTotal + s; /*
-                               * Use the total of s as an average measure of
-                               * which direction the faces are relative to the
-                               * vertices, along the normal.
-                               */
-         if (s < 0)
-            s = -s;
-         if (depth < s)
-            depth = s;
-         // System.out.println(contactInfo.mesh0.name+"
-         // "+contactInfo.mesh1.name+" newDepth="+depth);
-      }
-   }
+//   /*
+//    * Calculate the distance from an origin, along the normal, to a face. Do
+//    * nothing if the ray from the origin along the normal does not intersect the
+//    * face. Set depth to this distance if it is greater than the current depth.
+//    */
+//   void checkDistanceToFace (Point3d origin, Face face) {
+//      Vector3d n = face.getWorldNormal();
+//      double s = normal.dot (n);
+//      if (Math.abs (s) < 1e-7)
+//         return;
+//      s = (face.getPoint0DotNormal() - origin.dot (n)) / s;
+//      double x = normal.x * s + origin.x;
+//      double y = normal.y * s + origin.y;
+//      double z = normal.z * s + origin.z;
+//      if (face.isPointInside (x, y, z)) {
+//         sTotal = sTotal + s; /*
+//                               * Use the total of s as an average measure of
+//                               * which direction the faces are relative to the
+//                               * vertices, along the normal.
+//                               */
+//         if (s < 0)
+//            s = -s;
+//         if (depth < s)
+//            depth = s;
+//         // System.out.println(contactInfo.mesh0.name+"
+//         // "+contactInfo.mesh1.name+" newDepth="+depth);
+//      }
+//   }
 
    void render (Renderer renderer, int flags) {
 

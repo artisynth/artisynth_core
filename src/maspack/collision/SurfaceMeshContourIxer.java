@@ -49,7 +49,7 @@ public class SurfaceMeshContourIxer {
    public SurfaceMeshContourIxer () {
    }
    
-   public List<IntersectionContour> getContours () {
+   public ArrayList<IntersectionContour> getContours () {
       return myContours;
    }
    

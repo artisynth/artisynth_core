@@ -148,6 +148,36 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
    }
    
    /**
+    * Computes the centroid of this contour, rejecting points that are
+    * very close together.
+    * 
+    * @param centroid returns the centroid
+    */
+   public void computeCentroid (Vector3d centroid) {
+      centroid.setZero();
+      if (size() > 0) {
+         double pointTol = computeLength()*1e-10;
+         Point3d plast = get(0);
+         centroid.set (plast);
+         int nump = 1;
+         boolean closeToFirst = false;
+         for (int i=1; i<size(); i++) {
+            Point3d p = get(i);
+            if (isClosed() && i==size()-1) {
+               // in case contour is closed, check closeness to first point too
+               closeToFirst = (p.distance(get(0)) < pointTol);
+            }
+            if (p.distance(plast) >= pointTol && !closeToFirst) {
+               centroid.add (p);
+               plast = p;
+               nump++;
+            }
+         }
+         centroid.scale (1.0/nump);      
+      }
+   }
+   
+   /**
     * Computes the length of this contour
     * 
     * @return contour length
@@ -486,13 +516,20 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
       else {
          areaVec.setZero();
       }
-      Point3d plast = get(size()-1);
-      Vector3d dist = new Vector3d();
-      for (IntersectionPoint p : this) {
-         dist.sub (p, plast);
-         if (dist.norm() >= pointTol) {
-            points.add (p);
+      
+      IntersectionPoint plast = get(0);
+      centroid.set (plast);
+      points.add (plast);
+      boolean closeToFirst = false;
+      for (int i=1; i<size(); i++) {
+         IntersectionPoint p = get(i);
+         if (isClosed() && i==size()-1) {
+            // in case contour is closed, check closeness to first point too
+            closeToFirst = (p.distance(get(0)) < pointTol);
+         }
+         if (p.distance(plast) >= pointTol && !closeToFirst) {
             centroid.add (p);
+            points.add (p);
             plast = p;
          }
       }

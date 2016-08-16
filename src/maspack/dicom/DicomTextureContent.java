@@ -257,25 +257,27 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       int psize = getPixelSize ();
       int scanline = psize*textureWidth;
       
-      textureImage.limit (textureImage.capacity ());
-      textureImage.position (rect.y ()*scanline+psize*rect.x ());
-      
-      switch (plane) {
-         case COL_ROW_PLANE:
-            image.getPixels (0, 0, slice, 1, 1, 1, rect.width (), rect.height (),
-               1, time, internalStorage, scanline, 0, textureImage, window);
-            break;
-         case COL_SLICE_PLANE:
-            image.getPixels (0, row, 0, 1, 1, 1, rect.width (), 1,
-               rect.height (), time, internalStorage, 0, scanline, textureImage, window);
-            break;
-         case ROW_SLICE_PLANE:
-            image.getPixels (col, 0, 0, 1, 1, 1, 1, rect.width (), rect.height (),
-               time, internalStorage, 0, scanline, textureImage, window);
-            break;
+      synchronized (textureImage) {
+         textureImage.limit (textureImage.capacity ());
+         textureImage.position (rect.y ()*scanline+psize*rect.x ());
+         
+         switch (plane) {
+            case COL_ROW_PLANE:
+               image.getPixels (0, 0, slice, 1, 1, 1, rect.width (), rect.height (),
+                  1, time, internalStorage, scanline, 0, textureImage, window);
+               break;
+            case COL_SLICE_PLANE:
+               image.getPixels (0, row, 0, 1, 1, 1, rect.width (), 1,
+                  rect.height (), time, internalStorage, 0, scanline, textureImage, window);
+               break;
+            case ROW_SLICE_PLANE:
+               image.getPixels (col, 0, 0, 1, 1, 1, 1, rect.width (), rect.height (),
+                  time, internalStorage, 0, scanline, textureImage, window);
+               break;
+         }
+         valid[plane] = true;   
       }
-      valid[plane] = true;
-      
+
    }
    
    /**
@@ -459,11 +461,13 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       maybeUpdateImage ();
       // showTexture ();
       
-      textureImage.rewind();
-      textureImage.limit (textureImage.capacity ());
-      out.put (textureImage);
-      textureImage.rewind ();
-      textureImage.limit(textureImage.capacity ());
+      synchronized (textureImage) {
+         textureImage.rewind();
+         textureImage.limit (textureImage.capacity ());
+         out.put (textureImage);
+         textureImage.rewind ();
+         textureImage.limit(textureImage.capacity ());  
+      }
    }
 
    @Override
@@ -478,16 +482,17 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
 
       int pos = rect.y () * scanline + rect.x () * pixelWidth;
       
-      for (int i = 0; i < rect.height (); ++i) {
-         textureImage.limit (pos+rowWidth);
-         textureImage.position (pos);
-         out.put (textureImage);
-         pos += scanline; // advance up a row
+      synchronized (textureImage) {
+         for (int i = 0; i < rect.height (); ++i) {
+            textureImage.limit (pos+rowWidth);
+            textureImage.position (pos);
+            out.put (textureImage);
+            pos += scanline; // advance up a row
+         }
+         // reset position/limit
+         textureImage.rewind ();
+         textureImage.limit(textureImage.capacity ());
       }
-      
-      // reset position/limit
-      textureImage.rewind ();
-      textureImage.limit(textureImage.capacity ());
    }
    
    /**
@@ -572,19 +577,21 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
          colorModel.getTransferType (), textureWidth, textureHeight, colorModel.getNumComponents (), null);
       BufferedImage image = new BufferedImage (colorModel, raster, false, null);
       
-      textureImage.position (0);
-      textureImage.limit (textureImage.capacity ());
-      
-      // flip vertically
-      int scanline = textureWidth*pixelBytes;
-      int pos = textureWidth*textureHeight*pixelBytes-scanline;
-      for (int i=0; i<textureHeight; ++i) {
-         for (int j=0; j<scanline; ++j) {
-            raster.getDataBuffer ().setElem (pos+j, textureImage.get ());   
+      synchronized(textureImage) {
+         textureImage.position (0);
+         textureImage.limit (textureImage.capacity ());
+         
+         // flip vertically
+         int scanline = textureWidth*pixelBytes;
+         int pos = textureWidth*textureHeight*pixelBytes-scanline;
+         for (int i=0; i<textureHeight; ++i) {
+            for (int j=0; j<scanline; ++j) {
+               raster.getDataBuffer ().setElem (pos+j, textureImage.get ());   
+            }
+            pos -= scanline;
          }
-         pos -= scanline;
+         textureImage.rewind ();
       }
-      textureImage.rewind ();
       
       return image;
       

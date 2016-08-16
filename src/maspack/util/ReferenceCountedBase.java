@@ -31,7 +31,7 @@ public abstract class ReferenceCountedBase implements ReferenceCounted {
       long ac = acquireCount.decrementAndGet ();
       // System.out.println (this + " released - " + ac);
       if (ac == -1) {
-         System.err.println ("Uh oh, something didn't properly keep track of releases");
+         System.err.println ("Uh oh, " + this.getClass() + " didn't properly keep track of releases");
       }
       return ac;
    }

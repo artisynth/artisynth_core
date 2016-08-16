@@ -2298,7 +2298,6 @@ public class RenderObject implements Versioned {
    public int[] getLines(int lgroup) {
       int[] out = null;
       if (hasLines()) {
-         
          VertexIndexArray ll = lines.get (lgroup);
          ll.trimToSize ();
          out = ll.getArray ();

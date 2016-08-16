@@ -78,6 +78,7 @@ import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.solvers.PardisoSolver;
 import maspack.util.ClassFinder;
+import maspack.util.GenericFileFilter;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
 import maspack.widgets.AutoCompleteStringField;
@@ -1250,6 +1251,10 @@ public class MenuBarHandler implements
       } else if (cmd.equals("load script from file")) {
          JFileChooser fileChooser = new JFileChooser();
          fileChooser.setCurrentDirectory(ArtisynthPath.getWorkingDir());
+         
+         FileFilter jythonFilter = new GenericFileFilter(new String[]{"py", "jy"}, "Jython files") ;
+         fileChooser.addChoosableFileFilter(jythonFilter);
+         fileChooser.setFileFilter(jythonFilter);
          int result = fileChooser.showOpenDialog(myFrame);
          if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();

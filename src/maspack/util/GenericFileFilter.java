@@ -7,8 +7,8 @@
 package maspack.util;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.swing.filechooser.FileFilter;
 
@@ -17,7 +17,7 @@ public class GenericFileFilter extends FileFilter {
    String[] exts;
    String desc;
    
-   public GenericFileFilter(ArrayList<String> exts, String description) {
+   public GenericFileFilter(List<String> exts, String description) {
       this.exts = exts.toArray(new String[exts.size()]);
       desc = description;
    }

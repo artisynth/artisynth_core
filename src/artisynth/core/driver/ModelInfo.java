@@ -58,7 +58,7 @@ public class ModelInfo {
       
       // see if corresponds to a class on the classpath
       try {
-         Class.forName (classNameOrFile);
+         Class.forName (classNameOrFile, false, ModelInfo.class.getClassLoader());
          return ModelType.CLASS;
       }
       catch (ClassNotFoundException e) {

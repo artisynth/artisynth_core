@@ -173,11 +173,13 @@ public class ClassFinder {
                // Must be in "try" blocks because will fail if class can't be
                // initialized
                try {
-                  if (T.equals(Object.class)) { // don't bother checking if
-                                                // we're dealing with Object
-                     classList.add(Class.forName(className));
-                  } else if (T.isAssignableFrom(Class.forName(className))) {
-                     classList.add(Class.forName(className));
+                  if (T.equals(Object.class)) { // don't bother checking if we're dealing with Object
+                     classList.add(Class.forName(className, false, ClassFinder.class.getClassLoader()));
+                  } else {
+                     Class<?> clz = Class.forName(className, false, ClassFinder.class.getClassLoader());
+                     if (T.isAssignableFrom(clz)) {
+                        classList.add(clz);
+                     }
                   }
 
                } catch (Exception e) {

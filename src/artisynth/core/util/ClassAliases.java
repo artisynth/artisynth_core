@@ -19,10 +19,10 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.ModelComponent;
 
 public class ClassAliases {
-   private static LinkedHashMap<String,Class<?>> aliasesToClasses =
-      new LinkedHashMap<String,Class<?>>();
-   private static LinkedHashMap<Class<?>,String> classesToAliases =
-      new LinkedHashMap<Class<?>,String>();
+   private static LinkedHashMap<String,String> aliasesToClasses =
+      new LinkedHashMap<String,String>();
+   private static LinkedHashMap<String,String> classesToAliases =
+      new LinkedHashMap<String,String>();
 
    // private static boolean initFromFileP = false;
    private static boolean initialized = false;
@@ -67,7 +67,7 @@ public class ClassAliases {
             Class<?> cls = list.get(i);
             if (!cls.isInterface()) {
                String alias = cls.getSimpleName();
-               if (classesToAliases.get (cls) == null &&
+               if (classesToAliases.get (cls.getName()) == null &&
                    aliasesToClasses.get (alias) == null) {
                   doAddEntry (alias, cls);
                }
@@ -148,8 +148,8 @@ public class ClassAliases {
    }
 
    private static void doAddEntry (String alias, Class<?> cls) {
-      aliasesToClasses.put (alias, cls);
-      classesToAliases.put (cls, alias);
+      aliasesToClasses.put (alias, cls.getName());
+      classesToAliases.put (cls.getName(), alias);
    }
 
    public static void addEntry (String alias, Class<?> cls) {
@@ -163,21 +163,29 @@ public class ClassAliases {
       if (!initialized) {
          initialize();
       }
-      return aliasesToClasses.get (alias);
+      Class<?> clazz = null;
+      try {
+         String classname = aliasesToClasses.get (alias);
+         if (classname != null) {
+            clazz = Class.forName(classname);
+         }
+      } catch (ClassNotFoundException e) {
+      }
+      return clazz;
    }
 
    public static String getAlias (Class<?> cls) {
       if (!initialized) {
          initialize();
       }
-      return classesToAliases.get (cls);
+      return classesToAliases.get (cls.getName());
    }
 
    public static String getAliasOrName (Class<?> cls) {
       if (!initialized) {
          initialize();
       }
-      String alias = classesToAliases.get (cls);
+      String alias = classesToAliases.get (cls.getName());
       if (alias == null) {
          return cls.getName();
       }

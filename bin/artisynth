@@ -6,8 +6,8 @@
 contains()
 {
     #contains $path $directory
-	path="$1"
-	directory="$2"
+    path="$1"
+    directory="$2"
 
     if [ -z "$path" ] || [ -z "$directory" ] ; then
         return 0
@@ -23,43 +23,32 @@ MEM_LIMIT="-Xmx6G"
 ART_HOME=
 declare -a MAIN_OPTS
 IDX=0
-MODEL_ARGS_SEP="-M"
 
 #---------------------------------------------------------
 # Process command line options
 #---------------------------------------------------------
 function parse_options()
 {
-    modelsArgsFound=false
     while [ $# -gt 0 ] ; do
-        if [ "$modelArgsFound" = true ] ; then
-            MAIN_OPTS[$IDX]=$1
-            IDX=$(($IDX+1))
-            shift
-        else
-            case "$1" in
-                -fast)
-                    JAVA_OPTS="$JAVA_OPTS -server -Dsun.java2d.opengl=true"
-                    FAST=yes
-                    shift ;;
-                -help)
-                    HELP=yes
-                    shift ;;
-                -home)
-                    ART_HOME=$2
-                    shift 2 ;;
-                -s)
-                    SILENT=yes
-                    shift ;;
-                *)
-                    if [ "$1" = "$MODEL_ARGS_SEP" ] ; then
-                       modelArgsFound=true
-                    fi
-                    MAIN_OPTS[$IDX]=$1
-                    IDX=$(($IDX+1))
-                    shift ;;
-            esac
-        fi
+        case "$1" in
+            -fast)
+                JAVA_OPTS="$JAVA_OPTS -server -Dsun.java2d.opengl=true"
+                FAST=yes
+                shift ;;
+            -help)
+                HELP=yes
+                shift ;;
+            -home)
+                ART_HOME=$2
+                shift 2 ;;
+            -s)
+                SILENT=yes
+                shift ;;
+            *)
+                MAIN_OPTS[$IDX]=$1
+                IDX=$(($IDX+1))
+                shift ;;
+        esac
     done
 }
 
@@ -69,7 +58,7 @@ function help()
     cat <<EOF
 synopsis:
 
-  artisynth [PROGRAM_OPTIONS] [-M MODEL_ARGS]
+  artisynth [PROGRAM_OPTIONS]
 
 options:
 
@@ -172,8 +161,11 @@ java -version 2>> $LOG
 if [ $? != "0" ] ; then 
     echo Error: Java executable not found. Please edit line 3+4 of $0
     exit 1
-fi  
-
+fi
+# increase perm memory limit for Java 7
+if java -version 2>&1 | fgrep "1.7." -q ; then
+   MEM_LIMIT="$MEM_LIMIT -XX:MaxPermSize=100M"
+fi
 #java artisynth.core.util.JVMInfo >> $LOG
 #if [ $? != "0" ] ; then 
 #    java artisynth.core.util.JVMInfo

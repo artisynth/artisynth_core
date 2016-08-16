@@ -6,8 +6,8 @@
 contains()
 {
     #contains $path $directory
-	path="$1"
-	directory="$2"
+    path="$1"
+    directory="$2"
 
     if [ -z "$path" ] || [ -z "$directory" ] ; then
         return 0
@@ -32,7 +32,7 @@ function parse_options()
     while [ $# -gt 0 ] ; do
         case "$1" in
             -fast)
-		JAVA_OPTS="$JAVA_OPTS -server -Dsun.java2d.opengl=true"
+                JAVA_OPTS="$JAVA_OPTS -server -Dsun.java2d.opengl=true"
                 FAST=yes
                 shift ;;
             -help)
@@ -45,10 +45,10 @@ function parse_options()
                 SILENT=yes
                 shift ;;
             *)
-		MAIN_OPTS[$IDX]=$1
-		IDX=$(($IDX+1))
-		shift ;;
-	esac
+                MAIN_OPTS[$IDX]=$1
+                IDX=$(($IDX+1))
+                shift ;;
+        esac
     done
 }
 
@@ -161,8 +161,11 @@ java -version 2>> $LOG
 if [ $? != "0" ] ; then 
     echo Error: Java executable not found. Please edit line 3+4 of $0
     exit 1
-fi  
-
+fi
+# increase perm memory limit for Java 7
+if java -version 2>&1 | fgrep "1.7." -q ; then
+   MEM_LIMIT="$MEM_LIMIT -XX:MaxPermSize=100M"
+fi
 #java artisynth.core.util.JVMInfo >> $LOG
 #if [ $? != "0" ] ; then 
 #    java artisynth.core.util.JVMInfo

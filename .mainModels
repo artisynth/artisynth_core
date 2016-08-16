@@ -5,7 +5,6 @@ LineMuscleTongue artisynth.models.tongue3d.HexTongueDemo
 FemMuscleTongue artisynth.models.tongue3d.FemMuscleTongueDemo
 DangTongue artisynth.models.dangTongue.FemTongueDemo
 Articulator artisynth.models.articulator.ArticulatorDemo
-DentalCasts artisynth.models.articulator.DentalDemo
 BadinJaw artisynth.models.jawTongue.BadinJawHyoid
 BadinJawTongue artisynth.models.jawTongue.BadinJawHyoidTongue
 JawFemMuscleTongue artisynth.models.jawTongue.JawHyoidFemMuscleTongue
@@ -13,6 +12,6 @@ SoftPalateDemo artisynth.models.palate.SoftPalateDemo
 Face artisynth.models.face.BadinFaceDemo
 FemMuscleFace artisynth.models.face.BadinFemMuscleFaceDemo
 ReferenceFace artisynth.models.face.RefFaceDemo
-RefFemMuscleFace artisynth.models.face.RefFemMuscleFaceDemo
-JawTongueFace artisynth.models.face.BadinJawTongueFaceDemo
+# RefFemMuscleFace artisynth.models.face.RefFemMuscleFaceDemo
+# JawTongueFace artisynth.models.face.BadinJawTongueFaceDemo
 InverseTongueDemo artisynth.models.inversedemos.TongueInvDemo

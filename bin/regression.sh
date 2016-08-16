@@ -53,6 +53,15 @@ elif echo "$OSNAME" | grep CYGWIN 1>/dev/null 2>&1 ; then
     fi
     PATH="$PATH:$ART/bin:"
     CLASSPATH="$ART\classes;$ART\lib\*"
+elif echo "$OSNAME" | grep MINGW 1>/dev/null 2>&1 ; then
+    export ARTISYNTH_HOME=$ART
+    export ARTISYNTH_PATH=".;$HOME;$ART"
+    
+	echo MinGW on Windows64
+    export PATH="$ART\lib\Windows64;$PATH"
+    
+    PATH="$PATH:$ART/bin:"
+    CLASSPATH="$ART\classes;$ART\lib\*"
 else     
     echo Unknown operating system: $OSNAME
 fi

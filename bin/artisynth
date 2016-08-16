@@ -131,6 +131,10 @@ elif echo "$OSNAME" | grep CYGWIN 1>/dev/null 2>&1 ; then
 #       MEM_LIMIT="-Xmx1G"
 #    fi
     CLASSPATH="$ARTISYNTH_HOME\classes;$ARTISYNTH_HOME\lib\*"
+elif echo "$OSNAME" | grep MINGW 1>/dev/null 2>&1 ; then
+    export ARTISYNTH_HOME="$ARTISYNTH_HOME"
+    export ARTISYNTH_PATH="$HOME;$ARTISYNTH_HOME"
+    CLASSPATH="$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*"
 else     
     echo Unknown operating system: $OSNAME
 fi

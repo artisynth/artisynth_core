@@ -351,12 +351,12 @@ Once ArtiSynth has been imported into Eclipse (and built if
 necessary), it should contain a launch configuration called {\tt
 ArtiSynth} that will allow ArtiSynth to be run.
 
-Generally, it is first necessary set environment variables in the
-launch configuration to allow ArtiSynth to find runtime configuration
-files and libraries. Instructions for setting these variables are
-contained in Section \ref{EclipseEnvironmentVariables}.  If the same
-environment variables have already been set externally in \SYSTEM
-(\environmentSectionRef),
+Generally, it is first necessary set environment variables (and maybe
+some Java arguments) in the launch configuration to allow ArtiSynth to
+find runtime configuration files and libraries. Instructions for
+setting these variables are contained in Section
+\ref{EclipseEnvironmentVariables}.  If the same environment variables
+have already been set externally in \SYSTEM (\environmentSectionRef),
 then they do not need to be set in the launch configuration.
 
 Once the environment variables are set, it should be possible to run
@@ -878,6 +878,25 @@ If any of the above variables have already been set externally in
 \SYSTEM (\environmentSectionRef), then they do not need to
 be set in the launch configuration.
 
+In addition to setting environment variables, if you are running Java
+1.7 (but not Java 1.8), then you should increase the memory space
+allocated for classes. Do this by adding the following JVM argument to
+your launch configuration:
+%
+\begin{lstlisting}
+ -XX:MaxPermSize=100M
+\end{lstlisting}
+%
+Instructions for doing this are given in Section
+\ref{SettingCommandLineArguments}.
+
+\begin{sideblock}
+{\bf Important:} At present, eclipse does not expand environment variables.
+In all the variable settings described below, references to {\tt
+\$ARTISYNTH\_HOME} should be expanded (manually) to the path of the
+ArtiSynth install \directory.
+\end{sideblock}
+
 \begin{sideblock}
 {\bf Note:} At present, eclipse does not expand environment variables.
 In all the variable settings described below, references to {\tt
@@ -913,13 +932,41 @@ To set environment variables within Eclipse:
 
 \item In the left panel, under {\sf Java Application}, select {\sf ArtiSynth}.
 
-\item In the right panel, select the {\sf environment} tab.
+\item In the right panel, select the {\sf Environment} tab.
 
 \item To create a new environment variable, click the {\sf New} button and
   enter the name and value in the dialog box.
 
 \item When finished, make sure that {\sf Append environment to native
   environment} is selected, and click {\sf Apply}.
+
+\end{enumerate}
+
+\subsubsection {Setting command line arguments}
+\label{SettingCommandLineArguments}
+
+To set command line arguments for your Eclipse application:
+
+\begin{enumerate}
+
+\item Open a java perspective if necessary by choosing
+  {\sf Window > Open Perspective > Java}.
+
+\item Select the ArtiSynth project in the {\sf Package Explorer} form.
+
+\item Choose {\sf Run > Run Configurations...} to open the {\sf Run
+  Configurations} window.
+
+\item In the left panel, under {\sf Java Application}, select {\sf ArtiSynth}.
+
+\item In the right panel, select the {\sf Arguments} tab.
+
+\item Program arguments (which are passed directly to ArtiSynth)
+should be specified in the {\sf Program arguments} box.  JVM
+arguments, which control the Java virtual machine running ArtiSynth,
+should be specified in the {\sf VM arguments} box.
+
+\item When finished, click {\sf Close}.
 
 \end{enumerate}
 

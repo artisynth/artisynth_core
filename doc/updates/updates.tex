@@ -22,6 +22,46 @@
 
 %\subsection*{Wrapping surfaces}
 
+\section*{Aug 15, 2016}
+
+\subsection*{Replacement of SurfaceMeshContourIxer}
+
+This is a follow-on to the update of Aug 10. The functionality of {\tt
+SurfaceMeshContourIxer} to obtain intersection contours has been
+merged into {\tt SurfaceMeshCollider}.
+
+Instead of doing
+%
+\begin{lstlisting}[]
+   SurfaceMeshContourIxer ixer = new SurfaceMeshContourIxer();
+   boolean collided = ixer.findContours (mesh0, mesh1);
+   if (collided) {
+      for (IntersectionContour c : ixer.getContours()) {
+         // do something with c
+      }
+   }
+\end{lstlisting}
+%
+one now does
+%
+\begin{lstlisting}[]
+   SurfaceMeshCollider collider = new SurfaceMeshCollider();
+   ArrayList<IntersectionContour> contours = collider.getContours (mesh0, mesh1);
+   if (contours != null) {
+      for (IntersectionContour c : contours) {
+         // do something with c
+      }
+   }
+\end{lstlisting}
+%
+
+{\tt SurfaceMeshContourIxer} will remain in the distribution until we
+are confident this works properly.  If for some reason {\tt
+SurfaceMeshCollider} gives an incorrect result, one can simply replace
+{\tt SurfaceMeshCollider} with {\tt SurfaceMeshContourIxer}, which has
+been given a {\tt getContours(mesh0,mesh1)} method so the new code
+structure does not need to be changed.
+
 \section*{Aug 10, 2016}
 
 \subsection*{Refactoring of maspack.collision}

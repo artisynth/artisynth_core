@@ -49,6 +49,16 @@ public class SurfaceMeshContourIxer {
    public SurfaceMeshContourIxer () {
    }
    
+   public ArrayList<IntersectionContour> getContours (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      if (findContours (mesh0, mesh1)) {
+         return myContours;
+      }
+      else {
+         return null;
+      }
+   }
+   
    public ArrayList<IntersectionContour> getContours () {
       return myContours;
    }

@@ -818,6 +818,7 @@ public class TensorUtils {
     */
    public static void createElasticityRotation(Matrix6d T, Matrix3dBase R) {
       
+      // non-standard Vogt notation 11, 22, 33, 12, 23, 13
       // top left
       T.m00 = R.m00*R.m00;
       T.m01 = R.m01*R.m01;
@@ -830,37 +831,38 @@ public class TensorUtils {
       T.m22 = R.m22*R.m22;
       
       // top right
-      T.m03 = 2*R.m01*R.m02;
-      T.m04 = 2*R.m02*R.m00;
-      T.m05 = 2*R.m00*R.m01;
-      T.m13 = 2*R.m11*R.m12;
-      T.m14 = 2*R.m12*R.m10;
-      T.m15 = 2*R.m10*R.m11;
-      T.m23 = 2*R.m21*R.m22;
-      T.m24 = 2*R.m22*R.m20;
-      T.m25 = 2*R.m20*R.m21;
+      
+      T.m05 = 2*R.m01*R.m02;
+      T.m03 = 2*R.m02*R.m00;
+      T.m04 = 2*R.m00*R.m01;
+      T.m15 = 2*R.m11*R.m12;
+      T.m13 = 2*R.m12*R.m10;
+      T.m14 = 2*R.m10*R.m11;
+      T.m25 = 2*R.m21*R.m22;
+      T.m23 = 2*R.m22*R.m20;
+      T.m24 = 2*R.m20*R.m21;
       
       // bottom left
-      T.m30 = R.m10*R.m20;
-      T.m31 = R.m11*R.m21;
-      T.m32 = R.m12*R.m22;
-      T.m40 = R.m20*R.m00;
-      T.m41 = R.m21*R.m01;
-      T.m42 = R.m22*R.m02;
-      T.m50 = R.m00*R.m10;
-      T.m51 = R.m01*R.m11;
-      T.m52 = R.m02*R.m12;
+      T.m50 = R.m10*R.m20;
+      T.m51 = R.m11*R.m21;
+      T.m52 = R.m12*R.m22;
+      T.m30 = R.m20*R.m00;
+      T.m31 = R.m21*R.m01;
+      T.m32 = R.m22*R.m02;
+      T.m40 = R.m00*R.m10;
+      T.m41 = R.m01*R.m11;
+      T.m42 = R.m02*R.m12;
       
       // bottom right
-      T.m33 = R.m11*R.m22+R.m12*R.m21;
-      T.m34 = R.m12*R.m20+R.m10*R.m22;
-      T.m35 = R.m10*R.m21+R.m11*R.m20;
-      T.m43 = R.m21*R.m02+R.m22*R.m01;
-      T.m44 = R.m22*R.m00+R.m20*R.m02;
-      T.m45 = R.m20*R.m01+R.m21*R.m00;
-      T.m53 = R.m01*R.m12+R.m02*R.m11;
-      T.m54 = R.m02*R.m10+R.m00*R.m12;
-      T.m55 = R.m00*R.m11+R.m01*R.m10;
+      T.m55 = R.m11*R.m22+R.m12*R.m21;
+      T.m53 = R.m12*R.m20+R.m10*R.m22;
+      T.m54 = R.m10*R.m21+R.m11*R.m20;
+      T.m35 = R.m21*R.m02+R.m22*R.m01;
+      T.m33 = R.m22*R.m00+R.m20*R.m02;
+      T.m34 = R.m20*R.m01+R.m21*R.m00;
+      T.m45 = R.m01*R.m12+R.m02*R.m11;
+      T.m43 = R.m02*R.m10+R.m00*R.m12;
+      T.m44 = R.m00*R.m11+R.m01*R.m10;
    }
    
    

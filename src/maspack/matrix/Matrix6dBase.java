@@ -2775,9 +2775,9 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
       return (lu.determinant());
    }
 
-   public Object clone() {
+   public Matrix6dBase clone() {
       try {
-         return super.clone();
+         return (Matrix6dBase)super.clone();
       }
       catch (CloneNotSupportedException e) { // shouldn't happen
          throw new InternalErrorException ("clone failed for Matrix6dBase");

@@ -29,7 +29,7 @@ public class Matrix6d extends Matrix6dBase {
     * 
     * @param vals
     * element values for the matrix, with element (i,j) stored at location
-    * <code>i*4+j</code>
+    * <code>i*6+j</code>
     */
    public Matrix6d (double[] vals) {
       set (vals);
@@ -443,6 +443,11 @@ public class Matrix6d extends Matrix6dBase {
       m32 = m23; m42 = m24; m52 = m25;
       m43 = m34; m53 = m35;
       m54 = m45;
+   }
+   
+   @Override
+   public Matrix6d clone() {
+      return (Matrix6d)super.clone();
    }
 
 }

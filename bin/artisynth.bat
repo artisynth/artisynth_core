@@ -68,7 +68,7 @@ if %PROCESSOR_ARCHITECTURE%==AMD64 (
 set PATH=%TEMP_PATH:"=%
 if %HELP%==yes (
         echo synopsis:
-        echo %  artisynth [PROGRAM_OPTIONS] [-M MODEL_OPTIONS]
+        echo %  artisynth [PROGRAM_OPTIONS]
         echo options:
         echo %  -fast                 run using -server option
         echo %  -s                    suppress all console output
@@ -95,6 +95,9 @@ java -version >> %log% 2>&1
 
 if exist %LOG% echo ------------------------------------------------ >> %LOG%
 
+@rem check for java 7 and if so increase perm size
+java -version 2>&1 | findstr 1.7 >nul
+if %errorlevel% == 0 set JAVA_OPTS=%JAVA_OPTS% -XX:MaxPermSize=100M
 if %SILENT%==yes ( 
         java %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%  >> %LOG% 2>&1
 ) else (

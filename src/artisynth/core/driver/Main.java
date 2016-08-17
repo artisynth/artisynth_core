@@ -1421,6 +1421,28 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
+   private class LoadModelFileRunner implements Runnable {
+      File myFile;
+      boolean myStatus = false;
+
+      LoadModelFileRunner (File file) {
+         myFile = file;
+      }
+
+      public void run() {
+         try {
+            myStatus = loadModelFile(myFile);
+         } catch (IOException e) {
+            e.printStackTrace();
+            myStatus = false;
+         }
+      }
+
+      public boolean getStatus() {
+         return myStatus;
+      }
+   }
+
    private boolean runInSwing (Runnable runnable) {
       try {
          SwingUtilities.invokeAndWait (runnable);
@@ -2440,6 +2462,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
    
    public boolean loadModelFile (File file) throws IOException {
+      // If we are not in the AWT event thread, switch to that thread
+      // and build the model there. We do this because the model building
+      // code may create and access GUI components (such as ControlPanels)
+      // and any such code must execute in the event thread. Typically,
+      // we will not be in the event thread if loadModel is called from
+      // the Jython console.
+      if (myViewer != null && !SwingUtilities.isEventDispatchThread()) {
+         LoadModelFileRunner runner = new LoadModelFileRunner (file);
+         if (!runInSwing (runner)) {
+            return false;
+         }
+         else {
+            return runner.getStatus();
+         }
+      }
+
       RootModel newRoot = null;
       clearRootModel();
       ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (file);

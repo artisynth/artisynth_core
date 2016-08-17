@@ -373,7 +373,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
             }
          }
       } catch (Exception e) {
-         System.err.println("cough cough.");
+         System.err.println("Error in display probe: " + e.getMessage());
       }
 
    }

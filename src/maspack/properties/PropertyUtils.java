@@ -13,7 +13,7 @@ import maspack.matrix.Vector;
 
 public class PropertyUtils {
 
-   public static Class[] findCompositePropertySubclasses (Class clazz) {
+   public static Class<?>[] findCompositePropertySubclasses (Class<?> clazz) {
       Method m = null;
       try {
          m = clazz.getMethod ("getSubClasses");
@@ -568,7 +568,7 @@ public class PropertyUtils {
     */
    public static CompositeProperty createInstance (
       PropertyInfo info, HasProperties host) {
-      Class valueClass = info.getValueClass();
+      Class<?> valueClass = info.getValueClass();
       try {
          if (info instanceof PropertyDesc) {
             PropertyDesc desc = (PropertyDesc)info;

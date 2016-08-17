@@ -7,102 +7,48 @@
 package maspack.util;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * Implements a resizable array of objects. One of the intended uses is to
- * maintain a preallocated object buffer.
+ * Implements a resizable array of objects (similar to ArrayList), but
+ * provides access to the backing buffer
  */
 public class DynamicArray<T> implements Iterable<T> {
    private int mySize;
    private T[] myBuffer;
-   private Class<T> myType;
+
+   public DynamicArray(T[] array) {
+      myBuffer = array;
+      mySize = array.length;
+   }
 
    public DynamicArray (Class<T> type) {
-      myType = type;
-      ensureCapacity (10);
+      this(type, 0);
    }
 
    public DynamicArray (Class<T> type, int size) {
-      myType = type;
-      ensureCapacity (size);
-      setSize (size);
+      @SuppressWarnings("unchecked")
+      T[] buff = (T[])Array.newInstance (type, mySize);
+      myBuffer = buff;
+      mySize = size;
    }
 
    public void trimToSize() {
       if (myBuffer.length > mySize) {
-         T[] oldBuffer = myBuffer;
-         myBuffer = (T[])Array.newInstance (myType, mySize);
-         System.arraycopy (oldBuffer, 0, myBuffer, 0, oldBuffer.length);
+         myBuffer = Arrays.copyOf(myBuffer, mySize);
       }
    }
 
    public void ensureCapacity (int minCapacity) {
-      if (myBuffer == null || minCapacity > myBuffer.length) {
-         T[] oldBuffer = myBuffer;
-         int newCapacity;
-         if (oldBuffer != null) {
-            newCapacity = (oldBuffer.length * 3) / 2 + 1;
-         }
-         else {
-            newCapacity = 0;
-         }
+      if (minCapacity > myBuffer.length) {
+         int newCapacity = (myBuffer.length * 3) / 2 + 1;
          if (newCapacity < minCapacity) {
             newCapacity = minCapacity;
          }
-         myBuffer = (T[])Array.newInstance (myType, newCapacity);
-         if (oldBuffer != null) {
-            System.arraycopy (oldBuffer, 0, myBuffer, 0, oldBuffer.length);
-         }
-      }
-   }
-
-   // private void fill (int idxStart, int idxEnd)
-   // {
-   // for (int i=idxStart; i<idxEnd; i++)
-   // { try
-   // { myBuffer[i] = myType.newInstance();
-   // }
-   // catch (Exception e)
-   // { throw new UnsupportedOperationException (
-   // "Can't instantiate objects of type " + myType);
-   // }
-   // }
-   // }
-
-   private T createInstance() {
-      try {
-         return myType.newInstance();
-      }
-      catch (Exception e) {
-         throw new UnsupportedOperationException (
-            "Can't instantiate objects of type "+myType, e);
-      }
-   }
-
-   public void setSize (int size) {
-      if (size > myBuffer.length) {
-         ensureCapacity (size);
-      }
-      if (size > mySize) {
-         for (int i = mySize; i < size; i++) {
-            if (myBuffer[i] == null) {
-               myBuffer[i] = createInstance();
-            }
-         }
-      }
-      mySize = size;
-   }
-
-   public void increaseSize (int inc) {
-      setSize (mySize + inc);
-   }
-
-   public void ensureSize (int size) {
-      if (mySize < size) {
-         setSize (size);
+         myBuffer = Arrays.copyOf(myBuffer, newCapacity);
       }
    }
 
@@ -111,9 +57,6 @@ public class DynamicArray<T> implements Iterable<T> {
    }
 
    public void add (T value) {
-      if (value == null) {
-         throw new IllegalArgumentException ("null values not permitted");
-      }
       ensureCapacity (mySize + 1);
       myBuffer[mySize++] = value;
    }
@@ -122,9 +65,6 @@ public class DynamicArray<T> implements Iterable<T> {
       ensureCapacity (mySize + collection.size());
       int idx = mySize;
       for (T value : collection) {
-         if (value == null) {
-            throw new IllegalArgumentException ("null values not permitted");
-         }
          myBuffer[idx++] = value;
       }
       mySize += collection.size();
@@ -134,9 +74,6 @@ public class DynamicArray<T> implements Iterable<T> {
       ensureCapacity (mySize + array.size());
       int idx = mySize;
       for (T value : array) {
-         if (value == null) {
-            throw new IllegalArgumentException ("null values not permitted");
-         }
          myBuffer[idx++] = value;
       }
       mySize += array.size();
@@ -145,11 +82,42 @@ public class DynamicArray<T> implements Iterable<T> {
    public final T get (int idx) {
       return myBuffer[idx];
    }
+   
+   private boolean elementEquals(T a, T b) {
+      if (a == b) {
+         return true;
+      } else if (a == null || b == null) {
+         return false;
+      }
+      return a.equals(b);
+   }
+   
+   public int indexOf(T val) {
+      for (int i=0; i<mySize; ++i) {
+         if (elementEquals(val, myBuffer[i])) {
+            return i;
+         }
+      }
+      return -1;
+   }
+   
+   public boolean contains(T val) {
+      return indexOf(val) != -1;
+   }
+   
+   /**
+    * Provides direct access to the underlying array.  The underying array is 
+    * automatically trimmed to the correct size before being returned.
+    * @return the underlying array.  
+    */
+   public T[] getArray() {
+      if (mySize != myBuffer.length) {
+         trimToSize();
+      }
+      return myBuffer;
+   }
 
    public void set (int idx, T value) {
-      if (value == null) {
-         throw new IllegalArgumentException ("null values not permitted");
-      }
       myBuffer[idx] = value;
    }
 

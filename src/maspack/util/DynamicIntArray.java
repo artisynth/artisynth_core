@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2014, by the Authors: Antonio Sanchez (UBC)
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
+
 package maspack.util;
 
 import java.util.ArrayList;
@@ -188,10 +195,14 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
    /**
     * Provides direct access to the underlying array.  If the array is modified,
     * then the version numbering will be out of sync until {@link #notifyModified()}
-    * is called.
+    * is called.  The underying array is automatically trimmed to the correct size
+    * before being returned.
     * @return the underlying array.  
     */
    public int[] getArray() {
+      if (size != elementData.length) {
+         trimToSize();
+      }
       return elementData;
    }
       

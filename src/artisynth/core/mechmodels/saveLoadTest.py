@@ -1,7 +1,9 @@
 # ArtisynthScript: "saveLoadTest"
 
 def testSaveLoadFull (modelName, sec, fmt, tsim, hsim) :
-    loadModel (modelName)
+    if loadModel (modelName) == False:
+        print "Model %s not found" % modelName
+        return
     delay (sec)
     tester = TestCommands(main)
     errorMsg = tester.testSaveAndLoad ("test", fmt, tsim, hsim)

@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -286,9 +287,16 @@ public class DicomReader {
                   }
                }
             }
-            catch (Exception e) {
-               e.printStackTrace();
+            catch (ExecutionException e) {
+               if (e.getCause() instanceof IOException) {
+                  throw (IOException)(e.getCause());
+               } else {
+                  e.printStackTrace();
+               }
             } // end try-catching errors
+            catch (InterruptedException e) {
+               e.printStackTrace();
+            }
          } // end checking if future complete
       } // end main loop
       

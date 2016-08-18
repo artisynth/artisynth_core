@@ -97,10 +97,22 @@ public class DicomReader {
          this.file = file;
 
       }
+      
+      public Throwable getRootCause(Throwable e) {
+         while (e.getCause() != null && e.getCause() != e) {
+            e = e.getCause();
+         }
+         return e;
+      }
 
       @Override
       public DicomSlice[] call() throws IOException {
-         return readSlice(sliceName, file);
+         try {
+            return readSlice(sliceName, file);
+         } catch (Exception e) {
+            Throwable cause = getRootCause(e);
+            throw new IOException("Unable to read DICOM file:\n" + cause.getMessage(), cause);
+         }
       }
 
    }

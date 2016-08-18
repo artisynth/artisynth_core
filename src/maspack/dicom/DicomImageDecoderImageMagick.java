@@ -250,6 +250,7 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
 
       // run conversion process
       ProcessBuilder procBuild = new ProcessBuilder(cmdArray);
+      StringBuilder errorMsg = new StringBuilder();
       try {
          Process proc = procBuild.start();
 
@@ -285,13 +286,16 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
             // clear error stream
             int val;
             while ((val = errorReader.read()) >= 0) {
-               System.err.println(val);
+               errorMsg.append((char)val);
             }
          }
 
          // read last of data
          // clear error stream
-         while (errorReader.read() >= 0) {}
+         int val;
+         while ((val = errorReader.read()) >= 0) {
+            errorMsg.append((char)val);
+         }
 
          // read output
          if (offset < bufferLength) {
@@ -311,6 +315,12 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
          errorReader.close();
 
          bufferLength = offset;
+         
+         if (offset == 0 && errorMsg.length() > 0) {
+            String err = errorMsg.toString();
+            System.err.println(err);
+            throw new IllegalArgumentException("Error from ImageMagick: " + err);
+         }
 
       } catch (Exception e) {
          throw new IllegalStateException("Failed to decode image data", e);

@@ -31,7 +31,6 @@ public class PuppetDemo extends LaymanDemo {
       FrameMarker myRHandMkr = new FrameMarker();
       FrameMarker myLHandMkr = new FrameMarker();
 
-      RenderProps.setPointRadius (this, 0.035);
       plate.setPose (0, 0, 1, 0, 0, 0);
 
       myMechMod.addRigidBody (plate);
@@ -49,6 +48,7 @@ public class PuppetDemo extends LaymanDemo {
          150, 0, 0));
       
       setRenderProps (myLayman.getRenderProps());
+      RenderProps.setPointRadius (this, 0.035);
 
       plate.setDynamic (false);
 

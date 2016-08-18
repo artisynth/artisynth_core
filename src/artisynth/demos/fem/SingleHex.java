@@ -157,10 +157,21 @@ public class SingleHex extends RootModel {
       System.out.println ("gravity weights=" + hex.computeGravityWeights().toString("%8.3f"));
    }
 
-   public StepAdjustment advance (double t0, double t1, int flags) {
-      SolveMatrixTest tester = new SolveMatrixTest();
-      System.out.println ("error=" + tester.testStiffness (mechMod, 1e-8));
+   MechModel getMechMod() {
+      if (models().size() > 0 && models().get(0) instanceof MechModel) {
+         return (MechModel)models().get(0);
+      }
+      else {
+         return null;
+      }
+   }      
 
+   public StepAdjustment advance (double t0, double t1, int flags) {
+      MechModel mech = getMechMod();
+      if (mech != null) {
+         SolveMatrixTest tester = new SolveMatrixTest();
+         System.out.println ("error=" + tester.testStiffness (mech, 1e-8));
+      }
       return super.advance (t0, t1, flags);
    }
 

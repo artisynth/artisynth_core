@@ -30,9 +30,9 @@ public class FemFrictionBeam extends RootModel {
    }
 
    public void setFriction (double mu) {
-      MechModel mechMod = (MechModel)models().get (0);
       myMu = mu;
-      if (mechMod != null) {
+      if (models().size() > 0) {
+         MechModel mechMod = (MechModel)models().get(0);
          mechMod.setFriction (mu);
       }
    }
@@ -42,12 +42,13 @@ public class FemFrictionBeam extends RootModel {
    }
 
    public void setAngle (double ang) {
-      double delAng = ang-myAngle;
-
-      MechModel mechMod = (MechModel)models().get (0);
-      mechMod.transformGeometry (
-         new RigidTransform3d (0, 0, 0, 0, 1, 0, Math.toRadians(delAng)));
       myAngle = ang;
+      if (models().size() > 0) {
+         MechModel mechMod = (MechModel)models().get(0);      
+         double delAng = ang-myAngle;
+         mechMod.transformGeometry (
+            new RigidTransform3d (0, 0, 0, 0, 1, 0, Math.toRadians(delAng)));
+      }
    }
 
    public double getAngle () {

@@ -34,5 +34,3 @@ PlaneConstrainedFem artisynth.demos.fem.PlaneConstrainedFem
 InversePoint2d artisynth.demos.inverse.PointModel2d
 InversePoint3d artisynth.demos.inverse.PointModel3d
 InverseHydrostatDemo artisynth.demos.inverse.HydrostatInvDemo
-
-

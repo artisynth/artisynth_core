@@ -71,12 +71,9 @@ public class SingleQuadpyramid extends RootModel {
       RenderProps.setVisible (mod, true);
       RenderProps.setFaceStyle (mod, Renderer.FaceStyle.FRONT);
 
-//       MechModel mechMod = new MechModel ("mech");
-//       mechMod.addModel (mod);
-//       mechMod.setIntegrator (MechSystemSolver.Integrator.BackwardEuler);
-//       addModel (mechMod);
-
-      addModel (mod);
+      MechModel mechMod = new MechModel ("mech");
+      mechMod.addModel (mod);
+      addModel (mechMod);
 
       RenderProps.setPointStyle (mod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointRadius (mod, 0.05);

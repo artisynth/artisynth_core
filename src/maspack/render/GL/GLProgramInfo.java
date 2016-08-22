@@ -472,5 +472,9 @@ public class GLProgramInfo {
          this.vertexColorMixMask &= ~MIX_EMISSION_FLAG;
       }
    }
+
+   public boolean hasTextureMap () {
+      return hasColorMap () || hasBumpMap () || hasNormalMap ();
+   }
    
 }

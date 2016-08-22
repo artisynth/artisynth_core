@@ -184,10 +184,16 @@ public class GL3ProgramManager {
 
       // bind attributes
       for (Entry<String,Integer> attribute : attributeLocationMap.entrySet ()) {
-         gl.glBindAttribLocation (progId, attribute.getValue (), attribute.getKey ());
+         if (shaders[0].contains (attribute.getKey ())) {
+            gl.glBindAttribLocation (progId, attribute.getValue (), attribute.getKey ());
+         }
       }
 
       gl.glLinkProgram(progId);
+      success = glCheckProgramLinking(gl, progId);
+      if (!success) {
+         throw new RuntimeException("Program failed to link.\n");
+      }
 
       GLShaderProgram prog = new GLShaderProgram (progId);
       bindUBOs (gl, prog);
@@ -270,21 +276,45 @@ public class GL3ProgramManager {
    }
 
    private boolean glCheckShaderCompilation (GL3 gl, int shader) {
+      
       int[] buff = new int[2];
       gl.glGetShaderiv(shader, GL3.GL_COMPILE_STATUS, buff, 0);
-      if(buff[0] == GL3.GL_FALSE) {
-         gl.glGetShaderiv(shader, GL3.GL_INFO_LOG_LENGTH, buff, 0);
-         int maxLength = buff[0];
+      gl.glGetShaderiv(shader, GL3.GL_INFO_LOG_LENGTH, buff, 1);
+      if(buff[1] > 0) {
+         int maxLength = buff[1];
          byte[] log = new byte[maxLength];
          int[] logLength = new int[] {maxLength};
          gl.glGetShaderInfoLog(shader, maxLength, logLength, 0, log,0);
 
-         // Provide the infolog in whatever manor you deem best.
          String err = new String(log);
          System.err.println(err);
 
-         gl.glDeleteShader(shader); // Don't leak the shader.
-         return false;
+         if (buff[0] == GL3.GL_FALSE) {
+            gl.glDeleteShader(shader);
+            return false;
+         }
+      }
+
+      return true;
+   }
+   
+   private boolean glCheckProgramLinking (GL3 gl, int program) {
+      
+      int[] buff = new int[2];
+      gl.glGetProgramiv(program, GL3.GL_LINK_STATUS, buff, 0);
+      gl.glGetProgramiv(program, GL3.GL_INFO_LOG_LENGTH, buff, 1);
+      if(buff[1] > 0) {
+         int maxLength = buff[1];
+         byte[] log = new byte[maxLength];
+         int[] logLength = new int[] {maxLength};
+         gl.glGetProgramInfoLog(program, maxLength, logLength, 0, log, 0);
+
+         String err = new String(log);
+         System.err.println(err);
+         if (buff[0] == GL3.GL_FALSE) {
+            gl.glDeleteProgram (program);
+            return false;
+         }
       }
 
       return true;
@@ -341,6 +371,10 @@ public class GL3ProgramManager {
       return out;
    }
 
+   public GLShaderProgram getProgram(GL3 gl, Object key) {
+      return keyToProgramMap.get(key);
+   }
+   
    public GLShaderProgram getProgram(GL3 gl, Object key, File[] shaders) {
       GLShaderProgram prog = keyToProgramMap.get(key);
       if (prog == null) {

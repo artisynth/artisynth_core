@@ -327,20 +327,16 @@ public class MultiViewerTesterBase {
       }
    }
 
-   protected static class RenderObjectWrapper implements SimpleSelectable {
-
-      RenderObject myRO;
+   protected static abstract class SimpleSelectableBase implements SimpleSelectable {
+      
       private boolean selected;
       RenderProps props;
-      AffineTransform3dBase trans;
-
-      public RenderObjectWrapper(RenderObject robj) {
+      
+      public SimpleSelectableBase() {
          selected = false;
-         myRO = robj;
          props = new RenderProps();
-         trans = null;
       }
-
+      
       public void setRenderProps(RenderProps props) {
          this.props = props;
       }
@@ -362,6 +358,43 @@ public class MultiViewerTesterBase {
          return selected;
       }
 
+      @Override
+      public void updateBounds(Vector3d pmin, Vector3d pmax) {
+      }
+
+      @Override
+      public int getRenderHints() {
+         return 0;
+      }
+
+      @Override
+      public boolean isSelectable() {
+         return true;
+      }
+
+      @Override
+      public int numSelectionQueriesNeeded() {
+         return -1;
+      }
+
+      @Override
+      public void getSelection(LinkedList<Object> list, int qid) {
+      }
+  
+   }
+   
+   protected static class RenderObjectWrapper extends SimpleSelectableBase {
+
+      RenderObject myRO;
+      
+      AffineTransform3dBase trans;
+
+      public RenderObjectWrapper(RenderObject robj) {
+         super();
+         myRO = robj;
+         trans = null;
+      }
+
       public void setTransform(AffineTransform3dBase t) {
          trans = t.copy();
       }
@@ -371,7 +404,7 @@ public class MultiViewerTesterBase {
 
          renderer.setFaceStyle(props.getFaceStyle());
          renderer.setPropsShading (props);
-         renderer.setFaceColoring (props, selected);
+         renderer.setFaceColoring (props, isSelected ());
 
          if (trans != null) {
             renderer.pushModelMatrix();
@@ -380,7 +413,7 @@ public class MultiViewerTesterBase {
 
          ColorMixing vmix = renderer.getVertexColorMixing ();
          boolean enableVertexColoring = false;
-         if (selected && vmix != ColorMixing.NONE) {
+         if (isSelected () && vmix != ColorMixing.NONE) {
             renderer.setVertexColorMixing (vmix);
             enableVertexColoring = true;
          }
@@ -396,7 +429,7 @@ public class MultiViewerTesterBase {
 
          if (myRO.hasLines()) {
             renderer.setLineShading (props);
-            renderer.setLineColoring (props, selected);
+            renderer.setLineColoring (props, isSelected ());
             LineStyle lstyle = props.getLineStyle();
             if (lstyle == LineStyle.LINE) {
                if (didFlatDraw) {
@@ -413,7 +446,7 @@ public class MultiViewerTesterBase {
 
          if (myRO.hasPoints()) {
             renderer.setPointShading (props);
-            renderer.setPointColoring (props, selected);
+            renderer.setPointColoring (props, isSelected());
             PointStyle pstyle = props.getPointStyle();
             if (pstyle == PointStyle.POINT) {
                if (didFlatDraw) {
@@ -441,28 +474,6 @@ public class MultiViewerTesterBase {
          }
       }
 
-      @Override
-      public void updateBounds(Vector3d pmin, Vector3d pmax) {
-      }
-
-      @Override
-      public int getRenderHints() {
-         return 0;
-      }
-
-      @Override
-      public boolean isSelectable() {
-         return true;
-      }
-
-      @Override
-      public int numSelectionQueriesNeeded() {
-         return -1;
-      }
-
-      @Override
-      public void getSelection(LinkedList<Object> list, int qid) {
-      }
    }
    
    protected static class MultiTriangleGroupWrapper extends RenderObjectWrapper {

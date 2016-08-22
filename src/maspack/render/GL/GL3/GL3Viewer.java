@@ -5,6 +5,7 @@ import java.awt.Font;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -78,6 +79,9 @@ public class GL3Viewer extends GLViewer {
    GL3FlexObject gloFlex = null;
    GL3Primitive[] primitives = null;
    ElementArray eaFlex = null;
+   
+   Object shaderOverrideKey;
+   File[] shaderOverride; // mainly for debugging, force shader
 
    // screenshot
    private volatile GLFrameCapture frameCapture = null;
@@ -345,62 +349,66 @@ public class GL3Viewer extends GLViewer {
       this.drawable = drawable;
       this.gl = GL3Utilities.wrap(drawable.getGL ().getGL3 ());
 
-      if (!myInternalRenderListValid) {
-         buildInternalRenderList();
-      }
-
-      if (selectTrigger) {
-         mySelector.setupSelection (gl);
-         selectEnabled = true;
-         selectTrigger = false;
-      }
-
-      // turn off buffer swapping when doing a selection render because
-      // otherwise the previous buffer sometimes gets displayed
-      drawable.setAutoSwapBufferMode (selectEnabled ? false : true);
-      if (myProfiling) {
-         myTimer.start();
-      }
-      doDisplay (drawable, flags);
-      if (myProfiling) {
-         myTimer.stop();
-         System.out.printf (
-            "render time (msec): %9.4f %s\n", 
-            myTimer.getTimeUsec()/1000.0, isSelecting() ? "(SELECT)" : "");
-      }
-      if (selectEnabled) {
-         selectEnabled = false;
-         mySelector.processSelection (gl);
-      }
-      else {
-         fireRerenderListeners();
-      }
-
-      GLFrameCapture fc = frameCapture;
-      if (fc != null && (grab || grabClose)) {
-         synchronized(fc) {
-            if (grab) {
-               offscreenCapture (fc, flags);
-               fc.unlock();
-               grab = false;
-            }
-            if (grabClose) {
-               fc.waitForCompletion();
-               fc.dispose(gl);
-               frameCapture = null;
-               grabClose = false;
+      try {
+      
+         if (!myInternalRenderListValid) {
+            buildInternalRenderList();
+         }
+   
+         if (selectTrigger) {
+            mySelector.setupSelection (gl);
+            selectEnabled = true;
+            selectTrigger = false;
+         }
+   
+         // turn off buffer swapping when doing a selection render because
+         // otherwise the previous buffer sometimes gets displayed
+         drawable.setAutoSwapBufferMode (selectEnabled ? false : true);
+         if (myProfiling) {
+            myTimer.start();
+         }
+         doDisplay (drawable, flags);
+         if (myProfiling) {
+            myTimer.stop();
+            System.out.printf (
+               "render time (msec): %9.4f %s\n", 
+               myTimer.getTimeUsec()/1000.0, isSelecting() ? "(SELECT)" : "");
+         }
+         if (selectEnabled) {
+            selectEnabled = false;
+            mySelector.processSelection (gl);
+         }
+         else {
+            fireRerenderListeners();
+         }
+   
+         GLFrameCapture fc = frameCapture;
+         if (fc != null && (grab || grabClose)) {
+            synchronized(fc) {
+               if (grab) {
+                  offscreenCapture (fc, flags);
+                  fc.unlock();
+                  grab = false;
+               }
+               if (grabClose) {
+                  fc.waitForCompletion();
+                  fc.dispose(gl);
+                  frameCapture = null;
+                  grabClose = false;
+               }
             }
          }
+         
+         // local garbage collection
+         long time = System.currentTimeMillis ();
+         if (time - lastGarbageTime > myGLResources.getGarbageCollectionInterval()) {
+            garbage(gl);
+         }
+         // for non-timed garbage collection
+         myGLResources.maybeRunGarbageCollection (gl);
+      } catch (Exception e) {
+         e.printStackTrace ();
       }
-      
-      // local garbage collection
-      long time = System.currentTimeMillis ();
-      if (time - lastGarbageTime > myGLResources.getGarbageCollectionInterval()) {
-         garbage(gl);
-      }
-      // for non-timed garbage collection
-      myGLResources.maybeRunGarbageCollection (gl);
-      
       this.drawable = null;
       this.gl = null;
    }
@@ -1205,30 +1213,62 @@ public class GL3Viewer extends GLViewer {
    //      ArtisynthPath.getSrcRelativeFile(GL3Viewer.class, "shaders/test_fragment.glsl")
    //   };
    
-   protected GLShaderProgram updateProgram(GL3 gl, RenderingMode mode,
-      boolean hasNormals, boolean hasColors, boolean hasTextures) {     
-           
-      updateProgramInfo(mode, hasNormals, hasColors, hasTextures);
-      
-      GLShaderProgram prog;
-      if (isSelecting ()) {
-         prog = myProgManager.getSelectionProgram (gl, myProgramInfo);
+   public void setShaderOverride(Object shaderKey, File[] vf) {
+      shaderOverrideKey = shaderKey;
+      if (vf != null) {
+         shaderOverride = Arrays.copyOf (vf, vf.length);
       } else {
-         prog = myProgManager.getProgram (gl, myProgramInfo);
-         // prog = myProgManager.getProgram(gl, debugShaders, debugShaders);
+         shaderOverride = null;
+      }
+   }
+   
+   public void useProgram(GL3 gl, Object key) {
+      GLShaderProgram prog;
+      prog = myProgManager.getProgram (gl, key);
+      
+      if (prog == null && shaderOverride != null && key.equals(shaderOverrideKey)) {
+         prog = myProgManager.getProgram (gl, shaderOverrideKey, shaderOverride);
       }
       
+      if (prog != null) {
+           useProgram(gl, prog);
+      } 
+   }
+   
+   private void useProgram(GL3 gl, GLShaderProgram prog) {
       // only update program if different
       if (prog != myCommittedProgram) {
          prog.use (gl);
+         // set selection color on first time use
          if (isSelecting ()) {
             myProgManager.setSelectionColor (gl, prog, mySelectingColor);
             mySelectingColorModified = false;
          }
          myCommittedProgram = prog;
-         myCommittedProgramInfo = myProgramInfo.clone ();
+         if (shaderOverride != null) {
+            myCommittedProgramInfo = myProgramInfo.clone ();
+         } else {
+            myCommittedProgramInfo = null;
+         }
       }
       maybeBindTextures(gl, prog);
+   }
+   
+   protected GLShaderProgram updateProgram(GL3 gl, RenderingMode mode,
+      boolean hasNormals, boolean hasColors, boolean hasTextures) {     
+            
+      updateProgramInfo(mode, hasNormals, hasColors, hasTextures);
+      
+      GLShaderProgram prog;
+      if (shaderOverride != null) {
+         prog = myProgManager.getProgram (gl, shaderOverrideKey, shaderOverride);
+      } else if (isSelecting ()) {
+         prog = myProgManager.getSelectionProgram (gl, myProgramInfo);
+      } else {
+         prog = myProgManager.getProgram (gl, myProgramInfo);
+      }
+      
+      useProgram(gl, prog);
       
       return prog;
    }

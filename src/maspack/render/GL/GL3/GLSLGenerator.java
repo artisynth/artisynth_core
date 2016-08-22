@@ -497,7 +497,8 @@ public class GLSLGenerator {
       }
       
       // textures
-      if (!info.isSelecting () && info.hasVertexTextures()) {
+      boolean hasTextures = !info.isSelecting () && info.hasVertexTextures() && info.hasTextureMap(); 
+      if (hasTextures) {
          appendln(mb, "   // forward vertex texture coordinates");
          appendln(mb, "   textureOut.texcoord = (texture_matrix*vec4(vertex_texcoord, 0, 1)).xy;");
          appendln(mb);
@@ -554,7 +555,7 @@ public class GLSLGenerator {
       if (!info.isSelecting () && info.hasVertexColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
          appendln(hb, "in vec4 vertex_color;");
       }
-      if (!info.isSelecting () && info.hasVertexTextures()) {
+      if (!info.isSelecting () && info.hasVertexTextures() && info.hasTextureMap ()) {
          appendln(hb, "in vec2 vertex_texcoord;");
       }
       
@@ -621,7 +622,7 @@ public class GLSLGenerator {
                                   || instanced == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
                              || (instanced == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
       
-      boolean hasTextures = !info.isSelecting () && info.hasVertexTextures();
+      boolean hasTextures = !info.isSelecting () && info.hasVertexTextures() && info.hasTextureMap ();
       
       if (hasColors) {
          appendln(hb, "// per-vertex color info");

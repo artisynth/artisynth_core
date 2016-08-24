@@ -235,6 +235,9 @@ public class FemModelDeformer extends FemModel3d implements ActionListener {
       }
       return super.postscanItem (tokens, ancestor);
    }
-   
+
+   public FemGeometryTransformer getTransformer() {
+      return myTransformer;
+   }
 
 }

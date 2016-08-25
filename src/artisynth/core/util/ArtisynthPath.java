@@ -281,14 +281,13 @@ public class ArtisynthPath {
       File tmp = null;
       
       String tmpEnv  = System.getenv ("ARTISYNTH_TMP");
-      if (tmpEnv == null) {
-         tmp = findFile("tmp/");
-      } else {
+      if (tmpEnv != null) {
+         // tmp = findfile("tmp/");
          tmp = new File(tmpEnv);
+      } else {
+         tmp = new File(ArtisynthPath.getHomeDir() + "/tmp/");   
       }
-      if (tmp == null) {
-         tmp = new File(ArtisynthPath.getHomeDir() + "/tmp/");
-      }
+      
       if (!tmp.exists()) {
          tmp.mkdirs();
       }

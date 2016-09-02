@@ -712,6 +712,14 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       }
    }
 
+   /**
+    * Force update of numbering (for example, if a component's number
+    * has been manually changed)
+    */
+   public void invalidateNumbers() {
+      myValidateIndices = 0;
+   }
+
    // public Object clone() throws CloneNotSupportedException {
    //    ComponentListImpl comp = (ComponentListImpl)super.clone();
 

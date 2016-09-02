@@ -468,4 +468,12 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       }
       return comp;
    }
+   
+   /**
+    * Invalidates stored numbers in cases where component numbers have been
+    * manually changed 
+    */
+   public void invalidateNumbers() {
+      myComponents.invalidateNumbers();
+   }
 }

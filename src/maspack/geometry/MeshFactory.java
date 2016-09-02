@@ -24,6 +24,7 @@ import maspack.util.InternalErrorException;
 public class MeshFactory {
 
    private static final double EPS = 1e-15;
+   public static boolean DEFAULT_ADD_NORMALS = false;
 
    private static class GriddedPoint {
 
@@ -68,7 +69,7 @@ public class MeshFactory {
    }
 
    public static class VertexMap extends HashMap<GriddedPoint,Vertex3d> {
-
+      private static final long serialVersionUID = 134233432L;
       double myTol;
 
       public VertexMap (double tol) {
@@ -807,7 +808,7 @@ public class MeshFactory {
     */
    public static PolygonalMesh createPlane (
       double wx, double wy, int xdiv, int ydiv) {
-      return createRectangle (wx, wy, xdiv, ydiv, /*addTextureCoords=*/true);
+      return createRectangle (wx, wy, xdiv, ydiv, /*addNormals*/ DEFAULT_ADD_NORMALS, /*addTextureCoords=*/true);
    }
    
    /**
@@ -821,12 +822,36 @@ public class MeshFactory {
     * @param wy width in the y direction
     * @param xdiv number of divisions in x (&gt;=1)
     * @param ydiv number of divisions in y (&gt;=1)
+    * @param addNormals if <code>true</code>, generates normals
     * @param addTextureCoords if <code>true</code>, generates texture 
     * coordinates
     * @return created mesh
     */
    public static PolygonalMesh createRectangle (
-      double wx, double wy, int xdiv, int ydiv, boolean addTextureCoords) {
+      double wx, double wy, int xdiv, int ydiv,
+      boolean addTextureCoords) {
+      return createRectangle(wx,wy,xdiv,ydiv,DEFAULT_ADD_NORMALS, addTextureCoords);
+   }
+   
+   /**
+    * Create a open rectangular mesh, composed of triangles, in the x-y
+    * plane, centered on the origin and with normals directed along the z axis. 
+    * Texture coordinates can optionally be created created for each triangle
+    * so that (0,0) and (1,1) correspond to the lower left and upper right 
+    * corners.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param xdiv number of divisions in x (&gt;=1)
+    * @param ydiv number of divisions in y (&gt;=1)
+    * @param addNormals if <code>true</code>, generates normals
+    * @param addTextureCoords if <code>true</code>, generates texture 
+    * coordinates
+    * @return created mesh
+    */
+   public static PolygonalMesh createRectangle (
+      double wx, double wy, int xdiv, int ydiv, boolean addNormals, 
+      boolean addTextureCoords) {
       
       Point3d[] plist = new Point3d[(xdiv+1)*(ydiv+1)];
       int[][] faceIndices = new int[xdiv*ydiv*2][];
@@ -869,6 +894,13 @@ public class MeshFactory {
       if (addTextureCoords) {
          mesh.setTextureCoords (vt, mesh.createVertexIndices());
       }
+      
+      if (addNormals) {
+         ArrayList<Vector3d> normals = new ArrayList<>();
+         normals.add(new Vector3d(0,0,1));
+         int[] indices = mesh.createVertexIndices();
+         mesh.setNormals(normals, indices);
+      }
       return mesh;
    }
 
@@ -883,7 +915,26 @@ public class MeshFactory {
    public static PolygonalMesh createQuadBox (
       double wx, double wy, double wz) {
       
-      return createQuadBox (wx, wy, wz, Point3d.ZERO, 1, 1, 1);
+      return createQuadBox (wx, wy, wz, Point3d.ZERO, 1, 1, 1, DEFAULT_ADD_NORMALS);
+      // double[] xy =
+      //    new double[] { wx / 2, wy / 2, -wx / 2, wy / 2, -wx / 2, -wy / 2,
+      //       wx / 2, -wy / 2 };
+
+      // return createPrism(xy, xy, wz);
+   }
+   
+   /**
+    * Creates a quad-based box mesh, with one quad per side, centered on the
+    * origin.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    */
+   public static PolygonalMesh createQuadBox (
+      double wx, double wy, double wz, boolean normals) {
+      
+      return createQuadBox (wx, wy, wz, Point3d.ZERO, 1, 1, 1, normals);
       // double[] xy =
       //    new double[] { wx / 2, wy / 2, -wx / 2, wy / 2, -wx / 2, -wy / 2,
       //       wx / 2, -wy / 2 };
@@ -904,8 +955,37 @@ public class MeshFactory {
     */
    public static PolygonalMesh createQuadBox (
       double wx, double wy, double wz, double x, double y, double z) {
+      return createQuadBox(wx, wy, wz, x, y, z, DEFAULT_ADD_NORMALS);
+   }
+   
+   /**
+    * Creates a quad-based box mesh, with one quad per side, centered at
+    * a prescribed location.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    * @param x center location along the x axis
+    * @param y center location along the y axis
+    * @param z center location along the z axis
+    */
+   public static PolygonalMesh createQuadBox (
+      double wx, double wy, double wz, double x, double y, double z, boolean addNormals) {
 
-      return createQuadBox (wx, wy, wz, new Point3d (x, y, z), 1, 1, 1);
+      return createQuadBox (wx, wy, wz, new Point3d (x, y, z), 1, 1, 1, addNormals);
+   }
+   
+   /**
+    * Creates a triangle-based box mesh, with two triangles per side, centered
+    * on the origin.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    */
+   public static PolygonalMesh createBox (
+      double wx, double wy, double wz) {
+      return createBox(wx, wy, wz, DEFAULT_ADD_NORMALS);
    }
 
    /**
@@ -917,8 +997,8 @@ public class MeshFactory {
     * @param wz width in the z direction
     */
    public static PolygonalMesh createBox (
-      double wx, double wy, double wz) {
-      PolygonalMesh mesh = createQuadBox(wx, wy, wz);
+      double wx, double wy, double wz, boolean addNormals) {
+      PolygonalMesh mesh = createQuadBox(wx, wy, wz, addNormals);
       mesh.triangulate();
       return mesh;
    }
@@ -936,12 +1016,27 @@ public class MeshFactory {
     */
    public static PolygonalMesh createBox (
       double wx, double wy, double wz, double x, double y, double z) {
+      return createBox(wx, wy, wz, x, y, z, DEFAULT_ADD_NORMALS);
+   }
+   
+   /**
+    * Creates a triangle-based box mesh, with two triangles per side, centered
+    * at a prescribed location.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    * @param x center location along the x axis
+    * @param y center location along the y axis
+    * @param z center location along the z axis
+    */
+   public static PolygonalMesh createBox (
+      double wx, double wy, double wz, double x, double y, double z, boolean addNormals) {
       PolygonalMesh mesh = createQuadBox(wx, wy, wz, x, y, z);
       mesh.triangulate();
       return mesh;
    }
       
-
    /**
     * Creates a triangle-based box mesh, with a specified mesh resolution in
     * each direction, and centered at a defined center point.
@@ -956,7 +1051,25 @@ public class MeshFactory {
     */
    public static PolygonalMesh createBox(double wx, double wy, double wz,
       Point3d center, int nx, int ny, int nz) {
-      PolygonalMesh mesh = createQuadBox (wx, wy, wz, center, nx, ny, nz);
+      return createBox(wx,  wy,  wz, center, nx, ny, nz, DEFAULT_ADD_NORMALS);
+   }
+   
+
+   /**
+    * Creates a triangle-based box mesh, with a specified mesh resolution in
+    * each direction, and centered at a defined center point.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    * @param center center of the box
+    * @param nx number of subdivisions along x
+    * @param ny number of subdivisions along y
+    * @param nz number of subdivisions along z
+    */
+   public static PolygonalMesh createBox(double wx, double wy, double wz,
+      Point3d center, int nx, int ny, int nz, boolean addNormals) {
+      PolygonalMesh mesh = createQuadBox (wx, wy, wz, center, nx, ny, nz, addNormals);
       mesh.triangulate ();
       return mesh;
    }
@@ -1123,12 +1236,45 @@ public class MeshFactory {
    public static PolygonalMesh createQuadBox (
       double wx, double wy, double wz,
       Point3d center, int nx, int ny, int nz) {
+      return createQuadBox(wx,wy,wz,Point3d.ZERO,nx,ny,nz,DEFAULT_ADD_NORMALS);
+   }
+   
+   /**
+    * Creates a quad-based box mesh, with a specified mesh resolution in
+    * each direction, and centered at a defined center point.
+    *
+    * @param wx width in the x direction
+    * @param wy width in the y direction
+    * @param wz width in the z direction
+    * @param center center of the box
+    * @param nx number of subdivisions along x
+    * @param ny number of subdivisions along y
+    * @param nz number of subdivisions along z
+    */
+   public static PolygonalMesh createQuadBox (
+      double wx, double wy, double wz,
+      Point3d center, int nx, int ny, int nz,
+      boolean addNormals) {
 
       PolygonalMesh mesh = new PolygonalMesh();
       Vertex3d[][][] vtxs = new Vertex3d[nx + 1][ny + 1][nz + 1];
 
       Vertex3d faceVtxs[] = new Vertex3d[4];
+      
+      ArrayList<Vector3d> normals = null;
+      int[] normalIdxs = null;
+      if (addNormals) {
+         normals = new ArrayList<Vector3d>();
+         normals.add(new Vector3d(1,0,0));
+         normals.add(new Vector3d(0,1,0));
+         normals.add(new Vector3d(0,0,1));
+         normals.add(new Vector3d(-1,0,0));
+         normals.add(new Vector3d(0,-1,0));
+         normals.add(new Vector3d(0,0,-1));
+         normalIdxs = new int[8*nx*ny+8*nx*nz+8*ny*nz];
+      }
 
+      int faceIdx = 0;
       Vector3d dx = new Vector3d(wx / (nx), wy / (ny), wz / (nz));
       Point3d offset = new Point3d(-wx / 2, -wy / 2, -wz / 2);
 
@@ -1143,6 +1289,13 @@ public class MeshFactory {
             faceVtxs[3] =
                getOrCreateVertex(i + 1, j, 0, vtxs, offset, dx, mesh);
             Face f = mesh.addFace(faceVtxs);
+            if (addNormals) {
+               for (int l=0; l<4; ++l) {
+                  normalIdxs[4*faceIdx+l] = 5;
+               }
+            }
+            ++faceIdx;
+            
             if (i == 0) {
                f.firstHalfEdge ().setHard (true);
             } 
@@ -1164,6 +1317,14 @@ public class MeshFactory {
             faceVtxs[1] =
                getOrCreateVertex(i + 1, j, nz, vtxs, offset, dx, mesh);
             f = mesh.addFace(faceVtxs);
+            
+            if (addNormals) {
+               for (int l=0; l<4; ++l) {
+                  normalIdxs[4*faceIdx+l] = 2;
+               }
+            }
+            ++faceIdx;
+            
             if (i == 0) {
                f.firstHalfEdge ().setHard (true);
             } 
@@ -1190,6 +1351,14 @@ public class MeshFactory {
             faceVtxs[1] =
                getOrCreateVertex(i + 1, 0, k, vtxs, offset, dx, mesh);
             Face f = mesh.addFace(faceVtxs);
+            
+            if (addNormals) {
+               for (int l=0; l<4; ++l) {
+                  normalIdxs[4*faceIdx+l] = 4;
+               }
+            }
+            ++faceIdx;
+            
             if (i == 0) {
                f.firstHalfEdge ().setHard (true);
             } 
@@ -1211,6 +1380,12 @@ public class MeshFactory {
             faceVtxs[3] =
                getOrCreateVertex(i + 1, ny, k, vtxs, offset, dx, mesh);
             f = mesh.addFace(faceVtxs);
+            if (addNormals) {
+               for (int l=0; l<4; ++l) {
+                  normalIdxs[4*faceIdx+l] = 1;
+               }
+            }
+            ++faceIdx;
             if (i == 0) {
                f.firstHalfEdge ().setHard (true);
             } 
@@ -1237,6 +1412,12 @@ public class MeshFactory {
             faceVtxs[1] =
                getOrCreateVertex(0, j, k + 1, vtxs, offset, dx, mesh);
             Face f = mesh.addFace(faceVtxs);
+            if (addNormals) {
+               for (int l=0; l<4; ++l) {
+                  normalIdxs[4*faceIdx+l] = 3;
+               }
+            }
+            ++faceIdx;
             if (j == 0) {
                f.firstHalfEdge ().setHard (true);
             } 
@@ -1258,6 +1439,12 @@ public class MeshFactory {
             faceVtxs[3] =
                getOrCreateVertex(nx, j, k + 1, vtxs, offset, dx, mesh);
             f = mesh.addFace(faceVtxs);
+            if (addNormals) {
+               for (int l=0; l<4; ++l) {
+                  normalIdxs[4*faceIdx+l] = 0;
+               }
+            }
+            ++faceIdx;
             if (j == 0) {
                f.firstHalfEdge ().setHard (true);
             } 
@@ -1271,6 +1458,10 @@ public class MeshFactory {
                f.firstHalfEdge ().getNext ().setHard (true);
             }
          }
+      }
+      
+      if (addNormals) {
+         mesh.setNormals(normals, normalIdxs);
       }
       
       if (center != null) {

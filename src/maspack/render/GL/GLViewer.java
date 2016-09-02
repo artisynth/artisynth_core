@@ -4198,9 +4198,13 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void setFaceColoring (
       RenderProps props, float[] rgba, boolean highlight) {
 
-      setFrontColor (rgba);
-      if (rgba.length == 3) {
-         setFrontAlpha ((float)props.getAlpha());
+      if (rgba != null) {
+         setFrontColor (rgba);
+         if (rgba.length == 3) {
+            setFrontAlpha ((float)props.getAlpha());
+         }
+      } else {
+         setFrontColor(props.getFaceColorF());
       }
       setBackColor (props.getBackColorF());
       setShininess (props.getShininess());

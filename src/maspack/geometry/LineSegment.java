@@ -73,6 +73,19 @@ public class LineSegment implements Boundable {
          }
       }
    }
+   
+   /**
+    * Determine the line segment direction
+    * @param dir direction vector to populate
+    */
+   public void getDirection(Vector3d dir) {
+      dir.set(myVtx0.getWorldPoint());
+      dir.sub(myVtx1.getWorldPoint());
+      double nrm = dir.norm();
+      if (nrm > 0) {
+         dir.scale(1.0/nrm);
+      }
+   }
 
    /**
     * Computes the projection parameter of a point <code>px</code>
@@ -105,6 +118,15 @@ public class LineSegment implements Boundable {
       else {
          return del10.dot(delx0)/len10Sqr;
       }      
+   }
+   
+   /**
+    * Computes the distance of a point
+    * @param pnt point to compute nearest distance from
+    * @return nearest distance to point
+    */
+   public double distance(Point3d pnt) {
+      return distance(myVtx0.getWorldPoint(), myVtx1.getWorldPoint(), pnt);
    }
 
    /**

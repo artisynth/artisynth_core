@@ -33,7 +33,47 @@ public class RandomGenerator {
       double x = get().nextDouble();
       return (max-min)*x + min;
    }
+   
+   /**
+    * Next random number from a normal (Gaussian) distribution
+    * with mean zero and unit standard deviation.
+    * @return next normal value
+    */
+   public static double nextGaussian() {
+      return randGen.nextGaussian();
+   }
+   
+   /**
+    * Generates a random number from a normal (Gaussian) 
+    * distribution with mean mu and s.d. sigma
+    * @param mu mean
+    * @param sigma standard deviation
+    * @return next normal value
+    */
+   public static double nextGaussian(double mu, double sigma) {
+      return randGen.nextGaussian()*sigma+mu;
+   }
 
+   /**
+    * Generate a random number between min and max, inclusive
+    * @param min
+    * @param max
+    * @return
+    */
+   public static int nextInt(int min, int max) {
+      int x = get().nextInt(max-min+1);
+      return x+min;
+   }
+   
+   /**
+    * Generate a random number between 0 and n-1
+    * @param n
+    * @return
+    */
+   public static int nextInt(int n) {
+      return get().nextInt(n);
+   }
+   
    public static void main (String[] args) {
 
       RandomGenerator.setSeed (0x1234);

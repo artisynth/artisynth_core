@@ -692,7 +692,7 @@ public class MayaAsciiReader {
          return tree.getRootElement();
       }
       
-      System.out.print(getGroupNames());
+      // System.out.print(getGroupNames());
 
       // first look for node with given exact name
       Node<MayaNode> node = recursiveGetNode(tree.getRootElement(), nodeName);

@@ -1190,6 +1190,27 @@ public class RigidBody extends Frame
     * @return box-shaped rigid body
     */
    public static RigidBody createBox (
+      String bodyName, double wx, double wy, double wz, double density, boolean addNormals) {
+
+      RigidBody body = new RigidBody (bodyName);
+      PolygonalMesh mesh = MeshFactory.createBox (wx, wy, wz, addNormals);
+      body.setInertiaFromDensity (density);
+      body.setMesh (mesh, null);
+      return body;
+   }
+   
+   /** 
+    * Creates a box-shaped RigidBody with a prescribed uniform density.
+    * The box is centered on the origin.
+    * 
+    * @param bodyName name of the RigidBody
+    * @param wx width of the box in the x direction
+    * @param wy width of the box in the y direction
+    * @param wz width of the box in the z direction
+    * @param density density of the body
+    * @return box-shaped rigid body
+    */
+   public static RigidBody createBox (
       String bodyName, double wx, double wy, double wz, double density) {
 
       RigidBody body = new RigidBody (bodyName);

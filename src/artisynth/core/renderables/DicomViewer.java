@@ -9,6 +9,7 @@ package artisynth.core.renderables;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -137,6 +138,8 @@ public class DicomViewer extends RenderableComponentBase {
       try {
          DicomReader rs = new DicomReader();
          im = rs.read(im, imagePath, filePattern, checkSubdirs);
+      } catch (IOException ioe) {
+         throw new RuntimeException(ioe);
       } catch(Exception e) {
          throw new RuntimeException("Failed to read dicom images in " + imagePath, e);
       }

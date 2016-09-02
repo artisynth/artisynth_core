@@ -172,7 +172,7 @@ public class IsRenderableHolder extends RenderableComponentBase {
       }
       
       if (name != null) {
-         setName(name);
+         setName(ModelComponentBase.makeValidName(name));
       }
    }
    

@@ -12,6 +12,7 @@ import maspack.matrix.*;
 import maspack.render.*;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
+import maspack.util.Logger;
 import maspack.geometry.SignedDistanceGridCell;
 //TODO: Include reference to Bridson's code.
 /**
@@ -53,7 +54,7 @@ public class SignedDistanceGrid implements IsRenderable {
 
 
 
-   public SignedDistanceGridCell gridCellArray[];
+   private SignedDistanceGridCell gridCellArray[];
 
    public SignedDistanceGrid () {
    }
@@ -64,9 +65,8 @@ public class SignedDistanceGrid implements IsRenderable {
          mesh.triangulate();
       }
       ArrayList<Face> mfaces = mesh.getFaces();
-      faces = new Face[mfaces.size()];
-      for (int f = 0; f < mfaces.size(); f++)
-         faces[f] = (Face)mfaces.get (f);
+      faces = mfaces.toArray(new Face[mfaces.size()]);
+      
       // Calculate cell size based on the average triangle size.
       //      double avg = 0;
       //      for (int h = 0; h < faces.length; h++) {
@@ -93,9 +93,7 @@ public class SignedDistanceGrid implements IsRenderable {
          mesh.triangulate();
       }
       ArrayList<Face> mfaces = mesh.getFaces();
-      faces = new Face[mfaces.size()];
-      for (int f = 0; f < mfaces.size(); f++)
-         faces[f] = (Face)mfaces.get (f);
+      faces = mfaces.toArray(new Face[mfaces.size()]);
       
       Vector3d widths = new Vector3d();
       mesh.getLocalBounds (min, max);
@@ -105,6 +103,23 @@ public class SignedDistanceGrid implements IsRenderable {
       calculatePhi (gridSizeMargin);      
    }
    
+   private SignedDistanceGridCell[] buildGridCellArray() {
+       gridCellArray = new SignedDistanceGridCell [phi.length];
+       for (int p = 0; p<phi.length; ++p) {
+          gridCellArray [p] = new SignedDistanceGridCell (p, this);
+          gridCellArray [p].setDistance(phi[p]);
+       }
+      return null;
+   }
+   
+   // construct on demand
+   public SignedDistanceGridCell[] getGridCells() {
+      if (gridCellArray == null) {
+         gridCellArray = buildGridCellArray();
+      }
+      return gridCellArray;
+   }
+   
    public SignedDistanceGrid (PolygonalMesh m, double gridSizeMargin, 
       Vector3d cellDivisions) {
       mesh = m;
@@ -112,9 +127,7 @@ public class SignedDistanceGrid implements IsRenderable {
          mesh.triangulate();
       }
       ArrayList<Face> mfaces = mesh.getFaces();
-      faces = new Face[mfaces.size()];
-      for (int f = 0; f < mfaces.size(); f++)
-         faces[f] = (Face)mfaces.get (f);
+      faces = mfaces.toArray(new Face[mfaces.size()]);
 
       gridCellSize = new Vector3d ();
       mesh.getLocalBounds (min, max);
@@ -131,21 +144,45 @@ public class SignedDistanceGrid implements IsRenderable {
     * mesh boundary.
     */
    private void calculatePhi (double gridMargin) {
-      System.out.print ("Calculating Signed Distance Field...");
+      Logger logger = Logger.getSystemLogger();
+      logger.info ("Calculating Signed Distance Field...");
       // Scale min and max by gridMargin.
       // All this because we can't assume that min < 0 or max > 0.
-      if (min.x < 0) min.x *= (1.0 + gridMargin);
-      else min.x *= (1.0 - gridMargin);
-      if (min.y < 0) min.y *= (1.0 + gridMargin);
-      else min.y *= (1.0 - gridMargin);
-      if (min.z < 0) min.z *= (1.0 + gridMargin);
-      else min.z *= (1.0 - gridMargin);
-      if (max.x < 0) max.x *= (1.0 - gridMargin);
-      else max.x *= (1.0 + gridMargin);
-      if (max.y < 0) max.y *= (1.0 - gridMargin);
-      else max.y *= (1.0 + gridMargin);
-      if (max.z < 0) max.z *= (1.0 - gridMargin);
-      else max.z *= (1.0 + gridMargin);
+      if (min.x < 0) {
+         min.x *= (1.0 + gridMargin);
+      } else {
+         min.x *= (1.0 - gridMargin);
+      }
+      
+      if (min.y < 0) {
+         min.y *= (1.0 + gridMargin);
+      }  else {
+         min.y *= (1.0 - gridMargin);
+      }
+      
+      if (min.z < 0) {
+         min.z *= (1.0 + gridMargin);
+      } else {
+         min.z *= (1.0 - gridMargin);
+      }
+      
+      if (max.x < 0) {
+         max.x *= (1.0 - gridMargin);
+      } else {
+         max.x *= (1.0 + gridMargin);
+      }
+      
+      if (max.y < 0) {
+         max.y *= (1.0 - gridMargin);
+      } else {
+         max.y *= (1.0 + gridMargin);
+      }
+      
+      if (max.z < 0) {
+         max.z *= (1.0 - gridMargin);
+      } else {
+         max.z *= (1.0 + gridMargin);
+      }
 
       // gridSize represents the maximum point in grid coordinates, rounded
       // up to the nearest full cell.
@@ -163,10 +200,9 @@ public class SignedDistanceGrid implements IsRenderable {
 
       phi = new double [gridSize[0] * gridSize[1] * gridSize[2]];
       normals = new Vector3d [gridSize[0] * gridSize[1] * gridSize[2]];
-      gridCellArray = new SignedDistanceGridCell [phi.length];
+
       for (int p = 0; p < phi.length; p++) {
          phi [p] = maxDist;
-         gridCellArray [p] = new SignedDistanceGridCell (p, this);
       }
       // The index of closestFace matches with phi.
       // Each entry in closestFace represents the index of faces[] that 
@@ -238,7 +274,6 @@ public class SignedDistanceGrid implements IsRenderable {
                   z * gridSize[0] * gridSize[1];
                   if (distance < phi[index]) {
                      phi [index] = distance;
-                     gridCellArray [index].setDistance (distance);
                      closestFace [index] = t;
                   }
                }
@@ -305,12 +340,11 @@ public class SignedDistanceGrid implements IsRenderable {
                // mesh.
                if (total_count % 2 == 1) {
                   phi [index] =- phi [index];
-                  gridCellArray [index].setDistance (phi [index]);
                }
             }
          }
       }
-      System.out.println ("done.");
+      logger.println ("done.");
    }
 
    /** 
@@ -532,6 +566,9 @@ public class SignedDistanceGrid implements IsRenderable {
    }
 
    public SignedDistanceGridCell getGridCell (int idx) {
+      if (gridCellArray == null) {
+         gridCellArray = buildGridCellArray();
+      }
       return gridCellArray [idx];
    }
 
@@ -741,7 +778,7 @@ public class SignedDistanceGrid implements IsRenderable {
          z * gridSize[0] * gridSize[1];
          if (distanceToNeighbourFace < phi[testPointIndex]) {
             phi [testPointIndex] = distanceToNeighbourFace;
-            gridCellArray [testPointIndex].setDistance (distanceToNeighbourFace);
+            // gridCellArray [testPointIndex].setDistance (distanceToNeighbourFace);
             closestFace [testPointIndex] = closestFace [neighbourIndex];
          }
       }
@@ -831,6 +868,8 @@ public class SignedDistanceGrid implements IsRenderable {
       renderer.addVertex (min.x, min.y, min.z);
       renderer.addVertex (maxGrid.x, maxGrid.y, maxGrid.z);
       renderer.endDraw();
+      
+      getGridCells();
 
       // Draw the vertices on the grid.
       for (int i = 0; i < phi.length; i++) {

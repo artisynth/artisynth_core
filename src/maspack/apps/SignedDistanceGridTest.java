@@ -14,6 +14,7 @@ import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.SignedDistanceGridCell;
 import maspack.render.*;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.color.ColorUtils;
@@ -115,12 +116,13 @@ public class SignedDistanceGridTest {
     */
    private void visualInsideOutsideTest() {
       double myPhi[] = g.getPhi ();
+      SignedDistanceGridCell[] cells = g.getGridCells();
       for (int i = 0; i < myPhi.length; i++) {
-         if (g.gridCellArray[i].getDistance () < 0) {
-            g.gridCellArray[i].setColour (0, 0, 1);
+         if (cells[i].getDistance () < 0) {
+            cells[i].setColour (0, 0, 1);
          }
          else
-            g.gridCellArray[i].setColour (1, 0, 0);
+            cells[i].setColour (1, 0, 0);
       }
       System.out.println("visualInsideOutsideTest complete.");
    }
@@ -317,7 +319,7 @@ public class SignedDistanceGridTest {
                   maxError = tempError;
                }
                if (calculatedFaceIndex == j) {
-                  g.gridCellArray[i].setColour (0, 0, 1);
+                  g.getGridCell(i).setColour (0, 0, 1);
                }
                else {
                   // We want to test if they at least share a vertex.
@@ -347,7 +349,7 @@ public class SignedDistanceGridTest {
                      for (int q = 0; q < 2; q++) {
                         if (faceVertices[q].equals(calculatedFaceVertices[p])) {
                            areFacesAdjacent = true;
-                           g.gridCellArray[i].setColour (1, 0, 0);
+                           g.getGridCell(i).setColour (1, 0, 0);
                         }
                      }
                   }
@@ -645,7 +647,7 @@ public class SignedDistanceGridTest {
          HSV[1] = 1.0f;
          HSV[2] = 1.0f;
          ColorUtils.HSVtoRGB (HSV, RGB);
-         g.gridCellArray[i].setColour (RGB[0], RGB[1], RGB[2]);
+         g.getGridCell(i).setColour (RGB[0], RGB[1], RGB[2]);
       }
       System.out.println("Colour Test complete.");
    }

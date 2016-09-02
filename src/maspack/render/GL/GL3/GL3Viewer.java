@@ -345,7 +345,7 @@ public class GL3Viewer extends GLViewer {
    
    @Override
    public void display(GLAutoDrawable drawable, int flags) {
-
+      
       this.drawable = drawable;
       this.gl = GL3Utilities.wrap(drawable.getGL ().getGL3 ());
 
@@ -570,7 +570,7 @@ public class GL3Viewer extends GLViewer {
       selectEnabled = false;
 
       // Initialize the OpenGL context FOR THE FBO
-      // gl.setSwapInterval (1);
+      gl.setSwapInterval (1);
 
       // Set rendering commands to go to offscreen frame buffer
       fc.activateFBO(gl);
@@ -585,8 +585,8 @@ public class GL3Viewer extends GLViewer {
       fireRerenderListeners();
 
       // further drawing will go to screen
-      fc.deactivateFBO(gl);
       fc.capture(gl);
+      fc.deactivateFBO(gl);
 
       selectEnabled = savedSelecting;
 

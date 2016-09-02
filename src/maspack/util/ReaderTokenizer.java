@@ -2291,6 +2291,14 @@ public class ReaderTokenizer {
    public boolean tokenIsNumber() {
       return ttype == TT_NUMBER;
    }
+   
+   /**
+    * Returns true if the current token marks the end of the file
+    * @return
+    */
+   public boolean isEOF() {
+      return ttype == TT_EOF;
+   }
 
    /**
     * Returns true if the current token is an integer. (This will also imply

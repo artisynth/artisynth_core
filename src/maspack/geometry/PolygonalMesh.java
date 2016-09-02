@@ -69,6 +69,10 @@ public class PolygonalMesh extends MeshBase {
    //private boolean bvHierarchyValid = false;
    private BVTree myBVTree = null;
    private boolean myBVTreeUpdated = false;
+   private boolean cachedClosed = false;
+   private boolean cachedClosedValid = false;
+   private boolean cachedManifold = false;
+   private boolean cachedManifoldValid = false;
 
    private SignedDistanceGrid sdGrid = null;
 
@@ -135,6 +139,8 @@ public class PolygonalMesh extends MeshBase {
    protected void notifyStructureChanged() {
       super.notifyStructureChanged();
       myNumHardEdges = -1;
+      cachedClosedValid = false;
+      cachedManifoldValid = false;
    }
 
    public static int computedFaceNormals = 0;
@@ -219,6 +225,13 @@ public class PolygonalMesh extends MeshBase {
     * @return true if this mesh is manifold
     */
    public boolean isManifold() {
+      if (cachedManifoldValid) {
+         return cachedManifold;
+      }
+      
+      cachedManifold = false;
+      cachedManifoldValid = true;
+      
       HashSet<Vertex3d> adjacentVertices = new HashSet<Vertex3d>();
       // check to see all faces around each vertex form a fan
       for (int i=0; i<myVertices.size(); i++) {
@@ -256,6 +269,8 @@ public class PolygonalMesh extends MeshBase {
             }
          }
       }
+      
+      cachedManifold = true;
       return true;
    }
    
@@ -2505,6 +2520,11 @@ public class PolygonalMesh extends MeshBase {
     * @return true if the mesh is closed
     */
    public boolean isClosed() {
+      if (cachedClosedValid) {
+         return cachedClosed;
+      }
+      cachedClosedValid = true;
+      cachedClosed = false;
       if (!isManifold()) {
          return false;
       }
@@ -2514,12 +2534,14 @@ public class PolygonalMesh extends MeshBase {
             if (he.opposite == null) {
                return false;
             }
-            if (he.opposite.face == null)
+            if (he.opposite.face == null) {
                return false;
+            }
             he = he.next;
          }
          while (he != face.he0);
       }
+      cachedClosed = true;
       return true;
    }
 

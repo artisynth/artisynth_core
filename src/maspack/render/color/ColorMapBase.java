@@ -1,15 +1,18 @@
 package maspack.render.color;
 
 import java.awt.Color;
-import java.util.*;
-import java.io.*;
-import maspack.util.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyInfo;
 import maspack.properties.PropertyList;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import maspack.util.Scannable;
 
 public abstract class ColorMapBase
    implements ColorMap, HasProperties, CompositeProperty, Scannable {
@@ -255,6 +258,26 @@ public abstract class ColorMapBase
       cint |= c.getGreen() << 8;
       cint |= c.getBlue();
       return cint;
+   }
+   
+   double[] tmp = new double[4];
+   
+   private static void toByte(double[] dd, byte[] bb) {
+      for (int i=0; i<bb.length; ++i) {
+         bb[i] = (byte)(dd[i]*255);
+      }
+   }
+   
+   @Override
+   public void getRGB(double a, byte[] rgb) {
+      getRGB(a, tmp);
+      toByte(tmp, rgb);
+   }
+   
+   @Override
+   public void getHSV(double a, byte[] hsv) {
+      getHSV(a, tmp);
+      toByte(tmp, hsv);
    }
    
    public abstract ColorMapBase copy();

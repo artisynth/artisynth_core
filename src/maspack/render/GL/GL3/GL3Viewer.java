@@ -406,9 +406,11 @@ public class GL3Viewer extends GLViewer {
          }
          // for non-timed garbage collection
          myGLResources.maybeRunGarbageCollection (gl);
+         
       } catch (Exception e) {
          e.printStackTrace ();
       }
+      
       this.drawable = null;
       this.gl = null;
    }
@@ -570,7 +572,7 @@ public class GL3Viewer extends GLViewer {
       selectEnabled = false;
 
       // Initialize the OpenGL context FOR THE FBO
-      gl.setSwapInterval (1);
+      // gl.setSwapInterval (1);
 
       // Set rendering commands to go to offscreen frame buffer
       fc.activateFBO(gl);
@@ -1245,7 +1247,7 @@ public class GL3Viewer extends GLViewer {
             mySelectingColorModified = false;
          }
          myCommittedProgram = prog;
-         if (shaderOverride != null) {
+         if (shaderOverride == null) {
             myCommittedProgramInfo = myProgramInfo.clone ();
          } else {
             myCommittedProgramInfo = null;

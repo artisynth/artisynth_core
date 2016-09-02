@@ -25,4 +25,8 @@ public class ExcitationSource {
    public void setGain (double gain) {
       myGain = gain;
    }
+   
+   public ExcitationComponent getComponent() {
+      return myComp;
+   }
 }

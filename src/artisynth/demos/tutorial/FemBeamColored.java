@@ -30,13 +30,13 @@ public class FemBeamColored extends FemBeam {
    
    @Override
    public void prerender(RenderList list) {
-      super.prerender(list);
-      
       // Synchronize color bar/values in case they are changed
       ColorBar cbar = (ColorBar)(renderables().get("colorBar"));
       cbar.setColorMap(fem.getColorMap());
       DoubleInterval range = fem.getStressPlotRange();
       cbar.updateLabels(range.getLowerBound(), range.getUpperBound());
+      
+      super.prerender(list);
    }
 
 }

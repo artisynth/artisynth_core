@@ -2864,6 +2864,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void setHighlightColor (Color color) {
       color.getRGBComponents (myHighlightColor);
       myHighlightColorModified = true;
+      repaint();
    }
 
    @Override

@@ -13,6 +13,7 @@ import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.render.*;
+import maspack.render.color.*;
 import maspack.render.Renderer.Shading;
 import maspack.util.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
@@ -43,10 +44,24 @@ public class CollisionHandler extends ConstrainerBase
    double myCompliance = 0;
    double myDamping = 0;
 
+   public static enum Ranging {
+      FIXED,
+      AUTO_EXPAND,
+      AUTO_FIT,
+   };
+
    boolean myDrawIntersectionContours = false;
    boolean myDrawIntersectionFaces = false;
    boolean myDrawIntersectionPoints = false;
    boolean myDrawConstraints = false;
+   // attributes related to rendering penetration depth
+   static ColorMapBase defaultColorMap = new HueColorMap(2.0/3, 0);
+   static Ranging defaultDrawPenetrationRanging = Ranging.AUTO_FIT;
+
+   ColorMapBase myColorMap = null;
+   Ranging myDrawPenetrationRanging = null;
+   DoubleInterval myDrawPenetrationRange = null;
+   int myDrawMeshPenetration = -1;
 
    ContactInfo myLastContactInfo; // last contact info produced by this handler
    ContactInfo myRenderContactInfo; // contact info to be used for rendering
@@ -71,7 +86,7 @@ public class CollisionHandler extends ConstrainerBase
 
    static {
       myProps.add (
-         "renderProps * *", "render properties for this constraint",
+         "renderProps * *", "render properties for this collision handler",
          defaultRenderProps);
    }
 
@@ -207,6 +222,50 @@ public class CollisionHandler extends ConstrainerBase
       return myDrawIntersectionPoints;
    }
 
+   public void setDrawMeshPenetration (int meshNum) {
+      if (meshNum < -1 || meshNum > 1) {
+         throw new IllegalArgumentException (
+            "meshNum must be -1, 0, or 1");
+      }
+      if (meshNum != -1) {
+         if (myColorMap == null) {
+            try {
+               myColorMap = defaultColorMap.clone();
+            }
+            catch (Exception e) {
+               e.printStackTrace();
+            }
+         }
+         if (myDrawPenetrationRanging == null) {
+            myDrawPenetrationRanging = defaultDrawPenetrationRanging;
+         }
+         if (myDrawPenetrationRange == null) {
+            myDrawPenetrationRange = new DoubleInterval(0,0);
+         }
+      }
+      myDrawMeshPenetration = meshNum;      
+   }
+
+   public int getDrawMeshPenetration() {
+      return myDrawMeshPenetration;
+   }
+
+   public DoubleInterval getDrawPenetrationRange() {
+      return myDrawPenetrationRange;
+   }
+
+   public void setDrawPenetrationRange (DoubleInterval range) {
+      myDrawPenetrationRange = new DoubleInterval(range);
+   }
+
+   public Ranging getDrawPenetrationRanging() {
+      return myDrawPenetrationRanging;
+   }
+
+   public void setDrawPenetrationRange (Ranging ranging) {
+      myDrawPenetrationRanging = ranging;
+   }
+
    public boolean isReduceConstraints() {
       return reduceConstraints;
    }
@@ -222,6 +281,14 @@ public class CollisionHandler extends ConstrainerBase
    public ContactForceBehavior getForceBehavior() {
       return myForceBehavior;
    }
+
+   public ColorMapBase getColorMap() {
+      return myColorMap;
+   }
+
+   public void setColorMap (ColorMapBase map) {
+      myColorMap = map.copy();
+   }
    
    public CollisionHandler (CollisionManager manager) {
       myBilaterals0 = new LinkedHashMap<ContactPoint,ContactConstraint>();
@@ -236,6 +303,11 @@ public class CollisionHandler extends ConstrainerBase
       CollidableBody col0, CollidableBody col1, CollisionBehavior behav) {
 
       this (manager);
+      set (col0, col1, behav);
+   }
+   
+   void set (
+      CollidableBody col0, CollidableBody col1, CollisionBehavior behav) {
       myCollidable0 = col0;
       myCollidable1 = col1;
       Method method = behav.getMethod();
@@ -335,19 +407,12 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
-//   private boolean isPair (String name0, String name1) {
-//      return (myCollidable0.getName().equals (name0) &&
-//              myCollidable1.getName().equals (name1));
-//   }
-
    public double computeCollisionConstraints (double t) {
 
       clearRenderData();
 
       myMesh0 = myCollidable0.getCollisionMesh();
       myMesh1 = myCollidable1.getCollisionMesh();
-
-      //boolean needContours = (myMethod==CollisionBehavior.Method.CONTOUR_REGION);
 
       ContactInfo info = myCollider.getContacts (myMesh0, myMesh1);
       double maxpen;
@@ -362,6 +427,11 @@ public class CollisionHandler extends ConstrainerBase
          case CONTOUR_REGION: {
             maxpen = computeContourRegionConstraints (
                info, myCollidable0, myCollidable1);
+            break;
+         }
+         case INACTIVE: {
+            // do nothing
+            maxpen = 0;
             break;
          }
          default: {
@@ -516,15 +586,6 @@ public class CollisionHandler extends ConstrainerBase
          myAttachedVertices1 =
             computeAttachedVertices (myCollidable1, myCollidable0);
          myAttachedVerticesValid = true;
-//         System.out.println (
-//            ComponentUtils.getPathName(myCollidable0) + " " +
-//            ComponentUtils.getPathName(myCollidable1));
-//         System.out.println (
-//            "num attached0: " + 
-//            (myAttachedVertices0 != null ? myAttachedVertices0.size() : 0));
-//         System.out.println (
-//            "num attached1: " + 
-//            (myAttachedVertices1 != null ? myAttachedVertices1.size() : 0));
       }
    }
 
@@ -1187,52 +1248,10 @@ public class CollisionHandler extends ConstrainerBase
       myLineSegments.add (new LineSeg (pnt0, nrm, len));
    }
 
-//   private synchronized void saveRenderData() {
-//      myRenderSegments = myLineSegments;
-//      myRenderFaces = myFaceSegments;
-//      myRenderContactInfo = myLastContactInfo;
-//   }
-//
    void initialize() {
-      //myRenderSegments = null;
-      //myRenderFaces = null;
       myLineSegments = null;
       myLastContactInfo = null;
    }
-
-//   private double getMaxLambda (Collection<ContactConstraint> cons, double max) {
-//      for (ContactConstraint c : cons) {
-//         double lam = c.myLambda;
-//         if (lam > max) {
-//            max = lam;
-//         }
-//      }
-//      return max;
-//   }
-//
-//   private double getMaxLambda () {
-//      double max = 0;
-//      max = getMaxLambda (myBilaterals0.values(), max);
-//      max = getMaxLambda (myBilaterals1.values(), max);
-//      max = getMaxLambda (myUnilaterals, max);
-//      return max;
-//   }
-//
-//   private double maxlam = 0.20;
-
-//   private void addConstraintRenderInfo (
-//      Collection<ContactConstraint> cons, double nrmlLen) {
-//
-//      Point3d pos = new Point3d();
-//      for (ContactConstraint c : cons) {
-//         double lam = c.myLambda;
-//         pos.add (c.myCpnt0.myPoint, c.myCpnt1.myPoint);
-//         pos.scale (0.5);
-//         myRenderConstraints.add (
-//            new ConstraintSeg (
-//               pos, c.myNormal, nrmlLen*(lam/maxlam), c.myLambda));
-//      }
-//   }
 
    public void prerender (RenderProps props) {
       if (myRenderer == null) {
@@ -1253,20 +1272,6 @@ public class CollisionHandler extends ConstrainerBase
 
    public void prerender (RenderList list) {
       prerender (myRenderProps);
-      // saveRenderData();
-      // if (myDrawConstraints) {
-      //    double nrmlLen = getContactNormalLen();
-      //    if (nrmlLen > 0) {
-      //       myRenderConstraints = new ArrayList<ConstraintSeg>();
-      //       addConstraintRenderInfo (myBilaterals0.values(), nrmlLen);
-      //       addConstraintRenderInfo (myBilaterals1.values(), nrmlLen);
-      //       addConstraintRenderInfo (myUnilaterals, nrmlLen);
-      //    }
-      // }
-      // if (myMethod == Method.CONTOUR_REGION) {
-      //    myRBContact.prerender (list);
-      // }
-
    }
 
    protected void findInsideFaces (

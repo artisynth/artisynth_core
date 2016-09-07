@@ -679,7 +679,6 @@ public class CollisionManager extends RenderableCompositeBase
    private CollisionHandler createCollisionHandler (
       CollidableBody c0, CollidableBody c1, CollisionBehavior behavior) {
       
-      double mu = behavior.getFriction();
       CollisionHandler handler = new CollisionHandler (this, c0, c1, behavior);
       handler.setReduceConstraints (myReduceConstraints);
       handler.setRigidPointTolerance (getCollisionPointTol());
@@ -759,6 +758,13 @@ public class CollisionManager extends RenderableCompositeBase
       updateBehaviorMap();
       if (!myCollisionHandlersValid) {
          myMaskBehaviorMapClearP = true;
+         HashMap<CollidablePair,CollisionHandler> existingHandlers =
+            new HashMap<CollidablePair,CollisionHandler>();
+         for (CollisionHandler ch : myCollisionHandlers) {
+            CollidablePair pair = new CollidablePair (
+               ch.getCollidable(0), ch.getCollidable(1));
+            existingHandlers.put (pair, ch);
+         }
          myCollisionHandlers.removeAll();
          
          ArrayList<Collidable> allCollidables = new ArrayList<Collidable> (1000);
@@ -778,11 +784,17 @@ public class CollisionManager extends RenderableCompositeBase
             CollidableBody ci = collidables.get(i);
             for (int j=i+1; j<collidables.size(); j++) {
                CollidableBody cj = collidables.get(j);
-               CollisionBehavior behavior =
-                  myBehaviorMap.get (new CollidablePair (ci, cj));
+               CollidablePair pair = new CollidablePair (ci, cj);
+               CollisionBehavior behavior = myBehaviorMap.get (pair);
                if (behavior != null && behavior.isEnabled()) {
-                  myCollisionHandlers.add (
-                     createCollisionHandler (ci, cj, behavior));
+                  CollisionHandler ch = existingHandlers.get (pair);
+                  if (ch == null) {
+                     ch = createCollisionHandler (ci, cj, behavior);
+                  }
+                  else {
+                     ch.set (ci, cj, behavior);
+                  }
+                  myCollisionHandlers.add (ch);
                }
             }
          }
@@ -896,10 +908,10 @@ public class CollisionManager extends RenderableCompositeBase
       
       if (isCollidableBody (a) && isCollidableBody (b)) {
          // if explicit, set behaviour, otherwise check defaults
-         if (pair.isExplicit()) {
-            setBehaviorMap(pair, behavior);
-         }
-         else if (nearestCommonCollidableAncestor (a, b) != null) {
+         //if (pair.isExplicit()) {
+         //   setBehaviorMap(pair, behavior);
+         //} else
+         if (nearestCommonCollidableAncestor (a, b) != null) {
             // if a and b have a common ancester, INTERNAL collidability
             // must be enabled
             if (isInternallyCollidable (a) && isInternallyCollidable (b)) {

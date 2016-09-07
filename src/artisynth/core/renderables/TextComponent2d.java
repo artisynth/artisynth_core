@@ -219,10 +219,10 @@ public class TextComponent2d extends TextComponentBase {
       FaceRenderProps rprops = (FaceRenderProps)getRenderProps();
       renderer.setFaceColoring (rprops, (flags & Renderer.HIGHLIGHT) != 0);
 
-      boolean saved2d = renderer.is2DRendering();
-      if (!saved2d) {
-         renderer.begin2DRendering(sw, sh);
-      }
+//      boolean saved2d = renderer.is2DRendering();
+//      if (!saved2d) {
+//         renderer.begin2DRendering(sw, sh);
+//      }
 
       renderer.pushModelMatrix();
       renderer.mulModelMatrix(myTransform);
@@ -232,9 +232,9 @@ public class TextComponent2d extends TextComponentBase {
 
       renderer.popModelMatrix();
 
-      if (!saved2d) {
-         renderer.end2DRendering();
-      }
+//      if (!saved2d) {
+//         renderer.end2DRendering();
+//      }
 
    }
 

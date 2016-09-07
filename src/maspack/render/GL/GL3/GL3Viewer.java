@@ -522,35 +522,43 @@ public class GL3Viewer extends GLViewer {
       if ( has2d() ) {
          begin2DRendering(width, height);
 
-         synchronized(myInternalRenderList) {
-            qid = myInternalRenderList.renderOpaque2d (this, qid, 0);
-         }
-         if (elist != null) {
-            synchronized(elist) {
-               qid = elist.renderOpaque2d (this, qid, 0);
-            }
-         }
-
-         if ( hasTransparent2d() ) {
-            if (!isSelecting ()) {
-               enableTransparency ();
-            }
-
+         try {
             synchronized(myInternalRenderList) {
-               qid = myInternalRenderList.renderTransparent2d (this, qid, 0);
+               qid = myInternalRenderList.renderOpaque2d (this, qid, 0);
             }
             if (elist != null) {
-               synchronized (elist) {
-                  qid = elist.renderTransparent2d (this, qid, 0);
+               synchronized(elist) {
+                  qid = elist.renderOpaque2d (this, qid, 0);
                }
             }
-            
-            if (!isSelecting()) {
-               disableTransparency ();
+
+            if ( hasTransparent2d() ) {
+               if (!isSelecting ()) {
+                  enableTransparency ();
+               }
+
+               synchronized(myInternalRenderList) {
+                  qid = myInternalRenderList.renderTransparent2d (this, qid, 0);
+               }
+               if (elist != null) {
+                  synchronized (elist) {
+                     qid = elist.renderTransparent2d (this, qid, 0);
+                  }
+               }
+
+               if (!isSelecting()) {
+                  disableTransparency ();
+               }
             }
          }
-         
-         end2DRendering();
+         finally {
+            // John Lloyd, Sep 2016: try to clean up if one of the render
+            // methods throws and exception
+            if (isTransparencyEnabled()) {
+               disableTransparency ();
+            }
+            end2DRendering();
+         }
       }
 
       if (!isSelecting()) {

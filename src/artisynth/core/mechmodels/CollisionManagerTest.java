@@ -584,6 +584,10 @@ public class CollisionManagerTest extends UnitTest {
          azzert ("getBehavior", check.equals(behavior));
       }
       else {
+         if (!equal (prev, check)) {
+            System.out.println ("prev=" + prev);
+            System.out.println ("check=" + check);
+         }
          azzert ("getBehavior", equal (prev, check));
       }
       if (mech == myMech) {

@@ -11,7 +11,6 @@ import java.util.*;
  * A collider that determines the intersection between two meshes by first
  * identifying and tracing the intersection contours between the meshes,
  * and then using these to determine the interpenetration regions.
- *
  */
 public class SurfaceMeshIntersector {
 
@@ -26,13 +25,15 @@ public class SurfaceMeshIntersector {
     */
    ArrayList<IntersectionContour> myContours;
 
+   // returns the index of contour with respect to myContours
    private int getContourIndex (IntersectionContour c) {
       return myContours.indexOf(c);
    }
 
    ArrayList<PenetrationRegion> myRegions0; // penetration regions on mesh0
    ArrayList<PenetrationRegion> myRegions1; // penetration regions on mesh1
-   
+
+   // temporary intersection point used when building the contour
    IntersectionPoint myWorkPoint = new IntersectionPoint();
 
    /*
@@ -85,10 +86,6 @@ public class SurfaceMeshIntersector {
       }
    }
 
-   public ArrayList<IntersectionPoint> getEdgeMips (HalfEdge he) {
-      return myEdgeMips.get(he);
-   }
-
    /**
     * String representation of a half edge using its head and tail indices
     */
@@ -106,10 +103,21 @@ public class SurfaceMeshIntersector {
    /**
     * Comprehensive string representation of a mesh intersection point,
     * showing most relevant information. Used for debugging.
+    * 
+    * The string contains the following information:
+    * 
+    * 1) index of the point with respect to the contour
+    * 2) 'C' if the point is coincident, or ' ' otherwise
+    * 3) the point's edge and face, if edge belongs to mesh, or
+    *    the point's face and edge
+    * 4) the segment faces of the point with respect to the mesh and the
+    *    other mesh (or blank if this is the last point of an open contour)
+    * 5) the point's coordinates   
     */
    public static String toString (IntersectionPoint p, PolygonalMesh mesh) {
       NumberFormat fmt = new NumberFormat ("%3d");
-      String prefix = fmt.format(p.contourIndex)+(p.isCoincident ? " C " : "   ");
+      String prefix = 
+          fmt.format(p.contourIndex)+(p.isCoincident ? " C " : "   ");
 
       PolygonalMesh otherMesh = null;
       if (p.edge.getHead().getMesh() == mesh) {
@@ -131,36 +139,19 @@ public class SurfaceMeshIntersector {
 
       Face face0 = p.contour.findSegmentFace (pk, mesh);
       Face face1 = p.contour.findSegmentFace (pk, otherMesh);
-
-      prefix += (pad("  F"+face0.getIndex(),6) +
-                 pad(" F"+face1.getIndex(),5) + " ");
+      
+      if (face0 != null) {
+         prefix += (pad("  F"+face0.getIndex(),6) +
+                    pad(" F"+face1.getIndex(),5) + " ");
+      }
+      else {
+         prefix += "            ";
+      }
       return prefix + p.toString ("%g");
    }
    
-//   private boolean addWorkPoint (IntersectionContour contour) {
-//      if (contour.add (myWorkPoint)) {
-//         myWorkPoint = new IntersectionPoint();
-//         return true;
-//      }
-//      else {
-//         return false;
-//      }
-//   }
-   
-//   private boolean addContourPoint (
-//      MeshIntersectionPoint mip, MeshIntersectionContour contour) {
-//      return addContourPointNew (mip, contour);
-//      if (contour.add (myWorkPoint)) {
-//         myWorkPoint = new MeshIntersectionPoint();
-//         return true;
-//      }
-//      else {
-//         return false;
-//      }
-//   }
-   
    /*
-    * Add a new intersection point to a contour.
+    * Add a new intersection point <code>mip</code> to a contour.
     * 
     * Return true if mip is a new intersection and the add is successful, or if
     * the contour already contains this intersection and is thereby closed. 
@@ -211,6 +202,10 @@ public class SurfaceMeshIntersector {
       return false;      
    }
    
+   /**
+    * Remove the internal data associated with an intersection point
+    * <code>mip</code>.
+    */
    private void removeContourPoint (IntersectionPoint mip) {
       EdgeFacePair edgeFace = new EdgeFacePair (mip.edge, mip.face);
 
@@ -219,8 +214,12 @@ public class SurfaceMeshIntersector {
    }
    
    /*
-    * Main entry points. Finds the intersection contours between mesh0
-    * and mesh1, and then analyzes them to find the penetration regions.
+    * Finds and returns a list of the intersection contours between two meshes.
+    * If no intersection exists the list will be empty.
+    *
+    * @param mesh0 first mesh 
+    * @param mesh1 second mesh 
+    * @return list of the intersection contours
     */
    public ArrayList<IntersectionContour> findContours (
       PolygonalMesh mesh0, PolygonalMesh mesh1) {
@@ -260,6 +259,18 @@ public class SurfaceMeshIntersector {
       return findIntersectionContours (nodes0, nodes1);
    }
 
+   /*
+    * Finds the intersection contours between two meshes, and then processes
+    * these contours further to determine the interpenetration regions on each
+    * mesh. The contours and region information is returned in a
+    * <code>ContactInfo</code> object. The method returns false if
+    * no mesh intersection is found.
+    *
+    * @param cinfo returns the contact information 
+    * @param mesh0 first mesh 
+    * @param mesh1 second mesh 
+    * @return <code>true</code> if a mesh intersection is found.
+    */
    public boolean findContoursAndRegions (
       ContactInfo cinfo, PolygonalMesh mesh0, PolygonalMesh mesh1) {
       ArrayList<IntersectionContour> contours = findContours (mesh0, mesh1);
@@ -268,8 +279,10 @@ public class SurfaceMeshIntersector {
          cinfo.myRegions0 = new ArrayList<PenetrationRegion>();
          cinfo.myRegions1 = new ArrayList<PenetrationRegion>();
          myContours = cinfo.myContours;
-         createRegions (cinfo.myRegions0, contours, myMesh0, myMesh1, false);
-         createRegions (cinfo.myRegions1, contours, myMesh1, myMesh0, true);
+         findPenetrationRegions (
+            cinfo.myRegions0, contours, myMesh0, myMesh1, false);
+         findPenetrationRegions (
+            cinfo.myRegions1, contours, myMesh1, myMesh0, true);
       }
       return contours.size() > 0;
    }
@@ -399,20 +412,6 @@ public class SurfaceMeshIntersector {
          return null;
       }
       return contour;
-      /*
-       * XXX bug with open contours in AJL code, for now suppress warning
-       *
-      else {
-    	 if (!contour.openMesh) {	// open contours due to open meshes are to be ignored. 
-            mesh0.dumpToFile("mesh0.msh");
-            mesh1.dumpToFile("mesh1.msh");
-            SurfaceMeshCollider.collisionMetrics.openContours++;
-            System.out.println (
-               "SurfaceMeshIntersector.traceIntersectionContour - open contour");
-             throw new RuntimeException("open contour");
-    	 }
-      }
-      */
    }
 
    /*
@@ -459,7 +458,6 @@ public class SurfaceMeshIntersector {
             }
          }
          else {
-            //contour.switchEdgeRegion();
             edge = edgeIntersectingFace (otherFace, edgeFace, contour);
             if (edge == null) {
                edgeFace = null;
@@ -520,6 +518,10 @@ public class SurfaceMeshIntersector {
       }
    }
 
+   /**
+    * Remove an intersection point <code>mip</code> from the set of
+    * intersections associated with its edge.
+    */
    void removeIntersectionFromEdge (IntersectionPoint mip) {
       ArrayList<IntersectionPoint> mips = myEdgeMips.get (mip.edge);
       if (mips == null) {
@@ -566,7 +568,6 @@ public class SurfaceMeshIntersector {
       }
       else {
          // convert pa to mesh local coordinates
-         System.out.println ("getting edge from face");
          Point3d paLoc = new Point3d(pa);
          paLoc.inverseTransform (mesh.getMeshToWorld());
          HalfEdge he0 = face.firstHalfEdge();
@@ -589,15 +590,28 @@ public class SurfaceMeshIntersector {
 
    String debugMipEdge = "";
 
+   /**
+    * Given a mesh intersection point associated with an edge, find the
+    * nearest intersection point along the "inside" direction of the
+    * associated edge. If no such point is found, return <code>null</code>.
+    * "Inside" direction means the direction facing into the penetration
+    * volume between the two meshes.
+    * 
+    * @param p intersection point being queried
+    * @param edge edge on which the intersection point lies
+    * @param mesh mesh to which the intersection point belongs
+    * @param headIsInside <code>true</code> if the inside direction
+    * is directed from the tail to the head.
+    * @return
+    */
    IntersectionPoint nearestInsideMip (
       IntersectionPoint p, HalfEdge edge, 
-      PolygonalMesh mesh, boolean clockwiseContour) {
+      PolygonalMesh mesh, boolean headIsInside) {
 
       ArrayList<IntersectionPoint> mips = myEdgeMips.get (edge.getPrimary());
 
       if (mips != null && mips.size() > 0) {
          // clockwise implies that the head of edge is on the inside
-         boolean headIsInside = clockwiseContour;
          if (edge.getPrimary() != edge) {
             headIsInside = !headIsInside;
          }
@@ -681,15 +695,16 @@ public class SurfaceMeshIntersector {
    String insideVertexDebug = "";
 
    /**
-    * Returns the vertex that is on the inside as we *enter* a face.
+    * Returns the vertex that is on the inside of an edge associated
+    * with an intersection point.
     */
    Vertex3d getInsideVertex (
-      IntersectionPoint p, HalfEdge edge, boolean clockwiseContour) {
+      IntersectionPoint p, HalfEdge edge, boolean headIsInside) {
 
       /**
          In non-degenerate situations, the answer would be this:
          
-         return (clockwiseContour ? faceEdge.getHead() : faceEdge.getTail());
+         return (headIsInside ? faceEdge.getHead() : faceEdge.getTail());
       */
 
       boolean debug = insideVertexDebug.equals (toString(edge));
@@ -699,7 +714,6 @@ public class SurfaceMeshIntersector {
       Vertex3d v = null;
       if (mips != null && mips.size() > 0) {
          // clockwise implies that the head of edge is on the inside
-         boolean headIsInside = clockwiseContour;
          if (edge.getPrimary() != edge) {
             headIsInside = !headIsInside;
             edge = edge.getPrimary();
@@ -708,11 +722,6 @@ public class SurfaceMeshIntersector {
             }
             
          }
-         if (debug) {
-            System.out.println (
-               "headInside=" + headIsInside + " clockwise=" + clockwiseContour);
-         }
-         
          if (headIsInside) {
             // make sure head is really inside. If so, return head
             v = edge.getHead();
@@ -747,6 +756,11 @@ public class SurfaceMeshIntersector {
       return v;
    }
 
+   /**
+    * For a given edge, return the nearest intersection point to a specified
+    * vertex on that edge, or <code>null</code> if the edge contains no
+    * intersection points.
+    */
    IntersectionPoint nearestMipToVertex (
       HalfEdge edge, Vertex3d v, PolygonalMesh mesh) {
       ArrayList<IntersectionPoint> mips = myEdgeMips.get (edge);
@@ -771,7 +785,21 @@ public class SurfaceMeshIntersector {
       return null;
    }
 
-   PenetrationRegion createRegion (
+   /**
+    * Finds the penetration region on <code>mesh0</code> that is associated
+    * with a single specific contour. As the region is traversed, other
+    * contours may be found to be associated with it; these may be determined
+    * by querying the {@link PenetrationRegion#getContours} method for the
+    * returned region.
+    *
+    * @param contour contour 
+    * @param mesh0 mesh on which the region resides
+    * @param mesh1 other mesh which is intersecting <code>mesh0</code>
+    * @param clockwiseContour <code>true</code> if intersection contours are
+    * oriented clockwise with respect to <code>mesh0</code>
+    * @return penetration region associated with <code>contour</code>
+    */
+   PenetrationRegion findPenetrationRegion (
       IntersectionContour contour, PolygonalMesh mesh0, PolygonalMesh mesh1,
       boolean clockwiseContour) {
 
@@ -786,24 +814,41 @@ public class SurfaceMeshIntersector {
       while ((c = contoursToTrace.pollFirst()) != null) {
 
          Face lastFace = c.findSegmentFace (c.size()-1, mesh0);
-         region.myInsideFaces.add (lastFace);
-
-         region.mySingleFace = lastFace;
+         if (lastFace != null) {
+            // lastFace will not be null if the contour is closed
+            region.myInsideFaces.add (lastFace);
+            region.mySingleFace = lastFace;
+         }
          
          for (int k=0; k<c.size(); k++) {
             IntersectionPoint mip = c.get(k);
             Face face = c.findSegmentFace (k, mesh0);
             
             if (lastFace != face) {
-               // we are leaving lastFace and entering face
-               region.myInsideFaces.add (face);
-               HalfEdge faceEdge = getPointEdge (mip, face);
 
+               HalfEdge faceEdge;
+               boolean headIsInside;
+               if (face != null) {
+                  // we are leaving lastFace and entering face
+                  region.myInsideFaces.add (face);
+                  faceEdge = getPointEdge (mip, face);
+                  // headIsInside is clockwise since we are *entering* 
+                  // face through faceEdge
+                  headIsInside = clockwiseContour;
+               }
+               else {
+                  // Last point of an open contour. Choose faceEdge using 
+                  // lastFace
+                  faceEdge = getPointEdge (mip, lastFace);
+                  // headIsInside is !clockwise since we are *exiting* 
+                  // lastFace through faceEdge
+                  headIsInside = !clockwiseContour;                  
+               }
                region.myInsideEdges.add (faceEdge.getPrimary());
                IntersectionPoint insideMip =
-                  nearestInsideMip (mip, faceEdge, mesh0, clockwiseContour);
+                  nearestInsideMip (mip, faceEdge, mesh0, headIsInside);
                if (insideMip == null) {
-                  Vertex3d v = getInsideVertex (mip, faceEdge, clockwiseContour);
+                  Vertex3d v = getInsideVertex (mip, faceEdge, headIsInside);
                   if (v != null) {
                      if (region.myInsideVertices.add (v)) {
                         verticesToTrace.offerLast (v);
@@ -851,16 +896,10 @@ public class SurfaceMeshIntersector {
       return region;
    }
 
-   int numNestedRegions (ArrayList<PenetrationRegion> regions) {
-      int numNested = 0;
-      for (PenetrationRegion r : regions) {
-         if (r.mySingleFaceArea < 0) {
-            numNested++;
-         }
-      }
-      return numNested;
-   }         
-
+   /**
+    * From a list of regions, find and return those which both contain
+    * <code>face</code> and which are not themselves single-face regions.
+    */
    ArrayList<PenetrationRegion> getFaceContainingRegions (
       ArrayList<PenetrationRegion> regions, Face face) {
 
@@ -875,6 +914,11 @@ public class SurfaceMeshIntersector {
       return regionsContainingFace;
    }
 
+   /**
+    * Creates a region consisting of and entire mesh. This is used in
+    * situations where there is a single-face contour whose "inside" is
+    * actually the rest of the mesh.
+    */
    PenetrationRegion createWholeMeshRegion (
       PolygonalMesh mesh, boolean clockwise) {
       PenetrationRegion region = new PenetrationRegion(mesh, clockwise);
@@ -892,26 +936,45 @@ public class SurfaceMeshIntersector {
       return region;
    }
 
+   /**
+    * Use the local intersection geometry around the intersection point
+    * <code>pe</code> to see if a point <code>p0</code> is outside or inside
+    * the penetration region.
+    *
+    * @param p0 point being tested
+    * @param face face on mesh associated with the intersection point
+    * @param pe intersection point
+    * @param mesh mesh containing <code>face</code>
+    * @return <code>true</code> if <code>p0</code> is outside the penetration
+    * region.
+    */
    static boolean isPointOutside (
       Point3d p0, Face face, IntersectionPoint pe, PolygonalMesh mesh) {
 
+      // get the other mesh being intersected with mesh
       PolygonalMesh otherMesh = pe.getOtherMesh (mesh);
 
       int ke = pe.contourIndex;
-      IntersectionContour contour = pe.contour;
-      IntersectionPoint pp = contour.getWrapped(ke-1);
+      IntersectionContour contour = pe.contour; // contour associated with pe
+      IntersectionPoint pp = contour.getWrapped(ke-1); // previous contour point
+
       IntersectionPoint pa = pp;
       IntersectionPoint pb = pe;
+
+      // The basic idea is to try and find two nearest faces, face0 and face1,
+      // that are on the *other* mesh intersecting <code>mesh</code>.  Then we
+      // try to determine if p0 is inside or outside the local geometry
+      // determined by these two faces.
+
       Face face0 = contour.findSegmentFace (pa, pb, otherMesh);
       Face face1 = null;
       int kb=ke+1;
-      // advance forward and try to find a second face. Stop only if we run out
-      // of contour, or if we move more than two segments away from the face.
-      // Should change this to be "move to a segment that has no feature
-      // connection with the face".
+      // advance forward and try to find the second face and store this in
+      // <code>face1</code>. Stop only if we run out of contour, or if we move
+      // more than two segments away from the face.  Should change this to be
+      // "move to a segment that has no feature connection with the face".
 
       int kf=kb; // kf is the most recent kb associated with face.
-      //double dtol = EPS*mesh.getRadius();
       do {
          pa = pb;
          pb = contour.getWrapped(kb);
@@ -925,12 +988,11 @@ public class SurfaceMeshIntersector {
          }
          kb++;
       }
-      while (pb != pp && kb-kf <= 2); // pb.distance(pe) < dtol);
+      while (pb != pp && kb-kf <= 2);
 
       Point3d p0loc = new Point3d();
       if (face0 != face1) {
-
-         //System.out.println ("isPointOutside TWO FACE");
+         // found two faces, use to see if p0 is inside or outside otherMesh
          Vector3d nrm0 = new Vector3d();
          Vector3d nrm1 = new Vector3d();
          Vector3d nrmf = new Vector3d();
@@ -954,7 +1016,8 @@ public class SurfaceMeshIntersector {
          }
       }
       else {
-         //System.out.println ("isPointOutside ONE FACE");
+         // could not find two faces. Just use face0 to see if p0 is inside or
+         // outside otherMesh.
          Vector3d nrm0 = new Vector3d();
          face0.getWorldNormal (nrm0);
          p0loc.sub (p0, pe);
@@ -962,23 +1025,10 @@ public class SurfaceMeshIntersector {
       }
    }  
 
-
-   private void print (String msg, NearestPolygon3dFeature nfeat) {
-      if (msg != null) {
-         System.out.println (msg);
-      }
-      System.out.println ("  nverts=" + nfeat.numVertices());
-      if (nfeat.numVertices() > 0) {
-         System.out.println ("  pa=" + nfeat.getVertex(0).toString ("%12.8f"));
-      }
-      if (nfeat.numVertices() > 1) {
-         System.out.println ("  pb=" + nfeat.getVertex(1).toString ("%12.8f"));
-      }
-      if (nfeat.numVertices() > 2) {
-         System.out.println ("  pc=" + nfeat.getVertex(2).toString ("%12.8f"));
-      }
-   }
-
+   /**
+    * For debugging: create a name for a penetration region based on the
+    * indices of all its contours surrounded by square brackets.
+    */
    private String getName (PenetrationRegion r) {
       String str = "[ ";
       for (IntersectionContour c : r.myContours) {
@@ -986,13 +1036,32 @@ public class SurfaceMeshIntersector {
       }
       return str + "]";
    }
-   
-   public ArrayList<PenetrationRegion> getContainedRegions (
+
+   /**
+    * Given the first <code>numCheck</code> regions of a list
+    * <code>nested</code> of single-face nested regions belonging to
+    * <code>face</code>, find and return those which are contained within
+    * <code>region</code>.
+    */
+   ArrayList<PenetrationRegion> getContainedRegions (
       PenetrationRegion region, Face face,
       ArrayList<PenetrationRegion> nested,
       int numCheck, boolean clockwiseContour) {
 
       double dtol = EPS*face.computeCircumference();
+
+
+      // The method works as follows: For each of the nested regions being
+      // checked, we select the first point on its contour as a test point.  We
+      // then use NearestPolygon3dFeature to find the nearest feature to the
+      // test point among all of the polygonal segments formed from the
+      // contours of <code>region</code> that cross the face. This nearest
+      // feature can then be queried to see if the test point is inside or
+      // outside, given the contour orientation specified by
+      // <code>clockwiseContour</code>.
+
+      // Create and initialize nearest feature objects for each region of
+      // <code>nested</code> being checked.
       NearestPolygon3dFeature[] nearestFeats =
          new NearestPolygon3dFeature[numCheck];
       for (int i=0; i<numCheck; i++) {
@@ -1002,25 +1071,34 @@ public class SurfaceMeshIntersector {
          nfeat.init (r.getFirstContour().get(0), face.getWorldNormal(), dtol);
       }
       PolygonalMesh mesh = (PolygonalMesh)face.getMesh();
+
+      // Now find the nearest feature to the test point among all the contours
+      // of <code>region</code>:
       for (IntersectionContour c : region.myContours) {
          int csize = c.size();
 
-         int kstart = -1;
+         // Try to find the first point where the contour enters this face and
+         // store its index in kenter:
+         int kenter = -1;
          Face lastFace = c.findSegmentFace (csize-1, mesh);
          for (int k=0; k<csize; k++) {
             Face segFace = c.findSegmentFace (k, mesh);
             if (segFace == face && lastFace != face) {
-               kstart = k;
+               kenter = k;
                break;
             }
             lastFace = segFace;
          }
-         if (kstart == -1) {
+         if (kenter == -1) {
+            // kenter was not found, so if lastFace == face, the contour lies
+            // entirely within face and so we check the test point against the
+            // entire contour:
             if (lastFace == face) {
                for (int k=0; k<=csize; k++) {
                   for (int i=0; i<numCheck; i++) {
                      if (k==0) {
-                        nearestFeats[i].restart (c.get(0));
+                        nearestFeats[i].restart ();
+                        nearestFeats[i].advance (c.get(0));
                      }
                      else if (k<csize) {
                         nearestFeats[i].advance (c.getWrapped(k));
@@ -1033,20 +1111,30 @@ public class SurfaceMeshIntersector {
             }
          }
          else {
-            int k = kstart;
+            // Starting at kenter, check the test point against those polygonal
+            // segments that occur when the contour crosses face:
+            int k = kenter;
             for (int j=0; j<csize; j++) {
                for (int i=0; i<numCheck; i++) {
                   if (j==0) {
-                     nearestFeats[i].restart (c.getWrapped(k));
+                     // contour c entering face for the first time
+                     nearestFeats[i].restart ();
+                     nearestFeats[i].advance (c.getWrapped(k));
                      lastFace = face;
                   }
                   else {
                      Face segFace = c.findSegmentFace (k, mesh);
                      if (lastFace == face) {
+                        // continuing on the face 
                         nearestFeats[i].advance (c.getWrapped(k));
                      }
                      else if (segFace == face) {
-                        nearestFeats[i].restart (c.getWrapped(k));
+                        // reentering the face
+                        nearestFeats[i].restart ();
+                        nearestFeats[i].advance (c.getWrapped(k));
+                     }
+                     else {
+                        // not on the face
                      }
                      lastFace = segFace;
                   }
@@ -1061,6 +1149,11 @@ public class SurfaceMeshIntersector {
          NearestPolygon3dFeature nfeat = nearestFeats[i];
          boolean isContained;
          if (nfeat.numVertices() == 1) {
+            // special case: occurs when the region's contours intersect the
+            // face at only one point. Then try to use the local intersection
+            // geometry around this point (returned by nfeat.getVertex(0)) to
+            // determine if the test point is inside or outside the penetration
+            // region.
             isContained = !isPointOutside (
                nfeat.getPoint(), face, 
                (IntersectionPoint)nfeat.getVertex(0), mesh);
@@ -1080,7 +1173,13 @@ public class SurfaceMeshIntersector {
       return contained;
    }
 
-   public void addContainedRegions (
+   /**
+    * Given a list <code>nested</code> of single-face nested regions belonging
+    * to <code>face</code>, find those which are contained within
+    * <code>region</code>. Those which are contained are removed from
+    * <code>nested</code> and merged with <code>region</code>.
+    */
+   void addContainedRegions (
       PenetrationRegion region, Face face,
       ArrayList<PenetrationRegion> nested, boolean clockwiseContour) {
       
@@ -1090,8 +1189,11 @@ public class SurfaceMeshIntersector {
       int numCheck = nested.size();
       if (region.mySingleFaceArea > 0) {
          int k = 0;
+         // if region is itself a single-faced region, need to check only those
+         // nested regions whose area is <= region.mySingleFaceArea.
          while (k < nested.size() &&
-                Math.abs(nested.get(k).mySingleFaceArea) <= region.mySingleFaceArea) {
+                (Math.abs(nested.get(k).mySingleFaceArea) <=
+                 region.mySingleFaceArea)) {
             k++;
          }
          numCheck = k;
@@ -1111,6 +1213,9 @@ public class SurfaceMeshIntersector {
       }
    }
 
+   /**
+    * Compares two vertices based on their indices.
+    */
    static class VertexIndexComparator implements Comparator<Vertex3d> {
       public int compare (Vertex3d v0, Vertex3d v1) {
          
@@ -1126,6 +1231,9 @@ public class SurfaceMeshIntersector {
       }
    }
 
+   /**
+    * Compares two faces based on their indices.
+    */
    static class FaceIndexComparator implements Comparator<Face> {
       public int compare (Face f0, Face f1) {
          
@@ -1167,11 +1275,30 @@ public class SurfaceMeshIntersector {
       }
    }
 
+   /**
+    * Finish processing all the single-face regions associated with a specific
+    * face, combining those which border the same region and then adding them
+    * to the list <code>regions</code>.
+    *
+    * @param regions returns the processed region for this face
+    * @param face face assiciated with the single-face regions
+    * @param singleFaceRegions initial (and uncombined) single-face regions
+    * for <code>face</code>
+    * @param mesh0 first intersecting mesh
+    * @param clockwiseContour <code>true</code> if the intersection contours
+    * are oriented clockwise with respect to <code>mesh0</code>
+    */
    void processSingleFaceRegions (
       ArrayList<PenetrationRegion> regions, Face face,
       ArrayList<PenetrationRegion> singleFaceRegions,
       PolygonalMesh mesh0, boolean clockwiseContour) {
 
+      // initially, each single-face face region consists of a closed contour
+      // located within its single face. We use the sign of the area of each of
+      // these regions to separated them into those which are either "isolated"
+      // (postive) or "nested" (negative). Isolated regions surround their own
+      // penetration area and may contain nested regions. For nested regions,
+      // the penetration area is on their outside.
       ArrayList<PenetrationRegion> nested = new ArrayList<PenetrationRegion>();
       ArrayList<PenetrationRegion> isolated = new ArrayList<PenetrationRegion>();
 
@@ -1185,6 +1312,10 @@ public class SurfaceMeshIntersector {
       }
 
       if (isolated.size() > 0) {
+         // For each isolated region, find any nested regions that it contains.
+         // To prevent a nested region from being included in multiple isolated
+         // regions, we sort the regions by increasing area and work from the
+         // smallest to the largest.
          if (isolated.size() > 1) {
             Collections.sort (isolated, new RegionAreaComparator());
          }
@@ -1198,8 +1329,9 @@ public class SurfaceMeshIntersector {
       }
 
       if (nested.size() > 0) {
-         // remaining nested regions must belong to face containing regions.
-
+         // remaining nested regions must belong to face containing regions;
+         // i.e., regions that contain <code>face</code> but are not themselves
+         // single-face regions.
          ArrayList<PenetrationRegion> faceContainingRegions =
             getFaceContainingRegions (regions, face);
          if (faceContainingRegions.size() == 0) {
@@ -1218,17 +1350,14 @@ public class SurfaceMeshIntersector {
             // just one region - add the contours to it
             PenetrationRegion region = faceContainingRegions.get(0);
             for (PenetrationRegion r : nested) {
-               // System.out.println (
-               //    " adding fcr region " + getName(r) + " to " + getName(region));
                region.myContours.add (r.getFirstContour());
             }
          }
          else {
             // multiple regions. Need to determine which nested region
             // belongs to which
-            for (PenetrationRegion region : faceContainingRegions) {
-               addContainedRegions (
-                  region, face, nested, clockwiseContour);
+            for (PenetrationRegion r : faceContainingRegions) {
+               addContainedRegions (r, face, nested, clockwiseContour);
             }
             if (nested.size() > 0) {
                throw new InternalErrorException (
@@ -1238,15 +1367,34 @@ public class SurfaceMeshIntersector {
       }
    }
 
-   int createRegions (
+   /**
+    * Finds all the regions on mesh0 that are penetrating mesh1.
+    *
+    * <p>The method works by finding the penetration regions associated with
+    * each intersection contour. During the process, some regions may be found
+    * to be bordered by more than one contour. These are then removed from
+    * further consideration. Some regions may also be determined to lie only on
+    * a single face. These are then further processed to see if any are nested
+    * inside each other and therefore need to be combined.
+    * 
+    * @param regions returns the found regions
+    * @param contours intersection contours between the two meshes
+    * @param mesh0 mesh for which the regions are to be found
+    * @param mesh1 other mesh which is intersecting <code>mesh0</code>
+    * @param clockwiseContour <code>true</code> if the contours are oriented
+    * clockwise with respect to <code>mesh0</code>
+    * @return the number of regions found
+    */
+   int findPenetrationRegions (
       ArrayList<PenetrationRegion> regions,
       ArrayList<IntersectionContour> contours,
       PolygonalMesh mesh0, PolygonalMesh mesh1, boolean clockwiseContour) {
 
       int oldSize = regions.size();
-      HashSet<IntersectionContour> unusedContours = 
-         new HashSet<IntersectionContour>();
-      // container to store single face regions
+      // contour which have yet to be used for finding regions:
+      LinkedList<IntersectionContour> unusedContours = 
+         new LinkedList<IntersectionContour>();
+      // container to store single-face regions
       HashMap<Face,ArrayList<PenetrationRegion>> singleFaceRegions =
          new HashMap<Face,ArrayList<PenetrationRegion>>();
 
@@ -1255,55 +1403,62 @@ public class SurfaceMeshIntersector {
             unusedContours.add (c);
          }
       }
-      unusedContours.addAll (contours);
-      for (IntersectionContour contour : contours) {
-         if (unusedContours.contains(contour)) {
-            PenetrationRegion region =
-               createRegion (contour, mesh0, mesh1, clockwiseContour);
+      while (!unusedContours.isEmpty()) {
+         IntersectionContour contour = unusedContours.removeFirst();
+         PenetrationRegion region =
+            findPenetrationRegion (contour, mesh0, mesh1, clockwiseContour);
+         if (region.myContours.size() > 1) {
+            // remove other contours associated with the found region from
+            // further consideration:
             unusedContours.removeAll (region.myContours);
-            if (region.mySingleFace != null) {
-               // handle single face regions separately
-               Face face = region.mySingleFace;
-               if (region.myContours.size() != 1) {
-                  throw new InternalErrorException (
-                     "Single face region has "+region.myContours.size()+
-                     " contours instead of 1");
-               }
-               IntersectionContour c = region.getFirstContour();
-               // there's probably a faster way to determine nesting than by
-               // computing area. For instance, let (pa,pb) be two points on the
-               // contour and nrm be the face normal. Then right = (pb - pa) X
-               // defines the right turn direction as the contour moves along the
-               // face. Now if inrm is the normal of the face on the other mesh,
-               // the contour should be isolated if right.dot (inrm) < 0 for
-               // clockwise contours and right.dot (inrm) > 0 for counter
-               // clockwise ones.
-               double area = c.computeFaceArea (face, clockwiseContour);
-               // if (area < 0) {
-               //    System.out.println (
-               //       "Found nested contour "+contours.indexOf(c)+" "+ area);
-               // }
-               // else {
-               //    System.out.println (
-               //       "Found isolated contour "+contours.indexOf(c)+" "+ area);
-               // }
-               region.mySingleFaceArea = area;
-               ArrayList<PenetrationRegion> regionsOnFace =
-                  singleFaceRegions.get(face);
-               if (regionsOnFace == null) {
-                  regionsOnFace = new ArrayList<PenetrationRegion>();
-                  singleFaceRegions.put(face, regionsOnFace);
-               }
-               regionsOnFace.add (region);
+         }
+         if (region.mySingleFace != null) {
+            // region is associated with only a single face. It may be bordered
+            // by other single-face regions for the same face (which it either
+            // contains or which enclose it), but findPenetrationRegion() will
+            // not have been able to determine these. Instead, these will need
+            // to be determined seperately by processSingleFaceRegions, below.
+            Face face = region.mySingleFace;
+            if (region.myContours.size() != 1) {
+               // verify that findPenetrationRegion() did not find additional
+               // contours for the region
+               throw new InternalErrorException (
+                  "single-face region has "+region.myContours.size()+
+                  " contours instead of 1");
             }
-            else {
-               regions.add (region);
+            // Compute the area that the contour encloses on the face.  If
+            // there are other contours confined to this face, the area will
+            // used to help determine which contour encloses which.
+
+            // Note: there may be a faster way to determine nesting than by
+            // computing area. For instance, let (pa,pb) be two points on the
+            // contour and nrm be the face normal. Then right = (pb - pa) X
+            // defines the right turn direction as the contour moves along the
+            // face. Now if inrm is the normal of the face on the other mesh,
+            // the contour should be isolated if right.dot (inrm) < 0 for
+            // clockwise contours and right.dot (inrm) > 0 for counter
+            // clockwise ones.
+            IntersectionContour c = region.getFirstContour();
+            double area = c.computeFaceArea (face, clockwiseContour);            
+            region.mySingleFaceArea = area; // store area for later use
+            // add this region to the set of single-face regions associated
+            // with the same face
+            ArrayList<PenetrationRegion> regionsOnFace =
+               singleFaceRegions.get(face);
+            if (regionsOnFace == null) {
+               regionsOnFace = new ArrayList<PenetrationRegion>();
+               singleFaceRegions.put(face, regionsOnFace);
             }
+            regionsOnFace.add (region);
+         }
+         else {
+            // add to the list of regions
+            regions.add (region);
          }
       }
 
       if (singleFaceRegions.size() > 0) {
-
+         // process any single-face regions
          try {         
             for (Map.Entry<Face,ArrayList<PenetrationRegion>> entry :
                     singleFaceRegions.entrySet()) {
@@ -1320,11 +1475,6 @@ public class SurfaceMeshIntersector {
 
       return regions.size()-oldSize;
    }
-
-//   void createRegions() {
-//      myRegions0 = createRegions (myMesh0, myMesh1, false);
-//      myRegions1 = createRegions (myMesh1, myMesh0, true);
-//   }
 
    public void setDegenerate() {
       // Not at all sure what this was supposed to do originally ...
@@ -1391,22 +1541,26 @@ public class SurfaceMeshIntersector {
       return null;
    }
 
+   /**
+    * Intersects an edge and a face. If there is an intersection, the resulting
+    * point is returned in <code>mip</code> and the method returns
+    * <code>true</code>.
+    * 
+    * @param he edge to intersect
+    * @param face face to intersect
+    * @param mip returns intersection point if there is an intersection
+    * @param edgeOnMesh0 if <code>true</code>, indicates that the edge belongs
+    * to the first mesh being intersected.
+    * @return <code>true</code> if the edge and face intersect.
+    */
    private boolean intersectEdgeFace (
       HalfEdge he, Face face, IntersectionPoint mip, boolean edgeOnMesh0) {
       
+      // Do an efficient calculation first. If the edge/face pair is too close
+      // to degenerate situation to determine intersection correctly, -1 is
+      // returned and the computation is performed again using robust
+      // predicates.
       int intersects = face.intersectsEdge (he, mip);
-      
-//      boolean robust = RobustPreds.intersectEdgeFace (
-//         he, face, mip, edgeOnMesh0);
-//      if (intersects != -1 && (intersects == 1 != robust)) { 
-//         System.out.println (
-//            "FAIL! robust=" + robust + " intersects=" + intersects);
-//         Face.debugIntersect = true;
-//         face.intersectsEdge (he, new Point3d());
-//         Face.debugIntersect = false;
-//      }
-//      intersects = (robust ? 1 : 0);
-      
       if (intersects == -1) {
          if (RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0)) {
             intersects = 1;
@@ -1415,20 +1569,6 @@ public class SurfaceMeshIntersector {
             intersects = 0;
          }
       }
-      
-      // int intersects = 0;
-      // if (face.intersectsEdge (he)) {
-      //    if (RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0)) {
-      //       intersects = 1;
-      //    }
-      //    else {
-      //       intersects = 0;
-      //    }
-      // }
-      // else {
-      //    intersects = 0;
-      // }
-      
       if (intersects == 0) {
          return false;
       }
@@ -1439,38 +1579,4 @@ public class SurfaceMeshIntersector {
          return true;     
       }
    }
-   /*
-    * Test for intersection using adaptive exact arithmetic and SOS tiebreaking.
-    */
-//   private boolean robustIntersectionWithFace (
-//      HalfEdge he, Face face, IntersectionPoint mip, boolean edgeOnMesh0) {
-//
-//      HalfEdge he0 = face.firstHalfEdge();
-//      Vertex3d v = he0.tail;
-//      if (v == he.head)
-//         return false;
-//      if (v == he.tail)
-//         return false;
-//      v = he0.head;
-//      if (v == he.head)
-//         return false;
-//      if (v == he.tail)
-//         return false;
-//      v = he0.getNext().head;
-//      if (v == he.head)
-//         return false;
-//      if (v == he.tail)
-//         return false;
-//      // face.updateWorldCoordinates();
-//
-//      if (!RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0)) {
-//         return false;
-//      }
-//
-//      mip.edge = he;
-//      mip.face = face;
-//      mip.edgeOnMesh0 = edgeOnMesh0;
-//      return true;
-//   }
-
 }

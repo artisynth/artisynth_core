@@ -329,6 +329,7 @@ public class AxialSpringTest {
 
       int numTests = 1000;
 
+      AxialSpring.myIgnoreCoriolisInJacobian = false;
       for (int i = 0; i < numTests; i++) {
          testForceAndJacobians (spring33);
       }

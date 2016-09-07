@@ -17,7 +17,8 @@ public class CollisionBehavior {
       VERTEX_PENETRATION,
       VERTEX_EDGE_PENETRATION,
       CONTOUR_REGION,
-      VERTEX_PENETRATION_BILATERAL
+      VERTEX_PENETRATION_BILATERAL,
+      INACTIVE
    }
 
    boolean myEnabled = true;

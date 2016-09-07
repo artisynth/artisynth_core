@@ -6,8 +6,8 @@ JAVA_SUBDIRS =
 PACKAGE_JAVA_FILES = 
 
 JAVA_TEST_PROGRAMS = \
-	DependencyClosureTest \
-	ComponentTest
+	ComponentTest \
+	# DependencyClosureTest \
 
 default: build
 

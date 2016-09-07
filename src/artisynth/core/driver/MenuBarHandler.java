@@ -74,6 +74,7 @@ import maspack.properties.PropertyUtils;
 import maspack.render.RenderListener;
 import maspack.render.RenderableUtils;
 import maspack.render.RendererEvent;
+import maspack.render.Renderer.HighlightStyle;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.solvers.PardisoSolver;
@@ -1355,6 +1356,15 @@ public class MenuBarHandler implements
       else if (cmd.equals("Background color")) {
          setBackgroundColor();
       }
+      else if (cmd.equals("Selection color")) {
+         setSelectionColor();
+      }
+      else if (cmd.equals("Enable selection highlighting")) {
+         setSelectionColorEnabled(true);
+      }
+      else if (cmd.equals("Disable selection highlighting")) {
+         setSelectionColorEnabled(false);
+      }
       else if (cmd.equals("Visual display rate")) {
          setVisualDisplayRate();
       }
@@ -1694,7 +1704,8 @@ public class MenuBarHandler implements
             String cmd = e.getActionCommand();
             if (cmd.equals("OK")) {
                vm.setBackgroundColor(colorChooser.getColor());
-            } else if (cmd.equals("Cancel")) {
+            }
+            else if (cmd.equals("Cancel")) {
                // do nothing
             }
          }
@@ -1705,6 +1716,41 @@ public class MenuBarHandler implements
             setBColor, setBColor);
       GuiUtils.locateRight(dialog, myFrame);
       dialog.setVisible(true);
+   }
+
+   public void setSelectionColor() {
+
+      final ViewerManager vm = myMain.getViewerManager();
+      colorChooser.setColor(vm.getSelectionColor());
+
+      ActionListener setSColor = new ActionListener() {   
+         @Override
+         public void actionPerformed(ActionEvent e) {
+            String cmd = e.getActionCommand();
+            if (cmd.equals("OK")) {
+               vm.setSelectionColor(colorChooser.getColor());
+            }
+            else if (cmd.equals("Cancel")) {
+               // do nothing
+            }
+         }
+      };
+      JDialog dialog =
+         JColorChooser.createDialog(
+            myFrame, "color chooser", /* modal= */true, colorChooser,
+            setSColor, setSColor);
+      GuiUtils.locateRight(dialog, myFrame);
+      dialog.setVisible(true);
+   }
+
+   public void setSelectionColorEnabled (boolean enable) {
+      ViewerManager vm = myMain.getViewerManager();
+      if (enable) {
+         vm.setSelectionHighlightStyle (HighlightStyle.COLOR);
+      }
+      else {
+         vm.setSelectionHighlightStyle (HighlightStyle.NONE);
+      }
    }
 
    // public void setFramePlayEnabled (boolean enable) {
@@ -1878,6 +1924,16 @@ public class MenuBarHandler implements
       JMenuItem item;
 
       addMenuItem(menu, "Background color");
+      addMenuItem(menu, "Selection color");
+
+      ViewerManager vm = myMain.getViewerManager();
+      if (vm.getSelectionHighlightStyle() == HighlightStyle.COLOR) {
+         addMenuItem(menu, "Disable selection highlighting");
+      }
+      else {
+         addMenuItem(menu, "Enable selection highlighting");
+      }
+      
       addMenuItem(menu, "Visual display rate");
       addMenuItem(menu, "Real-time scaling");
 

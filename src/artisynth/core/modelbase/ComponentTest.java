@@ -83,9 +83,16 @@ public class ComponentTest {
                + path + "'");
             }
             path = ComponentUtils.getWritePathName (root, comp);
+            // strip quotes of write path
+            if (path.startsWith("\"")) {
+               path = path.substring (1);
+            }
+            if (path.endsWith("\"")) {
+               path = path.substring (0, path.length()-1);
+            }
             if (root.findComponent (path) != comp) {
                throw new TestException (
-                  "Cannot find component with compact path '" + path + "'");
+                  "Cannot find component with write path '" + path + "'");
             }
          }
       }

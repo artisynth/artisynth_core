@@ -23,6 +23,7 @@ import maspack.render.LineFaceRenderProps;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.RenderList;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.color.ColorMap;
 import maspack.render.color.ColorMapBase;
@@ -70,6 +71,7 @@ public class ColorBar extends TextComponentBase {
    Vector2d myTextOffset;
 
    RenderObject myRenderObject;
+   boolean myRenderObjectRebuildRequest = true;
 
    public static PropertyList myProps = new PropertyList(
       ColorBar.class, TextComponentBase.class);
@@ -131,6 +133,7 @@ public class ColorBar extends TextComponentBase {
 
       myNumberFormat = new NumberFormat(defaultNumberFormat);
       myRenderObject = null;
+      myRenderObjectRebuildRequest = true;
    }
 
    public RenderObject buildRenderObject(int divisions, ColorMap cmap, VectorNd labelPos, Vector2d tickWidths) {
@@ -203,9 +206,30 @@ public class ColorBar extends TextComponentBase {
    }
 
    @Override
+   public void prerender (RenderList list) {
+      RenderObject robj = myRenderObject;
+      if (robj == null || myRenderObjectRebuildRequest) {
+         robj = buildRenderObject (
+            nBarDivisions, myColorMap, myLabelPos, myTickFractions);
+         myRenderObject = robj;
+         myRenderObjectRebuildRequest = false;
+      }
+   }
+
+   @Override
    public void render(Renderer renderer, int flags) {
 
       if (!isSelectable() && renderer.isSelecting()) {
+         return;
+      }
+
+      RenderObject robj = myRenderObject;
+      VectorNd labelPos = myLabelPos;
+      ArrayList<String> labelText = myLabelText;
+      
+      if (robj == null || labelPos == null || labelText == null) {
+         System.out.println (
+            (robj==null)+" "+(labelPos==null)+" "+(labelText==null));
          return;
       }
 
@@ -248,12 +272,6 @@ public class ColorBar extends TextComponentBase {
          h = h*screenHeight;
       }
 
-      RenderObject robj = myRenderObject;
-      if (robj == null) {
-         robj = buildRenderObject (nBarDivisions, myColorMap, myLabelPos, myTickFractions);
-         myRenderObject = robj;
-      }
-
       renderer.pushModelMatrix ();
       renderer.setModelMatrix2d (0, screenWidth, 0, screenHeight);
 
@@ -268,7 +286,6 @@ public class ColorBar extends TextComponentBase {
       
       trans.setTranslation (x0, y0, 0);
       
-
       renderer.mulModelMatrix (trans);
       renderer.setVertexColorMixing (ColorMixing.REPLACE);
       renderer.drawTriangles (robj, 0);
@@ -286,7 +303,7 @@ public class ColorBar extends TextComponentBase {
       renderer.setLineWidth(savedLineWidth);
 
       // labels
-      int nLabels = Math.min(myLabelPos.size(), myLabelText.size());
+      int nLabels = Math.min(labelPos.size(), labelText.size());
       if (nLabels > 0) {
          
          double tx, ty;
@@ -303,7 +320,7 @@ public class ColorBar extends TextComponentBase {
             ty = 0;
 
             // text orientation computation
-            String label = myLabelText.get(i);
+            String label = labelText.get(i);
             Rectangle2D box = renderer.getTextBounds (myFont, label, myTextSize);
             double bw = box.getWidth();
             double bh = box.getHeight ();
@@ -323,7 +340,7 @@ public class ColorBar extends TextComponentBase {
                      tx = x0 - myTextOffset.x - bw;
                      break;
                }
-               tx += w*myLabelPos.get(i);
+               tx += w*labelPos.get(i);
 
                switch(vAlignment) {
                   case BOTTOM:
@@ -360,7 +377,7 @@ public class ColorBar extends TextComponentBase {
                      ty = y0 - myTextOffset.y - t;
                      break;
                }
-               ty += h*myLabelPos.get(i);
+               ty += h*labelPos.get(i);
             }
 
             loc[0] = (float)tx;
@@ -430,10 +447,10 @@ public class ColorBar extends TextComponentBase {
 
    public void setColorMap(ColorMapBase colorMap) {
       myColorMap = colorMap;
-      myRenderObject = null;
       myColorMapMode =
       PropertyUtils.propagateValue (
          this, "colorMap", colorMap, myColorMapMode);
+      myRenderObjectRebuildRequest = true;
    }
 
    public PropertyMode getColorMapMode() {
@@ -452,17 +469,25 @@ public class ColorBar extends TextComponentBase {
    }
 
    public synchronized void setLabelPositions(VectorNd pos) {
-      myLabelPos.set(pos);
-      myRenderObject = null;
+      VectorNd newLabelPos = new VectorNd(pos);
+      myLabelPos = newLabelPos;
+      myRenderObjectRebuildRequest = true;
    }
 
    public synchronized void setLabels(ArrayList<String> text) {
-      myLabelText.clear();
-      myLabelText.addAll(text);
+      ArrayList<String> labels = new ArrayList<String>(text.size());
+      for (String str : text) {
+         labels.add (str);
+      }
+      doSetLabels (labels);
    }
 
    public ArrayList<String> getLabels() {
       return myLabelText;
+   }
+
+   void doSetLabels (ArrayList<String> labels) {
+      myLabelText = labels;
    }
 
    public void setLabel(int idx, String text) {
@@ -481,7 +506,7 @@ public class ColorBar extends TextComponentBase {
       while (idx >= 0) {
          idx = parseNext(carray, idx, labels);
       }
-      setLabels(labels);
+      doSetLabels(labels);
    }
 
    public int parseNext(char[] carray, int idx, ArrayList<String> parsed) {
@@ -553,7 +578,7 @@ public class ColorBar extends TextComponentBase {
 
    public void setTickFraction(Vector2d frac) {
       myTickFractions.set(frac);
-      myRenderObject = null;
+      myRenderObjectRebuildRequest = true;
    }
 
    public Vector2d getTickFraction() {
@@ -569,8 +594,8 @@ public class ColorBar extends TextComponentBase {
    }
 
    public void setLabels(VectorNd tickLocs, ArrayList<String> labels) {
-      setLabelPositions(tickLocs);
       setLabels(labels);
+      setLabelPositions(tickLocs);
    }
 
    public void populateLabels(double minVal, double maxVal, int nSections, NumberFormat fmt) {

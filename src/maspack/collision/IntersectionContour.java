@@ -40,11 +40,11 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
 
    /**
     * Returns <code>true</code> if this contour divides the specified mesh
-    * into "inside" and "outside" regions. The contour will be bounded if
+    * into "inside" and "outside" regions. This will be true if
     *
     * <ul>
-    * <li>it is closed;
-    * <li>both endpoints of the contour lie on boundary edges of the mesh
+    * <li>the contour is closed;
+    * <li>both end points of the contour lie on boundary edges of the mesh
     * </ul>
     *
     * @return <code>true</code> if this contour divides the mesh
@@ -247,12 +247,28 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
       return clockwise;
    }
 
+   /**
+    * Finds the face on the specified mesh that is traversed by the contour
+    * between the points at indices <code>(idx, idx+1)</code>. If
+    * <code>idx</code> equals <code>size()-1</code> (i.e., the last point),
+    * then the method returns the face between the indices <code>(size()-1,
+    * 0)</code> if the contour is closes, and <code>null</code> otherwise.
+    */
    Face findSegmentFace (int idx, PolygonalMesh mesh) {
-      IntersectionPoint p0 = getWrapped(idx);
-      IntersectionPoint p1 = getWrapped(idx+1);
-      return findSegmentFace (p0, p1, mesh);
+      IntersectionPoint p0, p1;
+      if (isClosed() || idx >= 0 && idx < size()-1) {
+         p0 = getWrapped(idx);
+         p1 = getWrapped(idx+1);
+         return findSegmentFace (p0, p1, mesh);
+      }
+      else {
+         return null;
+      }
    }
-
+   /**
+    * Finds the face on the specified mesh that is traversed by the contour
+    * between the adjacent points <code>pa</code> and <code>pb</code>.
+    */
    Face findSegmentFace (
       IntersectionPoint pa, IntersectionPoint pb, PolygonalMesh mesh) {
       if (edgeOnMesh (pa.edge, mesh)) {

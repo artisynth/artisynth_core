@@ -153,10 +153,10 @@ public class HudPrintStream extends TextComponentBase {
          }
       }
 
-      boolean saved2d = renderer.is2DRendering(); 
-      if (!saved2d) {
-         renderer.begin2DRendering(sw, sh);
-      }
+//      boolean saved2d = renderer.is2DRendering(); 
+//      if (!saved2d) {
+//         renderer.begin2DRendering(sw, sh);
+//      }
       
       // render lines top to bottom
       float[] rgb = new float[3];
@@ -202,9 +202,9 @@ public class HudPrintStream extends TextComponentBase {
 
       }
       
-      if (!saved2d) {
-         renderer.end2DRendering();
-      }
+//      if (!saved2d) {
+//         renderer.end2DRendering();
+//      }
       
    }
 

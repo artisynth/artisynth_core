@@ -7,13 +7,13 @@ import maspack.util.*;
 import maspack.matrix.*;
 import maspack.geometry.*;
 import maspack.geometry.MeshFactory.VertexMap;
-import maspack.geometry.io.*;
-import maspack.collision.SurfaceMeshIntersector.FaceIndexComparator;
 
 public class SurfaceMeshIntersectorTest extends UnitTest {
 
    double DOUBLE_PREC = 1e-16;
    double EPS = 1e-9;
+
+   static double OPEN = -1.0;
 
    PolygonalMesh myDiamond;
 
@@ -109,8 +109,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       PrintWriter pw, PolygonalMesh mesh0, PolygonalMesh mesh1, TestInfo tinfo)
       throws IOException {
 
-      RigidTransform3d TMW;
-
       pw.print ("[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
       pw.print ("mesh0=");
@@ -139,8 +137,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       PolygonalMesh mesh0, PolygonalMesh mesh1, TestInfo tinfo)
       throws IOException {
    
-      RigidTransform3d TMW = new RigidTransform3d();
-
       rtok.scanToken ('[');
       while (rtok.nextToken() != ']') {
          if (rtok.tokenIsWord ("mesh0")) {
@@ -331,6 +327,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          for (int i = 0; i < contour.length/3; i++) {
             pw.println (contour[3*i]+" "+contour[3*i+1]+" "+contour[3*i+2]);
          }
+         if (contour.length%3 != 0) {
+            pw.println (OPEN);
+         }
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
       }
@@ -420,20 +419,32 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    private boolean checkContour (
       IntersectionContour contour, double[] vals, RigidTransform3d X) {
-      Point3d[] pnts = new Point3d[vals.length/3+1];
-      int k = 0;
+
+      boolean checkIsClosed = (vals.length%3 == 0);
+      if (checkIsClosed != contour.isClosed()) {
+         return false;
+      }
+      
+      Point3d[] pnts;
+      if (contour.isClosed()) {
+         pnts = new Point3d[vals.length/3+1];
+      }
+      else {
+         pnts = new Point3d[vals.length/3];
+      }
+      
       if (debug) {
          System.out.println ("points");
       }
-      for (int i=0; i<vals.length; i += 3) {
-         pnts[k] = new Point3d (vals[i], vals[i+1], vals[i+2]);
+      int k;
+      for (k=0; k<vals.length/3; k++) {
+         pnts[k] = new Point3d (vals[3*k], vals[3*k+1], vals[3*k+2]);
          if (X != null) {
             pnts[k].transform (X);
          }
          if (debug) {
             System.out.println ("  " + pnts[k].toString ("%18.13f"));
          }
-         k++;
       }
 
       if (debug) {
@@ -443,32 +454,34 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             System.out.println ("  " + p.toString ("%18.13f"));
          }
       }
-      
-      
-      // repeat end point so we don't have to loop
-      pnts[pnts.length-1] = pnts[0]; 
+
       // get length for epsilon
       double tol = EPS*contour.computeLength();
-      // find contour point equal to pnts[0]
       int j0 = 0;
-      while (j0 < contour.size()) {
-         if (contour.get(j0).epsilonEquals (pnts[0], tol)) {
-            break;
+      if (contour.isClosed()) {
+         // repeat end point so we don't have to loop
+         pnts[pnts.length-1] = pnts[0]; 
+         // find contour point equal to pnts[0]
+         while (j0 < contour.size()) {
+            if (contour.get(j0).epsilonEquals (pnts[0], tol)) {
+               break;
+            }
+            j0++;
          }
-         j0++;
-      }
-      if (j0 == contour.size()) {
-         if (debug) System.out.println ("j0 not found");
-         return false;
+         if (j0 == contour.size()) {
+            if (debug) System.out.println ("j0 not found");
+            return false;
+         }
       }
       int j = j0;
       k = 0;
       Point3d ps = new Point3d();
       double sprev = 0;
       do {
+         if (debug) System.out.println ("k=" + k + " j=" + j);
          double s = LineSegment.projectionParameter (
             pnts[k], pnts[k+1], contour.getWrapped(j));
-         if (debug) System.out.println ("k=" + k + " j=" + j + " s=" + s);
+         if (debug) System.out.println ("s=" + s);
          
          ps.combine (1-s, pnts[k], s, pnts[k+1]);
          if (!ps.epsilonEquals (contour.getWrapped(j), tol)) {
@@ -526,32 +539,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       return ArraySupport.toIntArray (list);
    }
 
-   private void checkPenetratingVertices (
-      ArrayList<PenetratingPoint> points, int[] check) {
-      
-      if (check == null) {
-         check = new int[0];
-      }
-      if (points.size() != check.length) {
-         throw new TestException (
-            "Expected "+check.length+" vertices, got " +  points.size());
-      }
-      HashSet<Integer> vertices = new HashSet<Integer>();
-      for (PenetratingPoint cpp : points) {
-         vertices.add (cpp.vertex.getIndex());
-      }
-      for (int i=0; i<check.length; i++) {
-         if (vertices.contains (check[i])) {
-            vertices.remove (check[i]);
-         }
-         else {
-
-            throw new TestException (
-               "Penetrating vertex "+check[i]+" not found");
-         }
-      }
-   }
-
    private boolean indicesEqual (int[] indices, int[] check) {
       if (indices.length != check.length) {
          return false;
@@ -572,32 +559,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          }
       }
       return true;         
-   }
-
-   private void checkInsideVertices (
-      Collection<Vertex3d> vtxs, int[] check) {
-      
-      if (check == null) {
-         check = new int[0];
-      }
-      if (vtxs.size() != check.length) {
-         throw new TestException (
-            "Expected "+check.length+" vertices, got " +  vtxs.size());
-      }
-      HashSet<Integer> indices = new HashSet<Integer>();
-      for (Vertex3d vtx : vtxs) {
-         indices.add (vtx.getIndex());
-      }
-      for (int i=0; i<check.length; i++) {
-         if (indices.contains (check[i])) {
-            indices.remove (check[i]);
-         }
-         else {
-
-            throw new TestException (
-               "Penetrating vertex "+check[i]+" not found");
-         }
-      }
    }
 
    private int[] getVertexIndices (PenetrationRegion region) {
@@ -731,10 +692,8 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
    public void testContacts (
       PolygonalMesh mesh0, PolygonalMesh mesh1, RandomTransform rand,
       int ntests, int nperturb,
-      int[] insideCheck0, int[] insideCheck1, 
-      int[][] regions0Check, 
-      int[][] regions1Check,
-      double[] regions0AreaCheck,
+      int[][] regions0Check, int[][] regions1Check, 
+      double[] regions0AreaCheck, 
       double[] regions1AreaCheck,
       double[]... contoursCheck) {
 
@@ -749,17 +708,16 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          }
          
          testContacts (
-            mesh0, mesh1, TBW, null, insideCheck0, insideCheck1,
-            regions0Check, regions1Check, regions0AreaCheck, regions1AreaCheck,
-            contoursCheck);
+            mesh0, mesh1, TBW, null, regions0Check, regions1Check,
+            regions0AreaCheck, regions1AreaCheck, contoursCheck);
 
          if (rand != null) {
             for (int k=0; k<ntests; k++) {
                testContacts (
                   mesh0, mesh1, TBW, rand.nextTransform(),
-                  insideCheck0, insideCheck1,
                   regions0Check, regions1Check,
-                  regions0AreaCheck, regions1AreaCheck, contoursCheck);
+                  regions0AreaCheck, regions1AreaCheck,
+                  contoursCheck);
             }
          }
       }
@@ -771,10 +729,8 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
    public void testContacts (
       PolygonalMesh mesh0, PolygonalMesh mesh1,
       RigidTransform3d TBW, RigidTransform3d T10,
-      int[] insideCheck0, int[] insideCheck1, 
-      int[][] regions0Check, 
-      int[][] regions1Check,
-      double[] regions0AreaCheck,
+      int[][] regions0Check, int[][] regions1Check, 
+      double[] regions0AreaCheck, 
       double[] regions1AreaCheck,
       double[]... contoursCheck) {
 
@@ -787,12 +743,11 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       tinfo.regions0AreaCheck = regions0AreaCheck;
       tinfo.regions1AreaCheck = regions1AreaCheck;
       tinfo.contoursCheck = contoursCheck;
-      testContacts (mesh0, mesh1, insideCheck0, insideCheck1, tinfo);
+      testContacts (mesh0, mesh1, tinfo);
    }      
 
    public void testContacts (
       PolygonalMesh mesh0, PolygonalMesh mesh1,
-      int[] insideCheck0, int[] insideCheck1, 
       TestInfo tinfo) {
 
       SurfaceMeshCollider collider = new SurfaceMeshCollider();
@@ -835,16 +790,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             }
          }
          else {
-            
-            if (insideCheck0 != null) {
-               checkPenetratingVertices (
-                  cinfo.getPenetratingPoints0(), insideCheck0);
-            }
-            if (insideCheck1 != null) {
-               checkPenetratingVertices (
-                  cinfo.getPenetratingPoints1(), insideCheck1);
-            }
-      
             for (IntersectionContour c : cinfo.getContours()) {
                if (c.isClockwise (mesh0, mesh1)) {
                   throw new TestException (
@@ -859,7 +804,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             }
             ArrayList<IntersectionContour> foundContours =
                new ArrayList<IntersectionContour>();
-            int chki = 0;
             for (double[] ccheck : tinfo.contoursCheck) {
                IntersectionContour found = null;
                for (IntersectionContour c : cinfo.myContours) {
@@ -888,7 +832,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
                   }
                   throw new TestException ("Contour not found");
                }
-               chki++;
             }
             // System.out.println ("regions0 areas:");
             // for (PenetrationRegion r : cinfo.regions0) {
@@ -983,8 +926,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          
       testContacts (
          cube, tallBox65, null, 1, 10,
-         new int[] {},
-         new int[] {},
          new int[][] {
             new int[] { 0 },
             new int[] {},
@@ -995,14 +936,14 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             new int[] { 0, 1 },
             new int[] {},
          },
-         new double[] {0.3, 0.3}, 
+         new double[] {0.3, 0.3},
          new double[] {2.2},
          new double[] {
             -0.30, -0.25, 0.5, 
              0.30, -0.25, 0.5, 
              0.30,  0.25, 0.5, 
             -0.30,  0.25, 0.5,
-         },
+         }, 
          new double[] {
             -0.30, -0.25, -0.5, 
             -0.30,  0.25, -0.5,
@@ -1012,8 +953,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
       testContacts (
          cube, tallBox55, null, 1, 20,
-         new int[] {},
-         new int[] {},
          new int[][] {
             new int[] { 0 },
             new int[] {},
@@ -1024,15 +963,13 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             new int[] { 0, 1 },
             new int[] {},
          },
-         new double[] {0.25, 0.25}, 
+         new double[] {0.25, 0.25},
          new double[] {2.0},
          cubeTallBox55Contours);
       
       //System.out.println ("CUBE2");
       testContacts (
          cube2, tallBox55, null, 1, 0,
-         new int[] {6, 2},
-         new int[] {},
          new int[][] {
             new int[] { 0 },
             new int[] { 6 },               
@@ -1043,7 +980,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             new int[] { 0, 1 },
             new int[] {},
          },
-         new double[] {0.25, 0.25}, 
+         new double[] {0.25, 0.25},
          new double[] {2.0},
          cubeTallBox55Contours);
       
@@ -1054,8 +991,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       //System.out.println ("CUBE4");
       testContacts (
          cube4, tallBox55, null, 1, 0,
-         new int[] { 24, 34, 36, 26, 25, 35, 27, 37 },
-         new int[] {},
          new int[][] {
             new int[] { 0 },
             null,
@@ -1066,14 +1001,12 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             new int[] { 0, 1 },
             new int[] {},
          },
-         new double[] {0.25, 0.25}, 
+         new double[] {0.25, 0.25},
          new double[] {2.0},
          cubeTallBox55Contours);
 
       testContacts (
          box5, tallBox65, randt, 3, 1,
-         null,
-         new int[] {},
          new int[][] {
             new int[] { 0 },
             null,
@@ -1085,14 +1018,14 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             new int[] {},
 
          },
-         new double[] {0.3, 0.3}, 
+         new double[] {0.3, 0.3},
          new double[] {2.2},
          new double[] {
             -0.30, -0.25, 0.5, 
              0.30, -0.25, 0.5, 
              0.30,  0.25, 0.5, 
             -0.30,  0.25, 0.5,
-         },
+         }, 
          new double[] {
             -0.30, -0.25, -0.5, 
             -0.30,  0.25, -0.5,
@@ -1105,8 +1038,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
       testContacts (
          cube, tallBox65, null, 1, 0,
-         new int[] {},
-         new int[] {0, 1, 2, 3},             
          new int[][] {
             new int[] { 0 },
             new int[] {},
@@ -1114,7 +1045,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          new int[][] {
             new int[] { 0 },
             new int[] { 0, 1, 2, 3 },
-         },
+         },             
          new double[] { 0.3, },
          new double[] { 1.4 },
          new double[] {
@@ -1128,8 +1059,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
       testContacts (
          cube, tallBox65, null, 1, 10,
-         new int[] {},
-         new int[] {},
          new int[][] {
             new int[] { 0 },
             new int[] {},
@@ -1155,8 +1084,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       tallBox65.setMeshToWorld (new RigidTransform3d (0.3, 0, 1.0));
       testContacts (
          cube, tallBox65, null, 1, 10,
-         new int[] {},
-         new int[] { 0, 1},
          new int[][] {
             new int[] { 0 },
             new int[] {},
@@ -1181,8 +1108,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       // is very unstable ...
       testContacts (
          tallBox65, cube, null, 1, 0,
-         new int[] { },
-         new int[] { },
          new int[][] {
             new int[] { 0, 1 },
             new int[] { },
@@ -1212,8 +1137,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       myDiamond.setMeshToWorld (new RigidTransform3d (0, 0, 0.5+EPS));
       testContacts (
          cube, myDiamond, null, 1, 0,
-         new int[] { },
-         new int[] { 5 },
          new int[][] {
             new int[] { 0 },
             new int[] {},
@@ -1316,8 +1239,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
       testContacts (
          plate, squareTorus, null, 1, 10,
-         new int[] { },
-         new int[] { 14, 4, 5, 10, 9, 13, 0, 3 },
          new int[][] {
             new int[] { 1, 3 },
             new int[] {},
@@ -1336,8 +1257,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
       testContacts (
          plate5, squareTorus, randt, 50, 4,
-         null,
-         new int[] { 14, 4, 5, 10, 9, 13, 0, 3 },
          new int[][] {
             new int[] { 1, 3 },
             null,
@@ -1359,8 +1278,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
       testContacts (
          plate, squareTorus, null, 1, 10,
-         new int[] { },
-         new int[] { 11, 9, 8, 10, 4, 1, 0, 6 },
          new int[][] {
             new int[] { 0 },
             new int[] {},
@@ -1383,9 +1300,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       
       testContacts (
          plate5, squareTorus, randt, 50, 4,
-         null,
-         new int[] { 11, 9, 8, 10, 4, 1, 0, 6 },
-          new int[][] {
+         new int[][] {
             new int[] { 0 },
             null,
             new int[] { 1 },
@@ -1401,7 +1316,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             new int[] { 2, 3 },
             new int[] { 0, 1, 4, 6},
          },
-         new double[] { 0.5, 0.5, 0.5, 0.5 },
+          new double[] { 0.5, 0.5, 0.5, 0.5 },
          new double[] { sqrt2*scale, sqrt2*scale },
          myPlateSquareTorusPerpContours);
 
@@ -1477,8 +1392,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          }
          testContacts (
             plate, lego, TBW, T1,
-            null,
-            null,
             new int[][] {
                new int[] { 0, 1 },
                null,
@@ -1511,7 +1424,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
                new int[] { 10, 11 },
                myRegions1_6_verts,            
             },
-            new double[] { 46, 18, 18, 2, 16, 1, 16 },
+            new double[] { 46.0, 18.0, 18.0, 2.0, 16.0, 1.0, 16.0 },
             null,
             myLegoContours);
       }
@@ -1540,15 +1453,12 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          "XXXXXXXXXX XXXXX XXXXX",
          "");
 
-
       PolygonalMesh plate1 = MeshFactory.createBox (
          80.0, 80.0, 10.0, Point3d.ZERO, 1, 1, 1);
       PolygonalMesh plate7 = MeshFactory.createBox (
          80.0, 80.0, 10.0, Point3d.ZERO, 7, 7, 7);
       PolygonalMesh plate15 = MeshFactory.createBox (
          80.0, 80.0, 10.0, Point3d.ZERO, 17, 17, 17);
-
-      double zh = 5.0;
 
       RandomTransform randt = new RandomTransform2d (15.0);
 
@@ -1586,8 +1496,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
       testContacts (
          indented, cube, null, 0, 5,
-         null,
-         null,
          new int[][] {
             new int[] { 0 },
             new int[] { 111, 112, 113, 114 },               
@@ -1609,8 +1517,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
       testContacts (
          cube, indented, randt, 4, 4,
-         null,
-         null,
          new int[][] {
             new int[] { 0 },
             new int[] { 0, 1, 2, 3, 4, 5, 6, 7 },
@@ -1654,12 +1560,6 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       mesh.updateFaceNormals();
    }
 
-   private void addToAreaCheck (double[] areas, double a) {
-      for (int i=0; i<areas.length; i++) {
-         areas[i] += a;
-      }
-   }
-        
    public void perturbedPlateTests() {
 
       System.out.println ("Perturbed plate tests:");
@@ -1689,16 +1589,12 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             tinfo.regions0Check[k] = null;
          }
          testContacts (plate1x1_0, plate5x5_1, null, 0, 4, 
-                       null, null,
-                       tinfo.regions0Check, 
-                       tinfo.regions1Check,
+                       tinfo.regions0Check, tinfo.regions1Check,
                        tinfo.regions0AreaCheck, 
                        tinfo.regions1AreaCheck,
                        tinfo.contoursCheck);
          testContacts (plate20x20_0, plate5x5_1, null, 0, 4,
-                       null, null,
-                       tinfo.regions0Check, 
-                       tinfo.regions1Check,
+                       tinfo.regions0Check, tinfo.regions1Check,
                        tinfo.regions0AreaCheck, 
                        tinfo.regions1AreaCheck,
                        tinfo.contoursCheck);
@@ -1718,23 +1614,17 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          }
 
          testContacts (plate5x5_0, plate5x5_1, null, 0, 4, 
-                       null, null,
-                       tinfo.regions0Check, 
-                       tinfo.regions1Check,
+                       tinfo.regions0Check, tinfo.regions1Check,
                        tinfo.regions0AreaCheck, 
                        tinfo.regions1AreaCheck,
                        tinfo.contoursCheck);
          testContacts (plate1x1_0, plate5x5_1, null, 0, 2, 
-                       null, null,
-                       tinfo.regions0Check, 
-                       tinfo.regions1Check,
+                       tinfo.regions0Check, tinfo.regions1Check,
                        tinfo.regions0AreaCheck, 
                        tinfo.regions1AreaCheck,
                        tinfo.contoursCheck);
          testContacts (plate20x20_0, plate5x5_1, null, 0, 2,
-                       null, null,
-                       tinfo.regions0Check, 
-                       tinfo.regions1Check,
+                       tinfo.regions0Check, tinfo.regions1Check,
                        tinfo.regions0AreaCheck, 
                        tinfo.regions1AreaCheck,
                        tinfo.contoursCheck);
@@ -1742,13 +1632,216 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          // bigPlate20x20_1.setMeshToWorld (
          //    new RigidTransform3d (0.56273e-12, .33336e-11, 0));
          testContacts (bigPlate20x20_1, plate5x5_1, randt, 4, 4, // 4, 4
-                       null, null,
-                       tinfo.regions0Check, 
-                       tinfo.regions1Check,
+                       tinfo.regions0Check, tinfo.regions1Check,
                        tinfo.regions0AreaCheck, 
                        tinfo.regions1AreaCheck,
                        tinfo.contoursCheck);
       }
+   }
+
+   public void miscTests() {
+
+      System.out.println ("Misc tests:");
+
+      PolygonalMesh hollowRect = SurfaceMeshIntersectorTest.createLegoMesh (
+         3.0, 4.0, 1.0, 
+         "XXX",
+         "X X",
+         "X X",
+         "XXX");
+
+      PolygonalMesh boxA = MeshFactory.createBox (
+         6.0, 5.0, 1.0, Point3d.ZERO, 3, 5, 1);
+
+      hollowRect.transform (new RigidTransform3d (0.0, 0.0, -1.0));
+
+      double[][] hollowRectContours = new double[][] {
+         new double[] {
+            -1.5, -2.0, -0.5, 
+            -1.5,  2.0, -0.5, 
+             1.5,  2.0, -0.5, 
+             1.5, -2.0, -0.5, 
+         },
+         new double[] {
+            -0.5, -1.0, -0.5, 
+             0.5, -1.0, -0.5, 
+             0.5,  1.0, -0.5, 
+            -0.5,  1.0, -0.5, 
+         },
+      };           
+
+      testContacts (
+         boxA, hollowRect, null, 1, 0,
+         new int[][] {
+            new int[] { 0, 1 },
+            new int[] {32, 17, 30, 13, 28, 9, 24, 2 },
+         },
+         new int[][] {
+            new int[] { 0, 1 },
+            null,
+         },
+         new double[] {10.0},
+         new double[] {20.0},
+         hollowRectContours);
+
+      PolygonalMesh boxB = MeshFactory.createBox (
+         4.0, 5.0, 1.0, Point3d.ZERO, 2, 5, 1);
+
+      testContacts (
+         boxB, hollowRect, null, 1, 0,
+         new int[][] {
+            new int[] { 0, 1 },
+            new int[] {2, 17},
+         },
+         new int[][] {
+            new int[] { 0, 1 },
+            null,
+         },
+         new double[] {10.0},
+         new double[] {20.0},
+         hollowRectContours);
+
+     PolygonalMesh twoBar = SurfaceMeshIntersectorTest.createLegoMesh (
+         3.0, 4.0, 1.0, 
+         "   ",
+         "X X",
+         "X X",
+         "   ");
+
+      twoBar.transform (new RigidTransform3d (0.0, 0.0, -1.0));
+
+      double[][] twoBarContours = new double[][] {
+         new double[] {
+            -1.5, -1.0, -0.5, 
+            -1.5,  1.0, -0.5, 
+            -0.5,  1.0, -0.5, 
+            -0.5, -1.0, -0.5, 
+         },
+         new double[] {
+             0.5, -1.0, -0.5, 
+             0.5,  1.0, -0.5, 
+             1.5,  1.0, -0.5, 
+             1.5, -1.0, -0.5, 
+         },
+      }; 
+
+      testContacts (
+         boxA, twoBar, null, 1, 0,
+         new int[][] {
+            new int[] { 0 },
+            new int[] {9, 13},
+            new int[] { 1 },
+            new int[] {28, 30},
+         },
+         new int[][] {
+            new int[] { 0 },
+            null,
+            new int[] { 1 },
+            null,
+         },
+         new double[] {2.0, 2.0},
+         new double[] {5.0, 5.0},
+         twoBarContours);
+
+   }
+
+   public void openContourTests() {
+
+      System.out.println ("Open contour tests:");
+
+      PolygonalMesh hollowBox = SurfaceMeshIntersectorTest.createLegoMesh (
+         3.0, 3.0, 1.0, 
+         "XXX",
+         "X X",
+         "XXX");
+
+      hollowBox.transform (new RigidTransform3d (0.0, 1.0, -0.5));
+
+      PolygonalMesh rect1x1 = MeshFactory.createRectangle (10.0, 4.0, false);
+      PolygonalMesh rect10x4 = MeshFactory.createRectangle (
+         10.0, 4.0, 10, 4, false);
+      PolygonalMesh rect7x3 = MeshFactory.createRectangle (
+         10.0, 4.0, 7, 3, false);
+
+      double[][] hollowBoxContoursA = new double[][] {
+         new double[] {
+            -0.5,  0.5, 0.0, 
+            -0.5,  1.5, 0.0,
+             0.5,  1.5, 0.0, 
+             0.5,  0.5, 0.0, 
+         },
+         new double[] {
+            -1.5,  2.0, 0.0,
+            -1.5, -0.5, 0.0, 
+             1.5, -0.5, 0.0, 
+             1.5,  2.0, 0.0, 
+            OPEN,
+         },
+      };           
+
+      double[][] hollowBoxContoursB = new double[][] {
+         new double[] {
+             0.5,  2.0, 0.0,
+             0.5,  1.5, 0.0, 
+            -0.5,  1.5, 0.0, 
+            -0.5,  2.0, 0.0, 
+            OPEN,
+         },
+         new double[] {
+            -1.5,  2.0, 0.0,
+            -1.5,  0.5, 0.0, 
+             1.5,  0.5, 0.0, 
+             1.5,  2.0, 0.0, 
+            OPEN,
+         },
+      };           
+
+      RigidTransform3d TBW = new RigidTransform3d();
+      RigidTransform3d T10 = new RigidTransform3d();
+
+      PolygonalMesh[] rects = new PolygonalMesh[] {
+         rect1x1, rect10x4, rect7x3 
+      };
+
+      for (PolygonalMesh rect : rects) {
+         for (int i=-3; i<=3; i++) {
+            T10.p.set (i, 0, 0);
+            testContacts (
+               rect, hollowBox, TBW, T10, 
+               new int[][] {
+                  new int[] { 0, 1 },
+                  null,
+               },
+               new int[][] {
+                  new int[] {0},
+                  new int[] {16, 17, 29, 31},               
+               },
+               new double[] {6.5},
+               new double[] {3.0},
+               hollowBoxContoursA);
+         }
+      }
+
+      hollowBox.transform (new RigidTransform3d (0.0, 1.0, 0.0));
+
+      for (PolygonalMesh rect : rects) {
+         for (int i=-3; i<=3; i++) {
+            T10.p.set (i, 0, 0);
+            testContacts (
+               rect, hollowBox, TBW, T10, 
+               new int[][] {
+                  new int[] { 0, 1 },
+                  null,
+               },
+               new int[][] {
+               },
+               new double[] {4.0},
+               new double[] {},
+               hollowBoxContoursB);
+         }
+      }
+
+
    }
 
    private static void addSquare (
@@ -1946,7 +2039,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          e.printStackTrace(); 
          System.exit(1);
       }
-      testContacts (mesh0, mesh1, null, null, tinfo);
+      testContacts (mesh0, mesh1, tinfo);
    }
 
    public void test() {
@@ -1954,6 +2047,8 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       torusTests();
       singleFaceContourTests();
       perturbedPlateTests();
+      miscTests();
+      openContourTests();
    }
 
    private static void printUsageAndExit () {

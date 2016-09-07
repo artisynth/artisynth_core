@@ -7,6 +7,7 @@ JAVA_SUBDIRS =
 PACKAGE_JAVA_FILES = 
 
 JAVA_TEST_PROGRAMS = \
+	CollisionManagerTest \
 	AxialSpringTest
 
 default: build

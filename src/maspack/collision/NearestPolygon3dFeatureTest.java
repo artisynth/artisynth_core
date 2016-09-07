@@ -195,11 +195,12 @@ public class NearestPolygon3dFeatureTest extends UnitTest {
             Point3d p = pntSet.get(j);
             if (j == 0) {
                if (k == 0) {
-                  nfeat.start(p);
+                  nfeat.start();
                }
                else {
-                  nfeat.restart(p);
+                  nfeat.restart();
                }
+               nfeat.advance (p);
             }
             else {
                if (p == null) {
@@ -246,7 +247,7 @@ public class NearestPolygon3dFeatureTest extends UnitTest {
          }
       }
       int outside = nfeat.isOutside (/*clockwise=*/false);
-      System.out.println ("outside(false) = " + outside);
+      //System.out.println ("outside(false) = " + outside);
       if (outsideCheck != outside) {
          throw new TestException (
             "Expected outside(/*clockwise=*/false)=" +
@@ -255,7 +256,7 @@ public class NearestPolygon3dFeatureTest extends UnitTest {
       if (outsideCheck != -1) {
          outsideCheck = outsideCheck == 0 ? 1 : 0;
          outside = nfeat.isOutside (/*clockwise=*/true);
-      System.out.println ("outside(true) = " + outside);
+         //System.out.println ("outside(true) = " + outside);
          if (outsideCheck != outside) {
             throw new TestException (
                "Expected outside(/*clockwise=*/true)=" +
@@ -448,8 +449,8 @@ public class NearestPolygon3dFeatureTest extends UnitTest {
          if (kstart == -1) {
             if (!allOutside) {
                // polygon is completely inside triangle
-               nfeat.restart (polygon3d.get(0));
-               for (int k=1; k<nump; k++) {
+               nfeat.restart ();
+               for (int k=0; k<nump; k++) {
                   nfeat.advance (polygon3d.get(k));
                }
                nfeat.close();
@@ -467,32 +468,28 @@ public class NearestPolygon3dFeatureTest extends UnitTest {
                   polygon.get(ka), polygon.get(kb), tri);
                if (clip[0] == 0.0 && clip[1] == 1.0) {
                   if (restart) {
-                     nfeat.restart (pa);
+                     nfeat.restart ();
                   }
-                  else {
-                     nfeat.advance (pa);
-                  }
+                  nfeat.advance (pa);
                   nfeat.advance (pb);
                   restart = false;
                }
                else if (clip[0] == 0.0 && clip[1] < 1.0) {
                   if (restart) {
-                     nfeat.restart (pa);
+                     nfeat.restart ();
                   }
-                  else {
-                     nfeat.advance (pa);
-                  }
-                  nfeat.advance (pa);
                   nfeat.advance (interp (clip[1], pa, pb));
                   restart = true;
                }
                else if (clip[1] > 0.0 && clip[1] == 1.0) {
-                  nfeat.restart (interp (clip[0], pa, pb));
+                  nfeat.restart ();
+                  nfeat.advance (interp (clip[0], pa, pb));
                   nfeat.advance (pb);
                   restart = false;
                }
                else if (clip[1] > 0.0 && clip[1] < 1.0) {
-                  nfeat.restart (interp (clip[0], pa, pb));
+                  nfeat.restart ();
+                  nfeat.advance (interp (clip[0], pa, pb));
                   nfeat.advance (interp (clip[1], pa, pb));
                   restart = true;
                }

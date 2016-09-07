@@ -58,6 +58,7 @@ public class ViewerManager {
    boolean myDefaultOrthographic = false;
    boolean myDefaultDrawGrid = false;
    Color myBackgroundColor = Color.BLACK;
+   Color mySelectionColor = Color.YELLOW;
 
    RenderList myRenderList;
 
@@ -275,6 +276,7 @@ public class ViewerManager {
       }
       viewer.setGridVisible (myDefaultDrawGrid);
       viewer.setBackgroundColor (myBackgroundColor);
+      viewer.setHighlightColor (mySelectionColor);
       viewer.setBlendDestFactor(GLViewer.DEFAULT_DST_BLENDING);
    }
 
@@ -287,6 +289,17 @@ public class ViewerManager {
 
    public Color getBackgroundColor() {
       return myBackgroundColor;
+   }
+
+   public void setSelectionColor (Color color) {
+      mySelectionColor = color;
+      for (GLViewer v : myViewers) {
+         v.setHighlightColor (color);
+      }
+   }
+
+   public Color getSelectionColor() {
+      return mySelectionColor;
    }
 
    public void resetViewers (AxisAngle frontView) {

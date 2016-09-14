@@ -280,15 +280,17 @@ public class GL3ProgramManager {
       int[] buff = new int[2];
       gl.glGetShaderiv(shader, GL3.GL_COMPILE_STATUS, buff, 0);
       gl.glGetShaderiv(shader, GL3.GL_INFO_LOG_LENGTH, buff, 1);
-      if(buff[1] > 0) {
+      if(buff[1] > 1) {
          int maxLength = buff[1];
          byte[] log = new byte[maxLength];
          int[] logLength = new int[] {maxLength};
-         gl.glGetShaderInfoLog(shader, maxLength, logLength, 0, log,0);
+         gl.glGetShaderInfoLog(shader, maxLength, logLength, 0, log, 0);
 
-         String err = new String(log);
-         System.err.println(err);
-
+         if (log[0] != 0) {
+            String err = new String(log);
+            System.err.println(err);   
+         }
+         
          if (buff[0] == GL3.GL_FALSE) {
             gl.glDeleteShader(shader);
             return false;
@@ -303,14 +305,17 @@ public class GL3ProgramManager {
       int[] buff = new int[2];
       gl.glGetProgramiv(program, GL3.GL_LINK_STATUS, buff, 0);
       gl.glGetProgramiv(program, GL3.GL_INFO_LOG_LENGTH, buff, 1);
-      if(buff[1] > 0) {
+      if(buff[1] > 1) {
          int maxLength = buff[1];
          byte[] log = new byte[maxLength];
          int[] logLength = new int[] {maxLength};
          gl.glGetProgramInfoLog(program, maxLength, logLength, 0, log, 0);
 
-         String err = new String(log);
-         System.err.println(err);
+         if (log[0] != 0) {
+            String err = new String(log);
+            System.err.println(err);
+         }
+         
          if (buff[0] == GL3.GL_FALSE) {
             gl.glDeleteProgram (program);
             return false;

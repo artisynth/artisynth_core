@@ -74,7 +74,7 @@ public class BitInputStream extends FilterInputStream {
       }
    }
    
-   private int readLittleEndianBits(int nbits) throws IOException{
+   private int readLittleEndianBits(int nbits) throws IOException {
       
       int out = 0;
       int pos = 0;
@@ -131,8 +131,8 @@ public class BitInputStream extends FilterInputStream {
     * Reads the next bit in the stream, returns -1 if there are no more bits.
     */
    public int read() throws IOException {
-      // read 8 bits, or -1 of not possible
       
+      // read 1 bits, or -1 of not possible
       int out;
       if (bitsRemaining > 0) {
          out = ( currByte & rmask[bitsRemaining+1] ) >> (bitsRemaining-1);

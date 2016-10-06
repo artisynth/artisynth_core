@@ -489,7 +489,7 @@ public class MayaAsciiReader {
       return getPolygonalMesh(root, units);
    }
 
-   private PolygonalMesh getPolygonalMesh(Node<MayaNode> root, UnitInfo units) {
+   public PolygonalMesh getPolygonalMesh(Node<MayaNode> root, UnitInfo units) {
 
       if (units == null) {
          units = defaultUnits;
@@ -582,6 +582,9 @@ public class MayaAsciiReader {
    public PolylineMesh getPolylineMesh(
       String group, UnitInfo units, String regex) {
 
+      if ("".equals(group) || "/".equals(group)) {
+         group = null;
+      }
       Node<MayaNode> root = tree.getRootElement();
       if (group != null) {
          root = getNode(group);
@@ -594,7 +597,7 @@ public class MayaAsciiReader {
       return getPolylineMesh(root, units, regex);
    }
 
-   private PolylineMesh getPolylineMesh(
+   public PolylineMesh getPolylineMesh(
       Node<MayaNode> root, UnitInfo units, String regex) {
 
       if (units == null) {

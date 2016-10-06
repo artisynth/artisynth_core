@@ -118,6 +118,36 @@ public class BinaryInputStream extends FilterInputStream {
          myFlags = (myFlags & ~BYTE_CHAR);
       }
    }
+   
+   @Override
+   public int read(byte[] b, int off, int len) throws IOException {
+      int count = in.read(b, off, len);
+      myByteCount += count;
+      return count;
+   }
+   
+   @Override
+   public int read() throws IOException {
+      int v = in.read();
+      if (v >= 0) {
+         ++myByteCount;
+      }
+      return v;
+   }
+   
+   @Override
+   public int read(byte[] b) throws IOException {
+      int v = in.read(b);
+      myByteCount += v;
+      return v;
+   }
+   
+   @Override
+   public long skip(long n) throws IOException {
+      long skip = in.skip(n);
+      myByteCount += skip;
+      return skip;
+   }
 
    /**
     * Reads an array of bytes from this stream. The number of bytes
@@ -297,7 +327,7 @@ public class BinaryInputStream extends FilterInputStream {
       }
    }
 
-   private byte readBuffer[] = new byte[8];
+   // private byte readBuffer[] = new byte[8];
 
    /**
     * Reads a long value from this stream. If {@link #isLittleEndian}
@@ -327,6 +357,136 @@ public class BinaryInputStream extends FilterInputStream {
          lo = (byte5 << 24) + (byte6 << 16) + (byte7 << 8) + byte8;
       }
       return ((long)(hi)<<32) + (0xffffffffL & (long)lo);
+   }
+   
+   /**
+    * Reads a long-long value from this stream (128-bit long). 
+    * If {@link #isLittleEndian} returns <code>true</code>, then 
+    * the byte order is switched from little-endian to big-endian.
+    * The returned pair of longs reads hi-half, low-half.
+    *
+    * @return the read long-long value
+    */
+   public final long[] readLongLong() throws IOException {
+
+      int byte1 = doread();
+      int byte2 = doread();
+      int byte3 = doread();
+      int byte4 = doread();
+      int byte5 = doread();
+      int byte6 = doread();
+      int byte7 = doread();
+      int byte8 = doread();
+      int byte9 = doread();
+      int byte10 = doread();
+      int byte11 = doread();
+      int byte12 = doread();
+      int byte13 = doread();
+      int byte14 = doread();
+      int byte15 = doread();
+      int byte16 = doread();
+
+      int hi, lo;
+      long[] hilo = new long[2];
+      if (isLittleEndian()) {
+         hi = (byte16 << 24) + (byte15 << 16) + (byte14 << 8) + byte13;
+         lo = (byte12 << 24) + (byte11 << 16) + (byte10 << 8) + byte9;
+         hilo[0] = ((long)(hi)<<32) + (0xffffffffL & (long)lo);
+         hi = (byte8 << 24) + (byte7 << 16) + (byte6 << 8) + byte5;
+         lo = (byte4 << 24) + (byte3 << 16) + (byte2 << 8) + byte1;
+         hilo[1] = ((long)(hi)<<32) + (0xffffffffL & (long)lo);
+      }
+      else {
+         hi = (byte1 << 24) + (byte2 << 16) + (byte3 << 8) + byte4;
+         lo = (byte5 << 24) + (byte6 << 16) + (byte7 << 8) + byte8;
+         hilo[0] = ((long)(hi)<<32) + (0xffffffffL & (long)lo);
+         hi = (byte9 << 24) + (byte10 << 16) + (byte11 << 8) + byte12;
+         lo = (byte13 << 24) + (byte14 << 16) + (byte15 << 8) + byte16;
+         hilo[1] = ((long)(hi)<<32) + (0xffffffffL & (long)lo);
+      }
+      
+      return hilo;
+   }
+   
+   /**
+    * Reads a long-double (quad-precision) value from this stream 
+    * (128-bit double), converting to a regular double. 
+    * If {@link #isLittleEndian} returns <code>true</code>, then 
+    * the byte order is switched from little-endian to big-endian.
+    *
+    * @return the read double value
+    * @throws IOException
+    */
+   public double readLongDouble() throws IOException {
+      int byte1 = doread();
+      int byte2 = doread();
+      int byte3 = doread();
+      int byte4 = doread();
+      int byte5 = doread();
+      int byte6 = doread();
+      int byte7 = doread();
+      int byte8 = doread();
+      int byte9 = doread();
+      int byte10 = doread();
+      int byte11 = doread();
+      int byte12 = doread();
+      int byte13 = doread();
+      int byte14 = doread();
+      int byte15 = doread();
+      int byte16 = doread();
+      
+      long sign = 0;
+      long exp = 0;
+      long frac = 0;  // first 52 msb
+      long frac2 = 0; // remaining bits
+      
+      if (isLittleEndian()) {
+         sign = (byte16 & 0x80) >> 7;
+         exp = ((int)byte15 | ((int)(byte16 & 0x7) << 8)); 
+         frac = ((long)byte14 << 44) | ((long)byte13 << 36) | ((long)byte12 << 28)
+            | ((long)byte11 << 20) | ((long)byte10 << 12) | ((long)byte9 << 4)
+            | ((long)byte8 >>> 4);
+         frac2 = ((long)(byte8 & 0x0F) << 56) | ((long)byte7 << 48) | ((long)byte6 << 40)
+            | ((long)byte5 << 32) | ((long)byte4 << 24) | ((long)byte3 << 16)
+            | ((long)byte2 << 8) | ((long)byte1);
+      } else {
+         sign = (byte1 & 0x80) >> 7;
+         // convert exponent from 15 bits to 11
+         exp = ((int)byte2 | ((int)(byte1 & 0x7) << 8)); 
+         frac = ((long)byte3 << 44) | ((long)byte4 << 36) | ((long)byte5 << 28)
+            | ((long)byte6 << 20) | ((long)byte7 << 12) | ((long)byte8 << 4)
+            | ((long)byte9 >>> 4);
+         frac2 = ((long)(byte9 & 0x0F) << 56) | ((long)byte10 << 48) | ((long)byte11 << 40)
+            | ((long)byte12 << 32) | ((long)byte13 << 24) | ((long)byte14 << 16)
+            | ((long)byte15 << 8) | ((long)byte16);
+      }
+      
+      if (exp == 0x0000) {
+         exp = 0x0000;
+      } else if (exp == 0x7FFF) {
+         exp = 0x7FF;
+         if (frac != 0 || frac2 != 0) {
+            frac = 1;  // signal infinity
+         }
+      } else {
+         exp = exp-0x3FFF;             // exp as integer
+         // convert to infinity
+         if (exp > 1023) {
+            exp = 0x7FF;
+            frac = 1;
+         }
+         // convert to zero
+         else if (exp < -1022) {
+            exp = 0;
+            frac = 0;
+         } else {
+            // convert back to 11-bit exponent
+            exp = (exp + 0x3FF) & 0x7FF;
+         }
+      }
+      
+      long ll = (sign << 63) | (exp << 52) | frac;
+      return Double.longBitsToDouble(ll);
    }
 
    /**

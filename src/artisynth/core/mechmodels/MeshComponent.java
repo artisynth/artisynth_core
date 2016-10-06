@@ -223,10 +223,21 @@ public class MeshComponent extends RenderableComponentBase
 
    @Override
    public void render(Renderer renderer, int flags) {
-      if (isSelected() || isParentOrGrandParentSelected()) {
+      if (isSelected() || isAncestorSelected()) {
          flags |= Renderer.HIGHLIGHT;
       }
       render(renderer, getRenderProps(), flags);
+   }
+   
+   protected boolean isAncestorSelected() {
+      ModelComponent comp = this;
+      while (comp != null) {
+         if (comp.isSelected()) {
+            return true;
+         }
+         comp = comp.getParent();
+      }
+      return false;
    }
 
    protected boolean isParentOrGrandParentSelected() {

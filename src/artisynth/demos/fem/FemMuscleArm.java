@@ -200,7 +200,7 @@ public class FemMuscleArm extends MuscleArm
           (RigidBody)mech.findComponent ("rigidBodies/upper");
 
        CollisionBehavior cb = mech.getCollisionBehavior (muscle, upperArm);
-       return cb.isEnabled();
+       return cb != null && cb.isEnabled();
     }
 
 }

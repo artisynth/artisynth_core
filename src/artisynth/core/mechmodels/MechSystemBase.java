@@ -420,7 +420,6 @@ public abstract class MechSystemBase extends RenderableModelBase
             maxpen = pen;
          }
       } 
-
       double penlimit = getPenetrationLimit();
       if (penlimit > 0 && maxpen > penlimit) {
          stepAdjust.recommendAdjustment (
@@ -524,8 +523,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       // Build new constrainer and force effector lists if necessary.
       // Create using temporary lists just in case clearCachedData() gets
       // called while the lists are being built.
+
       ArrayList<Constrainer> newConstrainers = null;
-      ArrayList<ForceEffector> newForceEffectors = null;
+      ArrayList<ForceEffector> newForceEffectors = null;      
       if (myConstrainers == null) {
          newConstrainers = new ArrayList<Constrainer>();
          getConstrainers (newConstrainers, 0);
@@ -1242,7 +1242,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    public void recursivelyInitialize (double t, int level) {
       if (level == 0) {
          if (t == 0) {
-            clearCachedData();
+            clearCachedData(null);
             updateDynamicComponentLists();
             for (int i=0; i<myNumParametric; i++) {
                myParametricComponents.get(i).resetTargets();
@@ -1263,8 +1263,8 @@ public abstract class MechSystemBase extends RenderableModelBase
    public boolean getProfiling() {
       return myProfilingP;
    }
-
-   protected void clearCachedData() {
+   
+   protected void clearCachedData (ComponentChangeEvent e) {
       myDynamicComponents = null;
       myOrderedAttachments = null;
       myConstrainers = null;
@@ -1766,6 +1766,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public void collectInitialForces () {
       updateDynamicComponentLists();
+      updateForceComponentList();
       // add external forces
       for (int i=0; i<myDynamicComponents.size(); i++) {
          myDynamicComponents.get(i).applyExternalForces();
@@ -1883,6 +1884,27 @@ public abstract class MechSystemBase extends RenderableModelBase
             // sometimes a component can be a of type T
             // with sub-components also of type T
             if (c instanceof CompositeComponent) {
+               recursivelyGetLocalComponents ((CompositeComponent)c, list, type);
+            }
+         }
+      }
+   }
+
+   /**
+    * Like recursivelyGetLocalComponents, but don't descend into components of
+    * type T
+    */
+   protected <T> void recursivelyGetTopLocalComponents (
+      CompositeComponent comp, List<T> list, Class<T> type) {
+
+      for (int i=0; i<comp.numComponents(); i++) {
+         ModelComponent c = comp.get (i);
+         if (!(c instanceof MechSystemModel)) {
+            if (type.isAssignableFrom(c.getClass())) {
+               T t = type.cast(c);      // checked cast
+               list.add (t);
+            }
+            else if (c instanceof CompositeComponent) {
                recursivelyGetLocalComponents ((CompositeComponent)c, list, type);
             }
          }

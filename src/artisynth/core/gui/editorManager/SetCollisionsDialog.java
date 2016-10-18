@@ -98,31 +98,34 @@ public class SetCollisionsDialog extends PropertyDialog
    }
 
    public RemoveAddCommand createCommand() {
-      CollisionBehavior behavior = new CollisionBehavior();
-      behavior.setFriction (myFrictionField.getDoubleValue());
-      behavior.setEnabled (myEnabledField.getBooleanValue());
+      double friction = myFrictionField.getDoubleValue();
+      boolean enabled = myEnabledField.getBooleanValue();
       // LinkedList<CollidablePair> pairs =
       //    new LinkedList<CollidablePair>();
       // for (CollidablePair pair : myCollisionPairs) {
       //    pairs.add (pair);
       // }
-      LinkedList<CollisionComponent> addList =
-         new LinkedList<CollisionComponent>();
-      LinkedList<CollisionComponent> removeList =
-         new LinkedList<CollisionComponent>();
+      LinkedList<CollisionBehavior> addList =
+      new LinkedList<CollisionBehavior>();
+      LinkedList<CollisionBehavior> removeList =
+      new LinkedList<CollisionBehavior>();
       CollisionManager colmanager = myMechModel.getCollisionManager();
       for (CollidablePair pair : myCollisionPairs) {
-         CollisionComponent comp = colmanager.getCollisionComponent (pair);
-         if (comp != null) {
-            removeList.add (comp);
+         CollisionBehavior oldBehav =
+         colmanager.getBehavior (pair.get(0), pair.get(1));
+         CollisionBehavior newBehav = new CollisionBehavior();
+         if (oldBehav != null) {
+            removeList.add (oldBehav);
+            newBehav.set (oldBehav);
          }
-         addList.add (new CollisionComponent (pair, behavior));
+         newBehav.setName (pair.createComponentName (myMechModel));
+         newBehav.setCollidablePair (pair);
+         newBehav.setEnabled (enabled);
+         newBehav.setFriction (friction);
+         addList.add (newBehav);
       }
-
       return new RemoveAddCommand (
-         "Set collisions", removeList, addList,
-         colmanager.collisionComponents());
-      //    "Set collisions", myMechModel, pairs, behavior);
+         "Set collisions", removeList, addList, colmanager.behaviors());
    }
 
    public void actionPerformed (ActionEvent e) {
@@ -154,15 +157,15 @@ public class SetCollisionsDialog extends PropertyDialog
       Object enabled = null;
       boolean first = true;
       for (CollidablePair pair : myCollisionPairs) {
-         CollisionBehavior behavior =
-            myMechModel.getCollisionBehavior (pair.getA(), pair.getB());
-         System.out.println (
-            "response " + pair.getA().getName()+
-            " "+pair.getB().getName()+" "+behavior.isEnabled());
-         if (first) {
+         CollisionBehavior behavior = myMechModel.getActingCollisionBehavior (
+            pair.get(0),pair.get(1));
+         if (behavior == null) {
+            friction = Property.VoidValue;
+            enabled = Property.VoidValue;
+         }
+         else if (first) {
             friction = behavior.getFriction();
             enabled = behavior.isEnabled();
-            first = false;
          }
          else {
             if (!friction.equals (behavior.getFriction())) {
@@ -172,6 +175,7 @@ public class SetCollisionsDialog extends PropertyDialog
                enabled = Property.VoidValue;
             }
          }
+         first = false;
       }
       setWidgetValue (myEnabledField, enabled);
       setWidgetValue (myFrictionField, friction);

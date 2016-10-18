@@ -27,7 +27,7 @@ import maspack.render.RenderList;
 public class SurfaceMeshCollider implements AbstractCollider {
    // If true, use this class as a collider.
    // If false, use maspack.collision.MeshCollider
-   public static boolean useAjlCollision = false;
+   private static boolean useAjlCollision = false;
    //public static boolean doEdgeEdgeContacts = false;
    //public static boolean renderContours = false;
    
@@ -180,8 +180,8 @@ public class SurfaceMeshCollider implements AbstractCollider {
          //       }
          //    }
          // }
-         contactInfo.myPointTol = pointTolerance;
-         contactInfo.myRegionTol = regionTolerance;
+//         contactInfo.myPointTol = pointTolerance;
+//         contactInfo.myRegionTol = regionTolerance;
          return contactInfo;
       }
       else {
@@ -203,9 +203,9 @@ public class SurfaceMeshCollider implements AbstractCollider {
     */
    public static void collideVerticesWithFaces (
       ArrayList<PenetratingPoint> cpps,
-      Collection<Vertex3d> penetratingVertices,
+      PenetrationRegion region, 
       PolygonalMesh otherMesh) {
-
+      
       BVFeatureQuery query = new BVFeatureQuery();
       Vector2d uv = new Vector2d();
       Point3d nearPnt = new Point3d();
@@ -213,12 +213,11 @@ public class SurfaceMeshCollider implements AbstractCollider {
       Point3d wpnt = new Point3d();
 
       PenetratingPoint cpp;
-      for (Vertex3d vtx : penetratingVertices) {
+      for (Vertex3d vtx : region.myInsideVertices) {
          vtx.getWorldPoint (wpnt);
          Face face = query.nearestFaceToPoint (nearPnt, uv, otherMesh, wpnt);
          disp.sub (nearPnt, wpnt);
-         cpp = new PenetratingPoint (
-            vtx, face, uv, nearPnt, disp);
+         cpp = new PenetratingPoint (vtx, face, uv, nearPnt, disp, region);
          //maxVertexFaceDistance =
          //   Math.max (maxVertexFaceDistance, disp.norm());
          cpps.add (cpp);
@@ -303,6 +302,7 @@ public class SurfaceMeshCollider implements AbstractCollider {
                      if (eec.calculate (this, edge0, edge1)) {
                         // Test the geometry to see if it is a valid edge-edge
                         // contact.
+                        eec.region = r0;
                         contacts.add (eec);
                      }
                   }
@@ -330,43 +330,33 @@ public class SurfaceMeshCollider implements AbstractCollider {
       return faceIntersector.nearestpoint (p0, p1, p2, p, nearest, null);
    }
 
-   /*
-    * The following code does nothing and is merely for compatibility with the
-    * old collision code.
-    */
-   private double epsilon = 0;
-   private double pointTolerance = 0; // min distance between contact points
-   private double regionTolerance = 0; // min distance between regions
+//   /*
+//    * The following code does nothing and is merely for compatibility with the
+//    * old collision code.
+//    */
+//   private double pointTolerance = 1e-6; // min distance between contact points
+//   private double regionTolerance = 1e-2; // min distance between regions
 
    public SurfaceMeshCollider() {
-      setEpsilon (1e-12);
-      setPointTolerance (1e-6);
-      setRegionTolerance (1e-2);
+//      setPointTolerance (1e-6);
+//      setRegionTolerance (1e-2);
    }
 
-   public double getEpsilon() {
-      return epsilon;
-   }
-
-   public void setEpsilon (double epsilon) {
-      this.epsilon = epsilon;
-   }
-
-   public double getPointTolerance() {
-      return pointTolerance;
-   }
-
-   public void setPointTolerance (double tolerance) {
-      this.pointTolerance = tolerance;
-   }
-
-   public double getRegionTolerance() {
-      return regionTolerance;
-   }
-
-   public void setRegionTolerance (double regionTolerance) {
-      this.regionTolerance = regionTolerance;
-   }
+//   public double getPointTolerance() {
+//      return pointTolerance;
+//   }
+//
+//   public void setPointTolerance (double tolerance) {
+//      this.pointTolerance = tolerance;
+//   }
+//
+//   public double getRegionTolerance() {
+//      return regionTolerance;
+//   }
+//
+//   public void setRegionTolerance (double regionTolerance) {
+//      this.regionTolerance = regionTolerance;
+//   }
 
    // /* Debugging items. */
    // static boolean addedAsRenderable = false;

@@ -58,9 +58,9 @@ public class RandomGenerator {
     * Generate a random number between min and max, inclusive
     * @param min
     * @param max
-    * @return
+    * @return random number between min and max
     */
-   public static int nextInt(int min, int max) {
+   public static int nextInt (int min, int max) {
       int x = get().nextInt(max-min+1);
       return x+min;
    }
@@ -68,9 +68,9 @@ public class RandomGenerator {
    /**
     * Generate a random number between 0 and n-1
     * @param n
-    * @return
+    * @return random number between 0 and n-1
     */
-   public static int nextInt(int n) {
+   public static int nextInt (int n) {
       return get().nextInt(n);
    }
    

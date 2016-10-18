@@ -119,9 +119,9 @@ public class DefaultCollisionsDialog extends PropertyDialog {
          new LinkedHashMap<CollidablePair,CollisionBehavior>();
 
       updateSettings (
-         settings, myRREnabled, Collidable.RigidBody, Collidable.RigidBody);
+         settings, myRREnabled, Collidable.Rigid, Collidable.Rigid);
       updateSettings (
-         settings, myRDEnabled, Collidable.RigidBody, Collidable.Deformable);
+         settings, myRDEnabled, Collidable.Rigid, Collidable.Deformable);
       updateSettings (
          settings, myDDEnabled, Collidable.Deformable, Collidable.Deformable);
       updateSettings (
@@ -145,28 +145,29 @@ public class DefaultCollisionsDialog extends PropertyDialog {
 
    private void updateSettings (
       LinkedHashMap<CollidablePair,CollisionBehavior> settings,
-      BooleanSelector enabledField, Collidable typeA, Collidable typeB) {
+      BooleanSelector enabledField, Collidable col0, Collidable col1) {
 
       DoubleField frictionField = (DoubleField)enabledField.getMajorComponent(2);
       boolean enabled = enabledField.getBooleanValue();
       double friction = frictionField.getDoubleValue();
       CollisionBehavior behavior = new CollisionBehavior(enabled, friction);
-      settings.put (new CollidablePair (typeA, typeB), behavior);
+      settings.put (new CollidablePair (col0, col1), behavior);
    }
 
    private void updateWidget (
-      BooleanSelector enabledField, Collidable typeA, Collidable typeB) {
+      BooleanSelector enabledField, 
+      Collidable.Group col0, Collidable.Group col1) {
 
       DoubleField frictionField = (DoubleField)enabledField.getMajorComponent(2);
       CollisionBehavior behavior =
-         myMechModel.getDefaultCollisionBehavior (typeA, typeB);
+         myMechModel.getDefaultCollisionBehavior (col0, col1);
       enabledField.setValue (behavior.isEnabled());
       frictionField.setValue (behavior.getFriction());
    }
 
    private void updateFieldValues () {
-      updateWidget (myRREnabled, Collidable.RigidBody, Collidable.RigidBody);
-      updateWidget (myRDEnabled, Collidable.RigidBody, Collidable.Deformable);
+      updateWidget (myRREnabled, Collidable.Rigid, Collidable.Rigid);
+      updateWidget (myRDEnabled, Collidable.Rigid, Collidable.Deformable);
       updateWidget (myDDEnabled, Collidable.Deformable, Collidable.Deformable);
       updateWidget (myDSEnabled, Collidable.Deformable, Collidable.Self);
    }

@@ -88,27 +88,27 @@ public class SignedDistanceCollider implements AbstractCollider {
       return tmp;
    }
    
-   /*
-    * The following code does nothing and is merely for compatibility with the
-    * old collision code.
-    */
-   public double getEpsilon() {
-      return 0;
-   }
-
-   public double getPointTolerance() {
-      return 0;      
-   }
-
-   public double getRegionTolerance() {
-      return 0;      
-   }
-
-   public void setPointTolerance (double d) {
-      
-   }
-
-   public void setRegionTolerance (double d) {
-      
-   }
+//   /*
+//    * The following code does nothing and is merely for compatibility with the
+//    * old collision code.
+//    */
+//   public double getEpsilon() {
+//      return 0;
+//   }
+//
+//   public double getPointTolerance() {
+//      return 0;      
+//   }
+//
+//   public double getRegionTolerance() {
+//      return 0;      
+//   }
+//
+//   public void setPointTolerance (double d) {
+//      
+//   }
+//
+//   public void setRegionTolerance (double d) {
+//      
+//   }
 }

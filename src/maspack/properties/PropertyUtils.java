@@ -68,7 +68,7 @@ public class PropertyUtils {
     * @param val
     * value to be propagated
     */
-   static void propagateExplicitProperty (
+   public static void propagateExplicitProperty (
       HasProperties host, String propName, Object val) {
       HierarchyNode node = getHierarchyNode (host);
       // System.out.println ("hierarchy node = " + node);

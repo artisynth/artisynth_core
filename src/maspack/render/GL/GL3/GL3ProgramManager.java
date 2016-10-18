@@ -195,6 +195,7 @@ public class GL3ProgramManager {
          throw new RuntimeException("Program failed to link.\n");
       }
 
+
       GLShaderProgram prog = new GLShaderProgram (progId);
       bindUBOs (gl, prog);
       prog.use (gl);
@@ -286,11 +287,10 @@ public class GL3ProgramManager {
          int[] logLength = new int[] {maxLength};
          gl.glGetShaderInfoLog(shader, maxLength, logLength, 0, log, 0);
 
-         if (log[0] != 0) {
-            String err = new String(log);
-            System.err.println(err);   
+         String err = new String(log);
+         if (err.length() > 0 && (int)err.charAt(0) != 0) {
+            System.err.println(err);
          }
-         
          if (buff[0] == GL3.GL_FALSE) {
             gl.glDeleteShader(shader);
             return false;
@@ -311,11 +311,10 @@ public class GL3ProgramManager {
          int[] logLength = new int[] {maxLength};
          gl.glGetProgramInfoLog(program, maxLength, logLength, 0, log, 0);
 
-         if (log[0] != 0) {
-            String err = new String(log);
+         String err = new String(log);
+         if (err.length() > 0 && (int)err.charAt(0) != 0) {
             System.err.println(err);
          }
-         
          if (buff[0] == GL3.GL_FALSE) {
             gl.glDeleteProgram (program);
             return false;

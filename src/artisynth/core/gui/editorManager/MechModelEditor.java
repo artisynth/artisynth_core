@@ -125,7 +125,7 @@ public class MechModelEditor extends EditorBase {
          actions.add (this, "Set default collisions ...", EXCLUSIVE);
          int flag = 0;
          CollisionManager colmanager = mechMod.getCollisionManager();
-         if (colmanager.collisionComponents().size() == 0) {
+         if (colmanager.numBehaviors() == 0) {
             flag = DISABLED;
          }
          actions.add (this, "Remove collision overrides", flag);
@@ -235,10 +235,14 @@ public class MechModelEditor extends EditorBase {
             }
          }
          else if (actionCommand == "Remove collision overrides") {
-            LinkedList<CollisionComponent> comps = new
-               LinkedList<CollisionComponent>();
-            CollisionManager colmanager = model.getCollisionManager();
-            comps.addAll (colmanager.collisionComponents());
+            LinkedList<CollisionBehavior> comps = new
+            LinkedList<CollisionBehavior>();
+            CollisionManager cm = model.getCollisionManager();
+            ComponentList<CollisionBehavior> behavs = cm.behaviors();
+            // First numDefaultPairs() behaviors are reserved - don't delete
+            for (int i=cm.numDefaultPairs(); i<behavs.size(); i++) {
+               comps.add (behavs.get(i));
+            }
             Command cmd = RemoveAddCommand.createRemoveCommand (
                "remove collision overrides", comps);
             myMain.getUndoManager().saveStateAndExecute (cmd);               

@@ -818,5 +818,10 @@ public class RigidCompositeBody extends RigidBody implements
    public PolygonalMesh[] getSurfaceMeshes() {
       return MeshComponent.getSurfaceMeshes (myMeshList);
    }
+   
+   @Override
+   public boolean isCompound() {
+      return true;
+   }
 
 }

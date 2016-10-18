@@ -13,29 +13,46 @@ import artisynth.core.modelbase.CompositeComponent;
  * Describes a pair of Collidable model components.
  */
 public class CollidablePair {
-   Collidable myCompA;
-   Collidable myCompB;
+   Collidable myComp0;
+   Collidable myComp1;
    
    public CollidablePair (Collidable a, Collidable b) {
-      myCompA = a;
-      myCompB = b;
+      myComp0 = a;
+      myComp1 = b;
    }
 
    public CollidablePair (CollidablePair pair) {
-      myCompA = pair.myCompA;
-      myCompB = pair.myCompB;
+      myComp0 = pair.myComp0;
+      myComp1 = pair.myComp1;
    }
 
-   public Collidable getA() {
-      return myCompA;
+   public Collidable get (int cidx) {
+      if (cidx == 0) {
+         return myComp0;
+      }
+      else if (cidx == 1) {
+         return myComp1;
+      }
+      else {
+         throw new IllegalArgumentException (
+            "collidable index must be 0 or 1");
+      }
    }
-        
-   public Collidable getB() {
-      return myCompB;
+
+   public Collidable getOther (Collidable c) {
+      if (myComp0 == c) {
+         return myComp1;
+      }
+      else if (myComp1 == c) {
+         return myComp0;
+      }
+      else {
+         return null;
+      }
    }
    
    public boolean isExplicit() {
-      return !isGeneric(myCompA) && !isGeneric(myCompB);
+      return myComp0.getParent() != null && myComp1.getParent() != null;
    }
            
    public boolean equals (Object obj) {
@@ -43,39 +60,44 @@ public class CollidablePair {
          return false;
       }
       CollidablePair crp = (CollidablePair)obj;
-      return crp.includesCollidables (myCompA, myCompB);
+      return crp.includesCollidables (myComp0, myComp1);
    }
    
    public boolean includesCollidables(Collidable a, Collidable b) {
-     return ((myCompA == a && myCompB == b) || 
-             (myCompA == b && myCompB == a) );
+     return ((myComp0 == a && myComp1 == b) || 
+             (myComp0 == b && myComp1 == a) );
    }
 
    public int hashCode() {
-      return (myCompA.hashCode() ^ myCompB.hashCode() );
+      return (myComp0.hashCode() ^ myComp1.hashCode() );
    }
 
-   public static boolean isGeneric (Collidable c) {
-      return (c == Collidable.RigidBody || 
-              c == Collidable.Deformable ||
-              c == Collidable.Default);
-   }
-
-   public boolean isValidDefault() {
-      if (isGeneric(myCompA) && isGeneric(myCompB)) {
-         return true;
-      }
-      else if ((myCompA==Collidable.Self && myCompB==Collidable.Deformable) ||
-               (myCompB==Collidable.Self && myCompA==Collidable.Deformable)) {
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-
+//   public static boolean isGeneric (Collidable c) {
+//      return (c instanceof Collidable.DefaultCollidable);
+//   }
+//
+//   public boolean isValidDefault() {
+//      if (myCompA instanceof Collidable.Group &&
+//          myCompB instanceof Collidable.Group) {
+//         if (myCompA == Collidable.Self) {
+//            if (myCompB == Collidable.Rigid || myCompB == Collidable.Self) {
+//               return false;
+//            }
+//         }
+//         else if (myCompB == Collidable.Self) {
+//            if (myCompA == Collidable.Rigid) {
+//               return false;
+//            }
+//         }
+//         return true;
+//      }
+//      else {
+//         return false;
+//      }
+//   }
+   
    public String toString (CompositeComponent ref, Collidable c) {
-      if (isGeneric (c)) {
+      if (c instanceof Collidable.Group) {
          return c.toString();
       }
       else if (ref != null) {
@@ -87,13 +109,23 @@ public class CollidablePair {
    }
 
    public String toString (CompositeComponent ref) {
-      String out = toString(ref, getA());
-      out += "-" + toString(ref, getB());
+      String out = toString(ref, myComp0);
+      out += "-" + toString(ref, myComp1);
       return out; 
    }
 
    public String toString () {
       return toString (null);
+   }
+
+   /**
+    * Create a name for this CollidablePair that is suitable to use as a
+    * component name.
+    */
+   public String createComponentName (CompositeComponent ref) {
+      String str = toString (ref);
+      // substitute # for / since slashes are not allowed in component names
+      return str.replace ('/', '#');      
    }
 
 }

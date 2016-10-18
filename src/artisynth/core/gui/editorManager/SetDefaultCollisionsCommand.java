@@ -6,14 +6,12 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */package artisynth.core.gui.editorManager;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.CollisionComponent;
+import java.util.HashMap;
+
+import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.CollidablePair;
 import artisynth.core.mechmodels.CollisionBehavior;
-import artisynth.core.mechmodels.Collidable;
-import maspack.util.*;
-import java.util.*;
+import artisynth.core.mechmodels.MechModel;
 
 public class SetDefaultCollisionsCommand implements Command {
    private String myName;
@@ -35,13 +33,14 @@ public class SetDefaultCollisionsCommand implements Command {
    public void execute() {
 
       for (CollidablePair pair : myNewBehaviors.keySet()) {
+         Group g0 = (Group)pair.get(0);
+         Group g1 = (Group)pair.get(1);
          CollisionBehavior oldBehav =
-            myMechMod.getDefaultCollisionBehavior (pair.getA(), pair.getB());
+            myMechMod.getDefaultCollisionBehavior (g0, g1);
          myOldBehaviors.put (
             new CollidablePair (pair), new CollisionBehavior (oldBehav));
          CollisionBehavior newBehav = myNewBehaviors.get (pair);
-         myMechMod.setDefaultCollisionBehavior (
-            pair.getA(), pair.getB(), newBehav);
+         myMechMod.setDefaultCollisionBehavior (g0, g1, newBehav);
       }
    }
 
@@ -50,7 +49,7 @@ public class SetDefaultCollisionsCommand implements Command {
       for (CollidablePair pair : myOldBehaviors.keySet()) {
          CollisionBehavior oldBehav = myOldBehaviors.get (pair);
          myMechMod.setDefaultCollisionBehavior (
-            pair.getA(), pair.getB(), oldBehav);
+            (Group)pair.get(0), (Group)pair.get(1), oldBehav);
       }
    }
 

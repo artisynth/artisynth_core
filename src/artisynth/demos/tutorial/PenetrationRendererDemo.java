@@ -7,8 +7,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.render.Renderer;
 import maspack.render.RenderProps;
 import artisynth.core.driver.Main;
-import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.CollisionManager;
+import artisynth.core.mechmodels.CollisionResponse;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.workspace.DriverInterface;
@@ -52,11 +52,14 @@ public class PenetrationRendererDemo extends RootModel {
       RenderProps.setEdgeWidth (cm, 3);
       RenderProps.setEdgeColor (cm, Color.BLUE);
       cm.setContactNormalLen (0.5);
+      cm.setDrawContactNormals (true);
       cm.setDrawIntersectionContours (true);
       cm.setDrawIntersectionFaces (true);
       cm.setDrawIntersectionPoints (true);
       
-      addMonitor (new PenetrationRenderer (cm.collisionHandlers ().get (0)));
+      CollisionResponse resp = mech.setCollisionResponse (ball, plate);
+      
+      addMonitor (new PenetrationRenderer (resp));
    }
    
    @Override

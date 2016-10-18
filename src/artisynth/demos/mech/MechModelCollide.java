@@ -172,14 +172,23 @@ public class MechModelCollide extends RootModel {
       RenderProps.setVisible (cm, true);
       RenderProps.setLineWidth (cm, 3);      
       RenderProps.setLineColor (cm, Color.RED);
-      cm.setContactNormalLen (2.0);
-      cm.setPenetrationTol (1e-3);
+      cm.setDrawContactNormals (true);
+      mechMod.setPenetrationTol (1e-3);
+
+      // try {
+      //    MechSystemSolver.setLogWriter (
+      //       ArtisynthIO.newIndentingPrintWriter ("solve.txt"));
+      // }
+      // catch (Exception e)  {
+      // }
+      
       addModel (mechMod);
 
       // mechMod.setIntegrator (Integrator.ForwardEuler);
       //addBreakPoint (0.51);
       //mechMod.setProfiling (true);
       addControlPanel (mechMod);
+      
    }
 
    ControlPanel myControlPanel;

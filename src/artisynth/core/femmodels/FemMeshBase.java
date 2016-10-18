@@ -94,7 +94,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       myProps.addInheritable (
          "stressPlotRange:Inherited", 
          "stress value range for color stress plots", defaultStressPlotRange);
-      myProps.addInheritable(
+      myProps.addInheritable (
          "colorMap:Inherited", "color map for stress/strain", 
          defaultColorMap, "CE");
    }

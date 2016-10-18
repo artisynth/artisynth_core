@@ -6,14 +6,17 @@
  */
 package artisynth.core.mechmodels;
 
-import java.util.*;
+import java.util.ArrayList;
 
-import maspack.matrix.*;
-import maspack.util.*;
-import maspack.geometry.*;
-import artisynth.core.modelbase.*;
+import maspack.collision.PenetrationRegion;
+import maspack.geometry.Vertex3d;
+import maspack.matrix.MatrixBlock;
+import maspack.matrix.Point3d;
+import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.Vector3d;
+import maspack.util.DataBuffer;
+import maspack.util.NumberFormat;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
-import artisynth.core.driver.Main;
 
 /**
  * Information for a contact constraint formed by a single contact point.
@@ -25,7 +28,7 @@ public class ContactConstraint {
 
    ArrayList<ContactMaster> myMasters; // underlying master components which
                          // will be required to resolve the contact
-   CollisionHandler myHandler; // handler to which the constraint belongs
+   //CollisionHandler myHandler; // handler to which the constraint belongs
    ContactPoint myCpnt0; // first point associated with the contact
    ContactPoint myCpnt1; // second point associated with the contact
    double myLambda;      // most recent impulse used to enforce the constraint
@@ -36,6 +39,8 @@ public class ContactConstraint {
    Vector3d myNormal;    // contact direction normal
    int mySolveIndex;     // block index of this constraint in either the
                          // bilateral or unilateral constraint matrix (GT or NT)
+   PenetrationRegion myRegion; // penetration region on the mesh associated
+                         // with the first point (if available)
 
    public double getImpulse() {
       return myLambda;
@@ -94,8 +99,8 @@ public class ContactConstraint {
       return false;
    }
 
-   public ContactConstraint (CollisionHandler handler) {
-      myHandler = handler;
+   public ContactConstraint () {
+      //myHandler = handler;
       myMasters = new ArrayList<ContactMaster>();
       myNormal = new Vector3d();
       myCpnt0 = new ContactPoint();
@@ -103,8 +108,8 @@ public class ContactConstraint {
       myIdentifyByPoint1 = false;
    }
    
-   public ContactConstraint (CollisionHandler handler, ContactPoint cpnt0) {
-      myHandler = handler;
+   public ContactConstraint (ContactPoint cpnt0) {
+      //myHandler = handler;
       myMasters = new ArrayList<ContactMaster>();
       myNormal = new Vector3d();
       myCpnt0 = new ContactPoint(cpnt0);
@@ -112,8 +117,8 @@ public class ContactConstraint {
    }
 
    public ContactConstraint (
-      CollisionHandler handler, ContactPoint cpnt0, ContactPoint cpnt1) {
-      myHandler = handler;
+      ContactPoint cpnt0, ContactPoint cpnt1) {
+      //myHandler = handler;
       myMasters = new ArrayList<ContactMaster>();
       myNormal = new Vector3d();
       myCpnt0 = new ContactPoint(cpnt0);

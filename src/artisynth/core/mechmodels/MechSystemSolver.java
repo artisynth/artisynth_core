@@ -1300,7 +1300,7 @@ public class MechSystemSolver {
 
    // Setting crsFileName will cause the KKT system matrix and RHS
    // to be logged in CCS format.
-   private String crsFileName = null; // "testData2.txt";
+   private String crsFileName = null; // "testDataZiva.txt";
    private PrintWriter crsWriter = null;
    private boolean crsOmitDiag = false;
 

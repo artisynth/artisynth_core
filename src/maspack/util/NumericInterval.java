@@ -630,5 +630,9 @@ public abstract class NumericInterval extends RangeBase {
    public NumericInterval clone() {
       return (NumericInterval)super.clone();
    }  
-   
+
+   public void scale (double s) {
+      myUpper *= s;
+      myLower *= s;
+   }
 }

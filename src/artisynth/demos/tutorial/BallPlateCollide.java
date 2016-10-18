@@ -38,7 +38,7 @@ public class BallPlateCollide extends RootModel {
       RenderProps.setLineColor (cm, Color.RED);
       RenderProps.setEdgeWidth (cm, 3);
       RenderProps.setEdgeColor (cm, Color.BLUE);
-      cm.setContactNormalLen (0.5);
+      cm.setDrawContactNormals (true);
       cm.setDrawIntersectionContours (true);
    }
 }

@@ -602,7 +602,7 @@ public class SurfaceMeshIntersector {
     * @param mesh mesh to which the intersection point belongs
     * @param headIsInside <code>true</code> if the inside direction
     * is directed from the tail to the head.
-    * @return
+    * @return nearest intersection point along the "inside" direction of the edge
     */
    IntersectionPoint nearestInsideMip (
       IntersectionPoint p, HalfEdge edge, 

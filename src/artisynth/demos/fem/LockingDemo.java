@@ -71,7 +71,7 @@ public class LockingDemo extends RootModel {
    public void build (String[] args) {
 
       myTetMod = new FemModel3d ("tet");
-      FemFactory.createTetGrid (
+      FemFactory.createHexGrid (
          myTetMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
 
       myTetMod.transformGeometry (new RigidTransform3d (-3*WIDTH/4, 0, 0));
@@ -89,6 +89,8 @@ public class LockingDemo extends RootModel {
       myMechMod.addModel (myHexMod);
 
       addModel (myMechMod);
+
+      myMechMod.getSolver().profileKKTSolveTime = true;
 
       addControlPanel();
    }
@@ -111,13 +113,25 @@ public class LockingDemo extends RootModel {
       myControlPanel = new ControlPanel ("options", "LiveUpdate");
 
       myControlPanel.addWidget (
-         "tetMaterial", myTetMod, "material");
+         "tetVolume", myTetMod, "volume");
+      myControlPanel.addWidget (
+         "hexVolume", myHexMod, "volume");
+      myControlPanel.addWidget (
+         "tetIncompressible", myTetMod, "incompressible");
+      myControlPanel.addWidget (
+         "hexIncompressible", myHexMod, "incompressible"); 
+      myControlPanel.addWidget (
+         "tetIncompCompliance", myTetMod, "incompCompliance");
+      myControlPanel.addWidget (
+         "hexIncompCompliance", myHexMod, "incompCompliance"); 
       myControlPanel.addWidget (
          "tetSoftIncomp", myTetMod, "softIncompMethod");
       myControlPanel.addWidget (
-         "hexMaterial", myHexMod, "material");
-      myControlPanel.addWidget (
          "hexSoftIncomp", myHexMod, "softIncompMethod");
+      myControlPanel.addWidget (
+         "tetMaterial", myTetMod, "material");
+      myControlPanel.addWidget (
+         "hexMaterial", myHexMod, "material");
 
       addControlPanel (myControlPanel);
       Main.getMain().arrangeControlPanels(this);

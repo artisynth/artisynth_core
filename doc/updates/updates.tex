@@ -22,7 +22,302 @@
 
 %\subsection*{Wrapping surfaces}
 
-\section*{Sep XXX, 2016}
+\section*{Oct 18, 2016}
+
+\subsection*{New collision manager}
+
+The ArtiSynth collision manager, which is used by {\tt MechModel} to
+manage collisions between collidable bodies, has been rewritten to
+provide greater control over collision behavior, collision rendering,
+and the observation of collision responses. 
+
+The principal change is that
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior} objects now
+contains {\it all} information related to collision control, including
+not just the friction and whether collisions are enabled, but also the
+parameters used to fine tune the behavior, compliance (if desired),
+rendering of quantities such as contact normals and points,
+etc. Collision behavior objects are now stored as sub-components of
+the collision manager as proper ArtiSynth components, allowing users
+to select them and edit their properties. Most of the properties
+exported by {\tt CollisionBehavior} are also exported by the collision
+manager, from which they are inherited by behaviors which have not set
+them explicitly. Since behaviors are now proper components, they can
+also be selected and edited using the GUI navigation panel.
+
+Full details are given in the ``Collision Handling'' section of the
+\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
+Modeling Guide} and, for the GUI aspects, the
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{ArtiSynth User
+Interface Guide}.
+
+By separating behavior and response from the internal collision
+handling, the collision manager no longer needs to maintain $O(n^2)$
+collision handlers for all possible collision possibilities.  Instead,
+handlers are created on demand when a collision is actually observed,
+and the collision manager is also free to employ bounding volume
+hierarchies to reduce the number of collision checks (although this 
+has not yet been implemented).
+
+\subsection*{Collision behavior components}
+
+Previously, to make detailed changes to collision behavior, one needed
+to either specify global properties in the collision manager, or
+modify properties of the {\tt CollisionHandler} object that maintains
+the collision constraints for a specific pair of collidables.
+
+While global behavior properties can still be set in the collision
+manager, behavior for specific collidables can now be managed by
+setting the {\tt CollisionBehavior} components appropriate for the
+collidables in question. For example, to request the drawing of
+intersection contours between collidables {\tt col0} and {\tt col1},
+one previously would have used a code fragment like this:
+%
+\begin{lstlisting}[]
+   CollisionManager cm = mech.getCollisionManager();
+   CollisionHandler ch = cm.getCollisionHandler (col0, col1);
+   ch.setDrawIntersectionContours (true);   
+\end{lstlisting}
+%
+Now, one would instead do something like this:
+%
+\begin{lstlisting}[]
+   CollisionBehavior behav = new CollisionBehavior();
+   behav.setDrawIntersectionContours (true); 
+   mesh.setCollisionBehavior (col0, col1, behav);
+\end{lstlisting}
+%
+One can also still use the existing {\tt setCollisionBehavior}
+methods, which specify whether a collision is enabled, as well as,
+optionally, its friction. These methods now create a default collision
+behavior component internally, and return it, after which
+it can be used to set other collision properties:
+%
+\begin{lstlisting}[]
+   CollisionBehavior behav = mech.setCollisionBehavior (col0, col1, true);
+   behav.setDrawIntersectionContours (true); 
+\end{lstlisting}
+%
+One can also retrieve an existing behavior and set its
+properties:
+%
+\begin{lstlisting}[]
+   CollisionBehavior behav = mech.getCollisionBehavior (col0, col1);
+   behav.setDrawIntersectionContours (true); 
+\end{lstlisting}
+%
+\begin{sideblock}
+Because behaviors are now proper components, it is {\it not}
+permissible to add them to the collision manager twice. Specifically,
+the following will produce an error:
+\begin{verbatim}
+   CollisionBehavior behav = new CollisionBehavior();
+   behav.setDrawIntersectionContours (true); 
+   mesh.setCollisionBehavior (col0, col1, behav);
+   mesh.setCollisionBehavior (col2, col3, behav); // ERROR
+\end{verbatim}
+However, a new behavior can be created from an existing one:
+\begin{verbatim}
+   CollisionBehavior behav = new CollisionBehavior();
+   behav.setDrawIntersectionContours (true); 
+   mesh.setCollisionBehavior (col0, col1, behav);
+   behav = new CollisionBehavior(behav);
+   mesh.setCollisionBehavior (col2, col3, behav); // OK
+\end{verbatim}
+\end{sideblock}
+
+Collision behaviors now contain most of the properties that used to be
+contained exclusively in the collision manager. Most of these are
+still retained in the collision manager, from which they will be
+inherited if not explicitly set in the behavior. A behavior can also
+set its own render properties, which will then be used instead of the
+collision manager render properties.
+
+\subsection*{Collision response components}
+
+Another change is that information about the {\it results} of a
+collision are now collected by
+\javaclass[artisynth.core.mechmodels]{CollisionResponse} components,
+which are created the application as needed and also stored as
+sub-components of the collision manager. This removes the need for an
+application to query internal
+\javaclass[artisynth.core.mechmodels]{CollisionHandler} objects to
+determine things like contact impulses, mesh interpenetration regions,
+etc.
+
+For example, to obtain the current contact impulses between two FEM
+models, one would previously use the following code fragment (perhaps
+within a monitor {\tt apply()} method):
+%
+\begin{lstlisting}[]
+   FemModel3d femA, femB;
+ 
+   CollisionManager cm = mech.getCollisionManager();
+   CollisionHandler ch = cm.getCollisionHandler (femA, femB);
+   Map<Vertex3d,Vector3d> collMap = ch.getContactImpulses (femA);
+\end{lstlisting}
+%
+This would now be replaced with an earlier call to set up a collision
+response, perhaps in a {\tt build()} method,
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = mech.setCollisionResponse (femA, femB);
+\end{lstlisting}
+%
+followed by the following runtime code:
+\begin{lstlisting}[]
+   // retrieve the response, if it's not stored in a member variable:
+   CollisionResponse resp = mech.getCollisionResponse (femA, femB);
+   // get impulses for first collidable:
+   Map<Vertex3d,Vector3d> collMap = resp.getContactImpulses (0);
+\end{lstlisting}
+%
+Note also that when setting up a collision response, the second
+collidable can be a group specification, allowing the collection of
+information between a specific collidable and an entire
+group of collidables.  For example,
+%
+\begin{lstlisting}[]
+   mech.setCollisionResponse (femA, Collidable.Rigid);
+\end{lstlisting}
+%
+would create a response component to query collision responses between {\tt
+femA} and all rigid bodies.
+
+If desired, applications can also instantiate responses themselves and
+add them to the collision manager:
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = new CollisionResponse();
+   mech.setCollisionResponse (femA, femB, resp);
+\end{lstlisting}
+%
+However, as with behaviors, the same response cannot be
+added to an application twice:
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = new CollisionResponse();
+   mech.setCollisionResponse (femA, femB, resp);
+   mech.setCollisionResponse (femC, femD, resp); // ERROR
+\end{lstlisting}
+%
+
+\subsection*{Specifying the collider}
+
+The type of collider used for collisions can now be specified directly
+in the collision manager through the {\sf colliderType} property,
+whose value has the type
+\javaclass[artisynth.core.mechmodels]{CollisionManager\$ColliderType}.
+{\tt TRI\_INTERSECTION} is the current default, while {\tt
+AJL\_CONTOUR} specifies AJL collisions. AJL collisions can still be
+enabled by default through the {\tt -useAjlCollisions} command line
+argument.
+
+\subsection*{Rendering penetration depth}
+
+Some new properties have been added to allow the rendering of
+penetration depth when the collider type is set to {\tt AJL\_CONTOUR}.
+For details, see the new demo {\tt demos.tutorial.PenetrationRender}
+and the associated documentation in the ``Example: Rendering
+penetration depth'' section of the
+\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
+Modeling Guide}.
+
+This example makes use of the new {\tt INACTIVE} setting for the {\sf
+method} property in {\tt CollisionBehavior}, which disables the
+generation of collision constraints and hence turns off the collision
+response.
+
+\subsection*{Expanded collision groups}
+
+Another change is that the special collidable objects {\tt
+Collidable.Deformable}, {\tt Collidable.Rigid} (formerly {\tt
+Collidable.RigidBodies}), and {\tt Collidable.Self}, used to denote
+all deformable bodies, all rigid bodies, and self collision,
+respectively, have been made instances of a special subclass
+\javaclass[artisynth.core.mechmodels]{Collidable\$Group} and extended
+to include {\tt Collidable.AllBodies} (all rigid and deformable
+bodies) and {\tt Collidable.All} (all bodies plus self-collision).
+
+When calling one of the {\tt setCollisionBehavior} or {\tt
+setCollisionResponse} methods, the second argument can be an instance
+of {\tt Collidable.Group}, allowing behaviors (or responses) to be
+established between a specific collidable and all members of a group.
+So for example,
+%
+\begin{lstlisting}[]
+   mech.setCollisionBehavior (femA, Collidable.AllBodies, behav);
+\end{lstlisting}
+%
+would set the specified collision behavior between {\tt femA} and all
+bodies.
+
+\subsection*{Changes to the collision API}
+
+\begin{itemize}
+
+\item The collidable group {\tt Collidable.RigidBodies} has been
+renamed to {\tt Collidable.Rigid}.
+
+\item Some collision manager properties have had their names changes,
+as described in the following table. These properties are also now
+exported by {\tt CollisionBehavior} components:
+
+\begin{tabular}{lll}
+\hline
+Old name & New name \\
+\hline
+{\tt collisionPointTol} & {\tt rigidPointTol}\\
+{\tt collisionRegionTol} & {\tt rigidRegionTol}\\
+{\tt collisionCompliance} & {\tt compliance}\\
+{\tt collisionDamping} & {\tt damping}\\
+\hline
+\end{tabular}
+
+\item The {\sf pentrationTol} property has been removed from the
+collision manager but remains in {\tt MechModel} (where it was
+before). To set penetration tolerance, one should now do
+%
+\begin{lstlisting}[]
+   mech.setPenetrationTol (0.001);
+\end{lstlisting}
+%
+instead of 
+%
+\begin{lstlisting}[]
+   CollisionManager cm = mech.getCollisionManager();
+   cm.setPenetrationTol (0.001);
+\end{lstlisting}
+%
+Specifying a negative tolerance will cause the {\tt MechModel} to
+compute a default value instead.
+
+\item To draw contact normals, one now needs to set the {\sf
+drawContactNormals} property to {\tt true} in either the collision
+manager or collision behavior(s). The length of the drawn normals will
+be obtained, as before, from the {\sf contactNormalLen} property in
+the collision manage (which will be set to an estimated default value
+if not set explicitly).
+
+\item The variable {\tt doBodyFaceContact}, previously located in {\tt
+CollisionHandler}, has been replaced with the {\sf bodyFaceContact}
+property in both the collision manager and {\tt CollisionBehavior}.
+
+\item The collider type used for collisions is now controlled by the
+collision manager property {\sf colliderType}, whose value is an
+instance of
+\javaclass[artisynth.core.mechmodels]{CollisionManager\$ColliderType}.
+Current available types are {\tt TRI\_INTERSECTION} (the default), and
+{\tt AJL\_CONTOUR}. Either may be enabled with a code fragment like
+this:
+%
+\begin{lstlisting}[]
+   CollisionManager cm = mech.getCollisionManager();
+   cm.setColliderType (ColliderType.AJL_CONTOUR);
+\end{lstlisting}
+%
+
+\end{itemize}
 
 \subsection*{Setting and enabling selection color}
 

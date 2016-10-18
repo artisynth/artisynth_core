@@ -230,6 +230,7 @@ public class SkinMeshBody extends SkinMeshBase
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
+   protected int myCollidableIndex;
 
    /**
     * Base class for information about bodies (e.g., Frames or
@@ -1402,6 +1403,16 @@ public class SkinMeshBody extends SkinMeshBase
    }
 
    @Override
+   public Collidable getCollidableAncestor() {
+      return null;
+   }
+
+   @Override
+   public boolean isCompound() {
+      return false;
+   }
+
+   @Override
    public boolean isDeformable () {
       return true;
    }
@@ -1497,7 +1508,15 @@ public class SkinMeshBody extends SkinMeshBase
       }
       return true;
    }
-
+   
+   public int getCollidableIndex() {
+      return myCollidableIndex;
+   }
+   
+   public void setCollidableIndex (int idx) {
+      myCollidableIndex = idx;
+   }
+   
    public PointSkinAttachment createPointAttachment (Point pnt) {
       
       if (!(getMesh() instanceof PolygonalMesh)) {

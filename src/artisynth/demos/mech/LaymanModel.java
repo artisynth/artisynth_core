@@ -53,7 +53,7 @@ public class LaymanModel extends MechModel {
       return myProps;
    }
 
-   private double myMu = 0.2;
+   private double myMu = 0.0;
 
    public double getFriction() {
       return myMu;
@@ -311,7 +311,8 @@ public class LaymanModel extends MechModel {
 
       //      HashSet<BodyPair> collisionPairs = new HashSet<BodyPair>();
 
-      setDefaultCollisionBehavior (true, myMu);
+      setFriction (0.2);
+      setDefaultCollisionBehavior (true, getFriction());
 
       setCollisionBehavior (myTorso, myHead, false);
       setCollisionBehavior (myTorso, myRUppArm, false);
@@ -332,8 +333,8 @@ public class LaymanModel extends MechModel {
       setCollisionBehavior (myLLowLeg, myLFoot, false);
 
       CollisionManager cm = getCollisionManager();
-      cm.setCollisionPointTol (1e-2);
-      cm.setCollisionRegionTol (1e-1);
+      cm.setRigidPointTol (1e-2);
+      cm.setRigidRegionTol (1e-1);
       setPenetrationTol (1e-3);
 
       RenderProps r = new RenderProps();

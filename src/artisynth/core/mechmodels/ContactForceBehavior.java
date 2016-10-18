@@ -1,5 +1,6 @@
 package artisynth.core.mechmodels;
 
+import maspack.collision.PenetrationRegion;
 import maspack.matrix.*;
 
 public interface ContactForceBehavior {
@@ -30,8 +31,10 @@ public interface ContactForceBehavior {
     * @param cpnt1 first contact point
     * @param cpnt2 second contact point
     * @param normal contact normal, facing outward from the surface
+    * @param region penetration region on the mesh associated with the 
+    * first contact point, if available
     */
    public void computeResponse (
       double[] fres, double dist, ContactPoint cpnt1, ContactPoint cpnt2,
-      Vector3d normal);
+      Vector3d normal, PenetrationRegion region);
 }

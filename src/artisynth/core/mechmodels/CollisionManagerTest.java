@@ -9,25 +9,56 @@ import maspack.render.*;
 
 import artisynth.core.mechmodels.*;
 import artisynth.core.mechmodels.Collidable.Collidability;
+import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.modelbase.*;
 import artisynth.core.femmodels.*;
 import artisynth.core.workspace.*;
 
 /**
- * Test jig for the CollisionManager. Note that this does *not* test actual
- * collision handling; it just tests the CollisionManager's management
+ * Test jig for the CollisionManagerNew. Note that this does *not* test actual
+ * collision handling; it just tests the CollisionManagerNew's management
  * of what components collide with what.
  */
 public class CollisionManagerTest extends UnitTest {
 
+   boolean printMaps = false;
+
    MechModel myMech;
    MechModel mySubMech;
-   HashMap<CollidablePair,CollisionBehavior> myDefaults =
-      new HashMap<CollidablePair,CollisionBehavior>();
    HashMap<CollidablePair,CollisionBehavior> myBehaviorMap =
       new HashMap<CollidablePair,CollisionBehavior>();
-   LinkedHashMap<CollidablePair,CollisionBehavior> myOverrides =
-      new LinkedHashMap<CollidablePair,CollisionBehavior>();      
+   CollisionBehavior[] myDefaults;
+   
+   private int RIGID_RIGID = 0;
+   private int DEFORMABLE_RIGID = 1;
+   private int DEFORMABLE_DEFORMABLE = 2;
+   private int DEFORMABLE_SELF = 3;
+
+   public CollisionManagerTest() {
+      myDefaults = new CollisionBehavior[4];
+      for (int i=0; i<4; i++) {
+         myDefaults[i] = new CollisionBehavior();
+      }
+   }
+
+   void verifyDefaults (Group g0, Group g1, int chkIdx) {
+      CollisionBehavior behav = myMech.getDefaultCollisionBehavior (g0, g1);
+      CollisionBehavior check = myDefaults[chkIdx];
+      if (!check.equals (behav)) {
+         throw new TestException (
+            "Default behavior "+(new CollidablePair(g0,g1))+": expected "+
+            toStr(check)+", got "+toStr(behav));
+      }      
+   }
+   
+   void verifyDefaults() {
+      verifyDefaults (Collidable.Rigid, Collidable.Rigid, 0);
+      verifyDefaults (Collidable.Deformable, Collidable.Rigid, 1);
+      verifyDefaults (Collidable.Rigid, Collidable.Deformable, 1);
+      verifyDefaults (Collidable.Deformable, Collidable.Deformable, 2);
+      verifyDefaults (Collidable.Deformable, Collidable.Self, 3);
+      verifyDefaults (Collidable.Self, Collidable.Deformable, 3);
+   }
 
    private void azzert (String msg, boolean condition) {
       if (!condition) {
@@ -41,7 +72,8 @@ public class CollisionManagerTest extends UnitTest {
       for (int n : nums) {
          elems.add (fem.getElements().getByNumber(n));
       }
-      fem.addMeshComp (FemMeshComp.createSurface (name, fem, elems));
+      FemMeshComp comp = FemMeshComp.createSurface (name, fem, elems);
+      fem.addMeshComp (comp);
    }
 
    RigidCompositeBody createCompositeBody (String name, double rad) {
@@ -128,19 +160,6 @@ public class CollisionManagerTest extends UnitTest {
               !(c instanceof RigidCompositeBody));
    }
 
-   ArrayList<CollidableBody> getAllBodies (MechModel mech) {
-      ArrayList<Collidable> allCollidables = new ArrayList<Collidable>(100);
-      ArrayList<CollidableBody> list = new ArrayList<CollidableBody>(100);
-      mech.getCollidables (allCollidables, /*level=*/0);
-      // return only collidable bodies
-      for (Collidable c : allCollidables) {
-         if (isBody(c)) {
-            list.add ((CollidableBody)c);
-         }
-      }
-      return list;
-   }
-
    ArrayList<CollidableBody> getSubBodies (Collidable c) {
       ArrayList<CollidableBody> list = new ArrayList<CollidableBody>();
       recursivelyGetSubBodies (list, c);
@@ -163,75 +182,37 @@ public class CollisionManagerTest extends UnitTest {
       }
    }
 
-
-   private CollidablePair getDefaultPair (Collidable a, Collidable b) {
-      if (a.isDeformable() && b.isDeformable()) {
-         return CollisionManager.DEFORMABLE_DEFORMABLE;
-      }
-      else if (a.isDeformable() || b.isDeformable()) {
-         return CollisionManager.DEFORMABLE_RIGID;
+   private Group getGroup (Collidable c) {
+      if (c.isDeformable()) {
+         return Collidable.Deformable;
       }
       else {
-         return CollisionManager.RIGID_RIGID;
+         return Collidable.Rigid;
       }
    }
 
-
-   MechModel lowestCommonModel (ModelComponent a, ModelComponent b) {
-      ModelComponent ancestor = ComponentUtils.findCommonAncestor(a, b);
-      while (ancestor != null) {
-         if (ancestor instanceof MechModel) {
-            return (MechModel)ancestor;
-         }
-         ancestor = ancestor.getParent();
-      }
-      return null;
-   }
-
-   MechModel nearestMechAncestor (ModelComponent a) {
-      ModelComponent ancestor = a.getParent();
-      while (ancestor != null) {
-         if (ancestor instanceof MechModel) {
-            return (MechModel)ancestor;
-         }
-         ancestor = ancestor.getParent();
-      }
-      return null;
-   }
-
-   boolean hasCollidableAncestor (Collidable a, Collidable b) {
-      ModelComponent comp = ComponentUtils.findCommonAncestor(a, b);
-      while (comp != null) {
-         if (comp instanceof Collidable) {
-            return true;
-         }
-         comp = comp.getParent();
-      }
-      return false;
-   }
-
-   CollisionBehavior getPrimaryBehavior (CollidableBody  a, CollidableBody b) {
-
-      MechModel mech = lowestCommonModel (a, b);
-      if (mech == myMech) {
-         return myDefaults.get (getDefaultPair (a, b));
+   Collidable nearestCollidableAncestor (Collidable c0, Collidable c1) {
+      Collidable ancestor0 = c0.getCollidableAncestor();
+      Collidable ancestor1 = c1.getCollidableAncestor();
+      if (ancestor0 == ancestor1) {
+         return ancestor0;
       }
       else {
-         return mech.getCollisionBehavior (a, b);
+         return null;
       }
    }
 
-   private void setBehavior (
-      CollidableBody a, CollidableBody b, CollisionBehavior behavior) {
-      CollidablePair pair = new CollidablePair (a, b);
-      if (behavior == null || !behavior.isEnabled()) {
-         myBehaviorMap.remove (pair);
-      }
-      else {
-         myBehaviorMap.put (pair, behavior);
-      }
-   }
-
+//   CollisionBehavior getPrimaryBehavior (CollidableBody  a, CollidableBody b) {
+//
+//      MechModel mech = lowestCommonModel (a, b);
+//      if (mech == myMech) {
+//         return myDefaults.get (getDefaultPair (a, b));
+//      }
+//      else {
+//         return mech.getCollisionBehavior (a, b);
+//      }
+//   }
+//
    boolean isInternallyCollidable (Collidable c) {
       return (c.getCollidable() == Collidability.ALL ||
               c.getCollidable() == Collidability.INTERNAL);
@@ -242,173 +223,251 @@ public class CollisionManagerTest extends UnitTest {
               c.getCollidable() == Collidability.EXTERNAL);
    }
 
-  private void applyBehavior (
-      Collidable a, Collidable b, CollisionBehavior behavior) {
-      if (isBody(a) && isBody(b)) {
-         if (hasCollidableAncestor(a, b)) {
-            if (isInternallyCollidable(a) && isInternallyCollidable(b)) {
-               setBehavior ((CollidableBody)a, (CollidableBody)b, behavior);
-            }
+   CollisionBehavior getDominantBehavior (
+      CollisionBehavior behav0, CollisionBehavior behav1,
+      CollisionManager cm) {
+
+      if (behav0 != null && behav1 != null) {
+         if (cm.myBehaviors.indexOf(behav0) > cm.myBehaviors.indexOf(behav1)) {
+            return behav0;
          }
          else {
-            if (isExternallyCollidable(a) && isExternallyCollidable(b)) {
-               setBehavior ((CollidableBody)a, (CollidableBody)b, behavior);
-            }
-         }
-      }
-      else if (a == b) {
-         ArrayList<CollidableBody> bodies = getSubBodies (a);
-         for (int i=0; i<bodies.size(); i++) {
-            CollidableBody ai = bodies.get(i);
-            for (int j=i+1; j<bodies.size(); j++) {
-               CollidableBody aj = bodies.get(j);
-               if (isInternallyCollidable(ai) && isInternallyCollidable(aj)) {
-                  setBehavior (ai, aj, behavior);
-               }
-               else {
-                  setBehavior (ai, aj, new CollisionBehavior());
-               }
-            }
+            return behav1;
          }
       }
       else {
-         ArrayList<CollidableBody> bodiesA;
-         ArrayList<CollidableBody> bodiesB;
-         if (isBody(a)) {
-            bodiesA = new ArrayList<CollidableBody>();
-            bodiesA.add ((CollidableBody)a);
+         if (behav0 != null) {
+            return behav0;
          }
          else {
-            bodiesA = getSubBodies (a);
+            return behav1;
          }
-         if (isBody(b)) {
-            bodiesB = new ArrayList<CollidableBody>();
-            bodiesB.add ((CollidableBody)b);
-         }
-         else {
-            bodiesB = getSubBodies (b);
-         }
-         for (int i=0; i<bodiesA.size(); i++) {
-            CollidableBody ai = bodiesA.get(i);
-            if (isExternallyCollidable (ai)) {
-               for (int j=0; j<bodiesB.size(); j++) {
-                  CollidableBody bj = bodiesB.get(j);
-                  if (isExternallyCollidable (bj)) {
-                     setBehavior (ai, bj, behavior);
-                  }
-               }
+      }
+   }         
+
+   CollisionBehavior getGroupBehavior (
+      CollidableBody cb, Collidable.Group group, CollisionManager cm) {
+      
+      ArrayList<CollidablePair> pairs = new ArrayList<CollidablePair>();
+      pairs.add (new CollidablePair (cb, group));
+      pairs.add (new CollidablePair (cb, Collidable.AllBodies));
+      pairs.add (new CollidablePair (cb, Collidable.All));
+      Collidable ancestor = cb.getCollidableAncestor();
+      if (ancestor != null) {
+         pairs.add (new CollidablePair (ancestor, group));
+         pairs.add (new CollidablePair (ancestor, Collidable.AllBodies));
+         pairs.add (new CollidablePair (ancestor, Collidable.All));
+      }
+      CollisionBehavior behav = null;
+      for (CollidablePair pair : pairs) {
+         behav = getDominantBehavior (behav, cm.myBehaviors.get(pair), cm);
+      }
+      return behav;
+   }
+
+   CollisionBehavior getOverrideBehavior (
+      CollidableBody cb0, CollidableBody cb1, CollisionManager cm) {
+
+      ArrayList<CollidablePair> pairs = new ArrayList<CollidablePair>();
+      pairs.add (new CollidablePair (cb0, cb1));
+      Collidable ancestor0 = cb0.getCollidableAncestor();
+      Collidable ancestor1 = cb1.getCollidableAncestor();
+      if (ancestor0 != null) {
+         pairs.add (new CollidablePair (ancestor0, cb1));
+      }
+      if (ancestor1 != null) {
+         pairs.add (new CollidablePair (cb0, ancestor1));
+      }
+      if (ancestor0 != null && ancestor1 != null) {
+         pairs.add (new CollidablePair (ancestor0, ancestor1));
+      }
+      CollisionBehavior behav = null;
+      for (CollidablePair pair : pairs) {
+         behav = getDominantBehavior (behav, cm.myBehaviors.get(pair), cm);
+      }
+      return behav;
+   }      
+
+//   CollisionBehavior getRigidBehavior (
+//      CollidableBody cb, CollisionManagerNew cm) {
+//      
+//      ArrayList<CollidablePair> pairs = new ArrayList<CollidablePair>();
+//      pairs.add (new CollidablePair (cb, Collidable.Rigid));
+//      pairs.add (new CollidablePair (cb, Collidable.AllBodies));
+//      pairs.add (new CollidablePair (cb, Collidable.All));
+//      Collidable ancestor = cb.getCollidableAncestor();
+//      if (ancestor != null) {
+//         pairs.add (new CollidablePair (ancestor, Collidable.Rigid));
+//         pairs.add (new CollidablePair (ancestor, Collidable.AllBodies));
+//         pairs.add (new CollidablePair (ancestor, Collidable.All));
+//      }
+//      CollisionBehavior behav = null;
+//      for (CollidablePair pair : pairs) {
+//         behav = getDominantBehavior (behav, cm.myBehaviors.get (pair), cm);
+//      }
+//      return behav;
+//   }
+
+   private void setBehaviorMap (
+      CollidableBody cb0, CollidableBody cb1, CollisionManager cm) {
+
+      CollisionBehavior behav;
+      CollidablePair pair = new CollidablePair (cb0, cb1);
+      Collidable ancestor = nearestCollidableAncestor (cb0, cb1);
+      if (ancestor != null) {
+         // check for self collision
+         if (ancestor.isDeformable() &&
+             CollisionManager.isInternallyCollidable (cb0) &&
+             CollisionManager.isInternallyCollidable (cb1)) {
+            behav = cm.myBehaviors.get (pair);
+            if (behav != null) {
+               myBehaviorMap.put (pair, behav);
+               return;
             }
+            behav = cm.myBehaviors.get (
+               new CollidablePair (ancestor, Collidable.Self));
+            if (behav != null) {
+               myBehaviorMap.put (pair, behav);
+               return;
+            }
+            behav = cm.myBehaviors.get (
+               new CollidablePair (ancestor, Collidable.All));
+            if (behav != null) {
+               myBehaviorMap.put (pair, behav);
+               return;
+            }
+            myBehaviorMap.put (
+               pair, cm.getDefaultBehavior (
+                  Collidable.Deformable, Collidable.Self));
+         }
+      }
+      else {
+         // check for external collision
+         if (CollisionManager.isExternallyCollidable (cb0) &&
+             CollisionManager.isExternallyCollidable (cb1)) {
+            behav = getOverrideBehavior (cb0, cb1, cm);
+            if (behav != null) {
+               myBehaviorMap.put (pair, behav);
+               return;
+            }
+            if (cb0.isDeformable() && cb1.isDeformable()) {
+               // both deformable
+               behav = getDominantBehavior (
+                  getGroupBehavior (cb0, Collidable.Deformable, cm),
+                  getGroupBehavior (cb1, Collidable.Deformable, cm), cm);
+            }
+            else if (cb0.isDeformable() && !cb1.isDeformable()) {
+               // one deformable, one rigid
+               behav = getDominantBehavior (
+                  getGroupBehavior (cb0, Collidable.Rigid, cm),
+                  getGroupBehavior (cb1, Collidable.Deformable, cm), cm);
+            }
+            else if (!cb0.isDeformable() && cb1.isDeformable()) {
+               // one deformable, one rigid
+               behav = getDominantBehavior (
+                  getGroupBehavior (cb0, Collidable.Deformable, cm),
+                  getGroupBehavior (cb1, Collidable.Rigid, cm), cm);
+            }
+            else {
+               // both rigid
+               behav = getDominantBehavior (
+                  getGroupBehavior (cb0, Collidable.Rigid, cm),
+                  getGroupBehavior (cb1, Collidable.Rigid, cm), cm);
+            }
+            if (behav == null) {
+               behav = cm.getDefaultBehavior (getGroup(cb0), getGroup(cb1));
+            }
+            myBehaviorMap.put (pair, behav);
+            return;
          }
       }
    }
+
+//   private ArrayList<CollidableBody> getAllCollidableBodies() {
+//      ArrayList<Collidable> collidables = new ArrayList<Collidable>();
+//      myMech.getCollidables (collidables, 0);
+//      ArrayList<CollidableBody> cbodies = new ArrayList<CollidableBody>();
+//      for (Collidable c : collidables) {
+//         if (c instanceof CollidableBody) {
+//            cbodies.add ((CollidableBody)c);
+//         }
+//      }
+//      return cbodies;
+//   }
 
    private void updateBehaviorMap() {
       myBehaviorMap.clear();
-
-      ArrayList<Collidable> collidables = new ArrayList<Collidable>();
-      myMech.getCollidables(collidables, 0);
-      for (int i=0; i<collidables.size(); i++) {
-         Collidable ci = collidables.get(i);
-         if (isBody(ci)) {
-            for (int j=0; j<collidables.size(); j++) {
-               Collidable cj = collidables.get(j);
-               if (isBody(cj)) {
-                  CollidableBody bi = (CollidableBody)ci;
-                  CollidableBody bj = (CollidableBody)cj;
-                  if (!hasCollidableAncestor (bi, bj) &&
-                      isExternallyCollidable (bi) &&
-                      isExternallyCollidable (bj)) {
-                     CollisionBehavior behavior = getPrimaryBehavior (bi, bj);
-                     setBehavior (bi, bj, behavior);
-                  }
-               }
-            }
+      ArrayList<CollidableBody> cbodies = myMech.getCollidableBodies();
+      for (int i=0; i<cbodies.size(); i++) {
+         CollidableBody cbi = cbodies.get(i);
+         for (int j=i+1; j<cbodies.size(); j++) {
+            CollidableBody cbj = cbodies.get(j);
+            MechModel mech = MechModel.lowestCommonModel (cbi, cbj);
+            setBehaviorMap (cbi, cbj, mech.getCollisionManager());
          }
-         else {
-            if (nearestMechAncestor(ci) == myMech &&
-                ci.isDeformable()) {
-               CollisionBehavior behav =
-                  myDefaults.get(CollisionManager.DEFORMABLE_SELF);
-               applyBehavior (ci, ci, behav);
-            }
-         }
-      }
-      for (Map.Entry<CollidablePair,CollisionBehavior> entry :
-              myOverrides.entrySet()) {
-         CollidablePair pair = entry.getKey();
-         applyBehavior (pair.myCompA, pair.myCompB, entry.getValue());
       }
    }
 
-   private boolean equal (CollisionBehavior b0, CollisionBehavior b1) {
-      if (b0 == null && b1 == null) {
-         return true;
-      }
-      else if ((b0 == null && b1 != null) || (b0 != null && b1 == null)) {
-         return false;
-      }
-      else {
-         return b0.equals (b1);
-      }
-   }
+//   private boolean equal (CollisionBehavior b0, CollisionBehavior b1) {
+//      if (b0 == null && b1 == null) {
+//         return true;
+//      }
+//      else if ((b0 == null && b1 != null) || (b0 != null && b1 == null)) {
+//         return false;
+//      }
+//      else {
+//         return b0.equals (b1);
+//      }
+//   }
 
-   CollisionBehavior getMapBehavior ( CollidableBody a, CollidableBody b) {
-      return getMapBehavior (myBehaviorMap, a, b);
+   CollisionBehavior getMapBehavior ( CollidableBody c0, CollidableBody c1) {
+      return getMapBehavior (myBehaviorMap, c0, c1);
    }
 
    CollisionBehavior getMapBehavior (
       HashMap<CollidablePair,CollisionBehavior> map,
-      CollidableBody a, CollidableBody b) {
+      CollidableBody c0, CollidableBody c1) {
 
-      CollisionBehavior behavior = map.get (new CollidablePair (a, b));
-      if (behavior == null) {
-         return new CollisionBehavior();
-      }
-      else {
-         return behavior;
-      }
+      return map.get (new CollidablePair (c0, c1));
    }
 
-
    private CollisionBehavior getBehavior (CollidablePair pair) {
-      Collidable a = pair.myCompA;
-      Collidable b = pair.myCompB;
+      Collidable a = pair.myComp0;
+      Collidable b = pair.myComp1;
 
       if (a == b) {
          if (isBody(a)) {
-            return new CollisionBehavior (false, 0);
+            return null;
          }
          else {
             ArrayList<CollidableBody> bodies = getSubBodies (a);
-            CollisionBehavior behavior0 = null;
+            CollisionBehavior behavior = null;
+            boolean behaviorSet = false;
             for (int i=0; i<bodies.size(); i++) {
-               CollidableBody ai = bodies.get(i);
-               for (int j=i+1; j<bodies.size(); j++) {
-                  CollidableBody aj = bodies.get(j);
-                  if (isInternallyCollidable(ai) && isInternallyCollidable(aj)) {
-                     CollisionBehavior behavior = getMapBehavior (ai, aj);
-                     if (behavior0 == null) {
-                        behavior0 = behavior;
-                     }
-                     else {
-                        if (!behavior.equals(behavior0)) {
-                           return null;
+               CollidableBody ci = bodies.get(i);
+               if (isInternallyCollidable(ci)) {
+                  for (int j=i+1; j<bodies.size(); j++) {
+                     CollidableBody aj = bodies.get(j);
+                     if (isInternallyCollidable(aj)) {
+                        CollisionBehavior behav = getMapBehavior (ci, aj);
+                        if (!behaviorSet) {
+                           behavior = behav;
+                           behaviorSet = true;
+                        }
+                        else {
+                           if (behavior != behav) {
+                              return null;
+                           }
                         }
                      }
                   }
                }
             }
-            return behavior0;
+            return behavior;
          }
       }
       else if (isBody(a) && isBody(b)) {
-         CollisionBehavior behav = myBehaviorMap.get(pair);
-         if (behav == null) {
-            return new CollisionBehavior();
-         }
-         else {
-            return behav;
-         }
+         return myBehaviorMap.get(pair);
       }
       else {
          ArrayList<CollidableBody> bodiesA;
@@ -427,19 +486,21 @@ public class CollisionManagerTest extends UnitTest {
          else {
             bodiesB = getSubBodies (b);
          }
-         CollisionBehavior behavior0 = null;
+         CollisionBehavior behavior = null;
+         boolean behaviorSet = false;
          for (int i=0; i<bodiesA.size(); i++) {
             CollidableBody bi = bodiesA.get(i);
             if (isExternallyCollidable (bi)) {
                for (int j=0; j<bodiesB.size(); j++) {
-                  CollidableBody bj = bodiesB.get(j);
-                  if (isExternallyCollidable (bj)) {
-                     CollisionBehavior behavior = getMapBehavior (bi, bj);
-                     if (behavior0 == null) {
-                        behavior0 = behavior;
+                  CollidableBody cj = bodiesB.get(j);
+                  if (isExternallyCollidable (cj)) {
+                     CollisionBehavior behav = getMapBehavior (bi, cj);
+                     if (!behaviorSet) {
+                        behavior = behav;
+                        behaviorSet = true;
                      }
                      else {
-                        if (!behavior.equals(behavior0)) {
+                        if (behavior != behav) {
                            return null;
                         }
                      }
@@ -447,11 +508,44 @@ public class CollisionManagerTest extends UnitTest {
                }
             }
          }
-         if (behavior0 == null) {
-            return new CollisionBehavior();
-         }
-         else {
-            return behavior0;
+         return behavior;
+      }
+   }
+
+   private void checkHandlerTable() {
+      CollisionManager cm = myMech.getCollisionManager();
+      ArrayList<CollidableBody> cbodies = myMech.getCollidableBodies();
+      cm.updateConstraints (0, /*flags=*/CollisionManager.CONTACT_TEST_MODE);
+      // call again to test rebuilding the handler table
+      cm.updateConstraints (0, /*flags=*/CollisionManager.CONTACT_TEST_MODE);
+
+      if (printMaps) {
+         System.out.println ("handlers:");
+         printHandlerMap();
+      }
+      for (int i=0; i<cbodies.size(); i++) {
+         CollidableBody cbi = cbodies.get(i);
+         for (int j=i+1; j<cbodies.size(); j++) {
+            CollidableBody cbj = cbodies.get(j);
+            MechModel mech = MechModel.lowestCommonModel (cbi, cbj);
+            CollisionHandler handler =
+               mech.getCollisionManager().myHandlerTable.get (cbi, cbj);
+            CollisionBehavior behav = myMech.getActingCollisionBehavior(cbi,cbj);
+            CollidablePair pair = new CollidablePair (cbi, cbj);
+            if (handler == null) {
+               if (behav != null && behav.isEnabled()) {
+                  throw new TestException (
+                     "Response for "+pair+" is empty, expecting behavior "+
+                     toStr(behav));                     
+               }
+            }
+            else {
+               if (handler.myBehavior != behav) {
+                  throw new TestException (
+                     "Response for "+pair+" has behavior "+
+                     toStr(handler.myBehavior)+", expecting "+toStr(behav));
+               }
+            }
          }
       }
    }
@@ -460,17 +554,271 @@ public class CollisionManagerTest extends UnitTest {
       ArrayList<Collidable> collidables = new ArrayList<Collidable>();
       myMech.getCollidables(collidables, 0);
       for (int i=0; i<collidables.size(); i++) {
-         Collidable ai = collidables.get(i);
+         Collidable ci = collidables.get(i);
          for (int j=0; j<collidables.size(); j++) {
-            Collidable bj = collidables.get(j);
-            CollidablePair pair = new CollidablePair (ai, bj);
-            CollisionBehavior behav = myMech.getCollisionBehavior (ai, bj);
+            Collidable cj = collidables.get(j);
+            CollidablePair pair = new CollidablePair (ci, cj);
+            CollisionBehavior behav = myMech.getActingCollisionBehavior (ci, cj);
             CollisionBehavior check = getBehavior (pair);
-            if (!equal (check, behav)) {
+            if (check != behav) {
                throw new TestException (
                   "getBehavior for "+pair+":\n"+
-                  "expected " + check + " got " + behav);
+                  "expected " + toStr(check) + " got " + toStr(behav));
             }
+         }
+      }
+   }
+
+   private boolean nameEquals (Collidable c, String name) {
+      String str = ComponentUtils.getPathName (c);
+      return str.equals (name);
+   }
+
+   private boolean pairMatches (
+      CollidablePair pair, CollidableBody cb0, CollidableBody cb1) {
+
+      Collidable c0 = pair.get(0);
+      Collidable c1 = pair.get(1);
+
+      Collidable an0 = cb0.getCollidableAncestor();
+      Collidable an1 = cb1.getCollidableAncestor();
+
+      if (c1 instanceof Group) {
+         Group g1 = (Group)c1;
+
+         if (an0 == an1 && an0 != null) {
+            return ((an0 == c0 || cb0 == c0 || cb1 == c0) && g1.includesSelf());
+         }
+         else {
+            if (g1.includesRigid()) {
+               if (isBody (c0)) {
+                  if ((cb0 == c0 && !cb1.isDeformable()) ||
+                      (cb1 == c0 && !cb0.isDeformable())) {
+                     return true;
+                  }
+               }
+               else {
+                  if ((an0 == c0 && !cb1.isDeformable()) ||
+                      (an1 == c0 && !cb0.isDeformable())) {
+                     return true;
+                  }
+               }
+            }
+            if (g1.includesDeformable()) {
+               if (isBody (c0)) {
+                  if ((cb0 == c0 && cb1.isDeformable()) ||
+                      (cb1 == c0 && cb0.isDeformable())) {
+                     return true;
+                  }
+               }
+               else {
+                  if ((an0 == c0 && cb1.isDeformable()) ||
+                      (an1 == c0 && cb0.isDeformable())) {
+                     return true;
+                  }
+               }
+            }
+         }
+         return false;
+      }
+      else {
+         if (isBody (c0) && isBody (c1)) {
+            return ((c0 == cb0 && c1 == cb1) || (c0 == cb1 && c1 == cb0));
+         }
+         else if (isBody (c0)) {
+            return ((c0 == cb0 && c1 == an1) || (c0 == an1 && c1 == cb0));
+         }
+         else if (isBody (c1)) {
+            return ((c0 == an0 && c1 == cb1) || (c0 == an1 && c1 == cb0));
+         }
+         else {
+            return ((c0 == an0 && c1 == an1) || (c0 == an1 && c1 == an0));
+         }
+      }
+   }
+
+   private void checkResponse (CollisionResponse resp, CollisionManager cm) {
+      HashSet<CollisionHandler> handlers = new HashSet<CollisionHandler>();
+      handlers.addAll (resp.getHandlers());
+
+      if (handlers.size() != resp.getHandlers().size()) {
+         System.out.println ("raw handlers=");
+         for (CollisionHandler ch : resp.getHandlers()) {
+            System.out.println ("  "+ch.getCollidablePair());
+         }
+         System.out.println ("handlers=");
+         for (CollisionHandler ch : handlers) {
+            System.out.println ("  "+ch.getCollidablePair());
+         }
+         throw new TestException (
+            "Repeated handlers for response " + resp.getCollidablePair());
+      }
+      HashSet<CollisionHandler> expected = new HashSet<CollisionHandler>();
+      ArrayList<CollisionHandler> allHandlers = new ArrayList<CollisionHandler>();
+      cm.collectHandlers (allHandlers);
+      for (CollisionHandler ch : allHandlers) {
+         CollidableBody cb0 = ch.getCollidable(0);
+         CollidableBody cb1 = ch.getCollidable(1);
+         if (pairMatches (resp.getCollidablePair(), cb0, cb1)) {
+            expected.add (ch);
+         }
+      }
+      if (!expected.equals (handlers)) {
+         System.out.println ("handlers=");
+         for (CollisionHandler ch : handlers) {
+            System.out.println ("  "+ch.getCollidablePair());
+         }
+         System.out.println ("expected=");
+         for (CollisionHandler ch : expected) {
+            System.out.println ("  "+ch.getCollidablePair());
+         }
+         throw new TestException (
+            "Unexpected handlers for response " + resp.getCollidablePair());
+      }
+   }      
+
+   private void checkResponses (MechModel mech) {
+      CollisionManager cm = mech.getCollisionManager();
+      for (CollisionResponse resp : cm.responses()) {
+         checkResponse (resp, cm);
+      }
+   }
+
+   private CollisionHandler getHandler (
+      CollidableBody cb0, CollidableBody cb1) {
+
+      MechModel mech = MechModel.lowestCommonModel(cb0, cb1);
+      CollisionManager cm = mech.getCollisionManager();
+      return cm.myHandlerTable.get (cb0, cb1);
+   }
+
+   private boolean hasCommonAncestor (Collidable c0, Collidable c1) {
+      return CollisionManager.nearestCommonCollidableAncestor(c0,c1) != null;
+   }
+
+   private void checkCollisionResponse (
+      Collidable c0, ArrayList<CollidableBody> cbodies, Collidable c1) {
+
+      CollisionResponse resp = myMech.getCollisionResponse (c0, c1);
+
+      HashSet<CollisionHandler> expectedHandlers =
+         new HashSet<CollisionHandler>();
+      HashSet<CollisionHandler> responseHandlers =
+         new HashSet<CollisionHandler>();
+
+      Group g1 = null;
+      if (c1 instanceof Group) {
+         g1 = (Group)c1;
+      }
+      if (c0 == c1 || (g1 != null && g1.includesSelf())) {
+         // check for self intersection handlers
+         if (c0.isDeformable() && c0.isCompound()) {
+            ArrayList<CollidableBody> ibods0 =
+               CollisionManager.getInternallyCollidableBodies (c0);
+            for (int i=0; i<ibods0.size(); i++) {
+               CollidableBody cbi = ibods0.get(i);
+               for (int j=i+1; j<ibods0.size(); j++) {
+                  CollidableBody cbj = ibods0.get(j);
+                  CollisionHandler ch = getHandler (cbi, cbj);
+                  if (ch != null) {
+                     expectedHandlers.add (ch);
+                  }
+               }
+            }
+         }
+      }
+      if (g1 != null) {
+         if (g1.includesRigid() || g1.includesDeformable()) {
+            ArrayList<CollidableBody> ebods0 =
+               CollisionManager.getExternallyCollidableBodies (c0);
+            for (int i=0; i<ebods0.size(); i++) {
+               CollidableBody cbi = ebods0.get(i);
+               for (int j=0; j<cbodies.size(); j++) {
+                  CollidableBody cbj = cbodies.get(j);  
+                  if (!hasCommonAncestor (cbi, cbj)) {
+                     // filter out internal collisions
+                     if ((g1.includesRigid() && !cbj.isDeformable()) ||
+                         (g1.includesDeformable() && cbj.isDeformable())) {
+                        CollisionHandler ch = getHandler (cbi, cbj);
+                        if (ch != null) {
+                           expectedHandlers.add (ch);
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+      else {
+         if (hasCommonAncestor (c0, c1)) {
+            // both c0 and c1 must be bodies - just check for internal
+            // collisions
+            CollisionHandler ch = getHandler (
+               (CollidableBody)c0, (CollidableBody)c1);
+            if (ch != null) {
+               expectedHandlers.add (ch);
+            }
+         }
+         else {
+            ArrayList<CollidableBody> ebods0 =
+               CollisionManager.getExternallyCollidableBodies (c0);
+            ArrayList<CollidableBody> ebods1 =
+               CollisionManager.getExternallyCollidableBodies (c1);
+            for (int i=0; i<ebods0.size(); i++) {
+               CollidableBody cbi = ebods0.get(i);
+               for (int j=0; j<ebods1.size(); j++) {
+                  CollidableBody cbj = ebods1.get(j);
+                  if (!hasCommonAncestor (cbi, cbj)) {
+                     CollisionHandler ch = getHandler (cbi, cbj);
+                     if (ch != null) {
+                        expectedHandlers.add (ch);
+                     }
+                  }
+               }
+            }
+         }
+      }
+      ArrayList<CollisionHandler> handlers = resp.getHandlers();
+      responseHandlers.addAll (handlers);
+      if (handlers.size() != responseHandlers.size()) {
+         System.out.println ("handlers:");
+         for (CollisionHandler ch : handlers) {
+            System.out.println (" "+ch.getCollidablePair());
+         }
+         throw new TestException (
+            "Redundant response handlers detected for " +
+            new CollidablePair (c0, c1));
+      }
+      if (!expectedHandlers.equals (responseHandlers)) {
+         System.out.println ("responseHandlers:");
+         for (CollisionHandler ch : responseHandlers) {
+            System.out.println (" "+ch.getCollidablePair());
+         }
+         System.out.println ("expectedHandlers:");
+         for (CollisionHandler ch : expectedHandlers) {
+            System.out.println (" "+ch.getCollidablePair());
+         }
+         throw new TestException (
+            "Response handlers differ from expected handlers for " +
+             new CollidablePair (c0, c1));
+         
+      }
+   }
+
+   private void checkCollisionResponse() {
+      ArrayList<Collidable> collidables = new ArrayList<Collidable>();
+      ArrayList<CollidableBody> cbodies = myMech.getCollidableBodies();
+      myMech.getCollidables(collidables, 0);
+      for (int i=0; i<collidables.size(); i++) {
+         Collidable ci = collidables.get(i);
+         checkCollisionResponse (ci, cbodies, Collidable.All);
+         checkCollisionResponse (ci, cbodies, Collidable.AllBodies);
+         checkCollisionResponse (ci, cbodies, Collidable.Rigid);
+         checkCollisionResponse (ci, cbodies, Collidable.Deformable);
+         checkCollisionResponse (ci, cbodies, Collidable.Self);
+         for (int j=0; j<collidables.size(); j++) {
+            Collidable cj = collidables.get(j);
+            checkCollisionResponse (ci, cbodies, cj);
          }
       }
    }
@@ -483,21 +831,27 @@ public class CollisionManagerTest extends UnitTest {
       }
    }
 
-   void printMechMap () {
-      printMap (myMech);
+   private static enum MapCode {
+      TEST,
+      BEHAVIORS,
+      HANDLERS
+   };
+
+   void printBehaviorMap () {
+      printMap (myMech, MapCode.BEHAVIORS);
+   }
+
+   void printHandlerMap () {
+      printMap (myMech, MapCode.HANDLERS);
    }
 
    void printTestMap () {
-      printMap (myBehaviorMap);
+      printMap (myMech, MapCode.TEST);
    }
 
-   void printMap (Object obj) {
+   void printMap (MechModel mech, MapCode code) {
       
-      MechModel mech = myMech;
-      if (obj instanceof MechModel) {
-         mech = (MechModel)obj;
-      }
-      ArrayList<CollidableBody> bodies = getAllBodies (mech);
+      ArrayList<CollidableBody> bodies = mech.getCollidableBodies();
 
       int maxlen = 0;
       for (int i=0; i<bodies.size(); i++) {
@@ -506,97 +860,127 @@ public class CollisionManagerTest extends UnitTest {
             maxlen = len;
          }
       }
+      String[] lines = new String[bodies.size()];
       for (int i=0; i<bodies.size(); i++) {
+         StringBuilder stb = new StringBuilder();
          CollidableBody ci = bodies.get(i);
-         printName (ComponentUtils.getPathName (ci), maxlen);
+         stb.append (ComponentUtils.getPathName(ci));
+         // pad name 
+         while (stb.length() < maxlen) {
+            stb.append (' ');
+         }
          for (int j=0; j<bodies.size(); j++) {
             CollidableBody cj = bodies.get(j);
-            CollisionBehavior behavior;
-            if (obj instanceof MechModel) {
-               behavior = ((MechModel)obj).getCollisionBehavior (ci, cj);
+            CollisionBehavior behavior = null;
+            switch (code) {
+               case BEHAVIORS: {
+                  behavior = mech.getActingCollisionBehavior (ci, cj);
+                  break;
+               }
+               case HANDLERS: {
+                  CollisionManager cm = mech.getCollisionManager();
+                  CollisionHandler ch = cm.myHandlerTable.get (ci, cj);
+                  if (ch != null) {
+                     behavior = ch.getBehavior();
+                  }
+                  else {
+                     behavior = null;
+                  }
+                  break;
+               }
+               case TEST: {
+                  behavior = getMapBehavior (myBehaviorMap, ci, cj);
+                  break;
+               }
+            }
+            if (behavior != null && behavior.isEnabled()) {
+               stb.append (" " + (int)behavior.getFriction());
             }
             else {
-               HashMap<CollidablePair,CollisionBehavior> map =
-                  (HashMap<CollidablePair,CollisionBehavior>)obj;
-               behavior = getMapBehavior (map, ci, cj);
-            }
-            if (behavior.isEnabled()) {
-               System.out.print (" " + (int)behavior.getFriction());
-            }
-            else {
-               System.out.print (" .");
+               stb.append (" .");
             }
          }
-         System.out.println ("");
+         lines[i] = stb.toString();
+      }
+      for (String line : lines) {
+         System.out.println (line);
       }
    }
 
-   public void setDefaultBehavior (
-      CollidablePair pair, boolean enabled, double mu) {
-      setDefaultBehavior (myMech, pair, enabled, mu);
+   /**
+    * Set default values which should mirror those in myMech
+    */
+   void setCheckDefaults (Group g0, Group g1, boolean enabled, double mu) {
+      CollisionBehavior behav = new CollisionBehavior (enabled, mu);
+      if ((g0.includesSelf() && g1.includesDeformable()) ||
+          (g1.includesSelf() && g0.includesDeformable())) {
+         myDefaults[DEFORMABLE_SELF].set (behav);
+      }
+      if (g0.includesRigid() && g1.includesRigid()) {
+         myDefaults[RIGID_RIGID].set (behav);
+      }
+      if (g0.includesDeformable() && g1.includesDeformable()) {
+         myDefaults[DEFORMABLE_DEFORMABLE].set (behav);
+      }
+      if ((g0.includesDeformable() && g1.includesRigid()) ||
+          (g1.includesDeformable() && g0.includesRigid())) {
+         myDefaults[DEFORMABLE_RIGID].set (behav);
+      }
    }
 
-   public void setDefaultBehavior (
-      MechModel mech, CollidablePair pair, boolean enabled, double mu) {
+//   public void setDefaultBehavior (
+//      CollidablePair pair, boolean enabled, double mu) {
+//
+//      setDefaultBehavior (myMech, pair, enabled, mu);
+//      setCheckDefaults (pair, enabled, mu);
+//      verifyDefaults();
+//   }
 
-      CollisionBehavior behavior = new CollisionBehavior (enabled, mu);
-      mech.setDefaultCollisionBehavior (
-         pair.myCompA, pair.myCompB, enabled, mu);
-      CollisionBehavior check = 
-         mech.getDefaultCollisionBehavior(pair.myCompA, pair.myCompB);
-      azzert ("getDefaultBehavior", check.equals (behavior));
-      if (mech == myMech) {
-         myDefaults.put (pair, behavior);
-      }
+   public void setDefaultBehavior (
+      Group g0, Group g1, boolean enabled, double mu) {
+
+      setDefaultBehavior (myMech, g0, g1, enabled, mu);
+      setCheckDefaults (g0, g1, enabled, mu);
+      verifyDefaults();
+   }
+
+   void runChecks() {
       updateBehaviorMap();
+      if (printMaps) {
+         System.out.println ("behaviors:");
+         printBehaviorMap();
+      }
+      //System.out.println ("test:");
+      //printTestMap();
       testMap (myBehaviorMap);
       checkBehaviors();
-      testMap (mech.getCollisionManager().myBehaviorMap);
+      checkHandlerTable();
+      checkResponses(myMech);      
+      if (mySubMech != null) {
+         checkResponses (mySubMech);
+      }
    }
 
-   public void setBehavior (
+   public void setDefaultBehavior (
+      MechModel mech, Group g0, Group g1, boolean enabled, double mu) {
+      mech.setDefaultCollisionBehavior (g0, g1, enabled, mu);
+      runChecks();
+   }
+
+   public CollisionBehavior setBehavior (
       Collidable a, Collidable b, boolean enabled, double mu) {
-      setBehavior (myMech, a, b, enabled, mu);
+      return setBehavior (myMech, a, b, enabled, mu);
    }
 
-   public void setBehavior (
+   public CollisionBehavior setBehavior (
       MechModel mech, Collidable a, Collidable b, boolean enabled, double mu) {
 
       CollisionBehavior behavior = new CollisionBehavior (enabled, mu);
-      // see if we can actually set the behavior for this collidable pair
-      boolean settable = true;
-      if (hasCollidableAncestor (a,b)) {
-         // then a and b need to be internally collidable
-         if (!isInternallyCollidable (a) || !isInternallyCollidable (b)) {
-            settable = false;
-         }
-      }
-      else {
-         // then a and b need to be externally collidable
-         if (!isExternallyCollidable (a) || !isExternallyCollidable (b)) {
-            settable = false;
-         }
-      }
-      CollisionBehavior prev = mech.getCollisionBehavior(a, b);
-      mech.setCollisionBehavior (a, b, enabled, mu);
+      mech.setCollisionBehavior (a, b, behavior);
       CollisionBehavior check = mech.getCollisionBehavior(a, b);
-      if (settable) {
-         azzert ("getBehavior", check.equals(behavior));
-      }
-      else {
-         if (!equal (prev, check)) {
-            System.out.println ("prev=" + prev);
-            System.out.println ("check=" + check);
-         }
-         azzert ("getBehavior", equal (prev, check));
-      }
-      if (mech == myMech) {
-         myOverrides.put (new CollidablePair(a, b), behavior);
-      }
-      updateBehaviorMap();
-      testMap (myBehaviorMap);
-      checkBehaviors();
-      testMap (mech.getCollisionManager().myBehaviorMap);
+      azzert ("getBehavior", check == behavior);
+      runChecks();
+      return behavior;
    }
 
    public void clearBehavior (Collidable a, Collidable b) {
@@ -606,11 +990,7 @@ public class CollisionManagerTest extends UnitTest {
    public void clearBehavior (MechModel mech, Collidable a, Collidable b) {
 
       mech.clearCollisionBehavior (a, b);
-      myOverrides.remove (new CollidablePair(a, b));
-      updateBehaviorMap();
-      testMap (myBehaviorMap);
-      checkBehaviors();
-      testMap (mech.getCollisionManager().myBehaviorMap);
+      runChecks();
    }
 
    public void clearBehaviors () {
@@ -620,15 +1000,48 @@ public class CollisionManagerTest extends UnitTest {
    public void clearBehaviors (MechModel mech) {
 
       mech.clearCollisionBehaviors();
-      myOverrides.clear();
-      updateBehaviorMap();
-      testMap (myBehaviorMap);
-      checkBehaviors();
-      testMap (myMech.getCollisionManager().myBehaviorMap);
+      runChecks();
+   }
+
+   public void setResponses (Collidable[] cols) {
+      setResponses (myMech, cols);
+   }
+
+   public void setResponses (MechModel mech, Collidable[] cols) {
+      for (int i=0; i<cols.length; i++) {
+         Collidable ci = cols[i];
+         
+         mech.setCollisionResponse (ci, Collidable.All);
+         mech.setCollisionResponse (ci, Collidable.Rigid);
+         mech.setCollisionResponse (ci, Collidable.Deformable);
+         mech.setCollisionResponse (ci, Collidable.AllBodies);
+         if (ci.isCompound() && ci.isDeformable()) {
+            mech.setCollisionResponse (ci, Collidable.Self);
+         }
+         for (int j=i+1; j<cols.length; j++) {
+            Collidable cj = cols[j];
+            if (!ModelComponentBase.recursivelyContains (ci, cj) &&
+                !ModelComponentBase.recursivelyContains (cj, ci)) {
+               mech.setCollisionResponse (ci, cj);
+            }
+         }
+      }
+   }
+
+   public void clearResponses () {
+      clearResponses (myMech);
+   }
+   
+   public void clearResponses (MechModel mech) {
+      mech.clearCollisionResponses();
+   }
+   
+   public CollisionBehavior getActingBehavior (Collidable a, Collidable b) {
+      return myMech.getActingCollisionBehavior (a, b);
    }
 
    private String getName (Collidable c) {
-      if (CollidablePair.isGeneric(c)) {
+      if (c instanceof Collidable.Group) {
          return c.toString();
       }
       else {
@@ -637,31 +1050,24 @@ public class CollisionManagerTest extends UnitTest {
    }
 
    private String getName (CollidablePair pair) {
-      return getName(pair.myCompA) + "-" + getName(pair.myCompB);
+      return getName(pair.myComp0) + "-" + getName(pair.myComp1);
    }      
 
-   // Make sure behavior map is well constructed - no entries with null or
-   // behaviors with isEnabled() == false, and that the CollidablePair query
-   // works properly.
+   // Make sure behavior map is well constructed - no entries with null,
+   // and the CollidablePair query works properly.
    public void testMap (HashMap<CollidablePair,CollisionBehavior> map) {
       for (Map.Entry<CollidablePair,CollisionBehavior> entry : map.entrySet()) {
          CollidablePair pair = entry.getKey();
          if (entry.getValue() == null) {
             throw new TestException ("Value for "+getName(pair) + " is null");
          }
-         else if (!entry.getValue().isEnabled()) {
-            throw new TestException ("Value for "+getName(pair) + " is false");
-         }
          CollisionBehavior behavior =
-            map.get(new CollidablePair (pair.myCompA, pair.myCompB));
+            map.get(new CollidablePair (pair.myComp0, pair.myComp1));
          if (behavior == null) {
             throw new TestException ("Query for "+getName(pair) + " is null");
          }
-         else if (!behavior.equals(entry.getValue())) {
-            throw new TestException ("Query for "+getName(pair) + " is unequal");
-         }
          CollisionBehavior transposed =
-            map.get(new CollidablePair (pair.myCompB, pair.myCompA));
+            map.get(new CollidablePair (pair.myComp1, pair.myComp0));
          if (behavior != transposed) {
             throw new TestException (
                "Query for "+getName(pair) + " not tranpose invariant");
@@ -687,9 +1093,18 @@ public class CollisionManagerTest extends UnitTest {
          }
       }
    }
+   
+   static String toStr (CollisionBehavior behav) {
+      if (behav == null) {
+         return "null";
+      }
+      else {
+         return "("+behav.isEnabled()+","+behav.getFriction()+")";
+      }
+   }
 
    private void verify (String str) {
-      ArrayList<CollidableBody> bodies = getAllBodies (myMech);
+      ArrayList<CollidableBody> bodies = myMech.getCollidableBodies();
       int idx = 0;
       for (int i=0; i<bodies.size(); i++) {
          CollidableBody ci = bodies.get(i);
@@ -701,10 +1116,11 @@ public class CollisionManagerTest extends UnitTest {
                idx++;
             }
             CollisionBehavior check = getBehaviorFromString (str, idx);
-            if (!check.equals (behavior)) {
+            if ((behavior == null && check.isEnabled()) ||
+                (behavior != null && !check.equals (behavior))) {
                throw new TestException (
-                  "Unexpected behavior for "+
-                  new CollidablePair(ci, cj)+": "+behavior+", expected "+check);
+                  "Unexpected behavior for "+new CollidablePair(ci, cj)+": "+
+                  toStr(behavior)+", expected "+toStr(check));
             }
             if (idx < str.length()) {
                idx++;
@@ -724,17 +1140,100 @@ public class CollisionManagerTest extends UnitTest {
       }
    }
 
-   CollisionBehavior getBehavior (String name0, String name1) {
-      Collidable col0 = findCollidable(name0);
-      Collidable col1 = findCollidable(name1);
-      return myMech.getCollisionBehavior (col0, col1);
+//   CollisionBehavior getBehavior (String name0, String name1) {
+//      Collidable col0 = findCollidable(name0);
+//      Collidable col1 = findCollidable(name1);
+//      return myMech.getCollisionBehavior (col0, col1);
+//   }
+   
+   void testSetDefaults() {
+      Group groups[] = new Group[] {
+         Collidable.All,
+         Collidable.Rigid, 
+         Collidable.Deformable, 
+         Collidable.AllBodies,
+         Collidable.Self
+      };
+      double cnt = 0.0;
+      for (int i=0; i<groups.length; i++) {
+         Group gi = groups[i];
+         for (int j=0; j<groups.length; j++) {
+            Group gj = groups[j];
+            if (!(gi==Collidable.Self && gj==Collidable.Rigid) &&
+                !(gi==Collidable.Rigid && gj==Collidable.Self) &&
+                !(gi==Collidable.Self && gj==Collidable.Self)) {
+               setDefaultBehavior (gi, gj, true, cnt++);
+            }
+         }
+      }
+      setDefaultBehavior (Collidable.Rigid, Collidable.Rigid, false, 0);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Rigid, false, 0);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Deformable, false, 0);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Self, false, 0);
    }
-
+   
+   void testSetDefaultBehaviorArgs (Group g0, Group g1) {
+      try {
+         myMech.setDefaultCollisionBehavior (g0, g1, false, 0);
+      }
+      catch (IllegalArgumentException e) {
+         return;
+      }
+      throw new TestException (
+         "Should have failed with args " + new CollidablePair(g0, g1));
+   }
+   
+   void testGetDefaultBehaviorArgs (Group g0, Group g1) {
+      try {
+         myMech.getDefaultCollisionBehavior (g0, g1);
+      }
+      catch (IllegalArgumentException e) {
+         return;
+      }
+      throw new TestException (
+         "Should have failed with args " + new CollidablePair(g0, g1));
+   }
+   
+   void testGetCollisionResponseArgs (Collidable c0, Collidable c1) {
+      try {
+         myMech.getCollisionResponse (c0, c1);
+      }
+      catch (IllegalArgumentException e) {
+         return;
+      }
+      throw new TestException (
+         "Should have failed with args " + new CollidablePair(c0, c1));
+   }
+   
+   void testSetBehaviorArgs (Collidable c0, Collidable c1) {
+      try {
+         myMech.setCollisionBehavior (c0, c1, false, 0);
+      }
+      catch (IllegalArgumentException e) {
+         return;
+      }
+      throw new TestException (
+         "Should have failed with args " + new CollidablePair(c0, c1));
+   }
+   
+   void testSetBehaviorArgs (
+      Collidable c0, Collidable c1, CollisionBehavior behav) {
+      try {
+         myMech.setCollisionBehavior (c0, c1, behav);
+      }
+      catch (IllegalArgumentException e) {
+         return;
+      }
+      throw new TestException (
+         "Should have failed with repeated behavior");
+   }
+   
    @Override
    public void test() {
       myMech = createMechModel ("top");
-      setDefaultBehavior (CollisionManager.DEFORMABLE_DEFORMABLE, true, 1);
-
+      CollisionManager cm = myMech.getCollisionManager();
+      CollisionBehavior cb;
+      
       //top/models/fem1/meshes/surface  . . . 1 1 1 . . . . .
       //top/models/fem1/meshes/sub1     . . . 1 1 1 . . . . .
       //top/models/fem1/meshes/sub2     . . . 1 1 1 . . . . .
@@ -750,18 +1249,59 @@ public class CollisionManagerTest extends UnitTest {
       Collidable fem1 = findCollidable ("models/fem1");
       Collidable fem2 = findCollidable ("models/fem2");
       Collidable comp = findCollidable ("rigidBodies/comp");
+      Collidable comp2 = findCollidable ("rigidBodies/comp/meshes/2");
+      Collidable comp1 = findCollidable ("rigidBodies/comp/meshes/1");
+      Collidable comp0 = findCollidable ("rigidBodies/comp/meshes/0");
 
       Collidable surf1 = findCollidable ("models/fem1/meshes/surface");
-      FemMeshComp    sub11 = (FemMeshComp)findCollidable ("models/fem1/meshes/sub1");
-      FemMeshComp    sub12 = (FemMeshComp)findCollidable ("models/fem1/meshes/sub2");
+      FemMeshComp sub11 = (FemMeshComp)findCollidable ("models/fem1/meshes/sub1");
+      FemMeshComp sub12 = (FemMeshComp)findCollidable ("models/fem1/meshes/sub2");
       Collidable surf2 = findCollidable ("models/fem2/meshes/surface");
-      FemMeshComp    sub21 = (FemMeshComp)findCollidable ("models/fem2/meshes/sub1");
-      FemMeshComp    sub22 = (FemMeshComp)findCollidable ("models/fem2/meshes/sub2");
-      Collidable comp0 = findCollidable ("rigidBodies/comp/meshes/0");
-      Collidable comp1 = findCollidable ("rigidBodies/comp/meshes/1");
-      Collidable comp2 = findCollidable ("rigidBodies/comp/meshes/2");
+      FemMeshComp sub21 = (FemMeshComp)findCollidable ("models/fem2/meshes/sub1");
+      FemMeshComp sub22 = (FemMeshComp)findCollidable ("models/fem2/meshes/sub2");
       Collidable ball = findCollidable ("rigidBodies/ball");
       Collidable base = findCollidable ("rigidBodies/base");
+
+      testSetDefaults();
+      
+      // test exceptions
+      
+      testGetDefaultBehaviorArgs (Collidable.All, Collidable.Rigid);
+      testGetDefaultBehaviorArgs (Collidable.AllBodies, Collidable.Rigid);
+      testGetDefaultBehaviorArgs (Collidable.Rigid, Collidable.All);
+      testGetDefaultBehaviorArgs (Collidable.Rigid, Collidable.AllBodies);
+      testGetDefaultBehaviorArgs (Collidable.Rigid, Collidable.Self);
+      testGetDefaultBehaviorArgs (Collidable.Self, Collidable.Rigid);
+      testGetDefaultBehaviorArgs (Collidable.Self, Collidable.Self);
+
+      testSetDefaultBehaviorArgs (Collidable.Rigid, Collidable.Self);
+      testSetDefaultBehaviorArgs (Collidable.Self, Collidable.Rigid);
+      testSetDefaultBehaviorArgs (Collidable.Self, Collidable.Self);
+
+      testGetCollisionResponseArgs (Collidable.Rigid, Collidable.Rigid);
+      //testGetCollisionResponseArgs (Collidable.Rigid, base);
+
+      RigidBody straybox = RigidBody.createBox ("base", 6, 2, 0.5, 1);
+      
+      testSetBehaviorArgs (Collidable.Rigid, Collidable.Rigid);
+      testSetBehaviorArgs (ball, Collidable.Self);
+      testSetBehaviorArgs (ball, ball);
+      testSetBehaviorArgs (ball, straybox);
+      testSetBehaviorArgs (straybox, ball);
+      testSetBehaviorArgs (comp, Collidable.Self);
+      testSetBehaviorArgs (comp, comp);
+      testSetBehaviorArgs (fem1, sub11);
+      testSetBehaviorArgs (sub11, fem1);
+      testSetBehaviorArgs (Collidable.Rigid, ball);
+      testSetBehaviorArgs (Collidable.Rigid, fem1);
+      
+      setDefaultBehavior (
+         Collidable.Deformable, Collidable.Deformable, true, 1);
+
+      setResponses (myMech, new Collidable[] {
+            fem1, fem2, comp, comp0, comp1, comp2,
+            surf1, sub11, sub12, surf2, sub21, sub22, ball, base
+         });
 
       verify (". . . 1 . . . . . . . "+  // surf1
               "  . . . . . . . . . . "+  // sub11
@@ -769,15 +1309,15 @@ public class CollisionManagerTest extends UnitTest {
               "      . . . . . . . . "+  // surf2
               "        . . . . . . . "+  // sub21
               "          . . . . . . "); // sub22
-      setDefaultBehavior (CollisionManager.DEFORMABLE_SELF, true, 2);
-
+      setDefaultBehavior (Collidable.Deformable, Collidable.Self, true, 2);
+      
       verify (". . . 1 . . . . . . . "+  // surf1
               "  . 2 . . . . . . . . "+  // sub11
               "    . . . . . . . . . "+  // sub12
               "      . . . . . . . . "+  // surf2
               "        . 2 . . . . . "+  // sub21
               "          . . . . . . "); // sub22
-      setDefaultBehavior (CollisionManager.DEFORMABLE_RIGID, true, 3);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Rigid, true, 3);
 
       verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
               "  . 2 . . . . . . . . "+  // sub11
@@ -791,7 +1331,7 @@ public class CollisionManagerTest extends UnitTest {
               "                  . . "+  // ball
               "                    . "); // base
 
-      setDefaultBehavior (CollisionManager.RIGID_RIGID, true, 2);
+      setDefaultBehavior (Collidable.Rigid, Collidable.Rigid, true, 2);
 
       verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
               "  . 2 . . . . . . . . "+  // sub11
@@ -804,9 +1344,9 @@ public class CollisionManagerTest extends UnitTest {
               "                . 2 2 "+  // comp2
               "                  . 2 "+  // ball
               "                    . "); // base
-      setDefaultBehavior (CollisionManager.DEFORMABLE_SELF, false,0);
-      setDefaultBehavior (CollisionManager.DEFORMABLE_RIGID, false,0);
-      setDefaultBehavior (CollisionManager.RIGID_RIGID, false,0); 
+      setDefaultBehavior (Collidable.Deformable, Collidable.Self, false,0);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Rigid, false,0);
+      setDefaultBehavior (Collidable.Rigid, Collidable.Rigid, false,0); 
 
       verify (". . . 1 . . . . . . . "+  // surf1
               "  . . . . . . . . . . "+  // sub11
@@ -815,9 +1355,9 @@ public class CollisionManagerTest extends UnitTest {
               "        . . . . . . . "+  // sub21
               "          . . . . . . "); // sub22
 
-      setDefaultBehavior (CollisionManager.DEFORMABLE_SELF, true,2);
-      setDefaultBehavior (CollisionManager.DEFORMABLE_RIGID, true,3);
-      setDefaultBehavior (CollisionManager.RIGID_RIGID, true,2);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Self, true,2);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Rigid, true,3);
+      setDefaultBehavior (Collidable.Rigid, Collidable.Rigid, true,2);
       verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
               "  . 2 . . . . . . . . "+  // sub11
               "    . . . . . . . . . "+  // sub12
@@ -834,7 +1374,13 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (ball, fem1, true, 4);
       setBehavior (comp, fem2, true, 5);
       setBehavior (surf1, comp, true, 5);
-      setBehavior (surf2, sub22, true, 5);
+      CollisionBehavior behav = setBehavior (surf2, sub22, true, 5);
+      testSetBehaviorArgs (surf2, sub22, behav);
+
+      // make sure resetting a behavior does not change the behavior list size
+      int numb = cm.numBehaviors();
+      setBehavior (sub22, surf2, true, 5);
+      azzert ("behavior count changed", numb==cm.numBehaviors());      
 
       verify (". . . 1 . . 5 5 5 4 3 "+  // surf1
               "  . 2 . . . . . . . . "+  // sub11
@@ -880,6 +1426,216 @@ public class CollisionManagerTest extends UnitTest {
               "                  . 2 "+  // ball
               "                    . "); // base
 
+      setDefaultBehavior (Collidable.All, Collidable.All, false, 0);
+      setBehavior (sub11, Collidable.All, true, 1);
+      setBehavior (comp, Collidable.Rigid, true, 2);
+      setBehavior (fem2, Collidable.Self, true, 3);
+      numb = cm.numBehaviors();
+      setBehavior (fem2, fem2, true, 3);
+      // make sure fem2, fem2 maps onto fem2, Self
+      azzert ("behavior count changed", numb==cm.numBehaviors()); 
+      setBehavior (surf1, surf2, true, 5);
+
+      verify (". . . 5 . . . . . . . "+  // surf1
+              "  . . . . . . . . . . "+  // sub11
+              "    . . . . . . . . . "+  // sub12
+              "      . . . . . . . . "+  // surf2
+              "        . 3 . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
+              "            . . . 2 2 "+  // comp0
+              "              . . 2 2 "+  // comp1
+              "                . 2 2 "+  // comp2
+              "                  . . "+  // ball
+              "                    . "); // base
+
+      clearBehaviors();
+      sub11.setCollidable (Collidability.ALL);
+      sub12.setCollidable (Collidability.ALL);
+      setBehavior (fem1, Collidable.All, true, 0);
+      setBehavior (comp, Collidable.Rigid, true, 2);
+      setBehavior (comp2, Collidable.AllBodies, true, 3);
+      setBehavior (comp2, surf2, true, 4);
+
+      verify (". . . 0 . . 0 0 3 0 0 "+  // surf1
+              "  . 0 0 . . 0 0 3 0 0 "+  // sub11
+              "    . 0 . . 0 0 3 0 0 "+  // sub12
+              "      . . . . . 4 . . "+  // surf2
+              "        . . . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
+              "            . . . 2 2 "+  // comp0
+              "              . . 2 2 "+  // comp1
+              "                . 3 3 "+  // comp2
+              "                  . . "+  // ball
+              "                    . "); // base
+
+      clearBehaviors();
+      setBehavior (fem1, Collidable.AllBodies, true, 0);
+      setBehavior (comp, Collidable.Deformable, true, 2);
+      setBehavior (comp2, Collidable.Deformable, true, 3);
+      setBehavior (sub11, sub12, true, 4);
+
+      verify (". . . 0 . . 2 2 3 0 0 "+  // surf1
+              "  . 4 0 . . 2 2 3 0 0 "+  // sub11
+              "    . 0 . . 2 2 3 0 0 "+  // sub12
+              "      . . . 2 2 3 . . "+  // surf2
+              "        . . . . . . . "+  // sub21
+              "          . . . . . . "+  // sub22
+              "            . . . . . "+  // comp0
+              "              . . . . "+  // comp1
+              "                . . . "+  // comp2
+              "                  . . "+  // ball
+              "                    . "); // base
+
+      sub21.setCollidable (Collidability.ALL);
+      sub22.setCollidable (Collidability.ALL);
+      updateBehaviorMap();
+
+      verify (". . . 0 0 0 2 2 3 0 0 "+  // surf1
+              "  . 4 0 0 0 2 2 3 0 0 "+  // sub11
+              "    . 0 0 0 2 2 3 0 0 "+  // sub12
+              "      . . . 2 2 3 . . "+  // surf2
+              "        . . 2 2 3 . . "+  // sub21
+              "          . 2 2 3 . . "+  // sub22
+              "            . . . . . "+  // comp0
+              "              . . . . "+  // comp1
+              "                . . . "+  // comp2
+              "                  . . "+  // ball
+              "                    . "); // base
+
+      clearBehaviors();
+      setBehavior (fem1, Collidable.Rigid, true, 0);
+      setBehavior (fem2, Collidable.Deformable, true, 2);
+      setBehavior (comp, Collidable.AllBodies, true, 3);
+      setBehavior (base, Collidable.AllBodies, true, 7);
+
+      verify (". . . 2 2 2 3 3 3 0 7 "+  // surf1
+              "  . . 2 2 2 3 3 3 0 7 "+  // sub11
+              "    . 2 2 2 3 3 3 0 7 "+  // sub12
+              "      . . . 3 3 3 . 7 "+  // surf2
+              "        . . 3 3 3 . 7 "+  // sub21
+              "          . 3 3 3 . 7 "+  // sub22
+              "            . . . 3 7 "+  // comp0
+              "              . . 3 7 "+  // comp1
+              "                . 3 7 "+  // comp2
+              "                  . 7 "+  // ball
+              "                    . "); // base
+
+      cb = setBehavior (comp, Collidable.All, true, 3);
+      setBehavior (base, Collidable.All, true, 7);
+      azzert ("unexpected handler", getActingBehavior(fem1,comp) == cb);
+      azzert ("unexpected handler", getActingBehavior(fem2,comp) == cb);
+
+      verify (". . . 2 2 2 3 3 3 0 7 "+  // surf1
+              "  . . 2 2 2 3 3 3 0 7 "+  // sub11
+              "    . 2 2 2 3 3 3 0 7 "+  // sub12
+              "      . . . 3 3 3 . 7 "+  // surf2
+              "        . . 3 3 3 . 7 "+  // sub21
+              "          . 3 3 3 . 7 "+  // sub22
+              "            . . . 3 7 "+  // comp0
+              "              . . 3 7 "+  // comp1
+              "                . 3 7 "+  // comp2
+              "                  . 7 "+  // ball
+              "                    . "); // base
+
+      setBehavior (comp, fem1, true, 8);
+      cb = setBehavior (fem1, fem1, true, 5);
+      azzert ("unexpected handler", getActingBehavior(fem1,fem1) == cb);
+
+      verify (". . . 2 2 2 8 8 8 0 7 "+  // surf1
+              "  . 5 2 2 2 8 8 8 0 7 "+  // sub11
+              "    . 2 2 2 8 8 8 0 7 "+  // sub12
+              "      . . . 3 3 3 . 7 "+  // surf2
+              "        . . 3 3 3 . 7 "+  // sub21
+              "          . 3 3 3 . 7 "+  // sub22
+              "            . . . 3 7 "+  // comp0
+              "              . . 3 7 "+  // comp1
+              "                . 3 7 "+  // comp2
+              "                  . 7 "+  // ball
+              "                    . "); // base
+
+      clearBehaviors();
+      setBehavior (surf1, Collidable.Rigid, true, 1);
+      setBehavior (sub11, Collidable.Deformable, true, 2);
+      setBehavior (sub12, Collidable.AllBodies, true, 3);
+      setBehavior (surf2, Collidable.All, true, 4);
+      setBehavior (base, Collidable.Deformable, true, 5);
+      cb = setBehavior (comp2, Collidable.Rigid, true, 6);
+      setBehavior (comp1, Collidable.All, true, 7);
+
+      azzert ("unexpected handler", getActingBehavior(comp2,ball) == cb);
+      azzert ("expected null behavior", getActingBehavior(fem1,fem2) == null);
+      azzert ("expected null behavior", getActingBehavior(base,comp) == null);
+
+      cb = myMech.getCollisionBehavior (base, Collidable.Deformable);
+      azzert ("unexpected handler", getActingBehavior(base,fem1) == cb);
+      azzert ("unexpected handler", getActingBehavior(fem2,base) == cb);
+      azzert ("expected null behavior", getActingBehavior(base,comp) == null);
+
+      verify (". . . 4 . . 1 7 1 1 5 "+  // surf1
+              "  . . 4 2 2 . 7 . . 5 "+  // sub11
+              "    . 4 3 3 3 7 3 3 5 "+  // sub12
+              "      . . . 4 7 4 4 5 "+  // surf2
+              "        . . . 7 . . 5 "+  // sub21
+              "          . . 7 . . 5 "+  // sub22
+              "            . . . . . "+  // comp0
+              "              . . 7 7 "+  // comp1
+              "                . 6 6 "+  // comp2
+              "                  . . "+  // ball
+              "                    . "); // base
+
+      setBehavior (base, Collidable.Rigid, true, 8);
+
+      verify (". . . 4 . . 1 7 1 1 5 "+  // surf1
+              "  . . 4 2 2 . 7 . . 5 "+  // sub11
+              "    . 4 3 3 3 7 3 3 5 "+  // sub12
+              "      . . . 4 7 4 4 5 "+  // surf2
+              "        . . . 7 . . 5 "+  // sub21
+              "          . . 7 . . 5 "+  // sub22
+              "            . . . . 8 "+  // comp0
+              "              . . 7 8 "+  // comp1
+              "                . 6 8 "+  // comp2
+              "                  . 8 "+  // ball
+              "                    . "); // base
+
+      setBehavior (comp, surf2, true, 0);
+      setBehavior (surf1, fem2, true, 9);
+
+      verify (". . . 9 9 9 1 7 1 1 5 "+  // surf1
+              "  . . 4 2 2 . 7 . . 5 "+  // sub11
+              "    . 4 3 3 3 7 3 3 5 "+  // sub12
+              "      . . . 0 0 0 4 5 "+  // surf2
+              "        . . . 7 . . 5 "+  // sub21
+              "          . . 7 . . 5 "+  // sub22
+              "            . . . . 8 "+  // comp0
+              "              . . 7 8 "+  // comp1
+              "                . 6 8 "+  // comp2
+              "                  . 8 "+  // ball
+              "                    . "); // base
+
+      setBehavior (sub12, Collidable.AllBodies, true, 3);
+
+      verify (". . . 9 9 9 1 7 1 1 5 "+  // surf1
+              "  . . 4 2 2 . 7 . . 5 "+  // sub11
+              "    . 3 3 3 3 3 3 3 3 "+  // sub12
+              "      . . . 0 0 0 4 5 "+  // surf2
+              "        . . . 7 . . 5 "+  // sub21
+              "          . . 7 . . 5 "+  // sub22
+              "            . . . . 8 "+  // comp0
+              "              . . 7 8 "+  // comp1
+              "                . 6 8 "+  // comp2
+              "                  . 8 "+  // ball
+              "                    . "); // base
+
+      sub21.setCollidable (Collidability.INTERNAL);
+      sub22.setCollidable (Collidability.INTERNAL);
+
+      clearBehaviors();
+      setDefaultBehavior (
+         Collidable.Deformable, Collidable.Deformable, true, 1);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Self, true,2);
+      setDefaultBehavior (Collidable.Deformable, Collidable.Rigid, true,3);
+      setDefaultBehavior (Collidable.Rigid, Collidable.Rigid, true,2);
+
       mySubMech = createSubModel("sub");
       myMech.addModel (mySubMech);
       updateBehaviorMap();
@@ -889,8 +1645,8 @@ public class CollisionManagerTest extends UnitTest {
          (FemModel3d)myMech.findComponent ("models/sub/models/fem3");
 
       Collidable surf3 = (Collidable)fem3.findComponent ("meshes/surface");
-      Collidable sub31 = (Collidable)fem3.findComponent ("meshes/sub1");
-      Collidable sub32 = (Collidable)fem3.findComponent ("meshes/sub2");
+      FemMeshComp sub31 = (FemMeshComp)fem3.findComponent ("meshes/sub1");
+      FemMeshComp sub32 = (FemMeshComp)fem3.findComponent ("meshes/sub2");
       Collidable ball1 = (Collidable)mySubMech.findComponent("rigidBodies/ball1");
       Collidable ball2 = (Collidable)mySubMech.findComponent("rigidBodies/ball2");
 
@@ -900,7 +1656,19 @@ public class CollisionManagerTest extends UnitTest {
       sub12.setCollidable (Collidability.ALL);
       sub21.setCollidable (Collidability.ALL);
       sub22.setCollidable (Collidability.ALL);
-      updateBehaviorMap();
+      runChecks();
+      
+      testSetBehaviorArgs (ball1, ball2);
+
+      clearResponses();
+      setResponses (myMech, new Collidable[] {
+            fem1, fem2, fem3, comp, comp0, comp1, comp2,
+            surf1, sub11, sub12, surf2, sub21, sub22,
+            surf3, sub31, sub32, ball1, ball2, ball, base
+         });
+
+      setResponses (mySubMech, new Collidable[] {
+            fem3, surf3, sub31, sub32, ball1, ball2});
 
       verify (". . . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // surf1
               "  . 2 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub11
@@ -919,10 +1687,11 @@ public class CollisionManagerTest extends UnitTest {
               "                            . 2 "+ // ball
               "                              . ");// base
 
-      setBehavior (fem3, fem3, true, 7);
-      setDefaultBehavior (mySubMech, CollisionManager.DEFORMABLE_RIGID, true, 2);
+      setBehavior (mySubMech, fem3, fem3, true, 7);
+      setDefaultBehavior (
+         mySubMech, Collidable.Deformable, Collidable.Rigid, true, 2);
       setBehavior (mySubMech, ball1, ball2, true, 6);
-      setBehavior (surf3, ball1, true, 8);
+      setBehavior (mySubMech, surf3, ball1, true, 8);
       setBehavior (ball, sub31, true, 7);
 
       verify (". . . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // surf1
@@ -942,6 +1711,50 @@ public class CollisionManagerTest extends UnitTest {
               "                            . 2 "+ // ball
               "                              . ");// base
 
+      clearBehavior (mySubMech, ball1, surf3);
+      clearBehavior (mySubMech, ball1, ball2);
+      setBehavior (mySubMech, ball1, Collidable.All, true, 0);
+      setBehavior (ball1, Collidable.All, true, 9);
+
+      verify (". . . 1 1 1 1 . . 9 3 3 3 3 3 3 "+ // surf1
+              "  . 2 1 1 1 1 . . 9 3 3 3 3 3 3 "+ // sub11
+              "    . 1 1 1 1 . . 9 3 3 3 3 3 3 "+ // sub12
+              "      . . . 1 . . 9 3 3 3 3 3 3 "+ // surf2 
+              "        . 2 1 . . 9 3 3 3 3 3 3 "+ // sub21
+              "          . 1 . . 9 3 3 3 3 3 3 "+ // sub22
+              "            . . . 0 2 3 3 3 3 3 "+ // surf3
+              "              . 7 . . . . . . . "+ // sub31
+              "                . . . . . . . . "+ // sub32
+              "                  . 0 9 9 9 9 9 "+ // ball1
+              "                    . 2 2 2 2 2 "+ // ball2
+              "                      . . . 2 2 "+ // comp0
+              "                        . . 2 2 "+ // comp1
+              "                          . 2 2 "+ // comp2
+              "                            . 2 "+ // ball
+              "                              . ");// base
+
+      sub31.setCollidable (Collidability.ALL);
+      sub32.setCollidable (Collidability.ALL);
+      runChecks();
+
+      setBehavior (mySubMech, fem3, fem3, true, 5);
+
+      verify (". . . 1 1 1 1 1 1 9 3 3 3 3 3 3 "+ // surf1
+              "  . 2 1 1 1 1 1 1 9 3 3 3 3 3 3 "+ // sub11
+              "    . 1 1 1 1 1 1 9 3 3 3 3 3 3 "+ // sub12
+              "      . . . 1 1 1 9 3 3 3 3 3 3 "+ // surf2 
+              "        . 2 1 1 1 9 3 3 3 3 3 3 "+ // sub21
+              "          . 1 1 1 9 3 3 3 3 3 3 "+ // sub22
+              "            . . . 0 2 3 3 3 3 3 "+ // surf3 
+              "              . 5 0 2 3 3 3 7 3 "+ // sub31 
+              "                . 0 2 3 3 3 3 3 "+ // sub32 
+              "                  . 0 9 9 9 9 9 "+ // ball1 
+              "                    . 2 2 2 2 2 "+ // ball2 
+              "                      . . . 2 2 "+ // comp0
+              "                        . . 2 2 "+ // comp1
+              "                          . 2 2 "+ // comp2
+              "                            . 2 "+ // ball
+              "                              . ");// base
 
    }
 

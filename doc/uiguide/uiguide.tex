@@ -13,7 +13,7 @@
 
 \title{ArtiSynth User Interface Guide}
 \author{John Lloyd}
-\setpubdate{Last update: Dec 1, 2015}
+\setpubdate{Last update: Oct 12, 2016}
 \iflatexml
 \date{}
 \fi
@@ -3212,15 +3212,49 @@ the user should click when finished.
 
 \subsubsection{Collision handling}
 
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/setDefaultCollisionsDialog}
+\else
+\includegraphics[width=0.40\textwidth]{images/setDefaultCollisionsDialog}
+\fi
+\end{center}
+\caption{Dialog for setting default collision behavior in a MechModel.}%
+\label{setDefaultCollisionsDialogFig}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/setCollisionsDialog}
+\else
+\includegraphics[width=0.30\textwidth]{images/setCollisionsDialog}
+\fi
+\end{center}
+\caption{Dialog for setting collision behavior between bodies.}%
+\label{setCollisionsDialogFig}
+\end{figure}
+
 In ArtiSynth, collision detection and handling can be enabled between
-any pair of rigid or deformable bodies. Self intersections can also be
-enabled for deformable bodies. Rigid bodies are of type
-\javaclass[artisynth.core.mechmodels]{RigidBody}, and deformable bodies
-currently include \javaclass[artisynth.core.femmodels]{FemModel3d}.
+rigid bodies (such as
+\javaclass[artisynth.core.mechmodels]{RigidBody}), deformable bodies
+(such as \javaclass[artisynth.core.femmodels]{FemModel3d}), and more
+generally any body that implements the interface
+\javaclass[artisynth.core.mechmodels]{Collidable}.  Self intersection
+is not directly supported, but is indirectly supported for compound
+deformable bodies that contain sub-collidable components. For example,
+an FEM model is a compound collidable that may contain multiple
+surface meshes, some of which can be made to collide with each other.
+For more details on collision handling, see the ``Collision Handling''
+section of the
+\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
+Modeling Guide}.
 
 The collision response between any two pairs of bodies is determined
-by a {\it collision behavior}, which contains two properties:
-
+by a \javaclass[artisynth.core.mechmodels]{CollisionBehavior}
+component, which contains various properties controlling collision
+interactions. Two of these can be directly modfied from the GUI:
 
 \begin{description}
 
@@ -3234,79 +3268,97 @@ the friction coefficient if collisions are enabled.
 
 \end{description}
 
-Collisions handling is performed by MechModel.  Each MechModel
-provides four default behaviors that determine the default collision
-response for (a) rigid body pairs, (b) rigid-deformable body pairs,
-(c) deformable body pairs, and (d) deformable self-intersection. In
-addition to these, {\it override} collision behaviors can be specified for
-any specific pair of bodies.
+Collisions handling is managed by
+a \javaclass[artisynth.core.mechmodels]{CollisionManager} component
+within each {\tt MechModel}.  Each {\tt MechModel} provides four
+default behaviors that determine the default collision response for
+(a) rigid body pairs, (b) rigid-deformable body pairs, (c) deformable
+body pairs, and (d) deformable self-intersection. In addition to
+these, {\it override} collision behaviors can be specified for any
+pairs of bodies.  In situations where a {\tt MechModel} contains
+sub-{\tt MechModel}s, then the collision behavior for any pair of
+collidables is controlled by the lowest {\tt MechModel} in the
+hierarchy that contains both.
 
-The {\it primary} collision behavior for any given pair of bodies is the
-behavior that occurs if no override behavior has been specified for
-that pair. If there are no sub-MechModels located under the MechModel,
-the primary behavior is simply the default behavoir.
-
-If the MechModel contains sub-MechModels, the situation is more
-complicated. In that case, to determine the primary collision behavior
-for a pair of bodies, let M denote the MechModel and L denote the
-lowest sub-MechModel beneath M that contains both bodies.  If an
-override collision behavior for the pair is present in any model
-between M (exclusive) and L (inclusive), then the highest such
-override determines the primary behavior for the pair. Otherwise, the
-primary behavior is determined by the default behavior in L.
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/collisionProperties}
+\else
+\includegraphics[width=0.50\textwidth]{images/collisionProperties}
+\fi
+\end{center}
+\caption{Property panel for the collision manager.}
+\label{collisionProperties:fig}
+\end{figure}
 
 There are several ways to edit collision behavior using the GUI.
 
-First, the default collision behaviors for the combinations
-described above can be edited by selecting the MechModel
-and then choosing {\sf "Set default collisions ..."} from the context
-menu. This will open the dialog shown in
-Figure \ref{setDefaultCollisionsDialogFig}, allowing the default settings to be
-adjusted. For the example shown, collisions are enabled between all rigid
-bodies, with a friction coefficient of 0.2, and between all rigid and
-deformable bodies, with a coefficient of 0.1. Other collisions
-are disabled.
+\begin{itemize}
 
-\begin{figure}
-\begin{center}
-\iflatexml
-\includegraphics[]{images/setDefaultCollisionsDialog}
-\else
-\includegraphics[width=0.40\textwidth]{images/setDefaultCollisionsDialog}
-\fi
-\end{center}
-\caption{Dialog for setting default collision behavior in a MechModel.}%
-\label{setDefaultCollisionsDialogFig}
-\end{figure}
+\item For default behaviors, the {\sf enabled} and {\sf friction}
+properties can be edited by selecting the {\tt MechModel} and then
+choosing {\sf "Set default collisions ..."} from the context
+menu. This will open the dialog shown in Figure
+\ref{setDefaultCollisionsDialogFig}, allowing the {\sf enabled}
+and {\sf friction} properties to
+be adjusted. For the example shown, collisions are enabled between all
+rigid bodies, with a friction coefficient of 0.2, and between all
+rigid and deformable bodies, with a coefficient of 0.1. Other
+collisions are disabled.
 
-Second, if a user selects a particular set of rigid and/or deformable
+\item If a user selects a particular set of rigid and/or deformable
 bodies, a specific collision behavior may be established among those
-bodies by choosing {\sf "Set collisions ..."} from the context menu.  That
-will open the dialog shown in Figure \ref{setCollisionsDialogFig}, allowing a
-specific behavior to be set. If this behavior does not match the
-default behavior, override behaviors will be added for the pairs of
-bodies in the set.
+bodies by choosing {\sf "Set collisions ..."} from the context menu.
+That will open the dialog shown in Figure
+\ref{setCollisionsDialogFig}, allowing the {\sf enabled} and {\sf
+friction} properties for this behavior to be set.
 
-\begin{figure}
-\begin{center}
-\iflatexml
-\includegraphics[]{images/setCollisionsDialog}
-\else
-\includegraphics[width=0.30\textwidth]{images/setCollisionsDialog}
-\fi
-\end{center}
-\caption{Dialog for setting collision behavior between bodies.}%
-\label{setCollisionsDialogFig}
-\end{figure}
-
-Third, if a user selects a single deformable body, a specific
+\item If a user selects a single deformable body, a specific
 self-intersection behavior for that body may be established by selecting
 {\sf "Set self collision ..."}.
 
-Finally, all override collision behaviors in a specific MechModel may
-be removed by selecting {\sf "Remove collision overrides"}. This will
-cause the collision behavior among all bodies to revert to their
-primary behavior.
+\item More detailed collision control can be realized by selecting the
+{\tt MechModel}'s collision manager in the navigation panel (Section
+\ref{navPanelSec}). Choosing {\sf Edit properties ...} or {\sf Edit
+render props ...}  from the right context menu then allows other
+properties to be set to control either the collision behavior or the
+rendering of collisions. A sample property panel is shown in Figure
+\ref{collisionProperties:fig}, and these properties are described in
+the ``Collision Handling'' section of the
+\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
+Modeling Guide}
+
+\item For more fine-grained control, one may also use the navigation
+panel to select one or more of the behavior components located under
+the collision manager (see Figure
+\ref{setCollisionsNavpanel:fig}). The first four of these control the
+default behaviors. Other behaviors, if any, are overrides that have
+been added either by application code, or through the GUI.  Once
+selected, one can choose {\sf Edit properties ...} or {\sf Edit render
+props ...}  from the right context menu to edit their properties.  In
+the case of override behaviors, the context menu can also be used to
+remove them.
+
+\item Finally, all override behaviors in a specific {\tt MechModel}
+may be removed by selecting {\sf "Remove collision overrides"}. This
+will cause the collision behavior for all bodies to revert to default
+values.
+
+\end{itemize}
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/setCollisionsNavpanel}
+\else
+\includegraphics[width=0.50\textwidth]{images/setCollisionsNavpanel}
+\fi
+\end{center}
+\caption{Expanded navigation panel showing the collision manager and
+individual behavior components for a {\tt MechModel}.}
+\label{setCollisionsNavpanel:fig}
+\end{figure}
 
 \subsection{Editing Rigid Bodies}
 

@@ -738,11 +738,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             boolean needConfirmation = false;
             for (ModelComponent c : delete) {
                if (!c.isSelected()) {
-                  // XXX Big Hack. Need a more general way to check
-                  // if delete confirmation is needed
-                  if (!(c instanceof artisynth.core.mechmodels.CollisionHandler)){
-                     needConfirmation = true;
-                  }
+                  needConfirmation = true;
                   mySelectionManager.addSelected (c);
                }
             }

@@ -8,7 +8,9 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	CollisionManagerTest \
-	AxialSpringTest
+	CollisionHandlerTableTest \
+	ContactPointTest \
+	AxialSpringTest \
 
 default: build
 

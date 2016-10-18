@@ -23,13 +23,13 @@ public class MeshCollider implements AbstractCollider {
    //private BVFeatureQuery myQuery = new BVFeatureQuery();
 
    private static final double EPS = 1e-12;
-   private double epsilon = 0;
+   //private double epsilon = 0;
 
-   // The minimum distance between contact points
-   private double pointtolerance = 0;
-
-   // The minimum distance between regions
-   private double regiontolerance = 0;
+//   // The minimum distance between contact points
+//   private double pointtolerance = 1e-4;
+//
+//   // The minimum distance between regions
+//   private double regiontolerance = 1e-2;
 
    // The number of axes to take extrema along when throwing out contact points
    // 0 = disabled
@@ -48,19 +48,19 @@ public class MeshCollider implements AbstractCollider {
    public static double maxErr = 0;
 
    public MeshCollider() {
-      setEpsilon (1e-12);
-      setPointTolerance (1e-4);
-      setRegionTolerance (1e-2);
+//      //setEpsilon (1e-12);
+//      setPointTolerance (1e-4);
+//      setRegionTolerance (1e-2);
    }
 
-   public double getEpsilon() {
-      return epsilon;
-   }
-
-   public void setEpsilon (double epsilon) {
-      this.epsilon = epsilon;
-      //intersector.setEpsilon (epsilon);
-   }
+//   public double getEpsilon() {
+//      return epsilon;
+//   }
+//
+//   public void setEpsilon (double epsilon) {
+//      this.epsilon = epsilon;
+//      //intersector.setEpsilon (epsilon);
+//   }
 
    static int iFirst = 0;
    public static int numIntNodes;
@@ -197,8 +197,8 @@ public class MeshCollider implements AbstractCollider {
 //            }
 //         }
          // collisionMetrics.femTime += System.nanoTime();
-      info.myPointTol = pointtolerance;
-      info.myRegionTol = regiontolerance;
+//      info.myPointTol = pointtolerance;
+//      info.myRegionTol = regiontolerance;
 
       return info;
    }
@@ -251,6 +251,11 @@ public class MeshCollider implements AbstractCollider {
       ArrayList<TriTriIntersection> intersections, double regionTol) {
       // System.out.println("determining regions");
       // long t0 = System.currentTimeMillis();
+
+      if (intersections.size() == 0) {
+         // no intersections, so no planes to compute
+         return;
+      }
 
       AccelerationGrid<TriTriIntersection> accgrid =
          new AccelerationGrid<TriTriIntersection>();
@@ -817,21 +822,21 @@ public class MeshCollider implements AbstractCollider {
       }
    }
 
-   public double getPointTolerance() {
-      return pointtolerance;
-   }
-
-   public void setPointTolerance (double tolerance) {
-      this.pointtolerance = tolerance;
-   }
-
-   public double getRegionTolerance() {
-      return regiontolerance;
-   }
-
-   public void setRegionTolerance (double regiontolerance) {
-      this.regiontolerance = regiontolerance;
-   }
+//   public double getPointTolerance() {
+//      return pointtolerance;
+//   }
+//
+//   public void setPointTolerance (double tolerance) {
+//      this.pointtolerance = tolerance;
+//   }
+//
+//   public double getRegionTolerance() {
+//      return regiontolerance;
+//   }
+//
+//   public void setRegionTolerance (double regiontolerance) {
+//      this.regiontolerance = regiontolerance;
+//   }
 
    /**
     * See setter.

@@ -63,14 +63,16 @@ public class BlockTest extends RootModel {
          RenderProps.setVisible (collisions, true);
          RenderProps.setLineWidth (collisions, 3);      
          RenderProps.setLineColor (collisions, Color.RED);
-         collisions.setContactNormalLen (0.5);
+         collisions.setDrawContactNormals (true);
       }
 
       ControlPanel panel = new ControlPanel();
       panel.addWidget (msmod, "integrator");
       panel.addWidget (myBlock, "position");
-      panel.addWidget (msmod, "collisionManager:collisionCompliance");
-      panel.addWidget (msmod, "collisionManager:collisionDamping");
+      panel.addWidget (msmod, "collisionManager:compliance");
+      panel.addWidget (msmod, "collisionManager:damping");
+      panel.addWidget (msmod, "collisionManager:acceleration");
+      panel.addWidget (msmod, "penetrationTol");
       addControlPanel (panel);
       addBreakPoint (10);
       Main.getMain().arrangeControlPanels(this);

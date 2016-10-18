@@ -92,6 +92,8 @@ public class CompositePropertyPanel extends LabeledPanel
    
    // Widget to select the composite property type.
    StringSelector myCpropSelector = null;
+   // Hide cprop selector - if only one class is available
+   boolean myHideCpropSelector = false;
    // Property handle to the composite property
    protected Property myCpropProperty = null;
    // Current type of the composite property
@@ -230,7 +232,8 @@ public class CompositePropertyPanel extends LabeledPanel
          throw new IllegalArgumentException (
             "Argument 'selectableClasses' is null or empty");
       }
-      LinkedHashMap<String,Class<?>> typeMap = new LinkedHashMap<String,Class<?>>();
+      LinkedHashMap<String,Class<?>> typeMap =
+         new LinkedHashMap<String,Class<?>>();
       for (Class<?> cls : selectableClasses ) {
          if (!(primaryClass.isAssignableFrom(cls))) {
             throw new IllegalStateException (
@@ -240,12 +243,21 @@ public class CompositePropertyPanel extends LabeledPanel
       }
       myCpropTypes = typeMap;
       myWidgetSets = new LinkedHashMap<String,LabeledComponentBase[]>();
-      myCpropSelector.setSelections (createCpropSelections (isNullAllowed(prop)));
+      String[] selections = createCpropSelections (isNullAllowed(prop));
+      myCpropSelector.setSelections (selections);
       //myCpropSelector = createCpropSelector ("xxx", isNullAllowed(prop));
       //myCpropSelector.addValueChangeListener (this);
       //setMainWidget (myCpropSelector);   
       myCpropProperty = prop;
       myCpropType = getCpropTypeFromProperty(prop);
+      if (!isNullAllowed(prop) && 
+          selectableClasses.length == 1 &&
+          selectableClasses[0] == primaryClass) {
+         // If there is only one selection available, and it is the main
+         // class, no need for CpropSelector so replace it with a simple 
+         // LabeledComponent
+         setMainWidget (new LabeledComponent(prop.getName()+":"));
+      }
       rebuildPanel (/*setValuesFromWidgets=*/false);
    }
 
@@ -277,6 +289,7 @@ public class CompositePropertyPanel extends LabeledPanel
       //myCpropSelector.setVoidValueEnabled (true);
       myCpropSelector.addValueChangeListener (this);
       setMainWidget (myCpropSelector);
+      myPanel.addWidget (myCpropSelector);
    }
 
    /** 
@@ -388,33 +401,33 @@ public class CompositePropertyPanel extends LabeledPanel
       }
    }
 
-   /** 
-    * Sets the property handle for the composite property.
-    */
-   public void setProperty (Property prop) {
-      myCpropProperty = prop;      
-      boolean nullAllowed;
-      if (myCpropProperty instanceof EditingProperty) {
-         // then null values are allowed only if they are permitted
-         // on all the hosts
-         EditingProperty eprop = (EditingProperty)prop;
-         HostList hostList = eprop.getHostList();
-         PropTreeCell cell = eprop.getCell();         
-         PropertyInfo[] infos = hostList.getAllInfos (cell);
-         nullAllowed = true;
-         for (PropertyInfo info : infos) {
-            if (!info.getNullValueOK()) {
-               nullAllowed = false;
-            }
-         }
-      }
-      else {
-         nullAllowed = prop.getInfo().getNullValueOK();
-      }
-      myCpropType = getCpropTypeFromProperty(myCpropProperty);
-      setNullAllowed (nullAllowed);
-      rebuildPanel (/*setValuesFromWidgets=*/false);
-   }
+//   /** 
+//    * Sets the property handle for the composite property.
+//    */
+//   public void setProperty (Property prop) {
+//      myCpropProperty = prop;      
+//      boolean nullAllowed;
+//      if (myCpropProperty instanceof EditingProperty) {
+//         // then null values are allowed only if they are permitted
+//         // on all the hosts
+//         EditingProperty eprop = (EditingProperty)prop;
+//         HostList hostList = eprop.getHostList();
+//         PropTreeCell cell = eprop.getCell();         
+//         PropertyInfo[] infos = hostList.getAllInfos (cell);
+//         nullAllowed = true;
+//         for (PropertyInfo info : infos) {
+//            if (!info.getNullValueOK()) {
+//               nullAllowed = false;
+//            }
+//         }
+//      }
+//      else {
+//         nullAllowed = prop.getInfo().getNullValueOK();
+//      }
+//      myCpropType = getCpropTypeFromProperty(myCpropProperty);
+//      setNullAllowed (nullAllowed);
+//      rebuildPanel (/*setValuesFromWidgets=*/false);
+//   }
 
    /** 
     * Returns the property handle for thecomposite property.
@@ -771,7 +784,7 @@ public class CompositePropertyPanel extends LabeledPanel
    private void rebuildPanel (boolean setValuesFromWidgets) {
 
       myPanel.removeAllWidgets();
-      myPanel.addWidget (myCpropSelector);
+      myPanel.addWidget (getMainWidget());
       myWidgetProps = null;
       myWidgets = null;
 
@@ -907,7 +920,8 @@ public class CompositePropertyPanel extends LabeledPanel
          for (LabeledComponentBase comp : myWidgets) {
             if (comp instanceof LabeledControl) {
                LabeledControl ctrl = (LabeledControl)comp;
-               ctrl.addValueChangeListener (l);
+               //ctrl.addValueChangeListener (l);
+               PropertyPanel.addValueChangeListener (ctrl, l);
             }
          }
       }
@@ -920,6 +934,7 @@ public class CompositePropertyPanel extends LabeledPanel
             if (comp instanceof LabeledControl) {
                LabeledControl ctrl = (LabeledControl)comp;
                ctrl.removeValueChangeListener (l);
+               //PropertyPanel.removeValueChangeListener (ctrl, l);
             }
          }
       }

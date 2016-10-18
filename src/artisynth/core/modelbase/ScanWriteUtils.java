@@ -444,7 +444,7 @@ public class ScanWriteUtils {
       return null;
    }
 
-   protected static <C> C postscanReference (
+   public static <C> C postscanReference (
       StringToken strtok, Class<C> clazz, CompositeComponent ancestor)
       throws IOException {
 

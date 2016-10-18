@@ -35,6 +35,7 @@ public class RigidMeshComp extends MeshComponent
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
+   protected int myCollidableIndex;
 
    public static PropertyList myProps = new PropertyList(
       RigidMeshComp.class, MeshComponent.class);
@@ -189,6 +190,16 @@ public class RigidMeshComp extends MeshComponent
    public double getMass () {
       return getRigidBody().getMass();
    }
+   
+   @Override
+   public Collidable getCollidableAncestor() {
+      return getRigidBody();
+   }
+
+   @Override
+   public boolean isCompound() {
+      return false;
+   }
 
    @Override
    public Collidability getCollidable () {
@@ -235,6 +246,14 @@ public class RigidMeshComp extends MeshComponent
       return true;
    }
 
+   public int getCollidableIndex() {
+      return myCollidableIndex;
+   }
+   
+   public void setCollidableIndex (int idx) {
+      myCollidableIndex = idx;
+   }
+   
    public PointFrameAttachment createPointAttachment (Point pnt) {
       
       if (getGrandParent() instanceof RigidBody) {

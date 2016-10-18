@@ -91,6 +91,7 @@ public class FemMeshComp extends FemMeshBase
    private boolean isSurfaceMesh;
    private int myNumSingleAttachments;
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
+   protected int myCollidableIndex;
 
    private float[] colorArray = new float[3];
 
@@ -122,7 +123,7 @@ public class FemMeshComp extends FemMeshBase
       this(fem);
       setName(name);
    }
-
+   
    public int numAttachments () {
       return myVertexAttachments.size();
    }
@@ -1578,6 +1579,16 @@ public class FemMeshComp extends FemMeshBase
          notifyParentOfChange (new StructureChangeEvent (this));
       }
    }
+   
+   @Override
+   public Collidable getCollidableAncestor() {
+      return myFem;
+   }
+
+   @Override
+   public boolean isCompound() {
+      return false;
+   }
 
    @Override
    public boolean isDeformable () {
@@ -1624,6 +1635,14 @@ public class FemMeshComp extends FemMeshBase
          return false;
       }
       return true;
+   }
+   
+   public int getCollidableIndex() {
+      return myCollidableIndex;
+   }
+   
+   public void setCollidableIndex (int idx) {
+      myCollidableIndex = idx;
    }
    
    // end Collidable implementation

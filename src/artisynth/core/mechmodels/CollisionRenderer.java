@@ -1,28 +1,38 @@
 package artisynth.core.mechmodels;
 
-import java.util.*;
-import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 
-import maspack.collision.*;
-import maspack.geometry.*;
-import maspack.matrix.*;
-import maspack.properties.*;
-import maspack.render.*;
+import maspack.collision.ContactInfo;
+import maspack.collision.ContactPlane;
+import maspack.collision.EdgeEdgeContact;
+import maspack.collision.IntersectionContour;
+import maspack.collision.IntersectionPoint;
+import maspack.collision.PenetratingPoint;
+import maspack.collision.PenetrationRegion;
+import maspack.geometry.Face;
+import maspack.geometry.HalfEdge;
+import maspack.geometry.TriTriIntersection;
+import maspack.geometry.Vertex3d;
+import maspack.geometry.MeshBase;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.BVFeatureQuery;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderObject;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
-import maspack.util.*;
-import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.mechmodels.MechSystem.FrictionInfo;
+import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
-import artisynth.core.mechmodels.CollisionHandler.LineSeg;
-import artisynth.core.mechmodels.CollisionHandler.FaceSeg;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.util.TimeBase;
+import artisynth.core.util.ScalarRange;
 
 /**
- * Class to perform rendering for a CollisionHandler
+ * Class to perform rendering for a CollisionHandlerX
  */
 public class CollisionRenderer {
 
@@ -56,6 +66,17 @@ public class CollisionRenderer {
       ro.addLine (v0idx, v1idx);
    }
 
+   private void addLineSeg (
+      RenderObject ro, Point3d p0, Vector3d dir, double len) {
+
+      Point3d p1 = new Point3d(p0);
+      p1.scaledAdd (len, dir);
+
+      int v0idx = ro.vertex ((float)p0.x, (float)p0.y, (float)p0.z);
+      int v1idx = ro.vertex ((float)p1.x, (float)p1.y, (float)p1.z);
+      ro.addLine (v0idx, v1idx);
+   }
+
    private void addConstraintRenderInfo (
       RenderObject ro, Collection<ContactConstraint> cons, double nrmlLen) {
 
@@ -70,28 +91,131 @@ public class CollisionRenderer {
       }
    }
 
-   private double getMaxLambda (Collection<ContactConstraint> cons, double max) {
-      for (ContactConstraint c : cons) {
-         double lam = c.myLambda;
-         if (lam > max) {
-            max = lam;
-         }
-      }
-      return max;
-   }
+//   private double getMaxLambda (Collection<ContactConstraint> cons, double max) {
+//      for (ContactConstraint c : cons) {
+//         double lam = c.myLambda;
+//         if (lam > max) {
+//            max = lam;
+//         }
+//      }
+//      return max;
+//   }
 
-   private double getMaxLambda (CollisionHandler handler) {
-      double max = 0;
-      max = getMaxLambda (handler.myBilaterals0.values(), max);
-      max = getMaxLambda (handler.myBilaterals1.values(), max);
-      max = getMaxLambda (handler.myUnilaterals, max);
-      return max;
-   }
+//   private double getMaxLambda (CollisionHandler handler) {
+//      double max = 0;
+//      max = getMaxLambda (handler.myBilaterals0.values(), max);
+//      max = getMaxLambda (handler.myBilaterals1.values(), max);
+//      max = getMaxLambda (handler.myUnilaterals, max);
+//      return max;
+//   }
 
    private double maxlam = 0.20;
+//
+//   private Vector3d getVec(float[] coords) {
+//      return new Vector3d (coords[0], coords[1], coords[2]);
+//   }
 
-   private Vector3d getVec(float[] coords) {
-      return new Vector3d (coords[0], coords[1], coords[2]);
+   private void maybeAddVertexFaceNormal (
+      RenderObject ro, ContactConstraint cc, double normalLen) {
+
+      Vertex3d[] vtxs1 = cc.myCpnt1.myVtxs;
+      if (vtxs1.length == 3) {
+         // then this is a vertex-face normal situation
+         Vector3d nrml = new Vector3d();
+         Vector3d v01 = new Vector3d();
+         Vector3d v02 = new Vector3d();
+         v01.sub (vtxs1[1].pnt, vtxs1[0].pnt); 
+         v02.sub (vtxs1[2].pnt, vtxs1[0].pnt); 
+         nrml.cross (v01, v02);
+         nrml.normalize();
+         MeshBase mesh = vtxs1[0].getMesh();
+         if (!mesh.meshToWorldIsIdentity()) {
+            nrml.transform (mesh.getMeshToWorld());
+         }
+         addLineSeg (ro, cc.myCpnt0.myPoint, nrml, normalLen);
+      }
+   }
+
+   protected void findInsideFaces (
+      Face face, BVFeatureQuery query, PolygonalMesh mesh, 
+      ArrayList<Face> faces) {
+
+      face.setVisited();
+      Point3d pnt = new Point3d();
+      HalfEdge he = face.firstHalfEdge();
+      for (int i=0; i<3; i++) {
+         if (he.opposite != null) {
+            Face oFace = he.opposite.getFace();
+            if (!oFace.isVisited()) {
+               // check if inside
+               oFace.computeWorldCentroid(pnt);
+
+               boolean inside = query.isInsideOrientedMesh(mesh, pnt, -1);
+               if (inside) {
+                  faces.add(oFace);
+                  findInsideFaces(oFace, query, mesh, faces);
+               }
+            }
+         }
+         he = he.getNext();
+      }
+   }
+
+   protected void buildFaceSegments (
+      RenderObject ro, CollisionHandler handler,
+      ArrayList<TriTriIntersection> intersections) {
+
+      BVFeatureQuery query = new BVFeatureQuery();
+
+      PolygonalMesh mesh0 = handler.getCollidable(0).getCollisionMesh();
+      PolygonalMesh mesh1 = handler.getCollidable(1).getCollisionMesh();
+
+      ArrayList<Face> faces = new ArrayList<Face>();
+      
+      // mark faces as visited and add segments
+      for (TriTriIntersection isect : intersections) {
+         isect.face0.setVisited();
+         isect.face1.setVisited();
+         // add partials?
+      }
+
+      // mark interior faces and add segments
+      for (TriTriIntersection isect : intersections) {
+         if (isect.face0.getMesh() != mesh0) {
+            findInsideFaces(isect.face0, query, mesh0, faces);
+            findInsideFaces(isect.face1, query, mesh1, faces);
+         } else {
+            findInsideFaces(isect.face0, query, mesh1, faces);
+            findInsideFaces(isect.face1, query, mesh0, faces);
+         }
+      }
+
+      for (TriTriIntersection isect : intersections) {
+         isect.face0.clearVisited();
+         isect.face1.clearVisited();
+      }
+
+      // add faces to render object and clear visited flag
+      Vector3d nrm = new Vector3d();
+      Point3d p0 = new Point3d();
+      Point3d p1 = new Point3d();
+      Point3d p2 = new Point3d();
+      for (Face face : faces) {
+         face.clearVisited();
+         face.getWorldNormal (nrm);
+         ro.addNormal ((float)nrm.x, (float)nrm.y, (float)nrm.z);
+         HalfEdge he = face.firstHalfEdge();
+         he.head.getWorldPoint (p0);
+         he = he.getNext();
+         he.head.getWorldPoint (p1);
+         he = he.getNext();
+         he.head.getWorldPoint (p2);
+
+         int v0idx = ro.vertex((float)p0.x, (float)p0.y, (float)p0.z);
+         int v1idx = ro.vertex((float)p1.x, (float)p1.y, (float)p1.z);
+         int v2idx = ro.vertex((float)p2.x, (float)p2.y, (float)p2.z);
+         ro.addTriangle (v0idx, v1idx, v2idx);     
+      }
    }
 
    public void prerender (CollisionHandler handler, RenderProps props) {
@@ -107,7 +231,10 @@ public class CollisionRenderer {
 
       ro.addNormal (0, 0, 0);   // create default dummy normal
 
-      if (handler.myDrawConstraints) {
+      CollisionBehavior behav = handler.myBehavior;
+      ContactInfo cinfo = handler.getLastContactInfo();
+
+      if (behav.myDrawConstraints) {
          ro.lineGroup (CONSTRAINT_GRP);
          double nrmlLen = handler.getContactNormalLen();
          if (nrmlLen > 0) {
@@ -119,20 +246,39 @@ public class CollisionRenderer {
                ro, handler.myUnilaterals, nrmlLen);
          }
       }
-       
-      if (handler.myLineSegments != null) {
-         ro.lineGroup (SEGMENT_GRP);         
-         for (LineSeg seg : handler.myLineSegments) {
-            addLineSeg (ro, seg.coords0, seg.coords1);
+
+      double normalLen = 0;
+      if (behav.getDrawContactNormals()) {
+         normalLen = handler.getContactNormalLen();
+      }
+      if (normalLen != 0 && cinfo != null) {
+         ro.lineGroup (SEGMENT_GRP);
+         Method method = handler.getMethod();
+         if (method == Method.CONTOUR_REGION) {
+            int numc = 0;
+            for (ContactPlane region : cinfo.getContactPlanes()) {
+               for (Point3d p : region.points) {
+                  if (numc >= handler.myMaxUnilaterals) {
+                     break;        
+                  }
+                  addLineSeg (ro, p, region.normal, normalLen);
+               }
+            }
+         }
+         else if (method != Method.INACTIVE) {
+            for (ContactConstraint cc : handler.myBilaterals0.values()) {
+               maybeAddVertexFaceNormal (ro, cc, normalLen);
+            }
+            for (ContactConstraint cc : handler.myBilaterals1.values()) {
+               maybeAddVertexFaceNormal (ro, cc, normalLen);
+            }
          }
       }
-      
-      if (handler.myDrawIntersectionContours &&
-          props.getEdgeWidth() > 0 &&
-          handler.getLastContactInfo() != null) {
+       
+      if (behav.myDrawIntersectionContours &&
+          props.getEdgeWidth() > 0 && cinfo != null) {
 
          ro.lineGroup (CONTOUR_GRP);
-         ContactInfo cinfo = handler.getLastContactInfo();
          // offset lines
          if (cinfo.getContours() != null) {
             for (IntersectionContour contour : cinfo.getContours()) {
@@ -153,11 +299,8 @@ public class CollisionRenderer {
          }
       }
 
-      if (handler.myDrawIntersectionPoints &&
-          handler.getLastContactInfo() != null) {
+      if (behav.myDrawIntersectionPoints && cinfo != null) {
          
-         ContactInfo cinfo = handler.getLastContactInfo();
-
          if (cinfo.getIntersections() != null) {
             for (TriTriIntersection tsect : cinfo.getIntersections()) {
                for (Point3d pnt : tsect.points) {
@@ -178,7 +321,7 @@ public class CollisionRenderer {
             }
          }
 
-         if (handler.myMethod == 
+         if (behav.getMethod() == 
              CollisionBehavior.Method.VERTEX_EDGE_PENETRATION) {
             if (cinfo.getEdgeEdgeContacts() != null) {
                for (EdgeEdgeContact eec : cinfo.getEdgeEdgeContacts()) {
@@ -189,33 +332,31 @@ public class CollisionRenderer {
          }
       }
 
-      if (handler.myDrawIntersectionFaces &&
-          handler.myFaceSegments != null) {
-
-         for (FaceSeg seg : handler.myFaceSegments) {
-            ro.addNormal ((float)seg.nrm.x, (float)seg.nrm.y, (float)seg.nrm.z);
-            Point3d p0 = seg.p0;
-            Point3d p1 = seg.p1;
-            Point3d p2 = seg.p2;
-            int v0idx = ro.vertex((float)p0.x, (float)p0.y, (float)p0.z);
-            int v1idx = ro.vertex((float)p1.x, (float)p1.y, (float)p1.z);
-            int v2idx = ro.vertex((float)p2.x, (float)p2.y, (float)p2.z);
-            ro.addTriangle (v0idx, v1idx, v2idx);     
+      if (behav.myDrawIntersectionFaces && cinfo != null) {
+         ArrayList<TriTriIntersection> intersections = cinfo.getIntersections();
+         if (intersections != null) {
+            buildFaceSegments (ro, handler, intersections);
          }
       }
 
       RenderObject oldRob = myRob;
       myRob = ro;
-      if (oldRob != null) {
-         oldRob.dispose();
-      }
+//      if (oldRob != null) {
+//         oldRob.dispose();
+//      }
 
       RenderObject rd = null;
-      if (handler.myDrawMeshPenetration != -1 &&
-          handler.getLastContactInfo() != null) {
+      if (behav.myDrawPenetrationDepth != -1 && cinfo != null) {
 
-         ContactInfo cinfo = handler.getLastContactInfo();
-         int num = handler.myDrawMeshPenetration;
+         int num = behav.myDrawPenetrationDepth;
+         Collidable b0 = behav.getCollidable(0);
+         CollidableBody h0 = handler.getCollidable(0);
+         if (!(b0 instanceof Group)) {
+            if (h0 != b0 && h0.getCollidableAncestor() != b0) {
+               // then we want the *other* collidable body, so switch num
+               num = (num == 0 ? 1 : 0);
+            }
+         }
          ArrayList<PenetrationRegion> regions;
          ArrayList<PenetratingPoint> points;
          if (num == 0) {
@@ -233,20 +374,19 @@ public class CollisionRenderer {
       
       oldRob = myDepthRob;
       myDepthRob = rd;
-      if (oldRob != null) {
-         oldRob.dispose();
-      }
+//      if (oldRob != null) {
+//         oldRob.dispose();
+//      }
    }
 
    int getColorIndex (
-      CollisionHandler handler,
+      ScalarRange range,
       Vertex3d vtx, HashMap<Vertex3d,Double> depthMap) { 
 
-      DoubleInterval range = handler.myDrawPenetrationRange;
       double depth = 0;
       Double value = depthMap.get(vtx);
       if (value != null) {
-         depth = range.clipToRange(value);
+         depth = range.clip(value);
       }
       int idx = (int)(255*((depth-range.getLowerBound())/range.getRange()));
       return idx;
@@ -264,25 +404,17 @@ public class CollisionRenderer {
          if (pp.distance > maxd) {
             maxd = pp.distance;
          }
-      }     
-      switch (handler.myDrawPenetrationRanging) {
-         case AUTO_FIT: {
-            handler.myDrawPenetrationRange.set (0, maxd);
-            break;
-         }
-         case AUTO_EXPAND: {
-            if (maxd > handler.myDrawPenetrationRange.getUpperBound()) {
-               handler.myDrawPenetrationRange.setUpperBound (maxd);
-            }
-            break;
-         }
       }
+      ScalarRange range = handler.myBehavior.myPenetrationDepthRange;
+      range.updateInterval (0, maxd);
       float[] rgb = new float[3];
       for (int i=0; i<256; i++) {
-         handler.myColorMap.getRGB (i/255.0, rgb);
+         handler.myManager.myColorMap.getRGB (i/255.0, rgb);
          rd.addColor (rgb);
       }
 
+      Point3d wpnt = new Point3d();
+      Vector3d wnrm = new Vector3d();
       for (PenetrationRegion region : regions) {
          for (Face face : region.getInsideFaces()) {
             HalfEdge he = face.firstHalfEdge();
@@ -290,17 +422,23 @@ public class CollisionRenderer {
             Vertex3d v1 = he.getNext().getHead();
             Vertex3d v2 = he.getTail();
 
-            int pi0 = rd.addPosition (v0.pnt);
-            int pi1 = rd.addPosition (v1.pnt);
-            int pi2 = rd.addPosition (v2.pnt);
+            v0.getWorldPoint (wpnt);
+            int pi0 = rd.addPosition (wpnt);
+            v1.getWorldPoint (wpnt);
+            int pi1 = rd.addPosition (wpnt);
+            v2.getWorldPoint (wpnt);
+            int pi2 = rd.addPosition (wpnt);
 
-            int ci0 = getColorIndex (handler, v0, depthMap);
-            int ci1 = getColorIndex (handler, v1, depthMap);
-            int ci2 = getColorIndex (handler, v2, depthMap);
+            int ci0 = getColorIndex (range, v0, depthMap);
+            int ci1 = getColorIndex (range, v1, depthMap);
+            int ci2 = getColorIndex (range, v2, depthMap);
+            
+            face.getWorldNormal (wnrm);
+            int ni = rd.addNormal (wnrm);
 
-            int v0idx = rd.addVertex (pi0, -1, ci0, -1);
-            int v1idx = rd.addVertex (pi1, -1, ci1, -1);
-            int v2idx = rd.addVertex (pi2, -1, ci2, -1);
+            int v0idx = rd.addVertex (pi0, ni, ci0, -1);
+            int v1idx = rd.addVertex (pi1, ni, ci1, -1);
+            int v2idx = rd.addVertex (pi2, ni, ci2, -1);
             rd.addTriangle (v0idx, v1idx, v2idx);
          }
       }

@@ -146,7 +146,7 @@ public class CoupledSolveDemo extends RootModel {
    public void build (String[] args) {
 
       MechModel mechMod = new MechModel ("mechModel");
-      mechMod.getCollisionManager().setPenetrationTol (1e-5);
+      mechMod.setPenetrationTol (1e-5);
       mechMod.setMaxStepSize (0.01);
       mechMod.setIntegrator (Integrator.ConstrainedBackwardEuler);
       addModel (mechMod);

@@ -660,6 +660,10 @@ public class DantzigLCPSolver {
                return Status.SOLVED;
             }
          }
+         if (r == -1) {
+            throw new InternalErrorException (
+               "r not initialized; n=" + n);
+         }
          // r has now been changed, so get mv_r
          mv = getMv (r);
          // printVec ("R ", mv, n);

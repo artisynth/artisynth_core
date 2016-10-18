@@ -133,7 +133,7 @@ velocity                & $d/t$ & \\
 acceleration            & $d/t^2$ & \\
 force                   & $m d/t^2$ & \\
 work/energy             & $m d^2/t^2$& \\
-torque                  & $m d^2/t^2$ & same as energy (somewhat counterintuitive)\\
+torque                  & $m d^2/t^2$ & same as energy (somewhat counter intuitive)\\
 angular velocity        & $1/t$ & \\
 angular acceleration    & $1/t^2$ & \\
 rotational inertia      & $m d^2$ & \\
@@ -262,7 +262,7 @@ Render properties can also be set in the GUI by selecting one or more
 components and the choosing {\sf Set render props ...}  in the
 right-click context menu. More details on setting render properties
 through the GUI can be found in the section ``Render properties'' in the
-\href{\artisynthDocBase/html/uiguide/uiguide.html}{
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{%
 ArtiSynth User Interface Guide}.
 
 For many components, the default value of {\tt renderProps} is {\tt
@@ -689,7 +689,7 @@ relative to the demo source file.
 \javamethod[maspack.util]{PathFinder.expand()} is used to determine
 the full data folder name relative to the source directory.
 For the bump map, it is important to set the {\sf scaling} property
-to adjust the depth applitude to relative to the sphere radius.
+to adjust the depth amplitude to relative to the sphere radius.
 
 \begin{figure}[ht]
 \begin{center}
@@ -709,7 +709,7 @@ These map to spherical coordinates on the mesh.}
 \end{figure}
 
 Color mapping is applied to balls 0 and 2, and bump mapping to balls 1
-and 2. To illustrate setting mapping properities in an ancestor
+and 2. To illustrate setting mapping properties in an ancestor
 component, the color mapping is arranged by setting the {\sf colorMap}
 render property of the {\tt MechModel}, and then, as described above,
 enabling color mapping within the individual balls.
@@ -718,7 +718,7 @@ To run this example in ArtiSynth, select {\sf All demos > tutorial >
 SphericalTextureMapping} from the {\sf Models} menu. The model should
 load and initially appear as in Figure
 \ref{sphericalMapping:fig}. Note that if ArtiSynth is run with the
-legacy OpenGL 2 viewer (commmand line option {\tt -GLVersion 2}), bump
+legacy OpenGL 2 viewer (command line option {\tt -GLVersion 2}), bump
 mapping will not be supported and will not appear.
 
 \section{Point-to-point muscles}
@@ -854,56 +854,106 @@ bodies (finite element models in particular), and more generally
 between any body that implements the interface 
 \javaclass[artisynth.core.mechmodels]{Collidable}.
 
-It is important to understand that collison handling is both
+It is important to understand that collision handling is both
 computationally expensive and, due to it's discontinuous nature, less
 accurate than other aspects of the simulation.  ArtiSynth therefore
 provides a number of ways to selectively control collision handling
 between different pairs of bodies.
+
+Collision handling is also challenging because if collisions are
+enabled among $n$ objects, then one needs to be able to easily specify
+the characteristics of up to $O(n^2)$ collision interactions, while
+also managing the fact that these interactioons are highly transient.
+In ArtiSynth, collision handling is done by a
+\javaclass[artisynth.core.mechmodels]{CollisionManager} that is a
+sub-component of each
+\javaclass[artisynth.core.mechmodels]{MechModel}.  The collision
+manager maintains default collision behaviors among certain groups of
+collidable objects, while also allowing the user to override the
+default behaviors by setting override behaviors for specific component
+pairings.
 
 %\subsection{Collidable bodies}
 
 \subsection{Enabling collisions in code}
 
 Collisions can be enabled as either a default behavior between all
-bodies, a default behavior between certain {\it types} of
-bodies, or a specific behavior between individual pairs of bodies.
+bodies, a default behavior between certain {\it groups} of bodies, or
+a specific override behavior between individual pairs of bodies.
+
+\begin{sideblock}
+This section describes how to enable collisions in code. However,
+it is also possible to set some aspects of collision behavior interactively
+within the ArtiSynth GUI. See the section ``Collision handling'' in the
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{
+ArtiSynth User Interface Guide}.
+\end{sideblock}
 
 The default collision behavior between all collidables can be
-controlled using two equivalent methods:
+controlled using two methods:
 %
 \begin{lstlisting}[]
   setDefaultCollisionBehavior (enabled, mu);
   setDefaultCollisionBehavior (behavior);
 \end{lstlisting}
 %
-where {\tt enabled} is {\tt true} or {\tt false} depending on whether
-collisions are enabled, {\tt mu} is the coefficient of Coulomb (or
-dry) friction, and {\tt behavior} is a
+In the first method, {\tt enabled} is {\tt true} or {\tt false}
+depending on whether collisions are enabled, and {\tt mu} is the
+coefficient of Coulomb (or dry) friction. The {\tt mu} value is
+ignored if {\tt enabled} is {\tt false}. In the second method, {\tt
+behavior} is a
 \javaclass[artisynth.core.mechmodels]{CollisionBehavior} object that
-specifies both {\it enabled} and {\it mu}. The {\tt mu} value is
-ignored if {\tt enabled} is {\tt false}.  In addition, collisions can
-be controlled for specific {\it types} of collidables using
+specifies both {\it enabled} and {\it mu}, along with other, more
+detailed collision properties (see Section
+\ref{collisionBehavior:sec}).  In addition, a default collision
+behavior can be set for generic groups of collidables using
 %
 \begin{lstlisting}[]
-  setDefaultCollisionBehavior (typeA, typeB, enabled, mu);
-  setDefaultCollisionBehavior (typeA, typeB, behavior);
+  setDefaultCollisionBehavior (group0, group1, enabled, mu);
+  setDefaultCollisionBehavior (group0, group1, behavior);
 \end{lstlisting}
 %
-where {\tt typeA} and {\tt typeB} should be either {\tt
-Collidable.RigidBody} or {\tt Collidable.Deformable}.  In addition,\\
-{\tt Collidable.Deformable} can be paired with {\tt Collidable.Self} to
-enable/disable self-collisions between deformable objects.
-Self-collision is described in greater detail in Section
-\ref{SelfCollision:sec}.
+where {\tt group0} and {\tt group1} are static instances of the
+special {\tt Collidable} subclass
+\javaclass[artisynth.core.mechmodels]{Collidable\$Group} that
+represents the groups described in Table \ref{CollisionGroups:tab}.
+The groups {\tt Collidable.Rigid} and {\tt Collidable.Deformable}
+denote collidables that are rigid (such as
+\javaclass[artisynth.core.mechmodels]{RigidBody}) or deformable (such
+as FEM models like \javaclass[artisynth.core.femmodels]{FemModel3d}).
+(If a collidable is deformable, then its
+\javamethod[artisynth.core.mechmodels.Collidable]{isDeformable()}
+method returns {\tt true}.)  The group {\tt Collidable.AllBodies}
+denotes both rigid and deformable bodies, and {\tt Collidable.Self} is
+used to enabled self-collision. which is described in greater detail
+in Section \ref{SelfCollision:sec}.
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|ll|}
+\hline
+Collidable group & description \\
+\hline
+Collidable.Rigid & rigid collidables (e.g., rigid bodies) \\
+Collidable.Deformable & deformable collidables (e.g, FEM models) \\
+Collidable.AllBodies & rigid and deformable collidables \\
+Collidable.Self & enables self-intersection
+for composite deformable collidables\\
+Collidable.All & rigid and deformable collidables and self-intersection\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Collision group types.}
+\label{CollisionGroups:tab}
+\end{table}
 
 A call to one of the {\tt setDefaultCollisionBehavior()} methods will
 override the effects of previous calls. So for instance, the code
 sequence
 %
 \begin{lstlisting}[]
-  setDefaultCollisionBehvaior (true, 0);
-  setDefaultCollisionBehvaior (
-    Collidable.Deformable, Collidable.RigidBody, false, 0);
+  setDefaultCollisionBehavior (true, 0);
+  setDefaultCollisionBehavior (Collidable.Deformable, Collidable.Rigid, false, 0);
   setDefaultCollisionBehavior (true, 0.2);
 \end{lstlisting}
 %
@@ -912,42 +962,135 @@ coefficient of 0, then {\it disable} collisions between deformable and
 rigid bodies, and finally re-enable collisions between all bodies with
 a friction coefficient of 0.2.
 
-The default collision behavior between any pair of body types can
+The default collision behavior between any pair of collidable groups can
 be queried using
 %
 \begin{lstlisting}[]
-  CollisionBehavior getDefaultCollisionBehavior (typeA, typeB);
+  CollisionBehavior getDefaultCollisionBehavior (group0, group1);
 \end{lstlisting}
 %
+For this call, {\tt group0} and {\tt group1} are restricted to the
+primary groups {\tt Collidable.Rigid}, {\tt Collidable.Deformable},
+and {\tt Collidabe.Self}, since individual behaviors are not
+maintained for the composite groups {\tt Collidable.AllBodies} and {\tt
+Collidable.All}.
 
-In addition to default behaviors, collisions between individual
-collidables can be controlled and queried using
+In addition to default behaviors, overriding behaviors for individual
+collidables or pairs of collidables can be controlled using
 %
 \begin{lstlisting}[]
-  setCollisionBehavior (collidableA, collidableB, enabled, mu);
-  setCollisionBehavior (collidableA, collidableB, behavior);
-  getCollisionBehavior (collidableA, collidableB);
+  setCollisionBehavior (collidable0, collidable1, enabled, mu);
+  setCollisionBehavior (collidable0, collidable1, behavior);
 \end{lstlisting}
 %
-where {\tt collidableA} and {\tt collidableB} are individual
-collidable components such as rigid bodies or FEM models.  Collision
-behaviors specified by {\tt setCollisionBehavior()} {\it override} the
-default collision behaviors, and are {\it not} invalidated by
-subsequent calls to the {\tt setDefaultCollisionBehavior()} methods.
-An overide collision behavior for a specific pair of collidables
-can be removed by
+where {\tt collidable0} is an
+individual collidable component (such as a rigid body or FEM model),
+and {\tt collidable1} is either another individual component, or one of the
+groups of Table \ref{CollisionGroups:tab}.
+For example, the calls
+\begin{lstlisting}[]
+  RigidBody bodA; 
+  FemModel3d femB;
+
+  setCollisionBehavior (bodA, Collidable.Deformable, true, 0.1);
+  setCollisionBehavior (femB, Collidable.AllBodies, true, 0.0);
+  setCollisionBehavior (bodA, femB, false, 0.0);
+\end{lstlisting}
+will enable collisions between {\tt bodA} and all deformable
+collidables (with friction 0.1), as well as {\tt femB} and all
+deformable and rigid collidables (with friction 0.0), while
+specifically {\tt disabling} collisions between {\tt bodA} and {\tt
+femB}.
+
+The {\tt setCollisionBehavior()} methods work by adding a
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior} object to the
+collision manager as a sub-component. With {\tt
+setCollisionBehavior(collidable0,collidable1,behavior)}, the behavior
+object is created and supplied by the application.  With {\tt
+setCollisionBehavior(enable,mu)}, the behavior object is created
+automatically and returned by the method. Once an override behavior
+has been specified, then it can be queried using
 %
 \begin{lstlisting}[]
-  clearCollisionBehavior (collidableA, collidableB);
+  getCollisionBehavior (collidable0, collidable1);
+\end{lstlisting}
+%
+This method will return {\tt null} if no override behavior for the
+pair in questions has been previously set using one of the {\tt
+setCollisionBehavior()} methods.
+
+\begin{sideblock}
+Because behaviors are proper components, it is {\it not} permissible to
+add them to the collision manager twice. Specifically, the following
+will produce an error:
+\begin{verbatim}
+   CollisionBehavior behav = new CollisionBehavior();
+   behav.setDrawIntersectionContours (true); 
+   mesh.setCollisionBehavior (col0, col1, behav);
+   mesh.setCollisionBehavior (col2, col3, behav); // ERROR
+\end{verbatim}
+However, if desired, a new behavior can be created from an existing
+one:
+\begin{verbatim}
+   CollisionBehavior behav = new CollisionBehavior();
+   behav.setDrawIntersectionContours (true); 
+   mesh.setCollisionBehavior (col0, col1, behav);
+   behav = new CollisionBehavior(behav);
+   mesh.setCollisionBehavior (col2, col3, behav); // OK
+\end{verbatim}
+\end{sideblock}
+
+To determine the collision behavior (default or override) that
+actually controls a specific pair of collidables, one may
+use the method
+%
+\begin{lstlisting}[]
+  getActingCollisionBehavior (collidable0, collidable1);
+\end{lstlisting}
+%
+where {\tt collidable0} and {\tt collidable1} must both be specific
+collidable components and cannot be a group (such as {\tt
+Collidable.Rigid} or {\tt Collidable.All}). If one of
+the collidables is a {\it compound} collidable (Section
+\ref{SelfCollision:sec}), or has a collidability setting (Section
+\ref{collidability:sec}) that prevents collisions, there may be no
+consistent acting behavior, in which case the method returns {\tt
+null}.
+
+Collision behaviors take priority over each other in the following
+order:
+
+\begin{enumerate}
+
+\item behaviors specified using {\tt setCollisionBehavior()} involving
+two {\it specific} collidables.
+
+\item behaviors specified using {\tt setCollisionBehavior()} involving
+one {\it specific} collidable and a {\it group} of collidables
+(indicated by a {\tt Collidable.Group}), with later specifications
+taking priority over earlier ones.
+
+\item default behaviors specified using {\tt setDefaultCollisionBehavior()}.
+
+\end{enumerate}
+
+An override behavior specified with
+{\tt setCollisionBehavior()} can later be removed
+using 
+%
+\begin{lstlisting}[]
+  clearCollisionBehavior (collidable0, collidable1);
 \end{lstlisting}
 %
 and {\it all} override behaviors in a {\tt MechModel} can
-be removed by 
+be removed with
 %
 \begin{lstlisting}[]
   clearCollisionBehaviors ();
 \end{lstlisting}
 %
+Note that this latter call does {\it not} remove default behaviors
+specified with {\tt setDefaultCollisionBehavior()}.
 
 \begin{sideblock}
 Note: It is usually necessary to ensure that collisions are {\it disabled}
@@ -1022,29 +1165,186 @@ the model (Section \ref{LoadingAndRunning:sec}) will
 cause the jointed assembly to collide with and slide off the inclined
 plane.
 
+\subsection{Collision behaviors}
+\label{collisionBehavior:sec}
+
+As mentioned above, the
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior} objects
+described above can be used to control other aspects of the contact
+and collision beyond friction and enabling. In particular, a {\tt
+CollisionBehavior} exports the following properties:
+
+\begin{description}
+
+\item[enabled]\mbox{}
+
+A boolean that determines if collisions are enabled.
+
+\item[friction]\mbox{}
+
+A double giving the coefficient of Coulomb friction, typically in the
+range $[0,0.5]$. The default value is 0. Setting friction to a
+non-zero value increases the simulation time, since extra constraints
+must be added to the system to accommodate the friction. 
+
+\item[penetrationTol]\mbox{}
+
+A double controlling the amount of interpenetration that is permitted
+in order to ensure contact stability (see Section
+\ref{ContactImplementation:sec}). If not specified, the system will
+inherit this property from the {\tt MechModel}, which computes a
+default penetration tolerance based on the overall size of the model.
+
+\item[compliance]\mbox{}
+
+A double which adds a compliance (inverse stiffness) to the collision
+behavior, so that the contact has a ``springiness''. The default
+value for this is 0 (no compliance).
+
+\item[damping]\mbox{}
+
+A double which, if {\sf compliance} is non-zero, specifies a damping
+to accompany the compliant behavior. The default value is 0.  When
+compliance is specified, it is usually necessary to set the damping to
+a non-zero value to prevent bouncing.
+
+\item[collisionPointTol]\mbox{}
+
+A double which, for contacts between rigid bodies, specifies a minimum
+distance between contact points that is used to reduce the number of
+contacts. If not explicitly specified, the system computes a
+default value for this based on the overall size of the model.
+
+\item[reduceConstraints]\mbox{}
+
+A boolean which, if {\tt true}, indicates that the system should try
+to reduce the number of contacts between deformable bodies with
+limited degrees of freedom, so that the resulting contact problem is
+not ill-conditioned.  The default value is {\tt false}.
+
+\item[method]\mbox{}
+
+An instance of
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior\$Method} that
+controls how the contact constraints for the collision response are
+generated. There are several methods available, and some are
+experimental. The more standard methods are:
+
+\begin{tabular}{lll}
+\hline
+Method & Constraint generation \\
+\hline
+VERTEX\_PENETRATION & constraints generated from interpenetrating vertices\\
+CONTOUR\_REGION & 
+constraints generated from planes fit to each mesh contact region \\
+INACTIVE & no constraints generated\\
+\hline
+\end{tabular}
+
+These are described in more detail in 
+Section \ref{ContactImplementation:sec}.
+
+\end{description}
+
+
+In addition to the above, {\tt CollisionBehavior} exports other
+properties that control the rendering of collisions (Section
+\ref{ContactRendering:sec}).
+
+It should be noted that most collision behavior properties are also
+properties of the {\tt MechModel}'s collision manager, which can be
+accessed in code using
+\javamethod*[artisynth.core.mechmodels.MechModel]{getCollisionManager()}
+(or graphically via the navigation panel).  Since collision behaviors
+are sub-components of the collision manager, properties set in the
+collision manager will be inherited by any behaviors for which they
+have not been explicitly set. This is the easiest way to specify
+behavior properties generally, as for example:
+%
+\begin{lstlisting}[]
+  CollisionManager cm = mech.getCollisionManager();
+  cm.setReduceConstraints (true);
+\end{lstlisting}
+%
+Some other properties, like {\sf penetrationTol}, are properties not
+of the collision manager, but of the {\tt MechModel}, and so can be
+set globally there.
+
+To set collision properties in a more fine-grained manner, one can
+either call {\tt setDefaultCollisionBehavior()} or {\tt
+setCollisionBehavior()} with an appropriately set {\tt
+CollisionBehavior} object:
+%
+\begin{lstlisting}[]
+  RigidBody bodA;
+
+  CollisionBehavior behav = new CollisionBehavior (enabled, mu);
+  behav.setPenetrationTol (0.001);
+  setDefaultCollisionBehavior (Collidable.Deformable, Collidable.Rigid, behav);
+
+  behav.setPenetrationTol (0.003);
+  setCollisionBehavior (bodA, Collidable.Rigid, behav);
+\end{lstlisting}
+%
+For behaviors that are already set, one may use {\tt
+getDefaultCollisionBehavior()} or {\tt getCollisionBehavior()} to
+obtain the behavior and then set the desired properties directly:
+%
+\begin{lstlisting}[]
+  RigidBody bodA;
+  CollisionBehavior behav;
+
+  behav = getDefaultCollisionBehavior (Collidable.Deformable, Collidable.Rigid);
+  behav.setPenetrationTol (0.001);
+  behav = getCollisionBehavior (bodA, Collidable.Rigid);
+  behav.setPenetrationTol (0.003);
+\end{lstlisting}
+%
+Note however that {\tt getDefaultCollisionBehavior()} only works for
+{\tt Collidable.Rigid}, {\tt Collidable.Deformable}, and {\tt
+Collidable.Self}, and that {\tt getCollisionBehavior()} only works for
+a collidable pair that has been previously specified with {\tt
+setCollisionBehavior()}. One may also use {\tt
+getActingCollisionBehavior()} (described above) to obtain the behavior
+(default or otherwise) responsible for a specific pair of collidables,
+although in some instances no such single behavior exists and the
+method will then return {\tt null}.
 
 \subsection{Self-collision and collidable hierarchies}
 \label{SelfCollision:sec}
 
 At present, {\tt ArtiSynth} does not support the detection or handling
 of self-collision within single meshes. However, self-collision can
-still be effected by allowing a collidable to have multiple
-{\it sub-collidables} and then enabling collisions between some or all of
-these.
+still be effected by allowing a collidable to have multiple {\it
+sub-collidables} and then enabling collisions between some or all of
+these. 
 
 Any descendant component of a
-\javaclass[artisynth.core.mechmodels]{Collidable} component A which is
-itself {\tt Collidable} is considered to be a sub-collidable of A.
-Certain types of components maintain sub-collidables by default.  For
-example, some components (such as finite element models; Section
+\javaclass[artisynth.core.mechmodels]{Collidable} A which is itself
+{\tt Collidable} is considered to be a sub-collidable of A.  Certain
+types of components maintain sub-collidables by default.  For example,
+some components (such as finite element models; Section
 \ref{FEMModels:sec}) maintain a list of meshes in a child component
 list named {\tt meshes}; these can be used to implement self-collision
-as described below.
+as described below. A collidable that contains sub-collidables is
+known as a {\it compound} collidable, and its
+\javamethod[artisynth.core.mechmodels.Collidable]{isCompound()} method
+will return {\tt true}. Likewise, if a component is a sub-collidable,
+then its
+\javamethod[artisynth.core.mechmodels.Collidable]{getCollidableAncestor()})
+method will return its nearest collidable ancestor.
 
 \begin{sideblock}
-Note: A collidable does not need to be an immediate child component
-of a collidable A in order to be a sub-collidable of A;
-it need only be a descendent of A. 
+A collidable does not need to be an immediate child component of a
+collidable A in order to be a sub-collidable of A; it need only be a
+descendant of A.
+\end{sideblock}
+
+\begin{sideblock}
+At present, collidable hierarchies are assumed to have a depth no
+greater than one (i.e., no sub-collidable is itself a compound
+collidable), and also sub-collidables are assumed to have the same
+type (rigid or deformable) as the ancestor.
 \end{sideblock}
 
 \begin{figure}[ht]
@@ -1063,21 +1363,21 @@ sub-collidables which are shaded gray.}
 \end{figure}
 
 In general, an ArtiSynth model will contain a collection of
-collidables, some of which posses sub-collidables and others which are
+collidables, some of which are compound and others which are
 solitary (Figure \ref{CollidableGroups:fig}).  Within a collection of
 collidables:
 
 \begin{itemize}
 
-\item Actual collisions happen only between leaf collidables; ancestor
+\item Actual collisions happen only between leaf collidables; compound
 collidables are used only for grouping purposes.
 
-\item By default, the sub-collidables of a component A will only
-collide among themselves if self-collision is specified for A (via
-either a default or override collision behavior). If self-collision is
-specified for A, then collisions may occur only among those
-sub-collidables for which {\it internal} collisions are enabled.
-Internal collisions are enabled for a collidable if its {\tt
+\item By default, the sub-collidables of a compound component A will
+only collide among themselves if self-collision is specified for A
+(via either a default or override collision behavior). If
+self-collision is specified for A, then collisions may occur only
+among those sub-collidables for which {\it internal} collisions are
+enabled.  Internal collisions are enabled for a collidable if its {\sf
 collidable} property (Section \ref{collidability:sec}) is set to
 either {\tt ALL} or {\tt INTERNAL}.
 
@@ -1087,21 +1387,39 @@ of A if A is itself deformable; i.e., its
 method returns {\tt true}.
 
 \item Sub-collidables may collide with collidables outside their
-hierarchy if their {\tt collidable} property is set to either {\tt
+hierarchy if their {\sf collidable} property is set to either {\tt
 ALL} or {\tt EXTERNAL}.
 
 \item Collision among specific pairs of sub-collidables may also be
 explicitly enabled or disabled with an override behavior set using one
 of the {\tt setCollisionBehavior()} methods.
 
-\item Specifying a collision behavior among two collidables A and B
-which are {\it not} within the same hierarchy will cause that behavior
-to be specified among all sub-collidables of A and B whose {\tt
-collidable} property enables the collision.
+\item Specifying a collision behavior among two compound collidables A
+and B which are {\it not} within the same hierarchy will cause that
+behavior to be specified among all sub-collidables of A and B whose
+{\tt collidable} property enables the collision.
 
 \end{itemize}
 
-This is best illustrated with some examples. Refer to Figure
+Subject to the above conditions, self-collisions can be enabled among
+the sub-collidables of all deformable collidables by calling
+%
+\begin{lstlisting}[]
+   setDefaultCollisionBehavior (Collidable.DEFORMABLE, Collidable.SELF, true, mu);
+\end{lstlisting}
+%
+or, for a specific collidable {\tt C}, by calling either
+%
+\begin{lstlisting}[]
+   setDefaultCollisionBehavior (C, Collidable.SELF, true, mu);
+
+   ... OR ...
+
+   setDefaultCollisionBehavior (C, C, true, mu);
+\end{lstlisting}
+%
+
+For a more complete example, refer to Figure
 \ref{CollidableGroups:fig}, assume that components A, B and C are
 deformable, and that self-collision is allowed among those
 sub-collidables which are shaded gray (A1 and A2 for A, B1 and B2 for
@@ -1173,16 +1491,237 @@ collisions to actually occur between two collidables, a default or
 override collision behavior must also be specified for them in the
 MechModel.
 
+\subsection{Collision response}
+
+Sometimes, an application may wish to know details about the collision
+interactions between a specific collidable and one or more other
+collidables.  These details may include items such as contact
+forces or the penetration regions between the opposing meshes.
+Applications can track this information by
+creating \javaclass[artisynth.core.mechmodels]{CollisionResponse}
+components for the collidables in question and adding them to the {\tt
+MechModel} using 
+\javamethod*[artisynth.core.mechmodels.MechModel]{setCollisionResponse(,,)}:
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = new CollisionResponse();
+   mech.setCollisionResponse (collidable0, collidable1, resp);
+\end{lstlisting}
+%
+An alternate version of {\tt setCollisionResponse()} creates the
+response component internally and returns it:
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = mech.setCollisionResponse (collidable0, collidable1);
+\end{lstlisting}
+%
+During every simulation step, the {\tt MechModel} will update its
+response components to reflect the current collision conditions
+between the associated collidables.
+
+The first collidable specified for a collision response
+must be a specific collidable component, while the second may be either another
+collidable or a group of collidables represented by a
+\javaclass[artisynth.core.mechmodels]{Collidable\$Group}:
+%
+\begin{lstlisting}[]
+  CollisionResponse r0, r1, r2;
+  RigidBody bodA;
+  FemModel3d femB;
+
+  // collision information between bodA and femB only:
+  r0 = setCollisionResponse (bodA, femB); 
+  // collision information between femB and all rigid bodies:
+  r1 = setCollisionResponse (femB, Collidable.Rigid); 
+  // collision information between femB and all bodies and self-collisions:
+  r2 = setCollisionResponse (femB, Collidable.All); 
+\end{lstlisting}
+%
+When a compound collidable is specified, the response component will
+collect collision information for all its sub-collidables.
+
+If desired, applications can also instantiate responses themselves and
+add them to the collision manager:
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = new CollisionResponse();
+   mech.setCollisionResponse (femA, femB, resp);
+\end{lstlisting}
+%
+However, as with behaviors, the same response cannot be
+added to an application twice:
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = new CollisionResponse();
+   mech.setCollisionResponse (femA, femB, resp);
+   mech.setCollisionResponse (femC, femD, resp); // ERROR
+\end{lstlisting}
+%
+
+The complete set of methods for managing collision responses are
+similar to those for behaviors,
+%
+\begin{lstlisting}[]
+   setCollisionResponse (collidable0, collidable1, response);
+   setCollisionResponse (collidable0, collidable1);
+   getCollisionResponse (collidable0, collidable1);
+   clearCollisionResponse (collidable0, collidable1);
+   clearCollisionResponses ();
+\end{lstlisting}
+%
+where
+\javamethod*[artisynth.core.mechmodels.MechModel]{getCollisionResponse()}
+and
+\javamethod*[artisynth.core.mechmodels.MechModel]{clearCollisionResponse()}
+respectively return and clear response components that have been
+previously set using one of the {\tt setCollisionResponse()} methods.
+
+Information that can be queried by a
+\javaclass[artisynth.core.mechmodels]{CollisionResponse} component
+includes whether or not the collidable is in collision, contact
+impulses acting on the vertices of the colliding meshes, the
+penetration regions of each mesh associated with the collision, and
+the underlying \javaclass[artisynth.core.mechmodels]{CollisionHandler}
+objects that maintain the contact constraints between each colliding
+mesh. This information may be queried with the following methods:
+%
+\begin{lstlisting}[]
+  // Queries if the collidables associated with this response are in contact
+  boolean inContact(); 
+
+  // Returns a map specifying the contact impulses acting on all the deformable 
+  // bodies associated with the first or second collidable, as specified by
+  // cidx=0 or cidx=1.
+  Map<Vertex3d,Vector3d> getContactImpulses(int cidx);
+
+  // Returns a list of all the penetration regions on either the first
+  // or second collidable, as specified by cidx=0 or cidx=1. Penetration
+  // regions are available only if the collision manager's collider
+  // type is set to AJL_CONTOUR.
+  ArrayList<PenetrationRegion> getPenetrationRegions(int cidx);
+
+  // Returns the CollisionHandlers for all currently active collisions
+  // associated with the collidables of this response. Note that the
+  // body ordering in the handlers may be reversed.
+  ArrayList<CollisionHandler> getHandlers();
+\end{lstlisting}
+%
+
+A typical usage scenario for collision responses is to create them
+before the simulation is run, possibly in the root model {\tt build()}
+method, and then query them when the simulation is running, such from
+the {\tt apply()} method of a {\tt Monitor} (
+Section \ref{ControllersAndMonitors:sec}). For example,
+in the root model {\tt build()} method, the response
+coule be created with the call
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = mech.setCollisionResponse (femA, femB);
+\end{lstlisting}
+%
+and then used in some runtime code as follows:
+%
+\begin{lstlisting}[]
+   Map<Vertex3d,Vector3d> collMap = resp.getContactImpulses (0);
+\end{lstlisting}
+%
+If for some reason it is difficult to store a reference to the
+response between its construction and its use, then {\tt
+getCollisionResponse()} can be used to retrieve it:
+%
+\begin{lstlisting}[]
+   CollisionResponse resp = mech.getCollisionResponse (femA, femB);
+   Map<Vertex3d,Vector3d> collMap = resp.getContactImpulses (0);
+\end{lstlisting}
+%
+
+\subsection{Nested MechModels}
+
+It is possible in ArtiSynth for one {\tt MechModel} to contain other
+nested {\tt MechModel}s within its component hierarchy. This raises
+the question of how collisions within the nested models are
+controlled. The general rule for this is the following:
+
+\begin{sideblock}
+The collision behavior for two collidables {\tt colA} and {\tt colB}
+is determined by whatever behavior (either default or override) is
+specified by the lowest {\tt MechModel} in the component hierarchy
+that contains both {\tt colA} and {\tt colB}.
+\end{sideblock}
+
+\begin{figure}[ht]
+\begin{center}
+ \iflatexml
+   \includegraphics[width=3.5in]{images/NestedMechCollidables}
+ \else
+   \includegraphics[width=3.5in]{images/NestedMechCollidables.idr}
+ \fi
+\end{center}
+\caption{A {\tt MechModel} containing collidables {\tt
+B1} and {\tt B2}, nested within another
+containing collidables {\tt A1} and {\tt A2}.}
+\label{NestedMechCollidables:fig}
+\end{figure}
+
+For example, consider Figure \ref{NestedMechCollidables:fig} where we
+have a {\tt MechModel} ({\tt mechB}) containing collidables {\tt B1} and
+{\tt B2}, nested within another {\tt MechModel} ({\tt mechA})
+containing collidables {\tt A1} and {\tt A2}. Then consider the
+following code fragment:
+%
+\begin{lstlisting}[]
+   mechB.setDefaultCollisionBehavior (true, 0.2);
+   mechA.setCollisionBehavior (B1, Collidable.AllBodies, true, 0.0);
+   mechA.setCollisionBehavior (B1, A1, false);
+   mechA.setCollisionBehavior (B1, B2, false); // Error!
+\end{lstlisting}
+%
+The first line enables default collisions within {\tt mechB} (with
+$\mu = 0$), controlling the interaction between {\tt B1} and {\tt B2}.
+However, collisions are still disabled within {\tt mechA}, meaning
+{\tt A1} and {\tt A2} will not collide either with each other or with
+{\tt B1} or {\tt B2}.  The second line enables collisions between {\tt
+B1} and any other body within {\tt mechA} (i.e., {\tt A1} and
+{\tt A2}), while the third line disables collisions between {\tt B1}
+and {\tt A1}.  Finally, the fourth line results in an error, since
+{\tt B1} and {\tt B2} are both contained within {\tt mechB} and so
+their collision behavior cannot be controlled from {\tt mechA}.
+
+While it is not legal to specify a specific behavior for collidables
+contained a {\tt MechModel} from a higher level {\tt MechModel},
+it {\it is} legal to create collision response components for the same
+pair within both models. So the following code fragment would be
+allowed and would create response components in both {\tt mechA} and
+{\tt mechB}:
+%
+\begin{lstlisting}[]
+   mechB.setCollisionResponse (B1, B2);
+   mechA.setCollisionResponse (B1, B2);
+\end{lstlisting}
+%
+
 \subsection{Implementation and limitations}
+\label{ContactImplementation:sec}
 
 The ArtiSynth collision mechanism works by finding intersections
 between the surface meshes of each collidable object.  These surface
-meshes must (at present) be triangular, closed, and manifold.
-A bounding-box 
-hierarchy is used to determine if any two surfaces meshes
-intersect. If they do, then a tracing algorithm
-is used to compute all the intersection contours
-between the two meshes as shown in Figure~\ref{Collision:fig}.
+meshes must (at present) be triangular, closed, and manifold.  A
+bounding-box hierarchy is used to determine which surfaces meshes
+might intersect and then locate the individual triangle
+intersections. What happens next then depends on the setting of the
+collision manager's {\sf colliderType} property: \javaclassAlt{%
+artisynth.core.mechmodels.CollisionManager\$ColliderType\#TRI\_INTERSECTION}%
+{TRI\_INTERSECTION} (the current default) groups the triangle
+intersections into contact regions mesh for purposes of finding
+interpenetrating vertices, while \javaclassAlt{%
+artisynth.core.mechmodels.CollisionManager\$ColliderType\#TRI\_INTERSECTION}%
+{AJL\_CONTOUR} also uses the intersections to compute the (piecewise
+linear) intersection contours between the meshes. This information is
+then used to create a set of contact points, normals and associated
+constraints that are used to resolve the collision, as shown in
+Figure~\ref{Collision:fig}.
+
+% XXX describe -useAjlCollision?
 
 \begin{figure}[ht]
 \begin{center}
@@ -1202,18 +1741,46 @@ showing the intersection contours
 \label{Collision:fig}
 \end{figure}
 
-% XXX -useAjlCollision and contours?
+How the contact constraints are actually generated depends on the
+collision behavior's {\sf method} property, as mentioned in Section
+\ref{collisionBehavior:sec}. The standard methods are:
 
-Determining the intersection contour allows us to create a set of
-constraints for correcting the interpenetration and preventing
-interpenetrating velocities.  For rigid bodies, this is done by
-fitting a plane to each contour, projecting the contour onto this
-plane, and then sampling the vertices of the projection's 2D convex
-hull to create individual contact points, with the contact normal set
-from the normal of the plane. For deformable FEM models, the
-intersection contour is used to locate all the interpenetrating nodes,
-and then collision constraints are established between each node and
-the nearest triangular face of the opposing surface.
+\begin{description}
+
+\item[VERTEX\_PENETRATION]\mbox{}
+
+A contact constraint is generated for each mesh vertex that
+interpenetrates the other mesh, with the normal direction determined
+by finding the nearest point on the opposing mesh.  This method is the
+default for collisions involving deformable bodies which have enough
+degrees of freedom (DOF) that the resulting number of contacts does
+not overconstrain the system.  Using this method for collisions
+between rigid bodies, or low DOF deformable bodies, will generally
+result in an overconstrained system unless the constraints are either
+regularized using compliance or constraint reduction is enabled.
+
+\item[CONTOUR\_REGION]\mbox{}
+
+Contact constraints are generated by fitting a plane to each mesh
+contact region and then projecting the region onto that plane.
+Constraints are then created from points on the perimeter of this
+projection, with the normal direction being given by the plane
+normal. This is the default method for collision between rigid bodies
+or low DOF deformable bodies. Trying to use this method for FEM-based
+deformable bodies will result in an error.
+
+\item[DEFAULT]\mbox{}
+
+Selects the method most appropriate depending on the DOFs of the
+colliding bodies and whether they are rigid or deformable . This is
+the default setting.
+
+\item[INACTIVE]\mbox{}
+
+No constraints are generated. This will result in no collision
+response.
+
+\end{description}
 
 Because ArtiSynth currently uses static collision detection, it is
 possible for objects that are fast enough or thin enough to completely
@@ -1239,95 +1806,129 @@ for some applications it may be necessary to control the value
 explicitly using the {\tt MechModel} methods
 %
 \begin{lstlisting}[]
-   setInterpenetrationTol (double dist);
-   double getInterpenetrationTol();
+   setPenetrationTol (double dist);
+   double getPenetrationTol();
 \end{lstlisting}
 %
 
-Other aspects of collision handling can be adjusted by directly
-setting properties of the {\tt MechModel}'s collision manager, which
-can be accessed graphically via the navigation panel, or in code using
-\javamethod*[artisynth.core.mechmodels.MechModel]{getCollisionManager()}.
-
-One of these properties is {\tt collisionPointTol}, which for
-collisions between rigid bodies specifies a minimum distance between
-contact points and therefore can be used to reduce the number of
-contact constraints and improve computation time.
-
 \subsection{Contact rendering}
+\label{ContactRendering:sec}
 
-The {\tt MechModel}'s collision manager component contains render
-properties that can be used to render the contact points, normals, and
-mesh intersection contours associated with contact.
+As mentioned above, {\tt CollisionBehavior} also contains properties
+that can enable and control the rendering of artifacts associated with
+the contact. These include intersection contours and contact points
+and normals, as described below. Colors, line widths, and other
+graphical details are controlled by the generic render properties
+(Section \ref{RenderProperties:sec}) of the collision manager, or by
+render properties which can be set individually within the behavior
+components.
 
-By default, contact and contour rendering is disabled. To enable it,
-one can use the following code fragment:
+By default, contact rendering is disabled. To enable it, one must set
+the collision manager to be {\it visible}, which can be done using a code
+fragment like the following:
 %
 \begin{verbatim}
   RenderProps.setVisible (mechModel.getCollisionManager(), true);
 \end{verbatim}
 %
-The following render properties are used:
+
+Specific properties of
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior} that control
+contract rendering include:
 
 \begin{description}
 
-\item[lineStyle] \mbox{}
-Style of the line used for rendering the contact normals
+\item[drawIntersectionContours]\mbox{}
 
-\item[lineWidth] \mbox{}
-Width (in pixels) of the contact normal if the {\tt Line} line style is used
+Boolean value requesting drawing of the intersection contours between
+meshes, using the {\sf edgeWidth} and {\sf edgeColor} render
+properties.
 
-\item[lineRadius] \mbox{}
-Radius of the contact normal if a solid line style is used
+\item[drawIntersectionPoints]\mbox{}
 
-\item[lineColor] \mbox{}
-Color of the contact normal
+Boolean value requesting drawing of the interpenetrating vertices on
+each mesh, using the {\sf pointStyle}, {\sf pointSize}, {\sf
+pointRadius}, and {\sf pointColor} render properties.
 
-\item[edgeWidth] \mbox{}
-Width (in pixels) of the line used to render the contour
+\item[drawContactNormals]\mbox{}
 
-\item[edgeColor] \mbox{}
-Color of the contour
+Boolean value requesting drawing of the normals associated with each
+contact constraint, using the {\sf lineStyle}, {\sf lineWidth}, {\sf
+lineRadius}, and {\sf lineColor} render properties. The length of the
+normals is controlled by the {\sf contactNormalLen} property of the
+collision manager, which will be set to an appropriate default value
+if not set explicitly.
+
+\item[drawPenetrationDepth]\mbox{}
+
+Integer value requesting drawing of the interpenetration depth of one
+mesh with respect to the other.  The integer value should be either
+{\tt -1}, {\tt 0} or {\tt 1}, where {\tt -1} disables this feature and
+{\tt 0} or {\tt 1} select depth drawing for either the first or second
+mesh associated with the collision behavior. 
+
+Penetration depth is drawn using a ``heat map'' type of rendering,
+where the depth value range is controlled using the {\sf
+penetrationDepthRange} property (see next item) and depth values are
+mapped onto colors using the {\sf colorMap} property of the collision
+manager. The depth map itself is drawn as a patch formed from the
+mesh's penetrating faces, using vertex coloring where the color at
+each vertex is determined by the penetration depth.  An example is
+given in Section \ref{renderingDepth:sec}.
+
+\item[penetrationDepthRange]\mbox{}
+
+Composite property of the type
+\javaclass[artisynth.core.util]{ScalarRange} that controls the range
+used for depth rendering. Sub properties include {\sf interval}, which
+gives the depth range to be used for the depth map, and {\sf updating},
+which specifies how this range should be updated: {\tt FIXED} (no
+updating), {\tt AUTO\_EXPAND} (range is expanded as depth increases),
+and {\tt AUTO\_FIT} (range is reset every step).
 
 \end{description}
 
-These properties can be set in the same way as the visibility, using
-the {\tt RenderProps} methods presented in Section
-\ref{SettingRenderProperties:sec}:
+Most of the above properties are also present in the {\tt
+CollisionManager}, from which they are inherited by all behaviors that
+do not set them explicitly.
 
+Generic render properties within the collision manager can be
+set in the same way as the visibility, using the {\tt RenderProps}
+methods presented in Section \ref{SettingRenderProperties:sec}:
 \begin{lstlisting}[]
-  Renderable colManager = mechModel.getCollisionManager();
-  RenderProps.setEdgeWidth (col, 2);
-  RenderProps.setEdgeColor (col, Color.Red);
+  Renderable cm = mechModel.getCollisionManager();
+  RenderProps.setEdgeWidth (cm, 2);
+  RenderProps.setEdgeColor (cm, Color.Red);
 \end{lstlisting}
 
+As mentioned above, generic render properties can also be set
+individually for specific behaviors. This can be done using code
+fragments like this:
+\begin{lstlisting}[]
+  CollisionBehavior behav = mechModel.getCollisionBehavior (bodA, bodB);
+  RenderProps.setLineWidth (behav, 2);
+  RenderProps.setLineColor (behav, Color.Blue);
+\end{lstlisting}
 To access these properties on a read-only basis, one can do
-  
 \begin{lstlisting}[]
   RenderProps props = mechModel.getCollisionManager().getRenderProps();
+
+  ... OR ...
+
+  RenderProps props = behav.getRenderProps();
 \end{lstlisting}
 
-Finally, to set the length of the rendered contact normals, set the
-{\tt contactNormalLen} property in collision manager. Since contact
-normals have no preferred direction, it may be necessary to use a
-negative length value in order to visualize them properly.
+\subsection{Example: Rendering normals and contours}
 
-A simple model showing a contact rendering is defined in
+A simple model showing contact rendering is defined in
 %
 \begin{verbatim}
   artisynth.demos.tutorial.BallPlateCollide
 \end{verbatim}
 %
-and the complete source code is shown below:
-%
-\lstset{numbers=left}
-\lstinputlisting{../../src/artisynth/demos/tutorial/BallPlateCollide.java}
-\lstset{numbers=none}
-
-To run this example in ArtiSynth, select {\sf All demos > tutorial >
-BallPlateCollide} from the {\sf Models} menu. When run, the ball
-will collide with the plate and the contact normals and collision 
-contours with be draw and shown in Figure \ref{BallPlateCollide:fig}.
+This shows a rigid sphere colliding with a plane, while
+rendering the resulting contact normals in red and the
+intersection contours in blue. 
 
 \begin{figure}[ht]
 \begin{center}
@@ -1341,6 +1942,103 @@ contours with be draw and shown in Figure \ref{BallPlateCollide:fig}.
 (blue) of the ball colliding with the plate.}
 \label{BallPlateCollide:fig}
 \end{figure}
+
+The complete source code is shown below:
+%
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/BallPlateCollide.java}
+\lstset{numbers=none}
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+BallPlateCollide} from the {\sf Models} menu. When run, the ball
+will collide with the plate and the contact normals and collision 
+contours will be drawn as shown in Figure \ref{BallPlateCollide:fig}.
+
+\subsection{Example: Rendering penetration depth}
+\label{renderingDepth:sec}
+
+As described above, it is possible to use the {\sf
+drawPenetrationDepth} property to render the extent to which one mesh
+interpenetrates another. A simple example
+of this is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.PenetrationRender
+\end{verbatim}
+%
+which displays the penetration depth of one hemispherical mesh with
+respect to another.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/PenetrationRender}
+\else
+ \includegraphics[width=3.75in]{images/PenetrationRender}
+\fi
+\end{center}
+\caption{PenetrationRender showing the penetration depth of the bottom
+mesh with respect to the top, with red indicating greater depth.
+A translation dragger fixture at the top is being used to 
+move the top mesh around, while the penetration range and
+associated colors are displayed on the color bar at the right.}
+\label{PenetrationRender:fig}
+\end{figure}
+
+The complete source code is shown below:
+%
+\lstset{numbers=left}
+\lstinputlisting{../../src/artisynth/demos/tutorial/PenetrationRender.java}
+\lstset{numbers=none} 
+
+To improve visibility, the example uses two rigid bodies, each created
+from an open hemispherical mesh using the method {\tt
+createHemiBody()} (lines 31-46). Because this example is strictly
+graphical, the bodies are set to be non-dynamic so that they can be
+moved around using the viewer's graphical dragger fixtures (see the
+section ``Geometric Manipulation'' in the
+\href{\artisynthDocBase/html/uiguide/uiguide.html}{ArtiSynth User
+Interface Guide}). Rendering properties for each body are set at lines
+66-67 and 72-75, with the top body being rendered as a wireframe to
+improve visibility.
+
+Lines 79-84 create and set a collision behavior between the two bodies
+with penetration depth rendering enabled. Because for this example we
+want to show only the penetration and don't want a collision response,
+we set the collision method to be \javaclassAlt{%
+artisynth.core.mechmodels.CollisionBehavior\$Method\#INACTIVE}%
+{Method.INACTIVE}. The updating of the penetration range is also set
+to {\tt AUTO\_FIT} so that it will be recomputed at every time step.
+At line 82, the collider type used by the collision manager is set to
+\javaclassAlt{%
+artisynth.core.mechmodels.CollisionManager\$ColliderType\#AJL\_CONTOUR}%
+{ColliderType.AJL\_CONTOUR}, since this is needed for depth rendering.
+Other rendering properties are set for the collision manager at lines
+90-105, including a custom color map that varies between {\tt CREAM}
+(the color of the mesh) for no penetration and dark red for maximum
+penetration.
+
+At line 109, a color bar is created and added to the scene, using the
+method {\tt createColorBar()} (lines 49-58), to explicitly show the
+depth that corresponds to the different colors. The color bar is given
+the same color map that is used to render the depth. Since the depth
+range is updated every time step, it is also necessary to update the
+corresponding labels in the color bar. This is done by overriding the
+root model's {\tt prerender()} method (lines 113-130), where we obtain
+the collision behavior between the two bodies, and use its depth range
+to update the color bar labels. References to the color bar, {\tt
+MechModel}, and bodies are obtained using the
+\javaclass[artisynth.core.modelbase]{CompositeComponent} methods
+\javamethod*[artisynth.core.modelbase.CompositeComponent]{get()} and
+\javamethod*[artisynth.core.modelbase.CompositeComponent]{findComponent()}.
+This is more robust that storing these references in  member
+variables, since the latter would be lost if the model is saved to and
+reloaded from a file.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+PenetrationRender} from the {\sf Models} menu. When run, the meshes
+will collide and render the penetration depth of the bottom mesh, 
+as shown in Figure \ref{PenetrationRender:fig}.
 
 \section{Transforming geometry}
 \label{TransformingGeometry:sec}
@@ -1366,7 +2064,7 @@ can be used to translate, rotate, shear or scale components. It
 can be applied to an entire model or individual components. Unlike
 \javamethod*[artisynth.core.util.ScalableUnits]{scaleDistance()}, it
 actually changes the physical geometry and so may change the
-simulation behaviour. For example, applying {\tt transformGeometry()}
+simulation behavior. For example, applying {\tt transformGeometry()}
 to a \javaclass[artisynth.core.mechmodels]{RigidBody} will cause the
 shape of its mesh to change, which will change its mass if its {\sf
 inertiaDensity} property is set to {\sf Density}.
@@ -1484,7 +2182,7 @@ class is derived from the
 class \javaclass[maspack.geometry]{DeformationTransformer}, which uses
 the single method
 \javaclass[maspack.geometry.DeformationTransformer]{getDeformation()} to
-obtain deformation field information at a specified reference postion:
+obtain deformation field information at a specified reference position:
 %
 \begin{lstlisting}[]
     void getDeformation (Vector3d p, Matrix3d F, Vector3d r)
@@ -1573,7 +2271,7 @@ menu items that appear under the {\sf Application} menu in the ArtiSynth
 menu bar (see Section \ref{MenuItems:sec}). 
 The deformer's {\tt createControlPanel()} can also be used
 to create a {\tt ControlPanel} (Section \ref{ControlPanels:sec}) that
-controls the visiblity of the FEM model and the dynamic behavior of
+controls the visibility of the FEM model and the dynamic behavior of
 both it and the {\tt MechModel}.
 
 An example is defined in 
@@ -1625,7 +2323,7 @@ right-click context menu, and then uncheck their {\sf dynamic} property.
 To easily select a large number of nodes without also selecting
 model components or grid elements, one can specify {\tt FemNode}
 in the selection filter widget. (See the sections
-``Manipulation Tools'' and ``Selection filering'' in the
+``Manipulation Tools'' and ``Selection filtering'' in the
 \href{\artisynthDocBase/html/uiguide/uiguide.html}{ArtiSynth User Interface Guide}.)
 
 \item After the grid has been deformed, choose {\sf deform} from the
@@ -1739,7 +2437,7 @@ method, but the following rules are generally observed:
 
 \begin{enumerate}
 
-\item Transformable descendents are also transformed, by using {\tt
+\item Transformable descendants are also transformed, by using {\tt
 addTransformableDependencies()} to add them to the context as described
 above;
 
@@ -1768,8 +2466,8 @@ stiffnesses, densities, and maximum forces will generally need to be
 adjusted as well. As a specific example, when applying a geometric
 transform to a model containing {\tt AxialSprings}, the {\tt
 restLength} properties of the springs will be unchanged, whereas the
-intial lengths may be, resulting in a different applied forces and
-physical behaviour.
+initial lengths may be, resulting in a different applied forces and
+physical behavior.
 
 \section{General component arrangements}
 
@@ -1880,10 +2578,10 @@ rendering two-point axial springs.
 
 \end{description}
 
-If necessary, it is relatively easy to define one's own customined
+If necessary, it is relatively easy to define one's own customized
 list by subclassing one of the other list types. One of the main
 reasons for doing so, as suggested above, is to supply default
-properties to be inherited by the list's descendents.  
+properties to be inherited by the list's descendants.  
 
 A component list which declares {\tt ModelComponent} as its type can
 be used to store {\tt any} type of component, including other

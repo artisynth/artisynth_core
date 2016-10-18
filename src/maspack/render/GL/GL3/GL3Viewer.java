@@ -571,7 +571,6 @@ public class GL3Viewer extends GLViewer {
       }
 
       gl.glFlush();
-
    }
 
    private void offscreenCapture (GLFrameCapture fc, int flags) {

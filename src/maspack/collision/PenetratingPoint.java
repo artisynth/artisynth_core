@@ -23,11 +23,14 @@ public class PenetratingPoint implements Comparable<PenetratingPoint> {
    public Vector3d normal; // normal from interpenetrating point to surface
    public double distance; // distance from interpenetrating point to surface,
                            // in world coordinates
+   public PenetrationRegion region; // region associated with vertex, 
+                           // if available
    
    public PenetratingPoint (
       Vertex3d aVertex, Face opposingFace,
       Vector2d pointBarycentricCoords, Point3d nearestFacePoint,
-      Vector3d dispToNearestFace) {
+      Vector3d dispToNearestFace,
+      PenetrationRegion r) {
       
       vertex = aVertex;
       face = opposingFace;
@@ -38,6 +41,7 @@ public class PenetratingPoint implements Comparable<PenetratingPoint> {
       if (distance != 0) {
          normal.normalize();
       }
+      region = r;
    }
 
    public PenetratingPoint (

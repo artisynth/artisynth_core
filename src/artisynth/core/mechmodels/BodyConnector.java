@@ -94,7 +94,7 @@ public abstract class BodyConnector extends RenderableComponentBase
     */
    public void setPenetrationTol (double tol) {
       if (tol < 0) {
-         tol = CollisionManager.getDefaultPenetrationTol (
+         tol = MechModel.getDefaultPenetrationTol (
             this, DEFAULT_PENETRATION_TOL);
       }
       myPenetrationTol = tol;

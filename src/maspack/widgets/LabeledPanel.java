@@ -38,8 +38,11 @@ public class LabeledPanel extends LabeledComponentBase {
    }
 
    protected void setMainWidget (LabeledComponent widget) {
-      myPanel.addWidget (widget);
       myMainWidget = widget;
+   }
+   
+   protected LabeledComponent getMainWidget() {
+      return myMainWidget;
    }
 
    public JLabel getLabel() {

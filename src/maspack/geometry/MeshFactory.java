@@ -822,7 +822,6 @@ public class MeshFactory {
     * @param wy width in the y direction
     * @param xdiv number of divisions in x (&gt;=1)
     * @param ydiv number of divisions in y (&gt;=1)
-    * @param addNormals if <code>true</code>, generates normals
     * @param addTextureCoords if <code>true</code>, generates texture 
     * coordinates
     * @return created mesh
@@ -1946,6 +1945,25 @@ public class MeshFactory {
       return mesh;
    }
 
+   /**
+    * Creates an open triangular hemispherical mesh, centered on the origin,
+    * with a radius <code>r</code>. The mesh is constructed using spherical
+    * coordinates, with a resolution of <code>nslices</code> about the equator
+    * and <code>nlevels</code> longitudinally.
+    * 
+    * @param r radius of the sphere
+    * @param nslices equatorial mesh resolution
+    * @param nlevels longitudinal mesh resolution
+    * @return created spherical mesh
+    */
+   public static PolygonalMesh createHemisphere (
+      double r, int nslices, int nlevels) {
+      PolygonalMesh mesh = 
+         createQuadHemisphere(r, nslices, nlevels, 0, 0, 0);
+      mesh.triangulate();
+      return mesh;
+   }
+
    public static PolygonalMesh createQuadSphere(
       double r, int nslices, double x, double y, double z) {
       return createQuadSphere(r, nslices, nslices / 2, x, y, z, false);
@@ -2045,6 +2063,20 @@ public class MeshFactory {
          Point3d origin = new Point3d (x, y, z);
          computeTextureCoordsForSphere (mesh, origin, r, tol);
       }
+      return mesh;
+   }
+
+   public static PolygonalMesh createQuadHemisphere (
+      double r, int nslices, int nlevels, 
+      double x, double y, double z) {
+      
+      double tol = computeSphericalPointTolerance (
+         r, 2*Math.PI, Math.PI, nslices, nlevels);
+      PolygonalMesh mesh = new PolygonalMesh();
+      VertexMap vtxMap = new VertexMap (tol);
+      RigidTransform3d XLM = new RigidTransform3d (x, y, z);
+      addQuadSphericalSection (
+         mesh, r, Math.PI, Math.PI/2, nslices, nlevels, XLM, vtxMap);
       return mesh;
    }
 

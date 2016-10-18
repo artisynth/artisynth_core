@@ -134,8 +134,8 @@ public class RigidBodyCollision extends RootModel {
 
          mechmod.setDefaultCollisionBehavior (true, 0.05);
 
-         addModel (mechmod);
          reset();
+         addModel (mechmod);
 
          ControlPanel panel = new ControlPanel();
          panel.addWidget (mechmod, "integrator");
@@ -147,15 +147,15 @@ public class RigidBodyCollision extends RootModel {
          RenderProps.setVisible (cm, true);
          RenderProps.setLineWidth (cm, 3);      
          RenderProps.setLineColor (cm, Color.RED);
-         cm.setContactNormalLen (0.5);
+         cm.setDrawContactNormals (true);
 
          // mechmod.setProfiling (true);
          //mechmod.setIntegrator (Integrator.ConstrainedBackwardEuler);
          // mechmod.setPrintState ("%12.7f");
          //addBreakPoint (0.74);
-         // for (int i=1; i<=10; i++) {
-         //    addWayPoint (i*0.1);
-         // }
+         for (int i=1; i<=10; i++) {
+            addWayPoint (0.1*i);
+         }
          // setWaypointChecking (true);
 
       }

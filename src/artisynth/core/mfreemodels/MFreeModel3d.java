@@ -97,6 +97,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    protected boolean myBVTreeValid;
 
    protected boolean mySurfaceMeshValid = false;
+   protected int myCollidableIndex;
 
    // record inverted elements
    private double myMinDetJ; // used to record inverted elements
@@ -989,6 +990,16 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       }
       return Collidability.OFF;
    }
+   
+   @Override
+   public Collidable getCollidableAncestor() {
+      return null;
+   }
+
+   @Override
+   public boolean isCompound() {
+      return false;
+   }
 
    @Override
    public boolean isDeformable () {
@@ -1551,8 +1562,8 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       mySurfaceMeshValid = false;
    }
 
-   protected void clearCachedData() {
-      super.clearCachedData();
+   protected void clearCachedData(ComponentChangeEvent e) {
+      super.clearCachedData(e);
       mySolveMatrix = null;
       myBVTreeValid = false;
    }
@@ -1569,7 +1580,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
          if (e.getComponent() == myElements || e.getComponent() == myNodes) {
             invalidateSurfaceMesh();
          }
-         clearCachedData();
+         clearCachedData(null);
          // should invalidate elasticity
       }
       else if (e.getCode() == ComponentChangeEvent.Code.GEOMETRY_CHANGED) { 
@@ -1580,7 +1591,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
 
    @Override
    protected void notifyStructureChanged(Object comp) {
-      clearCachedData();
+      clearCachedData(null);
       super.notifyStructureChanged(comp);
    }
 
@@ -1892,6 +1903,14 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
       return true;
    }
 
+   public int getCollidableIndex() {
+      return myCollidableIndex;
+   }
+   
+   public void setCollidableIndex (int idx) {
+      myCollidableIndex = idx;
+   }
+   
    @Override
    public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t) {
       int bi;

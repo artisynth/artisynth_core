@@ -20,6 +20,7 @@ public class EdgeEdgeContact {
     */
    public Vector3d point1ToPoint0Normal = new Vector3d();
    public double displacement;
+   public PenetrationRegion region; // region associated with edge0
 
    // fraction along line segment from tail to head, of point0 and point1.
    public double s0, s1;

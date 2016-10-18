@@ -48,6 +48,7 @@ public class PropertyDesc implements PropertyInfo {
    protected Method myGetMethod;
    protected Method mySetMethod;
    protected Method myGetRangeMethod;
+   protected Method myGetDefaultMethod; // not current used
    //protected Method myValidateMethod;
    protected Method myGetModeMethod;
    protected Method mySetModeMethod;
@@ -155,6 +156,9 @@ public class PropertyDesc implements PropertyInfo {
       // }
       if (prop.myGetRangeMethod != null) {
          initGetRangeMethod (prop.myGetRangeMethod.getName());
+      }
+      if (prop.myGetDefaultMethod != null) {
+         initGetDefaultMethod (prop.myGetDefaultMethod.getName());
       }
       if (prop.myGetModeMethod != null) {
          initGetModeMethod (prop.myGetModeMethod.getName());
@@ -671,50 +675,7 @@ public class PropertyDesc implements PropertyInfo {
       }
       mySetMethod = locateMethod (methodName, myValueClass);
    }
-
-   // private Class getValidationClass() {
-   //    if (myValueClass == null) {
-   //       return null;
-   //    }
-   //    else if (myValueClass == Boolean.TYPE) {
-   //       return Boolean.class;
-   //    }
-   //    else if (myValueClass == Byte.TYPE) {
-   //       return Byte.class;
-   //    }
-   //    else if (myValueClass == Character.TYPE) {
-   //       return Character.class;
-   //    }
-   //    else if (myValueClass == Short.TYPE) {
-   //       return Short.class;
-   //    }
-   //    else if (myValueClass == Integer.TYPE) {
-   //       return Integer.class;
-   //    }
-   //    else if (myValueClass == Long.TYPE) {
-   //       return Long.class;
-   //    }
-   //    else if (myValueClass == Float.TYPE) {
-   //       return Float.class;
-   //    }
-   //    else if (myValueClass == Double.TYPE) {
-   //       return Double.class;
-   //    }
-   //    else {
-   //       return myValueClass;
-   //    }
-   // }
-
-   // private void initValidateMethod (String methodName) {
-   //    if (myValueClass == null) {
-   //       throw new IllegalStateException (
-   //          "attempt to set validate method with value class unknown");
-   //    }
-   //    myValidateMethod =
-   //       locateMethod (methodName, getValidationClass(), StringHolder.class);
-   //    // checkReturnType (myValidateMethod, Object.class);
-   // }
-
+   
    private void initGetRangeMethod (String methodName) {
       if (myValueClass == null) {
          throw new IllegalStateException (
@@ -722,6 +683,16 @@ public class PropertyDesc implements PropertyInfo {
       }
       myGetRangeMethod = locateMethod (methodName);
       checkReturnType (myGetRangeMethod, Range.class);
+   }
+
+   // not currently used
+   private void initGetDefaultMethod (String methodName) {
+      if (myValueClass == null) {
+         throw new IllegalStateException (
+            "attempt to set getDefault method with value class unknown");
+      }
+      myGetDefaultMethod = locateMethod (methodName);
+      checkReturnType (myGetDefaultMethod, myValueClass);
    }
 
    // private void maybeSetValidateMethod (String methodName) {
@@ -747,9 +718,30 @@ public class PropertyDesc implements PropertyInfo {
       try {
          myGetRangeMethod = myHostClass.getMethod (methodName);
          checkReturnType (myGetRangeMethod, Range.class);
+//         System.out.println (
+//            "GET_RANGE method set to " + methodName + 
+//            " for " + myHostClass.getName()+":"+myName);        
       }
       catch (Exception e) {
          myGetRangeMethod = null;
+      }
+   }
+
+   // not currently used
+   private void maybeSetGetDefaultMethod (String methodName) {
+      if (myValueClass == null) {
+         throw new IllegalStateException (
+            "attempt to set getDefault method with value class unknown");
+      }
+      try {
+         myGetDefaultMethod = myHostClass.getMethod (methodName);
+         checkReturnType (myGetDefaultMethod, myValueClass);
+//         System.out.println (
+//            "GET_DEFAULT method set to " + methodName + 
+//            " for " + myHostClass.getName()+":"+myName);
+      }
+      catch (Exception e) {
+         myGetDefaultMethod = null;
       }
    }
 
@@ -831,9 +823,9 @@ public class PropertyDesc implements PropertyInfo {
       initSetMethod (methodName);
    }
 
-   public void setGetRangeMethod (String methodName) {
-      initGetRangeMethod (methodName);
-   }
+//   public void setGetRangeMethod (String methodName) {
+//      initGetRangeMethod (methodName);
+//   }
 
    public void setGetModeMethod (String methodName) {
       initGetModeMethod (methodName);
@@ -1269,7 +1261,7 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    static String[] defaultNames =
-      { "getXXX", "setXXX", "getXXXRange", "getXXXMode", "setXXXMode" };
+     { "getXXX", "setXXX", "getXXXRange", "getXXXMode", "setXXXMode" };
 
    static public PropertyDesc create (
       String nameAndMethods, Class<?> hostClass, String descriptor,
@@ -1287,6 +1279,7 @@ public class PropertyDesc implements PropertyInfo {
       if (propType == REGULAR || propType == INHERITABLE) {
          desc.setSetMethod (strs[2]);
          desc.maybeSetGetRangeMethod (strs[3]);
+         //desc.maybeSetGetDefaultMethod (strs[4]);
       }
 
       if (propType == INHERITABLE) {

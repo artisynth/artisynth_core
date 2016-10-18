@@ -2610,12 +2610,22 @@ public class FemModel3d extends FemModel
       getSurfaceMesh(); // build surface mesh if necessary
       return myCollidability;
    }
-
+   
    public void setCollidable (Collidability c) {
       if (myCollidability != c) {
          myCollidability = c;
          notifyParentOfChange (new StructureChangeEvent (this));
       }
+   }
+
+   @Override
+   public Collidable getCollidableAncestor() {
+      return null;
+   }
+
+   @Override
+   public boolean isCompound() {
+      return true;
    }
 
    @Override
@@ -2729,8 +2739,8 @@ public class FemModel3d extends FemModel
       // myFineSurfaceValid = false;
    }
 
-   protected void clearCachedData() {
-      super.clearCachedData();
+   protected void clearCachedData(ComponentChangeEvent e) {
+      super.clearCachedData(e);
       // clearIncompressVariables();
       mySolveMatrix = null;
       // myActiveNodes = null;
@@ -2771,7 +2781,7 @@ public class FemModel3d extends FemModel
                invalidateSurfaceMesh();               
             }
          }
-         clearCachedData();
+         clearCachedData(null);
          // should invalidate elasticity
       }
       else if (e.getCode() == ComponentChangeEvent.Code.GEOMETRY_CHANGED) { 
@@ -2779,14 +2789,14 @@ public class FemModel3d extends FemModel
       }
       else if (
          e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED) { 
-         clearCachedData();
+         clearCachedData(null);
       }
       notifyParentOfChange(e);
    }
 
    @Override
    protected void notifyStructureChanged(Object comp) {
-      clearCachedData();
+      clearCachedData(null);
       super.notifyStructureChanged(comp);
    }
 
@@ -3856,7 +3866,7 @@ public class FemModel3d extends FemModel
            fem.setElementWidgetSize(myElementWidgetSize);
         }
 
-        fem.clearCachedData();
+        fem.clearCachedData(null);
 
         fem.myAABBTree = null;
         fem.myBVTreeValid = false;

@@ -31,6 +31,7 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.StringHolder;
 import maspack.util.Disposable;
 import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.mechmodels.MechSystemSolver.MatrixSolver;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
@@ -74,6 +75,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    protected ArrayList<RequiresInitialize> myLocalInitComps;
    protected ArrayList<RequiresPrePostAdvance> myLocalPrePostAdvanceComps;
    protected ArrayList<MechSystemModel> myLocalModels;
+   protected ArrayList<CollidableBody> myCollidableBodies;
 
    protected ComponentList<MuscleExciter> myExciterList;
    protected RenderableComponentList<RenderableComponent> myRenderables;
@@ -91,6 +93,10 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    protected ComponentList<DynamicAttachment> myAttachments;
    SparseNumberedBlockMatrix mySolveMatrix;
 
+   // flag to indicate that CollidableBodies need re-indexing. This
+   // will get set on a structure change event
+   protected boolean myCollidableBodiesNeedIndexing = true;
+   
    // flag to indicate that forces need updating. Since forces are always
    // updated before a call to advance() (within setDefaultInputs()), this
    // flag only needs to be set during the advance routine --
@@ -172,13 +178,14 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    protected void doclear() {
       setDefaultValues();
-      for (int i=0; i<numComponents(); i++) {
-         ModelComponent c = get (i);
-         if (c instanceof ComponentList &&
-             c != myCollisionManager) {
-            ((ComponentList<?>)c).removeAll();
-         }
-      }
+//      for (int i=0; i<numComponents(); i++) {
+//         ModelComponent c = get (i);
+//         if (c instanceof ComponentList &&
+//             c != myCollisionManagerOld && c != myCollisionManager) {
+//            ((ComponentList<?>)c).removeAll();
+//         }
+//      }
+//      myCollisionManagerOld.clear();
       myCollisionManager.clear();
    }
 
@@ -248,6 +255,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          new RenderableComponentList<RenderableComponent> (
             RenderableComponent.class, "renderables", "re");
 
+      //myCollisionManagerOld = new CollisionManagerOld(this);
+      //myCollisionManagerOld.setName ("collisionManagerOld");
       myCollisionManager = new CollisionManager(this);
       myCollisionManager.setName ("collisionManager");
 
@@ -268,10 +277,15 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       addFixed (myExciterList);
       addFixed (myRenderables);
 
-      addFixed (myCollisionManager);
+      addFixed (myCollisionManager);         
  
       setMatrixSolver (DEFAULT_MATRIX_SOLVER);
-      setIntegrator (DEFAULT_INTEGRATOR);      
+      setIntegrator (DEFAULT_INTEGRATOR);
+      
+      // set these to -1 so that they will be computed automatically
+      // when their "get" methods are called.
+      //myCollisionManager.setRigidPointTol (-1);
+      //myCollisionManager.setRigidRegionTol (-1);
    }
 
    protected void updateHardwiredLists() {
@@ -288,6 +302,14 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       return RenderableUtils.getRadius (this);      
    }
    
+   /**
+    * Sets the default distance by which collidable bodies are allowed to
+    * interpenetrate each other in order to preserve contact stability. If
+    * specified as a negative number, the value will be set to a default value
+    * based on the overall size of this <code>MechModel</code>.
+    *
+    * @param tol desired penetration tolerance
+    */
    public void setPenetrationTol (double tol) {
       if (tol < 0) {
          tol = computeDefaultPenetrationTol();
@@ -298,6 +320,12 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
             this, "penetrationTol", tol, myPenetrationTolMode);
    }
 
+   /**
+    * Returns the default distance by which collidable bodies are allowed to
+    * interpenetrate each other in order to preserve contact stability.
+    *
+    * @return penetration tolerance
+    */
    public double getPenetrationTol () {
       return myPenetrationTol;
    }
@@ -338,6 +366,20 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       double radius = RenderableUtils.getRadius (this);
       if (radius != 0) {
          tol = 1e-4*radius;
+      }
+      return tol;
+   }
+
+   static double getDefaultPenetrationTol (
+      ModelComponent comp, double defaultTol) {
+
+      double tol;
+      MechModel mech = MechModel.topMechModel (comp);
+      if (mech != null) {
+         tol = mech.computeDefaultPenetrationTol();
+      }
+      else {
+         tol = defaultTol;
       }
       return tol;
    }
@@ -397,14 +439,12 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    public void setFriction (double mu) {
       myCollisionManager.setFriction (mu);
    }
-   // ZZZ 2733 old line count
 
    /** 
-    * Specifies the default collision behavior for all default pairs
-    * (RigidBody-RigidBody, RigidBody-Deformable, Deformable-Deformable,
-    * Deformable-Self) associated with this MechModel. 
-    * This is a convenience wrapper for
-    * {@link #setDefaultCollisionBehavior(CollisionBehavior)
+    * Specifies the default collision behavior for all primary collidable group
+    * pairs (Rigid-Rigid, Rigid-Deformable, Deformable-Deformable,
+    * Deformable-Self) associated with this MechModel.  This is a convenience
+    * wrapper for {@link #setDefaultCollisionBehavior(CollisionBehavior)
     * setDefaultCollisionBehavior(behavior)}.
     * 
     * @param enabled if true, enables collisions
@@ -415,196 +455,364 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    /** 
-    * Specifies a default collision behavior for all default pairs
-    * (RigidBody-RigidBody, RigidBody-Deformable, Deformable-Deformable,
-    * Deformable-Self) associated with this MechModel.
+    * Specifies a default collision behavior for all primary collidable group
+    * pairs (Rigid-Rigid, Rigid-Deformable, Deformable-Deformable,
+    * Deformable-Self) associated with this MechModel. The specified behavior
+    * is copied into the internal behavior settings for these pairs.
+    *
+    * <p>This method is equivalent to calling
+    * <pre>
+    * setDefaultCollisionBehavior (Collidable.All, Collidable.All, behavior)
+    * </pre>
     * 
     * @param behavior desired collision behavior
     */
    public void setDefaultCollisionBehavior (CollisionBehavior behavior) {
-      myCollisionManager.setDefaultBehavior (behavior);
+      myCollisionManager.setDefaultBehavior (
+         Collidable.All, Collidable.All, behavior);
    }
 
    /** 
-    * Gets the default collision behavior
-    * for a specified pair of generic collidable types. 
-    * Allowed collidable types are {@link Collidable#RigidBody} and
-    * {@link Collidable#Deformable}. In addition, the type
-    * {@link Collidable#Self} can be paired with {@link Collidable#Deformable}
-    * to obtain the default behavior for deformable self collisions;
-    * {@link Collidable#Self} cannot be paired with other types.
+    * Gets the default collision behavior for a specified pair of primary
+    * collidable groups.  Allowed collision groups are {@link Collidable#Rigid}
+    * and {@link Collidable#Deformable}. In addition, the group {@link
+    * Collidable#Self} can be paired with {@link Collidable#Deformable} to
+    * obtain the default behavior for deformable self collisions; {@link
+    * Collidable#Self} cannot be paired with other groups.
     * 
-    * @param typeA first generic collidable type
-    * @param typeB second generic collidable type
-    * @return default collision behavior for the indicted collidable types.
+    * @param group0 first generic collidable group
+    * @param group1 second generic collidable group
+    * @return default collision behavior for the indicted collidable groups.
     */
    public CollisionBehavior getDefaultCollisionBehavior (
-      Collidable typeA, Collidable typeB) {
-
-      return myCollisionManager.getDefaultCollisionBehavior (typeA, typeB);
+      Collidable.Group group0, Collidable.Group group1) {
+      return myCollisionManager.getDefaultBehavior (group0, group1);
    }
 
    /**
     * Sets the default collision behavior, for this MechModel, for a specified
-    * pair of generic collidable types.  Allowed collidable types are {@link
-    * Collidable#RigidBody} and {@link Collidable#Deformable}. In addition, the
-    * type {@link Collidable#Self} can be paired with {@link
-    * Collidable#Deformable} to set the default behavior for deformable self
-    * collisions; {@link Collidable#Self} cannot be paired with other types.
+    * pair of collidable groups.  Allowed collidable groups include the primary
+    * groups {@link Collidable#Rigid} and {@link Collidable#Deformable}, as
+    * well as the composite groups {@link Collidable#AllBodies} (rigid and
+    * deformable) and {@link Collidable#All} (all bodies plus self collision).
+    * In addition, the group {@link Collidable#Self} can be paired with {@link
+    * Collidable#Deformable}, {@link Collidable#AllBodies} or {@link
+    * Collidable#All} to set the default self-collision behavior for deformable
+    * compound bodies. {@link Collidable#Self} cannot be paired with {@link
+    * Collidable#Self} or {@link Collidable#Rigid}.
     *
-    * @param typeA first generic collidable type
-    * @param typeB second generic collidable type
-    * @param behavior specified collision behavior
+    * <p>This method works by setting the behaviors for the appropriate primary
+    * collidable group pairs (Rigid-Rigid, Rigid-Deformable,
+    * Deformable-Deformable, Deformable-Self) implied by the specified
+    * groups.
+    *
+    * @param group0 first generic collidable group
+    * @param group1 second generic collidable group
+    * @param behavior desired collision behavior
     */
    public void setDefaultCollisionBehavior (
-      Collidable typeA, Collidable typeB, CollisionBehavior behavior) {
+      Collidable.Group group0, Collidable.Group group1, 
+      CollisionBehavior behavior) {
 
-      myCollisionManager.setDefaultBehavior (typeA, typeB, behavior);
+      myCollisionManager.setDefaultBehavior (group0, group1, behavior);
    }
 
    /**
     * Sets the default collision behavior, for this MechModel, for a specified
-    * pair of generic collidable types.  This is a convenience wrapper for
+    * pair of generic collidable groups.  This is a convenience wrapper for
     * {@link
-    * #setDefaultCollisionBehavior(Collidable,Collidable,CollisionBehavior)
-    * setDefaultCollisionBehavior(typeA,typeB,behavior)}.
+    * #setDefaultCollisionBehavior(Collidable.Group,Collidable.Group,CollisionBehavior)
+    * setDefaultCollisionBehavior(group0,group1,behavior)}, where a default
+    * <code>CollisionBehavior</code> object is created and set to reflect the
+    * specified enabled and friction settings.
     *
-    * @param typeA first generic collidable type
-    * @param typeB second generic collidable type
+    * @param group0 first generic collidable group
+    * @param group1 second generic collidable group
     * @param enabled if true, enables collisions
     * @param mu friction coefficient (ignored if enabled is false)
     */
    public void setDefaultCollisionBehavior (
-      Collidable typeA, Collidable typeB, boolean enabled, double mu) {
+      Collidable.Group group0, Collidable.Group group1, 
+      boolean enabled, double mu) {
 
       setDefaultCollisionBehavior (
-         typeA, typeB, new CollisionBehavior (enabled, mu));
+         group0, group1, new CollisionBehavior (enabled, mu));
    }
 
    /** 
-    * Enables or disables collisions for a specified pair of collidables,
-    * overriding, if necessary, the primary collision behavior. This is a
-    * convenience wrapper for {@link
+    * Enables or disables collisions for a specified pair of collidables
+    * <code>c0</code> and <code>c1</code>, overriding the default behavior or
+    * any behavior specified for the pair with previous
+    * <code>setBehavior</code> calls. This is a convenience wrapper for {@link
     * #setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
-    * setCollisionBehavior(a,b,behavior)}.
+    * setCollisionBehavior(c0,c1,behavior)}, where a default
+    * <code>CollisionBehavior</code> object is created with the specified
+    * enabled setting and a friction coefficient of 0.
     * 
-    * @param a first collidable
-    * @param b second collidable
+    * @param c0 first collidable
+    * @param c1 second collidable
     * @param enabled if true, enables collisions
+    * @return collision behavior object that was created and set
     */
-   public void setCollisionBehavior (
-      Collidable a, Collidable b, boolean enabled) {
+   public CollisionBehavior setCollisionBehavior (
+      Collidable c0, Collidable c1, boolean enabled) {
 
-      setCollisionBehavior (a, b, new CollisionBehavior (enabled, /*mu=*/0));
+      CollisionBehavior behav = new CollisionBehavior (enabled, /*mu=*/0);
+      setCollisionBehavior (c0, c1, behav);
+      return behav;
    }
 
    /** 
-    * Sets collision behavior for a specified pair of collidables, overriding,
-    * if necessary, the primary behavior. This is a convenience wrapper for
-    * {@link
+    * Sets the collision behavior for a specified pair of collidables
+    * <code>c0</code> and <code>c1</code>, overriding the default behavior and
+    * any behavior specified for the pair with previous
+    * <code>setBehavior</code> calls. This is a convenience wrapper for {@link
     * #setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
-    * setCollisionBehavior(a,b,behavior)}.
+    * setCollisionBehavior(c0,c1,behavior)}, where a default
+    * <code>CollisionBehavior</code> object is created and set to reflect the
+    * specified enabled and friction settings.
     * 
-    * @param a first collidable
-    * @param b second collidable
+    * @param c0 first collidable
+    * @param c1 second collidable
     * @param enabled if true, enables collisions
     * @param mu friction coefficient (ignored if enabled is false)
     */
-   public void setCollisionBehavior (
-      Collidable a, Collidable b, boolean enabled, double mu) {
+   public CollisionBehavior setCollisionBehavior (
+      Collidable c0, Collidable c1, boolean enabled, double mu) {
 
-      setCollisionBehavior (a, b, new CollisionBehavior (enabled, mu));
+      CollisionBehavior behav = new CollisionBehavior (enabled, mu);
+      setCollisionBehavior (c0, c1, behav);
+      return behav;
    }
 
    /** 
-    * Sets collision behavior for a specified pair of collidables
-    * <code>a</code> and <code>b</code>, overriding, if necessary, the primary
-    * behavior. The primary behavior is the default collision behavior, unless
-    * <code>a</code> and <code>b</code> both belong to a sub MechModel, in
-    * which case it is the value of
-    * {@link #getCollisionBehavior getCollisionBehavior(a,b)} for that
-    * MechModel.
-    * <p>
-    * Each collidable must be a particular
-    * component instance. A deformable body may be paired with {@link
-    * Collidable#Self} to indicate self-intersection; otherwise, generic
-    * designations (such as {@link Collidable#RigidBody}) are not allowed.
+    * Sets the collision behavior for a specified pair of collidables
+    * <code>c0</code> and <code>c1</code>, overriding the default behavior and
+    * any behavior specified for the pair with previous
+    * <code>setBehavior</code> calls. The behavior specified by this method
+    * will be applied only among collidables for which this
+    * <code>MechModel</code> is the lowest common model.
     *
-    * <p>
-    * If <code>a</code> or <code>b</code> contain sub-collidables (i.e.,
-    * descendants components which are also <code>Collidable</code>),
-    * then the behavior is applied to all pairs of these sub-collidables.
-    * If <code>a</code> and <code>b</code> are the same, then the
-    * behavior is applied to the self-collision among all sub-collidables
-    * whose {@link Collidable#getCollidable getCollidable()} method
-    * returns <code>Colidability.ALL</code> or
+    * <p>Since behaviors are added to the collision manager as sub-components,
+    * the specified behavior cannot be currently set and in particular can not
+    * be reused in other <code>setCollisionBehavior</code> calls. If reuse
+    * is desired, the behavior should be copied:
+    * <pre>
+    *    CollisionBehavior behav = new CollisionBehavior();
+    *    behav.setDrawIntersectionContours (true); 
+    *    mesh.setCollisionBehavior (col0, col1, behav);
+    *    behav = new CollisionBehavior(behav);
+    *    mesh.setCollisionBehavior (col2, col3, behav); // OK
+    * </pre>
+    *
+    * <p>There are restrictions on what pair of collidables can be
+    * specified. The first collidable must be a specific collidable object. The
+    * second may be a collidable group, such as {@link Collidable#Rigid} {@link
+    * Collidable#All}, or {@link Collidable#Self}. Self-collision is specified
+    * either using the group {@link Collidable#Self} or by specifying <code>c0
+    * == c1</code>. If self-collision is specified, then <code>c0</code> must
+    * be deformable and must also be a compound collidable (since
+    * self-intersection is currently only supported among the sub-collidables
+    * of a compound collidable).
+    *
+    * <p>If <code>c0</code> and/or <code>c1</code> are specific collidables, then
+    * they must both be contained within the component hierarchy of this
+    * <code>MechModel</code>. In addition, if both <code>c0</code> and
+    * <code>c1</code> are specific collidables, then one cannot be a
+    * sub-collidable of the other, and this <code>MechModel</code> must be the
+    * lowest common model containing both of them.
+    *
+    * <p> If <code>c0</code> or <code>c1</code> are compound collidables, then
+    * the behavior is applied to all appropriate pairs of their
+    * sub-collidables.  If self-collision is specified, then the behavior is
+    * applied among all sub-collidables whose {@link Collidable#getCollidable
+    * getCollidable()} method returns <code>Colidability.ALL</code> or
     * <code>Colidability.INTERNAL</code>.
     *
-    * <p>
-    * The behavior specified by this method can be removed
-    * using {@link #clearCollisionBehavior clearCollisionBehavior(a,b)}.
+    * <p>This method works by adding the indicated behavior to the collision
+    * manager as a sub-component. If a behavior has been previously set for the
+    * specified pair, the previous behavior is removed. The behavior can be
+    * queried later using {@link #getCollisionBehavior
+    * getCollisionBehavior(c0,c1)} and removed using {@link
+    * #clearCollisionBehavior clearCollisionBehavior(c0,c1)}.
     * 
-    * @param a first collidable
-    * @param b second collidable
-    * @param behavior specified collision behavior
+    * @param c0 first collidable
+    * @param c1 second collidable
+    * @param behavior desired collision behavior
     */
    public void setCollisionBehavior (
-      Collidable a, Collidable b, CollisionBehavior behavior) {
-      myCollisionManager.setBehavior (a, b, behavior);
+      Collidable c0, Collidable c1, CollisionBehavior behavior) {
+      myCollisionManager.setBehavior (c0, c1, behavior);
    }
 
    /** 
-    * Clears any collision behavior that has been defined for
-    * <code>a</code> and <code>b</code> (using the
-    * <code>setCollisionBehavior()</code> methods)
-    * to override the primary behavior. The collidables
-    * that may be specified are described in the documentation for
-    * {@link #setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
-    * setCollisionBehavior()}.
+    * Returns the collision behavior that was previously set using one of the
+    * <code>setCollisionBehavior</code> methods.  If no behavior for the
+    * indicated pair was set, <code>null</code> is returned.
     * 
-    * @param a first collidable
-    * @param b second collidable
-    * @return <code>true</code> if an override behavior was specified
-    * and removed for the indicated collidables.
+    * @param c0 first collidable
+    * @param c1 second collidable
+    * @return specific behavior for this pair of collidables
     */
-   public boolean clearCollisionBehavior (Collidable a, Collidable b) {
-      return myCollisionManager.clearCollisionBehavior (a, b);
+   public CollisionBehavior getCollisionBehavior (Collidable c0, Collidable c1) {
+      return myCollisionManager.getBehavior (c0, c1);
    }
 
    /** 
-    * Clears any collision behaviors that have been defined (using the
-    * <code>setCollisionBehavior()</code> methods) to override the default
-    * collision behaviors betweem pairs of Collidables.
+    * Clears the collision behavior that was previously set using one of the
+    * <code>setCollisionBehavior</code> methods. If no behavior for the
+    * indicated pair was set, the method returns <code>false</code>.
+    * 
+    * @param c0 first collidable
+    * @param c1 second collidable
+    * @return <code>true</code> if the specific behavior had been set
+    * and was removed
+    */
+   public boolean clearCollisionBehavior (Collidable c0, Collidable c1) {
+      return myCollisionManager.clearBehavior (c0, c1);
+   }
+
+   /** 
+    * Clears any collision behaviors that have been set using the
+    * <code>setCollisionBehavior</code> methods.
     */
    public void clearCollisionBehaviors () {
-      myCollisionManager.clearCollisionBehaviors();
+      myCollisionManager.clearBehaviors();
    }
    
+   /** 
+    * Sets and returns a collision response for a specified pair of collidables
+    * <code>c0</code> and <code>c1</code>, removing any response that has been
+    * previoulsy specified for the same pair. This is a convenience wrapper for
+    * {@link #setCollisionResponse(Collidable,Collidable,CollisionResponse)
+    * setCollisionResponse(c0,c1,response)}, which creates and returns
+    * the required <code>CollisionResponse</code> object.
+    * 
+    * @param c0 first collidable
+    * @param c1 second collidable
+    * @return collision response object that was created and set
+    */
+   public CollisionResponse setCollisionResponse (Collidable c0, Collidable c1) {
+
+      CollisionResponse resp = new CollisionResponse ();
+      setCollisionResponse (c0, c1, resp);
+      return resp;
+   }
 
    /** 
-    * Returns the collision behavior for a specified pair of collidables
-    * <code>a</code> and <code>b</code>. Generic designations (such as {@link
-    * Collidable#RigidBody}) are not allowed.
-    * The returned behavior is the current effective behavior resulting from
-    * the application of all default and explicit collision behavior
-    * settings.
+    * Sets the collision response for a specified pair of collidables
+    * <code>c0</code> and <code>c1</code>, removing any response that has been
+    * previoulsy specified for the same pair. At every subsequent integration
+    * step, the response object will be updated to contain the current
+    * collision information for the collidable pair. Since responses are added
+    * to the collision manager as sub-components, the specified response cannot
+    * be currently set.
     *
-    * <p> If <code>a</code> or <code>b</code> contain sub-collidables, then
-    * if a consistent collision behavior is found amount all pairs of
-    * sub-collidables, that behavior is returned; otherwise, <code>null</code>
-    * is returned. If <code>a</code> equals <code>b</code>, then this method
-    * searches for a consistent collision behavior among all sub-collidables of
-    * <code>a</code> whose {@link Collidable#getCollidable getCollidable()}
-    * method returns <code>Colidability.ALL</code> or
+    * <p>There are restrictions on what pair of collidables can be
+    * specified. The first collidable must be a specific collidable object. The
+    * second may be a collidable group, such as {@link Collidable#Rigid} {@link
+    * Collidable#All}, or {@link Collidable#Self}. Self-collision is specified
+    * either using the group {@link Collidable#Self} or by specifying <code>c0
+    * == c1</code>. If self-collision is specified, then <code>c0</code> must
+    * be deformable and must also be a compound collidable (since
+    * self-intersection is currently only supported among the sub-collidables
+    * of a compound collidable).
+    *
+    * <p>If <code>c0</code> and/or <code>c1</code> are specific collidables, then
+    * they must both be contained within the component hierarchy of this
+    * <code>MechModel</code>.
+    *
+    * <p>If <code>c0</code> or <code>c1</code> are compound collidables, then
+    * the response is collected for all appropriate pairs of their
+    * sub-collidables.  If self-collision is specified, then the response is
+    * collected for all sub-collidables whose {@link Collidable#getCollidable
+    * getCollidable()} method returns <code>Colidability.ALL</code> or
     * <code>Colidability.INTERNAL</code>.
-
+    *
+    * <p>This method works by adding the indicated response to the collision
+    * manager as a sub-component. If a response has been previously set for the
+    * specified pair, the previous response is removed. The response can be
+    * queried later using {@link #getCollisionResponse
+    * getCollisionResponse(c0,c1)} and removed using {@link
+    * #clearCollisionResponse clearCollisionResponse(c0,c1)}.
     * 
-    * @param a first collidable
-    * @param b second collidable
-    * @return behavior for this pair of collidables.
+    * @param c0 first collidable
+    * @param c1 second collidable
+    * @param response desired collision response
     */
-   public CollisionBehavior getCollisionBehavior (Collidable a, Collidable b) {
-      return myCollisionManager.getBehavior (a, b);
+   public void setCollisionResponse (
+      Collidable c0, Collidable c1, CollisionResponse response) {
+      myCollisionManager.setResponse (c0, c1, response);
+   }
+
+   /** 
+    * Returns the collision response that was previously set using one of the
+    * <code>setCollisionResponse</code> methods.  If no response for the
+    * indicated pair was set, <code>null</code> is returned.
+    * 
+    * @param c0 first collidable
+    * @param c1 second collidable
+    * @return specific response for this pair of collidables
+    */
+   public CollisionResponse getCollisionResponse (Collidable c0, Collidable c1) {
+      return myCollisionManager.getResponse (c0, c1);
+   }
+
+   /** 
+    * Clears the collision response that was previously set using one of the
+    * <code>setCollisionResponse</code> methods. If no response for the
+    * indicated pair was set, the method returns <code>false</code>.
+    * 
+    * @param c0 first collidable
+    * @param c1 second collidable
+    * @return <code>true</code> if the specific response had been set
+    * and was removed
+    */
+   public boolean clearCollisionResponse (Collidable c0, Collidable c1) {
+      return myCollisionManager.clearResponse (c0, c1);
+   }
+
+   /** 
+    * Clears any collision responses that have been set using the
+    * <code>setCollisionResponse()</code> methods.
+    */
+   public void clearCollisionResponses () {
+      myCollisionManager.clearResponses();
+   }
+
+   /**
+    * Returns the behavior that controls collisions for a pair of specific
+    * collidables <code>c0</code> and <code>c1</code>. This will be determined
+    * by the lowest <code>MechModel</code> which contains both <code>c0</code>
+    * and <code>c1</code>, and be either a default behavior, or an override
+    * behavior specified will a <code>setBehavior</code> call. In some cases,
+    * if <code>c0</code> and/or <code>c1</code> are not collidable, or if one
+    * or both are compound collidables with different behaviors for their
+    * sub-collidables (see below), no unique controlling behavior will exist
+    * and this method will return <code>null</code>.
+    *
+    * <p>Both <code>c0</code> and <code>c1</code> must be specific collidables;
+    * collidable groups (such as {@link Collidable#Rigid} or {@link
+    * Collidable.Group}) are not allowed.
+    *
+    * <p>If <code>c0</code> or <code>c1</code> are compound collidables, then
+    * if the same acting behavior is found among all pairs of sub-collidables
+    * for which collisions are permitted, that behavior is returned; otherwise,
+    * <code>null</code> is returned. In particular, if <code>c0</code> equals
+    * <code>c1</code>, then this method searches for the same collision
+    * behavior among all sub-collidables of <code>c0</code> for which
+    * self-intersection is permitted (i.e., those whose {@link
+    * Collidable#getCollidable getCollidable()} method returns
+    * <code>Colidability.ALL</code> or <code>Colidability.INTERNAL</code>).
+    * 
+    * @param c0 first collidable
+    * @param c1 second collidable
+    * @return acting behavior for this pair of collidables, or
+    * <code>null</code> if such behavior exists.
+    */
+   public CollisionBehavior getActingCollisionBehavior (
+      Collidable c0, Collidable c1) {
+      return myCollisionManager.getActingBehavior (c0, c1);
    }
 
    public void getCollidables (List<Collidable> list, int level) {
@@ -616,6 +824,81 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       //recursivelyGetCollidables (this, list, level);
    }      
 
+   /**
+    * Return a list of all collidable bodies located within this
+    * MechModel (including sub-MechModels).
+    */
+   ArrayList<CollidableBody> getCollidableBodies() {
+      
+      ArrayList<Collidable> collidables = new ArrayList<Collidable>();
+      getCollidables (collidables, /*level=*/0);
+      ArrayList<CollidableBody> cbodies = new ArrayList<CollidableBody>();
+      for (Collidable c : collidables) {
+         if (c instanceof CollidableBody &&
+             // XXX hack until RigidBody and RigidCompositeBody are merged
+             !(c instanceof RigidCompositeBody)) {
+            cbodies.add ((CollidableBody)c);
+         }
+      }
+      return cbodies;
+   }
+   
+   /**
+    * Update, if necessary, the indices of all collidable bodies. These
+    * indices are used by the CollisionManager(s) to determine an
+    * unambiguous ordering for pairs of collidable bodies. 
+    */
+   void updateCollidableBodyIndices() {
+      if (myCollidableBodiesNeedIndexing) {
+         ArrayList<CollidableBody> cbodies = getCollidableBodies();
+         for (int i=0; i<cbodies.size(); i++) {
+            cbodies.get(i).setCollidableIndex(i);
+         }
+         myCollidableBodiesNeedIndexing = false;
+      }
+   }
+
+   // public void getTopCollidables (List<Collidable> list, int level) {
+   //    recursivelyGetTopLocalComponents (this, list, Collidable.class);
+   // } 
+   
+
+   // /**
+   //  * Creates and returns a collision response object that contains information
+   //  * about all the current collisions between a <code>target</code> collidable
+   //  * and one or more <code>source</code> collidables.
+   //  *
+   //  * <p>If <code>target</code> and <code>source</code> are the same, then the
+   //  * response will provide information on self-collisions within
+   //  * <code>target</code>, which is the same as specifying <code>source =
+   //  * Collidable.Self</code>. At present, self-collision is supported only for
+   //  * deformable compound collidables; if this is not the case, then the
+   //  * collision response object will be empty.
+   //  *
+   //  * <p>If <code>source</code> is set to <code>Collidable.All</code>, then the
+   //  * collision response will contain information for all collisions involving
+   //  * the <code>target</code>, including self-collisions if appropriate.
+   //  *
+   //  * @param target target collidable. Must be a specific collidable.
+   //  * @param source source collidable(s). May be a specific collidable
+   //  * or a colliable group.
+   //  * @return collision response object for the specified target and source
+   //  */
+   // public CollisionResponse getCollisionResponse (
+   //    Collidable target, Collidable source) {
+
+   //    if (useNewCollisionManager) {
+   //       return myCollisionManager.getCollisionResponse (target, source);
+   //    }
+   //    else {
+   //       return null;
+   //    }
+   // }
+
+//   public CollisionManagerOld getCollisionManagerOld() {
+//      return null;
+//   }
+//
    public CollisionManager getCollisionManager() {
       return myCollisionManager;
    }
@@ -1298,7 +1581,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
                list.add (rbc);
             }
          }
-         else if (c instanceof Constrainer && !(c instanceof CollisionManager)) {
+         else if (c instanceof Constrainer &&
+                  !(c instanceof CollisionManager)) {
             list.add ((Constrainer)c);
          }
          else if (c instanceof MechSystemModel) {
@@ -1317,7 +1601,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    public void getConstrainers (List<Constrainer> list, int level) {
-
       recursivelyGetConstrainers (this, list, level);
    }
 
@@ -1395,16 +1678,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
             ((MechSystemModel)c).getAuxStateComponents (list, level+1);
          }
          else if (c instanceof CollisionManager) {
-            if (level == 0) {
-               CollisionManager cm = (CollisionManager)c;
-               // XXX Call updateCollisionHandlers() here, in order to get any
-               // FEM surface mesh rebuilds out of the way. Rebuilds that
-               // happen later will structure changes that will clear the
-               // MechSystemBase component cache.
-               cm.updateHandlers();
-               list.addAll (cm.collisionHandlers());
-               //list.add (cm);
-            }
+            CollisionManager cm = (CollisionManager)c;
+            list.add (cm);
          }
          else if (c instanceof HasAuxState) {
             // this will include inactive RigidBodyConnecters;
@@ -1754,16 +2029,19 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       return mech;
    }
 
-   protected void clearCachedData () {
-      super.clearCachedData();
+   protected void clearCachedData (ComponentChangeEvent e) {
+      super.clearCachedData(e);
       mySolveMatrix = null;
       myDynamicComponents = null;
       myLocalDynamicComps = null;
       myLocalInitComps = null;
       myLocalPrePostAdvanceComps = null;
       myLocalModels = null;
-      myCollisionManager.clearCachedData();
+      if (e == null || e.getComponent() != myCollisionManager.behaviors()) {
+         myCollisionManager.clearCachedData();
+      }
       myForcesNeedUpdating = true;
+      myCollidableBodiesNeedIndexing = true;
    }
 
    @Override
@@ -1771,7 +2049,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       if (comp == this) {
          updateHardwiredLists();
       }
-      clearCachedData ();
+      clearCachedData (null);
       super.notifyStructureChanged (comp, stateIsChanged);
    }
 
@@ -1786,7 +2064,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          handleGeometryChange ((GeometryChangeEvent)e);
       }
       else { // invalidate everything for now
-         clearCachedData ();
+         clearCachedData (e);
       }
       notifyParentOfChange (e);
    }
@@ -1842,6 +2120,11 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       }
    }
    
+   protected ArrayList<MechSystemModel> getLocalModels() {
+      updateLocalModels();
+      return myLocalModels;
+   }
+
    protected void updateLocalInitComponents () {
       if (myLocalInitComps == null) {
          myLocalInitComps = new ArrayList<RequiresInitialize>();
@@ -1951,3 +2234,4 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    RequestEnforceArticulationAction myRequestEnforceArticulationAction =
       new RequestEnforceArticulationAction();
 }
+

@@ -23,7 +23,6 @@ public interface CollidableBody extends Collidable {
 
    public double getMass();
 
-   
    /**
     * Returns the mesh that should be used for computing collisions, or
     * <code>null</code> if there is no such mesh. If this method
@@ -73,5 +72,9 @@ public interface CollidableBody extends Collidable {
     */
    public boolean allowCollision (
       ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices);
+   
+   public int getCollidableIndex();
+   
+   public void setCollidableIndex (int idx);
 
 }

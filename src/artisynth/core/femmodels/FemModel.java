@@ -51,6 +51,7 @@ import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.mechmodels.MechSystemSolver.MatrixSolver;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointList;
+import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
@@ -1116,8 +1117,8 @@ public abstract class FemModel extends MechSystemBase
       super.recursivelyInitialize (t, level);
    }
 
-   protected void clearCachedData () {
-      super.clearCachedData();
+   protected void clearCachedData (ComponentChangeEvent e) {
+      super.clearCachedData(e);
       myForcesNeedUpdating = true;
       invalidateStressAndStiffness();
    }

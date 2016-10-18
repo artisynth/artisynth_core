@@ -90,6 +90,9 @@ endef
 %.eps: %.pdf
 	convert $< eps2:$@
 
+# for HTML, idr files should be converted to PDF using
+# epstopdf. However, right now we do this manually.
+
 .PHONY: clean CLEAN HTML PDF CHUNKED
 
 CLEAN clean::

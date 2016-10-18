@@ -56,10 +56,24 @@ public interface Collidable extends ModelComponent {
       ALL      
    }
 
-   class DefaultCollidable extends ModelComponentBase implements Collidable {
-      
-      DefaultCollidable (String name) {
+   /**
+    * Special Collidable subclass used to denote generic groups of
+    * Collidables.
+    */
+   public class Group extends ModelComponentBase 
+      implements Collidable {
+
+      boolean myIncludesDeformable = false;
+      boolean myIncludesRigid = false;
+      boolean myIncludesSelf = false;
+
+      private Group (
+         String name,
+         boolean deformable, boolean rigid, boolean self) {
          myName = name;
+         myIncludesDeformable = deformable;
+         myIncludesRigid = rigid;
+         myIncludesSelf = self;
       }
 
       public String toString() {
@@ -72,8 +86,49 @@ public interface Collidable extends ModelComponent {
       }
       
       @Override
-      public boolean isDeformable() {
+      public Collidable getCollidableAncestor() {
+         return null;
+      }
+      
+      @Override
+      public boolean isCompound() {
          return false;
+      }
+
+      public boolean includesSelf() {
+         return myIncludesSelf;
+      }
+      
+      public boolean includesRigid() {
+         return myIncludesRigid;
+      }
+      
+      public boolean includesDeformable() {
+         return myIncludesDeformable;
+      }
+      
+      public boolean isSelfInstance (Collidable c) {
+         if (c.isDeformable() && c.isCompound()) {
+            return myIncludesSelf;
+         }
+         else {
+            return false;
+         }
+      }
+      
+      public boolean isBodyInstance (Collidable c) {
+         if (c.isDeformable()) {
+            return myIncludesDeformable;
+         }
+         else {
+            return myIncludesRigid;
+         }
+      }
+
+      @Override
+      public boolean isDeformable() {
+         // XXX is this right?
+         return myIncludesDeformable;
       }
    };
    
@@ -90,7 +145,20 @@ public interface Collidable extends ModelComponent {
     * @return Collidability of this collidable.
     */
    public Collidability getCollidable();
+   
+   /**
+    * Returns the most immediate Collidable ancestor of this Collidable,
+    * if any. Otherwise, return <code>null</code>.
+    * 
+    * @return immediate Collidable ancestor, or <code>null</code>.
+    */
+   public Collidable getCollidableAncestor();
 
+   /**
+    * Queries whether or not this collidable has sub-collidables.
+    */
+   public boolean isCompound();
+   
    /**
     * Returns <code>true</code> if this collidable is deformable. Whether or
     * not a collidable is deformable determines how it responds to default
@@ -102,8 +170,34 @@ public interface Collidable extends ModelComponent {
     */
    public boolean isDeformable();
    
-   public static Collidable Default = new DefaultCollidable("Default");
-   public static Collidable RigidBody = new DefaultCollidable("RigidBody");
-   public static Collidable Deformable = new DefaultCollidable("Deformable");
-   public static Collidable Self = new DefaultCollidable("Self");
+   
+   /**
+    * Group specifying self-collision
+    */  
+   public static Collidable.Group Self =
+      new Group("Self", false, false, true);
+
+   /**
+    * Group specifying all rigid collidable bodies
+    */
+   public static Collidable.Group Rigid =
+      new Group("Rigid", false, true, false);
+   
+   /**
+    * Group specifying all deformable collidable bodies
+    */
+   public static Collidable.Group Deformable =
+      new Group("Deformable", true, false, false);
+   
+   /**
+    * Group specifying all rigid and deformable collidable bodies
+    */
+   public static Collidable.Group AllBodies =
+      new Group("AllBodies", true, true, false);
+
+   /**
+    * Group specifying all collidable bodies and self-collision
+    */
+   public static Collidable.Group All =
+      new Group("All", true, true, true);
 }

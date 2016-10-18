@@ -149,7 +149,7 @@ public class TetGenReader implements FemReader {
 
       while (nodeFile.nextToken() != ReaderTokenizer.TT_EOF) {
          if (!nodeFile.tokenIsInteger()) {
-
+            throw new IOException ("Expecting node index, got " + nodeFile);
          }
          // int index = (int)nodeFile.lval;
          Point3d coords = new Point3d();
@@ -175,15 +175,19 @@ public class TetGenReader implements FemReader {
       elemFile.nextToken();
       elemFile.nextToken();
 
+      int indexBase = -1;
       while (elemFile.nextToken() != ReaderTokenizer.TT_EOF) {
          if (!elemFile.tokenIsInteger()) {
-
+            throw new IOException ("Expecting element index, got " + elemFile);
+         }
+         if (indexBase == -1) {
+            indexBase = (elemFile.nval == 1.0 ? 1 : 0);
          }
          // int index = (int)elemFile.lval;
 
          int[] idxs = new int[4];
          for (int i = 0; i < 4; i++) {
-            idxs[i] = elemFile.scanInteger();
+            idxs[i] = elemFile.scanInteger()-indexBase;
             // System.out.print(idxs[i] + " ");
          }
          // System.out.println();

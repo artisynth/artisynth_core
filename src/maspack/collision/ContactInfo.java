@@ -78,6 +78,42 @@ public class ContactInfo {
    }
    
    /**
+    * Sets the nearest point tolerance used to compute contact planes.
+    * 
+    * @param tol nearest point tolerance
+    */
+   public void setPointTol (double tol) {
+      myPointTol = tol;
+   }
+   
+   /**
+    * Returns the nearest point tolerance used to compute contact planes.
+    * 
+    * @return nearest point tolerance for contact planes
+    */
+   public double getPointTol() {
+      return myPointTol;
+   }
+   
+   /**
+    * Sets the region tolerance used to compute contact planes.
+    * 
+    * @param tol region tolerance
+    */
+   public void setRegionTol (double tol) {
+      myRegionTol = tol;
+   }
+   
+   /**
+    * Returns the region tolerance used to compute contact planes.
+    * 
+    * @return region tolerance for contact planes
+    */
+   public double getRegionTol() {
+      return myRegionTol;
+   }
+   
+   /**
     * Returns the contact penetration regions associated with the first
     * mesh. Each region represents a connected subset of the first mesh that is
     * "inside" the second. If the collider that produced this contact
@@ -142,7 +178,7 @@ public class ContactInfo {
             myPoints0 = new ArrayList<PenetratingPoint>();
             for (PenetrationRegion r : myRegions0) {
                SurfaceMeshCollider.collideVerticesWithFaces (
-                  myPoints0, r.myInsideVertices, myMesh1);
+                  myPoints0, r, myMesh1);
             } 
             Collections.sort (
                myPoints0, new PenetratingPoint.IndexComparator());      
@@ -173,7 +209,7 @@ public class ContactInfo {
             myPoints1 = new ArrayList<PenetratingPoint>();
             for (PenetrationRegion r : myRegions1) {
                SurfaceMeshCollider.collideVerticesWithFaces (
-                  myPoints1, r.myInsideVertices, myMesh0);
+                  myPoints1, r, myMesh0);
             }
             Collections.sort (
                myPoints1, new PenetratingPoint.IndexComparator());        
@@ -207,7 +243,7 @@ public class ContactInfo {
             mesh1.transformToWorld (nearest);
             disp.sub (nearest, wpnt);
             points.add (new PenetratingPoint (
-               vtx, f, uv, nearest, disp));
+               vtx, f, uv, nearest, disp, /*region=*/null));
          }
       }
       return points;

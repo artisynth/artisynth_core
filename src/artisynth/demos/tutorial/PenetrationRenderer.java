@@ -4,16 +4,16 @@ import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
-import artisynth.core.mechmodels.CollisionHandler;
+import artisynth.core.mechmodels.CollisionResponse;
 import artisynth.core.modelbase.MonitorBase;
 
 public class PenetrationRenderer extends MonitorBase {
 
-   CollisionHandler myCollisionHandler;
+   CollisionResponse myCollisionResponse;
    
-   public PenetrationRenderer (CollisionHandler handler) {
+   public PenetrationRenderer (CollisionResponse response) {
       super ();
-      myCollisionHandler = handler;
+      myCollisionResponse = response;
       setRenderProps (createRenderProps ());
    }
 

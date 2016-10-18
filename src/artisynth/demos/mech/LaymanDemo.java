@@ -72,8 +72,9 @@ public class LaymanDemo extends RootModel {
       myMechMod.addRigidBody (myBin);
 
       CollisionManager cm = myMechMod.getCollisionManager();
-      cm.setCollisionPointTol (1e-2);
-      cm.setCollisionRegionTol (1e-1);
+      cm.setRigidPointTol (1e-2);
+      cm.setRigidRegionTol (1e-1);
+      myMechMod.setFriction (0.2);
       myMechMod.setDefaultCollisionBehavior (true, 0.2);
       myMechMod.setPenetrationTol (1e-3);
 
@@ -91,6 +92,17 @@ public class LaymanDemo extends RootModel {
       // myMechMod.setProfiling (true);
       myMechMod.setIntegrator (Integrator.ConstrainedBackwardEuler);
       //addBreakPoint (0.90);
+
+      // try {
+      //    String name = "old.txt";
+      //    if (MechModel.useNewCollisionManager) {
+      //       name = "new.txt";
+      //    }
+      //    MechSystemSolver.setLogWriter (
+      //       ArtisynthIO.newIndentingPrintWriter (name));
+      // }
+      // catch (Exception e)  {
+      // }
    }
 
 }

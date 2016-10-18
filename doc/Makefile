@@ -25,10 +25,9 @@ WEBDOCS = \
 FIND_PACKAGES=findJavaPackages
 
 javadocs: #make the javadocs
-	@ if [ ! -d javadocs ] ; then \
-            echo mkdir javadocs ; \
-            mkdir javadocs ; \
-        fi
+	# clear any existing javadoc directory
+	rm -rf javadocs
+	mkdir javadocs
 	javadoc -author -d javadocs -public -sourcepath $(ROOT_DIR)/src \
 		-windowtitle "Artisynth API documentation" \
 		-J-Xms500m -J-Xmx500m -encoding UTF-8 \
@@ -112,8 +111,11 @@ install_pdf: PDF
 	rsync -rCtO --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
 
+# Need to do rsync on javadocs/artisynth/core because rsynce does not
+# always recurse down far enough otherwise.
 install_javadocs:
-	rsync -rCtO --delete --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
+	rsync -rvCtO --delete --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs
+	rsync -rvCtO --delete --exclude=DONT_DELETE javadocs/artisynth/core/ $(WEB_DOC_URL)/javadocs/artisynth/core
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/javadocs
 
 test:

@@ -1,5 +1,6 @@
 package artisynth.demos.test;
 
+import maspack.collision.PenetrationRegion;
 import maspack.geometry.*;
 import maspack.spatialmotion.*;
 import maspack.matrix.*;
@@ -29,8 +30,9 @@ public class BlockTestX extends RootModel {
 
    private class ContactForce implements ContactForceBehavior {
       public void computeResponse (
-         double[] fres, double dist, 
-         ContactPoint cpnt1, ContactPoint cpnt2, Vector3d nrml) {
+         double[] fres, double dist, ContactPoint cpnt1, ContactPoint cpnt2, 
+         Vector3d nrml, PenetrationRegion region) {
+         
          double c = 0.001;
 
          fres[0] = dist/c;
@@ -74,10 +76,8 @@ public class BlockTestX extends RootModel {
          RenderProps.setVisible (collisions, true);
          RenderProps.setLineWidth (collisions, 3);      
          RenderProps.setLineColor (collisions, Color.RED);
-         collisions.setContactNormalLen (0.5);
+         collisions.setDrawContactNormals (true);
       }
-
-      CollisionManager cm = msmod.getCollisionManager();
 
       ControlPanel panel = new ControlPanel();
       panel.addWidget (msmod, "integrator");
@@ -88,6 +88,12 @@ public class BlockTestX extends RootModel {
       addBreakPoint (10);
       Main.getMain().arrangeControlPanels(this);
 
-      cm.setForceBehavior (myBase, myBlock, new ContactForce());
+      CollisionManager cm = msmod.getCollisionManager();
+      //cm.setForceBehavior (myBase, myBlock, new ContactForce());
+      CollisionBehavior behav = msmod.setCollisionBehavior (
+         myBase, myBlock, true, 0.2);
+      behav.setForceBehavior (new ContactForce());
+      //cm.setForceBehavior (new ContactForce());
+      
    }
 }

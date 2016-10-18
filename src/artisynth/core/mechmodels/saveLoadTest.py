@@ -69,6 +69,7 @@ testSaveLoadFull ("artisynth.models.dynjaw.JawDemo", 0.5, "%g", 1.0, 0.10)
 testSaveLoad ("artisynth.models.dangTongue.FemTongueDemo")
 
 testSaveLoad ("artisynth.demos.tutorial.BallPlateCollide")
+testSaveLoad ("artisynth.demos.tutorial.PenetrationRender")
 testSaveLoad ("artisynth.demos.tutorial.DeformedJointedCollide")
 testSaveLoad ("artisynth.demos.tutorial.FemBeam")
 #testSaveLoad ("artisynth.demos.tutorial.FemBeamColored") # member variables

@@ -26,6 +26,7 @@ import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.TetGenReader;
 import artisynth.core.mechmodels.CollisionManager;
+import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.PointState;
 import artisynth.core.mechmodels.RigidBody;
@@ -74,8 +75,8 @@ public class FemCollision extends RootModel {
          RenderProps.setEdgeColor (collisions, Color.YELLOW);
          RenderProps.setLineWidth (collisions, 3);      
          RenderProps.setLineColor (collisions, Color.GREEN);
-         collisions.setContactNormalLen (0.5);
-         
+         collisions.setDrawContactNormals (true);
+                  
          RigidBody table = new RigidBody("table");
          table.setDynamic (false);
          //table.setMesh (new PolygonalMesh (new File (rbpath+ "box.obj")), null);
@@ -190,6 +191,8 @@ public class FemCollision extends RootModel {
 
          if (incFem0) {
             mechmod.setCollisionBehavior (fem0, table, true, mu);
+            mechmod.setCollisionResponse (fem0, Collidable.Deformable);
+            mechmod.setCollisionResponse (fem0, table);
          }
          if (incFem1 & incFem0) {
             mechmod.setCollisionBehavior (fem0, fem1, true, mu);
@@ -199,12 +202,14 @@ public class FemCollision extends RootModel {
          }
          if (incFem1) {
             mechmod.setCollisionBehavior (fem1, table, true, mu);
+            mechmod.setCollisionResponse (fem1, Collidable.AllBodies);
          }
          if (incBox0 & incFem1) {
             mechmod.setCollisionBehavior (box0, fem1, true, mu);
          }
          if (incBox0) {
             mechmod.setCollisionBehavior (box0, table, true, mu);
+            mechmod.setCollisionResponse (box0, table);
          }
 
          addModel (mechmod);

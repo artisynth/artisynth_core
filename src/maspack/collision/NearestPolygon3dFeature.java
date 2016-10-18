@@ -267,7 +267,7 @@ public class NearestPolygon3dFeature {
    /**
     * Marks the start of a new polygon in the current sequence of input
     * polygons. Previous feature information is kept.  There is no need to call
-    * this method if the previous polygon was terminated using {@link #closed}.
+    * this method if the previous polygon was terminated using {@link #close}.
     */
    public void restart () {
       myP0 = null;

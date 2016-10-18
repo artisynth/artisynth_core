@@ -455,7 +455,7 @@ public class PropertyPanel extends LabeledComponentPanel {
       }
    }
 
-   private void removeValueChangeListener (
+   public static void removeValueChangeListener (
       LabeledControl ctrl, ValueChangeListener l) {
       ctrl.removeValueChangeListener (l);
       PropertyModeButton b = PropertyWidget.getModeButton (ctrl);

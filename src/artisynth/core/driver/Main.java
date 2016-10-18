@@ -59,9 +59,11 @@ import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.timeline.TimelineController;
 import artisynth.core.inverse.InverseManager;
-import artisynth.core.mechmodels.CollisionHandler;
+import artisynth.core.mechmodels.CollisionManager;
+import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystem;
 import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.mechmodels.MechSystemSolver;
@@ -1653,7 +1655,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myFrame.getSelectCompPanelHandler().setComponentFilter (null);
          myFrame.setBaseTitle ("ArtiSynth " + modelName);
       }
-
       return true;
    }
 
@@ -1817,7 +1818,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
    protected static IntHolder glVersion = new IntHolder (3);
-   protected static StringHolder logLevel = new StringHolder(Logger.LogLevel.WARN.toString());
+   protected static StringHolder logLevel = 
+      new StringHolder(Logger.LogLevel.WARN.toString());
+   protected static BooleanHolder testSaveRestoreState =
+      new BooleanHolder (false);
 
    protected static IntHolder flags = new IntHolder();
 
@@ -2050,6 +2054,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
       parser.addOption("-logLevel %s", logLevel);
+      parser.addOption (
+         "-testSaveRestoreState %v #test save/restore state when running models",
+         testSaveRestoreState);
       
       // parser.addOption ("-model %s #name of model to start, with optional "
       //   + "argument list delimited by square brackets", modelName);
@@ -2235,9 +2242,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
          MechSystemBase.setDefaultStabilization (PosStabilization.GlobalStiffness);
       }
       FemModel3d.noIncompressStiffnessDamping = noIncompressDamping.value;
-      CollisionHandler.useSignedDistanceCollider =
-         useSignedDistanceCollider.value;
-      SurfaceMeshCollider.setAjlCollision (useAjlCollision.value);
+
+      if (useAjlCollision.value) {
+         CollisionManager.setDefaultColliderType (ColliderType.AJL_CONTOUR);
+      }
+      if (testSaveRestoreState.value) {
+         RootModel.testSaveAndRestoreState = true;
+      }
 
       if (noGui.value == true) {
          width.value = -1;

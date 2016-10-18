@@ -903,7 +903,7 @@ public class PropTreeCell {
    }
 
    /**
-    * Rescursively descends this tree and, for any property whose editing
+    * Recursively descends this tree and, for any property whose editing
     * property is Single, sets its value to the default value. Returns true if
     * any default values were set.
     */

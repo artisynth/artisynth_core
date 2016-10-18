@@ -76,8 +76,8 @@ public class LaymanBowl extends RootModel {
       myMechMod.addRigidBody (myBin);
       
       CollisionManager cm = myMechMod.getCollisionManager();
-      cm.setCollisionPointTol (1e-2);
-      cm.setCollisionRegionTol (1e-1);
+      cm.setRigidPointTol (1e-2);
+      cm.setRigidRegionTol (1e-1);
       myMechMod.setPenetrationTol (1e-3);
 
       myMechMod.setDefaultCollisionBehavior (true, 0.2);

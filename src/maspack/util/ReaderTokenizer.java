@@ -2156,6 +2156,29 @@ public class ReaderTokenizer {
    }
 
    /**
+    * Reads the next token, check that it represents a specified
+    * enumerated type, and return the corrsponding type.
+    * 
+    * @param enumType type of the expected enum
+    * @return instance of enumType
+    * @throws IOException
+    * if the token does not represent the specified enumerated type
+    */
+   public <T extends Enum<T>> T scanEnum (Class<T> enumType) throws IOException {
+      nextToken();
+      if (ttype != TT_WORD) {
+         throw new IOException ("expected a word, got " + this);
+      }
+      try {
+         return Enum.valueOf (enumType, sval);
+      }
+      catch (Exception e) {
+         throw new IOException (
+            "expected an enum type of "+enumType+", got " + this);
+      }
+   }
+
+   /**
     * Reads the next token and checks that it is a quoted string delimited by
     * the specified quote character.
     * 
@@ -2294,7 +2317,7 @@ public class ReaderTokenizer {
    
    /**
     * Returns true if the current token marks the end of the file
-    * @return
+    * @return true if current token marks end of the file
     */
    public boolean isEOF() {
       return ttype == TT_EOF;

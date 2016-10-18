@@ -107,6 +107,7 @@ public class RigidBody extends Frame
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
+   protected int myCollidableIndex;
 
     static {
       myProps.remove ("renderProps");
@@ -1420,6 +1421,16 @@ public class RigidBody extends Frame
       return myCollidability;
    }
 
+   @Override
+   public Collidable getCollidableAncestor() {
+      return null;
+   }
+
+   @Override
+   public boolean isCompound() {
+      return false;
+   }
+
    public void setCollidable (Collidability c) {
       if (myCollidability != c) {
          myCollidability = c;
@@ -1445,5 +1456,13 @@ public class RigidBody extends Frame
       return true;
    }
 
+   public int getCollidableIndex() {
+      return myCollidableIndex;
+   }
+   
+   public void setCollidableIndex (int idx) {
+      myCollidableIndex = idx;
+   }
+   
    // end Collidable interface
 }

@@ -5,12 +5,12 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import maspack.dicom.DicomPixelBuffer.PixelType;
+import maspack.image.dicom.DicomPixelBuffer.PixelType;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -644,7 +644,7 @@ public class DicomImage {
     * Transform for converting integer voxel locations into spatial locations
     * @return the 3D affine transform for converting voxels to spatial locations
     */
-   public AffineTransform3d getPixelTransform() {
+   public AffineTransform3d getVoxelTransform() {
       
       int nSlices = getNumSlices();
       // compute slice thickness directly from slice separation

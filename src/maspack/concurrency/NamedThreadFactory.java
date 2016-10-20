@@ -1,4 +1,4 @@
-package maspack.threads;
+package maspack.concurrency;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;

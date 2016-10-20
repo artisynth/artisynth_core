@@ -5,7 +5,7 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
@@ -17,7 +17,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
-import maspack.dicom.DicomElement.VR;
+import maspack.image.dicom.DicomElement.VR;
 import maspack.util.BitInputStream;
 
 /**

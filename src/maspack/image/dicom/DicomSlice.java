@@ -5,11 +5,11 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
 import java.nio.ByteBuffer;
 
-import maspack.dicom.DicomPixelBuffer.PixelType;
+import maspack.image.dicom.DicomPixelBuffer.PixelType;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;

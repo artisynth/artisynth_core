@@ -5,7 +5,7 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
 import java.io.BufferedInputStream;
 import java.io.EOFException;
@@ -25,8 +25,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
-import maspack.dicom.DicomElement.VR;
-import maspack.threads.NamedThreadFactory;
+import maspack.concurrency.NamedThreadFactory;
+import maspack.image.dicom.DicomElement.VR;
 import maspack.util.BinaryInputStream;
 import maspack.util.FunctionTimer;
 

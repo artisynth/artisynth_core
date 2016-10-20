@@ -5,39 +5,51 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
 import java.nio.ByteBuffer;
 
 /**
- * Stores a set of pixels in grayscale byte form
+ * Stores a set of pixels in RGB byte form (3 consecutive bytes per pixel)
  * @author Antonio
  */
-public class BytePixelBuffer implements DicomPixelBuffer {
+public class RGBPixelBuffer implements DicomPixelBuffer {
 
    byte[] pixels;
 
-   public BytePixelBuffer(int size) {
+   public RGBPixelBuffer(int size) {
       pixels = new byte[size];
    }
    
-   public BytePixelBuffer (byte[] pixels) {
-      this.pixels = pixels; 
+   public RGBPixelBuffer(byte[] pixels) {
+      this.pixels = pixels;
+   }
+   
+   public RGBPixelBuffer (int[] pixels) {
+      this.pixels = new byte[pixels.length*3];
+      int sidx = 0;
+      for (int i=0; i<pixels.length; i++) {
+         this.pixels[sidx++] = (byte)((pixels[i] & 0x00FF0000) >> 16);
+         this.pixels[sidx++] = (byte)((pixels[i] & 0x0000FF00) >> 8);
+         this.pixels[sidx++] = (byte)((pixels[i] & 0x000000FF));
+      }
+
    }
 
    @Override
    public PixelType getPixelType() {
-      return PixelType.BYTE;
+      return PixelType.BYTE_RGB;
    }
 
    @Override
    public int getNumPixels() {
-      return pixels.length;
+      return pixels.length/3;
    }
 
    @Override
-   public Byte getPixel(int n) {
-      return pixels[n];
+   public byte[] getPixel(int n) {
+      int sidx = 3*n;
+      return new byte[]{pixels[sidx], pixels[sidx+1], pixels[sidx+2]};
    }
    
    @Override
@@ -50,9 +62,9 @@ public class BytePixelBuffer implements DicomPixelBuffer {
             byte[] buff = new byte[1];
             int iidx = x;
             for (int i=0; i<nx; ++i) {
-               interp.interpByteByte (this.pixels, iidx, buff, 0);
+               interp.interpRGBByte (this.pixels, iidx, buff, 0);
                pixels.put (buff[0]);
-               iidx += dx;
+               iidx += 3*dx;
             }
             off = nx;
             break;
@@ -61,146 +73,131 @@ public class BytePixelBuffer implements DicomPixelBuffer {
             byte[] buff = new byte[3];
             int iidx = x;
             for (int i=0; i<nx; ++i) {
-               interp.interpByteRGB (this.pixels, iidx, buff, 0);
+               interp.interpRGBRGB (this.pixels, iidx, buff, 0);
                pixels.put (buff);
-               iidx += dx;
+               iidx += 3*dx;
             }
-            off = nx*3;
+            off = 3*nx;
             break;
          }
          case SHORT: {
             short[] buff = new short[1];
             int iidx = x;
             for (int i=0; i<nx; ++i) {
-               interp.interpByteShort (this.pixels, iidx, buff, 0);
+               interp.interpRGBShort (this.pixels, iidx, buff, 0);
                pixels.putShort (buff[0]);
-               iidx += dx;
+               iidx += 3*dx;
             }
-            off = nx*2;
+            off = 2*nx;
             break;
          }
       }
       
       return off;
    }
-   
-   @Override
+
    public int getPixelsRGB(int x,
       int dx,
       int nx, byte[] pixels, int offset,
       DicomPixelInterpolator interp) {
-    
+
       int iidx = x;
       int oidx = offset;
       for (int i = 0; i < nx; i++) {
-         //         pixels[oidx++] = this.pixels[iidx];
-         //         pixels[oidx++] = this.pixels[iidx];
-         //         pixels[oidx++] = this.pixels[iidx];
-         oidx = interp.interpByteRGB(this.pixels, iidx, pixels, oidx);
-         iidx += dx;
+         oidx = interp.interpRGBRGB(this.pixels, iidx, pixels, oidx);
+         iidx += 3*dx;
       }
       return oidx;
    }
-   
-   @Override
+
    public int getPixelsByte(int x, 
       int dx,
       int nx, byte[] pixels, int offset,
       DicomPixelInterpolator interp) {
-      
+
       int iidx = x;
       int oidx = offset;
       for (int i = 0; i < nx; i++) {
-         // pixels[oidx++] = this.pixels[iidx];
-         oidx = interp.interpByteByte(this.pixels, iidx, pixels, oidx);
-         iidx += dx;
+         oidx = interp.interpRGBByte(this.pixels, iidx, pixels, oidx);
+         iidx += 3*dx;
       }
       return oidx;
    }
-   
-   @Override
+
    public int getPixelsShort(int x,
       int dx,
       int nx, short[] pixels, int offset,
       DicomPixelInterpolator interp) {
-      
+
       int iidx = x;
       int oidx = offset;
       for (int i = 0; i < nx; i++) {
-         oidx = interp.interpByteShort(this.pixels, iidx, pixels, oidx);
-         iidx += dx;
+         oidx = interp.interpRGBShort(this.pixels, iidx, pixels, oidx);
+         iidx += 3*dx;
       }
       return oidx;
    }
-   
-   @Override
+
    public int getPixels(int x, 
       int dx,
       int nx,
       DicomPixelBuffer pixels, int offset,
       DicomPixelInterpolator interp) {
-      
-      return pixels.setPixelsByte(x, dx, nx, this.pixels, offset, interp);
+
+      return pixels.setPixelsRGB(x, dx, nx, this.pixels, offset, interp);
    }
-   
-   @Override
+
    public int setPixelsRGB(int x,
       int dx,
       int nx, byte[] pixels, int offset,
       DicomPixelInterpolator interp) {
-    
+
       int oidx = x;
       int iidx = offset;
       for (int i = 0; i < nx; i++) {
-         //this.pixels[oidx] = (byte)((pixels[iidx++] + pixels[iidx++] + pixels[iidx++])/3); 
-         iidx = interp.interpRGBByte(pixels, iidx, this.pixels, oidx);
-         oidx += dx;
+         iidx = interp.interpRGBRGB(pixels, iidx, this.pixels, oidx);
+         oidx += 3*dx;
       }
       return iidx;
    }
-   
-   @Override
+
    public int setPixelsByte(int x, 
       int dx,
       int nx, byte[] pixels, int offset,
       DicomPixelInterpolator interp) {
-      
+
       int oidx = x;
       int iidx = offset;
       for (int i = 0; i < nx; i++) {
-         iidx = interp.interpByteByte(pixels, iidx, this.pixels, oidx);
-         oidx += dx;
+         iidx = interp.interpByteRGB(pixels, iidx, this.pixels, oidx);
+         oidx += 3*dx;
       }
       return iidx;
    }
-   
-   @Override
+
    public int setPixelsShort(int x,
       int dx,
       int nx, short[] pixels, int offset,
       DicomPixelInterpolator interp) {
-      
+
       int oidx = x;
       int iidx = offset;
       for (int i = 0; i < nx; i++) {
-         //this.pixels[iidx] = (byte)(pixels[oidx++] >> 8);
-         iidx = interp.interpShortByte(pixels, iidx, this.pixels, oidx);
-         oidx += dx;
+         iidx = interp.interpShortRGB(pixels, iidx, this.pixels, oidx);
+         oidx += 3*dx;
       }
       return iidx;
    }
-   
-   @Override
+
    public int setPixels(int x, 
       int dx,
       int nx,
       DicomPixelBuffer pixels, int offset,
       DicomPixelInterpolator interp) {
-      
-      return pixels.getPixelsByte(x, dx, nx, this.pixels, offset, interp);
+
+      return pixels.getPixelsRGB(x, dx, nx, this.pixels, offset, interp);
    }
    
-   @Override
    public int getMaxIntensity() {
       int max = Byte.MIN_VALUE;
       for (int i=0; i<pixels.length; i++) {
@@ -212,7 +209,6 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return max;
    }
    
-   @Override
    public int getMinIntensity() {
       int min = Byte.MAX_VALUE;
       for (int i=0; i<pixels.length; i++) {
@@ -224,9 +220,8 @@ public class BytePixelBuffer implements DicomPixelBuffer {
       return min;
    }
    
-   @Override
    public byte[] getBuffer() {
       return pixels;
    }
-   
+
 }

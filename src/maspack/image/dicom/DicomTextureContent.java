@@ -1,4 +1,4 @@
-package maspack.dicom;
+package maspack.image.dicom;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -17,7 +17,7 @@ import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import maspack.dicom.DicomPixelBuffer.PixelType;
+import maspack.image.dicom.DicomPixelBuffer.PixelType;
 import maspack.matrix.Point2d;
 import maspack.render.TextureContent;
 import maspack.util.BinaryTreeRectanglePacker;

@@ -5,7 +5,7 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -68,17 +68,6 @@ public abstract class DicomPixelInterpolator implements CompositeProperty {
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
-
-   // abstract methods
-   public DicomPixelInterpolator clone() {
-      DicomPixelInterpolator dpc = null;
-      try {
-         dpc = (DicomPixelInterpolator)super.clone();
-      } catch (CloneNotSupportedException e) {
-         throw new InternalErrorException("cannot clone super in DicomPixelConverter");
-      }
-      return dpc;
-   }
    
    public boolean isWritable() {
       return true;
@@ -108,6 +97,18 @@ public abstract class DicomPixelInterpolator implements CompositeProperty {
       }
    }
 
+   public DicomPixelInterpolator clone() {
+      DicomPixelInterpolator dpc = null;
+      try {
+         dpc = (DicomPixelInterpolator)super.clone();
+      } catch (CloneNotSupportedException e) {
+         throw new InternalErrorException("cannot clone super in DicomPixelConverter");
+      }
+      return dpc;
+   }
+   
+   // abstract methods
+   
    /**
     * Interpolates from grayscale (byte) to RGB (byte) values
     * @param in input pixel values

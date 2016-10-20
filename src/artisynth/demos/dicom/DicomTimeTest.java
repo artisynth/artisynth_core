@@ -10,10 +10,10 @@ import artisynth.core.renderables.DicomViewer;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
-import maspack.dicom.DicomImage;
-import maspack.dicom.DicomImageDecoderImageMagick;
-import maspack.dicom.DicomReader;
 import maspack.fileutil.FileManager;
+import maspack.image.dicom.DicomImage;
+import maspack.image.dicom.DicomImageDecoderImageMagick;
+import maspack.image.dicom.DicomReader;
 
 /**
  * DICOM image of the heart, with time

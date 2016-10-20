@@ -1,4 +1,4 @@
-package maspack.threads;
+package maspack.concurrency;
 
 import java.util.ArrayList;
 import java.util.Collection;

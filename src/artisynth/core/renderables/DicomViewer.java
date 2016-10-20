@@ -15,10 +15,10 @@ import java.util.regex.Pattern;
 
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentBase;
-import maspack.dicom.DicomImage;
-import maspack.dicom.DicomPixelInterpolator;
-import maspack.dicom.DicomReader;
-import maspack.dicom.DicomTextureContent;
+import maspack.image.dicom.DicomImage;
+import maspack.image.dicom.DicomPixelInterpolator;
+import maspack.image.dicom.DicomReader;
+import maspack.image.dicom.DicomTextureContent;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point2d;
@@ -303,7 +303,7 @@ public class DicomViewer extends RenderableComponentBase {
       if (myRenderTransform == null) {
          myRenderTransform = new AffineTransform3d();
       }
-      myRenderTransform.set(myImage.getPixelTransform());
+      myRenderTransform.set(myImage.getVoxelTransform());
       
       // shift by half pixel
       Vector3d shift = new Vector3d(-0.5,-0.5,-0.5);

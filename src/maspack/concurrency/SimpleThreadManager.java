@@ -1,4 +1,4 @@
-package maspack.threads;
+package maspack.concurrency;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import maspack.threads.NamedThreadFactory;
+import maspack.concurrency.NamedThreadFactory;
 
 public class SimpleThreadManager implements ExecutorService {
 

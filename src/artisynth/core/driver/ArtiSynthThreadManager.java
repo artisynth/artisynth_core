@@ -2,7 +2,7 @@ package artisynth.core.driver;
 
 import java.util.concurrent.ExecutorService;
 
-import maspack.threads.SimpleThreadManager;
+import maspack.concurrency.SimpleThreadManager;
 
 public class ArtiSynthThreadManager extends SimpleThreadManager {
 

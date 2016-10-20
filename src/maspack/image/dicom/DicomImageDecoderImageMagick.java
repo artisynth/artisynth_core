@@ -5,7 +5,7 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -16,7 +16,7 @@ import java.io.InputStreamReader;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import maspack.threads.NamedThreadFactory;
+import maspack.concurrency.NamedThreadFactory;
 import maspack.util.BinaryInputStream;
 import maspack.util.BitInputStream;
 import maspack.util.ProcessMonitor;

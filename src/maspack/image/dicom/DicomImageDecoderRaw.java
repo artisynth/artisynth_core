@@ -5,9 +5,9 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
-import maspack.dicom.DicomElement.VR;
+import maspack.image.dicom.DicomElement.VR;
 
 /**
  * Decodes images stored in raw form (non-encoded)

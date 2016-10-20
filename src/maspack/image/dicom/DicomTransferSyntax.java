@@ -5,7 +5,7 @@
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 
-package maspack.dicom;
+package maspack.image.dicom;
 
 /**
  * DICOM transfer syntax, determining byte order, whether or not the VR is explicit,

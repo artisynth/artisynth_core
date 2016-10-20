@@ -9,8 +9,8 @@ import artisynth.core.renderables.DicomViewer;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
-import maspack.dicom.DicomImageDecoderImageMagick;
 import maspack.fileutil.FileManager;
+import maspack.image.dicom.DicomImageDecoderImageMagick;
 
 /**
  * Dicom image of the wrist, using ImageMagick to decode

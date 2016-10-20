@@ -1042,10 +1042,6 @@ public class SVDecomposition {
     * resized.
     */
    public boolean pseudoInverse (MatrixNd R) {
-      checkForUandV();
-      if (m != n) {
-         throw new ImproperSizeException ("Matrix not square");
-      }
       if (R.nrows != R.ncols || R.nrows != n) {
          if (R.isFixedSize()) {
             throw new ImproperSizeException ("Incompatible dimensions");
@@ -1053,6 +1049,30 @@ public class SVDecomposition {
          else {
             R.setSize (n, n);
          }
+      }
+      return pseudoInverse((DenseMatrix)R);
+   }
+   
+   /**
+    * Computes the psuedo inverse of the original matrix M associated this SVD,
+    * and places the result in R.
+    * 
+    * @param R
+    * matrix in which the inverse is stored
+    * @return false if M is singular (within working precision)
+    * @throws ImproperStateException
+    * if this decomposition is uninitialized, or if U or V were not computed
+    * @throws ImproperSizeException
+    * if M is not square, or if R does not have the same size as M and cannot be
+    * resized.
+    */
+   public boolean pseudoInverse (DenseMatrix R) {
+      checkForUandV();
+      if (m != n) {
+         throw new ImproperSizeException ("Matrix not square");
+      }
+      if (R.rowSize() != n && R.colSize() != n) {
+         throw new ImproperSizeException ("Incompatible dimensions");
       }
       for (int j = 0; j < n; j++) {
          U_.getRow (j, vtmp);

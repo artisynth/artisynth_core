@@ -427,7 +427,7 @@ public class AffineTransform3d extends AffineTransform3dBase {
    public AffineTransform3d copy() {
       return new AffineTransform3d(this.A, this.p);
    }
-
+   
    /**
     * Sets this affine transform to one that provides the best fit of q to p in
     * the least-squares sense: p ~ X q

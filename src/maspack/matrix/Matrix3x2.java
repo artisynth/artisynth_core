@@ -522,4 +522,15 @@ public class Matrix3x2 extends DenseMatrixBase {
          throw new InternalErrorException ("clone failed for " + getClass());
       }
    }
+
+   public void mul(Vector3d vr, Vector2d v1) {
+      vr.x = v1.x*m00+v1.y*m01;
+      vr.y = v1.x*m10+v1.y*m11;
+      vr.z = v1.x*m20+v1.y*m21;
+   }
+   
+   public void mulTranspose(Vector2d vr, Vector3d v1) {
+      vr.x = v1.x*m00+v1.y*m10+v1.z*m20;
+      vr.y = v1.x*m01+v1.y*m11+v1.z*m21;
+   }
 }

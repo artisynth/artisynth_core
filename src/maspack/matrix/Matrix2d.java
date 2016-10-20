@@ -317,6 +317,130 @@ public class Matrix2d extends Matrix2dBase {
       this.m11 = m11;
    }
    
+   /**
+    * Adds an outer product to this matrix. The outer product
+    * is formed from two vectors whose coordinates are given
+    * as arguments.
+    * 
+    * @param x0
+    * first vector x coordinate
+    * @param y0
+    * first vector y coordinate
+    * @param x1
+    * second vector x coordinate
+    * @param y1
+    * second vector y coordinate
+    */
+   public void addOuterProduct (
+      double x0, double y0, double x1, double y1) {      
+      m00 += x0*x1;
+      m10 += y0*x1;
+
+      m01 += x0*y1;
+      m11 += y0*y1;
+   }
+
+   /**
+    * Adds an outer product to this matrix. The outer product
+    * is formed from two vectors are given as arguments.
+    * 
+    * @param v0
+    * first vector
+    * @param v1
+    * second vector
+    */
+   public void addOuterProduct (Vector2d v0, Vector2d v1) {
+      m00 += v0.x*v1.x;
+      m10 += v0.y*v1.x;
+
+      m01 += v0.x*v1.y;
+      m11 += v0.y*v1.y;
+   }
+
+   /**
+    * Adds a scaled outer product to this matrix. The outer product
+    * is formed from two vectors are given as arguments.
+    *
+    * @param s scaling factor
+    * @param v0 first vector
+    * @param v1 second vector
+    */
+   public void addScaledOuterProduct (double s, Vector2d v0, Vector2d v1) {
+
+      double v1x = s*v1.x;
+      double v1y = s*v1.y;
+
+      m00 += v0.x*v1x;
+      m10 += v0.y*v1x;
+
+      m01 += v0.x*v1y;
+      m11 += v0.y*v1y;
+   }
+
+   /**
+    * Sets this matrix to the outer product
+    * <pre>
+    * v0 v1^T
+    * </pre>
+    * 
+    * @param v0
+    * first vector
+    * @param v1
+    * second vector
+    */
+   public void outerProduct (Vector2d v0, Vector2d v1) {
+
+      m00 = v0.x*v1.x;
+      m10 = v0.y*v1.x;
+
+      m01 = v0.x*v1.y;
+      m11 = v0.y*v1.y;
+   }
+   
+   public static double solve(Matrix2dBase M, Vector2d b, Vector2d x) {
+      // solve using Cramer's rule
+      double d = M.m00*M.m11-M.m01*M.m10;
+      if (d == 0) {
+         // singular
+         // do 2D SVD
+         double ac = M.m00*M.m11;
+         double bd = M.m01*M.m10;
+         double aa = M.m00*M.m00;
+         double bb = M.m01*M.m01;
+         double cc = M.m10*M.m10;
+         double dd = M.m11*M.m11;
+         
+         double theta = 0.5*Math.atan2(2*(ac+bd), aa+bb-cc-dd);
+         double phi = 0.5*Math.atan2(2*(ac+bd), aa-bb+cc-dd);
+         
+         double d1 = aa+bb+cc+dd;
+         double d21 = aa+bb-cc-dd;
+         double d22 = ac+bd;
+         double d2 = Math.sqrt(d21*d21+d22*d22);
+         
+         double s1 = Math.sqrt((d1+d2)/2);
+         // double s2 = Math.sqrt((d1-d2)/2);  // should be zero
+         
+         double ctheta = Math.cos(theta);
+         double stheta = Math.sin(theta);
+         double cphi = Math.cos(phi);
+         double sphi = Math.sin(phi);
+         
+         double s11 = Math.signum((M.m00*ctheta+M.m10*stheta)*cphi+(M.m01*ctheta+M.m11*stheta)*sphi);
+         // double s22 = Math.signum((M.m00*stheta-M.m10*ctheta)*sphi+(-M.m01*stheta+M.m11*ctheta)*cphi);
+         // U = [cos(theta), -sin(theta); sin(theta), cos(theta)];
+         // E = [s1, 0; 0, s2];
+         // V = [s11*cos(phi), -s22*sin(phi); s11*sin(phi), s22*cos(phi)];
+         double b11 = (b.x*ctheta-b.y*stheta)/s1;
+         x.x = b11*s11*cphi;
+         x.y = b11*s11*sphi;
+      } else {
+         x.x = (b.x*M.m11-b.y*M.m01)/d;
+         x.y = (M.m00*b.y-M.m10*b.x)/d;
+      }
+      return d;
+   }
+   
    @Override
    public Matrix2d clone () {
       return (Matrix2d)super.clone();

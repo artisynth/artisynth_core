@@ -10,7 +10,8 @@ import javax.imageio.ImageIO;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GL2GL3;
 
-import maspack.threads.SimpleThreadManager;
+import maspack.concurrency.SimpleThreadManager;
+
 
 public class GLFrameCapture {
 

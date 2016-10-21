@@ -79,6 +79,9 @@ public class BVIntersector {
       ArrayList<TriTriIntersection> intersections,
       BVTree bvh1, BVTree bvh2) {
 
+      double tol = Math.min(bvh1.getRadius()*EPS, bvh1.getRadius()*EPS);
+      myTriIntersector.setEpsilon(tol);
+      
       RigidTransform3d X21 = new RigidTransform3d();
       X21.mulInverseLeft (bvh1.getBvhToWorld(), bvh2.getBvhToWorld());
       if (X21.equals (RigidTransform3d.IDENTITY)) {

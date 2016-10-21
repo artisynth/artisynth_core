@@ -271,7 +271,7 @@ public class GLSLGenerator {
       switch (mode) {
          case INSTANCED_AFFINES:
             appendln(mb, "   // instance vertex, affine transform");
-            appendln(mb, "   position = (instance_affine_matrix *  vec4(vertex_position, 1.0) ).xyz;");
+            appendln(mb, "   position = (instance_affine_matrix *  vec4(instance_scale * vertex_position, 1.0) ).xyz;");
             if (computeNormals) {
                appendln(mb, "   normal = (instance_normal_matrix *  vec4(vertex_normal, 0.0) ).xyz;");
             }
@@ -584,7 +584,7 @@ public class GLSLGenerator {
             appendln(hb, "// instance inputs");
             appendln(hb, "in float instance_scale;");
             appendln(hb, "in mat4  instance_affine_matrix;");
-            appendln(hb, "in vec4  instance_normal_matrix;"); 
+            appendln(hb, "in mat4  instance_normal_matrix;"); 
             if (!info.isSelecting () && info.hasInstanceColors() && info.getVertexColorMixing () != ColorMixing.NONE) {
                appendln(hb, "in vec4  instance_color;");
             }

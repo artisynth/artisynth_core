@@ -4,15 +4,6 @@ import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.io.WavefrontReader;
-import maspack.matrix.AxisAngle;
-import maspack.matrix.Plane;
-import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.Vector3d;
-import maspack.properties.Property;
-import maspack.render.RenderProps;
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemMuscleModel;
@@ -24,10 +15,25 @@ import artisynth.core.materials.MuscleMaterial;
 import artisynth.core.materials.SimpleForceMuscle;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.modelbase.ComponentList;
 import artisynth.core.probes.NumericInputProbe;
+import artisynth.core.renderables.LightComponent;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.io.WavefrontReader;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.properties.Property;
+import maspack.render.Light;
+import maspack.render.RenderProps;
+import maspack.render.Renderer.ColorMixing;
+import maspack.render.Renderer.Shading;
+import maspack.render.GL.GLViewer;
 
 public class FemMuscleHeart extends RootModel {
 
@@ -57,7 +63,6 @@ public class FemMuscleHeart extends RootModel {
       PolygonalMesh heartMesh = new PolygonalMesh();
       wfr.readMesh(heartMesh);
       heartMesh.triangulate();          // triangulate for interaction
-      heartMesh.getRenderProps().getBumpMap().setScaling(0.01f);
       
       // FEM heart:
       //    - FEM mesh of heart convex hull
@@ -138,7 +143,7 @@ public class FemMuscleHeart extends RootModel {
       //-------------------------------------------------------------
       
       // Create a rigid box for the heart to fall on
-      RigidBody box = RigidBody.createBox("box", 0.2, 0.2, 0.02, 0);
+      RigidBody box = RigidBody.createBox("box", 0.2, 0.2, 0.02, 0, /*addnormals*/ true);
       box.setPose(new RigidTransform3d(new Vector3d(0,0,-0.2), AxisAngle.IDENTITY));
       box.setDynamic(false);
       mech.addRigidBody(box);
@@ -160,6 +165,21 @@ public class FemMuscleHeart extends RootModel {
       longBundle.setDirectionRenderLen(0.1);
       RenderProps.setVisible(radialBundle, false);
       RenderProps.setVisible(longBundle, false);
+      RenderProps.setVisible(heart.getSurfaceMeshComp(), false);
+      
+      // adjust table render properties
+      RenderProps.setShading(box, Shading.METAL);
+      RenderProps.setSpecular(box, new Color(0.8f,0.8f,0.8f));
+      
+      // adjust heart mesh render properties
+      RenderProps rprops = embeddedHeart.getRenderProps();
+      rprops.getBumpMap().setScaling(0.01f);
+      rprops.getColorMap().setSpecularColoring(false);  // don't modify specular
+      rprops.setShading (Shading.SMOOTH);
+      rprops.setFaceColor (new Color(0.8f,0.8f,0.8f));
+      rprops.getColorMap ().setColorMixing (ColorMixing.MODULATE);
+      rprops.setSpecular (new Color(0.4f, 0.4f, 0.4f));
+      rprops.setShininess (128);
 
       //-------------------------------------------------------------
       // INPUT PROBES
@@ -200,5 +220,21 @@ public class FemMuscleHeart extends RootModel {
       addInputProbe(probe);
       
    }
+   
+   //   @Override
+   //   public void attach(DriverInterface driver) {
+   //      super.attach(driver);
+   //      
+   //      // add manual control of lights
+   //      ComponentList<LightComponent> lights = new ComponentList<>(LightComponent.class, "lights");
+   //      add(lights);
+   //      
+   //      GLViewer viewer = driver.getViewerManager().getViewer(0);
+   //      for (int i=0; i<viewer.numLights(); ++i) {
+   //         Light light = viewer.getLight(i);
+   //         LightComponent lc = new LightComponent(light);
+   //         lights.add(lc);
+   //      }
+   //   }
    
 }

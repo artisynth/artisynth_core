@@ -55,6 +55,14 @@ public class IntegrationData3d {
    public double getDetJ0 () {
       return myDetJ0;
    }
+   
+   public double getDv() {
+	   return myDv;
+   }
+   
+   public void setDv(double dv) {
+	   myDv = dv;
+   }
 
    public Matrix3d getFrame() {
       return myFrame;

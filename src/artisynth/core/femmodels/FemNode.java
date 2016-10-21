@@ -49,7 +49,6 @@ public abstract class FemNode extends Particle {
    public void setMass (double m) {
       myMass = m;
       myMassValidP = true;
-      //myMassExplicitP = true;
    }
 
    public void clearMass() {
@@ -69,7 +68,7 @@ public abstract class FemNode extends Particle {
       myMassExplicitP = explicit;
    }
    
-   public boolean getExplicitMass() {
+   public boolean isMassExplicit() {
       return myMassExplicitP;
    }
    
@@ -80,7 +79,15 @@ public abstract class FemNode extends Particle {
       // myEffectiveMass += m;
       myMassValidP = true;
    }
-
+   
+   @Override
+   public void scaleMass(double s) {
+      if (myMassExplicitP) {
+         myMass *= s;
+      }
+      super.scaleMass(s);
+   }
+   
    @Override
    public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
@@ -89,6 +96,10 @@ public abstract class FemNode extends Particle {
       if (scanAttributeName (rtok, "mass")) {
          double mass = rtok.scanNumber();
          setMass (mass);
+         return true;
+      } else if (scanAttributeName (rtok, "massExplicit")) {
+         boolean explicit = rtok.scanBoolean();
+         setMassExplicit(explicit);
          return true;
       }
       rtok.pushBack();
@@ -101,6 +112,7 @@ public abstract class FemNode extends Particle {
       super.writeItems (pw, fmt, ancestor);
       if (myMassExplicitP) {
          pw.println ("mass=" + fmt.format(myMass));
+         pw.println ("massExplicit=true");
       }
    }
 

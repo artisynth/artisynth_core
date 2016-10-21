@@ -47,6 +47,7 @@ public abstract class FemElement extends RenderableComponentBase
    protected double myDensity = 1000;
    protected PropertyMode myDensityMode = PropertyMode.Inherited;
    protected double myMass = 0;
+   protected boolean myMassExplicitP = false;
    protected boolean myWarpingStiffnessValidP = false;
    protected boolean myRestVolumeValidP = false;
    protected double myRestVolume = 0;
@@ -99,14 +100,16 @@ public abstract class FemElement extends RenderableComponentBase
       double perNodeMass = elementMass / numNodes();
       FemNode[] nodes = getNodes();
       for (int i = 0; i < nodes.length; i++) {
-         nodes[i].addMass (perNodeMass);
+         if (!nodes[i].isMassExplicit()) {
+            nodes[i].addMass (perNodeMass);
+         }
       }
    }
    
    protected void updateElementAndNodeMasses () {
       double newMass = myDensity * getRestVolume();
       updateNodeMasses (newMass - myMass);
-      myMass = newMass;      
+      myMass = newMass;
    }
 
    static FemElement firstElement = null;
@@ -114,10 +117,20 @@ public abstract class FemElement extends RenderableComponentBase
    public void setMass (double m) {
       myMass = m;
    }
+   
+   public void setMassExplicit(boolean set) {
+      myMassExplicitP = set;
+   }
+   
+   public boolean isMassExplicit() {
+      return myMassExplicitP;
+   }
 
    public void setDensity (double p) {
       myDensity = p;
-      updateElementAndNodeMasses ();
+      if (!myMassExplicitP) {
+         updateElementAndNodeMasses ();
+      }
       myDensityMode =
          PropertyUtils.propagateValue (
             this, "density", myDensity, myDensityMode);
@@ -216,8 +229,10 @@ public abstract class FemElement extends RenderableComponentBase
    public void updateRestVolumeAndMass() {
       if (!myRestVolumeValidP) {
          double newVol = computeRestVolumes();
-         updateNodeMasses ((newVol*myDensity)-myMass);
-         myMass = newVol*myDensity;
+         if (!myMassExplicitP) {
+            updateNodeMasses ((newVol*myDensity)-myMass);
+            myMass = newVol*myDensity;
+         }
          myRestVolume = newVol;
       }
    }
@@ -250,8 +265,16 @@ public abstract class FemElement extends RenderableComponentBase
       throws IOException {
       int cnt;
 
-      rtok.nextToken();      
-      if ((cnt=scanAndStoreReferences (rtok, "nodes", tokens)) >= 0) {
+      rtok.nextToken();     
+      if (scanAttributeName (rtok, "mass")) {
+         double mass = rtok.scanNumber();
+         setMass (mass);
+         return true;
+      } else if (scanAttributeName (rtok, "massExplicit")) {
+         boolean explicit = rtok.scanBoolean();
+         setMassExplicit(explicit);
+         return true;
+      } else if ((cnt=scanAndStoreReferences (rtok, "nodes", tokens)) >= 0) {
          if (cnt != numNodes()) {
             throw new IOException (
                "Expecting "+numNodes()+" node references, got "+cnt+
@@ -282,6 +305,10 @@ public abstract class FemElement extends RenderableComponentBase
       throws IOException {
       printNodeReferences (pw, ancestor);
       super.writeItems (pw, fmt, ancestor);
+      if (myMassExplicitP) {
+         pw.println ("mass=" + fmt.format(myMass));
+         pw.println("massExplicit=true");
+      }
    }
 
    /* ======== Renderable implementation ======= */
@@ -351,6 +378,9 @@ public abstract class FemElement extends RenderableComponentBase
 
    public void scaleMass (double s) {
       myDensity *= s;
+      if (myMassExplicitP) {
+         myMass *= s;
+      }
       // myE *= s;
       invalidateRestData();
    }

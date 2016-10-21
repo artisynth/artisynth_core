@@ -8,7 +8,6 @@ package artisynth.core.femmodels;
 
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3x1Block;
-import maspack.matrix.Matrix3x3Block;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
@@ -48,6 +47,14 @@ public class FemNodeNeighbor {
    
    public Matrix3d getK()  {
       return myK;
+   }
+   
+   public Matrix3x1Block getDivBlk() {
+      return myDivBlk;
+   }
+   
+   public void setDivBlk(Matrix3x1Block blk) {
+      myDivBlk = blk;
    }
 
 //    public void addNondampedStiffness (Matrix3d K) {
@@ -214,6 +221,22 @@ public class FemNodeNeighbor {
    public void addMaterialStiffness(Vector3d gi, Matrix6d D,
       SymmetricMatrix3d sig, Vector3d gj, double dv) {
       FemUtilities.addMaterialStiffness (myK, gi, D, sig, gj, dv);
+   }
+   
+   public void addMaterialStiffness(Vector3d gi, Matrix6d D, Vector3d gj, double dv) {
+      FemUtilities.addMaterialStiffness (myK, gi, D, gj, dv);
+   }
+
+   /**
+    * Geometric strain-based stiffess
+    * @param gi
+    * @param sig
+    * @param gj
+    * @param dv
+    */
+   public void addGeometricStiffness (
+      Vector3d gi, SymmetricMatrix3d sig, Vector3d gj, double dv) {
+      FemUtilities.addGeometricStiffness (myK, gi, sig, gj, dv);   
    }
    
    public void addPressureStiffness( Vector3d gi, double p,

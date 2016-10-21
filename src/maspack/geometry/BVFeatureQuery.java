@@ -944,13 +944,40 @@ public class BVFeatureQuery {
       }
    }
 
-   private interface ObjectDistanceCalculator {
+   public interface ObjectDistanceCalculator {
 
+      /**
+       * Reset any internal `nearest' cache so calculator can be re-used
+       */
+      public void reset();
+      
+      /**
+       * Computes the nearest distance to the bounding node
+       * @param node
+       * @return
+       */
       public double nearestDistance (BVNode node);
 
+      /**
+       * Computes the nearest distance to an element within the node.
+       * This should store the object and distance for later use
+       * by {@link #nearestObject()} and {@link #nearestDistance()}
+       * @param e
+       * @return
+       */
       public double nearestDistance (Boundable e);
 
+      /**
+       * Returns the last computed nearest object
+       * @return
+       */
       public Boundable nearestObject();
+      
+      /**
+       * Returns the last computed nearest distance
+       * @return
+       */
+      public double nearestDistance();
    }
 
    private class PointFaceDistanceCalculator implements ObjectDistanceCalculator {
@@ -959,6 +986,7 @@ public class BVFeatureQuery {
       Point3d myNearest;
       Vector2d myUv;
       Face myFace;
+      double myDist;
 
       public PointFaceDistanceCalculator () {
          if (myIntersector == null) {
@@ -967,8 +995,15 @@ public class BVFeatureQuery {
          myPnt = new Point3d();
          myNearest = new Point3d();
          myUv = new Vector2d();
+         reset();
       }
 
+      @Override
+      public void reset() {
+         myFace = null;
+         myDist = Double.POSITIVE_INFINITY;
+      }
+      
       public void setPoint (Point3d pnt, RigidTransform3d XBvhToWorld) {
          if (XBvhToWorld == RigidTransform3d.IDENTITY) {
             myPnt.set (pnt);
@@ -1002,8 +1037,9 @@ public class BVFeatureQuery {
                   "face "+face.getIndex()+" is not triangular");
             }
             myFace = face;
-            return myIntersector.nearestpoint (
+            myDist = myIntersector.nearestpoint (
                p0, p1, p2, myPnt, myNearest, myUv);
+            return myDist;
          }
          else {
             return -1;
@@ -1013,6 +1049,11 @@ public class BVFeatureQuery {
       public Face nearestObject () {
          return myFace;
       }
+      
+      @Override
+      public double nearestDistance() {
+         return myDist;
+      }
    }
 
    private class PointVertexDistanceCalculator
@@ -1020,12 +1061,20 @@ public class BVFeatureQuery {
 
       Point3d myPnt;
       Vertex3d myVertex;
+      double myDist;
 
       public PointVertexDistanceCalculator () {
          if (myIntersector == null) {
             myIntersector = new TriangleIntersector();
          }
          myPnt = new Point3d();
+         reset();
+      }
+      
+      @Override
+      public void reset() {
+         myVertex = null;
+         myDist = Double.POSITIVE_INFINITY;
       }
 
       public void setPoint (Point3d pnt, RigidTransform3d XBvhToWorld) {
@@ -1048,7 +1097,8 @@ public class BVFeatureQuery {
       public double nearestDistance (Boundable e) {
          if (e instanceof Vertex3d) {
             myVertex = (Vertex3d)e;
-            return myVertex.pnt.distance (myPnt);
+            myDist = myVertex.pnt.distance (myPnt);
+            return myDist;
          }
          else if (e instanceof Face) {
             Face face = (Face)e;
@@ -1064,6 +1114,7 @@ public class BVFeatureQuery {
                he = he.getNext(); 
             }
             while (he != he0);
+            myDist = dmin;
             return dmin;
          }
          else if (e instanceof LineSegment) {
@@ -1071,22 +1122,30 @@ public class BVFeatureQuery {
             double d0 = seg.myVtx0.pnt.distance (myPnt);
             double d1 = seg.myVtx1.pnt.distance (myPnt);
             if (d0 <= d1) {
+               myDist = d0;
                myVertex = seg.myVtx0;
                return d0;
             }
             else {
+               myDist = d1;
                myVertex = seg.myVtx1;
                return d1;
             }
          }
          else {
             myVertex = null;
+            myDist = Double.POSITIVE_INFINITY;
             return -1;
          }
       }
 
       public Vertex3d nearestObject() {
          return myVertex;
+      }
+      
+      @Override
+      public double nearestDistance() {
+         return myDist;
       }
    }
 
@@ -1096,9 +1155,18 @@ public class BVFeatureQuery {
       Point3d myPnt;
       Boundable myEdge;
       double myS = 0;
+      double myDist;
 
       public PointEdgeDistanceCalculator () {
          myPnt = new Point3d();
+         reset();
+      }
+      
+      @Override
+      public void reset() {
+         myS = 0;
+         myEdge = null;
+         myDist = Double.POSITIVE_INFINITY;
       }
 
       public void setPoint (Point3d pnt, RigidTransform3d XBvhToWorld) {
@@ -1176,7 +1244,8 @@ public class BVFeatureQuery {
          if (e instanceof LineSegment) {
             LineSegment seg = (LineSegment)e;
             myEdge = seg;
-            return distanceToEdge (seg.myVtx0.pnt, seg.myVtx1.pnt);
+            myDist = distanceToEdge (seg.myVtx0.pnt, seg.myVtx1.pnt);
+            return myDist;
          }
          else if (e instanceof Face) {
             Face face = (Face)e;
@@ -1192,16 +1261,23 @@ public class BVFeatureQuery {
                he = he.getNext(); 
             }
             while (he != he0);
+            myDist = dmin;
             return dmin;
          }
          else {
             myEdge = null;
+            myDist = Double.POSITIVE_INFINITY;
             return -1;
          }
       }
 
       public Boundable nearestObject() {
          return myEdge;
+      }
+      
+      @Override
+      public double nearestDistance() {
+         return myDist;
       }
    }
 
@@ -1213,6 +1289,7 @@ public class BVFeatureQuery {
       double myMax;
       Vector3d muDuv;
       Face myFace;
+      double myDist;
 
       public LineFaceDistanceCalculator () {
          if (myIntersector == null) {
@@ -1221,8 +1298,15 @@ public class BVFeatureQuery {
          myOrigin = new Point3d();
          myDir = new Vector3d();
          muDuv = new Vector3d();
+         reset();
+      }
+      
+      @Override
+      public void reset() {
          myMin = 0;
          myMax = INF;
+         myFace = null;
+         myDist = Double.POSITIVE_INFINITY;
       }
 
       public void setLine (
@@ -1269,17 +1353,20 @@ public class BVFeatureQuery {
                p0, p1, p2, myOrigin, myDir, muDuv);
             if (rcode == 0) {
                myFace = null;
+               myDist = Double.POSITIVE_INFINITY;
                return -1;
             }
             else if (rcode == 1) {
                double d = muDuv.x;
                if (d > myMax || d < myMin) {
                   myFace = null;
+                  myDist = Double.POSITIVE_INFINITY;
                   return -1;
                }
                else {
                   myFace = face;
-                  return Math.abs (d);
+                  myDist = Math.abs(d);
+                  return myDist;
                }               
             }
             else {
@@ -1289,20 +1376,55 @@ public class BVFeatureQuery {
          }
          else {
             myFace = null;
+            myDist = Double.POSITIVE_INFINITY;
             return -1;
          }
       }
 
       public Face nearestObject() {
          return myFace;
-      }            
+      }         
+      
+      @Override
+      public double nearestDistance() {
+         return myDist;
+      }
+   }
+   
+   /**
+    * Returns the nearest Object to a point, using a specified
+    * bounding volume hierarchy. 
+    * 
+    * @param nearPnt if not <code>null</code>, returns the nearest
+    * point in the boundable
+    * @param bvh bounding volume hierarchy containing the faces.
+    * @param calc distance calculator for which nearest object should be found.
+    * @return the nearest object to the point, or <code>null</code>
+    * if <code>bvh</code> contains no objects.
+    */
+   public Boundable nearestObjectToPoint (
+      Point3d nearPnt, BVTree bvh, ObjectDistanceCalculator calc) {
+
+      Boundable nearest = nearestObject (bvh, calc);
+
+      if (nearest != null) {
+         calc.nearestDistance (nearest);
+         if (nearPnt != null) {
+            nearPnt.set (myPointFaceCalc.myNearest);
+            nearPnt.transform (bvh.getBvhToWorld());
+         }
+         return (Face)nearest;
+      }
+      else {
+         return null;
+      }
    }
 
-   protected Boundable nearestObject (
-      BVTree bvh, ObjectDistanceCalculator dcalc) {
+   public Boundable nearestObject (BVTree bvh, ObjectDistanceCalculator dcalc) {
 
       double nearestDistance = INF;
       Boundable nearestFeature = null;
+      dcalc.reset();
 
       PriorityQueue<BVCheckRequest> queue =
          new PriorityQueue<BVCheckRequest> (11, new BVCheckComparator());
@@ -1337,6 +1459,11 @@ public class BVFeatureQuery {
                }
             }
          }
+      }
+      
+      // trigger storing of nearest feature
+      if (nearestFeature != null) {
+         dcalc.nearestDistance(nearestFeature);
       }
       return nearestFeature;
    }

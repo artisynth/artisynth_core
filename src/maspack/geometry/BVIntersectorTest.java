@@ -231,7 +231,7 @@ public class BVIntersectorTest {
       return intersections;
    }
 
-   ArrayList<TriTriIntersection> intersectLeafNodes (
+   private ArrayList<TriTriIntersection> intersectLeafNodes (
       BVTree bvh1, BVTree bvh2, RigidTransform3d X21,
       BVIntersector intersector) {
       

@@ -21,8 +21,6 @@ import javax.media.opengl.awt.GLJPanel;
 
 import maspack.render.TextureContent;
 import maspack.render.TextureContent.ContentFormat;
-import maspack.render.GL.GLSupport.GLVersionInfo;
-import maspack.render.GL.GLSupport.GLVersionListener;
 import maspack.util.BufferUtilities;
 import maspack.util.Logger;
 import maspack.util.Rectangle;
@@ -256,23 +254,17 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       boolean update = false;
       Rectangle dirty = content.getDirty ();
       if (dirty != null) {
-         update = true;
-         
-         int psize = content.getPixelSize ();
-         int width = dirty.width ();
-         int height = dirty.height ();
-         
-         ByteBuffer buff = BufferUtilities.newNativeByteBuffer (width*height*psize);
-         content.getData (dirty, buff);
-         buff.flip ();
          
          ContentFormat format = content.getFormat ();
          int glFormat = 0;
          int glType = 0;
+         int[] swizzle = null;
+         
          switch(format) {
             case GRAYSCALE_ALPHA_BYTE_2:
                if (gl.isGL3()) {
                   glFormat = GL3.GL_RG;
+                  swizzle = GLTextureLoader.SWIZZLE_GRAY_ALPHA;
                } else if (gl.isGL2()) {
                   glFormat = GL2.GL_LUMINANCE_ALPHA;
                }
@@ -281,6 +273,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
             case GRAYSCALE_ALPHA_SHORT_2: 
                if (gl.isGL3()) {
                   glFormat = GL3.GL_RG;
+                  swizzle = GLTextureLoader.SWIZZLE_GRAY_ALPHA;
                } else if (gl.isGL2()) {
                   glFormat = GL2.GL_LUMINANCE_ALPHA;
                }
@@ -289,6 +282,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
             case GRAYSCALE_BYTE:
                if (gl.isGL3()) {
                   glFormat = GL3.GL_RED;
+                  swizzle = GLTextureLoader.SWIZZLE_GRAY;
                } else if (gl.isGL2()) {
                   glFormat = GL2.GL_LUMINANCE;
                }
@@ -297,6 +291,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
             case GRAYSCALE_SHORT:
                if (gl.isGL3()) {
                   glFormat = GL3.GL_RED;
+                  swizzle = GLTextureLoader.SWIZZLE_GRAY;
                } else if (gl.isGL2()) {
                   glFormat = GL2.GL_LUMINANCE;
                }
@@ -305,22 +300,51 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
             case RGBA_BYTE_4:
                glFormat = GL.GL_RGBA;
                glType = GL.GL_UNSIGNED_BYTE;
+               if (gl.isGL3()) {
+                  swizzle = GLTextureLoader.SWIZZLE_RGBA;
+               }
                break;
             case RGBA_INTEGER:
                glFormat = GL2GL3.GL_RGBA_INTEGER;
                glType = GL2GL3.GL_UNSIGNED_INT_8_8_8_8;
+               if (gl.isGL3()) {
+                  swizzle = GLTextureLoader.SWIZZLE_RGBA;
+               }
                break;
             case RGB_BYTE_3:
                glFormat = GL.GL_RGB;
                glType = GL.GL_UNSIGNED_BYTE;
+               if (gl.isGL3()) {
+                  swizzle = GLTextureLoader.SWIZZLE_RGBA;
+               }
                break;
             default:
                break;
          }
          
-         texture.fill (gl, dirty.x (), dirty.y (), width, height, psize, glFormat, glType, buff);
+         update = true;
+         int psize = content.getPixelSize ();
+         int width = dirty.width ();
+         int height = dirty.height ();
+         
+         if (texture.getFormat() != glFormat || texture.getType() != glType) {
+            // re-create entire texture
+            width = content.getWidth();
+            height = content.getHeight();
+            
+            ByteBuffer buff = BufferUtilities.newNativeByteBuffer (width*height*psize);
+            content.getData (buff);
+            buff.flip ();
+            texture.fill(gl, width, height, psize, glFormat, glType, swizzle, buff);
+            buff = BufferUtilities.freeDirectBuffer (buff);
+         } else {
+            ByteBuffer buff = BufferUtilities.newNativeByteBuffer (width*height*psize);
+            content.getData (dirty, buff);
+            buff.flip ();
+            texture.fill (gl, dirty.x (), dirty.y (), width, height, psize, glFormat, glType, buff);
+            buff = BufferUtilities.freeDirectBuffer (buff);
+         }
          content.markClean ();
-         buff = BufferUtilities.freeDirectBuffer (buff);
       }
       return update;
    }

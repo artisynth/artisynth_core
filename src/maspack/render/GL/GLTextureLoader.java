@@ -82,6 +82,10 @@ public class GLTextureLoader implements GLGarbageSource {
 
       return tex;
    }
+   
+   public static final int[] SWIZZLE_GRAY_ALPHA = {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_GREEN};
+   public static final int[] SWIZZLE_GRAY = {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_ALPHA};
+   public static final int[] SWIZZLE_RGBA = {GL3.GL_RED, GL3.GL_GREEN, GL3.GL_BLUE, GL3.GL_ALPHA};
 
    public GLTexture createTexture(GL gl, int target, TextureContent content) {
       
@@ -95,8 +99,6 @@ public class GLTextureLoader implements GLGarbageSource {
       texture.setWidth (width);
       texture.setHeight (height);
       
-      ByteBuffer buff = BufferUtilities.newNativeByteBuffer (width*height*pixelSize);
-      
       int glFormat = 0;
       int glType = 0;
       int[] swizzle = null;
@@ -106,7 +108,7 @@ public class GLTextureLoader implements GLGarbageSource {
          case GRAYSCALE_ALPHA_BYTE_2:
             if (gl.isGL3 ()) {
                glFormat = GL3.GL_RG;
-               swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_GREEN};
+               swizzle = SWIZZLE_GRAY_ALPHA;
             } else if (gl.isGL2 ()) {
                glFormat = GL2.GL_LUMINANCE_ALPHA;
             }
@@ -115,7 +117,7 @@ public class GLTextureLoader implements GLGarbageSource {
          case GRAYSCALE_ALPHA_SHORT_2: 
             if (gl.isGL3()) {
                glFormat = GL3.GL_RG;
-               swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_GREEN};
+               swizzle = SWIZZLE_GRAY_ALPHA;
             } else if (gl.isGL2()) {
                glFormat = GL2.GL_LUMINANCE_ALPHA;
             }
@@ -124,7 +126,7 @@ public class GLTextureLoader implements GLGarbageSource {
          case GRAYSCALE_BYTE:
             if (gl.isGL3()) {
                glFormat = GL3.GL_RED;
-               swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_ALPHA};
+               swizzle = SWIZZLE_GRAY;
             } else if (gl.isGL2()) {
                glFormat = GL2.GL_LUMINANCE;
             }
@@ -133,7 +135,7 @@ public class GLTextureLoader implements GLGarbageSource {
          case GRAYSCALE_SHORT:
             if (gl.isGL3()) {
                glFormat = GL3.GL_RED;
-               swizzle = new int[] {GL3.GL_RED, GL3.GL_RED, GL3.GL_RED, GL3.GL_ALPHA};
+               swizzle = SWIZZLE_GRAY;
             } else if (gl.isGL2()) {
                glFormat = GL2.GL_LUMINANCE;
             }
@@ -156,6 +158,7 @@ public class GLTextureLoader implements GLGarbageSource {
          
       }
 
+      ByteBuffer buff = BufferUtilities.newNativeByteBuffer (width*height*pixelSize);
       content.getData (buff);
       buff.flip ();
       texture.fill(gl, width, height, pixelSize, glFormat, glType, swizzle, buff);

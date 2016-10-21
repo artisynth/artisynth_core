@@ -25,6 +25,9 @@ public class GLTexture extends GLResourceBase {
    private int height;
    /** The width of the image */
    private int width;
+   
+   private int format;
+   private int type;
 
    private TextureWrapping sWrapping;
    private TextureWrapping tWrapping;
@@ -51,6 +54,8 @@ public class GLTexture extends GLResourceBase {
       this.textureID = textureID;
       borderColor = new float[4];
       hasMipmaps = false;
+      setFormat(0);
+      setType(0);
       
       // default filters
       setWrapping (TextureWrapping.REPEAT, TextureWrapping.REPEAT);
@@ -67,6 +72,22 @@ public class GLTexture extends GLResourceBase {
    
    public int getTarget() {
       return target;
+   }
+   
+   public int getFormat() {
+      return format;
+   }
+   
+   private void setFormat(int format) {
+      this.format = format;
+   }
+   
+   public int getType() {
+      return type;
+   }
+   
+   private void setType(int type) {
+      this.type = type;
    }
    
    protected static int getGLWrapping(TextureWrapping wrapping) {
@@ -251,6 +272,8 @@ public class GLTexture extends GLResourceBase {
    
       setWidth (width);
       setHeight (height);
+      setFormat (glFormat);
+      setType(glType);
       
       gl.glBindTexture (target, textureID); // internal bind so doesn't generate mip maps
       

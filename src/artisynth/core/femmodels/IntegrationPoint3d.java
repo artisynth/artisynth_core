@@ -93,7 +93,7 @@ public class IntegrationPoint3d {
     * Used internally by the system to set the number for this integration
     * point.
     */
-   void setNumber (int num) {
+   protected void setNumber (int num) {
       myNum = num;
    }    
 
@@ -284,6 +284,38 @@ public class IntegrationPoint3d {
    }
    
    /** 
+    * Computes and returns the gradient dN/dx of the shape functions, given an
+    * inverse Jacobian. The gradient is supplied as an array of 3-vectors, one
+    * for each shape function, because this is more convenient for computation.
+    *
+    * @param invJ inverse Jacobian
+    * @return shape function gradient (can be modifed).
+    */
+   public Vector3d[] computeShapeGradient (Matrix3d invJ) {
+      Vector3d[] GNx = new Vector3d[myNumNodes];
+      for (int i=0; i<myNumNodes; ++i) {
+         GNx[i] = new Vector3d();
+      }
+      computeShapeGradient(invJ, GNx);
+      return GNx;
+   }
+   
+   /** 
+    * Computes and returns the gradient dN/dx of the shape functions, given an
+    * inverse Jacobian. The gradient is supplied as an array of 3-vectors, one
+    * for each shape function, because this is more convenient for computation.
+    *
+    * @param invJ inverse Jacobian
+    * @param out shape function gradient to populate
+    */
+   public void computeShapeGradient(Matrix3d invJ, Vector3d[] out) {
+      for (int i=0; i<myNumNodes; i++) {
+         out[i].set(GNs[i]);
+         invJ.mulTranspose (out[i], out[i]);
+      }
+   }
+   
+   /** 
     * Updates and returns the gradient dN/dx of the shape functions, given an
     * inverse Jacobian. The gradient is supplied as an array of 3-vectors, one
     * for each shape function, because this is more convenient for computation.
@@ -292,11 +324,7 @@ public class IntegrationPoint3d {
     * @return shape function gradient (must not be modifed).
     */
    public Vector3d[] updateShapeGradient (Matrix3d invJ) {
-      for (int i=0; i<myNumNodes; i++) {
-         Vector3d g = GNx[i];
-         g.set (GNs[i]);
-         invJ.mulTranspose (g, g);
-      }
+      computeShapeGradient(invJ, GNx);
       return GNx;
    }
 

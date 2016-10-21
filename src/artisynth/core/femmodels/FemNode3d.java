@@ -6,19 +6,29 @@
  */
 package artisynth.core.femmodels;
 
-import artisynth.core.mechmodels.Frame;
-import artisynth.core.mechmodels.Particle;
-import artisynth.core.mechmodels.PointTarget;
-import artisynth.core.modelbase.*;
-import artisynth.core.modelbase.ComponentChangeEvent.Code;
-import artisynth.core.util.*;
-import maspack.matrix.*;
-import maspack.geometry.GeometryTransformer;
-import maspack.properties.PropertyList;
-import maspack.util.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Map;
 
-import java.util.*;
-import java.io.*;
+import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.PointTarget;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.util.ScanToken;
+import maspack.geometry.GeometryTransformer;
+import maspack.matrix.Point3d;
+import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.properties.PropertyList;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 public class FemNode3d extends FemNode {
 
@@ -192,7 +202,7 @@ public class FemNode3d extends FemNode {
       myAvgStress.setZero();
    }      
 
-   protected void addScaledStress (double s, SymmetricMatrix3d sig) {
+   public void addScaledStress (double s, SymmetricMatrix3d sig) {
       if (myAvgStress == null) {
          myAvgStress = new SymmetricMatrix3d();
       }
@@ -250,7 +260,7 @@ public class FemNode3d extends FemNode {
       myAvgStrain.setZero();
    }      
 
-   protected void addScaledStrain (double s, SymmetricMatrix3d sig) {
+   public void addScaledStrain (double s, SymmetricMatrix3d sig) {
       if (myAvgStrain == null) {
          myAvgStrain = new SymmetricMatrix3d();
       }

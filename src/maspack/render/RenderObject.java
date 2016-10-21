@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
@@ -379,29 +380,46 @@ public class RenderObject implements Versioned {
    boolean totalModified;
    boolean istransient;
    
+   ReentrantReadWriteLock lock;
+   
    public RenderObject() {
 
       idInfo = new RenderObjectIdentifier(nextIdNumber++, true);
       versionInfo = new RenderObjectVersion();
       stateInfo = new RenderObjectState();
       istransient = false;
+      lock = new ReentrantReadWriteLock();
       
       clearAll();
 
    }
    
    /**
-    * Currently does nothing.  Reserved for possible future synchronization use.
+    * Locks object, prevents further modifications until object is unlocked
     */
    public void readLock() {
-     
+      lock.readLock().lock();
    }
    
    /**
-    * Release a read lock on the object, allowing modifications.
+    * Locks object, prevents further modifications until object is unlocked
     */
    public void readUnlock() {
-      
+      lock.readLock().unlock();
+   }
+   
+   /**
+    * Acquires the write lock
+    */
+   protected void writeLock() {
+      lock.writeLock().lock();
+   }
+   
+   /**
+    * Releases the write lock
+    */
+   protected void writeUnlock() {
+      lock.writeLock().unlock();
    }
    
    /**
@@ -444,9 +462,9 @@ public class RenderObject implements Versioned {
     * @param cap capacity
     */
    public void ensurePositionCapacity(int cap) {
-      
+      writeLock();
       positions.ensureCapacity (cap);
-      
+      writeUnlock();
    }
 
    /**
@@ -468,9 +486,9 @@ public class RenderObject implements Versioned {
     * @return an index referring to the added position
     */
    public int addPosition (float[] xyz) {
-      
+      writeLock();
       int pidx = addPositionInternal (xyz);
-      
+      writeUnlock();
       return pidx;      
    }
    
@@ -500,19 +518,14 @@ public class RenderObject implements Versioned {
     */
    public void setCurrentPosition(int pidx) {
       if (pidx >= 0) {
-         
          if (pidx >= positions.size()) {
-            
             throw new IllegalArgumentException (
                "Position "+pidx+" is not defined");
          }
          currentPositionIdx = pidx;
-         
       }
       else {
-         
          currentPositionIdx = -1;
-         
       }
    }
 
@@ -554,10 +567,10 @@ public class RenderObject implements Versioned {
     * @param pos new position values by reference
     */
    public void setPosition(int pidx, float[] pos) {
-      
+      writeLock();
       positions.set(pidx, pos);
       notifyPositionsModifiedInternal ();
-      
+      writeUnlock();
    }
 
    /**
@@ -586,7 +599,6 @@ public class RenderObject implements Versioned {
    public float[] getPosition(int pidx) {
         // prevent potential crash on positions
       float[] pos = getPositionInternal (pidx);
-      
       return pos;
    }
    
@@ -619,9 +631,9 @@ public class RenderObject implements Versioned {
     * Indicate that the positions have been modified.
     */
    public void notifyPositionsModified() {
-      
+      writeLock();
       notifyPositionsModifiedInternal ();
-      
+      writeUnlock();
    }
 
    /**
@@ -630,10 +642,8 @@ public class RenderObject implements Versioned {
     */
    public int getPositionsVersion() {
       if (positionsModified) {
-         
          versionInfo.positionsVersion++;
          positionsModified = false;
-         
       }
       return versionInfo.positionsVersion;
    }
@@ -643,9 +653,9 @@ public class RenderObject implements Versioned {
     * @param cap capacity
     */
    public void ensureNormalCapacity(int cap) {
-      
+      writeLock();
       normals.ensureCapacity (cap);
-      
+      writeUnlock();
    }
 
    /**
@@ -669,13 +679,13 @@ public class RenderObject implements Versioned {
     * @return the index of the normal added
     */
    public int addNormal(float[] nrm) {
-      
+      writeLock();
       int nidx = stateInfo.numNormals;
       normals.add (nrm);
       stateInfo.numNormals++;
       currentNormalIdx = nidx;
       notifyNormalsModifiedInternal();
-      
+      writeUnlock();
       return nidx;
    }
 
@@ -696,19 +706,14 @@ public class RenderObject implements Versioned {
     */
    public void setCurrentNormal(int nidx) {
       if (nidx >= 0) {
-         
          if (nidx >= normals.size()) {
-            
             throw new IllegalArgumentException (
                "Normal "+nidx+" is not defined");
          }
          currentNormalIdx = nidx;
-         
       }
       else {
-         
          currentNormalIdx = -1;
-         
       }
    }
 
@@ -748,10 +753,10 @@ public class RenderObject implements Versioned {
     * @param nrm the new normal
     */
    public void setNormal(int nidx, float[] nrm) {
-      
+      writeLock();
       normals.set(nidx, nrm);
       notifyNormalsModifiedInternal();
-      
+      writeUnlock();
    }
 
    /**
@@ -779,9 +784,7 @@ public class RenderObject implements Versioned {
     * @return normal {x,y,z}
     */
    public float[] getNormal(int nidx) {
-      
       float[] nrm = getNormalInternal (nidx);
-      
       return nrm;
    }
    
@@ -819,9 +822,9 @@ public class RenderObject implements Versioned {
     * Indicate that the normals have been modified.
     */
    public void notifyNormalsModified() {
-      
+      writeLock();
       notifyNormalsModifiedInternal ();
-      
+      writeUnlock();
    }
 
  
@@ -831,10 +834,8 @@ public class RenderObject implements Versioned {
     */
    public int getNormalsVersion() {
       if (normalsModified) {
-         
          versionInfo.normalsVersion++;
          normalsModified = false;
-         
       }
       return versionInfo.normalsVersion;
    }
@@ -844,9 +845,9 @@ public class RenderObject implements Versioned {
     * @param cap capacity
     */
    public void ensureColorCapacity(int cap) {
-      
+      writeLock();
       colors.ensureCapacity (cap);
-      
+      writeUnlock();
    }
 
    /**
@@ -920,13 +921,13 @@ public class RenderObject implements Versioned {
     * @return the index of the color added
     */
    public int addColor(byte[] rgba) {
-      
+      writeLock();
       int cidx = stateInfo.numColors;
       colors.add (rgba);
       stateInfo.numColors++;
       currentColorIdx = cidx;
       notifyColorsModifiedInternal ();
-      
+      writeUnlock();
       return cidx;
    }
    
@@ -936,9 +937,9 @@ public class RenderObject implements Versioned {
    }
    
    public void notifyColorsModified() {
-      
+      writeLock();
       notifyColorsModifiedInternal ();
-      
+      writeUnlock();
    }
    
    /**
@@ -948,19 +949,14 @@ public class RenderObject implements Versioned {
     */
    public void setCurrentColor(int cidx) {
       if (cidx >= 0) {
-         
          if (cidx >= colors.size()) {
-            
             throw new IllegalArgumentException (
                "Color "+cidx+" is not defined");
          }
          currentColorIdx = cidx;
-         
       }
       else {
-         
          currentColorIdx = -1;
-         
       }
    }
    
@@ -1028,10 +1024,10 @@ public class RenderObject implements Versioned {
     * @param rgba {red, green, blue, alpha}
     */
    public void setColor(int cidx, byte[] rgba) {
-      
+      writeLock();
       colors.set(cidx, rgba);
       notifyColorsModifiedInternal();
-      
+      writeUnlock();
    }
 
    /**
@@ -1058,9 +1054,7 @@ public class RenderObject implements Versioned {
     * @return color {red, green, blue, alpha}
     */
    public byte[] getColor(int cidx) {
-      
       byte[] c = getColorInternal (cidx);
-      
       return c;
    }
    
@@ -1087,10 +1081,8 @@ public class RenderObject implements Versioned {
     */
    public int getColorsVersion() {
       if (colorsModified) {
-         
          versionInfo.colorsVersion++;
          colorsModified = false;
-         
       }
       return versionInfo.colorsVersion;
    }
@@ -1100,9 +1092,9 @@ public class RenderObject implements Versioned {
     * @param cap capacity
     */
    public void ensureTextureCoordCapacity(int cap) {
-      
+      writeLock();
       texcoords.ensureCapacity (cap);
-      
+      writeUnlock();
    }
 
    /**
@@ -1134,13 +1126,13 @@ public class RenderObject implements Versioned {
     * @return the index of the texture coordinate added
     */
    public int addTextureCoord(float[] xy) {
-      
+      writeLock();
       int tidx = stateInfo.numTexcoords;
       texcoords.add (xy);
       stateInfo.numTexcoords++;
       currentTextureIdx = tidx;
       notifyTextureCoordsModifiedInternal();
-      
+      writeUnlock();
       return tidx;
    }
    
@@ -1150,9 +1142,9 @@ public class RenderObject implements Versioned {
    }
    
    public void notifyTextureCoordsModified() {
-      
+      writeLock();
       notifyColorsModifiedInternal ();
-      
+      writeUnlock();
    }
 
    /**
@@ -1162,19 +1154,14 @@ public class RenderObject implements Versioned {
     */
    public void setCurrentTextureCoord(int tidx) {
       if (tidx >= 0) {
-         
          if (tidx >= texcoords.size()) {
-            
             throw new IllegalArgumentException (
                "Texture coordinate "+tidx+" is not defined");
          }
          currentTextureIdx = tidx;
-         
       }
       else {
-         
          currentTextureIdx = -1;
-         
       }
    }
 
@@ -1213,10 +1200,10 @@ public class RenderObject implements Versioned {
     * @param xy
     */
    public void setTextureCoord(int tidx, float[] xy) {
-      
+      writeLock();
       texcoords.set(tidx, xy);
       notifyTextureCoordsModifiedInternal ();
-      
+      writeUnlock();
    }
 
    /**
@@ -1246,9 +1233,7 @@ public class RenderObject implements Versioned {
       if (tidx < 0) {
          return null;
       }
-      
       float[] t = getTextureCoordInternal (tidx);
-      
       return t;
    }
    
@@ -1278,10 +1263,8 @@ public class RenderObject implements Versioned {
     */
    public int getTextureCoordsVersion() {
       if (texturesModified) {
-         
          versionInfo.texturesVersion++;
          texturesModified = false;
-         
       }
       return versionInfo.texturesVersion;
    }
@@ -1417,9 +1400,9 @@ public class RenderObject implements Versioned {
     * @param cap capacity
     */
    public void ensureVertexCapacity(int cap) {
-      
+      writeLock();
       maybeGrowAdjustVertices (cap);
-      
+      writeUnlock();
    }
    
    /**
@@ -1461,10 +1444,9 @@ public class RenderObject implements Versioned {
     * @return the index of the newly created vertex.
     */
    public int addVertex(int pidx, int nidx, int cidx, int tidx) {
-      
-      
+      writeLock();
       int vidx = addVertexInternal (pidx, nidx, cidx, tidx);
-      
+      writeUnlock();
       
       return vidx;
    }
@@ -1521,7 +1503,6 @@ public class RenderObject implements Versioned {
    private int vertexInternal(float[] xyz) {
       int pIdx = addPositionInternal(xyz);
       return addVertexInternal(pIdx, currentNormalIdx, currentColorIdx, currentTextureIdx);
-      
    }
    
    /**
@@ -1534,9 +1515,9 @@ public class RenderObject implements Versioned {
     * @return vertex index
     */
    public int vertex(float[] xyz) {
-      
+      writeLock();
       int vidx = vertexInternal(xyz);
-      
+      writeUnlock();
       return vidx;
    }
    
@@ -1550,8 +1531,7 @@ public class RenderObject implements Versioned {
     */
    public void setVertex(int vidx, int pidx, int nidx, int cidx, int tidx) {
       
-      
-      
+      writeLock();
       maybeGrowAdjustVertices (numVertices);
       
       int baseIdx = vidx*vertexStride;
@@ -1571,7 +1551,7 @@ public class RenderObject implements Versioned {
       verticesModified = true;
       totalModified = true;
       
-      
+      writeUnlock();
    }
 
    /**
@@ -1646,12 +1626,10 @@ public class RenderObject implements Versioned {
     */
    public int[] getVertexBuffer() {
       if (verticesModified) {
-         
          if (vertices.length != (vertexStride*numVertices)) {
             vertices = Arrays.copyOf (vertices, vertexStride*numVertices);
             vertexCapacity = numVertices;
          }
-         
       }
       return vertices;
    }
@@ -1682,10 +1660,8 @@ public class RenderObject implements Versioned {
     */
    public int getVerticesVersion() {
       if (verticesModified) {
-         
          versionInfo.verticesVersion++;
          verticesModified = false;
-         
       }
       return versionInfo.verticesVersion;
    }
@@ -1697,10 +1673,8 @@ public class RenderObject implements Versioned {
     * @param mode mode for adding consecutive primitives
     */
    public void beginBuild(DrawMode mode) {
-      
       buildModeStart = numVertices();
       buildMode = mode;
-      
    }
    
    /**
@@ -1711,7 +1685,7 @@ public class RenderObject implements Versioned {
          return;
       }
       
-      
+      writeLock();
       int vStart = buildModeStart;
       int vEnd = numVertices()-1;
       buildModeStart = -1;
@@ -1744,7 +1718,7 @@ public class RenderObject implements Versioned {
          
       }
       buildMode = null;
-      
+      writeUnlock();
    }
    
    public DrawMode getBuildMode() {
@@ -1759,10 +1733,10 @@ public class RenderObject implements Versioned {
     * Informs the render object that points have been modified outside of its control.
     */
    public void notifyPointsModified() {
-      
+      writeLock();
       pointsModified = true;
       totalModified = true;
-      
+      writeUnlock();
    }
    
    private void notifyPointsModifiedInternal() {
@@ -1776,9 +1750,9 @@ public class RenderObject implements Versioned {
     */
    public void addPoint(int vidx) {
       // start first point group
-      
+      writeLock();
       addPointInternal(vidx);
-      
+      writeUnlock();
    }
    
    private void addPointInternal(int vidx) {
@@ -1794,9 +1768,9 @@ public class RenderObject implements Versioned {
     * @param vidxs array of vertex indices at which to create point primitives.
     */
    public void addPoints(int... vidxs) {
-      
+      writeLock();
       addPointsInternal(vidxs);
-      
+      writeUnlock();
    }
    
    
@@ -1813,12 +1787,12 @@ public class RenderObject implements Versioned {
     * @param v array of length 3 (x,y,z)
     */
    public void addPoint(float[] v) {
-      
+      writeLock();
       int pIdx = addPositionInternal(v);
       int vidx = addVertexInternal(pIdx, currentNormalIdx, 
          currentColorIdx, currentTextureIdx);
       addPointInternal(vidx);
-      
+      writeUnlock();
    }
 
    /**
@@ -1827,14 +1801,14 @@ public class RenderObject implements Versioned {
     * @param pnts
     */
    public void addPoints(Iterable<float[]> pnts) {
-      
+      writeLock();
       for (float[] v : pnts) {
          int pIdx = addPositionInternal(v);
          int vidx = addVertexInternal(pIdx, currentNormalIdx, 
             currentColorIdx, currentTextureIdx);
          addPointInternal(vidx);
       }
-      
+      writeUnlock();
    }
 
    /**
@@ -1865,9 +1839,7 @@ public class RenderObject implements Versioned {
    public int[] getPoints() {
       int[] out = null;
       if (hasPoints()) {
-         
          currentPointGroup.trimToSize();
-         
          out = currentPointGroup.getArray ();
       }
       return out;
@@ -1888,12 +1860,12 @@ public class RenderObject implements Versioned {
     * @param cap capacity
     */
    public void ensurePointCapacity(int cap) {
-      
+      writeLock();
       if (stateInfo.numPointGroups == 0) {
          createPointGroupInternal();
       }
       currentPointGroup.ensureCapacity(cap);
-      
+      writeUnlock();
    }
    
    /**
@@ -1903,9 +1875,9 @@ public class RenderObject implements Versioned {
     * @see #pointGroup(int)
     */
    public int createPointGroup() {
-      
+      writeLock();
       int idx = createPointGroupInternal ();
-      
+      writeUnlock();
       return idx;
    }
    
@@ -1925,12 +1897,12 @@ public class RenderObject implements Versioned {
     * @param setIdx index of active point group.
     */
    public void pointGroup(int setIdx) {
-      
+      writeLock();
       stateInfo.pointGroupIdx = setIdx;
       if (points != null) {
          currentPointGroup = points.get(stateInfo.pointGroupIdx);
       }
-      
+      writeUnlock();
    }
 
    /**
@@ -1999,9 +1971,9 @@ public class RenderObject implements Versioned {
     * control.
     */
    public void notifyLinesModified() {
-      
+      writeLock();
       notifyLinesModifiedInternal ();
-      
+      writeUnlock();
    }
    
    private void notifyLinesModifiedInternal() {
@@ -2010,11 +1982,13 @@ public class RenderObject implements Versioned {
    }
 
    private void addLinePair(int[] vidxs) {
+      writeLock();
       if (stateInfo.numLineGroups == 0)  {
          createLineGroupInternal();
       }
       currentLineGroup.addAll(vidxs);
       notifyLinesModifiedInternal ();
+      writeUnlock();
    }
    
    private void addLinePairInternal(int v0, int v1) {
@@ -2032,9 +2006,9 @@ public class RenderObject implements Versioned {
     * @param v1idx vertex index for end of line
     */
    public void addLine(int v0idx, int v1idx) {
-      
+      writeLock();
       addLinePairInternal(v0idx, v1idx);
-      
+      writeUnlock();
    }
 
    /**
@@ -2044,11 +2018,11 @@ public class RenderObject implements Versioned {
     * @param vidxs vertex indices, in pairs, defining line segments.  
     */
    public void addLines(int... vidxs) {
-      
+      writeLock();
       for (int i=0; i<vidxs.length-1; i+=2) {
          addLinePairInternal(vidxs[i], vidxs[i+1]);
       }
-      
+      writeUnlock();
    }
    
    /**
@@ -2059,9 +2033,9 @@ public class RenderObject implements Versioned {
     * @param vEnd ending vertex  
     */
    public void addLines(int vStart, int vEnd) {
-      
+      writeLock();
       addLinesInternal(vStart, vEnd);
-      
+      writeUnlock();
    }
    
    private void addLinesInternal(int vStart, int vEnd) {
@@ -2075,11 +2049,11 @@ public class RenderObject implements Versioned {
     * @param lines int pairs of vertex indices defining line segments.
     */
    public void addLines(Iterable<int[]> lines) {
-      
+      writeLock();
       for (int[] line : lines) {
          addLinePair(line);
       }
-      
+      writeUnlock();
    }
    
    /**
@@ -2089,11 +2063,11 @@ public class RenderObject implements Versioned {
     * @param vidxs vertex indices specifying connectivity
     */
    public void addLineStrip(int... vidxs) {
-      
+      writeLock();
       for (int i=0; i<vidxs.length-1; ++i) {
          addLinePairInternal(vidxs[i], vidxs[i+1]);
       }
-      
+      writeUnlock();
    }
    
    /**
@@ -2104,9 +2078,9 @@ public class RenderObject implements Versioned {
     * @param vEnd ending vertex  
     */
    public void addLineStrip(int vStart, int vEnd) {
-      
+      writeLock();
       addLineStripInternal(vStart, vEnd);
-      
+      writeUnlock();
    }
    
    private void addLineStripInternal(int vStart, int vEnd) {
@@ -2122,14 +2096,14 @@ public class RenderObject implements Versioned {
     * @param vidxs vertex indices specifying connectivity
     */
    public void addLineLoop(int... vidxs) {
-      
+      writeLock();
       for (int i=0; i<vidxs.length-1; ++i) {
          addLinePairInternal(vidxs[i], vidxs[i+1]);
       }
       if (vidxs.length > 1) {
          addLinePairInternal(vidxs[vidxs.length-1], vidxs[0]);
       }
-      
+      writeUnlock();
    }
    
    /**
@@ -2140,9 +2114,9 @@ public class RenderObject implements Versioned {
     * @param vEnd ending vertex  
     */
    public void addLineLoop(int vStart, int vEnd) {
-      
+      writeLock();
       addLineLoopInternal(vStart, vEnd);
-      
+      writeUnlock();
    }
    
    private void addLineLoopInternal(int vStart, int vEnd) {
@@ -2163,11 +2137,11 @@ public class RenderObject implements Versioned {
     * @param v1 length 3 array for position of ending vertex (x,y,z)
     */
    public void addLine(float[] v0, float[] v1) {
-      
+      writeLock();
       int v0idx = vertexInternal(v0);
       int v1idx = vertexInternal(v1);
       addLine(v0idx, v1idx);
-      
+      writeUnlock();
    }
 
    /**
@@ -2215,12 +2189,12 @@ public class RenderObject implements Versioned {
     * @param cap capacity
     */
    public void ensureLineCapacity(int cap) {
-      
+      writeLock();
       if (stateInfo.numLineGroups == 0) {
          createLineGroupInternal();
       }
       currentLineGroup.ensureCapacity(cap);
-      
+      writeUnlock();
    }
    
    private int createLineGroupInternal() {
@@ -2241,9 +2215,9 @@ public class RenderObject implements Versioned {
     * @see #lineGroup(int)
     */
    public int createLineGroup() {
-      
+      writeLock();
       int idx = createLineGroupInternal ();
-      
+      writeUnlock();
       return idx;
    }
 
@@ -2252,12 +2226,12 @@ public class RenderObject implements Versioned {
     * @param setIdx index of active line group.
     */
    public void lineGroup(int setIdx) {
-      
+      writeLock();
       stateInfo.lineGroupIdx = setIdx;
       if (lines != null) {
          currentLineGroup = lines.get(stateInfo.lineGroupIdx);
       }
-      
+      writeUnlock();
    }
 
    /**
@@ -2324,9 +2298,9 @@ public class RenderObject implements Versioned {
     * Informs the render object that triangles have been modified outside of its control.
     */
    public void notifyTrianglesModified() {
-      
+      writeLock();
       notifyTrianglesModifiedInternal ();
-      
+      writeUnlock();
    }
    
    private void notifyTrianglesModifiedInternal() {
@@ -2359,9 +2333,9 @@ public class RenderObject implements Versioned {
     * @param v2idx third vertex
     */
    public void addTriangle(int v0idx, int v1idx, int v2idx) {
-      
+      writeLock();
       addTriangleTripleInternal(new int[] {v0idx, v1idx, v2idx});
-      
+      writeUnlock();
    }
 
    /**
@@ -2371,11 +2345,11 @@ public class RenderObject implements Versioned {
     * @param vidxs vertex indices, in triples, defining triangles.
     */
    public void addTriangles(int... vidxs) {
-      
+      writeLock();
       for (int i=0; i<vidxs.length-2; i+=3) {
          addTriangleTripleInternal(new int[]{vidxs[i], vidxs[i+1], vidxs[i+2]});
       }
-      
+      writeUnlock();
    }
    
    /**
@@ -2386,9 +2360,9 @@ public class RenderObject implements Versioned {
     * @param vEnd ending vertex index
     */
    public void addTriangles(int vStart, int vEnd) {
-      
+      writeLock();
       addTrianglesInternal (vStart, vEnd);
-      
+      writeUnlock();
    }
    
    private void addTrianglesInternal(int vStart, int vEnd) {
@@ -2404,11 +2378,11 @@ public class RenderObject implements Versioned {
     * @param vidxs vertex indices defining triangles.
     */
    public void addTriangleFan(int... vidxs) {
-      
+      writeLock();
       for (int i=2; i<vidxs.length; ++i) {
          addTriangleTripleInternal(new int[]{vidxs[0], vidxs[i-1], vidxs[i]});
       }
-      
+      writeUnlock();
    }
    
    /**
@@ -2419,9 +2393,9 @@ public class RenderObject implements Versioned {
     * @param vEnd ending vertex index
     */
    public void addTriangleFan(int vStart, int vEnd) {
-      
+      writeLock();
       addTriangleFanInternal(vStart, vEnd);
-      
+      writeUnlock();
    }
    
    private void addTriangleFanInternal(int vStart, int vEnd) {
@@ -2437,7 +2411,7 @@ public class RenderObject implements Versioned {
     * @param vidxs vertex indices defining triangles.
     */
    public void addTriangleStrip(int... vidxs) {
-      
+      writeLock();
       // add pairs of triangles
       for (int i=2; i<vidxs.length-1; i+=2) {
          addTriangleTripleInternal(new int[]{vidxs[i-2], vidxs[i-1], vidxs[i]});
@@ -2448,7 +2422,7 @@ public class RenderObject implements Versioned {
       if (i > 2 && i % 2 == 0) {
          addTriangleTripleInternal(new int[]{vidxs[i-2], vidxs[i-1], vidxs[i]});
       }
-      
+      writeUnlock();
    }
    
    /**
@@ -2459,9 +2433,9 @@ public class RenderObject implements Versioned {
     * @param vEnd ending vertex index
     */
    public void addTriangleStrip(int vStart, int vEnd) {
-      
+      writeLock();
       addTriangleStripInternal(vStart, vEnd);
-      
+      writeUnlock();
    }
    
    private void addTriangleStripInternal(int vStart, int vEnd) {
@@ -2483,11 +2457,11 @@ public class RenderObject implements Versioned {
     * @param tris int triples of vertex indices defining triangles (CCW)
     */
    public void addTriangles(Iterable<int[]> tris) {
-      
+      writeLock();
       for (int[] tri : tris) {
          addTriangleTripleInternal(tri);
       }
-      
+      writeUnlock();
    }
 
    /**
@@ -2499,12 +2473,12 @@ public class RenderObject implements Versioned {
     * @param v2 {x,y,z} position of third vertex
     */
    public void addTriangle(float[] v0, float[] v1, float[] v2) {
-      
+      writeLock();
       int v0idx = vertexInternal(v0);
       int v1idx = vertexInternal(v1);
       int v2idx = vertexInternal(v2);
       addTriangleTripleInternal (v0idx, v1idx, v2idx);
-      
+      writeUnlock();
    }
 
    /**
@@ -2553,12 +2527,12 @@ public class RenderObject implements Versioned {
     * @param cap capacity
     */
    public void ensureTriangleCapacity(int cap) {
-      
+      writeLock();
       if (stateInfo.numTriangleGroups == 0) {
          createTriangleGroupInternal();
       }
       currentTriangleGroup.ensureCapacity(cap);
-      
+      writeUnlock();
    }
    
    /**
@@ -2568,9 +2542,9 @@ public class RenderObject implements Versioned {
     * @see #triangleGroup(int)
     */
    public int createTriangleGroup() {
-      
+      writeLock();
       int idx = createTriangleGroupInternal ();
-      
+      writeUnlock();
       return idx;
    }
    
@@ -2590,12 +2564,12 @@ public class RenderObject implements Versioned {
     * @param setIdx index of active triangle group.
     */
    public void triangleGroup(int setIdx) {
-      
+      writeLock();
       stateInfo.triangleGroupIdx = setIdx;
       if (triangles != null) {
          currentTriangleGroup = triangles.get(stateInfo.triangleGroupIdx);
       }
-      
+      writeUnlock();
    }
 
    /**
@@ -2664,6 +2638,7 @@ public class RenderObject implements Versioned {
     * information remains untouched.
     */
    public void clearPrimitives() {
+      writeLock();
       
       // in most cases will only have one group
       points = new ArrayList<>(1);
@@ -2688,7 +2663,7 @@ public class RenderObject implements Versioned {
       trianglesModified = true;
       totalModified = true;
       
-      
+      writeUnlock();
    }
 
    /**
@@ -2699,6 +2674,7 @@ public class RenderObject implements Versioned {
     */
    public void clearAll() {
       
+      writeLock();
       
       // in most cases, we will only have one set
       positions = new ArrayList<>(1);
@@ -2744,6 +2720,7 @@ public class RenderObject implements Versioned {
       buildMode = null;
       buildModeStart = -1;
       
+      writeUnlock();
       
    }
 
@@ -2782,6 +2759,8 @@ public class RenderObject implements Versioned {
     */
    public void invalidate() {
       
+      writeLock();
+      
       idInfo.setValid(false);
       
       // clear all memory
@@ -2805,6 +2784,7 @@ public class RenderObject implements Versioned {
       currentLineGroup = null;
       currentTriangleGroup = null;
       
+      writeUnlock();
    }
 
    /**
@@ -2824,7 +2804,9 @@ public class RenderObject implements Versioned {
     * @param set
     */
    public void setTransient(boolean set) {
+      writeLock();
       istransient = set;
+      writeUnlock();
    }
    
    /**
@@ -2859,6 +2841,8 @@ public class RenderObject implements Versioned {
 
       RenderObject r = new RenderObject();
 
+      readLock();
+      
       if (positions != null) {
          r.positions = new ArrayList<float[]>(positions.size ());
          r.positions.addAll (positions);
@@ -2970,6 +2954,8 @@ public class RenderObject implements Versioned {
       r.buildModeStart = buildModeStart;
       
       r.istransient = istransient;
+      
+      readUnlock();
       
       return r;
    }

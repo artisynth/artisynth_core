@@ -2951,29 +2951,20 @@ public class MeshFactory {
 
    public static PolygonalMesh getIntersection(PolygonalMesh mesh1,
       PolygonalMesh mesh2) {
-      BSPTree tree1 = new BSPTree(mesh1);
-      BSPTree tree2 = new BSPTree(mesh2);
-      BSPTree outTree = tree1.intersect(tree2);
-
-      return outTree.generateMesh();
+      return BSPTree.getIntersection(mesh1, mesh2);
+      // return CSG.getIntersection(mesh1, mesh2);
    }
 
-   public static PolygonalMesh
-      getUnion(PolygonalMesh mesh1, PolygonalMesh mesh2) {
-      BSPTree tree1 = new BSPTree(mesh1);
-      BSPTree tree2 = new BSPTree(mesh2);
-      BSPTree outTree = tree1.union(tree2);
-
-      return outTree.generateMesh();
+   public static PolygonalMesh getUnion(PolygonalMesh mesh1, 
+      PolygonalMesh mesh2) {
+      return BSPTree.getUnion(mesh1, mesh2);
+      // return CSG.getUnion(mesh1, mesh2);
    }
    
-   public static PolygonalMesh getSubtraction(PolygonalMesh mesh1,
+   public static PolygonalMesh getSubtraction(PolygonalMesh mesh1, 
       PolygonalMesh mesh2) {
-      BSPTree tree1 = new BSPTree(mesh1);
-      BSPTree tree2 = new BSPTree(mesh2);
-      BSPTree outTree = tree1.subtract(tree2);
-
-      return outTree.generateMesh();
+      return BSPTree.getSubtraction(mesh1, mesh2);
+      // return CSG.getSubtraction(mesh1, mesh2);
    }
 
    public static void main(String[] args) {
@@ -3007,7 +2998,7 @@ public class MeshFactory {
       return heList;
 
    }
-
+   
    public static boolean fillHoles(PolygonalMesh mesh) {
 
       ArrayList<HalfEdge> heList = findBorderEdges(mesh);
@@ -3070,7 +3061,7 @@ public class MeshFactory {
          return 0;
       }
    }
-
+  
    public static void closeSeams(PolygonalMesh mesh) {
 
       ArrayList<HalfEdge> heList = findBorderEdges(mesh);
@@ -3225,12 +3216,15 @@ public class MeshFactory {
    public static void mergeVertices(PolygonalMesh mesh, Vertex3d vtx1,
       Vertex3d vtx2) {
 
+      ArrayList<HalfEdge> hes = new ArrayList<>();
       Iterator<HalfEdge> it = vtx1.getIncidentHalfEdges();
       while (it.hasNext()) {
-         HalfEdge he = it.next();
+         hes.add(it.next());
+      }
+      
+      for (HalfEdge he : hes) {
          mesh.removeFace(he.face);
          Vertex3d[] vtxs = he.face.getVertices();
-
          for (int i = 0; i < vtxs.length; i++) {
             if (vtxs[i] == vtx1) {
                vtxs[i] = vtx2;

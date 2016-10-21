@@ -439,7 +439,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
 
    @Override
       public boolean isInvertible () {
-      return (myJLimit > 0 && myBulkPotential == BulkPotential.QUADRATIC);
+      return (myJLimit > 0 && super.isInvertible());
    }
 
    @Override

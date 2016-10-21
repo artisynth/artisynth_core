@@ -7,6 +7,12 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
+/**
+ * NOTE: This is a non-standard version of the St. Venant-Kirchoff model, which computes:
+ * sigma = 1/J (lambda trace(E)-mu)B+mu/J*B^2,
+ * in line with FEBio's recommendation
+ *
+ */
 public class StVenantKirchoffMaterial extends FemMaterial {
 
    public static PropertyList myProps =

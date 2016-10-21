@@ -39,7 +39,7 @@ public abstract class FemNode extends Particle {
    }
 
    public double getMass() {
-      if (!myMassValidP) {
+      if (!myMassExplicitP && !myMassValidP) {
          myMass = computeMassFromDensity();
          myMassValidP = true;
       }
@@ -76,8 +76,9 @@ public abstract class FemNode extends Particle {
    public abstract double computeMassFromDensity();
    
    public void addMass (double m) {
-      //myMass += m;
-      //myEffectiveMass += m;
+      myMass += m;
+      // myEffectiveMass += m;
+      myMassValidP = true;
    }
 
    @Override

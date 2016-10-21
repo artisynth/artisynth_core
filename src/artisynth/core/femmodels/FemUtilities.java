@@ -47,7 +47,7 @@ public class FemUtilities {
    /** 
     * Adds a weighted node-to-node stiffness to the matrix Kij via the formula
     * <pre>
-    *  Kij = Bi^T D Bj + (gi^T sig gj) I
+    *  Kij = (Bi^T D Bj + (gi^T sig gj) I)*dv
     * </pre>
     * where gi and gj are the gradients for shape functions i and j,
     * Bi and Bj are the B matrices formed from gi and gj, 
@@ -57,6 +57,22 @@ public class FemUtilities {
    public static void addMaterialStiffness (
       Matrix3d K, Vector3d gi, Matrix6d D,
       SymmetricMatrix3d sig, Vector3d gj, double dv) {
+      addMaterialStiffness(K, gi, D, gj, dv);
+      addGeometricStiffness(K, gi, sig, gj, dv);
+   }
+   
+   /** 
+    * Adds a weighted node-to-node stiffness to the matrix Kij via the formula
+    * <pre>
+    *  Kij = Bi^T D Bj dv
+    * </pre>
+    * where gi and gj are the gradients for shape functions i and j,
+    * Bi and Bj are the B matrices formed from gi and gj, 
+    * D is the derivative of the constitutive relationship, and
+    * dv is the weighting term.
+    */
+   public static void addMaterialStiffness (
+      Matrix3d K, Vector3d gi, Matrix6d D, Vector3d gj, double dv) {
       double gjx = gj.x*dv;
       double gjy = gj.y*dv;
       double gjz = gj.z*dv;
@@ -100,12 +116,27 @@ public class FemUtilities {
       K.m20 += giz*dm20 + giy*dm40 + gix*dm50;
       K.m21 += giz*dm21 + giy*dm41 + gix*dm51;
       K.m22 += giz*dm22 + giy*dm42 + gix*dm52;
+   }
+   
+   /**
+    * Adds the geometric stiffness defined by
+    * <pre> 
+    * Kij += (gi^T sig gj) I*dv
+    * </pre>
+    * @param K
+    * @param gi
+    * @param sig
+    * @param gj
+    */
+   public static void addGeometricStiffness(Matrix3d K, Vector3d gi, 
+      SymmetricMatrix3d sig, Vector3d gj, double dv) {
 
       // add geometrical stiffness
       double Kg = (
-         gix*(sig.m00*gjx + sig.m01*gjy + sig.m02*gjz) +
-         giy*(sig.m10*gjx + sig.m11*gjy + sig.m12*gjz) +
-         giz*(sig.m20*gjx + sig.m21*gjy + sig.m22*gjz));
+         gi.x*(sig.m00*gj.x + sig.m01*gj.y + sig.m02*gj.z) +
+         gi.y*(sig.m10*gj.x + sig.m11*gj.y + sig.m12*gj.z) +
+         gi.z*(sig.m20*gj.x + sig.m21*gj.y + sig.m22*gj.z));
+      Kg = Kg*dv;
 
       K.m00 += Kg;
       K.m11 += Kg;
@@ -193,8 +224,6 @@ public class FemUtilities {
 
       double diag = -gix*gjx - giy*gjy - giz*gjz;
 
-      synchronized (K) {
-
       K.m00 += diag;
       K.m01 += gix*gjy - giy*gjx;
       K.m02 += gix*gjz - giz*gjx;
@@ -207,7 +236,6 @@ public class FemUtilities {
       K.m21 += giz*gjy - giy*gjz;
       K.m22 += diag;
 
-      }
    }
 
    /** 
@@ -229,9 +257,7 @@ public class FemUtilities {
 
       double gjx = intGj.x;
       double gjy = intGj.y;
-      double gjz = intGj.z;    
-
-      synchronized (K) {
+      double gjz = intGj.z;
 
       K.m00 += gix*gjx;
       K.m01 += gix*gjy;
@@ -244,8 +270,6 @@ public class FemUtilities {
       K.m20 += giz*gjx;
       K.m21 += giz*gjy;
       K.m22 += giz*gjz;
-
-      }
    }
 
    /** 
@@ -259,10 +283,6 @@ public class FemUtilities {
     */
    public static void addDilationalStiffness (
       Matrix3d K, double[] Kp, MatrixBlock GT_i, MatrixBlock GT_j) {
-
-      double gix, giy, giz;
-      double gjx, gjy, gjz;
-      double kp;
 
       if (GT_i.colSize() == 1) {
          Matrix3x1.mulScaledTransposeRightAdd (

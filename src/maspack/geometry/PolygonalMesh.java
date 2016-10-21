@@ -955,9 +955,254 @@ public class PolygonalMesh extends MeshBase {
       while ((nv = doMergeCloseVertices (dsqr)) > 0) {
          total += nv;
       }
-
       return total;
-   }                
+   }   
+   
+   /**
+    * Merges adjacent faces whose normals satisfy n1.dot(n2) > cosLimit
+    * @param mesh
+    * @param cosLimit
+    * @return true if modified, false otherwise
+    */
+   public boolean mergeCoplanarFaces(double cosLimit) {
+      HashSet<HalfEdge> toMerge = new HashSet<>();
+      for (Face f : myFaces) {
+         HalfEdge he0 = f.he0;
+         HalfEdge he = he0;
+         do {
+            if (he.isPrimary() && he.opposite != null) {
+               if (he.getFace().getNormal().dot(he.opposite.getFace().getNormal()) > cosLimit) {
+                  toMerge.add(he);
+               }
+            }
+            he = he.next;
+         } while (he != he0);
+      }
+      
+      // go through and merge faces
+      boolean modified = false;
+      HashSet<Face> toUpdateFace = new HashSet<>();
+      HashSet<Face> toRemoveFace = new HashSet<>();
+      HashSet<Vertex3d> toRemoveVertex = new HashSet<>();
+      
+      if (toMerge.size() > 0) {
+         
+         for (HalfEdge he : toMerge) {
+            
+            Face f1 = he.getFace();
+            Face f2 = he.getOppositeFace();
+         
+            if (f1 == f2) {
+               
+               // edge jutting out into nowhere
+               if (he.next == he.opposite) {
+                  HalfEdge heopp = he.opposite;
+                  he.head.removeIncidentHalfEdge(he);
+                  heopp.head.removeIncidentHalfEdge(heopp);
+                  
+                  // replace first half-edge on face
+                  if (f1.he0 == he || f1.he0 == heopp) {
+                     f1.he0 = heopp.next;
+                  }
+                  
+                  // find previous half-edge
+                  HalfEdge hprev = heopp.next;
+                  while (hprev.next != he) {
+                     hprev = hprev.next;
+                  }
+                  hprev.next = heopp.next;
+                  
+                  // form a loop
+                  heopp.next = he;
+                  
+                  // remove if vertex no longer attached to anything
+                  if (he.head.numIncidentHalfEdges() == 0) {
+                     toRemoveVertex.add(he.head);
+                  }
+               } else if (he.opposite.next == he) {
+                  
+                  HalfEdge heopp = he.opposite;
+                  he.head.removeIncidentHalfEdge(he);
+                  heopp.head.removeIncidentHalfEdge(heopp);
+                  
+                  // replace first half-edge on face
+                  if (f1.he0 == he || f1.he0 == heopp) {
+                     f1.he0 = he.next;
+                  }
+                  
+                  // find previous half-edge
+                  HalfEdge hprev = he.next;
+                  while (hprev.next != heopp) {
+                     hprev = hprev.next;
+                  }
+                  hprev.next = he.next;
+                  
+                  // form a loop
+                  he.next = heopp;
+                  
+                  // remove if vertex no longer attached to anything
+                  if (heopp.head.numIncidentHalfEdges() == 0) {
+                     toRemoveVertex.add(heopp.head);
+                  }
+               }
+               
+            } else {
+               // System.out.println("merging " + f1.getIndex() + " & " + f2.getIndex());
+               
+               // replace first half-edge on face
+               if (f1.he0 == he) {
+                  f1.he0 = he.next;
+               }
+               if (f2.he0 == he.opposite) {
+                  f2.he0 = he.opposite.next;
+               }
+               
+               // find previous half-edges
+               HalfEdge hprev = he.next;
+               while (hprev.next != he) {
+                  hprev = hprev.next;
+               }
+               HalfEdge ohprev = he.opposite.next;
+               while (ohprev.next != he.opposite) {
+                  ohprev = ohprev.next;
+               }
+               
+               // adjust face on half-edges
+               HalfEdge hh = he.opposite.next;
+               do {
+                  hh.face = f1;
+                  hh = hh.next;
+               } while (hh != he.opposite);
+               
+               // remove half-edge by connecting around it
+               he.head.removeIncidentHalfEdge(he);
+               he.opposite.head.removeIncidentHalfEdge(he.opposite);
+               hprev.next = he.opposite.next;
+               ohprev.next = he.next;
+     
+               he.face = f2;
+               he.next = he.opposite;
+               he.opposite.face = f2;
+               he.opposite.next = he;
+               f2.he0 = he;
+               
+               toRemoveFace.add(f2);
+               toUpdateFace.add(f1);
+            }
+         }
+         modified = true;
+      }
+      
+      // remove vertices from straight lines
+      if (modified) {
+         for (Vertex3d vtx : myVertices) {
+            Vector3d v1 = new Vector3d();
+            Vector3d v2 = new Vector3d();
+            
+            int nhe = vtx.numIncidentHalfEdges();
+            if (nhe == 0) {
+               toRemoveVertex.add(vtx);
+            } else if (nhe == 1) {
+               // check if straight boundary edge
+               HalfEdge he = vtx.firstIncidentHalfEdge();
+               v1.sub(he.head.pnt, he.tail.pnt);
+               v1.normalize();
+               v2.sub(he.next.head.pnt, he.next.tail.pnt);
+               v2.normalize();
+               if (v1.dot(v2) > cosLimit) {
+                  
+                  // remove vtx and he
+                  vtx.removeIncidentHalfEdge(he);
+                  HalfEdge hprev = he.next;
+                  while (hprev.next != he) {
+                     hprev = hprev.next;
+                  }
+                  // connect he.next to hprev
+                  hprev.next = he.next;
+                  he.next.tail = hprev.head;
+                  
+                  // maybe replace first half-edge on face
+                  Face f = he.getFace();
+                  if (f.he0 == he) {
+                     f.he0 = he.next;
+                  }
+                  
+                  // create loop of one for removed half-edge
+                  he.next = he;
+                  
+                  toRemoveVertex.add(vtx);
+               }
+            } else if (nhe == 2) {
+   
+               HalfEdge he = vtx.firstIncidentHalfEdge();
+               // check of consistent line on both sides of vertex
+               if (he.next.opposite != null && he.next.opposite.next == he.opposite) {
+                  // check if closed straight edge
+                  v1.sub(he.head.pnt, he.tail.pnt);
+                  v1.normalize();
+                  v2.sub(he.next.head.pnt, he.next.tail.pnt);
+                  v2.normalize();
+                  if (v1.dot(v2) > cosLimit) {
+                     
+                     HalfEdge he2 = he.next.opposite;
+                     
+                     // remove vtx and he
+                     vtx.removeIncidentHalfEdge(he);
+                     vtx.removeIncidentHalfEdge(he2);
+                     
+                     HalfEdge hprev = he.next;
+                     while (hprev.next != he) {
+                        hprev = hprev.next;
+                     }
+                     // connect he.next to hprev
+                     hprev.next = he.next;
+                     he.next.tail = hprev.head;
+                     
+                     HalfEdge hprev2 = he2.next;
+                     while (hprev2.next != he2) {
+                        hprev2 = hprev2.next;
+                     }
+                     // connect he2.next to hprev2
+                     hprev2.next = he2.next;
+                     he2.next.tail = hprev2.head;
+                     // align new opposites
+                     he.next.opposite = he2.next;
+                     he2.next.opposite = he.next;
+                     
+                     // maybe replace first half-edge on face
+                     Face f = he.getFace();
+                     if (f.he0 == he) {
+                        f.he0 = he.next;
+                     }
+                     
+                     Face f2 = he2.getFace();
+                     if (f2.he0 == he2) {
+                        f2.he0 = he2.next;
+                     }
+                     
+                     // create loop of one for removed half-edge
+                     he.next = he;
+                     he2.next = he2;
+                     
+                     toRemoveVertex.add(vtx);
+                  }
+               }
+            }
+         }
+      }
+      
+      if (modified) {
+         // remove faces and vertices
+         removeVertices(toRemoveVertex);
+         removeFaces(toRemoveFace);
+         
+         clearAttributes();  // XXX for now just clear attributes.  If we were diligent, we could re-adjust.
+         myTriQuadCountsValid = false;
+         notifyStructureChanged();
+      }
+      
+      return modified;
+   }
 
    private void addFaceVertices (HashMap<Vertex3d,Integer> vertices, Face face) {
       HalfEdge he0 = face.firstHalfEdge();
@@ -3275,7 +3520,7 @@ public class PolygonalMesh extends MeshBase {
       if (myMultiAutoNormalsP != enable) {
          myMultiAutoNormalsP = enable;
          if (!myNormalsExplicitP) {
-            clearNormals(); // will need to recompute the,
+            clearNormals(); // will need to recompute
          }
       }
    }
@@ -3308,11 +3553,41 @@ public class PolygonalMesh extends MeshBase {
       myNormals = normals;
       myNormalIndices = indices;
    }
+   
+   /**
+    * Sets edges to be "hard" based on angle between faces.
+    * @param cosThreshold dot product between face normals is below this threshold, marks edge as hard
+    */
+   public void setHardEdgesFromFaceNormals(double cosThreshold) {
+      updateFaceNormals();
+      
+      for (Face f : myFaces) {
+         HalfEdge he0 = f.firstHalfEdge();
+         HalfEdge he = he0;
+         do {
+            if (he.isPrimary()) {
+               if (he.opposite == null) {
+                  he.setHard(true);
+               } else if (he.getFace().getNormal().dot(he.getOppositeFace().getNormal()) < cosThreshold) {
+                  he.setHard(true);
+                  he.opposite.setHard(true);
+               } else {
+                  he.setHard(false);
+                  he.opposite.setHard(false);
+               }
+            }
+            he = he.next;
+         } while (he != he0);
+      }
+      myAutoNormalsValidP = false;
+   }
 
    /**
     * Computes a set of vertex normals for this mesh, using an
     * angle-weighted average of the normals formed by the edges incident on
-    * each vertex. If <code>multiNormals</code> is <code>true</code>, then
+    * each vertex. If the angle-weighted average would result in a zero normal
+    * (e.g. vertices on a straight line), then the adjacent face normals
+    * are used.  If <code>multiNormals</code> is <code>true</code>, then
     * multiple normals may be computed for each vertex, with different normals
     * being computed for edge regions that are separated by open or hard
     * edges. Otherwise, only one normal is computed per vertex.
@@ -3363,9 +3638,17 @@ public class PolygonalMesh extends MeshBase {
                   normalIndexMap.put (node.he, idx);
                   node = node.next;
                }
-               while (node != null && 
-                      (!multiNormals || !vtx.isNormalBoundary(node.he)));
-               nrm.normalize();
+               while (node != null && (!multiNormals || !vtx.isNormalBoundary(node.he)));
+               
+               double n = nrm.norm();
+               if (n == 0) {
+                  vtx.computeAreaWeightedNormal(nrm);
+                  n = nrm.norm();
+               }
+               if (n > 0) {
+                  nrm.scale(1.0/n);
+               }
+               
                idx++;
             }
          }
@@ -3374,7 +3657,16 @@ public class PolygonalMesh extends MeshBase {
                idx = vtx.computeAngleWeightedNormals (normals, idx);
             }
             else {
-               vtx.computeAngleWeightedNormal (normals.get(idx++));
+               Vector3d nrm = normals.get(idx++);
+               vtx.computeAngleWeightedNormal (nrm);
+               double n = nrm.norm();
+               if (n == 0) {
+                  vtx.computeAreaWeightedNormal(nrm);
+                  n = nrm.norm();
+               }
+               if (n > 0) {
+                  nrm.scale(1.0/n);
+               }
             }
          }
       }

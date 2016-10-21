@@ -239,6 +239,31 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       }
       return hasNormal;
    }
+   
+   /**
+    * Computes a normal for this vertex by averaging the face normals
+    * of all adjacent faces, scaled by their face areas
+    * 
+    * @param nrm
+    * returns the computed normal
+    * @return false if no adjacent faces present
+    */
+   public boolean computeAreaWeightedNormal (Vector3d nrm) {
+      sortHedgesIfNecessary();      
+      boolean hasNormal = (incidentHedges != null);
+      nrm.set (0, 0, 0);
+      Vector3d fnrm = new Vector3d();
+      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
+         Face f = node.he.getFace();
+         double a = f.computeArea();
+         f.computeNormal(fnrm);
+         nrm.scaledAdd(a, fnrm);
+      }
+      if (hasNormal) {
+         nrm.normalize();
+      }
+      return hasNormal;
+   }
 
    /**
     * Compute the normals for all the half-edges indicent on this vertex.

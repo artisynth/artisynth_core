@@ -1066,6 +1066,12 @@ public abstract class MeshBase implements Renderable, Cloneable {
    public int getRenderHints() {
       return 0;
    }
+   
+   protected void clearAttributes() {
+      clearNormals();
+      clearTextureCoords();
+      clearColors();
+   }
 
    protected void adjustAttributesForNewFeature () {
       clearNormals();

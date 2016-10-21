@@ -6,7 +6,6 @@
  */
 package artisynth.core.femmodels;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -15,9 +14,18 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Map;
 
-import maspack.matrix.AffineTransform3dBase;
+import artisynth.core.femmodels.FemModel.Ranging;
+import artisynth.core.femmodels.FemModel.SurfaceRender;
+import artisynth.core.mechmodels.MeshComponent;
+import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.SkinMeshBase;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ScanWriteUtils;
+import artisynth.core.util.ScanToken;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
+import maspack.matrix.AffineTransform3dBase;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -30,19 +38,8 @@ import maspack.render.Renderer.Shading;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.DoubleInterval;
-import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.femmodels.FemModel.Ranging;
-import artisynth.core.femmodels.FemModel.SurfaceRender;
-import artisynth.core.mechmodels.MeshComponent;
-import artisynth.core.mechmodels.PointAttachment;
-import artisynth.core.mechmodels.SkinMeshBase;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.ScanWriteUtils;
-import artisynth.core.util.ScanToken;
 
 /**
  * Describes a surface mesh that is "skinned" onto an FEM.
@@ -79,7 +76,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
    protected PropertyMode myColorMapMode = PropertyMode.Inherited;
    
    protected static double EPS = 1e-10;
-   FemModel3d myFem;
    
    public static PropertyList myProps =
    new PropertyList (FemMeshBase.class, MeshComponent.class);
@@ -107,11 +103,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
       setColorInterpolation (ColorInterpolation.HSV);
    }
 
-   public FemMeshBase (FemModel3d fem) {
-      this();
-      myFem = fem;
-   }
-
    public abstract int numAttachments ();
 
    public abstract PointAttachment getAttachment (int idx);
@@ -120,7 +111,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
     * Initialize data structures prior to adding vertices and faces to
     * this surface.
     */
-   void initializeSurfaceBuild() {
+   protected void initializeSurfaceBuild() {
       PolygonalMesh mesh = new PolygonalMesh();
       doSetMesh (mesh, null, null);
       mesh.setFixed (false);
@@ -130,7 +121,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
    /** 
     * Finalize data structures after vertices and faces have been added.
     */
-   void finalizeSurfaceBuild() {
+   protected void finalizeSurfaceBuild() {
    }
 
    public void setMeshFromInfo () {
@@ -145,7 +136,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       }
    }
 
-   boolean isStressOrStrainRendering (SurfaceRender mode) {
+   protected boolean isStressOrStrainRendering (SurfaceRender mode) {
       return (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress);
    }
    
@@ -204,50 +195,50 @@ public abstract class FemMeshBase extends SkinMeshBase {
          if (myStressPlotRanging == Ranging.Auto) {
             myStressPlotRange.set (0, 0);
          }
-         SurfaceRender oldMode = mySurfaceRendering;
          
-         if (myFem != null) { // paranoid: myFem should always be non-null here
-            switch (mode) {
-               case Strain:
-                  myFem.setComputeNodalStrain(true);
-                  myFem.updateStressAndStiffness();
-                  break;
-               case Stress:
-                  myFem.setComputeNodalStress(true);
-                  myFem.updateStressAndStiffness();
-                  break;
-               default: {
-                  myFem.setComputeNodalStrain(false);
-                  myFem.setComputeNodalStress(false);
-                  break;
-               }
-            }
-         }
-         // save/restore original vertex colors
-         MeshBase mesh = getMesh();   
-         if (mesh != null) {
-            boolean oldStressOrStrain = isStressOrStrainRendering (oldMode);
-            boolean newStressOrStrain = isStressOrStrainRendering (mode);
-            
-            if (newStressOrStrain != oldStressOrStrain) {
-               if (newStressOrStrain) {
-                  saveShading();
-                  saveMeshColoring (mesh);
-                  mesh.setVertexColoringEnabled();
-                  mesh.setVertexColorMixing (ColorMixing.REPLACE);
-                  myRenderProps.setShading (Shading.NONE);
-                  // enable stress/strain rendering *after* vertex coloring set
-                  mySurfaceRendering = mode; 
-                  updateVertexColors(); // not sure we need this here
-               }
-               else {
-                  // disable stress/strain rendering *before* restoring colors
-                  mySurfaceRendering = mode;                  
-                  restoreMeshColoring (mesh);
-                  restoreShading();
-               }
-            }
-         }
+         //         SurfaceRender oldMode = mySurfaceRendering;
+         //         if (myFem != null) { // paranoid: myFem should always be non-null here
+         //            switch (mode) {
+         //               case Strain:
+         //                  myFem.setComputeNodalStrain(true);
+         //                  myFem.updateStressAndStiffness();
+         //                  break;
+         //               case Stress:
+         //                  myFem.setComputeNodalStress(true);
+         //                  myFem.updateStressAndStiffness();
+         //                  break;
+         //               default: {
+         //                  myFem.setComputeNodalStrain(false);
+         //                  myFem.setComputeNodalStress(false);
+         //                  break;
+         //               }
+         //            }
+         //         }
+         //         // save/restore original vertex colors
+         //         MeshBase mesh = getMesh();   
+         //         if (mesh != null) {
+         //            boolean oldStressOrStrain = isStressOrStrainRendering (oldMode);
+         //            boolean newStressOrStrain = isStressOrStrainRendering (mode);
+         //            
+         //            if (newStressOrStrain != oldStressOrStrain) {
+         //               if (newStressOrStrain) {
+         //                  saveShading();
+         //                  saveMeshColoring (mesh);
+         //                  mesh.setVertexColoringEnabled();
+         //                  mesh.setVertexColorMixing (ColorMixing.REPLACE);
+         //                  myRenderProps.setShading (Shading.NONE);
+         //                  // enable stress/strain rendering *after* vertex coloring set
+         //                  mySurfaceRendering = mode; 
+         //                  updateVertexColors(); // not sure we need this here
+         //               }
+         //               else {
+         //                  // disable stress/strain rendering *before* restoring colors
+         //                  mySurfaceRendering = mode;                  
+         //                  restoreMeshColoring (mesh);
+         //                  restoreShading();
+         //               }
+         //            }
+         //         }
          mySurfaceRendering = mode; // set now if not already set
       }
       // propagate to make mode explicit
@@ -339,7 +330,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       Renderer renderer, RenderProps props, int flags) {
 
       // highlight if either fem or mesh is selected
-      if (isSelected() || (myFem != null && myFem.isSelected() )) {
+      if (isSelected()) {
          flags |= Renderer.HIGHLIGHT;
       }
 
@@ -424,11 +415,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
    protected boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-      if (postscanAttributeName (tokens, "fem")) {
-         myFem = postscanReference (tokens, FemModel3d.class, ancestor);
-         return true;
-      }
-      else if (ScanWriteUtils.postscanPropertyValue (
+      if (ScanWriteUtils.postscanPropertyValue (
                   tokens, this, "surfaceRendering")) {
          return true;
       }
@@ -451,10 +438,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
       super.writeItems (pw, fmt, ancestor);
 
-      if (myFem != null) {
-         pw.print ("fem=");
-         pw.println (ComponentUtils.getWritePathName (ancestor, myFem));
-      }
       // surfaceRendering has to be written near the end because it has to be
       // scanned after the model and mesh structures.
       myProps.get("surfaceRendering").writeIfNonDefault (this, pw, fmt);      
@@ -474,10 +457,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
       super.disconnectFromHierarchy();
    }
    
-   public FemModel3d getFem() {
-      return myFem;
-   }
-   
    @Override
    public FemMeshBase copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FemMeshBase fmb = (FemMeshBase)super.copy(flags, copyMap);
@@ -494,14 +473,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
       if (myColorMapMode == PropertyMode.Explicit) {
          fmb.setColorMap(myColorMap);
-      }
-      
-      FemModel3d newFem = (FemModel3d)copyMap.get(myFem);
-      if (newFem != null) {
-         fmb.myFem = newFem;
-      } 
-      else {
-         fmb.myFem = myFem;
       }
 
       if (mySavedColors != null) {

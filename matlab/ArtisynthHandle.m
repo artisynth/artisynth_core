@@ -74,6 +74,14 @@ classdef ArtisynthHandle
          obj.getMain().reset();
       end         
 
+      function [moved] = rewind (obj)
+         moved = obj.getMain().rewind();
+      end
+
+      function [moved] = forward (obj)
+         moved = obj.getMain().forward();
+      end
+
       function step (obj)
          obj.getMain().step();
       end   

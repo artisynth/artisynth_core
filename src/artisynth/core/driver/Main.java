@@ -911,8 +911,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myScheduler.reset();
    }
 
-   public void rewind() {
-      myScheduler.rewind();
+   public boolean rewind() {
+      return myScheduler.rewind();
    }
 
    public void play() {
@@ -946,8 +946,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myScheduler.step();
    }
 
-   public void forward() {
-      myScheduler.fastForward();
+   public boolean forward() {
+      return myScheduler.fastForward();
    }
 
    public double getTime() {

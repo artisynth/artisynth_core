@@ -1,28 +1,18 @@
 package maspack.collision;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Hashtable;
-import java.util.HashSet;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
+import java.util.HashSet;
 
+import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.TriangleIntersector;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.BVFeatureQuery;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.render.IsRenderable;
-import maspack.render.Renderer;
-import maspack.render.Renderer.DrawMode;
-import maspack.render.Renderer.Shading;
-import maspack.render.RenderList;
 
 public class SurfaceMeshCollider implements AbstractCollider {
    // If true, use this class as a collider.

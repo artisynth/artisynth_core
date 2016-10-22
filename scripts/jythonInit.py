@@ -59,6 +59,12 @@ def getTime() :
 def reset () :
     getMain().reset()
 
+def rewind () :
+    return getMain().rewind()
+
+def forward () :
+    return getMain().forward()
+
 def step () :
     getMain().step()
 

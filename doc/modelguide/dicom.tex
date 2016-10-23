@@ -40,13 +40,13 @@ example widget and its property panel is shown in Figure \ref{fig:dicom:heart}.
 
 The main classes related to the reading and displaying of DICOM images are:
 \begin{lstdescription}
-   \item[{\protect \javaclass[maspack.dicom]{DicomElement}}] Describes a single attribute in a DICOM file.
-   \item[{\protect \javaclass[maspack.dicom]{DicomHeader}}] Contains all header attributes (all but the image data) extracted from a DICOM file.
-   \item[{\protect \javaclass[maspack.dicom]{DicomPixelBuffer}}] Contains the \emph{decoded} image pixels for a single image frame.
-   \item[{\protect \javaclass[maspack.dicom]{DicomSlice}}] Contains both the header and image information for a single 2D DICOM slice.
-   \item[{\protect \javaclass[maspack.dicom]{DicomImage}}] Container for DICOM slices, creating a 3D volume (or 3D + time)
-   \item[{\protect \javaclass[maspack.dicom]{DicomReader}}] Parses DICOM files and folders, appending information to a \javaclass[maspack.dicom]{DicomImage}. 
-   \item[{\protect \javaclass[artisynth.core.renderables]{DicomViewer}}] Displays the \javaclass[maspack.dicom]{DicomImage} in the viewer.
+   \item[{\protect \javaclass[maspack.image.dicom]{DicomElement}}] Describes a single attribute in a DICOM file.
+   \item[{\protect \javaclass[maspack.image.dicom]{DicomHeader}}] Contains all header attributes (all but the image data) extracted from a DICOM file.
+   \item[{\protect \javaclass[maspack.image.dicom]{DicomPixelBuffer}}] Contains the \emph{decoded} image pixels for a single image frame.
+   \item[{\protect \javaclass[maspack.image.dicom]{DicomSlice}}] Contains both the header and image information for a single 2D DICOM slice.
+   \item[{\protect \javaclass[maspack.image.dicom]{DicomImage}}] Container for DICOM slices, creating a 3D volume (or 3D + time)
+   \item[{\protect \javaclass[maspack.image.dicom]{DicomReader}}] Parses DICOM files and folders, appending information to a \javaclass[maspack.image.dicom]{DicomImage}. 
+   \item[{\protect \javaclass[artisynth.core.renderables]{DicomViewer}}] Displays the \javaclass[maspack.image.dicom]{DicomImage} in the viewer.
 \end{lstdescription}
 If the purpose is simply to display a DICOM volume in the ArtiSynth viewer, then only the last three classes will be of interest.  Readers who simply want to display a DICOM image in their model can skip to Section \ref{sec:dicom:loading}.
 
@@ -139,31 +139,31 @@ This layout is depicted in Figure \ref{fig:dicom:attribute}.  A list of importan
 
 \section{The DICOM classes}
 
-Each \javaclass[maspack.dicom]{DicomElement} represents a single attribute contained in a DICOM file.
-The \javaclass[maspack.dicom]{DicomHeader} contains the collection of \lstinline{DicomElement}s defined in a file, 
-apart from the pixel data.  The image pixels are decoded and stored in a \javaclass[maspack.dicom]{DicomPixelBuffer}.  
-Each \javaclass[maspack.dicom]{DicomSlice} contains a \lstinline{DicomHeader}, as well as
+Each \javaclass[maspack.image.dicom]{DicomElement} represents a single attribute contained in a DICOM file.
+The \javaclass[maspack.image.dicom]{DicomHeader} contains the collection of \lstinline{DicomElement}s defined in a file, 
+apart from the pixel data.  The image pixels are decoded and stored in a \javaclass[maspack.image.dicom]{DicomPixelBuffer}.  
+Each \javaclass[maspack.image.dicom]{DicomSlice} contains a \lstinline{DicomHeader}, as well as
 the decoded \lstinline{DicomPixelBuffer} for a single slice (or `frame').  All slices are assembled into a single 
-\javaclass[maspack.dicom]{DicomImage}, which can be used to extract 3D voxels and spatial locations from the set of slices.  
+\javaclass[maspack.image.dicom]{DicomImage}, which can be used to extract 3D voxels and spatial locations from the set of slices.  
 These five classes are described in further detail in the following sections.
 
 \subsection{\texttt{DicomElement}}
 
-The \javaclass[maspack.dicom]{DicomElement} class is a simple container for DICOM attribute information.  It has
+The \javaclass[maspack.image.dicom]{DicomElement} class is a simple container for DICOM attribute information.  It has
 three main properties:
 \begin{tightemize}
 \item an integer \emph{tag}
 \item a \emph{value representation} (VR)
 \item a value
 \end{tightemize}
-These properties can be obtained using the corresponding \lstinline{get} function: \lstinline{getTag()}, \lstinline{getVR()}, \lstinline{getValue()}.  The tag refers to the concatenated group/element tag. For example, the \emph{transfer syntax UID} which corresponds to group 0x0002 and element 0x0010 has a numeric tag of 0x00020010. The VR is represented by an enumerated type, \javaclass[maspack.dicom]{DicomElement\$VR}.  The `value' is the \emph{raw} value extracted from the DICOM file.  In most cases, this will be a \lstinline{String}.  For raw numeric values (i.e.~stored in the DICOM file in binary form) such as the unsigned short (US), the `value' property is exactly the numeric value.
+These properties can be obtained using the corresponding \lstinline{get} function: \lstinline{getTag()}, \lstinline{getVR()}, \lstinline{getValue()}.  The tag refers to the concatenated group/element tag. For example, the \emph{transfer syntax UID} which corresponds to group 0x0002 and element 0x0010 has a numeric tag of 0x00020010. The VR is represented by an enumerated type, \javaclass[maspack.image.dicom]{DicomElement\$VR}.  The `value' is the \emph{raw} value extracted from the DICOM file.  In most cases, this will be a \lstinline{String}.  For raw numeric values (i.e.~stored in the DICOM file in binary form) such as the unsigned short (US), the `value' property is exactly the numeric value.
 
 For VRs such as the integer string (IS) or decimal string (DS), the string will still need to be parsed in order to extract the appropriate sequence of numeric values.  There are static utility functions for handling this within \lstinline{DicomElement}.  For a `best-guess' of the desired parsed value based on the VR, one can use the method \lstinline{getParsedValue()}.  Often, however, the desired value is also context-dependent, so the user should know a priori what type of value(s) to expect.  Parsing can also be done automatically by querying for values directly through the \lstinline{DicomHeader} object.  
 
 \subsection{\texttt{DicomHeader}}
 
 When a DICOM file is parsed, all meta-data (attributes apart from the actual pixel data) 
-is assembled into a \javaclass[maspack.dicom]{DicomHeader} object.  This essentially acts
+is assembled into a \javaclass[maspack.image.dicom]{DicomHeader} object.  This essentially acts
 as a map that can be queried for attributes using one of the following methods:
 \begin{lstlisting}[]
    DicomElement getElement(int tag);               // includes VR and data
@@ -186,7 +186,7 @@ will return \lstinline{null}.
 
 \subsection{\texttt{DicomPixelBuffer}}
 
-The \javaclass[maspack.dicom]{DicomPixelBuffer} contains the decoded image information of an image slice.
+The \javaclass[maspack.image.dicom]{DicomPixelBuffer} contains the decoded image information of an image slice.
 There are three possible pixel types currently supported:
 \begin{tightemize}
    \item byte grayscale values (\lstinline{PixelType.BYTE})
@@ -195,7 +195,7 @@ There are three possible pixel types currently supported:
 \end{tightemize}
 The pixel buffer stores all pixels in one of these types.  The pixels can be queried for directly
 using \lstinline{getPixel(idx)} to get a single pixel, or \lstinline{getBuffer()} to get the
-entire pixel buffer.  Alternatively, a \javaclass[maspack.dicom]{DicomPixelInterpolator} object
+entire pixel buffer.  Alternatively, a \javaclass[maspack.image.dicom]{DicomPixelInterpolator} object
 can be passed in to convert between pixel types via one of the following methods:
 \begin{lstlisting}[]
 public int getPixelsByte (
@@ -218,7 +218,7 @@ be passed to a renderer.  For further details on these methods, refer to the Jav
 
 A single DICOM file contains both header information, and one or more image `frames' (slices).  In
 ArtiSynth, we separate each frame and attach them to the corresponding header information in
-a \javaclass[maspack.dicom]{DicomSlice}.  Thus, each slice contains a single \lstinline{DicomHeader} and 
+a \javaclass[maspack.image.dicom]{DicomSlice}.  Thus, each slice contains a single \lstinline{DicomHeader} and 
 \lstinline{DicomPixelBuffer}.  These can be obtained using the methods: \lstinline{getHeader()} and
 \lstinline{getPixelBuffer()}.  
 
@@ -229,7 +229,7 @@ for extracting and converting between pixel types as the \lstinline{DicomPixelBu
 
 An complete DICOM acquisition typically consists of multiple slices forming a 3D image stack,
 and potentially contains multiple 3D stacks to form a dynamic 3D+time image.  The collection
-of \lstinline{DicomSlice}s are thus assembled into a \javaclass[maspack.dicom]{DicomImage}, 
+of \lstinline{DicomSlice}s are thus assembled into a \javaclass[maspack.image.dicom]{DicomImage}, 
 which keeps track of the spatial and temporal positions.
 
 The \lstinline{DicomImage} is the main object to query for pixels in 3D(+time).  To access pixels,
@@ -257,7 +257,7 @@ The \lstinline{DicomImage} also contains spatial transform information for conve
 
 \section{Loading a \texttt{DicomImage} \label{sec:dicom:loading}}
 
-DICOM files and folders are read using the \javaclass[maspack.dicom]{DicomReader} class.  The 
+DICOM files and folders are read using the \javaclass[maspack.image.dicom]{DicomReader} class.  The 
 reader populates a supplied \lstinline{DicomImage} with slices, forming the full 3D(+time)
 image. The basic pattern is as follows:
 \begin{lstlisting}[]
@@ -486,7 +486,7 @@ import artisynth.core.renderables.DicomViewer;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
-import maspack.dicom.DicomImageDecoderImageMagick;
+import maspack.image.dicom.DicomImageDecoderImageMagick;
 import maspack.fileutil.FileManager;
 
 /**

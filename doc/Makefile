@@ -28,7 +28,8 @@ javadocs: #make the javadocs
 	# clear any existing javadoc directory
 	rm -rf javadocs
 	mkdir javadocs
-	javadoc -author -d javadocs -public -sourcepath $(ROOT_DIR)/src \
+	javadoc -classpath "$(ROOT_DIR)/classes:$(ROOT_DIR)/lib/*"\
+		-author -d javadocs -public -sourcepath $(ROOT_DIR)/src \
 		-windowtitle "Artisynth API documentation" \
 		-J-Xms500m -J-Xmx500m -encoding UTF-8 \
 		`$(FIND_PACKAGES) -d $(ROOT_DIR)/src | tr '\n' ' ' | tr '\r' ' '`

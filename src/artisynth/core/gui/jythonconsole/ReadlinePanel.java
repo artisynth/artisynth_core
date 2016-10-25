@@ -1,13 +1,38 @@
 package artisynth.core.gui.jythonconsole;
 
-import java.io.*;
-import javax.swing.*;
-import javax.swing.text.*;
-import java.util.*;
-import java.awt.event.*;
-import java.awt.*;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.HeadlessException;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PipedReader;
+import java.io.PipedWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
-import maspack.util.*;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JFrame;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultEditorKit;
+import javax.swing.text.TextAction;
+
+import maspack.util.InternalErrorException;
 
 public class ReadlinePanel extends JTextArea {
    private static final long serialVersionUID = 255772702202415635L;
@@ -110,7 +135,43 @@ public class ReadlinePanel extends JTextArea {
       initializeFont();
       addHistory ("");
       addComponentListener (new MyComponentListener());
+      addPopupMenu();
       //initializeNewLine();
+   }
+   
+   private void addPopupMenu() {
+      
+      JPopupMenu menu = new JPopupMenu();
+      
+      Action copy = new DefaultEditorKit.CopyAction();
+      copy.putValue(Action.NAME, "Copy");
+      menu.add( copy );
+
+      /**
+       * Insert clipboard text into caret position
+       */
+      Action n = new TextAction("Paste") {
+         private static final long serialVersionUID = 12452542145L;
+
+         @Override
+         public void actionPerformed (ActionEvent e) {
+            try {
+               String data = (String) Toolkit.getDefaultToolkit().
+                  getSystemClipboard().getData(DataFlavor.stringFlavor);
+               adjustCaretIfNecessary ();
+               doInsert (data, getCaretPosition());
+               
+            }
+            catch (HeadlessException | UnsupportedFlavorException
+            | IOException e1) {
+               e1.printStackTrace();
+            } 
+            
+         }
+      };
+      menu.add (n);
+
+      setComponentPopupMenu( menu );
    }
 
    public void setRows (int nrows) {

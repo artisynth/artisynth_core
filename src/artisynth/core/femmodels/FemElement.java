@@ -97,11 +97,13 @@ public abstract class FemElement extends RenderableComponentBase
    }
 
    public void updateNodeMasses (double elementMass) {
-      double perNodeMass = elementMass / numNodes();
+      // double perNodeMass = elementMass / numNodes();
       FemNode[] nodes = getNodes();
       for (int i = 0; i < nodes.length; i++) {
          if (!nodes[i].isMassExplicit()) {
-            nodes[i].addMass (perNodeMass);
+            // nodes[i].addMass (perNodeMass);
+            // signal invalid, since mass is now computed in FemNode.getMass()
+            nodes[i].invalidateMassIfNecessary (); 
          }
       }
    }

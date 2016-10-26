@@ -679,7 +679,8 @@ public abstract class FemElement3d extends FemElement
          for (int j = 0; j < nodes.length; j++) {
             nodes[i].deregisterNodeNeighbor(nodes[j]);
          }
-         nodes[i].addMass(-massPerNode);
+         // nodes[i].addMass(-massPerNode);
+         nodes[i].invalidateMassIfNecessary ();  // signal dirty
          nodes[i].removeElementDependency(this);
       }
 

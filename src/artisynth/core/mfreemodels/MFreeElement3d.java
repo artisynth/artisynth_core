@@ -434,7 +434,8 @@ public class MFreeElement3d extends FemElement implements Boundable {
          for (int j = 0; j < nodes.length; j++) {
             nodes[i].deregisterNodeNeighbor(nodes[j]);
          }
-         nodes[i].addMass(-massPerNode);
+         // nodes[i].addMass(-massPerNode);
+         nodes[i].invalidateMassIfNecessary();
          nodes[i].removeElementDependency(this);
       }
       super.disconnectFromHierarchy();

@@ -52,11 +52,13 @@ public abstract class FemNode extends Particle {
    }
 
    public void clearMass() {
-      myMass = 0;
-      myMassValidP = false;
+      if (!myMassExplicitP) {
+         myMass = 0;
+         myMassValidP = false;
+      }
    }
    
-   protected void invalidateMassIfNecessary() {
+   public void invalidateMassIfNecessary() {
       if (!myMassExplicitP) {
          myMassValidP = false;
       }
@@ -77,7 +79,7 @@ public abstract class FemNode extends Particle {
    public void addMass (double m) {
       myMass += m;
       // myEffectiveMass += m;
-      myMassValidP = true;
+      myMassValidP = true; // assume we are building it up in a valid way
    }
    
    @Override

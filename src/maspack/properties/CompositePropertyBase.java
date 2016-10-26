@@ -3,7 +3,6 @@ package maspack.properties;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import maspack.image.dicom.DicomPixelInterpolator;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -36,7 +35,7 @@ public class CompositePropertyBase implements CompositeProperty {
    }
 
    public static PropertyList myProps = new PropertyList(
-      DicomPixelInterpolator.class);
+      CompositePropertyBase.class);
 
    public Property getProperty(String name) {
       return PropertyList.getProperty(name, this);

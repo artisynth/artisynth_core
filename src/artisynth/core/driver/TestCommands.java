@@ -8,6 +8,7 @@
 package artisynth.core.driver;
 
 import java.io.*;
+import java.util.regex.Pattern;
 
 import maspack.matrix.*;
 import maspack.util.*;
@@ -25,24 +26,50 @@ public class TestCommands {
 
    Main myMain;
 
+   // any pattern matching zero or more "[" followed by size=[ x y ], followed by zero or more "]"
+   static Pattern sizeLine = Pattern.compile ("\\s*(\\[\\s*)*size=\\[\\s*[0-9]+\\s+[0-9]+\\s*\\]\\s*(\\]\\s*)*");
+   static Pattern locationLine = Pattern.compile ("\\s*(\\[\\s*)*location=\\[\\s*[0-9]+\\s+[0-9]+\\s*\\]\\s*(\\]\\s*)*");
+   
    // allows lines of the form "size=[ xxx yyy ]" to match regardless of the
    // numbers, because the UI can make control panel size hard to repeat
    // exactly
    private boolean isSizeLine (String line) {
-      ReaderTokenizer rtok =
-         new ReaderTokenizer (new StringReader (line));
-      try {
-         rtok.scanWord ("size");
-         rtok.scanToken ('=');
-         rtok.scanToken ('[');
-         rtok.scanNumber();
-         rtok.scanNumber();
-         rtok.scanToken (']');
-      }
-      catch (Exception e) {
-         return false;
-      }
-      return true;
+      //      ReaderTokenizer rtok =
+      //         new ReaderTokenizer (new StringReader (line));
+      //      try {
+      //         rtok.scanWord ("size");
+      //         rtok.scanToken ('=');
+      //         rtok.scanToken ('[');
+      //         rtok.scanNumber();
+      //         rtok.scanNumber();
+      //         rtok.scanToken (']');
+      //      }
+      //      catch (Exception e) {
+      //         return false;
+      //      }
+      //      return true; 
+      return sizeLine.matcher (line).matches ();
+   }
+   
+   // allows lines of the form "location=[ xxx yyy ]" to match regardless of the
+   // numbers, because the UI can make control panel location hard to repeat
+   // exactly
+   private boolean isLocationLine (String line) {
+      //      ReaderTokenizer rtok =
+      //         new ReaderTokenizer (new StringReader (line));
+      //      try {
+      //         rtok.scanWord ("location");
+      //         rtok.scanToken ('=');
+      //         rtok.scanToken ('[');
+      //         rtok.scanNumber();
+      //         rtok.scanNumber();
+      //         rtok.scanToken (']');
+      //      }
+      //      catch (Exception e) {
+      //         return false;
+      //      }
+      //      return true;
+      return locationLine.matcher (line).matches ();
    }
 
    private void closeQuietly(Reader reader) {
@@ -59,6 +86,9 @@ public class TestCommands {
          return true;
       }
       else if (isSizeLine (line0) && isSizeLine (line1)) {
+         return true;
+      } 
+      else if  (isLocationLine (line0) && isLocationLine (line1)) {
          return true;
       }
       else {

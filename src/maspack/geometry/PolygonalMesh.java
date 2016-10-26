@@ -3640,15 +3640,16 @@ public class PolygonalMesh extends MeshBase {
                }
                while (node != null && (!multiNormals || !vtx.isNormalBoundary(node.he)));
                
-               double n = nrm.norm();
-               if (n == 0) {
+               double n2 = nrm.normSquared();
+               if (n2 == 0) {
                   vtx.computeAreaWeightedNormal(nrm);
-                  n = nrm.norm();
                }
-               if (n > 0) {
-                  nrm.scale(1.0/n);
-               }
-               
+               nrm.normalize();
+               //               // XXX FAILS save/load test
+               //               double n = Math.sqrt(n2);
+               //               if (n > 0) {
+               //                  nrm.scale(1.0/n);
+               //               }
                idx++;
             }
          }
@@ -3659,14 +3660,16 @@ public class PolygonalMesh extends MeshBase {
             else {
                Vector3d nrm = normals.get(idx++);
                vtx.computeAngleWeightedNormal (nrm);
-               double n = nrm.norm();
-               if (n == 0) {
+               double n2 = nrm.normSquared();
+               if (n2 == 0) {
                   vtx.computeAreaWeightedNormal(nrm);
-                  n = nrm.norm();
                }
-               if (n > 0) {
-                  nrm.scale(1.0/n);
-               }
+               nrm.normalize();
+               //               // XXX FAILS save/load test
+               //               double n = Math.sqrt(n2);
+               //               if (n > 0) {
+               //                  nrm.scale(1.0/n);
+               //               }
             }
          }
       }

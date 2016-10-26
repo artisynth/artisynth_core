@@ -6,7 +6,8 @@ def testSaveLoadFull (modelName, sec, fmt, tsim, hsim) :
         return
     delay (sec)
     tester = TestCommands(main)
-    errorMsg = tester.testSaveAndLoad ("test", fmt, tsim, hsim)
+    basename = main.getRootModel().getName()
+    errorMsg = tester.testSaveAndLoad (basename, fmt, tsim, hsim)
     if errorMsg != None:
         print 'Error'
         print errorMsg

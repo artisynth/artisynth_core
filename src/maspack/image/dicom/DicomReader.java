@@ -320,27 +320,30 @@ public class DicomReader {
 
       ArrayList<File> out = new ArrayList<File>();
 
-      File[] subFiles = root.listFiles();
-      for (File sf : subFiles) {
-         if (recursive && sf.isDirectory()) {
-            out.addAll(getAllFiles(sf, filePattern, recursive));
-         }
-         else if (sf.isFile()) {
-            // check that it passes the supplied pattern
-            if (filePattern != null) {
-               // check unix and windows file patterns
-               if (filePattern.matcher(sf.getAbsolutePath().replace('\\', '/')).matches()) {
-                  out.add(sf);
-               } else if (filePattern.matcher(sf.getAbsolutePath().replace('/', '\\')).matches()) {
+      if (root.isDirectory()) {
+         File[] subFiles = root.listFiles();
+         for (File sf : subFiles) {
+            if (recursive && sf.isDirectory()) {
+               out.addAll(getAllFiles(sf, filePattern, recursive));
+            }
+            else if (sf.isFile()) {
+               // check that it passes the supplied pattern
+               if (filePattern != null) {
+                  // check unix and windows file patterns
+                  if (filePattern.matcher(sf.getAbsolutePath().replace('\\', '/')).matches()) {
+                     out.add(sf);
+                  } else if (filePattern.matcher(sf.getAbsolutePath().replace('/', '\\')).matches()) {
+                     out.add(sf);
+                  }
+               } else {
+                  // no file pattern, accept everything
                   out.add(sf);
                }
-            } else {
-               // no file pattern, accept everything
-               out.add(sf);
             }
          }
+      } else {
+         out.add(root);
       }
-
       return out;
 
    }
@@ -424,6 +427,7 @@ public class DicomReader {
             elem = readImplicitElement(tagId, in);
          }
          header.addInfo(tagId, elem);
+         System.out.println(tagId + ": " + elem.toString());
 
          // Find transfer syntax
          if (tagId == DicomTag.TRANSFER_SYNTAX_UID) {
@@ -613,8 +617,7 @@ public class DicomReader {
       // for all other items, read length appropriately
       if (explicit) {
          length = in.readUnsignedShort();
-      }
-      else {
+      }  else {
          length = in.readInt();
       }
 
@@ -636,12 +639,15 @@ public class DicomReader {
          }
          case AS: {
             // Age string
+            if (length <= 4) {
+               length = 4;
+            }
             String str = readString(in, length);
             return new DicomElement(tagId, VR.AS, str);
          }
          case AT: {
             // Attribute tag
-            int nTags = length / 2; // multiplicity
+            int nTags = length / 4; // multiplicity
             int[] tags = new int[nTags];
             for (int i = 0; i < nTags; i++) {
                short t1 = in.readShort();
@@ -963,13 +969,15 @@ public class DicomReader {
    // remove periods if exist
    private String readDateString(BinaryInputStream in, int length)
       throws IOException {
-
+      
       StringBuilder out = new StringBuilder();
 
       byte[] vals = new byte[length];
       in.read(vals);
 
-      if (length == 8) {
+      if (length == 0) {
+         return ""; // empty date string
+      } else if (length == 8) {
          for (int i = 0; i < 8; i++) {
             out.append((char)vals[i]);
          }

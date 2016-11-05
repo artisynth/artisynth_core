@@ -128,10 +128,7 @@ public class DicomHeader {
          return null;
       }
 
-      if (elem.value instanceof String) {
-         return (String)(elem.value);
-      } 
-      return elem.value.toString();
+      return elem.getStringValue();
 
    }
 
@@ -147,30 +144,7 @@ public class DicomHeader {
       if (elem == null) {
          return defaultValue;
       }
-
-      switch (elem.vr) {
-         case DS:
-         case IS: {
-            String is = (String)elem.value;
-            return DicomElement.parseIntString(is);
-         }
-         case SL: 
-         case UL: {
-            int[] vals = (int[])elem.value;
-            return vals[0];
-         }
-         case SS:
-         {
-            short[] vals = (short[])elem.value;
-            return vals[0];
-         }
-         case US: {
-            short[] vals = (short[])elem.value;
-            return vals[0] & 0xFFFF;
-         }
-         default:
-            return defaultValue;
-      }
+      return elem.getIntValue();
    }
 
    /**
@@ -186,24 +160,7 @@ public class DicomHeader {
          return defaultValue;
       }
 
-      switch (elem.vr) {
-         case DS: {
-            String ds = (String)elem.value;
-            return DicomElement.parseDecimalString(ds);
-         }
-         case FL:
-         {
-            float[] f =  (float[])elem.value;
-            return f[0];
-         }
-         case FD:
-         {
-            double[] d =  (double[])elem.value;
-            return d[0];
-         }
-         default:
-            return defaultValue;
-      }
+      return elem.getDecimalValue();
    }
 
    /**
@@ -216,74 +173,16 @@ public class DicomHeader {
       if (elem == null) {
          return null;
       }
-
-      switch (elem.vr) {
-         case DS: 
-         case IS: {
-            String ds = (String)elem.value;
-            String[] svals = ds.split("\\\\");
-            VectorNd out = new VectorNd(svals.length);
-            for (int i=0; i<svals.length; i++) {
-               out.set(i, Double.parseDouble(svals[i]));
-            }
-            return out;
-         }
-         case SL: {
-            int[] vals = (int[])elem.value;
-            VectorNd out = new VectorNd(vals.length);
-            for (int i=0; i<vals.length; i++) {
-               out.set(i, vals[i]);
-            }
-            return out;
-         }
-         case UL: {
-            int[] vals = (int[])elem.value;
-            VectorNd out = new VectorNd(vals.length);
-            for (int i=0; i<vals.length; i++) {
-               out.set(i, vals[i] & 0xFFFFFFFFl);
-            }
-            return out;
-         }
-         case SS:
-         {
-            short[] vals = (short[])elem.value;
-            VectorNd out = new VectorNd(vals.length);
-            for (int i=0; i<vals.length; i++) {
-               out.set(i, vals[i]);
-            }
-            return out;
-         }
-         case US: {
-            short[] vals = (short[])elem.value;
-            VectorNd out = new VectorNd(vals.length);
-            for (int i=0; i<vals.length; i++) {
-               out.set(i, vals[i] & 0xFFFF);
-            }
-            return out;
-         }
-         case FL:
-         {
-            float[] vals =  (float[])elem.value;
-            VectorNd out = new VectorNd(vals.length);
-            for (int i=0; i<vals.length; i++) {
-               out.set(i, vals[i]);
-            }
-            return out;
-         }
-         case FD:
-         {
-            double[] vals =  (double[])elem.value;
-            VectorNd out = new VectorNd(vals.length);
-            for (int i=0; i<vals.length; i++) {
-               out.set(i, vals[i]);
-            }
-            return out;
-         }
-         default:
-            break;
-      }
       
-      return null;
+      return elem.getVectorValue();
+   }
+   
+   public DicomElement[] getSequence(int tagId) {
+      DicomElement elem = headerMap.get(tagId);
+      if (elem == null) {
+         return null;
+      }
+      return elem.getSequenceValue();
    }
    
    /**
@@ -297,37 +196,7 @@ public class DicomHeader {
          return null;
       }
       
-      switch(elem.vr) {
-         case AE:
-            break;
-         case AS:
-            break;
-         case CS:
-            break;
-         case DA:
-            break;
-         case DT:
-            break;
-         case LT:
-         case ST:
-         case UT:
-            return new String[]{(String)elem.value};
-         case LO: 
-         case PN:
-         case SH: {
-            String str = ((String)elem.value).trim();
-            return str.split("\\\\");
-         }
-         case TM:
-            break;
-         case UI:
-            break;
-         default:
-            break;
-         
-      }
-    
-      return null;
+      return elem.getMultiStringValue();
    }
    
    /**
@@ -341,43 +210,7 @@ public class DicomHeader {
          return null;
       }
 
-      switch (elem.vr) {
-         case IS: 
-         case DS: {
-            String is = (String)elem.value;
-            String[] svals = is.split("\\\\");
-            int[] ivals = new int[svals.length];
-            for (int i=0; i<svals.length; i++) {
-               ivals[i] = Integer.parseInt(svals[i]);
-            }
-            return ivals;
-         }
-         case SL: 
-         case UL: {
-            return (int[])elem.value;
-         }
-         case SS:
-         {
-            short[] vals = (short[])elem.value;
-            int[] ivals = new int[vals.length];
-            for (int i=0; i<vals.length; i++) {
-               ivals[i] = vals[i];
-            }
-            return ivals;
-         }
-         case US: {
-            short[] vals = (short[])elem.value;
-            int[] ivals = new int[vals.length];
-            for (int i=0; i<vals.length; i++) {
-               ivals[i] = vals[i] & 0xFFFF;
-            }
-            return ivals;
-         }
-         default:
-            break;
-      }
-      
-      return null;
+      return elem.getMultiIntValue();
    }
    
    /**
@@ -391,27 +224,7 @@ public class DicomHeader {
          return null;
       }
 
-      switch (elem.vr) {
-         case DS: {
-            return DicomElement.parseMultiDecimalValue((String)elem.value);
-         }
-         case FL:
-         {
-            float[] f =  (float[])elem.value;
-            double[] dvals = new double[f.length];
-            for (int i=0; i<f.length; i++) {
-               dvals[i] = f[i];
-            }
-            return dvals;
-         }
-         case FD:
-         {
-            return (double[])elem.value;
-         }
-         default:
-      }
-      
-      return null;
+      return elem.getMultiDecimalValue();
    }
    
    /**
@@ -425,19 +238,7 @@ public class DicomHeader {
          return null;
       }
       
-      switch(elem.vr) {
-         case DT: {
-            return DicomElement.parseDateTime((String)elem.value);
-         }
-         case DA: {
-            return DicomElement.parseDate((String)elem.value);
-         }
-         case TM: {
-            return DicomElement.parseTime((String)elem.value);
-         }
-         default:
-            return null;
-      }
+      return elem.getDateTime();
       
    }
 

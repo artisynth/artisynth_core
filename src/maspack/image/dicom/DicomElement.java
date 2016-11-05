@@ -712,4 +712,273 @@ public class DicomElement {
       return ivals;
    }
    
+   public double getDecimalValue() {
+      switch (vr) {
+         case DS: {
+            String ds = (String)value;
+            return DicomElement.parseDecimalString(ds);
+         }
+         case FL:
+         {
+            float[] f =  (float[])value;
+            return f[0];
+         }
+         case FD:
+         {
+            double[] d =  (double[])value;
+            return d[0];
+         }
+         default:
+      }
+      return Double.NaN;
+   }
+   
+   public VectorNd getVectorValue() {
+      switch (vr) {
+         case DS: 
+         case IS: {
+            String ds = (String)value;
+            String[] svals = ds.split("\\\\");
+            VectorNd out = new VectorNd(svals.length);
+            for (int i=0; i<svals.length; i++) {
+               out.set(i, Double.parseDouble(svals[i]));
+            }
+            return out;
+         }
+         case SL: {
+            int[] vals = (int[])value;
+            VectorNd out = new VectorNd(vals.length);
+            for (int i=0; i<vals.length; i++) {
+               out.set(i, vals[i]);
+            }
+            return out;
+         }
+         case UL: {
+            int[] vals = (int[])value;
+            VectorNd out = new VectorNd(vals.length);
+            for (int i=0; i<vals.length; i++) {
+               out.set(i, vals[i] & 0xFFFFFFFFl);
+            }
+            return out;
+         }
+         case SS:
+         {
+            short[] vals = (short[])value;
+            VectorNd out = new VectorNd(vals.length);
+            for (int i=0; i<vals.length; i++) {
+               out.set(i, vals[i]);
+            }
+            return out;
+         }
+         case US: {
+            short[] vals = (short[])value;
+            VectorNd out = new VectorNd(vals.length);
+            for (int i=0; i<vals.length; i++) {
+               out.set(i, vals[i] & 0xFFFF);
+            }
+            return out;
+         }
+         case FL:
+         {
+            float[] vals =  (float[])value;
+            VectorNd out = new VectorNd(vals.length);
+            for (int i=0; i<vals.length; i++) {
+               out.set(i, vals[i]);
+            }
+            return out;
+         }
+         case FD:
+         {
+            double[] vals =  (double[])value;
+            VectorNd out = new VectorNd(vals.length);
+            for (int i=0; i<vals.length; i++) {
+               out.set(i, vals[i]);
+            }
+            return out;
+         }
+         default:
+            break;
+      }
+      
+      return null;
+   }
+   
+   public String[] getMultiStringValue() {
+      switch(vr) {
+         case AE:
+            break;
+         case AS:
+            break;
+         case CS:
+            break;
+         case DA:
+            break;
+         case DT:
+            break;
+         case LT:
+         case ST:
+         case UT:
+            return new String[]{(String)value};
+         case LO: 
+         case PN:
+         case SH: {
+            String str = ((String)value).trim();
+            return str.split("\\\\");
+         }
+         case TM:
+            break;
+         case UI:
+            break;
+         default:
+            break;
+         
+      }
+    
+      return null;
+   }
+   
+   public DicomElement[] getSequenceItemValue() {
+      if (vr == VR.DL) {
+         return (DicomElement[])(value);
+      }
+      return null;
+   }
+   
+   public DicomElement[] getSequenceValue() {
+      if (vr == VR.SQ) {
+         return (DicomElement[])(value);
+      }
+      return null;
+   }
+   
+   public DicomDateTime getDateTime() {
+      switch(vr) {
+         case DT: {
+            return DicomElement.parseDateTime((String)value);
+         }
+         case DA: {
+            return DicomElement.parseDate((String)value);
+         }
+         case TM: {
+            return DicomElement.parseTime((String)value);
+         }
+         default:
+            return null;
+      }
+   }
+   
+   /**
+    * Determines the decimal array value of the header element (if represents valid decimal array)
+    * @return the value of the header element if exists and is valid, null otherwise
+    */
+   public double[] getMultiDecimalValue() {
+     
+      switch (vr) {
+         case DS: {
+            return DicomElement.parseMultiDecimalValue((String)value);
+         }
+         case FL:
+         {
+            float[] f =  (float[])value;
+            double[] dvals = new double[f.length];
+            for (int i=0; i<f.length; i++) {
+               dvals[i] = f[i];
+            }
+            return dvals;
+         }
+         case FD:
+         {
+            return (double[])value;
+         }
+         default:
+      }
+      
+      return null;
+   }
+   
+   /**
+    * Determines the integer array value of the element (if represents valid integer array)
+    * @return the value of the header element if exists and is valid, null otherwise
+    */
+   public int[] getMultiIntValue() {
+      switch (vr) {
+         case IS: 
+         case DS: {
+            String is = (String)value;
+            String[] svals = is.split("\\\\");
+            int[] ivals = new int[svals.length];
+            for (int i=0; i<svals.length; i++) {
+               ivals[i] = Integer.parseInt(svals[i]);
+            }
+            return ivals;
+         }
+         case SL: 
+         case UL: {
+            return (int[])value;
+         }
+         case SS:
+         {
+            short[] vals = (short[])value;
+            int[] ivals = new int[vals.length];
+            for (int i=0; i<vals.length; i++) {
+               ivals[i] = vals[i];
+            }
+            return ivals;
+         }
+         case US: {
+            short[] vals = (short[])value;
+            int[] ivals = new int[vals.length];
+            for (int i=0; i<vals.length; i++) {
+               ivals[i] = vals[i] & 0xFFFF;
+            }
+            return ivals;
+         }
+         default:
+            break;
+      }
+      
+      return null;
+   }
+   
+   /**
+    * Determines the string representation of the header element
+    * @return string representation
+    */
+   public String getStringValue() {
+      if (value instanceof String) {
+         return (String)(value);
+      } 
+      return value.toString();
+
+   }
+
+   /**
+    * Determines the integer value of the header element (if represents valid integer)
+    * @return the value of the header element if exists and is valid
+    */
+   public int getIntValue() {
+      switch (vr) {
+         case DS:
+         case IS: {
+            String is = (String)value;
+            return DicomElement.parseIntString(is);
+         }
+         case SL: 
+         case UL: {
+            int[] vals = (int[])value;
+            return vals[0];
+         }
+         case SS:
+         {
+            short[] vals = (short[])value;
+            return vals[0];
+         }
+         case US: {
+            short[] vals = (short[])value;
+            return vals[0] & 0xFFFF;
+         }
+         default:
+            return -1;
+      }
+   }
 }

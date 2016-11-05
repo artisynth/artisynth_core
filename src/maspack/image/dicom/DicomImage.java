@@ -652,7 +652,10 @@ public class DicomImage {
       if (nSlices > 0) {
          double zsize = slices[nSlices-1].info.imagePosition.p.distance(slices[0].info.imagePosition.p);
          pixelSpacingSlice = zsize/(nSlices-1);
-      }      
+      } 
+      if (pixelSpacingSlice == 0) {
+         pixelSpacingSlice = slices[0].info.pixelSpacingSlice;
+      }
       
       AffineTransform3d pixelTrans = new AffineTransform3d(trans);
       pixelTrans.applyScaling(pixelSpacingRows, pixelSpacingCols, pixelSpacingSlice);

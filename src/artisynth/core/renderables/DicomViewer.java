@@ -42,6 +42,10 @@ public class DicomViewer extends RenderableComponentBase {
 
    DicomImage myImage;
    DicomTextureContent texture;
+   
+   static int XY_IDX = 0;
+   static int XZ_IDX = 1;
+   static int YZ_IDX = 2;
 
    public static PropertyList myProps = new PropertyList(
       DicomViewer.class, RenderableComponentBase.class);
@@ -600,7 +604,7 @@ public class DicomViewer extends RenderableComponentBase {
     * @return whether or not to draw the YZ plane (at the current 'x' coordinate)
     */
    public boolean getDrawYZ() {
-      return drawSlice[0];
+      return drawSlice[YZ_IDX];
    }
    
    /**
@@ -608,14 +612,14 @@ public class DicomViewer extends RenderableComponentBase {
     * @param set
     */
    public void setDrawYZ(boolean set) {
-      drawSlice[0] = set;
+      drawSlice[YZ_IDX] = set;
    }
    
    /**
     * @return whether or not to draw the XZ plane (at the current 'y' coordinate)
     */
    public boolean getDrawXZ() {
-      return drawSlice[1];
+      return drawSlice[XZ_IDX];
    }
 
    /**
@@ -623,14 +627,14 @@ public class DicomViewer extends RenderableComponentBase {
     * @param set
     */
    public void setDrawXZ(boolean set) {
-      drawSlice[1] = set;
+      drawSlice[XZ_IDX] = set;
    }
    
    /**
     * @return whether or not to draw the XY plane (at the current 'z' coordinate)
     */
    public boolean getDrawXY() {
-      return drawSlice[2];
+      return drawSlice[XY_IDX];
    }
    
    /**
@@ -638,7 +642,7 @@ public class DicomViewer extends RenderableComponentBase {
     * @param set
     */
    public void setDrawXY(boolean set) {
-      drawSlice[2] = set;
+      drawSlice[XY_IDX] = set;
    }
    
    /**

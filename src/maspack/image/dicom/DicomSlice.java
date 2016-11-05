@@ -8,7 +8,9 @@
 package maspack.image.dicom;
 
 import java.nio.ByteBuffer;
+import java.util.Map.Entry;
 
+import maspack.image.dicom.DicomElement.VR;
 import maspack.image.dicom.DicomPixelBuffer.PixelType;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -54,6 +56,46 @@ public class DicomSlice {
    private DicomHeader header;
    DicomPixelBuffer pixelBuff;
    
+   private static DicomElement findElement(DicomElement[] elems, int tagId) {
+      for (DicomElement elem : elems) {
+         if (elem.getTag() == tagId) {
+            return elem;
+         } else if (elem.getVR() == VR.SQ) {
+            elem = findElement(elem.getSequenceValue(), tagId);
+            if (elem != null) {
+               return elem;
+            }
+         } else if (elem.getVR() == VR.DL) {
+            elem = findElement(elem.getSequenceItemValue(), tagId);
+            if (elem != null) {
+               return elem;
+            }
+         }
+      }
+      return null;
+   }
+   
+   private static DicomElement findElement(DicomHeader header, int tagId) { 
+         // search through all subsequences?
+         for (Entry<Integer,DicomElement> entry : header.headerMap.entrySet()) {
+            DicomElement elem = entry.getValue();
+            if (elem.getTag() == tagId) {
+               return elem;
+            } else if (elem.getVR() == VR.SQ) {
+               elem = findElement(elem.getSequenceValue(), tagId);
+               if (elem != null) {
+                  return elem;
+               }
+            } else if (elem.getVR() == VR.DL) {
+               elem = findElement(elem.getSequenceItemValue(), tagId);
+               if (elem != null) {
+                  return elem;
+               }
+            }
+         }
+      return null;
+   }
+   
    /**
     * Construct a DICOM slice with a given title, DICOM header information, and image pixels
     * @param title
@@ -68,7 +110,19 @@ public class DicomSlice {
       this.info.cols = header.getIntValue(DicomTag.COLUMNS, 1);
       this.info.rows = header.getIntValue(DicomTag.ROWS, 1);
       VectorNd imagePosition = header.getVectorValue(DicomTag.IMAGE_POSITION_PATIENT);
+      if (imagePosition == null) {
+         DicomElement pos = findElement(header, DicomTag.IMAGE_POSITION_PATIENT);
+         if (pos != null) {
+            imagePosition = pos.getVectorValue();
+         }
+      }
       VectorNd imageOrientation = header.getVectorValue(DicomTag.IMAGE_ORIENTATION_PATIENT);
+      if (imagePosition == null) {
+         DicomElement orient = findElement(header, DicomTag.IMAGE_ORIENTATION_PATIENT);
+         if (orient != null) {
+            imageOrientation = orient.getVectorValue();
+         }
+      }
       
       this.info.imagePosition = new RigidTransform3d();
       if (imagePosition != null) {
@@ -84,17 +138,33 @@ public class DicomSlice {
          this.info.imagePosition.R.setColumn(2, z);
       }
       VectorNd pixelSpacing = header.getVectorValue(DicomTag.PIXEL_SPACING);
+      if (pixelSpacing == null) {
+         DicomElement e = findElement(header, DicomTag.PIXEL_SPACING);
+         if (e != null) {
+            pixelSpacing = e.getVectorValue();
+         } else {
+            pixelSpacing = new VectorNd(new double[]{1,1});
+         }
+      }
       this.info.pixelSpacingRows = pixelSpacing.get(0);
       this.info.pixelSpacingCols = pixelSpacing.get(1);
-      this.info.pixelSpacingSlice = header.getDecimalValue(DicomTag.SLICE_THICKNESS, 1);
+      double pixelSpacingSlice = header.getDecimalValue(DicomTag.SLICE_THICKNESS, -1);
+      if (pixelSpacingSlice <= 0) {
+         // try to find
+         DicomElement e = findElement(header, DicomTag.SLICE_THICKNESS);
+         if (e != null) {
+            pixelSpacingSlice = e.getDecimalValue();
+         } else {
+            pixelSpacingSlice = 1.0;
+         }
+      }
+      this.info.pixelSpacingSlice = pixelSpacingSlice;
       
       this.info.seriesNumber = header.getIntValue(DicomTag.SERIES_NUMBER, 1);
       this.info.seriesTime = header.getDateTime(DicomTag.SERIES_TIME);
       this.info.imageNumber = header.getIntValue(DicomTag.IMAGE_NUMBER, 1);
       this.info.imageTime = header.getDateTime(DicomTag.IMAGE_TIME);
       this.info.acquisitionNumber = header.getIntValue(DicomTag.AQUISITION_NUMBER, 0);
-      this.info.acquisitionTime = header.getDateTime(DicomTag.AQUISITION_TIME);
-      
       this.info.acquisitionTime = header.getDateTime(DicomTag.AQUISITION_TIME);
       this.info.temporalPosition = header.getIntValue(DicomTag.TEMPORAL_POSITON_IDENTIFIER, -1);
       

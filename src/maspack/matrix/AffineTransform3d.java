@@ -187,7 +187,7 @@ public class AffineTransform3d extends AffineTransform3dBase {
    /**
     * Scales the columns of A by the specified amounts. This is equivalent to
     * post-multiplying A by a diagonal matrix. Note that the resulting scaling
-    * effect with be in addition to any previous scaling effect.
+    * effect will be in addition to any previous scaling effect.
     * 
     * @param sx
     * x scale factor

@@ -58,11 +58,18 @@ ifeq ($(SYSTEM),Linux)
 	   # we save an extra load of a thread-enabled dll and are
 	   # hence less likely to encounter the error "dlopen: cannot
 	   # load any more object with static TLS".
+           #
+           # the option -Wl,--wrap=memcpy tells the linker to replace
+           # references to memcpy with wrap_memcpy, which is defined
+	   # wrap_memcpy.c and which explicitly calls in a earlier
+	   # version of memcpy that does not depend on glbic 2.14
+           #
 	   LDS_PARDISO_MKL = -L$(MKL_HOME)/compiler/lib/intel64 \
 	     -Wl,--start-group \
              $(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
-             $(MKL)/libmkl_core.a -Wl,--end-group -ldl -liomp5 -lpthread -lm
-	   CC_FLAGS = -m64 -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX 
+             $(MKL)/libmkl_core.a -Wl,--end-group -Wl,--wrap=memcpy \
+	     -ldl -liomp5 -lpthread -lm
+	   CC_FLAGS = -m64 -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX
 	else
 	   # 32 bit Linux is no longer supported, so this may not work
 	   NATIVE_DIR = Linux
@@ -70,16 +77,18 @@ ifeq ($(SYSTEM),Linux)
 	   MKL=$(MKL_HOME)/mkl/lib/ia32
 	   LDS_PARDISO_MKL = -Wl,--start-group \
              $(MKL)/libmkl_intel.a $(MKL)/libmkl_gnu_thread.a \
-             $(MKL)/libmkl_core.a -Wl,--end-group -fopenmp -lm
+             $(MKL)/libmkl_core.a -Wl,--end-group -Wl,--wrap=memcpy \
+             -fopenmp -lm
 	   CC_FLAGS = -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX 
 	endif
 	CC_INCS = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux \
 		-I$(MKL_HOME)/mkl/include -I.
+	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o wrap_memcpy.o
 	PARDISO_MKL_TARGET = libPardisoJNI.so.$(PARDISO_VERSION)
         # the use of rpath ensures that library dependencies can also be loaded
         # from lib/Linux or lib/Linux64; 
         # see https://github.com/bimargulies/jni-origin-testbed
-	LIB_FLAGS = -shared -Wl,-rpath='$$ORIGIN'
+	LIB_FLAGS = -shared -Wl,-rpath='$$ORIGIN' -static-libstdc++ -static-libgcc
 else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
         #
         # NOTE: THIS SECTION IS OBSOLETE since 2014, as Windows dll for
@@ -108,7 +117,7 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	        "$(MKL)"/mkl_core.lib \
 	        chkstk_64.obj \
                 -L$(LIB_TARGET_DIR) -liomp5md \
-                -Wl,--end-group 
+                -Wl,--end-group
 	else
 	   NATIVE_DIR = Windows
 	   LIB_TARGET_DIR = $(ROOT_DIR)/lib/Windows
@@ -128,6 +137,7 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_37
         endif
 	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32" -I.
+	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o
 	PARDISO_MKL_TARGET = PardisoJNI.$(PARDISO_VERSION).dll
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias
 else ifeq ($(SYSTEM),Darwin)
@@ -143,6 +153,7 @@ else ifeq ($(SYSTEM),Darwin)
 		$(MKL)/libmkl_core.a -liomp5 -lpthread     
 	CC_INCS = -I$(JAVA_INC) -I$(MKL_HOME)/mkl/include -I.
 	CC_FLAGS = -m64 -fno-strict-aliasing -fPIC -DDARWIN -fpermissive
+	PARDISO_MKL_OBJS = PardisoMklJNI.o pardisoMkl.o
 	PARDISO_MKL_TARGET = libPardisoJNI.$(PARDISO_VERSION).dylib
 	LIB_FLAGS = -bundle -framework JavaVM 
 endif
@@ -157,6 +168,11 @@ JNI_H_FILES = maspack_solvers_PardisoSolver.h
 
 maspack_solvers_PardisoSolver.h: ../PardisoSolver.java
 	$(JAVAH) $(JAVAHFLAGS) maspack.solvers.PardisoSolver
+
+# Used only on Linux systems. Allows us to use a version of memcpy
+# that does not depend on glibc 2.14
+wrap_memcpy.o: wrap_memcpy.c
+	$(C_COMP) $(C_FLAGS) -fPIC -c -o wrap_memcpy.o wrap_memcpy.c
 
 testUtils.o: testUtils.h testUtils.cc
 	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c -o testUtils.o testUtils.cc
@@ -178,9 +194,9 @@ pardisoMklTest: pardisoMkl.o pardisoMklTest.o pardisoMkl.h
 	$(CC_COMP) $(CC_FLAGS) -o pardisoMklTest pardisoMklTest.o pardisoMkl.o \
 		-L$(LIB_TARGET_DIR) $(LDS_PARDISO_MKL)
 
-$(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET): PardisoMklJNI.o pardisoMkl.o
+$(LIB_TARGET_DIR)/$(PARDISO_MKL_TARGET): $(PARDISO_MKL_OBJS) 
 	$(CC_COMP)  $(LIB_FLAGS) $(CC_FLAGS) -o $@ \
-		PardisoMklJNI.o pardisoMkl.o $(LDS_PARDISO_MKL) 
+	$(PARDISO_MKL_OBJS) $(LDS_PARDISO_MKL) 
 ifeq ($(SYSTEM),Darwin)
         # add to @loader_path to libiomp5 name so that we don't need to
         # set DYLD_LIBRARY_PATH in applications; see

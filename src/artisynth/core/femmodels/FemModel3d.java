@@ -126,6 +126,7 @@ public class FemModel3d extends FemModel
    
    private boolean myAbortOnInvertedElems = abortOnInvertedElems;
    private boolean myWarnOnInvertedElems = true;
+   protected boolean myCheckForInvertedElems = true;
    
    protected FunctionTimer timer = new FunctionTimer();
 
@@ -2774,7 +2775,7 @@ public class FemModel3d extends FemModel
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
          if (e.getComponent() == myElements || e.getComponent() == myNodes) {
             // XXX this invalidates the surface mesh even during scanning
-            // which we don't really want. Specifially, the postscan
+            // which we don't really want. Specifically, the postscan
             // for nodes and elements issue a change event from 
             // myComonents.scanEnd(). 
             if (myAutoGenerateSurface) {
@@ -2969,7 +2970,7 @@ public class FemModel3d extends FemModel
                   myMinDetJElement = e;
                }
             }
-            if (detJ <= 0) {
+            if (detJ <= 0 && myCheckForInvertedElems) {
                if (!e.materialsAreInvertible()) {
                   e.setInverted(true);
                   myNumInverted++;

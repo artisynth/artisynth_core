@@ -58,8 +58,8 @@ public class Frame extends DynamicComponentBase
    protected TargetActivity myTargetActivity = TargetActivity.Auto;
    protected Quaternion myQvel = new Quaternion();
 
-   Wrench myForce;
-   Wrench myExternalForce;
+   protected Wrench myForce;
+   protected Wrench myExternalForce;
    public RigidTransform3d myRenderFrame; // public for debugging
    double myAxisLength = 0;
    protected MatrixBlock mySolveBlock;

@@ -188,6 +188,11 @@ public class RigidBody extends Frame
       Matrix M, double[] a, double[] f, int idx) {
       SpatialInertia S = getEffectiveInertia();
 
+      return mulInverseEffectiveMass (getEffectiveInertia(), a, f, idx);
+   }
+   
+   public static int mulInverseEffectiveMass (
+      SpatialInertia S, double[] a, double[] f, int idx) {
       Twist tw = new Twist();
       Wrench wr = new Wrench();
       wr.f.x = f[idx];
@@ -203,24 +208,34 @@ public class RigidBody extends Frame
       a[idx++] = tw.w.x;
       a[idx++] = tw.w.y;
       a[idx++] = tw.w.z;
-      return idx;
+      return idx;     
    }
-
-   public int getEffectiveMassForces (VectorNd f, double t, int idx) {
-      myBodyVel.inverseTransform (myState.XFrameToWorld.R, myState.vel);
-      SpatialInertia S = getEffectiveInertia();
-      S.coriolisForce (myCoriolisForce, myBodyVel);
+   
+   public static int getEffectiveMassForces (
+      VectorNd f, double t, FrameState state, 
+      SpatialInertia effectiveInertia, int idx) {
+      
+      Wrench coriolisForce = new Wrench();
+      Twist bodyVel = new Twist();
+      bodyVel.inverseTransform (state.XFrameToWorld.R, state.vel);
+      SpatialInertia S = effectiveInertia;
+      S.coriolisForce (coriolisForce, bodyVel);
       if (dynamicVelInWorldCoords) {
-         myCoriolisForce.transform (myState.XFrameToWorld.R);
+         coriolisForce.transform (state.XFrameToWorld.R);
       }
       double[] buf = f.getBuffer();
-      buf[idx++] = -myCoriolisForce.f.x;
-      buf[idx++] = -myCoriolisForce.f.y;
-      buf[idx++] = -myCoriolisForce.f.z;
-      buf[idx++] = -myCoriolisForce.m.x;
-      buf[idx++] = -myCoriolisForce.m.y;
-      buf[idx++] = -myCoriolisForce.m.z;
-      return idx;
+      buf[idx++] = -coriolisForce.f.x;
+      buf[idx++] = -coriolisForce.f.y;
+      buf[idx++] = -coriolisForce.f.z;
+      buf[idx++] = -coriolisForce.m.x;
+      buf[idx++] = -coriolisForce.m.y;
+      buf[idx++] = -coriolisForce.m.z;
+      return idx;     
+   }
+   
+   public int getEffectiveMassForces (VectorNd f, double t, int idx) {
+      return getEffectiveMassForces (
+         f, t, myState, getEffectiveInertia(), idx);
    }
 
    public void resetEffectiveMass() {

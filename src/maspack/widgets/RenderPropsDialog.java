@@ -109,6 +109,7 @@ public class RenderPropsDialog extends PropertyDialog {
 
       setPanel (new RenderPropsPanel (EditingProperty.createProperties (
          renderCell, myHostList, /* isLive= */true)));
+      setScrollable(true);
       myTree = renderCell;
 
       //enableAutoRerendering (true);

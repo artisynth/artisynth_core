@@ -41,7 +41,12 @@ public class GLColorSelector extends GLSelector {
 
    @Override
    public void setupSelection (GL gl) {
+      
       super.setupSelection (gl);
+      if (myTotalMaxQ == 0) {
+         return;
+      }
+      
       myQueryBuffer = new int[fbo.getWidth ()*fbo.getHeight ()];
       myQueryCount = 0;
       myQueryMax = Math.min (myTotalMaxQ, MAX_COLOR_QUERIES);
@@ -107,6 +112,11 @@ public class GLColorSelector extends GLSelector {
    @Override
    public void processSelection (GL gl) {
 
+      if (myTotalMaxQ == 0) {
+         super.processSelection(gl);
+         return;
+      }
+      
       flushQueries (myGl);
 
       HitRecord[] hits = null;

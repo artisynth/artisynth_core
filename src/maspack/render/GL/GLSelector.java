@@ -156,6 +156,11 @@ public abstract class GLSelector extends GLResourceBase {
    }
 
    public void processSelection (GL gl) {
+      
+      if (myTotalMaxQ == 0) {
+         myViewer.getCanvas().repaint();
+         return;
+      }
 
       myViewer.setBackgroundColor(savedBackgroundColor[0],
          savedBackgroundColor[1], savedBackgroundColor[2], 

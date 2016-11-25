@@ -55,7 +55,9 @@ public class GLOcclusionSelector extends GLSelector {
       myGLQueryCount = 0;
       myGLQueryTotal = 0;
 
-      ((GL2GL3)myGl).glGenQueries (myGLQueries.length, myGLQueries, 0);
+      if (myTotalMaxQ > 0) {
+         ((GL2GL3)myGl).glGenQueries (myGLQueries.length, myGLQueries, 0);  
+      }
    }
 
    private void flushQueries(GL2GL3 gl) {
@@ -99,6 +101,11 @@ public class GLOcclusionSelector extends GLSelector {
 
    @Override
    public void processSelection (GL gl) {
+      
+      if (myTotalMaxQ == 0) {
+         super.processSelection(gl);
+         return;
+      }
       
       // finish remaining queries
       flushQueries ((GL2GL3)gl);

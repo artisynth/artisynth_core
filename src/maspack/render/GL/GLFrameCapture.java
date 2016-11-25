@@ -45,9 +45,19 @@ public class GLFrameCapture {
     * Don't allow two threads (or same thread twice) locking this object
     */
    public synchronized void lock() {
-      while (lock) {
+      int count = 0;
+      final int COUNT_LIMIT = 1000;
+      while (lock && count < COUNT_LIMIT) {
          // poll until free
+         // XXX sometimes doesn't seem to be unlocked?!?!
+         try {
+            Thread.sleep(10);
+         } catch (InterruptedException e) {}
+         ++count;
          Thread.yield();
+      }
+      if (count > COUNT_LIMIT) {
+         System.err.println("Frame capture lock timeout");
       }
       lock = true;
    }

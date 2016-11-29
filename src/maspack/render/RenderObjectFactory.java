@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import maspack.geometry.Face;
+import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
@@ -348,6 +349,11 @@ public class RenderObjectFactory {
       return spindle;
    }
    
+   public static RenderObject createOctohedralSphere(int divisions) {
+      PolygonalMesh sphere = MeshFactory.createOctahedralSphere(1, divisions);
+      return createFromMesh(sphere, false, false);
+   }
+   
    /**
     * Creates a unit sphere centered at the origin
     * @param nSlices angular resolution (longitude)
@@ -426,7 +432,7 @@ public class RenderObjectFactory {
     * @param z to include z?
     * @return Render object for rendering axes
     */
-   public RenderObject createAxes(boolean x, boolean y, boolean z) {
+   public static RenderObject createAxes(boolean x, boolean y, boolean z) {
       
       RenderObject axes = new RenderObject();
       

@@ -20,7 +20,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -48,6 +47,11 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MouseInputAdapter;
 import javax.swing.filechooser.FileFilter;
 
+import argparser.ArgParser;
+import argparser.BooleanHolder;
+import argparser.DoubleHolder;
+import argparser.IntHolder;
+import argparser.StringHolder;
 import maspack.geometry.Face;
 import maspack.geometry.LaplacianSmoother;
 import maspack.geometry.MeshBase;
@@ -70,13 +74,12 @@ import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
 import maspack.render.RenderListener;
 import maspack.render.RenderProps;
-import maspack.render.GL.GLGridPlane;
-import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLViewerFrame;
-import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
 import maspack.widgets.GridDisplay;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.MenuAdapter;
@@ -87,11 +90,6 @@ import maspack.widgets.ValueChangeListener;
 import maspack.widgets.ViewerKeyListener;
 import maspack.widgets.ViewerPopupManager;
 import maspack.widgets.ViewerToolBar;
-import argparser.ArgParser;
-import argparser.BooleanHolder;
-import argparser.DoubleHolder;
-import argparser.IntHolder;
-import argparser.StringHolder;
 
 public class MeshViewer extends GLViewerFrame
    implements ActionListener, HasProperties, RenderListener {

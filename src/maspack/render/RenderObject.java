@@ -1881,7 +1881,7 @@ public class RenderObject implements Versioned {
       return idx;
    }
    
-   public int createPointGroupInternal() {
+   private int createPointGroupInternal() {
       VertexIndexArray newPoints = new VertexIndexArray();
       points.add(newPoints);
       currentPointGroup = newPoints;

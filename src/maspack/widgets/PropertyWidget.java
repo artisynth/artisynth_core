@@ -501,6 +501,30 @@ public class PropertyWidget {
                vectorField.setFormat (info.getPrintFormat());
             }
             vectorField.setStretchable (true);
+         } else if (VectorBase.class.isAssignableFrom(type) && info.getDimension() == -1) {
+               VectorBase resultVec;
+               try {
+                  resultVec = (VectorBase)type.newInstance();
+               }
+               catch (Exception e) {
+                  throw new InternalErrorException (
+                     "Error creating no-args instance of " + type);
+               }
+               VariableVectorField vectorField = (VariableVectorField)widget;
+               VectorNd existingValue = vectorField.getVectorValue();
+               if (vectorField.getVectorSize() != resultVec.size()) {
+                 resultVec.setSize(vectorField.getVectorSize());
+               }
+               if (existingValue != null) {
+                  resultVec.set (existingValue);
+               }
+               vectorField.setResultHolder (resultVec);
+               vectorField.addValueChangeListener (new PropChangeListener (prop));
+               if (info.getPrintFormat() != null &&
+                  formatIsDefault (vectorField)) {
+                  vectorField.setFormat (info.getPrintFormat());
+               }
+               vectorField.setStretchable (true);
          }
          else if (SymmetricMatrix3d.class.isAssignableFrom (type)) {
             SymmetricMatrix3dField matrixField = (SymmetricMatrix3dField)widget;

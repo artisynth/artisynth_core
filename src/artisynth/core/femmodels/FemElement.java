@@ -96,22 +96,28 @@ public abstract class FemElement extends RenderableComponentBase
       }
    }
 
-   public void updateNodeMasses (double elementMass) {
-      // double perNodeMass = elementMass / numNodes();
+   // public void updateNodeMasses (double elementMass) {
+   //    // double perNodeMass = elementMass / numNodes();
+   //    FemNode[] nodes = getNodes();
+   //    for (int i = 0; i < nodes.length; i++) {
+   //       if (!nodes[i].isMassExplicit()) {
+   //          // nodes[i].addMass (perNodeMass);
+   //          // signal invalid, since mass is now computed in FemNode.getMass()
+   //          nodes[i].invalidateMassIfNecessary (); 
+   //       }
+   //    }
+   // }
+
+   void invalidateNodeMasses () {
       FemNode[] nodes = getNodes();
       for (int i = 0; i < nodes.length; i++) {
-         if (!nodes[i].isMassExplicit()) {
-            // nodes[i].addMass (perNodeMass);
-            // signal invalid, since mass is now computed in FemNode.getMass()
-            nodes[i].invalidateMassIfNecessary (); 
-         }
-      }
+         nodes[i].invalidateMassIfNecessary();
+      }      
    }
    
    protected void updateElementAndNodeMasses () {
-      double newMass = myDensity * getRestVolume();
-      updateNodeMasses (newMass - myMass);
-      myMass = newMass;
+      myMass = myDensity * getRestVolume();
+      invalidateNodeMasses();
    }
 
    static FemElement firstElement = null;
@@ -231,10 +237,11 @@ public abstract class FemElement extends RenderableComponentBase
    public void updateRestVolumeAndMass() {
       if (!myRestVolumeValidP) {
          double newVol = computeRestVolumes();
-         if (!myMassExplicitP) {
-            updateNodeMasses ((newVol*myDensity)-myMass);
-            myMass = newVol*myDensity;
-         }
+         invalidateNodeMasses();
+//         if (!myMassExplicitP) {
+//            updateNodeMasses ((newVol*myDensity)-myMass);
+//            myMass = newVol*myDensity;
+//         }
          myRestVolume = newVol;
       }
    }

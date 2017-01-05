@@ -674,7 +674,7 @@ public abstract class FemElement3d extends FemElement
       myNbrs = null;
 
       FemNode3d[] nodes = getNodes();
-      double massPerNode = getMass()/numNodes();
+      //double massPerNode = getMass()/numNodes();
       for (int i = 0; i < nodes.length; i++) {
          for (int j = 0; j < nodes.length; j++) {
             nodes[i].deregisterNodeNeighbor(nodes[j]);

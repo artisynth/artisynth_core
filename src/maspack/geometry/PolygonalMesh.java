@@ -19,6 +19,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -225,6 +226,18 @@ public class PolygonalMesh extends MeshBase {
     * @return true if this mesh is manifold
     */
    public boolean isManifold() {
+      return isManifold (/*debug=*/false);
+      }
+
+   /**
+    * Returns true if this mesh is manifold. A mesh is manifold if each edge is
+    * adjacent to at most two faces; i.e., there are no redundant half-edges,
+    * and all the faces connected to each vertex form a fan.
+    * 
+    * @param debug if <code>true</code> and mesh is not manifold, prints reason
+    * @return true if this mesh is manifold
+    */
+   public boolean isManifold (boolean debug) {
       if (cachedManifoldValid) {
          return cachedManifold;
       }
@@ -245,6 +258,11 @@ public class PolygonalMesh extends MeshBase {
             while (it.hasNext()) {
                HalfEdge he = it.next();
                if (adjacentVertices.contains(he.tail)) {
+                  if (debug) {
+                     System.out.println (
+                        "Multiple edges between "+he.head.getIndex()+
+                        " and "+he.tail.getIndex());
+                  }
                   // there is more than one edge involving this tail
                   return false;
                }
@@ -264,7 +282,9 @@ public class PolygonalMesh extends MeshBase {
             }
             if (cnt != nume) {
                // some half edges can't be reached by traverse, so not a fan
-               // System.out.println ("vtx " + vtx.getIndex() + " "+nume+" "+cnt);
+               if (debug) {
+                  System.out.println ("vtx " + vtx.getIndex() + " "+nume+" "+cnt);
+               }
                return false;
             }
          }
@@ -273,7 +293,7 @@ public class PolygonalMesh extends MeshBase {
       cachedManifold = true;
       return true;
    }
-   
+
    /**
     */
    public ArrayList<Vertex3d> findNonManifoldVertices() {
@@ -464,7 +484,6 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
-
    /**
     * Reads the contents of this mesh from a Reader. The input is assumed to be
     * supplied in Alias Wavefront obj format, as described for the method
@@ -475,6 +494,24 @@ public class PolygonalMesh extends MeshBase {
     */
    public void read (Reader reader) throws IOException {
       read (reader, false);
+   }
+
+   /**
+    * Reads the contents of this mesh from a string. The string input is
+    * assumed to be supplied in Alias Wavefront obj format, as described for
+    * the method {@link #write(PrintWriter,NumberFormat,boolean)}.
+    * 
+    * @param string
+    * supplied input description of the mesh
+    */
+   public void read (String input)  {
+      try {
+         read (new StringReader (input), false);
+      }
+      catch (Exception e) {
+         throw new IllegalArgumentException (
+            "Illegal mesh format: "+e.getMessage());
+      }
    }
 
    /**
@@ -1562,6 +1599,33 @@ public class PolygonalMesh extends MeshBase {
       PrintWriter pw =
          new PrintWriter (new BufferedWriter (new FileWriter (file)));
       write (pw, fmt, /*zeroIndexed=*/false, /*facesClockwise=*/false);
+   }
+
+   /**
+    * Writes this mesh to a File, using an Alias Wavefront "obj" file
+    * format. Behaves the same as {@link
+    * #write(java.io.PrintWriter,maspack.util.NumberFormat,boolean,boolean)}
+    * with <code>zeroIndexed</code> and <code>facesClockwise</code> set to
+    * false.
+    * 
+    * @param file
+    * File to write this mesh to
+    * @param fmtStr
+    * format string for writing the vertex coordinates. If <code>null</code>,
+    * a format of <code>"%.8g"</code> is assumed.
+    * @param zeroIndexed
+    * if true, index numbering for mesh vertices starts at 0. Otherwise,
+    * numbering starts at 1.
+    */
+   public void write (File file, String fmtStr, boolean zeroIndexed)
+      throws IOException {
+      if (fmtStr == null) {
+         fmtStr = "%.8g";
+      }
+      NumberFormat fmt = new NumberFormat (fmtStr);
+      PrintWriter pw =
+         new PrintWriter (new BufferedWriter (new FileWriter (file)));
+      write (pw, fmt, zeroIndexed, /*facesClockwise=*/false);
    }
 
    /**
@@ -3548,7 +3612,7 @@ public class PolygonalMesh extends MeshBase {
     * that are open or hard, in which case extra normals will be computed.
     */
    public void autoGenerateNormals () {
-      ArrayList<Vector3d> normals = new ArrayList<Vector3d>();      
+      ArrayList<Vector3d> normals = new ArrayList<Vector3d>();
       int[] indices = computeVertexNormals (normals, myMultiAutoNormalsP);
       myNormals = normals;
       myNormalIndices = indices;
@@ -3626,54 +3690,49 @@ public class PolygonalMesh extends MeshBase {
       // associated with each half-face
       int idx = 0;
       for (Vertex3d vtx : myVertices) {
-         if (creatingNormals) {
-            HalfEdgeNode node = vtx.getIncidentHedges();
-            while (node != null) {
-               Vector3d nrm = new Vector3d();
+
+         HalfEdgeNode node = vtx.getIncidentHedges();
+         Vector3d nrm;
+         while (node != null) {
+            if (creatingNormals) {
+               // create a new vector to store the normal
+               nrm = new Vector3d();
                normals.add (nrm);
-               do {
-                  HalfEdge he = node.he;
-                  nrm.angleWeightedCrossAdd (
-                        he.tail.pnt, he.head.pnt, he.next.head.pnt);
-                  normalIndexMap.put (node.he, idx);
-                  node = node.next;
-               }
-               while (node != null && (!multiNormals || !vtx.isNormalBoundary(node.he)));
-               
-               double n2 = nrm.normSquared();
-               if (n2 == 0) {
-                  vtx.computeAreaWeightedNormal(nrm);
-               }
-               nrm.normalize();
-               //               // XXX FAILS save/load test
-               //               double n = Math.sqrt(n2);
-               //               if (n > 0) {
-               //                  nrm.scale(1.0/n);
-               //               }
-               idx++;
-            }
-         }
-         else {
-            if (multiNormals) {
-               idx = vtx.computeAngleWeightedNormals (normals, idx);
             }
             else {
-               Vector3d nrm = normals.get(idx++);
-               vtx.computeAngleWeightedNormal (nrm);
-               double n2 = nrm.normSquared();
-               if (n2 == 0) {
-                  vtx.computeAreaWeightedNormal(nrm);
-               }
-               nrm.normalize();
-               //               // XXX FAILS save/load test
-               //               double n = Math.sqrt(n2);
-               //               if (n > 0) {
-               //                  nrm.scale(1.0/n);
-               //               }
+               // use the existing normal vector
+               nrm = normals.get(idx);
+               nrm.setZero();
             }
+            // Add the normal contributions for each vertex half edge. If we
+            // are allows to compute multiple normals per vertex, stop if we
+            // reach a normal boundary.
+            do {
+               HalfEdge he = node.he;
+               nrm.angleWeightedCrossAdd (
+                  he.tail.pnt, he.head.pnt, he.next.head.pnt);
+               if (creatingNormals) {
+                  normalIndexMap.put (node.he, idx);
+               }
+               node = node.next;
+            }
+            while (node != null &&
+                   (!multiNormals || !vtx.isNormalBoundary(node.he)));
+               
+            double n2 = nrm.normSquared();
+            if (n2 == 0) {
+               // backup, just in case angle weighted normals fails
+               vtx.computeAreaWeightedNormal(nrm);
+               //nmag = nrm.norm();
+            }
+            nrm.normalize();
+            //if (nmag > 0) {
+            //   nrm.scale(1.0/nmag);
+            //}
+            idx++;
          }
       }
-
+      
       if (creatingNormals) {
          // Now assign the normal indices for each face. These are the indices of
          // the normals associated with each of the face's half edges.

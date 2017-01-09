@@ -19,16 +19,19 @@ public class IntegrationData3d {
    Matrix3d myInvJ0;
    double myDetJ0;
    double myDv; // current partial volume at the quadrature point
+   double myScaling; // scales stiffness at the quadrature point
    // optional coordinate frame information (for anisotropic materials) 
    protected Matrix3d myFrame = null;
    // previous stress and H values, used for computing viscoelasticity:
 //   public SymmetricMatrix3d mySigmaPrev; 
 //   public double[] myHPrev;
    protected ViscoelasticState myViscoState;
+   
 
    private void init() {
       myInvJ0 = new Matrix3d(Matrix3d.IDENTITY);
-      myDetJ0  = 1;
+      myDetJ0 = 1;
+      myScaling = 1;
    }
 
    public ViscoelasticState getViscoState() {
@@ -57,11 +60,19 @@ public class IntegrationData3d {
    }
    
    public double getDv() {
-	   return myDv;
+      return myDv;
    }
    
    public void setDv(double dv) {
-	   myDv = dv;
+      myDv = dv;
+   }
+
+   public double getScaling() {
+      return myScaling;
+   }
+   
+   public void setScaling (double scaling) {
+      myScaling = scaling;
    }
 
    public Matrix3d getFrame() {

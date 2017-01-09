@@ -71,7 +71,9 @@ public class StiffnessWarper3d {
          IntegrationPoint3d pt = ipnts[k];
          double dv = idata[k].myDetJ0*pt.getWeight();
          Vector3d[] GNx = pt.updateShapeGradient(idata[k].myInvJ0);
-
+         if (idata[k].myScaling != 1) {
+            dv *= idata[k].myScaling;
+         }
          for (int i=0; i<e.myNodes.length; i++) {
             for (int j=0; j<e.myNodes.length; j++) {
                FemUtilities.addMaterialStiffness (

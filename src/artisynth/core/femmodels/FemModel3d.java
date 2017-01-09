@@ -942,6 +942,7 @@ public class FemModel3d extends FemModel
 
             pt.avgp = pressure;
             def.setAveragePressure(pressure);
+            double scaling = dt.myScaling;
             if (linMat != null) {
                pt.sigma.setZero();
                if (D != null) {
@@ -949,8 +950,14 @@ public class FemModel3d extends FemModel
                }
             } else {
                mat.computeStress(pt.sigma, def, Q, null);
+               if (scaling != 1) {
+                  pt.sigma.scale (scaling);
+               }
                if (D != null) {
                   mat.computeTangent(D, pt.sigma, def, Q, null);
+                  if (scaling != 1) {
+                     D.scale (scaling);
+                  }
                }
             }
 

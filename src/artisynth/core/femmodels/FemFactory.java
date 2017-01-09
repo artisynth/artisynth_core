@@ -1601,7 +1601,7 @@ public class FemFactory {
       for (FemElement3d e : quadMod.getElements()) {
          double mass = e.getRestVolume() * density;
          e.setMass(mass);
-         e.updateNodeMasses(mass);
+         e.invalidateNodeMasses();
       }
       return quadMod;
    }

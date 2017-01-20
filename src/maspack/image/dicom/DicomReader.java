@@ -427,7 +427,7 @@ public class DicomReader {
             elem = readImplicitElement(tagId, in);
          }
          header.addInfo(tagId, elem);
-         System.out.println(tagId + ": " + elem.toString());
+         // System.out.println(tagId + ": " + elem.toString());
 
          // Find transfer syntax
          if (tagId == DicomTag.TRANSFER_SYNTAX_UID) {

@@ -804,6 +804,9 @@ public class SpatialInertia extends Matrix6dBlock
     * @return mass
     */
    public double getMass() {
+      if (componentUpdateNeeded) {
+         updateComponents();
+      }
       return mass;
    }
 

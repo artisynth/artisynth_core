@@ -191,6 +191,17 @@ public class IntegrationPoint3d {
       detF = F.determinant();
    }
 
+   public void computeJacobianAndGradient (Point3d[] nodePos, Matrix3d invJ0) {
+      myJ.setZero();
+      for (int i=0; i<nodePos.length; i++) {
+         Vector3d pos = nodePos[i];
+         Vector3d dNds = GNs[i];
+         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+      }
+      F.mul (myJ, invJ0);
+      detF = F.determinant();
+   }
+
    public void computeJacobianAndGradient (
       SolidDeformation def, FemNode3d[] nodes, Matrix3d invJ0) {
       myJ.setZero();

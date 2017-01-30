@@ -113,6 +113,10 @@ public abstract class FemElement3d extends FemElement
    public FemNode3d[] getNodes() {
       return myNodes;
    }
+   
+   public FemNodeNeighbor[][] getNodeNeighbors() {
+      return myNbrs;
+   }
 
    // index of the incompressibility constraint associated with
    // this element, if any

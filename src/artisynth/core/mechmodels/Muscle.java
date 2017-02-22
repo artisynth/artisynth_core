@@ -37,9 +37,13 @@ import artisynth.core.materials.SimpleAxialMuscle;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScanToken;
 
-public class Muscle extends AxialSpring implements ExcitationComponent {
+public class Muscle extends AxialSpring
+   implements ExcitationComponent, HasAuxState, PropertyChangeListener {
 
    protected ExcitationSourceList myExcitationSources;
    protected CombinationRule myComboRule = CombinationRule.Sum;
@@ -65,6 +69,10 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
    protected PropertyMode myExcitationColorMode = PropertyMode.Inherited;
    protected double myMaxColoredExcitation = 1.0;
    protected PropertyMode myMaxColoredExcitationMode = PropertyMode.Inherited;
+   
+   // if myMaterial implements HasAuxState, myAuxStateMat is set to its value
+   // as a cached reference for use in implementing HasAuxState
+   protected HasAuxState myAuxStateMat;
 
    protected float[] myRenderColor = null;
 
@@ -89,6 +97,26 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
       this(null);
       setFirstPoint (p1);
       setSecondPoint (p2);
+   }
+
+   public void setMaterial (AxialMaterial mat) {
+      super.setMaterial (mat);
+      boolean possibleStateChange = false;
+      if (mat instanceof HasAuxState) {
+         possibleStateChange = true;
+         // use getMaterial() since mat may have been copied
+         myAuxStateMat = (HasAuxState)getMaterial();
+      }
+      else {
+         if (myAuxStateMat != null) {
+            possibleStateChange = true;
+         }
+         myAuxStateMat = null;
+      }
+      // if possible state change, issue an event to invalidate waypoints.
+      if (possibleStateChange) {
+         notifyParentOfChange (new DynamicActivityChangeEvent(this));
+      }
    }
   
    public void setConstantMuscleMaterial (double maxF) {
@@ -522,7 +550,54 @@ public class Muscle extends AxialSpring implements ExcitationComponent {
 	 updateLineRenderProps(enabled);
       }
    }
+
+   // begin HasAuxState interface
+
+   public void advanceAuxState (double t0, double t1) {
+      if (myAuxStateMat != null) {
+         myAuxStateMat.advanceAuxState (t0, t1);
+      }
+   }
    
+   public void skipAuxState (DataBuffer data) {
+      if (myAuxStateMat != null) {
+         myAuxStateMat.skipAuxState (data);
+      }
+   }
+
+   public void getAuxState (DataBuffer data) {
+      if (myAuxStateMat != null) {
+         myAuxStateMat.getAuxState (data);
+      }
+   }
+
+   public void getInitialAuxState (
+      DataBuffer newData, DataBuffer oldData) {
+      if (myAuxStateMat != null) {
+         myAuxStateMat.getInitialAuxState (newData, oldData);
+      }
+   }
+
+   public void setAuxState (DataBuffer data) {
+      if (myAuxStateMat != null) {
+         myAuxStateMat.setAuxState (data);
+      }
+   }
+
+   // end HasAuxState interface
+   
+   // PropertyChangeListener interface:
+
+   public void propertyChanged (PropertyChangeEvent e) {
+      if (e.getHost() instanceof AxialMaterial) {
+         if (e.getPropertyName().equals ("material")) {
+            // issue a dynamic change event in order to invalidate WayPoints
+            notifyParentOfChange (new DynamicActivityChangeEvent(this));
+         }
+      }
+   }
+
+
    private void updateLineRenderProps(boolean enabled) {
       if (enabled) {
 	 if (enabledLineColor == null)

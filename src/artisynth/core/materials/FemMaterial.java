@@ -29,12 +29,12 @@ public abstract class FemMaterial extends MaterialBase {
 
    ViscoelasticBehavior myViscoBehavior;
 
-   protected void notifyHostOfPropertyChange (String name) {
-      if (myPropHost instanceof PropertyChangeListener) {
-         ((PropertyChangeListener)myPropHost).propertyChanged (
-            new PropertyChangeEvent (this, name));
-      }
-   }
+   // protected void notifyHostOfPropertyChange (String name) {
+   //    if (myPropHost instanceof PropertyChangeListener) {
+   //       ((PropertyChangeListener)myPropHost).propertyChanged (
+   //          new PropertyChangeEvent (this, name));
+   //    }
+   // }
 
    protected void notifyHostOfPropertyChange () {
       notifyHostOfPropertyChange ("???");

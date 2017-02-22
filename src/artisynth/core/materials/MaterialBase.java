@@ -4,14 +4,17 @@ import java.io.*;
 import java.util.*;
 
 import artisynth.core.util.ScalableUnits;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.PropertyChangeEvent;
+
 import maspack.properties.*;
 import maspack.util.*;
 
 public abstract class MaterialBase
    implements CompositeProperty, Scannable, ScalableUnits, Clonable {
 
-   PropertyInfo myPropInfo;
-   HasProperties myPropHost;
+   protected PropertyInfo myPropInfo;
+   protected HasProperties myPropHost;
 
    public PropertyInfo getPropertyInfo ()
     { 
@@ -133,6 +136,12 @@ public abstract class MaterialBase
       return sym1 != sym2;
    }
 
+   protected void notifyHostOfPropertyChange (String name) {
+      if (myPropHost instanceof PropertyChangeListener) {
+         ((PropertyChangeListener)myPropHost).propertyChanged (
+            new PropertyChangeEvent (this, name));
+      }
+   }
 }
    
    

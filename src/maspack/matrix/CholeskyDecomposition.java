@@ -198,6 +198,62 @@ public class CholeskyDecomposition {
       }
    }
 
+   /**
+    * Solves the linear equation <br>
+    * M x = b <br>
+    * for x, where M is the original matrix associated with this decomposition,
+    * and x and b are vectors.
+    * 
+    * @param x
+    * unknown vector to solve for
+    * @param xoff
+    * starting offset into <code>x</code>
+    * @param b
+    * constant vector
+    * @param boff
+    * starting offset into <code>b</code>
+    * @return false if M is singular (within working precision)
+    * @throws ImproperStateException
+    * if this decomposition is uninitialized
+    * @throws ImproperSizeException if <code>x</code> or <code>b</code> do not
+    * have a length compatible with M
+    */
+   public boolean solve (double[] x, int xoff, double[] b, int boff) {
+      double sum;
+      int i, j;
+
+      if (!initialized) {
+         throw new ImproperStateException ("Uninitialized decomposition");
+      }
+      if (b.length < n+boff) {
+         throw new ImproperSizeException (
+            "b must have length >= " + (n+boff) + " with offset "+boff);
+      }
+      if (x.length < n+xoff) {
+         throw new ImproperSizeException (
+            "x must have length >= " + (n+xoff) + " with offset "+xoff);
+      }
+      if (x == b && xoff > boff) {
+         throw new ImproperSizeException (
+            "if x == b then xoff must be <= boff");
+      }
+      for (i = 0; i < n; i++) {
+         sum = b[i+boff];
+         for (j = 0; j < i; j++) {
+            sum -= x[j+xoff] * buf[i*w + j];
+         }
+         x[i+xoff] = sum / buf[i*w + i];
+      }
+      for (i = n - 1; i >= 0; i--) {
+         sum = x[i+xoff];
+         for (j = i + 1; j < n; j++) {
+            sum -= x[j+xoff] * buf[j*w + i];
+         }
+         x[i+xoff] = sum / buf[i*w + i];
+      }
+      return true;
+   }
+
    protected boolean doSolve (double[] sol, double[] vec) {
       double sum;
       int i, j;
@@ -219,7 +275,7 @@ public class CholeskyDecomposition {
       return true;
    }
 
-   protected boolean doSolveL (double[] sol, double[] vec) {
+  protected boolean doSolveL (double[] sol, double[] vec) {
       double sum;
       int i, j;
 

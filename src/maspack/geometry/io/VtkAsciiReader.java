@@ -1,20 +1,22 @@
 package maspack.geometry.io;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.BufferedReader;
 import java.util.ArrayList;
 
-import maspack.geometry.PolygonalMesh;
 import maspack.geometry.MeshBase;
+import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
 
 /**
- * Reads from ascii STL format
+ * Reads from ascii VTK format
+ * http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf
  * @author Antonio
  *
  */
@@ -133,6 +135,67 @@ public class VtkAsciiReader extends MeshReaderBase {
                if (nRead != nNums) {
                   System.err.println("Hmm... we got the wrong number of numbers");
                }
+            } else if (rtok.sval.equalsIgnoreCase("TRIANGLE_STRIPS")) {
+               faces.clear();
+               
+               int nStrips = rtok.scanInteger();
+               int nRead = 0;
+               int nNums = rtok.scanInteger();
+               
+               for (int i=0; i<nStrips; i++) {
+                  int nNodes = rtok.scanInteger();
+                  nRead++;
+                  ArrayList<Integer> nodeIdxs = 
+                     new ArrayList<Integer>(nNodes);
+                  for (int j =0; j<nNodes; j++) {
+                     nodeIdxs.add(rtok.scanInteger());
+                     nRead++;
+                  }
+                  
+                  // add a triangle strip based on nodeIdxs
+                  for (int j=2; j<nNodes; ++j) {
+                     ArrayList<Integer> face = new ArrayList<>();
+                     if ((j%2)==1) {
+                        face.add(nodeIdxs.get(j-1));
+                        face.add(nodeIdxs.get(j-2));
+                        face.add(nodeIdxs.get(j));
+                     } else {
+                        face.add(nodeIdxs.get(j-2));
+                        face.add(nodeIdxs.get(j-1));
+                        face.add(nodeIdxs.get(j));
+                     }
+                     faces.add(face);
+                  }
+               }
+               if (nRead != nNums) {
+                  System.err.println("Hmm... we got the wrong number of numbers");
+               }
+            } else if (rtok.sval.equalsIgnoreCase("POINT_DATA")) {
+               // number of points
+               int nPnts = rtok.scanInteger();
+               // type and info
+               String attr = rtok.scanWord();
+               if (attr.equalsIgnoreCase("SCALARS")) {
+                  String dataName = rtok.scanWord();
+                  String dataType = rtok.scanWord();
+                  // XXX optional number of components?
+                  // int numComp = rtok.scanInteger();
+                  // XXX optional lookup-table
+                  System.err.println("Ignoring SCALARS");
+               } else if (attr.equalsIgnoreCase("NORMALS")) {
+                  String dataName = rtok.scanWord();
+                  String dataType = rtok.scanWord();
+                  for (int j=0; j<nPnts; ++j) {
+                     double x = rtok.scanNumber();
+                     double y = rtok.scanNumber();
+                     double z = rtok.scanNumber();
+                     Vector3d normal = new Vector3d(x,y,z);
+                  }
+                  System.err.println("Ignoring NORMALS");
+               }
+               
+               
+               
             } else {
                System.err.println("Unknown heading '" + rtok.sval + "'");
             }
@@ -179,6 +242,9 @@ public class VtkAsciiReader extends MeshReaderBase {
    }
 
    public MeshBase readMesh (MeshBase mesh) throws IOException {
+      if (mesh == null) {
+         mesh = new PolygonalMesh();
+      }
       if (mesh instanceof PolygonalMesh) {
          return readMesh ((PolygonalMesh)mesh);
       }

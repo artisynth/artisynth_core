@@ -66,6 +66,9 @@ public class GenericMeshReader implements MeshReader {
       else if (lfileName.endsWith (".xyzb")) {
          myReader = new XyzbReader(file);
       }
+      else if (lfileName.endsWith(".vtk")) {
+         myReader = new VtkAsciiReader(file);
+      }
       else {
 
          for (MeshReaderFactory factory : factoryList) {

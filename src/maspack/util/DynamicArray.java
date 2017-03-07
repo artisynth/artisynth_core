@@ -30,10 +30,15 @@ public class DynamicArray<T> implements Iterable<T> {
    }
 
    public DynamicArray (Class<T> type, int size) {
-      @SuppressWarnings("unchecked")
-      T[] buff = (T[])Array.newInstance (type, mySize);
+      T[] buff = createArray(type, size);
       myBuffer = buff;
       mySize = size;
+   }
+   
+   private static <S> S[] createArray(Class<S> type, int size) {
+      @SuppressWarnings("unchecked")
+      S[] buff = (S[])Array.newInstance (type, size);
+      return buff;
    }
 
    public void trimToSize() {

@@ -115,6 +115,55 @@ JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniInit(
    return 0; // return value not used
 }
 
+JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniOrient3dv(
+   JNIEnv *env, jclass jcls,
+   jint i0, jdouble p0x, jdouble p0y, jdouble p0z,
+   jint i1, jdouble p1x, jdouble p1y, jdouble p1z,
+   jint i2, jdouble p2x, jdouble p2y, jdouble p2z,
+   jint i3, jdouble p3x, jdouble p3y, jdouble p3z,
+   jdoubleArray volume
+) {
+   setPrecision();
+   double p0[3];
+   double p1[3];
+   double p2[3];
+   double p3[3];
+
+   p0[0] = p0x;
+   p0[1] = p0y;
+   p0[2] = p0z;
+
+   p1[0] = p1x;
+   p1[1] = p1y;
+   p1[2] = p1z;
+
+   p2[0] = p2x;
+   p2[1] = p2y;
+   p2[2] = p2z;
+
+   p3[0] = p3x;
+   p3[1] = p3y;
+   p3[2] = p3z;
+
+   double vol;
+   //return nasaOrient3d (i0, p0, i1, p1, i2, p2, i3, p3, &volume);
+   int result = nasaOrient3d (i0, p0, i1, p1, i2, p2, i3, p3, &vol);
+
+   // populate volume
+   jboolean copy;
+   jdouble* velems = (*env)->GetDoubleArrayElements(env,volume, &copy);
+   jint n = (*env)->GetArrayLength(env,volume);
+   if (n > 0) {
+      velems[0] = vol;
+   }
+   if (copy == JNI_TRUE) {
+      (*env)->ReleaseDoubleArrayElements(env,volume, velems, 0); // copy elements
+   }
+
+   restorePrecision();
+   return result;
+}
+
 JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniOrient3d(
 	JNIEnv *env, jclass jcls,
 	jint i0, jdouble p0x, jdouble p0y, jdouble p0z,

@@ -85,6 +85,83 @@ public class RobustPreds {
          throw new RuntimeException ("RobustPreds failed with rc=" + result);
       return result == 1;
    }
+   
+   /**
+    * Returns true if segment deemed to pass through face,
+    * according to rules of "Simulation of Simplicity", which *may*
+    * add a consistent pseudo-perturbation to resolve
+    * ambiguities 
+    * 
+    * Note that segment points should be listed in consistent order
+    * i.e. always s0 before s1
+    * 
+    * @param s0  start of segment
+    * @param s1  end of segment
+    * @param Vertex3d v0
+    * @param Vertex3d v1
+    * @param Vertex3d v2
+    * @param intersectionPoint intersection point (if intersects)
+    * @return true if intersection found, false otherwise
+    */
+   public static boolean intersectSegmentTriangle (
+      Point3d s0, Point3d s1, 
+      Vertex3d v0, Vertex3d v1, Vertex3d v2, 
+      Point3d intersectionPoint) {
+      
+      if (!nativeSupportLoaded) {
+         initialize();
+      }
+
+      int s0i = 0;
+      int s1i = 1;
+      
+      int it0 = v0.getIndex()+2;
+      int it1 = v1.getIndex()+2;
+      int it2 = v2.getIndex()+2;
+      
+      Point3d p0 = v0.getWorldPoint();
+      Point3d p1 = v1.getWorldPoint();
+      Point3d p2 = v2.getWorldPoint();
+      
+      int rc = jniIntersectSegmentTriangle (
+            s0i, s0.x, s0.y, s0.z, 
+            s1i, s1.x, s1.y, s1.z, 
+            it0, p0.x, p0.y, p0.z,
+            it1, p1.x, p1.y, p1.z, 
+            it2, p2.x, p2.y, p2.z, 
+            intersectionPoint);
+
+      if (rc < 0) {
+         throw new RuntimeException ("error in jni intersectEdgeFace predicate: " + rc);
+      }
+      return (rc == 1);
+      
+   }
+   
+   /**
+    * Returns true if segment deemed to pass through face,
+    * according to rules of "Simulation of Simplicity", which *may*
+    * add a consistent pseudo-perturbation to resolve
+    * ambiguities 
+    * 
+    * Note that segment points should be listed in consistent order
+    * i.e. always s0 before s1
+    * 
+    * @param s0  start of segment
+    * @param s1  end of segment
+    * @param Face face to intersect
+    * @param intersectionPoint intersection point (if intersects)
+    * @return true if intersection found, false otherwise
+    */
+   public static boolean intersectSegmentTriangle (
+      Point3d s0, Point3d s1, 
+      Face face,
+      Point3d intersectionPoint) {
+      Vertex3d v0 = face.he0.head;
+      Vertex3d v1 = face.he0.next.head;
+      Vertex3d v2 = face.he0.next.next.head;
+      return intersectSegmentTriangle(s0, s1, v0, v1, v2, intersectionPoint);
+   }
 
    public static boolean intersectEdgeFace (
       HalfEdge edge, Face face, Point3d intersectionPoint, boolean edgeOnMesh0) {
@@ -135,6 +212,10 @@ public class RobustPreds {
 //      int it0 = tri0.uniqueIndex;
 //      int it1 = tri1.uniqueIndex;
 //      int it2 = tri2.uniqueIndex;
+//      System.out.println(is0 +","+ ps0.x+","+ ps0.y+","+ ps0.z+","+ is1+","+ ps1.x+","+
+//         ps1.y+","+ ps1.z+","+ it0+","+ pt0.x+","+ pt0.y+","+ pt0.z+","+
+//         it1+","+ pt1.x+","+ pt1.y+","+ pt1.z+","+ it2+","+ pt2.x+","+
+//         pt2.y+","+ pt2.z);
       int rc =
          jniIntersectSegmentTriangle (
             is0, ps0.x, ps0.y, ps0.z, is1, ps1.x,
@@ -165,7 +246,7 @@ public class RobustPreds {
             "error in jni intersectEdgeFace predicate: " + rc);
       return rc == 1;
    }
-
+   
    /*
     * faceC and faceD must both have previously been found by
     * intersectEdgeFace(...) to intersect with edge. Let c be the intersection
@@ -190,8 +271,10 @@ public class RobustPreds {
       e = e.getNext();
       Point3d d2 = e.head.getWorldPoint();
 
-      if (!nativeSupportLoaded)
+      if (!nativeSupportLoaded) {
          initialize();
+      }
+      
       int result =
          jniClosestIntersection (
             a.x, a.y, a.z, b.x, b.y, b.z, c0.x, c0.y, c0.z, c1.x, c1.y, c1.z,
@@ -237,6 +320,14 @@ public class RobustPreds {
          jniOrient3d (
             1, p0.x, p0.y, p0.z, 2, p1.x, p1.y, p1.z, 3, p2.x, p2.y, p2.z, 4,
             p3.x, p3.y, p3.z);
+      System.out.println ("orient result=" + result + " volume=" + volume[0]);
+      
+      result =
+         jniOrient3d (
+            1, 0, 0, 0, 
+            2, 1, 0, 0, 
+            3, 0, 1, 0, 
+            4, 0, 0, 1e-10);
       System.out.println ("orient result=" + result + " volume=" + volume[0]);
 
       Vector3d a = new Vector3d (0, 0, 1);

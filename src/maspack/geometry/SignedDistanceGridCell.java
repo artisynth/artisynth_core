@@ -77,8 +77,8 @@ public class SignedDistanceGridCell implements IsSelectable {
    public void render (Renderer renderer, int flags) {
       
       double meshVertex[] = new double[3];
-      meshVertex = myGrid.getMeshCoordinatesFromGrid (
-         vertex[0], vertex[1], vertex[2]);
+      myGrid.getMeshCoordinatesFromGrid (
+         vertex[0], vertex[1], vertex[2], meshVertex);
       
       renderer.setPointSize (3);
       renderer.setColor (pointColour);

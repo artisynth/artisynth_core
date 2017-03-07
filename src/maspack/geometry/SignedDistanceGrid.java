@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2014, by the Authors: Bruce Haines (UBC)
+ * Copyright (c) 2017, by the Authors: Bruce Haines (UBC), Antonio Sanchez (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 package maspack.geometry;
 
+import java.awt.Color;
 import java.util.*;
 
 import maspack.matrix.*;
@@ -19,7 +20,6 @@ import maspack.geometry.SignedDistanceGridCell;
  * SignedDistanceGrid is a class used to create, render, and use
  * a signed distance field for collision detection purposes.
  *
- * @author Bruce Haines, bruce DOT a DOT haines AT gmail.com
  */
 public class SignedDistanceGrid implements IsRenderable {
 
@@ -52,14 +52,12 @@ public class SignedDistanceGrid implements IsRenderable {
     */
    private int[] closestFace;
 
-
-
    private SignedDistanceGridCell gridCellArray[];
 
    public SignedDistanceGrid () {
    }
 
-   public SignedDistanceGrid (PolygonalMesh m, double gridSizeMargin) {
+   public SignedDistanceGrid (PolygonalMesh m, double gridMarginFraction) {
       mesh = m;
       if (!mesh.isTriangular()) {
          mesh.triangulate();
@@ -80,13 +78,21 @@ public class SignedDistanceGrid implements IsRenderable {
       //      gridCellSize = new Vector3d (length, length, length);
       gridCellSize = new Vector3d ();
       mesh.getLocalBounds (min, max);
+      // add margin to both min and max
+      Vector3d margin = new Vector3d();
+      margin.sub(max, min);
+      margin.scale(gridMarginFraction);
+      max.add(margin);
+      min.sub(margin);
+      
       gridCellSize.x = (max.x - min.x) / 25.0; // Arbitrary
       gridCellSize.y = (max.y - min.y) / 25.0;
       gridCellSize.z = (max.z - min.z) / 25.0;
-      calculatePhi (gridSizeMargin);
+      
+      calculatePhi ();
    }
 
-   public SignedDistanceGrid (PolygonalMesh m, double gridSizeMargin, 
+   public SignedDistanceGrid (PolygonalMesh m, double gridMarginFraction, 
       int maxCellDivisions) {
       mesh = m;
       if (!mesh.isTriangular()) {
@@ -98,9 +104,16 @@ public class SignedDistanceGrid implements IsRenderable {
       Vector3d widths = new Vector3d();
       mesh.getLocalBounds (min, max);
       widths.sub (max, min);
+      Vector3d margin = new Vector3d();
+      margin.scale(gridMarginFraction, widths);
+      max.add(margin);
+      min.sub(margin);
+      widths.scaledAdd(2, margin);
+      
       double size = widths.maxElement()/maxCellDivisions;
       gridCellSize = new Vector3d (size, size, size);
-      calculatePhi (gridSizeMargin);      
+      
+      calculatePhi ();      
    }
    
    private SignedDistanceGridCell[] buildGridCellArray() {
@@ -109,7 +122,7 @@ public class SignedDistanceGrid implements IsRenderable {
           gridCellArray [p] = new SignedDistanceGridCell (p, this);
           gridCellArray [p].setDistance(phi[p]);
        }
-      return null;
+      return gridCellArray;
    }
    
    // construct on demand
@@ -120,7 +133,7 @@ public class SignedDistanceGrid implements IsRenderable {
       return gridCellArray;
    }
    
-   public SignedDistanceGrid (PolygonalMesh m, double gridSizeMargin, 
+   public SignedDistanceGrid (PolygonalMesh m, double gridMarginFraction, 
       Vector3d cellDivisions) {
       mesh = m;
       if (!mesh.isTriangular()) {
@@ -131,10 +144,17 @@ public class SignedDistanceGrid implements IsRenderable {
 
       gridCellSize = new Vector3d ();
       mesh.getLocalBounds (min, max);
+      Vector3d margin = new Vector3d();
+      margin.sub(max, min);
+      margin.scale(gridMarginFraction);
+      max.add(margin);
+      min.sub(margin);
+      
       gridCellSize.x = (max.x - min.x) / cellDivisions.x; // Arbitrary
       gridCellSize.y = (max.y - min.y) / cellDivisions.y;
       gridCellSize.z = (max.z - min.z) / cellDivisions.z;
-      calculatePhi (gridSizeMargin);
+      
+      calculatePhi ();
    }
 
    /** 
@@ -143,54 +163,17 @@ public class SignedDistanceGrid implements IsRenderable {
     * @param gridMargin Ratio to scale the boundary of the grid beyond the
     * mesh boundary.
     */
-   private void calculatePhi (double gridMargin) {
+   private void calculatePhi () {
       Logger logger = Logger.getSystemLogger();
       logger.info ("Calculating Signed Distance Field...");
-      // Scale min and max by gridMargin.
-      // All this because we can't assume that min < 0 or max > 0.
-      if (min.x < 0) {
-         min.x *= (1.0 + gridMargin);
-      } else {
-         min.x *= (1.0 - gridMargin);
-      }
-      
-      if (min.y < 0) {
-         min.y *= (1.0 + gridMargin);
-      }  else {
-         min.y *= (1.0 - gridMargin);
-      }
-      
-      if (min.z < 0) {
-         min.z *= (1.0 + gridMargin);
-      } else {
-         min.z *= (1.0 - gridMargin);
-      }
-      
-      if (max.x < 0) {
-         max.x *= (1.0 - gridMargin);
-      } else {
-         max.x *= (1.0 + gridMargin);
-      }
-      
-      if (max.y < 0) {
-         max.y *= (1.0 - gridMargin);
-      } else {
-         max.y *= (1.0 + gridMargin);
-      }
-      
-      if (max.z < 0) {
-         max.z *= (1.0 - gridMargin);
-      } else {
-         max.z *= (1.0 + gridMargin);
-      }
 
       // gridSize represents the maximum point in grid coordinates, rounded
       // up to the nearest full cell.
       // +1 for rounding up after casting to an integer.
-      // +1 because it is a count, not a difference.
-      gridSize[0] = (int)((max.x - min.x) / gridCellSize.x) + 2; 
-      gridSize[1] = (int)((max.y - min.y) / gridCellSize.y) + 2;
-      gridSize[2] = (int)((max.z - min.z) / gridCellSize.z) + 2;
+      // +1 because it is a node count, not cell count
+      gridSize[0] = (int)(Math.ceil( (max.x - min.x) / gridCellSize.x))+1; 
+      gridSize[1] = (int)(Math.ceil( (max.y - min.y) / gridCellSize.y))+1;
+      gridSize[2] = (int)(Math.ceil((max.z - min.z) / gridCellSize.z))+1;
       double maxDist = Math.sqrt ((double)(gridSize[0] - 1 ) * gridCellSize.x *
          (double)(gridSize[0] - 1 ) * gridCellSize.x +
          (double)(gridSize[1] - 1 ) * gridCellSize.y *
@@ -208,19 +191,24 @@ public class SignedDistanceGrid implements IsRenderable {
       // Each entry in closestFace represents the index of faces[] that 
       // corresponds to the closest face to the grid vertex.
       closestFace = new int[phi.length];
-      int intersectionCount[] = new int[phi.length];
+      int zIntersectionCount[] = new int[phi.length];
+      
       for (int i = 0; i < phi.length; i++) {
          closestFace[i] = -1;
-         intersectionCount[i] = 0;
+         zIntersectionCount[i] = 0;
       }
       Point3d faceMin          = new Point3d();
       Point3d faceMax          = new Point3d();
       Point3d closestPoint     = new Point3d();
-      Point3d currentPoint     = new Point3d();
+      // Point3d currentPoint     = new Point3d();
       Point3d currentPointMesh = new Point3d();
-      Point3d triBaryCoords    = new Point3d();
+      Point3d bary    = new Point3d();
       Point3d pc = new Point3d(); // A temp variable passed in for performance.
       Point3d p1 = new Point3d(); // A temp variable passed in for performance.
+      Point3d bottom = new Point3d();
+      Point3d top = new Point3d();
+      
+      boolean sdPredsWarning = false;
 
       // For every triangle...
       for (int t = 0; t < faces.length; t++) {
@@ -264,11 +252,11 @@ public class SignedDistanceGrid implements IsRenderable {
             for (int y = faceMinY; y <= faceMaxY; y++) {
                for (int x = faceMinX; x <= faceMaxX; x++) {
                   // Get mesh coordinates
-                  getMeshCoordinatesFromGrid (currentPoint,
+                  getMeshCoordinatesFromGrid (currentPointMesh,
                      (double)x, (double)y, (double)z);
                   // Get the distance from this point to the face.
-                  face.nearestPoint (closestPoint, currentPoint);
-                  double distance = currentPoint.distance (closestPoint);
+                  face.nearestPoint (closestPoint, currentPointMesh);
+                  double distance = currentPointMesh.distance (closestPoint);
                   int index = x +
                   y * gridSize[0] +
                   z * gridSize[0] * gridSize[1];
@@ -279,39 +267,72 @@ public class SignedDistanceGrid implements IsRenderable {
                }
             }
          }
+         
+         // Ray-casts from bottom x-y plane, upwards, counting intersections.
          // We're building intersectionCount[] to use in ray casting below.
          for (int y = faceMinY; y <= faceMaxY; y++) {
             currentPointMesh.y = y * gridCellSize.y + min.y;
             for (int x = faceMinX; x <= faceMaxX; x++) {
                currentPointMesh.x = x * gridCellSize.x + min.x;
-
+               
                // Need to test if the point defined by x,y is inside the
                // 2d triangle formed by 'face' projected onto the x,y plane.
-               if (isPointInXYTriangle (
-                  currentPointMesh, face, triBaryCoords)) {
-
+               
+               
+               Vertex3d v0 = face.he0.head;
+               Point3d v0p = v0.getWorldPoint();
+               Vertex3d v1 = face.he0.next.head;
+               Point3d v1p = v1.getWorldPoint();
+               Vertex3d v2 = face.he0.next.next.head;
+               Point3d v2p = v2.getWorldPoint();
+               
+               int inTri = isPointInTriangle2D(currentPointMesh.x, currentPointMesh.y, 
+                  v0.getIndex(), v0p.x, v0p.y, 
+                  v1.getIndex(), v1p.x, v1p.y,
+                  v2.getIndex(), v2p.x, v2p.y,
+                  bary);
+               
+               if (inTri == 0) {
+                  // XXX Robust predicates if required
+                  if (!sdPredsWarning) {
+                     logger.debug("SD using RobustPreds");
+                     sdPredsWarning = true;
+                  }
+                  // could be on edge or vertex, use RobustPreds
+                  bottom.x = currentPointMesh.x;
+                  bottom.y = currentPointMesh.y;
+                  bottom.z = min.z-1;
+                  top.x = currentPointMesh.x;
+                  top.y = currentPointMesh.y;
+                  top.z = max.z+1;
+                  if (RobustPreds.intersectSegmentTriangle(bottom, top, face, bary)) {
+                     inTri = 1;
+                  }
+                  currentPointMesh.z = bary.z;
+                  
+               } else if (inTri == 1) {
                   // Point in triangle written as a weighted sum of the
                   // vertices.
-                  currentPointMesh.z = 
-                  triBaryCoords.x * face.he0.head.pnt.z +
-                  triBaryCoords.y * face.he0.next.head.pnt.z +
-                  triBaryCoords.z * face.he0.next.next.head.pnt.z;
+                  currentPointMesh.z = bary.x * face.he0.head.pnt.z +
+                     bary.y * face.he0.next.head.pnt.z +
+                     bary.z * face.he0.next.next.head.pnt.z;
+               }
+               
+               if (inTri > 0) {
                   // We should now use the z value in grid coordinates.
                   // Extract it from currentPointMesh
-                  double currentPointZ = 
-                  (currentPointMesh.z - min.z) / gridCellSize.z;
+                  double currentPointZ = (currentPointMesh.z - min.z) / gridCellSize.z;
                   int zInterval = (int)currentPointZ + 1;
+                  // intersection counted in next grid square
                   if (zInterval < 0) {
-                     ++intersectionCount [
-                                          x + gridSize[0]*y + gridSize[0]*gridSize[1]*0];
-                  }
-                  else if (zInterval < gridSize[2]) {
-                     ++intersectionCount[
+                     ++zIntersectionCount [x + gridSize[0]*y + gridSize[0]*gridSize[1]*0];
+                  } else if (zInterval < gridSize[2]) {
+                     ++zIntersectionCount[
                                          x + gridSize[0]*y + gridSize[0]*gridSize[1]*zInterval];
                   }
-               }
-            }
-         }
+               } // point in triangle
+            } // x
+         } // y
       }
 
       // Done all triangles.
@@ -326,6 +347,7 @@ public class SignedDistanceGrid implements IsRenderable {
          sweep(+1, -1, -1, pc, p1);
          sweep(-1, +1, +1, pc, p1);
       }
+      
       // This is a ray-casting implementation to find the sign of each vertex in
       // the grid.
       for (int x = 0; x < gridSize[0]; x++) {
@@ -334,7 +356,7 @@ public class SignedDistanceGrid implements IsRenderable {
             //Count the intersections of the x axis
             for (int z = 0; z < gridSize[2]; z++) {
                int index =  x + gridSize[0]*y + gridSize[0]*gridSize[1]*z;
-               total_count += intersectionCount [index];
+               total_count += zIntersectionCount [index];
 
                // If parity of intersections so far is odd, we are inside the 
                // mesh.
@@ -671,6 +693,102 @@ public class SignedDistanceGrid implements IsRenderable {
    //      else return 0; // only true when x1==x2 and y1==y2
    //   } 
 
+//   /**
+//    * This method has two purposes: First, to detect if a point lies
+//    * inside a 2-dimensional triangle. Second, to return the barycentric
+//    * coordinates of the triangle in question.
+//    * 
+//    * @param point Point in consideration, only x and y values considered.
+//    * @param face Face in consideration, only x and y values considered.
+//    * @param signedArea Used first to determine if the point is inside the 
+//    * triangle, and then to return the barycentric coordinates of the triangle.
+//    * @return 1 if inside, -1 if outside, 0 if near-enough to the boundary
+//    *         that we are not quite sure
+//    */
+//   private int isPointInXYTriangle (
+//      Point3d point, Face face, Point3d signedArea ) {
+//      // Shift the triangle to the point.
+//      double shifted0x = face.he0.head.pnt.x - point.x;
+//      double shifted0y = face.he0.head.pnt.y - point.y;
+//      double shifted1x = face.he0.next.head.pnt.x - point.x;
+//      double shifted1y = face.he0.next.head.pnt.y - point.y;
+//      double shifted2x = face.he0.next.next.head.pnt.x - point.x;
+//      double shifted2y = face.he0.next.next.head.pnt.y - point.y;
+//      // Calculate the twice signed area.
+//      signedArea.x = shifted1y * shifted2x - shifted1x * shifted2y;
+//      int signa;
+//      if (signedArea.x > 0) {
+//         signa = 1;
+//      }
+//      else if (signedArea.x < 0) {
+//         signa = -1;   
+//      }
+//      else if (shifted2y > shifted1y) signa =  1;
+//      else if (shifted2y < shifted1y) signa = -1;
+//      else if (shifted1x > shifted2x) signa =  1;
+//      else if (shifted1x < shifted2x) signa = -1;
+//      else return -1; // signa == 0
+//      
+//      //************************************************************************
+//      int signb;
+//      signedArea.y = shifted2y * shifted0x - shifted2x * shifted0y;
+//      if (signedArea.y > 0) {
+//         signb = 1;
+//      }
+//      else if (signedArea.y < 0) {
+//         signb = -1;   
+//      }
+//      else if (shifted0y > shifted2y) signb =  1;
+//      else if (shifted0y < shifted2y) signb = -1;
+//      else if (shifted2x > shifted0x) signb =  1;
+//      else if (shifted2x < shifted0x) signb = -1;
+//      else signb = 0;
+//      if (signb != signa) {
+//         return -1;
+//      }
+//      //************************************************************************
+//      int signc;
+//      signedArea.z = shifted0y * shifted1x - shifted0x * shifted1y;
+//      if (signedArea.z > 0) {
+//         signc = 1;
+//      }
+//      else if (signedArea.z < 0) {
+//         signc = -1;   
+//      }
+//      else if (shifted1y > shifted0y) signc =  1;
+//      else if (shifted1y < shifted0y) signc = -1;
+//      else if (shifted0x > shifted1x) signc =  1;
+//      else if (shifted0x < shifted1x) signc = -1;
+//      else signc = 0;
+//      if (signc != signa) {
+//         return -1;
+//      }
+//      //************************************************************************
+//      double sum = signedArea.x + signedArea.y + signedArea.z;
+//      // need to assert that sum != 0.
+//      signedArea.x /= sum;
+//      signedArea.y /= sum;
+//      signedArea.z /= sum;
+//      
+//      return 1;
+//   }
+   
+   /**
+    * Integer signum
+    * @param a
+    * @param eps
+    * @return
+    */
+   private static int signum(double a) {
+      if (a < -0) {
+         return -1;
+      }
+      if (a > 0) {
+         return 1;
+      }
+      return 0;
+   }
+   
    /**
     * This method has two purposes: First, to detect if a point lies
     * inside a 2-dimensional triangle. Second, to return the barycentric
@@ -678,75 +796,156 @@ public class SignedDistanceGrid implements IsRenderable {
     * 
     * @param point Point in consideration, only x and y values considered.
     * @param face Face in consideration, only x and y values considered.
-    * @param signedArea Used first to determine if the point is inside the 
-    * triangle, and then to return the barycentric coordinates of the triangle.
+    * @return 1 if inside, -1 if outside, 0 if near-enough to the boundary
+    *         that we are not quite sure
     */
-   private boolean isPointInXYTriangle (
-      Point3d point, Face face, Point3d signedArea ) {
-      // Shift the triangle to the point.
-      double shifted0x = face.he0.head.pnt.x - point.x;
-      double shifted0y = face.he0.head.pnt.y - point.y;
-      double shifted1x = face.he0.next.head.pnt.x - point.x;
-      double shifted1y = face.he0.next.head.pnt.y - point.y;
-      double shifted2x = face.he0.next.next.head.pnt.x - point.x;
-      double shifted2y = face.he0.next.next.head.pnt.y - point.y;
-      // Calculate the twice signed area.
-      signedArea.x = shifted1y * shifted2x - shifted1x * shifted2y;
-      int signa;
-      if (signedArea.x > 0) {
-         signa = 1;
+   private static int isPointInTriangle2D (
+      double px, double py, 
+      int t0i, double t0x, double t0y, 
+      int t1i, double t1x, double t1y,
+      int t2i, double t2x, double t2y,
+      Vector3d bary) {
+     
+      
+      // sort triangle points
+      double dx0, dx1, dx2, dy0, dy1, dy2; // ordered points centered at (px, py)
+      // flip to apply to predicates
+      boolean flip01 = false;
+      boolean flip12 = false;
+      boolean flip02 = false; 
+      if (t0i <= t1i) {
+         if (t1i <= t2i) {
+            // t0, t1, t2
+            dx0 = t0x-px;
+            dy0 = t0y-py;
+            dx1 = t1x-px;
+            dy1 = t1y-py;
+            dx2 = t2x-px;
+            dy2 = t2y-py;
+            flip02 = true;
+         } else if (t0i <= t2i) {
+            // t0, t2, t1
+            dx0 = t0x-px;
+            dy0 = t0y-py;
+            dx1 = t2x-px;
+            dy1 = t2y-py;
+            dx2 = t1x-px;
+            dy2 = t1y-py;
+            flip01 = true;
+            flip12 = true;
+         } else {
+            // t2, t0, t1
+            dx0 = t2x-px;
+            dy0 = t2y-py;
+            dx1 = t0x-px;
+            dy1 = t0y-py;
+            dx2 = t1x-px;
+            dy2 = t1y-py;
+            flip02 = true;
+         }
+      } else if (t2i < t1i) {
+         // t2, t1, t0
+         dx0 = t2x-px;
+         dy0 = t2y-py;
+         dx1 = t1x-px;
+         dy1 = t1y-py;
+         dx2 = t0x-px;
+         dy2 = t0y-py;
+         flip01 = true;
+         flip12 = true;
+      } else if (t2i < t0i) {
+         // t1, t2, t0
+         dx0 = t1x-px;
+         dy0 = t1y-py;
+         dx1 = t2x-px;
+         dy1 = t2y-py;
+         dx2 = t0x-px;
+         dy2 = t0y-py;
+         flip02 = true;
+      } else {
+         // t1, t0, t2
+         dx0 = t1x-px;
+         dy0 = t1y-py;
+         dx1 = t0x-px;
+         dy1 = t0y-py;
+         dx2 = t2x-px;
+         dy2 = t2y-py;
+         flip01 = true;
+         flip12 = true;
       }
-      else if (signedArea.x < 0) {
-         signa = -1;   
-      }
-      else if (shifted2y > shifted1y) signa =  1;
-      else if (shifted2y < shifted1y) signa = -1;
-      else if (shifted1x > shifted2x) signa =  1;
-      else if (shifted1x < shifted2x) signa = -1;
-      else return false; // signa == 0
-      //************************************************************************
-      int signb;
-      signedArea.y = shifted2y * shifted0x - shifted2x * shifted0y;
-      if (signedArea.y > 0) {
-         signb = 1;
-      }
-      else if (signedArea.y < 0) {
-         signb = -1;   
-      }
-      else if (shifted0y > shifted2y) signb =  1;
-      else if (shifted0y < shifted2y) signb = -1;
-      else if (shifted2x > shifted0x) signb =  1;
-      else if (shifted2x < shifted0x) signb = -1;
-      else signb = 0;
-      if (signb != signa) {
-         return false;
-      }
-      //************************************************************************
-      int signc;
-      signedArea.z = shifted0y * shifted1x - shifted0x * shifted1y;
-      if (signedArea.z > 0) {
-         signc = 1;
-      }
-      else if (signedArea.z < 0) {
-         signc = -1;   
-      }
-      else if (shifted1y > shifted0y) signc =  1;
-      else if (shifted1y < shifted0y) signc = -1;
-      else if (shifted0x > shifted1x) signc =  1;
-      else if (shifted0x < shifted1x) signc = -1;
-      else signc = 0;
-      if (signc != signa) {
-         return false;
-      }
-      //************************************************************************
-      double sum = signedArea.x + signedArea.y + signedArea.z;
-      // need to assert that sum != 0.
-      signedArea.x /= sum;
-      signedArea.y /= sum;
-      signedArea.z /= sum;
-      return true;
-   }
 
+      // squared machine precision
+      final double EPS2 = 2e-31; // approx (2^{-51})^2
+      
+      // always compare using lower index first for consistency
+      double dx0y1 = dx0*dy1;
+      double dy0x1 = dy0*dx1; 
+      double da01 = (dx0y1-dy0x1);
+      if (flip01) {
+         da01 = -da01;
+      }
+      // error analysis ~ sqrt(2*(dx0y1*dx0y1+ dy0x1*dy0x1))
+      double eps01squared = 4*((dx0y1*dx0y1 + dy0x1*dy0x1)*EPS2); // double just-in-case
+      int s01 = 0;
+      if (da01*da01 > eps01squared) {
+         s01 = signum(da01);
+      }
+      
+      double dx1y2 = dx1*dy2;
+      double dy1x2 = dy1*dx2; 
+      double da12 = (dx1y2-dy1x2);
+      if (flip12) {
+         da12 = -da12;
+      }
+      // error analysis ~ sqrt(2*(dx1y2*dx1y2+ dy1x2*dy1x2))
+      double eps12squared = 4*((dx1y2*dx1y2 + dy1x2*dy1x2)*EPS2); // double just-in-case
+      int s12 = 0;
+      if (da12*da12 > eps12squared) {
+         s12 = signum(da12);
+      }
+      
+      // non-zero and opposite sides, outside triangle
+      if (s01 != 0 && s12 != 0 && s01 != s12) {
+         return -1;
+      }
+      
+      double dx0y2 = dx0*dy2;
+      double dy0x2 = dy0*dx2; 
+      double da02 = (dx0y2-dy0x2);
+      if (flip02) {
+         da02 = -da02;
+      }
+      // error analysis ~ sqrt(2*(dx0y2*dx0y2+ dy0x2*dy0x2))
+      double eps02squared = 4*((dx0y2*dx0y2 + dy0x2*dy0x2)*EPS2); // double just-in-case
+      int s02 = 0;
+      if (da02*da02 > eps02squared) {
+         s02 = signum(da02);
+      }
+      
+      // if any two non-zero signs differ, outside triangle
+      if (s02 != 0) {
+         if (s01 != 0 && s01 != s02) {
+            return -1;
+         } else if (s12 != 0 && s12 != s02) {
+            return -1;
+         } 
+      }
+      
+      // barycentric coordinates
+      double sum = da01+da12+da02;
+      bary.x = da12/sum;
+      bary.y = da02/sum;
+      bary.z = da01/sum;
+      
+      // if all three same sign and not zero, true
+      if (s01 == s02 && s01 == s12 && s01 != 0) {
+         return 1;
+      }
+      
+      // unsure, seems to be exactly on an edge or vertex
+      return 0;
+   }
+   
    /**
     * Utility method for the {@link #sweep sweep} method. Compares a given 
     * vertex with one of its neighbours.
@@ -761,6 +960,7 @@ public class SignedDistanceGrid implements IsRenderable {
    private void checkNeighbouringVertex (
       int x, int y, int z, int dx, int dy, int dz, 
       Point3d closestPointOnFace, Point3d p1) {
+      
       // dx, dy, dz represent a point +- 1 grid cell away from out current
       // point. There are 26 neighbours.
       int neighbourIndex = 
@@ -799,7 +999,7 @@ public class SignedDistanceGrid implements IsRenderable {
          x1 = gridSize[0];
       }
       else {
-         x0 = gridSize[0]-2;
+         x0 = gridSize[0]-2;  // sweeps backwards
          x1 = -1;
       }
       int y0, y1;
@@ -869,16 +1069,24 @@ public class SignedDistanceGrid implements IsRenderable {
       renderer.addVertex (maxGrid.x, maxGrid.y, maxGrid.z);
       renderer.endDraw();
       
-      getGridCells();
+      // getGridCells();
 
       // Draw the vertices on the grid.
+      double myVertex[] = new double[3];
       for (int i = 0; i < phi.length; i++) {
          int z = (i / (gridSize[0] * gridSize[1]));
          int y = (i - z * (gridSize[0] * gridSize[1])) / (gridSize[0]);
          int x = (i % (gridSize[0]));
-         double myVertex[] = new double[3];
-         myVertex = getMeshCoordinatesFromGrid (x, y, z);   
-         gridCellArray[i].render (renderer, flags);
+         getMeshCoordinatesFromGrid (x, y, z, myVertex);   
+         // gridCellArray[i].render (renderer, flags);
+         if (phi[i] <= 0) {
+            renderer.setColor(Color.BLUE);
+            renderer.drawPoint(myVertex[0], myVertex[1], myVertex[2]);
+         } else {
+            renderer.setColor(Color.RED);
+            renderer.drawPoint(myVertex[0], myVertex[1], myVertex[2]);
+         }
+         
       }
       renderer.setShading (savedShading);
    }
@@ -908,8 +1116,7 @@ public class SignedDistanceGrid implements IsRenderable {
       return closestFace[idx];
    }
 
-   public double[] getMeshCoordinatesFromGrid (int x, int y, int z) {
-      double meshCoords[] = new double[3];
+   public double[] getMeshCoordinatesFromGrid (int x, int y, int z, double[] meshCoords) {
       meshCoords[0] = x * gridCellSize.x + min.x;
       meshCoords[1] = y * gridCellSize.y + min.y;
       meshCoords[2] = z * gridCellSize.z + min.z;

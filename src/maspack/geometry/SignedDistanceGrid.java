@@ -150,7 +150,7 @@ public class SignedDistanceGrid implements IsRenderable {
       max.add(margin);
       min.sub(margin);
       
-      gridCellSize.x = (max.x - min.x) / cellDivisions.x; // Arbitrary
+      gridCellSize.x = (max.x - min.x) / cellDivisions.x;
       gridCellSize.y = (max.y - min.y) / cellDivisions.y;
       gridCellSize.z = (max.z - min.z) / cellDivisions.z;
       
@@ -1078,14 +1078,14 @@ public class SignedDistanceGrid implements IsRenderable {
          int y = (i - z * (gridSize[0] * gridSize[1])) / (gridSize[0]);
          int x = (i % (gridSize[0]));
          getMeshCoordinatesFromGrid (x, y, z, myVertex);   
-         // gridCellArray[i].render (renderer, flags);
-         if (phi[i] <= 0) {
-            renderer.setColor(Color.BLUE);
-            renderer.drawPoint(myVertex[0], myVertex[1], myVertex[2]);
-         } else {
-            renderer.setColor(Color.RED);
-            renderer.drawPoint(myVertex[0], myVertex[1], myVertex[2]);
-         }
+         gridCellArray[i].render (renderer, flags);
+         //         if (phi[i] <= 0) {
+         //            renderer.setColor(Color.BLUE);
+         //            renderer.drawPoint(myVertex[0], myVertex[1], myVertex[2]);
+         //         } else {
+         //            renderer.setColor(Color.RED);
+         //            renderer.drawPoint(myVertex[0], myVertex[1], myVertex[2]);
+         //         }
          
       }
       renderer.setShading (savedShading);

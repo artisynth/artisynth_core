@@ -11,13 +11,19 @@ ARTISYNTH_CORE_DIR = $(ROOT_DIR)/../artisynth_core
 endif
 CLASS_ROOT_DIR := .:$(ROOT_DIR)/classes:$(ARTISYNTH_CORE_DIR)/classes
 
+ifndef SYSTEM
 SYSTEM = $(shell uname)
+endif
+
+ifndef ARCH
 MACHINE = $(shell uname -m) # not sure how portable this is ...
 ifeq ($(findstring 64,$(MACHINE)),64)
    ARCH = 64
 else
    ARCH = 32
 endif
+endif
+
 ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
    # If we are compiling under cygwin, we may need to set ARCH=64
    # explicitly, because cygwin often runs as 32-bits even on 64 bit
@@ -81,6 +87,33 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	SEMICOLON = ;
 	CLASS_ROOT_DIR := $(subst $(COLON),$(SEMICOLON),$(CLASS_ROOT_DIR))
 	CLASS_ROOT_DIR := "$(subst /,\,$(CLASS_ROOT_DIR))"
+	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static-libgcc
+else ifeq ($(findstring MINGW,$(SYSTEM)),MINGW)
+	X_FLAGS = -D_JNI_IMPLEMENTATION_
+	ifeq ($(ARCH), 64)
+	   NATIVE_DIR = Windows64
+	   C_COMP = x86_64-w64-mingw32-gcc # Mingw-w64, gcc, 64 bit target
+	   C_FLAGS += -static-libgcc
+	   CC_COMP = x86_64-w64-mingw32-g++ # Mingw-w64, g++, 64 bit target 
+           CC_FLAGS += -static-libstdc++
+	   X_FLAGS += -m64 -DPTR_EXCEEDS_LONG -DAMD_64
+	else
+	   NATIVE_DIR = Windows
+	   C_COMP = i686-w64-mingw32-gcc # Mingw-w64, gcc, 32 bit target
+	   C_FLAGS += -static-libgcc
+	   CC_COMP = i686-w64-mingw32-g++ # Mingw-w64, g++, 32 bit target
+	   CC_FLAGS += -static-libstdc++
+	endif
+	ifndef JAVA_HOME
+	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_24
+	endif
+	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32"  -I"$(JAVA_HOME)/include/linux"
+	TETGEN_TARGET = TetgenJNI.$(TETGEN_VERSION).dll
+	ROBUST_TARGET = RobustPreds.1.0.dll
+	ROBUST_TARGET_OLD = RobustPreds.0.0.dll
+	SHEWCHUK_DEF = -DCPU86
+	COLON = :
+	SEMICOLON = ;
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static-libgcc
 else ifeq ($(SYSTEM),Darwin)
         # XXX assume that all MacOS systems are 64 bit. That's because

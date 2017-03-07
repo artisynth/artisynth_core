@@ -3288,5 +3288,31 @@ public class MeshFactory {
       out.set(pnts, faces);
       return out;
    }
+   
+   /**
+    * Create a new PolygonalMesh from a subset of faces.  Vertices are
+    * copied, so no longer reference the original mesh.
+    * @param faces set of faces
+    * @return new mesh containing copy
+    */
+   public static PolygonalMesh createFromFaces(Iterable<Face> faces) {
+      PolygonalMesh out = new PolygonalMesh();
+      HashMap<Vertex3d, Vertex3d> vtxMap = new HashMap<>();
+      
+      for (Face f : faces) {
+         Vertex3d[] ovtxs = f.getVertices();
+         for (int i=0; i<ovtxs.length; ++i) {
+            Vertex3d nvtx = vtxMap.get(ovtxs[i]);
+            if (nvtx == null) {
+               nvtx = out.addVertex(ovtxs[i].getPosition());
+               vtxMap.put(ovtxs[i], nvtx);
+            }
+            ovtxs[i] = nvtx;
+         }
+         out.addFace(ovtxs);
+      }
+      
+      return out;
+   }
 
 }

@@ -8,14 +8,15 @@ package maspack.geometry;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
-import maspack.util.InternalErrorException;
 import maspack.util.ArraySupport;
+import maspack.util.InternalErrorException;
 
 public class Face extends Feature implements Boundable {
    HalfEdge he0; // half edge associated with first vertex
@@ -118,6 +119,76 @@ public class Face extends Feature implements Boundable {
       }
       while (he != he0);
       return idxs;
+   }
+   
+   private class VertexIterator implements Iterator<Vertex3d> {
+
+      HalfEdge he;
+      VertexIterator() {
+         // dummy pointing to starting vertex
+         he = new HalfEdge();  
+         he.head = he0.head;
+         he.next = he0.next; 
+      }
+      
+      @Override
+      public boolean hasNext() {
+         return (he != he0);
+      }
+
+      @Override
+      public Vertex3d next() {
+         Vertex3d out = he.head;
+         he = he.next;
+         return out;
+      }
+
+      @Override
+      public void remove() throws UnsupportedOperationException {
+         throw new UnsupportedOperationException();
+      }
+   }
+   
+   private class EdgeIterator implements Iterator<HalfEdge> {
+      HalfEdge he;
+      EdgeIterator() {
+         he = null;
+      }
+      
+      @Override
+      public boolean hasNext() {
+         return (he != he0);
+      }
+      @Override
+      public HalfEdge next() {
+         HalfEdge out = he;
+         if (he == null) {
+            out = he0;
+         }
+         he = out.next;
+         return out;
+      }
+
+      @Override
+      public void remove() throws UnsupportedOperationException {
+         throw new UnsupportedOperationException();
+      }
+   }
+   
+   /**
+    * Iterator for looping over vertices
+    * @return vertex iterator
+    */
+   public Iterator<Vertex3d> vertexIterator() {
+      return new VertexIterator();
+   }
+   
+   /**
+    * Iterator for looping over edges
+    * @return edge iterator
+    */
+   public Iterator<HalfEdge> edgeIterator() {
+      return new EdgeIterator();
    }
 
    public Vector3d getWorldNormal() {

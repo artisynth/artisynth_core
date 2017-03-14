@@ -161,7 +161,7 @@ public class SignedDistanceGridTest {
          int x = i % gridSize[0];
          // translate to mesh coordinates.
          double currentPoint[] = new double[3];
-         currentPoint = g.getMeshCoordinatesFromGrid(x, y, z);
+         g.getMeshCoordinatesFromGrid(x, y, z, currentPoint);
          // If our point lies inside all the boundaries
          if ((currentPoint[0] > min.x && currentPoint[0] < max.x) &&
              (currentPoint[1] > min.y && currentPoint[1] < max.y) &&

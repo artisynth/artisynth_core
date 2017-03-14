@@ -476,11 +476,15 @@ public class MenuBarHandler implements
       public void run() {
          if (menuFile != null && menuFile.exists()) {
             ArtisynthModelMenu generator = readDemoMenu(menuFile.getAbsolutePath());
-            populateModelMenu(generator, menu);
-            // save as cache
-            File cachedMenu = getMenuCacheFile(menuFile.getName());
-            generator.write(cachedMenu);
-            myModelsMenuGenerator = generator;
+            
+            // XXX only replace menu if it differs from current menu
+            if (myModelsMenuGenerator == null || !generator.getMenuTree().equalsTree(myModelsMenuGenerator.getMenuTree())) {
+               populateModelMenu(generator, menu);
+               // save as cache
+               File cachedMenu = getMenuCacheFile(menuFile.getName());
+               generator.write(cachedMenu);
+               myModelsMenuGenerator = generator;
+            }
          }
       }
       

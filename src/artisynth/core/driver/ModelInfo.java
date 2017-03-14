@@ -1,5 +1,7 @@
 package artisynth.core.driver;
 
+import java.util.Arrays;
+
 /**
  * For better handling of loading models in Main
  * @author antonio
@@ -65,6 +67,62 @@ public class ModelInfo {
       }
       return ModelType.FILE;
       
+   }
+   
+   @Override
+   public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Arrays.hashCode(args);
+      result = prime * result
+            + ((classNameOrFile == null) ? 0 : classNameOrFile.hashCode());
+      result = prime * result + ((shortName == null) ? 0 : shortName.hashCode());
+      result = prime * result + ((type == null) ? 0 : type.hashCode());
+      return result;
+   }
+
+   @Override
+   public boolean equals(Object obj) {
+      if (this == obj) {
+         return true;
+      }
+      if (obj == null) {
+         return false;
+      }
+      if (getClass() != obj.getClass()) {
+         return false;
+      }
+      
+      ModelInfo other = (ModelInfo)obj;
+      if (!Arrays.equals(args, other.args)) {
+         return false;
+      }
+      
+      if (type != other.type) {
+         return false;
+      }
+      if (classNameOrFile == null) {
+         if (other.classNameOrFile != null) {
+            return false;  
+         }
+      } else if (!classNameOrFile.equals(other.classNameOrFile)) {
+         return false;
+      }
+      
+      if (shortName == null) {
+         if (other.shortName != null) {
+            return false;
+         }
+      } else if (!shortName.equals(other.shortName)) {
+         return false;
+      }
+      
+      return true;
+   }
+   
+   @Override
+   public String toString() {
+      return classNameOrFile + (args == null ? "" : Arrays.toString(args));
    }
    
 }

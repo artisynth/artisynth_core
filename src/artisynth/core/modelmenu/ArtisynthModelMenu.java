@@ -52,6 +52,10 @@ public class ArtisynthModelMenu {
       
    }
    
+   public Tree<MenuNode> getMenuTree() {
+      return menuTree;
+   }
+   
    public void write(File file) {
       DemoMenuParser.writeXML(file, menuTree);
    }
@@ -381,6 +385,8 @@ public class ArtisynthModelMenu {
          
       }
    }
+   
+   
    
    public static void main(String[] args) {
       File file = new File("demoMenu.xml");

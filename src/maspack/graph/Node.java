@@ -7,6 +7,7 @@
 package maspack.graph;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -279,7 +280,92 @@ public class Node<T> {
       }
       removeAllChildren();
    }
+   
+   private static class NodeEqualityWrapper<T> {
+      Node<T> node;
+      public NodeEqualityWrapper(Node<T> node) {
+         this.node = node;
+      }
+      public Node<T> node() {
+         return node;
+      }
+      
+      @Override
+      public int hashCode() {
+         int hc = 0;
+         if (node.data != null) {
+            hc = node.data.hashCode();
+         }
+         hc = hc*31+node.children.size();
+         return hc;
+      }
+      
+      @Override
+      public boolean equals(Object obj) {
+        if (obj == this) {
+           return true;
+        }
+        if (obj == null) {
+           return false;
+        }
+        if (!(obj instanceof NodeEqualityWrapper)) {
+           return false;
+        }
+        
+        @SuppressWarnings("unchecked")
+        NodeEqualityWrapper<T> other = (NodeEqualityWrapper<T>)obj;
+        return node.equalsNode(other.node);
+        
+      }
+   }
+   
 
+   /**
+    * Value-equality of nodes and all children (i.e. entire tree)
+    * @param node
+    * @return true if equals, false otherwise
+    */
+   public boolean equalsNode(Node<T> node) {
+      if (node == null) {
+         return false;
+      }
+      if (this == node) {
+         return true;
+      }
+      
+      if (data != null) {
+         if (!data.equals(node.data)) {
+            return false;
+         }
+      } else if (node.data != null) {
+         return false;
+      }
+      
+      // children, assume consistent parents
+      if (children.size() != node.children.size()) {
+         return false;
+      }
+      
+      // check that each child exists in other (set equality)
+      HashSet<NodeEqualityWrapper<T>> childSet = new HashSet<NodeEqualityWrapper<T>>();
+      for (Node<T> child : children) {
+         childSet.add(new NodeEqualityWrapper<>(child));
+      }
+      
+      HashSet<NodeEqualityWrapper<T>> otherChildSet = new HashSet<NodeEqualityWrapper<T>>();
+      for (Node<T> child : node.children) {
+         otherChildSet.add(new NodeEqualityWrapper<>(child));
+      }
+      
+      boolean setsEqual = childSet.equals(otherChildSet);
+      
+      if (!setsEqual) {
+         System.err.println("hmm... apparently trees are not equal");
+      }
+      
+      return setsEqual;
+   }
+   
    /**
     * merges children with equal content, reducing branches
     */

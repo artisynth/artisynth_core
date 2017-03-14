@@ -17,7 +17,7 @@ import java.util.List;
  * pre-order traversal. It has several methods to allow easy updation of Nodes
  * in the Tree.
  * 
- * Taken from: http://sujitpal.blogspot.ca/2006/05/java-data-structure-generic-tree.html
+ * Modified from: http://sujitpal.blogspot.ca/2006/05/java-data-structure-generic-tree.html
  * 
  */
 public class Tree<T> {
@@ -38,6 +38,22 @@ public class Tree<T> {
     public Tree(Node<T> root) {
        super();
        setRootElement (root);
+    }
+    
+    /**
+     * Value equality
+     * @param tree
+     * @return
+     */
+    public boolean equalsTree(Tree<T> tree) {
+       if (tree == null) {
+          return false;
+       }
+       if (this == tree) {
+          return true;
+       }
+       
+       return rootElement.equalsNode(tree.getRootElement());
     }
     
     /**

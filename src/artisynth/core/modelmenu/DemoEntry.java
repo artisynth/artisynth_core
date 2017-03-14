@@ -36,10 +36,32 @@ public class DemoEntry extends MenuNode {
    }
 
    @Override
+   public int hashCode() {
+      return super.hashCode()*31 + model.hashCode();
+   }
+   
+   @Override
    public boolean equals(Object obj) {
-      if (!(obj instanceof DemoEntry)) { return false; }
-      boolean res = super.equals((MenuNode) obj);
-      res = res && (model.equals(((DemoEntry) obj).model));
-      return res;
+      if (obj == null) {
+         return false;
+      }
+      if (obj == this) {
+         return true;
+      }
+      if (obj.getClass() != getClass()) {
+         return false;
+      }
+      
+      DemoEntry other = (DemoEntry)obj;
+      if (!(model.equals(other.model))) {
+         return false;
+      }
+      
+      return super.equals(other);
+   }
+   
+   @Override
+   public String toString() {
+      return model.toString();
    }
 }

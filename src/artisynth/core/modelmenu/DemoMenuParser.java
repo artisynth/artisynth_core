@@ -83,6 +83,8 @@ public class DemoMenuParser {
          throw e;
       }
    }
+   
+   private static final String DIVIDER_TITLE = "<divider>";
 
    public static final String ROOT_TAG = "ModelMenu";
    public static final String MENU_TAG = "menu";
@@ -387,7 +389,7 @@ public class DemoMenuParser {
 
          // add a divider
       } else if (el.getNodeName().equals(DIVIDER_TAG)) {
-         DividerEntry div = new DividerEntry("<divider>");
+         DividerEntry div = new DividerEntry(DIVIDER_TITLE);
          node.addChild(new Node<MenuNode>(div));
 
          // add a text label
@@ -1054,7 +1056,7 @@ public class DemoMenuParser {
          if ((typeA != typeB) && (typeA != MenuType.DIVIDER)
             && (typeB != MenuType.DIVIDER)) {
             root.insertChildAt(i, new Node<MenuNode>(new DividerEntry(
-               "<inserted divider>")));
+              DIVIDER_TITLE)));
             i = i++; // skip divider
          }
          i++;

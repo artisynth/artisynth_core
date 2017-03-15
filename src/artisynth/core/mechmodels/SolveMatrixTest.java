@@ -18,6 +18,12 @@ public class SolveMatrixTest {
    MatrixNd myKnumeric;
 
    public double testStiffness (MechSystemBase sys, double h) {
+      return testStiffness (sys, h, /*printMatrices=*/false);
+   }         
+
+   public double testStiffness (
+      MechSystemBase sys, double h, boolean printMatrices) {
+
       myS = new SparseNumberedBlockMatrix();
       myVsize = sys.getActiveVelStateSize();
       myQsize = sys.getActivePosStateSize();
@@ -83,11 +89,13 @@ public class SolveMatrixTest {
       MatrixNd Sdense = new MatrixNd (myS);
       Sdense.getSubMatrix (0, 0, myK);
 
-      //System.out.println ("K=\n" + myK.toString ("%8.3f"));
-      //System.out.println ("Knumeric=\n" + myKnumeric.toString ("%8.3f"));
-      //MatrixNd ERR = new MatrixNd (myK);
-      //ERR.sub (myKnumeric);
-      //System.out.println ("Err=\n" + ERR.toString ("%8.3f"));
+      if (printMatrices) {
+         System.out.println ("K=\n" + myK.toString ("%8.3f"));
+         System.out.println ("Knumeric=\n" + myKnumeric.toString ("%8.3f"));
+         MatrixNd ERR = new MatrixNd (myK);
+         ERR.sub (myKnumeric);
+         System.out.println ("Err=\n" + ERR.toString ("%8.3f"));
+      }
 
       double norm = Math.max (myK.infinityNorm(), myKnumeric.infinityNorm());
       return getKerror().infinityNorm()/norm;

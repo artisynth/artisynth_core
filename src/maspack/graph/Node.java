@@ -359,10 +359,6 @@ public class Node<T> {
       
       boolean setsEqual = childSet.equals(otherChildSet);
       
-      if (!setsEqual) {
-         System.err.println("hmm... apparently trees are not equal");
-      }
-      
       return setsEqual;
    }
    

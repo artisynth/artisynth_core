@@ -1126,12 +1126,6 @@ public class GL3Debug implements GL3 {
       gl.glGetBooleanv(arg0, arg1);
    }
 
-   @Deprecated
-   public int glGetBoundBuffer(int target) {
-      System.out.println("glGetBoundBuffer(" + target + ")");
-      return gl.glGetBoundBuffer(target);
-   }
-
    public void glGetBufferParameteri64v(
       int arg0, int arg1, long[] arg2, int arg3) {
       System.out.println("glGetBufferParameteri64v(" + arg0 + "," + arg1 + "," + arg2 + "," + arg3 + ")");
@@ -1164,12 +1158,6 @@ public class GL3Debug implements GL3 {
       int arg0, int arg1, LongBuffer arg2) {
       System.out.println("glGetBufferParameterui64vNV(" + arg0 + "," + arg1 + "," + arg2 + ")");
       gl.glGetBufferParameterui64vNV(arg0, arg1, arg2);
-   }
-
-   @Deprecated
-   public long glGetBufferSize(int bufferName) {
-      System.out.println("glGetBufferSize(" + bufferName + ")");
-      return gl.glGetBufferSize(bufferName);
    }
 
    public void glGetBufferSubData(int arg0, long arg1, long arg2, Buffer arg3) {
@@ -1944,18 +1932,6 @@ public class GL3Debug implements GL3 {
       return gl.glIsNamedStringARB(arg0, arg1);
    }
 
-   @Deprecated
-   public boolean glIsPBOPackBound() {
-      System.out.println("glIsPBOPackBound()");
-      return gl.glIsPBOPackBound();
-   }
-
-   @Deprecated
-   public boolean glIsPBOUnpackBound() {
-      System.out.println("glIsPBOUnpackBound()");
-      return gl.glIsPBOUnpackBound();
-   }
-
    public boolean glIsProgram(int arg0) {
       System.out.println("glIsProgram(" + arg0 + ")");
       return gl.glIsProgram(arg0);
@@ -1989,18 +1965,6 @@ public class GL3Debug implements GL3 {
    public boolean glIsTexture(int arg0) {
       System.out.println("glIsTexture(" + arg0 + ")");
       return gl.glIsTexture(arg0);
-   }
-
-   @Deprecated
-   public boolean glIsVBOArrayBound() {
-      System.out.println("glIsVBOArrayBound()");
-      return gl.glIsVBOArrayBound();
-   }
-
-   @Deprecated
-   public boolean glIsVBOElementArrayBound() {
-      System.out.println("glIsVBOElementArrayBound()");
-      return gl.glIsVBOElementArrayBound();
    }
 
    public boolean glIsVertexArray(int arg0) {

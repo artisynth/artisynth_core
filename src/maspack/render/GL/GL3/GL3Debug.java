@@ -1128,8 +1128,7 @@ public class GL3Debug implements GL3 {
 
    @Deprecated
    public int glGetBoundBuffer(int target) {
-      System.out.println("glGetBoundBuffer(" + target + ")");
-      return gl.glGetBoundBuffer(target);
+      return -1;
    }
 
    public void glGetBufferParameteri64v(
@@ -1168,8 +1167,7 @@ public class GL3Debug implements GL3 {
 
    @Deprecated
    public long glGetBufferSize(int bufferName) {
-      System.out.println("glGetBufferSize(" + bufferName + ")");
-      return gl.glGetBufferSize(bufferName);
+      return -1;
    }
 
    public void glGetBufferSubData(int arg0, long arg1, long arg2, Buffer arg3) {
@@ -1946,14 +1944,12 @@ public class GL3Debug implements GL3 {
 
    @Deprecated
    public boolean glIsPBOPackBound() {
-      System.out.println("glIsPBOPackBound()");
-      return gl.glIsPBOPackBound();
+      return false;
    }
 
    @Deprecated
    public boolean glIsPBOUnpackBound() {
-      System.out.println("glIsPBOUnpackBound()");
-      return gl.glIsPBOUnpackBound();
+      return false;
    }
 
    public boolean glIsProgram(int arg0) {
@@ -1993,14 +1989,12 @@ public class GL3Debug implements GL3 {
 
    @Deprecated
    public boolean glIsVBOArrayBound() {
-      System.out.println("glIsVBOArrayBound()");
-      return gl.glIsVBOArrayBound();
+      return false;
    }
 
    @Deprecated
    public boolean glIsVBOElementArrayBound() {
-      System.out.println("glIsVBOElementArrayBound()");
-      return gl.glIsVBOElementArrayBound();
+      return false;
    }
 
    public boolean glIsVertexArray(int arg0) {

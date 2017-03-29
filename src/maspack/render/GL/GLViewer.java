@@ -105,7 +105,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    /**
     * Whether to use a GLJPanel or GLCanvas
     */
-   public static boolean useGLJPanel = false;
+   public static boolean useGLJPanel = true;
    
    // Disposal
    GLGarbageBin<GLResource> myGLGarbageBin;
@@ -2041,9 +2041,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       // assign current drawable
       this.drawable = drawable;
       
-      GLSupport.checkAndPrintGLError(drawable.getGL());
+      // reset attributes due to possible change by GLJPanel
+      if (useGLJPanel) {
+         myCommittedViewerState = null;
+         myCommittedColor = null;      
+      }
       
-
       int flags = myRenderFlags.get();
 
       // check if gamma property needs to be changed

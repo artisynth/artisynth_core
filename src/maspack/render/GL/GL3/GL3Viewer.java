@@ -352,6 +352,11 @@ public class GL3Viewer extends GLViewer {
       this.drawable = drawable;
       this.gl = GL3Utilities.wrap(drawable.getGL ().getGL3 ());
 
+      // reset state (necessary because of GLJPanel)
+      if (useGLJPanel) {
+         myCommittedProgram = null;
+      }
+      
       try {
       
          if (!myInternalRenderListValid) {
@@ -418,11 +423,11 @@ public class GL3Viewer extends GLViewer {
       }
       
       //      // XXX code to display info on the buffer
-      //         ByteBuffer pixels = BufferUtilities.newNativeByteBuffer(4*width*height);
-      //         gl.glReadPixels(0, 0, width, height, GL3.GL_RGBA, GL.GL_UNSIGNED_BYTE, pixels);
-      //         GLSupport.showImage(pixels, width, height);
-      //         BufferUtilities.freeDirectBuffer(pixels);
-      //         GLSupport.checkAndPrintGLError(gl);
+      //      ByteBuffer pixels = BufferUtilities.newNativeByteBuffer(4*width*height);
+      //      gl.glReadPixels(0, 0, width, height, GL3.GL_RGBA, GL.GL_UNSIGNED_BYTE, pixels);
+      //      GLSupport.showImage(pixels, width, height);
+      //      BufferUtilities.freeDirectBuffer(pixels);
+      //      GLSupport.checkAndPrintGLError(gl);
 
       this.drawable = null;
       this.gl = null;

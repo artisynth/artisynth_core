@@ -107,6 +107,51 @@ public abstract class GLDrawableComponent {
    }
    
    /**
+    * Gets the preferred size for the underlying AWT component
+    * @return preferred size (width/height)
+    * @see Component#getPreferredSize()
+    */
+   public Dimension getPreferredSize() {
+      return component.getPreferredSize();
+   }
+   
+   /**
+    * Sets the minimum size for the underlying AWT component
+    * @param minimumSize width/height dimension
+    * @see Component#setMinimumSize(Dimension)
+    */
+   public void setMinimumSize(Dimension minimumSize) {
+      component.setMinimumSize(minimumSize);
+   }
+   
+   /**
+    * Gets the minimum size for the underlying AWT component
+    * @return minimum size (width/height)
+    * @see Component#getMinimumSize()
+    */
+   public Dimension getMinimumSize() {
+      return component.getMinimumSize();
+   }
+   
+   /**
+    * Sets the maximum size for the underlying AWT component
+    * @param maximumSize width/height dimension
+    * @see Component#setMaximumSize(Dimension)
+    */
+   public void setMaximumSize(Dimension maximumSize) {
+      component.setMaximumSize(maximumSize);
+   }
+   
+   /**
+    * Gets the maximum size for the underlying AWT component
+    * @return maximum size (width/height)
+    * @see Component#getMaximumSize()
+    */
+   public Dimension getMaximumSize() {
+      return component.getMaximumSize();
+   }
+   
+   /**
     * Resizes the underlying AWT component
     * @param width pixel width
     * @param height pixel height
@@ -126,20 +171,39 @@ public abstract class GLDrawableComponent {
    }
    
    /**
-    * Gets the pixel width of the underlying component
+    * Gets the pixel width of the underlying AWT component
     * @return pixel width
-    * @see Component#getWidth()
+    * @see Component#getWidth
     */
    public int getWidth() {
       return component.getWidth();
    }
    
    /**
-    * Gets the pixel height of the underlying component
+    * Gets the pixel height of the underlying AWT component
     * @return pixel height
+    * @see Component#getHeight
     */
    public int getHeight() {
       return component.getHeight();
+   }
+   
+   /**
+    * Gets the x component of the origin of the underlying AWT component
+    * @return origin x component
+    * @see Component#getY()
+    */
+   public int getX() {
+      return component.getX();
+   }
+   
+   /**
+    * Gets the y component of the origin of the underlying AWT component
+    * @return origin y component
+    * @see Component#getX()
+    */
+   public int getY() {
+      return component.getY();
    }
    
    /**

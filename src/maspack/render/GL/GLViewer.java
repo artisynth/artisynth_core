@@ -179,6 +179,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          return vs;
       }
    }
+
    protected ViewState myViewState = null;
    protected LinkedList<ViewState> viewStateStack = null;
    protected ViewerState myCommittedViewerState = null;    // "committed" viewer state
@@ -1166,6 +1167,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return height;
    }
 
+   public int getScreenX() {
+      return canvas.getX();
+   }
+
+   public int getScreenY() {
+      return canvas.getY();
+   }
+
    public GL getGL() {
       if (drawable != null) {
          return drawable.getGL();
@@ -1349,7 +1358,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * @param yang
     * amount of vertical rotation (in radians)
     */
-   protected void rotate (double xang, double yang) {
+   public void rotate (double xang, double yang) {
 
       switch (myRotationMode) {
          case CONTINUOUS:

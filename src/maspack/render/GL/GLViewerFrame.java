@@ -21,7 +21,7 @@ public class GLViewerFrame extends JFrame {
    private static final long serialVersionUID = 1L;
    protected GLViewer viewer;
    
-   protected static GLViewer.GLVersion defaultVersion = GLViewer.GLVersion.GL2;
+   protected static GLViewer.GLVersion defaultVersion = GLViewer.GLVersion.GL3;
 
    public GLViewer getViewer() {
       return viewer;

@@ -17,10 +17,10 @@ import javax.media.opengl.GLDrawableFactory;
 import javax.media.opengl.GLEventListener;
 import javax.media.opengl.GLProfile;
 import javax.media.opengl.awt.GLCanvas;
-import javax.media.opengl.awt.GLJPanel;
 
 import maspack.render.TextureContent;
 import maspack.render.TextureContent.ContentFormat;
+import maspack.render.GL.jogl.GLJPanel;
 import maspack.util.BufferUtilities;
 import maspack.util.Logger;
 import maspack.util.Rectangle;
@@ -38,7 +38,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    
    GLCapabilities glCapabilities;
    GLAutoDrawable masterDrawable;
-   HashSet<GLViewer> viewers;
+   HashSet<Object> viewers;
    
    GLResourceList<GLResource> resources;
    HashMap<TextureContent, GLTexture> textureMap;
@@ -49,7 +49,6 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    MasterRedrawThread masterRedrawThread;
    GLGarbageCollector garbageman;
    GLGarbageBin<GLResource> garbagebin;
-   
    
    private static class MasterRedrawThread extends Thread {
       
@@ -172,7 +171,6 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    public synchronized GLCanvas createCanvas() {
       
       maybeCreateMaster();
-      
       GLCanvas canvas = new GLCanvas (glCapabilities);
       canvas.setSharedAutoDrawable (masterDrawable);
       canvas.setDefaultCloseOperation (WindowClosingMode.DISPOSE_ON_CLOSE);
@@ -191,6 +189,9 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       GLJPanel panel = new GLJPanel (glCapabilities);
       panel.setSharedAutoDrawable (masterDrawable);
       panel.setDefaultCloseOperation (WindowClosingMode.DISPOSE_ON_CLOSE);
+      panel.setFocusable(true);
+      panel.setRequestFocusEnabled(true);
+      panel.requestFocus();
       return panel;
    }
    
@@ -199,7 +200,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
     * MUST BE CALLED IN THE GLViewer's CONSTRUCTOR!!
     * @param viewer the viewer with which to share resources.
     */
-   public synchronized void registerViewer(GLViewer viewer) {
+   public synchronized void registerViewer(Object viewer) {
       viewers.add (viewer);
    }
    
@@ -208,7 +209,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
     * MUST BE CALLED IN THE GLViewer's dispose() METHOD.
     * @param viewer
     */
-   public synchronized void deregisterViewer(GLViewer viewer) {
+   public synchronized void deregisterViewer(Object viewer) {
       viewers.remove (viewer);
       if (viewers.size () == 0) {
          if (masterDrawable != null) {

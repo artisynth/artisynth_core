@@ -199,7 +199,7 @@ public class MultiViewer {
                   final FPSMonitor fpsMonitor;
                   
                   if (MultiViewer.doFPS) {
-                     animator = new FPSAnimator(viewer.getCanvas(), FPS, true);
+                     animator = new FPSAnimator(viewer.getCanvas().getDrawable(), FPS, true);
                      animator.setUpdateFPSFrames(3, null);
                      animator.start();
                      fpsMonitor = new FPSMonitor(title + " FPS: ", animator);
@@ -211,7 +211,7 @@ public class MultiViewer {
                   
                   // Create the top-level container
                   frame = new JFrame(); // Swing's JFrame or AWT's Frame
-                  frame.add(viewer.getCanvas());
+                  frame.add(viewer.getCanvas().getComponent());
 
                   frame.addWindowListener(new WindowAdapter() {
                      @Override

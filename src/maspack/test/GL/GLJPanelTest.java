@@ -10,9 +10,10 @@ import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLCapabilities;
 import javax.media.opengl.GLEventListener;
 import javax.media.opengl.GLProfile;
-import javax.media.opengl.awt.GLJPanel;
 
 import com.jogamp.opengl.util.FPSAnimator;
+
+import maspack.render.GL.jogl.GLJPanel;
 
 public class GLJPanelTest implements GLEventListener {
 

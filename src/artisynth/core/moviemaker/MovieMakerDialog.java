@@ -443,15 +443,17 @@ implements ActionListener, ValueChangeListener {
 
       viewerCapture = true;
       customCapture = false;
-      setCaptureArea (myFrame.getViewer().getCanvas());
+      
+      final Component displayComponent = myFrame.getViewer().getCanvas().getComponent();
+      setCaptureArea (displayComponent);
 
-      myFrame.getViewer().getCanvas().addComponentListener(
+      displayComponent.addComponentListener(
          new ComponentListener() {
             public void componentHidden (ComponentEvent c_evt) {}
 
             public void componentMoved (ComponentEvent c_evt) {
                if (!customCapture && viewerCapture) {
-                  setCaptureArea (myFrame.getViewer().getCanvas());
+                  setCaptureArea (displayComponent);
                }
                else if (!customCapture && !viewerCapture) {
                   setCaptureArea (myFrame);
@@ -460,7 +462,7 @@ implements ActionListener, ValueChangeListener {
 
             public void componentResized (ComponentEvent c_evt) {
                if (!customCapture && viewerCapture) {
-                  setCaptureArea (myFrame.getViewer().getCanvas());               
+                  setCaptureArea (displayComponent);               
                }
                else if (!customCapture && !viewerCapture) {
                   setCaptureArea (myFrame);
@@ -944,7 +946,7 @@ implements ActionListener, ValueChangeListener {
          showCaptureFrame.setEnabled (false);
          setAreaSelectionFrame (null);
 
-         setCaptureArea (myFrame.getViewer().getCanvas());
+         setCaptureArea (myFrame.getViewer().getCanvas().getComponent());
          viewWindowButton.setBorder (new BevelBorder(BevelBorder.LOWERED));
          fullWindowButton.setBorder (new BevelBorder(BevelBorder.RAISED));
          customWindowButton.setBorder (new BevelBorder (BevelBorder.RAISED));

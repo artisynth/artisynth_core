@@ -104,7 +104,7 @@ public class ViewerPopupManager implements ActionListener {
          new PropertyDialog (
             "Viewer properties", tree, hostList, controlStr);
 
-      dialog.locateRight (myViewer.getCanvas());
+      dialog.locateRight (myViewer.getCanvas().getComponent());
       dialog.addGlobalValueChangeListener (new RerenderListener());
       registerDialog (dialog);
       return dialog;

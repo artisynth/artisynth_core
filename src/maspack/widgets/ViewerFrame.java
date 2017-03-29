@@ -58,7 +58,7 @@ public class ViewerFrame extends JFrame
    public ViewerFrame (String name, int width, int height) {
       super (name);
       viewer = new GL2Viewer (width, height);
-      getContentPane().add (viewer.getCanvas());
+      getContentPane().add (viewer.getCanvas().getComponent());
       viewer.addRenderListener (this);
       pack();
    }
@@ -72,7 +72,7 @@ public class ViewerFrame extends JFrame
       super (name);
       viewer = new GL2Viewer(shareWith, width, height);
       setUndecorated (undecorated);
-      getContentPane().add (viewer.getCanvas());
+      getContentPane().add (viewer.getCanvas().getComponent());
       viewer.addRenderListener (this);
       pack();
    }

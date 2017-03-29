@@ -8,9 +8,6 @@ package maspack.render.GL;
 
 import java.awt.Dimension;
 import java.awt.Rectangle;
-import java.awt.event.ContainerAdapter;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
@@ -49,7 +46,7 @@ public class GLViewerPanel extends JPanel {
             throw new IllegalArgumentException (
                "Unimplemented viewer type: " + vers);
       }
-      add (viewer.getCanvas());
+      add (viewer.getCanvas().getComponent());
    }
    
    public void dispose() {

@@ -1025,7 +1025,7 @@ public class MeshThicken extends ViewerFrame
          PropertyDialog dialog =
             PropertyDialog.createDialog (
                "Region properties", getSelectedRegions(),
-               "OK Cancel", viewer.getCanvas(), myRerenderListener);
+               "OK Cancel", viewer.getCanvas().getComponent(), myRerenderListener);
          if (dialog != null) {
             dialog.setVisible (true);
          }

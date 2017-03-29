@@ -195,7 +195,6 @@ public class GL3ProgramManager {
          throw new RuntimeException("Program failed to link.\n");
       }
 
-
       GLShaderProgram prog = new GLShaderProgram (progId);
       bindUBOs (gl, prog);
       prog.use (gl);

@@ -234,7 +234,7 @@ public class MeshViewer extends GLViewerFrame
    }
 
    private void exit(int retval) {
-      remove(viewer.getCanvas());
+      remove(viewer.getCanvas().getComponent());
       System.exit (retval);
    }
    

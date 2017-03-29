@@ -41,6 +41,7 @@ import maspack.render.RenderProps;
 import maspack.render.TextureContent;
 import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLDrawableComponent;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLLightManager;
@@ -248,7 +249,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       }
       myGLResources = resources;
       myGLResources.registerViewer (this);
-      canvas = myGLResources.createCanvas();
+      if (useGLJPanel) {
+         Logger.getSystemLogger().debug("Using GLJPanel");
+         canvas = GLDrawableComponent.create(myGLResources.createPanel());
+      } else {
+    	  canvas = GLDrawableComponent.create(myGLResources.createCanvas());
+      }
       
       primitives = new GL2Primitive[PrimitiveType.values ().length];
 

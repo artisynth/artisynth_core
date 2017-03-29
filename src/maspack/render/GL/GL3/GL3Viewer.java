@@ -5,7 +5,6 @@ import java.awt.Font;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -30,6 +29,7 @@ import maspack.render.RenderProps;
 import maspack.render.TextureContent;
 import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLClipPlane;
+import maspack.render.GL.GLDrawableComponent;
 import maspack.render.GL.GLFrameCapture;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLLightManager;
@@ -157,7 +157,13 @@ public class GL3Viewer extends GLViewer {
          resources = new GL3SharedResources(cap, attributeMap);
       }
       myGLResources = resources;
-      canvas = myGLResources.createCanvas();
+      if (useGLJPanel) {
+         Logger.getSystemLogger().debug("Using GLJPanel");
+         canvas = GLDrawableComponent.create(myGLResources.createPanel());
+      } else {
+         canvas = GLDrawableComponent.create(myGLResources.createCanvas());
+      }
+      
       myGLResources.registerViewer (this);
       myRenderObjectManager = new GL3RenderObjectManager (resources);
       
@@ -216,9 +222,6 @@ public class GL3Viewer extends GLViewer {
       setAxialView (DEFAULT_AXIAL_VIEW);
       setModelMatrix(RigidTransform3d.IDENTITY);
 
-      //      System.out.println(projectionMatrix);
-      //      System.out.println(viewMatrix);
-      //      System.out.println(modelMatrix);
    }
 
    @Override
@@ -232,7 +235,7 @@ public class GL3Viewer extends GLViewer {
       Logger logger = Logger.getSystemLogger();
       logger.info("GLSL Version: " + glslVersion);
       
-      gl.setSwapInterval (1);
+       gl.setSwapInterval (1);
 
       int[] buff = new int[1];
       gl.glGetIntegerv(GL3.GL_MAX_CLIP_DISTANCES, buff, 0);
@@ -271,7 +274,7 @@ public class GL3Viewer extends GLViewer {
             myGLResources.getVertexTexcoordAttribute ().getLocation (),
             myGLResources.getVertexPositionAttribute ().getLocation ())
          );
-      
+
       // create a basic position-based flexible object
       gloFlex = GL3FlexObject.generate (gl, 
          myGLResources.getVertexPositionAttribute (), myGLResources.getVertexNormalAttribute(), 
@@ -306,7 +309,7 @@ public class GL3Viewer extends GLViewer {
       super.dispose (drawable);
 
       this.drawable = drawable;
-      this.gl = GL3Utilities.wrap(drawable.getGL ().getGL3 ());
+      this.gl = GL3Utilities.wrap(drawable.getGL().getGL3 ());
       
       if (this.primitives != null) {
          for (int i=0; i<primitives.length; ++i) {
@@ -364,10 +367,13 @@ public class GL3Viewer extends GLViewer {
          // turn off buffer swapping when doing a selection render because
          // otherwise the previous buffer sometimes gets displayed
          drawable.setAutoSwapBufferMode (selectEnabled ? false : true);
+
          if (myProfiling) {
             myTimer.start();
          }
+      
          doDisplay (drawable, flags);
+         
          if (myProfiling) {
             myTimer.stop();
             System.out.printf (
@@ -411,9 +417,16 @@ public class GL3Viewer extends GLViewer {
          e.printStackTrace ();
       }
       
+      //      // XXX code to display info on the buffer
+      //         ByteBuffer pixels = BufferUtilities.newNativeByteBuffer(4*width*height);
+      //         gl.glReadPixels(0, 0, width, height, GL3.GL_RGBA, GL.GL_UNSIGNED_BYTE, pixels);
+      //         GLSupport.showImage(pixels, width, height);
+      //         BufferUtilities.freeDirectBuffer(pixels);
+      //         GLSupport.checkAndPrintGLError(gl);
+
       this.drawable = null;
       this.gl = null;
-   }
+   }   
 
    private void doDisplay(GLAutoDrawable drawable, int flags) {
       

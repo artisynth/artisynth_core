@@ -564,13 +564,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
    
    /**
-    * to create the new window frame
+    * Creates the new window frame
     * 
-    * @param windowName
-    * @param width
-    * @param height
+    * @param windowName name of window
+    * @param width width in pixels
+    * @param height height in pixels
     */
-
    public Main (String windowName, int width, int height, GLVersion glVersion) {
       myMain = this;
       
@@ -693,10 +692,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
    
    /**
-    * Sets the current log level for this application.  If no logger is specified using 
-    * {@link #setLogger(Logger)}, then the system logger is cloned and assigned in
-    * order to set the log level.
-    * @param level
+    * Sets the current log level for this application.  If no logger is
+    * specified using {@link #setLogger(Logger)}, then the system logger is
+    * cloned and assigned in order to set the log level.
+    * @param level log level
     */
    public void setLogLevel(LogLevel level) {
       if (myLogger == null) {
@@ -1665,7 +1664,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /**
     * set the mouse bindings
     * 
-    * @param prefs
+    * @param prefs name of the preferred mouse bindings
     */
    public void setMouseBindings (String prefs) {
 
@@ -1818,6 +1817,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
    protected static IntHolder glVersion = new IntHolder (3);
+   protected static BooleanHolder useGLJPanel = new BooleanHolder (false);
    protected static StringHolder logLevel = 
       new StringHolder(Logger.LogLevel.WARN.toString());
    protected static BooleanHolder testSaveRestoreState =
@@ -1957,7 +1957,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /**
     * the main entry point
     * 
-    * @param args
+    * @param args command line arguments
     */
    public static void main (String[] args) {
       IntHolder width = new IntHolder (750);
@@ -2053,6 +2053,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "#open a MATLAB connection if possible", openMatlab);
       parser.addOption (
          "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
+      parser.addOption (
+         "-useGLJPanel %v " +
+         "#use GLJPanel for creating the openGL viewer", useGLJPanel);
+      parser.addOption (
+         "-useGLCanvas %v{false} " +
+         "#use GLJCanvas for creating the openGL viewer", useGLJPanel);
       parser.addOption("-logLevel %s", logLevel);
       parser.addOption (
          "-testSaveRestoreState %v #test save/restore state when running models",
@@ -2248,6 +2254,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
       if (testSaveRestoreState.value) {
          RootModel.testSaveAndRestoreState = true;
+      }
+
+      if (useGLJPanel.value == true) {
+         maspack.render.GL.GLViewer.useGLJPanel = true;
       }
 
       if (noGui.value == true) {
@@ -2588,8 +2598,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /**
     * load the probes into the model
     * 
-    * @param file
-    * @throws IOException
+    * @param file file containing probe information
+    * @throws IOException if an I/O or syntax error occurred
     */
    public boolean loadProbesFile (File file) throws IOException {
       if (getWorkspace() == null) {
@@ -2654,8 +2664,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    /**
     * to save the probes file
     * 
-    * @param file
-    * @throws IOException
+    * @param file probe information file
+    * @throws IOException if an I/O error occurred
     */
    public boolean saveProbesFile (File file) throws IOException {
       if (getWorkspace() == null) {
@@ -2818,7 +2828,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * Set the current selection mode. Also set the display of the selection
     * buttons.
     * 
-    * @param selectionMode
+    * @param selectionMode selection mode
     */
    public void setSelectionMode (SelectionMode selectionMode) {
       if (mySelectionMode != selectionMode) {

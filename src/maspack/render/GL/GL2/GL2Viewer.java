@@ -819,8 +819,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             disableTransparency ();
          }
       }
-      
-      // XXX gl.glPopMatrix();
 
       // disable clipping planes
       for (int i=GL2.GL_CLIP_PLANE0; i<clipIdx; ++i) {
@@ -870,7 +868,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             end2DRendering();
          }
       }
-      // XXX gl.glPopMatrix();
 
       if (!isSelecting()) {
          if (myDragBox != null) {
@@ -878,6 +875,10 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          }
       }
 
+      // trigger update of state (required for GLJPanel, which relies on 
+      //                          transparency to be off)
+      maybeUpdateState(gl);
+      
       gl.glFlush();
    }
 

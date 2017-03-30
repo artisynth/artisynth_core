@@ -588,6 +588,10 @@ public class GL3Viewer extends GLViewer {
          gl.glClearColor (backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
       }
 
+      // trigger update of state (required for GLJPanel, which relies on 
+      //                          transparency to be off)
+      maybeUpdateState(gl);
+      
       gl.glFlush();
    }
 

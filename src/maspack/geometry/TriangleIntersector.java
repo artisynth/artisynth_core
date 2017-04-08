@@ -594,11 +594,11 @@ public class TriangleIntersector {
     * Determines the bary centric coordinates of a ray hitting a triangle.
     * 
     * @param v0
-    * The first vertice.
+    * The first vertex.
     * @param v1
-    * The second vertice.
+    * The second vertex.
     * @param v2
-    * The third vertice.
+    * The third vertex.
     * @param pos
     * The ray's origin.
     * @param dir

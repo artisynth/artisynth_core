@@ -81,7 +81,7 @@ elif [ -z "$ARTISYNTH_HOME" ] ; then
     export ARTISYNTH_PATH=".":$HOME:$ARTISYNTH_HOME
 fi
 ART=$ARTISYNTH_HOME
-# Classpath needs to be set to main classses directory and jar files
+# Classpath needs to be set to main classes directory and jar files
 # in $ARTISYNTH_HOME/lib
 if [ -z $CLASSPATH ]; then
    CLASSPATH=$ART/classes:$ART/lib/*

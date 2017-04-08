@@ -443,7 +443,7 @@ implements ActionListener, ValueChangeListener {
 
       viewerCapture = true;
       customCapture = false;
-      
+
       final Component displayComponent = myFrame.getViewer().getCanvas().getComponent();
       setCaptureArea (displayComponent);
 

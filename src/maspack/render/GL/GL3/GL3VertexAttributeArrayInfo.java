@@ -88,12 +88,7 @@ public class GL3VertexAttributeArrayInfo {
 
    public void bind(GL3 gl, int loc) {
       if (loc >= 0) {
-         gl.glEnableVertexAttribArray(loc);  // enable attribute
-         gl.glVertexAttribPointer(loc, storage.size (), storage.getGLType(),
-            storage.isNormalized (), stride, offset);
-         if (divisor > 0) {
-            gl.glVertexAttribDivisor(loc, divisor);
-         }
+         GL3Utilities.activateVertexAttribute(gl, loc, storage, stride, offset, divisor);
       } else {
          gl.glDisableVertexAttribArray (loc);
       }

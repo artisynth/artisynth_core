@@ -155,7 +155,7 @@ public abstract class NormalBufferPutter {
       
       @Override
       public GL3AttributeStorage storage() {
-         return new GL3AttributeStorage(StorageType.SIGNED_SHORT, 3, 4*GLSupport.SHORT_SIZE, true);
+         return GL3AttributeStorage.SHORT_N_3;
       }
    }
    

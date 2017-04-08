@@ -395,8 +395,7 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
          int loc = posAttribute.getLocation ();
          GL3AttributeStorage storage = positionPutter.storage ();
          vbos[positionInfo.vboIndex].bind (gl);
-         gl.glEnableVertexAttribArray (loc);
-         gl.glVertexAttribPointer (loc, storage.size (), storage.getGLType (), storage.isNormalized (), 
+         GL3Utilities.activateVertexAttribute(gl, loc, storage,
             positionInfo.stride, positionInfo.offset);
       }
 
@@ -404,8 +403,7 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
          int loc = nrmAttribute.getLocation ();
          GL3AttributeStorage storage = normalPutter.storage ();
          vbos[normalInfo.vboIndex].bind (gl);
-         gl.glEnableVertexAttribArray (loc);
-         gl.glVertexAttribPointer (loc, storage.size (), storage.getGLType (), storage.isNormalized (), 
+         GL3Utilities.activateVertexAttribute(gl, loc, storage,
             normalInfo.stride, normalInfo.offset);
       }
 
@@ -413,8 +411,7 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
          int loc = clrAttribute.getLocation ();
          GL3AttributeStorage storage = colorPutter.storage ();
          vbos[colorInfo.vboIndex].bind (gl);
-         gl.glEnableVertexAttribArray (loc);
-         gl.glVertexAttribPointer (loc, storage.size (), storage.getGLType (), storage.isNormalized (), 
+         GL3Utilities.activateVertexAttribute(gl, loc, storage, 
             colorInfo.stride, colorInfo.offset);
       }
 
@@ -422,8 +419,7 @@ public abstract class GL3SharedRenderObjectBase extends GL3ResourceBase {
          int loc = texAttribute.getLocation ();
          GL3AttributeStorage storage = texturePutter.storage ();
          vbos[textureInfo.vboIndex].bind (gl);
-         gl.glEnableVertexAttribArray (loc);
-         gl.glVertexAttribPointer (loc, storage.size (), storage.getGLType (), storage.isNormalized (), 
+         GL3Utilities.activateVertexAttribute(gl, loc, storage,
             textureInfo.stride, textureInfo.offset);
       }
    }

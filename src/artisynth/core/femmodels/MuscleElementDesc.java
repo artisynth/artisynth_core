@@ -661,6 +661,50 @@ public class MuscleElementDesc
       setDirection (dir);
    }
 
+public void interpolateIpntDirection (
+      DelaunayInterpolator interp, Vector3d[] restDirs) {
+
+      int[] idxs = new int[4];
+      double[] wghts = new double[4];
+      Vector3d dir = new Vector3d();
+      Point3d loc = new Point3d();
+
+      FemElement3d e = getElement();
+      
+      Vector3d[] dirs = myDirs;
+      if (dirs == null) {
+         return;
+      }
+      
+      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+      for (int j=0; j<e.numIntegrationPoints(); ++j) {
+         
+         if (dirs[j] != null) {
+            
+            ipnts[j].computePosition(loc, e);
+            interp.getInterpolation (wghts, idxs, loc);
+            
+            // arrange weights into ascending order
+            ArraySort.quickSort (wghts, idxs);
+            dir.setZero();
+            for (int i=3; i>=0; i--) {
+               if (idxs[i] != -1) {
+                  double w = wghts[i];
+                  // first time through, dir == 0 and so dot product == 0.
+                  if (dir.dot (restDirs[idxs[i]]) < 0) {
+                     w = -w;
+                  }
+                  dir.scaledAdd (w, restDirs[idxs[i]]);
+               }
+            }
+            
+            dirs[j].set(dir);
+         }
+      }
+      
+      myDirs = dirs;
+   }
+
    public FemElement3d getElement() {
       return myElement;
    }

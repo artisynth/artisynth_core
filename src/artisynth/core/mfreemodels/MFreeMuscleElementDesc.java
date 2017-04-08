@@ -83,6 +83,8 @@ public class MFreeMuscleElementDesc
 
    public MFreeMuscleElementDesc () {
       super();
+      myWidgetColor = new float[]{0.8f,0.8f,0.8f,1.0f};
+      myDirectionColor = new float[]{1.0f, 0.0f, 0.0f, 1.0f};
    }
 
    public MFreeMuscleElementDesc (MFreeElement3d elem, Vector3d dir) {

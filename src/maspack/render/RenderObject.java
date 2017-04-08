@@ -10,9 +10,21 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer.DrawMode;
+import maspack.util.Disposable;
+import maspack.util.DisposeObservable;
+import maspack.util.DisposeObserver.DisposeObserverImpl;
 import maspack.util.Versioned;
 
-public class RenderObject implements Versioned {
+/**
+ * Object containing information used for rendering, including
+ * <ul>
+ * <li><em>attribute data</em>, including positions, and (optionally) normals, colors, and texture coordinates.</i>
+ * <li><em>vertex data</em>, where each vertex points to a single position, as well as (optionally) a single normal, color, and texture attribute.</li>
+ * <li><em>primitive data</em>, consisting of zero or more "groups" of points, lines, and triangles.</li>
+ * </ul>
+ *
+ */
+public class RenderObject implements Versioned, DisposeObservable, Disposable {
 
    private static int nextIdNumber = 0;
    
@@ -29,16 +41,15 @@ public class RenderObject implements Versioned {
 //      TRIANGLE_FAN
 //   }
    
+  
    /**
     * Used for uniquely identifying a RenderObject, and checking
     * validity (can be safely shared)
     */
-   public static class RenderObjectIdentifier {
+   public static class RenderObjectIdentifier extends DisposeObserverImpl {
       private int id;
-      private volatile boolean valid;
-      private RenderObjectIdentifier(int id, boolean valid) {
+      private RenderObjectIdentifier(int id) {
          this.id = id;
-         this.valid = valid;
       }
       
       /**
@@ -48,18 +59,11 @@ public class RenderObject implements Versioned {
          return id;
       }
       
-      /**
-       * Whether the associated RenderObject is still valid.
-       * A RenderObject becomes invalid if it runs out of
-       * scope.
-       */
-      public boolean isValid() {
-         return valid;
+      @Override
+      protected void dispose() {
+         super.dispose();
       }
       
-      private void setValid(boolean valid) {
-         this.valid = valid;
-      }
    }
    
    /**
@@ -384,7 +388,7 @@ public class RenderObject implements Versioned {
    
    public RenderObject() {
 
-      idInfo = new RenderObjectIdentifier(nextIdNumber++, true);
+      idInfo = new RenderObjectIdentifier(nextIdNumber++);
       versionInfo = new RenderObjectVersion();
       stateInfo = new RenderObjectState();
       istransient = false;
@@ -2754,47 +2758,13 @@ public class RenderObject implements Versioned {
    }
 
    /**
-    * Invalidates the object.  An invalid object cannot be drawn by the renderer.
-    * @see #isValid()
-    */
-   public void invalidate() {
-      
-      writeLock();
-      
-      idInfo.setValid(false);
-      
-      // clear all memory
-      positions = null;
-      normals = null;
-      colors = null;
-      texcoords = null;
-
-      positions = null;
-      normals = null;
-      colors = null;
-      texcoords = null;
-
-      vertices = null;
-      
-      points = null;
-      lines = null;
-      triangles = null;
-
-      currentPointGroup = null;
-      currentLineGroup = null;
-      currentTriangleGroup = null;
-      
-      writeUnlock();
-   }
-
-   /**
     * Returns whether or not this RenderObject is valid.  If valid,
     * this object can be safely passed to a renderer for drawing.  
     * If not, it needs to be discarded.
     * @return <code>true</code> if this RenderObject is valid
     */
    public boolean isValid() {
-      return idInfo.isValid();
+      return !idInfo.isDisposed();
    }
    
    /**
@@ -2823,7 +2793,32 @@ public class RenderObject implements Versioned {
     * Signal a destruction of the object.
     */
    public void dispose() {
-      invalidate();
+      writeLock();
+      
+      idInfo.dispose();
+      
+      // clear all memory
+      positions = null;
+      normals = null;
+      colors = null;
+      texcoords = null;
+
+      positions = null;
+      normals = null;
+      colors = null;
+      texcoords = null;
+
+      vertices = null;
+      
+      points = null;
+      lines = null;
+      triangles = null;
+
+      currentPointGroup = null;
+      currentLineGroup = null;
+      currentTriangleGroup = null;
+      
+      writeUnlock();
    }
 
    /**
@@ -2946,8 +2941,6 @@ public class RenderObject implements Versioned {
       r.linesModified = linesModified;
       r.trianglesModified = trianglesModified;
 
-      r.idInfo.setValid(idInfo.isValid());
-
       r.totalModified = totalModified;
 
       r.buildMode = buildMode;
@@ -2958,6 +2951,16 @@ public class RenderObject implements Versioned {
       readUnlock();
       
       return r;
+   }
+
+   @Override
+   public boolean isDisposed() {
+      return idInfo.isDisposed();
+   }
+
+   @Override
+   public RenderObjectIdentifier getDisposeObserver() {
+      return idInfo;
    }
    
   

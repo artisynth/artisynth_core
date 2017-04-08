@@ -1769,8 +1769,8 @@ public interface Renderer {
     * @param style point style to use for drawing
     * @param rad radius for spheres or width for pixel-based points
     */
-   public void drawPoints (RenderObject robj, int gidx, int offset, int count, 
-      PointStyle style, double rad);
+   public void drawPoints (RenderObject robj, int gidx, 
+      int offset, int count, PointStyle style, double rad);
    
    /**
     * Draws all the vertices associated with the specified RenderObject,
@@ -1816,6 +1816,36 @@ public interface Renderer {
     * @param robj
     */
    public void draw(RenderObject robj);
+   
+   /**
+    * Draws the specified group of triangles, repeated for each instance
+    * in rinst.
+    * @param robj object to draw
+    * @param gidx triangle group to draw
+    * @param rinst instance to draw
+    */
+   public void drawTriangles(RenderObject robj, int gidx, RenderInstances rinst);
+
+   /**
+    * Draws the specified group of lines, repeated for each instance
+    * in rinst.  Lines are drawn as {@link LineStyle#LINE} and use the
+    * current line-width, as determined by {@link #getLineWidth()}.
+    * @param robj object to draw
+    * @param gidx line group to draw
+    * @param rinst instance to draw
+    */
+   public void drawLines(RenderObject robj, int gidx, RenderInstances rinst);
+   
+   /**
+    * Draws the specified group of points, repeated for each instance
+    * in rinst.  Points are drawn as {@link PointStyle#POINT} and use the
+    * current point-size, as determined by {@link #getPointSize()}.
+    * 
+    * @param robj object to draw
+    * @param gidx point group to draw
+    * @param rinst instance to draw
+    */
+   public void drawPoints(RenderObject robj, int gidx, RenderInstances rinst);
      
    // MATRICES
    

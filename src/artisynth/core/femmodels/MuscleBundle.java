@@ -840,6 +840,21 @@ public class MuscleBundle extends CompositeComponentBase
       }
    }
 
+   /** 
+    * Computes the directions within individual elements based on the
+    * directions of the muscle fibres.
+    */
+   public void computeElementIpntDirections () {
+
+      DelaunayInterpolator interp = getFibreRestDistanceInterpolator();
+      if (interp != null) {
+         Vector3d[] restDirs = getFibreRestDirections();
+         for (MuscleElementDesc desc : myElementDescs) {
+            desc.interpolateIpntDirection (interp, restDirs);
+         }
+      }
+   }
+
 //   private void addMacroFibres (ArrayList<Muscle> list, Point pnt) {
 //      for (ModelComponent c : pnt.getBackReferences()) {
 //         if (c instanceof Muscle && c.getParent() == myFibres && !c.isMarked()) {

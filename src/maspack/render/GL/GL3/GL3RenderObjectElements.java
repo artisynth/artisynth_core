@@ -8,7 +8,7 @@ import maspack.render.VertexIndexArray;
 /**
  * VAO-based object associated with a RenderObject, CANNOT be shared between multiple contexts
  */
-public class GL3RenderObjectElements extends GL3ResourceBase implements GL3Drawable {
+public class GL3RenderObjectElements extends GL3ResourceBase {
 
    VertexArrayObject vao;
    GL3SharedRenderObjectVertices glo;
@@ -16,7 +16,6 @@ public class GL3RenderObjectElements extends GL3ResourceBase implements GL3Drawa
    
    int lastBindVersion;
    int lastElementsVersion;
-   GL3VertexAttributeMap attrMap;
    
    private GL3RenderObjectElements(VertexArrayObject vao,
       GL3SharedVertexIndexArray ibo,

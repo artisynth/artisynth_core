@@ -5,7 +5,6 @@ import java.util.HashSet;
 
 import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
-import javax.media.opengl.GL4;
 
 /**
  * Holds pointers to VBOs, attribute info, to be used in creating VAOs.
@@ -15,7 +14,8 @@ import javax.media.opengl.GL4;
  * @author Antonio
  *
  */
-public class GL3SharedObject extends GL3ResourceBase {
+public class GL3SharedObject extends GL3ResourceBase 
+   implements GL3SharedDrawable {
    
    public enum DrawType {
       ARRAY,
@@ -37,9 +37,9 @@ public class GL3SharedObject extends GL3ResourceBase {
    GL3ElementAttributeArray elements;           // element indices
    
    // draw-specific info
-   int start;
-   int count;
-   int mode;
+   int start;      // starting vertex
+   int count;      // # vertices
+   int mode;       // e.g. triangles
    DrawType type;
    int numInstances;
    
@@ -360,16 +360,16 @@ public class GL3SharedObject extends GL3ResourceBase {
       gl.glDrawElementsInstanced (mode, count, elements.getType (), start, instances);
    }
    
-   public void drawInstanced(GL3 gl, int mode, int instances) {
+   public void drawInstanced(GL3 gl, int mode, int instanceCount) {
       if (elements != null) {
          gl.glDrawElementsInstanced(mode, elements.getCount(), 
-            elements.getType(), elements.getOffset(), instances);
+            elements.getType(), 0, instanceCount);
       } else {
-         // find number of 
-         gl.glDrawArraysInstanced (mode, 0, count, instances);
+         gl.glDrawArraysInstanced (mode, 0, count, instanceCount);
       }
    }
    
+
    public void drawInstanced(GL3 gl, int instances) {
       drawInstanced(gl, mode, instances);
    }
@@ -396,5 +396,21 @@ public class GL3SharedObject extends GL3ResourceBase {
             break;
       }
    }
+
+   @Override
+   public int getBindVersion() {
+      return 1;
+   }
+
+   @Override
+   public void bind(GL3 gl) {
+      bindAttributes(gl);
+   }
+
+   @Override
+   public boolean equals(GL3SharedDrawable other) {
+      return other == this;
+   }
+
   
 }

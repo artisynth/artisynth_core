@@ -29,7 +29,8 @@ import maspack.util.BufferUtilities;
 //  [tex[vn]?]     [tex[vn]?]    [tri[x][y]? ]
 //
 //=====================================================================================================================
-public class GL3SharedRenderObjectPrimitives extends GL3SharedRenderObjectVertices {
+public class GL3SharedRenderObjectPrimitives
+   extends GL3SharedRenderObjectVertices {
 
    AttributeInfo[] pointsInfo;
    AttributeInfo[] linesInfo;
@@ -38,11 +39,13 @@ public class GL3SharedRenderObjectPrimitives extends GL3SharedRenderObjectVertic
    IndexBufferObject ibo;
 
    protected GL3SharedRenderObjectPrimitives(RenderObject r,
-      VertexBufferObject staticVBO, VertexBufferObject dynamicVBO, IndexBufferObject ibo,
-      GL3VertexAttributeInfo posAttribute, GL3VertexAttributeInfo nrmAttribute, 
-      GL3VertexAttributeInfo clrAttribute, GL3VertexAttributeInfo texAttribute) {
-      super(r.getIdentifier (), staticVBO, dynamicVBO,
-         posAttribute, nrmAttribute, clrAttribute, texAttribute);
+      VertexBufferObject staticVBO, VertexBufferObject dynamicVBO,
+      IndexBufferObject ibo, GL3VertexAttributeInfo posAttribute,
+      GL3VertexAttributeInfo nrmAttribute, GL3VertexAttributeInfo clrAttribute,
+      GL3VertexAttributeInfo texAttribute) {
+      super(
+         r.getIdentifier(), staticVBO, dynamicVBO, posAttribute, nrmAttribute,
+         clrAttribute, texAttribute);
 
       pointsInfo = null;
       linesInfo = null;
@@ -54,7 +57,8 @@ public class GL3SharedRenderObjectPrimitives extends GL3SharedRenderObjectVertic
    public boolean maybeUpdate(GL3 gl, RenderObject robj) {
       boolean updated = false;
       
-      robj.readLock (); {
+      robj.readLock();
+      {
          RenderObjectVersion rv = robj.getVersionInfo ();
          updated = maybeUpdateVertices (gl, robj, rv);
          updated |= maybeUpdatePrimitives (gl, robj);
@@ -70,10 +74,12 @@ public class GL3SharedRenderObjectPrimitives extends GL3SharedRenderObjectVertic
    protected boolean maybeUpdatePrimitives(GL3 gl, RenderObject robj) {
 
       RenderObjectVersion rv = robj.getVersionInfo ();
-      boolean updatePrimitives = (lastVersionInfo == null 
+      boolean updatePrimitives =
+         (lastVersionInfo == null
          || lastVersionInfo.getPointsVersion() != rv.getPointsVersion()
          || lastVersionInfo.getLinesVersion() != rv.getLinesVersion()
-         || lastVersionInfo.getTrianglesVersion() != rv.getTrianglesVersion());
+            || lastVersionInfo.getTrianglesVersion() != rv
+               .getTrianglesVersion());
 
       if (updatePrimitives) {
          fillPrimitiveVBO (gl, robj);
@@ -115,7 +121,8 @@ public class GL3SharedRenderObjectPrimitives extends GL3SharedRenderObjectVertic
 
       int nVertices = robj.numVertices ();
       
-      IndexBufferPutter indexPutter = IndexBufferPutter.getDefault(nVertices-1);
+      IndexBufferPutter indexPutter =
+         IndexBufferPutter.getDefault(nVertices - 1);
       int gltype = indexPutter.storage ().getGLType ();
       final int INDEX_BYTES = indexPutter.bytesPerIndex();
 
@@ -201,30 +208,87 @@ public class GL3SharedRenderObjectPrimitives extends GL3SharedRenderObjectVertic
    }
 
    public void drawPointGroup(GL3 gl, int mode, int gidx) {
-      drawElements (gl, mode, pointsInfo[gidx].count, pointsInfo[gidx].type, pointsInfo[gidx].offset);
+      drawElements(
+         gl, mode, pointsInfo[gidx].count, pointsInfo[gidx].type,
+         pointsInfo[gidx].offset);
    }
 
-   public void drawPointGroup(GL3 gl, int mode, int gidx, int offset, int count) {
-      drawElements (gl, mode, count, pointsInfo[gidx].type, 
+   public void drawPointGroup(
+      GL3 gl, int mode, int gidx, int offset, int count) {
+      drawElements(
+         gl, mode, count, pointsInfo[gidx].type,
          pointsInfo[gidx].offset + offset*pointsInfo[gidx].stride);
    }
    
    public void drawLineGroup(GL3 gl, int mode, int gidx) {
-      drawElements (gl, mode, linesInfo[gidx].count, linesInfo[gidx].type, linesInfo[gidx].offset);
+      drawElements(
+         gl, mode, linesInfo[gidx].count, linesInfo[gidx].type,
+         linesInfo[gidx].offset);
    }
 
-   public void drawLineGroup(GL3 gl, int mode, int gidx, int offset, int count) {
-      drawElements (gl, mode, 2*count, linesInfo[gidx].type, 
+   public void drawLineGroup(
+      GL3 gl, int mode, int gidx, int offset, int count) {
+      drawElements(
+         gl, mode, 2 * count, linesInfo[gidx].type,
          linesInfo[gidx].offset+2*linesInfo[gidx].type*offset);
    }
    
    public void drawTriangleGroup(GL3 gl, int mode, int gidx) {
-      drawElements (gl, mode, trianglesInfo[gidx].count, trianglesInfo[gidx].type, trianglesInfo[gidx].offset);
+      drawElements(
+         gl, mode, trianglesInfo[gidx].count, trianglesInfo[gidx].type,
+         trianglesInfo[gidx].offset);
    }
    
-   public void drawTriangleGroup(GL3 gl, int mode, int gidx, int offset, int count) {
-      drawElements (gl, mode, 3*count, trianglesInfo[gidx].type, 
+   public void drawTriangleGroup(
+      GL3 gl, int mode, int gidx, int offset, int count) {
+      drawElements(
+         gl, mode, 3 * count, trianglesInfo[gidx].type,
          trianglesInfo[gidx].offset+3*trianglesInfo[gidx].stride*offset);
+   }
+
+   public void drawInstancedPointGroup(
+      GL3 gl, int mode, int gidx, int instanceCount) {
+      drawInstancedElements(
+         gl, mode, pointsInfo[gidx].count, pointsInfo[gidx].type,
+         pointsInfo[gidx].offset, instanceCount);
+   }
+
+   public void drawInstancedPointGroup(
+      GL3 gl, int mode, int gidx, int offset, int count, int instanceCount) {
+      drawInstancedElements(
+         gl, mode, count, pointsInfo[gidx].type,
+         pointsInfo[gidx].offset + offset * pointsInfo[gidx].stride,
+         instanceCount);
+   }
+
+   public void drawInstancedLineGroup(
+      GL3 gl, int mode, int gidx, int instanceCount) {
+      drawInstancedElements(
+         gl, mode, linesInfo[gidx].count, linesInfo[gidx].type,
+         linesInfo[gidx].offset, instanceCount);
+   }
+
+   public void drawInstancedLineGroup(
+      GL3 gl, int mode, int gidx, int offset, int count, int instanceCount) {
+      drawInstancedElements(
+         gl, mode, 2 * count, linesInfo[gidx].type,
+         linesInfo[gidx].offset + 2 * linesInfo[gidx].type * offset,
+         instanceCount);
+   }
+
+   public void drawInstancedTriangleGroup(
+      GL3 gl, int mode, int gidx, int instanceCount) {
+      drawInstancedElements(
+         gl, mode, trianglesInfo[gidx].count, trianglesInfo[gidx].type,
+         trianglesInfo[gidx].offset, instanceCount);
+   }
+
+   public void drawInstancedTriangleGroup(
+      GL3 gl, int mode, int gidx, int offset, int count, int instanceCount) {
+      drawInstancedElements(
+         gl, mode, 3 * count, trianglesInfo[gidx].type,
+         trianglesInfo[gidx].offset + 3 * trianglesInfo[gidx].stride * offset,
+         instanceCount);
    }
 
    public static GL3SharedRenderObjectPrimitives generate (
@@ -236,8 +300,9 @@ public class GL3SharedRenderObjectPrimitives extends GL3SharedRenderObjectVertic
       VertexBufferObject dynamicVBO = VertexBufferObject.generate (gl);
       IndexBufferObject ibo = IndexBufferObject.generate (gl);
       GL3SharedRenderObjectPrimitives out = 
-         new GL3SharedRenderObjectPrimitives (robj, staticVBO, dynamicVBO, 
-            ibo, position, normal, color, texcoord);
+         new GL3SharedRenderObjectPrimitives(
+            robj, staticVBO, dynamicVBO, ibo, position, normal, color,
+            texcoord);
       out.maybeUpdate (gl, robj);  // trigger a build
       return out;
    }

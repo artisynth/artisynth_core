@@ -23,14 +23,14 @@ public class RenderObjectKey implements RenderKey {
    }
    
    public boolean isValid() {
-      return rId.isValid ();
+      return !rId.isDisposed ();
    }
 
    @Override
    public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + System.identityHashCode(rId);
+      result = prime * result + rId.getId();
       result = prime * result + ((type == null) ? 0 : type.hashCode());
       result = prime * result + groupIdx;
       return result;

@@ -534,6 +534,15 @@ public class MFreeMuscleBundle extends CompositeComponentBase
       return myFibres;
    }
 
+   public Muscle addFibre (Point p0, Point p1, AxialMuscleMaterial mat) {
+      Muscle fibre = new Muscle();
+      fibre.setPoints(p0, p1);
+      fibre.setRestLength(p0.distance(p1));
+      fibre.setMaterial(mat);
+      addFibre(fibre);
+      return fibre;
+   }
+
    public void addFibre (Muscle fibre) {
       // check to make sure particles are already in the FEM
       FemModel femMod = getAncestorModel(this);

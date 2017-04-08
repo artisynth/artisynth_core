@@ -22,7 +22,7 @@ public class GL3PointsVertexBuffer extends GL3ResourceBase {
 
       this.vbo = vbo.acquire ();  // hold on to VBO
 
-      int FLOAT_SIZE = GL3AttributeStorage.FLOAT.bytes ();
+      int FLOAT_SIZE = GL3AttributeStorage.FLOAT.width ();
       int stride = FLOAT_SIZE;
 
       this.radAttr = new GL3VertexAttributeArrayInfo (radAttr, 

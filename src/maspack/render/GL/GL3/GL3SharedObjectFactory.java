@@ -39,11 +39,13 @@ public class GL3SharedObjectFactory {
       int nverts = v.length/3;
       
       // buffer data
-      ByteBuffer vbuff = BufferUtilities.newNativeByteBuffer(nverts*posPutter.bytesPerPosition());
+      int posWidth = posPutter.bytesPerPosition();
+      ByteBuffer vbuff = BufferUtilities.newNativeByteBuffer(nverts*posWidth);
       posPutter.putPositions(vbuff, v);
       
       IndexBufferPutter idxPutter = IndexBufferPutter.getDefault(nverts-1);
-      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(elems.length*idxPutter.bytesPerIndex());
+      int idxWidth = idxPutter.bytesPerIndex();
+      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(elems.length*idxWidth);
       idxPutter.putIndices(ebuff, elems);
       
       // rewind buffers
@@ -77,10 +79,10 @@ public class GL3SharedObjectFactory {
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[1];
       attributes[0] = new GL3VertexAttributeArray(vbo,
          new GL3VertexAttributeArrayInfo (vertex_position,
-            vstorage, 0, vstorage.bytes(), nverts, 0 /*divisor*/));
+            vstorage, 0, vstorage.width(), nverts, 0 /*divisor*/));
       
       GL3ElementAttributeArray indices = new GL3ElementAttributeArray(ibo, estorage.getGLType (), 
-         0, estorage.bytes(), nelems);
+         0, estorage.width(), nelems);
       
       GL3SharedObject glo = new GL3SharedObject(attributes, indices, mode);
       
@@ -94,15 +96,15 @@ public class GL3SharedObjectFactory {
    public GL3SharedObject createV(GL3 gl, int mode, float[] v, int vUsage) {
       // buffer data
       int nverts = v.length/3;
-      
+      int posWidth = posPutter.bytesPerPosition();
       // buffer data
-      ByteBuffer vbuff = BufferUtilities.newNativeByteBuffer(nverts*posPutter.bytesPerPosition());
+      ByteBuffer vbuff = BufferUtilities.newNativeByteBuffer(nverts*posWidth);
       posPutter.putPositions(vbuff, v);
       
       // rewind buffers
       vbuff.flip();
       
-      GL3SharedObject out = createV(gl, mode, vbuff, nverts, posPutter.storage(), posPutter.bytesPerPosition(), vUsage);
+      GL3SharedObject out = createV(gl, mode, vbuff, nverts, posPutter.storage(), posWidth, vUsage);
       BufferUtilities.freeDirectBuffer (vbuff);
       return out;
    }
@@ -159,17 +161,21 @@ public class GL3SharedObjectFactory {
       PositionBufferPutter posPutter = PositionBufferPutter.getDefault();
       NormalBufferPutter nrmPutter = NormalBufferPutter.getDefault();
       
-      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
+      // align to 4-byte multiples
+      int posWidth = posPutter.bytesPerPosition();
+      int nrmWidth = nrmPutter.bytesPerNormal();
+      
+      int stride = posWidth + nrmWidth;
       ByteBuffer vnbuff = BufferUtilities.newNativeByteBuffer(nverts*stride);
       posPutter.putPositions(vnbuff, 0, stride, v, voffset, vstride, nverts);
-      nrmPutter.putNormals(vnbuff, posPutter.bytesPerPosition(), stride, n, noffset, nstride, nverts);
+      nrmPutter.putNormals(vnbuff, posWidth, stride, n, noffset, nstride, nverts);
       
       // rewind buffers
       vnbuff.flip();
       
       GL3SharedObject out = createVN(gl, mode, vnbuff, nverts,
          posPutter.storage(), 0, stride, 
-         nrmPutter.storage(), posPutter.bytesPerPosition(), stride, vnUsage);
+         nrmPutter.storage(), posWidth, stride, vnUsage);
       
       BufferUtilities.freeDirectBuffer (vnbuff);
       return out;
@@ -199,15 +205,19 @@ public class GL3SharedObjectFactory {
       // buffer data
       PositionBufferPutter posPutter = PositionBufferPutter.getDefault();
       NormalBufferPutter nrmPutter = NormalBufferPutter.getDefault();
-      int stride = posPutter.bytesPerPosition()+nrmPutter.bytesPerNormal();
+      
+      int posWidth = posPutter.bytesPerPosition();
+      int nrmWidth = nrmPutter.bytesPerNormal();
+      
+      int stride = posWidth+nrmWidth;
       ByteBuffer vnbuff = BufferUtilities.newNativeByteBuffer(nverts*stride);
       
       posPutter.putPositions(vnbuff, 0, stride, v, voffset, vstride, nverts);
-      nrmPutter.putNormals(vnbuff, posPutter.bytesPerPosition(), stride, n, noffset, nstride, nverts);
+      nrmPutter.putNormals(vnbuff, posWidth, stride, n, noffset, nstride, nverts);
       
       IndexBufferPutter idxPutter = IndexBufferPutter.getDefault(nverts-1);
-      int istride = idxPutter.bytesPerIndex();
-      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*istride);
+      int idxWidth = idxPutter.bytesPerIndex();
+      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxWidth);
       idxPutter.putIndices(ebuff, eidxs, eoffset, estride, nelems);
       
       // rewind buffers
@@ -216,8 +226,8 @@ public class GL3SharedObjectFactory {
       
       GL3SharedObject out = createVNE(gl, mode, vnbuff, nverts,
          posPutter.storage(), 0, stride, 
-         nrmPutter.storage(), posPutter.bytesPerPosition(), stride, vnUsage,
-         ebuff, nelems, idxPutter.storage(), 0, idxPutter.bytesPerIndex(), eUsage);
+         nrmPutter.storage(), posWidth, stride, vnUsage,
+         ebuff, nelems, idxPutter.storage(), 0, idxWidth, eUsage);
       
       BufferUtilities.freeDirectBuffer (vnbuff);
       BufferUtilities.freeDirectBuffer (ebuff);

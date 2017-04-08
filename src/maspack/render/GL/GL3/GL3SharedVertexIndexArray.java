@@ -33,7 +33,7 @@ public class GL3SharedVertexIndexArray extends GL3ResourceBase {
          buff.flip ();
          
          ibo.fill (gl, buff, putter.storage ().getGLType (), 
-            putter.storage ().bytes (),
+            putter.storage ().width (),
             esize, buff.limit (), GL.GL_DYNAMIC_DRAW);
          
          buff = BufferUtilities.freeDirectBuffer (buff);

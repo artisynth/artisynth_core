@@ -320,19 +320,13 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
          vbos[positionInfo.vboIndex].bind (gl);
          int loc = bposAttr.getLocation ();
          if (loc >= 0) {
-            gl.glEnableVertexAttribArray (loc);
-            gl.glVertexAttribPointer (loc, storage.size (), 
-               storage.getGLType (), storage.isNormalized (), 
-               2*positionInfo.stride, positionInfo.offset+vstart*positionInfo.stride);
-            gl.glVertexAttribDivisor (loc, 1);
+            GL3Utilities.activateVertexAttribute(gl, loc, storage, 
+               2*positionInfo.stride, positionInfo.offset+vstart*positionInfo.stride, 1);
          }
          loc = tposAttr.getLocation ();
          if (loc >= 0) {
-            gl.glEnableVertexAttribArray (loc);
-            gl.glVertexAttribPointer (loc, storage.size (), 
-               storage.getGLType (), storage.isNormalized (), 
-               2*positionInfo.stride, positionInfo.offset+(vstart+1)*positionInfo.stride);
-            gl.glVertexAttribDivisor (loc, 1);
+            GL3Utilities.activateVertexAttribute(gl, loc, storage, 
+               2*positionInfo.stride, positionInfo.offset+(vstart+1)*positionInfo.stride, 1);
          }
       }
 
@@ -341,18 +335,13 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
          vbos[colorInfo.vboIndex].bind (gl);
          int loc = bclrAttr.getLocation ();
          if (loc >= 0) {
-            gl.glEnableVertexAttribArray (loc);
-            gl.glVertexAttribPointer (loc, storage.size (), storage.getGLType (), storage.isNormalized (), 
-               colorInfo.stride, colorInfo.offset+vstart*colorInfo.stride);
-            gl.glVertexAttribDivisor (loc, 1);
+            GL3Utilities.activateVertexAttribute(gl, loc, storage, 
+               colorInfo.stride, colorInfo.offset+vstart*colorInfo.stride, 1);
          }
          loc = tclrAttr.getLocation ();
          if (loc >= 0) {
-            gl.glEnableVertexAttribArray (loc);
-            gl.glVertexAttribPointer (loc, storage.size (), 
-               storage.getGLType (), storage.isNormalized (), 
-               2*colorInfo.stride, colorInfo.offset+(vstart+1)*colorInfo.stride);
-            gl.glVertexAttribDivisor (loc, 1);
+            GL3Utilities.activateVertexAttribute(gl, loc, storage, 
+               2*colorInfo.stride, colorInfo.offset+(vstart+1)*colorInfo.stride, 1);
          }
       }
    }

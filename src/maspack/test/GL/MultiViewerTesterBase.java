@@ -327,7 +327,7 @@ public class MultiViewerTesterBase {
       }
    }
 
-   protected static abstract class SimpleSelectableBase implements SimpleSelectable {
+   public static abstract class SimpleSelectableBase implements SimpleSelectable {
       
       private boolean selected;
       RenderProps props;

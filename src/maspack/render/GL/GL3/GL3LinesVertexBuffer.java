@@ -31,8 +31,8 @@ public class GL3LinesVertexBuffer extends GL3ResourceBase {
 
       this.vbo = vbo.acquire ();  // hold on to VBO
 
-      int FLOAT_SIZE = GL3AttributeStorage.FLOAT.bytes ();
-      int FLOAT_4_SIZE = GL3AttributeStorage.FLOAT_4.bytes ();
+      int FLOAT_SIZE = GL3AttributeStorage.FLOAT.width ();
+      int FLOAT_4_SIZE = GL3AttributeStorage.FLOAT_4.width ();
       int stride = FLOAT_SIZE + 2*FLOAT_4_SIZE;
 
       this.radAttr = new GL3VertexAttributeArrayInfo (radAttr, 

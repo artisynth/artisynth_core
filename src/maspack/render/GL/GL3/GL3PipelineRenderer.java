@@ -42,28 +42,28 @@ public class GL3PipelineRenderer extends GLPipelineRendererBase {
       vbo.allocate (gl3, buff.capacity (), GL3.GL_STREAM_DRAW);
       
       if (normalOffset >= 0) {
-         gl3.glEnableVertexAttribArray (nloc);
-         gl3.glVertexAttribPointer (nloc, 3, GL.GL_FLOAT, true, vertexStride, normalOffset);
+         GL3Utilities.activateVertexAttribute(gl3, nloc, 
+            GL3AttributeStorage.FLOAT_N_3, vertexStride, normalOffset);
       } else {
-         gl3.glDisableVertexAttribArray (nloc);
+         GL3Utilities.deactivateVertexAttribute(gl3, nloc);
       }
       
       if (colorOffset >= 0) {
-         gl3.glEnableVertexAttribArray (cloc);
-         gl3.glVertexAttribPointer (cloc, 4, GL.GL_UNSIGNED_BYTE, false, vertexStride, colorOffset);
+         GL3Utilities.activateVertexAttribute(gl3, cloc, GL3AttributeStorage.UBYTE_4,
+            vertexStride, colorOffset);
       } else {
-         gl3.glDisableVertexAttribArray (cloc);
+         GL3Utilities.deactivateVertexAttribute(gl3, nloc);
       }
       
       if (texcoordOffset >= 0) {
-         gl3.glEnableVertexAttribArray (tloc);
-         gl3.glVertexAttribPointer (tloc, 2, GL.GL_FLOAT, false, vertexStride, texcoordOffset);
+         GL3Utilities.activateVertexAttribute(gl3, tloc, GL3AttributeStorage.FLOAT_2,
+            vertexStride, texcoordOffset);
       } else {
-         gl3.glDisableVertexAttribArray (tloc);
+         GL3Utilities.deactivateVertexAttribute(gl3, tloc);
       }
       
-      gl3.glEnableVertexAttribArray (ploc);
-      gl3.glVertexAttribPointer (ploc, 3, GL.GL_FLOAT, false, vertexStride, positionOffset);
+      GL3Utilities.activateVertexAttribute(gl3, ploc, GL3AttributeStorage.FLOAT_3,
+         vertexStride, positionOffset);
       
    }
    

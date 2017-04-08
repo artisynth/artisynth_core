@@ -7,12 +7,11 @@ import maspack.render.RenderObject;
 /**
  * VAO-based object associated with a RenderObject, CANNOT be shared between multiple contexts
  */
-public class GL3RenderObjectPrimitives extends GL3ResourceBase implements GL3Drawable {
+public class GL3RenderObjectPrimitives extends GL3ResourceBase {
 
    VertexArrayObject vao;
    GL3SharedRenderObjectPrimitives glo;
    int lastVertexVersion;
-   GL3VertexAttributeMap attrMap;
    
    private GL3RenderObjectPrimitives(VertexArrayObject vao,
       GL3SharedRenderObjectPrimitives glo) {

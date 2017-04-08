@@ -136,17 +136,22 @@ public class GL3FlexObject extends GL3ResourceBase {
          }
          
          vstride = 0;
+         int posWidth = posPutter.bytesPerPosition ();
+         int nrmWidth = nrmPutter.bytesPerNormal();
+         int clrWidth = clrPutter.bytesPerColor ();
+         int texWidth = texPutter.bytesPerTextureCoord ();
+         
          if (hasPosition) {
-            vstride += posPutter.bytesPerPosition ();
+            vstride += posWidth;
          }
          if (hasNormal) {
-            vstride += nrmPutter.bytesPerNormal ();
+            vstride += nrmWidth;
          }
          if (hasColor) {
-            vstride += clrPutter.bytesPerColor ();
+            vstride += clrWidth;
          }
          if (hasTexcoord) {
-            vstride += texPutter.bytesPerTextureCoord ();
+            vstride += texWidth;
          }
          
          int offset = 0;
@@ -154,41 +159,29 @@ public class GL3FlexObject extends GL3ResourceBase {
          if (hasPosition) {
             GL3AttributeStorage storage = posPutter.storage ();
             int loc = posAttr.getLocation ();
-            gl.glEnableVertexAttribArray (loc);
-            gl.glVertexAttribPointer (loc, 
-               storage.size (), storage.getGLType (), storage.isNormalized (), 
-               vstride, offset);
-            offset += storage.bytes();
+            GL3Utilities.activateVertexAttribute(gl, loc, storage, vstride, offset);
+            offset += posWidth;
          }
          
          if (hasNormal) {
             GL3AttributeStorage storage = nrmPutter.storage ();
             int loc = nrmAttr.getLocation ();
-            gl.glEnableVertexAttribArray (loc);
-            gl.glVertexAttribPointer (nrmAttr.getLocation (), 
-               storage.size (), storage.getGLType (), storage.isNormalized (), 
-               vstride, offset);
-            offset += storage.bytes();
+            GL3Utilities.activateVertexAttribute(gl, loc, storage, vstride, offset);
+            offset += nrmWidth;
          }
          
          if (hasColor) {
             GL3AttributeStorage storage = clrPutter.storage ();
             int loc = clrAttr.getLocation ();
-            gl.glEnableVertexAttribArray (loc);
-            gl.glVertexAttribPointer (clrAttr.getLocation (), 
-               storage.size (), storage.getGLType (), storage.isNormalized (), 
-               vstride, offset);
-            offset += storage.bytes();
+            GL3Utilities.activateVertexAttribute(gl, loc, storage, vstride, offset);
+            offset += clrWidth;
          }
          
          if (hasTexcoord) {
             GL3AttributeStorage storage = texPutter.storage ();
             int loc = texAttr.getLocation ();
-            gl.glEnableVertexAttribArray (loc);
-            gl.glVertexAttribPointer (texAttr.getLocation (), 
-               storage.size (), storage.getGLType (), storage.isNormalized (), 
-               vstride, offset);
-            offset += storage.bytes();
+            GL3Utilities.activateVertexAttribute(gl, loc, storage, vstride, offset);
+            offset += texWidth;
          }
          
          this.hasPosition = hasPosition;

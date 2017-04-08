@@ -45,7 +45,7 @@ public class GLSLGenerator {
       new StringIntPair ("instance_orientiation", 7),
       // instance (affine)
       new StringIntPair ("instance_affine_matrix", 6),
-      new StringIntPair ("instance_normal_matrix", 7),
+      new StringIntPair ("instance_normal_matrix", 10),
       // instance (line)
       new StringIntPair ("line_radius", 4),
       new StringIntPair ("line_bottom_position", 5),

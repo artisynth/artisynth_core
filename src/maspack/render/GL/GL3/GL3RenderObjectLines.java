@@ -7,7 +7,7 @@ import maspack.render.RenderObject;
 /**
  * VAO-based object associated with a RenderObject, CANNOT be shared between multiple contexts
  */
-public class GL3RenderObjectLines extends GL3ResourceBase implements GL3Drawable {
+public class GL3RenderObjectLines extends GL3ResourceBase {
    
    VertexArrayObject vao;
    GL3SharedRenderObjectLines lineGLO;

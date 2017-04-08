@@ -328,7 +328,7 @@ public class FemElementRenderer {
          }
          renderer.setFaceColoring (props, color, elem.isSelected());
       }
-      renderer.drawTriangles (r);
+      renderer.drawTriangles (r, /*group=*/0);
    }
 
    public void renderRestWidget (
@@ -346,7 +346,7 @@ public class FemElementRenderer {
          }
          renderer.setFaceColoring (props, color, elem.isSelected());
       }
-      renderer.drawTriangles (r);
+      renderer.drawTriangles (r, /*group=*/ 0);
    }
 
    public void render (

@@ -27,7 +27,6 @@ public class IntegrationData3d {
 //   public double[] myHPrev;
    protected ViscoelasticState myViscoState;
    
-
    private void init() {
       myInvJ0 = new Matrix3d(Matrix3d.IDENTITY);
       myDetJ0 = 1;

@@ -13,6 +13,85 @@ public class GL3Utilities {
       return gl;
    }
    
+   /**
+    * For buffer objects, attributes need to be aligned to multiples of 4-bytes.  This returns the 
+    * required alignment width provided a true byte width (i.e. rounds up to nearest 4 bytes)
+    * @param width in bytes of attribute
+    * @return properly aligned width
+    */
+   public static int getAlignedWidth(int byteWidth) {
+      return (byteWidth+3) & 0xFFFFFFFC;
+   }
+   
+   /**
+    * Enables a vertex attribute pointer based on a given storage, correctly handling matrix types
+    * (since matrices occupy multiple attribute locations)
+    * @param gl active context
+    * @param loc attribute location
+    * @param storage attribute storage
+    * @param stride attribute stride in VBO
+    * @param offset attribute offset in VBO
+    */
+   public static void activateVertexAttribute(GL3 gl, int loc, GL3AttributeStorage storage, 
+      int stride, int offset, int divisor) {
+      
+      if (storage.isMatrix()) {
+         for (int i=0; i<storage.cols(); ++i) {
+            int cloc = loc+i;
+            gl.glEnableVertexAttribArray(cloc);
+            gl.glVertexAttribPointer(cloc, storage.cols(), storage.getGLType(), 
+               storage.isNormalized(), stride, offset+i*storage.colWidth());
+            if (divisor > 0) {
+               gl.glVertexAttribDivisor(cloc, divisor);
+            }
+         }
+      } else {
+         gl.glEnableVertexAttribArray(loc);
+         gl.glVertexAttribPointer(loc, storage.size(), storage.getGLType(), storage.isNormalized(), stride, offset);
+         if (divisor > 0) {
+            gl.glVertexAttribDivisor(loc, divisor);
+         }
+      }
+   }
+   
+   /**
+    * Enables a vertex attribute pointer based on a given storage, correctly handling matrix types
+    * (since matrices occupy multiple attribute locations)
+    * @param gl active context
+    * @param loc attribute location
+    * @param storage attribute storage
+    * @param stride attribute stride in VBO
+    * @param offset attribute offset in VBO
+    */
+   public static void activateVertexAttribute(GL3 gl, int loc, GL3AttributeStorage storage, 
+      int stride, int offset) {
+      
+      if (storage.isMatrix()) {
+         for (int i=0; i<storage.rows(); ++i) {
+            int rloc = loc+i;
+            gl.glEnableVertexAttribArray(rloc);
+            gl.glVertexAttribPointer(rloc, storage.cols(), storage.getGLType(), 
+               storage.isNormalized(), stride, offset+i*storage.colWidth());
+         }
+      } else {
+         gl.glEnableVertexAttribArray(loc);
+         gl.glVertexAttribPointer(loc, storage.size(), storage.getGLType(), storage.isNormalized(), stride, offset);
+      }
+   }
+   
+   /**
+    * Enables a vertex attribute pointer based on a given storage, correctly handling matrix types
+    * (since matrices occupy multiple attribute locations)
+    * @param gl active context
+    * @param loc attribute location
+    * @param storage attribute storage
+    * @param stride attribute stride in VBO
+    * @param offset attribute offset in VBO
+    */
+   public static void deactivateVertexAttribute(GL3 gl, int loc) {
+      gl.glDisableVertexAttribArray(loc);
+   }
+   
    public static int getGLType(GL3AttributeStorage.StorageType type) {
       switch(type) {
          case FLOAT:

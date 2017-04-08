@@ -189,9 +189,6 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       GLJPanel panel = new GLJPanel (glCapabilities);
       panel.setSharedAutoDrawable (masterDrawable);
       panel.setDefaultCloseOperation (WindowClosingMode.DISPOSE_ON_CLOSE);
-      panel.setFocusable(true);
-      panel.setRequestFocusEnabled(true);
-      panel.requestFocus();
       return panel;
    }
    

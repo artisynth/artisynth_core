@@ -4,6 +4,7 @@ import javax.media.opengl.GL;
 import javax.media.opengl.GL3;
 import javax.media.opengl.GLCapabilities;
 
+import maspack.render.RenderInstances;
 import maspack.render.RenderObject;
 import maspack.render.VertexIndexArray;
 import maspack.render.GL.GLSharedResources;
@@ -55,6 +56,10 @@ public class GL3SharedResources extends GLSharedResources {
    
    public GL3SharedRenderObjectPoints getPoints(GL3 gl, RenderObject robj) {
       return groManager.getPoints (gl, robj);
+   }
+   
+   public GL3SharedRenderInstances getInstances(GL3 gl, RenderInstances rinst) {
+      return groManager.getInstances(gl, rinst);
    }
 
    public GL3SharedPrimitiveManager getSharedPrimitiveManager () {

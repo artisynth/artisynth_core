@@ -319,11 +319,8 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
       if (positionInfo != null ) {
          GL3AttributeStorage storage = positionPutter.storage ();
          vbos[positionInfo.vboIndex].bind (gl);
-         gl.glEnableVertexAttribArray (loc);
-         gl.glVertexAttribPointer (loc, storage.size (), 
-            storage.getGLType (), storage.isNormalized (), 
-            positionInfo.stride, positionInfo.offset+vstart*positionInfo.stride);
-         gl.glVertexAttribDivisor (loc, 1);
+         GL3Utilities.activateVertexAttribute(gl, loc, storage, 
+            positionInfo.stride, positionInfo.offset+vstart*positionInfo.stride, 1);
       }
 
       loc = pclrAttr.getLocation ();
@@ -331,10 +328,8 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
          GL3AttributeStorage storage = colorPutter.storage ();
          vbos[colorInfo.vboIndex].bind (gl);
 
-         gl.glEnableVertexAttribArray (loc);
-         gl.glVertexAttribPointer (loc, storage.size (), storage.getGLType (), storage.isNormalized (), 
-            colorInfo.stride, colorInfo.offset+vstart*colorInfo.stride);
-         gl.glVertexAttribDivisor (loc, 1);
+         GL3Utilities.activateVertexAttribute(gl, loc, storage, 
+            colorInfo.stride, colorInfo.offset+vstart*colorInfo.stride, 1);
       }
    }
    

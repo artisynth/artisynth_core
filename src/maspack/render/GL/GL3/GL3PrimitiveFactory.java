@@ -48,20 +48,20 @@ public class GL3PrimitiveFactory {
       GL3AttributeStorage nrmStorage = nrmPutter.storage();
       GL3AttributeStorage idxStorage = idxPutter.storage();
 
-      int vstride = posStorage.bytes() + nrmStorage.bytes();
+      int vstride = posStorage.width() + nrmStorage.width();
 
       VertexBufferObject vbo = VertexBufferObject.generate (gl);
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
       attributes[0] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
          vertex_position, posStorage, 0, vstride, nverts));
       attributes[1] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
-         vertex_normal, nrmStorage, posStorage.bytes(), vstride, nverts));
+         vertex_normal, nrmStorage, posStorage.width(), vstride, nverts));
       ByteBuffer pnbuff = BufferUtilities.newNativeByteBuffer(nverts*vstride);
       
       IndexBufferObject ibo = IndexBufferObject.generate (gl);
       GL3ElementAttributeArray elements = new GL3ElementAttributeArray(ibo,
-         idxStorage.getGLType (), 0, idxStorage.bytes(), nelems);
-      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.bytes());
+         idxStorage.getGLType (), 0, idxStorage.width(), nelems);
+      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.width());
        
       if (capped) { 
          for (int i=0; i<nSlices; ++i) {
@@ -158,20 +158,20 @@ public class GL3PrimitiveFactory {
       GL3AttributeStorage nrmStorage = nrmPutter.storage();
       GL3AttributeStorage idxStorage = idxPutter.storage();
 
-      int vstride = posStorage.bytes() + nrmStorage.bytes();
+      int vstride = posStorage.width() + nrmStorage.width();
 
       VertexBufferObject vbo = VertexBufferObject.generate (gl);
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
       attributes[0] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
          vertex_position, posStorage, 0, vstride, nverts));
       attributes[1] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
-         vertex_normal, nrmStorage, posStorage.bytes(), vstride, nverts));
+         vertex_normal, nrmStorage, posStorage.width(), vstride, nverts));
       ByteBuffer pnbuff = BufferUtilities.newNativeByteBuffer(nverts*vstride);
       
       IndexBufferObject ibo = IndexBufferObject.generate (gl);
       GL3ElementAttributeArray elements = new GL3ElementAttributeArray(ibo,
-         idxStorage.getGLType (), 0, idxStorage.bytes(), nelems);
-      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.bytes());
+         idxStorage.getGLType (), 0, idxStorage.width(), nelems);
+      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.width());
        
       float r2 = (float)(1.0/Math.sqrt(2));
       
@@ -263,20 +263,20 @@ public class GL3PrimitiveFactory {
       GL3AttributeStorage nrmStorage = nrmPutter.storage();
       GL3AttributeStorage idxStorage = idxPutter.storage();
 
-      int vstride = posStorage.bytes() + nrmStorage.bytes();
+      int vstride = posStorage.width() + nrmStorage.width();
 
       VertexBufferObject vbo = VertexBufferObject.generate (gl);
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
       attributes[0] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
          vertex_position, posStorage, 0, vstride, nverts));
       attributes[1] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
-         vertex_normal, nrmStorage, posStorage.bytes(), vstride, nverts));
+         vertex_normal, nrmStorage, posStorage.width(), vstride, nverts));
       ByteBuffer pnbuff = BufferUtilities.newNativeByteBuffer(nverts*vstride);
       
       IndexBufferObject ibo = IndexBufferObject.generate (gl);
       GL3ElementAttributeArray elements = new GL3ElementAttributeArray(ibo,
-         idxStorage.getGLType (), 0, idxStorage.bytes(), nelems);
-      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.bytes());
+         idxStorage.getGLType (), 0, idxStorage.width(), nelems);
+      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.width());
 
       // bottom
       posPutter.putPosition(pnbuff, 0,0,0);
@@ -358,7 +358,7 @@ public class GL3PrimitiveFactory {
       GL3AttributeStorage posStorage = posPutter.storage();
       GL3AttributeStorage idxStorage = idxPutter.storage();
 
-      int vstride = posStorage.bytes();
+      int vstride = posStorage.width();
 
       VertexBufferObject vbo = VertexBufferObject.generate (gl);
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
@@ -370,8 +370,8 @@ public class GL3PrimitiveFactory {
       
       IndexBufferObject ibo = IndexBufferObject.generate (gl);
       GL3ElementAttributeArray elements = new GL3ElementAttributeArray(ibo,
-         idxStorage.getGLType (), 0, idxStorage.bytes(), nelems);
-      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.bytes());
+         idxStorage.getGLType (), 0, idxStorage.width(), nelems);
+      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.width());
       
       // bottom
       posPutter.putPosition(pnbuff, 0, 0,-1);
@@ -454,14 +454,16 @@ public class GL3PrimitiveFactory {
       GL3AttributeStorage posStorage = posPutter.storage();
       GL3AttributeStorage clrStorage = clrPutter.storage();
 
-      int vstride = posStorage.bytes() + clrStorage.bytes();
+      int posWidth = posStorage.width();
+      int clrWidth = clrStorage.width();
+      int vstride = posWidth+clrWidth;
 
       VertexBufferObject vbo = VertexBufferObject.generate (gl);
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
       attributes[0] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
          vertex_position, posStorage, 0, vstride, nverts));
       attributes[1] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
-         vertex_color, clrStorage, posStorage.bytes(), vstride, nverts));
+         vertex_color, clrStorage, posWidth, vstride, nverts));
       ByteBuffer pcbuff = BufferUtilities.newNativeByteBuffer(nverts*vstride);
       
       if (x) {
@@ -513,20 +515,20 @@ public class GL3PrimitiveFactory {
       GL3AttributeStorage nrmStorage = nrmPutter.storage();
       GL3AttributeStorage idxStorage = idxPutter.storage();
 
-      int vstride = posStorage.bytes() + nrmStorage.bytes();
+      int vstride = posStorage.width() + nrmStorage.width();
 
       VertexBufferObject vbo = VertexBufferObject.generate (gl);
       GL3VertexAttributeArray[] attributes = new GL3VertexAttributeArray[2];
       attributes[0] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
          vertex_position, posStorage, 0, vstride, nverts));
       attributes[1] = new GL3VertexAttributeArray (vbo, new GL3VertexAttributeArrayInfo(
-         vertex_normal, nrmStorage, posStorage.bytes(), vstride, nverts));
+         vertex_normal, nrmStorage, posStorage.width(), vstride, nverts));
       ByteBuffer pnbuff = BufferUtilities.newNativeByteBuffer(nverts*vstride);
       
       IndexBufferObject ibo = IndexBufferObject.generate (gl);
       GL3ElementAttributeArray elements = new GL3ElementAttributeArray(ibo,
-         idxStorage.getGLType (), 0, idxStorage.bytes(), nelems);
-      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.bytes());
+         idxStorage.getGLType (), 0, idxStorage.width(), nelems);
+      ByteBuffer ebuff = BufferUtilities.newNativeByteBuffer(nelems*idxStorage.width());
       
       // front
       posPutter.putPosition (pnbuff, -1f, -1f,  1f);

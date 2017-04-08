@@ -78,7 +78,6 @@ public abstract class FemNode extends Particle {
    
    public void addMass (double m) {
       myMass += m;
-      // myEffectiveMass += m;
       myMassValidP = true; // assume we are building it up in a valid way
    }
    

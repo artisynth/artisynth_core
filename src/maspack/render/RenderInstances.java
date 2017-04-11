@@ -1263,6 +1263,9 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    }
    
    public int[] getInstances() {
+      if (instances == null) {
+         instances = new DynamicIntArray();
+      }
       return instances.getArray();
    }
    
@@ -1299,7 +1302,7 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
     */
    public void forEachInstance(RenderInstanceConsumer consumer) {
       int idx = 0;
-      int[] buff = instances.getArray();
+      int[] buff = getInstances();
       InstanceTransformType[] types = InstanceTransformType.values();
       int pidx = 0;
       int fidx = 0;
@@ -1365,7 +1368,7 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
     * Number of instances defined
     */
    public int numInstances() {
-      return stateInfo.numScales;
+      return stateInfo.numInstances;
    }
    
    public boolean hasPointInstances() {

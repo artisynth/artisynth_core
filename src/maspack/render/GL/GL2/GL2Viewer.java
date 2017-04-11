@@ -4058,13 +4058,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          boolean hasInstanceScales = rinst.hasScales();
          boolean hasInstanceColors = useColors && rinst.hasColors();
 
-         gl.glPushMatrix();
          for (int i=0; i<ninstances; ++i) {
             int iidx = instances[ipos];
             int tidx = instances[tpos];
             int cidx = instances[cpos];
             int sidx = instances[spos];
-               
+
+            gl.glPushMatrix();
+            
             // transform
             switch(type[iidx]) {
                case AFFINE: {
@@ -4098,13 +4099,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             drawRawPoints(gl, robj, gidx, 0, robj.numPoints(gidx), robj.hasNormals(), 
                !hasInstanceColors && useColors,
                !selecting & robj.hasTextureCoords(), useHSV);
+            gl.glPopMatrix();
             
             ipos += stride;
             tpos += stride;
             cpos += stride;
             spos += stride;
          }
-         gl.glPopMatrix();
          
          robj.readUnlock ();
          rinst.readUnlock();
@@ -4214,13 +4215,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          boolean hasInstanceScales = rinst.hasScales();
          boolean hasInstanceColors = useColors && rinst.hasColors();
 
-         gl.glPushMatrix();
          for (int i=0; i<ninstances; ++i) {
             int iidx = instances[ipos];
             int tidx = instances[tpos];
             int cidx = instances[cpos];
             int sidx = instances[spos];
-               
+
+            gl.glPushMatrix();
+            
             // transform
             switch(type[iidx]) {
                case AFFINE: {
@@ -4254,13 +4256,13 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             drawRawLines(gl, robj, gidx, 0, robj.numLines(gidx), robj.hasNormals(), 
                !hasInstanceColors && useColors,
                !selecting & robj.hasTextureCoords(), useHSV);
+            gl.glPopMatrix();
             
             ipos += stride;
             tpos += stride;
             cpos += stride;
             spos += stride;
          }
-         gl.glPopMatrix();
          
          robj.readUnlock ();
          rinst.readUnlock();
@@ -4341,13 +4343,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          boolean hasInstanceScales = rinst.hasScales();
          boolean hasInstanceColors = useColors && rinst.hasColors();
 
-         gl.glPushMatrix();
          for (int i=0; i<ninstances; ++i) {
             int iidx = instances[ipos];
             int tidx = instances[tpos];
             int cidx = instances[cpos];
             int sidx = instances[spos];
-               
+
+            gl.glPushMatrix();
+            
             // transform
             switch(type[iidx]) {
                case AFFINE: {
@@ -4381,13 +4384,14 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             drawRawTriangles(gl, robj, gidx, 0, robj.numTriangles(gidx), robj.hasNormals(), 
                !hasInstanceColors && useColors,
                !selecting & robj.hasTextureCoords(), useHSV);
+          
+            gl.glPopMatrix();
             
             ipos += stride;
             tpos += stride;
             cpos += stride;
             spos += stride;
          }
-         gl.glPopMatrix();
          
          robj.readUnlock ();
          rinst.readUnlock();

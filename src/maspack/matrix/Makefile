@@ -47,6 +47,8 @@ JAVA_TEST_PROGRAMS = \
 	Vector4dTest \
 	VectorNdTest \
 	VectorNiTest \
+	Vector3iTest \
+	Vector2iTest \
 	SymmetricMatrix3dTest \
 	SparseMatrixNdTest \
 	SparseMatrixCRSTest \

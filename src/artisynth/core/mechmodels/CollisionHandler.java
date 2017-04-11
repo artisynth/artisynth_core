@@ -17,6 +17,7 @@ import maspack.util.*;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.mechmodels.CollisionManager.ColliderType;
 
 /**
  * Class that generates the contact constraints between a specific
@@ -108,7 +109,7 @@ public class CollisionHandler extends ConstrainerBase
       return myLastContactInfo;
    }
 
-   protected boolean isRigid (CollidableBody col) {
+   protected static boolean isRigid (CollidableBody col) {
       return (col instanceof RigidBody || col instanceof RigidMeshComp);
    }
 
@@ -129,8 +130,11 @@ public class CollisionHandler extends ConstrainerBase
    }
    
    Method getMethod() {
-      Method method = myBehavior.myMethod;
-      if (method == Method.DEFAULT) {
+      Method method = myBehavior.getMethod();
+      if (myBehavior.getColliderType() == ColliderType.SIGNED_DISTANCE) {
+         method = CollisionBehavior.Method.VERTEX_PENETRATION;
+      }
+      else if (method == Method.DEFAULT) {
          if (isRigid(myCollidable0) && isRigid(myCollidable1)) {
             method = CollisionBehavior.Method.CONTOUR_REGION;
          }
@@ -206,8 +210,14 @@ public class CollisionHandler extends ConstrainerBase
       boolean hashUsingFace, double distance) {
 
       ContactConstraint cons = null;
-      cons = contacts.get (hashUsingFace ? cpnt1 : cpnt0);
-
+      if (hashUsingFace && cpnt1.getVertices() != null) {
+         // if hashUsingFace==true and cpnt1 actually has face vertices,
+         // get the contact using those face vertices
+         cons = contacts.get (cpnt1);
+      }
+      else {
+         cons = contacts.get (cpnt0);
+      }
       if (cons == null) {
          cons = new ContactConstraint (cpnt0, cpnt1);
          cons.myIdentifyByPoint1 = hashUsingFace;
@@ -291,7 +301,7 @@ public class CollisionHandler extends ConstrainerBase
     * first collidable body, 1 if it is associated with the second body, 
     * and -1 if it is associated with neither.
     * 
-    * @param col
+    * @param col collidable to inspect
     * @return index of the body associated with <code>col</code>. 
     */
    public int getBodyIndex (Collidable col) {
@@ -379,7 +389,7 @@ public class CollisionHandler extends ConstrainerBase
       ContactConstraint cons, PenetratingPoint cpp,
       CollidableBody collidable0, CollidableBody collidable1) {
 
-      //cons.setContactPoint2 (cpp.position, cpp.face, cpp.coords);
+      // compute normal from the opposing face
       cpp.face.computeNormal (cons.myNormal);
       PolygonalMesh mesh = collidable1.getCollisionMesh();
       // convert to world coordinates if necessary
@@ -387,6 +397,22 @@ public class CollisionHandler extends ConstrainerBase
          cons.myNormal.transform (mesh.getMeshToWorld());
       }
       cons.myRegion = cpp.region; // set region, if available
+      cons.assignMasters (collidable0, collidable1);
+
+      // This should be -cpp.distance - do we need to compute this?
+      Vector3d disp = new Vector3d();
+      disp.sub(cons.myCpnt0.myPoint, cons.myCpnt1.myPoint);
+      double dist = disp.dot(cons.myNormal);
+      return dist;
+   }
+
+   double setVertexBody (
+      ContactConstraint cons, PenetratingPoint cpp,
+      CollidableBody collidable0, CollidableBody collidable1) {
+
+      // get the normal directly from the penetrating point
+      cons.myNormal.set (cpp.getNormal());
+      cons.myRegion = null;
       cons.assignMasters (collidable0, collidable1);
 
       // This should be -cpp.distance - do we need to compute this?
@@ -545,11 +571,15 @@ public class CollisionHandler extends ConstrainerBase
       boolean hashUsingFace = hashContactUsingFace (collidable0, collidable1);
 
       updateAttachedVertices();
-
       for (PenetratingPoint cpp : points) {
          ContactPoint pnt0, pnt1;
          pnt0 = new ContactPoint (cpp.vertex);
-         pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
+         if (cpp.face != null) {
+            pnt1 = new ContactPoint (cpp.position, cpp.face, cpp.coords);
+         }
+         else {
+            pnt1 = new ContactPoint (cpp.position);
+         }
          
          HashSet<Vertex3d> attachedVtxs0 = myAttachedVertices0;
          HashSet<Vertex3d> attachedVtxs1 = myAttachedVertices1;
@@ -581,7 +611,13 @@ public class CollisionHandler extends ConstrainerBase
          if (cons != null) {
             cons.setActive (true);
 
-            double dist = setVertexFace (cons, cpp, collidable0, collidable1);
+            double dist;
+            if (cpp.getFace() != null) {
+               dist = setVertexFace (cons, cpp, collidable0, collidable1);
+            }
+            else {
+               dist = setVertexBody (cons, cpp, collidable0, collidable1);
+            }
             if (!cons.isControllable()) {
                cons.setActive (false);
                continue;
@@ -617,7 +653,7 @@ public class CollisionHandler extends ConstrainerBase
          }
    */
 
-   boolean hasLowDOF (CollidableBody collidable) {
+   static boolean hasLowDOF (CollidableBody collidable) {
       // XXX should formalize this better
       return isRigid (collidable);
    }
@@ -630,15 +666,15 @@ public class CollisionHandler extends ConstrainerBase
       if (info != null) {
          CollidableBody col0 = collidable0;
          CollidableBody col1 = collidable1;
-         ArrayList<PenetratingPoint> pnts0 = info.getPenetratingPoints0();
-         ArrayList<PenetratingPoint> pnts1 = info.getPenetratingPoints1();
+         ArrayList<PenetratingPoint> pnts0 = info.getPenetratingPoints(0);
+         ArrayList<PenetratingPoint> pnts1 = info.getPenetratingPoints(1);
          if (isRigid(collidable0) && !isRigid(collidable1)) {
             // swap bodies so that we compute vertex penetrations of 
             // collidable1 with respect to collidable0
             col0 = collidable1;
             col1 = collidable0;
-            pnts0 = info.getPenetratingPoints1();
-            pnts1 = info.getPenetratingPoints0();
+            pnts0 = info.getPenetratingPoints(1);
+            pnts1 = info.getPenetratingPoints(0);
          }
          maxpen = computeVertexPenetrationConstraints (pnts0, col0, col1);
          if (!hasLowDOF (col1) || myBehavior.getBodyFaceContact()) {
@@ -676,7 +712,7 @@ public class CollisionHandler extends ConstrainerBase
       if (info != null) {
          int numc = 0;
          info.setPointTol (myBehavior.myRigidPointTol);
-         info.setRegionTol (myBehavior.myRigidRegionTol);
+         info.setContactPlaneTol (myBehavior.myRigidRegionTol);
          for (ContactPlane region : info.getContactPlanes()) {
             for (Point3d p : region.points) {
                if (numc >= myMaxUnilaterals)
@@ -1174,6 +1210,14 @@ public class CollisionHandler extends ConstrainerBase
          imp.scaledAdd (lam*wgts[i], nrml);
       }
    }
+
+   protected void accumulateImpulsesUnilateral (
+      Map<Vertex3d,Vector3d> map, ContactPoint cpnt, Vector3d nrml, double lam) {
+      Vertex3d v = new Vertex3d (cpnt.getPoint ());
+      Vector3d imp = new Vector3d();
+      imp.scaledAdd (lam, nrml);
+      map.put (v, imp);
+   }
    
    void getContactImpulses (Map<Vertex3d,Vector3d> map, CollidableBody colA) {
       // add impulses associated with vertices on colA. These will arise from
@@ -1203,6 +1247,17 @@ public class CollisionHandler extends ConstrainerBase
          else {
             accumulateImpulses (
                map, c.myCpnt0, c.getNormal(), c.getImpulse());
+         }
+      }
+      // added by Fabien Pean, March 28, 2017
+      for (ContactConstraint c : myUnilaterals) {
+         if (colA == myCollidable0) {
+            accumulateImpulsesUnilateral (
+               map, c.myCpnt1, c.getNormal(), -c.getDistance()/myCompliance);
+         }
+         else {
+            accumulateImpulsesUnilateral (
+               map, c.myCpnt0, c.getNormal(), c.getDistance()/myCompliance);
          }
       }
    }

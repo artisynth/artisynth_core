@@ -11,6 +11,7 @@
 
 \usepackage{amsmath}
 \usepackage{framed}
+%\usepackage{bibtopic}
 
 %\usepackage{layout}
 %\usepackage{showframe}
@@ -144,11 +145,12 @@ needed explanatory detail.
 \bibliography{references}
 \else
 \chapter*{References}
-\addcontentsline{toc}{chapter}{\protect\numberline{}References}
+%\addcontentsline{toc}{chapter}{\protect\numberline{}References}
 \bibliographystyle{plain}
-\begin{btSect}{references}
-\btPrintCited
-\end{btSect}
+\bibliography{references}
+%\begin{btSect}{references}
+%\btPrintCited
+%\end{btSect}
 \fi
 
 \end{document}

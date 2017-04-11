@@ -56,11 +56,7 @@ public class GLTextureLoader implements GLGarbageSource {
    /**
     * Load a texture with one held reference to prevent garbage collection
     * 
-    * @param gl 
-    * @param content
     * @return The loaded texture
-    * @throws IOException
-    * Indicates a failure to access the resource
     */
    public GLTexture getAcquiredTexture (GL gl, TextureContent content) {
       maybeClearTextures(gl);

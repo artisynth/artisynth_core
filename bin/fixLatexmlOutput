@@ -31,10 +31,17 @@ while (<>) {
     }
     # replace unicode ellipsis character with ...
     $line =~ s/\x{2026}/.../g;
-    # replace unicode left quote with `
-    $line =~ s/\x{2018}/`/g;
-    # replace unicode right quote with '
-    $line =~ s/\x{2019}/'/g;
+    # replace unicode left quotes with ``
+    #
+    # Odd behavior: on SuSE 4.1, perl failed on the expression 
+    #  $line =~ s/\x{2018}/`/g;
+    # citing Malformed UTF-8 character (fatal). The problem seemed to
+    # be related to having two unicode characters appear together. However, 
+    # replacing both characters at the same time fixed the problem
+    #
+    $line =~ s/\x{2018}\x{2018}/``/g;
+    # replace unicode right quotes with ''
+    $line =~ s/\x{2019}\x{2019}/''/g;
 	# replace %5C with backslash
     # $line =~ s/%5C(?=.*\.css)/\//g;
     $line =~ s/%5C(?=.*\.)/\//g;

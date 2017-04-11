@@ -105,6 +105,7 @@ public class FemModel3d extends FemModel
    protected FemModelFrame myFrame;
    protected FrameFem3dConstraint myFrameConstraint;
    protected boolean myFrameRelativeP;
+   public static boolean useFrameRelativeCouplingMasses = false;
 
    protected PointList<FemNode3d> myNodes;
    protected ArrayList<BodyConnector> myConnectors;
@@ -559,29 +560,30 @@ public class FemModel3d extends FemModel
    }
    
    /**
-    * Adds a marker to this FemModel. The element to which it belongs is
-    * determined automatically. If the marker's current position does not lie
-    * within the model, it is projected onto the model's surface.
+    * Creates and adds a marker to this FemModel. The element to which it
+    * belongs is determined automatically. If the marker's current position
+    * does not lie within the model, it is projected onto the model's surface.
     * 
     * @param pos
     * position to place a marker in the model
+    * @return created marker
     */
    public FemMarker addMarker (Point3d pos) {
       return addMarker(pos, true);
    }
    
    /**
-    * Adds a marker to this FemModel. The element to which it belongs is
-    * determined automatically. If the marker's current position does not lie
-    * within the model and {@code project == true}, it will be projected onto 
-    * the model's surface.
+    * Creates and adds a marker to this FemModel. The element to which it
+    * belongs is determined automatically. If the marker's current position
+    * does not lie within the model and {@code project == true}, it will be
+    * projected onto the model's surface.
     * 
     * @param pos
     * position to place a marker in the model
     * @param project
     * if true and pnt is outside the model, projects to the nearest point
     * on the surface.  Otherwise, uses the original position.
-    * 
+    * @return created marker
     */
    public FemMarker addMarker(Point3d pos, boolean project) {
       FemMarker mkr = new FemMarker();
@@ -4024,7 +4026,7 @@ public class FemModel3d extends FemModel
    }
 
    public void addGeneralMassBlocks (SparseBlockMatrix M) {
-      if (myFrameRelativeP) {
+      if (myFrameRelativeP && useFrameRelativeCouplingMasses) {
          int bi = myFrame.getSolveIndex();
          if (bi != -1) {
             for (int i=0; i<myNodes.size(); i++) {
@@ -4144,16 +4146,6 @@ public class FemModel3d extends FemModel
          for (int k=0; k<myNodes.size(); k++) {
             FemNode3d n = myNodes.get(k);
 
-            // if (n.getNumber() == 16) {
-            //    Vector3d lf = new Vector3d();
-            //    System.out.println ("  cl=  " + n.getLocalPosition());
-            //    System.out.println ("  c=  " + n.getPosition());
-            //    System.out.println ("  lvel=" + n.getLocalVelocity());
-            //    lf.inverseTransform (R, n.getForce());
-            //    System.out.println ("  lf=  " + lf);
-            // }
-
-
             if ((bk = n.getSolveIndex()) != -1) {
                c.transform (R, n.getLocalPosition());
                v.transform (R, n.getLocalVelocity());
@@ -4163,43 +4155,46 @@ public class FemModel3d extends FemModel
                mass += m;
                SpatialInertia.addPointRotationalInertia (J, m, c);
 
-               Matrix3x6Block blk   = (Matrix3x6Block)M.getBlock (bk, bf);
-               Matrix6x3Block blkT  = (Matrix6x3Block)M.getBlock (bf, bk);
-               setCouplingMass (blk, m, R, c);
+               if (useFrameRelativeCouplingMasses) {
+                  Matrix3x6Block blk   = (Matrix3x6Block)M.getBlock (bk, bf);
+                  Matrix6x3Block blkT  = (Matrix6x3Block)M.getBlock (bf, bk);
+                  setCouplingMass (blk, m, R, c);
 
-               blkT.transpose (blk);
+                  blkT.transpose (blk);
 
-               // compute fictitious forces for nodes, and accumulate nodal
-               // velocity fictitious force terms for spatial inertia
+                  // compute fictitious forces for nodes, and accumulate nodal
+                  // velocity fictitious force terms for spatial inertia
 
-               tmp.cross (w, v);        // tmp = 2*m (w X v)
-               tmp.scale (2*m);
+                  tmp.cross (w, v);        // tmp = 2*m (w X v)
+                  tmp.scale (2*m);
 
-               // System.out.println ("  vl=" + v);
-               // System.out.println ("  vw=" + n.getVelocity());
+                  // System.out.println ("  vl=" + v);
+                  // System.out.println ("  vw=" + n.getVelocity());
 
-               fv.add (tmp);               // fv += 2*m (w X v)
-               fw.crossAdd (c, tmp, fw);  // fw += 2*m (c X w X v)
+                  fv.add (tmp);               // fv += 2*m (w X v)
+                  fw.crossAdd (c, tmp, fw);  // fw += 2*m (c X w X v)
 
-               fn.set (tmp);               // fn = 2*m (w X v)
+                  fn.set (tmp);               // fn = 2*m (w X v)
 
-               tmp.cross (w, c);        // tmp = m*w X c
-               tmp.scale (m);
-               fn.crossAdd (w, tmp, fn);// fn += m (w X w X c)
-               fn.inverseTransform (R);
+                  tmp.cross (w, c);        // tmp = m*w X c
+                  tmp.scale (m);
+                  fn.crossAdd (w, tmp, fn);// fn += m (w X w X c)
+                  fn.inverseTransform (R);
                
-               // set fictitious force terms for node
-               int idx = M.getBlockRowOffset (bk);
-               fbuf[idx++] = -fn.x;
-               fbuf[idx++] = -fn.y;
-               fbuf[idx++] = -fn.z;
+                  // set fictitious force terms for node
+                  int idx = M.getBlockRowOffset (bk);
+                  fbuf[idx++] = -fn.x;
+                  fbuf[idx++] = -fn.y;
+                  fbuf[idx++] = -fn.z;
+               }
+               
             }
 
             // if (n.getNumber() == 16) {
             //    System.out.println ("  fn=  " + fn);
             // }
-            
          }
+         
          com.scale (1/mass);
          SpatialInertia.addPointRotationalInertia (J, -mass, com);
 
@@ -4214,19 +4209,22 @@ public class FemModel3d extends FemModel
          // add nodal velocity fictitious force terms for spatial inertia
          //fv.transform (R);    // convert from local coords ...
          //fw.transform (R);
-         int idx = M.getBlockRowOffset (bf);
 
-         VectorNd f6 = new VectorNd (6);
-         f.getSubVector (idx, f6);
+
+         //VectorNd f6 = new VectorNd (6);
+         //f.getSubVector (idx, f6);
          // System.out.println ("xmass forces: "+fv);
          // System.out.println ("xmass forces: "+fw);
 
-         fbuf[idx++] -= fv.x;
-         fbuf[idx++] -= fv.y;
-         fbuf[idx++] -= fv.z;
-         fbuf[idx++] -= fw.x;
-         fbuf[idx++] -= fw.y;
-         fbuf[idx++] -= fw.z;
+         if (useFrameRelativeCouplingMasses) {
+            int idx = M.getBlockRowOffset (bf);
+            fbuf[idx++] -= fv.x;
+            fbuf[idx++] -= fv.y;
+            fbuf[idx++] -= fv.z;
+            fbuf[idx++] -= fw.x;
+            fbuf[idx++] -= fw.y;
+            fbuf[idx++] -= fw.z;
+         }
 
          // fbuf[idx++] = 0;
          // fbuf[idx++] = 0;

@@ -953,8 +953,9 @@ public class BVFeatureQuery {
       
       /**
        * Computes the nearest distance to the bounding node
-       * @param node
-       * @return
+       * 
+       * @param node node to check distance to
+       * @return distance to <code>node</code>
        */
       public double nearestDistance (BVNode node);
 
@@ -962,20 +963,22 @@ public class BVFeatureQuery {
        * Computes the nearest distance to an element within the node.
        * This should store the object and distance for later use
        * by {@link #nearestObject()} and {@link #nearestDistance()}
-       * @param e
-       * @return
+       * @param e element for which distance is to be computed
+       * @return nearest distance to <code>e</code>
        */
       public double nearestDistance (Boundable e);
 
       /**
-       * Returns the last computed nearest object
-       * @return
+       * Returns the last computed nearest {@link Boundable} object
+       * 
+       * @return last computed nearest object
        */
       public Boundable nearestObject();
       
       /**
        * Returns the last computed nearest distance
-       * @return
+       * 
+       * @return last computed nearest distance
        */
       public double nearestDistance();
    }

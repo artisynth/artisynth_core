@@ -279,7 +279,7 @@ public class TransformGeometryContext {
     * Adds an action to be called within the {@link #apply} method
     * after the {@link TransformableGeometry#transformGeometry}
     * methods have been called for all the transformables. Actions
-    * are stored< as a set, so the same action can only be
+    * are stored as a set, so the same action can only be
     * added once.
     * 
     * @param action action to be called after all
@@ -378,7 +378,7 @@ public class TransformGeometryContext {
     * components currently stored in this context. This involves
     * the following steps:
     * 
-    * <p><ul>
+    * <ul>
     * <li>Call {@link TransformableGeometry#addTransformableDependencies} for
     * each transformable to add additional components that need
     * to be transformed, such as descendants or certain connected components.

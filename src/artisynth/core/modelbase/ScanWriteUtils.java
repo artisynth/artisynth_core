@@ -54,7 +54,7 @@ public class ScanWriteUtils {
     * @param tokens token queue for postscan
     * @return <code>true</code> if reference path is scanned and stored 
     * in the queue as a <code>StringToken</code>
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean scanAndStoreReference (
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
@@ -94,7 +94,7 @@ public class ScanWriteUtils {
     * @param rtok input token stream
     * @param tokens token storage queue for postscan
     * @return number of reference paths read
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static int scanAndStoreReferences (
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
@@ -145,7 +145,7 @@ public class ScanWriteUtils {
     * 
     * @param rtok input token stream
     * @param tokens token storage queue for postscan
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static void scanAndStorePropertyPath (
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
@@ -187,7 +187,7 @@ public class ScanWriteUtils {
     * @param rtok input token stream
     * @param tokens token storage queue for postscan
     * @return number of paths read
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static int scanAndStorePropertyPaths (
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
@@ -235,7 +235,7 @@ public class ScanWriteUtils {
     * @param name attribute name
     * @param tokens token storage queue for postscan
     * @return true if the attribute name was matched and the reference scanned
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean scanAndStoreReference (
       ReaderTokenizer rtok, String name, Deque<ScanToken> tokens) 
@@ -264,7 +264,7 @@ public class ScanWriteUtils {
     * @param tokens token storage queue for postscan
     * @return number of paths found, or -1 if the attribute name
     * did not match
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static int scanAndStoreReferences (
       ReaderTokenizer rtok, String name, Deque<ScanToken> tokens) 
@@ -288,7 +288,7 @@ public class ScanWriteUtils {
     * @param name attribute name
     * @param tokens token storage queue for postscan
     * @return true if the attribute name was matched
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean scanAndStorePropertyPath (
       ReaderTokenizer rtok, String name, Deque<ScanToken> tokens) 
@@ -315,7 +315,7 @@ public class ScanWriteUtils {
     * @param tokens token storage queue for postscan
     * @return number of paths found, or -1 if the attribute name
     * did not match
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static int scanAndStorePropertyPaths (
       ReaderTokenizer rtok, String name, Deque<ScanToken> tokens) 
@@ -354,7 +354,7 @@ public class ScanWriteUtils {
     * a component, and if so, consumes it. Otherwise, throws an exception.
     * @param tokens queue of stored tokens
     * @param comp component associated with the BEGIN
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static void postscanComponentBegin (
       Deque<ScanToken> tokens, ModelComponent comp) throws IOException {
@@ -626,7 +626,7 @@ public class ScanWriteUtils {
     * @param rtok input token stream
     * @param comp component to scan
     * @param ancestor ancestor component for resolving references
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static void scanfull (
       ReaderTokenizer rtok, ModelComponent comp, CompositeComponent ancestor)
@@ -737,7 +737,7 @@ public class ScanWriteUtils {
     * @param rtok input token stream
     * @param host host containing the property
     * @return <code>true</code> if a property was matched and scanned
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean scanProperty (
       ReaderTokenizer rtok, HasProperties host) throws IOException {
@@ -797,7 +797,7 @@ public class ScanWriteUtils {
     * @param host host containing the property
     * @param propName property to try and scan
     * @return the scanning property value
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static Object scanPropertyValue (
       ReaderTokenizer rtok, HasProperties host, String propName) 
@@ -883,8 +883,8 @@ public class ScanWriteUtils {
     * @param propNames names of properties to match
     * @param tokens token queue for postscan
     * @return <code>true</code> if a property value was scanned
-    * and stored.
-    * @throws IOException
+    * and stored. 
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean scanAndStorePropertyValues (
       ReaderTokenizer rtok, HasProperties host, String[] propNames,
@@ -920,7 +920,7 @@ public class ScanWriteUtils {
     * @param tokens token queue for postscan
     * @return <code>true</code> if z roperty value was scanned
     * and stored.
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean scanAndStorePropertyValue (
       ReaderTokenizer rtok, HasProperties host, String propName,
@@ -949,7 +949,7 @@ public class ScanWriteUtils {
     * @param host host containing the properties
     * @param propNames names of the properties to match
     * @return <code>true</code> if a property was matched and set
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean postscanPropertyValues (
       Deque<ScanToken> tokens, HasProperties host, String[] propNames) 
@@ -985,7 +985,7 @@ public class ScanWriteUtils {
     * @param host host containing the properties
     * @param propName names of the property to match
     * @return <code>true</code> if a property was matched and set
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean postscanPropertyValue (
       Deque<ScanToken> tokens, HasProperties host, String propName) 
@@ -1067,7 +1067,7 @@ public class ScanWriteUtils {
     * @param tokens token storage queue for postscan
     * @return true if the attribute name was matched and the component was
     * scanned
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public static boolean scanAndStoreComponent (
       ReaderTokenizer rtok, String name, Deque<ScanToken> tokens)

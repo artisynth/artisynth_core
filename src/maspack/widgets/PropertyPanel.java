@@ -70,12 +70,9 @@ public class PropertyPanel extends LabeledComponentPanel {
    /**
     * Add widgets to the panel.  If {@code organize} is true, then
     * groups properties by their associated "groups" if any.
-    * 
-    * @param items
-    * @param organized
-    * @param expandable
     */
-   public void addWidgets (Iterable<?> items, boolean organized, boolean expandable) {
+   public void addWidgets (
+      Iterable<?> items, boolean organized, boolean expandable) {
       // removeAll();
 
       if (!organized) {

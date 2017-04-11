@@ -7,7 +7,7 @@ import artisynth.core.femmodels.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.materials.LinearMaterial;
 import maspack.matrix.*;
-
+import maspack.geometry.*;
 
 public class SelfCollision extends FemBeam3d {
 
@@ -62,7 +62,7 @@ public class SelfCollision extends FemBeam3d {
       for (int i=0; i<fixedNodes.length; i++) {
          myFemMod.getNodes().getByNumber(fixedNodes[i]).setDynamic (false);
       }
-
+      myFemMod.updateSlavePos();
    }
 
    String rightMeshString =

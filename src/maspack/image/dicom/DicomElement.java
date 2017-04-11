@@ -59,8 +59,6 @@ public class DicomElement {
 
       /**
        * Find VR element based on 2-character representation
-       * @param c0
-       * @param c1
        * @return the VR entity
        */
       public static VR get(char c0, char c1) {

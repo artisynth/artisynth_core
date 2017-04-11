@@ -69,11 +69,13 @@ public class AnsysReader implements FemReader {
     * axes.
     * 
     * @param model
-    * FEM model to be populated by ANSYS data
+    * FEM model to be populated by ANSYS data. If <code>null</code>, a
+    * new model is created
     * @param nodeFileName
     * path name of the ANSYS node file
     * @param elemFileName
     * path name of the ANSYS element file
+    * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */
@@ -91,7 +93,8 @@ public class AnsysReader implements FemReader {
     * axes.
     * 
     * @param model
-    * FEM model to be populated by ANSYS data
+    * FEM model to be populated by ANSYS data. If <code>null</code>, a
+    * new model is created 
     * @param nodeFileName
     * path name of the ANSYS node file
     * @param elemFileName
@@ -103,6 +106,7 @@ public class AnsysReader implements FemReader {
     * @param options
     * option flags. Should be an or-ed combination of
     * {@link #TETRAHEDRALIZE_HEXES} and {@link #ONE_BASED_NUMBERING}.
+    * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */
@@ -141,7 +145,8 @@ public class AnsysReader implements FemReader {
     * axes.
     * 
     * @param model
-    * FEM model to be populated by ANSYS data
+    * FEM model to be populated by ANSYS data. If <code>null</code>, a
+    * new model is created
     * @param nodeReader
     * reader supplying node data in the ANSYS format
     * @param elemReader
@@ -153,6 +158,7 @@ public class AnsysReader implements FemReader {
     * @param options
     * option flags. Should be an or-ed combination of
     * {@link #TETRAHEDRALIZE_HEXES} and {@link #ONE_BASED_NUMBERING}.
+    * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */

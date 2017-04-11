@@ -125,7 +125,7 @@ public class NavPanelTreeModel implements TreeModel {
    /**
     * Remove the node at the end of the specified path.
     * 
-    * @param path
+    * @param path path from which node should be removed
     */
    public void removeChildAtPathEnd(TreePath path) {
       if (path != null) {

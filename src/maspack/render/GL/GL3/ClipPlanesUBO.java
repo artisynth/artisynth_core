@@ -47,8 +47,6 @@ public class ClipPlanesUBO extends UniformBufferObject {
    
    /**
     * Returns the number of enabled clip distances
-    * @param gl
-    * @param clips
     */
    public int updateClipPlanes(GL3 gl,  GLClipPlane[] clips) {
 
@@ -90,8 +88,6 @@ public class ClipPlanesUBO extends UniformBufferObject {
    
    /**
     * Returns the number of enabled clip distances
-    * @param gl
-    * @param clips
     */
    public int updateClipPlanes(GL3 gl,  List<GLClipPlane> clips) {
       

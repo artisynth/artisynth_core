@@ -75,7 +75,8 @@ public interface CompositeComponent
    /**
     * Returns the index of a specified sub-component, or -1 if that the
     * component is not present.
-    * 
+    *
+    * @param comp component whose index is requested
     * @return indexed sub-component
     */
    public int indexOf (ModelComponent comp);

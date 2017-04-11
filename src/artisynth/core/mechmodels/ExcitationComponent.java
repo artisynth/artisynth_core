@@ -106,12 +106,16 @@ public interface ExcitationComponent extends ModelComponent, RequiresInitialize 
     * Returns the net excitation for this Excitable. The net excitation is the
     * combination of the primary excitation and the net excitations of all the
     * excitation sources.
+    *
+    * @return net excitation for this Excitable
     */
    public double getNetExcitation();
 
    /**
     * Returns the default weight that should be used when this excitation
     * component is being used for inverse actuation control.
+    *
+    * @return default weight for inverse actuation control
     */
    public double getDefaultActivationWeight();
 }

@@ -106,14 +106,17 @@ public abstract class SpatialVector extends VectorBase
 
    /**
     * Copies the elements of this spatial vector into an array of doubles. The
-    * element ordering depends on whether the vector is <a
-    * href="#variance">contravariant or covariant</a>.
+    * array must have a length {@code >=} 6. The element ordering depends on
+    * whether the vector is <a href="#variance">contravariant or covariant</a>.
     * 
     * @param values
     * array into which values are copied
     */
-   public void get (double[] values)
-    {
+   public void get (double[] values) {
+      if (values.length < 6) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have length >= 6");
+      }
       values[0] = a.x;
       values[1] = a.y;
       values[2] = a.z;
@@ -166,14 +169,18 @@ public abstract class SpatialVector extends VectorBase
 
    /**
     * Sets the elements of this spatial vector from an array of doubles. The
+    * array must have a length of at least 6. The 
     * element ordering depends on whether the vector is <a
     * href="#variance">contravariant or covariant</a>.
     * 
     * @param values
     * array from which values are copied
     */
-   public void set (double[] values)
-    {
+   public void set (double[] values) {
+      if (values.length < 6) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have a length of at least 6");
+      } 
       a.x = values[0];
       a.y = values[1];
       a.z = values[2];

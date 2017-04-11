@@ -44,6 +44,11 @@ REAL exactinit();
 REAL orient2d(REAL *pa, REAL *pb, REAL *pc);
 REAL orient3d(REAL *pa, REAL *pb, REAL *pc, REAL *pd);
 
+// John Lloyd, Nov 2016: Extensions to orient3d() and orient3dexact()
+// that return two-double precision values of the determinant in detv
+REAL orient3dDet(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL *detv);
+REAL orient3dexactDet(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL *detv);
+
 int scale_expansion(int elen, REAL *e, REAL b, REAL *h);
 int scale_expansion_zeroelim(int elen, REAL *e, REAL b, REAL *h);
 int expansion_sum(int elen, REAL *e, int flen, REAL *f, REAL *h);

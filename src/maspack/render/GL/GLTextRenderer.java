@@ -31,7 +31,6 @@ public class GLTextRenderer extends TextureTextRenderer {
 
    /**
     * Bind's internal texture
-    * @param gl
     */
    public void bind(GL gl) {
       texture.bind (gl);
@@ -43,8 +42,6 @@ public class GLTextRenderer extends TextureTextRenderer {
 
    /**
     * Prepares for drawing
-    * 
-    * @param gl
     */
    public void begin (GL gl) {
       super.begin();
@@ -131,8 +128,6 @@ public class GLTextRenderer extends TextureTextRenderer {
 
    /**
     * Commits any changes to the graphics pipeline
-    * 
-    * @param gl
     */
    public void end (GL gl) {
       flush ();

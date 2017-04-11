@@ -175,24 +175,19 @@ public class JSONFactoryHandler<P, O extends Map<String,P>, A extends List<P>> i
    }
 
    /**
-    * Attempt to detect if garbage is actually a missing data.
-    * <ul>
-    *    <li>If we are currently parsing an object</li>
-    *    <ul><li>Check the key has been defined</li>
-    *       <ul><li>If not, set the key</li>
-    *           <li>Otherwise, check if the value is defined</li>
-    *           <ul><li>If not, set the value</li>
-    *               <li>Otherwise, ignore </li>
-    *           </ul>
-    *       </ul>
-    *    </ul>
-    *    <li>If we are currently parsing an Array</li>
-    *    <ul><li>Check the element has been defined</li>
-    *       <ul><li>If not, set the element</li>
-    *           <li>Otherwise, ignore</li>
-    *        </ul>
-    *    </ul>
-    * </ul>
+    * Attempt to detect if garbage is actually a missing data:
+    * <pre>
+    *    If we are currently parsing an object
+    *        Check the key has been defined
+    *           If not, set the key
+    *           Otherwise, check if the value is defined
+    *           If not, set the value
+    *           Otherwise, ignore 
+    *    If we are currently parsing an Array
+    *        Check the element has been defined
+    *           If not, set the element
+    *           Otherwise, ignore
+    * </pre>
     *     
     */
    @Override

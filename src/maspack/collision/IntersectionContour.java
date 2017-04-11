@@ -21,6 +21,9 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
    public boolean isClosed = false;
    public boolean isContinuable = true;
    public boolean openMesh = false;
+   public Face containingFace = null;
+   public double singleFaceArea = 0;
+   boolean emptySegmentsMarked = false;
 
    public IntersectionContour () {
    }
@@ -83,7 +86,8 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
    }
 
    /**
-    * Get with wrapping implemented for closed contours.
+    * Get with wrapping implemented for closed contours. If the contour
+    * is open and the index is out of bounds, null is returned.
     * 
     * @param idx index of point to get
     * @return point at index idx
@@ -96,22 +100,53 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
                idx += size();
             }
          }
+         else {
+            return null;
+         }
       }
       else if (idx >= size()) {
          if (isClosed) {
             idx = idx%size();
          }
+         else {
+            return null;
+         }
       }
       return super.get(idx);
    }
-   
-//   /* Allow index wraparound for finding convex hull */
-//   public MeshIntersectionPoint get (int i) {
-//      if (i < 0) {
-//         i += size();
-//      }
-//      return super.get (i%size());
-//   }
+
+   /**
+    * Takes an arbitrary index value for a contour point returns either its
+    * wrapped value (for closed contours), or checks its range and returns
+    * either the index itself or -1 if it is out of range (for open
+    * contours).
+    * 
+    * @param idx index value to check
+    * @return wrapped value, or -1 is the contour is open and <code>idx</code>
+    * is out of range
+    */
+   public int getWrappedIndex (int idx) {
+      if (idx < 0) {
+         if (isClosed) {
+            idx = idx%size();
+            if (idx != 0) {
+               idx += size();
+            }
+         }
+         else {
+            idx = -1;
+         }
+      }
+      else if (idx >= size()) {
+         if (isClosed) {
+            idx = idx%size();
+         }
+         else {
+            idx = -1;
+         }
+      }
+      return idx;
+   }
 
    void render (Renderer renderer, int flags) {
       
@@ -265,6 +300,28 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
          return null;
       }
    }
+
+   Face findSegmentFace (IntersectionPoint mip, PolygonalMesh mesh) {
+      IntersectionPoint next = mip.next();
+      if (next == null) {
+         return null;
+      }
+      else {
+         return findSegmentFace (mip, next, mesh);
+      }
+   }
+   
+//   Face getSegmentFace (int idx, PolygonalMesh mesh) {
+//      IntersectionPoint p;
+//      if (isClosed()) {
+//         p = getWrapped(idx);
+//      }
+//      else {
+//         p = get(idx);
+//      }
+//      return p.getSegmentFace (mesh);
+//   }
+//
    /**
     * Finds the face on the specified mesh that is traversed by the contour
     * between the adjacent points <code>pa</code> and <code>pb</code>.
@@ -405,7 +462,7 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
    }
 
    public ArrayList<IntersectionPoint> getCornerPoints() {
-      return getCornerPoints (computeLength()*100*DOUBLE_PREC);
+      return getCornerPoints (computeLength()*100000*DOUBLE_PREC);
    }
 
    /**
@@ -591,6 +648,24 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
          return null;
       }
    }
+   
+   /**
+    * Returns the next intersection point after <code>p</code> on this
+    * contour. If the contour is open and <code>p</code> is the last
+    * point, returns <code>null</code>.
+    */
+   public IntersectionPoint getNext (IntersectionPoint p) {
+      return getWrapped (p.contourIndex+1);
+   }
+
+   /**
+    * Returns the previous intersection point after <code>p</code> on this
+    * contour. If the contour is open and <code>p</code> is the first
+    * point, returns <code>null</code>.
+    */
+   public IntersectionPoint getPrev (IntersectionPoint p) {
+      return getWrapped (p.contourIndex-1);
+   }
 
    /**
     * Returns the last point of this contour, or null if the contour is empty.
@@ -606,14 +681,122 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
       }
    }
 
-   boolean isDegenerate() {
-      for (int i=0; i<size(); i++) {
-         if (get(i).isCoincident) {
-            return true;
+   /**
+    * Returns an index at which the indicated face first appears as a segment
+    * face for the indicated mesh, or -1 if no such starting index is found,
+    * which means either that the segment face does not appear at all, or
+    * appears along the whole contour.
+    */
+   public int findSegmentFaceStart (Face face, PolygonalMesh mesh) {
+      Face lastFace = findSegmentFace (size()-1, mesh);
+      for (int k=0; k<size(); k++) {
+         Face segFace = findSegmentFace (k, mesh);
+         if (segFace == face && lastFace != face) {
+            return k;
          }
+         lastFace = segFace;
       }
-      return false;
+      return -1;
    }
 
+//   void setSegmentFaces (PolygonalMesh mesh0, PolygonalMesh mesh1) {
+//      for (int i=0; i<size(); i++) {
+//         IntersectionPoint p = get(i);
+//         p.myMesh0 = mesh0;
+//         p.myFace0 = findSegmentFace (i, mesh0);
+//         p.myFace1 = findSegmentFace (i, mesh1);
+//      }
+//   }
+
+   /**
+    * Returns the index of the point where the contour first enters the
+    * specified <code>face</code> on <code>mesh</code>. If the contour does not
+    * enter the face, or if it is entirely located on the face, the method
+    * returns <code>-1</code>.
+    *
+    * <p>If <code>face</code> is <code>null</code>, then the methods returns
+    * the first point where the contour first enters <i>any</i> face.  For open
+    * contours, this is 0. If the contour is closed and entirely associated
+    * with one face, there is no entry index and the method returns -1.
+    */
+   int getFirstFaceEntryIndex (PolygonalMesh mesh, Face face) {
+      Face lastFace = findSegmentFace (size()-1, mesh);
+      for (int k=0; k<size(); k++) {
+         Face segFace = findSegmentFace (k, mesh);
+         if (segFace == null) {
+            return -1; // occurs only we are at the end of an open contour
+         }
+         if (segFace != lastFace) {
+            if (face == null || segFace == face) {
+               return k;
+            }
+         }
+         lastFace = segFace;
+      }
+      return -1;
+   }
+
+   /**
+    * Returns the point where the contour first enters the specified
+    * <code>face</code> on <code>mesh</code>. If the contour does not enter the
+    * face, or if it is entirely located on the face, the method returns
+    * <code>-1</code>.
+    *
+    * <p>If <code>face</code> is <code>null</code>, then the methods returns
+    * the first point where the contour first enters <i>any</i> face.  For open
+    * contours, this is always the first point. If the contour is closed and
+    * entirely associated with one face, there is no entry index and the method
+    * returns <code>null</code>.
+    */
+   public IntersectionPoint firstFaceEntryPoint (
+      PolygonalMesh mesh, Face face) {
+      int idx = getFirstFaceEntryIndex (mesh, face);
+      return idx != -1 ? get(idx) : null;
+   }
+
+   /**
+    * Returns a point on the contour whose distance from the preceeding point
+    * is either <code>null</code> (for open contours), or whose distance from
+    * the preceeding point exceeds <code>tol</code>. On closed contours, the
+    * latter is found by searching in reverse from the first point. If no such
+    * point is found (i.e., all points have a distance {@code <=} <code>tol</code>
+    * between them), <code>null</code> is returned.
+    */
+   public IntersectionPoint firstNonCoincidentPoint (double tol) {
+      if (isClosed()) {
+         IntersectionPoint mip0 = get(0);
+         IntersectionPoint mip = mip0;
+         do {
+            IntersectionPoint prev = mip.prev();            
+            if (prev.distance (mip) > tol) {
+               return mip;
+            }
+            mip = prev;
+         }
+         while (mip != mip0);
+         return null;
+      }
+      else {
+         return get(0);
+      }
+   }
+
+   public IntersectionContour copy() {
+      IntersectionContour contour = new IntersectionContour();
+
+      contour.isClosed = isClosed;
+      contour.isContinuable = isContinuable;
+      contour.openMesh = openMesh;
+      contour.containingFace = containingFace;
+      contour.singleFaceArea = singleFaceArea;
+
+      for (int i=0; i<size(); i++) {
+         IntersectionPoint pcopy = get(i).clone();
+         contour.add (pcopy);
+         pcopy.contour = contour;
+         pcopy.contourIndex = i;
+      }
+      return contour;
+   }
 
 }

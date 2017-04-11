@@ -6,7 +6,6 @@ public interface GL2Drawable extends GL2Resource {
 
    /**
     * Use whatever internal resources that exist and draw to provided context
-    * @param gl
     */
    public void draw(GL2 gl);
    

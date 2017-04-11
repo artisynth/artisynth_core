@@ -43,7 +43,7 @@ import maspack.util.NumberFormat;
  * <p>
  * Note that indices for matrix elements, rows, and columns are zero-based. The
  * range of valid indices for a matrix of size m X n is
- * <code>[0, ... , m-1]</code> and code>[0, ... , n-1]</code>.
+ * {@code [0, ... , m-1]} and {@code [0, ... , n-1]}.
  */
 public interface Matrix extends LinearTransformNd {
    /**
@@ -124,7 +124,7 @@ public interface Matrix extends LinearTransformNd {
       Sparse,
 
       /**
-       * <a http://math.nist.gov/MatrixMarket/formats.html>MatrixMarket </a>
+       * <a href="http://math.nist.gov/MatrixMarket/formats.html">MatrixMarket</a>
        * format. The example shown for {@link WriteFormat#Dense Dense} would be
        * output as
        * 
@@ -137,7 +137,7 @@ public interface Matrix extends LinearTransformNd {
        * 2 2 4.10
        * 3 2 2.00
        * 3 3 3.00
-       * 
+       * </pre>
        */
       MatrixMarket,
 
@@ -155,6 +155,7 @@ public interface Matrix extends LinearTransformNd {
        * 1 3 5 7
        * 1 3 1 2 2 3
        * 1.00 0.50 2.30 4.10 2.00 3.00
+       * </pre>
        */
       CRS,
 

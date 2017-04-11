@@ -12,6 +12,7 @@ import java.util.*;
  * A utility class to remove items from a list, and (later) return them to the
  * list in the same order. The basic usage model is this:
  * <pre>
+ * {@code
  *    List<C> list;
  *    ...
  *    ListRemove<C> listRemove = new ListRemove<C>(list);
@@ -23,7 +24,8 @@ import java.util.*;
  *    listRemove.Remove(); // do the actual removal
  *    ...
  *    listRemove.undo(); // undo the removal
- * <pre>
+ * }
+ * </pre>
  * Item to be removed are specified by index. The class attempts
  * to preform the remove in O(n) time.
  */

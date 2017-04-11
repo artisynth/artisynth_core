@@ -371,7 +371,7 @@ public class ViewerManager {
    /**
     * Add a mouse input listener to each of the viewers.
     * 
-    * @param listener
+    * @param listener listener to add
     */
    public void addMouseListener (MouseInputListener listener) {
       // add the listener to the list of listeners
@@ -400,7 +400,7 @@ public class ViewerManager {
    /**
     * Add a key listener to each of the viewers.
     * 
-    * @param listener
+    * @param listener listener to add
     */
    public void addKeyListener (KeyListener listener) {
       // add the listener to the list of listeners

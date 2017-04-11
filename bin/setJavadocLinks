@@ -70,7 +70,7 @@ $outfileName = "-";
 $postscript = 0;
 
 sub printUsageAndExit {
-    print "Usage: fixJavadocLinks [--jdocDir <dir>] [--jdocUrl <url>]";
+    print "Usage: fixJavadocLinks [--jdocDir <dir>] [--jdocUrl <url>]\n";
     print "       [--docBase <url>] [--out <outfile>] [--postscript] <infile>\n";
     exit 1;
 }
@@ -211,14 +211,22 @@ sub fixMethodRef {
     my $argexp = $methodArgs;
     # backslash any dots or braces
 
-    $argexp =~ s/([\.\[\]])/\\\1/g;
-#    $argexp = ".*" . join (".*,.*" , split (',', $argexp)) . ".*";
-    $argexp =~ s/,/.*,.*/g;
-    $argexp = ".*" . $argexp . ".*";
-
     # get a hashTable mapping each method name to an array of
     # possible argument lists
     my %methodTable = getMethodTable ("$jdocDir/$classFile");
+    # method table may also store a Javadoc version
+    if ($methodTable{"_JavadocVersion_"} eq "1.8") {
+        $java8 = 1;
+    }
+    $argexp =~ s/([\.\[\]])/\\\1/g;
+    if ($java8) {
+        $argexp =~ s/,/.*-.*/g;
+    }
+    else {
+        $argexp =~ s/,/.*,.*/g;
+    }
+    $argexp = ".*" . $argexp . ".*";
+
     # find the candiate argument sets for the current method name
     $argListsRef = $methodTable{$methodName};
     if ($argListsRef != null) {
@@ -244,7 +252,10 @@ sub fixMethodRef {
             warn "WARNING: method $methodName not found for class $className\n";
         }
     }
-    if ($postscript) {
+    if ($java8) {
+        return "\@JDOCBEGIN/$classFile\#$methodName-$methodArgs-";
+    }
+    elsif ($postscript) {
         return "\@JDOCBEGIN/$classFile\#$methodName\\\($methodArgs\\\)";
     }
     else {
@@ -262,9 +273,17 @@ sub getMethodTable {
 	return %{ $methodTabRef };
     }
     my %methodTable=();
+    $methodTable{"_JavadocVersion_"} = "<=1.7";
     open (JAVADOC_INPUT, $file) or warn "Can't open $file: $!\n";
+    # note that we have to use double backslash (\\) since we are in a string
+    $methodMatch = "(NAME|name)\\s*=\\s*\"([a-zA-Z_][\\w_]*)\\(([^)]*)\\)\"";
     while (<JAVADOC_INPUT>) { 
-	while ( /(NAME|name)\s*=\s*"([a-zA-Z_][\w_]*)\(([^)]*)\)"/g) {
+        if ( /javadoc \(\s*[^0-9]*\s*1.8/ ) {
+            # Javadoc 1.8 detected
+            $methodTable{"_JavadocVersion_"} = "1.8";
+            $methodMatch = "(NAME|name)\\s*=\\s*\"([a-zA-Z_][\\w_]*)-(.*)-\"";
+        }
+	while ( /$methodMatch/g ) {
 	    push @{ $methodTable{$2} }, $3;
 	}
     }

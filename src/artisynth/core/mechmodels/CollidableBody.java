@@ -11,8 +11,7 @@ import java.util.Set;
 
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.ModelComponentBase;
+import maspack.geometry.SignedDistanceGrid;
 
 /**
  * Indicates a Collidable that is capable of actual collision handling.  Within
@@ -76,5 +75,23 @@ public interface CollidableBody extends Collidable {
    public int getCollidableIndex();
    
    public void setCollidableIndex (int idx);
+   
+   /**
+    * Returns <code>true</code> if this Collidable supports a signed
+    * distance grid that can be used with a SignedDistanceCollider. At
+    * present, this will only be true for non-deformable bodies.
+    * 
+    * @return <code>true</code> if this Collidable supports a signed
+    * distance grid
+    */
+   public boolean hasDistanceGrid();
+   
+   /**
+    * Returns a signed distance grid that can be used with a 
+    * SignedDistanceCollider, or <code>null</code> if this Collidable
+    * does not support a signed distance grid (i.e., if 
+    * {@link #hasDistanceGrid} returns <code>false</code>).
+    */
+   public SignedDistanceGrid getDistanceGrid();
 
 }

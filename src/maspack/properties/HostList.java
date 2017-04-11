@@ -30,6 +30,7 @@ import maspack.util.Clonable;
  * <p>Typically, the master property hierarchy is described by the PropTreeCells
  * and looks like this:
  * <pre>
+ * {@code
  *
  *                          ----------------
  *                          | PropTreeCell |
@@ -50,9 +51,11 @@ import maspack.util.Clonable;
  *      | value=xxx    |    | value=xxx    |    | value=xxx    |
  *      |              |    |              |    |              |
  *      ----------------    ----------------    ----------------
+ * }
  * </pre>
  * while each corresponding mirror hierarchy looks like this:
  * <pre>
+ * {@code
  *
  *                          ----------------
  *                          | PropTreeData |
@@ -75,6 +78,7 @@ import maspack.util.Clonable;
  *      | value=backup |    | value=backup |    | value=backup |
  *      |              |    |              |    |              |
  *      ----------------    ----------------    ----------------
+ * }
  * </pre>
  * 
  * Within the master hierarchy, the value at non-leaf nodes is set to

@@ -8,7 +8,8 @@ package maspack.graph;
 
 
 /**
-* Represents a node of the Tree<A> class. Has an extra "value" element of type B.
+* Represents a node of the {@code Tree<A>} class. Has an extra "value" element
+* of type B.
 * 
 */
 public class BiNode<A,B> extends Node<A> {

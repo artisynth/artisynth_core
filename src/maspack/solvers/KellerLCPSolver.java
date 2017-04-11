@@ -36,7 +36,7 @@ import maspack.util.*;
  * 
  * where w' and z' contain complementary combinations of the w and z variables.
  * Any variable (w or z) contained in w' is called a <i>basic</i> variable.
- * When a pivoted system is found for which q' >= 0, this provides a solution to
+ * When a pivoted system is found for which q' {@code >=} 0, this provides a solution to
  * the LCP in which the z and w variables comprising z' are 0 and the z and w
  * variables comprising w' are equal to the corresponding entries in q'. As
  * mentioned above, Dantzig's method only works when M is SPSD.
@@ -131,8 +131,8 @@ public class KellerLCPSolver {
 
    /**
     * Sets the numeric tolerance for this solver. This is used to determine when
-    * q' >= 0, as described in the class documentation. In particular, a
-    * solution will be considered found whenever q' >= -tol.
+    * q' {@code >=} 0, as described in the class documentation. In particular, a
+    * solution will be considered found whenever q' {@code >=} -tol.
     * 
     * @param tol
     * new numeric tolerance. Negative numbers will be truncated to 0.
@@ -303,7 +303,7 @@ public class KellerLCPSolver {
     * system vector
     * @param zBasic
     * identifies which z variables are basic in the solution (see
-    * @link #solve(VectorNd,MatrixNd,VectorNd,boolean[]) solve}).
+    * {@link #solve(VectorNd,MatrixNd,VectorNd,boolean[]) solve}).
     * @param n
     * size of the LCP system
     * @return Status of the solution.

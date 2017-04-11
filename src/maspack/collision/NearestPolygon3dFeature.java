@@ -11,7 +11,8 @@ import maspack.util.*;
  *
  * <p>The method is used as follows:
  *
- *<pre> 
+ *<pre>
+ *{@code
  * Point3d px;   // point to find nearest feature for
  * Vector3d nrm; // normal of the plane containing the polygon
  * double dtol;  // distance tolerance. polygon vertices whose distance to
@@ -35,17 +36,20 @@ import maspack.util.*;
  *    }
  *    nfeat.close(); // call only if the polygon is closed
  * }
+ *}
  *</pre>
  *
  * Once the calculation is done, information about the feature can be queried
  * with the following methods:
  *
  *<pre>
+ *{@code
  * int numVertices();              // number of vertices defining the feature
  * Point3d getVertext(int k);      // the k-th feature vertex
  * Point3d getNearestPoint();      // nearest point on the polygon(s)
  * double getDistance();           // distance to the feature
  * boolean isOutside(boolean clockwise); // is the point outside the polygon
+ *}
  *</pre>
  */
 public class NearestPolygon3dFeature {
@@ -92,7 +96,7 @@ public class NearestPolygon3dFeature {
     * @param px point to compute nearest feature for
     * @param nrm normal of plane containing the polygons
     * @param dtol distance tolerance. Polygonal vertices whose distance
-    * to the previous vertex is <= dtol will be ignored.
+    * to the previous vertex is {@code <=} dtol will be ignored.
     */
    public void init (Point3d px, Vector3d nrm, double dtol) {
       switch (nrm.maxAbsIndex()) {
@@ -150,12 +154,13 @@ public class NearestPolygon3dFeature {
    /**
     * Returns the number of polygon vertices associated with this feature:
     *
-    * <dl>
-    * <li> 0: no feature is currently defined
-    * <li> 1: feature is a single polygon vertex; no edges have been encountered
-    * <li> 2: feature is an edge
-    * <li> 3: feature is the vertex indexed by 1, with 0 and 2 indexing
+    * <ul>
+    * <li>0: no feature is currently defined
+    * <li>1: feature is a single polygon vertex; no edges have been encountered
+    * <li>2: feature is an edge
+    * <li>3: feature is the vertex indexed by 1, with 0 and 2 indexing
     * the previous and following vertices
+    * </ul>
     * 
     * @return number of feature vertices
     */

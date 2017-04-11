@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -349,12 +350,13 @@ Clonable {
    }
 
    /**
-    * Copies the elements of this vector into an array of doubles.
-    * 
-    * @param values
-    * array into which values are copied
+    * {@inheritDoc}
     */
    public void get (double[] values) {
+      if (values.length < size) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have length >= "+size);
+      }     
       for (int i = 0; i < size; i++) {
          values[i] = buf[i];
       }
@@ -426,24 +428,34 @@ Clonable {
    }
 
    /**
-    * Sets the elements of this vector from an array of doubles.
+    * Sets the elements of this vector from an array of doubles. If the
+    * array length is less than the current size, this vector is resized
+    * to the array length.
     * 
     * @param values
     * array from which values are copied
     */
    public void set (double[] values) {
+      if (values.length != size()) {
+         resetSize (values.length);
+      }
       for (int i = 0; i < size; i++) {
          buf[i] = values[i];
       }
    }
 
    /**
-    * Sets the elements of this vector from an array of floats.
+    * Sets the elements of this vector from an array of floats. If the
+    * array length is less than the current size, this vector is resized
+    * to the array length.
     * 
     * @param values
     * array from which values are copied
     */
    public void set (float[] values) {
+      if (values.length != size()) {
+         resetSize (values.length);
+      }
       for (int i = 0; i < size; i++) {
          buf[i] = values[i];
       }
@@ -471,8 +483,6 @@ Clonable {
     * 
     * @param v1
     * vector whose size and values are copied
-    * @throws ImproperSizeException
-    * if this vector needs resizing but is of fixed size
     */
    public void set (VectorNd v1) {
       if (size != v1.size) {
@@ -616,11 +626,12 @@ Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 and v2 have different sizes, or if this vector needs resizing but is
     * of fixed size
     */
-   public void add (VectorNd v1, VectorNd v2) throws ImproperSizeException {
+   public VectorNd add (VectorNd v1, VectorNd v2) throws ImproperSizeException {
       if (v1.size != v2.size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
@@ -630,6 +641,7 @@ Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = v1.buf[i] + v2.buf[i];
       }
+      return this;
    }
 
    /**
@@ -637,16 +649,18 @@ Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 has a size less than this vector
     */
-   public void add (VectorNd v1) throws ImproperSizeException {
+   public VectorNd add (VectorNd v1) throws ImproperSizeException {
       if (v1.size < size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
       for (int i = 0; i < size; i++) {
          buf[i] += v1.buf[i];
       }
+      return this;
    }
 
    /**
@@ -669,11 +683,12 @@ Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 and v2 have different sizes, or if this vector needs resizing but is
     * of fixed size
     */
-   public void sub (VectorNd v1, VectorNd v2) throws ImproperSizeException {
+   public VectorNd sub (VectorNd v1, VectorNd v2) throws ImproperSizeException {
       if (v1.size != v2.size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
@@ -683,6 +698,7 @@ Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = v1.buf[i] - v2.buf[i];
       }
+      return this;
    }
 
    /**
@@ -690,16 +706,18 @@ Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 has a size less than this vector
     */
-   public void sub (VectorNd v1) throws ImproperSizeException {
+   public VectorNd sub (VectorNd v1) throws ImproperSizeException {
       if (v1.size < size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
       for (int i = 0; i < size; i++) {
          buf[i] -= v1.buf[i];
       }
+      return this;
    }
 
    /**
@@ -708,25 +726,27 @@ Clonable {
     * 
     * @param v1
     * vector to negate
-    * @throws ImproperSizeException
-    * if this vector needs resizing but is of fixed size
+    * @return this vector
     */
-   public void negate (VectorNd v1) {
+   public VectorNd negate (VectorNd v1) {
       if (v1.size != size) {
          resetSize (v1.size);
       }
       for (int i = 0; i < size; i++) {
          buf[i] = -v1.buf[i];
       }
+      return this;
    }
 
    /**
     * Negates this vector in place.
+    * @return this vector
     */
-   public void negate() {
+   public VectorNd negate() {
       for (int i = 0; i < size; i++) {
          buf[i] = -buf[i];
       }
+      return this;
    }
 
    /**
@@ -734,11 +754,13 @@ Clonable {
     * 
     * @param s
     * scaling factor
+    * @return this vector
     */
-   public void scale (double s) {
+   public VectorNd scale (double s) {
       for (int i = 0; i < size; i++) {
          buf[i] = s * buf[i];
       }
+      return this;
    }
 
    /**
@@ -749,16 +771,16 @@ Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled
-    * @throws ImproperSizeException
-    * if this vector needs resizing but is of fixed size
+    * @return this vector
     */
-   public void scale (double s, VectorNd v1) {
+   public VectorNd scale (double s, VectorNd v1) {
       if (v1.size != size) {
          resetSize (v1.size);
       }
       for (int i = 0; i < size; i++) {
          buf[i] = s * v1.buf[i];
       }
+      return this;
    }
 
    /**
@@ -818,11 +840,12 @@ Clonable {
     * vector to be scaled
     * @param v2
     * vector to be added
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 and v2 have different sizes, or if this vector needs resizing but is
     * of fixed size
     */
-   public void scaledAdd (double s, VectorNd v1, VectorNd v2)
+   public VectorNd scaledAdd (double s, VectorNd v1, VectorNd v2)
       throws ImproperSizeException {
       if (v1.size != v2.size) {
          throw new ImproperSizeException ("Incompatible dimensions");
@@ -833,27 +856,8 @@ Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = s * v1.buf[i] + v2.buf[i];
       }
+      return this;
    }
-
-   // /**
-   // * Computes <code>s this + v1</code> and places
-   // * the result in this vector.
-   // *
-   // * @param s scaling factor
-   // * @param v1 vector to be added
-   // * @throws ImproperSizeException if this vector and v1 have different
-   // * sizes
-   // */
-   // public void scaledAdd (double s, VectorNd v1)
-   // throws ImproperSizeException
-   // {
-   // if (v1.size != size)
-   // { throw new ImproperSizeException ("Incompatible dimensions");
-   // }
-   // for (int i=0; i<size; i++)
-   // { buf[i] = s*buf[i] + v1.buf[i];
-   // }
-   // }
 
    /**
     * Computes <code>s v1</code> and adds the result to this vector.
@@ -862,16 +866,18 @@ Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled and added
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 has a size less than this vector
     */
-   public void scaledAdd (double s, VectorNd v1) throws ImproperSizeException {
+   public VectorNd scaledAdd (double s, VectorNd v1) throws ImproperSizeException {
       if (v1.size < size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
       for (int i = 0; i < size; i++) {
          buf[i] += s * v1.buf[i];
       }
+      return this;
    }
 
    /**
@@ -886,11 +892,12 @@ Clonable {
     * right-hand scaling factor
     * @param v2
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 and v2 have different sizes, or if this vector needs resizing but is
     * of fixed size
     */
-   public void combine (double s1, VectorNd v1, double s2, VectorNd v2)
+   public VectorNd combine (double s1, VectorNd v1, double s2, VectorNd v2)
       throws ImproperSizeException {
       if (v1.size != v2.size) {
          throw new ImproperSizeException ("Incompatible dimensions");
@@ -901,6 +908,7 @@ Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = s1 * v1.buf[i] + s2 * v2.buf[i];
       }
+      return this;
    }
 
    /**
@@ -1087,12 +1095,14 @@ Clonable {
 
    /**
     * Normalizes this vector in place.
+    * @return this vector
     */
-   public void normalize() {
+   public VectorNd normalize() {
       double norm = norm();
       for (int i = 0; i < size; i++) {
          buf[i] /= norm;
       }
+      return this;
    }
 
    /**
@@ -1101,10 +1111,11 @@ Clonable {
     * 
     * @param v1
     * vector to normalize
+    * @return this vector
     * @throws ImproperSizeException
     * if this vector needs resizing but is of fixed size
     */
-   public void normalize (VectorNd v1) {
+   public VectorNd normalize (VectorNd v1) {
       if (size != v1.size) {
          resetSize (v1.size);
       }
@@ -1112,6 +1123,7 @@ Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = v1.buf[i] / norm;
       }
+      return this;
    }
 
    /**
@@ -1125,11 +1137,9 @@ Clonable {
     * @return false if the vectors are not equal within the specified tolerance,
     * or have different sizes
     */
-   public boolean epsilonEquals (VectorNd v1, double eps)
-      throws ImproperSizeException {
+   public boolean epsilonEquals (VectorNd v1, double eps) {
       if (v1.size != size) {
-         throw new ImproperSizeException (
-            "Incompatible dimensions: "+v1.size()+" vs. "+size);
+         return false;
       }
       for (int i = 0; i < size; i++) {
          double dist = Math.abs (buf[i] - v1.buf[i]);
@@ -1148,10 +1158,9 @@ Clonable {
     * vector to compare with
     * @return false if the vectors are not equal or have different sizes
     */
-   public boolean equals (VectorNd v1) throws ImproperSizeException {
+   public boolean equals (VectorNd v1) {
       if (v1.size != size) {
-         throw new ImproperSizeException (
-            "Incompatible dimensions: this.size="+size+" v1.size="+v1.size);
+         return false;
       }
       for (int i = 0; i < size; i++) {
          if (buf[i] != v1.buf[i]) {
@@ -1185,11 +1194,13 @@ Clonable {
 
    /**
     * Sets the elements of this vector to their absolute values.
+    * @return this vector
     */
-   public void absolute() {
+   public VectorNd absolute() {
       for (int i = 0; i < size; i++) {
          buf[i] = Math.abs (buf[i]);
       }
+      return this;
    }
 
    /**
@@ -1198,16 +1209,18 @@ Clonable {
     * 
     * @param v1
     * vector to take the absolute value of
+    * @return this vector
     * @throws ImproperSizeException
     * if this vector needs resizing but is of fixed size
     */
-   public void absolute (VectorNd v1) {
+   public VectorNd absolute (VectorNd v1) {
       if (size != v1.size) {
          resetSize (v1.size);
       }
       for (int i = 0; i < size; i++) {
          buf[i] = Math.abs (v1.buf[i]);
       }
+      return this;
    }
 
    private void quickSort (double[] buf, int left, int right) {
@@ -1273,12 +1286,14 @@ Clonable {
     * left-hand matrix
     * @param b
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if the size of b does not equal the number of columns of M, or if this
     * vector needs resizing but is of fixed size
     */
-   public void mul (Matrix M, VectorNd b) {
+   public VectorNd mul (Matrix M, VectorNd b) {
       M.mul (this, b);
+      return this;
    }
 
    /**
@@ -1290,12 +1305,14 @@ Clonable {
     * left-hand matrix
     * @param b
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if the size of b does not equal the number of rows of M, or if this vector
     * needs resizing but is of fixed size
     */
-   public void mulTranspose (Matrix M, VectorNd b) {
+   public VectorNd mulTranspose (Matrix M, VectorNd b) {
       M.mulTranspose (this, b);
+      return this;
    }
 
    /**
@@ -1357,11 +1374,12 @@ Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     * @throws ImproperSizeException
     * if this vector and v have different sizes
     */
 
-   public void max (VectorNd v) throws ImproperSizeException {
+   public VectorNd max (VectorNd v) throws ImproperSizeException {
       if (v.size != size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
@@ -1370,6 +1388,7 @@ Clonable {
             buf[i] = v.buf[i];
          }
       }
+      return this;
    }
 
    /**
@@ -1378,10 +1397,11 @@ Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     * @throws ImproperSizeException
     * if this vector and v have different sizes
     */
-   public void min (VectorNd v) throws ImproperSizeException {
+   public VectorNd min (VectorNd v) throws ImproperSizeException {
       if (v.size != size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
@@ -1390,6 +1410,7 @@ Clonable {
             buf[i] = v.buf[i];
          }
       }
+      return this;
    }
 
 //   public VectorNd copy() {

@@ -54,11 +54,6 @@ public class LeastSquaresSolver
    
    /**
     * Solve a bounded least squares problem as a QP
-    * 
-    * @param a
-    * @param C
-    * @param d
-    * @param a0
     */
    public void solve(VectorNd a, MatrixNd C, VectorNd d, VectorNd a0) {
          solve (a, C, d, a0, null, null);
@@ -114,13 +109,6 @@ public class LeastSquaresSolver
    
    /**
     * Solve a constrained least squares problem as a QP
-    * 
-    * @param a
-    * @param C
-    * @param d
-    * @param a0
-    * @param Aeq 
-    * @param beq
     */
    public void solve(VectorNd a, MatrixNd C, VectorNd d, VectorNd a0, MatrixNd Aeq, VectorNd beq) {
       

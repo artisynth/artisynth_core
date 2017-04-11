@@ -20,6 +20,8 @@ import maspack.geometry.GeometryTransformer;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.matrix.Vector3i;
+import maspack.geometry.SignedDistanceGrid;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
@@ -41,7 +43,9 @@ import maspack.util.DoubleInterval;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.Range;
+import maspack.util.RangeBase;
 import maspack.util.ReaderTokenizer;
+import maspack.util.StringHolder;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
@@ -51,7 +55,7 @@ import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ScanToken;
 
 public class RigidBody extends Frame 
-   implements CollidableBody, HasSurfaceMesh, ConnectableBody {
+   implements CollidableBody, HasSurfaceMesh, HasDistanceGrid, ConnectableBody {
    
    protected SpatialInertia mySpatialInertia;
    protected SpatialInertia myEffectiveInertia;
@@ -109,6 +113,19 @@ public class RigidBody extends Frame
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
    protected int myCollidableIndex;
 
+   static int DEFAULT_DISTANCE_GRID_MAX_DIVS = 20;
+   static Vector3i DEFAULT_DISTANCE_GRID_DIVS = new Vector3i(0, 0, 0);
+   static boolean DEFAULT_RENDER_DISTANCE_GRID = false;
+   static String DEFAULT_DISTANCE_GRID_RENDER_RANGES = "* * *";
+   SignedDistanceGrid mySDGrid = null;
+   boolean mySDGridValid = false;
+   Vector3i myDistanceGridRes = DEFAULT_DISTANCE_GRID_DIVS;
+   int myDistanceGridMaxRes = DEFAULT_DISTANCE_GRID_MAX_DIVS;
+   boolean myRenderDistanceGrid = DEFAULT_RENDER_DISTANCE_GRID;
+   String myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;
+   double myGridMargin = 0.1;
+   
+
     static {
       myProps.remove ("renderProps");
       myProps.add ("renderProps * *", "render properties", null);
@@ -130,6 +147,22 @@ public class RigidBody extends Frame
       myProps.add (
          "collidable", 
          "sets the collidability of this body", DEFAULT_COLLIDABILITY);
+      myProps.add (
+         "distanceGridRes", 
+         "divisions for signed distance grid along x, y, and z",
+         DEFAULT_DISTANCE_GRID_DIVS);
+      myProps.add (
+         "distanceGridMaxRes", 
+         "max divisions for signed distance grid",
+         DEFAULT_DISTANCE_GRID_MAX_DIVS);
+      myProps.add (
+         "renderDistanceGrid", 
+         "render the distance grid in the viewer",
+         DEFAULT_RENDER_DISTANCE_GRID);
+      myProps.add (
+         "distanceGridRenderRanges",
+         "which part of the distance grid to render", 
+         DEFAULT_DISTANCE_GRID_RENDER_RANGES);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -928,7 +961,7 @@ public class RigidBody extends Frame
    /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {
-      return RenderProps.createMeshProps (this);
+      return RenderProps.createRenderProps (this);
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
@@ -951,12 +984,18 @@ public class RigidBody extends Frame
          flags |= Renderer.HIGHLIGHT;
       }
       myMeshInfo.render (renderer, myRenderProps, flags);
+      if (myRenderDistanceGrid && getDistanceGrid() != null) {
+         getDistanceGrid().render (renderer, myRenderProps, flags);
+      }
    }
 
    public void prerender (RenderList list) {
       myRenderFrame.set (myState.XFrameToWorld);
       // list.addIfVisible (myMarkers);
       myMeshInfo.prerender (myRenderProps);      
+      if (myRenderDistanceGrid && getDistanceGrid() != null) {
+         getDistanceGrid().prerender (list);
+      }
    }
    
    public void transformGeometry (
@@ -1430,6 +1469,52 @@ public class RigidBody extends Frame
       return getMesh();
    }
 
+   /**
+    * Returns <code>true</code> if this RigidBody supports a signed
+    * distance grid that can be used with a SignedDistanceCollider.
+    * A grid is available if either the property
+    * <code>distanceGridMaxRes</code> is positive, or
+    * the property <code>distanceGridRes</code> contains all positive values.
+    * 
+    * @return <code>true</code> if a signed distance grid is available
+    * for this RigidBody
+    * @see #getDistanceGridMaxRes
+    * @see #getDistanceGridRes
+    */
+   public boolean hasDistanceGrid() {
+      return (myDistanceGridMaxRes > 0 ||
+              !myDistanceGridRes.equals (Vector3i.ZERO));
+   }
+
+   /**
+    * Returns a signed distance grid that can be used with a
+    * SignedDistanceCollider, or <code>null</code> if a grid is not available
+    * (i.e., if {@link #hasDistanceGrid} returns <code>false</code>).
+    * The number of divisons in the grid is controlled explicitly by the
+    * property <code>distanceGridRes</code>, or, that is 0, by the property
+    * <code>distanceGridMaxRes</code>. If both properties are 0, no grid is
+    * available and <code>null</code> will be returned.
+    *
+    * @return signed distance grid, or <code>null</code> if a grid is
+    * not available this RigidBody
+    * @see #getDistanceGridMaxRes
+    * @see #getDistanceGridRes
+    */
+   public SignedDistanceGrid getDistanceGrid() {
+      if (mySDGrid == null || !mySDGridValid) {
+         if (!myDistanceGridRes.equals (Vector3i.ZERO)) {
+            mySDGrid = new SignedDistanceGrid (
+               getMesh(), myGridMargin, myDistanceGridRes);
+         }
+         else if (myDistanceGridMaxRes > 0) {
+             mySDGrid = new SignedDistanceGrid (
+               getMesh(), myGridMargin, myDistanceGridMaxRes);           
+         }
+         mySDGridValid = true;
+      }
+      return mySDGrid;
+   }
+
    @Override
    public Collidability getCollidable () {
       getSurfaceMesh(); // build surface mesh if necessary
@@ -1480,4 +1565,131 @@ public class RigidBody extends Frame
    }
    
    // end Collidable interface
+
+   // begin HasDistanceGrid
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setDistanceGridMaxRes (int max) {
+      if (myDistanceGridMaxRes != max) {
+         if (myDistanceGridRes.equals (Vector3i.ZERO)) {
+            // will need to rebuild grid
+            mySDGridValid = false;
+         }
+         if (max < 0) {
+            // MaxDivs == 0 and Divs == (0,0,0) disables grid
+            max = 0;
+         }
+         myDistanceGridMaxRes = max;
+         myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getDistanceGridMaxRes () {
+      return myDistanceGridMaxRes;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setDistanceGridRes (Vector3i res) {
+      if (!myDistanceGridRes.equals (res)) {
+         if (res.x <= 0 || res.y <= 0 || res.z <= 0) {
+            // MaxDivs == 0 and Divs == (0,0,0) disables grid
+            myDistanceGridRes.setZero();
+         }
+         else {
+            myDistanceGridRes.set (res);
+         }
+         mySDGridValid = false; // will need to rebuild grid
+         myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Vector3i getDistanceGridRes () {
+      return myDistanceGridRes;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean getRenderDistanceGrid() {
+      return myRenderDistanceGrid;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRenderDistanceGrid(boolean enable) {
+      myRenderDistanceGrid = enable;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public String getDistanceGridRenderRanges() {
+      return myDistanceGridRenderRanges;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void setDistanceGridRenderRanges (String ranges) {
+      if (ranges.matches ("\\s*\\*\\s*") ||
+          ranges.matches ("\\s*\\*\\s+\\*\\s+\\*\\s*")) {
+         myDistanceGridRenderRanges = "* * *";
+         if (mySDGrid != null) {
+            mySDGrid.setRenderRanges (ranges);
+         }
+      }
+      else {
+         SignedDistanceGrid grid = getDistanceGrid();
+         StringHolder errMsg = new StringHolder();
+         if (grid.parseRenderRanges (ranges, errMsg) == null) {
+            throw new IllegalArgumentException (
+               "Illegal range spec: " + errMsg.value);
+         }
+         else {
+            grid.setRenderRanges (ranges);
+            myDistanceGridRenderRanges = grid.getRenderRanges();
+         }
+      }
+   }
+   
+   protected class DistanceGridRenderRangesRange extends RangeBase {
+
+      @Override
+      public boolean isValid (Object obj, StringHolder errMsg) {
+         if (!(obj instanceof String)) {
+            errMsg.value = "Object is not a string";
+            return false;
+         }
+         String ranges = (String)obj;
+         if (ranges.matches ("\\s*\\*\\s*") ||
+             ranges.matches ("\\s*\\*\\s+\\*\\s+\\*\\s*")) {
+            return true;
+         }
+         else if (mySDGrid != null) {
+            mySDGrid.parseRenderRanges (ranges, errMsg);
+            return errMsg.value == null;
+         }
+         else {
+            errMsg.value = 
+               "Ranges must be '* * *' when distance grid uninitialized";
+            return false;
+         }
+      }
+   }
+
+   public Range getDistanceGridRenderRangesRange() {
+      return new DistanceGridRenderRangesRange();
+   }
+
 }

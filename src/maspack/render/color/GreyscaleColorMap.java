@@ -46,7 +46,7 @@ public class GreyscaleColorMap extends ColorMapBase {
    }
    
    /**
-    * Sets the greyscale range [min, max].  If max < min,
+    * Sets the greyscale range [min, max].  If max {@code <} min,
     * then colors will be interpolated from bright to dark
     */
    public void setBrightnessRange(double min, double max) {
@@ -59,7 +59,7 @@ public class GreyscaleColorMap extends ColorMapBase {
    }
    
    /**
-    * Sets the greyscale range [min, max].  If max < min,
+    * Sets the greyscale range [min, max].  If max {@code <} min,
     * then colors will be interpolated from bright to dark
     */
    public void setBrightnessRange(DoubleInterval range) {

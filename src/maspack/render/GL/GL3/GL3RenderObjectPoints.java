@@ -79,7 +79,6 @@ public class GL3RenderObjectPoints extends GL3ResourceBase {
    
    /**
     * Bind attributes to the VAO to prepare for drawing
-    * @param gl
     */
    public void bind(GL3 gl) {
       // vertex array

@@ -216,7 +216,7 @@ public class RenderList {
     * Returns the <code>i</code>-th opaque renderable in this list.
     * 
     * @param i index of the renderable
-    * @return code>i</code>-th opaque renderable 
+    * @return <code>i</code>-th opaque renderable 
     */
    public IsRenderable getOpaque (int i) {
       return myOpaque.get (i);
@@ -230,7 +230,7 @@ public class RenderList {
     * Returns the <code>i</code>-th transparent renderable in this list.
     * 
     * @param i index of the renderable
-    * @return code>i</code>-th transparent renderable 
+    * @return <code>i</code>-th transparent renderable 
     */
    public IsRenderable getTransparent (int i) {
       return myTransparent.get (i);
@@ -244,7 +244,7 @@ public class RenderList {
     * Returns the <code>i</code>-th 2d opaque renderable in this list.
     * 
     * @param i index of the renderable
-    * @return code>i</code>-th 2d opaque renderable 
+    * @return <code>i</code>-th 2d opaque renderable 
     */
    public IsRenderable getOpaque2d(int i) {
       return myOpaque2d.get(i);
@@ -258,7 +258,7 @@ public class RenderList {
     * Returns the <code>i</code>-th 2d transparent renderable in this list.
     * 
     * @param i index of the renderable
-    * @return code>i</code>-th 2d transparent renderable 
+    * @return <code>i</code>-th 2d transparent renderable 
     */
    public IsRenderable getTransparent2d(int i) {
       return myTransparent2d.get(i);

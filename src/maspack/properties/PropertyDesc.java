@@ -16,6 +16,7 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.DenseMatrix;
 import maspack.matrix.Matrix;
 import maspack.matrix.Vector;
+import maspack.matrix.Vectori;
 import maspack.util.DoubleInterval;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -89,6 +90,7 @@ public class PropertyDesc implements PropertyInfo {
       AXIS_ANGLE,
       ENUM,
       VECTOR,
+      VECTORI,
       MATRIX,
       STRING,
       SCANABLE,
@@ -229,6 +231,20 @@ public class PropertyDesc implements PropertyInfo {
             }
             break;
          }
+         case VECTORI: {
+            try {
+               Vectori v = (Vectori)myValueClass.newInstance();
+               if (v.isFixedSize()) {
+                  return v.size();
+               }
+            }
+            catch (Exception e) {
+               System.out.println ("Warning: cannot create instance of "
+               + myValueClass);
+               return -1;
+            }
+            break;
+         }
          case MATRIX: {
             try {
                DenseMatrix M = (DenseMatrix)myValueClass.newInstance();
@@ -259,6 +275,9 @@ public class PropertyDesc implements PropertyInfo {
       if (myDefaultValue instanceof Vector) {
          return ((Vector)myDefaultValue).size();
       }
+      else if (myDefaultValue instanceof Vectori) {
+         return ((Vectori)myDefaultValue).size();
+      }
       else if (myDefaultValue instanceof Matrix) {
          Matrix M = (Matrix)myDefaultValue;
          return M.rowSize() * M.colSize();
@@ -279,6 +298,7 @@ public class PropertyDesc implements PropertyInfo {
          case FLOAT_ARRAY:
          case DOUBLE_ARRAY:
          case VECTOR:
+         case VECTORI:
          case MATRIX:
          case COLOR:
          case AXIS_ANGLE:
@@ -302,6 +322,9 @@ public class PropertyDesc implements PropertyInfo {
       myValueType = getTypeCode (cls);
       if (myValueType == TypeCode.MATRIX || myValueType == TypeCode.VECTOR) {
          setFormatIfNecessary ("%.6g");
+      }
+      else if (myValueType == TypeCode.VECTORI) {
+         setFormatIfNecessary ("%d");
       }
       setDimension (getDimensionFromType());
    }
@@ -366,6 +389,9 @@ public class PropertyDesc implements PropertyInfo {
       }
       else if (Vector.class.isAssignableFrom (cls)) {
          code = TypeCode.VECTOR;
+      }
+      else if (Vectori.class.isAssignableFrom (cls)) {
+         code = TypeCode.VECTORI;
       }
       else if (DenseMatrix.class.isAssignableFrom (cls)) {
          code = TypeCode.MATRIX;
@@ -1416,6 +1442,9 @@ public class PropertyDesc implements PropertyInfo {
       else if (Vector.class.isAssignableFrom (myValueClass)) {
          return ((Vector)myDefaultValue).equals ((Vector)value);
       }
+      else if (Vectori.class.isAssignableFrom (myValueClass)) {
+         return ((Vectori)myDefaultValue).equals ((Vectori)value);
+      }
       else if (Matrix.class.isAssignableFrom (myValueClass)) {
          return ((Matrix)myDefaultValue).equals ((Matrix)value);
       }
@@ -1474,6 +1503,14 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    protected static void writeVector (PrintWriter pw, Vector v, NumberFormat fmt)
+      throws IOException {
+      pw.print ("[ ");
+      v.write (pw, fmt);
+      pw.println (" ]");
+   }
+
+   protected static void writeVectori (
+      PrintWriter pw, Vectori v, NumberFormat fmt)
       throws IOException {
       pw.print ("[ ");
       v.write (pw, fmt);
@@ -1638,6 +1675,10 @@ public class PropertyDesc implements PropertyInfo {
             writeVector (pw, (Vector)value, floatFmt);
             break;
          }
+         case VECTORI: {
+            writeVectori (pw, (Vectori)value, floatFmt);
+            break;
+         }
          case MATRIX: {
             writeMatrix (pw, (DenseMatrix)value, floatFmt);
             break;
@@ -1767,6 +1808,19 @@ public class PropertyDesc implements PropertyInfo {
             catch (Exception e) {
                e.printStackTrace();
                throw new IOException ("Cannot instantiate Vector for prop "
+               + myName);
+            }
+            vobj.scan (rtok);
+            return vobj;
+         }
+         case VECTORI: {
+            Vectori vobj;
+            try {
+               vobj = (Vectori)myValueClass.newInstance();
+            }
+            catch (Exception e) {
+               e.printStackTrace();
+               throw new IOException ("Cannot instantiate Vectori for prop "
                + myName);
             }
             vobj.scan (rtok);

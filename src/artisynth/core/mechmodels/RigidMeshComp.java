@@ -16,6 +16,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Vertex3d;
 import maspack.geometry.GeometryTransformer;
+import maspack.geometry.SignedDistanceGrid;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -37,6 +38,11 @@ public class RigidMeshComp extends MeshComponent
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
    protected int myCollidableIndex;
 
+   static int DEFAULT_MAX_GRID_DIVISIONS = 10; 
+   SignedDistanceGrid mySDGrid = null;
+   int myMaxGridDivisions = DEFAULT_MAX_GRID_DIVISIONS;
+   double myGridMargin = 0.1;
+
    public static PropertyList myProps = new PropertyList(
       RigidMeshComp.class, MeshComponent.class);
 
@@ -45,6 +51,9 @@ public class RigidMeshComp extends MeshComponent
       myProps.add (
          "collidable", 
          "sets the collidability of the mesh", DEFAULT_COLLIDABILITY);
+      myProps.add (
+         "maxGridDivisions", 
+         "max divisions for signed distance grid", DEFAULT_MAX_GRID_DIVISIONS);
    }
    
    public RigidMeshComp() {
@@ -187,6 +196,25 @@ public class RigidMeshComp extends MeshComponent
    }
 
    @Override
+   public boolean hasDistanceGrid() {
+      return getMesh() instanceof PolygonalMesh;
+   }
+   
+   @Override   
+   public SignedDistanceGrid getDistanceGrid() {
+      if (getMesh() instanceof PolygonalMesh) {
+         if (mySDGrid == null) {
+            mySDGrid = new SignedDistanceGrid (
+               (PolygonalMesh)getMesh(), myGridMargin, myMaxGridDivisions);
+         }
+      }
+      else {
+         mySDGrid = null;
+      }
+      return mySDGrid;
+   }
+
+   @Override
    public double getMass () {
       return getRigidBody().getMass();
    }
@@ -254,6 +282,19 @@ public class RigidMeshComp extends MeshComponent
       myCollidableIndex = idx;
    }
    
+   // end Collidable interface
+
+   public void setMaxGridDivisions (int max) {
+      if (myMaxGridDivisions != max) {
+         mySDGrid = null; // will need to rebuild grid
+         myMaxGridDivisions = max;
+      }
+   }
+
+   public int getMaxGridDivisions () {
+      return myMaxGridDivisions;
+   }
+
    public PointFrameAttachment createPointAttachment (Point pnt) {
       
       if (getGrandParent() instanceof RigidBody) {

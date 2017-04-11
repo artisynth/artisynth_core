@@ -17,6 +17,7 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.util.ArraySupport;
 import maspack.util.InternalErrorException;
+import maspack.util.DoubleHolder;
 
 public class Face extends Feature implements Boundable {
    HalfEdge he0; // half edge associated with first vertex
@@ -33,6 +34,8 @@ public class Face extends Feature implements Boundable {
 
    //private Vector3d myWorldNormal; // cached value of normal in world coords
    //public int myWorldCoordCnt = -1;
+
+   private static double DOUBLE_PREC = 2e-16;
 
    /*
     * Length of edge0 cross edge1. Used for calculating barycentric coordinates
@@ -402,89 +405,6 @@ public class Face extends Feature implements Boundable {
       return null;
    }
 
-   // /**
-   //  * Removes a half-edge from this face, and also removes it from the set of
-   //  * incident half edges associated with its head. Returns false if the edge
-   //  * is not found.
-   //  */
-   // boolean removeHalfEdge (HalfEdge he) {
-   //    HalfEdge prev = he0;
-   //    do {
-   //       if (prev.next == he) {
-   //          prev.next = he.next;
-   //          he.next.tail = prev.head;
-   //          he.head.removeIncidentHalfEdge (he);
-   //          if (he == he0) {
-   //             he0 = he.next;
-   //          }
-   //          return true;
-   //       }
-   //       prev = prev.next;
-   //    }
-   //    while (prev != he0);
-   //    return false;
-   // }
-
-   private String edgeStr (HalfEdge he) {
-      if (he == null) {
-         return "null";
-      }
-      else {
-         return he.tail.getIndex() + "->" + he.head.getIndex();
-      }
-   }
-
-   // /**
-   //  * Replaces a vertex in face, by adjusting the half edges connected
-   //  * to it. Also updates the incident half-edge structures for
-   //  * each vertex. Returns false if the vertex is not found.
-   //  */
-   // boolean replaceVertex (Vertex3d vold, Vertex3d vnew) {
-   //    HalfEdge he = he0;
-   //    do {
-   //       if (he.head == vold) {
-   //          vold.removeIncidentHalfEdge (he);
-   //          he.head = vnew;
-   //          he.next.tail = vnew;
-   //          // connect with adjacent edges, if any:
-   //          HalfEdge heOpp;
-   //          System.out.println ("vertex replace, edge " + edgeStr(he));
-   //          heOpp = he.tail.findOppositeHalfEdge (vnew);
-   //          if (heOpp != null && heOpp.opposite == null) {
-   //             System.out.println (
-   //                "  setting "+edgeStr(heOpp)+" opposite "+edgeStr(he));
-   //             heOpp.opposite = he;
-   //          }
-   //          else {
-   //             System.out.println ("  heOpp=" + edgeStr(heOpp));
-   //          }
-   //          heOpp = vnew.findOppositeHalfEdge (he.next.head);
-   //          if (heOpp != null && heOpp.opposite == null) {
-   //             System.out.println (
-   //                "  setting "+edgeStr(heOpp)+" opposite "+edgeStr(he.next));
-   //             heOpp.opposite = he.next;
-   //          }
-   //          else {
-   //             System.out.println ("  heOpp=" + edgeStr(heOpp));
-   //          }
-   //          vnew.addIncidentHalfEdge (he);            
-   //          return true;
-   //       }
-   //       he = he.next;
-   //    }
-   //    while (he != he0);
-   //    return false;
-   // }
-
-   //   /**
-   //    * Computes the centroid for this face.
-   //    */
-   //   public void computeCentroid() {
-   //      if (myCentroid == null) {
-   //         myCentroid = new Point3d();
-   //      }
-   //      computeCentroid (myCentroid);
-   //   }
 
    /**
     * Computes centroid of this face.
@@ -584,24 +504,6 @@ public class Face extends Feature implements Boundable {
          pnt.transform(trans);
       }
    }
-
-   private double triangleArea (
-      Point3d p0, Point3d p1, Point3d p2) {
-      double d1x = p1.x - p0.x;
-      double d1y = p1.y - p0.y;
-      double d1z = p1.z - p0.z;
-
-      double d2x = p2.x - p0.x;
-      double d2y = p2.y - p0.y;
-      double d2z = p2.z - p0.z;
-
-      double x = (d1y * d2z - d1z * d2y);
-      double y = (d1z * d2x - d1x * d2z);
-      double z = (d1x * d2y - d1y * d2x);
-
-      return Math.sqrt (x * x + y * y + z * z) / 2;
-   }
-
 
    /**
     * Computes covariance of this face and returns its area. This is done by
@@ -994,41 +896,60 @@ public class Face extends Feature implements Boundable {
       }
    }
 
-   private void nearestPointTriangle (Point3d pc, Point3d p1) {
+   private void nearestPointTriangle (Point3d pn, Point3d p1) {
       //long time = System.nanoTime();
-      HalfEdge he1 = he0.next; // b
-      HalfEdge he2 = he1.next; // c
-      double abx = he1.head.pnt.x - he0.head.pnt.x;// b-a
-      double aby = he1.head.pnt.y - he0.head.pnt.y;
-      double abz = he1.head.pnt.z - he0.head.pnt.z;
-      double acx = he2.head.pnt.x - he0.head.pnt.x;// c-a
-      double acy = he2.head.pnt.y - he0.head.pnt.y;
-      double acz = he2.head.pnt.z - he0.head.pnt.z;
-      double apx = p1.x - he0.head.pnt.x;// p-a
-      double apy = p1.y - he0.head.pnt.y;
-      double apz = p1.z - he0.head.pnt.z;
+      Point3d pa = he0.head.pnt;
+      Point3d pb = he0.next.head.pnt;
+      Point3d pc = he0.tail.pnt;
+      nearestPointTriangle (pn, pa, pb, pc, p1);
+   }
+
+   public void nearestWorldPointTriangle (Point3d pn, Point3d p1) {
+      //long time = System.nanoTime();
+      Point3d pa = new Point3d();
+      Point3d pb = new Point3d();
+      Point3d pc = new Point3d();
+      he0.head.getWorldPoint (pa);
+      he0.next.head.getWorldPoint (pb);
+      he0.tail.getWorldPoint (pc);
+      nearestPointTriangle (pn, pa, pb, pc, p1);
+   }
+
+   private void nearestPointTriangle (
+      Point3d pn, Point3d pa, Point3d pb, Point3d pc, Point3d p1) {
+      //long time = System.nanoTime();
+
+      double abx = pb.x - pa.x;// b-a
+      double aby = pb.y - pa.y;
+      double abz = pb.z - pa.z;
+      double acx = pc.x - pa.x;// c-a
+      double acy = pc.y - pa.y;
+      double acz = pc.z - pa.z;
+      double apx = p1.x - pa.x;// p-a
+      double apy = p1.y - pa.y;
+      double apz = p1.z - pa.z;
 
       // Check if P in vertex region outside A
       double d1 = abx*apx + aby*apy + abz*apz; //d1 = ab.dot (ap);
       double d2 = acx*apx + acy*apy + acz*apz; //d2 = ac.dot (ap);
       if (d1 <= 0.0f && d2 <= 0.0f) {
-         pc.x = he0.head.pnt.x;// closest = a
-         pc.y = he0.head.pnt.y;
-         pc.z = he0.head.pnt.z;
+         pn.x = pa.x;// closest = a
+         pn.y = pa.y;
+         pn.z = pa.z;
          //time = System.nanoTime() - time;
          return;// time;
       }
 
       // Check if P in vertex region outside B
-      double bpx = p1.x - he1.head.pnt.x;// p-b
-      double bpy = p1.y - he1.head.pnt.y;
-      double bpz = p1.z - he1.head.pnt.z;
+      double bpx = p1.x - pb.x;// p-b
+      double bpy = p1.y - pb.y;
+      double bpz = p1.z - pb.z;
       double d3 = abx*bpx + aby*bpy + abz*bpz;// ab.bp;
       double d4 = acx*bpx + acy*bpy + acz*bpz;// ac.bp;
       if (d3 >= 0.0f && d4 <= d3) {
-         pc.x = he1.head.pnt.x;// closest = b
-         pc.y = he1.head.pnt.y;
-         pc.z = he1.head.pnt.z;
+         pn.x = pb.x;// closest = b
+         pn.y = pb.y;
+         pn.z = pb.z;
          //         time = System.nanoTime() - time;
          return;// time;
       }
@@ -1037,23 +958,23 @@ public class Face extends Feature implements Boundable {
       double vc = d1*d4 - d3*d2;
       if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
          double v = d1 / (d1 - d3);
-         pc.x = abx*v + he0.head.pnt.x;// closest = (b-a)*v + a
-         pc.y = aby*v + he0.head.pnt.y;
-         pc.z = abz*v + he0.head.pnt.z;
+         pn.x = abx*v + pa.x;// closest = (b-a)*v + a
+         pn.y = aby*v + pa.y;
+         pn.z = abz*v + pa.z;
          //         time = System.nanoTime() - time;
          return;// time;
       }
 
       // Check if P in vertex region outside C
-      double cpx = p1.x - he2.head.pnt.x;// p-c
-      double cpy = p1.y - he2.head.pnt.y;
-      double cpz = p1.z - he2.head.pnt.z;
+      double cpx = p1.x - pc.x;// p-c
+      double cpy = p1.y - pc.y;
+      double cpz = p1.z - pc.z;
       double d5 = abx*cpx + aby*cpy + abz*cpz;// ab.cp;
       double d6 = acx*cpx + acy*cpy + acz*cpz;// ac.cp;
       if (d6 >= 0.0f && d5 <= d6) {
-         pc.x = he2.head.pnt.x;// closest = c
-         pc.y = he2.head.pnt.y;
-         pc.z = he2.head.pnt.z;
+         pn.x = pc.x;// closest = c
+         pn.y = pc.y;
+         pn.z = pc.z;
          //         time = System.nanoTime() - time;
          return;// time;
       }
@@ -1062,9 +983,9 @@ public class Face extends Feature implements Boundable {
       double vb = d5*d2 - d1*d6;
       if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
          double w = d2 / (d2 - d6);
-         pc.x = acx*w + he0.head.pnt.x;// closest = (c-a)*w + a;
-         pc.y = acy*w + he0.head.pnt.y;
-         pc.z = acz*w + he0.head.pnt.z;
+         pn.x = acx*w + pa.x;// closest = (c-a)*w + a;
+         pn.y = acy*w + pa.y;
+         pn.z = acz*w + pa.z;
          //         time = System.nanoTime() - time;
          return;// time;
       }
@@ -1074,9 +995,9 @@ public class Face extends Feature implements Boundable {
       if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
          double w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
          // closest = (c - b)*w + b;
-         pc.x = (he2.head.pnt.x - he1.head.pnt.x)*w + he1.head.pnt.x;
-         pc.y = (he2.head.pnt.y - he1.head.pnt.y)*w + he1.head.pnt.y;
-         pc.z = (he2.head.pnt.z - he1.head.pnt.z)*w + he1.head.pnt.z;
+         pn.x = (pc.x - pb.x)*w + pb.x;
+         pn.y = (pc.y - pb.y)*w + pb.y;
+         pn.z = (pc.z - pb.z)*w + pb.z;
          //         time = System.nanoTime() - time;
          return;// time;
       }
@@ -1086,9 +1007,9 @@ public class Face extends Feature implements Boundable {
       double v = vb * denom;
       double w = vc * denom;
       // closest = (c-a)*w (b-a)*v + a;
-      pc.x = acx*w + abx*v + he0.head.pnt.x;
-      pc.y = acy*w + aby*v + he0.head.pnt.y;
-      pc.z = acz*w + abz*v + he0.head.pnt.z;
+      pn.x = acx*w + abx*v + pa.x;
+      pn.y = acy*w + aby*v + pa.y;
+      pn.z = acz*w + abz*v + pa.z;
       //      time = System.nanoTime() - time;
       return;// time;
    }
@@ -1545,8 +1466,8 @@ public class Face extends Feature implements Boundable {
       return num;
    }
 
-   public MeshBase getMesh() {
-      return he0.head.getMesh();
+   public PolygonalMesh getMesh() {
+      return (PolygonalMesh)he0.head.getMesh();
    }
 
    public Vertex3d[] getVertices() {
@@ -1633,190 +1554,77 @@ public class Face extends Feature implements Boundable {
    
    public static boolean debugIntersect = false;
    
-   private static  double orient3d (Vector3d r0, Vector3d r1, Vector3d r2) {
-      Vector3d xprod = new Vector3d();
-      xprod.cross (r0, r1);
-      return r2.dot(xprod);
-   }
+//   private static double orient3d (Vector3d r0, Vector3d r1, Vector3d r2) {
+//      Vector3d xprod = new Vector3d();
+//      xprod.cross (r0, r1);
+//      return r2.dot(xprod);
+//   }
    
-   public int intersectsEdge (HalfEdge he, Point3d pnt) {
-      Vertex3d v = he0.tail;
-      if (v == he.head) {
-         return 0;
-      }
-      if (v == he.tail) {
-         return 0;
-      }
-      v = he0.head;
-      if (v == he.head) {
-         return 0;
-      }
-      if (v == he.tail) {
-         return 0;
-      }
-      v = he0.next.head;
-      if (v == he.head) {
-         return 0;
-      }
-      if (v == he.tail) {
-         return 0;   
-      }
-      
-      Point3d p0 = new Point3d();
-      Point3d p1 = new Point3d();
-      Point3d p2 = new Point3d();
-      he0.head.getWorldPoint (p0);
-      he0.next.head.getWorldPoint (p1);
-      he0.tail.getWorldPoint (p2);
-      
-      Point3d ph = new Point3d();
-      Point3d pt = new Point3d();
-      he.head.getWorldPoint(ph);
-      he.tail.getWorldPoint(pt);
-      
-      Vector3d r0 = new Vector3d();
-      Vector3d r1 = new Vector3d();
-      Vector3d r2 = new Vector3d();
+   private static double ORIENT_EPS = (7+56*DOUBLE_PREC)*DOUBLE_PREC;
 
-      double tol = referenceArea*ph.distance(pt)*insideTriangleTolerance;
-      
-      r1.sub (p1, p0);
-      r2.sub (p2, p0);
-      r0.sub (pt, p0);
-      double t = orient3d (r1, r2, r0);
-      r0.sub (ph, p0);
-      double h = orient3d (r1, r2, r0);
-      double coordSign;
+//   public static double orient3dx (
+//      Vector3d a, Vector3d b, Vector3d c, DoubleHolder err) {
+//
+//      double cybx = c.y*b.x;
+//      double cxby = c.x*b.y;
+//      double cxay = c.x*a.y;
+//      double cyax = c.y*a.x;
+//      double axby = a.x*b.y;
+//      double aybx = a.y*b.x;
+//
+//      double az = a.z;
+//      double bz = b.z;
+//      double cz = c.z;
+//
+//      double res = az*(cybx-cxby) + bz*(cxay-cyax) + cz*(axby-aybx);
+//
+//      if (cybx < 0) {
+//         cybx = -cybx;
+//      }
+//      if (cxby < 0) {
+//         cxby = -cxby;
+//      }
+//      if (cxay < 0) {
+//         cxay = -cxay;
+//      }
+//      if (cyax < 0) {
+//         cyax = -cyax;
+//      }
+//      if (axby < 0) {
+//         axby = -axby;
+//      }
+//      if (aybx < 0) {
+//         aybx = -aybx;
+//      }
+//      if (az < 0) {
+//         az = -az;
+//      }
+//      if (bz < 0) {
+//         bz = -bz;
+//      }
+//      if (cz < 0) {
+//         cz = -cz;
+//      }
+//
+//      double e = ORIENT_EPS*(az*(cybx+cxby) + bz*(cxay+cyax) + cz*(axby+aybx));
+//
+//      if (err != null) {
+//         err.value = e;
+//         return res;
+//      }
+//      else {
+//         if (res <= e && res >= -e) {
+//            return 0;
+//         }
+//         else {
+//            return res;
+//         }
+//      }
+//   }
 
-      // if (h < -tol && t < -tol) || (h > tol && t > tol) then both
-      // the head and tail of the edge are definitely on the same
-      // side of the face plane and there is no intersection.
-      // Otherwise, if (-tol <= h <= tol || -tol <= t <= tol),
-      // then head or tail are too close to the face plane to
-      // tell and we return "don't know" (-1).
-      if (debugIntersect) {
-         System.out.println ("   p0 " + p0.toString("%16.12f"));
-         System.out.println ("   p1 " + p1.toString("%16.12f"));
-         System.out.println ("   p2 " + p2.toString("%16.12f"));
-         System.out.println ("   ph " + ph.toString("%16.12f"));
-         System.out.println ("   pt " + pt.toString("%16.12f"));
-      }
-      if (debugIntersect) {
-         System.out.println (" dbg0 h=" + h + " t=" + t + " tol=" + tol);
-      }
-      if (h < -tol) {
-         if (t <= tol) {
-            if (debugIntersect) {
-               System.out.println (" dbg exit 1");
-            }
-            return t < -tol ? 0 : -1;
-         }
-         coordSign = -1;
-      }
-      else if (h <= tol) {
-         if (debugIntersect) {
-            System.out.println (" dbg2 exit 2");
-         }
-         return -1;
-      }
-      else {
-         if (t >= -tol) {
-            if (debugIntersect) {
-               System.out.println (" dbg3 exit 3");
-            }
-            return t > tol ? 0 : -1;
-         }
-         coordSign = 1;
-      }
-      
-      Vector3d rt = new Vector3d();
-      
-      r0.sub (p0, ph);
-      r1.sub (p1, ph);
-      r2.sub (p2, ph);
-      rt.sub (pt, ph);
-      
-      // b0, b1 and b2 are the non-normalized barycentric coordinates
-      // of the intersection point with respect to the three triangle
-      // vertices. If any bi < -tol, then the intersection point is
-      // definitely *outside* the triangle. If any -tol <= bi <= tol,
-      // then the intersection point is too close to an edge to tell.
-      double b0 = coordSign*orient3d (r2, r1, rt);
-      if (b0 <= tol) {            
-         if (debugIntersect) {
-            System.out.println (" dbg4 b0=" + b0);
-         }
-         return b0 < -tol ? 0 : -1;
-      }
-      double b1 = coordSign*orient3d (r0, r2, rt);
-      if (b1 <= tol) {
-         if (debugIntersect) {
-            System.out.println (" dbg5 b1=" + b1);
-         }
-         return b1 < -tol ? 0 : -1;
-      }
-      double b2 = coordSign*orient3d (r1, r0, rt);
-      if (b2 <= tol) {
-         if (debugIntersect) {
-            System.out.println (" dbg6 b2=" + b2);
-         }
-         return b2 < -tol ? 0 : -1;
-      }
-      if (debugIntersect) {
-         System.out.println (" dbg7 b0="+b0+" b1=" + b1+" b2=" + b2);
-      }
-      pnt.combine (b0, p0, b1, p1);
-      pnt.scaledAdd (b2, p2);
-      pnt.scale (1/(b0 + b1 + b2));
-      return 1;
-   }
+   static boolean orientDebug = false;
    
-   /*
-    * Intersects this face with a half edge. If the test returns 
-    * returns true, the result should be checked with exact arithmetic. The
-    * approximate test is assumed to be significantly faster, but this has not
-    * been verified by measurement. Should try getting rid of the
-    * aFace.isPointInside test and going straight to exact result.
-    */
-   public boolean intersectsEdge (HalfEdge he) {
-      Vertex3d v = he0.tail;
-      if (v == he.head)
-         return false;
-      if (v == he.tail)
-         return false;
-      v = he0.head;
-      if (v == he.head)
-         return false;
-      if (v == he.tail)
-         return false;
-      v = he0.next.head;
-      if (v == he.head)
-         return false;
-      if (v == he.tail)
-         return false;
-
-      // aFace.updateWorldCoordinates();
-      Vector3d n = getWorldNormal();
-      Point3d w = he0.head.getWorldPoint();
-      Point3d hp = he.head.getWorldPoint();
-      double h = (w.x - hp.x) * n.x + (w.y - hp.y) * n.y + (w.z - hp.z) * n.z;
-      Point3d tp = he.tail.getWorldPoint();
-      double t = (w.x - tp.x) * n.x + (w.y - tp.y) * n.y + (w.z - tp.z) * n.z;
-      //if ((h < 0) == (t < 0)) {
-      if ((h < 0 && t < 0) || (h > 0 && t > 0)) {
-         if (debugIntersect) {
-            System.out.println (" fail x h=" + h + " " + t);
-         }
-         return false;
-      }
-      t = Math.abs (t);
-      double lambda = t / (t + Math.abs (h));
-      double x = (hp.x - tp.x) * lambda + tp.x;
-      double y = (hp.y - tp.y) * lambda + tp.y;
-      double z = (hp.z - tp.z) * lambda + tp.z;
-      return isPointInside (x, y, z);
-   }
-
+   
    /*
     * x, y, z are world coordinates of a point already determined to be on the
     * plane of this face. Return true if the point is inside the face's
@@ -1880,100 +1688,6 @@ public class Face extends Feature implements Boundable {
       }
       return true;
    }
-
-   // private void updateWorldNormal (MeshBase mesh) {
-   //    if (myWorldNormal == null) {
-   //       myWorldNormal = new Vector3d();
-   //       myWorldNormal.transform (mesh.getMeshToWorld(), getNormal());
-   //    }
-   //    else if (myWorldCoordCnt != mesh.myWorldCoordCounter) {
-   //       myWorldNormal.transform (mesh.getMeshToWorld(), getNormal());
-   //    }
-   //    myWorldCoordCnt = mesh.myWorldCoordCounter;
-   // }
-
-   // public void updateWorldCoordinates() {
-   // PolygonalMesh mesh = he0.head.myMesh;
-   // if (mesh.isFixed) { // if it's a rigid body mesh, then myWorldNormal can
-   // be different from myNormal
-   // if (myWorldCoordCnt != mesh.myWorldCoordCounter) {
-   // if (myWorldNormal == null) myWorldNormal = new Vector3d();
-   // myWorldNormal.transform (mesh.getMeshToWorld(), getNormal());
-   // /* temporary debugging code
-   // Vector3d wn = ajlTestWorldNormal();
-   // Vector3d diff = new Vector3d();
-   // diff.sub(wn, myWorldNormal);
-   // double dn = diff.norm();
-   // if (dn > 1e-8) {
-   // Point3d newNormal = new Point3d();
-   // computeNormal(newNormal);
-   // throw new RuntimeException("bad world normal");
-   // }
-   // */
-   // myWorldCoordCnt = mesh.myWorldCoordCounter;
-   // }
-   // } else { // if it's a deformable mesh, then myWorldNormal is always the
-   // same as myNormal
-   // myWorldNormal = getNormal();
-   // }
-   // }
-
-   //   /*
-   //    * Calculate a world normal from the world points of three vertices. Used for
-   //    * debugging only. public Vector3d ajlTestWorldNormal() { Vector3d v0 = new
-   //    * Vector3d(); Vector3d v1 = new Vector3d(); HalfEdge he = he0; Point3d p0 =
-   //    * he.tail.getWorldPoint(); Point3d p1 = he.head.getWorldPoint(); he =
-   //    * he.getNext(); Point3d p2 = he.head.getWorldPoint(); v0.sub(p1, p0);
-   //    * v1.sub(p0, p2); v1.cross(v0); v1.normalize(); return v1; }
-   //    */
-   //
-   //   /*
-   //    * Return a HalfEdge of this Face which intersects the specified Face, and
-   //    * add the new intersection point to the contour. Return null if no HalfEdge
-   //    * of this Face intersects the specified Face, or if no intersection point is
-   //    * found that can be added to the contour (duplicate points will be rejected,
-   //    * or the contour may be full). If excludeEdge is specified: - excludeEdge
-   //    * must be a HalfEdge of this Face - only test the other two HalfEdges of
-   //    * this Face for intersection, and return null if neither intersect.
-   //    */
-   //   public HalfEdge differentEdgeIntersectingFace (
-   //      Face aFace, HalfEdge excludeEdge, MeshIntersectionContour contour) {
-   //      HalfEdge e = he0;
-   //      do {
-   //         if (e != excludeEdge & e != excludeEdge.opposite) {
-   //            if (e.getPrimary().robustIntersectionWithFace (
-   //               aFace, contour.workPoint)) {
-   //               if (contour.addWorkPoint())
-   //                  return e;
-   //            }
-   //         }
-   //         e = e.next;
-   //      }
-   //      while (e != he0);
-   //      return null;
-   //   }
-
-   //   /*
-   //    * Return a HalfEdge of this Face which intersects the specified Face, and
-   //    * add the new intersection point to the contour. Return null if no HalfEdge
-   //    * of this Face intersects the specified Face, or if no intersection point is
-   //    * found that can be added to the contour (duplicate points will be rejected,
-   //    * or the contour may be full).
-   //    */
-   //   public HalfEdge edgeIntersectingFace (
-   //      Face aFace, MeshIntersectionContour contour) {
-   //      HalfEdge e = he0;
-   //      do {
-   //         if (e.getPrimary().robustIntersectionWithFace (
-   //            aFace, contour.workPoint)) {
-   //            if (contour.addWorkPoint())
-   //               return e;
-   //         }
-   //         e = e.next;
-   //      }
-   //      while (e != he0);
-   //      return null;
-   //   }
 
    /**
     * Returns a list of Vertex3d[3] representing the 
@@ -2090,7 +1804,13 @@ public class Face extends Feature implements Boundable {
       return ArraySupport.toIntArray (list);      
    }
    
-   public String indexStr() {
+   /**
+    * Returns a string identifying this face using the indices of
+    * its vertices.
+    * 
+    * @return vertex-based identifying string
+    */
+   public String vertexStr() {
       StringBuilder sbuild = new StringBuilder();
       sbuild.append ("[");
       HalfEdge he = he0;

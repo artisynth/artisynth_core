@@ -82,6 +82,16 @@ public abstract class DeformableBody extends RigidBody
       return true;
    }
 
+   @Override
+   public boolean hasDistanceGrid() {
+      return false;
+   }
+   
+   @Override   
+   public SignedDistanceGrid getDistanceGrid() {
+      return null;
+   }   
+   
    public void setMassDamping (double d) {
       myMassDamping = d;
    }

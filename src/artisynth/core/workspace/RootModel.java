@@ -1208,6 +1208,9 @@ public class RootModel extends RenderableModelBase
 
    /**
     * Detach this root model from a driver program.
+    *
+    * @param driver
+    * Interface giving access to the frame and viewer
     */
    public void detach (DriverInterface driver) {
    }
@@ -1556,6 +1559,8 @@ public class RootModel extends RenderableModelBase
    /**
     * If set true, tells the scheduler to stop simulating this root model.
     * Will be set to false by the scheduler when simulation is started.
+    *
+    * @param req if <code>true</code>, requests a simulation stop
     */
    public void setStopRequest (boolean req) {
       myStopRequest = req;
@@ -1929,8 +1934,9 @@ public class RootModel extends RenderableModelBase
    }
 
    /**
-    * Returns true if a specified component has a RootModel as an ancestor.
+    * Queries if a specified component has a RootModel as an ancestor.
     *
+    * @param comp component to query 
     * @return true if <code>comp</code> has a RootModel as an ancestor.
     */
    public static boolean hasRoot (ModelComponent comp) {

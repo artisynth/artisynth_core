@@ -27,6 +27,11 @@ public interface CopyableComponent extends ModelComponent {
     * existing copy of the referenced component. If there is no existing
     * copy, then a copy should be created by calling <code>copy</code>
     * recursively and adding the new copy to <code>copyMap</code>.
+    *
+    * @param flags flags to control the copying
+    * @param copyMap map to possible existing instances of referenced
+    * components
+    * @return copy of this component
     */
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap);

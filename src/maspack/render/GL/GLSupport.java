@@ -47,7 +47,6 @@ public class GLSupport {
 
    /**
     * Java 8 version of float hashcode
-    * @param f
     * @return the computed hashcode
     */
    public static int hashCode(float f) {
@@ -56,7 +55,6 @@ public class GLSupport {
 
    /**
     * Java 8 version of double hashcode
-    * @param d
     * @return the computed hashcode
     */
    // NOT USED
@@ -67,8 +65,6 @@ public class GLSupport {
 
    /**
     * Converts a 2D affine transform to a 4D matrix expected by opengl
-    * @param mat
-    * @param T
     */
    public static void transformToGLMatrix (double[] mat, AffineTransform2dBase T) {
       Matrix2dBase M = T.getMatrix ();

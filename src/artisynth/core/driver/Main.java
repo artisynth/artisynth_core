@@ -1817,7 +1817,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new BooleanHolder (false);
    protected static BooleanHolder noGui = new BooleanHolder (false);
    protected static IntHolder glVersion = new IntHolder (3);
-   protected static BooleanHolder useGLJPanel = new BooleanHolder (false);
+   protected static BooleanHolder useGLJPanel = new BooleanHolder (true);
    protected static StringHolder logLevel = 
       new StringHolder(Logger.LogLevel.WARN.toString());
    protected static BooleanHolder testSaveRestoreState =

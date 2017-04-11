@@ -304,7 +304,7 @@ public class MatlabInterface {
     * 
     * @param obj ArtiSynth objecy
     * @param matlabName name of the MATLAB array
-    * @throws MatlabInterfaceException
+    * @throws MatlabInterfaceException if communication with MATLAB fails
     */
    public void objectToMatlab (Object obj, String matlabName)
       throws MatlabInterfaceException {
@@ -371,7 +371,7 @@ public class MatlabInterface {
     * 
     * @param matlabName name of the MATLAB array
     * @return double array corresponding to the MATLAB array
-    * @throws MatlabInterfaceException
+    * @throws MatlabInterfaceException if communication with MATLAB fails
     */
    public double[][] arrayFromMatlab (String matlabName)
       throws MatlabInterfaceException {
@@ -410,7 +410,7 @@ public class MatlabInterface {
     *
     * @param matlabName name of the MATLAB array
     * @return matrix corresponding to the MATLAB array
-    * @throws MatlabInterfaceException
+    * @throws MatlabInterfaceException if communication with MATLAB fails
     */
    public Matrix matrixFromMatlab (String matlabName)
       throws MatlabInterfaceException {
@@ -438,7 +438,7 @@ public class MatlabInterface {
     * 
     * @param matlabName name of the MATLAB array
     * @return vector corresponding to the MATLAB array
-    * @throws MatlabInterfaceException
+    * @throws MatlabInterfaceException if communication with MATLAB fails
     */
    public VectorNd vectorFromMatlab (String matlabName) 
       throws MatlabInterfaceException {

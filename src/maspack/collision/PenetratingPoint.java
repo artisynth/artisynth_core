@@ -25,6 +25,18 @@ public class PenetratingPoint implements Comparable<PenetratingPoint> {
                            // in world coordinates
    public PenetrationRegion region; // region associated with vertex, 
                            // if available
+
+   public Face getFace() {
+      return face;
+   }
+
+   public Vector3d getNormal() {
+      return normal;
+   }
+
+   public Point3d getPosition() {
+      return position;
+   }
    
    public PenetratingPoint (
       Vertex3d aVertex, Face opposingFace,
@@ -45,15 +57,14 @@ public class PenetratingPoint implements Comparable<PenetratingPoint> {
    }
 
    public PenetratingPoint (
-      Vertex3d vertex, Vector3d normal, double distanceToSurface) {
+      Vertex3d vertex, Point3d vpos, Vector3d normal, double distToSurface) {
       
       this.vertex = vertex;
       face = null;
       coords = null;
       this.normal = new Vector3d (normal);
-      distance = distanceToSurface;
-      position.scaledAdd (distance, normal, vertex.pnt);
-      
+      distance = distToSurface;
+      position.scaledAdd (distToSurface, normal, vpos);
    }
 
    @Override

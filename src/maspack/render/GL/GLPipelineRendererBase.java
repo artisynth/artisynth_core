@@ -117,12 +117,6 @@ public abstract class GLPipelineRendererBase implements GLPipelineRenderer {
    
    /**
     * Prepare to start drawing
-    * @param gl
-    * @param normalOffset
-    * @param colorOffset
-    * @param texcoordOffset
-    * @param positionOffset
-    * @param vertexStride
     */
    public abstract void bind(GL gl, ByteBuffer buff, int normalOffset,
       int colorOffset, int texcoordOffset, int positionOffset,

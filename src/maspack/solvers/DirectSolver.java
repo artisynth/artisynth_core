@@ -8,6 +8,7 @@ package maspack.solvers;
 
 import maspack.matrix.Matrix;
 import maspack.matrix.VectorNd;
+import maspack.matrix.NumericalException;
 
 public interface DirectSolver {
    /**
@@ -28,7 +29,7 @@ public interface DirectSolver {
     * @throws IllegalArgumentException
     * if the matrix is not square, or the matrix type is not supported by the
     * solver.
-    * @throws NumericException
+    * @throws NumericalException
     * if the analysis failed for numeric reasons.
     */
    public void analyze (Matrix M, int size, int type);
@@ -38,7 +39,7 @@ public interface DirectSolver {
     * 
     * @throws IllegalStateException
     * if no previous call to {@link #analyze analyze} has been made.
-    * @throws NumericException
+    * @throws NumericalException
     * if the factor failed for numeric reasons.
     */
    public void factor();
@@ -56,7 +57,7 @@ public interface DirectSolver {
     * @throws IllegalArgumentException
     * if the matrix is not square, or general matrices are not supported by the
     * solver.
-    * @throws NumericException
+    * @throws NumericalException
     * if the analysis or factoring failed for numeric reasons.
     */
    public void analyzeAndFactor (Matrix M);
@@ -78,7 +79,7 @@ public interface DirectSolver {
     * vector in which result is returned
     * @param b
     * right hand vector of matrix equation
-    * @throws NumericException
+    * @throws NumericalException
     * if the solve failed for numeric reasons.
     */
    public void solve (VectorNd x, VectorNd b);
@@ -114,7 +115,7 @@ public interface DirectSolver {
     * @param tolExp
     * if positive, enables auto-iterative solving with the specified value
     * giving the (negative) exponent of the desired relative residual.
-    * @throws NumericException
+    * @throws NumericalException
     * if the factoring or solving failed for numeric reasons
     */
    public void autoFactorAndSolve (VectorNd x, VectorNd b, int tolExp);

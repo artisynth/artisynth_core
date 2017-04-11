@@ -83,8 +83,6 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
     * Constructor for an Input Probe Editor based on an existing probe. This
     * method first finds all the attached properties, and adds the corresponding
     * GUI elements for each property.
-    * 
-    * @param inProbe
     */
    public InputNumericProbeEditor (NumericInputProbe inProbe) {
       super ();
@@ -684,9 +682,6 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
     * new one is selected, we replace the old one, and invalidate the driver if
     * and ONLY if the size has changed. (otherwise old driver will still be
     * valid).
-    * 
-    * @param newprop
-    * @param idx
     */
    public void changeProperty (Property newprop, int idx) {
       if (newprop.equals (myProperties.get (idx))) {

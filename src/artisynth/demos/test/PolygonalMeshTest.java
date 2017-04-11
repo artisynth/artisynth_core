@@ -70,18 +70,18 @@ public class PolygonalMeshTest extends MeshTestBase {
       //mesh = MeshFactory.createSphere (/*radius=*/2.0, /*nsegs=*/24);
       
       //mesh = readBoxMesh();
-      mesh = SurfaceMeshIntersectorTest.createLegoMesh (
-         1.0, 1.0, 0.1,
-         "XXXXXXXXXX",
-         "X        X",
-         "X XXXXXX X",
-         "X X    X X",
-         "X X XX X X",
-         "X X    X X",
-         "X XXXXXX X",
-         "X        X",
-         "X        X",
-         "XXXXXXXXXX");
+      mesh = MeshFactory.createSkylineMesh (
+         1.0, 1.0, 0.1, 10, 10,
+         "1111111111",
+         "1        1",
+         "1 111111 1",
+         "1 1    1 1",
+         "1 1 11 1 1",
+         "1 1    1 1",
+         "1 111111 1",
+         "1        1",
+         "1        1",
+         "1111111111");
 
       myMesh = mesh;
 

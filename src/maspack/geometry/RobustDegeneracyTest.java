@@ -8,6 +8,11 @@ public class RobustDegeneracyTest {
       throw new RuntimeException(msg);
    }
 
+   static boolean intersectSegmentTriangle (Point3d s0, Point3d s1, Face face) {
+      return RobustPreds.intersectSegmentTriangle (
+         null, s0, s1, face, 0, /*worldCoords=*/false) > 0;
+   }
+
    /**
     *   1: __ \ __
     *         /
@@ -25,11 +30,10 @@ public class RobustDegeneracyTest {
       // segment for intersection
       Point3d s0 = new Point3d(0, 0, -1);
       Point3d s1 = new Point3d(0, 0, 1);
-      Point3d p = new Point3d();
       
       int isects = 0;
       for (Face face : mesh.getFaces()) {
-         if (RobustPreds.intersectSegmentTriangle(s0, s1, face, p)) {
+         if (intersectSegmentTriangle(s0, s1, face)) {
             ++isects;
          }
       }
@@ -59,11 +63,10 @@ public class RobustDegeneracyTest {
       // segment for intersection
       Point3d s0 = new Point3d(0, 0, -1);
       Point3d s1 = new Point3d(0, 0, 1);
-      Point3d p = new Point3d();
       
       int isects = 0;
       for (Face face : mesh.getFaces()) {
-         if (RobustPreds.intersectSegmentTriangle(s0, s1, face, p)) {
+         if (intersectSegmentTriangle(s0, s1, face)) {
             ++isects;
          }
       }
@@ -79,7 +82,7 @@ public class RobustDegeneracyTest {
       
       int isects2 = 0;
       for (Face face : mesh.getFaces()) {
-         if (RobustPreds.intersectSegmentTriangle(s0, s1, face, p)) {
+         if (intersectSegmentTriangle(s0, s1, face)) {
             ++isects2;
          }
       }
@@ -114,11 +117,10 @@ public class RobustDegeneracyTest {
       // segment for intersection
       Point3d s0 = new Point3d(0, 0, -1);
       Point3d s1 = new Point3d(0, 0, 1);
-      Point3d p = new Point3d();
       
       int isects = 0;
       for (Face face : mesh.getFaces()) {
-         if (RobustPreds.intersectSegmentTriangle(s0, s1, face, p)) {
+         if (intersectSegmentTriangle(s0, s1, face)) {
             ++isects;
          }
       }
@@ -152,11 +154,10 @@ public class RobustDegeneracyTest {
       // segment for intersection
       Point3d s0 = new Point3d(0, 0, -2);
       Point3d s1 = new Point3d(0, 0, 2);
-      Point3d p = new Point3d();
       
       int isects = 0;
       for (Face face : mesh.getFaces()) {
-         if (RobustPreds.intersectSegmentTriangle(s0, s1, face, p)) {
+         if (intersectSegmentTriangle(s0, s1, face)) {
             ++isects;
          }
       }
@@ -185,11 +186,10 @@ public class RobustDegeneracyTest {
       // segment for intersection
       Point3d s0 = new Point3d(0, 0,-2);
       Point3d s1 = new Point3d(0, 0, 2);
-      Point3d p = new Point3d();
       
       int isects = 0;
       for (Face face : mesh.getFaces()) {
-         if (RobustPreds.intersectSegmentTriangle(s0, s1, face, p)) {
+         if (intersectSegmentTriangle(s0, s1, face)) {
             ++isects;
             System.out.println("intersects face " + face.getIndex());
          }
@@ -220,11 +220,10 @@ public class RobustDegeneracyTest {
       // segment for intersection
       Point3d s0 = new Point3d(0, 0, -2);
       Point3d s1 = new Point3d(0, 0, 2);
-      Point3d p = new Point3d();
       
       int isects = 0;
       for (Face face : mesh.getFaces()) {
-         if (RobustPreds.intersectSegmentTriangle(s0, s1, face, p)) {
+         if (intersectSegmentTriangle(s0, s1, face)) {
             ++isects;
          }
       }

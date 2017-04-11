@@ -42,6 +42,9 @@ public interface MechSystemModel extends Model, MechSystem {
     * Checks the velocity stability of this system. If the velocity of any
     * component appears to be unstable, return that component. Otherwise, return
     * null.
+    *
+    * @return first component containing an unstable velocity, or
+    * <code>null</code> if there is no instability
     */
    public DynamicComponent checkVelocityStability();
 

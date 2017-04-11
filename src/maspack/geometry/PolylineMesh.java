@@ -439,16 +439,20 @@ public class PolylineMesh extends MeshBase {
 //      mesh.setName(getName());
 //      return mesh;
 //   }
-
+   
+   public void addMesh (PolylineMesh mesh) {
+      addMesh (mesh, /*respectTransforms=*/false);
+   }
+   
    /** 
     * Adds copies of the vertices and lines of another mesh to this mesh.
     * 
     * @param mesh Mesh to be added to this mesh
     */
-   public void addMesh (PolylineMesh mesh) {
+   public void addMesh (PolylineMesh mesh, boolean respectTransforms) {
 
       int voff = myVertices.size();
-      super.addMesh (mesh);
+      super.addMesh (mesh, respectTransforms);
       for (int i = 0; i < mesh.numLines(); i++) {
          addLine (copyWithOffset (
                      mesh.getLines().get(i).getVertexIndices(), voff));

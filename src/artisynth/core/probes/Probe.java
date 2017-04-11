@@ -334,14 +334,14 @@ public abstract class Probe extends ModelAgentBase {
    }
 
    /**
-    * write components to a file
+    * Write probe attributes to a PrintWriter
     * 
-    * @param pw
-    * @param fmt
-    * @param ancestor
-    * @throws IOException
+    * @param pw writer to which components are written
+    * @param fmt format for floating point numbers
+    * @param ancestor ancestor component which respect to which references are
+    * expressed
+    * @throws IOException if an I/O error occurred
     */
-
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {

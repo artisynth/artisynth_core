@@ -971,10 +971,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * However, if set to true, we will likely scale this term differently every
     * time step.
     * 
-    * @param set
+    * @param enable if <code>true</code>, enables normalization
     */
-   public void setNormalizeH(boolean set) {
-      myController.getData().normalizeH = set;
+   public void setNormalizeH(boolean enable) {
+      myController.getData().normalizeH = enable;
    }
    
    /**

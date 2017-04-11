@@ -26,7 +26,6 @@ public class GL3Object extends GL3ResourceBase implements GL3Drawable {
    
    /**
     * Bind attributes to the VAO to prepare for drawing
-    * @param gl
     */
    public void bind(GL3 gl) {
       vao.bind (gl);

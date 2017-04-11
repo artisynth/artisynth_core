@@ -2187,8 +2187,6 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    /**
     * Enable or disable all texture-based properties, such as color-map,
     * bump-map, and normal-map
-    * @param r
-    * @param enabled
     */
    public static void setTextureEnabled(Renderable r, boolean enabled) {
       setColorMapEnabled (r, enabled);

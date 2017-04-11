@@ -21,19 +21,16 @@ public interface FileTransferListener {
 
    /**
     * Fired when destination file is changed
-    * @param event
     */
    public void transferUpdated(FileTransferEvent event);
    
    /**
     * Fired when the transfer is started
-    * @param event
     */
    public void transferStarted(FileTransferEvent event);
 
    /**
     * Fired when the transfer is complete
-    * @param event
     */
    public void transferCompleted(FileTransferEvent event);
 }

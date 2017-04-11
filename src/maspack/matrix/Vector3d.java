@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -8,8 +9,8 @@ package maspack.matrix;
 
 import java.io.PrintWriter;
 import java.io.IOException;
-
 import java.util.Random;
+
 import maspack.util.InternalErrorException;
 import maspack.util.FunctionTimer;
 import maspack.util.Clonable;
@@ -169,12 +170,13 @@ Clonable {
    }
 
    /**
-    * Copies the elements of this vector into an array of doubles.
-    * 
-    * @param values
-    * array into which values are copied
-    */
+    * {@inheritDoc}
+    */  
    public void get (double[] values) {
+      if (values.length < 3) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have length >= 3");
+      }
       values[0] = x;
       values[1] = y;
       values[2] = z;
@@ -256,12 +258,17 @@ Clonable {
    }
 
    /**
-    * Sets the elements of this vector from an array of doubles.
+    * Sets the elements of this vector from an array of doubles. The array
+    * must have a length of at least 3.
     * 
     * @param values
     * array from which values are copied
     */
    public void set (double[] values) {
+      if (values.length < 3) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have a length of at least 3");
+      } 
       x = values[0];
       y = values[1];
       z = values[2];
@@ -332,11 +339,13 @@ Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void add (Vector3d v1, Vector3d v2) {
+   public Vector3d add (Vector3d v1, Vector3d v2) {
       x = v1.x + v2.x;
       y = v1.y + v2.y;
       z = v1.z + v2.z;
+      return this;
    }
 
    /**
@@ -344,11 +353,13 @@ Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     */
-   public void add (Vector3d v1) {
+   public Vector3d add (Vector3d v1) {
       x += v1.x;
       y += v1.y;
       z += v1.z;
+      return this;
    }
 
    /**
@@ -360,11 +371,13 @@ Clonable {
     * y increment
     * @param dz
     * z increment
+    * @return this vector
     */
-   public void add (double dx, double dy, double dz) {
+   public Vector3d add (double dx, double dy, double dz) {
       x += dx;
       y += dy;
       z += dz;
+      return this;
    }
 
    /**
@@ -374,11 +387,13 @@ Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void sub (Vector3d v1, Vector3d v2) {
+   public Vector3d sub (Vector3d v1, Vector3d v2) {
       x = v1.x - v2.x;
       y = v1.y - v2.y;
       z = v1.z - v2.z;
+      return this;
    }
 
    /**
@@ -386,11 +401,13 @@ Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     */
-   public void sub (Vector3d v1) {
+   public Vector3d sub (Vector3d v1) {
       x -= v1.x;
       y -= v1.y;
       z -= v1.z;
+      return this;
    }
 
    /**
@@ -398,20 +415,24 @@ Clonable {
     * 
     * @param v1
     * vector to negate
+    * @return this vector
     */
-   public void negate (Vector3d v1) {
+   public Vector3d negate (Vector3d v1) {
       x = -v1.x;
       y = -v1.y;
       z = -v1.z;
+      return this;
    }
 
    /**
     * Negates this vector in place.
+    * @return this vector
     */
-   public void negate() {
+   public Vector3d negate() {
       x = -x;
       y = -y;
       z = -z;
+      return this;
    }
 
    /**
@@ -419,11 +440,13 @@ Clonable {
     * 
     * @param s
     * scaling factor
+    * @return this vector
     */
-   public void scale (double s) {
+   public Vector3d scale (double s) {
       x *= s;
       y *= s;
       z *= s;
+      return this;
    }
    
    /**
@@ -435,11 +458,13 @@ Clonable {
     * scaling factor in the y direction
     * @param sz
     * scaling factor in the z direction
+    * @return this vector
     */
-   public void scale (double sx, double sy, double sz) {
+   public Vector3d scale (double sx, double sy, double sz) {
       x *= sx;
       y *= sy;
       z *= sz;
+      return this;
    }
 
    /**
@@ -450,27 +475,29 @@ Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled
+    * @return this vector
     */
-   public void scale (double s, Vector3d v1) {
+   public Vector3d scale (double s, Vector3d v1) {
       x = s * v1.x;
       y = s * v1.y;
       z = s * v1.z;
+      return this;
    }
 
-   /**
-    * Divides the elements of vector v1 by <code>s</code> and places the
-    * results in this vector.
-    * 
-    * @param s
-    * factor to divide by
-    * @param v1
-    * vector to be divided
-    */
-   void divide (double s, Vector3d v1) {
-      x = v1.x / s;
-      y = v1.y / s;
-      z = v1.z / s;
-   }
+//   /**
+//    * Divides the elements of vector v1 by <code>s</code> and places the
+//    * results in this vector.
+//    * 
+//    * @param s
+//    * factor to divide by
+//    * @param v1
+//    * vector to be divided
+//    */
+//   void divide (double s, Vector3d v1) {
+//      x = v1.x / s;
+//      y = v1.y / s;
+//      z = v1.z / s;
+//   }
 
    /**
     * Computes the interpolation <code>(1-s) v1 + s v2</code> and places the
@@ -513,26 +540,14 @@ Clonable {
     * vector to be scaled
     * @param v2
     * vector to be added
+    * @return this vector
     */
-   public void scaledAdd (double s, Vector3d v1, Vector3d v2) {
+   public Vector3d scaledAdd (double s, Vector3d v1, Vector3d v2) {
       x = s * v1.x + v2.x;
       y = s * v1.y + v2.y;
       z = s * v1.z + v2.z;
+      return this;
    }
-
-   // /**
-   // * Computes <code>s this + v1</code> and places
-   // * the result in this vector.
-   // *
-   // * @param s scaling factor
-   // * @param v1 vector to be added
-   // */
-   // public void scaledAdd (double s, Vector3d v1)
-   // {
-   // x = s*x + v1.x;
-   // y = s*y + v1.y;
-   // z = s*z + v1.z;
-   // }
 
    /**
     * Computes <code>s v1</code> and adds the result to this vector.
@@ -541,11 +556,13 @@ Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled and added
+    * @return this vector
     */
-   public void scaledAdd (double s, Vector3d v1) {
+   public Vector3d scaledAdd (double s, Vector3d v1) {
       x += s * v1.x;
       y += s * v1.y;
       z += s * v1.z;
+      return this;
    }
 
    /**
@@ -560,11 +577,13 @@ Clonable {
     * right-hand scaling factor
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void combine (double s1, Vector3d v1, double s2, Vector3d v2) {
+   public Vector3d combine (double s1, Vector3d v1, double s2, Vector3d v2) {
       x = s1 * v1.x + s2 * v2.x;
       y = s1 * v1.y + s2 * v2.y;
       z = s1 * v1.z + s2 * v2.z;
+      return this;
    }
 
    /**
@@ -710,11 +729,12 @@ Clonable {
 
    /**
     * Normalizes this vector in place.
+    * @return this vector
     */
-   public void normalize() {
+   public Vector3d normalize() {
       double lenSqr = x * x + y * y + z * z;
       if (lenSqr == 0) {
-         return;
+         return this;
       }
       double err = lenSqr - 1;
       if (err > (2 * DOUBLE_PREC) || err < -(2 * DOUBLE_PREC)) {
@@ -723,6 +743,7 @@ Clonable {
          y /= len;
          z /= len;
       }
+      return this;
    }
 
    /**
@@ -731,8 +752,9 @@ Clonable {
     * 
     * @param v1
     * vector to normalize
+    * @return this vector
     */
-   public void normalize (Vector3d v1) {
+   public Vector3d normalize (Vector3d v1) {
       double lenSqr = v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
       double err = lenSqr - 1;
       if (err > (2 * DOUBLE_PREC) || err < -(2 * DOUBLE_PREC)) {
@@ -746,6 +768,7 @@ Clonable {
          y = v1.y;
          z = v1.z;
       }
+      return this;
    }
 
    /**
@@ -754,8 +777,9 @@ Clonable {
     * 
     * @param v1
     * perpendicular reference vector
+    * @return this vector
     */
-   public void perpendicular (Vector3d v1) {
+   public Vector3d perpendicular (Vector3d v1) {
       double absx = (v1.x >= 0 ? v1.x : -v1.x);
       double absy = (v1.y >= 0 ? v1.y : -v1.y);
       double absz = (v1.z >= 0 ? v1.z : -v1.z);
@@ -786,6 +810,7 @@ Clonable {
             z = 0;
          }
       }
+      return this;
    }
 
    /**
@@ -830,7 +855,7 @@ Clonable {
     * Returns true if all the elements of this vector are greater than those of
     * vector<code>v1</code>.
     * 
-    * @param v1
+    * @param v1 vector to compare with
     * @return true if all elements of this vector are greater
     */
    public boolean greater (Vector3d v1) {
@@ -841,7 +866,7 @@ Clonable {
     * Returns true if all the elements of this vector are greater than or equal
     * to those of vector<code>v1</code>.
     * 
-    * @param v1
+    * @param v1 vector to compare with
     * @return true if all elements of this vector are greater or equal
     */
    public boolean greaterEquals (Vector3d v1) {
@@ -875,11 +900,13 @@ Clonable {
 
    /**
     * Sets the elements of this vector to their absolute values.
+    * @return this vector
     */
-   public void absolute() {
+   public Vector3d absolute() {
       x = Math.abs (x);
       y = Math.abs (y);
       z = Math.abs (z);
+      return this;
    }
 
    /**
@@ -887,11 +914,13 @@ Clonable {
     * 
     * @param v1
     * vector to take the absolute value of
+    * @return this vector
     */
-   public void absolute (Vector3d v1) {
+   public Vector3d absolute (Vector3d v1) {
       x = Math.abs (v1.x);
       y = Math.abs (v1.y);
       z = Math.abs (v1.z);
+      return this;
    }
 
    /**
@@ -1042,8 +1071,9 @@ Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void cross (Vector3d v1, Vector3d v2) {
+   public Vector3d cross (Vector3d v1, Vector3d v2) {
       double tmpx = v1.y * v2.z - v1.z * v2.y;
       double tmpy = v1.z * v2.x - v1.x * v2.z;
       double tmpz = v1.x * v2.y - v1.y * v2.x;
@@ -1051,6 +1081,7 @@ Clonable {
       x = tmpx;
       y = tmpy;
       z = tmpz;
+      return this;
    }
 
    /**
@@ -1059,8 +1090,9 @@ Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     */
-   public void cross (Vector3d v1) {
+   public Vector3d cross (Vector3d v1) {
       double tmpx = y * v1.z - z * v1.y;
       double tmpy = z * v1.x - x * v1.z;
       double tmpz = x * v1.y - y * v1.x;
@@ -1068,6 +1100,7 @@ Clonable {
       x = tmpx;
       y = tmpy;
       z = tmpz;
+      return this;
    }
 
    /**
@@ -1080,8 +1113,9 @@ Clonable {
     * right-hand vector for cross product
     * @param v3
     * vector to add
+    * @return this vector
     */
-   public void crossAdd (Vector3d v1, Vector3d v2, Vector3d v3) {
+   public Vector3d crossAdd (Vector3d v1, Vector3d v2, Vector3d v3) {
       double tmpx = v1.y * v2.z - v1.z * v2.y;
       double tmpy = v1.z * v2.x - v1.x * v2.z;
       double tmpz = v1.x * v2.y - v1.y * v2.x;
@@ -1089,6 +1123,7 @@ Clonable {
       x = tmpx + v3.x;
       y = tmpy + v3.y;
       z = tmpz + v3.z;
+      return this;
    }
 
    /**
@@ -1328,9 +1363,11 @@ Clonable {
     * matrix
     * @param v1
     * vector
+    * @return this vector
     */
-   public void mul (Matrix3dBase X, Vector3d v1) {
+   public Vector3d mul (Matrix3dBase X, Vector3d v1) {
       X.mul (this, v1);
+      return this;
    }
 
    /**
@@ -1343,9 +1380,11 @@ Clonable {
     * vector to multiply
     * @param v2
     * vector to add
+    * @return this vector
     */
-   public void mulAdd (Matrix3dBase X, Vector3d v1, Vector3d v2) {
+   public Vector3d mulAdd (Matrix3dBase X, Vector3d v1, Vector3d v2) {
       X.mulAdd (this, v1, v2);
+      return this;
    }
 
    /**
@@ -1356,9 +1395,11 @@ Clonable {
     * matrix
     * @param v1
     * vector to multiply
+    * @return this vector
     */
-   public void mulTranspose (Matrix3dBase X, Vector3d v1) {
+   public Vector3d mulTranspose (Matrix3dBase X, Vector3d v1) {
       X.mulTranspose (this, v1);
+      return this;
    }
 
    /**
@@ -1371,9 +1412,11 @@ Clonable {
     * vector to multiply
     * @param v2
     * vector to add
+    * @return this vector
     */
-   public void mulTransposeAdd (Matrix3dBase X, Vector3d v1, Vector3d v2) {
+   public Vector3d mulTransposeAdd (Matrix3dBase X, Vector3d v1, Vector3d v2) {
       X.mulTransposeAdd (this, v1, v2);
+      return this;
    }
 
    /**
@@ -1434,8 +1477,9 @@ Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     */
-   public void max (Vector3d v) {
+   public Vector3d max (Vector3d v) {
       if (v.x > x) {
          x = v.x;
       }
@@ -1445,6 +1489,7 @@ Clonable {
       if (v.z > z) {
          z = v.z;
       }
+      return this;
    }
 
    /**
@@ -1453,8 +1498,9 @@ Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     */
-   public void min (Vector3d v) {
+   public Vector3d min (Vector3d v) {
       if (v.x < x) {
          x = v.x;
       }
@@ -1464,6 +1510,7 @@ Clonable {
       if (v.z < z) {
          z = v.z;
       }
+      return this;
    }
 
 
@@ -1692,11 +1739,11 @@ Clonable {
       timer.stop();
       System.out.println ("Vector3d.scale: " + timer.result (cnt));
 
-      timer.start();
-      for (int i = 0; i < cnt; i++) {
-         vr.divide (.33, v1);
-      }
-      timer.stop();
-      System.out.println ("Vector3d.divide: " + timer.result (cnt));
+//      timer.start();
+//      for (int i = 0; i < cnt; i++) {
+//         vr.divide (.33, v1);
+//      }
+//      timer.stop();
+//      System.out.println ("Vector3d.divide: " + timer.result (cnt));
    }
 }

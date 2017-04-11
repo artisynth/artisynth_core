@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -1792,5 +1793,21 @@ public class WavefrontReader extends MeshReaderBase {
       return read (new File(fileName));
     }
 
+   public static PolygonalMesh readFromString (
+      String input, boolean zeroIndexed) {
+      WavefrontReader reader = new WavefrontReader (new StringReader (input));
+      reader.setZeroIndexed (zeroIndexed);
+      try {
+         return (PolygonalMesh)reader.readMesh (null);
+      }
+      catch (Exception e) {
+         throw new IllegalArgumentException (
+            "Illegal mesh input string: " + e.getMessage());
+      }
+   }
+
+   public static PolygonalMesh readFromString (String input) {
+      return readFromString (input, false);
+   }
 
 }

@@ -200,7 +200,7 @@ public class OBB extends BVNode {
     * @param mesh mesh to fit the OBB to
     * @param margin extra distance by with the OBB should be grown. If
     * less than 0, a default margin is computed.
-    * @param method 
+    * @param method method used to compute the OBB
     */
    public void set (MeshBase mesh, double margin, Method method) {
       if (margin < 0) {

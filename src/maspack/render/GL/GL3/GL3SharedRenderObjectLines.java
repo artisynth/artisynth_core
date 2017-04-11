@@ -308,9 +308,6 @@ public class GL3SharedRenderObjectLines extends GL3SharedRenderObjectBase {
    
    /**
     * Bind with a line-offset (e.g. offset=k will bind starting at kth line) 
-    * @param gl
-    * @param gidx
-    * @param offset
     */
    public void bindInstancedVertices(GL3 gl, int gidx, int offset) {
 

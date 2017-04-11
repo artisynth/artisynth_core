@@ -1456,6 +1456,15 @@ REAL orient2d(REAL *pa, REAL *pb, REAL *pc)
 /*  fast, but will run more slowly when the input points are coplanar or     */
 /*  nearly so.                                                               */
 /*                                                                           */
+/*  John Lloyd, Nov 2016: Added the following:                               */
+/*                                                                           */
+/*  orient3dDet()                                                            */
+/*  orient3dexactDet()                                                       */
+/*                                                                           */
+/*               Versions of orient3d() and orient3dexact() that also        */
+/*               return the computed determinant as a two-double precision   */
+/*               value.                                                      */
+/*                                                                           */
 /*****************************************************************************/
 
 REAL orient3dfast(REAL *pa, REAL *pb, REAL *pc, REAL *pd)
@@ -1480,6 +1489,17 @@ REAL orient3dfast(REAL *pa, REAL *pb, REAL *pc, REAL *pd)
 }
 
 REAL orient3dexact(REAL *pa, REAL *pb, REAL *pc, REAL *pd)
+{
+   REAL detv[2];
+   return orient3dexactDet (pa, pb, pc, pd, detv);
+}
+
+/*
+ * Same as orient3dexact() but also returns the computed determinant
+ * as a two-doubl precision value, with det[0] and det[1] containing
+ * the regular and extra precision values, respectively.
+ */
+REAL orient3dexactDet (REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL *detv)
 {
   INEXACT REAL axby1, bxcy1, cxdy1, dxay1, axcy1, bxdy1;
   INEXACT REAL bxay1, cxby1, dxcy1, axdy1, cxay1, dxby1;
@@ -1553,7 +1573,25 @@ REAL orient3dexact(REAL *pa, REAL *pb, REAL *pc, REAL *pd)
   cdlen = fast_expansion_sum_zeroelim(clen, cdet, dlen, ddet, cddet);
   deterlen = fast_expansion_sum_zeroelim(ablen, abdet, cdlen, cddet, deter);
 
-  return deter[deterlen - 1];
+  if (deterlen > 1) {
+     // determinant has been computed with more than one double of
+     // precision. Compress the representation so as to pack as much
+     // precision as possible into the two doubles supplied by detv.
+     REAL dtmp[96];
+     int dlen = compress (deterlen, deter, dtmp);
+     detv[0] = dtmp[dlen-1];
+     if (dlen > 1) {
+        detv[1] = dtmp[dlen-2];
+     }
+     else {
+        detv[1] = 0; // no extra precision needed, set to 0
+     }
+  }
+  else {
+     detv[0] = deter[deterlen-1];
+     detv[1] = 0;
+  }
+  return detv[0];
 }
 
 REAL orient3dslow(REAL *pa, REAL *pb, REAL *pc, REAL *pd)
@@ -1648,7 +1686,8 @@ REAL orient3dslow(REAL *pa, REAL *pb, REAL *pc, REAL *pd)
   return deter[deterlen - 1];
 }
 
-REAL orient3dadapt(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL permanent)
+REAL orient3dadapt(
+  REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL permanent, REAL *detv)
 {
   INEXACT REAL adx, bdx, cdx, ady, bdy, cdy, adz, bdz, cdz;
   REAL det, errbound;
@@ -1664,6 +1703,9 @@ REAL orient3dadapt(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL permanent)
   REAL *finnow, *finother, *finswap;
   REAL fin1[192], fin2[192];
   int finlength;
+
+  detv[0] = 0;
+  detv[1] = 0;
 
   ////////////////////////////////////////////////////////
   // To avoid uninitialized warnings reported by valgrind.
@@ -1746,6 +1788,8 @@ REAL orient3dadapt(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL permanent)
   det = estimate(finlength, fin1);
   errbound = o3derrboundB * permanent;
   if ((det >= errbound) || (-det >= errbound)) {
+     detv[0] = det;
+     //printf ("return 0\n");
     return det;
   }
 
@@ -1762,7 +1806,9 @@ REAL orient3dadapt(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL permanent)
   if ((adxtail == 0.0) && (bdxtail == 0.0) && (cdxtail == 0.0)
       && (adytail == 0.0) && (bdytail == 0.0) && (cdytail == 0.0)
       && (adztail == 0.0) && (bdztail == 0.0) && (cdztail == 0.0)) {
-    return det;
+     detv[0] = det;
+     //printf ("return 1\n");
+     return det;
   }
 
   errbound = o3derrboundC * permanent + resulterrbound * Absolute(det);
@@ -1776,7 +1822,9 @@ REAL orient3dadapt(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL permanent)
                  - (ady * bdxtail + bdx * adytail))
           + cdztail * (adx * bdy - ady * bdx));
   if ((det >= errbound) || (-det >= errbound)) {
-    return det;
+     detv[0] = det;
+     //printf ("return 2\n");
+     return det;
   }
 
   finnow = fin1;
@@ -2056,10 +2104,42 @@ REAL orient3dadapt(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL permanent)
     finswap = finnow; finnow = finother; finother = finswap;
   }
 
-  return finnow[finlength - 1];
+  detv[0] = finnow[finlength - 1];
+
+  if (finlength > 1) {
+     // determinant has been computed with more than one double of
+     // precision. Compress the representation so as to pack as much
+     // precision as possible into the two doubles supplied by detv.
+     REAL dtmp[96];
+     int dlen = compress (finlength, finnow, dtmp);
+     detv[0] = dtmp[dlen-1];
+     if (dlen > 1) {
+        detv[1] = dtmp[dlen-2];
+     }
+     else {
+        detv[1] = 0; // no extra precision needed, set to 0
+     }
+  }
+  else {
+     detv[0] = finnow[finlength - 1];
+  }
+  return detv[0];
 }
 
-REAL orient3d(REAL *pa, REAL *pb, REAL *pc, REAL *pd)
+REAL orient3d(REAL *pa, REAL *pb, REAL *pc, REAL *pd) {
+   REAL detv[2];
+   return orient3dDet (pa, pb, pc, pd, detv);
+}
+
+/*
+ * Same as orient3d() but also returns the computed determinant as a
+ * two-double precision value, with detv[0] and detv[1] containing the
+ * regular and extra precision values, respectively. In some cases
+ * this routine may only compute the determinant to the precision of a
+ * single double, which will then be returned in detv[0] with detv[1]
+ * set to 0.
+ */
+REAL orient3dDet (REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL *detv)
 {
   REAL adx, bdx, cdx, ady, bdy, cdy, adz, bdz, cdz;
   REAL bdxcdy, cdxbdy, cdxady, adxcdy, adxbdy, bdxady;
@@ -2093,10 +2173,12 @@ REAL orient3d(REAL *pa, REAL *pb, REAL *pc, REAL *pd)
             + (Absolute(adxbdy) + Absolute(bdxady)) * Absolute(cdz);
   errbound = o3derrboundA * permanent;
   if ((det > errbound) || (-det > errbound)) {
+     detv[0] = det; // 
+     detv[1] = 0;   // extra precision part of det not computed, set to 0
     return det;
   }
 
-  return orient3dadapt(pa, pb, pc, pd, permanent);
+  return orient3dadapt(pa, pb, pc, pd, permanent, detv);
 }
 
 /*****************************************************************************/

@@ -162,6 +162,7 @@ public abstract class FemElement3d extends FemElement
     * than the value returned by {@link #numPressureVals}
     * @param coords coordinates at which the shape function should
     * be evaluated.
+    * @return value of the pressure shape function
     */
    public double getH (int i, Vector3d coords) {
       return 1;
@@ -178,6 +179,8 @@ public abstract class FemElement3d extends FemElement
     * single value of 1. Elements with a larger number of pressure values
     * should override this method to return a pressure weight matrix
     * appropriate for that element.
+    *
+    * @return pressure weight matrix for this element
     */
    public Matrix getPressureWeightMatrix () {
       if (myPressureWeightMatrix == null) {
@@ -1203,8 +1206,11 @@ public abstract class FemElement3d extends FemElement
    }
 
    /**
-    * Return true if the effective material for this element, and all auxiliary
+    * Queries if the effective material for this element, and all auxiliary
     * materials, are defined for non-positive deformation gradients.
+    *
+    * @return <code>true</code> if the materials associated with this
+    * element are invertible
     */
    public boolean materialsAreInvertible() {
       
@@ -1254,6 +1260,9 @@ public abstract class FemElement3d extends FemElement
     * Computes the current coordinates and deformation gradient at the
     * warping point, using render coordinates. This is used in element
     * rendering.
+    *
+    * @param F returns the deformation gradient
+    * @param coords returns the current coordinates
     */
    public void computeRenderCoordsAndGradient (Matrix3d F, float[] coords) {
       IntegrationPoint3d ipnt = getWarpingPoint();

@@ -11,6 +11,8 @@ import java.io.StringReader;
 
 import maspack.matrix.Vector;
 import maspack.matrix.VectorNd;
+import maspack.matrix.Vectori;
+import maspack.matrix.VectorNi;
 
 /**
  * A Range object which inspects a number to make sure it lies within a
@@ -601,6 +603,49 @@ public abstract class NumericInterval extends RangeBase {
                   vectorCopied = true;
                }
                vec.set (i, clipToRange(num));
+            }
+            else {
+               setError (errMsg, "elements should be within the range "+this);
+               return Range.IllegalValue;
+            }
+         }
+      }
+      if (vectorCopied) {
+         setError (errMsg, "vector was clipped to range");
+      }
+      return vec;
+   }
+
+   /**
+    * Validates an integer vector by checking that its elements lie within this
+    * range interval. For purposes of this method, the interval is treated as
+    * closed.  If all elements are within range, the vector is returned
+    * unchanged.  Otherwise, the method returns either a new clipped vector (if
+    * <code>clip</code> is <code>true</code>), or the special value {@link
+    * Range#IllegalValue}. In the latter two cases, an error message will also
+    * be returned if the variable <code>errMsg</code> is non-null.
+    * 
+    * @param vec
+    * vector to validate
+    * @param clip
+    * if true, clip the vector to the range if possible
+    * @param errMsg
+    * if non-null, is used to return an error message if one or more elements
+    * are out of range
+    * @return either the original vector, a clipped version of it, or
+    * Range.IllegalValue
+    */
+   public Object validate (Vectori vec, boolean clip, StringHolder errMsg) {
+      boolean vectorCopied = false;
+      for (int i = 0; i < vec.size(); i++) {
+         double num = vec.get(i);
+         if (!withinRange(num)) {
+            if (clip && canClipToRange (num)) {
+               if (!vectorCopied) {
+                  vec = new VectorNi (vec);
+                  vectorCopied = true;
+               }
+               vec.set (i, (int)clipToRange(num));
             }
             else {
                setError (errMsg, "elements should be within the range "+this);

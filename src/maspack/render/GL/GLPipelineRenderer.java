@@ -15,16 +15,12 @@ public interface GLPipelineRenderer {
    /**
     * Set up properties of pipeline.  Properties cannot be changed
     * while rendering.
-    * @param hasNormals
-    * @param hasColors
-    * @param hasTexcoords
     */
    public void setup(boolean hasNormals, boolean hasColors, boolean hasTexcoords);
 
    /**
     * Enables/disables per-vertex normals.  Cannot be changed
     * while rendering.
-    * @param set
     */
    public void enableNormals(boolean set);
    
@@ -33,7 +29,6 @@ public interface GLPipelineRenderer {
    /**
     * Enables/disables per-vertex colors.  Cannot be changed
     * while rendering.
-    * @param set
     */
    public void enableColors(boolean set);
    
@@ -42,7 +37,6 @@ public interface GLPipelineRenderer {
    /**
     * Enables/disables per-vertex texture coordinates.
     * Cannot be changed while rendering.
-    * @param set
     */
    public void enableTexCoords(boolean set);
    
@@ -60,35 +54,23 @@ public interface GLPipelineRenderer {
    
    /**
     * Cues up a normal to use for following vertices
-    * @param x
-    * @param y
-    * @param z
     */
    public void normal(float x, float y, float z);
    
    /**
     * Cues up a color to use for following vertices
-    * @param r
-    * @param g
-    * @param b
-    * @param a
     */
    public void color(int r, int g, int b, int a);
    
    /**
     * Cues up a texture coordinate to use for following
     * vertices
-    * @param x
-    * @param y
     */
    public void texcoord(float x, float y);
    
    /**
     * Adds a vertex to the pipeline with the currently active
     * attributes.
-    * @param x
-    * @param y
-    * @param z
     */
    public void vertex(float x, float y, float z);
 

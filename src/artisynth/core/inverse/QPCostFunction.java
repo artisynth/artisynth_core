@@ -125,7 +125,8 @@ public class QPCostFunction {
    /**
     * Sets the size of the quadratic program
     * Note that constraints terms will be removed.
-    * @param size
+    * 
+    * @param size size of the quadratic program
     */
    public void setSize(int size) {
       if (size != mySize) {

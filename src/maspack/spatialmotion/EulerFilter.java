@@ -21,7 +21,7 @@ public class EulerFilter {
     * @param rpy
     * Current rpy angles to adjust {roll, pitch, yaw}
     * @param eps
-    * Threshold to deal with singularity at (yaw - k*Pi/2) < eps
+    * Threshold to deal with singularity at (yaw - k*Pi/2) {@code <} eps
     * @param out
     * Adjusted rpy angles
     * @return Flag consisting of potentially FLIP_FLAG if angles flipped, or

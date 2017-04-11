@@ -439,12 +439,14 @@ public abstract class MechSystemBase extends RenderableModelBase
     * according to each component's solveIndex. If the length of
     * <code>sizes</code> is less than the number of dynamic components, the
     * results are truncated.
+    *
+    * @param dofs returns the number of DOFs for each dynamic component
     */
-   public void getDynamicSizes (int[] sizes) {
+   public void getDynamicDOFs (int[] dofs) {
       updateDynamicComponentLists();
-      int max = Math.min (sizes.length, myDynamicSizes.length);
+      int max = Math.min (dofs.length, myDynamicSizes.length);
       for (int i=0; i<max; i++) {
-         sizes[i] = myDynamicSizes[i];
+         dofs[i] = myDynamicSizes[i];
       }
    }
 
@@ -858,7 +860,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    }
 
    
-   void advanceAuxState (double t0, double t1) {
+   protected void advanceAuxState (double t0, double t1) {
       updateAuxStateComponentList();
       for (int i=0; i<myAuxStateComponents.size(); i++) {
          myAuxStateComponents.get(i).advanceAuxState (t0, t1);
@@ -1291,8 +1293,10 @@ public abstract class MechSystemBase extends RenderableModelBase
   }
 
    /** 
-    * Returns the transpose of the attachment constraint matrix, along with the
-    * vector of derivative offsets. This is used only for debugging.
+    * Returns the transpose of the attachment constraint matrix.  This is used
+    * only for debugging.
+    *
+    * @return transposed attachment constraint matrix
     */
    public SparseBlockMatrix getAttachmentConstraints () {
       updateDynamicComponentLists();

@@ -22,13 +22,13 @@ public interface FileTransferMonitor extends Runnable {
 
    /**
     * Adds a listener object to respond to transfer events
-    * @param listener
+    * @param listener listener to add
     */
    public void addListener(FileTransferListener listener);
 
    /**
     * Removes a listener object
-    * @param listener
+    * @param listener listener to remove
     */
    public void removeListener(FileTransferListener listener);
 
@@ -47,13 +47,11 @@ public interface FileTransferMonitor extends Runnable {
 
    /**
     * Sets the polling period
-    * @param period
     */
    public void setPollSleep(long period);
 
    /**
     * Fires the supplied event to all listeners associated with this monitor
-    * @param event
     */
    public void fireEvent(FileTransferEvent event);
 
@@ -108,7 +106,8 @@ public interface FileTransferMonitor extends Runnable {
    /**
     * Discontinues monitoring a file transfer based on the supplied
     * destination file.
-    * @param destFile
+    * 
+    * @param destFile destination file
     */
    public void release(FileObject destFile);
 

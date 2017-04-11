@@ -162,7 +162,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    
    /**
     * Adds a link to the end of the list,
-    * @param e
+    * @param e element to add
     * @return the newly created link
     */
    public Link<T> addLink(T e) {
@@ -171,7 +171,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    
    /**
     * Adds a link to the end of the list
-    * @param e
+    * @param e element to add
     * @return the new link
     */
    public Link<T> addLastLink(T e) {
@@ -182,7 +182,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    
    /**
     * Adds a link to the front of the list
-    * @param e
+    * @param e element to add
     * @return the new link
     */
    public Link<T> addFirstLink(T e) {
@@ -193,7 +193,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    
    /**
     * Adds a link to the front of the list
-    * @param link
+    * @param link link to add
     */
    public void addFirstLink(Link<T> link) {
       checkConcurrentModification ();
@@ -202,7 +202,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    
    /**
     * Adds a link to the end of the list
-    * @param link
+    * @param link link to add
     */
    public void addLastLink(Link<T> link) {
       checkConcurrentModification ();
@@ -236,7 +236,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    
    /**
     * Adds an element to the END of this list
-    * @param e
+    * @param e element to add
     */
    public void addLast(T e) {
       checkConcurrentModification ();
@@ -245,7 +245,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    
    /**
     * Adds an element to the BEGINNING of this list
-    * @param e
+    * @param e element to add
     */
    public void addFirst(T e) {
       checkConcurrentModification ();
@@ -354,7 +354,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
     * Finds the first link whose get() method
     * returns the specified value (in == or .equals() sense).
     * Searches a particular range of links.
-    * @param o
+    * @param o object to check for equality
     * @param front first link to check
     * @param end last link (exclusive)
     * @return link containing value, end if not found.
@@ -375,7 +375,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    /**
     * Finds the first link whose get() method
     * returns the specified value (in == or .equals() sense)
-    * @param o
+    * @param o object to check for equality
     * @return link containing value, {@link #end()} if not found.
     */
    public Link<T> findLink(Object o) {
@@ -385,7 +385,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    /**
     * Finds the last link whose get() method
     * returns the specified value (in == or .equals() sense)
-    * @param o
+    * @param o object to check for equality
     * @param front front element (last one checked)
     * @param end end of list (exclusive, not checked)
     * @return link containing value, end if not found.
@@ -408,7 +408,7 @@ public class LinkLinkedList<T> implements List<T>, Deque<T>, Cloneable {
    /**
     * Finds the last link whose get() method
     * returns the specified value (in == or .equals() sense)
-    * @param o
+    * @param o object to check for equality
     * @return link containing value, {@link #end()} if not found.
     */
    public Link<T> findLastLink(Object o) {

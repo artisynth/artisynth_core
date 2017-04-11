@@ -115,6 +115,10 @@ JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniInit(
    return 0; // return value not used
 }
 
+/**
+ * Just like, jniOrient3d, except that it also returns the volume. Not
+ * currently used; included for possible use later.
+ */
 JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniOrient3dv(
    JNIEnv *env, jclass jcls,
    jint i0, jdouble p0x, jdouble p0y, jdouble p0z,
@@ -146,7 +150,6 @@ JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniOrient3dv(
    p3[2] = p3z;
 
    double vol;
-   //return nasaOrient3d (i0, p0, i1, p1, i2, p2, i3, p3, &volume);
    int result = nasaOrient3d (i0, p0, i1, p1, i2, p2, i3, p3, &vol);
 
    // populate volume
@@ -227,7 +230,7 @@ JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniIntersectSegmentTria
    t2[1] = t2y;
    t2[2] = t2z;
    int result = intersectSegmentTriangle(is0, s0, is1, s1, it0, t0, it1, t1, it2, t2, cIntPoint);
-   if (result == 1) {
+   if (result != 0) {
 	   (*env)->SetDoubleField(env, jPoint3d, fieldIDPoint3dx, cIntPoint[0]);
 	   (*env)->SetDoubleField(env, jPoint3d, fieldIDPoint3dy, cIntPoint[1]);
 	   (*env)->SetDoubleField(env, jPoint3d, fieldIDPoint3dz, cIntPoint[2]);

@@ -7,8 +7,10 @@
 package maspack.matrix;
 
 import java.util.Random;
+import java.io.*;
 
 import maspack.util.RandomGenerator;
+import maspack.util.ReaderTokenizer;
 import maspack.util.TestException;
 import maspack.util.NumberFormat;
 
@@ -146,6 +148,7 @@ class VectorTest {
 
    void testGeneric (Vector vr) {
       testSetAndGet (vr);
+      testScanAndWrite (vr);
    }
 
    void testSetZero (Vector vr) {
@@ -189,6 +192,39 @@ class VectorTest {
       }
    }
 
+   void doScanWrite (Vector vr, String fmt, boolean withBrackets) {
+      StringWriter sw = new StringWriter();
+      try {
+         vr.write (new PrintWriter(sw), new NumberFormat(fmt), withBrackets);
+         vr.scan (new ReaderTokenizer(new StringReader (sw.toString())));
+      }
+      catch (Exception e) {
+         throw new TestException ("scan/write error: "+e.getMessage());
+      }     
+   }
+
+   void doScanString (Vector vr, String fmt) {
+      try {
+         vr.scan (new ReaderTokenizer(new StringReader (vr.toString(fmt))));
+      }
+      catch (Exception e) {
+         throw new TestException ("scan/write error: "+e.getMessage());
+      }     
+   }
+
+   void testScanAndWrite (Vector vr) {
+      saveResult (vr);
+      saveExpectedResult (vr);
+      eExpected = null;
+      eActual = null;
+      doScanWrite (vr, "%g", /*brackets=*/false);
+      checkAndRestoreResult (vr);
+      doScanWrite (vr, "%g", /*brackets=*/true);
+      checkAndRestoreResult (vr);
+      doScanString (vr, "%g");
+      checkAndRestoreResult (vr);
+   }
+
    void testAdd (Vector vr, Vector v1, Vector v2) {
       saveResult (vr);
       eExpected = addCheck (vr, v1, v2);
@@ -204,6 +240,28 @@ class VectorTest {
       saveExpectedResult (vr);
       try {
          add (vr, v1);
+      }
+      catch (Exception e) {
+         eActual = e;
+      }
+      checkAndRestoreResult (vr);
+   }
+
+   void testScaledAdd (Vector vr, double scale, Vector v1, Vector v2) {
+      saveResult (vr);
+      eExpected = scaledAddCheck (vr, scale, v1, v2);
+      saveExpectedResult (vr);
+      try {
+         scaledAdd (vr, scale, v1, v2);
+      }
+      catch (Exception e) {
+         eActual = e;
+      }
+      checkAndRestoreResult (vr);
+      eExpected = scaledAddCheck (vr, scale, v1, vr);
+      saveExpectedResult (vr);
+      try {
+         scaledAdd (vr, scale, v1);
       }
       catch (Exception e) {
          eActual = e;
@@ -505,6 +563,20 @@ class VectorTest {
       double[] buf = new double[v1.size()];
       for (int i = 0; i < v1.size(); i++) {
          buf[i] = scale * v1.get (i);
+      }
+      vr.set (buf);
+      return null;
+   }
+
+   Exception scaledAddCheck (Vector vr, double scale, Vector v1, Vector v2) {
+      // flip size check because we're really doing vr = v2 + s v1
+      Exception e = checkSizes (vr, v2, v1);
+      if (e != null) {
+         return e;
+      }
+      double[] buf = new double[v2.size()];
+      for (int i = 0; i < v2.size(); i++) {
+         buf[i] = scale*v1.get(i) + v2.get(i);
       }
       vr.set (buf);
       return null;

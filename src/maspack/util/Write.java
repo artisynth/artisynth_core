@@ -333,7 +333,8 @@ public class Write {
     * <code>\t</code>, <code>\n</code>, <code>\f</code>,
     * <code>\r</code>, and <code>\</code> (corresponding to backspace, tab,
     * linefeed, formfeed, carriage return, and backslash) are written using
-    * their canonical escape sequences. Any other character <= 0x1f or >= 0x7f
+    * their canonical escape sequences. Any other character {@code <=}
+    * 0x1f or {@code >=} 0x7f
     * is written by a backslashed octal number.
     * 
     * @param s

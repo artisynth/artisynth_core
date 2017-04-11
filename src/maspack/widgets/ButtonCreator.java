@@ -26,14 +26,9 @@ public class ButtonCreator {
     ***************************************************************************/
 
    /**
-    * to create iconic button
-    * 
-    * @param icon
-    * @param actionCommand
-    * @param toolTip
+    * Create iconic button
     * @return iconic button
     */
-
    public static JButton createIconicButton (
       Icon icon, String actionCommand, String toolTip, boolean enabled,
       boolean large, ActionListener actionListener) {
@@ -44,10 +39,7 @@ public class ButtonCreator {
 
    /**
     * to create button with text
-    * 
-    * @param buttonText
-    * @param actionCommand
-    * @param toolTip
+    *
     * @return text button
     */
 
@@ -63,11 +55,7 @@ public class ButtonCreator {
    /**
     * generic button making function used by: createIconicButton(), and
     * createTextButton()
-    * 
-    * @param icon
-    * @param buttonText
-    * @param actionCommand
-    * @param toolTip
+    *
     * @return generic button
     */
 

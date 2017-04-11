@@ -1191,7 +1191,7 @@ must be added to the system to accommodate the friction.
 
 A double controlling the amount of interpenetration that is permitted
 in order to ensure contact stability (see Section
-\ref{ContactImplementation:sec}). If not specified, the system will
+\ref{ContactLimitations:sec}). If not specified, the system will
 inherit this property from the {\tt MechModel}, which computes a
 default penetration tolerance based on the overall size of the model.
 
@@ -1242,10 +1242,33 @@ INACTIVE & no constraints generated\\
 \end{tabular}
 
 These are described in more detail in 
-Section \ref{ContactImplementation:sec}.
+Section \ref{CollisionMethods:sec}.
+
+\item[colliderType]\mbox{}
+
+An instance of
+\javaclass[artisynth.core.mechmodels]{CollisionManager\$ColliderType}
+that specifies the underlying mechanism used to determine the
+collision information between two meshes. The choice of collider may
+restrict which collision {\it methods} (described above) are
+allowed. Collider types available at present include:
+
+\begin{tabular}{lll}
+\hline
+Type & Description \\
+\hline
+AJL\_CONTOUR & uses mesh intersection contour to find penetrating 
+regions and vertices\\
+TRI\_INTERSECTION & uses triangle intersections to find penetrating 
+regions and vertices \\
+SIGNED\_DISTANCE & uses a signed distance field to find penetrating vertices\\
+\hline
+\end{tabular}
+
+These are described in more detail in 
+Section \ref{CollisionMethods:sec}.
 
 \end{description}
-
 
 In addition to the above, {\tt CollisionBehavior} exports other
 properties that control the rendering of collisions (Section
@@ -1371,6 +1394,11 @@ collidables:
 
 \item Actual collisions happen only between leaf collidables; compound
 collidables are used only for grouping purposes.
+
+\item Leaf collidables are also instances of the sub-interface
+\javaclass[artisynth.core.mechmodels]{CollidableBody}, which provides the
+additional information needed to actually determine collisions and
+compute the response (Section \ref{CollisionImplemenetation:sec}).
 
 \item By default, the sub-collidables of a compound component A will
 only collide among themselves if self-collision is specified for A
@@ -1700,50 +1728,49 @@ allowed and would create response components in both {\tt mechA} and
 \end{lstlisting}
 %
 
-\subsection{Implementation and limitations}
-\label{ContactImplementation:sec}
+\section{Collision Implementation and Rendering}
+\label{CollisionImplemenetation:sec}
 
-The ArtiSynth collision mechanism works by finding intersections
-between the surface meshes of each collidable object.  These surface
-meshes must (at present) be triangular, closed, and manifold.  A
-bounding-box hierarchy is used to determine which surfaces meshes
-might intersect and then locate the individual triangle
-intersections. What happens next then depends on the setting of the
-collision manager's {\sf colliderType} property: \javaclassAlt{%
-artisynth.core.mechmodels.CollisionManager\$ColliderType\#TRI\_INTERSECTION}%
-{TRI\_INTERSECTION} (the current default) groups the triangle
-intersections into contact regions mesh for purposes of finding
-interpenetrating vertices, while \javaclassAlt{%
-artisynth.core.mechmodels.CollisionManager\$ColliderType\#TRI\_INTERSECTION}%
-{AJL\_CONTOUR} also uses the intersections to compute the (piecewise
-linear) intersection contours between the meshes. This information is
-then used to create a set of contact points, normals and associated
-constraints that are used to resolve the collision, as shown in
-Figure~\ref{Collision:fig}.
+As mentioned in Section \ref{SelfCollision:sec}, the leaf collidables
+which actually provide collision interaction are also instances of
+\javaclass[artisynth.core.mechmodels]{CollidableBody}, which provides methods
+returning the information needed to compute collisions and their
+response. Some of these methods include:
 
-% XXX describe -useAjlCollision?
+%
+\begin{lstlisting}[]
+   PolygonalMesh getCollisionMesh();
 
-\begin{figure}[ht]
-\begin{center}
-        \begin{tabular}{ccc}
-        \includegraphics[width=0.31\textwidth]{images/femCollide1} &
-        \includegraphics[width=0.31\textwidth]{images/femCollide2} &
-        \includegraphics[width=0.31\textwidth]{images/femCollide3}\\
-%       \end{tabular}
-%       \begin{tabular}{p{1.2cm}p{3.5cm}p{3.5cm}p{3.5cm}} 
-         \large  $\mathrm{t}=0$s & \large $\mathrm{t}=0.25$s & \large $\mathrm{t}=0.5$s         
-        \end{tabular}
-\end{center}
-\caption{Time sequence of contact handling between two deformable models 
-falling under gravity, 
-showing the intersection contours
-(yellow) and the contact normals (green lines).}
-\label{Collision:fig}
-\end{figure}
+   boolean hasDistanceGrid();
 
-How the contact constraints are actually generated depends on the
-collision behavior's {\sf method} property, as mentioned in Section
-\ref{collisionBehavior:sec}. The standard methods are:
+   SignedDistanceGrid getDistanceGrid();
+\end{lstlisting}
+%
+
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getCollisionMesh()}
+returns the surface mesh which is used as the basis for collision.  If
+\javamethod[artisynth.core.mechmodels.CollidableBody]{hasDistanceGrid()}
+returns {\tt true}, then the body also maintains a signed distance
+grid for the mesh, which can be obtained using
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGrid()} and
+is used by the collider type {\tt SIGNED\_DISTANCE} (Section
+\ref{CollisionMethods:sec}).
+
+\subsection{Collision methods and collider types}
+\label{CollisionMethods:sec}
+
+The ArtiSynth collision mechanism works by using a {\it collider}
+(described further below) to find the intersections between the
+surface meshes of each collidable object. Information provided
+by the collider is then used to generate {\it contact constraints},
+according to a {\it collision method}, that prevent further collision
+and resolve any existing interpenetration.
+
+Collision methods are specified by collision behavior's {\sf method}
+property, which is an instance of
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior\$Method}, as
+mentioned in Section \ref{collisionBehavior:sec}.  Some of the
+standard methods are:
 
 \begin{description}
 
@@ -1782,11 +1809,186 @@ response.
 
 \end{description}
 
-Because ArtiSynth currently uses static collision detection, it is
-possible for objects that are fast enough or thin enough to completely
-pass through each other in one simulation step. This means that for
-thin objects, it is important to keep the step size small enough to
-prevent such undetected interpenetration.
+The contact information used by the collision method is generated by a
+collider. Colliders are described by instances of
+\javaclass[artisynth.core.mechmodels]{CollisionManager\$ColliderType}
+and can be specified by the {\sf colliderType} property in either the
+collision manager (as the default), or in the collision behavior for a
+specific pair of collidables. Since different colliders may provide
+different collision information, some colliders may restrict the type
+of collision method that may be used.
+
+Three collider types are presently supprted:
+
+\begin{description}
+
+\item[AJL\_CONTOUR]\mbox{}
+
+A bounding-box hierachy is used to locate all triangle intersections
+between the two surface meshes, and the intersection points are then
+connected to find the (piecewise linear) intersection contours.  The
+surface meshes must (at present) be triangular, closed, and manifold.
+The contours are then used to identity the contact regions
+on each surface mesh, which can be used to determine interpenetrating
+vertices and contact area. Intersection contours and the contact
+constraints generated from them are shown in Figure~\ref{Collision:fig}.
+
+\item[TRI\_INTERSECTION]\mbox{}
+
+A legacy method which also uses a bounding-box hierachy to locate all
+triangle intersections between the two surface meshes. However,
+contours are not generated. Instead, contact regions are estimated by
+grouping the intersection points together, and penetrating vertices
+are computed separately using point-mesh distance queries based on the
+bounding-box hierachy. This latter step requires interating over all
+mesh vertices, which may be slow for large meshes.
+
+\item[SIGNED\_DISTANCE]\mbox{}
+
+Uses a grid-based signed distance field on one mesh to quickly
+determine the penetrating vertices of the opposite mesh, along with
+the penetration distance and normals.  This is only available for
+collidable pairs where at least one of the bodies maintains a signed
+distance grid which can be obtained using
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGrid()}.
+Advantages include speed (often
+an order of magnitude faster that the colliders based on triangle
+intersection) and the fact that the opposite mesh does {\it not} have
+to be triangular, closed, or manifold.  However, signed distance
+fields can (at present) only be computed for fixed meshes, and so at
+least one colliding body must be rigid.  The signed distance field
+also does not yield contact region information, and so the collision
+method is restricted to
+\javaclassAlt{%
+artisynth.core.mechmodels.CollisionBehavior\$Method\#VERTEX\_PENETRATION}%
+{VERTEX\_PENETRATION}.
+Contacts generated from a signed distance field are illustrated in
+Figure Figure~\ref{SDCollision:fig}.
+
+\end{description}
+
+% XXX describe -useAjlCollision?
+
+\begin{figure}[ht]
+\begin{center}
+        \begin{tabular}{ccc}
+        \includegraphics[width=0.31\textwidth]{images/femCollide1} &
+        \includegraphics[width=0.31\textwidth]{images/femCollide2} &
+        \includegraphics[width=0.31\textwidth]{images/femCollide3}\\
+%       \end{tabular}
+%       \begin{tabular}{p{1.2cm}p{3.5cm}p{3.5cm}p{3.5cm}} 
+         \large  $\mathrm{t}=0$s & \large $\mathrm{t}=0.25$s & \large $\mathrm{t}=0.5$s         
+        \end{tabular}
+\end{center}
+\caption{Time sequence of contact handling between two deformable models 
+falling under gravity, 
+showing the intersection contours
+(yellow) and the contact normals (green lines).}
+\label{Collision:fig}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+     \includegraphics[width=0.5\textwidth]{images/signedDistanceCollide}
+\end{center}
+\caption{Contacts generated by a signed distance field. A deformable
+ellipsoid (red, top) is colliding with a solid prism (cyan, bottom).
+A signed distance field for the prism (the grid points and normals of
+which are shown partially by the dark cyan arrows) is used to locate
+penetrating vertices of the ellipsoid and hence generate contact
+constraints (yellow lines).}
+\label{SDCollision:fig}
+\end{figure}
+
+\subsection{Configuring and rendering signed distance grids}
+
+As mentioned above, bodies which maintain signed distance grids expose
+these using the
+\javamethod[artisynth.core.mechmodels.CollidableBody]{hasDistanceGrid()}
+and
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGrid()}
+methods. By default, these grids are created automatically on-demand
+within an axis-aligned bounding volume for the mesh. The cell
+resolution (number of cells along the x, y, z directions) is also
+choosen automatically. However, in some cases it may be necessary to
+control the cell resolution more precisely. If the body supports the
+interface \javaclass[artisynth.core.mechmodels]{HasDistanceGrid}, this
+provides a set of methods for controlling the cell resolution:
+%
+\begin{lstlisting}[]
+   void setDistanceGridRes (Vector3i res);
+   Vector3i getDistanceGridRes();
+
+   void setDistanceGridMaxRes (int max);
+   int getDistanceGridMaxRes();
+\end{lstlisting}
+%
+\javamethod[artisynth.core.mechmodels.HasDistanceGrid]{setDistanceGridRes()}
+explicity sets the grid resolution, which is the number of grid cells
+along the x, y, z axes. If any of these values are specified as 0,
+then all values are set to zero and the resolution is determined
+instead by the maximum cell resolution returned by
+\javamethod[artisynth.core.mechmodels.HasDistanceGrid]{getDistanceGridMaxRes()},
+which specifies the number of cells along the {\it maximum} x, y, z
+direction, with the cell counts along the other directions adjusted to
+maintain a uniform cell size.
+
+{\tt HasDistanceGrid} also provides methods to support the rendering
+of the signed distance grid:
+%
+\begin{lstlisting}[]
+   void setRenderDistanceGrid (boolean enable);
+   boolean getRenderDistanceGrid();
+
+   void setDistanceGridRenderRanges (String ranges);
+   String getDistanceGridRenderRanges();
+\end{lstlisting}
+%
+\javamethod[artisynth.core.mechmodels.HasDistanceGrid]{setRenderDistanceGrid()}
+enables or disables grid rendering. By default, grids are rendered by
+drawing each cell vertex along with the associated normal (which is
+the numeric derivative of the distance field), using the point and
+line render properties for the component. In some cases, it may be
+desirable to restrict which vertices are drawn. This can be done using
+\javamethod[artisynth.core.mechmodels.HasDistanceGrid]{%
+setDistanceGridRenderRanges()}, which takes a string argument
+containing vertex render ranges for the x, y, and z axes.  A vertex
+render range may be either {\tt *} (all vertices), {\tt n:m} (vertices
+in the index range {\tt n} to {\tt m}, inclusive), or {\tt n}
+(vertices only at index {\tt n}). For example:
+%
+\begin{lstlisting}[]
+  "* * *"      
+  "* 7 *"      - all vertices along x and z, and those at index 7 along y
+  "0 2 3"      - a single vertex at indices (0, 2, 3)
+  "0:3 4:5 *"  - all vertices between indices 0-3 along x, and 4-5 along y
+\end{lstlisting}
+%
+
+\subsection{Penetration tolerance and limitations}
+\label{ContactLimitations:sec}
+
+ArtiSynth's attempt to separate colliding bodies at the end of each
+time step may cause a jittering behavior around the colliding area, as
+the surface collides, separates, and re-collides.  This can usually be
+stabilized by maintaining a certain interpenetration distance during
+contact. This distance is controlled by the {\tt MechModel} property
+{\tt penetrationTol}.  ArtiSynth attempts to compute a suitable
+default value for this property, but for some applications it may be
+necessary to control the value explicitly using the {\tt MechModel}
+methods
+%
+\begin{lstlisting}[]
+   setPenetrationTol (double dist);
+   double getPenetrationTol();
+\end{lstlisting}
+%
+
+Another issue is that because ArtiSynth currently uses static
+collision detection, it is possible for objects that are fast enough
+or thin enough to completely pass through each other in one simulation
+step. This means that for thin objects, it is important to keep the
+step size small enough to prevent such undetected interpenetration.
 
 ArtiSynth also uses a ``box'' friction approximation
 \cite{Lacoursiere07} to compute dry friction, instead of the
@@ -1794,22 +1996,6 @@ polyhedralized friction cones common in the multibody dynamics
 literature \cite{AnitescuPotra2002,PotraEtAlTrapezoidal2006}.  This
 allows for a less expensive and more robust computation at the expense
 of some accuracy.
-
-Another issue is that ArtiSynth's attempt to separate colliding bodies
-at the end of each time step may cause a jittering behavior around the
-colliding area, as the surface collides, separates, and re-collides.
-This can usually be stabilized by maintaining a certain
-interpenetration distance during contact. This distance is controlled
-by the {\tt MechModel} property {\tt penetrationTol}.  ArtiSynth
-attempts to compute a suitable default value for this property, but
-for some applications it may be necessary to control the value
-explicitly using the {\tt MechModel} methods
-%
-\begin{lstlisting}[]
-   setPenetrationTol (double dist);
-   double getPenetrationTol();
-\end{lstlisting}
-%
 
 \subsection{Contact rendering}
 \label{ContactRendering:sec}

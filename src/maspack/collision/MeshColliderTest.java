@@ -22,7 +22,7 @@ public class MeshColliderTest {
    static double epsilon = 1e-8;
 
    /**
-    * @param args
+    * @param args command line arguments
     */
    public static void main (String[] args) {
       MeshColliderTest test = new MeshColliderTest();

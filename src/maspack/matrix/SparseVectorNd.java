@@ -222,15 +222,12 @@ public class SparseVectorNd extends VectorBase implements java.io.Serializable {
    }
 
    /**
-    * Copies the elements of this vector into an array of doubles.
-    * 
-    * @param values
-    * array into which values are copied
+    * {@inheritDoc}
     */
    public void get (double[] values) {
       if (values.length < size) {
          throw new IllegalArgumentException (
-            "argument 'values' has insufficient space");
+            "argument 'values' must have length >= "+size);
       }
       SparseVectorCell cell = elems;
       for (int i = 0; i < size; i++) {
@@ -288,15 +285,16 @@ public class SparseVectorNd extends VectorBase implements java.io.Serializable {
    }
 
    /**
-    * Sets the elements of this vector from an array of doubles.
+    * Sets the elements of this vector from an array of doubles. If the
+    * array length is less than the current size, this vector is resized
+    * to the array length.
     * 
     * @param values
     * array from which values are copied
     */
    public void set (double[] values) {
-      if (values.length < size) {
-         throw new IllegalArgumentException (
-            "Insufficient values for the size of this vector");
+      if (values.length != size) {
+         resetSize (values.length);
       }
       elems = null;
       SparseVectorCell prev = null;

@@ -43,6 +43,7 @@ int sosOrient3d(int i, double *p, int i1, double *p1, int i2, double *p2, int i3
 	int sign = 1;
 	double *tmp;
 	int tmpi;
+
 	if (ai > bi) {
 		tmp=b; b=a; a=tmp;
 		tmpi=bi; bi=ai; ai=tmpi;
@@ -54,8 +55,10 @@ int sosOrient3d(int i, double *p, int i1, double *p1, int i2, double *p2, int i3
 		sign = -sign;
 	}
 	if (ci > di) {
-		tmp=c; c=b; b=tmp;
-		tmpi=ci; ci=bi; bi=tmpi;
+           //tmp=c; c=b; b=tmp;
+           //tmpi=ci; ci=bi; bi=tmpi;
+                tmp=d; d=c; c=tmp;
+                tmpi=di; di=ci; ci=tmpi;
 		sign = -sign;
 	}
 	if (ai > bi) {
@@ -73,6 +76,7 @@ int sosOrient3d(int i, double *p, int i1, double *p1, int i2, double *p2, int i3
 		tmpi=bi; bi=ai; ai=tmpi;
 		sign = -sign;
 	}
+
 	double v;
 
 /* e^{1/8} */
@@ -149,6 +153,13 @@ extern int nasaOrient3d(int i, double *p, int i1, double *p1, int i2, double *p2
    return nasaOrient3d_d(i, p, i1, p1,
       i2, p2, i3, p3, volume, &dummy);
 }
+
+/*
+ * Returns 1 if the point p is above the plane formed by p1, p2 and p3
+ * (oriented counterclockwise). If p is coplanar, SOS tie-breaking is
+ * used to create a answer based on a virtual perturbation, using the
+ * unique index values i, i1, i2, i3 for each point.
+ */
 extern int nasaOrient3d_d(int i, double *p, int i1, double *p1, int i2, double *p2, int i3, double *p3, double *volume, depthST *depth) {
    (*depth)=D_SHEWCHUK;
    (*volume) = 0;
@@ -162,13 +173,32 @@ extern int nasaOrient3d_d(int i, double *p, int i1, double *p1, int i2, double *
    return answer;
 }
 
+/*
+ * Version of nasaOrient3d_d that returns the volume as a two-double
+ * precision value.
+ */
+extern int nasaOrient3d_vol(int i, double *p, int i1, double *p1, int i2, double *p2, int i3, double *p3, double *volume, depthST *depth) {
+   (*depth)=D_SHEWCHUK;
+   
+   // we can call either orient3dDet() or orient3dexactDet(). The
+   // former is faster, but may not compute the volume to full
+   // precision if the method reaches a "decision" before this needed.
+   orient3dexactDet(p,p1,p2,p3,volume);
+   if(volume[0] != 0) {
+      return (volume[0] > 0);
+   }
+   (*depth)=D_SOS;
+   int err;
+   int answer = sosOrient3d(i, p, i1, p1, i2, p2, i3, p3, &err);
+   return answer;
+}
+
 /* Answer the perpendicular distance from point a to the triangle c0, c1, c2.
  * Calculate using a sum of three-term products of the original coordinates,
  * where the final multiplication in each product is by a positive number,
  * and the terms are summed using only + (not -).
  * This ensures that all rounding occurs in the same direction
  * when rounding to - or + infinity is used. */
-
 double perpendicularDistance(double *a, double *c0, double *c1, double *c2) {
 	volatile double c00n = -c0[0];
 	volatile double c01n = -c0[1];
@@ -522,6 +552,55 @@ int exactPerpendicularDistances(
       negate(db);
    }
    return 0; // return value not used
+}
+
+/**
+ * Computes the segment intersection parameter
+ *
+ *       |v0]
+ * s = ---------
+ *     |v0|+|v1|
+ *
+ * where v0 and v1 are both high resolution numbers stored as two
+ * doubles, with the high resolution component stored at index 0
+ * (which is the opposite of exactFloat and the Shewchuk numbers).
+ */
+double computeSegmentScale (double *v0, double *v1) {
+   INEXACT REAL avirt, bround, around, bvirt;
+   int err;
+   exactFloat vol0, vol1, volt;
+   exactFloat scale; 
+   exactFloat tmp; 
+   exactFloat remainder;
+   exactFloat quot;
+   tmp.doubles[1] = v0[0];
+   tmp.doubles[0] = v0[1];
+   vol0.end = compress (2, tmp.doubles, vol0.doubles);
+   tmp.doubles[1] = v1[0];
+   tmp.doubles[0] = v1[1];
+   vol1.end = compress (2, tmp.doubles, vol1.doubles);
+   if (isNegative (&vol0)) {
+      subtractExacts (&vol1, &vol0, &volt, &err);
+   }
+   else {
+      subtractExacts (&vol0, &vol1, &volt, &err);
+   }
+   double voltHigh = volt.doubles[volt.end-1];
+   double q0 = v0[1]/voltHigh;
+   scale.doubles[0] = q0;
+   scale.end = 1;
+   multiplyExacts (&scale, &volt, &tmp, &err);
+   subtractExacts (&vol0, &tmp, &remainder, &err);
+   double q1 = estimate (remainder.end, remainder.doubles)/voltHigh;
+   Two_Sum (q0, q1, quot.doubles[1], quot.doubles[0]);
+   quot.end = 2;
+   double s = estimate (quot.end, quot.doubles);
+   if (isNegative (&vol0)) {
+      return -s;
+   }
+   else {
+      return s;
+   }
 }
 
 /* Returns 1 if *answer contains sign-accurate estimate of ((dda + ddb) * dca) - ((dca + dcb) * dda)

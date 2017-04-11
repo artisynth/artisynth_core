@@ -244,12 +244,12 @@ public class MeshCollisionViewer extends GLViewerFrame
          }
          Point3d pnt = new Point3d();
          renderer.beginDraw (DrawMode.POINTS);
-         for (PenetratingPoint p : cinfo.getPenetratingPoints0()) {
+         for (PenetratingPoint p : cinfo.getPenetratingPoints(0)) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh1.getMeshToWorld());
             renderer.addVertex (pnt);
          }
-         for (PenetratingPoint p : cinfo.getPenetratingPoints1()) {
+         for (PenetratingPoint p : cinfo.getPenetratingPoints(1)) {
             pnt.set (p.vertex.pnt);
             pnt.transform (myMesh2.getMeshToWorld());
             renderer.addVertex (pnt);

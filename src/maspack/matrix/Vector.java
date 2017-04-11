@@ -62,7 +62,8 @@ public interface Vector extends Clonable {
    public double get (int i);
 
    /**
-    * Copies the elements of this vector into an array of doubles.
+    * Copies the elements of this vector into an array of doubles. The
+    * array length must be {@code >=} the size of the vector.
     * 
     * @param values
     * array into which values are copied
@@ -90,7 +91,10 @@ public interface Vector extends Clonable {
    public void set (int i, double value);
 
    /**
-    * Sets the elements of this vector from an array of doubles.
+    * Sets the elements of this vector from an array of doubles. If the vector
+    * has a fixed size, then the array must have a length {@code >=} the
+    * current vector size. Otherwise, the vector is resized to the array
+    * length.
     * 
     * @param values
     * array from which values are copied

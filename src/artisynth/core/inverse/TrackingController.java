@@ -545,7 +545,7 @@ public class TrackingController extends ControllerBase
 
    /**
     * Adds an exciter to be used as a free variable in the inverse routine
-    * @param ex
+    * @param ex exciter to add
     */
    public void addExciter(ExcitationComponent ex) {
       addExciter (ex, 1d);
@@ -879,8 +879,6 @@ public class TrackingController extends ControllerBase
 
    /**
     * Sets render properties for targets and sources
-    * @param targets
-    * @param sources
     */
    public void setMotionRenderProps(RenderProps targets, RenderProps sources) {
       if (myMotionTerm != null) {

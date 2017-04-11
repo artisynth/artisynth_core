@@ -304,9 +304,24 @@ public class MechSystemSolver {
 
    protected void getActiveVelDerivative (VectorNd dvdt, VectorNd f) {
       // assumes updateMassMatrix and updateInverseMassMatrix have been called
+
+      VectorNd tmp = new VectorNd(6);
+
       mySys.getActiveForces (f);
+
+      int off = 0;
+
+      f.getSubVector (off, tmp);
       f.add (myMassForces);
+
+      myMassForces.getSubVector (off, tmp);
+
+      // MatrixNd MI = new MatrixNd();
+      // MI.set (myInverseMass);
+      // System.out.println ("MI=\n" + MI.toString("%8.3f"));
       myInverseMass.mul (dvdt, f, myActiveVelSize, myActiveVelSize);
+
+      dvdt.getSubVector (off, tmp);
    }
 
    public void updateStateSizes () {
@@ -1117,6 +1132,10 @@ public class MechSystemSolver {
          myB.scaledAdd (h, myC);
       }
 
+      //MatrixNd S = new MatrixNd(6, 6);
+      //S.copySubMatrix (0, 0, 6, 6, mySolveMatrix, 0, 0);
+      //System.out.println ("SV=\n" + S.toString("%8.3f"));
+
       // b += Jv v
       mySolveMatrix.mulAdd (myB, myU, velSize, velSize);
 
@@ -1125,6 +1144,9 @@ public class MechSystemSolver {
       if (useFictitousJacobianForces) {
          myB.scaledAdd (h, myC);
       }
+
+      //S.copySubMatrix (0, 0, 6, 6, mySolveMatrix, 0, 0);
+      //System.out.println ("SP=\n" + S.toString("%8.3f"));
 
       addActiveMassMatrix (mySys, mySolveMatrix);
 

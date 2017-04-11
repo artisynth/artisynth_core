@@ -16,7 +16,7 @@ public class GL3Utilities {
    /**
     * For buffer objects, attributes need to be aligned to multiples of 4-bytes.  This returns the 
     * required alignment width provided a true byte width (i.e. rounds up to nearest 4 bytes)
-    * @param width in bytes of attribute
+    * @param byteWidth width in bytes of attribute
     * @return properly aligned width
     */
    public static int getAlignedWidth(int byteWidth) {
@@ -80,13 +80,11 @@ public class GL3Utilities {
    }
    
    /**
-    * Enables a vertex attribute pointer based on a given storage, correctly handling matrix types
-    * (since matrices occupy multiple attribute locations)
+    * Enables a vertex attribute pointer based on a given storage, correctly
+    * handling matrix types (since matrices occupy multiple attribute
+    * locations)
     * @param gl active context
     * @param loc attribute location
-    * @param storage attribute storage
-    * @param stride attribute stride in VBO
-    * @param offset attribute offset in VBO
     */
    public static void deactivateVertexAttribute(GL3 gl, int loc) {
       gl.glDisableVertexAttribArray(loc);

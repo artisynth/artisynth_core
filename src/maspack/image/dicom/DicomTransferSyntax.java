@@ -21,8 +21,8 @@ public class DicomTransferSyntax {
    boolean encoded;
 
    /**
-    * Basic constructor, assumes default of little endian, explicit VR, and encoded image
-    * @param uid
+    * Basic constructor, assumes default of little endian, explicit VR, and
+    * encoded image
     */
    public DicomTransferSyntax(String uid) {
       this.name = uid;

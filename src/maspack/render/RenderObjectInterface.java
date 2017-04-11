@@ -138,22 +138,22 @@ public interface RenderObjectInterface {
 
    /**
     * Adds an indexable 3D position
-    * @param x 
-    * @param y
-    * @param z
+    * @param px x coordinate
+    * @param py y coordinate
+    * @param pz z coordinate
     * @return the index of the position added
     */
-   public abstract int addPosition(float x, float y, float z);
+   public abstract int addPosition(float px, float py, float pz);
 
    /**
     * Sets the current 3D position to be used in following vertices.
-    * @param x 
-    * @param y
-    * @param z
+    * @param px x coordinate
+    * @param py y coordinate
+    * @param pz z coordinate
     * @return The index of the new position (valid only if a vertex
     * is added with the supplied position)
     */
-   public abstract int position(float x, float y, float z);
+   public abstract int position(float px, float py, float pz);
 
    /**
     * Sets the current position to be used in following vertices, 
@@ -165,11 +165,11 @@ public interface RenderObjectInterface {
    /**
     * Updates the values of the position with index pidx.
     * @param pidx position to modify
-    * @param x
-    * @param y
-    * @param z
+    * @param px x coordinate
+    * @param py y coordinate
+    * @param pz z coordinate
     */
-   public abstract void setPosition(int pidx, float x, float y, float z);
+   public abstract void setPosition(int pidx, float px, float py, float pz);
 
    /**
     * Whether or not any positions have been defined.
@@ -279,23 +279,23 @@ public interface RenderObjectInterface {
 
    /**
     * Adds an indexable 3D normal.
-    * @param x
-    * @param y
-    * @param z
+    * @param nx x component
+    * @param ny y component
+    * @param nz z component
     * @return the index of the normal added
     */
-   public abstract int addNormal(float x, float y, float z);
+   public abstract int addNormal(float nx, float ny, float nz);
 
    /**
     * Sets the current 3D normal to be used in following
     * vertices.
-    * @param x 
-    * @param y
-    * @param z
+    * @param nx x component
+    * @param ny y component
+    * @param nz z component
     * @return The index of the new normal (valid only if a vertex
     * is added with the supplied normal)
     */
-   public abstract int normal(float x, float y, float z);
+   public abstract int normal(float nx, float ny, float nz);
 
    /**
     * Sets the current normal to be used in following vertices, 
@@ -307,11 +307,11 @@ public interface RenderObjectInterface {
    /**
     * Updates the values of the normal with index nidx.
     * @param nidx normal to modify
-    * @param x
-    * @param y
-    * @param z
+    * @param nx x component
+    * @param ny y component
+    * @param nz z component
     */
-   public abstract void setNormal(int nidx, float x, float y, float z);
+   public abstract void setNormal(int nidx, float nx, float ny, float nz);
 
    /**
     * Whether or not any normals have been defined.
@@ -649,16 +649,16 @@ public interface RenderObjectInterface {
 
    /**
     * Adds an indexable 2D texture coordinate
-    * @param x
-    * @param y
+    * @param x x coordinate
+    * @param y y coordinate
     * @return the index of the texture coordinate added
     */
    public abstract int addTextureCoord(float x, float y);
 
    /**
     * Sets the current 2D texture coordinate to be used in following vertices.
-    * @param x
-    * @param y
+    * @param x x coordinate
+    * @param y y coordinate
     * @return The index of the new texture coordinate (valid only if a vertex
     * is added with the supplied texture coordinate)
     */
@@ -673,9 +673,9 @@ public interface RenderObjectInterface {
 
    /**
     * Updates the values of the texture coordinate with index tidx.
-    * @param tidx
-    * @param x
-    * @param y
+    * @param tidx coordinate index
+    * @param x x coordinate
+    * @param y y coordinate
     */
    public abstract void setTextureCoord(int tidx, float x, float y);
 
@@ -827,9 +827,9 @@ public interface RenderObjectInterface {
     * Add a vertex at the supplied position, using the currently active
     * normal, color and texture coordinate (if available).  A new position
     * is created to accommodate the vertex.
-    * @param x
-    * @param y
-    * @param z
+    * @param x x coordinate
+    * @param y y coordinate
+    * @param z z coordinate
     * @return vertex index
     */
    public abstract int vertex(float x, float y, float z);
@@ -933,7 +933,7 @@ public interface RenderObjectInterface {
    /**
     * Creates a set of vertices and point primitives at the supplied positions.
     * @see #addPoint(float[])
-    * @param pnts
+    * @param pnts positions for which points and vertices should be defined
     */
    public abstract void addPoints(Iterable<float[]> pnts);
 

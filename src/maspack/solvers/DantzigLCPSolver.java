@@ -15,14 +15,18 @@ import maspack.util.*;
  * the linear system
  * 
  * <pre>
+ * {@code
  * w = M z + q
+ * }
  * </pre>
  * 
  * and solving it entails finding w and z subject to the constraints
  * 
  * <pre>
+ * {@code
  *                  T
  * w >= 0, z >= 0, w z = 0
+ * }
  * </pre>
  * 
  * Dantig's method does this by a series of <i>pivoting</i> operations. Each
@@ -31,15 +35,17 @@ import maspack.util.*;
  * pivots results in the pivoted system
  * 
  * <pre>
+ * {@code
  * w' = M' z' + q'
+ * }
  * </pre>
  * 
  * where w' and z' contain complementary combinations of the w and z variables.
  * Any variable (w or z) contained in w' is called a <i>basic</i> variable.
- * When a pivoted system is found for which q' >= 0, this provides a solution to
- * the LCP in which the z and w variables comprising z' are 0 and the z and w
- * variables comprising w' are equal to the corresponding entries in q'. As
- * mentioned above, Dantzig's method only works when M is SPSD.
+ * When a pivoted system is found for which q' {@code >=} 0, this provides a
+ * solution to the LCP in which the z and w variables comprising z' are 0 and
+ * the z and w variables comprising w' are equal to the corresponding entries
+ * in q'. As mentioned above, Dantzig's method only works when M is SPSD.
  * 
  * <p>
  * Full details on the solution of LCPs can be found in <i>The Linear
@@ -171,8 +177,8 @@ public class DantzigLCPSolver {
 
    /**
     * Sets the numeric tolerance for this solver. This is used to determine when
-    * q' >= 0, as described in the class documentation. In particular, a
-    * solution will be considered found whenever q' >= -tol.
+    * q' {@code >=} 0, as described in the class documentation. In particular, a
+    * solution will be considered found whenever q' {@code >=} -tol.
     * 
     * @param tol
     * new numeric tolerance. Negative numbers will be truncated to 0.

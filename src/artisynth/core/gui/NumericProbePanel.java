@@ -214,12 +214,12 @@ public class NumericProbePanel extends JPanel {
    }
 
    /**
-    * Sets the default range to the desired value The default range is the range
+    * Sets the default range to the desired value. The default range is the range
     * the probe display returns to after zooming. Also sets the default range of
     * the small probe display through the probe info.
     * 
-    * @param min
-    * @param max
+    * @param min minimum value
+    * @param max maximum value
     */
    public void setDefaultRange (double min, double max) {
       defaultRange[0] = min;

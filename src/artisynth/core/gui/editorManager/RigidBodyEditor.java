@@ -12,8 +12,10 @@ import artisynth.core.driver.Main;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.MechModel;
+import artisynth.core.renderables.EditablePolygonalMeshComp;
 import artisynth.core.modelbase.*;
 import maspack.geometry.PolygonalMesh;
+import maspack.render.*;
 import artisynth.core.gui.selectionManager.SelectionManager;
 
 import java.util.*;
@@ -37,6 +39,9 @@ public class RigidBodyEditor extends EditorBase {
             actions.add (this, "Save mesh as ...");
             if (body.getGrandParent() instanceof MechModel) {
                actions.add (this, "Attach particles ...", EXCLUSIVE);
+            }
+            if (body.getSurfaceMesh() != null) {
+               actions.add (this, "Add mesh inspector");
             }
          }
       }
@@ -83,6 +88,17 @@ public class RigidBodyEditor extends EditorBase {
                      new AttachParticleBodyAgent (myMain, mech, body);
                   agent.show (popupBounds);
                }
+            }
+            else if (actionCommand == "Add mesh inspector") {
+               RigidBody body = (RigidBody)selection.get (0);
+               MechModel mech = (MechModel)body.getGrandParent();
+               EditablePolygonalMeshComp editMesh =
+                  new EditablePolygonalMeshComp (body.getSurfaceMesh());
+               double size = RenderableUtils.getRadius (editMesh);
+               RenderProps.setVisible (editMesh, true);
+               RenderProps.setPointStyle (editMesh, Renderer.PointStyle.SPHERE);
+               RenderProps.setPointRadius (editMesh, 0.05*size);
+               mech.addRenderable (editMesh);
             }
          }
       }

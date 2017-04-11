@@ -55,8 +55,6 @@ import maspack.util.ReaderTokenizer;
  * be done using the {@link maspack.matrix.RotationMatrix3d#setEuler setEuler}
  * method in R. This allows us to minimize the number of methods in the
  * RigidTransform3d class itself.
- * 
- * </pre>
  */
 
 public class ScaledRigidTransform3d extends AffineTransform3dBase implements
@@ -1106,7 +1104,8 @@ Clonable {
    
    /**
     * Sets the scale factor to use in this transform
-    * @param s
+    * 
+    * @param s scale factor
     */
    public void setScale(double s) {
       this.s = s;
@@ -1118,7 +1117,7 @@ Clonable {
     *  [ sI 0 ]
     *  [  0 1 ]
     *  
-    * @param s
+    * @param s scale factor
     */
    public void scale(double s) {
       this.s = this.s*s;

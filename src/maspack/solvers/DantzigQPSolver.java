@@ -118,7 +118,9 @@ public class DantzigQPSolver {
    /**
     * Solves a convex quadratic program with inequality constraints:
     * <pre>
+    * {@code
     * min 1/2 x^T H x + f^T x,  A x >= b
+    * }
     * </pre>
     * using Dantzig's LCP pivoting algorithm.
     *
@@ -233,7 +235,10 @@ public class DantzigQPSolver {
    /**
     * Solves a convex quadratic program with both equality and inequality
     * constraints:
-    * <pre> min 1/2 x^T H x + f^T x, A x >= b, Aeq x = beq
+    * <pre>
+    * {@code
+    * min 1/2 x^T H x + f^T x, A x >= b, Aeq x = beq
+    * }
     * </pre>
     * using Dantzig's LCP pivoting algorithm.
     *

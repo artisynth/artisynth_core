@@ -869,7 +869,8 @@ public class DualQuaternion {
     * the dual angle angles[0] + e*angles[1]
     * @param q
     * input
-    * @return the norm of the real vector component of q, which must be > 0 for
+    * @return the norm of the real vector component of q, which must
+    * be {@code >} 0 for
     * screw parameters to be reliable
     */
    public static double getScrewParameters(Vector3d l, Vector3d m,
@@ -908,7 +909,8 @@ public class DualQuaternion {
     * the moment vector
     * @param angles
     * the dual angle angles[0] + e*angles[1]
-    * @return the norm of the real vector component, which must be > 0 for screw
+    * @return the norm of the real vector component, which must be
+    * {@code >} 0 for screw
     * parameters to be reliable
     */
    public double getScrewParameters(Vector3d l, Vector3d m, double[] angles) {
@@ -945,7 +947,7 @@ public class DualQuaternion {
    /**
     * Dual Quaternion Linear Blending (DLB) of two dual quaternions q = (1-t)*q1
     * + t*q2, with ||q|| = 1. Note that to ensure shortest path, q1 and q2
-    * should be in the same direction (q1.q2 > 0)
+    * should be in the same direction {@code (q1.q2 > 0)}
     */
    public void dualQuaternionLinearBlending(DualQuaternion q1, double t,
       DualQuaternion q2) {

@@ -688,9 +688,6 @@ ValueChangeListener {
    /**
     * renames the current property by: a.) changing the name in myVariables b.)
     * updating this change in all drivers
-    * 
-    * @param oldname
-    * @param newname
     */
    public void renameProperty (String oldname, String newname) {
       // first, rename the property in the variables list.

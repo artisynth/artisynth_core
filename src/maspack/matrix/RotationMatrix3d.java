@@ -44,8 +44,6 @@ import maspack.util.ReaderTokenizer;
  * <p>
  * If R01 is a rotation from frame 0 to frame 1, then the inverse rotation R10
  * is a rotation from frame 1 to frame 0, and is given by the transpose of R.
- * 
- * </pre>
  */
 public class RotationMatrix3d extends Matrix3dBase {
    private static final long serialVersionUID = 1L;

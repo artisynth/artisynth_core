@@ -21,7 +21,7 @@ import java.util.NoSuchElementException;
  * This exposes the {@code update} function which can re-order the queue if any
  * internal values are updated.
  *
- * @param <E>
+ * @param <E> generic class with which the heap is associated
  */
 public class BinaryHeap<E> implements Collection<E> {
 

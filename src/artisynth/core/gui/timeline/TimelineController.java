@@ -1691,7 +1691,7 @@ public class TimelineController extends Timeline
    /**
     * compute Y coordinate to track
     * 
-    * @param curTrack
+    * @param curTrack current track
     * @return Y coordinate to track
     */
 

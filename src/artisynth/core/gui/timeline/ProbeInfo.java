@@ -1123,7 +1123,7 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
       else if (nameOfAction == "Delete") {
          Track track = myTrack; // myTrack will be nulled by delete operation
-         track.deleteProbe (this, false);
+         track.deleteProbe (this, /*confirm=*/true);
          track.refreshTrackChanges();
          return;
       }

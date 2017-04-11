@@ -13,13 +13,18 @@ import maspack.util.Clonable;
  * object.
  */
 public interface CompositeProperty extends HasProperties, Clonable {
+
    /**
-    * Should be either HierarchyNode or HasProperties
+    * Returns the host for this property
+    *
+    * @return host for this property
     */
    HasProperties getPropertyHost();
 
    /**
     * If this object is a property, returns the corresponding information
+    *
+    * @return property information for this object
     */
    PropertyInfo getPropertyInfo();
 

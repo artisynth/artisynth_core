@@ -16,13 +16,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.zip.CRC32;
+import java.nio.ByteBuffer;
 
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector;
 import maspack.properties.HasProperties;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -771,8 +775,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
    }
 
-
-
    public boolean containsVertex(Vertex3d vtx) {
       return (myVertices.contains(vtx));
    }
@@ -1192,6 +1194,30 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
    }
 
+   protected void adjustAttributesForClearedFeatures() {
+      if (myNormalsExplicitP) {
+         myNormalIndices = new int[0];
+      }
+      else {
+         clearNormals();
+      }
+      if (myColors != null) {
+         if (myVertexColoringP) {
+            myColorIndices = null; // will be recomputed on demand
+         }
+         else if (myFeatureColoringP) {
+            myColors = new ArrayList<float[]>();
+            myColorIndices = null; // will be recomputed on demand
+         }
+         else {
+            myColorIndices = new int[0];
+         }
+      }
+      if (myTextureCoords != null) {
+         myTextureIndices = new int[0];
+      }
+   }
+
    /**
     * Clears this mesh (makes it empty).
     */
@@ -1327,11 +1353,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
     */
    public MeshBase copy() {
       return clone();
-//      ArrayList<Vertex3d> vtxs = new ArrayList<Vertex3d>();
-//      for (int i = 0; i < myVertices.size(); i++) {
-//         vtxs.add (myVertices.get(i).copy());
-//      }
-//      return copyWithVertices (vtxs);
    }
 
    /**
@@ -1455,13 +1476,26 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * same behavior is observed for texture and color information.
     * 
     * @param mesh Mesh to be added to this mesh
+    * @param respectTransforms if <code>true</code>, transform the
+    * vertex positions of <code>mesh</code> into the coordinate frame
+    * of this mesh.
     */
-   protected void addMesh (MeshBase mesh) {
+   protected void addMesh (MeshBase mesh, boolean respectTransforms) {
 
+      RigidTransform3d TMT = null; // transform from mesh to this
+      if (respectTransforms && 
+          (!meshToWorldIsIdentity() || !mesh.meshToWorldIsIdentity())) {
+         TMT = new RigidTransform3d();
+         TMT.mulInverseLeft (getMeshToWorld(), mesh.getMeshToWorld()); 
+      }
       int voff = myVertices.size();
+      Point3d pnt = new Point3d();
       for (int i = 0; i < mesh.numVertices(); i++) {
-         Point3d p = mesh.getVertices().get(i).getPosition();
-         addVertex(p);
+         pnt.set (mesh.getVertices().get(i).pnt);
+         if (TMT != null) {
+            pnt.transform (TMT);
+         }
+         addVertex(pnt);
       }
 
       if (mesh.myNormalsExplicitP &&
@@ -1693,6 +1727,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * with each of the three vertices of the (triangular) face at index
     * <code>fidx</code>, we could use the following code fragment:
     * <pre>
+    * {@code
     *    ArrayList<Vector3d> normals = mesh.getNormals();
     *    int[] indices = mesh.getNormalIndices();
     *    int[] indexOffs = mesh.getFeatureIndexOffsets();
@@ -1701,7 +1736,8 @@ public abstract class MeshBase implements Renderable, Cloneable {
     *    Vector3d nrm0 = normals.get(indices[offset]);
     *    Vector3d nrm1 = normals.get(indices[offset+1]);
     *    Vector3d nrm2 = normals.get(indices[offset+2]);
-    * <pre>
+    * }
+    * </pre>
     * 
     * <p>The array returned by this method has a length of n+1,
     * where n is the number of mesh features. The last entry contains 
@@ -2159,8 +2195,9 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * Sets the color corresponding to index <code>idx</code>.
     *
     * @param idx color index
-    * @param color new color value. Array must have a length >= 3 and give the
-    * RGB (or RGBA values for length >= 4) in the range [0, 1].
+    * @param color new color value. Array must have a length {@code >=} 3 and
+    * give the RGB (or RGBA values for length {@code >=} 4) in the range [0,
+    * 1].
     * @throws IndexOutOfBoundsException if colors are not defined or
     * if the index is out of range.
     */
@@ -2299,6 +2336,11 @@ public abstract class MeshBase implements Renderable, Cloneable {
      return myColorIndices;
    }
 
+
+   public boolean hasExplicitColors() {
+      return myColors != null && !myVertexColoringP && !myFeatureColoringP;
+   }
+
    /**
     * Explicitly sets the colors and associated indices for this mesh. The
     * information supplied by <code>colors</code> and <code>indices</code> is
@@ -2306,8 +2348,8 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * #getColors} and {@link #getColorIndices}, respectively.  
     *
     * <p> Colors should be specified as <code>float[]</code> objects with a
-    * length >= 3, indicating RGG values (or RGBA values for length >= 4) in
-    * the range [0,1].
+    * length {@code >=} 3, indicating RGG values (or RGBA values for length
+    * {@code >=} 4) in the range [0,1].
     *
     * <p>The argument <code>indices</code> specifies an index values into
     * <code>colors</code> for each vertex of each feature, as described for
@@ -2576,4 +2618,33 @@ public abstract class MeshBase implements Renderable, Cloneable {
       myTextureIndices = null;
       notifyModified();              
    }
+
+   private void addChecksum (CRC32 crc, double val) {
+      byte[] bytes = new byte[8];
+      ByteBuffer.wrap(bytes).putDouble(val);
+      crc.update (bytes);
+   }
+
+   private void addChecksum (CRC32 crc, Vector vec) {
+      for (int i=0; i<vec.size(); i++) {
+         addChecksum (crc, vec.get(i));
+      }
+   }
+   private void addChecksum (CRC32 crc, Matrix mat) {
+      for (int i=0; i<mat.rowSize(); i++) {
+         for (int j=0; j<mat.colSize(); j++) {
+            addChecksum (crc, mat.get(i,j));
+         }
+      }
+   }
+
+   public long checksum() {
+      CRC32 crc = new CRC32();
+      for (Vertex3d vtx : getVertices()) {
+         addChecksum (crc, vtx.pnt);
+      }
+      addChecksum (crc, XMeshToWorld);
+      return crc.getValue();
+   }
+
 }

@@ -36,7 +36,7 @@ public abstract class Logger implements Clonable {
       
       /**
        * Find a level based on text input
-       * @param level
+       * @param level string description of the level
        * @return corresponding level, or null if not found
        */
       public static LogLevel find(String level) {
@@ -54,37 +54,37 @@ public abstract class Logger implements Clonable {
    
    /**
     * Log information at the `TRACE' level
-    * @param obj
+    * @param obj object to log
     */
    public abstract void trace(Object obj);
    
    /**
     * Log information at the `DEBUG' level
-    * @param obj
+    * @param obj object to log
     */
    public abstract void debug(Object obj);
    
    /**
     * Log information at the `INFO' level
-    * @param obj
+    * @param obj object to log
     */
    public abstract void info(Object obj);
    
    /**
     * Log information at the `WARN' level
-    * @param obj
+    * @param obj object to log
     */
    public abstract void warn(Object obj);
    
    /**
     * Log information at the `ERROR' level
-    * @param obj
+    * @param obj object to log
     */
    public abstract void error(Object obj);
    
    /**
     * Log information at the `FATAL' level
-    * @param obj
+    * @param obj object to log
     */
    public abstract void fatal(Object obj);
    
@@ -116,7 +116,7 @@ public abstract class Logger implements Clonable {
    
    /**
     * Set the minimum log level to record
-    * @param level
+    * @param level minimum log level
     */
    public abstract void setLogLevel(LogLevel level);
    

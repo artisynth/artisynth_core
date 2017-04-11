@@ -40,6 +40,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
 import maspack.matrix.Vector4d;
 import maspack.properties.HasProperties;
 import maspack.render.RenderProps;
@@ -70,10 +71,31 @@ public class PolygonalMesh extends MeshBase {
    //private boolean bvHierarchyValid = false;
    private BVTree myBVTree = null;
    private boolean myBVTreeUpdated = false;
+
    private boolean cachedClosed = false;
    private boolean cachedClosedValid = false;
    private boolean cachedManifold = false;
    private boolean cachedManifoldValid = false;
+   
+   // topological properties
+   private boolean myTopologyPredicatesValid = false;
+   private boolean myHasNonManifoldEdges = false;
+   private boolean myHasNonManifoldVertices = false;
+   private boolean myHasOpenEdges = false;
+   private boolean myHasIsolatedVertices = false;
+
+   // code flags for degeneracies:
+
+   public static final int NON_MANIFOLD_EDGES = 0x01;
+   public static final int NON_MANIFOLD_VERTICES = 0x02;
+   public static final int OPEN_EDGES = 0x04;
+   public static final int ISOLATED_VERTICES = 0x08;
+
+   public static final int ALL_DEGENERACIES =
+      (NON_MANIFOLD_EDGES |
+       NON_MANIFOLD_VERTICES |
+       OPEN_EDGES |
+       ISOLATED_VERTICES);
 
    private SignedDistanceGrid sdGrid = null;
 
@@ -142,6 +164,7 @@ public class PolygonalMesh extends MeshBase {
       myNumHardEdges = -1;
       cachedClosedValid = false;
       cachedManifoldValid = false;
+      myTopologyPredicatesValid = false;
    }
 
    public static int computedFaceNormals = 0;
@@ -219,32 +242,142 @@ public class PolygonalMesh extends MeshBase {
    }
 
    /**
-    * Returns true if this mesh is manifold. A mesh is manifold if each edge is
-    * adjacent to at most two faces; i.e., there are no redundant half-edges,
-    * and all the faces connected to each vertex form a fan.
+    * Queries whether or not this mesh has isolated vertices. These
+    * are vertices which are not connected to any edge.
     * 
-    * @return true if this mesh is manifold
+    * @return <code>true</code> if this mesh has isolated vertices.
     */
-   public boolean isManifold() {
-      return isManifold (/*debug=*/false);
+   public boolean hasIsolatedVertices() {
+      if (!myTopologyPredicatesValid) {
+         updateTopologyPredicates(0);
       }
+      return myHasIsolatedVertices;
+   }
+   
+   /**
+    * Queries whether or not this mesh has open edges. An open edge is an edge
+    * which is connected to only a single face.
+    * 
+    * @return <code>true</code> if this mesh has open edges.
+    */
+   public boolean hasOpenEdges() {
+      if (!myTopologyPredicatesValid) {
+         updateTopologyPredicates(0);
+      }
+      return myHasOpenEdges;
+   }
+   
+   /**
+    * Queries whether or not this mesh has non-manifold edges. A non-manifold
+    * edge is an edge that is connected to three or more faces. Note: in some
+    * literature, a manifold edge is defined more strictly to require that it
+    * is connected to exactly two faces. We relax this definition so that an
+    * edge may have one or two faces. If any edges are associated with one
+    * face, then {@link #hasOpenEdges} will return <code>true</code>.
+    * 
+    * @return <code>true</code> if this mesh has non-manifold edges.
+    * @see #hasOpenEdges
+    */
+   public boolean hasNonManifoldEdges() {
+      if (!myTopologyPredicatesValid) {
+         updateTopologyPredicates(0);
+      }
+      return myHasNonManifoldEdges;
+   }
+   
+   /**
+    * Queries whether or not this mesh has non-manifold vertices. A non-vertex
+    * is a vertex whose incident faces do not form a fan.  This fan may be
+    * either open or closed. In some literature, a manifold vertex is defined
+    * more strictly to require that the fan be closed. If any fans are
+    * <i>not</i> closed, then {@link #hasOpenEdges} will return
+    * <code>true</code>.
+    *
+    * <p>If {@link #hasNonManifoldEdges} returns <code>true</code>, then this
+    * predicate will return <code>true</code> also.
+    * 
+    * @return <code>true</code> if this mesh has non-manifold vertices.
+    * @see #hasOpenEdges
+    * @see #hasNonManifoldEdges
+    */
+   public boolean hasNonManifoldVertices() {
+      if (!myTopologyPredicatesValid) {
+         updateTopologyPredicates(0);
+      }
+      return myHasNonManifoldVertices;
+   }
+   
+   /**
+    * Queries if this mesh is closed. This is the strictest topology predicate,
+    * requiring that the mesh is both manifold (so that {@link #isManifold}
+    * returns <code>true</code>), and also has no open edges, so that {@link
+    * #hasOpenEdges} returns <code>false</code>.
+    * 
+    * @return true if the mesh is closed
+    */
+   public boolean isClosed() {
+      if (!myTopologyPredicatesValid) {
+         updateTopologyPredicates(0);
+      }     
+      return (!myHasOpenEdges && isManifold());
+   }
 
    /**
-    * Returns true if this mesh is manifold. A mesh is manifold if each edge is
-    * adjacent to at most two faces; i.e., there are no redundant half-edges,
-    * and all the faces connected to each vertex form a fan.
+    * Queries if this mesh is manifold. This is equivalent to {@link
+    * #hasNonManifoldEdges}, {@link #hasNonManifoldVertices}, and {@link
+    * #hasIsolatedVertices} all returning <code>false</code>.
     * 
-    * @param debug if <code>true</code> and mesh is not manifold, prints reason
-    * @return true if this mesh is manifold
+    * <p>Note: some definitions of "manifold" also require that the mesh does
+    * not self-intersect. This primitive does <i>not</i> check for this.
+    * 
+    * @return true if the mesh is manifold.
     */
-   public boolean isManifold (boolean debug) {
-      if (cachedManifoldValid) {
-         return cachedManifold;
-      }
-      
-      cachedManifold = false;
-      cachedManifoldValid = true;
-      
+   public boolean isManifold() {
+      if (!myTopologyPredicatesValid) {
+         updateTopologyPredicates(0);
+      }     
+      return (!myHasNonManifoldEdges && 
+              !myHasNonManifoldVertices && 
+              !myHasIsolatedVertices);
+   }
+   
+   /**
+    * Queries if this mesh is watertight. This is a more relaxed version of
+    * <i>closed</i>, in which the mesh may not have any open edges but in which
+    * it <i>may</i> have non-manifold vertices. It is therefore equivalent to
+    * {@link #hasOpenEdges}, {@link #hasNonManifoldEdges}, and {@link
+    * #hasIsolatedVertices} all returning <code>false</code>.
+    * 
+    * @return true if the mesh is watertight.
+    */
+   public boolean isWatertight() {
+      if (!myTopologyPredicatesValid) {
+         updateTopologyPredicates(0);
+      }     
+      return (!myHasOpenEdges && 
+              !myHasNonManifoldEdges && 
+              !myHasIsolatedVertices);
+   }
+
+   /**
+    * Updates the topological predicates. If <code>printCode</code> is
+    * non-zero, then it contains one or more of the following flags that will
+    * cause degeneracies to be printed:
+    *
+    * <dl>
+    * <li> {@link NON_MANIFOLD_EDGES}
+    * <li> {@link NON_MANIFOLD_VERTICES}
+    * <li> {@link OPEN_EDGES}
+    * <li> {@link ISOLATED_VERTICES}
+    * <dl>
+    */
+   private void updateTopologyPredicates (int printCode) {
+
+      myHasNonManifoldVertices = false;
+      myHasNonManifoldEdges = false;
+      myHasOpenEdges = false;
+      myHasIsolatedVertices = false;
+
       HashSet<Vertex3d> adjacentVertices = new HashSet<Vertex3d>();
       // check to see all faces around each vertex form a fan
       for (int i=0; i<myVertices.size(); i++) {
@@ -253,45 +386,62 @@ public class PolygonalMesh extends MeshBase {
          Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
          if (it.hasNext()) {
             int nume = 0;
-            HalfEdge he0 = vtx.firstIncidentHalfEdge();            
+            HalfEdge he0 = vtx.firstIncidentHalfEdge();
+           
             adjacentVertices.clear();
             while (it.hasNext()) {
                HalfEdge he = it.next();
                if (adjacentVertices.contains(he.tail)) {
-                  if (debug) {
+                  // there is more than one edge involving this tail
+                  if ((printCode & NON_MANIFOLD_EDGES) != 0) {
                      System.out.println (
                         "Multiple edges between "+he.head.getIndex()+
-                        " and "+he.tail.getIndex());
+                        " and "+he.tail.getIndex());                     
                   }
-                  // there is more than one edge involving this tail
-                  return false;
+                  myHasNonManifoldVertices = true;
+                  myHasNonManifoldEdges = true;
                }
                adjacentVertices.add (he.tail);
                if (he.opposite == null) {
                   // boundary edge; use this to start fan traverse.
                   // otherwise, any edge will do.
+                  if ((printCode & OPEN_EDGES) != 0) {
+                     System.out.println (
+                        "Edge "+he.vertexStr()+" is open");
+                  }
+                  myHasOpenEdges = true;
                   he0 = he;
                }
                nume++;
             }
-            HalfEdge heNext = he0.next.opposite;
-            int cnt = 1;
-            while (heNext != null && heNext.head == vtx && heNext != he0) {
-               heNext = heNext.next.opposite;
-               cnt++;
-            }
-            if (cnt != nume) {
-               // some half edges can't be reached by traverse, so not a fan
-               if (debug) {
-                  System.out.println ("vtx " + vtx.getIndex() + " "+nume+" "+cnt);
+            if (!myHasNonManifoldEdges) {
+               HalfEdge heNext = he0.next.opposite;
+               int cnt = 1;
+               while (heNext != null && heNext.head == vtx && heNext != he0) {
+                  heNext = heNext.next.opposite;
+                  cnt++;
                }
-               return false;
+               if (cnt != nume) {
+                  // some half edges can't be reached by traverse, so not a fan
+                  if ((printCode & NON_MANIFOLD_VERTICES) != 0) {
+                     System.out.println (
+                        "Faces incident to vertex "+vtx.getIndex()+
+                        " are not a fan: num edges="+nume+
+                        " num fan edges=" + cnt);
+                  }
+                  myHasNonManifoldVertices = true;
+               }
             }
          }
+         else {
+            if ((printCode & ISOLATED_VERTICES) != 0) {
+               System.out.println (
+                  "Vertex "+vtx.getIndex()+" is isolated");
+            }
+            myHasIsolatedVertices = true;
+         }
       }
-      
-      cachedManifold = true;
-      return true;
+      myTopologyPredicatesValid = true;
    }
 
    /**
@@ -312,7 +462,8 @@ public class PolygonalMesh extends MeshBase {
                HalfEdge he = it.next();
                if (adjacentVertices.contains(he.tail)) {
                   // there is more than one edge involving this tail
-                  System.out.println("More than one edge involving tail: " + he.tail.getIndex ());
+                  System.out.println(
+                     "More than one edge involving tail: " + he.tail.getIndex());
                   
                }
                adjacentVertices.add (he.tail);
@@ -331,7 +482,8 @@ public class PolygonalMesh extends MeshBase {
             }
             if (cnt != nume) {
                // some half edges can't be reached by traverse, so not a fan
-               System.out.println ("vtx " + vtx.getIndex() + " has multiple fans: "+nume+" vs "+cnt);
+               System.out.println (
+                  "vtx "+vtx.getIndex()+" has multiple fans: "+nume+" vs "+cnt);
                nonManifold.add (vtx);
             }
          }
@@ -417,7 +569,7 @@ public class PolygonalMesh extends MeshBase {
    }
 
    public SignedDistanceGrid getSignedDistanceGrid (
-      double margin,Vector3d cellDivisions) {
+      double margin,Vector3i cellDivisions) {
       if (cellDivisions == null) {
          sdGrid = new SignedDistanceGrid (this, margin);
       }
@@ -501,7 +653,7 @@ public class PolygonalMesh extends MeshBase {
     * assumed to be supplied in Alias Wavefront obj format, as described for
     * the method {@link #write(PrintWriter,NumberFormat,boolean)}.
     * 
-    * @param string
+    * @param input
     * supplied input description of the mesh
     */
    public void read (String input)  {
@@ -754,6 +906,18 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
+   public void clearFaces() {
+      for (Face f : myFaces) {
+         f.disconnect();
+      }
+      myFaces.clear();
+      adjustAttributesForClearedFeatures();
+      myNumTriangles = 0;
+      myNumQuads = 0;
+      myTriQuadCountsValid = false;
+      notifyStructureChanged();
+   }
+
    private boolean disconnectFaceIfDegenerate (Face face) {
 
       HalfEdge he = face.firstHalfEdge();
@@ -996,9 +1160,9 @@ public class PolygonalMesh extends MeshBase {
    }   
    
    /**
-    * Merges adjacent faces whose normals satisfy n1.dot(n2) > cosLimit
-    * @param mesh
-    * @param cosLimit
+    * Merges adjacent faces whose normals satisfy n1.dot(n2) {@code >} cosLimit
+    * 
+    * @param cosLimit limit above which faces should be merged
     * @return true if modified, false otherwise
     */
    public boolean mergeCoplanarFaces(double cosLimit) {
@@ -2167,8 +2331,7 @@ public class PolygonalMesh extends MeshBase {
    }
 
 
-   private int[] unpackIndices (int[] indices, int fidx) {
-      int[] indexOffs = getFeatureIndexOffsets();
+   static int[] unpackIndices (int[] indices, int[] indexOffs, int fidx) {
       int k0 = indexOffs[fidx];
       int k1 = indexOffs[fidx+1];
       int[] findices = new int[k1-k0];
@@ -2178,7 +2341,7 @@ public class PolygonalMesh extends MeshBase {
       return findices;
    }
 
-   private int[] packIndices (ArrayList<int[]> indices) {
+   static int[] packIndices (ArrayList<int[]> indices) {
       int len = 0;
       for (int i=0; i<indices.size(); i++) {
          len += indices.get(i).length;
@@ -2222,6 +2385,8 @@ public class PolygonalMesh extends MeshBase {
       ArrayList<int[]> newTextureIndices = null;
       ArrayList<int[]> newColorIndices = null;
 
+      int[] indexOffs = getFeatureIndexOffsets();
+
       if (myNormalsExplicitP) {
          newNormalIndices = new ArrayList<int[]>(estNewFaces);
          normalList = new ArrayList<int[]>(myNumTriangles+estNewFaces);
@@ -2244,13 +2409,13 @@ public class PolygonalMesh extends MeshBase {
          if (numEdges == 3) {
             faceList.add (face);
             if (myNormalsExplicitP) {
-               normalList.add (unpackIndices(myNormalIndices, i));
+               normalList.add (unpackIndices(myNormalIndices, indexOffs, i));
             }
             if (myTextureCoords != null) {
-               textureList.add (unpackIndices(myTextureIndices, i));
+               textureList.add (unpackIndices(myTextureIndices, indexOffs, i));
             }
             if (myColors != null) {
-               colorList.add (unpackIndices(getColorIndices(), i));
+               colorList.add (unpackIndices(getColorIndices(), indexOffs, i));
             }
          } else {
 
@@ -2260,16 +2425,14 @@ public class PolygonalMesh extends MeshBase {
             int cidxs[] = null;
             int idxs[] = face.getVertexIndices();
             if (myNormalsExplicitP) {
-               nidxs = unpackIndices(myNormalIndices, i);
+               nidxs = unpackIndices(myNormalIndices, indexOffs, i);
             }
             if (myTextureCoords != null) {
-               tidxs = unpackIndices(myTextureIndices, i);
+               tidxs = unpackIndices(myTextureIndices, indexOffs, i);
                
             }
-            int[] cstart = null;
             if (myColors != null) {
-               cidxs = unpackIndices(getColorIndices(), i);
-               cstart = unpackIndices(getColorIndices(), i);
+               cidxs = unpackIndices(getColorIndices(), indexOffs, i);
             }
 
             ArrayList<Vertex3d> convex = new ArrayList<Vertex3d>(idxs.length);
@@ -2446,6 +2609,108 @@ public class PolygonalMesh extends MeshBase {
       myTriQuadCountsValid = true;
       notifyStructureChanged();
       checkIndexConsistency();
+   }
+
+   private int[] getQuadChord (int code, int[] idxs) {
+      switch (code) {
+         case 0: return new int[] { idxs[0], idxs[1], idxs[2] };
+         case 1: return new int[] { idxs[0], idxs[2], idxs[3] };
+         case 2: return new int[] { idxs[0], idxs[1], idxs[3] };
+         case 3: return new int[] { idxs[1], idxs[2], idxs[3] };
+         default: {
+            throw new InternalErrorException ("unknown code:" + code);
+         }
+      }
+   }      
+
+   /**
+    * Modifies this mesh to ensure that all faces are triangles.
+    */
+   public void triangulateQuadBoxMesh() {
+
+      int numNewFaces = 2*numFaces();
+
+      ArrayList<int[]> newFaceIndices = new ArrayList<int[]>(numNewFaces);
+      ArrayList<int[]> newNormalIndices = null;
+      ArrayList<int[]> newTextureIndices = null;
+      ArrayList<int[]> newColorIndices = null;
+
+      int[] indexOffs = getFeatureIndexOffsets();
+
+      if (hasExplicitNormals()) {
+         newNormalIndices = new ArrayList<int[]>(numNewFaces);
+      }
+      else {
+         clearNormals();
+      }
+      if (hasTextureCoords()) {
+         newTextureIndices = new ArrayList<int[]>(numNewFaces);
+      }
+      if (hasExplicitColors()) {
+         newColorIndices = new ArrayList<int[]>(numNewFaces);
+      }
+
+      for (int i=0; i<numFaces(); i++) {
+         Face face = getFace(i);
+
+         face.disconnect();
+         int tidxs[] = null;
+         int nidxs[] = null;
+         int cidxs[] = null;
+         int idxs[] = face.getVertexIndices();
+         if (hasExplicitNormals()) {
+            nidxs = unpackIndices(getNormalIndices(), indexOffs, i);
+         }
+         if (hasTextureCoords()) {
+            tidxs = unpackIndices(getTextureIndices(), indexOffs, i);
+         }
+         if (hasExplicitColors()) {
+            cidxs = unpackIndices(getColorIndices(), indexOffs, i);
+         }
+            
+         // find the indices of the best chord triangle, add the
+         // corresponding face to the new face list, and remove
+         // the chord from the index set
+         newFaceIndices.add (getQuadChord (0, idxs));
+         newFaceIndices.add (getQuadChord (1, idxs));
+
+         // add the corresponding chord triangle for the texture and
+         // normal coordinates, if present, and remove the chord from
+         // these indices too
+         if (hasExplicitNormals()) {
+            newNormalIndices.add (getQuadChord (0, nidxs));
+            newNormalIndices.add (getQuadChord (1, nidxs));
+         }
+         if (hasTextureCoords()) {
+            newTextureIndices.add (getQuadChord (0, tidxs));
+            newTextureIndices.add (getQuadChord (1, tidxs));
+         }
+         if (hasExplicitColors()) {
+            newColorIndices.add (getQuadChord (0, cidxs));
+            newColorIndices.add (getQuadChord (1, cidxs));
+         }
+      }
+
+      clearFaces();
+      for (int[] idxs : newFaceIndices) {
+         addFace (idxs, /*adjustAttributes=*/false);
+      }
+
+      if (hasExplicitNormals()) {
+         setNormals (getNormals(), packIndices (newNormalIndices));
+      }
+      if (hasTextureCoords()) {
+         setTextureCoords (getTextureCoords(), packIndices (newTextureIndices));
+      }
+      if (hasExplicitColors()) {
+         setColors (getColors(), packIndices (newColorIndices));
+      }
+
+      //myNumTriangles = myFaces.size();
+      //myNumQuads = 0;
+      //myTriQuadCountsValid = true;
+      //notifyStructureChanged();
+      //checkIndexConsistency();
    }
 
    /**
@@ -2741,7 +3006,10 @@ public class PolygonalMesh extends MeshBase {
          addFace (faceIdxs.get(i));
       }
    }
-
+   
+   public void addMesh (MeshBase mesh) {
+      addMesh (mesh, /*respectTransforms=*/false);
+   }
 
    /** 
     * Adds copies of the vertices and faces of another mesh to this mesh.  If
@@ -2752,10 +3020,10 @@ public class PolygonalMesh extends MeshBase {
     * 
     * @param mesh Mesh to be added to this mesh
     */
-   public void addMesh (PolygonalMesh mesh) {
+   public void addMesh (PolygonalMesh mesh, boolean respectTransforms) {
 
       int voff = myVertices.size();
-      super.addMesh (mesh);
+      super.addMesh (mesh, respectTransforms);
 
       // EDIT: Sanchez, May 2012
       // changed order to allow texture indices to be copied over
@@ -2820,39 +3088,50 @@ public class PolygonalMesh extends MeshBase {
       }
       return len/nume;
    }
+   
 
-   /**
-    * Returns true if the mesh is closed. This is determined by checking that
-    * all edges have a corresponding opposite edge. The mesh also needs to be
-    * manifold.
-    * 
-    * @return true if the mesh is closed
-    */
-   public boolean isClosed() {
-      if (cachedClosedValid) {
-         return cachedClosed;
-      }
-      cachedClosedValid = true;
-      cachedClosed = false;
-      if (!isManifold()) {
-         return false;
-      }
-      for (Face face : myFaces) {
-         HalfEdge he = face.he0;
-         do {
-            if (he.opposite == null) {
-               return false;
-            }
-            if (he.opposite.face == null) {
-               return false;
-            }
-            he = he.next;
-         }
-         while (he != face.he0);
-      }
-      cachedClosed = true;
-      return true;
-   }
+//   /**
+//    * Returns true if the mesh is closed. This is determined by checking that
+//    * all edges have a corresponding opposite edge. The mesh also needs to be
+//    * manifold.
+//    * 
+//    * @param debug if <code>true</code> and mesh is not closed, prints reason
+//    * @return true if the mesh is closed
+//    */
+//   public boolean isClosed (boolean debug) {
+//      if (cachedClosedValid) {
+//         return cachedClosed;
+//      }
+//      cachedClosedValid = true;
+//      cachedClosed = false;
+//      if (!isManifold(debug)) {
+//         return false;
+//      }
+//      for (Face face : myFaces) {
+//         HalfEdge he = face.he0;
+//         do {
+//            if (he.opposite == null) {
+//               if (debug) {
+//                  System.out.println (
+//                     "Open edge "+he.vertexStr()+" on face "+face.getIndex());
+//               }
+//               return false;
+//            }
+//            if (he.opposite.face == null) {
+//               if (debug) {
+//                  System.out.println (
+//                     "Open edge (null face) "+he.toString()+
+//                     " on face "+face.getIndex());
+//               }
+//               return false;
+//            }
+//            he = he.next;
+//         }
+//         while (he != face.he0);
+//      }
+//      cachedClosed = true;
+//      return true;
+//   }
 
    public ArrayList<Face> findBorderFaces() {
       ArrayList<Face> border = new ArrayList<Face>();
@@ -3846,5 +4125,96 @@ public class PolygonalMesh extends MeshBase {
          return true;
       }
    }
+
+   public void printDegenerateFaces() {
+      double atol = computeArea()*Math.sqrt(2.0/numFaces())*1e-13;
+      for (Face f : myFaces) {
+         double area = f.computeArea();
+         if (area < atol) {
+            System.out.println ("face "+f.getIndex()+": "+f.vertexStr()+" "+area);
+         }
+      }
+   }
+
+   /**
+    * Prints topological degeneracies associated with this mesh. Which
+    * degeneracies to print are determined by the flags in
+    * <code>printCode</code>:
+    *
+    * <dl>
+    * <dt> {@link #NON_MANIFOLD_EDGES}
+    * <dt> {@link #NON_MANIFOLD_VERTICES}
+    * <dt> {@link #OPEN_EDGES}
+    * <dt> {@link #ISOLATED_VERTICES}
+    * </dl>
+    */
+   public void printDegeneracies (int printCode) {
+
+      updateTopologyPredicates (printCode);
+
+   }
+
+   public void printDegeneracies() {
+
+      HashSet<Vertex3d> adjacentVertices = new HashSet<Vertex3d>();
+      // check to see all faces around each vertex form a fan
+      for (int i=0; i<myVertices.size(); i++) {
+         Vertex3d vtx = myVertices.get(i);
+
+         Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
+         if (it.hasNext()) {
+            int nume = 0;
+            HalfEdge he0 = vtx.firstIncidentHalfEdge();            
+            adjacentVertices.clear();
+            while (it.hasNext()) {
+               HalfEdge he = it.next();
+               if (adjacentVertices.contains(he.tail)) {
+                  // there is more than one edge involving this tail
+                  System.out.println (
+                     "Multiple edges between "+he.head.getIndex()+
+                     " and "+he.tail.getIndex());
+
+               }
+               adjacentVertices.add (he.tail);
+               if (he.opposite == null) {
+                  // boundary edge; use this to start fan traverse.
+                  // otherwise, any edge will do.
+                  he0 = he;
+               }
+               nume++;
+            }
+            HalfEdge heNext = he0.next.opposite;
+            int cnt = 1;
+            while (heNext != null && heNext.head == vtx && heNext != he0) {
+               heNext = heNext.next.opposite;
+               cnt++;
+            }
+            if (cnt != nume) {
+               // some half edges can't be reached by traverse, so not a fan
+               System.out.println (
+                  "Vertex "+vtx.getIndex()+
+                  " has open edges ("+nume+" vs "+cnt+")");
+            }
+         }
+      }
+      for (Face face : myFaces) {
+         HalfEdge he = face.he0;
+         do {
+            if (he.opposite == null) {
+               System.out.println (
+                  "Open edge "+he.vertexStr()+" on face "+face.getIndex());
+            }
+            else if (he.opposite.face == null) {
+               System.out.println (
+                  "Open edge (null face) "+he.toString()+
+                  " on face "+face.getIndex());
+            }
+            he = he.next;
+         }
+         while (he != face.he0);
+      }
+
+   }
+
    
 }

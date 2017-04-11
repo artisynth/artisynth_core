@@ -159,7 +159,6 @@ public abstract class IndexBufferPutter {
    
    /**
     * Creates the most compact putter given a maximum index
-    * @param maxIndex
     */
    public static IndexBufferPutter getDefault(int maxIndex) {
       if (maxIndex <= ((long)Byte.MAX_VALUE-(long)Byte.MIN_VALUE)) {

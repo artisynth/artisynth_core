@@ -176,6 +176,7 @@ class VectorNdTest extends VectorTest {
 //    }
 
    public void execute() {
+      VectorNd vr_0 = new VectorNd (0);
       VectorNd vr_2 = new VectorNd (2);
       VectorNd vr_9 = new VectorNd (9);
       VectorNd vr_11 = new VectorNd (11);
@@ -192,6 +193,8 @@ class VectorNdTest extends VectorTest {
       RandomGenerator.setSeed (0x1234);
 
       testGeneric (v1_9);
+      testGeneric (vr_2);
+      testGeneric (vr_0);
       testSetZero (vr_9);
 
       for (int i = 0; i < 100; i++) {
@@ -226,6 +229,12 @@ class VectorNdTest extends VectorTest {
          testScale (vr_9, 1.23, v1_9);
          testScale (vr_9, 1.23, v1_11);
          testScale (vr_9, 1.23, vr_9);
+
+         testScaledAdd (vr_9, 3.0, v1_9, v2_9);
+         testScaledAdd (vr_9, -6.7, v1_9, v2_11);
+         testScaledAdd (vr_9, 11.0, v1_11, v2_9);
+         testScaledAdd (vr_9, 9.0, v1_11, v2_11);
+         testScaledAdd (vr_9, 12.5, vr_9, vr_9);
 
          testSet (vr_9, v1_9);
          testSet (vr_9, v1_11);

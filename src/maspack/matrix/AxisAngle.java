@@ -16,7 +16,7 @@ import maspack.util.NumberFormat;
  * 
  * <p>
  * In order to keep the representation unique, the axis is normalized and the
- * angle is kept in the range 0 <= angle < Math.PI.
+ * angle is kept in the range 0 {@code <=} angle {@code <} Math.PI.
  */
 public class AxisAngle {
    private static double DOUBLE_PREC = 2.220446049250313e-16;

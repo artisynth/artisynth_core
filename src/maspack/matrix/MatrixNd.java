@@ -328,14 +328,15 @@ LinearTransformNd, Clonable {
     * Explicitly sets the size and internal buffer associated with this matrix.
     * Any previous values will be discarded, and the matrix will assume new
     * values with each element (i,j) given by the buffer contents at index
-    * <code>[i*bufWidth+j]</code>. In particular, <code>bufWidth</code>
-    * must satisfy <code>bufWidth >= numCols</code>, and the length of
+    * <code>[i*bufWidth+j]</code>. In particular, <code>bufWidth</code> must
+    * satisfy {@code bufWidth >= numCols}, and the length of
     * <code>buffer</code> must satisfy
-    * <code>buffer.length >= numRows*bufWidth</code>. The matrix can continue
-    * to be resized as long as requested sizes stay do not violate these bounds.
-    * The value of <code>bufWidth</code> will become the value returned by
-    * {@link #getBufferWidth getBufferWidth}, while the value returned by
-    * {@link #getBufferBase getBufferBase} will be 0.
+    * {@code buffer.length >= numRows*bufWidth}.
+    * The matrix can continue to be resized as long as
+    * requested sizes stay do not violate these bounds.  The value of
+    * <code>bufWidth</code> will become the value returned by {@link
+    * #getBufferWidth getBufferWidth}, while the value returned by {@link
+    * #getBufferBase getBufferBase} will be 0.
     * 
     * @param numRows
     * new row size

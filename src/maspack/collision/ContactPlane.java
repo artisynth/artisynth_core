@@ -96,7 +96,8 @@ public class ContactPlane {
 //   }
 //
    public boolean build (
-      PenetrationRegion region0, PenetrationRegion region1, double pointTol) {
+      PenetrationRegion region0, PenetrationRegion region1, 
+      PolygonalMesh mesh0, double pointTol) {
       contour = null;
       if (region0.myContours.size() == 1) {
          IntersectionContour c = region0.getFirstContour();
@@ -133,18 +134,18 @@ public class ContactPlane {
       }
       pointTolerance = pointTol;
       if (contour != null) {
-         return compute(region0, region1);
+         return compute(region0, region1, mesh0);
       }
       else {
          return false;
       }
    }
    
-   public ContactPlane (
-      PenetrationRegion region0, PenetrationRegion region1, double pointTol) {
-      build (region0, region1, pointTol);
-   }
-
+//   public ContactPlane (
+//      PenetrationRegion region0, PenetrationRegion region1, double pointTol) {
+//      build (region0, region1, pointTol);
+//   }
+//
    double turn (Point3d p0, Point3d p1, Point3d p2, Vector3d nrm) {
       Vector3d del01 = new Vector3d();
       Vector3d del12 = new Vector3d();
@@ -156,7 +157,9 @@ public class ContactPlane {
       return xprod.dot (nrm);
    }
 
-   boolean compute (PenetrationRegion region0, PenetrationRegion region1) {
+   boolean compute (
+      PenetrationRegion region0, PenetrationRegion region1, 
+      PolygonalMesh mesh0) {
 
       Vector3d areaVec = new Vector3d();
       mPoints = contour.fitPlane (areaVec, centroid, epsilonPointTolerance);
@@ -171,13 +174,13 @@ public class ContactPlane {
          normal.normalize (areaVec);
          //normal.negate();
          // Fit a plane to the contour.
-         if (!normalContact (region0, region1)) {
+         if (!normalContact (region0, region1, mesh0)) {
             return false;
          }
       }
       else {
-         int v0s = region0.numInsideVertices();
-         int v1s = region1.numInsideVertices();
+         int v0s = region0.numVertices();
+         int v1s = region1.numVertices();
          int vTot = v0s + v1s;
     
          if ((v0s == 0 || v1s == 0) & (vTot == 1 || vTot == 2)) {
@@ -187,7 +190,7 @@ public class ContactPlane {
          }
          else {
             if (vTot == 0) {
-               if (!edgeEdgeContact(region0, region1)) {
+               if (!edgeEdgeContact(region0, region1, mesh0)) {
                   return false;
                }
             }
@@ -200,8 +203,8 @@ public class ContactPlane {
                 */
                System.out.println (
                   "non-edge-edge contact with v0s=" + v0s +
-                  " v1s=" + v1s + " f0s=" + region0.numInsideFaces() +
-                  " f1s=" + region1.numInsideFaces());
+                  " v1s=" + v1s + " f0s=" + region0.numFaces() +
+                  " f1s=" + region1.numFaces());
                return false;
             }
          }
@@ -238,7 +241,8 @@ public class ContactPlane {
     * to define a plane. and there are no penetrating vertices in either region.
     */
    boolean edgeEdgeContact (
-      PenetrationRegion region0, PenetrationRegion region1) {
+      PenetrationRegion region0, PenetrationRegion region1, 
+      PolygonalMesh mesh0) {
       HashSet<HalfEdge> edges = new HashSet<HalfEdge>();
       for (IntersectionPoint mip : contour)
          edges.add (mip.edge);
@@ -275,7 +279,7 @@ public class ContactPlane {
       depth = Math.abs (c.dot (vedge0)) / vedge0.norm();
       minProjectedDistance = maxProjectedDistance = 0;
       checkNormalDirection (
-         region0.getInsideFaces(), region1.getInsideFaces());
+         region0.getFaces(), region1.getFaces(), mesh0);
       return true;
    }
 
@@ -291,26 +295,34 @@ public class ContactPlane {
     * determining sense of direction.
     */
    void checkNormalDirection (
-      LinkedHashSet<Face> faces0, LinkedHashSet<Face> faces1) {
+      LinkedHashSet<Face> faces0, LinkedHashSet<Face> faces1,
+      PolygonalMesh mesh0) {
+      
       Vector3d tmp = new Vector3d(), tot = new Vector3d();
       IntersectionPoint c0 = contour.get (contour.size()-1);
+      boolean c0EdgeOnMesh0 = 
+         SurfaceMeshIntersector.edgeOnMesh (c0.edge, mesh0);
+      
       /*
        * Find each pair of interlocking triangles, one from each region, and add
        * its contribution to the total.
        */
       for (IntersectionPoint c1 : contour) {
-         if (c0.edgeOnMesh0 != c1.edgeOnMesh0) {
+         boolean c1EdgeOnMesh0 = 
+            SurfaceMeshIntersector.edgeOnMesh (c1.edge, mesh0);
+         if (c0EdgeOnMesh0 != c1EdgeOnMesh0) {
             tmp.sub (c1, c0);
             // edgeRegion=true ==> edge is mesh0, face is mesh1,
             // c0 is in interior of a face in mesh1, c1 is in interior of a face
             // in mesh0
-            if (c0.edgeOnMesh0) {
+            if (c0EdgeOnMesh0) {
                tot.add (tmp);
             }
             else {
                tot.sub (tmp);
             }
          }
+         c0EdgeOnMesh0 = c1EdgeOnMesh0;
          c0 = c1;
       }
       if (normal.dot (tot) < 0) {
@@ -328,13 +340,13 @@ public class ContactPlane {
       LinkedHashSet<Face> fs;
       LinkedHashSet<Vertex3d> vs;
 
-      if (region0.numInsideVertices() > 0) {
-         vs = region0.myInsideVertices;
-         fs = region1.getInsideFaces();
+      if (region0.numVertices() > 0) {
+         vs = region0.myVertices;
+         fs = region1.getFaces();
       }
       else {
-         vs = region1.myInsideVertices;
-         fs = region0.getInsideFaces();
+         vs = region1.myVertices;
+         fs = region0.getFaces();
       }
       depth = 0;
       for (Vertex3d v : vs) {
@@ -359,7 +371,8 @@ public class ContactPlane {
     * define a plane.
     */
    boolean normalContact(
-      PenetrationRegion region0, PenetrationRegion region1) {
+      PenetrationRegion region0, PenetrationRegion region1,
+      PolygonalMesh mesh0) {
 
       /*
        * Project each point into the plane. Calculate the radius of the
@@ -434,9 +447,9 @@ public class ContactPlane {
        * If the contour is too confusing to distinguish a direction then throw
        * an error.
        */
-      if (region0.numInsideVertices() + region1.numInsideVertices() == 0) {
+      if (region0.numVertices() + region1.numVertices() == 0) {
          checkNormalDirection (
-            region0.getInsideFaces(), region1.getInsideFaces());
+            region0.getFaces(), region1.getFaces(), mesh0);
       }
       else {
          double dTotal = 0;
@@ -446,7 +459,7 @@ public class ContactPlane {
          Vector2d coords = new Vector2d();
          Vector3d diff = new Vector3d();
          
-         for (Vertex3d v : region0.myInsideVertices) {
+         for (Vertex3d v : region0.myVertices) {
             v.getWorldPoint (wpnt);
             if (query.isInsideOrientedMesh (region1.myMesh, wpnt, 0)) {
                query.getFaceForInsideOrientedTest (nearest, coords);
@@ -464,7 +477,7 @@ public class ContactPlane {
             }               
          }
          
-         for (Vertex3d v : region1.myInsideVertices) {
+         for (Vertex3d v : region1.myVertices) {
             v.getWorldPoint (wpnt);
             if (query.isInsideOrientedMesh (region0.myMesh, wpnt, 0)) {
                query.getFaceForInsideOrientedTest (nearest, coords);

@@ -26,7 +26,7 @@ public class ArraySort {
 
    /** 
     * Sorts a subregion of an array of integers into ascending order.
-    * The subregion is defined by left <= i <= right. The method chooses
+    * The subregion is defined by left &lt;= i &lt;= right. The method chooses
     * between quicksort and bubble sort depending on the size of the input.
     * 
     * @param keys integers containing the subregion to sort
@@ -60,7 +60,7 @@ public class ArraySort {
    /** 
     * Sorts a subregion of an array of integers into ascending order,
     * and correspondingly rearranges the same subregion of an accompanying
-    * array of values. The subregion is defined by left <= i <= right. The
+    * array of values. The subregion is defined by left &lt;= i &lt;= right. The
     * method chooses between quicksort and bubble sort depending on the size of
     * the input.
     * 
@@ -92,7 +92,7 @@ public class ArraySort {
 
    /** 
     * Performs a bubble sort on a subregion of an array of integers
-    * into ascending order. The subregion is defined by left <= i <= right.
+    * into ascending order. The subregion is defined by left &lt;= i &lt;= right.
     * 
     * @param keys integers containing the subregion to sort
     * @param left lower inclusive bound of the subregion
@@ -131,7 +131,7 @@ public class ArraySort {
    /** 
     * Performs a bubble sort on a subregion of an array of integers into
     * ascending order, and correspondingly rearranges the same subregion of an
-    * accompanying array of values. The subregion is defined by left <= i <=
+    * accompanying array of values. The subregion is defined by left &lt;= i &lt;=
     * right.
     * 
     * @param keys integers containing the subregion to sort
@@ -239,7 +239,7 @@ public class ArraySort {
 
    /** 
     * Performs a quicksort on a subregion of an array of integers into
-    * ascending order. The subregion is defined by left <= i <= right.
+    * ascending order. The subregion is defined by left &lt;= i &lt;= right.
     * 
     * @param keys integers containing the subregion to sort
     * @param left lower inclusive bound of the subregion
@@ -266,7 +266,7 @@ public class ArraySort {
    /** 
     * Performs a quicksort on a subregion of an array of integers into
     * ascending order, and correspondingly rearranges the same subregion of an
-    * accompanying array of values. The subregion is defined by left <= i <=
+    * accompanying array of values. The subregion is defined by left &lt;= i &lt;=
     * right.
     * 
     * @param keys integers containing the subregion to sort
@@ -372,7 +372,7 @@ public class ArraySort {
 
    /** 
     * Performs a quicksort on a subregion of an array of doubles into ascending
-    * order.  The subregion is defined by left <= i <= right.
+    * order.  The subregion is defined by left &lt;= i &lt;= right.
     * 
     * @param vals doubles containing the subregion to sort
     * @param left lower inclusive bound of the subregion
@@ -399,7 +399,7 @@ public class ArraySort {
    /** 
     * Performs a quicksort on a subregion of an array of doubles into ascending
     * order, and correspondingly rearranges the same subregion of an
-    * accompanying array of keys. The subregion is defined by left <= i <=
+    * accompanying array of keys. The subregion is defined by left &lt;= i &lt;=
     * right.
     * 
     * @param vals array of values containing the subregion to sort

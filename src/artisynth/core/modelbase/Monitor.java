@@ -10,6 +10,9 @@ public interface Monitor extends ModelAgent, HasState {
 
    /**
     * Called at the end of a {@code RootModel}'s advance procedure
+    *
+    * @param t0 time at start of step
+    * @param t1 time at end of step
     */
    public void apply (double t0, double t1);
 

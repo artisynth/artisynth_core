@@ -159,6 +159,25 @@ SpringMeshDemo}. However, most of what can be achieved using command
 options can also be achieved by directly accessing ArtiSynth
 structures or calling handle methods.
 
+%
+\begin{sideblock}
+Note: at present, if the ArtiSynth GUI is suppressed using the {\tt
+-noGui} option, then models must be specified using their fully
+qualified class names. For {\tt SpringMeshDemo}, this is {\tt
+artisynth.demos.mech.SpringMeshDemo}, and so with the {\tt -noGui}
+option the above example would have to be invoked as follows:
+%
+\begin{verbatim}
+   >>> ah = artisynth('-noGui', '-model', 'artisynth.demos.mech.SpringMeshDemo')
+\end{verbatim}
+%
+This is because abbreviated model names are recognized only if
+ArtiSynth creates the {\sf Model} menu, which it does not do if the
+GUI is not invoked. This restriction may change in future versions of
+ArtiSynth.
+\end{sideblock}
+%
+
 To exit ArtiSynth, you can either select {\sf File > Quit} in the
 ArtiSynth GUI, or use the {\tt quit()} method supplied by the handle,
 as in

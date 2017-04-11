@@ -54,6 +54,7 @@ import maspack.geometry.MeshBase;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.SignedDistanceGrid;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
@@ -443,7 +444,9 @@ implements CollidableBody, PointAttachable {
       if (elems.size() != 1) {
          FemElement3d[] elemArray = elems.toArray(new FemElement3d[0]);
          int[] idxs = face.getVertexIndices();
-         System.out.print ("Error: couldn't get element for face [ ");
+         System.out.print (
+            "Error in FemMeshComp.getFaceElement(): " +
+            " couldn't isolate element for face [ ");
          for (int i=0; i<idxs.length; i++) {
             System.out.print ("" + idxs[i]+" ");
          }
@@ -762,79 +765,81 @@ implements CollidableBody, PointAttachable {
       HashMap<EdgeDesc,Vertex3d[]> edgeVtxMap =
          new HashMap<EdgeDesc,Vertex3d[]>();
 
-         // get newly empty mesh
-         PolygonalMesh surfMesh = (PolygonalMesh)getMesh();
-         //myNodeVertexMap.clear();
+      // get newly empty mesh
+      PolygonalMesh surfMesh = (PolygonalMesh)getMesh();
+      //myNodeVertexMap.clear();
 
-         for (Vertex3d vtx : baseVertices) {
-            FemNode3d node = getNodeForVertex (baseAttachments.get(vtx.getIndex()));
-            createVertex (node, vtx);
-            //myNodeVertexMap.put (node, newVtx);
+      for (Vertex3d vtx : baseVertices) {
+         FemNode3d node =
+            getNodeForVertex (baseAttachments.get(vtx.getIndex()));
+         createVertex (node, vtx);
+         //myNodeVertexMap.put (node, newVtx);
+      }
+      System.out.println ("num base faces: " + baseFaces.size());
+      for (int k=0; k<baseFaces.size(); k++) {
+         Face face = baseFaces.get(k);
+         // store sub vertices for the face in the upper triangular half of
+         // subv.
+         MeshFactory.VertexSet subv = new MeshFactory.VertexSet (numv);
+
+         FemElement3d elem = getFaceElement (face);
+         if (elem == null) {
+            continue;
          }
-         for (int k=0; k<baseFaces.size(); k++) {
-            Face face = baseFaces.get(k);
-            // store sub vertices for the face in the upper triangular half of
-            // subv.
-            MeshFactory.VertexSet subv = new MeshFactory.VertexSet (numv);
 
-            FemElement3d elem = getFaceElement (face);
-            if (elem == null) {
-               continue;
+         HalfEdge he = face.firstHalfEdge();
+         Vertex3d v0 = (Vertex3d)he.getHead();
+         FemNode3d n0 = getNodeForVertex(baseAttachments.get(v0.getIndex()));
+         he = he.getNext();
+         Vertex3d v1 = (Vertex3d)he.getHead();
+         FemNode3d n1 = getNodeForVertex(baseAttachments.get(v1.getIndex()));
+         he = he.getNext();
+         Vertex3d v2 = (Vertex3d)he.getHead();
+         FemNode3d n2 = getNodeForVertex(baseAttachments.get(v2.getIndex()));
+
+         subv.set (0, 0, getVertex(v0.getIndex()));
+         subv.set (0, numv-1, getVertex(v2.getIndex()));
+         subv.set (numv-1, numv-1, getVertex(v1.getIndex()));
+
+         Vertex3d[] vtxs01 = collectEdgeVertices (
+            edgeVtxMap, v0, v1, n0, n1, elem, resolution);
+         for (int i=1; i<numv-1; i++) {
+            subv.set (i, i, vtxs01[i]);
+         }
+         Vertex3d[] vtxs02 = collectEdgeVertices (
+            edgeVtxMap, v0, v2, n0, n2, elem, resolution);
+         for (int j=1; j<numv-1; j++) {
+            subv.set (0, j, vtxs02[j]);
+         }
+         Vertex3d[] vtxs21 = collectEdgeVertices (
+            edgeVtxMap, v2, v1, n2, n1, elem, resolution);
+         for (int i=1; i<numv-1; i++) {
+            subv.set (i, numv-1, vtxs21[i]);
+         }
+
+         for (int i=1; i<numv-1; i++) {
+            for (int j=i+1; j<numv-1; j++) {
+               double s1 = i/(double)resolution;
+               double s0 = 1-j/(double)resolution;
+               Vertex3d vtx = createVertex (s0, s1, 1-s0-s1, elem, n0, n1, n2);
+               subv.set (i, j, vtx);
             }
+         }
 
-            HalfEdge he = face.firstHalfEdge();
-            Vertex3d v0 = (Vertex3d)he.getHead();
-            FemNode3d n0 = getNodeForVertex(baseAttachments.get(v0.getIndex()));
-            he = he.getNext();
-            Vertex3d v1 = (Vertex3d)he.getHead();
-            FemNode3d n1 = getNodeForVertex(baseAttachments.get(v1.getIndex()));
-            he = he.getNext();
-            Vertex3d v2 = (Vertex3d)he.getHead();
-            FemNode3d n2 = getNodeForVertex(baseAttachments.get(v2.getIndex()));
-
-            subv.set (0, 0, getVertex(v0.getIndex()));
-            subv.set (0, numv-1, getVertex(v2.getIndex()));
-            subv.set (numv-1, numv-1, getVertex(v1.getIndex()));
-
-            Vertex3d[] vtxs01 = collectEdgeVertices (
-               edgeVtxMap, v0, v1, n0, n1, elem, resolution);
-            for (int i=1; i<numv-1; i++) {
-               subv.set (i, i, vtxs01[i]);
-            }
-            Vertex3d[] vtxs02 = collectEdgeVertices (
-               edgeVtxMap, v0, v2, n0, n2, elem, resolution);
-            for (int j=1; j<numv-1; j++) {
-               subv.set (0, j, vtxs02[j]);
-            }
-            Vertex3d[] vtxs21 = collectEdgeVertices (
-               edgeVtxMap, v2, v1, n2, n1, elem, resolution);
-            for (int i=1; i<numv-1; i++) {
-               subv.set (i, numv-1, vtxs21[i]);
-            }
-
-            for (int i=1; i<numv-1; i++) {
-               for (int j=i+1; j<numv-1; j++) {
-                  double s1 = i/(double)resolution;
-                  double s0 = 1-j/(double)resolution;
-                  Vertex3d vtx = createVertex (s0, s1, 1-s0-s1, elem, n0, n1, n2);
-                  subv.set (i, j, vtx);
-               }
-            }
-
-            subv.check();
-            for (int i=0; i<resolution; i++) {
-               for (int j=i; j<resolution; j++) {
+         subv.check();
+         for (int i=0; i<resolution; i++) {
+            for (int j=i; j<resolution; j++) {
+               surfMesh.addFace (
+                  subv.get(i,j), subv.get(i+1,j+1), subv.get(i,j+1));
+               if (i != j) {
                   surfMesh.addFace (
-                     subv.get(i,j), subv.get(i+1,j+1), subv.get(i,j+1));
-                  if (i != j) {
-                     surfMesh.addFace (
-                        subv.get(i,j), subv.get(i+1,j), subv.get(i+1,j+1));
-                  }
+                     subv.get(i,j), subv.get(i+1,j), subv.get(i+1,j+1));
                }
             }
          }
+      }
 
-         finalizeSurfaceBuild();
+      finalizeSurfaceBuild();
    }
 
    //   public static FemMeshComp createSurface (FemModel3d fem, int resolution) {
@@ -933,17 +938,6 @@ implements CollidableBody, PointAttachable {
    //Throwable throwable = null;
 
    public void createSurface (Collection<FemElement3d> elems) {
-
-      // if (throwable != null) {
-      //    System.out.println ("already inside createSurface.");
-      //    System.out.println ("prev:");
-      //    throwable.printStackTrace();
-      //    System.out.println ("now:");
-      //    (new Throwable()).printStackTrace();
-      // }
-      // else {
-      //    throwable = new Throwable();
-      // }
 
       initializeSurfaceBuild();
       // nodeVertexMap is used during the construction of this surface,
@@ -1645,6 +1639,16 @@ implements CollidableBody, PointAttachable {
       if (mesh instanceof PolygonalMesh) {
          return (PolygonalMesh)mesh;
       }
+      return null;
+   }
+   
+   @Override
+   public boolean hasDistanceGrid() {
+      return false;
+   }
+   
+   @Override   
+   public SignedDistanceGrid getDistanceGrid() {
       return null;
    }
 

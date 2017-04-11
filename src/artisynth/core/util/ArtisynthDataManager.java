@@ -60,16 +60,18 @@ public class ArtisynthDataManager {
    }
    
    /**
-    * Root directory of remote filesystem
-    * @param remote
+    * Sets the root directory of the remote filesystem
+    * 
+    * @param remote remote file system root directory
     */
    public void setRemoteRoot(String remote) {
       manager.setRemoteSource(remote);
    }
    
    /**
-    * Local directory to download files to
-    * @param file
+    * Sets the local directory to download files to
+    * 
+    * @param file local directory for downloading files
     */
    public void setLocalRoot(File file) {
       if (!file.exists()) {
@@ -110,17 +112,22 @@ public class ArtisynthDataManager {
    
    /**
     * Gets the current en/de-cryptor to be used for storing passwords.
-    * If no cryptor was set, we use a default one provided by VFS2 
+    * If no cryptor was set, we use a default one provided by VFS2
+    *
+    * @return cryptor for storing passwords
     */
    public Cryptor getCryptor() {
       if (cryptor == null) {
-         return new VFSCryptor(org.apache.commons.vfs2.util.CryptorFactory.getCryptor());
+         return new VFSCryptor(
+            org.apache.commons.vfs2.util.CryptorFactory.getCryptor());
       }
       return cryptor;
    }
    
    /**
-    * Set username and password credentials.  The password here is assumed to be in plaintext.
+    * Set username and password credentials.  The password here is assumed to
+    * be in plaintext.
+    *
     * @param username user name
     * @param password plaintext password
     */
@@ -211,8 +218,9 @@ public class ArtisynthDataManager {
    }
    
    /**
-    * Get file with path relative to storage root
-    * @param filename
+    * Get file with path relative to storage root.
+    * 
+    * @param filename file path name relative to storage root
     * @return link to local file
     */
    public File getFile(String filename) {

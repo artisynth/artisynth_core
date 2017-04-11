@@ -33,7 +33,7 @@ public interface TransformGeometryAction {
     * the transformables in the context.
     * 
     * @param gtr transformer implementing the transform
-    * @param context 
+    * @param context context issuing this call
     * @param flags specifies conditions associated with the transformation.
     * At present, the available flags are 
     * {@link TransformableGeometry#TG_SIMULATING} and 

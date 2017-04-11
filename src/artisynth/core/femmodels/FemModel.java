@@ -437,6 +437,8 @@ public abstract class FemModel extends MechSystemBase
 
    /**
     * Sets the Rayleigh damping coefficient associated with the FEM's mass
+    *
+    * @param d new mass damping
     */
    public void setMassDamping(double d) {
       setParticleDamping(d);
@@ -444,6 +446,8 @@ public abstract class FemModel extends MechSystemBase
    
    /**
     * Gets the Rayleigh damping coefficient associated with the FEM's mass
+    *
+    * @return mass damping value
     */
    public double getMassDamping() {
       return getParticleDamping();
@@ -451,6 +455,8 @@ public abstract class FemModel extends MechSystemBase
    
    /**
     * Sets the Rayleigh damping coefficient associated with the FEM's stiffness
+    *
+    * @param d new stiffness damping
     */
    public void setStiffnessDamping (double d) {
       myStiffnessDamping = d;
@@ -458,6 +464,8 @@ public abstract class FemModel extends MechSystemBase
 
    /**
     * Gets the Rayleigh damping coefficient associated with the FEM's stiffness
+    *
+    * @return stiffness damping value
     */
    public double getStiffnessDamping() {
       return myStiffnessDamping;
@@ -865,6 +873,13 @@ public abstract class FemModel extends MechSystemBase
          mass += n.getMass();
       }
       return mass;
+   }
+
+   public void printNodeMasses(int num) {
+      for (int i=0; i<num&&i<getNodes().size(); i++) {
+         FemNode n = getNodes().get(i);
+         System.out.println (" "+i+" "+n.getMass());
+      }
    }
 
    public double getEnergy() {

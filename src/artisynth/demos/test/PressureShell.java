@@ -96,8 +96,8 @@ public class PressureShell extends RootModel {
          MeshFactory.createIcosahedralSphere (radius, /*num divisions=*/2);
 
       // create a FEM shell by extruding the mesh faces
-      FemModel3d fem = FemFactory.createHexWedgeExtrusion (
-         null, /*num layers=*/1, thickness, mesh, null);
+      FemModel3d fem = FemFactory.createExtrusion (
+         null, /*num layers=*/1, thickness, 0, mesh);
       fem.setDensity (density);
       fem.setSurfaceRendering (FemModel3d.SurfaceRender.Shaded);
       fem.setMaterial (new LinearMaterial (50000, 0.49));

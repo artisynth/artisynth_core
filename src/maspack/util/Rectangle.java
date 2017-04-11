@@ -14,10 +14,6 @@ public class Rectangle {
 
    /**
     * Rectangle given a position (x,y) and dimensions (w,h).
-    * @param x
-    * @param y
-    * @param w
-    * @param h
     */
    public Rectangle(int x, int y, int w, int h) {
       this.x = x;

@@ -260,6 +260,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       myCollisionManager = new CollisionManager(this);
       myCollisionManager.setName ("collisionManager");
 
+      addFixed (myRenderables);
       addFixed (myModels);
       addFixed (myParticles);
       addFixed (myPoints);
@@ -275,7 +276,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       addFixed (myFrameSprings);
       addFixed (myForceEffectors);
       addFixed (myExciterList);
-      addFixed (myRenderables);
 
       addFixed (myCollisionManager);         
  
@@ -360,6 +360,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    /**
     * Computes a default value for the penetration tolerance based
     * on the radius of this MechModel.
+    *
+    * @return default penetration tolerance
     */
    public double computeDefaultPenetrationTol() {
       double tol = 0.0001;
@@ -576,6 +578,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * @param c1 second collidable
     * @param enabled if true, enables collisions
     * @param mu friction coefficient (ignored if enabled is false)
+    * @return {@link CollisionBehavior} object describing the collision
+    * behavior
     */
    public CollisionBehavior setCollisionBehavior (
       Collidable c0, Collidable c1, boolean enabled, double mu) {

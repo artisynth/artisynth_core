@@ -4,7 +4,7 @@ import maspack.properties.PropertyList;
 
 /** 
  * The ligament model used in the University of Wisconsin knee model.
- * Based on: Blankevoort, L., & Huiskes, R. (1991). Ligament-bone 
+ * Based on: Blankevoort, L., and Huiskes, R. (1991). Ligament-bone 
  * interaction in a three-dimensional model of the knee. 
  * Journal of Biomechanical Engineering, 113(3), 263-269.
  * 

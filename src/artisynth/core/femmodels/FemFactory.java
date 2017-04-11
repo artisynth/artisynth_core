@@ -18,16 +18,17 @@ import java.util.*;
 public class FemFactory {
 
    public enum FemElementType {
-      Tet, Hex
+      Tet, Hex, Wedge, Pyramid, QuadTet, QuadHex, QuadWedge, QuadPyramid
    }
 
+   // not currently used
    public enum FemShapingType {
       Linear, Quadratic
    }
 
-   public enum FemElemType {
-      Tet, Hex, QuadTet, QuadHex, Wedge, QuadWedge
-   }
+//   public enum FemElemType {
+//      Tet, Hex, QuadTet, QuadHex, Wedge, QuadWedge
+//   }
 
    private static void createGridNodes(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
@@ -57,8 +58,10 @@ public class FemFactory {
    }
 
    /**
-    * Create a regular tetrahedral grid centered on the origin, with specified
-    * widths and grid resolutions along each axis.
+    * Creates a regular grid composed of tet elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Tet}.
     */
    public static FemModel3d createTetGrid(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
@@ -103,8 +106,10 @@ public class FemFactory {
                                                          4 };
 
    /**
-    * Create a regular pyramidal grid centered on the origin, with specified
-    * widths and grid resolutions along each axis.
+    * Creates a regular grid composed of pyramid elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Pyramid}.
     */
    public static FemModel3d createPyramidGrid(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
@@ -151,72 +156,26 @@ public class FemFactory {
       return model;
    }
 
-   // private static void setGridEdgeHard (
-   // FemModel3d model, int i0, int j0, int k0, int i1, int j1, int k1,
-   // int numX, int numY) {
-   // int idx0 = i0 + j0 * (numX + 1) + k0 * (numX + 1) * (numY + 1);
-   // int idx1 = i1 + j1 * (numX + 1) + k1 * (numX + 1) * (numY + 1);
-   // ComponentListView<FemNode3d> nodes = model.getNodes();
-   // model.setSurfaceEdgeHard (nodes.get (idx0), nodes.get (idx1), true);
-   // }
-
-   // private static void setGridEdgesHard (
-   // FemModel3d mod, int numX, int numY, int numZ) {
-   // // Make the edges of the grid mesh hard
-   // // If each node is indexed by i,j,k, then the node pairs for
-   // // the grid edges correspond to the following index ranges:
-   // //
-   // //
-   // // parallel axis i j k
-   // //
-   // // x 0-numX 0 0
-   // // x 0-numX numY 0
-   // // x 0-numX 0 numZ
-   // // x 0-numX numY numZ
-   // //
-   // // y 0 0-numY 0
-   // // y numX 0-numY 0
-   // // y 0 0-numY numZ
-   // // y numX 0-numY numZ
-   // //
-   // // z 0 0 0-numZ
-   // // z numX 0 0-numZ
-   // // z 0 numY 0-numZ
-   // // z numX numY 0-numZ
-   // for (int i = 0; i < numX; i++) {
-   // setGridEdgeHard (mod, i, 0, 0, i + 1, 0, 0, numX, numY);
-   // setGridEdgeHard (mod, i, numY, 0, i + 1, numY, 0, numX, numY);
-   // setGridEdgeHard (mod, i, 0, numZ, i + 1, 0, numZ, numX, numY);
-   // setGridEdgeHard (mod, i, numY, numZ, i + 1, numY, numZ, numX, numY);
-   // }
-   // for (int j = 0; j < numY; j++) {
-   // setGridEdgeHard (mod, 0, j, 0, 0, j + 1, 0, numX, numY);
-   // setGridEdgeHard (mod, numX, j, 0, numX, j + 1, 0, numX, numY);
-   // setGridEdgeHard (mod, 0, j, numZ, 0, j + 1, numZ, numX, numY);
-   // setGridEdgeHard (mod, numX, j, numZ, numX, j + 1, numZ, numX, numY);
-   // }
-   // for (int k = 0; k < numZ; k++) {
-   // setGridEdgeHard (mod, 0, 0, k, 0, 0, k + 1, numX, numY);
-   // setGridEdgeHard (mod, numX, 0, k, numX, 0, k + 1, numX, numY);
-   // setGridEdgeHard (mod, 0, numY, k, 0, numY, k + 1, numX, numY);
-   // setGridEdgeHard (mod, numX, numY, k, numX, numY, k + 1, numX, numY);
-   // }
-   // }
-
+   /**
+    * Creates a regular grid composed of hex elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Hex}.
+    */
    public static FemModel3d createHexGrid(
-      FemModel3d mod, double widthX, double widthY, double widthZ, int numX,
+      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
       // clear();
 
-      if (mod != null) {
-         mod.clear();
+      if (model != null) {
+         model.clear();
       } else {
-         mod = new FemModel3d();
+         model = new FemModel3d();
       }
-      createGridNodes(mod, widthX, widthY, widthZ, numX, numY, numZ);
+      createGridNodes(model, widthX, widthY, widthZ, numX, numY, numZ);
       // System.out.println("num nodes: "+myNodes.size());
       // create all the elements
-      ComponentListView<FemNode3d> nodes = mod.getNodes();
+      ComponentListView<FemNode3d> nodes = model.getNodes();
 
       int wk = (numX + 1) * (numY + 1);
       int wj = (numX + 1);
@@ -243,7 +202,7 @@ public class FemFactory {
 
                // /* even= */(i + j + k) % 2 == 0);
 
-               mod.addElement(e);
+               model.addElement(e);
                // for (FemElement3d e : elems)
                // {
                // addElement(e);
@@ -251,20 +210,27 @@ public class FemFactory {
             }
          }
       }
-      setGridEdgesHard(mod, widthX, widthY, widthZ);
-      mod.invalidateStressAndStiffness();
-      return mod;
+      setGridEdgesHard(model, widthX, widthY, widthZ);
+      model.invalidateStressAndStiffness();
+      return model;
    }
 
+
+   /**
+    * Creates a regular grid composed of wedge elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Wedge}.
+    */
    public static FemModel3d createWedgeGrid(
-      FemModel3d mod, double widthX, double widthY, double widthZ, int numX,
+      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
       // clear();
 
-      createGridNodes(mod, widthX, widthY, widthZ, numX, numY, numZ);
+      createGridNodes(model, widthX, widthY, widthZ, numX, numY, numZ);
       // System.out.println("num nodes: "+myNodes.size());
       // create all the elements
-      ComponentListView<FemNode3d> nodes = mod.getNodes();
+      ComponentListView<FemNode3d> nodes = model.getNodes();
 
       int wk = (numX + 1) * (numY + 1);
       int wj = (numX + 1);
@@ -284,18 +250,18 @@ public class FemFactory {
                WedgeElement e1 = new WedgeElement(n0, n1, n4, n3, n2, n7);
                WedgeElement e2 = new WedgeElement(n1, n5, n4, n2, n6, n7);
 
-               mod.addElement(e1);
-               mod.addElement(e2);
+               model.addElement(e1);
+               model.addElement(e2);
             }
          }
       }
-      setGridEdgesHard(mod, widthX, widthY, widthZ);
-      mod.invalidateStressAndStiffness();
-      return mod;
+      setGridEdgesHard(model, widthX, widthY, widthZ);
+      model.invalidateStressAndStiffness();
+      return model;
    }
 
    public static FemModel3d mergeCollapsedNodes(
-      FemModel3d mod, FemModel3d orig, double epsilon) {
+      FemModel3d model, FemModel3d orig, double epsilon) {
 
       HashMap<FemNode3d,FemNode3d> pointMap =
          new HashMap<FemNode3d,FemNode3d>();
@@ -327,9 +293,9 @@ public class FemFactory {
       }
 
       // clear output model
-      mod.clear();
+      model.clear();
       for (FemNode3d node : invPointMap.keySet()) {
-         mod.addNode(node);
+         model.addNode(node);
       }
 
       FemNode3d[] elemNodes = null;
@@ -346,11 +312,11 @@ public class FemFactory {
          }
 
          newElem = createElem(elemNodes);
-         mod.addElement(newElem);
+         model.addElement(newElem);
 
       }
 
-      return mod;
+      return model;
    }
 
    private static FemNode3d[] get8Nodes(FemElement3d elem) {
@@ -498,29 +464,29 @@ public class FemFactory {
     * Creates a tet-based spherical model based on a icosahedron. The method
     * works by creating an icosahedral surface mesh and then using tetgen.
     * 
-    * @param mod empty FEM model to which elements are added; if
+    * @param model empty FEM model to which elements are added; if
     * <code>null</code> then a new model is allocated
     * @param r radius
     * @param ndivisions number of divisions used in creating the surface mesh.
     * Typical values are 1 or 2.
     * @param quality quality parameter passed to tetgen. See
     * {@link #createFromMesh} for a full description.
-    * @return the FEM model (which will be <code>mod</code> if
-    * <code>mod</code> is not <code>null</code>).
+    * @return the FEM model (which will be <code>model</code> if
+    * <code>model</code> is not <code>null</code>).
     */
    public static FemModel3d createIcosahedralSphere (
-      FemModel3d mod, double r, int ndivisions, double quality) {
+      FemModel3d model, double r, int ndivisions, double quality) {
 
       PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (
          r, Point3d.ZERO, ndivisions);
-      return createFromMesh (mod, mesh, quality);
+      return createFromMesh (model, mesh, quality);
    }
 
    /**
     * Convenience method to create a symmetric hex/wedge dominant sphere
     * using {@link #createEllipsoid}.
     * 
-    * @param mod empty FEM model to which elements are added; if
+    * @param model empty FEM model to which elements are added; if
     * <code>null</code> then a new model is allocated
     * @param r radius
     * @param nt number of nodes in each ring parallel to the equator
@@ -528,12 +494,12 @@ public class FemFactory {
     * equator (including end nodes)
     * @param ns number of nodes in each radial line extending out from
     * the polar axis (including end nodes)
-    * @return the FEM model (which will be <code>mod</code> if
-    * <code>mod</code> is not <code>null</code>).
+    * @return the FEM model (which will be <code>model</code> if
+    * <code>model</code> is not <code>null</code>).
     */
    public static FemModel3d createSphere (
-       FemModel3d mod, double r, int nt, int nl, int ns) {
-      return createEllipsoid (mod, r, r, r, nt, nl, ns);
+       FemModel3d model, double r, int nt, int nl, int ns) {
+      return createEllipsoid (model, r, r, r, nt, nl, ns);
    }
 
    /**
@@ -542,7 +508,7 @@ public class FemFactory {
     * using wedge elements at the core.  <code>rl</code> should be the longest
     * radius, and corresponds to the polar axis.
     *
-    * @param mod empty FEM model to which elements are added; if
+    * @param model empty FEM model to which elements are added; if
     * <code>null</code> then a new model is allocated
     * @param rl longest radius (also the polar radius)
     * @param rs1 first radius perpendicular to the polar axis
@@ -552,21 +518,22 @@ public class FemFactory {
     * equator (including end nodes)
     * @param ns number of nodes in each radial line extending out from
     * the polar axis (including end nodes)
-    * @return the FEM model (which will be <code>mod</code> if
-    * <code>mod</code> is not <code>null</code>).
+    * @return the FEM model (which will be <code>model</code> if
+    * <code>model</code> is not <code>null</code>).
     */
    public static FemModel3d createEllipsoid(
-      FemModel3d mod, double rl, double rs1, double rs2, int nt, int nl, int ns) {
+      FemModel3d model, 
+      double rl, double rs1, double rs2, int nt, int nl, int ns) {
 
       double dl = Math.PI / (2 * nl - 2);
       double dt = 2 * Math.PI / nt;
       double dr = 1.0 / (ns - 1);
 
       FemNode3d nodes[][][] = new FemNode3d[nt][2 * nl - 1][ns];
-      if (mod == null) {
-         mod = new FemModel3d();
+      if (model == null) {
+         model = new FemModel3d();
       } else {
-         mod.clear();
+         model.clear();
       }
 
       // generate nodes
@@ -583,7 +550,7 @@ public class FemFactory {
                for (int i = 0; i < nt; i++) {
                   nodes[i][j][k] = node;
                }
-               mod.addNode(node);
+               model.addNode(node);
             } else {
                if (j == 0) {
                   for (int i = 0; i < nt; i++) {
@@ -606,7 +573,7 @@ public class FemFactory {
                         new FemNode3d(
                            new Point3d(-rs1 * rAdj * Math.sin(dt * i), rs2
                               * rAdj * Math.cos(dt * i), l));
-                     mod.addNode(nodes[i][j][k]);
+                     model.addNode(nodes[i][j][k]);
                      // System.out.println(nodes[i][j][k].getPosition());
                   }
                }
@@ -632,30 +599,46 @@ public class FemFactory {
                node8List[7] = nodes[i][j + 1][k + 1];
 
                FemElement3d elem = createElem(node8List);
-               mod.addElement(elem);
+               model.addElement(elem);
             }
          }
       }
 
-      return mod;
+      return model;
    }
    
    /**
     * Creates a cylinder made of mostly hex elements, with wedges in the centre
-    * column
+    * column.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param l length along the z axis
+    * @param r radius in the x-y plane
+    * @param nt element resolution around the center axis
+    * @param nl element resolution along the length
+    * @param nr element resolution along the radius
+    * @return created FEM model
     */
    public static FemModel3d createCylinder(
-      FemModel3d mod, double l, double r, int nt, int nl, int nr) {
+      FemModel3d model, double l, double r, int nt, int nl, int nr) {
 
-      return createHexWedgeCylinder(mod, l, r, nt, nl, nr);
-
+      return createHexWedgeCylinder(model, l, r, nt, nl, nr);
    }
    
+   /**
+    * Creates a cylinder made of mostly hex elements, with wedges in the centre
+    * column. Identical to {@link 
+    * #createCylinder(FemModel3d,double,double,int,int,int)}.
+    */  
    public static FemModel3d createHexWedgeCylinder(
-      FemModel3d mod, double l, double r, int nt, int nl, int nr) {
+      FemModel3d model, double l, double r, int nt, int nl, int nr) {
 
-      if (mod == null) {
-         mod = new FemModel3d("cylinder");
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      else {
+         model.clear();
       }
 
       FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
@@ -674,14 +657,14 @@ public class FemFactory {
                for (int i = 0; i < nt; i++) {
                   nodes[i][j][k] = node;
                }
-               mod.addNode(node);
+               model.addNode(node);
             } else {
                for (int i = 0; i < nt; i++) {
                   double rr = r * Math.pow(dr * k, 0.7);
                   nodes[i][j][k] =
                      new FemNode3d(new Point3d(-rr * Math.sin(dt * i), rr
                         * Math.cos(dt * i), -l / 2 + j * dl));
-                  mod.addNode(nodes[i][j][k]);
+                  model.addNode(nodes[i][j][k]);
                }
             }
          }
@@ -701,7 +684,7 @@ public class FemFactory {
 
                         nodes[i][j + 1][k + 1],
                         nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k]);
-                  mod.addElement(wedge);
+                  model.addElement(wedge);
                } else {
                   // hex element
                   HexElement hex =
@@ -712,35 +695,50 @@ public class FemFactory {
 
                         nodes[i][j][k], nodes[(i + 1) % nt][j][k],
                         nodes[(i + 1) % nt][j + 1][k], nodes[i][j + 1][k]);
-                  mod.addElement(hex);
+                  model.addElement(hex);
                }
 
             }
          }
       }
 
-      return mod;
+      return model;
    }
    
    /**
-    * Creates a partial cylinder made of mostly hex elements, with wedges in the centre
-    * column
+    * Creates a partial cylinder made of mostly hex elements, with wedges in
+    * the centre column
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param l length along the z axis
+    * @param r radius in the x-y plane
+    * @param theta size of the slice, in radians
+    * @param nl element resolution along the length
+    * @param nr element resolution along the radius
+    * @param ntheta element resolution around the slice
+    * @return created FEM model
     */
    public static FemModel3d createPartialCylinder(
-      FemModel3d mod, double l, double r, double theta, int nl, int nr, int ntheta) {
+      FemModel3d model, double l, double r, double theta,
+      int nl, int nr, int ntheta) {
 
-      return createPartialHexWedgeCylinder(mod, l, r, theta, nl, nr, ntheta);
+      return createPartialHexWedgeCylinder(model, l, r, theta, nl, nr, ntheta);
 
    }
    
    public static FemModel3d createPartialHexWedgeCylinder(
-      FemModel3d mod, double l, double r, double theta, int nl, int nr, int ntheta) {
-
-      if (mod == null) {
-         mod = new FemModel3d("partial_cylinder");
+      FemModel3d model, double l, double r, double theta,
+      int nl, int nr, int ntheta) {
+ 
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      else {
+         model.clear();
       }
 
-      FemNode3d nodes[][][] = new FemNode3d[ntheta][nl][nr];
+     FemNode3d nodes[][][] = new FemNode3d[ntheta][nl][nr];
 
       double dl = l / (nl - 1);
       double dt = theta / (ntheta-1);
@@ -756,14 +754,14 @@ public class FemFactory {
                for (int i = 0; i < ntheta; i++) {
                   nodes[i][j][k] = node;
                }
-               mod.addNode(node);
+               model.addNode(node);
             } else {
                for (int i = 0; i < ntheta; i++) {
                   double rr = r * Math.pow(dr * k, 0.7);
                   nodes[i][j][k] =
                      new FemNode3d(new Point3d(-rr * Math.sin(dt * i), rr
                         * Math.cos(dt * i), -l / 2 + j * dl));
-                  mod.addNode(nodes[i][j][k]);
+                  model.addNode(nodes[i][j][k]);
                }
             }
          }
@@ -783,7 +781,7 @@ public class FemFactory {
 
                         nodes[i][j + 1][k + 1],
                         nodes[i + 1][j + 1][k + 1], nodes[i][j + 1][k]);
-                  mod.addElement(wedge);
+                  model.addElement(wedge);
                } else {
                   // hex element
                   HexElement hex =
@@ -794,27 +792,32 @@ public class FemFactory {
 
                         nodes[i][j][k], nodes[i + 1][j][k],
                         nodes[i + 1][j + 1][k], nodes[i][j + 1][k]);
-                  mod.addElement(hex);
+                  model.addElement(hex);
                }
 
             }
          }
       }
 
-      return mod;
+      return model;
    }
 
+   /**
+    * Creates a tube made of hex elements. Identical to {@link
+    * #createTube(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Hex}.
+    */
    public static FemModel3d createHexTube(
-      FemModel3d mod, double l, double rin, double rout, int nt, int nl, int nr) {
-      FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
+      FemModel3d model, double l, double rin, double rout, int nt, int nl, int nr) {
+      FemNode3d nodes[][][] = new FemNode3d[nt][nl+1][nr+1];
 
-      double dl = l / (nl - 1);
+      double dl = l / nl;
       double dt = 2 * Math.PI / nt;
-      double dr = (rout - rin) / (nr - 1);
+      double dr = (rout - rin) / nr;
       // double dr = 0.5*r;
 
-      for (int k = 0; k < nr; k++) {
-         for (int j = 0; j < nl; j++) {
+      for (int k = 0; k < nr+1; k++) {
+         for (int j = 0; j < nl+1; j++) {
             for (int i = 0; i < nt; i++) {
                nodes[i][j][k] =
                   // new FemNode3d(new Point3d(
@@ -825,16 +828,16 @@ public class FemFactory {
                   new FemNode3d(new Point3d(
                      -(rin + dr * k) * Math.sin(dt * i), (rin + dr * k)
                         * Math.cos(dt * i), -l / 2 + j * dl));
-               mod.addNode(nodes[i][j][k]);
+               model.addNode(nodes[i][j][k]);
             }
          }
       }
 
-      HexElement elems[][][] = new HexElement[nt][nl - 1][nr - 1];
+      HexElement elems[][][] = new HexElement[nt][nl][nr];
       LinkedList<HexElement> elemList = new LinkedList<HexElement>();
 
-      for (int k = 0; k < nr - 1; k++) {
-         for (int j = 0; j < nl - 1; j++) {
+      for (int k = 0; k < nr; k++) {
+         for (int j = 0; j < nl; j++) {
             for (int i = 0; i < nt; i++) {
                elems[i][j][k] =
                   new HexElement(
@@ -849,7 +852,7 @@ public class FemFactory {
                // elems[i][j][k].setParity ((i+j)%2==0 ? 1 : 0);
 
                elemList.add(elems[i][j][k]);
-               mod.addElement(elems[i][j][k]);
+               model.addElement(elems[i][j][k]);
             }
          }
       }
@@ -860,23 +863,34 @@ public class FemFactory {
             // nodes[i][0][j].setDynamic(false);
          }
       }
-      setTubeEdgesHard(mod, l, rin, rout);
-      return mod;
+      setTubeEdgesHard(model, l, rin, rout);
+      return model;
    }
 
+   /**
+    * Creates a tube made of tet elements. Identical to {@link
+    * #createTube(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Tet}.
+    */
    public static FemModel3d createTetTube(
-      FemModel3d mod, double l, double rin, double rout, int nt, int nl, int nr) {
-      // HexModel mod = new HexModel();
+      FemModel3d model, 
+      double l, double rin, double rout, int nt, int nl, int nr) {
 
-      FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
+      // round nt up to even to allow proper tesselation
+      if ((nt % 2) == 1) {
+         nt++;
+      }
+      // HexModel model = new HexModel();
 
-      double dl = l / (nl - 1);
+      FemNode3d nodes[][][] = new FemNode3d[nt][nl+1][nr+1];
+
+      double dl = l / nl;
       double dt = 2 * Math.PI / nt;
-      double dr = (rout - rin) / (nr - 1);
+      double dr = (rout - rin) / nr;
       // double dr = 0.5*r;
 
-      for (int k = 0; k < nr; k++) {
-         for (int j = 0; j < nl; j++) {
+      for (int k = 0; k < nr+1; k++) {
+         for (int j = 0; j < nl+1; j++) {
             for (int i = 0; i < nt; i++) {
                nodes[i][j][k] =
                   // new FemNode3d(new Point3d(-l/2+j*dl,
@@ -886,7 +900,7 @@ public class FemFactory {
                   new FemNode3d(new Point3d(
                      -(rin + dr * k) * Math.sin(dt * i), (rin + dr * k)
                         * Math.cos(dt * i), -l / 2 + j * dl));
-               mod.addNode(nodes[i][j][k]);
+               model.addNode(nodes[i][j][k]);
             }
          }
       }
@@ -897,35 +911,42 @@ public class FemFactory {
       // n.setPosition(new Point3d(pos));
       // }
 
-      TetElement elems[][][][] = new TetElement[nt][nl - 1][nr - 1][5];
+      TetElement elems[][][][] = new TetElement[nt][nl][nr][5];
 
-      for (int k = 0; k < nr - 1; k++) {
-         for (int j = 0; j < nl - 1; j++) {
+      for (int k = 0; k < nr; k++) {
+         for (int j = 0; j < nl; j++) {
             for (int i = 0; i < nt; i++) {
                elems[i][j][k] =
                   TetElement.createCubeTesselation(
                      nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
                      nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k + 1],
                      nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
-                        % nt][j + 1][k], nodes[i][j + 1][k], (i + j) % 2 == 0);
+                        % nt][j + 1][k], nodes[i][j + 1][k], (i + j + k) % 2 == 0);
 
-               mod.addElement(elems[i][j][k][0]);
-               mod.addElement(elems[i][j][k][1]);
-               mod.addElement(elems[i][j][k][2]);
-               mod.addElement(elems[i][j][k][3]);
-               mod.addElement(elems[i][j][k][4]);
+               model.addElement(elems[i][j][k][0]);
+               model.addElement(elems[i][j][k][1]);
+               model.addElement(elems[i][j][k][2]);
+               model.addElement(elems[i][j][k][3]);
+               model.addElement(elems[i][j][k][4]);
             }
          }
       }
 
-      // mod.getSurfaceMesh().setEdgeHard(mod.getNode(3), mod.getNode(34),
+      // model.getSurfaceMesh().setEdgeHard(model.getNode(3), model.getNode(34),
       // true);
-      setTubeEdgesHard(mod, l, rin, rout);
-      return mod;
+      setTubeEdgesHard(model, l, rin, rout);
+      return model;
    }
    
+   /**
+    * Creates a partial tube made of hex elements. Identical to
+    * {@link
+    * #createPartialTube(FemModel3d,FemElementType,double,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Hex}.
+    */
    public static FemModel3d createPartialHexTube(
-      FemModel3d mod, double l, double rin, double rout, double theta, int nl, int nr, int ntheta) {
+      FemModel3d model, double l, double rin, double rout, double theta, 
+      int nl, int nr, int ntheta) {
       FemNode3d nodes[][][] = new FemNode3d[ntheta][nl][nr];
 
       double dl = l / (nl - 1);
@@ -945,7 +966,7 @@ public class FemFactory {
                   new FemNode3d(new Point3d(
                      -(rin + dr * k) * Math.sin(dt * i), (rin + dr * k)
                         * Math.cos(dt * i), -l / 2 + j * dl));
-               mod.addNode(nodes[i][j][k]);
+               model.addNode(nodes[i][j][k]);
             }
          }
       }
@@ -968,19 +989,26 @@ public class FemFactory {
                // elems[i][j][k].setParity ((i+j)%2==0 ? 1 : 0);
 
                elemList.add(elems[i][j][k]);
-               mod.addElement(elems[i][j][k]);
+               model.addElement(elems[i][j][k]);
             }
          }
       }
       HexElement.setParities(elemList);
 
-      setTubeEdgesHard(mod, l, rin, rout);
-      return mod;
+      setTubeEdgesHard(model, l, rin, rout);
+      return model;
    }
 
+   /**
+    * Creates a partial tube made of tet elements. Identical to
+    * {@link
+    * #createPartialTube(FemModel3d,FemElementType,double,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Tet}.
+    */
    public static FemModel3d createPartialTetTube(
-      FemModel3d mod, double l, double rin, double rout, double theta, int nl, int nr, int ntheta) {
-      // HexModel mod = new HexModel();
+      FemModel3d model, double l, double rin, double rout, double theta,
+      int nl, int nr, int ntheta) {
+      // HexModel model = new HexModel();
 
       FemNode3d nodes[][][] = new FemNode3d[ntheta][nl][nr];
 
@@ -1000,7 +1028,7 @@ public class FemFactory {
                   new FemNode3d(new Point3d(
                      -(rin + dr * k) * Math.sin(dt * i), (rin + dr * k)
                         * Math.cos(dt * i), -l / 2 + j * dl));
-               mod.addNode(nodes[i][j][k]);
+               model.addNode(nodes[i][j][k]);
             }
          }
       }
@@ -1021,25 +1049,31 @@ public class FemFactory {
                      nodes[i][j][k + 1], nodes[i + 1][j][k + 1],
                      nodes[i + 1][j + 1][k + 1], nodes[i][j + 1][k + 1],
                      nodes[i][j][k], nodes[i + 1][j][k], nodes[i + 1][j + 1][k],
-                     nodes[i][j + 1][k], (i + j) % 2 == 0);
+                     nodes[i][j + 1][k], (i + j + k) % 2 == 0);
 
-               mod.addElement(elems[i][j][k][0]);
-               mod.addElement(elems[i][j][k][1]);
-               mod.addElement(elems[i][j][k][2]);
-               mod.addElement(elems[i][j][k][3]);
-               mod.addElement(elems[i][j][k][4]);
+               model.addElement(elems[i][j][k][0]);
+               model.addElement(elems[i][j][k][1]);
+               model.addElement(elems[i][j][k][2]);
+               model.addElement(elems[i][j][k][3]);
+               model.addElement(elems[i][j][k][4]);
             }
          }
       }
 
-      // mod.getSurfaceMesh().setEdgeHard(mod.getNode(3), mod.getNode(34),
+      // model.getSurfaceMesh().setEdgeHard(model.getNode(3), model.getNode(34),
       // true);
-      setTubeEdgesHard(mod, l, rin, rout);
-      return mod;
+      setTubeEdgesHard(model, l, rin, rout);
+      return model;
    }
 
+   /**
+    * Creates a hollow torus made of hex elements. Identical to {@link
+    * #createTorus(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Hex}.
+    */
    public static FemModel3d createHexTorus(
-      FemModel3d mod, double R, double rin, double rout, int nt, int nl, int nr) {
+      FemModel3d model,
+      double R, double rin, double rout, int nt, int nl, int nr) {
 
       FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
 
@@ -1061,7 +1095,7 @@ public class FemFactory {
                RM.mul(pos);
 
                nodes[i][j][k] = new FemNode3d(new Point3d(pos));
-               mod.addNode(nodes[i][j][k]);
+               model.addNode(nodes[i][j][k]);
             }
          }
       }
@@ -1081,17 +1115,32 @@ public class FemFactory {
 
                   );
 
-               mod.addElement(elems[i][j][k]);
+               model.addElement(elems[i][j][k]);
             }
          }
       }
 
-      return mod;
+      return model;
    }
 
+   /**
+    * Creates a hollow torus made of tet elements. Identical to {@link
+    * #createTorus(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Tet}.
+    */
    public static FemModel3d createTetTorus(
-      FemModel3d mod, double R, double rin, double rout, int nt, int nl, int nr) {
+      FemModel3d model,
+      double R, double rin, double rout, int nt, int nl, int nr) {
+
       FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
+      
+      // round nt and nl up to even to allow proper tesselation
+      if ((nt % 2) == 1) {
+         nt++;
+      }
+      if ((nl % 2) == 1) {
+         nl++;
+      }
 
       double dT = 2 * Math.PI / nl;
       double dt = 2 * Math.PI / nt;
@@ -1111,7 +1160,7 @@ public class FemFactory {
                RM.mul(pos);
 
                nodes[i][j][k] = new FemNode3d(new Point3d(pos));
-               mod.addNode(nodes[i][j][k]);
+               model.addNode(nodes[i][j][k]);
             }
          }
       }
@@ -1127,17 +1176,17 @@ public class FemFactory {
                         % nt][(j + 1) % nl][k], nodes[i][(j + 1) % nl][k],
                      nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
                      nodes[(i + 1) % nt][(j + 1) % nl][k + 1], nodes[i][(j + 1)
-                        % nl][k + 1], (i + j) % 2 == 0);
+                        % nl][k + 1], (i + j + k) % 2 == 0);
 
-               mod.addElement(elems[i][j][k][0]);
-               mod.addElement(elems[i][j][k][1]);
-               mod.addElement(elems[i][j][k][2]);
-               mod.addElement(elems[i][j][k][3]);
-               mod.addElement(elems[i][j][k][4]);
+               model.addElement(elems[i][j][k][0]);
+               model.addElement(elems[i][j][k][1]);
+               model.addElement(elems[i][j][k][2]);
+               model.addElement(elems[i][j][k][3]);
+               model.addElement(elems[i][j][k][4]);
             }
          }
       }
-      return mod;
+      return model;
    }
 
    private static int X_POS = 0x001;
@@ -1211,9 +1260,9 @@ public class FemFactory {
    }
 
    private static void setTubeEdgesHard(
-      FemModel3d mod, double l, double rin, double rout) {
+      FemModel3d model, double l, double rin, double rout) {
       // and now set the surface edges hard ...
-      PolygonalMesh mesh = mod.getSurfaceMesh();
+      PolygonalMesh mesh = model.getSurfaceMesh();
       // iterate through all edges in the surface mesh.
       for (Face face : mesh.getFaces()) {
          Vertex3d vtx = (Vertex3d)face.getVertex(0);
@@ -1232,17 +1281,37 @@ public class FemFactory {
       }
    }
 
-   public static FemModel3d createQuadraticTube(
-      FemModel3d mod, double l, double rin, double rout, int nt, int nl, int nr) {
-      FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
+   protected static FemModel3d createQuadraticTube(
+      FemModel3d model,
+      double l, double rin, double rout, int nt, int nl, int nr, 
+      boolean useHexes) {
+      
+      // round nt up to even to allow proper tesselation
+      if ((nt % 2) == 1) {
+         nt++;
+      }
+      // double nt, nl, nr to get the equivalent element res
+      // for a linear element tesselation. This is what we will work with
+      nt *= 2;
+      nl *= 2;
+      nr *= 2;      
 
-      double dl = l / (nl - 1);
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      else {
+         model.clear();
+      }
+      
+      FemNode3d nodes[][][] = new FemNode3d[nt][nl+1][nr+1];
+
+      double dl = l / nl;
       double dt = 2 * Math.PI / nt;
-      double dr = (rout - rin) / (nr - 1);
+      double dr = (rout - rin) / nr;
       // double dr = 0.5*r;
 
-      for (int k = 0; k < nr; k++) {
-         for (int j = 0; j < nl; j++) {
+      for (int k = 0; k < nr+1; k++) {
+         for (int j = 0; j < nl+1; j++) {
             for (int i = 0; i < nt; i++) {
                nodes[i][j][k] =
                   // new FemNode3d(new Point3d(
@@ -1258,91 +1327,136 @@ public class FemFactory {
          }
       }
 
-      QuadtetElement qelems[][][][] =
-         new QuadtetElement[nt / 2][(nl - 1) / 2][(nr - 1) / 2][5];
-
-      for (int k = 0; k < nr - 2; k += 2) {
-         for (int j = 0; j < nl - 2; j += 2) {
+      for (int k = 0; k < nr - 1; k += 2) {
+         for (int j = 0; j < nl - 1; j += 2) {
             for (int i = 0; i < nt; i += 2) {
+               if (useHexes) {
+                  FemNode3d enodes[] = new FemNode3d[] 
+                    {
+                    nodes[i][j][k+2],
+                    nodes[(i+2)%nt][j][k+2],
+                    nodes[(i+2)%nt][j+2][k+2],
+                    nodes[i][j+2][k+2],
+                    nodes[i][j][k],
+                    nodes[(i+2)%nt][j][k],
+                    nodes[(i+2)%nt][j+2][k],
+                    nodes[i][j+2][k],
 
-               qelems[i / 2][j / 2][k / 2] =
-                  createCubeTesselation(
-                     new FemNode3d[][][] {
-                                          {
-                                           { nodes[i][j][k],
-                                            nodes[i][j][k + 1],
+                    nodes[i+1][j][k+2],
+                    nodes[(i+2)%nt][j+1][k+2],
+                    nodes[i+1][j+2][k+2],
+                    nodes[i][j+1][k+2],
 
-                                            nodes[i][j][k + 2] },
-                                           { nodes[i][j + 1][k],
-                                            nodes[i][j + 1][k + 1],
-                                            nodes[i][j + 1][k + 2] },
-                                           { nodes[i][j + 2][k],
-                                            nodes[i][j + 2][k + 1],
-                                            nodes[i][j + 2][k + 2] } },
+                    nodes[i+1][j][k],
+                    nodes[(i+2)%nt][j+1][k],
+                    nodes[i+1][j+2][k],
+                    nodes[i][j+1][k],
 
-                                          {
-                                           { nodes[i + 1][j][k],
-                                            nodes[i + 1][j][k + 1],
-                                            nodes[i + 1][j][k + 2] },
-                                           { nodes[i + 1][j + 1][k],
-                                            nodes[i + 1][j + 1][k + 1],
-                                            nodes[i + 1][j + 1][k + 2] },
-                                           { nodes[i + 1][j + 2][k],
-                                            nodes[i + 1][j + 2][k + 1],
-                                            nodes[i + 1][j + 2][k + 2] } },
-
-                                          {
-                                           { nodes[(i + 2) % nt][j][k],
-                                            nodes[(i + 2) % nt][j][k + 1],
-                                            nodes[(i + 2) % nt][j][k + 2] },
-                                           { nodes[(i + 2) % nt][j + 1][k],
-                                            nodes[(i + 2) % nt][j + 1][k + 1],
-                                            nodes[(i + 2) % nt][j + 1][k + 2] },
-                                           { nodes[(i + 2) % nt][j + 2][k],
-                                            nodes[(i + 2) % nt][j + 2][k + 1],
-                                            nodes[(i + 2) % nt][j + 2][k + 2] } } },
-                     ((i + j) / 2 % 2 == 0));
-
-               for (int eidx = 0; eidx < 5; eidx++)
-                  for (int nidx = 0; nidx < 10; nidx++)
-                     if (!mod.getNodes().contains(
-                        qelems[i / 2][j / 2][k / 2][eidx].getNodes()[nidx])) {
-                        mod.addNode(qelems[i / 2][j / 2][k / 2][eidx]
-                           .getNodes()[nidx]);
+                    nodes[i][j][k+1],
+                    nodes[(i+2)%nt][j][k+1],
+                    nodes[(i+2)%nt][j+2][k+1],
+                    nodes[i][j+2][k+1], 
+                  };
+                  QuadhexElement e = new QuadhexElement (enodes);
+                  for (FemNode3d n : enodes) {
+                     if (!model.getNodes().contains(n)) {
+                        model.addNode(n);
                      }
-
+                  }
+                  model.addElement (e);
+               }
+               else {
+                  QuadtetElement[] elems = 
+                     createCubeTesselation(
+                        new FemNode3d[][][]
+                         {
+                            {
+                               { nodes[i][j][k],
+                                 nodes[i][j][k + 1],
+                                 nodes[i][j][k + 2] },
+                               { nodes[i][j + 1][k],
+                                 nodes[i][j + 1][k + 1],
+                                 nodes[i][j + 1][k + 2] },
+                               { nodes[i][j + 2][k],
+                                 nodes[i][j + 2][k + 1],
+                                 nodes[i][j + 2][k + 2] } },
+                            
+                            {
+                               { nodes[i + 1][j][k],
+                                 nodes[i + 1][j][k + 1],
+                                 nodes[i + 1][j][k + 2] },
+                               { nodes[i + 1][j + 1][k],
+                                 nodes[i + 1][j + 1][k + 1],
+                                 nodes[i + 1][j + 1][k + 2] },
+                               { nodes[i + 1][j + 2][k],
+                                 nodes[i + 1][j + 2][k + 1],
+                                 nodes[i + 1][j + 2][k + 2] } },
+                            
+                            {
+                               { nodes[(i + 2) % nt][j][k],
+                                 nodes[(i + 2) % nt][j][k + 1],
+                                 nodes[(i + 2) % nt][j][k + 2] },
+                               { nodes[(i + 2) % nt][j + 1][k],
+                                 nodes[(i + 2) % nt][j + 1][k + 1],
+                                 nodes[(i + 2) % nt][j + 1][k + 2] },
+                               { nodes[(i + 2) % nt][j + 2][k],
+                                 nodes[(i + 2) % nt][j + 2][k + 1],
+                                 nodes[(i + 2) % nt][j + 2][k + 2] } }
+                         },
+                        ((i + j + k) / 2 % 2 == 0));
+                  for (QuadtetElement e : elems) {
+                     FemNode3d[] enodes = e.getNodes();
+                     for (FemNode3d n : enodes) {
+                        if (!model.getNodes().contains(n)) {
+                           model.addNode(n);
+                        }
+                     }
+                     model.addElement (e);
+                  }
+               }
             }
          }
       }
 
-      for (int k = 0; k < nr - 2; k += 2) {
-         for (int j = 0; j < nl - 2; j += 2) {
-            for (int i = 0; i < nt; i += 2) {
-               mod.addElement(qelems[i / 2][j / 2][k / 2][0]);
-               mod.addElement(qelems[i / 2][j / 2][k / 2][1]);
-               mod.addElement(qelems[i / 2][j / 2][k / 2][2]);
-               mod.addElement(qelems[i / 2][j / 2][k / 2][3]);
-               mod.addElement(qelems[i / 2][j / 2][k / 2][4]);
-            }
-         }
-      }
-      setTubeEdgesHard(mod, l, rin, rout);
+      setTubeEdgesHard(model, l, rin, rout);
 
-      return mod;
+      return model;
    }
 
-   public static FemModel3d createQuadraticTorus(
-      FemModel3d mod, double R, double rin, double rout, int nt, int nl, int nr) {
-      FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
+   protected static FemModel3d createQuadraticTorus (
+      FemModel3d model, double R, double rin, double rout,
+      int nt, int nl, int nr, boolean useHexes) {
+
+      // round nt and nl up to even to allow proper tesselation
+      if ((nt % 2) == 1) {
+         nt++;
+      }
+      if ((nl % 2) == 1) {
+         nl++;
+      }
+      // double nt, nl, nr to get the equivalent element res
+      // for a linear element tesselation. This is what we will work with
+      nt *= 2;
+      nl *= 2;
+      nr *= 2;      
+
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      else {
+         model.clear();
+      }
+
+      FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr+1];
 
       double dT = 2 * Math.PI / nl;
       double dt = 2 * Math.PI / nt;
-      double dr = (rout - rin) / (nr - 1);
+      double dr = (rout - rin) / nr;
 
       RotationMatrix3d RM = new RotationMatrix3d(1.0, 0, 0, Math.PI / 2.0);
       Vector3d pos = new Vector3d();
 
-      for (int k = 0; k < nr; k++) {
+      for (int k = 0; k < nr+1; k++) {
          for (int j = 0; j < nl; j++) {
             for (int i = 0; i < nt; i++) {
                pos.set(
@@ -1357,75 +1471,98 @@ public class FemFactory {
          }
       }
 
-      QuadtetElement qelems[][][][] =
-         new QuadtetElement[nt / 2][nl / 2][(nr - 1) / 2][5];
-
-      for (int k = 0; k < nr - 2; k += 2) {
+      for (int k = 0; k < nr - 1; k += 2) {
          for (int j = 0; j < nl; j += 2) {
             for (int i = 0; i < nt; i += 2) {
+               if (useHexes) {
+                  FemNode3d enodes[] = new FemNode3d[] 
+                     {
+                        nodes[i][j][k],
+                        nodes[(i+2)%nt][j][k],
+                        nodes[(i+2)%nt][(j+2)%nl][k],
+                        nodes[i][(j+2)%nl][k],
+                        nodes[i][j][k+2],
+                        nodes[(i+2)%nt][j][k+2],
+                        nodes[(i+2)%nt][(j+2)%nl][k+2],
+                        nodes[i][(j+2)%nl][k+2],
 
-               qelems[i / 2][j / 2][k / 2] =
-                  createCubeTesselation(
-                     new FemNode3d[][][] {
-                                          {
-                                           { nodes[i][j][k + 2],
-                                            nodes[i][j][k + 1], nodes[i][j][k] },
-                                           { nodes[i][j + 1][k + 2],
-                                            nodes[i][j + 1][k + 1],
-                                            nodes[i][j + 1][k] },
-                                           { nodes[i][(j + 2) % nl][k + 2],
-                                            nodes[i][(j + 2) % nl][k + 1],
-                                            nodes[i][(j + 2) % nl][k] } },
+                        nodes[i+1][j][k],
+                        nodes[(i+2)%nt][j+1][k],
+                        nodes[i+1][(j+2)%nl][k],
+                        nodes[i][j+1][k],
 
-                                          {
-                                           { nodes[i + 1][j][k + 2],
-                                            nodes[i + 1][j][k + 1],
-                                            nodes[i + 1][j][k] },
-                                           { nodes[i + 1][j + 1][k + 2],
-                                            nodes[i + 1][j + 1][k + 1],
-                                            nodes[i + 1][j + 1][k] },
-                                           { nodes[i + 1][(j + 2) % nl][k + 2],
-                                            nodes[i + 1][(j + 2) % nl][k + 1],
-                                            nodes[i + 1][(j + 2) % nl][k] } },
+                        nodes[i+1][j][k+2],
+                        nodes[(i+2)%nt][j+1][k+2],
+                        nodes[i+1][(j+2)%nl][k+2],
+                        nodes[i][j+1][k+2],
 
-                                          {
-                                           { nodes[(i + 2) % nt][j][k + 2],
-                                            nodes[(i + 2) % nt][j][k + 1],
-                                            nodes[(i + 2) % nt][j][k] },
-                                           { nodes[(i + 2) % nt][j + 1][k + 2],
-                                            nodes[(i + 2) % nt][j + 1][k + 1],
-                                            nodes[(i + 2) % nt][j + 1][k] },
-                                           {
-                                            nodes[(i + 2) % nt][(j + 2) % nl][k + 2],
-                                            nodes[(i + 2) % nt][(j + 2) % nl][k + 1],
-                                            nodes[(i + 2) % nt][(j + 2) % nl][k] } } },
-                     ((i + j) / 2 % 2 == 0));
-
-               for (int eidx = 0; eidx < 5; eidx++)
-                  for (int nidx = 0; nidx < 10; nidx++)
-                     if (!mod.getNodes().contains(
-                        qelems[i / 2][j / 2][k / 2][eidx].getNodes()[nidx])) {
-                        mod.addNode(qelems[i / 2][j / 2][k / 2][eidx]
-                           .getNodes()[nidx]);
+                        nodes[i][j][k+1],
+                        nodes[(i+2)%nt][j][k+1],
+                        nodes[(i+2)%nt][(j+2)%nl][k+1],
+                        nodes[i][(j+2)%nl][k+1],
+                     };
+                  QuadhexElement e = new QuadhexElement (enodes);
+                  for (FemNode3d n : enodes) {
+                     if (!model.getNodes().contains(n)) {
+                        model.addNode(n);
                      }
-
+                  }
+                  model.addElement (e);
+               }
+               else {
+                  QuadtetElement[] elems = 
+                     createCubeTesselation(
+                     new FemNode3d[][][]
+                      {
+                         {
+                            { nodes[i][j][k + 2],
+                              nodes[i][j][k + 1],
+                              nodes[i][j][k] },
+                            { nodes[i][j + 1][k + 2],
+                              nodes[i][j + 1][k + 1],
+                              nodes[i][j + 1][k] },
+                            { nodes[i][(j + 2) % nl][k + 2],
+                              nodes[i][(j + 2) % nl][k + 1],
+                              nodes[i][(j + 2) % nl][k] } },
+                         
+                         {
+                            { nodes[i + 1][j][k + 2],
+                              nodes[i + 1][j][k + 1],
+                              nodes[i + 1][j][k] },
+                            { nodes[i + 1][j + 1][k + 2],
+                              nodes[i + 1][j + 1][k + 1],
+                              nodes[i + 1][j + 1][k] },
+                            { nodes[i + 1][(j + 2) % nl][k + 2],
+                              nodes[i + 1][(j + 2) % nl][k + 1],
+                              nodes[i + 1][(j + 2) % nl][k] } },
+                         
+                         {
+                            { nodes[(i + 2) % nt][j][k + 2],
+                              nodes[(i + 2) % nt][j][k + 1],
+                              nodes[(i + 2) % nt][j][k] },
+                            { nodes[(i + 2) % nt][j + 1][k + 2],
+                              nodes[(i + 2) % nt][j + 1][k + 1],
+                              nodes[(i + 2) % nt][j + 1][k] },
+                            { nodes[(i + 2) % nt][(j + 2) % nl][k + 2],
+                              nodes[(i + 2) % nt][(j + 2) % nl][k + 1],
+                              nodes[(i + 2) % nt][(j + 2) % nl][k] } }
+                      },
+                     ((i + j + k) / 2 % 2 == 0));
+                  for (QuadtetElement e : elems) {
+                     FemNode3d[] enodes = e.getNodes();
+                     for (FemNode3d n : enodes) {
+                        if (!model.getNodes().contains(n)) {
+                           model.addNode(n);
+                        }
+                     }
+                     model.addElement (e);
+                  }        
+               }
             }
          }
       }
 
-      for (int k = 0; k < nr - 2; k += 2) {
-         for (int j = 0; j < nl; j += 2) {
-            for (int i = 0; i < nt; i += 2) {
-               mod.addElement(qelems[i / 2][j / 2][k / 2][0]);
-               mod.addElement(qelems[i / 2][j / 2][k / 2][1]);
-               mod.addElement(qelems[i / 2][j / 2][k / 2][2]);
-               mod.addElement(qelems[i / 2][j / 2][k / 2][3]);
-               mod.addElement(qelems[i / 2][j / 2][k / 2][4]);
-            }
-         }
-      }
-
-      return mod;
+      return model;
    }
 
    private static QuadtetElement[] createCubeTesselation(
@@ -1606,6 +1743,12 @@ public class FemFactory {
       return quadMod;
    }
 
+   /**
+    * Creates a regular grid composed of quadratic tet elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadTet}.
+    */
    public static FemModel3d createQuadtetGrid(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
@@ -1617,50 +1760,73 @@ public class FemFactory {
       return model;
    }
 
+   /**
+    * Creates a tube made of quadratic tet elements. Identical to {@link
+    * #createTube(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadTet}.
+    */
    public static FemModel3d createQuadtetTube(
       FemModel3d model,
       double l, double rin, double rout, int nt, int nl, int nr) {
 
-      FemModel3d tetmod = new FemModel3d();
-      createTetTube (tetmod, l, rin, rout, nt, nl, nr);
-
-      createQuadraticModel (model, tetmod);
-      setTubeEdgesHard (model, l, rin, rout);
-      return model;
+      return createQuadraticTube (
+         model, l, rin, rout, nt, nl, nr, /*useHexes=*/false);
    }
 
+   /**
+    * Creates a hollow torus made of quadratic tet elements. Identical to
+    * {@link
+    * #createTorus(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadTet}.
+    */
    public static FemModel3d createQuadtetTorus(
       FemModel3d model, 
       double R, double rin, double rout, int nt, int nl, int nr) {
 
-      FemModel3d tetmod = new FemModel3d();
-      createTetTorus (tetmod, R, rin, rout, nt, nl, nr);
-
-      createQuadraticModel(model, tetmod);
-      return model;
+      return createQuadraticTorus (
+         model, R, rin, rout, nt, nl, nr, /*useHexes=*/false);
    }
 
+   /**
+    * Creates a shell-based FEM model made of quadratic tet elements by
+    * extruding a surface mesh along the normal direction of its faces.
+    * Identical to {@link
+    * #createExtrusion(FemModel3d,FemElementType,int,double,double,PolygonalMesh)}
+    * with the element type set to {@link FemElementType#QuadTet}.
+    */
    public static FemModel3d createQuadtetExtrusion(
-      FemModel3d model, int n, double d, PolygonalMesh surface) {
+      FemModel3d model, 
+      int n, double d, double zOffset, PolygonalMesh surface) {
+      
       FemModel3d tetmod = new FemModel3d();
-      createTetExtrusion(tetmod, n, d, surface);
-
+      createTetExtrusion(tetmod, n, d, zOffset, surface);
       createQuadraticModel(model, tetmod);
       return model;
    }
 
+   /**
+    * Creates a regular grid composed of quadratic hex elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadHex}.
+    */
    public static FemModel3d createQuadhexGrid(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
+      
       FemModel3d hexmod = new FemModel3d();
       createHexGrid(hexmod, widthX, widthY, widthZ, numX, numY, numZ);
-
       createQuadraticModel(model, hexmod);
       setGridEdgesHard(model, widthX, widthY, widthZ);
-
       return model;
    }
 
+   /**
+    * Creates a regular grid composed of quadratic wedge elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadWedge}.
+    */
    public static FemModel3d createQuadwedgeGrid(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
@@ -1673,6 +1839,12 @@ public class FemFactory {
       return model;
    }
 
+   /**
+    * Creates a regular grid composed of quadratic pyramid elements. Identical
+    * to {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadPyramid}.
+    */
    public static FemModel3d createQuadpyramidGrid(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
@@ -1685,36 +1857,65 @@ public class FemFactory {
       return model;
    }
 
+
+   /**
+    * Creates a tube made of quadratic hex elements. Identical to {@link
+    * #createTube(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadHex}.
+    */
    public static FemModel3d createQuadhexTube(
       FemModel3d model,
       double l, double rin, double rout, int nt, int nl, int nr) {
 
-      FemModel3d hexmod = new FemModel3d();
-      createHexTube(hexmod, l, rin, rout, nt, nl, nr);
-
-      createQuadraticModel(model, hexmod);
-      setTubeEdgesHard(hexmod, l, rin, rout);
-
-      return model;
+      return createQuadraticTube (
+         model, l, rin, rout, nt, nl, nr, /*useHexes=*/true);
    }
 
+   /**
+    * Creates a hollow torus made of quadratic hex elements. Identical to
+    * {@link
+    * #createTorus(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadHex}.
+    */
    public static FemModel3d createQuadhexTorus(
-      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
-      int numY, int numZ) {
+      FemModel3d model,
+      double R, double rin, double rout, int nt, int nl, int nr) {
+
+      return createQuadraticTorus (
+         model, R, rin, rout, nt, nl, nr, /*useHexes=*/true);
+   }
+
+   /**
+    * Creates a shell-based FEM model made of quadratic hex elements by
+    * extruding a surface mesh along the normal direction of its faces. The
+    * surface mesh must be composed of quads.  Identical to {@link
+    * #createExtrusion(FemModel3d,FemElementType,int,double,double,PolygonalMesh)}
+    * with the element type set to {@link FemElementType#QuadHex}.
+    */
+   public static FemModel3d createQuadhexExtrusion(
+      FemModel3d model, 
+      int n, double d, double zOffset, PolygonalMesh surface) {
+      
       FemModel3d hexmod = new FemModel3d();
-      createHexTorus(hexmod, widthX, widthY, widthZ, numX, numY, numZ);
-
+      createHexExtrusion(hexmod, n, d, zOffset, surface);
       createQuadraticModel(model, hexmod);
-
       return model;
    }
 
-   public static FemModel3d createQuadhexExtrusion(
-      FemModel3d model, int n, double d, PolygonalMesh surface) {
-      FemModel3d hexmod = new FemModel3d();
-      createHexExtrusion(hexmod, n, d, surface);
-
-      createQuadraticModel(model, hexmod);
+   /**
+    * Creates a shell-based FEM model made of quadratic wedge elements by
+    * extruding a surface mesh along the normal direction of its faces.  The
+    * surface mesh must be composed of triangles. Identical to {@link
+    * #createExtrusion(FemModel3d,FemElementType,int,double,double,PolygonalMesh)}
+    * with the element type set to {@link FemElementType#Wedge}.
+    */
+   public static FemModel3d createQuadwedgeExtrusion(
+      FemModel3d model, 
+      int n, double d, double zOffset, PolygonalMesh surface) {
+      
+      FemModel3d wedgemod = new FemModel3d();
+      createWedgeExtrusion(wedgemod, n, d, zOffset, surface);
+      createQuadraticModel(model, wedgemod);
       return model;
    }
 
@@ -1742,31 +1943,26 @@ public class FemFactory {
       }
    }
 
-   /*
-    * creates a hexahedral fem model that is the extrusion of input quad surface
-    * mesh.
-    * 
-    * n - number of layers d - layer thickness
+   /**
+    * Creates a shell-based FEM model made of hex elements by extruding a
+    * surface mesh along the normal direction of its faces.  The surface mesh
+    * must be composed of quads.  Identical to {@link
+    * #createExtrusion(FemModel3d,FemElementType,int,double,double,PolygonalMesh)}
+    * with the element type set to {@link FemElementType#Hex}.
     */
    public static FemModel3d createHexExtrusion(
-      FemModel3d model, int n, double d, PolygonalMesh surface) {
-      if (model == null)
+      FemModel3d model, 
+      int n, double d, double zOffset, PolygonalMesh surface) {
+      if (model == null) {
          model = new FemModel3d();
-      else
-         model.clear();
-
-      if (!surface.isQuad()) {
-         System.err.println("Hex extrusion requires quad mesh");
-         return model;
       }
-
-      // Vector3d avgNormal = new Vector3d();
-      // for (Face f : surface.getFaces())
-      // {
-      // avgNormal.add (f.getNormal());
-      // }
-      // avgNormal.normalize();
-      // avgNormal.scale (d);
+      else {
+         model.clear();
+      }
+      if (!surface.isQuad()) {
+         throw new IllegalArgumentException (
+            "Hex extrusion requires a quad mesh");
+      }
 
       for (Vertex3d v : surface.getVertices()) {
          model.addNode(new FemNode3d(v.pnt));
@@ -1775,17 +1971,14 @@ public class FemFactory {
       Point3d newpnt = new Point3d();
       Vector3d nrm = new Vector3d();
       for (int i = 0; i < n; i++) {
-         // surface.transform (new RigidTransform3d (avgNormal,
-         // new RotationMatrix3d()));
-
          for (Vertex3d v : surface.getVertices()) {
             v.computeNormal(nrm);
-            newpnt.scaledAdd((i + 1) * d, nrm, v.pnt);
+            newpnt.scaledAdd((i + 1) * d + zOffset, nrm, v.pnt);
             model.addNode(new FemNode3d(newpnt));
          }
 
          for (Face f : surface.getFaces()) {
-            FemNode3d[] nodes = new FemNode3d[2 * f.numVertices()];
+            FemNode3d[] nodes = new FemNode3d[8];
             int cnt = 0;
 
             for (Integer idx : f.getVertexIndices()) {
@@ -1798,45 +1991,63 @@ public class FemFactory {
 
             HexElement e = new HexElement(nodes);
             model.addElement(e);
-
-            System.out.println("node idxs");
-            for (int c = 0; c < e.getNodes().length; c++)
-               System.out.print(e.getNodes()[c].getNumber() + ", ");
-            System.out.println("");
          }
       }
       return model;
    }
 
-//   /**
-//    * Given a face attached to a FEM surface mesh, find the element associated
-//    * with that face.
-//    */
-//   private static FemElement3d getElementForFace(Face face) {
-//
-//      HashSet<FemElement3d> elems = new HashSet<FemElement3d>();
-//
-//      int numv = face.numVertices();
-//      for (int i = 0; i < numv; i++) {
-//         Vertex3d vtx = face.getVertex(i);
-//         FemNode3d node = null;
-//         if (vtx instanceof FemMeshVertex) {
-//            node = (FemNode3d)((FemMeshVertex)vtx).getPoint();
-//         } else {
-//            return null;
-//         }
-//         if (i == 0) {
-//            elems.addAll(node.getElementDependencies());
-//         } else {
-//            elems.retainAll(node.getElementDependencies());
-//         }
-//      }
-//      if (elems.size() == 1) {
-//         return elems.iterator().next();
-//      } else {
-//         return null;
-//      }
-//   }
+   /**
+    * Creates a shell-based FEM model made of wedge elements by extruding a
+    * surface mesh along the normal direction of its faces.  The surface mesh
+    * must be composed of triangles. Identical to {@link
+    * #createExtrusion(FemModel3d,FemElementType,int,double,double,PolygonalMesh)}
+    * with the element type set to {@link FemElementType#Wedge}.
+    */
+   public static FemModel3d createWedgeExtrusion(
+      FemModel3d model, 
+      int n, double d, double zOffset, PolygonalMesh surface) {
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      else {
+         model.clear();
+      }
+      if (!surface.isTriangular()) {
+         throw new IllegalArgumentException (
+            "Wedge extrusion requires a triangular mesh");
+      }
+
+      for (Vertex3d v : surface.getVertices()) {
+         model.addNode(new FemNode3d(v.pnt));
+      }
+
+      Point3d newpnt = new Point3d();
+      Vector3d nrm = new Vector3d();
+      for (int i = 0; i < n; i++) {
+         for (Vertex3d v : surface.getVertices()) {
+            v.computeNormal(nrm);
+            newpnt.scaledAdd((i + 1) * d + zOffset, nrm, v.pnt);
+            model.addNode(new FemNode3d(newpnt));
+         }
+
+         for (Face f : surface.getFaces()) {
+            FemNode3d[] nodes = new FemNode3d[6];
+            int cnt = 0;
+
+            for (Integer idx : f.getVertexIndices()) {
+               nodes[cnt++] =
+                  model.getNode(idx + (i + 1) * surface.numVertices());
+            }
+            for (Integer idx : f.getVertexIndices()) {
+               nodes[cnt++] = model.getNode(idx + i * surface.numVertices());
+            }
+
+            WedgeElement e = new WedgeElement(nodes);
+            model.addElement(e);
+         }
+      }
+      return model;
+   }
 
    /**
     * Given a triangular face associated with an element, finds the
@@ -1899,25 +2110,30 @@ public class FemFactory {
    }
 
    /**
-    * Creates a combined hex/wedge fem model by extruding triangles into wedges
-    * and quads into hexes. If the mesh is the surface mesh of an underlying
-    * FemModel, then each triangle is examined to see if it is associated with
-    * an underlying hex element, and if it is, then a hex element is extruded
-    * from both the surface triangles connected to that element.
+    * Creates a shell-based FEM model by extruding a surface mesh along the
+    * normal direction of its faces. The element types used depend on the
+    * underlying faces: triangular faces generate wedge elements, while quad
+    * faces generate hex elements. If the mesh is the surface mesh of an
+    * underlying FemModel, then each triangle is examined to see if it is
+    * associated with an underlying hex element, and if it is, then a hex
+    * element is extruded from both the surface triangles connected to that
+    * element. The shell can have multiple layers; the number of layers is
+    * <code>n</code>.
     * 
-    * @param model Empty FEM model to which elements are added. If <code>null</code>,
-    * then a new FEM model will be created and returned. Note that
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch. Note that
     * <code>model</code> must be different from <code>surfaceFem</code>
-    * @param n number of layers 
+    * @param n number of layers
     * @param d layer thickness
+    * @param zOffset offset from the surface
     * @param surface surface mesh to extrude
     * @param surfaceFem FEM associated with the surface mesh, or 
-    * <code>null</code> if there is associated FEM.
+    * <code>null</code> if there is no associated FEM.
     * @return extruded FEM model, which will be <code>model</code> if
     * that argument is not <code>null</code>.
     */
    public static FemModel3d createHexWedgeExtrusion(
-      FemModel3d model, int n, double d, PolygonalMesh surface, 
+      FemModel3d model, int n, double d, double zOffset, PolygonalMesh surface, 
       FemModel3d surfaceFem) {
 
       if (model == null) {
@@ -1927,6 +2143,9 @@ public class FemFactory {
             "model and surfaceFem cannot be the same FEM");
       } else {
          model.clear();
+      }
+      if (n < 1) {
+         throw new IllegalArgumentException ("n must be >= 1");
       }
 
       for (Vertex3d v : surface.getVertices()) {
@@ -1944,7 +2163,7 @@ public class FemFactory {
 
          for (Vertex3d v : surface.getVertices()) {
             v.computeAngleWeightedNormal(nrm);
-            newpnt.scaledAdd((l + 1) * d, nrm, v.pnt);
+            newpnt.scaledAdd((l + 1) * d + zOffset, nrm, v.pnt);
             model.addNode(new FemNode3d(newpnt));
          }
 
@@ -2128,15 +2347,22 @@ public class FemFactory {
    }
 
    /**
-    * Extrudes each face along the normal direction to create a shell.
-    * The shell can have multiple layers; the number of layers is n-1.
+    * Creates a shell-based FEM model by extruding a surface mesh along the
+    * normal direction of its faces. The element types used depend on the
+    * underlying faces: triangular faces generate wedge elements, while quad
+    * faces generate hex elements. The shell can have multiple layers; the
+    * number of layers is <code>n</code>.
     *
-    * @param model (if null, a new model will be created)
-    * @param n n-1 is the number of layers
-    * @param d thickness of each layer
-    * @param zOffset offset along normal to begin
-    * @param surface PolygonalMesh surface to extrude
-    * @return the FEM model
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param n number of layers
+    * @param d layer thickness
+    * @param zOffset offset from the surface
+    * @param surface surface mesh to extrude
+    * @return extruded FEM model, which will be <code>model</code> if that
+    * argument is not <code>null</code>
+    * @throws IllegalArgumentException if the specified element type is not
+    * supported, or if the surface faces are not triangles or quads.
     */
    public static FemModel3d createExtrusion(
       FemModel3d model, int n, double d, double zOffset, 
@@ -2148,8 +2374,8 @@ public class FemFactory {
       } else {
          model.clear();
       }
-      if (n < 2) {
-         throw new IllegalArgumentException ("n must be >= 2");
+      if (n < 1) {
+         throw new IllegalArgumentException ("n must be >= 1");
       }
 
       // compute normals
@@ -2177,7 +2403,13 @@ public class FemFactory {
          }
 
          for (Face f : surface.getFaces()) {
-            FemNode3d[] nodes = new FemNode3d[2 * f.numVertices()];
+            int numv = f.numVertices();
+            if (numv != 3 && numv != 4) {
+               throw new IllegalArgumentException (
+                  "Surfaces face "+f.getIndex()+" has "+numv+
+                  " vertices. Only triangles and quads are supported");
+            }
+            FemNode3d[] nodes = new FemNode3d[2 * numv];
             int cnt = 0;
 
             for (Integer idx : f.getVertexIndices()) {
@@ -2191,28 +2423,35 @@ public class FemFactory {
             FemElement3d e = FemElement3d.createElement(nodes);
             model.addElement(e);
 
-            System.out.println("node idxs");
-            for (int c = 0; c < e.getNodes().length; c++)
-               System.out.print(e.getNodes()[c].getNumber() + ", ");
-            System.out.println("");
+            // System.out.println("node idxs");
+            // for (int c = 0; c < e.getNodes().length; c++)
+            //    System.out.print(e.getNodes()[c].getNumber() + ", ");
+            // System.out.println("");
          }
       }
       return model;
    }
    
-   /*
-    * creates a tetrahedral fem model that is the extrusion of input quad
-    * surface mesh.
-    * 
-    * n - number of layers d - layer thickness
+   /**
+    * Creates a shell-based FEM model made of tet elements by
+    * extruding a surface mesh along the normal direction of its faces. 
+    * Identical to
+    * {@link
+    * #createExtrusion(FemModel3d,FemElementType,int,double,double,PolygonalMesh)}
+    * with the element type set to {@link FemElementType#Tet}.
     */
    public static FemModel3d createTetExtrusion(
-      FemModel3d model, int n, double d, PolygonalMesh surface) {
+      FemModel3d model, 
+      int n, double d, double zOffset, PolygonalMesh surface) {
 
       if (model == null) {
          model = new FemModel3d();
       } else {
          model.clear();
+      }
+      if (!surface.isTriangular()) {
+         throw new IllegalArgumentException (
+            "Tet extrusion requires a triangular mesh");
       }
 
       for (Vertex3d v : surface.getVertices()) {
@@ -2223,15 +2462,13 @@ public class FemFactory {
       Vector3d nrm = new Vector3d();
 
       int[] tesselationTypes = null;
-      if (surface.isTriangular()) {
-         tesselationTypes = computeTesselationTypes(surface);
-      }
+      tesselationTypes = computeTesselationTypes(surface);
 
       for (int i = 0; i < n; i++) {
 
          for (Vertex3d v : surface.getVertices()) {
             v.computeAngleWeightedNormal(nrm);
-            newpnt.scaledAdd((i + 1) * d, nrm, v.pnt);
+            newpnt.scaledAdd((i + 1) * d + zOffset, nrm, v.pnt);
             model.addNode(new FemNode3d(newpnt));
          }
 
@@ -2287,6 +2524,31 @@ public class FemFactory {
       return model;
    }
 
+   /**
+    * Creates a regular grid composed of tet elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#Tet}.
+    */
+
+   /**
+    * Creates a regular grid, composed of elements of the type specified by
+    * <code>type</code>, centered on the origin, with specified widths and grid
+    * resolutions along each axis.
+    *
+    * @param model model to which the hex elements be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param type desired element type
+    * @param widthX x axis model width
+    * @param widthY y axis model width
+    * @param widthZ z axis model width
+    * @param numX element resolution along the x axis
+    * @param numY element resolution along the y axis
+    * @param numZ element resolution along the z axis
+    * @return created FEM model
+    * @throws IllegalArgumentException if the specified element type
+    * is not supported
+    */
    public static FemModel3d createGrid(
       FemModel3d model, FemElementType type, double widthX, double widthY,
       double widthZ, int numX, int numY, int numZ) {
@@ -2297,22 +2559,8 @@ public class FemFactory {
          case Hex:
             return createHexGrid(
                model, widthX, widthY, widthZ, numX, numY, numZ);
-         default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
-      }
-   }
-
-   public static FemModel3d createGrid(
-      FemModel3d model, FemElemType type, double widthX, double widthY,
-      double widthZ, int numX, int numY, int numZ) {
-
-      switch (type) {
-         case Tet:
-            return createTetGrid(
-               model, widthX, widthY, widthZ, numX, numY, numZ);
-         case Hex:
-            return createHexGrid(
+         case Wedge:
+            return createWedgeGrid(
                model, widthX, widthY, widthZ, numX, numY, numZ);
          case QuadTet:
             return createQuadtetGrid(
@@ -2323,47 +2571,35 @@ public class FemFactory {
          case QuadWedge:
             return createQuadwedgeGrid(
                model, widthX, widthY, widthZ, numX, numY, numZ);
-         case Wedge:
-            return createWedgeGrid(
-               model, widthX, widthY, widthZ, numX, numY, numZ);
          default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
+            throw new IllegalArgumentException (
+               "Unsupported element type " + type.toString());
       }
    }
 
-   public static FemModel3d createTube(
-      FemModel3d model, FemElementType type, double l, double rin, double rout,
-      int nt, int nl, int nr) {
-      switch (type) {
-         case Tet:
-            return createTetTube(model, l, rin, rout, nt, nl, nr);
-         case Hex:
-            return createHexTube(model, l, rin, rout, nt, nl, nr);
-         default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
-      }
-   }
-   
-   public static FemModel3d createPartialTube(
-      FemModel3d model, FemElementType type, double l, double rin, double rout,
-      double theta, int nl, int nr, int ntheta) {
-      switch (type) {
-         case Tet:
-            return createPartialTetTube(model, l, rin, rout, theta, nl, nr, ntheta);
-         case Hex:
-            return createPartialHexTube(model, l, rin, rout, theta, nl, nr, ntheta);
-         default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
-      }
-   }
-
-   public static FemModel3d createTube(
-      FemModel3d model, FemElemType type, double l, double rin, double rout,
-      int nt, int nl, int nr) {
-
+   /**
+    * Creates a tube made of either tet, hex, quadTet, or quadHex elements, as
+    * specified by <code>type</code>. Note that the element resolution 
+    * <code>nt</code> around the central axis will be rounded up to 
+    * an even number for tet or quadTet models. 
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param type desired element type
+    * @param l length along the z axis
+    * @param rin inner radius
+    * @param rout outer radius
+    * @param nt element resolution around the central axis (will be 
+    * rounded up to an even number for tet or quadTet models)
+    * @param nl element resolution along the length
+    * @param nr element resolution along the thickness
+    * @return created FEM model
+    * @throws IllegalArgumentException if the specified element type
+    * is not supported
+    */
+   public static FemModel3d createTube (
+      FemModel3d model, FemElementType type,
+      double l, double rin, double rout, int nt, int nl, int nr) {
       switch (type) {
          case Tet:
             return createTetTube(model, l, rin, rout, nt, nl, nr);
@@ -2374,27 +2610,70 @@ public class FemFactory {
          case QuadHex:
             return createQuadhexTube(model, l, rin, rout, nt, nl, nr);
          default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
+            throw new IllegalArgumentException (
+               "Unsupported element type " + type.toString());
       }
    }
 
-   public static FemModel3d createTorus(
-      FemModel3d model, FemElementType type, double R, double rin, double rout,
-      int nt, int nl, int nr) {
+   /**
+    * Creates a partial tube made of either tet or hex elements, as specified by
+    * <code>type</code>.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param type desired element type
+    * @param l length along the z axis
+    * @param rin inner radius
+    * @param rout outer radius
+    * @param theta size of the partial tube slice, in radians
+    * @param nl element resolution along the length
+    * @param nr element resolution along the thickness
+    * @param ntheta element resolution along the slice
+    * @return created FEM model
+    * @throws IllegalArgumentException if the specified element type
+    * is not supported
+    */
+   public static FemModel3d createPartialTube(
+      FemModel3d model, FemElementType type, double l, double rin, double rout,
+      double theta, int nl, int nr, int ntheta) {
       switch (type) {
          case Tet:
-            return createTetTorus(model, R, rin, rout, nt, nl, nr);
+            return createPartialTetTube (
+               model, l, rin, rout, theta, nl, nr, ntheta);
          case Hex:
-            return createHexTorus(model, R, rin, rout, nt, nl, nr);
+            return createPartialHexTube (
+               model, l, rin, rout, theta, nl, nr, ntheta);
          default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
+            throw new IllegalArgumentException (
+               "Unsupported element type " + type.toString());
       }
    }
 
+   /**
+    * Creates a hollow torus made of either tet, hex, quadTet, or quadHex
+    * elements, as specified by <code>type</code>. The result is essentially
+    * a tube, with inner and outer radii given by <code>rin</code>
+    * and <code>rout</code>, bent around the major radius R and connected.
+    * For tet or quadTet models, the element resolutions <code>nt</code>
+    * and <code>nl</code> will be rounded up to an even number.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param type desired element type
+    * @param R major radius
+    * @param rin inner part of the minor radius
+    * @param rout outer part of the minor radius
+    * @param nt element resolution around the major radius (will be rounded
+    * up to an even number for tet or quadTet models)
+    * @param nl element resolution around the minor radius (will be rounded
+    * up to an even number for tet or quadTet models)
+    * @param nr element resolution along the inner thickness
+    * @return created FEM model
+    * @throws IllegalArgumentException if the specified element type
+    * is not supported
+    */
    public static FemModel3d createTorus(
-      FemModel3d model, FemElemType type, double R, double rin, double rout,
+      FemModel3d model, FemElementType type, double R, double rin, double rout,
       int nt, int nl, int nr) {
       switch (type) {
          case Tet:
@@ -2406,42 +2685,50 @@ public class FemFactory {
          case QuadHex:
             return createQuadhexTorus(model, R, rin, rout, nt, nl, nr);
          default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
+            throw new IllegalArgumentException (
+               "Unsupported element type " + type.toString());
       }
    }
 
+   /**
+    * Creates a shell-based FEM model by extruding a surface mesh along the
+    * normal direction of its faces. The model is composed of either tet, hex,
+    * quadTet or quadHex elements, as specified by <code>type</code>. The shell
+    * can have multiple layers; the number of layers is <code>n</code>.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param type desired element type
+    * @param n number of layers
+    * @param d layer thickness
+    * @param zOffset offset from the surface
+    * @param surface surface mesh to extrude
+    * @return extruded FEM model, which will be <code>model</code> if
+    * that argument is not <code>null</code>
+    * @throws IllegalArgumentException if the specified element type is not
+    * supported, or if the surface faces are incompatible with the element
+    * type.
+    */
    public static FemModel3d createExtrusion(
-      FemModel3d model, FemElementType type, int n, double d,
-      PolygonalMesh surface)
-
-   {
+      FemModel3d model, FemElementType type, 
+      int n, double d, double zOffset, PolygonalMesh surface) {
+      
       switch (type) {
          case Tet:
-            return createTetExtrusion(model, n, d, surface);
+            return createTetExtrusion(model, n, d, zOffset, surface);
          case Hex:
-            return createHexExtrusion(model, n, d, surface);
-         default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
-      }
-   }
-
-   public static FemModel3d createExtrusion(
-      FemModel3d model, FemElemType type, int n, double d, PolygonalMesh surface) {
-
-      switch (type) {
-         case Tet:
-            return createTetExtrusion(model, n, d, surface);
-         case Hex:
-            return createHexExtrusion(model, n, d, surface);
+            return createHexExtrusion(model, n, d, zOffset, surface);
+         case Wedge:
+            return createWedgeExtrusion(model, n, d, zOffset, surface);
          case QuadTet:
-            return createQuadtetExtrusion(model, n, d, surface);
+            return createQuadtetExtrusion(model, n, d, zOffset, surface);
          case QuadHex:
-            return createQuadhexExtrusion(model, n, d, surface);
+            return createQuadhexExtrusion(model, n, d, zOffset, surface);
+         case QuadWedge:
+            return createQuadwedgeExtrusion(model, n, d, zOffset, surface);
          default:
-            System.out.println("unknown element type " + type.toString());
-            return model;
+            throw new IllegalArgumentException (
+               "Unsupported element type " + type.toString());
       }
    }
 
@@ -2531,17 +2818,28 @@ public class FemFactory {
       return model;
    }
 
+   /**
+    * Creates a refined version of a an existing tetrahedral FEM model using
+    * tetgen and a list of supplemental node locations.
+    * 
+    * @param model model in which the refined model be built, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param input original FEM model which is to be refined
+    * @param quality quality factor used by tetgen to refine the model
+    * @param pnts locations of the supplemental node
+    * @return refined FEM model
+    */
    public static FemModel3d refineFem(
-      FemModel3d out, FemModel3d in, double quality, Point3d[] pnts) {
+      FemModel3d model, FemModel3d input, double quality, Point3d[] pnts) {
 
       TetgenTessellator tetgen = new TetgenTessellator();
 
-      int[] tets = new int[4 * in.numElements()];
-      double[] nodeCoords = new double[3 * in.numNodes()];
+      int[] tets = new int[4 * input.numElements()];
+      double[] nodeCoords = new double[3 * input.numNodes()];
       double[] addCoords = new double[3 * pnts.length];
 
       int idx = 0;
-      for (FemNode3d node : in.getNodes()) {
+      for (FemNode3d node : input.getNodes()) {
          node.setIndex(idx);
          Point3d pos = node.getPosition();
          nodeCoords[3 * idx] = pos.x;
@@ -2552,7 +2850,7 @@ public class FemFactory {
 
       idx = 0;
       int numTets = 0;
-      for (FemElement3d elem : in.getElements()) {
+      for (FemElement3d elem : input.getElements()) {
          if (elem instanceof TetElement) {
             FemNode3d[] nodes = elem.getNodes();
             tets[idx++] = nodes[0].getIndex();
@@ -2574,19 +2872,19 @@ public class FemFactory {
       //
       // tetgen.buildFromMeshAndPoints (surface, quality, pnts);
       tetgen.refineMesh(
-         nodeCoords, in.numNodes(), tets, numTets, quality, addCoords,
+         nodeCoords, input.numNodes(), tets, numTets, quality, addCoords,
          pnts.length);
 
-      if (out == null) {
-         out = new FemModel3d();
+      if (model == null) {
+         model = new FemModel3d();
       } else {
-         out.clear();
+         model.clear();
       }
       Point3d[] points = tetgen.getPoints();
       for (int i = 0; i < points.length; i++) {
-         out.addNode(new FemNode3d(points[i]));
+         model.addNode(new FemNode3d(points[i]));
       }
-      ComponentList<FemNode3d> nodes = out.getNodes();
+      ComponentList<FemNode3d> nodes = model.getNodes();
 
       int[] outTets = tetgen.getTets();
       for (int i = 0; i < outTets.length / 4; i++) {
@@ -2595,21 +2893,31 @@ public class FemFactory {
          FemNode3d n2 = nodes.get(outTets[i * 4 + 2]);
          FemNode3d n3 = nodes.get(outTets[i * 4 + 3]);
          TetElement elem = new TetElement(n1, n3, n2, n0);
-         out.addElement(elem);
+         model.addElement(elem);
       }
-      return out;
+      return model;
    }
 
+   /**
+    * Creates a refined version of a an existing tetrahedral FEM model using
+    * tetgen.
+    * 
+    * @param model model in which the refined model be built, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param input original FEM model which is to be refined
+    * @param quality quality factor used by tetgen to refine the model
+    * @return refined FEM model
+    */
    public static FemModel3d refineFem(
-      FemModel3d out, FemModel3d in, double quality) {
+      FemModel3d model, FemModel3d input, double quality) {
 
       TetgenTessellator tetgen = new TetgenTessellator();
 
-      int[] tets = new int[4 * in.numElements()];
-      double[] nodeCoords = new double[3 * in.numNodes()];
+      int[] tets = new int[4 * input.numElements()];
+      double[] nodeCoords = new double[3 * input.numNodes()];
 
       int idx = 0;
-      for (FemNode3d node : in.getNodes()) {
+      for (FemNode3d node : input.getNodes()) {
          node.setIndex(idx);
          Point3d pos = node.getPosition();
          nodeCoords[3 * idx] = pos.x;
@@ -2620,7 +2928,7 @@ public class FemFactory {
 
       idx = 0;
       int numTets = 0;
-      for (FemElement3d elem : in.getElements()) {
+      for (FemElement3d elem : input.getElements()) {
          if (elem instanceof TetElement) {
             FemNode3d[] nodes = elem.getNodes();
             tets[idx++] = nodes[0].getIndex();
@@ -2633,18 +2941,18 @@ public class FemFactory {
 
       //
       // tetgen.buildFromMeshAndPoints (surface, quality, pnts);
-      tetgen.refineMesh(nodeCoords, in.numNodes(), tets, numTets, quality);
+      tetgen.refineMesh(nodeCoords, input.numNodes(), tets, numTets, quality);
 
-      if (out == null) {
-         out = new FemModel3d();
+      if (model == null) {
+         model = new FemModel3d();
       } else {
-         out.clear();
+         model.clear();
       }
       Point3d[] points = tetgen.getPoints();
       for (int i = 0; i < points.length; i++) {
-         out.addNode(new FemNode3d(points[i]));
+         model.addNode(new FemNode3d(points[i]));
       }
-      ComponentList<FemNode3d> nodes = out.getNodes();
+      ComponentList<FemNode3d> nodes = model.getNodes();
       int[] outTets = tetgen.getTets();
       for (int i = 0; i < outTets.length / 4; i++) {
          FemNode3d n0 = nodes.get(outTets[i * 4 + 0]);
@@ -2652,9 +2960,9 @@ public class FemFactory {
          FemNode3d n2 = nodes.get(outTets[i * 4 + 2]);
          FemNode3d n3 = nodes.get(outTets[i * 4 + 3]);
          TetElement elem = new TetElement(n1, n3, n2, n0);
-         out.addElement(elem);
+         model.addElement(elem);
       }
-      return out;
+      return model;
    }
 
    /**
@@ -2962,11 +3270,13 @@ public class FemFactory {
     * @param fem0
     * existing FEM model to be refined.
     */
-   public static FemModel3d subdivideFem(FemModel3d femr, FemModel3d fem0) {
+   public static FemModel3d subdivideFem (FemModel3d femr, FemModel3d fem0) {
       return subdivideFem(femr, fem0, true);
    }
 
-   public static FemModel3d subdivideFem(FemModel3d femr, FemModel3d fem0, boolean addMarkers) {
+   public static FemModel3d subdivideFem (
+      FemModel3d femr, FemModel3d fem0, boolean addMarkers) {
+
       if (fem0 == null) {
          throw new IllegalArgumentException("fem0 must not be null");
       }

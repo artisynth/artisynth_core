@@ -14,6 +14,7 @@ import maspack.geometry.SignedDistanceGrid;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
@@ -179,46 +180,39 @@ public class SDGridTest extends RootModel {
          renderer.setShading (Shading.NONE);
          renderer.setPointSize(5);
          
-         Vector3d maxGrid = new Vector3d();
-         Vector3d min = sdgrid.getMin();
-         int[] gridSize = sdgrid.getGridSize();
-         Vector3d gridCellSize = sdgrid.getGridCellSize();
-         
-         maxGrid.x = min.x + (gridSize[0]-1) * gridCellSize.x;
-         maxGrid.y = min.y + (gridSize[1]-1) * gridCellSize.y; 
-         maxGrid.z = min.z + (gridSize[2]-1) * gridCellSize.z;
+         Vector3d min = sdgrid.getMinCoords();
+         Vector3d max = sdgrid.getMaxCoords();
    
          renderer.beginDraw (DrawMode.LINES); // Draw 4 vertical lines.
-         renderer.addVertex (maxGrid.x, maxGrid.y, maxGrid.z);
-         renderer.addVertex (maxGrid.x, maxGrid.y, min.z);
-         renderer.addVertex (min.x, maxGrid.y, maxGrid.z);
-         renderer.addVertex (min.x, maxGrid.y, min.z);
-         renderer.addVertex (min.x, min.y, maxGrid.z);
+         renderer.addVertex (max.x, max.y, max.z);
+         renderer.addVertex (max.x, max.y, min.z);
+         renderer.addVertex (min.x, max.y, max.z);
+         renderer.addVertex (min.x, max.y, min.z);
+         renderer.addVertex (min.x, min.y, max.z);
          renderer.addVertex (min.x, min.y, min.z);
-         renderer.addVertex (maxGrid.x, min.y, maxGrid.z);
-         renderer.addVertex (maxGrid.x, min.y, min.z);
+         renderer.addVertex (max.x, min.y, max.z);
+         renderer.addVertex (max.x, min.y, min.z);
          // Draw a diagonal line from max to min.
          renderer.addVertex (min.x, min.y, min.z);
-         renderer.addVertex (maxGrid.x, maxGrid.y, maxGrid.z);
+         renderer.addVertex (max.x, max.y, max.z);
          renderer.endDraw();
          
          
-         double[] phi = sdgrid.getPhi();
+         double[] phi = sdgrid.getDistances();
          
          // Draw the vertices on the grid.
-         double myVertex[] = new double[3];
+         Vector3d coords = new Vector3d();
          for (int i = 0; i < phi.length; i++) {
-            int z = (i / (gridSize[0] * gridSize[1]));
-            int y = (i - z * (gridSize[0] * gridSize[1])) / (gridSize[0]);
-            int x = (i % (gridSize[0]));
-            sdgrid.getMeshCoordinatesFromGrid (x, y, z, myVertex);   
+            Vector3i vxyz = new Vector3i();
+            sdgrid.vertexToXyzIndices (vxyz, i);
+            sdgrid.getVertexCoords (coords, vxyz);
          
             if (phi[i] <= 0) {
                renderer.setColor(Color.BLUE);
-               renderer.drawPoint(myVertex[0], myVertex[1], myVertex[2]);
+               renderer.drawPoint(coords);
             } else {
                renderer.setColor(Color.RED);
-               renderer.drawPoint(myVertex[0], myVertex[1], myVertex[2]);
+               renderer.drawPoint(coords);
             }
             
          }

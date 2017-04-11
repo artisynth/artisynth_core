@@ -19,6 +19,7 @@ FIX_PERMISSIONS = \
   ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) $(WEB_HOME)/bin/fixMagicPerms 
 LATEX_JUNK_FILES = *.log *.aux *.out *.toc *.bbl *.blg *.cb *.cb2
 
+
 PDF_DIR = $(DOC_DIR)/pdf
 
 BIN_DIR = $(DOC_DIR)/../bin

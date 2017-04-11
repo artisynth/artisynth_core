@@ -31,7 +31,7 @@ public class DynamicIntArray extends ModifiedVersionBase implements Cloneable {
 
    /**
     * Dynamic array of integers with provided initial capacity
-    * @param initialCapacity initial capacity.  If <= 0, uses 
+    * @param initialCapacity initial capacity.  If {@code <=} 0, uses 
     * the default capacity
     */
    public DynamicIntArray(int initialCapacity) {

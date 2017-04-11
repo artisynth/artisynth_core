@@ -18,6 +18,7 @@ import maspack.properties.*;
 import maspack.render.*;
 import artisynth.core.util.*;
 import artisynth.core.modelbase.*;
+import artisynth.core.mechmodels.CollisionManager.ColliderType;
 
 /**
  * Contains information describing the appropriate collision response
@@ -91,10 +92,12 @@ public class CollisionBehavior extends CollisionComponent
    double myFriction = defaultFriction;
    PropertyMode myFrictionMode = PropertyMode.Inherited;
 
-
    static Method defaultMethod = Method.DEFAULT;
    Method myMethod = defaultMethod;
    PropertyMode myMethodMode = PropertyMode.Inherited;
+
+   ColliderType myColliderType = CollisionManager.myDefaultColliderType;
+   PropertyMode myColliderTypeMode = PropertyMode.Inherited;
 
 //   MechModel myModel = null;
 
@@ -209,6 +212,9 @@ public class CollisionBehavior extends CollisionComponent
          "friction:Inherited", "friction coefficient", defaultFriction);
       myProps.addInheritable (
          "method:Inherited", "collision handling method", defaultMethod);
+      myProps.addInheritable (
+         "colliderType", "type of collider to use for collisions",
+         CollisionManager.myDefaultColliderType);
       myProps.addInheritable (
          "penetrationTol:Inherited", "how much penetration is allowed",
          defaultPenetrationTol);
@@ -376,6 +382,44 @@ public class CollisionBehavior extends CollisionComponent
 
    public PropertyMode getMethodMode() {
       return myMethodMode;
+   }
+
+   /** 
+    * Returns the collider type to be used for determining collisions.
+    * 
+    * @return collider type for this behavior
+    */
+   public ColliderType getColliderType() {
+      return myColliderType;
+   }
+
+   /** 
+    * Set the collider type to be used for determining collisions.
+    * 
+    * @param ctype new collider type for this behavior
+    */
+   public void setColliderType (ColliderType ctype) {
+      myColliderType = ctype;
+      myColliderTypeMode =
+         PropertyUtils.propagateValue (
+            this, "colliderType", myColliderType, myColliderTypeMode);      
+      // changing the collider type will invalidate previous state information
+      notifyParentOfChange (new DynamicActivityChangeEvent (this));
+   }
+
+   public void setColliderTypeMode (PropertyMode mode) {
+      ColliderType prev = myColliderType;
+      myColliderTypeMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "colliderType", myColliderTypeMode, mode);
+      if (myColliderType != prev) {
+         // changing the collider type will invalidate previous state information
+         notifyParentOfChange (new DynamicActivityChangeEvent (this));
+      }
+   }
+
+   public PropertyMode getColliderTypeMode() {
+      return myColliderTypeMode;
    }
 
    /** 

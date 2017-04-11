@@ -71,12 +71,12 @@ public class TextComponent2d extends TextComponentBase {
    /**
     * Sets both name and text to the provided string
     * 
-    * @param name
+    * @param str name and text string
     */
-   public TextComponent2d (String name) {
+   public TextComponent2d (String str) {
       setDefaults();
-      setText(name);
-      setName(name);
+      setText(str);
+      setName(str);
    }
 
    /**

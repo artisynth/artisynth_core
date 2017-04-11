@@ -34,15 +34,18 @@ import maspack.matrix.VectorNi;
  * <p> As an example, we consider storing and retriveing information
  * about a vector. The store operation might look like this:
  * <pre>
+ * {@code
  *    saveVector (DataBuffer data) {
  *       data.zput (size);               // store vector size as an integer
  *       for (int i=0; i<size; i++) {
  *          data.dout (vector.get(i));   // store vector data as doubles
  *       }
  *    }
+ * }
  * </pre>
  * while the restore operation migth look like this:
  * <pre>
+ * {@code
  *    loadVector (DataBuffer data) {
  *       int size = data.zget ();        // get the vector size
  *       vector = new VectorNd(size);
@@ -50,6 +53,7 @@ import maspack.matrix.VectorNi;
  *          vector.set (i, data.dget()); // restore the vector data
  *       }
  *    }
+ * }
  * </pre>
  *
  * <p> Internally, each buffer is implementing as an array, whose length

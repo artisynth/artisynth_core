@@ -122,11 +122,11 @@ public class MeshIntersectingProbe extends CutPlaneProbe {
    
    /**
     * Clips the display plane to lie solely within the associated mesh
-    * @param set
+    * @param enable if <code>true</code>, enables display plane clipping
     */
-   public void clip(boolean set) {
+   public void clip(boolean enable) {
       
-      if (clipped == set) {
+      if (clipped == enable) {
          return;  // prevent excessive setting
       }
       
@@ -136,7 +136,7 @@ public class MeshIntersectingProbe extends CutPlaneProbe {
          rebuildMesh();
       }
       updateMeshDisplay();
-      clipped = set;
+      clipped = enable;
    }
    
    @Override

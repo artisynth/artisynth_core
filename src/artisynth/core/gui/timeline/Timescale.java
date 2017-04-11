@@ -66,8 +66,8 @@ public class Timescale extends JSlider {
    /**
     * Constructor.
     * 
-    * @param frame
-    * @param durationInSec
+    * @param frame Timeline window
+    * @param durationInSec desired duration in seconds
     * @param zoomLevel Initial zoom level, must be in interval from 0 to
     * {@link #getMaximumZoomLevel()}
     */
@@ -98,7 +98,9 @@ public class Timescale extends JSlider {
    } 
 
    /**
-    * @param durationInSec
+    * Updates the size and scale of this Timescale
+    * 
+    * @param durationInSec duration in seconds
     * @param zoomLevel Initial zoom level, must be in interval from 0 to
     * {@link #getMaximumZoomLevel()}
     */
@@ -147,8 +149,9 @@ public class Timescale extends JSlider {
    }
 
    /**
+    * Computes the exact length of this TimeScale in pixels
     * 
-    * @param duration
+    * @param duration time duration
     * @param zoomLevel Zoom level, must be in interval from 0 to 
     * {@link #getMaximumZoomLevel()}
     * 

@@ -492,10 +492,9 @@ public abstract class KeyPair {
    /**
     * Loads a key from a file
     * 
-    * @param prvfile
-    * @param pubfile
+    * @param prvfile private key file
+    * @param pubfile public key file
     * @return loaded key pair
-    * @throws JSchException
     */
    public static KeyPair load(String prvfile, String pubfile)
       throws JSchException {
@@ -532,10 +531,9 @@ public abstract class KeyPair {
    /**
     * Loads a key from a file
     * 
-    * @param prvfile
-    * @param pubfile
+    * @param prvfile private key file
+    * @param pubfile public key file
     * @return loaded key pair
-    * @throws JSchException
     */
    public static KeyPair load(File prvfile, File pubfile)
       throws JSchException {

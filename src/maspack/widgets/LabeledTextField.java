@@ -139,7 +139,7 @@ public abstract class LabeledTextField extends LabeledControl {
     * 
     * @param text
     * text to generate value for
-    * @param clipped
+    * @param corrected
     * set to <code>true</code> if the resulting value has been corrected
     * @return value corresponding to text
     */

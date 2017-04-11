@@ -17,14 +17,16 @@ import javax.swing.event.MouseInputAdapter;
 import maspack.geometry.SignedDistanceGridCell;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLViewerFrame;
 
 public class SignedDistanceGridViewer extends GLViewerFrame {
    private static final long serialVersionUID = 1L;
-   ArrayList<SignedDistanceGridCell> gridCellList = new ArrayList<SignedDistanceGridCell> (10);
-   ArrayList<int[]> selectedPnts = new ArrayList<int[]>();
+   // ArrayList<SignedDistanceGridCell> gridCellList = 
+   //    new ArrayList<SignedDistanceGridCell> (10);
+   ArrayList<Vector3i> selectedPnts = new ArrayList<Vector3i>();
 
    class SelectionHandler implements ViewerSelectionListener {
       private void clearSelection() {
@@ -43,16 +45,17 @@ public class SignedDistanceGridViewer extends GLViewerFrame {
             List<LinkedList<?>> itemPaths = e.getSelectedObjects();
             for (LinkedList<?> path : itemPaths) {
                if (path.getFirst() instanceof SignedDistanceGridCell) {
-                  SignedDistanceGridCell gridCell = (SignedDistanceGridCell)path.getFirst();
+                  SignedDistanceGridCell gridCell = 
+                     (SignedDistanceGridCell)path.getFirst();
                   if (path.size() > 1 && path.get (1) instanceof Integer) {
                      // int idx = ((Integer)path.get (1)).intValue();
                      if (!gridCell.isSelected ()) {
                         gridCell.selectPoint (true);
-                        selectedPnts.add (gridCell.getPoint());
+                        selectedPnts.add (gridCell.getPointIndices());
                      }
                      else {
                         gridCell.selectPoint (false);
-                        selectedPnts.remove (gridCell.getPoint());
+                        selectedPnts.remove (gridCell.getPointIndices());
                      }
                      if (!selectAll) {
                         break;
@@ -93,11 +96,12 @@ public class SignedDistanceGridViewer extends GLViewerFrame {
                new Vector3d (e.getX() - lastX, lastY - e.getY(), 0);
             del.inverseTransform (XV);
             del.scale (viewer.centerDistancePerPixel());
-            for (Iterator<int[]> it = selectedPnts.iterator(); it.hasNext();) {
-               int[] next = it.next ();
-               next[0] += del.x;
-               next[1] += del.y;
-               next[2] += del.z;
+            Iterator<Vector3i> it = selectedPnts.iterator();
+            while (it.hasNext()) {
+               Vector3i next = it.next ();
+               next.x += del.x;
+               next.y += del.y;
+               next.z += del.z;
             }
             lastX = e.getX();
             lastY = e.getY();
@@ -118,8 +122,8 @@ public class SignedDistanceGridViewer extends GLViewerFrame {
       viewer.addSelectionListener (new SelectionHandler());
    }
 
-   public void addCell (SignedDistanceGridCell gridCell) {
-      viewer.addRenderable (gridCell);
-      gridCellList.add (gridCell);
-   }
+   // public void addCell (SignedDistanceGridCell gridCell) {
+   //    viewer.addRenderable (gridCell);
+   //    gridCellList.add (gridCell);
+   // }
 }

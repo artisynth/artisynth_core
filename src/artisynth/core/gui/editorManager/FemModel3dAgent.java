@@ -64,7 +64,7 @@ import artisynth.core.driver.Main;
 import artisynth.core.driver.ViewerManager;
 import artisynth.core.femmodels.AnsysReader;
 import artisynth.core.femmodels.FemFactory;
-import artisynth.core.femmodels.FemFactory.FemElemType;
+import artisynth.core.femmodels.FemFactory.FemElementType;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.TetGenReader;
@@ -188,7 +188,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       String tetgenEleFile;
       String ucdFile;
       String surfaceMeshFile;
-      FemElemType elemType;
+      FemElementType elemType;
    }
    
    private void setSettings() {
@@ -214,7 +214,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       mySettings.ucdFile = ucdMeshFileField.getStringValue();
       mySettings.surfaceMeshFile = surfaceMeshFileField.getStringValue();
 
-      mySettings.elemType = (FemElemType) (elemSelector.isEnabledAll() ? 
+      mySettings.elemType = (FemElementType) (elemSelector.isEnabledAll() ? 
          elemSelector.getValue() : null);
    }
 
@@ -284,10 +284,10 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       setProperties (fem, getPrototypeComponent (myComponentType));
       setProperties (myPrototype, myPrototype);
       
-      FemElemType elemType = null; 
+      FemElementType elemType = null; 
       FemMeshType meshType = (FemMeshType) meshSelector.getValue();
       if (elemSelector.isEnabledAll()) {
-         elemType = (FemElemType) elemSelector.getValue();
+         elemType = (FemElementType) elemSelector.getValue();
       }
 
       switch (meshType) {
@@ -355,7 +355,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
             
             try {
                PolygonalMesh mesh = new PolygonalMesh (new File (meshFileName));
-               FemFactory.createExtrusion (fem, elemType, n, d, mesh);
+               FemFactory.createExtrusion (fem, elemType, n, d, 0, mesh);
             }
             catch (Exception e) {
                EditorUtils.showError (
@@ -559,7 +559,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       geometryPanel.addWidget (meshPropPanel);
       
       elemSelector = new EnumSelector ("element type", 
-         FemElemType.Tet, FemElemType.values());      
+         FemElementType.Tet, FemElementType.values());      
       elemSelector.addValueChangeListener (this);
       geometryPanel.addWidget (elemSelector);
 
@@ -723,14 +723,14 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
       }
       else if (value == FemMeshType.Grid) {
          elemSelector = new EnumSelector (
-            "element type", FemElemType.values());
+            "element type", FemElementType.values());
       }
       else if (value == FemMeshType.Tube ||
                value == FemMeshType.Torus ||
                value == FemMeshType.Extrusion ) {
          elemSelector = new EnumSelector ("element type", 
-            new FemElemType[] {FemElemType.Tet, FemElemType.Hex,
-                               FemElemType.QuadTet, FemElemType.QuadHex});
+            new FemElementType[] {FemElementType.Tet, FemElementType.Hex,
+                               FemElementType.QuadTet, FemElementType.QuadHex});
       }
 
       elemSelector.addValueChangeListener (this);

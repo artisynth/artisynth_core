@@ -658,7 +658,8 @@ public class FemDisplayProbe extends CutPlaneProbe {
    /**
     * Sets the surface rendering mode, allowing Stress, Strain,
     * Shaded or None
-    * @param mode
+    * 
+    * @param mode surface rendering mode
     */
    public void setSurfaceRendering(SurfaceRender mode) {
       if (mySurfaceRendering != mode) {

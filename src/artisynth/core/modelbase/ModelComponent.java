@@ -222,9 +222,11 @@ public interface ModelComponent extends HasProperties, HierarchyNode, Scannable 
    public void getSoftReferences (List<ModelComponent> refs);
 
    /**
-    * Returns true if this component has state. Structure change events involving
+    * Queries if this component has state. Structure change events involving
     * components that have state will cause the current state history of
-    * of the system to be cleared. 
+    * of the system to be cleared.
+    *
+    * @return <code>true</code> if this component has state
     */
    public boolean hasState();
    
@@ -242,7 +244,8 @@ public interface ModelComponent extends HasProperties, HierarchyNode, Scannable 
     * <code>scan()</code>.
     * @param ancestor ancestor component with respect to which
     * reference component paths are defined.
-    * @throws IOException
+    * @throws IOException if an error is encountered (such as a reference to a
+    * non-existent component)
     */
    public void postscan (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException;

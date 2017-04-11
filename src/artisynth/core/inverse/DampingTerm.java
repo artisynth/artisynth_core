@@ -24,7 +24,8 @@ public class DampingTerm extends LeastSquaresTermBase {
    /**
     * Old constructor: the size is determined automatically from the
     * tracking controller, the second parameter is no longer used.
-    * @param controller
+    * 
+    * @param controller tracking controller
     * @param size this parameter is no longer used
     */
    public DampingTerm(TrackingController controller, int size) {

@@ -29,7 +29,6 @@ public class Polyline {
    
    /**
     * Creates a duplicate copy of a polyline
-    * @param p
     */
    public Polyline(Polyline p) {
       this.idx = p.idx;

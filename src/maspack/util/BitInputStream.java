@@ -58,8 +58,9 @@ public class BitInputStream extends FilterInputStream {
    }
    
    /**
-    * Read up to 32 bits of data 
-    * @param nbits
+    * Read up to 32 bits of data
+    * 
+    * @param nbits number of bits to read
     * @return integer containg bit values
     */
    public int readBits(int nbits) throws IOException {

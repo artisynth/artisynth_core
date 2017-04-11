@@ -8,12 +8,14 @@ package artisynth.core.modelbase;
 
 public interface MutableCompositeComponent<C extends ModelComponent> extends
 CompositeComponent {
+
    /**
-    * Adds a component to this MutableCompositeComponent. The component is placed in the
-    * last position and its index value is set accordingly.
+    * Adds a component to this MutableCompositeComponent. The component is
+    * placed in the last position and its index value is set accordingly.
     * 
     * @param comp
-    * component to be added
+    * component to be adde
+    * @return <code>true</code> if the component was actually added
     */
    public boolean add (C comp);
 

@@ -56,9 +56,10 @@ public class RenderObjectFactory {
    }
 
    /**
-    * Creates a RenderObject from a PolygonalMesh, with one group of triangle primitives for faces.
-    * Non-triangular faces are replaced by a triangle fan.
-    * @param mesh 
+    * Creates a RenderObject from a PolygonalMesh, with one group of triangle
+    * primitives for faces.  Non-triangular faces are replaced by a triangle
+    * fan.
+    * @param mesh mesh for which the render object is to be created
     * @param flatNormals use "flat" shading normals
     * @param addEdges add edge primitives
     * @return created RenderObject

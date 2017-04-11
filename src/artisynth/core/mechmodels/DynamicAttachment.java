@@ -491,7 +491,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       }
    }
 
-   public abstract void addMassToMaster (
+   protected abstract void addMassToMaster (
       MatrixBlock mblk, MatrixBlock sblk, int i);
 
    public abstract boolean getDerivative (double[] buf, int idx);

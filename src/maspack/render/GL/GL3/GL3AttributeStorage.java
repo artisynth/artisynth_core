@@ -141,7 +141,6 @@ public class GL3AttributeStorage {
    
    /**
     * Aligned width in bytes
-    * @return
     */
    public int width() {
       return colWidth()*cols();

@@ -26,7 +26,7 @@ public interface ContactForceBehavior {
     *
     * @param fres returns the force, compliance and damping for a given
     * contact distance.
-    * @param dist contact interpentration distance. This value is usually
+    * @param dist contact interpenetration distance. This value is usually
     * negative, with greater negativity indicating greater interpenetration.
     * @param cpnt1 first contact point
     * @param cpnt2 second contact point

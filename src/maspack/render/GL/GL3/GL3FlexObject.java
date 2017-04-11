@@ -198,8 +198,6 @@ public class GL3FlexObject extends GL3ResourceBase {
    
    /**
     * Begins constructing VBOs.  Assumes only positions available.
-    * @param gl
-    * @param maxVertices
     */
    public void begin(GL3 gl, int maxVertices) {
       begin(gl, false, false, false, maxVertices, 0);
@@ -207,11 +205,6 @@ public class GL3FlexObject extends GL3ResourceBase {
       
    /**
     * Begins constructing object
-    * @param gl
-    * @param hasNormal
-    * @param hasColor
-    * @param hasTexcoord
-    * @param maxVertices
     */
    public void begin(GL3 gl, boolean hasNormal, boolean hasColor, boolean hasTexcoord, int maxVertices) {
       begin(gl, hasNormal, hasColor, hasTexcoord, maxVertices, 0);
@@ -219,11 +212,6 @@ public class GL3FlexObject extends GL3ResourceBase {
    
    /**
     * Begins constructing object
-    * @param gl
-    * @param hasNormal
-    * @param hasColor
-    * @param hasTexcoord
-    * @param maxVertices
     * @param maxIndices max size of index buffer
     */
    public void begin(GL3 gl, boolean hasNormal, boolean hasColor, boolean hasTexcoord, int maxVertices, int maxIndices) {
@@ -252,7 +240,6 @@ public class GL3FlexObject extends GL3ResourceBase {
       
    /**
     * Sets the current normal to use for new vertices
-    * @param nrm
     * @param offset into nrm array
     */
    public void normal(float[] nrm, int offset) {
@@ -261,7 +248,6 @@ public class GL3FlexObject extends GL3ResourceBase {
    
    /**
     * Sets the current normal to use for new vertices
-    * @param nrm
     */
    public void normal(float[] nrm) {
       normal(nrm, 0);
@@ -270,9 +256,6 @@ public class GL3FlexObject extends GL3ResourceBase {
    
    /**
     * Sets the current normal to use for new vertices
-    * @param x
-    * @param y
-    * @param z
     */
    public void normal(float x, float y, float z) {
       currentNormal[0] = x;
@@ -291,10 +274,10 @@ public class GL3FlexObject extends GL3ResourceBase {
    
    /**
     * Sets the current color to use for new vertices, including RGBA.
-    * @param r
-    * @param g
-    * @param b
-    * @param a
+    * @param r red
+    * @param g green
+    * @param b blue
+    * @param a alpha
     */
    public void color(int r, int g, int b, int a) {
       currentColor[0] = (byte)r;
@@ -354,8 +337,6 @@ public class GL3FlexObject extends GL3ResourceBase {
    
    /**
     * Sets the current texture coordinate
-    * @param x
-    * @param y
     */
    public void texcoord(float x, float y) {
       currentTexcoord[0] = x;
@@ -383,9 +364,6 @@ public class GL3FlexObject extends GL3ResourceBase {
    
    /**
     * Adds a new vertex at the supplied position
-    * @param x
-    * @param y
-    * @param z
     * @return index of the new vertex
     */
    public int vertex(float x, float y, float z) {
@@ -442,7 +420,6 @@ public class GL3FlexObject extends GL3ResourceBase {
    
    /**
     * Ends building VBOs, commits to GPU 
-    * @param gl
     */
    public void end(GL3 gl) {
       building = false;

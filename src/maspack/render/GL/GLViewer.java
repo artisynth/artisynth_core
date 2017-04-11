@@ -1199,8 +1199,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    /**
     * Explicitly set the point size now, updating committed
     * state if necessary
-    * @param gl
-    * @param size
     */
    protected void setPointSize(GL2GL3 gl, float size) {
       setPointSize (size);
@@ -1217,8 +1215,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    /**
     * Explicitly set the line width now, updating committed
     * state if necessary
-    * @param gl
-    * @param width
     */
    protected void setLineWidth(GL gl, float width) {
       setLineWidth (width);
@@ -1234,7 +1230,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    /**
     * Enable or disable the GL Canvas auto-swap mode
-    * @param enable
     */
    public void setAutoSwapBufferMode (boolean enable) {
       canvas.setAutoSwapBufferMode (enable);
@@ -1765,11 +1760,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    
    /**
     * Sets the viewer's viewport. 
-    * @param gl
-    * @param x
-    * @param y
-    * @param width
-    * @param height
     */
    public void setViewport(GL gl, int x, int y, int width, int height) {
       gl.glViewport(x, y, width, height);
@@ -2905,7 +2895,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * Special color used for selection (primarily for color-based selection,
     * although since the renderbuffers are typically not drawn, can be
     * used for any selection method).
-    * @param color
     */
    public void setSelectingColor (Color color) {
       color.getRGBComponents (mySelectingColor);
@@ -2913,9 +2902,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
 
    /**
-    * The material color to use if the renderer is currently performing a selection
-    * render. This is mainly used for color-based selection.
-    * 
+    * The material color to use if the renderer is currently performing a
+    * selection render. This is mainly used for color-based selection.
+    *
     * @param r red
     * @param g green
     * @param b blue
@@ -3101,8 +3090,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * @param h height of shot
     * @param samples number of samples to use for the
     *        multisample FBO (does antialiasing)
-    * @param file
-    * @param format
+    * @param file file to which the screen shot should be written
+    * @param format format string
     */
    public abstract void setupScreenShot (
       int w, int h, int samples, File file, String format);

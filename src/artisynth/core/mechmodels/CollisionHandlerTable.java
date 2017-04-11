@@ -10,10 +10,10 @@ import artisynth.core.mechmodels.Collidable.Group;
  * structure takes the form of a n X n sparse upper triangular matrix, where n
  * is the total number of collidable bodies that can be associated with the
  * handlers. The "indices" for this matrix are provided by each body's
- * <code>getCollisionIndex()</code> method. Each handler is associated with a 
- * pair of bodies, and since these pairings are symmetric, we only need store 
- * the upper triangular part of the matrix. The "indices" for this matrix 
- * are given by the <i>collision index</i> for each body.
+ * <i>collision index</i>, as returned by its <code>getCollidableIndex()</code>
+ * method. Each handler is associated with a pair of bodies, and since these
+ * pairings are symmetric, we only need store the upper triangular part of the
+ * matrix.
  *
  * <p>Each body is associated with an <code>Anchor</code> structure that
  * contains linked lists to the other handlers in both the k-th row and column. 

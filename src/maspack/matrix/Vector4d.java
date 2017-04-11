@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -7,6 +8,7 @@
 package maspack.matrix;
 
 import java.util.Random;
+
 import maspack.util.InternalErrorException;
 import maspack.util.Clonable;
 
@@ -150,6 +152,10 @@ public class Vector4d extends VectorBase implements Clonable {
     * {@inheritDoc}
     */
    public void get (double[] values) {
+      if (values.length < 4) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have length >= 4");
+      }
       values[0] = x;
       values[1] = y;
       values[2] = z;
@@ -164,7 +170,7 @@ public class Vector4d extends VectorBase implements Clonable {
     * vector into which values are to be copied
     * @param idx
     * starting index for copying values
-    * @throws ArrayIndexOfOutBoundsException
+    * @throws ArrayIndexOutOfBoundsException
     * if idx specifies a region within v1 that exceeds its bounds
     */
    public void get (VectorNd v1, int idx) {
@@ -213,9 +219,17 @@ public class Vector4d extends VectorBase implements Clonable {
    }
 
    /**
-    * {@inheritDoc}
+    * Sets the elements of this vector from an array of doubles. The array
+    * must have a length of at least 4.
+    * 
+    * @param values
+    * array from which values are copied
     */
    public void set (double[] values) {
+      if (values.length < 4) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have a length of at least 4");
+      } 
       x = values[0];
       y = values[1];
       z = values[2];
@@ -243,7 +257,7 @@ public class Vector4d extends VectorBase implements Clonable {
     * vector from which new values are copied
     * @param idx
     * starting index for new values
-    * @throws ArrayIndexOfOutBoundsException
+    * @throws ArrayIndexOutOfBoundsException
     * if idx specifies a region within v1 that exceeds its bounds
     */
    public void set (VectorNd v1, int idx) {
@@ -263,12 +277,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void add (Vector4d v1, Vector4d v2) {
+   public Vector4d add (Vector4d v1, Vector4d v2) {
       x = v1.x + v2.x;
       y = v1.y + v2.y;
       z = v1.z + v2.z;
       w = v1.w + v2.w;
+      return this;
    }
 
    /**
@@ -276,12 +292,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     */
-   public void add (Vector4d v1) {
+   public Vector4d add (Vector4d v1) {
       x += v1.x;
       y += v1.y;
       z += v1.z;
       w += v1.w;
+      return this;
    }
 
    /**
@@ -295,12 +313,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * z increment
     * @param dw
     * w increment
+    * @return this vector
     */
-   public void add (double dx, double dy, double dz, double dw) {
+   public Vector4d add (double dx, double dy, double dz, double dw) {
       x += dx;
       y += dy;
       z += dz;
       w += dw;
+      return this;
    }
 
    /**
@@ -310,12 +330,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void sub (Vector4d v1, Vector4d v2) {
+   public Vector4d sub (Vector4d v1, Vector4d v2) {
       x = v1.x - v2.x;
       y = v1.y - v2.y;
       z = v1.z - v2.z;
       w = v1.w - v2.w;
+      return this;
    }
 
    /**
@@ -323,12 +345,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     */
-   public void sub (Vector4d v1) {
+   public Vector4d sub (Vector4d v1) {
       x -= v1.x;
       y -= v1.y;
       z -= v1.z;
       w -= v1.w;
+      return this;
    }
 
    /**
@@ -336,22 +360,26 @@ public class Vector4d extends VectorBase implements Clonable {
     * 
     * @param v1
     * vector to negate
+    * @return this vector
     */
-   public void negate (Vector4d v1) {
+   public Vector4d negate (Vector4d v1) {
       x = -v1.x;
       y = -v1.y;
       z = -v1.z;
       w = -v1.w;
+      return this;
    }
 
    /**
     * Negates this vector in place.
+    * @return this vector
     */
-   public void negate() {
+   public Vector4d negate() {
       x = -x;
       y = -y;
       z = -z;
       w = -w;
+      return this;
    }
 
    /**
@@ -359,12 +387,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * 
     * @param s
     * scaling factor
+    * @return this vector
     */
-   public void scale (double s) {
+   public Vector4d scale (double s) {
       x = s * x;
       y = s * y;
       z = s * z;
       w = s * w;
+      return this;
    }
 
    /**
@@ -375,12 +405,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled
+    * @return this vector
     */
-   public void scale (double s, Vector4d v1) {
+   public Vector4d scale (double s, Vector4d v1) {
       x = s * v1.x;
       y = s * v1.y;
       z = s * v1.z;
       w = s * v1.w;
+      return this;
    }
 
    /**
@@ -439,12 +471,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled and added
+    * @return this vector
     */
-   public void scaledAdd (double s, Vector4d v1) {
+   public Vector4d scaledAdd (double s, Vector4d v1) {
       x += s * v1.x;
       y += s * v1.y;
       z += s * v1.z;
       w += s * v1.w;
+      return this;
    }
 
    /**
@@ -456,12 +490,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * vector to be scaled
     * @param v2
     * vector to be added
+    * @return this vector
     */
-   public void scaledAdd (double s, Vector4d v1, Vector4d v2) {
+   public Vector4d scaledAdd (double s, Vector4d v1, Vector4d v2) {
       x = s * v1.x + v2.x;
       y = s * v1.y + v2.y;
       z = s * v1.z + v2.z;
       w = s * v1.w + v2.w;
+      return this;
    }
 
    /**
@@ -476,12 +512,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * right-hand scaling factor
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void combine (double s1, Vector4d v1, double s2, Vector4d v2) {
+   public Vector4d combine (double s1, Vector4d v1, double s2, Vector4d v2) {
       x = s1 * v1.x + s2 * v2.x;
       y = s1 * v1.y + s2 * v2.y;
       z = s1 * v1.z + s2 * v2.z;
       w = s1 * v1.w + s2 * v2.w;
+      return this;
    }
 
    /**
@@ -638,8 +676,9 @@ public class Vector4d extends VectorBase implements Clonable {
 
    /**
     * Normalizes this vector in place.
+    * @return this vector
     */
-   public void normalize() {
+   public Vector4d normalize() {
       double lenSqr = x * x + y * y + z * z + w * w;
       double err = lenSqr - 1;
       if (err > (2 * DOUBLE_PREC) || err < -(2 * DOUBLE_PREC)) {
@@ -649,6 +688,7 @@ public class Vector4d extends VectorBase implements Clonable {
          z /= len;
          w /= len;
       }
+      return this;
    }
 
    /**
@@ -657,8 +697,9 @@ public class Vector4d extends VectorBase implements Clonable {
     * 
     * @param v1
     * vector to normalize
+    * @return this vector
     */
-   public void normalize (Vector4d v1) {
+   public Vector4d normalize (Vector4d v1) {
       double lenSqr = v1.x * v1.x + v1.y * v1.y + v1.z * v1.z + v1.w * v1.w;
       double err = lenSqr - 1;
       if (err > (2 * DOUBLE_PREC) || err < -(2 * DOUBLE_PREC)) {
@@ -674,6 +715,7 @@ public class Vector4d extends VectorBase implements Clonable {
          z = v1.z;
          w = v1.w;
       }
+      return this;
    }
 
    /**
@@ -766,12 +808,14 @@ public class Vector4d extends VectorBase implements Clonable {
 
    /**
     * Sets the elements of this vector to their absolute values.
+    * @return this vector
     */
-   public void absolute() {
+   public Vector4d absolute() {
       x = Math.abs (x);
       y = Math.abs (y);
       z = Math.abs (z);
       w = Math.abs (w);
+      return this;
    }
 
    /**
@@ -779,12 +823,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * 
     * @param v1
     * vector to take the absolute value of
+    * @return this vector
     */
-   public void absolute (Vector4d v1) {
+   public Vector4d absolute (Vector4d v1) {
       x = Math.abs (v1.x);
       y = Math.abs (v1.y);
       z = Math.abs (v1.z);
       w = Math.abs (v1.w);
+      return this;
    }
 
    /**
@@ -966,10 +1012,14 @@ public class Vector4d extends VectorBase implements Clonable {
     * matrix
     * @param v1
     * vector
+    * @return this vector
     */
-   public void mul (Matrix4dBase X, Vector4d v1) {
+   public Vector4d mul (Matrix4dBase X, Vector4d v1) {
       X.mul (this, v1);
+      return this;
    }
+   
+   
 
    private void mulMat (Vector4d vr, Matrix3dBase R, Vector4d v1) {
       double x = R.m00 * v1.x + R.m01 * v1.y + R.m02 * v1.z;
@@ -1111,8 +1161,9 @@ public class Vector4d extends VectorBase implements Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     */
-   public void max (Vector4d v) {
+   public Vector4d max (Vector4d v) {
       if (v.x > x) {
          x = v.x;
       }
@@ -1125,6 +1176,7 @@ public class Vector4d extends VectorBase implements Clonable {
       if (v.w > w) {
          w = v.w;
       }
+      return this;
    }
 
    /**
@@ -1133,8 +1185,9 @@ public class Vector4d extends VectorBase implements Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     */
-   public void min (Vector4d v) {
+   public Vector4d min (Vector4d v) {
       if (v.x < x) {
          x = v.x;
       }
@@ -1147,6 +1200,7 @@ public class Vector4d extends VectorBase implements Clonable {
       if (v.w < w) {
          w = v.w;
       }
+      return this;
    }
 
    public Vector4d clone() {

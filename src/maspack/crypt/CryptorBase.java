@@ -78,7 +78,8 @@ public class CryptorBase implements Cryptor {
 
    /**
     * Create an AES key from a SHA-2 hash of a passphrase
-    * @param passphrase
+    * 
+    * @param passphrase string describing the passphrase
     * @return generated key
     */
    public static byte[] generateKeyFromPassphrase(String passphrase) {
@@ -102,7 +103,7 @@ public class CryptorBase implements Cryptor {
 
    /**
     * Sets initialization vector for algorithm
-    * @param ivSpec
+    * @param ivSpec initialization vector
     */
    public void setIV(IvParameterSpec ivSpec) {
       this.ivSpec = ivSpec;
@@ -110,7 +111,7 @@ public class CryptorBase implements Cryptor {
 
    /**
     * Sets initialization vector for algorithm
-    * @param bytes
+    * @param bytes initialization vector as bytes
     */
    public void setIV(byte[] bytes) {
       if (bytes == null) {
@@ -123,8 +124,8 @@ public class CryptorBase implements Cryptor {
    /**
     * Sets initialization vector for algorithm with a given
     * length.  The bytes are either trimmed or looped.
-    * @param bytes
-    * @param len
+    * @param bytes initialization vector as bytes
+    * @param len length of the vector
     */
    public void setIV(byte[] bytes, int len) {
       if (bytes.length > len) {

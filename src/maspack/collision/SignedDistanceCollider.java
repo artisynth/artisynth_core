@@ -4,37 +4,19 @@ package maspack.collision;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import java.util.ArrayList;
+import maspack.util.ArraySupport;
 import java.util.Hashtable;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 
 public class SignedDistanceCollider implements AbstractCollider {
    
-   public PolygonalMesh mesh0;
-   public PolygonalMesh mesh1;
-   /*
-    * Method getContacts returns this ContactInfo populated with all of the
-    * information about the collision.
-    */
-   public ContactInfo contactInfo;
-   
    public SignedDistanceCollider() {
    }
-   
-   // mesh0 is rigid/fixed, mesh1 is deformable.
-   public ContactInfo getContacts (
+
+   private boolean boundingBoxesDisjoint (
       PolygonalMesh mesh0, PolygonalMesh mesh1) {
       
-      this.mesh0 = mesh0;
-      this.mesh1 = mesh1;
-      contactInfo = new ContactInfo (mesh0, mesh1);
-      SignedDistanceGrid grid0 = mesh0.getSignedDistanceGrid();
-      if (grid0 == null) {
-         Vector3d cellDivisions = new Vector3d (20.0, 20.0, 20.0);
-         double gridMargin = 0.1;
-         grid0 = mesh0.getSignedDistanceGrid (gridMargin, cellDivisions);
-      }
-      //************************************************************************
       Point3d meshMin = new Point3d();
       Point3d meshMax = new Point3d();
       Vector3d widths = new Vector3d();
@@ -56,10 +38,61 @@ public class SignedDistanceCollider implements AbstractCollider {
       // XOBBToWorld1 should be identity.
       widths.sub (meshMax, meshMin);      
       OBB obb1 = new OBB (widths, XOBBToWorld1);
-      if (BVBoxNodeTester.isDisjoint (obb0, obb1)) {
+      return BVBoxNodeTester.isDisjoint (obb0, obb1);
+   }
+
+
+   public ContactInfo getContacts (
+      PolygonalMesh mesh0, PolygonalMesh mesh1) {
+
+      SignedDistanceGrid grid0 = mesh0.getSignedDistanceGrid();
+      if (grid0 == null) {
+         Vector3i cellDivisions = new Vector3i (20, 20, 20);
+         double gridMargin = 0.1;
+         grid0 = mesh0.getSignedDistanceGrid (gridMargin, cellDivisions);
+      }     
+      return getContacts (mesh0, grid0, mesh1, null);
+   }
+   
+   // mesh0 is rigid/fixed, mesh1 is deformable.
+   public ContactInfo getContacts (
+      PolygonalMesh mesh0, SignedDistanceGrid grid0,
+      PolygonalMesh mesh1, SignedDistanceGrid grid1) {
+
+      if (boundingBoxesDisjoint (mesh0, mesh1)) {
          return null;
       }
-      //************************************************************************
+      ContactInfo cinfo = new ContactInfo (mesh0, mesh1);
+      cinfo.myPoints0 = new ArrayList<PenetratingPoint>();
+      cinfo.myPoints1 = new ArrayList<PenetratingPoint>();
+      if (grid0 != null) {
+         findPenetratingPoints (cinfo.myPoints1, mesh0, grid0, mesh1);
+         System.out.println (
+            "grid0 is "+grid0.getResolution());
+      }
+      else {
+         System.out.println ("grid0=null");
+      }
+      if (grid1 != null) {
+         findPenetratingPoints (cinfo.myPoints0, mesh1, grid1, mesh0);
+         System.out.println (
+            "grid1 is "+grid1.getResolution());
+      }
+      else {
+         System.out.println ("grid1=null");
+      }
+      if (cinfo.myPoints0.size() == 0 && cinfo.myPoints1.size() == 0) {
+         return null;
+      }
+      else {
+         return cinfo;
+      }
+   }
+   
+   private void findPenetratingPoints (
+      ArrayList<PenetratingPoint> points,
+      PolygonalMesh mesh0, SignedDistanceGrid grid0, PolygonalMesh mesh1) {
+
       ArrayList<Vertex3d> mesh1Vertices = mesh1.getVertices ();
       Vector3d normal = new Vector3d();
       double distance;
@@ -70,45 +103,21 @@ public class SignedDistanceCollider implements AbstractCollider {
          // Transform from deformable mesh to rigid mesh.
          X1to0.mulInverseLeft (mesh0.getMeshToWorld(), mesh1.getMeshToWorld());
       }
-      Vertex3d vtx = new Vertex3d();
+      Point3d vpnt = new Point3d();
       for (Vertex3d v1 : mesh1Vertices) { // mesh1 is deformable
-         vtx.pnt.set (v1.pnt);
-         if (X1to0 != null)
-            vtx.pnt.transform (X1to0);
-         distance = grid0.getDistanceAndNormal (normal, vtx.pnt);
+         vpnt.set (v1.pnt);
+         if (X1to0 != null) {
+            vpnt.transform (X1to0);
+         }
+         distance = grid0.getDistanceAndNormal (normal, vpnt);
          if (distance <= 0) {
-            if (!mesh0.meshToWorldIsIdentity())
+            if (!mesh0.meshToWorldIsIdentity()) {
                normal.transform (mesh0.getMeshToWorld());
-            contactInfo.myPoints1.add (
-               new PenetratingPoint (v1, normal, distance * -1.0));
+               vpnt.transform (mesh0.getMeshToWorld());
+            }
+            points.add (
+               new PenetratingPoint (v1, vpnt, normal, -distance));
          }
       }
-      ContactInfo tmp = contactInfo;
-      contactInfo = null;
-      return tmp;
    }
-   
-//   /*
-//    * The following code does nothing and is merely for compatibility with the
-//    * old collision code.
-//    */
-//   public double getEpsilon() {
-//      return 0;
-//   }
-//
-//   public double getPointTolerance() {
-//      return 0;      
-//   }
-//
-//   public double getRegionTolerance() {
-//      return 0;      
-//   }
-//
-//   public void setPointTolerance (double d) {
-//      
-//   }
-//
-//   public void setRegionTolerance (double d) {
-//      
-//   }
 }

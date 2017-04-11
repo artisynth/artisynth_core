@@ -229,10 +229,6 @@ public class FemNodeNeighbor {
 
    /**
     * Geometric strain-based stiffess
-    * @param gi
-    * @param sig
-    * @param gj
-    * @param dv
     */
    public void addGeometricStiffness (
       Vector3d gi, SymmetricMatrix3d sig, Vector3d gj, double dv) {

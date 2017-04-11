@@ -70,11 +70,12 @@ public abstract class LeastSquaresTermBase extends QPTermBase
    
    /**
     * Gets the current least squares term and returns the index of the last row
+    * 
     * @param H container to store the left hand side
     * @param f container to store the right hand side
     * @param rowoff start from this row
-    * @param t0
-    * @param t1
+    * @param t0 time at start of step
+    * @param t1 time at end of step
     */
    public int getTerm (MatrixNd H, VectorNd f, int rowoff, double t0, double t1) {
       compute(t0,t1);

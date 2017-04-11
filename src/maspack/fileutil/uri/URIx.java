@@ -961,10 +961,9 @@ public class URIx {
    /**
     * Merges two URIs
     * 
-    * @param base
-    * @param relative
+    * @param base URI base
+    * @param relative extension relative to base
     * @return merged URI
-    * @throws URIxSyntaxException
     */
    public static URIx merge(URIx base, URIx relative) {
 

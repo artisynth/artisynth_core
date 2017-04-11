@@ -189,7 +189,7 @@ public class ICPRegistration {
     *      [ -y4   y3   y6   y2  ]
     *      [  0    0    0    1   ]
     * </pre>
-    * where <code>yi = 0</code> whenever <code>i >= n</code>.
+    * where <code>yi = 0</code> whenever {@code i >= n}.
     *
     *<p> 
     * For each of the above cases, the relation

@@ -14,12 +14,16 @@ package artisynth.core.modelbase;
 public interface ParameterizedClass<C> {
 
    /**
-    * Returns the base type for the class parameterization. 
+    * Returns the base type for the class parameterization.
+    *
+    * @return parameterization class
     */
    Class<C> getTypeParameter();
 
    /**
-    * Returns true if this class explicitly utilizes a parameterized type.
+    * Queries whether this class explicitly utilizes a parameterized type.
+    *
+    * @return <code>true</code> if this class utilizes a parameterized type.
     */
    boolean hasParameterizedType();
 

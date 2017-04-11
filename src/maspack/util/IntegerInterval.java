@@ -166,21 +166,11 @@ public class IntegerInterval extends NumericInterval {
     * five tokens, which specifiy the interval as follows:
     * 
     * <ul>
-    * <p>
     * <li>A '<code>[</code>' character;
-    * 
-    * <p>
     * <li>An integer describing the lower bound;
-    * 
-    * <p>
     * <li>A '<code>,</code>' character;
-    * 
-    * <p>
     * <li>A integer described the upper bound;
-    * 
-    * <p>
     * <li>A '<code>]</code>' character;
-    * 
     * </ul>
     * 
     * @param rtok

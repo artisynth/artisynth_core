@@ -186,13 +186,13 @@ public class Track extends JPanel {
 
    /**
     * Set whether a track is enabled or not.
-    * 
+    * <p>
     * Enabling a track allows it to be expanded, muted and edited. Disabling a
     * track means these actions can no longer be performed on the track. This is
     * done to the track that is the parent of a group when the group is shown
     * and hidden.
     * 
-    * @param enabled
+    * @param enabled if <code>true</code>, enables this track
     */
    public void setEnabled (boolean enabled) {
       isEnabled = enabled;
@@ -313,11 +313,6 @@ public class Track extends JPanel {
          probeInfos.get(i).setAppropSizeAndLocation (true);
       }
    }
-   
-   /**
-    * 
-    * @param probe
-    */
 
    public ProbeInfo addProbeFromRoot (Probe probe) {
       // create the new ProbeInfo object
@@ -425,11 +420,11 @@ public class Track extends JPanel {
    /**
     * delete a probe from the track, need to give the index of the probe
     * 
-    * @param pinfo
-    * @param isParentTrackDeleted
+    * @param pinfo probe information object
+    * @param confirm confirm the deletion in the GUI
     */
-   public void deleteProbe (ProbeInfo pinfo, boolean isParentTrackDeleted) {
-      if (confirmDelete ("Delete this probe?", isParentTrackDeleted)) {
+   public void deleteProbe (ProbeInfo pinfo, boolean confirm) {
+      if (confirmDelete ("Delete this probe?", confirm)) {
          RemoveComponentsCommand rmCmd = new RemoveComponentsCommand (
             "delete probe", pinfo.getProbe());
          myController.myMain.getUndoManager().saveStateAndExecute (rmCmd);
@@ -458,11 +453,10 @@ public class Track extends JPanel {
    }
 
    /**
-    * to attach the probe info
+    * Attach probe info to this track
     * 
-    * @param pInfo
+    * @param pInfo probe info
     */
-
    public void attachProbeInfo (ProbeInfo pInfo) {
       double[] range = new double[2];
       int insertionPoint = calcInsertionPoint (range, pInfo);
@@ -480,9 +474,9 @@ public class Track extends JPanel {
    }
 
    /** 
-    * detach the probe info
+    * Detach probe info from this track
     * 
-    * @param pInfo
+    * @param pInfo probe info
     */
    public void detachProbeInfo (ProbeInfo pInfo) {
       probeInfos.remove (pInfo);
@@ -571,9 +565,8 @@ public class Track extends JPanel {
    /**
     * update the toggle status
     * 
-    * @param mode
+    * @param mode described which buttons to update
     */
-
    public void updateToggleStatus (int mode) {
       if (mode == Track.TRACK_EXPANDED) {
          toggleButtons[0].setToolTipText ("Contract Track");
@@ -601,16 +594,16 @@ public class Track extends JPanel {
     * confirmation dialog of probe deletion
     * 
     * @param confirmMessage
-    * @param isParentTrackDeleted
+    * @param confirm confirm this deletion in the GUI
     * @return confirmation on delete Andrei performance improvements
     */
 
    private boolean confirmDelete (
-      String confirmMessage, boolean isParentTrackDeleted) {
+      String confirmMessage, boolean confirm) {
       int confirmation = JOptionPane.YES_OPTION;
 
       // if individaul probe is deleted
-      if (isParentTrackDeleted == false) {
+      if (confirm) {
          confirmation =
             JOptionPane.showConfirmDialog (
                myController, confirmMessage, "Confirm",
@@ -667,11 +660,7 @@ public class Track extends JPanel {
 
    /**
     * update the track size
-    * 
-    * @param trackLength
-    * @param workspaceWidth
     */
-
    public void updateTrackSize (int trackLength, int workspaceWidth) {
       // update the size of the myTrackControl
       Dimension size = new Dimension (workspaceWidth, 
@@ -692,10 +681,9 @@ public class Track extends JPanel {
     * is this a valid drag? this function determines if we have performed a
     * valid drag
     * 
-    * @param pInfo
+    * @param pInfo probe info
     * @return is the drag valid or not
     */
-
    public boolean isDragValid (ProbeInfo pInfo, boolean isMove) {
       // check for overlap with every probe from this track
       // Note: don't call getProbeInfos() because probes don't need to

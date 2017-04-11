@@ -7,6 +7,7 @@
 package maspack.matrix;
 
 import java.util.Random;
+
 import maspack.util.*;
 
 /**
@@ -131,12 +132,17 @@ public class Quaternion extends VectorBase {
    }
 
    /**
-    * Copies the elements of this quaternion into an array of doubles.
+    * Copies the elements of this quaternion into an array of doubles. The
+    * array must have a length {@code >=} 4.
     * 
     * @param values
     * array into which values are copied
     */
    public void get (double[] values) {
+      if (values.length < 4) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have length >= 4");
+      }
       values[0] = s;
       values[1] = u.x;
       values[2] = u.y;
@@ -184,12 +190,17 @@ public class Quaternion extends VectorBase {
    }
 
    /**
-    * Sets the elements of this quaternion from an array of doubles.
+    * Sets the elements of this quaternion from an array of doubles. The array
+    * must have a length of at least 4.
     * 
     * @param values
     * array from which values are copied
     */
    public void set (double[] values) {
+      if (values.length < 4) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have a length of at least 4");
+      }     
       s = values[0];
       u.x = values[1];
       u.y = values[2];

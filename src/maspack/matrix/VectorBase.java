@@ -89,6 +89,10 @@ public abstract class VectorBase implements Vector {
     * {@inheritDoc}
     */
    public void get (double[] values) {
+      if (values.length < size()) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have length >= "+size());
+      }      
       for (int i = 0; i < size(); i++) {
          values[i] = get (i);
       }
@@ -115,6 +119,17 @@ public abstract class VectorBase implements Vector {
     * {@inheritDoc}
     */
    public void set (double[] values) {
+      if (isFixedSize()) {
+         if (values.length < size()) {
+            throw new IllegalArgumentException (
+               "argument 'values' must have a length of at least "+size());
+         }
+      }
+      else {
+         if (values.length != size()) {
+            setSize (values.length);
+         }
+      }
       for (int i = 0; i < size(); i++) {
          set (i, values[i]);
       }

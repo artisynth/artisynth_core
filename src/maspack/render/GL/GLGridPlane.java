@@ -401,7 +401,7 @@ public class GLGridPlane implements HasProperties {
 
    /**
     * Sets the resolution for this grid. The resolution 
-    * <code>res<code> specifies the major cell size and the number of 
+    * <code>res</code> specifies the major cell size and the number of 
     * subdivisions per cell.
     * 
     * <p>If the major cell size is 0, then auto-sizing will be enabled and the 

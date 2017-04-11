@@ -468,20 +468,30 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       myEdgeRob.notifyPositionsModified();
    }  
 
-   protected void drawEdges (
-      Renderer renderer, RenderObject r, RenderProps props, int group) {
+   // protected void drawEdges (
+   //    Renderer renderer, RenderObject r, RenderProps props, int group) {
 
-      if (r.numLines(group) > 0) {
-         int width = props.getLineWidth();
-         if (width > 0) {
-            boolean selected = (group == SEL_GRP);
-            Shading savedShading = renderer.setShading (Shading.NONE);
-            renderer.setLineColoring (props, selected);
-            renderer.drawLines (r, group, LineStyle.LINE, width);
-            renderer.setShading (savedShading);
-         }
-      }
-   }
+   //    if (r.numLines(group) > 0) {
+   //       if (props.getLineStyle() == LineStyle.LINE) {
+   //          int width = props.getLineWidth();
+   //          if (width > 0) {
+   //             boolean selected = (group == SEL_GRP);
+   //             Shading savedShading = renderer.setShading (Shading.NONE);
+   //             renderer.setLineColoring (props, selected);
+   //             renderer.drawLines (r, group, LineStyle.LINE, width);
+   //             renderer.setShading (savedShading);
+   //          }
+   //       }
+   //       else {
+   //          double radius = props.getLineRadius();
+   //          if (radius > 0) {
+   //             boolean selected = (group == SEL_GRP);
+   //             renderer.setLineColoring (props, selected);
+   //             renderer.drawLines (r, group, props.getLineStyle(), radius);
+   //          }
+   //       }
+   //    }
+   // }
 
    protected void drawWidgets (
       Renderer renderer, RenderObject r, RenderProps props, int group) {

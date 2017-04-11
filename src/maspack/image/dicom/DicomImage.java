@@ -83,7 +83,6 @@ public class DicomImage {
     * Appends a slice to the current DICOM image set.  The order of the image
     * is extracted from header information contained in the slice, based on
     * temporal and slice position indices if possible.
-    * @param slice
     * @return true if added
     */
    public boolean addSlice(DicomSlice slice) {

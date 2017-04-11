@@ -40,7 +40,6 @@ public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable
 
    /**
     * Set Cryptor for encrypting/decrypting password
-    * @param crypt
     */
    public void setCryptor(Cryptor crypt) {
       myCryptor = crypt;
@@ -55,8 +54,8 @@ public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable
    }
 
    /**
-    * Will encrypt password for internal storage using this authenticator's Cryptor
-    * @param password
+    * Will encrypt password for internal storage using this authenticator's
+    * Cryptor
     */
    public void setPlainPassword(String password) {
       String epass;
@@ -71,7 +70,6 @@ public class EncryptedUserAuthenticator implements UserAuthenticator, Comparable
    /**
     * Set an already encrypted password, which must be able to be decrypted
     * using this authenticator's Cryptor
-    * @param encryptedPassword
     */
    public void setEncryptedPassword(String encryptedPassword) {
       this.encryptedPassword = encryptedPassword;

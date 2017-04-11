@@ -375,7 +375,7 @@ MouseListener, ValueChangeListener {
     * see if a full path entered into the component box is valid. could be the
     * absolute full path that includes the property as well.
     * 
-    * @param fullPath
+    * @param fullPath string defining the full path
     * @return true if the full path is valid
     */
    public boolean isFullPathValid (String fullPath) {

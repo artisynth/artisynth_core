@@ -265,8 +265,8 @@ import java.io.*;
  * 
  * <p>
  * This includes the ability to save and restore the type settings for
- * individual characters. In the following example, <code>$</code>,
- * <code>@</code>, and <code>&</code> are set to word characters, and then
+ * individual characters. In the following example, {@code $},
+ * {@code @}, and {@code &} are set to word characters, and then
  * restored to whatever their previous settings were:
  * 
  * <pre>
@@ -566,8 +566,9 @@ public class ReaderTokenizer {
 
    /**
     * Gets the settings associated with a set of characters specified by the
-    * range <code>low <= ch <= high</code>. For more information on character
-    * settings, see {@link #getCharSetting getCharSetting}.
+    * range {@code low <= ch <= high}. For more
+    * information on character settings, see {@link #getCharSetting
+    * getCharSetting}.
     * 
     * @param low
     * lowest character whose setting is desired
@@ -633,7 +634,7 @@ public class ReaderTokenizer {
 
    /**
     * Assigns settings for a set of characters specified by the range
-    * <code>low <= ch <= high</code>. The settings are provided in an
+    * {@code low <= ch <= high}. The settings are provided in an
     * accompanying array. For more information on character settings, see
     * {@link #getCharSetting getCharSetting}.
     * 
@@ -684,7 +685,7 @@ public class ReaderTokenizer {
    }
 
    /**
-    * Sets all characters in the range <code>low <= ch <= high</code> to be
+    * Sets all characters in the range {@code low <= ch <= high} to be
     * "ordinary". See {@link #ordinaryChar(int) ordinaryChar} for more
     * information on ordinary characters.
     * 
@@ -779,7 +780,7 @@ public class ReaderTokenizer {
    }
 
    /**
-    * Sets all characters in the range <code>low <= ch <= high</code> to be
+    * Sets all characters in the range {@code low <= ch <= high} to be
     * "word" characters. See {@link #wordChar wordChar} for more information on
     * word characters.
     * 
@@ -876,7 +877,7 @@ public class ReaderTokenizer {
    }
 
    /**
-    * Sets all characters in the range <code>low <= ch <= high</code> to be
+    * Sets all characters in the range {@code low <= ch <= high} to be
     * numeric extension characters. Other settings for the characters are
     * unaffected. For more information on numeric extensions, see {@link
     * #numericExtensionChar numericExtensionChar}.
@@ -970,7 +971,7 @@ public class ReaderTokenizer {
    }
 
    /**
-    * Sets all characters in the range <code>low <= ch <= high</code> to
+    * Sets all characters in the range {@code low <= ch <= high} to
     * "whitespace" characters. See {@link #whitespaceChar whitespaceChar} for
     * more information on whitespace characters.
     * 
@@ -1069,6 +1070,7 @@ public class ReaderTokenizer {
     * <li>Decimal integers
     * <li>Hexadecimal integers, preceeded by <code>0x</code> or
     * <code>0X</code>
+    * </ul>
     * 
     * All numbers may be preceeded by a <code>-</code> sign which negates
     * their value. When a number token is parsed, its numeric value is placed

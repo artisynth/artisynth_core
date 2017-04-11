@@ -74,7 +74,6 @@ public interface JSONHandler {
     * <li>If text starts with a /* , the content is parsed until the closing *\/</li>
     * <li>Otherwise, the content is parsed until the next whitespace, colon, or comma</li>
     * </ul>
-    * </p>
     * 
     * @param str garbage string
     */

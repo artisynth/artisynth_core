@@ -81,7 +81,6 @@ public abstract class GLDrawableComponent {
    
    /**
     * Paints the underlying AWT component
-    * @param graphics
     * @see Component#paint(Graphics)
     */
    public void paint(Graphics graphics) {
@@ -246,7 +245,7 @@ public abstract class GLDrawableComponent {
    
    /**
     * Adds a mouse listener to the end of the underlying component's queue
-    * @param listener mouse listener to add
+    * @param l mouse listener to add
     * @see Component#addMouseListener(MouseListener)
     */
    public void addMouseListener(MouseListener l) {
@@ -327,7 +326,6 @@ public abstract class GLDrawableComponent {
    
    /**
     * Enables or disables automatic buffer swapping
-    * @param enable
     * @see GLAutoDrawable#setAutoSwapBufferMode(boolean)
     */
    public void setAutoSwapBufferMode(boolean enable) {

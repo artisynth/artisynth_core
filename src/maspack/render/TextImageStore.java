@@ -406,8 +406,6 @@ public class TextImageStore {
 
    /**
     * Enable or disable antialiasing in the graphics pipeline
-    * 
-    * @param set
     */
    public void setAntialiasing (boolean set) {
 
@@ -448,8 +446,7 @@ public class TextImageStore {
 
    /**
     * Creates a glyph vector using the current font and image context
-    * 
-    * @param str
+    *
     * @return vector
     */
    public GlyphVector createGlyphVector (String str) {
@@ -458,8 +455,7 @@ public class TextImageStore {
 
    /**
     * Creates a glyph vector using the current font and image context
-    * 
-    * @param str
+    *
     * @return vector
     */
    public GlyphVector createGlyphVector (Font font, String str) {
@@ -498,7 +494,6 @@ public class TextImageStore {
     * Checks to see if the glyph is already in the backing image, returning the
     * storage information if present, or null otherwise.
     * 
-    * @param glyph
     * @return storage info
     */
    public GlyphStore get (Glyph glyph) {
@@ -512,8 +507,7 @@ public class TextImageStore {
 
    /**
     * Attempts to upload glyphs for an entire string.
-    * 
-    * @param str
+    *
     * @return true if successful, false if some glyphs failed
     */
    public boolean upload (String str) {
@@ -535,7 +529,6 @@ public class TextImageStore {
    /**
     * Attempts to upload glyphs for an entire string.
     * 
-    * @param vec
     * @return true if successful, false if some glyphs failed
     */
    public boolean upload (GlyphVector vec) {
@@ -552,8 +545,6 @@ public class TextImageStore {
 
    /**
     * Mark a region of the backing image as "dirty" (i.e. modified)
-    * 
-    * @param rect
     */
    public void markDirty (Rectangle rect) {
       if (dirty == null) {
@@ -762,9 +753,6 @@ public class TextImageStore {
 
    /**
     * Save backing image to a file (convenience method)
-    * 
-    * @param type
-    * @param dest
     */
    public void saveImage (String type, File dest) {
       try {
@@ -809,8 +797,7 @@ public class TextImageStore {
 
    /**
     * Checks whether glyph storage is still valid
-    * 
-    * @param storage
+    *
     * @return true if still valid
     */
    public boolean isValid (GlyphStore storage) {

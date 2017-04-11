@@ -85,12 +85,13 @@ public class TextComponent3d extends TextComponentBase implements
    
    /**
     * Sets both name and text to the provided string
-    * @param name
+    * 
+    * @param str name and text string
     */
-   public TextComponent3d(String name) {
+   public TextComponent3d(String str) {
       setDefaults();
-      setText(name);
-      setName(name);
+      setText(str);
+      setName(str);
    }
    
    /**

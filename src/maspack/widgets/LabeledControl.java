@@ -60,11 +60,13 @@ import maspack.properties.Property;
  * can declare a value to be invalid, or correct it to an adjusted value.
  * 
  * <p>
- * In general, setting a new value entails: <enum>
+ * In general, setting a new value entails:
+ * <ul>
  * <li> checking the new value's validity
  * <li> set the new value, and fire the value change listeners if the new value
  * differs from the old
- * <li> update the display if the new value differs from the old </enum>
+ * <li> update the display if the new value differs from the old
+ * </ul>
  * Generally speaking, these items are handled by
  * {@link #validateValue validateValue}, {@link #updateValue updateValue}, and
  * {@link #updateDisplay updateDisplay}.
@@ -317,7 +319,7 @@ public abstract class LabeledControl extends LabeledComponent {
     * that do. The default value for this setting is <code>false</code>.
     */
    /**
-    * @param enables
+    * @param enable
     * or disables setting void values from the GUI
     */
    protected void setGUIVoidEnabled (boolean enable) {

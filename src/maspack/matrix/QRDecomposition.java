@@ -9,17 +9,16 @@ package maspack.matrix;
 import maspack.util.*;
 
 /**
- * Constructs the QR decomposition of a matrix. This takes the form <br>
- * M = Q R <br>
- * where M is the original matrix, Q is orthogonal, and R is upper-triangular.
- * Nominally, if M has a size m X n, then if m >= n, R is square with size n and
- * Q is m X n. Otherwise, if m < n, Q is square with size m and R has size m X
- * n.
+ * Constructs the QR decomposition of a matrix. This takes the form <br> M = Q
+ * R <br> where M is the original matrix, Q is orthogonal, and R is
+ * upper-triangular.  Nominally, if M has a size m X n, then if m {@code >=} n,
+ * R is square with size n and Q is m X n. Otherwise, if m {@code <} n, Q is
+ * square with size m and R has size m X n.
  * 
- * <p>
- * Note that if m > n, then R and M can actually have sizes p X n and m X p,
- * with n <= p <= m, with the additional rows of R set to zero and the
- * additional columns of Q formed by completing the orthogonal basis.
+ * <p> Note that if m {@code >} n, then R and M can actually have sizes p X n
+ * and m X p, with n {@code <=} p {@code <=} m, with the additional rows of R
+ * set to zero and the additional columns of Q formed by completing the
+ * orthogonal basis.
  * 
  * <p>
  * Once constructed, a QR decomposition can be used to perform various
@@ -300,10 +299,11 @@ public class QRDecomposition {
     * decomposition was performed with {@link #factorWithPivoting
     * factorWithPivoting}. Each argument is optional; values will be returned
     * into them if they are present. Q is an orthogonal matrix which can be m X
-    * p, where min(n,m) <= p <= m (and so must be square if m <= n). Extra
-    * columns of Q are formed by completing the original basis. R is an upper
-    * triangular matrix which can be q X n, where min(n,m) <= q <= m (and so
-    * must be m X n if m <= n). Extra rows of R are set to zero.
+    * p, where min(n,m) {@code <=} p {@code <=} m (and so must be square if m
+    * {@code <=} n). Extra columns of Q are formed by completing the original
+    * basis. R is an upper triangular matrix which can be q X n, where min(n,m)
+    * {@code <=} q {@code <=} m (and so must be m X n if m {@code <=} n). Extra
+    * rows of R are set to zero.
     * 
     * @param Q
     * returns the orthogonal matrix

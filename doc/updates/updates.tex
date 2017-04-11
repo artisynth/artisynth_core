@@ -12,6 +12,7 @@
 \fi
 
 %\renewcommand{\sectionname}{}
+
 \begin{document}
 
 \iflatexml
@@ -21,6 +22,210 @@
 %\section*{Next}
 
 %\subsection*{Wrapping surfaces}
+
+\section*{Apr 10, 2017}
+
+\subsection*{Constructive solid geometry added to SurfaceMeshIntersector}
+
+The {\tt SurfaceMeshIntersector} class in {\tt maspack.collision} has
+been significantly upgraded for improved robustness and now supports
+the ability to perform constructive solid geometry (CSG) operations
+between two triangular meshes. The CSG methods include:
+%
+\begin{lstlisting}[]
+  PolygonalMesh findIntersection (mesh0, mesh1);
+  PolygonalMesh findUnion (mesh0, mesh1);
+  PolygonalMesh findDifference01 (mesh0, mesh1);
+  PolygonalMesh findDifference10 (mesh0, mesh1);
+\end{lstlisting}
+%
+which return the intersection, union, and differences ({\tt
+mesh0}-{\tt mesh1}) and ({\tt mesh1}-{\tt mesh0}) with respect to {\tt
+mesh0} and {\tt mesh1}. If the resulting CSG volume is null, then the
+returned mesh will be empty and its {\tt isEmpty()} method will return
+{\tt true}.
+
+The CSG capabilities rely partly on the following enhanced version of
+{\tt findContoursAndRegions()}:
+%
+\begin{lstlisting}[]
+  boolean findContoursAndRegions (cinfo, mesh0, regions0, mesh1, regions1);
+\end{lstlisting}
+%
+Like {\tt findContoursAndRegions (cinfo, mesh0, mesh1)}, this returns
+{\tt true} if {\tt mesh0} and {\tt mesh1} intersect and places the
+resulting contact information in {\tt cinfo}. However, the additional
+arguments {\tt regions0} and {\tt regions1}, which are instances of
+\javaclass[maspack.collision]{SurfaceMeshIntersector\$RegionType}, can
+be used to specify how the penetration regions for each mesh should be
+computed:
+
+\begin{tabular}{lll}
+\hline
+{\tt INSIDE} & 
+Compute regions on the mesh that are {\it inside} the other mesh\\
+{\tt OUTSIDE} & 
+Compute regions on the mesh that are {\it outside} the other mesh\\
+{\tt NONE} & 
+Do not compute penetration regions\\
+\hline
+\end{tabular}
+
+Some effort has been put into helping ensure that the CSG methods are
+robust, work well in the presence of degenerate contacts (e.g.,
+edge-edge, vertex-edge, and vertex-vertex), and return meshes that are
+both closed and manifold. However, it is important to remember that
+polygonal CSG operations are inherently ill-conditioned and
+problematic situations are still possible. For example, degenerate
+contacts are assumed to be within machine precision - essentially,
+vertices and edges that are within this tolerance are ``snapped
+together''. However, near-degenerate situations which are just outside
+machine precision may result in ill-conditioned CSG meshes.  Also, it
+is not always possible to ensure that the meshes are manifold in the
+case of intersections involving non-closed meshes.
+
+\subsection*{Changes to maspack.collision.ContactInfo}
+
+Some changes have been made to the
+\javaclass[maspack.collision]{ContactInfo} structure which returns
+contact information. This includes the following method name changes:
+
+\begin{tabular}{ll}
+\hline
+Old method & New method \\
+\hline
+{\tt getMesh0()} & {\tt getMesh(0)}\\
+{\tt getMesh1()} & {\tt getMesh(1)}\\
+{\tt setRegionTol(tol)} & {\tt setContactPlaneTol(tol)}\\
+{\tt getRegionTol()} & {\tt getContactPlaneTol()}\\
+{\tt getPenetrationRegions0()} & {\tt getRegions(0)}\\
+{\tt getPenetrationRegions1()} & {\tt getRegions(1)}\\
+{\tt getPenetratingPoints0()} & {\tt getPenetratingPoints(0)}\\
+{\tt getPenetratingPoints1()} & {\tt getPenetratingPoints(1)}\\
+\hline
+\end{tabular}
+
+In addition, the new method
+\javamethodAlt{maspack.collision.ContactInfo.getRegionsType()}%
+{getRegionsType(meshNum)} can be used to query the type of regions
+associated with a particular mesh.
+
+\subsection*{Changes to maspack.collision.PenetrationRegion}
+
+Because the penetration regions computed for a mesh may now be either
+inside {\it or} outside the opposite mesh, the following methods in
+\javaclass[maspack.collision]{PenetrationRegion} have been renamed:
+
+\begin{tabular}{ll}
+\hline
+Old method & New method \\
+\hline
+{\tt getInsideVertices()} & {\tt getVertices()}\\
+{\tt numInsideVertices()} & {\tt numVertices()}\\
+{\tt isInsideVertex (vtx)} & {\tt containsVertex (vtx)}\\
+&\\
+{\tt getInsideFaces()} & {\tt getFaces()}\\
+{\tt numInsideFaces()} & {\tt numFaces()}\\
+{\tt isInsideFace (vtx)} & {\tt containsFace (vtx)}\\
+&\\
+{\tt getInsideEdges()} & {\tt getEdges()}\\
+{\tt numInsideEdges()} & {\tt numEdges()}\\
+{\tt isInsideEdge (vtx)} & {\tt containsEdge (vtx)}\\
+\hline
+\end{tabular}
+
+\subsection*{Collision handling support for signed distance grids}
+
+The ArtiSynth collision handling mechanism has now been extended to
+work using signed distance fields, in situations where at least one of
+the collidable bodies has a fixed mesh and maintains and exports a
+signed distance grid (via the {\tt CollidableBody} methods
+\javamethod[artisynth.core.mechmodels.CollidableBody]{hasDistanceGrid()}
+and
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGrid()}).
+Although more approximate than the methods based on intersecting
+triangles and contours, signed distance methods can be significantly
+faster. Signed distance collisions can be activated by setting the
+{\sf collideType} property in either the collision manager or a
+specific collision behavior to \javaclassAlt{%
+artisynth.core.mechmodels.CollisionManager\$ColliderType\#SIGNED\_DISTANCE}%
+{ColliderType.SIGNED\_DISTANCE}.
+
+Updated information on signed distance collisions and the
+configuration and rendering of signed distance grids is given in the
+sections ``Collision Implementation and Rendering'' and ``Configuring
+and rendering signed distance grids'' of the
+\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
+Modeling Guide}.
+
+\subsection*{Improved compatibility between Swing and JOGL}
+
+Certain compatiblity issues between Java Swing and Java OpenGL (JOGL)
+have been fixed by switching the default JOGL rendering widget from
+{\tt GLCanvas} to {\tt GLJPanel}. This fixes problems including: jumps
+and widget blanking when dragging the viewer between screens in a
+dual-monitor setup, the inability of the viewer to reposition itself
+correctly in MacOS Sierra, and widget blanking under some system
+configurations when using tiling widget managers.
+
+{\tt GLJPanel} works by doing all graphics rendering to an off-screen
+buffer and then copying the resulting pixels into the Swing widget.
+This introduces a slight overhead but completely isolates Swing from
+JOGL. In order to fix a known bug, it was also necessary to create our
+own implementation of {\tt GLJPanel} in {\tt maspack.render.GL.jogl}.
+
+{\tt GLJPanel} is now the default rendering widget. However, one can
+explicitly ask for either {\tt GLCanvas} or {\tt GLJPanel} by starting
+ArtiSynth with the {\tt -useGLJPanel} or {\tt -useGLCanvas} command
+line options.
+
+\subsection*{Refactoring of FemFactory}
+
+A cleanup has been done in {\tt artisynth.core.femmodels.FemFactory}.
+This includes some changes to method signatures:
+
+\begin{description}
+
+\item[createTorus() methods:]\mbox{}
+
+Have been modified so that the {\tt nr} argument now gives the
+number of element layers along the inner thickness, instead of the
+number of node layers (since the latter definition was incompatible
+with quadratic elements).
+
+\item[createTube() methods:]\mbox{}
+
+Have been modified so that the {\tt nl} and {\tt nr} arguments now
+give, respectively, the number of elements along the length and the
+number of element layers along the thickness, instead of the number of
+node and node layers (since the latter definition was incompatible
+with quadratic elements).
+
+\item[createExtrusion() methods:]\mbox{}
+
+Have been modified so that all now take an additional argument {\tt
+zOffset} which optionally offsets the first element layer from the
+surface.  {\tt createTetExtrusion()} and {\tt
+createQuadtetExtrusion()} have also been restricted to triangular
+meshes, since it is not otherwise possible to ensure that the
+resulting FEM elements are conforming.
+
+\end{description}
+
+\subsection*{Return arguments in basic vector methods}
+
+Fabien P\'{e}an at ETH has provided a patch in which some of the more
+commonly used {\tt Vector} methods now return self-references.  This
+allows chaining of computational statements into more compact forms
+such as
+
+%
+\begin{lstlisting}[]
+    Vector3d v, r, a, b;
+    ...
+    r.add (v.normalize(), r.sub(a,b));
+\end{lstlisting}
+%
 
 \section*{Oct 18, 2016}
 
@@ -3341,20 +3546,23 @@ At present, two types of {\tt FrameMaterials} have been implemented:
 
 \begin{description}
 
-\item[RotAxisFrameMaterial] \mbox{} Implements the behavior previously
-associated with {\tt FrameSprings}: a translational force along the
-displacement between frame origins, a torque about the rotation axis
-proportional to the rotation angle, and damping forces proportional to
-the relative velocity between the frames.
-In addition, different translational stiffness and damping terms can
-be specified for each axis.
+\item[RotAxisFrameMaterial] \mbox{} 
 
-\item[LinearFrameMaterial] \mbox{} Implements a behavior which is
-identical to {\tt RotAxisFrameMaterial} for velocity and translational
-displacement. Rotational displacement results in restoring torques
-along each of the x, y, and z axes that, for small displacements, are
-approximately proportional to the angular displacement about each
-axis.  Different stiffnesses can be specified for each axis.
+Implements the behavior previously associated with {\tt FrameSprings}:
+a translational force along the displacement between frame origins, a
+torque about the rotation axis proportional to the rotation angle, and
+damping forces proportional to the relative velocity between the
+frames.  In addition, different translational stiffness and damping
+terms can be specified for each axis.
+
+\item[LinearFrameMaterial] \mbox{} 
+
+Implements a behavior which is identical to {\tt RotAxisFrameMaterial}
+for velocity and translational displacement. Rotational displacement
+results in restoring torques along each of the x, y, and z axes that,
+for small displacements, are approximately proportional to the angular
+displacement about each axis.  Different stiffnesses can be specified
+for each axis.
 
 \end{description}
 
@@ -3382,17 +3590,21 @@ FrameMaterial}, and requires implementing three methods:
 \begin{description}
 
 \item[computeF()] \mbox{}
+
 Computes the forces as a function of the relative displacement and
 velocity between the two primary frames associated with the spring;
 
 \item[computeDFdq()] \mbox{}
+
 Computes the positional Jacobian giving the change in force
 resulting from differential changes in the displacement
 between the two primary frames;
 
-\item[computeDFdu()] \mbox{} Computes the velocity Jacobian giving the
-change in force resulting from differential changes in the
-velocities between the two primary frames.
+\item[computeDFdu()] \mbox{} 
+
+Computes the velocity Jacobian giving the change in force resulting
+from differential changes in the velocities between the two primary
+frames.
 
 \end{description}
 
@@ -3458,30 +3670,36 @@ significant of these include:
 \begin{description}
 
 \item[setReorderMethod(method)] \mbox{}
-Allows the fill-in
-reduction reorder method to be set to either
-{\tt AMD}, {\tt METIS}, or {\tt METIS\_PARALLEL}.
+
+Allows the fill-in reduction reorder method to be set to either {\tt
+AMD}, {\tt METIS}, or {\tt METIS\_PARALLEL}.
 
 \item[setMaxRefinementSteps(n)] \mbox{}
-Sets the maximum number
-of iterative refinement steps that should be performed to improve
-the accuracy of the solution.
 
-\item[setPivotPerturbation(n)] \mbox{} Sets the size
-of the perturbation that should be used to resolve zero pivots.
+Sets the maximum number of iterative refinement steps that should be
+performed to improve the accuracy of the solution.
+
+\item[setPivotPerturbation(n)] \mbox{} 
+
+Sets the size of the perturbation that should be used to resolve zero
+pivots.
 
 \item[getNumNonZerosInFactors()] \mbox{}
+
 Returns the number of non-zeros in the factorization.
 
 \item[getNumNegEigenvalues()] \mbox{}
+
 After factorization, returns the number of negative eigenvalues
 for a symmetric indefinite matrix.
 
 \item[getNumPosEigenvalues()] \mbox{}
+
 After factorization, returns the number of positive eigenvalues
 for a symmetric indefinite matrix.
 
 \item[getNumPerturbedPivots()] \mbox{}
+
 After factorization, returns the number of pivot perturbations 
 that were applied, if any.
 
@@ -3559,20 +3777,24 @@ setIncompressible(method)}:
 \begin{description}
 
 \item[OFF] \mbox{}
+
 Turns hard incompressibility off.
 
-\item[ELEMENT] \mbox{} 
+\item[ELEMENT] \mbox{}
+ 
 Specifies element-based incompressibility,
 where an incompressibility constraint is applied to the volume of each
 FEM element. 
 
-\item[NODAL] \mbox{} 
+\item[NODAL] \mbox{}
+ 
 Specifies nodal incompressibility, where an
 incompressibility constraint is applied to a volume surrounding each
 node, rather than the volume of each element. This is recommended for
 meshes dominated by linear tetrahedra in order to prevent locking.
 
 \item[AUTO, ON] \mbox{}
+
 Specifies that incompressibility should be enabled, with the
 exact method  ({\tt ELEMENT} or {\tt NODAL}) being
 set automatically depending
@@ -3598,14 +3820,16 @@ specified via {\tt setSoftIncompMethod(method)}:
 
 \begin{description}
 
-\item[ELEMENT] \mbox{} 
+\item[ELEMENT] \mbox{}
+ 
 Specifies element-based incompressibility,
 where pressures are determined within each element, using a reduced
 integration scheme to help prevent locking. Since
 reduced integration is not possible for linear tetrahedra,
 locking effects may be observed in meshes dominated by these elements.
 
-\item[NODAL] \mbox{} 
+\item[NODAL] \mbox{}
+ 
 Specifies nodal incompressibility, where pressures are
 determined at each node. This results in a denser stiffness
 matrix and so is more computationally expensive, but is
@@ -3615,6 +3839,7 @@ and potential of the overall FEM model material (which
 must therefore be an instance of {\tt IncompressibleMaterial}).
 
 \item[AUTO] \mbox{}
+
 Automatically sets the soft incompressibility method to be either
 {\tt ELEMENT} or {\tt NODAL}, depending on which is
 more appropriate for the given mesh structure.
@@ -3799,21 +4024,27 @@ the user to jump to six predetermined orientations:
 \begin{description}
 
 \item[{\tt Default} ] \mbox{}
+
 Default orientation.
 
 \item[{\tt Top} ] \mbox{}
+
 Looking down along the ``up'' direction.
 
 \item[{\tt Left} ] \mbox{}
+
 Rotated 90 degrees about the ``up'' direction.
 
 \item[{\tt Bottom} ] \mbox{}
+
 Looking up along the ``up'' direction.
 
 \item[{\tt Right} ] \mbox{}
+
 Rotated -90 degrees about the ``up'' direction.
 
 \item[{\tt Back} ] \mbox{}
+
 Rotated 180 degrees about the ``up'' direction.
 
 \end{description}
@@ -4861,23 +5092,29 @@ we have
 \begin{description}
 
 \item[targetPosition] \mbox{}
+
 Target position for the point.
 
 \item[targetVelocity] \mbox{}
+
 Target velocity for the point.
 
 while for a Frame (which includes {\tt RigidBody}), we have
 
 \item[targetPosition] \mbox{}
+
 Target position for the frame's origin.
 
 \item[targetOrientation] \mbox{}
+
 Target orientation for the frame (specified as an {\tt AxisAngle}).
 
 \item[targetPose] \mbox{}
+
 Complete target pose for the frame (specified as a {\tt RigidTransform3d}).
 
 \item[targetVelocity] \mbox{}
+
 Target translation and angular velocity for the frame.
 
 \end{description}
@@ -4891,20 +5128,25 @@ interpolate position data, velocity data, or both. The settings for
 \begin{description}
 
 \item[Position] \mbox{}
+
 The position target is active, while the velocity target is inactive
 and tracks the current velocity.
 
 \item[Velocity] \mbox{}
+
 The velocity target is active, while the position target is inactive
 and tracks the current position.
 
 \item[PositionVelocity] \mbox{}
+
 Both the position and velocity targets are active.
 
 \item[None] \mbox{}
+
 Both the position and velocity targets are inactive.
 
 \item[Auto] \mbox{}
+
 Both the position and velocity targets are initially inactive, but
 will become active when their values are set. This is the default setting.
 
@@ -4942,12 +5184,14 @@ properties. The interpolation methods include
 \begin{description}
 
 \item[SphericalLinear]  \mbox{}
+
 Interpolates between two orientations by finding the axis-angle
 that separates them and then uniformly interpolating the
 angle about this axis (this is the {\it slerp} method that
 was described by Ken Shoemake at SIGGRAPH 1985).
 
 \item[SphericalCubic]  \mbox{}
+
 Smoothly interpolates between orientations by taking into account
 estimated angular velocities. The method used is described in ``A
 general construction scheme for unit quaternion curves ...'', by Kim,
@@ -4972,10 +5216,12 @@ linear or cubic methods.
 \begin{description}
 
 \item[displacement] \mbox{}
+
 A read-only property giving the displacement of the node from the
 rest position.
 
 \item[targetDisplacement] \mbox{}
+
 An alternate way of specifying a target position relative to
 the rest position.
 
@@ -5007,15 +5253,19 @@ the following render properties have been renamed:
 \begin{description}
 
 \item[cylinderRadius] \mbox{}
+
 Renamed to {\sf lineRadius}
 
 \item[cylinderSlices] \mbox{}
+
 Renamed to {\sf lineSlices}
 
 \item[sphereRadius] \mbox{}
+
 Renamed to {\sf pointRadius}
 
 \item[sphereSlices] \mbox{}
+
 Renamed to {\sf pointSlices}
 
 \end{description}
@@ -5043,24 +5293,31 @@ The following render properties are used:
 \begin{description}
 
 \item[lineStyle] \mbox{}
+
 Style of the line used for rendering the contact normals
 
 \item[lineWidth] \mbox{}
+
 Width (in pixels) of the contact normal if the {\tt Line} line style is used
 
 \item[lineRadius] \mbox{}
+
 Radius of the contact normal if a solid line style is used
 
 \item[lineSlices] \mbox{}
+
 Number of slices in the contact normal for a solid line style
 
 \item[lineColor] \mbox{}
+
 Color of the contact normal
 
 \item[edgeWidth] \mbox{}
+
 Width (in pixels) of the line used to render the contour
 
 \item[edgeColor] \mbox{}
+
 Color of the contour
 
 \end{description}
@@ -5279,6 +5536,7 @@ elements and activation directions for a MuscleElementBundle:
 \begin{description}
 
 \item[{\tt computeElementDirections()}]  \mbox{}
+
 Computes directions for each element by performing a Delaunay
 interpolation based on the center position of the element and the
 centers of the nearest point-to-point actuators (with "nearest" being
@@ -5286,6 +5544,7 @@ determined using a Delaunay tessellation). All calculations are done
 with respect to rest coordinates.
 
 \item[{\tt addElementsNearFibres(dist)}] \mbox{}
+
 Adds all elements that are within {\tt dist} units of a fibre center, and
 sets their directions to that of the closest fibre.
 
@@ -5304,14 +5563,17 @@ elements and directions associated with the middle ("mid") bundle:
 \begin{description}
 
 \item[{\tt defaultMidElements}]  \mbox{}
+
 Describes which elements should be initially added (either
 all, none, or the middle elements).
 
 \item[{\tt addMidElementsWithin}] \mbox{}
+
 Adds all elements within a prescribed distance of the middle bundle
 fibres.
 
 \item[{\tt autoComputeMidDirections}] \mbox{}
+
 Automatically compute element directions from the middle bundle fibres
 using the Delauany interpolation described above.
 
@@ -5385,9 +5647,11 @@ rationalized. First, there are two new methods:
 \begin{description}
 
 \item[{\tt setInertiaMethod (InertiaMethod m)}] \mbox{}
+
   specifies the method by which inertia is determined
 
 \item[{\tt getInertiaMethod()}]  \mbox{}
+
   returns the current inertia method
 
 \end{description}
@@ -5397,10 +5661,13 @@ along with a corresponding property {\tt inertiaMethod}, which has three setting
 \begin{description}
 
 \item[{\it Explicit}] \mbox{}
+
   Inertia is specified explicitly
 \item[{\it Density}] \mbox{}
+
   Inertia is calculated from the mesh using a specified density
 \item[{\it Mass}] \mbox{}
+
   Inertia is calculated from the mesh using a specified mass.
 
 \end{description}
@@ -5414,13 +5681,16 @@ are also three main support methods:
 \begin{description}
 
 \item[{\tt setInertia (SpatialInertia M)}] \mbox{}
+
   explicitly sets the inertia and sets the inertia method
   to {\it Explicit}
 
 \item[{\tt setInertiaByDensity (double density)}] \mbox{}
+
   sets the inertia from a given density and sets the inertia method to {\it Density}
 
 \item[{\tt setInertiaByMass (double mass)}] \mbox{}
+
   sets the inertia from a given mass and sets the inertia method to {\it Mass}.
 
 As before, there are a bevy of methods for explicitly setting the
@@ -5534,9 +5804,11 @@ I have added a couple of new flags to the {\tt artisynth} command:
 \begin{description}
 
 \item[{\tt -useAjlCollision}] \mbox{}
+
  Enables Andrew Larkin's collision detection
 
 \item[{\tt -showJythonConsole}] \mbox{}
+
  Create the Jython console on start-up
 
 \end{description}
@@ -5578,18 +5850,22 @@ option accepts one of the following string arguments:
 \begin{description}
 
 \item[{\tt Local}]  \mbox{}
+
  applies a local (Gauss-Seidel type) stabilization which we have been using 
  until now.
 
 \item[{\tt GlobalMass}]  \mbox{}
+
  applies a global position correction using impulses computed with the
  system mass matrix.
 
 \item[{\tt GlobalStiffness}] \mbox{}
+
  applies a global position correction using impulses computed with the
  complete system stiffness matrix.
 
 \item[{\tt Default}] \mbox{}
+
  applies the default position correction.
 
 \end{description}
@@ -5650,45 +5926,59 @@ The current set of built-ins include:
 \begin{description}
 
 \item[{\tt run()}] \mbox{}
+
  run the simulation
 
 \item[{\tt run(tinc)}] \mbox{}
+
  run for a certain time
 
 \item[{\tt pause()}] \mbox{}
+
  pause the simulation
 
 \item[{\tt waitForStop()}] \mbox{}
+
  wait for the simulation to stop
 
 \item[{\tt reset()}] \mbox{}
+
  reset the simulation
 
 \item[{\tt step()}] \mbox{}
+
  single step the simulation
 
 \item[{\tt addWayPoint(t)}] \mbox{}
+
  add a waypoint at time t
 
 \item[{\tt addBreakPoint(t)}] \mbox{}
+
  add a breakpoint at time t
 
 \item[{\tt removeWayPoint(t)}] \mbox{}
+
  remove a waypoint or breakpoint at time t
 
 \item[{\tt clearWayPoints()}] \mbox{}
+
  clear all waypoints and breakpoints
 
 \item[{\tt root()}] \mbox{}
+
  get the current root model
 
 \item[{\tt script(fileName)}] \mbox{}
+
  run a script (see below)
 
 \item[{\tt loadModel(name)}] \mbox{}
+
  load a model by it's demo name
 
 \item[{\tt find(name)}] \mbox{}
+
  find a component by a name relative to the root model
 
 \end{description}
@@ -5877,9 +6167,11 @@ options:
 \begin{description}
 
 \item[--no-contents] \mbox{}
+
 	do not create a table of contents
 
 \item[--section-number-depth {\it depth}] \mbox{}
+
 	set the section number depth (where 0 disables numbering)
 
 \end{description}

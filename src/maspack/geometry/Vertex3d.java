@@ -380,7 +380,6 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
             hedgesSorted = true;
             return;
          }
-
          // go through all incident edges, and find the ones that start a
          // contiguous group (either open edges or those which are marked
          // hard). If there are no such edges, then we select as the (single)
@@ -883,4 +882,13 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       }
       return ArraySupport.toIntArray (list);      
    }
+
+   public double distance (Vector3d p) {
+      return pnt.distance (p);
+   }
+
+   public double distance (Vertex3d vtx) {
+      return pnt.distance (vtx.pnt);
+   }
+
 }

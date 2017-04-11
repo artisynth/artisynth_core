@@ -168,7 +168,6 @@ public class DicomWindowPixelInterpolator extends DicomPixelInterpolator {
     * Sets the center of the window.  Note that if this differs from the
     * value defined in a selected preset, then the window will automatically
     * be changed to the 'custom' sized window
-    * @param center
     */
    public void setWindowCenter(int center) {
       if (center != windowCenter) {
@@ -196,7 +195,6 @@ public class DicomWindowPixelInterpolator extends DicomPixelInterpolator {
     * Sets the width of the window.  Note that if the width differs
     * from the currently active preset, then the window will automatically
     * be switched to the 'custom' sized window
-    * @param width
     */
    public void setWindowWidth(int width) {
       

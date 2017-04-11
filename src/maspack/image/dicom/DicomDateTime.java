@@ -65,7 +65,6 @@ public class DicomDateTime implements Comparable<DicomDateTime> {
    
    /**
     * Adds time in seconds to the current date/time
-    * @param seconds
     */
    public void addTimeSeconds(int seconds) {
       calendar.add(Calendar.SECOND, seconds);
@@ -75,7 +74,6 @@ public class DicomDateTime implements Comparable<DicomDateTime> {
    
    /**
     * Adds time in minutes to the current date/time
-    * @param minutes
     */
    public void addTimeMinutes(int minutes) {
       calendar.add(Calendar.MINUTE, minutes);
@@ -85,7 +83,6 @@ public class DicomDateTime implements Comparable<DicomDateTime> {
    
    /**
     * Adds time in hours to the current date/time
-    * @param hours
     */
    public void addTimeHours(int hours) {
       calendar.add(Calendar.HOUR, hours);

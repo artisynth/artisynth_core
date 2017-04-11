@@ -40,7 +40,6 @@ public interface GLResource extends ReferenceCounted {
    
    /**
     * Dispose an invalid resource
-    * @param gl
     * @return false if still valid, true otherwise
     */
    public boolean disposeInvalid(GL gl);

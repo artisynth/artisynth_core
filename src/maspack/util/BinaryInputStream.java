@@ -415,7 +415,7 @@ public class BinaryInputStream extends FilterInputStream {
     * the byte order is switched from little-endian to big-endian.
     *
     * @return the read double value
-    * @throws IOException
+    * @throws IOException if an I/O or syntax error occurred
     */
    public double readLongDouble() throws IOException {
       int byte1 = doread();

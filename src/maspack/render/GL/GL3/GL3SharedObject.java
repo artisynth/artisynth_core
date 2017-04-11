@@ -96,7 +96,6 @@ public class GL3SharedObject extends GL3ResourceBase
    /**
     * Bind program attributes to the given program (uses the program's attribute 
     * locations)
-    * @param gl
     */
    public void bindAttributes(GL3 gl) {
       // bind attributes
@@ -114,7 +113,6 @@ public class GL3SharedObject extends GL3ResourceBase
     * Creates and binds a vertex array object attached to a given program.
     * Attributes must have common program locations if the provided VAO
     * is to be used for multiple programs.
-    * @param gl
     * @return vertex array object index
     */
    public int createVAO(GL3 gl) {
@@ -317,45 +315,18 @@ public class GL3SharedObject extends GL3ResourceBase
       drawArrays(gl,  mode, start, count);
    }
    
-   /**
-    * @param gl
-    * @param mode
-    * @param start
-    * @param count
-    */
    public void drawArrays(GL3 gl, int mode, int start, int count) {
       gl.glDrawArrays(mode, start, count);
    }
    
-   /**
-    * @param gl
-    * @param mode
-    * @param start
-    * @param count
-    * @param indexType
-    */
    public void drawElements(GL3 gl, int mode, int start, int count, int indexType) {
       gl.glDrawElements(mode, count, indexType, start);
    }
    
-   /**
-    * @param gl
-    * @param mode
-    * @param start
-    * @param count
-    * @param instances
-    */
    public void drawInstancedArray(GL3 gl, int mode, int start, int count, int instances) {
       gl.glDrawArraysInstanced(mode, start, count, instances);
    }
    
-   /**
-    * @param gl
-    * @param mode
-    * @param start
-    * @param count
-    * @param instances
-    */
    public void drawInstancedElements(GL3 gl, int mode, int start, int count, int instances) {
       gl.glDrawElementsInstanced (mode, count, elements.getType (), start, instances);
    }

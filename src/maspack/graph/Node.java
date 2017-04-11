@@ -11,9 +11,9 @@ import java.util.HashSet;
 import java.util.List;
 
 /**
- * Represents a node of the Tree<T> class. The Node<T> is also a container, and
- * can be thought of as instrumentation to determine the location of the type T
- * in the Tree<T>.
+ * Represents a node of the {@code Tree<T>} class. The {@code Node<T>} is also
+ * a container, and can be thought of as instrumentation to determine the
+ * location of the type T in the {@code Tree<T>}.
  * 
  * Ideas from:
  * http://sujitpal.blogspot.ca/2006/05/java-data-structure-generic-tree.html
@@ -35,7 +35,7 @@ public class Node<T> {
    }
 
    /**
-    * Convenience ctor to create a Node<T> with an instance of T.
+    * Convenience ctor to create a {@code Node<T>} with an instance of T.
     * 
     * @param data
     * an instance of T.
@@ -46,12 +46,13 @@ public class Node<T> {
    }
 
    /**
-    * Return the children of Node<T>. The Tree<T> is represented by a single
-    * root Node<T> whose children are represented by a List<Node<T>>. Each of
-    * these Node<T> elements in the List can have children. The getChildren()
-    * method will return the children of a Node<T>.
+    * Return the children of {@code Node<T>}. The {@code Tree<T>} is represented by a
+    * single root {@code Node<T>} whose children are represented by a {@code
+    * List<Node<T>>}. Each of these {@code Node<T>} elements in the List can
+    * have children. The getChildren() method will return the children of a
+    * {@code Node<T>}.
     * 
-    * @return the children of Node<T>
+    * @return the children of {@code Node<T>}
     */
    public List<Node<T>> getChildren() {
       if (this.children == null) {
@@ -72,11 +73,11 @@ public class Node<T> {
    }
 
    /**
-    * Sets the children of a Node<T> object. See docs for getChildren() for more
+    * Sets the children of a {@code Node<T>} object. See docs for getChildren() for more
     * information.
     * 
     * @param children
-    * the List<Node<T>> to set.
+    * the {@code List<Node<T>>} to set.
     */
    public void setChildren(List<Node<T>> children) {
       this.children = children;
@@ -86,7 +87,7 @@ public class Node<T> {
    }
 
    /**
-    * Returns the number of immediate children of this Node<T>.
+    * Returns the number of immediate children of this {@code Node<T>}.
     * 
     * @return the number of immediate children.
     */
@@ -98,7 +99,7 @@ public class Node<T> {
    }
 
    /**
-    * Returns the number of immediate parents of this Node<T>.
+    * Returns the number of immediate parents of this {@code Node<T>}.
     * 
     * @return the number of immediate parents.
     */
@@ -110,11 +111,11 @@ public class Node<T> {
    }
 
    /**
-    * Adds a child to the list of children for this Node<T>. The addition of the
-    * first child will create a new List<Node<T>>.
+    * Adds a child to the list of children for this {@code Node<T>}. The addition of the
+    * first child will create a new {@code List<Node<T>>}.
     * 
     * @param child
-    * a Node<T> object to set.
+    * a {@code Node<T>} object to set.
     */
    public void addChild(Node<T> child) {
       if (children == null) {
@@ -127,13 +128,13 @@ public class Node<T> {
    }
 
    /**
-    * Adds a child to the list of children for this Node<T> at a particular
+    * Adds a child to the list of children for this {@code Node<T>} at a particular
     * index
     * 
     * @param index
     * the index at which to insert the child
     * @param child
-    * a Node<T> object to set.
+    * a {@code Node<T>} object to set.
     */
    public void insertChildAt(int index, Node<T> child) {
       if (children == null) {
@@ -160,10 +161,10 @@ public class Node<T> {
    }
 
    /**
-    * Adds a list of children to this Node<T>.
+    * Adds a list of children to this {@code Node<T>}.
     * 
     * @param newChildren
-    * list of Node<T> objects to add
+    * list of {@code Node<T>} objects to add
     */
    public void addChildren(List<Node<T>> newChildren) {
       if (children == null) {
@@ -175,7 +176,7 @@ public class Node<T> {
    }
 
    /**
-    * Remove the Node<T> element at index index of the List<Node<T>>.
+    * Remove the {@code Node<T>} element at index index of the {@code List<Node<T>>}.
     * 
     * @param index
     * the index of the element to delete.
@@ -188,7 +189,7 @@ public class Node<T> {
    }
 
    /**
-    * Remove the Node<T> element
+    * Remove the {@code Node<T>} element
     * 
     * @param child
     * the node to remove
@@ -225,7 +226,7 @@ public class Node<T> {
    /**
     * Removes child from a particular parent
     * 
-    * @param parent
+    * @param parent parent from which this node is to be removed
     */
    public void detachFromParent(Node<T> parent) {
       if (parents.contains(parent)) {
@@ -322,7 +323,8 @@ public class Node<T> {
 
    /**
     * Value-equality of nodes and all children (i.e. entire tree)
-    * @param node
+    * 
+    * @param node node to compare with
     * @return true if equals, false otherwise
     */
    public boolean equalsNode(Node<T> node) {

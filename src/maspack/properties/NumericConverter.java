@@ -14,6 +14,9 @@ import maspack.matrix.Vector;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
+import maspack.matrix.Vectori;
+import maspack.matrix.Vector2i;
+import maspack.matrix.Vector3i;
 import maspack.util.InternalErrorException;
 
 public class NumericConverter {
@@ -89,6 +92,9 @@ public class NumericConverter {
          case VECTOR: {
             return ((Vector)value).size();
          }
+         case VECTORI: {
+            return ((Vectori)value).size();
+         }
          case MATRIX: {
             return ((DenseMatrix)value).rowSize()*((DenseMatrix)value).colSize();
          }
@@ -121,6 +127,7 @@ public class NumericConverter {
          case FLOAT_ARRAY:
          case DOUBLE_ARRAY:
          case VECTOR:
+         case VECTORI:
          case MATRIX:
          case COLOR:
          case AXIS_ANGLE:
@@ -224,6 +231,16 @@ public class NumericConverter {
             myObj = (Object)v;
             break;
          }
+         case VECTORI: {
+            Vectori v = (Vectori)propObj;
+            myDimension = v.size();
+            v = (Vectori)propObj.getClass().newInstance();
+            if (v.isFixedSize() == false) {
+               v.setSize (myDimension);
+            }
+            myObj = (Object)v;
+            break;
+         }
          case MATRIX: {
             DenseMatrix m = (DenseMatrix)propObj;
             int numRows = m.rowSize();
@@ -304,6 +321,12 @@ public class NumericConverter {
             Vector vec = (Vector)myObj;
             for (i = 0; i < myDimension; i++)
                vec.set (i, vals[i]);
+            break;
+         }
+         case VECTORI: {
+            Vectori vec = (Vectori)myObj;
+            for (i = 0; i < myDimension; i++)
+               vec.set (i, (int)vals[i]);
             break;
          }
          case MATRIX: {
@@ -405,6 +428,12 @@ public class NumericConverter {
          }
          case VECTOR: {
             Vector vec = (Vector)obj;
+            for (i = 0; i < myDimension; i++)
+               array[i] = vec.get(i);
+            break;
+         }
+         case VECTORI: {
+            Vectori vec = (Vectori)obj;
             for (i = 0; i < myDimension; i++)
                array[i] = vec.get(i);
             break;

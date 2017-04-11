@@ -55,8 +55,10 @@ public class GL2SharedResources extends GLSharedResources implements GLGarbageSo
    }
    
    /**
-    * Creates a new display list whose resources are tracked for garbage collection
-    * @param gl
+    * Creates a new display list whose resources are tracked for garbage
+    * collection
+    * 
+    * @param gl GL handle
     * @param count number of lists to generate
     * @return a container holding the desired list
     */

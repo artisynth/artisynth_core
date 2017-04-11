@@ -20,8 +20,6 @@ import java.util.TreeSet;
  * neighbours of a supplied point in log(N) time.
  * 
  * @author Antonio
- *
- * @param <T>
  */
 public class KDTree<T> {
 
@@ -32,8 +30,6 @@ public class KDTree<T> {
    /**
     * KD node associated with a node on a KD-Tree
     * @author Antonio
-    *
-    * @param <T>
     */
    public static class KDNode<T> {
       

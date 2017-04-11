@@ -103,15 +103,14 @@ public class GLLightManager {
    }
    
    /**
-    * Intensity for scaling light parameters for HDR->LDR
-    * @param intensity
+    * Intensity for scaling light parameters for {@code HDR->LDR}
     */
    public void setMaxIntensity(float intensity) {
       maxIntensity = intensity;
    }
    
    /**
-    * Intensity for scaling light parameters for HDR->LDR
+    * Intensity for scaling light parameters for {@code HDR->LDR}
     * 
     * @return maximum intensity
     */

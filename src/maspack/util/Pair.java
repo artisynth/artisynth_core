@@ -2,8 +2,6 @@ package maspack.util;
 
 /**
  * Basic "Pair"
- * @param <S>
- * @param <T>
  */
 public class Pair<S, T> {
    public S first;

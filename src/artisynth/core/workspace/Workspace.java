@@ -190,21 +190,21 @@ public class Workspace {
    }
 
    /**
-    * to read the probe data from a tokenizer
+    * Reads probe data from a tokenizer
     * 
-    * @param rtok
-    * @throws IOException
+    * @param rtok tokenizer from which to read data
+    * @throws IOException if a read or syntax error is discovered
     */
    public void scanProbes (ReaderTokenizer rtok) throws IOException {
       scanProbes (rtok, getRootModel());
    }
 
    /**
-    * to read the probe data from a tokenizer into the root model
+    * Reads probe data from a tokenizer into the root model
     * 
-    * @param rtok
-    * @param rootModel
-    * @throws IOException
+    * @param rtok tokenizer from which to read data
+    * @param rootModel root model to which probes should be added
+    * @throws IOException if a read or syntax error is discovered
     */
    public static void scanProbes (ReaderTokenizer rtok, RootModel rootModel)
       throws IOException {

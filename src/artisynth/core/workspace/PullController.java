@@ -173,7 +173,8 @@ implements SelectionListener, MouseInputListener {
    }
 
    private void applyForce (Vector3d force) {
-      myPoint.setForce (force);
+      //myPoint.setForce (force);
+      myPoint.addForce (force);
       if (myAttachment != null) {
          myAttachment.applyForces();
       }

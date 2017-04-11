@@ -229,6 +229,10 @@ public class PointMesh extends MeshBase {
       mesh.myBVTreeValid = false;
       return mesh;
    }
+   
+   public void addMesh (PointMesh mesh) {
+      addMesh (mesh, /*respectTransforms=*/false);
+   }
 
    /** 
     * Adds copies of the vertices of another mesh to this mesh.  If the other
@@ -238,8 +242,8 @@ public class PointMesh extends MeshBase {
     * 
     * @param mesh Mesh to be added to this mesh
     */
-   public void addMesh (PointMesh mesh) {
-      super.addMesh (mesh);
+   public void addMesh (PointMesh mesh, boolean respectTransforms) {
+      super.addMesh (mesh, respectTransforms);
    }
 
    public AABBTree getBVTree() {

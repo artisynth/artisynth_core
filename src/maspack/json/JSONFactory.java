@@ -21,9 +21,6 @@ public interface JSONFactory<P, O extends Map<String,P>, A extends List<P>> {
    
    /**
     * Add a member pair to an object
-    * @param object
-    * @param key
-    * @param val
     */
    public void addObjectMember(O object, String key, P val);
    
@@ -35,21 +32,17 @@ public interface JSONFactory<P, O extends Map<String,P>, A extends List<P>> {
    
    /**
     * Add an element to an array
-    * @param array
-    * @param elem
     */
    public void addArrayElement(A array, P elem);
    
    /**
     * Preate a String element
-    * @param str
     * @return newly created string element
     */
    public P createString(String str);
    
    /**
     * Preate a number element
-    * @param v
     * @return newly created number element
     */
    public P createNumber(double v);

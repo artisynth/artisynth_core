@@ -80,6 +80,7 @@ import java.util.*;
  * iterations performed.  A possible call sequence is as follows:
  *
  * <pre>
+ * {@code
  *    solver.analyze (M, M.rowSize(), Matrix.SYMMETRIC); // symbolic factorization
  *    solver.factor();          // numeric factorization
  *    while (computing) {
@@ -90,6 +91,7 @@ import java.util.*;
  *          solver.solve (x, b);
  *       }
  *    }
+ * }
  * </pre>
  * 
  * A more sophisticated version of the above code will also call
@@ -827,9 +829,9 @@ public class PardisoSolver implements DirectSolver {
     * Sets the default number of threads that Pardiso is assigned when a
     * <code>PardisoSolver</code> is created. The results are undefined if this
     * number exceeds the maximum number of threads available on the
-    * system. Setting <code>num</code> to a value <= 0 will reset the number of
-    * threads to the default used by OpenMP, which is typically the value
-    * stored in the environment variable <code>OMP_NUM_THREADS</code>.
+    * system. Setting <code>num</code> to a value {@code <=} 0 will reset the
+    * number of threads to the default used by OpenMP, which is typically the
+    * value stored in the environment variable <code>OMP_NUM_THREADS</code>.
     *
     * @param num default number of threads to use
     * @see #getDefaultNumThreads
@@ -854,7 +856,7 @@ public class PardisoSolver implements DirectSolver {
    /**
     * Sets the number of threads that Pardiso should use. The results are
     * undefined if this number exceeds the maximum number of threads available
-    * on the system. Setting <code>num</code> to a value <= 0 will reset the
+    * on the system. Setting <code>num</code> to a value {@code <=} 0 will reset the
     * number of threads to the default used by OpenMP, which is typically the
     * value stored in the environment variable <code>OMP_NUM_THREADS</code>.
     *
@@ -1045,8 +1047,8 @@ public class PardisoSolver implements DirectSolver {
     * symmetric matrices if weighted matchings (see {@link
     * #setApplyWeightedMatchings setApplyWeightedMatchings()}) are also
     * selected. Scaling is controlled by <code>enable</code> as follows:
-    * <code>enable</code> > 0 enables scaling, <code>enable</code> = 0 disables
-    * scaling, and <code>enable</code> < 0 causes the solver to choose a
+    * {@code enable > 0} enables scaling, {@code enable = 0} disables
+    * scaling, and {@code enable < 0} causes the solver to choose a
     * default value appropriate to the matrix type.
     *
     * @param enable enables/disables matrix scaling
@@ -1081,8 +1083,8 @@ public class PardisoSolver implements DirectSolver {
     * setApplyScaling()}) is recommended for highly indefinite symmetric
     * systems (such as saddle point problems) and is the default for symmetric
     * matrices.  Weighted matchings are controlled by <code>enable</code> as
-    * follows: <code>enable</code> > 0 enables them, <code>enable</code> = 0
-    * disables them, and <code>enable</code> < 0 causes the solver to choose a
+    * follows: {@code enable > 0} enables them, {@code enable = 0}
+    * disables them, and {@code enable < 0} causes the solver to choose a
     * default value appropriate to the matrix type.
     *
     * @param enable enables/disables weight matchings
@@ -1115,8 +1117,8 @@ public class PardisoSolver implements DirectSolver {
     * Sets whether or not Pardiso should use 2 x 2 Bunch and Kaufman
     * pivoting (in addition to regular 1 x 1 pivoting) for symmetric
     * indefinite matrices. 2 x 2 pivoting is controlled by <code>enable</code> as
-    * follows: <code>enable</code> > 0 enables it, <code>enable</code> = 0
-    * disables it, and <code>enable</code> < 0 causes the solver to choose a
+    * follows: {@code enable > 0} enables it, {@code enable = 0}
+    * disables it, and {@code enable < 0} causes the solver to choose a
     * default value.
     *
     * @param enable enables 2 x 2 pivoting

@@ -34,7 +34,7 @@ $(PDF_DIR)/modelguide.pdf: modelguide.pdf
 
 modelguide.pdf: $(SOURCES) $(EPS_FILES)
 	latex modelguide.tex #extra call because of bibtex
-	bibtex modelguide1
+	bibtex modelguide
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) modelguide.ps
 

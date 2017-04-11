@@ -56,8 +56,8 @@ public class RandomGenerator {
 
    /**
     * Generate a random number between min and max, inclusive
-    * @param min
-    * @param max
+    * @param min minimum value
+    * @param max maximum value
     * @return random number between min and max
     */
    public static int nextInt (int min, int max) {
@@ -67,7 +67,7 @@ public class RandomGenerator {
    
    /**
     * Generate a random number between 0 and n-1
-    * @param n
+    * @param n upper limit
     * @return random number between 0 and n-1
     */
    public static int nextInt (int n) {

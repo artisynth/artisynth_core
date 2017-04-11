@@ -8,6 +8,8 @@ package maspack.util;
 
 import java.io.IOException;
 
+import maspack.matrix.Vector;
+
 /**
  * Base unit test class
  */
@@ -16,6 +18,30 @@ public class UnitTest {
    public void check (String msg, boolean test) {
       if (!test) {
          throw new TestException ("Check failed: " + msg);
+      }
+   }
+
+   public void checkEquals (String msg, Object result, Object check) {
+      if (!result.equals(check)) {
+         throw new TestException (
+            msg + result.toString() +
+            ", expected " + check.toString());
+      }
+   }
+
+   public void checkEquals (String msg, Vector result, Vector check) {
+      if (!result.equals(check)) {
+         throw new TestException (
+            msg + result.toString() +
+            ", expected " + check.toString());
+      }
+   }
+
+   public void checkEquals (String msg, Vector result, Vector check, double eps) {
+      if (!result.epsilonEquals(check, eps)) {
+         throw new TestException (
+            msg + result.toString() +
+            ", expected " + check.toString() + ", eps=" + eps);
       }
    }
 

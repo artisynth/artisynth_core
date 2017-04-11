@@ -10,12 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents a Tree of Objects of generic type T. The Tree is represented as
- * a single rootElement which points to a List<Node<T>> of children. There is
- * no restriction on the number of children that a particular node may have.
- * This Tree provides a method to serialize the Tree into a List by doing a
- * pre-order traversal. It has several methods to allow easy updation of Nodes
- * in the Tree.
+ * Represents a Tree of Objects of generic type T. The Tree is represented as a
+ * single rootElement which points to a {@code List<Node<T>>} of
+ * children. There is no restriction on the number of children that a
+ * particular node may have.  This Tree provides a method to serialize the Tree
+ * into a List by doing a pre-order traversal. It has several methods to allow
+ * easy updation of Nodes in the Tree.
  * 
  * Modified from: http://sujitpal.blogspot.ca/2006/05/java-data-structure-generic-tree.html
  * 
@@ -41,9 +41,10 @@ public class Tree<T> {
     }
     
     /**
-     * Value equality
-     * @param tree
-     * @return
+     * Check if the value of this tree equals another
+     * 
+     * @param tree tree to compare with
+     * @return <code>true</code> if <code>tree</code> equals this tree
      */
     public boolean equalsTree(Tree<T> tree) {
        if (tree == null) {
@@ -82,9 +83,10 @@ public class Tree<T> {
     }
      
     /**
-     * Returns the Tree<T> as a List of Node<T> objects. The elements of the
-     * List are generated from a pre-order traversal of the tree.
-     * @return a List<Node<T>>.
+     * Returns the {@code Tree<T>} as a List of {@code Node<T>} objects. The
+     * elements of the List are generated from a pre-order traversal of the
+     * tree.
+     * @return a {@code List<Node<T>>}.
      */
     public List<Node<T>> toList() {
         List<Node<T>> list = new ArrayList<Node<T>>();
@@ -120,13 +122,20 @@ public class Tree<T> {
     }
     
     /**
-     * Merges branches if the nodes have equal content
-     * 
-     * i.e.   family -> sister -> Anne     
-     *               -> sister -> Josephine
+     * Merges branches if the nodes have equal content. For example,
+     * <pre>
+     * {@code
+     * family -> sister -> Anne     
+     *        -> sister -> Josephine
+     * }
+     * </pre>
      * becomes   
+     * <pre>
+     * {@code
      *        family -> sister -> Anne     
      *                         -> Josephine
+     * }
+     * </pre>
      */
     public static void consolidate(Tree<?> tree) {
        Node<?> root = tree.getRootElement();
@@ -134,13 +143,20 @@ public class Tree<T> {
     }
     
    /**
-    * Merges branches if the nodes have equal content<br><br>
-    * 
-    * i.e.   family -> sister -> Anne     <br>
-    *               -> sister -> Josephine<br>
-    * becomes   		          <br>
-    *        family -> sister -> Anne     <br>
-    *                         -> Josephine<br>
+    * Merges branches if the nodes have equal content. For example,
+    * <pre>
+    * {@code
+    * family -> sister -> Anne
+    *        -> sister -> Josephine
+    * }
+    * </pre>
+    * becomes
+    * <pre>
+    * {@code
+    *        family -> sister -> Anne
+    *                         -> Josephine
+    * }
+    * </pre>
     */
     public void consolidate() {
        Node<T> root = getRootElement();

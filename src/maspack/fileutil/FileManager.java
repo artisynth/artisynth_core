@@ -233,7 +233,7 @@ public class FileManager {
     * Sets the base URI for remote files, this is attached to any relative URIs
     * provided in the get(...) methods
     * 
-    * @param uri
+    * @param uri base URI for remote files
     */
    public void setRemoteSource(URIx uri) {
       
@@ -252,7 +252,7 @@ public class FileManager {
     * Sets the base URI for remote files, this is attached to any relative URIs
     * provided in the get(...) methods
     * 
-    * @param uriStr
+    * @param uriStr base URI for remote files
     * @throws URIxSyntaxException if uriStr is malformed
     */
    public void setRemoteSource(String uriStr) throws URIxSyntaxException {
@@ -315,7 +315,7 @@ public class FileManager {
     * Converts a relative URI to an absolute one, using the remote source as a
     * base. If the supplied URI is absolute, this is returned.
     * 
-    * @param relURI
+    * @param relURI relative URI
     * @return converted URI
     */
    public URIx getAbsoluteURI(URIx relURI) {
@@ -348,7 +348,7 @@ public class FileManager {
     * Converts a relative file to an absolute one using the object's download
     * directory. If the supplied file is absolute, this is returned.
     * 
-    * @param relPath
+    * @param relPath relative file
     * @return absolute file
     */
    public File getAbsoluteFile(String relPath) {
@@ -584,7 +584,7 @@ public class FileManager {
    /**
     * Retrieves a local file if it exists, null otherwise.
     * 
-    * @param fileName
+    * @param fileName local file name
     * @return File handle
     */
    public File getLocal(String fileName) {
@@ -750,14 +750,20 @@ public class FileManager {
    }
 
    /**
-    * {@link #getRemote(String, String)} with dest=null
+    * Same as {@link #getRemote(String, String)} with dest=null.
+    *
+    * @param sourceName
+    * the source URI
     */
    public File getRemote(String sourceName) throws FileTransferException {
       return getRemote(null, sourceName);
    }
 
    /**
-    * {@link #getRemote(File, URIx)} with dest=null
+    * Same as {@link #getRemote(File, URIx)} with dest=null.
+    *
+    * @param source
+    * the source URI
     */
    public File getRemote(URIx source) throws FileTransferException {
       return getRemote(null, source);
@@ -784,7 +790,8 @@ public class FileManager {
     * @throws FileTransferException only if there is no local copy of the file 
     * at the end of the function call
     */
-   public File get(File dest, URIx source, int options) throws FileTransferException {
+   public File get(File dest, URIx source, int options)
+      throws FileTransferException {
 
       // default destination if none provided
       if (dest == null) {
@@ -877,19 +884,35 @@ public class FileManager {
    }
 
    /**
-    * Downloads a file using the default options
+    * Downloads a file using the default options.
+    *
+    * @param dest
+    * the local path (relative or absolute) to download file to
+    * @param source
+    * the remote URI to cache
+    * @return File handle to local file
+    * @throws FileTransferException only if there is no local copy of the file 
+    * at the end of the function call
     * @see #get(File, URIx, int)
     */
-   public File get(File path, URIx source) throws FileTransferException {
-      return get(path, source, myOptions);
+   public File get(File dest, URIx source) throws FileTransferException {
+      return get(dest, source, myOptions);
    }
 
    /**
-    * Downloads a file using same relative path for source and destination
+    * Downloads a file using same relative path for source and destination.
+    *
+    * @param sourceDestName source and destination path name
+    * @param options
+    * set of options, either FORCE_REMOTE or CHECK_HASH
+    * @return File handle to local file
+    * @throws FileTransferException only if there is no local copy of the file 
+    * at the end of the function call
     * @see #get(String, String, int)
     */
-   public File get(String sourceName, int options) throws FileTransferException {
-      return get(null, sourceName, options);
+   public File get(String sourceDestName, int options)
+      throws FileTransferException {
+      return get(null, sourceDestName, options);
 
    }
 
@@ -906,6 +929,10 @@ public class FileManager {
     * Converts the supplied destination path and source URI to a File and URI
     * object, respectively, and downloads the remote file according to the 
     * supplied options.
+    *
+    * @param destName destination path
+    * @param sourceName source URI (as a string)
+    * @return File handle to local file
     * @throws URIxSyntaxException if the sourceName is malformed
     * @throws FileTransferException if download fails.
     * @see #get(File, URIx, int)
@@ -927,6 +954,12 @@ public class FileManager {
 
    /**
     * Downloads a file with default options
+    *
+    * @param destName destination path
+    * @param sourceName source URI (as a string)
+    * @return File handle to local file
+    * @throws URIxSyntaxException if the sourceName is malformed
+    * @throws FileTransferException if download fails.
     * @see #get(String, String, int)
     */
    public File get(String destName, String sourceName)
@@ -952,7 +985,8 @@ public class FileManager {
     * set of options, either FORCE_REMOTE or CHECK_HASH
     * @throws FileTransferException if the upload fails
     */
-   public void put(File source, URIx dest, int options)  throws FileTransferException {
+   public void put(File source, URIx dest, int options)
+      throws FileTransferException {
 
       // default destination if none provided
       if (dest == null) {
@@ -1012,74 +1046,104 @@ public class FileManager {
    }
 
    /**
-    * Uploads a file using the default options
+    * Uploads a file using the default options.
+    *
+    * @param source
+    * the source file to upload
+    * @param dest
+    * the remote URI to upload to
+    * @throws FileTransferException if the upload fails
     * @see #put(File, URIx, int)
     */
-   public void put(File path, URIx dest) throws FileTransferException {
-      put(path, dest, myOptions);
+   public void put(File source, URIx dest) throws FileTransferException {
+      put(source, dest, myOptions);
    }
 
    /**
     * Uploads a file using same relative path for source and destination
+    *
+    * @param sourceDestName source and destination path name
+    * @param options
+    * set of options, either FORCE_REMOTE or CHECK_HASH
+    * @throws FileTransferException if the upload fails
     * @see #put(String, String, int)
     */
-   public void put(String source, int options) throws FileTransferException {
-      put(source, null, options);
+   public void put(String sourceDestName, int options)
+      throws FileTransferException {
+      put(sourceDestName, null, options);
 
    }
 
    /**
     * Uploads a file using same relative path for source and destination
-    * and default options
+    * and default options.
+    * 
+    * @param sourceDestName source and destination path name
+    * @throws FileTransferException if the upload fails
     * @see #put(String, String, int)
     */
-   public void put(String source) throws FileTransferException {
-      put(source, null, myOptions);
+   public void put(String sourceDestName) throws FileTransferException {
+      put(sourceDestName, null, myOptions);
    }
 
    /**
-    * Converts the supplied source path and dest URI to a File and URI
-    * object, respectively, and downloads the remote file according to the 
-    * supplied options.
+    * Converts the supplied source path and dest URI to a File and URI object,
+    * respectively, and uploads the remote file according to the supplied
+    * options.
+    *
+    * @param sourceName
+    * source path
+    * @param destName
+    * remote URI to upload to (as a string)
+    * @param options
+    * set of options, either FORCE_REMOTE or CHECK_HASH
     * @throws URIxSyntaxException if the dest is malformed
     * @throws FileTransferException if upload fails.
     * @see #put(File, URIx, int)
     */
-   public void put(String source, String dest, int options)
+   public void put(String sourceName, String destName, int options)
    throws URIxSyntaxException, FileTransferException {
 
       // try to make URI from sourceName
       URIx dst = null;
-      if (dest != null) {
-         dst = new URIx(dest);
+      if (destName != null) {
+         dst = new URIx(destName);
       }
       
-      File src = new File(source);
+      File src = new File(sourceName);
       put(src, dst, options);
    }
 
    /**
-    * Downloads a file with default options
+    * Downloads a file with default options.
+    *
+    * @param sourceName
+    * source path
+    * @param destName
+    * remote URI to upload to (as a string)
+    * @throws URIxSyntaxException if the dest is malformed
+    * @throws FileTransferException if upload fails.
     * @see #put(String, String, int)
     */
-   public void put(String source, String dest)
-   throws FileTransferException {
-      put(source, dest, myOptions);
+   public void put(String sourceName, String destName)
+      throws FileTransferException {
+      put(sourceName, destName, myOptions);
    }
-
 
    /**
     * Sets the logger for printing messages, defaults
     * to printing to console.
-    * @param log
+    * 
+    * @param log message logger
     */
    public static void setLogger(Logger log) {
       logger = log;
    }
 
    /**
-    * Gets the logger for printing messages
-    * @return log
+    * Gets the logger for printing message
+    * 
+    * @return message logger
     */
    public static Logger getLogger() {
       return logger;
@@ -1212,7 +1276,7 @@ public class FileManager {
     * supplied by the {@link #addTransferListener(FileTransferListener)}
     * function.
     * 
-    * @param seconds
+    * @param seconds sleep time in seconds
     */
    public void setMonitorSleep(double seconds) {
       myTransferMonitor.setPollSleep((long)(seconds * 1000));
@@ -1263,11 +1327,11 @@ public class FileManager {
    /**
     * Sets the FileManager used for {@link #staticGet(File, URIx)}.
     * 
-    * @param Manager
+    * @param manager
     * the FileManager to set for static operations
     */
-   public static void setStaticManager(FileManager Manager) {
-      staticManager = Manager;
+   public static void setStaticManager(FileManager manager) {
+      staticManager = manager;
    }
 
    /**
@@ -1275,6 +1339,15 @@ public class FileManager {
     * uses a static copy of a FileManager objects, creating one with default
     * options if it doesn't exist.
     * 
+    * @param dest
+    * the local path (relative or absolute) to download file to
+    * @param source
+    * the remote URI to cache
+    * @param options
+    * set of options, either FORCE_REMOTE or CHECK_HASH
+    * @return File handle to local file
+    * @throws FileTransferException only if there is no local copy of the file 
+    * at the end of the function call
     * @see #get(File, URIx, int)
     */
    public static File staticGet(File dest, URIx source, int options)
@@ -1288,6 +1361,13 @@ public class FileManager {
    /**
     * Static convenience method for downloading a file.  Uses default options.
     * 
+    * @param dest
+    * the local path (relative or absolute) to download file to
+    * @param source
+    * the remote URI to cache
+    * @return File handle to local file
+    * @throws FileTransferException only if there is no local copy of the file 
+    * at the end of the function call
     * @see #staticGet(File, URIx, int)
     */
    public static File staticGet(File dest, URIx source)
@@ -1297,7 +1377,14 @@ public class FileManager {
 
    /**
     * Static convenience method for downloading a file.
-    * 
+    *
+    * @param destName destination path
+    * @param sourceName source URI (as a string)
+    * @param options
+    * set of options, either FORCE_REMOTE or CHECK_HASH
+    * @return File handle to local file
+    * @throws URIxSyntaxException if the sourceName is malformed
+    * @throws FileTransferException if download fails.
     * @see #get(String, String, int)
     */
    public static File staticGet(String destName, String sourceName, int options)
@@ -1311,6 +1398,11 @@ public class FileManager {
    /**
     * Static convenience method for downloading a file with default options.
     * 
+    * @param destName destination path
+    * @param sourceName source URI (as a string)
+    * @return File handle to local file
+    * @throws URIxSyntaxException if the sourceName is malformed
+    * @throws FileTransferException if download fails.
     * @see #get(String, String, int)
     */
    public static File staticGet(String destName, String sourceName)
@@ -1524,7 +1616,8 @@ public class FileManager {
       return getInputStream(null, source, options);
    }
 
-   public InputStream getInputStream(String sourceName) throws FileTransferException {
+   public InputStream getInputStream(String sourceName) 
+      throws FileTransferException {
       return getInputStream(null, sourceName, myOptions);
    }
 
@@ -1536,7 +1629,9 @@ public class FileManager {
    }
 
    /**
-    * Gets the last file retrieved.  
+    * Gets the last file retrieved.
+    *
+    * @return last file retrieved
     */
    public File getLastFile() {
       return lastFile;
@@ -1545,6 +1640,8 @@ public class FileManager {
    /**
     * Returns true if the last file was fetched from remote,
     * false if last file was a local copy
+    *
+    * @return <code>true</code> if the last file was fetched from remote
     */
    public boolean wasLastRemote() {
       return lastWasRemote;

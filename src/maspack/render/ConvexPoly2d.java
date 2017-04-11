@@ -162,7 +162,7 @@ public class ConvexPoly2d {
 
    /**
     * Intersects this convex polygon with a half plane defined by
-    * <code>n^T x - d >= 0</code>.
+    * {@code n^T x - d >= 0}.
     */
    public void intersectHalfPlane (double nx, double ny, double d) {
       // if plane is empty do nothing

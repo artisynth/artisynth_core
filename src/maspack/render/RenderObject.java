@@ -473,19 +473,20 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
 
    /**
     * Adds an indexable 3D position
-    * @param px 
-    * @param py
-    * @param pz
+    * @param px x coordinate
+    * @param py y coordinate
+    * @param pz z coordinate
     * @return the index of the position added
     */
-   public int addPosition(float px, float py, float pz) {
+   public int addPosition (float px, float py, float pz) {
       return addPosition (new float[]{px,py,pz});
    }
    
    /**
-    * Adds a position by reference.  If the position is modified outside of this render
-    * object, then you must manually flag the change using {@link #notifyPositionsModified()}.
-    * Otherwise, renderers are free to assume the positions have not changed.
+    * Adds a position by reference.  If the position is modified outside of
+    * this render object, then you must manually flag the change using {@link
+    * #notifyPositionsModified()}.  Otherwise, renderers are free to assume the
+    * positions have not changed.
     * @param xyz position vector
     * @return an index referring to the added position
     */
@@ -546,9 +547,9 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
    /**
     * Updates the values of the position with index pidx.
     * @param pidx position to modify
-    * @param px
-    * @param py
-    * @param pz
+    * @param px x coordinate
+    * @param py y coordinate
+    * @param pz z coordinate
     */
    public void setPosition(int pidx, float px, float py, float pz) {
       setPosition (pidx, new float[]{px,py,pz});
@@ -664,9 +665,9 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
 
    /**
     * Adds an indexable 3D normal.
-    * @param nx
-    * @param ny
-    * @param nz
+    * @param nx x component
+    * @param ny y component
+    * @param nz z component
     * @return the index of the normal added
     */
    public int addNormal(float nx, float ny, float nz) {
@@ -734,9 +735,9 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
    /**
     * Updates the values of the normal with index nidx.
     * @param nidx normal to modify
-    * @param nx
-    * @param ny
-    * @param nz
+    * @param nx x component
+    * @param ny y component
+    * @param nz z component
     */
    public void setNormal(int nidx, float nx, float ny, float nz) {
       setNormal(nidx, new float[]{nx,ny,nz});
@@ -1103,8 +1104,8 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
 
    /**
     * Adds an indexable 2D texture coordinate
-    * @param tx
-    * @param ty
+    * @param tx x coordinate
+    * @param ty y coordinate
     * @return the index of the texture coordinate added
     */
    public int addTextureCoord(float tx, float ty) {
@@ -1126,7 +1127,7 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
     * If the texture coordinates are modified outside of this object,
     * then {@link #notifyTextureCoordsModified()} must be called.  Otherwise,
     * renderers are free to assume the render object has not changed.
-    * @param xy
+    * @param xy x and y coordinate values
     * @return the index of the texture coordinate added
     */
    public int addTextureCoord(float[] xy) {
@@ -1181,9 +1182,9 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
 
    /**
     * Updates the values of the texture coordinate with index tidx.
-    * @param tidx
-    * @param tx
-    * @param ty
+    * @param tidx coordinate index
+    * @param tx x coordinate
+    * @param ty y coordinate
     */
    public void setTextureCoord(int tidx, float tx, float ty) {
       setTextureCoord (tidx, new float[] {tx,ty});
@@ -1191,7 +1192,7 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
    
    /**
     * Updates the values of the texture coordinate with index tidx.
-    * @param tidx
+    * @param tidx coordinate index
     * @param xy new texture coordinates
     */
    public void setTextureCoord(int tidx, Vector2d xy) {
@@ -1200,8 +1201,8 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
    
    /**
     * Updates the values of the texture coordinate with index tidx by reference.
-    * @param tidx
-    * @param xy
+    * @param tidx coordinate index
+    * @param xy x and y coordinate values
     */
    public void setTextureCoord(int tidx, float[] xy) {
       writeLock();
@@ -1484,9 +1485,9 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
     * Add a vertex at the supplied position, using the currently active
     * normal, color and texture coordinate (if available).  A new position
     * is created to accommodate the vertex.
-    * @param px
-    * @param py
-    * @param pz
+    * @param px x coordinate
+    * @param py y coordinate
+    * @param pz z coordinate
     * @return vertex index
     */
    public int vertex(float px, float py, float pz) {
@@ -1515,7 +1516,7 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
     * is created, by reference, to accommodate the vertex.
     * @see #addPosition(float[])
     * @see #addVertex(int)
-    * @param xyz
+    * @param xyz x, y, and z coordinate values
     * @return vertex index
     */
    public int vertex(float[] xyz) {
@@ -1802,7 +1803,7 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
    /**
     * Creates a set of vertices and point primitives at the supplied positions.
     * @see #addPoint(float[])
-    * @param pnts
+    * @param pnts positions at which points and vertices should be created
     */
    public void addPoints(Iterable<float[]> pnts) {
       writeLock();
@@ -2768,10 +2769,10 @@ public class RenderObject implements Versioned, DisposeObservable, Disposable {
    }
    
    /**
-    * Sets or clears the transient state of the render object.  Transient objects
-    * will not be cached by renderers, which may improve performance for short-lived
-    * objects.
-    * @param set
+    * Sets or clears the transient state of the render object.  Transient
+    * objects will not be cached by renderers, which may improve performance
+    * for short-lived objects.
+    * @param set if <code>true</code>, sets this object to be transient
     */
    public void setTransient(boolean set) {
       writeLock();

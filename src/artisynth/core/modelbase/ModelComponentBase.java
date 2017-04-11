@@ -279,9 +279,12 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    }
 
    /**
-    * Returns true if this component is currently connected to a component
+    * Queries if this component is currently connected to a component
     * hierarchy. This means that it currently has an ancestor under which all
     * inter-component references should be contained.
+    *
+    * @return <code>true</code> if this component is connected to a component
+    * hierarchy
     */
    public boolean isConnectedToHierarchy() {
       return ComponentUtils.nearestEncapsulatingAncestor(this) != null;
@@ -441,14 +444,16 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    }
 
    /**
-    * Returns true if a component is a descendant of a specified ancestor. If
-    * the component is not a descendant of the ancestor, or if the component and
-    * the ancestor are equal, the method returns false.
+    * Queries whether if a component is a descendant of a specified
+    * ancestor. If the component is not a descendant of the ancestor, or if the
+    * component and the ancestor are equal, the method returns false.
     * 
     * @param ancestor
     * ancestor component to check
     * @param comp
     * component to check for descendence from ancestor
+    * @return <code>true</code> if <code>comp</code> is a descendant of
+    * <code>ancestor</code>
     */
    public static boolean recursivelyContains (
       ModelComponent ancestor, ModelComponent comp) {
@@ -567,6 +572,7 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
     * If <code>null</code>, name uniqueness will not be checked.
     * @param parent Parent of the component. May be <code>null</code>, in
     * which case the component's current parent will be used.
+    * @return valid component name
     */
    public static String makeValidName (
       String name, ModelComponent comp, CompositeComponent parent) {
@@ -578,6 +584,7 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
     * not check uniqueness with respect to the component's parent.
     *  
     * @param name name to modify
+    * @return valid name
     */
    public static String makeValidName (String name) {
       return makeValidName (name, null, null);

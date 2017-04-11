@@ -10,6 +10,7 @@ import java.util.*;
 import java.lang.reflect.*;
 import maspack.util.*;
 import maspack.matrix.Vector;
+import maspack.matrix.Vectori;
 
 public class PropertyUtils {
 
@@ -625,6 +626,9 @@ public class PropertyUtils {
       else if (val1 != null && val2 != null) {
          if (val1 instanceof Vector && val2 instanceof Vector) {
             return ((Vector)val1).equals ((Vector)val2);
+         }
+         else if (val1 instanceof Vectori && val2 instanceof Vectori) {
+            return ((Vectori)val1).equals ((Vectori)val2);
          }
          else {
             return val1.equals (val2);

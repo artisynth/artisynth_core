@@ -156,6 +156,8 @@ public interface Collidable extends ModelComponent {
 
    /**
     * Queries whether or not this collidable has sub-collidables.
+    *
+    * @return <code>true</code> if this collidable has sub-collidables
     */
    public boolean isCompound();
    

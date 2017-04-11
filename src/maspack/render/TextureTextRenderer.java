@@ -66,7 +66,6 @@ public abstract class TextureTextRenderer implements TextRenderer {
    
    /**
     * Enable or disable antialiasing in the backing image store
-    * @param set
     */
    public void setAntialiasing (boolean set) {
       antialiasing = set;

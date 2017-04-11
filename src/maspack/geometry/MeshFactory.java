@@ -25,6 +25,24 @@ public class MeshFactory {
 
    private static final double EPS = 1e-15;
    public static boolean DEFAULT_ADD_NORMALS = false;
+   
+   /**
+    * Used by some factory methods to specify the face type
+    */
+   public enum FaceType {
+      /**
+       * Quadrilateral faces
+       */
+      QUAD,
+      /**
+       * Triangular faces
+       */
+      TRI,
+      /**
+       * Triangular faces, using alternating directions when appropriate
+       */
+      ALT_TRI
+   }
 
    private static class GriddedPoint {
 
@@ -808,7 +826,8 @@ public class MeshFactory {
     */
    public static PolygonalMesh createPlane (
       double wx, double wy, int xdiv, int ydiv) {
-      return createRectangle (wx, wy, xdiv, ydiv, /*addNormals*/ DEFAULT_ADD_NORMALS, /*addTextureCoords=*/true);
+      return createRectangle (
+         wx, wy, xdiv, ydiv, DEFAULT_ADD_NORMALS, /*addTextureCoords=*/true);
    }
    
    /**
@@ -829,7 +848,8 @@ public class MeshFactory {
    public static PolygonalMesh createRectangle (
       double wx, double wy, int xdiv, int ydiv,
       boolean addTextureCoords) {
-      return createRectangle(wx,wy,xdiv,ydiv,DEFAULT_ADD_NORMALS, addTextureCoords);
+      return createRectangle (
+         wx, wy, xdiv, ydiv, DEFAULT_ADD_NORMALS, addTextureCoords);
    }
    
    /**
@@ -843,14 +863,15 @@ public class MeshFactory {
     * @param wy width in the y direction
     * @param xdiv number of divisions in x (&gt;=1)
     * @param ydiv number of divisions in y (&gt;=1)
-    * @param addNormals if <code>true</code>, generates normals
+    * @param addNormals if <code>true</code>, generates normals in
+    * the positive z direction
     * @param addTextureCoords if <code>true</code>, generates texture 
     * coordinates
     * @return created mesh
     */
    public static PolygonalMesh createRectangle (
-      double wx, double wy, int xdiv, int ydiv, boolean addNormals, 
-      boolean addTextureCoords) {
+      double wx, double wy, int xdiv, int ydiv,
+      boolean addNormals, boolean addTextureCoords) {
       
       Point3d[] plist = new Point3d[(xdiv+1)*(ydiv+1)];
       int[][] faceIndices = new int[xdiv*ydiv*2][];
@@ -914,12 +935,8 @@ public class MeshFactory {
    public static PolygonalMesh createQuadBox (
       double wx, double wy, double wz) {
       
-      return createQuadBox (wx, wy, wz, Point3d.ZERO, 1, 1, 1, DEFAULT_ADD_NORMALS);
-      // double[] xy =
-      //    new double[] { wx / 2, wy / 2, -wx / 2, wy / 2, -wx / 2, -wy / 2,
-      //       wx / 2, -wy / 2 };
-
-      // return createPrism(xy, xy, wz);
+      return createBox (
+         wx, wy, wz, Point3d.ZERO, 1, 1, 1, DEFAULT_ADD_NORMALS, FaceType.QUAD);
    }
    
    /**
@@ -929,16 +946,14 @@ public class MeshFactory {
     * @param wx width in the x direction
     * @param wy width in the y direction
     * @param wz width in the z direction
+    * @param addNormals if <code>true</code>, generates normals perpendicular
+    * to each side
     */
    public static PolygonalMesh createQuadBox (
-      double wx, double wy, double wz, boolean normals) {
+      double wx, double wy, double wz, boolean addNormals) {
       
-      return createQuadBox (wx, wy, wz, Point3d.ZERO, 1, 1, 1, normals);
-      // double[] xy =
-      //    new double[] { wx / 2, wy / 2, -wx / 2, wy / 2, -wx / 2, -wy / 2,
-      //       wx / 2, -wy / 2 };
-
-      // return createPrism(xy, xy, wz);
+      return createBox (
+         wx, wy, wz, Point3d.ZERO, 1, 1, 1, addNormals, FaceType.QUAD);
    }
 
    /**
@@ -967,11 +982,15 @@ public class MeshFactory {
     * @param x center location along the x axis
     * @param y center location along the y axis
     * @param z center location along the z axis
+    * @param addNormals if <code>true</code>, generates normals perpendicular
+    * to each side
     */
    public static PolygonalMesh createQuadBox (
-      double wx, double wy, double wz, double x, double y, double z, boolean addNormals) {
+      double wx, double wy, double wz,
+      double x, double y, double z, boolean addNormals) {
 
-      return createQuadBox (wx, wy, wz, new Point3d (x, y, z), 1, 1, 1, addNormals);
+      return createBox (
+         wx, wy, wz, new Point3d (x, y, z), 1, 1, 1, addNormals, FaceType.QUAD);
    }
    
    /**
@@ -994,11 +1013,13 @@ public class MeshFactory {
     * @param wx width in the x direction
     * @param wy width in the y direction
     * @param wz width in the z direction
+    * @param addNormals if <code>true</code>, generates normals perpendicular
+    * to each side
     */
    public static PolygonalMesh createBox (
       double wx, double wy, double wz, boolean addNormals) {
-      PolygonalMesh mesh = createQuadBox(wx, wy, wz, addNormals);
-      mesh.triangulate();
+      PolygonalMesh mesh = createBox (
+         wx, wy, wz, Point3d.ZERO, 1, 1, 1, addNormals, FaceType.TRI);
       return mesh;
    }
 
@@ -1028,11 +1049,15 @@ public class MeshFactory {
     * @param x center location along the x axis
     * @param y center location along the y axis
     * @param z center location along the z axis
+    * @param addNormals if <code>true</code>, generates normals perpendicular
+    * to each side
     */
    public static PolygonalMesh createBox (
-      double wx, double wy, double wz, double x, double y, double z, boolean addNormals) {
-      PolygonalMesh mesh = createQuadBox(wx, wy, wz, x, y, z);
-      mesh.triangulate();
+      double wx, double wy, double wz, double x, double y, double z,
+      boolean addNormals) {
+
+      PolygonalMesh mesh = createBox (
+         wx, wy, wz, new Point3d(x, y, z), 1, 1, 1, addNormals, FaceType.TRI);
       return mesh;
    }
       
@@ -1065,11 +1090,15 @@ public class MeshFactory {
     * @param nx number of subdivisions along x
     * @param ny number of subdivisions along y
     * @param nz number of subdivisions along z
+    * @param addNormals if <code>true</code>, generates normals perpendicular
+    * to each side
     */
-   public static PolygonalMesh createBox(double wx, double wy, double wz,
+   public static PolygonalMesh createBox (
+      double wx, double wy, double wz,
       Point3d center, int nx, int ny, int nz, boolean addNormals) {
-      PolygonalMesh mesh = createQuadBox (wx, wy, wz, center, nx, ny, nz, addNormals);
-      mesh.triangulate ();
+      PolygonalMesh mesh =
+         createBox (
+            wx, wy, wz, center, nx, ny, nz, addNormals, FaceType.TRI);
       return mesh;
    }
 
@@ -1235,12 +1264,63 @@ public class MeshFactory {
    public static PolygonalMesh createQuadBox (
       double wx, double wy, double wz,
       Point3d center, int nx, int ny, int nz) {
-      return createQuadBox(wx,wy,wz,Point3d.ZERO,nx,ny,nz,DEFAULT_ADD_NORMALS);
+      return createBox (
+         wx, wy, wz, center, nx, ny, nz, DEFAULT_ADD_NORMALS, FaceType.QUAD);
+   }
+
+   private static void setHardEdges (Face face, boolean[] hard) {
+      for (int i=0; i<hard.length; i++) {
+         if (hard[i]) {
+            face.getEdge(i).setHard(true);
+         }
+      }
+   }
+
+   private static void addFaces (
+      PolygonalMesh mesh, Vertex3d vtxs[], boolean[] hardEdges,
+      int nrmIdx, int[] nrmlIdxs, int sum, FaceType faceType) {
+
+      int nverts; // number of faces * vertices per face
+      int nrmlOff; // offset within normalIdxs for adding normals
+
+      if (faceType == FaceType.QUAD) {
+         nverts = 4;
+         nrmlOff = mesh.numFaces()*4;
+         Face f = mesh.addFace(vtxs);
+         setHardEdges (f, hardEdges);
+      }
+      else {
+         Face f0, f1;
+         nverts = 6;
+         nrmlOff = mesh.numFaces()*3;
+         if (faceType == FaceType.TRI || (sum%2) == 0) {
+            // even parity
+            f0 = mesh.addFace (vtxs[0], vtxs[1], vtxs[2]);
+            f1 = mesh.addFace (vtxs[0], vtxs[2], vtxs[3]);
+
+            setHardEdges (f0, new boolean[] {false, hardEdges[1], hardEdges[2]});
+            setHardEdges (f1, new boolean[] {hardEdges[0], false, hardEdges[3]});
+         }
+         else {
+            // odd parity
+            f0 = mesh.addFace (vtxs[0], vtxs[1], vtxs[3]);
+            f1 = mesh.addFace (vtxs[1], vtxs[2], vtxs[3]);
+
+            setHardEdges (f0, new boolean[] {hardEdges[0], hardEdges[1], false});
+            setHardEdges (f1, new boolean[] {false, hardEdges[2], hardEdges[3]});
+         }
+      }
+      if (nrmlIdxs != null) {
+         for (int l=0; l<nverts; ++l) {
+            nrmlIdxs[nrmlOff++] = nrmIdx;
+         }
+      }
    }
    
    /**
-    * Creates a quad-based box mesh, with a specified mesh resolution in
-    * each direction, and centered at a defined center point.
+    * Creates a box mesh, with a specified mesh resolution in each direction, 
+    * and centered at a defined center point. The faces type is specified
+    * by <code>faceType</code>
     *
     * @param wx width in the x direction
     * @param wy width in the y direction
@@ -1249,218 +1329,130 @@ public class MeshFactory {
     * @param nx number of subdivisions along x
     * @param ny number of subdivisions along y
     * @param nz number of subdivisions along z
+    * @param addNormals if <code>true</code>, generates normals perpendicular
+    * to each side
+    * @param faceType specifies the face type to be either quads, triangles,
+    * or triangles with alternating diagonals
     */
-   public static PolygonalMesh createQuadBox (
+   public static PolygonalMesh createBox (
       double wx, double wy, double wz,
       Point3d center, int nx, int ny, int nz,
-      boolean addNormals) {
+      boolean addNormals, FaceType faceType) {
 
       PolygonalMesh mesh = new PolygonalMesh();
       Vertex3d[][][] vtxs = new Vertex3d[nx + 1][ny + 1][nz + 1];
 
       Vertex3d faceVtxs[] = new Vertex3d[4];
       
-      ArrayList<Vector3d> normals = null;
-      int[] normalIdxs = null;
+      ArrayList<Vector3d> nrmls = null;
+      int[] nrmlIdxs = null;
       if (addNormals) {
-         normals = new ArrayList<Vector3d>();
-         normals.add(new Vector3d(1,0,0));
-         normals.add(new Vector3d(0,1,0));
-         normals.add(new Vector3d(0,0,1));
-         normals.add(new Vector3d(-1,0,0));
-         normals.add(new Vector3d(0,-1,0));
-         normals.add(new Vector3d(0,0,-1));
-         normalIdxs = new int[8*nx*ny+8*nx*nz+8*ny*nz];
+         nrmls = new ArrayList<Vector3d>();
+         nrmls.add(new Vector3d(1,0,0));
+         nrmls.add(new Vector3d(0,1,0));
+         nrmls.add(new Vector3d(0,0,1));
+         nrmls.add(new Vector3d(-1,0,0));
+         nrmls.add(new Vector3d(0,-1,0));
+         nrmls.add(new Vector3d(0,0,-1));
+         int nindices;
+         if (faceType == FaceType.QUAD) {
+            nindices = 8*(nx*ny+nx*nz+ny*nz);
+         }
+         else {
+            // trianglar
+            nindices = 12*(nx*ny+nx*nz+ny*nz);
+         }
+         nrmlIdxs = new int[nindices];
       }
 
-      int faceIdx = 0;
       Vector3d dx = new Vector3d(wx / (nx), wy / (ny), wz / (nz));
       Point3d offset = new Point3d(-wx / 2, -wy / 2, -wz / 2);
+      boolean[] hardEdges;
 
-      // top/bottom
+      // bottom/top (sides in x/y plane)
       for (int i = 0; i < nx; i++) {
          for (int j = 0; j < ny; j++) {
             faceVtxs[0] = getOrCreateVertex(i, j, 0, vtxs, offset, dx, mesh);
             faceVtxs[1] =
-               getOrCreateVertex(i, j + 1, 0, vtxs, offset, dx, mesh);
+               getOrCreateVertex(i, j+1, 0, vtxs, offset, dx, mesh);
             faceVtxs[2] =
-               getOrCreateVertex(i + 1, j + 1, 0, vtxs, offset, dx, mesh);
+               getOrCreateVertex(i+1, j+1, 0, vtxs, offset, dx, mesh);
             faceVtxs[3] =
-               getOrCreateVertex(i + 1, j, 0, vtxs, offset, dx, mesh);
-            Face f = mesh.addFace(faceVtxs);
-            if (addNormals) {
-               for (int l=0; l<4; ++l) {
-                  normalIdxs[4*faceIdx+l] = 5;
-               }
-            }
-            ++faceIdx;
-            
-            if (i == 0) {
-               f.firstHalfEdge ().setHard (true);
-            } 
-            if (i == nx-1) {
-               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
-            }
-            if (j == 0) {
-               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
-            }
-            if (j == ny-1) {
-               f.firstHalfEdge ().getNext ().setHard (true);
-            }
+               getOrCreateVertex(i+1, j, 0, vtxs, offset, dx, mesh);
+
+            // notes: edge(i) appears *before* vertex(i).
+            hardEdges = new boolean[] {j == 0, i == 0, j == ny-1, i == nx-1 };
+            addFaces (mesh, faceVtxs, hardEdges, 5, nrmlIdxs, i+j, faceType);
 
             faceVtxs[0] = getOrCreateVertex(i, j, nz, vtxs, offset, dx, mesh);
             faceVtxs[3] =
-               getOrCreateVertex(i, j + 1, nz, vtxs, offset, dx, mesh);
+               getOrCreateVertex(i, j+1, nz, vtxs, offset, dx, mesh);
             faceVtxs[2] =
-               getOrCreateVertex(i + 1, j + 1, nz, vtxs, offset, dx, mesh);
+               getOrCreateVertex(i+1, j+1, nz, vtxs, offset, dx, mesh);
             faceVtxs[1] =
-               getOrCreateVertex(i + 1, j, nz, vtxs, offset, dx, mesh);
-            f = mesh.addFace(faceVtxs);
-            
-            if (addNormals) {
-               for (int l=0; l<4; ++l) {
-                  normalIdxs[4*faceIdx+l] = 2;
-               }
-            }
-            ++faceIdx;
-            
-            if (i == 0) {
-               f.firstHalfEdge ().setHard (true);
-            } 
-            if (i == nx-1) {
-               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
-            }
-            if (j == 0) {
-               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
-            }
-            if (j == ny-1) {
-               f.firstHalfEdge ().getNext ().setHard (true);
-            }
+               getOrCreateVertex(i+1, j, nz, vtxs, offset, dx, mesh);
+
+            hardEdges = new boolean[] {i == 0, j == 0, i == nx-1, j == ny-1 };
+            addFaces (mesh, faceVtxs, hardEdges, 2, nrmlIdxs, i+j, faceType);
          }
       }
 
-      // left/right
+      // back/front (sides in z/x plane)
       for (int i = 0; i < nx; i++) {
          for (int k = 0; k < nz; k++) {
             faceVtxs[0] = getOrCreateVertex(i, 0, k, vtxs, offset, dx, mesh);
             faceVtxs[3] =
-               getOrCreateVertex(i, 0, k + 1, vtxs, offset, dx, mesh);
+               getOrCreateVertex(i, 0, k+1, vtxs, offset, dx, mesh);
             faceVtxs[2] =
-               getOrCreateVertex(i + 1, 0, k + 1, vtxs, offset, dx, mesh);
+               getOrCreateVertex(i+1, 0, k+1, vtxs, offset, dx, mesh);
             faceVtxs[1] =
-               getOrCreateVertex(i + 1, 0, k, vtxs, offset, dx, mesh);
-            Face f = mesh.addFace(faceVtxs);
-            
-            if (addNormals) {
-               for (int l=0; l<4; ++l) {
-                  normalIdxs[4*faceIdx+l] = 4;
-               }
-            }
-            ++faceIdx;
-            
-            if (i == 0) {
-               f.firstHalfEdge ().setHard (true);
-            } 
-            if (i == nx-1) {
-               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
-            }
-            if (k == 0) {
-               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
-            }
-            if (k == nz-1) {
-               f.firstHalfEdge ().getNext ().setHard (true);
-            }
+               getOrCreateVertex(i+1, 0, k, vtxs, offset, dx, mesh);
+
+            hardEdges = new boolean[] {i == 0, k == 0, i == nx-1, k == nz-1 };
+            addFaces (mesh, faceVtxs, hardEdges, 4, nrmlIdxs, i+k, faceType);
             
             faceVtxs[0] = getOrCreateVertex(i, ny, k, vtxs, offset, dx, mesh);
             faceVtxs[1] =
-               getOrCreateVertex(i, ny, k + 1, vtxs, offset, dx, mesh);
+               getOrCreateVertex(i, ny, k+1, vtxs, offset, dx, mesh);
             faceVtxs[2] =
-               getOrCreateVertex(i + 1, ny, k + 1, vtxs, offset, dx, mesh);
+               getOrCreateVertex(i+1, ny, k+1, vtxs, offset, dx, mesh);
             faceVtxs[3] =
-               getOrCreateVertex(i + 1, ny, k, vtxs, offset, dx, mesh);
-            f = mesh.addFace(faceVtxs);
-            if (addNormals) {
-               for (int l=0; l<4; ++l) {
-                  normalIdxs[4*faceIdx+l] = 1;
-               }
-            }
-            ++faceIdx;
-            if (i == 0) {
-               f.firstHalfEdge ().setHard (true);
-            } 
-            if (i == nx-1) {
-               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
-            }
-            if (k == 0) {
-               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
-            }
-            if (k == nz-1) {
-               f.firstHalfEdge ().getNext ().setHard (true);
-            }
+               getOrCreateVertex(i+1, ny, k, vtxs, offset, dx, mesh);
+
+            hardEdges = new boolean[] {k == 0, i == 0, k == nz-1, i == nx-1 };
+            addFaces (mesh, faceVtxs, hardEdges, 1, nrmlIdxs, i+k, faceType);
          }
       }
 
-      // front/back
+      // left/right (sides in y/z plane)
       for (int j = 0; j < ny; j++) {
          for (int k = 0; k < nz; k++) {
             faceVtxs[0] = getOrCreateVertex(0, j, k, vtxs, offset, dx, mesh);
             faceVtxs[3] =
-               getOrCreateVertex(0, j + 1, k, vtxs, offset, dx, mesh);
+               getOrCreateVertex(0, j+1, k, vtxs, offset, dx, mesh);
             faceVtxs[2] =
-               getOrCreateVertex(0, j + 1, k + 1, vtxs, offset, dx, mesh);
+               getOrCreateVertex(0, j+1, k+1, vtxs, offset, dx, mesh);
             faceVtxs[1] =
-               getOrCreateVertex(0, j, k + 1, vtxs, offset, dx, mesh);
-            Face f = mesh.addFace(faceVtxs);
-            if (addNormals) {
-               for (int l=0; l<4; ++l) {
-                  normalIdxs[4*faceIdx+l] = 3;
-               }
-            }
-            ++faceIdx;
-            if (j == 0) {
-               f.firstHalfEdge ().setHard (true);
-            } 
-            if (j == ny-1) {
-               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
-            }
-            if (k == 0) {
-               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
-            }
-            if (k == nz-1) {
-               f.firstHalfEdge ().getNext ().setHard (true);
-            }
+               getOrCreateVertex(0, j, k+1, vtxs, offset, dx, mesh);
+
+            hardEdges = new boolean[] {k == 0, j == 0, k == nz-1, j == ny-1 };
+            addFaces (mesh, faceVtxs, hardEdges, 3, nrmlIdxs, j+k, faceType);
 
             faceVtxs[0] = getOrCreateVertex(nx, j, k, vtxs, offset, dx, mesh);
             faceVtxs[1] =
-               getOrCreateVertex(nx, j + 1, k, vtxs, offset, dx, mesh);
+               getOrCreateVertex(nx, j+1, k, vtxs, offset, dx, mesh);
             faceVtxs[2] =
-               getOrCreateVertex(nx, j + 1, k + 1, vtxs, offset, dx, mesh);
+               getOrCreateVertex(nx, j+1, k+1, vtxs, offset, dx, mesh);
             faceVtxs[3] =
-               getOrCreateVertex(nx, j, k + 1, vtxs, offset, dx, mesh);
-            f = mesh.addFace(faceVtxs);
-            if (addNormals) {
-               for (int l=0; l<4; ++l) {
-                  normalIdxs[4*faceIdx+l] = 0;
-               }
-            }
-            ++faceIdx;
-            if (j == 0) {
-               f.firstHalfEdge ().setHard (true);
-            } 
-            if (j == ny-1) {
-               f.firstHalfEdge ().getNext ().getNext ().setHard (true);
-            }
-            if (k == 0) {
-               f.firstHalfEdge ().getNext ().getNext ().getNext ().setHard (true);
-            }
-            if (k == nz-1) {
-               f.firstHalfEdge ().getNext ().setHard (true);
-            }
+               getOrCreateVertex(nx, j, k+1, vtxs, offset, dx, mesh);
+
+            hardEdges = new boolean[] {j == 0, k == 0, j == ny-1, k == nz-1 };
+            addFaces (mesh, faceVtxs, hardEdges, 0, nrmlIdxs, j+k, faceType);
          }
       }
       
       if (addNormals) {
-         mesh.setNormals(normals, normalIdxs);
+         mesh.setNormals(nrmls, nrmlIdxs);
       }
       
       if (center != null) {
@@ -1714,18 +1706,16 @@ public class MeshFactory {
       double r, double h, double tiph, int nsides) {
       // start by creating a mesh.
       PolygonalMesh mesh = createCylinder(r, h, nsides);
-      // remove the top face ...
-      mesh.removeFace(mesh.getFaces().get(nsides));
-      // add new top vertex ...
-      mesh.addVertex(0, 0, h / 2 + tiph);
-      int[] idxs = new int[3];
-      idxs[0] = 2 * nsides;
-      for (int i = 0; i < nsides; i++) {
-         idxs[1] = i;
-         idxs[2] = (i + 1) % nsides;
-         mesh.addFace(idxs);
+      // and then adjust the top vertex XXXX
+      double EPS = 1e-12;
+      for (Vertex3d vtx : mesh.getVertices()) {
+         Point3d p = vtx.pnt;
+         if (Math.abs(p.x) < EPS && Math.abs(p.y) < EPS && p.z > 0) {
+            vtx.pnt.set (0, 0, p.z+tiph);
+            mesh.notifyVertexPositionsModified();
+            break;
+         }
       }
-      mesh.triangulate();
       return mesh;
    }
    
@@ -2748,6 +2738,180 @@ public class MeshFactory {
          mesh.addLine(lineIdxs);
       }
       return mesh;
+   }
+
+   /**
+    * Creates a "skyline" mesh, which is a mesh defined over a rectangular
+    * region in the x-y plane. The rectangle is divided into an nx X ny grid,
+    * with the depth of each grid cell in z direction defined by a discrete
+    * depth field specified by an array of strings. The depth field is given
+    * by an array of ny strings, each containing nx characters giving the
+    * depth for a specific row of grid cells. Depth field strings are ordered
+    * from higher to lower y values. Each each character should be a digit in
+    * the range '0' to '9', or ' ' which is equivalent to '0'. If d is the
+    * numeric value of the character, then the depth is given by d*wz.
+    *
+    * <p>The mesh is centered on the origin, with the bottom face set at z =
+    * -wz and a depth of 0 corresponding to z = 0.  If the number of strings is
+    * less then ny, or the number of characters in any given string is less
+    * then nx, the missing digits are assumed to be '0'. Extra strings or
+    * characters are ignored.
+    *
+    * @param wx width of the mesh along the x axis
+    * @param wy height of the mesh along the y axis.
+    * @param wz basic unit of depth
+    * @param nx number of grid cells in the x direction
+    * @param ny number of grid cells in the y direction
+    * @param depthField character strings giving the depth of each grid cell
+    */
+   public static PolygonalMesh createSkylineMesh (
+      double wx, double wy, double wz, int nx, int ny, String... depthField) {
+
+      int[] depth = new int[nx*ny];
+      // set default depth
+      for (int k=0; k<nx*ny; k++) {
+         depth[k] = 0;
+      }
+      for (int j=0; j<ny && j<depthField.length; j++) {
+         String str = depthField[j];
+         for (int i=0; i<nx && i<str.length(); i++) {
+            char c = str.charAt(i);
+            if (c == ' ') {
+               c = '0';
+            }
+            if (c < '0' || c > '9') {
+               throw new IllegalArgumentException (
+                  "Depth field characters must be '0'-'9' or ' '");
+            }
+            depth[(ny-1-j)*nx + i] = (c-'0');
+         }
+      }
+
+      PolygonalMesh mesh = new PolygonalMesh();
+
+      // set map tolerance to be 0.01 times smallest spacing between vertices
+      VertexMap vmap =
+         new VertexMap(Math.min(Math.min(wx/nx*1e-2, wy/ny*1e-2), wz/2*1e-2));
+
+      double delx = wx/nx;
+      double dely = wy/ny;
+
+      for (int j=0; j<ny; j++) {
+         for (int i=0; i<nx; i++) {
+            double x = i*delx-wx/2;
+            double y = j*dely-wy/2;
+            // add bottom 
+            addSquare (mesh, x, y, -wz, delx, dely, 0, i, j, true, vmap);
+            int dg = depth[j*nx+i];
+            // add top 
+            addSquare (mesh, x, y, wz*dg, delx, dely, 0, i, j, false, vmap);
+
+            // add side squares:
+            int da; // adjacent depth
+
+            // top
+            if (j == ny-1) {
+               da = -1;
+            }
+            else {
+               da = depth[(j+1)*nx+i];
+            }
+            for (int d=da; d<dg; d++) {
+               addSquare (mesh, x, y+dely, d*wz, delx, 0, wz, i, d, false, vmap);
+            }
+
+            // bottom
+            if (j == 0) {
+               da = -1;
+            }
+            else {
+               da = depth[(j-1)*nx+i];
+            }
+            for (int d=da; d<dg; d++) {
+               addSquare (mesh, x, y, d*wz, delx, 0, wz, i, d, true, vmap);
+            }
+            
+            // left
+            if (i == 0) {
+               da = -1;
+            }
+            else {
+               da = depth[j*nx+i-1];
+            }
+            for (int d=da; d<dg; d++) {
+               addSquare (mesh, x, y, d*wz, 0, dely, wz, j, d, true, vmap);
+            }
+            
+            // right
+            if (i == nx-1) {
+               da = -1;
+            }
+            else {
+               da = depth[j*nx+i+1];
+            }
+            for (int d=da; d<dg; d++) {
+               addSquare (mesh, x+delx, y, d*wz, 0, dely, wz, j, d, false, vmap);
+            }
+         }
+      }
+      return mesh;
+   }
+
+   private static void addSquare (
+      PolygonalMesh mesh, double x, double y, double z,
+      double dx, double dy, double dz,
+      int xidx, int yidx, boolean flip, VertexMap vmap) {
+
+      Vertex3d v0, v1, v2, v3;
+
+      // use the xidx and yidx to decide whether or not to split at v0
+      boolean splitAtV0 = ((xidx+yidx)%2 == 0);
+      splitAtV0 = true;
+
+      if (dz == 0) {
+         // create in x-y plane
+         v0 = vmap.getOrCreate (mesh, x, y, z, null);
+         v1 = vmap.getOrCreate (mesh, x+dx, y, z, null);
+         v2 = vmap.getOrCreate (mesh, x+dx, y+dy, z, null);
+         v3 = vmap.getOrCreate (mesh, x, y+dy, z, null);
+      }
+      else if (dy == 0) {
+         // create in z-x plane         
+         v0 = vmap.getOrCreate (mesh, x, y, z, null);
+         v1 = vmap.getOrCreate (mesh, x, y, z+dz, null);
+         v2 = vmap.getOrCreate (mesh, x+dx, y, z+dz, null);
+         v3 = vmap.getOrCreate (mesh, x+dx, y, z, null);
+      }
+      else if (dx == 0) {
+         // create in y-z plane
+         v0 = vmap.getOrCreate (mesh, x, y, z, null);
+         v1 = vmap.getOrCreate (mesh, x, y+dy, z, null);
+         v2 = vmap.getOrCreate (mesh, x, y+dy, z+dz, null);
+         v3 = vmap.getOrCreate (mesh, x, y, z+dz, null);
+      }
+      else {
+         throw new IllegalArgumentException ("square is not planar");
+      }
+      if (flip) {
+         if (splitAtV0) {
+            mesh.addFace (v0, v2, v1);
+            mesh.addFace (v0, v3, v2);
+         }
+         else {
+            mesh.addFace (v1, v3, v2);
+            mesh.addFace (v1, v0, v3);
+         }
+      }
+      else {
+         if (splitAtV0) {
+            mesh.addFace (v0, v1, v2);
+            mesh.addFace (v0, v2, v3);
+         }
+         else {
+            mesh.addFace (v1, v2, v3);
+            mesh.addFace (v1, v3, v0);
+         }
+      }
    }
 
    /**

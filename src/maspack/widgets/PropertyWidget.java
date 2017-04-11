@@ -23,7 +23,9 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.VectorBase;
+import maspack.matrix.VectoriBase;
 import maspack.matrix.VectorNd;
+import maspack.matrix.VectorNi;
 import maspack.properties.CompositeProperty;
 import maspack.properties.HasProperties;
 import maspack.properties.InheritableProperty;
@@ -501,30 +503,66 @@ public class PropertyWidget {
                vectorField.setFormat (info.getPrintFormat());
             }
             vectorField.setStretchable (true);
-         } else if (VectorBase.class.isAssignableFrom(type) && info.getDimension() == -1) {
-               VectorBase resultVec;
-               try {
-                  resultVec = (VectorBase)type.newInstance();
-               }
-               catch (Exception e) {
-                  throw new InternalErrorException (
-                     "Error creating no-args instance of " + type);
-               }
-               VariableVectorField vectorField = (VariableVectorField)widget;
-               VectorNd existingValue = vectorField.getVectorValue();
-               if (vectorField.getVectorSize() != resultVec.size()) {
-                 resultVec.setSize(vectorField.getVectorSize());
-               }
+         }
+         else if (VectoriBase.class.isAssignableFrom (type) &&
+            info.getDimension() != -1) {
+            VectoriBase resultVec;
+            try {
+               resultVec = (VectoriBase)type.newInstance();
+            }
+            catch (Exception e) {
+               throw new InternalErrorException (
+                  "Error creating no-args instance of " + type);
+            }
+            if (resultVec instanceof VectorNi) {
+               ((VectorNi)resultVec).setSize(info.getDimension());
+            }
+            VectoriField vectorField = (VectoriField)widget;
+            // take care not to zorch existing widget values in case
+            // the widget is being reinitialized (instead of being created
+            // from scratch)            
+            if (vectorField.getVectorSize() != info.getDimension()) {
+               vectorField.setVectorSize (info.getDimension());
+            }
+            else {
+               VectorNi existingValue = vectorField.getVectorValue();
                if (existingValue != null) {
                   resultVec.set (existingValue);
                }
-               vectorField.setResultHolder (resultVec);
-               vectorField.addValueChangeListener (new PropChangeListener (prop));
-               if (info.getPrintFormat() != null &&
-                  formatIsDefault (vectorField)) {
-                  vectorField.setFormat (info.getPrintFormat());
-               }
-               vectorField.setStretchable (true);
+            }
+            vectorField.setResultHolder (resultVec);
+            vectorField.addValueChangeListener (new PropChangeListener (prop));
+            if (info.getPrintFormat() != null &&
+               formatIsDefault (vectorField)) {
+               vectorField.setFormat (info.getPrintFormat());
+            }
+            vectorField.setStretchable (true);
+         }
+         else if (VectorBase.class.isAssignableFrom(type) &&
+                  info.getDimension() == -1) {
+            VectorBase resultVec;
+            try {
+               resultVec = (VectorBase)type.newInstance();
+            }
+            catch (Exception e) {
+               throw new InternalErrorException (
+                  "Error creating no-args instance of " + type);
+            }
+            VariableVectorField vectorField = (VariableVectorField)widget;
+            VectorNd existingValue = vectorField.getVectorValue();
+            if (vectorField.getVectorSize() != resultVec.size()) {
+               resultVec.setSize(vectorField.getVectorSize());
+            }
+            if (existingValue != null) {
+               resultVec.set (existingValue);
+            }
+            vectorField.setResultHolder (resultVec);
+            vectorField.addValueChangeListener (new PropChangeListener (prop));
+            if (info.getPrintFormat() != null &&
+                formatIsDefault (vectorField)) {
+               vectorField.setFormat (info.getPrintFormat());
+            }
+            vectorField.setStretchable (true);
          }
          else if (SymmetricMatrix3d.class.isAssignableFrom (type)) {
             SymmetricMatrix3dField matrixField = (SymmetricMatrix3dField)widget;
@@ -729,11 +767,16 @@ public class PropertyWidget {
       }
       else if (VectorBase.class.isAssignableFrom (type)) {
          if (VectorNd.class.isAssignableFrom(type) ||
-            info.getDimension() != -1) {
+            info.getDimension() == -1) {
             return new VariableVectorField();
-         } else {
+         }
+         else {
             return new VectorField();
          }
+      }
+      else if (VectoriBase.class.isAssignableFrom (type) &&
+               info.getDimension() != -1) {
+         return new VectoriField();
       }
       else if (SymmetricMatrix3d.class.isAssignableFrom (type)) {
          return new SymmetricMatrix3dField();

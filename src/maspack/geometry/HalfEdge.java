@@ -1056,8 +1056,43 @@ public class HalfEdge extends Feature implements Boundable {
       }
    }
    
-   public String indexStr() {
-      return "[ " + head.getIndex() + " " + tail.getIndex() + " ]";
+   /**
+    * Returns a string identifying this HalfEdge using the indices of
+    * its tail and head vertices.
+    * 
+    * @return vertex-based identifying string
+    */
+   public String vertexStr() {
+      return "[ " + tail.getIndex() + " " + head.getIndex() + " ]";
+   }
+   
+   /**
+    * Returns a string identifying this HalfEdge using the indices of
+    * its primary and opposite faces.
+    * 
+    * @return face-based identifying string
+    */
+   public String faceStr() {
+      String str = face.getIndex()+"-";
+      if (opposite != null) {
+         str += opposite.face.getIndex();
+      }
+      else {
+         str += "NULL";
+      }
+      return str;
+   }
+
+   /**
+    * Returns <code>true</code> if this HalfEdge and its opposite connects
+    * faces <code>f0</code> and <code>f1</code>.
+    */
+   public boolean connectsFaces (Face f0, Face f1) {
+      if (opposite == null) {
+         return false;
+      }
+      return (face == f0 && opposite.face == f1 ||
+              face == f1 && opposite.face == f0);
    }
 
 }

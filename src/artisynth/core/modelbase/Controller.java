@@ -10,6 +10,9 @@ public interface Controller extends ModelAgent, HasState {
 
    /**
     * Called at the beginning of a {@code RootModel}'s advance procedure
+    *
+    * @param t0 time at start of simulation step
+    * @param t1 time at end of simulation step
     */
    public void apply (double t0, double t1);
 

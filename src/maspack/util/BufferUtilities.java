@@ -11,7 +11,8 @@ public class BufferUtilities {
 
    /**
     * Frees memory from buffer
-    * @param buff
+    * 
+    * @param buff buffer for which memory should be freed
     * @return null (for assigning to old buffer)
     */
    public static<T extends Buffer> T freeDirectBuffer(T buff) {

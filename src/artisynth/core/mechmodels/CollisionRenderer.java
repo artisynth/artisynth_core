@@ -118,22 +118,23 @@ public class CollisionRenderer {
    private void maybeAddVertexFaceNormal (
       RenderObject ro, ContactConstraint cc, double normalLen) {
 
-      Vertex3d[] vtxs1 = cc.myCpnt1.myVtxs;
-      if (vtxs1.length == 3) {
-         // then this is a vertex-face normal situation
-         Vector3d nrml = new Vector3d();
-         Vector3d v01 = new Vector3d();
-         Vector3d v02 = new Vector3d();
-         v01.sub (vtxs1[1].pnt, vtxs1[0].pnt); 
-         v02.sub (vtxs1[2].pnt, vtxs1[0].pnt); 
-         nrml.cross (v01, v02);
-         nrml.normalize();
-         MeshBase mesh = vtxs1[0].getMesh();
-         if (!mesh.meshToWorldIsIdentity()) {
-            nrml.transform (mesh.getMeshToWorld());
-         }
-         addLineSeg (ro, cc.myCpnt0.myPoint, nrml, normalLen);
-      }
+      addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, normalLen);
+      // Vertex3d[] vtxs1 = cc.myCpnt1.myVtxs;
+      // if (vtxs1.length == 3) {
+      //    // then this is a vertex-face normal situation
+      //    Vector3d nrml = new Vector3d();
+      //    Vector3d v01 = new Vector3d();
+      //    Vector3d v02 = new Vector3d();
+      //    v01.sub (vtxs1[1].pnt, vtxs1[0].pnt); 
+      //    v02.sub (vtxs1[2].pnt, vtxs1[0].pnt); 
+      //    nrml.cross (v01, v02);
+      //    nrml.normalize();
+      //    MeshBase mesh = vtxs1[0].getMesh();
+      //    if (!mesh.meshToWorldIsIdentity()) {
+      //       nrml.transform (mesh.getMeshToWorld());
+      //    }
+      //    addLineSeg (ro, cc.myCpnt0.myPoint, nrml, normalLen);
+      // }
    }
 
    protected void findInsideFaces (
@@ -309,13 +310,13 @@ public class CollisionRenderer {
             }
          }
 
-         for (PenetratingPoint cpp : cinfo.getPenetratingPoints0()) {
+         for (PenetratingPoint cpp : cinfo.getPenetratingPoints(0)) {
             if (cpp.distance > 0) {
                addPoint (ro, cpp.vertex.getWorldPoint());
             }
          }
 
-         for (PenetratingPoint cpp : cinfo.getPenetratingPoints1()) {
+         for (PenetratingPoint cpp : cinfo.getPenetratingPoints(1)) {
             if (cpp.distance > 0) {
                addPoint (ro, cpp.vertex.getWorldPoint());
             }
@@ -360,12 +361,12 @@ public class CollisionRenderer {
          ArrayList<PenetrationRegion> regions;
          ArrayList<PenetratingPoint> points;
          if (num == 0) {
-            regions = cinfo.getPenetrationRegions0();
-            points = cinfo.getPenetratingPoints0();
+            regions = cinfo.getRegions(0);
+            points = cinfo.getPenetratingPoints(0);
          }
          else {
-            regions = cinfo.getPenetrationRegions1();
-            points = cinfo.getPenetratingPoints1();
+            regions = cinfo.getRegions(1);
+            points = cinfo.getPenetratingPoints(1);
          }
          if (regions != null && regions.size() > 0) {
             rd = createPenetrationRenderObject (handler, points, regions);
@@ -416,7 +417,7 @@ public class CollisionRenderer {
       Point3d wpnt = new Point3d();
       Vector3d wnrm = new Vector3d();
       for (PenetrationRegion region : regions) {
-         for (Face face : region.getInsideFaces()) {
+         for (Face face : region.getFaces()) {
             HalfEdge he = face.firstHalfEdge();
             Vertex3d v0 = he.getHead();
             Vertex3d v1 = he.getNext().getHead();

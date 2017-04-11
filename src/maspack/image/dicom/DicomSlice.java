@@ -97,10 +97,8 @@ public class DicomSlice {
    }
    
    /**
-    * Construct a DICOM slice with a given title, DICOM header information, and image pixels
-    * @param title
-    * @param header
-    * @param pixels
+    * Construct a DICOM slice with a given title, DICOM header information, and
+    * image pixels
     */
    public DicomSlice(String title, DicomHeader header, DicomPixelBuffer pixels) {
       this.header = header;

@@ -248,7 +248,6 @@ public class AutoCompleteStringField extends StringField {
 
    /**
     * Sets the keyboard key to be used for triggering a completion
-    * @param keyEventCode
     */
    public void setCompletionKey(int keyEventCode) {
       myCompletionKey = keyEventCode;
@@ -257,7 +256,6 @@ public class AutoCompleteStringField extends StringField {
    
    /**
     * Sets the keyboard key to be used for triggering the next completion option
-    * @param keyEventCode
     */
    public void setNextCompletionKey(int keyEventCode) {
       myNextCompletionKey = keyEventCode;
@@ -266,7 +264,6 @@ public class AutoCompleteStringField extends StringField {
    
    /**
     * Sets the keyboard key to be used for triggering the next completion option
-    * @param keyEventCode
     */
    public void setPreviousCompletionKey(int keyEventCode) {
       myPreviousCompletionKey = keyEventCode;

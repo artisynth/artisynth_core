@@ -70,17 +70,19 @@ public class CubaturePoint3d extends Point3d {
    /**
     * {@inheritDoc}
     */
-   public void scale (double s) {
+   public Point3d scale (double s) {
       super.scale(s);
       w = w*s*s*s;
+      return this;
    }
    
    /**
     * {@inheritDoc} 
     */
-   public void scale (double sx, double sy, double sz) {
+   public Point3d scale (double sx, double sy, double sz) {
       super.scale(sx,sy,sz);
       w = w*sx*sy*sz;
+      return this;
    }
    
    

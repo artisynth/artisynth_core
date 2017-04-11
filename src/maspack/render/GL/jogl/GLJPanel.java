@@ -105,6 +105,7 @@ import com.jogamp.opengl.util.TileRenderer;
 import com.jogamp.opengl.util.awt.AWTGLPixelBuffer;
 import com.jogamp.opengl.util.awt.AWTGLPixelBuffer.AWTGLPixelBufferProvider;
 import com.jogamp.opengl.util.awt.AWTGLPixelBuffer.SingleAWTGLPixelBufferProvider;
+import com.jogamp.opengl.util.texture.Texture;
 import com.jogamp.opengl.util.texture.TextureState;
 
 /** A lightweight Swing component which provides OpenGL rendering
@@ -120,7 +121,7 @@ import com.jogamp.opengl.util.texture.TextureState;
     <p>
     This component attempts to use hardware-accelerated rendering via FBO or pbuffers and
     falls back on to software rendering if none of the former are available
-    using {@link GLDrawableFactory#createOffscreenDrawable(AbstractGraphicsDevice, GLCapabilitiesImmutable, GLCapabilitiesChooser, int, int) GLDrawableFactory.createOffscreenDrawable(..)}.<br/>
+    using {@link GLDrawableFactory#createOffscreenDrawable(AbstractGraphicsDevice, GLCapabilitiesImmutable, GLCapabilitiesChooser, int, int) GLDrawableFactory.createOffscreenDrawable(..)}.<br>
     </p>
     <p>
     <a name="verticalFlip">
@@ -145,7 +146,7 @@ import com.jogamp.opengl.util.texture.TextureState;
  *  Please read <a href="GLCanvas.html#java2dgl">Java2D OpenGL Remarks</a>.
  *  </P>
  *
-    <a name="fboGLSLVerticalFlip"><h5>FBO / GLSL Vertical Flip</h5></a>
+    <a name="fboGLSLVerticalFlip">FBO / GLSL Vertical Flip</a>
     In case FBO is used and GLSL is available and {@link #setSkipGLOrientationVerticalFlip(boolean) vertical flip is not skipped}, a fragment shader is utilized
     to flip the FBO texture vertically. This hardware-accelerated step can be disabled via system property <code>jogl.gljpanel.noglsl</code>.
     <p>
@@ -154,7 +155,7 @@ import com.jogamp.opengl.util.texture.TextureState;
     </p>
     <p>
     The active and dedicated texture-unit's {@link GL#GL_TEXTURE_2D} state is preserved via {@link TextureState}.
-    See also {@link Texture#textureCallOrder Order of Texture Commands}.
+    See also "Order of Texture Commands" in {@link Texture}.
     </p>
     <p>
     The current gl-viewport is preserved.
@@ -372,18 +373,19 @@ public class GLJPanel extends JPanel implements AWTGLAutoDrawable, WindowClosing
    * <p>
    * If backend is already initialized method returns <code>true</code>.
    * </p>
-   * <p>
-   * If <code>offthread</code> is <code>true</code>, initialization will kicked off
-   * on a <i>short lived</i> arbitrary thread and method returns immediately.<br/>
-   * If platform supports such <i>arbitrary thread</i> initialization method returns
-   * <code>true</code>, otherwise <code>false</code>.
-   * </p>
+   * 
+   * <p> If <code>offthread</code> is <code>true</code>, initialization will
+   * kicked off on a <i>short lived</i> arbitrary thread and method returns
+   * immediately.<br>
+   * If platform supports such <i>arbitrary thread</i>
+   * initialization method returns <code>true</code>, otherwise
+   * <code>false</code>.</p>
+   * 
    * <p>
    * If <code>offthread</code> is <code>false</code>, initialization be performed
-   * on the current thread and method returns after initialization.<br/>
+   * on the current thread and method returns after initialization.<br>
    * Method returns <code>true</code> if initialization was successful, otherwise <code>false</code>.
-   * <p>
-   * @param offthread
+   *
    */
   public final boolean initializeBackend(boolean offthread) {
     if( offthread ) {
@@ -550,7 +552,7 @@ public class GLJPanel extends JPanel implements AWTGLAutoDrawable, WindowClosing
   /** Overridden to track when this component is added to a container.
       Subclasses which override this method must call
       super.addNotify() in their addNotify() method in order to
-      function properly. <P>
+      function properly.
 
       <DL><DD><CODE>addNotify</CODE> in class <CODE>java.awt.Component</CODE></DD></DL> */
   @Override
@@ -565,7 +567,7 @@ public class GLJPanel extends JPanel implements AWTGLAutoDrawable, WindowClosing
   /** Overridden to track when this component is removed from a
       container. Subclasses which override this method must call
       super.removeNotify() in their removeNotify() method in order to
-      function properly. <P>
+      function properly.
 
       <DL><DD><CODE>removeNotify</CODE> in class <CODE>java.awt.Component</CODE></DD></DL> */
   @Override
@@ -1004,12 +1006,12 @@ public class GLJPanel extends JPanel implements AWTGLAutoDrawable, WindowClosing
 
   /**
    * {@inheritDoc}
-   * <p>
-   * Method returns a valid value only <i>after</i>
-   * the backend has been initialized, either {@link #initializeBackend(boolean) eagerly}
-   * or manually via the first display call.<br/>
-   * Method always returns a valid value when called from within a {@link GLEventListener}.
-   * </p>
+   * 
+   * <p> Method returns a valid value only <i>after</i> the backend has been
+   * initialized, either {@link #initializeBackend(boolean) eagerly} or
+   * manually via the first display call.<br>
+   * Method always returns a valid
+   * value when called from within a {@link GLEventListener}.  </p>
    */
   @Override
   public boolean isGLOriented() {
@@ -1027,7 +1029,7 @@ public class GLJPanel extends JPanel implements AWTGLAutoDrawable, WindowClosing
    * and <a href="#fboGLSLVerticalFlip">FBO / GLSL vertical flip</a>.
    * <p>
    * If set to <code>true</code>, user needs to flip the OpenGL rendered scene
-   * <i>if {@link #isGLOriented()} == true</i>, e.g. via the PMV matrix.<br/>
+   * <i>if {@link #isGLOriented()} == true</i>, e.g. via the PMV matrix.<br>
    * See constraints of {@link #isGLOriented()}.
    * </p>
    */

@@ -2,6 +2,7 @@ package maspack.collision;
 
 import java.util.*;
 
+import maspack.collision.SurfaceMeshIntersector.RegionType;
 import maspack.geometry.Face;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.TriTriIntersection;
@@ -36,7 +37,9 @@ public class ContactInfo {
 
    // interpenetration regions - produced by SurfaceMeshCollider only
    ArrayList<PenetrationRegion> myRegions0 = null;
+   RegionType myRegionsType0;
    ArrayList<PenetrationRegion> myRegions1 = null;
+   RegionType myRegionsType1;
 
    // intersection contours - produced by SurfaceMeshCollider only
    ArrayList<IntersectionContour> myContours = null;
@@ -52,7 +55,7 @@ public class ContactInfo {
    ArrayList<ContactPlane> myContactPlanes = null;
 
    double myPointTol = 1e-4;
-   double myRegionTol = 1e-2;
+   double myContactPlaneTol = 1e-2;
 
    public ContactInfo (PolygonalMesh m0, PolygonalMesh m1) {
       myMesh0 = m0;
@@ -60,23 +63,26 @@ public class ContactInfo {
    }
 
    /**
-    * Returns the first mesh associated with this contact information.
-    * 
-    * @return first contacting mesh
+    * Returns the first or second mesh associated with this contact
+    * information, as indicated by <code>meshNum</code>, which should be either
+    * 0 or 1.
+    *
+    * @param meshNum number of the requested mesh (0 or 1)
+    * @return mesh indicated by <code>meshNum</code>
     */
-   public PolygonalMesh getMesh0() {
-      return myMesh0;
-   }
    
-   /**
-    * Returns the second mesh associated with this contact information.
-    * 
-    * @return second contacting mesh
-    */
-   public PolygonalMesh getMesh1() {
-      return myMesh1;
-   }
-   
+   public PolygonalMesh getMesh (int meshNum) { 
+      if (meshNum == 0) {
+         return myMesh0;
+      }
+      else if (meshNum == 1) {
+         return myMesh1;
+      }
+      else {
+         throw new IndexOutOfBoundsException ("meshNum must be 0 or 1");
+      }
+  }
+
    /**
     * Sets the nearest point tolerance used to compute contact planes.
     * 
@@ -96,56 +102,104 @@ public class ContactInfo {
    }
    
    /**
-    * Sets the region tolerance used to compute contact planes.
+    * Sets the tolerance used to compute contact planes.
     * 
-    * @param tol region tolerance
+    * @param tol contact plane tolerance
     */
-   public void setRegionTol (double tol) {
-      myRegionTol = tol;
+   public void setContactPlaneTol (double tol) {
+      myContactPlaneTol = tol;
    }
    
    /**
-    * Returns the region tolerance used to compute contact planes.
+    * Returns the tolerance used to compute contact planes.
     * 
-    * @return region tolerance for contact planes
+    * @return contact plane tolerance
     */
-   public double getRegionTol() {
-      return myRegionTol;
+   public double getContactPlaneTol() {
+      return myContactPlaneTol;
    }
-   
+
+
    /**
-    * Returns the contact penetration regions associated with the first
-    * mesh. Each region represents a connected subset of the first mesh that is
-    * "inside" the second. If the collider that produced this contact
-    * information is not capable of computing penetration regions,
-    * <code>null</code> is returned. At present, only {@link
-    * SurfaceMeshCollider} can compute penetration regions.
-    * 
-    * @return list of the contact penetration regions for the first mesh,
+    * Returns the contact penetration regions associated with the mesh
+    * indicated by <code>meshNum</code> (which should be 0 or 1).  Each region
+    * represents a connected subset of the indicated mesh that is either
+    * "inside" or "outside" the other mesh. If the collider that produced this
+    * contact information is not capable of computing penetration regions,
+    * or if no regions were requested, <code>null</code> is returned. 
+    * At present, only {@link SurfaceMeshCollider} can 
+    * compute penetration regions.
+    *
+    * @param meshNum number of the indicated mesh (0 or 1)
+    * @return list of the contact penetration regions for the indicated mesh,
     * or <code>null</code> if this information is not available.
     * Should not
     * be modified.
     */
-   public ArrayList<PenetrationRegion> getPenetrationRegions0() {
-      return myRegions0;
+   public ArrayList<PenetrationRegion> getRegions (int meshNum) {
+      if (meshNum == 0) {
+         return myRegions0;
+      }
+      else if (meshNum == 1) {
+         return myRegions1;
+      }
+      else {
+         throw new IndexOutOfBoundsException ("meshNum must be 0 or 1");
+      }
    }
-   
+
    /**
-    * Returns the contact penetration regions associated with the second
-    * mesh. Each region represents a connected subset of the second mesh that
-    * is "inside" the first. If the collider that produced this contact
+    * Returns which type of penetration regions (inside, outside, or none) have
+    * been computed for the mesh indicated by <code>meshNum</code> (which
+    * should be 0 or 1). The regions themselves are returned by {@link
+    * #getRegions}.  If the collider that produced this contact
     * information is not capable of computing penetration regions,
-    * <code>null</code> is returned. At present, only {@link
+    * or if no regions were requested for the mesh in question,
+    * {@link RegionType#NONE} is returned. At present, only {@link
     * SurfaceMeshCollider} can compute penetration regions.
-    * 
-    * @return list of the contact penetration regions for the second mesh, 
-    * or <code>null</code> if this information is not available. Should not
-    * be modified.
+    *
+    * @param meshNum number of the indicated mesh (0 or 1)
+    * @return which type of penetration regions have been computed for
+    * the indicated mesh, or <code>Regions.NONE</code> if there are none.
     */
-   public ArrayList<PenetrationRegion> getPenetrationRegions1() {
-      return myRegions1;
+   public RegionType getRegionsType (int meshNum) {
+      if (meshNum == 0) {
+         return myRegionsType0;
+      }
+      else if (meshNum == 1) {
+         return myRegionsType1;
+      }
+      else {
+         throw new IndexOutOfBoundsException ("meshNum must be 0 or 1");
+      }
    }
-   
+
+//   /**
+//    * Returns whether contact penetration regions associated with the mesh
+//    * indicated by <code>meshNum</code> (which should be 0 or 1) are "inside" or
+//    * "outside" the other mesh. The regions themselves are returned by {@link
+//    * #getPenetrationRegions}.  If the collider that produced this contact
+//    * information is not capable of computing penetration regions,
+//    * <code>false</code> is returned. At present, only {@link
+//    * SurfaceMeshCollider} can compute penetration regions.
+//    *
+//    * @param meshNum number of the indicated mesh (0 or 1)
+//    * @return <code>true</code> if regions for the indicated mesh are inside
+//    * the other mesh, or <code>false</code> if they are outside or if this
+//    * information is not available. 
+//    */
+//   public boolean penetrationRegionsAreInside (int meshNum) {
+//      if (meshNum == 0) {
+//         return myRegions0Inside;
+//      }
+//      else if (meshNum == 1) {
+//         return myRegions1Inside;
+//      }
+//      else {
+//         throw new IndexOutOfBoundsException ("meshNum must be 0 or 1");
+//      }
+//   }
+//   
    /**
     * Returns the intersection contours associated with this contact.  If the
     * collider that produced this contact information is not capable of
@@ -158,67 +212,85 @@ public class ContactInfo {
    public ArrayList<IntersectionContour> getContours() {
       return myContours;
    }
+
+   /**
+    * Returns the number of intersection contours associated with this contact.
+    * If the collider that produced this contact information is not capable of
+    * computing intersection contours, <code>0</code> is returned. At
+    * present, only {@link SurfaceMeshCollider} can compute contours.
+    * 
+    * @return number of intersection contours, or <code>0</code> if
+    * they are not available.
+    */  
+   public int numContours() {
+      return myContours == null ? 0 : myContours.size();
+   }  
    
    /**
-    * Returns the penetrating points of the first mesh. These represent
-    * all the vertices of the first mesh that are "inside" the second,
-    * along with the corresponding nearest face on the second mesh.
-    * The penetrating points can be used to produce vertex-based contact
-    * constraints.
-    *
-    * <p>This method computes the penetration points on demand and then caches
-    * the result.
+    * Sets the contours of this ContactInfo to a deep copy of a specified
+    * list of contours.
     * 
-    * @return list of penetrating points of the first mesh with respect
-    * to the second. Should not be modified.
+    * @param contours contours to copy
     */
-   public ArrayList<PenetratingPoint> getPenetratingPoints0() {
-      if (myPoints0 == null) {
-         if (myRegions0 != null) {
-            myPoints0 = new ArrayList<PenetratingPoint>();
-            for (PenetrationRegion r : myRegions0) {
-               SurfaceMeshCollider.collideVerticesWithFaces (
-                  myPoints0, r, myMesh1);
-            } 
-            Collections.sort (
-               myPoints0, new PenetratingPoint.IndexComparator());      
-         }
-         else {
-            myPoints0 = computePenetratingPoints (myMesh0, myMesh1);
-         }
+   void setContours (ArrayList<IntersectionContour> contours) {
+      myContours = new ArrayList<IntersectionContour>(contours.size());
+      for (IntersectionContour c : contours) {
+         myContours.add (c.copy());
       }
-      return myPoints0;
    }
    
    /**
-    * Returns the penetrating points of the second mesh. These represent
-    * all the vertices of the second mesh that are "inside" the first,
-    * along with the corresponding nearest face on the first mesh.
-    * The penetrating points can be used to produce vertex-based contact
-    * constraints.
-    * 
+    * Returns the penetrating points of the mesh indicated by
+    * <code>meshNum</code> (which should be 0 or 1). These represent all the
+    * vertices of the indicated mesh that are "inside" the other mesh, along
+    * with the corresponding nearest face on the other mesh.  The penetrating
+    * points can be used to produce vertex-based contact constraints.
+    *
     * <p>This method computes the penetration points on demand and then caches
     * the result.
-    * 
-    * @return list of penetrating points of the second mesh with respect
-    * to the first. Should not be modified.
+    *
+    * @param meshNum number of the indicated mesh (0 or 1)
+    * @return list of penetrating points of the indicated mesh with respect
+    * to the other mesh. Should not be modified.
     */
-   public ArrayList<PenetratingPoint> getPenetratingPoints1() {
-      if (myPoints1 == null) {
-         if (myRegions1 != null) {
-            myPoints1 = new ArrayList<PenetratingPoint>();
-            for (PenetrationRegion r : myRegions1) {
-               SurfaceMeshCollider.collideVerticesWithFaces (
-                  myPoints1, r, myMesh0);
+   public ArrayList<PenetratingPoint> getPenetratingPoints (int meshNum) {
+      if (meshNum == 0) {
+         if (myPoints0 == null) {
+            if (myRegionsType0 == RegionType.INSIDE) {
+               myPoints0 = new ArrayList<PenetratingPoint>();
+               for (PenetrationRegion r : myRegions0) {
+                  SurfaceMeshCollider.collideVerticesWithFaces (
+                     myPoints0, r, myMesh1);
+               } 
+               Collections.sort (
+                  myPoints0, new PenetratingPoint.IndexComparator());      
             }
-            Collections.sort (
-               myPoints1, new PenetratingPoint.IndexComparator());        
+            else {
+               myPoints0 = computePenetratingPoints (myMesh0, myMesh1);
+            }
          }
-         else {
-            myPoints1 = computePenetratingPoints (myMesh1, myMesh0);
-         }
+         return myPoints0;
       }
-      return myPoints1;
+      else if (meshNum == 1) {
+         if (myPoints1 == null) {
+            if (myRegionsType1 == RegionType.INSIDE) {
+               myPoints1 = new ArrayList<PenetratingPoint>();
+               for (PenetrationRegion r : myRegions1) {
+                  SurfaceMeshCollider.collideVerticesWithFaces (
+                     myPoints1, r, myMesh0);
+               }
+               Collections.sort (
+                  myPoints1, new PenetratingPoint.IndexComparator());        
+            }
+            else {
+               myPoints1 = computePenetratingPoints (myMesh1, myMesh0);
+            }
+         }
+         return myPoints1;
+      }
+      else {
+         throw new IndexOutOfBoundsException ("meshNum must be 0 or 1");
+      }
    }
    
    ArrayList<PenetratingPoint> computePenetratingPoints (
@@ -275,21 +347,22 @@ public class ContactInfo {
 
    ArrayList<ContactPlane> computeContactPlanes() {
       ArrayList<ContactPlane> cplanes = new ArrayList<ContactPlane>();
-      if (myRegions0 != null) {
+      if (myRegionsType0 == RegionType.INSIDE &&
+          myRegionsType1 == RegionType.INSIDE) {
          // then create from penetration regions
          HashMap<PenetrationRegion,PenetrationRegion> matchingRegions =
             findMatchingRegions();
          for (PenetrationRegion r0 : matchingRegions.keySet()) {
             PenetrationRegion r1 = matchingRegions.get(r0);
             ContactPlane cp = new ContactPlane();
-            if (cp.build (r0, r1, myPointTol)) {
+            if (cp.build (r0, r1, myMesh0, myPointTol)) {
                cplanes.add (cp);
             }
          }        
       }
       else if (myIntersections != null) {
          // create for triangle-triangle intersections
-         MeshCollider.createContactPlanes (cplanes, myIntersections, myRegionTol);
+         MeshCollider.createContactPlanes (cplanes, myIntersections, myContactPlaneTol);
          for (ContactPlane cp : cplanes) {
             MeshCollider.getContactPlaneInfo (
                cp, myMesh0, myMesh1, myPointTol);
@@ -347,7 +420,8 @@ public class ContactInfo {
     */
    public ArrayList<EdgeEdgeContact> getEdgeEdgeContacts() {
       if (myEdgeEdgeContacts == null) {
-         if (myRegions0 != null) {
+         if (myRegionsType0 == RegionType.INSIDE &&
+             myRegionsType1 == RegionType.INSIDE) {
             SurfaceMeshCollider collider = new SurfaceMeshCollider();
             myEdgeEdgeContacts = collider.findEdgeEdgeContacts (this);
          }

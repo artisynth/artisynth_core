@@ -85,9 +85,11 @@ public class AbaqusReader implements FemReader {
     * a specified file. 
     * 
     * @param model
-    * FEM model to be populated by Abaqus data
+    * FEM model to be populated by Abaqus data. If <code>null</code>, a
+    * new model is created
     * @param fileName
     * path name of the ABAQUS file
+    * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */
@@ -102,7 +104,8 @@ public class AbaqusReader implements FemReader {
     * a specified file. 
     * 
     * @param model
-    * FEM model to be populated by Abaqus data
+    * FEM model to be populated by Abaqus data. If <code>null</code>, a
+    * new model is created
     * @param fileName
     * path name of the ABAQUS file
     * @param density
@@ -121,11 +124,13 @@ public class AbaqusReader implements FemReader {
     * a specified file. 
     * 
     * @param model
-    * FEM model to be populated by Abaqus data
+    * FEM model to be populated by Abaqus data. If <code>null</code>, a
+    * new model is created
     * @param file
     * the ABAQUS file
     * @param density
     * density of the model
+    * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */
@@ -157,10 +162,12 @@ public class AbaqusReader implements FemReader {
     * 
     * @param model
     * FEM model to be populated by Abaqus data
-    * @param fileReader
-    * reader supplying node and element data in the Abaqus format
+    * @param fileReader reader supplying node and element data in the Abaqus
+    * format. If <code>null</code>, a new model is created
     * @param density
     * density of the model
+    * @param includeDirs list of directories to search for include files
+    * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */

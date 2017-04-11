@@ -68,7 +68,6 @@ public class FileTransferEvent  {
    
    /**
     * Fires the event to all listeners
-    * @param listener
     */
    public void notify(FileTransferListener listener) {
       

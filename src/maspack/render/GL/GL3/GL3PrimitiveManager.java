@@ -45,9 +45,6 @@ public class GL3PrimitiveManager implements GLGarbageSource {
    
    /**
     * Returns a sphere object
-    * @param gl
-    * @param nSlices
-    * @param nLevels
     * @return sphere object 
     */
    public GL3Primitive getAcquiredSphere(GL3 gl, int nSlices, int nLevels) {
@@ -271,7 +268,6 @@ public class GL3PrimitiveManager implements GLGarbageSource {
    
    /**
     * Destroy all stored resources
-    * @param gl
     */
    @Override
    public void dispose(GL gl) {

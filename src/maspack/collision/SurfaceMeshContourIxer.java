@@ -1,5 +1,6 @@
 package maspack.collision;
 
+import maspack.matrix.Point3d;
 import maspack.collision.IntersectionPoint;
 import maspack.geometry.BVNode;
 import maspack.geometry.BVTree;
@@ -9,6 +10,7 @@ import maspack.geometry.Vertex3d;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.Face;
 import maspack.geometry.PolygonalMesh;
+import maspack.render.RenderableUtils;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -31,6 +33,7 @@ import java.util.HashMap;
 public class SurfaceMeshContourIxer {
    public PolygonalMesh mesh0;
    public PolygonalMesh mesh1;
+   private double myMaxLength;
    
    // Avoid repeating edge/face collision checks (expensive)
    HashMap<EdgeFacePair, IntersectionPoint> 
@@ -42,7 +45,8 @@ public class SurfaceMeshContourIxer {
     * Each contour is a list of MeshIntersectionPoints, each of which represents
     * the intersection of a HalfEdge and a Face.
     */
-   protected ArrayList<IntersectionContour> myContours = new ArrayList<IntersectionContour> ();
+   protected ArrayList<IntersectionContour> myContours = 
+      new ArrayList<IntersectionContour> ();
 
    public static long renderTime = -1;
 
@@ -85,10 +89,16 @@ public class SurfaceMeshContourIxer {
 
       this.mesh0 = mesh0;
       this.mesh1 = mesh1;
+      double maxRadius =
+      Math.max(RenderableUtils.getRadius(mesh0),
+               RenderableUtils.getRadius(mesh1));
+      myMaxLength = 2*maxRadius;      
+      
       mesh0.updateFaceNormals();
       mesh1.updateFaceNormals();
       if (!mesh0.isTriangular() | !mesh1.isTriangular())
-         throw new IllegalArgumentException ("collision with non-triangular mesh");
+         throw new IllegalArgumentException (
+            "collision with non-triangular mesh");
 
       ArrayList<IntersectionPoint> allMips = new ArrayList<IntersectionPoint>();
       // Try getting allMips continuously until no DegenerateCases are caught
@@ -435,13 +445,20 @@ public class SurfaceMeshContourIxer {
       if (v == he.tail)
          return false;
 
-
-      if (!RobustPreds.intersectEdgeFace (he, face, mip, edgeOnMesh0))
+      int res = RobustPreds.intersectEdgeTriangle (
+         mip, he, face, myMaxLength, edgeOnMesh0, /*worldCoords=*/true);
+      if (res == 0) {
          return false;
-      mip.edge = he;
-      mip.face = face;
-      mip.edgeOnMesh0 = edgeOnMesh0;
-      return true;
+      }
+      else {
+         mip.edge = he;
+         mip.face = face;
+         //mip.edgeOnMesh0 = edgeOnMesh0;
+         mip.intersectionCode = res;
+         //mip.headInsideFace = ((res & RobustPreds.S0_OUTSIDE) != 0);
+         //mip.degeneracies = (res & RobustPreds.DEGENERACY_MASK);
+         return true;
+      }
    }
 
    /**

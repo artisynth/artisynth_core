@@ -441,6 +441,7 @@ public class IndentingPrintWriter extends PrintWriter {
     *   name="joe"
     *   age=23
     * ]
+    * </pre>
     */
    static public int printOpening (PrintWriter pw, String str) {
       if (pw instanceof IndentingPrintWriter) {

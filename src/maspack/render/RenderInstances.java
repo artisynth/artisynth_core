@@ -475,8 +475,6 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    
    /**
     * Sets the point position by reference
-    * @param pidx
-    * @param pos
     */
    public void setPoint(int pidx, float[] pos) {
       writeLock();
@@ -487,8 +485,6 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    
    /**
     * Sets the point position
-    * @param pidx
-    * @param pos
     */
    public void setPoint(int pidx, Vector3d pos) {
       setPoint(pidx, pos.x, pos.y, pos.z);
@@ -578,7 +574,7 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
     * Adds a new frame that can be referenced to create
     * an instance.  Note that this does not create a
     * new instance.
-    * @param pos position of frame added, by reference
+    * @param frame frame to be added, by reference
     * @return index of the new frame added
     */
    public int addFrame(RigidTransform3d frame) {
@@ -691,10 +687,10 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    }
    
    /**
-    * Adds a new affine that can be referenced to create
+    * Adds a new affine transform that can be referenced to create
     * an instance.  Note that this does not create a
     * new instance.
-    * @param pos position of affine added, by reference
+    * @param affine affine transform to add, by reference
     * @return index of the new affine added
     */
    public int addAffine(AffineTransform3d affine) {
@@ -1397,11 +1393,11 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    }
    
    /**
-    * Adds an instance with supplied transform index, scale index and current color
-    * and scale
+    * Adds an instance with supplied transform index, scale index and current
+    * color and scale
     * @param type type of instance
     * @param tidx transform index (either point, frame, or affine index)
-    * @return
+    * @return index of the instance added
     */
    public int addInstance(InstanceTransformType type, int tidx) {
       return addInstance(type, tidx, currentScaleIdx, currentColorIdx);
@@ -1510,7 +1506,7 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    
    /**
     * Adds an instance by affine
-    * @param affine
+    * @param frame affine transform to be added, by reference
     * @return the index of the instance added
     */
    public int addInstance(AffineTransform3d frame) {

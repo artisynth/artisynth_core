@@ -25,6 +25,7 @@ import maspack.geometry.HalfEdge;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.SignedDistanceGrid;
 import maspack.matrix.DualQuaternion;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -1387,6 +1388,16 @@ public class SkinMeshBody extends SkinMeshBase
       else {
          return null;
       }
+   }
+
+   @Override
+   public boolean hasDistanceGrid() {
+      return false;
+   }
+   
+   @Override   
+   public SignedDistanceGrid getDistanceGrid() {
+      return null;
    }
 
    @Override

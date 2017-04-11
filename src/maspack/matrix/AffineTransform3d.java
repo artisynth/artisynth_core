@@ -567,7 +567,7 @@ public class AffineTransform3d extends AffineTransform3dBase {
     * @param q
     * set of input 3d points
     * @param threshold
-    * algorithm stops when ||s_{i} - s_{i-1}||/||s_{i-1}|| < threshold
+    * algorithm stops when ||s_{i} - s_{i-1}||/||s_{i-1}|| {@code <} threshold
     * @return
     * 3-vector containing the scale factors
     */

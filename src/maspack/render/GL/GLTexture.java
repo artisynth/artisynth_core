@@ -176,7 +176,6 @@ public class GLTexture extends GLResourceBase {
    
    /**
     * Unbind the texture
-    * @param gl
     */
    public void unbind(GL gl) {
       gl.glBindTexture (target, 0);

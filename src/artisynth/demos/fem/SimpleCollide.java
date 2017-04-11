@@ -10,6 +10,7 @@ import maspack.matrix.AffineTransform3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
@@ -30,6 +31,7 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.CollisionManager;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
+import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.TransformableGeometry;
@@ -256,7 +258,7 @@ public class SimpleCollide extends RootModel {
          case House: {
             RigidBody body = new RigidBody (name);
             body.setMesh (MeshFactory.createPointedCylinder (
-               mySize / 2, mySize / 2, mySize / 20, 4), null);
+               mySize, mySize, mySize/4, 4), null);
             body.setInertiaFromDensity (myDensity);
             // RenderProps.setAlpha (body, 0.3);
             comp = body;
@@ -276,7 +278,7 @@ public class SimpleCollide extends RootModel {
       if (myTopType != type) {
          if (myTopObject != null) {
             if (myBottomObject != null) {
-               mechMod.setCollisionBehavior (myTopObject, myBottomObject, false);
+               mechMod.clearCollisionBehavior (myTopObject, myBottomObject);
             }
             removeObject (myTopObject, myTopType);
          }
@@ -300,7 +302,7 @@ public class SimpleCollide extends RootModel {
       if (myBottomType != type) {
          if (myBottomObject != null) {
             if (myTopObject != null) {
-               mechMod.setCollisionBehavior (myTopObject, myBottomObject, false);
+               mechMod.clearCollisionBehavior (myTopObject, myBottomObject);
             }
             removeObject (myBottomObject, myBottomType);            
          }
@@ -323,7 +325,6 @@ public class SimpleCollide extends RootModel {
          panel.addWidget (comp, "density");
          panel.addWidget (comp, "incompressible");
          panel.addWidget (comp, "volume");
-         panel.addWidget (comp, "freeVolume");
       }
       else if (comp instanceof RigidBody) {
          panel.addWidget (comp, "position");
@@ -513,7 +514,8 @@ public class SimpleCollide extends RootModel {
             break;
          }
          case Box: {
-           ((RigidBody)comp).setDynamic (false);
+            ((RigidBody)comp).setDynamic (false);
+            ((RigidBody)comp).setDistanceGridRes (new Vector3i(10,5,5));
             break;
          }
          case Molar: {
@@ -552,6 +554,7 @@ public class SimpleCollide extends RootModel {
       // mySeparation = .615;
 
       CollisionManager cm = mechMod.getCollisionManager();
+      cm.setColliderType (ColliderType.SIGNED_DISTANCE);
       cm.setDrawIntersectionContours(true);
       RenderProps.setEdgeWidth (cm, 2);
       RenderProps.setEdgeColor (cm, Color.YELLOW);
@@ -570,8 +573,8 @@ public class SimpleCollide extends RootModel {
       panel.addWidget (this, "bottomObject");
       panel.addWidget (mechMod, "integrator");
       panel.addWidget (this, "friction");
-      panel.addWidget (mechMod, "collisionManager:collisionCompliance");
-      panel.addWidget (mechMod, "collisionManager:collisionDamping");
+      panel.addWidget (mechMod, "collisionManager:compliance");
+      panel.addWidget (mechMod, "collisionManager:damping");
       addControlPanel (panel, 0);
 
       // mechMod.transformGeometry (

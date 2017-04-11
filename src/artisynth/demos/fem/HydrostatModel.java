@@ -266,7 +266,7 @@ public class HydrostatModel extends FemMuscleModel {
             FemFactory.createHexTube (this, l, rin, r, nt, nl, nr);
             break;
          case Quadtet:
-            FemFactory.createQuadraticTube (this, l, rin, r, nt, nl, nr);
+            FemFactory.createQuadtetTube (this, l, rin, r, nt, nl, nr);
             break;
          default:
             System.err.println ("HydrostatDemo unknown element type "

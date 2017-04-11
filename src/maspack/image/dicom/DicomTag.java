@@ -966,9 +966,6 @@ public class DicomTag {
    
    /**
     * Adds new tag information for custom tags
-    * @param tagId
-    * @param name
-    * @param vr
     */
    public static void setTagInfo(int tagId, String name, DicomElement.VR vr) {
       tagInfoMap.put(tagId, new TagInfo(tagId, vr, name));

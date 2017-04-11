@@ -89,7 +89,7 @@ public abstract class FastMarcherBase {
     * Useful for farthest point sampling, sets a heap to be updated every time a
     * distance value is assigned.
     * 
-    * @param distHeap
+    * @param distHeap distance heap
     */
    public void setDistanceHeap(IndexedBinaryHeap distHeap) {
       distanceHeap = distHeap;
@@ -150,7 +150,7 @@ public abstract class FastMarcherBase {
    /**
     * Sets the vector to be used to hold voronoi indicies
     * 
-    * @param v
+    * @param v voronoi index vector
     */
    public void setVoronoi(int[] v) {
       if (v.length != myDataSize) {

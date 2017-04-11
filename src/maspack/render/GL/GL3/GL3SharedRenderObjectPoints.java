@@ -58,8 +58,6 @@ public class GL3SharedRenderObjectPoints extends GL3SharedRenderObjectBase {
    // maybe update VBOs
    /**
     * Potentially update the internal VBOs
-    * @param gl
-    * @param robj
     * @return true if updated, false if nothing changed
     */
    public boolean maybeUpdate(GL3 gl, RenderObject robj) {

@@ -849,7 +849,7 @@ public class MeshCollider implements AbstractCollider {
     * Set the number of axes along which to take the extrema points when
     * throwing out redundant contact points. 0 = disabled.
     * 
-    * @param numaxes
+    * @param numaxes number of axes
     */
    public static void setNumextremaaxes (int numaxes) {
       numextremaaxes = numaxes;

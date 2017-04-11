@@ -110,11 +110,11 @@ public class AutoFemReader implements FemReader {
    }
    
    /**
-    * Currently only detects type by file extension.  For Abaqus use .inp, 
-    * Ansys .elem, and Tetgen .ele.  If a .node is supplied, the method
-    * will try to find a corresponding .ele or .elem file.
+    * Currently only detects type by file extension.  For Abaqus use .inp,
+    * Ansys .elem, and Tetgen .ele.  If a .node is supplied, the method will
+    * try to find a corresponding .ele or .elem file.
     * 
-    * @param fileName
+    * @param fileName name of the model file
     * @return type of the file
     */
    public static FemFileType detectType(String fileName) {

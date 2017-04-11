@@ -390,8 +390,7 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    
    /**
     * Return a primitive object
-    * @param gl
-    * @param type
+    *
     * @return primitive
     */
    public GL2Primitive getPrimitive(GL2 gl, PrimitiveType type) {
@@ -2155,8 +2154,8 @@ public class GL2Viewer extends GLViewer implements HasProperties {
     * @param h height of shot
     * @param samples number of samples to use for the
     *        multisample FBO (does antialiasing)
-    * @param file
-    * @param format
+    * @param file file to which the screen shot is to be written
+    * @param format format string
     */
    public void setupScreenShot (
       int w, int h, int samples, File file, String format) {

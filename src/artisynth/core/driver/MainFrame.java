@@ -6,6 +6,7 @@
  */
 package artisynth.core.driver;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.WindowAdapter;
@@ -17,6 +18,7 @@ import java.io.*;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -77,9 +79,8 @@ public class MainFrame extends JFrame {
    /**
     * set the error message
     * 
-    * @param msg
+    * @param msg error message
     */
-
    public void setErrorMessage (String msg) {
       myErrMsg = msg;
    }
@@ -192,6 +193,10 @@ public class MainFrame extends JFrame {
       myNavPanel.setParentScrollBar (navScrollPane);
 
       navScrollPane.setOpaque (true);
+
+      // JPanel panel = new JPanel();
+      // panel.setSize (400,200);
+      // panel.setBackground (Color.BLUE);
 
       splitPane =
          new JSplitPane (JSplitPane.HORIZONTAL_SPLIT, navScrollPane, GLPanel);
@@ -356,9 +361,8 @@ public class MainFrame extends JFrame {
    /**
     * display about model dialog
     * 
-    * @param rootModel
+    * @param rootModel root model for which dialog is to be displayed
     */
-
    public void displayAboutModel (RootModel rootModel) {
       String rootModelDescription;
       if (rootModel != null) {

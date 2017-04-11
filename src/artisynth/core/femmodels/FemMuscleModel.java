@@ -555,7 +555,7 @@ implements AuxiliaryMaterial, ExcitationComponent {
       super.recursivelyInitialize(t, level);
    }
 
-   /**
+   /*
     * preliminary methods for inverse solver
     * 
     * @see artisynth.core.mechmodels.MechSystemBase
@@ -706,7 +706,17 @@ implements AuxiliaryMaterial, ExcitationComponent {
    } 
 
    /**
-    * @return the number of fibre segments per sphere
+    * Computes the average fiber direction in the vicinity of a point based on
+    * the line segments contained in a PolylineMesh. Returns the number of
+    * supporting line segments used for the calculation. If no segments were
+    * found, the method returns 0 and the direction is undefined.
+    * 
+    * @param dir returns the normalized direction
+    * @param pos position at which direction should be computed
+    * @param rad radius of influence within which polyline mesh segments are
+    * considerd
+    * @param mesh mesh containing line segments used to determine the direction
+    * @return number of supporting line segment
     */
    public static int computeAverageFiberDirection(
       Vector3d dir, Point3d pos, double rad, PolylineMesh mesh) {
@@ -886,46 +896,6 @@ implements AuxiliaryMaterial, ExcitationComponent {
       }
       return false;
 
-   }
-
-   private boolean computeAverageFiberDirection_Old(
-      Vector3d dir, Point3d pos, double rad, PolylineMesh mesh) {
-
-      BVTree bvh = mesh.getBVTree();
-      ArrayList<BVNode> nodes = new ArrayList<BVNode>();
-      bvh.intersectSphere(nodes, pos, rad);
-      Point3d centroid = new Point3d();
-      Vector3d tmp = new Vector3d();
-      dir.setZero();
-
-      int nsegs = 0;
-      for (BVNode n : nodes) {
-         Boundable[] elements = n.getElements();
-         for (int i = 0; i < elements.length; i++) {
-            LineSegment seg = (LineSegment)elements[i];
-            seg.computeCentroid(centroid);
-            if (centroid.distance(pos) <= rad) {
-               tmp.sub(seg.myVtx1.pnt, seg.myVtx0.pnt);
-               if (tmp.norm() >= 1e-8 * rad) {
-                  tmp.normalize();
-                  double w = 1;
-                  if (dir.dot(tmp) < 0) {
-                     w = -1;
-                  }
-                  dir.scaledAdd(w, tmp);
-                  nsegs++;
-               }
-            }
-         }
-      }
-
-      if (nsegs > 0) {
-         dir.normalize();
-         return true;
-      }
-      else {
-         return false;
-      }
    }
 
    public void setBundlesActive(boolean active) {

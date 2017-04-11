@@ -14,12 +14,13 @@ import java.util.NoSuchElementException;
 
 /**
  * Set of renderables sorted in ascending order by zOrder.  
- * This is very similar to what would be a SortedSet<IsRenderable>, 
+ * This is very similar to what would be a {@code SortedSet<IsRenderable>}, 
  * except I do no checks to ensure elements are 
  * distinct according to compareTo(...) with respect to zOrder. In fact, most 
  * elements will have the same zOrder=0, in which case they are sorted 
  * according to the original order they were added to the list (stable sort).
- * Unlike List<IsRenderable>, order is not guaranteed.
+ * Unlike {@code List<IsRenderable>}, order is not guaranteed.
+ * 
  * <p>
  * The zOrder is read from render properties if the IsRenderable is an instance
  * of HasRenderProps.  Otherwise, a zOrder can be specified in 
@@ -183,7 +184,6 @@ public class SortedRenderableList implements Collection<IsRenderable> {
 
    /**
     * Sets the size to grow the array when we read capacity
-    * @param inc
     */
    public void setIncrement(int inc) {
       if (inc > 0) {
@@ -318,7 +318,6 @@ public class SortedRenderableList implements Collection<IsRenderable> {
    /**
     * Fills an array with the current sorted IsRenderables.  A new array
     * is created if '{@code a}' is too small.
-    * @param a
     */
    @SuppressWarnings("unchecked")
    public <T> T[] toArray(T[] a) {

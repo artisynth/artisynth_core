@@ -112,10 +112,10 @@ public class CollisionResponse extends CollisionComponent {
          ContactInfo cinfo = ch.myLastContactInfo;
          ArrayList<PenetrationRegion> localRegions;
          if (getBodyForCollidable (target, ch) == ch.getCollidable(0)) {
-            localRegions = cinfo.getPenetrationRegions0 ();
+            localRegions = cinfo.getRegions(0);
          }
          else {
-            localRegions = cinfo.getPenetrationRegions1 ();
+            localRegions = cinfo.getRegions(1);
          }
          if (localRegions == null) {
             // regions not available
@@ -146,10 +146,10 @@ public class CollisionResponse extends CollisionComponent {
          ContactInfo cinfo = ch.myLastContactInfo;
          ArrayList<PenetrationRegion> localRegions;
          if (getBodyForCollidable (target, ch) == ch.getCollidable(0)) {
-            localRegions = cinfo.getPenetrationRegions0 ();
+            localRegions = cinfo.getRegions(0);
          }
          else {
-            localRegions = cinfo.getPenetrationRegions1 ();
+            localRegions = cinfo.getRegions(1);
          }
          if (localRegions == null) {
             // regions not available

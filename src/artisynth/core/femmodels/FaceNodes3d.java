@@ -195,8 +195,10 @@ public class FaceNodes3d {
    }
 
    /** 
-    * Return true if this face has a node from its own mesh
-    * attached to it.
+    * Queries if this face has a node from its own mesh attached to it.
+    *
+    * @return <code>true</code> if this face is attached to a node from its own
+    * mesh
     */
    public boolean hasSelfAttachedNode() {
       // If this face is attached to, the relevant attachment will be
@@ -229,8 +231,11 @@ public class FaceNodes3d {
    }
 
    /** 
-    * Return true if at least one of this face's nodes is itself
-    * attached to a face belonging to the same mesh
+    * Queries if at least one of this face's nodes is itself attached to a face
+    * belonging to the same mesh
+    *
+    * @return <code>true</code> if a face node is attached to another node on
+    * the same mesh
     */
    public boolean isSelfAttachedToFace() {
       ModelComponent fem = null;

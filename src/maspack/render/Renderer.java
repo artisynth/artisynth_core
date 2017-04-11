@@ -1813,9 +1813,9 @@ public interface Renderer {
    
    /**
     * Draws all the primitives in the first point, line and triangles groups.
-    * @param robj
+    * @param robj render object
     */
-   public void draw(RenderObject robj);
+   public void draw (RenderObject robj);
    
    /**
     * Draws the specified group of triangles, repeated for each instance
@@ -2217,7 +2217,7 @@ public interface Renderer {
     * manages its own selection; this call should
     * be used in place of {@link #beginSelectionQuery} for such objects.
     * Selectables that manage their own selection are identified by
-    * having a value <code>numq</code> >= 0, where <code>numq</code>
+    * having a value {@code numq >= 0}, where <code>numq</code>
     * is the value returned by
     * {@link maspack.render.IsSelectable#numSelectionQueriesNeeded
     * IsSelectable#numSelectionQueriesNeeded{}}.

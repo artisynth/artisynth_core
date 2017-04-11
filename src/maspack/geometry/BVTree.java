@@ -157,7 +157,7 @@ public abstract class BVTree implements IsRenderable {
     * <p> The purpose of a margin is mainly to overcome numercial errors
     * in determining containment.
     * 
-    * @param margin
+    * @param margin extra distance margin
     * @see #getMargin
     * @see #update
     */

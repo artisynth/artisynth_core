@@ -1,3 +1,4 @@
+
 ROOT_DIR = ..
 WEBINSTALL_DIR=/cs/web/artisynth.magic.ubc.ca/docs/artisynth/artisynth/doc
 WEBLOC = $(WEBSERVER):$(WEB_DOC_DIR)
@@ -24,6 +25,9 @@ WEBDOCS = \
 # Assumes $ARTISYNTH_HOME/bin is in the PATH, so findJavaPackages can be found
 FIND_PACKAGES=findJavaPackages
 
+#JAVADOC_XOPTS = -Xdoclint:all,-missing  # For Java 8 - relax missing tag warnings
+JAVADOC_XOPTS = 
+
 javadocs: #make the javadocs
 	# clear any existing javadoc directory
 	rm -rf javadocs
@@ -31,7 +35,7 @@ javadocs: #make the javadocs
 	javadoc -classpath "$(ROOT_DIR)/classes:$(ROOT_DIR)/lib/*"\
 		-author -d javadocs -public -sourcepath $(ROOT_DIR)/src \
 		-windowtitle "Artisynth API documentation" \
-		-J-Xms500m -J-Xmx500m -encoding UTF-8 \
+		-J-Xms500m -J-Xmx500m -encoding UTF-8 $(JAVADOC_XOPTS) \
 		`$(FIND_PACKAGES) -d $(ROOT_DIR)/src | tr '\n' ' ' | tr '\r' ' '`
 
 # This command needs to be run on the webserver

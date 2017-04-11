@@ -146,13 +146,9 @@ public class DoubleInterval extends NumericInterval {
     * four values:
     * 
     * <ul>
-    * <p>
     * <li>"[]" lower and upper bounds both closed
-    * <p>
     * <li>"[)" lower bound closed, upper bound open
-    * <p>
     * <li>"(]" lower bound open, upper bound closed
-    * <p>
     * <li>"()" lower and upper bounds both open
     * </ul>
     * 
@@ -275,20 +271,15 @@ public class DoubleInterval extends NumericInterval {
     * five tokens, which specifiy the interval as follows:
     * 
     * <ul>
-    * <p>
     * <li>A '<code>[</code>' or '<code>(</code>' character, depending
     * on whether the lower bound is closed or open;
     * 
-    * <p>
     * <li>A floating point number describing the lower bound;
     * 
-    * <p>
     * <li>A '<code>,</code>' character
     * 
-    * <p>
     * <li>A floating point number described the upper bound;
     * 
-    * <p>
     * <li>A '<code>]</code>' or '<code>)</code>' character, depending
     * on whether the upper bound is closed or open;
     * 

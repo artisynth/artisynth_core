@@ -112,6 +112,9 @@ class Vector3dTest extends VectorTest {
          testScale (vr, 1.23, v1);
          testScale (vr, 1.23, vr);
 
+         testScaledAdd (vr, -7.5, v1, v2);
+         testScaledAdd (vr, 4.5, vr, vr);
+
          testSet (vr, v1);
          testSet (vr, vr);
 

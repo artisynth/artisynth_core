@@ -92,8 +92,9 @@ public class BufferObject extends GL3ResourceBase {
    
    /**
     * Retrieve a mapped buffer to the underlying Buffer data
-    * @param gl
-    * @param access either GL3.GL_WRITE_ONLY, GL3.GL_READ_ONLY, or GL3.GL_READ_WRITE;
+    * @param gl GL hanlde
+    * @param access either GL3.GL_WRITE_ONLY, GL3.GL_READ_ONLY, or
+    * GL3.GL_READ_WRITE;
     * @return the mapped buffer
     */
    public ByteBuffer mapBuffer(GL3 gl, int access) {

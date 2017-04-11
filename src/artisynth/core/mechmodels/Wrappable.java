@@ -23,7 +23,9 @@ public interface Wrappable extends PointAttachable {
     * @param pa first point of the line 
     * @param p1 second point of the line
     * @param lam0 parameter defining point p0 as defined above
-    * @param sideNrm
+    * @param sideNrm a normalized vector perpendicular to the plane defined by
+    * <code>pa</code>, <code>p1</code> and <code>pt</code>.  Can be used
+    * to help compute <code>pt</code>
     */
    public void surfaceTangent (
       Point3d pt, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm);

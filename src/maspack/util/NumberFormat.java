@@ -369,7 +369,8 @@ public class NumberFormat {
     * </dl>
     * <p>
     * The conversion character is one of:
-    * 
+    *
+    * <dl>
     * <dt> d,i
     * <dd> The integer argument is output as a signed decimal number. If a
     * precision is given, it describes the minimum number of digits that must
@@ -609,7 +610,7 @@ public class NumberFormat {
    }
 
    /**
-    * Formats a double and appends it to the end of a <code>StringBuffer<code>.
+    * Formats a double and appends it to the end of a <code>StringBuffer</code>.
     *
     * @param x value to be formatted
     * @param sbuf buffer to place the result in
@@ -820,7 +821,7 @@ public class NumberFormat {
    }
 
    /**
-    * Formats an int and appends it to the end of a <code>StringBuffer<code>.
+    * Formats an int and appends it to the end of a <code>StringBuffer</code>.
     *
     * @param x value to be formatted
     * @param sbuf buffer to place the result in
@@ -850,7 +851,7 @@ public class NumberFormat {
    }
 
    /**
-    * Formats a long and appends it to the end of a <code>StringBuffer<code>.
+    * Formats a long and appends it to the end of a <code>StringBuffer</code>.
     *
     * @param x value to be formatted
     * @param sbuf buffer to place the result in

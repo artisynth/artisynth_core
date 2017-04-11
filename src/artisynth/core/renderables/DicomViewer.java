@@ -86,8 +86,9 @@ public class DicomViewer extends RenderableComponentBase {
 
    /**
     * Creates a new viewer widget, with supplied name and DICOM image
-    * @param name
-    * @param image
+    * 
+    * @param name widget name
+    * @param image DICOM image data
     */
    public DicomViewer(String name, DicomImage image) {
       super();
@@ -97,7 +98,8 @@ public class DicomViewer extends RenderableComponentBase {
    /**
     * Creates a new viewer widget, with supplied DICOM image.  The
     * name of the component becomes the image name
-    * @param image
+    * 
+    * @param image DICOM image data
     */
    public DicomViewer(DicomImage image) {
       this(image.getTitle(), image);
@@ -296,7 +298,8 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets the normalized slice coordinates to display
-    * @param coords
+    * 
+    * @param coords normalized slice coordinates
     * @see DicomViewer#setSliceCoordinates(double, double, double)
     */
    public void setSliceCoordinates(Vector3d coords) {
@@ -392,7 +395,8 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets a 3D transform to apply to the image
-    * @param trans
+    * 
+    * @param trans 3D transform
     */
    public void setTransform(AffineTransform3dBase trans) {
       myTransform.set(trans);
@@ -400,7 +404,8 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets a 3D transform to apply to the image.  Required for property.
-    * @param trans
+    * 
+    * @param trans 3D transform
     */
    public void setTransform(AffineTransform3d trans) {
       myTransform.set(trans);
@@ -533,7 +538,8 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets the current normalized 'x' coordinate
-    * @param x
+    *
+    * @param x normalized 'x' coordinate
     */
    public void setX(double x) {
       texture.setX (x);
@@ -550,7 +556,7 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets the current normalized 'y' coordinate
-    * @param y
+    * @param y normalized 'y' coordinate
     */
    public void setY(double y) {
       texture.setY (y);
@@ -566,7 +572,7 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets the current normalized 'z' coordinate
-    * @param z
+    * @param z normalized 'z' coordinate
     */
    public void setZ(double z) {
       texture.setZ (z);
@@ -582,7 +588,8 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets the current time index
-    * @param idx
+    * 
+    * @param idx time index
     */
    public void setTimeIndex(int idx) {
       if (idx < 0) {
@@ -608,11 +615,12 @@ public class DicomViewer extends RenderableComponentBase {
    }
    
    /**
-    * Sets whether or not to draw the YZ plane (at the current 'x' coordinate)
-    * @param set
+    * Sets whether or not to draw the YZ plane (at the current 'x' coordinate
+    * 
+    * @param enable if <code>true</code>, enables drawing of YZ plane
     */
-   public void setDrawYZ(boolean set) {
-      drawSlice[YZ_IDX] = set;
+   public void setDrawYZ(boolean enable) {
+      drawSlice[YZ_IDX] = enable;
    }
    
    /**
@@ -624,10 +632,11 @@ public class DicomViewer extends RenderableComponentBase {
 
    /**
     * Sets whether or not to draw the XZ plane (at the current 'y' coordinate)
-    * @param set
+    * 
+    * @param enable if <code>true</code>, enables drawing of XZ plane
     */
-   public void setDrawXZ(boolean set) {
-      drawSlice[XZ_IDX] = set;
+   public void setDrawXZ(boolean enable) {
+      drawSlice[XZ_IDX] = enable;
    }
    
    /**
@@ -639,10 +648,10 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets whether or not to draw the XY plane (at the current 'z' coordinate)
-    * @param set
+    * @param enable if <code>true</code>, enables drawing of XY plane
     */
-   public void setDrawXY(boolean set) {
-      drawSlice[XY_IDX] = set;
+   public void setDrawXY(boolean enable) {
+      drawSlice[XY_IDX] = enable;
    }
    
    /**
@@ -654,9 +663,9 @@ public class DicomViewer extends RenderableComponentBase {
    
    /**
     * Sets whether or not to draw the 3D bounding box outline
-    * @param set
+    * @param enable if <code>true</code>, enables drawing of the 3D bounding box
     */
-   public void setDrawBox(boolean set) {
-      drawBox = set;
+   public void setDrawBox(boolean enable) {
+      drawBox = enable;
    }
 }

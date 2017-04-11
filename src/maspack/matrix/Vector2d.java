@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -115,12 +116,13 @@ public class Vector2d extends VectorBase implements Clonable {
    }
 
    /**
-    * Copies the elements of this vector into an array of doubles.
-    * 
-    * @param values
-    * array into which values are copied
+    * {@inheritDoc}
     */
    public void get (double[] values) {
+      if (values.length < 2) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have length >= 2");
+      }
       values[0] = x;
       values[1] = y;
    }
@@ -133,7 +135,7 @@ public class Vector2d extends VectorBase implements Clonable {
     * vector into which values are to be copied
     * @param idx
     * starting index for copying values
-    * @throws ArrayIndexOfOutBoundsException
+    * @throws ArrayIndexOutOfBoundsException
     * if idx specifies a region within v1 that exceeds its bounds
     */
    public void get (VectorNd v1, int idx) {
@@ -172,12 +174,17 @@ public class Vector2d extends VectorBase implements Clonable {
    }
 
    /**
-    * Sets the elements of this vector from an array of doubles.
+    * Sets the elements of this vector from an array of doubles. The array
+    * must have a length of at least 2.
     * 
     * @param values
     * array from which values are copied
     */
    public void set (double[] values) {
+      if (values.length < 2) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have a length of at least 2");
+      }      
       x = values[0];
       y = values[1];
    }
@@ -201,7 +208,7 @@ public class Vector2d extends VectorBase implements Clonable {
     * vector from which new values are copied
     * @param idx
     * starting index for new values
-    * @throws ArrayIndexOfOutBoundsException
+    * @throws ArrayIndexOutOfBoundsException
     * if idx specifies a region within v1 that exceeds its bounds
     */
    public void set (VectorNd v1, int idx) {
@@ -219,10 +226,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void add (Vector2d v1, Vector2d v2) {
+   public Vector2d add (Vector2d v1, Vector2d v2) {
       x = v1.x + v2.x;
       y = v1.y + v2.y;
+      return this;
    }
 
    /**
@@ -230,10 +239,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     */
-   public void add (Vector2d v1) {
+   public Vector2d add (Vector2d v1) {
       x += v1.x;
       y += v1.y;
+      return this;
    }
 
    /**
@@ -243,10 +254,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * x increment
     * @param dy
     * y increment
+    * @return this vector
     */
-   public void add (double dx, double dy) {
+   public Vector2d add (double dx, double dy) {
       x += dx;
       y += dy;
+      return this;
    }
 
    /**
@@ -256,10 +269,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void sub (Vector2d v1, Vector2d v2) {
+   public Vector2d sub (Vector2d v1, Vector2d v2) {
       x = v1.x - v2.x;
       y = v1.y - v2.y;
+      return this;
    }
 
    /**
@@ -267,10 +282,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     */
-   public void sub (Vector2d v1) {
+   public Vector2d sub (Vector2d v1) {
       x -= v1.x;
       y -= v1.y;
+      return this;
    }
 
    /**
@@ -278,18 +295,22 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param v1
     * vector to negate
+    * @return this vector
     */
-   public void negate (Vector2d v1) {
+   public Vector2d negate (Vector2d v1) {
       x = -v1.x;
       y = -v1.y;
+      return this;
    }
 
    /**
     * Negates this vector in place.
+    * @return this vector
     */
-   public void negate() {
+   public Vector2d negate() {
       x = -x;
       y = -y;
+      return this;
    }
 
    /**
@@ -297,10 +318,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param s
     * scaling factor
+    * @return this vector
     */
-   public void scale (double s) {
+   public Vector2d scale (double s) {
       x = s * x;
       y = s * y;
+      return this;
    }
 
    /**
@@ -311,19 +334,23 @@ public class Vector2d extends VectorBase implements Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled
+    * @return this vector
     */
-   public void scale (double s, Vector2d v1) {
+   public Vector2d scale (double s, Vector2d v1) {
       x = s * v1.x;
       y = s * v1.y;
+      return this;
    }
 
-   /*
+   /**
     * Rotates the vector
+    * @return this vector
     */
-   public void rotate (double cosine, double sine, Vector2d a) {
+   public Vector2d rotate (double cosine, double sine, Vector2d a) {
       double xn =  cosine * a.x - sine * a.y;
       y = sine * a.x + cosine * a.y;
       x = xn;
+      return this;
    }
 
    /**
@@ -378,10 +405,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled and added
+    * @return this vector
     */
-   public void scaledAdd (double s, Vector2d v1) {
+   public Vector2d scaledAdd (double s, Vector2d v1) {
       x += s * v1.x;
       y += s * v1.y;
+      return this;
    }
 
    /**
@@ -393,10 +422,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * vector to be scaled
     * @param v2
     * vector to be added
+    * @return this vector
     */
-   public void scaledAdd (double s, Vector2d v1, Vector2d v2) {
+   public Vector2d scaledAdd (double s, Vector2d v1, Vector2d v2) {
       x = s * v1.x + v2.x;
       y = s * v1.y + v2.y;
+      return this;
    }
 
    /**
@@ -411,10 +442,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * right-hand scaling factor
     * @param v2
     * right-hand vector
+    * @return this vector
     */
-   public void combine (double s1, Vector2d v1, double s2, Vector2d v2) {
+   public Vector2d combine (double s1, Vector2d v1, double s2, Vector2d v2) {
       x = s1 * v1.x + s2 * v2.x;
       y = s1 * v1.y + s2 * v2.y;
+      return this;
    }
 
    /**
@@ -549,8 +582,9 @@ public class Vector2d extends VectorBase implements Clonable {
 
    /**
     * Normalizes this vector in place.
+    * @return this vector
     */
-   public void normalize() {
+   public Vector2d normalize() {
       double lenSqr = x * x + y * y;
       double err = lenSqr - 1;
       if (err > (2 * DOUBLE_PREC) || err < -(2 * DOUBLE_PREC)) {
@@ -558,6 +592,7 @@ public class Vector2d extends VectorBase implements Clonable {
          x /= len;
          y /= len;
       }
+      return this;
    }
 
    /**
@@ -566,8 +601,9 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param v1
     * vector to normalize
+    * @return this vector
     */
-   public void normalize (Vector2d v1) {
+   public Vector2d normalize (Vector2d v1) {
       double lenSqr = v1.x * v1.x + v1.y * v1.y;
       double err = lenSqr - 1;
       if (err > (2 * DOUBLE_PREC) || err < -(2 * DOUBLE_PREC)) {
@@ -579,6 +615,7 @@ public class Vector2d extends VectorBase implements Clonable {
          x = v1.x;
          y = v1.y;
       }
+      return this;
    }
 
    /**
@@ -587,11 +624,13 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param v1
     * perpendicular reference vector
+    * @return this vector
     */
-   public void perpendicular (Vector2d v1) {
+   public Vector2d perpendicular (Vector2d v1) {
       double xn = -v1.y;
       y = v1.x;
       x = xn;
+      return this;
    }
 
    /**
@@ -651,10 +690,12 @@ public class Vector2d extends VectorBase implements Clonable {
 
    /**
     * Sets the elements of this vector to their absolute values.
+    * @return this vector
     */
-   public void absolute() {
+   public Vector2d absolute() {
       x = Math.abs (x);
       y = Math.abs (y);
+      return this;
    }
 
    /**
@@ -662,10 +703,12 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param v1
     * vector to take the absolute value of
+    * @return this vector
     */
-   public void absolute (Vector2d v1) {
+   public Vector2d absolute (Vector2d v1) {
       x = Math.abs (v1.x);
       y = Math.abs (v1.y);
+      return this;
    }
 
    /**
@@ -925,14 +968,16 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     */
-   public void max (Vector2d v) {
+   public Vector2d max (Vector2d v) {
       if (v.x > x) {
          x = v.x;
       }
       if (v.y > y) {
          y = v.y;
       }
+      return this;
    }
 
    /**
@@ -941,14 +986,16 @@ public class Vector2d extends VectorBase implements Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     */
-   public void min (Vector2d v) {
+   public Vector2d min (Vector2d v) {
       if (v.x < x) {
          x = v.x;
       }
       if (v.y < y) {
          y = v.y;
       }
+      return this;
    }
 
    public Vector2d clone() {

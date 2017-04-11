@@ -51,7 +51,7 @@ ifeq ($(SYSTEM),Linux)
 	   NATIVE_DIR = Linux
 	endif
 	TETGEN_TARGET = libTetgenJNI.so.$(TETGEN_VERSION)
-	ROBUST_TARGET = libRobustPreds.so.1.0
+	ROBUST_TARGET = libRobustPreds.so.1.1
 	ROBUST_TARGET_OLD = libRobustPreds.so.0.0
 	GETCW_TARGET = libGetCW.so
 	SHEWCHUK_DEF = -DLINUX
@@ -80,7 +80,7 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
         endif
 	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32"
 	TETGEN_TARGET = TetgenJNI.$(TETGEN_VERSION).dll
-	ROBUST_TARGET = RobustPreds.1.0.dll
+	ROBUST_TARGET = RobustPreds.1.1.dll
 	ROBUST_TARGET_OLD = RobustPreds.0.0.dll
 	SHEWCHUK_DEF = -DCPU86
 	COLON = :
@@ -126,15 +126,12 @@ else ifeq ($(SYSTEM),Darwin)
 	X_FLAGS = -fPIC -DDARWIN -DAMD_64
 	CC_FLAGS += -fpermissive
 	TETGEN_TARGET = libTetgenJNI.$(TETGEN_VERSION).dylib
-	ROBUST_TARGET = libRobustPreds.1.0.dylib
+	ROBUST_TARGET = libRobustPreds.1.1.dylib
 	ROBUST_TARGET_OLD = libRobustPreds.0.0.dylib
 	LIB_FLAGS = -bundle -framework JavaVM
 endif
 
 LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
-LIB_TARGETS = \
-	$(LIB_TARGET_DIR)/$(TETGEN_TARGET) \
-	$(LIB_TARGET_DIR)/$(ROBUST_TARGET)
 
 C_FLAGS += $(X_FLAGS)
 CC_FLAGS += $(X_FLAGS)
@@ -218,6 +215,11 @@ $(LIB_TARGET_DIR)/$(ROBUST_TARGET): RobustPredsJNI.o geoPred.o geoPredShewchuck.
 	$(C_COMP) $(C_FLAGS) $(LIB_FLAGS) -o $@ $^ -lm
 #$(LIB_TARGET_DIR)/$(GETCW_TARGET): getCWJNI.o
 #	$(C_COMP) $(C_FLAGS) $(LIB_FLAGS) -o $@ $^ -lm
+
+LIB_ROBUST_TARGET = $(LIB_TARGET_DIR)/$(ROBUST_TARGET)
+LIB_TETGEN_TARGET = $(LIB_TARGET_DIR)/$(TETGEN_TARGET)
+
+LIB_TARGETS = $(LIB_ROBUST_TARGET) # $(LIB_TETGEN_TARGET)
 
 libs:	$(LIB_TARGETS)
 #$(LIB_TARGET_DIR)/$(GETCW_TARGET)

@@ -14,7 +14,9 @@ import java.util.Map;
 import maspack.collision.AbstractCollider;
 import maspack.collision.ContactInfo;
 import maspack.collision.MeshCollider;
-import maspack.collision.SurfaceMeshCollider;
+import maspack.collision.SurfaceMeshIntersector;
+import maspack.collision.SurfaceMeshIntersector.RegionType;
+import maspack.collision.SignedDistanceCollider;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
@@ -35,6 +37,8 @@ import maspack.util.DataBuffer;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.FunctionTimer;
+import artisynth.core.mechmodels.CollisionBehavior.Method;
 import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
@@ -150,6 +154,11 @@ public class CollisionManager extends RenderableCompositeBase
    boolean myHandlerTableValid = false;
 
    AbstractCollider myCollider = null;
+
+   SurfaceMeshIntersector myAjlIntersector = null;
+   SignedDistanceCollider mySDCollider = null;
+   MeshCollider myTriTriCollider = null;
+
    double myMaxpen; // accumulates maximum penetration 
 
    /**
@@ -172,11 +181,21 @@ public class CollisionManager extends RenderableCompositeBase
        * penetration regions) between the meshes.
        */
       AJL_CONTOUR,
-      // SIGNED_DISTANCE
-   }
+
+      /**
+       * A collider based on using a signed-distance function to determine
+       * interpenetration contacts between bodies. This method can
+       * be fast, but provides only limited contact information,
+       * particularly compared to <code>AJL_CONTOUR</code>, supports
+       * only contacts based on vertex penetration, and at least
+       * one of the colliding bodies must be non-deformable.
+       */
+      SIGNED_DISTANCE
+   };
 
    static ColliderType myDefaultColliderType = ColliderType.TRI_INTERSECTION;
    ColliderType myColliderType = myDefaultColliderType;
+   PropertyMode myColliderTypeMode = PropertyMode.Inherited;
 
    private static CollidablePair RIGID_RIGID =
       new CollidablePair (Collidable.Rigid, Collidable.Rigid);
@@ -349,9 +368,9 @@ public class CollisionManager extends RenderableCompositeBase
          "colorMap", "color map for penetration plotting", 
          defaultColorMap, "CE");
 
-      myProps.add (
+      myProps.addInheritable (
          "colliderType", "type of collider to use for collisions",
-         ColliderType.TRI_INTERSECTION);
+         myDefaultColliderType);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -893,16 +912,44 @@ public class CollisionManager extends RenderableCompositeBase
       myForceBehavior = fb;
    }
 
-   public void setColliderType (ColliderType type) {
-      myColliderType = type;
-      // changing the collider type will invalidate previous state information
-      notifyParentOfChange (new DynamicActivityChangeEvent (this));
-   }
-   
+   /** 
+    * Returns the collider type to be used for determining.
+    * 
+    * @return collider type
+    */
    public ColliderType getColliderType() {
       return myColliderType;
    }
-   
+
+   /** 
+    * Set the collider type to be used for determining collisions.
+    * 
+    * @param ctype type new collider type
+    */
+   public void setColliderType (ColliderType ctype) {
+      myColliderType = ctype;
+      myColliderTypeMode =
+         PropertyUtils.propagateValue (
+            this, "colliderType", myColliderType, myColliderTypeMode);      
+      // changing the collider type will invalidate previous state information
+      notifyParentOfChange (new DynamicActivityChangeEvent (this));
+   }
+
+   public void setColliderTypeMode (PropertyMode mode) {
+      ColliderType prev = myColliderType;
+      myColliderTypeMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "colliderType", myColliderTypeMode, mode);
+      if (myColliderType != prev) {
+         // changing the collider type will invalidate previous state information
+         notifyParentOfChange (new DynamicActivityChangeEvent (this));
+      }
+   }
+
+   public PropertyMode getColliderTypeMode() {
+      return myColliderTypeMode;
+   }
+
    // end of property accessors
 
    // behavior and response accessors
@@ -1476,26 +1523,26 @@ public class CollisionManager extends RenderableCompositeBase
       recursivelyGetTopCollidables (list, myMechModel);
    }      
 
-   void updateCollider() {
-      switch (myColliderType) {
-         case TRI_INTERSECTION: {
-            if (!(myCollider instanceof MeshCollider)) {
-               myCollider = new MeshCollider();
-            }  
-            break;
-         }
-         case AJL_CONTOUR: {
-            if (!(myCollider instanceof SurfaceMeshCollider)) {
-               myCollider = new SurfaceMeshCollider();
-            }
-            break;
-         }
-         default: {
-            throw new InternalErrorException (
-               "Unimplemented collider type " + myColliderType);
-         }
-      }
-   }
+   // void updateCollider() {
+   //    switch (myColliderType) {
+   //       case TRI_INTERSECTION: {
+   //          if (!(myCollider instanceof MeshCollider)) {
+   //             myCollider = new MeshCollider();
+   //          }  
+   //          break;
+   //       }
+   //       case AJL_CONTOUR: {
+   //          if (!(myCollider instanceof SurfaceMeshCollider)) {
+   //             myCollider = new SurfaceMeshCollider();
+   //          }
+   //          break;
+   //       }
+   //       default: {
+   //          throw new InternalErrorException (
+   //             "Unimplemented collider type " + myColliderType);
+   //       }
+   //    }
+   // }
    
    void updateBehaviorStructures() {
       if (!myBehaviorStructuresValid) {
@@ -1971,7 +2018,68 @@ public class CollisionManager extends RenderableCompositeBase
          cinfo = new ContactInfo (mesh0, mesh1);
       }
       else {
-         cinfo = myCollider.getContacts (mesh0, mesh1);
+         ColliderType colliderType = behav.getColliderType();
+         if (colliderType == ColliderType.SIGNED_DISTANCE) {
+            // if using signed distance collider, at least one collidable
+            // must be rigid and support signed distance grids
+            if ((c0.isDeformable() || !c0.hasDistanceGrid()) &&
+                (c1.isDeformable() || !c1.hasDistanceGrid())) {
+               colliderType = ColliderType.AJL_CONTOUR;
+            }
+         }
+         //FunctionTimer timer = new FunctionTimer();
+         //timer.start();
+         switch (colliderType) {
+            case AJL_CONTOUR: {
+               if (myAjlIntersector == null) {
+                  myAjlIntersector = new SurfaceMeshIntersector();
+               }
+               // types of regions that we need to compute for mesh0 and mesh1
+               RegionType regions0 = RegionType.INSIDE;
+               RegionType regions1 = RegionType.INSIDE;
+               Method method = behav.getMethod();
+               if (method != Method.VERTEX_EDGE_PENETRATION &&
+                   method != Method.CONTOUR_REGION &&
+                   behav.getBodyFaceContact() == false) {
+                  // vertex penetration method may not require computing
+                  // regions for both meshes
+                  if (CollisionHandler.isRigid (c0) && 
+                      !CollisionHandler.isRigid (c1)) {
+                     regions0 = RegionType.NONE;
+                  }
+                  else if (CollisionHandler.isRigid (c1) && 
+                      !CollisionHandler.isRigid (c0)) {
+                     regions1 = RegionType.NONE;
+                  }
+               }
+               cinfo = myAjlIntersector.findContoursAndRegions (
+                  mesh0, regions0, mesh1, regions1);
+               break;
+            }
+            case TRI_INTERSECTION: {
+               if (myTriTriCollider == null) {
+                  myTriTriCollider = new MeshCollider();
+               }
+               cinfo = myTriTriCollider.getContacts (mesh0, mesh1);
+               break;
+            }
+            case SIGNED_DISTANCE: {
+               if (mySDCollider == null) {
+                  mySDCollider = new SignedDistanceCollider();
+               }
+               cinfo = mySDCollider.getContacts (
+                  mesh0, c0.getDistanceGrid(),
+                  mesh1, c1.getDistanceGrid());
+               break;
+            }
+            default: {
+               throw new UnsupportedOperationException (
+                  "Unimplemented collider type " + colliderType);
+            }
+         }
+         //timer.stop();
+         //System.out.println ("time=" + timer.getTimeUsec());
+         //cinfo = myCollider.getContacts (mesh0, mesh1);
       }
       if (cinfo != null) {
          addOrUpdateHandler (cinfo, c0, c1, behav);
@@ -2260,7 +2368,7 @@ public class CollisionManager extends RenderableCompositeBase
       }        
       Collections.sort (bilaterals, new DescendingDistance());
       int[] dofs = new int[myMechModel.numActiveComponents()];
-      myMechModel.getDynamicSizes (dofs);
+      myMechModel.getDynamicDOFs (dofs);
 
       boolean[] marked = new boolean[myMechModel.numActiveComponents()];
 
@@ -2298,7 +2406,7 @@ public class CollisionManager extends RenderableCompositeBase
 
       boolean testMode = ((flags & CONTACT_TEST_MODE) != 0);
 
-      updateCollider();
+      //updateCollider();
       updateBehaviorStructures();
       updateResponseStructures();
       updateHandlerTable();
@@ -2719,6 +2827,20 @@ OK    collider was removed from CollisionHandler, but that means we need
       CollisionManager when calling updateConstraints(). How to handle this? Do
       we want to move constraint management back into CollisionManager?
 
+---------------------------------------------------------------------------
+
+Adding SignedDistanceCollider
+
+DONE  Make sure that normal and position in the SD cpp are in world coordinates
+
+DONE  Modify collision handling for SDC so that ContactPoints on the
+      rigid body don't need vertices      
+
+DONE  Make sure that SDC implies VERTEX_PENETRATION
+
+DONE  add ability to restrict region calculations in getContacts()
+
+      add ability to specify signed distance grid size to mesh
 
     */
 

@@ -9,10 +9,9 @@ package maspack.geometry;
 import java.util.LinkedList;
 
 import maspack.matrix.Vector3d;
-import maspack.render.IsRenderable;
+import maspack.matrix.Vector3i;
 import maspack.render.IsSelectable;
 import maspack.render.Renderer;
-import maspack.render.Renderer.DrawMode;
 import maspack.render.RenderList;
 
 // This is a class to make grid points renderable and selectable.
@@ -20,7 +19,7 @@ import maspack.render.RenderList;
 
 public class SignedDistanceGridCell implements IsSelectable {
 
-   private int vertex[] = new int[3];
+   private Vector3i pidxs = new Vector3i();
    private double distance;
    private int myIndex;
    private SignedDistanceGrid myGrid;
@@ -34,22 +33,15 @@ public class SignedDistanceGridCell implements IsSelectable {
   
    public SignedDistanceGridCell (int idx, SignedDistanceGrid grid) {
       myGrid = grid;
-      myIndex = idx;
-      int[] myGridSize = myGrid.getGridSize();
-      vertex[2] = 
-         (myIndex / (myGridSize[0] * myGridSize[1]));
-      vertex[1] = 
-         (myIndex - vertex[2] * myGridSize[0] * myGridSize[1]) / myGridSize[0];
-      vertex[0] = 
-         (myIndex % (myGridSize[0]));
+      setIndex (idx);
    }
    
    public void setVertex (int x, int y, int z) {
-      int[] myGridSize = myGrid.getGridSize();
-      vertex[0] = x;
-      vertex[1] = y;
-      vertex[2] = z;
-      myIndex = x + y * myGridSize[0] + z * myGridSize[0] * myGridSize[1];
+      Vector3i res = myGrid.getResolution();
+      pidxs.x = x;
+      pidxs.y = y;
+      pidxs.z = z;
+      myIndex = x + y*(res.x+1) + z*(res.x+1)*(res.y+1);
    }
    
    public void setDistance (double d) {
@@ -62,13 +54,7 @@ public class SignedDistanceGridCell implements IsSelectable {
    
    public void setIndex (int index) {
       myIndex = index;
-      int[] myGridSize = myGrid.getGridSize();
-      vertex[2] = 
-         (myIndex / (myGridSize[0] * myGridSize[1]));
-      vertex[1] = 
-         (myIndex - vertex[2] * myGridSize[0] * myGridSize[1]) / myGridSize[0];
-      vertex[0] = 
-         (myIndex % (myGridSize[0]));
+      myGrid.vertexToXyzIndices (pidxs, index);
    }
    
    public void prerender (RenderList list) {
@@ -76,25 +62,24 @@ public class SignedDistanceGridCell implements IsSelectable {
    
    public void render (Renderer renderer, int flags) {
       
-      double meshVertex[] = new double[3];
-      myGrid.getMeshCoordinatesFromGrid (
-         vertex[0], vertex[1], vertex[2], meshVertex);
+      Vector3d vertexCoords = new Vector3d();
+      myGrid.getVertexCoords (vertexCoords, pidxs);
       
       renderer.setPointSize (3);
       renderer.setColor (pointColour);
-      renderer.drawPoint (meshVertex[0], meshVertex[1], meshVertex[2]);
+      renderer.drawPoint (vertexCoords.x, vertexCoords.y, vertexCoords.z);
 
       Vector3d normal = new Vector3d();
-      normal = myGrid.getNormal (vertex[0], vertex[1], vertex[2]);
+      normal = myGrid.getVertexNormal (pidxs.x, pidxs.y, pidxs.z);
       
       renderer.setLineWidth (1);  // Render the normal.
       renderer.drawLine (
-         meshVertex[0],
-         meshVertex[1],
-         meshVertex[2],
-         meshVertex[0]+normal.x*0.1,
-         meshVertex[1]+normal.y*0.1,
-         meshVertex[2]+normal.z*0.1);
+         vertexCoords.x,
+         vertexCoords.y,
+         vertexCoords.z,
+         vertexCoords.x+normal.x*0.1,
+         vertexCoords.y+normal.y*0.1,
+         vertexCoords.z+normal.z*0.1);
    }
    
 //   public void handleSelection (LinkedList<IsRenderable> pathlist, int[] namestack, int idx) {
@@ -123,9 +108,9 @@ public class SignedDistanceGridCell implements IsSelectable {
    public void selectPoint (boolean selected) {
       isSelected = selected;
    }
-   
-   public int[] getPoint() {
-      return vertex;
+    
+   public Vector3i getPointIndices() {
+      return pidxs;
    }
    
    public int getRenderHints() {

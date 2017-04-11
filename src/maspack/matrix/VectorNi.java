@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -18,8 +19,6 @@ import maspack.util.InternalErrorException;
 import maspack.util.Clonable;
 import maspack.util.NumberFormat;
 
-
-
 /**
  * Implements a general vector of integers. We have provided integer
  * implementations of all methods of VectorNd for which it makes sense to do
@@ -29,7 +28,7 @@ import maspack.util.NumberFormat;
  * #setSize setSize}, or implicitly through operations that require the vector
  * size to be modified.
  */
-public class VectorNi implements java.io.Serializable, Clonable {
+public class VectorNi extends VectoriBase implements java.io.Serializable {
    private static final long serialVersionUID = 1L;
    protected static NumberFormat myDefaultFmt = new NumberFormat ("%d");
 
@@ -141,65 +140,27 @@ public class VectorNi implements java.io.Serializable, Clonable {
    /**
     * Creates a new VectorNi from an existing one.
     * 
-    * @param vec Vector to be copied
+    * @param vec VectorNi to be copied
     */
    public VectorNi (VectorNi vec) {
       set (vec);
    }
 
-   // public VectorNi (VectorNi v1)
-   // {
-   // resetSize (v1.size);
-   // set (v1);
-   // }
+   /**
+    * Creates a new VectorNi from an existing Vectori.
+    * 
+    * @param vec Vectori to be copied
+    */
+   public VectorNi (Vectori vec) {
+      set (vec);
+   }
 
    /**
-    * Returns the size of this vector.
-    * 
-    * @return size of the vector
+    * {@inheritDoc}
     */
+   @Override
    public int size() {
       return size;
-   }
-
-   /**
-    * Returns true if this vector is of fixed size. In the present
-    * implementation, VectorNi objects always have variable size, and so this
-    * routine always returns false.
-    * 
-    * @return true if this vector is of fixed size
-    * @see VectorNi#setSize
-    */
-   public boolean isFixedSize() {
-      return false;
-   }
-
-   /**
-    * Sets the size of this vector. This operation may enlarge the internal
-    * buffer associated with this vector, invalidating buffers previously
-    * returned by {@link #getBuffer getBuffer}.
-    * 
-    * <p>
-    * If a vector is resized, then previous element values which are still
-    * within the new vector dimension are preserved. Other (new) element values
-    * are undefined.
-    * 
-    * @param newSize
-    * new vector size
-    * @throws ImproperSizeException
-    * if this vector has an explicit internal buffer and that buffer is too
-    * small for the requested size
-    */
-   public void setSize (int newSize) throws ImproperSizeException {
-      if (newSize < 0) {
-         throw new ImproperSizeException ("Negative size");
-      }
-      else if (buf.length >= newSize) {
-         size = newSize;
-      }
-      else {
-         resetSizeAndCopy (newSize, newSize);
-      }
    }
 
    public int adjustSize (int inc) throws ImproperSizeException {
@@ -244,31 +205,6 @@ public class VectorNi implements java.io.Serializable, Clonable {
          }
       }
    }
-
-//   /**
-//    * Sets the size of this vector. This operation is identical to
-//    * {@link #setSize setSize}, <i>except</i> that the internal buffer may be
-//    * grown larger than required, so that further size increases can be done
-//    * quickly.
-//    * 
-//    * <p>
-//    * If the vector is enlarged, then previous element values which are still
-//    * within the new vector dimension are preserved. Other (new) element values
-//    * are undefined.
-//    * 
-//    * @param newSize
-//    * new vector size
-//    * @throws ImproperSizeException
-//    * if this vector has an explicit internal buffer and that buffer is too
-//    * small for the requested size
-//    */
-//   public void setSizeAndCapacity (int newSize) throws ImproperSizeException {
-//      if (newSize < 0) {
-//         throw new ImproperSizeException ("Negative size");
-//      }
-//      int minCap = Math.max (3 * newSize / 2, newSize);
-//      resetSizeAndCopy (newSize, minCap);
-//   }
 
    void resetSizeAndCopy (int newSize, int minCap) throws ImproperSizeException {
       if (buf.length < minCap) {
@@ -342,23 +278,22 @@ public class VectorNi implements java.io.Serializable, Clonable {
    }
 
    /**
-    * Gets a single element of this vector.
-    * 
-    * @param i
-    * element index
-    * @return element value
+    * {@inheritDoc}
     */
+   @Override
    public int get (int i) {
       return buf[i];
    }
 
    /**
-    * Copies the elements of this vector into an array of ints.
-    * 
-    * @param values
-    * array into which values are copied
+    * {@inheritDoc}
     */
+   @Override
    public void get (int[] values) {
+      if (values.length < size) {
+         throw new IllegalArgumentException (
+            "argument 'values' must have length >= "+size);
+      }         
       for (int i = 0; i < size; i++) {
          values[i] = buf[i];
       }
@@ -388,6 +323,10 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * @param value
     * element value
     */
+   /**
+    * {@inheritDoc}
+    */
+   @Override
    public void set (int i, int value) {
       buf[i] = value;
    }
@@ -430,12 +369,13 @@ public class VectorNi implements java.io.Serializable, Clonable {
    }
 
    /**
-    * Sets the elements of this vector from an array of ints.
-    * 
-    * @param values
-    * array from which values are copied
+    * {@inheritDoc}
     */
+   @Override
    public void set (int[] values) {
+      if (values.length != size) {
+         resetSize (values.length);
+      }
       for (int i = 0; i < size; i++) {
          buf[i] = values[i];
       }
@@ -462,8 +402,6 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * 
     * @param v1
     * vector whose size and values are copied
-    * @throws ImproperSizeException
-    * if this vector needs resizing but is of fixed size
     */
    public void set (VectorNi v1) {
       if (size != v1.size) {
@@ -503,11 +441,12 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 and v2 have different sizes, or if this vector needs resizing but is
     * of fixed size
     */
-   public void add (VectorNi v1, VectorNi v2) throws ImproperSizeException {
+   public VectorNi add (VectorNi v1, VectorNi v2) throws ImproperSizeException {
       if (v1.size != v2.size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
@@ -517,6 +456,7 @@ public class VectorNi implements java.io.Serializable, Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = v1.buf[i] + v2.buf[i];
       }
+      return this;
    }
 
    /**
@@ -524,16 +464,18 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
-    * if this vector and v1 have different sizes
+    * if v1 has a size less than this vector
     */
-   public void add (VectorNi v1) throws ImproperSizeException {
-      if (v1.size != size) {
+   public VectorNi add (VectorNi v1) throws ImproperSizeException {
+      if (v1.size < size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
       for (int i = 0; i < size; i++) {
          buf[i] += v1.buf[i];
       }
+      return this;
    }
 
    /**
@@ -556,11 +498,12 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * left-hand vector
     * @param v2
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
     * if v1 and v2 have different sizes, or if this vector needs resizing but is
     * of fixed size
     */
-   public void sub (VectorNi v1, VectorNi v2) throws ImproperSizeException {
+   public VectorNi sub (VectorNi v1, VectorNi v2) throws ImproperSizeException {
       if (v1.size != v2.size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
@@ -570,6 +513,7 @@ public class VectorNi implements java.io.Serializable, Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = v1.buf[i] - v2.buf[i];
       }
+      return this;
    }
 
    /**
@@ -577,16 +521,18 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * 
     * @param v1
     * right-hand vector
+    * @return this vector
     * @throws ImproperSizeException
-    * if this vector and v1 have different sizes
+    * if v1 has a size less than this vector
     */
-   public void sub (VectorNi v1) throws ImproperSizeException {
-      if (v1.size != size) {
+   public VectorNi sub (VectorNi v1) throws ImproperSizeException {
+      if (v1.size < size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
       for (int i = 0; i < size; i++) {
          buf[i] -= v1.buf[i];
       }
+      return this;
    }
 
    /**
@@ -595,25 +541,28 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * 
     * @param v1
     * vector to negate
-    * @throws ImproperSizeException
-    * if this vector needs resizing but is of fixed size
+    * @return this vector
     */
-   public void negate (VectorNi v1) {
+   public VectorNi negate (VectorNi v1) {
       if (v1.size != size) {
          resetSize (v1.size);
       }
       for (int i = 0; i < size; i++) {
          buf[i] = -v1.buf[i];
       }
+      return this;
    }
 
    /**
     * Negates this vector in place.
+    * 
+    * @return this vector
     */
-   public void negate() {
+   public VectorNi negate() {
       for (int i = 0; i < size; i++) {
          buf[i] = -buf[i];
       }
+      return this;
    }
 
    /**
@@ -621,11 +570,13 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * 
     * @param s
     * scaling factor
+    * @return this vector
     */
-   public void scale (double s) {
+   public VectorNi scale (double s) {
       for (int i = 0; i < size; i++) {
          buf[i] = (int)(s*buf[i]);
       }
+      return this;
    }
 
    /**
@@ -635,20 +586,34 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * @param s
     * scaling factor
     * @param v1
-    * vector to be scaled
-    * @throws ImproperSizeException
-    * if this vector needs resizing but is of fixed size
+    * vector to be scaled    
+    * @return this vector
     */
-   public void scale (double s, VectorNi v1) {
+   public VectorNi scale (double s, VectorNi v1) {
       if (v1.size != size) {
          resetSize (v1.size);
       }
       for (int i = 0; i < size; i++) {
          buf[i] = (int)(s*v1.buf[i]);
       }
+      return this;
    }
 
-   public void scaledAdd (double s, VectorNi v1, VectorNi v2)
+    /**
+    * Computes <code>s v1 + v2</code> and places the result in this vector.
+    * This vector is resized if necessary.
+    * 
+    * @param s
+    * scaling factor
+    * @param v1
+    * vector to be scaled
+    * @param v2
+    * vector to be added
+    * @return this vector
+    * @throws ImproperSizeException
+    * if v1 and v2 have different sizes
+    */
+   public VectorNi scaledAdd (double s, VectorNi v1, VectorNi v2)
       throws ImproperSizeException {
       if (v1.size != v2.size) {
          throw new ImproperSizeException ("Incompatible dimensions");
@@ -659,27 +624,8 @@ public class VectorNi implements java.io.Serializable, Clonable {
       for (int i = 0; i < size; i++) {
          buf[i] = (int)(s*v1.buf[i]) + v2.buf[i];
       }
+      return this;
    }
-
-   // /**
-   // * Computes <code>s this + v1</code> and places
-   // * the result in this vector.
-   // *
-   // * @param s scaling factor
-   // * @param v1 vector to be added
-   // * @throws ImproperSizeException if this vector and v1 have different
-   // * sizes
-   // */
-   // public void scaledAdd (int s, VectorNi v1)
-   // throws ImproperSizeException
-   // {
-   // if (v1.size != size)
-   // { throw new ImproperSizeException ("Incompatible dimensions");
-   // }
-   // for (int i=0; i<size; i++)
-   // { buf[i] = s*buf[i] + v1.buf[i];
-   // }
-   // }
 
    /**
     * Computes <code>s v1</code> and adds the result to this vector.
@@ -688,23 +634,115 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * scaling factor
     * @param v1
     * vector to be scaled and added
+    * @return this vector
     * @throws ImproperSizeException
-    * if this vector and v1 have different sizes
+    * if v1 has a size less than this vector
     */
-   public void scaledAdd (double s, VectorNi v1) throws ImproperSizeException {
-      if (v1.size != size) {
+   public VectorNi scaledAdd (double s, VectorNi v1)
+      throws ImproperSizeException {
+      if (v1.size < size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
       for (int i = 0; i < size; i++) {
          buf[i] += (int)(s*v1.buf[i]);
       }
+      return this;
    }
 
    /**
-    * Returns the maximum element value of this vector.
+    * Returns true if this vector is of fixed size. In the present
+    * implementation, VectorNi objects always have variable size, and so this
+    * routine always returns false.
     * 
-    * @return maximal element
+    * @return true if this vector is of fixed size
+    * @see VectorNi#setSize
     */
+   @Override
+   public boolean isFixedSize() {
+      return false;
+   }
+
+   /**
+    * Sets the size of this vector. This operation may enlarge the internal
+    * buffer associated with this vector, invalidating buffers previously
+    * returned by {@link #getBuffer getBuffer}.
+    * 
+    * <p>
+    * If a vector is resized, then previous element values which are still
+    * within the new vector dimension are preserved. Other (new) element values
+    * are undefined.
+    * 
+    * @param newSize
+    * new vector size
+    * @throws ImproperSizeException
+    * if this vector has an explicit internal buffer and that buffer is too
+    * small for the requested size
+    */
+   @Override   
+   public void setSize (int newSize) throws ImproperSizeException {
+      if (newSize < 0) {
+         throw new ImproperSizeException ("Negative size");
+      }
+      else if (buf.length >= newSize) {
+         size = newSize;
+      }
+      else {
+         resetSizeAndCopy (newSize, newSize);
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   @Override
+   public double norm() {
+      return Math.sqrt(normSquared());
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   @Override
+   public double normSquared() {
+      int sqrSum = 0;
+      for (int i = 0; i < size; i++) {
+         sqrSum += buf[i]*buf[i];
+      }
+      return sqrSum;
+      
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   @Override
+   public int oneNorm() {
+      int sum = 0;
+      for (int i = 0; i < size; i++) {
+         sum += Math.abs (buf[i]);
+      }
+      return sum;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   @Override
+   public int infinityNorm() {
+      int max = 0;
+      for (int i = 0; i < size; i++) {
+         int abs = Math.abs (buf[i]);
+         if (abs > max) {
+            max = abs;
+         }
+      }
+      return max;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   @Override
    public int maxElement() {
       if (size == 0) {
          return 0;
@@ -719,10 +757,9 @@ public class VectorNi implements java.io.Serializable, Clonable {
    }
 
    /**
-    * Returns the minimum element value of this vector.
-    * 
-    * @return minimal element
+    * {@inheritDoc}
     */
+   @Override
    public int minElement() {
       if (size == 0) {
          return 0;
@@ -737,36 +774,26 @@ public class VectorNi implements java.io.Serializable, Clonable {
    }
 
    /**
-    * Returns the infinity norm of this vector. This is the maximum absolute
-    * value over all elements.
-    * 
-    * @return vector infinity norm
+    * {@inheritDoc}
     */
-   public int infinityNorm() {
-      int max = 0;
-      for (int i = 0; i < size; i++) {
-         int abs = Math.abs (buf[i]);
-         if (abs > max) {
-            max = abs;
+   @Override
+   public boolean equals (Vectori v1) {
+      if (v1 instanceof VectorNi) {
+         return equals ((VectorNi)v1);
+      }
+      else {
+         if (v1.size() != size) {
+            return false;
+         }
+         for (int i = 0; i < size; i++) {
+            if (buf[i] != v1.get(i)) {
+               return false;
+            }
          }
       }
-      return max;
+      return true;
    }
 
-   /**
-    * Returns the 1 norm of this vector. This is the sum of the absolute values
-    * of the elements.
-    * 
-    * @return vector 1 norm
-    */
-   public int oneNorm() {
-      int sum = 0;
-      for (int i = 0; i < size; i++) {
-         sum += Math.abs (buf[i]);
-      }
-      return sum;
-   }
-   
    /**
     * Returns true if the elements of this vector exactly equal those of vector
     * <code>v1</code>.
@@ -775,9 +802,9 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * vector to compare with
     * @return false if the vectors are not equal or have different sizes
     */
-   public boolean equals (VectorNi v1) throws ImproperSizeException {
+   public boolean equals (VectorNi v1) {
       if (v1.size != size) {
-         throw new ImproperSizeException ("Incompatible dimensions");
+         return false;
       }
       for (int i = 0; i < size; i++) {
          if (buf[i] != v1.buf[i]) {
@@ -811,11 +838,14 @@ public class VectorNi implements java.io.Serializable, Clonable {
 
    /**
     * Sets the elements of this vector to their absolute values.
+    *
+    * @return this vector
     */
-   public void absolute() {
+   public VectorNi absolute() {
       for (int i = 0; i < size; i++) {
          buf[i] = Math.abs (buf[i]);
       }
+      return this;
    }
 
    /**
@@ -824,16 +854,18 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * 
     * @param v1
     * vector to take the absolute value of
+    * @return this vector
     * @throws ImproperSizeException
     * if this vector needs resizing but is of fixed size
     */
-   public void absolute (VectorNi v1) {
+   public VectorNi absolute (VectorNi v1) {
       if (size != v1.size) {
          resetSize (v1.size);
       }
       for (int i = 0; i < size; i++) {
          buf[i] = Math.abs (v1.buf[i]);
       }
+      return this;
    }
 
    private void quickSort (int[] buf, int left, int right) {
@@ -892,54 +924,16 @@ public class VectorNi implements java.io.Serializable, Clonable {
    }
 
    /**
-    * Sets the elements of this vector to uniformly distributed random values in
-    * the range -1000 (inclusive) to 1000 (exclusive).
-    */
-   public void setRandom() {
-      setRandom (-1000, 1000, RandomGenerator.get());
-   }
-
-   /**
-    * Sets the elements of this vector to uniformly distributed random values in
-    * a specified range.
-    * 
-    * @param lower
-    * lower random value (inclusive)
-    * @param upper
-    * upper random value (exclusive)
-    */
-   public void setRandom (int lower, int upper) {
-      setRandom (lower, upper, RandomGenerator.get());
-   }
-
-   /**
-    * Sets the elements of this vector to uniformly distributed random values in
-    * a specified range, using a supplied random number generator.
-    * 
-    * @param lower
-    * lower random value (inclusive)
-    * @param upper
-    * upper random value (exclusive)
-    * @param generator
-    * random number generator
-    */
-   public void setRandom (int lower, int upper, Random generator) {
-      int rng = upper - lower;
-      for (int i=0; i<size; i++) {
-         buf[i] = generator.nextInt (rng) + lower;
-      }
-   }
-
-   /**
     * Computes the element-wise maximum of this vector and vector v and places
     * the result in this vector.
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     * @throws ImproperSizeException
     * if this vector and v have different sizes
     */
-   public void max (VectorNi v) throws ImproperSizeException {
+   public VectorNi max (VectorNi v) throws ImproperSizeException {
       if (v.size != size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
@@ -948,6 +942,7 @@ public class VectorNi implements java.io.Serializable, Clonable {
             buf[i] = v.buf[i];
          }
       }
+      return this;
    }
 
    /**
@@ -956,10 +951,11 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * 
     * @param v
     * vector to compare with
+    * @return this vector
     * @throws ImproperSizeException
     * if this vector and v have different sizes
     */
-   public void min (VectorNi v) throws ImproperSizeException {
+   public VectorNi min (VectorNi v) throws ImproperSizeException {
       if (v.size != size) {
          throw new ImproperSizeException ("Incompatible dimensions");
       }
@@ -968,6 +964,7 @@ public class VectorNi implements java.io.Serializable, Clonable {
             buf[i] = v.buf[i];
          }
       }
+      return this;
    }
 
    public VectorNi clone() {
@@ -1012,101 +1009,24 @@ public class VectorNi implements java.io.Serializable, Clonable {
    }
 
    /**
-    * Returns a String representation of this vector, using the default format
-    * returned by {@link #getDefaultFormat getDefaultFormat}.
-    * 
-    * @return String representation of this vector
-    * @see #toString(String)
+    * {@inheritDoc}
     */
-   public String toString() {
-      return toString (myDefaultFmt);
+   public void setRandom() {
+      super.setRandom();
    }
 
    /**
-    * Returns a String representation of this vector, in which each element is
-    * formatted using a C <code>printf</code> style format string. For a
-    * description of the format string syntax, see {@link
-    * maspack.util.NumberFormat NumberFormat}. Note that when called numerous
-    * times, {@link #toString(NumberFormat) toString(NumberFormat)} will be more
-    * efficient because the {@link maspack.util.NumberFormat NumberFormat} will
-    * not need to be recreated each time from a specification string.
-    * 
-    * @param fmtStr
-    * numeric format specification
-    * @return String representation of this vector
+    * {@inheritDoc}
     */
-   public String toString (String fmtStr) {
-      return toString (new NumberFormat (fmtStr));
+   public void setRandom (int lower, int upper) {
+      super.setRandom (lower, upper);
    }
 
    /**
-    * Returns a String representation of this vector, in which each element is
-    * formatted using a C <code>printf</code> style format as decribed by the
-    * parameter <code>NumberFormat</code>.
-    * 
-    * @param fmt
-    * numeric format
-    * @return String representation of this vector
+    * {@inheritDoc}
     */
-   public String toString (NumberFormat fmt) {
-      StringBuffer buf = new StringBuffer (20 * size());
-      int size = size();
-      for (int i = 0; i < size; i++) {
-         buf.append (fmt.format (get (i)));
-         if (i < size - 1) {
-            buf.append (' ');
-         }
-      }
-      return buf.toString();
-   }
-
-   /**
-    * Writes the contents of this vector to a PrintWriter. Element values are
-    * separated by spaces, and each element is formatted using a C
-    * <code>printf</code> style as decribed by the parameter
-    * <code>NumberFormat</code>.
-    * 
-    * @param pw
-    * PrintWriter to write this vector to
-    * @param fmt
-    * numeric format
-    */
-   public void write (PrintWriter pw, NumberFormat fmt) throws IOException {
-      write (pw, fmt, /* withBrackets= */false);
-   }
-
-   /**
-    * Writes the contents of this vector to a PrintWriter. Element values are
-    * separated by spaces, and optionally surrounded by square brackets
-    * <code>[ ]</code> if <code>withBrackets</code> is set true. Each
-    * element is formatted using a C <code>printf</code> style as decribed by
-    * the parameter <code>NumberFormat</code>.
-    * 
-    * @param pw
-    * PrintWriter to write this vector to
-    * @param fmt
-    * numeric format
-    * @param withBrackets
-    * if true, causes the output to be surrounded by square brackets.
-    */
-   public void write (PrintWriter pw, NumberFormat fmt, boolean withBrackets)
-      throws IOException {
-      if (withBrackets) {
-         pw.print ("[ ");
-      }
-      for (int i = 0; i < size(); i++) {
-         String str;
-         if (i < size() - 1) {
-            str = fmt.format (get (i)) + " ";
-         }
-         else {
-            str = fmt.format (get (i));
-         }
-         pw.print (str);
-      }
-      if (withBrackets) {
-         pw.print (" ]");
-      }
+   public void setRandom (int lower, int upper, Random generator) {
+      super.setRandom (lower, upper, generator);
    }
 
    /**
@@ -1118,11 +1038,10 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * If the input is not surrounded by square brackets, then the number of
     * values should equal the current {@link #size size} of this vector.
     * 
-    * <p>
-    * If the input is surrounded by square brackets, then all values up to the
-    * closing bracket are read, and the resulting number of values should either
-    * equal the current {@link #size size} of this vector, or this vector should
-    * be resizeable to fit the input. For example,
+    * <p> If the input is surrounded by square brackets, then all values up to
+    * the closing bracket are read, and this vector will be resized to
+    * resulting number of values.
+    * For example,
     * 
     * <pre>
     * [ 1 4 5 3 ]
@@ -1136,35 +1055,9 @@ public class VectorNi implements java.io.Serializable, Clonable {
     * @throws ImproperSizeException
     * if this vector has a fixed size which is incompatible with the input
     */
+   @Override
    public void scan (ReaderTokenizer rtok) throws IOException {
-      if (rtok.nextToken() == '[') {
-         if (isFixedSize()) {
-            for (int i = 0; i < size(); i++) {
-               set (i, rtok.scanInteger());
-            }
-            rtok.scanToken (']');
-         }
-         else {
-            ArrayList<Integer> valueList = new ArrayList<Integer> (64);
-            while (rtok.nextToken() != ']') {
-               rtok.pushBack();
-               valueList.add (new Integer (rtok.scanInteger()));
-            }
-            if (valueList.size() != size()) {
-               setSize (valueList.size());
-            }
-            for (int i=0; i<valueList.size(); i++) {
-               set (i, valueList.get(i));
-            }
-         }
-      }
-      else {
-         rtok.pushBack();
-         for (int i = 0; i < size(); i++) {
-            set (i, rtok.scanInteger());
-         }
-      }
+      super.scan (rtok);
    }
-
 
 }

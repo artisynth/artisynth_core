@@ -8,14 +8,11 @@ package maspack.render;
 
 import java.util.ArrayList;
 
-import javax.media.opengl.GL2;
-
 import maspack.matrix.Point2d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GL2.GL2Viewer;
 
 public class FreehandTool extends DrawToolBase {
 

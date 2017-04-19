@@ -123,7 +123,7 @@ public class FemUtilities {
     * <pre> 
     * Kij += (gi^T sig gj) I*dv
     * </pre>
-z    */
+    */
    public static void addGeometricStiffness(Matrix3d K, Vector3d gi, 
       SymmetricMatrix3d sig, Vector3d gj, double dv) {
 

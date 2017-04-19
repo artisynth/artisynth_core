@@ -305,23 +305,9 @@ public class MechSystemSolver {
    protected void getActiveVelDerivative (VectorNd dvdt, VectorNd f) {
       // assumes updateMassMatrix and updateInverseMassMatrix have been called
 
-      VectorNd tmp = new VectorNd(6);
-
       mySys.getActiveForces (f);
-
-      int off = 0;
-
-      f.getSubVector (off, tmp);
       f.add (myMassForces);
-
-      myMassForces.getSubVector (off, tmp);
-
-      // MatrixNd MI = new MatrixNd();
-      // MI.set (myInverseMass);
-      // System.out.println ("MI=\n" + MI.toString("%8.3f"));
       myInverseMass.mul (dvdt, f, myActiveVelSize, myActiveVelSize);
-
-      dvdt.getSubVector (off, tmp);
    }
 
    public void updateStateSizes () {

@@ -50,6 +50,9 @@ def delay (t) :
 def waitForStop () :
     getMain().waitForStop()
 
+def getSimulationException () :
+    getMain().getSimulationException()
+
 def isPlaying() :
     return getMain().isSimulating()
 

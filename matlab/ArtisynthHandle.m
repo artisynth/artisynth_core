@@ -62,6 +62,10 @@ classdef ArtisynthHandle
          obj.getMain().waitForStop();
       end         
 
+      function [exception] = getSimulationException (obj)
+         exception = obj.getMain().getSimulationException();
+      end         
+
       function [playing] = isPlaying (obj)
          playing = obj.getMain().isSimulating();
       end         

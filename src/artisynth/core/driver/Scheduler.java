@@ -23,6 +23,7 @@ public class Scheduler {
    private RenderProbe myRenderProbe;
    private SleepProbe mySleepProbe;
    private Player myPlayer = null;
+   private Exception myLastException = null;
    private boolean myInitialStateValidP = true;
 
    public static boolean useNewAdvance = true;
@@ -127,6 +128,7 @@ public class Scheduler {
       private void doinitialize (double endTime) {
          myStopReq = false;
          myAlive = true;
+         myLastException = null;
          // timeScale = 1;
          myActions = new LinkedList<Runnable>();
          this.endTime = endTime;
@@ -280,9 +282,10 @@ public class Scheduler {
                   fireListeners (Action.Advance);
                   applyOutputProbes (t1, eventProbes);
                }
-               catch (NumericalException e) {
+               catch (Exception e) {
                   // stop the scheduler if there is a stop request
                   e.printStackTrace();
+                  myLastException = e;
                   myStopReq = true;
                }
             }
@@ -558,6 +561,10 @@ public class Scheduler {
       return isPlayerAlive();
    }
 
+   public Exception getLastException() {
+      return myLastException;
+   }
+   
    public Thread getThread() {
       return myPlayer;
    }      

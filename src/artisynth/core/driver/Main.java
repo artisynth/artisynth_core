@@ -940,6 +940,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
    }
+   
+   public Exception getSimulationException() {
+      return myScheduler.getLastException();
+   }
 
    public void step() {
       myScheduler.step();

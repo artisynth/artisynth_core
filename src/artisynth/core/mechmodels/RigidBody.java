@@ -119,7 +119,7 @@ public class RigidBody extends Frame
    static String DEFAULT_DISTANCE_GRID_RENDER_RANGES = "* * *";
    SignedDistanceGrid mySDGrid = null;
    boolean mySDGridValid = false;
-   Vector3i myDistanceGridRes = DEFAULT_DISTANCE_GRID_DIVS;
+   Vector3i myDistanceGridRes = new Vector3i(DEFAULT_DISTANCE_GRID_DIVS);
    int myDistanceGridMaxRes = DEFAULT_DISTANCE_GRID_MAX_DIVS;
    boolean myRenderDistanceGrid = DEFAULT_RENDER_DISTANCE_GRID;
    String myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;

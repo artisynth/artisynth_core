@@ -6896,32 +6896,26 @@ public class GL3Debug implements GL3 {
       return out;
    }
 
-   @Override
    public boolean glIsPBOPackBound() {
       return false;
    }
 
-   @Override
    public boolean glIsPBOUnpackBound() {
       return false;
    }
 
-   @Override
    public int glGetBoundBuffer(int target) {
       return 0;
    }
 
-   @Override
    public long glGetBufferSize(int bufferName) {
       return 0;
    }
 
-   @Override
    public boolean glIsVBOArrayBound() {
       return false;
    }
 
-   @Override
    public boolean glIsVBOElementArrayBound() {
       return false;
    }

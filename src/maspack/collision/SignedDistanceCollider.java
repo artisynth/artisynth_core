@@ -67,19 +67,9 @@ public class SignedDistanceCollider implements AbstractCollider {
       cinfo.myPoints1 = new ArrayList<PenetratingPoint>();
       if (grid0 != null) {
          findPenetratingPoints (cinfo.myPoints1, mesh0, grid0, mesh1);
-         System.out.println (
-            "grid0 is "+grid0.getResolution());
-      }
-      else {
-         System.out.println ("grid0=null");
       }
       if (grid1 != null) {
          findPenetratingPoints (cinfo.myPoints0, mesh1, grid1, mesh0);
-         System.out.println (
-            "grid1 is "+grid1.getResolution());
-      }
-      else {
-         System.out.println ("grid1=null");
       }
       if (cinfo.myPoints0.size() == 0 && cinfo.myPoints1.size() == 0) {
          return null;

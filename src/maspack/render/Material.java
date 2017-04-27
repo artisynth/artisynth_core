@@ -8,8 +8,6 @@ package maspack.render;
 
 import java.awt.Color;
 
-import javax.media.opengl.GL2;
-
 public class Material {
 
    private float[] diffuse;  // ambient color will always track diffuse
@@ -248,45 +246,45 @@ public class Material {
       return power[3];
    }
    
-   public void apply (GL2 gl) {
-      apply (gl, GL2.GL_FRONT_AND_BACK, null);
-   }
-
-   public void apply (GL2 gl, float[] diffuseOverride) {
-      apply (gl, GL2.GL_FRONT_AND_BACK, diffuseOverride);
-   }
-
-   public void apply (GL2 gl, int sides) {
-      apply (gl, sides, null);
-   }
-
-   private void applyMat(GL2 gl, int sides, int target, float[] v, float scale) {
-      float[] m = new float[4];
-      for (int i=0; i<3; ++i) {
-         m[i] = v[i]*scale;
-      }
-      m[3] = v[3];
-      gl.glMaterialfv(sides, target, m, 0);
-   }
-   
-   public void apply (GL2 gl, int sides, float[] diffuseOverride) {
-      
-      float[] diff = diffuse;
-      
-      applyMat(gl, sides, GL2.GL_EMISSION, emission, power[3]);
-      applyMat(gl, sides, GL2.GL_SPECULAR, specular, power[2]);
-      gl.glMaterialf (sides, GL2.GL_SHININESS, shininess);
-      if (diffuseOverride != null) {
-         float[] temp = new float[4];
-         temp[0] = diffuseOverride[0];
-         temp[1] = diffuseOverride[1];
-         temp[2] = diffuseOverride[2];
-         temp[3] = diffuse[3];
-         diff = temp;
-      }
-      applyMat(gl, sides, GL2.GL_DIFFUSE, diff, power[1]);
-      applyMat(gl, sides, GL2.GL_AMBIENT, diff, power[0]);
-   }
+//   public void apply (GL2 gl) {
+//      apply (gl, GL2.GL_FRONT_AND_BACK, null);
+//   }
+//
+//   public void apply (GL2 gl, float[] diffuseOverride) {
+//      apply (gl, GL2.GL_FRONT_AND_BACK, diffuseOverride);
+//   }
+//
+//   public void apply (GL2 gl, int sides) {
+//      apply (gl, sides, null);
+//   }
+//
+//   private void applyMat(GL2 gl, int sides, int target, float[] v, float scale) {
+//      float[] m = new float[4];
+//      for (int i=0; i<3; ++i) {
+//         m[i] = v[i]*scale;
+//      }
+//      m[3] = v[3];
+//      gl.glMaterialfv(sides, target, m, 0);
+//   }
+//   
+//   public void apply (GL2 gl, int sides, float[] diffuseOverride) {
+//      
+//      float[] diff = diffuse;
+//      
+//      applyMat(gl, sides, GL2.GL_EMISSION, emission, power[3]);
+//      applyMat(gl, sides, GL2.GL_SPECULAR, specular, power[2]);
+//      gl.glMaterialf (sides, GL2.GL_SHININESS, shininess);
+//      if (diffuseOverride != null) {
+//         float[] temp = new float[4];
+//         temp[0] = diffuseOverride[0];
+//         temp[1] = diffuseOverride[1];
+//         temp[2] = diffuseOverride[2];
+//         temp[3] = diffuse[3];
+//         diff = temp;
+//      }
+//      applyMat(gl, sides, GL2.GL_DIFFUSE, diff, power[1]);
+//      applyMat(gl, sides, GL2.GL_AMBIENT, diff, power[0]);
+//   }
 
    private String floatArrayToString (float[] array) {
       return array[0] + " " + array[1] + " " + array[2] + " " + array[3];

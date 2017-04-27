@@ -32,6 +32,7 @@ import maspack.render.Dragger3d;
 import maspack.render.Light;
 import maspack.render.Light.LightSpace;
 import maspack.render.Light.LightType;
+import maspack.render.Material;
 import maspack.render.RenderInstances;
 import maspack.render.RenderInstances.InstanceTransformType;
 import maspack.render.RenderInstances.RenderInstancesVersion;
@@ -1043,12 +1044,44 @@ public class GL2Viewer extends GLViewer implements HasProperties {
    public void maybeUpdateMaterials() {
       maybeUpdateMaterials(gl);
    }
+
+   private static void applyMaterial(GL2 gl, int sides, int target, 
+      float[] v, float scale) {
+      
+      float[] m = new float[4];
+      for (int i=0; i<3; ++i) {
+         m[i] = v[i]*scale;
+      }
+      m[3] = v[3];
+      gl.glMaterialfv(sides, target, m, 0);
+   }
+    
+   private static void applyMaterial(GL2 gl, 
+      int sides, Material mat, float[] diffuseOverride) {
+
+      float[] diffuse = mat.getDiffuse();
+      float[] power = mat.getPower();
+      
+      applyMaterial(gl, sides, GL2.GL_EMISSION, mat.getEmission(), power[3]);
+      applyMaterial(gl, sides, GL2.GL_SPECULAR, mat.getSpecular(), power[2]);
+      gl.glMaterialf (sides, GL2.GL_SHININESS, mat.getShininess());
+      if (diffuseOverride != null) {
+         float[] temp = new float[4];
+         temp[0] = diffuseOverride[0];
+         temp[1] = diffuseOverride[1];
+         temp[2] = diffuseOverride[2];
+         temp[3] = diffuse[3];
+         diffuse = temp;
+      }
+      applyMaterial(gl, sides, GL2.GL_DIFFUSE, diffuse, power[1]);
+      applyMaterial(gl, sides, GL2.GL_AMBIENT, diffuse, power[0]);
+   }
    
    public void maybeUpdateMaterials(GL2 gl) {
 
       // might need to update underlying material
       if (myCurrentMaterialModified) {
-         myCurrentMaterial.apply (gl);
+         applyMaterial(gl, GL2.GL_FRONT_AND_BACK, myCurrentMaterial, null);
          if (myBackColor != null) {
             gl.glMaterialfv (GL2.GL_BACK, GL2.GL_AMBIENT_AND_DIFFUSE, myBackColor, 0); // apply back color
          }
@@ -2210,9 +2243,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
    private boolean setupHSVInterpolation (GL2 gl) {
       // create special HSV shader to interpolate colors in HSV space
-      int prog = GLHSVShader.getShaderProgram(gl);
+      long prog = GLHSVShader.getShaderProgram(gl);
       if (prog > 0) {
-         gl.glUseProgramObjectARB (prog);
+         gl.glUseProgramObjectARB ((int)prog);
          return true;
       }
       else {

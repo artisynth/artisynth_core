@@ -33,9 +33,9 @@ public class GLHSVShaderTest implements IsRenderable {
       if (renderer instanceof GL2Viewer) {
          GL2 gl = ((GL2Viewer)renderer).getGL2();
 
-         int shader = GLHSVShader.getShaderProgram(gl);
+         long shader = GLHSVShader.getShaderProgram(gl);
          if (shader != -1) {
-            gl.glUseProgramObjectARB (shader);
+            gl.glUseProgramObjectARB ((int)shader);
          }
 
          gl.glDisable (GLLightingFunc.GL_LIGHTING);

@@ -15,7 +15,7 @@ import javax.media.opengl.GL2;
 
 public class GLHSVShader {
    private static boolean myInitialized = false;
-   private static int myProgram = -1;
+   private static long myProgram = -1;
 
    @SuppressWarnings("unused")
    private static String[] testProg = new String[] {
@@ -71,48 +71,48 @@ public class GLHSVShader {
       "}"
    };
 
-   public static void printInfoLog (GL2 gl, int shader) {
+   public static void printInfoLog (GL2 gl, long shader) {
       //int[] infologLength = new int[1];
       //int[] charsWritten = new int[1];
       IntBuffer ibuf = IntBuffer.allocate (100);
 
       gl.glGetObjectParameterivARB(
-         shader, GL2.GL_OBJECT_INFO_LOG_LENGTH_ARB, ibuf);
+         (int)shader, GL2.GL_OBJECT_INFO_LOG_LENGTH_ARB, ibuf);
       int infologLength = ibuf.get(0);
       
       if (infologLength > 0) {
          //byte[] buffer = new byte[64000];
          ByteBuffer buffer = ByteBuffer.allocate (infologLength);
-         gl.glGetInfoLogARB (shader, infologLength, ibuf, buffer);
+         gl.glGetInfoLogARB ((int)shader, infologLength, ibuf, buffer);
          //System.out.println (new String(buffer, 0, charsWritten[0]));
          System.out.println (new String(buffer.array()));
       }
       
    }
 
-   public static int getStatus (GL2 gl, int prog, int type) {
+   public static int getStatus (GL2 gl, long prog, int type) {
       IntBuffer ibuf = IntBuffer.allocate (100);
 
-      gl.glGetObjectParameterivARB (prog, type, ibuf);
+      gl.glGetObjectParameterivARB ((int)prog, type, ibuf);
       return ibuf.get(0);      
    }
 
-   public static int createShaderProgram(GL2 gl) {
+   public static long createShaderProgram(GL2 gl) {
 
       System.out.println ("Initializing HSV shader ...");
-      int shader = gl.glCreateShaderObjectARB (GL2.GL_FRAGMENT_SHADER);
+      long shader = gl.glCreateShaderObjectARB (GL2.GL_FRAGMENT_SHADER);
 
-      gl.glShaderSourceARB (shader, hsvProg.length, hsvProg, null);
-      gl.glCompileShaderARB (shader);
+      gl.glShaderSourceARB ((int)shader, hsvProg.length, hsvProg, null);
+      gl.glCompileShaderARB ((int)shader);
       int status = getStatus (gl, shader, GL2.GL_OBJECT_COMPILE_STATUS_ARB);
       if (status != 1) {
          System.out.println ("Error compiling HSV shader");
          printInfoLog (gl, shader);
          return -1;
       }
-      int prog = gl.glCreateProgramObjectARB();
-      gl.glAttachObjectARB(prog,shader);
-      gl.glLinkProgramARB (prog);
+      long prog = gl.glCreateProgramObjectARB();
+      gl.glAttachObjectARB((int)prog,(int)shader);
+      gl.glLinkProgramARB ((int)prog);
       status = getStatus (gl, prog, GL2.GL_OBJECT_LINK_STATUS_ARB);
       if (status != 1) {
          System.out.println ("Error linking HSV shader");
@@ -123,7 +123,7 @@ public class GLHSVShader {
       return prog;
    }
 
-   public static int getShaderProgram (GL2 gl) {
+   public static long getShaderProgram (GL2 gl) {
       if (!myInitialized) {
          myProgram = createShaderProgram (gl);
          myInitialized = true;

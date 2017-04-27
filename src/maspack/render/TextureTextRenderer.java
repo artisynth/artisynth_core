@@ -251,9 +251,7 @@ public abstract class TextureTextRenderer implements TextRenderer {
             textstore.markClean ();
             buff = BufferUtilities.freeDirectBuffer (buff);
          } else {
-            ByteBuffer buff =
-               BufferUtilities
-                  .newNativeByteBuffer (textstore.getWidth ()*textstore.getHeight () * 4);
+            ByteBuffer buff =BufferUtilities.newNativeByteBuffer (textstore.getWidth ()*textstore.getHeight () * 4);
             textstore.getData (buff);
             buff.flip ();
             replaceTexture (textstore.getWidth (), textstore.getHeight (), buff);

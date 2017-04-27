@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import javax.media.nativewindow.WindowClosingProtocol.WindowClosingMode;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GL2GL3;
@@ -173,7 +172,6 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       maybeCreateMaster();
       GLCanvas canvas = new GLCanvas (glCapabilities);
       canvas.setSharedAutoDrawable (masterDrawable);
-      canvas.setDefaultCloseOperation (WindowClosingMode.DISPOSE_ON_CLOSE);
       return canvas;
    }
    
@@ -188,7 +186,6 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       maybeCreateMaster();
       GLJPanel panel = new GLJPanel (glCapabilities);
       panel.setSharedAutoDrawable (masterDrawable);
-      panel.setDefaultCloseOperation (WindowClosingMode.DISPOSE_ON_CLOSE);
       return panel;
    }
    

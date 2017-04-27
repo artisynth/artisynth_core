@@ -529,6 +529,15 @@ public class FileManager {
       return equalsHash(localFile, localURI);
 
    }
+   
+   public boolean equalsHash(String local, String remote) throws FileTransferException {
+
+      File localFile = getAbsoluteFile(local);
+      URIx localURI = getAbsoluteURI(remote);
+
+      return equalsHash(localFile, localURI);
+
+   }
 
    // extracts file name from URI
    private String extractFileName(URIx uri) {

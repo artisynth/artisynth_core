@@ -236,9 +236,9 @@ public class ColorBar extends TextComponentBase {
       int screenWidth = renderer.getScreenWidth();
       int screenHeight = renderer.getScreenHeight();
 
-      // smooth shading
+      // turn off shading for the labels
       Renderer.Shading savedShadeModel = renderer.getShading();
-      renderer.setShading (Renderer.Shading.SMOOTH);
+      renderer.setShading (Renderer.Shading.NONE);
 
       double x0 = myLoc.x;
       double y0 = myLoc.y;

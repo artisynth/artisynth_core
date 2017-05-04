@@ -42,6 +42,7 @@ public class VertexList<P extends VertexComponent> extends RenderableComponentLi
    private final int REG_GRP = 0;
    private final int SEL_GRP = 1;
    private RenderObject myRob = null;
+   private boolean myRobValidP = false;
 
    public VertexList (Class<P> type, String name, String shortName) {
       super (type, name, shortName);
@@ -69,6 +70,7 @@ public class VertexList<P extends VertexComponent> extends RenderableComponentLi
             myRob.addPoint (i);            
          }
       }
+      myRobValidP = true;
    }
    
    protected void updateRenderObject() {
@@ -86,7 +88,14 @@ public class VertexList<P extends VertexComponent> extends RenderableComponentLi
       }
    }
 
+   public void invalidateRenderObject() {
+      myRobValidP = false;
+   }
+
    protected boolean renderObjectValid() {
+      if (!myRobValidP) {
+         return false;
+      }
       // checks if selection has changed
       int kSel = 0;
       int kReg = 0;

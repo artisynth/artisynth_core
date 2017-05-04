@@ -89,6 +89,7 @@ public class VertexComponent extends RenderableComponentBase implements
          gtr.transformPnt (myVertex.pnt);
          myVertex.pnt.inverseTransform(m.getMeshToWorld());  
       }
+      notifyVertexPositionModified();
    }
    
    public void addTransformableDependencies (
@@ -103,6 +104,7 @@ public class VertexComponent extends RenderableComponentBase implements
    @Override
    public void scaleDistance(double s) {
       myVertex.pnt.scale(s);
+      notifyVertexPositionModified();
    }
 
    @Override
@@ -132,6 +134,16 @@ public class VertexComponent extends RenderableComponentBase implements
          Point3d pos = new Point3d(pnt);
          pos.inverseTransform (mesh.XMeshToWorld);
          myVertex.setPosition(pos);
+      }
+      notifyVertexPositionModified();
+   }
+
+   private void notifyVertexPositionModified () {
+      if (myVertex.getMesh() != null) {
+         myVertex.getMesh().notifyVertexPositionsModified();
+      }
+      if (getParent() instanceof VertexList) {
+         ((VertexList)getParent()).invalidateRenderObject();
       }
    }
 

@@ -149,6 +149,8 @@ public class Material {
       diffuse[2] = diff[2];
       if (diff.length > 3) {
          diffuse[3] = diff[3];
+      } else {
+         diffuse[3] = 1;
       }
    }
 

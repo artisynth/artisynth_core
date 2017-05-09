@@ -2041,6 +2041,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       if (useGLJPanel) {
          myCommittedViewerState = null;
          myCommittedColor = null;      
+         myCurrentMaterialModified = true;
       }
       
       int flags = myRenderFlags.get();
@@ -4690,6 +4691,11 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          else {
             resetDraw();
          }
+      }
+      
+      // set front alpha if not one
+      if (myCurrentMaterial.isTransparent()) {
+         setFrontAlpha(1.0f);
       }
       
    }

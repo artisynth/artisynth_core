@@ -20,6 +20,13 @@ public class GLGridResolution {
       set (res.myMajorCellSize, res.myNumDivisions);
    }
 
+   public void set (GLGridResolution res) {
+      set (res.getMajorCellSize(), res.getNumDivisions());
+   }
+
+   /**
+    * Sets the resolution.
+    */
    public void set (double majorCellSize, int numDivisions) {
       if (majorCellSize < 0) {
          throw new IllegalArgumentException ("cell size must not be negative");
@@ -27,8 +34,12 @@ public class GLGridResolution {
       if (numDivisions < 1) {
          throw new IllegalArgumentException ("num divisions must be >= 1");
       }
-      myMajorCellSize = majorCellSize;
-      myNumDivisions = numDivisions;
+      if (majorCellSize != myMajorCellSize) {
+         myMajorCellSize = majorCellSize;
+      }
+      if (numDivisions != myNumDivisions) {
+         myNumDivisions = numDivisions;
+      }
    }
 
    public double getMajorCellSize() {

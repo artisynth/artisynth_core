@@ -10,6 +10,8 @@ import java.awt.event.*;
 
 import maspack.render.*;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLGridPlane;
+import maspack.render.GL.GLGridPlane.AxisLabeling;
 import maspack.matrix.*;
 
 public class ViewerKeyListener implements KeyListener {
@@ -90,6 +92,22 @@ public class ViewerKeyListener implements KeyListener {
          }
          case 'g': {
             myViewer.setGridVisible (!myViewer.getGridVisible());
+            myViewer.rerender();
+            break;
+         }
+         case 'l': {
+            GLGridPlane grid = myViewer.getGrid();
+            boolean labelsVisible =
+               (grid.getXAxisLabeling() != AxisLabeling.OFF ||
+                grid.getYAxisLabeling() != AxisLabeling.OFF);
+            if (labelsVisible) {
+               grid.setXAxisLabeling (AxisLabeling.OFF);
+               grid.setYAxisLabeling (AxisLabeling.OFF);
+            }
+            else {
+               grid.setXAxisLabeling (AxisLabeling.ON);
+               grid.setYAxisLabeling (AxisLabeling.ON);
+            }
             myViewer.rerender();
             break;
          }

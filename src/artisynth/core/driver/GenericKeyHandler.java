@@ -66,8 +66,9 @@ public class GenericKeyHandler implements KeyListener {
          "Viewer controls:\n" +
          "  w   - reset view\n" +
          "  o   - toggle orthographic/perspective view\n" +
-         "  a   - toggle visible axes\n" +
-         "  g   - toggle visible grid\n" +
+         "  a   - toggle viewer axes\n" +
+         "  g   - toggle viewer grid\n" +
+         "  l   - toggle viewer grid labels\n" +
          "\n" +
          "Note: you need to focus on the graphics viewer to get the bindings.");
    }

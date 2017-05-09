@@ -7,8 +7,10 @@
 package maspack.render.GL;
 
 import java.awt.Color;
+import java.awt.geom.Rectangle2D;
 
 import maspack.matrix.AxisAngle;
+import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.Plane;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
@@ -29,6 +31,7 @@ import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
 import maspack.render.ConvexPoly2d.Vertex2d;
 import maspack.render.Dragger3d.DraggerType;
+import maspack.render.Dragger3dConstrainer;
 import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.Shading;
 import maspack.render.color.ColorUtils;
@@ -42,7 +45,57 @@ public class GLGridPlane implements HasProperties {
    private static Color myDefaultXAxisColor = null;
    private static Color myDefaultYAxisColor = null;
 
+   public enum AxisLabeling {
+      OFF,
+      ON
+   };
+
+   /**
+    * Ensures that the dragger keeps the grid properly aligned when
+    * world alignment is enabled.
+    */
+   private class AlignConstrainer implements Dragger3dConstrainer {
+
+      public boolean updateRotation (
+         RotationMatrix3d RDWnew, RigidTransform3d TDW) {
+
+         AxisAlignedRotation alignedRot =
+            AxisAlignedRotation.getNearest (RDWnew);
+         RDWnew.set (alignedRot.getMatrix());
+         return !RDWnew.equals (TDW.R);
+      }
+
+      public boolean updatePosition (
+         Vector3d pnew, RigidTransform3d TDW) {
+
+         double csize = myResolution.getMajorCellSize();
+         pnew.x = csize*Math.round(pnew.x/csize);
+         pnew.y = csize*Math.round(pnew.y/csize);
+         pnew.z = csize*Math.round(pnew.z/csize);
+         return !pnew.equals (TDW.p);
+      }
+
+      public boolean updatePose (
+         RigidTransform3d TDWnew, RigidTransform3d TDW) {
+
+         boolean changed = false;
+         if (updatePosition (TDWnew.p, TDW)) {
+            changed = true;
+         }
+         // if TDWnew == TDW, then TDW.p might have changed at this point, but
+         // that's OK since update rotation doesn't use TDW.p
+         if (updateRotation (TDWnew.R, TDW)) {
+            changed = true;
+         }
+         return changed;
+      }
+   }
+  
+
    RigidTransform3d XGridToWorld = new RigidTransform3d();
+   // Desired XGridToWorld value. XGridToWorld may be different from
+   // this if myConstrainToWorld is true:
+   RigidTransform3d XGridToWorldTarget = new RigidTransform3d();
    Dragger3dBase myDragger;
    boolean myGridVisible = true;
    GLViewer myViewer = null;
@@ -56,6 +109,23 @@ public class GLGridPlane implements HasProperties {
    boolean myAutoSizedP = true;
    GLGridResolution myResolution = new GLGridResolution (1, 10);
    int myLineWidth = 1;
+
+   public static boolean DEFAULT_CONSTRAIN_TO_WORLD = false;
+   boolean myConstrainToWorld = DEFAULT_CONSTRAIN_TO_WORLD;
+   // if true, draw the X/Y axes at their true locations in world
+   // coordinates. Otherwise, draw them at the grid center. This
+   // can only be true if constrainToWorld is also true.
+   public static boolean DEFAULT_USE_WORLD_ORIGIN = false;
+   boolean myUseWorldOrigin = DEFAULT_USE_WORLD_ORIGIN;
+   public static AxisLabeling DEFAULT_X_AXIS_LABELING = AxisLabeling.OFF;
+   AxisLabeling myXAxisLabeling = DEFAULT_X_AXIS_LABELING;
+   public static AxisLabeling DEFAULT_Y_AXIS_LABELING = AxisLabeling.OFF;
+   AxisLabeling myYAxisLabeling = DEFAULT_Y_AXIS_LABELING;
+   public static double DEFAULT_LABEL_SIZE = 15.0;
+   double myLabelSize = DEFAULT_LABEL_SIZE;
+   
+   public static final Color DEFAULT_LABEL_COLOR = null;
+   Color myLabelColor = DEFAULT_LABEL_COLOR;
 
    private static class RenderInfo {
       // stores all lines
@@ -109,9 +179,11 @@ public class GLGridPlane implements HasProperties {
          return out;
       }
 
-      public boolean update(int numDivisions, float minorSize, int xcnt, int ycnt, int x_axis_j, 
+      public boolean update(
+         int numDivisions, float minorSize, int xcnt, int ycnt, int x_axis_j, 
          int y_axis_i, float xmin, float xmax, float ymin, float ymax,
-         float[] xColor, float[] yColor, float[] majorColor, float[] minorColor) {
+         float[] xColor, float[] yColor, 
+         float[] majorColor, float[] minorColor) {
          boolean positionsChanged = false;
 
          if (this.numDivisions != numDivisions) {
@@ -292,6 +364,23 @@ public class GLGridPlane implements HasProperties {
          "orientation", "orientation of the grid coordinate frame",
          myDefaultAxisAngle);
       myProps.get ("orientation").setAutoWrite (false);
+      myProps.add (
+         "constrainToWorld", "constrains grid to world axes and coordinates",
+         DEFAULT_CONSTRAIN_TO_WORLD);
+      myProps.add (
+         "useWorldOrigin", "align grid origin with the world origin",
+         DEFAULT_USE_WORLD_ORIGIN);    
+      myProps.add(
+         "xAxisLabeling", "controls labeling of the x grid axis",
+         DEFAULT_X_AXIS_LABELING);
+      myProps.add(
+         "yAxisLabeling", "controls labeling of the y grid axis",
+         DEFAULT_Y_AXIS_LABELING);
+      myProps.add(
+         "labelSize", "'em' size of axis labels, in pixels",
+         DEFAULT_LABEL_SIZE);  
+      myProps.add(
+         "labelColor", "color for axis labels", DEFAULT_LABEL_COLOR);        
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -354,6 +443,30 @@ public class GLGridPlane implements HasProperties {
       return myLineWidth;
    }
 
+   public boolean getConstrainToWorld() {
+      return myConstrainToWorld;
+   }
+
+   public void setConstrainToWorld (boolean enable) {
+      if (myConstrainToWorld != enable) {
+         myConstrainToWorld = enable;
+         if (enable) {
+            // reset position; new position will be constrained
+            setGridToWorld (getGridToWorld());
+            if (myDragger instanceof Transrotator3d) {
+               ((Transrotator3d)myDragger).setConstrainer (
+                  new AlignConstrainer());
+            }
+         }
+         else {
+            if (myDragger instanceof Transrotator3d) {
+               ((Transrotator3d)myDragger).setConstrainer (null);
+            }
+            setUseWorldOrigin (false);
+         }
+      }
+   }
+   
    public Point3d getPosition() {
       return new Point3d (XGridToWorld.p);
    }
@@ -363,7 +476,21 @@ public class GLGridPlane implements HasProperties {
       X.p.set (pos);
       setGridToWorld (X);
    }
-
+   
+   // /**
+   //  * Set the grid position approximately to <code>pos</code>,
+   //  * rounded to align with the current major grid division.
+   //  * 
+   //  * @param pos approximate grid position
+   //  */
+   // public void setAlignedPosition (Point3d pos) {
+   //    double res = getResolution().getMajorCellSize();
+   //    double x = res*Math.round(pos.x/res);
+   //    double y = res*Math.round(pos.y/res);
+   //    double z = res*Math.round(pos.z/res);
+   //    setPosition (new Point3d(x, y, z));
+   // }
+   
    public AxisAngle getOrientation() {
       AxisAngle axisAng = new AxisAngle();
       XGridToWorld.R.getAxisAngle (axisAng);
@@ -389,11 +516,9 @@ public class GLGridPlane implements HasProperties {
     */
    public void setResolution (double majorCellSize, int numDivisions) {
       if (majorCellSize == 0) {
-         System.out.println ("auto sized");
          myAutoSizedP = true;
       }
       else {
-         System.out.println ("explicit sized");
          myResolution.set (majorCellSize, numDivisions);
          myAutoSizedP = false;
       }
@@ -489,15 +614,35 @@ public class GLGridPlane implements HasProperties {
     * Aligns a point with the nearest point defined by this grid. Both the
     * original and aligned points are described in grid coordinates.
     */
-   public void alignPoint (Point3d aligned, Point3d pnt) {
+   public void alignPoint (Vector3d aligned, Vector3d pnt) {
       double res = getCellSize()/getCellDivisions();
       aligned.x = res*Math.round(aligned.x/res); 
       aligned.y = res*Math.round(aligned.y/res); 
       aligned.z = res*Math.round(aligned.z/res); 
    }
 
-   public void setGridToWorld (RigidTransform3d X) {
-      XGridToWorld.set (X);
+   RigidTransform3d alignToWorld (RigidTransform3d GTW) {
+      RigidTransform3d ATW = new RigidTransform3d();
+      double res = getResolution().getMajorCellSize();
+      ATW.p.x = res*Math.round(GTW.p.x/res);
+      ATW.p.y = res*Math.round(GTW.p.y/res);
+      ATW.p.z = res*Math.round(GTW.p.z/res);
+      AxisAlignedRotation alignedRot = AxisAlignedRotation.getNearest(GTW.R);
+      alignedRot.getMatrix (ATW.R);
+      return ATW;
+   }
+
+   public void setGridToWorld (RigidTransform3d TGW) {
+      XGridToWorldTarget.set (TGW);
+      if (myConstrainToWorld) {
+         RigidTransform3d TGWnew = alignToWorld (TGW);
+         AlignConstrainer aligner = new AlignConstrainer();
+         aligner.updatePose (TGWnew, TGW);
+         XGridToWorld.set (TGWnew);
+      }
+      else {
+         XGridToWorld.set (TGW);
+      }
       if (myDragger != null) {
          myDragger.setDraggerToWorld (XGridToWorld);
       }
@@ -548,6 +693,25 @@ public class GLGridPlane implements HasProperties {
       }
    }
 
+   private class MyDraggerListener extends Dragger3dAdapter {
+
+      RigidTransform3d TGW0 = new RigidTransform3d();
+
+      MyDraggerListener () {
+      }
+      
+      public void draggerBegin (Dragger3dEvent e) {
+         TGW0.set (XGridToWorld);
+      }
+
+      public void draggerMove (Dragger3dEvent e) {
+         RigidTransform3d TGW = new RigidTransform3d();
+         RigidTransform3d T = (RigidTransform3d)e.getTransform();
+         TGW.mul (TGW0, T);
+         setGridToWorld (TGW);
+      }
+   }
+
    public void setDragger (DraggerType type) {
       if (type != getDragger()) {
          if (myDragger != null && myViewer != null) {
@@ -564,6 +728,10 @@ public class GLGridPlane implements HasProperties {
             }
             case Transrotator: {
                myDragger = new Transrotator3d();
+               if (myConstrainToWorld) {
+                  ((Transrotator3d)myDragger).setConstrainer (
+                     new AlignConstrainer());
+               }
                break;
             }
             case Rotator: {
@@ -577,12 +745,7 @@ public class GLGridPlane implements HasProperties {
          }
          if (myDragger != null) {
             myDragger.setDraggerToWorld (XGridToWorld);
-            myDragger.addListener (new Dragger3dAdapter() {
-               public void draggerMove (Dragger3dEvent e) {
-                  XGridToWorld.mul (
-                     (RigidTransform3d)e.getIncrementalTransform());
-               }
-            });
+            myDragger.addListener (new MyDraggerListener ());
          }
          if (myViewer != null) {
             if (myDragger != null) {
@@ -687,6 +850,49 @@ public class GLGridPlane implements HasProperties {
       myMajorRGB = createRGB (color);
    }
 
+   public boolean getUseWorldOrigin() {
+      return myUseWorldOrigin;
+   }
+   
+   public void setUseWorldOrigin (boolean enable) {
+      if (!myConstrainToWorld) {
+         enable = false;
+      }
+      myUseWorldOrigin = enable;
+   }
+   
+   public AxisLabeling getXAxisLabeling() {
+      return myXAxisLabeling;
+   }
+   
+   public void setXAxisLabeling (AxisLabeling labeling) {
+      myXAxisLabeling = labeling;
+   }
+   
+   public AxisLabeling getYAxisLabeling() {
+      return myYAxisLabeling;
+   }
+   
+   public void setYAxisLabeling (AxisLabeling labeling) {
+      myYAxisLabeling = labeling;
+   }
+
+   public void setLabelSize (double emSize) {
+      myLabelSize = emSize;
+   }
+   
+   public double getLabelSize () {
+      return myLabelSize;
+   }
+   
+   public void setLabelColor (Color color) {
+      myLabelColor = color;
+   }
+   
+   public Color getLabelColor () {
+      return myLabelColor;
+   }
+   
    public Color getXAxisColor() {
       return createColor (myXAxisRGB);
    }
@@ -829,10 +1035,18 @@ public class GLGridPlane implements HasProperties {
     * <p>
     * The method works by finding the centroid of the (clipped) polygon
     * associated with the grid boundary, as seen in screen coordinates. This
-    * centrod is the projected back onto the plane.
+    * centroid is the projected back onto the plane.
     */
    private double computeFocalPoint (
-      RigidTransform3d XGridToEye, Point3d focus, Renderer renderer) {
+      Point3d focus, RigidTransform3d TGW, Renderer renderer) {
+
+      RigidTransform3d XGridToEye = new RigidTransform3d();
+      RigidTransform3d TWorldToEye = renderer.getViewMatrix();
+      XGridToEye.mul (TWorldToEye, TGW);
+
+      if (focus == null) {
+         focus = new Point3d();
+      }
       if (renderer.isOrthogonal()) {
          Plane plane = new Plane();
          plane.set (XGridToEye);
@@ -871,50 +1085,134 @@ public class GLGridPlane implements HasProperties {
       return zref / near * nearDistPerPixel;
    }
 
-   private void drawGrid (Renderer renderer) {
+   String createLabel (double cellSize, int n) {
+      double log10 = (int)Math.log10(cellSize);
+      int exp = (int)log10;
+      int base = (int)Math.round(Math.pow(10,log10-exp));
+      return createLabel (base, exp, n);
+   }
 
+   String createLabel (int base, int exp, int n) {
+
+      if (n == 0) {
+         return "0";
+      }
+      StringBuilder sbuild = new StringBuilder();
+      sbuild.append (Integer.toString(Math.abs(n*base)));
+      int len = sbuild.length();
+      if (exp > 3 || exp < -4) {
+         // find the number of trailing zeros
+         int numz = 0;
+         for (int i=len-1; i>=0 && sbuild.charAt(i)=='0'; i--) {
+            numz++;
+         }
+         if (numz > 0) {
+            sbuild.setLength (len-numz);
+            exp += numz;
+            len -= numz;
+         }
+         if (len > 1) {
+            sbuild.insert (1, '.');
+            exp += (len-1);
+         }
+         sbuild.append ('e');
+         sbuild.append (exp);
+      }
+      else {
+         if (exp > 0) {
+            // add trailing zeros
+            for (int i=0; i<exp; i++) {
+               sbuild.append ('0');
+            }
+         }
+         else if (exp < 0) {
+            // // remove trailing zeros if necessary
+            // int numz = 0;
+            // for (int i=len-1; i>=0 && sbuild.charAt(i)=='0' && numz < -exp; i--) {
+            //    numz++;
+            // }
+            // if (numz > 0) {
+            //    sbuild.setLength (len-numz);
+            //    exp += numz;
+            //    len -= numz;
+            // }
+            int didx = len+exp; // index of decimal point
+            while (didx < 0) {
+               // add leading zeros
+               sbuild.insert (0, '0');
+               didx++;
+            }              
+            sbuild.insert (didx, '.');
+         }
+      }
+      if (n < 0) {
+         sbuild.insert (0, '-');
+      }
+      return sbuild.toString();
+   }      
+
+   private GLGridResolution updateResolution (double distPerPixel) {
+      int[] factors = new int[2];
+      double minorSize = Round.up125 (factors, myMinCellPixels*distPerPixel);
+      int numDivisions;
+      int k = factors[0];
+      if (k == 5) {
+         numDivisions = 10;
+      }
+      else {
+         numDivisions = (int)Math.round(10.0/k);
+      }
+      double majorSize = numDivisions*minorSize;     
+      return new GLGridResolution (majorSize, numDivisions);
+   }
+
+   private void drawGrid (Renderer renderer) {
       
       if (myMinSize == 0) {
          return;
       }
 
-      //Plane plane = getPlane();
-      RigidTransform3d TWorldToEye = renderer.getViewMatrix();
-      //plane.inverseTransform (XEyeToWorld);
-
-      Point3d focus = new Point3d();
-      RigidTransform3d XGridToEye = new RigidTransform3d();
-      XGridToEye.mul (TWorldToEye, XGridToWorld);
-      double distPerPixel = computeFocalPoint (XGridToEye, focus, renderer);
-      //focus.inverseTransform (XGridToEye);
-
+      double distPerPixel = computeFocalPoint (null, XGridToWorld, renderer);
       if (distPerPixel == -1) { // grid is invisible
          return;
       }
 
-      double minorSize; // minor cell size
-      int halfCellCnt; // number of minor cells on each side of the x and y axes
-
-      double majorCellSize = myResolution.getMajorCellSize();
-      int numDivisions = myResolution.getNumDivisions();
-
       if (myAutoSizedP) {
          // start by computing the minor spacing, and then compute the major
          // spacing assume 10 cell divisions
-
-         int[] factors = new int[2];
-         minorSize = Round.up125 (factors, myMinCellPixels*distPerPixel);
-         int k = factors[0];
-         if (k == 5) {
-            numDivisions = 10;
+         GLGridResolution res = updateResolution (distPerPixel);
+         if (!myResolution.equals (res)) {
+            if (myUseWorldOrigin) {
+               // May need to change position to accomodate new resolution.
+               RigidTransform3d TGWnew =
+                  new RigidTransform3d (XGridToWorldTarget);
+               AlignConstrainer aligner = new AlignConstrainer();
+               aligner.updatePose (TGWnew, XGridToWorldTarget);
+               double dpp = computeFocalPoint (null, TGWnew, renderer);
+               GLGridResolution resx = updateResolution (dpp);
+               if (resx.equals (res)) {
+                  myResolution.set (res);
+                  setGridToWorld (TGWnew);
+               }
+               else {
+                  //System.out.println ("cycle detected");
+               }
+               // Old code without cycle detection
+               //myResolution.set (res);
+               //setGridToWorld (XGridToWorldTarget);
+            }
+            else {
+               myResolution.set (res);
+            }
          }
-         else {
-            numDivisions = (int)Math.round(10.0/k);
-         }
-         majorCellSize = numDivisions*minorSize;
       }
 
-      minorSize = majorCellSize / numDivisions;
+      double majorSize = myResolution.getMajorCellSize();
+      int numDivisions = myResolution.getNumDivisions();
+      double minorSize; // minor cell size
+      int halfCellCnt; // number of minor cells on each side of the x and y axes
+
+      minorSize = majorSize / numDivisions;
       halfCellCnt = (int)Math.ceil (myMinSize/(2*minorSize));
       if (halfCellCnt == 0) {
          halfCellCnt = numDivisions;
@@ -931,6 +1229,15 @@ public class GLGridPlane implements HasProperties {
          halfCellCnt = maxCells;
       }
 
+      RigidTransform3d TGW = new RigidTransform3d(XGridToWorld);
+      if (myUseWorldOrigin) {
+         // then we want to rotate the grid back so that x/y correspond to the
+         // eye frame. Otherwise, x and y axes will be in the wrong place
+         RigidTransform3d XGridToEye = new RigidTransform3d();
+         XGridToEye.mul (renderer.getViewMatrix(), XGridToWorld);
+         //TGW.R.mulInverse (XGridToEye.R);
+      }
+
       double halfSize = halfCellCnt*minorSize;
 
       int xcnt = 2 * halfCellCnt + 1; // number of x axis cell divisions
@@ -940,62 +1247,19 @@ public class GLGridPlane implements HasProperties {
       double ymax = halfSize; // maximum y value
       double ymin = -ymax; // minimum y value
 
-      //********************************************************
-      // Begin old focal point clipping code that tried to limit the number of
-      // cells around a focal point. Didn't work very well.
-
-      // focus_i and focus_j are the cell division indices associated
-      // with the focal point
-
-      // int focus_i = (int)Math.round ((focus.x - xmin) / minorSize);
-      // if (focus_i < 0) {
-      //    focus_i = 0;
-      // }
-      // else if (focus_i >= xcnt) {
-      //    focus_i = xcnt - 1;
-      // }
-
-      // int focus_j = (int)Math.round ((focus.y - ymin) / minorSize);
-      // if (focus_j < 0) {
-      //    focus_j = 0;
-      // }
-      // else if (focus_j >= ycnt) {
-      //    focus_j = ycnt - 1;
-      // }
-
-      // if (focus_i > maxCells) {
-      //    int numclipped = focus_i - maxCells;
-      //    xmin += numclipped * minorSize;
-      //    xcnt -= numclipped;
-      //    focus_i = maxCells;
-      //    System.out.println ("clipping xmin " + xmin);
-      // }
-      // if (xcnt - focus_i > maxCells) {
-      //    int numclipped = xcnt - focus_i - maxCells;
-      //    xmax -= numclipped * minorSize;
-      //    xcnt -= numclipped;
-      //    System.out.println ("clipping xmax " + xmax);
-      // }
-      // if (focus_j > maxCells) {
-      //    int numclipped = focus_j - maxCells;
-      //    ymin += numclipped * minorSize;
-      //    ycnt -= numclipped;
-      //    focus_j = maxCells;
-      //    System.out.println ("clipping ymin " + ymin);
-      // }
-      // if (ycnt - focus_j > maxCells) {
-      //    int numclipped = ycnt - focus_j - maxCells;
-      //    ymax -= numclipped * minorSize;
-      //    ycnt -= numclipped;
-      //    System.out.println ("clipping ymax " + ymax);
-      // }
-      // End old focal point clipping code
-      //********************************************************
-
       // y_axis_i and x_axis_j are the cell division indices associated with
       // the grid's x and y axes
-      int y_axis_i = (int)Math.round (-xmin / minorSize);
-      int x_axis_j = (int)Math.round (-ymin / minorSize);
+      double xoff = 0;
+      double yoff = 0;
+      if (myUseWorldOrigin) {
+         Point3d center = new Point3d();
+         // compute offset so the axes correspond to the real world center
+         center.inverseTransform (TGW);
+         xoff = center.x;
+         yoff = center.y;
+      }     
+      int y_axis_i = (int)Math.round ((xmax+xoff) / minorSize);
+      int x_axis_j = (int)Math.round ((ymax+yoff) / minorSize);
 
       float[] minorRGB = new float[3];
       if (myMinorRGB == null) {
@@ -1037,7 +1301,8 @@ public class GLGridPlane implements HasProperties {
       //*********************************************************
 
       // maybe update info
-      rcacheInfo.update(numDivisions, (float)minorSize, xcnt, ycnt, x_axis_j, y_axis_i, 
+      rcacheInfo.update(
+         numDivisions, (float)minorSize, xcnt, ycnt, x_axis_j, y_axis_i, 
          (float)xmin, (float)xmax, (float)ymin, (float)ymax,
          myXAxisRGB, myYAxisRGB, myMajorRGB, minorRGB);
 
@@ -1045,20 +1310,133 @@ public class GLGridPlane implements HasProperties {
       renderer.setLineWidth(myLineWidth);
 
       renderer.pushModelMatrix();
-      renderer.mulModelMatrix(XGridToWorld);
+      renderer.mulModelMatrix(TGW);
 
       renderer.drawLines (rcacheInfo.getRenderObject());
+
+      renderer.setDepthOffset (1);
+      if (myXAxisLabeling != AxisLabeling.OFF ||
+          myYAxisLabeling != AxisLabeling.OFF) {
+         drawAxisLabels (
+            renderer, TGW, xcnt, ycnt, majorSize, numDivisions, distPerPixel);
+      }
 
       renderer.popModelMatrix();
       renderer.setLineWidth(1);
       renderer.setShading (savedShading);
+   }
 
-      if (myAutoSizedP &&
-      (majorCellSize != myResolution.getMajorCellSize() ||
-      numDivisions != myResolution.getNumDivisions())) {
-         myResolution.set (majorCellSize, numDivisions);
+   private Color getEffectiveLabelColor() {
+      if (myLabelColor != null) {
+         return myLabelColor;
+      }
+      else if (myViewer != null) {
+         float[] bg = myViewer.getBackgroundColor().getRGBColorComponents(null);
+         if (bg[0] + bg[1] + bg[2] >= 1.5) {
+            return Color.BLACK;
+         }
+         else {
+            return Color.WHITE;
+         }
+      }
+      else {
+         return Color.WHITE;
       }
    }
+   
+   private void drawAxisLabels (
+      Renderer renderer, RigidTransform3d TGW, int xcnt, int ycnt, 
+      double majorSize, int numDivisions, double pixelSize) {
+
+      double log10 = Math.log10(majorSize);
+      int exp, base;
+      if (log10 >= 0) {
+         exp = (int)log10;
+         base = (int)Math.round(Math.pow(10,log10-exp));
+      }
+      else {
+         exp = (int)(log10-1);
+         base = (int)Math.round(Math.pow(10,log10-exp));
+         if (base == 10) {
+            base = 1;
+            exp++;
+         }
+      }
+
+      renderer.setColor (getEffectiveLabelColor());
+
+      // minimum indices of the major cell divisions along x and y.
+      // maximum indices are the negatives of these
+      int min_x_idx = -(xcnt-1)/(2*numDivisions);
+      int min_y_idx = -(ycnt-1)/(2*numDivisions);
+
+      // Find offset of grid center relative to viewer center. (These aren't
+      // necessarily the same because of the need to align grid with major
+      // divisions.)
+      Point3d goff = new Point3d(renderer.getCenter());
+      goff.inverseTransform (TGW);
+
+      double sw = renderer.getScreenWidth()*pixelSize;
+      double sh = renderer.getScreenHeight()*pixelSize;
+      // Find indices of major divsions along which to draw x and y axis
+      // labels.  These are the lowest and leftmost divisions that are visible
+      // in the viewer, with an extra tolerance (0.25*majorSize) to allow room
+      // for the labels themselves.
+      int x_label_idx = Math.max(-(int)((sh/2-goff.y)/majorSize-0.25),min_y_idx);
+      int y_label_idx = Math.max(-(int)((sw/2-goff.x)/majorSize-0.25),min_x_idx);
+      double emSize = myLabelSize*pixelSize;
+
+      // Find cordinates at grid center
+      Point3d gcenter = new Point3d();
+      Vector3d axisDirs = new Vector3d(1, 1, 1);
+      if (myUseWorldOrigin) {
+         gcenter.inverseTransform (TGW.R, TGW.p);
+         axisDirs.inverseTransform (TGW.R, axisDirs);
+      }
+
+      if (myXAxisLabeling != AxisLabeling.OFF) {
+         Vector3d pos = new Vector3d();
+         double y = x_label_idx*majorSize-emSize;
+         int izero = (int)Math.round(-gcenter.x/majorSize);
+         int sgnx = axisDirs.x > 0 ? 1 : -1;
+         int x_min = Math.max(y_label_idx-1,min_x_idx);
+         int x_max = Math.min((int)(x_min+sw/majorSize+0.5),-min_x_idx);
+         for (int i=x_min; i<=x_max; i++) {
+            String label = createLabel (base, exp, sgnx*(i-izero));
+            pos.set (i*majorSize+2*pixelSize, y, 0);
+            renderer.drawText (label, pos, emSize);
+         }
+      }
+      if (myYAxisLabeling != AxisLabeling.OFF) {
+         Vector3d pos = new Vector3d();
+         double x = y_label_idx*majorSize-2*pixelSize;
+         int jzero = (int)Math.round(-gcenter.y/majorSize);
+         int sgny = axisDirs.y > 0 ? 1 : -1;
+         int y_min = Math.max(x_label_idx-1,min_y_idx);
+         int y_max = Math.min((int)(y_min+sh/majorSize+0.5),-min_y_idx);
+         for (int j=y_min; j<=y_max; j++) {
+            String label = createLabel (base, exp, sgny*(j-jzero));
+            Rectangle2D bounds = renderer.getTextBounds (
+               renderer.getDefaultFont(), label, emSize);
+            double y = j*majorSize+2*pixelSize;
+            pos.set (x-bounds.getWidth(), y, 0);
+            renderer.drawText (label, pos, emSize);
+         }
+      }
+   }
+
+   public static void main (String[] args) {
+      GLGridPlane gp = new GLGridPlane();
+
+      System.out.println (gp.createLabel (10, -2, 1));
+      System.out.println (gp.createLabel (1, -1, 1));
+
+      for (int i=-7; i<=7; i++) {
+         double cellSize = Math.pow (10, i);
+         System.out.println (gp.createLabel (cellSize, 1));
+      }
+   }
+
 }
 
 class LineSegment {
@@ -1108,7 +1486,7 @@ class LineSegment {
 
    double length() {
       return s2 - s1;
-   }
+  }
 
    // private static double DOUBLE_PREC = 2e-16;
 

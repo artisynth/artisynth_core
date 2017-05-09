@@ -71,6 +71,7 @@ import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionFilter;
 import maspack.render.ViewerSelectionListener;
 import maspack.render.GL.GLProgramInfo.RenderingMode;
+import maspack.render.GL.GLGridPlane.AxisLabeling;
 import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
 import maspack.util.Logger;
@@ -1084,14 +1085,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    private void setGridSizeAndPosition (Point3d pcenter, double r) {
 
       myGrid.setMinSize (4 * r);
-      myGrid.setPosition (pcenter);
       myGrid.setAutoSized (true);
-      // redajust grid position so that it aligns with the resolution
-      double res = myGrid.getResolution().getMajorCellSize();
-      double x = res*Math.round(pcenter.x/res);
-      double y = res*Math.round(pcenter.y/res);
-      double z = res*Math.round(pcenter.z/res);
-      myGrid.setPosition (new Point3d(x, y, z));
+      myGrid.setPosition (pcenter);
    }
 
    /**
@@ -1511,6 +1506,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
       X.R.setXYDirections (xdir, ydir);      
       myGrid.setGridToWorld (X);
+      myGrid.setUseWorldOrigin (true);
+      myGrid.setConstrainToWorld (true);
       myGrid.setXAxisColor (getAxisColor (xmaxIdx));
       myGrid.setYAxisColor (getAxisColor (ymaxIdx));
    }

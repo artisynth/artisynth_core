@@ -74,7 +74,12 @@ public class ViewerManager {
          if ("Set viewer properties".equals(cmd)) {
             PropertyDialog dialog = createPropertyDialog("OK Cancel");
             dialog.setVisible (true);
-         } else if ("Refresh view".equals(cmd)) {
+         }
+         else if ("Set viewer grid properties".equals(cmd)) {
+            PropertyDialog dialog = createGridPropertyDialog("OK Cancel");
+            dialog.setVisible (true);
+         }
+         else if ("Refresh view".equals(cmd)) {
             myViewer.rerender(myRefreshRenderFlags);
          }
       }
@@ -487,6 +492,9 @@ public class ViewerManager {
       JPopupMenu popup = new JPopupMenu();
       popup.add (GuiUtils.createMenuItem (
          pm, "Set viewer properties", "Set properties for this viewer"));
+      popup.add (GuiUtils.createMenuItem (
+         pm, "Set viewer grid properties",
+         "Set properties for this viewer's grid"));
       popup.add (GuiUtils.createMenuItem (
          pm, "Refresh view",
          "Refresh the rendered view, sorting faces if necessary"));

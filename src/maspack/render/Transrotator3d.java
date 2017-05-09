@@ -11,6 +11,7 @@ import java.util.LinkedList;
 
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.AxisAngle;
+import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.Line;
 import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
@@ -33,6 +34,31 @@ public class Transrotator3d extends Dragger3dBase {
    protected int myNumCircleSides = 64;
    protected RotationMatrix3d myRot0 = new RotationMatrix3d();
    protected RigidTransform3d myXDraggerToWorld0 = new RigidTransform3d();
+
+   // Special constrainer for testing and debugging only
+   private class AlignConstrainer implements Dragger3dConstrainer {
+
+      public boolean updateRotation (
+         RotationMatrix3d RDWnew, RigidTransform3d TDW) {
+
+         AxisAlignedRotation alignedRot =
+            AxisAlignedRotation.getNearest (RDWnew);
+         RDWnew.set (alignedRot.getMatrix());
+         return !RDWnew.equals (TDW.R);
+      }
+
+      public boolean updatePosition (
+         Vector3d pnew, RigidTransform3d TDW) {
+
+         pnew.x = 2*Math.round(pnew.x/2);
+         pnew.y = 2*Math.round(pnew.y/2);
+         pnew.z = 2*Math.round(pnew.z/2);
+
+         return !pnew.equals (TDW.p);
+      }
+   }
+
+   protected Dragger3dConstrainer myConstrainer = null;
 
    //protected GLViewer myViewer; // hack to get repaint
 
@@ -75,6 +101,14 @@ public class Transrotator3d extends Dragger3dBase {
       //myViewer = viewer;
    }
 
+   public Dragger3dConstrainer getConstrainer () {
+      return myConstrainer;
+   }
+
+   public void setConstrainer (Dragger3dConstrainer c) {
+      myConstrainer = c;
+   }
+
    public void render (Renderer renderer, int flags) {
       
       if (!myVisibleP) {
@@ -84,7 +118,8 @@ public class Transrotator3d extends Dragger3dBase {
       Shading savedShading = renderer.setShading (Shading.NONE);
       renderer.setLineWidth(myLineWidth);
       
-      ColorMixing savedMixing = renderer.setVertexColorMixing (ColorMixing.REPLACE);
+      ColorMixing savedMixing =
+         renderer.setVertexColorMixing (ColorMixing.REPLACE);
 
       renderer.pushModelMatrix();
       renderer.mulModelMatrix(myXDraggerToWorld);
@@ -112,9 +147,9 @@ public class Transrotator3d extends Dragger3dBase {
       renderer.popModelMatrix();
 
       if (myDragMode != DragMode.OFF && 
-         (mySelectedComponent == X_ROTATE
-         || mySelectedComponent == Y_ROTATE
-         || mySelectedComponent == Z_ROTATE)) {
+         (mySelectedComponent == X_ROTATE ||
+          mySelectedComponent == Y_ROTATE ||
+          mySelectedComponent == Z_ROTATE)) {
          // Draw rotation lines using the orientation at the time the drag was
          // started
          RigidTransform3d X = new RigidTransform3d (myXDraggerToWorld0);
@@ -138,7 +173,6 @@ public class Transrotator3d extends Dragger3dBase {
       renderer.setLineWidth(1);
       renderer.setShading (savedShading);
       renderer.setVertexColorMixing (savedMixing);
-
    }
    
    private static void addLineStrip (RenderObject robj, int pidx0, int numv) {
@@ -427,6 +461,11 @@ public class Transrotator3d extends Dragger3dBase {
       }
    }
 
+   /**
+    * Given a ray intersecting one of the rotational dragger components, find
+    * the intersection point p on the component (in dragger coordinates),
+    * along with the corresponding rotation R.
+    */
    protected void findRotation (RotationMatrix3d R, Point3d p, Line ray) {
       Line draggerRay = new Line (ray);
       draggerRay.inverseTransform (myXDraggerToWorld0);
@@ -469,9 +508,25 @@ public class Transrotator3d extends Dragger3dBase {
          del.y = s*Math.round(del.y/s);
          del.z = s*Math.round(del.z/s);
       }
-      myXDraggerToWorld.mulXyz (del.x, del.y, del.z);
-      Tinc.p.set (del.x, del.y, del.z);
-      T.mul (Tinc);
+      if (myConstrainer != null) {
+         Vector3d pnew = new Vector3d();
+         pnew.transform (myXDraggerToWorld.R, del);
+         pnew.add (myXDraggerToWorld.p);
+         if (myConstrainer.updatePosition (pnew, myXDraggerToWorld)) {
+            Tinc.p.sub (pnew, myXDraggerToWorld.p);
+            Tinc.p.inverseTransform (myXDraggerToWorld.R);
+            T.mulXyz (Tinc.p.x, Tinc.p.y, Tinc.p.z);
+            myXDraggerToWorld.p.set (pnew);
+         }
+         else {
+            Tinc.p.setZero();
+         }
+      }
+      else {
+         myXDraggerToWorld.mulXyz (del.x, del.y, del.z);
+         Tinc.p.set (del.x, del.y, del.z);
+         T.mul (Tinc);
+      }
    }
 
    protected void updateRotation (RotationMatrix3d Rot, boolean constrained) {
@@ -488,8 +543,25 @@ public class Transrotator3d extends Dragger3dBase {
          myRotPnt.transform (R, myPnt0);
       }
       Tinc.R.mulInverseLeft (T.R, R);
-      T.R.set (R);
-      myXDraggerToWorld.R.mul (Tinc.R);
+      if (myConstrainer != null) {
+         RotationMatrix3d Rnew = new RotationMatrix3d();
+         Rnew.mul (myXDraggerToWorld.R, Tinc.R);
+         
+         RigidTransform3d Tnew = new RigidTransform3d (myXDraggerToWorld);
+         if (myConstrainer.updateRotation (Rnew, myXDraggerToWorld)) {
+            Tinc.R.mulInverseLeft (myXDraggerToWorld.R, Rnew);
+            myXDraggerToWorld.R.set (Rnew);
+            T.R.mul (Tinc.R);
+            myRotPnt.transform (T.R, myPnt0);
+         }
+         else {
+            Tinc.R.setIdentity();
+         }
+      }
+      else {
+         T.R.set (R);
+         myXDraggerToWorld.R.mul (Tinc.R);
+      }
    }
 
 //   public void draggerSelected (MouseRayEvent e) {
@@ -502,9 +574,9 @@ public class Transrotator3d extends Dragger3dBase {
       DragMode mode = getDragMode ();
       if (mode != DragMode.OFF && mySelectedComponent != NONE) {
          myDragMode = mode;
-         if (mySelectedComponent == X_ROTATE
-           || mySelectedComponent == Y_ROTATE
-           || mySelectedComponent == Z_ROTATE) {
+         if (mySelectedComponent == X_ROTATE ||
+             mySelectedComponent == Y_ROTATE ||
+             mySelectedComponent == Z_ROTATE) {
             myXDraggerToWorld0.set (myXDraggerToWorld);
             findRotation (myRot0, myPnt0, e.getRay());
             myRotPnt.set (myPnt0);
@@ -539,9 +611,9 @@ public class Transrotator3d extends Dragger3dBase {
       if (mySelectedComponent != NONE) {
          // boolean constrained = dragIsConstrained (e);
          boolean constrained = dragIsConstrained ();
-         if (mySelectedComponent == X_ROTATE
-         || mySelectedComponent == Y_ROTATE
-         || mySelectedComponent == Z_ROTATE) {
+         if (mySelectedComponent == X_ROTATE ||
+             mySelectedComponent == Y_ROTATE ||
+             mySelectedComponent == Z_ROTATE) {
             RotationMatrix3d R = new RotationMatrix3d();
             findRotation (R, myRotPnt, e.getRay());
             updateRotation (R, constrained);

@@ -74,7 +74,7 @@ public class NumericInputProbe extends NumericProbeBase
       setInputProperties (new Property[] { prop });
       if (fileName != null) {
          setAttachedFileName (fileName);
-         load();
+         load(/*setTimes=*/true);
       }
       else // probe should be settable
       {
@@ -188,15 +188,18 @@ public class NumericInputProbe extends NumericProbeBase
    public boolean getExtendData() {
       return myInterpolation.isDataExtended();
    }
-
+         
    /**
     * Reads the start and stop times, scale value, and data for this probe from
     * an ascii file. The following information should be provided in order,
     * separated by white space:
     * <ul>
-    * <li>start time (either seconds or nanoseconds, as described below)
+    * <li>start time (either seconds or nanoseconds, as described below).
+    * Ignored if <code>setTimes</code> is false. 
     * <li>stop time (either seconds or nanoseconds, as described below)
+    * Ignored if <code>setTimes</code> is false. 
     * <li>scale value (floating point number; nominal value is 1)
+    * Ignored if <code>setTimes</code> is false. 
     * <li>interpolation order ("step", "linear", or "cubic")
     * <li>number of data values n at each knot point (an integer)
     * <li>either the knot point time step (floating point number, in seconds),
@@ -246,10 +249,13 @@ public class NumericInputProbe extends NumericProbeBase
     * 
     * @param file
     * File from which to read the probe information
+    * @param setTimes if <code>true</code>, sets the start time, stop time,
+    * and scale values to those indicated at the head of the file. If 
+    * <code>false</code>, these values are ignored.
     * @throws IOException
     * if an I/O or format error occurred.
     */
-   public void read (File file) throws IOException {
+   public void read (File file, boolean setTimes) throws IOException {
       // myAttachedFile = null;
       ReaderTokenizer rtok =
          new ReaderTokenizer (new BufferedReader (new FileReader (file)));
@@ -257,13 +263,19 @@ public class NumericInputProbe extends NumericProbeBase
       rtok.ordinaryChar ('/');
       double time = 0;
       time = scanTimeQuantity (rtok);
-      // setStartTime (time);
+      if (setTimes) {
+         setStartTime (time);
+      }
       time = scanTimeQuantity (rtok);
-      // setStopTime (time);
+      if (setTimes) {
+         setStopTime (time);
+      }
       if (rtok.nextToken() != ReaderTokenizer.TT_NUMBER) {
          throw new IOException ("expecting scale value, line " + rtok.lineno());
       }
-      // setScale (rtok.nval);
+      if (setTimes) {
+         setScale (rtok.nval);
+      }
 
       int numValues = 0;
       Order interpolationOrder;
@@ -315,7 +327,7 @@ public class NumericInputProbe extends NumericProbeBase
 
    /**
     * Writes the start and stop times, scale value, and data for this probe to a
-    * PrintWriter, using the format described for {@link #read(File)
+    * PrintWriter, using the format described for {@link #read(File,boolean)
     * read(File)}. The format used for producing floating point numbers can be
     * controlled using a printf-style format string, details of which are
     * described in {@link maspack.util.NumberFormat NumberFormat}.
@@ -389,12 +401,7 @@ public class NumericInputProbe extends NumericProbeBase
       myNumericList.add (knotEnd);
    }
 
-   /**
-    * When called (perhaps by the Artsynth timeline), causes information about
-    * this probe to be loaded from the attached file.
-    * 
-    */
-   public void load() throws IOException {
+   protected void load(boolean setTimes) throws IOException {
       File file = getAttachedFile();
       if (file != null) {
          if (!file.exists()) {
@@ -402,9 +409,17 @@ public class NumericInputProbe extends NumericProbeBase
             + " does not exist");
          }
          else {
-            read (file);
+            read (file,setTimes);
          }
-      }
+      }     
+   }
+   
+   /**
+    * When called (perhaps by the Artsynth timeline), causes information about
+    * this probe to be loaded from the attached file.
+    */
+   public void load() throws IOException {
+      load(/*setTimes=*/false);
    }
 
    public void addData (File file, double timeStep) throws IOException {

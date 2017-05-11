@@ -143,7 +143,7 @@ public class NumericOutputProbe extends NumericProbeBase
    /**
     * Writes the start and stop times, scale value, and data for this probe to a
     * PrintWriter, using the format described for {@link
-    * artisynth.core.probes.NumericInputProbe#read(File)
+    * artisynth.core.probes.NumericInputProbe#read(File,boolean)
     * NumericInputProbe.read(File)}. The format used for producing floating
     * point numbers can be controlled using a printf-style format string,
     * details of which are described in {@link maspack.util.NumberFormat

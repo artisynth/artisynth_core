@@ -23,6 +23,7 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.Vector4d;
 import maspack.render.BumpMapProps;
 import maspack.render.ColorMapProps;
+import maspack.render.NormalMapProps;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
@@ -873,7 +874,8 @@ public class WavefrontReader extends MeshReaderBase {
       }
       else if (rtok.sval.equals("g") ||
                rtok.sval.equals("sg") ||
-               rtok.sval.equals("mg")) {
+               rtok.sval.equals("mg") ||
+               rtok.sval.equals("o")) {
          rtok.parseNumbers(false);
          String groupName = scanName(rtok);
          if (rtok.ttype == ReaderTokenizer.TT_WORD) {
@@ -912,20 +914,6 @@ public class WavefrontReader extends MeshReaderBase {
                      + "' not found; ignoring");
             }
          }
-      }
-      // Edit: Sanchez, April 30, 2012
-      // Included check object name "o", and smoothing "s"
-      // TODO: include functionality
-      else if (rtok.sval.equals("o")) {
-         // process name (although, according to specs, not used for anything)
-
-         int savePeriod = rtok.getCharSetting('.');
-         rtok.wordChar('.');
-         nextToken(rtok);
-         // String name = rtok.sval;
-         // System.out.println("Wavefront object: "+name);
-         rtok.setCharSetting('.', savePeriod);
-         toEOL(rtok);
       }
       else if (rtok.sval.equals("s")) {
          // process smoothing group
@@ -1118,9 +1106,14 @@ public class WavefrontReader extends MeshReaderBase {
          props.setSpecular (new Color((float)r, (float)g, (float)b));
       }
       else if (rtok.sval.equals("d") || rtok.sval.equals("Tr")) {
+         String a = rtok.sval;
          double alpha = rtok.scanNumber();
          if (props != null) {
-            props.setAlpha(alpha);
+            if (a.equals("d")) {
+               props.setAlpha(alpha);
+            } else {
+               props.setAlpha(1-alpha);
+            }
          }
       }
       else if (rtok.sval.equals("Ns")) {
@@ -1160,7 +1153,7 @@ public class WavefrontReader extends MeshReaderBase {
          rtok.setCharSetting ('-', saveDash);
       }
       // eg map_Kd lenna.tga # the diffuse texture map
-      else if (rtok.sval.equals("bump") || rtok.sval.equals("map_bump")) {
+      else if (rtok.sval.equals("bump") || rtok.sval.equalsIgnoreCase("map_bump")) {
 
          // we need period
          int savePeriod = rtok.getCharSetting('.');
@@ -1180,6 +1173,32 @@ public class WavefrontReader extends MeshReaderBase {
             tprops.setFileName(currPath + "/" + map);
             tprops.setEnabled(true);
             props.setBumpMap(tprops);
+         }
+
+         // restore period state
+         rtok.setCharSetting('.', savePeriod);
+         rtok.setCharSetting ('-', saveDash);
+      }
+      else if (rtok.sval.equals("norm") || rtok.sval.equalsIgnoreCase("map_norm")) {
+
+         // we need period
+         int savePeriod = rtok.getCharSetting('.');
+         rtok.wordChar('.');
+         int saveDash = rtok.getCharSetting ('-');
+         rtok.wordChar ('-');
+         
+         String map = rtok.scanWord();
+         if (map != null) {
+            // set texture properties
+            props.setFaceStyle(Renderer.FaceStyle.FRONT_AND_BACK);
+            props.setShading(Shading.SMOOTH);
+            NormalMapProps tprops = props.getNormalMap ();
+            if (tprops == null) {
+               tprops = new NormalMapProps();
+            }
+            tprops.setFileName(currPath + "/" + map);
+            tprops.setEnabled(true);
+            props.setNormalMap(tprops);
          }
 
          // restore period state

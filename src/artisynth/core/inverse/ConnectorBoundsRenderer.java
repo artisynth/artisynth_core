@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import artisynth.core.mechmodels.Frame;
 import artisynth.core.modelbase.MonitorBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.RotationMatrix3d;
@@ -24,15 +25,26 @@ public class ConnectorBoundsRenderer extends MonitorBase {
    ArrayList<LineInfo> lines = new ArrayList<LineInfo> ();
    ArrayList<TriInfo> planes = new ArrayList<TriInfo> ();
    double mySize = 1d;
+   
+   SphericalJointForceBound shoulderConstraint;
+   Frame glenoidFrame;
+   Point3d basePoint; // Previous version used a base point instead of a frame
 
-   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Point3d p0) {
-      this (bounds, p0, 1d);
+   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Frame glenoidFrame) {
+      this (bounds, glenoidFrame, 1d);
    }
    
-   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Point3d p0, double size) {
+   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Point3d p0) {
+      this(bounds, null, 1d);
+      basePoint = p0;
+   }
+   
+   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Frame glenoidFrame, double size) {
       mySize = size;
       setRenderProps (createRenderProps ());
-      addRenderables(bounds, p0);
+      shoulderConstraint = bounds;
+      this.glenoidFrame = glenoidFrame;
+      addRenderables();
    }
 
    protected RenderProps myRenderProps = null;
@@ -52,17 +64,23 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       return myProps;
    }
    
-   public void addRenderables (SphericalJointForceBound bounds, Point3d p0) {
+   public void addRenderables () {
       
       Iterator<Vector3d> viter;
       Iterator<Point3d> piter;
       Vector3d prev, first;
       Point3d prevPt, firstPt;
       Vector3d tmp = new Vector3d ();
+      Point3d p0;
+      if (glenoidFrame == null) {
+         p0 = basePoint;
+      } else {
+         p0 = glenoidFrame.getPosition ();
+      }
 
       ArrayList<Point3d> polyPts = new ArrayList<Point3d> ();
-      viter = bounds.getBoundNormals ().iterator ();
-      prev = bounds.getBoundNormals ().get (bounds.getBoundNormals ().size ()-1);
+      viter = shoulderConstraint.getBoundNormals ().iterator ();
+      prev = shoulderConstraint.getBoundNormals ().get (shoulderConstraint.getBoundNormals ().size ()-1);
       while (viter.hasNext ()) {
          Vector3d cur = viter.next ();
          tmp.cross (prev, cur);
@@ -183,12 +201,16 @@ public class ConnectorBoundsRenderer extends MonitorBase {
 
    @Override
    public void apply (double t0, double t1) {
-      // do nothing, just renderer
-   }
+      //do nothing, just renderer
+  }
 
    @Override
    public void prerender (RenderList list) {
       super.prerender (list);
+    //clear the lines and planes and re-create the information
+      lines = new ArrayList<LineInfo> ();
+      planes = new ArrayList<TriInfo> ();
+      addRenderables();  
 //      System.out.println ("CBR-pr");
 //      list.addIfVisible (this);
    }

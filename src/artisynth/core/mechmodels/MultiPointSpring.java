@@ -108,7 +108,7 @@ public class MultiPointSpring extends PointSpringBase
     */
    public class WrapKnot {
       public Point3d myPos;         // knot position 
-      public Vector3d myForce;      // force on the knot
+      public Vector3d myForce;      // first-order force on the knot
  
       // attributes used if the knot is is contact with a wrappable:
       Vector3d myNrml;              // contact normal
@@ -152,8 +152,8 @@ public class MultiPointSpring extends PointSpringBase
     */
    public class Segment {
 
-      public Point myPntB; // end-point A
-      public Point myPntA; // end-point B
+      public Point myPntB; // end-point B
+      public Point myPntA; // end-point A
       Vector3d mydFdxB;    // derivative of tension force F wrt point B
       Vector3d mydFdxA;    // derivative of tension force F wrt point A
       
@@ -539,6 +539,9 @@ public class MultiPointSpring extends PointSpringBase
        * wrappables, and if so, computes the contact normal and distance. If a
        * knot intersects multiple wrappables, then the one with the deepest
        * penetration is used.
+       *
+       * <p>This method returns <code>true</code> if the contact configuration
+       * has changed.
        */
       boolean updateContacts (IntHolder numc) {
 
@@ -741,35 +744,43 @@ public class MultiPointSpring extends PointSpringBase
       }
 
       //
-      // Factor and solve the block tridiagonal spring system
+      // Computes the required displacements d_i for each knot point
+      // resulting from solving the block tridiagonal spring system
       //
-      // [ B_1 C_1           0    ] [ x_1 ]   [ d_1 ]
-      // [                        ] [     ]   [     ]
-      // [ A_2 B_2 C_2            ] [ x_2 ]   [ d_2 ]
-      // [                        ] [     ]   [     ]
-      // [     A_3 B_3 ...        ] [ x_3 ] = [ d_3 ]
-      // [                        ] [     ]   [     ]
-      // [         ... ... C_{n-1}] [     ]   [     ]
-      // [                        ] [     ]   [     ]
-      // [  0           A_n   B_n ] [ x_n ]   [ d_n ]
+      // [ B_0 C_0                 0    ] [   x_0   ]   [   f_0   ]
+      // [                              ] [         ]   [         ]
+      // [ A_1 B_1 C_1                  ] [   x_1   ]   [   f_1   ]
+      // [                              ] [         ]   [         ]
+      // [     A_2 B_2   ...            ] [   x_2   ] = [   f_2   ]
+      // [                              ] [         ]   [         ]
+      // [         ...   ...     C_{n-2}] [         ]   [         ]
+      // [                              ] [         ]   [         ]
+      // [  0           A_{n-1}  B_{n-1}] [ x_{n-1} ]   [ f_{n-1} ]
       //
-      // using the block tridiagonal
+      // that results from first order physics. e use the block tridiagonal
       // matrix algorithm:
       //
-      //         { inv(B_i) C_i                                   i = 1
+      //         { inv(B_i) C_i                                   i = 0
       //  C'_i = {
-      //         { inv(B_i - A_i*C'_{i-1}) C_i                    i = 2, 3, ...
+      //         { inv(B_i - A_i*C'_{i-1}) C_i                    i = 1, 2, ...
       //
-      //         { inv(B_i) d_i                                   i = 1
-      //  d'_i = {
-      //         { inv(B_i - A_i*C'_{i-1}) (d_i - A_i d'_{i-1})   i > 1
+      //         { inv(B_i) f_i                                   i = 0
+      //  d_i =  {
+      //         { inv(B_i - A_i*C'_{i-1}) (f_i - A_i d_{i-1})   i > 0
       //
-      //  x_n  = d'_n
+      //  x_n  = d_n
       //
-      //  x_i  = d'_i - C'_i x_{i+1}    i = n-1, ... 1
+      //  x_i  = d_i - C'_i x_{i+1}    i = n-2, ... 0
       //
-      // We also exploit the fact that the C_i and A_i matrices are block
-      // diagonal, so their multiplications can be done by simple scaling.
+      // We also exploit the fact that all C_i and A_i matrices are given by
+      //
+      // C_i = A_i = wrapStiffness I,
+      //
+      // where I is the 3x3 identity matrix, so their multiplications can be
+      // done by simple scaling.
+      //
+      // For each knot, B_i, inv(B_i), C'_i, f_i and d_i are stored in the
+      // myBmat, myBinv, myCinv, myForce and myDvec fields.
       //
       void factorAndSolve () {
          double c = -myWrapStiffness;
@@ -1016,6 +1027,8 @@ public class MultiPointSpring extends PointSpringBase
             }
             
             double ltol = myLength*myLengthConvTol;
+            // check for convergence - at moment, this is when the knots stop
+            // moving.
             if (!contactChanged) {
                double maxDisp = maxLateralDisplacement();
                if (maxDisp/myLength < 1e-4 &&
@@ -1079,6 +1092,16 @@ public class MultiPointSpring extends PointSpringBase
          return myKnots[idx];
       }
 
+
+      /**
+       * Computes a normal for the plane containing the three knot points
+       * <code>p0</code>, <code>pk</code>, and <code>p1</code>.  This plane can
+       * be used to help compute the A/B points on the wrappable surface.
+       *
+       * <p>If the three knots are colinear, knots past <code>p1</code> are
+       * searched (starting at index <code>k1</code> and advancing in the
+       * direction <code>kinc</code>) until a non-colinear one is found.
+       */
       void computeSideNormal (
          Vector3d sideNrm, Point3d p0, Point3d pk, Point3d p1, 
          int k1, int kinc) {
@@ -1118,7 +1141,10 @@ public class MultiPointSpring extends PointSpringBase
       }
 
       /**
-       * Adds or updates a subsegment between two knots indexed by kb and ka.
+       * Creates a subsegment between two knots indexed by kb and ka. The
+       * information is stored in <code>sugseg</code>, unless
+       * <code>sugseg</code> is <code>null</code>, in which case a new
+       * subsegment object is created and addded.
        *
        *<p> kb is the index of the last knot contacting the previous wrappable,
        * unless kb = -1, in which case the subsegment is formed between knot ka

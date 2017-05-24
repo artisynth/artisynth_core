@@ -230,7 +230,7 @@ public class QuadraticUtilsTest extends UnitTest {
          //       nrm, pos, pnts[k], a, b, c, /*tol=*/1e-15, iterCnt, false);
          double d =
             QuadraticUtils.ellipsoidPenetrationDistance (
-               nrm, pnts[k], a, b, c, /*tol=*/1e-12, iterCnt);
+               nrm, pnts[k], a, b, c, /*tol=*/1e-12, 1.0, iterCnt);
          if (d != 0) {
             penetrations++;
             iters += iterCnt.value;

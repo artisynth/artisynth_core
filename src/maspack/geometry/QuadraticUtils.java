@@ -19,6 +19,7 @@ import maspack.matrix.*;
 public class QuadraticUtils {
 
    private static double DOUBLE_PREC = 1e-16;
+   public static double OUTSIDE = Double.MAX_VALUE;
 
    /**
     * Cpmputes the two tangent points <code>t0</code> and <code>t1</code>
@@ -78,19 +79,27 @@ public class QuadraticUtils {
    }
 
    /**
-    * Computes the distance from a point inside an ellipsoid to its surface,
-    * along with the associated normal. If the point is outside the ellipsoid,
-    * the method returns 0 and the normal is not computed.
+    * Computes the distance from a point to the surface of an ellipsoid,
+    * along with the associated normal. If the point is outside the
+    * ellipsoid such that the algebraic distance <code>a</code> defined by
+    * <pre>
+    *     x^2   y^2   z^2
+    * a = --- + --- + ---
+    *     a^2   b^2   c^2
+    * </pre>
+    * exceeds <code>amax</code>, the method returns
+    * {@link OUTSIDE} and the normal is not computed.
     */
    public static double ellipsoidPenetrationDistance (
-      Vector3d nrm, Vector3d pos, double a, double b, double c) {
+      Vector3d nrm, Vector3d pos, double a, double b, double c, double amax) {
       
-      return ellipsoidPenetrationDistance (nrm, pos, a, b, c, 1e-12, null);
+      return ellipsoidPenetrationDistance (
+         nrm, pos, a, b, c, 1e-12, amax, null);
    }
 
    public static double ellipsoidPenetrationDistance (
       Vector3d nrm, Vector3d pos, double a, double b, double c,
-      double tol, IntHolder numIters) {
+      double tol, double amax, IntHolder numIters) {
       
       int maxi = 1000;
       if (numIters != null) {
@@ -111,8 +120,8 @@ public class QuadraticUtils {
       }
 
       double adist = x*x/aSqr + y*y/bSqr + z*z/cSqr;
-      if (adist > 1.0) {
-         return 0;
+      if (adist > amax) {
+         return OUTSIDE;
       }
       else if (adist < DOUBLE_PREC) {
          int minAxis;
@@ -209,7 +218,7 @@ public class QuadraticUtils {
       double adist = p0.x*p0.x/asq + p0.y*p0.y/bsq + p0.z*p0.z/csq;
       if (adist <= 1) {
          Vector3d nrm = new Vector3d();
-         double d = ellipsoidPenetrationDistance (nrm, p0, a, b, c);
+         double d = ellipsoidPenetrationDistance (nrm, p0, a, b, c, 1.0);
          pt.scaledAdd (-d, nrm, p0);
          return;
       }

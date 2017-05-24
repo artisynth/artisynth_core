@@ -63,7 +63,7 @@ public class NumericInputProbe extends NumericProbeBase
    }
 
    public NumericInputProbe (ModelComponent e, String propName, String fileName) 
-      throws IOException {
+   throws IOException {
       this();
       setModelFromComponent (e);
       Property prop = e.getProperty (propName);
@@ -72,6 +72,30 @@ public class NumericInputProbe extends NumericProbeBase
          + propName + "'");
       }
       setInputProperties (new Property[] { prop });
+      if (fileName != null) {
+         setAttachedFileName (fileName);
+         load(/*setTimes=*/true);
+      }
+      else // probe should be settable
+      {
+         setData (getStartTime());
+         setData (getStopTime());
+      }
+   }
+
+   public NumericInputProbe (
+      ModelComponent e, String[] propNames, String fileName) throws IOException {
+      this();
+      setModelFromComponent (e);
+      Property[] props = new Property[propNames.length];      
+      for (int i=0; i<props.length; i++) {         
+         props[i] = e.getProperty (propNames[i]);         
+         if (props[i] == null) {            
+            throw new IllegalArgumentException (
+               "cannot find property '" + propNames[i] + "'"); 
+         }    
+      }
+      setInputProperties (props);
       if (fileName != null) {
          setAttachedFileName (fileName);
          load(/*setTimes=*/true);

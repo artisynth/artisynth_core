@@ -108,6 +108,7 @@ public class MultiPointSpring extends PointSpringBase
     */
    public class WrapKnot {
       public Point3d myPos;         // knot position 
+      public Point3d myLocPos;      // local position wrt wrappble if in contact 
       public Vector3d myForce;      // first-order force on the knot
  
       // attributes used if the knot is is contact with a wrappable:
@@ -127,6 +128,7 @@ public class MultiPointSpring extends PointSpringBase
 
       WrapKnot () {
          myPos = new Point3d();
+         myLocPos = new Point3d();
          myForce = new Vector3d();
          myNrml = new Vector3d();
          myDnrm = new Matrix3d();
@@ -534,6 +536,30 @@ public class MultiPointSpring extends PointSpringBase
          myLength = computeLength();
       }
 
+      void updateContactingKnotPositions() {
+         int cnt = 0;
+         for (int k=0; k<myNumKnots; k++) {
+            WrapKnot knot = myKnots[k];
+            Wrappable wrappable = knot.myWrappable;
+            if (wrappable != null) {
+               knot.myPos.transform (wrappable.getPose(), knot.myLocPos);
+               cnt++;
+            }
+         }
+      }
+      
+      void saveContactingKnotPositions() {
+         int cnt = 0;
+         for (int k=0; k<myNumKnots; k++) {
+            WrapKnot knot = myKnots[k];
+            Wrappable wrappable = knot.myWrappable;
+            if (wrappable != null) {
+               knot.myLocPos.inverseTransform (wrappable.getPose(), knot.myPos);
+               cnt++;
+            }
+         }
+      }
+      
       /**
        * Checks each knot in this segment to see if it is intersecting any
        * wrappables, and if so, computes the contact normal and distance. If a
@@ -544,7 +570,6 @@ public class MultiPointSpring extends PointSpringBase
        * has changed.
        */
       boolean updateContacts (IntHolder numc) {
-
          int nc = 0;
          boolean changed = false;
          double mind = 0;
@@ -979,12 +1004,13 @@ public class MultiPointSpring extends PointSpringBase
 
          IntHolder numc = new IntHolder();
          int noContactChangeCnt = 0;
+         updateContactingKnotPositions();
          boolean contactChanged = updateContacts(numc); 
-         System.out.println ("updateWrapStrand");
+         //System.out.println ("updateWrapStrand");
          do {
             double prevLength = myLength;
             updateForces();
-            System.out.println ("force=" + forceNorm());
+            //System.out.println ("force=" + forceNorm());
             double dnrmGain = (noContactChangeCnt >= 2 ? myDnrmGain : 0);
             updateStiffness(dnrmGain);
             factorAndSolve();
@@ -999,8 +1025,8 @@ public class MultiPointSpring extends PointSpringBase
                //System.out.println ("contact stable");
                noContactChangeCnt++;
             }
-            System.out.println (
-             "numc=" + numc.value+" oldc="+oldc+" changed=" + contactChanged);
+            //System.out.println (
+            // "numc=" + numc.value+" oldc="+oldc+" changed=" + contactChanged);
             if (numc.value == 0 && oldc > 0) {
                //System.out.println ("break contact scale");
                if (0.9 < alpha) {
@@ -1038,6 +1064,7 @@ public class MultiPointSpring extends PointSpringBase
             }
          }
          while (++icnt < maxIter && !converged);
+         saveContactingKnotPositions();
          //checkStiffness();
          totalIterations += icnt;
          totalCalls++;
@@ -1092,6 +1119,16 @@ public class MultiPointSpring extends PointSpringBase
          return myKnots[idx];
       }
 
+      public void setKnotPositions (Point3d[] plist) {
+         if (plist.length < myNumKnots) {
+            throw new IllegalArgumentException (
+               "Number of positions "+plist.length+
+               " less than number of knots");
+         }
+         for (int i=0; i<myNumKnots; i++) {
+            myKnots[i].myPos.set (plist[i]);
+         }
+      }
 
       /**
        * Computes a normal for the plane containing the three knot points
@@ -1300,12 +1337,16 @@ public class MultiPointSpring extends PointSpringBase
       // all the knot points.
 
       void skipAuxState (DataBuffer data) {
-         data.dskip (3*myNumKnots);
+         data.dskip (6*myNumKnots);
       }
 
       void getAuxState (DataBuffer data) {
          for (int k=0; k<myNumKnots; k++) {
             Point3d pos = myKnots[k].myPos;
+            data.dput (pos.x);
+            data.dput (pos.y);
+            data.dput (pos.z);
+            pos = myKnots[k].myLocPos;
             data.dput (pos.x);
             data.dput (pos.y);
             data.dput (pos.z);
@@ -1317,13 +1358,17 @@ public class MultiPointSpring extends PointSpringBase
             getAuxState (newData);
          }
          else {
-            newData.putData (oldData, 3*myNumKnots, 0);
+            newData.putData (oldData, 6*myNumKnots, 0);
          }
       }
 
       void setAuxState (DataBuffer data) {
          for (int k=0; k<myNumKnots; k++) {
             Point3d pos = myKnots[k].myPos;
+            pos.x = data.dget();
+            pos.y = data.dget();
+            pos.z = data.dget();
+            pos = myKnots[k].myLocPos;
             pos.x = data.dget();
             pos.y = data.dget();
             pos.z = data.dget();
@@ -2744,6 +2789,21 @@ public class MultiPointSpring extends PointSpringBase
       Segment seg = mySegments.get (segIdx);
       if (seg instanceof WrapSegment) {
          ((WrapSegment)seg).initializeStrand (initialPnts);
+      }
+   }
+
+   public void setKnotPositions (int segIdx, Point3d[] plist) {
+      if (segIdx >= mySegments.size()) {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" does not exist");
+      }
+      Segment seg = mySegments.get (segIdx);
+      if (seg instanceof WrapSegment) {
+         ((WrapSegment)seg).setKnotPositions (plist);
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" is not a wrappable segment");
       }
    }
 

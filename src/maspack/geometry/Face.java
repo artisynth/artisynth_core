@@ -36,6 +36,13 @@ public class Face extends Feature implements Boundable {
    //public int myWorldCoordCnt = -1;
 
    private static double DOUBLE_PREC = 2e-16;
+   
+   public static final int EDGE_01 = 0x01;
+   public static final int EDGE_12 = 0x02;
+   public static final int EDGE_20 = 0x04;
+   public static final int VERTEX_0 = (EDGE_01 | EDGE_20);
+   public static final int VERTEX_1 = (EDGE_01 | EDGE_12);
+   public static final int VERTEX_2 = (EDGE_12 | EDGE_20);
 
    /*
     * Length of edge0 cross edge1. Used for calculating barycentric coordinates
@@ -896,15 +903,15 @@ public class Face extends Feature implements Boundable {
       }
    }
 
-   private void nearestPointTriangle (Point3d pn, Point3d p1) {
+   public int nearestPointTriangle (Point3d pn, Point3d p1) {
       //long time = System.nanoTime();
       Point3d pa = he0.head.pnt;
       Point3d pb = he0.next.head.pnt;
       Point3d pc = he0.tail.pnt;
-      nearestPointTriangle (pn, pa, pb, pc, p1);
+      return nearestPointTriangle (pn, pa, pb, pc, p1);
    }
 
-   public void nearestWorldPointTriangle (Point3d pn, Point3d p1) {
+   public int nearestWorldPointTriangle (Point3d pn, Point3d p1) {
       //long time = System.nanoTime();
       Point3d pa = new Point3d();
       Point3d pb = new Point3d();
@@ -912,10 +919,10 @@ public class Face extends Feature implements Boundable {
       he0.head.getWorldPoint (pa);
       he0.next.head.getWorldPoint (pb);
       he0.tail.getWorldPoint (pc);
-      nearestPointTriangle (pn, pa, pb, pc, p1);
+      return nearestPointTriangle (pn, pa, pb, pc, p1);
    }
 
-   private void nearestPointTriangle (
+   private int nearestPointTriangle (
       Point3d pn, Point3d pa, Point3d pb, Point3d pc, Point3d p1) {
       //long time = System.nanoTime();
 
@@ -937,7 +944,7 @@ public class Face extends Feature implements Boundable {
          pn.y = pa.y;
          pn.z = pa.z;
          //time = System.nanoTime() - time;
-         return;// time;
+         return VERTEX_0;
       }
 
       // Check if P in vertex region outside B
@@ -951,7 +958,7 @@ public class Face extends Feature implements Boundable {
          pn.y = pb.y;
          pn.z = pb.z;
          //         time = System.nanoTime() - time;
-         return;// time;
+         return VERTEX_1;
       }
 
       // Check if P in edge region of AB, if so return projection of P onto AB
@@ -962,7 +969,7 @@ public class Face extends Feature implements Boundable {
          pn.y = aby*v + pa.y;
          pn.z = abz*v + pa.z;
          //         time = System.nanoTime() - time;
-         return;// time;
+         return EDGE_01;
       }
 
       // Check if P in vertex region outside C
@@ -976,7 +983,7 @@ public class Face extends Feature implements Boundable {
          pn.y = pc.y;
          pn.z = pc.z;
          //         time = System.nanoTime() - time;
-         return;// time;
+         return VERTEX_2;
       }
 
       // Check if P in edge region of AC, if so return projection of P onto AC
@@ -987,7 +994,7 @@ public class Face extends Feature implements Boundable {
          pn.y = acy*w + pa.y;
          pn.z = acz*w + pa.z;
          //         time = System.nanoTime() - time;
-         return;// time;
+         return EDGE_20;
       }
 
       // Check if P in edge region of BC, if so return projection of P onto BC
@@ -999,7 +1006,7 @@ public class Face extends Feature implements Boundable {
          pn.y = (pc.y - pb.y)*w + pb.y;
          pn.z = (pc.z - pb.z)*w + pb.z;
          //         time = System.nanoTime() - time;
-         return;// time;
+         return EDGE_12;
       }
 
       // P inside face region. Compute Q through its barycentric coordinates (u,v,w)
@@ -1011,7 +1018,7 @@ public class Face extends Feature implements Boundable {
       pn.y = acy*w + aby*v + pa.y;
       pn.z = acz*w + abz*v + pa.z;
       //      time = System.nanoTime() - time;
-      return;// time;
+      return 0;
    }
 
    private void nearestPointFace (Point3d pc, Point3d p1) {

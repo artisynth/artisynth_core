@@ -16,6 +16,8 @@ public class LineSegment implements Boundable {
    public Vertex3d myVtx0;
    public Vertex3d myVtx1;
 
+   private static double DOUBLE_PREC = 2.0e-16;
+
    public LineSegment (Vertex3d vtx0, Vertex3d vtx1) {
       myVtx0 = vtx0;
       myVtx1 = vtx1;
@@ -94,10 +96,10 @@ public class LineSegment implements Boundable {
     * <pre>
     * pp = (1-s) p0 + s p1
     * </pre>
-    * gives the projection of <code>px</code> onto the line. If
+    * gives the projection of <code>px-p0</code> onto the line. If
     * <code>p0</code> and <code>p1</code> are identical, the
     * method returns positive infinity.
-
+    *
     * @param p0 first point defining the line
     * @param p1 second point defining the libe
     * @param px point for which the project parameter should be computed
@@ -118,6 +120,59 @@ public class LineSegment implements Boundable {
       else {
          return del10.dot(delx0)/len10Sqr;
       }      
+   }
+
+   /**
+    * For two lines defined by the points <code>p0, p1</code>
+    * and <code>pa, pb</code>, computes the parameters
+    * <code>s</code> and <code>t</code> such that
+    * <pre>
+    * ps = (1-s) p0 + s p1
+    * pt = (1-t) pa + t pb
+    * </pre>
+    * are the points on the two lines which are nearest to
+    * each other. If the two lines are parallel, <code>s</code>
+    * and <code>t</code> are both set to 0 and the method returns
+    * <code>false</code>.
+    *
+    * @param params returns the values of s and t 
+    * @param p0 first point defining the first line
+    * @param p1 second point defining the first line
+    * @param pa first point defining the second line
+    * @param pb second point defining the second line
+    * @return returns <code>true</code> if the lines are
+    * not parallel and <code>false</code> if they are
+    */
+   public static boolean nearestPointParameters (
+      double[] params, Point3d p0, Point3d p1, Point3d pa, Point3d pb) {
+
+      Vector3d u01 = new Vector3d();
+      Vector3d uab = new Vector3d();
+
+      u01.sub (p1, p0);
+      double len01 = u01.norm();
+      u01.scale (1/len01);
+      uab.sub (pb, pa);
+      double lenab = uab.norm();
+      uab.scale (1/lenab);
+
+      Vector3d tmp = new Vector3d();
+      tmp.cross (u01, uab);
+      double denom = tmp.normSquared();
+      if (denom < 100 * DOUBLE_PREC) {
+         params[0] = 0;
+         params[1] = 0;
+         return false;
+      }
+      else {
+         tmp.sub (p0, pa);
+         double k1 = -u01.dot (tmp);
+         double k2 = uab.dot (tmp);
+         double dotU = u01.dot (uab);
+         params[0] = (k1 + dotU * k2) / (len01 * denom);
+         params[1] = (dotU * k1 + k2) / (lenab * denom);
+         return true;
+      }
    }
    
    /**

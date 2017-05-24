@@ -2758,7 +2758,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
                rerender();
             }
          }
-         if (invalidateWaypoints && !myScheduler.isPlaying()) {
+         // John Lloyd, May 2017: We used to invalidate the initial state only
+         // if we were not simulating. However, it seems to make sense to do
+         // this even if we are simulating.
+         // 
+         // if (invalidateWaypoints)  && !myScheduler.isPlaying()) {
+         if (invalidateWaypoints) {
             myScheduler.invalidateInitialState();
          }
       }

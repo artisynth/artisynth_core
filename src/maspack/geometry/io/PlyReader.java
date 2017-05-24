@@ -1,22 +1,30 @@
 package maspack.geometry.io;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.PointMesh;
 import maspack.geometry.MeshBase;
-import maspack.geometry.Face;
-import maspack.geometry.io.PlyWriter.DataType;
+import maspack.geometry.PointMesh;
+import maspack.geometry.PolygonalMesh;
 import maspack.geometry.io.MeshWriter.DataFormat;
 import maspack.geometry.io.MeshWriter.FloatType;
-import maspack.matrix.*;
-import maspack.util.ReaderTokenizer;
+import maspack.geometry.io.PlyWriter.DataType;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
 import maspack.util.BinaryInputStream;
 import maspack.util.InternalErrorException;
+import maspack.util.ReaderTokenizer;
 
 /**
- * Reads a PolygonalMesh from an ascii PLY format
+ * Reads a PolygonalMesh from an ascii or binary PLY format
  * @author John Lloyd, Jan 2014
  *
  */
@@ -24,7 +32,7 @@ public class PlyReader extends MeshReaderBase {
 
    // Note that UV and COLOR are currently here just for further use
    private enum PropertyType {
-      VERTEX, NORMAL, UV, COLOR, UNKNOWN };   
+      VERTEX, NORMAL, UV, COLOR, VERTEX_INDICES, UNKNOWN };   
 
    public PlyReader (InputStream is) throws IOException {
       super (is);
@@ -37,14 +45,20 @@ public class PlyReader extends MeshReaderBase {
    public PlyReader (String fileName) throws IOException {
       this (new File (fileName));
    }
-
+   
    private class Property {
+      String myName;
       PropertyType myPropType;
       DataType myDataType;
 
-      Property (PropertyType ptype, DataType dtype) {
+      Property (String name, PropertyType ptype, DataType dtype) {
+         myName = name;
          myPropType = ptype;
          myDataType = dtype;
+      }
+      
+      String getName() {
+         return myName;
       }
 
       Object read (BinaryInputStream bis) throws IOException {
@@ -115,6 +129,120 @@ public class PlyReader extends MeshReaderBase {
          }
       }
    }
+      
+   private class PropertyList extends Property {
+      DataType mySizeType;
+
+      PropertyList (String name, PropertyType ptype, DataType stype, DataType vtype) {
+         super(name, ptype, vtype);
+         mySizeType = stype;
+      }
+      
+      DataType getSizeType() {
+         return mySizeType;
+      }
+      
+      DataType getValueType() {
+         return myDataType;
+      }
+
+      Object read (BinaryInputStream bis) throws IOException {
+         // read length first
+         int v = readInt(bis, mySizeType);
+         
+         switch(myDataType) {
+            case CHAR: 
+            case UCHAR: {
+               char[] out = new char[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = bis.readChar();
+               }
+               return out;
+            }
+            case DOUBLE: {
+               double[] out = new double[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = bis.readDouble();
+               }
+               return out;
+            }
+            case FLOAT: {
+               float[] out = new float[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = bis.readFloat();
+               }
+               return out;
+            }
+            case INT: 
+            case UINT: {
+               int[] out = new int[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = bis.readInt();
+               }
+               return out;
+            }
+            case SHORT: 
+            case USHORT: {
+               short[] out = new short[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = bis.readShort();
+               }
+               return out;
+            }
+            default:
+         }
+         return null;
+      }
+
+      Object read (ReaderTokenizer rtok) throws IOException {
+         // read length first
+         int v = rtok.scanInteger();
+         
+         switch(myDataType) {
+            case CHAR: 
+            case UCHAR: {
+               char[] out = new char[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = (char)rtok.scanNumber();
+               }
+               return out;
+            }
+            case DOUBLE: {
+               double[] out = new double[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = rtok.scanNumber();
+               }
+               return out;
+            }
+            case FLOAT: {
+               float[] out = new float[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = (float)rtok.scanNumber();
+               }
+               return out;
+            }
+            case INT: 
+            case UINT: {
+               int[] out = new int[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = rtok.scanInteger();
+               }
+               return out;
+            }
+            case SHORT: 
+            case USHORT: {
+               short[] out = new short[v];
+               for (int i=0; i<v; ++i) {
+                  out[i] = rtok.scanShort();
+               }
+               return out;
+            }
+            default:
+         }
+         return null;
+         
+      }
+   }
 
    DataType parseDataType (String str) {
       for (DataType type : DataType.values()) {
@@ -131,6 +259,8 @@ public class PlyReader extends MeshReaderBase {
    private int myNumVerts = 0;
    ArrayList<Property> myVertProps = new ArrayList<Property>();
    private int myNumFaces = 0;
+   PropertyList myFaceVertexIndices = null;
+   
 
    // private double readFloat (DataInputStream in) throws IOException {
    //    // convert from little-endian
@@ -160,9 +290,21 @@ public class PlyReader extends MeshReaderBase {
       }
       else {
          do {
-            myLine = is.readLine();
+            // avoid deprecation warning
+            StringBuffer sb = new StringBuffer();
+            int c = -1;
+            while ((c = is.read()) >= 0) {
+               if ((char)c == '\r') {
+                  // discard
+                  continue;
+               } else if ((char)c == '\n') {
+                  break;
+               }
+               sb.append((char)c);
+            }
+            myLine = sb.toString();
             myLineNum++;
-            if (myLine == null) {
+            if (c < 0 || myLine == null) {
                throw new EOFException();
             }
          }
@@ -184,9 +326,11 @@ public class PlyReader extends MeshReaderBase {
          case SHORT:
          case USHORT:
          case INT: 
-         case UINT: {
             return readInt (bis, type);
-         }
+         case UINT:
+            int val = readInt (bis, type);
+            long uval = val & 0xFFFFFFFFL;
+            return (double)uval;
          case FLOAT: {
             return bis.readFloat();
          }
@@ -305,20 +449,37 @@ public class PlyReader extends MeshReaderBase {
          }
          if (propStr.equals ("x")) {
             scanHeaderProperties (is, typeStr, "y", "z");
-            myVertProps.add (new Property (PropertyType.VERTEX, dataType));
+            myVertProps.add (new Property ("vertex", PropertyType.VERTEX, dataType));
          }
          else if (propStr.equals ("nx")) {
             scanHeaderProperties (is, typeStr, "ny", "nz");
-            myVertProps.add (new Property (PropertyType.NORMAL, dataType));
+            myVertProps.add (new Property ("normal", PropertyType.NORMAL, dataType));
          }
          else {
-            myVertProps.add (new Property (PropertyType.UNKNOWN, dataType));
+            myVertProps.add (new Property (propStr, PropertyType.UNKNOWN, dataType));
          }
       }
       while (myLine.startsWith ("property"));
       pushLine();
    }
 
+   private PropertyList parsePropertyList(String line) throws IOException {
+      
+      String[] parts = line.split ("\\s+", 5);
+      if (parts.length < 5 || !parts[0].equalsIgnoreCase("property") || !parts[1].equalsIgnoreCase("list")) {
+         throw new IOException("Line '" + line + "' does not specify a property list");
+      }
+      DataType sizeType = parseDataType(parts[2]);
+      DataType valueType = parseDataType(parts[3]);
+      String name = parts[4];
+      PropertyType ptype = PropertyType.UNKNOWN;
+      if (name.equalsIgnoreCase("vertex_index") || name.equalsIgnoreCase("vertex_indices")) {
+         ptype = PropertyType.VERTEX_INDICES;
+      }
+      
+      return new PropertyList(name, ptype, sizeType, valueType);
+   }
+   
    private void scanHeaderFaceInfo (DataInputStream is) throws IOException {
       String key = "element face ";
 
@@ -327,6 +488,7 @@ public class PlyReader extends MeshReaderBase {
          myNumFaces = Integer.parseInt (myLine.substring (key.length()));
       }
       else if (myLine.equals ("end_header")) {
+         // no faces
          pushLine();
          return;
       }
@@ -335,12 +497,15 @@ public class PlyReader extends MeshReaderBase {
             "Unexpected face info: "+myLine+", line "+myLineNum);
       }
       readLine (is);
-      if (!myLine.startsWith ("property list uchar int vertex_indices") &&
-          !myLine.startsWith ("property list uchar int vertex_index")) {
+      String tline = myLine.trim();
+      if (!tline.startsWith("property list") || 
+         (!tline.endsWith ("vertex_indices") &&
+          !tline.endsWith ("vertex_index"))) {
          throw new IOException (
-            "Expected 'property list uchar int vertex_indices' or " +
-            "'property list uchar int vertex_index' at line " + myLineNum);
+            "Expected 'property list <size type> <value type> vertex_indices' or " +
+            "'property list <size type> <value type> vertex_index' at line " + myLineNum);
       }
+      myFaceVertexIndices = parsePropertyList(tline);
    }
 
    private void parseHeader (DataInputStream is) throws IOException {
@@ -377,13 +542,75 @@ public class PlyReader extends MeshReaderBase {
    private void readFaceInfo (
       ReaderTokenizer rtok, ArrayList<int[]> faces) throws IOException {
 
+      
       for (int i=0; i<myNumFaces; i++) {
-         int numv = rtok.scanInteger ();
-         int[] idxs = new int[numv];
-         for (int k=0; k<numv; k++) {
-            idxs[k] = rtok.scanInteger ();
+         
+         int[] idxs = null;
+         
+         // read face
+         Object oidxs = myFaceVertexIndices.read(rtok);
+            
+         switch(myFaceVertexIndices.getValueType()) {
+            case CHAR: {
+               char[] cidxs = (char[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)cidxs[j];
+               }
+               break;
+            }
+            case DOUBLE: {
+               double[] cidxs = (double[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)cidxs[j];
+               }
+               break;
+            }
+            case FLOAT: {
+               float[] cidxs = (float[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)cidxs[j];
+               }
+               break;
+            }
+            case INT:
+            case UINT:
+               idxs = (int[])oidxs;
+               break;
+            case SHORT:  {
+               short[] cidxs = (short[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)cidxs[j];
+               }
+               break;
+            }
+            case UCHAR:  {
+               char[] cidxs = (char[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)(cidxs[j] & 0xFF);
+               }
+               break;
+            }
+            case USHORT: {
+               short[] cidxs = (short[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)(cidxs[j] & 0xFFFF);
+               }
+               break;
+            }
+            default:
+               break;
+            
          }
-         faces.add (idxs);
+        
+         if (idxs != null) {
+            faces.add (idxs);
+         }
       }
    }
 
@@ -408,12 +635,73 @@ public class PlyReader extends MeshReaderBase {
       BinaryInputStream bis, ArrayList<int[]> faces) throws IOException {
 
       for (int i=0; i<myNumFaces; i++) {
-         int numv = bis.readByte();
-         int[] idxs = new int[numv];
-         for (int k=0; k<numv; k++) {
-            idxs[k] = bis.readInt ();
+         
+         int[] idxs = null;
+         
+         // read face
+         Object oidxs = myFaceVertexIndices.read(bis);
+            
+         switch(myFaceVertexIndices.getValueType()) {
+            case CHAR: {
+               char[] cidxs = (char[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)cidxs[j];
+               }
+               break;
+            }
+            case DOUBLE: {
+               double[] cidxs = (double[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)cidxs[j];
+               }
+               break;
+            }
+            case FLOAT: {
+               float[] cidxs = (float[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)cidxs[j];
+               }
+               break;
+            }
+            case INT:
+            case UINT:
+               idxs = (int[])oidxs;
+               break;
+            case SHORT:  {
+               short[] cidxs = (short[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)cidxs[j];
+               }
+               break;
+            }
+            case UCHAR:  {
+               char[] cidxs = (char[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)(cidxs[j] & 0xFF);
+               }
+               break;
+            }
+            case USHORT: {
+               short[] cidxs = (short[])oidxs;
+               idxs = new int[cidxs.length];
+               for (int j=0; j<idxs.length; ++j) {
+                  idxs[j] = (int)(cidxs[j] & 0xFFFF);
+               }
+               break;
+            }
+            default:
+               break;
+            
          }
-         faces.add (idxs);
+        
+         if (idxs != null) {
+            faces.add (idxs);
+         }
       }
    }
 

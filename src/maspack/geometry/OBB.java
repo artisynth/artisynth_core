@@ -448,22 +448,22 @@ public class OBB extends BVNode {
       }
    }
 
-   protected void setUsingConvexHullOfPoints (
-      double[] pnts, int npnts, double margin) {
-
-      Matrix3d C = new Matrix3d();
-      Point3d cent = new Point3d();
-
-      quickhull3d.Point3d[] hullPnts =
-         computeConvexHullAndCovariance (C, cent, pnts, npnts);
-
-      setTransform (C, cent);
-      Point3d max = new Point3d (-INF, -INF, -INF);
-      Point3d min = new Point3d (INF, INF, INF);
-      computeBoundsFromConvexHullPoints (min, max, hullPnts, hullPnts.length);
-      setWidthsAndCenter (min, max, margin);
-   }
-
+//   protected void setUsingConvexHullOfPoints (
+//      double[] pnts, int npnts, double margin) {
+//
+//      Matrix3d C = new Matrix3d();
+//      Point3d cent = new Point3d();
+//
+//      quickhull3d.Point3d[] hullPnts =
+//         computeConvexHullAndCovariance (C, cent, pnts, npnts);
+//
+//      setTransform (C, cent);
+//      Point3d max = new Point3d (-INF, -INF, -INF);
+//      Point3d min = new Point3d (INF, INF, INF);
+//      computeBoundsFromConvexHullPoints (min, max, hullPnts, hullPnts.length);
+//      setWidthsAndCenter (min, max, margin);
+//   }
+//
    private void computeBoundsFromConvexHullPoints (
       Point3d min, Point3d max, quickhull3d.Point3d[] pnts, int num) {
 
@@ -1325,6 +1325,13 @@ public class OBB extends BVNode {
          }
       }
       return false;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void scale (double s) {
+      myHalfWidths.scale (s);
    }
    
 }

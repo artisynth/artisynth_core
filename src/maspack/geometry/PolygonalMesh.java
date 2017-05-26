@@ -1901,7 +1901,18 @@ public class PolygonalMesh extends MeshBase {
       ps.println (0);
       ps.flush();
    }
-
+   
+   /**
+    * Translates the vertices of this mesh so that its origin coincides
+    * with the center of volume. The topology of the mesh remains unchanged.
+    */
+   public void translateToCenterOfVolume () {
+      Vector3d off = new Vector3d();
+      computeCentreOfVolume (off);
+      off.negate();
+      translate (off);
+   }
+   
    /**
     * Applies an affine transformation to the vertices of this mesh. The
     * topology of the mesh remains unchanged.
@@ -3626,7 +3637,7 @@ public class PolygonalMesh extends MeshBase {
    /**
     * Computes the centre of volume of the mesh
     */
-   public double computeCentreOfVolume (Point3d c) {
+   public double computeCentreOfVolume (Vector3d c) {
       Vector3d mov1 = new Vector3d();
       Vector3d mov2 = new Vector3d();
       Vector3d pov = new Vector3d();

@@ -960,6 +960,38 @@ public abstract class MeshBase implements Renderable, Cloneable {
    }
 
    /**
+    * Translates the vertices of this mesh so that its origin coincides
+    * with the centroid. The topology of the mesh remains unchanged.
+    */
+   public void translateToCentroid () {
+      Vector3d off = new Vector3d();
+      computeCentroid (off);
+      off.negate();
+      translate (off);
+   }
+
+   /**
+    * Transforms this mesh so that its center and orientation are aligned
+    * with its oriented bounding box (OBB) as computed by {@link computeOBB()}.
+    */
+   public void transformToOBB () {
+      OBB obb = computeOBB();
+      inverseTransform (obb.getTransform());
+   }
+   
+   /**
+    * Transforms this mesh so that its center and orientation are aligned
+    * with its oriented bounding box (OBB) as computed by 
+    * {@link computeOBB(OBB.Method)}.
+    * 
+    * @param method method used to compute the OBB.
+    */
+   public void transformToOBB (OBB.Method method) {
+      OBB obb = computeOBB();
+      inverseTransform (obb.getTransform());
+   }
+   
+   /**
     * Applies an affine transformation to the vertices of this mesh. The
     * topology of the mesh remains unchanged.
     * 
@@ -1580,6 +1612,30 @@ public abstract class MeshBase implements Renderable, Cloneable {
          centroid.add (myVertices.get(i).pnt);
       }
       centroid.scale (1.0/myVertices.size());
+   }
+   
+   /**
+    * Computes the oriented bounding box (OBB) that most tightly contains
+    * this mesh, using the specified method.
+    * 
+    * @param method method used to compute the OBB
+    * @return OBB containing this mesh
+    */
+   public OBB computeOBB (OBB.Method method) {
+      OBB obb = new OBB();
+      obb.set (this, 0, method);
+      return obb;
+   }
+
+   /**
+    * Computes the oriented bounding box (OBB) that most tightly contains
+    * this mesh, using the {@link OBB.Method#ConvexHull} method.
+    * 
+    * @param method method used to compute the OBB
+    * @return OBB containing this mesh
+    */
+   public OBB computeOBB () {
+      return computeOBB (OBB.Method.ConvexHull);
    }
 
    /**

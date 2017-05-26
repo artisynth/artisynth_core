@@ -314,6 +314,15 @@ public abstract class BVNode implements IsRenderable {
    
    abstract boolean updateForPoint(Point3d pnt, double margin);
    
+   /**
+    * Scales this bounding volume node by the indicated scale factor
+    * <code>s</code>. This can be used to enlarge a volume to 
+    * accommodate a margin.
+    * 
+    * @param s scaling factor
+    */
+   abstract void scale (double s);
+   
    public boolean updateFor(Boundable b, double margin) {
 
       boolean modified = false;

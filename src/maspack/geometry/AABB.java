@@ -570,4 +570,15 @@ public class AABB extends BVNode {
       renderer.setShading (Shading.FLAT);
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public void scale (double s) {
+      Vector3d inc = new Vector3d();
+      getHalfWidths (inc);
+      inc.scale (s-1);
+      myMax.add (inc);
+      myMin.sub (inc);
+   }
+  
 }

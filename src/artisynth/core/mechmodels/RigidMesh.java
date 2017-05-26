@@ -85,24 +85,30 @@ public class RigidMesh extends RigidBody implements Wrappable {
       String name, PolygonalMesh mesh, String meshFilePath, 
       double density, double scale) {
       super (name);
-      mesh.triangulate(); // just to be sure ...
-      //mesh.scale (scale);
-      Point3d center = new Point3d();
-      mesh.computeCentreOfVolume (center);
-      center.scale (scale);
-      AffineTransform3dBase X = null;
+      if (!mesh.isTriangular()) {
+         throw new IllegalArgumentException("Mesh is not triangular");
+      }
+      mesh.scale (scale);
+      //Point3d center = new Point3d();
+      //mesh.computeCentreOfVolume (center);
+      //center.scale (scale);
+      // AffineTransform3dBase X = null;
+      // if (scale != 1) {
+         // AffineTransform3d XA = new AffineTransform3d();
+         // XA.p.negate (center);
+         // XA.applyScaling (scale, scale, scale);
+         // X = XA;
+         //mesh.transform (X);
+      // }
+      // else {
+      //    RigidTransform3d XR = new RigidTransform3d();
+      //    XR.p.negate (center);
+      //    X = XR;
+      // }
+      AffineTransform3d X = null;
       if (scale != 1) {
-         AffineTransform3d XA = new AffineTransform3d();
-         XA.p.negate (center);
-         XA.applyScaling (scale, scale, scale);
-         X = XA;
-      }
-      else {
-         RigidTransform3d XR = new RigidTransform3d();
-         XR.p.negate (center);
-         X = XR;
-      }
-      mesh.transform (X);
+         X = AffineTransform3d.createScaling (scale);
+      }    
       setDensity (density);
       setMesh (mesh, meshFilePath, X);
    }

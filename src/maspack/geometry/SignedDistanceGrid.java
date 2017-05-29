@@ -74,6 +74,11 @@ public class SignedDistanceGrid implements Renderable {
     */
    private Point3d myMinCoord = new Point3d();
 
+   /**
+    * Diamter of the grid
+    */
+   private double myDiameter;
+
    private int numVX = 0;  // number of vertices along X
    private int numVY = 0;  // number of vertices along Y
    private int numVZ = 0;  // number of vertices along Z
@@ -153,6 +158,7 @@ public class SignedDistanceGrid implements Renderable {
       // adjust max and min coords
       myMaxCoord.add(margin);
       myMinCoord.sub(margin);
+      myDiameter = myMaxCoord.distance(myMinCoord);
       
       calculatePhi (margin.norm());      
       clearColors();
@@ -507,14 +513,12 @@ public class SignedDistanceGrid implements Renderable {
          else {
             normal.normalize(diff);
             if (inside) {
-               dist -= dist;
-            }
-            else {
                normal.negate();
+               dist = -dist;
             }
          }
          myPhi[idx] = dist;
-         myNormals[idx] = normal;
+         //myNormals[idx] = normal;
          myClosestFaceIdxs[idx] = face.getIndex();
       }
       logger.println ("done.");
@@ -616,8 +620,8 @@ public class SignedDistanceGrid implements Renderable {
       int minz = (int)tempPointZ;
 
       if (tempPointX < 0 || tempPointX > numVX - 1 ||
-      tempPointY < 0 || tempPointY > numVY - 1 ||
-      tempPointZ < 0 || tempPointZ > numVZ - 1) {
+          tempPointY < 0 || tempPointY > numVY - 1 ||
+          tempPointZ < 0 || tempPointZ > numVZ - 1) {
          return OUTSIDE;
       }
       double dx = tempPointX - minx;
@@ -756,6 +760,16 @@ public class SignedDistanceGrid implements Renderable {
     */
    public Point3d getMaxCoords() {
       return new Point3d(myMaxCoord);
+   }
+
+   /**
+    * Returns the diameter of this grid, defined as the distance
+    * between the maximum and minimum coordinates.
+    *
+    * @return diameter of this grid
+    */
+   public double getDiameter() {
+      return myDiameter;
    }
 
    /**
@@ -1110,6 +1124,40 @@ public class SignedDistanceGrid implements Renderable {
       return myMesh.getFace(myClosestFaceIdxs[idx]);
    }
 
+   /** 
+    * Returns the index of the closest vertex to a point.
+    *
+    * @param point point for which to calculate closest vertex
+    * @return index of closest vertex to <code>point</code>
+    */
+   public int getClosestVertex (Point3d point) {
+
+      // Change to grid coordinates
+      int xi = (int)Math.rint((point.x - myMinCoord.x) / myCellWidths.x);
+      int yi = (int)Math.rint((point.y - myMinCoord.y) / myCellWidths.y);
+      int zi = (int)Math.rint((point.z - myMinCoord.z) / myCellWidths.z);
+      if (xi < 0) {
+         xi = 0;
+      }
+      else if (xi > numVX-1) {
+         xi = numVX-1;
+      }
+      if (yi < 0) {
+         yi = 0;
+      }
+      else if (yi > numVY-1) {
+         yi = numVY-1;
+      }
+      if (zi < 0) {
+         zi = 0;
+      }
+      else if (zi > numVZ-1) {
+         zi = numVZ-1;
+      }
+      return xyzIndicesToVertex (xi, yi, zi);
+   }
+
+
    /**
     * Find the coordinates at a vertex, as specified by
     * its x, y, z indices.
@@ -1300,6 +1348,13 @@ public class SignedDistanceGrid implements Renderable {
             System.out.println (errorMsg.value);
          }
       }
+   }
+
+   public PolygonalMesh computeDistanceSurface() {
+      MarchingTetrahedra marcher = new MarchingTetrahedra();
+
+      return marcher.createMesh (
+         myPhi, myMinCoord, myCellWidths, getResolution(), /*iso=*/0);
    }
 
 }

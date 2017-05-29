@@ -145,8 +145,8 @@ public class RigidCylinder extends RigidBody implements Wrappable {
       nrm.set (p0loc);
       nrm.z = 0;
       double mag = nrm.norm();
-      if (mag >= myRadius) {
-         return 0;
+      if (mag >= 1.5*myRadius) {
+         return Wrappable.OUTSIDE;
       }
       else if (mag > 0) {
          nrm.scale (1/mag);

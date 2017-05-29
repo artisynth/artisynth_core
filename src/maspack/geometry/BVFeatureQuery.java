@@ -336,7 +336,7 @@ public class BVFeatureQuery {
     * #isInsideMesh(PolygonalMesh,Point3d,double)}, which uses ray casting.
     *
     * @param mesh mesh which point may be inside.
-    * @param pnt point to check.
+    * @param pnt point to check (in world coordinates)
     * @param tol tolerance within which the point is considered to be on the
     * mesh surfaces. A value of -1 will cause the tolerance to be computed
     * automatically.
@@ -397,7 +397,7 @@ public class BVFeatureQuery {
     * #isInsideMesh(PolygonalMesh,BVTree,Point3d,double)}, which uses ray casting.
     *
     * @param bvh bounding volume hierarchy containing the faces.
-    * @param pnt point to check.
+    * @param pnt point to check (in world coordinates)
     * @param tol tolerance within which the point is considered to be on the
     * mesh surface. A value of -1 will cause the tolerance to be computed
     * automatically.
@@ -566,7 +566,7 @@ public class BVFeatureQuery {
     */
    public Face getFaceForInsideOrientedTest (Point3d nearLoc, Vector2d uv) {
       if (myPointFaceCalc == null || myPointFaceCalc.myFace == null) {
-         // System.out.println ("NULL " + myPointFaceCalc);
+         System.out.println ("NULL " + myPointFaceCalc);
          return null;
       }
       else {

@@ -126,8 +126,8 @@ public class RigidSphere extends RigidBody implements Wrappable {
       p0loc.inverseTransform (getPose());
       nrm.set (p0loc);
       double mag = nrm.norm();
-      if (mag >= myRadius) {
-         return 0;
+      if (mag >= 1.5*myRadius) {
+         return Wrappable.OUTSIDE;
       }
       else if (mag > 0) {
          nrm.scale (1/mag);

@@ -119,11 +119,14 @@ public class QuadraticUtils {
          tol = 1e-8;
       }
 
+      // compute algebraic distance
       double adist = x*x/aSqr + y*y/bSqr + z*z/cSqr;
       if (adist > amax) {
          return OUTSIDE;
       }
       else if (adist < DOUBLE_PREC) {
+         // point is at the center, so look for nearest along the principal
+         // axes
          int minAxis;
          if (a <= b) {
             minAxis = (a <= c ? 0 : 2);
@@ -161,26 +164,27 @@ public class QuadraticUtils {
 
          //System.out.println ("nrm=" + nrm.toString ("%14.10f"));
          do {
-            //System.out.println ("ps= " + ps.toString ("%18.14f"));
+            System.out.println ("ps= " + ps.toString ("%18.14f"));
             n.set (nrm);
             double aa = n.x*n.x/aSqr + n.y*n.y/bSqr + n.z*n.z/cSqr;
             double bb = bvec.dot (n);
             double cc = adist-1;
             double disc = Math.max(0, bb*bb - 4*aa*cc);
             double lam = (-bb+Math.sqrt(disc))/(2*aa);
-            //System.out.println ("lam=" + lam);
+            System.out.println ("lam=" + lam);
             ps.scaledAdd (lam, n, pos);
             nrm.set (ps.x/aSqr, ps.y/bSqr, ps.z/cSqr);
-            //System.out.println ("nrm=" + nrm.toString ("%14.10f"));
+            System.out.println ("nrm=" + nrm.toString ("%14.10f"));
             res = nrm.distance(n);
          }
          while (++icnt < maxi && res > tol);
+         System.out.println ("icnt=" + icnt);
          nrm.normalize();
          if (numIters != null) {
             numIters.value = icnt;
          }
-         double d = ps.distance (pos);
-         return -d;
+         ps.sub (pos);
+         return -ps.dot(nrm);
       }
    }
 

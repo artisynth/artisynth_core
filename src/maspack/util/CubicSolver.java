@@ -118,24 +118,37 @@ public class CubicSolver {
                   roots[0] = -0.5*c/b;
                   return 1;
                }
-               double q;
-               if (c >= 0) {
-                  q = -0.5*(c+Math.sqrt(disc));
+               else if (disc < 0) {
+                  return 0;
                }
                else {
-                  q = -0.5*(c-Math.sqrt(disc));
+                  double q;
+                  if (c >= 0) {
+                     q = -0.5*(c+Math.sqrt(disc));
+                  }
+                  else {
+                     q = -0.5*(c-Math.sqrt(disc));
+                  }
+                  double r0 = q/b;
+                  double r1 = d/q;
+                  if (r0 > r1) {
+                     // swap
+                     double tmp = r0; r0 = r1; r1 = tmp;
+                  }
+                  else if (r0 == r1) {
+                     // invalidate r1 so we will only return at most one root
+                     // if r0 is inside the interval
+                     r1 = x1+1; 
+                  }
+                  int numr = 0;
+                  if (r0 >= x0 && r0 <= x1) {
+                     roots[numr++] = r0;
+                  }
+                  if (r1 >= x0 && r1 <= x1) {
+                     roots[numr++] = r1;
+                  }
+                  return numr;
                }
-               double r0 = q/b;
-               double r1 = d/q;
-               if (r0 <= r1) {
-                  roots[0] = r0;
-                  roots[1] = r1;
-               }
-               else {
-                  roots[0] = r1;
-                  roots[1] = r0;
-               }
-               return 2;
             }
          }
          else {

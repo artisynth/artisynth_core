@@ -327,13 +327,13 @@ public class RigidTorus extends RigidBody implements Wrappable {
 
       double r = Math.sqrt (p0loc.x*p0loc.x + p0loc.y*p0loc.y);
       if (r == 0) {
-         return 0;
+         return Wrappable.OUTSIDE;
       }
       Vector3d pc = new Vector3d (p0loc.x, p0loc.y, 0);
       double mag = pc.norm();
       if (mag == 0) {
          // leave normal unchanged
-         return 0;
+         return Wrappable.OUTSIDE;
       }
       else {
          pc.scale (myOuterRadius/mag);
@@ -344,8 +344,8 @@ public class RigidTorus extends RigidBody implements Wrappable {
          // leave normal unchanged
          return -myInnerRadius;
       }
-      else if (mag >= myInnerRadius) {
-         return 0;
+      else if (mag >= 1.5*myInnerRadius) {
+         return Wrappable.OUTSIDE;
       }
       else {
          nrm.scale (1/mag);
@@ -361,7 +361,7 @@ public class RigidTorus extends RigidBody implements Wrappable {
       if (dnrm != null) {
          dnrm.setZero();
       }
-      if (d != 0 && d != -myInnerRadius) {
+      if (d != Wrappable.OUTSIDE && d != -myInnerRadius) {
          nrm.transform (getPose());
       }
       return d;

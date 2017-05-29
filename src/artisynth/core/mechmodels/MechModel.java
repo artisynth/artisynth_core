@@ -2033,6 +2033,25 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       return mech;
    }
 
+   /**
+    * Returns the nearest MechModel, if any, that is an ancestor of a specific
+    * component. If the component is itself a <code>MechModel</code>, the
+    * component itself returned.
+    * 
+    * @param comp component to start with
+    * @return nearest MechModel on or above <code>comp</code>, or
+    * <code>null</code> if there is none.
+    */
+   public static MechModel nearestMechModel (ModelComponent c) {
+      while (c != null) {
+         if (c instanceof MechModel) {
+            return (MechModel)c;
+         }               
+         c = c.getParent();
+      }
+      return null;
+   }         
+
    protected void clearCachedData (ComponentChangeEvent e) {
       super.clearCachedData(e);
       mySolveMatrix = null;

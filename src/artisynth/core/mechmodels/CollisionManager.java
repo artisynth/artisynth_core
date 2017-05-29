@@ -1305,16 +1305,6 @@ public class CollisionManager extends RenderableCompositeBase
       }
    }
 
-   private MechModel nearestMechModel (ModelComponent c) {
-      while (c != null) {
-         if (c instanceof MechModel) {
-            return (MechModel)c;
-         }               
-         c = c.getParent();
-      }
-      return null;
-   }         
-
    /** 
     * Implements {@link
     * MechModel#setCollisionBehavior(Collidable,Collidable,CollisionBehavior)
@@ -2201,10 +2191,10 @@ public class CollisionManager extends RenderableCompositeBase
       else {
          // collisions could be handled by any MechModel above the 
          // first collidable, so need to check all of these
-         MechModel mech = nearestMechModel (c0);
+         MechModel mech = MechModel.nearestMechModel (c0);
          resp.collectHandlers (mech.getCollisionManager().myHandlerTable);
          while (mech != myMechModel) {
-            mech = nearestMechModel (mech.getParent());
+            mech = MechModel.nearestMechModel (mech.getParent());
             resp.collectHandlers (mech.getCollisionManager().myHandlerTable);
          }
       }

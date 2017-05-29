@@ -121,7 +121,7 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       Point3d loc0 = new Point3d(p0);
       loc0.inverseTransform (getPose());
       double d = QuadraticUtils.ellipsoidPenetrationDistance (
-         nrm, loc0, a, b, c, 1.25);
+         nrm, loc0, a, b, c, 2);
       if (dnrm != null) {
          dnrm.setZero();
       }

@@ -498,7 +498,7 @@ public class RigidMesh extends RigidBody implements Wrappable {
       double s = projectionParameter (he, pa, p1);
       int cnt = 0;
       while (s < 0.0 || s > 1.0) {
-         System.out.println ("he=" + he.vertexStr() + " s=" + s);
+         //System.out.println ("he=" + he.vertexStr() + " s=" + s);
          if (s < 0) {
             he = nextHorizonEdge (he.opposite, pa);
          }

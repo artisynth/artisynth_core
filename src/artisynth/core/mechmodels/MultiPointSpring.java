@@ -85,6 +85,9 @@ public class MultiPointSpring extends PointSpringBase
    protected double myLengthConvTol = DEFAULT_LENGTH_CONV_TOL;
    protected boolean myDrawKnotsP = DEFAULT_DRAW_KNOTS;
    protected boolean myDrawABPointsP = DEFAULT_DRAW_AB_POINTS;
+
+   protected static int DEFAULT_DEBUG_LEVEL = 0;
+   protected int myDebugLevel = DEFAULT_DEBUG_LEVEL;
    
    protected int myMaxWrapIterations = DEFAULT_MAX_WRAP_ITERATIONS;
    protected double myMaxWrapDisplacement = DEFAULT_MAX_WRAP_DISPLACEMENT;
@@ -456,7 +459,7 @@ public class MultiPointSpring extends PointSpringBase
       WrapKnot[] myKnots;                   // list of knot points
       double myDscale;
 
-      boolean debug = false;
+      int debugLevel = myDebugLevel;
 
       ArrayList<float[]> myRenderPoints;    // rendering positions for knots
       ArrayList<float[]> myRenderABPoints;  // rendering positions for A/B points
@@ -1111,7 +1114,7 @@ public class MultiPointSpring extends PointSpringBase
             boolean contactBroken = false;
             for (int i=0; i<myWrappables.size(); i++) {
                if (contactCnts[i] != 0 && newContactCnts[i] == 0) {
-                  if (debug) {
+                  if (debugLevel > 0) {
                      System.out.println (
                         "  broken, old numc=" + contactCnts[i]);
                   }
@@ -1120,7 +1123,7 @@ public class MultiPointSpring extends PointSpringBase
                   contactBroken = true;
                }
                else if (contactCnts[i] == 0 && newContactCnts[i] != 0) {
-                  if (debug) {
+                  if (debugLevel > 0) {
                      System.out.println (
                         "  contacting, new numc=" + newContactCnts[i]);
                      System.out.println (
@@ -1166,7 +1169,7 @@ public class MultiPointSpring extends PointSpringBase
                   }
                }
                if (scale < 1.0) {
-                  if (debug) {
+                  if (debugLevel > 0) {
                      System.out.println ("  rescale " + scale);
                   }
                   if (myContactRescaling) {
@@ -1178,14 +1181,14 @@ public class MultiPointSpring extends PointSpringBase
             if (prevForceNorm >= 0) {
                if (forceNorm >= prevForceNorm) {
                   dscale *= 2.0;
-                  if (debug) {
+                  if (debugLevel > 0) {
                      System.out.printf (
                         "  force=%5g ^ dscale=%g\n", forceNorm, dscale);
                   }
                }
                else if (dscale > 1.0) {
                   dscale *= 0.5;
-                  if (debug) {
+                  if (debugLevel > 0) {
                      System.out.printf (
                         "  force=%5g V dscale=%g\n", forceNorm, dscale);
                   }
@@ -1238,12 +1241,12 @@ public class MultiPointSpring extends PointSpringBase
          totalIterations += icnt;
          totalCalls++;
          if (converged) {
-            if (debug && icnt != 1) {
+            if (debugLevel > 0 && icnt != 1) {
                System.out.println ("converged, icnt="+icnt);
             }
          }
          else {
-            if (debug) {
+            if (debugLevel > 0) {
                System.out.println ("did not converge");
             }
             totalFails++;
@@ -1759,6 +1762,19 @@ public class MultiPointSpring extends PointSpringBase
       myDrawABPointsP = enable;
    }
 
+   public int getDebugLevel () {
+      return myDebugLevel;
+   }
+
+   public void setDebugLevel (int level) {
+      myDebugLevel = level;
+      for (Segment seg : mySegments) {
+         if (seg instanceof WrapSegment) {
+            ((WrapSegment)seg).debugLevel = level;
+         }
+      }
+   }
+
    protected double convTol = 1e-6;
 
    public static boolean myIgnoreCoriolisInJacobian = true;
@@ -1796,6 +1812,8 @@ public class MultiPointSpring extends PointSpringBase
          "sor", "successive overrelaxation parameter", 1.0);
       myProps.add (
          "dnrmGain", "gain for dnrm K term", 1.0);
+      myProps.add (
+         "debugLevel", "turns on debug prints if > 0", DEFAULT_DEBUG_LEVEL);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1952,14 +1970,8 @@ public class MultiPointSpring extends PointSpringBase
          Segment seg = mySegments.get(i);
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
-            if (i == 0) {
-               wrapSeg.debug = true;
-            }
             wrapSeg.updateWrapStrand(maxIter);
             wrapSeg.updateSubSegments();
-            if (i == 0) {
-               wrapSeg.debug = false;
-            }
          }
       }
    }      

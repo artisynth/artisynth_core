@@ -70,7 +70,7 @@ public class MultiPointMuscleVia extends MultiPointMuscle {
 	    // remove via point
 	    System.out.println("removing via "+p.pnt.getName());
 	    removePoint (p.pnt);
-            mySegsValidP = false;
+	    invalidateSegments();
 	 }
       }
    }

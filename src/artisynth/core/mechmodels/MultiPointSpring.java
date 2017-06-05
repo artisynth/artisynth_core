@@ -21,8 +21,11 @@ import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
+import maspack.render.Renderer.PointStyle;
+import maspack.render.Renderer.LineStyle;
 import maspack.render.PointRenderProps;
 import maspack.render.RenderList;
+import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderable;
@@ -63,6 +66,8 @@ public class MultiPointSpring extends PointSpringBase
    //protected PointList<Point> myWrapPoints;
 
    protected RenderProps myABRenderProps;
+   protected RenderObject myRenderObj; // used to render the strands
+   protected boolean myRenderObjValidP = false;
 
    protected static double DEFAULT_WRAP_STIFFNESS = 1;
    protected static double DEFAULT_WRAP_DAMPING = -1;
@@ -461,7 +466,6 @@ public class MultiPointSpring extends PointSpringBase
 
       int debugLevel = myDebugLevel;
 
-      ArrayList<float[]> myRenderPoints;    // rendering positions for knots
       ArrayList<float[]> myRenderABPoints;  // rendering positions for A/B points
 
       // Optional list of points that are used to help provide an initial
@@ -491,7 +495,6 @@ public class MultiPointSpring extends PointSpringBase
          for (int i=0; i<numk; i++) {
             myKnots[i] = new WrapKnot();
          }
-         myRenderPoints = null; // will be created in prerender()
          myRenderABPoints = null; // will be created in prerender()
          myInitialPnts = initialPnts;
          myDscale = 1.0;
@@ -1947,6 +1950,11 @@ public class MultiPointSpring extends PointSpringBase
       }
       return null;
    }
+   
+   protected void invalidateSegments() {
+      mySegsValidP = false;
+      myRenderObjValidP = false;
+   }
 
    protected void updateSegsIfNecessary() {
       if (!mySegsValidP) {
@@ -2172,23 +2180,73 @@ public class MultiPointSpring extends PointSpringBase
       return new float[] { (float)pos.x, (float)pos.y, (float)pos.z };
    }
 
-   public void prerender (RenderList list) {
-      updateABRenderProps();
+   private void addRenderPos (RenderObject robj, float[] xyz, boolean isKnot) {
+      int vidx = robj.vertex(xyz);
+      if (isKnot) {
+         robj.addPoint (vidx);
+      }
+      if (vidx > 0) {
+         robj.addLine (vidx-1, vidx);
+      }
+   }
+
+   protected RenderObject buildRenderObject() {
+      RenderObject robj = new RenderObject();
+      for (int i=0; i<numSegments(); i++) {
+         Segment seg = mySegments.get(i);
+         addRenderPos (robj, seg.myPntB.getRenderCoords(), /*knot=*/false);
+         if (seg instanceof WrapSegment) {
+            WrapSegment wrapSeg = (WrapSegment)seg;
+            for (int k=0; k<wrapSeg.myNumKnots; k++) {
+               addRenderPos (
+                  robj, wrapSeg.myKnots[k].updateRenderPos(), /*knot=*/true);
+            }
+         }
+         if (i == numSegments()-1) {
+            addRenderPos (robj, seg.myPntA.getRenderCoords(), /*knot=*/false);
+         }
+      }
+      return robj;
+   }
+
+   protected void updateRenderObject (RenderObject robj) {
+      // updating the render object involves updating the knot render positions
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
-            ArrayList<float[]> renderPoints =
-               new ArrayList<float[]>(2+wrapSeg.myNumKnots);
-            renderPoints.add (seg.myPntB.getRenderCoords());
             for (int k=0; k<wrapSeg.myNumKnots; k++) {
-               WrapKnot knot = wrapSeg.myKnots[k];
-               renderPoints.add (knot.updateRenderPos());
+               wrapSeg.myKnots[k].updateRenderPos();
             }
-            renderPoints.add (seg.myPntA.getRenderCoords());
-            wrapSeg.myRenderPoints = renderPoints;
-            renderPoints = null;
-            if (myDrawABPointsP) {
+         }
+      }
+      robj.notifyPositionsModified();
+   }
+
+   public void prerender (RenderList list) {
+      // A render object is used to render the strands and the knots.  AB
+      // points are rendered using basic point primitives on a per-segment list
+      // of current AB points.
+
+
+      // create or update the render object, as needed
+      if (!myRenderObjValidP) {
+         myRenderObj = buildRenderObject();
+         myRenderObjValidP = true;
+      }
+      else {
+         updateRenderObject(myRenderObj);
+      }
+
+      if (myDrawABPointsP) {
+         // for each wrappable segment, update the current list of AB points to
+         // be rendered:
+         updateABRenderProps();
+         for (int i=0; i<numSegments(); i++) {
+            Segment seg = mySegments.get(i);
+            if (seg instanceof WrapSegment) {
+               WrapSegment wrapSeg = (WrapSegment)seg;
+               ArrayList<float[]> renderPoints = null;
                SubSegment sg = wrapSeg.firstSubSegment();
                if (sg != null) {
                   renderPoints = new ArrayList<float[]>(10);
@@ -2201,44 +2259,65 @@ public class MultiPointSpring extends PointSpringBase
                      }
                      sg = sg.myNext;
                   }
-                  
                }
+               wrapSeg.myRenderABPoints = renderPoints;
             }
-            wrapSeg.myRenderABPoints = renderPoints;
          }
       }
    }
 
    void dorender (Renderer renderer, RenderProps props) {
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
-         if (seg instanceof WrapSegment) {
-            WrapSegment wrapSeg = (WrapSegment)seg;
-            ArrayList<float[]> renderPoints = wrapSeg.myRenderPoints;
-            if (renderPoints != null) {
-               renderer.drawLineStrip (
-                  props, renderPoints,
-                  props.getLineStyle(), isSelected());
-               if (myDrawKnotsP && wrapSeg.myNumKnots > 0) {
-                  for (int k=0; k<wrapSeg.myNumKnots; k++) {
+      RenderObject robj = myRenderObj;
+
+      if (myDrawABPointsP) {
+         // draw AB points
+         for (int i=0; i<numSegments(); i++) {
+            Segment seg = mySegments.get(i);
+            if (seg instanceof WrapSegment) {
+               WrapSegment wrapSeg = (WrapSegment)seg;
+               ArrayList<float[]> renderPoints = wrapSeg.myRenderABPoints;
+               if (renderPoints != null) {
+                  for (int k=0; k<renderPoints.size(); k++) {
                      renderer.drawPoint (
-                        props, renderPoints.get(k+1), isSelected());
+                        myABRenderProps, renderPoints.get(k), isSelected());
                   }
                }
             }
-            renderPoints = wrapSeg.myRenderABPoints;
-            if (renderPoints != null) {
-               for (int k=0; k<renderPoints.size(); k++) {
-                  renderer.drawPoint (
-                     myABRenderProps, renderPoints.get(k), isSelected());
-               }
-            }
+         }
+      }
+      
+      if (robj != null) {
+         double size;
+
+         // draw the strands
+         LineStyle lineStyle = props.getLineStyle();
+         if (lineStyle == LineStyle.LINE) {
+            size = props.getLineWidth();
          }
          else {
-            renderer.drawLine (
-               props, seg.myPntB.myRenderCoords,
-               seg.myPntA.myRenderCoords, getRenderColor(),
-               /*isCapped=*/false, isSelected());
+            size = props.getLineRadius();
+         }
+         if (getRenderColor() != null) {
+            renderer.setColor (getRenderColor(), isSelected());
+         }
+         else {
+            renderer.setLineColoring (props, isSelected());
+         }
+         renderer.drawLines (robj, lineStyle, size);
+
+         if (myDrawKnotsP) {
+            // draw the knots, if any
+            if (robj.numPoints() > 0) {
+               PointStyle pointStyle = props.getPointStyle();
+               if (pointStyle == PointStyle.POINT) {
+                  size = props.getPointSize();
+               }
+               else {
+                  size = props.getPointRadius();
+               }
+               renderer.setPointColoring (props, isSelected());
+               renderer.drawPoints (robj, pointStyle, size);
+            }
          }
       }
    }     
@@ -2695,7 +2774,9 @@ public class MultiPointSpring extends PointSpringBase
          if (segmentRemove != null) {
             segmentRemove.remove();
             undoInfo.addLast (segmentRemove);
+            myRenderObjValidP = false;
             updateSegs(/*updateWrapSegs=*/true);
+            // remove render object
          }
          else {
             undoInfo.addLast (NULL_OBJ);
@@ -2912,7 +2993,7 @@ public class MultiPointSpring extends PointSpringBase
          seg.myPntA = mySegments.get(idx+1).myPntB;
       }
       mySegments.add (idx, seg);
-      mySegsValidP = false;
+      invalidateSegments();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
@@ -2965,7 +3046,7 @@ public class MultiPointSpring extends PointSpringBase
             prev.myPntA = pnt;
          }
       }
-      mySegsValidP = false;
+      invalidateSegments();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
@@ -2976,7 +3057,7 @@ public class MultiPointSpring extends PointSpringBase
             mySegments.get(idx-1).myPntA = mySegments.get(idx).myPntA;
          }
          mySegments.remove (idx);
-         mySegsValidP = false;
+         invalidateSegments();
          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
          return true;
       }
@@ -2987,7 +3068,7 @@ public class MultiPointSpring extends PointSpringBase
 
    public void clearPoints() {
       mySegments.clear();
-      mySegsValidP = false;
+      invalidateSegments();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
@@ -3003,6 +3084,7 @@ public class MultiPointSpring extends PointSpringBase
       WrapSegment seg = new WrapSegment(numk, initialPnts);
       seg.myPntB = mySegments.get(mySegments.size()-1).myPntB;
       mySegments.set (mySegments.size()-1, seg);
+      myRenderObjValidP = false;
    }
 
    public void initializeSegment (int segIdx, Point3d[] initialPnts) {
@@ -3034,7 +3116,7 @@ public class MultiPointSpring extends PointSpringBase
    public void addWrappable (Wrappable wrappable) {
       if (!myWrappables.contains(wrappable)) {
          myWrappables.add (wrappable);
-         mySegsValidP = false;
+         invalidateSegments();
       }        
    }
 
@@ -3060,7 +3142,7 @@ public class MultiPointSpring extends PointSpringBase
 
    public boolean removeWrappable (Wrappable wrappable) {
       if (myWrappables.remove (wrappable)) {
-         mySegsValidP = false;
+         invalidateSegments();
          return true;
       }
       else {
@@ -3070,7 +3152,7 @@ public class MultiPointSpring extends PointSpringBase
 
    public void clearWrappables() {
       myWrappables.clear();
-      mySegsValidP = false;
+      invalidateSegments();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 

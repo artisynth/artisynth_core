@@ -11,6 +11,7 @@ import maspack.util.QuarticSolver;
 import maspack.util.IntHolder;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
+import maspack.util.InternalErrorException;
 import maspack.matrix.*;
 
 /**
@@ -19,6 +20,7 @@ import maspack.matrix.*;
 public class QuadraticUtils {
 
    private static double DOUBLE_PREC = 1e-16;
+   private static double EPS = 100*DOUBLE_PREC;
    public static double OUTSIDE = Double.MAX_VALUE;
 
    /**
@@ -162,23 +164,22 @@ public class QuadraticUtils {
          int icnt = 0;
          double res = 0;
 
-         //System.out.println ("nrm=" + nrm.toString ("%14.10f"));
          do {
-            System.out.println ("ps= " + ps.toString ("%18.14f"));
+            //System.out.println ("ps= " + ps.toString ("%18.14f"));
             n.set (nrm);
             double aa = n.x*n.x/aSqr + n.y*n.y/bSqr + n.z*n.z/cSqr;
             double bb = bvec.dot (n);
             double cc = adist-1;
             double disc = Math.max(0, bb*bb - 4*aa*cc);
             double lam = (-bb+Math.sqrt(disc))/(2*aa);
-            System.out.println ("lam=" + lam);
+            //System.out.println ("lam=" + lam);
             ps.scaledAdd (lam, n, pos);
             nrm.set (ps.x/aSqr, ps.y/bSqr, ps.z/cSqr);
-            System.out.println ("nrm=" + nrm.toString ("%14.10f"));
+            //System.out.println ("nrm=" + nrm.toString ("%14.10f"));
             res = nrm.distance(n);
          }
          while (++icnt < maxi && res > tol);
-         System.out.println ("icnt=" + icnt);
+         //System.out.println ("icnt=" + icnt);
          nrm.normalize();
          if (numIters != null) {
             numIters.value = icnt;
@@ -349,6 +350,627 @@ public class QuadraticUtils {
       // coordinates:
       pt.set (aa*Math.cos(thetaMin), bb*Math.sin(thetaMin), 0);
       pt.transform (TPW);
+   }
+
+   /**
+    * Function evaluator for a one-dimensional Newton-based root
+    * solver. 
+    */
+   private static interface NewtonEvaluator {
+
+      /**
+       * Evaluates f(s) and f'(s) at s. The function value f(s) is returned,
+       * and f'(s) can be queried afterwards by <code>getDeriv()</code>.
+       */
+      public double eval (double s);
+
+      /**
+       * Returns the f(s) value computed by the most recent call to
+       * <code>eval(s)</code>.
+       */
+      public double getValue();
+
+      /**
+       * Returns the f'(s) value computed by the most recent call to
+       * <code>eval(s)</code>.
+       */
+      public double getDeriv();
+
+      /**
+       * Returns the number of iterations that were used to find the root.
+       */
+      public int getIterationCnt();
+
+      /**
+       * Sets the number of iterations that were used to find the root.
+       */
+      public void setIterationCnt (int cnt);
+   }
+
+   private static abstract class NewtonEvaluatorBase implements NewtonEvaluator {
+      protected double value;
+      protected double deriv;
+      protected int icnt;
+
+      public double getValue() {
+         return value;
+      }
+
+      public double getDeriv() {
+         return deriv;
+      }
+
+      public int getIterationCnt() {
+         return icnt;
+      }
+
+      public void setIterationCnt(int cnt) {
+         icnt = cnt;
+      }
+   }
+
+   static boolean debug = false;
+
+   /**
+    * Uses a robust Newton method to solve for the root of a function on the
+    * interval <code>[slo,shi]</code>, within a tolerance <code>stol</code>.
+    * It is assumed that the root is already bracketed.  The function and its
+    * derivative are evaluated by <code>func</code>, and the iteration starts
+    * at the value <code>s0</code>. When Newton iteration fails to make
+    * progress toward the root, the method falls back on bisection.
+    */
+   private static double findRoot (
+      NewtonEvaluator func, double slo, double shi, double s0, double stol) {
+
+      double flo = func.eval (slo);
+      double fhi = func.eval (shi);
+
+      int maxIter = 1074; //Eberly mentions this is max required for bisection
+
+      if (flo == 0) {
+         return slo;
+      }
+      else if (fhi == 0) {
+         return shi;
+      }
+      else if (flo*fhi < 0) {
+         double snew = s0;
+         int i;
+         for (i=0; i<maxIter; i++) {
+            double fnew = func.eval (snew);
+            double dnew = func.getDeriv();
+
+            double ftol = Math.max (dnew, DOUBLE_PREC)*stol;
+            if (Math.abs(fnew) < ftol) {
+               //System.out.println ("fnew=" + fnew);
+               //System.out.println ("snew=" + snew);
+               break;
+            }
+            if((flo<0 && fnew>0) || (flo>0 && fnew<0)){
+               // if sign change between lo and new
+               shi=snew;
+               fhi=fnew;
+            }
+            else { // otherwise sign change between hi and new
+               slo=snew;
+               flo=fnew;
+            }
+            if (slo > shi) {
+               throw new InternalErrorException (
+                  "interval exchanged, slo=" + slo + " shi=" + shi);
+            }
+            
+            double sx = 0;
+            if (dnew != 0) {
+               sx = snew - fnew/dnew;
+            }
+            // if Newton's method answer not within the interval,
+            // bisect instead
+            if (sx <= slo || sx >= shi) {
+               snew = (slo+shi)/2;
+               if (snew == slo || snew == shi) {
+                  // further progress not possible
+                  break;
+               }
+            }
+            else {
+               snew = sx;
+            }
+            if (shi-slo <= stol) {
+               break;                     
+            }  
+         }
+         func.setIterationCnt (i);
+         return snew;
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Root not bracketed: f("+slo+")="+flo+", f("+shi+")=" + fhi);
+      }
+   }
+
+   // iteration count stats for ellipse distance calculation
+   static int ellipseIterationTotal = 0;
+   static int ellipseCallTotal = 0;
+
+   /**
+    * Evaluates the special quartic
+    * <pre>
+    * f(t) = a4 t^4 + a3 t^3 + a1 t - a4
+    * </pre>
+    * whose roots indicate the nearest point to q on an ellipse.
+    */
+   private static class EllipseEvaluator extends NewtonEvaluatorBase {
+
+      double a4;
+      double a3;
+      double a1;
+
+      EllipseEvaluator (double a, double b, Vector2d q) {
+         a4 = b*q.y;
+         a3 = 2*(a*a - b*b + a*q.x);
+         a1 = 2*(b*b - a*a + a*q.x);
+      }
+
+      public double eval (double s) {
+         value = ((a4*s+a3)*s*s+a1)*s - a4;
+         deriv = (4*a4*s+3*a3)*s*s+a1;
+         return value;
+      }
+
+   }
+
+   /**
+    * Find the point <code>p</code> on an ellipse closest to a query point
+    * <code>q</code>, and return the corresponding distance. The distance is
+    * positive if <code>q</code> is outside the ellipse, and negative if it is
+    * inside.
+    *
+    * Modified from "Distance from a Point to an Ellipse, an Ellipsoidm or a
+    * Hyperellipsoid", by David Eberly.
+    */
+   public static double nearestPointEllipse (
+      Vector2d p, double a, double b, Vector2d q) {
+
+      if (a == b) {
+         // circular case
+         double mag = q.norm();
+         if (mag == 0) {
+            // at the center and all points are equidistant; pick (a,0)
+            q.set (a, 0);
+         }
+         else {
+            p.scale (a/mag, q);
+         }
+         return -a;         
+      }
+
+      boolean swapped = false;
+      boolean negatex = false;
+      boolean negatey = false;
+      if (a < b) {
+         // swap x and y so that a > b
+         double tmp;
+         tmp = a; a = b; b = tmp;
+         tmp = q.x; q.x = q.y; q.y = tmp;         
+         swapped = true;
+      }
+      double dtol = a*1e2*DOUBLE_PREC; // distance tolerance
+
+      // Reflect axes as needed so that q is in the first quadrant.  The
+      // corresponding p will be in the first quadrant as well.
+      if (q.x < -dtol) {
+         q.x = -q.x;
+         negatex = true;
+      }
+      if (q.y < -dtol) {
+         q.y = -q.y;
+         negatey = true;
+      }
+      double dist = 0;
+
+      if (q.y > dtol) {
+         if (q.x > dtol) {
+            double g = sqr(q.x/a) + sqr(q.y/b) - 1;
+            if (Math.abs(g) > EPS) {
+               // Instead of using Eberly's function, we solve for f(t) == 0 on
+               // the interval [0,1], where t is the tangent half-angle of the
+               // ellipse parameterization angle and f(t) is a quartic with a
+               // single root corresponding to the point p where (p-q) is
+               // parallel to the ellipse normal.
+
+               EllipseEvaluator func = new EllipseEvaluator (a, b, q);
+               // make a rough guess for the initial half-angle:
+               double t0 = q.y/(Math.sqrt(q.x*q.x + q.y*q.y)+q.x);
+               double t = findRoot (func, 0, 1, t0, DOUBLE_PREC);
+               // recover the ellipse point from t:
+               double sin = 2*t/(1+t*t);
+               double cos = (1-t*t)/(1+t*t);
+               p.set (a*cos, b*sin);
+               // to compute distance, take dot product of (q-p) with normal
+               double nx = b*cos;
+               double ny = a*sin;
+               dist = ((nx*(q.x-p.x) + ny*(q.y-p.y))/
+                       Math.sqrt (a*a*sin*sin + b*b*cos*cos));
+
+               // record iteration stats
+               ellipseIterationTotal += func.getIterationCnt();
+               ellipseCallTotal++;
+            }
+            else {
+               // we are on the ellipse, within precision, so p = q
+               p.set (q);
+               dist = 0;
+            }
+         }
+         else {
+            // on the y axis, within precision
+            p.set (0.0, b);
+            dist = q.y - b;
+         }
+      }
+      else {
+         // on the x axis, within  precision
+         double num = a*q.x;
+         double dem = a*a - b*b;
+         boolean computed = false;
+         if (num < dem) {
+            double disc = 1-sqr(num/dem);
+            if (disc > EPS) {
+               // far enough in the interior that the nearest point is not at
+               // (a,0) but is instead on the ellipse. This situation does not
+               // occur for circles, where a == b.
+               p.set (a*num/dem, b*Math.sqrt(disc));
+               dist = -Math.sqrt ((p.x-q.x)*(p.x-q.x) + p.y*p.y);
+               computed = true;
+            }
+         }
+         if (!computed) {
+            p.set (a, 0.0);
+            dist = q.x - a;
+         }
+      }
+
+      // undo axis swapping and reflection
+      if (negatex) {
+         p.x = -p.x;
+      }
+      if (negatey) {
+         p.y = -p.y;
+      }
+      if (swapped) {
+         double tmp = p.x; p.x = p.y; p.y = tmp;         
+      }
+      return dist;
+   }
+
+   /**
+    * Describes the axis reordering needed to ensure a > b > c.
+    */
+   private static enum AxisOrdering {
+      A_B_C,
+      A_C_B,
+      C_A_B,
+      B_A_C,
+      B_C_A,
+      C_B_A
+   }
+
+   private static final double sqr (double x) {
+      return x*x;
+   }
+
+   // iteration count stats for ellipsoid distance calculation
+   static int ellipsoidIterationTotal = 0;
+   static int ellipsoidCallTotal = 0;
+
+   /**
+    * Evaluates Eberly's function
+    * <pre>
+    * f(s) = (n0/(s+r0))^2 + (n1/(s+r1))^2 + (z2/(s+1))^2 - 1
+    * </pre>
+    * which is zero at the ellipsoid point p where (p-q) is parallel
+    * to the ellipsoid normal.
+    */
+   private static class EberlyEvaluator extends NewtonEvaluatorBase {
+      double r0;
+      double r1;
+      double z2;
+      double n0;
+      double n1;
+
+      public EberlyEvaluator (double a, double b, double c, Vector3d q) {
+         r0 = sqr(a/c);
+         r1 = sqr(b/c);
+         n0 = r0*(q.x/a);
+         n1 = r1*(q.y/b);
+         z2 = q.z/c;
+      }
+
+      public EberlyEvaluator (
+         double r0, double r1, double z2, double n0, double n1) {
+
+         this.r0 = r0;
+         this.r1 = r1;
+         this.z2 = z2;
+         this.n0 = n0;
+         this.n1 = n1;
+      }
+
+      public double eval (double s) {
+
+         double rat0Sqr = sqr(n0/(s+r0));
+         double rat1Sqr = sqr(n1/(s+r1));
+         double rat2Sqr = sqr(z2/(s+1));
+
+         value = rat0Sqr + rat1Sqr + rat2Sqr - 1;
+         deriv = -2*(rat0Sqr/(s+r0) + rat1Sqr/(s+r1) + rat2Sqr/(s+1));
+         return value;
+      }
+
+      /**
+       * Computes an appropriate upper bound for s given the current algebraic
+       * value of the ellipse function g for the query point.
+       */
+      public double getShi (double g) {
+         if (g < 0) {
+            // q is inside the ellipse
+            return 0;
+         }
+         else {
+            // q is outside the ellipse
+            return Math.sqrt (sqr(n0) + sqr(n1) + sqr(z2)) - 1;
+         }
+      }
+
+      /**
+       * Computes the ellipsoid point p corresponding to s
+       */
+      public void getPosition (Vector3d p, double s, Vector3d q) {
+         p.set (r0*q.x/(s+r0), r1*q.y/(s+r1), q.z/(s+1));
+      }
+   }
+
+   /**
+    * Find the point <code>p</code> on an ellipsoid closest to
+    * <code>q</code>, and return the corresponding distance. The distance is
+    * positive if <code>q</code> is outside the ellipsoid, and negative if it
+    * is inside.
+    *
+    * Modified from "Distance from a Point to an Ellipse, an Ellipsoidm or a
+    * Hyperellipsoid", by David Eberly.
+    */
+   public static double nearestPointEllipsoid (
+      Vector3d p, double a, double b, double c, Vector3d q) {
+
+      AxisOrdering reordering = AxisOrdering.A_B_C;
+
+      // reorder as needed so that a >= b >= c
+      if (a >= b) {
+         if (b >= c) {
+            // nothing to do
+         }
+         else if (a >= c) { // order as a, c, b
+            double tmp = b; b = c; c = tmp;
+            tmp = q.y; q.y = q.z; q.z = tmp;
+            reordering = AxisOrdering.A_C_B;
+         }
+         else { // order as c, a, b
+            double tmp = a; a = c; c = b; b = tmp;
+            tmp = q.x; q.x = q.z; q.z = q.y; q.y = tmp;
+            reordering = AxisOrdering.C_A_B;
+         }
+      }
+      else {
+         if (a >= c) { // order as b, a, c
+            double tmp = a; a = b; b = tmp;
+            tmp = q.x; q.x = q.y; q.y = tmp;
+            reordering = AxisOrdering.B_A_C;
+         }
+         else if (b >= c) { // order as b, c, a
+            double tmp = a; a = b; b = c; c = tmp;
+            tmp = q.x; q.x = q.y; q.y = q.z; q.z = tmp;
+            reordering = AxisOrdering.B_C_A;
+         }
+         else { // order as c, b, a
+            double tmp = a; a = c; c = tmp;
+            tmp = q.x; q.x = q.z; q.z = tmp;
+            reordering = AxisOrdering.C_B_A;
+         }
+      }            
+
+      double dtol = a*1e2*DOUBLE_PREC; // distance tolerance
+
+      double dist = 0;
+
+      if (a == b) {
+         if (b == c) {
+            // spherical case
+            double r = q.norm();
+            if (r == 0) {
+               // at the center and all points are equidistant; pick (a,0,0)
+               p.set (a, 0, 0);
+               dist = -a;         
+            }
+            else {
+               p.scale (a/r, q);
+               dist = r-a;
+            }
+         }
+         else {
+            // oblate spheroid
+            Vector2d rvec = new Vector2d(q.x, q.y);
+            double r = rvec.norm();
+            if (r == 0) {
+               // on the z-axis
+               p.set (0, 0, q.z >= 0 ? c : -c);
+               dist = q.z - c;
+            }
+            else {
+               // on an ellipse in the r/z plane
+               rvec.scale (1/r);
+               Vector2d pr = new Vector2d();
+               dist = nearestPointEllipse (pr, a, c, new Vector2d(r, q.z));
+               p.set (pr.x*rvec.x, pr.x*rvec.y, pr.y);
+            }
+         }
+      }
+      else if (b == c) {
+         // prolate spheroid
+         Vector2d rvec = new Vector2d(q.y, q.z);
+         double r = rvec.norm();
+         if (r == 0) {
+            // on the x-axis
+            p.set (q.x >= 0 ? a : -a, 0, 0);
+            dist = q.x - a;
+         }
+         else {
+            // on an ellipse in the x/r plane
+            rvec.scale (1/r);
+            Vector2d pr = new Vector2d();
+            dist = nearestPointEllipse (pr, a, b, new Vector2d(q.x, r));
+            p.set (pr.x, pr.y*rvec.x, pr.y*rvec.y);
+         }
+      }
+      else {
+         // triaxial case
+
+         boolean negatex = false;
+         boolean negatey = false;
+         boolean negatez = false;
+
+         // reflect axes as needed to get into the first octant
+         if (q.x < -dtol) {
+            q.x = -q.x;
+            negatex = true;
+         }
+         if (q.y < -dtol) {
+            q.y = -q.y;
+            negatey = true;
+         }
+         if (q.z < -dtol) {
+            q.z = -q.z;
+            negatez = true;
+         }
+
+         if (q.z > dtol) {
+            if (q.y > dtol) {
+               if (q.x > dtol) {
+                  double g = sqr(q.x/a) + sqr(q.y/b) + sqr(q.z/c) - 1;
+                  if (g != 0) {
+                     // q completely within first octant
+                     EberlyEvaluator func = 
+                        new EberlyEvaluator (a, b, c, q);
+
+                     double slo = q.z/c-1.0;
+                     double shi = func.getShi(g);
+                     double s0 = (slo+shi)/2.0;
+                     double s =
+                        findRoot (func, slo, shi, s0, a*DOUBLE_PREC/(c*c));
+                     // get p and distance from s
+                     func.getPosition (p, s, q);
+                     dist = Math.sqrt(
+                        sqr(p.x-q.x)+sqr(p.y-q.y)+sqr(p.z-q.z));
+                     if (g < 0) {
+                        // negate distance if inside the ellipsoid
+                        dist = -dist;
+                     }
+                     // record iteration stats
+                     ellipsoidIterationTotal += func.getIterationCnt();
+                     ellipsoidCallTotal++;
+                  }
+                  else {
+                     p.set (q);
+                     dist = 0;
+                  }
+               }
+               else {
+                  // in the y/z plane, within precision
+                  Vector2d pr = new Vector2d();
+                  dist = nearestPointEllipse (pr, b, c, new Vector2d(q.y, q.z));
+                  p.set (0.0, pr.x, pr.y);
+               }
+            }
+            else { 
+               // in the x/z plane, within precision
+               if (q.x > dtol) {
+                  Vector2d pr = new Vector2d();
+                  dist = nearestPointEllipse (pr, a, c, new Vector2d(q.x, q.z));
+                  p.set (pr.x, 0.0, pr.y);
+               }
+               else {
+                  // on the z axis, within precision
+                  p.set (0, 0, c);
+                  dist = q.z - c;
+               }
+            }
+         }
+         else { 
+            // in the x/y plane, within precision. If q is outside a
+            // sub-ellipse with minor axis lengths as and bs, then p is on the
+            // ellipse in the x/y plane. Otherwise, p lies on the ellpsoid
+            // outside the x/y plane.
+            double as = (a*a-c*c)/a;
+            double bs = (b*b-c*c)/b;
+            boolean computed = false;
+            if (q.x < as && q.y < bs) {
+               double ratx = q.x/as;
+               double raty = q.y/bs;
+               double disc = 1 - ratx*ratx - raty*raty;
+               if (disc > EPS) {
+                  p.set (a*ratx, b*raty, c*Math.sqrt(disc));
+                  dist = -Math.sqrt (sqr(p.x-q.x) + sqr(p.y-q.y) + p.z*p.z);
+                  computed = true;
+               }
+            }
+            if (!computed) {
+               // p is on ellipse in the x/y plane
+               Vector2d pr = new Vector2d();
+               dist = nearestPointEllipse (pr, a, b, new Vector2d(q.x, q.y));
+               p.set (pr.x, pr.y, 0.0);
+            }
+         }
+
+         // undo axis negation
+
+         if (negatex) {
+            p.x = -p.x;
+         }
+         if (negatey) {
+            p.y = -p.y;
+         }
+         if (negatez) {
+            p.z = -p.z;
+         }
+      }
+
+      // undo reordering
+
+      switch (reordering) {
+         case A_C_B: {
+            double tmp = p.y; p.y = p.z; p.z = tmp;
+            break;
+         }
+         case C_A_B: {
+            double tmp = p.x; p.x = p.y; p.y = p.z; p.z = tmp;
+            break;
+         }
+         case B_A_C: {
+            double tmp = p.x; p.x = p.y; p.y = tmp;
+            break;
+         }
+         case B_C_A: {
+            double tmp = p.x; p.x = p.z; p.z = p.y; p.y = tmp;
+            break;
+         }
+         case C_B_A: {
+            double tmp = p.x; p.x = p.z; p.z = tmp;
+            break;
+         }
+      }            
+
+      return dist;
+
    }
 
 }

@@ -65,7 +65,7 @@ public class MultiPointSpring extends PointSpringBase
    protected RenderProps myABRenderProps;
 
    protected static double DEFAULT_WRAP_STIFFNESS = 1;
-   protected static double DEFAULT_WRAP_DAMPING = 0;
+   protected static double DEFAULT_WRAP_DAMPING = -1;
    protected static double DEFAULT_CONTACT_STIFFNESS = 10;
    protected static double DEFAULT_CONTACT_DAMPING = 0;
    protected static int DEFAULT_NUM_WRAP_POINTS = 0;
@@ -1706,8 +1706,20 @@ public class MultiPointSpring extends PointSpringBase
       return mind;
    }
 
+   protected double getDefaultWrapDamping() {
+      // for now, just set default wrap damping to 10 X wrap stiffness, so that
+      // the stiffness/damping ratio will be 0.1 (and 1 for contact
+      // damping). This which should imply relatively fast convergence.
+      return 10*myWrapStiffness;
+   }
+
    public double getWrapDamping () {
-      return myWrapDamping;
+      if (myWrapDamping < 0) {
+         return getDefaultWrapDamping();
+      }
+      else {
+         return myWrapDamping;
+      }
    }
 
    public void setWrapDamping (double damping) {
@@ -3067,6 +3079,36 @@ public class MultiPointSpring extends PointSpringBase
     */
    public void updateWrapSegments() {
       updateWrapSegments(myMaxWrapIterations);
+   }
+
+   /**
+    * Returns all the AB points which are currently active on the
+    * segments. This should be called in sync with the simulation, since the
+    * set of AB points varies across time steps.
+    *
+    * @param pnts returns the AB points. Will be cleared at the start
+    * of the method.
+    * @return number of AB points found
+    */
+   public int getAllABPoints (ArrayList<Point> pnts) {
+      pnts.clear();
+      for (int i = 0; i < numSegments (); i++) {
+         Segment seg = mySegments.get (i);
+         if (seg instanceof WrapSegment) {
+            WrapSegment wrapSeg = (WrapSegment)seg;
+            SubSegment sg = wrapSeg.firstSubSegment ();
+            while (sg != null) {
+               if (sg.myAttachmentB != null) {
+                  pnts.add (sg.myPntB);
+               }
+               if (sg.myAttachmentA != null) {
+                  pnts.add (sg.myPntA);
+               }
+               sg = sg.myNext;
+            }
+         }
+      }
+      return pnts.size();
    }
 
    // DONE: add an initialize() method

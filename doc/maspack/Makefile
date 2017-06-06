@@ -3,6 +3,8 @@
 #
 DOC_DIR = ..
 HTML_DIR = ../html/maspack
+LATEXMLPOST_ARGS = --splitat=section --navigationtoc=context \
+	--css=LaTeXML-navbar-left
 
 SOURCES = \
 	maspack.tex \

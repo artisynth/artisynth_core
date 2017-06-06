@@ -3,6 +3,7 @@
 #
 DOC_DIR = ..
 HTML_DIR = ../html/modelguide
+LATEXMLPOST_ARGS = --splitat=section
 
 SOURCES = \
 	modelguide.tex \

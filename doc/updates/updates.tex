@@ -19,7 +19,31 @@
 \else
 \maketitle
 \fi
-%\section*{Next}
+%\section*{Next}]
+
+\section*{XXX, 2017}
+
+\subsection{rendering signed distance grids and surfaces}
+
+render distance surface
+
+However, in general, you typically *do* want to make sure that the
+mesh is centered on the centroid (or center of volume), and sometimes
+aligned with the OBB as well.
+
+To facilitate that, I've added the methods
+
+   translateToCentroid()
+   transformToOBB()
+   transformToOBB(method)
+   getOBB()
+   getOBB(method)
+
+to MeshBase, as well as
+
+   translateToCenterOfVolume()
+
+to PolygonalMesh.
 
 %\subsection*{Wrapping surfaces}
 

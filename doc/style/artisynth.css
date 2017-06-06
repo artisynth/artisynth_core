@@ -438,10 +438,11 @@ li.bibitem  {margin-top: .5em; margin-bottom: .5em; }
 
 
 /**
- * Prevent extra indent 
+ * Override indentation
  */
 div > .ltx_para > .ltx_p,
 section > .ltx_para > .ltx_p { text-indent:0em; }
+.ltx_para > .ltx_p:first-child { text-indent:0em; }
 
 /**
 * Remove extra space before/after title

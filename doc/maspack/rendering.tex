@@ -2772,6 +2772,13 @@ orientations. The last block consists of multiple lines, with
 \javamethod[maspack.render.Renderer]{getTextBounds()} used to obtain
 the text bounds necessary to center each line.
 
+\begin{sideblock}
+{\bf Note:} Rendered text is shaded in the same way as other surfaces,
+so unless shading is set to {\tt Shading.NONE}, light must be shining
+on it in order for it to be visible. If you want text to always render
+at full intensity, shading should be set to {\tt Shading.NONE}.
+\end{sideblock}
+
 \section{Render Objects}
 \label{renderObjects:sec}
 

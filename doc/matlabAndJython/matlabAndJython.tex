@@ -594,7 +594,7 @@ ways:
 the command line;
 
 \item Calling the {\tt openMatlabConnection()} method in the {\tt
-Main} class.
+Main} class (see Section \ref{MatlabFromCode:sec}).
 
 \end{enumerate}
 
@@ -648,10 +648,44 @@ NumericProbeBase.getMatlabName()} (described above) is used.  The
 functions {\tt oprobeToMatlab()} and {\tt oprobeFromMatlab()} do the
 same thing for output probes.
 
+\subsection{Managing an external MATLAB connection from code}
+\label{MatlabFromCode:sec}
+
 The MATLAB connection is associated, internally, with a structure
 called \javaclass[artisynth.core.util]{MatlabInterface}, which
-provides the internal methods for sending data to and from MATLAB.  At
-present, these methods include:
+provides the internal methods for sending data to and from MATLAB.
+The interface can be obtained and queried from mathods in the {\tt
+Main} class:
+
+\begin{description}
+
+\item[{\tt MatlabInterface openMatlabConnection()} ] \mbox{}
+
+Returns a connection to a MATLAB process. If a connection already
+exists, that connection is returned. Otherwise, a new connection is
+established with a MATLAB process running on the user's machine.  If
+no such process is found, then a new MATLAB process will be
+started. If ArtiSynth is being run under MATLAB, then the connection
+will be made to the parent MATLAB process
+
+\item[{\tt MatlabInterface getMatlabConnection()} ] \mbox{}
+
+Returns the current MATLAB connection, if any; otherwise, returns {\tt
+null}.
+
+\item[{\tt boolean hasMatlabConnection()} ] \mbox{}
+
+Returns {\tt true} if a MATLAB connection currently exists.
+
+\item[{\tt boolean closeMatlabConnection()} ] \mbox{}
+
+Closes any current MATLAB connection, returning {\tt true} if a
+connection previously existed.
+
+\end{description}
+
+Methods by which a MatlabConnection can send data to and from MATLAB
+include:
 
 \begin{description}
 
@@ -700,6 +734,28 @@ The above methods are also available in the Jython interface (Section
    vectorFromMatlab (matlabName)
 \end{lstlisting}
 %
+
+The following example shows a code fragment in which a MATLAB
+connection is obtained and then used to transfer data to and from
+MATLAB:
+
+\begin{lstlisting}
+   import artisynth.core.driver.Main;
+   import artisynth.core.util.MatlabInterface;
+
+   ...
+
+   Main main = Main.getMain();
+   MatlabInterface mi = main.openMatlabConnection();
+
+   // read a matrix MX from MATLAB. Assume we know a-priori that
+   // MX is dense, so it will be returned as a MatrixNd
+   MatrixNd MX = (MatrixNd)mi.matrixFromMatlab ("MX");
+
+   // send a sparse matrix K to MATLAB and assign it the name KMAT
+   SparseMatrix K = ...
+   mi.objectToMatlab (K, "KMAT");
+\end{lstlisting}
 
 \section{Interfacing to Jython}
 \label{JythonInterface:sec}

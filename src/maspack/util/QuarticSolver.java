@@ -7,11 +7,10 @@
 package maspack.util;
 
 /**
- * Finds the roots of a cubic equation on a specified interval. Adopted from
- * utility code provided by Robert Bridson's graphics group.
+ * Finds the roots of a quartic equation on a specified interval.
  *
- * Also, a good guide to the structure of cubics and their solution is the
- * paper "A new approach to solving the cubic: Cardan's solution revealed", by
+ * Also, a good guide to the structure of quartics and their solution is the
+ * paper "The quartic equation: invariants and Euler's solution revealed", by
  * RWD Nickalls.
  */
 public class QuarticSolver {

@@ -72,6 +72,16 @@ public class SortedRenderableList implements Collection<IsRenderable> {
          return 0;
       }
    }
+   
+   protected void printSelectionQueriesNeeded() {
+      for (IsRenderable r : this) {
+         if (r instanceof IsSelectable) {
+            IsSelectable s = (IsSelectable)r;
+            System.out.println (r.getClass().getName() + 
+              " " + Math.max (1, s.numSelectionQueriesNeeded()));
+         }       
+      }
+   }
 
    /**
     * Returns the maximum number of selection queries required for all

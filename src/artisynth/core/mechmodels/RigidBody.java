@@ -1670,14 +1670,26 @@ public class RigidBody extends Frame
    }
 
    /**
-    * {@inheritDoc}
+    * Queries whether or not rendering of the distance surface is
+    * enabled.
+    *
+    * @return <code>true</code> if rendering of the distance surface is enabled
+    * @see #setRenderDistanceSurface
     */
    public boolean getRenderDistanceSurface() {
       return myRenderDistanceSurface;
    }
 
    /**
-    * {@inheritDoc}
+    * Enables or disables rendering of the distance surface. If enabled, then
+    * an approximation of the isosurface for the signed distance grid is
+    * rendered <i>instead</i> of the surface mesh. This can give the user a
+    * better understanding of how the distance grid approximates the associated
+    * mesh.
+    *
+    * @param enable if <code>true</code>, enables rendering of the distance
+    * surface
+    * @see #getRenderDistanceSurface
     */
    public void setRenderDistanceSurface(boolean enable) {
       myRenderDistanceSurface = enable;

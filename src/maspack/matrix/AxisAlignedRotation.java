@@ -20,31 +20,31 @@ import maspack.util.InternalErrorException;
 public enum AxisAlignedRotation {
 
    X_Y (Vector3d.X_UNIT, Vector3d.Y_UNIT),
-      X_NZ (Vector3d.X_UNIT, Vector3d.NEG_Z_UNIT),
-      X_NY (Vector3d.X_UNIT, Vector3d.NEG_Y_UNIT),
-      X_Z (Vector3d.X_UNIT, Vector3d.Z_UNIT),
-      NX_Y (Vector3d.NEG_X_UNIT, Vector3d.Y_UNIT),
-      NX_NZ (Vector3d.NEG_X_UNIT, Vector3d.NEG_Z_UNIT),
-      NX_NY (Vector3d.NEG_X_UNIT, Vector3d.NEG_Y_UNIT),
-      NX_Z (Vector3d.NEG_X_UNIT, Vector3d.Z_UNIT), 
+   X_NZ (Vector3d.X_UNIT, Vector3d.NEG_Z_UNIT),
+   X_NY (Vector3d.X_UNIT, Vector3d.NEG_Y_UNIT),
+   X_Z (Vector3d.X_UNIT, Vector3d.Z_UNIT),
+   NX_Y (Vector3d.NEG_X_UNIT, Vector3d.Y_UNIT),
+   NX_NZ (Vector3d.NEG_X_UNIT, Vector3d.NEG_Z_UNIT),
+   NX_NY (Vector3d.NEG_X_UNIT, Vector3d.NEG_Y_UNIT),
+   NX_Z (Vector3d.NEG_X_UNIT, Vector3d.Z_UNIT), 
 
-      Y_Z (Vector3d.Y_UNIT, Vector3d.Z_UNIT),
-      Y_NX (Vector3d.Y_UNIT, Vector3d.NEG_X_UNIT),
-      Y_NZ (Vector3d.Y_UNIT, Vector3d.NEG_Z_UNIT),
-      Y_X (Vector3d.Y_UNIT, Vector3d.X_UNIT),
-      NY_Z (Vector3d.NEG_Y_UNIT, Vector3d.Z_UNIT),
-      NY_NX (Vector3d.NEG_Y_UNIT, Vector3d.NEG_X_UNIT),
-      NY_NZ (Vector3d.NEG_Y_UNIT, Vector3d.NEG_Z_UNIT),
-      NY_X (Vector3d.NEG_Y_UNIT, Vector3d.X_UNIT),
+   Y_Z (Vector3d.Y_UNIT, Vector3d.Z_UNIT),
+   Y_NX (Vector3d.Y_UNIT, Vector3d.NEG_X_UNIT),
+   Y_NZ (Vector3d.Y_UNIT, Vector3d.NEG_Z_UNIT),
+   Y_X (Vector3d.Y_UNIT, Vector3d.X_UNIT),
+   NY_Z (Vector3d.NEG_Y_UNIT, Vector3d.Z_UNIT),
+   NY_NX (Vector3d.NEG_Y_UNIT, Vector3d.NEG_X_UNIT),
+   NY_NZ (Vector3d.NEG_Y_UNIT, Vector3d.NEG_Z_UNIT),
+   NY_X (Vector3d.NEG_Y_UNIT, Vector3d.X_UNIT),
 
-      Z_X (Vector3d.Z_UNIT, Vector3d.X_UNIT),
-      Z_NY (Vector3d.Z_UNIT, Vector3d.NEG_Y_UNIT),
-      Z_NX (Vector3d.Z_UNIT, Vector3d.NEG_X_UNIT),
-      Z_Y (Vector3d.Z_UNIT, Vector3d.Y_UNIT),
-      NZ_X (Vector3d.NEG_Z_UNIT, Vector3d.X_UNIT),
-      NZ_NY (Vector3d.NEG_Z_UNIT, Vector3d.NEG_Y_UNIT),
-      NZ_NX (Vector3d.NEG_Z_UNIT, Vector3d.NEG_X_UNIT),
-      NZ_Y (Vector3d.NEG_Z_UNIT, Vector3d.Y_UNIT);
+   Z_X (Vector3d.Z_UNIT, Vector3d.X_UNIT),
+   Z_NY (Vector3d.Z_UNIT, Vector3d.NEG_Y_UNIT),
+   Z_NX (Vector3d.Z_UNIT, Vector3d.NEG_X_UNIT),
+   Z_Y (Vector3d.Z_UNIT, Vector3d.Y_UNIT),
+   NZ_X (Vector3d.NEG_Z_UNIT, Vector3d.X_UNIT),
+   NZ_NY (Vector3d.NEG_Z_UNIT, Vector3d.NEG_Y_UNIT),
+   NZ_NX (Vector3d.NEG_Z_UNIT, Vector3d.NEG_X_UNIT),
+   NZ_Y (Vector3d.NEG_Z_UNIT, Vector3d.Y_UNIT);
 
    private Vector3d myX;
    private Vector3d myY;
@@ -175,5 +175,18 @@ public enum AxisAlignedRotation {
       throw new InternalErrorException (
          "Illegal axis combination: xmaxIdx="+xmaxIdx+", ymaxIdx="+ymaxIdx);
    }
+
+   public void transform (Vector3d vr, Vector3d v0) {
+      RotationMatrix3d R = new RotationMatrix3d();
+      getMatrix (R);
+      vr.transform (R, v0);
+   }
+
+   public void inverseTransform (Vector3d vr, Vector3d v0) {
+      RotationMatrix3d R = new RotationMatrix3d();
+      getMatrix (R);
+      vr.inverseTransform (R, v0);
+   }
+
 }
 

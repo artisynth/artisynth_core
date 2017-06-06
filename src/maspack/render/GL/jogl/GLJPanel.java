@@ -155,7 +155,6 @@ import com.jogamp.opengl.util.texture.TextureState;
     </p>
     <p>
     The active and dedicated texture-unit's {@link GL#GL_TEXTURE_2D} state is preserved via {@link TextureState}.
-    See also {@link Texture#textureCallOrder Order of Texture Commands}.
     </p>
     <p>
     The current gl-viewport is preserved.

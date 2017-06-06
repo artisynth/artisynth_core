@@ -44,6 +44,7 @@ public class GLGridPlane implements HasProperties {
    private static Color myDefaultMinorColor = null;
    private static Color myDefaultXAxisColor = null;
    private static Color myDefaultYAxisColor = null;
+   private static Color myDefaultZAxisColor = null;
 
    public enum AxisLabeling {
       OFF,
@@ -94,7 +95,7 @@ public class GLGridPlane implements HasProperties {
 
    RigidTransform3d XGridToWorld = new RigidTransform3d();
    // Desired XGridToWorld value. XGridToWorld may be different from
-   // this if myConstrainToWorld is true:
+   // this if myLockAxesToWorld is true:
    RigidTransform3d XGridToWorldTarget = new RigidTransform3d();
    Dragger3dBase myDragger;
    boolean myGridVisible = true;
@@ -104,17 +105,18 @@ public class GLGridPlane implements HasProperties {
    //float[] myMinorRGB = new float[3]; // used to compute division color
    float[] myXAxisRGB = createRGB (myDefaultXAxisColor);
    float[] myYAxisRGB = createRGB (myDefaultYAxisColor);
+   float[] myZAxisRGB = createRGB (myDefaultZAxisColor);
    double myMinSize;
    int myMinCellPixels = 10;
    boolean myAutoSizedP = true;
    GLGridResolution myResolution = new GLGridResolution (1, 10);
    int myLineWidth = 1;
 
-   public static boolean DEFAULT_CONSTRAIN_TO_WORLD = false;
-   boolean myConstrainToWorld = DEFAULT_CONSTRAIN_TO_WORLD;
+   public static boolean DEFAULT_LOCK_AXES_TO_WORLD = false;
+   boolean myLockAxesToWorld = DEFAULT_LOCK_AXES_TO_WORLD;
    // if true, draw the X/Y axes at their true locations in world
    // coordinates. Otherwise, draw them at the grid center. This
-   // can only be true if constrainToWorld is also true.
+   // can only be true if myLockAxesToWorld is also true.
    public static boolean DEFAULT_USE_WORLD_ORIGIN = false;
    boolean myUseWorldOrigin = DEFAULT_USE_WORLD_ORIGIN;
    public static AxisLabeling DEFAULT_X_AXIS_LABELING = AxisLabeling.OFF;
@@ -125,7 +127,7 @@ public class GLGridPlane implements HasProperties {
    double myLabelSize = DEFAULT_LABEL_SIZE;
    
    public static final Color DEFAULT_LABEL_COLOR = null;
-   Color myLabelColor = DEFAULT_LABEL_COLOR;
+   float[] myLabelRGB = createRGB(DEFAULT_LABEL_COLOR);
 
    private static class RenderInfo {
       // stores all lines
@@ -357,6 +359,8 @@ public class GLGridPlane implements HasProperties {
          "xAxisColor", "color for x (horizontal) axis", myDefaultXAxisColor);
       myProps.add (
          "yAxisColor", "color for y (vertical) axis", myDefaultYAxisColor);
+      myProps.add (
+         "zAxisColor", "color for z (perpendicular) axis", myDefaultZAxisColor);
       myProps.add ("lineWidth", "width of rendering lines", 1);
       myProps.add ("position", "position of the grid coordinate frame", null);
       myProps.get ("position").setAutoWrite (false);
@@ -365,8 +369,8 @@ public class GLGridPlane implements HasProperties {
          myDefaultAxisAngle);
       myProps.get ("orientation").setAutoWrite (false);
       myProps.add (
-         "constrainToWorld", "constrains grid to world axes and coordinates",
-         DEFAULT_CONSTRAIN_TO_WORLD);
+         "lockAxesToWorld", "constrains grid to world axes and coordinates",
+         DEFAULT_LOCK_AXES_TO_WORLD);
       myProps.add (
          "useWorldOrigin", "align grid origin with the world origin",
          DEFAULT_USE_WORLD_ORIGIN);    
@@ -443,13 +447,13 @@ public class GLGridPlane implements HasProperties {
       return myLineWidth;
    }
 
-   public boolean getConstrainToWorld() {
-      return myConstrainToWorld;
+   public boolean getLockAxesToWorld() {
+      return myLockAxesToWorld;
    }
 
-   public void setConstrainToWorld (boolean enable) {
-      if (myConstrainToWorld != enable) {
-         myConstrainToWorld = enable;
+   public void setLockAxesToWorld (boolean enable) {
+      if (myLockAxesToWorld != enable) {
+         myLockAxesToWorld = enable;
          if (enable) {
             // reset position; new position will be constrained
             setGridToWorld (getGridToWorld());
@@ -634,7 +638,7 @@ public class GLGridPlane implements HasProperties {
 
    public void setGridToWorld (RigidTransform3d TGW) {
       XGridToWorldTarget.set (TGW);
-      if (myConstrainToWorld) {
+      if (myLockAxesToWorld) {
          RigidTransform3d TGWnew = alignToWorld (TGW);
          AlignConstrainer aligner = new AlignConstrainer();
          aligner.updatePose (TGWnew, TGW);
@@ -728,7 +732,7 @@ public class GLGridPlane implements HasProperties {
             }
             case Transrotator: {
                myDragger = new Transrotator3d();
-               if (myConstrainToWorld) {
+               if (myLockAxesToWorld) {
                   ((Transrotator3d)myDragger).setConstrainer (
                      new AlignConstrainer());
                }
@@ -855,7 +859,7 @@ public class GLGridPlane implements HasProperties {
    }
    
    public void setUseWorldOrigin (boolean enable) {
-      if (!myConstrainToWorld) {
+      if (!myLockAxesToWorld) {
          enable = false;
       }
       myUseWorldOrigin = enable;
@@ -886,11 +890,11 @@ public class GLGridPlane implements HasProperties {
    }
    
    public void setLabelColor (Color color) {
-      myLabelColor = color;
+      myLabelRGB = createRGB(color);
    }
    
    public Color getLabelColor () {
-      return myLabelColor;
+      return createColor (myLabelRGB);
    }
    
    public Color getXAxisColor() {
@@ -907,6 +911,14 @@ public class GLGridPlane implements HasProperties {
 
    public void setYAxisColor (Color color) {
       myYAxisRGB = createRGB (color);
+   }
+
+   public Color getZAxisColor() {
+      return createColor (myZAxisRGB);
+   }
+
+   public void setZAxisColor (Color color) {
+      myZAxisRGB = createRGB (color);
    }
 
    public Color getMinorColor() {
@@ -1087,7 +1099,7 @@ public class GLGridPlane implements HasProperties {
 
    String createLabel (double cellSize, int n) {
       double log10 = (int)Math.log10(cellSize);
-      int exp = (int)log10;
+      int exp = (int)Math.floor(log10);
       int base = (int)Math.round(Math.pow(10,log10-exp));
       return createLabel (base, exp, n);
    }
@@ -1166,6 +1178,19 @@ public class GLGridPlane implements HasProperties {
       return new GLGridResolution (majorSize, numDivisions);
    }
 
+   private float[] getWorldAxisColor (double ux, double uy, double uz) {
+      Vector3d uvec = new Vector3d (ux, uy, uz);
+      switch (uvec.maxAbsIndex()) {
+         case 0: return myXAxisRGB;
+         case 1: return myYAxisRGB;
+         case 2: return myZAxisRGB;
+         default: {
+            throw new InternalErrorException (
+               "maxAbsIndex for a 3-vector is "+uvec.maxAbsIndex());
+         }
+      }
+   }
+
    private void drawGrid (Renderer renderer) {
       
       if (myMinSize == 0) {
@@ -1229,15 +1254,6 @@ public class GLGridPlane implements HasProperties {
          halfCellCnt = maxCells;
       }
 
-      RigidTransform3d TGW = new RigidTransform3d(XGridToWorld);
-      if (myUseWorldOrigin) {
-         // then we want to rotate the grid back so that x/y correspond to the
-         // eye frame. Otherwise, x and y axes will be in the wrong place
-         RigidTransform3d XGridToEye = new RigidTransform3d();
-         XGridToEye.mul (renderer.getViewMatrix(), XGridToWorld);
-         //TGW.R.mulInverse (XGridToEye.R);
-      }
-
       double halfSize = halfCellCnt*minorSize;
 
       int xcnt = 2 * halfCellCnt + 1; // number of x axis cell divisions
@@ -1254,7 +1270,7 @@ public class GLGridPlane implements HasProperties {
       if (myUseWorldOrigin) {
          Point3d center = new Point3d();
          // compute offset so the axes correspond to the real world center
-         center.inverseTransform (TGW);
+         center.inverseTransform (XGridToWorld);
          xoff = center.x;
          yoff = center.y;
       }     
@@ -1280,6 +1296,19 @@ public class GLGridPlane implements HasProperties {
       else {
          minorRGB = myMinorRGB;
       }
+
+      float[] xColor = myXAxisRGB;
+      float[] yColor = myYAxisRGB;
+      if (myLockAxesToWorld) {
+         // x and y axis colors are determined from corresponding world axes
+         RotationMatrix3d R = XGridToWorld.R;
+         // world x axis extracted from first column of XGridToWorld.R
+         xColor = getWorldAxisColor (R.m00, R.m10, R.m20);
+         // world y axis extracted from second column of XGridToWorld.R
+         yColor = getWorldAxisColor (R.m01, R.m11, R.m21);
+      }
+      
+
       //*********************************************************
       // Old code that adjusted the intensity of the minor axis lines depending
       // on how close we were to changing the grid resolution. This gave a
@@ -1304,13 +1333,13 @@ public class GLGridPlane implements HasProperties {
       rcacheInfo.update(
          numDivisions, (float)minorSize, xcnt, ycnt, x_axis_j, y_axis_i, 
          (float)xmin, (float)xmax, (float)ymin, (float)ymax,
-         myXAxisRGB, myYAxisRGB, myMajorRGB, minorRGB);
+         xColor, yColor, myMajorRGB, minorRGB);
 
       Shading savedShading = renderer.setShading (Shading.NONE);
       renderer.setLineWidth(myLineWidth);
 
       renderer.pushModelMatrix();
-      renderer.mulModelMatrix(TGW);
+      renderer.mulModelMatrix(XGridToWorld);
 
       renderer.drawLines (rcacheInfo.getRenderObject());
 
@@ -1318,7 +1347,7 @@ public class GLGridPlane implements HasProperties {
       if (myXAxisLabeling != AxisLabeling.OFF ||
           myYAxisLabeling != AxisLabeling.OFF) {
          drawAxisLabels (
-            renderer, TGW, xcnt, ycnt, majorSize, numDivisions, distPerPixel);
+            renderer, xcnt, ycnt, majorSize, numDivisions, distPerPixel);
       }
 
       renderer.popModelMatrix();
@@ -1326,42 +1355,34 @@ public class GLGridPlane implements HasProperties {
       renderer.setShading (savedShading);
    }
 
-   private Color getEffectiveLabelColor() {
-      if (myLabelColor != null) {
-         return myLabelColor;
-      }
-      else if (myViewer != null) {
-         float[] bg = myViewer.getBackgroundColor().getRGBColorComponents(null);
-         if (bg[0] + bg[1] + bg[2] >= 1.5) {
-            return Color.BLACK;
-         }
-         else {
-            return Color.WHITE;
-         }
+   private float[] getEffectiveLabelColor() {
+      if (myLabelRGB != null) {
+         return myLabelRGB;
       }
       else {
-         return Color.WHITE;
+         return myMajorRGB;
       }
+      // if (myViewer != null) {
+      //    float[] bg = myViewer.getBackgroundColor().getRGBColorComponents(null);
+      //    if (bg[0] + bg[1] + bg[2] >= 1.5) {
+      //       return Color.BLACK;
+      //    }
+      //    else {
+      //       return Color.WHITE;
+      //    }
+      // }
+      // else {
+      //    return Color.WHITE;
+      // }
    }
    
    private void drawAxisLabels (
-      Renderer renderer, RigidTransform3d TGW, int xcnt, int ycnt, 
+      Renderer renderer, int xcnt, int ycnt, 
       double majorSize, int numDivisions, double pixelSize) {
 
       double log10 = Math.log10(majorSize);
-      int exp, base;
-      if (log10 >= 0) {
-         exp = (int)log10;
-         base = (int)Math.round(Math.pow(10,log10-exp));
-      }
-      else {
-         exp = (int)(log10-1);
-         base = (int)Math.round(Math.pow(10,log10-exp));
-         if (base == 10) {
-            base = 1;
-            exp++;
-         }
-      }
+      int exp = (int)Math.floor(log10);
+      int base = (int)Math.round(Math.pow(10,log10-exp));
 
       renderer.setColor (getEffectiveLabelColor());
 
@@ -1374,7 +1395,7 @@ public class GLGridPlane implements HasProperties {
       // necessarily the same because of the need to align grid with major
       // divisions.)
       Point3d goff = new Point3d(renderer.getCenter());
-      goff.inverseTransform (TGW);
+      goff.inverseTransform (XGridToWorld);
 
       double sw = renderer.getScreenWidth()*pixelSize;
       double sh = renderer.getScreenHeight()*pixelSize;
@@ -1390,8 +1411,8 @@ public class GLGridPlane implements HasProperties {
       Point3d gcenter = new Point3d();
       Vector3d axisDirs = new Vector3d(1, 1, 1);
       if (myUseWorldOrigin) {
-         gcenter.inverseTransform (TGW.R, TGW.p);
-         axisDirs.inverseTransform (TGW.R, axisDirs);
+         gcenter.inverseTransform (XGridToWorld.R, XGridToWorld.p);
+         axisDirs.inverseTransform (XGridToWorld.R, axisDirs);
       }
 
       if (myXAxisLabeling != AxisLabeling.OFF) {

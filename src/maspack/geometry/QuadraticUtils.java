@@ -21,6 +21,11 @@ public class QuadraticUtils {
 
    private static double DOUBLE_PREC = 1e-16;
    private static double EPS = 100*DOUBLE_PREC;
+
+   /**
+    * Special value, equal to <code>Double.MAX_VALUE</code>, that indicates a
+    * point is outside a particular solid.
+    */
    public static double OUTSIDE = Double.MAX_VALUE;
 
    /**
@@ -90,7 +95,7 @@ public class QuadraticUtils {
     *     a^2   b^2   c^2
     * </pre>
     * exceeds <code>amax</code>, the method returns
-    * {@link OUTSIDE} and the normal is not computed.
+    * {@link #OUTSIDE} and the normal is not computed.
     */
    public static double ellipsoidPenetrationDistance (
       Vector3d nrm, Vector3d pos, double a, double b, double c, double amax) {

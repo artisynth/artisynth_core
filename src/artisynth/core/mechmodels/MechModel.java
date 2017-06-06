@@ -2038,7 +2038,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * component. If the component is itself a <code>MechModel</code>, the
     * component itself returned.
     * 
-    * @param comp component to start with
+    * @param c component to start with
     * @return nearest MechModel on or above <code>comp</code>, or
     * <code>null</code> if there is none.
     */

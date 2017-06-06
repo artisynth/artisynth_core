@@ -1507,9 +1507,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       X.R.setXYDirections (xdir, ydir);      
       myGrid.setGridToWorld (X);
       myGrid.setUseWorldOrigin (true);
-      myGrid.setConstrainToWorld (true);
-      myGrid.setXAxisColor (getAxisColor (xmaxIdx));
-      myGrid.setYAxisColor (getAxisColor (ymaxIdx));
+      myGrid.setLockAxesToWorld (true);
+      myGrid.setXAxisColor (getAxisColor (0));
+      myGrid.setYAxisColor (getAxisColor (1));
+      myGrid.setZAxisColor (getAxisColor (2));
    }
 
    public void setDefaultAxialView (AxisAlignedRotation view) {
@@ -3248,7 +3249,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return rendering2d;
    }
 
-   protected int numSelectionQueriesNeeded() {
+   public int numSelectionQueriesNeeded() {
       int num = myInternalRenderList.numSelectionQueriesNeeded();
       RenderList elist = myExternalRenderList;
       if (elist != null) {

@@ -252,13 +252,13 @@ public class MechModelEditor extends EditorBase {
          if (actionCommand == "Add FrameMarkers ...") {
             if (myEditManager.acquireEditLock()) {
                RigidBody body = (RigidBody)selection.get (0);
-               if (!(body.getGrandParent() instanceof MechModel)) {
+               MechModel mech = MechModel.nearestMechModel (body);
+               if (mech == null) {
                   System.out.println (
-                     "Unimplemented case: RigidBody grandparent not a MechModel");
+                     "RigidBody does not have an ancestor MechModel");
                }
                else {
-                  MechModel model = (MechModel)body.getGrandParent();
-                  FrameMarkerAgent agent = new FrameMarkerAgent (myMain, model);
+                  FrameMarkerAgent agent = new FrameMarkerAgent (myMain, mech);
                   agent.show (popupBounds);
                }
             }

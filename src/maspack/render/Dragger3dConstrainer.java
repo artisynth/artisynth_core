@@ -16,7 +16,7 @@ public interface Dragger3dConstrainer {
     * for reference. If the constraint is such that the rotation matrix is
     * simply reset to its original value, the method should return false.
     *
-    * @param RDWnew new value for the dragger rotation matrix, which should be
+    * @param RDW new value for the dragger rotation matrix, which should be
     * modified if necessary
     * @param TDW previous dragger-to-world transform.
     * @return <code>false</code> if there is no motion and <code>RDWnew</code>

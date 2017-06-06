@@ -24,7 +24,7 @@ public class BVFeatureQuery {
 
    private static final double INF = Double.POSITIVE_INFINITY;
 
-   PointFaceDistanceCalculator myPointFaceCalc;
+   public PointFaceDistanceCalculator myPointFaceCalc;
    PointVertexDistanceCalculator myPointVertexCalc;
    PointEdgeDistanceCalculator myPointEdgeCalc;
    LineFaceDistanceCalculator myLineFaceCalc;

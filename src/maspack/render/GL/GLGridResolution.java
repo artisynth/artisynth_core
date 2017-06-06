@@ -29,10 +29,12 @@ public class GLGridResolution {
     */
    public void set (double majorCellSize, int numDivisions) {
       if (majorCellSize < 0) {
-         throw new IllegalArgumentException ("cell size must not be negative");
+         throw new IllegalArgumentException (
+            "cell size is "+majorCellSize+"; must not be negative");
       }
       if (numDivisions < 1) {
-         throw new IllegalArgumentException ("num divisions must be >= 1");
+         throw new IllegalArgumentException (
+            "num divisions is "+numDivisions+"; must be >= 1");
       }
       if (majorCellSize != myMajorCellSize) {
          myMajorCellSize = majorCellSize;

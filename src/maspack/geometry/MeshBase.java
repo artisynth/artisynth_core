@@ -972,7 +972,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
 
    /**
     * Transforms this mesh so that its center and orientation are aligned
-    * with its oriented bounding box (OBB) as computed by {@link computeOBB()}.
+    * with its oriented bounding box (OBB) as computed by {@link #computeOBB()}.
     */
    public void transformToOBB () {
       OBB obb = computeOBB();
@@ -982,7 +982,7 @@ public abstract class MeshBase implements Renderable, Cloneable {
    /**
     * Transforms this mesh so that its center and orientation are aligned
     * with its oriented bounding box (OBB) as computed by 
-    * {@link computeOBB(OBB.Method)}.
+    * {@link #computeOBB(OBB.Method)}.
     * 
     * @param method method used to compute the OBB.
     */
@@ -1631,7 +1631,6 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * Computes the oriented bounding box (OBB) that most tightly contains
     * this mesh, using the {@link OBB.Method#ConvexHull} method.
     * 
-    * @param method method used to compute the OBB
     * @return OBB containing this mesh
     */
    public OBB computeOBB () {

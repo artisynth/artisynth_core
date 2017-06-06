@@ -13,9 +13,11 @@ import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.mechmodels.FixedMeshBody;
 import artisynth.core.mechmodels.MechModel;
+import artisynth.core.renderables.EditablePolygonalMeshComp;
 import artisynth.core.modelbase.*;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.MeshBase;
+import maspack.render.*;
 import artisynth.core.gui.selectionManager.SelectionManager;
 
 import java.util.*;
@@ -36,6 +38,10 @@ public class MeshBodyEditor extends EditorBase {
             MeshComponent body = (MeshComponent)selection.get (0);
             actions.add (this, "Save local mesh as ...");
             actions.add (this, "Save world mesh as ...");
+            if (body.getMesh() instanceof PolygonalMesh &&
+                body.getGrandParent() instanceof MechModel) {           
+               actions.add (this, "Add mesh inspector");
+            }
          }
       }
    }
@@ -55,6 +61,17 @@ public class MeshBodyEditor extends EditorBase {
                MeshBase mesh = body.getMesh();
                EditorUtils.saveMesh (
                   mesh, mesh != null ? mesh.getMeshToWorld() : null);
+            }
+            else if (actionCommand == "Add mesh inspector") {
+               MeshComponent body = (MeshComponent)selection.get (0);
+               MechModel mech = (MechModel)body.getGrandParent();
+               EditablePolygonalMeshComp editMesh =
+                  new EditablePolygonalMeshComp ((PolygonalMesh)body.getMesh());
+               double size = RenderableUtils.getRadius (editMesh);
+               RenderProps.setVisible (editMesh, true);
+               RenderProps.setPointStyle (editMesh, Renderer.PointStyle.SPHERE);
+               RenderProps.setPointRadius (editMesh, 0.05*size);
+               mech.addRenderable (editMesh);
             }
          }
       }

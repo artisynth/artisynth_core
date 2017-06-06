@@ -166,7 +166,8 @@ public class GLOcclusionSelector extends GLSelector {
          "beginSelectionQuery() can't be called recursively");
       }
       if (idx < 0 || idx >= myCurrentMaxQ) {
-         throw new IllegalArgumentException ("index out of range");
+         throw new IllegalArgumentException (
+            "index "+idx+" out of range; max=" + myCurrentMaxQ);
       }
 
       // flush queries if we need room

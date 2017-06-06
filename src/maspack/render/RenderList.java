@@ -357,7 +357,11 @@ public class RenderList {
               myOpaque.numSelectionQueriesNeeded() +
               myTransparent2d.numSelectionQueriesNeeded() +
               myOpaque2d.numSelectionQueriesNeeded());
-   }         
+   }
+   
+   public void printOpaqueSelectionQueries() {
+      myOpaque.printSelectionQueriesNeeded();
+   }
 
    /**
     * Returns the total number of renderables in this list.

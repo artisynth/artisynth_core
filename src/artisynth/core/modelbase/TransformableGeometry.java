@@ -6,8 +6,6 @@
  */
 package artisynth.core.modelbase;
 
-import java.util.List;
-
 import maspack.matrix.AffineTransform3dBase;
 import maspack.geometry.GeometryTransformer;
 
@@ -22,16 +20,22 @@ import maspack.geometry.GeometryTransformer;
   */
 public interface TransformableGeometry {
    
-   /*
+   /**
     * Flag indicating that the system is currently simulating.
     */
    public static final int TG_SIMULATING = 0x01;
    
-   /*
+   /**
     * Flag indicating that rigid body articulation constraints should
     * be enforced as the transform proceeds.
     */
    public static final int TG_ARTICULATED = 0x02;
+   
+   /**
+    * Flag indicating that transform is being applied through the GUI
+    * with use of a dragger, allowing one to filter transforms.
+    */
+   public static final int TG_DRAGGER = 0x04;
    
    /**
     * Applies an affine transformation to the geometry of this component. This

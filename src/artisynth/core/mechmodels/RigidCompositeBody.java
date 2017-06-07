@@ -12,23 +12,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Map;
 
-import maspack.geometry.MeshBase;
-import maspack.geometry.PointMesh;
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.PolylineMesh;
-import maspack.geometry.GeometryTransformer;
-import maspack.matrix.AffineTransform3d;
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
-import maspack.matrix.SymmetricMatrix3d;
-import maspack.matrix.Vector3d;
-import maspack.properties.HierarchyNode;
-import maspack.render.RenderList;
-import maspack.spatialmotion.SpatialInertia;
-import maspack.util.InternalErrorException;
-import maspack.util.NumberFormat;
-import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentListImpl;
 import artisynth.core.modelbase.ComponentUtils;
@@ -39,6 +22,21 @@ import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
+import maspack.geometry.GeometryTransformer;
+import maspack.geometry.MeshBase;
+import maspack.geometry.PointMesh;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.PolylineMesh;
+import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Point3d;
+import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.properties.HierarchyNode;
+import maspack.render.RenderList;
+import maspack.spatialmotion.SpatialInertia;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 /**
  * Allows a rigid body to have multiple geometries, some used for
  * computing mass/inertia, some for display only, some for collisions
@@ -55,13 +53,8 @@ public class RigidCompositeBody extends RigidBody implements
    }
 
    public RigidCompositeBody(String name) {
-      super(name);
-      myComponents = 
-         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
-      myMeshList =
-         new MeshComponentList<RigidMeshComp>(
-            RigidMeshComp.class, "meshes", "msh");
-      add(myMeshList);
+     super(name);
+     initializeChildComponents();
    }
    
    /**
@@ -539,6 +532,14 @@ public class RigidCompositeBody extends RigidBody implements
       context.addAll (myMeshList);
    }
 
+   @Override
+   public void transformGeometry(
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      // remove dragger flag for children
+      flags = flags & ~TransformableGeometry.TG_DRAGGER;
+      super.transformGeometry(gtr, context, flags);
+   }
+   
 //   public void transformGeometry (
 //      GeometryTransformer X, TransformGeometryContext context, int flags) {
 //      
@@ -752,15 +753,34 @@ public class RigidCompositeBody extends RigidBody implements
       return false;
    }
 
+   protected void initializeChildComponents() {
+      myComponents = 
+         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
+      myMeshList =
+         new MeshComponentList<RigidMeshComp>(
+            RigidMeshComp.class, "meshes", "msh");
+      add(myMeshList);
+   }
+   
    public RigidCompositeBody copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
 
+      // need to duplicate all mesh components
       RigidCompositeBody ccomp =
          (RigidCompositeBody)super.copy (flags, copyMap);
+      
+      ccomp.initializeChildComponents();
 
-      ccomp.myComponents =
-         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
-      ccomp.myDisplayMode = myDisplayMode;
+      for (int i=0; i<myMeshList.size(); i++) {
+         RigidMeshComp mc = myMeshList.get(i);
+         RigidMeshComp newFmc = mc.copy(flags, copyMap);
+         ccomp.addMeshComp(newFmc);
+         
+         // do this this since addMesh sets collidability by default
+         newFmc.setCollidable (mc.getCollidable());        
+      }
+      ccomp.setName(null);
+      ccomp.setNavpanelVisibility(getNavpanelVisibility());
       
       return ccomp;
    }

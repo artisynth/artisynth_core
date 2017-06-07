@@ -62,12 +62,12 @@ public class RotatableScaler3d extends Transrotator3d {
          }
 
          double x, y, z;
-//         x = d.x == 0 ? 1 : (o.x == 0 ? 1e-10 : Math.abs (d.x / o.x));
-//         y = d.y == 0 ? 1 : (o.y == 0 ? 1e-10 : Math.abs (d.y / o.y));
-//         z = d.z == 0 ? 1 : (o.z == 0 ? 1e-10 : Math.abs (d.z / o.z));
-         x = d.x == 0 ? 1 : (o.x == 0 ? 1e-10 : d.x / o.x);
-         y = d.y == 0 ? 1 : (o.y == 0 ? 1e-10 : d.y / o.y);
-         z = d.z == 0 ? 1 : (o.z == 0 ? 1e-10 : d.z / o.z);
+         x = d.x == 0 ? 1 : (o.x == 0 ? 1e-10 : Math.abs (d.x / o.x));
+         y = d.y == 0 ? 1 : (o.y == 0 ? 1e-10 : Math.abs (d.y / o.y));
+         z = d.z == 0 ? 1 : (o.z == 0 ? 1e-10 : Math.abs (d.z / o.z));
+//         x = d.x == 0 ? 1 : (o.x == 0 ? 1e-10 : d.x / o.x);
+//         y = d.y == 0 ? 1 : (o.y == 0 ? 1e-10 : d.y / o.y);
+//         z = d.z == 0 ? 1 : (o.z == 0 ? 1e-10 : d.z / o.z);
 
          Tinc.set (T);
          T.setIdentity();

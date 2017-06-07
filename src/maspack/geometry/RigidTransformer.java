@@ -50,6 +50,14 @@ public class RigidTransformer extends GeometryTransformer {
    public boolean isInvertible() {
       return true;
    }
+   
+   /**
+    * Returns <code>false</code>, since a rigid transform cannot be
+    * reflecting.
+    */
+   public boolean isReflecting() {
+      return false;
+   }
 
    /**
     * Returns a transformer that implements the inverse operation of this

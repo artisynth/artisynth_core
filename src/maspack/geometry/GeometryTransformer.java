@@ -267,6 +267,17 @@ public abstract class GeometryTransformer {
    public abstract boolean isAffine();
 
    /**
+    * Returns <code>true</code> if this transformer globally implements a 
+    * reflection (i.e., the determinant of the deformation gradient
+    * at all transformation points is negative). The default declaration
+    * of this method returns <code>false</code>. Subclasses should
+    * override this if necessary.
+    */
+   public boolean isReflecting() {
+      return false;
+   }
+
+   /**
     * Returns <code>true</code> if this transformer is invertible. If it is,
     * then an inverse transformer can be obtained using {@link #getInverse}.
     */

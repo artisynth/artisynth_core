@@ -20,6 +20,7 @@ public class AffineTransformer extends GeometryTransformer {
    AffineTransform3d myX;
    PolarDecomposition3d myPolarD;
    AffineTransform3d myInvX;
+   boolean myReflectingP = false;
    boolean myInvertibleP;
 
    /**
@@ -31,6 +32,7 @@ public class AffineTransformer extends GeometryTransformer {
       myX = new AffineTransform3d (X);
       myPolarD = new PolarDecomposition3d();
       myPolarD.factorLeft (X.A);
+      myReflectingP = myX.A.determinant() < 0;
    }
 
    /**
@@ -47,6 +49,13 @@ public class AffineTransformer extends GeometryTransformer {
     */
    public boolean isAffine() {
       return true;
+   }
+   
+   /**
+    * Returns <code>true</code> if this transformer is reflecting.
+    */
+   public boolean isReflecting() {
+      return myReflectingP;
    }
    
    /**

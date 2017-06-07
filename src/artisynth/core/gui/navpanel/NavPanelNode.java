@@ -283,7 +283,7 @@ public class NavPanelNode {
          ArrayList<ComponentNamePair> namedChildren =
             new ArrayList<ComponentNamePair>();
 
-	 int numChildren;
+	 int numChildren = 0;
 
 	 int numSelected = 0;
 	 int numDisplayable = 0;

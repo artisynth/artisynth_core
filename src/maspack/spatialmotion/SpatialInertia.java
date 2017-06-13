@@ -1705,7 +1705,7 @@ public class SpatialInertia extends Matrix6dBlock
    public void coriolisForce (Wrench wr, Twist tw) {
       // Standard Newton-Euler formulation for coriolis force:
       //
-      // tw.w X tw.w X mass com
+      // tw.w X (tw.w X mass com)
       //
       // tw.w X JmassComCom tw.w
       //

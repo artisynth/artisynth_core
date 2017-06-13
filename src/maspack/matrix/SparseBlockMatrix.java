@@ -1397,13 +1397,13 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       for (int bi=0; bi<numBlkRows; bi++) {
          if (getBlockRowSize(bi) != M.getBlockRowSize(bi)) {
             throw new IllegalArgumentException (
-               "Block rows sizes do not conform");
+               "Block row sizes do not conform");
          }
       }
       for (int bj=0; bj<numBlkCols; bj++) {
          if (getBlockColSize(bj) != M.getBlockColSize(bj)) {
             throw new IllegalArgumentException (
-               "Block rows sizes do not conform");
+               "Block col sizes do not conform");
          }
       }
       for (int bi=0; bi<numBlkRows; bi++) {
@@ -1436,6 +1436,237 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
                }
             }
             blkM = blkM.next();
+         }
+      }
+   }
+   
+   /**
+    * Sets the current matrix S to (1/2)(S+S^T), making it symmetric.  For this
+    * to succeed, the current matrix must have consistent block row/column sizes.
+    * 
+    * @return true if matrix structure has changed
+    */
+   public boolean setSymmetric() {
+      
+      // check sizes match column sizes
+      if (numBlockRows() != numBlockCols()) {
+         throw new IllegalArgumentException (
+            "Number of block rows must match number of block columns in M");
+      }
+      for (int i=0; i<numBlockRows(); ++i) {
+         if (getBlockRowSize(i) != getBlockColSize(i)) {
+            throw new IllegalArgumentException("M does not have consistent block"
+               + " row and column sizes");
+         }
+      }
+      
+      // reset partition info
+      myRowIndicesPartition = Partition.None;
+      myRowIndicesNumBlkRows = -1;
+      myRowIndicesNumBlkCols = -1;
+      myRowIndices = null;
+
+      myColIndicesPartition = Partition.None;
+      myColIndicesNumBlkRows = -1;
+      myColIndicesNumBlkCols = -1;
+      myColIndices = null;
+      
+      // go through and modify/add blocks
+      boolean structureModified = false;
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         MatrixBlock blk = myRows[bi].firstBlock();
+         
+         while (blk != null) {
+            
+            // get corresponding column
+            int bj = blk.getBlockCol();
+            
+            if (bi != bj) {
+               MatrixBlock blkS = getBlock(bj, bi);
+               
+               // both exist, modify blocks to be symmetric
+               if (blkS != null) {
+                  
+                  // make symmetric
+                  for (int i=0; i<blk.rowSize(); ++i) {
+                     for (int j=0; j<blk.colSize(); ++j) {
+                        double val = (blk.get(i, j) + blkS.get(j, i))/2;
+                        blk.set(i,j, val);
+                        blkS.set(j, i, val);
+                     }
+                  }
+                  
+               } else {
+                  
+                  // only one exists, add new symmetric block
+                  blk.scale(0.5);
+                  MatrixBlock newBlk = blk.createTranspose();
+                  addBlock(bj, bi, newBlk);
+                  structureModified = true;
+                  
+               }
+               
+            } else if (bi == bj) {
+               
+               // diagonal
+               for (int i=0; i<blk.rowSize()-1; ++i) {
+                  for (int j=i+1; j<blk.colSize(); ++j) {
+                     double val = (blk.get(i, j)+blk.get(j, i))/2;
+                     blk.set(i, j, val ); 
+                     blk.set(j, i, val);
+                  }
+               }
+            }
+            
+            blk = blk.next();
+         }
+      }
+    
+      return structureModified;
+   }
+   
+   /**
+    * Sets the current matrix to (1/2)(M+M^T). For this to succeed, M
+    * must have consistent block row/column sizes.
+    *  
+    * @param M input matrix
+    */
+   public void setSymmetric (SparseBlockMatrix M) {
+      
+      if (M == this) {
+         setSymmetric();
+         return;
+      }
+      
+      // check sizes match column sizes
+      if (M.numBlockRows() != M.numBlockCols()) {
+         throw new IllegalArgumentException (
+            "Number of block rows must match number of block columns in M");
+      }
+      for (int i=0; i<M.numBlockRows(); ++i) {
+         if (M.getBlockRowSize(i) != M.getBlockColSize(i)) {
+            throw new IllegalArgumentException("M does not have consistent block"
+               + " row and column sizes");
+         }
+      }
+      
+      // create structure
+      myNumBlockRows = M.myNumBlockRows;
+      myNumBlockCols = M.myNumBlockCols;
+      myNumRows = M.myNumRows;
+      myNumCols = M.myNumCols;
+
+      myVerticallyLinkedP = M.myVerticallyLinkedP;
+
+      myRows = new MatrixBlockRowList[myNumBlockRows];
+      myRowOffsets = new int[myNumBlockRows+1];
+      for (int bi = 0; bi < myNumBlockRows; bi++) {
+         myRows[bi] = new MatrixBlockRowList();
+         myRowOffsets[bi] = M.myRowOffsets[bi];
+      }
+      myRowOffsets[myNumBlockRows] = M.myRowOffsets[myNumBlockRows];
+
+      myCols = new MatrixBlockColList[myNumBlockCols];
+      myColOffsets = new int[myNumBlockCols+1];
+      for (int bj = 0; bj < myNumBlockCols; bj++) {
+         if (myVerticallyLinkedP) {
+            myCols[bj] = new MatrixBlockColList();
+         }
+         myColOffsets[bj] = M.myColOffsets[bj];
+      }
+      myColOffsets[myNumBlockCols] = M.myColOffsets[myNumBlockCols];
+
+      myRowIndicesPartition = Partition.None;
+      myRowIndicesNumBlkRows = -1;
+      myRowIndicesNumBlkCols = -1;
+      myRowIndices = null;
+
+      myColIndicesPartition = Partition.None;
+      myColIndicesNumBlkRows = -1;
+      myColIndicesNumBlkCols = -1;
+      myColIndices = null;
+
+      // go through and fill in blocks where both M(bi, bj) and M(bj, bi) exist
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         MatrixBlock blk = M.myRows[bi].firstBlock();
+         
+         while (blk != null) {
+            
+            // get corresponding column
+            int bj = blk.getBlockCol();
+            
+            if (bi != bj) {
+               MatrixBlock blkS = M.getBlock(bj, bi);
+               
+               // both exist, modify blocks to be symmetric
+               if (blkS != null) {
+                  MatrixBlock newR = blk.clone();
+                  
+                  // make symmetric
+                  for (int i=0; i<blk.rowSize(); ++i) {
+                     for (int j=0; j<blk.colSize(); ++j) {
+                        double val = (blk.get(i, j) + blkS.get(j, i))/2;
+                        newR.set(i,j, val);
+                     }
+                  }
+                  
+                  addBlockWithoutNumber (bi, bj, newR);
+                  newR.setBlockNumber (blk.getBlockNumber());
+                  
+                  MatrixBlock newC = newR.createTranspose();
+                  addBlockWithoutNumber (bj, bi, newC);
+                  newC.setBlockNumber (blkS.getBlockNumber());
+               } else {
+                  
+                  // only one exists, add block to keep numbers valid
+                  MatrixBlock newR = blk.clone();
+                  newR.scale(0.5);
+                  
+                  addBlockWithoutNumber (bi, bj, newR);
+                  newR.setBlockNumber (blk.getBlockNumber());
+                  
+               }
+               
+            } else if (bi == bj) {
+               MatrixBlock newBlk = blk.clone();
+               for (int i=0; i<newBlk.rowSize()-1; ++i) {
+                  for (int j=i+1; j<newBlk.colSize(); ++j) {
+                     double val = (newBlk.get(i, j)+newBlk.get(j, i))/2;
+                     newBlk.set(i, j, val ); 
+                     newBlk.set(j, i, val);
+                  }
+               }
+               addBlockWithoutNumber (bi, blk.getBlockCol(), newBlk);
+               newBlk.setBlockNumber (blk.getBlockNumber());
+            }
+            
+            blk = blk.next();
+         }
+      }
+      
+      // add new blocks when only one of M(bi, bj) or M(bj, bi) exists
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         MatrixBlock blk = M.myRows[bi].firstBlock();
+         
+         while (blk != null) {
+            
+            // get corresponding column
+            int bj = blk.getBlockCol();
+            
+            if (bi != bj) {
+               MatrixBlock blkS = M.getBlock(bj, bi);
+               
+               // only one exists add the mirroring block
+               if (blkS == null) {
+                  // only one exists, add block to keep numbers valid
+                  MatrixBlock newC = blk.createTranspose();
+                  newC.scale(0.5);
+                  addBlock (bj, bi, newC);
+               }
+               
+            } 
+            
+            blk = blk.next();
          }
       }
    }

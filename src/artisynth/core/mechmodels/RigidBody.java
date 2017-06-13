@@ -222,7 +222,7 @@ public class RigidBody extends Frame
          doGetInertia (M, S);
       }
    }
-
+   
    public int mulInverseEffectiveMass (
       Matrix M, double[] a, double[] f, int idx) {
       SpatialInertia S = getEffectiveInertia();
@@ -385,6 +385,14 @@ public class RigidBody extends Frame
       return mySpatialInertia.getCenterOfMass();
    }
 
+   /**
+    * Adjusts the pose so that it reflects the rigid body's center of mass
+    */
+   public void centerPoseOnCenterOfMass() {
+      Point3d com = mySpatialInertia.getCenterOfMass();
+      mySpatialInertia.setCenterOfMass(0,0,0);
+      myState.pos.add(com);
+   }
 
    /** 
     * Causes the inertia to be automatically computed from the mesh volume

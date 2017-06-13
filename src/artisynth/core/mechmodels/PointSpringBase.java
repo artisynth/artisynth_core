@@ -53,6 +53,7 @@ public abstract class PointSpringBase extends Spring
       myProps.add (
          "restLength", "rest length of the spring", DEFAULT_REST_LENGTH);
       myProps.addReadOnly ("length *", "current spring length");
+      myProps.addReadOnly ("lengthDot *", "current spring length time derivative");
       myProps.add (
          "material", "spring material parameters", createDefaultMaterial(), "CE");
    }
@@ -105,6 +106,8 @@ public abstract class PointSpringBase extends Spring
    }
 
    public abstract double getLength();
+   
+   public abstract double getLengthDot();
    
    /**
     * Sets the rest length of the spring from the current point locations

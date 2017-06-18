@@ -6,6 +6,9 @@
  */
 package maspack.function;
 
+/**
+ * Single-input single-output
+ */
 public interface SISOFunction {
    double eval(double in);
 }

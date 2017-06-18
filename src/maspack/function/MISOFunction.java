@@ -6,6 +6,9 @@
  */
 package maspack.function;
 
+/**
+ * Multi-input, single output
+ */
 public interface MISOFunction {
    double eval(double[] in);
    int getInputSize();

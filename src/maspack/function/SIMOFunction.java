@@ -6,6 +6,9 @@
  */
 package maspack.function;
 
+/**
+ * Single-input, multi-output
+ */
 public interface SIMOFunction {
    void eval(double in, double[] out);
    int getOutputSize();

@@ -339,7 +339,12 @@ public abstract class MechSystemBase extends RenderableModelBase
       updateForceComponentList();
       getBilateralImpulses (lam, 0);
    }
-
+   
+   public void getBilateralForces(VectorNd lam) {
+      getBilateralImpulses(lam);
+      lam.scale(1.0/myLastBilateralH);
+   }
+   
    public int getBilateralImpulses (VectorNd lam, int idx) {
       for (int i=0; i<myConstrainers.size(); i++) {
          idx = myConstrainers.get(i).getBilateralImpulses (lam, idx);
@@ -372,6 +377,11 @@ public abstract class MechSystemBase extends RenderableModelBase
       updateForceComponentList();
       getUnilateralImpulses (the, 0);
    }         
+   
+   public void getUnilateralForces(VectorNd the) {
+      getUnilateralImpulses(the);
+      the.scale(1.0/myLastUnilateralH);
+   }
 
    public int getUnilateralImpulses (VectorNd the, int idx) {
       for (int i=0; i<myConstrainers.size(); i++) {
@@ -421,7 +431,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          }
       } 
       double penlimit = getPenetrationLimit();
-      if (penlimit > 0 && maxpen > penlimit) {
+      if (penlimit > 0 && maxpen > penlimit && stepAdjust != null) {
          stepAdjust.recommendAdjustment (
             0.5 /*penlimit/maxpen*/, "contact penetration exceeds "+penlimit);
       }
@@ -1458,7 +1468,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       if (f != null) {
          f.setSize (mySystemSize);
-      }           
+      } else {
+         f = new VectorNd(mySystemSize); // XXX it seems some components require it to exist
+      }
       for (int i=0; i<myDynamicComponents.size(); i++) {
          myDynamicComponents.get(i).resetEffectiveMass();
       }      

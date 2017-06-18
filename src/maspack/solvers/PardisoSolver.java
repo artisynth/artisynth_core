@@ -1664,7 +1664,7 @@ public class PardisoSolver implements DirectSolver {
       // the RHS is zero. So check for rhs == 0 and simple return x = 0 when
       // this is the case.
       boolean rhs0 = true;      // assume RHS is zero
-      for (int i=0; i<b.length; i++) {
+      for (int i=0; i<mySize; i++) {
          if (b[i] != 0) {
             rhs0 = false;  // not zero
             break;
@@ -1674,21 +1674,19 @@ public class PardisoSolver implements DirectSolver {
       int rcode = 0;
       if (rhs0) {
          // zero out solution
-         for (int i=0; i<x.length; i++) {
+         for (int i=0; i<mySize; i++) {
             x[i] = 0;
          }
       } else {
          rcode = doIterativeSolve (myHandle, vals, x, b, tolExp);
       }
       
-      if (rcode > 0) {
-         myErrMsg = null;
-         return rcode;
-      }
-      else {
+      if (rcode < 0) {
          myErrMsg = getErrorMessage (rcode%10 - 20);
-         return rcode;
+      } else {
+         myErrMsg = null;
       }
+      return rcode;
    }
 
    /**

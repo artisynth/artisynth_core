@@ -375,6 +375,14 @@ public interface Matrix extends LinearTransformNd {
     * @return Frobenius norm of this matrix
     */
    public double frobeniusNorm();
+   
+   /**
+    * Returns the squared Frobenius norm of this matrix. This is equal to the 
+    * sum of the squares of each element.
+    * 
+    * @return Frobenius norm squared of this matrix
+    */
+   public double frobeniusNormSquared();
 
    /**
     * Writes the contents of this matrix to a PrintWriter. Element values are

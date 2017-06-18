@@ -366,7 +366,7 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
       return computeInfinityNorm (this);
    }
 
-   static double computeFrobeniusNorm (Matrix M) {
+   static double computeFrobeniusNormSquared (Matrix M) {
       double trace = 0;
       for (int j = 0; j < M.colSize(); j++) {
          double diag_jj = 0;
@@ -376,7 +376,11 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
          }
          trace += diag_jj;
       }
-      return Math.sqrt (trace);
+      return trace;
+   }
+   
+   static double computeFrobeniusNorm (Matrix M) {
+      return Math.sqrt(computeFrobeniusNormSquared (M));
    }
 
    /**
@@ -384,9 +388,14 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
     */
    public double frobeniusNorm() {
       // returns sqrt(sum (diag (M'*M))
-      return computeFrobeniusNorm (this);
+      return Math.sqrt(frobeniusNormSquared());
    }
 
+   public double frobeniusNormSquared() {
+      // returns sum (diag (M'*M)
+      return computeFrobeniusNormSquared (this);
+   }
+   
    /**
     * Sets the elements of this matrix to uniformly distributed random values in
     * the range -0.5 (inclusive) to 0.5 (exclusive).

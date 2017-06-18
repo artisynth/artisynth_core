@@ -2612,4 +2612,19 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return true;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public double frobeniusNormSquared() {
+      // returns sqrt(sum (diag (M'*M))
+      
+      double f = 0;
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+            f += blk.frobeniusNormSquared();
+         }
+      }
+      return f;
+   }
+   
 }

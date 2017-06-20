@@ -8,6 +8,7 @@ package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CompositeComponentBase;
 
 /**
  * Describes a pair of Collidable model components.
@@ -125,7 +126,7 @@ public class CollidablePair {
    public String createComponentName (CompositeComponent ref) {
       String str = toString (ref);
       // substitute # for / since slashes are not allowed in component names
-      return str.replace ('/', '#');      
+      return CompositeComponentBase.makeValidName(str.replace ('/', '#'));      
    }
 
 }

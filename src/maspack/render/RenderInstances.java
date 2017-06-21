@@ -1509,12 +1509,12 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    
    /**
     * Adds an instance by affine
-    * @param frame affine transform to be added, by reference
+    * @param affine transform to be added, by reference
     * @return the index of the instance added
     */
-   public int addInstance(AffineTransform3d frame) {
+   public int addInstance(AffineTransform3d affine) {
       writeLock();
-      int pidx = addAffineInternal (frame);
+      int pidx = addAffineInternal (affine);
       int idx = addInstanceInternal (InstanceTransformType.AFFINE, pidx, currentScaleIdx, currentColorIdx);
       writeUnlock();
       return idx;      

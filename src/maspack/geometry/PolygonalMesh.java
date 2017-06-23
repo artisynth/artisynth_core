@@ -3019,7 +3019,11 @@ public class PolygonalMesh extends MeshBase {
    }
    
    public void addMesh (MeshBase mesh) {
-      addMesh (mesh, /*respectTransforms=*/false);
+      if (mesh instanceof PolygonalMesh) {
+         addMesh((PolygonalMesh)mesh, false);  // use PolygonalMesh overloaded function
+      } else {
+         addMesh (mesh, /*respectTransforms=*/false);
+      }
    }
 
    /** 

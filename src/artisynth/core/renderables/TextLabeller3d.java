@@ -24,6 +24,7 @@ import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.IsRenderable;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 
 
 public class TextLabeller3d extends TextComponentBase {
@@ -132,7 +133,7 @@ public class TextLabeller3d extends TextComponentBase {
       rEye.getColumn(1, ydir);
       myTransform.R.set(rEye);
       
-      renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
+      Shading oldShading = renderer.getShading();
      
       float[] loc = new float[3];
       for (LabelItem label : myItems) {
@@ -187,9 +188,12 @@ public class TextLabeller3d extends TextComponentBase {
          renderer.pushModelMatrix();
          renderer.mulModelMatrix(myTransform);
          
+         renderer.setShading(Shading.NONE);
+         renderer.setColor(rgb[0], rgb[1], rgb[2], (float)rprops.getAlpha());
          renderer.drawText(myFont, label.text, loc, myTextSize);
          
          renderer.popModelMatrix();
+         renderer.setShading(oldShading);
       }
 
    }

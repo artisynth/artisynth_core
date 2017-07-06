@@ -1042,9 +1042,9 @@ public class MultiPointSpring extends PointSpringBase
          return len;
       }
 
-      int totalIterations;
-      int totalCalls;
-      int totalFails;
+      protected int totalIterations;
+      protected int totalCalls;
+      protected int totalFails;
 
       void checkStiffness() {
          updateContacts(null);

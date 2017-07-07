@@ -68,6 +68,7 @@ public class IntersectionFactory {
       ArrayList<int[]> endSets = 
          new ArrayList<int[]>(n);
       
+      // root -> {i}, all singletons
       for (int i=0; i<n; i++) {
          int [] nodeIdxs = new int[]{i};
          Vertex<int[],Integer> vtx = new Vertex<int[],Integer>(nodeIdxs);

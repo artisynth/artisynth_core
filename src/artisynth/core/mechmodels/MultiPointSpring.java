@@ -208,7 +208,7 @@ public class MultiPointSpring extends PointSpringBase
       Matrix3d myP;        // (I - uvec uvec^T)
       double myLength;     // length of the segment
 
-      Segment() {
+      protected Segment() {
          myP = new Matrix3d();
          myUvec = new Vector3d();
          mydFdxB = new Vector3d();
@@ -488,7 +488,7 @@ public class MultiPointSpring extends PointSpringBase
          this (0, null);
       }
 
-      WrapSegment (int numk, Point3d[] initialPnts) {
+      protected WrapSegment (int numk, Point3d[] initialPnts) {
          super();
          myNumKnots = numk;
          myKnots = new WrapKnot[numk];
@@ -1083,7 +1083,7 @@ public class MultiPointSpring extends PointSpringBase
        * forces between adjacent knots and repulsive forces from contacting
        * wrappables results in a stable configuration.
        */
-      void updateWrapStrand (int maxIter) {
+      protected void updateWrapStrand (int maxIter) {
          int icnt = 0;
          boolean converged = false;
          double prevForceNorm = -1;
@@ -1572,7 +1572,7 @@ public class MultiPointSpring extends PointSpringBase
        * Scan attributes of this wrappable segment from a ReaderTokenizer. Used
        * to implement scanning for the MultiPointSpring.
        */
-      boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
          throws IOException {
 
          rtok.nextToken();

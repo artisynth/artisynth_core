@@ -3451,8 +3451,11 @@ public class MechSystemSolver {
          
          // use modified Golden section search to find optimal alpha
          // guaranteed to call R(alpha) last, which will populate myF and myQ
-         double alpha = modifiedGoldenSection(0, R0, 1, R1, 1e-5, 0.75*Math.abs(R0), Ra);
+         double alpha = modifiedGoldenSection(0, R0, 1, R1, 1e-8, 0.75*Math.abs(R0), Ra);
          
+         if (alpha == 0) {
+            break;
+         }
          if (first) {
             first = false;
          }

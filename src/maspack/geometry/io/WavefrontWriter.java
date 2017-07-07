@@ -17,6 +17,7 @@ public class WavefrontWriter extends MeshWriterBase {
    
    boolean myFacesClockwise = false;
    boolean myZeroIndexed = false;
+   int vOffset = 0;
 
    public boolean getFacesClockwise () {
       return myFacesClockwise;
@@ -178,7 +179,7 @@ public class WavefrontWriter extends MeshWriterBase {
          for (k=0; k<vtxList.length; k++) {
             Vertex3d vtx = vtxList[k];
             if (myZeroIndexed) {
-               pw.print (" " + (vtx.getIndex()));
+               pw.print (" " + (vtx.getIndex()+vOffset));
                if (writeTextureInfo) {
                   pw.print ("/" + textureIndices[foff+k]);
                }
@@ -190,7 +191,7 @@ public class WavefrontWriter extends MeshWriterBase {
                }
             }
             else {
-               pw.print (" " + (vtx.getIndex() + 1));
+               pw.print (" " + (vtx.getIndex() + 1 + vOffset));
                if (writeTextureInfo) {
                   pw.print ("/" + (textureIndices[foff+k]+1));
                }
@@ -213,6 +214,7 @@ public class WavefrontWriter extends MeshWriterBase {
          vertex.setIndex(oldIdxs[idx]);
          idx++;
       }
+      vOffset += vertices.size();
    }
 
    /**
@@ -261,15 +263,17 @@ public class WavefrontWriter extends MeshWriterBase {
          int[] idxs = line.getVertexIndices();
          for (int i=0; i<idxs.length; i++) {
             if (myZeroIndexed) {
-               pw.print (" " + (idxs[i]));
+               pw.print (" " + (idxs[i]+vOffset));
             }
             else {
-               pw.print (" " + (idxs[i] + 1));
+               pw.print (" " + (idxs[i] + 1+vOffset));
             }
          }
          pw.println ("");
       }
       pw.flush();
+      
+      vOffset += vertices.size();
    }
 
    /**

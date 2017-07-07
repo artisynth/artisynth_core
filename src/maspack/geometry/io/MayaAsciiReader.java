@@ -346,9 +346,26 @@ public class MayaAsciiReader {
 
       public PolygonalMesh createMesh() {
          // create from attributes
-         double[][] vt = (double[][])(attributes.get("vrts").data);
-         int[][] ed = (int[][])(attributes.get("edge").data);
-         int[][] fc = (int[][])(attributes.get("face").data);
+         MayaAttribute vrts = attributes.get("vrts");
+         if (vrts == null) {
+            System.err.println("mesh has no vertices");
+            return null;
+         }
+         double[][] vt = (double[][])(vrts.data);
+         
+         MayaAttribute edge = attributes.get("edge");
+         if (edge == null) {
+            System.err.println("mesh has no edges");
+            return null;
+         }
+         int[][] ed = (int[][])(edge.data);
+         
+         MayaAttribute face = attributes.get("face");
+         if (face == null) {
+            System.err.println("mesh has no faces");
+            return null;
+         }
+         int[][] fc = (int[][])(face.data);
 
          int faces[][] = new int[fc.length][];
 
@@ -1931,19 +1948,51 @@ public class MayaAsciiReader {
 
             } else {
                // fill in range
-               for (int i = range[0]; i <= range[1]; i++) {
+               int fidx = range[0];
+               while (fidx <= range[1]) {
                   String f = rtok.scanWord();
-                  if (!"f".equals(f)) {
+                  if ("f".equals(f)) {
+                     int flen = rtok.scanInteger();
+                     fc[fidx] = new int[flen];
+                     int scanned = rtok.scanIntegers(fc[fidx], flen);
+                     if (scanned != flen) {
+                        throw new IOException("Unable to scan numbers (Line "
+                           + rtok.lineno() + ")");
+                     }
+                     ++fidx;
+                  } else if ("mu".equals(f)) {
+                     // uv indices
+                     int uvSet = rtok.scanInteger();
+                     int uvCount = rtok.scanInteger();
+                     int uvIdx[] = new int[uvCount];
+                     int scanned = rtok.scanIntegers(uvIdx, uvCount);
+                     if (scanned != uvCount) {
+                        throw new IOException("Unable to scan numbers (Line "
+                           + rtok.lineno() + ")");
+                     }
+                  } else if ("h".equals(f)) {
+                     // holes
+                     int edgeCount = rtok.scanInteger();
+                     int edges[] = new int[edgeCount];
+                     int scanned = rtok.scanIntegers(edges, edgeCount);
+                     if (scanned != edgeCount) {
+                        throw new IOException("Unable to scan numbers (Line "
+                           + rtok.lineno() + ")");
+                     }
+                  } else if ("fc".equals(f)) {
+                     // face color
+                     int cCount = rtok.scanInteger();
+                     int colors[] = new int[cCount];
+                     int scanned = rtok.scanIntegers(colors, cCount);
+                     if (scanned != cCount) {
+                        throw new IOException("Unable to scan numbers (Line "
+                           + rtok.lineno() + ")");
+                     }
+                  } else {
                      throw new IOException("Unknown face type '" + f
                         + "' (Line " + rtok.lineno() + ")");
                   }
-                  int flen = rtok.scanInteger();
-                  fc[i] = new int[flen];
-                  int scanned = rtok.scanIntegers(fc[i], flen);
-                  if (scanned != flen) {
-                     throw new IOException("Unable to scan numbers (Line "
-                        + rtok.lineno() + ")");
-                  }
+                  
                }
             }
             if (rtok.ttype != SEMICOLON) {

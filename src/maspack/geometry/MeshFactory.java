@@ -3115,20 +3115,20 @@ public class MeshFactory {
 
    public static PolygonalMesh getIntersection(PolygonalMesh mesh1,
       PolygonalMesh mesh2) {
-      return BSPTree.getIntersection(mesh1, mesh2);
-      // return CSG.getIntersection(mesh1, mesh2);
+      CSG csg = new CSG();
+      return csg.getIntersection(mesh1, mesh2);
    }
 
    public static PolygonalMesh getUnion(PolygonalMesh mesh1, 
       PolygonalMesh mesh2) {
-      return BSPTree.getUnion(mesh1, mesh2);
-      // return CSG.getUnion(mesh1, mesh2);
+      CSG csg = new CSG();
+      return csg.getUnion(mesh1, mesh2);
    }
    
    public static PolygonalMesh getSubtraction(PolygonalMesh mesh1, 
       PolygonalMesh mesh2) {
-      return BSPTree.getSubtraction(mesh1, mesh2);
-      // return CSG.getSubtraction(mesh1, mesh2);
+      CSG csg = new CSG();
+      return csg.getSubtraction(mesh1, mesh2);
    }
 
    public static void main(String[] args) {

@@ -891,4 +891,9 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       return pnt.distance (vtx.pnt);
    }
 
+   @Override
+   public void nearestPoint(Point3d nearest, Point3d pnt) {
+      nearest.set(getWorldPoint());
+   }
+
 }

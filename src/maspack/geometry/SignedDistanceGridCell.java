@@ -63,14 +63,14 @@ public class SignedDistanceGridCell implements IsSelectable {
    public void render (Renderer renderer, int flags) {
       
       Vector3d vertexCoords = new Vector3d();
-      myGrid.getVertexCoords (vertexCoords, pidxs);
+      myGrid.getLocalVertexCoords (vertexCoords, pidxs);
       
       renderer.setPointSize (3);
       renderer.setColor (pointColour);
       renderer.drawPoint (vertexCoords.x, vertexCoords.y, vertexCoords.z);
 
       Vector3d normal = new Vector3d();
-      normal = myGrid.getVertexNormal (pidxs.x, pidxs.y, pidxs.z);
+      normal = myGrid.getLocalVertexNormal (pidxs.x, pidxs.y, pidxs.z);
       
       renderer.setLineWidth (1);  // Render the normal.
       renderer.drawLine (

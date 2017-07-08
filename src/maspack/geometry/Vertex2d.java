@@ -8,14 +8,13 @@ package maspack.geometry;
 
 import maspack.matrix.*;
 
-public class Vertex2d extends Feature {
+public class Vertex2d { // extends Feature {
    public Vertex2d next;
    public Vertex2d prev;
 
    public Point2d pnt;
 
    public Vertex2d() {
-      super (VERTEX_2D);
       pnt = new Point2d();
    }
 

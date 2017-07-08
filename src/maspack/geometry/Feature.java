@@ -11,7 +11,7 @@ import maspack.matrix.*;
 /**
  * Super class for vertices, half-edges, and faces.
  */
-public abstract class Feature {
+public abstract class Feature implements Boundable {
    protected int myFlags;
 
    public static int VISITED = 0x01000000;
@@ -20,7 +20,7 @@ public abstract class Feature {
    public static final int VERTEX_3D = 1;
    public static final int HALF_EDGE = 2;
    public static final int FACE = 3;
-   public static final int VERTEX_2D = 4;
+   public static final int LINE_SEGMENT = 4;
    public static final int EDGE = 5;
    public static final int FACET = 6;
    public static final int CELL = 7;
@@ -51,8 +51,8 @@ public abstract class Feature {
          case VERTEX_3D: {
             return "VERTEX_3D";
          }
-         case VERTEX_2D: {
-            return "VERTEX_2D";
+         case LINE_SEGMENT: {
+            return "LINE_SEGMENT";
          }
          case HALF_EDGE: {
             return "HALF_EDGE";
@@ -90,7 +90,14 @@ public abstract class Feature {
       myFlags = myFlags & ~mask;
    }
 
-   public boolean voronoiCheck (Point3d pnt) {
-      return true;
-   }
+   /**
+    * Determine nearest point to this feature
+    * @param nearest populated nearest point
+    * @param pnt point to check distance to
+    */
+   public abstract void nearestPoint(Point3d nearest, Point3d pnt);
+
+   //   public boolean voronoiCheck (Point3d pnt) {
+   //      return true;
+   //   }
 }

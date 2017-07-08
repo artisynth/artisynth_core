@@ -68,6 +68,20 @@ public class BVFeatureQuery {
       return face;
    }
 
+   /**
+    * Find the nearest feature to a point
+    * @param nearPnt populates with location of nearest point on set of features
+    * @param featureTree bounding-volume tree containing desired features
+    * @param pnt point from which to find the nearest feature
+    * @return the nearest feature, or null
+    */
+   public Feature nearestFeatureToPoint(Point3d nearPnt, BVTree featureTree, Point3d pnt) {
+      PointFeatureDistanceCalculator calc = new PointFeatureDistanceCalculator();
+      calc.setPoint(pnt);
+      
+      return (Feature)nearestObjectToPoint(nearPnt, featureTree, calc);
+   }
+
    public boolean debug = false;
 
    /**
@@ -1276,6 +1290,71 @@ public class BVFeatureQuery {
 
       public Boundable nearestObject() {
          return myEdge;
+      }
+      
+      @Override
+      public double nearestDistance() {
+         return myDist;
+      }
+   }
+   
+   private static class PointFeatureDistanceCalculator implements ObjectDistanceCalculator {
+
+      Point3d myPnt;
+      Point3d myNearest;
+      Feature myFeature;
+      double myDist;
+
+      public PointFeatureDistanceCalculator () {
+         myPnt = new Point3d();
+         myNearest = new Point3d();
+         reset();
+      }
+
+      @Override
+      public void reset() {
+         myFeature = null;
+         myDist = Double.POSITIVE_INFINITY;
+      }
+      
+      public void setPoint (Point3d pnt, RigidTransform3d XBvhToWorld) {
+         if (XBvhToWorld == RigidTransform3d.IDENTITY) {
+            myPnt.set (pnt);
+         }
+         else {
+            myPnt.inverseTransform (XBvhToWorld, pnt);
+         }
+      }          
+
+      public void setPoint (Point3d pnt) {
+         myPnt.set (pnt);
+      }          
+      
+      public double nearestDistance (BVNode node) {
+         return node.distanceToPoint (myPnt);
+      }
+
+      public double nearestDistance (Boundable e) {
+         myFeature = null;
+         Point3d nearest = new Point3d();
+         if (e instanceof Feature) {
+            Feature ff = (Feature)e;
+            ff.nearestPoint(nearest, myPnt);
+            double d = nearest.distance(myPnt);
+            if (d < myDist) {
+               myDist = d;
+               myFeature = ff;
+               myNearest.set(nearest);
+            }
+            return d;
+         }
+         else {
+            return -1;
+         }
+      }
+
+      public Feature nearestObject () {
+         return myFeature;
       }
       
       @Override

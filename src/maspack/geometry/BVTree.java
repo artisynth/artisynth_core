@@ -12,6 +12,7 @@ import maspack.util.*;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -254,10 +255,7 @@ public abstract class BVTree implements IsRenderable {
          ArrayList<Boundable> elist =
             new ArrayList<Boundable>(numElems);
          for (Polyline line : pmesh.getLines()) {
-            Vertex3d[] vtxs = line.getVertices();
-            for (int i=0; i<line.numVertices()-1; i++) {
-               elist.add (new LineSegment (vtxs[i], vtxs[i+1]));
-            }
+            elist.addAll(Arrays.asList(line.getSegments()));
          }
          return elist;
       }

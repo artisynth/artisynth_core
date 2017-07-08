@@ -625,7 +625,7 @@ public class RigidMesh extends RigidBody implements Wrappable {
          SignedDistanceGrid grid = getDistanceGrid();
          Point3d p0loc = new Point3d();
          p0loc.inverseTransform (getPose(), p0);
-         double d = grid.getDistanceAndNormal (nrm, p0loc);
+         double d = grid.getLocalDistanceAndNormal (nrm, p0loc);
          nrm.transform (getPose());
          if (d == SignedDistanceGrid.OUTSIDE) {
             return Wrappable.OUTSIDE;

@@ -12,6 +12,7 @@ import maspack.matrix.Vector3d;
 public class Polyline {
    private Vertex3d[] myVtxs = new Vertex3d[0];
    private double[] myLenCoords = new double[0];
+   private LineSegment[] mySegments = null;
    
    public int idx; // index into the face array
 
@@ -38,6 +39,8 @@ public class Polyline {
       for (int i=0; i<myVtxs.length; i++) {
          myVtxs[i] = new Vertex3d(new Point3d(ovtxs[i].pnt), ovtxs[i].idx);
       }
+      
+      mySegments = null;
    }
 
    /**
@@ -70,6 +73,7 @@ public class Polyline {
       for (int i=0; i<numVtxs; i++) {
          myVtxs[i] = vtxs[i];
       }
+      mySegments = null;
    }
 
    /**
@@ -177,6 +181,10 @@ public class Polyline {
    //    return he0.head.getMesh();
    // }
 
+   /**
+    * Do not replace individual vertices in this array
+    * @return list of vertices
+    */
    public Vertex3d[] getVertices() {
       return myVtxs;
    }
@@ -186,6 +194,21 @@ public class Polyline {
          throw new IllegalArgumentException ("index " + idx + " out of bounds");
       }
       return myVtxs[idx];
+   }
+   
+   /**
+    * Creates a list of line segments
+    * @return list of line segments
+    */
+   public LineSegment[] getSegments() {
+      if (mySegments == null) {
+         LineSegment[] segs = new LineSegment[numVertices()-1];
+         for (int i=0; i<numVertices()-1; ++i) {
+            segs[i] = new LineSegment(myVtxs[i], myVtxs[i+1]); 
+         }
+         mySegments = segs;
+      }
+      return mySegments;
    }
    
 //   /**

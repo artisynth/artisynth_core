@@ -1094,5 +1094,93 @@ public class HalfEdge extends Feature implements Boundable {
       return (face == f0 && opposite.face == f1 ||
               face == f1 && opposite.face == f0);
    }
+   
+   /**
+    * Computes the projection parameter of a point <code>px</code>
+    * with respect to a line defined by points <code>p0</code> and
+    * <code>p1</code>. This is the value <i>s</i> such that
+    * <pre>
+    * pp = (1-s) p0 + s p1
+    * </pre>
+    * gives the projection of <code>px-p0</code> onto the line. If
+    * <code>p0</code> and <code>p1</code> are identical, the
+    * method returns positive infinity.
+    *
+    * @param p0 first point defining the line
+    * @param p1 second point defining the libe
+    * @param px point for which the project parameter should be computed
+    * @return parameter s which projects px onto the line
+    */
+   public static double projectionParameter (
+      Point3d p0, Point3d p1, Point3d px) {
+      
+      Vector3d del10 = new Vector3d();      
+      Vector3d delx0 = new Vector3d();      
+
+      del10.sub (p1, p0);
+      delx0.sub (px, p0);
+      double len10Sqr = del10.normSquared();
+      if (len10Sqr == 0) {
+         return Double.POSITIVE_INFINITY;
+      }
+      else {
+         return del10.dot(delx0)/len10Sqr;
+      }      
+   }
+   
+   public double getProjectionParameter(Point3d pnt) {
+      Point3d p0 = tail.getWorldPoint();
+      Point3d p1 = head.getWorldPoint();
+      return projectionParameter(p0, p1, pnt);
+   }
+   //   
+   //   @Override
+   //   public void nearestPoint(Point3d nearest, Point3d pnt) {
+   //      Point3d p0 = tail.getWorldPoint();
+   //      Point3d p1 = head.getWorldPoint();
+   //      
+   //      double s = projectionParameter(p0, p1, pnt);
+   //      if (s >= 1.0) {
+   //         nearest.set(p0);
+   //      }
+   //      else if (s <= 0) {
+   //         nearest.set(p1);
+   //      }
+   //      else {
+   //         nearest.combine (1-s, p0, s, p1);
+   //      }
+   //   }
+
+   @Override
+   public void nearestPoint(Point3d nearest, Point3d pnt) {
+      Point3d p0 = tail.getWorldPoint();
+      Point3d p1 = head.getWorldPoint();
+     
+      double ux = p1.x - p0.x;
+      double uy = p1.y - p0.y;
+      double uz = p1.z - p0.z;
+      
+      double dx, dy, dz;
+
+      dx = pnt.x - p1.x;
+      dy = pnt.y - p1.y;
+      dz = pnt.z - p1.z;
+      double dot = dx*ux + dy*uy + dz*uz;
+      if (dot >= 0) {
+         nearest.set(p1);
+      }
+      dx = pnt.x - p0.x;
+      dy = pnt.y - p0.y;
+      dz = pnt.z - p0.z;
+      dot = dx*ux + dy*uy + dz*uz;
+      if (dot <= 0) {
+         nearest.set(p0);
+      }
+      else {
+         double umagSqr = ux*ux + uy*uy + uz*uz;
+         double s = dot/umagSqr;
+         pnt.interpolate(p0, s, p1);
+      }
+   }
 
 }

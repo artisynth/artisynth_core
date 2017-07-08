@@ -153,7 +153,7 @@ public class SDGridTest extends RootModel {
       for (double x=-c+dx; x<c; x+=dx) {
          for (double y=-c+dx; y<c; y+=dx) {
             for (double z=-c+dx; z<c; z+=dx) {
-               double d = sdgrid.getDistanceAndNormal(norm, x, y, z);
+               double d = sdgrid.getLocalDistanceAndNormal(norm, x, y, z);
                // check bottom corner
                if ((x < 0 && y < 0 && z < 0)) { //||(x > 0 && y > 0 && z > 0)) {
                   if (d < 0) {
@@ -205,7 +205,7 @@ public class SDGridTest extends RootModel {
          for (int i = 0; i < phi.length; i++) {
             Vector3i vxyz = new Vector3i();
             sdgrid.vertexToXyzIndices (vxyz, i);
-            sdgrid.getVertexCoords (coords, vxyz);
+            sdgrid.getLocalVertexCoords (coords, vxyz);
          
             if (phi[i] <= 0) {
                renderer.setColor(Color.BLUE);

@@ -11,7 +11,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.RigidTransform3d;
 
-public class LineSegment implements Boundable {
+public class LineSegment extends Feature implements Boundable {
 
    public Vertex3d myVtx0;
    public Vertex3d myVtx1;
@@ -19,6 +19,7 @@ public class LineSegment implements Boundable {
    private static double DOUBLE_PREC = 2.0e-16;
 
    public LineSegment (Vertex3d vtx0, Vertex3d vtx1) {
+      super(Feature.LINE_SEGMENT);
       myVtx0 = vtx0;
       myVtx1 = vtx1;
    }
@@ -207,6 +208,29 @@ public class LineSegment implements Boundable {
          Vector3d ps = new Vector3d();
          ps.combine (1-s, p0, s, p1);
          return px.distance (ps);
+      }
+   }
+   
+   public double getProjectionParameter(Point3d pnt) {
+      Point3d p0 = myVtx0.getWorldPoint();
+      Point3d p1 = myVtx1.getWorldPoint();
+      return projectionParameter(p0, p1, pnt);
+   }
+   
+   @Override
+   public void nearestPoint(Point3d nearest, Point3d pnt) {
+      Point3d p0 = myVtx0.getWorldPoint();
+      Point3d p1 = myVtx1.getWorldPoint();
+      
+      double s = projectionParameter(p0, p1, pnt);
+      if (s >= 1.0) {
+         nearest.set(p0);
+      }
+      else if (s <= 0) {
+         nearest.set(p1);
+      }
+      else {
+         nearest.combine (1-s, p0, s, p1);
       }
    }
 

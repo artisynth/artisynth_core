@@ -950,14 +950,18 @@ public class PolygonalMesh extends MeshBase {
                heOpp.setHard (true);
                hnOpp.setHard (true);
             }
+            // make sure heOpp and hnOpp are primary opposites
+            if (heOpp.isPrimary() == hnOpp.isPrimary()) {
+               hnOpp.setPrimary (!hnOpp.isPrimary());
+            }
          }
          else {
-            heOpp.setHard (false);
-            hnOpp.setHard (false);            
-         }
-         // make sure heOpp and hnOpp are primary opposites
-         if (heOpp.isPrimary() == hnOpp.isPrimary()) {
-            hnOpp.setPrimary (!hnOpp.isPrimary());
+            if (heOpp != null) {
+               heOpp.setHard (false);
+            }
+            if (hnOpp != null) {
+               hnOpp.setHard (false);  
+            }
          }
          return true;
       }

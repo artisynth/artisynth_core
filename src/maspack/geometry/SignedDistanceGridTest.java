@@ -4,16 +4,11 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package maspack.apps;
+package maspack.geometry;
 
 import java.io.File;
 import java.awt.Color;
 
-import maspack.geometry.Face;
-import maspack.geometry.MeshFactory;
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.HalfEdge;
-import maspack.geometry.SignedDistanceGrid;
 import maspack.render.*;
 import maspack.render.color.ColorUtils;
 import maspack.render.Renderer.PointStyle;
@@ -186,14 +181,14 @@ public class SignedDistanceGridTest {
       double myPhi[] = g.getDistances ();
       Vector3d min = new Vector3d();
       Vector3d max = new Vector3d();
-      g.getMesh().getLocalBounds (min, max);
+      m.getLocalBounds (min, max);
       for (int i = 0; i < myPhi.length; i++) {
 //         int z = i / (gridSize[0] * gridSize[1]);
 //         int y = (i - z * gridSize[0] * gridSize[1]) / gridSize[0];
 //         int x = i % gridSize[0];
          // translate to mesh coordinates.
          Vector3d coords = new Vector3d();
-         g.getVertexCoords(coords, g.vertexToXyzIndices (new Vector3i(), i));
+         g.getLocalVertexCoords(coords, g.vertexToXyzIndices (new Vector3i(), i));
          // If our point lies inside all the boundaries
          if ((coords.x > min.x && coords.x < max.x) &&
              (coords.y > min.y && coords.y < max.y) &&
@@ -236,9 +231,9 @@ public class SignedDistanceGridTest {
       Vector3d errorThis = new Vector3d();
       
       for (int i = 0; i < myPhi.length; i++) {
-         g.getVertexCoords (meshpnt, g.vertexToXyzIndices (new Vector3i(), i));
+         g.getLocalVertexCoords (meshpnt, g.vertexToXyzIndices (new Vector3i(), i));
          double dist = 
-            g.getDistanceAndNormal (
+            g.getLocalDistanceAndNormal (
             normal,
             meshpnt.x,
             meshpnt.y,
@@ -309,7 +304,7 @@ public class SignedDistanceGridTest {
          // Extract out the grid coordinates.
          Vector3i gidxs = new Vector3i();
          // Get the distance from currentPoint to the face.
-         g.getVertexCoords (myPoint, g.vertexToXyzIndices (gidxs, i));
+         g.getLocalVertexCoords (myPoint, g.vertexToXyzIndices (gidxs, i));
          for (int j = 0; j < m.numFaces(); j++) {
             Face face = m.getFace(j);
             face.nearestPoint (closestPoint, myPoint);

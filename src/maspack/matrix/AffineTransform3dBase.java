@@ -794,73 +794,73 @@ java.io.Serializable {
       X.transpose();
    }
 
-   /**
-    * Factors this affine transform into the product of a stretch-shear
-    * transform (with no translation) and a rigid transform:
-    * 
-    * <pre>
-    *    this = XS XR
-    * </pre>
-    * 
-    * @param XS
-    * returns the stretch-shear transform (optional argument)
-    * @param XR
-    * returns the rigid transform (optional argument)
-    */
-   public void leftRigidFactor (AffineTransform3d XS, RigidTransform3d XR) {
-      SVDecomposition3d SVD = new SVDecomposition3d();
-      SVD.factor (M);
-      Matrix3d U = SVD.getU();
-      Matrix3d V = SVD.getV();
-      Vector3d sig = new Vector3d();
-      SVD.getS (sig);
-
-      if (sig.z / sig.x < 1e-16) {
-         throw new IllegalArgumentException (
-            "Transform is singular to working precision");
-      }
-
-      double detU = U.orthogonalDeterminant();
-      double detV = V.orthogonalDeterminant();
-      if (detV * detU < 0) { /* then one is negative and the other positive */
-         if (detV < 0) { /* negative last column of V */
-            V.m02 = -V.m02;
-            V.m12 = -V.m12;
-            V.m22 = -V.m22;
-            sig.z = -sig.z;
-         }
-         else /* detU < 0 */
-         { /* negative last column of U */
-            U.m02 = -U.m02;
-            U.m12 = -U.m12;
-            U.m22 = -U.m22;
-            sig.z = -sig.z;
-         }
-      }
-      // Now set S = U diag(sig) U'
-      Matrix3d S = (XS == null ? new Matrix3d() : XS.A);
-      S.set (U);
-      S.mulDiagonalRight (sig);
-      S.mulTransposeRight (S, U);
-
-      if (XR != null) { // set R = U * V'
-         V.mulTransposeRight (U, V);
-         XR.R.set (V);
-
-         // set p = inv(S) b = U diag(1/sig) U' b
-         Vector3d p = XR.p;
-         p.mulTranspose (U, b);
-         p.x /= sig.x;
-         p.y /= sig.y;
-         p.z /= sig.z;
-         p.mul (U, p);
-      }
-
-      if (XS != null) {
-         XS.b.setZero();
-      }
-
-   }
+//   /**
+//    * Factors this affine transform into the product of a stretch-shear
+//    * transform (with no translation) and a rigid transform:
+//    * 
+//    * <pre>
+//    *    this = XS XR
+//    * </pre>
+//    * 
+//    * @param XS
+//    * returns the stretch-shear transform (optional argument)
+//    * @param XR
+//    * returns the rigid transform (optional argument)
+//    */
+//   public void leftRigidFactor (AffineTransform3d XS, RigidTransform3d XR) {
+//      SVDecomposition3d SVD = new SVDecomposition3d();
+//      SVD.factor (M);
+//      Matrix3d U = SVD.getU();
+//      Matrix3d V = SVD.getV();
+//      Vector3d sig = new Vector3d();
+//      SVD.getS (sig);
+//
+//      if (sig.z / sig.x < 1e-16) {
+//         throw new IllegalArgumentException (
+//            "Transform is singular to working precision");
+//      }
+//
+//      double detU = U.orthogonalDeterminant();
+//      double detV = V.orthogonalDeterminant();
+//      if (detV * detU < 0) { /* then one is negative and the other positive */
+//         if (detV < 0) { /* negative last column of V */
+//            V.m02 = -V.m02;
+//            V.m12 = -V.m12;
+//            V.m22 = -V.m22;
+//            sig.z = -sig.z;
+//         }
+//         else /* detU < 0 */
+//         { /* negative last column of U */
+//            U.m02 = -U.m02;
+//            U.m12 = -U.m12;
+//            U.m22 = -U.m22;
+//            sig.z = -sig.z;
+//         }
+//      }
+//      // Now set S = U diag(sig) U'
+//      Matrix3d S = (XS == null ? new Matrix3d() : XS.A);
+//      S.set (U);
+//      S.mulDiagonalRight (sig);
+//      S.mulTransposeRight (S, U);
+//
+//      if (XR != null) { // set R = U * V'
+//         V.mulTransposeRight (U, V);
+//         XR.R.set (V);
+//
+//         // set p = inv(S) b = U diag(1/sig) U' b
+//         Vector3d p = XR.p;
+//         p.mulTranspose (U, b);
+//         p.x /= sig.x;
+//         p.y /= sig.y;
+//         p.z /= sig.z;
+//         p.mul (U, p);
+//      }
+//
+//      if (XS != null) {
+//         XS.b.setZero();
+//      }
+//
+//   }
 
    /**
     * Returns true if this transform equals the identity.

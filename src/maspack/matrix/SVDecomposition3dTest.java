@@ -99,7 +99,7 @@ class SVDecomposition3dTest {
 
       Matrix3d US = new Matrix3d();
       US.set (U);
-      US.mulDiagonalRight (sig);
+      US.mulCols (sig);
       Matrix3d MP = new Matrix3d();
       MP.mulTransposeRight (US, V);
 

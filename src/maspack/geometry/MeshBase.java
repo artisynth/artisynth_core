@@ -894,6 +894,20 @@ public abstract class MeshBase implements Renderable, Cloneable {
       for (Vertex3d vertex : myVertices) {
          vertex.pnt.scale (sx, sy, sz);
       }
+      if (hasExplicitNormals()) {
+         ArrayList<Vector3d> normals = getNormals();
+         if (normals != null) {
+            for (Vector3d n : normals) {
+               n.x *= 1/sx;
+               n.y *= 1/sy;
+               n.z *= 1/sz;
+               n.normalize();
+            }
+         }
+      }
+      else {
+         clearNormals();
+      }
       notifyVertexPositionsModified();
    }   
 
@@ -2133,9 +2147,15 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * Returns <code>true</code> if vertex normal information has been
     * explicitly specified using {@link #setNormals}. If normals have been
     * explicitly set, then it is up to the application to update the normals
-    * whenever the vertex positions are modified.
+    * whenever the vertex positions are modified. Note that even if this
+    * method returns <code>true</code>, it is still possible for the
+    * mesh to not have any normals (i.e., 
+    * {@link #hasNormals()} and {@link #numNormals()} may return
+    * <code>false</code> and <code>0</code>). That's because 
+    * <code>setNormals(null,null)</code> will <i>explicitly</i>
+    * set the mesh to not have any normals.
     *
-    * @return true if vertex normals have been expicitly set
+    * @return true if vertex normals have been explicitly set
     */
    public boolean hasExplicitNormals() {
       return myNormalsExplicitP;

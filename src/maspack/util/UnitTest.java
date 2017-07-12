@@ -9,6 +9,7 @@ package maspack.util;
 import java.io.IOException;
 
 import maspack.matrix.Vector;
+import maspack.matrix.Matrix;
 
 /**
  * Base unit test class
@@ -42,6 +43,22 @@ public class UnitTest {
          throw new TestException (
             msg + result.toString() +
             ", expected " + check.toString() + ", eps=" + eps);
+      }
+   }
+
+   public void checkEquals (String msg, Matrix result, Matrix check) {
+      if (!result.equals(check)) {
+         throw new TestException (
+            msg + "\n" + result.toString() +
+            ", expected\n" + check.toString());
+      }
+   }
+
+   public void checkEquals (String msg, Matrix result, Matrix check, double eps) {
+      if (!result.epsilonEquals(check, eps)) {
+         throw new TestException (
+            msg + "\n" + result.toString() +
+            ", expected\n" + check.toString() + "\neps=" + eps);
       }
    }
 

@@ -1,6 +1,5 @@
 package maspack.collision;
 
-
 import maspack.geometry.*;
 import maspack.matrix.*;
 import java.util.ArrayList;
@@ -99,7 +98,7 @@ public class SignedDistanceCollider implements AbstractCollider {
          if (X1to0 != null) {
             vpnt.transform (X1to0);
          }
-         distance = grid0.getLocalDistanceAndNormal (normal, vpnt);
+         distance = grid0.getLocalDistanceAndNormal (normal, null, vpnt);
          if (distance <= 0) {
             if (!mesh0.meshToWorldIsIdentity()) {
                normal.transform (mesh0.getMeshToWorld());

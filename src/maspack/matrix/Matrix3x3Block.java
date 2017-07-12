@@ -42,6 +42,17 @@ public class Matrix3x3Block extends Matrix3d implements MatrixBlock {
    }
 
    /**
+    * Creates a new Matrix3x3Block and initializes to the value of a Matrix3d
+    *
+    * @param M matrix to initialize from
+    */
+   public Matrix3x3Block(Matrix3d M) {
+      super();
+      initBlockVariables();
+      set (M);
+   }
+
+   /**
     * {@inheritDoc}
     */
    public MatrixBlock next() {

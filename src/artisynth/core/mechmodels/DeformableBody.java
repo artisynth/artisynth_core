@@ -952,9 +952,10 @@ public abstract class DeformableBody extends RigidBody
       // compute inv(R) * D
       D.mulTransposeLeft (polarDecomp.getR(), D);
 
-      Vector3d sig = polarDecomp.getSig();
+      Vector3d sig = new Vector3d();
+      polarDecomp.getSig(sig);
       Matrix3d Binv = new Matrix3d(polarDecomp.getV());
-      Binv.mulDiagonalRight (
+      Binv.mulCols (
          -1/(sig.y+sig.z), -1/(sig.x+sig.z), -1/(sig.x+sig.y));
       Binv.mulTransposeRight (Binv, polarDecomp.getV());
 
@@ -1011,9 +1012,10 @@ public abstract class DeformableBody extends RigidBody
 
       Matrix3d Dshp = new Matrix3d();
       
-      Vector3d sig = polarDecomp.getSig();
+      Vector3d sig = new Vector3d();
+      polarDecomp.getSig(sig);
       Matrix3d Binv = new Matrix3d(polarDecomp.getV());
-      Binv.mulDiagonalRight (
+      Binv.mulCols (
          -1/(sig.y+sig.z), -1/(sig.x+sig.z), -1/(sig.x+sig.y));
       Binv.mulTransposeRight (Binv, polarDecomp.getV());
       Vector3d avec = new Vector3d();

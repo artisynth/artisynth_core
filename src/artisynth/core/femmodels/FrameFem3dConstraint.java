@@ -167,12 +167,14 @@ public class FrameFem3dConstraint extends ConstrainerBase {
    public double updateConstraints (double t, int flags) {
       // update P
       Matrix3d B = new Matrix3d();
+      Matrix3d H = new Matrix3d();
       VectorNd N = myIpnt.getShapeWeights();
       FemNode3d[] nodes = myElement.getNodes();
       myIpnt.computeJacobianAndGradient (myElement.getNodes(), myData.myInvJ0);
       PolarDecomposition3d polard = new PolarDecomposition3d();
       polard.factor (myIpnt.F);
-      computeB (B, polard.getP());
+      polard.getH(H);
+      computeB (B, H);
       myInvB.invert (B);
 
       // update dot P
@@ -338,7 +340,9 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       myIpnt.computeJacobianAndGradient (myElement.getNodes(), myData.myInvJ0);
       PolarDecomposition3d polard = new PolarDecomposition3d();
       polard.factor (myIpnt.F);
-      computeB (B, polard.getP());
+      Matrix3d H = new Matrix3d();
+      polard.getH(H);
+      computeB (B, H);
       myInvB.invert (B);
 
       RotationMatrix3d R = myFrame.getPose().R;
@@ -369,7 +373,9 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       myIpnt.computeJacobianAndGradient (myElement.getNodes(), myData.myInvJ0);
       PolarDecomposition3d polard = new PolarDecomposition3d();
       polard.factor (myIpnt.F);
-      computeB (B, polard.getP());
+      Matrix3d H = new Matrix3d();
+      polard.getH(H);
+      computeB (B, H);
       myInvB.invert (B);
 
       Vector3d vloc = new Vector3d();

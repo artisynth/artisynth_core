@@ -24,21 +24,21 @@ public class RigidCylinder extends RigidBody implements Wrappable {
          // constrain the transform to uniform scaling in the x-y plane
          if (X instanceof AffineTransform3d && 
              !X.equals (AffineTransform3d.IDENTITY)) {
-            AffineTransform3d XA = (AffineTransform3d)X;
 
-            PolarDecomposition3d pd = null;
-            Matrix3d P = XA.A;
-            if (!P.isSymmetric (1000*MACH_PREC*P.oneNorm())) {
-               pd = new PolarDecomposition3d();
-               pd.factor (P);
-               P = pd.getP();
-            }
+            Matrix3d A = new Matrix3d(((AffineTransform3d)X).A);
+
+            // factor A into the polar decomposition A = Q P, then remove all
+            // the off-diagonal terms of P, with P.m00 and P.m11 set to
+            // identical scale factors than give the same change in cross
+            // cylindrical area as P(0:1,0:1).
+            PolarDecomposition3d pd = new PolarDecomposition3d(A);
+            Matrix3d P = pd.getP();
             double sxy = Math.sqrt (Math.abs(P.m00*P.m11 - P.m01*P.m10));
             double sz = P.m22;
-            XA.A.setDiagonal (sxy, sxy, sz);
-            if (pd != null) {
-               XA.A.mul (pd.getR(), XA.A);
-            }
+            A.setDiagonal (sxy, sxy, sz);
+            A.mul (pd.getQ(), A);
+
+            ((AffineTransform3d)X).A.set (A);
          }
       }
    }
@@ -186,9 +186,11 @@ public class RigidCylinder extends RigidBody implements Wrappable {
          if (gtr.isSaving()) {
             gtr.saveObject (myRadius);
          }
-         AffineTransform3d XL = gtr.computeRightAffineTransform (getPose());
-         myTransformConstrainer.apply (XL);
-         myRadius *= XL.A.m00;
+         AffineTransform3d XL = gtr.computeLocalAffineTransform (
+            getPose(), myTransformConstrainer); 
+         // need to take abs() since diagonal entries could be negative
+         // if XL is a reflection
+         myRadius *= Math.abs(XL.A.m00);
       }
       super.transformGeometry (gtr, context, flags);
    }

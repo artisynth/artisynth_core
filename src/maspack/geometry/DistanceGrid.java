@@ -20,6 +20,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
+import maspack.matrix.Matrix3d;
 import maspack.render.PointLineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderObject;
@@ -522,7 +523,7 @@ public class DistanceGrid implements Renderable {
    public double getLocalDistanceAndNormal (
       Vector3d norm, double x, double y, double z) {
       Point3d point = new Point3d (x, y, z);
-      return getLocalDistanceAndNormal (norm, point);
+      return getLocalDistanceAndNormal (norm, null, point);
    }
    
    /** 
@@ -540,7 +541,7 @@ public class DistanceGrid implements Renderable {
    public double getWorldDistanceAndNormal(Vector3d norm, double x, double y, double z) {
       Point3d point = new Point3d(x,y,z);
       getLocalCoordinates(point, point);
-      double d = getLocalDistanceAndNormal(norm, point);
+      double d = getLocalDistanceAndNormal(norm, null, point);
       // transform normal by inverse transform
       if (norm != null) {
          getWorldNormal(norm, norm);
@@ -678,7 +679,7 @@ public class DistanceGrid implements Renderable {
     * @return distance to the nearest feature
     */
    public double getLocalDistance(Point3d point) {
-      return getLocalDistanceAndNormal(null, point);
+      return getLocalDistanceAndNormal(null, null, point);
    }
    
    public double getWorldDistance(Point3d point) {
@@ -698,7 +699,8 @@ public class DistanceGrid implements Renderable {
     * (in local coordinates).
     * @return distance to the nearest feature
     */
-   public double getLocalDistanceAndNormal (Vector3d norm, Point3d point) {
+   public double getLocalDistanceAndNormal (
+      Vector3d norm, Matrix3d Dnrm, Point3d point) {
       // Change to grid coordinates
       double tempPointX = (point.x - myMinCoord.x) / myCellWidths.x;
       double tempPointY = (point.y - myMinCoord.y) / myCellWidths.y;
@@ -727,48 +729,144 @@ public class DistanceGrid implements Renderable {
          minz -= 1;
          dz = 1;
       }
+      // Compute weights w000, w001, w010, etc. for trilinear interpolation.
+      
+      // w001z, w011z, etc. are the derivatives of the weights
+      // with respect to dz. Can use to compute weights, and also
+      // to compute Dnrm if needed
+      double w001z = (1-dx)*(1-dy);
+      double w011z = (1-dx)*dy;
+      double w101z = dx*(1-dy);
+      double w111z = dx*dy;
 
-      // Now use trilinear interpolation to get the normal at 'point'.
-      double w000 = (1-dx)*(1-dy)*(1-dz);
-      double w001 = (1-dx)*(1-dy)*dz;
-      double w010 = (1-dx)*dy*(1-dz);
-      double w011 = (1-dx)*dy*dz;
-      double w100 = dx*(1-dy)*(1-dz);
-      double w101 = dx*(1-dy)*dz;
-      double w110 = dx*dy*(1-dz);
-      double w111 = dx*dy*dz;
+      double w000  = w001z*(1-dz);
+      double w001  = w001z*dz;
+      double w010  = w011z*(1-dz);
+      double w011  = w011z*dz;
+      double w100  = w101z*(1-dz);
+      double w101  = w101z*dz;
+      double w110  = w111z*(1-dz);
+      double w111  = w111z*dz;
 
-      if (norm != null) {
+      double d000  = getVertexDistance (minx  , miny  , minz  );
+      double d001  = getVertexDistance (minx  , miny  , minz+1);
+      double d010  = getVertexDistance (minx  , miny+1, minz  );
+      double d011  = getVertexDistance (minx  , miny+1, minz+1);
+      double d100  = getVertexDistance (minx+1, miny  , minz  );
+      double d101  = getVertexDistance (minx+1, miny  , minz+1);
+      double d110  = getVertexDistance (minx+1, miny+1, minz  );
+      double d111  = getVertexDistance (minx+1, miny+1, minz+1);
 
-         Vector3d nrm000 = getLocalVertexNormal (minx  , miny  , minz  );
-         Vector3d nrm001 = getLocalVertexNormal (minx  , miny  , minz+1);
-         Vector3d nrm010 = getLocalVertexNormal (minx  , miny+1, minz  );
-         Vector3d nrm011 = getLocalVertexNormal (minx  , miny+1, minz+1);
-         Vector3d nrm100 = getLocalVertexNormal (minx+1, miny  , minz  );
-         Vector3d nrm101 = getLocalVertexNormal (minx+1, miny  , minz+1);
-         Vector3d nrm110 = getLocalVertexNormal (minx+1, miny+1, minz  );
-         Vector3d nrm111 = getLocalVertexNormal (minx+1, miny+1, minz+1);
+      double d =
+         w000*d000 + w001*d001 + w010*d010 + w011*d011 +
+         w100*d100 + w101*d101 + w110*d110 + w111*d111;
+      
+      if (norm != null || Dnrm != null) {
+         Vector3d n000 = getLocalVertexNormal (minx  , miny  , minz  );
+         Vector3d n001 = getLocalVertexNormal (minx  , miny  , minz+1);
+         Vector3d n010 = getLocalVertexNormal (minx  , miny+1, minz  );
+         Vector3d n011 = getLocalVertexNormal (minx  , miny+1, minz+1);
+         Vector3d n100 = getLocalVertexNormal (minx+1, miny  , minz  );
+         Vector3d n101 = getLocalVertexNormal (minx+1, miny  , minz+1);
+         Vector3d n110 = getLocalVertexNormal (minx+1, miny+1, minz  );
+         Vector3d n111 = getLocalVertexNormal (minx+1, miny+1, minz+1);
 
-         norm.setZero();
-         norm.scaledAdd (w000, nrm000);
-         norm.scaledAdd (w001, nrm001);
-         norm.scaledAdd (w010, nrm010);
-         norm.scaledAdd (w011, nrm011);
-         norm.scaledAdd (w100, nrm100);
-         norm.scaledAdd (w101, nrm101);
-         norm.scaledAdd (w110, nrm110);
-         norm.scaledAdd (w111, nrm111);
-         //norm.scale(-1.0);
+         if (norm == null && Dnrm != null) {
+            norm = new Vector3d();
+         }
+         
+         if (norm != null) {
+            norm.setZero();
+            norm.scaledAdd (w000, n000);
+            norm.scaledAdd (w001, n001);
+            norm.scaledAdd (w010, n010);
+            norm.scaledAdd (w011, n011);
+            norm.scaledAdd (w100, n100);
+            norm.scaledAdd (w101, n101);
+            norm.scaledAdd (w110, n110);
+            norm.scaledAdd (w111, n111);
+            //norm.normalize();
+         }
+         
+         if (Dnrm != null) {
+            // compute weight derivatives with respect to dx and dy
+            double w100x = (1-dy)*(1-dz);
+            double w101x = (1-dy)*dz;
+            double w110x = dy*(1-dz);
+            double w111x = dy*dz;
+
+            double w010y = (1-dx)*(1-dz);
+            double w011y = (1-dx)*dz;
+            double w110y = dx*(1-dz);
+            double w111y = dx*dz;           
+
+            if (true) {
+               
+            Dnrm.m00 =
+               (-w100x*n000.x - w101x*n001.x - w110x*n010.x - w111x*n011.x
+                +w100x*n100.x + w101x*n101.x + w110x*n110.x + w111x*n111.x);
+            Dnrm.m10 =
+               (-w100x*n000.y - w101x*n001.y - w110x*n010.y - w111x*n011.y
+                +w100x*n100.y + w101x*n101.y + w110x*n110.y + w111x*n111.y);
+            Dnrm.m20 =
+               (-w100x*n000.z - w101x*n001.z - w110x*n010.z - w111x*n011.z
+                +w100x*n100.z + w101x*n101.z + w110x*n110.z + w111x*n111.z);
+
+            double s = d/myCellWidths.x;
+            Dnrm.m00 *= s;
+            Dnrm.m10 *= s;
+            Dnrm.m20 *= s;
+            
+            Dnrm.m01 =
+               (-w010y*n000.x - w011y*n001.x + w010y*n010.x + w011y*n011.x
+                -w110y*n100.x - w111y*n101.x + w110y*n110.x + w111y*n111.x);
+            Dnrm.m11 =
+               (-w010y*n000.y - w011y*n001.y + w010y*n010.y + w011y*n011.y
+                -w110y*n100.y - w111y*n101.y + w110y*n110.y + w111y*n111.y);
+            Dnrm.m21 =
+               (-w010y*n000.z - w011y*n001.z + w010y*n010.z + w011y*n011.z
+                -w110y*n100.z - w111y*n101.z + w110y*n110.z + w111y*n111.z);
+
+            s = d/myCellWidths.y;
+            Dnrm.m01 *= s;
+            Dnrm.m11 *= s;
+            Dnrm.m21 *= s;
+
+            Dnrm.m02 =
+               (-w001z*n000.x + w001z*n001.x - w011z*n010.x + w011z*n011.x
+                -w101z*n100.x + w101z*n101.x - w111z*n110.x + w111z*n111.x);
+            Dnrm.m12 =
+               (-w001z*n000.y + w001z*n001.y - w011z*n010.y + w011z*n011.y
+                -w101z*n100.y + w101z*n101.y - w111z*n110.y + w111z*n111.y);
+            Dnrm.m22 =
+               (-w001z*n000.z + w001z*n001.z - w011z*n010.z + w011z*n011.z
+                -w101z*n100.z + w101z*n101.z - w111z*n110.z + w111z*n111.z);
+            
+            s = d/myCellWidths.z;
+            Dnrm.m02 *= s;
+            Dnrm.m12 *= s;
+            Dnrm.m22 *= s;
+            }
+            else {
+               Dnrm.setZero();
+            }
+               
+            Vector3d grad = new Vector3d();
+
+            grad.x = (-w100x*d000 - w101x*d001 - w110x*d010 - w111x*d011
+                      +w100x*d100 + w101x*d101 + w110x*d110 + w111x*d111);
+            grad.y = (-w010y*d000 - w011y*d001 + w010y*d010 + w011y*d011
+                      -w110y*d100 - w111y*d101 + w110y*d110 + w111y*d111);
+            grad.z = (-w001z*d000 + w001z*d001 - w011z*d010 + w011z*d011
+                      -w101z*d100 + w101z*d101 - w111z*d110 + w111z*d111);
+            
+            grad.x /= myCellWidths.x;
+            grad.y /= myCellWidths.y;
+            grad.z /= myCellWidths.z;
+            Dnrm.addOuterProduct (norm, grad);
+         }
       }
-
-      return w000*getVertexDistance (minx  , miny  , minz  ) +
-      w001*getVertexDistance (minx  , miny  , minz+1) +
-      w010*getVertexDistance (minx  , miny+1, minz  ) +
-      w011*getVertexDistance (minx  , miny+1, minz+1) +
-      w100*getVertexDistance (minx+1, miny  , minz  ) +
-      w101*getVertexDistance (minx+1, miny  , minz+1) +
-      w110*getVertexDistance (minx+1, miny+1, minz  ) +
-      w111*getVertexDistance (minx+1, miny+1, minz+1);
+      return d;
    }
    
    /** 
@@ -785,7 +883,7 @@ public class DistanceGrid implements Renderable {
    public double getWorldDistanceAndNormal (Vector3d norm, Point3d point) {
       Point3d lpnt = new Point3d();
       getLocalCoordinates(lpnt, point);
-      double d = getLocalDistanceAndNormal(norm, lpnt);
+      double d = getLocalDistanceAndNormal(norm, null, lpnt);
       if (norm != null) {
          getWorldNormal(norm, norm);
       }
@@ -885,7 +983,7 @@ public class DistanceGrid implements Renderable {
    public double getWorldDistanceAndGradient (Vector3d grad, Point3d point) {
       Point3d lpnt = new Point3d();
       getLocalCoordinates(lpnt, point);
-      double d = getLocalDistanceAndNormal(grad, lpnt);
+      double d = getLocalDistanceAndGradient(grad, lpnt);
       if (grad != null) {
          // gradients transform like normals
          getWorldNormal(grad, grad);

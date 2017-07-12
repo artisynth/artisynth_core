@@ -1087,7 +1087,7 @@ public class SVDecomposition3d {
          throw new ImproperStateException ("U and V not present");
       }
       R.transpose (U_);
-      R.mulDiagonalLeft (1 / sig0, 1 / sig1, 1 / sig2);
+      R.mulRows (1 / sig0, 1 / sig1, 1 / sig2);
       R.mul (V_, R);
       return sig2 != 0;
    }
@@ -1121,7 +1121,7 @@ public class SVDecomposition3d {
       if (sig2 != 0) {
          s2 = 1.0/sig2;
       }
-      R.mulDiagonalLeft (s0, s1, s2);
+      R.mulRows (s0, s1, s2);
       R.mul (V_, R);
       return sig2 != 0;
    }
@@ -1424,7 +1424,7 @@ public class SVDecomposition3d {
          if (P != null) {
             // place the symmetric part in P
             P.set (getV());
-            P.mulDiagonalRight (sig);
+            P.mulCols (sig);
             P.mulTransposeRight (P, getV());
          }
       }
@@ -1453,7 +1453,7 @@ public class SVDecomposition3d {
    /**
     * Factors a 3 x 3 matrix F into a left polar decomposition
     * <pre>
-    * F = R P
+    * F = P R
     * </pre>
     * where R is a rotation matrix (with determinant 1) and P is a
     * symmetric matrix.
@@ -1471,31 +1471,31 @@ public class SVDecomposition3d {
          if (P != null) {
             // place the symmetric part in P
             P.set (getU());
-            P.mulDiagonalRight (sig);
+            P.mulCols (sig);
             P.mulTransposeRight (P, getU());
          }
       }
    }
 
-   /**
-    * Factors a 3 x 3 matrix F into a left polar decomposition
-    * <pre>
-    * F = R P
-    * </pre>
-    * where R is a rotation matrix (with determinant 1) and P is a
-    * symmetric matrix.
-    */
-   public void leftPolarDecomposition (
-      SymmetricMatrix3d P, Matrix3dBase R, Matrix3dBase F) {
-
-      Vector3d sig = new Vector3d();
-      if (doPolarDecomposition (R, sig, F)) {
-         if (P != null) {
-            // place the symmetric part in P
-            P.mulDiagTransposeRight (getU(), sig);
-         }
-      }
-   }
+//   /**
+//    * Factors a 3 x 3 matrix F into a left polar decomposition
+//    * <pre>
+//    * F = P R
+//    * </pre>
+//    * where R is a rotation matrix (with determinant 1) and P is a
+//    * symmetric matrix.
+//    */
+//   public void leftPolarDecomposition (
+//      SymmetricMatrix3d P, Matrix3dBase R, Matrix3dBase F) {
+//
+//      Vector3d sig = new Vector3d();
+//      if (doPolarDecomposition (R, sig, F)) {
+//         if (P != null) {
+//            // place the symmetric part in P
+//            P.mulDiagTransposeRight (getU(), sig);
+//         }
+//      }
+//   }
 
    private boolean doPolarDecomposition (
       Matrix3dBase R, Vector3d sig, Matrix3dBase F) {
@@ -1517,21 +1517,16 @@ public class SVDecomposition3d {
 
       double detU = U.orthogonalDeterminant();
       double detV = V.orthogonalDeterminant();
+      
       if (detV * detU < 0) { /* then one is negative and the other positive */
-         if (detV < 0) { /* negative last column of V */
-            V.m02 = -V.m02;
-            V.m12 = -V.m12;
-            V.m22 = -V.m22;
-         }
-         else /* detU < 0 */
-         { /* negative last column of U */
-            U.m02 = -U.m02;
-            U.m12 = -U.m12;
-            U.m22 = -U.m22;
-         }
+         // negate last column of U. Note that the effect of this
+         // is identical to negating the last column of V.
+         U.m02 = -U.m02;
+         U.m12 = -U.m12;
+         U.m22 = -U.m22;  
          // flip the sign of the last singular value
          sig.z = -sig.z;
-         // do this for the interbal value as well
+         // do this for the internal value as well
          sig2 = -sig2;
       }
 

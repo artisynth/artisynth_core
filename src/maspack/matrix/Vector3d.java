@@ -65,6 +65,11 @@ Clonable {
    public static final Vector3d NEG_Z_UNIT = new Vector3d (0, 0, -1);
 
    /**
+    * Global vector containing ones. Should not be modified.
+    */
+   public static final Vector3d ONES = new Vector3d (1, 1, 1);
+
+   /**
     * First element
     */
    public double x;

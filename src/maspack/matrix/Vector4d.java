@@ -47,6 +47,11 @@ public class Vector4d extends VectorBase implements Clonable {
    public static final Vector4d W_UNIT = new Vector4d (0, 0, 0, 1);
 
    /**
+    * Global vector containing ones. Should not be modified.
+    */
+   public static final Vector4d ONES = new Vector4d (1, 1, 1, 1);
+
+   /**
     * First element
     */
    public double x;

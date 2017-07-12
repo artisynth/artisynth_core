@@ -20,22 +20,22 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
 
       public void apply (AffineTransform3dBase X) {
 
-         // constrain the transform to simple scaling along the x, y, z axes
+         // constrain the transform so that it's effect in body coordinates
+         // is a simple scaling along the x, y, z axes
          if (X instanceof AffineTransform3d && 
              !X.equals (AffineTransform3d.IDENTITY)) {
-            AffineTransform3d XA = (AffineTransform3d)X;
 
-            PolarDecomposition3d pd = null;
-            Matrix3d P = XA.A;
-            if (!P.isSymmetric (1000*MACH_PREC*P.oneNorm())) {
-               pd = new PolarDecomposition3d();
-               pd.factor (P);
-               P = pd.getP();
-            }
-            XA.A.setDiagonal (P.m00, P.m11, P.m22);
-            if (pd != null) {
-               XA.A.mul (pd.getR(), XA.A);
-            }
+            Matrix3d A = new Matrix3d(((AffineTransform3d)X).A);
+
+            // factor A into the polar decomposition A = Q P,
+            // then remove all the off-diagonal terms of P
+            PolarDecomposition3d pd = new PolarDecomposition3d(A);
+            Matrix3d P = pd.getP();
+            double s = Math.pow (Math.abs(P.determinant()), 1/3.0);
+            A.setDiagonal (P.m00, P.m11, P.m22);
+            A.mul (pd.getQ(), A);
+            
+            ((AffineTransform3d)X).A.set (A);
          }
       }
    }
@@ -164,12 +164,14 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
          if (gtr.isSaving()) {
             gtr.saveObject (new Vector3d(myAxisLengths));
          }
-         AffineTransform3d XL = gtr.computeRightAffineTransform (getPose());
-         myTransformConstrainer.apply (XL);
-         myAxisLengths.x *= XL.A.m00;
-         myAxisLengths.y *= XL.A.m11;
-         myAxisLengths.z *= XL.A.m22;
-      }   
+         AffineTransform3d XL = gtr.computeLocalAffineTransform (
+            getPose(), myTransformConstrainer); 
+         // need to take abs() since diagonal entries could be negative
+         // if XL is a reflection
+         myAxisLengths.x *= Math.abs(XL.A.m00);
+         myAxisLengths.y *= Math.abs(XL.A.m11);
+         myAxisLengths.z *= Math.abs(XL.A.m22);
+      }
       super.transformGeometry (gtr, context, flags);
    }
 

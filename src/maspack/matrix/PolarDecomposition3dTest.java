@@ -26,6 +26,8 @@ public class PolarDecomposition3dTest {
 
       Matrix3d A = new Matrix3d();
       Matrix3d R = new Matrix3d();
+      Matrix3d H = new Matrix3d();
+      Matrix3d Q = new Matrix3d();
       Matrix3d P = new Matrix3d();
       Random rand = new Random();
       rand.setSeed (0x1234);
@@ -51,14 +53,15 @@ public class PolarDecomposition3dTest {
             A.setRandom (-0.5, 0.5, rand);
 
             PD.factor (A);
+
             PD.getR (R);
-            PD.getP (P);
-            M.mul (R, P);
+            PD.getH (H);
+            M.mul (R, H);
 
             boolean failed = false;
 
             if (!M.epsilonEquals (A, 1e-13)) {
-               System.out.println ("Bad decomposition, test " + i);
+               System.out.println ("Bad R H decomposition, test " + i);
                failed = true;
             }
             if (!failed) {
@@ -72,13 +75,37 @@ public class PolarDecomposition3dTest {
                System.out.println (
                   "R is not righthanded, det="+R.determinant()+", test " + i);
             }
+
+            PD.getQ (Q);
+            PD.getP (P);
+            M.mul (Q, P);
+            if (!failed && !M.epsilonEquals (A, 1e-13)) {
+               System.out.println ("Bad Q P decomposition, test " + i);
+               failed = true;
+            }
+            if (!failed) {
+               M.mulTransposeRight (Q, Q);
+               if (!M.epsilonEquals (I, 1e-13)) {
+                  System.out.println ("non-orthogonal Q, test " + i);
+                  failed = true;
+               }
+            }
+               
+
             if (!failed) {
                PD.factorLeft (A);
                PD.getR (R);
-               PD.getP (P);
-               M.mul (P, R);
+               PD.getH (H);
+               M.mul (H, R);
                if (!M.epsilonEquals (A, 1e-13)) {
-                  System.out.println ("Bad left decomposition, test " + i);
+                  System.out.println ("Bad H R decomposition, test " + i);
+                  failed = true;
+               }
+               PD.getQ (Q);
+               PD.getP (P);
+               M.mul (P, Q);
+               if (!failed && !M.epsilonEquals (A, 1e-13)) {
+                  System.out.println ("Bad P Q decomposition, test " + i);
                   failed = true;
                }
             }
@@ -89,9 +116,18 @@ public class PolarDecomposition3dTest {
                   failed = true;
                }
             }
+            if (!failed) {
+               M.mulTransposeRight (Q, Q);
+               if (!M.epsilonEquals (I, 1e-13)) {
+                  System.out.println ("non-orthogonal left Q, test " + i);
+                  failed = true;
+               }
+            }
             if (failed) {
                System.out.println ("A\n" + A.toString ("%8.5f"));
                System.out.println ("R\n" + R.toString ("%8.5f"));
+               System.out.println ("H\n" + H.toString ("%8.5f"));
+               System.out.println ("Q\n" + Q.toString ("%8.5f"));
                System.out.println ("P\n" + P.toString ("%8.5f"));
                System.out.println ("M\n" + M.toString ("%8.5f"));
                System.exit (1);

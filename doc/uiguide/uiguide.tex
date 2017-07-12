@@ -320,7 +320,7 @@ minor cells}. Major cells are typically rendered more brightly than
 minor cells. By default, the grid computes the cell sizes
 automatically based on the current viewer zoom-level. However, it is
 possible to set an explicit grid resolution (see
-\ref{GridUnitsAndProperties}).
+\ref{GridUnits}).
 
 The grid is located in the plane perpendicular to the line of sight of
 the most recently selected axis-aligned view. To change the grid
@@ -339,8 +339,8 @@ plane, select a new axis aligned viewpoint (Section
 \label{viewerGridFig}
 \end{figure}
 
-\subsubsection{Grid units and properties}
-\label{GridUnitsAndProperties}
+\subsubsection{Grid units}
+\label{GridUnits}
 
 When the grid is enabled, a box labeled {\sf Grid:} appears in the
 toolbar on top of the main ArtiSynth frame which gives the current
@@ -363,14 +363,138 @@ Specifying an explicit value will disable auto-sizing, unless {\tt S}
 is specified as 0 or the special value {\tt *} is entered, both of
 which will renable auto-sizing.
 
+\subsubsection{Axis Labeling}
+\label{AxisLabels}
+
+Hitting the '{\tt l}' key within the viewer enables or disables
+labeling of the major divisions along the horizontal and vertical axis
+(Figure \ref{gridLabels:fig}). The division lines along which these
+labels appear are automatically adjusted so as to ensure proper label
+visibility, and do not necessarily correspond to the x, y, or z axes.
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/gridLabels}
+\else
+\includegraphics[width=0.50\textwidth]{images/gridLabels}
+\fi
+\end{center}
+\caption{Viewer grid with axis labels visible.}%
+\label{gridLabels:fig}
+\end{figure}
+
+It is possible to control various properities associated with
+axis labeling, such as which axes are labeled, and the label size and
+color. See the next section on {\sf Grid properties}.
+
+\subsubsection{Grid properties}
+\label{GridProperties}
+
 The grid has a number of properties that can be set by right clicking
-on the {\tt Grid:} label and choosing {\sf Set properties}. This will
-bring up a property dialog. Properties that can be set include the
-minimum size, the minimum minor cell size in pixels (when
-auto-sizing), colors for the major and minor cell divisions, and
-colors for the horizontal (x) and vertical (y) axes. Some of these
-colors are optional and can set set to {\tt null}, in which case a
-default color is computed or the associated feature is not displayed.
+in the viewer and choosing {\sf Set viewer grid properties} (or by
+right clicking on the {\tt Grid:} label and choosing {\sf Set
+properties}). This will bring up a property dialog, such as that shown
+in Figure \ref{GridPropDialog:fig}.
+
+\begin{figure}
+\begin{center}
+\iflatexml
+\includegraphics[]{images/gridPropDialog}
+\else
+\includegraphics[width=0.4\textwidth]{images/gridPropDialog}
+\fi
+\end{center}
+\caption{Dialog to control the grid properties.}%
+\label{GridPropDialog:fig}
+\end{figure}
+
+Properties that can be set include:
+
+\begin{description}
+
+\item[resolution]\mbox{}
+
+Grid resolution, as described above.
+
+\item[autoSized]\mbox{}
+
+If {\tt true}, causes the grid resolution to be recomputed as the user
+adjusts the view position, orientation, and zoom.
+
+\item[minCellPixels]\mbox{}
+
+Minimum number of pixels that should appear in a minor cell division
+when autosizing.
+
+\item[majorColor]\mbox{}
+
+Color to use for the major axis lines.
+
+\item[minorColor]\mbox{}
+
+Color to use for the minor axis lines.
+
+\item[xAxisColor]\mbox{}
+
+Color to use for the grid line that corresponds to the world y axis,
+or the horizontal axis if {\sf lockAxesToWorld} is false.
+
+\item[yAxisColor]\mbox{}
+
+Color to use for the grid line that corresponds to the world y axis,
+or the vertical axis if {\sf lockAxesToWorld} is false.
+
+\item[zAxisColor]\mbox{}
+
+Color to use for the grid line that corresponds to the world z
+axis.
+
+\item[lineWidth]\mbox{}
+
+Width of the grid lines, in pixels.
+
+\item[position]\mbox{}
+
+Translation position of the grid, in world coordinates.
+
+\item[orientation]\mbox{}
+
+Orientation of the grid, in world coordinates.
+
+\item[lockAxesToWorld]\mbox{}
+
+If {\tt true}, forces the grid to stay aligned with the orientation
+and position of the world axes. In particular, the horizontal and
+vertical axes will always be parallel to one of the x, y, or z world
+axes, the grid center will be a multiple of major cell sizes from the
+origin, and axis labels will be set relative to the world origin.
+
+\item[useWorldOrigin]\mbox{}
+
+If {\tt true}, causes the principal horizontal and vertical axes to be
+aligned with the world origin. Otherwise, the axes will be aligned
+with the grid center. This property can only be {\tt true} if {\sf
+lockAxesToWorld} is also {\tt true}.
+
+\item[xAxisLabeling]\mbox{}
+
+Enables labeling of the x axis.
+
+\item[yAxisLabeling]\mbox{}
+
+Enables labeling of the y axis.
+
+\item[labelSize]\mbox{}
+
+'em' size of the label text, in pixels.
+
+\item[labelColor]\mbox{}
+
+If set, specifies the color used to draw the label text. Otherwise,
+the major axis color is used.
+
+\end{description}
 
 \subsection{Clipping Planes}
 \label{ClippingPlanesSec}
@@ -458,7 +582,7 @@ Various properties associated with the plane, such as its color, line
 width, cell resolution, etc., can be set explicitly by the user. To do
 this, right click on the icon, select {\sf Set properties}, and edit
 the resulting property panel.  Most properties are the same as those
-described for the main viewer grid in \ref{GridUnitsAndProperties}.
+described for the main viewer grid in \ref{GridProperties}.
 
 \item[Grid visibility]\mbox{}
 

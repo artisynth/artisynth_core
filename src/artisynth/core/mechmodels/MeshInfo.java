@@ -29,6 +29,7 @@ public class MeshInfo {
    boolean myMeshModifiedP;
    AffineTransform3d myFileTransform;
    boolean myFileTransformRigidP = true;
+   boolean myFlippedP = false;
 
    public String getFileName() {
       return myFileName;
@@ -45,6 +46,7 @@ public class MeshInfo {
       myMeshModifiedP = false;
       myFileTransform = new AffineTransform3d();
       myFileTransformRigidP = true;
+      myFlippedP = false;
    }       
 
    public MeshBase getMesh() {
@@ -75,7 +77,7 @@ public class MeshInfo {
     * @param X
     * new mesh file transform, or <code>null</code>
     */
-   public void setFileTransform (AffineTransform3dBase X) {
+   protected void setFileTransform (AffineTransform3dBase X) {
       if (X != null) {
          myFileTransform.set (X);
          myFileTransformRigidP = (X instanceof RigidTransform3d);
@@ -102,9 +104,7 @@ public class MeshInfo {
          setFileName (null);
          setFileTransform (null);
       }
-      // if (myRenderProps != null) {
-      //    myRenderProps.clearMeshDisplayList();
-      // }
+      myFlippedP = false; // assume mesh is in correct orientation
    }   
 
    public void set (MeshBase mesh) {
@@ -127,11 +127,15 @@ public class MeshInfo {
       }
    }
 
-   public void scale (double s) {
-      if (s != 1) {
-         myMesh.scale (s);
-         AffineTransform3d S = AffineTransform3d.createScaling (s);
+   public void scale (double sx, double sy, double sz) {
+      if (sx != 1 || sy != 1 || sz != 1) {
+         myMesh.scale (sx, sy, sz);
+         AffineTransform3d S = AffineTransform3d.createScaling (sx, sy, sz);
          preMultiplyFileTransform (S);
+         if (sx*sy*sz < 0 && myMesh instanceof PolygonalMesh) {
+            myFlippedP = !myFlippedP;
+            ((PolygonalMesh)myMesh).flip();
+         }
       }
    }
 
@@ -157,6 +161,10 @@ public class MeshInfo {
          gtr.transform (myFileTransform);
          if (!gtr.isRigid()) {
             myFileTransformRigidP = false;
+         }
+         if (gtr.isReflecting() && myMesh instanceof PolygonalMesh) {
+            myFlippedP = !myFlippedP;
+            ((PolygonalMesh)myMesh).flip();
          }
       }
       else {
@@ -184,19 +192,17 @@ public class MeshInfo {
                   if (gtr.isSaving()) {
                      gtr.saveObject (new AffineTransform3d(myFileTransform));
                   }
-                  // Pre-multiply myFileTransform by Y, where
-                  // 
-                  //           -1 
-                  // Y = TMWnew  gtr TMW
-                  //                        
-                  // and TMW and TMWnew are the current and transformed values
-                  // of the mesh-to-world transform
-                  AffineTransform3d XL = 
-                     gtr.computeRightAffineTransform (myMesh.getMeshToWorld());
-                  if (constrainer != null) {
-                     constrainer.apply (XL);
-                  }
+                  // Pre-multiply myFileTransform by the local affine
+                  // transform XL, which adjusts local vertex positions
+                  // for the non-rigid parts of the transform that cannot
+                  // be accommodated by the mesh-to-world transform                  // of the mesh-to-world transform
+                  AffineTransform3d XL = gtr.computeLocalAffineTransform (
+                     myMesh.getMeshToWorld(), constrainer);
                   preMultiplyFileTransform (XL);
+               }
+               if (gtr.isReflecting() && myMesh instanceof PolygonalMesh) {
+                  myFlippedP = !myFlippedP;
+                  ((PolygonalMesh)myMesh).flip();
                }
             }
             else {
@@ -278,6 +284,13 @@ public class MeshInfo {
                            ((PolygonalMesh)mesh).triangulate();
                         }
                      }
+                     else if (fieldName.equals ("flipped")){
+                        rtok.scanToken ('=');
+                        myFlippedP = rtok.scanBoolean();
+                        if (myFlippedP && mesh instanceof PolygonalMesh) {
+                           ((PolygonalMesh)mesh).flip();
+                        }
+                     }
                      else {
                         throw new IOException (
                            "Unrecognized field name: '"+fieldName+"', "+rtok);
@@ -348,9 +361,13 @@ public class MeshInfo {
          if (!myMeshModifiedP  && myFileName != null && myFileName.length() > 0) {
             pw.println (Write.getQuotedString (myFileName));
             writeTransformIfNecessary (pw, fmt);
-            if (myMesh instanceof PolygonalMesh &&
-                ((PolygonalMesh)myMesh).isTriangular()) {
-               pw.println ("triangular=true");
+            if (myMesh instanceof PolygonalMesh) {
+               if (((PolygonalMesh)myMesh).isTriangular()) {
+                  pw.println ("triangular=true");
+               }
+               if (myFlippedP) {
+                  pw.println ("flipped=true");
+               }
             }
          }
          else {
@@ -394,6 +411,7 @@ public class MeshInfo {
       out.myFileName = myFileName;
       out.myMeshModifiedP = myMeshModifiedP;
       out.myFileTransform = myFileTransform.copy();
+      out.myFlippedP = myFlippedP;
       out.myMesh = myMesh.copy();
       return out;
    }

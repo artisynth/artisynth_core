@@ -155,6 +155,14 @@ public class FixedMeshBody extends MeshComponent {
       }         
    }
    
+   public void scaleMesh (double sx, double sy, double sz) {
+      myMeshInfo.scale (sx, sy, sz);
+   }
+   
+   public void scaleMesh (double s) {
+      scaleMesh (s, s, s);
+   }
+
    public void transformMesh (AffineTransform3dBase X) {
       getMesh().transform (X);
    }

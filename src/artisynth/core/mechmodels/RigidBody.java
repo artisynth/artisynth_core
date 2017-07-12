@@ -655,16 +655,16 @@ public class RigidBody extends Frame
       return myMeshInfo.getFileTransform();
    }
 
-   /**
-    * Sets the transform used to modify a mesh originally read from a file. It
-    * is only meaningful if there is a also mesh file name.
-    * 
-    * @param X
-    * new mesh file transform, or <code>null</code>
-    */
-   public void setMeshFileTransform (AffineTransform3dBase X) {
-      myMeshInfo.setFileTransform (X);
-   }
+//   /**
+//    * Sets the transform used to modify a mesh originally read from a file. It
+//    * is only meaningful if there is a also mesh file name.
+//    * 
+//    * @param X
+//    * new mesh file transform, or <code>null</code>
+//    */
+//   public void setMeshFileTransform (AffineTransform3dBase X) {
+//      myMeshInfo.setFileTransform (X);
+//   }
 
    public void setMesh (PolygonalMesh mesh) {
       setSurfaceMesh (mesh, null, null);
@@ -677,9 +677,16 @@ public class RigidBody extends Frame
    public void setSurfaceMesh (PolygonalMesh mesh, String fileName) {
       setSurfaceMesh (mesh, fileName, null);
    }
-
+   
+   public void scaleMesh (double sx, double sy, double sz) {
+      myMeshInfo.scale (sx, sy, sz);
+      if (myInertiaMethod == InertiaMethod.Density) {
+         setInertiaFromMesh (myDensity);
+      }     
+   }
+   
    public void scaleMesh (double s) {
-      myMeshInfo.scale (s);
+      scaleMesh (s, s, s);
    }
 
    protected void setMeshFromInfo () {
@@ -1124,7 +1131,7 @@ public class RigidBody extends Frame
       if (mesh != null) {
          PolygonalMesh meshCopy = mesh.copy();
          comp.setMesh (meshCopy, getMeshFileName(), getMeshFileTransform());
-         System.out.println ("mesh=" + mesh + " copy=" + meshCopy);
+         comp.myMeshInfo.myFlippedP = myMeshInfo.myFlippedP;
       }
       else {
          comp.setMesh (null, null, null);

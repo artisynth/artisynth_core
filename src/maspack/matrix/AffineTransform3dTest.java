@@ -18,32 +18,32 @@ class AffineTransform3dTest extends MatrixTest {
       }
    }
 
-   void testRigidFactor (AffineTransform3d X) {
-      AffineTransform3d XS = new AffineTransform3d();
-      RigidTransform3d XR = new RigidTransform3d();
-      X.leftRigidFactor (XS, XR);
-      AffineTransform3d XC = new AffineTransform3d();
-      XC.mul (XS, XR);
-      if (!XC.epsilonEquals (X, 1e-10)) {
-         System.out.println ("X= \n" + X.toString ("%12.8f"));
-         System.out.println ("XC=\n" + XC.toString ("%12.8f"));
-         System.out.println ("XS=\n" + XS.toString ("%12.8f"));
-         System.out.println ("XR=\n" + XR.toString ("%12.8f"));
-
-         throw new TestException ("testRigidFactor failed");
-      }
-      XS.set (X);
-      XS.leftRigidFactor (XS, XR);
-      XC.mul (XS, XR);
-      if (!XC.epsilonEquals (X, 1e-10)) {
-         System.out.println ("X= \n" + X.toString ("%12.8f"));
-         System.out.println ("XC=\n" + XC.toString ("%12.8f"));
-         System.out.println ("XS=\n" + XS.toString ("%12.8f"));
-         System.out.println ("XR=\n" + XR.toString ("%12.8f"));
-
-         throw new TestException ("testRigidFactor failed");
-      }
-   }
+//   void testRigidFactor (AffineTransform3d X) {
+//      AffineTransform3d XS = new AffineTransform3d();
+//      RigidTransform3d XR = new RigidTransform3d();
+//      X.leftRigidFactor (XS, XR);
+//      AffineTransform3d XC = new AffineTransform3d();
+//      XC.mul (XS, XR);
+//      if (!XC.epsilonEquals (X, 1e-10)) {
+//         System.out.println ("X= \n" + X.toString ("%12.8f"));
+//         System.out.println ("XC=\n" + XC.toString ("%12.8f"));
+//         System.out.println ("XS=\n" + XS.toString ("%12.8f"));
+//         System.out.println ("XR=\n" + XR.toString ("%12.8f"));
+//
+//         throw new TestException ("testRigidFactor failed");
+//      }
+//      XS.set (X);
+//      XS.leftRigidFactor (XS, XR);
+//      XC.mul (XS, XR);
+//      if (!XC.epsilonEquals (X, 1e-10)) {
+//         System.out.println ("X= \n" + X.toString ("%12.8f"));
+//         System.out.println ("XC=\n" + XC.toString ("%12.8f"));
+//         System.out.println ("XS=\n" + XS.toString ("%12.8f"));
+//         System.out.println ("XR=\n" + XR.toString ("%12.8f"));
+//
+//         throw new TestException ("testRigidFactor failed");
+//      }
+//   }
 
    protected double getReadOnly (int i, int j) {
       if (i == 3 && j < 3) {
@@ -127,7 +127,7 @@ class AffineTransform3dTest extends MatrixTest {
 
          testNorms (X1);
 
-         testRigidFactor (X1);
+         //testRigidFactor (X1);
 
          // testSetRotations (XR, X1);
          // testNormalize (XR);

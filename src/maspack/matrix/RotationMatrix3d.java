@@ -19,7 +19,7 @@ import maspack.util.ReaderTokenizer;
  * 
  * <p>
  * This is used to rotate a 3 dimensional vector from one coordinate frame into
- * another. If v0 and v1 denote the vector in the orginal frame 0 and target
+ * another. If v0 and v1 denote the vector in the original frame 0 and target
  * frame 1, respectively, then the rotation is computed according to
  * 
  * <pre>
@@ -80,7 +80,7 @@ public class RotationMatrix3d extends Matrix3dBase {
     * Creates a new rotation initialized to the specified entries.
     *
     * <p> NOTE: the user is responsible for ensuring the that specified matrix
-    * is orthoginal.
+    * is orthogonal.
     */
    public RotationMatrix3d (double m00, double m01, double m02, 
                             double m10, double m11, double m12, 
@@ -97,6 +97,27 @@ public class RotationMatrix3d extends Matrix3dBase {
       this.m20 = m20;
       this.m21 = m21;
       this.m22 = m22;
+   }
+   
+   /**
+    * Creates a new rotation initialized to the specified entries. Stored in row major.
+    *
+    * <p> NOTE: the user is responsible for ensuring the that specified matrix
+    * is orthogonal.
+    */
+   public RotationMatrix3d (double[] m) {
+
+      this.m00 = m[0];
+      this.m01 = m[1];
+      this.m02 = m[2];
+
+      this.m10 = m[3];
+      this.m11 = m[4];
+      this.m12 = m[5];
+
+      this.m20 = m[6];
+      this.m21 = m[7];
+      this.m22 = m[8];
    }
 
    /**

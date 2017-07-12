@@ -267,13 +267,13 @@ public class Face extends Feature implements Boundable {
    public void flip(boolean connect) {
       disconnect();
       Vertex3d[] vtxs = getVertices();
-      int n = vtxs.length-1;
+      int hi = vtxs.length-1;
       for (int i=0; i<vtxs.length/2; i++) {
          Vertex3d tmp = vtxs[i];
-         vtxs[i] = vtxs[n-i];
-         vtxs[n-i] = tmp;
+         vtxs[i] = vtxs[hi-i];
+         vtxs[hi-i] = tmp;
       }
-      set(vtxs,n+1, connect);
+      set(vtxs,vtxs.length, connect);
    }
 
    /**

@@ -117,20 +117,18 @@ public abstract class GeometryTransformer {
          if (X instanceof AffineTransform3d && 
              !X.equals (AffineTransform3d.IDENTITY)) {
             
-            AffineTransform3d XA = (AffineTransform3d)X;
-
-            PolarDecomposition3d pd = null;
-            Matrix3d P = XA.A;
-            if (!P.isSymmetric (1000*MACH_PREC*P.oneNorm())) {
-               pd = new PolarDecomposition3d();
-               pd.factor (P);
-               P = pd.getP();
-            }
-            double s = Math.pow (Math.abs(P.determinant()), 1/3.0);            
-            XA.A.setDiagonal (s, s, s);
-            if (pd != null) {
-               XA.A.mul (pd.getR(), XA.A);
-            }
+            Matrix3d A = new Matrix3d (((AffineTransform3d)X).A);
+            
+            // factor A into the polar decomposition A = Q P,
+            // then constrain P to be a uniform scaling transform
+            // with the same volume change
+            PolarDecomposition3d pd = new PolarDecomposition3d(A);
+            Matrix3d P = pd.getP();
+            double s = Math.pow (Math.abs(P.determinant()), 1/3.0);
+            A.setDiagonal (s, s, s);
+            A.mul (pd.getQ(), A);
+            
+            ((AffineTransform3d)X).A.set(A);
          }
       }
    }
@@ -293,6 +291,7 @@ public abstract class GeometryTransformer {
 
    /**
     * Transforms a point <code>p</code>, in place.
+    * This is equivalent to <code>transformPnt(p,p)</code>.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>p</code> is instead set to its original
@@ -306,42 +305,43 @@ public abstract class GeometryTransformer {
    }
 
    /**
-    * Transforms a point <code>p1</code> and returns the result in
+    * Transforms a point <code>p</code> and returns the result in
     * <code>pr</code>.
     *
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>pr</code> is instead set to the value of
-    * <code>p1</code> that was previously saved when the undo state was set to
+    * <code>p</code> that was previously saved when the undo state was set to
     * {@link UndoState#SAVING}.
     *
     * @param pr transformed point
-    * @param p1 point to be transformed
+    * @param p point to be transformed
     */
-   public void transformPnt (Point3d pr, Point3d p1) {
+   public void transformPnt (Point3d pr, Point3d p) {
       if (isRestoring()) {
-         Point3d p = restore (pr);
-         pr.set (p);
+         Point3d px = restore (pr);
+         pr.set (px);
          return;
       }
       if (isSaving()) {
-         save (new Point3d(p1));
+         save (new Point3d(p));
       }
-      computeTransformPnt (pr, p1);
+      computeTransformPnt (pr, p);
    }
    
    /**
-    * Transforms a point <code>p1</code> and returns the result in
+    * Transforms a point <code>p</code> and returns the result in
     * <code>pr</code>. This provides the low level implementation for point
     * transformations and does not do any saving or restoring of data.
     * 
     * @param pr transformed point
-    * @param p1 point to be transformed
+    * @param p point to be transformed
     */
-   public abstract void computeTransformPnt (Point3d pr, Point3d p1);
+   public abstract void computeTransformPnt (Point3d pr, Point3d p);
 
    /**
     * Transforms a vector <code>v</code>, located at reference position
     * <code>r</code>, in place.
+    * This is equivalent to <code>transformVec(v,v,r)</code>.
     *
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>v</code> is instead set to its original
@@ -356,51 +356,113 @@ public abstract class GeometryTransformer {
    }
 
    /**
-    * Transforms a vector <code>v1</code>, located at reference position
+    * Transforms a vector <code>v</code>, located at reference position
     * <code>r</code>, and returns the result in <code>vr</code>.
     * Generally, this transformation will take the form
     * <pre>
-    * vr = F v1
+    * vr = F v
     * </pre>
     * where <code>F</code> is the deformation gradient at the reference
     * position.
     *
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>vr</code> is instead set to the value of
-    * <code>v1</code> that was previously saved when the undo state was set to
+    * <code>v</code> that was previously saved when the undo state was set to
     * {@link UndoState#SAVING}.
     *
     * @param vr transformed vector
-    * @param v1 vector to be transformed
+    * @param v vector to be transformed
     * @param r reference position of the vector, in original coordinates
     */
-   public void transformVec (Vector3d vr, Vector3d v1, Vector3d r) {
+   public void transformVec (Vector3d vr, Vector3d v, Vector3d r) {
       if (isRestoring()) {
          vr.set (restore (vr));
          return;
       }
       if (isSaving()) {
-         save (new Vector3d(v1));
+         save (new Vector3d(v));
       }
-      computeTransformVec (vr, v1, r);
+      computeTransformVec (vr, v, r);
    }
    
-   
    /**
-    * Transforms a vector <code>v1</code>, located at reference position
+    * Transforms a vector <code>v</code>, located at reference position
     * <code>r</code>, and returns the result in <code>vr</code>. This
     * provides the low level implementation for vector transformations and does
     * not do any saving or restoring of data.
     *
     * @param vr transformed vector
-    * @param v1 vector to be transformed
+    * @param v vector to be transformed
     * @param r reference position of the vector, in original coordinates
     */
    public abstract void computeTransformVec (
-      Vector3d vr, Vector3d v1, Vector3d r);
+      Vector3d vr, Vector3d v, Vector3d r);
+
+   /**
+    * Transforms a normal vector <code>n</code>, located at reference position
+    * <code>r</code>, in place. This is equivalent to <code>transformNormal(n,
+    * n)</code>.
+    *
+    * <p>If this transformer's undo state is set to {@link
+    * UndoState#RESTORING}, then <code>n</code> is instead set to its original
+    * value that was previously saved when the undo state was set to {@link
+    * UndoState#SAVING}.
+    *
+    * @param n normal to be transformed
+    * @param r reference position of the normal, in original coordinates
+    */
+   public void transformNormal (Vector3d n, Vector3d r) {
+      transformNormal (n, n, r);
+   }
+
+   /**
+    * Transforms a normal vector <code>n</code>, located at reference position
+    * <code>r</code>, and returns the result in <code>nr</code>.
+    * Generally, this transformation will take the form
+    * <pre>
+    *       -1 T
+    * nr = F     n
+    * </pre>
+    * where <code>F</code> is the deformation gradient at the reference
+    * position. The result is <i>not</i> normalized since
+    * the unnormalized form could be useful in some contexts.
+    *
+    * <p>If this transformer's undo state is set to {@link
+    * UndoState#RESTORING}, then <code>nr</code> is instead set to the value of
+    * <code>n</code> that was previously saved when the undo state was set to
+    * {@link UndoState#SAVING}.
+    *
+    * @param nr transformed normal
+    * @param n normal to be transformed
+    * @param r reference position of the normal, in original coordinates
+    */
+   public void transformNormal (Vector3d nr, Vector3d n, Vector3d r) {
+      if (isRestoring()) {
+         nr.set (restore (nr));
+         return;
+      }
+      if (isSaving()) {
+         save (new Vector3d(n));
+      }
+      computeTransformNormal (nr, n, r);
+   }
+   
+   /**
+    * Transforms a normal vector <code>n</code>, located at reference position
+    * <code>r</code>, and returns the result in <code>nr</code>. This
+    * provides the low level implementation for normal transformations and does
+    * not do any saving or restoring of data.
+    *
+    * @param nr transformed normal
+    * @param n normal to be transformed
+    * @param r reference position of the normal, in original coordinates
+    */
+   public abstract void computeTransformNormal (
+      Vector3d nr, Vector3d n, Vector3d r);
 
    /**
     * Transforms a rigid transform <code>T</code>, in place.
+    * This is equivalent to <code>transform(T,T)</code>.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>T</code> is instead set to its original
@@ -414,41 +476,47 @@ public abstract class GeometryTransformer {
    }
 
    /**
-    * Transforms a rigid transform <code>T1</code> and returns the
+    * Transforms a rigid transform <code>T</code> and returns the
     * result in <code>TR</code>. If
     * <pre>
-    *      [  R1   p1  ]
-    * T1 = [           ]
-    *      [   0    1  ]
+    *      [  R   p  ]
+    * T =  [         ]
+    *      [  0   1  ]
     * </pre>
-    * then generally, this transform takes the form
+    * and <code>f(p)</code> and <code>F</code> are the deformed position
+    * and deformation gradient at <code>p</code>, then 
+    * generally this transform takes the form
     * <pre>
-    *      [ RF R1   f(p1) ]
+    *      [  Q R N   f(p) ]
     * TR = [               ]
-    *      [   0       1   ]
+    *      [    0      1   ]
     * </pre>
-    * where <code>RF</code> is the right-handed rotational component
-    * of the deformation gradient <code>F</code> 
-    * at <code>p1</code>, and <code>f(p1)</code> is the deformed
-    * position of <code>p1</code>.
+    * where <code>Q</code> is the orthogonal matrix from the left polar
+    * decomposition <code>F = P Q</code>, and <code>N</code> is matrix that
+    * flips an axis to ensure that <code>Q R N</code> remains right-handed.
+    * If <code>det(Q) = 1</code>, then <code>N</code> is the identity, while if
+    * <code>det(Q) = -1</code>, then <code>N</code> is typically choosen to
+    * correspond to the axis least affected by <code>Q</code>, which is the one
+    * corresponding to the diagonal of <code>Q</code> nearest to 1.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>TR</code> is instead set to the value of
-    * <code>T1</code> that was previously saved when the undo state was set to
+    * <code>T</code> that was previously saved when the undo state was set to
     * {@link UndoState#SAVING}.
     *
     * @param TR transformed transform
-    * @param T1 transform to be transformed
+    * @param T transform to be transformed
     */
-   public void transform (RigidTransform3d TR, RigidTransform3d T1) {
+   public void transform (RigidTransform3d TR, RigidTransform3d T) {
       if (isRestoring()) {
          TR.set (restore (TR));
          return;
       }
       if (isSaving()) {
-         save (new RigidTransform3d(T1));
+         save (new RigidTransform3d(T));
       }
-      computeTransform (TR, T1);
+      computeTransform (TR, T);
+      //computeTransform (TR, T);
    }
    
    public void computeTransform (AffineTransform3dBase X) {
@@ -465,19 +533,25 @@ public abstract class GeometryTransformer {
    }
    
    /**
-    * Transforms a rigid transform <code>T1</code> and returns the result in
+    * Transforms a rigid transform <code>T</code> and returns the result in
     * <code>TR</code>. This provides the low level implementation for the
     * transformation of rigid transforms and does not do any saving or
     * restoring of data.
     *
     * @param TR transformed transform
-    * @param T1 transform to be transformed
+    * @param T transform to be transformed
     */
-   public abstract void computeTransform (
-      RigidTransform3d TR, RigidTransform3d T1);
+   protected void computeTransform (
+      RigidTransform3d TR, RigidTransform3d T) {
+      computeTransform (TR.R, null, T.R, T.p);
+      Point3d p = new Point3d(T.p);
+      computeTransformPnt (p, p);
+      TR.p.set (p);
+   }
    
    /**
     * Transforms an affine transform <code>X</code>, in place.
+    * This is equivalent to <code>transform(X,X)</code>.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>X</code> is instead set to its original
@@ -491,58 +565,59 @@ public abstract class GeometryTransformer {
    }
 
    /**
-    * Transforms an affine transform <code>X1</code> and returns the
+    * Transforms an affine transform <code>X</code> and returns the
     * result in <code>XR</code>. If
     * <pre>
-    *      [  A1   p1  ]
-    * X1 = [           ]
-    *      [   0    1  ]
+    *     [  A   p  ]
+    * X = [         ]
+    *     [  0   1  ]
     * </pre>
     * then generally, this transform takes the form
     * <pre>
-    *      [  F A1   f(p1) ]
-    * XR = [               ]
-    *      [   0       1   ]
+    *      [  F A   f(p) ]
+    * XR = [             ]
+    *      [   0     1   ]
     * </pre>
     * where <code>F</code> is the deformation gradient
-    * at <code>p1</code>, and <code>f(p1)</code> is the deformed
-    * position of <code>p1</code>.
+    * at <code>p</code>, and <code>f(p)</code> is the deformed
+    * position of <code>p</code>.
     *
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>XR</code> is instead set to the value of
-    * <code>X1</code> that was previously saved when the undo state was set to
+    * <code>X</code> that was previously saved when the undo state was set to
     * {@link UndoState#SAVING}.
     *
     * @param XR transformed transform
-    * @param X1 transform to be transformed
+    * @param X transform to be transformed
     */
    public void transform (
-      AffineTransform3d XR, AffineTransform3d X1) {
+      AffineTransform3d XR, AffineTransform3d X) {
       if (isRestoring()) {
          XR.set (restore (XR));
          return;
       }
       if (isSaving()) {
-         save (new AffineTransform3d(X1));
+         save (new AffineTransform3d(X));
       }
-      computeTransform (XR, X1);
+      computeTransform (XR, X);
    }
 
    /**
-    * Transforms an affine transform <code>X1</code> and returns the result in
+    * Transforms an affine transform <code>X</code> and returns the result in
     * <code>XR</code>. This provides the low level implementation for the
     * transformation of affine transforms and does not do any saving or
     * restoring of data.
     * 
     * @param XR transformed transform
-    * @param X1 transform to be transformed
+    * @param X transform to be transformed
     */
    public abstract void computeTransform (
-      AffineTransform3d XR, AffineTransform3d X1);
+      AffineTransform3d XR, AffineTransform3d X);
 
    /**
     * Transforms a rotation matrix <code>R</code>, located at reference
     * position <code>r</code>, in place.
+    * This is equivalent to <code>transform(R,R,r)</code>.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>R</code> is instead set to its original
@@ -557,53 +632,70 @@ public abstract class GeometryTransformer {
    }
 
    /**
-    * Transforms a rotation matrix <code>R1</code>, located at reference
+    * Transforms a rotation matrix <code>R</code>, located at reference
     * position <code>r</code>, and returns the result in <code>RR</code>.
-    * Generally, this transform takes the form
+    * If <code>F</code> is the deformation gradient at <code>r</code>,
+    * this transform takes the form
     * <pre>
-    * RR = RF R1
+    * RR = Q R N 
     * </pre>
-    * where <code>RF</code> is the right-handed rotational component
-    * of the polar decomposition of the deformation gradient <code>F</code>
-    * at the reference position.
+    * where <code>Q</code> is the orthogonal matrix from the left polar
+    * decomposition <code>F = P Q</code>, and <code>N</code> is matrix that
+    * flips an axis to ensure that <code>Q R N</code> remains right-handed.
+    * If <code>det(Q) = 1</code>, then <code>N</code> is the identity, while if
+    * <code>det(Q) = -1</code>, then <code>N</code> is typically choosen to
+    * correspond to the axis least affected by <code>Q</code>, which is the one
+    * corresponding to the diagonal of <code>Q</code> nearest to 1.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>RR</code> is instead set to the value of
-    * <code>R1</code> that was previously saved when the undo state was set to
+    * <code>R</code> that was previously saved when the undo state was set to
     * {@link UndoState#SAVING}.
     *
     * @param RR transformed rotation
-    * @param R1 rotation to be transformed
+    * @param R rotation to be transformed
     * @param r reference position of the rotation, in original coordinates
     */
    public void transform (
-      RotationMatrix3d RR, RotationMatrix3d R1, Vector3d r) {
+      RotationMatrix3d RR, RotationMatrix3d R, Vector3d r) {
       if (isRestoring()) {
          RR.set (restore (RR));
          return;
       }
       if (isSaving()) {
-         save (new RotationMatrix3d(R1));
+         save (new RotationMatrix3d(R));
       }
-      computeTransform (RR, R1, r);      
+      computeTransform (RR, null, R, r);      
    }
 
    /**
-    * Transforms a rotation matrix <code>R1</code>, located at reference
-    * position <code>r</code>, and returns the result in <code>RR</code>.
-    * This provides the low level implementation for the transformation of
+    * Transforms a rotation matrix <code>R</code>, located at reference
+    * position <code>r</code>, and returns the result in <code>RR</code>,
+    * according to
+    * <pre>
+    * RR = Q R N
+    * </pre>
+    * where <code>P</code>, <code>Q</code> and <code>N</code> are described
+    * in the documentation for {@link
+    * #transform(RotationMatrix3d,RotationMatrix3d,Vector3d)}.
+    *
+    * <p>This provides the low level implementation for the transformation of
     * rotation matrices and does not do any saving or restoring of data.
     *
     * @param RR transformed rotation
-    * @param R1 rotation to be transformed
+    * @param Ndiag TODO
+    * @param R rotation to be transformed
     * @param r reference position of the rotation, in original coordinates
+    * @param Ndiag if non-null, returns the diagonal elements of the
+    * matrix <code>N</code>
     */
    public abstract void computeTransform (
-      RotationMatrix3d RR, RotationMatrix3d R1, Vector3d r);
+      RotationMatrix3d RR, Vector3d Ndiag, RotationMatrix3d R, Vector3d r);
 
    /**
     * Transforms a general 3 X 3 matrix <code>M</code>, located at reference
-    * position <code>ref</code>, in place.
+    * position <code>r</code>, in place.
+    * This is equivalent to <code>transform(M,M,r)</code>.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>M</code> is instead set to its original
@@ -611,57 +703,58 @@ public abstract class GeometryTransformer {
     * UndoState#SAVING}.
     *
     * @param M matrix to be transformed
-    * @param ref reference position of the matrix, in original coordinates
+    * @param r reference position of the matrix, in original coordinates
     */
-   public void transform (Matrix3d M, Vector3d ref) {
-      transform (M, M, ref);
+   public void transform (Matrix3d M, Vector3d r) {
+      transform (M, M, r);
    }
 
    /**
-    * Transforms a general 3 X 3 matrix <code>M1</code>, located at reference
-    * position <code>ref</code>, and returns the result in <code>MR</code>.
+    * Transforms a general 3 X 3 matrix <code>M</code>, located at reference
+    * position <code>r</code>, and returns the result in <code>MR</code>.
     * Generally, this transform takes the form
     * <pre>
-    * MR = F M1
+    * MR = F M
     * </pre>
     * where <code>F</code> is the deformation gradient at the reference
     * position.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>MR</code> is instead set to the value of
-    * <code>M1</code> that was previously saved when the undo state was set to
+    * <code>M</code> that was previously saved when the undo state was set to
     * {@link UndoState#SAVING}.
     *
     * @param MR transformed matrix
-    * @param M1 matrix to be transformed
-    * @param ref reference position of the matrix, in original coordinates
+    * @param M matrix to be transformed
+    * @param r reference position of the matrix, in original coordinates
     */
-   public void transform (Matrix3d MR, Matrix3d M1, Vector3d ref) {
+   public void transform (Matrix3d MR, Matrix3d M, Vector3d r) {
       if (isRestoring()) {
          MR.set (restore (MR));
          return;
       }
       if (isSaving()) {
-         save (new Matrix3d(M1));
+         save (new Matrix3d(M));
       }
-      computeTransform (MR, M1, ref);            
+      computeTransform (MR, M, r);            
    }
    
    /**
-    * Transforms a general 3 X 3 matrix <code>M1</code>, located at reference
-    * position <code>ref</code>, and returns the result in <code>MR</code>.
+    * Transforms a general 3 X 3 matrix <code>M</code>, located at reference
+    * position <code>r</code>, and returns the result in <code>MR</code>.
     * This provides the low level implementation for the transformation of 3 X
     * 3 matrices and does not do any saving or restoring of data.
     *
     * @param MR transformed matrix
-    * @param M1 matrix to be transformed
+    * @param M matrix to be transformed
     * @param r reference position of the matrix, in original coordinates
     */
-   public abstract void computeTransform (Matrix3d MR, Matrix3d M1, Vector3d r);
+   public abstract void computeTransform (Matrix3d MR, Matrix3d M, Vector3d r);
 
    /**
     * Transforms a plane <code>p</code>, located at reference
     * position <code>r</code>, in place.
+    * This is equivalent to <code>transform(p,p,r)</code>.
     *  
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>p</code> is instead set to its original
@@ -676,40 +769,40 @@ public abstract class GeometryTransformer {
    }
 
    /**
-    * Transforms a plane <code>p1</code>, located at reference position
-    * <code>ref</code>, and returns the result in <code>pr</code>.
+    * Transforms a plane <code>p</code>, located at reference position
+    * <code>r</code>, and returns the result in <code>pr</code>.
     * 
     * <p>If this transformer's undo state is set to {@link
     * UndoState#RESTORING}, then <code>pr</code> is instead set to the value of
-    * <code>p1</code> that was previously saved when the undo state was set to
+    * <code>p</code> that was previously saved when the undo state was set to
     * {@link UndoState#SAVING}.
     *
     * @param pr transformed plane
-    * @param p1 plane to be transformed
+    * @param p plane to be transformed
     * @param r reference position of the plane, in original coordinates
     */
-   public void transform (Plane pr, Plane p1, Vector3d r) {
+   public void transform (Plane pr, Plane p, Vector3d r) {
       if (isRestoring()) {
          pr.set (restore (pr));
          return;
       }
       if (isSaving()) {
-         save (new Plane(p1));
+         save (new Plane(p));
       }
-      computeTransform (pr, p1, r);            
+      computeTransform (pr, p, r);            
    }
 
    /**
-    * Transforms a plane <code>p1</code>, located at reference position
-    * <code>ref</code>, and returns the result in <code>pr</code>. This
+    * Transforms a plane <code>p</code>, located at reference position
+    * <code>r</code>, and returns the result in <code>pr</code>. This
     * provides the low level implementation for the transformation of planes
     * and does not do any saving or restoring of data.
     *
     * @param pr transformed plane
-    * @param p1 plane to be transformed
+    * @param p plane to be transformed
     * @param r reference position of the plane, in original coordinates
     */
-   public abstract void computeTransform (Plane pr, Plane p1, Vector3d r);
+   public abstract void computeTransform (Plane pr, Plane p, Vector3d r);
 
    private void restoreVertices (MeshBase mesh) {
       for (Vertex3d v : mesh.getVertices()) {
@@ -729,6 +822,67 @@ public abstract class GeometryTransformer {
       }
    }
 
+   private void saveNormals (MeshBase mesh) {
+      // save all the normal info, indices and all, just in case
+      int numNormals = mesh.numNormals();
+      save (mesh.numNormals());
+      if (numNormals > 0) {
+         for (Vector3d n : mesh.getNormals()) {
+            save (new Vector3d(n));
+         }
+         int[] indices = mesh.getNormalIndices();
+         save (Arrays.copyOf(indices, indices.length));
+      }
+   }
+
+   private void restoreNormals (MeshBase mesh) {
+      // restore all the normal info, indices and all, just in case
+      int numNormals = restore (new Integer(0));
+      if (numNormals == 0) {
+         mesh.setNormals (null, null);
+      }
+      else {
+         ArrayList<Vector3d> normals = new ArrayList<Vector3d>(numNormals);
+         Vector3d dummyVec = new Vector3d();
+         for (int i=0; i<numNormals; i++) {
+            normals.add (restore (dummyVec));
+         }
+         int[] indices = restore (new int[0]);
+         mesh.setNormals (normals, indices);
+      }
+   }
+
+   /**
+    * Return an array of points, one for each normal, that can be used to
+    * provide a reference position for transforming that normal. If reason a
+    * normal cannot be associated with a vertex, the corresponding point will
+    * be set to the origin.
+    *
+    * <p>Each reference point is computed as the weighted sum of the vertex
+    * points associated with each normal.
+    */
+   private Point3d[] getNormalPointRefs (MeshBase mesh) { 
+      Point3d[] refs = new Point3d[mesh.numNormals()];
+      int[] cnts = new int[mesh.numNormals()];
+      for (int ni=0; ni<refs.length; ni++) {
+         refs[ni] = new Point3d();
+      }
+      int[] indexOffs = mesh.getFeatureIndexOffsets();
+      int[] vertexIdxs = mesh.createVertexIndices();
+      int[] normalIdxs = mesh.getNormalIndices();
+      for (int fi=0; fi<indexOffs.length-1; fi++) {
+         for (int idx=indexOffs[fi]; idx<indexOffs[fi+1]; idx++) {
+            int ni = normalIdxs[idx];
+            cnts[ni]++;
+            refs[ni].add (mesh.getVertex(vertexIdxs[idx]).pnt);
+         }
+      }
+      for (int ni=0; ni<refs.length; ni++) {
+         refs[ni].scale (1.0/cnts[ni]);
+      }
+      return refs;
+   }
+
    /**
     * Applies a geometric transformation to the vertex positions of a mesh, in
     * local mesh coordinates. The topology of the mesh remains unchanged.
@@ -743,11 +897,37 @@ public abstract class GeometryTransformer {
    public void transform (MeshBase mesh) {
       if (isRestoring()) {
          restoreVertices (mesh);
+         if (mesh.hasExplicitNormals()) {
+            restoreNormals (mesh);
+         }
+         else {
+            mesh.clearNormals(); // regenerate on demand
+         }
          mesh.notifyVertexPositionsModified();
          return;
       }
       if (isSaving()) {
          saveVertices (mesh);
+         if (mesh.hasExplicitNormals()) {
+            saveNormals (mesh);
+         }
+      }
+      // transform normals first because we need unmodified vertex points
+      if (mesh.hasExplicitNormals()) {
+         ArrayList<Vector3d> normals = mesh.getNormals();
+         if (normals != null) {
+            Point3d[] refs = getNormalPointRefs(mesh);
+
+            ArrayList<Vertex3d> vertices = mesh.getVertices();
+            for (int ni=0; ni<normals.size(); ni++) {
+               Vector3d nrm = normals.get(ni);
+               transformNormal (nrm, refs[ni]);
+               nrm.normalize();
+            }
+         }
+      }
+      else {
+         mesh.clearNormals(); // regenerate on demand
       }
       for (Vertex3d v : mesh.getVertices()) {
          transformPnt (v.pnt);
@@ -778,7 +958,7 @@ public abstract class GeometryTransformer {
    /**
     * Applies a geometric transformation to both the vertices of a mesh and
     * its mesh-to-world transform TMW, in world coordinates. The local
-    * vertex positions <code>p</code> are modified to accomodate that part
+    * vertex positions <code>p</code> are modified to accommodate that part
     * of the transformation not provided by the change to TMW. If
     * a <code>constrainer</code> is supplied, then this change is
     * constrained to that obtained by applying the constrainer to
@@ -801,6 +981,12 @@ public abstract class GeometryTransformer {
       if (isRestoring()) {
          if (!isRigid()) {
             restoreVertices (mesh);
+            if (mesh.hasExplicitNormals()) {
+               restoreNormals(mesh);
+            }
+            else {
+               mesh.clearNormals();
+            }
          }
          restoreMeshToWorld (mesh);
          mesh.notifyVertexPositionsModified();
@@ -812,30 +998,66 @@ public abstract class GeometryTransformer {
       if (isSaving()) {
          if (!isRigid()) {
             saveVertices (mesh);
+            if (mesh.hasExplicitNormals()) {
+               saveNormals(mesh);
+            }
          }
          save (new RigidTransform3d(TMW));
       }
       if (!isRigid()) {
          if (isAffine() || constrainer != null) {
             
-            // can compress the transform into one operation
-            //           -1 
-            // Y = TMWnew   X TMW
-            AffineTransform3d XL = computeRightAffineTransform (TMW);
-            if (constrainer != null) {
-               constrainer.apply (XL);
+            // Adjust local vertices and normals using the local affine
+            // transform XL, which accounts for the non-rigid parts of the
+            // transform that cannot be accommodated by the mesh-to-world 
+            // transform
+            AffineTransform3d XL = 
+               computeLocalAffineTransform (TMW, constrainer);
+            if (mesh.hasExplicitNormals()) {
+               ArrayList<Vector3d> normals = mesh.getNormals();
+               if (normals != null) {
+                  Matrix3d Ainv = new Matrix3d();
+                  Ainv.invert (XL.A);
+                  for (Vector3d nrm : normals) {
+                     Ainv.mulTranspose (nrm, nrm);
+                     nrm.normalize();
+                  }
+               }
+            }
+            else {
+               mesh.clearNormals(); // regenerate on demand
             }
             for (Vertex3d v : mesh.getVertices()) {
                v.pnt.transform (XL);
             }
          }
          else {
-            Point3d p = new Point3d();
+            Point3d pworld = new Point3d(); // vertex point in world coords
+            // transform normals first because we need unmodified vertex points
+            if (mesh.hasExplicitNormals()) {
+               ArrayList<Vector3d> normals = mesh.getNormals();
+               if (normals != null) {
+                  Vector3d nworld = new Vector3d(); // normal in world coords
+                  Point3d[] refs = getNormalPointRefs(mesh);
+               
+                  ArrayList<Vertex3d> vertices = mesh.getVertices();
+                  for (int ni=0; ni<normals.size(); ni++) {
+                     Vector3d nrm = normals.get(ni);
+                     pworld.transform (TMW, refs[ni]);
+                     nworld.transform (TMW, nrm);
+                     transformNormal (nworld, pworld);
+                     nrm.inverseTransform (TMWnew, nworld);
+                     nrm.normalize();
+                  }
+               }
+            }
+            else {
+               mesh.clearNormals(); // regenerate on demand
+            }
             for (Vertex3d v : mesh.getVertices()) {
-               p.transform (TMW, v.pnt);
-               computeTransformPnt (p, p);
-               p.inverseTransform (TMWnew);
-               v.pnt.set (p);
+               pworld.transform (TMW, v.pnt);
+               computeTransformPnt (pworld, pworld);
+               v.pnt.inverseTransform (TMWnew, pworld);
             }
          }
          mesh.notifyVertexPositionsModified();
@@ -845,54 +1067,108 @@ public abstract class GeometryTransformer {
    }
    
    /**
-    * Computes and returns the right affine transform for the general
-    * transformation of a rigid transform T. This is the transform X such that
-    * if T' is the transformed value of T, and T" is the general transformed
-    * value of T (treating T as an affine transform), then
-    * 
+    * Computes the matrices <code>PL</code> and <code>N</code> that transform
+    * points <code>xl</code> local to a coordinate frame <code>T</code> after
+    * that frame is itself transformed.  The updated local coordinates are
+    * given by
     * <pre>
-    * T" = T' X
-    * </pre>
-    * X hence contains the non-rigid parts of T", expressed as a transform
-    * that is applied before T'. If
+    * xl' = N PL xl
     * <pre>
-    *     [  R   p  ]
-    * T = [         ]
-    *     [  0   1  ]
-    * </pre>
-    * and PF RF = F is the left polar decomposition of the deformation gradient
-    * F at p, then
+    * where <code>PL</code> is symmetric positive definite and
+    * <code>N</code> is a diagonal matrix that is either the identity,
+    * or a reflection that flips a single axis. This accounts
+    * for the non-rigid aspects of the transformation
+    * that cannot be absorbed into <code>T</code>.
+    *
+    * <p>See the documentation for {@link
+    * #transform(RigidTransform3d,RigidTransform3d)}. If
     * <pre>
-    *      [  RF R   f(p)  ]         [  F R   f(p)  ]
-    * T' = [               ],  T'' = [              ]
-    *      [    0      1   ]         [   0     1    ]
+    *      [  R   p  ]
+    * T =  [         ]
+    *      [  0   1  ]
     * </pre>
-    * and X takes the form
+    * then
     * <pre>
-    *     [  A   0  ]
-    * X = [         ]  with A = R^T RF^T PF RF R 
-    *     [  0   1  ]
+    *      [  Q R N   f(p) ]
+    * TR = [               ].
+    *      [    0      1   ]
     * </pre>
-    * @param T rigid transform for which the right affine transform is computed.
-    * @return right affine transform for <code>T</code>.
+    * Meanwhile, the linearization of f(p) about <code>p</code> is given
+    * by the affine transform
+    * <pre>
+    *     [  F    -F p + f(p) ]
+    * X = [                   ].
+    *     [  0         1      ]
+    * </pre>
+    * If <code>xw</code> and <code>xl</code> describe points with respect
+    * to world and <code>T</code>, respectively,
+    * we have
+    * <pre>
+    * xw' = X xw = X T xl
+    * </pre>
+    * and so the updated value of <code>xl</code> is given by
+    * <pre>
+    * xl' = inv(TR) xw' = inv(TR) X T xl
+    * </pre>
+    * which can be expressed as
+    * <pre>
+    *                       T  T
+    * xl' = N PL xl,  PL = R  Q  P Q R
+    * </pre>
+    *
+    * @param PL primary transformation matrix
+    * @param Ndiag if non-null, returns the diagonal components of N
+    * @param T rigid transform for which the local transforms are computed.
     */
-   public AffineTransform3d computeRightAffineTransform (RigidTransform3d T) {
+   public abstract void computeLocalTransforms (
+      Matrix3d PL, Vector3d Ndiag, RigidTransform3d T);
    
-      AffineTransform3d XL = new AffineTransform3d();
-      if (!isRigid()) {
-         RigidTransform3d Tnew = new RigidTransform3d(T);
-         computeTransform (Tnew);
-         XL.set (T);
-         computeTransform (XL);
-         XL.mulInverseLeft (Tnew, XL);
+   /**
+    * Computes the local affine transform <code>XL</code> that transforms
+    * points <code>xl</code> local to a coordinate frame <code>T</code> after
+    * that frame is itself transformed. The updated local coordinates are
+    * given by
+    * <pre>
+    * [ xl' ]      [ xl ]
+    * [     ] = XL [    ]
+    * [  1  ]      [ 0  ]
+    * <pre>
+    * and <code>XL</code> is computed from the <code>PL</code> and
+    * <code>N</code> matrices returned by
+    * {@link #computeLocalTransforms(Matrix3d,Vector3d,RigidTransform3d)
+    * computeLocalTransform(PL,Ndiag,T)}, according to 
+    * <pre>
+    *      [  N PL  0 ]
+    * XL = [          ].
+    *      [  0     1 ]
+    * </pre>
+    * An optional <code>constrainer</code> can be provided to
+    * further constrain the resulting value of <code>XL</code>.
+    *
+    * @param T rigid transform for which the local affine transform is computed
+    * @param constrainer if non-null, specifies a constrainer that should be
+    * applied to constrain the value of the transform
+    * @return local affine transform
+    */
+   public AffineTransform3d computeLocalAffineTransform (
+      RigidTransform3d T, Constrainer constrainer) {
+      
+      Matrix3d PL = new Matrix3d();
+      Vector3d Ndiag = new Vector3d();
+      computeLocalTransforms (PL, Ndiag, T);
+
+      AffineTransform3d XL = new AffineTransform3d (PL, Vector3d.ZERO);
+      XL.A.mulRows (Ndiag);
+      if (constrainer != null) {
+         constrainer.apply (XL);
       }
       return XL;
    }
    
    /**
-    * Computes and returns the local affine transform at the specified
+    * Computes and returns the linearized affine transform at the specified
     * reference position. In the general case, this is the local linearization
-    * of the deformation field f(p) around <code>ref</code>,
+    * of the deformation field f(p) around <code>r</code>,
     * given by
     * <pre>
     *     [  F   f(dp) ]
@@ -923,7 +1199,7 @@ public abstract class GeometryTransformer {
     * @param r reference position at which the transformation is calculated
     * @return local affine transform
     */
-   public AffineTransform3dBase computeLocalTransform (Vector3d r) {
+   public AffineTransform3dBase computeLinearizedTransform (Vector3d r) {
       if (isRigid()) {
          RigidTransform3d XR = new RigidTransform3d();
          computeTransform (XR);

@@ -152,7 +152,9 @@ public class FrameFem3dAttachment extends FrameAttachment {
       }
       Matrix3d dotP = new Matrix3d();
       Matrix3d wP = new Matrix3d();
-      wP.crossProduct (wD, myPolard.getP());
+      Matrix3d H = new Matrix3d();
+      myPolard.getH(H);
+      wP.crossProduct (wD, H);
       dotP.mulTransposeLeft (myPolard.getR(), dF);
       dotP.sub (wP);
       computeB (myDotB, dotP);
@@ -495,8 +497,10 @@ public class FrameFem3dAttachment extends FrameAttachment {
 
    private void updatePosBasedVariables () {
       Matrix3d B = new Matrix3d();
+      Matrix3d H = new Matrix3d();
       updateDeformationGradient();
-      computeB (B, myPolard.getP());
+      myPolard.getH(H);
+      computeB (B, H);
       myInvB.invert (B);
       myB.set (B);
    }

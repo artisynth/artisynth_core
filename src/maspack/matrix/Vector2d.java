@@ -36,6 +36,11 @@ public class Vector2d extends VectorBase implements Clonable {
    public static final Vector2d Y_UNIT = new Vector2d (0, 1);
 
    /**
+    * Global vector containing ones. Should not be modified.
+    */
+   public static final Vector2d ONES = new Vector2d (1, 1);
+
+   /**
     * First element
     */
    public double x;

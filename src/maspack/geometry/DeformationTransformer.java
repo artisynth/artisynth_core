@@ -68,27 +68,28 @@ public abstract class DeformationTransformer extends GeometryTransformer {
    public abstract void getDeformation (Vector3d p, Matrix3d F, Vector3d r);
 
    /**
-    * Transforms a point <code>p1</code> and returns the result in
+    * Transforms a point <code>p</code> and returns the result in
     * <code>pr</code>. The transform is computed according to
     * <pre>
-    * pr = f(p1)
+    * pr = f(p)
     * </pre>
     * This method provides the low level implementation for point
     * transformations and does not do any saving or restoring of data.
-    * 
+    <* 
     * @param pr transformed point
-    * @param p1 point to be transformed
+    * @param p point to be transformed
     */
-   public void computeTransformPnt (Point3d pr, Point3d p1) {
-      getDeformation (pr, null, p1);
+   public void computeTransformPnt (Point3d pr, Point3d p) {
+      getDeformation (pr, null, p);
    }
 
    /**
-    * Transforms a vector <code>v1</code>, and returns the result in
+    * Transforms a vector <code>v</code>, located at a reference
+    * position <code>r</code>, and returns the result in
     * <code>vr</code>. 
     * The transform is computed according to
     * <pre>
-    * vr = F v1
+    * vr = F v
     * </pre>
     * where F is the deformation gradient at the reference position.
     *
@@ -96,80 +97,103 @@ public abstract class DeformationTransformer extends GeometryTransformer {
     * transformations and does not do any saving or restoring of data.
     *
     * @param vr transformed vector
-    * @param v1 vector to be transformed
+    * @param v vector to be transformed
     * @param r reference position of the vector, in original coordinates
     */
-
-   public void computeTransformVec (Vector3d vr, Vector3d v1, Vector3d r) {
+   public void computeTransformVec (Vector3d vr, Vector3d v, Vector3d r) {
       getDeformation (null, myF, r);
-      myF.mul (vr, v1);
+      myF.mul (vr, v);
    }
 
    /**
-    * Transforms a rigid transform <code>T1</code> and returns the result in
-    * <code>TR</code>. If
+    * Computes the matrices <code>PL</code> and <code>N</code> that transform
+    * points <code>xl</code> local to a coordinate frame <code>T</code> after
+    * that frame is itself transformed.  The updated local coordinates are
+    * given by
     * <pre>
-    *      [  R1   p1 ]
-    * T1 = [          ]
-    *      [  0    1  ]
-    * </pre>
-    * the transform is computed according to
+    * xl' = N PL xl
     * <pre>
-    *      [  RF R1    f(p1) ]
-    * TR = [                 ]
-    *      [    0       1    ]
-    * </pre>
-    * where PF RF = F is the left polar decomposition of the deformation
-    * gradient at the reference position.
-    * 
-    * This method provides the low level implementation for the transformation
-    * of rigid transforms and does not do any saving or restoring of data.
+    * where <code>PL</code> is symmetric positive definite and
+    * <code>N</code> is a diagonal matrix that is either the identity,
+    * or a reflection that flips a single axis. See the documentation
+    * for {@link GeometryTransformer#computeLocalTransforms}.
     *
-    * @param TR transformed transform
-    * @param T1 transform to be transformed
+    * @param PL primary transformation matrix
+    * @param Ndiag if non-null, returns the diagonal components of N
+    * @param T rigid transform for which the local transforms are computed
     */
-   public void computeTransform (RigidTransform3d TR, RigidTransform3d T1) {
-      getDeformation (myPos, myF, T1.p);
-      myPolarD.factor (myF);
-      TR.R.mul (myPolarD.getR(), T1.R);
-      TR.p.set (myPos);
-      //TR.mulAffineLeft (myX, myPolarD.getR());
+   public void computeLocalTransforms (
+      Matrix3d PL, Vector3d Ndiag, RigidTransform3d T) {
+      
+      getDeformation (null, myF, T.p);
+      myPolarD.factorLeft (myF);
+      if (Ndiag != null) {
+         myPolarD.getN (Ndiag);
+      }
+      PL.mulTransposeLeft (myPolarD.getQ(), myF);
+      PL.inverseTransform (T.R);
    }
 
    /**
-    * Transforms an affine transform <code>X1</code> and returns the result in
-    * <code>XR</code>. If
+    * Transforms a normal vector <code>n</code>, located at a reference
+    * position <code>r</code>, and returns the result in
+    * <code>nr</code>. 
+    * The transform is computed according to
     * <pre>
-    *      [  A1   p1 ]
-    * X1 = [          ]
-    *      [  0    1  ]
-    * </pre>
-    * the transform is computed according to
-    * <pre>
-    *      [  F A1   f(pf) ]
-    * XR = [               ]
-    *      [   0       1   ]
+    *       -1 T
+    * nr = F     n
     * </pre>
     * where F is the deformation gradient at the reference position.
+    * 
+    * The result is <i>not</i> normalized since the unnormalized form could be
+    * useful in some contexts.
+    *
+    * This method provides the low level implementation for normal
+    * transformations and does not do any saving or restoring of data.
+    *
+    * @param nr transformed normal
+    * @param n normal to be transformed
+    * @param r reference position of the normal, in original coordinates
+    */
+   public void computeTransformNormal (Vector3d nr, Vector3d n, Vector3d r) {
+      getDeformation (null, myF, r);
+      myF.mulInverseTranspose (nr, n);
+   }
+
+   /**
+    * Transforms an affine transform <code>X</code> and returns the result in
+    * <code>XR</code>. If
+    * <pre>
+    *     [  A   p ]
+    * X = [        ]
+    *     [  0   1 ]
+    * </pre>
+    * the transform is computed according to
+    * <pre>
+    *      [  F A    f(p) ]
+    * XR = [              ]
+    *      [   0      1   ]
+    * </pre>
+    * where f(p) and F are the deformation and deformation gradient at p.
     *
     * This method provides the low level implementation for the transformation
     * of affine transforms and does not do any saving or restoring of data.
     * 
     * @param XR transformed transform
-    * @param X1 transform to be transformed
+    * @param X transform to be transformed
     */
-   public void computeTransform (AffineTransform3d XR, AffineTransform3d X1) {
-      getDeformation (myPos, myF, X1.p);
-      XR.A.mul (myF, X1.A);
+   public void computeTransform (AffineTransform3d XR, AffineTransform3d X) {
+      getDeformation (myPos, myF, X.p);
+      XR.A.mul (myF, X.A);
       XR.p.set (myPos);
    }
    
    /**
-    * Transforms a rotation matrix <code>R1</code>, located at reference
+    * Transforms a rotation matrix <code>R</code>, located at reference
     * position <code>r</code>, and returns the result in <code>RR</code>.
     * The transform is computed according to
     * <pre>
-    * RR = RF R1
+    * RR = RF R
     * </pre>
     * where PF RF = F is the left polar decomposition of the deformation
     * gradient at the reference position.
@@ -178,22 +202,29 @@ public abstract class DeformationTransformer extends GeometryTransformer {
     * of rotation matrices and does not do any saving or restoring of data.
     *
     * @param RR transformed rotation
-    * @param R1 rotation to be transformed
+    * @param R rotation to be transformed
     * @param r reference position of the rotation, in original coordinates
     */
    public void computeTransform (
-      RotationMatrix3d RR, RotationMatrix3d R1, Vector3d r) {
+      RotationMatrix3d RR, Vector3d Ndiag, RotationMatrix3d R, Vector3d r) {
+
       getDeformation (null, myF, r);
-      myPolarD.factor (myF);
-      RR.mul (myPolarD.getR(), R1);
+      myPolarD.factorLeft (myF);
+      RR.mul (myPolarD.getQ(), R);
+      if (Ndiag != null) {
+         myPolarD.getN (Ndiag);
+      }
+      if (!myPolarD.isRightHanded()) {
+         RR.negateColumn (myPolarD.getMaxQDiagIndex());
+      }
    }
 
    /**
-    * Transforms a general 3 X 3 matrix <code>M1</code>, located at reference
+    * Transforms a general 3 X 3 matrix <code>M</code>, located at reference
     * position <code>r</code>, and returns the result in <code>MR</code>.
     * The transform is computed according to
     * <pre>
-    * MR = F M1
+    * MR = F M
     * </pre>
     * where F is the deformation gradient at the reference position.
     * 
@@ -201,27 +232,27 @@ public abstract class DeformationTransformer extends GeometryTransformer {
     * of 3 X 3 matrices and does not do any saving or restoring of data.
     *
     * @param MR transformed matrix
-    * @param M1 matrix to be transformed
+    * @param M matrix to be transformed
     * @param r reference position of the matrix, in original coordinates
     */
-   public void computeTransform (Matrix3d MR, Matrix3d M1, Vector3d r) {
+   public void computeTransform (Matrix3d MR, Matrix3d M, Vector3d r) {
       getDeformation (null, myF, r);
-      MR.mul (myF, M1);
+      MR.mul (myF, M);
    }
 
    /**
-    * Transforms a plane <code>p1</code>, located at reference position
+    * Transforms a plane <code>p</code>, located at reference position
     * <code>r</code>, and returns the result in <code>pr</code>.
-    * Assume that <code>p1</code> is defined by a normal <code>n1</code>
-    * and offset <code>o1</code> such that all planar points <code>x</code>
+    * Assume that <code>p</code> is defined by a normal <code>n</code>
+    * and offset <code>o</code> such that all planar points <code>x</code>
     * satisfy
     * <pre>
-    * n1^T x = o1
+    * n^T x = o
     * </pre>
     * Then the transformed normal <code>nr</code> and offset <code>or</code>
     * are computed according to
     * <pre>
-    * nr = inv(F)^T n1
+    * nr = inv(F)^T n
     * nr = nr / ||nr||
     * or = nr^T f(r)
     * </pre>
@@ -231,13 +262,14 @@ public abstract class DeformationTransformer extends GeometryTransformer {
     * of planes and does not do any saving or restoring of data.
     *
     * @param pr transformed plane
-    * @param p1 plane to be transformed
+    * @param p plane to be transformed
     * @param r reference position of the plane, in original coordinates
     */
-   public void computeTransform (Plane pr, Plane p1, Vector3d r) {
+   public void computeTransform (Plane pr, Plane p, Vector3d r) {
+      // rp = r projected on to the project r onto the plane
       getDeformation (myPos, myF, r);
       Vector3d nrm = new Vector3d();
-      myF.mulInverseTranspose (nrm, p1.normal);
+      myF.mulInverseTranspose (nrm, p.normal);
       nrm.normalize();
       pr.set (nrm, nrm.dot(myPos));
    }

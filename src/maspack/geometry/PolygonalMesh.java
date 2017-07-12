@@ -2638,95 +2638,95 @@ public class PolygonalMesh extends MeshBase {
       }
    }      
 
-   /**
-    * Modifies this mesh to ensure that all faces are triangles.
-    */
-   public void triangulateQuadBoxMesh() {
-
-      int numNewFaces = 2*numFaces();
-
-      ArrayList<int[]> newFaceIndices = new ArrayList<int[]>(numNewFaces);
-      ArrayList<int[]> newNormalIndices = null;
-      ArrayList<int[]> newTextureIndices = null;
-      ArrayList<int[]> newColorIndices = null;
-
-      int[] indexOffs = getFeatureIndexOffsets();
-
-      if (hasExplicitNormals()) {
-         newNormalIndices = new ArrayList<int[]>(numNewFaces);
-      }
-      else {
-         clearNormals();
-      }
-      if (hasTextureCoords()) {
-         newTextureIndices = new ArrayList<int[]>(numNewFaces);
-      }
-      if (hasExplicitColors()) {
-         newColorIndices = new ArrayList<int[]>(numNewFaces);
-      }
-
-      for (int i=0; i<numFaces(); i++) {
-         Face face = getFace(i);
-
-         face.disconnect();
-         int tidxs[] = null;
-         int nidxs[] = null;
-         int cidxs[] = null;
-         int idxs[] = face.getVertexIndices();
-         if (hasExplicitNormals()) {
-            nidxs = unpackIndices(getNormalIndices(), indexOffs, i);
-         }
-         if (hasTextureCoords()) {
-            tidxs = unpackIndices(getTextureIndices(), indexOffs, i);
-         }
-         if (hasExplicitColors()) {
-            cidxs = unpackIndices(getColorIndices(), indexOffs, i);
-         }
-            
-         // find the indices of the best chord triangle, add the
-         // corresponding face to the new face list, and remove
-         // the chord from the index set
-         newFaceIndices.add (getQuadChord (0, idxs));
-         newFaceIndices.add (getQuadChord (1, idxs));
-
-         // add the corresponding chord triangle for the texture and
-         // normal coordinates, if present, and remove the chord from
-         // these indices too
-         if (hasExplicitNormals()) {
-            newNormalIndices.add (getQuadChord (0, nidxs));
-            newNormalIndices.add (getQuadChord (1, nidxs));
-         }
-         if (hasTextureCoords()) {
-            newTextureIndices.add (getQuadChord (0, tidxs));
-            newTextureIndices.add (getQuadChord (1, tidxs));
-         }
-         if (hasExplicitColors()) {
-            newColorIndices.add (getQuadChord (0, cidxs));
-            newColorIndices.add (getQuadChord (1, cidxs));
-         }
-      }
-
-      clearFaces();
-      for (int[] idxs : newFaceIndices) {
-         addFace (idxs, /*adjustAttributes=*/false);
-      }
-
-      if (hasExplicitNormals()) {
-         setNormals (getNormals(), packIndices (newNormalIndices));
-      }
-      if (hasTextureCoords()) {
-         setTextureCoords (getTextureCoords(), packIndices (newTextureIndices));
-      }
-      if (hasExplicitColors()) {
-         setColors (getColors(), packIndices (newColorIndices));
-      }
-
-      //myNumTriangles = myFaces.size();
-      //myNumQuads = 0;
-      //myTriQuadCountsValid = true;
-      //notifyStructureChanged();
-      //checkIndexConsistency();
-   }
+//   /**
+//    * Modifies this mesh to ensure that all faces are triangles.
+//    */
+//   public void triangulateQuadBoxMesh() {
+//
+//      int numNewFaces = 2*numFaces();
+//
+//      ArrayList<int[]> newFaceIndices = new ArrayList<int[]>(numNewFaces);
+//      ArrayList<int[]> newNormalIndices = null;
+//      ArrayList<int[]> newTextureIndices = null;
+//      ArrayList<int[]> newColorIndices = null;
+//
+//      int[] indexOffs = getFeatureIndexOffsets();
+//
+//      if (hasExplicitNormals()) {
+//         newNormalIndices = new ArrayList<int[]>(numNewFaces);
+//      }
+//      else {
+//         clearNormals();
+//      }
+//      if (hasTextureCoords()) {
+//         newTextureIndices = new ArrayList<int[]>(numNewFaces);
+//      }
+//      if (hasExplicitColors()) {
+//         newColorIndices = new ArrayList<int[]>(numNewFaces);
+//      }
+//
+//      for (int i=0; i<numFaces(); i++) {
+//         Face face = getFace(i);
+//
+//         face.disconnect();
+//         int tidxs[] = null;
+//         int nidxs[] = null;
+//         int cidxs[] = null;
+//         int idxs[] = face.getVertexIndices();
+//         if (hasExplicitNormals()) {
+//            nidxs = unpackIndices(getNormalIndices(), indexOffs, i);
+//         }
+//         if (hasTextureCoords()) {
+//            tidxs = unpackIndices(getTextureIndices(), indexOffs, i);
+//         }
+//         if (hasExplicitColors()) {
+//            cidxs = unpackIndices(getColorIndices(), indexOffs, i);
+//         }
+//            
+//         // find the indices of the best chord triangle, add the
+//         // corresponding face to the new face list, and remove
+//         // the chord from the index set
+//         newFaceIndices.add (getQuadChord (0, idxs));
+//         newFaceIndices.add (getQuadChord (1, idxs));
+//
+//         // add the corresponding chord triangle for the texture and
+//         // normal coordinates, if present, and remove the chord from
+//         // these indices too
+//         if (hasExplicitNormals()) {
+//            newNormalIndices.add (getQuadChord (0, nidxs));
+//            newNormalIndices.add (getQuadChord (1, nidxs));
+//         }
+//         if (hasTextureCoords()) {
+//            newTextureIndices.add (getQuadChord (0, tidxs));
+//            newTextureIndices.add (getQuadChord (1, tidxs));
+//         }
+//         if (hasExplicitColors()) {
+//            newColorIndices.add (getQuadChord (0, cidxs));
+//            newColorIndices.add (getQuadChord (1, cidxs));
+//         }
+//      }
+//
+//      clearFaces();
+//      for (int[] idxs : newFaceIndices) {
+//         addFace (idxs, /*adjustAttributes=*/false);
+//      }
+//
+//      if (hasExplicitNormals()) {
+//         setNormals (getNormals(), packIndices (newNormalIndices));
+//      }
+//      if (hasTextureCoords()) {
+//         setTextureCoords (getTextureCoords(), packIndices (newTextureIndices));
+//      }
+//      if (hasExplicitColors()) {
+//         setColors (getColors(), packIndices (newColorIndices));
+//      }
+//
+//      //myNumTriangles = myFaces.size();
+//      //myNumQuads = 0;
+//      //myTriQuadCountsValid = true;
+//      //notifyStructureChanged();
+//      //checkIndexConsistency();
+//   }
 
    /**
     * Returns a half edge (if any) connecting vertices v0 and v1.
@@ -3800,10 +3800,48 @@ public class PolygonalMesh extends MeshBase {
       return g;
    }
 
+   private void flipFeatureIndices (int[] indices) {
+      int[] indexOffs = getFeatureIndexOffsets();
+      // flip the indices for each face:
+      for (int fi=0; fi<indexOffs.length-1; fi++) {
+         // get lo and hi vertex indices for each face:
+         int lo = indexOffs[fi];
+         int hi = indexOffs[fi+1]-1;
+         int numv = hi-lo+1;
+         // now reverse indices:
+         for (int i=0; i<numv/2; i++) {
+            int tmpi = indices[lo+i];
+            indices[lo+i] = indices[hi-i];
+            indices[hi-i] = tmpi;
+         }
+      }      
+   }
+
    public void flip() {
       for (Face f : myFaces) {
          f.flip(true);
       }
+      int[] indexOffs;
+      // take care of normals:
+      if (hasNormals()) {
+         if (hasExplicitNormals()) {
+            flipFeatureIndices (getNormalIndices());
+         }
+         else {
+            // normals must have been automatically generated. Clear
+            // then so that they will be rebuilt.
+            clearNormals();
+         }
+      }
+      // flip texture indices:
+      if (hasTextureCoords()) {
+         flipFeatureIndices (getTextureIndices());
+      }
+      // flip color indices:
+      if (hasColors()) {
+         flipFeatureIndices (getColorIndices());
+      }
+      notifyModified();
    }
 
    public int[] createVertexIndices() {

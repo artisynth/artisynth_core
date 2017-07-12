@@ -65,7 +65,7 @@ class SymmetricMatrix3dTest {
       M.getEigenValues (e, V);
       P.mul (M, V);
       eV.set (V);
-      eV.mulDiagonalRight (e);
+      eV.mulCols (e);
       if (!P.epsilonEquals (eV, 1e-9)) {
          throw new TestException ("Bad eig values for M=\n"
          + M.toString ("%12.9f") + "e=\n" + e.toString ("%12.9f") + "V=\n"

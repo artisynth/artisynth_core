@@ -99,6 +99,8 @@ testSaveLoad ("artisynth.demos.tutorial.CylinderWrapping")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithPanel")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProbes")
 testSaveLoad ("artisynth.demos.tutorial.SphericalTextureMapping")
+
+testSaveLoad ("artisynth.demos.test.ReflectedBodies");
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 
 

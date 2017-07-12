@@ -212,30 +212,32 @@ public class Matrix3d extends Matrix3dBase {
    }
 
    /**
-    * Pre-multiplies, in place, this matrix by a diagonal matrix whose
-    * (diagonal) elements are specified by a vector. This is the same as
-    * multiplying the rows of this matrix by the elements of the vector.
+    * Multiples the rows of this matrix by the values specified by
+    * <code>diag</code> and places the result in this matrix.  This is
+    * equivalent to pre-multiplying this matrix by a diagonal matrix whose
+    * (diagonal) elements are specified by <code>diag</code>.
     * 
     * @param diag
-    * specifies the diagonal elements of the implied left-hand matrix
+    * specifies the row multipliers
     */
-   public void mulDiagonalLeft(Vector3d diag) {
-      mulDiagonalLeft(diag.x, diag.y, diag.z);
+   public void mulRows(Vector3d diag) {
+      mulRows(diag.x, diag.y, diag.z);
    }
 
    /**
-    * Pre-multiplies, in place, this matrix by a diagonal matrix whose
-    * (diagonal) elements are explicitly specified. This is the same as
-    * multiplying the rows of this matrix by the diagnonal elements.
+    * Multiples the rows of this matrix by the values specified by
+    * <code>d00</code>, <code>d11</code>, and <code>d22</code> and places the
+    * result in this matrix.  This is equivalent to pre-multiplying this matrix
+    * by a diagonal matrix with the specified diagonal elements.
     * 
     * @param d00
-    * first diagnonal element of the implied left-hand matrix
+    * multiplier for the first row
     * @param d11
-    * second diagonal element of the implied left-hand matrix
+    * multiplier for the second row
     * @param d22
-    * third diagnonal element of the implied left-hand matrix
+    * multiplier for the third row
     */
-   public void mulDiagonalLeft(double d00, double d11, double d22) {
+   public void mulRows(double d00, double d11, double d22) {
       m00 *= d00;
       m01 *= d00;
       m02 *= d00;
@@ -250,30 +252,32 @@ public class Matrix3d extends Matrix3dBase {
    }
 
    /**
-    * Post-multiplies, in place, this matrix by a diagonal matrix whose
-    * (diagonal) elements are specified by a vector. This is the same as
-    * multiplying the columns of this matrix by the elements of the vector.
+    * Multiples the columns of this matrix by the values specified by
+    * <code>diag</code> and places the result in this matrix.  This is
+    * equivalent to post-multiplying this matrix by a diagonal matrix whose
+    * (diagonal) elements are specified by <code>diag</code>.
     * 
     * @param diag
-    * specifies the diagonal elements of the implied right-hand matrix
+    * specifies the column multipliers
     */
-   public void mulDiagonalRight(Vector3d diag) {
-      mulDiagonalRight(diag.x, diag.y, diag.z);
+   public void mulCols(Vector3d diag) {
+      mulCols(diag.x, diag.y, diag.z);
    }
 
    /**
-    * Post-multiplies, in place, this matrix by a diagonal matrix whose
-    * (diagonal) elements are explicitly specified. This is the same as
-    * multiplying the columns of this matrix by diagonal elements.
+    * Multiples the columns of this matrix by the values specified by
+    * <code>d00</code>, <code>d11</code>, and <code>d22</code> and places the
+    * result in this matrix.  This is equivalent to post-multiplying this matrix
+    * by a diagonal matrix with the specified diagonal elements.
     * 
     * @param d00
-    * first diagnonal element of the implied right-hand matrix
+    * multiplier for the first column
     * @param d11
-    * second diagonal element of the implied right-hand matrix
+    * multiplier for the second column
     * @param d22
-    * third diagnonal element of the implied right-hand matrix
+    * multiplier for the third column
     */
-   public void mulDiagonalRight(double d00, double d11, double d22) {
+   public void mulCols(double d00, double d11, double d22) {
       m00 *= d00;
       m10 *= d00;
       m20 *= d00;
@@ -343,18 +347,6 @@ public class Matrix3d extends Matrix3dBase {
     * {@inheritDoc}
     */
    public void scaledAdd(double s, Matrix3dBase M1) {
-      super.scaledAdd(s, M1);
-   }
-
-   /**
-    * Scales this matrix by s, adds M1, and places the result in this matrix.
-    * 
-    * @param s
-    * scaling factor
-    * @param M1
-    * matrix to be added
-    */
-   public void scaledAdd(double s, Matrix3d M1) {
       super.scaledAdd(s, M1);
    }
 
@@ -445,7 +437,7 @@ public class Matrix3d extends Matrix3dBase {
    /**
     * Sets this matrix to the symmetric component of matrix M1
     */
-   public void setSymmetric (Matrix3d M1) {
+   public void setSymmetric (Matrix3dBase M1) {
 
       m01 = 0.5*(M1.m01 + M1.m10);
       m02 = 0.5*(M1.m02 + M1.m20);
@@ -519,6 +511,13 @@ public class Matrix3d extends Matrix3dBase {
     */
    public void addScaledOuterProduct (double s, Vector3d v0, Vector3d v1) {
       super.addScaledOuterProduct (s, v0, v1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addScaledOuterProduct (double s, Vector3d v) {
+      super.addScaledOuterProduct (s, v);
    }
 
    /**
@@ -776,7 +775,7 @@ public class Matrix3d extends Matrix3dBase {
     * @param M
     * matrix to transform
     */
-   public void transform(RotationMatrix3d R, Matrix3d M) {
+   public void transform(RotationMatrix3d R, Matrix3dBase M) {
       super.transform(R, M);
    }
 
@@ -810,7 +809,7 @@ public class Matrix3d extends Matrix3dBase {
     * @param M
     * matrix to transform
     */
-   public void inverseTransform(RotationMatrix3d R, Matrix3d M) {
+   public void inverseTransform(RotationMatrix3d R, Matrix3dBase M) {
       super.inverseTransform(R, M);
    }
 

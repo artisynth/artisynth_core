@@ -142,6 +142,27 @@ public class SymmetricMatrix3d extends Matrix3dBase {
       this.m02 = this.m20 = m02;
       this.m12 = this.m21 = m12;
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean invert() {
+      return invert(this);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public double fastInvert (Matrix3dBase M) {
+      return super.fastInvert(M);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean invert(Matrix3dBase M) {
+      return super.invert(M);
+   }
 
    /** 
     * Sets this matrix to the symmetric part of M, defined by

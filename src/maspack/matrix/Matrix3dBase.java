@@ -890,7 +890,7 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
     * @param M1
     * matrix to transform
     */
-   public void inverseTransform (RotationMatrix3d R, Matrix3d M1) {
+   public void inverseTransform (RotationMatrix3d R, Matrix3dBase M1) {
       if (R == this) {
          inverseTransform (new RotationMatrix3d (R), M1);
       }
@@ -1388,7 +1388,7 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
       m21 = -M1.m21;
       m22 = -M1.m22;
    }
-
+   
    /**
     * Negates this matrix in place.
     */
@@ -2014,7 +2014,12 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
 
    /**
     * Adds a scaled outer product to this matrix. The outer product
-    * is formed from two vectors are given as arguments.
+    * is formed from two vectors are given as arguments, and takes
+    * the form
+    * <pre>
+    *        T
+    * s v1 v2
+    * </pre>
     *
     * @param s scaling factor
     * @param v0 first vector
@@ -2038,6 +2043,42 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
       m12 += v0.y*v1z;
       m22 += v0.z*v1z;
    }
+   
+   /**
+    * Adds a scaled outer product to this matrix. The outer product
+    * is formed from the single vector <code>v</code> and takes
+    * the form
+    * <pre>
+    *      T
+    * s v v
+    * </pre>
+    * The product is hence symmetric.
+    * 
+    * @param s scaling factor
+    * @param v vector used to form outer product
+    */
+   protected void addScaledOuterProduct (double s, Vector3d v) {
+
+      double svx = s*v.x;
+      double svy = s*v.y;
+      double svz = s*v.z;
+      
+      double op01 = v.x*svy;
+      double op02 = v.x*svz;
+      double op12 = v.y*svz;
+      
+      m00 += v.x*svx;
+      m11 += v.y*svy;
+      m22 += v.z*svz;
+
+      m01 += op01;
+      m02 += op02;
+      m12 += op12;
+      
+      m10 += op01;
+      m20 += op02;
+      m21 += op12;
+   }  
 
    /**
     * Sets this matrix to the outer product
@@ -2179,6 +2220,38 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
       return ((Math.abs (m01-m10) <= tol) && 
               (Math.abs (m02-m20) <= tol) &&
               (Math.abs (m12-m21) <= tol));
+   }
+
+   /**
+    * Negates a column of this matrix.
+    * 
+    * @param colIdx index of the column to negate
+    */
+   public void negateColumn (int colIdx) {
+      switch (colIdx) {
+         case 0: m00 = -m00; m10 = -m10; m20 = -m20; break;
+         case 1: m01 = -m01; m11 = -m11; m21 = -m21; break;
+         case 2: m02 = -m02; m12 = -m12; m22 = -m22; break;
+         default: 
+            throw new ArrayIndexOutOfBoundsException (
+               "column index is "+colIdx+"; must be 0, 1, or 2");
+      }
+   }
+
+   /**
+    * Negates a row of this matrix.
+    * 
+    * @param rowIdx index of the row to negate
+    */
+   public void negateRow (int rowIdx) {
+      switch (rowIdx) {
+         case 0: m00 = -m00; m01 = -m01; m02 = -m02; break;
+         case 1: m10 = -m10; m11 = -m11; m12 = -m12; break;
+         case 2: m20 = -m20; m21 = -m21; m22 = -m22; break;
+         default: 
+            throw new ArrayIndexOutOfBoundsException (
+               "row index is "+rowIdx+"; must be 0, 1, or 2");
+      }
    }
 
    public static void main (String[] args) {

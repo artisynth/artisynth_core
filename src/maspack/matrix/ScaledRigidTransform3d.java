@@ -746,116 +746,116 @@ Clonable {
       return sbuf.toString();
    }
 
-   /**
-    * Premultiplies this transform by an affine transform, and places the rigid
-    * body component in this transform and the stretch and shear component in S.
-    * More specifically, let this transform be originally described by
-    * 
-    * <pre>
-    *        [s0 R0  p0  ]
-    * this = [           ]
-    *        [   0    1  ]
-    * </pre>
-    * 
-    * and the affine transform be described by
-    * 
-    * <pre>
-    *        [  A   pa  ]     [  Sa Ra   pa  ]
-    * Xa =   [          ]  =  [              ]
-    *        [  0    1  ]     [    0      1  ]
-    * </pre>
-    * 
-    * where the A component of Xa is factored into Sa Ra using a left polar
-    * decomposition with sign adjustment to ensure that Ra is right-handed. Then
-    * we form the product
-    * 
-    * <pre>
-    *           [  s0 Sa Ra R0   Sa Ra p0 + pa  ]
-    * Xa this = [                               ]
-    *           [      0               1        ]
-    * </pre>
-    * 
-    * and then set the rotation and translation of this transform to Ra R0 and
-    * Sa Ra p0 + pa.  This transform's scale, s0, remains unchanged.
-    * 
-    * @param Xa
-    * affine transform to pre-multiply this transform by
-    * @param Sa
-    * optional argument to return stretch and shear.
-    */
-   public void mulAffineLeft (AffineTransform3dBase Xa, Matrix3d Sa) {
+//   /**
+//    * Premultiplies this transform by an affine transform, and places the rigid
+//    * body component in this transform and the stretch and shear component in S.
+//    * More specifically, let this transform be originally described by
+//    * 
+//    * <pre>
+//    *        [s0 R0  p0  ]
+//    * this = [           ]
+//    *        [   0    1  ]
+//    * </pre>
+//    * 
+//    * and the affine transform be described by
+//    * 
+//    * <pre>
+//    *        [  A   pa  ]     [  Sa Ra   pa  ]
+//    * Xa =   [          ]  =  [              ]
+//    *        [  0    1  ]     [    0      1  ]
+//    * </pre>
+//    * 
+//    * where the A component of Xa is factored into Sa Ra using a left polar
+//    * decomposition with sign adjustment to ensure that Ra is right-handed. Then
+//    * we form the product
+//    * 
+//    * <pre>
+//    *           [  s0 Sa Ra R0   Sa Ra p0 + pa  ]
+//    * Xa this = [                               ]
+//    *           [      0               1        ]
+//    * </pre>
+//    * 
+//    * and then set the rotation and translation of this transform to Ra R0 and
+//    * Sa Ra p0 + pa.  This transform's scale, s0, remains unchanged.
+//    * 
+//    * @param Xa
+//    * affine transform to pre-multiply this transform by
+//    * @param Sa
+//    * optional argument to return stretch and shear.
+//    */
+//   public void mulAffineLeft (AffineTransform3dBase Xa, Matrix3d Sa) {
+//
+//      if (Xa instanceof ScaledRigidTransform3d) { 
+//         // then no matrix decomposition is needed
+//         this.mul ((ScaledRigidTransform3d)Xa, this);
+//         if (Sa != null) {
+//            Sa.setIdentity();
+//         }
+//         return;
+//      }
+//
+//      RotationMatrix3d Ra = new RotationMatrix3d();
+//      SVDecomposition3d SVD = new SVDecomposition3d();
+//      SVD.leftPolarDecomposition (Sa, Ra, Xa.M);
+//
+//      // if (Sa == null) {
+//      //    Sa = new Matrix3d();
+//      // }
+//
+//      // SVDecomposition3d SVD = new SVDecomposition3d();
+//      // SVD.factor (Xa.M);
+//      // Matrix3d U = SVD.getU();
+//      // Matrix3d V = SVD.getV();
+//      // Vector3d sig = new Vector3d();
+//      // SVD.getS (sig);
+//
+//      // double detU = U.orthogonalDeterminant();
+//      // double detV = V.orthogonalDeterminant();
+//      // if (detV * detU < 0) { /* then one is negative and the other positive */
+//      //    if (detV < 0) { /* negative last column of V */
+//      //       V.m02 = -V.m02;
+//      //       V.m12 = -V.m12;
+//      //       V.m22 = -V.m22;
+//      //       sig.z = -sig.z;
+//      //    }
+//      //    else /* detU < 0 */
+//      //    { /* negative last column of U */
+//      //       U.m02 = -U.m02;
+//      //       U.m12 = -U.m12;
+//      //       U.m22 = -U.m22;
+//      //       sig.z = -sig.z;
+//      //    }
+//      // }
+//      // // now set Ra = U * V' and Sa = U diag(sig) U'
+//      // V.mulTransposeRight (U, V);
+//      // Ra.set (V);
+//
+//      // Sa.set (U);
+//      // Sa.mulDiagonalRight (sig);
+//      // Sa.mulTransposeRight (Sa, U);
+//
+//      p.mulAdd (Xa.M, p, Xa.b);
+//      R.mul (Ra, R);
+//      
+//      updateInternalMatrix();
+//
+//   }
 
-      if (Xa instanceof ScaledRigidTransform3d) { 
-         // then no matrix decomposition is needed
-         this.mul ((ScaledRigidTransform3d)Xa, this);
-         if (Sa != null) {
-            Sa.setIdentity();
-         }
-         return;
-      }
-
-      RotationMatrix3d Ra = new RotationMatrix3d();
-      SVDecomposition3d SVD = new SVDecomposition3d();
-      SVD.leftPolarDecomposition (Sa, Ra, Xa.M);
-
-      // if (Sa == null) {
-      //    Sa = new Matrix3d();
-      // }
-
-      // SVDecomposition3d SVD = new SVDecomposition3d();
-      // SVD.factor (Xa.M);
-      // Matrix3d U = SVD.getU();
-      // Matrix3d V = SVD.getV();
-      // Vector3d sig = new Vector3d();
-      // SVD.getS (sig);
-
-      // double detU = U.orthogonalDeterminant();
-      // double detV = V.orthogonalDeterminant();
-      // if (detV * detU < 0) { /* then one is negative and the other positive */
-      //    if (detV < 0) { /* negative last column of V */
-      //       V.m02 = -V.m02;
-      //       V.m12 = -V.m12;
-      //       V.m22 = -V.m22;
-      //       sig.z = -sig.z;
-      //    }
-      //    else /* detU < 0 */
-      //    { /* negative last column of U */
-      //       U.m02 = -U.m02;
-      //       U.m12 = -U.m12;
-      //       U.m22 = -U.m22;
-      //       sig.z = -sig.z;
-      //    }
-      // }
-      // // now set Ra = U * V' and Sa = U diag(sig) U'
-      // V.mulTransposeRight (U, V);
-      // Ra.set (V);
-
-      // Sa.set (U);
-      // Sa.mulDiagonalRight (sig);
-      // Sa.mulTransposeRight (Sa, U);
-
-      p.mulAdd (Xa.M, p, Xa.b);
-      R.mul (Ra, R);
-      
-      updateInternalMatrix();
-
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public void leftRigidFactor (AffineTransform3d XS, RigidTransform3d XR) {
-      if (XS != null) {
-         XS.A.setIdentity();
-         XS.A.scale(this.s);
-         XS.p.setZero();
-      }
-      if (XR != null) {
-         XR.R.set(R);
-         XR.p.set(p);
-      }
-   }
+//   /**
+//    * {@inheritDoc}
+//    */
+//   @Override
+//   public void leftRigidFactor (AffineTransform3d XS, RigidTransform3d XR) {
+//      if (XS != null) {
+//         XS.A.setIdentity();
+//         XS.A.scale(this.s);
+//         XS.p.setZero();
+//      }
+//      if (XR != null) {
+//         XR.R.set(R);
+//         XR.p.set(p);
+//      }
+//   }
 
    /**
     * Reads the contents of this transformation from a ReaderTokenizer. There

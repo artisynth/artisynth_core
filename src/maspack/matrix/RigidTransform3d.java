@@ -788,19 +788,19 @@ public class RigidTransform3d extends AffineTransform3dBase {
       R.mul (Ra, R);
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public void leftRigidFactor (AffineTransform3d XS, RigidTransform3d XR) {
-      if (XS != null) {
-         XS.A.setIdentity();
-         XS.p.setZero();
-      }
-      if (XR != this) {
-         XR.set (this);
-      }
-   }
+//   /**
+//    * {@inheritDoc}
+//    */
+//   @Override
+//   public void leftRigidFactor (AffineTransform3d XS, RigidTransform3d XR) {
+//      if (XS != null) {
+//         XS.A.setIdentity();
+//         XS.p.setZero();
+//      }
+//      if (XR != this) {
+//         XR.set (this);
+//      }
+//   }
 
    /**
     * Reads the contents of this transformation from a ReaderTokenizer. There

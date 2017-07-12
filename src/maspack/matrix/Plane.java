@@ -706,4 +706,13 @@ public class Plane implements java.io.Serializable {
       offset = RandomGenerator.nextDouble (-0.5, 0.5);
    }
 
+   public boolean equals (Plane plane) {
+      return normal.equals(plane.normal) && offset == plane.offset;
+   }
+
+   public boolean epsilonEquals (Plane plane, double eps) {
+      return (normal.epsilonEquals(plane.normal, eps) &&
+              Math.abs(offset-plane.offset) <= eps);
+   }
+
 }

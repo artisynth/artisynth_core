@@ -166,9 +166,11 @@ public class RigidSphere extends RigidBody implements Wrappable {
          if (gtr.isSaving()) {
             gtr.saveObject (myRadius);
          }
-         AffineTransform3d XL = gtr.computeRightAffineTransform (getPose());
-         myTransformConstrainer.apply (XL);
-         myRadius *= XL.A.m00;
+         AffineTransform3d XL = gtr.computeLocalAffineTransform (
+            getPose(), myTransformConstrainer);
+         // need to take abs() since diagonal entries could be negative
+         // if XL is a reflection
+         myRadius *= Math.abs(XL.A.m00);
       }      
       super.transformGeometry (gtr, context, flags);
 

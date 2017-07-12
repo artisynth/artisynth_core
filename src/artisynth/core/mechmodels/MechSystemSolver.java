@@ -17,7 +17,7 @@ import artisynth.core.modelbase.StepAdjustment;
 import artisynth.core.util.ArtisynthIO;
 import maspack.function.Function1x1;
 import maspack.matrix.Matrix;
-import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix3x1;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.MatrixBlock;
@@ -2026,7 +2026,7 @@ public class MechSystemSolver {
             if (blk instanceof Matrix3x1) {
                ((Matrix3x1)blk).get (d);
                // XXX assumes that corresponding block is Matrix3d
-               Matrix3d Minv = (Matrix3d)myInverseMass.getBlock(bi,bi);
+               Matrix3dBase Minv = (Matrix3dBase)myInverseMass.getBlock(bi,bi);
                Minv.mul (r, d);
                dmd += r.dot(d);
             }
@@ -3120,7 +3120,7 @@ public class MechSystemSolver {
     * @param func function to evaluate
     * @return root
     */
-   public double brentRootFinder(double a, double fa, double b, double fb, 
+   public static double brentRootFinder(double a, double fa, double b, double fb, 
       double eps, double feps, Function1x1 func) {
       
       if (fa*fb > 0) {
@@ -3202,7 +3202,6 @@ public class MechSystemSolver {
          }
          
       } while ( Math.abs(b-a) > eps && Math.abs(fs) > feps);
-      
       return s;
    }
    
@@ -3219,7 +3218,7 @@ public class MechSystemSolver {
     * @param func  function to evaluate
     * @return function minimizer
     */
-   public double modifiedGoldenSection(double a, double fa, double b, double fb, double eps, double feps, Function1x1 func) {
+   public static double modifiedGoldenSection (double a, double fa, double b, double fb, double eps, double feps, Function1x1 func) {
       
       // absolute values
       double afa = Math.abs(fa);
@@ -3249,8 +3248,10 @@ public class MechSystemSolver {
          if (fa*fb <= 0) {
             return brentRootFinder(a, fa, b, fb, eps, feps, func);
          }
+
          
          c = b + (a-b)/g;
+
          fc = func.eval(c);
          afc = Math.abs(fc);
          
@@ -3305,7 +3306,6 @@ public class MechSystemSolver {
             }
          }
       }
-      
       // final function call, if needed
       if (callNeeded) {
          fs = func.eval(s);
@@ -3451,7 +3451,7 @@ public class MechSystemSolver {
          
          // use modified Golden section search to find optimal alpha
          // guaranteed to call R(alpha) last, which will populate myF and myQ
-         double alpha = modifiedGoldenSection(0, R0, 1, R1, 1e-8, 0.75*Math.abs(R0), Ra);
+         double alpha = modifiedGoldenSection (0, R0, 1, R1, 1e-5, 0.75*Math.abs(R0), Ra);
          
          if (alpha == 0) {
             break;

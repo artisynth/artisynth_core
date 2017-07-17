@@ -94,7 +94,7 @@ public class MultiPointSpring extends PointSpringBase
    protected boolean myDrawABPointsP = DEFAULT_DRAW_AB_POINTS;
 
    protected static int DEFAULT_DEBUG_LEVEL = 0;
-   protected int myDebugLevel = 0; // DEFAULT_DEBUG_LEVEL;
+   protected int myDebugLevel = DEFAULT_DEBUG_LEVEL;
    
    protected int myMaxWrapIterations = DEFAULT_MAX_WRAP_ITERATIONS;
    protected double myMaxWrapDisplacement = DEFAULT_MAX_WRAP_DISPLACEMENT;
@@ -482,8 +482,6 @@ public class MultiPointSpring extends PointSpringBase
 
       ArrayList<float[]> myRenderABPoints;  // rendering positions for A/B points
 
-
-
       // Optional list of points that are used to help provide an initial
       // "path" for the segment
       Point3d[] myInitialPnts;             
@@ -561,6 +559,44 @@ public class MultiPointSpring extends PointSpringBase
          mySubSegTail = null;
       }
 
+      public Point getABPoint (int idx) {
+         SubSegment sg = firstSubSegment();
+         int i = 0;
+         if (sg != null) {
+            while (sg!=null) {
+               if (sg.myAttachmentB != null) {
+                  if (i++ == idx) {
+                     return sg.myPntB;
+                  }
+               }
+               if (sg.myAttachmentA != null) {
+                  if (i++ == idx) {
+                     return sg.myPntA;
+                  }
+               }
+               sg = sg.myNext;
+            }
+         }
+         return null;
+      }
+
+      public int numABPoints () {
+         int num = 0;
+         SubSegment sg = firstSubSegment();
+         if (sg != null) {
+            while (sg!=null) {
+               if (sg.myAttachmentB != null) {
+                  num++;
+               }
+               if (sg.myAttachmentA != null) {
+                  num++;
+               }
+               sg = sg.myNext;
+            }
+         }
+         return num;
+      }
+
       /**
        * Remove seg and all SubSegments following it.
        */
@@ -595,6 +631,13 @@ public class MultiPointSpring extends PointSpringBase
          seg.myNext = null;
       }
 
+      public double computeStrandLength() {
+         double len = 0;
+         for (int k=0; k<myNumKnots-1; k++) {
+            len += myKnots[k].myPos.distance (myKnots[k+1].myPos);
+         }
+         return len;                 
+      }
 
       /**
        * initialize the knots in the strand so that they are distributed evenly
@@ -669,6 +712,18 @@ public class MultiPointSpring extends PointSpringBase
       
       boolean contactDebug = false;
 
+      void getContactCounts (int[] contactCnts) {
+         for (int i=0; i<contactCnts.length; i++) {
+            contactCnts[i] = 0;
+         }
+         for (int k=0; k<myNumKnots; k++) {
+            int widx = myKnots[k].getWrappableIdx();
+            if (widx != -1) {
+               contactCnts[widx]++;
+            }
+         }
+      }
+      
       /**
        * Checks each knot in this segment to see if it is intersecting any
        * wrappables, and if so, computes the contact normal and distance. If a
@@ -691,8 +746,10 @@ public class MultiPointSpring extends PointSpringBase
          for (int k=0; k<myNumKnots; k++) {
             WrapKnot knot = myKnots[k];
             Wrappable lastWrappable = knot.getWrappable();
-            knot.myPrevDist = knot.myDist;
-            knot.myPrevWrappableIdx = knot.myWrappableIdx;
+            if (contactCnts != null) {
+               knot.myPrevDist = knot.myDist;
+               knot.myPrevWrappableIdx = knot.myWrappableIdx;
+            }
             knot.setWrappableIdx (-1);
             knot.myDist = Wrappable.OUTSIDE;
             for (int i=0; i<myWrappables.size(); i++) {
@@ -1738,6 +1795,34 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
 
+
+      private double computeRescale (WrapKnot knot, double pullback) {
+         double s = 0.99*(1-pullback);
+         Point3d pos = new Point3d();
+         Wrappable wrappable = knot.getPrevWrappable(); 
+         double dist = knot.myDist;
+         double prev = knot.myPrevDist;
+
+         while (dist > 0) {
+            pos.scaledAdd (s, knot.myVtmp, knot.myPrevPos);
+            dist = wrappable.penetrationDistance (null, null, pos);
+            if (dist > 0) {
+               s *= 0.99*(-prev/(dist-prev));
+            }
+         }
+         return s;                     
+      }
+
+      int numContacts() {
+         int numc = 0;
+         for (int k=0; k<myNumKnots; k++) {
+            if (myKnots[k].getWrappableIdx() != -1) {
+               numc++;
+            }
+         }
+         return numc;
+      }
+
       /**
        * Updates the knot points in this wrappable segment. This is done by
        * iterating until the first order physics resulting from the attractive
@@ -1806,6 +1891,7 @@ public class MultiPointSpring extends PointSpringBase
                f0 = computeEnergy();
                df0 = -forceDotDisp();
             }
+            getContactCounts (contactCnts);
 
             double h = 1e-8;
             prevEnergy = computeEnergy();
@@ -1841,12 +1927,17 @@ public class MultiPointSpring extends PointSpringBase
 
             //double forceNorm = forceNorm();
 
+               WrapKnot pullbackKnot = null;
+
             if (contactBroken) {
                saveDvecToVtmp();
 
                updateStiffness(0, dscale);
                factorAndSolve();
-               double scale = 1.0;
+               // rescale with the minimum amount of pullback needed
+               // to keep at least one knot in contact
+               double pullback = 1.0;
+
                for (int k=0; k<myNumKnots; k++) {
                   WrapKnot knot = myKnots[k];
                   int widx = knot.myPrevWrappableIdx;
@@ -1854,34 +1945,37 @@ public class MultiPointSpring extends PointSpringBase
                      // contact was broken for this knot
                      if (knot.myDvec.dot (knot.myVtmp) < 0) {
                         // knot is trying to renter object, so find scale factor
-                        if (debugLevel > 0) System.out.println ("    reenter");
                         double dist = knot.myDist;
                         double prev = knot.myPrevDist;
                         if (dist != Wrappable.OUTSIDE && dist > 0 && prev < 0) {
                            double r = dist/(dist-prev);
-                           if (r < scale) {
-                              scale = r;
+                           if (r < pullback) {
+                              pullback = r;
+                              pullbackKnot = knot;
                            }
                         }
                      }
                   }
                }
-               if (scale < 1.0) {
+               if (pullbackKnot != null) {
                   if (myContactRescaling) {
-                     if (debugLevel > 0) {
-                        System.out.println ("  rescale " + (1-scale));
-                     }
-                     advancePosByVtmp (1-scale);
-                     s = 1-scale;
-                     updateContacts (contactCnts, true);
+                     // adjust the pullback if necessary
+
+                     s = computeRescale (pullbackKnot, pullback);
+
+                     advancePosByVtmp (s);
+                     updateContacts (null, true);
                      updateForces();
+
+                     if (debugLevel > 0) {
+                        System.out.println ("  RESCALE " + s);
+                     }
+                     
                      f1 = computeEnergy();
                      df1 = -forceDotDisp();
                   }
                }
-               else {
-                  restoreDvecFromVtmp();
-               }
+               restoreDvecFromVtmp();
             }
             // check for convergence before line search, to avoid
             // unecessary line search. At the moment, convergence
@@ -1931,6 +2025,7 @@ public class MultiPointSpring extends PointSpringBase
                   }
                }
 
+               
                if (false) {                                          
                   // double s = 1.0;
                   // rfunc.eval (1.0); 
@@ -1988,12 +2083,14 @@ public class MultiPointSpring extends PointSpringBase
          totalCalls++;
          if (converged) {
             if (debugLevel > 0) {
-               System.out.println ("converged, icnt="+icnt);
+               System.out.println (
+                  "converged, icnt="+icnt+" numc=" + numContacts());
             }
          }
          else {
             if (debugLevel > 0) {
-               System.out.println ("did not converge");
+               System.out.println (
+                  "did NOT converge, icnt="+icnt+" numc=" + numContacts());
             }
             totalFails++;
          }

@@ -144,9 +144,11 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
          }
          Vector3d locn = new Vector3d();
          double d = QuadraticUtils.nearestPointEllipsoid (locn, a, b, c, loc0);
-         nrm.set (locn.x/(a*a), locn.y/(b*b), locn.z/(c*c));
-         nrm.normalize();
-         nrm.transform (getPose());
+         if (nrm != null) {
+            nrm.set (locn.x/(a*a), locn.y/(b*b), locn.z/(c*c));
+            nrm.normalize();
+            nrm.transform (getPose());
+         }
          return d;
       }
    }

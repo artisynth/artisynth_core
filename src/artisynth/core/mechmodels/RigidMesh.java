@@ -493,10 +493,11 @@ public class RigidMesh extends RigidBody implements Wrappable {
    }
 
    boolean findNearestHorizonPoint (
-      Point3d pr, HalfEdge he, Point3d pa, Point3d p1) {
+      Point3d pr, HalfEdge he, Point3d pa, Point3d p1, boolean debug) {
 
       double s = projectionParameter (he, pa, p1);
       int cnt = 0;
+      if (debug) System.out.println ("s=" + s);
       while (s < 0.0 || s > 1.0) {
          //System.out.println ("he=" + he.vertexStr() + " s=" + s);
          if (s < 0) {
@@ -505,16 +506,21 @@ public class RigidMesh extends RigidBody implements Wrappable {
          else {
             he = nextHorizonEdge (he, pa);
          }
+         if (debug) System.out.println ("he=" + he.vertexStr());
          s = projectionParameter (he, pa, p1);
          if (s < 0.0) {
             // this means we're going backwards - stuck at the vertex
             s = 0;
          }
-         if (cnt++ > 20) {
+         if (debug) System.out.println ("s=" + s);
+         if (cnt++ > 50) {
+            System.out.println ("cnt=" + cnt);
             return false;
          }
       }
       pr.combine (1-s, he.getTail().pnt, s, he.getHead().pnt);
+      // System.out.println (
+      //    "cnt=" + cnt + " " + pr.toString ("%g")); //16.12f"));
       return true;
    }
 
@@ -578,10 +584,11 @@ public class RigidMesh extends RigidBody implements Wrappable {
          // tangent in the plane
 
          if (myFindNearestHorizonPoint &&
-             !findNearestHorizonPoint (pr, he, paLoc, p1Loc)) {
+             !findNearestHorizonPoint (pr, he, paLoc, p1Loc, false)) {
             //System.out.println ("pa=" + pa);
             //System.out.println ("p1=" + p1);
             //System.out.println ("lam0=" + lam0);
+            findNearestHorizonPoint (pr, he, paLoc, p1Loc, true);
             throw new InternalErrorException ("Inf loop");
          }
 
@@ -628,7 +635,9 @@ public class RigidMesh extends RigidBody implements Wrappable {
          //    d = grid.getDistanceAndGradient (nrm, p0loc);
          // }
          RotationMatrix3d R = getPose().R;
-         nrm.transform (R);
+         if (nrm != null) {
+            nrm.transform (R);
+         }
          if (Dnrm != null) {
             Dnrm.transform (R);
          }
@@ -651,7 +660,9 @@ public class RigidMesh extends RigidBody implements Wrappable {
                near, /*uv=*/null, mesh.getBVTree(), p0);
             if(face == null)
                return Wrappable.OUTSIDE;
-            nrm.set (face.getWorldNormal());
+            if (nrm != null) {
+               nrm.set (face.getWorldNormal());
+            }
          }
          diff.sub (p0, near);
          double d = diff.dot(nrm);

@@ -325,6 +325,9 @@ public class RigidTorus extends RigidBody implements Wrappable {
 
    private double penetrationDistanceLoc (Vector3d nrm, Point3d p0loc) {
 
+      if (nrm == null) {
+         nrm = new Vector3d();
+      }
       double r = Math.sqrt (p0loc.x*p0loc.x + p0loc.y*p0loc.y);
       if (r == 0) {
          return Wrappable.OUTSIDE;
@@ -361,7 +364,7 @@ public class RigidTorus extends RigidBody implements Wrappable {
       if (dnrm != null) {
          dnrm.setZero();
       }
-      if (d != Wrappable.OUTSIDE && d != -myInnerRadius) {
+      if (nrm != null && d != Wrappable.OUTSIDE && d != -myInnerRadius) {
          nrm.transform (getPose());
       }
       return d;

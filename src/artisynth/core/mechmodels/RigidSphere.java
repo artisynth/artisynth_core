@@ -122,6 +122,9 @@ public class RigidSphere extends RigidBody implements Wrappable {
    }
 
    public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0) {
+      if (nrm == null) {
+         nrm = new Vector3d();
+      }
       Point3d p0loc = new Point3d(p0);
       p0loc.inverseTransform (getPose());
       nrm.set (p0loc);

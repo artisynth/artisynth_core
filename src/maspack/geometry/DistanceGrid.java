@@ -1674,7 +1674,73 @@ public class DistanceGrid implements Renderable {
    }
    
    /**
-    * Applies a Laplacian smoothing operation to the distance grid
+    * For each point, computes the inverse-distance-weighted difference with neighbours
+    *   (an approximation of the gradient) and adds a fraction of this weighted difference to phi(xi)
+    * 
+    * @param alpha scale factor for added gradient, positive for contraction, negative for expansion
+    */
+   private void smoothIter(double alpha) {
+      double[] sphi = new double[myPhi.length];
+      for (int i=0; i<numVX; ++i) {
+         for (int j=0; j<numVY; ++j) {
+            for (int k=0; k<numVZ; ++k) {
+               
+               // loop through 3x3x3 neighbourhood
+               double wtotal = 0; 
+               double p = 0;
+               
+               for (int ii=Math.max(i-1, 0); ii<Math.min(i+2, numVX); ++ii) {
+                  for (int jj=Math.max(j-1, 0); jj<Math.min(j+2, numVY); ++jj) {
+                     for (int kk=Math.max(k-1, 0); kk<Math.min(k+2, numVZ); ++kk) {
+                        if (ii != i || jj != j || kk != k) {
+                           int idx = xyzIndicesToVertex(ii,jj,kk);
+                           // squared distance
+                           double d2 = (ii-i)*(ii-i)*myCellWidths.x*myCellWidths.x + 
+                              (jj-j)*(jj-j)*myCellWidths.y*myCellWidths.y +
+                              (kk-k)*(kk-k)*myCellWidths.z*myCellWidths.z;
+                           double w = 1.0/Math.sqrt(d2);
+                           p += w*myPhi[idx];  // weighted by inverse distance
+                           wtotal += w;
+                        }
+                     }
+                  }
+               }
+               
+               int idx = xyzIndicesToVertex(i, j, k);
+               sphi[idx] = myPhi[idx] + alpha*p/wtotal;
+            }
+         }
+      }
+      
+      myPhi = sphi;
+   }
+   
+   /**
+    * Taubin Smoothing
+    * 
+    * @param lambda > 0, fraction of gradient to shrink
+    * @param mu < 0, fraction of gradient to expand
+    */
+   public void smooth(double lambda, double mu) {
+      smoothIter(lambda);
+      smoothIter(mu);
+   }
+   
+   /**
+    * Applies Taubin smoothing
+    * @param lambda > 0, fraction of gradient to shrink
+    * @param mu < 0, fraction of gradient to expand
+    * @param iters number of applications
+    */
+   public void smooth(double lambda, double mu, int iters) {
+      for (int i=0; i<iters; ++i) {
+         smoothIter(lambda);
+         smoothIter(mu);
+      }
+   }
+   
+   /**
+    * Applies a simple Laplacian smoothing operation to the distance grid
     */
    public void smooth() {
       

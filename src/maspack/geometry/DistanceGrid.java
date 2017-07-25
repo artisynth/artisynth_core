@@ -700,6 +700,23 @@ public class DistanceGrid implements Renderable {
     * @return distance to the nearest feature
     */
    public double getLocalDistanceAndNormal (
+      Vector3d norm, Point3d point) {
+      return getLocalDistanceAndNormal(norm, null, point);
+   }
+   
+   /** 
+    * Calculates the distance and normal at an arbitrary point. These values
+    * are determined by multilinear interpolation of the vertex values
+    * for the grid cell containing the point. If the point lies outside
+    * the grid volume, {@link #OUTSIDE} is returned.
+    *
+    * @param norm returns the normal (in local coordinates)
+    * @param Dnrm returns the normal derivative (in local coordinates)
+    * @param point point at which to calculate the normal and distance
+    * (in local coordinates).
+    * @return distance to the nearest feature
+    */
+   public double getLocalDistanceAndNormal (
       Vector3d norm, Matrix3d Dnrm, Point3d point) {
       // Change to grid coordinates
       double tempPointX = (point.x - myMinCoord.x) / myCellWidths.x;

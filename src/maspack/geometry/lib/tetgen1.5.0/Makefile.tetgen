@@ -1,0 +1,69 @@
+SYSTEM = $(shell uname)
+MACHINE = $(shell uname -m) # not sure how portable this is ...
+ifeq ($(findstring 64,$(MACHINE)),64)
+   ARCH = 64
+else
+   ARCH = 32
+endif
+
+CC_COMP = g++
+CC_FLAGS = -O2 -I.
+
+C_COMP = gcc
+C_FLAGS = -O2 -fPIC -std=c99 -mfpmath=sse -msse -I.
+#C_FLAGS = -O2 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
+#C_FLAGS = -O0 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
+
+ifeq ($(SYSTEM),Linux)
+	ifeq ($(ARCH), 64) 
+	   NATIVE_DIR = Linux64
+	   X_FLAGS = -DAMD_64
+	else
+	   NATIVE_DIR = Linux
+	endif
+	TETGEN_TARGET = tetgen
+	X_FLAGS = -fPIC
+else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
+	ifeq ($(ARCH), 64) 
+	   NATIVE_DIR = Windows64
+	   C_COMP = gcc # x86_64-w64-mingw32-gcc # gcc
+	   CC_COMP = g++ # x86_64-w64-mingw32-g++ # g++
+	   X_FLAGS += -m64 -DPTR_EXCEEDS_LONG -DAMD_64
+	else
+	   NATIVE_DIR = Windows
+	   C_COMP = i686-w64-mingw32-gcc
+	   C_FLAGS += -static-libgcc
+	   CC_COMP = i686-w64-mingw32-g++
+	   CC_FLAGS += -static-libstdc++
+	endif
+	TETGEN_TARGET = tetgen.exe
+else ifeq ($(SYSTEM),Darwin)
+        # XXX assume that all MacOS systems are 64 bit. That's because
+        # we only have 64 bit pardiso for MacOS, and Java has a 64 bit
+        # configuration, regardless of whether we are booting the 32
+        # or 64 bit version of snow leopard
+        NATIVE_DIR = Darwin-x86_64
+	X_FLAGS = -fPIC -DDARWIN -DAMD_64
+	CC_FLAGS += -fpermissive -faltivec
+	TETGEN_TARGET = tetgen
+endif
+
+C_FLAGS += $(X_FLAGS)
+CC_FLAGS += $(X_FLAGS)
+
+default: $(TETGEN_TARGET)
+
+vars: 
+	@echo $(TETGEN_TARGET)
+
+tetgen.o: tetgen.cxx
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c tetgen.cxx
+
+predicates.o: predicates.cxx
+	$(CC_COMP) $(CC_FLAGS) -O0 $(CC_INCS) -c predicates.cxx
+
+
+$(TETGEN_TARGET): tetgen.o predicates.o
+	$(CC_COMP) $(CC_FLAGS) -o $@ $^ -lm
+
+

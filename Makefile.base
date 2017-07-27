@@ -13,7 +13,35 @@ WEB_LIB_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_LIB_DIR)
 MAKE_HASHES_AND_FIX_PERMISSIONS = ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) \
  "(cd $(WEB_LIB_DIR); make hashes )"
 
-SYSTEM = $(shell uname)
+
+# OS Detection
+ifeq ($(OS),Windows_NT)
+   SYSTEM := Windows
+   ARCH := 64
+   ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+      ARCH := 32
+   endif
+else
+   SYSTEM := $(shell uname)
+   MACHINE = $(shell uname -m)
+   ifeq ($(findstring 64,$(MACHINE)),64)
+   	  ARCH = 64
+   else
+      ARCH = 32
+   endif
+endif
+
+ifeq ($(SYSTEM),Windows)
+   RM_CMD = del /Q /F
+   RM_CALL = del /Q /F $(subst /,\,$(1)) 2>NUL
+   MKDIR_CALL = if not exist "$(subst /,\,$(1))" mkdir "$(subst /,\,$(1))"
+else
+   RM_CMD = rm -rf
+   RM_CALL = rm -rf $(1)
+   MKDIR_CALL = mkdir -p $(1)
+endif
+
+# Java
 ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
    # On CYGWIN, get the full path name for javac because xargs may have trouble
    # if it expands it internally and it contains spaces
@@ -31,9 +59,7 @@ LD_FLAGS =
 LD_SHARED = -shared
 LD_SO = $(LD) $(LD_FLAGS) $(LD_SHARED)
 
-JUNKFILES = *.o *~ *.class .\#* \#*
-
-RM_CMD = rm -rf
+JUNKFILES := *.o *~ *.class .\#* \#*
 
 %.class: %.java
 	$(JAVAC) $(JAVACFLAGS) $<
@@ -119,9 +145,13 @@ CLASSES:: $(JAVA_SUBDIRS)
 HELP_MSGS += "clean: remove class and junkfiles"
 HELP_MSGS += "CLEAN: recursively call 'make clean' in subdirectories"
 
+# clean CLEAN::
+#	$(RM_CMD) $(JUNKFILES)
+#	$(RM_CMD) $(ROOT_DIR)/classes/$(PACKAGE_DIR)/*.class
+
 clean CLEAN::
-	$(RM_CMD) $(JUNKFILES)
-	$(RM_CMD) $(ROOT_DIR)/classes/$(PACKAGE_DIR)/*.class
+	$(call RM_CALL,$(JUNKFILES))
+	$(call RM_CALL,$(ROOT_DIR)/classes/$(PACKAGE_DIR)/*.class)
 
 CLEAN::	$(JAVA_SUBDIRS)
 	$(RUN_MAKE_IN_SUBDIRS)

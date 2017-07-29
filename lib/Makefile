@@ -6,7 +6,6 @@ default: what
 what:
 	@echo "make what?"
 
-
 .PHONY: install
 install:
 	rsync -Crlgo *.jar $(WEB_LIB_URL)

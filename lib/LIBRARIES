@@ -49,7 +49,7 @@ looks.jar
 quickhull3d.jar
 vclipx.jar
 vfs2.jar
-matlabcontrol-4.1.0.jar
+matconsolectl-4.4.4.jar
 #
 # JOGL native libraries are bundled into jar files that are extracted
 # into and loaded from a temporary directory:

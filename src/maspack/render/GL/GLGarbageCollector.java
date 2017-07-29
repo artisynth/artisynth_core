@@ -2,9 +2,9 @@ package maspack.render.GL;
 
 import java.util.LinkedList;
 
-import javax.media.opengl.GL;
-import javax.media.opengl.GLAutoDrawable;
-import javax.media.opengl.GLEventListener;
+import com.jogamp.opengl.GL;
+import com.jogamp.opengl.GLAutoDrawable;
+import com.jogamp.opengl.GLEventListener;
 
 public class GLGarbageCollector implements GLEventListener {
 

@@ -2,9 +2,9 @@ package maspack.render.GL;
 
 import java.nio.ByteBuffer;
 
-import javax.media.opengl.GL;
-import javax.media.opengl.GL2GL3;
-import javax.media.opengl.GL3;
+import com.jogamp.opengl.GL;
+import com.jogamp.opengl.GL2GL3;
+import com.jogamp.opengl.GL3;
 
 import maspack.render.TextureMapProps.TextureFilter;
 import maspack.render.TextureMapProps.TextureWrapping;

@@ -3,7 +3,7 @@ package maspack.render.GL.GL3;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import javax.media.opengl.GL3;
+import com.jogamp.opengl.GL3;
 
 import maspack.matrix.Plane;
 import maspack.matrix.Vector3d;

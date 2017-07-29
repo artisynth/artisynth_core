@@ -10,7 +10,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedList;
 
-import javax.media.opengl.GL;
+import com.jogamp.opengl.GL;
 
 import maspack.matrix.Vector2d;
 import maspack.render.IsSelectable;

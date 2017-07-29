@@ -2,7 +2,7 @@ package maspack.test.GL;
 
 import java.io.File;
 
-import javax.media.opengl.GL3;
+import com.jogamp.opengl.GL3;
 
 import maspack.render.Renderer;
 import maspack.render.GL.GLSupport;

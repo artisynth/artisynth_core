@@ -1,6 +1,6 @@
 package maspack.render.GL;
 
-import javax.media.opengl.GL;
+import com.jogamp.opengl.GL;
 
 /**
  * Allows pipeline rendering of primitives.  Once a certain

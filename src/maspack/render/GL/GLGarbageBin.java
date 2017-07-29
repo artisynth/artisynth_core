@@ -2,7 +2,7 @@ package maspack.render.GL;
 
 import java.util.ArrayList;
 
-import javax.media.opengl.GL;
+import com.jogamp.opengl.GL;
 
 public class GLGarbageBin<T extends GLResource> implements GLGarbageSource {
 

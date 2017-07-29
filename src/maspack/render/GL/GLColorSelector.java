@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import javax.media.opengl.GL;
+import com.jogamp.opengl.GL;
 
 import maspack.render.IsRenderable;
 import maspack.render.IsSelectable;

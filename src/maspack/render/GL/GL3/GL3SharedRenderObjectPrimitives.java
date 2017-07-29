@@ -2,7 +2,7 @@ package maspack.render.GL.GL3;
 
 import java.nio.ByteBuffer;
 
-import javax.media.opengl.GL3;
+import com.jogamp.opengl.GL3;
 
 import maspack.render.RenderObject;
 import maspack.render.RenderObject.RenderObjectVersion;

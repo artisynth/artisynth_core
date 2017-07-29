@@ -6,7 +6,7 @@
  */
 package maspack.render.GL;
 
-import javax.media.opengl.GL;
+import com.jogamp.opengl.GL;
 
 import maspack.render.Renderer;
 

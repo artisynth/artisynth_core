@@ -3,8 +3,8 @@ package maspack.render.GL.GL3;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import javax.media.opengl.GL;
-import javax.media.opengl.GL3;
+import com.jogamp.opengl.GL;
+import com.jogamp.opengl.GL3;
 
 /**
  * Holds pointers to VBOs, attribute info, to be used in creating VAOs.

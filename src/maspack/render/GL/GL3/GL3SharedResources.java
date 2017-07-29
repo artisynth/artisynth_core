@@ -1,8 +1,8 @@
 package maspack.render.GL.GL3;
 
-import javax.media.opengl.GL;
-import javax.media.opengl.GL3;
-import javax.media.opengl.GLCapabilities;
+import com.jogamp.opengl.GL;
+import com.jogamp.opengl.GL3;
+import com.jogamp.opengl.GLCapabilities;
 
 import maspack.render.RenderInstances;
 import maspack.render.RenderObject;

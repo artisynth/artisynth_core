@@ -4,7 +4,7 @@ import java.awt.geom.Point2D;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
-import javax.media.opengl.GL;
+import com.jogamp.opengl.GL;
 
 import maspack.render.TextImageStore.GlyphStore;
 import maspack.render.TextureTextRenderer;

@@ -9,7 +9,7 @@ package maspack.render.GL.GL2;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import javax.media.opengl.GL2;
+import com.jogamp.opengl.GL2;
 
 // see http://www.lighthouse3d.com/opengl/glsl/index.php?intro
 

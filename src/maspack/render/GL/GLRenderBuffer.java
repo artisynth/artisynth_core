@@ -1,7 +1,7 @@
 package maspack.render.GL;
 
-import javax.media.opengl.GL;
-import javax.media.opengl.GL2GL3;
+import com.jogamp.opengl.GL;
+import com.jogamp.opengl.GL2GL3;
 
 public class GLRenderBuffer extends GLResourceBase {
 

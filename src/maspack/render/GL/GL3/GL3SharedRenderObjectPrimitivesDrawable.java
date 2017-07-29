@@ -1,6 +1,6 @@
 package maspack.render.GL.GL3;
 
-import javax.media.opengl.GL3;
+import com.jogamp.opengl.GL3;
 
 /**
  * Wraps a {@link GL3SharedRenderObjectPrimitives} into a drawable form

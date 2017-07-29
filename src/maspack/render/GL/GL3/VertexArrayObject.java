@@ -1,6 +1,6 @@
 package maspack.render.GL.GL3;
 
-import javax.media.opengl.GL3;
+import com.jogamp.opengl.GL3;
 
 public class VertexArrayObject extends GL3ResourceBase {
 

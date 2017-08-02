@@ -187,11 +187,34 @@ public class MarchingTetrahedra {
 
    boolean debug = false;
 
+   /**
+    * Creates an isosurface mesh from a 3D grid of values. The grid has a
+    * resolution of <code>res.x</code> X <code>res.y</code> X
+    * <code>res.z</code> cells, with the x, y, and z widths of each cell given
+    * by <code>cellWidths</code>, and a minimum vertex located at
+    * <code>minCoord</code>. The number of vertices along the x, y, and z axes
+    * is hence <code>numVX = res.x+1</code>, <code>numVY = res.y+1</code>, and
+    * <code>numVZ = res.z+1</code>. The values at each vertex are stored in the
+    * array <code>vals</code>, and arranged, for the vertex at <code>(i, j,
+    * k)</code> by
+    * <pre>
+    *   val[vertex(i,j,k)] = [i + j*numVY + k*numVY*numVZ];
+    * </pre>
+    *
+    * @param vals contains grid values at each vertex
+    * @param minCoord value of minimum vertex at (0, 0, 0)
+    * @param cellWidths widths of each grid cell along the x, y, and z
+    * axes
+    * @param res number of cells along each of the x, y, and z axes
+    * @param iso value to be used to create the isosurface
+    * @return mesh corresponding to the iso surface
+    */
    public PolygonalMesh createMesh (
-      double[] vals, Vector3d minCoord, Vector3d widths,
+      double[] vals, Vector3d minCoord, Vector3d cellWidths,
       Vector3i res, double iso) {
       
-      GridPointGenerator vgen = new GridPointGenerator (minCoord, widths, res);
+      GridPointGenerator vgen =
+      new GridPointGenerator (minCoord, cellWidths, res);
 
       if (vals.length < vgen.maxGridPoints()) {
          throw new IllegalArgumentException (

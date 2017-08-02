@@ -34,6 +34,10 @@ public class RandomGenerator {
       return (max-min)*x + min;
    }
    
+   public static double nextDouble () {
+      return get().nextDouble();
+   }
+   
    /**
     * Next random number from a normal (Gaussian) distribution
     * with mean zero and unit standard deviation.

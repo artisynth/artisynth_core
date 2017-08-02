@@ -243,7 +243,7 @@ public class DistanceGridFeatureQuery {
     * <p> The method works by inspecting the nearest face, edge or vertex to
     * the point. Hence the mesh does not need to be closed, and the method is
     * faster, though possibly less numerically robust, than {@link
-    * #isInsideMesh(PolygonalMesh,DistanceGrid,Point3d,double)}.
+    * #isInsideMesh(PolygonalMesh,SignedDistanceGrid,Point3d,double)}.
     *
     * @param grid distance grid containing the faces.
     * @param pnt point to check (in world coordinates)

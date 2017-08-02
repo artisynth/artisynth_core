@@ -7,7 +7,7 @@
 package maspack.util;
 
 /**
- * Finds the roots of a quartic equation on a specified interval.
+ * Finds the real roots of a quartic equation on a specified interval.
  *
  * Also, a good guide to the structure of quartics and their solution is the
  * paper "The quartic equation: invariants and Euler's solution revealed", by

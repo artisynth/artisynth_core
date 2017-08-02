@@ -2775,6 +2775,7 @@ public class MechSystemSolver {
          mySys.setActiveVelState (myUtmp);
       }
 
+
       // back solve for parametric forces
       //computeImplicitParametricForces (myUtmp, myFparC);
 
@@ -3006,9 +3007,11 @@ public class MechSystemSolver {
    }
    
    /**
-    * Returns the number of load increments being used with the {@link Integrator#StaticIncremental}
+    * Returns the number of load increments being used with the
+    * {@link Integrator#StaticIncremental}
     * integrator.
-    * @return
+    * 
+    * @return number of load increments for {@link Integrator#StaticIncremental}
     */
    public int getStaticIncrements() {
       return myStaticIncrements;

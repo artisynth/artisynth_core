@@ -62,6 +62,13 @@ public class UnitTest {
       }
    }
 
+   public void checkEquals (String msg, double result, double check, double eps) {
+      if (Math.abs(result-check) > eps) {
+         throw new TestException (
+            msg + result + ", expected " + check + ", eps=" + eps);
+      }
+   }
+
    public void test() throws IOException {
    }
 

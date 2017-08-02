@@ -16,6 +16,7 @@ public class RigidMesh extends RigidBody implements Wrappable {
    BVFeatureQuery myQuery = new BVFeatureQuery();
    NagataInterpolator myNagata = new NagataInterpolator();
 
+   boolean myUseQuadraticTangents = true;
    boolean mySmooth = false;
    boolean myRayCastTangent = false;
    boolean myFindNearestHorizonPoint = true;
@@ -530,6 +531,14 @@ public class RigidMesh extends RigidBody implements Wrappable {
       PolygonalMesh mesh = getSurfaceMesh();
       if (hasDistanceGrid()) {
 
+         if (myUseQuadraticTangents) {
+            SignedDistanceGrid grid = getDistanceGrid();            
+            if (!grid.findQuadraticSurfaceTangent (pr, p1, pa, sideNrm)) {
+               pr.set (p1);
+            }
+            return;
+         }
+         
          BVFeatureQuery bvq = new BVFeatureQuery();
 
          if (myRayCastTangent) {
@@ -630,16 +639,14 @@ public class RigidMesh extends RigidBody implements Wrappable {
          SignedDistanceGrid grid = getDistanceGrid();
          Point3d p0loc = new Point3d();
          p0loc.inverseTransform (getPose(), p0);
-         double d = grid.getLocalDistanceAndNormal (nrm, Dnrm, p0loc);
-         // else {
-         //    d = grid.getDistanceAndGradient (nrm, p0loc);
-         // }
+         //double d = grid.getLocalDistanceAndNormal (nrm, Dnrm, p0loc);
+         double d = grid.getQuadraticDistanceAndGradient (nrm, p0loc);
          RotationMatrix3d R = getPose().R;
+         if (Dnrm != null) {
+            Dnrm.setZero();
+         }
          if (nrm != null) {
             nrm.transform (R);
-         }
-         if (Dnrm != null) {
-            Dnrm.transform (R);
          }
          if (d == SignedDistanceGrid.OUTSIDE) {
             return Wrappable.OUTSIDE;

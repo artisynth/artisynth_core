@@ -74,6 +74,26 @@ public class RigidBody extends Frame
    static final boolean useExternalAttachments = false;
 
    private static final Vector3d zeroVect = new Vector3d();
+   
+   /**
+    * Describes how the distance surface should be rendered, if at all
+    */
+   public enum DistanceSurfaceRendering {
+      /**
+       * Do not render the distance surface
+       */
+      NONE,
+      
+      /**
+       * Render the distance surface using linear interpolation
+       */
+      LINEAR,
+      
+      /**
+       * Render the distance surface using quadratic interpolation
+       */
+      QUADRATIC
+   }
 
    /* Indicates how inertia is determined for a RigidBody */
    public enum InertiaMethod {
@@ -116,15 +136,19 @@ public class RigidBody extends Frame
    static int DEFAULT_DISTANCE_GRID_MAX_DIVS = 20;
    static Vector3i DEFAULT_DISTANCE_GRID_DIVS = new Vector3i(0, 0, 0);
    static boolean DEFAULT_RENDER_DISTANCE_GRID = false;
-   static boolean DEFAULT_RENDER_DISTANCE_SURFACE = false;
+   static DistanceSurfaceRendering DEFAULT_RENDER_DISTANCE_SURFACE = 
+      DistanceSurfaceRendering.NONE;
    static String DEFAULT_DISTANCE_GRID_RENDER_RANGES = "* * *";
    SignedDistanceGrid mySDGrid = null;
+   SignedDistanceGrid mySDRenderGrid = null;
    PolygonalMesh mySDSurface = null;
+   PolygonalMesh mySDRenderSurface = null;
    boolean mySDGridValid = false;
    Vector3i myDistanceGridRes = new Vector3i(DEFAULT_DISTANCE_GRID_DIVS);
    int myDistanceGridMaxRes = DEFAULT_DISTANCE_GRID_MAX_DIVS;
    boolean myRenderDistanceGrid = DEFAULT_RENDER_DISTANCE_GRID;
-   boolean myRenderDistanceSurface = DEFAULT_RENDER_DISTANCE_SURFACE;
+   DistanceSurfaceRendering myRenderDistanceSurface = 
+      DEFAULT_RENDER_DISTANCE_SURFACE;
    String myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;
    double myGridMargin = 0.1;
 
@@ -649,7 +673,6 @@ public class RigidBody extends Frame
     * Returns the file transform associated with this rigid body's mesh.
     * 
     * @return mesh file transform (should not be modified)
-    * @see #setMeshFileTransform
     */
    public AffineTransform3dBase getMeshFileTransform() {
       return myMeshInfo.getFileTransform();
@@ -736,8 +759,10 @@ public class RigidBody extends Frame
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
-         if (myRenderDistanceSurface && getDistanceSurface() != null) {
-            getDistanceSurface().setMeshToWorld (myState.XFrameToWorld);
+         PolygonalMesh surf = null;
+         if (myRenderDistanceSurface != myRenderDistanceSurface.NONE && 
+             (surf = getDistanceSurface()) != null) {
+            surf.setMeshToWorld (myState.XFrameToWorld);
          }
       }
    }
@@ -998,6 +1023,25 @@ public class RigidBody extends Frame
       }
    }
 
+   public void prerender (RenderList list) {
+      myRenderFrame.set (myState.XFrameToWorld);
+      // list.addIfVisible (myMarkers);
+      PolygonalMesh surf = null;
+      if (myRenderDistanceSurface != DistanceSurfaceRendering.NONE &&
+         (surf = getDistanceSurface()) != null) {
+         surf.prerender (myRenderProps); 
+      }
+      else {
+         myMeshInfo.prerender (myRenderProps);      
+      }
+      mySDRenderSurface = surf;
+      SignedDistanceGrid grid = null;
+      if (myRenderDistanceGrid && (grid = getDistanceGrid()) != null) {
+         grid.prerender (list);
+      }
+      mySDRenderGrid = grid;
+   }
+   
    public void render (Renderer renderer, int flags) {
       if (myAxisLength > 0) {
          int lineWidth = myRenderProps.getLineWidth();
@@ -1007,33 +1051,20 @@ public class RigidBody extends Frame
       if (isSelected()) {
          flags |= Renderer.HIGHLIGHT;
       }
-      if (myRenderDistanceSurface && getDistanceSurface() != null) {
-         PolygonalMesh surf = getDistanceSurface();
+      PolygonalMesh surf = null;
+      if (myRenderDistanceSurface != DistanceSurfaceRendering.NONE &&
+          (surf = mySDRenderSurface) != null) {
          surf.render (renderer, myRenderProps, flags);
       }
       else {
          myMeshInfo.render (renderer, myRenderProps, flags);
       }
-      if (myRenderDistanceGrid && getDistanceGrid() != null) {
-         getDistanceGrid().render (renderer, myRenderProps, flags);
+      SignedDistanceGrid grid = null;
+      if (myRenderDistanceGrid && (grid = mySDRenderGrid) != null) {
+         grid.render (renderer, myRenderProps, flags);
       }
    }
 
-   public void prerender (RenderList list) {
-      myRenderFrame.set (myState.XFrameToWorld);
-      // list.addIfVisible (myMarkers);
-      if (myRenderDistanceSurface && getDistanceSurface() != null) {
-         PolygonalMesh surf = getDistanceSurface();
-         surf.prerender (myRenderProps); 
-      }
-      else {
-         myMeshInfo.prerender (myRenderProps);      
-      }
-      if (myRenderDistanceGrid && getDistanceGrid() != null) {
-         getDistanceGrid().prerender (list);
-      }
-   }
-   
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       
@@ -1053,8 +1084,15 @@ public class RigidBody extends Frame
          else {
             mesh.setMeshToWorld (myState.XFrameToWorld);
          }
+      }
+      if (!gtr.isRigid()) {
          mySDGridValid = false;
          mySDSurface = null;
+      }
+      else {
+         if (mySDSurface != null) {
+            mySDSurface.setMeshToWorld (getPose());
+         }
       }
    }   
 
@@ -1555,12 +1593,20 @@ public class RigidBody extends Frame
       return mySDGrid;
    }
 
-   public PolygonalMesh getDistanceSurface() {
+   protected PolygonalMesh getDistanceSurface() {
       if (mySDSurface == null) {
          if (hasDistanceGrid()) {
+            PolygonalMesh surf;
             SignedDistanceGrid grid = getDistanceGrid();
-            mySDSurface = grid.computeDistanceSurface();
-            mySDSurface.setMeshToWorld (myState.XFrameToWorld);
+            if (myRenderDistanceSurface == DistanceSurfaceRendering.QUADRATIC) {
+               surf = grid.computeQuadraticDistanceSurface(0, 5);
+               surf.setMeshToWorld (myState.XFrameToWorld);
+            }
+            else {
+               surf = grid.computeDistanceSurface(0);
+               surf.setMeshToWorld (myState.XFrameToWorld);
+            }
+            mySDSurface = surf;
          }
       }
       return mySDSurface;
@@ -1685,29 +1731,31 @@ public class RigidBody extends Frame
    }
 
    /**
-    * Queries whether or not rendering of the distance surface is
-    * enabled.
+    * Queries if and how the distance surface is rendered.
     *
-    * @return <code>true</code> if rendering of the distance surface is enabled
+    * @return code describing if/how the distance surface is rendered
     * @see #setRenderDistanceSurface
     */
-   public boolean getRenderDistanceSurface() {
+   public DistanceSurfaceRendering getRenderDistanceSurface() {
       return myRenderDistanceSurface;
    }
 
    /**
-    * Enables or disables rendering of the distance surface. If enabled, then
+    * Specifies if and how the distance surface is rendered. If enabled,
     * an approximation of the isosurface for the signed distance grid is
     * rendered <i>instead</i> of the surface mesh. This can give the user a
     * better understanding of how the distance grid approximates the associated
-    * mesh.
+    * mesh. The rendering is done using either linear or quadratic 
+    * interpolation, depending on the value of <code>rendering</code>.
     *
-    * @param enable if <code>true</code>, enables rendering of the distance
-    * surface
+    * @param rendering specifies if and how the distance surface is rendered.
     * @see #getRenderDistanceSurface
     */
-   public void setRenderDistanceSurface(boolean enable) {
-      myRenderDistanceSurface = enable;
+   public void setRenderDistanceSurface (DistanceSurfaceRendering rendering) {
+      if (myRenderDistanceSurface != rendering) {
+         myRenderDistanceSurface = rendering;
+         mySDSurface = null;
+      }
    }
 
    /**

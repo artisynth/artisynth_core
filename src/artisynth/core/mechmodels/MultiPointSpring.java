@@ -896,19 +896,19 @@ public class MultiPointSpring extends PointSpringBase
             double s = 2*stiffness; // + d
             knot.myBmat.setDiagonal (s, s, s);            
             if (knot.myDist < 0) {
-               if (knot.getWrappable() instanceof RigidMesh) {
-                  //Matrix3d B = new Matrix3d();
-                  //B.setSymmetric (knot.myDnrm);
-                  knot.myBmat.scaledAdd(cstiffness, knot.myDnrm);
-               }
-               else {
+               // if (knot.getWrappable() instanceof RigidMesh) {
+               //    //Matrix3d B = new Matrix3d();
+               //    //B.setSymmetric (knot.myDnrm);
+               //    knot.myBmat.scaledAdd(cstiffness, knot.myDnrm);
+               // }
+               // else {
                   knot.myBmat.addScaledOuterProduct (
                      cd+cstiffness, knot.myNrml, knot.myNrml);
                   if (dnrmGain != 0) {
                      knot.myBmat.scaledAdd (
                         dnrmGain*knot.myDist*cstiffness, knot.myDnrm);
                   }
-               }
+                  //}
             }
          }
       }
@@ -2324,35 +2324,45 @@ public class MultiPointSpring extends PointSpringBase
        */
       void computeSideNormal (
          Vector3d sideNrm, Point3d p0, Point3d pk, Point3d p1, 
-         int k1, int kinc) {
+         int k1, int kinc, Vector3d nrmlk) {
 
-         Vector3d delk0 = new Vector3d();
-         Vector3d del10 = new Vector3d();
+         Vector3d del0k = new Vector3d();
+         Vector3d del01 = new Vector3d();
 
-         delk0.sub (pk, p0);
-         del10.sub (p1, p0);
-         double tol = 1e-8*del10.norm();
-         sideNrm.cross (del10, delk0);
+         del0k.sub (pk, p0);
+         del01.sub (p1, p0);
+         double tol = 1e-8*del01.norm();
+         sideNrm.cross (del01, del0k);
          double mag = sideNrm.norm();
-         while (mag < tol) {
-            k1 += kinc;
-            p1 = getKnotPos (k1);
-            if (p1 == null) {
-               break;
-            }
-            del10.sub (p1, p0);
-            sideNrm.cross (del10, delk0);
+
+         if (mag <= tol) {
+            // cross product is too small to infer a normal; use nrml
+            sideNrm.cross (del01, nrmlk);
             mag = sideNrm.norm();
          }
-         if (mag == 0) {
-            // No apparent side normal. Just pick something perpendicular to
-            // d0x.
-            sideNrm.perpendicular (del10);
-            sideNrm.normalize();
-         }
-         else {
-            sideNrm.scale (1/mag);
-         }
+         sideNrm.scale (1/mag);
+
+         // double mag = sideNrm.norm();
+         // while (mag < tol) {
+         //    k1 += kinc;
+         //    p1 = getKnotPos (k1);
+         //    if (p1 == null) {
+         //       break;
+         //    }
+         //    del01.sub (p1, p0);
+         //    sideNrm.cross (del01, del0k);
+         //    mag = sideNrm.norm();
+         // }
+         // System.out.println ("mag=" + mag);
+         // if (mag == 0) {
+         //    // No apparent side normal. Just pick something perpendicular to
+         //    // d0x.
+         //    sideNrm.perpendicular (del01);
+         //    sideNrm.normalize();
+         // }
+         // else {
+         //    sideNrm.scale (1/mag);
+         // }
       }
 
       private Point createTanPoint (Point3d pos) {
@@ -2390,6 +2400,7 @@ public class MultiPointSpring extends PointSpringBase
          }
 
          Vector3d sideNrm = new Vector3d();
+         Vector3d nrml = new Vector3d();
          Point3d tanA = null;
          if (wrappableA != null) {
             tanA = new Point3d();
@@ -2397,7 +2408,8 @@ public class MultiPointSpring extends PointSpringBase
             Point3d p0 = getKnotPos (ka-1);
             Point3d pa = getKnotPos (ka);
             Point3d p1 = getKnotPos (ka+1);
-            computeSideNormal (sideNrm, p0, pa, p1, ka+1, 1);
+            wrappableA.penetrationDistance (nrml, null, pa);
+            computeSideNormal (sideNrm, p0, pa, p1, ka+1, 1, nrml);
             wrappableA.surfaceTangent (
                tanA, pb, p1,
                LineSegment.projectionParameter (pb, p1, p0), sideNrm);
@@ -2412,7 +2424,8 @@ public class MultiPointSpring extends PointSpringBase
             Point3d p0 = getKnotPos (kb+1);
             Point3d pb = getKnotPos (kb);
             Point3d p1 = getKnotPos (kb-1);
-            computeSideNormal (sideNrm, p0, pb, p1, kb-1, -1);
+            wrappableB.penetrationDistance (nrml, null, pb);
+            computeSideNormal (sideNrm, p0, pb, p1, kb-1, -1, nrml);
             wrappableB.surfaceTangent (
                tanB, pa, p1,
                LineSegment.projectionParameter (pa, p1, p0), sideNrm);

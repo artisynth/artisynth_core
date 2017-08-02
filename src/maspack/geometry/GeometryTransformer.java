@@ -683,7 +683,6 @@ public abstract class GeometryTransformer {
     * rotation matrices and does not do any saving or restoring of data.
     *
     * @param RR transformed rotation
-    * @param Ndiag TODO
     * @param R rotation to be transformed
     * @param r reference position of the rotation, in original coordinates
     * @param Ndiag if non-null, returns the diagonal elements of the

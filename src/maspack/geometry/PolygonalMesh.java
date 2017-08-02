@@ -667,6 +667,24 @@ public class PolygonalMesh extends MeshBase {
    }
 
    /**
+    * Reads the contents of this mesh from a string. The string input is
+    * assumed to be supplied in Alias Wavefront obj format, as described for
+    * the method {@link #write(PrintWriter,NumberFormat,boolean)}.
+    * 
+    * @param input
+    * supplied input description of the mesh
+    */
+   public void read (String input, boolean zeroIndexed)  {
+      try {
+         read (new StringReader (input), zeroIndexed);
+      }
+      catch (Exception e) {
+         throw new IllegalArgumentException (
+            "Illegal mesh format: "+e.getMessage());
+      }
+   }
+
+   /**
     * Reads the contents of this mesh from a ReaderTokenizer. The input is
     * assumed to be supplied in Alias Wavefront obj format, as described for
     * the method {@link #write(PrintWriter,NumberFormat,boolean)}.
@@ -1976,8 +1994,11 @@ public class PolygonalMesh extends MeshBase {
 
    public void render (Renderer renderer, RenderProps props, int flags) {
       if (myMeshRenderer == null) {
-         throw new IllegalStateException (
-            "render() called before prerender()");
+         String errMsg = "render() called before prerender()";
+         if (getName() != null) {
+            errMsg += ", mesh '"+getName()+"'";
+         }
+         throw new IllegalStateException (errMsg);
       }
       myMeshRenderer.render (renderer, props, flags);
    }

@@ -7,8 +7,8 @@
 package maspack.util;
 
 /**
- * Finds the roots of a cubic equation on a specified interval. Adopted from
- * utility code provided by Robert Bridson's graphics group.
+ * Finds the real roots of a cubic equation on a specified interval. Adopted
+ * from utility code provided by Robert Bridson's graphics group.
  *
  * Also, a good guide to the structure of cubics and their solution is the
  * paper "A new approach to solving the cubic: Cardan's solution revealed", by

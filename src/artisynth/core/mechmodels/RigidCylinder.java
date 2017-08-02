@@ -100,12 +100,12 @@ public class RigidCylinder extends RigidBody implements Wrappable {
    }
 
    public void surfaceTangent (
-      Point3d pr, Point3d p0, Point3d p1, double lam, Vector3d sideNrm) {
+      Point3d pr, Point3d pa, Point3d p1, double lam, Vector3d sideNrm) {
 
       // transform p0 and p1 into local coordinates
-      Point3d p0loc = new Point3d(p0);
+      Point3d paloc = new Point3d(pa);
       Point3d p1loc = new Point3d(p1);    
-      p0loc.inverseTransform (getPose());
+      paloc.inverseTransform (getPose());
       p1loc.inverseTransform (getPose());
 
       // there are at most two tangent points. t0loc and t1loc are used to
@@ -113,28 +113,28 @@ public class RigidCylinder extends RigidBody implements Wrappable {
       Point3d t0loc = new Point3d();
       Point3d t1loc = new Point3d();
 
-      double z0 = p0loc.z;
+      double za = paloc.z;
       double z1 = p1loc.z;
-      p0loc.z = 0;
+      paloc.z = 0;
       p1loc.z = 0;
 
       if (QuadraticUtils.circleTangentPoints (
-             t0loc, t1loc, p0loc, myRadius) == 0) {
+             t0loc, t1loc, paloc, myRadius) == 0) {
          // project p0 or p1 to the surface
-         double mag = p0loc.norm();
+         double mag = paloc.norm();
          if (mag != 0) {
-            t0loc.scale (myRadius/mag, p0loc);
+            t0loc.scale (myRadius/mag, paloc);
          }
          else {
             t0loc.scale (myRadius/p1loc.norm(), p1loc);
          }
       }
-      else if (signCross2d (p0loc, p1loc) == signCross2d (p0loc, t1loc)) {
+      else if (signCross2d (paloc, p1loc) == signCross2d (paloc, t1loc)) {
          // use t1 instead of t0
          t0loc.set (t1loc);
       }
-      double l = LineSegment.projectionParameter (p0loc, p1loc, t0loc);
-      t0loc.z = (1-l)*z0 + l*z1;
+      double l = LineSegment.projectionParameter (paloc, p1loc, t0loc);
+      t0loc.z = (1-l)*za + l*z1;
       pr.transform (getPose(), t0loc);
    }
 

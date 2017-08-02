@@ -28,9 +28,10 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.modelbase.HasCoordinateFrame;
 import artisynth.core.util.ScanToken;
 
-public class FixedMeshBody extends MeshComponent {
+public class FixedMeshBody extends MeshComponent implements HasCoordinateFrame {
 
    // use a FrameState to store the position even though we ignore velocity
    FrameState myState = new FrameState();

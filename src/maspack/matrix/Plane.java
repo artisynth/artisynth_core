@@ -65,7 +65,7 @@ public class Plane implements java.io.Serializable {
     * @param p
     * point to pass through
     */
-   public Plane (Vector3d n, Point3d p) {
+   public Plane (Vector3d n, Vector3d p) {
       this();
       set (n, p);
    }
@@ -174,7 +174,7 @@ public class Plane implements java.io.Serializable {
     * @param p
     * point to pass through
     */
-   public void set (Vector3d n, Point3d p) {
+   public void set (Vector3d n, Vector3d p) {
       normal.normalize (n);
       offset = p.dot (normal);
    }

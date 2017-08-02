@@ -10,20 +10,33 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
+import maspack.render.Renderable;
 import maspack.render.Renderer;
 import maspack.render.Renderer.LineStyle;
+import maspack.render.Renderer.Shading;
+import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.gui.ControlPanel;
+import artisynth.core.inverse.ConnectorForceRenderer;
+import artisynth.core.inverse.ForceTarget;
+import artisynth.core.inverse.ForceTargetTerm;
 import artisynth.core.inverse.TrackingController;
 import artisynth.core.materials.LinearAxialMuscle;
 import artisynth.core.mechmodels.AxialSpring;
+import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
+import artisynth.core.modelbase.Controller;
+import artisynth.core.modelbase.Model;
+import artisynth.core.mechmodels.MotionTargetComponent;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.SphericalJoint;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
+import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RootModel;
 
 public class PointModel extends RootModel
@@ -73,7 +86,7 @@ public class PointModel extends RootModel
 
 
    protected MechModel model;
-   protected Particle center;
+   protected FrameMarker center;
    
 // String[] labels = new String[]{
 //       "n","e","s","w"
@@ -174,25 +187,61 @@ public class PointModel extends RootModel
       // set render properties for model
       
       RenderProps rp = new RenderProps();
+      rp.setShading (Shading.SMOOTH);
       rp.setPointStyle(Renderer.PointStyle.SPHERE);
       rp.setPointColor(Color.LIGHT_GRAY);
       rp.setPointRadius(len/30);
-      rp.setLineStyle(LineStyle.SPINDLE);
-      rp.setLineColor(Color.RED);
-      rp.setLineRadius(len/25);
+      rp.setLineColor(Color.BLUE.darker ());
+//    rp.setLineStyle(LineStyle.SPINDLE);
+//      rp.setLineRadius(len/25);
+      rp.setLineStyle(LineStyle.CYLINDER);
+      rp.setLineRadius(0.1604);
       model.setRenderProps(rp);
       
       RenderProps.setPointColor(center, Color.WHITE);
       RenderProps.setPointRadius(center, len/25);
    }
    
+   @Override
+   public void addController(Controller controller, Model model) {
+      super.addController(controller, model);
+      
+      if (controller instanceof PullController) {
+         PullController pc = ((PullController)controller);
+         pc.setStiffness(20);
+         RenderProps.setLineColor (pc, Color.RED.darker ());
+         RenderProps.setPointColor (pc, Color.RED.darker ());
+         RenderProps.setLineStyle (pc, LineStyle.SOLID_ARROW);
+         RenderProps.setLineRadius (pc, 0.25);
+         
+      }
+//      mech.addForceEffector ((PullController)controller);
+   }
+   
    public void addCenter()
    {
-      center = new Particle(mass);
-      center.setDynamic(true);
+      RigidBody body = new RigidBody ("body");
+      body.setInertia (SpatialInertia.createSphereInertia (mass, len/25));
+      model.addRigidBody (body);
+      RenderProps.setVisible (body, false);
+      
+      RigidBody fixed = new RigidBody ("fixed");
+      fixed.setInertia (SpatialInertia.createSphereInertia (mass, len/25));
+      fixed.setDynamic (false);
+      model.addRigidBody (fixed);
+      RenderProps.setVisible (fixed, false);
+      
+      SphericalJoint joint = new SphericalJoint (body, fixed, Point3d.ZERO);
+      joint.setName("center_constraint");
+      model.addBodyConnector (joint);
+      
+      addMonitor (new ConnectorForceRenderer(joint)); 
+      
+      
+      center = new FrameMarker();
       center.setName("center");
       center.setPointDamping(pointDamping);
-      model.addParticle(center);
+      model.addFrameMarker (center, body, Point3d.ZERO);
    }
    
    public void add2dLabeledMuscles(String[] labels) {
@@ -279,7 +328,7 @@ public class PointModel extends RootModel
 	 pts.add(pt);
 	 
 	 if (x[i] == 0) {
-	    center = pt;
+//	    center = pt;
 	 }
       }
       
@@ -449,7 +498,17 @@ public class PointModel extends RootModel
 //      myTrackingController.addTerm(new DampingTerm(TrackingController));
 
 //      myTrackingController.addTerm(new StaticMotionTargetTerm(TrackingController));
-      myTrackingController.addMotionTarget(center);
+      MotionTargetComponent target = myTrackingController.addMotionTarget(center);
+      RenderProps.setPointRadius ((Renderable)target, 0.525);
+      
+      ForceTargetTerm forceTerm = new ForceTargetTerm (myTrackingController);
+      ForceTarget ft = forceTerm.addForceTarget (
+         model.bodyConnectors ().get ("center_constraint"));
+      ft.setArrowSize (2);
+      RenderProps.setLineStyle (ft, LineStyle.CYLINDER);
+      RenderProps.setLineRadius (ft, 0.25);
+      forceTerm.setWeight (1d);
+      myTrackingController.addForceTargetTerm (forceTerm);
       
 //      myTrackingController.getSolver().setBounds(0.01, 0.99);
       

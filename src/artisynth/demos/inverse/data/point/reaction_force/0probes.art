@@ -1,0 +1,304 @@
+[
+  NumericInputProbe
+  [ startTime=0.0
+    stopTime=5.0
+    updateInterval=0.01
+    name="target forces"
+    attachedFile="ref_targetForce_input.txt"
+    interpolationOrder=CubicStep
+    displayRange=[ -1.2 1.2 ]
+    track=0
+    model=null
+    vsize=3
+    props=[
+      "controllers/tcon/targetForces/center_constraint_target:targetLambda"
+    ]
+    drivers=[
+      "V0"
+    ]
+    inputs=[
+      V0 3
+    ]
+    data=[
+      0.0 0.0 0.0 0.0
+      0.5 0.0 0.0 0.0
+      1.5 0.0 0.0 0.0
+      5.0 0.0 0.0 0.0
+    ]
+    plotTraceInfo=[
+      [ order=0 label="targetForces/center_constraint_target:targetLambda[0]" visible=true color=Blue ]
+      [ order=1 label="targetForces/center_constraint_target:targetLambda[1]" visible=true color=DarkGreen ]
+      [ order=2 label="targetForces/center_constraint_target:targetLambda[2]" visible=true color=Red ]
+    ]
+  ]
+  NumericInputProbe
+  [ startTime=0.0
+    stopTime=5.0
+    updateInterval=0.01
+    name="target positions"
+    attachedFile="ref_targetPos_input.txt"
+    active=false
+    interpolationOrder=Cubic
+    displayRange=[ -0.30000000000000004 3.3 ]
+    track=1
+    model=null
+    vsize=3
+    props=[
+      "controllers/tcon/targetPoints/center_ref:position"
+    ]
+    drivers=[
+      "V0"
+    ]
+    inputs=[
+      V0 3
+    ]
+    data=[
+      0.0 0.0 0.0 0.0
+      0.5 3.0 0.0 0.0
+      1.0 0.0 0.0 0.0
+    ]
+    plotTraceInfo=[
+      [ order=0 label="targetPoints/center_ref:position.x" visible=true color=Blue ]
+      [ order=1 label="targetPoints/center_ref:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="targetPoints/center_ref:position.z" visible=true color=Red ]
+    ]
+  ]
+  NumericInputProbe
+  [ startTime=0.0
+    stopTime=5.0
+    updateInterval=0.01
+    name="input excitations"
+    attachedFile="excitations_input.txt"
+    active=false
+    displayRange=[ Inf -Inf ]
+    track=2
+    model=models/point
+    vsize=16
+    props=[
+      "models/point/axialSprings/n:excitation"
+      "models/point/axialSprings/nne:excitation"
+      "models/point/axialSprings/ne:excitation"
+      "models/point/axialSprings/ene:excitation"
+      "models/point/axialSprings/e:excitation"
+      "models/point/axialSprings/ese:excitation"
+      "models/point/axialSprings/se:excitation"
+      "models/point/axialSprings/sse:excitation"
+      "models/point/axialSprings/s:excitation"
+      "models/point/axialSprings/ssw:excitation"
+      "models/point/axialSprings/sw:excitation"
+      "models/point/axialSprings/wsw:excitation"
+      "models/point/axialSprings/w:excitation"
+      "models/point/axialSprings/wnw:excitation"
+      "models/point/axialSprings/nw:excitation"
+      "models/point/axialSprings/nnw:excitation"
+    ]
+    drivers=[
+      "V0"
+      "V1"
+      "V2"
+      "V3"
+      "V4"
+      "V5"
+      "V6"
+      "V7"
+      "V8"
+      "V9"
+      "V10"
+      "V11"
+      "V12"
+      "V13"
+      "V14"
+      "V15"
+    ]
+    inputs=[
+      V0 1
+      V1 1
+      V2 1
+      V3 1
+      V4 1
+      V5 1
+      V6 1
+      V7 1
+      V8 1
+      V9 1
+      V10 1
+      V11 1
+      V12 1
+      V13 1
+      V14 1
+      V15 1
+    ]
+    data=[
+    ]
+    plotTraceInfo=[
+      [ order=0 label="axialSprings/n:excitation" visible=true color=Red ]
+      [ order=1 label="axialSprings/nne:excitation" visible=true color=DarkGreen ]
+      [ order=2 label="axialSprings/ne:excitation" visible=true color=Blue ]
+      [ order=3 label="axialSprings/ene:excitation" visible=true color=Cyan ]
+      [ order=4 label="axialSprings/e:excitation" visible=true color=Magenta ]
+      [ order=5 label="axialSprings/ese:excitation" visible=true color=DarkOrange ]
+      [ order=6 label="axialSprings/se:excitation" visible=true color=Pink ]
+      [ order=7 label="axialSprings/sse:excitation" visible=true color=BlueViolet ]
+      [ order=8 label="axialSprings/s:excitation" visible=true color=NavajoWhite ]
+      [ order=9 label="axialSprings/ssw:excitation" visible=true color=Gray ]
+      [ order=10 label="axialSprings/sw:excitation" visible=true color=DarkOliveGreen ]
+      [ order=11 label="axialSprings/wsw:excitation" visible=true color=IndianRed ]
+      [ order=12 label="axialSprings/w:excitation" visible=true color=PeachPuff ]
+      [ order=13 label="axialSprings/wnw:excitation" visible=true color=Red ]
+      [ order=14 label="axialSprings/nw:excitation" visible=true color=DarkGreen ]
+      [ order=15 label="axialSprings/nnw:excitation" visible=true color=Blue ]
+    ]
+  ]
+  NumericOutputProbe
+  [ startTime=0.0
+    stopTime=5.0
+    updateInterval=0.01
+    name="target positions"
+    attachedFile="ref_target_position.txt"
+    displayRange=[ -1.2 1.2 ]
+    track=0
+    model=null
+    props=[
+      "controllers/tcon/targetPoints/center_ref:position"
+    ]
+    variables=[
+      P0
+    ]
+    drivers=[
+      "P0"
+    ]
+    plotTraceInfo=[
+      [ order=0 label="targetPoints/center_ref:position.x" visible=true color=Blue ]
+      [ order=1 label="targetPoints/center_ref:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="targetPoints/center_ref:position.z" visible=true color=Red ]
+    ]
+  ]
+  NumericOutputProbe
+  [ startTime=0.0
+    stopTime=5.0
+    updateInterval=0.01
+    name="model positions"
+    attachedFile="model_target_position.txt"
+    displayRange=[ -1.2 1.2 ]
+    track=1
+    model=null
+    props=[
+      "models/point/frameMarkers/center:position"
+    ]
+    variables=[
+      P0
+    ]
+    drivers=[
+      "P0"
+    ]
+    plotTraceInfo=[
+      [ order=0 label="frameMarkers/center:position.x" visible=true color=Red ]
+      [ order=1 label="frameMarkers/center:position.y" visible=true color=DarkGreen ]
+      [ order=2 label="frameMarkers/center:position.z" visible=true color=Blue ]
+    ]
+  ]
+  NumericOutputProbe
+  [ startTime=0.0
+    stopTime=5.0
+    updateInterval=0.01
+    name="computed excitations"
+    attachedFile="excitations.txt"
+    displayRange=[ -1.1744284484036597E-18 1.2918712932440256E-17 ]
+    track=2
+    model=models/point
+    props=[
+      "models/point/axialSprings/n:excitation"
+      "models/point/axialSprings/nne:excitation"
+      "models/point/axialSprings/ne:excitation"
+      "models/point/axialSprings/ene:excitation"
+      "models/point/axialSprings/e:excitation"
+      "models/point/axialSprings/ese:excitation"
+      "models/point/axialSprings/se:excitation"
+      "models/point/axialSprings/sse:excitation"
+      "models/point/axialSprings/s:excitation"
+      "models/point/axialSprings/ssw:excitation"
+      "models/point/axialSprings/sw:excitation"
+      "models/point/axialSprings/wsw:excitation"
+      "models/point/axialSprings/w:excitation"
+      "models/point/axialSprings/wnw:excitation"
+      "models/point/axialSprings/nw:excitation"
+      "models/point/axialSprings/nnw:excitation"
+    ]
+    variables=[
+      P0
+      P1
+      P2
+      P3
+      P4
+      P5
+      P6
+      P7
+      P8
+      P9
+      P10
+      P11
+      P12
+      P13
+      P14
+      P15
+    ]
+    drivers=[
+      "P0"
+      "P1"
+      "P2"
+      "P3"
+      "P4"
+      "P5"
+      "P6"
+      "P7"
+      "P8"
+      "P9"
+      "P10"
+      "P11"
+      "P12"
+      "P13"
+      "P14"
+      "P15"
+    ]
+    plotTraceInfo=[
+      [ order=0 label="axialSprings/n:excitation" visible=true color=Red ]
+      [ order=1 label="axialSprings/nne:excitation" visible=true color=DarkGreen ]
+      [ order=2 label="axialSprings/ne:excitation" visible=true color=Blue ]
+      [ order=3 label="axialSprings/ene:excitation" visible=true color=Cyan ]
+      [ order=4 label="axialSprings/e:excitation" visible=true color=Magenta ]
+      [ order=5 label="axialSprings/ese:excitation" visible=true color=DarkOrange ]
+      [ order=6 label="axialSprings/se:excitation" visible=true color=Pink ]
+      [ order=7 label="axialSprings/sse:excitation" visible=true color=BlueViolet ]
+      [ order=8 label="axialSprings/s:excitation" visible=true color=NavajoWhite ]
+      [ order=9 label="axialSprings/ssw:excitation" visible=true color=Gray ]
+      [ order=10 label="axialSprings/sw:excitation" visible=true color=DarkOliveGreen ]
+      [ order=11 label="axialSprings/wsw:excitation" visible=true color=IndianRed ]
+      [ order=12 label="axialSprings/w:excitation" visible=true color=PeachPuff ]
+      [ order=13 label="axialSprings/wnw:excitation" visible=true color=Red ]
+      [ order=14 label="axialSprings/nw:excitation" visible=true color=DarkGreen ]
+      [ order=15 label="axialSprings/nnw:excitation" visible=true color=Blue ]
+    ]
+  ]
+  WayPointProbe
+  [ startTime=0.0
+    stopTime=Infinity
+    updateInterval=-1.0
+    name="WayPoints"
+    track=-1
+    model=null
+    wayPoints=
+    [ 
+      0.0
+      0.5
+      1.0
+      1.5
+      2.0
+      2.5
+      3.0
+      3.5
+      4.0
+      4.5
+      5.0 breakpoint
+    ]
+  ]
+]

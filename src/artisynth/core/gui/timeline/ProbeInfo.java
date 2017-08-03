@@ -849,9 +849,13 @@ public class ProbeInfo implements Clonable, ActionListener {
       myLargeProbeDisplayItem.addActionListener (this);
       myLargeProbeDisplayItem.setActionCommand ("Large Display");
 
-      JMenuItem myEditProbeItem = new JMenuItem ("Edit");
-      myEditProbeItem.addActionListener (this);
-      myEditProbeItem.setActionCommand ("Edit");
+      JMenuItem myEditProbeItem = null;
+      if (getProbe() instanceof NumericOutputProbe ||
+          getProbe() instanceof NumericInputProbe) {
+         myEditProbeItem = new JMenuItem ("Edit");
+         myEditProbeItem.addActionListener (this);
+         myEditProbeItem.setActionCommand ("Edit");
+      }
 
       JMenuItem myDuplicateItem = new JMenuItem ("Duplicate");
       myDuplicateItem.addActionListener (this);
@@ -917,7 +921,9 @@ public class ProbeInfo implements Clonable, ActionListener {
       popupMenu.addSeparator();
       popupMenu.add (myActivateItem);
       popupMenu.add (myDeleteItem);
-      popupMenu.add (myEditProbeItem);
+      if (myEditProbeItem != null) {
+         popupMenu.add (myEditProbeItem);
+      }
       popupMenu.addSeparator();
       popupMenu.add (myChangeNameItem);
       

@@ -401,7 +401,6 @@ public class NumericMonitorProbe extends NumericProbeBase
 
    public void getInitialState (
       ComponentState newstate, ComponentState oldstate) {
-      System.out.println ("get initial state " + (myHasStateP));
       if (myHasStateP) {
          DataBuffer newData = (NumericState)newstate;
          DataBuffer oldData = (oldstate != null ? (NumericState)oldstate : null);

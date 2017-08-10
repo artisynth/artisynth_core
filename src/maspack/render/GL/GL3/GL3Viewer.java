@@ -809,7 +809,7 @@ public class GL3Viewer extends GLViewer {
          //            mySelectingColorModified = false;
          //            myCommittedColor = ActiveColor.SELECTING;
          //         }
-         if (mySelectingColorModified && myCommittedProgramInfo != null && myCommittedProgramInfo.isSelecting ()) {
+         if (mySelectingColorModified && myCommittedProgram != null && myCommittedProgramInfo.isSelecting ()) {
             myProgManager.setSelectionColor (gl, myCommittedProgram, mySelectingColor);
             mySelectingColorModified = false;
          }

@@ -252,6 +252,15 @@ public class GLSLGenerator {
       }
 
    }
+   
+   /**
+    * Determines if we should add texture properties to the shader
+    * @param info program info
+    * @return true if texture content should be added
+    */
+   private static boolean hasTextures(GLProgramInfo info) {
+      return !info.isSelecting () && info.hasVertexTextures() && info.hasTextureMap ();
+   }
 
    private static void buildVertexShaderMain(StringBuilder mb, GLProgramInfo info) {
 
@@ -497,7 +506,7 @@ public class GLSLGenerator {
       }
       
       // textures
-      boolean hasTextures = !info.isSelecting () && info.hasVertexTextures() && info.hasTextureMap(); 
+      boolean hasTextures = hasTextures(info); 
       if (hasTextures) {
          appendln(mb, "   // forward vertex texture coordinates");
          appendln(mb, "   textureOut.texcoord = (texture_matrix*vec4(vertex_texcoord, 0, 1)).xy;");
@@ -622,7 +631,7 @@ public class GLSLGenerator {
                                   || instanced == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
                              || (instanced == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
       
-      boolean hasTextures = !info.isSelecting () && info.hasVertexTextures() && info.hasTextureMap ();
+      boolean hasTextures = hasTextures(info);
       
       if (hasColors) {
          appendln(hb, "// per-vertex color info");
@@ -866,7 +875,7 @@ public class GLSLGenerator {
                  || instanced == RenderingMode.INSTANCED_AFFINES) && info.hasInstanceColors())
             || (instanced == RenderingMode.INSTANCED_LINES && info.hasLineColors() ) );
 
-      boolean hasTextures = !info.isSelecting () && info.hasVertexTextures();
+      boolean hasTextures = hasTextures(info);
       
       if (hasColors) {
          appendln(hb, "// fragment colors from previous shader");
@@ -1073,12 +1082,12 @@ public class GLSLGenerator {
       }
 
    }
-
+   
    private static void buildFragmentShaderMain(StringBuilder mb, GLProgramInfo info) {
 
       RenderingMode mode = info.getMode();
       ColorInterpolation cinterp = info.getColorInterpolation();
-      boolean hasTextures = info.hasVertexTextures();
+      boolean hasTextures = hasTextures(info);
       
       appendln(mb, "// main fragment shader");
       appendln(mb, "void main() {");

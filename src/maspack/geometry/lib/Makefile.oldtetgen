@@ -22,10 +22,10 @@ ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 endif
 
 CC_COMP = g++
-CC_FLAGS = -O2 -DTETLIBRARY -I.
+CC_FLAGS = -O2 -DTETLIBRARY -DNDEBUG -I.
 
 C_COMP = gcc
-C_FLAGS = -O2 -std=c99 -mfpmath=sse -msse -I.
+C_FLAGS = -O2 -std=c99 -mfpmath=sse -msse -DNDEBUG -I.
 #C_FLAGS = -O2 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
 #C_FLAGS = -O0 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
 

@@ -217,6 +217,31 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       }
       return faceNormalsFound;
    }
+   
+   /**
+    * Computes a normal for this vertex by taking the average of all the
+    * associated face normals, expressed in world coordinates
+    * 
+    * @param nrm
+    * returns the computed normal
+    * @return false if no faces normals are found
+    */
+   public boolean computeWorldNormal (Vector3d nrm) {
+      boolean faceNormalsFound = false;
+      sortHedgesIfNecessary();
+      nrm.set (0, 0, 0);
+      for (HalfEdgeNode node = incidentHedges; node != null; node = node.next) {
+         Face face = node.he.face;
+         if (face != null) {
+            nrm.add (face.getWorldNormal());
+            faceNormalsFound = true;
+         }
+      }
+      if (faceNormalsFound) {
+         nrm.normalize();
+      }
+      return faceNormalsFound;
+   }
 
    /**
     * Computes a normal for this vertex by averaging the cross products of all

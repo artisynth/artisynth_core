@@ -32,6 +32,7 @@ import maspack.render.RenderableUtils;
 import maspack.render.Renderable;
 import maspack.util.DataBuffer;
 import maspack.util.DoubleHolder;
+import maspack.util.FunctionTimer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.ListRemove;
 import maspack.util.NumberFormat;
@@ -83,6 +84,7 @@ public class MultiPointSpring extends PointSpringBase
    protected static boolean DEFAULT_DRAW_AB_POINTS = false;
    protected static int DEFAULT_MAX_WRAP_ITERATIONS = 100;
    protected static int DEFAULT_MAX_WRAP_DISPLACEMENT = -1;
+   protected static boolean DEFAULT_PROFILING = false;
 
    protected double myWrapStiffness = DEFAULT_WRAP_STIFFNESS;
    protected double myWrapDamping = DEFAULT_WRAP_DAMPING;
@@ -101,7 +103,11 @@ public class MultiPointSpring extends PointSpringBase
    protected int myMaxWrapIterations = DEFAULT_MAX_WRAP_ITERATIONS;
    protected double myMaxWrapDisplacement = DEFAULT_MAX_WRAP_DISPLACEMENT;
    protected boolean myLineSearchP = DEFAULT_LINE_SEARCH;
-
+   protected boolean myProfilingP = DEFAULT_PROFILING;
+   
+   protected FunctionTimer myProfileTimer = new FunctionTimer();
+   protected int myProfileCnt = 0;
+   
    public double getSor() {
       return mySor;
    }
@@ -2838,6 +2844,14 @@ public class MultiPointSpring extends PointSpringBase
       }
    }
 
+   public boolean getProfiling () {
+      return myProfilingP;
+   }
+
+   public void setProfiling (boolean enabled) {
+      myProfilingP = enabled;
+   }
+
    public boolean getLineSearch () {
       return myLineSearchP;
    }
@@ -2888,6 +2902,8 @@ public class MultiPointSpring extends PointSpringBase
          "dnrmGain", "gain for dnrm K term", 1.0);
       myProps.add (
          "debugLevel", "turns on debug prints if > 0", DEFAULT_DEBUG_LEVEL);
+      myProps.add (
+         "profiling", "enables timing of the wrapping code", DEFAULT_PROFILING);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -3045,12 +3061,25 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    protected void updateWrapSegments (int maxIter) {
+      if (myProfilingP) {
+         myProfileTimer.restart();
+      }
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
             wrapSeg.updateWrapStrand(maxIter);
             wrapSeg.updateSubSegments();
+         }
+      }
+      if (myProfilingP) {
+         myProfileTimer.stop();
+         myProfileCnt++;
+         if (myProfileCnt > 0 && (myProfileCnt % 100) == 0) {
+            System.out.println (
+               "MultiPointSpring: updateWrapSegments time=" + 
+            myProfileTimer.result(100));
+            myProfileTimer.reset();
          }
       }
    }      
@@ -3251,7 +3280,8 @@ public class MultiPointSpring extends PointSpringBase
    private static int CONTACTING_KNOTS = 1;
 
    private void addRenderPos (
-      RenderObject robj, int vidx, WrapKnot knot) {
+      RenderObject robj, float[] pos, WrapKnot knot) {
+      int vidx = robj.vertex (pos);
       if (knot != null) {
          if (knot.inContact()) {
             robj.pointGroup (CONTACTING_KNOTS);
@@ -3268,17 +3298,20 @@ public class MultiPointSpring extends PointSpringBase
 
    protected RenderObject buildRenderObject() {
       RenderObject robj = new RenderObject();
+      robj.createPointGroup();
+      robj.createPointGroup();
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
-         robj.vertex (seg.myPntB.getRenderCoords());
+         addRenderPos (robj, seg.myPntB.getRenderCoords(), null);
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
             for (int k=0; k<wrapSeg.myNumKnots; k++) {
-               robj.vertex (wrapSeg.myKnots[k].updateRenderPos());
+               WrapKnot knot = wrapSeg.myKnots[k];
+               addRenderPos (robj, knot.updateRenderPos(), knot);
             }
          }
          if (i == numSegments()-1) {
-            robj.vertex (seg.myPntA.getRenderCoords());
+            addRenderPos (robj, seg.myPntA.getRenderCoords(), null);
          }
       }
       return robj;
@@ -3286,27 +3319,16 @@ public class MultiPointSpring extends PointSpringBase
 
    protected void updateRenderObject (RenderObject robj) {
       // updating the render object involves updating the knot render positions
-      robj.clearPrimitives();
-      robj.createPointGroup();
-      robj.createPointGroup();
-      int vidx = 0;
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
-         addRenderPos (robj, vidx++, /*knot=*/null);
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
             for (int k=0; k<wrapSeg.myNumKnots; k++) {
-               WrapKnot knot = wrapSeg.myKnots[k];
-               knot.updateRenderPos();
-               addRenderPos (robj, vidx++, knot);
+               wrapSeg.myKnots[k].updateRenderPos();
             }
-         }
-         if (i == numSegments()-1) {
-            addRenderPos (robj, vidx++, /*knot=*/null);
          }
       }
       robj.notifyPositionsModified();
-      robj.pointGroup (FREE_KNOTS);
    }
 
    public void prerender (RenderList list) {
@@ -3314,13 +3336,17 @@ public class MultiPointSpring extends PointSpringBase
       // points are rendered using basic point primitives on a per-segment list
       // of current AB points.
 
-
-      // create or update the render object, as needed
-      if (!myRenderObjValidP) {
-         myRenderObj = buildRenderObject();
+      // Ideally, we want to rebuilt the object when the strand structure
+      // changes *or* the knot contact configuration changes. But since we
+      // can't currently tell the latter, just rebuild every time:
+      if (true || !myRenderObjValidP) {
+         RenderObject robj = buildRenderObject();
+         myRenderObj = robj;
+         myRenderObjValidP = true;
       }
-      updateRenderObject(myRenderObj);
-      myRenderObjValidP = true;
+      else {
+         updateRenderObject(myRenderObj);
+      }
 
       if (myDrawABPointsP) {
          // for each wrappable segment, update the current list of AB points to
@@ -3391,23 +3417,21 @@ public class MultiPointSpring extends PointSpringBase
 
          if (myDrawKnotsP) {
             // draw the knots, if any
-            if (robj.numPoints() > 0) {
-               PointStyle pointStyle = props.getPointStyle();
-               if (pointStyle == PointStyle.POINT) {
-                  size = props.getPointSize();
-               }
-               else {
-                  size = props.getPointRadius();
-               }
-               renderer.setPointColoring (props, isSelected());
-               robj.pointGroup (FREE_KNOTS);
-               renderer.drawPoints (robj, pointStyle, size);
-               robj.pointGroup (CONTACTING_KNOTS);
-               if (myContactingKnotsColor != null) {
-                  renderer.setColor (myContactingKnotsColor);
-               }
-               renderer.drawPoints (robj, pointStyle, size);
+            PointStyle pointStyle = props.getPointStyle();
+            if (pointStyle == PointStyle.POINT) {
+               size = props.getPointSize();
             }
+            else {
+               size = props.getPointRadius();
+            }
+            renderer.setPointColoring (props, isSelected());
+            robj.pointGroup (FREE_KNOTS);
+            renderer.drawPoints (robj, pointStyle, size);
+            robj.pointGroup (CONTACTING_KNOTS);
+            if (myContactingKnotsColor != null) {
+               renderer.setColor (myContactingKnotsColor);
+            }
+            renderer.drawPoints (robj, pointStyle, size);
          }
       }
    }     

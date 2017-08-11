@@ -1588,6 +1588,7 @@ public class RigidBody extends Frame
              mySDGrid = new SignedDistanceGrid (
                getMesh(), myGridMargin, myDistanceGridMaxRes);           
          }
+         mySDGrid.smooth (0.33, -0.34, 2);
          mySDGridValid = true;
       }
       return mySDGrid;
@@ -1599,11 +1600,11 @@ public class RigidBody extends Frame
             PolygonalMesh surf;
             SignedDistanceGrid grid = getDistanceGrid();
             if (myRenderDistanceSurface == DistanceSurfaceRendering.QUADRATIC) {
-               surf = grid.computeQuadraticDistanceSurface(0, 5);
+               surf = grid.createQuadraticDistanceSurface(0, 5);
                surf.setMeshToWorld (myState.XFrameToWorld);
             }
             else {
-               surf = grid.computeDistanceSurface(0);
+               surf = grid.createDistanceSurface(0);
                surf.setMeshToWorld (myState.XFrameToWorld);
             }
             mySDSurface = surf;

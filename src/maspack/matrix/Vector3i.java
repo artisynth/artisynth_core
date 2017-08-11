@@ -210,6 +210,19 @@ public class Vector3i extends VectoriBase {
    }
 
    /**
+    * Sets the values of this vector to those of v1, converting to integer
+    * using regular cast conversion. May result in a loss of precision.
+    * 
+    * @param v1
+    * vector whose values are copied and rounded
+    */
+   public void set (Vector3d v1) {
+      x = (int)v1.x;
+      y = (int)v1.y;
+      z = (int)v1.z;
+   }
+
+   /**
     * Adds vector v1 to v2 and places the result in this vector.
     * 
     * @param v1

@@ -77,7 +77,8 @@ public class SignedDistanceGrid extends DistanceGrid implements Renderable {
     */
    public SignedDistanceGrid (
       PolygonalMesh mesh, double marginFraction, int maxResolution) {
-      super(mesh.getFaces().toArray(new Face[mesh.numFaces()]), marginFraction, maxResolution);
+      super(mesh.getFaces().toArray(new Face[mesh.numFaces()]), 
+         marginFraction, maxResolution, /*signed=*/true);
       setWorldTransform(mesh.getMeshToWorld());
    }
    
@@ -101,7 +102,8 @@ public class SignedDistanceGrid extends DistanceGrid implements Renderable {
     */
    public SignedDistanceGrid (
       PolygonalMesh mesh, double marginFraction, Vector3i resolution) {
-      super(mesh.getFaces().toArray(new Face[mesh.numFaces()]), marginFraction, resolution);
+      super(mesh.getFaces().toArray(new Face[mesh.numFaces()]), 
+         marginFraction, resolution, /*signed=*/true);
       setWorldTransform(mesh.getMeshToWorld());
    }
 
@@ -114,168 +116,167 @@ public class SignedDistanceGrid extends DistanceGrid implements Renderable {
 //      return myMesh;
 //   }
  
-   /** 
-    * Calculates the signed distance field.
-    */
-   protected void calculatePhi (Feature[] features, double marginDist) {
-      Logger logger = Logger.getSystemLogger();
-      //logger.info ("Calculating Signed Distance Field...");
+  /** 
+   * Calculates the signed distance field.
+   */
+  protected void calculatePhi (
+     Feature[] features, double marginDist) {
+     //Logger logger = Logger.getSystemLogger();
+     //logger.info ("Calculating Signed Distance Field...");
 
-      double maxDist = myMaxCoord.distance (myMinCoord);
-      int numV = numVX*numVY*numVZ;
+     System.out.println ("HERE");
 
-      myPhi = new double [numV];
-      myNormals = new Vector3d [numV];
-      myColorIndices = new int [numV];
-      myFeatures = features;
+     myFeatures = features;
 
-      for (int p = 0; p < myPhi.length; p++) {
-         myPhi[p] = maxDist;
-      }
-      // The index of closestFace matches with phi.
-      // Each entry in closestFace is the index of the closest 
-      // face to the grid vertex.
-      myClosestFeatureIdxs = new int[myPhi.length];
-      int zIntersectionCount[] = new int[myPhi.length];
-      
-      for (int i = 0; i < myPhi.length; i++) {
-         myClosestFeatureIdxs[i] = -1;
-         zIntersectionCount[i] = 0;
-      }
-      Point3d faceMin          = new Point3d();
-      Point3d faceMax          = new Point3d();
-      Point3d closestPoint     = new Point3d();
-      // Point3d currentPoint     = new Point3d();
-      Point3d currentPointMesh = new Point3d();
-      Point3d pc = new Point3d(); // A temp variable passed in for performance.
-      Point3d p1 = new Point3d(); // A temp variable passed in for performance.
-      Point3d bot = new Point3d();
-      Point3d top = new Point3d();
-      
-      // For every triangle...
-      for (int t = 0; t < myFeatures.length; t++) {
-         Face face = (Face)myFeatures[t];
-         faceMin.set (Double.POSITIVE_INFINITY,
-            Double.POSITIVE_INFINITY,
-            Double.POSITIVE_INFINITY);
-         faceMax.set (Double.NEGATIVE_INFINITY,
-            Double.NEGATIVE_INFINITY, 
-            Double.NEGATIVE_INFINITY);
-         face.updateBounds (faceMin, faceMax);
-         // Converting mesh min/max to grid coordinates.
-         int faceMinX = (int)((faceMin.x - myMinCoord.x) / myCellWidths.x);
-         int faceMinY = (int)((faceMin.y - myMinCoord.y) / myCellWidths.y);
-         int faceMinZ = (int)((faceMin.z - myMinCoord.z) / myCellWidths.z);
-         if (faceMinX < 0) {
-            faceMinX = 0;
-         }
-         if (faceMinY < 0) {
-            faceMinY = 0;
-         }
-         if (faceMinZ < 0) {
-            faceMinZ = 0;
-         }
-         int faceMaxX = (int)((faceMax.x - myMinCoord.x) / myCellWidths.x) + 1;
-         int faceMaxY = (int)((faceMax.y - myMinCoord.y) / myCellWidths.y) + 1;
-         int faceMaxZ = (int)((faceMax.z - myMinCoord.z) / myCellWidths.z) + 1;
-         if (faceMaxX > numVX - 1) {
-            faceMaxX = numVX - 1;
-         }
-         if (faceMaxY > numVY - 1) {
-            faceMaxY = numVY - 1;
-         }
-         if (faceMaxZ > numVZ - 1) {
-            faceMaxZ = numVZ - 1;
-         }
+     double maxDist = myMaxCoord.distance (myMinCoord);
+     int numV = numVX*numVY*numVZ;
 
-         // Now go through the entire parallelpiped. Calculate distance and
-         // closestFace.
-         for (int z = faceMinZ; z <= faceMaxZ; z++) {
-            for (int y = faceMinY; y <= faceMaxY; y++) {
-               for (int x = faceMinX; x <= faceMaxX; x++) {
-                  // Get mesh coordinates
-                  getLocalVertexCoords (currentPointMesh, x, y, z);
-                  // Get the distance from this point to the face.
-                  face.nearestPoint (closestPoint, currentPointMesh);
-                  double distance = currentPointMesh.distance (closestPoint);
-                  int index = xyzIndicesToVertex (x, y, z);
-                  if (distance < myPhi[index]) {
-                     myPhi[index] = distance;
-                     myClosestFeatureIdxs [index] = t;
-                  }
-               }
-            }
-         }
-         
-         // Ray-casts from bottom x-y plane, upwards, counting intersections.
-         // We're building intersectionCount[] to use in ray casting below.
-         for (int y = faceMinY; y <= faceMaxY; y++) {
-            currentPointMesh.y = y * myCellWidths.y + myMinCoord.y;
-            for (int x = faceMinX; x <= faceMaxX; x++) {
-               currentPointMesh.x = x * myCellWidths.x + myMinCoord.x;
+     myPhi = new double [numV];
+     myNormals = new Vector3d [numV];
+     myColorIndices = new int [numV];
 
-               bot.x = currentPointMesh.x;
-               bot.y = currentPointMesh.y;
-               bot.z = myMinCoord.z-1;
-               top.x = currentPointMesh.x;
-               top.y = currentPointMesh.y;
-               top.z = myMaxCoord.z+1;
+     for (int p = 0; p < myPhi.length; p++) {
+        myPhi[p] = maxDist;
+     }
+     // The index of closestFace matches with phi.
+     // Each entry in closestFace is the index of the closest 
+     // face to the grid vertex.
+     myClosestFeatureIdxs = new int[myPhi.length];
+     int zIntersectionCount[] = new int[myPhi.length];
+     
+     for (int i = 0; i < myPhi.length; i++) {
+        myClosestFeatureIdxs[i] = -1;
+        zIntersectionCount[i] = 0;
+     }
+     Point3d faceMin          = new Point3d();
+     Point3d faceMax          = new Point3d();
+     Point3d closestPoint     = new Point3d();
+     // Point3d currentPoint     = new Point3d();
+     Point3d currentPointMesh = new Point3d();
+     Point3d bot = new Point3d();
+     Point3d top = new Point3d();
+     
+     // For every triangle...
+     for (int t = 0; t < myFeatures.length; t++) {
+        Face face = (Face)myFeatures[t];
+        faceMin.set (INF, INF, INF);
+        faceMax.set (-INF, -INF, -INF);
+        face.updateBounds (faceMin, faceMax);
+        // Converting mesh min/max to grid coordinates.
+        int faceMinX = (int)((faceMin.x - myMinCoord.x) / myCellWidths.x);
+        int faceMinY = (int)((faceMin.y - myMinCoord.y) / myCellWidths.y);
+        int faceMinZ = (int)((faceMin.z - myMinCoord.z) / myCellWidths.z);
+        if (faceMinX < 0) {
+           faceMinX = 0;
+        }
+        if (faceMinY < 0) {
+           faceMinY = 0;
+        }
+        if (faceMinZ < 0) {
+           faceMinZ = 0;
+        }
+        int faceMaxX = (int)((faceMax.x - myMinCoord.x) / myCellWidths.x) + 1;
+        int faceMaxY = (int)((faceMax.y - myMinCoord.y) / myCellWidths.y) + 1;
+        int faceMaxZ = (int)((faceMax.z - myMinCoord.z) / myCellWidths.z) + 1;
+        if (faceMaxX > numVX - 1) {
+           faceMaxX = numVX - 1;
+        }
+        if (faceMaxY > numVY - 1) {
+           faceMaxY = numVY - 1;
+        }
+        if (faceMaxZ > numVZ - 1) {
+           faceMaxZ = numVZ - 1;
+        }
 
-               Point3d ipnt = new Point3d();
-               int res = RobustPreds.intersectSegmentTriangle (
-                  ipnt, bot, top, face, maxDist, /*worldCoords=*/false);
+        // Now go through the entire parallelpiped. Calculate distance and
+        // closestFace.
+        for (int z = faceMinZ; z <= faceMaxZ; z++) {
+           for (int y = faceMinY; y <= faceMaxY; y++) {
+              for (int x = faceMinX; x <= faceMaxX; x++) {
+                 // Get mesh coordinates
+                 getLocalVertexCoords (currentPointMesh, x, y, z);
+                 // Get the distance from this point to the face.
+                 face.nearestPoint (closestPoint, currentPointMesh);
+                 double distance = currentPointMesh.distance (closestPoint);
+                 int index = xyzIndicesToVertex (x, y, z);
+                 if (distance < myPhi[index]) {
+                    myPhi[index] = distance;
+                    myClosestFeatureIdxs [index] = t;
+                 }
+              }
+           }
+        }
+        
+        // Ray-casts from bottom x-y plane, upwards, counting intersections.
+        // We're building intersectionCount[] to use in ray casting below.
+        for (int y = faceMinY; y <= faceMaxY; y++) {
+           currentPointMesh.y = y * myCellWidths.y + myMinCoord.y;
+           for (int x = faceMinX; x <= faceMaxX; x++) {
+              currentPointMesh.x = x * myCellWidths.x + myMinCoord.x;
 
-               if (res > 0) {
-                  currentPointMesh.z = ipnt.z;
-                  // We should now use the z value in grid coordinates.
-                  // Extract it from currentPointMesh
-                  double currentPointZ =
-                     (currentPointMesh.z - myMinCoord.z) / myCellWidths.z;
-                  int zInterval = (int)currentPointZ + 1;
-                  // intersection counted in next grid square
-                  if (zInterval < 0) {
-                     ++zIntersectionCount [xyzIndicesToVertex (x, y, 0)];
-                  } else if (zInterval < numVZ) {
-                     ++zIntersectionCount[xyzIndicesToVertex(x, y, zInterval)];
-                  }
-               } // point in triangle
-            } // x
-         } // y
-      }
+              bot.x = currentPointMesh.x;
+              bot.y = currentPointMesh.y;
+              bot.z = myMinCoord.z-1;
+              top.x = currentPointMesh.x;
+              top.y = currentPointMesh.y;
+              top.z = myMaxCoord.z+1;
 
-      // Done all triangles.
-      // Sweep, propagating values throughout the grid volume.
-      for (int pass = 0; pass < 2; pass++) {
-         sweep(+1, +1, +1, pc, p1);
-         sweep(-1, -1, -1, pc, p1);
-         sweep(+1, +1, -1, pc, p1);
-         sweep(-1, -1, +1, pc, p1);
-         sweep(+1, -1, +1, pc, p1);
-         sweep(-1, +1, -1, pc, p1);
-         sweep(+1, -1, -1, pc, p1);
-         sweep(-1, +1, +1, pc, p1);
-      }
-      
-      // This is a ray-casting implementation to find the sign of each vertex in
-      // the grid.
-      for (int x = 0; x < numVX; x++) {
-         for (int y = 0; y < numVY; y++) {
-            int total_count = 0;
-            //Count the intersections of the x axis
-            for (int z = 0; z < numVZ; z++) {
-               int index = xyzIndicesToVertex (x, y, z);
-               total_count += zIntersectionCount [index];
+              Point3d ipnt = new Point3d();
+              int res = RobustPreds.intersectSegmentTriangle (
+                 ipnt, bot, top, face, maxDist, /*worldCoords=*/false);
 
-               // If parity of intersections so far is odd, we are inside the 
-               // mesh.
-               if (total_count % 2 == 1) {
-                  myPhi[index] =- myPhi[index];
-               }
-            }
-         }
-      }
-      //logger.println ("done.");
-   }
+              if (res > 0) {
+                 currentPointMesh.z = ipnt.z;
+                 // We should now use the z value in grid coordinates.
+                 // Extract it from currentPointMesh
+                 double currentPointZ =
+                    (currentPointMesh.z - myMinCoord.z) / myCellWidths.z;
+                 int zInterval = (int)currentPointZ + 1;
+                 // intersection counted in next grid square
+                 if (zInterval < 0) {
+                    ++zIntersectionCount [xyzIndicesToVertex (x, y, 0)];
+                 } else if (zInterval < numVZ) {
+                    ++zIntersectionCount[xyzIndicesToVertex(x, y, zInterval)];
+                 }
+              } // point in triangle
+           } // x
+        } // y
+     }
+
+     // Done all triangles.
+     // Sweep, propagating values throughout the grid volume.
+     for (int pass = 0; pass < 2; pass++) {
+        sweep(+1, +1, +1);
+        sweep(-1, -1, -1);
+        sweep(+1, +1, -1);
+        sweep(-1, -1, +1);
+        sweep(+1, -1, +1);
+        sweep(-1, +1, -1);
+        sweep(+1, -1, -1);
+        sweep(-1, +1, +1);
+     }
+     
+     // This is a ray-casting implementation to find the sign of each vertex in
+     // the grid.
+     for (int x = 0; x < numVX; x++) {
+        for (int y = 0; y < numVY; y++) {
+           int total_count = 0;
+           //Count the intersections of the x axis
+           for (int z = 0; z < numVZ; z++) {
+              int index = xyzIndicesToVertex (x, y, z);
+              total_count += zIntersectionCount [index];
+
+              // If parity of intersections so far is odd, we are inside the 
+              // mesh.
+              if (total_count % 2 == 1) {
+                 myPhi[index] =- myPhi[index];
+              }
+           }
+        }
+     }
+     mySignedP = true;
+     //logger.println ("done.");
+  }
 
 
    /** 

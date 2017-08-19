@@ -15,7 +15,6 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
    protected TrackingController myController;
 
    ArrayList<Vector3d> bounds = new ArrayList<Vector3d> ();
-   MatrixNd N = new MatrixNd ();
 
    /*
     * The vectors n representing bounds in addHalfSpaceBound()
@@ -24,13 +23,26 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
     * rotate as well. If this frame is set to the object's frame,
     * that behaviour can be achieved.
     * 
-    * By default, it is initialized to whatever the default orientation
-    * is. If no frame is specified in a constructor, switching back and 
-    * forth between global and frame representations will have no effect 
-    * because this dummy frame will not have been rotated.
+    * If no frame is specified in a constructor, a default frame
+    * will be used. That frame will not be attached to any rotating body,
+    * so the joint will behave as though it is fixed to the global
+    * coordinate system.
     */
    protected Frame frame;
-   protected MatrixNd NFrame = null;
+   
+   /*
+    * Representation of the bound vectors in frame coordinates.
+    * These do not change as the frame rotates: the frame coordinates
+    * remain the same throughout the movement.
+    */
+   protected MatrixNd NFrame = new MatrixNd();
+   
+   /*
+    * Representation of the bound vectors in global coordinates.
+    * These values change as the frame rotates and need to be
+    * recalculated at each time step.
+    */
+   MatrixNd N = new MatrixNd ();
 
    public SphericalJointForceBound () {
    }
@@ -39,57 +51,55 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
       super (weight);
       myController = con;
       P.setZero ();
+      frame = new Frame(); // no frame specified; use default
    }
-
+   
    public SphericalJointForceBound (
       double weight, TrackingController con, Frame f) {
-      this(weight, con);
+      super (weight);
+      myController = con;
+      P.setZero ();
       if (f == null) {
-         frame = new Frame();
+         frame = new Frame(); // no frame specified, use default
       } else {
          frame = f;
       }
    }
 
    /**
-    * Computes the rows of Matrix N from the bounds, relative to the frame.
-    * The bounds are given globally, and this function represents them in
-    * terms of the Spherical Joint's frame.
+    * Computes the bound vectors into the joint's frame of reference.
     */
-   public void globalToFrame() {
-      if (NFrame == null) {
-         NFrame = new MatrixNd(bounds.size (), 3);
-         RigidTransform3d R = frame.getPose ();
-         for (int i = 0; i < bounds.size (); i++) {
-            //Make a copy of vector at bounds(i)
-            Vector3d vFrame = new Vector3d(bounds.get (i));
-            //Transform it into the frame's coordinates
-            vFrame.inverseTransform (R);
-            //Add it to NFrame
-            NFrame.setRow (i, vFrame);
-         }
+   protected void globalToFrame() {
+      NFrame = new MatrixNd(bounds.size (), 3);
+      RigidTransform3d R = frame.getPose ();
+      for (int i = 0; i < bounds.size (); i++) {
+         //Make a copy of vector at bounds(i)
+         Vector3d vFrame = new Vector3d(bounds.get (i));
+         //Transform it into the frame's coordinates
+         vFrame.inverseTransform (R);
+         //Add it to NFrame
+         NFrame.setRow (i, vFrame);
+
       }
    }
 
    /**
-    * Changes the Matrix N's representation from the Spherical Joint's frame
-    * to a global representation.
+    * Transforms the bound vectors back into global coordinates.
     */
-   public void frameToGlobal() {
-      if (NFrame != null) {
-         N = new MatrixNd(NFrame.rowSize (), 3);
-         RigidTransform3d R = frame.getPose ();
-         for (int i = 0; i < NFrame.rowSize (); i++) {
-            //Get the values from the i'th row of NFrame
-            double[] d = new double[3];
-            NFrame.getRow (i, d);
-            //Create a vector from the row and transform it back to global
-            Vector3d vGlobal = new Vector3d(d);
-            vGlobal.transform (R);
-            //Add it to N (which is used to solve)
-            N.setRow (i, vGlobal);
-         }
+   protected void frameToGlobal() {
+      N = new MatrixNd(NFrame.rowSize (), 3);
+      RigidTransform3d R = frame.getPose ();
+      for (int i = 0; i < NFrame.rowSize (); i++) {
+         //Get the values from the i'th row of NFrame
+         double[] d = new double[3];
+         NFrame.getRow (i, d);
+         //Create a vector from the row and transform it back to global
+         Vector3d vGlobal = new Vector3d(d);
+         vGlobal.transform (R);
+         //Add it to N (which is used to solve)
+         N.setRow (i, vGlobal);
       }
+
    }
 
    @Override
@@ -99,21 +109,11 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
 
    @Override
    protected void compute (double t0, double t1) {
-      frameToGlobal();
-      
-      /*
-      // DEBUG
-      if (t0 % 0.1 < 0.01) {
-         Vector3d v1 = bounds.get(1);
-         double[] d = new double[3];
-         N.getRow (1, d);
-         Vector3d v2 = new Vector3d(d);
-         System.out.println("bounds: " + v1 + " N: " + v2 + " " + (v2.dot (v2))/(v1.dot (v1)));
-      }
-      */
+      frameToGlobal(); // solve the system in global coordinates
       
       //      System.out.println("N="+N.toString ("%3.1f"));
       //      System.out.println("Hc="+myController.getData ().getHc ().toString ("%3.1f"));
+      
       H.mul (N, myController.getData ().getHc ()); // assumes Hc targets one spherical joint
       f.mul (N, myController.getData ().getC0 ());
       f.negate ();
@@ -121,15 +121,28 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
       //      System.out.println("f="+f.toString ("%g"));      
    }
 
+   /**
+    * Add a half-space bound to the spherical joint
+    * This vector is specified relative to a global coordinate frame
+    * @param n vector specifying the half-space bound
+    */
    public void addHalfspaceBound(Vector3d n) {
       bounds.add (n);
+      
       N = new MatrixNd (bounds.size (), 3);
       for (int i = 0; i < bounds.size (); ++i) {
          N.setRow (i, bounds.get (i));
       }
+      
       H.setSize (bounds.size (), 3);
+      globalToFrame(); // represent the vector in frame coordinates
    }
 
+   /**
+    * Returns a list of all the vectors forming the spherical
+    * joint force bound, in global coordinates. (read-only)
+    * @return list of the bound normals
+    */
    public ArrayList<Vector3d> getBoundNormals() {
       ArrayList<Vector3d> ret = new ArrayList<Vector3d>();
       for (int i = 0; i < N.rowSize (); i++) {
@@ -138,11 +151,20 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
          ret.add (new Vector3d(d));
       }
       return ret;
-      //return bounds;
    }
 
    public MatrixNd getMatrixOfBoundNormals() {
       return N;
+   }
+   
+   /**
+    * Returns the frame used by the spherical joint force bound
+    * This frame should not be directly modified as it is used to
+    * track the movement of the body that the joint is attached to.
+    * @return the spherical joint's frame
+    */
+   public Frame getFrame() {
+      return frame;
    }
 
 

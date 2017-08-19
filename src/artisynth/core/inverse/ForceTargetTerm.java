@@ -23,6 +23,9 @@ import maspack.properties.PropertyList;
  * Reaction force error term for the TrackingController
  * 
  * @author Ian Stavness, Benedikt Sagl
+ * 
+ * TODO Fix the jacobian
+ * TODO See if a similar issue exists for frame-based tracking
  *
  */
 public class ForceTargetTerm extends LeastSquaresTermBase {
@@ -102,12 +105,17 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    }
 
    double[] tmpBuf = new double[3];
-
    
+   /**
+    * XXX This Jacobian needs to be re-computed at each time step
+    * OR it needs to be transformed to global co-ordinates so that the
+    * tracking controller can use it properly, since it does not change
+    * as the model moves
+    */
    public SparseBlockMatrix getForceJacobian() {
-      if (myForJacobian == null) {
+//      if (myForJacobian == null) {
          createForceJacobian();
-      }
+//      }
       return myForJacobian;
    }
 
@@ -306,11 +314,13 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       H.setSubMatrix(rowoff, 0, Hc);
       b.setSubVector(rowoff, cbar);
 
-      if (myController.isDebugTimestep (t0, t1)) {
-         System.out.println("tcon "+myTargetFor);
-         System.out.println("Jc "+getForceJacobian ());
-         System.out.println("Hc "+Hc);
-         System.out.println("cbar "+cbar);
+      /* debug output */
+      if (myController.getDebug()) {
+//         System.out.println ("(ForceTargetTerm)");
+//         System.out.println("\tTargetForce: " + myTargetFor);
+//         System.out.println("\tJc:\n" + getForceJacobian ().toString ("%.3f"));
+//         System.out.println("\tHc:\n" + Hc.toString ("%.3f"));
+//         System.out.println("\tcbar: " + cbar.toString ("%.3f"));
       }
       
       return rowoff + Hc.rowSize();

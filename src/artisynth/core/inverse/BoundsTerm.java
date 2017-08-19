@@ -1,5 +1,7 @@
 package artisynth.core.inverse;
 
+import java.util.ArrayList;
+
 import maspack.matrix.MatrixNd;
 import maspack.matrix.VectorNd;
 
@@ -15,6 +17,8 @@ public class BoundsTerm extends LeastSquaresTermBase {
    protected double myUpperBound; 
    protected boolean useLowerBound = false;
    protected boolean useUpperBound = false;
+   protected ArrayList<Double> myUpperBoundsList = null;
+   protected ArrayList<Double> myLowerBoundsList = null;
    
    public void setLowerBound(double lowerBound) {
       myLowerBound = lowerBound;
@@ -36,26 +40,72 @@ public class BoundsTerm extends LeastSquaresTermBase {
       setSize(mySize); //resizes and recomputes cost term
    }
    
+   /**
+    * Sets upper and lower bounds.
+    * The bounds can be individually set or they can take on a default value otherwise.
+    * Null values in the lists are interpreted as "use default"
+    * @param lowerBound default lower limit
+    * @param upperBound default upper limit
+    * @param lowerBoundsList list of individual lower bounds
+    * @param upperBoundsList list of individual upper bounds
+    * @author Andrew
+    */
+   public void setBounds(double lowerBound, double upperBound, 
+      ArrayList<Double> lowerBoundsList, ArrayList<Double> upperBoundsList) {
+
+      myLowerBoundsList = lowerBoundsList;
+      myUpperBoundsList = upperBoundsList;
+      setBounds(lowerBound, upperBound);
+   }
+   
    public void clearBounds() {
       useLowerBound = false;
       useUpperBound = false;
+      myLowerBoundsList = null;
+      myUpperBoundsList = null;
       setSize(mySize); //resizes and recomputes cost term
    }
    
    private void computeBounds() {
       int row = myRowSize;
-      if (useLowerBound) {
-         for (int i = 0; i < mySize; i++) {
-            H.set (row, i, 1.0); // x >= lb
-            f.set (row++, myLowerBound);
+      try {
+         if (useLowerBound) {
+            for (int i = 0; i < mySize; i++) {
+               double bound;               
+               if (myLowerBoundsList != null && myLowerBoundsList.get (i) != null) {
+                  /* try to grab the individual value from the list */ 
+                  bound = myLowerBoundsList.get (i);
+               } else {
+                  /* if the list is null or the Double at i is null, use default */
+                  bound = myLowerBound;
+               }
+
+               H.set (row, i, 1.0); // x >= lb
+               f.set (row++, bound);
+            }
          }
-      }
-      if (useUpperBound) {
-         for (int i = 0; i < mySize; i++) {
-            H.set (row, i, -1.0); // -x >= -ub
-            f.set (row++, -myUpperBound);
+         if (useUpperBound) {
+            for (int i = 0; i < mySize; i++) {
+               double bound;
+               if (myUpperBoundsList != null && myUpperBoundsList.get (i) != null) {
+                  bound = myUpperBoundsList.get (i);
+               } else {
+                  bound = myUpperBound;
+               }
+
+               H.set (row, i, -1.0); // -x >= -ub
+               f.set (row++, -bound);
+            }
          }
+      } catch (IndexOutOfBoundsException e) {
+         e.printStackTrace ();
+         System.out.println ("Bounds list(s) not valid. Using default bounds instead.");
+         myUpperBoundsList = null; // clear the invalid lists
+         myLowerBoundsList = null;
+         computeBounds(); // try again
       }
+//      System.out.println (H);
+//      System.out.println (f);
    }
    
    @Override

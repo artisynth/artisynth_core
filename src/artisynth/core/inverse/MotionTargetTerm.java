@@ -42,6 +42,9 @@ import artisynth.core.util.TimeBase;
  * Motion tracking error term for the TrackingController
  * 
  * @author Ian Stavness, Antonio Sanchez
+ * 
+ * TODO Fix the jacobian
+ * TODO See if a similar issue exists for frame-based tracking
  *
  */
 public class MotionTargetTerm extends LeastSquaresTermBase {
@@ -716,11 +719,17 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 
    /**
     * Returns the velocity Jacobian, creates if null
+    * 
+    * XXX This Jacobian needs to be re-computed at each time step
+    * OR it needs to be transformed to global co-ordinates so that the
+    * tracking controller can use it properly, since it does not change
+    * as the model moves
     */
    public SparseBlockMatrix getVelocityJacobian() {
-      if (myVelJacobian == null) {
+      
+//      if (myVelJacobian == null) {
          createVelocityJacobian();
-      }
+//      }
       return myVelJacobian;
    }
 
@@ -758,6 +767,13 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // XXX do useTimestepScaling, useNormalizeH on targetVel
 
       vbar.sub (myTargetVel, myController.getData ().getV0 ());
+      
+      if (myController.getDebug ()) {
+         System.out.println ("(MotionTargetTerm)");
+         System.out.println ("\tmyTargetVel: " + myTargetVel.toString ("%.3f"));
+         System.out.println ("\tV0: " + myController.getData ().getV0 ().toString ("%.3f"));
+         System.out.println ("\tvbar: " + vbar.toString ("%.3f"));
+      }
       
       MatrixNd Hv = new MatrixNd (myTargetVelSize, myController.numExcitations ());
       Hv.set (myController.getData ().getHv ());

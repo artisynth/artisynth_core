@@ -140,6 +140,15 @@ public class MotionForceInverseData
 
       // bf = M v + h fp
       bf.scaledAdd(h, fp, bf);
+      
+      /* debug info */
+      if (myController.getDebug ()) {
+         System.out.println ("(MotionForceInverseData - PreKKTSolve)");
+         System.out.println ("\tbf: " + bf.toString ("%.3f"));
+         System.out.println ("\tftmp: " + ftmp.toString ("%.3f"));
+         System.out.println ("\tcurVel: " + curVel.toString ("%.3f"));
+         System.out.println ("\th: " + h);
+      }
 
       if (useTrapezoidalSolver) {
          // use Trapezoidal integration
@@ -161,7 +170,19 @@ public class MotionForceInverseData
 //      }
 
       // vbar = v* - Jm u0
+      
+      /* debug info */
+      if (myController.getDebug ()) {
+         System.out.println ("(MotionForceInverseData - PostKKTSolve)");
+         System.out.println ("\tv0: " + v0.toString ("%.3f"));
+         System.out.println ("\tu0: " + u0.toString ("%.3f"));
+         System.out.println ("\tftmp: " + ftmp.toString ("%.3f"));         
+      }
+      
       if (Jm != null) {
+         if (myController.getDebug ()) {
+            System.out.println ("\n(MotionForceInverseData)\nJm:\n" + Jm.toString("%.3f"));
+         }
          Jm.mul(v0, u0, Jm.rowSize (), velSize);
       }
       else {
@@ -173,10 +194,12 @@ public class MotionForceInverseData
       lam0.set (myMechSysSolver.getLambda ());
       if (Jc != null) {
          
-         if (myController.isDebugTimestep (t0, t1)) {
-            System.out.println("lam0 size"+lam0.size ());
-            System.out.println("tforSize"+Jc.rowSize ());
-            System.out.println("Jc"+Jc);
+         /* debug info */
+         if (myController.getDebug()) {
+//            System.out.println ("(MotionForceInverseData)");
+//            System.out.println("\tlam0 size = "+lam0.size ());
+//            System.out.println("\ttforSize = "+Jc.rowSize ());
+//            System.out.println("\tJc:\n"+Jc);
          }
          
          Jc.mul(c0, lam0);
@@ -196,7 +219,12 @@ public class MotionForceInverseData
             ex.set(j - 1, 0.0);
          }
          ex.set(j, 1.0);
-         myController.updateForces(t1, fa, ex); 
+         // XXX scale excitation value by weight??
+         
+         myController.updateForces(t1, fa, ex);
+         
+         // XXX scale fa by excitation weight??
+         
          fa.sub (fa, fp);
          fa.scale (h);
          
@@ -253,9 +281,9 @@ public class MotionForceInverseData
 //         v0.scale(1/h); 
 //      }
       
-       if (TrackingController.isDebugTimestep (t0, t1)) {
-          System.out.println("dt = " + h + "    |Hm| = " + Hv.frobeniusNorm() + "    |vbar| = " + v0.norm ());
-//          System.out.println("    vbar = " + v0 + " equals    targetVel = " + targetVel + "    minus    v0 = " + u0 );
+       if (myController.getDebug()) {
+          System.out.printf("(MotionForceInverseData)\n\tdt = %.3f" + "    |Hv| = %.3f" + "    |vbar| = %.3f\n",
+             h, Hv.frobeniusNorm(), v0.norm ());
        }
       /*END EDIT*/
       

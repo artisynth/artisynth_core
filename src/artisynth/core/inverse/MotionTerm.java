@@ -204,7 +204,7 @@ public class MotionTerm
          vbar.scale(1/h); 
       }
       
-       if (TrackingController.isDebugTimestep (t0, t1)) {
+       if (myController.getDebug ()) {
           System.out.println("dt = " + h + "    |Hm| = " + Hm.frobeniusNorm() + "    |vbar| = " + vbar.norm ());
           System.out.println("    vbar = " + vbar + " equals    targetVel = " + targetVel + "    minus    v0 = " + u0 );
        }

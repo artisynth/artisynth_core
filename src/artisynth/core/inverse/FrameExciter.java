@@ -9,6 +9,7 @@ package artisynth.core.inverse;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.util.Deque;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -241,6 +242,45 @@ ExcitationComponent, ForceComponent {
       }
       return fes;
    }
+
+   /**
+    * Adds frame exciters for up to 6 components of a wrench on a frame.
+    * Each component can have its own maximum force and is only added if desired.
+    * @param mech the MechModel
+    * @param frame the frame on which the wrench is applied
+    * @param enabled array[6] indicating which of the 6 components should be added
+    * @param maxForces array[6] indicating the max force for each component (value does not matter for unused components)
+    * @return an array containing only the active frame exciters
+    */
+   public static FrameExciter[] addFrameExciters(MechModel mech, Frame frame, boolean[] enabled, double[] maxForces) {
+      if (maxForces.length != 6) {
+         throw new InputMismatchException ("maxForces[] must have 6 elements");
+      }
+      if (enabled.length != 6) {
+         throw new InputMismatchException ("enabled[] must have 6 elements");
+      }
+      
+      /* count how many force effectors there will be */
+      int b = 0;
+      for (boolean bool : enabled) {
+         if (bool) {
+            b++;
+         }
+      }
+      FrameExciter[] fes = new FrameExciter[b];
+      
+      int i = 0;
+      int j = 0;
+      for (WrenchComponent comp : WrenchComponent.values()) {
+         if (enabled[i]) {
+            FrameExciter fe = new FrameExciter(frame.getName()+"_"+comp.name (), frame, comp, maxForces[i]);
+            mech.addForceEffector(fe);
+            fes[j++] = fe;
+         }
+         i++;
+      }      
+      return fes;
+   }
    
    
    /*
@@ -257,6 +297,8 @@ ExcitationComponent, ForceComponent {
       }
       return fes;
    }
+   
+   
 
    /**
     * {@inheritDoc}

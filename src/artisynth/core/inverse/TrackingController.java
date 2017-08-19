@@ -123,21 +123,32 @@ public class TrackingController extends ControllerBase
    protected PointList<TargetPoint> targetPoints;
    protected RenderableComponentList<TargetFrame> targetFrames;
    protected RenderableComponentList<ForceTarget> targetForces;
-   protected ComponentList<ExcitationComponent> exciters;
    protected ReferenceList sourcePoints;
    protected ReferenceList sourceFrames;
+   protected ComponentList<ExcitationComponent> exciters;
+   protected MuscleExciter myExciters;  // list of inputs
+   protected boolean useMyExciters = false;
+   
+   /*
+    * Weights used to emphasize or de-emphasize certain excitation components,
+    * by altering the component regularization term associated with that excitation component.
+    */
+   protected VectorNd excitationRegularizationWeights;
+   public static final double DEFAULT_EXCITATION_REGULARIZATION_WEIGHT = 1.0;
+   
+   protected ArrayList<Double> upperExcitationBounds = new ArrayList<>();
+   protected ArrayList<Double> lowerExcitationBounds = new ArrayList<>();   
    
    public static boolean isDebugTimestep(double t0, double t1) {
-//      double EPS = 1e-10;
-//     return (t0 < EPS ||
-//      (t1 <= 2+EPS && t1 >=2-EPS) ||
-//      (t1 <= 4+EPS && t1 >4-EPS) ||
-//      (t1 <= 6+EPS && t1 >6-EPS)
-//      );
-      return false;
-   }
-
-   protected MuscleExciter myExciters;  // list of inputs
+//    double EPS = 1e-10;
+//   return (t0 < EPS ||
+//    (t1 <= 2+EPS && t1 >=2-EPS) ||
+//    (t1 <= 4+EPS && t1 >4-EPS) ||
+//    (t1 <= 6+EPS && t1 >6-EPS)
+//    );
+    return false;
+ }
+   
    protected VectorNd myExcitations = new VectorNd();    // computed excitatios
    protected VectorNd prevExcitations = new VectorNd();  // previous, for damping terms
    protected VectorNd initExcitations = new VectorNd();  // initial, in case non-zero start (again, for damping)
@@ -146,6 +157,7 @@ public class TrackingController extends ControllerBase
 
    public static final double DEFAULT_PROBE_DURATION = 1.0;
    public static final double DEFAULT_PROBE_INTERVAL = 0.01;
+   public static final boolean DEFAULT_DEBUG = false;
    double myProbeDuration = DEFAULT_PROBE_DURATION;
    double myProbeUpdateInterval = DEFAULT_PROBE_INTERVAL;
    
@@ -170,6 +182,9 @@ public class TrackingController extends ControllerBase
       myProps.add(
          "probeUpdateInterval", "update interval of inverse managed probes",
          DEFAULT_PROBE_INTERVAL);
+      myProps.add (
+         "debug", "enables output of debug info to the console",
+         DEFAULT_DEBUG);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -219,12 +234,7 @@ public class TrackingController extends ControllerBase
       targetForces.setNavpanelVisibility (NavpanelVisibility.ALWAYS);
       add (targetForces);
 
-      // list of excitations that store the computed excitations from the tracking simulation
-      exciters =
-         new ComponentList<ExcitationComponent> (ExcitationComponent.class, "excitationSources");
-      // always show this component, even if it's empty:
-      exciters.setNavpanelVisibility (NavpanelVisibility.ALWAYS);
-      add (exciters);
+     
       
       // reference lists to point to the various dynamic components that are sources
       // these components are all expected to be of type MotionTargetComponent
@@ -232,15 +242,26 @@ public class TrackingController extends ControllerBase
       sourceFrames = new ReferenceList ("sourceFrames");
       add(sourcePoints);
       add(sourceFrames);
-
       
       // myOptimizationTerms = new ComponentList<OptimizationTerm>(
       // OptimizationTerm.class, "optTerms", "ot", this);
-      myExciters = new MuscleExciter ("exciters");
-//      if (myMech instanceof MechModel) {
-//         ((MechModel)myMech).addMuscleExciter (myExciters);
-//      }
-      add (myExciters);
+      
+      if (useMyExciters) {
+         myExciters = new MuscleExciter ("exciters");
+//         if (myMech instanceof MechModel) {
+//            ((MechModel)myMech).addMuscleExciter (myExciters);
+//         }
+         add (myExciters);
+      } else {
+         // list of excitations that store the computed excitations from the tracking simulation
+         exciters =
+            new ComponentList<ExcitationComponent> (ExcitationComponent.class, "excitationSources");
+         // always show this component, even if it's empty:
+         exciters.setNavpanelVisibility (NavpanelVisibility.ALWAYS);
+         add (exciters);
+      }
+      
+      excitationRegularizationWeights = new VectorNd();
       
       myMotionForceData = new MotionForceInverseData (this);
       
@@ -298,6 +319,9 @@ public class TrackingController extends ControllerBase
     */
    public void apply(double t0, double t1) {
 //      System.out.println("dt = "+(t1-t0)+"     h = "+ TimeBase.round(t1 - t0));
+      if (getDebug()) {
+         System.out.println ("\n--- t = " + t1 + " ---"); // cleans up the console
+      }
 
       if (t0 == 0) { // XXX need better way to zero excitations on reset
          myCostFunction.setSize (numExcitations());
@@ -321,7 +345,7 @@ public class TrackingController extends ControllerBase
       if (myMotionTerm.useDeltaAct) {
          VectorNd deltaActivations = myCostFunction.solve (t0, t1);
          myExcitations.add (deltaActivations);
-         if (isDebugTimestep (t0, t1)) {
+         if (getDebug()) {
             System.out.println ("da = [" + deltaActivations.toString ("%.4f") + "];");
          }
       }
@@ -335,30 +359,30 @@ public class TrackingController extends ControllerBase
        */
       //System.out.println ("excitations="+myExcitations);
       NumberFormat f4 = new NumberFormat("%.4f");
-      for (int j = 0; j < myExcitations.size(); j++) {
-         double e = myExcitations.get(j);
-         double preve = prevExcitations.get(j);
-         //System.out.println("Activation value for exciter number "+ j +" is: "+f4.format(e));
-        
-         if (e - preve > maxExcitationJump) {
-            System.out.println("Activation jump surpassed limit: "
-               + f4.format(e) + "-"
-               + f4.format(preve) + ">" + maxExcitationJump);
-            e = preve + maxExcitationJump;
-         } else if (preve - e > maxExcitationJump) {
-            System.out.println("Activation jump surpassed limit: "
-               + f4.format(preve)
-               + "-" + f4.format(e) + ">" + maxExcitationJump);
-            e = preve - maxExcitationJump;
-         }
-         myExcitations.set(j, e);
-      }
+//      for (int j = 0; j < myExcitations.size(); j++) {
+//         double e = myExcitations.get(j);
+//         double preve = prevExcitations.get(j);
+//         //System.out.println("Activation value for exciter number "+ j +" is: "+f4.format(e));
+//        
+//         if (e - preve > maxExcitationJump) {
+//            System.out.println("Activation jump surpassed limit: "
+//               + f4.format(e) + "-"
+//               + f4.format(preve) + ">" + maxExcitationJump);
+//            e = preve + maxExcitationJump;
+//         } else if (preve - e > maxExcitationJump) {
+//            System.out.println("Activation jump surpassed limit: "
+//               + f4.format(preve)
+//               + "-" + f4.format(e) + ">" + maxExcitationJump);
+//            e = preve - maxExcitationJump;
+//         }
+//         myExcitations.set(j, e);
+//      }
 
-      if (isDebugTimestep (t0, t1)) {
-         System.out.println("ex = ["+myExcitations.toString (f4)+"];");
-         System.out.println("lb = ["+lowerBound.toString (f4)+"];");
-         System.out.println("ub = ["+upperBound.toString (f4)+"];");
-         
+      /* debug info */
+      if (getDebug()) {
+//         System.out.println("ex = ["+myExcitations.toString (f4)+"];");
+//         System.out.println("lb = ["+lowerBound.toString (f4)+"];");
+//         System.out.println("ub = ["+upperBound.toString (f4)+"];");
       }
 
       
@@ -393,8 +417,20 @@ public class TrackingController extends ControllerBase
       remove (sourcePoints);
       sourceFrames.clear ();
       remove (sourceFrames);
-      myExciters.removeAllTargets ();
-      remove (myExciters);
+      
+      if (useMyExciters) {
+         myExciters.removeAllTargets ();
+         remove (myExciters);
+      } else {         
+         for (@SuppressWarnings("unused") ExcitationComponent excCom : exciters) {
+            
+         }
+         exciters.clear();
+         remove (exciters);
+      }
+      excitationRegularizationWeights = null;
+      upperExcitationBounds.clear ();
+      lowerExcitationBounds.clear ();
    }
    
    public void addForceTargetTerm(ForceTargetTerm ft) {
@@ -526,9 +562,17 @@ public class TrackingController extends ControllerBase
     */
    public int setExcitations(VectorNd ex, int idx) {
       double[] buf = ex.getBuffer();
-      for (int i = 0; i < myExciters.numTargets (); i++) {
-         myExciters.getTarget(i).setExcitation(buf[idx++]);
+      
+      if (useMyExciters) {
+         for (int i = 0; i < myExciters.numTargets (); i++) {
+            myExciters.getTarget(i).setExcitation(buf[idx++]);
+         }
+      } else {
+         for (int i = 0; i < exciters.size (); i++) {
+            exciters.get (i).setExcitation(buf[idx++]);
+         }
       }
+      
       return idx;
    }
 
@@ -536,13 +580,14 @@ public class TrackingController extends ControllerBase
     * Gets the list of excitators used as free variables in the inverse routine
     */
    public ListView<ExcitationComponent> getExciters() {
-      return myExciters.getTargetView ();
+      if (useMyExciters) {
+         return myExciters.getTargetView ();
+      } else {
+         return exciters;
+      }      
+      
    }
    
-   public MuscleExciter getMuscleExciter() {
-      return myExciters;
-   }
-
    /**
     * Adds an exciter to be used as a free variable in the inverse routine
     * @param ex exciter to add
@@ -551,8 +596,38 @@ public class TrackingController extends ControllerBase
       addExciter (ex, 1d);
    }
    
+   /**
+    * Adds an exciter to be used as a free variable in the inverse routine
+    * @param ex exciter to add
+    * @param gain the gain applied to the exciter
+    */
    public void addExciter(ExcitationComponent ex, double gain) {
-      myExciters.addTarget(ex, gain);
+      addExciter(DEFAULT_EXCITATION_REGULARIZATION_WEIGHT, ex, gain);
+   }
+   
+   /**
+    * Adds an exciter to be used as a free variable in the inverse routine
+    * @param weight regularization weight to be applied to the exciter
+    * @param ex exciter to add
+    */
+   public void addExciter(double weight, ExcitationComponent ex) {
+      addExciter(weight, ex, 1.0);
+   }
+
+   /**
+    * Adds an exciter to be used as a free variable in the inverse routine
+    * @param weight regularization weight to be applied to the exciter
+    * @param ex exciter to add
+    * @param gain the gain applied to the exciter
+    */
+   public void addExciter(double weight, ExcitationComponent ex, double gain) {
+      if (useMyExciters) {
+         myExciters.addTarget(ex, gain);
+      } else {
+         exciters.add (ex);
+      }      
+      excitationRegularizationWeights.append (weight);
+      
       if (ex instanceof MultiPointMuscle) {
          MultiPointMuscle m = (MultiPointMuscle)ex;
          if (m.getExcitationColor() == null) {
@@ -567,13 +642,33 @@ public class TrackingController extends ControllerBase
             m.setExcitationColor(Color.RED);
          }
       }
+      /* add an element to the excitation bounds list for possible use later */
+      upperExcitationBounds.add(null);
+      lowerExcitationBounds.add(null);      
+   }
+   
+   public void setExcitationRange(ExcitationComponent ex, double lower, double upper) {
+      int idx = exciters.indexOf (ex);
+      lowerExcitationBounds.set (idx, lower);
+      upperExcitationBounds.set (idx, upper);
+   }
+   
+   public MuscleExciter getMuscleExciter() {
+      return myExciters;
    }
 
    /**
     * Clears all exciters
     */
    public void clearExciters() {
-      myExciters.removeAllTargets ();
+      if (useMyExciters) {
+         myExciters.removeAllTargets ();
+      } else {
+         for (@SuppressWarnings("unused") ExcitationComponent excCom : exciters) {
+
+         }
+         exciters.clear ();
+      }
    }
 
    public void setExcitationBounds (double lower, double upper) {
@@ -581,7 +676,7 @@ public class TrackingController extends ControllerBase
          myBoundsTerm = new BoundsTerm();
          myCostFunction.addInequalityConstraint (myBoundsTerm);
       }
-      myBoundsTerm.setBounds (lower,upper);
+      myBoundsTerm.setBounds (lower,upper, lowerExcitationBounds, upperExcitationBounds);
    }
 
    VectorNd lowerBound = new VectorNd();
@@ -607,7 +702,11 @@ public class TrackingController extends ControllerBase
     * Number of exciters controlled by this controller
     */
    public int numExcitations() {
-      return myExciters.numTargets();
+      if (useMyExciters) {
+         return myExciters.numTargets();
+      } else {
+         return exciters.size ();
+      }
    }
 
    /**
@@ -619,8 +718,14 @@ public class TrackingController extends ControllerBase
     */
    public int getExcitations(VectorNd ex, int idx) {
       double[] buf = ex.getBuffer();
-      for (int i = 0; i < myExciters.numTargets(); i++) {
-         buf[idx++] = myExciters.getTarget(i).getNetExcitation();
+      if (useMyExciters) {
+         for (int i = 0; i < myExciters.numTargets(); i++) {
+            buf[idx++] = myExciters.getTarget(i).getNetExcitation();
+         }
+      } else {
+         for (int i = 0; i < exciters.size (); i++) {
+            buf[idx++] = exciters.get(i).getNetExcitation ();
+         } 
       }
       return idx;
    }
@@ -670,6 +775,7 @@ public class TrackingController extends ControllerBase
          myRegularizationTerm = new L2RegularizationTerm(this); 
          addCostTerm(myRegularizationTerm);
       }
+      myRegularizationTerm.setWeights (excitationRegularizationWeights);
       return myRegularizationTerm;
    }
    
@@ -918,13 +1024,22 @@ public class TrackingController extends ControllerBase
     * model, allows for non-zero starting excitations
     */
    public void initializeExcitations() {
-
-      for (int i=0; i<myExciters.numTargets(); i++) {
-         double val = myExciters.getTarget(i).getExcitation();
-         prevExcitations.set(i,val);
-         myExcitations.set(i,val);
-         initExcitations.set(i,val);
+      if (useMyExciters) {
+         for (int i=0; i<myExciters.numTargets(); i++) {
+            double val = myExciters.getTarget(i).getExcitation();
+            prevExcitations.set(i,val);
+            myExcitations.set(i,val);
+            initExcitations.set(i,val);
+         }
+      } else {
+         for (int i = 0; i < exciters.size (); i++) {
+            double val = exciters.get(i).getExcitation ();
+            prevExcitations.set(i,val);
+            myExcitations.set(i,val);
+            initExcitations.set(i,val);
+         }
       }
+      
    }
    
    /**

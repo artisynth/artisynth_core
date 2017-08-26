@@ -930,5 +930,66 @@ public class TensorUtils {
       
    }
 
+   /**
+    * Computes the following formula:
+    *   v3a . T4S . v3b
+    * 
+    * where v3a and v3b are both vector-3, T4S is a symmetrical 4th order 
+    * tensor, and . is the dot product symbol.
+    * 
+    * FEBio: tens4ds::vdotTdotv
+    * 
+    * @param out
+    * Result to be stored in. 3x3 matrix.
+    * 
+    * @param a
+    * Left vector3
+    * 
+    * @param T
+    * Symmetrical 4th order tensor. E.g. material stress matrix.
+    * 
+    * @param b
+    * Right vector3
+    */
+   public static void v3DotTens4sDotv3(
+      Matrix3d out, Vector3d a, Matrix6d T, Vector3d b) {
+      
+      out.m00 = a.x*(b.x*T.m00 + b.y*T.m03 + b.z*T.m05) + 
+                a.y*(b.x*T.m03 + b.y*T.m33 + b.z*T.m35) + 
+                a.z*(b.x*T.m05 + b.y*T.m35 + b.z*T.m55);
+      
+      out.m01 = a.x*(b.y*T.m01 + b.x*T.m03 + b.z*T.m04) + 
+                a.y*(b.y*T.m13 + b.x*T.m33 + b.z*T.m34) +
+                a.z*(b.y*T.m15 + b.x*T.m35 + b.z*T.m45);
+      
+      out.m02 = a.x*(b.z*T.m02 + b.y*T.m04 + b.x*T.m05) +
+                a.y*(b.z*T.m23 + b.y*T.m34 + b.x*T.m35) + 
+                a.z*(b.z*T.m25 + b.y*T.m45 + b.x*T.m55);
+      
+      out.m10 = a.y*(b.x*T.m01 + b.y*T.m13 + b.z*T.m15) + 
+                a.x*(b.x*T.m03 + b.y*T.m33 + b.z*T.m35) + 
+                a.z*(b.x*T.m04 + b.y*T.m34 + b.z*T.m45);
+      
+      out.m11 = a.y*(b.y*T.m11 + b.x*T.m13 + b.z*T.m14) +
+                a.x*(b.y*T.m13 + b.x*T.m33 + b.z*T.m34) +
+                a.z*(b.y*T.m14 + b.x*T.m34 + b.z*T.m44);
+      
+      out.m12 = a.y*(b.z*T.m12 + b.y*T.m14 + b.x*T.m15) + 
+                a.x*(b.z*T.m23 + b.y*T.m34 + b.x*T.m35) + 
+                a.z*(b.z*T.m24 + b.y*T.m44 + b.x*T.m45);
+      
+      out.m20 = a.z*(b.x*T.m02 + b.y*T.m23 + b.z*T.m25) + 
+                a.y*(b.x*T.m04 + b.y*T.m34 + b.z*T.m45) + 
+                a.x*(b.x*T.m05 + b.y*T.m35 + b.z*T.m55);
+      
+      out.m21 = a.z*(b.y*T.m12 + b.x*T.m23 + b.z*T.m24) +
+                a.y*(b.y*T.m14 + b.x*T.m34 + b.z*T.m44) + 
+                a.x*(b.y*T.m15 + b.x*T.m35 + b.z*T.m45);
+      
+      out.m22 = a.z*(b.z*T.m22 + b.y*T.m24 + b.x*T.m25) + 
+                a.y*(b.z*T.m24 + b.y*T.m44 + b.x*T.m45) + 
+                a.x*(b.z*T.m25 + b.y*T.m45 + b.x*T.m55);
+   }
+   
 
 }

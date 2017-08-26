@@ -6,6 +6,8 @@
  */
 package artisynth.core.femmodels;
 
+import artisynth.core.materials.TensorUtils;
+
 import maspack.matrix.*;
 
 /** 
@@ -580,4 +582,227 @@ public class FemUtilities {
       return trif;
    }
 
+   /* --- SHELL-SPECIFIC METHODS --- */
+   
+   /** 
+    * Add weighted material stiffness for this (i,j) node neighbor pair
+    * (represented by 6x6 stiffness block), relative to a particular integration
+    * point of the shell element.
+    * 
+    * This material stiffness also accounts for geometrical stiffness.
+    * 
+    * FEBio: FEElasticShellDomain::ElementStiffness
+    * 
+    * @param K
+    * 6x6 stiffness block, belonging to i-j node pair, to be increased with 
+    * material stiffness.
+    * 
+    * @param iN
+    * Shape function of i-th node and integration point.
+    * 
+    * @param jN
+    * Shape function of j-th node and integration point.
+    * 
+    * @param idN
+    * Derivative of shape function of i-th node and integration point.
+    * 
+    * @param jdN 
+    * Derivative of shape function of j-th node and integration point.
+    * 
+    * @param dv
+    * integrationPt.detJ * integrationPt.weight
+    * 
+    * @param t
+    * t-component of (r,s,t) integration point coordinates (i.e. x-component of 
+    * gauss point)
+    * 
+    * @param gct 
+    * Contravariant base vectors of integration point.
+    * 
+    * @param matStress
+    * Material stress of integration point.
+    * 
+    * @param matTangent
+    * Material tangent of integration point.
+    * 
+    * Postcond:
+    * Stiffness is applied to K
+    */
+   public static void addShellMaterialStiffness (
+      Matrix6d K, double iN, double jN, Vector3d idN, Vector3d jdN, double dv,
+      double t, Vector3d[] gct, SymmetricMatrix3d matStress,
+      Matrix6d matTangent) {
+     
+      // Compute gradM for i and j
+      
+      Vector3d iGradM = new Vector3d();
+      iGradM.scaledAdd(idN.x, gct[0]);
+      iGradM.scaledAdd(idN.y, gct[1]);
+      
+      Vector3d jGradM = new Vector3d();
+      jGradM.scaledAdd(jdN.x, gct[0]);
+      jGradM.scaledAdd(jdN.y, gct[1]);
+      
+      // Compute gradMu for i and j
+      
+      Vector3d iGradMu = new Vector3d();
+      iGradMu.scaledAdd(1+t, iGradM);
+      iGradMu.scaledAdd(iN, gct[2]);
+      iGradMu.scale(0.5);
+      
+      Vector3d jGradMu = new Vector3d();
+      jGradMu.scaledAdd(1+t, jGradM);
+      jGradMu.scaledAdd(jN, gct[2]);
+      jGradMu.scale(0.5);
+      
+      // Compute gradMd for i and j
+      
+      Vector3d iGradMd = new Vector3d();
+      iGradMd.scaledAdd (1-t, iGradM);
+      iGradMd.scaledAdd (-iN, gct[2]);
+      iGradMd.scale (0.5);
+      
+      Vector3d jGradMd = new Vector3d();
+      jGradMd.scaledAdd (1-t, jGradM);
+      jGradMd.scaledAdd (-jN, gct[2]);
+      jGradMd.scale (0.5);
+      
+      Matrix3d Kuu = new Matrix3d();
+      TensorUtils.v3DotTens4sDotv3 (/*out=*/Kuu, iGradMu, matTangent, jGradMu);
+      Kuu.scale(dv);
+      
+      Matrix3d Kud = new Matrix3d();
+      TensorUtils.v3DotTens4sDotv3 (Kud, iGradMu, matTangent, jGradMd);
+      Kud.scale (dv);
+      
+      Matrix3d Kdu = new Matrix3d();
+      TensorUtils.v3DotTens4sDotv3 (Kdu, iGradMd, matTangent, jGradMu);
+      Kdu.scale (dv);
+      
+      Matrix3d Kdd = new Matrix3d();
+      TensorUtils.v3DotTens4sDotv3 (Kdd, iGradMd, matTangent, jGradMd);
+      Kdd.scale (dv);
+      
+      // Material component 
+      
+      K.m00 += Kuu.m00;  K.m01 += Kuu.m01;  K.m02 += Kuu.m02;
+      K.m10 += Kuu.m10;  K.m11 += Kuu.m11;  K.m12 += Kuu.m12;
+      K.m20 += Kuu.m20;  K.m21 += Kuu.m21;  K.m22 += Kuu.m22;
+      
+      K.m03 += Kud.m00;  K.m04 += Kud.m01;  K.m05 += Kud.m02;
+      K.m13 += Kud.m10;  K.m14 += Kud.m11;  K.m15 += Kud.m12;
+      K.m23 += Kud.m20;  K.m24 += Kud.m21;  K.m25 += Kud.m22;
+      
+      K.m30 += Kdu.m00;  K.m31 += Kdu.m01;  K.m32 += Kdu.m02;
+      K.m40 += Kdu.m10;  K.m41 += Kdu.m11;  K.m42 += Kdu.m12;
+      K.m50 += Kdu.m20;  K.m51 += Kdu.m21;  K.m52 += Kdu.m22;
+      
+      K.m33 += Kdd.m00;  K.m34 += Kdd.m01;  K.m35 += Kdd.m02;
+      K.m43 += Kdd.m10;  K.m44 += Kdd.m11;  K.m45 += Kdd.m12;
+      K.m53 += Kdd.m20;  K.m54 += Kdd.m21;  K.m55 += Kdd.m22;
+      
+      // Stress component 
+      
+      Vector3d sjGradMu = new Vector3d( jGradMu );   
+      matStress.mul (sjGradMu);
+      
+      Vector3d sjGradMd = new Vector3d( jGradMd ); 
+      matStress.mul (sjGradMd);
+                              
+      double sKuu = iGradMu.dot(sjGradMu) * dv;
+      double sKud = iGradMu.dot(sjGradMd) * dv;
+      double sKdu = iGradMd.dot(sjGradMu) * dv;
+      double sKdd = iGradMd.dot(sjGradMd) * dv;
+      
+      K.m00 += sKuu;
+      K.m11 += sKuu;
+      K.m22 += sKuu; 
+      
+      K.m03 += sKud;
+      K.m14 += sKud;
+      K.m25 += sKud; 
+      
+      K.m30 += sKdu;
+      K.m41 += sKdu;
+      K.m52 += sKdu;
+      
+      K.m33 += sKdd;
+      K.m44 += sKdd;
+      K.m55 += sKdd;
+   }
+   
+   
+   /** 
+    * Adds the material+geometric forces on a node resulting from a given stress
+    * at a given shell integration point.
+    * 
+    * FEBio: FEElasticShellDomain::ElementInternalForce
+    * 
+    * @param f
+    * Displacement force vector (x,y,z) of node to append
+    * 
+    * @param df
+    * Direction force vector (u,w,v) of node to append
+    * 
+    * @param sig
+    * Computed material stress
+    * 
+    * @param t 
+    * t-component of (r,s,t) integration point coordinates (i.e. x-component of 
+    * gauss point)
+    * 
+    * @param dv
+    * integrationPt.detJ * integrationPt.weight
+    * 
+    * @param N
+    * Shape function of node and integration point.
+    * 
+    * @param dNdr 
+    * x (i.e. r) component of derivative of shape function of node and
+    * integration point.
+    * 
+    * @param dNds
+    * y (i.e. s) component of derivative of shape function of node and
+    * integration point.
+    * 
+    * @param gct 
+    * Contravariant base vectors of integration point.
+    * 
+    * Postcond:
+    * Stress forces are applied to f and df
+    */
+   public static void addShellStressForce (
+      Vector3d f, Vector3d df, SymmetricMatrix3d sig, double t, double dv, 
+      double N, double dNdr, double dNds, Vector3d[] gct) {
+      
+      Vector3d gradM = new Vector3d();
+      gradM.scaledAdd(dNdr, gct[0]);
+      gradM.scaledAdd(dNds, gct[1]);
+      
+      Vector3d gradMu = new Vector3d();
+      gradMu.scaledAdd (1+t, gradM);
+      gradMu.scaledAdd (N, gct[2]);
+      gradMu.scale (0.5);
+      
+      Vector3d gradMd = new Vector3d();
+      gradMd.scaledAdd (1-t, gradM);
+      gradMd.scaledAdd (-N, gct[2]);
+      gradMd.scale (0.5);
+      
+      Vector3d fu = new Vector3d(gradMu);
+      sig.mul(fu);
+      
+      Vector3d fd = new Vector3d(gradMd);
+      sig.mul(fd);
+      
+      // Increment displacement force. 
+      f.x += fu.x*dv;
+      f.y += fu.y*dv;
+      f.z += fu.z*dv;
+      
+      // Increment direction force.
+      df.x += fd.x*dv;
+      df.y += fd.y*dv;
+      df.z += fd.z*dv;
+   }
 }

@@ -188,6 +188,24 @@ public abstract class GLDrawableComponent {
    }
    
    /**
+    * Gets the real pixel width of the underlying AWT component
+    * @return pixel width
+    * @see Component#getWidth
+    */
+   public int getSurfaceWidth() {
+      return drawable.getSurfaceWidth();
+   }
+   
+   /**
+    * Gets the real pixel height of the underlying AWT component
+    * @return pixel height
+    * @see Component#getSurfaceHeight
+    */
+   public int getSurfaceHeight() {
+      return drawable.getSurfaceHeight();
+   }
+   
+   /**
     * Gets the x component of the origin of the underlying AWT component
     * @return origin x component
     * @see Component#getY()

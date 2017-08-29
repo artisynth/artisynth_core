@@ -1761,6 +1761,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     */
    public void setViewport(GL gl, int x, int y, int width, int height) {
       gl.glViewport(x, y, width, height);
+      System.out.println (
+         "viewport set to "+width+"x"+height+", surface "+
+         canvas.getSurfaceWidth()+"x"+canvas.getSurfaceHeight());     
    }
 
    protected int[] getViewport(GL gl) {
@@ -1792,7 +1795,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
                myFrustum.near, myFrustum.far, myFrustum.explicit);
          }
       }
-
       setViewport(gl, 0, 0, width, height);
    }
 

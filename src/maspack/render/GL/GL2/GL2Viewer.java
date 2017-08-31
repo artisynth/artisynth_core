@@ -12,6 +12,7 @@ import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.LinkedList;
 
+import com.jogamp.nativewindow.ScalableSurface;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GL2GL3;
@@ -255,8 +256,9 @@ public class GL2Viewer extends GLViewer implements HasProperties {
          Logger.getSystemLogger().debug("Using GLJPanel");
          canvas = GLDrawableComponent.create(myGLResources.createPanel());
       } else {
-    	  canvas = GLDrawableComponent.create(myGLResources.createCanvas());
+         canvas = GLDrawableComponent.create(myGLResources.createCanvas());
       }
+      canvas.setSurfaceScale(new float[]{ScalableSurface.IDENTITY_PIXELSCALE, ScalableSurface.IDENTITY_PIXELSCALE});
       
       primitives = new GL2Primitive[PrimitiveType.values ().length];
 

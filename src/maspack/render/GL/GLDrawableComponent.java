@@ -381,6 +381,11 @@ public abstract class GLDrawableComponent {
       public GLCanvas getCanvas() {
          return canvas;
       }
+      
+      @Override
+      public void setSurfaceScale(float[] scale) {
+         canvas.setSurfaceScale(scale);
+      }
    }
    
    /**
@@ -406,6 +411,11 @@ public abstract class GLDrawableComponent {
          return panel;
       }
       
+      @Override
+      public void setSurfaceScale(float[] scale) {
+         panel.setSurfaceScale(scale);
+      }
+      
    }
    
    /**
@@ -425,5 +435,7 @@ public abstract class GLDrawableComponent {
    public static GLDrawableComponent create(GLCanvas canvas) {
       return new GLDrawableCanvas(canvas);
    }
+
+   public abstract void setSurfaceScale(float[] scale);
    
 }

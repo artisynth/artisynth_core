@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.jogamp.nativewindow.ScalableSurface;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2GL3;
 import com.jogamp.opengl.GL3;
@@ -164,6 +165,7 @@ public class GL3Viewer extends GLViewer {
       } else {
          canvas = GLDrawableComponent.create(myGLResources.createCanvas());
       }
+      canvas.setSurfaceScale(new float[]{ScalableSurface.IDENTITY_PIXELSCALE, ScalableSurface.IDENTITY_PIXELSCALE});
       
       myGLResources.registerViewer (this);
       myRenderObjectManager = new GL3RenderObjectManager (resources);

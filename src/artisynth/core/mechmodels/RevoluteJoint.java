@@ -116,6 +116,10 @@ public class RevoluteJoint extends JointBase
          }
       }
    }
+   
+   public void setThetaRange(double min, double max) {
+      setThetaRange(new DoubleInterval(min, max));
+   }
 
    // public NumericIntervalRange getThetaRangeRange() {
    //    return new NumericIntervalRange (DEFAULT_THETA_RANGE);

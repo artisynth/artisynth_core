@@ -136,7 +136,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
       }
    }
 
-   protected boolean isStressOrStrainRendering (SurfaceRender mode) {
+   public boolean isStressOrStrainRendering (SurfaceRender mode) {
       return (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress);
    }
    

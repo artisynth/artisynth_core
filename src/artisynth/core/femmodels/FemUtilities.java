@@ -525,7 +525,7 @@ public class FemUtilities {
     * consisting of the number of nodes, followed by the indices for
     * each node.
     */
-   static int[] triangulateFaceIndices (int[] faces) {
+   static public int[] triangulateFaceIndices (int[] faces) {
       
       int numtri = 0;
 

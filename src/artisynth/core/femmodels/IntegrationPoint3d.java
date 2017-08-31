@@ -93,7 +93,7 @@ public class IntegrationPoint3d {
     * Used internally by the system to set the number for this integration
     * point.
     */
-   protected void setNumber (int num) {
+   public void setNumber (int num) {
       myNum = num;
    }    
 

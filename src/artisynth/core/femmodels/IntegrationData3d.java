@@ -16,8 +16,8 @@ import artisynth.core.materials.ViscoelasticState;
  */
 public class IntegrationData3d {
 
-   Matrix3d myInvJ0;
-   double myDetJ0;
+   protected Matrix3d myInvJ0;
+   protected double myDetJ0;
    double myDv; // current partial volume at the quadrature point
    double myScaling; // scales stiffness at the quadrature point
    // optional coordinate frame information (for anisotropic materials) 

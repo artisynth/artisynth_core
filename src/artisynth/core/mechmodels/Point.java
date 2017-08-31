@@ -645,7 +645,7 @@ public class Point extends DynamicComponentBase
 //      return mySolveBlock;
 //   }
 
-   public Matrix3x3DiagBlock createMassBlock() {
+   public MatrixBlock createMassBlock() {
       return new Matrix3x3DiagBlock();
    }
 

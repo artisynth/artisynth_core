@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import com.jogamp.nativewindow.ScalableSurface;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GL2GL3;
@@ -171,6 +172,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
       
       maybeCreateMaster();
       GLCanvas canvas = new GLCanvas (glCapabilities);
+      canvas.setSurfaceScale(new float[]{ScalableSurface.IDENTITY_PIXELSCALE, ScalableSurface.IDENTITY_PIXELSCALE});
       canvas.setSharedAutoDrawable (masterDrawable);
       return canvas;
    }
@@ -185,6 +187,7 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
    public synchronized GLJPanel createPanel() {
       maybeCreateMaster();
       GLJPanel panel = new GLJPanel (glCapabilities);
+      panel.setSurfaceScale(new float[]{ScalableSurface.IDENTITY_PIXELSCALE, ScalableSurface.IDENTITY_PIXELSCALE});
       panel.setSharedAutoDrawable (masterDrawable);
       return panel;
    }

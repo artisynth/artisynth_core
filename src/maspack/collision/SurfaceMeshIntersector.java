@@ -4065,6 +4065,17 @@ public class SurfaceMeshIntersector {
    }
 
    /**
+    * Describes CSG operations.
+    */
+   public enum CSG {
+      INTERSECTION,
+      UNION,
+      DIFFERENCE01,
+      DIFFERENCE10,
+      NONE
+   }
+
+   /**
     * Finish processing all the single-face regions associated with a specific
     * face, combining those which border the same region and then adding them
     * to the list <code>regions</code>.

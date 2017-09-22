@@ -8,10 +8,10 @@ import artisynth.core.mechmodels.*;
 import artisynth.core.renderables.*;
 import artisynth.core.workspace.*;
 import artisynth.core.gui.*;
-import artisynth.demos.test.IntersectionTester.CSG;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.collision.*;
+import maspack.collision.SurfaceMeshIntersector.CSG;
 import maspack.collision.SurfaceMeshIntersectorTest.TestInfo;
 import maspack.render.*;
 import maspack.render.Renderer.*;
@@ -42,7 +42,7 @@ public class AjlCollisionTest extends RootModel {
       myProps.add ("editMesh0Visible", "make edit mesh 0 visible", false);
       myProps.add ("editMesh1Visible", "make edit mesh 1 visible", false);
       myProps.add ("editCSGMeshVisible", "make edit CSG mesh visible", false);
-      myProps.add ("CSGOperation", "CSG operation", CSG.NONE);
+      myProps.add ("CSGOperation", "CSG operation", SurfaceMeshIntersector.CSG.NONE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -81,11 +81,11 @@ public class AjlCollisionTest extends RootModel {
       RenderProps.setVisible (myEditMesh1, visible);
    }
 
-   public CSG getCSGOperation() {
+   public SurfaceMeshIntersector.CSG getCSGOperation() {
       return myTester.getCSGOperation();
    }
 
-   public void setCSGOperation (CSG op) {
+   public void setCSGOperation (SurfaceMeshIntersector.CSG op) {
       if (op != getCSGOperation()) {
          myTester.setCSGOperation(op);
          if (getEditCSGMeshVisible()) {
@@ -200,8 +200,9 @@ public class AjlCollisionTest extends RootModel {
       String testFileName, PolygonalMesh mesh0, PolygonalMesh mesh1) {
 
       TestInfo tinfo = new TestInfo();
+      CSG csgOp = null;
       try {
-         SurfaceMeshIntersectorTest.scanProblem (
+         csgOp = SurfaceMeshIntersectorTest.scanProblem (
             testFileName, mesh0, mesh1, tinfo);
       }
       catch (Exception e) {
@@ -209,17 +210,11 @@ public class AjlCollisionTest extends RootModel {
       }
       SurfaceMeshIntersector smi = new SurfaceMeshIntersector();
 
+      System.out.println ("csgOp=" + csgOp);
       System.out.println (
          "mesh0 manifold="+mesh0.isManifold()+" closed="+mesh0.isClosed());
       System.out.println (
          "mesh1 manifold="+mesh1.isManifold()+" closed="+mesh1.isClosed());
-
-      if (smi.findContours (mesh0, mesh0).size() > 0) {
-         System.out.println ("mesh0 has self intersection");
-      }
-      if (smi.findContours (mesh1, mesh1).size() > 0) {
-         System.out.println ("mesh0 has self intersection");
-      }
 
       if (tinfo.TBW != null) {
          RigidTransform3d TMW0Orig =
@@ -253,22 +248,22 @@ public class AjlCollisionTest extends RootModel {
       myMech = new MechModel ("mech");
       addModel (myMech);   
 
-      IntersectionTester.CSG csg = null;
+      SurfaceMeshIntersector.CSG csg = null;
       String crashFile = null;
       boolean contoursOnly = false;
 
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-intersection")) {
-            csg = IntersectionTester.CSG.INTERSECTION;
+            csg = SurfaceMeshIntersector.CSG.INTERSECTION;
          }
          else if (args[i].equals ("-union")) {
-            csg = IntersectionTester.CSG.UNION;
+            csg = SurfaceMeshIntersector.CSG.UNION;
          }
          else if (args[i].equals ("-difference01")) {
-            csg = IntersectionTester.CSG.DIFFERENCE01;
+            csg = SurfaceMeshIntersector.CSG.DIFFERENCE01;
          }
          else if (args[i].equals ("-difference10")) {
-            csg = IntersectionTester.CSG.DIFFERENCE10;
+            csg = SurfaceMeshIntersector.CSG.DIFFERENCE10;
          }
          else if (args[i].equals ("-contoursOnly")) {
             contoursOnly = true;
@@ -468,7 +463,7 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
 
-      if (true) {
+      if (false) {
          String dataDir = 
             PathFinder.expand (
                "$ARTISYNTH_HOME/src/maspack/geometry/sampleData/");
@@ -476,6 +471,21 @@ public class AjlCollisionTest extends RootModel {
          try {
             mesh0 = new PolygonalMesh (dataDir+"molar1.2.obj");
             mesh1 = new PolygonalMesh (dataDir+"molar2.2.obj");
+         }
+         catch (Exception e) {
+            e.printStackTrace(); 
+         }
+         setupBodies (myMech, mesh0, mesh1);
+      }
+      
+      if (true) {
+         String dataDir = 
+            PathFinder.expand (
+               "$ARTISYNTH_HOME/src/maspack/geometry/sampleData/");
+         
+         try {
+            mesh0 = new PolygonalMesh (dataDir+"molar1.2.obj");
+            mesh1 = MeshFactory.createPlane (2, 2);
          }
          catch (Exception e) {
             e.printStackTrace(); 

@@ -14,6 +14,7 @@ import maspack.geometry.MeshFactory.VertexMap;
 import maspack.geometry.MeshFactory.FaceType ;
 import maspack.collision.SurfaceMeshIntersector.FaceCalculator;
 import maspack.collision.SurfaceMeshIntersector.RegionType;
+import maspack.collision.SurfaceMeshIntersector.CSG;
 
 import argparser.ArgParser;
 import argparser.BooleanHolder;
@@ -215,15 +216,28 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
    }
 
    public static void writeProblem (
-      String fileName, PolygonalMesh mesh0, PolygonalMesh mesh1, TestInfo tinfo)
-      throws IOException {
-      PrintWriter pw = new IndentingPrintWriter (
-         new PrintWriter (new BufferedWriter (new FileWriter (fileName))));
-      writeProblem (pw, mesh0, mesh1, tinfo);
+      String fileName, PolygonalMesh mesh0, PolygonalMesh mesh1, 
+      TestInfo tinfo) throws IOException {
+      writeProblem (fileName, mesh0, mesh1, tinfo, null);
    }
 
-   private static void writeProblem (
+   public static void writeProblem (
+      String fileName, PolygonalMesh mesh0, PolygonalMesh mesh1, 
+      TestInfo tinfo, CSG csgOp) throws IOException {
+      PrintWriter pw = new IndentingPrintWriter (
+         new PrintWriter (new BufferedWriter (new FileWriter (fileName))));
+      writeProblem (pw, mesh0, mesh1, tinfo, csgOp);
+   }
+
+   public static void writeProblem (
       PrintWriter pw, PolygonalMesh mesh0, PolygonalMesh mesh1, TestInfo tinfo)
+      throws IOException {
+      writeProblem (pw, mesh0, mesh1, tinfo, null);
+   }
+   
+   public static void writeProblem (
+      PrintWriter pw, PolygonalMesh mesh0, PolygonalMesh mesh1, 
+      TestInfo tinfo, CSG csgOp)
       throws IOException {
 
       pw.print ("[ ");
@@ -236,26 +250,30 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          pw.print ("testInfo=");
          tinfo.write (pw);
       }
+      if (csgOp != null) {
+         pw.println ("csgOp=" + csgOp);
+      }
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
       pw.close();
    }
-
-   public static void scanProblem (
+   
+   public static CSG scanProblem (
       String fileName,
-      PolygonalMesh mesh0, PolygonalMesh mesh1, TestInfo tinfo)
+      PolygonalMesh mesh0, PolygonalMesh mesh1, TestInfo tinfo) 
       throws IOException {
 
       ReaderTokenizer rtok =
          new ReaderTokenizer (new BufferedReader (new FileReader (fileName)));
-      scanProblem (rtok, mesh0, mesh1, tinfo);
+      return scanProblem (rtok, mesh0, mesh1, tinfo);
    }
 
-   private static void scanProblem (
+   public static CSG scanProblem (
       ReaderTokenizer rtok,
       PolygonalMesh mesh0, PolygonalMesh mesh1, TestInfo tinfo)
       throws IOException {
    
+      CSG csgOp = null;
       rtok.scanToken ('[');
       while (rtok.nextToken() != ']') {
          if (rtok.tokenIsWord ("mesh0")) {
@@ -270,10 +288,21 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             rtok.scanToken ('=');
             tinfo.scan (rtok);
          }
+         else if (rtok.tokenIsWord ("csgOp")) {
+            rtok.scanToken ('=');
+            String opName = rtok.scanWord();
+            try {
+               csgOp = CSG.valueOf(opName);
+            }
+            catch (Exception e) {
+               throw new IOException ("Unrecognized csg type: "+rtok);
+            }
+         }
          else {
             throw new IOException ("Unexpected token " + rtok);
          }
       }
+      return csgOp;
    }
 
    public static class TestInfo {

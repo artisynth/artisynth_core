@@ -1,8 +1,8 @@
 package artisynth.demos.test;
 
 import java.awt.Color;
-import java.util.ArrayList;
 import java.util.*;
+import java.io.*;
 
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ControllerBase;
@@ -11,6 +11,7 @@ import maspack.collision.AbstractCollider;
 import maspack.collision.ContactInfo;
 import maspack.collision.ContactPlane;
 import maspack.collision.MeshCollider;
+import maspack.collision.SurfaceMeshIntersector;
 import maspack.collision.SurfaceMeshIntersector.RegionType;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Face;
@@ -43,17 +44,9 @@ import maspack.util.InternalErrorException;
 
 public class IntersectionTester extends ControllerBase {
 
-   enum CSG {
-      INTERSECTION,
-      UNION,
-      DIFFERENCE01,
-      DIFFERENCE10,
-      NONE
-   };
-
    private SurfaceMeshIntersector myIntersector;
    private boolean myContoursOnly;
-   private CSG myCSGOperation = CSG.NONE;
+   private SurfaceMeshIntersector.CSG myCSGOperation = SurfaceMeshIntersector.CSG.NONE;
    private boolean myRenderCSGMesh = false;
    private PolygonalMesh myMesh0;
    private PolygonalMesh myMesh1;
@@ -99,11 +92,11 @@ public class IntersectionTester extends ControllerBase {
       }
    }
 
-   public CSG getCSGOperation() {
+   public SurfaceMeshIntersector.CSG getCSGOperation() {
       return myCSGOperation;
    }
 
-   public void setCSGOperation (CSG op) {
+   public void setCSGOperation (SurfaceMeshIntersector.CSG op) {
       if (op != myCSGOperation) {
          myCSGOperation = op;
          updateCSGMesh();
@@ -193,7 +186,7 @@ public class IntersectionTester extends ControllerBase {
          false);
       myProps.add (
          "CSGOperation", "controls which CSG mesh is created, if any",
-         CSG.NONE);
+         SurfaceMeshIntersector.CSG.NONE);
    }
 
    public PropertyList getAllPropertyInfo () {
@@ -258,6 +251,13 @@ public class IntersectionTester extends ControllerBase {
             break;
          }
       }
+      try {
+         SurfaceMeshIntersectorTest.writeProblem (
+            "csgop.obj", myMesh0, myMesh1, null, myCSGOperation);
+      }
+      catch (IOException e) {
+         e.printStackTrace();
+      }
       myCSGMesh = csgMesh;
    }
    
@@ -300,22 +300,22 @@ public class IntersectionTester extends ControllerBase {
       }
       else {
          timer.start();
-         if (myCSGOperation == CSG.INTERSECTION) {
+         if (myCSGOperation == SurfaceMeshIntersector.CSG.INTERSECTION) {
             myContactInfo = myIntersector.findContoursAndRegions (
                myMesh0, RegionType.INSIDE, myMesh1, RegionType.INSIDE);
             csgMesh = myIntersector.createCSGMesh (myContactInfo);
          }
-         else if (myCSGOperation == CSG.UNION) {
+         else if (myCSGOperation == SurfaceMeshIntersector.CSG.UNION) {
             myContactInfo = myIntersector.findContoursAndRegions (
                myMesh0, RegionType.OUTSIDE, myMesh1, RegionType.OUTSIDE);
             csgMesh = myIntersector.createCSGMesh (myContactInfo);
          }
-         else if (myCSGOperation == CSG.DIFFERENCE01) {
+         else if (myCSGOperation == SurfaceMeshIntersector.CSG.DIFFERENCE01) {
             myContactInfo = myIntersector.findContoursAndRegions (
                myMesh0, RegionType.OUTSIDE, myMesh1, RegionType.INSIDE);
             csgMesh = myIntersector.createCSGMesh (myContactInfo);
          }
-         else if (myCSGOperation == CSG.DIFFERENCE10) {
+         else if (myCSGOperation == SurfaceMeshIntersector.CSG.DIFFERENCE10) {
             myContactInfo = myIntersector.findContoursAndRegions (
                myMesh0, RegionType.INSIDE, myMesh1, RegionType.OUTSIDE);
             csgMesh = myIntersector.createCSGMesh (myContactInfo);

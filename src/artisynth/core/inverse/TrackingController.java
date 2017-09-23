@@ -311,6 +311,10 @@ public class TrackingController extends ControllerBase
       createProbes (root);
       createPanel (root);
    }
+   
+   public void setTargetPositionFilename(String filename) {
+      Main.getMain ().getInverseManager ().setTargetPositionFilename (filename);
+   }
 
    
    /**

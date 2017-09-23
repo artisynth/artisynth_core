@@ -62,6 +62,7 @@ public class PointModel extends RootModel
       Point3d
    }
    
+   public boolean useReactionForceTargetP = false;
    
    public static DemoType defaultDemoType = DemoType.Point3d; 
    protected DemoType myDemoType; 
@@ -150,7 +151,7 @@ public class PointModel extends RootModel
       
       setupRenderProps();
 
-      setWorkingDir ("east/");
+      setWorkingDir (useReactionForceTargetP?"reaction_force/":"east/");
       addTrackingController();      
    }
    
@@ -230,13 +231,14 @@ public class PointModel extends RootModel
       fixed.setDynamic (false);
       model.addRigidBody (fixed);
       RenderProps.setVisible (fixed, false);
-      
-      SphericalJoint joint = new SphericalJoint (body, fixed, Point3d.ZERO);
-      joint.setName("center_constraint");
-      model.addBodyConnector (joint);
-      
-      addMonitor (new ConnectorForceRenderer(joint)); 
-      
+
+      if (useReactionForceTargetP) { 
+         // add spherical joint for reaction force target testing
+         SphericalJoint joint = new SphericalJoint (body, fixed, Point3d.ZERO);
+         joint.setName("center_constraint");
+         model.addBodyConnector (joint);
+         addMonitor (new ConnectorForceRenderer(joint)); 
+      }
       
       center = new FrameMarker();
       center.setName("center");
@@ -500,15 +502,17 @@ public class PointModel extends RootModel
 //      myTrackingController.addTerm(new StaticMotionTargetTerm(TrackingController));
       MotionTargetComponent target = myTrackingController.addMotionTarget(center);
       RenderProps.setPointRadius ((Renderable)target, 0.525);
-      
-      ForceTargetTerm forceTerm = new ForceTargetTerm (myTrackingController);
-      ForceTarget ft = forceTerm.addForceTarget (
-         model.bodyConnectors ().get ("center_constraint"));
-      ft.setArrowSize (2);
-      RenderProps.setLineStyle (ft, LineStyle.CYLINDER);
-      RenderProps.setLineRadius (ft, 0.25);
-      forceTerm.setWeight (1d);
-      myTrackingController.addForceTargetTerm (forceTerm);
+
+      if (useReactionForceTargetP) { 
+         ForceTargetTerm forceTerm = new ForceTargetTerm (myTrackingController);
+         ForceTarget ft = forceTerm.addForceTarget (
+            model.bodyConnectors ().get ("center_constraint"));
+         ft.setArrowSize (2);
+         RenderProps.setLineStyle (ft, LineStyle.CYLINDER);
+         RenderProps.setLineRadius (ft, 0.25);
+         forceTerm.setWeight (1d);
+         myTrackingController.addForceTargetTerm (forceTerm);
+      }
       
 //      myTrackingController.getSolver().setBounds(0.01, 0.99);
       

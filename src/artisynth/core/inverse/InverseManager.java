@@ -48,6 +48,9 @@ public class InverseManager {
    private NumericOutputProbe excitationOutProbe;
    private NumericOutputProbe modelTargetMotionOutProbe;
    private NumericOutputProbe refTargetMotionOutProbe;
+   
+   private final String DEFAULT_TARGET_POSITION_FILENAME = "ref_targetPos_input.txt";
+   String targetPositionFilename = DEFAULT_TARGET_POSITION_FILENAME;
 
    public InverseManager (Main main) {
       myMain = main;
@@ -197,7 +200,7 @@ public class InverseManager {
       if (moterm != null) {
          configureTargetMotionProbe(
             refTargetMotionInProbe, moterm.getTargets(),
-            "ref_targetPos_input.txt");
+            targetPositionFilename);
          configureTargetMotionProbe(
             modelTargetMotionOutProbe, moterm.getSources(),
             "model_target_position.txt");
@@ -378,6 +381,9 @@ public class InverseManager {
       excitationOutProbe.setStopTime (t);
    }
    
+   public void setTargetPositionFilename(String filename) {
+      targetPositionFilename = filename;
+   }
    
    public static void setAllProbeUpdateInterval(RootModel root, double h) {
       for (Probe p : root.getInputProbes ()) {

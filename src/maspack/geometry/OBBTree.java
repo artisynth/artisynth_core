@@ -33,7 +33,8 @@ public class OBBTree extends BVTree {
    private Vector3d[] obbAxes = new Vector3d[3];
 
    public static int myDefaultMaxLeafElems = 2;
-   public static Method myDefaultMethod = Method.ConvexHull;
+   public static Method myDefaultMethod = Method.Covariance;
+   //public static Method myDefaultMethod = Method.ConvexHull;
    private Method myMethod = myDefaultMethod;
 
    /**

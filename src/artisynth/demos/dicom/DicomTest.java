@@ -16,25 +16,21 @@ import maspack.fileutil.FileManager;
  */
 public class DicomTest extends RootModel {
 
-   String dicom_url = "http://www.osirix-viewer.com/datasets/DATA/BRAINIX.zip";
-   String dicom_folder = "BRAINIX/BRAINIX";
+   String dicom_url = "http://barre.nom.fr/medical/samples/files/MR-MONO2-8-16x-heart.gz";
+   String dicom_file = "/MR-MONO2-8-16x-heart";
    
    public void build(String[] args) throws IOException {
       
       // download the BRAINIX dicom data if it does not already exist
-      String localDir = ArtisynthPath.getSrcRelativePath(this, "data/BRAINIX");
-      FileManager fileManager = new FileManager(localDir, "zip:" + dicom_url + "!/");
+      String localDir = ArtisynthPath.getSrcRelativePath(this, "data/MONO2_HEART");
+      FileManager fileManager = new FileManager(localDir, "gz:" + dicom_url + "!/");
       fileManager.setConsoleProgressPrinting(true);
       fileManager.setOptions(FileManager.DOWNLOAD_ZIP); // download zip file first
-      File dicomPath = fileManager.get(dicom_folder);   // do the download
+      File dicomPath = fileManager.get(dicom_file);     // extract
       
-      // I'm actually interested in the folder:
-      //    BRAINIX/BRAINIX/IRM cerebrale, neuro-crane/T2W-FE-EPI - 501
-      // but due to UTF-8 character encoding in the filenames, which is not supported 
-      // on all systems, I'm accessing the desired files using a regular expression
-      // on the parent folder
-      DicomViewer dcp = new DicomViewer("Brain", dicomPath.getAbsolutePath(), 
-         Pattern.compile(".*/T2W-FE-EPI - 501/.*\\.dcm"), /*check subdirectories*/true);
+     
+      DicomViewer dcp = new DicomViewer("Heart", dicomPath.getAbsolutePath(), 
+         null, /*check subdirectories*/ false);
       
       addRenderable(dcp);
       
@@ -49,8 +45,7 @@ public class DicomTest extends RootModel {
    
    @Override
    public String getAbout() {
-      return "Loads and displays a DICOM image of the brain, which is automatically "
-         + "downloaded from www.osirix-viewer.com";
+      return "Loads and displays a DICOM image of the heart";
    }
    
 }

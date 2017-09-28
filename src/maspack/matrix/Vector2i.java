@@ -81,7 +81,8 @@ public class Vector2i extends VectoriBase {
     * second element
     */
    public Vector2i (int x, int y) {
-      set (x, y);
+      this.x = x;
+      this.y = y;
    }
 
    /**
@@ -91,7 +92,8 @@ public class Vector2i extends VectoriBase {
     * element values
     */
    public Vector2i (int[] values) {
-      set (values[0], values[1]);
+      this.x = values[0];
+      this.y = values[1];
    }
 
    /**

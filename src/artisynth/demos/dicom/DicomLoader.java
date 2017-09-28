@@ -5,6 +5,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 import javax.swing.JButton;
@@ -13,9 +14,15 @@ import javax.swing.JPanel;
 
 import artisynth.core.driver.Main;
 import artisynth.core.gui.ControlPanel;
+import artisynth.core.renderables.DicomPlaneViewer;
 import artisynth.core.renderables.DicomViewer;
+import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import maspack.image.dicom.DicomImage;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector2d;
 import maspack.render.GL.GLViewer.BlendFactor;
 import maspack.widgets.BooleanSelector;
 import maspack.widgets.FileNameField;
@@ -24,6 +31,8 @@ import maspack.widgets.StringField;
 public class DicomLoader extends RootModel {
    
    DicomViewer viewer;
+   ArrayList<DicomPlaneViewer> viewerPlanes;
+   
    FileNameField fnf;
    StringField fnp;
    BooleanSelector fns;
@@ -33,7 +42,9 @@ public class DicomLoader extends RootModel {
    public void build(String[] args) throws IOException {
       super.build(args);
       
-      // nothing, everything done in loader
+      viewerPlanes = new ArrayList<>();
+      
+      // everything else done in loader
       
    }
    
@@ -52,6 +63,7 @@ public class DicomLoader extends RootModel {
       
       fnf = new FileNameField("File or folder:", 30);
       fnf.getFileChooser().setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+      fnf.getFileChooser().setCurrentDirectory(ArtisynthPath.getWorkingDir());
       fnf.setName("dicom_path");
       panel.addWidget(fnf);
       
@@ -62,15 +74,20 @@ public class DicomLoader extends RootModel {
       fns = new BooleanSelector("Subdirectories", true);
       panel.addWidget(fns);
       
-      // full-width button
+      // panel for full-width button
       JPanel jpanel = new JPanel();
       jpanel.setLayout(new GridLayout());
+      panel.addWidget(jpanel);
+      
       JButton button = new JButton("Load");
       button.setActionCommand("load");
       button.addActionListener(this);
       jpanel.add(button);
-      panel.addWidget(jpanel);
       
+      button = new JButton("Add Plane");
+      button.setActionCommand("plane");
+      button.addActionListener(this);
+      jpanel.add(button);
       
       addControlPanel(panel);
    }
@@ -82,7 +99,8 @@ public class DicomLoader extends RootModel {
       
       if ("load".equals(cmd)) {
          load();
-         return;
+      } else if ("plane".equals(cmd)) {
+         addPlane();
       } else {
          super.actionPerformed(event);
       }
@@ -96,6 +114,12 @@ public class DicomLoader extends RootModel {
       if (viewer != null) {
          removeRenderable(viewer);
       }
+      if (viewerPlanes.size() > 0) {
+         for (DicomPlaneViewer dpv : viewerPlanes) {
+            removeRenderable(dpv);
+         }
+         viewerPlanes.clear();
+      }
       
       File file = new File(folder);
       String name = file.getName();
@@ -103,6 +127,29 @@ public class DicomLoader extends RootModel {
       viewer = new DicomViewer(name, file.getAbsolutePath(), Pattern.compile(pattern), subdirs);
       addRenderable(viewer);
       Main.getMain().getViewer().autoFit();
+      
+   }
+   
+   void addPlane() {
+      if (viewer == null) {
+         return;
+      }
+      
+      DicomImage image = viewer.getImage();
+      
+      Point3d pmin = new Point3d(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+      Point3d pmax = new Point3d(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY);
+      viewer.updateBounds(pmin, pmax);
+      
+      // center transform
+      RigidTransform3d trans = new RigidTransform3d();
+      trans.p.interpolate(pmin,  0.5, pmax);
+      
+      Vector2d size = new Vector2d(pmax.x-pmin.x, pmax.y-pmin.y);
+      DicomPlaneViewer dpv = new DicomPlaneViewer("plane_" + viewerPlanes.size(), image, trans, size);
+      addRenderable(dpv);
+      
+      viewerPlanes.add(dpv);
       
    }
 

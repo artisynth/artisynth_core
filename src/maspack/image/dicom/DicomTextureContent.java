@@ -548,23 +548,19 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
    public BufferedImage createImage() {
 
       ComponentColorModel colorModel = null;
-      int pixelBytes = 4;
       colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_sRGB),
          new int[] {8, 8, 8, 8}, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
       
       switch (internalStorage) {
          case BYTE:
-            pixelBytes = 1;
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_GRAY),
                new int[] {8}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
             break;
          case BYTE_RGB:
-            pixelBytes = 3;
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_sRGB),
                new int[] {8, 8, 8, 0}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
             break;
          case SHORT:
-            pixelBytes = 2;
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_GRAY),
                new int[] {16}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_USHORT);
             break;
@@ -582,11 +578,24 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
          textureImage.limit (textureImage.capacity ());
          
          // flip vertically
-         int scanline = textureWidth*pixelBytes;
-         int pos = textureWidth*textureHeight*pixelBytes-scanline;
+         int scanline = textureWidth;
+         int pos = textureWidth*textureHeight-scanline;
          for (int i=0; i<textureHeight; ++i) {
-            for (int j=0; j<scanline; ++j) {
-               raster.getDataBuffer ().setElem (pos+j, textureImage.get ());   
+            for (int j=0; j<textureWidth; ++j) {
+               switch(internalStorage) {
+                  case BYTE:
+                     raster.getDataBuffer ().setElem (pos+j, textureImage.get ());
+                     break;
+                  case BYTE_RGB:
+                     raster.getDataBuffer ().setElem (0, pos+j, textureImage.get ());
+                     raster.getDataBuffer ().setElem (1, pos+j, textureImage.get ());
+                     raster.getDataBuffer ().setElem (2, pos+j, textureImage.get ());
+                     break;
+                  case SHORT:
+                     raster.getDataBuffer ().setElem (pos+j, textureImage.getShort ());
+                     break;
+                  
+               }
             }
             pos -= scanline;
          }

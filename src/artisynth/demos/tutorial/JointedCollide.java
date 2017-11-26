@@ -6,6 +6,7 @@ import maspack.matrix.*;
 import maspack.render.*;
 import maspack.util.*;
 import artisynth.core.mechmodels.*;
+import artisynth.core.mechmodels.CollisionManager.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.probes.WayPoint;
 import artisynth.core.driver.*;
@@ -36,8 +37,18 @@ public class JointedCollide extends RigidBodyJoint {
       base.setDynamic (false);
       mech.addRigidBody (base);
 
-      // turn on collisions
-      mech.setDefaultCollisionBehavior (true, 0.20);
+       // turn on collisions
+      CollisionBehavior behav = new CollisionBehavior (true, 0);
+
+      //behav.setColliderType (ColliderType.SIGNED_DISTANCE);
+      CollisionManager cm = mech.getCollisionManager();
+      cm.setColliderType (ColliderType.SIGNED_DISTANCE);
+     
+      mech.setDefaultCollisionBehavior (behav);
+      behav.setMethod (CollisionBehavior.Method.VERTEX_PENETRATION); 
+
+     // turn on collisions
+      //mech.setDefaultCollisionBehavior (true, 0.20);
       mech.setCollisionBehavior (bodyA, bodyB, false);
    }
 

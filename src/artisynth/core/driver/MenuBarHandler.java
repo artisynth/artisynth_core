@@ -9,7 +9,6 @@ package artisynth.core.driver;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -29,7 +28,6 @@ import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
-import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -39,7 +37,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.JToolBar;
-import javax.swing.UIManager;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
@@ -87,6 +84,7 @@ import maspack.widgets.ButtonCreator;
 import maspack.widgets.DoubleField;
 import maspack.widgets.GridDisplay;
 import maspack.widgets.GuiUtils;
+import maspack.widgets.MouseSettingsDialog;
 import maspack.widgets.OptionPanel;
 import maspack.widgets.PropertyDialog;
 import maspack.widgets.PropertyPanel;
@@ -764,7 +762,7 @@ public class MenuBarHandler implements
 
    private File selectProbeDir(String approveMsg, File existingFile) {
       JFileChooser chooser =
-         new JFileChooser(myMain.getMain().getProbeDirectory());
+         new JFileChooser(myMain.getProbeDirectory());
       chooser.setApproveButtonText(approveMsg);
       chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
       int retval;
@@ -792,7 +790,7 @@ public class MenuBarHandler implements
    private boolean saveProbesFile(File dir) {
       File probesFile = new File(dir, "probeInfo.art");
       try {
-         if (!myMain.getMain().saveProbesFile(probesFile)) {
+         if (!myMain.saveProbesFile(probesFile)) {
             return false;
          }
       } catch (IOException e) {
@@ -806,7 +804,7 @@ public class MenuBarHandler implements
    private boolean loadProbesFile(File dir) {
       File probesFile = new File(dir, "probeInfo.art");
       try {
-         if (!myMain.getMain().loadProbesFile(probesFile)) {
+         if (!myMain.loadProbesFile(probesFile)) {
             return false;
          }
       } catch (IOException e) {
@@ -821,10 +819,10 @@ public class MenuBarHandler implements
     * save the probes in a new directory
     */
    private void newSaveProbesIn() {
-      File dir = selectProbeDir("Save", myMain.getMain().getProbeDirectory());
+      File dir = selectProbeDir("Save", myMain.getProbeDirectory());
       if (dir != null) {
          if (saveProbesFile(dir)) {
-            myMain.getMain().setProbeDirectory(dir);
+            myMain.setProbeDirectory(dir);
             myMain.getTimeline().saveAllProbes();
          }
       }
@@ -834,18 +832,18 @@ public class MenuBarHandler implements
     * save the probes
     */
    private void newSaveProbes() {
-      if (saveProbesFile(myMain.getMain().getProbeDirectory())) {
+      if (saveProbesFile(myMain.getProbeDirectory())) {
          myMain.getTimeline().saveAllProbes();
       }
    }
 
    private void newLoadProbesFrom() {
-      File dir = selectProbeDir("Load", myMain.getMain().getProbeDirectory());
+      File dir = selectProbeDir("Load", myMain.getProbeDirectory());
       if (dir != null) {
-         File oldDir = myMain.getMain().getProbeDirectory();
-         myMain.getMain().setProbeDirectory(dir);
+         File oldDir = myMain.getProbeDirectory();
+         myMain.setProbeDirectory(dir);
          if (!loadProbesFile(dir)) {
-            myMain.getMain().setProbeDirectory(oldDir);
+            myMain.setProbeDirectory(oldDir);
          }
       }
    }
@@ -1064,6 +1062,11 @@ public class MenuBarHandler implements
       if (e.getSource() == myStepDisplay) {
          myMain.setMaxStep(myStepDisplay.getDoubleValue());
       }
+      else if (e.getSource() instanceof MouseSettingsDialog) {
+         MouseSettingsDialog dialog = (MouseSettingsDialog)e.getSource();
+         myMain.setMouseBindings (dialog.getBindings());
+         myMain.setMouseWheelZoomScale(dialog.getWheelZoom());
+      }
    }
 
    private void setRealTimeScaling() {
@@ -1137,26 +1140,17 @@ public class MenuBarHandler implements
       }
    }
 
-   private void setMouseWheelZoom() {
-      String inputValue =
-         JOptionPane.showInputDialog(
-            myFrame,
-            "Set zoom amount - amount by which single mouse scroll zooms",
-            myMain.getViewer().getMouseHandler().getMouseWheelZoomScale());
-
-      if (inputValue == null) {
-         System.out.println("Clicked cancel on the zoom dialog");
-         return;
-      }
-
-      try {
-         Double val = Double.parseDouble(inputValue);
-         myMain.getViewer().getMouseHandler().setMouseWheelZoomScale(val);
-      } catch (NumberFormatException e) {
-         JOptionPane.showMessageDialog(
-            myFrame, "Setting zoom amount error", "Warning",
-            JOptionPane.WARNING_MESSAGE);
-      }
+   private void openMouseSettingsDialog() {
+      MouseSettingsDialog dialog =
+         new MouseSettingsDialog (
+            "Mouse settings", 
+            myMain.getMouseBindings(),
+            myMain.getAllMouseBindings(),
+            myMain.getMouseWheelZoomScale());
+      GuiUtils.locateRight(dialog, myFrame);
+      myMain.registerWindow (dialog);
+      dialog.addValueChangeListener (this);
+      dialog.setVisible(true);
    }
 
    private void showPullControllerPropertyDialog() {
@@ -1375,8 +1369,8 @@ public class MenuBarHandler implements
       else if (cmd.equals ("Real-time scaling")) {
          setRealTimeScaling ();
       }
-      else if (cmd.equals("Mousewheel zoom")) {
-         setMouseWheelZoom();
+      else if (cmd.equals("Mouse Preferences ...")) {
+         openMouseSettingsDialog();
       }
       else if (cmd.equals("Init draggers in world coords")) {
          myMain.setInitDraggersInWorldCoords (true);
@@ -1434,10 +1428,10 @@ public class MenuBarHandler implements
          setJythonConsoleVisible(true);
       }
       else if (cmd.equals("Show Inverse panel")) {
-          myMain.getMain().getInverseManager().showInversePanel(myMain.getRootModel (), InverseManager.findInverseController ());
+          myMain.getInverseManager().showInversePanel(myMain.getRootModel (), InverseManager.findInverseController ());
       }
       else if (cmd.equals("Hide Inverse panel")) {
-         myMain.getMain().getInverseManager().hideInversePanel();
+         myMain.getInverseManager().hideInversePanel();
       }
       else if (cmd.equals("Show movie panel")) {
          myFrame.getMain().getViewer().getCanvas().display();
@@ -1542,11 +1536,6 @@ public class MenuBarHandler implements
       }
       else if (cmd.equals("Fast forward")) {
          myMain.getScheduler().fastForward();
-      }
-      else if (cmd.startsWith("MousePrefs ")) {
-         String prefs = cmd.substring(11); // cut off MousePrefs
-         myMain.mousePrefs.value = prefs;
-         myMain.getMain().setMouseBindings(prefs);
       }
       else if (cmd.equals("cancel")) {
          return;
@@ -1962,42 +1951,9 @@ public class MenuBarHandler implements
 //         addMenuItem(menu, "Enable GL_SELECT selection");
 //      }
 
-      JMenu submenu = new JMenu("Mouse Preferences");
-      menu.add(submenu);
+      addMenuItem(menu, "Mouse Preferences ...");
 
-      Font menuFont = UIManager.getFont("Menu.font");
-
-      int style = menuFont.getStyle();
-      style = Font.ITALIC;
-
-      Font menuLabelFont =
-         new Font(menuFont.getName(), style, menuFont.getSize());
-
-      JLabel bindingLabel = new JLabel(" Button Configuration:");
-      bindingLabel.setFont(menuLabelFont);
-      submenu.add(bindingLabel);
-
-      ButtonGroup group = new ButtonGroup();
-      String [] mousePrefsOpts = myMain.mousePrefsOptions;
-      JRadioButtonMenuItem []rbItem =
-         new JRadioButtonMenuItem[mousePrefsOpts.length];
-
-      boolean selected = false;
-      for (int i=0; i<mousePrefsOpts.length; i++) {
-         rbItem[i] = addRadioMenuItem(
-            submenu, mousePrefsOpts[i], "MousePrefs " + mousePrefsOpts[i], group);
-         if (mousePrefsOpts[i].equals(myMain.mousePrefs.value)) {
-            rbItem[i].setSelected(true);
-            selected = true;
-         }         
-      }
-      if (!selected) {
-         rbItem[0].setSelected(true);
-      }
-      submenu.add(new JSeparator());
-      addMenuItem(submenu, "Mousewheel zoom ...", "Mousewheel zoom");
-
-      submenu = new JMenu("PullController");
+      JMenu submenu = new JMenu("PullController");
       menu.add(submenu);
 
       item = addMenuItem(

@@ -1151,6 +1151,50 @@ public class StlRenderer implements Renderer {
    }
 
    @Override
+   public void drawSolidAxes (
+      RigidTransform3d X, double[] lens, double rad, boolean highlight) {
+      
+      boolean savedHighlighting = setHighlighting(highlight);
+      // deal with transform and len
+      double lx = lens[0];
+      double ly = lens[1];
+      double lz = lens[2];
+
+      if (X == null) {
+         X = RigidTransform3d.IDENTITY;
+      }
+      pushModelMatrix();
+
+      mulModelMatrix(X);
+      
+      if (lx != 0) {
+         setColor (Color.RED);
+         drawArrow (Point3d.ZERO, new Point3d (lx, 0, 0), rad, true);
+      }
+      if (ly != 0) {
+         setColor (Color.GREEN);
+         drawArrow (Point3d.ZERO, new Point3d (0, ly, 0), rad, true);
+      }
+      if (lz != 0) {
+         setColor (Color.BLUE);
+         drawArrow (Point3d.ZERO, new Point3d (0, 0, lz), rad, true);
+      }
+      
+      // revert matrix transform
+      popModelMatrix();
+
+      setHighlighting(savedHighlighting);
+   }
+   
+   @Override
+   public void drawSolidAxes (
+      RigidTransform3d X, double len, double rad, boolean highlight) {
+      
+      drawSolidAxes (X, new double[] {len, len, len}, rad, highlight);
+   }
+   
+
+   @Override
    public void drawAxes(
       RigidTransform3d X, double[] lens, int width, boolean highlight) {
       // DRAW NOTHING

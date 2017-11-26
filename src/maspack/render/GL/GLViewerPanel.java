@@ -56,10 +56,12 @@ public class GLViewerPanel extends JPanel {
 
    public void setSize (Dimension d) {
       super.setSize (d);
+      viewer.getCanvas().setSize (d);
    }
 
    public void setSize (int w, int h) {
       super.setSize (w, h);
+      viewer.getCanvas().setSize (w, h);
    }
 
    public void setBounds (int x, int y, int w, int h) {
@@ -69,6 +71,7 @@ public class GLViewerPanel extends JPanel {
 
    public void setBounds (Rectangle r) {
       super.setBounds (r);
+      viewer.getCanvas().setSize (r.width, r.height);
    }
 
    public void setErrorMessage (String msg) {

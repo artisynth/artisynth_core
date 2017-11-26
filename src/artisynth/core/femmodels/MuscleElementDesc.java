@@ -481,25 +481,6 @@ public class MuscleElementDesc
       return null;      
    }
 
-//   public void addTangent (
-//      Matrix6d D, SymmetricMatrix3d stress, IntegrationPoint3d pt, 
-//      IntegrationData3d dt, FemMaterial baseMat) {
-//      
-//      MuscleMaterial mat = getEffectiveMuscleMaterial();
-//      if (mat != null) {
-//         Vector3d dir = null;
-//         if (myDirs != null) {
-//            dir = myDirs[pt.getNumber()];
-//         }
-//         else {
-//            dir = myDir;
-//         }
-//         if (dir != null) {
-//            mat.addTangent (D, stress, getNetExcitation(), dir, pt, baseMat);
-//         }
-//      }
-//   }
-   
    public void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress,
       SolidDeformation def, IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
@@ -519,48 +500,6 @@ public class MuscleElementDesc
       }
    }
   
-//   public void addStress (
-//      SymmetricMatrix3d sigma, IntegrationPoint3d pt, 
-//      IntegrationData3d dt, FemMaterial baseMat) {
-//      
-//      MuscleMaterial mat = getEffectiveMuscleMaterial();
-//      if (mat != null) {
-//         Vector3d dir = null;
-//         if (myDirs != null) {
-//            dir = myDirs[pt.getNumber()];
-//         }
-//         else {
-//            dir = myDir;
-//         }
-//         if (dir != null) {
-//            mat.addStress (sigma, getNetExcitation(), dir, pt, baseMat);
-//         }
-//      }
-//   }
-// 
-
- 
-   // @Override
-   // public void computeStress (
-   //    SymmetricMatrix3d sigma, SolidDeformation def,
-   //    Matrix3d Q, FemMaterial baseMat) {
-      
-   //    sigma.setZero();
-   //    MuscleMaterial mat = getEffectiveMuscleMaterial();
-   //    if (mat != null) {
-   //       Vector3d dir = null;
-   //       if (myDirs != null) {
-   //          dir = myDirs[pt.getNumber()];
-   //       }
-   //       else {
-   //          dir = myDir;
-   //       }
-   //       if (dir != null) {
-   //          mat.addStress (sigma, getNetExcitation(), dir, pt, baseMat);
-   //       }
-   //    }
-   // }
-   
    public void computeStress (
       SymmetricMatrix3d sigma, SolidDeformation def,
       IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
@@ -579,22 +518,6 @@ public class MuscleElementDesc
          }
       }
    }
-   
-//   private SymmetricMatrix3d tmpStress = new SymmetricMatrix3d();
-//   @Override
-//   public void addStressAndTangent(SymmetricMatrix3d sigma, Matrix6d D,
-//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-//      computeStress(tmpStress, pt, dt, baseMat);
-//      sigma.add(tmpStress);
-//      addTangent(D, tmpStress, pt, dt, baseMat);
-//   }
-   
-//   @Override
-//   public void computeStressAndTangent(SymmetricMatrix3d sigma, Matrix6d D,
-//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-//      computeStress(sigma, pt, dt, baseMat);
-//      computeTangent(D, sigma, pt, dt, baseMat);
-//   }
 
    public boolean hasSymmetricTangent() {
       MuscleMaterial mat = getEffectiveMuscleMaterial();
@@ -605,19 +528,6 @@ public class MuscleElementDesc
          return true;
       }
    }
-
-   // public void getDependencies (
-   //    List<ModelComponent> deps, ModelComponent ancestor) {
-   //    super.getDependencies (deps, ancestor);
-   //    // TODO: see why these are NOT included in Muscle code:
-   //    if (myExcitationSources != null) {
-   //       for (ExcitationComponent ex : myExcitationSources) {
-   //          if (ex != getGrandParent()) {
-   //             ComponentUtils.addDependencies (deps, ex, ancestor);
-   //          }
-   //       }
-   //    }
-   // }
 
    public void interpolateDirection (
       DelaunayInterpolator interp, Vector3d[] restDirs) {

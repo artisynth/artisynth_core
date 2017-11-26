@@ -533,22 +533,22 @@ public class Track extends JPanel {
 
          wayProbe.invalidateAfterTime (earliestTime);
 
-         if (myController.getCurrentTime() > earliestTime) {
-            if (myController.myMain.getWorkspace().rootModelHasState()) {
-               WayPoint wayPoint = 
-                  wayProbe.getNearestValidBefore (earliestTime);
+         // if (myController.getCurrentTime() > earliestTime) {
+         //    if (myController.myMain.getWorkspace().rootModelHasState()) {
+         //       WayPoint wayPoint = 
+         //          wayProbe.getNearestValidBefore (earliestTime);
             
-               if (wayPoint != null) {
-                  myController.myScheduler.setTime (wayPoint);
-               }
-               else {
-                  myController.myScheduler.setTime (0);
-               }
-            }
-            else {
-               myController.myScheduler.setTime (earliestTime);
-            }
-         }
+         //       if (wayPoint != null) {
+         //          myController.myScheduler.setTime (wayPoint);
+         //       }
+         //       else {
+         //          myController.myScheduler.setTime (0);
+         //       }
+         //    }
+         //    else {
+         //       myController.myScheduler.setTime (earliestTime);
+         //    }
+         // }
       }
 
       if (mute) {

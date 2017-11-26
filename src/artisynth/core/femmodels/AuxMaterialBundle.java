@@ -217,21 +217,6 @@ public class AuxMaterialBundle extends CompositeComponentBase
       return myElementDescs;
    }
 
-//   /** 
-//    * Returns true if this bundle references a specified FEM element.
-//    */   
-//   public boolean usesElement (FemElement3d e) {
-//      for (ModelComponent c : e.getBackReferences()) {
-//         if (c instanceof AuxMaterialElementDesc) {
-//            AuxMaterialElementDesc desc = (AuxMaterialElementDesc)c;
-//            if (desc.getGrandParent() == this) {
-//               return true;
-//            }
-//         }
-//      }
-//      return false;
-//   }
-//
    public void addElement (AuxMaterialElementDesc desc) {
       // check to make sure particles are already in the FEM
       FemModel femMod = getAncestorFem(this);

@@ -13,7 +13,7 @@
 
 \title{ArtiSynth User Interface Guide}
 \author{John Lloyd}
-\setpubdate{Last update: Oct 12, 2016}
+\setpubdate{Last update: Nov 23, 2017}
 \iflatexml
 \date{}
 \fi
@@ -159,6 +159,7 @@ contained in the model's {\tt RootModel}.
 \end{sideblock}
 
 \subsection{Simulating a model}
+\label{SimulatingSec}
 
 Once a model is loaded, simulation of the model can be started,
 paused, single-stepped, or reset using the play controls (Figure
@@ -180,7 +181,10 @@ single-step buttons.}%
 \end{figure}
 
 An extended set of play controls is available in the ArtiSynth
-timeline (Section \ref{TimelinePlayControls}).
+timeline (Section \ref{TimelinePlayControls}).  Also, hitting the
+`{\tt p}', `{\tt s}' and `{\tt r}' keys from within the viewer (Section
+\ref{keyShortcutsSec}) can be used to play/pause, step and reset the
+simulation.
 
 \section{The Viewer}
 
@@ -214,27 +218,36 @@ accordingly.
 \subsection{Viewpoint Control}
 \label{ViewpointControlSec}
 
-The view point can be controlled interactively by dragging the middle
-mouse button:
+The viewpoint can be controlled interactively using mouse drag
+actions.  On systems with a three-button mouse, this is generally done
+using the middle mouse button ({\tt MMB}), in conjunction with the
+{\tt SHIFT} and {\tt CTRL} modifier keys:
 
 \begin{description}
 
-\item[MIDDLE mouse] \mbox{}
+\item[MMB] \mbox{}
 
-Rotates the view point about the center of the frustum.
+Rotates the viewpoint about the viewer center point.
 
-\item[SHIFT MIDDLE mouse] \mbox{}
+\item[MMB + SHIFT] \mbox{}
 
-Translates the view point in a plane perpendicular to the
+Translates the viewpoint in a plane perpendicular to the
 line of sight.
 
-\item[CTRL MIDDLE mouse {\it or} mouse WHEEL] \mbox{}
+\item[MMB + CTRL {\it or} mouse WHEEL] \mbox{}
 
 Zooms in or out by moving the viewpoint along the line of sight. Rotate 
 wheel forward or drag mouse forward with CTRL and middle mouse button 
 pressed to zoom in. Rotate or drag backwards to zoom out.
 
 \end{description}
+
+\begin{sideblock}
+On systems that have a one or two button mouse, the mouse bindings are
+adjusted by default so that the {\tt ALT} modifier key emulates the
+middle mouse button. Mouse bindings are discussed in detail in
+Section \ref{MouseBindingsSec}.
+\end{sideblock}
 
 \label{axisAlignedViewpointsSec}
 Predetermined viewpoints can also be selected using the {\it align axis}
@@ -286,7 +299,9 @@ by red, green, and blue lines respectively:
 \end{tabular}
 %\end{description}
 
-The align axis button itself displays the most recently selected axis-aligned
+The align axis button itself displays the most recently selected
+axis-aligned view. Hitting the `{\tt v}' key from within the viewer
+(Section \ref{keyShortcutsSec}) will realign the viewpoint to this
 view.
 
 \subsection{Adding Additional Viewers}
@@ -304,16 +319,18 @@ in CAD and geometric modeling applications.
 \end{sideblock}
 
 \subsection{Orthographic vs. Perspective Projection}
+\label{ProjectionSec}
 
 The user can toggle between orthographic and perspective projection by
-selecting {\sf View > Orthographic view} or {\sf View > Perspective view}
-from the main menu. Toggling can also be achieved using the '{\tt o}' key
-within the viewer.
+selecting {\sf View > Orthographic view} or {\sf View > Perspective
+view} from the main menu. Toggling can also be achieved using the
+`{\tt o}' key shortcut (Section \ref{keyShortcutsSec}) within the
+viewer.
 
 \subsection{Viewer Grid}
 \label{ViewerGrid}
 
-Hitting the '{\tt g}' key within the viewer enables or disables a grid
+Hitting the `{\tt g}' key within the viewer enables or disables a grid
 (Figure \ref{viewerGridFig}). Grid cells are square and appear in two
 resolutions, with {\it major cells} subdivided into a number of {\it
 minor cells}. Major cells are typically rendered more brightly than
@@ -366,7 +383,7 @@ which will renable auto-sizing.
 \subsubsection{Axis Labeling}
 \label{AxisLabels}
 
-Hitting the '{\tt l}' key within the viewer enables or disables
+Hitting the `{\tt l}' key within the viewer enables or disables
 labeling of the major divisions along the horizontal and vertical axis
 (Figure \ref{gridLabels:fig}). The division lines along which these
 labels appear are automatically adjusted so as to ensure proper label
@@ -627,6 +644,198 @@ In other applications, the desired point may be known to lie on a 3D
 surface, in which case the position is determined by intersecting the
 ray with a 3D surface mesh.
 
+\subsection{Alternate Mouse Bindings}
+\label{MouseBindingsSec}
+
+The ArtiSynth GUI was designed for a three-button mouse, in which the
+left button is used for selection, the middle button controls the
+viewpoint, and the right button is used to activate the context
+menu. These are used in conjunction with the modifier keys {\tt SHIFT}
+and {\tt CTRL} to effect different actions.  
+
+For systems that do not have a three button mouse, ArtiSynth by
+default detects the number of mouse buttons and adjusts the mouse
+bindings so that the {\tt ALT} key emulates the middle button and the
+{\tt META} key emulates the right button.
+
+\begin{sideblock}
+The {\tt META} key is usually associated with either the {\tt COMMAND}
+key (Mac) or the {\tt WINDOWS} key.
+\end{sideblock}
+
+Mouse bindings can also be explicitly set by the user, by openning the
+mouse preferences dialog {\sf Settings > Mouse Preferences} and then
+choosing the desired binding. This dialog also displays the button and
+modifier combinations associated with different actions. Alternate
+bindings may also be requested from the command line using the {\tt
+-mousePrefs <bindings>} option. Currently, there are three default
+and two legacy bindings:
+
+\begin{description}
+
+\item[ThreeButton]\mbox{}
+
+Default bindings for a three-button mouse.
+
+\item[TwoButton]\mbox{}
+
+Default bindings for a two-button mouse. The middle mouse button
+is emulated with the {\tt ALT} key.
+
+\item[OneButton]\mbox{}
+
+Default bindings for a one-button mouse. The middle and right mouse
+buttons is emulated with the {\tt ALT} and {\tt META} keys.
+
+\item[Laptop]\mbox{}
+
+Legacy bindings for a two-button mouse.
+
+\item[Mac]\mbox{}
+
+Legacy bindings for a Mac type one-button mouse.
+
+\end{description}
+
+Tables showing the button and modifier combinations that effect
+different actions with each of these binding are given below, with
+{\tt LMB}, {\tt MMB}, and {\tt RMB} denoting the left, right and
+middle mouse buttons.  Actions marked with an asterix (*) are drag
+actions which can have their modifier keys invoked or removed during a
+drag operation.
+
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+Action & {\sf ThreeButton} & {\sf TwoButton} & {\sf OneButton}\\
+\hline
+\hline
+\multicolumn{4}{|l|}{Viewpoint control (Section \ref{ViewpointControlSec})}\\
+\hline
+Rotate view & 
+{\tt MMB} & {\tt MMB}+{\tt ALT} & {\tt MMB}+{\tt ALT}\\
+Translate view & 
+{\tt MMB}+{\tt SHIFT} & {\tt MMB}+{\tt ALT}+{\tt SHIFT} & 
+{\tt MMB}+{\tt ALT}+{\tt SHIFT}\\
+Zoom view & 
+{\tt MMB}+{\tt CTRL} & {\tt MMB}+{\tt ALT}+{\tt CTRL} & 
+{\tt MMB}+{\tt ALT}+{\tt CTRL}\\
+\hline
+\multicolumn{4}{|l|}{Component selection (Section \ref{viewerSelectionSec})}\\
+\hline
+Single selection & 
+{\tt LMB} & {\tt LMB} & {\tt LMB}\\
+Multiple selection & 
+{\tt LMB}+{\tt CTRL} & {\tt LMB}+{\tt CTRL} & {\tt LMB}+{\tt CTRL}\\
+Elliptic selection & 
+{\tt LMB} & {\tt LMB} & {\tt LMB}\\
+Elliptic deselection$^*$ & 
+{\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT}\\
+Resize paint ellipse & 
+{\tt LMB}+{\tt SHIFT}+{\tt CTRL} & {\tt LMB}+{\tt SHIFT}+{\tt CTRL} & 
+{\tt LMB}+{\tt SHIFT}+{\tt CTRL}\\
+Context menu & 
+{\tt RMB} & {\tt RMB} & {\tt LMB}+{\tt META}\\
+\hline
+\multicolumn{4}{|l|}{Manipulator control (Section \ref{ManipulationToolsSec})}\\
+\hline
+Move & 
+{\tt LMB} & {\tt LMB} & {\tt LMB}\\
+Constrained move$^*$ & 
+{\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT}\\
+Reposition$^*$ & 
+{\tt LMB}+{\tt CTRL} & {\tt LMB}+{\tt CTRL} & {\tt LMB}+{\tt CTRL}\\
+\hline
+\end{tabular}
+\end{center}
+
+while the legacy bindings are:
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+Action & {\sf Laptop} & {\sf Mac}\\
+\hline
+\hline
+\multicolumn{3}{|l|}{Viewpoint control (Section \ref{ViewpointControlSec})}\\
+\hline
+Rotate view & 
+{\tt LMB} & {\tt LMB}+{\tt ALT}\\
+Translate view & 
+{\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt ALT}+{\tt SHIFT} \\
+Zoom view & 
+{\tt LMB}+{\tt ALT} & {\tt LMB}+{\tt ALT}+{\tt META} \\
+\hline
+\multicolumn{3}{|l|}{Component selection (Section \ref{viewerSelectionSec})}\\
+\hline
+Single selection & 
+{\tt LMB}+{\tt CTRL} & {\tt LMB} \\
+Multiple selection & 
+{\tt LMB}+{\tt SHIFT}+{\tt CTRL} & {\tt LMB}+{\tt META} \\
+Elliptic selection & 
+{\tt LMB}+{\tt CTRL} & {\tt LMB} \\
+Elliptic deselection$^*$ & 
+{\tt LMB}+{\tt SHIFT}+{\tt CTRL} & {\tt LMB}+{\tt SHIFT} \\
+Resize paint ellipse & 
+{\tt LMB}+{\tt SHIFT}+{\tt CTRL} & {\tt LMB}+{\tt SHIFT}+{\tt CTRL}\\
+Context menu & 
+{\tt RMB} & {\tt LMB}+{\tt CTRL} \\
+\hline
+\multicolumn{3}{|l|}{Manipulator control (Section \ref{ManipulationToolsSec})}\\
+\hline
+Move & 
+{\tt LMB} & {\tt LMB} \\
+Constrained move$^*$ & 
+{\tt LMB}+{\tt SHIFT} & {\tt LMB}+{\tt SHIFT} \\
+Reposition$^*$ & 
+{\tt LMB}+{\tt ALT} & {\tt LMB}+{\tt ALT} \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Keyboard Shortcuts}
+\label{keyShortcutsSec}
+
+When the viewer has the keyboard focus, the following key shortcuts
+are available:
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+Key & Operation \\
+\hline
+{\tt q} & quit ArtiSynth \\
+{\tt t} & toggle time line visiblity \\
+{\tt z} & undo last command \\
+\hline
+\multicolumn{2}{|l|}{Play controls (Section \ref{SimulatingSec}):}\\
+\hline
+{\tt p} or {\tt SPC} & play/pause\\
+{\tt s} & single step \\
+{\tt r} & reset \\
+\hline
+\multicolumn{2}{|l|}{Viewer controls:}\\
+\hline
+{\tt v} & reset view (Section \ref{ViewpointControlSec})\\
+{\tt o} & toggle orthographic/perspective view 
+(Section \ref{ProjectionSec})  \\
+{\tt a} & toggle visibility of axes showing world coordinates\\
+{\tt g} & toggle viewer grid (Section \ref{ViewerGrid})\\
+{\tt l} & toggle viewer grid labels\\
+\hline
+\multicolumn{2}{|l|}{%
+Selection and manipulation (Sections \ref{viewerSelectionSec} 
+and \ref{ManipulationToolsSec}):}\\
+\hline
+{\tt ESC} & select parent of last selection\\
+{\tt c} & clear selection\\
+{\tt d} & reset elliptic cursor size to default\\
+{\tt w} & set current manipulator frame to world coordinates\\
+{\tt b} & set current manipulator frame to body/local coordinates\\
+\hline
+\end{tabular}
+\end{center}
+
 \section{Component Navigation and Selection}
 
 An ArtiSynth model is composed of a hierarchical arrangement of
@@ -672,7 +881,7 @@ but rather the component list {\tt particles}.
 
 Model components may be assigned a string name; at the time of
 this writing names may not begin with a digit, have zero length, contain
-the characters '{\tt .}' or '{\tt /}', or equal the reserved word {\tt this}.
+the characters `{\tt .}' or `{\tt /}', or equal the reserved word {\tt this}.
 Components which do not have an assigned name are
 called {\it nameless}.
 
@@ -686,9 +895,9 @@ removed from the parent.
 
 The names and/or numbers of a component's ancestors can be used to
 form a {\it component path name}. This path has a construction completely
-analogous to Unix file path names, with the '{\tt /}' character acting as
-a separator. Absolute paths start with '{\tt /}' and begin with the root
-model. Relative paths omit the leading '{\tt /}' and can begin lower down
+analogous to Unix file path names, with the `{\tt /}' character acting as
+a separator. Absolute paths start with `{\tt /}' and begin with the root
+model. Relative paths omit the leading `{\tt /}' and can begin lower down
 in the hierarchy.  The absolute path name of the {\tt red} particle in
 Figure \ref{hierarchyFig} would be
 
@@ -740,10 +949,11 @@ of the hierarchy diagrammed in Figure \ref{hierarchyFig}.
 \label{navpanelFig}
 \end{figure}
 
-Left clicking on any component in navigation panel selects that
-component. Clicking while pressing the {\tt CTRL} key
-allows selection of multiple components. Clicking while
-pressing the {\tt SHIFT} key allows selection of a range of components.
+Left clicking on any component in the navigation panel selects that
+component. Clicking while pressing the {\tt CTRL} key (or the {\tt
+CMD} key on some platforms, such as Mac) allows selection of multiple
+components. Clicking while pressing the {\tt SHIFT} key allows
+selection of a range of components.
 
 \subsubsection{Large numbers of nameless components}
 
@@ -774,24 +984,100 @@ This is illustrated in Figure \ref{navpanelExpandContractFig}.
 \label{viewerSelectionSec}
 
 Components that are rendered in the viewer can generally be selected
-by left clicking on them (the exception would be for a few renderable
-components that do not support selection). Holding the {\tt CTRL} key
-allows the selection of multiple components.
+by variety of methods (the exception is for a few renderable
+components that do not support selection). These methods include {\it click},
+{\it box}, and {\it elliptic} selection. The top two icons in the
+selection toolbar at the left of the ArtiSynth frame control the
+current selection method. In addition, hitting the `{\tt c}' key
+from within the viewer
+(Section \ref{keyShortcutsSec}) clears the current selection.
 
-\subsubsection{Box selection}
+\subsubsection{Click and box selection}
 
-Left-clicking and dragging in the viewer allows the selection of all
-components drawn within the resulting drag box. Because this often
-results in the selection of more components than desired, it may be
-useful to employ a selection filter (Section
-\ref{selectionFiltersSec}).
+Click and box selection are enabled by the arrow icon at the top of
+the selection toolbar:
+
+\vspace{\parskip}
+\iflatexml
+\includegraphics[]{images/selectTool}
+\else
+\includegraphics[width=.33in]{images/selectTool}
+\fi
+
+Click selection involves left clicking on a component, causing it to
+be selected. Selection of multiple components is enabled by left
+clicking with a modifier key, which is usually {\tt CTRL}
+but may be different for some legacy mouse bindings 
+(Section \ref{MouseBindingsSec}).
+
+\begin{sideblock}
+Click selection selects only those components which are actually
+visible to the viewer; components which are hidden cannot be selected
+this way.
+\end{sideblock}
+
+Box selection is effected by left-clicking and dragging in the viewer,
+causing the selection of all components rendered within the resulting
+drag box. Because this often results in the selection of more
+components than desired, it may be useful to employ a selection filter
+(Section \ref{selectionFiltersSec}). Any components within the drag
+box which are already selected will be deselected.
+
+\begin{sideblock}
+Box selection acts on {\it all} (filtered) components within the view
+frustum defined by the drag box, including those which are hidden
+from view.
+\end{sideblock}
+
+\subsubsection{Elliptic selection}
+
+Elliptic selection is enabled by the elliptic icon near the top of
+the selection toolbar:
+
+\vspace{\parskip}
+\iflatexml
+\includegraphics[]{images/ellipticSelectTool}
+\else
+\includegraphics[width=.33in]{images/ellipticSelectTool}
+\fi
+
+This causes an additional elliptic cursor (which defaults to a circle)
+to be drawn around the mouse cursor. Selection is effected by
+dragging, and causes all visible objects within the ellipse to be
+selected. The selection process is cumulative, with subsequent drags
+selecting additional components. As with all selection operations, a
+filter can be set to restrict the components that are selected
+(Section \ref{selectionFiltersSec}). Generally, the drag select
+operation requires no modifier keys, although it may with some legacy
+mouse bindings (Section \ref{MouseBindingsSec}).
+
+It is also possible to {\it deselect} components in the same way, by
+using the {\tt SHIFT} modifier key to cause drag operations to
+cumulatively deselect components.
+	
+\begin{sideblock}
+Elliptic selection selects only those components which are actually
+visible to the viewer; components which are hidden cannot be selected
+this way.
+\end{sideblock}
+
+The elliptic cursor used for selection can be resized, either
+interactively, or by setting the {\tt ellipticCursorSize} property of
+the viewer. To interactively change the cursor, initiate a drag
+operation with the {\tt CTRL} and {\tt SHIFT} modifiers.
+To set the {\tt ellipticCursorSize}, invoke the context menu
+(usually right click) in the viewer when nothing is selected, and
+choose {\sf Set viewer properties}. Finally, the `{\tt d}' key
+shortcut within the viewer will cause the cursor to be reset to its
+default size.
 
 \subsubsection{Selection filtering}
 \label{selectionFiltersSec}
 
 It is possible to limit viewer selection to components of a specific
 type. This can be done using the selection filter widget at the bottom
-left of the main ArtiSynth frame Figure \ref{selectionFilterWidgetFig}.
+left of the main ArtiSynth frame Figure
+\ref{selectionFilterWidgetFig}.
 
 \begin{figure}
 \begin{center}
@@ -947,6 +1233,13 @@ at the beginning of the drag.
 
 \end{description}
 
+\begin{sideblock}
+Under the default mouse bindings, the basic drag operations involving
+these fixtures are invoked using the left mouse button with no
+modifier keys. Additional modifier keys allow constrained manipulation
+or repositioning of the fixture, as described below.
+\end{sideblock}
+
 \subsection{Manipulation Tools}
 \label{ManipulationToolsSec}
 
@@ -977,7 +1270,16 @@ default behaviour, choose {\sf Init draggers in local coordinates}.
 \includegraphics[width=.33in]{images/selectTool}
 \fi
 {\sf Selection:}\\
-Normal selection mode. Turns off manipulation.
+Click and box selection mode. Turns off manipulation.
+
+\vspace{\parskip}
+\iflatexml
+.\includegraphics[]{images/ellipticSelectTool}
+\else
+\includegraphics[width=.33in]{images/ellipticSelectTool}
+\fi
+{\sf Elliptic Selection:}\\
+Elliptic selection mode. Turns off manipulation.
 
 \vspace{\parskip}
 \iflatexml
@@ -1049,22 +1351,51 @@ when simulation is running. See Section \ref{PullManipulationSec}.
 
 \subsubsection{Constrained manipulation}
 
-Pressing the {\tt SHIFT} modifier key causes drag operations to be
-constrained to discrete step sizes. Rotation operations are
-constrained to intervals of five degrees, while translation operations
-are constrained to either the grid spacing (if a grid is selected, see
+Under the default mouse bindings, pressing the {\tt SHIFT} modifier
+key causes drag operations to be constrained to discrete step sizes.
+Rotation operations are constrained to
+intervals of five degrees, while translation operations are
+constrained to either the grid spacing (if a grid is selected, see
 \ref{ViewerGrid}), or to a suitable well-rounded number depending on
 the viewer's zoom level.
 
-\subsubsection{Changing manipulator position and orientation}
+\subsubsection{Manipulator repositioning}
 \label{ChangingManipulatorPose}
 
-Pressing the {\tt CTRL} modifier key (or the {\tt ALT} key on some
-systems) causes the dragger fixture to move independently of the
-selected objects. This allows its position and orientation relative to
-the selected objects to be changed. This is particularly useful for
-changing the orientation of the scaling directions in the scaling
-tool.
+Under the default mouse bindings, pressing the {\tt CTRL} modifier key
+causes the dragger fixture to move independently of the selected
+objects. This allows its position and orientation
+relative to the selected objects to be changed. This is particularly
+useful for changing the orientation of the scaling directions in the
+scaling tool.
+
+\subsubsection{Changing the manipulator base frame}
+
+By default, a manipulator is assigned a local coordinate frame for the
+object(s) that it is positioning, based on either the object's own
+body frame (if it has one), or the objects' bounding box. This frame
+will then move with the manipulator, and may also move relative to the
+object(s) if the manipulator is repositioned (Section
+\ref{ChangingManipulatorPose}).
+
+Sometimes, it may be desirable to explicitly reset the manipulator's
+frame. This may be done using the following shortcut keys in the
+viewer:
+
+\begin{description}
+
+\item[{\tt w}]\mbox{}
+
+Set the manipulator frame to the world coordinate system, allowing
+subsequent manipulations to be performed in world coordinates;
+
+\item[{\tt b}]\mbox{}
+
+Reset the manipulator frame to the orginal local frame for the
+object(s), based on either the object's body frame or the objects'
+bounding box.
+
+\end{description}
 
 \subsection{Pull Manipulation}
 \label{PullManipulationSec}
@@ -1362,7 +1693,9 @@ expand...} button.
 
 The {\it timeline} is a panel that allows the user to graphically
 arrange temporal sequences of probes and waypoints to control the
-simulation.
+simulation. If not initially visible, its visibility can be toggled by
+hitting the `{\tt t}' key from within the viewer (Section
+\ref{keyShortcutsSec}).
 
 \subsection{Basic Structure}
 
@@ -1916,7 +2249,7 @@ configuration will then be reset from the data in this new
 directory, which will persist as the new current probe directory.
 
 \section{Adding and Editing Numeric Probes}
-\label{AddingAndEditingNumericProbes:sec}
+\label{AddingAndEditingNumericProbesSec}
 
 Numeric input and output probes can be interactively added to a
 simulation. Output probes allow you to record a vector of values
@@ -2635,7 +2968,7 @@ moved to the component panel, where it appears as
 
 \begin{sideblock}
 {\bf Note:}\\ 
-The '{\tt :}' character is used to separate components from
+The `{\tt :}' character is used to separate components from
 properties in component/property paths
 \end{sideblock}
 
@@ -2754,9 +3087,11 @@ components.
 
 \subsubsection{Undo}
 
-Many of the operations described here are {\it undoable}, by choosing the
-{\sf Undo} option from the {\sf Edit} menu. The menu option will indicate the
-name of the operation to be undone.
+Many of the operations described here are {\it undoable}, by choosing
+the {\sf Undo} option from the {\sf Edit} menu. The menu option will
+indicate the name of the operation to be undone. Hitting the `{\tt z}'
+key from within the viewer (Section \ref{keyShortcutsSec}) will
+also perform undo operations.
 
 \subsection{Editing Panels}
 

@@ -34,8 +34,6 @@ public class FrameFem3dConstraint extends ConstrainerBase {
 
    private Vector3d[] myGNX;
    private Matrix3x6Block[] myMasterBlocks;
-   //private Matrix3x3Block[] myVBlocks;
-   //private Matrix3x3Block[] myOmegaBlocks;
 
    // B = (tr(P)I - P) R0^T, where P is the symmetric part of the
    // polar decomposition of F
@@ -84,17 +82,6 @@ public class FrameFem3dConstraint extends ConstrainerBase {
             GT.addBlock (bk, bj, blk);
          }
       }
-
-      //RotationMatrix3d Rf = myFrame.getPose().R;
-      //Matrix6x3Block blk = new Matrix6x3Block();
-      //blk.setSubMatrix00 (Rf);
-      //GT.addBlock (bf, bj, blk);
-
-      // blk = new Matrix6x3Block();
-      // Matrix3d Tmp = new Matrix3d();
-      // Tmp.mulTransposeRight (Rf, myB);
-      // blk.setSubMatrix30 (Tmp);
-      // GT.addBlock (bf, bj+1, blk);
 
       dg.set (numb++, 0);
       dg.set (numb++, 0);
@@ -161,7 +148,6 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       B.m00 += tr;
       B.m11 += tr;
       B.m22 += tr;
-      //B.mulTransposeRight (B, myRC);
    }
 
    public double updateConstraints (double t, int flags) {
@@ -195,15 +181,6 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       computeFrame (T);
 
       myErr.set (T);
-      //System.out.println ("err=" + myErr.toString ("%13.5e"));
-      //myErr.setZero();
-
-      // // T was computed in the local frame. Multiple by current pose
-      // // to get the pose error
-      // T.mulInverseLeft (myFrame.getPose(), T);
-
-      // myErr.set (T);
-
       return 0;
    }
    
@@ -215,46 +192,6 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       }
    }
    
-   // public void setNodes (
-   //    Collection<FemNode> nodes, Collection<Double> coords) {
-   //    double[] _coords = new double[coords.size()];
-   //    int i = 0;
-   //    for (double w : coords) {
-   //       _coords[i++] = w;
-   //    }
-   //    setNodes (nodes.toArray(new FemNode[0]), _coords);
-   // }
-
-   // public void setNodes (FemNode[] nodes, double[] coords) {
-   //    dosetNodes (nodes, coords);
-   //    //myElement = null;
-   //    if (coords == null) {
-   //       // compute node coordinates explicitly
-   //       updateAttachment();
-   //    }
-   // }
-
-   // private void dosetNodes (FemNode[] nodes, double[] coords) {
-   //    if (nodes.length == 0) {
-   //       throw new IllegalArgumentException (
-   //          "Must have at least one node");
-   //    }
-   //    if (coords != null && nodes.length != coords.length) {
-   //       throw new IllegalArgumentException (
-   //          "nodes and coords have incompatible sizes: "+
-   //          nodes.length+" vs. "+coords.length);
-   //    }
-   //    myCoords = new VectorNd (nodes.length);
-   //    myNodes = new FemNode[nodes.length];
-   //    for (int i=0; i<nodes.length; i++) {
-   //       myNodes[i] = nodes[i];
-   //       if (coords != null) {
-   //          myCoords.set (i, coords[i]);
-   //       }
-   //    }
-   // }
-
-
    private void computeBlocks (Matrix3d invJ0, RotationMatrix3d R0) {
 
       VectorNd N = myIpnt.getShapeWeights();
@@ -268,14 +205,6 @@ public class FrameFem3dConstraint extends ConstrainerBase {
          //Matrix3x3Block blk = new Matrix3x3Block();
          myGNX[i] = new Vector3d();
          invJ0.mulTranspose (myGNX[i], GNs[i]);
-         // blk.crossProduct (R0, myGNX[i]);
-         // blk.scale (-1);
-         // myOmegaBlocks[i] = blk;
-
-         // blk = new Matrix3x3Block();
-         // blk.setIdentity();
-         // blk.scale (N.get(i));
-         // myVBlocks[i] = blk;
 
          Matrix3x6Block blkm = new Matrix3x6Block();
          blkm.m00 = N.get(i);
@@ -400,214 +329,12 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       myFrame.setPose (T);
    }
 
-   // public void updateVelStates() {
-   //    if (myNodes != null) {
-   //       double[] coords = myCoords.getBuffer();
-   //       Vector3d vel = myPoint.getVelocity();
-   //       vel.setZero();
-   //       for (int i = 0; i < myNodes.length; i++) {
-   //          vel.scaledAdd (coords[i], myNodes[i].getVelocity(), vel);
-   //       }
-   //    }
-   // }
-
-   // /**
-   //  * Update attachment to reflect changes in the slave state.
-   //  */
-   // public void updateAttachment() {
-   //    myElement.getMarkerCoordinates (myCoords, myPoint.getPosition());
-   // }
-
-   // public void applyForces() {
-   //    if (myNodes != null) {
-   //       double[] coords = myCoords.getBuffer();
-   //       Vector3d force = myPoint.getForce();
-   //       for (int i = 0; i < myNodes.length; i++) {
-   //          Vector3d nodeForce = myNodes[i].getForce();
-   //          nodeForce.scaledAdd (coords[i], force, nodeForce);
-   //       }
-   //    }
-   // }
-
-   // public void getRestPosition (Point3d pos) {
-   //    pos.setZero();
-   //    for (int i=0; i<myNodes.length; i++) {
-   //       pos.scaledAdd (
-   //          myCoords.get(i), ((FemNode3d)myNodes[i]).getRestPosition());
-   //    }
-   // }
-
-   // protected void scanNodes (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-   //    throws IOException {
-
-   //    ArrayList<Double> coordList = new ArrayList<Double>();
-   //    rtok.scanToken ('[');
-   //    tokens.offer (ScanToken.BEGIN); // begin token
-   //    while (ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
-   //       coordList.add (rtok.scanNumber());
-   //    }
-   //    if (rtok.ttype != ']') {
-   //       throw new IOException ("Expected ']', got " + rtok);
-   //    }
-   //    tokens.offer (ScanToken.END); // terminator token
-   //    tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (coordList)));
-   // }
-
-   // protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-   //    throws IOException {
-
-   //    rtok.nextToken();
-   //    if (scanAttributeName (rtok, "nodes")) {
-   //       tokens.offer (new StringToken ("nodes", rtok.lineno()));
-   //       scanNodes (rtok, tokens);
-   //       return true;
-   //    }
-   //    rtok.pushBack();
-   //    return super.scanItem (rtok, tokens);
-   // }
-
-   // protected boolean postscanItem (
-   // Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-   //    if (postscanAttributeName (tokens, "nodes")) {
-   //       FemNode[] nodes = ScanWriteUtils.postscanReferences (
-   //          tokens, FemNode.class, ancestor);
-   //       double[] coords = (double[])tokens.poll().value();
-   //       setNodes (nodes, coords);
-   //       return true;
-   //    }
-   //    return super.postscanItem (tokens, ancestor);
-   // }
-   
-   // protected void writeNodes (PrintWriter pw, NumberFormat fmt, Object ref)
-   //    throws IOException {
-   //    CompositeComponent ancestor =
-   //       ComponentUtils.castRefToAncestor (ref);
-   //    pw.println ("[");
-   //    IndentingPrintWriter.addIndentation (pw, 2);
-   //    for (int i=0; i<myNodes.length; i++) {
-   //       pw.println (
-   //          ComponentUtils.getWritePathName (ancestor, myNodes[i])+" "+
-   //          myCoords.get(i));
-   //    }
-   //    IndentingPrintWriter.addIndentation (pw, -2);
-   //    pw.println ("]");
-   // }
-
-   // public void writeItems (
-   //    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
-   //    throws IOException {
-   //    super.writeItems (pw, fmt, ancestor);
-   //    pw.print ("nodes=");
-   //    writeNodes (pw, fmt, ancestor);
-   // }
-
-   // @Override
-   // public void transformSlaveGeometry (
-   //    AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-   //    updateAttachment();
-   // }
-
-   // public int addTargetJacobian (SparseBlockMatrix J, int bi) {
-   //    for (int i=0; i<myNodes.length; i++) {
-   //       double c = myCoords.get(i);
-   //       Matrix3x3DiagBlock blk = new Matrix3x3DiagBlock();
-   //       blk.set (c, c, c);
-   //       if (myNodes[i].getSolveIndex() != -1)
-   //          J.addBlock (bi, myNodes[i].getSolveIndex(), blk);
-   //    }
-   //    return bi++;      
-   // }
-
-   // /** 
-   //  * Create an attachment that connects a point to a FemElement.  If the point
-   //  * lies outside the model, then the attachment will be created for the
-   //  * location determined by projecting the point into the nearest element
-   //  * and the new location will be returned in <code>loc</code>.
-   //  * 
-   //  * @param pnt Point to be attached
-   //  * @param elem FemElement3d to attach the point to
-   //  * @param loc point location with respect to the element. If <code>null</code>,
-   //  * will be assumed to be pnt.getPosition().
-   //  * @param reduceTol try to reduce the number of attached nodes by
-   //  * removing those whose coordinate values are less then this number.
-   //  * A value of zero ensures no reduction. If reduction is desired,
-   //  * a value around 1e-5 is reasonable.
-   //  * @return an attachment for 
-   //  */
-   // public static FrameFem3dConstraint create (
-   //    Point pnt, FemElement3d elem, Point3d loc, double reduceTol) {
-
-   //    FrameFem3dConstraint ax = null;
-   //    // Figure out the coordinates for the attachment point
-   //    VectorNd coords = new VectorNd (elem.numNodes());
-   //    elem.getMarkerCoordinates (coords, loc!=null ? loc : pnt.getPosition());
-   //    if (reduceTol > 0) {
-   //       FemNode3d[] nodes = elem.getNodes();
-   //       // Find number of coordinates which are close to zero
-   //       int numZero = 0;
-   //       for (int i=0; i<elem.numNodes(); i++) {
-   //          if (Math.abs(coords.get(i)) < reduceTol) {
-   //             numZero++;
-   //          }
-   //       }
-   //       // If we have coordinates close to zero, and the number of remaining
-   //       // coords is <= 4, then specify the nodes and coords explicitly
-   //       if (numZero > 0 && elem.numNodes()-numZero <= 4) {
-   //          int numc = elem.numNodes()-numZero;
-   //          double[] reducedCoords = new double[numc];
-   //          FemNode3d[] reducedNodes = new FemNode3d[numc];
-   //          int k = 0;
-   //          for (int i=0; i<elem.numNodes(); i++) {
-   //             if (Math.abs(coords.get(i)) >= reduceTol) {
-   //                reducedCoords[k] = coords.get(i);
-   //                reducedNodes[k] = nodes[i];
-   //                k++;
-   //             }
-   //          }
-   //          ax = new FrameFem3dConstraint (pnt);
-   //          ax.setNodes (reducedNodes, reducedCoords);
-   //          return ax;
-   //       }
-   //    }
-   //    ax = new FrameFem3dConstraint (pnt);
-   //    ax.setFromElement (elem);
-
-
-   //    ax.myCoords.set (coords);
-   //    return ax;
-   // }
-
-   // public boolean getDerivative (double[] buf, int idx) {
-   //    buf[idx  ] = 0;
-   //    buf[idx+1] = 0;
-   //    buf[idx+2] = 0;
-   //    return false;
-   // }
-
    public FrameFem3dConstraint (Frame frame, FemElement3d elem) {
       this();
       myFrame = frame;
       setFromElement (frame.getPose(), elem);
    }
 
-   // public FrameFem3dConstraint copy (
-   //    int flags, Map<ModelComponent,ModelComponent> copyMap) {
-   //    FrameFem3dConstraint a = (FrameFem3dConstraint)super.copy (flags, copyMap);
-
-   //    if (myNodes != null) {
-   //       a.myNodes = new FemNode[myNodes.length];
-   //       for (int i=0; i<myNodes.length; i++) {
-   //          a.myNodes[i] = 
-   //             (FemNode)ComponentUtils.maybeCopy (flags, copyMap, myNodes[i]);
-   //       }
-   //    }
-   //    if (myCoords != null) {
-   //       a.myCoords = new VectorNd(myCoords);
-   //    }
-   //    return a;
-   // }
-  
    public void render (Renderer renderer, int flags) {
    }
 }

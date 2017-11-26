@@ -598,10 +598,7 @@ public class OBB extends BVNode {
       try {
          // compute convex hull
          QuickHull3D chull = new QuickHull3D();
-         
-         // System.out.println("created convex hull");
          chull.build (pnts, n);
-         // System.out.println("build convex hull");
          chull.triangulate();
          // System.out.println("triangulated convex hull");
          hullVtxs = chull.getVertices();
@@ -655,7 +652,6 @@ public class OBB extends BVNode {
       catch (Exception e) {
          // in case the convex hull calculation fails, simply compute
          // the covariance and centroid based on the points themselves
-
          hullVtxs = new quickhull3d.Point3d[n];
          Point3d pnt = new Point3d();
 

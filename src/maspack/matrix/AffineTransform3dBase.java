@@ -18,8 +18,8 @@ package maspack.matrix;
  *     [  0   1  ]
  * </pre>
  */
-public abstract class AffineTransform3dBase extends DenseMatrixBase implements
-java.io.Serializable {
+public abstract class AffineTransform3dBase extends DenseMatrixBase
+   implements VectorTransformer3d , java.io.Serializable {
    private static final long serialVersionUID = 1L;
    protected Matrix3dBase M;
    protected Vector3d b;
@@ -241,7 +241,7 @@ java.io.Serializable {
       }
    }
 
-   final public void set (AffineTransform3dBase A) {
+   public void set (AffineTransform3dBase A) {
       M.set (A.M);
       b.set (A.b);
    }
@@ -862,6 +862,64 @@ java.io.Serializable {
 //
 //   }
 
+   /**
+    * {@inheritDoc}
+    */
+   public void transformPnt (Vector3d pr, Vector3d p0) {
+      M.mul (pr, p0);
+      pr.add (b);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void transformVec (Vector3d vr, Vector3d v0) {
+      M.mul (vr, v0);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void transformCovec (Vector3d nr, Vector3d n0) {
+      M.mulInverseTranspose (nr, n0);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void inverseTransformPnt (Vector3d pr, Vector3d p0) {
+      pr.sub (p0, b);
+      M.mulInverse (pr);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void inverseTransformVec (Vector3d vr, Vector3d v0) {
+      M.mulInverse (vr, v0);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void inverseTransformCovec (Vector3d nr, Vector3d n0) {
+      M.mulTranspose (nr, n0);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isAffine() {
+      return true;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isRigid() {
+      return false;
+   }
+   
    /**
     * Returns true if this transform equals the identity.
     * 

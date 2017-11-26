@@ -292,7 +292,9 @@ public class IntersectionTester extends ControllerBase {
       FunctionTimer timer = new FunctionTimer();
       if (myContoursOnly) {
          timer.start();
+         System.out.println ("finding contours");
          myContours = myIntersector.findContours(myMesh0, myMesh1);
+         System.out.println ("num contours=" + myContours.size());
          timer.stop();
          if (myContours.size() == 0) {
             return;

@@ -102,6 +102,18 @@ public interface Vector extends Clonable {
    public void set (double[] values);
 
    /**
+    * Sets the elements of this vector from an array of doubles,
+    * starting from a particular location.
+    * 
+    * @param values
+    * array from which values are copied
+    * @param idx starting point within values from which copying should begin
+    * @return updated idx value
+    */
+   public int set (double[] values, int idx);
+      
+    /**
+   }
     * Sets the values of this vector to those of another vector.
     * 
     * @param v

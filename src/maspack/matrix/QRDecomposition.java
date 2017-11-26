@@ -529,7 +529,7 @@ public class QRDecomposition {
       }
       b.get (wec);
       nonSingular = doSolve (wec);
-      x.set (wec);
+      x.set (wec, 0);
       return nonSingular;
    }
 
@@ -623,7 +623,7 @@ public class QRDecomposition {
       }
       b.get (wec);
       nonSingular = doSolveR (wec);
-      x.set (wec);
+      x.set (wec, 0);
       return nonSingular;
    }
 
@@ -711,7 +711,7 @@ public class QRDecomposition {
       }
       b.get (wec);
       nonSingular = doLeftSolveR (wec);
-      x.set (wec);
+      x.set (wec, 0);
       return nonSingular;
    }
 

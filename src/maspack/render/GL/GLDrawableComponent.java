@@ -188,18 +188,26 @@ public abstract class GLDrawableComponent {
    }
    
    /**
-    * Gets the real pixel width of the underlying AWT component
+    * Gets the size of the underlying AWT component
+    * @return underlying component size
+    */
+   public Dimension getSize() {
+      return component.getSize();
+   }
+   
+   /**
+    * Gets the real pixel width of the underlying GLAutoDrawable.
     * @return pixel width
-    * @see Component#getWidth
+    * @see GLAutoDrawable#getSurfaceWidth
     */
    public int getSurfaceWidth() {
       return drawable.getSurfaceWidth();
    }
    
    /**
-    * Gets the real pixel height of the underlying AWT component
+    * Gets the real pixel height of the underlying GLAutoDrawable.
     * @return pixel height
-    * @see Component#getSurfaceHeight
+    * @see GLAutoDrawable#getSurfaceHeight
     */
    public int getSurfaceHeight() {
       return drawable.getSurfaceHeight();

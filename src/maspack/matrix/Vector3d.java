@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien P��an (ETHZ)
  * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
@@ -280,12 +280,34 @@ Clonable {
    }
 
    /**
+    * {@inheritDoc}
+    */
+   public int set (double[] values, int idx) {
+      x = values[idx++];
+      y = values[idx++];
+      z = values[idx++];
+      return idx;
+   }
+
+   /**
     * Sets the values of this vector to those of v1.
     * 
     * @param v1
     * vector whose values are copied
     */
    public void set (Vector3d v1) {
+      x = v1.x;
+      y = v1.y;
+      z = v1.z;
+   }
+
+   /**
+    * Sets the values of this vector to those of v1.
+    * 
+    * @param v1
+    * vector whose values are copied
+    */
+   public void set (Vector3i v1) {
       x = v1.x;
       y = v1.y;
       z = v1.z;

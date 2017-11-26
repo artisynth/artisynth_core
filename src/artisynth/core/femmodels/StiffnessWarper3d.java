@@ -85,10 +85,6 @@ public class StiffnessWarper3d {
          tmp.setZero();
          for (int j=0; j<e.myNodes.length; j++) {
             K0[i][j].mulAdd (tmp, e.myNodes[j].myRest, tmp);
-//             if (e.getNumber() == 0 && i<4 && j<4) {
-//                System.out.println ("K0["+i+"]["+j+"]");
-//                System.out.println (K0[i][j].toString("%10.5f"));
-//             }
          }
          f0[i].set (tmp);
       }
@@ -158,13 +154,6 @@ public class StiffnessWarper3d {
       if (P != null) {
          // place the symmetric part in P
          P.mulDiagTransposeRight (V, tmp);
-//          Matrix3d C = new Matrix3d();
-//          C.mul (R, P);
-//          C.sub (F);
-//          double max = tmp.infinityNorm();
-//          if (C.frobeniusNorm() > 1e-14*max) {
-//             System.out.println ("Error!!! " + C.frobeniusNorm());
-//          }
       }
    }
 

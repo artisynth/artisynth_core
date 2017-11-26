@@ -87,7 +87,7 @@
 /*    linear_expansion_sum_zeroelim(elen, e, flen, f, h)                     */
 /*    scale_expansion(elen, e, b, h)                                         */
 /*    scale_expansion_zeroelim(elen, e, b, h)                                */
-/*    compress(elen, e, h)                                                   */
+/*    compress_expansipn(elen, e, h)                                         */
 /*                                                                           */
 /*  All of these are described in the long version of the paper; some are    */
 /*    described in the short version.  All return an integer that is the     */
@@ -1131,7 +1131,7 @@ int scale_expansion_zeroelim(int elen, REAL *e, REAL b, REAL *h)
 
 /*****************************************************************************/
 /*                                                                           */
-/*  compress()   Compress an expansion.                                      */
+/*  compress_expansion()   Compress an expansion.                            */
 /*                                                                           */
 /*  See the long version of my paper for details.                            */
 /*                                                                           */
@@ -1141,7 +1141,7 @@ int scale_expansion_zeroelim(int elen, REAL *e, REAL b, REAL *h)
 /*                                                                           */
 /*****************************************************************************/
 
-int compress(int elen, REAL *e, REAL *h)
+int compress_expansion(int elen, REAL *e, REAL *h)
 /* e and h may be the same. */
 {
   REAL Q, q;
@@ -1178,13 +1178,13 @@ int compress(int elen, REAL *e, REAL *h)
 
 /*****************************************************************************/
 /*                                                                           */
-/*  estimate()   Produce a one-word estimate of an expansion's value.        */
+/*  estimate_expansion() Produce a one-word estimate of an expansion's value.*/
 /*                                                                           */
 /*  See either version of my paper for details.                              */
 /*                                                                           */
 /*****************************************************************************/
 
-REAL estimate(int elen, REAL *e)
+REAL estimate_expansion(int elen, REAL *e)
 {
   REAL Q;
   int eindex;
@@ -1352,7 +1352,7 @@ REAL orient2dadapt(REAL *pa, REAL *pb, REAL *pc, REAL detsum)
                B3, B[2], B[1], B[0]);
   B[3] = B3;
 
-  det = estimate(4, B);
+  det = estimate_expansion(4, B);
   errbound = ccwerrboundB * detsum;
   if ((det >= errbound) || (-det >= errbound)) {
     return det;
@@ -1578,7 +1578,7 @@ REAL orient3dexactDet (REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL *detv)
      // precision. Compress the representation so as to pack as much
      // precision as possible into the two doubles supplied by detv.
      REAL dtmp[96];
-     int dlen = compress (deterlen, deter, dtmp);
+     int dlen = compress_expansion (deterlen, deter, dtmp);
      detv[0] = dtmp[dlen-1];
      if (dlen > 1) {
         detv[1] = dtmp[dlen-2];
@@ -1785,7 +1785,7 @@ REAL orient3dadapt(
   ablen = fast_expansion_sum_zeroelim(alen, adet, blen, bdet, abdet);
   finlength = fast_expansion_sum_zeroelim(ablen, abdet, clen, cdet, fin1);
 
-  det = estimate(finlength, fin1);
+  det = estimate_expansion(finlength, fin1);
   errbound = o3derrboundB * permanent;
   if ((det >= errbound) || (-det >= errbound)) {
      detv[0] = det;
@@ -2111,7 +2111,7 @@ REAL orient3dadapt(
      // precision. Compress the representation so as to pack as much
      // precision as possible into the two doubles supplied by detv.
      REAL dtmp[96];
-     int dlen = compress (finlength, finnow, dtmp);
+     int dlen = compress_expansion (finlength, finnow, dtmp);
      detv[0] = dtmp[dlen-1];
      if (dlen > 1) {
         detv[1] = dtmp[dlen-2];
@@ -2587,7 +2587,7 @@ REAL incircleadapt(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL permanent)
   ablen = fast_expansion_sum_zeroelim(alen, adet, blen, bdet, abdet);
   finlength = fast_expansion_sum_zeroelim(ablen, abdet, clen, cdet, fin1);
 
-  det = estimate(finlength, fin1);
+  det = estimate_expansion(finlength, fin1);
   errbound = iccerrboundB * permanent;
   if ((det >= errbound) || (-det >= errbound)) {
     return det;
@@ -3896,7 +3896,7 @@ REAL insphereadapt(REAL *pa, REAL *pb, REAL *pc, REAL *pd, REAL *pe,
   cdlen = fast_expansion_sum_zeroelim(clen, cdet, dlen, ddet, cddet);
   finlength = fast_expansion_sum_zeroelim(ablen, abdet, cdlen, cddet, fin1);
 
-  det = estimate(finlength, fin1);
+  det = estimate_expansion(finlength, fin1);
   errbound = isperrboundB * permanent;
   if ((det >= errbound) || (-det >= errbound)) {
     return det;

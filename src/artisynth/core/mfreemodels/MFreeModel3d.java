@@ -20,7 +20,7 @@ import maspack.geometry.Boundable;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DenseMatrix;
@@ -989,7 +989,7 @@ public class MFreeModel3d extends FemModel implements TransformableGeometry,
    }
    
    @Override   
-   public SignedDistanceGrid getDistanceGrid() {
+   public DistanceGrid getDistanceGrid() {
       return null;
    }
 

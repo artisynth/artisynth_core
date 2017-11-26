@@ -177,11 +177,13 @@ class QRDecompositionTest {
             MTM.mul (xcheck, xcheck);
 
             if (!xcheck.epsilonEquals (x, EPSILON * condEst)) {
+               System.out.println ("n=" + n);
                System.out.println ("condEst=" + condEst);
                System.out.println ("tol=" + EPSILON * condEst);
                System.out.println ("M1=\n" + M1.toString ("%10.4f"));
-               throw new TestException ("solution failed:\n" + "x="
-               + x.toString ("%g") + "\nexpected=" + xcheck.toString ("%g"));
+               throw new TestException (
+                  "solution failed:\n" + "x="
+                  + x.toString ("%g") + "\nexpected=" + xcheck.toString ("%g"));
             }
          }
       }

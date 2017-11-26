@@ -12,6 +12,7 @@ import java.awt.event.*;
 import maspack.matrix.*;
 import maspack.render.*;
 import maspack.render.GL.GLViewer;
+import maspack.render.Renderer.*;
 import maspack.geometry.*;
 
 public class SplineTool extends DrawToolBase {
@@ -150,6 +151,7 @@ public class SplineTool extends DrawToolBase {
    }
 
    protected void addControlPoint (double x, double y) {
+      System.out.printf ("add control %g %g\n", x, y);
       myCurve.addControlPoint (new Vector4d (x, y, 0, 1), -1);
       int deg = myCurve.getDegree();
       if (deg < myMaxDegree) {
@@ -185,7 +187,6 @@ public class SplineTool extends DrawToolBase {
    }
 
    public boolean mousePressed (MouseRayEvent e) {
-
       if (isVisible()) {
          Vector3d isect = new Vector3d();
          intersectRay (isect, e.getRay());
@@ -208,7 +209,6 @@ public class SplineTool extends DrawToolBase {
    }
 
    public boolean mouseMoved (MouseRayEvent e) {
-
       if (myMode == Mode.CONSTRUCTING) {
          Vector3d isect = new Vector3d();
          intersectRay (isect, e.getRay());

@@ -159,145 +159,6 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
          myElement.updateBounds(pmin, pmax);
    }
 
-//   public void addTangent (
-//      Matrix6d D, SymmetricMatrix3d stress, IntegrationPoint3d pt, 
-//      IntegrationData3d dt, FemMaterial baseMat) {
-//
-//      FemMaterial mat = getEffectiveMaterial();
-//      if (mat != null) {
-//         double frac = myFrac;
-//         if (myFracs != null) {
-//            frac = myFracs[pt.getNumber()];
-//         }
-//
-////         if (mat instanceof LinearMaterial) {
-////            LinearMaterial lmat = (LinearMaterial)mat;
-////            Matrix3d R = null;
-////            if (lmat.isCorotated()) {
-////               R = myElement.myWarper.R;
-////            }
-////            addLinearTangent(frac, D, pt, R);
-////         } else {
-//         
-//         if (frac > 0) {
-//            mat.computeTangent(myD, stress, pt, dt, baseMat);
-//            D.scaledAdd(frac, myD);
-//         }
-////         }
-//      }
-//   }
-
-   //   private void updateElementWarping() {
-   //      
-   //         if (myWarpingStress == null) {
-   //            myWarpingStress = new SymmetricMatrix3d();
-   //            if (myElement.myWarper == null) {
-   //               myElement.myWarper = new StiffnessWarper3d (myElement.numNodes());
-   //            }
-   //         }
-   //      
-   //         // handle linear materials differently
-   //         LinearMaterial linMat = (LinearMaterial)getEffectiveMaterial();
-   //         boolean corotated = linMat.isCorotated();
-   //         IntegrationPoint3d wpnt = myElement.getWarpingPoint();
-   //         IntegrationData3d data = myElement.getWarpingData();
-   //         wpnt.computeJacobianAndGradient (myElement.myNodes, data.myInvJ0);
-   //         wpnt.sigma.setZero();
-   //         if (corotated) {
-   //            myElement.computeWarping (wpnt.F, myWarpingStress);
-   //         }
-   //         else {
-   //            myWarpingStress.setSymmetric (wpnt.F);
-   //         }
-   //         // compute Cauchy strain
-   //         myWarpingStress.m00 -= 1;
-   //         myWarpingStress.m11 -= 1;
-   //         myWarpingStress.m22 -= 1;
-   //         
-   //   }
-
-   //   public void addLinearTangent(double scale, Matrix6d D, IntegrationPoint3d pt, Matrix3dBase R) {
-   //      LinearMaterial lmat = (LinearMaterial)getEffectiveMaterial();
-   //      lmat.addAuxiliaryTangent(scale, D, R);
-   //   }
-   //
-   //   public void addLinearStress(double scale, SymmetricMatrix3d sigma,
-   //      IntegrationPoint3d pt, Matrix3dBase R) {
-   //      LinearMaterial lmat = (LinearMaterial)getEffectiveMaterial();
-   //      lmat.addAuxiliaryStress(scale, sigma, pt, R);
-   //   }
-   
-   //   public void addLinearStiffness() {
-   //      
-   //      FemMaterial mat = getEffectiveMaterial();
-   //      if (! (mat instanceof LinearMaterial)) {
-   //         return;
-   //      }
-   //      
-   //      FemNode3d[] nodes = myElement.myNodes;
-   //      LinearMaterial lmat = (LinearMaterial)mat;
-   //      
-   //      for (int i = 0; i < nodes.length; i++) {
-   //         int bi = nodes[i].getSolveIndex();
-   //         if (bi != -1) {
-   //            FemNode3d n = nodes[i];     
-   //               for (int j=0; j < nodes.length; j++) {
-   //                  myElement.addNodeStiffness (i, j, lmat.isCorotated());
-   //               }
-   //            myElement.addNodeForce (n.myInternalForce, i, lmat.isCorotated());
-   //         }
-   //      }
-   //   }
-
-//   public void addStress (
-//      SymmetricMatrix3d sigma, IntegrationPoint3d pt, 
-//      IntegrationData3d dt, FemMaterial baseMat) {
-//
-//      FemMaterial mat = getEffectiveMaterial();
-//      if (mat != null) {
-//         double frac = myFrac;
-//         if (myFracs != null) {
-//            frac = myFracs[pt.getNumber()];
-//         }
-//
-////         if (mat instanceof LinearMaterial) {
-////            LinearMaterial lmat = (LinearMaterial)mat;
-////            Matrix3d R = null;
-////            if (lmat.isCorotated()) {
-////               R = myElement.myWarper.R;
-////            }
-////            addLinearStress(frac, sigma, pt, R);
-////         } else {
-//       
-//         if (frac > 0) {
-//            mat.computeStress(myStress, pt, dt, baseMat);
-//            sigma.scaledAdd(frac, myStress);
-//         }
-////         }
-//      }
-//   }
-   
-   // @Override
-   // public void computeStress (
-   //    SymmetricMatrix3d sigma, SolidDeformation def,
-   //    Matrix3d Q, FemMaterial baseMat) {
-      
-   //    FemMaterial mat = getEffectiveMaterial();
-   //    if (mat != null) {
-   //       double frac = myFrac;
-   //       if (myFracs != null) {
-   //          frac = myFracs[pt.getNumber()];
-   //       }
-   //       if (frac > 0) {
-   //          mat.computeStress(sigma, def, Q, baseMat);
-   //          sigma.scale(frac);
-   //       } else {
-   //          sigma.setZero();
-   //       }
-   //    }
-      
-   // }
-
    @Override
    public void computeStress (
       SymmetricMatrix3d sigma, SolidDeformation def,
@@ -344,72 +205,6 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       }
    }
    
-   // @Override
-   // public void computeTangent (
-   //    Matrix6d D, SymmetricMatrix3d stress,
-   //    SolidDeformation def, Matrix3d Q, FemMaterial baseMat) {
-      
-   //    FemMaterial mat = getEffectiveMaterial();
-   //    if (mat != null) {
-   //       double frac = myFrac;
-   //       if (myFracs != null) {
-   //          frac = myFracs[pt.getNumber()];
-   //       }
-   //       if (frac > 0) {
-   //          mat.computeTangent (D, stress, def, Q, baseMat);
-   //          D.scale(frac);
-   //       } else {
-   //          D.setZero();
-   //       }
-   //    }
-      
-   // }
-   
-//   @Override
-//   public void computeStressAndTangent(SymmetricMatrix3d sigma, Matrix6d D,
-//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-//      
-//      FemMaterial mat = getEffectiveMaterial();
-//      if (mat != null) {
-//         double frac = myFrac;
-//         if (myFracs != null) {
-//            frac = myFracs[pt.getNumber()];
-//         }
-//         
-//         if (frac > 0) {
-//            mat.computeStress(sigma, pt, dt, baseMat);
-//            mat.computeTangent(D, sigma, pt, dt, baseMat);
-//            sigma.scale(frac);
-//            D.scale(frac);
-//         } else {
-//            sigma.setZero();
-//            D.setZero();
-//         }
-//      }
-//      
-//   }
-   
-//   @Override
-//   public void addStressAndTangent(SymmetricMatrix3d sigma, Matrix6d D,
-//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-//      
-//      FemMaterial mat = getEffectiveMaterial();
-//      if (mat != null) {
-//         double frac = myFrac;
-//         if (myFracs != null) {
-//            frac = myFracs[pt.getNumber()];
-//         }
-//         
-//         if (frac > 0) {
-//            mat.computeStress(myStress, pt, dt, baseMat);
-//            mat.computeTangent(myD, myStress, pt, dt, baseMat);
-//            sigma.scaledAdd(frac, myStress);
-//            D.scaledAdd(frac, myD);
-//         }
-//      }
-//      
-//   }
-
    public boolean hasSymmetricTangent() {
       FemMaterial mat = getEffectiveMaterial();
       if (mat != null) {
@@ -459,11 +254,9 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
 
    void referenceElement() {
       myElement.addAuxiliaryMaterial (this);
-      //myElement.addBackReference (this);
    }
 
    void dereferenceElement() {
-      //myElement.removeBackReference (this);
       myElement.removeAuxiliaryMaterial (this);
    }
 
@@ -519,9 +312,6 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       IndentingPrintWriter.addIndentation (pw, 2);
       printElementReference (pw, ancestor);
       pw.println ("");
-      // pw.print (" " + fmt.format (myStiffness) +
-      // " " + fmt.format (myDamping) +
-      // " " + fmt.format (myRestLength));
       getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");

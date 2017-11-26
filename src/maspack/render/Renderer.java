@@ -807,7 +807,7 @@ public interface Renderer {
     * renderer's highlight color.
     *  
     * @param X coordinate frame defining the axes
-    * @param len length of each axis
+    * @param len axis length
     * @param width width of each axis (in pixels)
     * @param highlight if <code>true</code>, indicates that the axes should be
     * highlighted.
@@ -819,7 +819,8 @@ public interface Renderer {
     * Draws a set of coordinate axes representing a rigid coordinate frame 
     * <code>X</code>. This method is functionally equivalent to {@link
     * #drawAxes(RigidTransform3d,double,int,boolean)}, except that the
-    * length for each axis are individually specified.
+    * lengths for each axis are individually specified. Axes with a
+    * a specified length of 0 will not be drawn.
     *  
     * @param X coordinate frame defining the axes
     * @param lens lengths for each axis
@@ -829,6 +830,42 @@ public interface Renderer {
     */
    public void drawAxes (
       RigidTransform3d X, double[] lens, int width, boolean highlight);
+
+   /**
+    * Draws a solid set of coordinate axes representing a rigid coordinate
+    * frame <code>X</code>. The origin point for the axes is <code>X.p</code>,
+    * and the directions for each axis are given by the three columns of
+    * <code>X.R</code>. Each axis is drawn an arrow-tipped cylinder with a
+    * length <code>len</code> and cylinder radius <code>rad</code>. By default,
+    * the x, y, and z axes are drawn using the colors red, green, and blue,
+    * unless <code>highlight</code> is <code>true</code> and the highlight
+    * style is {@link HighlightStyle#COLOR}, in which case all axes are drawn
+    * using the renderer's highlight color.
+    *  
+    * @param X coordinate frame defining the axes
+    * @param len axis length
+    * @param rad axis cylinder radius
+    * @param highlight if <code>true</code>, indicates that the axes should be
+    * highlighted.
+    */
+   public void drawSolidAxes (
+      RigidTransform3d X, double len, double rad, boolean highlight);
+
+   /**
+    * Draws a solid set of coordinate axes representing a rigid coordinate
+    * frame <code>X</code>. This method is functionally equivalent to {@link
+    * #drawSolidAxes(RigidTransform3d,double,double,boolean)}, except that the
+    * lengths for each axis are individually specified. Axes with a
+    * a specified length of 0 will not be drawn.
+    *  
+    * @param X coordinate frame defining the axes
+    * @param lens lengths for each axis
+    * @param rad axis cylinder radius
+    * @param highlight if <code>true</code>, indicates that the axes should be
+    * highlighted.
+    */
+   public void drawSolidAxes (
+      RigidTransform3d X, double[] lens, double rad, boolean highlight);
    
    // Drawing primitives that use RenderProps
 

@@ -1936,6 +1936,46 @@ public class MeshFactory {
    }
 
    /**
+    * Creates an triangular ellipsoid mesh, centered on the origin.  The mesh
+    * is constructed using spherical coordinates, with a resolution of
+    * <code>nslices</code> about the equator and <code>nslices/2</code>
+    * longitudinally.
+    *
+    * @param a semi-axis length along x
+    * @param b semi-axis length along y
+    * @param c semi-axis length along z
+    * @param nslices mesh resolution
+    * @return created ellipsoidal mesh
+    */
+   public static PolygonalMesh createEllipsoid (
+      double a, double b, double c, int nslices) {
+      PolygonalMesh mesh = createSphere (1.0, nslices, nslices/2, false);
+      mesh.scale (a, b, c);
+      return mesh;
+   }
+
+   /**
+    * Creates an triangular ellipsoid mesh, centered on the origin.  The mesh
+    * is constructed using spherical coordinates, with a resolution of
+    * <code>nslices</code> about the equator and <code>nlevels</code>
+    * longitudinally.
+    *
+    * @param a semi-axis length along x
+    * @param b semi-axis length along y
+    * @param c semi-axis length along z
+    * @param nslices equatorial mesh resolution
+    * @param nlevels longitudinal mesh resolution
+    * @return created ellipsoidal mesh
+    */
+   public static PolygonalMesh createEllipsoid (
+      double a, double b, double c, int nslices, int nlevels) {
+
+      PolygonalMesh mesh = createSphere (1.0, nslices, nlevels, false);
+      mesh.scale (a, b, c);
+      return mesh;
+   }
+
+   /**
     * Creates an open triangular hemispherical mesh, centered on the origin,
     * with a radius <code>r</code>. The mesh is constructed using spherical
     * coordinates, with a resolution of <code>nslices</code> about the equator

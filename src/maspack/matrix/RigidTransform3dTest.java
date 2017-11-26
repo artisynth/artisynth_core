@@ -80,6 +80,12 @@ class RigidTransform3dTest extends AffineTransform3dTest {
       checkAndRestoreResult (RR, EPSILON);
 
       RC.setIdentity();
+      RC.R.setAxisAngle (0, 0, 1, ang);
+      mulCheck (MX, RR, RR, RC);
+      RR.mulRotZ (ang);
+      checkAndRestoreResult (RR, EPSILON);
+
+      RC.setIdentity();
       RC.R.setAxisAngle (x, y, z, ang);
       mulCheck (MX, RR, RR, RC);
       RR.mulAxisAngle (x, y, z, ang);
@@ -131,8 +137,7 @@ class RigidTransform3dTest extends AffineTransform3dTest {
 
          testSpecialMuls (XR);
 
-         // testSetRotations (XR, X1);
-         // testNormalize (XR);
+         testTransforms (X1);
       }
    }
 

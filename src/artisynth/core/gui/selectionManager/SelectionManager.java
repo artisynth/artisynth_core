@@ -19,6 +19,7 @@ import maspack.render.ViewerSelectionFilter;
 import maspack.render.ViewerSelectionListener;
 import maspack.util.*;
 import artisynth.core.driver.Main;
+import artisynth.core.driver.Main.SelectionMode;
 import artisynth.core.gui.navpanel.NavPanelNode;
 import artisynth.core.gui.navpanel.NavigationPanel;
 import artisynth.core.modelbase.*;
@@ -27,7 +28,7 @@ import artisynth.core.modelbase.*;
  * @author John E Lloyd, after Chad Decker
  */
 public class SelectionManager {
-
+   
    protected ViewerSelectionHandler myViewerSelectionHandler;
    protected MyViewerSelectionFilter myViewerSelectionFilter;
    protected LinkedList<ModelComponent> mySelectedItems;
@@ -39,7 +40,7 @@ public class SelectionManager {
    // be set to false every time the selection changes. We use a
    // boolean because myCopyExpandedSelection can itself be null.
    protected boolean myCopyExpandedP = false;
-
+   
    protected LinkedList<SelectionListener> mySelectionListeners;
    protected boolean myPopupMenuEnabledP = true;
    protected int myMaxSelections = -1;
@@ -244,7 +245,7 @@ public class SelectionManager {
    }
 
    /**
-    * Updates the selections in the NavPanel to refect the current state of the
+    * Updates the selections in the NavPanel to reflect the current state of the
     * selection. The parameters <code>added</code> and <code>removed</code>
     * describe the components that have been added and removed from the
     * selection.
@@ -581,23 +582,15 @@ public class SelectionManager {
          // even if it occurs several times in the set of selected items (which
          // can occur if a component is rendered in pieces).
          HashSet<ModelComponent> handled = new HashSet<ModelComponent>();
+         
+         int selOp = (e.getFlags() & ViewerSelectionEvent.OP_MASK);
 
          // multiple selection mode
-         boolean multiple = ((e.getFlags() & ViewerSelectionEvent.MULTIPLE) != 0);
          boolean dragging = ((e.getFlags() & ViewerSelectionEvent.DRAG) != 0);
          boolean done = false;
 
-         // Let V be the set of items picked in the viewer, and S
-         // be the set of selected items.
-         //
-         // If multiple selection, then
-         // added = V - (V intersect S)
-         // removed = (V intersect S)
-         // else
-         // added = V - (V intersect S)
-         // removed = S - (V intersect S)
-         //
-         // Sanchez, July 4th: Modified to select first valid item
+         // In the documentation below, let V be the set of items picked in the
+         // viewer and S the set of selected items.
          if (e != null && e.numSelectedQueries() > 0) {
             List<LinkedList<?>> itemPaths = e.getSelectedObjects();
             for (LinkedList<?> path : itemPaths) {
@@ -608,32 +601,66 @@ public class SelectionManager {
                   if (item instanceof ModelComponent) {
                      ModelComponent c = (ModelComponent)item;
                      
-                     if (objectIsValid (c) && !handled.contains(c)) 
-                     {
-                        // apply selection filter
-                        if (multiple) {
-                           if (!c.isSelected()) {
-                              added.add (c);
-                              c.setSelected (true);
+                     if (objectIsValid (c) && !handled.contains(c)) {
+                        switch (selOp) {
+                           case ViewerSelectionEvent.SET: {
+                              //   added   = V minus S
+                              //   removed = S minus V
+                              //   S       = V                            
+                              if (!c.isSelected()) {
+                                 added.add (c);
+                                 c.setSelected (true);
+                              }
+                              else {
+                                 c.setSelected (false);
+                              }                             
+                              // NOTE: we finish updating 'removed' and
+                              // 'S' below
+                              break;
                            }
-                           else {
-                              removed.add (c);
-                              c.setSelected (false);
+                           case ViewerSelectionEvent.ADD: {
+                              //   added   = V minus S
+                              //   removed = null
+                              //   S       = V union S
+                              if (!c.isSelected()) {
+                                 added.add (c);
+                                 c.setSelected (true);
+                              }
+                              break;
                            }
-                        }
-                        else {
-                           if (!c.isSelected()) {
-                              added.add (c);
-                              c.setSelected (true);
+                           case ViewerSelectionEvent.SUBTRACT: {
+                              //   added   = null
+                              //   removed = V intersect S
+                              //   S       = S minus V
+                              if (c.isSelected()) {
+                                 removed.add (c);
+                                 c.setSelected (false);
+                              }                             
+                              break;
                            }
-                           else {
-                              c.setSelected (false);
+                           case ViewerSelectionEvent.XADD: {
+                              //   added   = V minus S
+                              //   removed = V intersect S
+                              //   S       = V minus S
+                              if (!c.isSelected()) {
+                                 added.add (c);
+                                 c.setSelected (true);
+                              }
+                              else {
+                                 removed.add (c);
+                                 c.setSelected (false);
+                              }                             
+                              break;
+                           }
+                           default: {
+                              throw new InternalErrorException (
+                                 "Unknown selection operation: " + selOp);
                            }
                         }
                         handled.add (c);
-                        
-                        // if not dragging, should be only one item handled in viewer.
-                        if ((!multiple) && (!dragging)) {
+                        // if not dragging, should be only one item handled in
+                        // viewer.
+                        if (!dragging) {
                            done = true;
                         }
                         break;   // we handled one item from this path
@@ -648,7 +675,9 @@ public class SelectionManager {
                
             } // done looping through paths
          }
-         if (!multiple) {
+         
+         if (selOp == ViewerSelectionEvent.SET) {
+            // finish updating 'removed' and the current selection set
             for (ModelComponent c : mySelectedItems) {
                if (!c.isSelected()) {
                   c.setSelected (true);
@@ -693,12 +722,4 @@ public class SelectionManager {
       }
    }
 
-//    private class TimelineSelectionHandler implements SelectionListener {
-//       public void selectionChanged (SelectionEvent e) {
-//          LinkedList<ModelComponent> myAdded = e.getAddedComponents ();
-//          LinkedList<ModelComponent> myRemoved = e.getRemovedComponents ();
-         
-//          finishAddAndRemove (myAdded, myRemoved, true);
-//       }      
-//    }
 }

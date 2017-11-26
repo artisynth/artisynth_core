@@ -27,6 +27,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector;
+import maspack.matrix.VectorTransformer3d;
 import maspack.properties.HasProperties;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
@@ -1052,6 +1053,54 @@ public abstract class MeshBase implements Renderable, Cloneable {
          for (int i=0; i<myNormals.size(); i++) {
             Vector3d nrm = myNormals.get(i);
             A.mul (nrm, nrm);
+            nrm.normalize();
+         }
+      }
+      else {
+         clearNormals(); // auto normals will be regenerated
+      }
+      invalidateBoundingInfo();
+      notifyModified();
+   }
+
+   /**
+    * Applies a transform to the vertices and normals of this mesh, in
+    * local mesh coordinates. The topology of the mesh remains unchanged.
+    * 
+    * @param trans transformation to apply
+    */
+   public void transform (VectorTransformer3d trans) {
+      for (Vertex3d vertex : myVertices) {
+         trans.transformPnt (vertex.pnt, vertex.pnt);
+      }
+      if (myNormalsExplicitP) {
+         for (int i=0; i<myNormals.size(); i++) {
+            Vector3d nrm = myNormals.get(i);
+            trans.transformCovec (nrm, nrm);
+            nrm.normalize();
+         }
+      }
+      else {
+         clearNormals(); // auto normals will be regenerated
+      }
+      invalidateBoundingInfo();
+      notifyModified();
+   }
+
+   /**
+    * Applies an inverse transform to the vertices and normals of this mesh, in
+    * local mesh coordinates. The topology of the mesh remains unchanged.
+    * 
+    * @param trans transformation to apply
+    */
+   public void inverseTransform (VectorTransformer3d trans) {
+      for (Vertex3d vertex : myVertices) {
+         trans.inverseTransformPnt (vertex.pnt, vertex.pnt);
+      }
+      if (myNormalsExplicitP) {
+         for (int i=0; i<myNormals.size(); i++) {
+            Vector3d nrm = myNormals.get(i);
+            trans.inverseTransformCovec (nrm, nrm);
             nrm.normalize();
          }
       }

@@ -40,13 +40,8 @@ public class IntegrationPoint3d {
 
    protected Vector3d[] GNx = null;   // transient
 
-   // // H values, used for computing viscoelasticity
-   // double[] myH;
-
    protected double myWeight = 1;
    protected int myNum = -1;
-
-   //   MatrixNd GNx;
 
    protected void init(int nnodes, int npvals) {
       myJ = new Matrix3d();
@@ -64,7 +59,6 @@ public class IntegrationPoint3d {
          GNs[i] = new Vector3d();
          GNx[i] = new Vector3d();
       }
-      // GNx = new MatrixNd (nnodes, 3);
       coords = new Vector3d();
    }
 

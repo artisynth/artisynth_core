@@ -1,5 +1,6 @@
 package maspack.render.GL;
 
+import java.awt.Point;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelListener;
@@ -22,4 +23,6 @@ public interface GLMouseListener extends MouseListener,
     */
    public void setSelectVisibleOnly(boolean set);
    public boolean isSelectVisibleOnly();
+   
+   public Point getCurrentCursor();
 }

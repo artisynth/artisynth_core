@@ -77,6 +77,8 @@ public class Frame extends DynamicComponentBase
 
    protected Wrench myBodyForce = new Wrench(); // preallocated temporary
 
+   //protected MeshComponentList<RigidMeshComp> myMeshList;
+
    static {
       myProps.add (
          "renderProps * *", "render properties", null);
@@ -129,7 +131,17 @@ public class Frame extends DynamicComponentBase
       myRenderFrame = new RigidTransform3d();
       setRenderProps (createRenderProps());
       mySolveBlockValidP = false;
+      //initializeChildComponents();
    }
+
+   // protected void initializeChildComponents() {
+   //    myComponents = 
+   //       new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
+   //    myMeshList =
+   //       new MeshComponentList<RigidMeshComp>(
+   //          RigidMeshComp.class, "meshes", "msh");
+   //    add(myMeshList);
+   // }
 
    public Frame (RigidTransform3d X) {
       this();
@@ -1277,7 +1289,9 @@ public class Frame extends DynamicComponentBase
     * on the position state.
     */
    protected void updatePosState() {
-      
+      // for (MeshComponent mc : myMeshList) {
+      //    mc.setMeshToWorld (myState.XFrameToWorld);
+      // }
    }
    
    /**

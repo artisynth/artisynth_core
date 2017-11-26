@@ -84,26 +84,6 @@ public class FemElementRenderer {
       }
    }
 
-   // public static void addWidgetFaces (RenderObject r, FemElement3d elem) {
-   //    FemNode[] enodes = elem.getNodes();
-   //    int p0idx = r.numPositions();
-   //    for (int j=0; j<enodes.length; j++) {
-   //       r.addPosition (0, 0, 0);
-   //    }
-   //    int[] fidxs = FemUtilities.triangulateFaceIndices (
-   //       elem.getFaceIndices());
-   //    int nidx = r.numNormals(); // normal index
-   //    for (int i=0; i<fidxs.length; i += 3) {
-   //       r.addNormal (0, 0, 0);
-   //       int v0idx = r.addVertex (p0idx+fidxs[i  ], nidx);
-   //       int v1idx = r.addVertex (p0idx+fidxs[i+1], nidx);
-   //       int v2idx = r.addVertex (p0idx+fidxs[i+2], nidx);
-   //       r.addTriangle (v0idx, v1idx, v2idx);
-   //       nidx++;
-   //    }      
-   //    double size = elem.getElementWidgetSize();
-   // }
-
    public static void addWidgetFaces (RenderObject r, FemElement3d elem) {
       addWidgetFaces(r, null, elem);
    }

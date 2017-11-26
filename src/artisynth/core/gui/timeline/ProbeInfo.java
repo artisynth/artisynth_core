@@ -31,6 +31,7 @@ import artisynth.core.gui.selectionManager.SelectionEvent;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.modelbase.MutableCompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.probes.NumericProbeBase;
@@ -289,6 +290,7 @@ public class ProbeInfo implements Clonable, ActionListener {
          newProbe = (Probe)getProbe().clone();
       }
       catch (Exception e) {
+         e.printStackTrace();
          throw new InternalErrorException (
             "Cannot clone probe of type " + getProbe().getClass());
       }
@@ -857,9 +859,12 @@ public class ProbeInfo implements Clonable, ActionListener {
          myEditProbeItem.setActionCommand ("Edit");
       }
 
-      JMenuItem myDuplicateItem = new JMenuItem ("Duplicate");
-      myDuplicateItem.addActionListener (this);
-      myDuplicateItem.setActionCommand ("Duplicate");
+      JMenuItem myDuplicateItem = null;
+      if (getProbe().isCloneable()) {
+         myDuplicateItem = new JMenuItem ("Duplicate");
+         myDuplicateItem.addActionListener (this);
+         myDuplicateItem.setActionCommand ("Duplicate");
+      }
 
       JMenuItem mySaveItem = new JMenuItem ("Save data");
       mySaveItem.addActionListener (this);
@@ -896,7 +901,9 @@ public class ProbeInfo implements Clonable, ActionListener {
       popupMenu.add (myLargeProbeDisplayItem);
       popupMenu.addSeparator();
 
-      popupMenu.add (myDuplicateItem);
+      if (myDuplicateItem != null) {
+         popupMenu.add (myDuplicateItem);
+      }
       popupMenu.add (mySaveItem);
       popupMenu.add (mySaveasItem);
       if (getProbe() instanceof NumericProbeBase &&

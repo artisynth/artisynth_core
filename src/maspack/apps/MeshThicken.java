@@ -33,6 +33,7 @@ import javax.swing.event.MenuEvent;
 import argparser.ArgParser;
 import argparser.IntHolder;
 import argparser.StringHolder;
+import maspack.geometry.DistanceGrid;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.LaplacianSmoother;
 import maspack.geometry.MeshBase;
@@ -49,6 +50,7 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
 import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
@@ -97,6 +99,8 @@ public class MeshThicken extends ViewerFrame
    static double DEFAULT_SMOOTHING_LAMBDA = 0.8;
    static double DEFAULT_SMOOTHING_MU = -0.8160;
    static int DEFAULT_SMOOTHING_COUNT = 10;
+   static int DEFAULT_GROW_LENGTH = 1;
+   static Vector3i DEFAULT_REMESH_RES = new Vector3i (20, 20, 20);
 
    double myDefaultRegionHeight = DEFAULT_REGION_HEIGHT;
    double myDefaultRegionMargin = DEFAULT_REGION_MARGIN;
@@ -106,6 +110,8 @@ public class MeshThicken extends ViewerFrame
    double mySmoothingLambda = DEFAULT_SMOOTHING_LAMBDA;
    double mySmoothingMu = DEFAULT_SMOOTHING_MU;
    int mySmoothingCount = DEFAULT_SMOOTHING_COUNT;
+   double myGrowLength = DEFAULT_GROW_LENGTH;
+   Vector3i myRemeshRes = new Vector3i (DEFAULT_REMESH_RES);
 
    protected ValueChangeListener myRerenderListener =
       new ValueChangeListener () {
@@ -470,6 +476,14 @@ public class MeshThicken extends ViewerFrame
       myProps.add (
          "smoothingCount", "count for two-stage Laplacian smoothing",
          DEFAULT_SMOOTHING_COUNT);
+      myProps.add (
+         "growLength",
+         "amount to grow vertices by",
+         DEFAULT_GROW_LENGTH);
+      myProps.add (
+         "remeshRes",
+         "resolutions to use when remeshing",
+         DEFAULT_REMESH_RES);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -570,6 +584,22 @@ public class MeshThicken extends ViewerFrame
       mySmoothingCount = count;
    }
 
+   public double getGrowLength () {
+      return myGrowLength;
+   }
+
+   public void setGrowLength (double len) {
+      myGrowLength = len;
+   }
+
+   public Vector3i getRemeshRes () {
+      return myRemeshRes;
+   }
+
+   public void setRemeshRes (Vector3i res) {
+      myRemeshRes.set (res);
+   }
+
    public JMenuBar addMenuBar() {
       JMenuBar menuBar = super.addMenuBar ();
 
@@ -615,6 +645,10 @@ public class MeshThicken extends ViewerFrame
       item = addMenuItem (menu, "Reverse unthicken");
       item.setEnabled (myRegions.size() > 0);
       item = addMenuItem (menu, "Smooth");
+      item.setEnabled (myMesh instanceof PolygonalMesh);
+      item = addMenuItem (menu, "Grow");
+      item.setEnabled (myMesh instanceof PolygonalMesh);
+      item = addMenuItem (menu, "Remesh");
       item.setEnabled (myMesh instanceof PolygonalMesh);
    }
 
@@ -663,8 +697,8 @@ public class MeshThicken extends ViewerFrame
    protected Region myEditingRegion;
 
    public void drawToolAdded (DrawToolEvent e) {
-      System.out.println ("Added");
       Dragger3d tool = e.getSource();
+      System.out.println ("Added " + tool);
       myEditingRegion = null;
       if (tool instanceof SplineTool) {
          SplineTool splineTool = (SplineTool)tool;
@@ -757,6 +791,19 @@ public class MeshThicken extends ViewerFrame
       }
    }
 
+   public void setMesh (MeshBase mesh) {
+      if (myMesh != null) {
+         viewer.removeRenderable (myMesh);
+         if (mesh != null) {
+            mesh.setRenderProps (myMesh.getRenderProps());
+         }
+      }
+      if (mesh != null) {
+         viewer.addRenderable (mesh);
+      }
+      myMesh = mesh;
+   }
+
    public void addRegion (Region region) {
       myRegions.add (region);
       viewer.addRenderable (region);
@@ -816,6 +863,26 @@ public class MeshThicken extends ViewerFrame
          lastdot = dot;
       }
       return false;
+   }
+
+   public void applyGrowth (PolygonalMesh mesh, double dn) {
+      mesh.autoGenerateNormals();
+      for (int i=0; i<mesh.numVertices(); i++) {
+         Vertex3d v = mesh.getVertex(i);
+         Vector3d n = mesh.getNormal(i);
+         v.pnt.scaledAdd (dn, n);
+      }
+      myMesh.notifyVertexPositionsModified();
+      viewer.rerender();
+   }
+
+   public void applyRemesh (PolygonalMesh mesh, Vector3i res) {
+      DistanceGrid grid = new DistanceGrid (res);
+      grid.computeFromFeatures (
+         mesh.getFaces(), 0.1, null, 0, /*signed=*/true);
+      grid.smooth (0.33, -0.2, 30);
+      mesh = grid.createQuadDistanceSurface(0, 5);
+      setMesh (mesh);
    }
 
    public void applyThickening (Region region, MeshBase mesh, double thickening) {
@@ -888,6 +955,7 @@ public class MeshThicken extends ViewerFrame
    }
 
    protected void createPopupMenu (JPopupMenu popup) {
+      addMenuItem (popup, "Edit MeshThicken properties ...");
       if (numSelectedRegions() > 0) {
          addMenuItem (popup, "Edit region properties ...");
          addMenuItem (popup, "Hide regions");
@@ -976,6 +1044,14 @@ public class MeshThicken extends ViewerFrame
             }
          }
       }
+      else if (cmd.equals ("Grow")) {
+         PolygonalMesh pmesh = (PolygonalMesh)myMesh;
+         applyGrowth (pmesh, myGrowLength);
+      }
+      else if (cmd.equals ("Remesh")) {
+         PolygonalMesh pmesh = (PolygonalMesh)myMesh;
+         applyRemesh (pmesh, myRemeshRes);
+      }
       else if (cmd.equals ("Thicken")) {
          for (Region region : myRegions) {
             applyThickening (region, myMesh, region.getThickening());
@@ -1021,6 +1097,17 @@ public class MeshThicken extends ViewerFrame
          }
          viewer.rerender();
       }
+      else if (cmd.equals ("Edit MeshThicken properties ...")) {
+         ArrayList<HasProperties> list = new ArrayList<HasProperties>();
+         list.add (this);
+         PropertyDialog dialog =
+            PropertyDialog.createDialog (
+               "MeshThicken properties", list,
+               "OK Cancel", viewer.getCanvas().getComponent(), myRerenderListener);
+         if (dialog != null) {
+            dialog.setVisible (true);
+         }
+      }
       else if (cmd.equals ("Edit region properties ...")) {
          PropertyDialog dialog =
             PropertyDialog.createDialog (
@@ -1044,6 +1131,9 @@ public class MeshThicken extends ViewerFrame
       }
       else if (cmd.equals ("Quit")) {
          System.exit (0);
+      }
+      else {
+         super.actionPerformed (evt);
       }
    }
 

@@ -117,6 +117,69 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       return x*x;
    }
 
+   private void computeDnrm (
+      Matrix3d dnrm, Vector3d pos, Vector3d nrm, double d) {
+      
+      double a = myAxisLengths.x;
+      double b = myAxisLengths.y;
+      double c = myAxisLengths.z;
+
+      Vector3d ru = new Vector3d();
+      Vector3d rv = new Vector3d();
+      double E, F;
+      double sv;
+
+      if (pos.z <= c*Math.sqrt(2)/2) {
+         sv = Math.sqrt(c*c-pos.z*pos.z)/c;
+         ru.set (-a*pos.y/b, b*pos.x/a, 0);
+         rv.set (pos.x*pos.z/(sv*c), pos.y*pos.z/(sv*c), -c*sv);
+         E = ru.x*ru.x + ru.y*ru.y;
+         F = ru.x*rv.x + ru.y*rv.y;
+      }
+      else {
+         sv = Math.sqrt(b*b-pos.y*pos.y)/b;
+         ru.set (a*pos.z/c, 0, -c*pos.x/a);
+         rv.set (pos.x*pos.y/(sv*b), -b*sv, pos.z*pos.y/(sv*b));
+         E = ru.x*ru.x + ru.z*ru.z;
+         F = ru.x*rv.x + ru.z*rv.z;
+      }     
+      double G = rv.x*rv.x + rv.y*rv.y + rv.z*rv.z;
+
+      double denom =
+         Math.sqrt (sqr(a*b*pos.z/c) + sqr(c*b*pos.x/a) + sqr(c*a*pos.y/b));
+      double N = a*b*c/denom;
+      double L = N*sv*sv;
+
+      Vector3d e0 = new Vector3d();
+      Vector3d e1 = new Vector3d();
+      e0.scale (1/Math.sqrt(E), ru);
+      e1.cross (e0, nrm);
+
+      double H = (G*L+E*N)/(2*(E*G-F*F));
+      double A = (L*(E*G-2*F*F) - E*E*N)/(2*E*(E*G-F*F));
+      double B = -F*L/(E*Math.sqrt(E*G-F*F));
+
+      double C = Math.sqrt(A*A+B*B);
+      double[] roots = new double[2];
+      int nr = QuadraticSolver.getRoots (roots, 4*C*C, -4*C*A, -B*B);
+      double cos = Math.sqrt(roots[1]);
+      double sin = B/(C*2*cos);
+
+      Vector3d u0 = new Vector3d();
+      Vector3d u1 = new Vector3d();
+
+      u0.scale (cos, e0);
+      u0.scaledAdd (sin, e1);
+      double r0 = 1/(H+C);
+      u1.cross (nrm, u0);
+      double r1 = 1/(H-C);
+
+      dnrm.outerProduct (u0, u0);
+      // d is negative, so we add instead of subtract
+      dnrm.scale (1/(r0+d));
+      dnrm.addScaledOuterProduct (1/(r1+d), u1, u1);      
+   }
+
    public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0) {
       double a = myAxisLengths.x;
       double b = myAxisLengths.y;
@@ -124,8 +187,11 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
 
       Point3d loc0 = new Point3d(p0);
       loc0.inverseTransform (getPose());
-      if (dnrm != null) {
-         dnrm.setZero();
+      // if (dnrm != null) {
+      //    dnrm.setZero();
+      // }
+      if (dnrm != null && nrm == null) {
+         nrm = new Vector3d();
       }
       if (false) {
          double d = QuadraticUtils.ellipsoidPenetrationDistance (
@@ -147,6 +213,10 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
          if (nrm != null) {
             nrm.set (locn.x/(a*a), locn.y/(b*b), locn.z/(c*c));
             nrm.normalize();
+            if (dnrm != null && d < 0) {
+               computeDnrm (dnrm, locn, nrm, d);
+               dnrm.transform (getPose().R);
+            }
             nrm.transform (getPose());
          }
          return d;

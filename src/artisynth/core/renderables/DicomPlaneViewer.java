@@ -276,9 +276,9 @@ public class DicomPlaneViewer extends RenderableComponentBase implements Transfo
     * Sets the widths of the plane
     * @param widths plane widths
     */
-   public void setSize(Vector2d size) {
-      texture.setWidths(size);
-      this.widths.set(size);
+   public void setSize(Vector2d widths) {
+      texture.setWidths(widths);
+      this.widths.set(widths);
    }
    
    /**

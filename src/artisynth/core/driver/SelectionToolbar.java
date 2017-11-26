@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -29,6 +29,7 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
    static String iconPath = "/artisynth/core/gui/icon/";
 
    private JButton selectButton;
+   private JButton ellipticSelectButton;
    private JButton scaleButton;
    private JButton translateButton;
    private JButton transrotateButton;
@@ -71,6 +72,9 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
       selectButton = createButton (
          "select", "ToolSelectLarge.png",
          "select components");
+      ellipticSelectButton = createButton (
+         "ellipticSelect", "ToolEllipticSelectLarge.png",
+         "elliptical component selection");
       translateButton = createButton (
          "translate", "ToolMoveLarge.png",
          "select and translate components");
@@ -134,6 +138,8 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
       // set the newly selected item
       if (e.getSource() == selectButton)
          main.setSelectionMode (Main.SelectionMode.Select);
+      else if (e.getSource() == ellipticSelectButton)
+         main.setSelectionMode (Main.SelectionMode.EllipticSelect);
       else if (e.getSource() == scaleButton)
          main.setSelectionMode (Main.SelectionMode.Scale);
       else if (e.getSource() == translateButton)
@@ -159,6 +165,7 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
       ArrayList<JButton> selectionButtons = new ArrayList<JButton>();
 
       selectionButtons.add (selectButton);
+      selectionButtons.add (ellipticSelectButton);
       selectionButtons.add (scaleButton);
       selectionButtons.add (transrotateButton);
       selectionButtons.add (translateButton);
@@ -175,6 +182,10 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
       switch (mode) {
          case Select: {
             selectedButton = selectButton;
+            break;
+         }
+         case EllipticSelect: {
+            selectedButton = ellipticSelectButton;
             break;
          }
          case Scale: {
@@ -215,10 +226,8 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
 
       // set the decoration on the unselected buttons
       for (JButton b : selectionButtons) {
-         //         if (b != articulatedTransformButton) {
-            b.setBorder (border);
-            b.setBackground (background);
-            // }
+         b.setBorder (border);
+         b.setBackground (background);
       }
    }
 }

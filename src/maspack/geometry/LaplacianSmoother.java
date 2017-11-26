@@ -60,6 +60,11 @@ public class LaplacianSmoother {
       }
    }
 
+   /**
+    * Implements a specified number of iterations of Taubin smoothing.  lam
+    * should be positive, and mu should be negative, with an absolute greater
+    * than lam. Typical values are lam = 0.33, mu = -0.34.
+    */
    public static void smooth (
       PolygonalMesh mesh, int iterations, double lam, double mu) {
       double r0, r1;

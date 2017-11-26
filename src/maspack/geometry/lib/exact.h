@@ -28,8 +28,8 @@ typedef struct {
 	anExact.doubles[0] = aDouble;
 
 void copyExact(exactFloat *a, exactFloat *b);
-void compress(exactFloat *a, exactFloat *h);
-double estimate(exactFloat *a);
+void compressExact(exactFloat *a, exactFloat *h);
+double estimateExact(exactFloat *a);
 void printExact(exactFloat *e);
 int isNegative(exactFloat *a);
 void negate(exactFloat *a);

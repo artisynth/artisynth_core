@@ -88,7 +88,7 @@ public abstract class DeformableBody extends RigidBody
    }
    
    @Override   
-   public SignedDistanceGrid getDistanceGrid() {
+   public DistanceGrid getDistanceGrid() {
       return null;
    }   
    

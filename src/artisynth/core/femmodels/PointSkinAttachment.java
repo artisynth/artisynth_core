@@ -227,14 +227,6 @@ public class PointSkinAttachment extends PointAttachment
 
    Point3d tmp = new Point3d();
 
-//   public void addScaledExternalForce(Point3d pnt, double s, Vector3d f) {
-//
-//      for (int i = 0; i<myNumConnections; i++) {
-//         myConnections[i].distributeExternalForce(pnt, s, f, tmp);
-//      }
-//
-//   }
-
    /**
     * Minimizes the connection storage space. Should be called after all
     * connections have been added.
@@ -358,42 +350,6 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-//      @Override
-//      public boolean addExternalPointForce (Vector3d f) {
-//         // NOTE: this method only assumes LINEAR BLENDING 
-//         Point3d loc = new Point3d();
-//         Vector3d ftmp = new Vector3d();
-//         // get point location in frame coordinates
-//         loc.inverseTransform (myFrameInfo.myBasePose, myBasePos);
-//         // then use this to apply forces
-//         ftmp.scale (myWeight, f);
-//         myFrameInfo.myFrame.addExternalPointForce (loc, ftmp);
-//         return true;
-//      }
-
-//      @Override
-//      public boolean zeroExternalForces () {
-//         myFrameInfo.myFrame.zeroExternalForces();
-//         return true;
-//      }
-
-//      @Override
-//      public boolean distributeExternalForce(Vector3d pos, double s,
-//         Vector3d force, Vector3d tmp) {
-//         // if (mySkinMesh.getFrameBlending() == FrameBlending.LINEAR) {
-//         FrameInfo finfo = myFrameInfo;
-//         Frame frame = finfo.myFrame;
-//         tmp.inverseTransform(frame.getPose(), pos);
-//         frame.computeAppliedWrench(bodyForce, force, tmp);
-//         bodyForce.transform(frame.getPose().R);
-//         frame.addScaledExternalForce(s * myWeight, bodyForce);
-//         return true;
-//         // }
-//         // else {
-//         // return false;
-//         // }
-//      }
-
    }
 
    public class ParticleConnection extends Connection {
@@ -415,31 +371,11 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-//      @Override
-//      public boolean distributeExternalForce(Vector3d pos, double s,
-//         Vector3d force,
-//         Vector3d tmp) {
-//         myParticle.addScaledExternalForce(s * myWeight, force);
-//         return true;
-//      }
-
       @Override
       public boolean addPointForce (Vector3d f) {
          myParticle.addScaledForce (myWeight, f);
          return true;
       }
-
-//      @Override
-//      public boolean addExternalPointForce (Vector3d f) {
-//         myParticle.addScaledExternalForce (myWeight, f);
-//         return true;
-//      }
-
-//      @Override
-//      public boolean zeroExternalForces () {
-//         myParticle.zeroExternalForces();
-//         return true;
-//      }
 
       public ParticleConnection copy() {
          return new ParticleConnection(myParticle, myWeight);
@@ -462,27 +398,10 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-//      @Override
-//      public boolean distributeExternalForce(Vector3d pos, double s,
-//         Vector3d force,
-//         Vector3d tmp) {
-//         return false;
-//      }
-
       @Override
       public boolean addPointForce (Vector3d f) {
          return false;
       }
-
-//      @Override
-//      public boolean addExternalPointForce (Vector3d f) {
-//         return false;
-//      }
-
-//      @Override
-//      public boolean zeroExternalForces () {
-//         return false;
-//      }
 
       public BaseConnection copy() {
          return new BaseConnection(myWeight);
@@ -509,31 +428,11 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-//      @Override
-//      public boolean distributeExternalForce(Vector3d pos, double s,
-//         Vector3d force,
-//         Vector3d tmp) {
-//         myNode.addScaledExternalForce(s * myWeight, force);
-//         return true;
-//      }
-
       @Override
       public boolean addPointForce (Vector3d f) {
          myNode.addScaledForce (myWeight, f);
          return true;
       }
-
-//      @Override
-//      public boolean addExternalPointForce (Vector3d f) {
-//         myNode.addScaledExternalForce (myWeight, f);
-//         return true;
-//      }
-
-//      @Override
-//      public boolean zeroExternalForces () {
-//         myNode.zeroExternalForces();
-//         return true;
-//      }
 
       public FemDisplacementConnection copy() {
          return new FemDisplacementConnection(myNode, myWeight);
@@ -556,16 +455,6 @@ public class PointSkinAttachment extends PointAttachment
       myMasters = masters.toArray(new DynamicComponent[0]);
    }
 
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public DynamicComponent[] getMasters() {
-//      if (myMasters == null) {
-//         doInitializeMasters();
-//      }
-//      return myMasters;
-//   }
-
    protected void collectMasters (List<DynamicComponent> masters) {
       super.collectMasters (masters);
       for (int i = 0; i < myNumConnections; i++) {
@@ -583,16 +472,6 @@ public class PointSkinAttachment extends PointAttachment
       return idx;
    }
    
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public int numMasters() {
-//      if (myMasters == null) {
-//         doInitializeMasters();
-//      }
-//      return myMasters.length;
-//   }
-
    /**
     * Creates an empty PointSkinAttachment. The associated skin mesh will have
     * to be set later.
@@ -721,40 +600,6 @@ public class PointSkinAttachment extends PointAttachment
       }      
    }
    
-//   protected MatrixBlock createRowBlock(int colSize) {
-//      return createRowBlockNew(colSize);
-//   }
-//
-//   protected MatrixBlock createColBlock(int rowSize) {
-//      return createColBlockNew(rowSize);
-//   }
-//
-//   protected MatrixBlock createColBlockNew(int rowSize) {
-//      switch (rowSize) {
-//         case 1:
-//            return new Matrix1x6Block();
-//         case 3:
-//            return new Matrix3x6Block();
-//         case 6:
-//            return new Matrix6dBlock();
-//         default:
-//            return new MatrixNdBlock(rowSize, 6);
-//      }
-//   }
-//
-//   protected MatrixBlock createRowBlockNew(int colSize) {
-//      switch (colSize) {
-//         case 1:
-//            return new Matrix6x1Block();
-//         case 3:
-//            return new Matrix6x3Block();
-//         case 6:
-//            return new Matrix6dBlock();
-//         default:
-//            return new MatrixNdBlock(6, colSize);
-//      }
-//   }
-
    public void mulSubGT(MatrixBlock D, MatrixBlock B, int idx) {
    }
 
@@ -942,36 +787,6 @@ public class PointSkinAttachment extends PointAttachment
       buf[idx+2] = dvel.z;
       return isNonZero;
    }
-
-//   @Override
-//   public void connectToHierarchy() {
-//      super.connectToHierarchy();
-//      Point point = getPoint();
-//      if (point != null) {
-//         point.setAttached(this);
-//      }
-//      DynamicComponent masters[] = getMasters();
-//      if (masters != null) {
-//         for (DynamicComponent m : masters) {
-//            m.addMasterAttachment(this);
-//         }
-//      }
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      super.disconnectFromHierarchy();
-//      Point point = getPoint();
-//      if (point != null) {
-//         point.setAttached(null);
-//      }
-//      DynamicComponent masters[] = getMasters();
-//      if (masters != null) {
-//         for (DynamicComponent m : masters) {
-//            m.removeMasterAttachment(this);
-//         }
-//      }
-//   }
 
    @Override
    public void getSoftReferences (List<ModelComponent> refs) {

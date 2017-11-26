@@ -188,6 +188,30 @@ public abstract class SpatialVector extends VectorBase
       b.y = values[4];
       b.z = values[5];
     }
+   
+   /**
+    * Sets the elements of this spatial vector from an array of doubles, 
+    * starting from a particular location. The array must extend for at least
+    * 6 elements beyond that location.
+    * 
+    * @param values
+    * array from which values are copied
+    * @param idx starting point within values from which copying should begin
+    * @return updated idx value
+    */
+   public int set (double[] values, int idx) {
+      if (values.length < 6+idx) {
+         throw new IllegalArgumentException (
+            "argument 'values' must extend for at least 6 elements past 'idx'");
+      } 
+      a.x = values[idx++];
+      a.y = values[idx++];
+      a.z = values[idx++];
+      b.x = values[idx++];
+      b.y = values[idx++];
+      b.z = values[idx++];
+      return idx;
+    }
 
    protected void set (SpatialVector v)
     {

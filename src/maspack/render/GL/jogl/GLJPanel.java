@@ -183,8 +183,7 @@ import jogamp.opengl.awt.Java2D;
  * </p>
  * <p>
  * The active and dedicated texture-unit's {@link GL#GL_TEXTURE_2D} state is
- * preserved via {@link TextureState}. See also {@link Texture#textureCallOrder
- * Order of Texture Commands}.
+ * preserved via {@link TextureState}. 
  * </p>
  * <p>
  * The current gl-viewport is preserved.
@@ -559,6 +558,7 @@ GLSharedContextSetter, ScalableSurface {
 
    @Override
    public void display () {
+    
       if (isShowing || (printActive && isVisible ())) {
          if (EventQueue.isDispatchThread ()) {
             // Want display() to be synchronous, so call paintImmediately()

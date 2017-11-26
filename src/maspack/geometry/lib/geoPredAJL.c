@@ -129,7 +129,7 @@ double exactOrient3d(double p0[3], double p1[3], double p2[3], double p3[3], int
 	multiplyExacts(&a, &c, &b, err);
 	addExacts(&b, &r1, &r, err);
 
-	double est = estimate(&r);
+	double est = estimateExact(&r);
 	return est;
 }
 
@@ -149,7 +149,7 @@ double exactOrient2d(double *a0, double *a1, double *b0, double *b1, double *c0,
 	double b1n = -*b1;
 	multiplyDoubles(c0, &b1n, &q);
 	addExacts(&r, &q, &s, err);
-	return estimate(&s);
+	return estimateExact(&s);
 }
 
 double exactOrient1d(double *a, double *b) {
@@ -546,10 +546,10 @@ int exactPerpendicularDistances(
 	multiplyExacts(&d, &e, &db2, err);
 	addExacts(&db2, db, &db1, err);
 
-	compress(&da1, da);
+	compressExact(&da1, da);
 	if (isNegative(da)) negate(da);
 
-	compress(&db1, db);
+	compressExact(&db1, db);
 	if (isNegative(db)) negate(db);
 }
 
@@ -574,7 +574,7 @@ int exactClosestIntersection(
 	addExacts(&dca, &dcb, &p, &err);
 	multiplyExacts(&p, &dda, &r, &err);
 	subtractExacts(&q, &r, &p, &err);
-	*answer = estimate(&p);
+	*answer = estimateExact(&p);
 	return err == 0;
 }
 

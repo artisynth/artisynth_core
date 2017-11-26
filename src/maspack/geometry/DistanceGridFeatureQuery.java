@@ -39,8 +39,8 @@ public class DistanceGridFeatureQuery {
       myTmp2 = new Vector3d();
    }
    
-   private static SignedDistanceGrid getOrCreateFaceGrid(PolygonalMesh mesh) {
-      SignedDistanceGrid sdGrid = mesh.getSignedDistanceGrid();
+   private static DistanceGrid getOrCreateFaceGrid(PolygonalMesh mesh) {
+      DistanceGrid sdGrid = mesh.getSignedDistanceGrid();
       if (sdGrid == null) {
          Vector3i cellDivisions = new Vector3i (20, 20, 20);
          double gridMargin = 0.1;
@@ -69,7 +69,7 @@ public class DistanceGridFeatureQuery {
       if (!mesh.isTriangular()) {
          throw new IllegalArgumentException ("mesh is not triangular");
       }
-      SignedDistanceGrid sdgrid = getOrCreateFaceGrid(mesh);
+      DistanceGrid sdgrid = getOrCreateFaceGrid(mesh);
       Face face = nearestFaceToPoint (nearPnt, uv, sdgrid, pnt);
       return face;
    }
@@ -119,9 +119,9 @@ public class DistanceGridFeatureQuery {
          if (uv != null) {
             // local point
             Point3d lnear = nearPnt;
-            if (sdgrid.getWorldTransform() != null) {
+            if (sdgrid.getLocalToWorld() != null) {
                lnear = new Point3d(nearPnt);
-               lnear.inverseTransform(sdgrid.getWorldTransform());
+               lnear.inverseTransform(sdgrid.getLocalToWorld());
             }
             face.computeCoords(lnear, uv);
          }
@@ -148,7 +148,7 @@ public class DistanceGridFeatureQuery {
    public static Face getNearestFaceToPoint (
       Point3d nearPnt, Vector2d uv, PolygonalMesh mesh, Point3d pnt) {
       DistanceGridFeatureQuery query = new DistanceGridFeatureQuery();
-      SignedDistanceGrid sdgrid = getOrCreateFaceGrid(mesh);
+      DistanceGrid sdgrid = getOrCreateFaceGrid(mesh);
       return query.nearestFaceToPoint (nearPnt, uv, sdgrid, pnt);
    }
 
@@ -243,7 +243,7 @@ public class DistanceGridFeatureQuery {
     * <p> The method works by inspecting the nearest face, edge or vertex to
     * the point. Hence the mesh does not need to be closed, and the method is
     * faster, though possibly less numerically robust, than {@link
-    * #isInsideMesh(PolygonalMesh,SignedDistanceGrid,Point3d,double)}.
+    * #isInsideMesh(PolygonalMesh,DistanceGrid,Point3d,double)}.
     *
     * @param grid distance grid containing the faces.
     * @param pnt point to check (in world coordinates)
@@ -255,9 +255,9 @@ public class DistanceGridFeatureQuery {
    public boolean isInsideOrientedMesh (
       DistanceGrid grid, Point3d pnt, double tol) {
       Point3d lpnt;
-      if (grid.getWorldTransform() != null && grid.getWorldTransform() != RigidTransform3d.IDENTITY) {
+      if (grid.getLocalToWorld() != null && grid.getLocalToWorld() != RigidTransform3d.IDENTITY) {
          lpnt = new Point3d (pnt);
-         lpnt.inverseTransform (grid.getWorldTransform());
+         lpnt.inverseTransform (grid.getLocalToWorld());
       }
       else {
          lpnt = pnt;
@@ -271,7 +271,7 @@ public class DistanceGridFeatureQuery {
       lastUV = null;
       
       double d = grid.getLocalDistance(lpnt);
-      if (d == DistanceGrid.OUTSIDE) {
+      if (d == DistanceGrid.OUTSIDE_GRID) {
          lastCase = "Culled";
          return false;
       }
@@ -486,7 +486,7 @@ public class DistanceGridFeatureQuery {
     *  InsideQuery.OUTSIDE if it is outside.
     */
    public InsideQuery isInsideMesh(
-      PolygonalMesh mesh, SignedDistanceGrid sdgrid, Point3d pnt, double tol) {
+      PolygonalMesh mesh, DistanceGrid sdgrid, Point3d pnt, double tol) {
       InsideQuery q = isInsideOrOnMesh(mesh, sdgrid, pnt, tol);
       if (q == InsideQuery.ON) {
          return InsideQuery.INSIDE;
@@ -495,7 +495,7 @@ public class DistanceGridFeatureQuery {
    }
    
    public InsideQuery isInsideOrOnMesh (
-      PolygonalMesh mesh, SignedDistanceGrid sdgrid, Point3d pnt, double tol) {
+      PolygonalMesh mesh, DistanceGrid sdgrid, Point3d pnt, double tol) {
 
       if (!mesh.isTriangular()) {
          throw new IllegalArgumentException ("mesh is not triangular");
@@ -512,9 +512,9 @@ public class DistanceGridFeatureQuery {
          tol = 1e-12*sdgrid.getRadius();
       }
 
-      if (sdgrid.getWorldTransform() != null) {
+      if (sdgrid.getLocalToWorld() != null) {
          lpnt = new Point3d (pnt);
-         lpnt.inverseTransform (sdgrid.getWorldTransform());
+         lpnt.inverseTransform (sdgrid.getLocalToWorld());
       }
       else {
          lpnt = pnt;

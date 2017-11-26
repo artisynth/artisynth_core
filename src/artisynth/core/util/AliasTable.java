@@ -90,7 +90,7 @@ public class AliasTable {
          }
       }
       if (rtok.ttype != ReaderTokenizer.TT_EOF) {
-         throw new IOException ("Warning: unknown token " + rtok.tokenName());
+         throw new IOException ("Warning: unknown token " + rtok);
       }
    }
 

@@ -172,6 +172,23 @@ public class MeshComponent extends RenderableComponentBase
          return null;
       }
    }
+
+   public RigidTransform3d getMeshToWorld() {
+      MeshBase mesh = getMesh();
+      if (mesh != null) {
+         return mesh.getMeshToWorld();
+      }
+      else {
+         return null;
+      }
+   }      
+
+   public void setMeshToWorld (RigidTransform3d TMW) {
+      MeshBase mesh = getMesh();
+      if (mesh != null) {
+         mesh.setMeshToWorld(TMW);
+      }
+   }      
    
    public AffineTransform3d getFileTransform() {
       return new AffineTransform3d(myMeshInfo.myFileTransform);

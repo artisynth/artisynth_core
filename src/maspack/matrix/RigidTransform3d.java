@@ -1107,4 +1107,12 @@ public class RigidTransform3d extends AffineTransform3dBase {
       return s;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isRigid() {
+      return true;
+   }
+   
+  
 }

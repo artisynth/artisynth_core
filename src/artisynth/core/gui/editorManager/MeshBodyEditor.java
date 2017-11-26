@@ -9,9 +9,7 @@
 import java.awt.Rectangle;
 
 import artisynth.core.driver.Main;
-import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.MeshComponent;
-import artisynth.core.mechmodels.FixedMeshBody;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.renderables.EditablePolygonalMeshComp;
 import artisynth.core.modelbase.*;

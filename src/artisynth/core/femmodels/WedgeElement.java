@@ -16,13 +16,6 @@ import maspack.render.RenderProps;
 
 public class WedgeElement extends FemElement3d {
 
-   //   private StiffnessWarper3d myWarper = null;
-   // private LUDecomposition LUD;
-
-   // private Vector3d nodesRestPos[];
-
-   //private WedgeElement[] myNeighbors;
-
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
    private static IntegrationPoint3d myWarpingPoint;
    private static FemElementRenderer myRenderer;
@@ -162,14 +155,6 @@ public class WedgeElement extends FemElement3d {
       }
    }
 
-//    public void setFaceNeighbors (WedgeElement[] nbrs) {
-//       myNeighbors = nbrs;
-//    }
-
-//    public WedgeElement[] getFaceNeighbors() {
-//       return myNeighbors;
-//    }
-
    public WedgeElement() {
       myNodes = new FemNode3d[6];
    }
@@ -268,30 +253,6 @@ public class WedgeElement extends FemElement3d {
 
       return vol/2;
    }
-
-//   public double computeVolumes () {
-//      double vol =
-//         computeVolume (
-//            myNodes[0].getPosition(), myNodes[1].getPosition(),
-//            myNodes[2].getPosition(), myNodes[3].getPosition(), 
-//            myNodes[4].getPosition(), myNodes[5].getPosition());
-//      myVolume = vol;
-//      myVolumes[0] = vol;
-//      return vol;
-//   }
-
-   // /**
-   //  * {@inheritDoc}
-   //  */
-   // public double computeRestVolumes() {
-   //    double vol = 0;
-   //    vol = computeVolume (
-   //       myNodes[0].myRest, myNodes[1].myRest,
-   //       myNodes[2].myRest, myNodes[3].myRest, 
-   //       myNodes[4].myRest, myNodes[5].myRest);
-   //    myRestVolumes[0] = vol;
-   //    return vol;
-   //  }
 
    public boolean isInside (Point3d pnt) {
       Point3d p0 = myNodes[0].getPosition();

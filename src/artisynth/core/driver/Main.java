@@ -1,6 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC) and ArtiSynth
- * Team Members
+ * copyright (c) 2017, by the Authors: John E Lloyd (UBC) and ArtiSynth
+ * Team Members.  Elliptic selection added by Doga Tekin (ETH).
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -9,8 +9,7 @@ package artisynth.core.driver;
 
 import java.awt.BorderLayout;
 import java.awt.Cursor;
-import java.awt.event.InputEvent;
-import java.awt.event.MouseEvent;
+import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
@@ -63,7 +62,6 @@ import artisynth.core.mechmodels.CollisionManager;
 import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.FrameMarker;
-import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystem;
 import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.mechmodels.MechSystemSolver;
@@ -96,7 +94,6 @@ import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RenderProbe;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.workspace.Workspace;
-import maspack.collision.SurfaceMeshCollider;
 import maspack.geometry.ConstrainedTranslator3d;
 import maspack.geometry.GeometryTransformer;
 import maspack.geometry.GeometryTransformer.UndoState;
@@ -131,11 +128,13 @@ import maspack.util.Logger;
 import maspack.util.Logger.LogLevel;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import maspack.widgets.ButtonMasks;
+import maspack.widgets.MouseBindings;
 import maspack.widgets.PropertyWindow;
 import maspack.widgets.RenderPropsDialog;
 import maspack.widgets.ViewerKeyListener;
 import maspack.widgets.ViewerToolBar;
+import maspack.widgets.MouseBindings;
+import maspack.widgets.MouseBindings.MouseAction;
 
 /**
  * the main class for artisynth
@@ -207,6 +206,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public enum SelectionMode {
       Scale,
       Select,
+      EllipticSelect,
       Translate,
       Rotate,
       ConstrainedTranslate,
@@ -215,9 +215,33 @@ public class Main implements DriverInterface, ComponentChangeListener {
       AddComponent
    }
 
+   /** 
+    * Describes different ways to determine the frame for a manipulator.
+    */
+   public enum ManipulatorFrameSpec {
+      LOCAL,
+      WORLD;
+
+      private static ManipulatorFrameSpec[] vals = values();
+      public ManipulatorFrameSpec next() {
+        return vals[(this.ordinal()+1) % vals.length];
+      }      
+   };
+
    private SelectionMode mySelectionMode;
    private boolean myArticulatedTransformsP = true;
    private boolean myInitDraggersInWorldCoordsP = false;
+
+   private Translator3d translator3d = new Translator3d();
+   private Transrotator3d transrotator3d = new Transrotator3d();
+   private RotatableScaler3d scalar3d = new RotatableScaler3d();
+   private Rotator3d rotator3d = new Rotator3d();
+   private ConstrainedTranslator3d constrainedTranslator3d =
+      new ConstrainedTranslator3d();
+   private Dragger3dBase currentDragger;
+   private LinkedList<ModelComponent> myDraggableComponents =
+      new LinkedList<ModelComponent>();
+
 
 //   public enum ViewerMode {
 //      FrontView, TopView, SideView, BottomView, RightView, BackView
@@ -536,6 +560,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       public void run() {
          myMain.myFrame = new MainFrame (myName, myMain, myWidth, myHeight);
          myMain.myFrame.setLocation(10, 10); // stay away from multiple monitor divide
+         //myMain.myFrame.setFocusTraversalKeysEnabled(false);
       }
    }
    
@@ -555,13 +580,22 @@ public class Main implements DriverInterface, ComponentChangeListener {
       };
    }
 
-   protected void setViewerSize (int w, int h) {
+   public void setViewerSize (int w, int h) {
       // execute in AWT thread to prevent deadlock
       try {
          SwingUtilities.invokeAndWait(new ViewerResizer(myFrame, w, h));
       } catch (InvocationTargetException | InterruptedException e) {
          e.printStackTrace();
       }
+   }
+   
+   public void setViewerSize (Dimension size) {
+      // execute in AWT thread to prevent deadlock
+      setViewerSize (size.width, size.height);
+   }
+
+   public Dimension getViewerSize() {
+      return myViewer.getCanvas().getSize();
    }
    
    /**
@@ -589,6 +623,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myGLVersion = glVersion;
       
       if (demosFilename.value != null) {
+         System.out.println ("reading demos files " + demosFilename.value);
          readDemoNames(demosFilename.value);
       } else {
          myDemoModels = new AliasTable(); // default: an empty alias table
@@ -604,7 +639,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       myUndoManager = new UndoManager();
       myInverseManager = new InverseManager(this);
 
-      // need to create selection manager before MainFrame, becuase
+      // need to create selection manager before MainFrame, because
       // some things in MainFrame will assume it exists
       mySelectionManager = new SelectionManager();
 
@@ -658,7 +693,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myViewerManager.addDragger (transrotator3d);
          myViewerManager.addDragger (constrainedTranslator3d);
          
-         setViewerSize (width, height);
+         myFrame.getGLPanel().setSize (width, height);
 
          myPullController = new PullController (mySelectionManager);
       }
@@ -803,7 +838,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             Cursor.getPredefinedCursor (Cursor.CROSSHAIR_CURSOR));
       }
       else {
-         viewer.getCanvas().setCursor (Cursor.getDefaultCursor());
+         viewer.getCanvas().setCursor (getDefaultCursor());
       }
       myViewerManager.resetViewer (viewer);
    }
@@ -838,6 +873,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             center.scale (0.5);
          }      
          myViewer.setCenter (center);
+         rerender();
       }
    }
 
@@ -1118,6 +1154,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             SwingUtilities.invokeAndWait( new Runnable() {
                @Override
                public void run() {
+                  myFrame.pack();
                   myFrame.setVisible (true);
                   createTimeline (); //TODO               
                }
@@ -1611,7 +1648,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          modelName = demoClass.getSimpleName();
       } else if (modelName.contains(".")) {
          String[] splitNames = modelName.split("\\.");
-         modelName = splitNames[splitNames.length-1];	// get last item
+         modelName = splitNames[splitNames.length-1];  // get last item
       }
       
       clearRootModel();
@@ -1621,7 +1658,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // objects like an HUD while a new model is loading
       if (myViewerManager != null) {
          myViewerManager.clearRenderables();
-         myViewerManager.render();	    // refresh the rendering lists
+         myViewerManager.render();         // refresh the rendering lists
       }
             
       // getWorkspace().getWayPoints().clear();
@@ -1648,7 +1685,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          // Sanchez, July 11, 2013
          // force repaint again, updating viewer bounds to reflect
          // new renderables
-         myViewerManager.render();	 // set external render lists
+         myViewerManager.render();      // set external render lists
 
          // when a model is loaded reset the viewer so no view is selected
          //setViewerMode (null);
@@ -1666,89 +1703,54 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myViewerManager;
    }
 
+   public ArrayList<MouseBindings> getAllMouseBindings() {
+      ArrayList<MouseBindings> allBindings = new ArrayList<MouseBindings>();
+      allBindings.add (MouseBindings.ThreeButton);
+      allBindings.add (MouseBindings.TwoButton);
+      allBindings.add (MouseBindings.OneButton);
+      allBindings.add (MouseBindings.Laptop);
+      allBindings.add (MouseBindings.Mac);
+      allBindings.add (MouseBindings.Kees);
+      return allBindings;
+   }
+
    /**
     * set the mouse bindings
     * 
-    * @param prefs name of the preferred mouse bindings
+    * @param bindingsName name of the preferred mouse bindings
     */
-   public void setMouseBindings (String prefs) {
+   public void setMouseBindings (String bindingsName) {
 
-      getLogger().info ("Setting mouse bindings to '"+prefs+"'");
-      GLMouseAdapter mouse = (GLMouseAdapter)myViewer.getMouseHandler();
-      if (mouse == null) {
-         mouse = new GLMouseAdapter(myViewer);
-         myViewer.setMouseHandler(mouse);
+      getLogger().info ("Attempting to set mouse bindings to '"+bindingsName+"'");
+      MouseBindings bindings = null;
+      ArrayList<MouseBindings> allBindings = getAllMouseBindings();
+      for (int i=0; i<allBindings.size(); i++) {
+         if (bindingsName.equalsIgnoreCase(allBindings.get(i).getName())) {
+            bindings = allBindings.get(i);
+         }
       }
-      
-      if (prefs.equalsIgnoreCase ("kees")) {
-         
-         mouse.setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
-         mouse.setTranslateButtonMask (
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
-         mouse.setZoomButtonMask (
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK);
-         
-         mouse.setSelectionButtonMask (
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
-         mouse.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
-         // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
-         
-         mouse.setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
-         mouse.setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
-         mouse.setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK | 
-            InputEvent.ALT_DOWN_MASK);
-      }
-      else if (prefs.equalsIgnoreCase("laptop")) {
-         mouse.setLaptopConfig();
-      }
-      else if (prefs.equalsIgnoreCase ("mac")) {
-         
-         // setup button masks for macbook trackpad
-         ButtonMasks.setContextMenuMask (
-            (InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK)); 
-         
-         // right mouse button = CTRL + BUTTON
-         mouse.setRotateButtonMask ( // middle mouse = ALT + BUTTON
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK); 
-         mouse.setTranslateButtonMask (
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK |
-            InputEvent.SHIFT_DOWN_MASK);
-         mouse.setZoomButtonMask (
-            InputEvent.BUTTON1_DOWN_MASK | InputEvent.ALT_DOWN_MASK |
-            InputEvent.META_DOWN_MASK);
-         
-         mouse.setSelectionButtonMask(InputEvent.BUTTON1_DOWN_MASK);
-         mouse.setMultipleSelectionMask ((InputEvent.META_DOWN_MASK));
-         // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
-         
-         mouse.setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
-         mouse.setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
-         mouse.setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK 
-            | InputEvent.CTRL_DOWN_MASK);
-         
-      } else if (prefs.equalsIgnoreCase("default")) {
-         
-         mouse.setRotateButtonMask(InputEvent.BUTTON2_DOWN_MASK);
-         mouse.setTranslateButtonMask(
-            InputEvent.BUTTON2_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
-         mouse.setZoomButtonMask(
-            InputEvent.BUTTON2_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
-         
-         mouse.setSelectionButtonMask(InputEvent.BUTTON1_DOWN_MASK);
-         mouse.setMultipleSelectionMask(InputEvent.CTRL_DOWN_MASK);
-         // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);
-         
-         mouse.setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
-         mouse.setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
-         mouse.setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK 
-            | InputEvent.CTRL_DOWN_MASK);
-         
+      if (bindings == null) {
+         System.out.println ("unknown mouse bindings: " + bindingsName);
       }
       else {
-         System.out.println ("unknown mouse bindings: " + prefs);
-         System.out.println ("unknown mouse bindings: " + prefs);
+         setMouseBindings (bindings);
       }
+   }
 
+   public void setMouseBindings (MouseBindings bindings) {
+      myViewerManager.setMouseBindings (bindings);
+   }
+
+   public MouseBindings getMouseBindings () {
+      return myViewerManager.getMouseBindings ();
+   }
+
+   public double getMouseWheelZoomScale() {
+      return myViewerManager.getMouseWheelZoomScale();
+   }
+
+   public void setMouseWheelZoomScale (double scale) {
+      myViewerManager.setMouseWheelZoomScale (scale);
    }
 
    /**
@@ -1769,6 +1771,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
+   protected static IntHolder viewerWidth = new IntHolder(720);
+   protected static IntHolder viewerHeight = new IntHolder(540);
    protected static BooleanHolder printHelp = new BooleanHolder (false);
    protected static BooleanHolder fullScreen = new BooleanHolder (false);
    protected static BooleanHolder yup = new BooleanHolder (false);
@@ -1797,7 +1801,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static StringHolder scriptsFilename =
       new StringHolder (".artisynthScripts");
    protected static StringHolder scriptFile = 
-	  new StringHolder(); 
+         new StringHolder(); 
 
    protected static BooleanHolder abortOnInvertedElems =
       new BooleanHolder (false);
@@ -1828,10 +1832,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static BooleanHolder testSaveRestoreState =
       new BooleanHolder (false);
 
+   protected static DoubleHolder movieFrameRate = new DoubleHolder (-1);
+   protected static StringHolder movieMethod = new StringHolder ();
+
    protected static IntHolder flags = new IntHolder();
 
    protected static StringHolder mousePrefs = new StringHolder(); // "kees"
-   public static final String [] mousePrefsOptions = {"default", "laptop", "kees", "mac"};
 
    protected static float[] bgColor = new float[3];
    protected static BooleanHolder openMatlab = new BooleanHolder(false);
@@ -1965,8 +1971,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @param args command line arguments
     */
    public static void main (String[] args) {
-      IntHolder width = new IntHolder (750);
-      IntHolder height = new IntHolder (500);
       
       // some interfaces (like Matlab) may pass args in as null
       if (args == null) {
@@ -1975,8 +1979,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       
       ArgParser parser = new ArgParser ("java artisynth.core.driver.Main", false);
       parser.addOption ("-help %v #prints help message", printHelp);
-      parser.addOption ("-width %d #width (pixels)", width);
-      parser.addOption ("-height %d #height (pixels)", height);
+      parser.addOption ("-width %d #width (pixels)", viewerWidth);
+      parser.addOption ("-height %d #height (pixels)", viewerHeight);
       parser.addOption (
          "-bgColor %fX3 #background color (3 rgb values, 0 to 1)", bgColor);
       parser.addOption (
@@ -2068,6 +2072,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
       parser.addOption (
          "-testSaveRestoreState %v #test save/restore state when running models",
          testSaveRestoreState);
+
+      parser.addOption (
+         "-movieFrameRate %f #frame rate to use when making movies",
+         movieFrameRate);
+      parser.addOption (
+         "-movieMethod %s #method to use when making movies",
+         movieMethod);
       
       // parser.addOption ("-model %s #name of model to start, with optional "
       //   + "argument list delimited by square brackets", modelName);
@@ -2266,10 +2277,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
 
       if (noGui.value == true) {
-         width.value = -1;
+         viewerWidth.value = -1;
       }
       GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
-      Main m = new Main (PROJECT_NAME, width.value, height.value, glv);
+      Main m = new Main (
+         PROJECT_NAME, viewerWidth.value, viewerHeight.value, glv);
 
       m.setArticulatedTransformsEnabled (useArticulatedTransforms.value);
       if (axialView.value.equals ("xy")) {
@@ -2288,9 +2300,27 @@ public class Main implements DriverInterface, ComponentChangeListener {
          // XXX this should be done in the Main constructor, but needs
          // to be done here instead because of sizing effects
          m.myMenuBarHandler.initToolbar();
-         // need to set viewer size here, after it has become visible,
-         // because setting it earlier can cause incorrect results
-         m.setViewerSize (width.value, height.value);
+
+         if (movieMethod.value != null) {
+            MovieMaker movieMaker = m.getMovieMaker();
+            try {
+               movieMaker.setMethod (movieMethod.value);
+            }
+            catch (Exception e) {
+               System.out.println (
+                  "Warning: unknown movie making method " + movieMethod.value);
+            }
+         }
+         if (movieFrameRate.value != -1) {
+            MovieMaker movieMaker = m.getMovieMaker();
+            try {
+               movieMaker.setFrameRate (movieFrameRate.value);
+            }
+            catch (Exception e) {
+               System.out.println (
+                  "Warning: illegal movie frame rate " + movieFrameRate.value);
+            }
+         }
       }
 
       if (mousePrefs.value != null && m.myViewer != null) {
@@ -2301,9 +2331,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
          Frame.dynamicVelInWorldCoords = false;
       }
 
-
       m.start (
          startWithTimeline.value, timelineRight.value, largeTimeline.value);
+      // need to set viewer size here, after it has become visible,
+      // because setting it earlier can cause incorrect results     
+      if (m.myFrame != null) {
+         m.setViewerSize (viewerWidth.value, viewerHeight.value);
+      }
 
       if (System.getProperty ("os.name").contains ("Windows")) {
          fixPardisoThreadCountHack(); // XXX see function docs
@@ -2834,6 +2868,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myPullController;
    }
 
+   Cursor getDefaultCursor() {
+      return Cursor.getDefaultCursor();
+   }
+
    /**
     * Set the current selection mode. Also set the display of the selection
     * buttons.
@@ -2850,8 +2888,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
                Cursor.getPredefinedCursor (Cursor.CROSSHAIR_CURSOR));
             // myViewerManager.setSelectionEnabled(false);
          }
+         else if (selectionMode == SelectionMode.EllipticSelect) {
+            myViewerManager.setCursor (null);
+         }
          else {
-            myViewerManager.setCursor (Cursor.getDefaultCursor());
+            myViewerManager.setCursor (getDefaultCursor());
             // myREnderDriver.setSelectionEnabled(true);
          }
          if (selectionMode == SelectionMode.Pull) {
@@ -2877,7 +2918,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
             //myViewerManager.removeRenderable (myPullController);
             myViewerManager.removeMouseListener (myPullController);
          }
-
+         if (selectionMode == SelectionMode.EllipticSelect) {
+            myViewerManager.setEllipticSelection (true);
+         }
+         else {
+            myViewerManager.setEllipticSelection (false);
+         }
          mySelectionMode = selectionMode;
 
          if (myMenuBarHandler.modeSelectionToolbar != null) {
@@ -3054,42 +3100,82 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-   private Translator3d translator3d = new Translator3d();
-   private Transrotator3d transrotator3d = new Transrotator3d();
-   private RotatableScaler3d scalar3d = new RotatableScaler3d();
-   private Rotator3d rotator3d = new Rotator3d();
-   private ConstrainedTranslator3d constrainedTranslator3d =
-      new ConstrainedTranslator3d();
-   private Dragger3dBase currentDragger;
-   private LinkedList<ModelComponent> myDraggableComponents =
-      new LinkedList<ModelComponent>();
-
    private static final double inf = Double.POSITIVE_INFINITY;
+
+   protected double computeDraggerToWorld (
+      RigidTransform3d TDW, List<ModelComponent> draggables,
+      Dragger3dBase dragger) {
+
+      double radius = 0;
+      if (dragger != null) {
+         TDW.set (dragger.getDraggerToWorld());
+      }
+      HasCoordinateFrame singleCompWithFrame = null;
+      if (draggables.size() == 1 &&
+          draggables.get(0) instanceof HasCoordinateFrame) {
+         singleCompWithFrame = (HasCoordinateFrame)draggables.get(0);
+      }
+      Point3d pmin = null;
+      Point3d pmax = null;
+      if (dragger == null || singleCompWithFrame == null) {
+         // need to compute bounds if there is no dragger (to determine
+         // radius), or if there is no single component with a frame (to
+         // determine the transform).
+         pmin = new Point3d (inf, inf, inf);
+         pmax = new Point3d (-inf, -inf, -inf);
+         for (ModelComponent c : draggables) {
+            ((Renderable)c).updateBounds (pmin, pmax);
+         }
+         radius = pmin.distance (pmax);
+      }
+      if (singleCompWithFrame != null) {
+         singleCompWithFrame.getPose (TDW);
+         if (dragger == null && getInitDraggersInWorldCoords()) {
+            TDW.R.setIdentity();
+         }
+      }
+      else {
+         TDW.p.add (pmin, pmax);
+         TDW.p.scale (0.5);
+      }
+      return radius;
+   } 
 
    /**
     * Called to update the current dragger position.
     */
    public void updateDragger() {
+      // John Lloyd: Disabled as of Nov 2017. We do not change the
+      // dragger position after a drag is completed.
+      
+      // if (currentDragger != null && !currentDragger.isDragging()) {
+      //    if (myDraggableComponents.size() > 0) {
+      //       RigidTransform3d TDW = new RigidTransform3d();
+      //       computeDraggerToWorld (TDW, myDraggableComponents, currentDragger);
+      //       currentDragger.setDraggerToWorld (TDW);
+      //    }
+      // }
+   }
+
+   public void resetDraggerFrame (ManipulatorFrameSpec mode) {
       if (currentDragger != null && !currentDragger.isDragging()) {
-         if (myDraggableComponents.size() > 0) {
-            Point3d dragCenter = new Point3d();
-            if (myDraggableComponents.size() == 1 &&
-                myDraggableComponents.get (0) instanceof HasCoordinateFrame) {
-               RigidTransform3d X = new RigidTransform3d();
-               ((HasCoordinateFrame)myDraggableComponents.get(0)).getPose (X);
-               dragCenter.set (X.p);
-               currentDragger.setPosition (dragCenter);
-               //currentDragger.setDraggerToWorld (X);               
+         switch (mode) {
+            case LOCAL: {
+               RigidTransform3d TDW = new RigidTransform3d();
+               computeDraggerToWorld (
+                  TDW, myDraggableComponents, currentDragger);
+               currentDragger.setDraggerToWorld (TDW);
+               rerender();
+               break;
             }
-            else {
-               Point3d pmin = new Point3d (inf, inf, inf);
-               Point3d pmax = new Point3d (-inf, -inf, -inf);
-               for (ModelComponent c : myDraggableComponents) {
-                  ((Renderable)c).updateBounds (pmin, pmax);
-               }
-               dragCenter.add (pmin, pmax);
-               dragCenter.scale (0.5);
-               currentDragger.setPosition (dragCenter);
+            case WORLD: {
+               currentDragger.setDraggerToWorld (RigidTransform3d.IDENTITY);
+               rerender();
+               break;
+            }
+            default: {
+               throw new InternalErrorException (
+                  "Unimplemented frame mode "+mode);
             }
          }
       }
@@ -3105,10 +3191,10 @@ public class Main implements DriverInterface, ComponentChangeListener {
       currentDragger = null;
 
       myDraggableComponents.clear();
-      Point3d dragCenter = new Point3d();
 
       if (mySelectionMode != SelectionMode.Select &&
-         mySelectionMode != SelectionMode.Pull) {
+          mySelectionMode != SelectionMode.EllipticSelect &&
+          mySelectionMode != SelectionMode.Pull) {
          Point3d pmin = new Point3d (inf, inf, inf);
          Point3d pmax = new Point3d (-inf, -inf, -inf);
 
@@ -3123,27 +3209,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
                n++;
             }
          }
-
+         
          if (n > 0) {
-            RotationMatrix3d R = new RotationMatrix3d();
-            ModelComponent onlyComponent = null;
-            if (n == 1) {
-               onlyComponent = myDraggableComponents.get(0);
-            }
-            if (onlyComponent instanceof HasCoordinateFrame &&
-                !getInitDraggersInWorldCoords()) {
-               RigidTransform3d X = new RigidTransform3d();
-               ((HasCoordinateFrame)onlyComponent).getPose (X);
-               dragCenter.set (X.p);
-               R.set (X.R);
-            }
-            else {
-               dragCenter.add (pmin, pmax);
-               dragCenter.scale (0.5);
-            }
-            double radius = pmin.distance (pmax);
+            RigidTransform3d TDW = new RigidTransform3d();
+            double radius =
+               computeDraggerToWorld (TDW, myDraggableComponents, null);
 
-            // set a minium radius to about 1/6 of the viewer window width
+            // set a minimum radius to about 1/6 of the viewer window width
             radius =
                Math.max (radius,
                   myViewer.distancePerPixel (myViewer.getCenter())
@@ -3151,29 +3223,25 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
             if (mySelectionMode == SelectionMode.Translate) {
                translator3d.setVisible (true);
-               translator3d.setDraggerToWorld (new RigidTransform3d (
-                  dragCenter, R));
+               translator3d.setDraggerToWorld (TDW);
                translator3d.setSize (radius);
                currentDragger = translator3d;
             }
             else if (mySelectionMode == SelectionMode.Transrotate) {
                transrotator3d.setVisible (true);
-               transrotator3d.setDraggerToWorld (new RigidTransform3d (
-                  dragCenter, R));
+               transrotator3d.setDraggerToWorld (TDW);
                transrotator3d.setSize (radius);
                currentDragger = transrotator3d;
             }
             else if (mySelectionMode == SelectionMode.Scale) {
                scalar3d.setVisible (true);
-               scalar3d.setDraggerToWorld (new RigidTransform3d (
-                  dragCenter, R));
+               scalar3d.setDraggerToWorld (TDW);
                scalar3d.setSize (radius);
                currentDragger = scalar3d;
             }
             else if (mySelectionMode == SelectionMode.Rotate) {
                rotator3d.setVisible (true);
-               rotator3d.setDraggerToWorld (new RigidTransform3d (
-                  dragCenter, R));
+               rotator3d.setDraggerToWorld (TDW);
                rotator3d.setSize (radius);
                currentDragger = rotator3d;
             }
@@ -3422,7 +3490,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
-
    public void printAllThreads() {
       Set<Thread> threads = Thread.getAllStackTraces().keySet();
       System.out.println ("num threads=" + threads.size());
@@ -3430,5 +3497,5 @@ public class Main implements DriverInterface, ComponentChangeListener {
          System.out.println (thr.getClass());
       }
    }
-
+   
 }

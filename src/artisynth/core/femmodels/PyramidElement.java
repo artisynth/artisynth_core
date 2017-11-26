@@ -16,13 +16,6 @@ import maspack.render.RenderProps;
 
 public class PyramidElement extends FemElement3d {
 
-   //   private StiffnessWarper3d myWarper = null;
-   // private LUDecomposition LUD;
-
-   // private Vector3d nodesRestPos[];
-
-   //private PyramidElement[] myNeighbors;
-
    private static IntegrationPoint3d[] myDefaultIntegrationPoints;
    private static IntegrationPoint3d myWarpingPoint;
    private static FemElementRenderer myRenderer;   
@@ -157,14 +150,6 @@ public class PyramidElement extends FemElement3d {
                "Shape function index must be in range [0,"+(numNodes()-1)+"]");
       }
    }
-
-//    public void setFaceNeighbors (PyramidElement[] nbrs) {
-//       myNeighbors = nbrs;
-//    }
-
-//    public PyramidElement[] getFaceNeighbors() {
-//       return myNeighbors;
-//    }
 
    public PyramidElement() {
       myNodes = new FemNode3d[5];
@@ -329,30 +314,6 @@ public class PyramidElement extends FemElement3d {
 
       return vol /= 2;
    }
-
-//   public double computeVolumes () {
-//      double vol =
-//         computeVolume (
-//            myNodes[0].getPosition(), myNodes[1].getPosition(),
-//            myNodes[2].getPosition(), myNodes[3].getPosition(), 
-//            myNodes[4].getPosition());
-//      myVolume = vol;
-//      myVolumes[0] = vol;
-//      return vol;
-//   }
-
-   // /**
-   //  * {@inheritDoc}
-   //  */
-   // public double computeRestVolumes() {
-   //    double vol = 0;
-   //    vol = computeVolume (
-   //       myNodes[0].myRest, myNodes[1].myRest,
-   //       myNodes[2].myRest, myNodes[3].myRest, 
-   //       myNodes[4].myRest);
-   //    myRestVolumes[0] = vol;
-   //    return vol;
-   //  }
 
    public boolean isInside (Point3d pnt) {
       Point3d p0 = myNodes[0].getPosition();

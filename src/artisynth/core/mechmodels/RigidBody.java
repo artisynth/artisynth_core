@@ -20,8 +20,9 @@ import maspack.geometry.GeometryTransformer;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.Face;
 import maspack.matrix.Vector3i;
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
@@ -133,20 +134,24 @@ public class RigidBody extends Frame
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
    protected int myCollidableIndex;
 
-   static int DEFAULT_DISTANCE_GRID_MAX_DIVS = 20;
-   static Vector3i DEFAULT_DISTANCE_GRID_DIVS = new Vector3i(0, 0, 0);
+   static int DEFAULT_DISTANCE_GRID_MAX_RES = 20;
+   static Vector3i DEFAULT_DISTANCE_GRID_RES = new Vector3i(0, 0, 0);
+   static boolean DEFAULT_DISTANCE_GRID_OBB = false;
    static boolean DEFAULT_RENDER_DISTANCE_GRID = false;
    static DistanceSurfaceRendering DEFAULT_RENDER_DISTANCE_SURFACE = 
       DistanceSurfaceRendering.NONE;
+   static double DEFAULT_DISTANCE_SURFACE_ISO = 0;
    static String DEFAULT_DISTANCE_GRID_RENDER_RANGES = "* * *";
-   SignedDistanceGrid mySDGrid = null;
-   SignedDistanceGrid mySDRenderGrid = null;
+   DistanceGrid mySDGrid = null;
+   DistanceGrid mySDRenderGrid = null;
    PolygonalMesh mySDSurface = null;
    PolygonalMesh mySDRenderSurface = null;
    boolean mySDGridValid = false;
-   Vector3i myDistanceGridRes = new Vector3i(DEFAULT_DISTANCE_GRID_DIVS);
-   int myDistanceGridMaxRes = DEFAULT_DISTANCE_GRID_MAX_DIVS;
+   Vector3i myDistanceGridRes = new Vector3i(DEFAULT_DISTANCE_GRID_RES);
+   int myDistanceGridMaxRes = DEFAULT_DISTANCE_GRID_MAX_RES;
+   boolean myDistanceGridOBB = DEFAULT_DISTANCE_GRID_OBB;
    boolean myRenderDistanceGrid = DEFAULT_RENDER_DISTANCE_GRID;
+   double myDistanceSurfaceIso = DEFAULT_DISTANCE_SURFACE_ISO;
    DistanceSurfaceRendering myRenderDistanceSurface = 
       DEFAULT_RENDER_DISTANCE_SURFACE;
    String myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;
@@ -176,11 +181,15 @@ public class RigidBody extends Frame
       myProps.add (
          "distanceGridRes", 
          "divisions for signed distance grid along x, y, and z",
-         DEFAULT_DISTANCE_GRID_DIVS);
+         DEFAULT_DISTANCE_GRID_RES);
       myProps.add (
          "distanceGridMaxRes", 
          "max divisions for signed distance grid",
-         DEFAULT_DISTANCE_GRID_MAX_DIVS);
+         DEFAULT_DISTANCE_GRID_MAX_RES);
+      myProps.add (
+         "distanceGridOBB", 
+         "if true, distance grid is fitted using OBB",
+         DEFAULT_DISTANCE_GRID_OBB);
       myProps.add (
          "renderDistanceGrid", 
          "render the distance grid in the viewer",
@@ -189,6 +198,10 @@ public class RigidBody extends Frame
          "renderDistanceSurface", 
          "render the iso-surface of the distance grid in the viewer",
          DEFAULT_RENDER_DISTANCE_SURFACE);
+      myProps.add (
+         "distanceSurfaceIso", 
+         "iso value for the distance surface",
+         DEFAULT_DISTANCE_SURFACE_ISO);
       myProps.add (
          "distanceGridRenderRanges",
          "which part of the distance grid to render", 
@@ -726,6 +739,14 @@ public class RigidBody extends Frame
                setInertiaFromMesh (myDensity);            
             }
          }
+         mySDGrid = null;
+         mySDSurface = null;
+         mySDGridValid = false;
+      }
+      else {
+         mySDGrid = null;
+         mySDSurface = null;
+         mySDGridValid = true;
       }
    }
 
@@ -763,6 +784,10 @@ public class RigidBody extends Frame
          if (myRenderDistanceSurface != myRenderDistanceSurface.NONE && 
              (surf = getDistanceSurface()) != null) {
             surf.setMeshToWorld (myState.XFrameToWorld);
+         }
+         DistanceGrid grid = null;
+         if (hasDistanceGrid() && (grid = mySDGrid) != null) {
+            grid.setLocalToWorld (myState.XFrameToWorld);
          }
       }
    }
@@ -1032,12 +1057,16 @@ public class RigidBody extends Frame
          surf.prerender (myRenderProps); 
       }
       else {
+         if (myRenderProps == null) {
+            throw new InternalErrorException (
+               "RigidBody has null RenderProps");
+         }
          myMeshInfo.prerender (myRenderProps);      
       }
       mySDRenderSurface = surf;
-      SignedDistanceGrid grid = null;
+      DistanceGrid grid = null;
       if (myRenderDistanceGrid && (grid = getDistanceGrid()) != null) {
-         grid.prerender (list);
+         grid.prerender (myRenderProps);
       }
       mySDRenderGrid = grid;
    }
@@ -1059,7 +1088,7 @@ public class RigidBody extends Frame
       else {
          myMeshInfo.render (renderer, myRenderProps, flags);
       }
-      SignedDistanceGrid grid = null;
+      DistanceGrid grid = null;
       if (myRenderDistanceGrid && (grid = mySDRenderGrid) != null) {
          grid.render (renderer, myRenderProps, flags);
       }
@@ -1091,7 +1120,10 @@ public class RigidBody extends Frame
       }
       else {
          if (mySDSurface != null) {
-            mySDSurface.setMeshToWorld (getPose());
+            mySDSurface.setMeshToWorld (myState.XFrameToWorld);
+         }
+         if (mySDGrid != null) {
+            mySDGrid.setLocalToWorld (myState.XFrameToWorld);
          }
       }
    }   
@@ -1578,17 +1610,35 @@ public class RigidBody extends Frame
     * @see #getDistanceGridMaxRes
     * @see #getDistanceGridRes
     */
-   public SignedDistanceGrid getDistanceGrid() {
+   public DistanceGrid getDistanceGrid() {
       if (mySDGrid == null || !mySDGridValid) {
-         if (!myDistanceGridRes.equals (Vector3i.ZERO)) {
-            mySDGrid = new SignedDistanceGrid (
-               getMesh(), myGridMargin, myDistanceGridRes);
+         int maxRes = myDistanceGridMaxRes;
+         if (!myDistanceGridRes.equals (Vector3i.ZERO) || maxRes > 0) {
+            if (!myDistanceGridRes.equals (Vector3i.ZERO)) {
+               mySDGrid = new DistanceGrid (myDistanceGridRes);
+               maxRes = 0;
+            }
+            else {
+               // resolution will be recomputed in computeFromFeatures
+               mySDGrid = new DistanceGrid (new Vector3i (1,1,1));
+            }
+            mySDGrid.setDrawEdges (true);
+            List<Face> faces = getMesh().getFaces();
+            if (myDistanceGridOBB) {
+               mySDGrid.computeFromFeaturesOBB (
+                  faces, myGridMargin, maxRes, /*signed=*/true);
+            }
+            else {
+               mySDGrid.computeFromFeatures (
+                  faces, myGridMargin, /*TGL=*/null, maxRes, /*signed=*/true);
+            }
+            mySDGrid.setLocalToWorld (getPose());
          }
-         else if (myDistanceGridMaxRes > 0) {
-             mySDGrid = new SignedDistanceGrid (
-               getMesh(), myGridMargin, myDistanceGridMaxRes);           
+         else {
+            mySDGrid = null;
          }
-         mySDGrid.smooth (0.33, -0.34, 2);
+         //mySDGrid.smooth (0.33, -0.34, 2);
+         mySDSurface = null;
          mySDGridValid = true;
       }
       return mySDGrid;
@@ -1598,13 +1648,13 @@ public class RigidBody extends Frame
       if (mySDSurface == null) {
          if (hasDistanceGrid()) {
             PolygonalMesh surf;
-            SignedDistanceGrid grid = getDistanceGrid();
+            DistanceGrid grid = getDistanceGrid();
             if (myRenderDistanceSurface == DistanceSurfaceRendering.QUADRATIC) {
-               surf = grid.createQuadraticDistanceSurface(0, 5);
+               surf = grid.createQuadDistanceSurface(myDistanceSurfaceIso, 4);
                surf.setMeshToWorld (myState.XFrameToWorld);
             }
             else {
-               surf = grid.createDistanceSurface(0);
+               surf = grid.createDistanceSurface(myDistanceSurfaceIso, 4);
                surf.setMeshToWorld (myState.XFrameToWorld);
             }
             mySDSurface = surf;
@@ -1710,6 +1760,18 @@ public class RigidBody extends Frame
       }
    }
 
+   public boolean getDistanceGridOBB () {
+      return myDistanceGridOBB;
+   }
+
+   public void setDistanceGridOBB (boolean enable) {
+      if (myDistanceGridOBB != enable) {
+         myDistanceGridOBB = enable;
+         mySDGridValid = false; // will need to rebuild grid
+         mySDSurface = null;
+      }
+   }
+
    /**
     * {@inheritDoc}
     */
@@ -1759,6 +1821,17 @@ public class RigidBody extends Frame
       }
    }
 
+   public double getDistanceSurfaceIso() {
+      return myDistanceSurfaceIso;
+   }
+
+   public void setDistanceSurfaceIso (double iso) {
+      if (myDistanceSurfaceIso != iso) {
+         myDistanceSurfaceIso = iso;
+         mySDSurface = null;
+      }
+   }
+
    /**
     * {@inheritDoc}
     */
@@ -1778,7 +1851,7 @@ public class RigidBody extends Frame
          }
       }
       else {
-         SignedDistanceGrid grid = getDistanceGrid();
+         DistanceGrid grid = getDistanceGrid();
          StringHolder errMsg = new StringHolder();
          if (grid.parseRenderRanges (ranges, errMsg) == null) {
             throw new IllegalArgumentException (

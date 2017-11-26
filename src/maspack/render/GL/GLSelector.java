@@ -93,10 +93,11 @@ public abstract class GLSelector extends GLResourceBase {
    }
 
    public void setupSelection (GL gl) {
+      
       myGl = gl;
 
       myTotalMaxQ = myViewer.numSelectionQueriesNeeded();
-
+      
       // nothing to select
       if (myTotalMaxQ == 0) {
          return;
@@ -110,18 +111,19 @@ public abstract class GLSelector extends GLResourceBase {
 
       // restrict the viewport to the specified selection region
       mySavedViewport = myViewer.getViewport(gl);
-
+      
       // apply pick
       int myViewW = mySavedViewport[2];
       int myViewH = mySavedViewport[3];
-
+      
       myViewW = (int)Math.ceil (myRectW);
       myViewH = (int)Math.ceil (myRectH);
+
       float x = (float)myRectX;
       float y = (float)(mySavedViewport[3] - myRectY);
       myViewer.setPickMatrix(x, y,
          (float)myRectW, (float)myRectH, mySavedViewport);
-
+      
       Vector2d zRange = new Vector2d();
       myViewer.getZRange(zRange);
       myViewer.pushProjectionMatrix();

@@ -523,31 +523,6 @@ public class TetElement extends FemElement3d {
       }
    }
 
-//    public boolean getNaturalCoordinates (VectorNd coords, Point3d pnt) {
-//       getMarkerCoordinates (coords, pnt);
-
-//       return (coords.get (0) >= 0 && coords.get (1) >= 0 &&
-//               coords.get (2) >= 0 && coords.get (3) >= 0);
-//    }
-
-   // @Override
-   // public int numFaces()
-   // {
-   // return 4;
-   // }
-
-//    @Override
-//    public FaceNodes3d[] getTriFaces() {
-//       FaceNodes3d[] faces = new FaceNodes3d[4];
-
-//       faces[0] = new FaceNodes3d (myNodes[0], myNodes[2], myNodes[1]);
-//       faces[1] = new FaceNodes3d (myNodes[0], myNodes[1], myNodes[3]);
-//       faces[2] = new FaceNodes3d (myNodes[1], myNodes[2], myNodes[3]);
-//       faces[3] = new FaceNodes3d (myNodes[2], myNodes[0], myNodes[3]);
-
-//       return faces;
-//    }
-
    public boolean hasEdge (FemNode3d n0, FemNode3d n1) {
       return (containsNode (n0) &&
               containsNode (n1));

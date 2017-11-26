@@ -385,50 +385,6 @@ public class QuadhexElement extends FemElement3d {
       return myPressureWeightMatrix;
    }
 
-   // public int numPressureVals() {
-   //    return 8;
-   // }
-
-   // /**
-   //  * {@inheritDoc}
-   //  */
-   // @Override
-   // public double getH (int i, Vector3d coords) {
-
-   //    double s = coords.x;
-   //    double t = coords.y;
-   //    double r = coords.z;
-
-   //    switch (i) {
-   //       case  0: return 0.125*(1-s)*(1-t)*(1+r);
-   //       case  1: return 0.125*(1+s)*(1-t)*(1+r);
-   //       case  2: return 0.125*(1+s)*(1+t)*(1+r);
-   //       case  3: return 0.125*(1-s)*(1+t)*(1+r);
-   //       case  4: return 0.125*(1-s)*(1-t)*(1-r);
-   //       case  5: return 0.125*(1+s)*(1-t)*(1-r);
-   //       case  6: return 0.125*(1+s)*(1+t)*(1-r);
-   //       case  7: return 0.125*(1-s)*(1+t)*(1-r);
-   //       default: {
-   //          throw new IllegalArgumentException (
-   //             "Shape function index must be in range [0,7]");
-   //       }
-   //    }
-   // }
-
-   // public int numPressureVals() {
-   //    return 20;
-   // }
-
-   // /**
-   //  * {@inheritDoc}
-   //  */
-   // @Override
-   // public double getH (int i, Vector3d coords) {
-
-   //    return getN (i, coords);
-   // }
-
-
    public void getdNds (Vector3d dNds, int i, Vector3d coords) {
       double s = coords.x;
       double t = coords.y;

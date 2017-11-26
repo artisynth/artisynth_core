@@ -44,7 +44,7 @@ public class SignedDistanceCollider implements AbstractCollider {
    public ContactInfo getContacts (
       PolygonalMesh mesh0, PolygonalMesh mesh1) {
 
-      SignedDistanceGrid grid0 = mesh0.getSignedDistanceGrid();
+      DistanceGrid grid0 = mesh0.getSignedDistanceGrid();
       if (grid0 == null) {
          Vector3i cellDivisions = new Vector3i (20, 20, 20);
          double gridMargin = 0.1;
@@ -55,8 +55,8 @@ public class SignedDistanceCollider implements AbstractCollider {
    
    // mesh0 is rigid/fixed, mesh1 is deformable.
    public ContactInfo getContacts (
-      PolygonalMesh mesh0, SignedDistanceGrid grid0,
-      PolygonalMesh mesh1, SignedDistanceGrid grid1) {
+      PolygonalMesh mesh0, DistanceGrid grid0,
+      PolygonalMesh mesh1, DistanceGrid grid1) {
 
       if (boundingBoxesDisjoint (mesh0, mesh1)) {
          return null;
@@ -80,7 +80,7 @@ public class SignedDistanceCollider implements AbstractCollider {
    
    private void findPenetratingPoints (
       ArrayList<PenetratingPoint> points,
-      PolygonalMesh mesh0, SignedDistanceGrid grid0, PolygonalMesh mesh1) {
+      PolygonalMesh mesh0, DistanceGrid grid0, PolygonalMesh mesh1) {
 
       ArrayList<Vertex3d> mesh1Vertices = mesh1.getVertices ();
       Vector3d normal = new Vector3d();
@@ -98,7 +98,7 @@ public class SignedDistanceCollider implements AbstractCollider {
          if (X1to0 != null) {
             vpnt.transform (X1to0);
          }
-         distance = grid0.getLocalDistanceAndNormal (normal, null, vpnt);
+         distance = grid0.getLocalDistanceAndNormal (normal, vpnt);
          if (distance <= 0) {
             if (!mesh0.meshToWorldIsIdentity()) {
                normal.transform (mesh0.getMeshToWorld());

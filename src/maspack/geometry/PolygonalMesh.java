@@ -42,6 +42,7 @@ import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
 import maspack.matrix.Vector4d;
+import maspack.matrix.VectorTransformer3d;
 import maspack.properties.HasProperties;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -97,7 +98,7 @@ public class PolygonalMesh extends MeshBase {
        OPEN_EDGES |
        ISOLATED_VERTICES);
 
-   private SignedDistanceGrid sdGrid = null;
+   private DistanceGrid sdGrid = null;
 
    // mesh subdivision data
    private int subdivisions = 0;
@@ -564,17 +565,19 @@ public class PolygonalMesh extends MeshBase {
       return ne;
    }
 
-   public SignedDistanceGrid getSignedDistanceGrid() {
+   public DistanceGrid getSignedDistanceGrid() {
       return sdGrid;
    }
 
-   public SignedDistanceGrid getSignedDistanceGrid (
+   public DistanceGrid getSignedDistanceGrid (
       double margin,Vector3i cellDivisions) {
       if (cellDivisions == null) {
-         sdGrid = new SignedDistanceGrid (this, margin);
+         sdGrid = new DistanceGrid (
+            this.getFaces(), margin, new Vector3i(25,25,25), /*signed=*/true);
       }
       else
-         sdGrid = new SignedDistanceGrid (this, margin, cellDivisions);
+         sdGrid = new DistanceGrid (
+            this.getFaces(), margin, cellDivisions, /*signed=*/true);
       return sdGrid;
    }
 
@@ -1958,6 +1961,34 @@ public class PolygonalMesh extends MeshBase {
     */
    public void inverseTransform (AffineTransform3dBase X) {
       super.inverseTransform (X);
+      for (Face f : myFaces) {
+         f.updateNormalAndEdges();
+      }
+   }
+
+   /**
+    * Applies a vector transformation to the vertices of this mesh. The
+    * topology of the mesh remains unchanged.
+    * 
+    * @param T
+    * vector transformation
+    */
+   public void transform (VectorTransformer3d T) {
+      super.transform (T);
+      for (Face f : myFaces) {
+         f.updateNormalAndEdges();
+      }
+   }
+
+   /**
+    * Applies an inverse vector transformation to the vertices of this mesh. The
+    * topology of the mesh remains unchanged.
+    * 
+    * @param T
+    * vector transformation
+    */
+   public void inverseTransform (VectorTransformer3d T) {
+      super.inverseTransform (T);
       for (Face f : myFaces) {
          f.updateNormalAndEdges();
       }
@@ -4294,5 +4325,22 @@ public class PolygonalMesh extends MeshBase {
 
    }
 
+   /**
+    * Returns the estimated memory useage for this mesh, in bytes. The
+    * following formula is used:
+    * <pre>
+    * numBytes = 84*F + 92*V + 64*H
+    * </pre>
+    * where F, V and H are the numbers of faces, vertices, and half edges,
+    * respectively. This number is only a rough estimate and assumes that
+    * references require 4 bytes and not 8.
+    */
+   public int estimateMemoryUsage() {
+      int numHalfEdges = 0;
+      for (Face f : myFaces) {
+         numHalfEdges += f.numEdges();
+      }
+      return 84*numFaces() + 92*numVertices() + 64*numHalfEdges;      
+   }
    
 }

@@ -15,8 +15,9 @@ import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.Vertex3d;
+import maspack.geometry.Face;
 import maspack.geometry.GeometryTransformer;
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -39,7 +40,7 @@ public class RigidMeshComp extends MeshComponent
    protected int myCollidableIndex;
 
    static int DEFAULT_MAX_GRID_DIVISIONS = 10; 
-   SignedDistanceGrid mySDGrid = null;
+   DistanceGrid mySDGrid = null;
    int myMaxGridDivisions = DEFAULT_MAX_GRID_DIVISIONS;
    double myGridMargin = 0.1;
 
@@ -201,11 +202,12 @@ public class RigidMeshComp extends MeshComponent
    }
    
    @Override   
-   public SignedDistanceGrid getDistanceGrid() {
+   public DistanceGrid getDistanceGrid() {
       if (getMesh() instanceof PolygonalMesh) {
          if (mySDGrid == null) {
-            mySDGrid = new SignedDistanceGrid (
-               (PolygonalMesh)getMesh(), myGridMargin, myMaxGridDivisions);
+            List<Face> faces = ((PolygonalMesh)getMesh()).getFaces();
+            mySDGrid = new DistanceGrid (
+               faces, myGridMargin, myMaxGridDivisions, /*signed=*/true);
          }
       }
       else {

@@ -7,7 +7,7 @@ void copyExact(exactFloat *a, exactFloat *b) {
 	for (i=0; i<=a->end; i++) b->doubles[i] = a->doubles[i];
 }
 
-void compress(exactFloat *a, exactFloat *h) {
+void compressExact(exactFloat *a, exactFloat *h) {
 	int i;
 	h->end = -1;
 	int b = a->end;
@@ -30,9 +30,9 @@ void compress(exactFloat *a, exactFloat *h) {
 	h->doubles[++h->end] = aQ;
 }
 
-double estimate(exactFloat *a) {
+double estimateExact(exactFloat *a) {
 	exactFloat b;
-	compress(a, &b);
+	compressExact(a, &b);
 	if (b.end == -1) return 0;
 	return b.doubles[b.end];
 }
@@ -41,7 +41,7 @@ void printExact(exactFloat *e) {
 	int i;
 	FILE *fout;
 	fout = fopen("geoPred.txt", "a+");
-	fprintf(fout, "est=%.18e end=%d doubles=", estimate(e), e->end);
+	fprintf(fout, "est=%.18e end=%d doubles=", estimateExact(e), e->end);
 	for (i=0; i<=e->end; i++) fprintf(fout, " %.18e", e->doubles[i]);
 	fprintf(fout, "\n");
 	fclose(fout);

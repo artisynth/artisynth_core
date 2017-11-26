@@ -13,6 +13,7 @@ import java.util.Random;
 import maspack.util.Clonable;
 import maspack.util.NumberFormat;
 import maspack.util.RandomGenerator;
+import maspack.util.InternalErrorException;
 import maspack.util.ReaderTokenizer;
 
 /**
@@ -89,7 +90,7 @@ Clonable {
     * Scaled rotation matrix
     */
    private final Matrix3d A;
-   
+
    /**
     * Scale factor associated with this transform
     */
@@ -103,7 +104,11 @@ Clonable {
    /**
     * Global identity transform. Should not be modified.
     */
-   public static final ScaledRigidTransform3d IDENTITY = new ScaledRigidTransform3d();
+   public static final ScaledRigidTransform3d IDENTITY =
+      new ScaledRigidTransform3d();
+
+
+   private boolean myExternalComponentsValidP;
 
    /**
     * Creates a new transformation initialized to the identity.
@@ -116,6 +121,7 @@ Clonable {
       A.scale(s, this.R);
       M = A;
       b = p;
+      myExternalComponentsValidP = true;
    }
 
    /**
@@ -135,6 +141,7 @@ Clonable {
       A.scale(s, this.R);
       M = A;
       b = p;
+      myExternalComponentsValidP = true;
    }
 
    /**
@@ -155,6 +162,7 @@ Clonable {
       A.scale(s, this.R);
       M = A;
       b = p;
+      myExternalComponentsValidP = true;
    }
 
    /**
@@ -183,6 +191,7 @@ Clonable {
       A.scale(s, this.R);
       M = A;
       b = p;
+      myExternalComponentsValidP = true;
    }
 
    /**
@@ -203,8 +212,9 @@ Clonable {
     * @param ang
     * angle of rotation about the axis (radians)
     */
-   public ScaledRigidTransform3d (double px, double py, double pz, double ux,
-   double uy, double uz, double ang) {
+   public ScaledRigidTransform3d (
+      double px, double py, double pz, double ux,
+      double uy, double uz, double ang) {
       this.R = new RotationMatrix3d (ux, uy, uz, ang);
       this.p = new Vector3d (px, py, pz);
       s = 1;
@@ -212,6 +222,7 @@ Clonable {
       A.scale(s, this.R);
       M = A;
       b = p;
+      myExternalComponentsValidP = true;
    }
 
    /**
@@ -221,13 +232,14 @@ Clonable {
     * transform to copy
     */
    public ScaledRigidTransform3d (ScaledRigidTransform3d X) {
-      this.R = new RotationMatrix3d (X.R);
-      this.p = new Vector3d (X.p);
-      s = 1;
+      R = new RotationMatrix3d (X.R);
+      p = new Vector3d (X.p);
+      s = X.s;
       A = new Matrix3d();
       A.scale(s, this.R);
       M = A;
       b = p;
+      myExternalComponentsValidP = true;
    }
 
    /**
@@ -247,6 +259,49 @@ Clonable {
       A.scale(s, this.R);
       M = A;
       b = p;
+      myExternalComponentsValidP = true;
+   }
+
+   public void set (Matrix M) {
+      super.set (M);
+      updateExternalComponents();
+   }
+
+   public void set (AffineTransform3dBase A) {
+      super.set (A);
+      updateExternalComponents();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void set (int i, int j, double value) { 
+      super.set (i, j, value);
+      myExternalComponentsValidP = false;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void set (double[] vals) {
+      super.set (vals);
+      myExternalComponentsValidP = false;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setColumn (int j, double[] values) {
+      super.setColumn (j, values);
+      myExternalComponentsValidP = false;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRow (int j, double[] values) {
+      super.setRow (j, values);
+      myExternalComponentsValidP = false;
    }
 
    /**
@@ -270,6 +325,14 @@ Clonable {
     * second transformation
     */
    public void mul (ScaledRigidTransform3d X1, ScaledRigidTransform3d X2) {
+
+      if (!X1.myExternalComponentsValidP) {
+         X1.updateExternalComponents();
+      }
+      if (!X2.myExternalComponentsValidP) {
+         X2.updateExternalComponents();
+      }
+
       double p1x = X1.p.x;
       double p1y = X1.p.y;
       double p1z = X1.p.z;
@@ -285,11 +348,32 @@ Clonable {
       s = X1.s*X2.s;
       
       updateInternalMatrix();
-      
    }
    
+   protected void validate() {
+      Matrix3d RRT = new Matrix3d();
+      RRT.mulTransposeRight (R, R);
+      if (!RRT.epsilonEquals (Matrix3d.IDENTITY, 1e-13)) {
+         System.out.println ("R=\n" + R.toString ("%14.10f"));
+         throw new InternalErrorException (
+            "R is not orthogonal");
+      }
+      
+   }
+
    public void updateInternalMatrix() {
       A.scale(s, R);
+      validate();
+      // assumes that external components are valid, and explictly sets this
+      myExternalComponentsValidP = true;
+   }
+
+   public void updateExternalComponents() {
+      s = Math.cbrt(A.determinant());
+      // could also do s = sqrt(trace(A*A')/3), if we assume that A
+      // is scaled orthogonal
+      R.scale (1/s, A);
+      myExternalComponentsValidP = true;
    }
 
    /**
@@ -312,15 +396,30 @@ Clonable {
     * @param X2
     * right-hand transformation
     */
-   public void mulInverseRight (ScaledRigidTransform3d X1, ScaledRigidTransform3d X2) {
+   public void mulInverseRight (
+      ScaledRigidTransform3d X1, ScaledRigidTransform3d X2) {
+
+      if (!X1.myExternalComponentsValidP) {
+         X1.updateExternalComponents();
+      }
+      if (!X2.myExternalComponentsValidP) {
+         X2.updateExternalComponents();
+      }
+
       double p1x = X1.p.x;
       double p1y = X1.p.y;
       double p1z = X1.p.z;
+
+      if (X1 == this) {
+         X1 = new ScaledRigidTransform3d (this);
+      }
+      if (X2 == this) {
+         X2 = new ScaledRigidTransform3d (this);
+      }
       
       s = X1.s/X2.s;
-      
       R.mulInverseRight (X1.R, X2.R);
-      
+
       R.mul (p, X2.p);
       p.scale(s);
       p.x = p1x - p.x;
@@ -339,7 +438,16 @@ Clonable {
     * @param X2
     * right-hand transformation
     */
-   public void mulInverseLeft (ScaledRigidTransform3d X1, ScaledRigidTransform3d X2) {
+   public void mulInverseLeft (
+      ScaledRigidTransform3d X1, ScaledRigidTransform3d X2) {
+
+      if (!X1.myExternalComponentsValidP) {
+         X1.updateExternalComponents();
+      }
+      if (!X2.myExternalComponentsValidP) {
+         X2.updateExternalComponents();
+      }
+
       p.sub (X2.p, X1.p);
       X1.R.mulTranspose (p, p);
       p.scale(1.0/X1.s);
@@ -360,8 +468,16 @@ Clonable {
     * @param X2
     * right-hand transformation
     */
-   public void mulInverseBoth (ScaledRigidTransform3d X1, ScaledRigidTransform3d X2) {
+   public void mulInverseBoth (
+      ScaledRigidTransform3d X1, ScaledRigidTransform3d X2) {
       
+      if (!X1.myExternalComponentsValidP) {
+         X1.updateExternalComponents();
+      }
+      if (!X2.myExternalComponentsValidP) {
+         X2.updateExternalComponents();
+      }
+
       double p1x = X1.p.x;
       double p1y = X1.p.y;
       double p1z = X1.p.z;
@@ -397,6 +513,10 @@ Clonable {
     * translation component of the second transformation
     */
    public void mulXyz (double x, double y, double z) {
+
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       double px = p.x;
       double py = p.y;
       double pz = p.z;
@@ -420,6 +540,10 @@ Clonable {
     * rotation about the x axis (in radians) for the second transform
     */
    public void mulRotX (double ang) {
+
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       double s = Math.sin (ang);
       double c = Math.cos (ang);
 
@@ -452,6 +576,10 @@ Clonable {
     * rotation about the y axis (in radians) for the second transform
     */
    public void mulRotY (double ang) {
+
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       double s = Math.sin (ang);
       double c = Math.cos (ang);
 
@@ -484,6 +612,10 @@ Clonable {
     * rotation about the z axis (in radians) for the second transform
     */
    public void mulRotZ (double ang) {
+
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       double s = Math.sin (ang);
       double c = Math.cos (ang);
 
@@ -548,6 +680,9 @@ Clonable {
     * rotation for the second transformation
     */
    public void mulRotation (RotationMatrix3d R2) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       R.mul (R2);
       updateInternalMatrix();
    }
@@ -568,6 +703,9 @@ Clonable {
     * third angle (radians)
     */
    public void mulRpy (double roll, double pitch, double yaw) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       R.mulRpy (roll, pitch, yaw);
       updateInternalMatrix();
    }
@@ -588,6 +726,9 @@ Clonable {
     * third Euler angle (radians)
     */
    public void mulEuler (double phi, double theta, double psi) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       R.mulEuler (phi, theta, psi);
       updateInternalMatrix();
    }
@@ -596,6 +737,9 @@ Clonable {
     * {@inheritDoc}
     */
    public boolean mulInverse (Vector4d vr, Vector4d v1) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       double x = (v1.x - p.x * v1.w)/s;
       double y = (v1.y - p.y * v1.w)/s;
       double z = (v1.z - p.z * v1.w)/s;
@@ -615,6 +759,9 @@ Clonable {
     * @return true (transform is never singular)
     */
    public boolean invert() {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       p.inverseTransform (R);
       p.scale(-1.0/s);
       R.transpose();
@@ -632,6 +779,9 @@ Clonable {
     * @return true (transform is never singular)
     */
    public boolean invert (ScaledRigidTransform3d X) {
+      if (!X.myExternalComponentsValidP) {
+         X.updateExternalComponents();
+      }
       p.inverseTransform (X.R, X.p);
       p.scale(-1.0/X.s);
       R.transpose (X.R);
@@ -990,24 +1140,17 @@ Clonable {
             A.m20 = values[8];
             A.m21 = values[9];
             A.m22 = values[10];
-
-            // scale determined by sqrt(trace(A'A)/3)
-            Matrix3d T = new Matrix3d();
-            T.set(A);
-            T.transpose();
-            T.mul(A);
-            s = Math.sqrt(T.trace()/3);
-            
-            R.scale(1.0/s, A);
             
             p.set (values[3], values[7], values[11]);
+            updateExternalComponents();
          }
       }
       else {
          p.set (0, 0, 0);
          R.setIdentity();
          s = 1.0;
-         
+         myExternalComponentsValidP = true;
+
          while (rtok.ttype == ReaderTokenizer.TT_WORD) {
             if (rtok.sval.equalsIgnoreCase ("trans")) {
                if (rtok.scanNumbers (values, 3) != 3) {
@@ -1093,12 +1236,18 @@ Clonable {
       // random scale
       Random gen = RandomGenerator.get();
       s = 2*gen.nextDouble()-1;
+
+      updateInternalMatrix();
+      validate();
    }
    
    /**
     * Returns the scale factor
     */
    public double getScale() {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       return s;
    }
    
@@ -1108,6 +1257,9 @@ Clonable {
     * @param s scale factor
     */
    public void setScale(double s) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       this.s = s;
       updateInternalMatrix();
    }
@@ -1120,28 +1272,43 @@ Clonable {
     * @param s scale factor
     */
    public void scale(double s) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       this.s = this.s*s;
    }
    
    @Override
    public void setRotation(AxisAngle axisAng) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       R.set(new RotationMatrix3d(axisAng));
       updateInternalMatrix();
    }
    
    @Override
    public void setRotation(Quaternion quat) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       R.set(quat);
       updateInternalMatrix();
    }
    
    @Override
    public void setRotation(RotationMatrix3d R) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       this.R.set(R);
       updateInternalMatrix();
    }
    
    public void getRotation(RotationMatrix3d R) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       R.set(this.R);
    }
 
@@ -1226,16 +1393,57 @@ Clonable {
       qmean.scale(s);
       
       this.p.sub (pmean, qmean);
+      myExternalComponentsValidP = true;
    }
 
    
    public RigidTransform3d getRigidPart(RigidTransform3d trans) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
       if (trans == null) {
          trans = new RigidTransform3d();
       }
       trans.setRotation(this.R);
       trans.setTranslation(this.p);
       return trans;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void inverseTransformPnt (Vector3d pr, Vector3d p0) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
+      pr.sub (p0, b);
+      // replace M.mulInverse (pr) with:
+      R.mulTranspose (pr);
+      pr.scale (1/s);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void transformCovec (Vector3d nr, Vector3d n0) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
+      // replace M.mulInverseTranspose (nr, n0) with:
+      R.mul (nr, n0);
+      nr.scale (1/s);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void inverseTransformVec (Vector3d vr, Vector3d v0) {
+      if (!myExternalComponentsValidP) {
+         updateExternalComponents();
+      }
+      // replace M.mulInverse (vr, v0) with:
+      R.mulTranspose (vr, v0);
+      vr.scale (1/s);
    }
 
 }

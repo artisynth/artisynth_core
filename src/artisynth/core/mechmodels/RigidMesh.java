@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.*;
 
 import maspack.geometry.*;
+import maspack.geometry.DistanceGrid.TetDesc;
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.properties.*;
@@ -532,8 +533,8 @@ public class RigidMesh extends RigidBody implements Wrappable {
       if (hasDistanceGrid()) {
 
          if (myUseQuadraticTangents) {
-            SignedDistanceGrid grid = getDistanceGrid();            
-            if (!grid.findQuadraticSurfaceTangent (pr, p1, pa, sideNrm)) {
+            DistanceGrid grid = getDistanceGrid();            
+            if (!grid.findQuadSurfaceTangent (pr, p1, pa, sideNrm)) {
                pr.set (p1);
             }
             return;
@@ -625,6 +626,18 @@ public class RigidMesh extends RigidBody implements Wrappable {
       }
    }
 
+   public TetDesc getQuadTet (Point3d p0) {
+      if (hasDistanceGrid()) {
+         DistanceGrid grid = getDistanceGrid();
+         Point3d p0loc = new Point3d();
+         p0loc.inverseTransform (getPose(), p0);
+         return grid.getQuadTet (p0loc);
+      }
+      else {
+         return null;
+      }
+   }
+
    public double penetrationDistance (Vector3d nrm, Matrix3d Dnrm, Point3d p0) {
 
       PolygonalMesh mesh = getSurfaceMesh();
@@ -636,19 +649,19 @@ public class RigidMesh extends RigidBody implements Wrappable {
       Vector3d diff = new Vector3d();
 
       if (hasDistanceGrid()) {
-         SignedDistanceGrid grid = getDistanceGrid();
+         DistanceGrid grid = getDistanceGrid();
          Point3d p0loc = new Point3d();
          p0loc.inverseTransform (getPose(), p0);
          //double d = grid.getLocalDistanceAndNormal (nrm, Dnrm, p0loc);
-         double d = grid.getQuadraticDistanceAndGradient (nrm, p0loc);
+         double d = grid.getQuadDistanceAndGradient (nrm, Dnrm, p0loc);
          RotationMatrix3d R = getPose().R;
          if (Dnrm != null) {
-            Dnrm.setZero();
+            Dnrm.transform (R);
          }
          if (nrm != null) {
             nrm.transform (R);
          }
-         if (d == SignedDistanceGrid.OUTSIDE) {
+         if (d == DistanceGrid.OUTSIDE_GRID) {
             return Wrappable.OUTSIDE;
          }
          else {

@@ -159,13 +159,6 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       return false;
    }   
 
-   // public FemElement3dList (String name, String shortName,
-   // CompositeComponent parent)
-   // {
-   // super (FemElement3d.class, name, shortName, parent);
-   // setRenderProps(createRenderProps());
-   // }
-
    /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {
@@ -226,55 +219,6 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       }
       
    }
-
-   // protected void addWidgetFaces (RenderObject r, FemElement3d elem) {
-   //    FemNode[] enodes = elem.getNodes();
-   //    int p0idx = r.numPositions();
-   //    for (int j=0; j<enodes.length; j++) {
-   //       r.addPosition (0, 0, 0);
-   //    }
-   //    int[] fidxs = FemUtilities.triangulateFaceIndices (
-   //       elem.getFaceIndices());
-   //    int nidx = r.numNormals(); // normal index
-   //    for (int i=0; i<fidxs.length; i += 3) {
-   //       r.addNormal (0, 0, 0);
-   //       int v0idx = r.addVertex (p0idx+fidxs[i  ], nidx);
-   //       int v1idx = r.addVertex (p0idx+fidxs[i+1], nidx);
-   //       int v2idx = r.addVertex (p0idx+fidxs[i+2], nidx);
-   //       r.addTriangle (v0idx, v1idx, v2idx);
-   //       nidx++;
-   //    }      
-   //    double size = elem.getElementWidgetSize();
-   //    //FemElementRenderer.updateWidgetPositions (r, elem, size, p0idx);
-   // }
-
-   // protected int updateWidgetPos (RenderObject r, FemElement3d elem, int idx) {
-   //    FemNode[] enodes = elem.getNodes();
-
-   //    // compute center point
-   //    float cx = 0;
-   //    float cy = 0;
-   //    float cz = 0;
-   //    for (int j=0; j<enodes.length; j++) {
-   //       float[] coords = enodes[j].myRenderCoords;
-   //       cx += coords[0];
-   //       cy += coords[1];
-   //       cz += coords[2];
-   //    }
-   //    cx /= enodes.length;
-   //    cy /= enodes.length;
-   //    cz /= enodes.length;
-
-   //    float ws = (float)elem.getElementWidgetSize();
-   //    for (int j=0; j<enodes.length; j++) {
-   //       float[] coords = enodes[j].myRenderCoords;
-   //       float dx = coords[0]-cx;
-   //       float dy = coords[1]-cy;
-   //       float dz = coords[2]-cz;
-   //       r.setPosition (idx++, cx+ws*dx, cy+ws*dy, cz+ws*dz);
-   //    }
-   //    return idx;
-   // }
 
    private byte getRobFlags (FemElement3d elem) {
       if (elem.getRenderProps() != null) {
@@ -468,31 +412,6 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       myEdgeRob.notifyPositionsModified();
    }  
 
-   // protected void drawEdges (
-   //    Renderer renderer, RenderObject r, RenderProps props, int group) {
-
-   //    if (r.numLines(group) > 0) {
-   //       if (props.getLineStyle() == LineStyle.LINE) {
-   //          int width = props.getLineWidth();
-   //          if (width > 0) {
-   //             boolean selected = (group == SEL_GRP);
-   //             Shading savedShading = renderer.setShading (Shading.NONE);
-   //             renderer.setLineColoring (props, selected);
-   //             renderer.drawLines (r, group, LineStyle.LINE, width);
-   //             renderer.setShading (savedShading);
-   //          }
-   //       }
-   //       else {
-   //          double radius = props.getLineRadius();
-   //          if (radius > 0) {
-   //             boolean selected = (group == SEL_GRP);
-   //             renderer.setLineColoring (props, selected);
-   //             renderer.drawLines (r, group, props.getLineStyle(), radius);
-   //          }
-   //       }
-   //    }
-   // }
-
    protected void drawWidgets (
       Renderer renderer, RenderObject r, RenderProps props, int group) {
 
@@ -564,49 +483,6 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
 
    public void render (Renderer renderer, int flags) {
       RenderProps props = myRenderProps;
-      //      if (renderer.isSelecting()) {
-      //         // LineStyle style = props.getLineStyle();
-      //         // if (style == LineStyle.LINE) {
-      //         //    int width = props.getLineWidth();
-      //         //    if (width > 0) {
-      //         //       renderer.setLineWidth (width);
-      //         //    }
-      //         //    else {
-      //         //       return;
-      //         //    }
-      //         // }
-      //         
-      //         //FunctionTimer ft = new FunctionTimer ();
-      //         //ft.start ();
-      //         for (int i=0; i<size(); i++) {
-      //            FemElement3d elem = get(i);        
-      //            if (elem.getRenderProps() == null && renderer.isSelectable (elem)) {
-      //               renderer.beginSelectionQuery (i);
-      //               elem.render (renderer, myRenderProps, flags);
-      //               renderer.endSelectionQuery ();
-      //            }
-      //         }
-      //         //         //ft.stop ();
-      //         //         //System.out.println (ft.result (1));
-      //
-      //         // if (style == LineStyle.LINE) {
-      //         //    renderer.setLineWidth (1);
-      //         // }
-      //      }
-      //      else {
-      //         RenderObject r = myEdgeRob;
-      //         if (r != null) {
-      //            drawEdges (renderer, r, props, SEL_GRP);
-      //            drawEdges (renderer, r, props, REG_GRP);
-      //         }
-      //         r = myWidgetRob;
-      //         if (r != null) {
-      //            drawWidgets (renderer, r, props, SEL_GRP);
-      //            drawWidgets (renderer, r, props, REG_GRP);
-      //            drawWidgets (renderer, r, props, INV_GRP);
-      //         }
-      //      }
-      
       // draw edge features using lists
       if (myEdgeRob != null) {
          drawEdges(renderer, myEdgeRob, myEdgeFeatures[SEL_GRP], props, true);

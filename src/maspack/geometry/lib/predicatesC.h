@@ -16,7 +16,7 @@
  *
  * Any segfaults due to exactFloat.end being larger
  * than MAXDOUBLES should be able to be corrected
- * by calling the 'compress' function between calls
+ * by calling the 'compress_expansion' function between calls
  * to arithmetic functions. 
  *
  * Any number should be able
@@ -54,8 +54,8 @@ int scale_expansion_zeroelim(int elen, REAL *e, REAL b, REAL *h);
 int expansion_sum(int elen, REAL *e, int flen, REAL *f, REAL *h);
 int fast_expansion_sum_zeroelim(int elen, REAL *e, int flen, REAL *f, REAL *h);
 int expansion_sum_zeroelim1(int elen, REAL *e, int flen, REAL *f, REAL *h);
-int compress(int elen, REAL *e, REAL *h);
-REAL estimate(int elen, REAL *e);
+int compress_expansion(int elen, REAL *e, REAL *h);
+REAL estimate_expansion(int elen, REAL *e);
 
 // Shewchuck defines some macros which are useful for 
 // geoPred : closestIntersection

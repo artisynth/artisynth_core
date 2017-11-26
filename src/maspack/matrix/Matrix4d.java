@@ -307,6 +307,6 @@ public class Matrix4d extends Matrix4dBase {
    }
    
    public Matrix4d clone() {
-      return new Matrix4d(this);
+      return (Matrix4d)super.clone();
    }
 }

@@ -527,22 +527,24 @@ public class QuadraticUtils {
 
    /**
     * Find the point <code>p</code> on an ellipse closest to a query point
-    * <code>q</code>, and return the corresponding distance. The distance is
-    * positive if <code>q</code> is outside the ellipse, and negative if it is
+    * <code>qp</code>, and return the corresponding distance. The distance is
+    * positive if <code>qp</code> is outside the ellipse, and negative if it is
     * inside.
     *
     * Modified from "Distance from a Point to an Ellipse, an Ellipsoidm or a
     * Hyperellipsoid", by David Eberly.
     */
    public static double nearestPointEllipse (
-      Vector2d p, double a, double b, Vector2d q) {
+      Vector2d p, double a, double b, Vector2d qp) {
+
+      Vector2d q = new Vector2d (qp);
 
       if (a == b) {
          // circular case
          double mag = q.norm();
          if (mag == 0) {
             // at the center and all points are equidistant; pick (a,0)
-            q.set (a, 0);
+            p.set (a, 0);
          }
          else {
             p.scale (a/mag, q);
@@ -738,16 +740,17 @@ public class QuadraticUtils {
 
    /**
     * Find the point <code>p</code> on an ellipsoid closest to
-    * <code>q</code>, and return the corresponding distance. The distance is
-    * positive if <code>q</code> is outside the ellipsoid, and negative if it
+    * <code>qp</code>, and return the corresponding distance. The distance is
+    * positive if <code>qp</code> is outside the ellipsoid, and negative if it
     * is inside.
     *
     * Modified from "Distance from a Point to an Ellipse, an Ellipsoidm or a
     * Hyperellipsoid", by David Eberly.
     */
    public static double nearestPointEllipsoid (
-      Vector3d p, double a, double b, double c, Vector3d q) {
+      Vector3d p, double a, double b, double c, Vector3d qp) {
 
+      Vector3d q = new Vector3d (qp);
       AxisOrdering reordering = AxisOrdering.A_B_C;
 
       // reorder as needed so that a >= b >= c

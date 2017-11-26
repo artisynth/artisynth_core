@@ -1,6 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC), Antonio Sanchez (UBC),
- * and ArtiSynth Team Members
+ * Copyright (c) 2017 by the Authors: John E Lloyd (UBC), Antonio Sanchez (UBC),
+ * and ArtiSynth Team Members. Elliptic selection added by Doga Tekin (ETH).
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -457,8 +457,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected Object myDrawToolSyncObject = new Object();
    protected Rectangle myDragBox;
    protected GLGridPlane myGrid;
-
+   
    protected double axisLength = 0;
+   protected static final boolean DEFAULT_SOLID_AXES = false;
+   protected boolean solidAxes = DEFAULT_SOLID_AXES;
    protected boolean gridVisible = false;
 
    // Cut planes
@@ -471,7 +473,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    protected LinkedList<MouseWheelListener> myMouseWheelListeners = new LinkedList<MouseWheelListener>();
    protected GLMouseListener myMouseHandler;
    protected ArrayList<RenderListener> myRenderListeners =
-   new ArrayList<RenderListener>();
+      new ArrayList<RenderListener>();
+   public static Vector2d DEFAULT_ELLIPTIC_CURSOR_SIZE = new Vector2d(10,10);
+   protected Vector2d myEllipticCursorSize = 
+      new Vector2d(DEFAULT_ELLIPTIC_CURSOR_SIZE);
+   public static boolean DEFAULT_ELLIPTIC_CURSOR_ACTIVE = false;
+   protected boolean myEllipticCursorActive = DEFAULT_ELLIPTIC_CURSOR_ACTIVE;
 
    // Selection
    protected GLSelector mySelector;
@@ -479,7 +486,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    ViewerSelectionEvent selectionEvent;
    protected ArrayList<ViewerSelectionListener> mySelectionListeners = new ArrayList<ViewerSelectionListener>();
    protected boolean selectionEnabled = true;
-   protected boolean selectOnPressP = false;   
+   protected boolean selectOnPressP = false; 
+   protected boolean ellipticSelectionP = false;
 
    protected boolean myProfiling = false;
    protected FunctionTimer myTimer = new FunctionTimer();
@@ -491,7 +499,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          "eye", "eye location (world coordinates)", DEFAULT_VIEWER_EYE);
       myProps.add ("center", "center location (world coordinates)", DEFAULT_VIEWER_CENTER);
       myProps.add ("axisLength", "length of rendered x-y-z axes", 0);
-      myProps.add("rotationMode", "method for interactive rotation", DEFAULT_ROTATION_MODE);
+      myProps.add (
+         "solidAxes", "use solid arrows for rendering axes", DEFAULT_SOLID_AXES);
+      myProps.add (
+         "rotationMode", "method for interactive rotation", DEFAULT_ROTATION_MODE);
       myProps.add("axialView", "axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
       myProps.add("defaultAxialView", "default axis-aligned view orientation", DEFAULT_AXIAL_VIEW);
       myProps.add ("backgroundColor", "background color", Color.BLACK);
@@ -505,6 +516,12 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          DEFAULT_SURFACE_RESOLUTION);
       myProps.add(
          "profiling", "print timing for render operations", false);
+      myProps.add(
+         "ellipticCursorActive", "true if the elliptic cursor is active", 
+         DEFAULT_ELLIPTIC_CURSOR_ACTIVE);
+      myProps.add(
+         "ellipticCursorSize", "dimension of the elliptic cursor", 
+         DEFAULT_ELLIPTIC_CURSOR_SIZE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -526,6 +543,26 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       return myProfiling;
    }
 
+   public Vector2d getEllipticCursorSize() {
+      return myEllipticCursorSize;
+   }
+   
+   public void setEllipticCursorSize (Vector2d size) {
+      myEllipticCursorSize.set (size);
+   }
+   
+   public void resetEllipticCursorSize () {
+      myEllipticCursorSize.set (DEFAULT_ELLIPTIC_CURSOR_SIZE);
+   }
+   
+   public boolean getEllipticCursorActive() {
+      return myEllipticCursorActive;
+   }
+   
+   public void setEllipticCursorActive (boolean active) {
+      myEllipticCursorActive = active;
+   }
+   
    public int getSurfaceResolution () {
       return mySurfaceResolution;
    }
@@ -558,6 +595,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public double getAxisLength() {
       return axisLength;
+   }
+
+   public void setSolidAxes (boolean enable) {
+      solidAxes = enable;
+   }
+
+   public boolean getSolidAxes() {
+      return solidAxes;
    }
 
    public void setGridVisible (boolean visible) {
@@ -757,7 +802,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
     * select all objects in the pick frustum, not just those which are
     * visible through the viewport
     */
-   protected void setPick (double x, double y, double w, double h, boolean ignoreDepthTest) {
+   protected void setPick (
+      double x, double y, double w, double h, boolean ignoreDepthTest) {
       if (ignoreDepthTest) {
          if (mySelector == null || mySelector.getClass () != GLOcclusionSelector.class) {
             trash(mySelector);
@@ -776,6 +822,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    }
    
    public void repaint() {
+      
+      // System.out.println ("GLViewer repaint() called, selectTrigger = " + selectTrigger); 
+      
       if (!myInternalRenderListValid) {
          buildInternalRenderList();
       }
@@ -2037,6 +2086,8 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
 
    public void display (GLAutoDrawable drawable) {
       
+      // System.out.println ("GLViewer display(GLAutoDrawable drawable) called with " + drawable.getClass ());
+      
       // assign current drawable
       this.drawable = drawable;
       
@@ -2060,7 +2111,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          gammaCorrectionRequested = false;
       }
       
-      int depthBits = drawable.getChosenGLCapabilities ().getDepthBits ();
+      int depthBits = drawable.getChosenGLCapabilities().getDepthBits ();
       if (depthBits != myFrustum.depthBits) {
          myFrustum.depthBits = depthBits;
          computeProjectionMatrix ();
@@ -2965,7 +3016,15 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public boolean getSelectOnPress() {
       return selectOnPressP;
    }
+   
+   public void setEllipticSelection (boolean enable) {
+      ellipticSelectionP = enable;
+   }
 
+   public boolean getEllipticSelection() {
+      return ellipticSelectionP;
+   } 
+   
    public Point3d getCenter() {
       return new Point3d (myViewState.myCenter);
    }
@@ -3021,7 +3080,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       X.p.set (myViewState.myCenter);
       return X;
    }
-
+   
    protected void setDragBox (Rectangle box) {
       myDragBox = box;
    }
@@ -3886,6 +3945,49 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    public void drawAxes(
       RigidTransform3d X, double len, int width, boolean highlight) {
       drawAxes (X, new double[] {len, len, len}, width, highlight);
+   }
+   
+   @Override
+   public void drawSolidAxes (
+      RigidTransform3d X, double[] lens, double rad, boolean highlight) {
+      
+      boolean savedHighlighting = setHighlighting(highlight);
+      // deal with transform and len
+      double lx = lens[0];
+      double ly = lens[1];
+      double lz = lens[2];
+
+      if (X == null) {
+         X = RigidTransform3d.IDENTITY;
+      }
+      pushModelMatrix();
+
+      mulModelMatrix(X);
+      
+      if (lx != 0) {
+         setColor (Color.RED);
+         drawArrow (Point3d.ZERO, new Point3d (lx, 0, 0), rad, true);
+      }
+      if (ly != 0) {
+         setColor (Color.GREEN);
+         drawArrow (Point3d.ZERO, new Point3d (0, ly, 0), rad, true);
+      }
+      if (lz != 0) {
+         setColor (Color.BLUE);
+         drawArrow (Point3d.ZERO, new Point3d (0, 0, lz), rad, true);
+      }
+      
+      // revert matrix transform
+      popModelMatrix();
+
+      setHighlighting(savedHighlighting);
+   }
+   
+   @Override
+   public void drawSolidAxes (
+      RigidTransform3d X, double len, double rad, boolean highlight) {
+      
+      drawSolidAxes (X, new double[] {len, len, len}, rad, highlight);
    }
    
    public abstract GLTextRenderer getTextRenderer();

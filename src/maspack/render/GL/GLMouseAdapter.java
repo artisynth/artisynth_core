@@ -1,6 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC), 
- * Antonio Sanchez (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Antonio Sanchez
+ * (UBC).  Elliptic selection added by Doga Tekin (ETH).
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -8,14 +8,13 @@
 package maspack.render.GL;
 
 import java.awt.Rectangle;
+import java.awt.Point;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
-
-import javax.swing.event.MouseInputListener;
 
 import maspack.render.Dragger3d;
+import maspack.matrix.Vector2d;
 import maspack.render.MouseRayEvent;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.Dragger3d.DragMode;
@@ -36,6 +35,7 @@ public class GLMouseAdapter implements GLMouseListener {
    protected static final int ROTATE = 3;
    protected static final int DRAG_SELECT = 4;
    protected static final int DRAGGER_ACTION = 5;
+   protected static final int ELLIPTIC_CURSOR_RESIZE = 6;
 
    private int dragAction = NO_ACTION;
 
@@ -44,13 +44,14 @@ public class GLMouseAdapter implements GLMouseListener {
 
    private int dragStartX;
    private int dragStartY;
-
+   
    private static boolean defaultVisibleSelectionOnly = false;
    private boolean visibleSelectionOnly = defaultVisibleSelectionOnly;
 
    double myWheelZoomScale = 10.0;
    
    private int multipleSelectionMask = (InputEvent.CTRL_DOWN_MASK);
+   private int ellipticDeselectMask = (InputEvent.SHIFT_DOWN_MASK);
    // private int dragSelectionMask = (InputEvent.SHIFT_DOWN_MASK);
    private int rotateButtonMask = (InputEvent.BUTTON2_DOWN_MASK);
    private int translateButtonMask =
@@ -58,11 +59,23 @@ public class GLMouseAdapter implements GLMouseListener {
    private int zoomButtonMask =
       (InputEvent.BUTTON2_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
    private int selectionButtonMask = (InputEvent.BUTTON1_DOWN_MASK);
-   private int selectionModMask = (InputEvent.SHIFT_DOWN_MASK);
    
    private int draggerConstrainMask = MouseEvent.SHIFT_DOWN_MASK;
    private int draggerDragMask = InputEvent.BUTTON1_DOWN_MASK;
-   protected int draggerRepositionMask = (InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
+   protected int draggerRepositionMask = 
+      (InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
+
+   private int ellipticCursorResizeMask =
+      (MouseEvent.BUTTON1_DOWN_MASK |
+       InputEvent.ALT_DOWN_MASK |
+       InputEvent.CTRL_DOWN_MASK);
+   
+   Point currentCursor = null;
+   Vector2d ellipticCursorStartSize = null;
+   
+   public Point getCurrentCursor() {
+      return currentCursor;
+   }
    
    public GLMouseAdapter (GLViewer viewer) {
       this.viewer = viewer;
@@ -76,15 +89,32 @@ public class GLMouseAdapter implements GLMouseListener {
       return viewer;
    }
 
+   private int getSelectionOperation (MouseEvent e) {
+      int mods = (e.getModifiersEx() & ALL_MODIFIERS);
+      if (viewer.getEllipticSelection()) {
+         if ((mods & ellipticDeselectMask) == ellipticDeselectMask) {
+            return ViewerSelectionEvent.SUBTRACT;
+         } 
+         else {
+            return ViewerSelectionEvent.ADD;
+         }        
+      }
+      else {
+         if ((mods & getMultipleSelectionMask()) != 0) {
+            return ViewerSelectionEvent.XADD;
+         }
+         else {
+            return ViewerSelectionEvent.SET;
+         }
+      }     
+   }
+   
    private void checkForSelection (MouseEvent e) {
-      int mask = (e.getModifiersEx() & ALL_MODIFIERS);
-      int mode = 0;
-
+      int flags = getSelectionOperation (e);
+      
       ViewerSelectionEvent selEvent = new ViewerSelectionEvent();
       selEvent.setModifiersEx (e.getModifiersEx());
-      if ((mask & getMultipleSelectionMask()) != 0) {
-         mode |= ViewerSelectionEvent.MULTIPLE;
-      }
+
       viewer.selectionEvent = selEvent;
 
       double x, y, w, h; // delimits the pick region (with x, y at the center)
@@ -95,20 +125,28 @@ public class GLMouseAdapter implements GLMouseListener {
          y = dragBox.y + dragBox.height/2.0;
          w = dragBox.width;
          h = dragBox.height;
-         mode |= ViewerSelectionEvent.DRAG;
+         flags |= ViewerSelectionEvent.DRAG;
          if (!visibleSelectionOnly) {
-            ignoreDepthTest = true;
+            ignoreDepthTest = true; // Normally true!
          }
       }
       else {
          x = e.getX();
          y = e.getY();
-         w = 3.0;
-         h = 3.0;
+         if (viewer.getEllipticSelection()) {
+            Vector2d csize = viewer.getEllipticCursorSize();
+            w = 2*csize.x;
+            h = 2*csize.y;
+            flags |= ViewerSelectionEvent.DRAG;
+         } 
+         else {
+            w = 3.0;
+            h = 3.0;
+         }
          ignoreDepthTest = false;
       }
       viewer.setPick (x, y, w, h, ignoreDepthTest);
-      selEvent.setFlags (mode);
+      selEvent.setFlags (flags);
       // {
       // GLSelectionEvent selEvent = new GLSelectionEvent();
       // selEvent.myModifiersEx = e.getModifiersEx();
@@ -118,10 +156,6 @@ public class GLMouseAdapter implements GLMouseListener {
    }
 
    public void mouseClicked (MouseEvent e) {
-      
-      //      int button = e.getButton();
-      //      int mods = e.getModifiersEx();
-      //      System.out.println("Mouse: " + MouseEvent.getModifiersExText(mods));
       
       Dragger3d drawTool = viewer.myDrawTool;
       int mods = e.getModifiersEx() & ALL_MODIFIERS;
@@ -153,9 +187,17 @@ public class GLMouseAdapter implements GLMouseListener {
    }
 
    public void mouseEntered (MouseEvent e) {
+      currentCursor = new Point(e.getX(), e.getY());
+      if (viewer.getEllipticSelection()) {
+         viewer.repaint();
+      }
    }
 
    public void mouseExited (MouseEvent e) {
+      currentCursor = null;
+      if (viewer.getEllipticSelection()) {
+         viewer.repaint();
+      }   
    }
 
    private void updateDraggerFlags(int mods, Dragger3d dragger) {
@@ -196,7 +238,7 @@ public class GLMouseAdapter implements GLMouseListener {
    }
    
    public void mousePressed (MouseEvent e) {
-      
+
       int mask = (e.getModifiersEx() & ALL_MODIFIERS);
       int selectionMask = getSelectionButtonMask();
 
@@ -227,18 +269,14 @@ public class GLMouseAdapter implements GLMouseListener {
       
       if (grabbed) {
          viewer.repaint();
-      } else {
-         if (!grabbed && viewer.isSelectionEnabled() &&
-             (mask & selectionMask) == selectionMask) {
-            if (viewer.getSelectOnPress()) {
-               checkForSelection (e);               
-               dragAction = NO_ACTION;
-               viewer.setDragBox (null);
-            }
-            else {
-               dragAction = DRAG_SELECT;
-            }
-         } 
+      } 
+      else {
+         if (viewer.getEllipticCursorActive() &&
+             (mask & ellipticCursorResizeMask) == ellipticCursorResizeMask) {
+            dragAction = ELLIPTIC_CURSOR_RESIZE;
+            ellipticCursorStartSize = 
+               new Vector2d (viewer.getEllipticCursorSize());
+         }
          else if (mask == getTranslateButtonMask()) {
             dragAction = TRANSLATE;
          }
@@ -248,6 +286,20 @@ public class GLMouseAdapter implements GLMouseListener {
          else if (mask == getZoomButtonMask()) {
             dragAction = ZOOM;
          }
+         else if (viewer.isSelectionEnabled() &&
+             (mask & selectionMask) == selectionMask) {
+            if (viewer.getSelectOnPress()) {
+               checkForSelection (e);               
+               dragAction = NO_ACTION;
+               viewer.setDragBox (null);
+            }
+            else {
+               if (viewer.getEllipticSelection()) {
+                  checkForSelection (e);
+               }
+               dragAction = DRAG_SELECT;
+            }
+         } 
          else {
             dragAction = NO_ACTION;
          }
@@ -327,7 +379,7 @@ public class GLMouseAdapter implements GLMouseListener {
    }
 
    public void mouseDragged (MouseEvent e) {
-      
+      currentCursor = new Point(e.getX(), e.getY());
       int xOff = e.getX() - lastX, yOff = e.getY() - lastY;
 
       switch (dragAction) {
@@ -377,28 +429,55 @@ public class GLMouseAdapter implements GLMouseListener {
             break;
          }
          case DRAG_SELECT: {
-            int x = dragStartX;
-            int y = dragStartY;
-            int w = e.getX() - x;
-            int h = e.getY() - y;
-            if (w == 0) {
-               w = 1;
+            if (viewer.getEllipticSelection()) {
+               Vector2d csize = viewer.getEllipticCursorSize();
+               float x = e.getX();
+               float y = e.getY();
+               
+               int sensitivity = 4; // Increase to make the program check for selection more often when dragging a circle.
+               
+               if (Math.abs(x - dragStartX) > csize.x / sensitivity || 
+                   Math.abs(y - dragStartY) > csize.y / sensitivity) {                  
+                  checkForSelection(e);
+                  // viewer.setSelectionCircle(null);
+                  dragStartX = (int)x;
+                  dragStartY = (int)y;
+               }
             }
-            else if (w < 0) {
-               x = e.getX();
-               w = -w;
+            else {
+               int x = dragStartX;
+               int y = dragStartY;
+               int w = e.getX() - x;
+               int h = e.getY() - y;
+               if (w == 0) {
+                  w = 1;
+               }
+               else if (w < 0) {
+                  x = e.getX();
+                  w = -w;
+               }
+               if (h == 0) {
+                  h = 1;
+               }
+               else if (h < 0) {
+                  y = e.getY();
+                  h = -h;
+               }
+               viewer.setDragBox (new Rectangle (x, y, w, h));
+               viewer.repaint();
             }
-            if (h == 0) {
-               h = 1;
-            }
-            else if (h < 0) {
-               y = e.getY();
-               h = -h;
-            }
-            viewer.setDragBox (new Rectangle (x, y, w, h));
-            // System.out.println(x + " " + y + " " + w + " " + h);
-            viewer.repaint();
+            break;
          }
+         case ELLIPTIC_CURSOR_RESIZE: {
+            Vector2d csize = new Vector2d(ellipticCursorStartSize);
+            csize.x = Math.max(1, csize.x + e.getX() - dragStartX);
+            csize.y = Math.max(1, csize.y + e.getY() - dragStartY);
+            viewer.setEllipticCursorSize (csize);
+            break;
+         }
+      }
+      if (viewer.getEllipticCursorActive()) {
+         viewer.repaint();
       }
       lastX = e.getX();
       lastY = e.getY();
@@ -406,8 +485,12 @@ public class GLMouseAdapter implements GLMouseListener {
 
    public void mouseMoved (MouseEvent e) {
       
-      //if (dragAction == DRAGGER_ACTION) {
-         
+      currentCursor = new Point(e.getX(), e.getY());
+      if (viewer.getEllipticSelection()) {
+         viewer.repaint();
+      }
+      else { 
+
          int mods = e.getModifiersEx() & ALL_MODIFIERS;
          Dragger3d drawTool = viewer.myDrawTool;
          boolean grabbed = false;
@@ -434,7 +517,7 @@ public class GLMouseAdapter implements GLMouseListener {
          if (grabbed) {
             viewer.repaint();
          }
-      //}
+      }
    }
 
    /**
@@ -589,7 +672,32 @@ public class GLMouseAdapter implements GLMouseListener {
    public int getMultipleSelectionMask() {
       return multipleSelectionMask;
    }
-   
+
+   /**
+    * Sets the modifier mask that enables deselection when using elliptic
+    * selection. This should be a
+    * combination of the following extended modifiers defined in
+    * java.awt.event.InputEvent: SHIFT_DOWN_MASK, ALT_DOWN_MASK, META_DOWN_MASK,
+    * and CTRL_DOWN_MASK.
+    * 
+    * @param mask
+    * elliptic deselect modifier mask
+    */
+   public void setEllipticDeselectMask (int mask) {
+      ellipticDeselectMask = mask;
+   }
+
+   /**
+    * Gets the modifier mask that enables deselection when using elliptic
+    * selection.
+    * 
+    * @return elliptic deselect modifier mask
+    * @see #setMultipleSelectionMask
+    */
+   public int getEllipticDeselectMask() {
+      return ellipticDeselectMask;
+   }
+
    //   XXX Unused
    //   /**
    //    * Sets the modifier mask to enable drag selection. This mask should be a
@@ -614,15 +722,6 @@ public class GLMouseAdapter implements GLMouseListener {
    //      return dragSelectionMask;
    //   }
 
-   /**
-    * Returns the mouse button modifiers that may accompany selection.
-    * 
-    * @return selection modifier mask
-    */
-   public int getSelectionModifierMask() {
-      return selectionModMask;
-   }
-   
    public int getDraggerConstrainMask() {
       return draggerConstrainMask;
    }
@@ -647,6 +746,14 @@ public class GLMouseAdapter implements GLMouseListener {
       return draggerDragMask;
    }
    
+   public void setEllipticCursorResizeMask(int mask) {
+      ellipticCursorResizeMask = mask;
+   }
+   
+   public int getEllipticCursorResizeMask() {
+      return ellipticCursorResizeMask;
+   }
+   
    @Override
    public void setSelectVisibleOnly(boolean set) {
       visibleSelectionOnly = set;
@@ -658,6 +765,7 @@ public class GLMouseAdapter implements GLMouseListener {
    }
 
    public void setLaptopConfig() {
+
       setRotateButtonMask (InputEvent.BUTTON1_DOWN_MASK);
       setTranslateButtonMask (
          InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
@@ -668,9 +776,9 @@ public class GLMouseAdapter implements GLMouseListener {
          InputEvent.BUTTON1_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
       setMultipleSelectionMask(InputEvent.SHIFT_DOWN_MASK);
       // mouse.setDragSelectionMask(InputEvent.SHIFT_DOWN_MASK);         
-      
+
+      setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);      
       setDraggerDragMask(InputEvent.BUTTON1_DOWN_MASK);
-      setDraggerConstrainMask(MouseEvent.SHIFT_DOWN_MASK);
       setDraggerRepositionMask(InputEvent.BUTTON1_DOWN_MASK 
          | InputEvent.ALT_DOWN_MASK);
    }

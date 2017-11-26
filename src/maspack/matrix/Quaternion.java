@@ -208,6 +208,28 @@ public class Quaternion extends VectorBase {
    }
 
    /**
+    * Sets the elements of this quaternion from an array of doubles, starting
+    * from a particular location. The array must extend for at least
+    * 4 elements beyond that location.
+    * 
+    * @param values
+    * array from which values are copied
+    * @param idx starting point within values from which copying should begin
+    * @return updated idx value
+    */
+   public int set (double[] values, int idx) {
+      if (values.length < idx+4) {
+         throw new IllegalArgumentException (
+            "argument 'values' must extend for at least 4 elements past 'idx'");
+      }     
+      s = values[idx++];
+      u.x = values[idx++];
+      u.y = values[idx++];
+      u.z = values[idx++];
+      return idx;
+   }
+
+   /**
     * Sets the values of this quaternion to those of q1.
     * 
     * @param q1

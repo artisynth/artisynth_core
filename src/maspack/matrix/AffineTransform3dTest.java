@@ -96,6 +96,67 @@ class AffineTransform3dTest extends MatrixTest {
       ((AffineTransform3d)MR).set ((AffineTransform3d)M1);
    }
 
+   void testTransforms (AffineTransform3dBase X) {
+
+      double EPS = 1e-13;
+
+      Point3d p0 = new Point3d();
+      Point3d pr = new Point3d();
+      Point3d pchk = new Point3d();
+
+      Vector3d v0 = new Vector3d();
+      Vector3d vr = new Vector3d();
+      Vector3d vchk = new Vector3d();
+
+      Vector3d n0 = new Vector3d();
+      Vector3d nr = new Vector3d();
+      Vector3d nchk = new Vector3d();
+
+      p0.setRandom();
+      v0.setRandom();
+      n0.setRandom();
+      n0.normalize();
+
+      X.M.mul (pchk, p0);
+      pchk.add (X.b);
+
+      X.transformPnt (pr, p0);
+      checkEquals ("transformPoint=", pr, pchk, EPS);
+      pr.set (p0);
+      X.transformPnt (pr, pr);
+      checkEquals ("transformPoint=", pr, pchk, EPS);
+      X.inverseTransformPnt (pr, pr);
+      checkEquals ("inverseTransformPoint=", pr, p0, EPS);
+      X.inverseTransformPnt (pr, pchk);
+      checkEquals ("inverseTransformPoint=", pr, p0, EPS);
+      
+
+      X.M.mul (vchk, v0);
+
+      X.transformVec (vr, v0);
+      checkEquals ("transformVector=", vr, vchk, EPS);
+      vr.set (v0);
+      X.transformVec (vr, vr);
+      checkEquals ("transformVector=", vr, vchk, EPS);
+      X.inverseTransformVec (vr, vr);
+      checkEquals ("inverseTransformVector=", vr, v0, EPS);
+      X.inverseTransformVec (vr, vchk);
+      checkEquals ("inverseTransformVector=", vr, v0, EPS);
+      
+      X.M.mulInverseTranspose (nchk, n0);
+
+      X.transformCovec (nr, n0);
+      checkEquals ("transformNormal=", nr, nchk, EPS);
+      nr.set (n0);
+      X.transformCovec (nr, nr);
+      checkEquals ("transformNormal=", nr, nchk, EPS);
+      X.inverseTransformCovec (nr, nr);
+      checkEquals ("inverseTransformNormal=", nr, n0, EPS);
+      X.inverseTransformCovec (nr, nchk);
+      checkEquals ("inverseTransformNormal=", nr, n0, EPS);
+
+   }
+
    public void execute() {
       AffineTransform3d XR = new AffineTransform3d();
       AffineTransform3d X1 = new AffineTransform3d();
@@ -127,24 +188,79 @@ class AffineTransform3dTest extends MatrixTest {
 
          testNorms (X1);
 
-         //testRigidFactor (X1);
-
-         // testSetRotations (XR, X1);
-         // testNormalize (XR);
+         testTransforms (X1);
       }
    }
 
+   public void timing() {
+      FunctionTimer timer = new FunctionTimer();
+
+      AffineTransform3d X = new AffineTransform3d();
+      X.setRandom();
+      int nvecs = 1000000;
+      int cnt = 10;
+      Vector3d[] vecs = new Vector3d[nvecs];
+      Vector3d[] chks = new Vector3d[nvecs];
+      for (int i=0; i<vecs.length; i++) {
+         vecs[i] = new Vector3d();
+         vecs[i].setRandom();
+         chks[i] = new Vector3d(vecs[i]);
+         X.transformVec (vecs[i], vecs[i]);
+         X.inverseTransformVec (vecs[i], vecs[i]);
+      }
+
+      System.out.println (
+         "Comparative timing of forward and inverse vector transforms:");
+
+      timer.start();
+      for (int k=0; k<cnt; k++) {
+         for (int i=0; i<vecs.length; i++) {
+            X.transformVec (vecs[i], vecs[i]);
+         }
+      }
+      timer.stop();
+      System.out.println ("forward transform: " + timer.result(nvecs*cnt));
+
+      timer.start();
+      for (int k=0; k<cnt; k++) {
+         for (int i=0; i<vecs.length; i++) {
+            X.inverseTransformVec (vecs[i], vecs[i]);
+         }
+      }
+      
+      timer.stop();
+      System.out.println ("inverse transform: " + timer.result(nvecs*cnt));
+
+   }
+
    public static void main (String[] args) {
-      AffineTransform3dTest test = new AffineTransform3dTest();
+      AffineTransform3dTest tester = new AffineTransform3dTest();
 
-      try {
-         test.execute();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
+      boolean doTiming = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-timing")) {
+            doTiming = true;
+         }
+         else {
+            System.out.println ("Unknown option "+args[i]+"; ignoring");
+         }
       }
 
-      System.out.println ("\nPassed\n");
+      RandomGenerator.setSeed (0x1234);
+
+      if (doTiming) {
+         tester.timing();
+      }
+      else {
+         try {
+            tester.execute();
+         }
+         catch (Exception e) {
+            e.printStackTrace();
+            System.exit (1);
+         }
+         System.out.println ("\nPassed\n");
+      }
+      
    }
 }

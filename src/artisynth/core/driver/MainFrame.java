@@ -208,7 +208,7 @@ public class MainFrame extends JFrame {
              public void propertyChange(PropertyChangeEvent pce) {
                 getViewer().rerender();
              }
-     });
+      });
       
       splitPane.setOneTouchExpandable (true);
       refreshSplitPane();
@@ -250,17 +250,20 @@ public class MainFrame extends JFrame {
    }
 
    public void setViewerSize (int w, int h) {
-      GLPanel.setSize (w, h);
+      GLPanel.setSize (new Dimension(w, h));
       pack();
-      // hack! pack() seems to increase the x size a bit, so
-      // if the size is not what we want, reset the size of the
-      // whole window to compensate
-      Dimension dim = GLPanel.getSize();
-      if (dim.width != w || dim.height != h) {
-         Dimension windim = getSize();
-         windim.width -= (dim.width - w);
-         windim.height -= (dim.height - h);
-         setSize (windim);
+      if (isVisible()) {
+         // Sometimes the layout manager doesn't give us the size
+         // we want, so we do a marginal adjustmentto compensate
+         Dimension dim = GLPanel.getSize();
+         if (dim.width != w || dim.height != h) {
+            Dimension windim = getSize();
+            windim.width -= (dim.width - w);
+            windim.height -= (dim.height - h);
+            setSize (windim);
+            // probably should call pack() here, but that may mung the size yet
+            // again.
+         }
       }
    }
 

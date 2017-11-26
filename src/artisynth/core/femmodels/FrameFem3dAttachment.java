@@ -999,30 +999,6 @@ public class FrameFem3dAttachment extends FrameAttachment {
       pw.println ("RFD=" + myRFD.toString (fmt, writeFormat));
    }
 
-//   @Override
-//   public void connectToHierarchy () {
-//      if (myFrame == null) {
-//         throw new InternalErrorException ("null frame");
-//      }
-//      super.connectToHierarchy ();
-//      myFrame.setAttached (this);
-//      for (FemNode node : myNodes) {
-//         node.addMasterAttachment (this);
-//      }
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      if (myFrame == null) {
-//         throw new InternalErrorException ("null frame");
-//      }
-//      super.disconnectFromHierarchy ();
-//      myFrame.setAttached (null);
-//      for (FemNode node : myNodes) {
-//         node.removeMasterAttachment (this);
-//      }
-//   }
-
    @Override
    public void getHardReferences (List<ModelComponent> refs) {
       super.getHardReferences (refs);

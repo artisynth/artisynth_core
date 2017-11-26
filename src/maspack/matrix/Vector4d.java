@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien P��an (ETHZ)
  * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
@@ -239,6 +239,17 @@ public class Vector4d extends VectorBase implements Clonable {
       y = values[1];
       z = values[2];
       w = values[3];
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public int set (double[] values, int idx) {
+      x = values[idx++];
+      y = values[idx++];
+      z = values[idx++];
+      w = values[idx++];
+      return idx;
    }
 
    /**

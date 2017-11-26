@@ -1160,7 +1160,8 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
 
    /**
     * Multiplies the column vector v1 by the inverse of this matrix and places
-    * the result in vr.
+    * the result in vr. This is equivalent to
+    * {@link #solve(Vector3d,Vector3d) solve(vr,v1)}.
     * 
     * @param vr
     * result vector
@@ -1169,10 +1170,7 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
     * @return false if this matrix is singular
     */
    public boolean mulInverse (Vector3d vr, Vector3d v1) {
-      Matrix3d Tmp = new Matrix3d();
-      boolean nonSingular = Tmp.invert (this);
-      Tmp.mul (vr, v1);
-      return nonSingular;
+      return solve (vr, v1);
    }
 
    /**
@@ -1189,7 +1187,8 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
 
    /**
     * Multiplies the column vector v1 by the inverse transpose of this matrix
-    * and places the result in vr.
+    * and places the result in vr. This is equivalent to
+    * {@link #solveTranspose(Vector3d,Vector3d) solveTranspose(vr,v1)}.
     * 
     * @param vr
     * result vector
@@ -1198,10 +1197,7 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
     * @return false if this matrix is singular
     */
    public boolean mulInverseTranspose (Vector3d vr, Vector3d v1) {
-      Matrix3d Tmp = new Matrix3d();
-      boolean nonSingular = Tmp.invert (this);
-      Tmp.mulTranspose (vr, v1);
-      return nonSingular;
+      return solveTranspose (vr, v1);
    }
 
    /**
@@ -1853,6 +1849,278 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
          }
       }
       return !singular;
+   }
+
+   /**
+    * Solves this matrix for <code>x</code> given a right hand side
+    * <code>b</code>, returning <code>false</code> if the matrix is detected
+    * to be singular. The solution is computed using partial pivoting.
+    * 
+    * @param x result
+    * @param b right hand side
+    * @return false if this matrix is singular
+    */
+   public boolean solve (Vector3d x, Vector3d b) {
+      return doSolve (x, b, /*transpose=*/false);
+   }
+
+   /**
+    * Solves the transpose of this matrix for <code>x</code> given a right hand
+    * side <code>b</code>, returning <code>false</code> if the matrix is
+    * detected to be singular. The solution is computed using partial pivoting.
+    * 
+    * @param x result
+    * @param b right hand side
+    * @return false if this matrix is singular
+    */
+   public boolean solveTranspose (Vector3d x, Vector3d b) {
+      return doSolve (x, b, /*transpose=*/true);
+   }
+
+   protected boolean doSolve (Vector3d x, Vector3d b, boolean transpose) {
+      boolean singular = false;
+
+      // Ignoring pivoting, this method perfoms an unrolled reduction of the
+      // system
+      //
+      // m00 m01 m02 | b.x
+      // m10 m11 m12 | b.y
+      // m20 m21 m22 | b.z
+      //
+      // first to row echelon form
+      //
+      //  1  t01 t02 | t03
+      //  0   1  t12 | t13
+      //  0   0   1  | t23
+      //
+      // and finally to reduced row form
+      //
+      //  1   0   0  | x.x
+      //  0   1   0  | x.y
+      //  0   0   1  | x.z
+      //
+      // In addition, row pivoting is used to ensure stability.
+
+      double t00, t01, t02, t03;
+      double t10, t11, t12, t13;
+      double t20, t21, t22, t23;
+
+      t00 = m00;
+      t11 = m11;
+      t22 = m22;
+      t03 = b.x;
+      t13 = b.y;
+      t23 = b.z;
+
+      if (transpose) {
+         t10 = m01; t20 = m02; t01 = m10;
+         t21 = m12; t02 = m20; t12 = m21;
+      }
+      else {
+         t10 = m10; t20 = m20; t01 = m01;
+         t21 = m21; t02 = m02; t12 = m12;
+      }
+      int piv0 = 0;
+
+      double max = (t00 >= 0 ? t00 : -t00);
+      double abs = (t10 >= 0 ? t10 : -t10);
+      if (max < abs) {
+         max = abs;
+         piv0 = 1;
+      }
+      abs = (t20 >= 0 ? t20 : -t20);
+      if (max < abs) {
+         piv0 = 2;
+      }
+      double inv;
+
+      switch (piv0) {
+         case 0: {
+            if (t00 == 0) {
+               singular = true;
+            }
+            inv = 1/t00;
+            t01 *= inv; t02 *= inv; t03 *= inv;
+            t11 -= t10*t01; t12 -= t10*t02; t13 -= t10*t03;
+            t21 -= t20*t01; t22 -= t20*t02; t23 -= t20*t03;
+
+            if (Math.abs(t11) >= Math.abs(t21)) {
+               if (t11 == 0) {
+                  singular = true;
+               }
+               inv = 1/t11;
+               t12 *= inv; t13 *= inv;
+               t22 -= t21*t12; t23 -= t21*t13;
+               if (t22 == 0) {
+                  singular = true;
+               }
+               t23 /= t22;
+               t13 -= t23*t12; t03 -= t23*t02; t03 -= t01*t13;
+               x.x = t03; x.y = t13; x.z = t23;
+            }
+            else {
+               // exchange rows 1 and 2
+               if (t21 == 0) {
+                  singular = true;
+               }
+               inv = 1/t21;
+               t22 *= inv; t23 *= inv;
+               t12 -= t11*t22; t13 -= t11*t23;
+               if (t12 == 0) {
+                  singular = true;
+               }
+               t13 /= t12;
+               t23 -= t13*t22; t03 -= t13*t02; t03 -= t01*t23;
+               x.x = t03; x.y = t23; x.z = t13;
+            }
+            break;
+         }
+         case 1: {
+            // exchange rows 0 and 1
+            if (t10 == 0) {
+               singular = true;
+            }
+            inv = 1/t10;
+            t11 *= inv; t12 *= inv; t13 *= inv;
+            t01 -= t00*t11; t02 -= t00*t12; t03 -= t00*t13;
+            t21 -= t20*t11; t22 -= t20*t12; t23 -= t20*t13;
+            
+            if (Math.abs(t01) >= Math.abs(t21)) {
+               if (t01 == 0) {
+                  singular = true;
+               }
+               inv = 1/t01;
+               t02 *= inv; t03 *= inv;
+               t22 -= t21*t02; t23 -= t21*t03;
+               if (t22 == 0) {
+                  singular = true;
+               }
+               t23 /= t22;
+               t03 -= t23*t02; t13 -= t23*t12; t13 -= t11*t03;
+               x.x = t13; x.y = t03; x.z = t23;
+            }
+            else {
+               // exchange rows 0 and 2
+               if (t21 == 0) {
+                  singular = true;
+               }
+               inv = 1/t21;
+               t22 *= inv; t23 *= inv;
+               t02 -= t01*t22; t03 -= t01*t23;
+               if (t02 == 0) {
+                  singular = true;
+               }
+               t03 /= t02;
+               t23 -= t03*t22; t13 -= t03*t12; t13 -= t11*t23;
+               x.x = t13; x.y = t23; x.z = t03;
+            }
+            break;
+         }
+         case 2: {
+            // exchange rows 0 and 2
+            if (t20 == 0) {
+               singular = true;
+            }
+            inv = 1/t20;
+            t21 *= inv; t22 *= inv; t23 *= inv;
+            t11 -= t10*t21; t12 -= t10*t22; t13 -= t10*t23;
+            t01 -= t00*t21; t02 -= t00*t22; t03 -= t00*t23;
+            
+            if (Math.abs(t11) >= Math.abs(t01)) {
+               if (t11 == 0) {
+                  singular = true;
+               }
+               inv = 1/t11;
+               t12 *= inv; t13 *= inv;
+               t02 -= t01*t12; t03 -= t01*t13;
+               if (t02 == 0) {
+                  singular = true;
+               }
+               t03 /= t02;
+               t13 -= t03*t12; t23 -= t03*t22; t23 -= t21*t13;
+               x.x = t23; x.y = t13; x.z = t03;
+            }
+            else {
+               // exchange rows 1 and 0
+               if (t01 == 0) {
+                  singular = true;
+               }
+               inv = 1/t01;
+               t02 *= inv; t03 *= inv;
+               t12 -= t11*t02; t13 -= t11*t03;
+               if (t12 == 0) {
+                  singular = true;
+               }
+               t13 /= t12;
+               t03 -= t13*t02; t23 -= t13*t22; t23 -= t21*t03;
+               x.x = t23; x.y = t03; x.z = t13;
+            }
+            break;
+         }
+      }
+      return singular;
+   }
+
+   /**
+    * Solves this matrix for <code>x</code> given a right hand side
+    * <code>b</code>, returning <code>false</code> if the matrix is detected
+    * to be singular. The solution is computed using partial pivoting.
+    * 
+    * @param x result
+    * @param b right hand side
+    * @return false if this matrix is singular
+    */
+   protected boolean solveNopivot (Vector3d x, Vector3d b) {
+      boolean singular = false;
+
+      double t01 = m01;
+      double t11 = m11;
+      double t21 = m21;
+
+      double t02 = m02;
+      double t12 = m12;
+      double t22 = m22;
+
+      double t03 = b.x;
+      double t13 = b.y;
+      double t23 = b.z;
+
+      double inv;
+      if (m00 == 0) {
+         singular = true;
+      }
+      inv = 1/m00;
+      t01 *= inv;
+      t02 *= inv;
+      t03 *= inv;
+      t11 -= m10*t01;
+      t12 -= m10*t02;
+      t13 -= m10*t03;
+      t21 -= m20*t01;
+      t22 -= m20*t02;
+      t23 -= m20*t03;
+      
+      if (t11 == 0) {
+         singular = true;
+      }
+      inv = 1/t11;
+      t12 *= inv;
+      t13 *= inv;
+      t22 -= t21*t12;
+      t23 -= t21*t13;
+      if (t22 == 0) {
+         singular = true;
+      }
+      t23 /= t22;
+      t13 -= t23*t12;
+      t03 -= t23*t02;
+      t03 -= t01*t13;
+
+      x.x = t03;
+      x.y = t13;
+      x.z = t23;
+
+      return singular;
    }
 
    /**

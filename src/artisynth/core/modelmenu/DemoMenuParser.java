@@ -290,7 +290,6 @@ public class DemoMenuParser {
       DocumentBuilder builder = factory.newDocumentBuilder();
       builder.setErrorHandler(new SimpleErrorHandler());
       Document dom = builder.parse(filename);
-      
       return parseDocument(dom, localPath);
    }
 

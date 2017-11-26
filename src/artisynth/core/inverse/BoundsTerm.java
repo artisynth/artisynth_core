@@ -48,7 +48,6 @@ public class BoundsTerm extends LeastSquaresTermBase {
     * @param upperBound default upper limit
     * @param lowerBoundsList list of individual lower bounds
     * @param upperBoundsList list of individual upper bounds
-    * @author Andrew
     */
    public void setBounds(double lowerBound, double upperBound, 
       ArrayList<Double> lowerBoundsList, ArrayList<Double> upperBoundsList) {

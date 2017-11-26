@@ -221,7 +221,7 @@ public class DistanceGridSurfCalc {
             for (int k=-1; k<=1; k++) {
                for (TetID tetId : TetID.values()) {
                   TetDesc tdesc =
-                     new TetDesc (new Vector3i (2*i, 2*j, 2*k), tetId);
+                     new TetDesc (new Vector3i (i, j, k), tetId);
                   Vector3i[] verts = tdesc.getVertices ();
                   for (int vi=0; vi<verts.length; vi++) {
                      int refVtx = findRefVertex (verts[vi]);
@@ -850,19 +850,19 @@ public class DistanceGridSurfCalc {
       return planeType;
    }
 
-   public boolean findQuadraticSurfaceTangent (
+   public boolean findQuadSurfaceTangent (
       Point3d pt, Point3d p0, Point3d pa, Vector3d nrm) {
 
       // transform p0, pa and nrm into grid local coordinates
       Point3d p0Loc = new Point3d();
-      myGrid.getLocalCoordinates (p0Loc, p0);
+      myGrid.myLocalToWorld.inverseTransformPnt (p0Loc, p0);
       Point3d paLoc = new Point3d();
-      myGrid.getLocalCoordinates (paLoc, pa);
+      myGrid.myLocalToWorld.inverseTransformPnt (paLoc, pa);
       Vector3d nrmLoc = new Vector3d(nrm);
-      myGrid.getLocalNormal (nrmLoc, nrm);
+      myGrid.myLocalToWorld.inverseTransformCovec (nrmLoc, nrm);
       nrmLoc.normalize();
 
-      // System.out.println (
+      //System.out.println (
       //    "findSurfaceTangent nrmLoc=" + nrmLoc.toString("%8.3f"));
 
       // generate a plane from the normal and p0
@@ -886,9 +886,10 @@ public class DistanceGridSurfCalc {
       Point3d ps = new Point3d(p0Loc);
 
       Vector3d grad = new Vector3d();
-      double d = myGrid.getQuadraticDistanceAndGradient (grad, p0Loc);
-      if (d == DistanceGrid.OUTSIDE) {
+      double d = myGrid.getQuadDistanceAndGradient (grad, null, p0Loc);
+      if (d == DistanceGrid.OUTSIDE_GRID) {
          // shouldn't happen - p0 should be inside by definition
+         //System.out.println ("OUTSIDE");
          return false;
       }
       grad.scaledAdd (-grad.dot(nrmLoc), nrmLoc); // project grad into plane
@@ -896,8 +897,10 @@ public class DistanceGridSurfCalc {
       
       Vector3i vxyz = new Vector3i();
       Vector3d xyz = new Vector3d();
-      if (myGrid.getQuadCellCoords (vxyz, xyz, p0Loc) == null) {
+      if (myGrid.getQuadCellCoords (
+         xyz, vxyz, p0Loc, myGrid.myQuadGridToLocal) == -1) {
          // shouldn't happen - grid should have enough margin to prevent this
+         //System.out.println ("NO QUAD CELL");
          return false;
       }
       tdesc =
@@ -906,12 +909,15 @@ public class DistanceGridSurfCalc {
       TetPlaneIntersection isect = isects.get(0);
       if (!intersectTetAndPlane (isect, tdesc, vpnts, planeLoc)) {
          // shouldn't happen - p0 should be on the plane
+         //System.out.println ("NOT ON PLANE");
          return false;
       }
 
       PlaneType planeType = null;
       Vector3d nrmCell = new Vector3d();
-      transformNormalToCell (nrmCell, planeLoc.normal);
+      myGrid.myGridToLocal.inverseTransformCovec (nrmCell, planeLoc.normal);
+      nrmCell.normalize();
+      //transformNormalToCell (nrmCell, planeLoc.normal);
       switch (nrmCell.maxAbsIndex()) {
          case 0: planeType = PlaneType.YZ; break;
          case 1: planeType = PlaneType.ZX; break;
@@ -925,6 +931,7 @@ public class DistanceGridSurfCalc {
          srng, edgeS, p0Loc, grad, planeType, planeSgn);
       if (edgeIdx == -1) {
          // shouldn't happen - p0 should be in the tet
+         //System.out.println ("NOT IN TET");
          return false;
       }
       TetFeature lastFeat = isect.getFeature (edgeS.value, edgeIdx);
@@ -972,8 +979,8 @@ public class DistanceGridSurfCalc {
       // System.out.println ("  intersection ps=" + ps.toString("%8.5f"));
       // System.out.println ("               p0=" + p0Loc.toString("%8.5f"));
 
-      d = myGrid.getQuadraticDistanceAndGradient (grad, ps);
-      if (d == DistanceGrid.OUTSIDE) {
+      d = myGrid.getQuadDistanceAndGradient (grad, null, ps);
+      if (d == DistanceGrid.OUTSIDE_GRID) {
          // shouldn't happen - ps should be inside by definition
          return false;
       }
@@ -987,7 +994,7 @@ public class DistanceGridSurfCalc {
          pt, sinfo, isect, null, sgnDotGrad, paLoc, planeLoc);
       if (code == DONE) {
          // tangent found
-         myGrid.getWorldCoordinates (pt, pt);
+         myGrid.myLocalToWorld.transformPnt (pt, pt);
          //System.out.println ("  found pt=" + pt.toString ("%8.3f"));
          return true;
       }
@@ -1036,12 +1043,12 @@ public class DistanceGridSurfCalc {
                pt, sinfo, isect, pt, sgnDotGrad, paLoc, planeLoc);
          }
          if (code == DONE) {
-            myGrid.getWorldCoordinates (pt, pt);
+            myGrid.myLocalToWorld.transformPnt (pt, pt);
             //System.out.println ("  found pt=" + pt.toString ("%8.3f"));
             return true;
          }
       }
-      myGrid.getWorldCoordinates (pt, ps);
+      myGrid.myLocalToWorld.transformPnt (pt, ps);
       //System.out.println ("  fallback pt=" + pt.toString ("%8.3f"));
       return false;
    }
@@ -1096,20 +1103,23 @@ public class DistanceGridSurfCalc {
       }            
    }
 
-   public boolean findQuadraticSurfaceIntersection (
+   public boolean findQuadSurfaceIntersection (
       Point3d pi, Point3d p0, Point3d pa, Vector3d nrm) {
 
       // transform p0, pa and nrm into grid local coordinates
       Point3d p0Loc = new Point3d();
-      myGrid.getLocalCoordinates (p0Loc, p0);
+      myGrid.myLocalToWorld.inverseTransformPnt (p0Loc, p0);
       Point3d paLoc = new Point3d();
-      myGrid.getLocalCoordinates (paLoc, pa);
+      myGrid.myLocalToWorld.inverseTransformPnt (paLoc, pa);
       Vector3d nrmLoc = new Vector3d(nrm);
-      myGrid.getLocalNormal (nrmLoc, nrm);
+      myGrid.myLocalToWorld.inverseTransformCovec (nrmLoc, nrm);
       nrmLoc.normalize();
 
       // generate a plane from the normal and p0
       Plane planeLoc = new Plane (nrmLoc, p0Loc);
+      
+      // project paLoc onto the plane
+      planeLoc.project (paLoc, paLoc);
 
       // Dynamic array to store tet/plane intersections
       ArrayList<TetPlaneIntersection> isects =
@@ -1137,7 +1147,8 @@ public class DistanceGridSurfCalc {
       
       Vector3i vxyz = new Vector3i();
       Vector3d xyz = new Vector3d();
-      if (myGrid.getQuadCellCoords (vxyz, xyz, p0Loc) == null) {
+      if (myGrid.getQuadCellCoords (
+         xyz, vxyz, p0Loc, myGrid.myQuadGridToLocal) == -1) {
          // shouldn't happen - grid should have enough margin to prevent this
          return false;
       }
@@ -1152,7 +1163,9 @@ public class DistanceGridSurfCalc {
 
       PlaneType planeType = null;
       Vector3d nrmCell = new Vector3d();
-      transformNormalToCell (nrmCell, planeLoc.normal);
+      myGrid.myGridToLocal.inverseTransformCovec (nrmCell, planeLoc.normal);
+      nrmCell.normalize();
+      //transformNormalToCell (nrmCell, planeLoc.normal);
       switch (nrmCell.maxAbsIndex()) {
          case 0: planeType = PlaneType.YZ; break;
          case 1: planeType = PlaneType.ZX; break;
@@ -1209,7 +1222,7 @@ public class DistanceGridSurfCalc {
              visitedTets.add (tdesc);
           }
       }
-      myGrid.getWorldCoordinates (pi, pi);
+      myGrid.myLocalToWorld.transformPnt (pi, pi);
       return true;
    }
 
@@ -1248,7 +1261,7 @@ public class DistanceGridSurfCalc {
       Vector3d dirCell = new Vector3d();
       transformToQuadCell (dirCell, dir, tdesc);
       Plane planeCell = new Plane();
-      transformPlaneToCell (planeCell, plane, tdesc);
+      transformToQuadCell (planeCell, plane, tdesc);
 
       double[] b = new double[6];
       Vector3d r = new Vector3d();
@@ -1278,7 +1291,7 @@ public class DistanceGridSurfCalc {
       Point3d paCell = new Point3d();
       transformToQuadCell (paCell, pa, tdesc);
       Plane planeCell = new Plane();
-      transformPlaneToCell (planeCell, plane, tdesc);
+      transformToQuadCell (planeCell, plane, tdesc);
       double[] b = new double[6];
       Vector3d r = new Vector3d();
       PlaneType planeType = computeBCoefs (b, r, c, planeCell);
@@ -1289,7 +1302,8 @@ public class DistanceGridSurfCalc {
          Vector3d dela0 = new Vector3d();
          transformToQuadCell (pc, pold, tdesc);
          // compute gradient and project it into the plane
-         myGrid.computeQuadGradient (grad, c, pc.x, pc.y, pc.z);
+         myGrid.computeQuadGradient (
+            grad, c, pc.x, pc.y, pc.z, myGrid.myQuadGridToLocal);
          grad.scaledAdd (-grad.dot(plane.normal), plane.normal);
          dela0.sub (pold, pa);
          int newSgnDotGrad = (dela0.dot(grad) > 0 ? 1 : -1);
@@ -1352,7 +1366,8 @@ public class DistanceGridSurfCalc {
                   // compute gradient at the intersection point, and
                   // project it into the plane
                   pi.combine (1-svals[j], pc0, svals[j], pc1);
-                  myGrid.computeQuadGradient (grad, c, pi.x, pi.y, pi.z);
+                  myGrid.computeQuadGradient (
+                     grad, c, pi.x, pi.y, pi.z, myGrid.myQuadGridToLocal);
                   grad.scaledAdd (-grad.dot(plane.normal), plane.normal);
                   pi.combine (1-svals[j], pl0, svals[j], pl1);
                   dela0.sub (pi, pa);
@@ -1466,7 +1481,7 @@ public class DistanceGridSurfCalc {
 
       Plane planeCell = new Plane();
       Point3d paCell = new Point3d();
-      transformPlaneToCell (planeCell, planeLoc, tdesc);
+      transformToQuadCell (planeCell, planeLoc, tdesc);
       transformToQuadCell (paCell, paLoc, tdesc);
 
       double[] c = new double[10];
@@ -1625,16 +1640,15 @@ public class DistanceGridSurfCalc {
       }
    }
 
-   public void transformNormalToCell (Vector3d nc, Vector3d nl) {
-      if (nc != nl) {
-         nc.set (nl);
-      }
-      nc.x *= myGrid.myCellWidths.x;
-      nc.y *= myGrid.myCellWidths.y;
-      nc.z *= myGrid.myCellWidths.z;
-      nc.normalize();
-   }
-
+   // public void transformNormalToCell (Vector3d nc, Vector3d nl) {
+   //    if (nc != nl) {
+   //       nc.set (nl);
+   //    }
+   //    nc.x *= myGrid.myCellWidths.x;
+   //    nc.y *= myGrid.myCellWidths.y;
+   //    nc.z *= myGrid.myCellWidths.z;
+   //    nc.normalize();
+   // }
 
    // for debugging
    private double computePerp (
@@ -1672,70 +1686,71 @@ public class DistanceGridSurfCalc {
    }
 
    public void transformToQuadCell (Point3d pc, Point3d pl, TetDesc tdesc) {
-      Point3d pbase = new Point3d();
-      myGrid.getLocalVertexCoords (pbase, tdesc.myXi, tdesc.myYj, tdesc.myZk);
-
-      pc.sub (pl, pbase);
-      pc.x /= (2*myGrid.myCellWidths.x);
-      pc.y /= (2*myGrid.myCellWidths.y);
-      pc.z /= (2*myGrid.myCellWidths.z);
+      // transform from local to regular grid coords, then to quad cell
+      myGrid.myQuadGridToLocal.inverseTransformPnt (pc, pl); 
+      pc.x = pc.x-tdesc.myCXi;
+      pc.y = pc.y-tdesc.myCYj;
+      pc.z = pc.z-tdesc.myCZk;     
+//      myGrid.myGridToLocal.inverseTransformPnt (pc, pl); 
+//      pc.x = 0.5*(pc.x-tdesc.myXi);
+//      pc.y = 0.5*(pc.y-tdesc.myYj);
+//      pc.z = 0.5*(pc.z-tdesc.myZk);
    }
 
    public void transformToQuadCell (Vector3d vc, Vector3d v1, TetDesc tdesc) {
-      vc.x = v1.x / (2*myGrid.myCellWidths.x);
-      vc.y = v1.y / (2*myGrid.myCellWidths.y);
-      vc.z = v1.z / (2*myGrid.myCellWidths.z);
+      vc.scale (0.5, v1); // transform to regular grid coords
+      myGrid.myGridToLocal.inverseTransformVec (vc, vc);
    }
 
    public void transformFromQuadCell (
       Point3d pl, double x, double y, double z, TetDesc tdesc) {
 
-      Point3d pbase = new Point3d();
-      myGrid.getLocalVertexCoords (pbase, tdesc.myXi, tdesc.myYj, tdesc.myZk);
-      pl.x = x * (2*myGrid.myCellWidths.x);
-      pl.y = y * (2*myGrid.myCellWidths.y);
-      pl.z = z * (2*myGrid.myCellWidths.z);
-      pl.add (pbase);
+      // transform to regular grid coords, then transform to local coords
+//      pl.set (tdesc.myXi+2*x, tdesc.myYj+2*y, tdesc.myZk+2*z);
+//      myGrid.myGridToLocal.transformPnt (pl, pl);
+      pl.set (tdesc.myCXi+x, tdesc.myCYj+y, tdesc.myCZk+z);
+      myGrid.myQuadGridToLocal.transformPnt (pl, pl);
    }
 
    public void transformFromQuadCell (
       Point3d pl, Point3d pc, TetDesc tdesc) {
-
-      Point3d pbase = new Point3d();
-      myGrid.getLocalVertexCoords (pbase, tdesc.myXi, tdesc.myYj, tdesc.myZk);
-      pl.x = pc.x * (2*myGrid.myCellWidths.x);
-      pl.y = pc.y * (2*myGrid.myCellWidths.y);
-      pl.z = pc.z * (2*myGrid.myCellWidths.z);
-      pl.add (pbase);
+      transformFromQuadCell (pl, pc.x, pc.y, pc.z, tdesc);
    }
 
-   public void transformPlaneToCell (Plane pc, Plane pl, TetDesc tdesc) {
-      if (pc != pl) {
-         pc.set (pl);
-      }
-      Point3d pbase = new Point3d();
-      myGrid.getLocalVertexCoords (pbase, tdesc.myXi, tdesc.myYj, tdesc.myZk);
-      pc.offset -= pc.normal.dot (pbase);
-      pc.normal.x *= (2*myGrid.myCellWidths.x);
-      pc.normal.y *= (2*myGrid.myCellWidths.y);
-      pc.normal.z *= (2*myGrid.myCellWidths.z);
-      // normalize
-      double mag = pc.normal.norm();
-      pc.normal.scale (1/mag);
-      pc.offset /= mag;         
+   public void transformToQuadCell (Plane pc, Plane pl, TetDesc tdesc) {
+      Point3d p = new Point3d();
+      p.scale (pl.offset, pl.normal); // point on the untransformed plane
+      // normal transform to quad grid same as transform to regular grid:
+      myGrid.myGridToLocal.inverseTransformCovec (pc.normal, pl.normal);
+      pc.normal.normalize();
+      // transform ref point to quad cell to recompute the offset
+      transformToQuadCell (p, p, tdesc);
+      pc.offset = p.dot(pc.normal);
+//      if (pc != pl) {
+//         pc.set (pl);
+//      }
+//      Point3d pbase = new Point3d(tdesc.myXi, tdesc.myYj, tdesc.myZk);
+//      myGrid.myGridToLocal.transformPnt (pbase, pbase);
+//      pc.offset -= pc.normal.dot (pbase);
+//      //myGrid.myGridToLocal.inverseTransformNormal (pc.normal, pc.normal);
+//      pc.normal.x *= (2*myGrid.myCellWidths.x);
+//      pc.normal.y *= (2*myGrid.myCellWidths.y);
+//      pc.normal.z *= (2*myGrid.myCellWidths.z);
+//      // normalize
+//      double mag = pc.normal.norm();
+//      pc.normal.scale (1/mag);
+//      pc.offset /= mag;         
    }
 
    private void transformFromGrid (
       Vector3d ploc, double x, double y, double z) {
-      ploc.x = x*myGrid.myCellWidths.x + myGrid.myMinCoord.x;
-      ploc.y = y*myGrid.myCellWidths.y + myGrid.myMinCoord.y;
-      ploc.z = z*myGrid.myCellWidths.z + myGrid.myMinCoord.z;
+      myGrid.myGridToLocal.transformPnt (ploc, new Point3d(x, y, z));
    }
 
    public void getVertexCoords (Point3d[] v, TetDesc tdesc) {
-      double xi = tdesc.myXi;
-      double yj = tdesc.myYj;
-      double zk = tdesc.myZk;
+      double xi = 2*tdesc.myCXi;
+      double yj = 2*tdesc.myCYj;
+      double zk = 2*tdesc.myCZk;
 
       transformFromGrid (v[0], xi, yj, zk);
       

@@ -11,7 +11,10 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -38,7 +41,16 @@ import artisynth.core.gui.editorManager.EditorManager;
 import artisynth.core.gui.editorManager.EditorUtils;
 import artisynth.core.gui.editorManager.RemoveComponentsCommand;
 import artisynth.core.gui.editorManager.TracingProbePanel;
-import artisynth.core.modelbase.*;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.MutableCompositeComponent;
+import artisynth.core.modelbase.ReferenceComponent;
+import artisynth.core.modelbase.ReferenceList;
+import artisynth.core.modelbase.RenderableComponent;
+import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.Traceable;
 import artisynth.core.probes.TracingProbe;
 import artisynth.core.workspace.RootModel;
 
@@ -50,7 +62,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
    private EditActionMap myEditActionMap;
 
    public static boolean useRefListExpansion = false;
-
+   
    private JMenuItem myTraceItem;
    @SuppressWarnings("unused")
    private Point myTraceItemLoc;
@@ -62,7 +74,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
 
    // Cached list of reference components that are currently selected.
    LinkedList<ReferenceComponent> myRefComponentSelection;
-
+   
    // last screen bounds are recorded when the popup is set invisible, so that
    // any subsequently generated panels can be located close by
    private Rectangle myLastBounds;
@@ -129,13 +141,12 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       boolean oneSelectedIsVisible = false;
       boolean oneSelectedIsInvisible = false;
       boolean oneSelectedHasRenderPropsProperty = false;
-
+      
       if (selection.size() > 0) {
          allSelectedHaveProperties = true;
          allSelectedAreTraceable = true;
-         for (ModelComponent c : selection) {
+          for (ModelComponent c : selection) {
             if (c instanceof RenderableComponent) {
-                              
                oneSelectedIsRenderable = true;
                RenderableComponent rcomp = (RenderableComponent)c;
                if (isVisible (rcomp)) {
@@ -226,11 +237,11 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
    public SelectionPopup (
       SelectionManager selManager, Component parentGUIComponent) {
       super();
-
+      
       // create an empty menu item
       JMenuItem menuItem = null;
 
-      mySelectionManager = selManager;
+      mySelectionManager = selManager; 
       myMain = Main.getMain();
       LinkedList<ModelComponent> selection;
 
@@ -657,6 +668,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       else if (command == "Duplicate") {
          duplicateSelection();
       }
+
       else {
          // EditorBase editor = myEditActionMap.get (command);
          // if (editor != null) {

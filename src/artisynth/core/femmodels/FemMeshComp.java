@@ -54,7 +54,7 @@ import maspack.geometry.MeshBase;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
@@ -1648,7 +1648,7 @@ implements CollidableBody, PointAttachable {
    }
    
    @Override   
-   public SignedDistanceGrid getDistanceGrid() {
+   public DistanceGrid getDistanceGrid() {
       return null;
    }
 

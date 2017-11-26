@@ -28,21 +28,20 @@ import maspack.matrix.Vector3i;
  * 
  * @author Bruce Haines, bruce DOT a DOT haines AT gmail.com
  */
-public class SignedDistanceGridTester {
+public class DistanceGridTester {
    
-   //rivate SignedDistanceGridViewer frame;
    private GLViewerFrame frame;
    private PolygonalMesh m;
-   private SignedDistanceGrid g;
+   private DistanceGrid g;
    private GLViewer viewer;
 
    static boolean useGraphics = false;
 
-   public SignedDistanceGridTester() {
+   public DistanceGridTester() {
    }
    
-   public SignedDistanceGridTester (PolygonalMesh mesh, 
-                                  SignedDistanceGrid grid,
+   public DistanceGridTester (PolygonalMesh mesh, 
+                                  DistanceGrid grid,
                                   boolean render) {
       m = mesh;
       g = grid;
@@ -67,8 +66,8 @@ public class SignedDistanceGridTester {
       meshRenderProps.setFaceStyle (Renderer.FaceStyle.BACK);
       boxMesh.setRenderProps (meshRenderProps);
       
-//      SignedDistanceGrid boxGrid = 
-//         new SignedDistanceGrid (boxMesh, 0.1, cellDivisions);
+//      DistanceGrid boxGrid = 
+//         new DistanceGrid (boxMesh, 0.1, cellDivisions);
 //      SignedDistanceGridTest test1 = 
 //         new SignedDistanceGridTest (boxMesh, boxGrid, true);
       
@@ -86,7 +85,7 @@ public class SignedDistanceGridTester {
                new PolygonalMesh (
                   new File (
                      PathFinder.expand (
-                        "${srcdir SignedDistanceGrid}/sampleData/molar1.2.obj")));
+                        "${srcdir DistanceGrid}/sampleData/molar1.2.obj")));
             mesh.scale (3.0);
          }
          catch (Exception e) {
@@ -102,23 +101,25 @@ public class SignedDistanceGridTester {
       }
       
       mesh.setRenderProps (meshRenderProps);
-      SignedDistanceGrid grid;
+      DistanceGrid grid;
 
       if (false) {
          FunctionTimer timer = new FunctionTimer();
          int cnt = 20;
          timer.start();
          for (int i=0; i<cnt; i++) {
-            grid = new SignedDistanceGrid (mesh, 0.1, cellDivisions);
+            grid = new DistanceGrid (
+               mesh.getFaces(), 0.1, cellDivisions, /*signed=*/true);
          }
          timer.stop();
          System.out.println ("grid compute time=" + timer.result(cnt));
       }
 
       grid =
-         new SignedDistanceGrid (mesh, 0.1, new Vector3i(10,10,5));
-      SignedDistanceGridTester test = 
-         new SignedDistanceGridTester (mesh, grid, useGraphics);
+         new DistanceGrid (
+            mesh.getFaces(), 0.1, new Vector3i(10,10,5), /*signed=*/true);
+      DistanceGridTester test = 
+         new DistanceGridTester (mesh, grid, useGraphics);
          
       test.bruteForcePhiTest();
       test.normalCalcTest();
@@ -238,7 +239,7 @@ public class SignedDistanceGridTester {
             meshpnt.x,
             meshpnt.y,
             meshpnt.z);
-         Face face = g.getClosestFace(i);
+         Face face = (Face)g.getClosestFeature(i);
          face.nearestPoint (closestPoint, meshpnt);
          //closestPoint.sub (meshpnt);
          meshpnt.sub (closestPoint);
@@ -317,7 +318,8 @@ public class SignedDistanceGridTester {
                   badVertexCount++;
                   vertexIsBad = true;
                }
-               int calculatedFaceIndex = g.getClosestFace(i).getIndex();
+               int calculatedFaceIndex = 
+                  ((Face)g.getClosestFeature(i)).getIndex();
                // I'm trusting 'distance' over myPhi. This is because it is an
                // exhaustive search, and should be as accurate as the method
                // used to calculate the closest point, whereas myPhi is 

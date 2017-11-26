@@ -18,7 +18,8 @@ import maspack.geometry.LineSegment;
 import maspack.geometry.OBB;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.GeometryTransformer;
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
+import maspack.geometry.DistanceGrid.TetDesc;
 import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
@@ -104,9 +105,12 @@ public class MultiPointSpring extends PointSpringBase
    protected double myMaxWrapDisplacement = DEFAULT_MAX_WRAP_DISPLACEMENT;
    protected boolean myLineSearchP = DEFAULT_LINE_SEARCH;
    protected boolean myProfilingP = DEFAULT_PROFILING;
+   protected boolean myPrintProfilingP = false;
    
    protected FunctionTimer myProfileTimer = new FunctionTimer();
    protected int myProfileCnt = 0;
+   protected int myUpdateContactsCnt = 0;
+   protected int myIterationCnt = 0;
    
    public double getSor() {
       return mySor;
@@ -128,26 +132,25 @@ public class MultiPointSpring extends PointSpringBase
     * Stores information for a single knot point in a wrappable segment.
     */
    public class WrapKnot {
-      public Point3d myPos;         // knot position 
-      public Point3d myPrevPos;     // knot position in previous iteration
-      public Point3d myLocPos;      // local position wrt wrappble if in contact 
-      public Vector3d myForce;      // first-order force on the knot
+      public Point3d myPos;      // knot position 
+      public Point3d myPrevPos;  // knot position in previous iteration
+      public Point3d myLocPos;   // local position wrt wrappble if in contact 
+      public Vector3d myForce;   // first-order force on the knot
  
       // attributes used if the knot is is contact with a wrappable:
-      Vector3d myNrml;              // contact normal
-      Matrix3d myDnrm;              // derivative of normal wrt knot position
-      double myDist;                // distance to surface
-      double myPrevDist;            // previous distance to surface
-      int myWrappableIdx;           // index of contacting wrappable
-      int myPrevWrappableIdx;       // index of previous contacting wrappable
-      
+      Vector3d myNrml;           // contact normal
+      Matrix3d myDnrm;           // derivative of normal wrt knot position
+      double myDist;             // distance to surface
+      double myPrevDist;         // previous distance to surface
+      int myWrappableIdx;        // index of contacting wrappable
+      int myPrevWrappableIdx;    // index of previous contacting wrappable
+      int myContactGid;          // group ID for consecutive contacting knots
       // attributes used to store knot's components in the block triadiagonal
       // stiffness/force system
       Matrix3d myBmat;
       Matrix3d myBinv;
       Matrix3d myCinv;
       Vector3d myDvec;
-      Vector3d myVtmp;
       
       float[] myRenderPos;          // knot position used for rendering
       
@@ -162,6 +165,10 @@ public class MultiPointSpring extends PointSpringBase
       public boolean inContact() {
          return myWrappableIdx != -1;
       }
+
+      public double getContactDistance() {
+         return myDist;
+      }
       
       public Wrappable getWrappable() {
          if (myWrappableIdx < 0) {
@@ -171,8 +178,6 @@ public class MultiPointSpring extends PointSpringBase
             return myWrappables.get(myWrappableIdx);
          }
       }
-
-
 
       public Wrappable getPrevWrappable() {
          if (myPrevWrappableIdx < 0) {
@@ -194,7 +199,6 @@ public class MultiPointSpring extends PointSpringBase
          myBinv = new Matrix3d();
          myCinv = new Matrix3d();
          myDvec = new Vector3d();
-         myVtmp = new Vector3d();
          myRenderPos = new float[3];
          myWrappableIdx = -1;
          myPrevWrappableIdx = -1;
@@ -505,13 +509,17 @@ public class MultiPointSpring extends PointSpringBase
 
       protected int[] myContactCnts; // number of knots contacting each wrappable
 
-
       private abstract class LineSearchFunc implements DifferentiableFunction1x1 {
 
          boolean contactChanged = false;
+         VectorNd myDvec;
          
+         LineSearchFunc (VectorNd dvec) {
+            myDvec = dvec;
+         }
+
          protected void update (double s) {
-            advancePosByDvec (s);
+            advancePosByDvec (s, myDvec);
             contactChanged = updateContacts (null, false);
             updateForces();
          }
@@ -527,11 +535,15 @@ public class MultiPointSpring extends PointSpringBase
 
       private class EnergyFunc extends LineSearchFunc {
 
+         EnergyFunc (VectorNd dvec) {
+            super (dvec);
+         }
+
          @Override
          public double eval (DoubleHolder dfds, double s) {
             update (s);
             if (dfds != null) {
-               dfds.value = -forceDotDisp();
+               dfds.value = -forceDotDisp(myDvec);
             }
             return computeEnergy();
          }
@@ -539,11 +551,15 @@ public class MultiPointSpring extends PointSpringBase
       
       private class ForceSqrFunc extends LineSearchFunc {
 
+         ForceSqrFunc (VectorNd dvec) {
+            super (dvec);
+         }
+
          @Override
          public double eval (DoubleHolder dfds, double s) {
             update (s);
             if (dfds != null) {
-               dfds.value = computeForceSqrDeriv();
+               dfds.value = computeForceSqrDeriv(myDvec);
             }
             return computeForceSqr();
          }
@@ -570,6 +586,15 @@ public class MultiPointSpring extends PointSpringBase
          myRenderABPoints = null; // will be created in prerender()
          myInitialPnts = initialPnts;
          myDscale = 1.0;
+      }
+
+      int indexOf (WrapKnot knot) {
+         for (int k=0; k<myNumKnots; k++) {
+            if (myKnots[k] == knot) {
+               return k;
+            }
+         }
+         return -1;
       }
 
       void clearSubSegs () {
@@ -792,6 +817,7 @@ public class MultiPointSpring extends PointSpringBase
                changed = true;
             }
          }
+         myUpdateContactsCnt++;
          return changed;
       }
 
@@ -859,14 +885,14 @@ public class MultiPointSpring extends PointSpringBase
             dprev.set (dnext);
          }
       }        
-
-      double computeDvecLength() {
-         double lenSqr = 0;
-         for (int k=0; k<myNumKnots; k++) {
-            lenSqr += myKnots[k].myDvec.normSquared();
-         }
-         return Math.sqrt(lenSqr);
-      }
+//
+//      double computeDvecLength() {
+//         double lenSqr = 0;
+//         for (int k=0; k<myNumKnots; k++) {
+//            lenSqr += myKnots[k].myDvec.normSquared();
+//         }
+//         return Math.sqrt(lenSqr);
+//      }
 
       public double computeEnergy() {
 
@@ -971,60 +997,81 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
 
-      /**
-       * For each knot, save the myDvec field into myVtmp.
-       */
-      private void saveDvecToVtmp () {
-         for (int k=0; k<myNumKnots; k++) {         
-            WrapKnot knot = myKnots[k];
-            knot.myVtmp.set (knot.myDvec);
-         }
-      }
+//      /**
+//       * For each knot, save the myDvec field into myVtmp.
+//       */
+//      private void saveDvecToVtmp () {
+//         for (int k=0; k<myNumKnots; k++) {         
+//            WrapKnot knot = myKnots[k];
+//            knot.myVtmp.set (knot.myDvec);
+//         }
+//      }
+//      
+//      /**
+//       * For each knot, restore the myDvec field from myVtmp.
+//       */
+//      private void restoreDvecFromVtmp () {
+//         for (int k=0; k<myNumKnots; k++) {         
+//            WrapKnot knot = myKnots[k];
+//            knot.myDvec.set (knot.myVtmp);
+//         }
+//      }
       
-      /**
-       * For each knot, restore the myDvec field from myVtmp.
-       */
-      private void restoreDvecFromVtmp () {
+//      private void modifyDvec (double lam) {
+//         for (int k=0; k<myNumKnots; k++) {         
+//            WrapKnot knot = myKnots[k];
+//            knot.myDvec.scaledAdd (lam, knot.myForce);
+//         }        
+//      }
+
+      private void modifyDvec (double lam, VectorNd dvec) {
+         double[] dbuf = dvec.getBuffer();
          for (int k=0; k<myNumKnots; k++) {         
             WrapKnot knot = myKnots[k];
-            knot.myDvec.set (knot.myVtmp);
-         }
-      }
-      
-      private void modifyDvec (double lam) {
-         for (int k=0; k<myNumKnots; k++) {         
-            WrapKnot knot = myKnots[k];
-            knot.myDvec.scaledAdd (lam, knot.myForce);
+            dbuf[k*3  ] += lam*knot.myForce.x;
+            dbuf[k*3+1] += lam*knot.myForce.y;
+            dbuf[k*3+2] += lam*knot.myForce.z;
          }        
       }
 
-      /**
-       * For each knot, advance myPos by s*myDvec
-       */
-      private double advancePosByDvec (double s) {
-         double normSqr = 0;
+//      /**
+//       * For each knot, advance myPos by s*myDvec
+//       */
+//      private void advancePosByDvec (double s) {
+//         for (int k=0; k<myNumKnots; k++) {         
+//            WrapKnot knot = myKnots[k];
+//            knot.myPos.scaledAdd (s, knot.myDvec, knot.myPrevPos);
+//         }
+//         myLength = computeLength();
+//      }
+//      
+      private void advancePosByDvec (double s, VectorNd dvec) {
+         double[] dbuf = dvec.getBuffer();
          for (int k=0; k<myNumKnots; k++) {         
             WrapKnot knot = myKnots[k];
-            knot.myPos.scaledAdd (s, knot.myDvec, knot.myPrevPos);
-            normSqr += s*s*knot.myDvec.normSquared();
-         }
+            double dx = dbuf[k*3  ];
+            double dy = dbuf[k*3+1];
+            double dz = dbuf[k*3+2];
+            knot.myPos.x = s*dx + knot.myPrevPos.x;
+            knot.myPos.y = s*dy + knot.myPrevPos.y;
+            knot.myPos.z = s*dz + knot.myPrevPos.z;
+         }        
          myLength = computeLength();
-         return Math.sqrt(normSqr);
       }
 
-      /**
-       * For each knot, advance myPos by s*myVtmp
-       */
-      private double advancePosByVtmp (double s) {
-         double normSqr = 0;
-         for (int k=0; k<myNumKnots; k++) {         
-            WrapKnot knot = myKnots[k];
-            knot.myPos.scaledAdd (s, knot.myVtmp, knot.myPrevPos);
-            normSqr += s*s*knot.myVtmp.normSquared();
-         }
-         myLength = computeLength();
-         return Math.sqrt(normSqr);
-      }
+//      /**
+//       * For each knot, advance myPos by s*myVtmp
+//       */
+//      private double advancePosByVtmp (double s) {
+//         double normSqr = 0;
+//         for (int k=0; k<myNumKnots; k++) {         
+//            WrapKnot knot = myKnots[k];
+//            knot.myPos.scaledAdd (s, knot.myVtmp, knot.myPrevPos);
+//            normSqr += s*s*knot.myVtmp.normSquared();
+//         }
+//         myLength = computeLength();
+//         return Math.sqrt(normSqr);
+//      }
 
       private void savePosToPrev() {
          for (int k=0; k<myNumKnots; k++) {         
@@ -1056,64 +1103,89 @@ public class MultiPointSpring extends PointSpringBase
          }
          return K;
       }
-      
+
       /**
        * Uses numerical differentiation to estimate the stiffness
        * matrix for all the knots. Used for debugging.
        */
-      protected MatrixNd computeNumericStiffness() {
+      protected Matrix3d[] computeNumericStiffness() {
 
-         int numk = myNumKnots;
-         VectorNd f0 = new VectorNd (3*numk);
-         VectorNd q0 = new VectorNd (3*numk);
-         VectorNd f = new VectorNd (3*numk);
-         VectorNd q = new VectorNd (3*numk);
-         MatrixNd K = new MatrixNd (3*numk, 3*numk);
+         Matrix3d[] S = new Matrix3d[myNumKnots];
+        
+         Matrix3d Kbase = new Matrix3d();
+         Kbase.setIdentity();
+         Kbase.scale (-2*myWrapStiffness);
 
-         updateContacts(null, false);
-         updateForces();
+         Point3d q = new Point3d();
+         Vector3d f = new Vector3d();
+         Vector3d f0 = new Vector3d();
+         Vector3d nrm = new Vector3d();
 
-         boolean changed = false;
-
-         getPositions (q0);
-         getForces (f0);
          double h = 1e-8;
-         for (int i=0; i<3*numk; i++) {
-            q.set (q0);
-            q.add (i, h);
-            setPositions (q);
-            if (updateContacts(null, false)) {
-               changed = true;
+
+         boolean contactChanged = false;
+         boolean tetChanged = false;
+
+         for (int k=0; k<myNumKnots; k++) {
+            Wrappable wrappable = myKnots[k].getWrappable();
+            Point3d q0 = myKnots[k].myPos;
+            Matrix3d Kknot = new Matrix3d();
+            
+            boolean invalid = false;
+
+            if (wrappable != null) {
+               TetDesc tet0 = null;
+               if (wrappable instanceof RigidMesh) {
+                  tet0 = ((RigidMesh)wrappable).getQuadTet(q0);
+               }
+               double d = wrappable.penetrationDistance (nrm, null, q0);
+               f0.scale (-d*myContactStiffness, nrm);
+               for (int i=0; i<3; i++) {
+                  q.set (q0);
+                  q.set (i, q.get(i)+h);
+                  d = wrappable.penetrationDistance (nrm, null, q);
+                  if (tet0 != null) {
+                     TetDesc tet = ((RigidMesh)wrappable).getQuadTet(q);
+                     if (!tet.equals (tet0)) {
+                        tetChanged = true;
+                        invalid = true;
+                     }
+                  }
+                  if (d > 0) {
+                     contactChanged = true;
+                     invalid = true;
+                     d = 0;
+                  }
+                  f.scale (-d*myContactStiffness, nrm);
+                  f.sub (f0);
+                  f.scale (1/h);
+                  Kknot.setColumn (i, f);
+               }
             }
-            updateForces();
-            getForces (f);
-            f.sub (f0);
-            f.scale (1/h);
-            K.setColumn (i, f);
+            if (!invalid) {
+               Kknot.add (Kbase);
+               S[k] = Kknot;
+            }
          }
-         setPositions (q0);
-         if (updateContacts(null, false)) {
-            changed = true;
-         }
-         if (changed) {
-            System.out.println ("CONTACT STATE CHANGED");
-         }
-         updateForces();
-         return K;
+         // if (contactChanged) {
+         //    System.out.println ("CONTACT STATE CHANGED");
+         // }
+         // if (tetChanged) {
+         //    System.out.println ("TET CHANGED");
+         // }
+         return S;
       }
 
-      void updateStiffnessNumerically (double dscale) {
-         double d = dscale*getWrapDamping()/(myNumKnots*myNumKnots);
-         MatrixNd KN = computeNumericStiffness();
-         int numk = myNumKnots;
-         Matrix3d B = new Matrix3d();
-         for (int k=0; k<numk; k++) {
-            KN.getSubMatrix (3*k, 3*k, B);
-            B.negate();
-            B.m00 += d; B.m11 += d; B.m22 += d;
-            myKnots[k].myBmat.set(B);
-         }
-      }         
+      // void updateStiffnessNumerically (double dscale) {
+      //    double d = dscale*getWrapDamping()/(myNumKnots*myNumKnots);
+      //    Matrix3d[] S = computeNumericStiffness();
+      //    Matrix3d B = new Matrix3d();
+      //    for (int k=0; k<myNumKnots; k++) {
+      //       B.negate(S[k]);
+      //       B.m00 += d; B.m11 += d; B.m22 += d;
+      //       myKnots[k].myBmat.set(B);
+      //    }
+      // }         
 
       private void addToDiagonal (Matrix3d MR, Matrix3d M, double d) {
          MR.m00 = M.m00 + d;
@@ -1145,11 +1217,11 @@ public class MultiPointSpring extends PointSpringBase
       // that results from first order physics. e use the block tridiagonal
       // matrix algorithm:
       //
-      //         { inv(B_i) C_i                                   i = 0
+      //         { inv(B_i) C_i                                  i = 0
       //  C'_i = {
-      //         { inv(B_i - A_i*C'_{i-1}) C_i                    i = 1, 2, ...
+      //         { inv(B_i - A_i*C'_{i-1}) C_i                   i = 1, 2, ...
       //
-      //         { inv(B_i) f_i                                   i = 0
+      //         { inv(B_i) f_i                                  i = 0
       //  d_i =  {
       //         { inv(B_i - A_i*C'_{i-1}) (f_i - A_i d_{i-1})   i > 0
       //
@@ -1168,7 +1240,7 @@ public class MultiPointSpring extends PointSpringBase
       // myBinv, myCinv, and myForce, while d_i and x_i are stored in the
       // myDvec field.
       //
-      double factorAndSolve () {
+      double factorAndSolve (VectorNd dvec) {
          double c = -myWrapStiffness;
          double d = getWrapDamping()/(myNumKnots*myNumKnots);        
          WrapKnot knot = myKnots[0];
@@ -1217,6 +1289,13 @@ public class MultiPointSpring extends PointSpringBase
                myKnots[i].myDvec.scale (s);
             }
          }
+         double[] dbuf = dvec.getBuffer();
+         for (int i=0; i<myNumKnots; i++) {
+            Vector3d dv = myKnots[i].myDvec;
+            dbuf[i*3  ] = dv.x;
+            dbuf[i*3+1] = dv.y;
+            dbuf[i*3+2] = dv.z;
+         }
          // for (int i=0; i<myNumKnots; i++) {
          //    knot = myKnots[i];
          //    knot.myPos.add (knot.myDvec);
@@ -1244,23 +1323,23 @@ public class MultiPointSpring extends PointSpringBase
 //         return maxDisp;
 //      }         
 
-      double maxLateralDisplacement() {
-         Vector3d u = new Vector3d();
-         Vector3d xprod = new Vector3d();
-         double maxDisp = 0;
-         for (int i=0; i<myNumKnots-1; i++) {
-            u.sub (myKnots[i+1].myPos, myKnots[i].myPos);
-            double len = u.norm();
-            if (len != 0) {
-               xprod.cross (u, myKnots[i].myDvec);
-               double disp = xprod.norm()/len;
-               if (disp > maxDisp) {
-                  maxDisp = disp;
-               }
-            }
-         }
-         return maxDisp;
-      }         
+//      double maxLateralDisplacement() {
+//         Vector3d u = new Vector3d();
+//         Vector3d xprod = new Vector3d();
+//         double maxDisp = 0;
+//         for (int i=0; i<myNumKnots-1; i++) {
+//            u.sub (myKnots[i+1].myPos, myKnots[i].myPos);
+//            double len = u.norm();
+//            if (len != 0) {
+//               xprod.cross (u, myKnots[i].myDvec);
+//               double disp = xprod.norm()/len;
+//               if (disp > maxDisp) {
+//                  maxDisp = disp;
+//               }
+//            }
+//         }
+//         return maxDisp;
+//      }         
 
 //      double computeDecrement() {
 //         double dot = 0;
@@ -1279,26 +1358,31 @@ public class MultiPointSpring extends PointSpringBase
          return Math.sqrt(sumSqr);
       }
 
-      double forceDotDisp() {
+      double forceDotDisp(VectorNd dvec) {
+         double[] dbuf = dvec.getBuffer();
          double dot = 0;
          for (int i=0; i<myNumKnots; i++) {
-            WrapKnot knot = myKnots[i];
-            dot += knot.myForce.dot(knot.myDvec);
+            Vector3d f = myKnots[i].myForce;
+            dot += (f.x*dbuf[3*i] + f.y*dbuf[3*i+1] + f.z*dbuf[3*i+2]);
          }
          return dot;
       }
       
-      double computeForceSqrDeriv() {
+      double computeForceSqrDeriv(VectorNd dvec) {
          Vector3d tmp = new Vector3d();
+         Vector3d dv = new Vector3d();
          double c = -myWrapStiffness;
          double deriv = 0;
          for (int i=0; i<myNumKnots; i++) {
-            myKnots[i].myBmat.mul (tmp, myKnots[i].myDvec); 
+            dv.set (dvec, i*3);
+            myKnots[i].myBmat.mul (tmp, dv);
             if (i > 0) {
-               tmp.scaledAdd (c, myKnots[i-1].myDvec);
+               dv.set (dvec, (i-1)*3);
+               tmp.scaledAdd (c, dv);
             }
             if (i < myNumKnots-1) {
-               tmp.scaledAdd (c, myKnots[i+1].myDvec);
+               dv.set (dvec, (i+1)*3);
+               tmp.scaledAdd (c, dv);
             }
             deriv += myKnots[i].myForce.dot(tmp);
          }        
@@ -1314,25 +1398,25 @@ public class MultiPointSpring extends PointSpringBase
          return fsqr;
       }
       
-      double maxDispNorm() {
-         double max = 0;
-         for (int i=0; i<myNumKnots; i++) {
-            WrapKnot knot = myKnots[i];
-            if (knot.myDvec.norm() > max) {
-               max = knot.myDvec.norm();
-            }
-         }
-         return max;        
-      }
+//      double maxDispNorm() {
+//         double max = 0;
+//         for (int i=0; i<myNumKnots; i++) {
+//            WrapKnot knot = myKnots[i];
+//            if (knot.myDvec.norm() > max) {
+//               max = knot.myDvec.norm();
+//            }
+//         }
+//         return max;        
+//      }
       
-      double maxForceDotDisp() {
-         double max = 0;
-         for (int i=0; i<myNumKnots; i++) {
-            WrapKnot knot = myKnots[i];
-            max += knot.myForce.norm()*knot.myDvec.norm();
-         }
-         return max;
-      }       
+//      double maxForceDotDisp() {
+//         double max = 0;
+//         for (int i=0; i<myNumKnots; i++) {
+//            WrapKnot knot = myKnots[i];
+//            max += knot.myForce.norm()*knot.myDvec.norm();
+//         }
+//         return max;
+//      }       
 
       double computeLength() {
          double len = 0;
@@ -1385,65 +1469,34 @@ public class MultiPointSpring extends PointSpringBase
       void checkStiffness() {
          updateContacts(null, true);
          updateForces();
-         updateStiffness(0.0, 0.0);
-         int numk = myNumKnots;
-         MatrixNd K = new MatrixNd(3*numk, 3*numk);
-         double c = myWrapStiffness;
-         Matrix3d C = new Matrix3d();
-         C.setDiagonal (-c, -c, -c);
-
-         for (int k=0; k<numk; k++) {
-            WrapKnot knot = myKnots[k];
-            K.setSubMatrix (3*k, 3*k, knot.myBmat);
-            if (k > 0) {
-               K.setSubMatrix (3*k, 3*(k-1), C);
-            }
-            if (k < numk-1) {
-               K.setSubMatrix (3*k, 3*(k+1), C);
-            }
-         }
-         K.negate();
-         //System.out.println ("K=\n" + K.toString ("%8.4f"));
-         MatrixNd KC = computeNumericStiffness();
-         //System.out.println ("KC=\n" + KC.toString ("%8.4f"));
-
-         MatrixNd E = new MatrixNd (K);
-         E.sub (KC);
-         //System.out.println ("E=\n" + E.toString ("%8.4f"));
-         double err = E.frobeniusNorm()/K.frobeniusNorm();
-         if (err > 0.001) {
-            System.out.println ("ERR=" + err);
-         }
-
-          // for (int k=0; k<numk; k++) {
-          //    Matrix3d B = new Matrix3d();
-          //    if (myKnots[k].getWrappable() != null) {
-          //       System.out.println ("k=" + k);
-          //       KC.getSubMatrix (3*k, 3*k, B);
-          //       System.out.println ("KC=\n" + B.toString ("%12.7f"));
-          //       K.getSubMatrix (3*k, 3*k, B);
-          //       System.out.println ("K=\n" + B.toString ("%12.7f"));             
-          //    }
-          // }
-
-         // Matrix3d B = new Matrix3d();
-         // Matrix3d Bmax = new Matrix3d();
-         // double fmax = 0;
-         // int kmax = -1;
-         // for (int k=0; k<numk; k++) {
-         //    E.getSubMatrix (3*k, 3*k, B);
-         //    if (B.frobeniusNorm() > fmax) {
-         //       fmax = B.frobeniusNorm(); 
-         //       Bmax.set (B);
-         //       kmax = k;
-         //    }
-         // }
-         // System.out.println ("kmax=" + kmax)
-         // KC.getSubMatrix (3*kmax, 3*kmax, B);
-         // System.out.println ("KC=\n" + B.toString ("%12.7f"));
-         // K.getSubMatrix (3*kmax, 3*kmax, B);
-         // System.out.println ("K=\n" + B.toString ("%12.7f"));
+         updateStiffness(1.0, 0.0);
          
+         Matrix3d[] Kcheck = computeNumericStiffness();
+         Matrix3d Kerr = new Matrix3d();
+
+         double maxErr = 0;
+         int kmax = -1;
+
+         for (int k=0; k<myNumKnots; k++) {
+            // add because Bmat is the negative of the stiffness
+            if (Kcheck[k] != null) {
+               Kerr.add (Kcheck[k], myKnots[k].myBmat);
+               double err = Kerr.frobeniusNorm()/Kcheck[k].frobeniusNorm();
+               if (err > maxErr) {
+                  maxErr = err;
+                  kmax = k;
+               }
+            }
+         }
+         if (maxErr > 1e-6) {
+            System.out.println ("err=" + maxErr + ", knot=" + kmax);
+            Matrix3d Kknot = new Matrix3d();
+            Kknot.negate (myKnots[kmax].myBmat);
+            System.out.println ("Kknot=\n" + Kknot.toString ("%12.8f"));
+            System.out.println ("Kcheck=\n" + Kcheck[kmax].toString ("%12.8f"));
+            Kerr.sub (Kcheck[kmax], Kknot);
+            System.out.println ("Kerror=\n" + Kerr.toString ("%12.8f"));
+         }
       }         
 
       boolean checkForBrokenContact (
@@ -1452,7 +1505,7 @@ public class MultiPointSpring extends PointSpringBase
          boolean contactBroken = false;
          for (int i=0; i<myWrappables.size(); i++) {
             if (contactCnts[i] != 0 && newContactCnts[i] == 0) {
-               if (debugLevel > 0) {
+               if (debugLevel > 1) {
                   System.out.println (
                      "  broken, old numc=" + contactCnts[i]);
                }
@@ -1461,7 +1514,7 @@ public class MultiPointSpring extends PointSpringBase
                contactBroken = true;
             }
             else if (contactCnts[i] == 0 && newContactCnts[i] != 0) {
-               if (debugLevel > 0) {
+               if (debugLevel > 1) {
                   System.out.println (
                      "  contacting, new numc=" + newContactCnts[i]);
                }
@@ -1476,158 +1529,178 @@ public class MultiPointSpring extends PointSpringBase
          return contactBroken;
       }
 
+      void updateContactGroups() {
+         int contactGid = -1;
+         WrapKnot prev = null;
+         for (WrapKnot knot : myKnots) {
+            if (knot.inContact()) {
+               if (prev == null ||
+                   prev.getWrappable() != knot.getWrappable()) {
+                  contactGid++;
+               }
+               knot.myContactGid = contactGid;
+            }
+            else {
+               knot.myContactGid = -1;
+            }
+            prev = knot;
+         }
+      }
+      
+      boolean checkForBrokenContactNew() {
+
+         int contactGid = -1;
+         int contactCnt = 0;
+         for (int k=0; k<numKnots(); k++) {
+            WrapKnot knot = myKnots[k];
+            if (knot.myContactGid != -1) {
+               // knot was in contact
+               if (knot.myContactGid != contactGid) {
+                  // starting a new contact group
+                  contactGid = knot.myContactGid;
+                  contactCnt = 0;
+               }
+               if (knot.inContact()) {
+                  // bump contact count for current group
+                  contactCnt++;
+               }
+            }
+            else {
+               // knot not in contact
+               if (contactGid != -1) {
+                  // leaving contact group; return true if there
+                  // was no contact
+                  if (contactCnt == 0) {
+                     return true;
+                  }
+                  contactGid = -1;
+               }
+            }
+         }
+         if (contactGid != -1) {
+            // leaving contact group; return true if there was no contact
+            return contactCnt == 0;
+         }
+         else {
+            return false;
+         }
+      }
+
+      void computeGroupPullback (
+         ContactPullback pullback, VectorNd dvec, int start, int end) {
+         if (debugLevel > 1) {
+            System.out.println ("  broken contact from "+start+" to "+end);
+         }
+         int groupKnotIdx = -1;
+         Vector3d dv = new Vector3d();
+         double groupScale = 1.0;
+         for (int k=start; k<end; k++) {
+            WrapKnot knot = myKnots[k];
+            // if (debugLevel > 1) {
+            //    System.out.println (
+            //       "  "+k+" dvec=" + knot.myDvec.toString("%10.7f") + "  " +
+            //       knot.myVtmp.toString("%10.7f") + " nrml=" +
+            //       knot.myNrml.toString("%10.7f"));
+            // }
+            dv.set (dvec, 3*k);
+            if (dv.dot (knot.myNrml/*Vtmp*/) < 0) {
+               // knot is trying to renter object, so find scale factor
+               double dist = knot.myDist;
+               double prev = knot.myPrevDist;
+               if (dist != Wrappable.OUTSIDE && dist > 0 && prev < 0) {
+                  double r = dist/(dist-prev);
+                  if (debugLevel > 1) {
+                     System.out.println ("  "+k+" r=" + r);
+                  }
+                  if (r < groupScale) {
+                     groupScale = r;
+                     groupKnotIdx = k;
+                  }
+               }
+            }
+         }
+         if (groupKnotIdx != -1) {
+            if (groupScale < pullback.scale) {
+               pullback.scale = groupScale;
+               pullback.knot = myKnots[groupKnotIdx];
+               pullback.knotIdx = groupKnotIdx; 
+            }
+         }
+      }
+
+      public boolean inContact() {
+         for (WrapKnot knot : myKnots) {
+            if (knot.inContact()) {
+               return true;
+            }
+         }
+         return false;
+      }
+
+      void computePullbackNew (
+         ContactPullback pullback, int[] newContactCnts,
+         VectorNd dnew, VectorNd dvec) {
+         
+         pullback.scale = 1.0;
+         int contactGid = -1;
+         int contactGstart = -1;
+         int contactCnt = 0;
+         for (int k=0; k<numKnots(); k++) {
+            WrapKnot knot = myKnots[k];
+            if (knot.myContactGid != -1) {
+               // knot was in contact
+               if (knot.myContactGid != contactGid) {
+                  // starting a new contact group
+                  contactGstart = k;
+                  contactGid = knot.myContactGid;
+                  contactCnt = 0;
+               }
+               if (knot.inContact()) {
+                  // bump contact count for current group
+                  contactCnt++;
+               }
+            }
+            else {
+               // knot not in contact
+               if (contactGid != -1) {
+                  // leaving contact group; if contact was broken,
+                  // update pullback
+                  if (contactCnt == 0) {
+                     computeGroupPullback (pullback, dvec, contactGstart, k);
+                  }
+                  contactGid = -1;
+               }
+            }
+         }
+         if (contactGid != -1) {
+            // leaving contact group; if contact was broken,
+            // update pullback
+            if (contactCnt == 0) {
+               computeGroupPullback (pullback, dvec, contactGstart, numKnots());
+            }
+         }
+      }
+      
       private class ResidualFunc implements Function1x1 {
          
          boolean contactChanged = false;
-         
+         VectorNd myDvec;
+
+         public ResidualFunc (VectorNd dvec) {
+            myDvec = dvec;
+         }
+
          @Override
          public double eval (double s) {
-            advancePosByDvec (s);
+            advancePosByDvec (s, myDvec);
             contactChanged = updateContacts (null, false);
             updateForces();
-            return forceDotDisp();
+            return forceDotDisp(myDvec);
          }
          
          public boolean getContactChanged() {
             return contactChanged;
          }
-      }
-
-      void lineSearchOld (double r0, double r1, boolean debug) {
-         double rs = r1;
-         int maxIter = 10;
-         int iter = 0;
-         double s  = 1;
-         while (Math.abs(rs) >= 0.5*Math.abs(r0) && iter < maxIter) {
-            double alpha = r0/rs;
-            if (alpha > 0) {
-               s = alpha/2;
-            }
-            else {
-               s = alpha/2+Math.sqrt(0.25*alpha*(alpha-4));
-            }
-            advancePosByDvec (s);
-            updateContacts (null, false);
-            updateForces();
-            rs = forceDotDisp();
-            if (debug) {
-               System.out.printf ("       s=%g r=%g alpha=%g\n", s, rs, alpha);
-            }
-            
-            iter++;
-         }
-         if (!debug) {
-            System.out.printf ("    line search s=%g rs=%g iters=%d \n", s, rs, iter);
-            if (iter == 10) {
-               for (int i=0; i<20; i++) {
-                  double sx = 0.1*(i+1)/20.0;
-                  advancePosByDvec (sx);
-                  updateContacts (null, false);
-                  updateForces();
-                  double rx = forceDotDisp();
-                  System.out.printf (
-                     "       %g  %g  %g\n", sx, rx, rx/(0.5*r0));
-               }
-               lineSearchOld (r0, r1, true);
-               advancePosByDvec (s);
-               updateContacts (null, false);
-               updateForces();
-               rs = forceDotDisp();            
-            }
-         }
-      }
-
-      private void printKnotInfo (double maxs) {
-
-         int n = 2;
-         ResidualFunc func = new ResidualFunc();
-         for (int i=0; i<n; i++) {
-            double sx = maxs*i/200.0;
-            double rx = func.eval(sx);
-
-            NumberFormat fmt = new NumberFormat("%12.9f");
-            System.out.println ("  i=" + i);
-            for (int k=0; k<myNumKnots; k++) {
-               WrapKnot knot = myKnots[k];
-               if (knot.inContact()) {
-                  System.out.println (
-                     "    "+k+" pos=" + knot.myPos.toString("%10.7f") + " dvec="+knot.myDvec.toString("%10.7f") +
-                     " force=" + knot.myForce.toString("%10.7f") +
-                     " fnrm=" +
-                     fmt.format(knot.myForce.norm()) + " d=" + knot.myDist +
-                     "   " + knot.myDvec.dot(knot.myForce));
-               }
-               else if (
-                  (k > 0 && myKnots[k-1].inContact()) ||
-                  (k < myNumKnots-1 && myKnots[k+1].inContact())) {
-                  System.out.println (
-                     "    "+k+" pos=" + knot.myPos.toString("%10.7f"));
-               }
-            }
-            System.out.println (
-               "    energy=" + computeEnergy() + 
-               " r=" + forceDotDisp() + " fsqr=" + computeForceSqr());
-         }
-      }
-
-      private void writeRfiles (String name, double maxs) {
-
-         ResidualFunc func = new ResidualFunc();
-         PrintWriter pwr = null;
-         PrintWriter pwe = null;
-         PrintWriter pwf = null;
-         PrintWriter pwd = null;
-         try {
-            pwr = ArtisynthIO.newIndentingPrintWriter (name+".txt");
-            pwe = ArtisynthIO.newIndentingPrintWriter (name+"e.txt");
-            pwf = ArtisynthIO.newIndentingPrintWriter (name+"f.txt");
-            pwd = ArtisynthIO.newIndentingPrintWriter (name+"fd.txt");
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-         for (int i=0; i<200; i++) {
-            double sx = maxs*i/200.0;
-            double rx = func.eval(sx);
-            pwr.println (sx + " " + rx);
-            pwe.println (sx + " "+ computeEnergy());
-            pwf.println (sx + " "+ computeForceSqr());
-            pwd.println (sx + " "+ computeForceSqrDeriv());
-         }
-         pwr.close();
-         pwe.close();
-         pwf.close();
-         pwd.close();
-      }
-
-      private double lineSearchWolfe (
-         double f0, double df0, double f, double df, LineSearchFunc func,
-         double c1, double c2, double maxs) {
-
-         DoubleHolder deriv = new DoubleHolder();
-         double s = 1.0;
-
-         double fprev = f0;
-         double sprev = 0;
-         for (int i=0; i<2; i++) {
-            if (f > f0 + c1*df0*s || (i > 0 && f >= fprev)) {
-               return zoom (sprev, s, f0, df0, fprev, func, c1, c2);
-            }
-            else if (df >= 0) {
-               return zoom (sprev, s, f0, df0, fprev, func, c1, c2);
-            }
-            else if (df > c2*df0) {
-               return s;
-            }
-            if (i == 0) {
-               sprev = s;
-               fprev = f;
-               s = maxs;
-               f = func.eval (deriv, s);
-               df = deriv.value;
-            }
-         }
-         return s;         
       }
 
       private double lineSearch (
@@ -1657,7 +1730,7 @@ public class MultiPointSpring extends PointSpringBase
          }
          else {
             shi = s;
-            int maxIter = 5;
+            int maxIter = 3;
             for (int i=0; i<maxIter; i++) {
                s = (slo+shi)/2;
                f = func.eval (deriv, s);
@@ -1701,140 +1774,21 @@ public class MultiPointSpring extends PointSpringBase
          return s;
       }      
 
-      private void printStuckDebugInfo (double maxs) {
+      private double computeRescale (
+         ContactPullback pullback, VectorNd dvec) {
          
-         System.out.println (
-            "WTF? max=" + maxForceDotDisp() + " maxDisp=" +
-            maxDispNorm());
-         ResidualFunc rfunc = new ResidualFunc();
-         PrintWriter pwr = null;
-         PrintWriter pwk = null;
-         PrintWriter pwf = null;
-         PrintWriter pwd = null;
-         PrintWriter pwn = null;
-         PrintWriter pwre = null;
-         PrintWriter pwke = null;
-         PrintWriter pwfe = null;
-         PrintWriter pwne = null;
-         PrintWriter pwde = null;
-         try {
-            pwr = ArtisynthIO.newIndentingPrintWriter ("r.txt");
-            pwk = ArtisynthIO.newIndentingPrintWriter ("k.txt");
-            pwf = ArtisynthIO.newIndentingPrintWriter ("f.txt");
-            pwd = ArtisynthIO.newIndentingPrintWriter ("d.txt");
-            pwn = ArtisynthIO.newIndentingPrintWriter ("n.txt");
-            pwre = ArtisynthIO.newIndentingPrintWriter ("re.txt");
-            pwke = ArtisynthIO.newIndentingPrintWriter ("ke.txt");
-            pwfe = ArtisynthIO.newIndentingPrintWriter ("fe.txt");
-            pwde = ArtisynthIO.newIndentingPrintWriter ("de.txt");
-            pwne = ArtisynthIO.newIndentingPrintWriter ("ne.txt");
-         }
-         catch (Exception e) {
-         }
-                        
-         System.out.println (
-            "REGULAR DAMPING, dvecLen=" + computeDvecLength() + " force=" + forceNorm());
-         System.out.println ("force31=" + myKnots[31].myForce);
-         printKnotInfo (maxs);
-         writeRfiles ("r", maxs);
-
-         rfunc.eval(0);
-         updateContacts (null, true);
-         updateStiffness(0, 10);
-         factorAndSolve();
-         System.out.println (
-            "HIGHER DAMPING, dvecLen=" + computeDvecLength() + " force=" + forceNorm());
-
-         printKnotInfo (maxs);
-         writeRfiles ("d", maxs);
-
-         rfunc.eval(0);
-         updateContacts (null, true);
-         updateStiffness(0, 0);
-         factorAndSolve();
-         System.out.println (
-            "NO DAMPING, dvecLen=" + computeDvecLength() + " force=" + forceNorm());
-
-         printKnotInfo (maxs);
-         writeRfiles ("k", maxs);
-
-         rfunc.eval(0);
-         updateContacts (null, true);
-         for (int k=0; k<myNumKnots; k++) {
-            myKnots[k].myDvec.scale (1.0, myKnots[k].myForce);
-         }
-         System.out.println (
-            "FORCE DIRECTION, dvecLen=" + computeDvecLength() + " force=" + forceNorm());
-
-         printKnotInfo (maxs);
-         writeRfiles ("f", maxs);
-
-         rfunc.eval(0);
-         updateContacts (null, true);
-         updateStiffnessNumerically(0);
-         rfunc.eval(0);
-         System.out.println ("force31=" + myKnots[31].myForce);
-         factorAndSolve();
-         System.out.println (
-            "NUMERIC DIRECTION, dvecLen=" + computeDvecLength() + " force=" + forceNorm());
-
-         printKnotInfo (maxs);
-         writeRfiles ("n", maxs);
-
-         VectorNd force = new VectorNd();
-         rfunc.eval(0);
-         SparseBlockMatrix K = createSparseStiffnessMatrix(force);
-         System.out.println ("writing KN.txt");
-         try {
-            PrintWriter pw =
-               ArtisynthIO.newIndentingPrintWriter ("KN.txt");
-            K.write (pw, new NumberFormat("%g"),
-                     Matrix.WriteFormat.CRS);
-            force.write (pw, new NumberFormat("%g"));
-            pw.close();
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-         pwr.close();
-         pwk.close();
-         pwf.close();
-         pwd.close();
-         pwn.close();
-         pwre.close();
-         pwke.close();
-         pwfe.close();
-         pwde.close();
-         pwne.close();
-         rfunc.eval(0);
-         updateContacts (null, true);
-
-         updateStiffness (0, 0);
-         K = createSparseStiffnessMatrix(force);
-         System.out.println ("writing K.txt");
-         try {
-            PrintWriter pw =
-               ArtisynthIO.newIndentingPrintWriter ("K.txt");
-            K.write (pw, new NumberFormat("%g"),
-                     Matrix.WriteFormat.CRS);
-            force.write (pw, new NumberFormat("%g"));
-            pw.close();
-         }
-         catch (Exception e) {
-            e.printStackTrace(); 
-         }
-      }
-
-
-      private double computeRescale (WrapKnot knot, double pullback) {
-         double s = 0.99*(1-pullback);
+         WrapKnot knot = pullback.knot;
+         Vector3d dv = new Vector3d();
+         dv.set (dvec, 3*pullback.knotIdx);
+         
+         double s = 0.99*(1-pullback.scale);
          Point3d pos = new Point3d();
          Wrappable wrappable = knot.getPrevWrappable(); 
          double dist = knot.myDist;
          double prev = knot.myPrevDist;
 
          while (dist > 0) {
-            pos.scaledAdd (s, knot.myVtmp, knot.myPrevPos);
+            pos.scaledAdd (s, dv, knot.myPrevPos);
             dist = wrappable.penetrationDistance (null, null, pos);
             if (dist > 0) {
                s *= 0.99*(-prev/(dist-prev));
@@ -1843,6 +1797,45 @@ public class MultiPointSpring extends PointSpringBase
          return s;                     
       }
 
+      private class ContactPullback {
+         WrapKnot knot;
+         int knotIdx;
+         double scale;
+      }
+
+      void computePullback (
+         ContactPullback pullback, int[] newContactCnts, 
+         VectorNd dnew, VectorNd dvec) {
+         
+         Vector3d dv = new Vector3d();
+         Vector3d dn = new Vector3d();
+         pullback.scale = 1.0;
+         pullback.knotIdx = -1;
+         for (int k=0; k<myNumKnots; k++) {
+            WrapKnot knot = myKnots[k];
+            int widx = knot.myPrevWrappableIdx;
+            if (widx != -1 && newContactCnts[widx] != 0) {
+               // contact was broken for the wrappable this knot was
+               // in contact witj
+               dv.set (dvec, k*3);
+               dn.set (dnew, k*3);
+               if (dn.dot (dv) < 0) {
+                  // knot is trying to renter object, so find scale factor
+                  double dist = knot.myDist;
+                  double prev = knot.myPrevDist;
+                  if (dist != Wrappable.OUTSIDE && dist > 0 && prev < 0) {
+                     double r = dist/(dist-prev);
+                     if (r < pullback.scale) {
+                        pullback.scale = r;
+                        pullback.knot = knot;
+                        pullback.knotIdx = k;
+                     }
+                  }
+               }
+            }
+         }
+      }
+      
       int numContacts() {
          int numc = 0;
          for (int k=0; k<myNumKnots; k++) {
@@ -1851,6 +1844,131 @@ public class MultiPointSpring extends PointSpringBase
             }
          }
          return numc;
+      }
+
+      boolean adjustDvecForContact (VectorNd dvec, VectorNd dnew) {
+         ContactPullback pullback = new ContactPullback();
+         //computePullback (pullback, newContactCnts, dnew, dold);
+         computePullbackNew (pullback, null, dnew, dvec);
+         if (pullback.knot != null) {
+            // adjust the pullback if necessary
+            double s = computeRescale (pullback, dvec);
+            dvec.scale (s);         
+            if (debugLevel > 1) {
+               System.out.println (
+                  "  RESCALE " + s + "  knot=" + indexOf(pullback.knot));
+            }
+            return true;
+         }
+         else {
+            return false;
+         }
+      }
+
+      boolean adjustDvecForContactGroup (
+         VectorNd dvec, int start, int end) {
+
+         if (debugLevel >= 0) {
+            System.out.println ("  broken contact from "+start+" to "+end);
+         }
+         Vector3d dv = new Vector3d();
+         double maxs = 0.0;
+         int maxk = -1;
+         for (int k=start; k<end; k++) {
+            WrapKnot knot = myKnots[k];
+            dv.set (dvec, 3*k);
+            if (dv.dot (knot.myNrml/*Vtmp*/) < 0) {
+               // knot is trying to renter object, so find scale factor
+               double dist = knot.myDist;
+               double prev = knot.myPrevDist;
+               if (dist != Wrappable.OUTSIDE && dist > 0 && prev < 0) {
+                  double s = -prev/(dist-prev);
+                  if (s > maxs) {
+                     maxs = s;
+                     maxk = k;
+                  }
+               }
+            }
+         }
+         if (maxk != -1) {
+            // find s such that for the knot associated with maxk,
+            //
+            // dv = dv - s*(dv*nrml)*nrml
+            //
+            // results in a knot position inside the wrappable
+            WrapKnot knot = myKnots[maxk];
+            Wrappable wrappable = knot.getPrevWrappable();
+            Point3d pos = new Point3d();
+            double s = 0.99*maxs;
+
+            double dist = knot.myDist;
+            double prev = knot.myPrevDist;
+            while (dist > 0) {
+               dv.set (dvec, 3*maxk);
+               pos.scaledAdd (s, dv, knot.myPrevPos);
+               //dv.scaledAdd (-s*dv.dot(knot.myNrml), knot.myNrml);
+               //pos.add (dv, knot.myPrevPos);
+               dist = wrappable.penetrationDistance (null, null, pos);
+               if (dist > 0) {
+                  s *= 0.99*(-prev/(dist-prev));
+               }              
+            }
+            for (int k=start; k<end; k++) {
+               knot = myKnots[k];
+               dv.set (dvec, 3*k);
+               dv.scale (s);
+               //dv.scaledAdd (-s*dv.dot(knot.myNrml), knot.myNrml);
+               dv.get (dvec, 3*k);
+            }
+            return true;
+         }
+         else {
+            return false;
+         }
+      }
+
+      boolean adjustDvecForContactX (VectorNd dvec, VectorNd dnew) {
+         int contactGid = -1;
+         int contactGstart = -1;
+         int contactCnt = 0;
+         boolean adjusted = false;
+         for (int k=0; k<numKnots(); k++) {
+            WrapKnot knot = myKnots[k];
+            if (knot.myContactGid != -1) {
+               // knot was in contact
+               if (knot.myContactGid != contactGid) {
+                  // starting a new contact group
+                  contactGstart = k;
+                  contactGid = knot.myContactGid;
+                  contactCnt = 0;
+               }
+               if (knot.inContact()) {
+                  // bump contact count for current group
+                  contactCnt++;
+               }
+            }
+            else {
+               // knot not in contact
+               if (contactGid != -1) {
+                  // leaving contact group; if contact was broken,
+                  // update pullback
+                  if (contactCnt == 0) {
+                     adjusted |= adjustDvecForContactGroup (
+                        dvec, contactGstart, k);
+                  }
+                  contactGid = -1;
+               }
+            }
+         }
+         if (contactGid != -1) {
+            // leaving contact group; if contact was broken,
+            // update pullback
+            if (contactCnt == 0) {
+               adjusted |= adjustDvecForContactGroup (
+                  dvec, contactGstart, numKnots());
+            }
+         }
+         return adjusted;
       }
 
       /**
@@ -1862,194 +1980,155 @@ public class MultiPointSpring extends PointSpringBase
       protected int updateWrapStrand (int maxIter) {
          int icnt = 0;
          boolean converged = false;
-         //double prevForceNorm = (myMaxWrapIterations == 1 ? myPrevForceNorm: -1);
+         //double prevForceNorm = (myMaxWrapIterations == 1 ? myPrevForceNorm:
+         //-1);
          double dscale = myDscale;
 
          updateContactingKnotPositions();
-         //boolean contactChanged = updateContacts(numc); 
          int[] contactCnts = getContactCnts();
          int[] newContactCnts = new int[myWrappables.size()];
 
          updateForces();
-         double prevEnergy = computeEnergy();
-         double prevForceSqr = computeForceSqr();
-         double prevForce = forceNorm();
+         //double prevEnergy = computeEnergy();
+         //double prevForceSqr = computeForceSqr();
+         //double prevForce = forceNorm();
          //prevForceNorm = forceNorm();
 
-         boolean wroteR = false;
-         boolean wroteRx = false;
+         //boolean wroteR = false;
+         //boolean wroteRx = false;
 
+         VectorNd dvec = new VectorNd(3*myNumKnots);
          do {
             double prevLength = myLength;
 
             if (inContact()) {
                //checkStiffness();
             }
+
             
-            updateStiffness(0, dscale);
+            updateStiffness(1.0, dscale);
+            updateContactGroups();
+
             //updateStiffnessNumerically(dscale);
-            boolean clipped = (factorAndSolve() < 1.0);
-            double r0 = forceDotDisp();
-            double denom = forceNorm()*computeDvecLength();
+            boolean clipped = (factorAndSolve(dvec) < 1.0);
+            double r0 = forceDotDisp(dvec);
+            double denom = forceNorm()*dvec.norm();
             double cos = r0/denom;
-            double mincos = 0.1;
+            double mincos = 0.01;
             if (cos < mincos) {
 
                double lam = (denom*(mincos-cos)/computeForceSqr());
-               modifyDvec (lam);
-               r0 = forceDotDisp();
-               if (debugLevel > 0) {
+               modifyDvec (lam, dvec);
+               r0 = forceDotDisp(dvec);
+               if (debugLevel > 1) {
                   System.out.println (
                      "COS=" + cos +", new cos=" + 
-                     r0/(forceNorm()*computeDvecLength()));
+                     r0/(forceNorm()*dvec.norm()));
                }
             }
-            double computedFSqr = computeForceSqrDeriv();
+            //double computedFSqr = computeForceSqrDeriv();
             
             savePosToPrev();
 
             // compute numeric derivatives
-            LineSearchFunc func = new EnergyFunc();
+            LineSearchFunc func = new EnergyFunc(dvec);
             //LineSearchFunc func = new ForceSqrFunc();
 
             double f0, df0;
             if (func instanceof ForceSqrFunc) {
                f0 = computeForceSqr();
-               df0 = computeForceSqrDeriv();
+               df0 = computeForceSqrDeriv(dvec);
             }
             else {
                f0 = computeEnergy();
-               df0 = -forceDotDisp();
+               df0 = -forceDotDisp(dvec);
             }
             getContactCounts (contactCnts);
 
-            double h = 1e-8;
-            prevEnergy = computeEnergy();
-            advancePosByDvec (h);
-            updateContacts (null, false);
-            updateForces();
-            double forceSqr = computeForceSqr();
-            double energy = computeEnergy();
-            double ederiv = (energy-prevEnergy)/h;            
-            double fsqrDeriv = (forceSqr-prevForceSqr)/h;            
-
-            double s = 1.0;
-            advancePosByDvec (s);
+            double s = mySor;
+            advancePosByDvec (s, dvec);
 
             contactDebug = (icnt == 0);
             boolean contactChanged = updateContacts (newContactCnts, true);
+
             contactDebug = false;
-            boolean contactBroken =
-               checkForBrokenContact (contactCnts, newContactCnts);
+            boolean contactBroken;
+            //contactBroken = checkForBrokenContact (contactCnts, newContactCnts);
+            contactBroken = checkForBrokenContactNew();
+            if (contactBroken) {
+               contactChanged = true;
+            }
             updateForces();
-            energy = computeEnergy();
-            forceSqr = computeForceSqr();
-            if (debugLevel > 0 && contactChanged) {
+            //energy = computeEnergy();
+            //forceSqr = computeForceSqr();
+            if (debugLevel > 1 && contactChanged) {
                System.out.println ("CONTACT CHANGED");
             }
-            if (debugLevel > 0) {
-               //System.out.println (
-               //   "  energy(0)=" + prevEnergy +
-               //   " energy(1)=" + energy + " ederiv=" + ederiv);
+            if (debugLevel > 1 && contactBroken) {
+               System.out.println ("CONTACT BROKEN");
             }
-            double r1 = forceDotDisp();
+            //double r1 = forceDotDisp();
 
             DoubleHolder deriv = new DoubleHolder();
-            double f1 = func.eval (deriv, s);
-            double df1 = deriv.value;
+            double f1 = computeEnergy(); // func.eval (deriv, s);
+            double df1 = -forceDotDisp(dvec);// deriv.value;
 
             //double forceNorm = forceNorm();
 
-               WrapKnot pullbackKnot = null;
+            //WrapKnot pullbackKnot = null;
 
-            if (contactBroken) {
-               saveDvecToVtmp();
+            if (contactBroken && myContactRescaling) {
+               //saveDvecToVtmp();
 
-               updateStiffness(0, dscale);
-               factorAndSolve();
-               // rescale with the minimum amount of pullback needed
-               // to keep at least one knot in contact
-               double pullback = 1.0;
+               updateStiffness(1.0, dscale);
+               VectorNd dnew = new VectorNd(myNumKnots*3);
+               factorAndSolve(dnew);
 
-               for (int k=0; k<myNumKnots; k++) {
-                  WrapKnot knot = myKnots[k];
-                  int widx = knot.myPrevWrappableIdx;
-                  if (widx != -1 && newContactCnts[widx] != 0) {
-                     // contact was broken for this knot
-                     if (knot.myDvec.dot (knot.myVtmp) < 0) {
-                        // knot is trying to renter object, so find scale factor
-                        double dist = knot.myDist;
-                        double prev = knot.myPrevDist;
-                        if (dist != Wrappable.OUTSIDE && dist > 0 && prev < 0) {
-                           double r = dist/(dist-prev);
-                           if (r < pullback) {
-                              pullback = r;
-                              pullbackKnot = knot;
-                           }
-                        }
-                     }
-                  }
+               if (adjustDvecForContact (dvec, dnew)) {
+                  advancePosByDvec (1.0, dvec);
+                  updateContacts (null, true);
+                  updateForces();
+                  
+                  s = 1.0;
+                  f1 = computeEnergy();
+                  df1 = -forceDotDisp(dvec);
                }
-               if (pullbackKnot != null) {
-                  if (myContactRescaling) {
-                     // adjust the pullback if necessary
-
-                     s = computeRescale (pullbackKnot, pullback);
-
-                     advancePosByVtmp (s);
-                     updateContacts (null, true);
-                     updateForces();
-
-                     if (debugLevel > 0) {
-                        System.out.println ("  RESCALE " + s);
-                     }
-                     
-                     f1 = computeEnergy();
-                     df1 = -forceDotDisp();
-                  }
-               }
-               restoreDvecFromVtmp();
             }
             // check for convergence before line search, to avoid
-            // unecessary line search. At the moment, convergence
+            // unnecessary line search. At the moment, convergence
             // is when the knots stop moving laterally and the
             // overall length stabilizes
             double ltol = myLength*myLengthConvTol;
             if (!contactChanged) {
-               double maxLatDisp = maxLateralDisplacement();
-               if (debugLevel > 0) {
-                  //System.out.printf (
-                  //   "  maxLatDispRatio=%g deltaLength=%g\n",
-                  //   maxLatDisp/myLength, Math.abs(prevLength-myLength));
-               }
-               if (maxLatDisp/myLength < 1e-4 &&
-                   Math.abs(prevLength-myLength) < ltol) {
+               double ftol = 1e-1*ltol*Math.sqrt(1.0/numKnots());
+               // ftol works out to about 10^-6 in our examples
+               if (forceNorm() < ftol) {
                   converged = true;
                }
             }
             if (!converged && myLineSearchP) {
-               ResidualFunc rfunc = new ResidualFunc();
+               ResidualFunc rfunc = new ResidualFunc(dvec);
                double maxs = (contactChanged ? s : 3.0);
 
                if (df0 >= 0) {
                   System.out.println ("  WARNING: df0=" + df0);
-                  printStuckDebugInfo (maxs);
+                  //printStuckDebugInfo (maxs);
                }
                else {
                   double snew = lineSearch (
                      f0, df0, f1, df1, func, 0.1, 2.0, s, maxs);
                   
                   if (snew != s) {
-                     if (debugLevel > 0) {
+                     if (debugLevel > 1) {
                         System.out.printf (
                            "    NEW line search snew=%g\n", snew);
                      }
-                     //writeRfiles ("r", 5);
+                     //WriteRfiles ("r", 5);
                      //System.out.println ("    wrote r.txt, maxs=5");
                      rfunc.eval (snew);
                      updateContacts (null, true);
-                     energy = computeEnergy();
-                     forceSqr = computeForceSqr();
+                     //energy = computeEnergy();
+                     //forceSqr = computeForceSqr();
                   }
                   else {
                      rfunc.eval (s);
@@ -2057,13 +2136,10 @@ public class MultiPointSpring extends PointSpringBase
                   }
                }
             }
-            double newEnergy = computeEnergy();
-            if (debugLevel > 0) {
-               //System.out.printf ("  delta energy= %g\n", (newEnergy-prevEnergy));
-            }
-            prevEnergy = energy;
-            prevForceSqr = forceSqr;
-            prevForce = forceNorm();
+            //double newEnergy = computeEnergy();
+            //prevEnergy = energy;
+            //prevForceSqr = forceSqr;
+            //prevForce = forceNorm();
          }
          while (++icnt < maxIter && !converged);
          saveContactingKnotPositions();
@@ -2072,16 +2148,39 @@ public class MultiPointSpring extends PointSpringBase
          totalCalls++;
          if (converged) {
             if (debugLevel > 0) {
-               System.out.println (
-                  "converged, icnt="+icnt+" numc=" + numContacts());
+               System.out.printf (
+                  "converged, icnt=%d numc=%d forceNorm=%g\n",
+                  icnt, numContacts(), forceNorm());
             }
          }
          else {
             if (debugLevel > 0) {
-               System.out.println (
-                  "did NOT converge, icnt="+icnt+" numc=" + numContacts());
+               System.out.printf (
+                  "did NOT converge, icnt=%d numc=%d forceNorm=%g\n",
+                  icnt, numContacts(), forceNorm());
             }
             totalFails++;
+         }
+         myIterationCnt += icnt;
+         if (false && debugLevel > 0) {
+            for (int k=0; k<myNumKnots; k++) {
+               WrapKnot knot = myKnots[k];
+               Wrappable wrappable = null;
+               if ((wrappable=knot.getWrappable()) != null) {
+                  System.out.printf (
+                     " %d d=%9.6f  nrm=%9.6f %9.6f %9.6f  mag=%9.6f ", 
+                     k, knot.myDist,
+                     knot.myNrml.x, knot.myNrml.y, knot.myNrml.z,
+                     knot.myNrml.norm());
+                  if (wrappable instanceof RigidMesh) {
+                     TetDesc tdesc = ((RigidMesh)wrappable).getQuadTet (knot.myPos);
+                     System.out.println (tdesc);
+                  }
+                  else {
+                     System.out.println ("");
+                  }
+               }
+            }
          }
          if ((totalCalls % 100) == 0) {
             // System.out.println (
@@ -2091,160 +2190,6 @@ public class MultiPointSpring extends PointSpringBase
          myDscale = dscale;
          //myPrevForceNorm = prevForceNorm;
          return icnt;
-      }
-
-      /**
-       * Updates the knot points in this wrappable segment. This is done by
-       * iterating until the first order physics resulting from the attractive
-       * forces between adjacent knots and repulsive forces from contacting
-       * wrappables results in a stable configuration.
-       */
-      void updateWrapStrandOld (int maxIter) {
-         int icnt = 0;
-         boolean converged = false;
-         double prevForceNorm = (myMaxWrapIterations == 1 ? myPrevForceNorm: -1);
-         double dscale = myDscale;
-
-         int noContactChangeCnt = 0;
-         updateContactingKnotPositions();
-         //boolean contactChanged = updateContacts(numc); 
-         int[] contactCnts = getContactCnts();
-         int[] newContactCnts = new int[myWrappables.size()];
-
-         do {
-            double prevLength = myLength;
-            double dispNorm = 0;
-            updateForces();
-            double forceNorm = forceNorm();
-            double dnrmGain = (noContactChangeCnt >= 2 ? myDnrmGain : 0);
-            updateStiffness(dnrmGain, dscale);
-            factorAndSolve();
-            savePosToPrev();
-            dispNorm = advancePosByDvec (1.0);
-            //double dec = computeDecrement();
-            //double alpha = (dec <= 1/4.0 ? 1.0 : 1/(1+dec));
-            boolean contactChanged = updateContacts (newContactCnts, false);
-            if (contactChanged) {
-               noContactChangeCnt = 0;
-            }
-            else {
-               //System.out.println ("contact stable");
-               noContactChangeCnt++;
-            }
-            boolean contactBroken = false;
-            for (int i=0; i<myWrappables.size(); i++) {
-               if (contactCnts[i] != 0 && newContactCnts[i] == 0) {
-                  if (debugLevel > 0) {
-                     System.out.println (
-                        "  broken, old numc=" + contactCnts[i]);
-                  }
-                  newContactCnts[i] = contactCnts[i];
-                  contactCnts[i] = 0;
-                  contactBroken = true;
-               }
-               else if (contactCnts[i] == 0 && newContactCnts[i] != 0) {
-                  if (debugLevel > 0) {
-                     System.out.println (
-                        "  contacting, new numc=" + newContactCnts[i]);
-                  }
-                  contactCnts[i] = newContactCnts[i];
-                  newContactCnts[i] = 0;
-               }
-               else {
-                  contactCnts[i] = newContactCnts[i];
-                  newContactCnts[i] = 0;
-               }
-            }
-            if (contactBroken) {
-               updateForces();
-               updateStiffness(dnrmGain, dscale);
-               saveDvecToVtmp();
-               factorAndSolve();
-               double scale = 1.0;
-               for (int k=0; k<myNumKnots; k++) {
-                  WrapKnot knot = myKnots[k];
-                  int widx = knot.myPrevWrappableIdx;
-                  if (widx != -1 && newContactCnts[widx] != 0) {
-                     // contact was broken for this knot
-                     if (knot.myDvec.dot (knot.myVtmp) < 0) {
-                        // knot is trying to renter object, so find scale factor
-                        double dist = knot.myDist;
-                        double prev = knot.myPrevDist;
-                        if (dist != Wrappable.OUTSIDE && dist > 0 && prev < 0) {
-                           double s = dist/(dist-prev);
-                           if (s < scale) {
-                              scale = s;
-                           }
-                        }
-                     }
-                  }
-               }
-               if (scale < 1.0) {
-                  if (myContactRescaling) {
-                     if (debugLevel > 0) {
-                        System.out.println ("  rescale " + scale);
-                     }
-                     dispNorm = advancePosByVtmp (1-scale);
-                     updateContacts (contactCnts, false);
-                  }
-               }
-            }
-            else if (prevForceNorm >= 0) {
-               if (forceNorm >= prevForceNorm) {
-                  dscale *= 2.0;
-                  if (debugLevel > 0) {
-                     System.out.printf (
-                        "  force=%16.12f prevForce=%16.12f disp=%16.12f ^ dscale=%g\n",
-                        forceNorm, prevForceNorm, dispNorm, dscale);
-                  }
-                  advancePosByDvec (0);
-                  updateContacts (contactCnts, false);
-               }
-               else if (dscale > 1.0) {
-                  dscale *= 0.5;
-                  if (debugLevel > 0) {
-                     System.out.printf (
-                        "  force=%16.12f prevForce=%16.12f disp=%16.12f V dscale=%g\n",
-                        forceNorm, prevForceNorm, dispNorm, dscale);
-                  }
-               }
-            }
-            prevForceNorm = forceNorm;
-            double ltol = myLength*myLengthConvTol;
-            // check for convergence - at moment, this is when the knots stop
-            // moving.
-            if (!contactChanged) {
-               double maxDisp = maxLateralDisplacement();
-               if (maxDisp/myLength < 1e-4 &&
-                   Math.abs(prevLength-myLength) < ltol) {
-                  converged = true;
-               }
-            }
-            
-         }
-         while (++icnt < maxIter && !converged);
-         saveContactingKnotPositions();
-         //checkStiffness();
-         totalIterations += icnt;
-         totalCalls++;
-         if (converged) {
-            if (debugLevel > 0 && icnt != 1) {
-               System.out.println ("converged, icnt="+icnt);
-            }
-         }
-         else {
-            if (debugLevel > 0) {
-               System.out.println ("did not converge");
-            }
-            totalFails++;
-         }
-         if ((totalCalls % 100) == 0) {
-            // System.out.println (
-            //    "fails=" + totalFails + "/" + totalCalls + "  avg icnt=" +
-            //    totalIterations/(double)totalCalls);
-         }
-         myDscale = dscale;
-         myPrevForceNorm = prevForceNorm;
       }
 
       /**
@@ -2291,15 +2236,6 @@ public class MultiPointSpring extends PointSpringBase
          for (int i=0; i<myNumKnots; i++) {
             myKnots[i].myPos.set (plist[i]);
          }
-      }
-
-      boolean inContact() {
-         for (WrapKnot knot : myKnots) {
-            if (knot.inContact()) {
-               return true;
-            }
-         }
-         return false;
       }
 
       /**
@@ -2398,13 +2334,16 @@ public class MultiPointSpring extends PointSpringBase
             Point3d pa = getKnotPos (ka);
             Point3d p1 = getKnotPos (ka+1);
             wrappableA.penetrationDistance (nrml, null, pa);
-            computeSideNormal (sideNrm, p0, pa, p1, ka+1, 1, nrml);
-            wrappableA.surfaceTangent (
-               tanA, pb, p1,
-               LineSegment.projectionParameter (pb, p1, p0), sideNrm);
-            // if (tanA.epsilonEquals (Vector3d.ZERO, 1e-6)) {
-            //    System.out.println ("TANA=0");
-            // }
+            double lam0 = LineSegment.projectionParameter (pb, p1, p0);
+            if (lam0 <= 0.0 || lam0 >= 1.0) {
+               // shouldn't happen - probably a glitch in the knot convergence
+               tanA.set (p0);
+            }
+            else {
+               computeSideNormal (sideNrm, p0, pa, p1, ka+1, 1, nrml);
+               wrappableA.surfaceTangent (
+                  tanA, pb, p1, lam0, sideNrm);
+            }
          }
          Point3d tanB = null;
          if (wrappableB != null) {
@@ -2414,14 +2353,16 @@ public class MultiPointSpring extends PointSpringBase
             Point3d pb = getKnotPos (kb);
             Point3d p1 = getKnotPos (kb-1);
             wrappableB.penetrationDistance (nrml, null, pb);
-            computeSideNormal (sideNrm, p0, pb, p1, kb-1, -1, nrml);
-            wrappableB.surfaceTangent (
-               tanB, pa, p1,
-               LineSegment.projectionParameter (pa, p1, p0), sideNrm);
-            // if (tanB.epsilonEquals (Vector3d.ZERO, 1e-6)) {
-            //    System.out.println ("TANB=0");
-            // }
-         
+            double lam0 = LineSegment.projectionParameter (pa, p1, p0);
+            if (lam0 <= 0.0 || lam0 >= 1.0) {
+               // shouldn't happen - probably a glitch in the knot convergence
+               tanB.set (p0);
+            }
+            else {
+               computeSideNormal (sideNrm, p0, pb, p1, kb-1, -1, nrml);
+               wrappableB.surfaceTangent (
+                  tanB, pa, p1, lam0, sideNrm);
+            }
          }
          
          if (subseg == null) {
@@ -2849,7 +2790,34 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    public void setProfiling (boolean enabled) {
+
+      myUpdateContactsCnt = 0;
+      myIterationCnt = 0;
       myProfilingP = enabled;
+      myProfileCnt = 0;
+      myProfileTimer.reset();
+
+      myProfilingP = enabled;
+   }
+
+   public boolean getPrintProfiling () {
+      return myPrintProfilingP;
+   }
+
+   public void setPrintProfiling (boolean enabled) {
+      myPrintProfilingP = enabled;
+   }
+
+   public double getProfileTimeUsec() {
+      return myProfileTimer.getTimeUsec()/myProfileCnt;
+   }
+
+   public int getUpdateContactsCount() {
+      return myUpdateContactsCnt;
+   }
+
+   public int getIterationCount() {
+      return myIterationCnt;
    }
 
    public boolean getLineSearch () {
@@ -3075,11 +3043,11 @@ public class MultiPointSpring extends PointSpringBase
       if (myProfilingP) {
          myProfileTimer.stop();
          myProfileCnt++;
-         if (myProfileCnt > 0 && (myProfileCnt % 100) == 0) {
+         if (myPrintProfilingP && myProfileCnt > 0 && (myProfileCnt % 100) == 0) {
             System.out.println (
                "MultiPointSpring: updateWrapSegments time=" + 
-            myProfileTimer.result(100));
-            myProfileTimer.reset();
+               myProfileTimer.result(myProfileCnt));
+               myProfileTimer.reset();
          }
       }
    }      

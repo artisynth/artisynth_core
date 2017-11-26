@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC). Elliptic selection
+ * added by Doga Tekin (ETH).
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -17,13 +18,14 @@ import com.jogamp.opengl.GL;
 import maspack.render.IsRenderable;
 import maspack.render.IsSelectable;
 import maspack.util.BufferUtilities;
+import maspack.matrix.Vector2d;
 
 /**
  * GLSelector that works using the traditional GL_SELECT mechanism (now
  * deprecated).
  */
 public class GLColorSelector extends GLSelector {
-
+   
    private static int ID_OFFSET = 0x00000001;
    private static int ID_STEP = 1;
 
@@ -54,6 +56,10 @@ public class GLColorSelector extends GLSelector {
       myQueryTotal = 0;
    }
 
+   private static final double sqr (double x) {
+      return x*x;
+   }
+   
    private void flushQueries(GL gl) {
 
       if (myQueryCount == 0) {
@@ -65,11 +71,14 @@ public class GLColorSelector extends GLSelector {
       ByteBuffer pixels = fbo.getPixels(myGl, GL.GL_RGBA);
       int w = fbo.getWidth ();
       int h = fbo.getHeight ();
-
+            
+      double centerX = (w-1.0)/2.0;
+      double centerY = (h-1.0)/2.0;
+      
       boolean badIdWarningIssued = false;
       int idx = 0;
-      for (int i=0; i<w; i++) {
-         for (int j=0; j<h; j++) {
+      for (int i=0; i<h; i++) {
+         for (int j=0; j<w; j++) {
             int r = 0xff & pixels.get();
             int g = 0xff & pixels.get();
             int b = 0xff & pixels.get();
@@ -82,6 +91,17 @@ public class GLColorSelector extends GLSelector {
             lcolorId <<= 8;
             lcolorId += r;
             int colorId = (int)(lcolorId & (0xFFFFFFFF));
+
+            Vector2d ellipticSize = myViewer.getEllipticCursorSize();
+            
+            if (myViewer.getEllipticSelection()) {
+               double x = (h-i-1) - centerX;
+               double y = j - centerY;
+               if (sqr(x/ellipticSize.x) + sqr(y/ellipticSize.y) > 1) {
+                  colorId = 0;
+               }
+            }
+            
             if (colorId != 0) {
                int id = colorId/ID_STEP-ID_OFFSET+ myQueryBase; // color id are incremented by 1
                if (id < 0 || id > myTotalMaxQ) {
@@ -135,7 +155,7 @@ public class GLColorSelector extends GLSelector {
             rec.size++;
          }
       }
-
+       
       myViewer.selectionEvent.setSelectedObjects (null);
 
       if (hits == null) {

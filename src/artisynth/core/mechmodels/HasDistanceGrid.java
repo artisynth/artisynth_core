@@ -1,6 +1,6 @@
 package artisynth.core.mechmodels;
 
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
 import maspack.matrix.Vector3i;
 
 /**
@@ -35,7 +35,7 @@ public interface HasDistanceGrid {
     * @see #getDistanceGridMaxRes
     * @see #getDistanceGridRes
     */
-   public SignedDistanceGrid getDistanceGrid();
+   public DistanceGrid getDistanceGrid();
 
    /**
     * Sets the default maximum cell resolution that should be used when
@@ -120,7 +120,7 @@ public interface HasDistanceGrid {
     * <code>numVX</code> X <code>numVY</code> X <code>numVZ</code> vertices in
     * the x, y, z directions, where <code>numVX</code>, <code>numVY</code>, and
     * <code>numVZ</code> are each one greater than the x, y, z cell resolution
-    * values returned by the {@link SignedDistanceGrid#getResolution}
+    * values returned by the {@link DistanceGrid#getResolution}
     * method of the distance grid itself. In general, the range string should
     * contain three range specifications, one for each axis, where each
     * specification is either <code>*</code> (all vertices), <code>n:m</code>

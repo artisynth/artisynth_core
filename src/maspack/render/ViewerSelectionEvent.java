@@ -21,16 +21,39 @@ public class ViewerSelectionEvent {
    int myModifiersEx;
    List<LinkedList<?>> mySelectedObjects;
    
-
-   /**
-    * Flag indicating that multiple object selection is desired.
-    */
-   public static final int MULTIPLE = 0x01;
-
    /**
     * Flag indicating that drag selection was performed.
     */
-   public static final int DRAG = 0x02;
+   public static final int DRAG = 0x01;
+   
+   /**
+    * Flags mask for the selection operation.
+    */
+   public static final int OP_MASK = 0x0e;
+   
+   /**
+    * Flag indicating that selected objects should be <i>set</i> to the
+    * current selection.
+    */
+   public static final int SET = 0x00;
+   
+   /**
+    * Flag indicating that selected objects should be <i>added</i> to the
+    * current selection.
+    */
+   public static final int ADD = 0x02;
+   
+   /**
+    * Flag indicating that selected objects should be <i>subtracted</i> from
+    * the current selection.
+    */
+   public static final int SUBTRACT = 0x04;
+   
+   /**
+    * Flag indicating that selected objects should be <i>added</i> to the
+    * current selection, while excluding those already selected.
+    */
+   public static final int XADD = 0x06;
 
    // default selection type
    private int myFlags = 0;
@@ -95,7 +118,7 @@ public class ViewerSelectionEvent {
 
    /**
     * Returns the mode flags associated with the selection. Currently,
-    * these include {@link #MULTIPLE} and {@link #DRAG}.
+    * these include {@link #ADD} and {@link #DRAG}.
     *
     * @return selection mode flags
     */

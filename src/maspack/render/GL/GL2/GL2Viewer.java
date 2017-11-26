@@ -1,6 +1,6 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC), Antonio Sanchez (UBC),
- * and ArtiSynth Team Members
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Antonio Sanchez (UBC),
+ * and ArtiSynth Team Members. Elliptic selection added by Doga Tekin (ETH).
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -8,6 +8,7 @@
 package maspack.render.GL.GL2;
 
 import java.awt.Font;
+import java.awt.Point;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.util.LinkedList;
@@ -491,6 +492,35 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       
    }
 
+   protected void drawEllipticCursor (GL2 gl, Point cursor) {
+      begin2DRendering(0, width, 0, height);
+      
+      float a = (float)myEllipticCursorSize.x;
+      float b = (float)myEllipticCursorSize.y;
+      float cx = (float)cursor.getX();
+      float cy = (float)(height - cursor.getY());
+      
+      // change to a smaller/bigger number as needed 
+      int num_segments = (int)(4*Math.ceil(Math.max(a,b)*Math.PI/2));
+
+      gl.glLineWidth (2);     
+      setColor(0.5f, 0.5f, 0.5f);
+
+      maybeUpdateState(gl);
+
+      gl.glBegin (GL2.GL_LINE_LOOP);
+      for(int i = 0; i < num_segments; i++) {
+         double ang = i*2*Math.PI/(double)num_segments;
+         float x = a*(float)Math.cos(ang);
+         float y = b*(float)Math.sin(ang);
+         gl.glVertex3f (x + cx, y + cy, 0); //output vertex 
+      } 
+      gl.glEnd();
+      gl.glLineWidth (1);      
+
+      end2DRendering();
+   }
+
    public void display (GLAutoDrawable drawable, int flags) {
       
       this.drawable = drawable;
@@ -736,7 +766,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
             myGrid.render (this, flags);
          }
          if (axisLength > 0) {
-            drawAxes (gl, axisLength);
+            if (solidAxes) {
+               drawSolidAxes (null, axisLength, axisLength/50.0, false);
+            }
+            else {
+               drawAxes (gl, axisLength);
+            }
          }
 
          // rendering dragger separately here so that they are
@@ -874,6 +909,12 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (!isSelecting()) {
          if (myDragBox != null) {
             drawDragBox (gl);
+         }
+         if (myEllipticCursorActive) {
+            Point cursor = myMouseHandler.getCurrentCursor();
+            if (cursor != null) {
+               drawEllipticCursor(gl, cursor);
+            }
          }
       }
 

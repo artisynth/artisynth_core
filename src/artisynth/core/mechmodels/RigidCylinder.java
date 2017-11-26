@@ -159,14 +159,15 @@ public class RigidCylinder extends RigidBody implements Wrappable {
       }
       if (dnrm != null) {
          if (mag > 0) {
-         // dnrm = (I - nrm nrm^T)/mag, but can be computed faster term by term
+            // dnrm = (I - nrm nrm^T)/mag, but can be computed faster term by term
             dnrm.setZero();
             dnrm.m00 = nrm.y*nrm.y;
             dnrm.m11 = nrm.x*nrm.x;
             dnrm.m01 = -nrm.x*nrm.y;
             dnrm.m10 = dnrm.m01;
-            dnrm.scale (mag/myRadius);
-            dnrm.mul (getPose().R, dnrm);
+            dnrm.scale (1.0/mag);
+            dnrm.transform (getPose().R);
+            //dnrm.mul (getPose().R, dnrm);
          }
          else {
             dnrm.setZero();

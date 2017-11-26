@@ -195,50 +195,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
          if (myStressPlotRanging == Ranging.Auto) {
             myStressPlotRange.set (0, 0);
          }
-         
-         //         SurfaceRender oldMode = mySurfaceRendering;
-         //         if (myFem != null) { // paranoid: myFem should always be non-null here
-         //            switch (mode) {
-         //               case Strain:
-         //                  myFem.setComputeNodalStrain(true);
-         //                  myFem.updateStressAndStiffness();
-         //                  break;
-         //               case Stress:
-         //                  myFem.setComputeNodalStress(true);
-         //                  myFem.updateStressAndStiffness();
-         //                  break;
-         //               default: {
-         //                  myFem.setComputeNodalStrain(false);
-         //                  myFem.setComputeNodalStress(false);
-         //                  break;
-         //               }
-         //            }
-         //         }
-         //         // save/restore original vertex colors
-         //         MeshBase mesh = getMesh();   
-         //         if (mesh != null) {
-         //            boolean oldStressOrStrain = isStressOrStrainRendering (oldMode);
-         //            boolean newStressOrStrain = isStressOrStrainRendering (mode);
-         //            
-         //            if (newStressOrStrain != oldStressOrStrain) {
-         //               if (newStressOrStrain) {
-         //                  saveShading();
-         //                  saveMeshColoring (mesh);
-         //                  mesh.setVertexColoringEnabled();
-         //                  mesh.setVertexColorMixing (ColorMixing.REPLACE);
-         //                  myRenderProps.setShading (Shading.NONE);
-         //                  // enable stress/strain rendering *after* vertex coloring set
-         //                  mySurfaceRendering = mode; 
-         //                  updateVertexColors(); // not sure we need this here
-         //               }
-         //               else {
-         //                  // disable stress/strain rendering *before* restoring colors
-         //                  mySurfaceRendering = mode;                  
-         //                  restoreMeshColoring (mesh);
-         //                  restoreShading();
-         //               }
-         //            }
-         //         }
          mySurfaceRendering = mode; // set now if not already set
       }
       // propagate to make mode explicit
@@ -334,15 +290,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
          flags |= Renderer.HIGHLIGHT;
       }
 
-      // PropertyMode oldShadingMode = null;
-      // Shading oldShading = null;
-      
-      // if (isStressOrStrainRendering (mySurfaceRendering)) {
-      //    renderer.setVertexColorMixing (ColorMixing.REPLACE);
-      //    oldShadingMode = props.getShadingMode ();
-      //    oldShading = props.getShading ();
-      //    props.setShading (Shading.NONE);
-      // } else
       if (mySurfaceRendering == SurfaceRender.None) {
          return;
       }
@@ -354,11 +301,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
       if (renderer.isSelecting()) {
          renderer.endSelectionQuery ();
       }
-      
-      // if (oldShading != null) {
-      //    props.setShading (oldShading);
-      //    props.setShadingMode (oldShadingMode);
-      // }
    }
    
    public void setColorMap(ColorMapBase map) {
@@ -382,20 +324,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
             this, "colorMap", myColorMapMode, mode);
       }
    }
-
-   // public void scaleDistance (double s) {
-   //    super.scaleDistance (s);
-   //    // shouldn't need to change anything since everything is weight-based
-   //    updatePosState();
-   // }  
-
-   // public void transformGeometry (
-   //    AffineTransform3dBase X, TransformableGeometry topObject, int flags) {
-
-   //    if ((flags & TransformableGeometry.SIMULATING) != 0) {
-   //       return;
-   //    }
-   // }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
@@ -422,16 +350,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
       return super.postscanItem (tokens, ancestor);
    }
 
-   // @Override
-   // public void postscan (
-   // Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-   //    super.postscan (tokens, ancestor);
-   //    if (myScannedSurfaceRendering != null) {
-   //       setSurfaceRendering (myScannedSurfaceRendering);
-   //       myScannedSurfaceRendering = null;
-   //    }
-   // }
- 
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {

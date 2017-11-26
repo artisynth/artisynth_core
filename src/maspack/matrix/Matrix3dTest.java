@@ -159,6 +159,35 @@ class Matrix3dTest extends MatrixTest {
       }
    }
 
+   public void testSolve (Matrix3d M1) {
+
+      Matrix3d Minv = new Matrix3d();
+      Vector3d b = new Vector3d();
+      Vector3d x = new Vector3d();
+      Vector3d chk = new Vector3d();
+
+      b.setRandom();
+      M1.solve (x, b);
+      Minv.invert (M1);
+      Minv.mul (chk, b);
+      if (!chk.epsilonEquals (x, 10*EPSILON*chk.norm())) {
+         System.out.println ("solve: x = " + x);
+         System.out.println ("expected:  " + chk);
+         System.out.println ("eps=" + 100*EPSILON*chk.norm());
+         throw new TestException ("solve failed");
+      }
+
+      M1.solveTranspose (x, b);
+      Minv.transpose ();
+      Minv.mul (chk, b);
+      if (!chk.epsilonEquals (x, 10*EPSILON*chk.norm())) {
+         System.out.println ("solveTranspose: x = " + x);
+         System.out.println ("expected:           " + chk);
+         System.out.println ("eps=" + 100*EPSILON*chk.norm());
+         throw new TestException ("solveTranspose failed");
+      }
+   }
+
    public void execute() {
       Matrix3d MR = new Matrix3d();
       Matrix3d M1 = new Matrix3d();
@@ -215,36 +244,83 @@ class Matrix3dTest extends MatrixTest {
 
          testMulAdd (MR);
       }
+
+      for (int i=0; i<1000; i++) {
+         M1.setRandom();
+         testSolve (M1);
+      }
+      
    }
 
    public void timing() {
 
-      Matrix3d M1 = new Matrix3d();
-      Matrix3d M2 = new Matrix3d();
-      Matrix3d MR = new Matrix3d();
-      Vector3d vr = new Vector3d();
-      Vector3d v1 = new Vector3d();
-
+      int nsamps = 100000;
       RandomGenerator.setSeed (0x1234);
-      M1.setRandom();
-      M2.setRandom();
-      v1.setRandom();
+
       FunctionTimer timer = new FunctionTimer();
 
-      int cnt = 100000000;
-      timer.start();
-      for (int i=0; i<cnt; i++) {
-         MR.mul (M1, M2);
+      Matrix3d[] MR = new Matrix3d[nsamps];
+      Matrix3d[] M1 = new Matrix3d[nsamps];
+      Matrix3d[] M2 = new Matrix3d[nsamps];
+      Vector3d[] vr = new Vector3d[nsamps];
+      Vector3d[] v1 = new Vector3d[nsamps];
+
+      for (int i=0; i<nsamps; i++) {
+         MR[i] = new Matrix3d();
+         M1[i] = new Matrix3d();
+         M1[i].setRandom();
+         M2[i] = new Matrix3d();
+         M2[i].setRandom();
+         vr[i] = new Vector3d();
+         v1[i] = new Vector3d();
+         v1[i].setRandom();
       }
-      timer.stop();
-      System.out.println ("matrix mul: " + timer.result(cnt));
+
+      int cnt = 1000;
+      for (int k=0; k<cnt; k++) {
+         for (int i=0; i<nsamps; i++) {
+            MR[i].mul (M1[i], M2[i]);
+            MR[i].mul (vr[i], v1[i]);
+            MR[i].solve (vr[i], v1[i]);
+            MR[i].mulInverse (vr[i], v1[i]);
+         }
+      }
 
       timer.start();
-      for (int i=0; i<cnt; i++) {
-         MR.mul (vr, v1);
+      for (int k=0; k<cnt; k++) {
+         for (int i=0; i<nsamps; i++) {
+            MR[i].mul (M1[i], M2[i]);
+         }
       }
       timer.stop();
-      System.out.println ("vector mul: " + timer.result(cnt));
+      System.out.println ("matrix mul: " + timer.result(cnt*nsamps));
+
+      timer.start();
+      for (int k=0; k<cnt; k++) {
+         for (int i=0; i<nsamps; i++) {
+            MR[i].mul (vr[i], v1[i]);
+         }
+      }
+      timer.stop();
+      System.out.println ("vector mul: " + timer.result(cnt*nsamps));
+
+      timer.start();
+      for (int k=0; k<cnt; k++) {
+         for (int i=0; i<nsamps; i++) {
+            MR[i].solve (vr[i], v1[i]);
+         }
+      }
+      timer.stop();
+      System.out.println ("vector solve: " + timer.result(cnt*nsamps));
+
+      timer.start();
+      for (int k=0; k<cnt; k++) {
+         for (int i=0; i<nsamps; i++) {
+            MR[i].mulInverse (vr[i], v1[i]);
+         }
+      }
+      timer.stop();
+      System.out.println ("vector mulInverse: " + timer.result(cnt*nsamps));
    }
 
    public static void main (String[] args) {

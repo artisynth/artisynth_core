@@ -116,6 +116,7 @@ public abstract class DrawToolBase extends DragToolBase {
       RigidTransform3d X = new RigidTransform3d();
       getToolToWorld (X);
       Line toolRay = new Line (ray);
+
       toolRay.inverseTransform (X);
 
       Vector3d dir = toolRay.getDirection();

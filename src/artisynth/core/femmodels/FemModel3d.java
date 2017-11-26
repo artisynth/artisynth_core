@@ -1736,79 +1736,6 @@ public class FemModel3d extends FemModel
       notifyStructureChanged(this);
    }
 
-//   public void writeMesh(PrintWriter pw, FemMeshComp mesh) {
-//      pw.print("[ ");
-//      IndentingPrintWriter.addIndentation(pw, 2);
-//      for (Face face : mesh.getFaces()) {
-//         pw.print("f");
-//         HalfEdge he0 = face.firstHalfEdge();
-//         HalfEdge he = he0;
-//         do {
-//            FemMeshVertex vtx = (FemMeshVertex)he.head;
-//            pw.print(" " + vtx.myPnt.getNumber());
-//            he = he.getNext();
-//         } while (he != he0);
-//         pw.println("");
-//      }
-//      IndentingPrintWriter.addIndentation(pw, -2);
-//      pw.println("]");
-//   }
-
-//   public PolygonalMesh scanMesh(String fileName) throws IOException {
-//      return scanMesh(ArtisynthIO.newReaderTokenizer(fileName));
-//   }
-//
-//   /**
-//    * Creates a triangular polygonal mesh from a list of faces whose vertices
-//    * are described by FEM node numbers.
-//    */
-//   public PolygonalMesh scanMesh(ReaderTokenizer rtok) throws IOException {
-//
-//      PolygonalMesh mesh = new PolygonalMesh();
-//      HashMap<FemNode3d,FemMeshVertex> nodeVertexMap =
-//      new HashMap<FemNode3d,FemMeshVertex>();
-//
-//      mesh.setFixed(false);
-//      mesh.setUseDisplayList(true); // use display list for surface mesh
-//      // it is manually cleared at prerender
-//      rtok.scanToken('[');
-//      ArrayList<FemMeshVertex> vtxList = new ArrayList<FemMeshVertex>();
-//      while (rtok.nextToken() == ReaderTokenizer.TT_WORD &&
-//      rtok.sval.equals("f")) {
-//         vtxList.clear();
-//         while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER &&
-//         rtok.tokenIsInteger()) {
-//            int nnum = (int)rtok.lval;
-//            FemNode3d node = null;
-//            if ((node = myNodes.getByNumber(nnum)) == null) {
-//               throw new IOException("Node " + nnum + " not found, " + rtok);
-//            }
-//            FemMeshVertex vtx = nodeVertexMap.get(node);
-//            if (vtx == null) {
-//               vtx = new FemMeshVertex(node);
-//               nodeVertexMap.put(node, vtx);
-//               mesh.addVertex(vtx);
-//            }
-//            vtxList.add(vtx);
-//         }
-//         if (vtxList.size() != 3) {
-//            throw new IOException(
-//               "Face has " + vtxList.size() + " vertices instead of 3, " + rtok);
-//         }
-//         mesh.addFace(vtxList.toArray(new FemMeshVertex[0]));
-//         rtok.pushBack();
-//      }
-//      rtok.pushBack();
-//      rtok.scanToken(']');
-//      if (mesh.numVertices() == 0) {
-//         return null;
-//      }
-//      else {
-//         mesh.setRenderBuffered(true);
-//         return mesh;
-//      }
-//   }
-
    public boolean writeSurfaceMesh(PrintWriter pw) {
       FemMeshComp fm = getSurfaceMeshComp();
       if (fm != null) {
@@ -2500,18 +2427,6 @@ public class FemModel3d extends FemModel
       return getSurfaceVertex (node) != null;
    }
 
-//   private static class ArrayElementFilter extends FemModel.ElementFilter {
-//      Collection<FemElement> myElems;
-//
-//      public ArrayElementFilter (Collection<FemElement> elems) {
-//         myElems = elems;
-//      }
-//
-//      public boolean elementIsValid(FemElement e) {
-//         return myElems.contains(e);
-//      }
-//   }
-
    /**
     * Recreates the surface mesh based on all elements
     */
@@ -2726,13 +2641,6 @@ public class FemModel3d extends FemModel
       return mySurfaceMeshValid;
    }
 
-//   private FemMeshVertex addSurfaceVertex(PolygonalMesh mesh, FemNode3d n) {
-//      FemMeshVertex vtx = new FemMeshVertex(n);
-//      mySurfaceNodeMap.put(n, vtx);
-//      mesh.addVertex(vtx);
-//      return vtx;
-//   }
-
    public FemMeshComp setSurfaceMesh(PolygonalMesh mesh) {
       // Create embedded mesh
       FemMeshComp surfMesh = doGetSurfaceMeshComp();
@@ -2813,25 +2721,6 @@ public class FemModel3d extends FemModel
    public FemElement3d getSurfaceElement (Face face) {
       
       return getSurfaceMeshComp().getFaceElement (face);
-      // HashSet<FemElement3d> elems = new HashSet<FemElement3d>();
-
-      // int numv = face.numVertices();
-      // for (int i = 0; i < numv; i++) {
-      //    FemNode3d node = getSurfaceNode (face.getVertex(i));
-      //    if (node == null) {
-      //       return null;
-      //    }
-      //    if (i == 0) {
-      //       elems.addAll(node.getElementDependencies());
-      //    } else {
-      //       elems.retainAll(node.getElementDependencies());
-      //    }
-      // }
-      // if (elems.size() == 1) {
-      //    return elems.iterator().next();
-      // } else {
-      //    return null;
-      // }
    }
 
    /**
@@ -3885,11 +3774,7 @@ public class FemModel3d extends FemModel
 
         fem.myNumIncompressConstraints = 0;
         fem.myHardIncompUpdateTime = -1;
-        //fem.myHardIncompConstraintsChangedP = true;
 
-        // fem.myFreeVolume = myFreeVolume;
-
-        // fem.myClearMeshColoring = myClearMeshColoring;
         fem.myComputeNodalStress = myComputeNodalStress;
         fem.myComputeNodalStrain = myComputeNodalStrain;
 
@@ -4125,7 +4010,6 @@ public class FemModel3d extends FemModel
 
          wbod.inverseTransform (R, myFrame.getVelocity().w);
          Vector3d w = myFrame.getVelocity().w;
-         //wbod.setZero();
 
          // update inertia in Frame
          double mass = 0;
@@ -4168,9 +4052,6 @@ public class FemModel3d extends FemModel
                   tmp.cross (w, v);        // tmp = 2*m (w X v)
                   tmp.scale (2*m);
 
-                  // System.out.println ("  vl=" + v);
-                  // System.out.println ("  vw=" + n.getVelocity());
-
                   fv.add (tmp);               // fv += 2*m (w X v)
                   fw.crossAdd (c, tmp, fw);  // fw += 2*m (c X w X v)
 
@@ -4189,10 +4070,6 @@ public class FemModel3d extends FemModel
                }
                
             }
-
-            // if (n.getNumber() == 16) {
-            //    System.out.println ("  fn=  " + fn);
-            // }
          }
          
          com.scale (1/mass);
@@ -4206,16 +4083,6 @@ public class FemModel3d extends FemModel
          myFrame.getMass (M.getBlock (bf, bf), t);
          myFrame.getEffectiveMassForces (f, t, M.getBlockRowOffset (bf));
 
-         // add nodal velocity fictitious force terms for spatial inertia
-         //fv.transform (R);    // convert from local coords ...
-         //fw.transform (R);
-
-
-         //VectorNd f6 = new VectorNd (6);
-         //f.getSubVector (idx, f6);
-         // System.out.println ("xmass forces: "+fv);
-         // System.out.println ("xmass forces: "+fw);
-
          if (useFrameRelativeCouplingMasses) {
             int idx = M.getBlockRowOffset (bf);
             fbuf[idx++] -= fv.x;
@@ -4226,33 +4093,10 @@ public class FemModel3d extends FemModel
             fbuf[idx++] -= fw.z;
          }
 
-         // fbuf[idx++] = 0;
-         // fbuf[idx++] = 0;
-         // fbuf[idx++] = 0;
-         // fbuf[idx++] = 0;
-         // fbuf[idx++] = 0;
-         // fbuf[idx++] = 0;
-
          if (frameMassFraction != 0) {
             scaleFrameNodeMasses (M, f, 1.0-frameMassFraction);
          }
       }
-
-      // int size = 3*numNodes()+6;
-      // VectorNd fchk = new VectorNd ();
-      // MatrixNd Mchk = FemModel3dTest.computeFrameRelativeMass (fchk, this);
-      // double tol = M.frobeniusNorm()*1e-12;
-
-      // if (!Mchk.epsilonEquals (M, tol)) {
-      //    System.out.println ("ERROR: mass matrix not equal");
-      //    System.out.println ("M=\n" + M.toString ("%7.3f"));
-      //    System.out.println ("Mchk=\n" + Mchk.toString ("%7.3f"));
-      // }
-      // if (!fchk.epsilonEquals (f, tol)) {
-      //    System.out.println ("ERROR: fictitious forces not equal");
-      //    System.out.println ("f=   \n" + f.toString ("%7.3f"));
-      //    System.out.println ("fchk=\n" + fchk.toString ("%7.3f"));
-      // }
    }
 
    private void zero6Vector (double[] vec) {

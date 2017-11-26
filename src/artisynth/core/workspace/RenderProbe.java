@@ -30,6 +30,15 @@ public class RenderProbe extends OutputProbe {
 
          if (movieMaker.isGrabbing ()) {
             System.out.println ("grab at t=" + t);
+            ViewerManager vm = myMain.getViewerManager();
+            if (vm != null) {
+               // HACK. Do this to call prerender *before* the movie maker grab
+               // method gets invoked. Otherwise, movie frames may not reflect
+               // the most up-to-date state. This will slow down the movie
+               // making (by requiring an extra prerender()), but otherwise
+               // should work.
+               vm.render();
+            }
             try {
                movieMaker.grab ();
             }

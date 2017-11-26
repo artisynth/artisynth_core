@@ -12,6 +12,7 @@ import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
+import java.awt.MouseInfo;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
@@ -30,11 +31,12 @@ import maspack.render.RenderList;
 import maspack.render.Renderer;
 import maspack.render.Renderer.HighlightStyle;
 import maspack.render.GL.GLViewer;
-import maspack.render.GL.GLViewer.BlendFactor;
+import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLViewerFrame;
 import maspack.render.GL.GLViewerPanel;
 import maspack.widgets.ButtonMasks;
 import maspack.widgets.GuiUtils;
+import maspack.widgets.MouseBindings;
 import maspack.widgets.PropertyDialog;
 import maspack.widgets.ViewerPopupManager;
 
@@ -52,6 +54,11 @@ public class ViewerManager {
    // Flags for special "refresh" rendering
    public static final int DEFAULT_REFRESH_FLAGS = Renderer.SORT_FACES;
    private int myRefreshRenderFlags = DEFAULT_REFRESH_FLAGS;
+
+   private MouseBindings myMouseBindings = null;
+
+   public static final double DEFAULT_MOUSE_WHEEL_ZOOM_SCALE = 10;
+   private double myMouseWheelZoomScale = DEFAULT_MOUSE_WHEEL_ZOOM_SCALE;
 
    boolean myDefaultDrawAxes = false;
    double myDefaultAxisLength = -1;
@@ -95,6 +102,7 @@ public class ViewerManager {
       new ArrayList<KeyListener>();
    private boolean selectionEnabledP = true;
    private boolean selectOnPressP = false;
+   private boolean ellipticSelectionP = false;
 
    // private EditorManager myEditorManager;
 
@@ -128,6 +136,59 @@ public class ViewerManager {
 
    public double getDefaultAxisLength() {
       return myDefaultAxisLength;
+   }
+
+   private int numMouseButtons() {
+      return MouseInfo.getNumberOfButtons();
+   }
+
+   public MouseBindings getMouseBindings() {
+      if (myMouseBindings == null) {
+         int numButtons = numMouseButtons();
+         if (numButtons <= 1) {
+            myMouseBindings = new MouseBindings(MouseBindings.OneButton);
+         }
+         else if (numButtons == 2) {
+            myMouseBindings = new MouseBindings(MouseBindings.TwoButton);
+         }
+         else {
+            myMouseBindings = new MouseBindings(MouseBindings.ThreeButton);
+         }
+      }
+      return myMouseBindings;
+   }
+
+   private void setMouseBindings (GLViewer viewer, MouseBindings bindings) {
+      int numButtons = numMouseButtons();
+      GLMouseAdapter adapter = (GLMouseAdapter)viewer.getMouseHandler();
+      if (adapter == null) {
+         // XXX paranoid - don't think we need to do this
+         adapter = new GLMouseAdapter(viewer);
+         viewer.setMouseHandler(adapter);
+      }
+      bindings.apply (adapter, numButtons);
+   }
+
+   public void setMouseBindings (MouseBindings bindings) {
+      if (!bindings.equals (myMouseBindings)) {
+         myMouseBindings = new MouseBindings(bindings);
+         for (GLViewer v : myViewers) {
+            setMouseBindings (v, bindings);
+         }       
+      }
+   }
+
+   public double getMouseWheelZoomScale() {
+      return myMouseWheelZoomScale;
+   }
+
+   public void setMouseWheelZoomScale (double scale) {
+      if (scale != myMouseWheelZoomScale) {
+         myMouseWheelZoomScale = scale;
+         for (GLViewer v : myViewers) {
+            v.getMouseHandler().setMouseWheelZoomScale (scale);
+         }       
+      }
    }
 
    public void addRenderable (IsRenderable r) {
@@ -189,7 +250,8 @@ public class ViewerManager {
       myPopupManagers.add (new PopupManager (viewer));
       viewer.setSelectionEnabled (selectionEnabledP);
       viewer.setSelectOnPress (selectOnPressP);
-
+      setMouseBindings (viewer, getMouseBindings());
+      viewer.getMouseHandler().setMouseWheelZoomScale (myMouseWheelZoomScale);
       for (MouseInputListener l : myMouseListeners) {
          viewer.addMouseInputListener (l);
       }
@@ -469,6 +531,39 @@ public class ViewerManager {
    public boolean getSelectOnPress() {
       return selectOnPressP;
    }
+   
+   public void resetEllipticCursorSize () {
+      for (GLViewer v : myViewers) {
+         v.resetEllipticCursorSize();
+         v.repaint();
+      }
+   }  
+   
+   /**
+    * Set whether or not elliptic selection is enabled in all the viewers.
+    * 
+    * @param enable
+    * Whether or not elliptic selection is enabled.
+    */
+   public void setEllipticSelection (boolean enable) {
+      ellipticSelectionP = enable;
+
+      for (GLViewer v : myViewers) {
+         v.setEllipticSelection (enable);
+         v.setEllipticCursorActive (enable);
+      }
+   }
+
+   /**
+    * Returns true if elliptic selection is enabled for the viewers.
+    * 
+    * @return true if elliptic selection is enabled.
+    */
+   public boolean getEllipticSelection() {
+      return ellipticSelectionP;
+   }
+   
+   
 
    /**
     * Find the GLViewer (if any) associated with a particular component

@@ -9,7 +9,7 @@ package maspack.util;
 /** 
  * This interface provides a fix to the Java Cloneable interface in
  * that any class implementing it is guaranteed to have a public
- * <code>clone</code> method. It also fixes the spelling.
+ * <code>clone</code> method.
  */
 public interface Clonable extends Cloneable {
    

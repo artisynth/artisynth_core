@@ -604,7 +604,6 @@ public class SurfaceMeshIntersector {
             }
          }
       }
-
       this.myMesh0 = mesh0;
       this.myMesh1 = mesh1;
       double maxRadius =

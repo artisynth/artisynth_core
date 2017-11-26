@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014, by the Authors: John E Lloyd (UBC)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC) and Doga Tekin (ETH).
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
@@ -12,6 +12,7 @@ import java.awt.event.KeyListener;
 
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.driver.Main.ManipulatorFrameSpec;
 
 /**
  * 
@@ -64,11 +65,17 @@ public class GenericKeyHandler implements KeyListener {
          "  r   - reset\n" +
          "\n" +
          "Viewer controls:\n" +
-         "  w   - reset view\n" +
+         "  v   - reset view\n" +
          "  o   - toggle orthographic/perspective view\n" +
          "  a   - toggle viewer axes\n" +
          "  g   - toggle viewer grid\n" +
          "  l   - toggle viewer grid labels\n" +
+         "\n" +
+         "Selection and manipulation:\n" +
+         "  c   - clear selection\n" +
+         "  d   - reset elliptical cursor size to default\n" +
+         "  w   - set current manipulator frame to world coordinates\n" +
+         "  b   - set current manipulator frame to body/local coordinates\n" +
          "\n" +
          "Note: you need to focus on the graphics viewer to get the bindings.");
    }
@@ -117,7 +124,7 @@ public class GenericKeyHandler implements KeyListener {
                new ActionEvent (this, 0, "Single step"));
             break;
 
-         case 'w':
+         case 'v':
 
             myMainFrame.getMenuBarHandler().actionPerformed (
                new ActionEvent (this, 0, "Reset view"));
@@ -137,18 +144,35 @@ public class GenericKeyHandler implements KeyListener {
             }
             break;
 
-         case 'z':
+         case 'z': {
             myMain.getUndoManager().undoLastCommand();
             break;
-
+         }
+         case 'w': {
+            myMain.resetDraggerFrame (ManipulatorFrameSpec.WORLD);
+            break;
+         }
+         case 'b': {
+            myMain.resetDraggerFrame (ManipulatorFrameSpec.LOCAL);
+            break;
+         }
+         case 'c': {
+            mySelectionManager.clearSelections();
+            break;
+         }
+         case 'd':
+            myMain.getViewerManager().resetEllipticCursorSize();
+            break;
          case '\033': // escape
             setSelectionToSelectionParent();
+            break;
             
          default:
+            //System.out.println(e.getKeyCode() + " " + e.getKeyChar());
             //System.out.println(e.getKeyCode() + " " + (int) e.getKeyChar());
       }
    }
-
+   
    /**
     * key press events for the program moved out of GLViewer to clean up code in
     * GL viewer. This function belongs here

@@ -14,7 +14,7 @@ public interface Wrappable extends PointAttachable {
     * that the line segment (pa,pt) is both tangent to the surface and as near
     * as possible to the line defined by the two points pa and p1.
     *
-    * <p>To assist with the computation, <code>pt</code> can be assumed to lie
+    * <p>To assist with the computation, <code>pKcheck[kmax]t</code> can be assumed to lie
     * fairly close to <code>p1</code>, and its projection onto the line can be
     * assumed to lie between <code>p1</code> and another point p0 defined by
     * <pre>

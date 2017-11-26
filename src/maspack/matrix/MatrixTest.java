@@ -13,7 +13,7 @@ import java.io.*;
 import maspack.util.*;
 import maspack.matrix.Matrix.Partition;
 
-class MatrixTest {
+class MatrixTest extends UnitTest {
    static double DOUBLE_PREC = 2.220446049250313e-16;
    static double EPSILON = 10 * DOUBLE_PREC;
 
@@ -25,6 +25,8 @@ class MatrixTest {
    Matrix MRsave = new MatrixNd (1, 1);
    MatrixNd MX = new MatrixNd (1, 1);
    VectorNd vx = new VectorNd(0);
+
+   double mulTol = 0;
 
    private double getExpected (double value, int i, int j) {
       if (isReadOnly (i, j)) {
@@ -1469,8 +1471,7 @@ class MatrixTest {
       catch (Exception e) {
          eActual = e;
       }
-      checkAndRestoreResult (MR);
-
+      checkAndRestoreResult (MR, mulTol);
       eExpected = mulCheck (MX, MR, MR, M1);
       try {
          mul (MR, M1);
@@ -1478,7 +1479,7 @@ class MatrixTest {
       catch (Exception e) {
          eActual = e;
       }
-      checkAndRestoreResult (MR);
+      checkAndRestoreResult (MR, mulTol);
    }
 
    void testMulTranspose (Matrix MR, Matrix M1, Matrix M2) {
@@ -1491,7 +1492,7 @@ class MatrixTest {
       catch (Exception e) {
          eActual = e;
       }
-      checkAndRestoreResult (MR);
+      checkAndRestoreResult (MR, mulTol);
 
       eExpected = mulTransposeRightCheck (MX, MR, MR, M1);
       try {
@@ -1500,7 +1501,7 @@ class MatrixTest {
       catch (Exception e) {
          eActual = e;
       }
-      checkAndRestoreResult (MR);
+      checkAndRestoreResult (MR, mulTol);
 
       eExpected = mulTransposeLeftCheck (MX, MR, M1, M2);
       try {
@@ -1509,7 +1510,7 @@ class MatrixTest {
       catch (Exception e) {
          eActual = e;
       }
-      checkAndRestoreResult (MR);
+      checkAndRestoreResult (MR, mulTol);
 
       eExpected = mulTransposeBothCheck (MX, MR, M1, M2);
       try {
@@ -1518,7 +1519,7 @@ class MatrixTest {
       catch (Exception e) {
          eActual = e;
       }
-      checkAndRestoreResult (MR);
+      checkAndRestoreResult (MR, mulTol);
    }
 
    void testInvert (Matrix MR, Matrix M1) {

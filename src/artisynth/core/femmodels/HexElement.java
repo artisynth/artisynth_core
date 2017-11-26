@@ -21,11 +21,6 @@ import artisynth.core.modelbase.ModelComponent;
 
 public class HexElement extends FemElement3d {
 
-   //   private StiffnessWarper3d myWarper = null;
-   // private LUDecomposition LUD;
-
-   // private Vector3d nodesRestPos[];
-
    private int myParity = -1;
    private HexElement[] myNeighbors;
 

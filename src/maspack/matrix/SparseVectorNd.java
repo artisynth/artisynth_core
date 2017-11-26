@@ -285,12 +285,7 @@ public class SparseVectorNd extends VectorBase implements java.io.Serializable {
    }
 
    /**
-    * Sets the elements of this vector from an array of doubles. If the
-    * array length is less than the current size, this vector is resized
-    * to the array length.
-    * 
-    * @param values
-    * array from which values are copied
+    * {@inheritDoc}
     */
    public void set (double[] values) {
       if (values.length != size) {
@@ -305,6 +300,23 @@ public class SparseVectorNd extends VectorBase implements java.io.Serializable {
             prev = cell;
          }
       }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int set (double[] values, int idx) {
+      elems = null;
+      SparseVectorCell prev = null;
+      for (int i = 0; i < size; i++) {
+         if (values[idx] != 0) {
+            SparseVectorCell cell = new SparseVectorCell (i, values[idx]);
+            addEntry (cell, prev);
+            prev = cell;
+         }
+         idx++;
+      }
+      return idx;
    }
 
    /**

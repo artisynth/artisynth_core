@@ -193,14 +193,6 @@ public class MuscleBundle extends CompositeComponentBase
             this, "maxColoredExcitation", myMaxColoredExcitationMode, mode);
    }
 
-//    public boolean getElementsActive() {
-//       return myElementsActive;
-//    }
-
-//    public void setElementsActive (boolean active) {
-//       myElementsActive = active;
-//    }
-
    public boolean getFibresActive() {
       return myFibresActive;
    }
@@ -504,14 +496,6 @@ public class MuscleBundle extends CompositeComponentBase
       }
    }
 
-   // do we need this??
-
-//    public void applyActivationForce() {
-//       for (int fid = 0; fid < size(); fid++) {
-//          get (fid).applyActivationForce();
-//       }
-//    }
-
    void checkFibrePoints (FemModel femMod, Muscle fibre) {
       if (!ModelComponentBase.recursivelyContains (
              femMod, fibre.getFirstPoint())) {
@@ -571,21 +555,6 @@ public class MuscleBundle extends CompositeComponentBase
       return myElementDescs;
    }
 
-//   /** 
-//    * Returns true if this muscle bundle references a specified FEM element.
-//    */   
-//   public boolean usesElement (FemElement3d e) {
-//      for (ModelComponent c : e.getBackReferences()) {
-//         if (c instanceof MuscleElementDesc) {
-//            MuscleElementDesc desc = (MuscleElementDesc)c;
-//            if (desc.getGrandParent() == this) {
-//               return true;
-//            }
-//         }
-//      }
-//      return false;
-//   }
-//
    public void addElement (MuscleElementDesc desc) {
       // check to make sure particles are already in the FEM
       FemModel femMod = getAncestorFem(this);
@@ -855,45 +824,6 @@ public class MuscleBundle extends CompositeComponentBase
       }
    }
 
-//   private void addMacroFibres (ArrayList<Muscle> list, Point pnt) {
-//      for (ModelComponent c : pnt.getBackReferences()) {
-//         if (c instanceof Muscle && c.getParent() == myFibres && !c.isMarked()) {
-//            Muscle m = (Muscle)c;
-//            m.setMarked (true);
-//            list.add (m);
-//            addMacroFibres (list, m.getFirstPoint());
-//            addMacroFibres (list, m.getSecondPoint());
-//         }
-//      }
-//   }
-//
-//   /** 
-//    * Finds the connected groups of muscle fibres in this bundle; these
-//    * correspond to 'macro fibres'.
-//    */
-//   public Muscle[][] getMacroFibres() {
-//      ArrayList<ArrayList<Muscle>> macros = new ArrayList<ArrayList<Muscle>>();
-//      
-//      for (Muscle m : myFibres) {
-//         if (!m.isMarked()) {
-//            ArrayList<Muscle> macro = new ArrayList<Muscle>();
-//            m.setMarked (true);
-//            macro.add (m);
-//            addMacroFibres (macro, m.getFirstPoint());
-//            addMacroFibres (macro, m.getSecondPoint());
-//            macros.add (macro);
-//         }
-//      }
-//      for (Muscle m : myFibres) {
-//         m.setMarked (false);
-//      }
-//      Muscle[][] result = new Muscle[macros.size()][];
-//      for (int i=0; i<macros.size(); i++) {
-//         result[i] = macros.get(i).toArray (new Muscle[0]);
-//      }
-//      return result;
-//   }
-
    /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {
@@ -944,14 +874,6 @@ public class MuscleBundle extends CompositeComponentBase
    public void getSelection (LinkedList<Object> list, int qid) {
    }
    
-   // public void getDependencies (
-   //    List<ModelComponent> deps, ModelComponent ancestor) {
-   //    super.getDependencies (deps, ancestor);
-   //    if (myExcitationSources != null) {
-   //       ComponentUtils.addDependencies (deps, myExcitationSources, ancestor);
-   // }
-   //}
-
    public void scaleDistance (double s) {
       for (int i=0; i<myFibres.size(); i++) {
          myFibres.get(i).scaleDistance (s);

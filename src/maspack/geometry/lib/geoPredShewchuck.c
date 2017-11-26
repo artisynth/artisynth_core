@@ -542,12 +542,12 @@ int exactPerpendicularDistances(
    db1.end = fast_expansion_sum_zeroelim( db2.end, db2.doubles, db->end, db->doubles, db1.doubles);
    //db1.end = expansion_sum_zeroelim1( db2.end, db2.doubles, db->end, db->doubles, db1.doubles);
 
-   da->end = compress(da1.end, da1.doubles, da->doubles);
+   da->end = compress_expansion(da1.end, da1.doubles, da->doubles);
    if (isNegative(da)) {
       negate(da);
    }
 
-   db->end = compress(db1.end, db1.doubles, db->doubles);
+   db->end = compress_expansion(db1.end, db1.doubles, db->doubles);
    if (isNegative(db)) {
       negate(db);
    }
@@ -575,10 +575,10 @@ double computeSegmentScale (double *v0, double *v1) {
    exactFloat quot;
    tmp.doubles[1] = v0[0];
    tmp.doubles[0] = v0[1];
-   vol0.end = compress (2, tmp.doubles, vol0.doubles);
+   vol0.end = compress_expansion (2, tmp.doubles, vol0.doubles);
    tmp.doubles[1] = v1[0];
    tmp.doubles[0] = v1[1];
-   vol1.end = compress (2, tmp.doubles, vol1.doubles);
+   vol1.end = compress_expansion (2, tmp.doubles, vol1.doubles);
    if (isNegative (&vol0)) {
       subtractExacts (&vol1, &vol0, &volt, &err);
    }
@@ -591,10 +591,10 @@ double computeSegmentScale (double *v0, double *v1) {
    scale.end = 1;
    multiplyExacts (&scale, &volt, &tmp, &err);
    subtractExacts (&vol0, &tmp, &remainder, &err);
-   double q1 = estimate (remainder.end, remainder.doubles)/voltHigh;
+   double q1 = estimate_expansion (remainder.end, remainder.doubles)/voltHigh;
    Two_Sum (q0, q1, quot.doubles[1], quot.doubles[0]);
    quot.end = 2;
-   double s = estimate (quot.end, quot.doubles);
+   double s = estimate_expansion (quot.end, quot.doubles);
    if (isNegative (&vol0)) {
       return -s;
    }
@@ -633,13 +633,13 @@ int exactClosestIntersection(
    // p = q - r
 	subtractExacts(&q, &r, &p, &err); 
 
-	*answer = estimate(p.end,p.doubles);
+	*answer = estimate_expansion(p.end,p.doubles);
 #else
    multiplyExacts( &dca, &ddb, &p1, &err );
    multiplyExacts( &dcb, &dda, &p2, &err );
 
    subtractExacts( &p1, &p2, &p, &err );
-   (*answer) = estimate( p.end, p.doubles );
+   (*answer) = estimate_expansion( p.end, p.doubles );
 #endif
 
 	return err == 0;

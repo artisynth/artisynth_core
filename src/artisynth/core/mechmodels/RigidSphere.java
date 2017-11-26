@@ -140,13 +140,13 @@ public class RigidSphere extends RigidBody implements Wrappable {
       }
       if (dnrm != null) {
          if (mag >= 0) {
-         // dnrm = (I - nrm nrm^T)/mag
+            // dnrm = (I - nrm nrm^T)/mag
             dnrm.outerProduct (nrm, nrm);
             dnrm.m00 -= 1;
             dnrm.m11 -= 1;
             dnrm.m22 -= 1;
-            dnrm.scale (-mag/myRadius);
-            dnrm.mul (getPose().R, dnrm);
+            dnrm.scale (-1.0/mag);
+            dnrm.transform (getPose().R);
          }
          else {
             dnrm.setZero();

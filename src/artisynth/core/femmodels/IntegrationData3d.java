@@ -22,9 +22,6 @@ public class IntegrationData3d {
    double myScaling; // scales stiffness at the quadrature point
    // optional coordinate frame information (for anisotropic materials) 
    protected Matrix3d myFrame = null;
-   // previous stress and H values, used for computing viscoelasticity:
-//   public SymmetricMatrix3d mySigmaPrev; 
-//   public double[] myHPrev;
    protected ViscoelasticState myViscoState;
    
    private void init() {

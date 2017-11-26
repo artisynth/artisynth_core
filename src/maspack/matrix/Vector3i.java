@@ -659,6 +659,37 @@ public class Vector3i extends VectoriBase {
    }
 
    /**
+    * Updates a bounding box to include this vector. The box is described by
+    * minimum and maximum corner points, which are changed if necessary.  This
+    * method will only grow bounds, not shrink them.
+    * 
+    * @param vmin
+    * minimum corner of the bounding box
+    * @param vmax
+    * maximum corner of the bounding box
+    */
+   public void updateBounds (Vector3i vmin, Vector3i vmax) {
+      if (x > vmax.x) {
+         vmax.x = x;
+      }
+      if (x < vmin.x) {
+         vmin.x = x;
+      }
+      if (y > vmax.y) {
+         vmax.y = y;
+      }
+      if (y < vmin.y) {
+         vmin.y = y;
+      }
+      if (z > vmax.z) {
+         vmax.z = z;
+      }
+      if (z < vmin.z) {
+         vmin.z = z;
+      }
+   }
+   
+   /**
     * Computes the element-wise maximum of this vector and vector v and places
     * the result in this vector.
     * 

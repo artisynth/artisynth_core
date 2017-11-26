@@ -31,8 +31,12 @@ import maspack.util.*;
  * <pre>
  * Q' = Q N
  * </pre>
- * where <code>N</code> is a diagonal matrix containing two ones
- * and a single minus one.
+ * where <code>N</code> is a diagonal matrix whose elements are
+ * either 1 or -1 and whose determinant is -1. At present, this
+ * class chooses <code>N</code> with a single -1 at the same
+ * location as the diagonal element of <code>Q</code> that
+ * is nearest to 1. The idea here is to flip the single axis
+ * that is <i>least</i> affected by <code>Q</code>.
  * 
  * <p>
  * The <i>left</i> polar decomposition is produced by

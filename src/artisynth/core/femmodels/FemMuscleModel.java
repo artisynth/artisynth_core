@@ -465,39 +465,6 @@ implements AuxiliaryMaterial, ExcitationComponent {
       myMuscleMat.scaleMass(s);
    }
 
-   //   private static int addVertex(PolygonalMesh mesh, FemNode3d n) {
-   //      int index = -1;
-   //      // for(Vertex3d v:mesh.getVertices())
-   //      // {
-   //      //
-   //      // }
-   //      index = mesh.getVertices().indexOf(n.getPosition());
-   //      if (index == -1) {
-   //         index =
-   //            mesh.getVertices().indexOf(
-   //               mesh.addVertex(n.getPosition(), true));
-   //      }
-   //      return index;
-   //   }
-
-   // @Override
-   // public void updateForces (double t, StepAdjust stepAdjust) {
-   // // this is a copy for FemModel.updateForces, except that bundle
-   // // forces are also applied
-   // // if (isTopLevel()) {
-   // // getMassMatrix (t, null); // make sure effective masses are computed
-   // // }
-   // resetMarkerForces();
-   // updateNodeForces (t, stepAdjust);
-   // for (MuscleBundle mus : myMuscleList) {
-   // mus.applyForce (t, stepAdjust);
-   // }
-   // if (isTopLevel()) {
-   // applyAttachmentForces();
-   // }
-   // myForcesNeedUpdating = false;
-   // }
-   //
    @Override
    public void applyForces(double t) {
       super.applyForces(t);

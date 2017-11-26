@@ -32,6 +32,7 @@ import maspack.render.RendererEvent;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GL2.GL2Viewer;
+import maspack.render.GL.GL3.GL3Viewer;
 import maspack.widgets.DraggerToolBar.ButtonType;
 
 //import javax.swing.JToolBar;

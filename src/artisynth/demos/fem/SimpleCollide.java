@@ -5,7 +5,7 @@ import java.io.File;
 
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -200,7 +200,7 @@ public class SimpleCollide extends RootModel {
                mesh =
                   new PolygonalMesh (new File (
                      ArtisynthPath.getSrcRelativePath (
-                        SignedDistanceGrid.class, "sampleData/molar1.2.obj")));
+                        DistanceGrid.class, "sampleData/molar1.2.obj")));
                mesh.scale (2.0);
                mesh.triangulate();
             }

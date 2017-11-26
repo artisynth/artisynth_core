@@ -737,7 +737,7 @@ public class MarchingTetrahedra {
       }
       if (myMultilinearInterp) {
          double val = interpVertex (p, gdata);
-         if (Math.abs(val) > 1e-8) {
+         if (Math.abs(val-iso) > 1e-8) {
             System.out.println (
                "bad vertex val=" + val +
                " mu=" + mu + " nx=" + (xv == null ? 0 : xv.length) +

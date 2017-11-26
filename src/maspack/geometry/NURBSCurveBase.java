@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import maspack.geometry.io.WavefrontReader;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.AffineTransform3d;
 import maspack.matrix.Vector4d;
 import maspack.render.PointEdgeRenderProps;
 import maspack.render.RenderProps;
@@ -831,9 +832,9 @@ public abstract class NURBSCurveBase extends NURBSObject {
 
       renderer.pushModelMatrix();
       if (myXObjToWorld != RigidTransform3d.IDENTITY) {
-         renderer.mulModelMatrix (myXObjToWorld);
+         RigidTransform3d XOW = new RigidTransform3d(myXObjToWorld);
+         renderer.mulModelMatrix (XOW);
       }
-
       renderer.setShading (Shading.NONE);
 
       if (myDrawControlShapeP) {

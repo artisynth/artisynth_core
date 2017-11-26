@@ -840,34 +840,6 @@ public class PointFem3dAttachment extends PointAttachment {
       return isNonZero;
    }
 
-//   @Override
-//   public void connectToHierarchy () {
-//      Point point = getPoint();
-//      FemNode nodes[] = myNodes;
-//      if (point == null || nodes == null) {
-//         throw new InternalErrorException ("null point and/or nodes");
-//      }
-//      super.connectToHierarchy ();
-//      point.setAttached (this);
-//      for (FemNode node : nodes) {
-//         node.addMasterAttachment (this);
-//      }
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      Point point = getPoint();
-//      FemNode nodes[] = myNodes;
-//      if (point == null || nodes == null) {
-//         throw new InternalErrorException ("null point and/or nodes");
-//      }
-//      super.disconnectFromHierarchy();
-//      point.setAttached (null);
-//      for (FemNode node : nodes) {
-//         node.removeMasterAttachment (this);
-//      }
-//   }
-
    public FemNode[] getNodes() {
       return myNodes;
    }

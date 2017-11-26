@@ -1,7 +1,15 @@
+/**
+ * copyright (c) 2017, by the Authors: Antonio Sanchez, John E Lloyd (UBC) and
+ * other ArtiSynth Team Members. Elliptic selection added by Doga Tekin (ETH).
+ *
+ * This software is freely available under a 2-clause BSD license. Please see
+ * the LICENSE file in the ArtiSynth distribution directory for details.
+ */
 package maspack.render.GL.GL3;
 
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Point;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -238,7 +246,7 @@ public class GL3Viewer extends GLViewer {
       Logger logger = Logger.getSystemLogger();
       logger.info("GLSL Version: " + glslVersion);
       
-       gl.setSwapInterval (1);
+      gl.setSwapInterval (1);
 
       int[] buff = new int[1];
       gl.glGetIntegerv(GL3.GL_MAX_CLIP_DISTANCES, buff, 0);
@@ -466,7 +474,12 @@ public class GL3Viewer extends GLViewer {
             myGrid.render (this, flags);
          }
          if (axisLength > 0) {
-            drawAxes (gl, axisLength);
+            if (solidAxes) {
+               drawSolidAxes (null, axisLength, axisLength/50.0, false);
+            }
+            else {
+               drawAxes (gl, axisLength);
+            }
          }
 
          // rendering dragger separately here so that they are
@@ -585,6 +598,12 @@ public class GL3Viewer extends GLViewer {
       if (!isSelecting()) {
          if (myDragBox != null) {
             drawDragBox (gl);
+         }
+         if (myEllipticCursorActive) {
+            Point cursor = myMouseHandler.getCurrentCursor();
+            if (cursor != null) {
+               drawEllipticCursor(gl, cursor);
+            }
          }
       } else {
          // revert clear color
@@ -1643,9 +1662,41 @@ public class GL3Viewer extends GLViewer {
       gloFlex.drawVertices(gl, GL.GL_LINE_LOOP);
 
       end2DRendering();
-
    }
+   
+   protected void drawEllipticCursor (GL3 gl, Point cursor) {
+      begin2DRendering(0, width, 0, height);
+      
+      float a = (float)myEllipticCursorSize.x;
+      float b = (float)myEllipticCursorSize.y;
+      float cx = (float)cursor.getX();
+      float cy = (float)(height - cursor.getY());
+      
+      // change to a smaller/bigger number as needed 
+      int num_segments = (int)(4*Math.ceil(Math.max(a,b)*Math.PI/2));
+     
+      gloFlex.begin (gl, num_segments); 
+      for(int i = 0; i < num_segments; i++) {
+         double ang = i*2*Math.PI/(double)num_segments;
+         float x = a*(float)Math.cos(ang);
+         float y = b*(float)Math.sin(ang);
+         gloFlex.vertex (x + cx, y + cy, 0); //output vertex 
+      } 
+      gloFlex.end (gl); 
+      
+      gl.glLineWidth (2);
+      //setColor(0.8f, 0.0f, 0.0f, 1.0f);
+      setColor(0.5f, 0.5f, 0.5f);
+      maybeUpdateState(gl);
+      
+      updateProgram (gl, RenderingMode.DEFAULT, false, false, false);
+      gloFlex.drawVertices(gl, GL.GL_LINE_LOOP); 
+      // gloFlex.drawVertices(gl, GL.GL_TRIANGLE_FAN); // Uncomment to draw solid circle.
 
+      gl.glLineWidth (1);
+      end2DRendering();
+   }
+     
    public void drawLineStrip (
       RenderProps props, Iterable<float[]> pnts, 
       LineStyle style, boolean highlight) {

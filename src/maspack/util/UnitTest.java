@@ -33,16 +33,16 @@ public class UnitTest {
    public void checkEquals (String msg, Vector result, Vector check) {
       if (!result.equals(check)) {
          throw new TestException (
-            msg + result.toString() +
-            ", expected " + check.toString());
+            msg + "\n" + result.toString() +
+            ", expected\n" + check.toString());
       }
    }
 
    public void checkEquals (String msg, Vector result, Vector check, double eps) {
       if (!result.epsilonEquals(check, eps)) {
          throw new TestException (
-            msg + result.toString() +
-            ", expected " + check.toString() + ", eps=" + eps);
+            msg + "\n" + result.toString() +
+            ", expected\n" + check.toString() + ", eps=" + eps);
       }
    }
 

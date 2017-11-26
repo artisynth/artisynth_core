@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Pean (ETHZ)
  * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
@@ -463,13 +463,7 @@ Clonable {
 
 
    /**
-    * Sets the elements of this vector from an array of doubles,
-    * starting from a particular location.
-    * 
-    * @param values
-    * array into which values are copied
-    * @param idx starting point within values from which copying should begin
-    * @return updated idx value
+    * {@inheritDoc}
     */
    public int set (double[] values, int idx) {
       for (int i = 0; i < size; i++) {

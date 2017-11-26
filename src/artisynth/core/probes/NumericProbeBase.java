@@ -601,30 +601,41 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       probe.myNumericList = (NumericList)myNumericList.clone();
       probe.myInterpolation = new Interpolation (myInterpolation);
 
-      // make a deep copy of the variable list
-      probe.myVariables = new LinkedHashMap<String,NumericProbeVariable>();
-      for (Map.Entry<String,NumericProbeVariable> entry :
-              myVariables.entrySet()) {
-         probe.myVariables.put (entry.getKey(), new NumericProbeVariable (
-            entry.getValue()));
-      }
-      probe.myDrivers = new ArrayList<NumericProbeDriver>();
-      for (NumericProbeDriver oldDriver : myDrivers) {
-         NumericProbeDriver driver = new NumericProbeDriver();
-         try {
-            driver.setExpression (oldDriver.getExpression(), probe.myVariables);
+      if (myVariables != null) {
+         // make a deep copy of the variable list
+         probe.myVariables = new LinkedHashMap<String,NumericProbeVariable>();
+         for (Map.Entry<String,NumericProbeVariable> entry :
+                 myVariables.entrySet()) {
+            probe.myVariables.put (entry.getKey(), new NumericProbeVariable (
+                                      entry.getValue()));
          }
-         catch (Exception e) {
-            throw new InternalErrorException ("Illegal driver expression '"
-            + oldDriver.getExpression() + "': " + e.getMessage());
+      }
+      if (myDrivers != null) {
+         probe.myDrivers = new ArrayList<NumericProbeDriver>();
+         for (NumericProbeDriver oldDriver : myDrivers) {
+            NumericProbeDriver driver = new NumericProbeDriver();
+            try {
+               driver.setExpression (
+                  oldDriver.getExpression(), probe.myVariables);
+            }
+            catch (Exception e) {
+               throw new InternalErrorException (
+                  "Illegal driver expression '" + oldDriver.getExpression() +
+                  "': " + e.getMessage());
+            }
+            probe.myDrivers.add (driver);
          }
-         probe.myDrivers.add (driver);
       }
-      probe.myPropList = (ArrayList<Property>)myPropList.clone();
-      probe.myConverters = new NumericConverter[myConverters.length];
-      for (int i = 0; i < myConverters.length; i++) {
-         probe.myConverters[i] = new NumericConverter (myConverters[i]);
+      if (myPropList != null) {
+         probe.myPropList = (ArrayList<Property>)myPropList.clone();
       }
+      if (myConverters != null) {
+         probe.myConverters = new NumericConverter[myConverters.length];
+         for (int i = 0; i < myConverters.length; i++) {
+            probe.myConverters[i] = new NumericConverter (myConverters[i]);
+         }
+      }
+      
       // clear the displays because these are lazily allocated and
       // we don't want them reused
       probe.mySmallDisplay = null;
@@ -783,6 +794,37 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
          return true;
       }
    }
-      
 
+   protected boolean dataFunctionsAreCopyable (
+      ArrayList<DataFunction> dataFunctions) {
+
+      for (DataFunction df : dataFunctions) {
+         if (!(df instanceof Clonable)) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   protected ArrayList<DataFunction> copyDataFunctions (
+      ArrayList<DataFunction> dataFunctions) {
+
+      ArrayList<DataFunction> newFunctions = new ArrayList<DataFunction>();
+      for (DataFunction df : dataFunctions) {
+         if (df instanceof Clonable) {
+            DataFunction newDf = null;
+            try { 
+               newDf = (DataFunction)((Clonable)df).clone();
+            }
+            catch (Exception e) {
+               // clone not supported or failed for some reason
+            }
+            if (newDf != null) {
+               newFunctions.add (newDf);
+            }
+         }
+      }
+      return newFunctions;
+   } 
+   
 }

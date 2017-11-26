@@ -164,10 +164,6 @@ public class FemMarker extends Marker {
       myNodeAttachment.updateVelStates();
    }
 
-   // public void applyForces() {
-   //    myNodeAttachment.applyForces();
-   // }
-
    public void getRestPosition (Point3d pos) {
       myNodeAttachment.getRestPosition (pos);
    }
@@ -252,46 +248,6 @@ public class FemMarker extends Marker {
    public void scaleDistance (double s) {
       // no need to scale since attachments are weight-based
    }
-
-//   @Override
-//   public void getHardReferences (List<ModelComponent> refs) {
-//      super.getHardReferences (refs);
-//      if (myNodeAttachment != null) {
-//         myNodeAttachment.getHardReferences (refs);
-//      }
-//   }
-
-//   @Override
-//   public void connectToHierarchy () {
-//      super.connectToHierarchy ();
-//      FemNode nodes[] = myNodeAttachment.getNodes();
-//      if (nodes != null) {
-//         for (FemNode node : nodes) {
-//            node.addMasterAttachment (myNodeAttachment);
-//         }
-//      }
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      super.disconnectFromHierarchy();
-//      FemNode nodes[] = myNodeAttachment.getNodes();
-//      if (nodes != null) {
-//         for (FemNode node : nodes) {
-//            node.removeMasterAttachment (myNodeAttachment);
-//         }
-//      }
-//   }
-
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public void getAttachments (List<DynamicAttachment> list) {
-//      if (getAttachment() == null) {
-//         System.out.println ("NULL attachment");
-//      }
-//      list.add (getAttachment());
-//   }
 
    /**
     * {@inheritDoc}

@@ -10,11 +10,12 @@ import artisynth.core.workspace.RootModel;
 import maspack.geometry.Face;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
+import maspack.matrix.VectorTransformer3d;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.DrawMode;
@@ -23,7 +24,7 @@ import maspack.render.Renderer.Shading;
 
 public class SDGridTest extends RootModel {
    
-   SignedDistanceGrid sdgrid;
+   DistanceGrid sdgrid;
    
    @Override
    public void build(String[] args) throws IOException {
@@ -145,7 +146,8 @@ public class SDGridTest extends RootModel {
       double margin = 1.0/cells;
       cells += 2;
       
-      sdgrid = new SignedDistanceGrid(mesh, margin, cells);
+      sdgrid = new DistanceGrid(
+         mesh.getFaces(), margin, cells, /*signed=*/true);
 
       // test a bunch of inside points
       Vector3d norm = new Vector3d();
@@ -171,30 +173,36 @@ public class SDGridTest extends RootModel {
       RenderProps.setDrawEdges(fm, true);
    }
    
+   Vector3d gridToLocal (
+      VectorTransformer3d TGL, double x, double y, double z) {
+      Vector3d loc = new Vector3d();
+      TGL.transformPnt (loc, new Vector3d(x, y, z));
+      return loc;
+   }
+   
    @Override
    public void render (Renderer renderer, int flags) {
 
-      
       if (sdgrid != null) {
          Shading savedShading = renderer.getShading();
          renderer.setShading (Shading.NONE);
          renderer.setPointSize(5);
          
-         Vector3d min = sdgrid.getMinCoords();
-         Vector3d max = sdgrid.getMaxCoords();
+         VectorTransformer3d TGL = sdgrid.getGridToLocalTransformer();
+         Vector3i res = sdgrid.getResolution();
    
          renderer.beginDraw (DrawMode.LINES); // Draw 4 vertical lines.
-         renderer.addVertex (max.x, max.y, max.z);
-         renderer.addVertex (max.x, max.y, min.z);
-         renderer.addVertex (min.x, max.y, max.z);
-         renderer.addVertex (min.x, max.y, min.z);
-         renderer.addVertex (min.x, min.y, max.z);
-         renderer.addVertex (min.x, min.y, min.z);
-         renderer.addVertex (max.x, min.y, max.z);
-         renderer.addVertex (max.x, min.y, min.z);
+         renderer.addVertex (gridToLocal (TGL, res.x  , res.y  , res.z  ));
+         renderer.addVertex (gridToLocal (TGL, res.x  , res.y  , 0));
+         renderer.addVertex (gridToLocal (TGL, 0,       res.y  , res.z  ));
+         renderer.addVertex (gridToLocal (TGL, 0,       res.y  , 0));
+         renderer.addVertex (gridToLocal (TGL, 0,       0,       res.z  ));
+         renderer.addVertex (gridToLocal (TGL, 0,       0,       0));
+         renderer.addVertex (gridToLocal (TGL, res.x  , 0,       res.z  ));
+         renderer.addVertex (gridToLocal (TGL, res.x  , 0,       0));
          // Draw a diagonal line from max to min.
-         renderer.addVertex (min.x, min.y, min.z);
-         renderer.addVertex (max.x, max.y, max.z);
+         renderer.addVertex (gridToLocal (TGL, 0,       0,       0));
+         renderer.addVertex (gridToLocal (TGL, res.x  , res.y  , res.z  ));
          renderer.endDraw();
          
          

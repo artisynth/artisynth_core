@@ -37,13 +37,6 @@ public class FemNodeNeighbor {
    public void addStiffness (Matrix3d K) {
       myK.add (K);
    }
-
-//   public void getStiffness (Matrix3d K){
-//      K.set (myK);
-//      if (myKX != null) {
-//         K.add (myKX);
-//      }
-//   }
    
    public Matrix3d getK()  {
       return myK;
@@ -56,10 +49,6 @@ public class FemNodeNeighbor {
    public void setDivBlk(Matrix3x1Block blk) {
       myDivBlk = blk;
    }
-
-//    public void addNondampedStiffness (Matrix3d K) {
-//       myKX.add (K);
-//    }
 
    /** 
     * Sets the stiffness components of this node neighbour to the transpose of
@@ -93,10 +82,6 @@ public class FemNodeNeighbor {
       myK = new Matrix3d();
       myRefCnt = 1;
    }
-
-//   public void setBlock (Matrix3x3Block blk) {
-//      myBlk = blk;
-//   }
    
    public void setBlockNumber (int num) {
       myBlkNum = num;
@@ -106,22 +91,10 @@ public class FemNodeNeighbor {
       return myBlkNum;
    }
    
-//   public void addVelJacobian (
-//      double s, double stiffnessDamping, double massDamping) {
-//      addVelJacobian (myBlk, s, stiffnessDamping, massDamping);
-//   }
-
    public void addVelJacobian (
       Matrix3d blk, double s, double stiffnessDamping, double massDamping) {
-      // System.out.println (
-      // "addVelJacobian: myK=\n" + myK.toString("%10.5f"));
       blk.scaledAdd (-s * stiffnessDamping, myK, blk);
-      //blk.scaledAdd (-s * stiffnessDamping, myKX, blk);
       if (massDamping != 0) {
-//         if (blk == null) {
-//            System.out.println ("null block");
-//         }
-         //double d = -s * massDamping * myNode.getEffectiveMass();
          double d = -s * massDamping * myNode.getMass();
          blk.m00 += d;
          blk.m11 += d;
@@ -132,10 +105,6 @@ public class FemNodeNeighbor {
    public FemNode3d getNode() {
       return myNode;
    }
-
-//   public void addPosJacobian (SparseNumberedBlockMatrix S, double s) {
-//      addPosJacobian ((Matrix3x3Block)S.getBlockByNumber(myBlkNum), s);
-//   }
 
    public void addPosJacobian (Matrix3d blk, double s) {
       blk.scaledAdd (-s, myK, blk);

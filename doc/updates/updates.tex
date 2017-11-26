@@ -21,31 +21,262 @@
 \fi
 %\section*{Next}]
 
-\section*{XXX, 2017}
-
-\subsection{rendering signed distance grids and surfaces}
-
-render distance surface
-
-However, in general, you typically *do* want to make sure that the
-mesh is centered on the centroid (or center of volume), and sometimes
-aligned with the OBB as well.
-
-To facilitate that, I've added the methods
-
-   translateToCentroid()
-   transformToOBB()
-   transformToOBB(method)
-   getOBB()
-   getOBB(method)
-
-to MeshBase, as well as
-
-   translateToCenterOfVolume()
-
-to PolygonalMesh.
-
+%
+%\subsection{Adding editable mesh bodies}
+%
+%\subsection{Rendering signed distance grid surfaces}
+%
 %\subsection*{Wrapping surfaces}
+%
+%\subsection*{Flip methods}
+%
+
+\section*{Nov 25, 2017}
+
+\subsection*{Elliptic selection}
+
+A new {\it elliptic} selection method has been introduced, thanks to
+work by Doga Tekin at ETH. To activate it, select the ellipse icon
+(second from the top of the selection toolbar). The viewer cursor will
+then change to include a surrounding ellipse (which defaults to a
+circle). Dragging while in elliptic selection mode will cause the
+cumulative selection of all objects visible within the ellipse, in a
+manner very much like a ``paint'' selection. If the {\tt SHIFT}
+modifier key is pressed, selection is replaced with deselection. The
+current selection can also be cleared by hitting the `{\tt c}' key
+within the viewer. The dimensions of the selection ellipse can be
+adjusted by dragging with the {\tt CTRL} and {\tt ALT} modifier keys
+pressed, or hitting the `{\tt d}' key to cause the ellipse to be reset
+to its default (circular) dimensions.
+
+Full details are given in the ``Viewer Selection'' section of the
+\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html} {User
+Interface Guide}.
+
+http://www.artisynth.org/doc/html/uiguide/uiguide.html
+
+\subsection*{Updated mouse bindings}
+
+The mechanism by which mouse bindings are set has been updated.
+Choosing {\sf Setting > Mouse Preferences ...} from the main menu will
+bring up a dialog which allows you to adjust the mouse bindings and
+wheel zoom scale, and also displays the buttons and modifier keys
+required for different actions.
+
+Names of the available bindings include {\sf ThreeButton}, {\sf
+TwoButton}, {\sf OneButton}, {\sf Laptop}, and {\sf Mac}.  {\sf
+ThreeButton}, {\sf Laptop}, and {\sf Mac} correspond to the previous
+bindings {\sf default}, {\sf laptop} and {\sf mac}.  {\sf TwoButton},
+{\sf OneButton} are identical to {\sf ThreeButton}, except that the
+middle mouse button is emulated with the {\sf ALT} key and (for the
+latter) the right mouse button is emulated using the {\tt META} key
+(which is usually {\tt WINDOWS} or (on Mac) {\tt COMMAND}).
+
+By default, ArtiSynth now detects the number of buttons on the mouse
+and sets the bindings to either {\sf ThreeButton}, {\sf TwoButton} or
+{\sf OneButton}, as appropriate. It is still possible to override the
+mouse bindings using the {\tt -mousePrefs <bindings>} command line
+argument.
+
+Details are given in the ``Alternate Mouse Control Settings'' section
+of the \href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}
+{User Interface Guide}.
+
+\subsection*{Numeric control probes}
+
+A new type of input probe,
+\javaclass[artisynth.core.probes]{NumericControlProbe}, has been
+added, that takes numeric data and passes it to an application-supplied
+function which can apply that data in any desired way.  This is
+similar to using a {\tt Controller}, except that the driving data can
+be viewed using the timeline displays or loaded from a file.  {\tt
+NumericControlProbe}s are complimentary to {\tt NumericMonitorProbes},
+which were added last June.
+
+For details, see the "Numeric control probes"
+section of the 
+\href{http://www.artisynth.org/doc/html/modelguide/modelguide.html}
+{Modeling Guide}.
+
+\subsection*{ProbeDataFunction}
+
+The interface {\tt NumericMonitorProbe.DataFunction}, which could be
+used to define the data generating function for 
+\javaclass[artisynth.core.probes]{NumericMonitorProbe},
+has been lifted to
+\javaclass[artisynth.core.probes]{DataFunction} and
+is also used to define the data application function
+for \javaclass[artisynth.core.probes]{NumericControlProbe}.
+
+\subsection*{Command line options for the MovieMaker}
+
+The following command line options have been added to control the
+MovieMaker:
+
+\begin{verbatim}
+  -movieFrameRate <rate> # movie frame rate (Hz)
+  -movieMethod <method>  # movie making method
+\end{verbatim}
+
+The movie method should be currently be one of {\tt internal},
+{\tt mencoder}, {\tt mencoder\_osx}, {\tt ffmpeg}, {\tt animated\_gif},
+or {\tt avconv}.
+
+\subsection*{SignedDistanceGrid replaced by DistanceGrid}
+
+The class {\tt SignedDistanceGrid} has been replaced by
+\javaclass[maspack.geometry]{DistanceGrid}, which can be either signed
+or unsigned. A number of new features have been added to distance
+grids, including:
+
+\begin{itemize}
+
+\item The ability to explicitly specify the center and orientation of
+the grid with respect to its local coordinate system;
+
+\item Writing and scanning the grid to and from a file;
+
+\item Grid interpolation based on either linear or quadratic interpolation;
+
+\item The ability to either generate the grid from mesh data, or to
+specify its values explicitly;
+
+\item CSG operations based on signed distance grids;
+
+\end{itemize}
+
+\subsection*{New centering methods for meshes}
+
+It is often useful to align the local coordinate system for a mesh
+with its center, and sometimes also with its oriented
+bounding box (OBB).
+
+To this end, we have added a number of methods to 
+\javaclass[maspack.geometry]{MeshBase}:
+%
+\begin{lstlisting}[]
+   translateToCentroid()    // translate mesh to its centroid
+   transformToOBB()         // align mesh with its OBB 
+   transformToOBB(method)   // align mesh with its OBB (as produced by method)
+
+   getOBB()                 // get the mesh's OBB
+   getOBB(method)           // get the mesh's OBB (as produced by method)
+\end{lstlisting}
+%
+The translate and transform methods reposition the vertex positions so
+as to achieve the required change in local coordinates. Note that this
+is independent of the additional {\it mesh-to-world} transform,
+controlled by \javamethod[maspack.geometry.MeshBase]{getMeshToWorld()}
+and \javamethod[maspack.geometry.MeshBase]{setMeshToWorld()}, that
+maps from local to world coordinates.
+
+For \javaclass[maspack.geometry]{PolygonalMesh}, the following
+additional method is available:
+%
+\begin{lstlisting}[]
+   translateToCenterOfVolume()  // translate mesh to its center of volume
+\end{lstlisting}
+%
+
+\section*{July 28, 2017}
+
+\subsection*{Update to JOGL 2.3.2}
+
+The OpenGL rendering package has been updated to JOGL 2.3.2. Since the
+GL rendering implementation is hidden from the user, this should not
+affect application source code {\it unless} you are using GL directly
+for some reason. In that case, you will need to replace
+%
+\begin{lstlisting}[]
+  javax.media.opengl
+\end{lstlisting}
+%
+with
+%
+\begin{lstlisting}[]
+  com.jogamp.opengl
+\end{lstlisting}
+%
+However, the underlying JOGL libraries {\it have} changed, so after
+you have updated {\tt artisynth\_core}, you {\it will} need to run
+{\tt bin/updateArtisynthLibs} (or run {\tt artisynth} with the {\tt
+-updateLibs} option) to obtain the new libraries.
+
+\begin{sideblock}
+Important: if you compile and/or run ArtiSynth from the command line,
+you will also need to remove from the folder {\tt
+\$ARTISYNTH\_HOME/lib} any existing {\tt .jar} files beginning
+with {\tt jogl2*} or {\tt matlabcontrol*}. Otherwise, these may
+conflict with the new libraries. Eclipse users may also wish to do this
+to remove clutter.
+\end{sideblock}
+
+Eclipse users will need to change the JOGL libraries in their
+build path. Select the project for {\tt artisynth\_core}, and then
+under {\sf Properties...} go to {\sf Java Build Path > Libraries}, and
+replace
+%
+\begin{lstlisting}[]
+  jogl2-all.jar
+  jogl2-gluegen-rt.jar
+  matlabcontrol-4.1.0.jar
+\end{lstlisting}
+%
+with
+%
+\begin{lstlisting}[]
+  jogl-all-2.3.2.jar
+  gluegen-rt-2.3.2.jar
+  matconsolectl-4.4.4.jar
+\end{lstlisting}
+%
+Also, make sure that these libraries are exported. Switch to the {\sf
+Order and Export} tab and make sure that the export boxes are checked.
+The last library is used for implementing the MATLAB interface.
+
+\begin{sideblock}
+This change should allow ArtiSynth to run on versions of MATLAB from
+2016 onward (but will prevent it from running on earlier versions).
+\end{sideblock}
+
+\section*{June 6, 2017}
+
+\subsection*{Viewer grid labeling}
+
+The viewer grid now provides numeric axis labels, which can be enabled
+by hitting the {\tt 'l'} key in the viewer. Label properties such as
+size and color and which axes are labelled can be controlled by right
+clicking in the viewer and choosing {\sf Set viewer grid properties}.
+
+More details can be found in the "Axis Labeling" section
+of the 
+\href{http://www.artisynth.org/doc/html/uiguide/uiguide.html}
+{User Interface Guide}.
+
+\subsection*{Numeric monitor probes}
+
+A new type of output probe,
+\javaclass[artisynth.core.probes]{NumericMonitorProbe}, has been
+added, which generates data through an application-supplied function.
+This is similar to using a {\tt Monitor}, with the added advantage
+that the generated numeric data can be viewed using the timeline
+displays or saved to a file.
+
+For details, see the "Numeric monitor probes"
+section of the 
+\href{http://www.artisynth.org/doc/html/modelguide/modelguide.html}
+{Modeling Guide}
+
+\subsection*{Rendering signed distance grid surfaces}
+
+ArtiSynth components that support signed distance grids, such as
+\javaclass[artisynth.core.mechmodels]{RigidBody}, now support the
+ability to render the zero surface associated with the grid. This can
+controlled through the property {\sf renderDistanceSurface}.  When
+enabled, this will cause an approximation of the grid's zero surface
+to be displayed instead of primary surface mesh. The purpose of this
+is to allow one to visualize how coarsely the distance grid
+approximates the mesh on which it is based.
 
 \section*{Apr 10, 2017}
 

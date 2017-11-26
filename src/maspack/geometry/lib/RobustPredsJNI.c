@@ -85,7 +85,6 @@ void setPrecision() {
    feclearexcept(FE_ALL_EXCEPT); // there is hell to pay if we don't clear flags before unmasking
    _FPU_SETCW(cword);
 #endif // LINUX || DARWIN
-   //printf("cword: %d\n", cword);
 }
 
 void restorePrecision() {
@@ -229,6 +228,7 @@ JNIEXPORT jint JNICALL Java_maspack_geometry_RobustPreds_jniIntersectSegmentTria
    t2[0] = t2x;
    t2[1] = t2y;
    t2[2] = t2z;
+
    int result = intersectSegmentTriangle(is0, s0, is1, s1, it0, t0, it1, t1, it2, t2, cIntPoint);
    if (result != 0) {
 	   (*env)->SetDoubleField(env, jPoint3d, fieldIDPoint3dx, cIntPoint[0]);

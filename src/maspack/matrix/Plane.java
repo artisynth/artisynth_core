@@ -465,6 +465,61 @@ public class Plane implements java.io.Serializable {
    }
 
    /**
+    * Applies a vector transform to this plane.
+    * 
+    * @param T
+    * vector transformer
+    */
+   public void transform (VectorTransformer3d T) {
+      transform (T, this);
+   }
+   
+   /**
+    * Applies a vector transform to a plane and places the result in this plane.
+    * 
+    * @param T
+    * vector transformer
+    * @param plane
+    * plane to be transformed
+    */
+   public void transform (VectorTransformer3d T, Plane plane) {
+      Point3d p = new Point3d();
+      p.scale (plane.offset, plane.normal); // point on the untransformed plane
+      T.transformCovec (normal, plane.normal);
+      normal.normalize();
+      T.transformPnt (p, p);
+      offset = p.dot(normal);
+   }
+
+   /**
+    * Applies an inverse vector transform to a plane and places 
+    * the result in this plane.
+    * 
+    * @param T
+    * vector transformer
+    * @param plane
+    * plane to be transformed
+    */
+   public void inverseTransform (VectorTransformer3d T, Plane plane) {
+      Point3d p = new Point3d();
+      p.scale (plane.offset, plane.normal); // point on the untransformed plane
+      T.inverseTransformCovec (normal, plane.normal);
+      normal.normalize();
+      T.inverseTransformPnt (p, p);
+      offset = p.dot(normal);
+   }
+
+   /**
+    * Applies an inverse vector transform to this place.
+    * 
+    * @param T
+    * vector transformer
+    */
+   public void inverseTransform (VectorTransformer3d T) {
+      inverseTransform (T, this);
+   }
+
+   /**
     * Applies an inverse affine transformation to a specified plane and places
     * the result in this plane.
     * 

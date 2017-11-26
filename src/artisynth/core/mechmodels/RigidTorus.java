@@ -110,7 +110,7 @@ public class RigidTorus extends RigidBody implements Wrappable {
 
       Point3d p = new Point3d();
       p.scaledAdd (lam, del, pa);
-      double d = penetrationDistanceLoc (n, p);
+      double d = penetrationDistanceLoc (n, null, p, 1000);
       p.scaledAdd (-d, n);
       if (ps != null) {
          ps.set (p);
@@ -268,6 +268,7 @@ public class RigidTorus extends RigidBody implements Wrappable {
          int iter;
          int maxIter = 50;
          double f = 0;
+
          for (iter=0; iter<maxIter; iter++) {
             f = computeF (nrm, psLoc, paLoc, del, lam);
 
@@ -287,7 +288,7 @@ public class RigidTorus extends RigidBody implements Wrappable {
             }
             if (lo > hi) {
                throw new InternalErrorException (
-                  "interval exchanged, lo=" + lo + " hi=" + hi);
+                  "interval exchanged, lo=" + lo + " hi=" + hi + " iter=" + iter);
             }  
             // compute df to apply Newton step
             double df = computeDf (nrm, psLoc, paLoc, del, lam);
@@ -318,12 +319,13 @@ public class RigidTorus extends RigidBody implements Wrappable {
          return;
       }
       pr.scaledAdd (lam, del, paLoc);
-      d = penetrationDistanceLoc (nrm, pr);
+      d = penetrationDistanceLoc (nrm, null, pr, 1000);
       pr.scaledAdd (-d, nrm);
       pr.transform (getPose());
    }
 
-   private double penetrationDistanceLoc (Vector3d nrm, Point3d p0loc) {
+   private double penetrationDistanceLoc (
+      Vector3d nrm, Matrix3d dnrm, Point3d p0loc, double outsideLimit) {
 
       if (nrm == null) {
          nrm = new Vector3d();
@@ -345,13 +347,51 @@ public class RigidTorus extends RigidBody implements Wrappable {
       mag = nrm.norm();
       if (mag == 0) {
          // leave normal unchanged
+         if (dnrm != null) {
+            dnrm.setZero();
+         }
          return -myInnerRadius;
       }
-      else if (mag >= 1.5*myInnerRadius) {
+      else if (mag >= outsideLimit*myInnerRadius) {
          return Wrappable.OUTSIDE;
       }
       else {
-         nrm.scale (1/mag);
+         double magi = 1.0/mag;
+         nrm.scale (magi);
+         if (dnrm != null) {
+            // first form dnrm in a coordinate frame rotated about z so that
+            // the x axis coincides with (p0loc.x, p0loc.y).
+
+            double s = p0loc.y/r; // sin
+            double c = p0loc.x/r; // cos
+
+            // find normal coords in rotated frame. ny = 0.
+            double nx = c*nrm.x + s*nrm.y;
+            double nz = nrm.z;
+
+            double m00 = nz*nz*magi;
+            double m02 = -nx*nz*magi;
+
+            double m11 = nx/r;
+
+            double m20 = -nx*nz*magi;
+            double m22 = nx*nx*magi;
+
+            // now rotate into torus coordinates:
+            // dnrm = R * dnrm * inv(R)
+
+            dnrm.m00 = c*c*m00 + s*s*m11;
+            dnrm.m01 = c*s*(m00-m11);
+            dnrm.m02 = c*m20;
+
+            dnrm.m10 = dnrm.m01;
+            dnrm.m11 = s*s*m00 + c*c*m11;
+            dnrm.m12 = s*m20;
+
+            dnrm.m20 = dnrm.m02;
+            dnrm.m21 = dnrm.m12;
+            dnrm.m22 = m22;
+         }
          return mag-myInnerRadius;
       }
    }
@@ -360,9 +400,9 @@ public class RigidTorus extends RigidBody implements Wrappable {
       Point3d p0loc = new Point3d(p0);
       p0loc.inverseTransform (getPose());
 
-      double d = penetrationDistanceLoc (nrm, p0loc);
+      double d = penetrationDistanceLoc (nrm, dnrm, p0loc, 1.5);
       if (dnrm != null) {
-         dnrm.setZero();
+         dnrm.transform (getPose().R);
       }
       if (nrm != null && d != Wrappable.OUTSIDE && d != -myInnerRadius) {
          nrm.transform (getPose());

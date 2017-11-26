@@ -11,7 +11,7 @@ import java.util.Set;
 
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.SignedDistanceGrid;
+import maspack.geometry.DistanceGrid;
 
 /**
  * Indicates a Collidable that is capable of actual collision handling.  Within
@@ -92,6 +92,6 @@ public interface CollidableBody extends Collidable {
     * does not support a signed distance grid (i.e., if 
     * {@link #hasDistanceGrid} returns <code>false</code>).
     */
-   public SignedDistanceGrid getDistanceGrid();
+   public DistanceGrid getDistanceGrid();
 
 }

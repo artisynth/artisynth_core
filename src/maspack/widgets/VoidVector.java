@@ -27,6 +27,10 @@ public class VoidVector extends VectorBase {
       // do nothing
    }
 
+   public int set (double[] values, int idx) {
+      return idx+mySize;
+   }
+
    public double get (int idx) {
       return 0;
    }

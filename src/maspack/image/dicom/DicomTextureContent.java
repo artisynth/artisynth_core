@@ -188,7 +188,12 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
     * @param x normalized column [0,1]
     */
    public void setX(double x) {
-      setColumn ((int)Math.round (x*(image.getNumCols ()-1)));
+      int ncols = image.getNumCols();
+      if (ncols < 2) {
+         setColumn(0);
+      } else {
+         setColumn ((int)Math.round (x*(ncols-1)));
+      }
    }
    
    /**
@@ -196,7 +201,11 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
     * @return normalized column [0,1]
     */
    public double getX() {
-      return (double)getColumn ()/(image.getNumCols ()-1);
+      int ncols = image.getNumCols();
+      if (ncols < 2) {
+         return 0;
+      }
+      return (double)getColumn ()/(ncols-1);
    }
    
    /**
@@ -204,7 +213,12 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
     * @param y normalized row [0,1]
     */
    public void setY(double y) {
-      setRow ((int)Math.round (y*(image.getNumRows ()-1)));
+      int nrows = image.getNumRows();
+      if (nrows < 2) {
+         setRow(0);
+      } else {
+         setRow ((int)Math.round (y*(nrows-1)));
+      }
    }
    
    /**
@@ -212,7 +226,11 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
     * @return normalized row [0,1]
     */
    public double getY() {
-      return (double)getRow ()/(image.getNumRows ()-1);
+      int nrows = image.getNumRows();
+      if (nrows < 2) {
+         return 0;
+      }
+      return (double)getRow ()/(nrows-1);
    }
    
    /**
@@ -220,7 +238,12 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
     * @param z normalized slice [0,1]
     */
    public void setZ(double z) {
-      setSlice ((int)Math.round (z*(image.getNumSlices ()-1)));
+      int nslices = image.getNumSlices();
+      if (nslices < 2) {
+         setSlice(0);       
+      } else {
+         setSlice ((int)Math.round (z*(image.getNumSlices ()-1)));
+      }
    }
    
    /**
@@ -228,7 +251,11 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
     * @return normalized slice [0,1]
     */
    public double getZ() {
-      return (double)getSlice ()/(image.getNumSlices ()-1);
+      int nslices = image.getNumSlices();
+      if (nslices < 2) {
+         return 0;
+      }
+      return (double)getSlice ()/(nslices-1);
    }
    
    /**

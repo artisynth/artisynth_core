@@ -46,6 +46,9 @@ public class DicomViewer extends RenderableComponentBase {
    static int XY_IDX = 0;
    static int XZ_IDX = 1;
    static int YZ_IDX = 2;
+   
+   // position of planes
+   Vector3d coord;
 
    public static PropertyList myProps = new PropertyList(
       DicomViewer.class, RenderableComponentBase.class);
@@ -114,6 +117,8 @@ public class DicomViewer extends RenderableComponentBase {
       myTransform = new AffineTransform3d(RigidTransform3d.IDENTITY);
       drawBox = true;
       drawSlice = new boolean[]{true, true, true};
+      
+      coord = new Vector3d();
       
       setImage(image);
       setSliceCoordinates(0.5, 0.5, 0.5);
@@ -533,7 +538,7 @@ public class DicomViewer extends RenderableComponentBase {
     * @return the current normalized 'x' coordinate
     */
    public double getX() {
-      return texture.getX ();
+      return coord.x;
    }
    
    /**
@@ -542,6 +547,7 @@ public class DicomViewer extends RenderableComponentBase {
     * @param x normalized 'x' coordinate
     */
    public void setX(double x) {
+      coord.x = x;
       texture.setX (x);
       robjValid = false;
    }
@@ -551,7 +557,7 @@ public class DicomViewer extends RenderableComponentBase {
     * @return the current normalized 'y' coordinate
     */
    public double getY() {
-      return texture.getY ();
+      return coord.y;
    }
    
    /**
@@ -559,6 +565,7 @@ public class DicomViewer extends RenderableComponentBase {
     * @param y normalized 'y' coordinate
     */
    public void setY(double y) {
+      coord.y = y;
       texture.setY (y);
       robjValid = false;
    }
@@ -567,7 +574,7 @@ public class DicomViewer extends RenderableComponentBase {
     * @return the current normalized 'z' coordinate
     */
    public double getZ() {
-      return texture.getZ ();
+      return coord.z;
    }
    
    /**
@@ -575,6 +582,7 @@ public class DicomViewer extends RenderableComponentBase {
     * @param z normalized 'z' coordinate
     */
    public void setZ(double z) {
+      coord.z = z;
       texture.setZ (z);
       robjValid = false;
    }

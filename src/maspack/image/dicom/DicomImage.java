@@ -646,9 +646,10 @@ public class DicomImage {
    public AffineTransform3d getVoxelTransform() {
       
       int nSlices = getNumSlices();
+      
       // compute slice thickness directly from slice separation
       // (slice thickness is sometimes different)
-      if (nSlices > 0) {
+      if (nSlices > 1) {
          double zsize = slices[nSlices-1].info.imagePosition.p.distance(slices[0].info.imagePosition.p);
          pixelSpacingSlice = zsize/(nSlices-1);
       } 

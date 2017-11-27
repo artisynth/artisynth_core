@@ -33,12 +33,12 @@ public class ICPRegistration {
    static boolean myDualDistancingEnabled = false;
    static private int MAX_FLIPS = 24;
 
-   protected class VertexDistInfo {
+   static protected class VertexDistInfo {
       
-      Vertex3d myVertex;
-      Point3d myPnt;
-      Vector3d myNrm;
-      double myOffset;
+      public Vertex3d myVertex;
+      public Point3d myPnt;
+      public Vector3d myNrm;
+      public double myOffset;
 
       VertexDistInfo () {
          myVertex = null;
@@ -332,7 +332,7 @@ public class ICPRegistration {
       return numd;
    }
 
-   private void allocateDistInfo (PolygonalMesh mesh1, PolygonalMesh mesh2) {
+   protected void allocateDistInfo (PolygonalMesh mesh1, PolygonalMesh mesh2) {
       if (myDistInfo == null) {
          myDistInfo = new VertexDistInfo[myMaxVertices];
          for (int i=0; i<myMaxVertices; i++) {
@@ -386,7 +386,7 @@ public class ICPRegistration {
    }
 
 
-   double computeMeshRadius (PolygonalMesh mesh) {
+   protected double computeMeshRadius (PolygonalMesh mesh) {
 
       Vector3d c = new Vector3d();
       Vector3d d = new Vector3d();

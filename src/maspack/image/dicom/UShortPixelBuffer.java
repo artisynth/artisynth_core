@@ -11,16 +11,16 @@ package maspack.image.dicom;
  * Stores a set of pixels in grayscale short form
  * @author Antonio
  */
-public class ShortPixelBuffer extends DicomPixelBufferBase {
+public class UShortPixelBuffer extends DicomPixelBufferBase {
 
    short[] pixels;
 
-   public ShortPixelBuffer(int size) {
+   public UShortPixelBuffer(int size) {
       this(new short[size]);
    }
    
-   public ShortPixelBuffer(short[] pixels) {
-      super(PixelType.SHORT);
+   public UShortPixelBuffer(short[] pixels) {
+      super(PixelType.USHORT);
       this.pixels = pixels;
    }
 
@@ -28,10 +28,15 @@ public class ShortPixelBuffer extends DicomPixelBufferBase {
    public int getNumPixels() {
       return pixels.length;
    }
+   
+   @Override
+   protected int getNumValues() {
+      return pixels.length;
+   }
 
    @Override
    protected int getValue(int idx) {
-      return pixels[idx];
+      return pixels[idx] & USHORT_MAX;
    }
    
    @Override
@@ -39,11 +44,6 @@ public class ShortPixelBuffer extends DicomPixelBufferBase {
       pixels[idx] = (short)val;
    }
    
-   @Override
-   protected int getNumValues() {
-      return pixels.length;
-   }
-
    public short[] getBuffer() {
       return pixels;
    }

@@ -23,11 +23,6 @@ import maspack.util.StringRange;
  */
 public class DicomWindowPixelInterpolator extends DicomPixelInterpolator {
 
-   private static final int BYTE_MASK = 0xFF;
-   private static final int SHORT_MASK = 0xFFFF;
-   private static final int BYTE_MAX = BYTE_MASK;
-   private static final int SHORT_MAX = SHORT_MASK;
-   
    public static PropertyList myProps = new PropertyList(DicomWindowPixelInterpolator.class);   
    
    static {
@@ -223,150 +218,181 @@ public class DicomWindowPixelInterpolator extends DicomPixelInterpolator {
       return windowWidth;
    }
    
-   private int rescale(int in, int center, int width, int max) {
+   private int rescale(double in, int center, int width, int ymin, int ymax) {
+      
       // threshold
       if (width == 1) {
          if (in >= center) {
-            return max; 
+            return ymax; 
          } else {
-            return 0;
+            return ymin;
          }
       }
       
       // interpolated
-      int val = (2*in-2*center+width)*max/(2*width-2);
-      if (val < 0) {
-         val = 0;
-      } else if (val > max) {
-         val = max;
+      int val;
+      if (in <= center - 0.5 - (width-1)/2) {
+         val = ymin;
+      } else if (in > center - 0.5 + (width-1)/2) {
+         val = ymax;
+      } else {
+         val = (int)((2.0*in-2*center+width)*(ymax-ymin)/(2*width-2))+ymin;
       }
       return val;
    }
    
    @Override
-   public int interpByteRGB(byte[] in, int idx, byte[] out, int odx) {
-      byte bval = (byte)rescale(in[idx], windowCenter, windowWidth,  BYTE_MAX);
-      out[odx++] = bval;
-      out[odx++] = bval;
-      out[odx++] = bval;
-      return odx;
-   }
-
-   @Override
-   public int interpByteByte(byte[] in, int idx, byte[] out, int odx) {
-      out[odx++] = (byte)rescale(in[idx], windowCenter, windowWidth,  BYTE_MAX);
-      return odx;
-   }
-
-   @Override
-   public int interpByteShort(byte[] in, int idx, short[] out, int odx) {
-      out[odx++] = (short)rescale(in[idx], windowCenter, windowWidth,  SHORT_MAX);
-      return odx;
+   public int interpGrayscale(double in, int ymin, int ymax) {
+      return rescale(in, windowCenter, windowWidth, ymin, ymax);
    }
    
    @Override
-   public int interpRGBRGB(byte[] in, int idx, byte[] out, int odx) {
+   public void interpRGB(double[] in, int ymin, int ymax, int[] out) {
       for (int i=0; i<3; i++) {
-         out[odx++] = (byte)rescale(in[idx++], windowCenter, windowWidth,  BYTE_MAX);
+         out[i] = rescale(in[i], windowCenter, windowWidth,  ymin, ymax);
       }
-      return odx;
    }
-
+   
    @Override
-   public int interpRGBByte(byte[] in, int idx, byte[] out, int odx) {
-      int val3 = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
-      out[odx++] = (byte)rescale (val3, 3*windowCenter, 3*windowWidth, BYTE_MAX);
-      return odx;
+   public void interpGrayscaleToRGB(double gray, int ymin, int ymax, int[] out) {
+      int val = rescale(gray, windowCenter, windowWidth,  ymin, ymax);
+      out[0] = val;
+      out[1] = val;
+      out[2] = val;
    }
-
+   
    @Override
-   public int interpRGBShort(byte[] in, int idx, short[] out, int odx) {
-      int val3 = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
-      out[odx++] = (byte)rescale (val3, 3*windowCenter, 3*windowWidth, SHORT_MAX);
-      return odx;
+   public int interpRGBToGrayscale(double[] rgb, int ymin, int ymax) {
+      double gray = ( rgb[0] + rgb[1] + rgb[2])/3;
+      gray = rescale (gray, windowCenter, windowWidth, ymin, ymax);
+      return (int)gray;
    }
-
-   @Override
-   public int interpShortRGB(short[] in, int idx, byte[] out, int odx) {      
-      byte bval = (byte)rescale(in[idx], windowCenter, windowWidth, BYTE_MAX);
-      out[odx++] = bval;
-      out[odx++] = bval;
-      out[odx++] = bval;
-      return odx;
-   }
-
-   @Override
-   public int interpShortByte(short[] in, int idx, byte[] out, int odx) {
-      out[odx++] =  (byte)rescale(in[idx], windowCenter, windowWidth, BYTE_MAX);
-      return odx;
-   }
-
-   @Override
-   public int interpShortShort(short[] in, int idx, short[] out, int odx) {
-      out[odx++] = (short)rescale(in[idx], windowCenter, windowWidth, SHORT_MAX);
-      return odx;
-   }
-
-   @Override
-   public int
-      interp(DicomPixelBuffer in, int idx, DicomPixelBuffer out, int odx) {
-      
-      switch (in.getPixelType()) {
-         case BYTE: {
-            
-            switch (out.getPixelType()) {
-               case BYTE: {
-                  return interpByteByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
-               }
-               case BYTE_RGB: {
-                  return interpByteRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
-               }
-               case SHORT: {
-                  return interpByteShort((byte[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
-               }
-               default: {
-                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
-               }  
-            }
-         }
-         case BYTE_RGB: {
-            switch (out.getPixelType()) {
-               case BYTE: {
-                  return interpRGBByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
-               }
-               case BYTE_RGB: {
-                  return interpRGBRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
-               }
-               case SHORT: {
-                  return interpRGBShort((byte[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
-               }
-               default: {
-                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
-               }  
-            }
-         }
-         case SHORT: {
-            switch (out.getPixelType()) {
-               case BYTE: {
-                  return interpShortByte((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
-               }
-               case BYTE_RGB: {
-                  return interpShortRGB((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
-               }
-               case SHORT: {
-                  return interpShortShort((short[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
-               }
-               default: {
-                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
-               }  
-            }
-         }
-         default: {
-            throw new IllegalArgumentException("Unknown type: " + in.getPixelType());
-         }
-         
-      }
-      
-   }
+   
+//   @Override
+//   public int interpByteRGB(byte[] in, int idx, byte[] out, int odx) {
+//      byte bval = (byte)rescale(in[idx], windowCenter, windowWidth,  BYTE_MAX);
+//      out[odx++] = bval;
+//      out[odx++] = bval;
+//      out[odx++] = bval;
+//      return odx;
+//   }
+//
+//   @Override
+//   public int interpByteByte(byte[] in, int idx, byte[] out, int odx) {
+//      out[odx++] = (byte)rescale(in[idx], windowCenter, windowWidth,  BYTE_MAX);
+//      return odx;
+//   }
+//
+//   @Override
+//   public int interpByteShort(byte[] in, int idx, short[] out, int odx) {
+//      out[odx++] = (short)rescale(in[idx], windowCenter, windowWidth,  SHORT_MAX);
+//      return odx;
+//   }
+//   
+//   @Override
+//   public int interpRGBRGB(byte[] in, int idx, byte[] out, int odx) {
+//      for (int i=0; i<3; i++) {
+//         out[odx++] = (byte)rescale(in[idx++], windowCenter, windowWidth,  BYTE_MAX);
+//      }
+//      return odx;
+//   }
+//
+//   @Override
+//   public int interpRGBByte(byte[] in, int idx, byte[] out, int odx) {
+//      int val3 = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
+//      out[odx++] = (byte)rescale (val3, 3*windowCenter, 3*windowWidth, BYTE_MAX);
+//      return odx;
+//   }
+//
+//   @Override
+//   public int interpRGBShort(byte[] in, int idx, short[] out, int odx) {
+//      int val3 = (in[idx] & BYTE_MASK) + (in[idx+1] & BYTE_MASK) + (in[idx+2] & BYTE_MASK);
+//      out[odx++] = (byte)rescale (val3, 3*windowCenter, 3*windowWidth, SHORT_MAX);
+//      return odx;
+//   }
+//
+//   @Override
+//   public int interpShortRGB(short[] in, int idx, byte[] out, int odx) {      
+//      byte bval = (byte)rescale(in[idx], windowCenter, windowWidth, BYTE_MAX);
+//      out[odx++] = bval;
+//      out[odx++] = bval;
+//      out[odx++] = bval;
+//      return odx;
+//   }
+//
+//   @Override
+//   public int interpShortByte(short[] in, int idx, byte[] out, int odx) {
+//      out[odx++] =  (byte)rescale(in[idx], windowCenter, windowWidth, BYTE_MAX);
+//      return odx;
+//   }
+//
+//   @Override
+//   public int interpShortShort(short[] in, int idx, short[] out, int odx) {
+//      out[odx++] = (short)rescale(in[idx], windowCenter, windowWidth, SHORT_MAX);
+//      
+//      return odx;
+//   }
+//
+//   @Override
+//   public int
+//      interp(DicomPixelBuffer in, int idx, DicomPixelBuffer out, int odx) {
+//      
+//      switch (in.getPixelType()) {
+//         case BYTE: {
+//            
+//            switch (out.getPixelType()) {
+//               case BYTE: {
+//                  return interpByteByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+//               }
+//               case BYTE_RGB: {
+//                  return interpByteRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+//               }
+//               case SHORT: {
+//                  return interpByteShort((byte[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
+//               }
+//               default: {
+//                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
+//               }  
+//            }
+//         }
+//         case BYTE_RGB: {
+//            switch (out.getPixelType()) {
+//               case BYTE: {
+//                  return interpRGBByte((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+//               }
+//               case BYTE_RGB: {
+//                  return interpRGBRGB((byte[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+//               }
+//               case SHORT: {
+//                  return interpRGBShort((byte[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
+//               }
+//               default: {
+//                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
+//               }  
+//            }
+//         }
+//         case SHORT: {
+//            switch (out.getPixelType()) {
+//               case BYTE: {
+//                  return interpShortByte((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+//               }
+//               case BYTE_RGB: {
+//                  return interpShortRGB((short[])in.getBuffer(), idx, (byte[])out.getBuffer(), odx);
+//               }
+//               case SHORT: {
+//                  return interpShortShort((short[])in.getBuffer(), idx, (short[])out.getBuffer(), odx);
+//               }
+//               default: {
+//                  throw new IllegalArgumentException("Unknown type: " + out.getPixelType());
+//               }  
+//            }
+//         }
+//         default: {
+//            throw new IllegalArgumentException("Unknown type: " + in.getPixelType());
+//         }
+//         
+//      }
+//      
+//   }
    
 }

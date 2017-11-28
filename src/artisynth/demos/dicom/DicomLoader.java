@@ -125,6 +125,9 @@ public class DicomLoader extends RootModel {
       String name = file.getName();
       
       viewer = new DicomViewer(name, file.getAbsolutePath(), Pattern.compile(pattern), subdirs);
+      DicomImage image = viewer.getImage();
+      System.out.println(image.toString());
+      
       addRenderable(viewer);
       Main.getMain().getViewer().autoFit();
       

@@ -194,20 +194,19 @@ public class DicomSlice {
     * @param ny number of voxels in y direction
     * @param type pixel type to convert to
     * @param scanline width of line (stride between lines)
-    * @param pixels buffer array to fill
     * @param interp interpolator for converting pixels to appropriate form
+    * @param pixels buffer array to fill
     */
    public void getPixels(int x, int y, 
       int dx, int dy,
       int nx, int ny, PixelType type, int scanline,
-      ByteBuffer pixels,
-      DicomPixelInterpolator interp) {
+      DicomPixelInterpolator interp,
+      ByteBuffer pixels) {
     
-      
       for (int i=0; i<ny; i++) {
          int idx = (y + dy*i)*info.cols+x;
          int p = pixels.position ();
-         pixelBuff.getPixels (idx, dx, nx, type, pixels, interp);
+         pixelBuff.getPixels (idx, dx, nx, type, interp, pixels);
          if (scanline > 0) {
             pixels.position (p+scanline);
          }
@@ -215,7 +214,7 @@ public class DicomSlice {
    }
    
    /**
-    * Populates an array of RGB(byte) pixels from the slice, 
+    * Populates a buffer of pixels from the slice, 
     * interpolated using an interpolator
     * 
     * @param x starting x voxel
@@ -224,118 +223,38 @@ public class DicomSlice {
     * @param dy voxel step in y direction
     * @param nx number of voxels in x direction
     * @param ny number of voxels in y direction
-    * @param pixels output array to fill
-    * @param offset offset in output pixel array
+    * @param type pixel type to convert to
+    * @param scanline width of line (stride between lines)
     * @param interp interpolator for converting pixels to appropriate form
-    * @return the next unfilled index in the output pixel array 
+    * @param pixels buffer array to fill
+    * @param offset offset in output buffer to start filling values
     */
-   public int getPixelsRGB(int x, int y, 
+   public void getPixels(int x, int y, 
       int dx, int dy,
-      int nx, int ny, byte[] pixels, int offset,
-      DicomPixelInterpolator interp) {
+      int nx, int ny, PixelType type, int scanline,
+      DicomPixelInterpolator interp,
+      int[] pixels, int offset) {
     
       for (int i=0; i<ny; i++) {
          int idx = (y + dy*i)*info.cols+x;
-         offset = pixelBuff.getPixelsRGB(idx, dx, nx, pixels, offset, interp);
+         pixelBuff.getPixels (idx, dx, nx, type, interp, pixels, offset);
+         if (scanline > 0) {
+            offset += scanline;
+         }
       }
-      
-      return offset;
-   }
-   
-   /**
-    * Populates an array of grayscale(byte) pixels from the slice, 
-    * interpolated using an interpolator
-    * 
-    * @param x starting x voxel
-    * @param y starting y voxel
-    * @param dx voxel step in x direction
-    * @param dy voxel step in y direction
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param pixels output array to fill
-    * @param offset offset in output pixel array
-    * @param interp interpolator for converting pixels to appropriate form
-    * @return the next unfilled index in the output pixel array 
-    */
-   public int getPixelsByte(int x, int y, 
-      int dx, int dy,
-      int nx, int ny, byte[] pixels, int offset,
-      DicomPixelInterpolator interp) {
-      
-      for (int i=0; i<ny; i++) {
-         int idx = (y + dy*i)*info.cols+x;
-         offset = pixelBuff.getPixelsByte(idx, dx, nx, pixels, offset, interp);
-      }
-      
-      return offset;
-   }
-   
-   /**
-    * Populates an array of grayscale(short) pixels from the slice, 
-    * interpolated using an interpolator
-    * 
-    * @param x starting x voxel
-    * @param y starting y voxel
-    * @param dx voxel step in x direction
-    * @param dy voxel step in y direction
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param pixels output array to fill
-    * @param offset offset in output pixel array
-    * @param interp interpolator for converting pixels to appropriate form
-    * @return the next unfilled index in the output pixel array 
-    */
-   public int getPixelsShort(int x, int y,
-      int dx, int dy, 
-      int nx, int ny, short[] pixels, int offset,
-      DicomPixelInterpolator interp) {
-      
-      for (int i=0; i<ny; i++) {
-         int idx = (y + dy*i)*info.cols + x;
-         offset = pixelBuff.getPixelsShort(idx, dx, nx, pixels, offset, interp);
-      }
-      
-      return offset;
-   }
-   
-   /**
-    * Populates a pixel buffer from the slice, interpolated using an interpolator
-    * 
-    * @param x starting x voxel
-    * @param y starting y voxel
-    * @param dx voxel step in x direction
-    * @param dy voxel step in y direction
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param pixels output buffer to fill
-    * @param offset offset in output pixel buffer
-    * @param interp interpolator for converting pixels to appropriate form
-    * @return the next unfilled index in the output pixel array 
-    */
-   public int getPixels(int x, int y, 
-      int dx, int dy,
-      int nx, int ny,
-      DicomPixelBuffer pixels, int offset,
-      DicomPixelInterpolator interp) {
-      
-      for (int i=0; i<ny; i++) {
-         int idx = (y + dy*i)*info.cols + x;
-         offset = pixelBuff.getPixels(idx, dx, nx, pixels, offset, interp);
-      }
-      return offset;
    }
    
    /**
     * @return maximum pixel intensity in the slice
     */
-   public int getMaxIntensity() {
+   public double getMaxIntensity() {
       return pixelBuff.getMaxIntensity();
    }
    
    /**
     * @return minimum pixel intensity in the slice
     */
-   public int getMinIntensity() {
+   public double getMinIntensity() {
       return pixelBuff.getMinIntensity();
    }
 

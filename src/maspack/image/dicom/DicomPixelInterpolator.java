@@ -108,108 +108,144 @@ public abstract class DicomPixelInterpolator implements CompositeProperty {
    }
    
    // abstract methods
+   /**
+    * Interpolates a new grayscale value
+    * @param in input grayscale
+    * @param ymin minimum output
+    * @param ymax maximum output
+    * @return interpolated output
+    */
+   public abstract int interpGrayscale(double in, int ymin, int ymax);
    
    /**
-    * Interpolates from grayscale (byte) to RGB (byte) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
+    * Interpolates a new rgb value
+    * @param in input rgb
+    * @param ymin minimum output value
+    * @param ymax maximum output value
+    * @param out output rgb
     */
-   public abstract int interpByteRGB(byte[] in, int idx, byte[] out, int odx);
-
+   public abstract void interpRGB(double[] in, int ymin, int ymax, int[] out);
+   
    /**
-    * Interpolates from grayscale (byte) to grayscale (byte) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
+    * Interpolates an RGB value to grayscale
+    * @param rgb input rgb
+    * @param ymin minimum output value
+    * @param ymax maximum output value
+    * @return output grayscale
     */
-   public abstract int interpByteByte(byte[] in, int idx, byte[] out, int odx);
-
+   public abstract int interpRGBToGrayscale(double[] rgb, int ymin, int ymax);
+   
    /**
-    * Interpolates from grayscale (byte) to grayscale (short) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
+    * Interpolates a grayscale value to RGB
+    * @param gray input grayscale
+    * @param ymin minimum output value
+    * @param ymax maximum output value
+    * @param out output rgb
     */
-   public abstract int interpByteShort(byte[] in, int idx, short[] out, int odx);
-
-   /**
-    * Interpolates from RGB (byte) to RGB (byte) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
-    */
-   public abstract int interpRGBRGB(byte[] in, int idx, byte[] out, int odx);
-
-   /**
-    * Interpolates from RGB (byte) to grayscale (byte) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
-    */
-   public abstract int interpRGBByte(byte[] in, int idx, byte[] out, int odx);
-
-   /**
-    * Interpolates from RGB (byte) to grayscale (short) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
-    */
-   public abstract int interpRGBShort(byte[] in, int idx, short[] out, int odx);
-
-   /**
-    * Interpolates from grayscale (short) to RGB (byte) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
-    */
-   public abstract int interpShortRGB(short[] in, int idx, byte[] out, int odx);
-
-   /**
-    * Interpolates from grayscale (short) to grayscale (byte) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
-    */
-   public abstract int interpShortByte(short[] in, int idx, byte[] out, int odx);
-
-   /**
-    * Interpolates from grayscale (short) to grayscale (short) values
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
-    */
-   public abstract int interpShortShort(
-      short[] in, int idx, short[] out, int odx);
-
-   /**
-    * Interpolates between two pixel buffers whose class determines their value 
-    * representation type 
-    * @param in input pixel values
-    * @param idx starting input index
-    * @param out output buffer to fill
-    * @param odx starting output index
-    * @return next index in output buffer
-    */
-   public abstract int interp(
-      DicomPixelBuffer in, int idx, DicomPixelBuffer out, int odx);
+   public abstract void interpGrayscaleToRGB(double gray, int ymin, int ymax, int[] out);
+   
+//   
+//   /**
+//    * Interpolates from grayscale (byte) to RGB (byte) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpByteRGB(byte[] in, int idx, byte[] out, int odx);
+//
+//   /**
+//    * Interpolates from grayscale (byte) to grayscale (byte) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpByteByte(byte[] in, int idx, byte[] out, int odx);
+//
+//   /**
+//    * Interpolates from grayscale (byte) to grayscale (short) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpByteShort(byte[] in, int idx, short[] out, int odx);
+//
+//   /**
+//    * Interpolates from RGB (byte) to RGB (byte) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpRGBRGB(byte[] in, int idx, byte[] out, int odx);
+//
+//   /**
+//    * Interpolates from RGB (byte) to grayscale (byte) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpRGBByte(byte[] in, int idx, byte[] out, int odx);
+//
+//   /**
+//    * Interpolates from RGB (byte) to grayscale (short) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpRGBShort(byte[] in, int idx, short[] out, int odx);
+//
+//   /**
+//    * Interpolates from grayscale (short) to RGB (byte) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpShortRGB(short[] in, int idx, byte[] out, int odx);
+//
+//   /**
+//    * Interpolates from grayscale (short) to grayscale (byte) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpShortByte(short[] in, int idx, byte[] out, int odx);
+//
+//   /**
+//    * Interpolates from grayscale (short) to grayscale (short) values
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interpShortShort(
+//      short[] in, int idx, short[] out, int odx);
+//
+//   /**
+//    * Interpolates between two pixel buffers whose class determines their value 
+//    * representation type 
+//    * @param in input pixel values
+//    * @param idx starting input index
+//    * @param out output buffer to fill
+//    * @param odx starting output index
+//    * @return next index in output buffer
+//    */
+//   public abstract int interp(
+//      DicomPixelBuffer in, int idx, DicomPixelBuffer out, int odx);
 
 }

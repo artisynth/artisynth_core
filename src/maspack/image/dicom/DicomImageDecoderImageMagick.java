@@ -195,7 +195,7 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
             "ImageMagick's \"convert\" command not found");
       }
 
-      DicomPixelBuffer out = null;
+      DicomPixelBufferBase out = null;
 
       // get dimensions, whether RGB or grayscale, and bit depth
       int nSamples = header.getIntValue(DicomTag.SAMPLES_PER_PIXEL, 1);
@@ -338,7 +338,11 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
 
             // single byte grayscale
             if (bitsAllocated == 8) {
-               out = new BytePixelBuffer(frameLength);
+               if (pixelRepresentation == 0) {
+                  out = new UBytePixelBuffer(frameLength);
+               } else {
+                  out = new BytePixelBuffer(frameLength);
+               }
                byte[] buff = (byte[])out.getBuffer();
 
                for (int i = 0; i < frameLength; i++) {
@@ -357,13 +361,17 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
                   }
                   
                   // rescale
-                  buff[i] = (byte)(buff[i]*rescaleSlope + rescaleIntercept);
+                  out.setRescale(rescaleSlope, rescaleIntercept);
                }
             } else if (bitsAllocated == 16) {
 
                // short
                // separate sequences into appropriate frames
-               out = new ShortPixelBuffer(frameLength);
+               if (pixelRepresentation == 0) {
+                  out = new UShortPixelBuffer(frameLength);
+               } else {
+                  out = new ShortPixelBuffer(frameLength);
+               }
                short[] buff = (short[])out.getBuffer();
 
                for (int i = 0; i < frameLength; i++) {
@@ -384,7 +392,7 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
                   }
 
                   // rescale
-                  buff[i] = (short)(buff[i]*rescaleSlope + rescaleIntercept);
+                  out.setRescale(rescaleSlope, rescaleIntercept);
                }
             } else {
                throw new IllegalArgumentException(

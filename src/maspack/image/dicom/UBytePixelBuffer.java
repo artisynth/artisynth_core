@@ -11,23 +11,22 @@ package maspack.image.dicom;
  * Stores a set of pixels in grayscale byte form
  * @author Antonio
  */
-public class BytePixelBuffer extends DicomPixelBufferBase {
+public class UBytePixelBuffer extends DicomPixelBufferBase {
 
    byte[] pixels;
    
-   
-   public BytePixelBuffer(int size) {
+   public UBytePixelBuffer(int size) {
       this(new byte[size]);
    }
    
-   public BytePixelBuffer (byte[] pixels) {
-      super(PixelType.BYTE);
+   public UBytePixelBuffer (byte[] pixels) {
+      super(PixelType.UBYTE);
       this.pixels = pixels; 
    }
 
    @Override
    protected int getValue(int idx) {
-      return pixels[idx];
+      return pixels[idx] & UBYTE_MAX;
    }
    
    @Override

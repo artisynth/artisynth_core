@@ -64,18 +64,35 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
       interpolate = false;
       valid = false;
       dirty = true;
-      internalStorage = image.getPixelType ();
+      internalStorage = PixelType.UBYTE;
+      
+      switch(image.getPixelType ()) {
+         case BYTE:
+         case UBYTE:
+            internalStorage = PixelType.UBYTE;
+            break;
+         case SHORT:
+         case USHORT:
+            internalStorage = PixelType.USHORT;
+            break;
+         case UBYTE_RGB:
+            internalStorage = PixelType.UBYTE_RGB;
+            break;
+         default:
+            break;
+         
+      }
 
       invalidateData ();
 
       // Full dynamic range
       window = new DicomWindowPixelInterpolator();
 
-      int maxIntensity = image.getMaxIntensity();
-      int minIntensity = image.getMinIntensity();
-      int c = (maxIntensity+minIntensity) >> 1;
-      int diff = maxIntensity-minIntensity;
-      window.addWindowPreset("FULL DYNAMIC", c, diff);
+      double maxIntensity = image.getMaxIntensity();
+      double minIntensity = image.getMinIntensity();
+      double c = (maxIntensity+minIntensity)/2;
+      double diff = maxIntensity-minIntensity;
+      window.addWindowPreset("FULL DYNAMIC", (int)Math.round(c), (int)Math.round(diff));
       window.setWindow("FULL DYNAMIC");
 
       // add other windows, loaded from first slice
@@ -223,10 +240,11 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
                int vz = (int)Math.floor(vpnt.z);
 
                // interpolate around voxel
+               int[] voxel = new int[3];
                switch(internalStorage) {
+                  case UBYTE:
                   case BYTE: {
                      double val = 0;
-                     byte[] voxel = new byte[1];
 
                      if (interpolate) {
                         // scale factors for interp
@@ -244,7 +262,8 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
                         for (int xx = xmin; xx < xmax; ++xx) {
                            for (int yy = ymin; yy < ymax; ++yy) {
                               for (int zz = zmin; zz<zmax; ++zz) {
-                                 image.getPixelsByte(xx, yy, zz, 0, 0, 0, 1, 1, 1, voxel, window);
+                                 image.getPixels(xx, yy, zz, 0, 0, 0, 1, 1, 1, 
+                                    PixelType.UBYTE, 0, 0, window, voxel, 0);
                                  // interpolate
                                  val += cc[0][xx-vx]*cc[1][yy-vy]*cc[2][zz-vz]*(voxel[0]);
                               }
@@ -256,7 +275,8 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
                         int vvz = (int)Math.round(vpnt.z);
                         if (vvx >= 0 && vvx < image.getNumCols() && vvy >= 0 && vvy < image.getNumRows() 
                            && vvz >= 0 && vvz < image.getNumSlices()) {
-                           image.getPixelsByte(vvx, vvy, vvz, 0, 0, 0, 1, 1, 1, voxel, window);
+                           image.getPixels(vvx, vvy, vvz, 0, 0, 0, 1, 1, 1, 
+                              PixelType.UBYTE, 0, 0, window, voxel, 0);
                            val = voxel[0];
                         }
                      }
@@ -266,11 +286,10 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
 
                      break;
                   }
-                  case BYTE_RGB: {
+                  case UBYTE_RGB: {
                      double rval = 0;
                      double gval = 0;
                      double bval = 0;
-                     byte[] voxel = new byte[3];
 
                      if (interpolate) {
                         // scale factors for interp
@@ -288,7 +307,9 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
                         for (int xx = xmin; xx < xmax; ++xx) {
                            for (int yy = ymin; yy < ymax; ++yy) {
                               for (int zz = zmin; zz<zmax; ++zz) {
-                                 image.getPixelsRGB(xx, yy, zz, 0, 0, 0, 1, 1, 1, voxel, window);
+                                 image.getPixels(xx, yy, zz, 0, 0, 0, 1, 1, 1,
+                                    PixelType.UBYTE_RGB, 0, 0, window,
+                                    voxel, 0);
                                  // interpolate
                                  double ccc = cc[0][xx-vx]*cc[1][yy-vy]*cc[2][zz-vz]; 
                                  rval += ccc*(voxel[0]);
@@ -303,10 +324,11 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
                         int vvz = (int)Math.round(vpnt.z);
                         if (vvx >= 0 && vvx < image.getNumCols() && vvy >= 0 && vvy < image.getNumRows() 
                            && vvz >= 0 && vvz < image.getNumSlices()) {
-                           image.getPixelsRGB(vvx, vvy, vvz, 0, 0, 0, 1, 1, 1, voxel, window);
+                           image.getPixels(vvx, vvy, vvz, 0, 0, 0, 1, 1, 1, 
+                              PixelType.UBYTE_RGB, 0, 0, window, voxel, 0);
                            rval = voxel[0];
-                           gval = voxel[0];
-                           bval = voxel[0];
+                           gval = voxel[1];
+                           bval = voxel[2];
                         }
                      }
                      // round and convert to byte
@@ -315,9 +337,9 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
                      textureImage.put((byte)Math.round(bval));
                      break;
                   }
+                  case USHORT:
                   case SHORT: {
                      double val = 0;
-                     short[] voxel = new short[1];
 
                      if (interpolate) {
                         // scale factors for interp, pixel space have widths of 1
@@ -335,7 +357,8 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
                         for (int xx = xmin; xx < xmax; ++xx) {
                            for (int yy = ymin; yy < ymax; ++yy) {
                               for (int zz = zmin; zz<zmax; ++zz) {
-                                 image.getPixelsShort(xx, yy, zz, 0, 0, 0, 1, 1, 1, voxel, window);
+                                 image.getPixels(xx, yy, zz, 0, 0, 0, 1, 1, 1, 
+                                    PixelType.USHORT, 0, 0, window, voxel, 0);
                                  // interpolate
                                  val += cc[0][xx-vx]*cc[1][yy-vy]*cc[2][zz-vz]*(voxel[0]);
                               }
@@ -347,7 +370,8 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
                         int vvz = (int)Math.round(vpnt.z);
                         if (vvx >= 0 && vvx < image.getNumCols() && vvy >= 0 && vvy < image.getNumRows() 
                            && vvz >= 0 && vvz < image.getNumSlices()) {
-                           image.getPixelsShort(vvx, vvy, vvz, 0, 0, 0, 1, 1, 1, voxel, window);
+                           image.getPixels(vvx, vvy, vvz, 0, 0, 0, 1, 1, 1,
+                              PixelType.USHORT, 0, 0, window, voxel, 0);
                            val = voxel[0];
                         }
                      }
@@ -425,10 +449,12 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
    public int getPixelSize () {
       switch (internalStorage) {
          case BYTE:
+         case UBYTE:
             return 1;
-         case BYTE_RGB:
+         case UBYTE_RGB:
             return 3;
          case SHORT:
+         case USHORT:
             return 2;
          default:
             break;
@@ -569,15 +595,15 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
          new int[] {8, 8, 8, 8}, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
 
       switch (internalStorage) {
-         case BYTE:
+         case UBYTE:
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_GRAY),
                new int[] {8}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
             break;
-         case BYTE_RGB:
+         case UBYTE_RGB:
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_sRGB),
                new int[] {8, 8, 8, 0}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
             break;
-         case SHORT:
+         case USHORT:
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_GRAY),
                new int[] {16}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_USHORT);
             break;
@@ -600,17 +626,18 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
          for (int i=0; i<res.y; ++i) {
             for (int j=0; j<res.x; ++j) {
                switch(internalStorage) {
-                  case BYTE:
+                  case UBYTE:
                      raster.getDataBuffer ().setElem (pos+j, textureImage.get ());
                      break;
-                  case BYTE_RGB:
+                  case UBYTE_RGB:
                      raster.getDataBuffer ().setElem (0, pos+j, textureImage.get ());
                      raster.getDataBuffer ().setElem (1, pos+j, textureImage.get ());
                      raster.getDataBuffer ().setElem (2, pos+j, textureImage.get ());
                      break;
-                  case SHORT:
+                  case USHORT:
                      raster.getDataBuffer ().setElem (pos+j, textureImage.getShort ());
                      break;
+                  default:
                }   
             }
             pos -= scanline;
@@ -664,10 +691,14 @@ public class DicomPlaneTextureContent extends ReferenceCountedBase implements Te
       switch (internalStorage) {
          case BYTE:
             return ContentFormat.GRAYSCALE_BYTE;
-         case BYTE_RGB:
+         case UBYTE:
+            return ContentFormat.GRAYSCALE_UBYTE;
+         case UBYTE_RGB:
             return ContentFormat.RGB_BYTE_3;
          case SHORT:
             return ContentFormat.GRAYSCALE_SHORT;
+         case USHORT:
+            return ContentFormat.GRAYSCALE_USHORT;
       }
       return null;
    }

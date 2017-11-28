@@ -13,19 +13,22 @@ import java.nio.ByteBuffer;
  * Stores a set of pixels in RGB byte form (3 consecutive bytes per pixel)
  * @author Antonio
  */
-public class RGBPixelBuffer implements DicomPixelBuffer {
+public class RGBPixelBuffer extends DicomPixelBufferBase {
 
    byte[] pixels;
+   static final int BYTE_MASK = 0xFF;
 
    public RGBPixelBuffer(int size) {
-      pixels = new byte[size];
+      this(new byte[size]);
    }
    
    public RGBPixelBuffer(byte[] pixels) {
+      super(PixelType.UBYTE_RGB);
       this.pixels = pixels;
    }
    
    public RGBPixelBuffer (int[] pixels) {
+      super(PixelType.UBYTE_RGB);
       this.pixels = new byte[pixels.length*3];
       int sidx = 0;
       for (int i=0; i<pixels.length; i++) {
@@ -38,190 +41,196 @@ public class RGBPixelBuffer implements DicomPixelBuffer {
 
    @Override
    public PixelType getPixelType() {
-      return PixelType.BYTE_RGB;
+      return PixelType.UBYTE_RGB;
    }
 
+   @Override
+   protected int getNumValues() {
+      return pixels.length;
+   }
+   
    @Override
    public int getNumPixels() {
       return pixels.length/3;
    }
 
    @Override
-   public byte[] getPixel(int n) {
-      int sidx = 3*n;
-      return new byte[]{pixels[sidx], pixels[sidx+1], pixels[sidx+2]};
+   protected int getValue(int idx) {
+      return pixels[idx];
    }
    
    @Override
-   public int getPixels(int x, int dx, int nx, PixelType type, ByteBuffer pixels, 
-      DicomPixelInterpolator interp) {
-      
+   protected void setValue(int idx, int val) {
+      pixels[idx] = (byte)val;
+   }
+   
+   public byte[] getBuffer() {
+      return pixels;
+   }
+   
+   @Override
+   public int getPixels(
+      int x, int dx, int nx, PixelType type,
+      DicomPixelInterpolator interp,  ByteBuffer pixels) {
+
       int off = 0;
+      double[] rgb = new double[3];
       switch (type) {
          case BYTE: {
-            byte[] buff = new byte[1];
             int iidx = x;
             for (int i=0; i<nx; ++i) {
-               interp.interpRGBByte (this.pixels, iidx, buff, 0);
-               pixels.put (buff[0]);
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               int val = interp.interpRGBToGrayscale(rgb, 
+                  Byte.MIN_VALUE, Byte.MAX_VALUE);
+               pixels.put ((byte)val);
                iidx += 3*dx;
             }
             off = nx;
             break;
          }
-         case BYTE_RGB: {
-            byte[] buff = new byte[3];
+         case UBYTE: {
             int iidx = x;
             for (int i=0; i<nx; ++i) {
-               interp.interpRGBRGB (this.pixels, iidx, buff, 0);
-               pixels.put (buff);
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               int val = interp.interpRGBToGrayscale(rgb, 0, UBYTE_MAX);
+               pixels.put ((byte)val);
                iidx += 3*dx;
             }
-            off = 3*nx;
+            off = nx;
+            break;
+         }
+         case UBYTE_RGB: {
+            int[] buff = new int[3];
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               interp.interpRGB(rgb, 
+                  0, UBYTE_MAX, buff);
+               pixels.put ((byte)buff[0]);
+               pixels.put ((byte)buff[1]);
+               pixels.put ((byte)buff[2]);
+               iidx += 3*dx;
+            }
+            off = nx*3;
             break;
          }
          case SHORT: {
-            short[] buff = new short[1];
             int iidx = x;
             for (int i=0; i<nx; ++i) {
-               interp.interpRGBShort (this.pixels, iidx, buff, 0);
-               pixels.putShort (buff[0]);
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               int val = interp.interpRGBToGrayscale(rgb, 
+                  Short.MIN_VALUE, Short.MAX_VALUE);
+               pixels.putShort ((short)val);
                iidx += 3*dx;
             }
-            off = 2*nx;
+            off = nx*2;
+            break;
+         }
+         case USHORT: {
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               int val = interp.interpRGBToGrayscale(rgb, 
+                  USHORT_MIN, USHORT_MAX);
+               pixels.putShort ((short)val);
+               iidx += 3*dx;
+            }
+            off = nx*2;
             break;
          }
       }
-      
+
       return off;
    }
-
-   public int getPixelsRGB(int x,
-      int dx,
-      int nx, byte[] pixels, int offset,
-      DicomPixelInterpolator interp) {
-
-      int iidx = x;
-      int oidx = offset;
-      for (int i = 0; i < nx; i++) {
-         oidx = interp.interpRGBRGB(this.pixels, iidx, pixels, oidx);
-         iidx += 3*dx;
-      }
-      return oidx;
-   }
-
-   public int getPixelsByte(int x, 
-      int dx,
-      int nx, byte[] pixels, int offset,
-      DicomPixelInterpolator interp) {
-
-      int iidx = x;
-      int oidx = offset;
-      for (int i = 0; i < nx; i++) {
-         oidx = interp.interpRGBByte(this.pixels, iidx, pixels, oidx);
-         iidx += 3*dx;
-      }
-      return oidx;
-   }
-
-   public int getPixelsShort(int x,
-      int dx,
-      int nx, short[] pixels, int offset,
-      DicomPixelInterpolator interp) {
-
-      int iidx = x;
-      int oidx = offset;
-      for (int i = 0; i < nx; i++) {
-         oidx = interp.interpRGBShort(this.pixels, iidx, pixels, oidx);
-         iidx += 3*dx;
-      }
-      return oidx;
-   }
-
-   public int getPixels(int x, 
-      int dx,
-      int nx,
-      DicomPixelBuffer pixels, int offset,
-      DicomPixelInterpolator interp) {
-
-      return pixels.setPixelsRGB(x, dx, nx, this.pixels, offset, interp);
-   }
-
-   public int setPixelsRGB(int x,
-      int dx,
-      int nx, byte[] pixels, int offset,
-      DicomPixelInterpolator interp) {
-
-      int oidx = x;
-      int iidx = offset;
-      for (int i = 0; i < nx; i++) {
-         iidx = interp.interpRGBRGB(pixels, iidx, this.pixels, oidx);
-         oidx += 3*dx;
-      }
-      return iidx;
-   }
-
-   public int setPixelsByte(int x, 
-      int dx,
-      int nx, byte[] pixels, int offset,
-      DicomPixelInterpolator interp) {
-
-      int oidx = x;
-      int iidx = offset;
-      for (int i = 0; i < nx; i++) {
-         iidx = interp.interpByteRGB(pixels, iidx, this.pixels, oidx);
-         oidx += 3*dx;
-      }
-      return iidx;
-   }
-
-   public int setPixelsShort(int x,
-      int dx,
-      int nx, short[] pixels, int offset,
-      DicomPixelInterpolator interp) {
-
-      int oidx = x;
-      int iidx = offset;
-      for (int i = 0; i < nx; i++) {
-         iidx = interp.interpShortRGB(pixels, iidx, this.pixels, oidx);
-         oidx += 3*dx;
-      }
-      return iidx;
-   }
-
-   public int setPixels(int x, 
-      int dx,
-      int nx,
-      DicomPixelBuffer pixels, int offset,
-      DicomPixelInterpolator interp) {
-
-      return pixels.getPixelsRGB(x, dx, nx, this.pixels, offset, interp);
-   }
    
-   public int getMaxIntensity() {
-      int max = Byte.MIN_VALUE;
-      for (int i=0; i<pixels.length; i++) {
-         int val = pixels[i];
-         if (val > max) {
-            max = val;
+   @Override
+   public int getPixels(
+      int x, int dx, int nx, PixelType type,
+      DicomPixelInterpolator interp, int[] pixels, int offset) {
+
+      int off = offset;
+      double [] rgb = new double[3];
+      switch (type) {
+         case BYTE: {
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               int val = interp.interpRGBToGrayscale(rgb, 
+                  Byte.MIN_VALUE, Byte.MAX_VALUE);
+               pixels[off++] = val; 
+               iidx += 3*dx;
+            }
+            break;
+         }
+         case UBYTE: {
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               int val = interp.interpRGBToGrayscale(rgb, 
+                  0, UBYTE_MAX);
+               pixels[off++] = val;
+               iidx += 3*dx;
+            }
+            break;
+         }
+         case UBYTE_RGB: {
+            int[] buff = new int[3];
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               interp.interpRGB(rgb, 0, UBYTE_MAX, buff);
+               pixels[off++] = buff[0];
+               pixels[off++] = buff[1];
+               pixels[off++] = buff[2];
+               iidx += 3*dx;
+            }
+            break;
+         }
+         case SHORT: {
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               int val = interp.interpRGBToGrayscale(rgb, 
+                  Short.MIN_VALUE, Short.MAX_VALUE);
+               pixels[off++] = val;
+               iidx += 3*dx;
+            }
+            break;
+         }
+         case USHORT: {
+            int iidx = x;
+            for (int i=0; i<nx; ++i) {
+               rgb[0] = getRescaledValue(iidx);
+               rgb[1] = getRescaledValue(iidx+1);
+               rgb[2] = getRescaledValue(iidx+2);
+               int val = interp.interpRGBToGrayscale(rgb, 
+                  USHORT_MIN, USHORT_MAX);
+               pixels[off++] = val;
+               iidx += 3*dx;
+            }
+            break;
          }
       }
-      return max;
-   }
-   
-   public int getMinIntensity() {
-      int min = Byte.MAX_VALUE;
-      for (int i=0; i<pixels.length; i++) {
-         int val = pixels[i];
-         if (val < min) {
-            min = val;
-         }
-      }
-      return min;
-   }
-   
-   public byte[] getBuffer() {
-      return pixels;
+
+      return off;
    }
 
 }

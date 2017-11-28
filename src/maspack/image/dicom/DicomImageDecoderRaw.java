@@ -19,7 +19,7 @@ public class DicomImageDecoderRaw implements DicomImageDecoder {
    @Override
    public DicomPixelBuffer decode(DicomHeader header, DicomPixelData data) {
 
-      DicomPixelBuffer out = null;
+      DicomPixelBufferBase out = null;
 
       // read all important info
       int nSamples = header.getIntValue(DicomTag.SAMPLES_PER_PIXEL, 1);
@@ -51,7 +51,11 @@ public class DicomImageDecoderRaw implements DicomImageDecoder {
             }
 
             int frameLength = nSamples*rows*cols;
-            out = new BytePixelBuffer(frameLength);
+            if (pixelRepresentation == 0) {
+               out = new UBytePixelBuffer(frameLength);
+            } else {
+               out = new BytePixelBuffer(frameLength);
+            }
             byte[] buff = (byte[])out.getBuffer();
 
             for (int i=0; i<frameLength; i++) {
@@ -70,7 +74,7 @@ public class DicomImageDecoderRaw implements DicomImageDecoder {
                }
                
                // apply rescale slope/intercept
-               buff[i] = (byte)(buff[i]*rescaleSlope + rescaleIntercept);
+               out.setRescale(rescaleSlope, rescaleIntercept);
             }
          } else if (bitsAllocated == 16) {
          
@@ -81,7 +85,11 @@ public class DicomImageDecoderRaw implements DicomImageDecoder {
    
             // separate sequences into appropriate frames
             int frameLength = nSamples*rows*cols;
-            out = new ShortPixelBuffer(frameLength);
+            if (pixelRepresentation == 0) {
+               out = new UShortPixelBuffer(frameLength);
+            } else {
+               out = new ShortPixelBuffer(frameLength);
+            }
             short[] buff = (short[])out.getBuffer();
    
             for (int i=0; i<frameLength; i++) {
@@ -100,7 +108,7 @@ public class DicomImageDecoderRaw implements DicomImageDecoder {
                }
                
                // rescale
-               buff[i] = (short)(buff[i]*rescaleSlope + rescaleIntercept);
+               out.setRescale(rescaleSlope, rescaleIntercept);
             }
          } else {
             throw new IllegalArgumentException("Only support one- or two-byte monochrome pixels");

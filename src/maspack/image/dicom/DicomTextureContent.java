@@ -60,18 +60,35 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       lastWindowWidth = -1;
       valid = new boolean[3];
       dirty = new boolean[3];
-      internalStorage = image.getPixelType ();
+      
+      internalStorage = PixelType.UBYTE;
+      switch(image.getPixelType ()) {
+         case BYTE:
+         case UBYTE:
+            internalStorage = PixelType.UBYTE;
+            break;
+         case SHORT:
+         case USHORT:
+            internalStorage = PixelType.USHORT;
+            break;
+         case UBYTE_RGB:
+            internalStorage = PixelType.UBYTE_RGB;
+            break;
+         default:
+            break;
+         
+      }
       
       invalidateData ();
       
       // Full dynamic range
       window = new DicomWindowPixelInterpolator();
       
-      int maxIntensity = image.getMaxIntensity();
-      int minIntensity = image.getMinIntensity();
-      int c = (maxIntensity+minIntensity) >> 1;
-      int diff = maxIntensity-minIntensity;
-      window.addWindowPreset("FULL DYNAMIC", c, diff);
+      double maxIntensity = image.getMaxIntensity();
+      double minIntensity = image.getMinIntensity();
+      double c = (maxIntensity+minIntensity)/2;
+      double diff = maxIntensity-minIntensity;
+      window.addWindowPreset("FULL DYNAMIC", (int)Math.round(c), (int)Math.round(diff));
       window.setWindow("FULL DYNAMIC");
       
       // add other windows, loaded from first slice
@@ -291,15 +308,15 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
          switch (plane) {
             case COL_ROW_PLANE:
                image.getPixels (0, 0, slice, 1, 1, 1, rect.width (), rect.height (),
-                  1, time, internalStorage, scanline, 0, textureImage, window);
+                  1, time, internalStorage, scanline, 0, window, textureImage);
                break;
             case COL_SLICE_PLANE:
                image.getPixels (0, row, 0, 1, 1, 1, rect.width (), 1,
-                  rect.height (), time, internalStorage, 0, scanline, textureImage, window);
+                  rect.height (), time, internalStorage, 0, scanline, window, textureImage);
                break;
             case ROW_SLICE_PLANE:
                image.getPixels (col, 0, 0, 1, 1, 1, 1, rect.width (), rect.height (),
-                  time, internalStorage, 0, scanline, textureImage, window);
+                  time, internalStorage, 0, scanline, window, textureImage);
                break;
          }
          valid[plane] = true;   
@@ -433,10 +450,12 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
    public int getPixelSize () {
       switch (internalStorage) {
          case BYTE:
+         case UBYTE:
             return 1;
-         case BYTE_RGB:
+         case UBYTE_RGB:
             return 3;
          case SHORT:
+         case USHORT:
             return 2;
          default:
             break;
@@ -579,15 +598,15 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
          new int[] {8, 8, 8, 8}, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
       
       switch (internalStorage) {
-         case BYTE:
+         case UBYTE:
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_GRAY),
                new int[] {8}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
             break;
-         case BYTE_RGB:
+         case UBYTE_RGB:
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_sRGB),
                new int[] {8, 8, 8, 0}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
             break;
-         case SHORT:
+         case USHORT:
             colorModel = new ComponentColorModel (ColorSpace.getInstance (ColorSpace.CS_GRAY),
                new int[] {16}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_USHORT);
             break;
@@ -610,17 +629,18 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
          for (int i=0; i<textureHeight; ++i) {
             for (int j=0; j<textureWidth; ++j) {
                switch(internalStorage) {
-                  case BYTE:
+                  case UBYTE:
                      raster.getDataBuffer ().setElem (pos+j, textureImage.get ());
                      break;
-                  case BYTE_RGB:
+                  case UBYTE_RGB:
                      raster.getDataBuffer ().setElem (0, pos+j, textureImage.get ());
                      raster.getDataBuffer ().setElem (1, pos+j, textureImage.get ());
                      raster.getDataBuffer ().setElem (2, pos+j, textureImage.get ());
                      break;
-                  case SHORT:
+                  case USHORT:
                      raster.getDataBuffer ().setElem (pos+j, textureImage.getShort ());
                      break;
+                  default:
                   
                }
             }
@@ -685,10 +705,14 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       switch (internalStorage) {
          case BYTE:
             return ContentFormat.GRAYSCALE_BYTE;
-         case BYTE_RGB:
+         case UBYTE:
+            return ContentFormat.GRAYSCALE_UBYTE;
+         case UBYTE_RGB:
             return ContentFormat.RGB_BYTE_3;
          case SHORT:
             return ContentFormat.GRAYSCALE_SHORT;
+         case USHORT:
+            return ContentFormat.GRAYSCALE_USHORT;
       }
       return null;
    }

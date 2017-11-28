@@ -265,133 +265,28 @@ public class DicomImage {
     * @param type pixel output type
     * @param scanline offset between x-y rows 
     * @param pageline offset between slices
-    * @param pixels pixel buffer to fill
     * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @param pixels pixel buffer to fill
+    * @return the number of bytes written to the pixel buffer
     */
-   public void getPixels(int x, int y, int z, 
+   public int getPixels(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, 
       int time,
       PixelType type,
       int scanline,
       int pageline,
-      ByteBuffer pixels,
-      DicomPixelInterpolator interp) {
+      DicomPixelInterpolator interp,
+      ByteBuffer pixels) {
       
       z = timeOffsets[time] + z;
-      getPixels(x,y,z,dx,dy,dz,nx,ny,nz,type, scanline, pageline, pixels, interp);
+      return getPixels(x,y,z,dx,dy,dz,nx,ny,nz,type, scanline, pageline, interp, pixels);
    }
    
-   /**
-    * Fills a buffer with RGB pixel values from the image
-    * @param x starting x voxel position
-    * @param y starting y voxel position
-    * @param z starting z voxel position
-    * @param dx voxel step in x
-    * @param dy voxel step in y
-    * @param dz voxel step in z
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param nz number of voxels in z direction
-    * @param time time index
-    * @param pixels pixel buffer to fill
-    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
-    */
-   public int getPixelsRGB(int x, int y, int z, 
-      int dx, int dy, int dz,
-      int nx, int ny, int nz, 
-      int time,
-      byte[] pixels,
-      DicomPixelInterpolator interp) {
-      
-      z = timeOffsets[time] + z;
-      return getPixelsRGB(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
-   }
+  
    
    /**
-    * Fills a buffer with grayscale byte pixel values from the image
-    * @param x starting x voxel position
-    * @param y starting y voxel position
-    * @param z starting z voxel position
-    * @param dx voxel step in x
-    * @param dy voxel step in y
-    * @param dz voxel step in z
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param nz number of voxels in z direction
-    * @param time time index
-    * @param pixels pixel buffer to fill
-    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
-    */
-   public int getPixelsByte(int x, int y, int z, 
-      int dx, int dy, int dz,
-      int nx, int ny, int nz, 
-      int time,
-      byte[] pixels,
-      DicomPixelInterpolator interp) {
-      z = timeOffsets[time] + z;
-      
-      return getPixelsByte(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
-   }
-   
-   /**
-    * Fills a buffer with grayscale short pixel values from the image
-    * @param x starting x voxel position
-    * @param y starting y voxel position
-    * @param z starting z voxel position
-    * @param dx voxel step in x
-    * @param dy voxel step in y
-    * @param dz voxel step in z
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param nz number of voxels in z direction
-    * @param time time index
-    * @param pixels pixel buffer to fill
-    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
-    */
-   public int getPixelsShort(int x, int y, int z, 
-      int dx, int dy, int dz,
-      int nx, int ny, int nz, 
-      int time,
-      short[] pixels,
-      DicomPixelInterpolator interp) {
-      z = timeOffsets[time] + z;
-      
-      return getPixelsShort(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
-   }
-   
-   /**
-    * Fills a buffer pixel values from the image
-    * @param x starting x voxel position
-    * @param y starting y voxel position
-    * @param z starting z voxel position
-    * @param dx voxel step in x
-    * @param dy voxel step in y
-    * @param dz voxel step in z
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param nz number of voxels in z direction
-    * @param time time index
-    * @param pixels pixel buffer to fill (class determines types of values)
-    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
-    */
-   public int getPixels(int x, int y, int z, 
-      int dx, int dy, int dz,
-      int nx, int ny, int nz, 
-      int time,
-      DicomPixelBuffer pixels,
-      DicomPixelInterpolator interp) {
-      z = timeOffsets[time] + z;
-      
-      return getPixels(x,y,z,dx,dy,dz,nx,ny,nz,pixels,interp);
-   }
-   
-   /**
-    * Fills a buffer with RGB pixel values from the image
+    * Fills a buffer with pixel values from the image
     * @param x starting x voxel position
     * @param y starting y voxel position
     * @param z starting z voxel position
@@ -404,30 +299,31 @@ public class DicomImage {
     * @param type output pixel type
     * @param scanline xy row offset
     * @param pageline offset between slices
-    * @param pixels pixel buffer to fill
     * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
+    * @param pixels pixel buffer to fill
+    * @return the number of bytes written to the pixel buffer
     */
    public int getPixels(int x, int y, int z, 
       int dx, int dy, int dz,
       int nx, int ny, int nz, PixelType type, int scanline,
-      int pageline, ByteBuffer pixels,
-      DicomPixelInterpolator interp) {
+      int pageline, 
+      DicomPixelInterpolator interp,
+      ByteBuffer pixels) {
 
       int offset = 0;
       for (int i=0; i<nz; i++) {
          int idx = z+dz*i;
          int pos = pixels.position ();
-         slices[idx].getPixels(x, y, dx, dy, nx, ny, type, scanline, pixels, interp);
+         slices[idx].getPixels(x, y, dx, dy, nx, ny, type, scanline, interp, pixels);
          if (pageline > 0) {
             pixels.position (pos+pageline);
          }
       }
       return offset;
-   }
+   } 
    
    /**
-    * Fills a buffer with RGB pixel values from the image
+    * Fills a buffer with pixel values from the image
     * @param x starting x voxel position
     * @param y starting y voxel position
     * @param z starting z voxel position
@@ -437,107 +333,63 @@ public class DicomImage {
     * @param nx number of voxels in x direction
     * @param ny number of voxels in y direction
     * @param nz number of voxels in z direction
-    * @param pixels pixel buffer to fill
+    * @param time time index
+    * @param type pixel output type
+    * @param scanline offset between x-y rows 
+    * @param pageline offset between slices
     * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
+    * @param pixels pixel buffer to fill
+    * @param offset offset in pixel buffer to populate
     */
-   public int getPixelsRGB(int x, int y, int z, 
+   public void getPixels(int x, int y, int z, 
       int dx, int dy, int dz,
-      int nx, int ny, int nz, byte[] pixels,
-      DicomPixelInterpolator interp) {
+      int nx, int ny, int nz, 
+      int time,
+      PixelType type,
+      int scanline,
+      int pageline,
+      DicomPixelInterpolator interp,
+      int[] pixels, int offset) {
+      
+      z = timeOffsets[time] + z;
+      getPixels(x,y,z,dx,dy,dz,nx,ny,nz,type, scanline, pageline, interp, pixels, offset);
+   }
+   
+  
+   
+   /**
+    * Fills a buffer with pixel values from the image
+    * @param x starting x voxel position
+    * @param y starting y voxel position
+    * @param z starting z voxel position
+    * @param dx voxel step in x
+    * @param dy voxel step in y
+    * @param dz voxel step in z
+    * @param nx number of voxels in x direction
+    * @param ny number of voxels in y direction
+    * @param nz number of voxels in z direction
+    * @param type output pixel type
+    * @param scanline xy row offset
+    * @param pageline offset between slices
+    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
+    * @param pixels pixel buffer to fill
+    * @param offset offset in pixel buffer to populate
+    */
+   public void getPixels(int x, int y, int z, 
+      int dx, int dy, int dz,
+      int nx, int ny, int nz, PixelType type, int scanline,
+      int pageline, 
+      DicomPixelInterpolator interp,
+      int[] pixels, int offset) {
 
-      int offset = 0;
       for (int i=0; i<nz; i++) {
          int idx = z+dz*i;
-         offset = slices[idx].getPixelsRGB(x, y, dx, dy, nx, ny, pixels, offset, interp);
+         slices[idx].getPixels(x, y, dx, dy, nx, ny, type, scanline, interp, pixels, offset);
+         if (pageline > 0) {
+            offset += pageline;
+         }
       }
-      return offset;
-   }
-   
-   /**
-    * Fills a buffer with grayscale byte pixel values from the image
-    * @param x starting x voxel position
-    * @param y starting y voxel position
-    * @param z starting z voxel position
-    * @param dx voxel step in x
-    * @param dy voxel step in y
-    * @param dz voxel step in z
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param nz number of voxels in z direction
-    * @param pixels pixel buffer to fill
-    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
-    */
-   public int getPixelsByte(int x, int y, int z, 
-      int dx, int dy, int dz,
-      int nx, int ny, int nz, byte[] pixels,
-      DicomPixelInterpolator interp) {
-      
-      int offset = 0;
-      for (int i=0; i<nz; i++) {
-         int idx = z+dz*i;
-         offset = slices[idx].getPixelsByte(x, y, dx, dy, nx, ny, pixels, offset, interp);
-      }
-      return offset;
-   }
-   
-   /**
-    * Fills a buffer with grayscale short pixel values from the image
-    * @param x starting x voxel position
-    * @param y starting y voxel position
-    * @param z starting z voxel position
-    * @param dx voxel step in x
-    * @param dy voxel step in y
-    * @param dz voxel step in z
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param nz number of voxels in z direction
-    * @param pixels pixel buffer to fill
-    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
-    */
-   public int getPixelsShort(int x, int y, int z, 
-      int dx, int dy, int dz,
-      int nx, int ny, int nz, short[] pixels,
-      DicomPixelInterpolator interp) {
-      
-      int offset = 0;
-      for (int i=0; i<nz; i++) {
-         int idx = z+dz*i;
-         offset = slices[idx].getPixelsShort(x, y, dx, dy, nx, ny, pixels, offset, interp);
-      }
-      return offset;
-   }
-   
-   /**
-    * Fills a buffer pixel values from the image
-    * @param x starting x voxel position
-    * @param y starting y voxel position
-    * @param z starting z voxel position
-    * @param dx voxel step in x
-    * @param dy voxel step in y
-    * @param dz voxel step in z
-    * @param nx number of voxels in x direction
-    * @param ny number of voxels in y direction
-    * @param nz number of voxels in z direction
-    * @param pixels pixel buffer to fill (class determines types of values)
-    * @param interp pixel value interpolator (shifts/scales values to appropriate range)
-    * @return the next unfilled index in the pixel buffer
-    */
-   public int getPixels(int x, int y, int z,  
-      int dx, int dy, int dz,
-      int nx, int ny, int nz,
-      DicomPixelBuffer pixels,
-      DicomPixelInterpolator interp) {
-      
-      int offset = 0;
-      for (int i=0; i<nz; i++) {
-         int idx = z+dz*i;
-         offset = slices[idx].getPixels(x, y, dx, dy, nx, ny, pixels, offset, interp);
-      }
-      return offset;
-   }
+   } 
    
    /**
     * @return Number of y-positions (rows) in each image slice
@@ -585,11 +437,11 @@ public class DicomImage {
     * @return Maximum intensity value in the entire image set, useful for
     * adjusting an intensity window for display
     */
-   public int getMaxIntensity() {
+   public double getMaxIntensity() {
       
-      int max = 0;
+      double max = Double.NEGATIVE_INFINITY;
       for (int i=0; i<size; i++) {
-         int maxb = slices[i].getMaxIntensity();
+         double maxb = slices[i].getMaxIntensity();
          if (maxb > max) {
             max = maxb;
          }
@@ -601,10 +453,10 @@ public class DicomImage {
     * @return Minimum intensity value in the entire image set, useful for
     * adjusting an intensity window for display
     */
-   public int getMinIntensity() {
-      int min = Integer.MAX_VALUE;
+   public double getMinIntensity() {
+      double min = Double.POSITIVE_INFINITY;
       for (int i=0; i<size; i++) {
-         int minb = slices[i].getMinIntensity();
+         double minb = slices[i].getMinIntensity();
          if (minb < min) {
             min = minb;
          }

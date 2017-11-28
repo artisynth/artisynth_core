@@ -16,8 +16,10 @@ public interface TextureContent extends ReferenceCounted {
       RGBA_BYTE_4,
       RGBA_INTEGER,
       GRAYSCALE_BYTE,
+      GRAYSCALE_UBYTE,
       GRAYSCALE_ALPHA_BYTE_2,
       GRAYSCALE_SHORT,
+      GRAYSCALE_USHORT,
       GRAYSCALE_ALPHA_SHORT_2
    }
 

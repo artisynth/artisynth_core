@@ -279,9 +279,27 @@ public abstract class GLSharedResources implements GLEventListener, GLGarbageSou
                } else if (gl.isGL2()) {
                   glFormat = GL2.GL_LUMINANCE;
                }
+               glType = GL.GL_BYTE;
+               break;
+            case GRAYSCALE_UBYTE:
+               if (gl.isGL3()) {
+                  glFormat = GL3.GL_RED;
+                  swizzle = GLTextureLoader.SWIZZLE_GRAY;
+               } else if (gl.isGL2()) {
+                  glFormat = GL2.GL_LUMINANCE;
+               }
                glType = GL.GL_UNSIGNED_BYTE;
                break;
             case GRAYSCALE_SHORT:
+               if (gl.isGL3()) {
+                  glFormat = GL3.GL_RED;
+                  swizzle = GLTextureLoader.SWIZZLE_GRAY;
+               } else if (gl.isGL2()) {
+                  glFormat = GL2.GL_LUMINANCE;
+               }
+               glType = GL.GL_SHORT;
+               break;
+            case GRAYSCALE_USHORT:
                if (gl.isGL3()) {
                   glFormat = GL3.GL_RED;
                   swizzle = GLTextureLoader.SWIZZLE_GRAY;

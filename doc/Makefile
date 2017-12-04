@@ -2,12 +2,13 @@
 ROOT_DIR = ..
 WEBINSTALL_DIR=/cs/web/artisynth.magic.ubc.ca/docs/artisynth/artisynth/doc
 WEBLOC = $(WEBSERVER):$(WEB_DOC_DIR)
+LOCAL_INFO_CENTER=~/packages/eclipse-platform-4.4.2/plugins/org.artisynth.doc
 DOC_DIR = .
 
 SUBDIRS = \
+	installation \
 	documentation \
 	developer \
-	installation \
 	maspack \
         matlabAndJython \
 	modelguide \
@@ -72,6 +73,10 @@ pdf:
 
 html:
 
+sectioned:
+
+infocenter:
+
 echo_subdirs:
 	@echo $(SUBDIRS)
 
@@ -83,6 +88,14 @@ CLEAN::	$(SUBDIRS)
 HTML::	$(SUBDIRS)
         # Does not work because of some environment issues related to
 	# LaTeXML. Need to call ./makeHTML instead.
+	$(RUN_MAKE_IN_SUBDIRS)
+
+.PHONY: SECTIONED
+SECTIONED::	$(SUBDIRS)
+	$(RUN_MAKE_IN_SUBDIRS)
+
+.PHONY: INFOCENTER
+INFOCENTER::	$(SUBDIRS)
 	$(RUN_MAKE_IN_SUBDIRS)
 
 .PHONY: XHTML
@@ -99,10 +112,6 @@ CLEAN_ALL: CLEAN
 	rm -rf javadocs/[a-z]*  # preserve DONT_DELETE and CVS
 	rm -rf html/[a-z]*      # preserve DONT_DELETE and CVS
 
-#.PHONY: CHUNKED
-#CHUNKED:: $(SUBDIRS)
-#	$(RUN_MAKE_IN_SUBDIRS)
-
 install_all: install_dir install_javadocs install_html install_pdf 
 
 install_dir:
@@ -115,6 +124,9 @@ install_html: HTML
 install_pdf: PDF
 	rsync -rCtO --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
+
+install_local_infocenter: INFOCENTER
+	rsync -rvCtO --delete --exclude=DONT_DELETE html $(LOCAL_INFO_CENTER)
 
 # Need to do rsync on javadocs/artisynth/core because rsynce does not
 # always recurse down far enough otherwise.

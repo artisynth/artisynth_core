@@ -19,7 +19,6 @@ FIX_PERMISSIONS = \
   ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) $(WEB_HOME)/bin/fixMagicPerms 
 LATEX_JUNK_FILES = *.log *.aux *.out *.toc *.bbl *.blg *.cb *.cb2
 
-
 PDF_DIR = $(DOC_DIR)/pdf
 
 BIN_DIR = $(DOC_DIR)/../bin
@@ -27,11 +26,15 @@ JAVADOC_PDF_URL = http://www.artisynth.org/$(DOC_DIR_BASE)/javadocs
 JAVADOC_URL = ../../javadocs
 LATEXMLPOST = latexmlpost --mathimages --format=html4 $(LATEXMLPOST_ARGS) \
  --css=$(DOC_DIR)/style/artisynth.css --destination=$@
-FIX_HTML_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR)/javadocs \
- --jdocUrl $(JAVADOC_URL) $@ | $(BIN_DIR)/fixLatexmlOutput
+#FIX_HTML_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR)/javadocs \
+# --jdocUrl $(JAVADOC_URL) $@ | $(BIN_DIR)/fixLatexmlOutput
+FIX_HTML_OUTPUT = $(BIN_DIR)/postprocessLatexml \
+--jdocDir $(DOC_DIR)/javadocs --jdocUrl $(JAVADOC_URL)
 
 FIX_POSTSCRIPT_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR)/javadocs \
  --jdocUrl $(JAVADOC_PDF_URL) --docBase $(DOC_URL_BASE) --postscript
+
+INFOCENTER_TOC = java artisynth.core.util.BuildInfoCenterToc
 
 # Set TEXINPUTS so latex can find the latexml and docbook input files.
 # The reason for the second entry, ../$(DOC_DIR)/texinputs, is because
@@ -49,8 +52,8 @@ export TEXINPUTS:=$(TEXINPUTS):$(DOC_DIR)/texinputs:../$(DOC_DIR)/texinputs:
 endif
 
 define MAKE_HTML_DIR_IF_NECESSARY
-	@if [ ! -d $(HTML_DIR) ] ; then \
-    		mkdir $(HTML_DIR) ; \
+	@if [ ! -d $(dir $@) ] ; then \
+    		mkdir -p $(dir $@) ; \
 	fi
 endef
 
@@ -73,8 +76,21 @@ define BUILD_HTML
 	$(MAKE_HTML_DIR_IF_NECESSARY)
 	latexml $< > $(basename $<).xml
 	$(LATEXMLPOST) $(basename $<).xml
-	$(FIX_HTML_OUTPUT) > _tmp_.html
-	mv _tmp_.html $@
+        $(FIX_HTML_OUTPUT) $@
+endef
+
+#
+# assumes that first prerequisite is the primary .tex file
+#
+define BUILD_SECTIONED_HTML
+	$(MAKE_HTML_DIR_IF_NECESSARY)
+	latexml $< > $(basename $<).xml
+	$(LATEXMLPOST) --splitat=section $(basename $<).xml
+        $(FIX_HTML_OUTPUT) $(dir $@)/*.html
+endef
+
+define BUILD_INFOCENTER_TOC
+        $(INFOCENTER_TOC) -out $@ -htmlPrefix $(subst ../,,$(dir $@)) $<
 endef
 
 # These rules were taken from 
@@ -94,7 +110,7 @@ endef
 # for HTML, idr files should be converted to PDF using
 # epstopdf. However, right now we do this manually.
 
-.PHONY: clean CLEAN HTML PDF CHUNKED
+.PHONY: clean CLEAN HTML PDF SECTIONEDINFOCENTER
 
 CLEAN clean::
 	rm -rf *~ *.pdf *.dvi *.xml *.html
@@ -104,8 +120,10 @@ CLEAN clean::
 
 HTML::	html
 
+SECTIONED::	sectioned
+
+INFOCENTER::	infocenter
+
 XHTML::	xhtml
 
 PDF::	pdf
-
-# CHUNKED:: chunked

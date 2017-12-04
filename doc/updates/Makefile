@@ -1,9 +1,13 @@
 DOC_DIR = ..
 HTML_DIR = ../html/updates
 
-.PHONY: html
+.PHONY: html pdf sectioned infocenter
 
 html: $(HTML_DIR)/updates.html
+
+sectioned: # ignore
+
+infocenter: # ignore
 
 pdf: $(PDF_DIR)/updates.pdf
 

@@ -1,13 +1,26 @@
 DOC_DIR = ..
 HTML_DIR = ../html/installation
 
-EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.png images/*.jpg)))
+IMG_FILES = $(wildcard images/*.png images/*.jpg)
+EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
+
+WIN_SOURCES = windowsInstallation.tex installation.tex
+LINUX_SOURCES = linuxInstallation.tex installation.tex
+MACOS_SOURCES = macosInstallation.tex installation.tex
 
 .PHONY: html pdf chunked
 
-html: $(HTML_DIR)/windowsInstallation.html \
-      $(HTML_DIR)/linuxInstallation.html \
-      $(HTML_DIR)/macosInstallation.html
+html: $(HTML_DIR)/windows/windowsInstallation.html \
+      $(HTML_DIR)/linux/linuxInstallation.html \
+      $(HTML_DIR)/macos/macosInstallation.html
+
+sectioned: $(HTML_DIR)/windows/windowsInstallationToc.html \
+      $(HTML_DIR)/linux/linuxInstallationToc.html \
+      $(HTML_DIR)/macos/macosInstallationToc.html
+
+infocenter: $(HTML_DIR)/windows/windowsInstallationToc.xml \
+      $(HTML_DIR)/linux/linuxInstallationToc.xml \
+      $(HTML_DIR)/macos/macosInstallationToc.xml
 
 pdf: $(PDF_DIR)/windowsInstallation.pdf \
      $(PDF_DIR)/linuxInstallation.pdf \
@@ -16,47 +29,68 @@ pdf: $(PDF_DIR)/windowsInstallation.pdf \
 $(PDF_DIR)/windowsInstallation.pdf: windowsInstallation.pdf
 	cp windowsInstallation.pdf $(PDF_DIR)
 
-windowsInstallation.pdf: windowsInstallation.tex installation.tex $(EPS_FILES)
-	latex windowsInstallation.tex
+windowsInstallation.pdf: $(WIN_SOURCES) $(EPS_FILES)
+	latex $<
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) windowsInstallation.ps 
 
-windowsInstallation.xml: windowsInstallation.tex installation.tex
-	latexml windowsInstallation.tex >windowsInstallation.xml
+windowsInstallation.xml: $(WIN_SOURCES) $(IMG_FILES)
+	latexml $< > windowsInstallation.xml
 
-$(HTML_DIR)/windowsInstallation.html: windowsInstallation.tex installation.tex
+$(HTML_DIR)/windows/windowsInstallation.html: $(WIN_SOURCES) $(IMG_FILES)
 	$(BUILD_HTML)
 	rm -f windowsInstallation.xml
+
+$(HTML_DIR)/windows/windowsInstallationToc.html: $(WIN_SOURCES) $(IMG_FILES)
+	$(BUILD_SECTIONED_HTML)
+	rm -f windowsInstallation.xml
+
+$(HTML_DIR)/windows/windowsInstallationToc.xml: $(HTML_DIR)/windows/windowsInstallationToc.html
+	$(BUILD_INFOCENTER_TOC)
 
 $(PDF_DIR)/linuxInstallation.pdf: linuxInstallation.pdf
 	cp linuxInstallation.pdf $(PDF_DIR)
 
-linuxInstallation.pdf: linuxInstallation.tex installation.tex $(EPS_FILES)
-	latex linuxInstallation.tex
+linuxInstallation.pdf: $(LINUX_SOURCES) $(EPS_FILES)
+	latex $<
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) linuxInstallation.ps 
 
-linuxInstallation.xml: linuxInstallation.tex installation.tex
-	latexml linuxInstallation.tex >linuxInstallation.xml
+linuxInstallation.xml: $(LINUX_SOURCES) $(IMG_FILES)
+	latexml $< > linuxInstallation.xml
 
-$(HTML_DIR)/linuxInstallation.html: linuxInstallation.tex installation.tex
+$(HTML_DIR)/linux/linuxInstallation.html: $(LINUX_SOURCES) $(IMG_FILES)
 	$(BUILD_HTML)
 	rm -f linuxInstallation.xml
+
+$(HTML_DIR)/linux/linuxInstallationToc.html: $(LINUX_SOURCES) $(IMG_FILES)
+	$(BUILD_SECTIONED_HTML)
+	rm -f linuxInstallation.xml
+
+$(HTML_DIR)/linux/linuxInstallationToc.xml: $(HTML_DIR)/linux/linuxInstallationToc.html
+	$(BUILD_INFOCENTER_TOC)
 
 $(PDF_DIR)/macosInstallation.pdf: macosInstallation.pdf
 	cp macosInstallation.pdf $(PDF_DIR)
 
-macosInstallation.pdf: macosInstallation.tex installation.tex $(EPS_FILES)
-	latex macosInstallation.tex
+macosInstallation.pdf: $(MACOS_SOURCES) $(EPS_FILES)
+	latex $<
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) macosInstallation.ps 
 
-macosInstallation.xml: macosInstallation.tex installation.tex
-	latexml macosInstallation.tex >macosInstallation.xml
+macosInstallation.xml: $(MACOS_SOURCES) $(IMG_FILES)
+	latexml $< > macosInstallation.xml
 
-$(HTML_DIR)/macosInstallation.html: macosInstallation.tex installation.tex
+$(HTML_DIR)/macos/macosInstallation.html: $(MACOS_SOURCES) $(IMG_FILES)
 	$(BUILD_HTML)
 	rm -f macosInstallation.xml
+
+$(HTML_DIR)/macos/macosInstallationToc.html: $(MACOS_SOURCES) $(IMG_FILES)
+	$(BUILD_SECTIONED_HTML)
+	rm -f macosInstallation.xml
+
+$(HTML_DIR)/macos/macosInstallationToc.xml: $(HTML_DIR)/macos/macosInstallationToc.html
+	$(BUILD_INFOCENTER_TOC)
 
 install_html: html
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/installation

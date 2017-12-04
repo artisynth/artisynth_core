@@ -3,7 +3,8 @@
 #
 DOC_DIR = ..
 HTML_DIR = ../html/modelguide
-#LATEXMLPOST_ARGS = --splitat=section
+
+.PHONY: html pdf sectioned infocenter
 
 SOURCES = \
 	modelguide.tex \
@@ -20,18 +21,18 @@ SOURCES = \
 IMG_FILES = $(wildcard images/*.png images/*.jpg)
 EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 
-.PHONY: html pdf chunked
-
 default: pdf html
 
-html: $(HTML_DIR)/modelguide.html $(COPIED_IMAGE_FILES)
+html: $(HTML_DIR)/modelguide.html
+
+sectioned: $(HTML_DIR)/modelguideToc.html
+
+infocenter: $(HTML_DIR)/modelguideToc.xml
 
 pdf: $(PDF_DIR)/modelguide.pdf
 
 $(PDF_DIR)/modelguide.pdf: modelguide.pdf
 	cp modelguide.pdf $(PDF_DIR)
-
-#chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
 
 modelguide.pdf: $(SOURCES) $(EPS_FILES)
 	latex modelguide.tex #extra call because of bibtex
@@ -39,16 +40,19 @@ modelguide.pdf: $(SOURCES) $(EPS_FILES)
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) modelguide.ps
 
-multipoint.pdf: multipoint.tex
-	pdflatex multipoint.tex	
-	pdflatex multipoint.tex
+modelguide.xml: $(SOURCES) $(IMG_FILES)
+	latexml $< > modelguide.xml
 
-modelguide.xml: $(SOURCES)
-	latexml modelguide.tex >modelguide.xml
-
-$(HTML_DIR)/modelguide.html: $(SOURCES)
+$(HTML_DIR)/modelguide.html: $(SOURCES) $(IMG_FILES)
 	$(BUILD_HTML)
 	rm -f modelguide.xml
+
+$(HTML_DIR)/modelguideToc.html: $(SOURCES) $(IMG_FILES)
+	$(BUILD_SECTIONED_HTML)
+	rm -f modelguide.xml
+
+$(HTML_DIR)/modelguideToc.xml: $(HTML_DIR)/modelguideToc.html
+	$(BUILD_INFOCENTER_TOC)
 
 install_html: html
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/modelguide

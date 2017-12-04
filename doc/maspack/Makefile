@@ -3,8 +3,8 @@
 #
 DOC_DIR = ..
 HTML_DIR = ../html/maspack
-LATEXMLPOST_ARGS = --splitat=section --navigationtoc=context \
-	--css=LaTeXML-navbar-left
+
+.PHONY: html pdf sectioned infocenter
 
 SOURCES = \
 	maspack.tex \
@@ -12,29 +12,39 @@ SOURCES = \
 	properties.tex \
 	rendering.tex
 
-EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.png images/*.jpg)))
+IMG_FILES = $(wildcard images/*.png images/*.jpg images/menu/*.png)
+EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 
-.PHONY: html pdf chunked
+default: pdf html
 
-html: $(HTML_DIR)/maspack.html $(COPIED_IMAGE_FILES)
+html: $(HTML_DIR)/maspack.html
+
+sectioned: $(HTML_DIR)/maspackToc.html
+
+infocenter: $(HTML_DIR)/maspackToc.xml
 
 pdf: $(PDF_DIR)/maspack.pdf
 
 $(PDF_DIR)/maspack.pdf: maspack.pdf
 	cp maspack.pdf $(PDF_DIR)
 
-#chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
-
 maspack.pdf: $(SOURCES) $(EPS_FILES)
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) maspack.ps
 
-maspack.xml: maspack.tex
-	latexml maspack.tex >maspack.xml
+maspack.xml: $(SOURCES) $(IMG_FILES)
+	latexml $< > maspack.xml
 
-$(HTML_DIR)/maspack.html: $(SOURCES)
+$(HTML_DIR)/maspack.html: $(SOURCES) $(IMG_FILES)
 	$(BUILD_HTML)
 	rm -f maspack.xml
+
+$(HTML_DIR)/maspackToc.html: $(SOURCES) $(IMG_FILES)
+	$(BUILD_SECTIONED_HTML)
+	rm -f maspack.xml
+
+$(HTML_DIR)/maspackToc.xml: $(HTML_DIR)/maspackToc.html
+	$(BUILD_INFOCENTER_TOC)
 
 install_html: html
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/maspack

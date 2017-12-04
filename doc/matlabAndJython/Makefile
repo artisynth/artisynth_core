@@ -4,35 +4,45 @@
 DOC_DIR = ..
 HTML_DIR = ../html/matlabAndJython
 
+.PHONY: html pdf sectioned infocenter
+
 SOURCES = \
 	matlabAndJython.tex \
 	../texinputs/artisynthDoc.tex
 
-EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.png images/*.jpg)))
-
-.PHONY: html pdf chunked
+IMG_FILES = $(wildcard images/*.png images/*.jpg)
+EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 
 default: pdf html
 
-html: $(HTML_DIR)/matlabAndJython.html $(COPIED_IMAGE_FILES)
+html: $(HTML_DIR)/matlabAndJython.html
+
+sectioned: $(HTML_DIR)/matlabAndJythonToc.html
+
+infocenter: $(HTML_DIR)/matlabAndJythonToc.xml
 
 pdf: $(PDF_DIR)/matlabAndJython.pdf
 
 $(PDF_DIR)/matlabAndJython.pdf: matlabAndJython.pdf 
 	cp matlabAndJython.pdf $(PDF_DIR)
 
-#chunked: $(HTML_DIR)/chunked $(COPIED_IMAGE_FILES)
-
 matlabAndJython.pdf: $(SOURCES) $(EPS_FILES)
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) matlabAndJython.ps 
 
-matlabAndJython.xml: $(SOURCES)
-	latexml matlabAndJython.tex >matlabAndJython.xml
+matlabAndJython.xml: $(SOURCES) $(IMG_FILES)
+	latexml $< > matlabAndJython.xml
 
-$(HTML_DIR)/matlabAndJython.html: $(SOURCES)
+$(HTML_DIR)/matlabAndJython.html: $(SOURCES) $(IMG_FILES)
 	$(BUILD_HTML)
 	rm -f matlabAndJython.xml
+
+$(HTML_DIR)/matlabAndJythonToc.html: $(SOURCES) $(IMG_FILES)
+	$(BUILD_SECTIONED_HTML)
+	rm -f matlabAndJython.xml
+
+$(HTML_DIR)/matlabAndJythonToc.xml: $(HTML_DIR)/matlabAndJythonToc.html
+	$(BUILD_INFOCENTER_TOC)
 
 install_html: html
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/matlabAndJython

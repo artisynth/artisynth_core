@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+# A script to post-process HTML files produced by latexml and latexmlpost.
+# The postprocessing does two things:
+#
+# 1) Uses setJavadocLinks to properly set links to Javadoc references
+#
+# 2) Uses fixLatexmlOuput to fix some problems in the HTML itself
+#
+# Both of these programs work in streaming mode on single files. This
+# script enables them to work on multiple files at once.
+#
+JAVADOC_ARGS=
+FILES=
+USAGE=" [--jdocDir <dir>] [--jdocUrl <dir>] [--docBase <base>] files ... "
+while [ "$1" ]; do
+   if [ $1 == "--jdocDir" ] ; then
+      if [ "$#" -lt "2" ]; then
+          echo "option --jdocDir requires an additional argument"
+          exit 1
+      else 
+          JAVADOC_ARGS="$JAVADOC_ARGS --jdocDir $2"
+          shift
+      fi
+   elif [ $1 == "--jdocUrl" ] ; then
+      if [ "$#" -lt "2" ]; then
+          echo "option --jdocUrl requires an additional argument"
+          exit 1
+      else 
+          JAVADOC_ARGS="$JAVADOC_ARGS  --jdocUrl $2"
+          shift
+      fi
+   elif [ $1 == "--docBase" ] ; then
+      if [ "$#" -lt "2" ]; then
+          echo "option --docBase requires an additional argument"
+          exit 1
+      else 
+          JAVADOC_ARGS="$JAVADOC_ARGS --docBase $2"
+          shift
+      fi
+   elif [[ $1 == -* ]] ; then
+      echo $USAGE
+      exit 1
+   else
+      FILES="$FILES $1"
+   fi
+   shift
+done
+for file in $FILES ; do
+   echo "postprocessing $file"
+   setJavadocLinks $JAVADOC_ARGS $file | fixLatexmlOutput > __tmp__.html
+   mv __tmp__.html $file
+done

@@ -1,0 +1,5 @@
+#!/bin/bash
+ECLIPSE_HOME=~/packages/eclipse-platform-4.4.2
+HELP_PLUGIN=org.eclipse.help.base_4.0.201.v20150204-1700.jar
+java -classpath $ECLIPSE_HOME/plugins/$HELP_PLUGIN org.eclipse.help.standalone.Infocenter -command shutdown -eclipsehome $ECLIPSE_HOME
+

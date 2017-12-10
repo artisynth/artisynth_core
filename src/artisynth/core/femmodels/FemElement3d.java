@@ -1228,15 +1228,15 @@ public abstract class FemElement3d extends FemElement
       return true;
    }
 
-   public void computeWarping() {
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
-      }
-      IntegrationPoint3d wpnt = getWarpingPoint();
-      IntegrationData3d wdata = getWarpingData();
-      wpnt.computeJacobianAndGradient (myNodes, wdata.myInvJ0);
-      myWarper.computeRotation (wpnt.F, null);
-   }
+//   public void computeWarping() {
+//      if (!myWarpingStiffnessValidP) {
+//         updateWarpingStiffness();
+//      }
+//      IntegrationPoint3d wpnt = getWarpingPoint();
+//      IntegrationData3d wdata = getWarpingData();
+//      wpnt.computeJacobianAndGradient (myNodes, wdata.myInvJ0);
+//      myWarper.computeRotation (wpnt.F, null);
+//   }
 
    public void computeWarping (Matrix3d F, SymmetricMatrix3d P) {
       if (myWarpingStiffnessValidP && myWarper == null) {

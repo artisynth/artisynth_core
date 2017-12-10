@@ -259,7 +259,7 @@ public abstract class FemElement extends RenderableComponentBase
 
    protected abstract void updateWarpingStiffness();
 
-   public abstract void computeWarping();
+   //public abstract void computeWarping();
 
    protected void printNodeReferences (
       PrintWriter pw, CompositeComponent ancestor) throws IOException {

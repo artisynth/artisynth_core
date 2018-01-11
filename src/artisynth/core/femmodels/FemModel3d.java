@@ -125,8 +125,8 @@ public class FemModel3d extends FemModel
    // when operating in frame-relative mode
    public static double frameMassFraction = 0.0;
    
-   private boolean myAbortOnInvertedElems = abortOnInvertedElems;
-   private boolean myWarnOnInvertedElems = true;
+   protected boolean myAbortOnInvertedElems = abortOnInvertedElems;
+   protected boolean myWarnOnInvertedElems = true;
    protected boolean myCheckForInvertedElems = true;
    
    protected FunctionTimer timer = new FunctionTimer();
@@ -160,12 +160,12 @@ public class FemModel3d extends FemModel
 
    // extra blocks in the solve matrix for soft nodel incomp stiffness;
    // needed for soft nodal incompressibility
-   private boolean myNodalIncompBlocksAllocatedP = false;
+   protected boolean myNodalIncompBlocksAllocatedP = false;
    // incompressibility constraints attached to each FemNodeNeighbour;
    // needed for hard and soft nodal incompressibility
-   private boolean myNodalIncompConstraintsAllocatedP = false;
-   private boolean myHardIncompConfigValidP = false;
-   private boolean myNodalRestVolumesValidP = false;
+   protected boolean myNodalIncompConstraintsAllocatedP = false;
+   protected boolean myHardIncompConfigValidP = false;
+   protected boolean myNodalRestVolumesValidP = false;
    //private boolean myHardIncompConstraintsChangedP = true;
    private double myHardIncompUpdateTime = -1;
 

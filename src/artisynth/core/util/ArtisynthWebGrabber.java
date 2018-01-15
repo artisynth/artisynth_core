@@ -14,7 +14,7 @@ import maspack.fileutil.uri.URIx;
 public class ArtisynthWebGrabber extends FileManager {
 
    private static final String ARTISYNTH_SOURCE = 
-      "http://artisynth.magic.ubc.ca/artisynth/files/data/";
+      "http://www.artisynth.org/files/data/";
       
    public ArtisynthWebGrabber() {
       setRemoteSource(ARTISYNTH_SOURCE);

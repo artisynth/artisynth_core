@@ -89,7 +89,7 @@ public class LibraryInstaller {
          throw new IllegalArgumentException (
             myLibDir+" does not exist or is not a directory");
       }
-      setRemoteSource ("http://artisynth.magic.ubc.ca/artisynth/files/lib");
+      setRemoteSource ("http://www.artisynth.org/files/lib");
    }
    
    private static void printUsage () {

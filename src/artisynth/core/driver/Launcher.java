@@ -30,7 +30,7 @@ public class Launcher {
 
    public static String DEFAULT_MAIN_CLASS_NAME = "artisynth.core.driver.Main";
    private static String myRemoteHost = // where to try and get missing files
-      "http://artisynth.magic.ubc.ca/artisynth/files/lib";
+      "http://www.artisynth.org/files/lib";
 
    public static boolean useJOGL2 = true;
    private String myMainClassName;

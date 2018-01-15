@@ -17,14 +17,17 @@ artisynth/core/util/ArtisynthPath.class
 artisynth/core/util/ArtisynthIO.class
 artisynth/core/util/ArtisynthPath.class
 artisynth/core/util/ArtisynthPath\$FileMatcher.class
+maspack/util/Clonable.class
 maspack/util/ReaderTokenizer.class
 maspack/util/IndentingPrintWriter.class
 maspack/util/GetPropertyAction.class
 maspack/util/Logger.class
 maspack/util/Logger\$LogLevel.class
+maspack/util/PathFinder.class
 maspack/util/StreamLogger.class
 EOF
 find maspack/fileutil -name '*.class' >> $CLASSLIST
+find maspack/crypt -name '*.class' >> $CLASSLIST
 # ... and build the jar file
 jar cvfe $ARTISYNTH_HOME/bin/libraryInstaller.jar LibraryInstaller `cat $CLASSLIST`
 rm -f $CLASSLIST

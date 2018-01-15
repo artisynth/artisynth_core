@@ -13,7 +13,7 @@ import java.io.IOException;
 
 public class FileManagerExamples {
 
-   private static String host = "http://artisynth.magic.ubc.ca/artisynth/files/";
+   private static String host = "http://www.artisynth.org/files/";
    private static String local = "tmp/";
    
    private static String example1_file = "lib/argparser.jar";

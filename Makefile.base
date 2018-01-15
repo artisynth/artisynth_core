@@ -5,8 +5,8 @@ endif
 
 # variable related to accessing the artisynth web server, where we
 # keep online documentation, library files, etc.
-WEBSERVER = artisynth.magic.ubc.ca
-WEB_HOME = /ubc/magic/home/wwwrun/docs/artisynth
+WEBSERVER = research.hct.ece.ubc.ca
+WEB_HOME = /var/www/artisynth.org
 WEB_LIB_DIR = $(WEB_HOME)/files/lib
 WEB_LIB_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_LIB_DIR)
 # makes sure that group file permissions are set properly on the web server

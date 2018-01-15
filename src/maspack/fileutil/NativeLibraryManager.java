@@ -173,7 +173,7 @@ public class NativeLibraryManager {
    // remote server from which to obtain libraries.
    private static String myRemoteServer = "www.artisynth.org";
    private static String myRemoteHost = // where to try and get missing files
-      "http://"+myRemoteServer+"/artisynth/files/lib";
+      "http://"+myRemoteServer+"/files/lib";
 
    /**
     * Parses an integer starting from location i in str.
@@ -549,14 +549,18 @@ public class NativeLibraryManager {
 
    void setDefaultLibDir () {
       // look for a default library directory in ../../../lib
-      String baseDir = PathFinder.expand ("${srcdir NativeLibraryManager}/../../../lib");
-      File libDir = new File (baseDir, getNativeDirectoryName());
-      if (libDir.exists() && libDir.isDirectory()) {
-         myLibDir = libDir;
-         myExistingLibs = myLibDir.listFiles();
+      myLibDir = null;
+      try {
+         String baseDir =
+            PathFinder.expand ("${srcdir NativeLibraryManager}/../../../lib");
+         File libDir = new File (baseDir, getNativeDirectoryName());
+         if (libDir.exists() && libDir.isDirectory()) {
+            myLibDir = libDir;
+            myExistingLibs = myLibDir.listFiles();
+         }
       }
-      else {
-         myLibDir = null;
+      catch (Exception e) {
+         // ignore - myLibDir will just be null
       }
    }
 

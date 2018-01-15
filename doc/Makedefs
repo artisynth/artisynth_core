@@ -10,8 +10,8 @@ ifndef DOC_URL_BASE
    DOC_URL_BASE = http://www.artisynth.org/$(DOC_DIR_BASE)
 endif
 
-WEBSERVER = artisynth.magic.ubc.ca
-WEB_HOME = /ubc/magic/home/wwwrun/docs/artisynth
+WEBSERVER = research.hct.ece.ubc.ca
+WEB_HOME = /var/www/artisynth.org
 WEB_DOC_DIR = $(WEB_HOME)/artisynth/$(DOC_DIR_BASE)
 WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_DOC_DIR)
 WEB_HTML_URL = $(WEB_DOC_URL)/html

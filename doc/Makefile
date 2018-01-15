@@ -1,6 +1,5 @@
 
 ROOT_DIR = ..
-WEBINSTALL_DIR=/cs/web/artisynth.magic.ubc.ca/docs/artisynth/artisynth/doc
 WEBLOC = $(WEBSERVER):$(WEB_DOC_DIR)
 LOCAL_INFO_CENTER=~/packages/eclipse-platform-4.4.2/plugins/org.artisynth.doc
 DOC_DIR = .
@@ -38,20 +37,6 @@ javadocs: #make the javadocs
 		-windowtitle "Artisynth API documentation" \
 		-J-Xms500m -J-Xmx500m -encoding UTF-8 $(JAVADOC_XOPTS) \
 		`$(FIND_PACKAGES) -d $(ROOT_DIR)/src | tr '\n' ' ' | tr '\r' ' '`
-
-# This command needs to be run on the webserver
-.PHONY: webinstall
-webinstall: #install documentation on the web
-	cp -rp $(WEBDOCS) $(WEBINSTALL_DIR)
-	find $(WEBINSTALL_DIR) -user `whoami` -exec chgrp magicweb {} \;
-	find $(WEBINSTALL_DIR) -user `whoami` -exec chmod g+w {} \;
-	find $(WEBINSTALL_DIR) -user `whoami` -type d -exec chmod g+sx {} \;
-
-# This command needs to be run on the webserver
-fixpermissions:
-	find $(WEBINSTALL_DIR) -user `whoami` -exec chgrp magicweb {} \;
-	find $(WEBINSTALL_DIR) -user `whoami` -exec chmod g+w {} \;
-	find $(WEBINSTALL_DIR) -user `whoami` -type d -exec chmod g+sx {} \;
 
 #
 # Recursively call make into a set of subdirectories.

@@ -1085,6 +1085,14 @@ public abstract class FemElement3d extends FemElement
       myVolume = vol;
       return minDetJ;
    }
+   
+   /**
+    * Volumes array for use with incompressibility 
+    * @return current volumes
+    */
+   public double[] getVolumes() {
+      return myVolumes;
+   }
 
    public void computePressures (
       double[] pressures, IncompressibleMaterial imat) {
@@ -1108,6 +1116,14 @@ public abstract class FemElement3d extends FemElement
       
    }
 
+   /**
+    * Lagrange pressures array for use with incompressibility 
+    * @return pressures
+    */
+   public double[] getLagrangePressures() {
+      return myLagrangePressures;
+   }
+   
    /**
     * Default method to compute the element rest volume and partial volumes.
     * Uses quadrature. If the number of pressure values is 1, then there is
@@ -1139,6 +1155,14 @@ public abstract class FemElement3d extends FemElement
          myRestVolumes[0] = vol;         
       }
       return vol;
+   }
+   
+   /**
+    * Volumes array for use with incompressibility 
+    * @return rest volumes
+    */
+   public double[] getRestVolumes() {
+      return myRestVolumes;
    }
 
 //    /** 
@@ -1187,6 +1211,13 @@ public abstract class FemElement3d extends FemElement
       myWarper.addNodeForce0(f, offset, i, corotated);
    }
 
+   public StiffnessWarper3d getStiffnessWarper() {
+      if (myWarper == null){
+         myWarper = new StiffnessWarper3d (numNodes());
+      }
+      return myWarper;
+   }
+   
    public void updateWarpingStiffness() {
       // System.out.println("updating stiffness: E="+myE+", nu="+myNu);
 

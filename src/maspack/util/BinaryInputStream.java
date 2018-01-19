@@ -23,10 +23,11 @@ public class BinaryInputStream extends FilterInputStream {
 
    private int myFlags = 0x00;
    private int myByteCount = 0;
+   private int myMarkCount = 0;
    
    public static final int BIG_ENDIAN = 0x00;   
    public static final int LITTLE_ENDIAN = 0x01; // 1 for little, 0 for big
-   public static final int BYTE_CHAR = 0x02;  // 2 for byte-char, 0 for word
+   public static final int BYTE_CHAR = 0x02;     // 2 for byte-char, 0 for word
    
    /**
     * Creates a new BinaryInputStream from an input stream. Flag values are
@@ -37,6 +38,7 @@ public class BinaryInputStream extends FilterInputStream {
     */
    public BinaryInputStream (InputStream in) {
       this (in, 0);
+      
    }
 
    /**
@@ -203,7 +205,19 @@ public class BinaryInputStream extends FilterInputStream {
    //    long s = super.skip(n);
    //    return s;
    // }
-
+   
+   @Override
+   public synchronized void mark(int readlimit) {
+      super.mark(readlimit);
+      myMarkCount = myByteCount;
+   }
+   
+   @Override
+   public synchronized void reset() throws IOException {
+      super.reset();
+      myByteCount = myMarkCount;
+   }
+   
    private int doread() throws IOException {
       int v = in.read();
       if (v == -1) {

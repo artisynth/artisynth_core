@@ -8,7 +8,6 @@ package artisynth.core.femmodels;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
@@ -16,59 +15,91 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
+import artisynth.core.materials.FemMaterial;
+import artisynth.core.materials.IncompressibleMaterial;
+import artisynth.core.materials.IncompressibleMaterial.BulkPotential;
+import artisynth.core.materials.LinearMaterial;
+import artisynth.core.materials.SolidDeformation;
+import artisynth.core.materials.ViscoelasticBehavior;
+import artisynth.core.materials.ViscoelasticState;
+import artisynth.core.mechmodels.BodyConnector;
+import artisynth.core.mechmodels.Collidable;
+import artisynth.core.mechmodels.ConnectableBody;
+import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.mechmodels.DynamicComponent;
+import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.HasAuxState;
+import artisynth.core.mechmodels.HasSurfaceMesh;
+import artisynth.core.mechmodels.MechSystemModel;
+import artisynth.core.mechmodels.MeshComponent;
+import artisynth.core.mechmodels.MeshComponentList;
+import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.PointAttachable;
+import artisynth.core.mechmodels.PointAttachment;
+import artisynth.core.mechmodels.PointList;
+import artisynth.core.mechmodels.PointParticleAttachment;
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.StepAdjustment;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.util.ArtisynthIO;
+import artisynth.core.util.IntegerToken;
+import artisynth.core.util.ScalableUnits;
+import artisynth.core.util.ScanToken;
+import artisynth.core.util.StringToken;
 import maspack.geometry.AABBTree;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.BVNode;
 import maspack.geometry.BVTree;
 import maspack.geometry.Boundable;
 import maspack.geometry.Face;
-import maspack.geometry.HalfEdge;
+import maspack.geometry.GeometryTransformer;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.GeometryTransformer;
-import maspack.render.*;
-import maspack.matrix.AxisAngle;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DenseMatrix;
+import maspack.matrix.EigenDecomposition;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3x1Block;
 import maspack.matrix.Matrix3x3Block;
 import maspack.matrix.Matrix3x6Block;
-import maspack.matrix.Matrix6x3Block;
-import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.Matrix6d;
+import maspack.matrix.Matrix6dBlock;
+import maspack.matrix.Matrix6x3Block;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
-import maspack.matrix.EigenDecomposition;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector2d;
-import maspack.matrix.VectorBase;
-import maspack.matrix.MatrixBase;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.render.Renderer;
 import maspack.render.RenderList;
-import maspack.render.RenderableUtils;
+import maspack.render.Renderer;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
+import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
-import maspack.spatialmotion.SpatialInertia;
 import maspack.util.ArraySupport;
 import maspack.util.DataBuffer;
 import maspack.util.DoubleInterval;
@@ -80,22 +111,6 @@ import maspack.util.NumberFormat;
 import maspack.util.Range;
 import maspack.util.ReaderTokenizer;
 import maspack.util.TestException;
-import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.IncompressibleMaterial;
-import artisynth.core.materials.IncompressibleMaterial.BulkPotential;
-import artisynth.core.materials.LinearMaterial;
-import artisynth.core.materials.SolidDeformation;
-import artisynth.core.materials.ViscoelasticBehavior;
-import artisynth.core.materials.ViscoelasticState;
-import artisynth.core.mechmodels.*;
-import artisynth.core.mechmodels.Collidable.Collidability;
-import artisynth.core.modelbase.*;
-import artisynth.core.modelbase.ComponentChangeEvent.Code;
-import artisynth.core.util.ArtisynthIO;
-import artisynth.core.util.ScalableUnits;
-import artisynth.core.util.ScanToken;
-import artisynth.core.util.IntegerToken;
-import artisynth.core.util.StringToken;
 
 public class FemModel3d extends FemModel
    implements TransformableGeometry, ScalableUnits, MechSystemModel, Collidable,
@@ -1861,6 +1876,11 @@ public class FemModel3d extends FemModel
       if (myMaxBound != null) {
          gtr.transformPnt (myMaxBound);
       }
+      myBVTreeValid = false;
+      // invalidate trees of meshes as well
+      for (MeshComponent mc : myMeshList) {
+         mc.transformGeometry(gtr, context, flags);
+      }
    }
 
    public void addTransformableDependencies (
@@ -3587,6 +3607,12 @@ public class FemModel3d extends FemModel
    public void scaleDistance(double s) {
       super.scaleDistance(s);
       myVolume *= (s * s * s);
+      myBVTreeValid = false;
+      // invalidate trees of meshes as well
+      // update skinning positions
+      for (MeshComponent mc : myMeshList) {
+         mc.scaleDistance(s);
+      }
    }
 
    /**

@@ -1093,18 +1093,17 @@ public class RigidBody extends Frame
          grid.render (renderer, myRenderProps, flags);
       }
    }
-
-   public void transformGeometry (
-      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-      
-      super.transformGeometry (gtr, context, flags);
+   
+   protected void transformInternalGeometry(
+		   GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+	   
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
          // for now, only transform the mesh if we are simulating. Otherwise,
          // just update the mesh's transform.
          if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
             if (myMeshInfo.transformGeometryAndPose (
-                  gtr, myTransformConstrainer)) {
+               gtr, myTransformConstrainer)) {
                if (myInertiaMethod == InertiaMethod.Density) {
                   setInertiaFromMesh (myDensity);
                }
@@ -1114,6 +1113,14 @@ public class RigidBody extends Frame
             mesh.setMeshToWorld (myState.XFrameToWorld);
          }
       }
+   }
+
+   public void transformGeometry (
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      super.transformGeometry (gtr, context, flags);
+      transformInternalGeometry(gtr, context, flags);
+      
       if (!gtr.isRigid()) {
          mySDGridValid = false;
          mySDSurface = null;
@@ -1127,21 +1134,26 @@ public class RigidBody extends Frame
          }
       }
    }   
-
+   
+   // separated to prevent surface mesh from being scaled twice
+   protected void scaleInternalGeometry(double s) {
+      PolygonalMesh mesh = getMesh();
+      if (mesh != null) {
+         mesh.scale (s);
+         mesh.setMeshToWorld (myState.XFrameToWorld);
+      }
+   }
+   
    public void scaleDistance (double s) {
       super.scaleDistance (s);
       this.myAxisLength *= s;
       mySpatialInertia.scaleDistance (s);
       // probably don't need this, since effectiveInertia will be recalculated:
       // myEffectiveInertia.scaleDistance (s); 
-      PolygonalMesh mesh = getMesh();
-      if (mesh != null) {
-         mesh.scale (s);
-         mesh.setMeshToWorld (myState.XFrameToWorld);
-         mySDGridValid = false;
-         mySDSurface = null;
-      }
+      scaleInternalGeometry(s);
       
+      mySDGridValid = false;
+      mySDSurface = null;
       myDensity /= (s * s * s);
       // Should we send a GEOMETRY_CHANGED event? Don't for now ...
    }

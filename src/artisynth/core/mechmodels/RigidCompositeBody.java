@@ -44,19 +44,19 @@ import maspack.util.ReaderTokenizer;
  * @author Antonio
  */
 public class RigidCompositeBody extends RigidBody implements 
-   CompositeComponent {
-   
+CompositeComponent {
+
    MeshComponentList<RigidMeshComp> myMeshList = null;
-   
+
    public RigidCompositeBody() {
       this (null);
    }
 
    public RigidCompositeBody(String name) {
-     super(name);
-     initializeChildComponents();
+      super(name);
+      initializeChildComponents();
    }
-   
+
    /**
     * returns the first available PolygonalMesh, for compatibility with RigidBody
     */
@@ -69,32 +69,32 @@ public class RigidCompositeBody extends RigidBody implements
       }
       return mesh;
    }
-   
+
    public MeshComponentList<RigidMeshComp> getMeshComps() {
       return myMeshList;
    }
-   
+
    public RigidMeshComp getMeshComp(String name) {
       return myMeshList.get (name);
    }
-   
-//   public PolygonalMesh getCollisionMesh(int idx) {
-//      int i = 0;
-//      if (idx < 0) {
-//         idx = 0;
-//      }
-//      for (RigidMeshComp mc : myMeshList) {
-//         if (mc.getMesh() instanceof PolygonalMesh) {
-//            if (idx == i) {
-//               return (PolygonalMesh)mc.getMesh();
-//            } else {
-//               i++;
-//            }
-//         }
-//      }
-//      throw new IllegalArgumentException("Failed to determine the desired collision mesh");
-//   }
-      
+
+   //   public PolygonalMesh getCollisionMesh(int idx) {
+   //      int i = 0;
+   //      if (idx < 0) {
+   //         idx = 0;
+   //      }
+   //      for (RigidMeshComp mc : myMeshList) {
+   //         if (mc.getMesh() instanceof PolygonalMesh) {
+   //            if (idx == i) {
+   //               return (PolygonalMesh)mc.getMesh();
+   //            } else {
+   //               i++;
+   //            }
+   //         }
+   //      }
+   //      throw new IllegalArgumentException("Failed to determine the desired collision mesh");
+   //   }
+
    /**
     * Adds a mesh to this object.  Can be of any type.
     * @param mesh Instance of MeshBase
@@ -103,7 +103,7 @@ public class RigidCompositeBody extends RigidBody implements
    public RigidMeshComp addMesh(MeshBase mesh) {
       return addMesh(mesh, null, null, RigidMeshComp.DEFAULT_PHYSICAL);
    }
-   
+
    /**
     * Adds a mesh to this object.  Can be of any type.
     * @param mesh Instance of MeshBase
@@ -113,7 +113,7 @@ public class RigidCompositeBody extends RigidBody implements
    public RigidMeshComp addMesh(MeshBase mesh, boolean physical) {
       return addMesh(mesh, null, null, physical);
    }
-   
+
    /**
     * Adds a mesh to this object
     * @param mesh Instance of MeshBase
@@ -125,23 +125,23 @@ public class RigidCompositeBody extends RigidBody implements
    public RigidMeshComp addMesh (
       MeshBase mesh, String fileName, AffineTransform3dBase Xh, 
       boolean physical) {
-      
+
       RigidMeshComp mc = new RigidMeshComp();
       mc.setMesh(mesh, fileName, Xh);
       if (mesh.getName() != null) {
          mc.setName(mesh.getName());
       }
       mc.setPhysical(physical);
-      
+
       if (mesh.getRenderProps() != null) {
          mc.setRenderProps(mesh.getRenderProps());
       }
-      
+
       addMeshComp(mc);
-      
+
       return mc;
    }
-   
+
    /**
     * Explicitly adds a mesh component.  If the flag mc.isPhysical() is true,
     * then this mesh is used for mass/inertia computations
@@ -150,7 +150,7 @@ public class RigidCompositeBody extends RigidBody implements
       mc.getMesh().setFixed(true);
       mc.getMesh().setMeshToWorld (myState.XFrameToWorld);
       myMeshList.add(mc);
-      
+
       if (mc.isPhysical()) {
          if (myInertiaMethod == InertiaMethod.Density) {
             setInertiaFromDensity(myDensity);
@@ -159,23 +159,23 @@ public class RigidCompositeBody extends RigidBody implements
          }
       }
    }
-   
+
    /**
     * Number of meshes associated with this object
     */
    public int numMeshComps() {
       return myMeshList.size();
    }
-   
+
    /**
     * Checks if this object contains a particular geometry
     */
    public boolean containsMeshComp(RigidMeshComp mc) {
       return myMeshList.contains(mc);
    }
-   
+
    private double getMeshMass(MeshBase base, double density) {
-      
+
       if (base instanceof PolygonalMesh) {
          double vol = ((PolygonalMesh)base).computeVolume();
          return density * vol;
@@ -191,12 +191,12 @@ public class RigidCompositeBody extends RigidBody implements
          //         return density*len;
          // XXX To implement along with spatial inertia
       }
-      
+
       return 0;
    }
-   
+
    private double getMeshVolume(MeshBase base) {
-      
+
       if (base instanceof PolygonalMesh) {
          return ((PolygonalMesh)base).computeVolume();
       } else if (base instanceof PointMesh) {
@@ -204,15 +204,15 @@ public class RigidCompositeBody extends RigidBody implements
       } else if (base instanceof PolylineMesh) {
          // XXX To implement along with spatial inertia
       }
-      
+
       return 0;
    }
-   
+
    protected void addMeshInertia (MeshBase base, double density) {
       if (base == null) {
          throw new IllegalStateException ("Mesh has not been set");
       }
-      
+
       if (base instanceof PolygonalMesh) {
          PolygonalMesh mesh = (PolygonalMesh)base;
          SpatialInertia M = mesh.createInertia (density);
@@ -222,11 +222,11 @@ public class RigidCompositeBody extends RigidBody implements
       } else if (base instanceof PolylineMesh) {
          //XXX to implement
       }
-      
+
    }
-   
+
    protected void updateInertia() {
-      
+
       switch (myInertiaMethod) {
          case Density: {
             setInertiaFromDensity(myDensity);
@@ -245,13 +245,13 @@ public class RigidCompositeBody extends RigidBody implements
          }
       }
    }
-   
+
    /**
     * {@inheritDoc}
     */
    @Override
    public void setInertiaMethod (InertiaMethod method) {
-      
+
       if (method != myInertiaMethod) {
          switch (method) {
             case Density: {
@@ -276,7 +276,7 @@ public class RigidCompositeBody extends RigidBody implements
 
    private void doSetInertia (SpatialInertia M) {
       mySpatialInertia.set (M);
-      
+
       double volume = 0;
       for ( RigidMeshComp mc : myMeshList) {
          MeshBase mesh = mc.getMesh();
@@ -284,16 +284,16 @@ public class RigidCompositeBody extends RigidBody implements
             volume += getMeshVolume(mesh);
          }                  
       }
-      
+
       if (volume > 0) {
          myDensity = M.getMass()/volume;
       } else {
          myDensity = 0;
       }
- 
+
       myInertiaMethod = InertiaMethod.Explicit;
    }
-   
+
    /**
     * Explicitly sets the spatial inertia of this body. Also sets the uniform
     * density (as returned by {@link #getDensity getDensity}) to be undefined).
@@ -336,7 +336,7 @@ public class RigidCompositeBody extends RigidBody implements
 
    protected void setInertiaFromMesh (double density) {
    }
-   
+
    /** 
     * Causes the inertia to be automatically computed from the mesh volume
     * and a given density. If the mesh is currently <code>null</code> then
@@ -353,7 +353,7 @@ public class RigidCompositeBody extends RigidBody implements
       }
       myDensity = density;
       myInertiaMethod = InertiaMethod.Density;
-      
+
       mySpatialInertia.setZero();
       double mass = 0;
       for ( RigidMeshComp mc : myMeshList) {
@@ -364,7 +364,7 @@ public class RigidCompositeBody extends RigidBody implements
          }                  
       }
       mySpatialInertia.setMass (mass);
-      
+
    }
 
    /** 
@@ -389,7 +389,7 @@ public class RigidCompositeBody extends RigidBody implements
             volume += getMeshVolume(mesh);
          }                  
       }
-      
+
       if (volume > 0) {
          myDensity = getMass() / volume;
       } else {
@@ -404,7 +404,7 @@ public class RigidCompositeBody extends RigidBody implements
       mySpatialInertia.setMass (mass);
       myInertiaMethod = InertiaMethod.Mass;      
    }
-   
+
    @Override
    public double computeVolume() {
       double vol = 0;
@@ -434,7 +434,7 @@ public class RigidCompositeBody extends RigidBody implements
       if (density < 0) {
          throw new IllegalArgumentException ("density must be non-negative");
       }
-      
+
       double mass = 0;
       for ( RigidMeshComp mc : myMeshList) {
          MeshBase mesh = mc.getMesh();
@@ -442,18 +442,18 @@ public class RigidCompositeBody extends RigidBody implements
             mass += getMeshMass(mesh, density);
          }                  
       }
-      
+
       if (myInertiaMethod == InertiaMethod.Mass) {
          setInertiaFromMass(mass);
       } else if (myInertiaMethod == InertiaMethod.Density) {
          setInertiaFromDensity(density);
       }
-      
+
       myDensity = density;
       mySpatialInertia.setMass(mass);
-      
+
    }
-   
+
    /**
     * Sets the mass for the mesh. If the mesh is currently non-null, then the
     * density (defined as the mass divided by the mesh volume) will be updated
@@ -469,7 +469,7 @@ public class RigidCompositeBody extends RigidBody implements
       if (mass < 0) {
          throw new IllegalArgumentException ("Mass must be non-negative");
       }
-      
+
       double volume = 0;
       for ( RigidMeshComp mc : myMeshList) {
          MeshBase mesh = mc.getMesh();
@@ -477,13 +477,13 @@ public class RigidCompositeBody extends RigidBody implements
             volume += getMeshVolume(mesh);
          }                  
       }
-      
+
       if (volume > 0) {
          myDensity = getMass() / volume;
       } else {
          myDensity = 0;
       }
-      
+
       if (myInertiaMethod == InertiaMethod.Mass) {
          setInertiaFromMass(mass);
       } else if (myInertiaMethod == InertiaMethod.Density) {
@@ -491,12 +491,12 @@ public class RigidCompositeBody extends RigidBody implements
       }
       mySpatialInertia.setMass (mass);
    }
-   
-   
+
+
    public boolean removeMeshComp(RigidMeshComp mc) {
       return myMeshList.remove(mc);
    }
-   
+
    public RigidMeshComp removeMeshComp(String name) {
       RigidMeshComp mesh = getMeshComp(name);
       if (mesh != null) {
@@ -504,7 +504,7 @@ public class RigidCompositeBody extends RigidBody implements
       }
       return null;
    }
-   
+
    /**
     * 
     */
@@ -512,8 +512,8 @@ public class RigidCompositeBody extends RigidBody implements
       RigidMeshComp rmc = new RigidMeshComp (mesh, fileName, X);
       myMeshList.add (rmc, 0);
    }
-   
-   
+
+
    protected void updatePosState() {
       super.updatePosState();
       for (RigidMeshComp mc : myMeshList) {
@@ -521,15 +521,23 @@ public class RigidCompositeBody extends RigidBody implements
          mesh.setMeshToWorld(myState.XFrameToWorld);
       }
    }
-   
+
    public void prerender (RenderList list) {
       super.prerender(list);
       list.addIfVisible(myMeshList);
    }
-   
+
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags) {
       context.addAll (myMeshList);
+   }
+
+   protected void transformInternalGeometry(
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+
+      for (MeshComponent mesh : getMeshComps()) {
+         mesh.transformGeometry(gtr, context, flags);
+      }
    }
 
    @Override
@@ -539,33 +547,35 @@ public class RigidCompositeBody extends RigidBody implements
       flags = flags & ~TransformableGeometry.TG_DRAGGER;
       super.transformGeometry(gtr, context, flags);
    }
-   
-//   public void transformGeometry (
-//      GeometryTransformer X, TransformGeometryContext context, int flags) {
-//      
-//      RigidTransform3d Xpose = new RigidTransform3d();
-//      Xpose.set (myState.XFrameToWorld);
-//      X.transform (Xpose);
-//      for (RigidMeshComp mc : myMeshList) {
-//         if (mc.transformGeometry (X, Xpose)) {
-//            mc.getRenderProps().clearMeshDisplayList();
-//         }
-//      }
-//      super.transformGeometry (X, context, flags);
-//   }   
-   
+
+   //   public void transformGeometry (
+   //      GeometryTransformer X, TransformGeometryContext context, int flags) {
+   //      
+   //      RigidTransform3d Xpose = new RigidTransform3d();
+   //      Xpose.set (myState.XFrameToWorld);
+   //      X.transform (Xpose);
+   //      for (RigidMeshComp mc : myMeshList) {
+   //         if (mc.transformGeometry (X, Xpose)) {
+   //            mc.getRenderProps().clearMeshDisplayList();
+   //         }
+   //      }
+   //      super.transformGeometry (X, context, flags);
+   //   }   
+
+   // prevent surface mesh from being scaled twice
+   protected void scaleInternalGeometry(double s) {
+      for (RigidMeshComp mc : myMeshList) {
+         mc.scaleDistance(s);
+         mc.getMesh().setMeshToWorld(myState.XFrameToWorld);
+      }
+   }
+
    public void scaleDistance(double s) {
       super.scaleDistance(s);
-      
-      for (RigidMeshComp mc : myMeshList) {
-         MeshBase mesh = mc.getMesh();
-         mesh.scale(s);
-         mesh.setMeshToWorld(myState.XFrameToWorld);
-      }
-      
+      // scale geometry separately
    }
-   
-   
+
+
    ///////////////////////////////////////////////////
    // Composite component stuff
    ///////////////////////////////////////////////////
@@ -588,7 +598,7 @@ public class RigidCompositeBody extends RigidBody implements
    protected void add (ModelComponent comp) {
       myComponents.add (comp);
    }
- 
+
    protected boolean remove (ModelComponent comp) {
       return myComponents.remove (comp);
    }
@@ -665,16 +675,16 @@ public class RigidCompositeBody extends RigidBody implements
       }
    }
 
-   
+
    @Override
    public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
       myComponents.scanBegin();
       super.scan (rtok, ref);
    }
-   
+
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
-      
+
       rtok.nextToken();
       if (ScanWriteUtils.scanProperty (rtok, this)) {
          return true;
@@ -689,27 +699,27 @@ public class RigidCompositeBody extends RigidBody implements
 
    protected boolean postscanItem (
       Deque<ScanToken> tokens, CompositeComponent ancestor) 
-      throws IOException {
-      
+         throws IOException {
+
       if (myComponents.postscanComponent (tokens, ancestor)) {
          return true;
       }
       return super.postscanItem (tokens, ancestor);
    }
-   
+
    @Override
    public void postscan (
-   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       super.postscan (tokens, ancestor);
       myComponents.scanEnd();
       updateInertia();  // reset inertia
       updatePosState();
    }
-   
+
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
-      throws IOException {
-      
+         throws IOException {
+
       // properties
       super.writeItems(pw, fmt, ancestor);
       // components
@@ -734,7 +744,7 @@ public class RigidCompositeBody extends RigidBody implements
    public NavpanelDisplay getNavpanelDisplay() {
       return myDisplayMode;
    }
-   
+
    /**
     * Sets the display mode for this component. This controls
     * how the component is displayed in a navigation panel. The default
@@ -761,84 +771,84 @@ public class RigidCompositeBody extends RigidBody implements
             RigidMeshComp.class, "meshes", "msh");
       add(myMeshList);
    }
-   
+
    public RigidCompositeBody copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
 
       // need to duplicate all mesh components
       RigidCompositeBody ccomp =
          (RigidCompositeBody)super.copy (flags, copyMap);
-      
+
       ccomp.initializeChildComponents();
 
       for (int i=0; i<myMeshList.size(); i++) {
          RigidMeshComp mc = myMeshList.get(i);
          RigidMeshComp newFmc = mc.copy(flags, copyMap);
          ccomp.addMeshComp(newFmc);
-         
+
          // do this this since addMesh sets collidability by default
          newFmc.setCollidable (mc.getCollidable());        
       }
       ccomp.setName(null);
       ccomp.setNavpanelVisibility(getNavpanelVisibility());
-      
+
       return ccomp;
    }
 
    public boolean hasState() {
       return true;
    }
-   
+
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
-    
+
       for (RigidMeshComp mc : myMeshList) {
          mc.updateBounds(pmin, pmax);
       }
-      
+
    }
-   
-//   // Pullable interface
-//   @Override
-//   public Point3d getOriginData (Point3d origin, Vector3d dir) {
-//
-//      Point3d myBodyPnt = null;
-//      Point3d nearest = null;
-//      double nearestDistance = Double.POSITIVE_INFINITY;
-//
-//      for (RigidMeshComp mc : myMeshList) {
-//         MeshBase mesh = mc.getMesh();
-//         if (mesh != null && mesh instanceof PolygonalMesh) {
-//            PolygonalMesh smesh = (PolygonalMesh)mesh;
-//            Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
-//               smesh, origin, dir);
-//            if (pnt != null) {
-//               double d = pnt.distance(origin);
-//               if (nearest == null || d < nearestDistance) {
-//                  nearestDistance = d;
-//                  nearest = pnt;
-//               }
-//            }
-//         }
-//      }
-//
-//      if (nearest != null) {
-//         myBodyPnt = new Point3d(nearest);
-//         myBodyPnt.inverseTransform (getPose());
-//      }
-//      
-//      return myBodyPnt;
-//   }
-   
+
+   //   // Pullable interface
+   //   @Override
+   //   public Point3d getOriginData (Point3d origin, Vector3d dir) {
+   //
+   //      Point3d myBodyPnt = null;
+   //      Point3d nearest = null;
+   //      double nearestDistance = Double.POSITIVE_INFINITY;
+   //
+   //      for (RigidMeshComp mc : myMeshList) {
+   //         MeshBase mesh = mc.getMesh();
+   //         if (mesh != null && mesh instanceof PolygonalMesh) {
+   //            PolygonalMesh smesh = (PolygonalMesh)mesh;
+   //            Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
+   //               smesh, origin, dir);
+   //            if (pnt != null) {
+   //               double d = pnt.distance(origin);
+   //               if (nearest == null || d < nearestDistance) {
+   //                  nearestDistance = d;
+   //                  nearest = pnt;
+   //               }
+   //            }
+   //         }
+   //      }
+   //
+   //      if (nearest != null) {
+   //         myBodyPnt = new Point3d(nearest);
+   //         myBodyPnt.inverseTransform (getPose());
+   //      }
+   //      
+   //      return myBodyPnt;
+   //   }
+
    @Override
    public int numSurfaceMeshes() {
       return MeshComponent.numSurfaceMeshes (myMeshList);
    }
-   
+
    @Override
    public PolygonalMesh[] getSurfaceMeshes() {
       return MeshComponent.getSurfaceMeshes (myMeshList);
    }
-   
+
    @Override
    public boolean isCompound() {
       return true;

@@ -300,7 +300,7 @@ public class GLSLGenerator {
             appendln(mb, "   float line_length = length(u);  // target length");
             appendln(mb, "   u = u/line_length;              // target direction vector");           
             if (info.hasLineScaleOffset()) {
-               appendln(mb, "   float line_rad = line_radius*mix(line_bottom_scale_offset.r, line_top_scale_offset.r, position.z);  // adjust radius");
+               appendln(mb, "   float line_rad = line_radius*mix(line_bottom_scale_offset.r, line_top_scale_offset.r, vertex_position.z);  // adjust radius");
                appendln(mb, "   float line_offset = mix(line_bottom_scale_offset.y, line_length+line_bottom_scale_offset.z, line_bottom_scale_offset.w);");
                appendln(mb, "   float line_top = mix(line_top_scale_offset.y, line_length+line_top_scale_offset.z, line_top_scale_offset.w);");
                appendln(mb, "   line_length = line_top-line_offset;");

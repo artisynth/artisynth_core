@@ -10,10 +10,13 @@ package maspack.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.regex.Pattern;
 
 /**
@@ -67,8 +70,7 @@ public class ClassFinder {
     * The name of the class to find
     * @return An array of results
     */
-   public static ArrayList<Class<?>> findClass(String pkg, String className)
-      throws ClassNotFoundException, IOException {
+   public static ArrayList<Class<?>> findClass(String pkg, String className) {
 
       String regex = "((.*\\.)|^)" + className + "$";
       ArrayList<Class<?>> results = findClasses(pkg, regex, Object.class);
@@ -90,34 +92,44 @@ public class ClassFinder {
     * root class to search for
     */
    public static ArrayList<Class<?>> findClasses(String pkg, String regex,
-      Class<?> T)
-      throws ClassNotFoundException, IOException {
+      Class<?> T) {
 
-      //ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+      // ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       ClassLoader classLoader = ClassFinder.class.getClassLoader();
       if (classLoader == null) {
          throw new InternalError ("Cannot find appropriate class loader");
       }
       String path = pkg.replace('.', '/'); // replace package structure with
                                            // folder structure
+      // terminate with '/'
+      if (!path.endsWith("/")) {
+         path = path + "/";
+      }
 
-      Enumeration<URL> res = classLoader.getResources(path);
-      ArrayList<File> dirs = new ArrayList<File>(); // list of contained
-                                                    // directories
+      Enumeration<URL> res;
+      try {
+         res = classLoader.getResources(path);
+      } catch (IOException mue) {
+         return new ArrayList<>();
+      }
+      
+      ArrayList<File> dirs = new ArrayList<File>(); // list of contained directories
+      ArrayList<URL> jars = new ArrayList<URL>();   // list of contained jar files
 
       // need to do some shuffling to account for paths with spaces
       while (res.hasMoreElements()) {
          URL url = res.nextElement();
-         String dirName = path;
-         try {
-            dirName = url.toURI().getPath();
-         } catch (URISyntaxException e) {
-            continue;
-         }
-         // dirName ending in "/./" corresponds to a "." in the CLASSPATH,
-         // which we want to ignore.
-         if (!dirName.endsWith ("/./")) {
-            dirs.add(new File(dirName));
+         
+         if ("file".equals(url.getProtocol())) {
+            String dirName = url.getPath();
+            
+            // dirName ending in "/./" corresponds to a "." in the CLASSPATH,
+            // which we want to ignore.
+            if (!dirName.endsWith ("/./")) {
+               dirs.add(new File(dirName));
+            }
+         } else if ("jar".equals(url.getProtocol())) {
+            jars.add(url);
          }
       }
 
@@ -126,16 +138,19 @@ public class ClassFinder {
       for (File dir : dirs) {
          classList.addAll(findClasses(dir, pkg, pattern, T));
       }
+      
+      for (URL url : jars) {
+         classList.addAll(findClasses(url, pkg, pattern, T));
+      }
       return classList;
    }
 
-   public static ArrayList<Class<?>> findClasses(String pkg, Class<?> T)
-      throws ClassNotFoundException, IOException {
+   public static ArrayList<Class<?>> findClasses(String pkg, Class<?> T) {
       return findClasses(pkg, ".*", T);
    }
 
    public static ArrayList<Class<?>> findClasses(File dir, String pkg,
-      String regex, Class<?> T) throws ClassNotFoundException {
+      String regex, Class<?> T) {
       Pattern p = Pattern.compile(regex);
       return findClasses(dir, pkg, p, T);
    }
@@ -145,7 +160,7 @@ public class ClassFinder {
     * match regex
     */
    public static ArrayList<Class<?>> findClasses(File dir, String pkg,
-      Pattern regex, Class<?> T) throws ClassNotFoundException {
+      Pattern regex, Class<?> T) {
       ArrayList<Class<?>> classList = new ArrayList<Class<?>>();
 
       if (!dir.exists()) {
@@ -167,46 +182,108 @@ public class ClassFinder {
             className = className.substring(0, className.length() - 6); // remove
                                                                         // extension
             className = pkg + "." + className;
-            if (regex.matcher(className).matches()) {
-
-               // check if we can assign the found class to Class T
-               // Must be in "try" blocks because will fail if class can't be
-               // initialized
-               try {
-                  if (T.equals(Object.class)) { // don't bother checking if we're dealing with Object
-                     classList.add(Class.forName(className, false, ClassFinder.class.getClassLoader()));
-                  } else {
-                     Class<?> clz = Class.forName(className, false, ClassFinder.class.getClassLoader());
-                     if (T.isAssignableFrom(clz)) {
-                        classList.add(clz);
-                     }
-                  }
-
-               } catch (Exception e) {
-                  Logger logger = getLogger();
-                  logger.debug(
-                     "Class " + className + "' could not be initialized: " +
-                        e.toString() + ", " + e.getMessage());
-                  logger.trace(e);
-               } catch (Error err) {
-                  Logger logger = getLogger();
-                  logger.debug(
-                     "Error: Class " + className + "' could not be initialized: " +
-                        err.toString() + ", " + err.getMessage());
-                  logger.trace(err);
-               }
-            }
+            maybeAddClass(className, regex, T, classList);
          }
       }
       return classList;
    }
+   
+   private static boolean maybeAddClass(String className, Pattern regex, Class<?> base, List<Class<?>> out) {
+      boolean added = false;
+      
+      if (regex.matcher(className).matches()) {
 
+         // check if we can assign the found class to Class T
+         // Must be in "try" blocks because will fail if class can't be
+         // initialized
+         try {
+            Class<?> clz = Class.forName(className, false, ClassFinder.class.getClassLoader());
+            
+            if (base.equals(Object.class)) { // don't bother checking if we're dealing with Object
+               out.add(clz);
+               added = true;
+            } else {
+               if (base.isAssignableFrom(clz)) {
+                  out.add(clz);
+                  added = true;
+               }
+            }
+
+         } catch (Exception e) {
+            Logger logger = getLogger();
+            logger.debug(
+               "Class " + className + "' could not be initialized: " +
+                  e.toString() + ", " + e.getMessage());
+            logger.trace(e);
+         } catch (Error err) {
+            Logger logger = getLogger();
+            logger.debug(
+               "Error: Class " + className + "' could not be initialized: " +
+                  err.toString() + ", " + err.getMessage());
+            logger.trace(err);
+         }
+      } // no regex match
+      
+      return added;
+   }
+   
    /**
-    * Searches through all subdirectories, gathering classes of type T
+    * Searches through all "subdirectories" of a URL, gathering classes of type T that
+    * match regex
     */
-   public static ArrayList<Class<?>> findClasses(File dir, String pkg,
-      Class<?> T) throws ClassNotFoundException {
-      return findClasses(dir, pkg, ".*", T);
+   public static ArrayList<Class<?>> findClasses(URL url, String pkg,
+      Pattern regex, Class<?> T) {
+      
+      ArrayList<Class<?>> classList = new ArrayList<Class<?>>();
+
+      // remove initial period
+      if (pkg.startsWith(".")) {
+         pkg = pkg.substring(1);
+      }
+
+      if ("file".equals(url.getProtocol())) {
+         File file = new File(url.getPath());
+         return findClasses(file, pkg, regex, T);
+      } else if ("jar".equals(url.getProtocol())) {
+         
+         JarFile jar = null;
+         JarEntry jarEntry = null;
+         
+         try {
+            JarURLConnection connection = (JarURLConnection)(url.openConnection());
+            jar = connection.getJarFile();
+            jarEntry = connection.getJarEntry();
+         } catch (IOException ioe) {
+            Logger logger = getLogger();
+            logger.debug("Unable to process jar: " + url.toString());
+            logger.trace(ioe);
+            return classList;
+         }
+         
+         if (jarEntry.getName().endsWith(".class")) {
+            String className = jarEntry.getName();
+            // remove extension
+            className = className.substring(0, className.length() - 6);
+            maybeAddClass(className, regex, T, classList);
+         } else {
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+               JarEntry entry = entries.nextElement();
+               if (entry.getName().startsWith(jarEntry.getName())) {
+                  // we have the Jar entry
+                  if (entry.getName().endsWith(".class")) {
+                     String className = entry.getName();
+                     // remove extension
+                     className = className.substring(0, className.length() - 6);
+                     className = className.replace('/', '.');
+                     maybeAddClass(className, regex, T, classList);
+                  }
+               }
+            }
+         }
+      }
+      
+      return classList;
    }
 
 }

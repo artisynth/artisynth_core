@@ -1477,7 +1477,7 @@ public class DistanceGrid implements Renderable, Scannable {
     * (local coordinates).
     * @return interpolated distance, or <code>OUTSIDE_GRID</code>.
     */
-   double getLocalDistanceAndNormal (
+   public double getLocalDistanceAndNormal (
       Vector3d norm, Matrix3d Dnrm, Point3d point) {
 
       Vector3d coords = new Vector3d();

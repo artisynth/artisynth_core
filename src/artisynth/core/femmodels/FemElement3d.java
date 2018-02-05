@@ -451,6 +451,18 @@ public abstract class FemElement3d extends FemElement
       centroid.scale (1.0 / numNodes());
    }
 
+   /**
+    * Compute position within element based on natural coordinates
+    * @param pnt  populated position within element
+    * @param coords natural coordinates
+    */
+   public void computePosition(Point3d pnt, Vector3d coords) {
+      pnt.setZero();
+      for (int i=0; i<numNodes(); ++i) {
+         pnt.scaledAdd(getN(i, coords), myNodes[i].getPosition());
+      }
+   }
+
    public double computeCovariance (Matrix3d C) {
       double vol = 0;
 
@@ -1067,7 +1079,7 @@ public abstract class FemElement3d extends FemElement
          double dv = detJ*pt.getWeight();
          // normalize detJ to get true value relative to rest position
          detJ /= idata[i].getDetJ0();
-         idata[i].myDv = dv;
+         idata[i].setDv(dv);
          if (npvals > 1) {
             double[] H = pt.getPressureWeights().getBuffer();
             for (int k=0; k<npvals; k++) {
@@ -1084,6 +1096,16 @@ public abstract class FemElement3d extends FemElement
       }      
       myVolume = vol;
       return minDetJ;
+   }
+
+   public void computeJacobian(Vector3d s, Matrix3d J) {
+      FemNode3d[] nodes = getNodes();
+      J.setZero();
+      Vector3d dNds = new Vector3d();
+      for (int i=0; i<nodes.length; ++i) {
+         getdNds(dNds, i, s);
+         J.addOuterProduct(nodes[i].getLocalPosition(), dNds);
+      }
    }
    
    /**

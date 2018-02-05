@@ -15,6 +15,9 @@ import java.util.regex.Pattern;
 
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import maspack.geometry.GeometryTransformer;
 import maspack.image.dicom.DicomImage;
 import maspack.image.dicom.DicomPixelInterpolator;
 import maspack.image.dicom.DicomReader;
@@ -38,7 +41,8 @@ import maspack.render.Renderer.Shading;
 import maspack.util.IntegerInterval;
 import maspack.util.StringRange;
 
-public class DicomViewer extends RenderableComponentBase {
+public class DicomViewer extends RenderableComponentBase 
+   implements TransformableGeometry {
 
    DicomImage myImage;
    DicomTextureContent texture;
@@ -676,4 +680,25 @@ public class DicomViewer extends RenderableComponentBase {
    public void setDrawBox(boolean enable) {
       drawBox = enable;
    }
+
+   @Override
+   public void transformGeometry(AffineTransform3dBase X) {
+      TransformGeometryContext.transform (this, X, 0);
+   }
+
+   @Override
+   public void transformGeometry(
+      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      
+      // transform the pose
+      AffineTransform3d Xpose = new AffineTransform3d();
+      Xpose.set (getTransform());
+      gtr.transform (Xpose);
+      setTransform(Xpose);
+      
+   }
+
+   @Override
+   public void addTransformableDependencies(
+      TransformGeometryContext context, int flags) {}
 }

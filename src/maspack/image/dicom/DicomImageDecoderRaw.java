@@ -14,10 +14,10 @@ import maspack.image.dicom.DicomElement.VR;
  * @author Antonio
  *
  */
-public class DicomImageDecoderRaw implements DicomImageDecoder {
+public class DicomImageDecoderRaw extends DicomImageDecoderBase {
 
-   @Override
-   public DicomPixelBuffer decode(DicomHeader header, DicomPixelData data) {
+      
+   public DicomPixelBuffer decodeFrame(DicomHeader header, DicomPixelData data) {
 
       DicomPixelBufferBase out = null;
 
@@ -162,7 +162,7 @@ public class DicomImageDecoderRaw implements DicomImageDecoder {
    }
 
    @Override
-   public boolean canDecode(DicomHeader header, DicomPixelData data) {
+   protected boolean canDecodeFrames(DicomHeader header) {
 
       DicomTransferSyntax syntax = header.getTransferSyntax();
       if (syntax != null && !syntax.encoded) {

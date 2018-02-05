@@ -29,11 +29,18 @@ public class DicomHeader {
       // Generic
       transferSyntaxes.add(new DicomTransferSyntax("Little Endian Explicit", "1.2.840.10008.1.2.1", true, true, false));
       transferSyntaxes.add(new DicomTransferSyntax("Big Endian Explicit", "1.2.840.10008.1.2.2", false, true, false));
-      transferSyntaxes.add(new DicomTransferSyntax("Little Endian Implicit", "1.2.840.10008.1.2", false, false, false));
+      transferSyntaxes.add(new DicomTransferSyntax("Little Endian Implicit", "1.2.840.10008.1.2", true, false, false));
       // CT
       transferSyntaxes.add(new DicomTransferSyntax("CT Image Storage", "1.2.840.10008.5.2", true, true, true));
-      // JPEG lossy
-      transferSyntaxes.add(new DicomTransferSyntax("CT Image Storage", "1.2.840.10008.1.2.4.91", true, true, true));
+      // JPEG
+      transferSyntaxes.add(new DicomTransferSyntax("JPEG Lossless, Nonhierarchical", "1.2.840.10008.1.2.4.57", true, true, true));
+      transferSyntaxes.add(new DicomTransferSyntax("JPEG Lossless, Nonhierarchical, First-Order Prediction", "1.2.840.10008.1.2.4.70", true, true, true));
+      transferSyntaxes.add(new DicomTransferSyntax("JPEG-LS Lossless Image Compression", "1.2.840.10008.1.2.4.80", true, true, true));
+      transferSyntaxes.add(new DicomTransferSyntax("JPEG-LS Lossy (Near-Lossless) Image Compression", "1.2.840.10008.1.2.4.81", true, true, true));
+      transferSyntaxes.add(new DicomTransferSyntax("JPEG 2000 Image Compression (Lossless Only)", "1.2.840.10008.1.2.4.90", true, true, true));
+      transferSyntaxes.add(new DicomTransferSyntax("JPEG 2000 Image Compression", "1.2.840.10008.1.2.4.91", true, true, true));
+      transferSyntaxes.add(new DicomTransferSyntax("JPEG 2000 Part 2 Multicomponent Image Compression (Lossless Only)", "1.2.840.10008.1.2.4.92", true, true, true));
+      transferSyntaxes.add(new DicomTransferSyntax("JPEG 2000 Part 2 Multicomponent Image Compression", "1.2.840.10008.1.2.4.93", true, true, true));
    }
 
    HashMap<Integer,DicomElement> headerMap;

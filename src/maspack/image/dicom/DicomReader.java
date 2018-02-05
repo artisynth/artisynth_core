@@ -7,14 +7,11 @@
 
 package maspack.image.dicom;
 
-import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -27,11 +24,14 @@ import java.util.regex.Pattern;
 
 import maspack.concurrency.NamedThreadFactory;
 import maspack.image.dicom.DicomElement.VR;
+import maspack.util.BinaryFileInputStream;
 import maspack.util.BinaryInputStream;
 import maspack.util.FunctionTimer;
 
 /**
- * Reads DICOM files and folders, creating DicomSlices and populating a DicomImage
+ * Reads DICOM files and folders, creating DicomSlices and populating a
+ * DicomImage
+ * 
  * @author Antonio
  *
  */
@@ -49,39 +49,42 @@ public class DicomReader {
    private void initializeDecoders() {
       imageDecoders = new ArrayList<DicomImageDecoder>(3);
       imageDecoders.add(new DicomImageDecoderRaw()); // raw format
-      imageDecoders.add(new DicomImageDecoderImageIO());
+      // imageDecoders.add(new DicomImageDecoderGDCM()); // GDCM decoder
       // ImageMagick, if found
       DicomImageDecoderImageMagick dIM = new DicomImageDecoderImageMagick();
       if (dIM.isValid()) {
          imageDecoders.add(dIM); // ImageMagick
-      } else {
-         // ImageIO image decoder
-   
       }
    }
 
    /**
-    * Add a custom image decoder, the new decoder taking priority over existing ones
-    * if multiple decoders can handle a given DICOM file
-    * @param decoder decoder to add
+    * Add a custom image decoder, the new decoder taking priority over existing
+    * ones if multiple decoders can handle a given DICOM file
+    * 
+    * @param decoder
+    * decoder to add
     */
    public void addImageDecoder(DicomImageDecoder decoder) {
       addImageDecoderFirst(decoder);
    }
 
    /**
-    * Add a custom image decoder, the new decoder taking priority over existing ones
-    * if multiple decoders can handle a given DICOM file
-    * @param decoder decoder to add
+    * Add a custom image decoder, the new decoder taking priority over existing
+    * ones if multiple decoders can handle a given DICOM file
+    * 
+    * @param decoder
+    * decoder to add
     */
    public void addImageDecoderFirst(DicomImageDecoder decoder) {
       imageDecoders.add(0, decoder);
    }
 
    /**
-    * Add a custom image decoder, the new decoder will be the last to try, 
+    * Add a custom image decoder, the new decoder will be the last to try,
     * prioritizing existing decoders if multiple can handle a given DICOM file
-    * @param decoder decoder to add
+    * 
+    * @param decoder
+    * decoder to add
     */
    public void addImageDecoderLast(DicomImageDecoder decoder) {
       imageDecoders.add(decoder);
@@ -98,7 +101,7 @@ public class DicomReader {
          this.file = file;
 
       }
-      
+
       public Throwable getRootCause(Throwable e) {
          while (e.getCause() != null && e.getCause() != e) {
             e = e.getCause();
@@ -109,10 +112,11 @@ public class DicomReader {
       @Override
       public DicomSlice[] call() throws IOException {
          try {
-            return readSlice(sliceName, file);
+            return readSlices(sliceName, file);
          } catch (Exception e) {
             Throwable cause = getRootCause(e);
-            throw new IOException("Unable to read DICOM file:\n" + cause.getMessage(), cause);
+            throw new IOException(
+               "Unable to read DICOM file:\n" + cause.getMessage(), cause);
          }
       }
 
@@ -122,55 +126,72 @@ public class DicomReader {
     * Populates a DicomImage based on a given directory containing DICOM files
     * and a file pattern to restrict files to load.
     * 
-    * @param im DICOM image to populate, or null to generate a new image
-    * @param directory directory from which to load files
+    * @param im
+    * DICOM image to populate, or null to generate a new image
+    * @param directory
+    * directory from which to load files
     * @return the populated DICOM image
-    * @throws IOException if there is an error reading a DICOM file
+    * @throws IOException
+    * if there is an error reading a DICOM file
     */
-   public DicomImage read(
-      DicomImage im, String directory) throws IOException {
+   public DicomImage read(DicomImage im, String directory) throws IOException {
 
       return read(im, directory, null, false, -1);
    }
-   
+
    /**
     * Populates a DicomImage based on a given directory containing DICOM files
     * and a file pattern to restrict files to load.
     * 
-    * @param im DICOM image to populate, or null to generate a new image
-    * @param directory directory from which to load files
-    * @param filePattern regular expression pattern for accepting files to load.  The pattern 
-    * is applied to the full absolute file names of files found. If null, all files are accepted.
-    * @param checkSubdirectories whether to recursively search sub-directories for matching files
+    * @param im
+    * DICOM image to populate, or null to generate a new image
+    * @param directory
+    * directory from which to load files
+    * @param filePattern
+    * regular expression pattern for accepting files to load. The pattern is
+    * applied to the full absolute file names of files found. If null, all files
+    * are accepted.
+    * @param checkSubdirectories
+    * whether to recursively search sub-directories for matching files
     * @return the populated DICOM image
-    * @throws IOException if there is an error reading a DICOM file
+    * @throws IOException
+    * if there is an error reading a DICOM file
     */
    public DicomImage read(
       DicomImage im, String directory, Pattern filePattern,
-      boolean checkSubdirectories) throws IOException {
+      boolean checkSubdirectories)
+      throws IOException {
 
       return read(im, directory, filePattern, checkSubdirectories, -1);
    }
 
    /**
     * Populates a DicomImage based on a given directory containing DICOM files
-    * and a file pattern to restrict files to load.  This allows the specification
-    * of a temporal position of the slice. 
+    * and a file pattern to restrict files to load. This allows the
+    * specification of a temporal position of the slice.
     * 
-    * @param im DICOM image to populate, or null to generate a new image
-    * @param directory directory from which to load files
-    * @param filePattern regular expression pattern for accepting files to load.  The pattern 
-    * is applied to the full absolute file names of files found.  If null, all files are accepted.
-    * @param checkSubdirectories whether to recursively search sub-directories for matching files
-    * @param temporalPosition temporal index of slice (identifies stack).  If negative, a temporal position will
-    * be extracted from each slice's header information.  If positive or zero, the
-    * temporal position will be manually assigned.
+    * @param im
+    * DICOM image to populate, or null to generate a new image
+    * @param directory
+    * directory from which to load files
+    * @param filePattern
+    * regular expression pattern for accepting files to load. The pattern is
+    * applied to the full absolute file names of files found. If null, all files
+    * are accepted.
+    * @param checkSubdirectories
+    * whether to recursively search sub-directories for matching files
+    * @param temporalPosition
+    * temporal index of slice (identifies stack). If negative, a temporal
+    * position will be extracted from each slice's header information. If
+    * positive or zero, the temporal position will be manually assigned.
     * @return the populated DICOM image
-    * @throws IOException if there is an error reading a DICOM file
+    * @throws IOException
+    * if there is an error reading a DICOM file
     */
    public DicomImage read(
       DicomImage im, String directory, Pattern filePattern,
-      boolean checkSubdirectories, int temporalPosition) throws IOException {
+      boolean checkSubdirectories, int temporalPosition)
+      throws IOException {
 
       // load in directory
       File dir = new File(directory);
@@ -182,40 +203,47 @@ public class DicomReader {
          throw new IOException(
             "No valid image files in directory '" + directory + "'");
       }
-      
+
       return read(im, fileList, temporalPosition);
    }
 
    /**
     * Populates a DicomImage based on a given list of DICOM files.
     * 
-    * @param im image to populate (null to generate new image)
-    * @param files list of DICOM files
+    * @param im
+    * image to populate (null to generate new image)
+    * @param files
+    * list of DICOM files
     * @return the populated DICOM image
-    * @throws IOException if there is a read failure
+    * @throws IOException
+    * if there is a read failure
     */
    public DicomImage read(DicomImage im, List<File> files) throws IOException {
       return read(im, files, -1);
    }
-   
+
    /**
     * Populates a DicomImage based on a given list of DICOM files.
     * 
-    * @param im image to populate (null to generate new image)
-    * @param files list of DICOM files
-    * @param temporalPosition temporal index
+    * @param im
+    * image to populate (null to generate new image)
+    * @param files
+    * list of DICOM files
+    * @param temporalPosition
+    * temporal index
     * @return the populated DICOM image
-    * @throws IOException if there is a read failure
+    * @throws IOException
+    * if there is a read failure
     */
-   public DicomImage read(
-      DicomImage im, List<File> files, int temporalPosition) throws IOException {
+   public DicomImage read(DicomImage im, List<File> files, int temporalPosition)
+      throws IOException {
 
       if (files.size() == 0) {
          return null;
       }
-      
+
       String imageName = files.get(0).getParentFile().getName();
-      
+
       int cpus = Runtime.getRuntime().availableProcessors();
 
       ExecutorService executor =
@@ -236,7 +264,7 @@ public class DicomReader {
 
       FunctionTimer timer = new FunctionTimer();
       timer.start();
-      
+
       int nTimes = 0;
       if (im != null) {
          nTimes = im.getNumTimes();
@@ -249,8 +277,7 @@ public class DicomReader {
          Future<DicomSlice[]> fut = null;
          try {
             fut = ecs.take();
-         }
-         catch (InterruptedException e1) {
+         } catch (InterruptedException e1) {
             e1.printStackTrace();
             return null;
          }
@@ -271,8 +298,7 @@ public class DicomReader {
                               DicomTag.TEMPORAL_POSITON_IDENTIFIER);
                         if (vals != null) {
                            stime = vals[0];
-                        }
-                        else {
+                        } else {
                            // set unknown time?
                            stime = nTimes;
                         }
@@ -280,14 +306,12 @@ public class DicomReader {
                      slices[i].info.temporalPosition = stime;
                      if (im == null) {
                         im = new DicomImage(imageName, slices[i]);
-                     }
-                     else {
+                     } else {
                         im.addSlice(slices[i]);
                      }
                   }
                }
-            }
-            catch (ExecutionException e) {
+            } catch (ExecutionException e) {
                if (e.getCause() instanceof IOException) {
                   throw (IOException)(e.getCause());
                } else {
@@ -299,7 +323,7 @@ public class DicomReader {
             }
          } // end checking if future complete
       } // end main loop
-      
+
       timer.stop();
       double usec = timer.getTimeUsec();
       System.out.println("Read took " + usec * 1e-6 + " seconds");
@@ -307,7 +331,7 @@ public class DicomReader {
       if (im == null) {
          return null;
       }
-      
+
       if (im.title == null) {
          im.title = imageName;
       }
@@ -325,14 +349,17 @@ public class DicomReader {
          for (File sf : subFiles) {
             if (recursive && sf.isDirectory()) {
                out.addAll(getAllFiles(sf, filePattern, recursive));
-            }
-            else if (sf.isFile()) {
+            } else if (sf.isFile()) {
                // check that it passes the supplied pattern
                if (filePattern != null) {
                   // check unix and windows file patterns
-                  if (filePattern.matcher(sf.getAbsolutePath().replace('\\', '/')).matches()) {
+                  if (filePattern
+                     .matcher(sf.getAbsolutePath().replace('\\', '/'))
+                     .matches()) {
                      out.add(sf);
-                  } else if (filePattern.matcher(sf.getAbsolutePath().replace('/', '\\')).matches()) {
+                  } else if (filePattern
+                     .matcher(sf.getAbsolutePath().replace('/', '\\'))
+                     .matches()) {
                      out.add(sf);
                   }
                } else {
@@ -349,26 +376,28 @@ public class DicomReader {
    }
 
    /**
-    * Reads a slice or set of slices from a single input stream (e.g. from a file).
-    * @param sliceTitle title to assign slice
-    * @param file input file
+    * Reads a slice or set of slices from a single input stream (e.g. from a
+    * file).
+    * 
+    * @param sliceTitle
+    * title to assign slice
+    * @param file
+    * input file
     * @return the slice(s) (since a single file may represent multiple slices)
-    * @throws IOException if there is a read failure
+    * @throws IOException
+    * if there is a read failure
     */
-   public DicomSlice[] readSlice(String sliceTitle, File file)
+   public DicomSlice[] readSlices(String sliceTitle, File file)
       throws IOException {
 
-      BinaryInputStream in = null;
+      BinaryFileInputStream in = null;
       try {
-         in =
-            new BinaryInputStream(
-               new BufferedInputStream(new FileInputStream(file)));
-      }
-      catch (FileNotFoundException e) {
+         in = new BinaryFileInputStream(file);
+      } catch (FileNotFoundException e) {
          System.err.println("File '" + file.getPath() + "' not found");
          return null;
       }
-      
+
       // DICOM specifies little endian to start, single byte
       in.setLittleEndian(true);
       in.setByteChar(true);
@@ -390,18 +419,18 @@ public class DicomReader {
             c4[2] = (char)in.readByte();
             c4[3] = (char)in.readByte();
          }
-      } catch (EOFException eof) {
-      }
+      } catch (EOFException eof) {}
 
       // ensure format
       if (c4[0] != 'D' || c4[1] != 'I' || c4[2] != 'C' || c4[3] != 'M') {
          System.err.println(
-            "Couldn't find 'DICM' identifer in file '"+ file.getPath() +"', found: " + c4[0] + c4[1] + c4[2]
-               + c4[3]);
+            "Couldn't find 'DICM' identifer in file '" + file.getPath()
+               + "', found: " + c4[0] + c4[1] + c4[2] + c4[3]);
          in.close();
          return null;
       }
 
+      // header
       short[] s = new short[2];
       s[0] = in.readShort();
       s[1] = in.readShort();
@@ -412,7 +441,7 @@ public class DicomReader {
       boolean past0002 = false;
 
       DicomHeader header = new DicomHeader();
-      
+
       // read until we hit data
       while (tagId != DicomTag.PIXEL_DATA) {
          DicomElement elem;
@@ -422,8 +451,7 @@ public class DicomReader {
             char c0 = (char)in.readByte();
             char c1 = (char)in.readByte();
             elem = readExplicitElement(tagId, c0, c1, in);
-         }
-         else {
+         } else {
             elem = readImplicitElement(tagId, in);
          }
          header.addInfo(tagId, elem);
@@ -464,10 +492,11 @@ public class DicomReader {
          }
       }
 
-      // parse pixel data
+      // pixel data
+
       if (tagId == DicomTag.PIXEL_DATA) {
 
-         DicomPixelBuffer[] pixels = parsePixels(header, in);
+         DicomPixelBuffer[] pixels = decodeFrames(header, in);
          DicomSlice[] out = new DicomSlice[pixels.length];
 
          // split up into frames
@@ -506,26 +535,23 @@ public class DicomReader {
       throws IOException {
       VR implicitVR = DicomTag.getImplicitVR(tagId);
 
-      if (implicitVR == null) {
-         throw new IOException(
-            "Unknown implicit VR for tag: " + Integer.toHexString(tagId));
-      }
-
       return readElement(tagId, implicitVR, in, false);
    }
 
    protected DicomElement readElement(
       int tagId, VR vr, BinaryInputStream in, boolean explicit)
-         throws IOException {
+      throws IOException {
 
       int length = 0;
       if (vr == VR.OB || vr == VR.OW || vr == VR.OF || vr == VR.SQ
          || vr == VR.UN || vr == VR.UT) {
 
          // skip 2, followed by 4-byte integer length
-         short reserved = in.readShort();
-         if (reserved != 0) {
-            System.err.println("DICOM error: reserved bits not zero");
+         if (explicit) {
+            short reserved = in.readShort();
+            if (reserved != 0) {
+               System.err.println("DICOM error: reserved bits not zero");
+            }
          }
          length = in.readInt();
 
@@ -535,8 +561,7 @@ public class DicomReader {
                if (length == 0xFFFFFFFF) {
                   throw new IOException(
                      "Undefined length for VR 'OB' not currently supported");
-               }
-               else {
+               } else {
                   byte[] b = new byte[length];
                   in.read(b);
                   return new DicomElement(tagId, VR.OB, b);
@@ -547,8 +572,7 @@ public class DicomReader {
                if (length == 0xFFFFFFFF) {
                   throw new IOException(
                      "Undefined length for VR 'OW' not currently supported");
-               }
-               else {
+               } else {
                   int nw = length / 2;
                   short[] w = new short[nw];
                   for (int i = 0; i < nw; i++) {
@@ -562,8 +586,7 @@ public class DicomReader {
                if (length == 0xFFFFFFFF) {
                   throw new IOException(
                      "Undefined length for VR 'OW' not currently supported");
-               }
-               else {
+               } else {
                   int nf = length / 4;
                   float[] f = new float[nf];
                   for (int i = 0; i < nf; i++) {
@@ -577,8 +600,7 @@ public class DicomReader {
                Object data = null;
                if (length == 0xFFFFFFFF) {
                   data = readSequence(in, explicit);
-               }
-               else {
+               } else {
                   data = readSequence(in, length, explicit);
                }
                return new DicomElement(tagId, VR.SQ, data);
@@ -591,8 +613,7 @@ public class DicomReader {
                if (length == 0xFFFFFFFF) {
                   throw new IOException(
                      "Undefined length for VR 'UN' not currently supported");
-               }
-               else {
+               } else {
                   data = readBytes(in, length);
                }
                in.setLittleEndian(oldEndian);
@@ -617,7 +638,7 @@ public class DicomReader {
       // for all other items, read length appropriately
       if (explicit) {
          length = in.readUnsignedShort();
-      }  else {
+      } else {
          length = in.readInt();
       }
 
@@ -792,11 +813,9 @@ public class DicomReader {
          DicomElement item = readSequenceItem(in, explicit);
          if (item.tagId == DicomTag.SEQUENCE_DELIMINATION) {
             doneSequence = true;
-         }
-         else if (item.tagId == DicomTag.ITEM_DELIMINATION) {
+         } else if (item.tagId == DicomTag.ITEM_DELIMINATION) {
             // ignore
-         }
-         else {
+         } else {
             // expand array
             numElements++;
             DicomElement[] oldOut = items;
@@ -813,7 +832,8 @@ public class DicomReader {
    }
 
    private DicomElement[] readSequence(
-      BinaryInputStream in, int length, boolean explicit) throws IOException {
+      BinaryInputStream in, int length, boolean explicit)
+      throws IOException {
 
       DicomElement[] items = new DicomElement[0];
       int numElements = 0;
@@ -851,8 +871,7 @@ public class DicomReader {
 
       if (tagId == DicomTag.SEQUENCE_DELIMINATION) {
          return new DicomElement(tagId, VR.DL, null);
-      }
-      else if (tagId == DicomTag.ITEM) {
+      } else if (tagId == DicomTag.ITEM) {
 
          // read item
          if (length == 0xFFFFFFFF) {
@@ -870,8 +889,7 @@ public class DicomReader {
                   char c1 = in.readChar();
                   DicomElement elem = readExplicitElement(tagId, c0, c1, in);
                   elems.add(elem);
-               }
-               else {
+               } else {
                   DicomElement elem = readImplicitElement(tagId, in);
                   elems.add(elem);
                }
@@ -889,8 +907,7 @@ public class DicomReader {
 
             return item;
 
-         }
-         else {
+         } else {
             ArrayList<DicomElement> elems = new ArrayList<DicomElement>(1);
 
             // read element of known size
@@ -910,8 +927,7 @@ public class DicomReader {
                   char c1 = in.readChar();
                   DicomElement elem = readExplicitElement(tagId, c0, c1, in);
                   elems.add(elem);
-               }
-               else {
+               } else {
                   DicomElement elem = readImplicitElement(tagId, in);
                   elems.add(elem);
                }
@@ -923,8 +939,7 @@ public class DicomReader {
 
             return item;
          }
-      }
-      else {
+      } else {
          throw new IOException(
             "Invalid item tag: " + Integer.toHexString(tagId));
       }
@@ -932,7 +947,8 @@ public class DicomReader {
    }
 
    private DicomElement readExplicitElement(
-      int tagId, char c0, char c1, BinaryInputStream in) throws IOException {
+      int tagId, char c0, char c1, BinaryInputStream in)
+      throws IOException {
 
       VR vr = VR.get(c0, c1);
       return readElement(tagId, vr, in, true);
@@ -969,7 +985,7 @@ public class DicomReader {
    // remove periods if exist
    private String readDateString(BinaryInputStream in, int length)
       throws IOException {
-      
+
       StringBuilder out = new StringBuilder();
 
       byte[] vals = new byte[length];
@@ -981,8 +997,7 @@ public class DicomReader {
          for (int i = 0; i < 8; i++) {
             out.append((char)vals[i]);
          }
-      }
-      else if (length == 10) {
+      } else if (length == 10) {
          for (int i = 0; i < 4; i++) {
             out.append((char)vals[i]);
          }
@@ -992,8 +1007,7 @@ public class DicomReader {
          for (int i = 8; i < 10; i++) {
             out.append((char)vals[i]);
          }
-      }
-      else {
+      } else {
          throw new IOException("Illegal date length: " + length);
       }
 
@@ -1001,151 +1015,37 @@ public class DicomReader {
 
    }
 
-   private DicomPixelBuffer decodeFrame(DicomHeader header, DicomPixelData data)
+   // private DicomPixelBuffer decodeFrame(DicomHeader header, DicomPixelData
+   // data)
+   // throws IOException {
+   //
+   // // find appropriate decoder
+   // for (DicomImageDecoder decoder : imageDecoders) {
+   // if (decoder.canDecode(header, data)) {
+   // return decoder.decode(header, data);
+   // }
+   // }
+   // throw new IOException(
+   // "Unable to find decoder for given image data. Transfer syntax: "
+   // + header.getTransferSyntax().name);
+   //
+   // }
+
+   private DicomPixelBuffer[] decodeFrames(
+      DicomHeader header, BinaryFileInputStream in)
       throws IOException {
 
+      ArrayList<DicomPixelBuffer> frames = new ArrayList<>();
       // find appropriate decoder
       for (DicomImageDecoder decoder : imageDecoders) {
-         if (decoder.canDecode(header, data)) {
-            return decoder.decode(header, data);
+         if (decoder.decodeFrames(header, in, frames)) {
+            return frames.toArray(new DicomPixelBuffer[frames.size()]);
          }
       }
       throw new IOException(
          "Unable to find decoder for given image data.  Transfer syntax: "
             + header.getTransferSyntax().name);
 
-   }
-
-   private DicomPixelBuffer[] parsePixels(
-      DicomHeader header, BinaryInputStream in) throws IOException {
-
-      // check type
-      char c0 = in.readChar();
-      char c1 = in.readChar();
-      in.skip(2); // reserved
-
-      int nFrames = header.getIntValue(DicomTag.NUMBER_OF_FRAMES, 1);
-      DicomPixelBuffer[] frames = new DicomPixelBuffer[nFrames];
-
-      VR vr = VR.get(c0, c1);
-
-      // length
-      int length = in.readInt();
-
-      // undefined length, must be encapsulated OB
-      if (length == 0xFFFFFFFF) {
-         vr = VR.OB;
-         // first item is offset table, next are data frames
-
-         // throw new IOException("Variable length not yet implemented");
-         // read basic offset table
-         int[] offsets = new int[nFrames];
-
-         // read offset table
-         short s0 = in.readShort();
-         short s1 = in.readShort();
-         int tagId = toTagId(s0, s1);
-         if (tagId != DicomTag.ITEM) {
-            throw new IOException("Expected item tag for offset table, found "
-               + String.format("0x%08X", tagId));
-         }
-         length = in.readInt();
-         if (length > 0) {
-            // read in offsets
-            int noffsets = length / 4;
-            for (int i = 0; i < noffsets; i++) {
-               offsets[i] = in.readInt();
-            }
-         }
-
-         int offsetStart = in.getByteCount();
-
-         for (int i = 0; i < nFrames; i++) {
-            byte[] ob = null;
-
-            boolean doneFrame = false;
-            // read fragments until on to the next frame, or we hit the end
-            // sequence tag
-            while (!doneFrame) {
-               // check start of item
-               s0 = in.readShort();
-               s1 = in.readShort();
-               tagId = toTagId(s0, s1);
-               length = in.readInt();
-               if (tagId == DicomTag.ITEM) {
-
-                  // read fragment into buffer
-                  int offset = 0;
-                  if (ob == null) {
-                     ob = new byte[length];
-                  }
-                  else {
-                     offset = ob.length;
-                     ob = Arrays.copyOf(ob, offset + length);
-                  }
-                  in.read(ob, offset, length);
-
-               }
-               else if (tagId == DicomTag.SEQUENCE_DELIMINATION) {
-                  doneFrame = true;
-               }
-               else {
-                  throw new IOException(
-                     "Invalid tag in pixel data: "
-                        + String.format("0x%08X", tagId));
-               }
-
-               // we're at the start of the next frame
-               if ((i < nFrames - 1)
-                  && (in.getByteCount() >= (offsetStart + offsets[i + 1]))) {
-                  doneFrame = true;
-               }
-            }
-
-            DicomPixelData data = new DicomPixelData(VR.OB, ob);
-            frames[i] = decodeFrame(header, data);
-         }
-
-      }
-      else {
-         switch (vr) {
-            case OB: {
-               int frameLength = length / nFrames;
-               for (int i = 0; i < nFrames; i++) {
-                  DicomPixelData data = new DicomPixelData(vr, frameLength);
-                  in.read(data.b);
-                  frames[i] = decodeFrame(header, data);
-               }
-               break;
-            }
-            case OW: {
-               int frameLength = length / nFrames / 2;
-               for (int i = 0; i < nFrames; i++) {
-                  DicomPixelData data = new DicomPixelData(vr, frameLength);
-                  for (int j = 0; j < frameLength; j++) {
-                     data.s[j] = in.readShort();
-                  }
-                  frames[i] = decodeFrame(header, data);
-               }
-               break;
-            }
-            case OF: {
-               int frameLength = length / nFrames / 4;
-               for (int i = 0; i < nFrames; i++) {
-                  DicomPixelData data = new DicomPixelData(vr, frameLength);
-                  for (int j = 0; j < frameLength; j++) {
-                     data.f[j] = in.readFloat();
-                  }
-                  frames[i] = decodeFrame(header, data);
-               }
-               break;
-            }
-            default:
-               throw new IOException("Invalid pixel data type: " + vr);
-         }
-      }
-
-      return frames;
    }
 
 }

@@ -14,6 +14,9 @@ import maspack.util.InternalErrorException;
  * DICOM header element
  */
 public class DicomElement {
+   
+   static boolean timeWarning = false;
+   
    /**
     * DICOM Value representation
     */
@@ -659,6 +662,13 @@ public class DicomElement {
          String strDecimal = dtStr.substring(idPeriod);
          dtStr = dtStr.substring(0, idPeriod);
          micros = Math.round(Float.parseFloat(strDecimal)*1000000);
+         if (dtStr.length() < 6) {
+            if (!timeWarning) {
+               System.err.println("Dicom Time warning: non-stardard time format '" + in + "'");
+               timeWarning = true;
+            }
+            dtStr = "000000".substring(0, 6-dtStr.length()) + dtStr;
+         }
       }
       
       // HHMMSS
@@ -667,18 +677,25 @@ public class DicomElement {
       int sec = 0;
       String substr;
       switch (dtStr.length()) {
+         case 5:
          case 6: {
-            substr = dtStr.substring(4);
+            int start = dtStr.length()-2;
+            substr = dtStr.substring(start);
             sec = Integer.parseInt(substr);
-            dtStr = dtStr.substring(0, 4);
+            dtStr = dtStr.substring(0, start);
          }
+         case 3:
          case 4: {
-            substr = dtStr.substring(2);
+            int start = dtStr.length()-2;
+            substr = dtStr.substring(start);
             min = Integer.parseInt(substr);
-            dtStr = dtStr.substring(0, 2);
+            dtStr = dtStr.substring(0, start);
          }
+         case 1:
          case 2: {
             hour = Integer.parseInt(dtStr);
+         }
+         case 0: {
             break;
          }
          default: {

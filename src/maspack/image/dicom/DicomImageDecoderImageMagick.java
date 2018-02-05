@@ -26,7 +26,7 @@ import maspack.util.ProcessMonitor;
  * @author Antonio
  *
  */
-public class DicomImageDecoderImageMagick implements DicomImageDecoder {
+public class DicomImageDecoderImageMagick extends DicomImageDecoderBase {
 
    private static final String DEFAULT_CONVERT_COMMAND = "convert";
    private static final String DEFAULT_IDENTIFY_COMMAND = "identify";
@@ -186,7 +186,7 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
    }
 
    @Override
-   public DicomPixelBuffer decode(DicomHeader header, DicomPixelData data) {
+   public DicomPixelBuffer decodeFrame(DicomHeader header, DicomPixelData data) {
 
       // System.out.println("Using imageMagick to decode image");
       
@@ -452,7 +452,7 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
    }
 
    @Override
-   public boolean canDecode(DicomHeader header, DicomPixelData data) {
+   protected boolean canDecodeFrames(DicomHeader header) {
 
       if (identifyCmd == null || convertCmd == null) {
          return false;
@@ -460,61 +460,63 @@ public class DicomImageDecoderImageMagick implements DicomImageDecoder {
 
       // can only decode OB data?
       // if (data.vr != VR.OB) {
-      // return false;
+      //   return false;
       // }
 
-      // send data to ImageMagick
-      String[] identify = { identifyCmd, "-" }; // read from standard input
-
-      ProcessBuilder procBuild = new ProcessBuilder(identify);
-      try {
-         Process proc = procBuild.start();
-
-         ProcessMonitor procMon = new ProcessMonitor(proc);
-         executor.execute(procMon);
-         
-         BufferedReader errorReader =
-            new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-         BufferedReader outputReader =
-            new BufferedReader(new InputStreamReader(proc.getInputStream()));
-         BufferedOutputStream inputWriter =
-            new BufferedOutputStream(proc.getOutputStream());
-
-         // send all input
-         inputWriter.write(data.b);
-         inputWriter.flush();
-         inputWriter.close();
-
-         // clear error
-         boolean success = true;
-         while (!procMon.isComplete()) {
-            // clear error stream
-            while (errorReader.read() >= 0) {}
-            // look for desired output
-            String line = null;
-            while ((line = outputReader.readLine()) != null) {
-               if (line.contains("no decode delegate")) {
-                  success = false;
-               }
-            }
-         }
-
-         // read last of data
-         // clear error stream
-         while (errorReader.read() >= 0) {}
-         // look for desired output
-         String line = null;
-         while ((line = outputReader.readLine()) != null) {
-            if (line.contains("no decode delegate")) {
-               success = false;
-            }
-         }
-
-         return success;
-
-      } catch (Exception e) {}
-
-      return false;
+      //      // send data to ImageMagick
+      //      String[] identify = { identifyCmd, "-" }; // read from standard input
+      //      
+      //      ProcessBuilder procBuild = new ProcessBuilder(identify);
+      //      try {
+      //         Process proc = procBuild.start();
+      //
+      //         ProcessMonitor procMon = new ProcessMonitor(proc);
+      //         executor.execute(procMon);
+      //         
+      //         BufferedReader errorReader =
+      //            new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+      //         BufferedReader outputReader =
+      //            new BufferedReader(new InputStreamReader(proc.getInputStream()));
+      //         BufferedOutputStream inputWriter =
+      //            new BufferedOutputStream(proc.getOutputStream());
+      //
+      //         // send all input
+      //         inputWriter.write(bin.b);
+      //         inputWriter.flush();
+      //         inputWriter.close();
+      //
+      //         // clear error
+      //         boolean success = true;
+      //         while (!procMon.isComplete()) {
+      //            // clear error stream
+      //            while (errorReader.read() >= 0) {}
+      //            // look for desired output
+      //            String line = null;
+      //            while ((line = outputReader.readLine()) != null) {
+      //               if (line.contains("no decode delegate")) {
+      //                  success = false;
+      //               }
+      //            }
+      //         }
+      //
+      //         // read last of data
+      //         // clear error stream
+      //         while (errorReader.read() >= 0) {}
+      //         // look for desired output
+      //         String line = null;
+      //         while ((line = outputReader.readLine()) != null) {
+      //            if (line.contains("no decode delegate")) {
+      //               success = false;
+      //            }
+      //         }
+      //
+      //         return success;
+      //
+      //      } catch (Exception e) {}
+      //
+      //      return false;
+      
+     return true;
    }
    
    @Override

@@ -352,7 +352,7 @@ public class DicomTag {
       tagInfoMap.put( 0x00181110, new TagInfo(0x00181110, DicomElement.VR.DS, "Distance Source to Detector") );
       tagInfoMap.put( 0x00181111, new TagInfo(0x00181111, DicomElement.VR.DS, "Distance Source to Patient") );
       tagInfoMap.put( 0x00181120, new TagInfo(0x00181120, DicomElement.VR.DS, "Gantry/Detector Tilt") );
-      tagInfoMap.put( 0x00181030, new TagInfo(0x00181030, DicomElement.VR.DS, "Table Height") );
+      tagInfoMap.put( 0x00181130, new TagInfo(0x00181130, DicomElement.VR.DS, "Table Height") );
       tagInfoMap.put( 0x00181131, new TagInfo(0x00181131, DicomElement.VR.DS, "Table Traverse") );
       tagInfoMap.put( 0x00181140, new TagInfo(0x00181140, DicomElement.VR.CS, "Rotation Direction") );
       tagInfoMap.put( 0x00181141, new TagInfo(0x00181141, DicomElement.VR.DS, "Angular Position") );
@@ -929,11 +929,15 @@ public class DicomTag {
     * @return the appropriate value representation
     */
    public static DicomElement.VR getImplicitVR(int tagId) {
-      TagInfo info = tagInfoMap.get(tagId);
-      if (info != null) {
-         return info.implicitVR;
+      synchronized(tagInfoMap) {
+         TagInfo info = tagInfoMap.get(tagId);
+         if (info != null) {
+            return info.implicitVR;
+         }
+         System.err.println("Warning: unknown implicit VR for tag: " + Integer.toHexString(tagId));
+         tagInfoMap.put(tagId, new TagInfo(tagId, DicomElement.VR.UN, "<unknown>"));
       }
-      return null;
+      return DicomElement.VR.UN;
    }
    
    /**

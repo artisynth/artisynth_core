@@ -7,6 +7,11 @@
 
 package maspack.image.dicom;
 
+import java.io.IOException;
+import java.util.List;
+
+import maspack.util.BinaryFileInputStream;
+
 /**
  * Decodes the image information from DICOM into a pixel buffer that
  * can be used for display
@@ -16,23 +21,19 @@ package maspack.image.dicom;
 public interface DicomImageDecoder {
 
    /**
-    * Decodes DICOM pixel data into a usable buffer, based on information
-    * contained in the DICOM header
+    * Tries to decodes DICOM pixel data into a usable buffer, based on information
+    * contained in the DICOM header.
+    * 
     * @param header informs the decoder of the transfer syntax, and any
     *        intensity transforms
-    * @param data raw data extracted from the DICOM slice
-    * @return a useable pixel buffer with raw pixel data used for display
+    * @param bin binary input stream of current file, at start of pixel data
+    * @param file DICOM file
+    * @param frames decoded pixel buffers (raw format) for frames
+    * @return true if decoder can and has successfully decoded frames, false if cannot.
+    *           If false is returned, bin should be reset to the start of the pixel data.
+    * @throws IOException on File IO error
     */
-   DicomPixelBuffer decode(DicomHeader header, DicomPixelData data);
+   boolean decodeFrames(DicomHeader header, BinaryFileInputStream bin, List<DicomPixelBuffer> frames) throws IOException;
    
-   /**
-    * Determines whether the current decoder can interpret and decode the supplied
-    * pixel data
-    * @param header informs the deocer of the transfer syntax and any intensity
-    *        transforms
-    * @param data raw data extracted from the DICOM slice
-    * @return true if the current decoder can interpret and decode the supplied data
-    */
-   boolean canDecode(DicomHeader header, DicomPixelData data);
    
 }

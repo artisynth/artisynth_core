@@ -9,6 +9,7 @@ package artisynth.core.femmodels;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -460,8 +461,9 @@ public class FemNode3d extends FemNode {
    
    public double computeMassFromDensity() {
       double mass = 0;
-      for (int i=0; i<myElementDeps.size(); i++) {
-         FemElement3d e = myElementDeps.get(i);
+      Iterator<FemElement3d> it = myElementDeps.iterator();
+      while (it.hasNext()) {
+         FemElement3d e = it.next();
          mass += e.getRestVolume()*e.getDensity()/e.numNodes();
       }
       return mass;

@@ -11,11 +11,13 @@ public class SolidDeformation {
    Matrix3d myF;    // deformation gradient
    double myDetF;   // determinant of the deformation gradient
    double myP;      // local pressure
+   Matrix3dBase myRot;          // local rotation (if stiffness warping)
 
    public SolidDeformation() {
       myF = new Matrix3d();
       myDetF = 0;
       myP = 0;
+      myRot = null;
    }
 
    /**
@@ -60,6 +62,22 @@ public class SolidDeformation {
     */
    public void setAveragePressure (double p) {
       myP = p;
+   }
+
+   /**
+    * Sets a local rotation, for use if stiffness warping
+    * @param R rotation matrix
+    */
+   public void setR(Matrix3dBase R) {
+      myRot = R;
+   }
+   
+   /**
+    * Gets a local rotation, for use if stiffness warping
+    * @return rotation matrix
+    */
+   public Matrix3dBase getR() {
+      return myRot;
    }
 
    /**

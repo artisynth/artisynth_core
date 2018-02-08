@@ -173,7 +173,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected JFrame myJythonFrame = null;
    protected ViewerManager myViewerManager;
    protected AliasTable myDemoModels;
-   protected ModelHistory myModelHistory = null;              // storage for model history
+   protected ModelHistory myModelHistory = null;  // storage for model history
+   protected boolean myFocusStealingMaskedP = false;
+
    protected AliasTable myScripts;
    protected final static String PROJECT_NAME = "ArtiSynth";
    protected MatlabInterface myMatlabConnection;
@@ -1371,8 +1373,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       // need to explicitly set number since root model doesn't have a parent
       newRoot.setNumber (0);
-
-      //newRoot.addComponentChangeListener (this);
+      newRoot.setFocusable (!myFocusStealingMaskedP);
       getWorkspace().setRootModel (newRoot);
       // mainViewer should already be set if constructed with build() method:
       newRoot.setMainViewer (myViewer); 
@@ -1586,20 +1587,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
    // if available.
    public boolean loadModel(
       String className, String modelName, String[] modelArgs) {
-     
-      //      boolean success = doLoadModel(className, modelName, modelArgs);
-      //      if (success) {
-      //         if (myModelHistory != null) {
-      //            myModelHistory.update(new ModelInfo(className, modelName, modelArgs), new Date());
-      //            // XXX save every time?  Can't seem to get it to save on exit
-      //            try {
-      //               myModelHistory.save(new File(historyFilename.value));
-      //            } catch (IOException e) {
-      //            }
-      //         }
-      //      }
-      //      
-      //      return success;
+
       return loadModel(new ModelInfo(className, modelName, modelArgs));
    }
    
@@ -1802,6 +1790,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       new StringHolder (".artisynthScripts");
    protected static StringHolder scriptFile = 
          new StringHolder(); 
+   protected static StringHolder taskManagerClassName = 
+         new StringHolder(); 
 
    protected static BooleanHolder abortOnInvertedElems =
       new BooleanHolder (false);
@@ -1932,7 +1922,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * @param argList list of arguments to populate if found
     * @return next index to process, equal to <code>idx</code> if no arguments are found
     */
-   private static int maybeCollectArgs(String[] pargs, int idx, List<String> argList) {
+   private static int maybeCollectArgs (
+      String[] pargs, int idx, List<String> argList) {
       
       // no more following arguments
       if (idx >= pargs.length) {
@@ -2080,11 +2071,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          "-movieMethod %s #method to use when making movies",
          movieMethod);
       
-      // parser.addOption ("-model %s #name of model to start, with optional "
-      //   + "argument list delimited by square brackets", modelName);
-      //parser.addOption ("-script %s #script to run immediately, with optional "
-      //   + "argument list delimited by square brackets", scriptFile);
-
       Locale.setDefault(Locale.CANADA);
 
       URL initUrl = ArtisynthPath.findResource (".artisynthInit");
@@ -2110,14 +2096,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
             }
          }
       }
-//      // no longer need to load librarypath
-//      try {
-//         JVMInfo.appendDefaultLibraryPath();
-//      }
-//      catch (Exception e) {
-//         System.out.println ("Error loading library path");
-//         e.printStackTrace();
-//      }
       if (System.getProperty ("file.separator").equals ("\\")) {
          // then we are running windows, so set noerasebackground to
          // try and remove flicker bug
@@ -2129,32 +2107,23 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       // Separate program arguments from model arguments introduced by -M
       ArrayList<String> progArgs = new ArrayList<String>();
-      ArrayList<String> modelArgs = new ArrayList<String>();
-      ArrayList<String> scriptArgs = new ArrayList<String>();
-      boolean modelArgsFound = false;
-      boolean scriptArgsFound = false;
+      ArrayList<String> modelArgs = null;
+      ArrayList<String> scriptArgs = null;
+      ArrayList<String> taskManagerArgs = null;
       
       for (String arg : args) {
-         if (modelArgsFound) {
+         if (modelArgs != null) {
             modelArgs.add (arg);
          }
          else {
             if (arg.equals ("-M")) {
-               modelArgsFound=true;
+               modelArgs = new ArrayList<String>();
             }
             else {
                progArgs.add (arg);
             }
          }
       }
-      // System.out.println ("progArgs: " + progArgs.size());
-      // for (String a : progArgs) {
-      //    System.out.println (" " + a);
-      // }
-      // System.out.println ("modelArgs: " + modelArgs.size());
-      // for (String a : modelArgs) {
-      //    System.out.println (" " + a);
-      // }
 
       // Match arguments one at a time so we can avoid exitOnError if we are
       // running inside matlab
@@ -2167,19 +2136,32 @@ public class Main implements DriverInterface, ComponentChangeListener {
             // check for list of arguments:
             if ("-model".equals(pargs[pidx])) {
                modelName.value = pargs[++idx];
+               modelArgs = new ArrayList<String>();
                int nidx = maybeCollectArgs(pargs, ++idx, modelArgs);
-               if (nidx != idx) {
-                  idx = nidx;
-                  modelArgsFound = true;
+               if (nidx == idx) {
+                  modelArgs = null;
                }
-            } else if ("-script".equals(pargs[pidx])) {
+               idx = nidx;
+            }
+            else if ("-script".equals(pargs[pidx])) {
                scriptFile.value = pargs[++idx];
+               scriptArgs = new ArrayList<String>();
                int nidx = maybeCollectArgs(pargs, ++idx, scriptArgs);
-               if (nidx != idx) {
-                  idx = nidx;
-                  scriptArgsFound = true;
+               if (nidx == idx) {
+                  scriptArgs = null;
                }
-            } else {
+               idx = nidx;
+            }
+            else if ("-taskManager".equals(pargs[pidx])) {
+               taskManagerClassName.value = pargs[++idx];
+               taskManagerArgs = new ArrayList<String>();
+               int nidx = maybeCollectArgs(pargs, ++idx, taskManagerArgs);
+               if (nidx == idx) {
+                  taskManagerArgs = null;
+               }
+               idx = nidx;
+            }
+            else {
                idx = parser.matchArg (pargs, idx);
             }
             
@@ -2187,20 +2169,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
             if ((unmatched=parser.getUnmatchedArgument()) != null) {
                
                boolean valid = false;
-               //               // if the last switch was a script file, append to set of arguments
-               //               if (lastSwitch >= 0) { 
-               //                  if ("-script".equals(pargs[lastSwitch].toLowerCase())) {
-               //                     scriptArgs.add(unmatched);
-               //                     scriptArgsFound = true;
-               //                     valid = true;
-               //                  } else if ("-model".equals(pargs[lastSwitch].toLowerCase())) {
-               //                     modelArgs.add(unmatched);
-               //                     modelArgsFound = true;
-               //                     valid = true;
-               //                  }
-               //               
-               //               }
-               
                if (!valid) {
                   System.err.println (
                      "Unrecognized argument: " + unmatched +
@@ -2214,20 +2182,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          catch (Exception e) {
             System.err.println (
                "Error parsing options: "+ e.getMessage());
-            
-            if (modelArgs.size() > 0) {
-               System.out.println ("modelArgs: " + modelArgs.size());
-               for (String a : modelArgs) {
-                  System.out.println (" " + a);
-               }
-            }
-            
-            if (scriptArgs.size() > 0) {
-               System.out.println ("scriptArgs: " + scriptArgs.size());
-               for (String a : scriptArgs) {
-                  System.out.println (" " + a);
-               }
-            }
             return;
          }
       }
@@ -2235,13 +2189,16 @@ public class Main implements DriverInterface, ComponentChangeListener {
       // parser.matchAllArgs (progArgs.toArray(new String[0]));
       if (printOptions.value || printHelp.value) {
          System.out.println (parser.getOptionsMessage (2));
-         System.out.println ("  -model <string> [ <string>... ]");
-         System.out.println ("                        name of model to start, with optional arguments");
-         System.out.println ("                        delimited by square brackets");
-         System.out.println ("  -script <string> [ <string>... ]");
-         System.out.println ("                        script to run immediately, with optional arguments");
-         System.out.println ("                        delimited by square brackets");
-         System.out.println();
+         System.out.println (
+"  -model <string> [ <string>... ]\n" +
+"                        name of model to start, with optional arguments\n" +
+"                        delimited by square brackets\n" +
+"  -script <string> [ <string>... ]\n" +
+"                        script to run immediately, with optional arguments\n" +
+"                        delimited by square brackets\n" +
+"  -taskManager <className> [ <string>... ]\n" +
+"                        name of task manager class to run immediately, with\n" +
+"                        optional arguments delimited by square brackets\n");
          return;
       }
 
@@ -2354,7 +2311,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
 
       // XXX store model arguments for future use?
-      if (modelArgsFound) {
+      if (modelArgs != null) {
          m.myModelArgs = modelArgs.toArray(new String[modelArgs.size()]);
       }
       
@@ -2390,7 +2347,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
                }
                // load the model
                ModelInfo mi = new ModelInfo (
-                  className, name, modelArgs.toArray(new String[0]));
+                  className, name, createArgArray(modelArgs));
                m.loadModel (mi);
             }
          }
@@ -2409,31 +2366,17 @@ public class Main implements DriverInterface, ComponentChangeListener {
          m.play ();
       }
       
-      if (scriptFile.value != null) {
-         if (m.myFrame != null) {
-            String[] sargs = null;
-            if (scriptArgsFound) {
-               sargs = scriptArgs.toArray(new String[0]);
-            }
-            m.myMenuBarHandler.runScript(scriptFile.value, sargs);
-         }
-         else {
-            if (m.myJythonConsole == null) {
-               m.createJythonConsole (/*guiBased=*/false);
-            }
-            try {
-               String[] sargs = null;
-               if (scriptArgsFound) {
-                  sargs = scriptArgs.toArray(new String[0]);
-               }
-               m.myJythonConsole.executeScript (scriptFile.value, sargs);
-            }
-            catch (Exception e) {
-               System.out.println (
-                  "Error executing script '"+scriptFile.value+"':");
-               System.out.println (e);
-            }
-         }
+      if (scriptFile.value != null && taskManagerClassName.value != null) {
+         System.out.println (
+"Cannot specify both a script (option '-script') and a task manager (option \n"+
+"'-taskManager' at the same time");
+         System.exit(1);
+      }
+      else if (scriptFile.value != null) {
+         m.runScriptFile (scriptFile.value, scriptArgs);
+      }
+      else if (taskManagerClassName.value != null) {
+         m.runTaskManager (taskManagerClassName.value, taskManagerArgs);
       }
       if (m.myJythonConsole != null && m.myJythonFrame == null) {
          m.myJythonConsole.interact ();
@@ -2443,6 +2386,66 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
    }
 
+   private static String[] createArgArray (ArrayList<String> args) {
+      if (args == null) {
+         return new String[0];
+      }
+      else {
+         return args.toArray(new String[0]);
+      }
+   }
+
+   void runScriptFile (String fileName, ArrayList<String> args) {
+         
+      if (myFrame != null) {
+         myMenuBarHandler.runScript(fileName, createArgArray(args));
+      }
+      else {
+         if (myJythonConsole == null) {
+            createJythonConsole (/*guiBased=*/false);
+         }
+         try {
+            myJythonConsole.executeScript (fileName, createArgArray(args));
+         }
+         catch (Exception e) {
+            System.out.println (
+               "Error executing script '"+fileName+"':");
+            System.out.println (e);
+         }
+      }
+   }
+
+   void runTaskManager (String className, ArrayList<String> args) {
+
+      Class taskClass = null;
+      try {
+         taskClass = Class.forName (className);
+      }
+      catch (Exception e) {
+         System.out.println (
+            "Cannot locate task manager class '" + className + "'");
+         System.exit(1); 
+      }
+      Object managerObj = null;
+      try {
+         managerObj = taskClass.newInstance();
+      }
+      catch (Exception e) {
+         System.out.println (
+            "Cannot instantiate task manager class '" + className + "'");
+         System.exit(1); 
+      }
+      if (!(managerObj instanceof TaskManager)) {
+         System.out.println (
+"Requested task manager '" + className + "' not an instance of TaskManager");
+         System.exit(1);
+      }
+      TaskManager taskManager = (TaskManager)managerObj;
+      taskManager.setMain (this);
+      taskManager.setArgs (createArgArray (args));
+      taskManager.start();
+   }
+   
    /**
     * get the root model, static method for the entire program to reference to,
     * so do not pass root model around, because its stored in main and could be
@@ -3412,15 +3415,18 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * pops up windows, etc, especially while running a script.
     */   
    public void maskFocusStealing (boolean enable) {
-      RootModel.setFocusable (!enable);
-      if (myTimeline != null) {
-         myTimeline.setFocusableWindowState (!enable);
-      }
-      if (myFrame != null) {
-         myFrame.setFocusableWindowState (!enable);
-      }
-      if (myJythonFrame != null) {
-         myJythonFrame.setFocusableWindowState (!enable);
+      if (enable != myFocusStealingMaskedP) {
+         RootModel.setFocusable (!enable);
+         if (myTimeline != null) {
+            myTimeline.setFocusableWindowState (!enable);
+         }
+         if (myFrame != null) {
+            myFrame.setFocusableWindowState (!enable);
+         }
+         if (myJythonFrame != null) {
+            myJythonFrame.setFocusableWindowState (!enable);
+         }
+         myFocusStealingMaskedP = enable;
       }
    }
 

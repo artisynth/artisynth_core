@@ -25,6 +25,7 @@ public class Scheduler {
    private Player myPlayer = null;
    private Exception myLastException = null;
    private boolean myInitialStateValidP = true;
+   private double myRealTimeScaling = 1.0;
 
    public static boolean useNewAdvance = true;
 
@@ -358,11 +359,16 @@ public class Scheduler {
    }
    
    public void setRealTimeScaling (double s) {
-	   myPlayer.setTimeScale(s);
+      if (s != myRealTimeScaling) {
+         myRealTimeScaling = s;
+         if (myPlayer != null) {
+            myPlayer.setTimeScale(s);
+         }
+      }
    }
    
    public double getRealTimeScaling () {
-	   return myPlayer.getTimeScale();
+      return myRealTimeScaling;
    }
 
    public void initialize() {
@@ -540,6 +546,7 @@ public class Scheduler {
       synchronized (this) {
          if (myPlayer == null) {
             myPlayer = new Player (endTime);
+            myPlayer.setTimeScale (myRealTimeScaling);
             myPlayer.start();
          }
          else {
@@ -617,11 +624,9 @@ public class Scheduler {
       if (myRenderProbe != null) {
          min = checkEventTime (probeList, myRenderProbe, t0, min);
       }
-
       if (mySleepProbe != null) {
          min = checkEventTime (probeList, mySleepProbe, t0, min);
       }
-
       double stepSize = getStepSize();
       if (stepSize != -1 && t0 != -1) {
          // check for the next step size boundary

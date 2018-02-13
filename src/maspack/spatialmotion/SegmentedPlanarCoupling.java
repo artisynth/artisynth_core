@@ -240,16 +240,23 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
       makePlanesFromSegments (myPoints);
    }
 
+
    public void transformGeometry (
       GeometryTransformer gt,  RigidTransform3d TFW, RigidTransform3d TDW) {
       
       if (doCouplingTransform) {
-         // transform points by inv(TDW) gt TDW
+         // the points should be changed only by whatever cannot be accomodated
+         // by the change to TDW. This is the same situation we have when we
+         // transform a mesh that also contains a pose
+         RigidTransform3d TDWnew = new RigidTransform3d(TDW);
+         gt.transform (TDWnew);
+         Vector3d del0 = new Vector3d();
+         del0.set (myPoints.get(0));
          for (int i = 0; i < myPoints.size(); i++) {
             Point3d pnt = myPoints.get(i);
             pnt.transform (TDW);
             gt.transformPnt (pnt);
-            pnt.inverseTransform (TDW);
+            pnt.inverseTransform (TDWnew);
          }
          makePlanesFromSegments (myPoints);
       }
@@ -268,15 +275,3 @@ public class SegmentedPlanarCoupling extends RigidBodyCoupling {
    // }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-

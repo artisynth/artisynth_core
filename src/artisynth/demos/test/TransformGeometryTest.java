@@ -299,7 +299,7 @@ public class TransformGeometryTest {
       }
       if (c instanceof RigidEllipsoid) {
          RigidEllipsoid r = (RigidEllipsoid)c;
-         attrs.set (r, "axisLengths", r.getAxisLengths());
+         attrs.set (r, "axisLengths", r.getSemiAxisLengths());
       }
       if (c instanceof RigidTorus) {
          RigidTorus r = (RigidTorus)c;
@@ -553,7 +553,7 @@ public class TransformGeometryTest {
       AffineTransform3dBase Xmod =
          createXYZScalingTransform (scale, X, ellipsoid.getPose());
 
-      Vector3d axisLengths = new Vector3d (ellipsoid.getAxisLengths());
+      Vector3d axisLengths = new Vector3d (ellipsoid.getSemiAxisLengths());
       axisLengths.x *= scale.x;
       axisLengths.y *= scale.y;
       axisLengths.z *= scale.z;

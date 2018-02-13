@@ -30,38 +30,10 @@ import maspack.util.NumberFormat;
  */
 public class VectorNi extends VectoriBase implements java.io.Serializable {
    private static final long serialVersionUID = 1L;
-   protected static NumberFormat myDefaultFmt = new NumberFormat ("%d");
 
    int[] buf = new int[0];
    int size;
    boolean explicitBuffer = false;
-
-   /**
-    * Sets the default format string used in {@link #toString() toString}. For
-    * a description of the format string syntax, see {@link
-    * maspack.util.NumberFormat NumberFormat}.
-    * 
-    * @param fmtStr
-    * new format string
-    * @throws IllegalArgumentException
-    * if the format string is invalid
-    * @see #getDefaultFormat
-    */
-   public static void setDefaultFormat (String fmtStr) {
-      NumberFormat fmt = new NumberFormat (fmtStr);
-      myDefaultFmt = fmt;
-   }
-
-   /**
-    * Returns the default format string used in {@link #toString() toString}. If
-    * unset, this string is "%d". For a description of the format string syntax,
-    * see {@link maspack.util.NumberFormat NumberFormat}.
-    * 
-    * @return Default format string
-    */
-   public static String getDefaultFormat() {
-      return myDefaultFmt.toString();
-   }
 
    /**
     * Returns the internal buffer used to store the elements in this vector.

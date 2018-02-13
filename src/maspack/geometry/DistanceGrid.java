@@ -15,12 +15,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.HashSet;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.*;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
@@ -31,14 +28,9 @@ import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.Renderer;
-import maspack.render.Renderer.DrawMode;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
-import maspack.render.Renderer.Shading;
 import maspack.util.StringHolder;
-import maspack.util.DoubleHolder;
-import maspack.util.ArraySupport;
-import maspack.util.QuadraticSolver;
 import maspack.util.InternalErrorException;
 import maspack.util.ReaderTokenizer;
 import maspack.util.Scannable;
@@ -162,6 +154,8 @@ public class DistanceGrid implements Renderable, Scannable {
    protected Vector3d[] myNormals;      // normal values at each vertex
    protected double[][] myQuadCoefs;    // quad tet interpolation coefficients 
    protected TetDesc[] myTets;    // quad tet interpolation coefficients 
+
+   protected int myDebug = 0;
 
    protected static boolean storeQuadCoefs = true;
 
@@ -3115,6 +3109,9 @@ public class DistanceGrid implements Renderable, Scannable {
    protected int[] myTetOffsets0326;
    protected int[] myTetOffsets0376;
 
+   /*
+    * Index offset for the eight corner nodes of a quad cell.
+    */
    protected static Vector3i[] myBaseQuadCellXyzi = new Vector3i[] {
       new Vector3i (0, 0, 0),
       new Vector3i (2, 0, 0),
@@ -3219,6 +3216,38 @@ public class DistanceGrid implements Renderable, Scannable {
          }
       }
 
+      boolean isInside (double x, double y, double z, double eps) {
+         if (x < -eps || x > 1+eps ||
+             y < -eps || y > 1+eps ||
+             z < -eps || z > 1+eps) {
+            return false;
+         }
+         switch (this) {
+            case TET0516: {
+               return y >= z-eps && x >= z-eps && x >= y-eps;
+            }
+            case TET0456: {
+               return y >= z-eps && x >= z-eps && x < y+eps;
+            }
+            case TET0746: {
+               return y >= z-eps && x < z+eps;
+            }
+            case TET0126: {
+               return y < z+eps && x >= y-eps && x >= z-eps;
+            }
+            case TET0236: {
+               return y < z+eps && x >= y-eps && x < z+eps;
+            }
+            case TET0376: {
+               return y < z+eps && x < y+eps;
+            }
+            default: {
+               throw new InternalErrorException (
+                  "Unimplemented tet " + this);
+            }
+         }
+      }
+
       /**
        * Finds the sub-tet within a hex cell, based on the x, y, z coordinates of
        * a point within the cell. These coordinates are assumed to be normalized
@@ -3285,15 +3314,12 @@ public class DistanceGrid implements Renderable, Scannable {
                return 5;
             }
          }
-      }  
-      
+      } 
    };
    
    public static class TetDesc {
-
-      int myXi;
-      int myYj;
-      int myZk;
+      // Indices of the hex cell containing this tet. Doubling their
+      // value gives the indices of the associated base node.
       int myCXi;
       int myCYj;
       int myCZk;
@@ -3304,9 +3330,6 @@ public class DistanceGrid implements Renderable, Scannable {
       }
 
       public TetDesc (TetDesc tdesc) {
-         myXi = tdesc.myXi;
-         myYj = tdesc.myYj;
-         myZk = tdesc.myZk;
          myCXi = tdesc.myCXi;
          myCYj = tdesc.myCYj;
          myCZk = tdesc.myCZk;
@@ -3321,9 +3344,6 @@ public class DistanceGrid implements Renderable, Scannable {
       }
 
       public void addOffset (TetDesc tdesc) {
-         myXi += tdesc.myXi;
-         myYj += tdesc.myYj;
-         myZk += tdesc.myZk;
          myCXi += tdesc.myCXi;
          myCYj += tdesc.myCYj;
          myCZk += tdesc.myCZk;
@@ -3340,13 +3360,22 @@ public class DistanceGrid implements Renderable, Scannable {
       }
       
       public boolean cellEquals (TetDesc tdesc) {
-         return myCXi == tdesc.myCXi && myCYj == tdesc.myCYj && myCZk == tdesc.myCZk;
+         return (myCXi == tdesc.myCXi &&
+                 myCYj == tdesc.myCYj &&
+                 myCZk == tdesc.myCZk);
       }
 
       public int hashCode() {
          // assume grid not likely bigger than 300 x 300 x 300, so
          // pick prime numbers close to 300 and 300^2
          return 6*(myCXi + myCYj*307 + myCZk*90017) + myTetId.intValue();
+      }
+
+      /**
+       * Get the coordinates of the base vertex in grid coordinates.
+       */
+      public void getBaseCoords (Vector3d coords) {
+         coords.set (2*myCXi, 2*myCYj, 2*myCZk);
       }
 
       public Vector3i[] getVertices () {
@@ -3361,7 +3390,90 @@ public class DistanceGrid implements Renderable, Scannable {
       }
 
       public String toString() {
-         return myTetId + "("+(2*myCXi)+","+(2*myCYj)+","+(2*myZk)+")";
+         return myTetId + "("+(2*myCXi)+","+(2*myCYj)+","+(2*myCZk)+")";
+      }
+
+      /**
+       * Clip srng[] to accomodate the inequality a s > b.
+       */
+      private void clipRange (double[] srng, double a, double b) {
+         if (a > 0) {
+            // s > b/a
+            double min = b/a;
+            if (srng[0] < min) {
+               srng[0] = min;
+            }
+         }
+         else if (a < 0) {
+            // s < b/a
+            double max = b/a;
+            if (srng[1] > max) {
+               srng[1] = max;
+            }
+         }
+      }
+
+      /**
+       * Clips a line segment defined by p = p0 + del*s, with s in the range
+       * (srng[0], srng[1]) to fit within this tet. p0 and del are assumed
+       * to be given in quadratic grid coordinates.
+       */
+      public void clipLineSegment (
+         double[] srng, Point3d p0, Vector3d del) {
+
+         // convert to cell coordinates
+         double px = p0.x - myCXi;
+         double py = p0.y - myCYj;
+         double pz = p0.z - myCZk;
+
+         switch (myTetId) {
+            case TET0516: {
+               clipRange (srng, -del.x, px-1);  // x < 1
+               clipRange (srng,  del.z, -pz);   // z > 0
+               clipRange (srng, del.y-del.z, pz-py); // y >= z
+               clipRange (srng, del.x-del.y, py-px); // x >= y
+               break;
+            }
+            case TET0456: {
+               clipRange (srng, -del.y, py-1);  // y < 1
+               clipRange (srng,  del.z, -pz);   // z > 0
+               clipRange (srng, del.x-del.z, pz-px); // x >= z
+               clipRange (srng, del.y-del.x, px-py); // y > x
+               break;
+            }
+            case TET0746: {
+               clipRange (srng, -del.y, py-1);  // y < 1
+               clipRange (srng,  del.x, -px);   // x > 0
+               clipRange (srng, del.y-del.z, pz-py); // y >= z
+               clipRange (srng, del.z-del.x, px-pz); // z > x
+               break;
+            }
+            case TET0126: {
+               clipRange (srng, -del.x, px-1);  // x < 1
+               clipRange (srng,  del.y, -py);   // y > 0
+               clipRange (srng, del.x-del.z, pz-px); // x >= z
+               clipRange (srng, del.z-del.y, py-pz); // z > y
+               break;
+            }
+            case TET0236: {
+               clipRange (srng, -del.z, pz-1);  // z < 1
+               clipRange (srng,  del.y, -py);   // y > 0
+               clipRange (srng, del.x-del.y, py-px); // x >= y
+               clipRange (srng, del.z-del.x, px-pz); // z > x
+               break;
+            }
+            case TET0376: {
+               clipRange (srng, -del.z, pz-1);  // z < 1
+               clipRange (srng,  del.x, -px);   // x > 0
+               clipRange (srng, del.y-del.x, px-py); // y > x
+               clipRange (srng, del.z-del.y, py-pz); // z > y
+               break;
+            }
+            default: {
+               throw new InternalErrorException (
+                  "Unimplemented tet " + myTetId);
+            }
+         }
       }
    }
 
@@ -3841,6 +3953,7 @@ public class DistanceGrid implements Renderable, Scannable {
       Point3d pt, Point3d p0, Point3d pa, Vector3d nrm) {
 
       DistanceGridSurfCalc calc = new DistanceGridSurfCalc(this);
+      calc.setDebug (myDebug);
       return calc.findQuadSurfaceTangent (pt, p0, pa, nrm);
    }
 
@@ -3861,14 +3974,17 @@ public class DistanceGrid implements Renderable, Scannable {
       Point3d pi, Point3d p0, Point3d pa, Vector3d nrm) {
 
       DistanceGridSurfCalc calc = new DistanceGridSurfCalc(this);
+      calc.setDebug (myDebug);
       return calc.findQuadSurfaceIntersection (pi, p0, pa, nrm);
    }
 
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       rtok.scanToken ('[');
       RigidTransform3d TCL = new RigidTransform3d();
+      RigidTransform3d TLW = null;
       Vector3d widths = new Vector3d();
       Vector3i resolution = null;
+      myTLocalToWorld = null;
       while (rtok.nextToken() != ']') {
          if (rtok.ttype != ReaderTokenizer.TT_WORD) {
             throw new IOException ("Expected attribute name, "+rtok);
@@ -3892,6 +4008,11 @@ public class DistanceGrid implements Renderable, Scannable {
             rtok.scanToken ('=');
             TCL.R.scan (rtok);
          }
+         else if (rtok.sval.equals ("LocalToWorld")) {
+            rtok.scanToken ('=');
+            TLW = new RigidTransform3d();
+            TLW.scan (rtok);
+         }
          else if (rtok.sval.equals ("distances")) {
             if (resolution == null) {
                throw new IOException (
@@ -3911,6 +4032,9 @@ public class DistanceGrid implements Renderable, Scannable {
          }
       }
       setCenterAndOrientation (TCL);
+      if (TLW != null) {
+         setLocalToWorld (TLW);
+      }
       // clear normals and quad coefs; shouldn't be necessary if resolution
       // was set
       myQuadCoefs = null;
@@ -3920,7 +4044,7 @@ public class DistanceGrid implements Renderable, Scannable {
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException {
 
-      pw.print ("[ ");
+      pw.println ("[ ");
       Vector3d widths = getWidths();
       Vector3d center = new Vector3d();
       getCenter (center);
@@ -3934,8 +4058,11 @@ public class DistanceGrid implements Renderable, Scannable {
          pw.println (
             "orientation=" + R.toString(fmt, RotationMatrix3d.AXIS_ANGLE_STRING));
       }
-      IndentingPrintWriter.addIndentation (pw, 2);
+      if (myTLocalToWorld != null) {
+         pw.println ("LocalToWorld=\n" + myTLocalToWorld);
+      }
       pw.println ("distances=[");
+      IndentingPrintWriter.addIndentation (pw, 2);
       int numv = numVertices();
       for (int i=0; i<numv; i++) {
          pw.println (fmt.format(myPhi[i]));
@@ -3985,5 +4112,12 @@ public class DistanceGrid implements Renderable, Scannable {
       return true;
    }
 
+   public int getDebug () {
+      return myDebug;
+   }
+
+   public void setDebug (int level) {
+      myDebug = level;
+   }
  
 }

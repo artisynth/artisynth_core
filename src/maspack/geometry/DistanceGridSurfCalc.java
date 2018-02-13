@@ -6,39 +6,30 @@
  */
 package maspack.geometry;
 
-
-import java.awt.Color;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.HashSet;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.HashSet;
 
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.*;
+import maspack.geometry.DistanceGrid.TetDesc;
+import maspack.geometry.DistanceGrid.TetID;
+import maspack.matrix.Matrix3d;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
-import maspack.matrix.Matrix3d;
-import maspack.geometry.DistanceGrid.TetID;
-import maspack.geometry.DistanceGrid.TetDesc;
-import maspack.render.PointLineRenderProps;
-import maspack.render.RenderList;
-import maspack.render.RenderObject;
-import maspack.render.RenderProps;
-import maspack.render.Renderable;
-import maspack.render.Renderer;
-import maspack.render.Renderer.DrawMode;
-import maspack.render.Renderer.LineStyle;
-import maspack.render.Renderer.PointStyle;
-import maspack.render.Renderer.Shading;
-import maspack.util.StringHolder;
-import maspack.util.DoubleHolder;
-import maspack.util.ArraySupport;
-import maspack.util.QuadraticSolver;
+import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.QuadraticSolver;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Worker class that performs computations specifically related to the
@@ -48,6 +39,10 @@ import maspack.util.InternalErrorException;
 public class DistanceGridSurfCalc {
 
    DistanceGrid myGrid;
+   // buffer of tet/plane intersection objects for use in computations
+   ArrayList<TetPlaneIntersection> myIsects;
+   // hash set to keep track of tets visited during search
+   HashSet<TetDesc> myVisitedTets;
 
    public enum PlaneType {
       YZ,
@@ -55,13 +50,141 @@ public class DistanceGridSurfCalc {
       XY
    };
 
+   /**
+    * Defines a 2D plane (Y/Z, Z/X, or X/Y) in which certain types of plane
+    * computations can be performed for greater efficiency.
+    */
+   private static class ComputePlane {
+      PlaneType type;
+      int sign;
+   }
+
+   /**
+    * Used to write out a surface tangent problem for debugging purposes.
+    */
+   public static class TangentProblem {
+      public Point3d myP0;
+      public Point3d myPa;
+      public Vector3d myNrm;
+      public DistanceGrid myGrid;
+
+      public TangentProblem() {
+         myP0 = new Point3d();
+         myPa = new Point3d();
+         myNrm = new Vector3d();
+      }
+
+      public TangentProblem (
+         Point3d p0, Point3d pa, Vector3d nrm, DistanceGrid grid) {
+         this();
+         set (p0, pa, nrm, grid);
+      }
+
+      public void set (Point3d p0, Point3d pa, Vector3d nrm, DistanceGrid grid) {
+         myP0.set (p0);
+         myPa.set (pa);
+         myNrm.set (nrm);
+         myGrid = grid;
+      }
+
+      public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+
+         rtok.scanToken ('[');
+         while (rtok.nextToken() != ']') {
+            if (rtok.ttype != ReaderTokenizer.TT_WORD) {
+               throw new IOException ("Expected attribute name, "+rtok);
+            }      
+            if (rtok.sval.equals ("p0")) {
+               rtok.scanToken ('=');
+               myP0.scan (rtok);
+            }
+            else if (rtok.sval.equals ("pa")) {
+               rtok.scanToken ('=');
+               myPa.scan (rtok);
+            }
+            else if (rtok.sval.equals ("nrm")) {
+               rtok.scanToken ('=');
+               myNrm.scan (rtok);
+            }
+            else if (rtok.sval.equals ("grid")) {
+               rtok.scanToken ('=');
+               myGrid = new DistanceGrid();
+               myGrid.scan (rtok, null);
+            }
+         }
+      }
+
+      public void write (String fileName, String fmt) {
+         try {
+            PrintWriter pw =
+               new IndentingPrintWriter (
+                  new PrintWriter (
+                     new BufferedWriter (new FileWriter (new File(fileName)))));
+            write (pw, new NumberFormat (fmt), null);
+            pw.close();
+         }
+         catch (Exception e) {
+            System.out.println (e);
+         }
+      }
+
+      public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+         throws IOException {
+
+         pw.print ("[ ");
+         IndentingPrintWriter.addIndentation (pw, 2);
+         pw.print ("p0=");
+         myP0.write (pw, fmt, /*brackets=*/true);
+         pw.print ("\npa=");
+         myPa.write (pw, fmt, /*brackets=*/true);
+         pw.print ("\nnrm=");
+         myNrm.write (pw, fmt, /*brackets=*/true);
+         pw.print ("\ngrid=");
+         myGrid.write (pw, fmt, null);
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
+
+      public static TangentProblem scan (String fileName) {
+         TangentProblem prob = null;
+         try {
+            prob = new TangentProblem();            
+            ReaderTokenizer rtok =
+               new ReaderTokenizer (
+                  new BufferedReader (new FileReader (new File(fileName))));
+            prob.scan (rtok, null);
+         }
+         catch (Exception e) {
+            e.printStackTrace();
+            prob = null;
+         }
+         return prob;
+      }
+
+
+   }
+
    public DistanceGridSurfCalc (DistanceGrid grid) {
       myGrid = grid;
+      // allocate buffer of tet/plane intersection objects for use in
+      // computations. Will be grown on demand.
+      myIsects = new ArrayList<TetPlaneIntersection>();
+      myVisitedTets = new HashSet<TetDesc>();
+   }
+
+   TetPlaneIntersection getIsect (int idx) {
+      while (myIsects.size() <= idx) {
+         myIsects.add (new TetPlaneIntersection());
+      }
+      return myIsects.get (idx);      
    }
 
    protected static HashMap<TetFace,TetDesc> myFaceTets;
    protected static HashMap<TetEdge,TetDesc[]> myEdgeTets;
    protected static ArrayList<TetDesc[]> myNodeTets;
+   protected static Matrix3d[] myTetBarycentricMats;
+
+   protected int myDebug = 0;
 
    public static class TetFeature {
    }
@@ -150,6 +273,99 @@ public class DistanceGridSurfCalc {
       }
    }
 
+   private void createTetBarycentricMats() {
+      Matrix3d[] mats = new Matrix3d[6];
+      Vector3d v = new Vector3d();
+      for (TetID id : TetID.values()) {
+         Matrix3d M = new Matrix3d();
+         int[] nodeNums = id.getNodes();
+         // base node is known to be at zero
+         for (int j=0; j<3; j++) {
+            v.set (DistanceGrid.myBaseQuadCellXyzi[nodeNums[j+1]]);
+            v.scale (0.5);
+            M.setColumn (j, v);
+         }
+         M.invert();
+         mats[id.intValue()] = M;
+      }
+      myTetBarycentricMats = mats;
+   }
+
+   /**
+    * Find the nearest feature on a tet to a point p0. eps is a tolerance 
+    * (in the range [0,1]) used to check the barycentric coordinates
+    * of p0 to see if it is actually close to a feature. If it
+    * is not, this method returns null.
+    */
+   TetFeature findNearestFeature (TetDesc desc, Point3d p0Loc, double eps) {
+      // we find the nearest feature by computing the barycentric coordinates
+      // of p0Loc for the tet. If we are close to a feature, one or
+      // of these coordinates must be close to zero. The barycentric
+      // coordinate calculation is done with respect to grid coordinates.
+
+      // verts gives the coordinates of each tet nodes in grid coordinates
+
+      if (myTetBarycentricMats == null) {
+         createTetBarycentricMats();
+      }
+      // convert p0Loc to quad grid coordinates, and the multiply by the
+      // barycentric conversion matrix to get barycentric coordinates s1, s2,
+      // s3. s0 is then given by s0 = 1 - s1 - s2 - s2.
+      Point3d pc = new Point3d();
+      Vector3d sv = new Vector3d();
+      transformToQuadCell (pc, p0Loc, desc);
+      myTetBarycentricMats[desc.myTetId.intValue()].mul (sv, pc);
+      
+      // code is a bit code describing which coordinates are close to 0
+      int code = 0;
+      if (Math.abs (1-sv.get(0)-sv.get(1)-sv.get(2)) < eps) { 
+         code |= 0x01;
+      }
+      if (Math.abs (sv.get(0)) < eps) {
+         code |= 0x02;
+      }
+      if (Math.abs (sv.get(1)) < eps) {
+         code |= 0x04;
+      }
+      if (Math.abs (sv.get(2)) < eps) {
+         code |= 0x08;
+      }
+      int[] nodes = desc.myTetId.getNodes();
+      switch (code) {
+         case 0x01: {
+            return new TetFace (nodes[1], nodes[3], nodes[2]);
+         }
+         case 0x02: {
+            return new TetFace (nodes[0], nodes[2], nodes[3]);
+         }
+         case 0x04: {
+            return new TetFace (nodes[0], nodes[3], nodes[1]);
+         }
+         case 0x08: {
+            return new TetFace (nodes[0], nodes[1], nodes[2]);
+         }
+         case 0x03: return new TetEdge (nodes[2], nodes[3]);
+         case 0x05: return new TetEdge (nodes[1], nodes[3]);
+         case 0x09: return new TetEdge (nodes[1], nodes[2]);
+         case 0x06: return new TetEdge (nodes[0], nodes[3]);
+         case 0x0a: return new TetEdge (nodes[0], nodes[2]);
+         case 0x0c: return new TetEdge (nodes[0], nodes[1]);
+         
+         case 0x0e: return new TetNode (nodes[0]);
+         case 0x0d: return new TetNode (nodes[1]);
+         case 0x0b: return new TetNode (nodes[2]);
+         case 0x07: return new TetNode (nodes[3]);
+         
+         default: {
+            return null;
+         }
+      }
+   }
+   
+   /**
+    * Find the index number (in the range [0-7]) for a corner
+    * node of a hex cell, as specified in terms of x,y,z index offsets.
+    */
    int findRefVertex (Vector3i xyzi) {
       for (int i=0; i<DistanceGrid.myBaseQuadCellXyzi.length; i++) {
          if (xyzi.equals(DistanceGrid.myBaseQuadCellXyzi[i])) {
@@ -291,20 +507,12 @@ public class DistanceGridSurfCalc {
    }         
 
    public static class TetPlaneIntersection {
-      private static final double EPS = 1e-12;
 
       TetDesc myTetDesc;
       public int myNumSides;
-      int myN0;
-      int myN1;
-      int myN2;
-      int myN3;
 
-      double myS0;
-      double myS1;
-      double myS2;
-      double myS3;
-
+      // corners of the tet plane intersection - up to four, stored
+      // in local coordinates
       public Point3d myP0;
       public Point3d myP1;
       public Point3d myP2;
@@ -319,253 +527,57 @@ public class DistanceGridSurfCalc {
          myP3 = new Point3d();
       }
 
-      double triS (int i) {
-         switch (i%3) {
-            case 0: return myS1;
-            case 1: return myS2;
-            case 2: return myS3;
-            default: {
-               // can't get here
-               return 0;
-            }
-         }         
-      }
+     /**
+       * Returns true if a point p0 (given in local coordinates)
+       * is inside this intersection.
+       */
+      boolean pointIsInside (Point3d pt, ComputePlane cplane) {
 
-      int triN (int i) {
-         switch (i%3) {
-            case 0: return myN1;
-            case 1: return myN2;
-            case 2: return myN3;
-            default: {
-               // can't get here
-               return 0;
-            }
-         }         
-      }
-
-     TetFeature getTriangleFeature (double s, int ei) {
-         if (s <= EPS) {
-            double s1 = triS(ei);
-            // must lie on edge myN0, N(ei)
-            if (s1 <= EPS) {
-               return new TetNode (myN0);
-            }
-            else if (s1 >= 1-EPS) {
-               return new TetNode (triN(ei));
-            }
-            else {
-               return new TetEdge (myN0, triN(ei));
-            }
-         }
-         else if (s >= 1-EPS) {
-            double s2 = triS(ei+1);
-            // must lie on edge myN0, N(ei+1)
-            if (s2 <= EPS) {
-               return new TetNode (myN0);
-            }
-            else if (s2 >= 1-EPS) {
-               return new TetNode (triN(ei+1));
-            }
-            else {
-               return new TetEdge (myN0, triN(ei+1));
-            }
-         }
-         else {
-            double s1 = triS(ei);
-            double s2 = triS(ei+1);
-            if (s1 >= 1-EPS && s2 >= 1-EPS) {
-               // lies on edge N(ei), N(ei+1)
-               return new TetEdge (triN(ei), triN(ei+1));
-            }
-            else {
-               // lies on face myN0,  N(ei+1), N(ei)
-               return new TetFace (myN0, triN(ei+1), triN(ei));
-            }
-         }
-      }
-
-      double quadS (int i) {
-         switch (i%4) {
-            case 0: return myS0;
-            case 1: return myS1;
-            case 2: return myS2;
-            case 3: return myS3;
-            default: {
-               // can't get here
-               return 0;
-            }
-         }         
-      }
-
-      int quadN (int i) {
-         switch (i%4) {
-            case 0: return myN0;
-            case 1: return myN1;
-            case 2: return myN2;
-            case 3: return myN3;
-            default: {
-               // can't get here
-               return 0;
-            }
-         }         
-      }
-
-      TetFeature getQuadFeature (double s, int ei) {
-         if (s <= EPS) {
-            // must lie on edge N(ei), N(ei+1)
-            double s1 = quadS(ei+1);
-            if (s1 <= EPS) {
-               return new TetNode (quadN(ei));
-            }
-            else if (s1 >= 1-EPS) {
-               return new TetNode (quadN(ei+1));
-            }
-            else {
-               return new TetEdge (quadN(ei), quadN(ei+1));
-            }
-         }
-         else if (s >= 1-EPS) {
-            // must lie on edge N(ei+1), N(ei+2)
-            double s2 = quadS(ei+2);
-            if (s2 <= EPS) {
-               return new TetNode (quadN(ei+1));
-            }
-            else if (s2 >= 1-EPS) {
-               return new TetNode (quadN(ei+2));
-            }
-            else {
-               return new TetEdge (quadN(ei+1), quadN(ei+2));
-            }
-         }
-         else {
-            double s1 = quadS(ei+1);
-            if (s1 >= 1-EPS) {
-               // then s2 must be close to 0, with intersection at N(ei+1)
-               return new TetNode (quadN(ei+1));
-            }
-            else {
-               int n0 = quadN(ei);
-               int n1 = quadN(ei+1);
-               int n2 = quadN(ei+2);
-               if (n0 == myN0 || n0 == myN2) {
-                  return new TetFace (n0, n1, n2);
-               }
-               else {
-                  // need to flip
-                  return new TetFace (n0, n2, n1);
-               }
-            }
-         }
-      }
-
-      TetFeature getFeature (double s, int ei) {
-         if (myNumSides == 3) {
-            return getTriangleFeature (s, ei);
-         }
-         else if (myNumSides == 4) {
-            return getQuadFeature (s, ei);
-         }
-         else {
-            throw new InternalErrorException (
-               "Uninitialized myNumSides field of TetPlaneIntersection");
-         }
-      }
-
-      int getNode (int nidx) {
-         switch (nidx) {
-            case 0: return myN0;
-            case 1: return myN1;
-            case 2: return myN2;
-            case 3: return myN3;
-            default: {
-               throw new InternalErrorException (
-                  "nidx=" + nidx + ", must be in the range [0,3]");
-            }
-         }
-      }
-
-      boolean clipRange (
-         double[] rng, DoubleHolder edgeS, int ccw, 
-         double ax, double ay, double bx, double by, double cx, double cy) {
-
-         boolean clippedUpper = false;
-         double aXb = ax*by - ay*bx;
-         if (aXb != 0) {
-            // double s = (cx*by - cy*bx)/aXb;
-            // if (s >= 0.0 && s <= 1.0) {
-               double t = (cx*ay - cy*ax)/aXb;
-               if (ccw*aXb > 0) {
-                  // solution is lower bound
-                  if (t > rng[0]) {
-                     rng[0] = t;
-                  }
-               }
-               else {
-                  // solution is upper bound
-                  if (t < rng[1]) {
-                     rng[1] = t;
-                     edgeS.value = (cx*by - cy*bx)/aXb;
-                     clippedUpper = true;
-                  }
-               }
-               //}
-         }
-         return clippedUpper;
-      }
-
-      int intersectRay (
-         double[] rng,
-         DoubleHolder edgeS, Point3d q, Vector3d dir,
-         PlaneType planeType, int planeSgn) {
-         
          Point3d[] pi = new Point3d[] {
             myP0, myP1, myP2, myP3};
 
-         int[] ni;
-         if (myNumSides == 4) {
-            ni = new int[] { myN0, myN1, myN2, myN3};
-         }
-         else {
-            ni = new int[] { myN1, myN2, myN3};
-         }
-
          Point3d p0 = pi[0];
-         int upperIdx = -1;
-         int ccw = planeSgn*myCCW;
+         int ccw = cplane.sign*myCCW;
          for (int i=0; i<myNumSides; i++) {
             Point3d p1 = i<myNumSides-1 ? pi[i+1] : pi[0];
-            switch (planeType) {
+            double r1x, rpx, r1y, rpy;
+            switch (cplane.type) {
                case YZ: {
-                  if (clipRange (
-                         rng, edgeS, ccw, p1.y-p0.y, p1.z-p0.z,
-                         dir.y, dir.z, q.y-p0.y, q.z-p0.z)) {
-                     upperIdx = i;
-                  }
+                  r1x = p1.y - p0.y;
+                  r1y = p1.z - p0.z;
+                  rpx = pt.y - p0.y;
+                  rpy = pt.z - p0.z;
                   break;
                }
                case ZX: {
-                  if (clipRange (
-                         rng, edgeS, ccw, p1.z-p0.z, p1.x-p0.x,
-                         dir.z, dir.x, q.z-p0.z, q.x-p0.x)) {
-                     upperIdx = i;
-                  }
+                  r1x = p1.z - p0.z;
+                  r1y = p1.x - p0.x;
+                  rpx = pt.z - p0.z;
+                  rpy = pt.x - p0.x;
                   break;
                }
                case XY: {
-                  if (clipRange (
-                         rng, edgeS, ccw, p1.x-p0.x, p1.y-p0.y,
-                         dir.x, dir.y, q.x-p0.x, q.y-p0.y)) {
-                     upperIdx = i;
-                  }
+                  r1x = p1.x - p0.x;
+                  r1y = p1.y - p0.y;
+                  rpx = pt.x - p0.x;
+                  rpy = pt.y - p0.y;
                   break;
                }
+               default: {
+                  throw new InternalErrorException (
+                     "Unknown plane type " + cplane.type);
+               }
+            }
+            if ((r1x*rpy - r1y*rpx)*ccw < 0) {
+               // then not an inside turn, so point is not inside
+               return false;
             }
             p0 = p1;
          }
-         return upperIdx;
+         return true;
       }
 
-      void updateRange (
+     void updateRange (
          double[] rng, double ax, double ay, double bx, double by) {
 
          double aXb = ax*by - ay*bx;
@@ -618,18 +630,45 @@ public class DistanceGridSurfCalc {
             return -Math.min(Math.abs(rng[0]), Math.abs(rng[1]));
          }
       }
+      
+      private double triArea (Point3d p0, Point3d p1, Point3d p2) {
+         Vector3d del01 = new Vector3d();
+         Vector3d del02 = new Vector3d();
+         Vector3d xprod = new Vector3d();
+         del01.sub (p1, p0);
+         del02.sub (p2, p0);
+         xprod.cross (del01, del02);
+         return xprod.norm();         
+      }
+      
+      double computeArea() {
+         if (myNumSides == 3) {
+            return triArea (myP0, myP1, myP2);
+         }
+         else if (myNumSides == 4) {
+            return triArea (myP0, myP1, myP2) + triArea (myP0, myP2, myP3);
+         }
+         else {
+            return 0;
+         }
+      }
    }
 
    void intersectTriangle (
-      TetPlaneIntersection isect,
-      int n0, double d0, Point3d p0, int n1, double d1, Point3d p1, 
-      int n2, double d2, Point3d p2, int n3, double d3, Point3d p3) {
+      TetPlaneIntersection isect, TetDesc tdesc,
+      Point3d[] vpnts, double[] dist, int i0, int i1, int i2, int i3) {
+      
+      int[] nodes = tdesc.myTetId.getNodes();
+
+      int n0 = nodes[i0];
+      Point3d p0 = vpnts[i0];
+      double d0 = dist[i0];
       
       double EPS = 1e-8;
 
-      double s1 = d0/(d0-d1);
-      double s2 = d0/(d0-d2);
-      double s3 = d0/(d0-d3);
+      double s1 = d0/(d0-dist[i1]);
+      double s2 = d0/(d0-dist[i2]);
+      double s3 = d0/(d0-dist[i3]);
 
       int numsmall = 0;
       if (s1 <= EPS) {
@@ -644,24 +683,23 @@ public class DistanceGridSurfCalc {
       if (numsmall > 1) {
          isect.myNumSides = 0;
       }
-      isect.myN0 = n0;
-      isect.myP0.combine (1-s1, p0, s1, p1);
-      isect.myN1 = n1;
-      isect.myS1 = s1;
-      isect.myP1.combine (1-s2, p0, s2, p2);
-      isect.myN2 = n2;
-      isect.myS2 = s2;
-      isect.myP2.combine (1-s3, p0, s3, p3);
-      isect.myN3 = n3;
-      isect.myS3 = s3;
+      isect.myP0.combine (1-s1, p0, s1, vpnts[i1]);
+      isect.myP1.combine (1-s2, p0, s2, vpnts[i2]);
+      isect.myP2.combine (1-s3, p0, s3, vpnts[i3]);
       isect.myNumSides = 3;
       isect.myCCW = d0 < 0 ? 1 : -1;
    }
 
    void intersectQuad (
-      TetPlaneIntersection isect,
-      int n0, double d0, Point3d p0, int n1, double d1, Point3d p1, 
-      int n2, double d2, Point3d p2, int n3, double d3, Point3d p3) {
+      TetPlaneIntersection isect, TetDesc tdesc,
+      Point3d[] vpnts, double[] dist, int i0, int i1, int i2, int i3) {
+      
+      int[] nodes = tdesc.myTetId.getNodes();
+
+      double d0 = dist[i0];
+      double d1 = dist[i1];
+      double d2 = dist[i2];
+      double d3 = dist[i3];
       
       double EPS = 1e-8;
 
@@ -682,18 +720,10 @@ public class DistanceGridSurfCalc {
             isect.myNumSides = 0;
          }
       }
-      isect.myN0 = n0;
-      isect.myS0 = s0;
-      isect.myP0.combine (1-s1, p0, s1, p1);
-      isect.myN1 = n1;
-      isect.myS1 = s1;
-      isect.myP1.combine (1-s2, p1, s2, p2);
-      isect.myN2 = n2;
-      isect.myS2 = s2;
-      isect.myP2.combine (1-s3, p2, s3, p3);
-      isect.myN3 = n3;
-      isect.myS3 = s3;
-      isect.myP3.combine (1-s0, p3, s0, p0);
+      isect.myP0.combine (1-s1, vpnts[i0], s1, vpnts[i1]);
+      isect.myP1.combine (1-s2, vpnts[i1], s2, vpnts[i2]);
+      isect.myP2.combine (1-s3, vpnts[i2], s3, vpnts[i3]);
+      isect.myP3.combine (1-s0, vpnts[i3], s0, vpnts[i0]);
       isect.myNumSides = 4;
       isect.myCCW = d0 > 0 ? 1 : -1;
    }
@@ -701,27 +731,25 @@ public class DistanceGridSurfCalc {
    public boolean intersectTetAndPlane (
       TetPlaneIntersection isect, TetDesc tdesc, Point3d[] vpnts, Plane plane) {
 
-      Point3d p0 = vpnts[0];
-      Point3d p1 = vpnts[1];
-      Point3d p2 = vpnts[2];
-      Point3d p3 = vpnts[3];
+      double[] dist = new double[4];
 
-      double d0 = plane.distance(vpnts[0]);
-      double d1 = plane.distance(vpnts[1]);
-      double d2 = plane.distance(vpnts[2]);
-      double d3 = plane.distance(vpnts[3]);
+      dist[0] = plane.distance(vpnts[0]);
+      dist[1] = plane.distance(vpnts[1]);
+      dist[2] = plane.distance(vpnts[2]);
+      dist[3] = plane.distance(vpnts[3]);
 
-      int[] nodes = tdesc.myTetId.getNodes();
-      int n0 = nodes[0];
-      int n1 = nodes[1];
-      int n2 = nodes[2];
-      int n3 = nodes[3];
+      return doIntersectTetAndPlane (isect, tdesc, vpnts, dist, plane);
+   }      
+
+   public boolean doIntersectTetAndPlane (
+      TetPlaneIntersection isect, TetDesc tdesc, Point3d[] vpnts,
+      double[] dist, Plane plane) {
+
+      int sgn0 = (dist[0] >= 0 ? 1 : -1);
+      int sgn1 = (dist[1] >= 0 ? 1 : -1);
+      int sgn2 = (dist[2] >= 0 ? 1 : -1);
+      int sgn3 = (dist[3] >= 0 ? 1 : -1);
       
-      int sgn0 = (d0 >= 0 ? 1 : -1);
-      int sgn1 = (d1 >= 0 ? 1 : -1);
-      int sgn2 = (d2 >= 0 ? 1 : -1);
-      int sgn3 = (d3 >= 0 ? 1 : -1);
-
       if (sgn0*sgn1 == 1) {
          if (sgn0*sgn2 == 1) {
             if (sgn0*sgn3 == 1) {
@@ -730,20 +758,17 @@ public class DistanceGridSurfCalc {
             }
             else {
                // + + -   3-0 3-1 3-2
-               intersectTriangle (
-                  isect, n3, d3, p3, n0, d0, p0, n1, d1, p1, n2, d2, p2);
+               intersectTriangle (isect, tdesc, vpnts, dist, 3, 0, 1, 2);
             }
          }
          else {
             if (sgn0*sgn3 == 1) {
                // + - +   2-0 2-3 2-1
-               intersectTriangle (
-                  isect, n2, d2, p2, n0, d0, p0, n3, d3, p3, n1, d1, p1);
+               intersectTriangle (isect, tdesc, vpnts, dist, 2, 0, 3, 1);
             }
             else {
                // + - -   0-3 3-1 1-2 2-0
-               intersectQuad (
-                  isect, n0, d0, p0, n3, d3, p3, n1, d1, p1, n2, d2, p2);
+               intersectQuad (isect, tdesc, vpnts, dist, 0, 3, 1, 2);
             }
          }
       }
@@ -751,25 +776,21 @@ public class DistanceGridSurfCalc {
          if (sgn0*sgn2 == 1) {
             if (sgn0*sgn3 == 1) {
                // - + +   1-0 1-2 1-3
-               intersectTriangle (
-                  isect, n1, d1, p1, n0, d0, p0, n2, d2, p2, n3, d3, p3);
+               intersectTriangle (isect, tdesc, vpnts, dist, 1, 0, 2, 3);
             }
             else {
                // - + -   0-1 1-2 2-3 3-0
-               intersectQuad (
-                  isect, n0, d0, p0, n1, d1, p1, n2, d2, p2, n3, d3, p3);
+               intersectQuad (isect, tdesc, vpnts, dist, 0, 1, 2, 3);
             }
          }
          else {
             if (sgn0*sgn3 == 1) {
                // - - +   0-2 2-3 3-1 1-0
-               intersectQuad (
-                  isect, n0, d0, p0, n2, d2, p2, n3, d3, p3, n1, d1, p1);
+               intersectQuad (isect, tdesc, vpnts, dist, 0, 2, 3, 1);
             }
             else {
                // - - -   0-1 0-3 0-2
-               intersectTriangle (
-                  isect, n0, d0, p0, n1, d1, p1, n3, d3, p3, n2, d2, p2);
+               intersectTriangle (isect, tdesc, vpnts, dist, 0, 1, 3, 2);
             }
          } 
       }
@@ -810,7 +831,6 @@ public class DistanceGridSurfCalc {
             rx = nrmCell.z/nrmCell.y;
             ry = nrmCell.x/nrmCell.y;
             rz = off/nrmCell.y;
-
 
             b[0] = c[2] + c[1]*rx*rx - c[3]*rx;
             b[1] = c[0] + c[1]*ry*ry - c[5]*ry;
@@ -856,204 +876,186 @@ public class DistanceGridSurfCalc {
       // transform p0, pa and nrm into grid local coordinates
       Point3d p0Loc = new Point3d();
       myGrid.myLocalToWorld.inverseTransformPnt (p0Loc, p0);
-      Point3d paLoc = new Point3d();
-      myGrid.myLocalToWorld.inverseTransformPnt (paLoc, pa);
       Vector3d nrmLoc = new Vector3d(nrm);
       myGrid.myLocalToWorld.inverseTransformCovec (nrmLoc, nrm);
       nrmLoc.normalize();
 
-      //System.out.println (
-      //    "findSurfaceTangent nrmLoc=" + nrmLoc.toString("%8.3f"));
-
       // generate a plane from the normal and p0
-      Plane planeLoc = new Plane (nrmLoc, p0Loc);
+      Plane planeLoc = new Plane (nrmLoc, p0Loc); // NEED
 
-      // Dynamic array to store tet/plane intersections
-      ArrayList<TetPlaneIntersection> isects =
-         new ArrayList<TetPlaneIntersection>();
-      isects.add (new TetPlaneIntersection()); // will need at least one
-
-      // temporary storage for computed tet vertex coordinates
-      Point3d[] vpnts = new Point3d[] {
-         new Point3d(), new Point3d(), new Point3d(), new Point3d() };      
-
-      int icnt = 0;
-      int maxIters = 2;
-      int code = NONE;
-      TetDesc tdesc = null;
-      TanSearchInfo sinfo = new TanSearchInfo();
-      int sgnDotGrad = 0;
-      Point3d ps = new Point3d(p0Loc);
-
+      // find the distance of p0 to the surface, along with the associated
+      // gradient direction (grad).
       Vector3d grad = new Vector3d();
       double d = myGrid.getQuadDistanceAndGradient (grad, null, p0Loc);
       if (d == DistanceGrid.OUTSIDE_GRID) {
          // shouldn't happen - p0 should be inside by definition
-         //System.out.println ("OUTSIDE");
+         if (myDebug > 0) {
+            System.out.println ("Not found: p0 outside the grid");
+         }
          return false;
       }
-      grad.scaledAdd (-grad.dot(nrmLoc), nrmLoc); // project grad into plane
+      planeLoc.projectVector (grad, grad); // project grad into plane
       grad.normalize();
-      
-      Vector3i vxyz = new Vector3i();
-      Vector3d xyz = new Vector3d();
-      if (myGrid.getQuadCellCoords (
-         xyz, vxyz, p0Loc, myGrid.myQuadGridToLocal) == -1) {
-         // shouldn't happen - grid should have enough margin to prevent this
-         //System.out.println ("NO QUAD CELL");
-         return false;
-      }
-      tdesc =
-         new TetDesc (vxyz, TetID.findSubTet (xyz.x, xyz.y, xyz.z));      
-      getVertexCoords (vpnts, tdesc);
-      TetPlaneIntersection isect = isects.get(0);
-      if (!intersectTetAndPlane (isect, tdesc, vpnts, planeLoc)) {
-         // shouldn't happen - p0 should be on the plane
-         //System.out.println ("NOT ON PLANE");
-         return false;
+      //grad.negate();
+
+      if (myDebug > 0) {
+         System.out.println ("d=" + d + " grad=" + grad);
       }
 
-      PlaneType planeType = null;
       Vector3d nrmCell = new Vector3d();
-      myGrid.myGridToLocal.inverseTransformCovec (nrmCell, planeLoc.normal);
+      myGrid.myGridToLocal.inverseTransformCovec (nrmCell, nrmLoc);
       nrmCell.normalize();
-      //transformNormalToCell (nrmCell, planeLoc.normal);
+      ComputePlane cplane = new ComputePlane();
       switch (nrmCell.maxAbsIndex()) {
-         case 0: planeType = PlaneType.YZ; break;
-         case 1: planeType = PlaneType.ZX; break;
-         case 2: planeType = PlaneType.XY; break;
+         case 0: cplane.type = PlaneType.YZ; break;
+         case 1: cplane.type = PlaneType.ZX; break;
+         case 2: cplane.type = PlaneType.XY; break;
       }
-      int planeSgn = (nrmCell.get(nrmCell.maxAbsIndex()) > 0 ? 1 : -1);
+      cplane.sign = (nrmCell.get(nrmCell.maxAbsIndex()) > 0 ? 1 : -1);     
 
-      double[] srng = new double[] { -Double.MAX_VALUE, Double.MAX_VALUE };
-      DoubleHolder edgeS = new DoubleHolder();
-      int edgeIdx = isect.intersectRay (
-         srng, edgeS, p0Loc, grad, planeType, planeSgn);
-      if (edgeIdx == -1) {
-         // shouldn't happen - p0 should be in the tet
-         //System.out.println ("NOT IN TET");
+      Point3d psLoc = new Point3d();
+      TetDesc tdesc = findQuadSurfaceIntersectionLoc (psLoc, p0Loc, grad);
+      if (tdesc == null) {
+         // fallback - set pt to p0
+         pt.set (p0);
          return false;
       }
-      TetFeature lastFeat = isect.getFeature (edgeS.value, edgeIdx);
 
-      HashSet<TetDesc> visitedTets = new HashSet<TetDesc>();
-      visitedTets.add (tdesc);
-
-      while (findSurfaceIntersectionInTet (
-                ps, isect, srng, p0Loc, grad, planeLoc) == CONTINUE) {
-          int ntets = getFeatureAdjacentTets (
-             isects, tdesc, lastFeat, planeLoc, visitedTets);
-          TetPlaneIntersection ibest = null;
-          double bestLen = 0;
-          int bestEdgeIdx = -1;
-          double bestS = -1;          
-          for (int k=0; k<ntets; k++) {
-             isect = isects.get(k);
-             double[] irng =
-                new double[] { -Double.MAX_VALUE, Double.MAX_VALUE };
-             edgeIdx = isect.intersectRay (
-                irng, edgeS, p0Loc, grad, planeType, planeSgn);
-             if (edgeIdx != -1) {
-                double ilen = irng[1]-irng[0];
-                if (ilen > bestLen) {
-                   bestLen = ilen;
-                   ibest = isect;
-                   bestEdgeIdx = edgeIdx;
-                   bestS = edgeS.value;
-                   srng[0] = irng[0];
-                   srng[1] = irng[1];
-                }
-             }
-          }
-          if (bestEdgeIdx == -1) {
-             return false;
-          }
-          else {
-             lastFeat = ibest.getFeature (bestS, bestEdgeIdx);
-             isect = ibest;
-             tdesc = isect.myTetDesc;
-             visitedTets.add (tdesc);
-          }
+      // need to obtain a plane intersection for tdesc
+      
+      TetPlaneIntersection isect =
+         getTetPlaneIntersection (tdesc, psLoc, planeLoc, cplane);
+      // tdesc might have changed
+      if (isect == null) {
+         if (myDebug > 0) {
+            System.out.println ("Not found: ps tet does not intersect plane");
+         }
+         return false;
       }
+      // tdesc might have changed
+      tdesc = isect.myTetDesc;     
 
-      // System.out.println ("  intersection ps=" + ps.toString("%8.5f"));
-      // System.out.println ("               p0=" + p0Loc.toString("%8.5f"));
-
-      d = myGrid.getQuadDistanceAndGradient (grad, null, ps);
+      // Get the surface gradient at the surface intersection point ps
+      d = myGrid.getQuadDistanceAndGradient (grad, null, psLoc);
       if (d == DistanceGrid.OUTSIDE_GRID) {
          // shouldn't happen - ps should be inside by definition
+         if (myDebug > 0) {
+            System.out.println ("Not found: ps is outside grid");
+         }
          return false;
       }
-      grad.scaledAdd (-grad.dot(nrmLoc), nrmLoc); // project grad into plane
+      planeLoc.projectVector (grad, grad); // project grad into plane
       Vector3d dela0 = new Vector3d();
-      dela0.sub (ps, paLoc);
-      sgnDotGrad = (dela0.dot(grad) > 0 ? 1 : -1);       
-      
-      //System.out.println ("findSurfaceTangent(A) for " + tdesc);
-      code = findSurfaceTangent (
+      Point3d paLoc = new Point3d();
+      myGrid.myLocalToWorld.inverseTransformPnt (paLoc, pa);
+      dela0.sub (psLoc, paLoc);
+      // set sgnDotGrad to 1 or -1 depending on whether the gradient is
+      // pointing away or towards pa along the line (pa, ps).
+      int sgnDotGrad = (dela0.dot(grad) > 0 ? 1 : -1);       
+
+      if (myDebug > 0) {
+         System.out.println (
+            "found ps="+psLoc.toString("%g")+" tet="+tdesc+" sgnDotGrad=" +
+            sgnDotGrad);
+         Vector3d del = new Vector3d();
+         del.sub (psLoc, p0Loc);
+         System.out.println ("p0=" + p0Loc + " del=" + del);
+         Point3d pg = new Point3d();
+         myGrid.myQuadGridToLocal.inverseTransformPnt (pg, psLoc);
+         System.out.println (
+            "ps in quad grid coords=" + pg.toString("%g"));
+         System.out.println (
+            "pa=" + pa);
+      }
+
+      TanSearchInfo sinfo = new TanSearchInfo();
+      int code = findSurfaceTangent (
          pt, sinfo, isect, null, sgnDotGrad, paLoc, planeLoc);
       if (code == DONE) {
          // tangent found
          myGrid.myLocalToWorld.transformPnt (pt, pt);
-         //System.out.println ("  found pt=" + pt.toString ("%8.3f"));
+         if (myDebug > 0) {
+            System.out.println (
+               "Found (initial ps): pt=" + pt.toString ("%10.5f"));
+         }
          return true;
       }
+      if (code == NONE && myDebug > 0) {
+         System.out.println ("Not found: no continuation point");
+      }
 
-      visitedTets.clear();
-      visitedTets.add (tdesc);
+      myVisitedTets.clear();
+      myVisitedTets.add (tdesc);
 
       while (code != NONE) {
          int ntets = getFeatureAdjacentTets (
-            isects, tdesc, sinfo.lastFeat, planeLoc, visitedTets);
+            tdesc, sinfo.lastFeat, planeLoc, myVisitedTets);
          TetPlaneIntersection ibest = null;
-         //System.out.println ("ntets= " + ntets);
+         if (myDebug > 0) {
+            System.out.println (
+               "checking "+ntets+" adjacent tets for feature " + sinfo.lastFeat);
+            System.out.print ("  ");
+            for (int k=0; k<ntets; k++) {
+               System.out.print (getIsect(k).myTetDesc + " ");
+            }
+            System.out.println ("");
+         }
          if (ntets > 1) {
             // find the tet that best intersects the current curve tangent
             double maxLen = -1;
             int maxTet = -1;
             for (int k=0; k<ntets; k++) {
-               double len = isects.get(k).tanIntersectOverlap (
-                  pt, sinfo.lastGrad, planeType);
+               double len = getIsect(k).tanIntersectOverlap (
+                  pt, sinfo.lastGrad, cplane.type);
                if (len > maxLen) {
                   maxLen = len;
                   maxTet = k;
                }
             }
-            ibest = isects.get(maxTet);
+            ibest = getIsect(maxTet);
          }
          else if (ntets > 0) {
-            ibest = isects.get(0);
+            ibest = getIsect(0);
          }
          else {
-            System.out.println ("  Couldn't find tangent");
+            if (myDebug > 0) {
+               System.out.println (
+                  "Not found: no adjacent tets intersect plane");
+            }
             code = NONE;
             continue;
          }
          tdesc = ibest.myTetDesc;
-         visitedTets.add (tdesc);
-         //System.out.println ("findSurfaceTangent(B) for " + tdesc);
+         myVisitedTets.add (tdesc);
          code = findSurfaceTangent (
             pt, sinfo, ibest, pt, sgnDotGrad, paLoc, planeLoc);
          int tidx = 0;
          while (code == NONE && tidx < ntets) {
-            isect = isects.get(tidx++);
-            tdesc = isect.myTetDesc;
-            visitedTets.add (tdesc);         
-            code = findSurfaceTangent (
-               pt, sinfo, isect, pt, sgnDotGrad, paLoc, planeLoc);
+            isect = getIsect(tidx++);
+            if (isect != ibest) {
+               tdesc = isect.myTetDesc;
+               myVisitedTets.add (tdesc);         
+               code = findSurfaceTangent (
+                  pt, sinfo, isect, pt, sgnDotGrad, paLoc, planeLoc);
+            }
          }
          if (code == DONE) {
             myGrid.myLocalToWorld.transformPnt (pt, pt);
-            //System.out.println ("  found pt=" + pt.toString ("%8.3f"));
+            if (myDebug > 0) {
+               System.out.println ("Found: pt=" + pt.toString ("%10.5f"));
+            }
             return true;
          }
+         else if (code == NONE && myDebug > 0) {
+            System.out.println (
+               "Not found: no continuation point in any adjacent tet");
+         }
       }
-      myGrid.myLocalToWorld.transformPnt (pt, ps);
-      //System.out.println ("  fallback pt=" + pt.toString ("%8.3f"));
+      myGrid.myLocalToWorld.transformPnt (pt, psLoc);
       return false;
    }
 
-   protected int findTangentPoints (
+   protected static int findTangentPoints (
       Vector2d[] pnts, double b[], double pax, double pay) {
 
       double ax = (b[3] + 2*b[0]*pax + b[2]*pay);
@@ -1103,6 +1105,179 @@ public class DistanceGridSurfCalc {
       }            
    }
 
+   TetPlaneIntersection getTetPlaneIntersection (
+      TetDesc tdesc, Point3d p0Loc, Plane plane, ComputePlane cplane) {
+      // temporary storage for computed tet vertex coordinates
+      Point3d[] vpnts = new Point3d[] {
+         new Point3d(), new Point3d(), new Point3d(), new Point3d() };      
+
+      // get the local coordinates of the tet corners, and use these
+      // to intersect the tet with the plane
+      getVertexCoords (vpnts, tdesc);
+      TetPlaneIntersection isect = getIsect(0);
+      if (!intersectTetAndPlane (isect, tdesc, vpnts, plane) ||
+          !isect.pointIsInside (p0Loc, cplane)) {
+         // Finding the tet/plane intersection might fail in some cases because
+         // of roundoff error, if p0 is close to a tet boundary feature (node,
+         // edge, or face)
+         TetFeature feat = findNearestFeature (tdesc, p0Loc, 1e-10);
+         TetPlaneIntersection ibest = null;
+         if (feat != null) {
+            // If p0 is in fact near a tet boundary feature, find all the tets
+            // adjacent to that feature which also intersect the plane.
+            int ntets = getFeatureAdjacentTets (
+               tdesc, feat, plane, null);
+            double bestArea = 0;
+            // if there is more than one adjacent tet, choose the one whose
+            // plane intersection has the largest area            
+            for (int k=0; k<ntets; k++) {
+               TetPlaneIntersection isectk = getIsect(k);
+               if (isectk.pointIsInside (p0Loc, cplane)) {
+                  double area = isectk.computeArea();
+                  if (area > bestArea) {
+                     ibest = isectk;
+                     bestArea = area;
+                  }
+               }
+            }
+         }
+         if (ibest == null) {
+            return null;
+         }
+         else {
+            if (myDebug > 0) {
+               System.out.println (
+                  "Choosing alternate tet: " + ibest.myTetDesc);
+            }
+            return ibest;
+         }
+      }
+      return isect;
+   }
+
+
+   /**
+    * Find the nearest quad surface intersection to p0, in the direction dir,
+    * and return the result in ps. It is assumed that dir lies in the
+    * plane. Input and output parameters are all given in grid local
+    * coordinates. The method returns a descriptor of the tet/plane
+    * intersection for the tet containing ps, unless ps is not found, in which
+    * case null is returned.
+    */
+   public TetDesc findQuadSurfaceIntersectionLoc (
+      Point3d ps, Point3d p0, Vector3d dir) {
+
+      TetDesc tdesc = null;
+      
+      // find the quadratic cell containing p0
+      Vector3i vxyz = new Vector3i();
+      Vector3d xyz = new Vector3d();
+      if (myGrid.getQuadCellCoords (
+         xyz, vxyz, p0, myGrid.myQuadGridToLocal) == -1) {
+         // shouldn't happen - grid should have enough margin to prevent this
+         if (myDebug > 0) {
+            System.out.println ("Not found: no quad cell found for p0");
+         }
+         return null;
+      }
+      // find the tet containing p0 within the quadratic cell
+      tdesc = new TetDesc (vxyz, TetID.findSubTet (xyz.x, xyz.y, xyz.z));
+
+      // now transform p0 and dir to quad grid coordinates
+      Point3d p0Quad = new Point3d();      
+      Vector3d dirQuad = new Vector3d();
+      myGrid.myQuadGridToLocal.inverseTransformPnt (p0Quad, p0);
+      myGrid.myQuadGridToLocal.inverseTransformVec (dirQuad, dir);
+
+      if (myDebug > 0) {
+         System.out.println ("looking for ps starting from " + tdesc);
+      }
+
+      // Find the interval (srng[0], srng[1]) within which the ray (p0, dir)
+      // intersects tet/plane intersection defined by isect. This interval is
+      // used to seed the surface intersection search. The edge of the
+      // intersection boundary which clips the upper value of the range is
+      // returned in edgeIdx, and the intersection parameter along that edge is
+      // placed in edgeS.
+      double[] srng = new double[] { 0, Double.MAX_VALUE };
+      tdesc.clipLineSegment (srng, p0Quad, dirQuad);
+      if (srng[0] > srng[1]) {
+         // shouldn't happen - p0 should be in the tet
+         if (myDebug > 0) {
+            System.out.println (
+               "Not found: p0 tet does not intersect ray (p0,dir)");
+         }
+         return null;
+      }
+      // Find the tet boundary feature associated with the upper bound of the
+      // ray intersection. This will be used to search for adjacent tets in
+      // case the surface intersection does not occur within the current tet.
+      Point3d px = new Point3d();
+      px.scaledAdd (srng[1], dir, p0);
+      //TetFeature lastFeat = isect.getFeature (edgeS.value, edgeIdx);
+      TetFeature lastFeat = findNearestFeature (tdesc, px, 1e-10);
+
+      myVisitedTets.clear();
+      myVisitedTets.add (tdesc);
+
+      // Starting at p0, and following along the direction of dir, find the
+      // first point ps at which (p0, dir) intersects the quadratic surface.
+      while (findSurfaceIntersectionInTet (
+                ps, tdesc, srng, p0Quad, dirQuad) == CONTINUE) {
+         // A return value of CONTINUE means that the surface intersection was
+         // not found in the current tet, and that we should look for the
+         // intersection in adjacent tets.
+         ArrayList<TetDesc> adescs = new ArrayList<TetDesc>();
+         int ntets = getFeatureAdjacentTets (
+            adescs, tdesc, lastFeat, myVisitedTets);
+         TetDesc tbest = null;
+         double bestLen = 0;
+         if (myDebug > 0) {
+            System.out.println (
+               "checking "+ntets+" adjacent tets for feature " + lastFeat);
+            System.out.print ("  ");
+            for (int k=0; k<ntets; k++) {
+               System.out.print (adescs.get(k) + " ");
+            }
+            System.out.println ("");
+         }
+         // From among the adjacent tets, choose the one whose tet/plane
+         // intersection intersects the ray over the longest length.
+         for (int k=0; k<ntets; k++) {
+            TetDesc adesc = adescs.get(k);
+            double[] irng =
+               new double[] { 0, Double.MAX_VALUE };
+            adesc.clipLineSegment (irng, p0Quad, dirQuad);
+            double ilen = irng[1]-irng[0];
+            if (myDebug > 0) {
+               System.out.println ("    ilen=" + ilen);
+            }
+            if (ilen > bestLen) {
+               bestLen = ilen;
+               tbest = adesc;
+               srng[0] = irng[0];
+               srng[1] = irng[1];
+            }
+         }
+         if (tbest == null) {
+            if (myDebug > 0) {
+               System.out.println (
+                  "Not found: no adjacent tets intersect the ray");
+            }
+            return null;
+         }
+         else {
+            px.scaledAdd (srng[1], dir, p0);
+            //lastFeat = ibest.getFeature (bestS, bestEdgeIdx);
+            lastFeat = findNearestFeature (tbest, px, 1e-10);
+            tdesc = tbest;
+            myVisitedTets.add (tdesc);
+         }
+      }
+      myGrid.myQuadGridToLocal.transformPnt (ps, ps);
+      return tdesc;
+   }
+
    public boolean findQuadSurfaceIntersection (
       Point3d pi, Point3d p0, Point3d pa, Vector3d nrm) {
 
@@ -1120,110 +1295,23 @@ public class DistanceGridSurfCalc {
       
       // project paLoc onto the plane
       planeLoc.project (paLoc, paLoc);
-
-      // Dynamic array to store tet/plane intersections
-      ArrayList<TetPlaneIntersection> isects =
-         new ArrayList<TetPlaneIntersection>();
-      isects.add (new TetPlaneIntersection()); // will need at least one
-
-      // temporary storage for computed tet vertex coordinates
-      Point3d[] vpnts = new Point3d[] {
-         new Point3d(), new Point3d(), new Point3d(), new Point3d() };      
-
-      int icnt = 0;
-      int maxIters = 2;
-      int code = NONE;
-      TetDesc tdesc = null;
-      TanSearchInfo sinfo = new TanSearchInfo();
-      int sgnDotGrad = 0;
-      Point3d ps = new Point3d(p0Loc);
-
       Vector3d dirLoc = new Vector3d();
       dirLoc.sub (paLoc, p0Loc);
       if (dirLoc.normSquared() == 0) {
          return false;
       }
       dirLoc.normalize();
-      
-      Vector3i vxyz = new Vector3i();
-      Vector3d xyz = new Vector3d();
-      if (myGrid.getQuadCellCoords (
-         xyz, vxyz, p0Loc, myGrid.myQuadGridToLocal) == -1) {
-         // shouldn't happen - grid should have enough margin to prevent this
+
+      Point3d psLoc = new Point3d();
+      TetDesc tdesc = 
+         findQuadSurfaceIntersectionLoc (psLoc, p0Loc, dirLoc);
+      if (tdesc == null) {
          return false;
       }
-      tdesc =
-         new TetDesc (vxyz, TetID.findSubTet (xyz.x, xyz.y, xyz.z));      
-      getVertexCoords (vpnts, tdesc);
-      TetPlaneIntersection isect = isects.get(0);
-      if (!intersectTetAndPlane (isect, tdesc, vpnts, planeLoc)) {
-         // shouldn't happen - p0 should be on the plane
-         return false;
+      else {
+         myGrid.myLocalToWorld.transformPnt (pi, psLoc);
+         return true;
       }
-
-      PlaneType planeType = null;
-      Vector3d nrmCell = new Vector3d();
-      myGrid.myGridToLocal.inverseTransformCovec (nrmCell, planeLoc.normal);
-      nrmCell.normalize();
-      //transformNormalToCell (nrmCell, planeLoc.normal);
-      switch (nrmCell.maxAbsIndex()) {
-         case 0: planeType = PlaneType.YZ; break;
-         case 1: planeType = PlaneType.ZX; break;
-         case 2: planeType = PlaneType.XY; break;
-      }
-      int planeSgn = (nrmCell.get(nrmCell.maxAbsIndex()) > 0 ? 1 : -1);
-
-      double[] srng = new double[] { -Double.MAX_VALUE, Double.MAX_VALUE };
-      DoubleHolder edgeS = new DoubleHolder();
-      int edgeIdx = isect.intersectRay (
-         srng, edgeS, p0Loc, dirLoc, planeType, planeSgn);
-      if (edgeIdx == -1) {
-         // shouldn't happen - p0 should be in the tet
-         return false;
-      }
-      TetFeature lastFeat = isect.getFeature (edgeS.value, edgeIdx);
-
-      HashSet<TetDesc> visitedTets = new HashSet<TetDesc>();
-      visitedTets.add (tdesc);
-      
-      while (findSurfaceIntersectionInTet (
-                pi, isect, srng, p0Loc, dirLoc, planeLoc) == CONTINUE) {
-          int ntets = getFeatureAdjacentTets (
-             isects, tdesc, lastFeat, planeLoc, visitedTets);
-          TetPlaneIntersection ibest = null;
-          double bestLen = 0;
-          int bestEdgeIdx = -1;
-          double bestS = -1;          
-          for (int k=0; k<ntets; k++) {
-             isect = isects.get(k);
-             double[] irng =
-                new double[] { -Double.MAX_VALUE, Double.MAX_VALUE };
-             edgeIdx = isect.intersectRay (
-                irng, edgeS, p0Loc, dirLoc, planeType, planeSgn);
-             if (edgeIdx != -1) {
-                double ilen = irng[1]-irng[0];
-                if (ilen > bestLen) {
-                   bestLen = ilen;
-                   ibest = isect;
-                   bestEdgeIdx = edgeIdx;
-                   bestS = edgeS.value;
-                   srng[0] = irng[0];
-                   srng[1] = irng[1];
-                }
-             }
-          }
-          if (bestEdgeIdx == -1) {
-             return false;
-          }
-          else {
-             lastFeat = ibest.getFeature (bestS, bestEdgeIdx);
-             isect = ibest;
-             tdesc = isect.myTetDesc;
-             visitedTets.add (tdesc);
-          }
-      }
-      myGrid.myLocalToWorld.transformPnt (pi, pi);
-      return true;
    }
 
     private int intersectSurfaceAndRay (
@@ -1244,33 +1332,59 @@ public class DistanceGridSurfCalc {
    private final int CONTINUE = 1;
    private final int DONE = 2;
 
+   /**
+    * See if the ray (p0, dir) intersects the quadratic surface of a specific
+    * tet/plane intersection (isect) within the interval defined by [srng[0],
+    * srng[1]]. If it does, place the intersection point in pi and return
+    * DONE. Otherwise, return CONTINUE.
+    */
    int findSurfaceIntersectionInTet (
-      Point3d pi, TetPlaneIntersection isect,
-      double[] srng, Point3d p0, Vector3d dir, Plane plane) {
+      Point3d pi, TetDesc tdesc,
+      double[] srng, Point3d p0, Vector3d dir) {
 
       if (srng[0] >= srng[1]) {
          return CONTINUE;
       }
 
-      double[] c = new double[10];
-      TetDesc tdesc = isect.myTetDesc;
-      myGrid.computeQuadCoefs (c, tdesc);         
+      // compute the coeficients c that describe the surface within the tet,
+      // and use these to compute the coeficients c that describe the surface
+      // curve within the plane
+      double[] a = new double[10];
+      myGrid.computeQuadCoefs (a, tdesc);         
 
-      Point3d p0Cell = new Point3d();
-      transformToQuadCell (p0Cell, p0, tdesc);
-      Vector3d dirCell = new Vector3d();
-      transformToQuadCell (dirCell, dir, tdesc);
-      Plane planeCell = new Plane();
-      transformToQuadCell (planeCell, plane, tdesc);
-
-      double[] b = new double[6];
-      Vector3d r = new Vector3d();
-      PlaneType planeType = computeBCoefs (b, r, c, planeCell);
+      double px = p0.x-tdesc.myCXi;
+      double py = p0.y-tdesc.myCYj;
+      double pz = p0.z-tdesc.myCZk;
       
-      double s = findSurfaceIntersectionCell (
-         tdesc, b, planeType, srng, p0Cell, dirCell);
-      if (s != -1) {
-         pi.scaledAdd (s, dir, p0);
+      double dx = dir.x;
+      double dy = dir.y;
+      double dz = dir.z;
+
+      double aa = (a[0]*dx*dx + a[1]*dy*dy + a[2]*dz*dz +
+                   a[3]*dy*dz + a[4]*dx*dz + a[5]*dx*dy);
+      double bb = (2*(a[0]*px*dx + a[1]*py*dy + a[2]*pz*dz) +
+                   a[3]*(py*dz+pz*dy) + a[4]*(px*dz+pz*dx) + a[5]*(px*dy+py*dx) +
+                   a[6]*dx + a[7]*dy + a[8]*dz);
+      double cc = (a[0]*px*px + a[1]*py*py + a[2]*pz*pz + a[3]*py*pz +
+                   a[4]*px*pz + a[5]*px*py + a[6]*px + a[7]*py + a[8]*pz + a[9]);
+
+      double[] roots = new double[2];
+      int nr = QuadraticSolver.getRoots (roots, aa, bb, cc, srng[0], srng[1]);
+      if (nr > 0) {
+         // always take the value nearest to p0
+         pi.scaledAdd (roots[0], dir, p0);
+
+         if (myDebug > 0) {
+            px = pi.x-tdesc.myCXi;
+            py = pi.y-tdesc.myCYj;
+            pz = pi.z-tdesc.myCZk;
+            double phi = (
+               a[0]*px*px + a[1]*py*py + a[2]*pz*pz +
+               a[3]*py*pz + a[4]*pz*px + a[5]*px*py +
+               a[6]*px + a[7]*py + a[8]*pz + a[9]);
+            System.out.println (
+               "   sx=" + roots[0] + " nr=" + nr + " phi=" + phi);
+         }
          return DONE;
       }
       else {
@@ -1286,10 +1400,15 @@ public class DistanceGridSurfCalc {
       TetDesc tdesc = isect.myTetDesc;
       myGrid.computeQuadCoefs (c, tdesc);         
 
-      //System.out.println ("  checking " + tdesc); 
 
       Point3d paCell = new Point3d();
       transformToQuadCell (paCell, pa, tdesc);
+
+      if (myDebug > 0) {
+         System.out.println ("  checking for tangent in " + tdesc); 
+         System.out.println ("  pa=" + pa);
+      }
+
       Plane planeCell = new Plane();
       transformToQuadCell (planeCell, plane, tdesc);
       double[] b = new double[6];
@@ -1310,6 +1429,10 @@ public class DistanceGridSurfCalc {
          if (newSgnDotGrad*sgnDotGrad < 0) {
             // sign change, so accept pold
             pt.set (pold);
+            if (myDebug > 0) {
+               System.out.println (
+                  "    grad direction change; using entry point"); 
+            }
             return DONE;
          }
       }
@@ -1336,6 +1459,10 @@ public class DistanceGridSurfCalc {
          int bestEdgeIdx = -1; // index of edge containing the best next point
          double bestDistToA = -1; 
          double bestS = -1; 
+         if (myDebug > 0) {
+            System.out.println (
+               "    isect=" + isect.myTetDesc + " numSides=" + isect.myNumSides);
+         }
          for (int i=0; i<isect.myNumSides; i++) {
             pl1 = i<isect.myNumSides-1 ? ip[i+1] : ip[0];
             transformToQuadCell (pc1, pl1, tdesc);
@@ -1358,6 +1485,12 @@ public class DistanceGridSurfCalc {
                   break;
                }
             }
+            if (myDebug > 0) {
+               System.out.println (
+                  "    nr=" + nr +
+                  " pc0=" + pc0.toString("%10.5f") +
+                  " pc1=" + pc1.toString("%10.5f"));
+            }
             if (nr > 0) {
                Point3d pi = new Point3d();
                Vector3d grad = new Vector3d();
@@ -1373,12 +1506,18 @@ public class DistanceGridSurfCalc {
                   dela0.sub (pi, pa);
                   if (pold != null &&
                       pi.distance (pold) <= myGrid.getRadius()*EPS) {
+                     if (myDebug > 0) {
+                        System.out.println ("      same as initial point");
+                     }
                      // same as initial point, ignore
                      continue;
                   }
                   if (dela0.dot(grad)*sgnDotGrad < 0) {
                      // tangent direction switched sides; can't
                      // be part of the same curve section, ignore
+                     if (myDebug > 0) {
+                        System.out.println ("      tangent dir switched sides");
+                     }
                      continue;
                   }
                   double distToA = pa.distance (pi);
@@ -1391,6 +1530,10 @@ public class DistanceGridSurfCalc {
                      bestDistToA = distToA;
                      bestS = svals[j];
                      sinfo.lastGrad.set (grad);
+                     if (myDebug > 0) {
+                        System.out.println (
+                           "      best edge, bestS=" + bestS);
+                     }
                      pt.set (pi);
                   }
                }
@@ -1400,8 +1543,8 @@ public class DistanceGridSurfCalc {
          }
          if (bestEdgeIdx != -1) {
             // need to find the feature associated with this point
-            sinfo.lastFeat = isect.getFeature (bestS, bestEdgeIdx);
-            //System.out.println ("setting feat=" + sinfo.lastFeat);
+            //sinfo.lastFeat = isect.getFeature (bestS, bestEdgeIdx);
+            sinfo.lastFeat = findNearestFeature (isect.myTetDesc, pt, 1e-10);
             return CONTINUE;
          }
          else {
@@ -1411,10 +1554,9 @@ public class DistanceGridSurfCalc {
    }
 
    protected int getFeatureAdjacentTets (
-      ArrayList<TetPlaneIntersection> isects, 
       TetDesc tdesc, TetFeature feat, Plane plane,
       HashSet<TetDesc> visited) {
-      
+
       createConnectivityIfNecessary();
 
       Point3d[] vpnts = new Point3d[] {
@@ -1424,17 +1566,64 @@ public class DistanceGridSurfCalc {
          TetDesc adjDesc = myFaceTets.get((TetFace)feat);
          TetDesc adesc = new TetDesc(adjDesc);
          adesc.addOffset (tdesc);
-         if (myGrid.inRange(adesc) && !visited.contains(adesc)) {
+         if (myGrid.inRange(adesc) &&
+             (visited == null || !visited.contains(adesc))) {
             getVertexCoords (vpnts, adesc);
-            if (isects.size() == 0) {
-               isects.add (new TetPlaneIntersection());
-            }
-            TetPlaneIntersection isect = isects.get(0);
+            TetPlaneIntersection isect = getIsect(0);
             if (intersectTetAndPlane (isect, adesc, vpnts, plane)) {
                return 1;
             }
          }
          return 0;
+      }
+      else {
+         TetDesc[] adjDescs = null;
+         if (feat instanceof TetNode) {
+            adjDescs = myNodeTets.get(((TetNode)feat).getNode());
+         }
+         else { // feat instanceof TetEdge 
+            adjDescs = myEdgeTets.get((TetEdge)feat);
+         }
+         int numi = 0;
+         for (int i=0; i<adjDescs.length; i++) {
+            TetDesc adesc = new TetDesc(adjDescs[i]);
+            adesc.addOffset (tdesc);
+            if (myGrid.inRange(adesc) &&
+                (visited == null || !visited.contains(adesc))) {
+               // for node-adjacent tets, only allow those whose quad hex is
+               // different from that of tdesc
+               if ((feat instanceof TetNode && !adesc.cellEquals(tdesc)) ||
+                   (feat instanceof TetEdge && !adesc.equals(tdesc))) {
+                  getVertexCoords (vpnts, adesc);
+                  TetPlaneIntersection isect = getIsect(numi);
+                  if (intersectTetAndPlane (isect, adesc, vpnts, plane)) {
+                     numi++;
+                  }
+               }
+            }
+         }
+         return numi;
+      }
+   }
+
+   protected int getFeatureAdjacentTets (
+      ArrayList<TetDesc> adescs, TetDesc tdesc, TetFeature feat,
+      HashSet<TetDesc> visited) {
+      
+      createConnectivityIfNecessary();
+
+      if (feat instanceof TetFace) {
+         TetDesc adjDesc = myFaceTets.get((TetFace)feat);
+         TetDesc adesc = new TetDesc(adjDesc);
+         adesc.addOffset (tdesc);
+         if (myGrid.inRange(adesc) && 
+             (visited == null || !visited.contains(adesc))) {
+            adescs.add (adesc);
+            return 1;
+         }
+         else {
+            return 0;
+         }
       }
       else {
          TetDesc[] adjDescs = null;
@@ -1448,19 +1637,14 @@ public class DistanceGridSurfCalc {
          for (int i=0; i<adjDescs.length; i++) {
             TetDesc adesc = new TetDesc(adjDescs[i]);
             adesc.addOffset (tdesc);
-            if (myGrid.inRange(adesc) && !visited.contains(adesc)) {
+            if (myGrid.inRange(adesc) && 
+                (visited == null || !visited.contains(adesc))) {
                // for node-adjacent tets, only allow those whose quad hex is
                // different from that of tdesc
                if ((feat instanceof TetNode && !adesc.cellEquals(tdesc)) ||
                    (feat instanceof TetEdge && !adesc.equals(tdesc))) {
-                  getVertexCoords (vpnts, adesc);
-                  if (isects.size() == numi) {
-                     isects.add (new TetPlaneIntersection());
-                  }
-                  TetPlaneIntersection isect = isects.get(numi);
-                  if (intersectTetAndPlane (isect, adesc, vpnts, plane)) {
-                     numi++;
-                  }
+                  adescs.add (adesc);
+                  numi++;
                }
             }
          }
@@ -1549,6 +1733,9 @@ public class DistanceGridSurfCalc {
       }
    }
 
+   /**
+    * Looks for a surface tangent solution within a specific tetrahedron.
+    */
    protected boolean findSurfaceTangentCell (
       Point3d ptCell, TetDesc tdesc,
       double[] b, Vector3d r, PlaneType planeType,
@@ -1558,6 +1745,9 @@ public class DistanceGridSurfCalc {
       Vector2d[] pnts = new Vector2d[] { new Vector2d(), new Vector2d() };
 
       double x = 0, y = 0, z = 0;
+      // EPS allows the potential solution to be slightly outside the tet,
+      // to accomodate numeric errors
+      double EPS = 1e-12;
 
       switch (planeType) {
          case YZ: {
@@ -1566,7 +1756,10 @@ public class DistanceGridSurfCalc {
                y = pnts[i].x;
                z = pnts[i].y;
                x = r.z - r.x*y - r.y*z;
-               if (tdesc.myTetId.isInside (x, y, z)) {
+               if (myDebug > 0) {
+                  System.out.println ("      x,y,z=" + x + " " + y + " " + z);
+               }
+               if (tdesc.myTetId.isInside (x, y, z, EPS)) {
                   ptCell.set (x, y, z);
                   return true;
                }
@@ -1579,7 +1772,7 @@ public class DistanceGridSurfCalc {
                z = pnts[i].x;
                x = pnts[i].y;
                y = r.z - r.x*z - r.y*x;
-               if (tdesc.myTetId.isInside (x, y, z)) {
+               if (tdesc.myTetId.isInside (x, y, z, EPS)) {
                   ptCell.set (x, y, z);
                   return true;
                }
@@ -1592,7 +1785,7 @@ public class DistanceGridSurfCalc {
                x = pnts[i].x;
                y = pnts[i].y;
                z = r.z - r.x*x - r.y*y;
-               if (tdesc.myTetId.isInside (x, y, z)) {
+               if (tdesc.myTetId.isInside (x, y, z, EPS)) {
                   ptCell.set (x, y, z);
                   return true;
                }
@@ -1603,6 +1796,13 @@ public class DistanceGridSurfCalc {
       return false;
    }
 
+   /**
+    * Intersect a ray (pc, dc) (in quad cell coordinates) with a quadratic
+    * surface curve. If the ray intersects the curve at some point s within the
+    * interval (srng[0], srng[1]), return the resulting s value. If there
+    * are multiple intersections, return the one nearest to the ray
+    * origin. If there is no intersection, return -1.
+    */
    protected double findSurfaceIntersectionCell (
       TetDesc tdesc,
       double[] b, PlaneType planeType,
@@ -1610,8 +1810,6 @@ public class DistanceGridSurfCalc {
       // XXX convert normal, off, and pa to tet coordinates
 
       double[] svals = new double[2];
-      double smax = Double.MAX_VALUE;
-      double x = 0, y = 0, z = 0;
 
       int nr = 0;
       switch (planeType) {
@@ -1639,16 +1837,6 @@ public class DistanceGridSurfCalc {
          return -1;
       }
    }
-
-   // public void transformNormalToCell (Vector3d nc, Vector3d nl) {
-   //    if (nc != nl) {
-   //       nc.set (nl);
-   //    }
-   //    nc.x *= myGrid.myCellWidths.x;
-   //    nc.y *= myGrid.myCellWidths.y;
-   //    nc.z *= myGrid.myCellWidths.z;
-   //    nc.normalize();
-   // }
 
    // for debugging
    private double computePerp (
@@ -1691,10 +1879,6 @@ public class DistanceGridSurfCalc {
       pc.x = pc.x-tdesc.myCXi;
       pc.y = pc.y-tdesc.myCYj;
       pc.z = pc.z-tdesc.myCZk;     
-//      myGrid.myGridToLocal.inverseTransformPnt (pc, pl); 
-//      pc.x = 0.5*(pc.x-tdesc.myXi);
-//      pc.y = 0.5*(pc.y-tdesc.myYj);
-//      pc.z = 0.5*(pc.z-tdesc.myZk);
    }
 
    public void transformToQuadCell (Vector3d vc, Vector3d v1, TetDesc tdesc) {
@@ -1706,8 +1890,6 @@ public class DistanceGridSurfCalc {
       Point3d pl, double x, double y, double z, TetDesc tdesc) {
 
       // transform to regular grid coords, then transform to local coords
-//      pl.set (tdesc.myXi+2*x, tdesc.myYj+2*y, tdesc.myZk+2*z);
-//      myGrid.myGridToLocal.transformPnt (pl, pl);
       pl.set (tdesc.myCXi+x, tdesc.myCYj+y, tdesc.myCZk+z);
       myGrid.myQuadGridToLocal.transformPnt (pl, pl);
    }
@@ -1726,20 +1908,6 @@ public class DistanceGridSurfCalc {
       // transform ref point to quad cell to recompute the offset
       transformToQuadCell (p, p, tdesc);
       pc.offset = p.dot(pc.normal);
-//      if (pc != pl) {
-//         pc.set (pl);
-//      }
-//      Point3d pbase = new Point3d(tdesc.myXi, tdesc.myYj, tdesc.myZk);
-//      myGrid.myGridToLocal.transformPnt (pbase, pbase);
-//      pc.offset -= pc.normal.dot (pbase);
-//      //myGrid.myGridToLocal.inverseTransformNormal (pc.normal, pc.normal);
-//      pc.normal.x *= (2*myGrid.myCellWidths.x);
-//      pc.normal.y *= (2*myGrid.myCellWidths.y);
-//      pc.normal.z *= (2*myGrid.myCellWidths.z);
-//      // normalize
-//      double mag = pc.normal.norm();
-//      pc.normal.scale (1/mag);
-//      pc.offset /= mag;         
    }
 
    private void transformFromGrid (
@@ -1747,6 +1915,10 @@ public class DistanceGridSurfCalc {
       myGrid.myGridToLocal.transformPnt (ploc, new Point3d(x, y, z));
    }
 
+   /**
+    * Compute the locations (in local coordinates) of the nodes of the
+    * indicated tet.
+    */
    public void getVertexCoords (Point3d[] v, TetDesc tdesc) {
       double xi = 2*tdesc.myCXi;
       double yj = 2*tdesc.myCYj;
@@ -1767,6 +1939,14 @@ public class DistanceGridSurfCalc {
 
       calc.createConnectivity();
       calc.printConnectivity();
+   }
+
+   public int getDebug () {
+      return myDebug;
+   }
+
+   public void setDebug (int level) {
+      myDebug = level;
    }
 
 }

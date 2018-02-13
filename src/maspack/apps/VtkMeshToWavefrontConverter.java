@@ -22,7 +22,7 @@ public class VtkMeshToWavefrontConverter {
    public static NumberFormat DEFAULT_NUMBER_FORMAT = new NumberFormat("%.8g");
 
    public static void convert(String input, String output) {
-      convert(input, output, DEFAULT_NUMBER_FORMAT);
+      convert(input, output, new NumberFormat(DEFAULT_NUMBER_FORMAT));
    }
 
    public static void convert(String input, String output, NumberFormat fmt) {

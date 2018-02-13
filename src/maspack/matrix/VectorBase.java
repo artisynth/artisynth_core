@@ -420,7 +420,7 @@ public abstract class VectorBase implements Vector {
     * @see #toString(String)
     */
    public String toString() {
-      return toString (myDefaultFmt);
+      return toString (new NumberFormat(myDefaultFmt));
    }
 
    /**

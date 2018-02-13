@@ -318,7 +318,7 @@ public abstract class VectoriBase implements Vectori {
     * @see #toString(String)
     */
    public String toString() {
-      return toString (myDefaultFmt);
+      return toString (new NumberFormat(myDefaultFmt));
    }
 
    /**
@@ -335,7 +335,18 @@ public abstract class VectoriBase implements Vectori {
       StringBuffer buf = new StringBuffer (20 * size());
       int size = size();
       for (int i = 0; i < size; i++) {
-         buf.append (fmt.format (get (i)));
+         // debugging added because of race condition in widget
+         String str = null;
+         try {
+            str = fmt.format (get (i));
+         }
+         catch (Exception e) {
+            System.out.println ("Vector3i.toString() failed");
+            System.out.println (e.getMessage());
+            System.out.println ("fmt=" + fmt + " i=" + " get(i)=" + get(i));
+            str = "0";
+         }
+         buf.append (str);
          if (i < size - 1) {
             buf.append (' ');
          }

@@ -17,6 +17,7 @@ import java.io.PrintWriter;
  * A set of static methods to help write values to a PrintWriter.
  */
 public class Write {
+
    protected static NumberFormat cfmt = new NumberFormat ("%5.3f");
 
    public static void writeColor (PrintWriter pw, Color color) {
@@ -42,13 +43,15 @@ public class Write {
       float b = color.getBlue() / 255f;
       float a = color.getAlpha() / 255f;
 
+      NumberFormat fmt = new NumberFormat (cfmt);
+
       if (a == 1f) {
-         pw.print ("[ " + cfmt.format (r) + " " + cfmt.format (g) + " "
-         + cfmt.format (b) + " ]");
+         pw.print ("[ " + fmt.format (r) + " " + fmt.format (g) + " "
+         + fmt.format (b) + " ]");
       }
       else {
-         pw.print ("[ " + cfmt.format (r) + " " + cfmt.format (g) + " "
-         + cfmt.format (b) + " " + cfmt.format (a) + " ]");
+         pw.print ("[ " + fmt.format (r) + " " + fmt.format (g) + " "
+         + fmt.format (b) + " " + fmt.format (a) + " ]");
       }
       if (newline) {
          pw.println ("");

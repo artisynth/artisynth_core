@@ -135,7 +135,10 @@ public class TimeBase {
       }
       System.out.println ("nsec by different computations:");
       System.out.println (nsec + " " + 0.000000001);
-      
+
+      double t0 = 200000;
+      double interval = 0.01;
+      System.out.println (t0 + interval - TimeBase.modulo (t0, interval));
    }
 
 }

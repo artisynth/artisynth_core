@@ -2,7 +2,7 @@
 
 setlocal EnableDelayedExpansion
 
-set ARGS=-updateLibs
+set ARGS=-updateLibs -remoteSource http://www.artisynth.org/files/lib
 set BATCHFILE=%~f0
 
 if not defined ARTISYNTH_HOME set ARTISYNTH_HOME=%~dp0..

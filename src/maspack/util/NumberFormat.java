@@ -927,22 +927,6 @@ public class NumberFormat {
 
    private void pad (StringBuffer sbuf, String str) {
       int padcnt = width - str.length();
-      // xbuf.setLength(0);
-      // xbuf.append (prefix);
-      // if (leftAdjust)
-      // { xbuf.append (str);
-      // for (int i=0; i<padcnt; i++)
-      // { xbuf.append (' ');
-      // }
-      // }
-      // else
-      // { for (int i=0; i<padcnt; i++)
-      // { xbuf.append (' ');
-      // }
-      // xbuf.append (str);
-      // }
-      // xbuf.append (suffix);
-      // return xbuf.toString();
       sbuf.setLength (sbuf.length() - str.length());
       sbuf.append (prefix);
       if (leftAdjust) {
@@ -1116,6 +1100,7 @@ public class NumberFormat {
    }
 
    public static String formatHex (int num) {
-      return hex.format (num);
+      NumberFormat fmt = new NumberFormat(hex);
+      return fmt.format (num);
    }
 }

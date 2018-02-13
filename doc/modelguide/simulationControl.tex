@@ -380,6 +380,7 @@ They can be any type of
 the \javaclass[artisynth.core.modelbase]{Controller} or
 \javaclass[artisynth.core.modelbase]{Monitor} interfaces.  For
 convenience, most applications simply subclass
+the default implementations
 \javaclass[artisynth.core.modelbase]{ControllerBase} or
 \javaclass[artisynth.core.modelbase]{MonitorBase} and then override
 the necessary methods.
@@ -391,6 +392,8 @@ monitors are:
   public void initialize (double t0);
 
   public void apply (double t0, double t1);
+
+  public boolean isActive();
 \end{lstlisting}
 %
 {\tt apply(t0, t1)} is the ``business'' method and is called once per
@@ -400,6 +403,24 @@ is called whenever an application model's state is set (or reset) at a
 particular time $t_0$. This occurs when a simulation is first started
 or after it is reset (with $t_0 = 0$), and also when the state is
 reset at a waypoint or during adaptive stepping.
+
+{\tt isActive()} controls whether a controller or monitor is active;
+if {\tt isActive()} returns {\tt false} then the {\tt apply()} method
+will not be called.
+The default implementations
+\javaclass[artisynth.core.modelbase]{ControllerBase} and
+\javaclass[artisynth.core.modelbase]{MonitorBase}, via their
+superclass \javaclass[artisynth.core.modelbase]{ModelAgentBase}, also
+provide a {\tt setActive()} method to control this setting, and export
+it as the property {\sf active}. This allows controller and monitor
+activity to be controlled at run time.
+
+\begin{sideblock}
+To enable or disable a controller or monitor at run time, locate it in
+the navigation panel (under the RootModel's {\sf controllers} or {\sf
+monitors} list), chose {\sf Edit properties ...} from the right-click
+context menu, and set the {\sf active} property as desired.
+\end{sideblock}
 
 Controllers and monitors may be associated with a particular model
 (among the list of models owned by the root model). This model may be
@@ -558,6 +579,25 @@ utilize either \javaclass[artisynth.core.probes]{NumericInputProbe} or
 explicitly implement streams of numeric data which are connected to
 properties of various model components.  The remainder of this section
 will focus on numeric probes.
+
+As with controllers and monitors, probes also implement a {\tt
+isActive()} method that indicates whether or not the probe is active.
+Probes that are not active are not invoked. Probes also provide a
+{\tt setActive()} method to control this setting, and export it as the
+property {\sf active}. This allows probe activity to be controlled at
+run time.
+
+\begin{sideblock}
+To enable or disable a probe at run time, locate it in the navigation
+panel (under the RootModel's {\sf inputProbes} or {\sf outputProbes}
+list), chose {\sf Edit properties ...} from the right-click context
+menu, and set the {\sf active} property as desired.
+
+Probes can also be enabled or disabled in the timeline, by either
+selecting the probe and invoking {\sf activate} or {\sf deactivate}
+from the right-click context menu, or by clicking the track {\sf mute}
+button (which activates or deactivates all probes on that track).
+\end{sideblock}
 
 \subsection{Numeric probe structure}
 \label{NumericProbeStructure:sec}

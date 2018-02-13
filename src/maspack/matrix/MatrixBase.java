@@ -439,7 +439,7 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
     * @see #toString(String)
     */
    public String toString() {
-      return toString (myDefaultFmt);
+      return toString (new NumberFormat(myDefaultFmt));
    }
 
    public String idString() {

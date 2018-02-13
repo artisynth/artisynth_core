@@ -358,6 +358,137 @@ public class QuadraticUtils {
    }
 
    /**
+    * Find the point <code>pt</code> on an axis-aligned ellipsoid that
+    * is tangent to the line <code>pa</code>-<code>pt</code>, lies
+    * in the plane defined by <code>p0</code> and <code>nrm</code>,
+    * and is nearest to <code>p0</code>.
+    *
+    * <p>The method works by projecting the ellipsoid into either YZ, ZX, or XY
+    * planes, depending on which is closest to the plane in question, and then
+    * finding the tangent points for the associated ellipse.
+    */
+   public static boolean ellipsoidSurfaceTangentInPlane (
+      Point3d pt, Point3d pa, Point3d p0, Vector3d nrm,
+      double a, double b, double c) {
+
+      // quadratic coefficents for ellispod
+      double a0 = 1/(a*a);
+      double a1 = 1/(b*b);
+      double a2 = 1/(c*c);
+      double a9 = -1;
+
+      // Start by seeing if pa is inside the ellipsoid. If it is, just set pa
+      // to the surface projection of pa and return.
+      double adist = a0*pa.x*pa.x + a1*pa.y*pa.y + a2*pa.z*pa.z;
+      if (adist <= 1) {
+         Vector3d cnrm = new Vector3d();
+         double d = ellipsoidPenetrationDistance (cnrm, pa, a, b, c, 1.0);
+         pt.scaledAdd (-d, cnrm, pa);
+         return true;
+      }
+
+      // compute offset for (p0, nrm) plane
+      double off = nrm.dot(p0);
+      double[] bc = new double[6];
+
+      Vector2d[] pnts = new Vector2d[] { new Vector2d(), new Vector2d() };
+      Point3d[] tans = new Point3d[] { new Point3d(), new Point3d() };
+
+      int nr = 0;
+      switch (nrm.maxAbsIndex()) {
+         case 0: {
+            // YZ plane
+            double rx = nrm.y/nrm.x;
+            double ry = nrm.z/nrm.x;
+            double rz = off/nrm.x;
+
+            bc[0] = a1 + a0*rx*rx;
+            bc[1] = a2 + a0*ry*ry;
+            bc[2] = 2*a0*rx*ry;
+            bc[3] = - 2*a0*rz*rx;
+            bc[4] = - 2*a0*rz*ry;
+            bc[5] = a9 + a0*rz*rz;
+
+            nr = DistanceGridSurfCalc.findTangentPoints (pnts, bc, pa.y, pa.z);
+            for (int i=0; i<nr; i++) {
+               double y = pnts[i].x;
+               double z = pnts[i].y;
+               double x = rz - rx*y - ry*z;
+               tans[i].set (x, y, z);
+            }
+            break;
+         }
+         case 1: {
+            // ZX plane
+            double rx = nrm.z/nrm.y;
+            double ry = nrm.x/nrm.y;
+            double rz = off/nrm.y;
+
+            bc[0] = a2 + a1*rx*rx;
+            bc[1] = a0 + a1*ry*ry;
+            bc[2] = 2*a1*rx*ry;
+            bc[3] = - 2*a1*rz*rx;
+            bc[4] = - 2*a1*rz*ry;
+            bc[5] = a9 + a1*rz*rz;
+
+            nr = DistanceGridSurfCalc.findTangentPoints (pnts, bc, pa.z, pa.x);
+            for (int i=0; i<nr; i++) {
+               double z = pnts[i].x;
+               double x = pnts[i].y;
+               double y = rz - rx*z - ry*x;
+               tans[i].set (x, y, z);
+            }
+            break;
+         }
+         case 2: {
+            // XY plane
+            double rx = nrm.x/nrm.z;
+            double ry = nrm.y/nrm.z;
+            double rz = off/nrm.z;
+
+            bc[0] = a0 + a2*rx*rx;
+            bc[1] = a1 + a2*ry*ry;
+            bc[2] = 2*a2*rx*ry;
+            bc[3] = - 2*a2*rz*rx;
+            bc[4] = - 2*a2*rz*ry;
+            bc[5] = a9+ a2*rz*rz;
+
+            nr = DistanceGridSurfCalc.findTangentPoints (pnts, bc, pa.x, pa.y);
+            for (int i=0; i<nr; i++) {
+               double x = pnts[i].x;
+               double y = pnts[i].y;
+               double z = rz - rx*x - ry*y;
+               tans[i].set (x, y, z);
+            }
+            break;
+         }
+         default: {
+            throw new InternalErrorException (
+               "Vector3d.maxAbsIndex() returned value "+nrm.maxAbsIndex());
+         }
+      }
+      if (nr == 2) {
+         // if there are two tangent points, take the nearest to p0
+         if (tans[0].distance(p0) < tans[1].distance(p0)) {
+            pt.set (tans[0]);
+         }
+         else {
+            pt.set (tans[1]);
+         }
+         return true;
+      }
+      else if (nr == 1) {
+         pt.set (tans[0]);
+         return true;
+      }
+      else {
+         // if no tangents computed, use p0 as a fall back and return false
+         pt.set (p0);
+         return false;
+      }
+   }
+
+   /**
     * Function evaluator for a one-dimensional Newton-based root
     * solver. 
     */

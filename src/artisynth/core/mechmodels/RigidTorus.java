@@ -240,22 +240,27 @@ public class RigidTorus extends RigidBody implements Wrappable {
 
       Point3d p = new Point3d();
 
-      // set initial root bracket to [lam0, 1]
-      double hi = 1.0;
-      double lo = lam0;
+      // set initial root bracket to [0.5, 1.5]
+      double hi = 1.5;
+      double lo = 0.5;
       double fhi = computeF (nrm, null, paLoc, del, hi);
       double flo = computeF (nrm, null, paLoc, del, lo);
       // if f(lam) == 0 is not bracketed, increase the bracket if necessary
-      if (fhi*flo > 0) {
-         double slope = (fhi-flo)/(hi-lo);
+      int iter = 0;
+      int maxIter = 3;
+      while (fhi*flo > 0 && iter < maxIter) {
+         //double slope = (fhi-flo)/(hi-lo);
          if (Math.abs(fhi) > Math.abs(flo)) {
-            lo -= 2*flo/slope;
+            lo *= 0.5*lo;
+            //lo -= 2*flo/slope;
             flo = computeF (nrm, null, paLoc, del, lo);
          }
          else {
-            hi -= 2*fhi/slope;
+            hi += 0.5;
+            //hi -= 2*fhi/slope;
             fhi = computeF (nrm, null, paLoc, del, hi);
          }
+         iter++;
       }
       double lam;
       // compute tolerance for finding the root
@@ -265,8 +270,7 @@ public class RigidTorus extends RigidBody implements Wrappable {
          // find root within interval. Start looking with lam at the center
          lam = (hi+lo)/2;
 
-         int iter;
-         int maxIter = 50;
+         maxIter = 50;
          double f = 0;
 
          for (iter=0; iter<maxIter; iter++) {
@@ -410,6 +414,13 @@ public class RigidTorus extends RigidBody implements Wrappable {
       return d;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public double getCharacteristicRadius() {
+      return myInnerRadius;
+   }
+   
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 

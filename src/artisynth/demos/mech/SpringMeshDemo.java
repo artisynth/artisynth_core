@@ -269,7 +269,8 @@ public class SpringMeshDemo extends RootModel {
          NumericInputProbe inprobe =
             new NumericInputProbe (
                mech, "particles/pnt0:targetPosition",
-               ArtisynthPath.getSrcRelativePath (SpringMeshDemo.class, "springMeshIn.txt"));         // inprobe.setDefaultDisplayRange (-10, 10);
+               ArtisynthPath.getSrcRelativePath (
+                  SpringMeshDemo.class, "springMeshIn.txt"));         // inprobe.setDefaultDisplayRange (-10, 10);
          inprobe.setStopTime (10);
 
 //          NumericInputProbe inprobe =

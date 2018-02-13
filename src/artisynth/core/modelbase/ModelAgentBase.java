@@ -10,6 +10,7 @@ import java.io.*;
 import java.util.Deque;
 
 import maspack.util.*;
+import maspack.properties.*;
 import artisynth.core.util.*;
 
 /**
@@ -19,6 +20,29 @@ public abstract class ModelAgentBase extends ModelComponentBase
    implements ModelAgent {
 
    protected Model myModel;
+   
+   protected static boolean defaultActiveP = true;
+   protected boolean myActiveP = defaultActiveP;
+   
+   public static PropertyList myProps =
+      new PropertyList (ModelAgentBase.class, ModelComponentBase.class);
+
+   static {
+      myProps.add (
+         "active isActive *", "true if this probe is active", defaultActiveP);
+   }
+   
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
+   
+   public boolean isActive() {
+      return myActiveP;
+   }
+   
+   public void setActive (boolean enable) {
+      myActiveP = enable;
+   }
 
    public void initialize(double t) {
    }
@@ -49,7 +73,11 @@ public abstract class ModelAgentBase extends ModelComponentBase
    }
    
    public void setModel (Model model) {
-      myModel = model;
+      if (model != myModel) {
+         myModel = model;
+         notifyParentOfChange (
+            new StructureChangeEvent (this, /*stateIsChanged=*/false));
+      }
    }
 
    public Model getModel() {

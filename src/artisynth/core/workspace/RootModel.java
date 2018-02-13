@@ -1484,7 +1484,9 @@ public class RootModel extends RenderableModelBase
       List<Controller> list, double t0, double t1) {
 
       for (Controller c : list) {
-         c.apply (t0, t1);
+         if (c.isActive()) {
+            c.apply (t0, t1);
+         }
       }
    }
 
@@ -1492,7 +1494,9 @@ public class RootModel extends RenderableModelBase
       List<Monitor> list, double t0, double t1) {
 
       for (Monitor m : list) {
-         m.apply (t0, t1);
+         if (m.isActive()) {
+            m.apply (t0, t1);
+         }
       }
    }
 

@@ -790,12 +790,10 @@ public class FemModel3d extends FemModel
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
       IntegrationData3d[] idata = e.getIntegrationData();
       FemNode3d[] nodes = e.getNodes();
+      
       int npvals = e.numPressureVals();
       double pressure = 0; // pressure for incompressibility
-      double vol = 0;
-      double restVol = 0;
       IncompressibleMaterial imat = null;
-      Vector3d[] avgGNx = null;
       MatrixBlock[] constraints = null;
       double[] nodalExtrapMat = null;
       SymmetricMatrix3d C = new SymmetricMatrix3d();
@@ -838,7 +836,6 @@ public class FemModel3d extends FemModel
       }
 
       e.setInverted(false); // will check this below
-      vol = e.getVolume();
       if (mat.isIncompressible() && softIncomp != IncompMethod.NODAL) {
          imat = (IncompressibleMaterial)mat;
          if (softIncomp == IncompMethod.ELEMENT) {
@@ -850,7 +847,6 @@ public class FemModel3d extends FemModel
                   constraints[i].setZero();
                }
             }
-            restVol = e.getRestVolume();
          }
       }
       else if (softIncomp == IncompMethod.NODAL) {

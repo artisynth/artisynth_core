@@ -3,6 +3,18 @@ package maspack.geometry;
 import maspack.matrix.*;
 import maspack.util.*;
 
+/**
+ * This class is intended to test the computation of prinicpal curvatures and
+ * radii for ellipsoids, based on the first and second fundamental forms.
+ *
+ * <p> For computing the fundamental forms of ellipsoid, see
+ *  http://mathworld.wolfram.com/Ellipsoid.html.
+ *
+ * For details on how to use these to compute the principal directions and
+ * radii, see Basics of the Differential Geometry of Surfaces, by Gallier,
+ * http://www.cis.upenn.edu/~cis610/gma-v2-chap20.pdf, and Curvature of
+ * ellipsoids and other surfaces, by W.F. Harris (2006).
+ */
 public class EllipsoidTest {
 
    double myA;

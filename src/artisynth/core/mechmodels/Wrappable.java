@@ -54,6 +54,12 @@ public interface Wrappable extends PointAttachable {
     * point is further than some minimum distance from the wrappable.
     */
    public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0);
+
+   /**
+    * Returns a typical "radius" that should be expected for this wrappable,
+    * defined as the distance for a surface point to the center.
+    */
+   public double getCharacteristicRadius();
    
    public RigidTransform3d getPose();
 }

@@ -9,6 +9,7 @@ import maspack.util.*;
 import maspack.matrix.*;
 import maspack.properties.*;
 import maspack.spatialmotion.*;
+import maspack.render.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 
@@ -23,6 +24,7 @@ public class RigidMesh extends RigidBody implements Wrappable {
    boolean myFindNearestHorizonPoint = true;
    // int myMaxGridDivisions = 0;
    // SignedDistanceGrid mySDGrid = null;
+   String myTangentProblemFile = "tanProb.txt";
 
    public void setSmoothInterpolation (boolean smooth) {
       mySmooth = smooth;
@@ -526,6 +528,8 @@ public class RigidMesh extends RigidBody implements Wrappable {
       return true;
    }
 
+   boolean writeTanProblem = false;
+
    public void surfaceTangent (
       Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
 
@@ -533,9 +537,27 @@ public class RigidMesh extends RigidBody implements Wrappable {
       if (hasDistanceGrid()) {
 
          if (myUseQuadraticTangents) {
-            DistanceGrid grid = getDistanceGrid();            
-            if (!grid.findQuadSurfaceTangent (pr, p1, pa, sideNrm)) {
-               pr.set (p1);
+            DistanceGrid grid = getDistanceGrid();
+            boolean found = grid.findQuadSurfaceTangent (pr, p1, pa, sideNrm);
+            if (!found || writeTanProblem) {
+               if (!found) {
+                  System.out.println ("couldn't find tangent");
+               }
+               System.out.println ("p1=" + p1.toString ("%10.5f"));
+               System.out.println ("pa=" + pa.toString ("%10.5f"));
+               System.out.println ("nm=" + sideNrm.toString ("%10.5f"));
+               if (myTangentProblemFile != null) {
+                  System.out.println ("Writing problem to "+myTangentProblemFile);
+                  DistanceGridSurfCalc.TangentProblem tprob =
+                     new DistanceGridSurfCalc.TangentProblem (
+                        p1, pa, sideNrm, grid);
+                  tprob.write (myTangentProblemFile, "%g");
+               }
+               grid.setDebug (1);
+               grid.findQuadSurfaceTangent (pr, p1, pa, sideNrm);
+               grid.setDebug (0);
+               // pr will already be set to either p0 or the nearest
+               // surface poin ps
             }
             return;
          }
@@ -689,4 +711,19 @@ public class RigidMesh extends RigidBody implements Wrappable {
          return d;
       }
    }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public double getCharacteristicRadius() {
+      if (hasDistanceGrid()) {
+         DistanceGrid grid = getDistanceGrid();
+         return grid.getWidths().minElement()/2;
+      }
+      else {
+         return RenderableUtils.getRadius (this);         
+      }
+   }
+   
+
 }

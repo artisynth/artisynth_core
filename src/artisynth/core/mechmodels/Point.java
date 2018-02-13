@@ -99,6 +99,12 @@ public class Point extends DynamicComponentBase
       myState.pos.set (pnt);
    }
 
+   public Point (String name, Point3d pnt) {
+      this();
+      myState.pos.set (pnt);
+      setName (name);
+   }
+
 //   public PointState getState() {
 //      return myState;
 //   }
@@ -286,26 +292,6 @@ public class Point extends DynamicComponentBase
       x[idx++] = myState.pos.z;
       return idx;
    }
-
-   // public void scalePosition (double s) {
-   //    myState.pos.scale (s);
-   // }
-
-//   public void addPosition (double dx, double dy, double dz) {
-//      myState.pos.add (dx, dy, dz);
-//   }
-
-//   /**
-//    * Adds a scaled vector to this point's position.
-//    * 
-//    * @param s
-//    * scale factor
-//    * @param v
-//    * vector to scale and add
-//    */
-//   public void addScaledPosition (double s, Vector3d v) {
-//      myState.pos.scaledAdd (s, v);
-//   }
 
    public int setPosState (double[] p, int idx) {
       myState.pos.x = p[idx++];

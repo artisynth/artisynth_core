@@ -152,12 +152,6 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
          main.setSelectionMode (Main.SelectionMode.ConstrainedTranslate);
       else if (e.getSource() == pullButton)
          main.setSelectionMode (Main.SelectionMode.Pull);
-      // else if (e.getSource() == articulatedTransformButton) {
-      //    main.setArticulatedTransformsEnabled(
-      //       !main.getArticulatedTransformsEnabled());
-      //}
-      // else if (e.getSource() == addMarkerButton)
-      // main.setSelectionMode(Main.SelectionMode.AddComponent);
    }
 
    public void setSelectionButtons() {

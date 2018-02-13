@@ -18,4 +18,12 @@ public interface ModelAgent extends ModelComponent, HasState {
    public Model getModel();
 
    public void dispose();
+   
+   /**
+    * Returns true if this agent is active.
+    * 
+    * @return true if active
+    */
+   public boolean isActive();
+   
 }

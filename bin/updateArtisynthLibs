@@ -46,5 +46,6 @@ java -version 2 > /dev/null 2>&1
 if [ $? != "0" ] ; then 
     echo Error: Java executable not found. Please ensure that Java is in your path
     exit 1
-fi  
-java artisynth.core.driver.LibraryInstaller $ARGS
+fi
+ARGS="$ARGS -remoteSource http://www.artisynth.org/files/lib"
+java artisynth.core.driver.LibraryInstaller $ARGS 

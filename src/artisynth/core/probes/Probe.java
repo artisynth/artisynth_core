@@ -34,9 +34,6 @@ public abstract class Probe extends ModelAgentBase {
    protected double myUpdateInterval;
    protected static double defaultUpdateInterval = -1;
 
-   protected boolean myActiveP;
-   protected static boolean defaultActiveP = true;
-
    protected static final int SELECTED = 0x1;
    protected static final int MARKED = 0x2;
    protected static final int ANCESTOR_SELECTED = 0x4;
@@ -50,7 +47,7 @@ public abstract class Probe extends ModelAgentBase {
    protected int PRINT_WRITER_INDENT = 2;
 
    public static PropertyList myProps =
-      new PropertyList (Probe.class, ModelAgentBase.class);
+   new PropertyList (Probe.class, ModelAgentBase.class);
 
    static {
       //myProps.add ("name * *", "name for this probe", defaultName);
@@ -62,8 +59,6 @@ public abstract class Probe extends ModelAgentBase {
          "file attached to this probe", defaultAttachedFileName);
       myProps.add (
          "updateInterval * *", "update interval", defaultUpdateInterval, "NW");
-      myProps.add (
-         "active isActive *", "true if this probe is active", defaultActiveP);
    }
 
    protected void setDefaultValues() {
@@ -118,6 +113,10 @@ public abstract class Probe extends ModelAgentBase {
 
    public void setStopTime (double t) {
       myStopTime = t;
+   }
+
+   public double getDuration() {
+      return myStopTime - myStartTime;
    }
 
    public void setInterval (double startTime, double stopTime) {
@@ -238,14 +237,6 @@ public abstract class Probe extends ModelAgentBase {
          }
       }
       return tnext;
-   }
-
-   public boolean isActive() {
-      return myActiveP;
-   }
-
-   public void setActive (boolean active) {
-      myActiveP = active;
    }
 
    /**

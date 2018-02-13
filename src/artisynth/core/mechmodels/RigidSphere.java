@@ -156,6 +156,13 @@ public class RigidSphere extends RigidBody implements Wrappable {
       return mag - myRadius;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public double getCharacteristicRadius() {
+      return myRadius;
+   }
+   
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 

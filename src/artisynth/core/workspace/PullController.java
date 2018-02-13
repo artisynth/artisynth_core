@@ -28,14 +28,20 @@ import maspack.render.GL.GLViewer;
 import maspack.properties.*;
 import maspack.util.*;
 
+/**
+ * Controller that allows a drag motion in the GUI to exert an interactive
+ * force on certain GUI components.
+ */
 public class PullController extends ControllerBase
 implements SelectionListener, MouseInputListener {
 
    private MouseRayEvent myPullEvent = null;
    private SelectionManager mySelectionManager;
+   private double myRootRadius = 0; // current root model default radius
    private Main myMain;
 
    private double myStiffness = DEFAULT_STIFFNESS;
+   private boolean myStiffnessExplicitlySetP = false;
 
    // myComponent, myBodyPnt and myPullPos are shared between the GUI thread
    // (where they are set from mouse and select actions) and the scheduler
@@ -77,6 +83,12 @@ implements SelectionListener, MouseInputListener {
    }
 
    public void setStiffness (double k) {
+      if (k < 0) {
+         k = computeDefaultStiffness();
+      }
+      else {
+         myStiffnessExplicitlySetP = true;
+      }
       myStiffness = k;
    }
 
@@ -86,6 +98,20 @@ implements SelectionListener, MouseInputListener {
       mySelectionManager = selManager;
       setName ("pullController");
    }
+
+   private double searchForExplicitPointRadius (ModelComponent comp) {
+      while (comp != null) {
+         if (comp instanceof Renderable) {
+            RenderProps props = ((Renderable)comp).getRenderProps();
+            if (props != null &&
+                props.getPointRadiusMode() == PropertyMode.Explicit) {
+               return props.getPointRadius();
+            }
+         }
+         comp = comp.getParent();
+      }
+      return 0;
+   }      
 
    private double getRenderRadius (ModelComponent comp) {
       if (comp instanceof Renderable) {
@@ -106,6 +132,7 @@ implements SelectionListener, MouseInputListener {
 
    public void clear() {
       clearComponent();
+      myHasPersistentComponent = false;
    }
    
    private void clearComponent() {
@@ -168,15 +195,25 @@ implements SelectionListener, MouseInputListener {
          myPoint = pnt;         
       }
       if (myComponent != null) {
-         myPointRenderRadius = getRenderRadius (myComponent);
+         myPointRenderRadius = searchForExplicitPointRadius (myComponent);
+         MechSystem mech = MechSystemBase.topMechSystem (myComponent);
+         if (mech instanceof Model && mech != myModel) {
+            setModel ((Model)mech);
+         }
       }
+      
    }
 
    private void applyForce (Vector3d force) {
-      //myPoint.setForce (force);
-      myPoint.addForce (force);
       if (myAttachment != null) {
+         // point is our our privately created point
+         myPoint.setForce (force);
          myAttachment.applyForces();
+      }
+      else {
+         // point is contained in the model and forces will
+         // have been zeroed in preadvance
+         myPoint.addForce (force);
       }
    }
 
@@ -298,7 +335,8 @@ implements SelectionListener, MouseInputListener {
 
       if (myComponent != null) {
          if (myPullPos != null || myHasPersistentComponent) {
-
+            // render the pull point with a slightly larger radius
+            // than any underlying point so we can see it
             double saveRadius = myRenderProps.getPointRadius();
             PropertyMode saveRadiusMode = myRenderProps.getPointRadiusMode();
 
@@ -357,20 +395,18 @@ implements SelectionListener, MouseInputListener {
       if (myComponent != null && myPullPos != null) {
          Vector3d force = new Vector3d();
          force.sub (myPullPos, getPointPosition());
-         force.scale (myStiffness);
+         force.scale (getStiffness());
          applyForce (force);
       }
    }
 
-   public void setModel (Model model) {
-      super.setModel (model);
-      double radius = 0;
+   protected double computeDefaultStiffness () {
+
       double mass = 0;
       double gravityStiffness = 0;
       double accelStiffness = 0;
-      if (model instanceof Renderable) {
-         radius = RenderableUtils.getRadius ((Renderable)model);
-      }
+      Model model = getModel();
+
       if (model instanceof MechSystemBase) {
          mass = ((MechSystemBase)model).getActiveMass();
       }
@@ -378,25 +414,42 @@ implements SelectionListener, MouseInputListener {
          double g = ((MechModel)model).getGravity().norm();
          if (g > 0) {
             // enough to suspend entire model against gravity
-            gravityStiffness = g*mass/radius;
+            gravityStiffness = g*mass/myRootRadius;
          }
       }
-      if (mass > 0 && radius > 0) {
+      if (mass > 0) {
          // enough accelerate whole model to a velocity of radius/sec in 2 sec
-         accelStiffness = radius*mass/2;
+         // accel = radius/2 => force = mass*radius/2 => K radius = mass*radius/2
+         accelStiffness = mass/2;
       }
       // choose the maximum of the two values, or default to 10.0
       if (accelStiffness > 0 || gravityStiffness > 0) {
-         setStiffness (Math.max (accelStiffness, gravityStiffness));
+         return (Math.max (accelStiffness, gravityStiffness));
       }
       else {
-         setStiffness (10.0);
-      }
+         return (DEFAULT_STIFFNESS);
+      }      
+   }
+
+   /**
+    * Should be called whenever this pull controller is assigned to a RootModel
+    */
+   public void setRootModelDefaults (RootModel root) {
+      double radius = RenderableUtils.getRadius (root);
       if (radius > 0) {
          myRenderProps.setPointStyle (PointStyle.SPHERE);
          myRenderProps.setPointRadius (0.02*radius);
          myRenderProps.setLineRadius (0.01*radius);
          myRenderProps.setLineStyle (LineStyle.SOLID_ARROW);
+      }
+      myRootRadius = radius;
+      myStiffnessExplicitlySetP = false;
+   }
+
+   public void setModel (Model model) {
+      super.setModel (model);
+      if (!myStiffnessExplicitlySetP) {
+         myStiffness = computeDefaultStiffness();
       }
    }
 

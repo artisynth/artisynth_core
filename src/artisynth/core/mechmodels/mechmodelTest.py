@@ -503,5 +503,3 @@ reset()
 
 #main.maskFocusStealing (False)
 quit()
-
-

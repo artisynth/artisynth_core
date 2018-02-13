@@ -21,6 +21,29 @@
 \fi
 %\section*{Next}]
 
+\section*{XXX, 2018}
+
+\subsection*{isActive() method added to monitors and controllers}
+
+An {\tt isActive()} method has been added to the
+\javaclass[artisynth.core.modelbase]{Monitor} and
+\javaclass[artisynth.core.modelbase]{Controller} interfaces, with a
+default implementation provided by
+\javaclass[artisynth.core.modelbase]{ModelAgentBase} (which also
+implements a {\tt setActive()} method and exports {\sf active} as a
+property).
+
+This provides the ability to turn monitors and controllers off at run
+time: those for which {\tt isActive()} returns false will not be
+called.
+
+Existing implementations of
+\javaclass[artisynth.core.modelbase]{Monitor} or
+\javaclass[artisynth.core.modelbase]{Controller} which do not subclass
+\javaclass[artisynth.core.modelbase]{MonitorBase} or
+\javaclass[artisynth.core.modelbase]{ControllerBase} will need to be
+augmented to provide an {\tt isActive()} method.
+
 %
 %\subsection{Adding editable mesh bodies}
 %

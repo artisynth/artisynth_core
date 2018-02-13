@@ -1385,6 +1385,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myMenuBarHandler.enableShowPlay();
          myMenuBarHandler.updateModelButtons();
 
+         if (mySelectionMode == SelectionMode.Pull) {
+            // add pull controller here, before nav panel is update            
+            myPullController.clear();
+            myPullController.setRootModelDefaults (newRoot);
+            newRoot.addController (
+               myPullController, findMechSystem(newRoot));
+         }
+
          if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater (new Runnable() {
                   public void run() {
@@ -1427,11 +1435,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          
          myTimeline.automaticProbesZoom();
 
-         if (mySelectionMode == SelectionMode.Pull) {
-            myPullController.clear();
-            newRoot.addController (
-               myPullController, findMechSystem(newRoot));
-         }
       }
       //
       // Add this now since we don't want Main.componentChanged() being called
@@ -2907,6 +2910,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
             mySelectionManager.addSelectionListener (myPullController);
             RootModel root = getRootModel();
             if (root != null) {
+               myPullController.setRootModelDefaults (root);
                root.addController (myPullController, findMechSystem(root));
             }
          }

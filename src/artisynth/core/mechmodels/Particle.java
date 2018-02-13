@@ -105,7 +105,7 @@ public class Particle extends Point implements PointAttachable {
    }
 
    public double getMass (double t) {
-      return myMass;
+      return getMass();
    }
 
    public void getMass (Matrix M, double t) {

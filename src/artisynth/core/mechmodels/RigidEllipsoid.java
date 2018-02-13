@@ -12,7 +12,8 @@ import artisynth.core.util.*;
 
 public class RigidEllipsoid extends RigidBody implements Wrappable {
    
-   Vector3d myAxisLengths;
+   // lengths of the principal semi-axes of the ellipsoid
+   Vector3d mySemiAxisLengths;
    private static double MACH_PREC = 1e-16;
 
    private class TransformConstrainer
@@ -42,19 +43,34 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
 
    public RigidEllipsoid() {
       super (null);
-      myAxisLengths = new Vector3d();
+      mySemiAxisLengths = new Vector3d();
    }
 
-   public void getAxisLengths (Vector3d lengths) {
-      myAxisLengths.get (lengths);
+   /**
+    * Returns the lengths of the semi-axes of this ellipsoid.
+    * 
+    * @param lengths returns the semi-axes lengths
+    */ 
+   public void getSemiAxisLengths (Vector3d lengths) {
+      mySemiAxisLengths.get (lengths);
    }
 
-   public Vector3d getAxisLengths () {
-      return new Vector3d(myAxisLengths);
+   /**
+    * Returns the lengths of the semi-axes of this ellipsoid.
+    * 
+    * @return semi-axis lengths
+    */
+   public Vector3d getSemiAxisLengths () {
+      return new Vector3d(mySemiAxisLengths);
    }
 
-   public void setAxisLengths (Vector3d lengths) {
-      myAxisLengths.set (lengths);
+   /**
+    * Sets the lengths of the semi-axes of this ellipsoid.
+    * 
+    * @param lengths new semi-axes lengths
+    */
+   public void setSemiAxisLengths (Vector3d lengths) {
+      mySemiAxisLengths.set (lengths);
    }
 
    public RigidEllipsoid (
@@ -65,7 +81,7 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
    public RigidEllipsoid (
       String name, double a, double b, double c, double density, int nslices) {
       super (name);      
-      myAxisLengths = new Vector3d(a, b, c);
+      mySemiAxisLengths = new Vector3d(a, b, c);
       PolygonalMesh mesh = MeshFactory.createSphere (1.0, nslices);
       AffineTransform3d XScale = new AffineTransform3d();
       XScale.applyScaling (a, b, c);
@@ -81,7 +97,7 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
       pw.print ("axisLengths=");
-      myAxisLengths.write (pw, fmt, /*withBrackets=*/true);
+      mySemiAxisLengths.write (pw, fmt, /*withBrackets=*/true);
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -89,7 +105,7 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
 
       rtok.nextToken();
       if (scanAttributeName (rtok, "axisLengths")) {
-         myAxisLengths.scan (rtok);
+         mySemiAxisLengths.scan (rtok);
          return true;
       }
       rtok.pushBack();
@@ -99,30 +115,60 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
    public void surfaceTangent (
       Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
 
-      double a = myAxisLengths.x;
-      double b = myAxisLengths.y;
-      double c = myAxisLengths.z;
+      double a = mySemiAxisLengths.x;
+      double b = mySemiAxisLengths.y;
+      double c = mySemiAxisLengths.z;
 
       Point3d loca = new Point3d(pa);
       Point3d loc1 = new Point3d(p1);
+      Vector3d nrmLoc = new Vector3d(sideNrm);
       loca.inverseTransform (getPose());
       loc1.inverseTransform (getPose());
-      QuadraticUtils.ellipsoidSurfaceTangent (
-         pr, loca, loc1, a, b, c);
+      nrmLoc.inverseTransform (getPose());
+      // QuadraticUtils.ellipsoidSurfaceTangent (
+      //    pr, loca, loc1, a, b, c);
+      //
+      // Feb 1, 2018: changed surface tangent computation to use
+      // the plane indicated by sideNrm as an additional constraint.
+      // This give faster and presumably more robust results.
+      QuadraticUtils.ellipsoidSurfaceTangentInPlane (
+         pr, loca, loc1, nrmLoc, a, b, c);
       pr.transform (getPose());
-      
    }
 
    private final double sqr (double x) {
       return x*x;
    }
 
+   /**
+    * Computes the normal derivative for a penetrating point that lies a
+    * distance beneath the ellipsoids surface.
+    *
+    * @param dnrm returns the normal derivative
+    * @param pos point on the ellipsoid surface
+    * @param nrm surface normal at pos
+    * @param d penetration distance of the penetrating point (value is
+    * negative)
+    */
    private void computeDnrm (
       Matrix3d dnrm, Vector3d pos, Vector3d nrm, double d) {
       
-      double a = myAxisLengths.x;
-      double b = myAxisLengths.y;
-      double c = myAxisLengths.z;
+      double a = mySemiAxisLengths.x;
+      double b = mySemiAxisLengths.y;
+      double c = mySemiAxisLengths.z;
+      
+      // This method works by computing the principal curvature directions e0
+      // and e1 at the surface point, along with the principal curvative radii
+      // r0 and r1.
+
+      // These quantities are computed using the first and second fundamental
+      // forms computed at pos. For computing the fundamental forms of
+      // an ellipsoid, see http://mathworld.wolfram.com/Ellipsoid.html.
+      //
+      // For details on how to use these to compute the principal directions
+      // and radii, see Basics of the Differential Geometry of Surfaces, by
+      // Gallier, http://www.cis.upenn.edu/~cis610/gma-v2-chap20.pdf, and
+      // Curvature of ellipsoids and other surfaces, by W.F. Harris (2006).
 
       Vector3d ru = new Vector3d();
       Vector3d rv = new Vector3d();
@@ -163,7 +209,16 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       double[] roots = new double[2];
       int nr = QuadraticSolver.getRoots (roots, 4*C*C, -4*C*A, -B*B);
       double cos = Math.sqrt(roots[1]);
-      double sin = B/(C*2*cos);
+      double sin;
+
+      denom = C*2*cos;
+      if (denom == 0) {
+         // was getting NaN without this check
+         sin = Math.sqrt (1-cos*cos);
+      }
+      else {
+         sin = B/denom;
+      }
 
       Vector3d u0 = new Vector3d();
       Vector3d u1 = new Vector3d();
@@ -181,9 +236,9 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
    }
 
    public double penetrationDistance (Vector3d nrm, Matrix3d dnrm, Point3d p0) {
-      double a = myAxisLengths.x;
-      double b = myAxisLengths.y;
-      double c = myAxisLengths.z;
+      double a = mySemiAxisLengths.x;
+      double b = mySemiAxisLengths.y;
+      double c = mySemiAxisLengths.z;
 
       Point3d loc0 = new Point3d(p0);
       loc0.inverseTransform (getPose());
@@ -223,6 +278,13 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public double getCharacteristicRadius() {
+      return mySemiAxisLengths.minElement();
+   }
+   
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 
@@ -230,19 +292,19 @@ public class RigidEllipsoid extends RigidBody implements Wrappable {
       // applying the transform constrainer to the local affine transform
       // induced by the transformation. 
       if (gtr.isRestoring()) {
-         myAxisLengths.set (gtr.restoreObject (myAxisLengths));
+         mySemiAxisLengths.set (gtr.restoreObject (mySemiAxisLengths));
       }
       else {
          if (gtr.isSaving()) {
-            gtr.saveObject (new Vector3d(myAxisLengths));
+            gtr.saveObject (new Vector3d(mySemiAxisLengths));
          }
          AffineTransform3d XL = gtr.computeLocalAffineTransform (
             getPose(), myTransformConstrainer); 
          // need to take abs() since diagonal entries could be negative
          // if XL is a reflection
-         myAxisLengths.x *= Math.abs(XL.A.m00);
-         myAxisLengths.y *= Math.abs(XL.A.m11);
-         myAxisLengths.z *= Math.abs(XL.A.m22);
+         mySemiAxisLengths.x *= Math.abs(XL.A.m00);
+         mySemiAxisLengths.y *= Math.abs(XL.A.m11);
+         mySemiAxisLengths.z *= Math.abs(XL.A.m22);
       }
       super.transformGeometry (gtr, context, flags);
    }

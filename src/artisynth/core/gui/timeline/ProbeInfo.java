@@ -894,9 +894,15 @@ public class ProbeInfo implements Clonable, ActionListener {
       myClearItem.addActionListener (this);
       myClearItem.setActionCommand ("Clear");
 
-      JMenuItem myActivateItem = new JMenuItem ("(De)Activate");
-      myActivateItem.addActionListener (this);
-      myActivateItem.setActionCommand ("ToggleActivation");
+      JMenuItem activityItem;
+      if (getProbe().isActive()) {
+         activityItem = new JMenuItem ("deactivate");
+      }
+      else {
+         activityItem = new JMenuItem ("activate");
+      }
+      activityItem.addActionListener (this);
+      activityItem.setActionCommand ("ToggleActivation");
 
       popupMenu.add (myLargeProbeDisplayItem);
       popupMenu.addSeparator();
@@ -926,7 +932,7 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
       
       popupMenu.addSeparator();
-      popupMenu.add (myActivateItem);
+      popupMenu.add (activityItem);
       popupMenu.add (myDeleteItem);
       if (myEditProbeItem != null) {
          popupMenu.add (myEditProbeItem);

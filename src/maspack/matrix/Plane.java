@@ -268,6 +268,17 @@ public class Plane implements java.io.Serializable {
    }
    
    /**
+    * Projects a vector onto this plane, by removing any component
+    * that is perpendicular to it.
+    * 
+    * @param vr returns the projected vector
+    * @param v1 vector to project
+    */
+   public void projectVector (Vector3d vr, Vector3d v1) {
+      vr.scaledAdd (-v1.dot(normal), normal, v1);
+   }
+   
+   /**
     * Reflects a point about this plane.
     * 
     * @param pr

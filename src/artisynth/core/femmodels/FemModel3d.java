@@ -2897,6 +2897,10 @@ public class FemModel3d extends FemModel
       myVolumeValid = true;
    }
 
+   public boolean isVolumeValid() {
+      return myVolumeValid;
+   }
+
    /**
     * Mark as inverted any element whose rest Jacobians are inverted.
     * This is intended as a debugging tool that can be called by the

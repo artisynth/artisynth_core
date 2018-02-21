@@ -350,7 +350,8 @@ public abstract class PointSpringBase extends Spring
          addToJacobianBlocks (M, T);
       }
 
-      void addToJacobianBlocks (SparseNumberedBlockMatrix S, Matrix3d M) {
+      protected void addToJacobianBlocks (
+         SparseNumberedBlockMatrix S, Matrix3d M) {
 
          if (blk00Num != -1) {
             S.getBlockByNumber(blk00Num).add (M);

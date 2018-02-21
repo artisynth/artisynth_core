@@ -262,10 +262,10 @@ public abstract class PointSpringBase extends Spring
       MatrixBlock blk11;
       MatrixBlock blk01;
       MatrixBlock blk10;
-      int blk00Num;
-      int blk11Num;
-      int blk01Num;
-      int blk10Num;      
+      protected int blk00Num;
+      protected int blk11Num;
+      protected int blk01Num;
+      protected int blk10Num;      
       public Vector3d uvec;
       public double len;
       public Matrix3d P;

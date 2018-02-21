@@ -1881,4 +1881,21 @@ public class SparseMatrixNd extends SparseMatrixBase implements LinearTransformN
       }
    }
 
+   @Override
+   public double maxNorm() {
+      double m = 0;
+      
+      for (int i = 0; i < myNumRows; i++) {
+         SparseMatrixCell cell;
+         for (cell = myRows[i]; cell != null; cell = cell.next) {
+            double a = Math.abs(cell.value);
+            if (a > m) {
+               m = a;
+            }
+         }
+      }
+      
+      return m;
+   }
+   
 }

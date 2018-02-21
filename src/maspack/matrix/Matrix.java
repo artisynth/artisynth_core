@@ -383,6 +383,14 @@ public interface Matrix extends LinearTransformNd {
     * @return Frobenius norm squared of this matrix
     */
    public double frobeniusNormSquared();
+   
+   /**
+    * Returns the max-norm of this matrix.  This is equal to the maximum of the
+    * absolute values of all entries (i.e. element-wise, with p=q=inf)
+    * 
+    * @return max norm of this matrix
+    */
+   public double maxNorm();
 
    /**
     * Writes the contents of this matrix to a PrintWriter. Element values are

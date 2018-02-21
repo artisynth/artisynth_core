@@ -2627,4 +2627,18 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       return f;
    }
    
+   @Override
+   public double maxNorm() {  
+      double m = 0;
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+            double n = blk.maxNorm();
+            if (n > m) {
+               m = n;
+            }
+         }
+      }
+      return m;
+   }
+   
 }

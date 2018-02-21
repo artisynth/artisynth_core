@@ -1623,6 +1623,18 @@ public class SparseMatrixCRS extends SparseMatrixBase implements LinearTransform
       }
    }
    
+   @Override
+   public double maxNorm() {
+      double m = 0;
+      for (int i=0; i<myVals.length; ++i) {
+         double a = Math.abs(myVals[i]);
+         if (a > m) {
+            m = a;
+         }
+      }
+      return m;
+   }
+   
    public void add(int i, int j, double v) {
       int offset = getOffset(i, j);
       if (offset >= 0) {

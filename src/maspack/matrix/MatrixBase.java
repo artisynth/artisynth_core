@@ -396,6 +396,24 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
       return computeFrobeniusNormSquared (this);
    }
    
+   static double computeMaxNorm(Matrix M) {
+      double max = 0;
+      for (int i=0; i<M.rowSize(); ++i) {
+         for (int j=0; j<M.colSize(); ++j) {
+            double e = Math.abs(M.get(i, j));
+            if (e > max) {
+               max = e;
+            }
+         }
+      }
+      return max;
+   }
+   
+   @Override
+   public double maxNorm() {
+      return computeMaxNorm(this);
+   }
+   
    /**
     * Sets the elements of this matrix to uniformly distributed random values in
     * the range -0.5 (inclusive) to 0.5 (exclusive).

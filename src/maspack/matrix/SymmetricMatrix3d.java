@@ -313,6 +313,72 @@ public class SymmetricMatrix3d extends Matrix3dBase {
       m21 = tmp12;
       m22 = tmp22;
    }
+   
+   /**
+    * Computes the symmetric product (AB + B'A')/2 and places the result in this matrix
+    * @param A left matrix
+    * @param B right matrix
+    */
+   public void mulSymmetric(Matrix3dBase A, Matrix3dBase B) {
+      
+      m00 = A.m02*B.m20+A.m01*B.m10+A.m00*B.m00;
+      m01 = (A.m02*B.m21+A.m12*B.m20+A.m01*B.m11+A.m11*B.m10+A.m00*B.m01+A.m10*B.m00)/2;
+      m02 = (A.m02*B.m22+A.m22*B.m20+A.m01*B.m12+A.m21*B.m10+A.m00*B.m02+A.m20*B.m00)/2;
+      
+      m11 = A.m12*B.m21+A.m11*B.m11+A.m10*B.m01;
+      m12 = (A.m12*B.m22+A.m22*B.m21+A.m11*B.m12+A.m21*B.m11+A.m10*B.m02+A.m20*B.m01)/2;
+      
+      m22 = A.m22*B.m22+A.m21*B.m12+A.m20*B.m02;
+         
+      // symmetric part
+      m10 = m01;
+      m20 = m02;
+      m21 = m12;
+   }
+   
+   /**
+    * Computes the symmetric product (A'B + B'A)/2 and places the result in this matrix
+    * @param A left matrix
+    * @param B right matrix
+    */
+   public void mulTransposeLeftSymmetric(Matrix3dBase A, Matrix3dBase B) {
+    
+      m00 = A.m20*B.m20+A.m10*B.m10+A.m00*B.m00;
+      m01 = (A.m20*B.m21+A.m21*B.m20+A.m10*B.m11+A.m11*B.m10+A.m00*B.m01+A.m01*B.m00)/2;
+      m02 = (A.m20*B.m22+A.m22*B.m20+A.m10*B.m12+A.m12*B.m10+A.m00*B.m02+A.m02*B.m00)/2;
+      
+      m11 = A.m21*B.m21+A.m11*B.m11+A.m01*B.m01;
+      m12 = (A.m21*B.m22+A.m22*B.m21+A.m11*B.m12+A.m12*B.m11+A.m01*B.m02+A.m02*B.m01)/2;
+      
+      m22 = A.m22*B.m22+A.m12*B.m12+A.m02*B.m02;
+      
+      // symmetric part
+      m10 = m01;
+      m20 = m02;
+      m21 = m12;
+   }
+   
+   /**
+    * Computes the symmetric product (AB' + BA')/2 and places the result in this matrix
+    * @param A left matrix
+    * @param B right matrix
+    */
+   public void mulTransposeRightSymmetric(Matrix3dBase A, Matrix3dBase B) {
+      
+      m00 = A.m02*B.m02+A.m01*B.m01+A.m00*B.m00;
+      m01 = (A.m02*B.m12+A.m01*B.m11+A.m00*B.m10+A.m12*B.m02+A.m11*B.m01+A.m10*B.m00)/2;
+      m02 = (A.m02*B.m22+A.m01*B.m21+A.m00*B.m20+A.m22*B.m02+A.m21*B.m01+A.m20*B.m00)/2;
+
+      m11 = A.m12*B.m12+A.m11*B.m11+A.m10*B.m10;
+      m12 = (A.m12*B.m22+A.m11*B.m21+A.m10*B.m20+A.m22*B.m12+A.m21*B.m11+A.m20*B.m10)/2;
+
+      m22 = A.m22*B.m22+A.m21*B.m21+A.m20*B.m20;
+         
+      // symmetric part
+      m10 = m01;
+      m20 = m02;
+      m21 = m12;
+   }
 
    /**
     * Adds matrix M1 to M2 and places the result in this matrix.

@@ -31,11 +31,79 @@ public class QuadwedgeElement extends FemElement3d {
 
    public IntegrationPoint3d getWarpingPoint() {
       if (myWarpingPoint == null) {
-         myWarpingPoint = IntegrationPoint3d.create (
-            this, 1/3.0, 1/3.0, 0, 1);
+         // create special warping point based on linear wedge element
+         int nnodes = numNodes();
+         int npvals = numPressureVals();
+         
+         IntegrationPoint3d pnt = new IntegrationPoint3d(nnodes, npvals);
+         pnt.setWeight(1);
+         pnt.setNumber(-1);
+         
+         VectorNd shapeWeights = new VectorNd(nnodes);
+         VectorNd pressureWeights = new VectorNd(npvals);
+         Vector3d coords = new Vector3d();
+         Vector3d dNds = new Vector3d();
+         
+         // use wedge shape functions
+         coords.set(1/3.0, 1/3.0, 0);
+         pnt.setCoords(Double.NaN, Double.NaN, Double.NaN);
+         for (int i=0; i<6; ++i) {
+            shapeWeights.set(i, computeLinearWedgeN(i, coords));
+            computeLinearWedgedNds(dNds, i, coords);
+            pnt.setShapeGrad(i, dNds);
+         }
+         for (int i=6; i<nnodes; ++i) {
+            shapeWeights.set(i, 0);
+            pnt.setShapeGrad(i, Vector3d.ZERO);
+         }
+         pnt.setShapeWeights (shapeWeights);
+
+         // pressure weights
+         for (int i=0; i<npvals; i++) {
+            pressureWeights.set (i, getH (i, coords));
+         }
+         pnt.setPressureWeights (pressureWeights);
+         
+         myWarpingPoint = pnt;
       }
       return myWarpingPoint;
    }  
+   
+   private static double computeLinearWedgeN (int i, Vector3d coords) {
+      double s1 = coords.x;
+      double s2 = coords.y;
+      double r = coords.z;
+
+      switch (i) {
+         case 0: return 0.5*(1-s1-s2)*(1-r);
+         case 1: return 0.5*s1*(1-r);
+         case 2: return 0.5*s2*(1-r);
+         case 3: return 0.5*(1-s1-s2)*(1+r);
+         case 4: return 0.5*s1*(1+r);
+         case 5: return 0.5*s2*(1+r);
+         default:
+            throw new IllegalArgumentException (
+               "Shape function index must be in range [0,5]");
+      }
+   }
+
+   private static void computeLinearWedgedNds (Vector3d dNds, int i, Vector3d coords) {
+      double s1 = coords.x;
+      double s2 = coords.y;
+      double r = coords.z;
+
+      switch (i) {
+         case 0: dNds.set ( -0.5*(1-r), -0.5*(1-r), -0.5*(1-s1-s2)); break;
+         case 1: dNds.set (  0.5*(1-r),          0, -0.5*s1); break;
+         case 2: dNds.set (          0,  0.5*(1-r), -0.5*s2); break;
+         case 3: dNds.set ( -0.5*(1+r), -0.5*(1+r),  0.5*(1-s1-s2)); break;
+         case 4: dNds.set (  0.5*(1+r),          0,  0.5*s1); break;
+         case 5: dNds.set (          0,  0.5*(1+r),  0.5*s2); break;
+         default:
+            throw new IllegalArgumentException (
+               "Shape function index must be in range [0,5]");
+      }
+   }
 
    public boolean coordsAreInside (Vector3d coords) {
       double s1 = coords.x;

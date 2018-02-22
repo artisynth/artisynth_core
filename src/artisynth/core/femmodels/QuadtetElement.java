@@ -9,13 +9,7 @@ package artisynth.core.femmodels;
 import maspack.matrix.*;
 import maspack.render.*;
 
-import artisynth.core.materials.LinearMaterial;
-import artisynth.core.materials.FemMaterial;
-import artisynth.core.mechmodels.*;
-
 public class QuadtetElement extends FemElement3d {
-
-   // private StiffnessWarper3d myWarper = null;
 
    // interpolation matrix for doing parametric interpolation of
    // 3 points with a quadratic. This is used to draw the edges
@@ -45,11 +39,81 @@ public class QuadtetElement extends FemElement3d {
 
    public IntegrationPoint3d getWarpingPoint() {
       if (myWarpingPoint == null) {
-         myWarpingPoint = IntegrationPoint3d.create (
-            this, 0.25, 0.25, 0.25, 1/6.0);
+         
+         // create special warping point based on linear tet element
+         int nnodes = numNodes();
+         int npvals = numPressureVals();
+         
+         IntegrationPoint3d pnt = new IntegrationPoint3d(nnodes, npvals);
+         pnt.setWeight(1);
+         pnt.setNumber(-1);
+         
+         VectorNd shapeWeights = new VectorNd(nnodes);
+         VectorNd pressureWeights = new VectorNd(npvals);
+         Vector3d coords = new Vector3d();
+         Vector3d dNds = new Vector3d();
+         
+         // use tet shape functions
+         coords.set(0.25, 0.25, 0.25);
+         pnt.setCoords(Double.NaN, Double.NaN, Double.NaN);
+         for (int i=0; i<4; ++i) {
+            shapeWeights.set(i, computeLinearTetN(i, coords));
+            computeLinearTetdNds(dNds, i, coords);
+            pnt.setShapeGrad(i, dNds);
+         }
+         for (int i=4; i<nnodes; ++i) {
+            shapeWeights.set(i, 0);
+            pnt.setShapeGrad(i, Vector3d.ZERO);
+         }
+         pnt.setShapeWeights (shapeWeights);
+
+         // pressure weights
+         for (int i=0; i<npvals; i++) {
+            pressureWeights.set (i, getH (i, coords));
+         }
+         pnt.setPressureWeights (pressureWeights);
+         
+         myWarpingPoint = pnt;
+         
       }
       return myWarpingPoint;
-   }  
+   } 
+   
+   private static double computeLinearTetN(int i, Vector3d coords) {
+      double s1 = coords.x;
+      double s2 = coords.y;
+      double s3 = coords.z;
+
+      switch (i) {
+         case 0: return 1 - s1 - s2 - s3;
+         case 1: return s1;
+         case 2: return s2;
+         case 3: return s3;
+         default: {
+            throw new IllegalArgumentException (
+               "Shape function index must be in range [0,3]");
+         }
+      }
+   }
+   
+   /**
+    * Computes the shape function gradient
+    * @param dNds output
+    * @param i    node index
+    * @param coords isoparametric coordinates
+    */
+   private static void computeLinearTetdNds (Vector3d dNds, int i, Vector3d coords) {
+      switch (i) {
+         case 0: dNds.set (-1, -1, -1); break;
+         case 1: dNds.set ( 1,  0,  0); break;
+         case 2: dNds.set ( 0,  1,  0); break;
+         case 3: dNds.set ( 0,  0,  1); break;
+         default: {
+            throw new IllegalArgumentException (
+               "Shape function index must be in range [0,3]");
+         }
+      }
+   }
 
    public static FemNode3d[] getQuadraticNodes (TetElement tet) {
       return getQuadraticNodes (

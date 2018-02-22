@@ -31,10 +31,82 @@ public class QuadhexElement extends FemElement3d {
 
    public IntegrationPoint3d getWarpingPoint() {
       if (myWarpingPoint == null) {
-         myWarpingPoint = IntegrationPoint3d.create (this, 0, 0, 0, 8);
+         
+         // create special warping point based on linear hex element
+         int nnodes = numNodes();
+         int npvals = numPressureVals();
+         
+         IntegrationPoint3d pnt = new IntegrationPoint3d(nnodes, npvals);
+         pnt.setWeight(1);
+         pnt.setNumber(-1);
+         
+         VectorNd shapeWeights = new VectorNd(nnodes);
+         VectorNd pressureWeights = new VectorNd(npvals);
+         Vector3d coords = new Vector3d();
+         Vector3d dNds = new Vector3d();
+         
+         // use hex shape functions
+         coords.set(0, 0, 0);
+         pnt.setCoords(Double.NaN, Double.NaN, Double.NaN);
+         for (int i=0; i<8; ++i) {
+            shapeWeights.set(i, computeLinearHexN(i, coords));
+            computeLinearHexdNds(dNds, i, coords);
+            pnt.setShapeGrad(i, dNds);
+         }
+         for (int i=8; i<nnodes; ++i) {
+            shapeWeights.set(i, 0);
+            pnt.setShapeGrad(i, Vector3d.ZERO);
+         }
+         pnt.setShapeWeights (shapeWeights);
+
+         // pressure weights
+         for (int i=0; i<npvals; i++) {
+            pressureWeights.set (i, getH (i, coords));
+         }
+         pnt.setPressureWeights (pressureWeights);
+         
+         myWarpingPoint = pnt;
+         
       }
       return myWarpingPoint;
    }  
+   
+   // sign of node coordinate k at node i
+   private static double nodeSgn (int i, int k) {
+      double c = myNodeCoords[i*3+k];
+      return c < 0 ? -1 : 1;
+   }
+   
+   private static double computeLinearHexN (int i, Vector3d coords) {
+      if (i < 0 || i >= 8) {
+         throw new IllegalArgumentException (
+            "Shape function index must be in range [0,7]");
+      }
+      double s0 = coords.x;
+      double s1 = coords.y;
+      double s2 = coords.z;
+
+      return 0.125*(1+nodeSgn(i,0)*s0)*(1+nodeSgn(i,1)*s1)*(1+nodeSgn(i,2)*s2);
+
+   }
+   
+   private static void computeLinearHexdNds (Vector3d dNds, int i, Vector3d coords) {
+      if (i < 0 || i >= 8) {
+         throw new IllegalArgumentException (
+            "Shape function index must be in range [0,"+(8-1)+"]");
+      }
+      double s0 = coords.x;
+      double s1 = coords.y;
+      double s2 = coords.z;
+
+      double sgn0 = nodeSgn(i,0);
+      double sgn1 = nodeSgn(i,1);
+      double sgn2 = nodeSgn(i,2);
+
+      dNds.x = 0.125*(sgn0)*(1+sgn1*s1)*(1+sgn2*s2);
+      dNds.y = 0.125*(1+sgn0*s0)*(sgn1)*(1+sgn2*s2);
+      dNds.z = 0.125*(1+sgn0*s0)*(1+sgn1*s1)*(sgn2);
+   }
 
    static double[] myNodeCoords = new double[] 
       {

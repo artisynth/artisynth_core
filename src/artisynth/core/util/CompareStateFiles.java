@@ -170,7 +170,7 @@ public class CompareStateFiles {
          // e.g. '\r', which was interfering with output
          comment = rtok1.lastCommentLine();
          if (comment != null) {
-            comment.trim();
+            comment = comment.trim();
          }
          
          cnt++;

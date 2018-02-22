@@ -115,7 +115,12 @@ public class FemFactory {
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
 
-      model.clear();
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
+      
       createGridNodes(model, widthX, widthY, widthZ, numX, numY, numZ);
       // create all the elements
       ComponentListView<FemNode3d> nodes = model.getNodes();
@@ -225,7 +230,12 @@ public class FemFactory {
    public static FemModel3d createWedgeGrid(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
-      // clear();
+
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
 
       createGridNodes(model, widthX, widthY, widthZ, numX, numY, numZ);
       // System.out.println("num nodes: "+myNodes.size());
@@ -1655,13 +1665,19 @@ public class FemFactory {
     */
    public static FemModel3d createQuadraticModel(
       FemModel3d quadMod, FemModel3d linMod) {
-      ComponentListView<FemNode3d> quadNodes = quadMod.getNodes();
-
+      
       if (quadMod == linMod) {
          throw new IllegalArgumentException(
             "quadMod and linMod must be different");
       }
+      
+      if (quadMod == null) {
+         quadMod = new FemModel3d();
+      } else {
+         quadMod.clear();
+      }
 
+      ComponentListView<FemNode3d> quadNodes = quadMod.getNodes();
       HashMap<FemNode3d,FemNode3d> nodeMap = new HashMap<FemNode3d,FemNode3d>();
 
       for (FemNode3d n : linMod.getNodes()) {
@@ -1755,7 +1771,7 @@ public class FemFactory {
       FemModel3d tetmod = new FemModel3d();
       createTetGrid(tetmod, widthX, widthY, widthZ, numX, numY, numZ);
 
-      createQuadraticModel(model, tetmod);
+      model = createQuadraticModel(model, tetmod);
       setGridEdgesHard(model, widthX, widthY, widthZ);
       return model;
    }
@@ -1800,7 +1816,7 @@ public class FemFactory {
       
       FemModel3d tetmod = new FemModel3d();
       createTetExtrusion(tetmod, n, d, zOffset, surface);
-      createQuadraticModel(model, tetmod);
+      model = createQuadraticModel(model, tetmod);
       return model;
    }
 
@@ -1816,7 +1832,7 @@ public class FemFactory {
       
       FemModel3d hexmod = new FemModel3d();
       createHexGrid(hexmod, widthX, widthY, widthZ, numX, numY, numZ);
-      createQuadraticModel(model, hexmod);
+      model = createQuadraticModel(model, hexmod);
       setGridEdgesHard(model, widthX, widthY, widthZ);
       return model;
    }
@@ -1833,7 +1849,7 @@ public class FemFactory {
       FemModel3d linmod = new FemModel3d();
       createWedgeGrid(linmod, widthX, widthY, widthZ, numX, numY, numZ);
 
-      createQuadraticModel(model, linmod);
+      model = createQuadraticModel(model, linmod);
       setGridEdgesHard(model, widthX, widthY, widthZ);
 
       return model;
@@ -1851,7 +1867,7 @@ public class FemFactory {
       FemModel3d linmod = new FemModel3d();
       createPyramidGrid(linmod, widthX, widthY, widthZ, numX, numY, numZ);
 
-      createQuadraticModel(model, linmod);
+      model = createQuadraticModel(model, linmod);
       setGridEdgesHard(model, widthX, widthY, widthZ);
 
       return model;
@@ -1898,7 +1914,7 @@ public class FemFactory {
       
       FemModel3d hexmod = new FemModel3d();
       createHexExtrusion(hexmod, n, d, zOffset, surface);
-      createQuadraticModel(model, hexmod);
+      model = createQuadraticModel(model, hexmod);
       return model;
    }
 
@@ -1915,7 +1931,7 @@ public class FemFactory {
       
       FemModel3d wedgemod = new FemModel3d();
       createWedgeExtrusion(wedgemod, n, d, zOffset, surface);
-      createQuadraticModel(model, wedgemod);
+      model = createQuadraticModel(model, wedgemod);
       return model;
    }
 

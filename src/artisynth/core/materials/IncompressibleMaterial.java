@@ -1,7 +1,7 @@
 package artisynth.core.materials;
 
-import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;

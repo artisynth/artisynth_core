@@ -3,40 +3,30 @@ package artisynth.core.materials;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
-import maspack.matrix.RotationMatrix3d;
-import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-public class LinearMaterial extends FemMaterial {
+public class LinearMaterial extends LinearMaterialBase {
 
    public static PropertyList myProps =
-      new PropertyList (LinearMaterial.class, FemMaterial.class);
+      new PropertyList (LinearMaterial.class, LinearMaterialBase.class);
 
    protected static double DEFAULT_NU = 0.33;
    protected static double DEFAULT_E = 500000;
-   protected static boolean DEFAULT_COROTATED = true;
 
    private double myNu = DEFAULT_NU;
    private double myE = DEFAULT_E;
-   private boolean myCorotated = DEFAULT_COROTATED;
 
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
-   PropertyMode myCorotatedMode = PropertyMode.Inherited;
-
-   private SVDecomposition3d mySVD;
 
    static {
       myProps.addInheritable (
          "YoungsModulus:Inherited", "Youngs modulus", DEFAULT_E, "[0,inf]");
       myProps.addInheritable (
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU, "[-1,0.5]");
-      myProps.addInheritable (
-         "corotated:Inherited isCorotated",
-         "apply corotation", DEFAULT_COROTATED);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -55,10 +45,6 @@ public class LinearMaterial extends FemMaterial {
       setPoissonsRatio (nu);
       setCorotated (corotated);
    }
-
-   public boolean isInvertible() {
-      return true;
-   }   
 
    public synchronized void setPoissonsRatio (double nu) {
       myNu = nu;
@@ -100,27 +86,9 @@ public class LinearMaterial extends FemMaterial {
       return myEMode;
    }
 
-   public synchronized void setCorotated (boolean enable) {
-      myCorotated = enable;
-      myCorotatedMode =
-         PropertyUtils.propagateValue (this, "corotated", myCorotated, myCorotatedMode);
-      notifyHostOfPropertyChange();
-   }
-
-   public boolean isCorotated() {
-      return myCorotated;
-   }
-
-   public void setCorotatedMode (PropertyMode mode) {
-      myCorotatedMode =
-         PropertyUtils.setModeAndUpdate (this, "corotated", myCorotatedMode, mode);
-   }
-
-   public PropertyMode getCorotatedMode() {
-      return myCorotatedMode;
-   }
-
    /** 
+    * @deprecated
+    * 
     * Computes the Cauchy stress from Cauchy strain and adds it to and existing
     * stress.
     * 
@@ -169,82 +137,67 @@ public class LinearMaterial extends FemMaterial {
          sigma.m21 += m12;
       }
    }
-
-   public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
-      FemMaterial baseMat) {
-
-      Matrix3d F = def.getF();
-      RotationMatrix3d R = null; 
-
-      if (myCorotated) {
-         R = new RotationMatrix3d();
-         if (mySVD == null) {
-            mySVD = new SVDecomposition3d();
-         }
-         // use sigma to store P; this will be converted to Cauchy strain
-         mySVD.polarDecomposition (R, sigma, F);
-      }
-      else {
-         // set sigma to symmetric part of F
-         sigma.setSymmetric (F);
-      }
-      // subtract I to compute Cauchy strain in sigma
-      sigma.m00 -= 1;
-      sigma.m11 -= 1;
-      sigma.m22 -= 1;
-
+   
+   @Override
+   protected void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps) {
+    
       // lam and mu are the first and second Lame parameters
       double lam = myE*myNu/((1+myNu)*(1-2*myNu));
       double mu = myE/(2*(1+myNu));
 
       // convert sigma from strain to stress
-      double lamtrEps = lam*(sigma.m00+sigma.m11+sigma.m22);
-      sigma.scale (2*mu);
-      sigma.m00 += lamtrEps;
-      sigma.m11 += lamtrEps;
-      sigma.m22 += lamtrEps;
+      // sigma = 2*mu*eps + lamda*trace(eps)*I
+      double lamtrEps = lam*(eps.m00+eps.m11+eps.m22);
+      
+      double m00 = 2*mu*eps.m00 + lamtrEps;
+      double m11 = 2*mu*eps.m11 + lamtrEps;
+      double m22 = 2*mu*eps.m22 + lamtrEps;
+      double m01 = 2*mu*eps.m01;
+      double m02 = 2*mu*eps.m02;
+      double m12 = 2*mu*eps.m12;
+      
+      sigma.set(m00, m11, m22, m01, m02, m12);
+   }
+   
+   @Override
+   protected void getC(Matrix6d C) {
+    
+      //      // lam and mu are the first and second Lame parameters
+      //      double lam = myE*myNu/((1+myNu)*(1-2*myNu));
+      //      double mu = myE/(2*(1+myNu));
+      //      D.setZero();
+      //      D.m00 = lam + 2*mu;
+      //      D.m01 = lam;
+      //      D.m02 = lam;
+      //      D.m10 = lam;
+      //      D.m11 = lam + 2*mu;
+      //      D.m12 = lam;
+      //      D.m20 = lam;
+      //      D.m21 = lam;
+      //      D.m22 = lam + 2*mu;
+      //      D.m33 = mu;
+      //      D.m44 = mu;
+      //      D.m55 = mu;
+      
+      double a = myE / (1+ myNu);  // 2 mu
+      double dia = (1 - myNu) / (1 - 2 * myNu) * a;
+      double mu = 0.5 * a;
+      double off = myNu / (1 - 2 * myNu) * a;
 
-      if (R != null) {
-         sigma.mulLeftAndTransposeRight (R);
-      }
+      C.m00 = dia; C.m01 = off; C.m02 = off; C.m03 = 0;   C.m04 = 0;   C.m05 = 0;
+      C.m10 = off; C.m11 = dia; C.m12 = off; C.m13 = 0;   C.m14 = 0;   C.m15 = 0;
+      C.m20 = off; C.m21 = off; C.m22 = dia; C.m23 = 0;   C.m24 = 0;   C.m25 = 0;
+      C.m30 = 0;   C.m31 = 0;   C.m32 = 0;   C.m33 = mu;  C.m34 = 0;   C.m35 = 0;
+      C.m40 = 0;   C.m41 = 0;   C.m42 = 0;   C.m43 = 0;   C.m44 = mu;  C.m45 = 0;
+      C.m50 = 0;   C.m51 = 0;   C.m52 = 0;   C.m53 = 0;   C.m54 = 0;   C.m55 = mu;
    }
 
    public void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
       Matrix3d Q, FemMaterial baseMat) {
-
-      D.setZero();
       
-      // lam and mu are the first and second Lame parameters
-      double lam = myE*myNu/((1+myNu)*(1-2*myNu));
-      double mu = myE/(2*(1+myNu));
-      D.m00 = lam + 2*mu;
-      D.m01 = lam;
-      D.m02 = lam;
-      D.m10 = lam;
-      D.m11 = lam + 2*mu;
-      D.m12 = lam;
-      D.m20 = lam;
-      D.m21 = lam;
-      D.m22 = lam + 2*mu;
-      D.m33 = mu;
-      D.m44 = mu;
-      D.m55 = mu;
-      
-      if (myCorotated) {
-         // need to rotate this tensor from linear frame into material one
-         Matrix3d F = def.getF();
-         RotationMatrix3d R = new RotationMatrix3d();
-         if (mySVD == null) {
-            mySVD = new SVDecomposition3d();
-         }
-         mySVD.polarDecomposition (R, (Matrix3d)null, F);
-         // R rotates from linear frame to the material one. Transpose
-         // of R rotates from material frame to linear one.
-         R.transpose();
-         TensorUtils.rotateTangent (D, D, R);
-      }
+      // XXX linear isotropic materials are invariant under rotation
+      getC(D);
    }
 
    public boolean equals (FemMaterial mat) {
@@ -253,8 +206,7 @@ public class LinearMaterial extends FemMaterial {
       }
       LinearMaterial linm = (LinearMaterial)mat;
       if (myNu != linm.myNu ||
-          myE != linm.myE ||
-          myCorotated != linm.myCorotated) {
+          myE != linm.myE) {
          return false;
       }
       else {

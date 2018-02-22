@@ -836,5 +836,16 @@ public class MFreeMuscleElementDesc
       }      
    }
 
+   @Override
+   public boolean isLinear() {
+      MuscleMaterial mat = getEffectiveMuscleMaterial();
+      return mat == null;
+   }
 
+   @Override
+   public boolean isCorotated() {
+      MuscleMaterial mat = getEffectiveMuscleMaterial();
+      return mat == null;
+   }
+   
 }

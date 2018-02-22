@@ -8,13 +8,18 @@ import maspack.matrix.*;
  */
 public class SolidDeformation {
 
-   Matrix3d myF;    // deformation gradient
-   double myDetF;   // determinant of the deformation gradient
-   double myP;      // local pressure
-   Matrix3dBase myRot;          // local rotation (if stiffness warping)
+   Matrix3d myF;            // deformation gradient
+   double myDetF;           // determinant of the deformation gradient
+   double myP;              // local pressure
+   RotationMatrix3d myRot;  // local rotation (if stiffness warping)
 
    public SolidDeformation() {
       myF = new Matrix3d();
+      clear();
+   }
+   
+   public void clear() {
+      myF.setZero();
       myDetF = 0;
       myP = 0;
       myRot = null;
@@ -69,14 +74,23 @@ public class SolidDeformation {
     * @param R rotation matrix
     */
    public void setR(Matrix3dBase R) {
-      myRot = R;
+      if (R == null) {
+         myRot = null;
+         return;
+      }
+      
+      if (myRot == null) {
+         myRot = new RotationMatrix3d();
+         
+      }
+      myRot.set(R);;
    }
    
    /**
     * Gets a local rotation, for use if stiffness warping
     * @return rotation matrix
     */
-   public Matrix3dBase getR() {
+   public RotationMatrix3d getR() {
       return myRot;
    }
 

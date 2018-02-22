@@ -21,10 +21,26 @@ public interface AuxiliaryMaterial extends Clonable {
 
    public abstract void computeTangent(
       Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
-      IntegrationPoint3d pt,IntegrationData3d dt, FemMaterial baseMat);
+      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat);
 
    public abstract boolean hasSymmetricTangent();
 
    public abstract boolean isInvertible();
+   
+   /**
+    * Linear stress/stiffness response to deformation, allows tangent
+    * to be pre-computed and stored.
+    * 
+    * @return true if linear response
+    */
+   public abstract boolean isLinear();
+   
+   /**
+    * Deformation is computed by first removing a rotation component 
+    * (either explicit or computed from strain)
+    * 
+    * @return true if material is corotated
+    */
+   public abstract boolean isCorotated();
 
 }

@@ -729,7 +729,7 @@ public class TensorUtils {
     * @param D1 original tangent matrix to rotate
     * @param R rotation matrix
     */
-   public static void rotateTangent (Matrix6d DR, Matrix6d D1, Matrix3dBase R) {
+   public static void rotateTangentOld (Matrix6d DR, Matrix6d D1, Matrix3dBase R) {
 
       Matrix6d DX;
       if (DR == D1) {
@@ -865,6 +865,59 @@ public class TensorUtils {
       T.m44 = R.m00*R.m11+R.m01*R.m10;
    }
    
+   /**
+    * Creates a 6x6 "unrotation" matrix for transforming the elasticity tensor (i.e. uses R')
+    * From <a href=http://www.brown.edu/Departments/Engineering/Courses/EN224/anis_general/anis_general.htm>Brown University Notes</a>
+    * @param T output 6x6 matrix
+    * @param R 3D rotation matrix
+    */
+   public static void createElasticityUnrotation(Matrix6d T, Matrix3dBase R) {
+      
+      // non-standard Vogt notation 11, 22, 33, 12, 23, 13
+      // top left
+      T.m00 = R.m00*R.m00;
+      T.m01 = R.m10*R.m10;
+      T.m02 = R.m20*R.m20;
+      T.m10 = R.m01*R.m01;
+      T.m11 = R.m11*R.m11;
+      T.m12 = R.m21*R.m21;
+      T.m20 = R.m02*R.m02;
+      T.m21 = R.m12*R.m12;
+      T.m22 = R.m22*R.m22;
+      
+      // top right
+      T.m05 = 2*R.m10*R.m20;
+      T.m03 = 2*R.m20*R.m00;
+      T.m04 = 2*R.m00*R.m10;
+      T.m15 = 2*R.m11*R.m21;
+      T.m13 = 2*R.m21*R.m01;
+      T.m14 = 2*R.m01*R.m11;
+      T.m25 = 2*R.m12*R.m22;
+      T.m23 = 2*R.m22*R.m02;
+      T.m24 = 2*R.m02*R.m12;
+      
+      // bottom left
+      T.m50 = R.m01*R.m02;
+      T.m51 = R.m11*R.m12;
+      T.m52 = R.m21*R.m22;
+      T.m30 = R.m02*R.m00;
+      T.m31 = R.m12*R.m10;
+      T.m32 = R.m22*R.m20;
+      T.m40 = R.m00*R.m01;
+      T.m41 = R.m10*R.m11;
+      T.m42 = R.m20*R.m21;
+      
+      // bottom right
+      T.m55 = R.m11*R.m22+R.m21*R.m12;
+      T.m53 = R.m21*R.m02+R.m01*R.m22;
+      T.m54 = R.m01*R.m12+R.m11*R.m02;
+      T.m35 = R.m12*R.m20+R.m22*R.m10;
+      T.m33 = R.m22*R.m00+R.m02*R.m20;
+      T.m34 = R.m02*R.m10+R.m12*R.m00;
+      T.m45 = R.m10*R.m21+R.m20*R.m11;
+      T.m43 = R.m20*R.m01+R.m00*R.m21;
+      T.m44 = R.m00*R.m11+R.m10*R.m01;
+   }
    
    /**
     * Rotates a 6x6 material tangent matrix into a new coordinate system.
@@ -875,9 +928,24 @@ public class TensorUtils {
     * @param D1 original tangent matrix to rotate
     * @param R rotation matrix
     */
-   public static void rotateTangent2 (Matrix6d DR, Matrix6d D1, Matrix3dBase R) {
+   public static void rotateTangent (Matrix6d DR, Matrix6d D1, Matrix3dBase R) {
       Matrix6d T = new Matrix6d();
       createElasticityRotation(T, R);
+      DR.mul(T, D1);
+      DR.mulTranspose(T);
+   }
+   
+   /**
+    * Rotates a 6x6 material tangent matrix into a new coordinate system.
+    * The rotation is specified by the transpose of rotation matrix R
+    *
+    * @param DR result is returned here
+    * @param D1 original tangent matrix to rotate
+    * @param R rotation to "unrotate"
+    */
+   public static void unrotateTangent (Matrix6d DR, Matrix6d D1, Matrix3dBase R) {
+      Matrix6d T = new Matrix6d();
+      createElasticityUnrotation(T, R);
       DR.mul(T, D1);
       DR.mulTranspose(T);
    }
@@ -916,14 +984,15 @@ public class TensorUtils {
       } else {
          System.out.println("Rotated tangents are equal");
       }
-      
-      // alternative rotation
-      TensorUtils.rotateTangent2(Dr, D, R);
-      System.out.println ("Dr=\n" + Dr.toString("%12.8f"));
-      TensorUtils.rotateTangent2(Dur, Dr, Rinv);
-
+     
+      TensorUtils.unrotateTangent(Dur, Dr, R);
       if (!D.epsilonEquals(Dur, 1e-5)) {
          System.err.println("Rotated tangents not equal");
+         Matrix6d Derr = new Matrix6d();
+         Derr.sub (D, Dur);
+         System.out.println ("D=\n" + D.toString("%12.8f"));
+         System.out.println ("Dr=\n" + Dr.toString("%12.8f"));
+         System.out.println ("Err=\n" + Derr.toString("%12.8f"));
       } else {
          System.out.println("Rotated tangents are equal");
       }

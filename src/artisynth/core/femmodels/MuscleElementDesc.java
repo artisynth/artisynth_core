@@ -155,11 +155,24 @@ public class MuscleElementDesc
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);            
    }
 
+   @Override
    public boolean isInvertible() {
       MuscleMaterial mat = getEffectiveMuscleMaterial();
       return mat == null || mat.isInvertible();
    }
 
+   @Override
+   public boolean isLinear() {
+      MuscleMaterial mat = getEffectiveMuscleMaterial();
+      return mat == null;
+   }
+   
+   @Override
+   public boolean isCorotated() {
+      MuscleMaterial mat = getEffectiveMuscleMaterial();
+      return mat == null;
+   }
+   
    /**
     * {@inheritDoc}
     */
@@ -343,16 +356,11 @@ public class MuscleElementDesc
       
       for (int i=0; i<ipnt.length; i++) {
       
-         boolean drawLine = true;
-         if (myDirs != null) {
-            if (myDirs[i] != null) {
-               dir.set(myDirs[i]);
-            } else {
-               drawLine = false;
-               dir.set(0,0,0);
-            }
-         } else {
-            dir.set(myDir);
+         Vector3d mdir = getMuscleDirection(ipnt[i]);
+         boolean drawLine = false;
+         if (mdir != null) {
+            drawLine = true;
+            dir.set(mdir);
          }
          
          if (drawLine) {
@@ -384,37 +392,36 @@ public class MuscleElementDesc
       
       myElement.computeRenderCoordsAndGradient (F, coords0);
 
-      if (myDirs != null) {
-         // If there are directions for each integration point, use the average
-         // direction of all the dirs.
-         dir.setZero();
-         for (int i=0; i<myDirs.length; i++) {
-            if (myDirs[i] != null) {
-               dir.add (myDirs[i]);
+      dir.setZero();
+      int count = 0;
+      for (IntegrationPoint3d pt : myElement.getIntegrationPoints()) {
+         Vector3d mdir = getMuscleDirection(pt);
+         if (mdir != null) {
+            dir.add(mdir);
+            ++count;
             }
          }
+      
+      if (count > 0) {
          dir.normalize();
          F.mul (dir, dir);
-      }
-      else {
-         F.mul (dir, myDir);
-      }
 
-      double size = myElement.computeDirectedRenderSize (dir);      
-      dir.scale (0.5*size);
-      dir.scale(len);
+         double size = myElement.computeDirectedRenderSize (dir);      
+         dir.scale (0.5*size);
+         dir.scale(len);
             
-      coords0[0] -= (float)dir.x/2;
-      coords0[1] -= (float)dir.y/2;
-      coords0[2] -= (float)dir.z/2;
+         coords0[0] -= (float)dir.x/2;
+         coords0[1] -= (float)dir.y/2;
+         coords0[2] -= (float)dir.z/2;
             
-      coords1[0] = coords0[0] + (float)dir.x;
-      coords1[1] = coords0[1] + (float)dir.y;
-      coords1[2] = coords0[2] + (float)dir.z;
+         coords1[0] = coords0[0] + (float)dir.x;
+         coords1[1] = coords0[1] + (float)dir.y;
+         coords1[2] = coords0[2] + (float)dir.z;
             
-      renderer.drawLine (
-         props, coords0, coords1, myDirectionColor, 
-         /*capped=*/true, isSelected());
+         renderer.drawLine (
+            props, coords0, coords1, myDirectionColor, 
+            /*capped=*/true, isSelected());
+      }
       
    }
    
@@ -487,13 +494,7 @@ public class MuscleElementDesc
 
       MuscleMaterial mat = getEffectiveMuscleMaterial();
       if (mat != null) {
-         Vector3d dir = null;
-         if (myDirs != null) {
-            dir = myDirs[pt.getNumber()];
-         }
-         else {
-            dir = myDir;
-         }
+         Vector3d dir = getMuscleDirection(pt.getNumber());
          if (dir != null) {
             mat.computeTangent (D, stress, getNetExcitation(), dir, def, baseMat);
          }
@@ -506,13 +507,7 @@ public class MuscleElementDesc
       
       MuscleMaterial mat = getEffectiveMuscleMaterial();
       if (mat != null) {
-         Vector3d dir = null;
-         if (myDirs != null) {
-            dir = myDirs[pt.getNumber()];
-         }
-         else {
-            dir = myDir;
-         }
+         Vector3d dir = getMuscleDirection(pt.getNumber());
          if (dir != null) {
             mat.computeStress (sigma, getNetExcitation(), dir, def, baseMat);
          }
@@ -527,6 +522,17 @@ public class MuscleElementDesc
       else {
          return true;
       }
+   }
+   
+   public Vector3d getMuscleDirection(IntegrationPoint3d pnt) {
+      return getMuscleDirection(pnt.getNumber());
+   }
+   
+   public Vector3d getMuscleDirection(int ipntIdx) {
+      if (myDirs != null) {
+         return myDirs[ipntIdx];
+      }
+      return myDir;
    }
 
    public void interpolateDirection (

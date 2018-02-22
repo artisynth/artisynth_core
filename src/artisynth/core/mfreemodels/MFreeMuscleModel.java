@@ -1166,4 +1166,16 @@ public class MFreeMuscleModel extends MFreeModel3d
       }   
       return super.postscanItem (tokens, ancestor);
    }
+   
+   @Override
+   public boolean isLinear() {
+      MuscleMaterial mat = getMuscleMaterial();
+      return mat == null;
+   }
+
+   @Override
+   public boolean isCorotated() {
+      MuscleMaterial mat = getMuscleMaterial();
+      return mat == null;
+   }
 }

@@ -17,7 +17,6 @@ import maspack.util.InternalErrorException;
 import maspack.render.Renderer;
 import maspack.render.RenderableUtils;
 import maspack.render.RenderProps;
-import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.IncompressibleMaterial;
 import artisynth.core.mechmodels.DynamicAttachment;
@@ -34,6 +33,7 @@ import artisynth.core.util.*;
 
 public abstract class FemElement3d extends FemElement
    implements Boundable, PointAttachable, FrameAttachable {
+   
    protected FemNode3d[] myNodes;
    protected FemNodeNeighbor[][] myNbrs = null;
    // average shape function gradient; used for incompressibility
@@ -693,7 +693,7 @@ public abstract class FemElement3d extends FemElement
       myNbrs = null;
 
       FemNode3d[] nodes = getNodes();
-      //double massPerNode = getMass()/numNodes();
+      // double massPerNode = getMass()/numNodes();
       for (int i = 0; i < nodes.length; i++) {
          for (int j = 0; j < nodes.length; j++) {
             nodes[i].deregisterNodeNeighbor(nodes[j]);
@@ -887,7 +887,6 @@ public abstract class FemElement3d extends FemElement
       }
       return -1; // failed
    }
-   
 
    public int getNaturalCoordinatesStd (
       Vector3d coords, Point3d pnt, int maxIters) {
@@ -1195,65 +1194,73 @@ public abstract class FemElement3d extends FemElement
 //    public SymmetricMatrix3d getStress() {
 //       return myAvgStress;
 //    }
+//
+//   public void addNodeStiffness (
+//      Matrix3d Kij, int i, int j, boolean corotated) {
+//      if (!myWarpingStiffnessValidP) {
+//         updateWarpingStiffness();
+//      }
+//      myWarper.addNodeStiffness (Kij, i, j, corotated);
+//   }  
 
-   public void addNodeStiffness (
-      Matrix3d Kij, int i, int j, boolean corotated) {
+   @Deprecated
+   public void addNodeStiffness (int i, int j, boolean corotated) {
       if (!myWarpingStiffnessValidP) {
          updateWarpingStiffness();
       }
-      myWarper.addNodeStiffness (Kij, i, j, corotated);
+      myWarper.addNodeStiffness (myNbrs[i][j].getK(), i, j);
    }  
 
-   public void addNodeStiffness (
-      int i, int j, boolean corotated) {
+   @Deprecated
+   public void addNodeForce (Vector3d f, int i, boolean corotated) {
       if (!myWarpingStiffnessValidP) {
          updateWarpingStiffness();
       }
-      myWarper.addNodeStiffness (myNbrs[i][j], i, j, corotated);
-   }  
-
-    public void addNodeForce (Vector3d f, int i, boolean corotated) {
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
-      }
-      myWarper.addNodeForce (f, i, myNodes, corotated);
+      myWarper.addNodeForce (f, i, myNodes);
    }
-    
-   public void addNodeForce0(Vector3d f, int i, boolean corotated) {
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
-      }
-      myWarper.addNodeForce0(f, i, corotated);
+
+   /**
+    * Explicitly sets a stiffness warper
+    * @param warper new stiffness warper to use
+    */
+   public void setStiffnessWarper(StiffnessWarper3d warper) {
+      myWarper = warper;
+      myWarpingStiffnessValidP = false;
    }
    
-   public void addNodeForce0(VectorNd f, int offset, int i, boolean corotated) {
+   /**
+    * Retrieves the current stiffness warper.  The warper's
+    * cached rest stiffness is updated if necessary
+    * 
+    * @return stiffness warper
+    */
+   public StiffnessWarper3d getStiffnessWarper() {
+      // don't allow invalid stiffness to leak
       if (!myWarpingStiffnessValidP) {
          updateWarpingStiffness();
-      }
-      myWarper.addNodeForce0(f, offset, i, corotated);
-   }
-
-   public StiffnessWarper3d getStiffnessWarper() {
-      if (myWarper == null){
-         myWarper = new StiffnessWarper3d (numNodes());
       }
       return myWarper;
    }
    
-   public void updateWarpingStiffness() {
-      // System.out.println("updating stiffness: E="+myE+", nu="+myNu);
-
+   protected StiffnessWarper3d createStiffnessWarper () {
+      return new StiffnessWarper3d (this);
+   }
+   
+   protected void updateWarpingStiffness() {
       FemMaterial mat = getEffectiveMaterial();
-      if (mat instanceof LinearMaterial) {
-         if (myWarper == null){
-            myWarper = new StiffnessWarper3d (numNodes());
+      if (myWarper == null){
+         myWarper = createStiffnessWarper();
+      } else {
+         myWarper.initialize(this);
+      }
+      
+      if (mat.isLinear()) {
+         myWarper.addInitialStiffness (this, mat);
+      }
+      for (AuxiliaryMaterial amat : getAuxiliaryMaterials()) {
+         if (amat.isLinear()) {
+            myWarper.addInitialStiffness(this, amat);
          }
-         LinearMaterial lmat = (LinearMaterial)mat;
-         myWarper.computeInitialStiffness (
-            this, lmat.getYoungsModulus(), lmat.getPoissonsRatio());
-//         IntegrationPoint3d wpnt = getWarpingPoint();
-//         IntegrationData3d wdata = getWarpingData();
-//         wdata.computeRestJacobian (wpnt.GNs, myNodes);
       }
       myWarpingStiffnessValidP = true;
    }
@@ -1281,16 +1288,13 @@ public abstract class FemElement3d extends FemElement
       return true;
    }
 
-//   public void computeWarping() {
-//      if (!myWarpingStiffnessValidP) {
-//         updateWarpingStiffness();
-//      }
-//      IntegrationPoint3d wpnt = getWarpingPoint();
-//      IntegrationData3d wdata = getWarpingData();
-//      wpnt.computeJacobianAndGradient (myNodes, wdata.myInvJ0);
-//      myWarper.computeRotation (wpnt.F, null);
-//   }
-
+   @Deprecated
+   /**
+    * Assumes warping computed from a single warping point, but
+    * other possibilities may be allowed.
+    * 
+    * use StiffnessWarper3d.computeWarping(FemElement3d)
+    */
    public void computeWarping (Matrix3d F, SymmetricMatrix3d P) {
       if (myWarpingStiffnessValidP && myWarper == null) {
          System.out.println ("invalid");
@@ -1375,9 +1379,7 @@ public abstract class FemElement3d extends FemElement
       if (myAuxMaterials == null) {
          return new AuxiliaryMaterial[0];
       }
-      else {
-         return myAuxMaterials.toArray (new AuxiliaryMaterial[0]);
-      }
+      return myAuxMaterials.toArray (new AuxiliaryMaterial[0]);
    }
 
    static int numEdgeSegs = 10;

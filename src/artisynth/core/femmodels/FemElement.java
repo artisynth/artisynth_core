@@ -257,6 +257,10 @@ public abstract class FemElement extends RenderableComponentBase
     */     
    protected abstract double computeRestVolumes();
 
+   @Deprecated
+   /**
+    * Warping now mostly handled separately by stiffness warper
+    */
    protected abstract void updateWarpingStiffness();
 
    //public abstract void computeWarping();

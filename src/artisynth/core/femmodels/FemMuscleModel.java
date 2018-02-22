@@ -323,8 +323,7 @@ implements AuxiliaryMaterial, ExcitationComponent {
 
    public FemMuscleModel (String name) {
       super(name);
-      myMuscleList =
-      new MuscleBundleList("bundles", "b");
+      myMuscleList = new MuscleBundleList("bundles", "b");
       myExciterList =
       new ComponentList<MuscleExciter>(MuscleExciter.class, "exciters", "x");
       addFixed (myMuscleList);
@@ -399,6 +398,16 @@ implements AuxiliaryMaterial, ExcitationComponent {
    @Override
    public boolean isInvertible() {
       return myMuscleMat == null || myMuscleMat.isInvertible();
+   }
+   
+   @Override
+   public boolean isLinear() {
+      return myMuscleMat == null;
+   }
+   
+   @Override
+   public boolean isCorotated() {
+      return myMuscleMat == null;
    }
 
    public void setMuscleMaterial(MuscleMaterial mat) {

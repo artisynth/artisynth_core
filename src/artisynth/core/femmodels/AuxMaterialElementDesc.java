@@ -44,14 +44,12 @@ import artisynth.core.util.*;
  * AuxiliaryMaterial required to mix material types together within a single
  * element.
  */
-public class AuxMaterialElementDesc
-extends RenderableComponentBase
-implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
+public class AuxMaterialElementDesc extends RenderableComponentBase
+   implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
 
    FemElement3d myElement;
    private FemMaterial myMat;
-   SymmetricMatrix3d myStress = new SymmetricMatrix3d();
-   Matrix6d myD = new Matrix6d();
+   
    private float[] rcoords = new float[3];
    
    // fraction to scale material's contribution
@@ -91,7 +89,7 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       myProps.add ("renderProps", "render properties", null);
       myProps.add ("fraction", "material fraction", 1);
       myProps.add (
-         "material", "muscle material parameters", null);
+         "material", "fem material parameters", null);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -140,6 +138,18 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
    public boolean isInvertible() {
       FemMaterial mat = getEffectiveMaterial();
       return mat == null || mat.isInvertible();
+   }
+   
+   @Override
+   public boolean isLinear() {
+      FemMaterial mat = getEffectiveMaterial();
+      return mat == null || mat.isLinear();
+   }
+   
+   @Override
+   public boolean isCorotated() {
+      FemMaterial mat = getEffectiveMaterial();
+      return mat == null || mat.isCorotated();
    }
 
    protected FemMaterial getEffectiveMaterial() {

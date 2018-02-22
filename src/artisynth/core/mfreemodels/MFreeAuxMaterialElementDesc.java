@@ -524,4 +524,16 @@ implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
       }      
    }
 
+   @Override
+   public boolean isLinear() {
+      FemMaterial mat = getEffectiveMaterial();
+      return mat == null || mat.isLinear();
+   }
+
+   @Override
+   public boolean isCorotated() {
+      FemMaterial mat = getEffectiveMaterial();
+      return mat == null || mat.isCorotated();
+   }
+
 }

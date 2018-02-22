@@ -6,7 +6,12 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.FileImageOutputStream;
+
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GL2GL3;
 
@@ -133,7 +138,16 @@ public class GLFrameCapture {
                        0, width);
          
          try {
-            ImageIO.write (image, format, file);
+            ImageWriter writer = ImageIO.getImageWritersBySuffix (format).next ();
+            ImageWriteParam param = writer.getDefaultWriteParam ();
+            if (param.canWriteCompressed()) { 
+               // write with high compression quality
+               param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+               param.setCompressionQuality(1.0f);
+           }
+            writer.setOutput (new FileImageOutputStream(file));
+            writer.write (null, new IIOImage((image),null,null), param);
+            // ImageIO.write (image, format, file);
          }
          catch (IOException io_e) {
             io_e.printStackTrace();

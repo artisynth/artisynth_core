@@ -272,6 +272,7 @@ public abstract class FemModel extends MechSystemBase
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
       componentChanged (DynamicActivityChangeEvent.defaultEvent);
       invalidateStressAndStiffness();
+      invalidateRestData();  // added to invalidate cached linear data (mirrors property change event)
    }
    
    public synchronized void setLinearMaterial (

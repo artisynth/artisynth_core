@@ -330,30 +330,6 @@ public class QuadtetElement extends FemElement3d {
       myRenderer.renderWidget (renderer, this, size, props);
    }
 
-   public void updateWarpingStiffness() {
-      // System.out.println("updating stiffness: E="+myE+", nu="+myNu);
-
-      FemMaterial mat = getEffectiveMaterial();
-      if (mat instanceof LinearMaterial) {
-         if (myWarper == null){
-            myWarper = new StiffnessWarper3d(10);
-         }
-         LinearMaterial lmat = (LinearMaterial)mat;
-         myWarper.computeInitialStiffness (
-            this, lmat.getYoungsModulus(), lmat.getPoissonsRatio());
-         myWarper.setInitialJ (myNodes[0], myNodes[1], myNodes[2], myNodes[3]);
-      }
-      myWarpingStiffnessValidP = true;
-   }
-
-   public void computeWarping() {
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
-      }
-      // System.out.println("warping.");
-      myWarper.computeWarping (myNodes[0], myNodes[1], myNodes[2], myNodes[3]);
-   }
-
    public FemNode3d[][] triangulateFace (FaceNodes3d face) {
       FemNode3d[] nodes = face.getNodes();
       if (nodes.length != 6) {

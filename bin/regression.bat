@@ -32,15 +32,19 @@ set output=%2
 set reference=%3
 
 if [%script%] == [] (
-    set script=..\scripts\basicRegressionTest.py
+    set script=basicRegressionTest.py
+)
+
+FOR %%i IN ("%script%") DO (
+set scriptFilename=%%~ni
 )
 
 if [%output%] == [] (
-    set output=%script:~0,-3%.out
+    set output=%scriptFileName%.out
 )
 
 if [%reference%] == [] (
-    set reference=%script:~0,-3%.ref
+    set reference=%scriptFileName%.ref
 )
 
 REM run artisynth
@@ -49,7 +53,7 @@ java artisynth.core.driver.Launcher -posCorrection GlobalMass -disableHybridSolv
 
 REM If reference file does not exist, prompt to create it
 if not exist %reference% (
-    set /p reply="Reference file '%reference%' does not exist.  Do you wish to set it?  [Y/n]"
+    set /p reply="Reference file '%reference%' does not exist.  Do you wish to set it?  [Y/n] "
 	echo !reply!
 
     if [!reply!] == [] (

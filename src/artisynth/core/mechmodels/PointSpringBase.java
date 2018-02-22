@@ -258,10 +258,10 @@ public abstract class PointSpringBase extends Spring
    protected class SegmentData {
       public Point pnt0;
       public Point pnt1;
-      MatrixBlock blk00;
-      MatrixBlock blk11;
-      MatrixBlock blk01;
-      MatrixBlock blk10;
+      protected MatrixBlock blk00;
+      protected MatrixBlock blk11;
+      protected MatrixBlock blk01;
+      protected MatrixBlock blk10;
       protected int blk00Num;
       protected int blk11Num;
       protected int blk01Num;
@@ -335,14 +335,14 @@ public abstract class PointSpringBase extends Spring
          blk11Num = (bi1 != -1 ? M.getBlock(bi1, bi1).getBlockNumber() : -1);
       }
 
-      void addVelJacobian (
+      protected void addVelJacobian (
          SparseNumberedBlockMatrix M, double s, double dFdldot, Matrix3d T) {
          computeForceVelocityJacobian (T, dFdldot);
          T.scale (s);
          addToJacobianBlocks (M, T);
       }
 
-      void addPosJacobian (
+      protected void addPosJacobian (
          SparseNumberedBlockMatrix M, double s, double F, double dFdl, 
          double dFdldot, double len, Matrix3d T) {
          computeForcePositionJacobian (T, F, dFdl, dFdldot, len);
@@ -350,8 +350,7 @@ public abstract class PointSpringBase extends Spring
          addToJacobianBlocks (M, T);
       }
 
-      protected void addToJacobianBlocks (
-         SparseNumberedBlockMatrix S, Matrix3d M) {
+      protected void addToJacobianBlocks (SparseNumberedBlockMatrix S, Matrix3d M) {
 
          if (blk00Num != -1) {
             S.getBlockByNumber(blk00Num).add (M);

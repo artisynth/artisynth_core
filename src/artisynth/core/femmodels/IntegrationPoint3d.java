@@ -71,7 +71,11 @@ public class IntegrationPoint3d {
    }
 
    public IntegrationPoint3d (int nnodes) {
-      init(nnodes, 1);
+      this(nnodes, 1);
+   }
+   
+   public IntegrationPoint3d (int nnodes, int npvals) {
+      init(nnodes, npvals);
    }
 
    /**

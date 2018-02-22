@@ -6,15 +6,8 @@
  */
 package artisynth.core.femmodels;
 
-import artisynth.core.modelbase.*;
-import artisynth.core.util.*;
 import maspack.render.*;
 import maspack.matrix.*;
-import maspack.render.*;
-import maspack.util.*;
-
-import java.util.*;
-import java.io.*;
 
 /**
  * Nodes are arranged clockwise WRT p0
@@ -38,10 +31,23 @@ public class TetElement extends FemElement3d {
    }
 
    public double getConditionNum() {
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
+      IntegrationPoint3d wpnt = getWarpingPoint();
+      Vector3d[] GNs = wpnt.getGNs();
+      FemNode3d[] nodes = getNodes();
+      IntegrationData3d wdata = getWarpingData();
+      
+      // compute J0
+      Matrix3d J0 = new Matrix3d();
+      J0.setZero();
+      for (int i=0; i<nodes.length; i++) {
+         Vector3d pos = nodes[i].getLocalRestPosition();
+         Vector3d dNds = GNs[i];
+         J0.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
       }
-      return myWarper.getConditionNum();
+      
+      double conditionNum = J0.infinityNorm()*wdata.myInvJ0.infinityNorm();
+      
+      return conditionNum;
    }
 
    public boolean isInverted() {

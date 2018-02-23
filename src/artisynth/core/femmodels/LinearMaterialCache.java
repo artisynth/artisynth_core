@@ -84,8 +84,9 @@ public class LinearMaterialCache {
          // compute tangent matrix under zero stress
          mat.computeTangent(D, SymmetricMatrix3d.ZERO, def, Q, null);
          
-         for (int i = 0; i < e.myNodes.length; i++) {
-            for (int j = 0; j < e.myNodes.length; j++) {
+         FemNode3d[] nodes = e.getNodes();
+         for (int i = 0; i < nodes.length; i++) {
+            for (int j = 0; j < nodes.length; j++) {
                FemUtilities.addMaterialStiffness (
                   K0[i][j], GNx0[i], D, GNx0[j], dv0);
             }
@@ -94,10 +95,11 @@ public class LinearMaterialCache {
       
       // initial RHS
       Vector3d tmp = new Vector3d();
-      for (int i = 0; i < e.myNodes.length; i++) {
+      FemNode3d[] nodes = e.getNodes();
+      for (int i = 0; i < nodes.length; i++) {
          tmp.setZero();
-         for (int j=0; j<e.myNodes.length; j++) {
-            K0[i][j].mulAdd (tmp, e.myNodes[j].myRest, tmp);
+         for (int j=0; j<nodes.length; j++) {
+            K0[i][j].mulAdd (tmp, nodes[j].getRestPosition(), tmp);
          }
          f0[i].add (tmp);
       }
@@ -134,8 +136,9 @@ public class LinearMaterialCache {
          // compute tangent matrix under zero stress
          mat.computeTangent(D, SymmetricMatrix3d.ZERO, def, pt, dt, null);
          
-         for (int i = 0; i < e.myNodes.length; i++) {
-            for (int j = 0; j < e.myNodes.length; j++) {
+         FemNode3d[] nodes = e.getNodes();
+         for (int i = 0; i < nodes.length; i++) {
+            for (int j = 0; j < nodes.length; j++) {
                FemUtilities.addMaterialStiffness (
                   K0[i][j], GNx0[i], D, GNx0[j], dv0);
             }
@@ -144,10 +147,11 @@ public class LinearMaterialCache {
       
       // initial RHS
       Vector3d tmp = new Vector3d();
-      for (int i = 0; i < e.myNodes.length; i++) {
+      FemNode3d[] nodes = e.getNodes();
+      for (int i = 0; i < nodes.length; i++) {
          tmp.setZero();
-         for (int j=0; j<e.myNodes.length; j++) {
-            K0[i][j].mulAdd (tmp, e.myNodes[j].myRest, tmp);
+         for (int j=0; j<nodes.length; j++) {
+            K0[i][j].mulAdd (tmp, nodes[i].getRestPosition(), tmp);
          }
          f0[i].add (tmp);
       }

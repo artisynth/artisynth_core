@@ -1,46 +1,23 @@
 package artisynth.demos.fem;
 
 import java.awt.Color;
-import java.awt.Point;
-import java.util.*;
-import java.io.*;
+import java.util.LinkedList;
 
-import javax.swing.*;
-
-import java.awt.event.*;
-
-import javax.swing.event.*;
-
-import org.python.modules.math;
-
-import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.RevoluteJoint;
-import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.mechmodels.MechSystemSolver.Integrator;
-import artisynth.core.mechmodels.MechSystemSolver.MatrixSolver;
-import maspack.geometry.*;
-import maspack.spatialmotion.*;
-import maspack.matrix.*;
-import maspack.properties.PropertyList;
-import maspack.render.*;
-import maspack.util.*;
+import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.gui.*;
-import artisynth.core.gui.selectionManager.SelectionEvent;
-import artisynth.core.gui.selectionManager.SelectionListener;
-import artisynth.core.modelbase.*;
-import artisynth.core.util.*;
-import artisynth.core.workspace.DriverInterface;
+import artisynth.core.gui.ControlPanel;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.MechSystemSolver.Integrator;
+import artisynth.core.mechmodels.RevoluteJoint;
+import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.workspace.RootModel;
-import maspack.render.*;
+import maspack.geometry.MeshFactory;
+import maspack.matrix.RigidTransform3d;
+import maspack.render.RenderProps;
 import maspack.render.Renderer;
-import maspack.render.Renderer.LineStyle;
-import artisynth.core.driver.*;
-
-import java.awt.*;
-import java.util.*;
+import maspack.spatialmotion.SpatialInertia;
 
 public class ArticulatedFem extends RootModel {
    public static boolean debug = false;
@@ -109,10 +86,11 @@ public class ArticulatedFem extends RootModel {
          LinkedList<FemNode3d> leftNodes = new LinkedList<FemNode3d>();
          LinkedList<FemNode3d> rightNodes = new LinkedList<FemNode3d>();
 
-         FemModel3d femMod =
-            FemModel3d.createGrid (
-               /*name=*/null, femLength, femHeight, femHeight, nelemsx, nelemsz,
-               nelemsz, myDensity);
+         FemModel3d femMod = FemFactory.createTetGrid(
+            null, femLength, femHeight, femHeight, nelemsx, nelemsz,
+            nelemsz);
+         femMod.setDensity(myDensity);
+         
          femMod.setLinearMaterial (200000, 0.4, true);
          femMod.setGravity (0, 0, -9.8);
 

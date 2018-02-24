@@ -1,45 +1,33 @@
 package artisynth.demos.fem;
 
-import java.awt.Point;
-import java.util.*;
-import java.io.*;
+import java.awt.Color;
+import java.util.LinkedList;
 
-import javax.swing.*;
-
-import java.awt.event.*;
-
-import javax.swing.event.*;
-
-import maspack.geometry.*;
-import maspack.matrix.*;
-import maspack.properties.Property;
-import maspack.properties.PropertyList;
-import maspack.render.*;
-import maspack.render.Renderer;
-import maspack.util.*;
-import maspack.widgets.DoubleFieldSlider;
-import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemElement;
+import artisynth.core.femmodels.FemFactory;
 import artisynth.core.femmodels.FemMarker;
+import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode;
 import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.gui.*;
-import artisynth.core.gui.selectionManager.SelectionEvent;
-import artisynth.core.gui.selectionManager.SelectionListener;
-import artisynth.core.modelbase.*;
-import artisynth.core.probes.NumericOutputProbe;
-import artisynth.core.probes.WayPoint;
-import artisynth.core.util.*;
-import artisynth.core.workspace.DriverInterface;
-import artisynth.core.workspace.RootModel;
-import maspack.render.*;
-import artisynth.core.driver.*;
-import artisynth.core.mechmodels.*;
+import artisynth.core.gui.ControlPanel;
+import artisynth.core.gui.FemControlPanel;
+import artisynth.core.mechmodels.AxialSpring;
+import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
-
-import java.awt.*;
-import java.util.*;
+import artisynth.core.mechmodels.Particle;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.probes.WayPoint;
+import artisynth.core.util.ArtisynthPath;
+import artisynth.core.workspace.RootModel;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.properties.PropertyList;
+import maspack.render.RenderProps;
+import maspack.render.Renderable;
+import maspack.render.Renderer;
 
 public class FemBeamMech extends RootModel {
    MechModel myMechMod;
@@ -76,8 +64,10 @@ public class FemBeamMech extends RootModel {
       int nn = 2;
 
       myFemMod =
-         FemModel3d.createGrid (
-            "fem", 0.6, 0.2, 0.2, nn * 3, nn * 1, nn * 1, myDensity);
+         FemFactory.createTetGrid (
+            null, 0.6, 0.2, 0.2, nn * 3, nn * 1, nn * 1);
+      myFemMod.setName("fem");
+      myFemMod.setDensity(myDensity);
 
       myFemMod.setBounds (new Point3d (-0.6, 0, 0), new Point3d (0.6, 0, 0));
       myFemMod.setLinearMaterial (60000, 0.33, true);

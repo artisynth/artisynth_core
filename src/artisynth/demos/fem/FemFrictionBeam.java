@@ -67,8 +67,10 @@ public class FemFrictionBeam extends RootModel {
       double plateh = 0.01;
 
       myMech = new MechModel ("mech");
-      myFem = FemModel3d.createHexGrid (
-         "fem", feml, femw, femw, 6, 3, 3, 1000);
+      myFem = FemFactory.createHexGrid (
+         null, feml, femw, femw, 6, 3, 3);
+      myFem.setName("fem");
+      myFem.setDensity(1000);
       myMech.addModel (myFem);
       myPlate = RigidBody.createBox (
          "plate", 2*feml, feml, plateh, 1000);

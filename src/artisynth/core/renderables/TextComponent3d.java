@@ -228,7 +228,8 @@ public class TextComponent3d extends TextComponentBase implements
       renderer.mulModelMatrix(myTransform);
        
       RenderProps rprops = getRenderProps();
-      Shading savedShading = renderer.setShading (rprops.getShading ());
+      // Shading savedShading = renderer.setShading (rprops.getShading ());
+      Shading savedShading = renderer.setShading (Shading.NONE);
       renderer.setFaceColoring (rprops, isSelected());
       FaceStyle savedFaceStyle = renderer.setFaceStyle (rprops.getFaceStyle ());
       final float[] ZERO = {0,0,0};

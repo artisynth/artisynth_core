@@ -94,7 +94,13 @@ public class CompareStateFiles {
       double t2 = scanTime (rtok2, lastComment);
       
       String com1 = rtok1.lastCommentLine();
+      if (com1 != null) {
+         com1 = com1.trim();
+      }
       String com2 = rtok2.lastCommentLine();
+      if (com2 != null) {
+         com2 = com2.trim();
+      }
       
       if (!commentsEqual (com1, com2)) {
          throw new IOException (
@@ -137,6 +143,8 @@ public class CompareStateFiles {
          return false;
       }
       else if (s1 != null) {
+         s1 = s1.trim();
+         s2 = s2.trim();
          s1 = s1.replace("\r", "");
          s2 = s2.replace("\r", "");
          return s1.equals (s2);

@@ -14,11 +14,9 @@ import java.util.List;
 import maspack.geometry.BSPTree;
 import maspack.geometry.BVFeatureQuery;
 import maspack.geometry.BVIntersector;
-import maspack.geometry.OBBTree;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Sphere;
 import maspack.geometry.TriTriIntersection;
-import maspack.geometry.TriangleIntersector;
 import maspack.graph.DirectedEdge;
 import maspack.graph.DirectedGraph;
 import maspack.graph.Vertex;
@@ -93,8 +91,7 @@ public class IntersectionFactory {
       int nNodes = cChart.length;
       boolean tried[][] = new boolean[nEnds][nNodes];
       
-      for (int i=0; i<nEnds; i++) {
-         
+      for (int i=0; i<nEnds; i++) {         
          int[] set = endSets.get(i);
          for (int j=0; j<nNodes; j++) {
          

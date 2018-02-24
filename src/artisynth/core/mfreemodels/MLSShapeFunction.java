@@ -6,57 +6,38 @@
  */
 package artisynth.core.mfreemodels;
 
-import java.util.ArrayList;
-
 import maspack.function.DifferentiableFunction3x1;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.SVDecomposition;
+import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 
-public class MLSShapeFunction extends MFreeShapeFunction {
+public class MLSShapeFunction implements MFreeShapeFunction {
    
    public static final int CONSTANT_ORDER = 0;
    public static final int SHEPARD = 0;
    public static final int LINEAR_ORDER = 1;
    public static final int QUADRATIC_ORDER = 2;
    
-   protected MFreeNode3d myNode;
-   protected ArrayList<MFreeNode3d> myDependentNodes = new ArrayList<MFreeNode3d>();
+   Point3d myPnt;
+   MFreeNode3d[] myNodes;
+   MatrixNd M;
+   MatrixNd Minv;
    
    protected DifferentiableFunction3x1[] myBasisFunctions;
    protected int nBasis;
    
-   public MLSShapeFunction(MFreeNode3d node) {
-      myNode = node;
-      myDependentNodes.add(myNode);
+   public MLSShapeFunction() {
       setBasisFunctions(getPolynomialBasis(LINEAR_ORDER));
-   }
-   
-   public void setDependentNodes(ArrayList<MFreeNode3d> nodeList) {
-      myDependentNodes = nodeList;
-      addDependentNode(myNode);
-   }
-   
-   public boolean addDependentNode(MFreeNode3d node) {
-      if (!myDependentNodes.contains(node)) {
-         myDependentNodes.add(node);
-         return true;
-      }
-      return false;
-   }
-   
-   public boolean removeDependentNode(MFreeNode3d node) {
-      return myDependentNodes.remove(node);
-   }
-   
-   public void clearDependentNodes() {
-      myDependentNodes.clear();
+      myPnt = new Point3d();
    }
    
    public void setBasisFunctions(DifferentiableFunction3x1[] functions) {
       myBasisFunctions = functions;
       nBasis = functions.length;
+      M = null;
+      Minv = null;
    }
    
    public static DifferentiableFunction3x1[] getPolynomialBasis(int order) {
@@ -121,7 +102,7 @@ public class MLSShapeFunction extends MFreeShapeFunction {
       computeCorrelation(out,_p);
    }
    
-   public void computeM(MatrixNd M, Point3d pnt, ArrayList<MFreeNode3d> nodeList) {
+   public void computeM(MatrixNd M, Point3d pnt, MFreeNode3d[] nodeList) {
     
       MatrixNd cc = new MatrixNd(nBasis,nBasis);
       M.setSize(nBasis, nBasis);
@@ -135,7 +116,7 @@ public class MLSShapeFunction extends MFreeShapeFunction {
       
    }
    
-   public double computeMInv(MatrixNd MInv, Point3d pnt, ArrayList<MFreeNode3d> nodeList) {
+   public double computeMInv(MatrixNd MInv, Point3d pnt, MFreeNode3d[] nodeList) {
       computeM(MInv,pnt,nodeList);
       SVDecomposition svd = new SVDecomposition(MInv);
       svd.pseudoInverse(MInv);
@@ -147,44 +128,81 @@ public class MLSShapeFunction extends MFreeShapeFunction {
       return svd.condition();
    }
    
-   public void computePtMInv(VectorNd pTMInv, MatrixNd MInv, Point3d pnt, ArrayList<MFreeNode3d> nodeList) {
+   public void computePtMInv(VectorNd pTMInv, MatrixNd MInv, Point3d pnt, MFreeNode3d[] nodeList) {
       computeP(pTMInv, pnt.x,pnt.y, pnt.z);
       MInv.mulTranspose(pTMInv, pTMInv);
    }
    
-   public double eval(Point3d pnt, MatrixNd MInv, ArrayList<MFreeNode3d> nodeList) {
+   public double eval(MFreeNode3d node, MFreeNode3d[] nodes, Point3d pnt, MatrixNd MInv) {
       VectorNd _p = new VectorNd(nBasis);
       VectorNd pi = new VectorNd(nBasis);
-      computePtMInv(_p, MInv, pnt, nodeList);
-      Point3d xi = myNode.getRestPosition();
+      computePtMInv(_p, MInv, pnt, nodes);
+      Point3d xi = node.getRestPosition();
       computeP(pi, xi.x, xi.y, xi.z);
-      return myNode.getWeight(pnt)*_p.dot(pi);
+      return node.getWeight(pnt)*_p.dot(pi);
    }
    
-   public double eval(Point3d pnt) {
-      MatrixNd _mInv = new MatrixNd(nBasis,nBasis);
-      computeMInv(_mInv, pnt, myDependentNodes);
-      return eval(pnt, _mInv, myDependentNodes);
+   @Override
+   public boolean maybeUpdate(Vector3d coords, MFreeNode3d[] nodes) {
+      if (this.myNodes == nodes) {
+         if (coords.distance(this.myPnt) < nodes[0].getInfluenceRadius()) {
+            return false;
+         }
+      }
+      Point3d pnt = new Point3d(coords);
+      update(pnt, nodes);
+      return true;
    }
    
+   @Override
+   public void update(Point3d pnt, MFreeNode3d[] nodes) {
+      this.myPnt.set(pnt);
    
-   public double eval(double x, double y, double z) {
-      Point3d _pnt = new Point3d();
-      _pnt.x = x;
-      _pnt.y = y;
-      _pnt.z = z;
-      return eval(_pnt);
+      this.myNodes = nodes;
+      if (M == null) {
+         M = new MatrixNd(nBasis, nBasis);
+      }
+      if (Minv == null) {
+         Minv = new MatrixNd(nBasis, nBasis);
+      }
+      computeM(M, pnt, nodes);
+
+      SVDecomposition svd = new SVDecomposition(M);
+      svd.pseudoInverse(Minv);
+      if (svd.condition()>1e10) {
+         System.out.println("Warning: poor condition number, "+svd.condition());
+      }
    }
    
-   public double eval(double[] in) {
-      return eval(in[0], in[1], in[2]);
+   @Override
+   public double eval(int nidx) {
+      return eval(myNodes[nidx], myNodes, myPnt, Minv);
    }
 
-   public int getInputSize() {
-      return 3;
+   public double eval(MFreeNode3d node, MFreeNode3d[] nodes, Point3d pnt) {
+      MatrixNd _mInv = new MatrixNd(nBasis,nBasis);
+      computeMInv(_mInv, pnt, nodes);
+      return eval(node, nodes, pnt, _mInv);
    }
    
-   public void computeDDMInv(MatrixNd DDMInv, int di, int dj, MatrixNd MInv, Point3d pnt, ArrayList<MFreeNode3d> nodeList) {
+
+   //   public double eval(double x, double y, double z) {
+   //      Point3d _pnt = new Point3d();
+   //      _pnt.x = x;
+   //      _pnt.y = y;
+   //      _pnt.z = z;
+   //      return eval(_pnt);
+   //   }
+   //   
+   //   public double eval(double[] in) {
+   //      return eval(in[0], in[1], in[2]);
+   //   }
+   //
+   //   public int getInputSize() {
+   //      return 3;
+   //   }
+
+   public void computeDDMInv(MatrixNd DDMInv, int di, int dj, MatrixNd MInv, Point3d pnt, MFreeNode3d[] nodeList) {
       
       MatrixNd mTmpi = new MatrixNd(nBasis,nBasis);
       MatrixNd mTmpj = new MatrixNd(nBasis,nBasis);
@@ -214,7 +232,7 @@ public class MLSShapeFunction extends MFreeShapeFunction {
             
    }
    
-   public void computeDMInv(MatrixNd DMInv, int di, MatrixNd MInv, Point3d pnt, ArrayList<MFreeNode3d> nodeList) {
+   public void computeDMInv(MatrixNd DMInv, int di, MatrixNd MInv, Point3d pnt, MFreeNode3d[] nodeList) {
       
       // M^{-1}_{,k} = -M^{-1}M_{,k}M^{-1}
       computeDM(DMInv, di, pnt, nodeList);
@@ -224,7 +242,7 @@ public class MLSShapeFunction extends MFreeShapeFunction {
       
    }
    
-   public void computeDDM(MatrixNd DM, int di, int dj, Point3d pnt, ArrayList<MFreeNode3d> nodeList) {
+   public void computeDDM(MatrixNd DM, int di, int dj, Point3d pnt, MFreeNode3d[] nodeList) {
       
       MatrixNd cc = new MatrixNd(nBasis,nBasis);
       DM.setSize(nBasis, nBasis);
@@ -241,7 +259,7 @@ public class MLSShapeFunction extends MFreeShapeFunction {
       
    }
    
-   public void computeDM(MatrixNd DM, int dIdx, Point3d pnt, ArrayList<MFreeNode3d> nodeList) {
+   public void computeDM(MatrixNd DM, int dIdx, Point3d pnt, MFreeNode3d[] nodeList) {
       
       MatrixNd cc = new MatrixNd(nBasis,nBasis);
       DM.setSize(nBasis, nBasis);
@@ -257,14 +275,14 @@ public class MLSShapeFunction extends MFreeShapeFunction {
       
    }
    
-   protected double evalDerivative(Point3d in, VectorNd pXi, double wx, int[] derivatives, MatrixNd MInv, ArrayList<MFreeNode3d> nodeList) {
+   protected double evalDerivative(MFreeNode3d node, MFreeNode3d[] nodes, Point3d in, VectorNd pXi, double wx, int[] derivatives, MatrixNd MInv) {
       int dx = derivatives[0];
       int dy = derivatives[1];
       int dz = derivatives[2];
       double out =  0;
 
       VectorNd pTmp = new VectorNd(nBasis);
-      MFreeWeightFunction fun = myNode.getWeightFunction();
+      MFreeWeightFunction fun = node.getWeightFunction();
       
       VectorNd p = new VectorNd(nBasis);
       computeP(p, in.x, in.y, in.z);     
@@ -275,15 +293,15 @@ public class MLSShapeFunction extends MFreeShapeFunction {
          VectorNd pk = new VectorNd(nBasis);
          double wk;
          if (dz==1) {
-            computeDMInv(DMInv, 2, MInv, in, nodeList);
+            computeDMInv(DMInv, 2, MInv, in, nodes);
             computeDP(pk, in.x, in.y, in.z, 0, 0, 1);
             wk = fun.evalDerivative(in.x, in.y, in.z, 0, 0, 1);
          } else if (dy==1) {
-            computeDMInv(DMInv, 1, MInv, in, nodeList);
+            computeDMInv(DMInv, 1, MInv, in, nodes);
             computeDP(pk, in.x, in.y, in.z, 0, 1, 0);
             wk = fun.evalDerivative(in.x, in.y, in.z, 0, 1, 0);
          } else {
-            computeDMInv(DMInv, 0, MInv, in, nodeList);
+            computeDMInv(DMInv, 0, MInv, in, nodes);
             computeDP(pk, in.x, in.y, in.z, 1, 0, 0);
             wk = fun.evalDerivative(in.x, in.y, in.z, 1, 0, 0);
          }
@@ -313,10 +331,10 @@ public class MLSShapeFunction extends MFreeShapeFunction {
          double wl;
          
          if (dx==1 && dy==1) {
-            computeDDMInv(MklInv, 0, 1, MInv, in, nodeList);
-            computeDMInv(MkInv, 0, MInv, in, nodeList);
+            computeDDMInv(MklInv, 0, 1, MInv, in, nodes);
+            computeDMInv(MkInv, 0, MInv, in, nodes);
             MlInv = new MatrixNd(nBasis,nBasis);
-            computeDM(MlInv, 1, in, nodeList);
+            computeDM(MlInv, 1, in, nodes);
             
             computeDP(pkl, in.x, in.y, in.z, 1, 1, 0);
             computeDP(pk, in.x, in.y, in.z, 1, 0, 0);
@@ -328,10 +346,10 @@ public class MLSShapeFunction extends MFreeShapeFunction {
             wl = fun.evalDerivative(in.x, in.y, in.z, 0, 1, 0);
             
          } else if (dx==1 && dz==1) {
-            computeDDMInv(MklInv, 0, 2, MInv, in, nodeList);
-            computeDMInv(MkInv, 0, MInv, in, nodeList);
+            computeDDMInv(MklInv, 0, 2, MInv, in, nodes);
+            computeDMInv(MkInv, 0, MInv, in, nodes);
             MlInv = new MatrixNd(nBasis,nBasis);
-            computeDM(MlInv, 2, in, nodeList);
+            computeDM(MlInv, 2, in, nodes);
             
             computeDP(pkl, in.x, in.y, in.z, 1, 0, 1);
             computeDP(pk, in.x, in.y, in.z, 1, 0, 0);
@@ -343,10 +361,10 @@ public class MLSShapeFunction extends MFreeShapeFunction {
             wl = fun.evalDerivative(in.x, in.y, in.z, 0, 0, 1);
             
          } else if (dy==1 && dz==1){
-            computeDDMInv(MklInv, 1, 2, MInv, in, nodeList);
-            computeDMInv(MkInv, 1, MInv, in, nodeList);
+            computeDDMInv(MklInv, 1, 2, MInv, in, nodes);
+            computeDMInv(MkInv, 1, MInv, in, nodes);
             MlInv = new MatrixNd(nBasis,nBasis);
-            computeDM(MlInv, 2, in, nodeList);
+            computeDM(MlInv, 2, in, nodes);
             
             computeDP(pkl, in.x, in.y, in.z, 0, 1, 1);
             computeDP(pk, in.x, in.y, in.z, 0, 1, 0);
@@ -358,8 +376,8 @@ public class MLSShapeFunction extends MFreeShapeFunction {
             wl = fun.evalDerivative(in.x, in.y, in.z, 0, 0, 1);
             
          } else if (dx==2) {
-            computeDDMInv(MklInv, 0, 0, MInv, in, nodeList);
-            computeDMInv(MkInv, 0, MInv, in, nodeList);
+            computeDDMInv(MklInv, 0, 0, MInv, in, nodes);
+            computeDMInv(MkInv, 0, MInv, in, nodes);
             MlInv = MkInv;
             
             computeDP(pkl, in.x, in.y, in.z, 2, 0, 0);
@@ -371,8 +389,8 @@ public class MLSShapeFunction extends MFreeShapeFunction {
             wl = wk;
             
          } else if (dy==2) {
-            computeDDMInv(MklInv, 1, 1, MInv, in, nodeList);
-            computeDMInv(MkInv, 1, MInv, in, nodeList);
+            computeDDMInv(MklInv, 1, 1, MInv, in, nodes);
+            computeDMInv(MkInv, 1, MInv, in, nodes);
             MlInv = MkInv;
             
             computeDP(pkl, in.x, in.y, in.z, 0, 2, 0);
@@ -384,8 +402,8 @@ public class MLSShapeFunction extends MFreeShapeFunction {
             wl = wk;
             
          } else {
-            computeDDMInv(MklInv, 2, 2, MInv, in, nodeList);
-            computeDMInv(MkInv, 2, MInv, in, nodeList);
+            computeDDMInv(MklInv, 2, 2, MInv, in, nodes);
+            computeDMInv(MkInv, 2, MInv, in, nodes);
             MlInv = MkInv;
             
             computeDP(pkl, in.x, in.y, in.z, 0, 0, 2);
@@ -396,7 +414,6 @@ public class MLSShapeFunction extends MFreeShapeFunction {
             wk = fun.evalDerivative(in.x, in.y, in.z, 0, 0, 1);
             wl = wk;
          }
-         
          
          pTmp.mulTranspose(MInv, pkl);
          out = wx*pTmp.dot(pXi);
@@ -432,35 +449,54 @@ public class MLSShapeFunction extends MFreeShapeFunction {
       throw new IllegalArgumentException("Derivatives only defined up to second-order");
    }
    
-   public double evalDerivative(Point3d in, int[] derivatives, MatrixNd MInv, ArrayList<MFreeNode3d> nodeList) {
+   public double evalDerivative(MFreeNode3d node,  MFreeNode3d[] nodes, Point3d in, int[] derivatives, MatrixNd MInv) {
       
       VectorNd pi = new VectorNd(nBasis);
       
-      MFreeWeightFunction fun = myNode.getWeightFunction();
-      Point3d xi = myNode.getRestPosition();
+      MFreeWeightFunction fun = node.getWeightFunction();
+      Point3d xi = node.getRestPosition();
       double w = fun.eval(in);
       computeP(pi, xi.x, xi.y, xi.z);
       
-      return evalDerivative(in, pi, w, derivatives, MInv, nodeList);
+      return evalDerivative(node, nodes, in, pi, w, derivatives, MInv);
       
    }
    
-   public double evalDerivative(Point3d in, int[] derivatives) {
-      MatrixNd MInv = new MatrixNd(nBasis,nBasis);
-      computeMInv(MInv, in, myDependentNodes);
-      return evalDerivative(in, derivatives, MInv, myDependentNodes);
+   @Override
+   public void evalDerivative(int nidx, Vector3d dNds) {
+      int[] dd = {1,0,0};
+      dNds.x = evalDerivative(myNodes[nidx], myNodes, myPnt, dd, Minv);
+      dd[0] = 0; dd[1] = 1;
+      dNds.y = evalDerivative(myNodes[nidx], myNodes, myPnt, dd, Minv);
+      dd[1] = 0; dd[2] = 1;
+      dNds.z = evalDerivative(myNodes[nidx], myNodes, myPnt, dd, Minv);
    }
 
-   public double evalDerivative(double x, double y, double z, int dx, int dy,
-      int dz) {
-      Point3d in = new Point3d(x,y,z);
-      int derivatives[] = new int[]{dx,dy,dz}; 
-      return evalDerivative(in, derivatives);
+   public double evalDerivative(MFreeNode3d node, MFreeNode3d[] nodes, Point3d in, int[] derivatives) {
+      MatrixNd MInv = new MatrixNd(nBasis,nBasis);
+      computeMInv(MInv, in, nodes);
+      return evalDerivative(node, nodes, in, derivatives, MInv);
    }
 
    @Override
-   public MFreeShapeFunctionType getType() {
-      return MFreeShapeFunctionType.MLS;
+   public Point3d getCoordinate() {
+      return myPnt;
+   }
+
+   @Override
+   public MFreeNode3d[] getNodes() {
+      return myNodes;
+   }
+
+   /**
+    * Compute all shape functions at once
+    * @param N
+    */
+   public void eval(VectorNd N) {
+      N.setSize(myNodes.length);
+      for (int i=0; i<myNodes.length; ++i) {
+         N.set(i, eval(myNodes[i], myNodes, myPnt, Minv));
+      }
    }
 
 }

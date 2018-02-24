@@ -273,7 +273,10 @@ public class MeshComponent extends RenderableComponentBase
 
    @Override
    public void updateBounds(Vector3d pmin, Vector3d pmax) {
-      getMesh().updateBounds(pmin, pmax);
+      MeshBase mesh = getMesh();
+      if (mesh != null) {
+         mesh.updateBounds(pmin, pmax);
+      }
    }
 
    public void updatePosition (int flags) {

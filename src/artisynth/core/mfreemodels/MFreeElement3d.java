@@ -262,6 +262,11 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
          
       }
    }
+   
+   @Override
+   public boolean integrationPointsInterpolateToNodes() {
+      return true;
+   }
 
 //   public double computeCovariance (Matrix3d C) {
 //      return -1;

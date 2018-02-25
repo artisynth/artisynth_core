@@ -193,6 +193,7 @@ PointAttachable, ConnectableBody {
    // keep track of the number of tet, hex, and quadratic elements
    private int myNumTetElements = 0;
    private int myNumNodalMappedElements = 0;
+   private int myNumNodalInterpolatedElements = 0;
    private int myNumQuadraticElements = 0;
 
    protected double myMinDetJ; // used to record inverted elements
@@ -985,7 +986,7 @@ PointAttachable, ConnectableBody {
                else if (e.integrationPointsMapToNodes()) {
                   pressure = nodes[k].myPressure;
                }
-               else {
+               else if (e.integrationPointsInterpolateToNodes()){
                   // interpolate using shape function
                   VectorNd N = pt.getShapeWeights();
                   pressure = 0;
@@ -1142,7 +1143,7 @@ PointAttachable, ConnectableBody {
          } // looping through nodes computing stress
 
          // nodal incompressibility constraints
-         if (D != null && softIncomp == IncompMethod.NODAL) {
+         if (D != null && softIncomp == IncompMethod.NODAL && !(e instanceof TetElement)) {
             if (e.integrationPointsMapToNodes()) {
                for (FemNodeNeighbor nbr : getNodeNeighbors(e.myNodes[k])) {
                   int j = e.getLocalNodeIndex(nbr.myNode);
@@ -1151,7 +1152,7 @@ PointAttachable, ConnectableBody {
                      nbr.myDivBlk.scaledAdd(dv, GNx[j]);
                   }
                }
-            }  else if (!(e instanceof TetElement)) {
+            }  else if (e.integrationPointsInterpolateToNodes()) {
                // distribute according to shape function weights
                VectorNd N = pt.getShapeWeights();
                for (int i = 0; i < N.size(); ++i) {
@@ -1284,7 +1285,7 @@ PointAttachable, ConnectableBody {
                nodes[i].myVolume += idata[i].getDv();
             }
          }
-         else { 
+         else if (e.integrationPointsInterpolateToNodes()){ 
             // distribute using shape function
             IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
             IntegrationData3d[] idata = e.getIntegrationData();
@@ -1327,7 +1328,7 @@ PointAttachable, ConnectableBody {
                nodes[i].myRestVolume += ipnts[i].myWeight * idata[i].myDetJ0;
             }
          }
-         else {
+         else if (e.integrationPointsInterpolateToNodes()) {
             // distribute based on shape functions
             IntegrationData3d[] idata = e.getIntegrationData();
             IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
@@ -2047,17 +2048,16 @@ PointAttachable, ConnectableBody {
    }
 
    private boolean softNodalIncompressAllowed() {
-      //      return (numTetElements() + numNodalMappedElements() == myElements.size() && 
-      //         myMaterial.isIncompressible());
-	  // XXX allow for all element types
-      return myMaterial.isIncompressible();
+      int numAllowedElements = numTetElements() + numNodalMappedElements() 
+         + numNodalInterpolatedElements();
+      return ( myMaterial.isIncompressible() && 
+         numAllowedElements == myElements.size());
    }
 
    private boolean hardNodalIncompressAllowed() {
-      // return (numTetElements() + numNodalMappedElements() == myElements.size());
-      // return myMaterial.isIncompressible();
-	  // XXX always allow
-      return true;
+      int numAllowedElements = numTetElements() + numNodalMappedElements() 
+      + numNodalInterpolatedElements();
+      return (numAllowedElements == myElements.size());
    }
 
    public IncompMethod getHardIncompMethod() {
@@ -2253,6 +2253,7 @@ PointAttachable, ConnectableBody {
       if (myNumTetElements == -1) {
          myNumTetElements = 0;
          myNumNodalMappedElements = 0;
+         myNumNodalInterpolatedElements = 0;
          myNumQuadraticElements = 0;
          for (int i=0; i<myElements.size(); i++) {
             FemElement3d e = myElements.get(i);
@@ -2261,6 +2262,8 @@ PointAttachable, ConnectableBody {
             }
             else if (e.integrationPointsMapToNodes()) {
                myNumNodalMappedElements++;
+            } else if (e.integrationPointsInterpolateToNodes()) {
+               myNumNodalInterpolatedElements++;
             }
             else if (e instanceof QuadtetElement ||
                e instanceof QuadhexElement ||
@@ -2270,7 +2273,7 @@ PointAttachable, ConnectableBody {
             }
          }
       }
-   }           
+   }
 
    public int numTetElements() {
       updateElementCounts();
@@ -2285,6 +2288,11 @@ PointAttachable, ConnectableBody {
    protected int numNodalMappedElements() {
       updateElementCounts();
       return myNumNodalMappedElements;
+   }
+   
+   protected int numNodalInterpolatedElements() {
+      updateElementCounts();
+      return myNumNodalInterpolatedElements;
    }
 
    /**
@@ -2356,7 +2364,7 @@ PointAttachable, ConnectableBody {
                   b.add(idx, dg);
                }
             }
-         } else {
+         } else if (e.integrationPointsInterpolateToNodes()){
 
             // compute constaints based on shape weights
             IntegrationPoint3d[] ipnts = e.getIntegrationPoints();

@@ -173,6 +173,19 @@ public abstract class FemElement extends RenderableComponentBase
    public boolean integrationPointsMapToNodes() {
       return false;
    }
+   
+   /** 
+    * Queries whether there is an interpolation mapping between integration points
+    * and nodes. If so, this means that nodal values of quantities such as
+    * stress and volume can be adequately approximated by averaging the same
+    * quantities from all the associated integration points.
+    *
+    * @return <code>true</code> if there is an interpolation mapping between
+    * integration points and nodes
+    */
+   public boolean integrationPointsInterpolateToNodes() {
+      return false;
+   }
 
    public abstract FemNode[] getNodes();
 

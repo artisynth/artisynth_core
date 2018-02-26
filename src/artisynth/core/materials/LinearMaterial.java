@@ -34,6 +34,7 @@ public class LinearMaterial extends LinearMaterialBase {
    }
 
    public LinearMaterial (){
+      this(DEFAULT_E, DEFAULT_NU, DEFAULT_COROTATED);
    }
 
    public LinearMaterial (double E, double nu) {

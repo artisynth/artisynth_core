@@ -163,9 +163,9 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
       myIntegrationPoints.add(ipnt);
       //      myIntegrationNodeIdxs.add(idxs);
       
-      //      
+      
       myNodalExtrapolationMatrix = null;
-      //      
+      
       if (updateVolumes) {
          updateAllVolumes();
       }
@@ -212,8 +212,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
    //   public IntegrationData3d getWarpingData() {
    //      return myWarpingData;
    //   }
-   
-   
    
    public void setWarpingPoint(MFreeIntegrationPoint3d warp) {
       myWarpingPoint = warp;
@@ -267,10 +265,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
    public boolean integrationPointsInterpolateToNodes() {
       return true;
    }
-
-//   public double computeCovariance (Matrix3d C) {
-//      return -1;
-//   }
    
    public void updateBounds(Vector3d min, Vector3d max) {
       
@@ -290,7 +284,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
          }
       }
    }
-//
+
 //   public double getRestVolume() {
 //      return myRestVolume;
 //   }
@@ -368,7 +362,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
    public void setVolume(double vol) {
       myVolume = vol;
    }
-//   
+ 
 //   @Override
 //   public double computeRestVolumes() {
 //      

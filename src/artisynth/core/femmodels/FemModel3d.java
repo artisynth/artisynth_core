@@ -783,7 +783,7 @@ PointAttachable, ConnectableBody {
    }
 
    // DIVBLK
-   protected void computeStressAndStiffness(FemElement3d e, FemMaterial mat, 
+   private void computeStressAndStiffness(FemElement3d e, FemMaterial mat, 
       Matrix6d D, IncompMethod softIncomp) {
 
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
@@ -2056,7 +2056,7 @@ PointAttachable, ConnectableBody {
 
    private boolean hardNodalIncompressAllowed() {
       int numAllowedElements = numTetElements() + numNodalMappedElements() 
-         + numNodalInterpolatedElements();
+      + numNodalInterpolatedElements();
       return (numAllowedElements == myElements.size());
    }
 

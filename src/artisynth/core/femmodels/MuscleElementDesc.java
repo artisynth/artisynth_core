@@ -77,13 +77,17 @@ public class MuscleElementDesc
    public MuscleElementDesc () {
       super();
    }
-
+   
    public MuscleElementDesc (FemElement3d elem, Vector3d dir) {
       this();
       setElement (elem);
       if (dir != null) {
          setDirection (dir);
       }
+   }
+   
+   public MuscleElementDesc (FemElement3d elem) {
+      this(elem, null);
    }
 
    public static PropertyList myProps =

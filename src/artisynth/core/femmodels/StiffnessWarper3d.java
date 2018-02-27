@@ -412,4 +412,43 @@ public class StiffnessWarper3d {
          f.set(offset+2, f.get(offset+2) + f0.z);
       }
    }
+   
+   /**
+    * Gets initial stiffness contribution from all linear
+    * and corotated linear cached materials
+    * @param K0 matrix to populate
+    * @param i first node index
+    * @param j second node index
+    */
+   public void getInitialStiffness(Matrix3d K0, int i, int j) {
+      
+      K0.setZero();
+      if (linear != null) {
+         K0.add(linear.K0[i][j]);
+      }
+      
+      if (corotated != null) {
+         K0.add(corotated.K0[i][j]);
+      }
+   }
+   
+   /**
+    * Gets initial force contribution from all linear
+    * and corotated linear cached materials
+    * @param f0 force vector to populate
+    * @param i first node index
+    * @param j second node index
+    */
+   public void getInitialForce(Vector3d f0, int i) {
+      
+      f0.setZero();
+      if (linear != null) {
+         f0.add(linear.f0[i]);
+      }
+      
+      if (corotated != null) {
+         f0.add(corotated.f0[i]);
+      }
+   }
+   
 }

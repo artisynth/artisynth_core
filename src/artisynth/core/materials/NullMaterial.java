@@ -20,8 +20,19 @@ public class NullMaterial extends FemMaterial {
       D.setZero();
    }
    
+   @Override
    public boolean isInvertible() {
       return true;
+   }
+   
+   @Override
+   public boolean isLinear() {
+      return true;
+   }
+   
+   @Override
+   public boolean isCorotated() {
+      return false;
    }
 
 }

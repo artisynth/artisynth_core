@@ -472,10 +472,10 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
    
    /**
     * Assumes the mesh is in "rest" coordinates, not current coordinates
-    * @param surf
-    * @param mesh
-    * @param mfree
-    * @return
+    * @param surf mfree surface to populate (or null to create one)
+    * @param mesh mesh to embed
+    * @param mfree model to embed mesh in
+    * @return populated or created mesh
     */
    public static MFreeMeshComp createEmbedded (
       MFreeMeshComp surf, MeshBase mesh, MFreeModel3d mfree) {

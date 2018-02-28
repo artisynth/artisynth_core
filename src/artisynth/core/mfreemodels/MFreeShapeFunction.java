@@ -13,13 +13,13 @@ public interface MFreeShapeFunction {
     
    /**
     * Current coordinate to be used for evaluation
-    * @return
+    * @return current coordinate
     */
    public Point3d getCoordinate();
    
    /**
     * Current nodes used for evaluation
-    * @return
+    * @return nodes affecting shape function
     */
    public MFreeNode3d[] getNodes();
    
@@ -47,9 +47,9 @@ public interface MFreeShapeFunction {
 
    /**
     * Update only if coords and nodes are different
-    * @param coords
-    * @param myNodes
-    * @return
+    * @param coords natural coordinates
+    * @param myNodes nodes for shape function
+    * @return true if updated
     */
    public boolean maybeUpdate(Vector3d coords, MFreeNode3d[] myNodes);
    

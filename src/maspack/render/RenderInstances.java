@@ -447,9 +447,9 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
     * an instance.  Note that this does not create a
     * new instance.
     * 
-    * @param x
-    * @param y
-    * @param z
+    * @param x x-coordinate
+    * @param y y-coordinate
+    * @param z z-coordinate
     * @return index of new point
     */
    public int addPoint(double x, double y, double z) {
@@ -459,9 +459,9 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    /**
     * Sets the point position
     * @param pidx index of point to modify
-    * @param x
-    * @param y
-    * @param z
+    * @param x x-coordinate
+    * @param y y-coordinate
+    * @param z z-coordinate
     */
    public void setPoint(int pidx, double x, double y, double z) {
       writeLock();
@@ -597,26 +597,26 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    
    /**
     * Sets the frame position by reference
-    * @param pidx
-    * @param frame
+    * @param fidx frame index
+    * @param frame frame pose
     */
-   public void setFrame(int pidx, RigidTransform3d frame) {
+   public void setFrame(int fidx, RigidTransform3d frame) {
       writeLock();
-      frames.set(pidx, frame);
+      frames.set(fidx, frame);
       notifyFramesModified();
       writeUnlock();
    }
    
    /**
     * Retrieves the frame stored with supplied index
-    * @param pidx index of frame
+    * @param fidx index of frame
     * @return frame, by reference
     */
-   public RigidTransform3d getFrame(int pidx) {
-      if (pidx < 0) {
+   public RigidTransform3d getFrame(int fidx) {
+      if (fidx < 0) {
          return null;
       }
-      return frames.get(pidx);
+      return frames.get(fidx);
    }
    
    private void notifyFramesModifiedInternal() {
@@ -713,12 +713,12 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    
    /**
     * Sets the affine position by reference
-    * @param pidx
-    * @param affine
+    * @param aidx affine index
+    * @param affine affine transform
     */
-   public void setAffine(int pidx, AffineTransform3d affine) {
+   public void setAffine(int aidx, AffineTransform3d affine) {
       writeLock();
-      affines.set(pidx, affine);
+      affines.set(aidx, affine);
       notifyAffinesModified();
       writeUnlock();
    }
@@ -1298,7 +1298,7 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
     * 1 the second point, ..., 
     * frame index 0 is the first frame, ...).
     * order.
-    * @param consumer
+    * @param consumer consumer object for processing instances
     */
    public void forEachInstance(RenderInstanceConsumer consumer) {
       int idx = 0;
@@ -1462,9 +1462,9 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
 
    /**
     * Adds an instance by point
-    * @param px 
-    * @param py
-    * @param pz
+    * @param px x-coordinate of instance
+    * @param py y-coordinate of instance
+    * @param pz z-coordinate of instance
     * @return the index of the instance added
     */
    public int addInstance(float px, float py, float pz) {
@@ -1473,7 +1473,7 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    
    /**
     * Adds an instance by point
-    * @param xyz
+    * @param xyz coordinates
     * @return the index of the instance added
     */
    public int addInstance (float[] xyz) {
@@ -1486,7 +1486,7 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
   
    /**
     * Adds an instance by point
-    * @param pos
+    * @param pos position of instance
     * @return the index of the instance added
     */
    public int addInstance(Vector3d pos) {
@@ -1496,7 +1496,7 @@ public class RenderInstances implements Versioned, DisposeObservable, Disposable
    
    /**
     * Adds an instance by frame
-    * @param frame
+    * @param frame frame transform for instance
     * @return the index of the instance added
     */
    public int addInstance(RigidTransform3d frame) {

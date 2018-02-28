@@ -25,7 +25,7 @@ public abstract class FemMaterial extends MaterialBase {
 
    /**
     * Allow adding of classes (for use in control panels)
-    * @param cls
+    * @param cls class to register
     */
    public static void registerSubclass(Class<? extends FemMaterial> cls) {
       if (!mySubclasses.contains(cls)) {

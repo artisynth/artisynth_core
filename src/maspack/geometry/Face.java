@@ -340,10 +340,7 @@ public class Face extends Feature implements Boundable {
    }
 
    /**
-    * Disconnects this face from any mesh to which it is attached, and returns
-    * the number of half edges which are redundant.
-    * 
-    * @return number of redundant half-edges
+    * Disconnects this face from any mesh to which it is attached
     */
    void disconnect() {
       HalfEdge he = he0;

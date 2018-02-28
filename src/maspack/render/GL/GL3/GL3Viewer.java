@@ -2126,8 +2126,8 @@ public class GL3Viewer extends GLViewer {
    
    /**
     * Draw an object multiple times with differing per-instance information
-    * @param robj
-    * @param rinst
+    * @param robj render object
+    * @param rinst render instance info
     */
    public void drawInstances(RenderObject robj, RenderInstances rinst) {
       drawInstances(robj, robj.getPointGroupIdx(), 
@@ -2173,9 +2173,9 @@ public class GL3Viewer extends GLViewer {
    
    /**
     * Draw an object multiple times with differing per-instance information
-    * @param robj
+    * @param robj render object
     * @param gidx point group index
-    * @param rinst
+    * @param rinst render instance info
     */
    public void drawPoints(RenderObject robj, int gidx, RenderInstances rinst) {
       drawInstances(robj, gidx, -1, -1, rinst);
@@ -2183,9 +2183,9 @@ public class GL3Viewer extends GLViewer {
 
    /**
     * Draw an object multiple times with differing per-instance information
-    * @param robj
+    * @param robj render object
     * @param gidx line group index
-    * @param rinst
+    * @param rinst render instance info
     */
    public void drawLines(RenderObject robj, int gidx, RenderInstances rinst) {
       drawInstances(robj, -1, gidx, -1, rinst);
@@ -2193,9 +2193,9 @@ public class GL3Viewer extends GLViewer {
    
    /**
     * Draw an object multiple times with differing per-instance information
-    * @param robj
+    * @param robj render object
     * @param gidx triangle group index
-    * @param rinst
+    * @param rinst render instances
     */
    public void drawTriangles(RenderObject robj, int gidx, RenderInstances rinst) {
       drawInstances(robj, -1, -1, gidx, rinst);

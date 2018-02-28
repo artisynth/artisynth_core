@@ -147,8 +147,8 @@ public class GL3SharedRenderInstances extends GL3ResourceBase {
    // maybe update VBOs
    /**
     * Potentially update the internal VBOs
-    * @param gl
-    * @param rinst
+    * @param gl context handle
+    * @param rinst instance storage
     * @return true if updated, false if nothing changed
     */
    public boolean maybeUpdate(GL3 gl, RenderInstances rinst) {

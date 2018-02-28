@@ -242,9 +242,11 @@ public class MeshCollider implements AbstractCollider {
     * From a complete set of intersections, get all of the regions so that each
     * region is defined by a set of continuous intersections.
     * 
+    * @param regions (output) the complete set of intersection regions.
     * @param intersections
     * The complete set of intersections.
-    * @return The complete set of intersection regions.
+    * @param regionTol tolerance
+    * 
     */
    static void createContactPlanes (
       ArrayList<ContactPlane> regions,

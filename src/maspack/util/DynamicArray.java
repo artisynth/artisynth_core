@@ -21,8 +21,10 @@ public class DynamicArray<T> implements Iterable<T>, Clonable {
    private T[] myBuffer;
 
    /**
-    * Creates a new dynamic array from a fixed-size array
-    * @param array
+    * Creates a new dynamic array from a fixed-size array.
+    * The array is copied internally.
+    * 
+    * @param array initial array 
     */
    public DynamicArray(T[] array) {
       myBuffer = Arrays.copyOf(array, array.length);

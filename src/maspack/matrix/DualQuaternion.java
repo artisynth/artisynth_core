@@ -1033,7 +1033,7 @@ public class DualQuaternion {
    public void exp(DualQuaternion q) {
       exp(q.A, q.B);
    }
-
+   
    /**
     * Dual Quaternion Iterative Blending (DIB), which approximates ScLeRP and
     * applies to multiple inputs.
@@ -1049,18 +1049,15 @@ public class DualQuaternion {
     * @param maxIters
     * max iterations (should be small, ~3)
     */
-   DualQuaternion bTmp = null;
-   DualQuaternion bqTmp = null;
    public void dualQuaternionIterativeBlending(
       double[] w, DualQuaternion[] q, int numq, double tol, int maxIters) {
       
       dualQuaternionLinearBlending(w, q, numq); // initial state
 
       // iterative
-      if (bTmp == null) {
-         bTmp = new DualQuaternion();
-         bqTmp = new DualQuaternion();
-      }
+      DualQuaternion bTmp = new DualQuaternion();
+      DualQuaternion bqTmp = new DualQuaternion();
+
       
       int nSteps = 0;
       double tol2 = tol * tol;

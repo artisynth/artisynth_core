@@ -30,8 +30,8 @@ public interface GL3SharedDrawable extends GL3Resource {
    
    /**
     * Draw using instanced rendering to the active context
-    * @param gl
-    * @param instanceCount
+    * @param gl context handle
+    * @param instanceCount number of instances
     */
    public void drawInstanced(GL3 gl, int instanceCount);
    

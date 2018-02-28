@@ -191,7 +191,7 @@ public class MFreeModel3d extends FemModel3d  {
 
    /**
     * Finds the containing element and node coordinates
-    * @param pnt
+    * @param pnt 3D point in world coordinates to find natural coordinates of
     * @param coords natural coordinates
     * @param N shape function values
     * @return the containing element if it exists

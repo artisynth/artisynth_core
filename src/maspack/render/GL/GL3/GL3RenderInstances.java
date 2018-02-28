@@ -103,7 +103,7 @@ public class GL3RenderInstances extends GL3ResourceBase {
    
    /**
     * Bind points attributes to the VAO to prepare for drawing
-    * @param gl
+    * @param gl context handle
     */
    public void bindPoints(GL3 gl, GL3SharedDrawable glo) {
       bind(gl, glo, INSTANCE_POINT_IDX);
@@ -111,7 +111,7 @@ public class GL3RenderInstances extends GL3ResourceBase {
    
    /**
     * Bind frame attributes to the VAO to prepare for drawing
-    * @param gl
+    * @param gl context handle
     */
    public void bindFrames(GL3 gl, GL3SharedDrawable glo) {
       bind(gl, glo, INSTANCE_FRAME_IDX);
@@ -123,7 +123,7 @@ public class GL3RenderInstances extends GL3ResourceBase {
    
    /**
     * Bind points attributes to the VAO to prepare for drawing
-    * @param gl
+    * @param gl context handle
     */
    public void unbindPoints(GL3 gl) {
       instances[INSTANCE_POINT_IDX].unbind(gl);
@@ -131,7 +131,7 @@ public class GL3RenderInstances extends GL3ResourceBase {
    
    /**
     * Bind frame attributes to the VAO to prepare for drawing
-    * @param gl
+    * @param gl context handle
     */
    public void unbindFrames(GL3 gl) {
       instances[INSTANCE_FRAME_IDX].unbind(gl);
@@ -218,7 +218,7 @@ public class GL3RenderInstances extends GL3ResourceBase {
    
    /**
     * Draw points, frames and affines (in order)
-    * @param gl
+    * @param gl context handle
     */
    public void draw (GL3 gl, GL3SharedDrawable glo) {
       if (glinst.numPoints() > 0) {

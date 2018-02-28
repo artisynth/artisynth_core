@@ -490,7 +490,7 @@ public class MLSShapeFunction implements MFreeShapeFunction {
 
    /**
     * Compute all shape functions at once
-    * @param N
+    * @param N shape function values
     */
    public void eval(VectorNd N) {
       N.setSize(myNodes.length);

@@ -101,7 +101,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    
    /**
     * Get Young's modulus
-    * @return
+    * @return Young's modulus
     */
    public Vector2d getYoungsModulus() {
       return myE;
@@ -138,7 +138,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    
    /**
     * Sets Poisson's ratio (nu_xy, nu_xz=nu_yz) 
-    * @return poisson's ratio
+    * @param nu poisson's ratio
     */
    public void setPoissonsRatio(Vector2d nu) {
       setPoissonsRatio(nu.x, nu.y);

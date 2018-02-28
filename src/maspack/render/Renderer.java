@@ -2256,7 +2256,7 @@ public interface Renderer {
     * Selectables that manage their own selection are identified by
     * having a value {@code numq >= 0}, where <code>numq</code>
     * is the value returned by
-    * {@link maspack.render.IsSelectable#numSelectionQueriesNeeded
+    * {@link maspack.render.IsSelectable#numSelectionQueriesNeeded}
     * IsSelectable#numSelectionQueriesNeeded{}}.
     * The argument <code>qid</code> is the current selection query identifier,
     * which after the call should be increased by <code>numq</code>.

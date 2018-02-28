@@ -3021,7 +3021,7 @@ public class MechSystemSolver {
     * Scales forces and constraints down by alpha, and solves the adjusted problem
     * @param t1 time at which to solve the system
     * @param alpha step factor
-    * @param stepAdjust
+    * @param stepAdjust step adjustment description
     */
    public void staticIncrementalStep(double t1, double alpha, StepAdjustment stepAdjust) {
       if (myMatrixSolver == MatrixSolver.None) {

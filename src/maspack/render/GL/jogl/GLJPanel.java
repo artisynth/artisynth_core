@@ -482,7 +482,7 @@ GLSharedContextSetter, ScalableSurface {
     * otherwise <code>false</code>.
     * <p>
     * 
-    * @param offthread
+    * @param offthread current or background thread
     */
    public final boolean initializeBackend (final boolean offthread) {
       if (offthread) {

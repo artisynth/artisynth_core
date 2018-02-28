@@ -39,7 +39,7 @@ public class L2RegularizationTerm extends LeastSquaresTermBase {
    
    /**
     * Set the regularization weights for each activation value.
-    * @param w
+    * @param w weights for activation values
     */
    public void setWeights(VectorNd w) {
       weights = w;

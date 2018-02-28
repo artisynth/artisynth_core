@@ -72,15 +72,15 @@ public interface DirectSolver {
     * where M was specified using previous calls to {@link #analyze analyze} or
     * {@link #analyzeAndFactor(Matrix) factor}.
     * 
-    * @throws IllegalStateException
-    * if no previous call to {@link #analyze analyze} or
-    * {@link #analyzeAndFactor(Matrix) factor} has been made.
     * @param x
     * vector in which result is returned
     * @param b
     * right hand vector of matrix equation
     * @throws NumericalException
     * if the solve failed for numeric reasons.
+    * @throws IllegalStateException
+    * if no previous call to {@link #analyze analyze} or
+    * {@link #analyzeAndFactor(Matrix) factor} has been made.
     */
    public void solve (VectorNd x, VectorNd b);
 

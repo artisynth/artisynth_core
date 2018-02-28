@@ -297,7 +297,7 @@ public class PolarDecomposition3d {
     * axis chosen is one that was transformed *least* by Q,
     * which will correspond to a diagonal Q element nearest to 1. 
     * 
-    * @param R
+    * @param R unitary matrix 
     */
    public void makeRightHanded (RotationMatrix3d R) {
       int i = 2;

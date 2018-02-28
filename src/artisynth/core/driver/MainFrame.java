@@ -482,17 +482,15 @@ public class MainFrame extends JFrame {
       /**
        * set the frame title
        */
-
       public void setFrameTitle (String title) {
          this.setTitle (title);
       }
 
       /**
-       * set the help text
+       * Set the help text
        * 
-       * @param helpText
+       * @param helpText help text
        */
-
       public void setFrameText (String helpText) {
          textAreaHelp.setText (helpText);
       }

@@ -10,7 +10,9 @@ import java.io.*;
 import java.util.*;
 
 import maspack.matrix.*;
+import maspack.numerics.GoldenSectionSearch;
 import maspack.util.*;
+import maspack.function.Function1x1;
 import maspack.geometry.*;
 import maspack.properties.*;
 import maspack.util.InternalErrorException;
@@ -769,8 +771,8 @@ public abstract class FemElement3d extends FemElement
    
    /**
     * Given point p, get its natural coordinates with respect to this element.
-    * Returns true if the algorithm converges, false if a maximum number of 
-    * iterations is reached. Uses a modified Newton's method to solve the 
+    * Returns a positive number if the algorithm converges, or -1 if a maximum
+    * number of iterations has been reached. Uses a modified Newton's method to solve the 
     * equations. The <code>coords</code> argument that returned the coordinates is
     * used, on input, to supply an initial guess of the coordinates.
     * Zero is generally a safe guess.
@@ -887,6 +889,151 @@ public abstract class FemElement3d extends FemElement
       }
       return -1; // failed
    }
+   
+   private static class GSSResidual implements Function1x1 {
+      private Point3d c0;
+      private Point3d target;
+      private Vector3d dir;
+      private Point3d c;
+      private Vector3d res;
+      FemElement3d elem;
+      
+      public GSSResidual(FemElement3d elem, Point3d target) {
+         this.elem = elem;
+         this.c0 = new Point3d();
+         this.dir = new Vector3d();
+         this.target = new Point3d(target);
+         this.c = new Point3d();
+         this.res = new Vector3d();
+      }
+      
+      public void set(Point3d coord, Vector3d dir) {
+         this.c0.set(coord);
+         this.dir.set(dir);
+      }
+
+      @Override
+      public double eval(double x) {
+         c.scaledAdd(x, dir, c0);
+         elem.computeNaturalCoordsResidual(res, c, target);
+         return res.normSquared();
+      }
+   }
+   
+   /**
+    * Given point p, get its natural coordinates with respect to this element.
+    * Returns a positive number if the algorithm converges, or -1 if a maximum
+    * number of iterations has been reached. Uses a modified Newton's method to solve the 
+    * equations. The <code>coords</code> argument that returned the coordinates is
+    * used, on input, to supply an initial guess of the coordinates.
+    * Zero is generally a safe guess.
+    * 
+    * @param coords
+    * Outputs the natural coordinates, and supplies (on input) an initial
+    * guess as to their position.
+    * @param pnt
+    * A given point (in world coords)
+    * @param maxIters
+    * Maximum number of Newton iterations
+    * @return the number of iterations required for convergence, or
+    * -1 if the calculation did not converge.
+    */
+   public int getNaturalCoordinatesGSS (
+      Vector3d coords, Point3d pnt, int maxIters) {
+
+      if (!coordsAreInside(coords)) {
+         // if not inside, reset coords to 0
+         coords.setZero();
+      }
+
+      // if FEM is frame-relative, transform to local coords
+      Point3d lpnt = new Point3d(pnt);
+      if (getGrandParent() instanceof FemModel3d) {
+         FemModel3d fem = (FemModel3d)getGrandParent();
+         if (fem.isFrameRelative()) {
+            lpnt.inverseTransform (fem.getFrame().getPose());
+         }
+      }
+
+      Vector3d res = new Point3d();
+      int i;
+
+      double tol = RenderableUtils.getRadius (this) * 1e-12;
+      computeNaturalCoordsResidual (res, coords, lpnt);
+      double prn = res.norm();
+      //System.out.println ("res=" + prn);
+      if (prn < tol) {
+         // already have the right answer
+         return 0;
+      }
+
+      LUDecomposition LUD = new LUDecomposition();
+      Point3d prevCoords = new Point3d();
+      Vector3d dNds = new Vector3d();
+      Matrix3d dxds = new Matrix3d();
+      Vector3d del = new Point3d();
+      
+      GSSResidual func = new GSSResidual(this, lpnt);
+
+      /*
+       * solve using Newton's method.
+       */
+      for (i = 0; i < maxIters; i++) {
+
+         // compute the Jacobian dx/ds for the current guess
+         dxds.setZero();
+         for (int k=0; k<numNodes(); k++) {
+            getdNds (dNds, k, coords);
+            dxds.addOuterProduct (myNodes[k].getLocalPosition(), dNds);
+         }
+         LUD.factor (dxds);
+         double cond = LUD.conditionEstimate (dxds);
+         if (cond > 1e10)
+            System.err.println (
+               "Warning: condition number for solving natural coordinates is "
+               + cond);
+         // solve Jacobian to obtain an update for the coords
+         LUD.solve (del, res);
+         del.negate();
+
+         // if del is very small assume we are close to the root. Assume
+         // natural coordinates are generally around 1 in magnitude, so we can
+         // use an absolute value for a tolerance threshold
+         if (del.norm() < 1e-10) {
+            //System.out.println ("1 res=" + res.norm());
+            return i+1;
+         }
+
+         prevCoords.set (coords);         
+         coords.add (del);                              
+         computeNaturalCoordsResidual (res, coords, lpnt);
+         double rn = res.norm();
+         //System.out.println ("res=" + rn);
+
+         // If the residual norm is within tolerance, we have converged.
+         if (rn < tol) {
+            //System.out.println ("2 res=" + rn);
+            return i+1;
+         }
+         
+         // do a golden section search in range
+         double eps = 1e-12;
+         func.set(prevCoords, del);
+         double alpha = GoldenSectionSearch.minimize(func, 0, 1, eps, 0.8*prn*prn);
+         coords.scaledAdd(alpha, del, prevCoords);
+         computeNaturalCoordsResidual(res, coords, lpnt);
+         rn = res.norm();
+         
+         //System.out.println (" alpha=" + alpha + " rn=" + rn + " prn=" + prn);
+         if (alpha < eps) {
+            return -1;  // failed
+         }
+         
+         prn = rn;
+      }
+      return -1; // failed
+   }
+   
 
    public int getNaturalCoordinatesStd (
       Vector3d coords, Point3d pnt, int maxIters) {

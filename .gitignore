@@ -1,0 +1,58 @@
+######################
+# Private folder
+######################
+/priv
+
+######################
+# Other repositories
+######################
+.svn
+.cvsignore
+CVS
+
+######################
+# Gradle cache
+######################
+.gradle
+
+######################
+# Compiled
+######################
+*.class
+*.dylib
+*.dll
+*.a
+*.la
+*.so
+*.so.*
+*.lib
+*.exe
+*.h.gch
+/classes
+/build
+
+######################
+# Temp files
+######################
+*.swp
+*~
+*.bak
+
+######################
+# Project files
+######################
+.classpath
+.project
+.cproject
+.settings
+ArtiSynth.launch
+
+######################
+# Libraries
+######################
+/lib
+
+######################
+# Temp directory
+######################
+/tmp

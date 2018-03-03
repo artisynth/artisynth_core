@@ -203,6 +203,7 @@ public class FemBeam3d extends RootModel {
       if ((options & NO_FIXED_NODES) == 0) {
          for (FemNode3d n : myLeftNodes) {
             n.setDynamic (false);
+            RenderProps.setPointColor (n, Color.GRAY);
          }
       }
       myMechMod = addMechModel (myFemMod);
@@ -289,8 +290,8 @@ public class FemBeam3d extends RootModel {
 
 
    public void setRenderProperties (FemModel3d mod, double length) {
-      
-      mod.setSurfaceRendering (SurfaceRender.Shaded);
+      mod.setElementWidgetSize (1);
+      mod.setSurfaceRendering (SurfaceRender.None);
       RenderProps.setShading (mod, Renderer.Shading.FLAT);
       RenderProps.setFaceColor (mod, new Color (0.7f, 0.7f, 0.9f));
       RenderProps.setLineWidth (mod.getElements(), 2);

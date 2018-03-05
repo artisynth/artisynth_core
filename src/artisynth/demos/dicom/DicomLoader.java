@@ -63,7 +63,7 @@ public class DicomLoader extends RootModel {
       
       fnf = new FileNameField("File or folder:", 30);
       fnf.getFileChooser().setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-      fnf.getFileChooser().setCurrentDirectory(ArtisynthPath.getWorkingDir());
+      fnf.getFileChooser().setCurrentDirectory(ArtisynthPath.getSrcRelativeFile(this, "data/"));
       fnf.setName("dicom_path");
       panel.addWidget(fnf);
       

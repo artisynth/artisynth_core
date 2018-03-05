@@ -8,7 +8,6 @@ import java.io.FileNotFoundException;
 public class BinaryFileInputStream extends BinaryInputStream {
 
    File myFile;
-   int myMarkBytes = 0;
 
    /**
     * Creates a new BinaryFileInputStream from a file. Flag values are
@@ -26,7 +25,7 @@ public class BinaryFileInputStream extends BinaryInputStream {
       this(file, 0);
    }
    
-   File getFile() {
+   public File getFile() {
       return myFile;
    }
    

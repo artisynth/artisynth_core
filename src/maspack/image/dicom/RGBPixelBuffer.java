@@ -27,6 +27,20 @@ public class RGBPixelBuffer extends DicomPixelBufferBase {
       this.pixels = pixels;
    }
    
+   /**
+    * Creates a new buffer from a portion of an existing byte array
+    * @param pixels buffer of pixels to copy from
+    * @param offset offset in buffer to start copy
+    * @param length total length of bytes (i.e. must be multiple of 3 for rgb)
+    */
+   public RGBPixelBuffer (byte[] pixels, int offset, int length) {
+      super(PixelType.UBYTE_RGB);
+      this.pixels = new byte[length];
+      for (int i=0; i<length; ++i) {
+         this.pixels[i] = pixels[offset+i];
+      }
+   }
+   
    public RGBPixelBuffer (int[] pixels) {
       super(PixelType.UBYTE_RGB);
       this.pixels = new byte[pixels.length*3];

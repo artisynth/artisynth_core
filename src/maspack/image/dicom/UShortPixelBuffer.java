@@ -23,6 +23,14 @@ public class UShortPixelBuffer extends DicomPixelBufferBase {
       super(PixelType.USHORT);
       this.pixels = pixels;
    }
+   
+   public UShortPixelBuffer (short[] pixels, int offset, int length) {
+      super(PixelType.USHORT);
+      this.pixels = new short[length];
+      for (int i=0; i<length; ++i) {
+         this.pixels[i] = pixels[offset+i];
+      }
+   }
 
    @Override
    public int getNumPixels() {

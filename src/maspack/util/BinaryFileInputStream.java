@@ -14,7 +14,8 @@ public class BinaryFileInputStream extends BinaryInputStream {
     * set to their defaults so that the stream will be big-endian and use word
     * characters instead of byte characters.
     *
-    * @param in underlying input stream
+    * @param file underlying file 
+    * @param flags flag values
     */
    public BinaryFileInputStream(File file, int flags) throws FileNotFoundException {
       super(new BufferedInputStream(new FileInputStream(file)), flags);

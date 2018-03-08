@@ -1072,7 +1072,7 @@ public abstract class GeometryTransformer {
     * given by
     * <pre>
     * xl' = N PL xl
-    * <pre>
+    * </pre>
     * where <code>PL</code> is symmetric positive definite and
     * <code>N</code> is a diagonal matrix that is either the identity,
     * or a reflection that flips a single axis. This accounts
@@ -1131,7 +1131,7 @@ public abstract class GeometryTransformer {
     * [ xl' ]      [ xl ]
     * [     ] = XL [    ]
     * [  1  ]      [ 0  ]
-    * <pre>
+    * </pre>
     * and <code>XL</code> is computed from the <code>PL</code> and
     * <code>N</code> matrices returned by
     * {@link #computeLocalTransforms(Matrix3d,Vector3d,RigidTransform3d)

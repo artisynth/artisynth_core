@@ -349,7 +349,7 @@ public interface MechSystem {
     * Sets <code>M</code> to the current value of the mass matrix for this
     * system, evaluated at time <code>t</code>. <code>M</code> should
     * have been previously created with a call to
-    * {@link #buildMassMatrix buildMassMatrix()}. The curzrent mass forces
+    * {@link #buildMassMatrix buildMassMatrix()}. The current mass forces
     * are returned in the vector <code>f</code>, which should have a
     * size greater or equal to the size of <code>M</code>.
     * The mass forces (also known as the fictitious forces)

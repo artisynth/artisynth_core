@@ -1430,6 +1430,42 @@ public class PolygonalMesh extends MeshBase {
       return modified;
    }
 
+   /**
+    * Remove adjacent faces whose normals satisfy n1.dot(n2) {@code <} cosLimit
+    * 
+    * @param cosLimit limit above which faces should be removed
+    * @return true if modified, false otherwise
+    */
+   public boolean removeOppositeFaces(double cosLimit) {
+      HashSet<Face> toRemoveFace = new HashSet<>();
+      for (Face f : myFaces) {
+         HalfEdge he0 = f.he0;
+         HalfEdge he = he0;
+         do {
+            if (he.isPrimary() && he.opposite != null) {
+               if (he.getFace().getNormal().dot(he.opposite.getFace().getNormal()) < cosLimit) {
+                  toRemoveFace.add(he.getFace ());
+                  toRemoveFace.add(he.getOppositeFace ());
+               }
+            }
+            he = he.next;
+         } while (he != he0);
+      }
+      
+      if (toRemoveFace.size () > 0) {
+         // remove faces and vertices
+         removeFaces(toRemoveFace);
+         removeDisconnectedVertices ();
+         
+         clearAttributes();  // XXX for now just clear attributes.  If we were diligent, we could re-adjust.
+         myTriQuadCountsValid = false;
+         notifyStructureChanged();
+      }
+      
+      return modified;
+   }
+
+
    private void addFaceVertices (HashMap<Vertex3d,Integer> vertices, Face face) {
       HalfEdge he0 = face.firstHalfEdge();
       HalfEdge he = he0;

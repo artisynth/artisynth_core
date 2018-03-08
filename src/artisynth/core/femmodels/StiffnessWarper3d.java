@@ -437,7 +437,6 @@ public class StiffnessWarper3d {
     * and corotated linear cached materials
     * @param f0 force vector to populate
     * @param i first node index
-    * @param j second node index
     */
    public void getInitialForce(Vector3d f0, int i) {
       

@@ -55,6 +55,8 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
          ParticlePlaneConstraint.class, ParticleConstraintBase.class);
 
    static {
+      myProps.add (
+         "offset", "offset from center of the plane in normal direction", 0);
       myProps.add ("renderProps", "render properties", defaultRenderProps(null));
       myProps.add ("planeSize", "plane size", defaultPlaneSize);
    }
@@ -110,6 +112,16 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
       return new Plane(myNrm, myOff);
    }
    
+   public void setOffset(double off) {
+      myOff = off;
+      myCenter.scale(myOff, myNrm);
+      updateConstraints (0, 0);
+   }
+   
+   public double getOffset() {
+      return myOff;
+   }
+
    public Point3d getCenter() {
       return new Point3d (myCenter);
    }

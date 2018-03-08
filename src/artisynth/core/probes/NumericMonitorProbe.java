@@ -206,7 +206,8 @@ public class NumericMonitorProbe extends NumericProbeBase
             }
             PrintWriter pw =
                new PrintWriter (new BufferedWriter (new FileWriter (file)));
-            System.out.println ("saving output probe to " + file.getName());
+            System.out.println (
+               "saving output probe to " + file.getCanonicalPath());
             if (myShowHeader) {
                write (pw, myFormatStr, myShowTime);
             }
@@ -216,7 +217,8 @@ public class NumericMonitorProbe extends NumericProbeBase
             pw.close();
          }
          catch (Exception e) {
-            System.out.println ("Error writing file " + file.getName());
+            System.out.println (
+               "Error writing file " + file.getCanonicalPath());
             e.printStackTrace();
          }
       }

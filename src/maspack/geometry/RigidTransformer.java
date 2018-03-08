@@ -116,7 +116,7 @@ public class RigidTransformer extends GeometryTransformer {
     * given by
     * <pre>
     * xl' = PL xl
-    * <pre>
+    * </pre>
     * where <code>PL</code> is symmetric positive definite. See the
     * documentation for {@link GeometryTransformer#computeLocalTransforms}.
     *

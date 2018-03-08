@@ -378,7 +378,7 @@ public class DistanceGrid implements Renderable, Scannable {
     * grid should be grown in each direction to better contain the features
     * @param maxRes specfies the resolution along the longest
     * width, with resolutions along other widths set to ensure uniform
-    * cell size. Must be > 0.
+    * cell size. Must be {@code >} 0.
     * @param signed if <code>true</code>, indicates that the field should be
     * signed. At present, signed fields can only be computed if all features
     * are faces (i.e., {@link Face}).
@@ -686,7 +686,7 @@ public class DistanceGrid implements Renderable, Scannable {
     * cache and nearest feature setting for each vertex are cleared.
     *
     * @param distances distance for each vertex. Must have a length
-    * >= {@link #numVertices}.
+    * {@code >=} {@link #numVertices}.
     * @param signed if <code>true</code>, indicates that the field should be
     * considered signed.
     */
@@ -733,12 +733,12 @@ public class DistanceGrid implements Renderable, Scannable {
     * Explicitly sets the distance field and features for this grid.
     *
     * @param distances distance for each vertex. Must have a length
-    * >= {@link #numVertices}.
+    * {@code >=} {@link #numVertices}.
     * @param features list of features to be associated with this
     * grid. 
     * @param closestFeatures index (with respect to <code>features</code>(
     * of the nearest feature to each vertex. Must have a length
-    * >= {@link #numVertices}.
+    * {@code >=} {@link #numVertices}.
     * @param signed if <code>true</code>, indicates that the field should be
     * considered signed.
     */
@@ -862,14 +862,16 @@ public class DistanceGrid implements Renderable, Scannable {
     * (1 + 2*marginFrac)
     * </pre>
     * to provide a margin around the features. Finally,
-    * if <code>maxRes > 0</code>, widths may be grown to ensure uniform
+    * if {@code maxRes > 0},
+    * widths may be grown to ensure uniform
     * cell size.
     * 
     * @param features features used to compute the distance field
     * @param marginFrac specifies the fractional amount that the
     * grid should be grown in each direction to better contain the features
     * @param TCL optional - if non-null, specifies the pose of the grid center
-    * @param maxRes if > 0, specifies the resolution along the longest
+    * @param maxRes if {@code > 0},
+    * specifies the resolution along the longest
     * width, with resolutions along other widths set to ensure uniform
     * cell size
     * @param signed if <code>true</code>, indicates that the field should be
@@ -941,7 +943,7 @@ public class DistanceGrid implements Renderable, Scannable {
     * @param features features used to compute the distance field
     * @param marginFrac specifies the fractional amount that the
     * grid should be grown in each direction to better contain the features
-    * @param maxRes if > 0, specfies the resolution along the longest
+    * @param maxRes if {@code >} 0, specfies the resolution along the longest
     * width, with resolutions along other widths set to ensure uniform
     * cell size
     * @param signed if <code>true</code>, indicates that the field should be
@@ -2868,8 +2870,8 @@ public class DistanceGrid implements Renderable, Scannable {
    /**
     * Taubin Smoothing
     * 
-    * @param lambda > 0, fraction of gradient to shrink
-    * @param mu < 0, fraction of gradient to expand
+    * @param lambda {@code >} 0, fraction of gradient to shrink
+    * @param mu {@code <} 0, fraction of gradient to expand
     */
    public void smooth(double lambda, double mu) {
       smoothIter(lambda);
@@ -2878,8 +2880,8 @@ public class DistanceGrid implements Renderable, Scannable {
    
    /**
     * Applies Taubin smoothing
-    * @param lambda > 0, fraction of gradient to shrink
-    * @param mu < 0, fraction of gradient to expand
+    * @param lambda {@code >} 0, fraction of gradient to shrink
+    * @param mu {@code <} 0, fraction of gradient to expand
     * @param iters number of applications
     */
    public void smooth(double lambda, double mu, int iters) {
@@ -3938,7 +3940,7 @@ public class DistanceGrid implements Renderable, Scannable {
       
    /**
     * Find a point <code>pt</code> such that the line segment
-    * </code>pa-pt<code> is tangent to the quadratic zero distance surface and
+    * <code>pa-pt</code> is tangent to the quadratic zero distance surface and
     * also lies in the plane defined by point <code>p0</code> and normal
     * <code>nrm</code>. The search starts by finding a point on the surface
     * that is close to <code>p0</code> and proceeds from there.

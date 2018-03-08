@@ -33,6 +33,17 @@ public class Matrix3d extends Matrix3dBase {
    public Matrix3d() {
    }
 
+   
+   /**
+    * Creates a matrix and initializes its elements to those of the matrix M.
+    * 
+    * @param M
+    * matrix object to be copied.
+    */
+   public Matrix3d (Matrix M) {
+      set (M);
+   }
+
    /**
     * Creates a matrix and initializes its elements from an array of values.
     * 

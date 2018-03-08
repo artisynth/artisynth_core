@@ -127,7 +127,7 @@ public class AffineTransformer extends GeometryTransformer {
     * given by
     * <pre>
     * xl' = N PL xl
-    * <pre>
+    * </pre>
     * where <code>PL</code> is symmetric positive definite and
     * <code>N</code> is a diagonal matrix that is either the identity,
     * or a reflection that flips a single axis. See the documentation

@@ -7,6 +7,7 @@ import java.util.Iterator;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.modelbase.MonitorBase;
 import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
@@ -27,24 +28,26 @@ public class ConnectorBoundsRenderer extends MonitorBase {
    double mySize = 1d;
    
    SphericalJointForceBound shoulderConstraint;
-   Frame glenoidFrame;
-   Point3d basePoint; // Previous version used a base point instead of a frame
-
+   Frame baseFrame;
+   
    public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Frame glenoidFrame) {
       this (bounds, glenoidFrame, 1d);
    }
    
-   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Point3d p0) {
-      this(bounds, null, 1d);
-      basePoint = p0;
-   }
-   
-   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Frame glenoidFrame, double size) {
+   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Frame baseFrame, double size) {
       mySize = size;
       setRenderProps (createRenderProps ());
       shoulderConstraint = bounds;
-      this.glenoidFrame = glenoidFrame;
+      this.baseFrame = baseFrame;
       addRenderables();
+   }
+   
+   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Point3d basePoint) {
+      this(bounds, basePoint, 1d);
+   }
+   
+   public ConnectorBoundsRenderer (SphericalJointForceBound bounds, Point3d basePoint, double size) {
+      this(bounds, new Frame(new RigidTransform3d (basePoint, RotationMatrix3d.IDENTITY)), size);
    }
 
    protected RenderProps myRenderProps = null;
@@ -71,13 +74,8 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       Vector3d prev, first;
       Point3d prevPt, firstPt;
       Vector3d tmp = new Vector3d ();
-      Point3d p0;
-      if (glenoidFrame == null) {
-         p0 = basePoint;
-      } else {
-         p0 = glenoidFrame.getPosition ();
-      }
-
+      Point3d p0 = baseFrame.getPosition ();
+    
       ArrayList<Point3d> polyPts = new ArrayList<Point3d> ();
       viter = shoulderConstraint.getBoundNormals ().iterator ();
       prev = shoulderConstraint.getBoundNormals ().get (shoulderConstraint.getBoundNormals ().size ()-1);

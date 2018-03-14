@@ -147,9 +147,6 @@ public class MFreeModel3d extends FemModel3d  {
     * 
     * @param pos
     * position to place a marker in the model
-    * @param project
-    * if true and pnt is outside the model, projects to the nearest point
-    * on the surface.  Otherwise, uses the original position.
     * 
     */
    public FemMarker addMarker(Point3d pos) {

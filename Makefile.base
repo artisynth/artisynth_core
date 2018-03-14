@@ -49,7 +49,7 @@ ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 else
    JAVAC = javac
 endif
-JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.7 -target 1.7 -encoding UTF-8
+JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -source 1.8 -target 1.8 -encoding UTF-8
 #JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -encoding UTF-8
 JAVAH = javah
 JAVAHFLAGS = -jni -force

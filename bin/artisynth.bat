@@ -11,6 +11,11 @@ set BATCHFILE=%~f0
 set COUNT=0
 set modelArgsFound=false
 
+set JAVA=java
+if DEFINED JAVA_HOME (
+	set JAVA=%JAVA_HOME%\bin\java
+)
+
 for %%G IN (%*) DO (
         if !modelArgsFound!==true (
                 if defined MAIN_OPTS (
@@ -89,19 +94,19 @@ echo BATCHFILE: %BATCHFILE% >> %LOG%
 echo ARTISYNTH_HOME= %ARTISYNTH_HOME% >> %LOG%
 echo PATH= %PATH% >> %LOG%
 echo CLASSPATH= %CLASSPATH% >> %LOG%
-java -version >> %log% 2>&1
+%JAVA% -version >> %log% 2>&1
 
 @rem java artisynth.core.util.JVMInfo >> %LOG%
 
 if exist %LOG% echo ------------------------------------------------ >> %LOG%
 
 @rem check for java 7 and if so increase perm size
-java -version 2>&1 | findstr 1.7 >nul
+%JAVA% -version 2>&1 | findstr 1.7 >nul
 if %errorlevel% == 0 set JAVA_OPTS=%JAVA_OPTS% -XX:MaxPermSize=100M
 if %SILENT%==yes ( 
-        java %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%  >> %LOG% 2>&1
+        %JAVA% %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%  >> %LOG% 2>&1
 ) else (
-        java %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%
+        %JAVA% %JAVA_OPTS% artisynth.core.driver.Launcher %MAIN_OPTS%
 )
 
 set JAVAERROR=%ERRORLEVEL%

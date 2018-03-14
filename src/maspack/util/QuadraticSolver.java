@@ -15,7 +15,7 @@ public class QuadraticSolver {
     * root case occurs when a = 0 or when there is a repeated root.
     * When there are two roots, they are sorted in increasing order.
     *
-    * @param roots returns the roots, must have length >= 2
+    * @param roots returns the roots, must have length {@code >=} 2
     * @param a first coefficient
     * @param b second coefficient
     * @param c third coefficient
@@ -77,7 +77,7 @@ public class QuadraticSolver {
     * root case occurs when a = 0 or when there is a repeated root.
     * When there are two roots, they are sorted in increasing order.
     *
-    * @param roots returns the roots, must have length >= 2
+    * @param roots returns the roots, must have length {@code >=} 2
     * @param a first coefficient
     * @param b second coefficient
     * @param c third coefficient

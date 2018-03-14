@@ -279,7 +279,7 @@ public class QuadraticUtilsTest extends UnitTest {
     * <code>pchk</code> to the boundary of its quadrant. In cases
     * where <code>pchk</code> lies on the x or y axis, 
     * and the resulting <code>q</code> is inside the ellipse
-    * (i.e., dratio < 0), it may be necessary to futher restrict 
+    * (i.e., dratio {@code <} 0), it may be necessary to futher restrict 
     * <code>dchk</code>.
     *
     * <p>
@@ -467,7 +467,8 @@ public class QuadraticUtilsTest extends UnitTest {
     * <code>pchk</code> to the boundary of its octant. In cases
     * where <code>pchk</code> lies on the x/y, y/z or z/x planes
     * and the resulting <code>q</code> is inside the ellipsoid (i.e.,
-    * dratio < 0), it may be necessary to futher restrict <code>dchk</code>.
+    * dratio {@code <} 0), it may be necessary to futher
+    * restrict <code>dchk</code>.
     *
     * <p>
     * Given <code>q</code> and <code>dchk</code>, this method

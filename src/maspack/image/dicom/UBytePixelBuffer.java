@@ -23,6 +23,14 @@ public class UBytePixelBuffer extends DicomPixelBufferBase {
       super(PixelType.UBYTE);
       this.pixels = pixels; 
    }
+   
+   public UBytePixelBuffer (byte[] pixels, int offset, int length) {
+      super(PixelType.UBYTE);
+      this.pixels = new byte[length];
+      for (int i=0; i<length; ++i) {
+         this.pixels[i] = pixels[offset+i];
+      }
+   }
 
    @Override
    protected int getValue(int idx) {

@@ -925,7 +925,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       if (myProfilingP) {
          mySolveTime = System.nanoTime() - mySolveTime;
          System.out.println (
-            "T1=" + t1 + " solveTime=" + mySolveTime/1e6);
+            "T1=" + t1 + " solveTime=" + mySolveTime/1e6 + " ms");
       }
       myInsideAdvanceP = false;
       return stepAdjust;

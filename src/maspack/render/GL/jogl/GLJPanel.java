@@ -134,7 +134,7 @@ import jogamp.opengl.awt.Java2D;
  * pbuffers and falls back on to software rendering if none of the former are
  * available using
  * {@link GLDrawableFactory#createOffscreenDrawable(AbstractGraphicsDevice, GLCapabilitiesImmutable, GLCapabilitiesChooser, int, int)
- * GLDrawableFactory.createOffscreenDrawable(..)}.<br/>
+ * GLDrawableFactory.createOffscreenDrawable(..)}.
  * </p>
  * <p>
  * <a name="verticalFlip">A vertical-flip is required</a>, if the drawable
@@ -169,8 +169,8 @@ import jogamp.opengl.awt.Java2D;
  * Please read <a href="GLCanvas.html#java2dgl">Java2D OpenGL Remarks</a>.
  * </P>
  *
- * <a name="fboGLSLVerticalFlip">
- * <h5>FBO / GLSL Vertical Flip</h5></a> If <a href="#verticalFlip">vertical
+ * <h3><a name="fboGLSLVerticalFlip">
+ * FBO / GLSL Vertical Flip</a></h3> If <a href="#verticalFlip">vertical
  * flip is required</a>, FBO is used, GLSL is available and
  * {@link #setSkipGLOrientationVerticalFlip(boolean) vertical flip is not
  * skipped}, a fragment shader is utilized to flip the FBO texture vertically.
@@ -197,13 +197,12 @@ import jogamp.opengl.awt.Java2D;
  * method! We may change this behavior in the future, i.e. preserve all
  * influencing states.
  * </p>
- * <p>
- * <a name="contextSharing">
- * <h5>OpenGL Context Sharing</h5></a> To share a {@link GLContext} see the
- * following note in the documentation overview:
+ *
+ * <h3><a name="contextSharing">OpenGL Context Sharing</a></h3>
+ * To share a {@link GLContext} see the following note in the documentation
+ * overview:
  * <a href="../../../../overview-summary.html#SHARING">context sharing</a> as
  * well as {@link GLSharedContextSetter}.
- * </p>
  */
 
 @SuppressWarnings("serial")
@@ -326,24 +325,26 @@ GLSharedContextSetter, ScalableSurface {
                     ScalableSurface.AUTOMAX_PIXELSCALE };
 
    /**
-    * For handling reshape events lazily: reshapeWidth -> panelWidth ->
-    * backend.width in pixel units (scaled)
+    * For handling reshape events lazily: 
+    * {@code reshapeWidth -> panelWidth -> backend.width}
+    * in pixel units (scaled)
     */
    private int reshapeWidth;
    /**
-    * For handling reshape events lazily: reshapeHeight -> panelHeight ->
-    * backend.height in pixel units (scaled)
+    * For handling reshape events lazily:
+    * {@code reshapeHeight -> panelHeight -> backend.height}
+    * in pixel units (scaled)
     */
    private int reshapeHeight;
 
    /**
-    * Scaled pixel width of the actual GLJPanel: reshapeWidth -> panelWidth ->
-    * backend.width
+    * Scaled pixel width of the actual GLJPanel:
+    * {@code reshapeWidth -> panelWidth -> backend.width}
     */
    private int panelWidth = 0;
    /**
-    * Scaled pixel height of the actual GLJPanel: reshapeHeight -> panelHeight
-    * -> backend.height
+    * Scaled pixel height of the actual GLJPanel:
+    * {@code reshapeHeight -> panelHeight -> backend.height}
     */
    private int panelHeight = 0;
 
@@ -470,17 +471,17 @@ GLSharedContextSetter, ScalableSurface {
     * <p>
     * If <code>offthread</code> is <code>true</code>, initialization will kicked
     * off on a <i>short lived</i> arbitrary thread and method returns
-    * immediately.<br/>
+    * immediately.
     * If platform supports such <i>arbitrary thread</i> initialization method
     * returns <code>true</code>, otherwise <code>false</code>.
     * </p>
     * <p>
     * If <code>offthread</code> is <code>false</code>, initialization be
     * performed on the current thread and method returns after
-    * initialization.<br/>
+    * initialization.
     * Method returns <code>true</code> if initialization was successful,
     * otherwise <code>false</code>.
-    * <p>
+    * </p>
     * 
     * @param offthread current or background thread
     */
@@ -786,8 +787,6 @@ GLSharedContextSetter, ScalableSurface {
     * Overridden to track when this component is added to a container.
     * Subclasses which override this method must call super.addNotify() in their
     * addNotify() method in order to function properly.
-    * <P>
-    * 
     * <DL>
     * <DD><CODE>addNotify</CODE> in class <CODE>java.awt.Component</CODE></DD>
     * </DL>
@@ -813,8 +812,6 @@ GLSharedContextSetter, ScalableSurface {
     * Overridden to track when this component is removed from a container.
     * Subclasses which override this method must call super.removeNotify() in
     * their removeNotify() method in order to function properly.
-    * <P>
-    * 
     * <DL>
     * <DD><CODE>removeNotify</CODE> in class
     * <CODE>java.awt.Component</CODE></DD>
@@ -1441,7 +1438,7 @@ GLSharedContextSetter, ScalableSurface {
     * <p>
     * Method returns a valid value only <i>after</i> the backend has been
     * initialized, either {@link #initializeBackend(boolean) eagerly} or
-    * manually via the first display call.<br/>
+    * manually via the first display call.
     * Method always returns a valid value when called from within a
     * {@link GLEventListener}.
     * </p>
@@ -1463,7 +1460,7 @@ GLSharedContextSetter, ScalableSurface {
     * <p>
     * If set to <code>true</code>, user needs to flip the OpenGL rendered scene
     * <i>if {@link #isGLOriented()} == true</i>, e.g. via the projection
-    * matrix.<br/>
+    * matrix.
     * See constraints of {@link #isGLOriented()}.
     * </p>
     */

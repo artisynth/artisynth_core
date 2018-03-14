@@ -170,7 +170,8 @@ public interface DynamicComponent extends
    public double getMass (double t);
 
    /** 
-    * Gets the mass of this component at a particular time.
+    * Gets the mass of this component at a particular time. Not currently
+    * used; getEffectiveMass() is used instead.
     * 
     * @param M matrix to return the mass in
     * @param t current time

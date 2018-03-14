@@ -75,7 +75,6 @@ public abstract class DeformationTransformer extends GeometryTransformer {
     * </pre>
     * This method provides the low level implementation for point
     * transformations and does not do any saving or restoring of data.
-    <* 
     * @param pr transformed point
     * @param p point to be transformed
     */
@@ -112,7 +111,7 @@ public abstract class DeformationTransformer extends GeometryTransformer {
     * given by
     * <pre>
     * xl' = N PL xl
-    * <pre>
+    * </pre>
     * where <code>PL</code> is symmetric positive definite and
     * <code>N</code> is a diagonal matrix that is either the identity,
     * or a reflection that flips a single axis. See the documentation

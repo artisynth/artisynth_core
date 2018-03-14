@@ -27,7 +27,6 @@ public interface DicomImageDecoder {
     * @param header informs the decoder of the transfer syntax, and any
     *        intensity transforms
     * @param bin binary input stream of current file, at start of pixel data
-    * @param file DICOM file
     * @param frames decoded pixel buffers (raw format) for frames
     * @return true if decoder can and has successfully decoded frames, false if cannot.
     *           If false is returned, bin should be reset to the start of the pixel data.

@@ -18,7 +18,7 @@ import maspack.util.Versioned;
 /**
  * Object containing information used for rendering, including
  * <ul>
- * <li><em>attribute data</em>, including positions, and (optionally) normals, colors, and texture coordinates.</i>
+ * <li><em>attribute data</em>, including positions, and (optionally) normals, colors, and texture coordinates.</li>
  * <li><em>vertex data</em>, where each vertex points to a single position, as well as (optionally) a single normal, color, and texture attribute.</li>
  * <li><em>primitive data</em>, consisting of zero or more "groups" of points, lines, and triangles.</li>
  * </ul>

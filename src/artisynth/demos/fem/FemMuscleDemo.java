@@ -53,7 +53,17 @@ public class FemMuscleDemo extends RootModel {
    private boolean addMidMuscle = false;
 
    public void build (String[] args) throws IOException {
-      initializeModel();
+      int xn = 1;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-xn")) {
+            if (i == args.length-1) {
+               System.out.println (
+                  "Warning: option '-xn' needs another argument");
+            }
+            xn = Integer.valueOf(args[++i]);
+         }
+      }
+      initializeModel(xn);
    }
 
    protected MuscleBundle createBundle(String name, List<FemElement3d> elems) {
@@ -81,14 +91,14 @@ public class FemMuscleDemo extends RootModel {
       }
    }
 
-   protected void initializeModel() throws IOException {
-      int nn = 1;
+   protected void initializeModel(int xn) throws IOException {
+
       double widthX = 0.09;
       double widthY = 0.03;
       double widthZ = 0.03;
-      int numX = nn * 9;
-      int numY = nn * 3;
-      int numZ = nn * 3;
+      int numX = xn * 9;
+      int numY = xn * 3;
+      int numZ = xn * 3;
 
       tissue = new FemMuscleModel("fem");
       FemFactory.createHexGrid(

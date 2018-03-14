@@ -208,6 +208,9 @@ public class MotionForceInverseData
          c0.set(lam0);
       }
       
+      if (myController.getDebug()) {
+         System.out.println("lam0 = [\n" + lam.toString("%02.4f") + "]';");
+      }
       
       
       // Hm = Jm Hu
@@ -292,7 +295,9 @@ public class MotionForceInverseData
 //         System.out.println("vTarget = [" + targetVel.toString(fmt) + "]';");
 
          System.out.println("vbar = [" + v0.toString(fmt) + "]';");
-         System.out.println("Hm_j = [" + Hm_j.toString(fmt) + "]';"); 
+         System.out.println("Hm_j = [" + Hm_j.toString(fmt) + "]';");
+         System.out.println("lam = [\n" + lam.toString("%02.4f") + "]';");
+
          System.out.println("Hc = [\n" + Hc.toString("%02.1f") + "]';");
          System.out.println("c0 = [\n" + c0.toString("%02.4f") + "]';");
       }

@@ -124,8 +124,8 @@ public class TriangleTessellator {
     * 
     * The segments array includes pairs of indices into the points array.
     * For example, <code>segments={0,1,2,3}</code> would include the two
-    * line segments, <code>pnts[0] -> pnts[1]</code>, and 
-    * <code>pnts[2] -> pnts[3]</code>.
+    * line segments, {@code pnts[0] -> pnts[1]}, and 
+    * {@code pnts[2] -> pnts[3]}.
     * 
     * @param pnts points to include in the tesselation
     * @param segments line-segments to include as constraints
@@ -141,8 +141,8 @@ public class TriangleTessellator {
     * For example, <code>segments={0,1,2,3}</code> would include the two
     * line segments,
     * <ul>
-    *   <li><code>(pntCoords[0],pntCoords[1]) -> (pntCoords[2],pntsCoords[3])</code>, and</li>  
-    *   <li><code>(pntCoords[4],pntCoords[5]) -> (pntCoords[6],pntsCoords[7])</code>.  </li>
+    *   <li>{@code (pntCoords[0],pntCoords[1]) -> (pntCoords[2],pntsCoords[3])}, and</li>  
+    *   <li>{@code (pntCoords[4],pntCoords[5]) -> (pntCoords[6],pntsCoords[7])}.  </li>
     * </ul>
     * @param pntCoords 2D coordinates of points, interleaved, to include in the tesselation
     * @param segments line-segments to include as constraints
@@ -157,8 +157,8 @@ public class TriangleTessellator {
     * 
     * The segments array includes pairs of indices into the points array.
     * For example, <code>segments={0,1,2,3}</code> would include the two
-    * line segments, <code>pnts[0] -> pnts[1]</code>, and 
-    * <code>pnts[2] -> pnts[3]</code>.
+    * line segments, {@code pnts[0] -> pnts[1]}, and 
+    * {@code pnts[2] -> pnts[3]}.
     * 
     * @param pnts points to include in the tesselation
     * @param segments line-segments to include as constraints
@@ -185,8 +185,8 @@ public class TriangleTessellator {
     * For example, <code>segments={0,1,2,3}</code> would include the two
     * line segments,
     * <ul>
-    *   <li><code>(pntCoords[0],pntCoords[1]) -> (pntCoords[2],pntsCoords[3])</code>, and</li>  
-    *   <li><code>(pntCoords[4],pntCoords[5]) -> (pntCoords[6],pntsCoords[7])</code>.  </li>
+    *   <li>{@code (pntCoords[0],pntCoords[1]) -> (pntCoords[2],pntsCoords[3])}, and</li>  
+    *   <li>{@code (pntCoords[4],pntCoords[5]) -> (pntCoords[6],pntsCoords[7])}.  </li>
     * </ul>
     * @param pntCoords 2D coordinates of points, interleaved, to include in the tesselation
     * @param segments line-segments to include as constraints

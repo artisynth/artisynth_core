@@ -1464,6 +1464,7 @@ public class MechSystemSolver {
       }
       myC.setZero();
       mySys.addPosJacobian (S, myC, a1);
+
       if (useFictitousJacobianForces) {
          bf.scaledAdd (-a0, myC);
          if (fpar != null && myParametricVelSize > 0) {
@@ -1693,10 +1694,10 @@ public class MechSystemSolver {
    
    /** 
     * Solves a static KKT system of the form
-    * <pre>
+    * <pre>{@code
     * -df/dx*Delta(x) -G^T*lambda - N^T*theta = f
     * G*Delta(x) + g = 0, N*Delta(x) + n >= 0
-    * </pre>
+    * }</pre>
     *
     * @param u returned displacement Delta(x)
     * @param bf right-hand side net force
@@ -2768,13 +2769,13 @@ public class MechSystemSolver {
       myB.scaledAdd (h, myF, myB);
 
       KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
+
       mySys.setActiveVelState (myUtmp);
 
       if (useGlobalFriction) {
          projectFrictionConstraints (myUtmp, t1);
          mySys.setActiveVelState (myUtmp);
       }
-
 
       // back solve for parametric forces
       //computeImplicitParametricForces (myUtmp, myFparC);
@@ -2783,7 +2784,6 @@ public class MechSystemSolver {
       mySys.addActivePosImpulse (myQ, h, myUtmp);
       mySys.setActivePosState (myQ);
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
-
    }
 
    private double computeForceResidual (
@@ -3125,7 +3125,7 @@ public class MechSystemSolver {
     * @param b   right-side of interval
     * @param fb  function evaluated at b
     * @param eps  tolerance for interval [a,b]
-    * @param feps tolerance for function value |f|< feps considered root
+    * @param feps tolerance for function value |f| {@code <} feps considered root
     * @param func function to evaluate
     * @return root
     */
@@ -3223,7 +3223,8 @@ public class MechSystemSolver {
     * @param b   right-side of search interval
     * @param fb  f(b)
     * @param eps   tolerance for interval [a,b]
-    * @param feps  tolerance for function evaluation, |f(s)| < feps considered a root
+    * @param feps
+    * tolerance for function evaluation, {@code |f(s)| <} feps considered a root
     * @param func  function to evaluate
     * @return function minimizer
     */

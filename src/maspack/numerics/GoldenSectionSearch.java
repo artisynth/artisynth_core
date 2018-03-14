@@ -11,7 +11,8 @@ public class GoldenSectionSearch {
     * @param f function to minimize
     * @param a lower bound of minimizer
     * @param b upper bound of minimizer
-    * @param tol   tolerance for answer (iterations will stop if b-a < tol)
+    * @param tol   tolerance for answer (
+    * iterations will stop if b-a {@code <} tol)
     * @param ftol  function tolerance 
     *   (iterations will stop if f(c) doesn't seem to vary outside this range within bounds)
     * @return minimizing input c

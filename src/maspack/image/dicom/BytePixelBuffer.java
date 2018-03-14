@@ -24,6 +24,14 @@ public class BytePixelBuffer extends DicomPixelBufferBase {
       super(PixelType.BYTE);
       this.pixels = pixels; 
    }
+   
+   public BytePixelBuffer (byte[] pixels, int offset, int length) {
+      super(PixelType.BYTE);
+      this.pixels = new byte[length];
+      for (int i=0; i<length; ++i) {
+         this.pixels[i] = pixels[offset+i];
+      }
+   }
 
    @Override
    protected int getValue(int idx) {

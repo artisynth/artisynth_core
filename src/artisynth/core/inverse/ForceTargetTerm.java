@@ -283,9 +283,16 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
 
       updateTargetForce (t0, t1); // set myTargetForce
       
+      
       VectorNd cbar = new VectorNd (myTargetForSize);
       // XXX do useTimestepScaling, useNormalizeH on targetVel
-      cbar.sub (myTargetFor, myController.getData ().getC0 ());
+//      cbar.sub (myTargetFor, myController.getData ().getC0 ());
+      
+      // scale cbar by h -- Benedikt
+      cbar.set (myTargetFor);
+      cbar.scale (h);
+      // XXX do useTimestepScaling, useNormalizeH on targetVel
+      cbar.sub (myController.getData ().getC0 ());
       
       MatrixNd Hc = new MatrixNd (myTargetForSize, myController.numExcitations ());
       Hc.set (myController.getData ().getHc ());

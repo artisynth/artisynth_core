@@ -28,8 +28,8 @@ CVS
 *.lib
 *.exe
 *.h.gch
-/classes
 /build
+/classes
 
 ######################
 # Temp files
@@ -37,6 +37,7 @@ CVS
 *.swp
 *~
 *.bak
+/tmp
 
 ######################
 # Project files
@@ -46,13 +47,3 @@ CVS
 .cproject
 .settings
 ArtiSynth.launch
-
-######################
-# Libraries
-######################
-/lib
-
-######################
-# Temp directory
-######################
-/tmp

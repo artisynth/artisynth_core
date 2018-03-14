@@ -3555,6 +3555,11 @@ public class GL2Viewer extends GLViewer implements HasProperties {
 
          int[] points = robj.getPoints(gidx);
          for (int i=0; i<count; ++i) {
+            if (i+offset >= points.length) {
+               System.out.println (
+                  "i=" + i + " count=" + count + " offset=" + offset +
+                  " points.length=" + points.length + " tpc=" + totalPointCount);
+            }
             int vidx = points[i+offset];
             if (!selecting && useColors) {
                setVertexColor (gl, robj.getVertexColor (vidx), useHSV);

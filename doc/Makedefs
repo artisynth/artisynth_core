@@ -39,8 +39,8 @@ INFOCENTER_TOC = java artisynth.core.util.BuildInfoCenterToc
 # Set TEXINPUTS so latex can find the latexml and docbook input files.
 # The reason for the second entry, ../$(DOC_DIR)/texinputs, is because
 # LaTeXML may call latex from a directory *below* that of the current
-# directory with respect to which DOC_DIR is indicated.
-# NOTE: windows requires semi-colon instead of colon (at least for texlive)
+# directory with respect to which DOC_DIR is indicated.  NOTE: windows
+# requires semi-colon instead of colon (at least for texlive)
 ifeq ($(OS),Windows_NT)
 export TEXINPUTS:=$(TEXINPUTS);$(DOC_DIR)/texinputs;../$(DOC_DIR)/texinputs;
 # $(info Windows)

@@ -25,8 +25,8 @@ WEBDOCS = \
 # Assumes $ARTISYNTH_HOME/bin is in the PATH, so findJavaPackages can be found
 FIND_PACKAGES=findJavaPackages
 
-#JAVADOC_XOPTS = -Xdoclint:all,-missing  # For Java 8 - relax missing tag warnings
-JAVADOC_XOPTS = 
+JAVADOC_XOPTS = -Xdoclint:all,-missing  # For Java 8 - relax missing tag warnings
+#JAVADOC_XOPTS = 
 
 javadocs: #make the javadocs
 	# clear any existing javadoc directory

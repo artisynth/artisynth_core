@@ -123,8 +123,8 @@ public class FemBeam3d extends RootModel {
       myMechMod.setIntegrator (Integrator.Trapezoidal);
       myFemMod.setMaterial (new MooneyRivlinMaterial());
       myFemMod.setIncompressible (FemModel.IncompMethod.AUTO);
-      myMechMod.getSolver().profileKKTSolveTime = true;
-      //mainMod.setProfiling (true);      
+      //myMechMod.getSolver().profileKKTSolveTime = true;
+      //myMechMod.setProfiling (true);      
    }
 
    public void build (

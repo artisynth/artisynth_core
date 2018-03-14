@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# Unpack eclipseSettings.zip into a sub directory so they can be
+# modified and repacked
+#
+if ! [ -e eclipseSettings.zip ] ; then
+  echo "No eclipseSettings.zip file found"
+  exit
+fi
+if [ -e eclipseSettings ] ; then
+  echo Removing existing eclipseSettings directory
+  rm -rf eclipseSettings
+fi
+mkdir eclipseSettings
+cd eclipseSettings
+unzip ../eclipseSettings.zip
+echo diff ../.project .project
+diff ../.project .project
+echo diff ../.classpath .classpath
+diff ../.classpath .classpath
+if [ -e ArtiSynth.launch ] ; then
+  echo diff ../ArtiSynth.launch ArtiSynth.launch 
+  diff ../ArtiSynth.launch ArtiSynth.launch
+fi
+diff -r ../.settings .settings
+

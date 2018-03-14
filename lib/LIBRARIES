@@ -49,7 +49,9 @@ looks.jar
 quickhull3d.jar
 vclipx.jar
 vfs2.jar
+jsoup-1.11.2.jar
 matconsolectl-4.4.4.jar
+gdcm.jar
 #
 # JOGL native libraries are bundled into jar files that are extracted
 # into and loaded from a temporary directory:
@@ -68,7 +70,12 @@ Windows64 jogl-all-2.3.2-natives-windows-amd64.jar
 PardisoJNI.11.1.2.1
 RobustPreds.1.1
 TetgenJNI.1.5.1.0
+# OpenMP libraries for Pardiso
 libiomp5.dylib
-libgomp.so.1
+#libgomp.so.1
 libiomp5.so
 libiomp5md.dll
+# GDCM library for Dicom images
+gdcmjni.dll
+libgdcmjni.so   
+libgdcmjni.dylib

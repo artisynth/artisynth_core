@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# Repack eclipseSettings.zip from a sub directory of the same name and
+# remove said directory
+#
+if ! [ -d eclipseSettings ] ; then
+  echo "No eclipseSettings directory found"
+  exit
+fi
+if [ -e eclipseSettings.zip ] ; then
+  echo Removing existing eclipseSettings.zip
+  rm -f eclipseSettings.zip
+fi
+cd eclipseSettings
+zip -r ../eclipseSettings.zip * .??*
+cd ..
+rm -rf eclipseSettings

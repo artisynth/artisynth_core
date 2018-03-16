@@ -130,15 +130,15 @@ build: $(ROOT_DIR)/classes
 all:
 	$(JAVAC) $(JAVACFLAGS) *.java
 
-.PHONY: classes CLASSES
+# .PHONY: classes CLASSES
 
 HELP_MSGS += "classes: build class files (if any) in this directory"
 HELP_MSGS += "CLASSES: recursively call 'make classes' in subdirectories"
 
-classes CLASSES:: $(PACKAGE_CLASSES)
+# classes CLASSES:: $(PACKAGE_CLASSES)
 
-CLASSES:: $(JAVA_SUBDIRS)
-	$(RUN_MAKE_IN_SUBDIRS)
+# CLASSES:: $(JAVA_SUBDIRS)
+#	$(RUN_MAKE_IN_SUBDIRS)
 
 .PHONY: clean CLEAN
 

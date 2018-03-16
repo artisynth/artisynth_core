@@ -3871,12 +3871,7 @@ PointAttachable, ConnectableBody {
       super.scaleDistance(s);
       myAuxiliaryMaterialList.scaleDistance(s);
       myVolume *= (s * s * s);
-      myBVTreeValid = false;
-      // invalidate trees of meshes as well
-      // update skinning positions
-      for (MeshComponent mc : myMeshList) {
-         mc.scaleDistance(s);
-      }
+      updateSlavePos();
    }
 
    @Override

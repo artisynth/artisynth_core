@@ -1,0 +1,43 @@
+###########################
+# Source files
+###########################
+*.java text
+*.py   text
+
+###########################
+# Scripts
+###########################
+*.bat text eol=crlf
+*.sh  text eol=lf
+
+###########################
+# Geometry
+###########################
+*.obj    text
+*.ele    text
+*.elem   text
+*.node   text
+*.ply    text
+*.stl    text=auto
+
+###########################
+# Text files
+###########################
+*.txt    text
+*.tex    text
+*.gradle text
+
+###########################
+# Binary files
+###########################
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+
+###########################
+# Git configurations
+###########################
+.gitattributes text
+.gitmodules    text
+.gitignore     text

@@ -1,6 +1,14 @@
 # artisynth web account needed to transfer files to artisynth web server
 ifndef ARTISYNTH_WEB_ACCOUNT
-ARTISYNTH_WEB_ACCOUNT = $(USER)
+   ARTISYNTH_WEB_ACCOUNT = $(USER)
+endif
+
+# Artisynth home directory
+ifndef ARTISYNTH_HOME
+   ARTISYNTH_HOME := $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+   ifeq ($(OS),Windows_NT)
+      ARTISYNTH_HOME := $(subst /,\,$(ARTISYNTH_HOME))
+   endif
 endif
 
 # variable related to accessing the artisynth web server, where we
@@ -15,22 +23,31 @@ MAKE_HASHES_AND_FIX_PERMISSIONS = ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) \
 
 
 # OS Detection
-ifeq ($(OS),Windows_NT)
-   SYSTEM := Windows
-   ARCH := 64
-   ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-      ARCH := 32
-   endif
-else
-   SYSTEM := $(shell uname)
-   MACHINE = $(shell uname -m)
-   ifeq ($(findstring 64,$(MACHINE)),64)
-   	  ARCH = 64
+ifndef SYSTEM
+   SYSTEM := $(shell uname 2>&0)
+   ifndef SYSTEM
+      ifeq ($(OS),Windows_NT)
+         SYSTEM := Windows
+         ifndef ARCH
+            ARCH := 64
+            ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+               ARCH := 32
+            endif
+         endif
+      endif
    else
-      ARCH = 32
+      ifndef ARCH
+         MACHINE = $(shell uname -m)
+         ifeq ($(findstring 64,$(MACHINE)),64)
+            ARCH = 64
+         else
+            ARCH = 32
+         endif
+      endif
    endif
 endif
 
+# OS-specific commands
 ifeq ($(SYSTEM),Windows)
    RM_CMD = del /Q /F
    RM_CALL = del /Q /F $(subst /,\,$(1)) 2>NUL
@@ -55,6 +72,16 @@ JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR
 #JAVACFLAGS = -J-Xms500m -J-Xmx500m -d $(ROOT_DIR)/classes -sourcepath $(ROOT_DIR)/src -encoding UTF-8
 JAVAH = javah
 JAVAHFLAGS = -jni -force
+
+# Classpath
+ifndef CLASSPATH
+   ifeq ($(OS),Windows_NT)
+      CLASSPATH=$(ARTISYNTH_HOME)\classes;$(ARTISYNTH_HOME)\lib\*
+   else
+      CLASSPATH=$(ARTISYNTH_HOME)/classes:$(ARTISYNTH_HOME)/lib/*
+   endif
+   JAVACFLAGS := -classpath "$(CLASSPATH)" $(JAVACFLAGS)
+endif
 
 LD = ld
 LD_FLAGS = 
@@ -125,7 +152,6 @@ klean:
 	find -L . -name "*.class" -exec rm {} \;
 
 .PHONY: build
-
 build: $(ROOT_DIR)/classes
 	$(call FIND_CALL,"*.java") > sources.txt
 	"$(JAVAC)" $(JAVACFLAGS) @sources.txt

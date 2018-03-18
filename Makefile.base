@@ -35,10 +35,12 @@ ifeq ($(SYSTEM),Windows)
    RM_CMD = del /Q /F
    RM_CALL = del /Q /F $(subst /,\,$(1)) 2>NUL
    MKDIR_CALL = if not exist "$(subst /,\,$(1))" mkdir "$(subst /,\,$(1))"
+   FIND_CALL = dir /b/s $(1)
 else
    RM_CMD = rm -rf
    RM_CALL = rm -rf $(1)
    MKDIR_CALL = mkdir -p $(1)
+   FIND_CALL = find -L . -name $(1)
 endif
 
 # Java
@@ -123,8 +125,12 @@ klean:
 	find -L . -name "*.class" -exec rm {} \;
 
 .PHONY: build
+
 build: $(ROOT_DIR)/classes
-	find -L . -name "*.java" -print | xargs -s 27000 "$(JAVAC)" $(JAVACFLAGS)
+	$(call FIND_CALL,"*.java") > sources.txt
+	"$(JAVAC)" $(JAVACFLAGS) @sources.txt
+	$(call RM_CALL, sources.txt)
+# find -L . -name "*.java" -print | xargs -s 27000 "$(JAVAC)" $(JAVACFLAGS)
 
 .PHONY: all
 all:
@@ -240,4 +246,4 @@ check-syntax:
 	cd $(ROOT_DIR)/src; javac ${CHK_SOURCES}
 
 $(ROOT_DIR)/classes:
-	mkdir $(ROOT_DIR)/classes
+	$(call MKDIR_CALL,$(ROOT_DIR)/classes)

@@ -4,11 +4,11 @@ JAVA_SUBDIRS = \
 
 .PHONY: default
 default:
-	cd src; make build
+	cd src && make build
 
 .PHONY: javadocs
 javadocs: #make the javadocs
-	cd doc; make -s javadocs
+	cd doc && make -s javadocs
 
 HELP_MSGS += "default: 'make build'"
 HELP_MSGS += "build: compiles all java files in all subdirectories"

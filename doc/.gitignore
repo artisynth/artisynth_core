@@ -1,0 +1,16 @@
+#######################
+# Latex compiled files
+#######################
+*.eps
+*.dvi
+*.aux
+*.log
+*.toc
+*.out
+*.fdb_latexmk
+*.synctex.gz
+
+#######################
+# PDF output documents
+#######################
+/pdf/*

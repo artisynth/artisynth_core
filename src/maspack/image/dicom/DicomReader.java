@@ -48,8 +48,10 @@ public class DicomReader {
 
    private void initializeDecoders() {
       imageDecoders = new ArrayList<DicomImageDecoder>(3);
+      
+      imageDecoders.add(new DicomImageDecoderGDCM()); // GDCM decoder
       imageDecoders.add(new DicomImageDecoderRaw()); // raw format
-      // imageDecoders.add(new DicomImageDecoderGDCM()); // GDCM decoder
+
       // ImageMagick, if found
       DicomImageDecoderImageMagick dIM = new DicomImageDecoderImageMagick();
       if (dIM.isValid()) {

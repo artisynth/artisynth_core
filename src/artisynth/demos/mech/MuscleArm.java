@@ -26,7 +26,7 @@ import maspack.spatialmotion.SpatialInertia;
 public class MuscleArm extends RootModel
 {
 
-   
+
    public static final String meshDir = ArtisynthPath.getHomeRelativePath(
       "src/artisynth/demos/mech/geometry/",".");
     protected MechModel model;
@@ -61,14 +61,14 @@ public class MuscleArm extends RootModel
         
         X= new RigidTransform3d();
         X.p.z = len/2;
-        addBody("upper",X, "bone.obj");
+        addBody("upper",X, "smoothBeam.obj");
         
         X = new RigidTransform3d();
         double angle = Math.toRadians (32);
         X.R.setAxisAngle(0,1,0,angle);
         X.p.set(-len/2*Math.sin(angle), 0.0,-len/2*Math.cos(angle));
         
-        addBody("lower",X, "bone_square.obj");        
+        addBody("lower",X, "smoothBeam.obj");        
     }
     
     public void addBody(String name, RigidTransform3d pose, 
@@ -151,7 +151,7 @@ public class MuscleArm extends RootModel
         model.addFrameMarker(u, upperArm, markerBodyPos);
         u.setName("upperAttachment");
         
-        markerBodyPos = new Point3d(size.x/2,0,-(size.z/2.0)/2);
+        markerBodyPos = new Point3d(-size.x/2,0,-(size.z/2.0)/2);
         FrameMarker l = new FrameMarker();
         model.addFrameMarker(l,lowerArm, markerBodyPos);
         l.setName("lowerAttachment");

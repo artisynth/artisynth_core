@@ -17,7 +17,7 @@ import maspack.fileutil.FileManager;
 public class DicomTest extends RootModel {
 
    String dicom_url = "http://barre.nom.fr/medical/samples/files/MR-MONO2-8-16x-heart.gz";
-   String dicom_file = "/MR-MONO2-8-16x-heart";
+   String dicom_file = "MR-MONO2-8-16x-heart";
    
    public void build(String[] args) throws IOException {
       

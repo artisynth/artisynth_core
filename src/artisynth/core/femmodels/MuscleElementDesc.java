@@ -463,7 +463,12 @@ public class MuscleElementDesc
       }      
       if (widgetSize != 0) {
          Shading savedShading = renderer.setPropsShading (props);
-         renderer.setFaceColoring (props, myWidgetColor, isSelected());
+         if (myWidgetColor != null) {
+            renderer.setFaceColoring (props, myWidgetColor, isSelected());
+         }
+         else {
+            renderer.setFaceColoring (props, isSelected());
+         }
          myElement.renderWidget (renderer, widgetSize, props);
          renderer.setShading (savedShading);
       }

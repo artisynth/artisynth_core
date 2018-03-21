@@ -325,7 +325,7 @@ public class MeshComponent extends RenderableComponentBase
 
       // transform the mesh itself. Subclasses that provide local pose 
       // information may override this method to instead use
-      // myMeshInfo.transformGeometryAndPose(). 
+      //myMeshInfo.transformGeometryAndPose(gtr, null);
       myMeshInfo.transformGeometry (gtr);
    }   
    

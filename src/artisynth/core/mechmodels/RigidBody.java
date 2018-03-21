@@ -1099,8 +1099,8 @@ public class RigidBody extends Frame
 	   
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
-         // for now, only transform the mesh if we are simulating. Otherwise,
-         // just update the mesh's transform.
+         // for now, only transform the mesh if we are not
+         // simulating. Otherwise, just update the mesh's transform.
          if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
             if (myMeshInfo.transformGeometryAndPose (
                gtr, myTransformConstrainer)) {

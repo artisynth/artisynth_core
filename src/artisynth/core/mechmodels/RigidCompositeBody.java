@@ -534,10 +534,8 @@ CompositeComponent {
 
    protected void transformInternalGeometry(
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-
-      for (MeshComponent mesh : getMeshComps()) {
-         mesh.transformGeometry(gtr, context, flags);
-      }
+      // No need to do anything here since the meshes are returned
+      // by getTransformableDependencies() and hence transformed separately
    }
 
    @Override

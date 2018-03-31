@@ -569,8 +569,13 @@ into Eclipse as a project and then built as described in Section
 \begin{sideblock}
 Important: for collection projects to compile properly in Eclipse, the
 {\tt artisynth\_core} project (and any other projects they depend on)
-were have to be added to their build path. Details on doing this are
-given in Section \ref{AddingProjectsToBuildPath}.
+will have to be added to their build path. The default Eclipse
+settings supplied with some projects (in the file {\tt
+eclipseSettings.zip}) may already contain the required build path
+dependencies. For example, the settings for {\tt artisynth\_models}
+contain the required reference to {\tt artisynth\_core}.  In other
+cases, it may be necessry to add projects to the build path
+explicitly, as described in \ref{AddingProjectsToBuildPath}.
 \end{sideblock}
 
 \subsubsection{Building from the command line}
@@ -1050,13 +1055,10 @@ Some variables that are commonly set within Eclipse include:
 
 \begin{itemize}
 
-\item {\tt ARTISYNTH\_HOME}: This should be set to 
-\ArtHome[]. The ArtiSynth launch
-configuration in {\tt artisynth\_core} achieves this by
-setting{\tt ARTISYNTH\_HOME} to the built-in Eclipse variable {\tt
-\$\{project\_loc\}}. However, for launch configurations defined
-outside of {\tt artisynth\_core}, it may be necessary to set this
-variable explicitly.
+\item {\tt ARTISYNTH\_HOME}: If set, this should be set to
+\ArtHome[]. Normally ArtiSynth is able to infer its own location
+internally, so it is generally unecessary to set this variable
+explictly.
 
 \item {\tt OMP\_NUM\_THREADS}: Specifies the maximum number of processor cores
 available for multicore execution.
@@ -1662,7 +1664,6 @@ one of your {\tt bash} initialization files (typically {\tt
 # set ARTISYNTH_HOME to the appropriate location ...
 export ARTISYNTH_HOME=$HOME/artisynth_2_X
 export ARTISYNTH_PATH=.:$HOME:$ARTISYNTH_HOME
-export LD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/Linux64:$LD_LIBRARY_PATH
 export CLASSPATH=$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/'*':$CLASSPATH
 export PATH=$ARTISYNTH_HOME/bin:$PATH
 # Set to the number of cores on your machine:
@@ -1673,7 +1674,6 @@ export OMP_NUM_THREADS=2
 # set ARTISYNTH_HOME to the appropriate location ...
 setenv ARTISYNTH_HOME $HOME/artisynth_2_X
 setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
-setenv DYLD_LIBRARY_PATH $ARTISYNTH_HOME/lib/MacOS64":"$DYLD_LIBRARY_PATH
 setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
 setenv PATH $ARTISYNTH_HOME/bin":"$PATH
 # Set to the number of cores on your machine:
@@ -1716,7 +1716,6 @@ to the following in your {\tt .cshrc} file, located in your home
 # set ARTISYNTH_HOME to the appropriate location ...
 setenv ARTISYNTH_HOME $HOME/artisynth_2_X
 setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
-setenv LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/Linux64":"$LD_LIBRARY_PATH
 setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
 setenv PATH $ARTISYNTH_HOME/bin":"$PATH
 # Set to the number of cores on your machine:
@@ -1727,7 +1726,6 @@ setenv OMP_NUM_THREADS 2
 # set ARTISYNTH_HOME to the appropriate location ...
 setenv ARTISYNTH_HOME $HOME/artisynth_2_X
 setenv ARTISYNTH_PATH .":"$HOME":"$ARTISYNTH_HOME
-setenv DYLD_LIBRARY_PATH $ARTISYNTH_HOME/lib/MacOS64":"$DYLD_LIBRARY_PATH
 setenv CLASSPATH "$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*:$CLASSPATH"
 setenv PATH $ARTISYNTH_HOME/bin":"$PATH
 # Set to the number of cores on your machine:

@@ -425,6 +425,8 @@ public class InverseManager {
    
    public void resetProbes(RootModel root, TrackingController controller) {
       if (root != null) {
+         root.removeAllInputProbes ();
+         root.removeAllOutputProbes ();
          findOrCreateProbes (root, controller);
          configureProbes (controller);
       }

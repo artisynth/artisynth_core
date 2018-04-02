@@ -28,6 +28,13 @@ public class RobustCube extends FemBeam3d {
          }
       }
       myMechMod.setGravity (Vector3d.ZERO);
+      myMechMod.setDynamicsEnabled (false);         
    }
-   
+
+    public StepAdjustment advance (double t0, double t1, int flags) {
+       if (t1 == 0.5) {
+          myMechMod.setDynamicsEnabled (true);
+       }
+       return super.advance (t0, t1, flags);
+    }
 }

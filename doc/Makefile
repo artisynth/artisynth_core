@@ -102,7 +102,7 @@ install_all: install_dir install_javadocs install_html install_pdf
 install_dir:
 	ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) mkdir -p $(WEB_DOC_DIR)
 
-install_html: HTML
+install_html: HTML INFOCENTER
 	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html
 

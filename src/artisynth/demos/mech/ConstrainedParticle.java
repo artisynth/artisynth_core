@@ -38,7 +38,8 @@ public class ConstrainedParticle extends RootModel {
 
       PolygonalMesh mesh = null;
 
-      String meshFile = ArtisynthPath.getHomeDir () + "src/maspack/geometry/sampleData/bowl.obj";
+      String meshFile =
+         ArtisynthPath.getHomeDir()+"/src/maspack/geometry/sampleData/bowl.obj";
 
       try {
          mesh = new PolygonalMesh (new File(meshFile));

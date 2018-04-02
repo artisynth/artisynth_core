@@ -21,7 +21,78 @@
 \fi
 %\section*{Next}]
 
-\section*{XXX, 2018}
+\section*{Mar 14, 2018}
+
+\subsection*{ArtiSynth has moved to Github}
+
+Both the {\tt artisynth\_core} and {\tt artisynth\_models}
+repositories have been moved to Github, where they can
+be accessed via the URLs
+%
+\begin{lstlisting}[]
+  https://github.com/artisynth/artisynth_core.git
+  https://github.com/artisynth/artisynth_models.git
+\end{lstlisting}
+%
+Users who were working from Subversion checkouts of these projects
+should replace them with fresh checkouts ('clones') from Github.
+Eclipse users should remove their existing {\tt artisynth\_core} and
+{\tt artisynth\_models} projects from Eclipse, and all users should
+archive the existing project directories.
+
+The new versions can then be cloned from Github, and libraries should
+be downloaded for {\tt artisynth\_core}. Eclipse users will also need
+to unpack the Eclipse project files from {\tt eclipseSettings.zip}.
+A Unix-like command line sequence to perform these operations
+is as follows:
+%
+\begin{lstlisting}[]
+  > git clone https://github.com/artisynth/artisynth_core.git 
+  > cd artisynth_core
+  > bin/updateArtisynthLibs
+  > unzip eclipseSettings.zip
+  > cd ..
+  > git clone https://github.com/artisynth/artisynth_models.git 
+  > cd artisynth_models
+  > unzip eclipseSettings.zip
+\end{lstlisting}
+%
+Eclipse users will also need to reimport these new projects into
+Eclispe. Full details on installing projects from Github are given in
+the updated installation guides:
+\href{http://www.artisynth.org/doc/info/installation}%
+{www.artisynth.org/doc/info/installation}.
+
+\begin{sideblock}
+Note that users with Github accounts and SSH keys may wish to use the
+SSH URLs instead:
+%
+\begin{verbatim}
+  git@github.com:artisynth/artisynth_core.git
+  git@github.com:artisynth/artisynth_models.git
+\end{verbatim}
+%
+\end{sideblock}
+
+\begin{sideblock}
+Write access to the old svn repositories for {\tt artisynth\_core} and
+{\tt artisynth\_models} has been frozen. Users posting changes should
+first clone the new Github repositories, and then push these changes
+to Github.
+\end{sideblock}
+
+\subsection*{ArtiSynth updated to Java 8}
+
+ArtiSynth has been updated to Java 8, and the compilation settings for
+both Makefiles and Eclipse projects (the latter contained in each
+project's {\tt eclipseSettings.zip} file) have been changed to request
+Java 8 compatibility. 
+
+This should mean that one should also be able to run and compile under
+Java 9, although we have noted some problems related to Java OpenGL
+(JOGL) when compiling on Java 9 and then running on Java 8.  We
+therefore recommand that users stay with a Java 8 JDK for the
+moment. Java 8 is also compatible with current versions of MATLAB.
 
 \subsection*{isActive() method added to monitors and controllers}
 

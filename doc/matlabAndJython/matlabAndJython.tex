@@ -58,27 +58,32 @@ from the command line without starting the graphical interface.
 \section{Interfacing to MATLAB}
 
 \subsection{Requirements and configuration}
+\label{Requirements:sec}
 
 It is probably necessary to use MATLAB 2014 or greater, since only
 more recent versions of MATLAB use the JOGL 2 Java OpenGL interface
 which is compatible with ArtiSynth.
 
 In addition, it will also be necessary to set some environment
-variables. In the following, assume that {\tt <ArtisynthRoot>} denotes
+variables. In the following, assume that {\tt <ARTISYNTH\_HOME>} denotes
 the path to the root folder of the ArtiSynth installation.
 
 \begin{enumerate}
 
 \item If you have not done so already, set the environment variable
-{\tt ARTISYNTH\_HOME} to {\tt <ArtisynthRoot>}. This can be done
+{\tt ARTISYNTH\_HOME} to {\tt <ARTISYNTH\_HOME>}. This can be done
 externally to MATLAB (see the Section {\it Environment variables} in
 the {\tt ArtiSynth Installation Guide} for your system), or
 it can also be done within a MATLAB startup script using the {\tt
 setenv()} command; see the MATLAB documentation regarding startup scripts.
 
-\item Make sure that the folder {\tt <ArtisynthRoot>/matlab} is
+\item Make sure that the folder {\tt <ARTISYNTH\_HOME>/matlab} is
 included in the search path for MATLAB functions; consult MATLAB
 documentation on how to do this.
+
+\item Ensure that classes required by ArtiSynth are added
+to the MATLAB Java classpath, as described in Section
+\ref{ArtisynthClasspath:sec}.
 
 \item If you have not done so already, add the ArtiSynth native
 library folder to the environment variable that specifies the dynamic
@@ -87,14 +92,14 @@ library search path.
 \begin{enumerate}
 
 \item On Windows (64 bit), make sure {\tt
-<ArtisynthRoot>\BKS lib\BKS Windows64} is included in the {\tt PATH}
+<ARTISYNTH\_HOME>\BKS lib\BKS Windows64} is included in the {\tt PATH}
 environment variable.
 
 \item On Linux (64 bit), make sure {\tt
-<ArtisynthRoot>/lib/Linux64} is included in the {\tt LD\_LIBRARY\_PATH}
+<ARTISYNTH\_HOME>/lib/Linux64} is included in the {\tt LD\_LIBRARY\_PATH}
 environment variable.
 
-\item On MacOS, make sure {\tt <ArtisynthRoot>/lib/MacOS64} is
+\item On MacOS, make sure {\tt <ARTISYNTH\_HOME>/lib/MacOS64} is
 included in the {\tt DYLD\_LIBRARY\_PATH} environment variable.
 
 \end{enumerate}
@@ -109,7 +114,7 @@ you may need to adjust the MATLAB Java virtual memory limit (Section
 
 \item As necessary, add the classpath(s) for your Artisynth models to
 the MATLAB Java classpath, so that they will be visible to Java from
-within MATLAB. See Section \ref{ModelClasspath:sec}) for details.
+within MATLAB. See Section \ref{ModelClasspath:sec} for details.
 
 \end{enumerate}
 
@@ -525,13 +530,56 @@ More details are given in
 \href{http://www.mathworks.com/support/solutions/en/data/1-18I2C}
 {www.mathworks.com/support/solutions/en/data/1-18I2C}.
 
-\subsection{Setting the classpath for  models}
+\subsection{Setting the classpath for ArtiSynth}
+\label{ArtisynthClasspath:sec}
+
+Before running ArtiSynth under MATLAB, it is necessary to ensure that
+the classes used by ArtiSynth are present within MATLAB's Java
+classpath. Letting {\tt <ARTISYNTH\_HOME>} denote the path to the
+top-level directory of the ArtiSynth installation, there are
+two ways to do this:
+
+\begin{enumerate}
+
+\item Within MATLAB, run the command {\tt setArtisynthClasspath} with
+the string associated with {\tt <ARTISYNTH\_HOME>} as an argument.
+Assuming the environment variable {\tt ARTISYNTH\_HOME} has been
+set, then the following should work:
+%
+\begin{verbatim}
+  >>> setArtisynthClasspath (getenv ('ARTISYNTH_HOME'))
+\end{verbatim}
+%
+
+\item Create an ASCII text file called {\tt javaclasspath.txt} in one
+of the directories in the MATLAB search path, and add to
+this the path name for {\tt <ARTISYNTH\_HOME>/classes}, as well as the
+path name for each {\tt .jar} file in {\tt <ARTISYNTH\_HOME>/lib}.  So
+for example, if {\tt <ARTISYNTH\_HOME>} is {\tt
+/home/joe/artisynth\_core}, then the entries in {\tt
+javaclasspath.txt} would look like this:
+%
+\begin{verbatim}
+  /home/joe/artisynth_core/classes
+  /home/joe/artisynth_core/lib/quickhull3d.jar
+  /home/joe/artisynth_core/lib/jython.jar
+  /home/joe/artisynth_core/lib/jmf.jar
+   ... etc ...
+\end{verbatim}
+%
+For more details on using {\tt javaclasspath.txt}, see\\
+\href{https://www.mathworks.com/help/matlab/matlab\_external/static-path.html}
+{\tt www.mathworks.com/help/matlab/matlab\_external/static-path.html}.
+
+\end{enumerate}
+
+\subsection{Setting the classpath for models}
 \label{ModelClasspath:sec}
 
 Usually, ArtiSynth applications involve the use of models or packages
 defined outside of the ArtiSynth core. In order for these to be
 visible to Java from inside MATLAB, it is necessary to add their
-classpaths to MATLAB's Java classpath. There are two ways to do this:
+classpaths to MATLAB's Java classpath. There are three ways to do this:
 
 \begin{enumerate}
 
@@ -543,6 +591,10 @@ ArtiSynth Installation Guide}.
 \item Add the classpaths within the {\tt MATLAB} session using the
 {\tt javaaddpath()} command. This should be done {\it before} the
 first call to {\tt artisynth()}, perhaps within a startup script.
+
+\item Add the classpaths to an ASCII text file called {\tt
+javaclasspath.txt} located in one of the directories in the MATLAB
+search path, as described in Section \ref{ArtisynthClasspath:sec}.
 
 \end{enumerate}
 

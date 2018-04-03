@@ -42,11 +42,9 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    protected ArrayList<ForceTarget> myForceTargets;            //NEW INTERFACE? + in seperated variables??? or use the same ones?
    protected VectorNd myTargetWgts = null; // size of myTargetForceSize
    protected ArrayList<Double> myTargetWeights;                                                                     //NEW SECOND WEIGHT VARIABLE FOR FORCES?
- 
-   protected VectorNd myTargetLam = null;
- 
+  
    protected SparseBlockMatrix myForJacobian = null;
-   protected VectorNd myTargetFor;
+   protected VectorNd myTargetForce;
    protected int myTargetForSize;
 
    public static boolean DEFAULT_NORMALIZE_H = false;
@@ -79,13 +77,35 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
       myTargetWeights = new ArrayList<Double>();
    }
    
+   public VectorNd getTargetForce (double t0, double t1) {
+      double h=t1-t0;
+      updateTargetForce (t0, t1); 
+      return myTargetForce;
+   }
+   
+   
+   
+   public VectorNd getSubspaceForce (double t0, double t1) {   
+      myMech.updateConstraints (t0, null, 0);
+      double h=t1-t0;
+      VectorNd lambda = new VectorNd(myMech.getNumBilateralImpulses ());
+      myMech.getBilateralForces (lambda);
+  
+      SparseBlockMatrix Jc = getForceJacobian ();
+      VectorNd tlam = new VectorNd(myTargetForSize);
+      Jc.mul(tlam, lambda, Jc.rowSize (), lambda.size ());
+      //tlam.scale(1/h);
+      return tlam;
+   }
+   
    public void updateTargetForce (double t0, double t1) {
       if (!isEnabled ()) {
          return;
       }
-      if (myTargetFor == null || myTargetFor.size () != myTargetForSize)
-         myTargetFor = new VectorNd (myTargetForSize);
-      double[] buf = myTargetFor.getBuffer ();
+      if (myTargetForce == null || myTargetForce.size () != myTargetForSize) {
+          myTargetForce = new VectorNd (myTargetForSize);
+      }
+      double[] buf = myTargetForce.getBuffer ();
 
       int idx = 0;
       for (int i = 0; i < myForceTargets.size (); i++) {
@@ -283,13 +303,12 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
 
       updateTargetForce (t0, t1); // set myTargetForce
       
-      
       VectorNd cbar = new VectorNd (myTargetForSize);
       // XXX do useTimestepScaling, useNormalizeH on targetVel
 //      cbar.sub (myTargetFor, myController.getData ().getC0 ());
       
       // scale cbar by h -- Benedikt
-      cbar.set (myTargetFor);
+      cbar.set (myTargetForce);
       cbar.scale (h);
       // XXX do useTimestepScaling, useNormalizeH on targetVel
       cbar.sub (myController.getData ().getC0 ());

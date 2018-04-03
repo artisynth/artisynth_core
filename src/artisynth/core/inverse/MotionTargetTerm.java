@@ -337,14 +337,16 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // }
    }
 
-   private VectorNd myVel = new VectorNd();
-
-   public VectorNd getCurrentVel() {
-      if (myVel.size() != myMech.getActiveVelStateSize()) {
-         myVel.setSize(myMech.getActiveVelStateSize());
-      }
-      myMech.getActiveVelState(myVel);
-      return myVel;
+   /**
+    * get current velocity projected into target velocity subspace
+    * @return
+    */
+   public VectorNd getSubspaceVel() {
+      updateModelVelocity ();
+      SparseBlockMatrix Jm = getVelocityJacobian ();
+      VectorNd vel = new VectorNd (myTargetVelSize);
+      Jm.mul(vel, myCurrentVel, Jm.rowSize (), myCurrentVel.size ());
+      return vel;
    }
 
    double[] tmpBuf = new double[3];
@@ -695,9 +697,18 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          myCurrentVel = new VectorNd(n);
       myMech.getActiveVelState(myCurrentVel);
    }
+   
+   public int getModelVelSize() {
+      return myMech.getActiveVelStateSize();
+   }
 
    public int getTargetVelSize() {
       return myTargetVelSize;
+   }
+   
+   public VectorNd getTargetVel(double t0, double t1) {
+      updateTarget (t0, t1);
+      return myTargetVel;
    }
 
    private void invalidateStressIfFem() {

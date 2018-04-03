@@ -408,7 +408,7 @@ public class TrackingController extends ControllerBase
     * Clears all terms and disposes storage
     */
    public void dispose() {
-      System.out.println("tracking controller dispose()");
+//      System.out.println("tracking controller dispose()");
       myMotionTerm = null;
       myRegularizationTerm = null;
       myBoundsTerm = null;

@@ -67,6 +67,10 @@ public class ConnectorBoundsRenderer extends MonitorBase {
       return myProps;
    }
    
+   public SphericalJointForceBound getBounds() {
+      return shoulderConstraint;
+   }
+   
    public void addRenderables () {
       
       Iterator<Vector3d> viter;

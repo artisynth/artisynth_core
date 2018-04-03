@@ -13,16 +13,17 @@ public class EmbeddedSurface extends FemBeam3d {
    public void build (String[] args) {
 
       // NORMAL:
-      build ("hex", 1.0, 0.5, 4, 2, /*options=*/VERTICAL);
+      build ("hex", 1.0, 0.5, 4, 2, /*options=*/0);
       
-      myMechMod.setGravity(0,0,1e-10);
-      //myFemMod.setSurfaceRendering (SurfaceRender.None);
+      myMechMod.setGravity(0,0,-9.8);
+      myFemMod.setElementWidgetSize (0);
+      myFemMod.setSurfaceRendering (SurfaceRender.Shaded);
       RenderProps.setVisible (myFemMod.getMeshComp("surface"), false);
       RenderProps.setFaceColor (myFemMod, new Color (1f, 153/255f, 153/255f));
          
       MeshBase mesh;
       mesh = MeshFactory.createSphere (0.2, 24, 24);
-      mesh.scale (1, 1, 2);
+      mesh.scale (2, 1, 1);
 
       // PolylineMesh lineMesh = new PolylineMesh();
       // lineMesh.addVertex (0.1, 0, 0.3);

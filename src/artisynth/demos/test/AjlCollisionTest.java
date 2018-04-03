@@ -463,7 +463,7 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
 
-      if (false) {
+      if (true) {
          String dataDir = 
             PathFinder.expand (
                "$ARTISYNTH_HOME/src/maspack/geometry/sampleData/");
@@ -478,7 +478,7 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
       
-      if (true) {
+      if (false) {
          String dataDir = 
             PathFinder.expand (
                "$ARTISYNTH_HOME/src/maspack/geometry/sampleData/");

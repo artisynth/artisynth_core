@@ -92,7 +92,7 @@ $(HTML_DIR)/macos/macosInstallationToc.html: $(MACOS_SOURCES) $(IMG_FILES)
 $(HTML_DIR)/macos/macosInstallationToc.xml: $(HTML_DIR)/macos/macosInstallationToc.html
 	$(BUILD_INFOCENTER_TOC)
 
-install_html: html
+install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/installation
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/installation
 

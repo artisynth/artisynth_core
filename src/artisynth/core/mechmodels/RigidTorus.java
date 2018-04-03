@@ -40,7 +40,7 @@ public class RigidTorus extends RigidBody implements Wrappable {
    }      
 
    public RigidTorus (String name, double router, double rinner, double density) {
-      this (name, router, rinner, density, 20, 10);
+      this (name, router, rinner, density, 64, 32);
    }
 
    public RigidTorus (

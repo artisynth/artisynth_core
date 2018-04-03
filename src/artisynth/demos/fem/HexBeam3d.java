@@ -79,57 +79,6 @@ public class HexBeam3d extends FemBeam3d {
       
       RenderProps.setLineColor (myFemMod.getElements().get(12), Color.RED);
 
-      // FemMarker mkr = new FemMarker(1, 0, 0);
-      // RenderProps.setSphericalPoints (mkr, 0.05, Color.RED);
-      // mkr.setFromFem (myFemMod);
-      // myMechMod.addPoint (mkr);
-      //myFemMod.addMarker (mkr);
-      
-      
-      //myFemMod.setMaterial (
-      //   new MooneyRivlinMaterial (50000.0, 0, 0, 0, 0, 5000000.0));
-      // myFemMod.setSoftIncompMethod (IncompMethod.NODAL);
-      // myFemMod.setHardIncompMethod (IncompMethod.NODAL);
-      //myFemMod.setIncompressible (FemModel.IncompMethod.AUTO);
-      // SolveMatrixTest tester = new SolveMatrixTest();
-      // System.out.println ("error=" + tester.testStiffness (myMechMod, 1e-8));
-      // System.out.println ("K=\n" + tester.getK().toString ("%12.1f"));
-      // System.out.println ("N=\n" + tester.getKnumeric().toString ("%12.1f"));
-      // System.out.println ("E=\n" + tester.getKerror().toString ("%12.1f"));
-
-      // VectorNd dg = new VectorNd();
-      // SparseBlockMatrix GT = new SparseBlockMatrix();
-      // myMechMod.updateConstraints (0, null, 0);
-      // myMechMod.getBilateralConstraints (GT, dg);
-      // MatrixNd GTdense = new MatrixNd (GT);
-      // System.out.println ("GT=\n" + GTdense.toString ("%8.5f"));
-
-      // int size = myMechMod.getActivePosStateSize();
-      // VectorNd q0 = new VectorNd (size);
-      // VectorNd q = new VectorNd (size);
-      // VectorNd col0 = new VectorNd (GT.rowSize());
-      // VectorNd col = new VectorNd (GT.rowSize());
-      // MatrixNd DGT = new MatrixNd (GT.rowSize(), size);
-      // double h = 1e-8;
-      // myMechMod.getActivePosState (q0);
-      
-      // GT.getColumn (0, col0);
-      // for (int i=0; i<size; i++) {
-      //    q.set (q0);
-      //    q.add (i, h);
-      //    myMechMod.setActivePosState (q);
-      //    myMechMod.updateConstraints (i+1, null, 0);
-      //    GT = new SparseBlockMatrix();
-      //    myMechMod.getBilateralConstraints (GT, dg);
-      //    GT.getColumn (0, col);
-      //    col.sub (col0);
-      //    col.scale (1/h);
-      //    DGT.setColumn (i, col);
-      // }      
-      // myMechMod.getActivePosState (q0);
-
-      //myMechMod.setProfiling (true);
-
       // System.out.println ("DGT=\n" + DGT.toString ("%11.8f"));
       myFemMod.addMarker (new FemMarker(0.4, -0.05, 0.05));
    }

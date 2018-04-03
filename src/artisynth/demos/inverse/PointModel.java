@@ -93,7 +93,7 @@ public class PointModel extends RootModel
 //       "n","e","s","w"
 //};
 
- String[] labels = new String[]{
+ protected String[] labels = new String[]{
          "n","nne", "ne", "ene",
          "e", "ese", "se", "sse",
          "s", "ssw", "sw", "wsw",

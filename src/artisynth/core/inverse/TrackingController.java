@@ -316,6 +316,21 @@ public class TrackingController extends ControllerBase
       Main.getMain ().getInverseManager ().setTargetPositionFilename (filename);
    }
 
+   // need to save forces so that we can restore them at the end
+   VectorNd savedForces = new VectorNd();
+   
+   public void updateCostTerms(double t0, double t1) {
+      if (t0 == 0) { // XXX need better way to zero excitations on reset
+         myCostFunction.setSize (numExcitations());
+         myExcitations = new VectorNd (numExcitations());
+      }
+
+      prevExcitations.set(myExcitations);
+      
+      SparseBlockMatrix Jc = (myForceTerm==null ? null : myForceTerm.getForceJacobian ());
+      SparseBlockMatrix Jm = (myMotionTerm==null ? null : myMotionTerm.getVelocityJacobian ());
+      myMotionForceData.update(t0, t1, Jm, Jc); // update and store inverse data
+   }
    
    /**
     * Applies the controller, estimating and setting the next
@@ -327,24 +342,13 @@ public class TrackingController extends ControllerBase
          System.out.println ("\n--- t = " + t1 + " ---"); // cleans up the console
       }
 
-      if (t0 == 0) { // XXX need better way to zero excitations on reset
-         myCostFunction.setSize (numExcitations());
-         myExcitations = new VectorNd (numExcitations());
-      }
-      
       if (!isEnabled()) {
          return;
       }
 
-      // need to save forces so that we can restore them at the end
-      VectorNd savedForces = new VectorNd();
       myMech.getForces (savedForces);
 
-      prevExcitations.set(myExcitations);
-      
-      SparseBlockMatrix Jc = (myForceTerm==null ? null : myForceTerm.getForceJacobian ());
-      SparseBlockMatrix Jm = (myMotionTerm==null ? null : myMotionTerm.getVelocityJacobian ());
-      myMotionForceData.update(t0, t1, Jm, Jc); // update and store inverse data
+      updateCostTerms (t0, t1);
       
       if (myMotionTerm.useDeltaAct) {
          VectorNd deltaActivations = myCostFunction.solve (t0, t1);
@@ -521,6 +525,13 @@ public class TrackingController extends ControllerBase
       return myMech;
    }
 
+   /**
+    * Gets the quadratic program cost function 
+    */
+   public QPCostFunction getCostFunction() {
+      return myCostFunction;
+   }
+   
    /**
     * Returns the integrator used by the mech system
     */

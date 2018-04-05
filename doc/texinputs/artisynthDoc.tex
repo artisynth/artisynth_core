@@ -95,6 +95,24 @@
 
 \def\artisynthDocBase{@ARTISYNTHDOCBASE}
 
+\iflatexml
+\def\ifempty#1{\def\temp{#1}\ifx\temp\empty}%
+\newcommand{\artisynthManual}[3][]{%
+   \ifempty{#1}
+      \href{@ARTISYNTHDOCBASE/#2/#2.html}{#3}%
+    \else
+      \href{@ARTISYNTHDOCBASE/#1/#2.html}{#3}%
+    \fi
+}
+\else
+\newcommand{\artisynthManual}[3][]{%
+\href{http://www.artisynth.org/@ARTISYNTHDOCBASE/#2.pdf}{#3}}
+\fi
+
+%\href{@ARTISYNTHDOCBASE/#2/#2.html}{#3}}
+
+
+
 \newcommand{\javaclassx}[2][]{%
 % Includes code to prevent an extra '.' at the front if #1 is empty. It
 % works like this: if '#1' is empty, then '#1.' expands to '.', and so 

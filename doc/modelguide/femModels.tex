@@ -359,7 +359,9 @@ strain vector, $E$ is the Young's Modulus, and $\nu$ is Poisson's ratio. This
 linear material uses a corotational formulation, so rotations are removed
 per element before computing the strain \cite{ngan:fem:2008}.  To enable or
 disable this corotational formulation, use 
-\javamethod[artisynth.core.materials]{LinearMaterial.setCorotated(boolean)}.
+\javamethodAlt{%
+artisynth.core.materials.LinearMaterialBase.setCorotated(boolean)}%
+{LinearMaterial.setCorotated(boolean)}.
 
 All material models, including linear and non-linear, are available in the package  
 {\tt artisynth.core.materials}.  A list of common materials is provided in 
@@ -1469,8 +1471,7 @@ cause it to settle into the state shown in Figure
 be applied to the attached block and frame using
 pull manipulator, causing the FEM model to deform 
 (see the section ``Pull Manipulator'' in the
-\href{\artisynthDocBase/html/uiguide/uiguide.html}{
-ArtiSynth User Interface Guide}).
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
 
 \subsection{Adding joints to FEM models}
 
@@ -1492,7 +1493,7 @@ that creates a joint connecting {\tt bodyA} to {\tt bodyB}, with the
 initial pose of the D frame given (in world coordinates) by {\tt TDW}.
 The same body and transform settings can be made on an existing joint
 using the method \javamethodAlt{%
-artisynth.core.mechmodels.BodyConnector.setBodies(ConnectableBody,,)}
+artisynth.core.mechmodels.BodyConnector.setBodies(ConnectableBody,,)}%
 {setBodies(bodyA, bodyB, TDW)}.  For these constructors and methods,
 it is possible to specify FEM models for {\tt bodyA} and/or {\tt
 bodyB}. Internally, the joint then creates a {\tt
@@ -1574,8 +1575,7 @@ cause it drop and flex under gravity, as shown in
 be applied to the beams using
 pull manipulator 
 (see the section ``Pull Manipulator'' in the
-\href{\artisynthDocBase/html/uiguide/uiguide.html}{
-ArtiSynth User Interface Guide}).
+\artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
 
 \section{Incompressiblity}
 

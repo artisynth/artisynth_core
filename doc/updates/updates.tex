@@ -516,8 +516,7 @@ Updated information on signed distance collisions and the
 configuration and rendering of signed distance grids is given in the
 sections ``Collision Implementation and Rendering'' and ``Configuring
 and rendering signed distance grids'' of the
-\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
-Modeling Guide}.
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
 
 \subsection*{Improved compatibility between Swing and JOGL}
 
@@ -612,9 +611,9 @@ them explicitly. Since behaviors are now proper components, they can
 also be selected and edited using the GUI navigation panel.
 
 Full details are given in the ``Collision Handling'' section of the
-\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
-Modeling Guide} and, for the GUI aspects, the
-\href{\artisynthDocBase/html/uiguide/uiguide.html}{ArtiSynth User
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide} 
+and, for the GUI aspects, the
+\artisynthManual{uiguide}{ArtiSynth User
 Interface Guide}.
 
 By separating behavior and response from the internal collision
@@ -786,7 +785,7 @@ penetration depth when the collider type is set to {\tt AJL\_CONTOUR}.
 For details, see the new demo {\tt demos.tutorial.PenetrationRender}
 and the associated documentation in the ``Example: Rendering
 penetration depth'' section of the
-\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
+\artisynthManual{modelguide}{ArtiSynth
 Modeling Guide}.
 
 This example makes use of the new {\tt INACTIVE} setting for the {\sf
@@ -1197,8 +1196,8 @@ be now be written as
 
 Complete documentation for the new rendering interface, with detailed
 examples, is given in the ``Rendering'' chapter of the
-\href{\artisynthDocBase/html/maspack/maspack.html}%
-{Maspack Reference Manual}. The new {\tt Renderer} interface itself is
+\artisynthManual{maspack}{Maspack Reference Manual}. 
+The new {\tt Renderer} interface itself is
 described in the ``Renderer Interface'' section.
 
 This update entails changes to the ArtiSynth API. For application code
@@ -1223,13 +1222,12 @@ through its subproperties {\sf colorMap}, {\sf normalMap}, and {\sf bumpMap}.
 
 Texture maps can be set up either directly through the renderer, as
 described in the ``Texture mapping'' section of the
-\href{\artisynthDocBase/html/maspack/maspack.html}%
-{Maspack Reference Manual}, or by setting the {\sf colorMap}, {\sf
+\artisynthManual{maspack}{Maspack Reference Manual}, 
+or by setting the {\sf colorMap}, {\sf
 normalMap}, or {\sf bumpMap} rendering subproperties of ArtiSynth
 components that contain polygonal meshes (as described in the
 ``Texture mapping'' section of the
-\href{\artisynthDocBase/html/modelguide/modelguide.html}%
-{ArtiSynth Modeling Guide}).
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}).
 
 \subsubsection*{API changes involving RenderProps}
 
@@ -1317,8 +1315,7 @@ method refactoring, and the addition of enough renderer functionality
 so that calls to OpenGl are no longer needed to draw
 objects. A complete description of this additional functionality is
 given in the ``Rendering'' chapter of the
-\href{\artisynthDocBase/html/maspack/maspack.html}%
-{Maspack Reference Manual}.
+\artisynthManual{maspack}{Maspack Reference Manual}.
 
 Changes associated with renaming and reactoring include:
 
@@ -1450,8 +1447,7 @@ can be replaced with
 \end{verbatim}
 Full details are given in the section
 ``Drawing using draw mode'' of the
-\href{\artisynthDocBase/html/maspack/maspack.html}%
-{Maspack Reference Manual}.
+\artisynthManual{maspack}{Maspack Reference Manual}.
 
 \end{itemize}
 
@@ -1468,8 +1464,7 @@ changes} section below.
 
 A complete description of the viewer is
 given in the ``Viewers'' section of the
-\href{\artisynthDocBase/html/maspack/maspack.html}%
-{Maspack Reference Manual}.
+\artisynthManual{maspack}{Maspack Reference Manual}.
 
 \subsubsection*{Summary of changes}
 
@@ -1649,7 +1644,7 @@ calls.
 
 The interface for setting normals, colors, and texture coordinates in
 meshes has been redesigned. Full documentation can be found in Section
-3.5 (``Meshes'') of the \href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth
+3.5 (``Meshes'') of the \artisynthManual{modelguide}{ArtiSynth
 Modeling Guide}. These changes have been made partly in preparation
 for switching to the upcoming new rendering interface.  Some of the
 main changes are:
@@ -1741,7 +1736,7 @@ nonlinear deformation field.
 
 Full details, and a demonstration example, as given in the section
 ``Transforming geometry'' of the
-\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth Modeling Guide}.
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
 
 \subsection*{Adding application-defined menu items}
 
@@ -1774,7 +1769,7 @@ The {\sf Application} menu will only appear if {\tt getMenuItems()} returns
 \end{sideblock}
 
 For more details, see the section ``Application-Defined Menu Items'', in the
-\href{\artisynthDocBase/html/modelguide/modelguide.html}{ArtiSynth Modeling Guide}.
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
 
 \subsection*{Updates to the Pardiso library}
 
@@ -1875,7 +1870,7 @@ links that cannot be located.
 \end{itemize}
 
 For more details, see the Javadoc References section in
-\href{\artisynthDocBase/html/documentation/documentation.html}{Writing Documentation for ArtiSynth}.
+\artisynthManual{documentation}{Writing Documentation for ArtiSynth}.
 
 \section*{Aug 27, 2015}
 
@@ -1991,7 +1986,7 @@ functionality has been added to enable ArtiSynth to be run and
 scripted within MATLAB. The Jython interface has also been revised so
 that the scripting commands are essentially the same in both
 interfaces. A new document,
-\href{\artisynthDocBase/html/matlabAndJython/matlabAndJython.html}%
+\artisynthManual{matlabAndJython}%
 {Interfacing ArtiSynth to MATLAB and Jython}, has been prepared that
 describes both interfaces in detail.
 
@@ -2113,8 +2108,7 @@ mesh.
 
 More details are given in the Collision Handling section (currently
 5.6) of the
-\href{\artisynthDocBase/html/modelguide/modelguide.html}%
-{ArtiSynth Modeling Guide}.
+\artisynthManual{modelguide}{ArtiSynth Modeling Guide}.
 
 \subsection*{Removal of FemMeshVertex}
 
@@ -2673,8 +2667,8 @@ and
 to maintain back-pointers to a component's references (although these
 methods are still available for other purposes).
 
-The \href{\artisynthDocBase/html/artisynth/artisynth.html}%
-{ArtiSynth Reference Manual} has been updated to reflect these
+The \artisynthManual{artisynth}{ArtiSynth Reference Manual} 
+has been updated to reflect these
 changes.
 
 \subsection*{Reference updating for soft references}
@@ -2698,8 +2692,7 @@ method to remove the references and update the component's internals
 as required. {\tt updateReferences()} also contains support for undo
 operations; more details are given in the {\tt Component References}
 section of the 
-\href{\artisynthDocBase/html/artisynth/artisynth.html}%
-{ArtiSynth Reference Manual}.
+\artisynthManual{artisynth}{ArtiSynth Reference Manual}.
 
 \subsection*{Gains now working in ExcitationComponents}
 
@@ -2884,8 +2877,7 @@ some of these methods.
 
 Details on {\tt CompositeComponent} and {\tt MutableCompositeComponent}
 can be found in the 
-\href{\artisynthDocBase/html/artisynth/artisynth.html}%
-{ArtiSynth Reference Manual}.
+\artisynthManual{artisynth}{ArtiSynth Reference Manual}.
 
 \subsection*{Enforcement of name uniqueness}
 
@@ -2928,8 +2920,7 @@ be resolved on the first scan pass is stored in a special "token
 queue", which is then processed later in a {\tt postscan()}
 method. The details are beyond the scope of this update. However,
 comprehensive documentation is available in the
-\href{\artisynthDocBase/html/artisynth/artisynth.html}%
-{ArtiSynth Reference Manual}.
+\artisynthManual{artisynth}{ArtiSynth Reference Manual}.
 
 In addition to adding {\tt postscan()}, the scan/write code was
 significantly rewritten, streamlined, and made more uniform.  Details
@@ -3734,10 +3725,9 @@ GLRenderer} renderer methods {\tt beginSelectionQuery()}, {\tt
 endSelectionQuery()}, {\tt beginSubSelection()}, and {\tt
 endSubSelection()}. Users who work with selection code inside render
 methods should consult the updated 
-\href{\artisynthDocBase/html/maspack/maspack.html#S3.SS3}%
-{Object Selection}
-documentation in the maspack
-reference manual.
+``Object Selection''
+documentation in the
+\artisynthManual{maspack}{Maspack Reference Manual}.
 
 \subsection*{Do not set colors or lighting when the renderer is selecting!}
 
@@ -3986,9 +3976,7 @@ located in {\tt \$ARTISYNTH\_HOME/bin}, which will download all the
 required {\tt .jar} files and native libraries from the webserver. On
 Windows systems, you can execute {\tt updateArtisynthLibs.bat}
 instead. For more details on this, see Section 6.2, Downloading
-Libraries, of the online 
-\href{\artisynthDocBase/html/installation/installation.html}%
-{Installation Guide}.
+Libraries, of the online installation guide.
 
 In the future, you will not usually need to run {\tt
 updateArtisynthLibs} when you update the software; ArtiSynth itself
@@ -4707,8 +4695,7 @@ output produced by \href{http://dlmf.nist.gov/LaTeXML}{LaTeXML}.  If
 you update {\tt \$ARTISYNTH\_HOME/doc}, you will see that all the {\tt
 .txt} files have been replaced with {\tt .tex} files. For details
 about the changes, please see the (revised)
-\href{\artisynthDocBase/html/documentation/documentation.html}%
-{Documentation Manual}.
+\artisynthManual{documentation}{Documentation Manual}.
 
 The new HTML files have already been uploaded to
 \href{http://www.artisynth.org}{www.artisynth.org}, and the
@@ -4824,8 +4811,7 @@ framework:
 \end{itemize}
 
 Full details about model advancement are contained in the (fledgling)
-\href{\artisynthDocBase/html/artisynth/artisynth.html}{ArtiSynth
-Reference Manual}.
+\artisynthManual{artisynth}{ArtiSynth Reference Manual}.
 
 \subsection*{Adaptive stepping}
 
@@ -4859,15 +4845,14 @@ instability around t = 1, but completes the simulation without element
 inversion.
 
 Full details on adaptive stepping are given in the
-\href{\artisynthDocBase/html/artisynth/artisynth.html#AdaptiveStepping}%
-{reference manual}.
+``Adaptive Stepping'' section of the 
+\artisynthManual{artisynth}{ArtiSynth Reference Manual}.
 
 \subsection*{State for Probes, Monitors and Controllers}
 
 Probes, monitors, and controllers can now contain state. Details are
-given in the
-\href{\artisynthDocBase/html/artisynth/artisynth.html#ModelAgentState}%
-{reference manual}.
+given in the ``Model Agent State'' section of the 
+\artisynthManual{artisynth}{ArtiSynth Reference Manual}.
 
 \section*{April 21, 2012}
 
@@ -6417,7 +6402,7 @@ Permission setting is done by a revised script called {\tt setMagicPerms},
 located on the server.
 
 For more details, see the 
-\href{\artisynthDocBase/html/documentation/documentation.html#Installing}{documentation} document.
+\artisynthManual{documentation}{Documentation Manual}.
 
 \section*{Sept 20, 2009}
 

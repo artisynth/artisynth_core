@@ -1188,14 +1188,19 @@ public abstract class MeshBase implements Renderable, Cloneable {
 
    private int[] createCulledIndices (int[] indices, int fidx) {
       int[] indexOffs = getFeatureIndexOffsets();
-      int delcnt = indexOffs[fidx+1] - indexOffs[fidx];
+      int delcnt = 0;
+      if (fidx+1 < indexOffs.length) {
+         delcnt = indexOffs[fidx+1] - indexOffs[fidx];
+      }
       int[] newIndices = new int[indices.length-delcnt];
       int k = 0;
       for (int i=0; i<indexOffs[fidx]; i++) {
          newIndices[k++] = indices[i];
       }
-      for (int i=indexOffs[fidx+1]; i<indices.length; i++) {
-         newIndices[k++] = indices[i];
+      if (delcnt > 0) {
+         for (int i=indexOffs[fidx+1]; i<indices.length; i++) {
+            newIndices[k++] = indices[i];
+         }
       }
       return newIndices;
    }

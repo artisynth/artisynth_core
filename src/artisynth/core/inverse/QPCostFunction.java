@@ -78,15 +78,8 @@ public class QPCostFunction {
       myEqualityTerms.clear ();
    }
    
-   /**
-    * Solves the Quadratic Program of the form:
-    * min { x^T*Q*x + x^T*P }, subject to A*x &lt;= b, Aeq*x = beq
-    * @return x
-    */
-   public VectorNd solve(double t0, double t1) {
-      /*
-       * Collect all cost terms
-       */
+   
+   public void updateTerms(double t0, double t1) {
       Q.setZero ();
       P.setZero ();
       for (QPTerm term : myCostTerms) {
@@ -102,6 +95,42 @@ public class QPCostFunction {
          if (term.isEnabled ())
             rowoff = term.getTerm (Aeq,beq,rowoff,t0,t1);
       }    
+   }
+   
+   public MatrixNd getQ() {
+      return Q;
+   }
+
+   public VectorNd getP() {
+      return P;
+   }
+
+   public MatrixNd getA() {
+      return A;
+   }
+
+   public VectorNd getB() {
+      return b;
+   }
+
+   public MatrixNd getAeq() {
+      return Aeq;
+   }
+   
+   public VectorNd getBeq() {
+      return beq;
+   }
+
+   /**
+    * Solves the Quadratic Program of the form:
+    * min { x^T*Q*x + x^T*P }, subject to A*x &gt;= b, Aeq*x = beq
+    * @return x
+    */
+   public VectorNd solve(double t0, double t1) {
+      /*
+       * Collect all cost terms
+       */
+      updateTerms (t0, t1);
       
       /*
        * Solve QP problem

@@ -21,6 +21,8 @@ FIND_PACKAGES=findJavaPackages
 JAVADOC_XOPTS = -Xdoclint:all,-missing  # For Java 8 - relax missing tag warnings
 #JAVADOC_XOPTS = 
 
+all:	javadocs PDF HTML INFOCENTER
+
 # build the javadocs
 javadocs:
         # clear any existing javadoc directory

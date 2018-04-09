@@ -1,9 +1,7 @@
-
 ROOT_DIR = ..
-WEBLOC = $(WEBSERVER):$(WEB_DOC_DIR)
-LOCAL_INFO_CENTER=~/packages/eclipse-platform-4.4.2/plugins/org.artisynth.doc
-DOC_DIR = .
+DOC_DIR_ROOT = .
 
+# list of subdirectories in which certain global commands should be executed
 SUBDIRS = \
 	installation \
 	documentation \
@@ -15,11 +13,6 @@ SUBDIRS = \
 	uiguide \
 	updates
 
-WEBDOCS = \
-	javadocs \
-	html \
-	pdf
-
 .PHONY: javadocs
 
 # Assumes $ARTISYNTH_HOME/bin is in the PATH, so findJavaPackages can be found
@@ -28,8 +21,9 @@ FIND_PACKAGES=findJavaPackages
 JAVADOC_XOPTS = -Xdoclint:all,-missing  # For Java 8 - relax missing tag warnings
 #JAVADOC_XOPTS = 
 
-javadocs: #make the javadocs
-	# clear any existing javadoc directory
+# build the javadocs
+javadocs:
+        # clear any existing javadoc directory
 	rm -rf javadocs
 	mkdir javadocs
 	javadoc -classpath "$(ROOT_DIR)/classes:$(ROOT_DIR)/lib/*"\
@@ -58,8 +52,6 @@ pdf:
 
 html:
 
-sectioned:
-
 infocenter:
 
 echo_subdirs:
@@ -71,20 +63,10 @@ CLEAN::	$(SUBDIRS)
 
 .PHONY: HTML
 HTML::	$(SUBDIRS)
-        # Does not work because of some environment issues related to
-	# LaTeXML. Need to call ./makeHTML instead.
-	$(RUN_MAKE_IN_SUBDIRS)
-
-.PHONY: SECTIONED
-SECTIONED::	$(SUBDIRS)
 	$(RUN_MAKE_IN_SUBDIRS)
 
 .PHONY: INFOCENTER
 INFOCENTER::	$(SUBDIRS)
-	$(RUN_MAKE_IN_SUBDIRS)
-
-.PHONY: XHTML
-XHTML::	$(SUBDIRS)
 	$(RUN_MAKE_IN_SUBDIRS)
 
 .PHONY: PDF
@@ -93,14 +75,17 @@ PDF::	$(SUBDIRS)
 
 .PHONY: CLEAN_ALL
 CLEAN_ALL: CLEAN
-	rm -rf pdf/*.pdf
+        # remove javadocs as well
 	rm -rf javadocs/[a-z]*  # preserve DONT_DELETE and CVS
-	rm -rf html/[a-z]*      # preserve DONT_DELETE and CVS
 
-install_all: install_dir install_javadocs install_html install_pdf 
+.PHONY: install
+install:	HTML INFOCENTER PDF	
+	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
+	rsync -rCtO --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)
 
-install_dir:
-	ssh $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER) mkdir -p $(WEB_DOC_DIR)
+.PHONY: install_all
+install_all: install_javadocs install
 
 install_html: HTML INFOCENTER
 	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
@@ -110,10 +95,7 @@ install_pdf: PDF
 	rsync -rCtO --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
 
-install_local_infocenter: INFOCENTER
-	rsync -rvCtO --delete --exclude=DONT_DELETE html $(LOCAL_INFO_CENTER)
-
-# Need to do rsync on javadocs/artisynth/core because rsynce does not
+# Need to do rsync on javadocs/artisynth/core because rsync does not
 # always recurse down far enough otherwise.
 install_javadocs:
 	rsync -rvCtO --delete --exclude=DONT_DELETE javadocs/* $(WEB_DOC_URL)/javadocs

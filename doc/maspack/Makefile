@@ -1,8 +1,9 @@
 #
 # This Makefile uses commands and definitions supplied in ../Makedefs
 #
-DOC_DIR = ..
+DOC_DIR_ROOT = ..
 HTML_DIR = ../html/maspack
+PDF_TARG = ../pdf/maspack.pdf
 
 .PHONY: html pdf sectioned infocenter
 
@@ -12,7 +13,8 @@ SOURCES = \
 	properties.tex \
 	rendering.tex
 
-IMG_FILES = $(wildcard images/*.png images/*.jpg images/menu/*.png)
+IDR_EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.idr)))
+IMG_FILES = $(wildcard images/*.png images/*.jpg) $(IDR_EPS_FILES)
 EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 
 default: pdf html
@@ -23,10 +25,10 @@ sectioned: $(HTML_DIR)/maspackToc.html
 
 infocenter: $(HTML_DIR)/maspackToc.xml
 
-pdf: $(PDF_DIR)/maspack.pdf
+pdf: $(PDF_TARG)
 
-$(PDF_DIR)/maspack.pdf: maspack.pdf
-	cp maspack.pdf $(PDF_DIR)
+$(PDF_TARG): maspack.pdf
+	cp maspack.pdf $(PDF_TARG)
 
 maspack.pdf: $(SOURCES) $(EPS_FILES)
 	$(BUILD_PDF)
@@ -46,11 +48,24 @@ $(HTML_DIR)/maspackToc.html: $(SOURCES) $(IMG_FILES)
 $(HTML_DIR)/maspackToc.xml: $(HTML_DIR)/maspackToc.html
 	$(BUILD_INFOCENTER_TOC)
 
-install_html: html
+install: install_html install_pdf
+
+install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/maspack
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/maspack
 
-install_pdf: pdf
-	rsync $(PDF_DIR)/maspack.pdf $(WEB_DOC_URL)/pdf
+install_pdf: $(PDF_TARG)
+	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
+
+clean:
+	$(DO_CLEAN)
+
+eps:
+	echo $(EPS_FILES)
+
+img:
+	echo $(IMG_FILES)
+
 
 -include ../Makedefs

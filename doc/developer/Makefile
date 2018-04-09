@@ -1,8 +1,9 @@
 #
 # This Makefile uses commands and definitions supplied in ../Makedefs
 #
-DOC_DIR = ..
+DOC_DIR_ROOT = ..
 HTML_DIR = ../html/developer
+PDF_TARG = ../pdf/codingStandard.pdf
 
 .PHONY: html pdf sectioned infocenter
 
@@ -18,10 +19,10 @@ sectioned: $(HTML_DIR)/codingStandardToc.html
 
 infocenter: $(HTML_DIR)/codingStandardToc.xml
 
-pdf: $(PDF_DIR)/codingStandard.pdf
+pdf: $(PDF_TARG)
 
-$(PDF_DIR)/codingStandard.pdf: codingStandard.pdf
-	cp codingStandard.pdf $(PDF_DIR)
+$(PDF_TARG): codingStandard.pdf
+	cp codingStandard.pdf $(PDF_TARG)
 
 codingStandard.pdf: $(SOURCES)
 	$(BUILD_PDF)
@@ -41,11 +42,17 @@ $(HTML_DIR)/codingStandardToc.html: $(SOURCES)
 $(HTML_DIR)/codingStandardToc.xml: $(HTML_DIR)/codingStandardToc.html
 	$(BUILD_INFOCENTER_TOC)
 
-install_html: html
+install: install_html install_pdf
+
+install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/developer
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/developer
 
-install_pdf: pdf
-	rsync $(PDF_DIR)/codingStandard.pdf $(WEB_DOC_URL)/pdf
+install_pdf: $(PDF_TARG)
+	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
+
+clean:
+	$(DO_CLEAN)
 
 -include ../Makedefs

@@ -1,0 +1,87 @@
+This file contains information about the set up of Eclipse InfoCenter
+for the ArtiSynth websever.
+----------------------------------------------------------------------
+
+An Eclipse InfoCenter can be run as a stand-alone application that
+uses the Eclipse help system to provide online documentation through a
+web-browser. General information about InfoCenter is available through
+the online Eclipse documentation. For example, see
+
+https://help.eclipse.org/mars/topic/org.eclipse.platform.doc.isv/guide/ua_help_setup_inforcenter.htm
+
+The ArtiSynth websever is currently research.hct.ece.ubc.ca, and
+ArtiSynth web materials are currently located under the directory
+
+/var/www/artisynth.org
+
+Location and Contents of the InfoCenter Plugin
+----------------------------------------------
+
+The Eclipse distribution that implements InfoCenter is located in 
+
+/var/www/artisynth.org/packages/eclipse-platform-4.4.2
+
+with the plugin that supplies the ArtiSynth documentation contained in
+
+/var/www/artisynth.org/packages/eclipse-platform-4.4.2/plugins/org.artisynth.doc
+
+The plugin directory contains files describing the contents of the
+InfoCenter and its initial property settings, along the symbolic links
+'javadocs' and 'html', which link to the Java doc and documentation
+HTML files located under
+
+/var/www/artisynth.org/artisynth/doc/html
+/var/www/artisynth.org/artisynth/doc/javadocs
+
+The contents of the plugin directory are summarized in its README
+file. The manuals and guide to be displayed by the InfoCenter are
+described in the plugin.xml file, and the order in which they should
+appear is described in helpData.xml. The table of contents for each
+document is contained in a "xxxToc.xml" file located in the documents
+HTML directory. For example, the contents for the Maspack manual are
+located in html/maspack/maspackToc.xml. These "Toc.xml" files are
+generated automatically when the documentation HTML files are created.
+
+Starting and Restarting the InfoCenter
+--------------------------------------
+
+The InfoCenter process can be started, stopped, and restarted using
+the scripts startInfoCenter, stopInfoCenter, and restartInfoCenter,
+located in /var/www/artisynth.org/bin.
+
+Because of file permission issues, the InfoCenter should be run as the
+user www-data. This can be achieved by running the start/stop/restart
+scripts using 'su -u www-data'. So for example, to restart the
+InfoCenter, one could do
+
+> cd /var/www/artisynth.org
+> sudo -u www-data bin/restartInfoCenter
+
+By default, the InfoCenter is started automatically whenever the
+ArtiSynth webserver reboots. This is achieved by the following line in
+/etc/rc.local:
+
+sudo -u www-data /var/www/artisynth.org/bin/startInfoCenter
+
+There is not usually much reason to restart the InfoCenter. The HTML
+files that the InfoCenter uses are located under the html directory,
+and these can be changed while the InfoCenter is running. The
+exception to this is when there is a change in the table of contents
+(i.e., the "xxxToc.xml" files) for one or more manuals. Because the
+InfoCenter caches the table of contents internally, it may be
+necessary to restart the InfoCenter under such circumstances.
+
+Connecting the InfoCenter to the Websever
+-----------------------------------------
+
+The InfoCenter process runs on port 8081 and is connected to the
+Apache webserver for www.artisynth.org by the following entry in
+/etc/apache2/sites-available/001-artisynth.conf:
+
+    # routes /manuals to eclipse InfoCenter
+    # process running on port 8081
+    AddDefaultCharset Off
+    ProxyPreserveHost On
+    ProxyPass /manuals http://localhost:8081/help
+    ProxyPassReverse /manuals http://localhost:8081/help
+

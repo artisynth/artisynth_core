@@ -1,8 +1,9 @@
 #
 # This Makefile uses commands and definitions supplied in ../Makedefs
 #
-DOC_DIR = ..
+DOC_DIR_ROOT = ..
 HTML_DIR = ../html/matlabAndJython
+PDF_TARG = ../pdf/matlabAndJython.pdf
 
 .PHONY: html pdf sectioned infocenter
 
@@ -21,10 +22,10 @@ sectioned: $(HTML_DIR)/matlabAndJythonToc.html
 
 infocenter: $(HTML_DIR)/matlabAndJythonToc.xml
 
-pdf: $(PDF_DIR)/matlabAndJython.pdf
+pdf: $(PDF_TARG)
 
-$(PDF_DIR)/matlabAndJython.pdf: matlabAndJython.pdf 
-	cp matlabAndJython.pdf $(PDF_DIR)
+$(PDF_TARG): matlabAndJython.pdf 
+	cp matlabAndJython.pdf $(PDF_TARG)
 
 matlabAndJython.pdf: $(SOURCES) $(EPS_FILES)
 	$(BUILD_PDF)
@@ -44,14 +45,20 @@ $(HTML_DIR)/matlabAndJythonToc.html: $(SOURCES) $(IMG_FILES)
 $(HTML_DIR)/matlabAndJythonToc.xml: $(HTML_DIR)/matlabAndJythonToc.html
 	$(BUILD_INFOCENTER_TOC)
 
-install_html: html
+install: install_html install_pdf
+
+install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/matlabAndJython
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/matlabAndJython
 
-install_pdf: pdf
-	rsync $(PDF_DIR)/matlabAndJython.pdf $(WEB_DOC_URL)/pdf
+install_pdf: $(PDF_TARG)
+	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
 
 test:
 	latexml test.tex >test.xml	
+
+clean:
+	$(DO_CLEAN)
 
 -include ../Makedefs

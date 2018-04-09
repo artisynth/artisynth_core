@@ -1,5 +1,10 @@
-DOC_DIR = ..
+DOC_DIR_ROOT = ..
 HTML_DIR = ../html/installation
+PDF_DIR = ../pdf
+PDF_TARG = \
+   $(PDF_DIR)/windowsInstallation.pdf \
+   $(PDF_DIR)/linuxInstallation.pdf \
+   $(PDF_DIR)/macosInstallation.pdf 
 
 IMG_FILES = $(wildcard images/*.png images/*.jpg)
 EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
@@ -22,9 +27,7 @@ infocenter: $(HTML_DIR)/windows/windowsInstallationToc.xml \
       $(HTML_DIR)/linux/linuxInstallationToc.xml \
       $(HTML_DIR)/macos/macosInstallationToc.xml
 
-pdf: $(PDF_DIR)/windowsInstallation.pdf \
-     $(PDF_DIR)/linuxInstallation.pdf \
-     $(PDF_DIR)/macosInstallation.pdf 
+pdf: $(PDF_TARG)
 
 $(PDF_DIR)/windowsInstallation.pdf: windowsInstallation.pdf
 	cp windowsInstallation.pdf $(PDF_DIR)
@@ -92,11 +95,18 @@ $(HTML_DIR)/macos/macosInstallationToc.html: $(MACOS_SOURCES) $(IMG_FILES)
 $(HTML_DIR)/macos/macosInstallationToc.xml: $(HTML_DIR)/macos/macosInstallationToc.html
 	$(BUILD_INFOCENTER_TOC)
 
+install: install_html install_pdf
+
 install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/installation
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/installation
 
-install_pdf: pdf
-	rsync $(PDF_DIR)/installation.pdf $(WEB_DOC_URL)/pdf
+install_pdf: $(PDF_TARG)
+	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
+
+clean:
+       rm -f $(HTML_DIR)/*/*.html $(PDF_TARG)
+       $(REMOVE_JUNK_FILES)	
 
 -include ../Makedefs

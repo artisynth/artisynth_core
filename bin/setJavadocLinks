@@ -66,7 +66,7 @@
 # specifies the output file. "-" indicates standard output.
 $outfileName = "-";
 
-# if not zero, indicates that this program is being run on post
+# if not zero, indicates that this program is being run on postscript
 $postscript = 0;
 
 sub printUsageAndExit {
@@ -156,6 +156,10 @@ while (<INPUT>) {
         s/\@JDOCBEGIN\/([^\s()]*)\.([^.(]*)\(([^)]*)\)\@JDOCEND/fixMethodRef($1,$2,$3)/eg;
     }
     s/\@JDOCBEGIN\//$jdocUrl\//g;
+    # literal symbols for @JDOCBEGIN, @JDOCEND, @ARTISYNTHDOCBASE:
+    #s/\@JD\@CBEGIN/\@JDOCBEGIN/g; 
+    #s/\@JD\@OCEND/\@JDOCEND/g;
+    #s/\@ARTISYNTHD\@CBASE/\@ARTISYNTHDOCBASE/g;
     if ($outfileName ne "-") {
         print OUTPUT $_;
     }

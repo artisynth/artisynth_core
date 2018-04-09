@@ -262,7 +262,7 @@ Matrix} and {\tt Vector} objects:
 
 \begin{description}
 
-\item[{\tt mmat(obj)} ] \mbox{}
+\item[{\tt mmat(obj)}]\mbox{}
 
 Creates a MATLAB array from an ArtiSynth 
 \javaclass[maspack.matrix]{Vector} or 
@@ -273,14 +273,14 @@ object. If the {\tt Matrix} is an instance of
 {\tt Vector} or {\tt Matrix}, then the method returns the empty
 matrix.
 
-\item[{\tt amat(M)} ] \mbox{}
+\item[{\tt amat(M)}]\mbox{}
 
 Creates an ArtiSynth \javaclass[maspack.matrix]{Matrix} from a MATLAB
 array: either a \javaclass[maspack.matrix]{MatrixNd} if {\tt M} is a
 full matrix, or a \javaclass[maspack.matrix]{SparseMatrixNd} if {\tt
 M} is sparse.
 
-\item[{\tt avec(M)} ] \mbox{}
+\item[{\tt avec(M)}]\mbox{}
 
 Creates an ArtiSynth \javaclass[maspack.matrix]{VectorNd} from a
 MATLAB array. At least one of the dimensions of {\tt M} must be 1.
@@ -711,7 +711,7 @@ Main} class:
 
 \begin{description}
 
-\item[{\tt MatlabInterface openMatlabConnection()} ] \mbox{}
+\item[{\tt MatlabInterface openMatlabConnection()}] \mbox{}
 
 Returns a connection to a MATLAB process. If a connection already
 exists, that connection is returned. Otherwise, a new connection is
@@ -720,16 +720,16 @@ no such process is found, then a new MATLAB process will be
 started. If ArtiSynth is being run under MATLAB, then the connection
 will be made to the parent MATLAB process
 
-\item[{\tt MatlabInterface getMatlabConnection()} ] \mbox{}
+\item[{\tt MatlabInterface getMatlabConnection()}] \mbox{}
 
 Returns the current MATLAB connection, if any; otherwise, returns {\tt
 null}.
 
-\item[{\tt boolean hasMatlabConnection()} ] \mbox{}
+\item[{\tt boolean hasMatlabConnection()}] \mbox{}
 
 Returns {\tt true} if a MATLAB connection currently exists.
 
-\item[{\tt boolean closeMatlabConnection()} ] \mbox{}
+\item[{\tt boolean closeMatlabConnection()}] \mbox{}
 
 Closes any current MATLAB connection, returning {\tt true} if a
 connection previously existed.
@@ -751,14 +751,14 @@ array is dense, unless the ArtiSynth object is an instance of
 \javaclass[maspack.matrix]{SparseMatrix}, in which the array
 is sparse.
 
-\item[{\tt double[][] arrayFromMatlab (matlabName)} ] \mbox{}
+\item[{\tt double[][] arrayFromMatlab (matlabName)}] \mbox{}
 
 Takes the MATLAB array named by {\tt matlabName} and returns the
 corresponding {\tt double[][]} object, with values assigned in
 row-major order. If the named MATLAB array does not exist, or is not
 dense and 2-dimensional, then {\tt null} is returned.
 
-\item[{\tt Matrix matrixFromMatlab (matlabName)} ] \mbox{}
+\item[{\tt Matrix matrixFromMatlab (matlabName)}] \mbox{}
 
 Takes the MATLAB array named by {\tt matlabName} and returns a
 corresponding \javaclass[maspack.matrix]{Matrix} object.  If the named
@@ -767,7 +767,7 @@ is returned. Otherwise, either a \javaclass[maspack.matrix]{MatrixNd}
 or \javaclass[maspack.matrix]{SparseMatrixNd} is returned, depending
 on whether the array is dense or sparse.
 
-\item[{\tt Matrix matrixFromMatlab (matlabName)} ] \mbox{}
+\item[{\tt Matrix matrixFromMatlab (matlabName)}] \mbox{}
 
 Takes the MATLAB array named by {\tt matlabName} and returns a
 corresponding \javaclass[maspack.matrix]{VectorNd} object.  If the
@@ -1082,11 +1082,11 @@ or in Jython as built-in console functions:
 
 \begin{description}
 
-\item[{\tt getMain()} ] \mbox{}
+\item[{\tt getMain()}] \mbox{}
 
 Returns the ArtiSynth {\tt Main} object.
 
-\item[{\tt loadModel (name, args...)} ] \mbox{}
+\item[{\tt loadModel (name, args...)}] \mbox{}
 
 Loads the named model along with optional arguments.  {\tt name} is
 either the fully-qualified classname of the model's
@@ -1098,95 +1098,95 @@ method. Currently, if ArtiSynth is being run in batch mode (Section
 \ref{JythonBatchScripting:sec}), then the {\sf Models} menu is not
 created and so it is necessary to use the fully qualified classname.
 
-\item[{\tt loadModelFile (filename)} ] \mbox{}
+\item[{\tt loadModelFile (filename)}] \mbox{}
 
 Loads a model from an ArtiSynth file. {\tt filename} is a string
 giving the file's path.
 
-\item[{\tt play()} ] \mbox{}
+\item[{\tt play()}] \mbox{}
 
 Starts the simulation running.
 
-\item[{\tt play(t)} ] \mbox{}
+\item[{\tt play(t)}] \mbox{}
 
 Starts and runs the simulation for {\tt t} seconds.
 
-\item[{\tt pause()} ] \mbox{}
+\item[{\tt pause()}] \mbox{}
 
 Pauses the simulation.
 
-\item[{\tt step()} ] \mbox{}
+\item[{\tt step()}] \mbox{}
 
 Single steps the simulation.
 
-\item[{\tt reset()} ] \mbox{}
+\item[{\tt reset()}] \mbox{}
 
 Resets the simulation to time 0.
 
-\item[{\tt forward()} ] \mbox{}
+\item[{\tt forward()}] \mbox{}
 
 Forwards the simulation to the next waypoint.
 
-\item[{\tt rewind()} ] \mbox{}
+\item[{\tt rewind()}] \mbox{}
 
 Rewinds the simulation to the last waypoint.
 
-\item[{\tt delay(t)} ] \mbox{}
+\item[{\tt delay(t)}] \mbox{}
 
 Delays execution for {\tt t} seconds. In MATLAB, the same effect can
 be achieved using the MATLAB command {\tt pause(t)}.
 
-\item[{\tt waitForStop()} ] \mbox{}
+\item[{\tt waitForStop()}] \mbox{}
 
 Blocks until the simulation has completed.
 
-\item[{\tt isPlaying()} ] \mbox{}
+\item[{\tt isPlaying()}] \mbox{}
 
 Returns {\tt true} if simulation is still running.
 
-\item[{\tt getTime()} ] \mbox{}
+\item[{\tt getTime()}] \mbox{}
 
 Returns current ArtiSynth simulation time in seconds.
 
-\item[{\tt reload()} ] \mbox{}
+\item[{\tt reload()}] \mbox{}
 
 Reloads the current model.
 
-\item[{\tt addWayPoint(t)} ] \mbox{}
+\item[{\tt addWayPoint(t)}] \mbox{}
 
 Adds a simulation waypoint at time {\tt t},
 where {\tt t} is a floating point value giving
 the time in seconds.
 
-\item[{\tt addBreakPoint(t)} ] \mbox{}
+\item[{\tt addBreakPoint(t)}] \mbox{}
 
 Adds a breakpoint at time {\tt t}.
 
-\item[{\tt removeWayPoint(t)} ] \mbox{}
+\item[{\tt removeWayPoint(t)}] \mbox{}
 
 Removes any waypoint or breakpoint at time {\tt t}.
 
-\item[{\tt clearWayPoints()} ] \mbox{}
+\item[{\tt clearWayPoints()}] \mbox{}
 
 Removes all waypoints and breakpoints.
 
-\item[{\tt root()} ] \mbox{}
+\item[{\tt root()}] \mbox{}
 
 Returns the current RootModel.
 
-\item[{\tt find (path)} ] \mbox{}
+\item[{\tt find (path)}] \mbox{}
 
 Finds a component defined by {\tt path} with respect to the current RootModel.
 
-\item[{\tt getsel()} ] \mbox{}
+\item[{\tt getsel()}] \mbox{}
 
 Returns the current ArtiSynth selection list.
 
-\item[{\tt getsel(i)} ] \mbox{}
+\item[{\tt getsel(i)}] \mbox{}
 
 Returns the i-th selection list item (1-based for MATLAB; 0-based for Jython).
 
-\item[{\tt quit()} ] \mbox{}
+\item[{\tt quit()}] \mbox{}
 
 Quits ArtiSynth.
 

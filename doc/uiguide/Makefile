@@ -1,10 +1,11 @@
 #
 # This Makefile uses commands and definitions supplied in ../Makedefs
 #
-DOC_DIR = ..
+DOC_DIR_ROOT = ..
 HTML_DIR = ../html/uiguide
+PDF_TARG = ../pdf/uiguide.pdf
 
-.PHONY: html pdf sectioned infocenter
+.PHONY: html pdf infocenter
 
 SOURCES = \
 	uiguide.tex \
@@ -21,10 +22,10 @@ sectioned: $(HTML_DIR)/uiguideToc.html
 
 infocenter: $(HTML_DIR)/uiguideToc.xml
 
-pdf: $(PDF_DIR)/uiguide.pdf
+pdf: $(PDF_TARG)
 
-$(PDF_DIR)/uiguide.pdf: uiguide.pdf
-	cp uiguide.pdf $(PDF_DIR)
+$(PDF_TARG): uiguide.pdf
+	cp uiguide.pdf $(PDF_TARG)
 
 uiguide.pdf: $(SOURCES) $(EPS_FILES)
 	$(BUILD_PDF)
@@ -44,11 +45,17 @@ $(HTML_DIR)/uiguideToc.html: $(SOURCES) $(IMG_FILES)
 $(HTML_DIR)/uiguideToc.xml: $(HTML_DIR)/uiguideToc.html
 	$(BUILD_INFOCENTER_TOC)
 
-install_html: html
+install: install_html install_pdf
+
+install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/uiguide
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/uiguide
 
-install_pdf: pdf
-	rsync $(PDF_DIR)/uiguide.pdf $(WEB_DOC_URL)/pdf
+install_pdf: $(PDF_TARG)
+	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
+
+clean:
+	$(DO_CLEAN)
 
 -include ../Makedefs

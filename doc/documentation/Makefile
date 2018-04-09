@@ -1,8 +1,9 @@
 #
 # This Makefile uses commands and definitions supplied in ../Makedefs
 #
-DOC_DIR = ..
+DOC_DIR_ROOT = ..
 HTML_DIR = ../html/documentation
+PDF_TARG = ../pdf/documentation.pdf
 
 .PHONY: html pdf sectioned infocenter
 
@@ -18,21 +19,21 @@ sectioned: $(HTML_DIR)/documentationToc.html
 
 infocenter: $(HTML_DIR)/documentationToc.xml
 
-pdf: $(PDF_DIR)/documentation.pdf
+pdf: $(PDF_TARG)
 
-$(PDF_DIR)/documentation.pdf: documentation.pdf
-	cp documentation.pdf $(PDF_DIR)
+$(PDF_TARG): documentation.pdf
+	cp documentation.pdf $(PDF_TARG)
 
 documentation.pdf: $(SOURCES)
 	$(BUILD_PDF)
-	rm -rf $(LATEX_JUNK_FILES) documentation.ps
+        # rm -rf $(LATEX_JUNK_FILES) documentation.ps
 
 documentation.xml: $(SOURCES)
 	latexml $< > documentation.xml
 
 $(HTML_DIR)/documentation.html: $(SOURCES)
 	$(BUILD_HTML)
-	rm -f documentation.xml
+        # rm -f documentation.xml
 
 $(HTML_DIR)/documentationToc.html: $(SOURCES)
 	$(BUILD_SECTIONED_HTML)
@@ -41,11 +42,17 @@ $(HTML_DIR)/documentationToc.html: $(SOURCES)
 $(HTML_DIR)/documentationToc.xml: $(HTML_DIR)/documentationToc.html
 	$(BUILD_INFOCENTER_TOC)
 
-install_html: html
+install: install_html install_pdf
+
+install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/documentation
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/documentation
 
-install_pdf: pdf
-	rsync $(PDF_DIR)/documentation.pdf $(WEB_DOC_URL)/pdf
+install_pdf: $(PDF_TARG)
+	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
+
+clean:
+	$(DO_CLEAN)
 
 -include ../Makedefs

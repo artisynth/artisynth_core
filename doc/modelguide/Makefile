@@ -1,8 +1,9 @@
 #
 # This Makefile uses commands and definitions supplied in ../Makedefs
 #
-DOC_DIR = ..
+DOC_DIR_ROOT = ..
 HTML_DIR = ../html/modelguide
+PDF_TARG = ../pdf/modelguide.pdf
 
 .PHONY: html pdf sectioned infocenter
 
@@ -18,7 +19,8 @@ SOURCES = \
 	appendix.tex \
 	../texinputs/artisynthDoc.tex
 
-IMG_FILES = $(wildcard images/*.png images/*.jpg)
+IDR_EPS_FILES = $(addsuffix .eps,$(basename $(wildcard images/*.idr)))
+IMG_FILES = $(wildcard images/*.png images/*.jpg) $(IDR_EPS_FILES)
 EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 
 default: pdf html
@@ -29,10 +31,10 @@ sectioned: $(HTML_DIR)/modelguideToc.html
 
 infocenter: $(HTML_DIR)/modelguideToc.xml
 
-pdf: $(PDF_DIR)/modelguide.pdf
+pdf: $(PDF_TARG)
 
-$(PDF_DIR)/modelguide.pdf: modelguide.pdf
-	cp modelguide.pdf $(PDF_DIR)
+$(PDF_TARG): modelguide.pdf
+	cp modelguide.pdf $(PDF_TARG)
 
 modelguide.pdf: $(SOURCES) $(EPS_FILES)
 	latex modelguide.tex #extra call because of bibtex
@@ -54,14 +56,20 @@ $(HTML_DIR)/modelguideToc.html: $(SOURCES) $(IMG_FILES)
 $(HTML_DIR)/modelguideToc.xml: $(HTML_DIR)/modelguideToc.html
 	$(BUILD_INFOCENTER_TOC)
 
-install_html: html
+install: install_html install_pdf
+
+install_html: html infocenter
 	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/modelguide
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/modelguide
 
-install_pdf: pdf
-	rsync $(PDF_DIR)/modelguide.pdf $(WEB_DOC_URL)/pdf
+install_pdf: $(PDF_TARG)
+	rsync $(PDF_TARG) $(WEB_DOC_URL)/pdf
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
 
 test:
 	latexml test.tex >test.xml	
+
+clean:
+	$(DO_CLEAN)
 
 -include ../Makedefs

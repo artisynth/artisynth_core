@@ -6,20 +6,35 @@
 use open ':encoding(utf8)'; # these lines ensure that the stdin will
 use open ':std';            # be interpretted as utf-8
 
+sub printUsageAndExit {
+    print "Usage: fixLatexmlOutput [-xhtml] [<infile>]\n";
+    exit 1;
+}
+
 $xhtml = 0;
 while ($_ = $ARGV[0]) {
     shift;
     if ($_ eq "-xhtml") {
 	$xhtml = 1;
     }
+    elsif (!defined $infileName) {
+        $infileName = $_;
+    }
     else {
-	print "Usage: fixLatexmlOutput <-xhtml>\n";
-        exit 1;
+	printUsageAndExit();
     } 
 }
 
+my $INPUT;
+if (defined $infileName) {
+    open ($INPUT, $infileName) or die "Can't open $infileName: $!\n";
+}
+else {
+    $INPUT = *STDIN;
+}
+
 $prevline = "";
-while (<>) {
+while (<$INPUT>) {
     $line = $_;
     # add a virtual space to blank lines in lstlisting output, so that
     # they actually show up as blank lines

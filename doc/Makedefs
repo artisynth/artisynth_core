@@ -7,10 +7,15 @@ ifndef ARTISYNTH_WEB_ACCOUNT
    ARTISYNTH_WEB_ACCOUNT = $(USER)
 endif
 
-# Base URL for documention. Can be set externally in special cases
-# (such as pointing to docs for a specific release)
+# Main doc directory relative to website URL. Can be set externally in
+# special cases (such as pointing to docs for a specific release)
+ifndef DOC_DIR_BASE
+   DOC_DIR_BASE = doc
+endif
+
+# Base URL for documention.
 ifndef DOC_URL_BASE
-   DOC_URL_BASE = https://www.artisynth.org/doc
+   DOC_URL_BASE = https://www.artisynth.org/$(DOC_DIR_BASE)
 endif
 
 # Name of the ArtiSynth webserver
@@ -18,7 +23,7 @@ WEBSERVER = research.hct.ece.ubc.ca
 # Location of ArtiSynth material on the webserver
 WEB_HOME = /var/www/artisynth.org
 # Location of ArtiSynth documentation files on the webserver
-WEB_DOC_DIR = $(WEB_HOME)/artisynth/doc
+WEB_DOC_DIR = $(WEB_HOME)/artisynth/$(DOC_DIR_BASE)
 # Full URL location of ArtiSynth documentation files on the webserver
 WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_DOC_DIR)
 
@@ -52,7 +57,7 @@ FIX_HTML_OUTPUT = $(BIN_DIR)/postprocessLatexml \
 # Post-processing command for postscript files created by dvips. Calls
 # setJavadocLinks to set references to Javadocs and ArtiSynth manuals.
 FIX_POSTSCRIPT_OUTPUT = $(BIN_DIR)/setJavadocLinks --jdocDir $(DOC_DIR_ROOT)/javadocs \
- --jdocUrl $(JAVADOC_PDF_URL) --docBase doc/pdf --postscript
+ --jdocUrl $(JAVADOC_PDF_URL) --docBase $(DOC_DIR_BASE)/pdf --postscript
 
 # Set TEXINPUTS so latex can find the latexml and docbook input files.
 # The reason for the second entry, ../$(DOC_DIR_ROOT)/texinputs, is because

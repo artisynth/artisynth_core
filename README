@@ -13,15 +13,15 @@ graphical interface allows interactive component navigation, model
 editing, and simulation control.
 
 Full details, videos and documentation are provided on the ArtiSynth
-website at www.artisynth.org.
+website at https://www.artisynth.org.
 
-For details on how to install artisynth_core from Github, go to
-www.artisynth.org/doc/info/installation
+For details on how to install artisynth_core from Github, see the
+section "Cloning from Github" in the installation guide appropriate to
+your system at https://www.artisynth.org/doc/info/installation.
 
 =======================================================================
 
-
-Other files in this directory:
+Files in this directory:
 
 .artisynthInit
     Default ArtiSynth initialization file

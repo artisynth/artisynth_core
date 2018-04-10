@@ -80,6 +80,12 @@ CLEAN_ALL: CLEAN
         # remove javadocs as well
 	rm -rf javadocs/[a-z]*  # preserve DONT_DELETE and CVS
 
+clean_pdf:
+	@for dd in $(SUBDIRS) ; do \
+	   echo $$dd ; \
+	   rm -f $$dd/*.pdf ; \
+	done
+
 .PHONY: install
 install:	HTML INFOCENTER PDF	
 	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html

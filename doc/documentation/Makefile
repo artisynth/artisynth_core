@@ -26,14 +26,14 @@ $(PDF_TARG): documentation.pdf
 
 documentation.pdf: $(SOURCES)
 	$(BUILD_PDF)
-        # rm -rf $(LATEX_JUNK_FILES) documentation.ps
+	rm -rf $(LATEX_JUNK_FILES) documentation.ps
 
 documentation.xml: $(SOURCES)
 	latexml $< > documentation.xml
 
 $(HTML_DIR)/documentation.html: $(SOURCES)
 	$(BUILD_HTML)
-        # rm -f documentation.xml
+	rm -f documentation.xml
 
 $(HTML_DIR)/documentationToc.html: $(SOURCES)
 	$(BUILD_SECTIONED_HTML)

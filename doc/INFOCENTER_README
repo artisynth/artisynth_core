@@ -85,3 +85,23 @@ Apache webserver for www.artisynth.org by the following entry in
     ProxyPass /manuals http://localhost:8081/help
     ProxyPassReverse /manuals http://localhost:8081/help
 
+Adding a New Document
+---------------------
+
+When a new manual or guide is added to ArtiSynth, the following steps
+should be taken to make the document known to the InfoCenter:
+
+1) Add a <toc> entry for the new document to the plugin.xml file
+in the plugin directory.
+
+2) Add another <toc> entry for the document to the helpData.xml
+file, telling InfoCenter where the document should appear in the
+navigation panel.
+
+3) Add a rewrite rule to /var/www/artisynth.org/doc/.htaccess
+redirecting InfoCenter references of the form
+https://www.artisynth.org/doc/info/document to
+https://www.artisynth.org/manuals/nav/X, where X is the number of the
+document in the order given by helpData.xml.
+
+4) Restart the InfoCenter.

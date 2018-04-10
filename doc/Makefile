@@ -93,6 +93,10 @@ install_html: HTML INFOCENTER
 	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html
 
+install_single_html: HTML
+	rsync -rCtO --exclude=DONT_DELETE html/* $(WEB_DOC_URL)/html
+	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html
+
 install_pdf: PDF
 	rsync -rCtO --exclude=DONT_DELETE pdf/* $(WEB_DOC_URL)/pdf
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf

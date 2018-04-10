@@ -29,7 +29,7 @@ WEBSERVER = research.hct.ece.ubc.ca
 # Location of ArtiSynth material on the webserver
 WEB_HOME = /var/www/artisynth.org
 # Location of ArtiSynth documentation files on the webserver
-WEB_DOC_DIR = $(WEB_HOME)/artisynth/$(DOC_DIR_BASE)
+WEB_DOC_DIR = $(WEB_HOME)/$(DOC_DIR_BASE)
 # Full URL location of ArtiSynth documentation files on the webserver
 WEB_DOC_URL = $(ARTISYNTH_WEB_ACCOUNT)@$(WEBSERVER):$(WEB_DOC_DIR)
 

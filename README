@@ -1,7 +1,25 @@
-This is the general distribution of ArtiSynth.
+This is the core distribution of ArtiSynth, a 3D mechanical modeling
+system that supports the combined simulation of multibody and finite
+element models, together with contact and constraints.  While targeted
+at biomechanical and biomedical applications, it can also be used for
+general purpose mechanical simulation. It is freely available under a
+two-clause BSD-style open source license.
 
-For installation instructions, go to www.artisynth.org, and navigate
-to Documentation -> Installation
+The system is implemented in Java, and provides a rich set of modeling
+components, including particles, rigid bodies, finite elements with
+both linear and nonlinear materials, point-to-point muscles, and
+various bilateral and unilateral constraints including contact. A
+graphical interface allows interactive component navigation, model
+editing, and simulation control.
+
+Full details, videos and documentation are provided on the ArtiSynth
+website at www.artisynth.org.
+
+For details on how to install artisynth_core from Github, go to
+www.artisynth.org/doc/info/installation
+
+=======================================================================
+
 
 Other files in this directory:
 
@@ -15,6 +33,11 @@ Other files in this directory:
     List of "banner" anatomical models in the ArtiSynth Models package
     (which must be installed).
 
+EXTCLASSPATH.sample
+    Example EXTCLASSPATH file. An EXTCLASSPATH files indicates to the
+    ArtiSynth Launcher additional classpaths that should be used when
+    searching for models.
+
 LICENSE
     Licensing and terms of use
 
@@ -25,34 +48,40 @@ Makefile
 Makefile.base
     Base definitions for Makefile and Makefile in subdirectories.
 
+README
+    This file
+
 VERSION
     Current version
 
-bin
+bin/
     Stand-alone programs, mostly implemented as scripts. 
     The program 'artisynth' starts up the ArtiSynth system.
 
-classes
-    Root directory for compiled classes
+classes/
+    Root directory for compiled classes (created on demand)
 
 demoMenu.xml
     Default format for the Models menu
 
-doc
+doc/
     System documenation
 
 eclipseSettings.zip
     Default project settings for the Eclipse IDE
 
-lib
+lib/
     Java libraries, plus architecture-specific libraries for native code
     support, mostly involving linear solvers, Java OpenGL (JOGL), and
     collision detection
 
-matlab
+matlab/
     Matlab scripts for running ArtiSynth from matlab
 
-scripts
+models.xml
+    Alternative format for the Models menu
+    
+scripts/
     Jython scripts for basic testing, etc. Some of these may assume
     the installation of additional projects.
 
@@ -62,14 +91,14 @@ setup.bash
 setup.csh
     Example ArtiSynth setup script for chs/tcsh
 
-src
+src/
     ArtiSynth source code
 
-support
+support/
     Configuration information for external IDEs and support software,
     including default settings for the Eclipse IDE.
 
-tmp
+tmp/
     Temp directory for operations like storing files when making
     movies.
 

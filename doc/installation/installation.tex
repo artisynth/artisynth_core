@@ -1510,8 +1510,7 @@ A list of \directories{}, separated by \separatorDesc, which the
 operating system uses to locate executable programs and
 applications. 
 \ifWindows
-This should be set to include \ArtHome[\SEP bin] and 
-\ArtHome[\SEP lib\SEP \ARCH{}].
+This should be set to include \ArtHome[\SEP bin].
 This variable is described in detail in Section \ref{settingWindowsPath}.
 \else
 This should be set to include \ArtHome[\SEP bin]
@@ -1615,7 +1614,7 @@ look like this:
 ARTISYNTH_HOME c:\users\joe\artisynth_core
 ARTISYNTH_PATH .;c:\users\joe;%ARTISYNTH_HOME%
 CLASSPATH %ARTISYNTH_HOME%\classes;%ARTISYNTH_HOME%\lib\*
-PATH %ARTISYNTH_HOME%\bin;%ARTISYNTH_HOME%\lib\Windows;%PATH%
+PATH %ARTISYNTH_HOME%\bin;%PATH%
 OMP_NUM_THREADS 2
 \end{lstlisting}
 
@@ -1632,7 +1631,7 @@ into one of {\tt bash}'s initialization files (typically {\tt
 \begin{lstlisting}[]
 # set AH to the location of the ArtiSynth install folder
 AH=$HOME/artisynth_core
-export PATH=$AH/bin:$AH/lib/Windows64:$PATH
+export PATH=$AH/bin:$PATH
 
 # Use Windows path style for ARTISYNTH_HOME, ARTISYNTH_PATH, and CLASSPATH:
 export ARTISYNTH_HOME=`cygpath -w $AH`

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- enable this demos menu with the command-line option "-demosMenu models.xml" -->
+<!-- enable this demos menu with the command-line option "-demosMenu demoMenu.xml" -->
 <ModelMenu xmlns="http://www.artisynth.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd">
 
   <menu text="Demos"> 
-    <!-- loads a regular .demoModes file and places models in the current submenu -->
+    <!-- loads a regular .demoModels file and places models in the current submenu -->
     <demosFile file=".demoModels" />
   </menu>
   <menu text="All demos">

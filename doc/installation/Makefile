@@ -106,7 +106,7 @@ install_pdf: $(PDF_TARG)
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/pdf
 
 clean:
-       rm -f $(HTML_DIR)/*/*.html $(PDF_TARG)
-       $(REMOVE_JUNK_FILES)	
+	rm -f $(HTML_DIR)/*/*.html $(PDF_TARG)
+	$(REMOVE_JUNK_FILES)	
 
 -include ../Makedefs

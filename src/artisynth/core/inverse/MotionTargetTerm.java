@@ -339,7 +339,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
 
    /**
     * get current velocity projected into target velocity subspace
-    * @return
+    * @return velocity projected into target subspace
     */
    public VectorNd getSubspaceVel() {
       updateModelVelocity ();

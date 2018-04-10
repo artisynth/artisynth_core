@@ -13,7 +13,11 @@ import maspack.matrix.Point2d;
  * Uses the native Triangle code developed by Jonathon Shewchuck
  * to create triangulated 2D meshes.
  *   https://www.cs.cmu.edu/~quake/triangle.html
- *   
+ *
+ * Requires a JNI binary library called TriangleJNI.1.6.  Since Triangle is
+ * free only for non-commercial applications, ArtiSynth does not supply it by
+ * default. We can supply this library if you meet the license requirements of
+ * Triangle.
  */
 public class TriangleTessellator {
 

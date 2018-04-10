@@ -1,4 +1,7 @@
 DOC_DIR_ROOT = ..
+# explicitly set DOC_DIR_FROM_HTML since installation HTML files are
+# another level down
+DOC_DIR_FROM_HTML = ../../..
 HTML_DIR = ../html/installation
 PDF_DIR = ../pdf
 PDF_TARG = \

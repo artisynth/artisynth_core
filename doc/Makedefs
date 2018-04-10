@@ -18,6 +18,12 @@ ifndef DOC_URL_BASE
    DOC_URL_BASE = https://www.artisynth.org/$(DOC_DIR_BASE)
 endif
 
+# Location of documentation root directory relative to HTML files
+# Assumed to be ../.. unless otherwise defined
+ifndef DOC_DIR_FROM_HTML
+   DOC_DIR_FROM_HTML = ../..
+endif
+
 # Name of the ArtiSynth webserver
 WEBSERVER = research.hct.ece.ubc.ca
 # Location of ArtiSynth material on the webserver
@@ -42,7 +48,7 @@ BIN_DIR = $(DOC_DIR_ROOT)/../bin
 JAVADOC_PDF_URL = $(DOC_URL_BASE)/javadocs
 
 # Base URL for Javadocs referenced from HTML files
-JAVADOC_URL = ../../javadocs
+JAVADOC_URL = $(DOC_DIR_FROM_HTML)/javadocs
 
 # LaTeXML post-processing command that turns .xml into .html
 LATEXMLPOST = latexmlpost --mathimages --format=html4 $(LATEXMLPOST_ARGS) \
@@ -99,7 +105,7 @@ define BUILD_HTML
 	$(MAKE_HTML_DIR_IF_NECESSARY)
 	latexml $< > $(basename $<).xml
 	$(LATEXMLPOST) $(basename $<).xml
-        $(FIX_HTML_OUTPUT) --docBase $(DOC_DIR_ROOT) $@
+        $(FIX_HTML_OUTPUT) --docBase $(DOC_DIR_FROM_HTML)/html $@
 endef
 
 #

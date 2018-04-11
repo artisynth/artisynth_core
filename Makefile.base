@@ -153,9 +153,9 @@ klean:
 
 .PHONY: build
 build: $(ROOT_DIR)/classes
-	$(call FIND_CALL,"*.java") > sources.txt
-	"$(JAVAC)" $(JAVACFLAGS) @sources.txt
-	$(call RM_CALL, sources.txt)
+	$(call FIND_CALL,"*.java") > _sources_.txt
+	"$(JAVAC)" $(JAVACFLAGS) @_sources_.txt
+	$(call RM_CALL, _sources_.txt)
 # find -L . -name "*.java" -print | xargs -s 27000 "$(JAVAC)" $(JAVACFLAGS)
 
 .PHONY: all

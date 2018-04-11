@@ -69,7 +69,6 @@ else ifeq ($(SYSTEM),Windows)
 	LIB_FLAGS = -shared -lm
 	X_FLAGS += -fPIC
 	CC_INCS = -I"$(JAVA_HOME)/include/" -I"$(JAVA_HOME)/include/win32"
-	
 	COLON = :
 	SEMICOLON = ;
 	CLASS_ROOT_DIR := $(subst $(COLON),$(SEMICOLON),$(CLASS_ROOT_DIR))
@@ -106,11 +105,11 @@ else ifeq ($(SYSTEM),Darwin)
         # we only have 64 bit pardiso for MacOS, and Java has a 64 bit
         # configuration, regardless of whether we are booting the 32
         # or 64 bit version of snow leopard
-        NATIVE_DIR = Darwin-x86_64
-        JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Home
-	CC_INCS = -I"$(JAVA_HOME)/include"
+        NATIVE_DIR = MacOS64
+        JAVA_HOME=`/usr/libexec/java_home`
+	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/darwin"
 	X_FLAGS = -fPIC -DDARWIN -DAMD_64
-	CC_FLAGS += -fpermissive -faltivec
+	CC_FLAGS += -fpermissive # -faltivec
 	TRIANGLE_TARGET = libTriangleJNI.1.6.dylib
 	LIB_FLAGS = -bundle -framework JavaVM
 endif
@@ -118,7 +117,7 @@ endif
 LIB_TARGET_DIR = $(ROOT_DIR)/lib/$(NATIVE_DIR)
 LIB_TARGETS = \
 	$(LIB_TARGET_DIR)/$(TRIANGLE_TARGET) 
-	
+
 C_FLAGS += $(X_FLAGS)
 CC_FLAGS += $(X_FLAGS)
 

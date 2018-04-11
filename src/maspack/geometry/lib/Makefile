@@ -63,13 +63,13 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	   C_COMP = i686-w64-mingw32-gcc  # Mingw-w64, gcc, 32 bit target
 	   CC_COMP = i686-w64-mingw32-g++ # Mingw-w64, g++, 32 bit target
 	endif
-	
+
 	C_FLAGS += -static-libgcc
 	CC_FLAGS += -static-libstdc++
 
 	ifndef JAVA_HOME
 	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_24
-    endif
+	endif
 	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32" -I$(TETGEN_DIR)
 	TETGEN_TARGET = TetgenJNI.$(TETGEN_VERSION).dll
 	ROBUST_TARGET = RobustPreds.1.1.dll
@@ -94,7 +94,7 @@ else ifeq ($(findstring MINGW,$(SYSTEM)),MINGW)
 	endif
 	C_FLAGS += -static-libgcc
 	CC_FLAGS += -static-libstdc++
-	   
+
 	ifndef JAVA_HOME
 	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_24
 	endif
@@ -113,12 +113,10 @@ else ifeq ($(SYSTEM),Windows)
 	   NATIVE_DIR = Windows
 	endif
 	C_FLAGS += -static-libgcc
-    CC_FLAGS += -static-libstdc++
-	   
+	CC_FLAGS += -static-libstdc++
 	ifndef JAVA_HOME
 	   JAVA_HOME = C:/Program Files/Java/jdk1.6.0_24
 	endif
-	
 	CC_INCS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/win32" -I$(TETGEN_DIR)
 	TETGEN_TARGET = TetgenJNI.$(TETGEN_VERSION).dll
 	ROBUST_TARGET = RobustPreds.1.0.dll
@@ -129,13 +127,12 @@ else ifeq ($(SYSTEM),Windows)
 	SEMICOLON = ;
 	CLASS_ROOT_DIR := $(subst $(COLON),$(SEMICOLON),$(CLASS_ROOT_DIR))
 	CLASS_ROOT_DIR := "$(subst /,\,$(CLASS_ROOT_DIR))"
-	
 	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static-libgcc
 else ifeq ($(SYSTEM),Darwin)
-	# XXX assume that all MacOS systems are 64 bit. That's because
-	# we only have 64 bit pardiso for MacOS, and Java has a 64 bit
-	# configuration, regardless of whether we are booting the 32
-	# or 64 bit version of snow leopard
+        # XXX assume that all MacOS systems are 64 bit. That's because
+        # we only have 64 bit pardiso for MacOS, and Java has a 64 bit
+        # configuration, regardless of whether we are booting the 32
+        # or 64 bit version of snow leopard
 	NATIVE_DIR = MacOS64
 	JAVA_INC=/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
 	CC_INCS = -I$(JAVA_INC) -I$(TETGEN_DIR)

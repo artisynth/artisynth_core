@@ -10,3 +10,8 @@
 /Linux*
 /MacOS*
 /Darwin*
+
+######################
+# Temporary files
+######################
+/cachedir

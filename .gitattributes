@@ -3,6 +3,8 @@
 ###########################
 *.java text
 *.py   text
+Makefile  text
+Makedefs  text
 
 ###########################
 # Scripts

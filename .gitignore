@@ -54,3 +54,8 @@ CVS
 .cproject
 .settings
 ArtiSynth.launch
+
+######################
+# MacOS files
+######################
+.DS_Store

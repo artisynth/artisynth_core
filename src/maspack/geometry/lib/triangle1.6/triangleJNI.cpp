@@ -191,7 +191,7 @@ void TriangleTessellator::buildFromPoints(double *coords, int numPnts,
 
 }
 
-JNIEXPORT jint JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doBuildFromPoints(
+JNIEXPORT jint JNICALL Java_maspack_geometry_TriangleTessellator_doBuildFromPoints(
       JNIEnv *env, jobject obj, jlong handle, jdoubleArray pntCoords,
       jint numPnts, jdouble minAngle) {
 
@@ -277,7 +277,7 @@ void TriangleTessellator::buildFromSegmentsAndPoints(double *coords,
    triangulate(switches, in, out, vorout);
 }
 
-JNIEXPORT jint JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doBuildFromSegmentsAndPoints(
+JNIEXPORT jint JNICALL Java_maspack_geometry_TriangleTessellator_doBuildFromSegmentsAndPoints(
       JNIEnv *env, jobject obj, jlong handle, jdoubleArray pntCoords,
       jint numPnts, jintArray segmentIndices, jint numSegments,
       jdouble minAngle) {
@@ -370,7 +370,7 @@ void TriangleTessellator::buildFromSegments(double *coords, int numPnts,
    triangulate(switches, in, out, vorout);
 }
 
-JNIEXPORT jint JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doBuildFromSegments(
+JNIEXPORT jint JNICALL Java_maspack_geometry_TriangleTessellator_doBuildFromSegments(
       JNIEnv *env, jobject obj, jlong handle, jdoubleArray pntCoords,
       jint numPnts, jintArray segmentIndices, jint numSegments,
       jdouble minAngle) {
@@ -404,14 +404,14 @@ JNIEXPORT jint JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doBuil
    return 0;
 }
 
-JNIEXPORT jint JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doGetNumTriangles(
+JNIEXPORT jint JNICALL Java_maspack_geometry_TriangleTessellator_doGetNumTriangles(
       JNIEnv *env, jobject obj, jlong handle) {
 
    TriangleTessellator *tt = (TriangleTessellator*) handle;
    return tt->out->numberoftriangles;
 }
 
-JNIEXPORT void JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doGetTriangles
+JNIEXPORT void JNICALL Java_maspack_geometry_TriangleTessellator_doGetTriangles
 (JNIEnv *env, jobject obj, jlong handle, jintArray triangles) {
 
    TriangleTessellator *tt = (TriangleTessellator*)handle;
@@ -429,14 +429,14 @@ JNIEXPORT void JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doGetT
    env->ReleaseIntArrayElements (triangles, (jint*)idxs, 0);
 }
 
-JNIEXPORT jint JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doGetNumPoints(
+JNIEXPORT jint JNICALL Java_maspack_geometry_TriangleTessellator_doGetNumPoints(
       JNIEnv *env, jobject obj, jlong handle) {
 
    TriangleTessellator *tt = (TriangleTessellator*) handle;
    return tt->out->numberofpoints;
 }
 
-JNIEXPORT void JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doGetPoints
+JNIEXPORT void JNICALL Java_maspack_geometry_TriangleTessellator_doGetPoints
 (JNIEnv *env, jobject obj, jlong handle, jdoubleArray pntCoords) {
 
    TriangleTessellator *tt = (TriangleTessellator*)handle;
@@ -454,14 +454,14 @@ JNIEXPORT void JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doGetP
    env->ReleaseDoubleArrayElements (pntCoords, coords, 0);
 }
 
-JNIEXPORT jlong JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doCreateTessellator(
+JNIEXPORT jlong JNICALL Java_maspack_geometry_TriangleTessellator_doCreateTessellator(
       JNIEnv *env, jobject obj) {
 
    TriangleTessellator *tt = new TriangleTessellator();
    return (jlong) tt;
 }
 
-JNIEXPORT void JNICALL Java_artisynth_tools_polymerge_TriangleTessellator_doDeleteTessellator
+JNIEXPORT void JNICALL Java_maspack_geometry_TriangleTessellator_doDeleteTessellator
 (JNIEnv *env, jobject obj, jlong handle) {
    delete (TriangleTessellator*)handle;
 }

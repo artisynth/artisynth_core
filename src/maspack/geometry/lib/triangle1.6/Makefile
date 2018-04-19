@@ -21,7 +21,6 @@ ifndef SYSTEM
          ARCH := 64
          ifeq ($(PROCESSOR_ARCHITECTURE),x86)
             ARCH := 32
-            echo hello
          endif
       endif
    else

@@ -423,8 +423,8 @@ JNIEXPORT void JNICALL Java_maspack_geometry_TriangleTessellator_doGetTriangles
    }
    jboolean isCopy;
    int *idxs = (int*)env->GetIntArrayElements (triangles, &isCopy);
-   for (int i=0; i<3*ntris; i++)
-   {  idxs[i] = out->trianglelist[i];
+   for (int i=0; i<3*ntris; i++) {  
+      idxs[i] = out->trianglelist[i];
    }
    env->ReleaseIntArrayElements (triangles, (jint*)idxs, 0);
 }
@@ -448,8 +448,8 @@ JNIEXPORT void JNICALL Java_maspack_geometry_TriangleTessellator_doGetPoints
    }
    jboolean isCopy;
    double *coords = env->GetDoubleArrayElements (pntCoords, &isCopy);
-   for (int i=0; i<2*npnts; i++)
-   {  coords[i] = out->pointlist[i];
+   for (int i=0; i<2*npnts; i++) {  
+      coords[i] = out->pointlist[i];
    }
    env->ReleaseDoubleArrayElements (pntCoords, coords, 0);
 }

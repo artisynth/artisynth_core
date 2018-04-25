@@ -144,7 +144,13 @@ public class GLFrameCapture {
                // write with high compression quality
                param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
                param.setCompressionQuality(1.0f);
-           }
+            }
+            
+            // ensure output directory exists
+            File parent = file.getParentFile ();
+            if (!parent.exists ()) {
+               parent.mkdirs ();
+            }
             writer.setOutput (new FileImageOutputStream(file));
             writer.write (null, new IIOImage((image),null,null), param);
             // ImageIO.write (image, format, file);

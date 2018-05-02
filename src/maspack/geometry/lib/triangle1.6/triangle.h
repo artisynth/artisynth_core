@@ -248,6 +248,10 @@
 /*                                                                           */
 /*****************************************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct triangulateio {
   REAL *pointlist;                                               /* In / out */
   REAL *pointattributelist;                                      /* In / out */
@@ -290,4 +294,10 @@ void trifree();
 
 #ifdef PTR_EXCEEDS_LONG
 #define POINTER unsigned long long
+#else
+#define POINTER unsigned long
+#endif
+
+#ifdef __cplusplus
+}
 #endif

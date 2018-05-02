@@ -79,7 +79,7 @@ public class Frame extends DynamicComponentBase
 
    //protected MeshComponentList<RigidMeshComp> myMeshList;
 
-   static {
+   static {                 
       myProps.add (
          "renderProps * *", "render properties", null);
       myProps.add (
@@ -88,6 +88,8 @@ public class Frame extends DynamicComponentBase
          "position", "position of the body coordinate frame",null,"NW");
       myProps.add (
          "orientation", "orientation of the body coordinate frame", null, "NW");
+      myProps.add (
+         "rotation", "rotation of the body coordinate frame",null,"NW");
       myProps.add ("velocity * *", "velocity state", null, "NW");
       
       myProps.add (

@@ -210,7 +210,7 @@ public class GLColorSelector extends GLSelector {
       }
       if (idx < 0 || idx >= myCurrentMaxQ) {
          throw new IllegalArgumentException (
-            "index "+idx+" out of range; max=" + myCurrentMaxQ);
+            "index "+idx+" out of range; max=" + (myCurrentMaxQ-1));
       }
 
       // flush queries if we need room

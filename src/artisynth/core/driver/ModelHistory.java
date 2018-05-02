@@ -24,107 +24,68 @@ import maspack.util.ReaderTokenizer;
  */
 public class ModelHistory {
 
-      HashMap<String,Integer> infoOrder;
       ArrayList<ModelHistoryInfo> info;
+      HashMap<ModelInfo,ModelHistoryInfo> infoMap;
+      
       // purposely ascending so more efficient sorting on update
-      ModelHistoryComparatorAscending cmp;
+      ModelHistoryTimeComparatorAscending cmp;
       
       public ModelHistory() {
-         infoOrder = new HashMap<>();
          info = new ArrayList<>();
-         cmp = new ModelHistoryComparatorAscending();
+         infoMap = new HashMap<>();
+         cmp = new ModelHistoryTimeComparatorAscending();
       }
-      
-      private int getPos(String longName) {
-         Integer idx = infoOrder.get(longName);
-         if (idx == null) {
-            return -1;
-         }
-         return idx.intValue();
-      }
-      
-      public ModelHistoryInfo get(String longName) {
-         int idx = getPos(longName);
-         if (idx < 0) {
-            return null;
-         }
-         return info.get(idx);
-      } 
-      
-      private void add(String longName, ModelHistoryInfo mhi) {
-         // insertion
-         int min = 0;
-         int max = info.size()-1;
-         int idx = 0;
-         boolean done = false;
+        
+      private ModelHistoryInfo addOrUpdate(ModelInfo mi, Date dateTime) {
          
-         if (info.size() == 0) {
-            idx = 0;
+         ModelHistoryInfo omhi = infoMap.get (mi);
+         int pidx = -1;
+         if (omhi != null) {
+            // update time
+            pidx = omhi.getIndex ();
+            omhi.setTime (dateTime);
          } else {
-            // binary search for slot
-            while (!done) {
-               if (cmp.compare(mhi, info.get(min)) <= 0) {
-                  idx = min;
-                  done = true;
-               } else if (cmp.compare(info.get(max), mhi) < 0) {
-                  idx = max+1;
-                  done = true;
-               } else {
-                  int mid = (min + max)/2;
-                  if (cmp.compare(mhi, info.get(mid)) < 0) {
-                     max = mid;
-                  } else if (cmp.compare(info.get(mid), mhi) < 0) {
-                     min = mid;
-                  }
-               }
+            // add
+            ModelHistoryInfo mhi = new ModelHistoryInfo(mi, dateTime);
+            infoMap.put (mi, mhi);
+            pidx = info.size ();
+            mhi.setIndex (pidx);
+            info.add (mhi);
+            omhi = mhi;
+         }
+         
+         // search down from pidx, updating indices
+         while (pidx > 0) {
+            ModelHistoryInfo prev = info.get (pidx-1);
+            if (cmp.compare (prev, omhi) >= 0 ) {
+               info.set (pidx, prev);
+               prev.idx = pidx;
+               --pidx;
+            } else {
+               break;
             }
          }
          
-         // insert into correct position
-         info.add(idx, mhi);
-         // adjust order indices
-         for (int i=idx; i<info.size(); i++) {
-            infoOrder.put(info.get(idx).getModelInfo().getClassNameOrFile(), i);
+         // search up from pidx, updating indices
+         while (pidx < info.size ()-1) {
+            ModelHistoryInfo next = info.get (pidx+1);
+            if (cmp.compare (omhi, next) > 0 ) {
+               info.set (pidx, next);
+               next.idx = pidx;
+               ++pidx;
+            } else {
+               break;
+            }
          }
          
-      }
-      
-      private void updateOrder(int pos) {
-         ModelHistoryInfo mhi = info.get(pos);
+         info.set (pidx, omhi);
+         omhi.idx = pidx;
          
-         // move down if need to
-         while ( (pos > 0) && (cmp.compare(mhi, info.get(pos-1))<0) ) {
-            ModelHistoryInfo mhip = info.get(pos-1); 
-            info.set(pos, mhip);
-            infoOrder.put(mhip.getModelInfo().getClassNameOrFile(), pos);
-            --pos;
-         }
-         // move up if need to
-         while ( (pos < info.size()-1) && (cmp.compare(mhi, info.get(pos+1))>0)) {
-            ModelHistoryInfo mhip = info.get(pos+1);
-            info.set(pos, mhip);
-            infoOrder.put(mhip.getModelInfo().getClassNameOrFile(), pos);
-            ++pos;
-         }
-         
-         // set current position
-         info.set(pos, mhi);
-         infoOrder.put(mhi.getModelInfo().getClassNameOrFile(), pos);
-            
+         return omhi;
       }
       
       public ModelHistoryInfo update(ModelInfo mi, Date dateTime) {
-         int pos = getPos(mi.classNameOrFile);
-         ModelHistoryInfo mhi = null;
-         if (pos >= 0) {
-            mhi = info.get(pos);
-            mhi.update(mi, dateTime);
-            updateOrder(pos);
-         } else {
-            mhi = new ModelHistoryInfo(mi, dateTime);
-            add(mi.getClassNameOrFile(), mhi);
-         }
-         return mhi;
+         return addOrUpdate (mi, dateTime);
       }
       
       /**
@@ -145,24 +106,33 @@ public class ModelHistory {
          return mhis;
       }
 
-   public static class ModelHistoryInfo implements Comparable<ModelHistoryInfo> {
+   public static class ModelHistoryInfo {
       ModelInfo mi;
       Date time;
+      int idx;
       
       public ModelHistoryInfo(ModelInfo mi, Date time) {
          this.mi = mi;
          this.time = time;
+         idx = -1;
       }
       
       public ModelInfo getModelInfo() {
          return mi;
       }
       
-      public void update(ModelInfo mi, Date datetime) {
+      public void update(Date datetime) {
          if (datetime.compareTo(time) > 0) {
             this.time = datetime;
-            this.mi = mi;
          }
+      }
+      
+      int getIndex() {
+         return idx;
+      }
+      
+      void setIndex(int id) {
+         idx = id;
       }
 
       public Date getTime() {
@@ -177,19 +147,17 @@ public class ModelHistory {
          this.time = new Date();  //sets to the current date/time
       }
       
-      @Override
-      public int compareTo(ModelHistoryInfo o) {
-         // latest date wins
-         return time.compareTo(o.time);
-      }
    }
    
-   private static class ModelHistoryComparatorAscending 
+   /**
+    * Compares by date-time
+    */
+   private static class ModelHistoryTimeComparatorAscending 
       implements Comparator<ModelHistoryInfo> {
 
       @Override
       public int compare(ModelHistoryInfo o1, ModelHistoryInfo o2) {
-         return o1.compareTo(o2);
+         return o1.getTime ().compareTo(o2.getTime ());
       }
       
    }
@@ -217,27 +185,27 @@ public class ModelHistory {
          }
          default: {
             if (rtok.isQuoteChar(rtok.ttype)) {
-               char quote = (char)rtok.ttype;
-               return  rtok.sval; // remove quote
+               return rtok.sval;
             }
             return Character.toString((char)(rtok.ttype)); // other characters
          }
       }
    }
 
-   protected static String[] readToEOL(ReaderTokenizer rtok)
+   protected static String[] readArgs(ReaderTokenizer rtok)
       throws IOException {
 
       ArrayList<String> args = new ArrayList<String>();
-
+      
       rtok.nextToken();
-      while (rtok.ttype != ReaderTokenizer.TT_EOL) {
-         if (rtok.ttype == ReaderTokenizer.TT_EOF) {
-            break;
-         }
-         args.add(getTokenString(rtok));
+      while (rtok.ttype != ReaderTokenizer.TT_EOL 
+            && rtok.ttype != ReaderTokenizer.TT_EOF) {
+         
+         args.add (getTokenString(rtok));
+         
          rtok.nextToken();
       }
+      
       return args.toArray(new String[args.size()]);
    }
    
@@ -248,12 +216,13 @@ public class ModelHistory {
       rtok.commentChar('#');
       rtok.eolIsSignificant(true);
       rtok.wordChar('.');
+      rtok.wordChar ('\'');
       rtok.nextToken();
       while (rtok.ttype == ReaderTokenizer.TT_WORD) {
          String longName = rtok.sval;
          String shortName = rtok.scanQuotedString('"');
          long tval = rtok.scanLong();
-         String[] args = readToEOL(rtok);
+         String[] args = readArgs(rtok);
          Date dateTime = new Date(tval);
          update(new ModelInfo(longName, shortName, args), dateTime);
          rtok.nextToken();  // read next token
@@ -261,10 +230,39 @@ public class ModelHistory {
       rtok.close();
    }
    
+   private static String encode(String str) {
+      boolean quote = false;
+      // see if we need to quote
+      for (int i=0; i<str.length (); ++i) {
+         char c = str.charAt (i);
+         if (Character.isWhitespace (c) || c == '"' ) {
+            quote = true;
+         }
+      }
+      
+      if (!quote) {
+         return str;
+      }
+      
+      StringBuilder out = new StringBuilder();
+      out.append ('"');
+      // escape quotes and backslashes
+      for (int i=0; i<str.length (); ++i) {
+         char c = str.charAt (i);
+         if (c == '"') {
+            out.append ('\\');
+         } else if (c == '\\') {
+            out.append ('\\');
+         }
+         out.append (c);
+      }
+      out.append ('"');
+      return out.toString ();
+   }
+   
    public void save(File file) throws IOException {
       PrintWriter writer = new PrintWriter(file);
       
-      // System.out.println("History:");
       writer.println("# class \"shortname\" time [args]");
       for (ModelHistoryInfo mhi : info) {
          ModelInfo mi = mhi.mi;
@@ -272,27 +270,11 @@ public class ModelHistory {
          if (mi.args != null) {
             for (String str : mi.args) {
                writer.print(" ");
-               if (str.contains(" ")) {
-                  writer.print("\""+str+"\"");   
-               } else {
-                  writer.print(str);
-               }
+               writer.print(encode(str));
             }
          }
          writer.println();
          
-         //         System.out.print(mi.getClassNameOrFile() + " \"" + mi.shortName + "\" " + mhi.time.getTime() );
-         //         if (mi.args != null) {
-         //            for (String str : mi.args) {
-         //               System.out.print(" ");
-         //               if (str.contains(" ")) {
-         //                  System.out.print("\""+str+"\"");   
-         //               } else {
-         //                  System.out.print(str);
-         //               }
-         //            }
-         //         }
-         //         System.out.println();
       }
       writer.close();
       

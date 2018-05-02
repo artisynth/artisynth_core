@@ -429,6 +429,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
    
    public ModelHistory getModelHistory() {
+      if (myModelHistory == null) {
+         myModelHistory = new ModelHistory ();
+      }
       return myModelHistory;
    }
 
@@ -1571,10 +1574,13 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (myModelHistory != null) {
             myModelHistory.update(info, 
                new Date(System.currentTimeMillis()));
-            try {
-               // XXX save every time?  Can't seem to get it to save on exit
-               myModelHistory.save(new File(historyFilename.value));
-            } catch (IOException e) {
+            if (historyFilename.value != null) {
+               try {
+                  // XXX save every time?  Can't seem to get it to save on exit
+                  myModelHistory.save(new File(historyFilename.value));
+               } catch (IOException e) {
+                  // e.printStackTrace ();
+               }
             }
             if (myMenuBarHandler != null) {
                myMenuBarHandler.updateHistoryMenu();
@@ -1788,7 +1794,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected static StringHolder demosFilename = new StringHolder();
    protected static StringHolder demosMenuFilename =
       new StringHolder("demoMenu.xml");
-   protected static StringHolder historyFilename = new StringHolder();
+   protected static StringHolder historyFilename = new StringHolder(
+      ArtisynthPath.getCacheDir () + "/.history");
    protected static StringHolder scriptsFilename =
       new StringHolder (".artisynthScripts");
    protected static StringHolder scriptFile = 

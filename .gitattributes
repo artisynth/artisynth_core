@@ -3,6 +3,7 @@
 ###########################
 *.java text
 *.py   text
+*.glsl text
 Makefile  text
 Makedefs  text
 

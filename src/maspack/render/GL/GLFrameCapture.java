@@ -151,9 +151,11 @@ public class GLFrameCapture {
             if (!parent.exists ()) {
                parent.mkdirs ();
             }
-            writer.setOutput (new FileImageOutputStream(file));
+            FileImageOutputStream fout = new FileImageOutputStream(file);
+            writer.setOutput (fout);
             writer.write (null, new IIOImage((image),null,null), param);
             // ImageIO.write (image, format, file);
+            fout.close ();
          }
          catch (IOException io_e) {
             io_e.printStackTrace();

@@ -18,7 +18,6 @@ import java.awt.Rectangle;
 import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.net.URL;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -245,7 +244,7 @@ public class GuiUtils {
       bounds.height = ref.getHeight();
       return bounds;
    }
-
+   
    /**
     * Sets the horizonal position of a window relative to another component. The
     * vertical position is unchanged. The relative location is specified by
@@ -262,29 +261,24 @@ public class GuiUtils {
     */
    public static void locateHorizontally (
       Window win, Component ref, int location) {
-      Window refWin; // window containing the reference component
-      Point refLoc; // component location relative to its window
-      Dimension refWinSize; // size of the reference window
-      Dimension refSize; // size of the reference component
-      Dimension winSize; // size of the window being placed
-      // if (ref instanceof Window)
-      // { refWin = (Window)ref;
-      // refWinSize = refWin.getSize();
-      // refLoc = new Point(refWinSize.width/2, refWinSize.height/2);
-      // }
-      // else
+      
+      Window refWin;            // window containing the reference component
+      Point refLoc;             // component location relative to its window
+      Dimension refSize;        // size of the reference component
+      Dimension winSize;        // size of the window being placed
+
       refWin = windowForComponent (ref);
       if (refWin == null) {
          return;
       }
-      refWinSize = refWin.getSize();
+      
       refSize = ref.getSize();
       refLoc = SwingUtilities.convertPoint (ref, 0, 0, refWin);
       Point refWinLoc = refWin.getLocation();
       refLoc.x += refWinLoc.x;
       refLoc.y += refWinLoc.y;
 
-      int scrWidth = getVirtualScreenBounds().width;
+      Rectangle screenBounds = getVirtualScreenBounds ();
       winSize = win.getSize();
 
       // start by centering the window on the reference component
@@ -298,7 +292,8 @@ public class GuiUtils {
          }
          case LEFT: {
             newLoc.x = refLoc.x - winSize.width;
-            if (newLoc.x < 0) {
+            if (newLoc.x < screenBounds.x) {
+               // move to right-side
                newLoc.x = refLoc.x + refSize.width;
             }
             break;
@@ -309,7 +304,8 @@ public class GuiUtils {
          }
          case RIGHT: {
             newLoc.x = refLoc.x + refSize.width;
-            if (newLoc.x + winSize.width > scrWidth) {
+            if (newLoc.x + winSize.width > screenBounds.x + screenBounds.width) {
+               // move to left size
                newLoc.x = refLoc.x - winSize.width;
             }
             break;
@@ -323,13 +319,16 @@ public class GuiUtils {
             + location);
          }
       }
+      
+
       // adjust to keep left side on screen
-      if (newLoc.x + winSize.width > scrWidth) {
-         newLoc.x = scrWidth - winSize.width;
+      if (newLoc.x + winSize.width > screenBounds.x + screenBounds.width) {
+         newLoc.x = screenBounds.x + screenBounds.width - winSize.width;
       }
-      if (newLoc.x < 0) {
-         newLoc.x = 0;
+      if (newLoc.x < screenBounds.x) {
+         newLoc.x = screenBounds.x;
       }
+      
       win.setLocation (newLoc);
    }
 
@@ -349,31 +348,26 @@ public class GuiUtils {
     * desired horizonal location of the window relative to the component
     */
    public static void locateVertically (Window win, Component ref, int location) {
-      Window refWin; // window containing the reference component
-      Point refLoc; // component location relative to its window
-      Dimension refWinSize; // size of the reference window
-      Dimension refSize; // size of the reference component
-      Dimension winSize; // size of the window being placed
-      // if (ref instanceof Window)
-      // { refWin = (Window)ref;
-      // refWinSize = refWin.getSize();
-      // refLoc = new Point(refWinSize.width/2, refWinSize.height/2);
-      // }
-      // else
+      
+      Window refWin;            // window containing the reference component
+      Point refLoc;             // component location relative to its window
+      Dimension refSize;        // size of the reference component
+      Dimension winSize;        // size of the window being placed
+
       refWin = windowForComponent (ref);
       if (refWin == null) {
          return;
       }
-      refWinSize = refWin.getSize();
+      
       refSize = ref.getSize();
       refLoc = SwingUtilities.convertPoint (ref, 0, 0, refWin);
       Point refWinLoc = refWin.getLocation();
       refLoc.x += refWinLoc.x;
       refLoc.y += refWinLoc.y;
 
-      int scrHeight = getVirtualScreenBounds().height;
-      winSize = win.getSize();
-
+      Rectangle screenBounds = getVirtualScreenBounds ();
+      winSize = win.getSize ();
+      
       // start by centering the window on the reference component
       Point newLoc = win.getLocation();
 
@@ -385,7 +379,8 @@ public class GuiUtils {
          }
          case ABOVE: {
             newLoc.y = refLoc.y - winSize.height;
-            if (newLoc.y < 0) {
+            if (newLoc.y < screenBounds.y) {
+               // move below
                newLoc.y = refLoc.y + refSize.height;
             }
             break;
@@ -396,7 +391,8 @@ public class GuiUtils {
          }
          case BELOW: {
             newLoc.y = refLoc.y + refSize.height;
-            if (newLoc.y + winSize.height > scrHeight) {
+            if (newLoc.y + winSize.height > screenBounds.y + screenBounds.height) {
+               // move above
                newLoc.y = refLoc.y - winSize.height;
             }
             break;
@@ -410,19 +406,20 @@ public class GuiUtils {
             + location);
          }
       }
-      // adjust to keep left side on screen
-      if (newLoc.y + winSize.height > scrHeight) {
-         newLoc.y = scrHeight - winSize.height;
+    
+      // adjust to keep top on screen
+      if (newLoc.y + winSize.height > screenBounds.y + screenBounds.height) {
+         newLoc.y = screenBounds.y + screenBounds.height - winSize.height;
       }
-      if (newLoc.y < 0) {
-         newLoc.y = 0;
+      if (newLoc.y < screenBounds.y) {
+         newLoc.y = screenBounds.y;
       }
       win.setLocation (newLoc);
    }
 
    /**
     * Locates a window relative to a given set of screen bounds. The location is
-    * set so that point (wx, wy) in the window maps to point (bx, by) in tne
+    * set so that point (wx, wy) in the window maps to point (bx, by) in the
     * bounds. Both sets of points are normalized to relative to the window and
     * bounds sizes, so that (0, 0) corresponds to the upper left corner, (0.5,
     * 0.5) is the center, (1, 1) is the lower right, etc.
@@ -439,18 +436,20 @@ public class GuiUtils {
       // clip so that component is visible
       Rectangle scrBounds = GuiUtils.getVirtualScreenBounds();
 
-      if (loc.x < 0) {
-         loc.x = 0;
+      if (loc.x + w > scrBounds.x + scrBounds.width) {
+         loc.x = scrBounds.x + scrBounds.width - w;
       }
-      else if (loc.x + w > scrBounds.width) {
-         loc.x = scrBounds.width - w;
+      if (loc.x < scrBounds.x) {
+         loc.x = scrBounds.x;
       }
-      if (loc.y < 0) {
-         loc.y = 0;
+      
+      if (loc.y + h > scrBounds.y + scrBounds.height) {
+         loc.y = scrBounds.y + scrBounds.height - h;
       }
-      else if (loc.y + h > scrBounds.height) {
-         loc.y = scrBounds.height - h;
+      if (loc.y < scrBounds.y) {
+         loc.y = scrBounds.y;
       }
+      
       win.setLocation (loc);
    }
 

@@ -355,14 +355,14 @@ public class MovieMaker {
       }
       else if (myMethodName.equals(ANIMATED_GIF_METHOD)) {
          String opts = method.command;
-         opts = opts.replaceAll ("\\$FPS", "" + frameRate);
+         opts = opts.replace ("$FPS", "" + frameRate);
 
          String frameFileNames[] = new String[lastFrameCount];
          for (int i = 1; i <= lastFrameCount; i++) {
             frameFileNames[i - 1] = getFrameFileName (i);
          }
 
-         File outFile = new File(dataPath + File.separator + fn+ ".gif");
+         File outFile = new File(dataPath, fn+ ".gif");
 
          DoubleHolder delayHolder = new DoubleHolder(0);
          IntHolder loopHolder = new IntHolder(0);
@@ -372,15 +372,15 @@ public class MovieMaker {
       }
       else { // Custom method, execute the specified command in data directory.
          String cmd = method.command;
-         cmd = cmd.replaceAll ("\\$FPS", "" + frameRate);
-         cmd = cmd.replaceAll ("\\$FMT", myFormat);
-
+         cmd = cmd.replace ("$FPS", "" + frameRate);
+         cmd = cmd.replace ("$FMT", myFormat);
+         
          String[] cmdArray = cmd.split ("\\s+");
 
          // Substitute $OUT later because file name might contain white space
          String finalCmd = "";
          for (int i = 0; i < cmdArray.length; i++) {
-            cmdArray[i] = cmdArray[i].replaceAll ("\\$OUT", fn);
+            cmdArray[i] = cmdArray[i].replace ("$OUT", fn);
             finalCmd = finalCmd + " " + cmdArray[i];
          }
 

@@ -40,6 +40,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -54,6 +55,7 @@ import maspack.render.GL.FrameBufferObject;
 import maspack.util.IntegerInterval;
 import maspack.util.InternalErrorException;
 import maspack.widgets.DoubleField;
+import maspack.widgets.FileNameField;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.IntegerField;
 import maspack.widgets.LabeledComponentPanel;
@@ -107,7 +109,8 @@ implements ActionListener, ValueChangeListener {
    private IntegerField resizeWidth;
    private IntegerField resizeHeight;
    private IntegerField resizeSamples;
-
+   private FileNameField workingDirField;
+   
    private JCheckBox showCaptureFrame;
 
    private DoubleField frameRateField;
@@ -405,8 +408,21 @@ implements ActionListener, ValueChangeListener {
 
       encOptionsBox.add (sizeOptions);
 
-
+      // advanced
       Box extraBox = Box.createVerticalBox();
+      
+      LabeledComponentPanel advancedOptions = new LabeledComponentPanel ();
+      advancedOptions.setBorder (BorderFactory.createTitledBorder(
+         BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Advanced"));  
+      advancedOptions.setName("advanced");
+      
+      workingDirField = new FileNameField ("Working directory", ArtisynthPath.getTempDir ().getAbsolutePath (), 10);
+      workingDirField.getFileChooser ().setFileSelectionMode (JFileChooser.DIRECTORIES_ONLY);
+      workingDirField.getFileChooser ().setCurrentDirectory (ArtisynthPath.getTempDir ());
+      advancedOptions.add (workingDirField);
+      extraBox.add (advancedOptions);
+      
+
       LabeledComponentPanel extraCommands = new LabeledComponentPanel();
       extraCommands.setBorder (BorderFactory.createTitledBorder(
          BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Commands"));  
@@ -417,10 +433,11 @@ implements ActionListener, ValueChangeListener {
       waypointButton.addActionListener(this);
       extraCommands.addWidget(waypointButton);
       extraBox.add(extraCommands);
+      
 
       tabbedPane.addTab ("Recorder", recOptionsBox);
       tabbedPane.addTab ("Encoder", encOptionsBox);
-      tabbedPane.addTab("Extras", extraBox);
+      tabbedPane.addTab("Advanced", extraBox);
 
       if (myMain.getModelName() != null) {
          setMovieName (myMain.getModelName());
@@ -735,7 +752,7 @@ implements ActionListener, ValueChangeListener {
          // XXX: removed, since prevents zoom in orthographic projection
          // Main.getMain().getViewer().setResizeEnabled(false);   
 
-         tmpDirectory = ArtisynthPath.getTempDir().getAbsolutePath();
+         tmpDirectory = workingDirField.getText ();
 
          // test if tmp directory exists
          File testdir = new File (tmpDirectory);
@@ -817,6 +834,11 @@ implements ActionListener, ValueChangeListener {
       Thread stopThread = new Thread() {
          public void run() {
             String movieFileName = filename.getText();
+            
+            // make sure directories exist
+            File mfile = new File(myMovieMaker.getDataPath (), movieFileName); 
+            mfile.getParentFile ().mkdirs ();
+            
             myMain.setFrameRate (savedFrameRate);
             myMovieMaker.setGrabbing (false);
             myFrame.getViewer().cleanupScreenShots();
@@ -1116,7 +1138,7 @@ implements ActionListener, ValueChangeListener {
          stopButton.setEnabled (false);
          startButton.setEnabled (false);
 
-         tmpDirectory = ArtisynthPath.getTempDir().getAbsolutePath();
+         tmpDirectory = workingDirField.getText ();
 
          // test if tmp directory exists
          File testdir = new File (tmpDirectory);

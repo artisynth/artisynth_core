@@ -30,6 +30,7 @@ import maspack.graph.Tree;
 public class ArtisynthModelMenu {
 
    public static int DEFAULT_MAX_ROWS = 15;
+   public static boolean USE_SCROLLER = false;
 
    Tree<MenuNode> menuTree;
    AliasTable demoTable;
@@ -42,7 +43,7 @@ public class ArtisynthModelMenu {
       
       this.demoTable = new AliasTable();
       this.maxRows = DEFAULT_MAX_ROWS;
-      historyList = null;
+      historyList = new ArrayList<>();
       
       try {
          menuTree = DemoMenuParser.parseXML(menuFile.getAbsolutePath());
@@ -66,7 +67,8 @@ public class ArtisynthModelMenu {
    
    public void buildMenu(final JMenu menu, final ModelActionListener actionListener, 
       final ModelHistory hist) { 
-      historyList = null;
+
+      historyList = new ArrayList<> ();
       try {
          if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeAndWait(new Runnable() {
@@ -86,8 +88,13 @@ public class ArtisynthModelMenu {
 
    private void buildJMenu(JMenu menu, ModelActionListener actionListener, ModelHistory hist) {
       if (menuTree.getRootElement().getChildren().size() > maxRows) {
-         VerticalGridLayout menuGrid = new VerticalGridLayout(maxRows, 0);
-         menu.getPopupMenu().setLayout(menuGrid);
+         if (USE_SCROLLER) {
+            JMenuScroller.setScrollerFor (menu, maxRows);   
+         } else {
+            VerticalGridLayout menuGrid = new VerticalGridLayout(maxRows, 0);
+            menu.getPopupMenu().setLayout(menuGrid);
+         }
+         
       }
       // climb through tree and build menus
       for (Node<MenuNode> node : menuTree.getRootElement().getChildren()) {
@@ -138,6 +145,8 @@ public class ArtisynthModelMenu {
             }
             break;
          }
+         case HISTORY:
+            return true;
          default:
             break;
       }
@@ -188,8 +197,12 @@ public class ArtisynthModelMenu {
             menu.add(newMenu);
             // adjust layout if need to
             if (menuNode.getChildren().size() > maxRows) {
-               VerticalGridLayout menuGrid = new VerticalGridLayout(maxRows, 0);
-               newMenu.getPopupMenu().setLayout(menuGrid);
+               if (USE_SCROLLER) {
+                  JMenuScroller.setScrollerFor (newMenu, maxRows);
+               } else {
+                  VerticalGridLayout menuGrid = new VerticalGridLayout(maxRows, 0);
+                  newMenu.getPopupMenu().setLayout(menuGrid);
+               }
             }
 
             // loop through all children
@@ -261,6 +274,7 @@ public class ArtisynthModelMenu {
                      if (entry.getFont() != null) {
                         newItem.setFont(entry.getFont());
                      }
+                     newItem.setEnabled (false);
                      histItems.add(newItem);
                      menu.add(newItem);
                   } else {
@@ -282,13 +296,12 @@ public class ArtisynthModelMenu {
                            newItem.setFont(entry.getFont());
                         }
                         newItem.setToolTipText(mi.getClassNameOrFile());
+                        newItem.setEnabled (true);
                         menu.add(newItem);
                         histItems.add(newItem);
                      }
                   }
-                  if (historyList == null) {
-                     historyList = new ArrayList<>();
-                  }
+                  
                   historyList.add(new HistoryMenuInfo(he, histItems));
                }
             }
@@ -316,6 +329,7 @@ public class ArtisynthModelMenu {
    protected void updateMenuItem(JMenuItem item, String name, String cmd, ModelInfo mi, 
       ModelActionListener listener) {
       item.setText(name);
+      item.setEnabled (true);
       if (listener != null) {
          item.addActionListener(
             new ModelActionForwarder(listener, cmd, mi));
@@ -332,6 +346,7 @@ public class ArtisynthModelMenu {
       for (HistoryMenuInfo hmi : historyList) {
          // replace info on nodes
          ModelHistoryInfo[] mhi = hist.getRecent(hmi.hist.getSize());
+         
          // check if we need to resize the menu at all:
          int ms = hmi.items.size();
          JMenuItem item0 = hmi.items.get(0);
@@ -356,7 +371,7 @@ public class ArtisynthModelMenu {
                // currently there are #ms items starting from idx
                for (int i=0; i<mhi.length-ms; i++) {
                   JMenuItem jmi = new JMenuItem("temp");
-                  parent.add(jmi, idx+1); // skip over first entry
+                  parent.add(jmi, idx+ms+i); // skip over existing entries
                   hmi.items.add(jmi);
                }
             }
@@ -384,18 +399,5 @@ public class ArtisynthModelMenu {
          }
          
       }
-   }
-   
-   
-   
-   public static void main(String[] args) {
-      File file = new File("demoMenu.xml");
-      long l1 = System.nanoTime();
-      ArtisynthModelMenu menu = new ArtisynthModelMenu(file);
-      menu.write(".demoMenu.xml.cache");
-      long l2 = System.nanoTime();
-      double time = (l2-l1)/1000000000.0;
-      System.out.println("Menu built in " + time + " s");
-      System.exit(0);
    }
 }

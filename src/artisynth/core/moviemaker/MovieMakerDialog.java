@@ -75,7 +75,7 @@ import artisynth.core.util.ConvertRawToWav;
 import artisynth.core.workspace.RootModel;
 
 public class MovieMakerDialog extends JDialog
-implements ActionListener, ValueChangeListener {
+   implements ActionListener, ValueChangeListener {
 
    private static final long serialVersionUID = 1L;
    public static final String VIEW_WINDOW_CMD = "view window";

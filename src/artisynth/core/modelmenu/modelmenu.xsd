@@ -34,6 +34,10 @@
 			<xs:element ref="hidden"/>
 			<xs:element ref="history"/>
 		</xs:choice>
+		<xs:attribute name="scrolling" type="xs:boolean" default="false"
+			use="optional" />
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "15" 
+			use="optional" />
 	</xs:complexType>
 
 	<xs:complexType name="hiddenType">
@@ -71,6 +75,10 @@
 			use="optional" />
 		<xs:attribute name="compact" type="compactType" default="0"
 			use="optional" />
+		<xs:attribute name="scrolling" type="xs:boolean" default="false"
+				use="optional" />
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "15" 
+			use="optional" />
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>
 
@@ -94,7 +102,7 @@
 	</xs:complexType>
 	
 	<xs:complexType name="historyType">
-		<xs:attribute name="size" type="positiveIntegerType" default = "4" 
+		<xs:attribute name="size" type="positiveIntegerType" default = "8" 
 			use="optional" />
 		<xs:attribute name="compact" type="compactType" default="0"
 			use="optional" />

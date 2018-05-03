@@ -29,12 +29,8 @@ import maspack.graph.Tree;
 
 public class ArtisynthModelMenu {
 
-   public static int DEFAULT_MAX_ROWS = 15;
-   public static boolean USE_SCROLLER = false;
-
    Tree<MenuNode> menuTree;
    AliasTable demoTable;
-   int maxRows;
 
    JMenu root;
    ArrayList<HistoryMenuInfo> historyList;
@@ -42,7 +38,6 @@ public class ArtisynthModelMenu {
    public ArtisynthModelMenu(File menuFile) {
       
       this.demoTable = new AliasTable();
-      this.maxRows = DEFAULT_MAX_ROWS;
       historyList = new ArrayList<>();
       
       try {
@@ -87,11 +82,14 @@ public class ArtisynthModelMenu {
    }
 
    private void buildJMenu(JMenu menu, ModelActionListener actionListener, ModelHistory hist) {
-      if (menuTree.getRootElement().getChildren().size() > maxRows) {
-         if (USE_SCROLLER) {
-            JMenuScroller.setScrollerFor (menu, maxRows);   
+      
+      MenuEntry entry = (MenuEntry)menuTree.getRootElement ().getData ();
+      if (menuTree.getRootElement().getChildren().size() > entry.getMaxRows()) {
+         
+         if (entry.isScrolling ()) {
+            JMenuScroller.setScrollerFor (menu, entry.getMaxRows());   
          } else {
-            VerticalGridLayout menuGrid = new VerticalGridLayout(maxRows, 0);
+            VerticalGridLayout menuGrid = new VerticalGridLayout(entry.getMaxRows(), 0);
             menu.getPopupMenu().setLayout(menuGrid);
          }
          
@@ -99,7 +97,7 @@ public class ArtisynthModelMenu {
       // climb through tree and build menus
       for (Node<MenuNode> node : menuTree.getRootElement().getChildren()) {
          if (!isMenuEmpty(node)) {
-            buildMenu(menu, node, maxRows, actionListener, hist); // recursively builds menu
+            buildMenu(menu, node, actionListener, hist); // recursively builds menu
          }
       }
    }
@@ -180,12 +178,13 @@ public class ArtisynthModelMenu {
 
    // recursively build menu from supplied tree
    private void buildMenu(JMenu menu, Node<MenuNode> menuNode, 
-      int maxRows, ModelActionListener actionListener, ModelHistory hist) {
+      ModelActionListener actionListener, ModelHistory hist) {
 
       MenuNode entry = menuNode.getData();
 
       switch (entry.getType()) {
-         case MENU:
+         case MENU: {
+            MenuEntry mentry = (MenuEntry)entry;
             JMenu newMenu = new JMenu(entry.getTitle());
             if (entry.getIcon() != null) {
                URL iconFile = ArtisynthPath.findResource(entry.getIcon());
@@ -196,11 +195,12 @@ public class ArtisynthModelMenu {
             }
             menu.add(newMenu);
             // adjust layout if need to
-            if (menuNode.getChildren().size() > maxRows) {
-               if (USE_SCROLLER) {
-                  JMenuScroller.setScrollerFor (newMenu, maxRows);
+            if (menuNode.getChildren().size() > mentry.getMaxRows ()) {
+               
+               if (mentry.isScrolling ()) {
+                  JMenuScroller.setScrollerFor (newMenu, mentry.getMaxRows ());
                } else {
-                  VerticalGridLayout menuGrid = new VerticalGridLayout(maxRows, 0);
+                  VerticalGridLayout menuGrid = new VerticalGridLayout(mentry.getMaxRows (), 0);
                   newMenu.getPopupMenu().setLayout(menuGrid);
                }
             }
@@ -208,11 +208,12 @@ public class ArtisynthModelMenu {
             // loop through all children
             for (Node<MenuNode> child : menuNode.getChildren()) {
                if (!isMenuEmpty(child)) {
-                  buildMenu(newMenu, child, maxRows, actionListener, hist);
+                  buildMenu(newMenu, child, actionListener, hist);
                }
             }
 
             break;
+         }
          case DIVIDER:
 
             JSeparator div = new JSeparator();

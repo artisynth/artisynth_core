@@ -10,7 +10,7 @@ import java.awt.Font;
 
 import artisynth.core.modelmenu.DemoMenuParser.MenuType;
 
-public class MenuNode implements Comparable<MenuNode> {
+public abstract class MenuNode implements Comparable<MenuNode> {
 
    private String title;
    private String icon;
@@ -51,6 +51,7 @@ public class MenuNode implements Comparable<MenuNode> {
       if (menuFont != null) {
          hc = 31*hc + menuFont.hashCode();
       }
+
       return hc;
    }
    
@@ -78,10 +79,14 @@ public class MenuNode implements Comparable<MenuNode> {
 
       MenuNode other = (MenuNode) obj;
       
+      return equals(other);
+   }
+   
+   public boolean equals(MenuNode other) {
+      
       if (getType() != other.getType()) {
          return false;
       }
-      
       if (!equalsWithNull(title, other.title)) {
          return false;
       }
@@ -128,7 +133,7 @@ public class MenuNode implements Comparable<MenuNode> {
       }
       
       cmp = compareWithNull(menuFont.toString(), o.menuFont.toString());
-      
+
       return cmp;
    }
    

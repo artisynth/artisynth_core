@@ -1,4 +1,5 @@
 /**
+
  * Copyright (c) 2014, by the Authors: Antonio Sanchez (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
@@ -87,9 +88,13 @@ public class DemoMenuParser {
    private static final String DIVIDER_TITLE = "<divider>";
 
    public static final String ROOT_TAG = "ModelMenu";
+   public static final String ROOT_TAG_SCROLLING = "scrolling";
+   public static final String ROOT_TAG_MAX_ROWS = "maxRows";
    public static final String MENU_TAG = "menu";
    public static final String MENU_TAG_TEXT = "text";
    public static final String MENU_TAG_ICON = "icon";
+   public static final String MENU_TAG_SCROLLING = "scrolling";
+   public static final String MENU_TAG_MAX_ROWS = "maxRows";
    public static final String DIVIDER_TAG = "separator";
    public static final String HISTORY_TAG = "history";
    public static final String HISTORY_TAG_SIZE = "size";
@@ -112,6 +117,8 @@ public class DemoMenuParser {
    public static final String PACKAGE_TAG_VIEW_FLAT = "flat";
    public static final String PACKAGE_TAG_VIEW_HIERARCHICAL =
       "hierarchical";
+   public static final String PACKAGE_TAG_SCROLLING = "scrolling";
+   public static final String PACKAGE_TAG_MAX_ROWS = "maxRows";
    public static final String PACKAGE_TAG_BASECLASS = "base";
    public static final String PACKAGE_TAG_REGEX = "regex";
    // 0 for not compact, 1 for compact, 2 for very compact
@@ -215,12 +222,17 @@ public class DemoMenuParser {
    static void buildDocument(Document dom, Tree<MenuNode> menu) {
       
       Node<MenuNode> root = menu.getRootElement();
-      root.getData();
+      MenuEntry data = (MenuEntry)root.getData();
       
-      Element modelMenu = dom.createElement("ModelMenu");
+      Element modelMenu = dom.createElement(ROOT_TAG);
       modelMenu.setAttribute("xmlns", "http://www.artisynth.org");
       modelMenu.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
       modelMenu.setAttribute("xsi:schemaLocation", "http://www.artisynth.org src/artisynth/core/modelmenu/modelmenu.xsd");
+      
+      if (data.isScrolling ()) {
+         modelMenu.setAttribute (ROOT_TAG_SCROLLING, Boolean.toString (data.isScrolling ()));
+      }
+      modelMenu.setAttribute (ROOT_TAG_MAX_ROWS, Integer.toString (data.getMaxRows ()));
       
       dom.appendChild(modelMenu);
       for (Node<MenuNode> child : root.getChildren()) {
@@ -246,7 +258,7 @@ public class DemoMenuParser {
             el = buildLabel(dom, (LabelEntry)data);
             break;
          case MENU:
-            el = buildMenu(dom, (MenuNode)data);
+            el = buildMenu(dom, (MenuEntry)data);
             for (Node<MenuNode> child : node.getChildren()) {
                buildElement(dom, el, child);
             }
@@ -295,12 +307,17 @@ public class DemoMenuParser {
 
    private static Tree<MenuNode> parseDocument(Document dom, String localPath) {
 
-      Tree<MenuNode> menu = new Tree<MenuNode>(new MenuNode("Models"));
+      Tree<MenuNode> menu = new Tree<MenuNode>(new MenuEntry("Models"));
       Element docEle = dom.getDocumentElement();
 
       NodeList nl = docEle.getChildNodes();
       Node<MenuNode> root = menu.getRootElement();
-
+      MenuEntry rootEntry = (MenuEntry)root.getData ();
+      String scrolling = docEle.getAttribute (ROOT_TAG_SCROLLING);
+      rootEntry.setScrolling (parseBoolean (scrolling));
+      String maxRows = docEle.getAttribute (ROOT_TAG_MAX_ROWS);
+      rootEntry.setMaxRows (Integer.parseInt (maxRows));
+      
       for (int i = 0; i < nl.getLength(); i++) {
          if (nl.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
             Element el = (Element)nl.item(i);
@@ -468,6 +485,16 @@ public class DemoMenuParser {
          el.setAttribute(ALL_TAG_FONTSTYLE, style);
       }
    }
+   
+   private static boolean parseBoolean(String str) {
+      boolean scrolling = false;
+      if (str != null && !"".equals (str)) {
+         if ("true".equalsIgnoreCase(str) || "1".equals(str)) {
+            scrolling = true;
+         }
+      }
+      return scrolling;
+   }
 
    // get font information from element
    private static Font parseFont(Element el) {
@@ -578,7 +605,7 @@ public class DemoMenuParser {
 
       ArrayList<DemoEntry> demos = new ArrayList<DemoEntry>();
       String file = el.getAttribute(DEMOFILE_TAG_FILENAME);
-      String argsStr = el.getAttribute(PACKAGE_TAG_ARGS);
+      String argsStr = el.getAttribute(DEMOFILE_TAG_ARGS);
       String[] args = null;
       if (argsStr != null && !"".equals(argsStr)) {
          args = splitArgs(argsStr);
@@ -624,7 +651,7 @@ public class DemoMenuParser {
       for (int i = 0; i < aliases.length; i++) {
          demos.add(new DemoEntry(myDemoModels.getName(aliases[i]), aliases[i], args));
       }
-
+      
       // set fonts for all entries
       Font myFont = parseFont(el);
       if (myFont != null) {
@@ -789,26 +816,31 @@ public class DemoMenuParser {
       return entry;
    }
 
-   private static Element buildMenu(Document dom, MenuNode entry) {
+   private static Element buildMenu(Document dom, MenuEntry entry) {
       Element el = dom.createElement(MENU_TAG);
       el.setAttribute(MENU_TAG_TEXT, entry.getTitle());
       String icon = entry.getIcon();
       if (icon != null) {
          el.setAttribute(MENU_TAG_ICON, icon);
       }
+      boolean scrolling = entry.isScrolling ();
+      el.setAttribute (MENU_TAG_SCROLLING, Boolean.toString (scrolling));
+      int maxRows = entry.getMaxRows ();
+      el.setAttribute (MENU_TAG_MAX_ROWS, Integer.toString (maxRows));
       addFontAttributes(el, entry.getFont());
       return el;
    }
    
-   private static MenuNode parseMenu(Element el, String localPath) {
+   private static MenuEntry parseMenu(Element el, String localPath) {
 
       String name = el.getAttribute(MENU_TAG_TEXT);
       String icon = el.getAttribute(MENU_TAG_ICON);
+      
       if (name.equals("")) {
          name = "<unknown>";
       }
 
-      MenuNode m = new MenuNode(name);
+      MenuEntry m = new MenuEntry(name);
       if (!icon.equals("")) {
          String fullicon = findFile(icon, localPath);
          if (fullicon != null) {
@@ -817,6 +849,15 @@ public class DemoMenuParser {
             System.out.println("Unable to find icon '" + icon + "'");
          }
       }
+      
+      String scrollingStr = el.getAttribute (MENU_TAG_SCROLLING);
+      boolean scrolling = parseBoolean(scrollingStr);
+      m.setScrolling (scrolling);
+      
+      String maxRowsStr =el.getAttribute (MENU_TAG_MAX_ROWS);
+      int maxRows = Integer.parseInt (maxRowsStr);
+      m.setMaxRows (maxRows);
+      
       Font myFont = parseFont(el);
       if (myFont != null) {
          m.setFont(myFont);
@@ -827,7 +868,8 @@ public class DemoMenuParser {
 
    private static Tree<MenuNode> parsePackage(Element el) {
 
-      Tree<MenuNode> menu = new Tree<MenuNode>(new MenuNode("root"));
+      MenuEntry rootEntry = new MenuEntry("root");
+      Tree<MenuNode> menu = new Tree<MenuNode>(rootEntry);
       Node<MenuNode> root = menu.getRootElement();
 
       String view = el.getAttribute(PACKAGE_TAG_VIEW);
@@ -835,6 +877,14 @@ public class DemoMenuParser {
       String baseClass = el.getAttribute(PACKAGE_TAG_BASECLASS);
       String compactStr = el.getAttribute(PACKAGE_TAG_COMPACT);
       String regex = el.getAttribute(PACKAGE_TAG_REGEX);
+      String scrollingStr = el.getAttribute (MENU_TAG_SCROLLING);
+      String maxRowsStr = el.getAttribute (MENU_TAG_MAX_ROWS);
+      
+      boolean scrolling = parseBoolean(scrollingStr);
+      rootEntry.setScrolling (scrolling);
+      
+      int maxRows = Integer.parseInt (maxRowsStr);
+      rootEntry.setMaxRows (maxRows);
       
       String argsStr = el.getAttribute(PACKAGE_TAG_ARGS);
       String[] args = null;
@@ -938,7 +988,7 @@ public class DemoMenuParser {
 
          // default to hierarchical
       } else {
-         menu = getPackageMenuTree(clsList, pkg, compact, args);
+         menu = getPackageMenuTree(clsList, pkg, compact, args, scrolling, maxRows);
          root = menu.getRootElement();
          sortMenu(root, new MenuCompareByNameButDemosLast()); // sort first
          insertDividersInPackageMenu(root); // then insert dividers
@@ -1071,8 +1121,8 @@ public class DemoMenuParser {
    }
 
    private static Tree<MenuNode> getPackageMenuTree(ArrayList<String> clsList,
-      String pkg, int compact, String[] args) {
-      Tree<MenuNode> menu = new Tree<MenuNode>(new MenuNode("root"));
+      String pkg, int compact, String[] args, boolean scrolling, int maxRows) {
+      Tree<MenuNode> menu = new Tree<MenuNode>(new MenuEntry("root"));
       Node<MenuNode> root = menu.getRootElement();
       Node<MenuNode> base;
 
@@ -1090,7 +1140,10 @@ public class DemoMenuParser {
          // tack on to tree
          for (int j = 0; j < sections.length; j++) {
             if (j < sections.length - 1) {
-               newEntry = new MenuNode(sections[j]);
+               MenuEntry newMenu = new MenuEntry(sections[j]);
+               newMenu.setScrolling(scrolling);
+               newMenu.setMaxRows (maxRows);
+               newEntry = newMenu;
             } else {
                newEntry = new DemoEntry(cls, sections[j], args);
             }

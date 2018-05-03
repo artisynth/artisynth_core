@@ -60,5 +60,25 @@ public class HistoryEntry extends MenuNode {
       return super.equals(other);
    }
    
+   @Override
+   public int compareTo (MenuNode o) {
+      int cmp =  super.compareTo (o);
+      
+      if (cmp != 0) {
+         return cmp;
+      }
+      
+      HistoryEntry other = (HistoryEntry)o;
+      
+      cmp = Integer.compare (size, other.size);
+      if (cmp != 0) {
+         return cmp;
+      }
+      
+      cmp = Integer.compare (compact, other.compact);
+      
+      return cmp;
+   }
+   
    
 }

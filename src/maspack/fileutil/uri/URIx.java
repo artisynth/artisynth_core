@@ -766,7 +766,7 @@ public class URIx {
          }
 
          // trim off scheme
-         uri = uri.substring(scheme.toString().length() + 1);
+         uri = uri.substring(schemeStr.toString().length() + 1);
 
          int idx = -1;
          if (scheme.isZipType()) {

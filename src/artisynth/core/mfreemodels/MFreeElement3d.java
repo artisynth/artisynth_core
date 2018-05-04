@@ -95,7 +95,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
          MFreeIntegrationPoint3d ipnt = ipnts[i];
          IntegrationData3d idat = idata[i];
          
-         if (ipnt.computeGradient(F, idat.getInvJ0()) < 0) {
+         if (ipnt.computeGradient(F, ipnt.myDependentNodes, idat.getInvJ0()) < 0) {
             return true;
          }
       }

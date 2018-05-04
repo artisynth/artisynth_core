@@ -22,7 +22,7 @@ import maspack.matrix.*;
 public class IntegrationPoint3d {
 
    protected Matrix3d F;              // transient
-   protected double detF;             // transient
+   // protected double detF;             // transient
    // protected double avgp;             // transient  can remove
 
    protected SymmetricMatrix3d sigma; // transient  removed from TriRemesher
@@ -204,22 +204,22 @@ public class IntegrationPoint3d {
       return J.determinant();
    }
 
-   /**
-    * Computes the current Jacobian and deformation gradient
-    * at this integration point.
-    * 
-    * @param J returns the Jacobian
-    * @param F returns the deformation gradient
-    * @param nodes FEM nodes, used to obtain the element node positions
-    * @param invJ0 inverse rest position Jacobian
-    * @return determinant of F
-    */
-   public double computeJacobianAndGradient (
-      Matrix3d J, Matrix3d F, FemNode3d[] nodes, Matrix3d invJ0) {
-      computeJacobian (J, nodes);
-      F.mul (J, invJ0);
-      return F.determinant();
-   }
+//   /**
+//    * Computes the current Jacobian and deformation gradient
+//    * at this integration point.
+//    * 
+//    * @param J returns the Jacobian
+//    * @param F returns the deformation gradient
+//    * @param nodes FEM nodes, used to obtain the element node positions
+//    * @param invJ0 inverse rest position Jacobian
+//    * @return determinant of F
+//    */
+//   public double computeJacobianAndGradient (
+//      Matrix3d J, Matrix3d F, FemNode3d[] nodes, Matrix3d invJ0) {
+//      computeJacobian (J, nodes);
+//      F.mul (J, invJ0);
+//      return F.determinant();
+//   }
 
    /**
     * Computes the current deformation gradient at this integration point.
@@ -424,16 +424,16 @@ public class IntegrationPoint3d {
 
    public void setF(Matrix3d F) {
       this.F.set (F);
-      detF = F.determinant();
+      //detF = F.determinant();
    }
 
 //   public double getAveragePressure() {
 //      return avgp;
 //   }
 
-   public double getDetF() {
-      return detF;
-   }
+//   public double getDetF() {
+//      return detF;
+//   }
 
 //   public Matrix3d getJ() {
 //      return myJ;

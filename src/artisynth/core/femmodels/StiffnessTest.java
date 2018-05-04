@@ -22,10 +22,12 @@ public class StiffnessTest {
    public Vector3d[] getShapeGradient () {
       IntegrationPoint3d pt = tet.getIntegrationPoints()[0];
       IntegrationData3d dt = tet.getIntegrationData()[0];
-      pt.computeJacobianAndGradient (tet.getNodes(), dt.myInvJ0);
-      double detJ = pt.computeInverseJacobian();
+      Matrix3d invJ = new Matrix3d();
+      double detJ = pt.computeInverseJacobian (invJ, tet.getNodes());
+//      pt.computeJacobianAndGradient (tet.getNodes(), dt.myInvJ0);
+//      double detJ = pt.computeInverseJacobian();
       double dv = detJ*pt.getWeight();
-      Vector3d[] tmp = pt.updateShapeGradient(pt.myInvJ);
+      Vector3d[] tmp = pt.updateShapeGradient(invJ);
 
       Vector3d[] GNx = new Vector3d[4];
       for (int i=0; i<4; i++) {
@@ -36,27 +38,20 @@ public class StiffnessTest {
 
    public double getDeltaVolume() {
       IntegrationPoint3d pt = tet.getIntegrationPoints()[0];
-      IntegrationData3d dt = tet.getIntegrationData()[0];
-      pt.computeJacobianAndGradient (tet.getNodes(), dt.myInvJ0);
-      double detJ = pt.computeInverseJacobian();
+//      IntegrationData3d dt = tet.getIntegrationData()[0];
+//      pt.computeJacobianAndGradient (tet.getNodes(), dt.myInvJ0);
+      double detJ = pt.computeJacobianDeterminant(tet.getNodes());
       return detJ*pt.getWeight();
-   }
-
-   public SymmetricMatrix3d getStress() {
-      IntegrationPoint3d pt = tet.getIntegrationPoints()[0];
-      return new SymmetricMatrix3d (pt.sigma);
    }
 
    public MatrixNd getGeometricStiffness() {
       Vector3d[] GNx = getShapeGradient();
       double dv = getDeltaVolume();
-      SymmetricMatrix3d sigma = getStress();
       MatrixNd KG = new MatrixNd (12,12);
 
       Vector3d tmp = new Vector3d();
       for (int i=0; i<4; i++) {
          for (int j=0; j<4; j++) {
-            sigma.mul (tmp, GNx[j]);
             double Kg = tmp.dot(GNx[i])*dv;
             KG.set (3*i+0, 3*j+0, Kg);
             KG.set (3*i+1, 3*j+1, Kg);
@@ -77,8 +72,6 @@ public class StiffnessTest {
       VectorNd x0 = new VectorNd (size);
       VectorNd xj = new VectorNd (size);
 
-      SymmetricMatrix3d stress = getStress();
-      
       fem.updateForces (0);
       fem.getActiveForces (f0);
       fem.getActivePosState (x0);
@@ -88,7 +81,6 @@ public class StiffnessTest {
       double dv0 = getDeltaVolume();
       for (int i=0; i<GNx.length; i++) {
          tmp.scale (dv0, GNx[i]);
-         stress.mul (tmp, tmp);
          tmp.scale (-1);
          f0.set (i*3+0, tmp.x);
          f0.set (i*3+1, tmp.y);
@@ -103,7 +95,6 @@ public class StiffnessTest {
          GNx = getShapeGradient();
          double dv = getDeltaVolume();
          for (int i=0; i<GNx.length; i++) {
-            stress.mul (tmp, GNx[i]);
             tmp.scale (-dv);
             fj.set (i*3+0, tmp.x);
             fj.set (i*3+1, tmp.y);
@@ -126,8 +117,6 @@ public class StiffnessTest {
       VectorNd fj = new VectorNd (size);
       VectorNd x0 = new VectorNd (size);
       VectorNd xj = new VectorNd (size);
-
-      SymmetricMatrix3d stress = getStress();
       
       fem.updateForces (0);
       fem.getActiveForces (f0);
@@ -138,7 +127,6 @@ public class StiffnessTest {
       double dv0 = getDeltaVolume();
       for (int i=0; i<GNx.length; i++) {
          tmp.scale (dv0, GNx[i]);
-         stress.mul (tmp, tmp);
          tmp.scale (-1);
          f0.set (i*3+0, tmp.x);
          f0.set (i*3+1, tmp.y);
@@ -152,9 +140,7 @@ public class StiffnessTest {
          fem.updateForces(0);
          // GNx = getShapeGradient();
          double dv = getDeltaVolume();
-         stress = getStress();
          for (int i=0; i<GNx.length; i++) {
-            stress.mul (tmp, GNx[i]);
             tmp.scale (-dv0);
             fj.set (i*3+0, tmp.x);
             fj.set (i*3+1, tmp.y);

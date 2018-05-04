@@ -474,18 +474,17 @@ public class MFreeModel3d extends FemModel3d  {
 
       for (FemElement3d elem : myElements) {
          IntegrationPoint3d[] ipnts = elem.getIntegrationPoints();
-         IntegrationData3d idata[] = elem.getIntegrationData();
 
          for (int i = 0; i < elem.numIntegrationPoints(); i++) {
             IntegrationPoint3d ipnt = ipnts[i];
-            IntegrationData3d idat = idata[i];
             VectorNd shapeFunc = ipnt.getShapeWeights();
 
+            double detJ = ipnt.computeJacobianDeterminant (elem.getNodes()); 
             for (int j = 0; j < elem.numNodes(); j++) {
                // if (elem.isTermActive(j, j)) {
                double f =
                   fun.eval(((MFreePoint3d)ipnt).getPosition()) * ipnt.getWeight() * shapeFunc.get(j);
-               f = f * ipnt.getDetF() * idat.getDetJ0();
+               f = f * detJ; // ipnt.getDetF() * idat.getDetJ0();
                out += f;
                // }
             }
@@ -510,14 +509,14 @@ public class MFreeModel3d extends FemModel3d  {
 
       updateJacobians();
 
+      Matrix3d F = new Matrix3d();
       for (FemElement3d e : myElements) {
          for (int k = 0; k < e.numIntegrationPoints(); k++) {
 
             IntegrationPoint3d ipnt = e.getIntegrationPoints()[k];
-            IntegrationData3d idat = e.getIntegrationData()[k];
+             VectorNd shapeCoords = ipnt.getShapeWeights();
 
-            VectorNd shapeCoords = ipnt.getShapeWeights();
-
+            double detJ = ipnt.computeJacobianDeterminant (e.getNodes());
             for (int i = 0; i < e.numNodes(); i++) {
                for (int j = i; j < e.numNodes(); j++) {
                   // if (e.isTermActive(i, j)) {
@@ -526,8 +525,7 @@ public class MFreeModel3d extends FemModel3d  {
 
                   double m =
                      myDensity * shapeCoords.get(i)
-                     * shapeCoords.get(j) * ipnt.getWeight() * ipnt.getDetF()
-                     * idat.getDetJ0();
+                     * shapeCoords.get(j) * ipnt.getWeight() * detJ;
 
                   M.set(bi, bj, M.get(bi, bj) + m);
                   if (i != j) {
@@ -583,23 +581,16 @@ public class MFreeModel3d extends FemModel3d  {
    private void computeJacobianAndGradient(FemElement3d region) {
 
       IntegrationPoint3d[] ipnts = region.getIntegrationPoints();
-      IntegrationData3d[] idata = region.getIntegrationData();
+      //IntegrationData3d[] idata = region.getIntegrationData();
       region.setInverted(false);
 
       for (int i = 0; i < ipnts.length; i++) {
          IntegrationPoint3d ipnt = ipnts[i];
-         IntegrationData3d idat = idata[i];
-         ipnt.computeJacobianAndGradient(region.getNodes(), idat.getInvJ0());
-         double detJ = ipnt.computeInverseJacobian();
+         //IntegrationData3d idat = idata[i];
+         double detJ = ipnt.computeJacobianDeterminant (region.getNodes());
+         //double detJ = ipnt.computeInverseJacobian();
 
-         if (detJ < myMinDetJ) {
-            myMinDetJ = detJ;
-            myMinDetJElement = region;
-         }
-         if (detJ <= 0) {
-            region.setInverted(true);
-            myNumInverted++;
-         }
+         checkElementCondition (region, detJ, /*recordInversion=*/true);
       }
    }
    

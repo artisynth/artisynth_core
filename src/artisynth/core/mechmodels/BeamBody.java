@@ -25,7 +25,7 @@ import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.SolidDeformation;
+import artisynth.core.materials.DeformedPointBase;
 import artisynth.core.util.ScanToken;
 
 public class BeamBody extends DeformableBody {
@@ -118,7 +118,7 @@ public class BeamBody extends DeformableBody {
 
       for (int k=0; k<myIntegrationPoints.length; k++) {
 
-         SolidDeformation def = new SolidDeformation();
+         DeformedPointBase def = new DeformedPointBase();
          IntegrationPoint3d pt = myIntegrationPoints[k];
          IntegrationData3d dt = new IntegrationData3d ();
          pt.setF (Matrix3d.IDENTITY);
@@ -126,7 +126,9 @@ public class BeamBody extends DeformableBody {
          // get the tangent at the rest position
          Matrix3d Q = Matrix3d.IDENTITY;
          //myMaterial.computeTangent (D, pt.getStress(), pt, dt, null);
-         myMaterial.computeTangent (D, SymmetricMatrix3d.ZERO, def, Q, null);
+         //myMaterial.computeTangent (D, SymmetricMatrix3d.ZERO, def, Q, null);
+         SymmetricMatrix3d sigma = new SymmetricMatrix3d();
+         myMaterial.computeStressAndTangent (sigma, D, def, Q, 0.0);
          double dl = (myLen/2)*pt.getWeight();
 
          for (int i=0; i<numc; i++) {

@@ -23,6 +23,7 @@ import maspack.render.RenderableUtils;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.CompositeComponentBase;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
@@ -202,7 +203,7 @@ public class AuxMaterialBundle extends CompositeComponentBase
       myMat = (FemMaterial)MaterialBase.updateMaterial (
          this, "material", myMat, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);      
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);      
    }
    
    public void checkElementDesc (FemModel femMod, AuxMaterialElementDesc desc) {

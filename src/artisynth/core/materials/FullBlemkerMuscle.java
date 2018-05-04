@@ -273,7 +273,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
 
    public void computeStress (
       SymmetricMatrix3d sigma, double excitation, Vector3d dir0,
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
       
       Vector3d a = myTmp;
       def.getF().mul (a, dir0);
@@ -292,7 +292,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       double I5 = 0;
 
        // calculate deviatoric left Cauchy-Green tensor
-      def.computeDevLeftCauchyGreen(myB);     
+      computeDevLeftCauchyGreen(myB,def);     
       
       // calculate square of B
       myB2.mulTransposeLeft (myB);
@@ -405,7 +405,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
 
    public void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
 
       Vector3d a = myTmp;
       def.getF().mul (a, dir0);
@@ -423,7 +423,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       double I5 = 0;
 
        // calculate deviatoric left Cauchy-Green tensor
-      def.computeDevLeftCauchyGreen(myB);     
+      computeDevLeftCauchyGreen(myB,def);     
       // calculate square of B
       myB2.mulTransposeLeft (myB);
       Vector3d Ba = new Vector3d();
@@ -633,7 +633,7 @@ public class FullBlemkerMuscle extends MuscleMaterial {
       D.setLowerToUpper();
    }
 
-   public double computeStretch (Vector3d dir0, SolidDeformation def) {
+   public double computeStretch (Vector3d dir0, DeformedPoint def) {
       Vector3d a = myTmp;
       def.getF().mul(a, dir0);
       double mag = a.norm();
@@ -681,6 +681,16 @@ public class FullBlemkerMuscle extends MuscleMaterial {
          super.scaleMass(s);
          setMaxStress (myMaxStress*s);
       }
+   }
+
+   /**
+    * Computes the left deviatoric Cauchy-Green tensor from the deformation
+    * gradient.
+    */
+   public void computeDevLeftCauchyGreen (
+      SymmetricMatrix3d BD, DeformedPoint def) {
+      BD.mulTransposeRight (def.getF());
+      BD.scale (Math.pow(def.getDetF(), -2.0/3.0));
    }
    
 }

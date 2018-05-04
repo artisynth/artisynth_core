@@ -31,6 +31,7 @@ import maspack.spatialmotion.Wrench;
 import maspack.util.*;
 import artisynth.core.materials.FrameMaterial;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.materials.RotAxisFrameMaterial;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
@@ -259,7 +260,7 @@ public class FrameSpring extends Spring
       myMaterial = (FrameMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
    }
 
    public void setRotaryStiffness (double k) {

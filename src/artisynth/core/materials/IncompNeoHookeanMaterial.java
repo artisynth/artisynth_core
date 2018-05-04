@@ -61,13 +61,13 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterial {
    }
 
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       double J = def.getDetF();
       double p = def.getAveragePressure();
 
-      def.computeLeftCauchyGreen (myB);
+      computeLeftCauchyGreen (myB,def);
 
       double muJ = myG/Math.pow(J, 5.0/3.0);
       double diagTerm = -muJ*(myB.m00 + myB.m11 + myB.m22)/3.0 + p;
@@ -79,12 +79,12 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterial {
    }
 
    public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
 
       double J = def.getDetF();
 
-      def.computeLeftCauchyGreen (myB);
+      computeLeftCauchyGreen (myB,def);
 
       double Ib = myB.m00+myB.m11+myB.m22;
       double muJ = myG/Math.pow(J, 5.0/3.0);
@@ -121,16 +121,16 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterial {
    public static void main (String[] args) {
       IncompNeoHookeanMaterial mat = new IncompNeoHookeanMaterial();
 
-      SolidDeformation def = new SolidDeformation();
       Matrix3d Q = new Matrix3d();
-      def.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
-
+      
+      DeformedPointBase dpnt = new DeformedPointBase();
+      dpnt.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
+     
       Matrix6d D = new Matrix6d();
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
 
       mat.setShearModulus (10);      
-      mat.computeStress (sig, def, Q, null);
-      mat.computeTangent (D, sig, def, Q, null);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));

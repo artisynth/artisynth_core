@@ -15,6 +15,7 @@ import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.util.ScalableUnits;
@@ -65,7 +66,7 @@ RenderableComponentList<S> implements ScalableUnits {
       myMaterial = (AxialMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
    }
 
    /* ======== Renderable implementation ======= */

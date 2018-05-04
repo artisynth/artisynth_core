@@ -7,6 +7,7 @@
 package artisynth.core.femmodels;
 
 import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix3x1;
 import maspack.matrix.Matrix3x1Block;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.MatrixBlock;
@@ -133,16 +134,16 @@ public class FemNodeNeighbor {
    }
    
    public void addDilationalStiffness (
-      double[] Kp, MatrixBlock GT_i, MatrixBlock GT_j) {
+      double kp, Matrix3x1 intGi, Matrix3x1 intGj) {
 
       if (FemModel3d.noIncompressStiffnessDamping) {
          if (myKX == null) {
             myKX = new Matrix3d();
          }
-         FemUtilities.addDilationalStiffness (myKX, Kp, GT_i, GT_j);
+         FemUtilities.addDilationalStiffness (myKX, kp, intGi, intGj);
       }
       else {
-         FemUtilities.addDilationalStiffness (myK, Kp, GT_i, GT_j);
+         FemUtilities.addDilationalStiffness (myK, kp, intGi, intGj);
       }
       
    }

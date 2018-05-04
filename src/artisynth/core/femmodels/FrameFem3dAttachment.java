@@ -490,8 +490,9 @@ public class FrameFem3dAttachment extends FrameAttachment {
          myPolard.factor (F);         
       }
       else {
-         myIpnt.computeJacobianAndGradient (myElement.getNodes(), myData.myInvJ0);
-         myPolard.factor (myIpnt.F);
+         Matrix3d F = new Matrix3d();
+         myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
+         myPolard.factor (F);
       }
    }
 

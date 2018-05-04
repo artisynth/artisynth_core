@@ -1,23 +1,8 @@
 # ArtisynthScript: "FemRegressionTest"
 #
-# For repeatable result, enable the following settings:
+#  For repeatable results, set the environment variable OMP_NUM_THREADS
+# to 1
 #
-#   -posCorrection GlobalMass
-#   -disableHybridSolves
-#
-# and disable these setting:
-#
-#  -noIncompressDamping
-#  -useAjlCollision
-#
-# Also, set the environment variable OMP_NUM_THREADS to 1
-#
-#---------------------------------------------------
-#
-# most recent test was run using:
-#   1 step of numerical refinement in Pardiso
-#   a time step of 0.01 in RigidBodyCollision
-#   cnt=2 in MechBodySolver projectPositionConstraints
 
 # IMPORTS
 from artisynth.core.mechmodels.MechSystemSolver import Integrator
@@ -25,6 +10,10 @@ from artisynth.core.mechmodels.MechSystemSolver import Integrator
 def getMechModel() :
     mech = find ("models/0")
     return mech
+
+def getFemModel() :
+    fem = find ("models/0/models/fem")
+    return fem
 
 def setModelOpts (t) :
     mech = getMechModel()
@@ -62,6 +51,13 @@ def clearFile(file) :
     writer = FileWriter(file)
     writer.close()
 
+# Adjust certain solver settings to ensure repeatable results:
+MechSystemSolver.myDefaultHybridSolveP = False
+MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
+FemModel3d.noIncompressStiffnessDamping = False
+SurfaceMeshCollider.useAjlCollision = False
+PardisoSolver.setDefaultNumThreads (1)
+
 # Initialize view and clear contents of old output file
 main.maskFocusStealing (True)
 dataFileName = "femRegressionTest.out"
@@ -72,7 +68,7 @@ loadModel ("artisynth.demos.fem.ArticulatedFem")
 runIntegratorTest("#ArticulatedFem BackwardEuler", 1, dataFileName, Integrator.BackwardEuler)
 runIntegratorTest("#ArticulatedFem ConstrainedBackwardEuler", 1, dataFileName, Integrator.ConstrainedBackwardEuler)
 
-loadModel ("TetBeam3d")
+loadModel ("artisynth.demos.fem.TetBeam3d")
 mech = getMechModel()
 fem = mech.findComponent ("models/fem")
 fem.setIncompressible (FemModel.IncompMethod.AUTO)
@@ -82,7 +78,7 @@ runIntegratorTest("#TetBeam3d BackwardEuler", 1, dataFileName, Integrator.Backwa
 prop.set (0.5)
 runIntegratorTest("#TetBeam3d ConstrainedBackwardEuler", 1, dataFileName, Integrator.ConstrainedBackwardEuler)
 
-loadModel ("PyramidBeam3d")
+loadModel ("artisynth.demos.fem.PyramidBeam3d")
 mech = getMechModel()
 fem = mech.findComponent ("models/fem")
 fem.setIncompressible (FemModel.IncompMethod.AUTO)
@@ -92,7 +88,7 @@ runIntegratorTest("#PyramidBeam3d BackwardEuler", 1, dataFileName, Integrator.Ba
 prop.set (0.5)
 runIntegratorTest("#PyramidBeam3d ConstrainedBackwardEuler", 1, dataFileName, Integrator.ConstrainedBackwardEuler)
 
-loadModel ("WedgeBeam3d")
+loadModel ("artisynth.demos.fem.WedgeBeam3d")
 mech = getMechModel()
 fem = mech.findComponent ("models/fem")
 fem.setIncompressible (FemModel.IncompMethod.AUTO)
@@ -102,7 +98,7 @@ runIntegratorTest("#WedgeBeam3d BackwardEuler", 1, dataFileName, Integrator.Back
 prop.set (0.5)
 runIntegratorTest("#WedgeBeam3d ConstrainedBackwardEuler", 1, dataFileName, Integrator.ConstrainedBackwardEuler)
 
-loadModel ("PlaneConstrainedFem")
+loadModel ("artisynth.demos.fem.PlaneConstrainedFem")
 mech = getMechModel()
 fem = mech.findComponent ("models/fem")
 fem.setIncompressible (FemModel.IncompMethod.AUTO)
@@ -204,7 +200,7 @@ loadModel ("artisynth.demos.fem.ViscousBeam")
 runIntegratorTest("#ViscousBeam BackwardEuler", 1, dataFileName, Integrator.BackwardEuler)
 runIntegratorTest("#ViscousBeam ConstrainedBackwardEuler", 1, dataFileName, Integrator.ConstrainedBackwardEuler)
 
-loadModel ("Fem Collision")
+loadModel ("artisynth.demos.fem.FemCollision")
 runIntegratorTest("#FemCollision BackwardEuler", 1, dataFileName, Integrator.BackwardEuler)
 runIntegratorTest("#FemCollision ConstrainedBackwardEuler", 1, dataFileName, Integrator.ConstrainedBackwardEuler)
 
@@ -214,6 +210,60 @@ runIntegratorTest("#TongueInvDemo ConstrainedBackwardEuler", 0.1, dataFileName, 
 loadModel ("artisynth.demos.inverse.HydrostatInvDemo")
 runIntegratorTest("#HydrostatInvDemo Trapezoidal", 1, dataFileName, Integrator.Trapezoidal)
 
+# Quadratic element tests
+loadModel ("artisynth.demos.fem.QuadhexBeam3d")
+fem = getFemModel()
+fem.setMaterial (LinearMaterial())
+fem.setIncompressible (FemModel.IncompMethod.OFF)
+fem.setSoftIncompMethod (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadhexBeam3d Linear imcomp: OFF, ELEMENT", 0.5, dataFileName)
+fem.setIncompressible (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadhexBeam3d Linear imcomp: ELEMENT, ELEMENT", 0.5, dataFileName)
+fem.setMaterial (MooneyRivlinMaterial())
+fem.setIncompressible (FemModel.IncompMethod.OFF)
+runTest("#QuadhexBeam3d MooneyRivlin imcomp: OFF, ELEMENT", 0.5, dataFileName)
+fem.setIncompressible (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadhexBeam3d MooneyRivlin imcomp: ELEMENT, ELEMENT", 0.5, dataFileName)
+fem.setSoftIncompMethod (FemModel.IncompMethod.FULL)
+runTest("#QuadhexBeam3d MooneyRivlin imcomp: ELEMENT, FULL", 0.5, dataFileName)
+
+loadModel ("artisynth.demos.fem.QuadtetBeam3d")
+fem = getFemModel()
+fem.setMaterial (LinearMaterial())
+fem.setIncompressible (FemModel.IncompMethod.OFF)
+fem.setSoftIncompMethod (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadtetBeam3d Linear imcomp: OFF, ELEMENT", 0.5, dataFileName)
+fem.setIncompressible (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadtetBeam3d Linear imcomp: ELEMENT, ELEMENT", 0.5, dataFileName)
+fem.setMaterial (MooneyRivlinMaterial())
+fem.setIncompressible (FemModel.IncompMethod.OFF)
+runTest("#QuadtetBeam3d MooneyRivlin imcomp: OFF, ELEMENT", 0.5, dataFileName)
+fem.setIncompressible (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadtetBeam3d MooneyRivlin imcomp: ELEMENT, ELEMENT", 0.5, dataFileName)
+fem.setSoftIncompMethod (FemModel.IncompMethod.FULL)
+runTest("#QuadtetBeam3d MooneyRivlin imcomp: ELEMENT, FULL", 0.5, dataFileName)
+
+loadModel ("artisynth.demos.fem.QuadwedgeBeam3d")
+fem = getFemModel()
+fem.setMaterial (LinearMaterial())
+fem.setIncompressible (FemModel.IncompMethod.OFF)
+fem.setSoftIncompMethod (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadwedgeBeam3d Linear imcomp: OFF, ELEMENT", 0.5, dataFileName)
+fem.setIncompressible (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadwedgeBeam3d Linear imcomp: ELEMENT, ELEMENT", 0.5, dataFileName)
+fem.setMaterial (MooneyRivlinMaterial())
+fem.setIncompressible (FemModel.IncompMethod.OFF)
+runTest("#QuadwedgeBeam3d MooneyRivlin imcomp: OFF, ELEMENT", 0.5, dataFileName)
+fem.setIncompressible (FemModel.IncompMethod.ELEMENT)
+runTest("#QuadwedgeBeam3d MooneyRivlin imcomp: ELEMENT, ELEMENT", 0.5, dataFileName)
+fem.setSoftIncompMethod (FemModel.IncompMethod.FULL)
+runTest("#QuadwedgeBeam3d MooneyRivlin imcomp: ELEMENT, FULL", 0.5, dataFileName)
+
+loadModel ("artisynth.demos.test.FrameFemConstraintTest")
+runTest("#FrameFemConstraintTest", 0.5, dataFileName)
+
 # Exit
 main.maskFocusStealing (False)
-main.quit()
+if main.getMainFrame() == None:
+   main.quit()
+

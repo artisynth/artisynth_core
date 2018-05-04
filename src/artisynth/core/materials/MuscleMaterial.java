@@ -31,12 +31,21 @@ public abstract class MuscleMaterial extends MaterialBase {
 
    public abstract void computeStress (
       SymmetricMatrix3d sigma, double excitation, Vector3d dir,
-      SolidDeformation def, FemMaterial baseMat);
+      DeformedPoint def, FemMaterial baseMat);
 
    public abstract void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir,
-      SolidDeformation def, FemMaterial baseMat);
+      Matrix6d D, SymmetricMatrix3d sigma, double excitation, Vector3d dir,
+      DeformedPoint def, FemMaterial baseMat);
 
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Vector3d dir, double excitation) {
+      computeStress (sigma, excitation, dir, def, /*baseMat=*/null);
+      if (D != null) {
+         computeTangent (D, sigma, excitation, dir, def, /*baseMat=*/null);
+      }
+   }
+    
    public boolean equals (MuscleMaterial mat) {
       return true;
    }

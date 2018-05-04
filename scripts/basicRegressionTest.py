@@ -1,23 +1,8 @@
 # ArtisynthScript: "BasicRegressionTest"
 #
-# For repeatable result, enable the following settings:
+# For repeatable results, set the environment variable OMP_NUM_THREADS
+# to 1
 #
-#   -posCorrection GlobalMass
-#   -disableHybridSolves
-#
-# and disable these setting:
-#
-#  -noIncompressDamping
-#  -useAjlCollision
-#
-# Also, set the environment variable OMP_NUM_THREADS to 1
-#
-#---------------------------------------------------
-#
-# most recent test was run using:
-#   1 step of numerical refinement in Pardiso
-#   a time step of 0.01 in RigidBodyCollision
-#   cnt=2 in MechBodySolver projectPositionConstraints
 
 # IMPORTS
 from artisynth.core.mechmodels.MechSystemSolver import Integrator
@@ -61,6 +46,13 @@ def runTest(title, t, file) :
 def clearFile(file) :
     writer = FileWriter(file)
     writer.close()
+
+# Adjust certain solver settings to ensure repeatable results:
+MechSystemSolver.myDefaultHybridSolveP = False
+MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
+FemModel3d.noIncompressStiffnessDamping = False
+SurfaceMeshCollider.useAjlCollision = False
+PardisoSolver.setDefaultNumThreads (1)
 
 # Initialize view and clear contents of old output file
 main.maskFocusStealing (True)

@@ -346,7 +346,7 @@ public class OgdenMaterial extends IncompressibleMaterial {
    }
 	   
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       double J = def.getDetF();
@@ -355,7 +355,7 @@ public class OgdenMaterial extends IncompressibleMaterial {
       sigma.setZero();
 
       // Calculate Deviatoric left Cauchy-Green tensor
-      def.computeDevLeftCauchyGreen(myB);
+      computeDevLeftCauchyGreen(myB,def);
 
       Vector3d principalStretch   = new Vector3d();
       Vector3d principalStretch2  = new Vector3d();
@@ -395,7 +395,7 @@ public class OgdenMaterial extends IncompressibleMaterial {
    // Principal Stretches.  Continuum Basis and Numerical Algorithms, Comp
    // Methods Appl Mech Eng, 85, 273-310, 1991
    public void computeTangent (
-      Matrix6d c, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d c, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
       
       double J = def.getDetF();
@@ -404,7 +404,7 @@ public class OgdenMaterial extends IncompressibleMaterial {
       principalStretchDevPow = new double[3][6];
 
       // Calculate left Cauchy-Green tensor
-      def.computeLeftCauchyGreen(myB);
+      computeLeftCauchyGreen(myB,def);
   
       // Calculate square of B
       myB2.mulTransposeLeft(myB);
@@ -710,21 +710,17 @@ public class OgdenMaterial extends IncompressibleMaterial {
    public static void main (String[] args) {
       OgdenMaterial mat = new OgdenMaterial();
 
-      SolidDeformation def = new SolidDeformation();
       Matrix3d Q = new Matrix3d();
-      def.setF (new Matrix3d (1.1, 0.1, 0.2, 0.3, 0.8, 0.23, 0.3, 0.1, 1.5));
 
+      DeformedPointBase dpnt = new DeformedPointBase();
+      dpnt.setF (new Matrix3d (1.1, 0.1, 0.2, 0.3, 0.8, 0.23, 0.3, 0.1, 1.5));
+     
       Matrix6d D = new Matrix6d();
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
-      //      double[] alpha = {2.0, 2.0, 2.0, 2.0, 2.0, 2.0};
-      //      double[] mu = {200.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             
-      mat.computeStress (sig, def, Q, null);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
-      mat.computeTangent (D, sig, def, Q, null);
-
       System.out.println ("D=\n" + D.toString ("%12.6f"));
-
    }
 
    @Override

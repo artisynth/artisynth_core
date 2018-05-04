@@ -304,7 +304,7 @@ public class FungMaterial extends IncompressibleMaterial {
    }
 
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       sigma.setZero();
@@ -348,10 +348,10 @@ public class FungMaterial extends IncompressibleMaterial {
       double avgp = def.getAveragePressure();
 
       // Calculate deviatoric left Cauchy-Green tensor
-      def.computeDevLeftCauchyGreen(myB);
+      computeDevLeftCauchyGreen(myB,def);
 
       // Calculate deviatoric right Cauchy-Green tensor
-      def.computeDevRightCauchyGreen(myC);
+      computeDevRightCauchyGreen(myC,def);
 
       // calculate square of C
       myC2.mulTransposeLeft (myC);
@@ -424,7 +424,7 @@ public class FungMaterial extends IncompressibleMaterial {
    }
 
    public void computeTangent (
-      Matrix6d c, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d c, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
       
       c.setZero();
@@ -470,10 +470,10 @@ public class FungMaterial extends IncompressibleMaterial {
       double avgp = def.getAveragePressure();
 
       // Calculate deviatoric left Cauchy-Green tensor
-      def.computeDevLeftCauchyGreen(myB);
+      computeDevLeftCauchyGreen(myB,def);
 
       // Calculate deviatoric right Cauchy-Green tensor
-      def.computeDevRightCauchyGreen(myC);
+      computeDevRightCauchyGreen(myC,def);
 
       // calculate square of C
       myC2.mulTransposeLeft (myC);
@@ -626,12 +626,12 @@ public class FungMaterial extends IncompressibleMaterial {
 
       RotationMatrix3d R = new RotationMatrix3d();
       R.setRpy (1, 2, 3);
-
-      SolidDeformation def = new SolidDeformation();
       Matrix3d Q = new Matrix3d();
-      def.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
       Q.set (R);
-
+      
+      DeformedPointBase dpnt = new DeformedPointBase();
+      dpnt.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
+   
       Matrix6d D = new Matrix6d();
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
 
@@ -640,11 +640,9 @@ public class FungMaterial extends IncompressibleMaterial {
       // mat.computeTangent (D, sig, pt, dt, null);
       // System.out.println ("D=\n" + D.toString ("%12.6f"));
 
-      mat.computeStress (sig, def, Q, null);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
-      mat.computeTangent (D, sig, def, Q, null);
       System.out.println ("D=\n" + D.toString ("%12.6f"));
-
    }
 
    @Override

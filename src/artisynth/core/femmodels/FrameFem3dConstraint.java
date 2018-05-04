@@ -156,9 +156,10 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       Matrix3d H = new Matrix3d();
       VectorNd N = myIpnt.getShapeWeights();
       FemNode3d[] nodes = myElement.getNodes();
-      myIpnt.computeJacobianAndGradient (myElement.getNodes(), myData.myInvJ0);
+      Matrix3d F = new Matrix3d();
+      myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
       PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (myIpnt.F);
+      polard.factor (F);
       polard.getH(H);
       computeB (B, H);
       myInvB.invert (B);
@@ -229,9 +230,10 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       myData = new IntegrationData3d();
       myData.computeRestJacobian (myIpnt.GNs, elem.getNodes());
 
-      myIpnt.computeJacobianAndGradient (elem.getNodes(), myData.myInvJ0);
+      Matrix3d F = new Matrix3d();
+      myIpnt.computeGradient (F, elem.getNodes(), myData.myInvJ0);
       PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (myIpnt.F);  
+      polard.factor (F);  
       myRC.mulInverseLeft (polard.getR(), T.R);
 
       //computeBlocks (myData.myInvJ0, myRC);
@@ -244,12 +246,13 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       T.setIdentity();
       VectorNd N = myIpnt.getShapeWeights();
       FemNode3d[] nodes = myElement.getNodes();
-      myIpnt.computeJacobianAndGradient (myElement.getNodes(), myData.myInvJ0);
+      Matrix3d F = new Matrix3d();
+      myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
       for (int i=0; i<nodes.length; i++) {
          T.p.scaledAdd (N.get(i), nodes[i].getLocalPosition());
       }
       PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (myIpnt.F);
+      polard.factor (F);
       T.R.mul (polard.getR(), myRC);
    }
 
@@ -266,9 +269,10 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       for (int i=0; i<nodes.length; i++) {
          vel.v.scaledAdd (N.get(i), nodes[i].getVelocity());
       }
-      myIpnt.computeJacobianAndGradient (myElement.getNodes(), myData.myInvJ0);
+      Matrix3d F = new Matrix3d();
+      myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
       PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (myIpnt.F);
+      polard.factor (F);
       Matrix3d H = new Matrix3d();
       polard.getH(H);
       computeB (B, H);
@@ -299,9 +303,10 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       for (int i=0; i<nodes.length; i++) {
          vel.v.scaledAdd (N.get(i), nodes[i].getLocalVelocity());
       }
-      myIpnt.computeJacobianAndGradient (myElement.getNodes(), myData.myInvJ0);
+      Matrix3d F = new Matrix3d();
+      myIpnt.computeGradient (F, myElement.getNodes(), myData.myInvJ0);
       PolarDecomposition3d polard = new PolarDecomposition3d();
-      polard.factor (myIpnt.F);
+      polard.factor (F);
       Matrix3d H = new Matrix3d();
       polard.getH(H);
       computeB (B, H);

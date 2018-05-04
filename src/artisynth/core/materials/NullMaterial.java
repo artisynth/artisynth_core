@@ -8,14 +8,14 @@ public class NullMaterial extends FemMaterial {
 
    @Override
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
       sigma.setZero();      
    }
 
    @Override
    public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
       D.setZero();
    }

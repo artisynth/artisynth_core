@@ -7,7 +7,6 @@
 package artisynth.core.femmodels;
 
 import maspack.matrix.*;
-import artisynth.core.materials.SolidDeformation;
 
 /**
  * This class stores readonly and transient information for each integration
@@ -22,30 +21,29 @@ import artisynth.core.materials.SolidDeformation;
  */
 public class IntegrationPoint3d {
 
-   protected Matrix3d F;
-   protected double detF;
-   protected double avgJ;
-   protected double avgp;
+   protected Matrix3d F;              // transient
+   // protected double detF;             // transient
+   // protected double avgp;             // transient  can remove
 
-   protected SymmetricMatrix3d sigma;
+   protected SymmetricMatrix3d sigma; // transient  removed from TriRemesher
 
    protected int myNumNodes;          // static
    protected Vector3d coords;         // static
    protected VectorNd N;              // static
-   protected VectorNd H;
+   protected VectorNd H;              // static
    protected Vector3d GNs[];          // static
 
-   protected Matrix3d myJ;            // transient
-   protected Matrix3d myInvJ;         // transient
+   //protected Matrix3d myJ;            // transient
+   //protected Matrix3d myInvJ;         // transient - mfreemodels
 
    protected Vector3d[] GNx = null;   // transient
 
-   protected double myWeight = 1;
-   protected int myNum = -1;
+   protected double myWeight = 1;     // static
+   protected int myNum = -1;          // static
 
    protected void init(int nnodes, int npvals) {
-      myJ = new Matrix3d();
-      myInvJ = new Matrix3d();
+      //myJ = new Matrix3d();
+      //myInvJ = new Matrix3d();
 
       F = new Matrix3d();
       sigma = new SymmetricMatrix3d();
@@ -169,48 +167,120 @@ public class IntegrationPoint3d {
       return H;
    }
 
-   public void computeJacobian (FemNode3d[] nodes) {
-      myJ.setZero();
+//   public void computeJacobian (FemNode3d[] nodes) {      
+//      myJ.setZero();
+//      for (int i=0; i<nodes.length; i++) {
+//         Vector3d pos = nodes[i].getLocalPosition();
+//         Vector3d dNds = GNs[i];
+//         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+//      }
+//   }
+   
+   /**
+    * Computes the current Jacobian at this integration point.
+    * 
+    * @param J returns the Jacobian
+    * @param nodes FEM nodes, used to obtain the element node positions
+    */
+   public void computeJacobian (Matrix3d J, FemNode3d[] nodes) {
+      J.setZero();
       for (int i=0; i<nodes.length; i++) {
          Vector3d pos = nodes[i].getLocalPosition();
          Vector3d dNds = GNs[i];
-         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
-      }
+         J.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+      }      
    }
 
-   public void computeJacobianAndGradient (FemNode3d[] nodes, Matrix3d invJ0) {
-      myJ.setZero();
-      for (int i=0; i<nodes.length; i++) {
-         Vector3d pos = nodes[i].getLocalPosition();
-         Vector3d dNds = GNs[i];
-         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
-      }
-      F.mul (myJ, invJ0);
-      detF = F.determinant();
+   /**
+    * Computes the determinant of the current Jacobian at this 
+    * integration point.
+    * 
+    * @param nodes FEM nodes, used to obtain the element node positions
+    * @return determinant of the Jacobian
+    */
+   public double computeJacobianDeterminant (FemNode3d[] nodes) {
+      Matrix3d J = new Matrix3d();
+      computeJacobian (J, nodes);
+      return J.determinant();
    }
 
-   public void computeJacobianAndGradient (Point3d[] nodePos, Matrix3d invJ0) {
-      myJ.setZero();
-      for (int i=0; i<nodePos.length; i++) {
-         Vector3d pos = nodePos[i];
-         Vector3d dNds = GNs[i];
-         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
-      }
-      F.mul (myJ, invJ0);
-      detF = F.determinant();
+//   /**
+//    * Computes the current Jacobian and deformation gradient
+//    * at this integration point.
+//    * 
+//    * @param J returns the Jacobian
+//    * @param F returns the deformation gradient
+//    * @param nodes FEM nodes, used to obtain the element node positions
+//    * @param invJ0 inverse rest position Jacobian
+//    * @return determinant of F
+//    */
+//   public double computeJacobianAndGradient (
+//      Matrix3d J, Matrix3d F, FemNode3d[] nodes, Matrix3d invJ0) {
+//      computeJacobian (J, nodes);
+//      F.mul (J, invJ0);
+//      return F.determinant();
+//   }
+
+   /**
+    * Computes the current deformation gradient at this integration point.
+    * 
+    * @param F returns the deformation gradient
+    * @param nodes FEM nodes, used to obtain the element node positions
+    * @param invJ0 inverse rest position Jacobian
+    * @return determinant of F
+    */
+   public double computeGradient (
+      Matrix3d F, FemNode3d[] nodes, Matrix3d invJ0) {
+      computeJacobian (F, nodes); // compute J in F
+      F.mul (F, invJ0);
+      return F.determinant();
    }
 
-   public void computeJacobianAndGradient (
-      SolidDeformation def, FemNode3d[] nodes, Matrix3d invJ0) {
-      myJ.setZero();
-      for (int i=0; i<nodes.length; i++) {
-         Vector3d pos = nodes[i].getLocalPosition();
-         Vector3d dNds = GNs[i];
-         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
-      }
-      def.setF (myJ, invJ0);
+   /**
+    * Computes the current inverse Jacobian at this integration point.
+    * 
+    * @param invJ returns the inverse Jacobian
+    * @param nodes FEM nodes, used to obtain the element node positions
+    * @return determinant of the Jacobian
+    */
+   public double computeInverseJacobian (Matrix3d invJ, FemNode3d[] nodes) {
+      computeJacobian (invJ, nodes);
+      return invJ.fastInvert(invJ);
    }
+   
+//   public void computeJacobianAndGradient (FemNode3d[] nodes, Matrix3d invJ0) {
+//      myJ.setZero();
+//      for (int i=0; i<nodes.length; i++) {
+//         Vector3d pos = nodes[i].getLocalPosition();
+//         Vector3d dNds = GNs[i];
+//         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+//      }
+//      F.mul (myJ, invJ0);
+//      detF = F.determinant();
+//   }
 
+//   public void computeJacobianAndGradient (Point3d[] nodePos, Matrix3d invJ0) {
+//      myJ.setZero();
+//      for (int i=0; i<nodePos.length; i++) {
+//         Vector3d pos = nodePos[i];
+//         Vector3d dNds = GNs[i];
+//         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+//      }
+//      F.mul (myJ, invJ0);
+//      detF = F.determinant();
+//   }
+
+//   public void computeJacobianAndGradient (
+//      SolidDeformation def, FemNode3d[] nodes, Matrix3d invJ0) {
+//      myJ.setZero();
+//      for (int i=0; i<nodes.length; i++) {
+//         Vector3d pos = nodes[i].getLocalPosition();
+//         Vector3d dNds = GNs[i];
+//         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+//      }
+//      def.setF (myJ, invJ0);
+//   }
+//
    public void computeGradientForRender (
       Matrix3d Fmat, FemNode3d[] nodes, Matrix3d invJ0) {
 
@@ -246,7 +316,7 @@ public class IntegrationPoint3d {
       return max-min;
    }
 
-   public void computePosition (Point3d pos, FemNode3d[] nodes) {
+   public void computePosition (Point3d pos, FemNode[] nodes) {
       double[] Nbuf = N.getBuffer();
       pos.setZero();
       for (int i=0; i<nodes.length; i++) {
@@ -262,7 +332,7 @@ public class IntegrationPoint3d {
       computeRestPosition(pos, elem.getNodes());
    }
    
-   public void computeRestPosition (Point3d pos, FemNode3d[] nodes) {
+   public void computeRestPosition (Point3d pos, FemNode[] nodes) {
       double[] Nbuf = N.getBuffer();
       pos.setZero();
       for (int i=0; i<nodes.length; i++) {
@@ -282,15 +352,15 @@ public class IntegrationPoint3d {
       }
    }
 
-   public double computeInverseJacobian () {
-
-      double detJ = myInvJ.fastInvert (myJ);
-      return detJ;
-   }
-
-   public Matrix3d getInvJ() {
-      return myInvJ;
-   }
+//   public double computeInverseJacobian () {
+//
+//      double detJ = myInvJ.fastInvert (myJ);
+//      return detJ;
+//   }
+//
+//   public Matrix3d getInvJ() {
+//      return myInvJ;
+//   }
    
    /** 
     * Computes and returns the gradient dN/dx of the shape functions, given an
@@ -354,24 +424,20 @@ public class IntegrationPoint3d {
 
    public void setF(Matrix3d F) {
       this.F.set (F);
-      detF = F.determinant();
+      //detF = F.determinant();
    }
 
-   public double getAverageJ() {
-      return avgJ;
-   }
+//   public double getAveragePressure() {
+//      return avgp;
+//   }
 
-   public double getAveragePressure() {
-      return avgp;
-   }
+//   public double getDetF() {
+//      return detF;
+//   }
 
-   public double getDetF() {
-      return detF;
-   }
-
-   public Matrix3d getJ() {
-      return myJ;
-   }
+//   public Matrix3d getJ() {
+//      return myJ;
+//   }
 
    public SymmetricMatrix3d getStress() {
       return sigma;
@@ -381,30 +447,30 @@ public class IntegrationPoint3d {
       sigma.set (sig);
    }
 
-   public void computeRightCauchyGreen (SymmetricMatrix3d C) {
-      C.mulTransposeLeft (F);
-   }
-
-   public void computeLeftCauchyGreen (SymmetricMatrix3d B) {
-      B.mulTransposeRight (F);
-   }
-
-   public void computeDevRightCauchyGreen (SymmetricMatrix3d CD) {
-      CD.mulTransposeLeft (F);
-      CD.scale (Math.pow(detF, -2.0/3.0));
-   }
-
-   public void computeDevLeftCauchyGreen (SymmetricMatrix3d BD) {
-      BD.mulTransposeRight (F);
-      BD.scale (Math.pow(detF, -2.0/3.0));
-   }
+//   public void computeRightCauchyGreen (SymmetricMatrix3d C) {
+//      C.mulTransposeLeft (F);
+//   }
+//
+//   public void computeLeftCauchyGreen (SymmetricMatrix3d B) {
+//      B.mulTransposeRight (F);
+//   }
+//
+//   public void computeDevRightCauchyGreen (SymmetricMatrix3d CD) {
+//      CD.mulTransposeLeft (F);
+//      CD.scale (Math.pow(detF, -2.0/3.0));
+//   }
+//
+//   public void computeDevLeftCauchyGreen (SymmetricMatrix3d BD) {
+//      BD.mulTransposeRight (F);
+//      BD.scale (Math.pow(detF, -2.0/3.0));
+//   }
 
    public Vector3d[] getGNs() {
       return GNs;
    }
    
-   public void setAveragePressure(double p) {
-      avgp = p;
-   }
+//   public void setAveragePressure(double p) {
+//      avgp = p;
+//   }
    
 }

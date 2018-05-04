@@ -1,10 +1,10 @@
 package artisynth.core.femmodels;
 
 import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.SolidDeformation;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 
 /**
@@ -59,10 +59,7 @@ public class LinearMaterialCache {
     */
    public void addInitialStiffness (FemElement3d e, FemMaterial mat) {
       
-      SolidDeformation def = new SolidDeformation();
-      def.setAveragePressure(0);
-      def.setF(Matrix3d.IDENTITY);
-      def.setR(Matrix3d.IDENTITY);
+      FemDeformedPoint dpnt = new FemDeformedPoint();
       
       // compute stiffness matrix
       Matrix6d D = new Matrix6d();
@@ -72,6 +69,9 @@ public class LinearMaterialCache {
 
          IntegrationPoint3d pt = ipnts[k];
          IntegrationData3d dt = idata[k];
+         
+         dpnt.setFromIntegrationPoint (
+            pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
                   
          double dv0 = dt.myDetJ0*pt.getWeight();
          if (dt.myScaling != 1) {
@@ -82,7 +82,9 @@ public class LinearMaterialCache {
          Vector3d[] GNx0 = pt.updateShapeGradient(dt.myInvJ0);
 
          // compute tangent matrix under zero stress
-         mat.computeTangent(D, SymmetricMatrix3d.ZERO, def, Q, null);
+         SymmetricMatrix3d sigma = new SymmetricMatrix3d();
+         mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0);
+         //mat.computeTangent(D, SymmetricMatrix3d.ZERO, def, Q, null);
          
          FemNode3d[] nodes = e.getNodes();
          for (int i = 0; i < nodes.length; i++) {
@@ -111,11 +113,7 @@ public class LinearMaterialCache {
     * @param mat linear material
     */
    public void addInitialStiffness (FemElement3d e, AuxiliaryMaterial mat) {
-      
-      SolidDeformation def = new SolidDeformation();
-      def.setAveragePressure(0);
-      def.setF(Matrix3d.IDENTITY);
-      def.setR(Matrix3d.IDENTITY);
+      FemDeformedPoint dpnt = new FemDeformedPoint();
       
       // compute stiffness matrix
       Matrix6d D = new Matrix6d();
@@ -126,6 +124,9 @@ public class LinearMaterialCache {
          IntegrationPoint3d pt = ipnts[k];
          IntegrationData3d dt = idata[k];
                   
+         dpnt.setFromIntegrationPoint (
+            pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
+         
          double dv0 = dt.myDetJ0*pt.getWeight();
          if (dt.myScaling != 1) {
             dv0 *= dt.myScaling;
@@ -134,7 +135,9 @@ public class LinearMaterialCache {
          Vector3d[] GNx0 = pt.updateShapeGradient(dt.myInvJ0);
 
          // compute tangent matrix under zero stress
-         mat.computeTangent(D, SymmetricMatrix3d.ZERO, def, pt, dt, null);
+         SymmetricMatrix3d sig = new SymmetricMatrix3d();
+         mat.computeStressAndTangent(sig, D, dpnt, pt, dt);
+         //mat.computeTangent(D, SymmetricMatrix3d.ZERO, def, pt, dt, null);
          
          FemNode3d[] nodes = e.getNodes();
          for (int i = 0; i < nodes.length; i++) {

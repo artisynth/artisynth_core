@@ -124,7 +124,7 @@ public abstract class DeformableBody extends RigidBody
       myMaterial = (FemMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
    }
 
    public void propertyChanged (PropertyChangeEvent e) {

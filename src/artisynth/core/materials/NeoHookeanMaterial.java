@@ -87,7 +87,7 @@ public class NeoHookeanMaterial extends FemMaterial {
    }
 
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       double J = def.getDetF();
@@ -97,7 +97,7 @@ public class NeoHookeanMaterial extends FemMaterial {
       double lam = (myE*myNu)/((1-2*myNu)*(1+myNu));
       double mu = G;
 
-      def.computeLeftCauchyGreen (myB);
+      computeLeftCauchyGreen (myB,def);
 
       sigma.scale (mu/J, myB);
       double diagTerm = (lam*Math.log(J)-mu)/J;
@@ -107,12 +107,12 @@ public class NeoHookeanMaterial extends FemMaterial {
    }
 
    public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
 
       double J = def.getDetF();
 
-      def.computeLeftCauchyGreen (myB);
+      computeLeftCauchyGreen (myB,def);
 
       // express constitutive law in terms of Lama parameters
       double G = myE/(2*(1+myNu)); // bulk modulus
@@ -149,16 +149,16 @@ public class NeoHookeanMaterial extends FemMaterial {
    public static void main (String[] args) {
       NeoHookeanMaterial mat = new NeoHookeanMaterial();
 
-      SolidDeformation def = new SolidDeformation();
       Matrix3d Q = new Matrix3d();
-      def.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
+
+      DeformedPointBase dpnt = new DeformedPointBase();
+      dpnt.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
 
       Matrix6d D = new Matrix6d();
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
 
       mat.setYoungsModulus (10);      
-      mat.computeStress (sig, def, Q, null);
-      mat.computeTangent (D, sig, def, Q, null);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 0.0);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));

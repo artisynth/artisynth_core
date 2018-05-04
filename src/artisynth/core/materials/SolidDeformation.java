@@ -1,18 +1,19 @@
 package artisynth.core.materials;
 
 import maspack.matrix.*;
+import artisynth.core.modelbase.FieldPoint;
 
 /**
  * Contains information about local 3D solid deformation, to be
  * used by solid materials for computing stress and tangent matrices.
  */
-public class SolidDeformation {
+public class SolidDeformation implements DeformedPoint {
 
    Matrix3d myF;            // deformation gradient
    double myDetF;           // determinant of the deformation gradient
    double myP;              // local pressure
    RotationMatrix3d myRot;  // local rotation (if stiffness warping)
-
+   
    public SolidDeformation() {
       myF = new Matrix3d();
       clear();
@@ -94,36 +95,28 @@ public class SolidDeformation {
       return myRot;
    }
 
-   /**
-    * Computes the right Cauchy-Green tensor from the deformation gradient.
-    */
-   public void computeRightCauchyGreen (SymmetricMatrix3d C) {
-      C.mulTransposeLeft (myF);
+   public Vector3d getRestPos() {
+      return new Vector3d();
+   }
+   
+   public Vector3d getSpatialPos() {
+      return new Vector3d();
+   }
+   
+   public int getElementNumber() {
+      return -1;
+   }
+         
+   public int getPointIndex() {
+      return -1;
    }
 
-   /**
-    * Computes the left Cauchy-Green tensor from the deformation gradient.
-    */
-   public void computeLeftCauchyGreen (SymmetricMatrix3d B) {
-      B.mulTransposeRight (myF);
+   public double[] getNodeWeights() {
+      return null;
    }
-
-   /**
-    * Computes the right deviatoric Cauchy-Green tensor from the deformation
-    * gradient.
-    */
-   public void computeDevRightCauchyGreen (SymmetricMatrix3d CD) {
-      CD.mulTransposeLeft (myF);
-      CD.scale (Math.pow(myDetF, -2.0/3.0));
+   
+   public int[] getNodeNumbers() {
+      return null;
    }
-
-   /**
-    * Computes the left deviatoric Cauchy-Green tensor from the deformation
-    * gradient.
-    */
-   public void computeDevLeftCauchyGreen (SymmetricMatrix3d BD) {
-      BD.mulTransposeRight (myF);
-      BD.scale (Math.pow(myDetF, -2.0/3.0));
-   }
-
+   
 }

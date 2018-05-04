@@ -127,56 +127,74 @@ public class MFreeIntegrationPoint3d extends IntegrationPoint3d implements MFree
       return ipnt;
    }
 
-   public void computeJacobian () {
-      myJ.setZero();
-      for (int i=0; i<myDependentNodes.length; i++) {
-         Point3d pos = myDependentNodes[i].getPosition();
-         Vector3d dNds = GNs[i];
-         myJ.addOuterProduct (pos.x, pos.y, pos.z, 
-            dNds.x, dNds.y, dNds.z);
-      }
+//   public void computeJacobian () {
+//      myJ.setZero();
+//      for (int i=0; i<myDependentNodes.length; i++) {
+//         Point3d pos = myDependentNodes[i].getPosition();
+//         Vector3d dNds = GNs[i];
+//         myJ.addOuterProduct (pos.x, pos.y, pos.z, 
+//            dNds.x, dNds.y, dNds.z);
+//      }
+//
+//   }
+   
+//   public double computeJacobian (Matrix3d J) {
+//      J.setZero();
+//      for (int i=0; i<myDependentNodes.length; i++) {
+//         Vector3d pos = myDependentNodes[i].getPosition();
+//         Vector3d dNds = GNs[i];
+//         J.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+//      }
+//      return J.determinant();
+//   }
+//   
+//   public double computeGradient (Matrix3d F, Matrix3d invJ0) {
+//      computeJacobian (F);
+//      if (invJ0 != null) {
+//         F.mul (F, invJ0);
+//      }
+//      return F.determinant();      
+//   }
+   
+//   public void computeJacobianAndGradient (Matrix3d invJ0) {
+//
+//      myJ.setZero();
+//      for (int i=0; i<myDependentNodes.length; i++) {
+//         Vector3d pos = myDependentNodes[i].getPosition();
+//         Vector3d dNds = GNs[i];
+//         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+//      }
+//
+//      if (invJ0 != null) {
+//         F.mul (myJ, invJ0);
+//      } else {
+//         F.set(myJ);
+//      }      
+//      detF = F.determinant();
+//   }
 
-   }
+//   public void computeJacobianAndGradient() {
+//      computeJacobianAndGradient(null);
+//   }
 
-   public void computeJacobianAndGradient (Matrix3d invJ0) {
-
-      myJ.setZero();
-      for (int i=0; i<myDependentNodes.length; i++) {
-         Vector3d pos = myDependentNodes[i].getPosition();
-         Vector3d dNds = GNs[i];
-         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
-      }
-
-      if (invJ0 != null) {
-         F.mul (myJ, invJ0);
-      } else {
-         F.set(myJ);
-      }      
-      detF = F.determinant();
-   }
-
-   public void computeJacobianAndGradient() {
-      computeJacobianAndGradient(null);
-   }
-
-   public void computeGradientForRender (Matrix3d Fmat, 
-      Matrix3d invJ0) {
-
-      // compute J in Fmat
-      Fmat.setZero();
-      for (int i=0; i<myDependentNodes.length; i++) {
-         Point3d pos = myDependentNodes[i].getPosition();
-         Vector3d dNds = GNs[i];
-         Fmat.addOuterProduct (pos.x,pos.y,pos.z, dNds.x, dNds.y, dNds.z);
-      }      
-      if (invJ0 != null) {
-         Fmat.mul (invJ0);
-      }
-   }
-
-   public void computeGradientForRender (Matrix3d Fmat) {
-      computeGradientForRender(Fmat, null);
-   }
+//   public void computeGradientForRender (Matrix3d Fmat, 
+//      Matrix3d invJ0) {
+//
+//      // compute J in Fmat
+//      Fmat.setZero();
+//      for (int i=0; i<myDependentNodes.length; i++) {
+//         Point3d pos = myDependentNodes[i].getPosition();
+//         Vector3d dNds = GNs[i];
+//         Fmat.addOuterProduct (pos.x,pos.y,pos.z, dNds.x, dNds.y, dNds.z);
+//      }      
+//      if (invJ0 != null) {
+//         Fmat.mul (invJ0);
+//      }
+//   }
+//
+//   public void computeGradientForRender (Matrix3d Fmat) {
+//      computeGradientForRender(Fmat, null);
+//   }
 
    public void computePosition (Point3d pos) {
       double[] Nbuf = N.getBuffer();
@@ -184,10 +202,10 @@ public class MFreeIntegrationPoint3d extends IntegrationPoint3d implements MFree
          pos.scaledAdd (Nbuf[i], myDependentNodes[i].getPosition());
       }
    }
-
-   public double getDetJ() {
-      return myJ.determinant();
-   }
+//
+//   public double getDetJ() {
+//      return myJ.determinant();
+//   }
 
    public boolean reduceDependencies(double tol) {
 

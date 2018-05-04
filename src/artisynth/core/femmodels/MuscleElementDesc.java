@@ -29,10 +29,11 @@ import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.femmodels.MuscleBundle.DirectionRenderType;
+import artisynth.core.materials.DeformedPoint;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.materials.MuscleMaterial;
-import artisynth.core.materials.SolidDeformation;
 import artisynth.core.mechmodels.ExcitationComponent;
 import artisynth.core.mechmodels.ExcitationSourceList;
 import artisynth.core.mechmodels.ExcitationUtils;
@@ -156,7 +157,7 @@ public class MuscleElementDesc
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial (
          this, "muscleMaterial", myMuscleMat, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);            
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);            
    }
 
    @Override
@@ -497,31 +498,63 @@ public class MuscleElementDesc
       return null;      
    }
 
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress,
-      SolidDeformation def, IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//   public void computeTangent (
+//      Matrix6d D, SymmetricMatrix3d stress,
+//      SolidDeformation def, IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//
+//      MuscleMaterial mat = getEffectiveMuscleMaterial();
+//      if (mat != null) {
+//         Vector3d dir = getMuscleDirection(pt.getNumber());
+//         if (dir != null) {
+//            mat.computeTangent (D, stress, getNetExcitation(), dir, def, baseMat);
+//         }
+//         else {
+//            D.setZero();
+//         }
+//      }
+//      else {
+//         D.setZero ();
+//      }
+//   }
+  
+//   public void computeStress (
+//      SymmetricMatrix3d sigma, SolidDeformation def,
+//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//      
+//      MuscleMaterial mat = getEffectiveMuscleMaterial();
+//      if (mat != null) {
+//         Vector3d dir = getMuscleDirection(pt.getNumber());
+//         if (dir != null) {
+//            mat.computeStress (sigma, getNetExcitation(), dir, def, baseMat);
+//         }
+//         else {
+//            sigma.setZero ();
+//         }
+//      }
+//      else {
+//         sigma.setZero ();
+//      }
+//   }
+
+   public void computeStressAndTangent( 
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def,
+      IntegrationPoint3d pt, IntegrationData3d dt) {
 
       MuscleMaterial mat = getEffectiveMuscleMaterial();
+      Vector3d dir = null;
       if (mat != null) {
-         Vector3d dir = getMuscleDirection(pt.getNumber());
-         if (dir != null) {
-            mat.computeTangent (D, stress, getNetExcitation(), dir, def, baseMat);
-         }
+         dir = getMuscleDirection(pt.getNumber());
       }
-   }
-  
-   public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def,
-      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-      
-      MuscleMaterial mat = getEffectiveMuscleMaterial();
-      if (mat != null) {
-         Vector3d dir = getMuscleDirection(pt.getNumber());
-         if (dir != null) {
-            mat.computeStress (sigma, getNetExcitation(), dir, def, baseMat);
-         }
+      if (dir != null) {
+         mat.computeStressAndTangent (sigma, D, def, dir, getNetExcitation());
       }
-   }
+      else {
+         sigma.setZero();
+         if (D != null) {
+            D.setZero ();
+         }
+      }      
+   }  
 
    public boolean hasSymmetricTangent() {
       MuscleMaterial mat = getEffectiveMuscleMaterial();

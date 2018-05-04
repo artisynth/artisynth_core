@@ -98,50 +98,6 @@ public class SingleTet extends RootModel {
       //testInvertedForces (tet);
    }
 
-   private void testInvertedForces(FemElement3d tet) {
-      // test to verify that if we invert the element, positive
-      // stress will now act to univert the element
-
-      IntegrationPoint3d pt = tet.getIntegrationPoints()[0];
-      IntegrationData3d dt = tet.getIntegrationData()[0];
-
-      pt.computeJacobianAndGradient (tet.getNodes(), dt.getInvJ0());
-      double detJ = pt.computeInverseJacobian();
-      double dv = detJ*pt.getWeight();
-      Vector3d[] GNx = pt.updateShapeGradient(pt.getInvJ());
-      for (int i=0; i<GNx.length; i++ ) {
-         System.out.println (" "+GNx[i]);
-      }
-
-      SymmetricMatrix3d sigma = new SymmetricMatrix3d (1,1,1,0,0,0);
-
-      for (int i=0; i<4; i++) {
-         Vector3d f = new Vector3d();
-         FemUtilities.addStressForce (f, GNx[i], sigma, dv);
-         System.out.println ("f "+i+" "+f);
-      }
-
-      myN4.setPosition (-1.00001, 0, 0);
-
-      System.out.println ("");
-
-      pt.computeJacobianAndGradient (tet.getNodes(), dt.getInvJ0());
-      detJ = pt.computeInverseJacobian();
-      dv = detJ*pt.getWeight();
-      System.out.println ("detJ=" + detJ);
-      GNx = pt.updateShapeGradient(pt.getInvJ());
-      for (int i=0; i<GNx.length; i++ ) {
-         System.out.println (" "+GNx[i]);
-      }
-
-
-      for (int i=0; i<4; i++) {
-         Vector3d f = new Vector3d();
-         FemUtilities.addStressForce (f, GNx[i], sigma, dv);
-         System.out.println ("f "+i+" "+f);
-      }
-      
-   }
 
    MechModel getMechMod() {
       if (models().size() > 0 && models().get(0) instanceof MechModel) {

@@ -1189,11 +1189,11 @@ public class SymmetricMatrix3d extends Matrix3dBase {
       }
    }
 
-   Matrix3d T = new Matrix3d();
-   SVDecomposition3d svd = new SVDecomposition3d();
-
    public void getEigenValues (Vector3d eig, Matrix3dBase U) {
 
+      Matrix3d T = new Matrix3d();
+      SVDecomposition3d svd = new SVDecomposition3d();
+      
       double SS, CC, CS;
 
       svd.givens (m01, m02);

@@ -78,65 +78,6 @@ public class StiffnessWarper3d {
       return (corotated == null) && (linear == null);
    }
 
-   @Deprecated
-   public void computeInitialStiffness (FemElement3d e, double E, double nu, boolean corotated) {
-
-      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
-      IntegrationData3d[] idata = e.getIntegrationData();
-
-      Matrix6d D = new Matrix6d();
-      double dia = (1 - nu) / (1 - 2 * nu);
-      double off = nu / (1 - 2 * nu);
-
-      D.m00 = dia; D.m01 = off; D.m02 = off;
-      D.m10 = off; D.m11 = dia; D.m12 = off;
-      D.m20 = off; D.m21 = off; D.m22 = dia;
-      D.m33 = 0.5;
-      D.m44 = 0.5;
-      D.m55 = 0.5;
-      D.scale (E/(1+nu));
-
-      Vector3d tmp = new Vector3d();
-      
-      LinearMaterialCache cache;
-      if (corotated) {
-         cache = getOrCreateCorotatedCache();
-      } else {
-         cache = getOrCreateLinearCache();
-      }
-      
-      for (int i=0; i<e.myNodes.length; i++) {
-         for (int j=0; j<e.myNodes.length; j++) {
-            cache.K0[i][j].setZero();
-         }
-         cache.f0[i].setZero();
-      }
-
-      for (int k=0; k<ipnts.length; k++) {
-         IntegrationPoint3d pt = ipnts[k];
-         IntegrationData3d dt = idata[k];
-         double dv = dt.myDetJ0*pt.getWeight();
-         if (dt.myScaling != 1) {
-            dv *= dt.myScaling;
-         }
-         Vector3d[] GNx = pt.updateShapeGradient(dt.myInvJ0);
-         
-         for (int i=0; i<e.myNodes.length; i++) {
-            for (int j=0; j<e.myNodes.length; j++) {
-               FemUtilities.addMaterialStiffness (
-                  cache.K0[i][j], GNx[i], D, SymmetricMatrix3d.ZERO, GNx[j], dv);
-            }
-         }
-      }   
-      
-      for (int i=0; i<e.myNodes.length; i++) {
-         tmp.setZero();
-         for (int j=0; j<e.myNodes.length; j++) {
-            cache.K0[i][j].mulAdd (tmp, e.myNodes[j].myRest, tmp);
-         }
-         cache.f0[i].set (tmp);
-      }
-   }
 
    /**
     * Adds linear stiffness contributions to an underlying cache
@@ -172,50 +113,13 @@ public class StiffnessWarper3d {
       cache.addInitialStiffness(e, mat);
    }
 
-   //   public void setInitialJ (
-   //      FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3) {
-   //      Vector3d tmp = new Vector3d();
-   //      Matrix3d A = new Matrix3d();
-   //      tmp.sub (n1.myRest, n0.myRest);
-   //      A.setColumn (0, tmp);
-   //      tmp.sub (n2.myRest, n0.myRest);
-   //      A.setColumn (1, tmp);
-   //      tmp.sub (n3.myRest, n0.myRest);
-   //      A.setColumn (2, tmp);
-   //
-   //      J0inv = new Matrix3d();
-   //      J0inv.invert (A);
-   //      myConditionNum = A.infinityNorm() * J0inv.infinityNorm();
-   //   }
-   //
-   //   /**
-   //    * 
-   //    * @return
-   //    */
-   //   public double getConditionNum () {
-   //      return myConditionNum;
-   //   }
-   //
-   //   public void computeWarping (
-   //      FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3) {
-   //      Vector3d tmp = new Vector3d();
-   //      Matrix3d A = new Matrix3d();
-   //      tmp.sub (n1.getLocalPosition(), n0.getLocalPosition());
-   //      A.setColumn (0, tmp);
-   //      tmp.sub (n2.getLocalPosition(), n0.getLocalPosition());
-   //      A.setColumn (1, tmp);
-   //      tmp.sub (n3.getLocalPosition(), n0.getLocalPosition());
-   //      A.setColumn (2, tmp);
-   //
-   //      A.mul (J0inv);
-   //      computeRotation (A, null);
-   //   }
    
    public void computeWarpingRotation(FemElement3d elem) {
       IntegrationPoint3d wpnt = elem.getWarpingPoint();
       IntegrationData3d wdata = elem.getWarpingData();
-      wpnt.computeJacobianAndGradient(elem.getNodes(), wdata.myInvJ0);
-      computeRotation(wpnt.F, null);
+      Matrix3d F = new Matrix3d();
+      wpnt.computeGradient(F, elem.getNodes(), wdata.myInvJ0);
+      computeRotation(F, null);
    }
 
    /**
@@ -249,66 +153,6 @@ public class StiffnessWarper3d {
    public RotationMatrix3d getRotation() {
       return R;
    }
-
-   //   /**
-   //    * Computes F = RP, R a rotation matrix, P a symmetric matrix
-   //    * @param F matrix to decompose
-   //    * @param R rotational component
-   //    * @param P symmetric component
-   //    */
-   //   public static void computeRotation (Matrix3d F, Matrix3d R, SymmetricMatrix3d P) {
-   //      SVDecomposition3d SVD = new SVDecomposition3d();
-   //      try {
-   //         SVD.factor (F);
-   //      }
-   //      catch (Exception e) {
-   //         System.out.println ("F=\n" + F.toString ("%g"));
-   //         R.setIdentity();
-   //      }
-   //      
-   //      Matrix3d U = SVD.getU();
-   //      Matrix3d V = SVD.getV();
-   //      Vector3d s = new Vector3d();
-   //      SVD.getS(s);
-   //
-   //      double detU = U.orthogonalDeterminant();
-   //      double detV = V.orthogonalDeterminant();
-   //      if (detV * detU < 0) { /* then one is negative and the other positive */
-   //         if (detV < 0) { /* negative last column of V */
-   //            V.m02 = -V.m02;
-   //            V.m12 = -V.m12;
-   //            V.m22 = -V.m22;
-   //         }
-   //         else /* detU < 0 */
-   //         { /* negative last column of U */
-   //            U.m02 = -U.m02;
-   //            U.m12 = -U.m12;
-   //            U.m22 = -U.m22;
-   //         }
-   //         s.z = -s.z;
-   //      }
-   //      R.mulTransposeRight (U, V);
-   //      if (P != null) {
-   //         // place the symmetric part in P
-   //         P.mulDiagTransposeRight (V, s);
-   //      }
-   //   }
-   //
-   //   public void addNodeStiffness (Matrix3d Kij, int i, int j) {
-   //      
-   //      // corotated component
-   //      if (K0corotated != null) {
-   //         Matrix3d A = new Matrix3d();
-   //         A.mulTransposeRight (K0corotated[i][j], R);
-   //         A.mul (R, A);
-   //         Kij.add (A);
-   //      }
-   //      
-   //      // linear component
-   //      if (K0 != null) {
-   //         Kij.add (K0[i][j]);
-   //      }
-   //   }
 
    
    /**

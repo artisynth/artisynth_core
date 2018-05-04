@@ -102,7 +102,7 @@ public abstract class FemMaterial extends MaterialBase {
     * @param baseMat underlying base material (if any)
     */
    public abstract void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat);
    
    /**
@@ -113,9 +113,18 @@ public abstract class FemMaterial extends MaterialBase {
     * @param baseMat underlying base material (if any)
     */
    public abstract void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat);
 
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation) {
+      computeStress (sigma, def, Q, /*baseMat=*/null);
+      if (D != null) {
+         computeTangent (D, sigma, def, Q, /*baseMat=*/null);
+      }
+   }
+   
    /**
     * Returns true if this material is defined for a deformation gradient
     * with a non-positive determinant.
@@ -171,6 +180,43 @@ public abstract class FemMaterial extends MaterialBase {
       mat.setViscoBehavior (myViscoBehavior);
       return mat;
    }
+
+   /**
+    * Computes the right Cauchy-Green tensor from the deformation gradient.
+    */
+   public void computeRightCauchyGreen (
+      SymmetricMatrix3d C, DeformedPoint def) {
+      C.mulTransposeLeft (def.getF());
+   }
+
+   /**
+    * Computes the left Cauchy-Green tensor from the deformation gradient.
+    */
+   public void computeLeftCauchyGreen (
+      SymmetricMatrix3d B, DeformedPoint def) {
+      B.mulTransposeRight (def.getF());
+   }
+
+   /**
+    * Computes the right deviatoric Cauchy-Green tensor from the deformation
+    * gradient.
+    */
+   public void computeDevRightCauchyGreen (
+      SymmetricMatrix3d CD, DeformedPoint def) {
+      CD.mulTransposeLeft (def.getF());
+      CD.scale (Math.pow(def.getDetF(), -2.0/3.0));
+   }
+
+   /**
+    * Computes the left deviatoric Cauchy-Green tensor from the deformation
+    * gradient.
+    */
+   public void computeDevLeftCauchyGreen (
+      SymmetricMatrix3d BD, DeformedPoint def) {
+      BD.mulTransposeRight (def.getF());
+      BD.scale (Math.pow(def.getDetF(), -2.0/3.0));
+   }
+
 }
    
    

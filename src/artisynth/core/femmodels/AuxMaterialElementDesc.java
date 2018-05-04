@@ -25,9 +25,10 @@ import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.femmodels.AuxMaterialBundle.FractionRenderType;
+import artisynth.core.materials.DeformedPoint;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.MaterialBase;
-import artisynth.core.materials.SolidDeformation;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CompositeComponentBase;
@@ -130,7 +131,7 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       //      myMat = mat;
 
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);      
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);      
 
    }
 
@@ -169,11 +170,62 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
          myElement.updateBounds(pmin, pmax);
    }
 
-   @Override
-   public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def,
-      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-      
+//   @Override
+//   public void computeStress (
+//      SymmetricMatrix3d sigma, SolidDeformation def,
+//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//      
+//      FemMaterial mat = getEffectiveMaterial();
+//      if (mat != null) {
+//         double frac = myFrac;
+//         if (myFracs != null) {
+//            frac = myFracs[pt.getNumber()];
+//         }
+//         if (frac > 0) {
+//            Matrix3d Q = (dt.myFrame != null ? dt.myFrame : Matrix3d.IDENTITY);
+//            mat.computeStress(sigma, def, Q, baseMat);
+//            sigma.scale(frac);
+//         } else {
+//            sigma.setZero();
+//         }
+//      }
+//      else {
+//         sigma.setZero ();
+//      }
+//      
+//   }
+
+//   @Override
+//   public void computeTangent (
+//      Matrix6d D, SymmetricMatrix3d stress,
+//      SolidDeformation def, IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//      
+//      FemMaterial mat = getEffectiveMaterial();
+//      if (mat != null) {
+//         double frac = myFrac;
+//         if (myFracs != null) {
+//            frac = myFracs[pt.getNumber()];
+//         }
+//         if (frac > 0) {
+//            Matrix3d Q = dt.myFrame;
+//            if (Q == null) {
+//               Q = Matrix3d.IDENTITY;
+//            }
+//            mat.computeTangent (D, stress, def, Q, baseMat);
+//            D.scale(frac);
+//         } else {
+//            D.setZero();
+//         }
+//      }
+//      else {
+//         D.setZero ();
+//      }
+//   }
+
+   public void computeStressAndTangent ( 
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def,
+      IntegrationPoint3d pt, IntegrationData3d dt) {
+
       FemMaterial mat = getEffectiveMaterial();
       if (mat != null) {
          double frac = myFrac;
@@ -182,38 +234,19 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
          }
          if (frac > 0) {
             Matrix3d Q = (dt.myFrame != null ? dt.myFrame : Matrix3d.IDENTITY);
-            mat.computeStress(sigma, def, Q, baseMat);
+            mat.computeStressAndTangent (sigma, D, def, Q, 0.0);
             sigma.scale(frac);
+            if (D != null) {
+               D.scale(frac);
+            }
          } else {
             sigma.setZero();
-         }
-      }
-      
-   }
-
-   @Override
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress,
-      SolidDeformation def, IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-      
-      FemMaterial mat = getEffectiveMaterial();
-      if (mat != null) {
-         double frac = myFrac;
-         if (myFracs != null) {
-            frac = myFracs[pt.getNumber()];
-         }
-         if (frac > 0) {
-            Matrix3d Q = dt.myFrame;
-            if (Q == null) {
-               Q = Matrix3d.IDENTITY;
+            if (D != null) {
+               D.setZero();
             }
-            mat.computeTangent (D, stress, def, Q, baseMat);
-            D.scale(frac);
-         } else {
-            D.setZero();
          }
       }
-   }
+   }  
    
    public boolean hasSymmetricTangent() {
       FemMaterial mat = getEffectiveMaterial();

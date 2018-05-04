@@ -241,7 +241,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       
 
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       // Methods and naming conventions follow the paper "Finite element
@@ -256,7 +256,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       double phi = myPhiVals[0];
       double dphi = myPhiVals[1];
 
-      def.computeLeftCauchyGreen(myB);
+      computeLeftCauchyGreen(myB,def);
       // scale to compute deviatoric part; use phi in place of pow(J,-2/3);
       myB.scale (phi);
 
@@ -289,7 +289,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
    }
 
    public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
 
       double J = def.getDetF();
@@ -300,7 +300,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       double dphi = myPhiVals[1];
       double ddphi = myPhiVals[2];
 
-      def.computeLeftCauchyGreen(myB);
+      computeLeftCauchyGreen(myB,def);
       // scale to compute deviatoric part; use phi in place of pow(J,-2/3);
       myB.scale (phi);
       myB2.mulTransposeLeft (myB);
@@ -411,9 +411,10 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
    public static void main (String[] args) {
       MooneyRivlinMaterial mat = new MooneyRivlinMaterial();
 
-      SolidDeformation def = new SolidDeformation();
       Matrix3d Q = new Matrix3d();
-      def.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
+
+      DeformedPointBase dpnt = new DeformedPointBase();
+      dpnt.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
 
       Matrix6d D = new Matrix6d();
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
@@ -424,9 +425,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       mat.setC02 (2.6);
       mat.setC20 (1.9);
       mat.setBulkModulus (0.0);
-      mat.computeStress (sig, def, Q, null);
-      //pt.setStress (sig);
-      mat.computeTangent (D, sig, def, Q, null);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));

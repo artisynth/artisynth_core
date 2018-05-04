@@ -38,12 +38,7 @@ public abstract class FemElement3d extends FemElement
    
    protected FemNode3d[] myNodes;
    protected FemNodeNeighbor[][] myNbrs = null;
-   // average shape function gradient; used for incompressibility
-   //protected Vector3d[] myAvgGNx = null; 
-   // altGnx is an alternate copy of avgGNx for use in a second constraint matrix
-   //protected Matrix3x1Block[] myIncompressConstraints1 = null;
    protected MatrixBlock[] myIncompressConstraints = null;
-   //protected Matrix3x1Block[] myIncompressConstraints2 = null;
    
    protected IntegrationData3d[] myIntegrationData;
    protected IntegrationData3d myWarpingData;
@@ -53,11 +48,8 @@ public abstract class FemElement3d extends FemElement
    protected double[] myVolumes;
    protected double[] myLagrangePressures;
 
-   //protected SymmetricMatrix3d myAvgStress = new SymmetricMatrix3d();
-   //protected double myLagrangePressure;
    protected StiffnessWarper3d myWarper = null;
    private int myIncompressIdx = -1;
-   //private int myLocalIncompressIdx = -1;
 
    private static Matrix1x1 myPressureWeightMatrix = null;
 
@@ -129,16 +121,6 @@ public abstract class FemElement3d extends FemElement
    public void setIncompressIndex (int idx) {
       myIncompressIdx = idx;
    }
-
-//   // index of the local incompressibility constraint associated
-//   // with this element, if any
-//   public int getLocalIncompressIndex() {
-//      return myLocalIncompressIdx;
-//   }
-
-//   public void setLocalIncompressIndex (int idx) {
-//      myLocalIncompressIdx = idx;
-//   }
 
    /**
     * Returns the number of pressure variables associated with this element.  
@@ -227,24 +209,6 @@ public abstract class FemElement3d extends FemElement
       }
    }
    
-//   /** 
-//    * Returns an array of vectors which is used to store the average
-//    * gradient of the shape functions. This is used in incompressibility
-//    * calculations. Note that this method does not actually compute the
-//    * gradient.
-//    * 
-//    * @return array used to store average shape function gradients
-//    */
-//   public Vector3d[] getAvgGNx() {
-//      if (myAvgGNx == null) {
-//         myAvgGNx = new Vector3d[numNodes()];
-//         for (int i=0; i<numNodes(); i++) {
-//            myAvgGNx[i] = new Vector3d();
-//         }
-//      }
-//      return myAvgGNx;
-//   }
-
    /**  
     * Returns an array of MatrixBlocks to be used as constraints to make the
     * element incompressible. Note this method does not compute values for
@@ -268,77 +232,6 @@ public abstract class FemElement3d extends FemElement
       return myIncompressConstraints;
    }
 
-//   /** 
-//    * Zeros the incompressibility constraints for this element.
-//    */
-//   public void zeroIncompressConstraints() {
-//      MatrixBlock[] constraints = getIncompressConstraints();
-//      for (int i=0; i<numNodes(); i++) {
-//         constraints[i].setZero();
-//      }
-//   }
-//
-//   /** 
-//    * Adds scaled gradient values to the incompressibility constraints,
-//    * for use in computing the constraints values.
-//    * If G_i is the constraint for node i, then this method computes
-//    * <p>
-//    * G_i += H^T GNx[i]
-//    * </p>
-//    * where <code>H</code> is a row vector of scalar values,
-//    * and <code>GNx[i]</code> is the shape function gradient for
-//    * node i.
-//    *
-//    * @param H row vector of scalar values, whose length should be
-//    * at least equal to the number of pressure DOFs.
-//    * @param GNx array of shape function gradients, one for each node.
-//    */
-//   public void addToIncompressConstraints (double[] H, Vector3d[] GNx) {
-//      
-//      MatrixBlock[] constraints = getIncompressConstraints();
-//      for (int i=0; i<numNodes(); i++) {
-//         FemUtilities.addToIncompressConstraints (
-//            constraints[i], H, GNx[i]);
-//      }
-//   } 
-
-//   private Matrix3x1Block[] allocIncompressConstraints1 (int n) {
-//      Matrix3x1Block[] constraints = new Matrix3x1Block[n];
-//      for (int i=0; i<n; i++) {
-//         constraints[i] = new Matrix3x1Block();
-//      }
-//      return constraints;
-//   }
-//
-//   /**  
-//    * Returns an array of Matrix3x1Blocks to be used as constraints to make the
-//    * element incompressible. Note this method does not compute values for
-//    * these constraints; it only returns storage for them.
-//    * 
-//    * @return incompressibility constraints
-//    */
-//   public Matrix3x1Block[] getIncompressConstraints1() {
-//      if (myIncompressConstraints1 == null) {
-//         myIncompressConstraints1 = allocIncompressConstraints1(numNodes());
-//      }
-//      return myIncompressConstraints1;
-//   }
-
-//   /** 
-//    * Returns an alternate array of Matrix3x1Blocks to be used as constraints
-//    * to make the element incompressible. This alternate set can be used to
-//    * create a second constraint system for enforcing incompressibility.  Note
-//    * this method does not compute values for these constraints; it only
-//    * returns storage for them.
-//    * 
-//    * @return alternate set of incompressibility constraints
-//    */
-//   public Matrix3x1Block[] getIncompressConstraints2() {
-//      if (myIncompressConstraints2 == null) {
-//         myIncompressConstraints2 = allocIncompressConstraints(numNodes());
-//      }
-//      return myIncompressConstraints2;
-//   }
 
    /**
     * Tests whether or not a point is inside an element.  
@@ -383,10 +276,6 @@ public abstract class FemElement3d extends FemElement
       }
       return false;
    }      
-
-//   public boolean getNaturalCoordinates (VectorNd coords, Point3d pnt) {
-//       return false;
-//    }
 
    public int getNumEdges() {
       int num = 0;
@@ -478,8 +367,7 @@ public abstract class FemElement3d extends FemElement
             pnt.scaledAdd (pt.N.get(k), myNodes[k].getPosition());
          }
          // now get dv, the current volume at the integration point
-         pt.computeJacobian (myNodes);
-         double detJ = pt.getJ().determinant();
+         double detJ = pt.computeJacobianDeterminant (myNodes);
          double dv = detJ*pt.getWeight();
          C.addScaledOuterProduct (dv, pnt, pnt);
          vol += dv;
@@ -492,8 +380,6 @@ public abstract class FemElement3d extends FemElement
          myNodes[i].getPosition().updateBounds (pmin, pmax);
       }
    }
-
-   public abstract int numIntegrationPoints();
 
    public abstract double[] getIntegrationCoords ();
 
@@ -594,53 +480,8 @@ public abstract class FemElement3d extends FemElement
          pnts[k].setNumber (k);
       }
       return pnts;
-      // Vector3d coords = new Vector3d();
-      // Vector3d dNds = new Vector3d();
-      // VectorNd shapeVals = new VectorNd(numNodes());
-      // VectorNd pressureShapeVals = new VectorNd(numPressureVals());
-      // for (int k=0; k<numi; k++) {
-      //    coords.set (coordData[k*4], coordData[k*4+1], coordData[k*4+2]);
-      //    pnts[k] = new IntegrationPoint3d (
-      //       numNodes(), numPressureVals(), 
-      //       coords.x, coords.y, coords.z, coordData[k*4+3]);
-      //    for (int i=0; i<numNodes(); i++) {
-      //       shapeVals.set (i, getN (i, coords));
-      //       getdNds (dNds, i, coords);
-      //       pnts[k].setShapeGrad (i, dNds);
-      //    }
-      //    for (int i=0; i<numPressureVals(); i++) {
-      //       pressureShapeVals.set (i, getH (i, coords));
-      //    }
-      //    pnts[k].setShapeVals (shapeVals);
-      //    pnts[k].setPressureShapeVals (pressureShapeVals);
-      // }
-      // return pnts;
    }
 
-//   protected IntegrationPoint3d createIntegrationPoint (
-//      double s0, double s1, double s2, double w) {
-//
-//      Vector3d coords = new Vector3d();
-//      Vector3d dNds = new Vector3d();
-//      VectorNd shapeVals = new VectorNd(numNodes());     
-//      VectorNd pressureShapeVals = new VectorNd(numPressureVals());     
-//
-//      IntegrationPoint3d pnt =
-//         new IntegrationPoint3d (
-//            numNodes(), numPressureVals(), s0, s1, s2, w);
-//      coords.set (s0, s1, s2);
-//      for (int i=0; i<numNodes(); i++) {
-//         shapeVals.set (i, getN (i, coords));
-//         getdNds (dNds, i, coords);
-//         pnt.setShapeGrad (i, dNds);
-//      }
-//      for (int i=0; i<numPressureVals(); i++) {
-//         pressureShapeVals.set (i, getH (i, coords));
-//      }
-//      pnt.setShapeVals (shapeVals);
-//      pnt.setPressureShapeVals (pressureShapeVals);
-//      return pnt;
-//   }
 
    /** 
     * Used to create edge nodes for quadratic elements.
@@ -1184,14 +1025,6 @@ public abstract class FemElement3d extends FemElement
       return true;
    }
 
-//   /**
-//    * Default method to get the element volume. Uses quadrature. Individual
-//    * elements can override this with a more efficient method if needed.
-//    */
-//   public double getVolume() {
-//      return computeVolume();
-//   }
-   
    /**
     * Default method to compute an element's volume and partial volumes.  Uses
     * quadrature. If the number of pressure values is 1, then there is only one
@@ -1220,8 +1053,8 @@ public abstract class FemElement3d extends FemElement
       IntegrationData3d[] idata = getIntegrationData();
       for (int i=0; i<ipnts.length; i++) {
          IntegrationPoint3d pt = ipnts[i];
-         pt.computeJacobian (myNodes);
-         double detJ = pt.getJ().determinant();
+         double detJ = pt.computeJacobianDeterminant (myNodes);
+         //double detJ = pt.getJ().determinant();
          double dv = detJ*pt.getWeight();
          // normalize detJ to get true value relative to rest position
          detJ /= idata[i].getDetJ0();
@@ -1274,8 +1107,7 @@ public abstract class FemElement3d extends FemElement
       for (int i=0; i<ipnts.length; i++) {
          double dV = idata[i].getDetJ0()*ipnts[i].getWeight();
          IntegrationPoint3d pt = ipnts[i];
-         pt.computeJacobian (myNodes);
-         double detJ = pt.getJ().determinant();
+         double detJ = pt.computeJacobianDeterminant (myNodes);
          double[] H = pt.getPressureWeights().getBuffer();
          for (int k=0; k<npvals; k++) {
             pressures[k] += H[k]*dV*imat.getEffectivePressure (detJ);
@@ -1331,39 +1163,6 @@ public abstract class FemElement3d extends FemElement
     */
    public double[] getRestVolumes() {
       return myRestVolumes;
-   }
-
-//    /** 
-//     * Returns the average stress that has been computed for this element.
-//     * 
-//     * @return average stress (must not be modified).
-//     */
-//    public SymmetricMatrix3d getStress() {
-//       return myAvgStress;
-//    }
-//
-//   public void addNodeStiffness (
-//      Matrix3d Kij, int i, int j, boolean corotated) {
-//      if (!myWarpingStiffnessValidP) {
-//         updateWarpingStiffness();
-//      }
-//      myWarper.addNodeStiffness (Kij, i, j, corotated);
-//   }  
-
-   @Deprecated
-   public void addNodeStiffness (int i, int j, boolean corotated) {
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
-      }
-      myWarper.addNodeStiffness (myNbrs[i][j].getK(), i, j);
-   }  
-
-   @Deprecated
-   public void addNodeForce (Vector3d f, int i, boolean corotated) {
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
-      }
-      myWarper.addNodeForce (f, i, myNodes);
    }
 
    /**
@@ -1433,23 +1232,6 @@ public abstract class FemElement3d extends FemElement
          }
       }
       return true;
-   }
-
-   @Deprecated
-   /**
-    * Assumes warping computed from a single warping point, but
-    * other possibilities may be allowed.
-    * 
-    * use StiffnessWarper3d.computeWarping(FemElement3d)
-    */
-   public void computeWarping (Matrix3d F, SymmetricMatrix3d P) {
-      if (myWarpingStiffnessValidP && myWarper == null) {
-         System.out.println ("invalid");
-      }
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
-      }
-      myWarper.computeRotation (F, P);
    }
 
    public abstract void renderWidget (

@@ -28,6 +28,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
@@ -54,6 +55,7 @@ public abstract class FemElement extends RenderableComponentBase
    protected double myVolume = 0;
    protected boolean myInvertedP = false;
    int myIndex;  // index number for associating with other info
+   int myIntegrationIndex; // base index of element's integration points
 
    FemMaterial myMaterial = null;
 
@@ -80,7 +82,7 @@ public abstract class FemElement extends RenderableComponentBase
       myMaterial = (FemMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
    }
 
    public FemMaterial getEffectiveMaterial () {
@@ -160,6 +162,13 @@ public abstract class FemElement extends RenderableComponentBase
    public int numNodes() {
       return getNodes().length;
    }
+
+   /**
+    * Returns the number of integration points used by this element
+    * (not including the stiffness warping point, if any).
+    * @return number of integration points
+    */
+   public abstract int numIntegrationPoints();
 
    /** 
     * Queries whether there is a one-to-one mapping between integration points
@@ -507,6 +516,29 @@ public abstract class FemElement extends RenderableComponentBase
    
    public void setIndex(int idx) {
       myIndex = idx;
+   }
+   
+   /**
+    * Returns the index of this element's first integration point
+    * with respect to it's FEM model. 
+    * @see #setIntegrationIndex
+    * @return index of first integration point
+    */
+   public int getIntegrationIndex () {
+      return myIntegrationIndex;
+   }
+   
+   /**
+    * Sets the index of this element's first integration point
+    * with respect to it's FEM model. Used internally by FEM models
+    * to assign each integration point an index, which is in turn
+    * used for caching Field values on a per-integration point
+    * basis.
+    * @see #getIntegrationIndex
+    * @param idx assigned index of first integration point
+    */
+   public void setIntegrationIndex(int idx) {
+      myIntegrationIndex = idx;
    }
 
    /**

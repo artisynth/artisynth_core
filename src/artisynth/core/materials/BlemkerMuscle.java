@@ -259,7 +259,7 @@ public class BlemkerMuscle extends MuscleMaterial {
 
    public void computeStress (
       SymmetricMatrix3d sigma, double excitation, Vector3d dir0,
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
       
       Vector3d a = myTmp;
       def.getF().mul (a, dir0);
@@ -322,7 +322,7 @@ public class BlemkerMuscle extends MuscleMaterial {
 
    public void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
 
       Vector3d a = myTmp;
       def.getF().mul (a, dir0);
@@ -411,7 +411,7 @@ public class BlemkerMuscle extends MuscleMaterial {
       TensorUtils.addScaled4thPowerProduct (D, 4*wa/J, a);
    }
 
-   public double computeStretch (Vector3d dir0, SolidDeformation def) {
+   public double computeStretch (Vector3d dir0, DeformedPoint def) {
       Vector3d dir = myTmp;
       def.getF().mul(dir, dir0);
       double mag = dir.norm();
@@ -446,18 +446,15 @@ public class BlemkerMuscle extends MuscleMaterial {
    public static void main (String[] args) {
       BlemkerMuscle mat = new BlemkerMuscle();
 
-      SolidDeformation def = new SolidDeformation();
-      def.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
+      DeformedPointBase dpnt = new DeformedPointBase();
+      dpnt.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
 
       Matrix6d D = new Matrix6d();
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
-      FemMaterial baseMat = new MooneyRivlinMaterial();
 
       Vector3d a = new Vector3d (1, 0, 0);
       //a.setRandom();
-      mat.computeStress (sig, 1.0, a, def, baseMat);
-      //def.setStress (sig);
-      mat.computeTangent (D, sig, 1.0, a, def, baseMat);
+      mat.computeStressAndTangent (sig, D, dpnt, a, 1.0);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));

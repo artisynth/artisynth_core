@@ -22,6 +22,7 @@ import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.LinearAxialMaterial;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponent;
@@ -89,7 +90,7 @@ public abstract class PointSpringBase extends Spring
       myMaterial = (AxialMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
    }
 
    public AxialMaterial getEffectiveMaterial() {

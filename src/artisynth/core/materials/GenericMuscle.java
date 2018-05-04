@@ -285,7 +285,7 @@ public class GenericMuscle extends MuscleMaterial {
 
    public void computeStress (
       SymmetricMatrix3d sigma, double excitation, Vector3d dir0,
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
       
       // Methods and naming conventions follow the paper "Finite element
       // implementation of incompressible, isotropic hyperelasticity", by
@@ -327,7 +327,7 @@ public class GenericMuscle extends MuscleMaterial {
 
    public void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
 
       Vector3d a = myTmp;
       def.getF().mul (a, dir0);

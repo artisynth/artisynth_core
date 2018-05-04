@@ -99,7 +99,7 @@ public abstract class LinearMaterialBase extends FemMaterial {
    protected abstract void getC(Matrix6d C);
    
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       RotationMatrix3d R = def.getR();
@@ -130,7 +130,7 @@ public abstract class LinearMaterialBase extends FemMaterial {
    
    @Override
    public void computeTangent(
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, Matrix3d Q,
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       // get spatial stiffness tensor

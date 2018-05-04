@@ -56,8 +56,8 @@ public class FemGeometryTransformer extends DeformationTransformer {
          p.set (pos);         
       }
       if (F != null) {
-         ipnt.computeJacobianAndGradient (elem.getNodes(), invJ0);
-         F.set (ipnt.getF());
+         ipnt.computeGradient (F, elem.getNodes(), invJ0);
+         //F.set (ipnt.getF());
       }
    }
 

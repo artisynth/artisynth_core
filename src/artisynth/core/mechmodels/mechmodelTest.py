@@ -2,10 +2,6 @@
 #
 # For repeatable results, set the environment variable OMP_NUM_THREADS
 # to 1
-#
-# most recent test was run using:
-#   1 step of numerical refinement in Pardiso
-#   a time step of 0.01 in RigidBodyCollision
 def setModelOpts (t, file) :
     mech = find ("models/0")
     mech.setPrintState ("%g")

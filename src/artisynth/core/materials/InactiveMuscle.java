@@ -11,13 +11,13 @@ public class InactiveMuscle extends MuscleMaterial {
 
    public void computeStress (
       SymmetricMatrix3d sigma, double excitation, Vector3d dir0,
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
       sigma.setZero();
    }
 
    public void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
       D.setZero();
    }
 

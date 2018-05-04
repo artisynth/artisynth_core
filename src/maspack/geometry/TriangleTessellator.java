@@ -290,4 +290,8 @@ public class TriangleTessellator {
       dispose();
    }
 
+   public static void main (String[] args) {
+      TriangleTessellator tesser = new TriangleTessellator();
+   }
+
 }

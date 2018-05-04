@@ -1,5 +1,6 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
@@ -18,6 +19,7 @@ public class LinearMaterial extends LinearMaterialBase {
 
    private double myNu = DEFAULT_NU;
    private double myE = DEFAULT_E;
+   private FieldPointFunction<Double> myEFunc;
 
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
@@ -87,58 +89,79 @@ public class LinearMaterial extends LinearMaterialBase {
       return myEMode;
    }
 
-   /** 
-    * @deprecated
-    * 
-    * Computes the Cauchy stress from Cauchy strain and adds it to and existing
-    * stress.
-    * 
-    * @param sigma value to which stress should be added
-    * @param Eps Cauchy stress
-    * @param R (optional) Co-Rotation matrix, if any
-    */
-   public void addStress (
-      SymmetricMatrix3d sigma, SymmetricMatrix3d Eps, Matrix3dBase R) {
+   public double getYoungsModulus (FieldPoint dp) {
+      return (myEFunc == null ? getYoungsModulus() : myEFunc.eval (dp));
+   }
 
-      // save for the rotated case
-      double m00 = sigma.m00;
-      double m11 = sigma.m11;
-      double m22 = sigma.m22;
-      double m01 = sigma.m01;
-      double m02 = sigma.m02;
-      double m12 = sigma.m12;
-
-      if (R != null) {
-         sigma.setZero();
-      }
-
-      // lam and mu are the first and second Lame parameters
-      double lam = myE*myNu/((1+myNu)*(1-2*myNu));
-      double mu = myE/(2*(1+myNu));
-
-      double lamtrEps = lam*Eps.trace();
-      sigma.scaledAdd (2*mu, Eps);
-      sigma.m00 += lamtrEps;
-      sigma.m11 += lamtrEps;
-      sigma.m22 += lamtrEps;
-
-      if (R != null) {
-         sigma.mulLeftAndTransposeRight (R);
-
-         sigma.m00 += m00;
-         sigma.m11 += m11;
-         sigma.m22 += m22;
-
-         sigma.m01 += m01;
-         sigma.m02 += m02;
-         sigma.m12 += m12;
-
-         sigma.m10 += m01;
-         sigma.m20 += m02;
-         sigma.m21 += m12;
-      }
+   public FieldPointFunction<Double> getYoungsModulusFunction() {
+      return myEFunc;
+   }
+      
+   public void setYoungsModulusFunction (FieldPointFunction<Double> func) {
+      myEFunc = func;
    }
    
+   public void setYoungsModulusField (
+      Field<Double> field, boolean useRestPos) {
+      myEFunc = FieldUtils.createFieldFunction (field, useRestPos);
+   }
+
+   public Field<Double> getYoungsModulusField () {
+      return FieldUtils.getFieldFromFunction (myEFunc);
+   }
+
+//   /** 
+//    * @deprecated
+//    * 
+//    * Computes the Cauchy stress from Cauchy strain and adds it to and existing
+//    * stress.
+//    * 
+//    * @param sigma value to which stress should be added
+//    * @param Eps Cauchy stress
+//    * @param R (optional) Co-Rotation matrix, if any
+//    */
+//   public void addStress (
+//      SymmetricMatrix3d sigma, SymmetricMatrix3d Eps, Matrix3dBase R) {
+//
+//      // save for the rotated case
+//      double m00 = sigma.m00;
+//      double m11 = sigma.m11;
+//      double m22 = sigma.m22;
+//      double m01 = sigma.m01;
+//      double m02 = sigma.m02;
+//      double m12 = sigma.m12;
+//
+//      if (R != null) {
+//         sigma.setZero();
+//      }
+//
+//      // lam and mu are the first and second Lame parameters
+//      double lam = myE*myNu/((1+myNu)*(1-2*myNu));
+//      double mu = myE/(2*(1+myNu));
+//
+//      double lamtrEps = lam*Eps.trace();
+//      sigma.scaledAdd (2*mu, Eps);
+//      sigma.m00 += lamtrEps;
+//      sigma.m11 += lamtrEps;
+//      sigma.m22 += lamtrEps;
+//
+//      if (R != null) {
+//         sigma.mulLeftAndTransposeRight (R);
+//
+//         sigma.m00 += m00;
+//         sigma.m11 += m11;
+//         sigma.m22 += m22;
+//
+//         sigma.m01 += m01;
+//         sigma.m02 += m02;
+//         sigma.m12 += m12;
+//
+//         sigma.m10 += m01;
+//         sigma.m20 += m02;
+//         sigma.m21 += m12;
+//      }
+//   }
+//   
    @Override
    protected void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps) {
     
@@ -194,7 +217,7 @@ public class LinearMaterial extends LinearMaterialBase {
    }
 
    public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
       
       // XXX linear isotropic materials are invariant under rotation

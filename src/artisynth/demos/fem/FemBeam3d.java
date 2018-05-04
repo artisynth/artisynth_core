@@ -117,8 +117,8 @@ public class FemBeam3d extends RootModel {
    }
 
    public void build (String[] args) {
-      build ("hex", 8, 4, /*options=*/0); // ADD_BLOCKS
-      //build ("hex", 24, 12, /*options=*/0); // ADD_BLOCKS
+      //build ("hex", 8, 4, /*options=*/0); // ADD_BLOCKS
+      build ("hex", 48, 24, /*options=*/0); // ADD_BLOCKS
 
       myMechMod.setIntegrator (Integrator.Trapezoidal);
       myFemMod.setMaterial (new MooneyRivlinMaterial());
@@ -460,9 +460,11 @@ public class FemBeam3d extends RootModel {
             IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
             IntegrationData3d[] idata = e.getIntegrationData();
             FemNode3d[] nodes = e.getNodes();
+            Matrix3d F = new Matrix3d();
             for (int i=0; i<ipnts.length; i++) {
-               ipnts[i].computeJacobianAndGradient (nodes, idata[i].getInvJ0());
-               pw.println ("n"+nodes[i].getNumber() + " " + ipnts[i].getDetF());
+               double detF = 
+                  ipnts[i].computeGradient (F, nodes, idata[i].getInvJ0());
+               pw.println ("n"+nodes[i].getNumber() + " " + detF);
             }
             pw.println ("");
          }

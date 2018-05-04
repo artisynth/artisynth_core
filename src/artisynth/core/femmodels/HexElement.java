@@ -197,7 +197,7 @@ public class HexElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   private double[] myNodalExtrapolationMatrix = null;
+   private static double[] myNodalExtrapolationMatrix = null;
    
    public void setNodalExtrapolationMatrix(double [] nem) {
       myNodalExtrapolationMatrix = nem;

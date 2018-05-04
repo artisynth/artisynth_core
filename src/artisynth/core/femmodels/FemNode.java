@@ -124,5 +124,5 @@ public abstract class FemNode extends Particle {
       return node;
    }
 
-
+   public abstract Point3d getRestPosition();
 }

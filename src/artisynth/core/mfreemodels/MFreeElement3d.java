@@ -90,12 +90,12 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
       MFreeIntegrationPoint3d[] ipnts = getIntegrationPoints();
       IntegrationData3d[] idata = getIntegrationData();
       
+      Matrix3d F = new Matrix3d();
       for (int i=0; i<ipnts.length; i++) {
          MFreeIntegrationPoint3d ipnt = ipnts[i];
          IntegrationData3d idat = idata[i];
          
-         ipnt.computeJacobianAndGradient(idat.getInvJ0());
-         if (ipnt.getDetF()< 0) {
+         if (ipnt.computeGradient(F, idat.getInvJ0()) < 0) {
             return true;
          }
       }

@@ -71,7 +71,7 @@ public class LockingDemo extends RootModel {
    public void build (String[] args) {
 
       myTetMod = new FemModel3d ("tet");
-      FemFactory.createHexGrid (
+      FemFactory.createTetGrid (
          myTetMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
 
       myTetMod.transformGeometry (new RigidTransform3d (-3*WIDTH/4, 0, 0));

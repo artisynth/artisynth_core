@@ -274,47 +274,33 @@ public class FemUtilities {
     * Adds dilational stiffness to the node-to-node stiffness matrix Kij.
     * This is calculated via the formula
     * <pre>
-    *  Kij += GT_i Kp GT_j^T
+    *  Kij += kp * (GT_i GT_j^T)
     * </pre>
     * where GT_i and GT_j are the incompressibility constraints for nodes
-    * i and j and Kp is a diagonal matrix of stiffness pressures.
+    * i and j and kp is (typically) the bulkModulus divided by the restVolume.
     */
    public static void addDilationalStiffness (
-      Matrix3d K, double[] Kp, MatrixBlock GT_i, MatrixBlock GT_j) {
+      Matrix3d K, double kp, Matrix3x1 GT_i, Matrix3x1 GT_j) {
 
-      if (GT_i.colSize() == 1) {
-         Matrix3x1.mulScaledTransposeRightAdd (
-            K, Kp[0], (Matrix3x1Block)GT_i, (Matrix3x1Block)GT_j);
-      }
-      else if (GT_i.colSize() == 2) {
-         Matrix3x2.mulScaledTransposeRightAdd (
-            K, (Matrix3x2Block)GT_i, Kp, (Matrix3x2Block)GT_j);
-      }
-      else if (GT_i.colSize() == 4) {
-         Matrix3x4.mulScaledTransposeRightAdd (
-            K, (Matrix3x4Block)GT_i, Kp, (Matrix3x4Block)GT_j);
-      }
-      else {
-         MatrixNd G_j = new MatrixNd (GT_j.colSize(), 3);
-         MatrixNd tmp = new MatrixNd (3,3);
-         G_j.transpose ((MatrixNdBlock)GT_j);
-         G_j.mulDiagonalLeft (Kp);
-         tmp.mul ((MatrixNdBlock)GT_i, G_j);
-         K.m00 += tmp.get(0,0);
-         K.m01 += tmp.get(0,1);
-         K.m02 += tmp.get(0,2);
-         K.m10 += tmp.get(1,0);
-         K.m11 += tmp.get(1,1);
-         K.m12 += tmp.get(1,2);
-         K.m20 += tmp.get(2,0);
-         K.m21 += tmp.get(2,1);
-         K.m22 += tmp.get(2,2);
-      }
-      // else {
-      //    throw new InternalErrorException (
-      //       "Support not present for "+GT_i.colSize()+" pressure DOFs");
-      // }
-      
+      double gix = kp*GT_i.m00;
+      double giy = kp*GT_i.m10;
+      double giz = kp*GT_i.m20;
+
+      double gjx = GT_j.m00;
+      double gjy = GT_j.m10;
+      double gjz = GT_j.m20;
+
+      K.m00 += gix*gjx;
+      K.m01 += gix*gjy;
+      K.m02 += gix*gjz;
+
+      K.m10 += giy*gjx;
+      K.m11 += giy*gjy;
+      K.m12 += giy*gjz;
+
+      K.m20 += giz*gjx;
+      K.m21 += giz*gjy;
+      K.m22 += giz*gjz;
    }
 
    /** 

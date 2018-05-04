@@ -166,7 +166,7 @@ public class IncompressibleMaterial extends FemMaterial {
    }
 
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       double avgp = def.getAveragePressure();
@@ -177,7 +177,7 @@ public class IncompressibleMaterial extends FemMaterial {
    }
    
    public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
 
       // mean pressure

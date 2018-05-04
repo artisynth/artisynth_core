@@ -25,8 +25,8 @@ import artisynth.core.gui.ControlPanel;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.GenericMuscle;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.materials.MuscleMaterial;
-import artisynth.core.materials.SolidDeformation;
 import artisynth.core.mechmodels.ExcitationComponent;
 import artisynth.core.mechmodels.ExcitationSourceList;
 import artisynth.core.mechmodels.ExcitationUtils;
@@ -416,7 +416,7 @@ public class MFreeMuscleModel extends MFreeModel3d
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial(
          this, "muscleMaterial", myMuscleMat, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      componentChanged(DynamicActivityChangeEvent.defaultEvent);
+      componentChanged(MaterialChangeEvent.defaultEvent);
    }
 
    public void addMuscleBundle(MuscleBundle bundle) {
@@ -644,18 +644,21 @@ public class MFreeMuscleModel extends MFreeModel3d
 //      }
 //   }
    
-   public void computeTangent(
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
-      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-
-      MuscleMaterial mat = getMuscleMaterial();
-      if (mat != null && dt.getFrame() != null) {
-         myTmpDir.x = dt.getFrame().m00;
-         myTmpDir.y = dt.getFrame().m10;
-         myTmpDir.z = dt.getFrame().m20;
-         mat.computeTangent(D, stress, getNetExcitation(), myTmpDir, def, baseMat);
-      }
-   }
+//   public void computeTangent(
+//      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
+//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//
+//      MuscleMaterial mat = getMuscleMaterial();
+//      if (mat != null && dt.getFrame() != null) {
+//         myTmpDir.x = dt.getFrame().m00;
+//         myTmpDir.y = dt.getFrame().m10;
+//         myTmpDir.z = dt.getFrame().m20;
+//         mat.computeTangent(D, stress, getNetExcitation(), myTmpDir, def, baseMat);
+//      }
+//      else {
+//         D.setZero ();
+//      }
+//   }
 
 //   public void addStress(
 //      SymmetricMatrix3d sigma, IntegrationPoint3d pt,
@@ -670,18 +673,21 @@ public class MFreeMuscleModel extends MFreeModel3d
 //      }
 //   }
    
-   public void computeStress(
-      SymmetricMatrix3d sigma, SolidDeformation def,
-      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
-      
-      MuscleMaterial mat = getMuscleMaterial();
-      if (mat != null && dt.getFrame() != null) {
-         myTmpDir.x = dt.getFrame().m00;
-         myTmpDir.y = dt.getFrame().m10;
-         myTmpDir.z = dt.getFrame().m20;
-         mat.computeStress(sigma, getNetExcitation(), myTmpDir, def, baseMat);
-      }
-   }
+//   public void computeStress(
+//      SymmetricMatrix3d sigma, SolidDeformation def,
+//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//      
+//      MuscleMaterial mat = getMuscleMaterial();
+//      if (mat != null && dt.getFrame() != null) {
+//         myTmpDir.x = dt.getFrame().m00;
+//         myTmpDir.y = dt.getFrame().m10;
+//         myTmpDir.z = dt.getFrame().m20;
+//         mat.computeStress(sigma, getNetExcitation(), myTmpDir, def, baseMat);
+//      }
+//      else {
+//         sigma.setZero ();
+//      }
+//   }
    
 //   private SymmetricMatrix3d tmpStress = new SymmetricMatrix3d();
 //   @Override

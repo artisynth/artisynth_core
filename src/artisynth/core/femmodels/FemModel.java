@@ -40,6 +40,7 @@ import artisynth.core.util.ScalableUnits;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.mechmodels.Constrainer;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.DynamicAttachment;
@@ -121,6 +122,7 @@ public abstract class FemModel extends MechSystemBase
    protected boolean myRestVolumeValid = false;
 
    protected double myCharacteristicSize = -1;
+   protected int myNumIntegrationIndices = -1;
 
    protected FemMaterial myMaterial = null;
 
@@ -270,7 +272,7 @@ public abstract class FemModel extends MechSystemBase
       myMaterial = (FemMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      componentChanged (DynamicActivityChangeEvent.defaultEvent);
+      componentChanged (MaterialChangeEvent.defaultEvent);
       invalidateStressAndStiffness();
       invalidateRestData();  // added to invalidate cached linear data (mirrors property change event)
    }
@@ -693,6 +695,24 @@ public abstract class FemModel extends MechSystemBase
    public void clear() {
       doclear();
       notifyStructureChanged (this);
+   }
+
+   protected void handleComponentChanged (ComponentChangeEvent e) {
+      if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
+         clearCachedData(null);
+      }
+      else if (
+         e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED) { 
+         clearCachedData(null);
+         if (e instanceof MaterialChangeEvent) {
+            invalidateRestData();
+         }
+      }
+   }
+
+   public void componentChanged(ComponentChangeEvent e) {
+      handleComponentChanged (e);
+      notifyParentOfChange(e);
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -1137,6 +1157,7 @@ public abstract class FemModel extends MechSystemBase
       super.clearCachedData(e);
       myForcesNeedUpdating = true;
       invalidateStressAndStiffness();
+      invalidateIntegrationIndices();
    }
 
    public double getCharacteristicSize() {
@@ -1243,5 +1264,33 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public abstract void addSolveBlocks (SparseNumberedBlockMatrix M);
+   
+   public void updateIntegrationIndices() {
+      if (myNumIntegrationIndices == -1) {
+         myNumIntegrationIndices = assignIntegrationIndices();
+      }
+   }
+   
+   protected void invalidateIntegrationIndices() {
+      myNumIntegrationIndices = -1;
+   }
+   
+   public int numIntegrationIndices() {
+      updateIntegrationIndices();
+      return myNumIntegrationIndices;
+   }
+   
+   protected int assignIntegrationIndices() {
+      int idx = 0;
+      for (FemElement e : getElements()) {
+         e.setIntegrationIndex (idx);
+         int numi = e.numIntegrationPoints();
+         // increase the index to accommodate the warping point, if any
+         // if there is only one integration point, then it is assumed
+         // to be the same as the warping point.
+         idx += (numi == 1 ? 1 : numi + 1);
+      }
+      return idx;
+   }
 
 }

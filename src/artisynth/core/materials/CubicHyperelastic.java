@@ -127,14 +127,14 @@ public class CubicHyperelastic extends IncompressibleMaterial {
    }
       
    public void computeStress (
-      SymmetricMatrix3d sigma, SolidDeformation def, Matrix3d Q,
+      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
 
       double J = def.getDetF();
       double avgp = def.getAveragePressure();
 
       // calculate deviatoric left Cauchy-Green tensor
-      def.computeDevLeftCauchyGreen(myB);
+      computeDevLeftCauchyGreen(myB,def);
 
       // Invariants of B (= invariants of C)
       // Note that these are the invariants of Btilde, not of B!
@@ -166,14 +166,14 @@ public class CubicHyperelastic extends IncompressibleMaterial {
    }
 
    public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def, 
+      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat) {
 
       double J = def.getDetF();
       double Ji = 1.0/J;
 
       // calculate deviatoric left Cauchy-Green tensor
-      def.computeDevLeftCauchyGreen(myB);
+      computeDevLeftCauchyGreen(myB,def);
 
       // Invariants of B (= invariants of C)
       double I1 = myB.trace();
@@ -252,10 +252,11 @@ public class CubicHyperelastic extends IncompressibleMaterial {
    public static void main (String[] args) {
       CubicHyperelastic mat = new CubicHyperelastic();
 
-      SolidDeformation def = new SolidDeformation();
       Matrix3d Q = new Matrix3d();
-      def.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
 
+      DeformedPointBase dpnt = new DeformedPointBase();
+      dpnt.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
+     
       Matrix6d D = new Matrix6d();
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
 
@@ -263,9 +264,7 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       mat.setG30 (3.5);
       mat.setG20 (1.9);
       mat.setBulkModulus (0.0);
-      mat.computeStress (sig, def, Q, null);
-      //pt.setStress (sig);
-      mat.computeTangent (D, sig, def, Q, null);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));

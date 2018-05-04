@@ -166,7 +166,7 @@ public class SimpleForceMuscle extends MuscleMaterial {
 
    public void computeStress (
       SymmetricMatrix3d sigma, double excitation, Vector3d dir0,
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
       
       // Methods and naming conventions follow the paper "Finite element
       // implementation of incompressible, isotropic hyperelasticity", by
@@ -192,7 +192,7 @@ public class SimpleForceMuscle extends MuscleMaterial {
 
    public void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
-      SolidDeformation def, FemMaterial baseMat) {
+      DeformedPoint def, FemMaterial baseMat) {
 
       double J = def.getDetF();
       if (myZeroForceBelowNegativeJ && J <= 0) {

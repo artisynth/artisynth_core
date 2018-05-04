@@ -44,8 +44,8 @@ import artisynth.core.femmodels.MuscleBundle.DirectionRenderType;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.GenericMuscle;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.materials.MuscleMaterial;
-import artisynth.core.materials.SolidDeformation;
 import artisynth.core.mechmodels.ExcitationComponent;
 import artisynth.core.mechmodels.ExcitationUtils;
 import artisynth.core.mechmodels.ExcitationSourceList;
@@ -60,8 +60,7 @@ import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 
-public class FemMuscleModel extends FemModel3d
-implements AuxiliaryMaterial, ExcitationComponent {
+public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
 
    protected MuscleBundleList myMuscleList;
    protected MuscleMaterial myMuscleMat;
@@ -395,17 +394,17 @@ implements AuxiliaryMaterial, ExcitationComponent {
       return new GenericMuscle();
    }
 
-   @Override
+   //@Override
    public boolean isInvertible() {
       return myMuscleMat == null || myMuscleMat.isInvertible();
    }
    
-   @Override
+   //@Override
    public boolean isLinear() {
       return myMuscleMat == null;
    }
    
-   @Override
+   //@Override
    public boolean isCorotated() {
       return myMuscleMat == null;
    }
@@ -418,7 +417,7 @@ implements AuxiliaryMaterial, ExcitationComponent {
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial(
          this, "muscleMaterial", myMuscleMat, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      componentChanged(DynamicActivityChangeEvent.defaultEvent);
+      componentChanged(MaterialChangeEvent.defaultEvent);
    }
 
    public void addMuscleBundle(MuscleBundle bundle) {
@@ -603,32 +602,40 @@ implements AuxiliaryMaterial, ExcitationComponent {
    //      }
    //   }
 
-   public void computeTangent(
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
-      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//   public void computeTangent(
+//      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
+//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//      System.out.println ("COMPUTE TANGENT");
+//      MuscleMaterial mat = getMuscleMaterial();
+//      if (mat != null && dt.myFrame != null) {
+//         myTmpDir.x = dt.myFrame.m00;
+//         myTmpDir.y = dt.myFrame.m10;
+//         myTmpDir.z = dt.myFrame.m20;
+//         mat.computeTangent(D, stress, getNetExcitation(), myTmpDir, def, baseMat);
+//      }
+//      else {
+//         D.setZero ();
+//      }
+//   }
 
-      MuscleMaterial mat = getMuscleMaterial();
-      if (mat != null && dt.myFrame != null) {
-         myTmpDir.x = dt.myFrame.m00;
-         myTmpDir.y = dt.myFrame.m10;
-         myTmpDir.z = dt.myFrame.m20;
-         mat.computeTangent(D, stress, getNetExcitation(), myTmpDir, def, baseMat);
-      }
-   }
-
-   public void computeTangent(
-      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
-      Matrix3d Q, FemMaterial baseMat) {
-
-      MuscleMaterial mat = getMuscleMaterial();
-      if (mat != null) {
-         myTmpDir.x = Q.m00;
-         myTmpDir.y = Q.m10;
-         myTmpDir.z = Q.m20;
-         mat.computeTangent (
-            D, stress, getNetExcitation(), myTmpDir, def, baseMat);
-      }
-   }
+//   public void computeTangent(
+//      Matrix6d D, SymmetricMatrix3d stress, SolidDeformation def,
+//      Matrix3d Q, FemMaterial baseMat) {
+//
+//      System.out.println ("COMPUTE TANGENT");
+//      
+//      MuscleMaterial mat = getMuscleMaterial();
+//      if (mat != null) {
+//         myTmpDir.x = Q.m00;
+//         myTmpDir.y = Q.m10;
+//         myTmpDir.z = Q.m20;
+//         mat.computeTangent (
+//            D, stress, getNetExcitation(), myTmpDir, def, baseMat);
+//      }
+//      else {
+//         D.setZero ();
+//      }
+//   }
 
 
    //   public void addStress(
@@ -644,31 +651,39 @@ implements AuxiliaryMaterial, ExcitationComponent {
    //      }
    //   }
 
-   public void computeStress(
-      SymmetricMatrix3d sigma, SolidDeformation def,
-      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//   public void computeStress(
+//      SymmetricMatrix3d sigma, SolidDeformation def,
+//      IntegrationPoint3d pt, IntegrationData3d dt, FemMaterial baseMat) {
+//      
+//      System.out.println ("COMPUTE STRESS");
+//      
+//      MuscleMaterial mat = getMuscleMaterial();
+//      if (mat != null && dt.myFrame != null) {
+//         myTmpDir.x = dt.myFrame.m00;
+//         myTmpDir.y = dt.myFrame.m10;
+//         myTmpDir.z = dt.myFrame.m20;
+//         mat.computeStress (sigma, getNetExcitation(), myTmpDir, def, baseMat);
+//      }
+//      else {
+//         sigma.setZero();
+//      }
+//   }
 
-      MuscleMaterial mat = getMuscleMaterial();
-      if (mat != null && dt.myFrame != null) {
-         myTmpDir.x = dt.myFrame.m00;
-         myTmpDir.y = dt.myFrame.m10;
-         myTmpDir.z = dt.myFrame.m20;
-         mat.computeStress (sigma, getNetExcitation(), myTmpDir, def, baseMat);
-      }
-   }
-
-   public void computeStress(
-      SymmetricMatrix3d sigma, SolidDeformation def,
-      Matrix3d Q, FemMaterial baseMat) {
-
-      MuscleMaterial mat = getMuscleMaterial();
-      if (mat != null) {
-         myTmpDir.x = Q.m00;
-         myTmpDir.y = Q.m10;
-         myTmpDir.z = Q.m20;
-         mat.computeStress (sigma, getNetExcitation(), myTmpDir, def, baseMat);
-      }
-   }
+//   public void computeStress(
+//      SymmetricMatrix3d sigma, SolidDeformation def,
+//      Matrix3d Q, FemMaterial baseMat) {
+//      System.out.println ("COMPUTE STRESS");
+//      MuscleMaterial mat = getMuscleMaterial();
+//      if (mat != null) {
+//         myTmpDir.x = Q.m00;
+//         myTmpDir.y = Q.m10;
+//         myTmpDir.z = Q.m20;
+//         mat.computeStress (sigma, getNetExcitation(), myTmpDir, def, baseMat);
+//      }
+//      else {
+//         sigma.setZero();
+//      }
+//   }
 
    //   public void transformGeometry (
    //      GeometryTransformer gtr, TransformGeometryContext context, int flags) {

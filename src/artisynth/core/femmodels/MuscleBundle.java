@@ -35,6 +35,7 @@ import maspack.util.ReaderTokenizer;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.GenericMuscle;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.materials.MuscleMaterial;
 import artisynth.core.mechmodels.AxialSpringList;
 import artisynth.core.mechmodels.ExcitationComponent;
@@ -449,7 +450,7 @@ public class MuscleBundle extends CompositeComponentBase
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial (
          this, "muscleMaterial", myMuscleMat, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);      
+      notifyParentOfChange (MaterialChangeEvent.defaultEvent);      
    }
 
    public void applyForce (double t) {

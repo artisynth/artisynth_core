@@ -1,11 +1,19 @@
 package artisynth.core.util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.crypto.Cipher;
 
 import org.apache.commons.vfs2.UserAuthenticator;
 
+import maspack.crypt.Base64;
 import maspack.crypt.Cryptor;
+import maspack.crypt.GenericCryptor;
 import maspack.fileutil.FileManager;
 import maspack.fileutil.FileTransferException;
 import maspack.fileutil.VFSCryptor;
@@ -13,6 +21,7 @@ import maspack.fileutil.uri.AnyMatcher;
 import maspack.fileutil.uri.URIx;
 import maspack.fileutil.uri.URIxMatcher;
 import maspack.fileutil.vfs.EncryptedUserAuthenticator;
+import maspack.json.JSONReader;
 
 /**
  * Utility class for manager remote data files, allowing them to be downloaded
@@ -60,6 +69,103 @@ public class ArtisynthDataManager {
    }
    
    /**
+    * Loads configuration from a JSON file
+    * <p>
+    * Keys: remote_uri, local_dir, username, password, encrypted_password, cipher, cipher_key (base64)
+    * <pre><code>
+    *   {
+    *    "remote_uri": "davs://research.hct.ece.ubc.ca/owncloud/remote.php/webdav/",
+    *    "local_dir": "tmp/.cache/data/",
+    *    "username": "artisynth_user",
+    *    "password": "artisynth_password",
+    *   }
+    * </code></pre>
+    * The encrypted password is assumed encrypted with the provided cipher/key.  If no cipher is provided,
+    * a default is assumed.  An encrypted password takes precedence over a plaintext one if both are
+    * provided.
+    * 
+    * @param configFile
+    */
+   public void loadConfig(File configFile) {
+      JSONReader jreader = new JSONReader();
+      Object json = null;
+      try {
+         json = jreader.read(configFile);
+      } catch (FileNotFoundException e) {
+         json = new HashMap<String,Object>();
+      } finally {
+         jreader.close();
+      }
+      
+      // default to source-relative
+      String remote_uri = (new File(ArtisynthPath.getHomeDir()+ "/src/").getAbsoluteFile()).toURI().toString();
+      String local_dir = (new File(ArtisynthPath.getCacheDir(), "data/artisynth_models")).getAbsolutePath();
+      String username = null;
+      String password = null;
+      String cipher = null;
+      String encrypted_password = null;
+      byte[] cipher_key = null;
+      
+      if (json instanceof Map<?,?>) {
+         @SuppressWarnings("unchecked")
+         Map<String,Object> jmap = (Map<String,Object>)json;
+         for (Entry<String,Object> entry : jmap.entrySet()) {
+            String key = entry.getKey();
+            String val = entry.getValue().toString();
+            if ("remote_uri".equals(key)) {
+               remote_uri = val;
+            } else if ("username".equals(key)) {
+               username = val;
+            } else if ("password".equals(key)) {
+               password = val;
+            } else if ("encrypted_password".equals (key)) {
+               encrypted_password = val;
+            } else if ("cipher".equals(key)) {
+               cipher = val;
+            } else if ("cipher_key".equals(key)) {
+               cipher_key = Base64.decode(val);
+            } else if ("local_dir".equals(key)) {
+               local_dir = val;
+            }
+         }
+      }
+      
+      setRemoteRoot(remote_uri);
+      
+      if (local_dir != null) {
+         File f = ArtisynthPath.findFile(local_dir);
+         if (f == null) {
+            f = ArtisynthPath.getHomeRelativeFile(local_dir, ".");
+         }
+         if (f != null) {
+            setLocalRoot(new File(local_dir));
+         }
+      }
+      
+      if (cipher != null) {
+         try {
+            Cipher ciph = Cipher.getInstance(cipher);
+            GenericCryptor cryptor = new GenericCryptor(ciph);
+            if (cipher_key != null) {
+               cryptor.setKey(cipher_key);
+            }
+            setCryptor(cryptor);
+         } catch (Exception e) {
+            throw new RuntimeException(e);
+         }
+      }
+      
+      if (username != null) {
+         if (encrypted_password != null) {
+            setEncryptedCredentials (username, encrypted_password);
+         } else if (password != null) {
+            setCredentials(username, password);      
+         }
+      }
+      
+   }
+   
+   /**
     * Sets the root directory of the remote filesystem
     * 
     * @param remote remote file system root directory
@@ -78,28 +184,6 @@ public class ArtisynthDataManager {
          file.mkdirs();
       }
       manager.setDownloadDir(file);
-   }
-   
-   private String detectHost(String zipOrFolder) {
-      
-      //      Stringhost = grabber.getRemoteSource().toString();;
-      //      if (zipOrFolder.endsWith(".tar.gz") || zipOrFolder.endsWith(".tgz")) {
-      //         host = "tgz:" + concatPaths(ARTISYNTH_SOURCE, zipOrFolder) + "!/";
-      //      } else if (zipOrFolder.endsWith(".zip")) {
-      //         host = "zip:" + concatPaths(ARTISYNTH_SOURCE, zipOrFolder) + "!/";
-      //      } else if (zipOrFolder.endsWith(".tar")) {
-      //         host = "tar:" + concatPaths(ARTISYNTH_SOURCE, zipOrFolder) + "!/";
-      //      }  else if (zipOrFolder.endsWith(".jar")) {
-      //         host = "jar:" + concatPaths(ARTISYNTH_SOURCE, zipOrFolder) + "!/";
-      //      } else if (zipOrFolder.endsWith(".gz")) {
-      //         host = "gz:" + concatPaths(ARTISYNTH_SOURCE, zipOrFolder) + "!/";
-      //      } else if (isURI(zipOrFolder)){
-      //         host = zipOrFolder; 
-      //      } else {
-      //         host = concatPaths(ARTISYNTH_SOURCE, zipOrFolder);
-      //      }
-       
-      return null;
    }
    
    /**
@@ -320,7 +404,7 @@ public class ArtisynthDataManager {
     * Get underlying file manager
     * @return delegate for handling file transfers
     */
-   protected FileManager getManager() {
+   protected FileManager getFileManager() {
       return manager;
    }
 

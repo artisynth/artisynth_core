@@ -15,6 +15,7 @@ import maspack.properties.PropertyList;
 import maspack.render.FaceRenderProps;
 import maspack.render.IsRenderable;
 import maspack.render.Renderer;
+import maspack.render.Renderer.Shading;
 
 /**
  * Simple component to print info on the main viewer
@@ -170,7 +171,10 @@ public class HudPrintStream extends TextComponentBase {
          && (myScrollOffset < myNumLines - nLines)) {
          offset = Math.min(offset + 1, myNumLines - nLines);
       }
-
+      
+      Shading oldShading = renderer.getShading ();
+      renderer.setShading (Shading.NONE);
+      
       int j = 0;
       String str;
       float[] loc = new float[3];
@@ -201,6 +205,8 @@ public class HudPrintStream extends TextComponentBase {
          renderer.drawText(myFont, str, loc, myTextSize);
 
       }
+      
+      renderer.setShading (oldShading);
       
 //      if (!saved2d) {
 //         renderer.end2DRendering();

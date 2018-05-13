@@ -107,7 +107,7 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
    }
 
    @Override
-   protected void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps) {
+   protected void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps, DeformedPoint defp) {
     
       // multiply
       double m00 = myC.m00*eps.m00 + myC.m01*eps.m11 + myC.m02*eps.m22 + 2*myC.m03*eps.m01 + 2*myC.m04*eps.m12 + 2*myC.m05*eps.m02;
@@ -121,7 +121,7 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
    }
 
    @Override
-   protected void getC(Matrix6d C) {
+   protected void getC(Matrix6d C, DeformedPoint defp) {
       C.set(myC);
    }
 

@@ -171,7 +171,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    @Override
-   protected void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps) {
+   protected void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps, DeformedPoint defp) {
       
       // update stiffness
       maybeUpdateStiffness();
@@ -188,7 +188,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    @Override
-   protected void getC(Matrix6d C) {
+   protected void getC(Matrix6d C, DeformedPoint defp) {
       maybeUpdateStiffness();
       C.set(myC);
    }

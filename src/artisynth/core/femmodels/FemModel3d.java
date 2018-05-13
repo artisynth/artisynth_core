@@ -154,9 +154,6 @@ PointAttachable, ConnectableBody {
       System.out.println(msg + ": " + timer.result(1));
    }
 
-   protected AABBTree myAABBTree;
-   protected boolean myBVTreeValid;
-
    protected FemElement3dList myElements;
    protected AuxMaterialBundleList myAuxiliaryMaterialList;
 
@@ -402,27 +399,6 @@ PointAttachable, ConnectableBody {
 
    public RenderableComponentList<AuxMaterialBundle> getMaterialBundles() {
       return myAuxiliaryMaterialList;
-   }
-
-   private void updateBVHierarchies() {
-      if (myAABBTree == null) {
-         myAABBTree = new AABBTree();
-         Boundable[] elements = new Boundable[numElements()];
-         for (int i = 0; i < elements.length; i++) {
-            elements[i] = myElements.get(i);
-         }
-         myAABBTree.build(elements, numElements());
-      } else {
-         myAABBTree.update();
-      }
-      myBVTreeValid = true;
-   }
-
-   protected BVTree getBVTree() {
-      if (myAABBTree == null || !myBVTreeValid) {
-         updateBVHierarchies();
-      }
-      return myAABBTree;
    }
 
    @Override
@@ -2912,7 +2888,6 @@ PointAttachable, ConnectableBody {
       // clearIncompressVariables();
       mySolveMatrix = null;
       // myActiveNodes = null;
-      myBVTreeValid = false;
       mySoftIncompMethodValidP = false;
       myHardIncompMethodValidP = false;
       myHardIncompConfigValidP = false;
@@ -3083,7 +3058,6 @@ PointAttachable, ConnectableBody {
    public void updateSlavePos() {
       super.updateSlavePos();
       myMeshList.updateSlavePos();
-      myBVTreeValid = false;
       if (myFrameConstraint != null && !myFrameRelativeP) {
          myFrameConstraint.updateFramePose(/*frameRelative=*/false);
       }

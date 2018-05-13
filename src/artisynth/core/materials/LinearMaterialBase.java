@@ -89,14 +89,17 @@ public abstract class LinearMaterialBase extends FemMaterial {
     * 
     * @param sigma stress
     * @param eps   Cauchy strain
+    * @param defp TODO
     */
-   protected abstract void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps);
+   protected abstract void multiplyC (
+      SymmetricMatrix3d sigma, SymmetricMatrix3d eps, DeformedPoint defp);
    
    /**
     * Populates the spatial stiffness tensor C
     * @param C
+    * @param defp TODO
     */
-   protected abstract void getC(Matrix6d C);
+   protected abstract void getC(Matrix6d C, DeformedPoint defp);
    
    public void computeStress (
       SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
@@ -120,7 +123,7 @@ public abstract class LinearMaterialBase extends FemMaterial {
       sigma.m11 -= 1;
       sigma.m22 -= 1;
       
-      multiplyC(sigma, sigma);
+      multiplyC (sigma, sigma, def);
 
       // rotate stress back to original frame
       if (isCorotated()) {
@@ -134,7 +137,7 @@ public abstract class LinearMaterialBase extends FemMaterial {
       FemMaterial baseMat) {
 
       // get spatial stiffness tensor
-      getC(D);
+      getC(D, def);
       
       // rotate if corotated
       if (isCorotated()) {

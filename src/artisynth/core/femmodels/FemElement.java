@@ -15,6 +15,7 @@ import java.util.Map;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
@@ -26,6 +27,7 @@ import maspack.render.Renderer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.geometry.Boundable;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
@@ -43,7 +45,8 @@ import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
 
 public abstract class FemElement extends RenderableComponentBase
-   implements ScalableUnits, CopyableComponent, PropertyChangeListener {
+   implements Boundable, ScalableUnits, CopyableComponent,
+              PropertyChangeListener {
    
    protected double myDensity = 1000;
    protected PropertyMode myDensityMode = PropertyMode.Inherited;
@@ -360,8 +363,11 @@ public abstract class FemElement extends RenderableComponentBase
    }
 
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
-      // nothing to do
-   }
+      FemNode[] nodes = getNodes();
+      for (int i = 0; i < nodes.length; i++) {
+         nodes[i].getPosition().updateBounds (pmin, pmax);
+      }
+   }  
 
    //protected abstract void renderEdges (Renderer renderer, RenderProps props);
 
@@ -579,6 +585,29 @@ public abstract class FemElement extends RenderableComponentBase
          }
       }
    }
-   
+
+   // Implementation of Boundable 
+
+   public void computeCentroid (Vector3d centroid) {
+      centroid.setZero();
+      FemNode[] nodes = getNodes();
+      for (int i = 0; i < nodes.length; i++) {
+         centroid.add (nodes[i].getPosition());
+      }
+      centroid.scale (1.0 / nodes.length);
+   }
+
+   public double computeCovariance (Matrix3d C) {
+      // Optional method - don't compute by default.
+      return -1;
+   }
+
+   public int numPoints() {
+      return numNodes();
+   }
+
+   public Point3d getPoint (int idx) {
+      return getNodes()[idx].getPosition();
+   }
 
 }

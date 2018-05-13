@@ -66,7 +66,7 @@ public class FemDeformedPoint extends DeformedPointBase {
 
    public Point3d getRestPos() {
       if (!myRestPosValid) {
-         myIpnt.computeRestPosition (mySpatialPos, myElem.getNodes());
+         myIpnt.computeRestPosition (myRestPos, myElem.getNodes());
          myRestPosValid = false;
       }
       return myRestPos;

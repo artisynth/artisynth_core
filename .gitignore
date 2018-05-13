@@ -47,13 +47,13 @@ CVS
 *.log
 
 ######################
-# Project files
+# Eclipse files
 ######################
 .classpath
 .project
 .cproject
 .settings
-ArtiSynth.launch
+*.launch
 
 ######################
 # MacOS files

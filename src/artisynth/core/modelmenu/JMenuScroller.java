@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
@@ -19,6 +20,7 @@ import javax.swing.MenuSelectionManager;
 import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.MenuKeyEvent;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
@@ -453,6 +455,7 @@ public class JMenuScroller {
 
       private MenuScrollTimer timer;
       private boolean active = false;
+      private boolean upscroll;
 
       public MenuScrollItem (MenuIcon icon, int increment) {
          setIcon (icon);
@@ -460,7 +463,20 @@ public class JMenuScroller {
          setBackground (Color.LIGHT_GRAY);
          setEnabled (true);
          timer = new MenuScrollTimer (increment, interval);
+         upscroll = increment < 0;
          addChangeListener (this);
+      }
+      
+      @Override
+      public void processMenuKeyEvent (MenuKeyEvent e) {
+         // intercept key events
+         int key = e.getKeyCode ();
+
+         if ( this.isArmed () && upscroll && (key == KeyEvent.VK_UP || key == KeyEvent.VK_KP_UP)) {
+            e.consume ();
+         } else if ( this.isArmed () && !upscroll &&  (key == KeyEvent.VK_DOWN || key == KeyEvent.VK_KP_DOWN)) {
+            e.consume ();
+         }
       }
       
       @Override

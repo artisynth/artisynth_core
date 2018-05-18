@@ -79,6 +79,9 @@ import maspack.render.Renderer.Shading;
 import maspack.render.RendererEvent;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLSupport;
+import maspack.render.GL.GLSupport.GLVersionInfo;
+import maspack.render.GL.GLViewer.GLVersion;
 import maspack.render.GL.GLViewerFrame;
 import maspack.widgets.GridDisplay;
 import maspack.widgets.GuiUtils;
@@ -502,11 +505,14 @@ public class MeshViewer extends GLViewerFrame
    }
 
    public MeshViewer (ArrayList<? extends MeshBase> meshList, int w, int h) {
-      this ("MeshViewer", createInfoList(meshList), w, h);
+      this ("MeshViewer", createInfoList(meshList), w, h, GLVersion.GL3);
    }
 
-   public MeshViewer (String title, ArrayList<MeshInfo> infoList, int w, int h) {
-      super (title, w, h);
+   public MeshViewer (
+      String title, ArrayList<MeshInfo> infoList, int w, int h, 
+      GLVersion glVersion) {
+
+      super (title, w, h, glVersion);
 
       myMeshChooser.setFileFilter (new ObjFileFilter());
       myMeshChooser.setCurrentDirectory (new File("."));
@@ -886,6 +892,7 @@ public class MeshViewer extends GLViewerFrame
    static BooleanHolder queueMeshes = new BooleanHolder (false);
    static BooleanHolder pointMesh = new BooleanHolder (false);
    static IntHolder skipCount = new IntHolder (1);
+   protected static IntHolder glVersion = new IntHolder (3);
 
    private static void doPrintBounds (MeshBase mesh) {
       double inf = Double.POSITIVE_INFINITY;
@@ -932,6 +939,8 @@ public class MeshViewer extends GLViewerFrame
 
             WavefrontReader reader = new WavefrontReader (meshFile);
             reader.parse ();
+            reader.close ();
+            
             String[] names = reader.getPolyhedralGroupNames();
             for (int i=0; i<names.length; i++) {
 
@@ -1059,6 +1068,8 @@ public class MeshViewer extends GLViewerFrame
       parser.addOption (
          "-pointMesh %v #specifies that mesh must be read as a point mesh",
          pointMesh);
+      parser.addOption (
+         "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
 
       RigidTransform3d X = new RigidTransform3d();
       ArrayList<MeshInfo> infoList = new ArrayList<MeshInfo> (0);
@@ -1092,8 +1103,24 @@ public class MeshViewer extends GLViewerFrame
       // call this to prevent awful looking fonts:
       System.setProperty("awt.useSystemAAFontSettings","on");
 
+      GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
+
+      // check if GL3 version is supported
+      if (glv == GLVersion.GL3) {
+         GLVersionInfo vinfo = GLSupport.getMaxGLVersionSupported();
+         if ( (vinfo.getMajorVersion() < glv.getMajorVersion()) ||
+            ((vinfo.getMajorVersion() == glv.getMajorVersion()) && 
+               (vinfo.getMinorVersion() < glv.getMinorVersion()))) {
+            System.err.println("WARNING: " + glVersion.toString() + " is not supported on this system.");
+            System.err.println("     Required: OpenGL " + glv.getMajorVersion() + "." + glv.getMinorVersion());
+            System.err.println("     Available: OpenGL " + vinfo.getMajorVersion() + "." + vinfo.getMinorVersion());
+            glv = GLVersion.GL2;
+         }
+      }
+
       final MeshViewer frame =
-         new MeshViewer ("MeshViewer", infoList, width.value, height.value);
+         new MeshViewer (
+            "MeshViewer", infoList, width.value, height.value, glv);
       frame.setMeshQueue (meshQueue);
       frame.setVisible (true);
 

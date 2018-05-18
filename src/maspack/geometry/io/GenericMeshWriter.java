@@ -45,26 +45,43 @@ public class GenericMeshWriter implements MeshWriter {
       this (new File(fileName));
    }
 
+   
    public GenericMeshWriter (File file) throws IOException {
       
-      String fileName = file.getName();
-      String lfileName = fileName.toLowerCase();
       myWriter = null;
       
+      myWriter = createWriter(file);
+
+      if (myWriter == null) {
+         throw new UnsupportedOperationException (
+            "File "+file.getName ()+" has unrecognized extension");
+      }
+   }
+
+   
+   public static MeshWriter createWriter(String fileName) throws IOException {
+      return createWriter(new File(fileName));
+   }
+   
+   public static MeshWriter createWriter(File file) throws IOException {
+
+      String fileName = file.getName();
+      String lfileName = fileName.toLowerCase();
+      
       if (lfileName.endsWith (".ply")) {
-         myWriter = new PlyWriter (file);
+         return new PlyWriter (file);
       }
       else if (lfileName.endsWith (".obj")) {
-         myWriter = new WavefrontWriter(file);
+        return new WavefrontWriter(file);
       }
       else if (lfileName.endsWith (".off")) {
-         myWriter = new OffWriter(file);
+         return new OffWriter(file);
       }
       else if (lfileName.endsWith (".stl")) {
-         myWriter = new StlWriter(file);
+         return new StlWriter(file);
       }
       else if (lfileName.endsWith (".xyzb")) {
-         myWriter = new XyzbWriter(file);
+         return new XyzbWriter(file);
       }
       else {
          
@@ -72,17 +89,13 @@ public class GenericMeshWriter implements MeshWriter {
             for (String ext : factory.getFileExtensions()) {
                String lext = ext.toLowerCase();
                if (lfileName.endsWith(lext)) {
-                  myWriter = factory.newWriter(file);
-                  break;
+                  return factory.newWriter(file);
                }
             }
          }
-         
-         if (myWriter == null) {
-            throw new UnsupportedOperationException (
-               "File "+fileName+" has unrecognized extension");
-         }
       }
+      
+      return null;
    }
 
    public void setFormat (GenericMeshReader reader) {

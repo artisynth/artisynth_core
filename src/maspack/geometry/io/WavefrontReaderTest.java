@@ -16,6 +16,7 @@ public class WavefrontReaderTest {
    void test (String str, WavefrontReader check) throws IOException {
       WavefrontReader wfr = new WavefrontReader(new StringReader (str));
       wfr.parse ();
+      wfr.close ();
       if (!wfr.equals (check)) {
          System.out.println (str);
          System.out.println ("Expected:\n" + check.toString());
@@ -29,6 +30,7 @@ public class WavefrontReaderTest {
       Exception eActual = null;
       try {
          wfr.parse ();
+         wfr.close ();
       }
       catch (Exception e) {
          eActual = e;

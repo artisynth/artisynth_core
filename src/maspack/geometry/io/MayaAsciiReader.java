@@ -503,19 +503,28 @@ public class MayaAsciiReader {
          throw new IllegalArgumentException("Group \"" + group
             + "\" not found.");
       }
-      return getPolygonalMesh(root, units);
+      return getPolygonalMesh(root, units, null);
    }
-
+   
    public PolygonalMesh getPolygonalMesh(Node<MayaNode> root, UnitInfo units) {
+      return getPolygonalMesh (root, units, null);
+   }
+   
+   public PolygonalMesh getPolygonalMesh(Node<MayaNode> root, UnitInfo units, String regex) {
 
       if (units == null) {
          units = defaultUnits;
       }
 
+      Pattern pregex = null;
+      if (regex != null) {
+         pregex = Pattern.compile(regex);
+      }
+      
       PolygonalMesh mesh = new PolygonalMesh();
       AffineTransform3d trans = new AffineTransform3d();
       recursiveBuildParentTransform(root, trans, units);
-      recursiveAddPolygonalMeshes(root, mesh, trans, units);
+      recursiveAddPolygonalMeshes(root, mesh, trans, units, pregex);
 
       return mesh;
 
@@ -523,7 +532,7 @@ public class MayaAsciiReader {
 
    private void recursiveAddPolygonalMeshes(
       Node<MayaNode> root, PolygonalMesh mesh, AffineTransform3d trans,
-      UnitInfo units) {
+      UnitInfo units, Pattern regex) {
 
       trans = new AffineTransform3d(trans); // make copy so can traverse
                                             // children independently
@@ -544,34 +553,38 @@ public class MayaAsciiReader {
          }
       } else if (data instanceof MayaMesh) {
          MayaMesh mm = (MayaMesh)data;
-         PolygonalMesh mmesh = mm.getMesh();
-
-         if (mmesh != null) {
-            // transform mesh
-            HashMap<Vertex3d,Vertex3d> vtxMap =
-               new HashMap<Vertex3d,Vertex3d>();
-            for (Vertex3d vtx : mmesh.getVertices()) {
-               Vertex3d nvtx = new Vertex3d(vtx.pnt);
-               // XXX prevent transform
-               nvtx.pnt.scale(mm.units.length.getSI() / units.length.getSI());
-               nvtx.pnt.transform(trans);
-               vtxMap.put(vtx, nvtx);
-               mesh.addVertex(nvtx);
-            }
-
-            for (Face face : mmesh.getFaces()) {
-               Vertex3d[] oface = face.getVertices();
-               Vertex3d[] nface = new Vertex3d[oface.length];
-               for (int i = 0; i < oface.length; i++) {
-                  nface[i] = vtxMap.get(oface[i]);
+         
+         if (regex == null || regex.matcher(mm.getName()).matches()) {
+            
+            PolygonalMesh mmesh = mm.getMesh();
+   
+            if (mmesh != null) {
+               // transform mesh
+               HashMap<Vertex3d,Vertex3d> vtxMap =
+                  new HashMap<Vertex3d,Vertex3d>();
+               for (Vertex3d vtx : mmesh.getVertices()) {
+                  Vertex3d nvtx = new Vertex3d(vtx.pnt);
+                  // XXX prevent transform
+                  nvtx.pnt.scale(mm.units.length.getSI() / units.length.getSI());
+                  nvtx.pnt.transform(trans);
+                  vtxMap.put(vtx, nvtx);
+                  mesh.addVertex(nvtx);
                }
-               mesh.addFace(nface);
+   
+               for (Face face : mmesh.getFaces()) {
+                  Vertex3d[] oface = face.getVertices();
+                  Vertex3d[] nface = new Vertex3d[oface.length];
+                  for (int i = 0; i < oface.length; i++) {
+                     nface[i] = vtxMap.get(oface[i]);
+                  }
+                  mesh.addFace(nface);
+               }
             }
          }
       }
 
       for (Node<MayaNode> child : root.getChildren()) {
-         recursiveAddPolygonalMeshes(child, mesh, trans, units);
+         recursiveAddPolygonalMeshes(child, mesh, trans, units, regex);
       }
 
    }

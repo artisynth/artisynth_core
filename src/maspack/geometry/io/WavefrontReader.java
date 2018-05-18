@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import maspack.geometry.MeshBase;
 import maspack.geometry.PointMesh;
@@ -42,6 +43,8 @@ import maspack.util.TestSupport;
  * preventing materials from being loaded when manually constructing meshes
  */
 public class WavefrontReader extends MeshReaderBase {
+   
+   public static final String DEFAULT_GROUP = null;
    
    public static final int BEZIER = 1;
    public static final int BMATRIX = 2;
@@ -93,7 +96,7 @@ public class WavefrontReader extends MeshReaderBase {
       if (file != null) {
          currPath = file.getParent();
       }
-      setGroup("default");
+      setGroup(DEFAULT_GROUP);
    }
 
    // public WavefrontReader () {
@@ -122,16 +125,10 @@ public class WavefrontReader extends MeshReaderBase {
    }
 
    public boolean hasGroup(String name) {
-      if (name == null) {
-         name = "default";
-      }
       return myGroupMap.get(name) != null;
    }
 
    public void setGroup(String name) {
-      if (name == null) {
-         name = "default";
-      }
       Group group = myGroupMap.get(name);
       if (group == null) {
          group = new Group(name);
@@ -1033,12 +1030,16 @@ public class WavefrontReader extends MeshReaderBase {
       int saveRParen = rtok.getCharSetting(')');
       int savePeriod = rtok.getCharSetting('.');
       int saveColon = rtok.getCharSetting(':');
+      int saveSlash = rtok.getCharSetting ('/');
+      int saveBackslash = rtok.getCharSetting ('\\');
       rtok.parseNumbers(false);
       rtok.wordChar('-');
       rtok.wordChar('(');
       rtok.wordChar(')');
       rtok.wordChar('.');
       rtok.wordChar(':');
+      rtok.wordChar ('/');
+      rtok.wordChar ('\\');
       String name = "";
 
       // catch default material
@@ -1058,6 +1059,8 @@ public class WavefrontReader extends MeshReaderBase {
       rtok.setCharSetting(')', saveRParen);
       rtok.setCharSetting('.', savePeriod);
       rtok.setCharSetting(':', saveColon);
+      rtok.setCharSetting ('/', saveSlash);
+      rtok.setCharSetting ('\\', saveBackslash);
       return name;
    }
 
@@ -1216,7 +1219,7 @@ public class WavefrontReader extends MeshReaderBase {
       textureVertexList.clear();
       normalList.clear();
       myGroupMap.clear();
-      setGroup("default");
+      setGroup(DEFAULT_GROUP);
       degreeu = -1;
       degreev = -1;
    }
@@ -1388,7 +1391,7 @@ public class WavefrontReader extends MeshReaderBase {
                throw new IOException(
                   "Index " + idx + " out of bounds, line " + lineNum);
             }
-            indexMap[indices[k]] = 1;
+            indexMap[indices[k]] = -1;
          }
       }
    }
@@ -1415,7 +1418,7 @@ public class WavefrontReader extends MeshReaderBase {
       }
       int idx = 0;
       for (int i = 0; i < indexMap.length; i++) {
-         if (indexMap[i] == 1) {
+         if (indexMap[i] == -1) {
             indexMap[i] = idx++;
             Point3d pnt = new Point3d();
             pnt.setFromHomogeneous(vertexList.get(i));
@@ -1442,7 +1445,7 @@ public class WavefrontReader extends MeshReaderBase {
       }
       int idx = 0;
       for (int i = 0; i < indexMap.length; i++) {
-         if (indexMap[i] == 1) {
+         if (indexMap[i] == -1) {
             indexMap[i] = idx++;
             Point3d pnt = new Point3d();
             pnt.setFromHomogeneous(vertexList.get(i));
@@ -1472,7 +1475,7 @@ public class WavefrontReader extends MeshReaderBase {
       }
       int idx = 0;
       for (int i = 0; i < indexMap.length; i++) {
-         if (indexMap[i] == 1) {
+         if (indexMap[i] == -1) {
             indexMap[i] = idx++;
             nrmList.add(new Vector3d(normalList.get(i)));
          }
@@ -1509,7 +1512,7 @@ public class WavefrontReader extends MeshReaderBase {
       }
       int idx = 0;
       for (int i = 0; i < indexMap.length; i++) {
-         if (indexMap[i] == 1) {
+         if (indexMap[i] == -1) {
             indexMap[i] = idx++;
             vtxList.add(new Vector3d(textureVertexList.get(i)));
          }
@@ -1534,6 +1537,104 @@ public class WavefrontReader extends MeshReaderBase {
       return ArraySupport.toIntArray (indexList);
    }
 
+   public int[][] getGlobalFaceIndicesAndVertices(
+      ArrayList<Point3d> vtxList) throws IOException {
+
+      for (Vector4d v4 : vertexList) {
+         Point3d pnt = new Point3d();
+         pnt.setFromHomogeneous (v4);
+         vtxList.add (pnt);
+      }
+      
+      ArrayList<int[]> indexArray = new ArrayList<>();
+      for (Entry<String,Group> entry : myGroupMap.entrySet ()) {
+         Group group = entry.getValue ();
+         for (Face face : group.faceList) {
+            indexArray.add (face.indices);
+         }
+      }
+      
+      return indexArray.toArray (new int[indexArray.size ()][]);
+   }
+
+   public int[][] getGlobalLineIndicesAndVertices(
+      ArrayList<Point3d> vtxList) throws IOException {
+
+      for (Vector4d v4 : vertexList) {
+         Point3d pnt = new Point3d();
+         pnt.setFromHomogeneous (v4);
+         vtxList.add (pnt);
+      }
+      
+      ArrayList<int[]> indexArray = new ArrayList<>();
+      for (Entry<String,Group> entry : myGroupMap.entrySet ()) {
+         Group group = entry.getValue ();
+         for (Line line : group.lineList) {
+            indexArray.add (line.indices);
+         }
+      }
+      
+      return indexArray.toArray (new int[indexArray.size ()][]);
+   }
+
+   public int[] getGlobalNormalIndicesAndVertices(
+      ArrayList<Vector3d> nrmList) throws IOException {
+
+      if (normalList.size() == 0) {
+         return null;
+      }
+      
+      nrmList.addAll (normalList);
+      
+      ArrayList<Integer> indexList = new ArrayList<Integer>();
+      
+      for (Entry<String,Group> group : myGroupMap.entrySet ()) {
+         for (Face face : group.getValue ().faceList) {
+            int[] idxs = face.normalIndices;
+            if (idxs != null) {
+               for (int j=0; j<idxs.length; j++) {
+                  indexList.add (idxs[j]);
+               }
+            }
+            else {
+               for (int j=0; j<face.indices.length; j++) {
+                  indexList.add (-1);
+               }
+            }
+         }
+      }
+      return ArraySupport.toIntArray (indexList);
+   }
+
+   public int[] getGlobalTextureIndicesAndVertices(
+      ArrayList<Vector3d> vtxList) throws IOException {
+
+      if (textureVertexList.size() == 0) {
+         return null;
+      }
+      
+      vtxList.addAll (textureVertexList);
+      
+      ArrayList<Integer> indexList = new ArrayList<Integer>();
+      
+      for (Entry<String,Group> group : myGroupMap.entrySet ()) {
+         for (Face face : group.getValue ().faceList) {
+            int[] idxs = face.textureIndices;
+            if (idxs != null) {
+               for (int j=0; j<idxs.length; j++) {
+                  indexList.add (idxs[j]);
+               }
+            }
+            else {
+               for (int j=0; j<face.indices.length; j++) {
+                  indexList.add (-1);
+               }
+            }
+         }
+      }
+      return ArraySupport.toIntArray (indexList);
+   }
+   
    public Point3d[] getVertexPoints() {
       Point3d[] pnts = new Point3d[vertexList.size()];
       int i = 0;
@@ -1640,17 +1741,17 @@ public class WavefrontReader extends MeshReaderBase {
       verbose = verb;
    }
 
-   protected String checkGroupName (String name) {
-      if (name == null) {
-         String[] nameList = getPolyhedralGroupNames();
-         if (nameList.length > 0) {
-            name = nameList[0];
-         }
-         else {
-            // will result in a null mesh since 'default' not a polyhedral group
-            name = "default";
-         }
-      }
+   protected String setGroupName (String name) {
+      //      if (name == null) {
+      //         String[] nameList = getPolyhedralGroupNames();
+      //         if (nameList.length > 0) {
+      //            name = nameList[0];
+      //         }
+      //         else {
+      //            // will result in a null mesh since 'default' not a polyhedral group
+      //            name = DEFAULT_GROUP;
+      //         }
+      //      }
       if (!hasGroup (name)) {
          throw new IllegalArgumentException ("Group '"+name+"' unknown");
       }
@@ -1659,7 +1760,7 @@ public class WavefrontReader extends MeshReaderBase {
    }
 
    protected void setNameAndRenderProps (MeshBase mesh, String name) {
-      mesh.setName (name.equals ("default") ? null : name);
+      mesh.setName (name);
       if (getRenderProps() != null) {
          mesh.setRenderProps (getRenderProps());
       }
@@ -1674,10 +1775,16 @@ public class WavefrontReader extends MeshReaderBase {
       throws IOException {      
 
       mesh.clear();
-      groupName = checkGroupName (groupName);
+            
+      groupName = setGroupName (groupName);
 
       ArrayList<Point3d> vtxList = new ArrayList<Point3d>();
-      int[][] indices = getLocalFaceIndicesAndVertices (vtxList);
+      int[][] indices;
+      if (groupName != null) {
+         indices = getLocalFaceIndicesAndVertices (vtxList);
+      } else {
+         indices = getGlobalFaceIndicesAndVertices(vtxList);
+      }
 
       for (int i=0; i<vtxList.size(); i++) {
          // add by reference since points have already been copied 
@@ -1689,7 +1796,12 @@ public class WavefrontReader extends MeshReaderBase {
          }
       }
       ArrayList<Vector3d> textureCoords = new ArrayList<Vector3d>();
-      int[] tindices = getLocalTextureIndicesAndVertices (textureCoords);
+      int[] tindices;
+      if (groupName != null) {
+         tindices = getLocalTextureIndicesAndVertices (textureCoords);
+      } else {
+         tindices = getGlobalTextureIndicesAndVertices (textureCoords);
+      }
       if (tindices != null) {
          // for now, make sure we don't have partial texture coordinates
          boolean incompleteTexture = false;
@@ -1704,7 +1816,12 @@ public class WavefrontReader extends MeshReaderBase {
          }
       }
       ArrayList<Vector3d> normals = new ArrayList<Vector3d>();
-      int[] nindices = getLocalNormalIndicesAndVertices (normals);
+      int[] nindices;
+      if (groupName != null ) {
+         nindices = getLocalNormalIndicesAndVertices (normals);
+      } else {
+         nindices = getGlobalNormalIndicesAndVertices (normals);
+      }
       if (nindices != null) {
          mesh.setNormals (normals, nindices);
          mesh.setHardEdgesFromNormals();
@@ -1721,7 +1838,11 @@ public class WavefrontReader extends MeshReaderBase {
 
       if (mesh == null) {
          if (myCurrentGroup.faceList.size() == 0) {
-            mesh = new PointMesh();
+            if (myCurrentGroup.lineList.size () == 0) {
+               mesh = new PointMesh();
+            } else {
+               mesh = new PolylineMesh();
+            }
          }
          else {
             mesh = new PolygonalMesh();
@@ -1757,7 +1878,7 @@ public class WavefrontReader extends MeshReaderBase {
       throws IOException {
 
       mesh.clear();
-      groupName = checkGroupName (groupName);
+      groupName = setGroupName (groupName);
 
       List<Point3d> vtxList = Arrays.asList(getVertexPoints());
       for (int i=0; i<vtxList.size(); i++) {
@@ -1784,11 +1905,16 @@ public class WavefrontReader extends MeshReaderBase {
       throws IOException {
 
       mesh.clear();
-      groupName = checkGroupName (groupName);
+      groupName = setGroupName (groupName);
 
 
       ArrayList<Point3d> vtxList = new ArrayList<Point3d>();
-      int[][] indices = getLocalLineIndicesAndVertices (vtxList);
+      int[][] indices;
+      if (groupName != null) {
+         indices = getLocalLineIndicesAndVertices (vtxList);
+      } else {
+         indices = getGlobalLineIndicesAndVertices (vtxList);
+      }
 
       for (int i=0; i<vtxList.size(); i++) {
          // add by reference since points have already been copied 

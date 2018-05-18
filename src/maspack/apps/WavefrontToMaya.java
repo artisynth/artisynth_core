@@ -55,6 +55,7 @@ public class WavefrontToMaya {
       try {
          wfr = new WavefrontReader(inputFile);
          wfr.parse();
+         wfr.close();
       }
       catch (IOException e) {
          e.printStackTrace();

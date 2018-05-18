@@ -294,12 +294,15 @@ public class CollisionBehavior extends CollisionComponent
     * and friction.
     * 
     * @param enabled true if collisions are enabled
-    * @param mu friction coefficient
+    * @param mu friction coefficient. If less than 0, the value 
+    * will be inherited from ancestor components. 
     */
    public CollisionBehavior (boolean enabled, double mu) {
       setDefaultValues();
       setEnabled (enabled);
-      setFriction (mu);
+      if (enabled && mu >= 0) {
+         setFriction (mu);
+      }
    }
 
    public CollisionBehavior (CollisionBehavior behav) {

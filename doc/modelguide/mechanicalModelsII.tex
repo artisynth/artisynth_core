@@ -888,22 +888,38 @@ within the ArtiSynth GUI. See the section ``Collision handling'' in the
 \end{sideblock}
 
 The default collision behavior between all collidables can be
-controlled using two methods:
+controlled using the method
 %
 \begin{lstlisting}[]
   setDefaultCollisionBehavior (enabled, mu);
+\end{lstlisting}
+%
+where {\tt enabled} is {\tt true} or {\tt false} depending on whether
+collisions are enabled, and {\tt mu} is the coefficient of Coulomb (or
+dry) friction. The {\tt mu} value is ignored if {\tt enabled} is {\tt
+false}. {\tt mu} can also be left undefined by specifying a value less
+than 0, in which case the friction coefficient is inherited from the
+global friction value accessed by the methods
+%
+\begin{lstlisting}[]
+  setFriction (mu);
+  double getFriction();
+\end{lstlisting}
+%
+The default collision behavior can also be controlled
+using the method
+%
+\begin{lstlisting}[]
   setDefaultCollisionBehavior (behavior);
 \end{lstlisting}
 %
-In the first method, {\tt enabled} is {\tt true} or {\tt false}
-depending on whether collisions are enabled, and {\tt mu} is the
-coefficient of Coulomb (or dry) friction. The {\tt mu} value is
-ignored if {\tt enabled} is {\tt false}. In the second method, {\tt
-behavior} is a
+where {\tt behavior} is a
 \javaclass[artisynth.core.mechmodels]{CollisionBehavior} object that
 specifies both {\it enabled} and {\it mu}, along with other, more
 detailed collision properties (see Section
-\ref{collisionBehavior:sec}).  In addition, a default collision
+\ref{collisionBehavior:sec}).  
+
+In addition, a default collision
 behavior can be set for generic groups of collidables using
 %
 \begin{lstlisting}[]
@@ -925,6 +941,10 @@ method returns {\tt true}.)  The group {\tt Collidable.AllBodies}
 denotes both rigid and deformable bodies, and {\tt Collidable.Self} is
 used to enabled self-collision. which is described in greater detail
 in Section \ref{SelfCollision:sec}.
+{\tt mu} again is ignored if {\tt enabled} is {\tt false},
+and if {\tt mu} is less than zero, the friction is undefined
+and inherited from the global value accessed using 
+{\tt setFriction(mu)} and {\tt getFriction()}.
 
 \begin{table}[h]
 \begin{center}
@@ -981,11 +1001,15 @@ collidables or pairs of collidables can be controlled using
   setCollisionBehavior (collidable0, collidable1, behavior);
 \end{lstlisting}
 %
-where {\tt collidable0} is an
-individual collidable component (such as a rigid body or FEM model),
-and {\tt collidable1} is either another individual component, or one of the
-groups of Table \ref{CollisionGroups:tab}.
-For example, the calls
+where {\tt collidable0} is an individual collidable component (such as
+a rigid body or FEM model), and {\tt collidable1} is either another
+individual component, or one of the groups of Table
+\ref{CollisionGroups:tab}.  As with default behaviors, {\tt mu}
+is ignored if {\tt enabled} is {\tt false}, and if {\tt mu} is less
+than zero, the friction is undefined and inherited from the global
+value accessed using {\tt setFriction(mu)} and {\tt getFriction()}.
+
+As an example of setting individual collision behaviors, the calls
 \begin{lstlisting}[]
   RigidBody bodA; 
   FemModel3d femB;
@@ -1001,7 +1025,9 @@ specifically {\tt disabling} collisions between {\tt bodA} and {\tt
 femB}.
 
 The {\tt setCollisionBehavior()} methods work by adding a
-\javaclass[artisynth.core.mechmodels]{CollisionBehavior} object to the
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior} object 
+(Section\ref{collisionBehavior:sec}) 
+to the
 collision manager as a sub-component. With {\tt
 setCollisionBehavior(collidable0,collidable1,behavior)}, the behavior
 object is created and supplied by the application.  With {\tt
@@ -1330,6 +1356,24 @@ getActingCollisionBehavior()} (described above) to obtain the behavior
 (default or otherwise) responsible for a specific pair of collidables,
 although in some instances no such single behavior exists and the
 method will then return {\tt null}.
+
+There are two constructors for {\tt CollisionBehavior}:
+%
+\begin{lstlisting}[]
+  CollisionBehavior ();
+  CollisionBehavior (boolean enable, double mu);
+\end{lstlisting}
+%
+The first creates a behavior with the {\sf enabled} property set to
+false and the other properties set to their default (generally
+inherited) values.  The second creates a behavior with the {\sf
+enabled} and {\sf friction} properties explicitly specified by {\sf
+enabled} and {\sf mu}, and other properties set to their default
+values. If {\tt mu} is less than zero or {\tt enabled} is false, then
+the {\tt friction} property is set to be inherited so that its value
+is controlled by the global friction property in the collision manager
+(and accessed using the MechModel methods {\tt setFriction(mu)} and
+{\tt getFriction()}).
 
 \subsection{Self-collision and collidable hierarchies}
 \label{SelfCollision:sec}

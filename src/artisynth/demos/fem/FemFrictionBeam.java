@@ -42,13 +42,13 @@ public class FemFrictionBeam extends RootModel {
    }
 
    public void setAngle (double ang) {
-      myAngle = ang;
       if (models().size() > 0) {
          MechModel mechMod = (MechModel)models().get(0);      
          double delAng = ang-myAngle;
          mechMod.transformGeometry (
             new RigidTransform3d (0, 0, 0, 0, 1, 0, Math.toRadians(delAng)));
       }
+      myAngle = ang;
    }
 
    public double getAngle () {
@@ -85,12 +85,13 @@ public class FemFrictionBeam extends RootModel {
       RenderProps.setPointRadius (myFem, 0.001);
       RenderProps.setPointColor (myFem, Color.GREEN);
 
-      myMech.setCollisionBehavior (myFem, myPlate, true, myMu);
-
       myMech.transformGeometry (
          new RigidTransform3d (0, 0, 0, 0, 1, 0, Math.toRadians (myAngle)));
 
       addModel (myMech);
+
+      setFriction (myMu);
+      myMech.setCollisionBehavior (myFem, myPlate, true, -1);
 
       ControlPanel panel = new ControlPanel("controls");
       panel.addWidget (this, "friction");

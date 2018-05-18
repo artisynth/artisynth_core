@@ -20,6 +20,9 @@ import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
+import maspack.geometry.AABBTree;
+import maspack.geometry.BVTree;
+import maspack.geometry.Boundable;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -163,6 +166,9 @@ public abstract class FemModel extends MechSystemBase
    int myNumInverted = 0;
 
    protected double myMaxTranslationalVel = 1e10;
+
+   protected AABBTree myAABBTree;
+   protected boolean myBVTreeValid;
 
    // protected boolean myTopLevel = false;
 
@@ -542,6 +548,27 @@ public abstract class FemModel extends MechSystemBase
 //         return myE;
 //      }
 //   }
+
+   private void updateBVHierarchies() {
+      if (myAABBTree == null) {
+         myAABBTree = new AABBTree();
+         Boundable[] elements = new Boundable[numElements()];
+         for (int i = 0; i < elements.length; i++) {
+            elements[i] = getElements().get(i);
+         }
+         myAABBTree.build(elements, numElements());
+      } else {
+         myAABBTree.update();
+      }
+      myBVTreeValid = true;
+   }
+
+   protected BVTree getBVTree() {
+      if (myAABBTree == null || !myBVTreeValid) {
+         updateBVHierarchies();
+      }
+      return myAABBTree;
+   }
 
    public synchronized void setDensity (double p) {
       myDensity = p;
@@ -991,6 +1018,7 @@ public abstract class FemModel extends MechSystemBase
    
    public void updateSlavePos() {
       myVolumeValid = false;
+      myBVTreeValid = false;      
       invalidateStressAndMaybeStiffness();     
    }
    
@@ -1158,6 +1186,7 @@ public abstract class FemModel extends MechSystemBase
       myForcesNeedUpdating = true;
       invalidateStressAndStiffness();
       invalidateIntegrationIndices();
+      myBVTreeValid = false;
    }
 
    public double getCharacteristicSize() {

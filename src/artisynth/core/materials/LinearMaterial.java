@@ -90,7 +90,13 @@ public class LinearMaterial extends LinearMaterialBase {
    }
 
    public double getYoungsModulus (FieldPoint dp) {
-      return (myEFunc == null ? getYoungsModulus() : myEFunc.eval (dp));
+      if (myEFunc == null) {
+         return getYoungsModulus();
+      }
+      else {
+         return myEFunc.eval (dp);
+      }
+      //return (myEFunc == null ? getYoungsModulus() : myEFunc.eval (dp));
    }
 
    public FieldPointFunction<Double> getYoungsModulusFunction() {
@@ -163,11 +169,13 @@ public class LinearMaterial extends LinearMaterialBase {
 //   }
 //   
    @Override
-   protected void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps) {
+   protected void multiplyC(
+      SymmetricMatrix3d sigma, SymmetricMatrix3d eps, DeformedPoint defp) {
     
+      double E = getYoungsModulus(defp);
       // lam and mu are the first and second Lame parameters
-      double lam = myE*myNu/((1+myNu)*(1-2*myNu));
-      double mu = myE/(2*(1+myNu));
+      double lam = E*myNu/((1+myNu)*(1-2*myNu));
+      double mu = E/(2*(1+myNu));
 
       // convert sigma from strain to stress
       // sigma = 2*mu*eps + lamda*trace(eps)*I
@@ -184,7 +192,7 @@ public class LinearMaterial extends LinearMaterialBase {
    }
    
    @Override
-   protected void getC(Matrix6d C) {
+   protected void getC (Matrix6d C, DeformedPoint defp) {
     
       //      // lam and mu are the first and second Lame parameters
       //      double lam = myE*myNu/((1+myNu)*(1-2*myNu));
@@ -203,7 +211,8 @@ public class LinearMaterial extends LinearMaterialBase {
       //      D.m44 = mu;
       //      D.m55 = mu;
       
-      double a = myE / (1+ myNu);  // 2 mu
+      double E = getYoungsModulus(defp);
+      double a = E / (1+ myNu);  // 2 mu
       double dia = (1 - myNu) / (1 - 2 * myNu) * a;
       double mu = 0.5 * a;
       double off = myNu / (1 - 2 * myNu) * a;
@@ -221,7 +230,7 @@ public class LinearMaterial extends LinearMaterialBase {
       Matrix3d Q, FemMaterial baseMat) {
       
       // XXX linear isotropic materials are invariant under rotation
-      getC(D);
+      getC(D, def);
    }
 
    public boolean equals (FemMaterial mat) {

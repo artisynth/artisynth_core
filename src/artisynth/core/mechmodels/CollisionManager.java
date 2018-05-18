@@ -387,7 +387,7 @@ public class CollisionManager extends RenderableCompositeBase
    private void initializeDefaultBehaviors() {
       CollidablePair[] pairs = myDefaultPairs;
       for (int i=0; i<pairs.length; i++) {
-         CollisionBehavior behav = new CollisionBehavior(false, 0);
+         CollisionBehavior behav = new CollisionBehavior(false, -1);
          behav.setCollidablePair (pairs[i]);
          behav.setName (pairs[i].createComponentName(myMechModel));
          myBehaviors.addFixed (behav);

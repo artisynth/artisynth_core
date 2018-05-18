@@ -1077,12 +1077,12 @@ public class CollisionManagerTest extends UnitTest {
 
    private CollisionBehavior getBehaviorFromString (String str, int idx) {
       if (idx >= str.length()) {
-         return new CollisionBehavior (false, 0);
+         return new CollisionBehavior (false, -1);
       }
       else {
          int c = str.charAt(idx);
          if (c == '.') {
-            return new CollisionBehavior (false, 0);
+            return new CollisionBehavior (false, -1);
          }
          else if (Character.isDigit(c)) {
             return new CollisionBehavior (true, c-'0');
@@ -1099,7 +1099,9 @@ public class CollisionManagerTest extends UnitTest {
          return "null";
       }
       else {
-         return "("+behav.isEnabled()+","+behav.getFriction()+")";
+         return
+            "("+behav.isEnabled()+","+behav.getFriction()+" "+
+            behav.getFrictionMode()+")";
       }
    }
 

@@ -440,8 +440,26 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
             this, "maxColoredExcitation", myMaxColoredExcitationMode, mode);
    }
 
+   /**
+    * Sets the global friction coefficient in the collision manager for this
+    * MechModel. Collision behaviors will inherit this value if their initial
+    * friction coefficent was undefined (i.e., was specified with a value less
+    * than 0).
+    *
+    * @param mu global friction coefficient
+    */
    public void setFriction (double mu) {
       myCollisionManager.setFriction (mu);
+   }
+
+   /**
+    * Returns the global friction coefficient in the collision manager for this
+    * MechModel.
+    *
+    * @return global friction coefficient
+    */
+   public double getFriction () {
+      return myCollisionManager.getFriction();
    }
 
    /** 
@@ -452,7 +470,11 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * setDefaultCollisionBehavior(behavior)}.
     * 
     * @param enabled if true, enables collisions
-    * @param mu friction coefficient (ignored if enabled is false)
+    * @param mu friction coefficient (ignored if enabled is false). If less
+    * than zero, the value is undefined and will be inherited from the global
+    * setting in this MechModel's collision manager.
+    * @see #setFriction
+    * @see #getFriction
     */
    public void setDefaultCollisionBehavior (boolean enabled, double mu) {
       setDefaultCollisionBehavior (new CollisionBehavior (enabled, mu));
@@ -533,7 +555,11 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * @param group0 first generic collidable group
     * @param group1 second generic collidable group
     * @param enabled if true, enables collisions
-    * @param mu friction coefficient (ignored if enabled is false)
+    * @param mu friction coefficient (ignored if enabled is false). If
+    * less than zero, the value is undefined and will be inherited from the global
+    * setting in this MechModel's collision manager.
+    * @see #setFriction
+    * @see #getFriction
     */
    public void setDefaultCollisionBehavior (
       Collidable.Group group0, Collidable.Group group1, 
@@ -579,9 +605,14 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * @param c0 first collidable
     * @param c1 second collidable
     * @param enabled if true, enables collisions
-    * @param mu friction coefficient (ignored if enabled is false)
+    * @param mu friction coefficient (ignored if enabled is false). If less
+    * than zero, the value is undefined and will be inherited from the global
+    * setting in this MechModel's collision manager.
+    * setting for this MechModel.
     * @return {@link CollisionBehavior} object describing the collision
     * behavior
+    * @see #setFriction
+    * @see #getFriction
     */
    public CollisionBehavior setCollisionBehavior (
       Collidable c0, Collidable c1, boolean enabled, double mu) {

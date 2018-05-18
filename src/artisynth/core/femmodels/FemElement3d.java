@@ -34,7 +34,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.util.*;
 
 public abstract class FemElement3d extends FemElement
-   implements Boundable, PointAttachable, FrameAttachable {
+   implements PointAttachable, FrameAttachable {
    
    protected FemNode3d[] myNodes;
    protected FemNodeNeighbor[][] myNbrs = null;
@@ -334,13 +334,13 @@ public abstract class FemElement3d extends FemElement
       tri[2] = n2;
    }
 
-   public void computeCentroid (Vector3d centroid) {
-      centroid.setZero();
-      for (int i = 0; i < numNodes(); i++) {
-         centroid.add (myNodes[i].getPosition());
-      }
-      centroid.scale (1.0 / numNodes());
-   }
+   // public void computeCentroid (Vector3d centroid) {
+   //    centroid.setZero();
+   //    for (int i = 0; i < numNodes(); i++) {
+   //       centroid.add (myNodes[i].getPosition());
+   //    }
+   //    centroid.scale (1.0 / numNodes());
+   // }
 
    /**
     * Compute position within element based on natural coordinates
@@ -1605,15 +1605,5 @@ public abstract class FemElement3d extends FemElement
       return ffa;
    }
 
-   // implementation of IndexedPointSet
-
-   public int numPoints() {
-      return numNodes();
-   }
-
-   public Point3d getPoint (int idx) {
-      return myNodes[idx].getPosition();
-   }
-   
 }
 

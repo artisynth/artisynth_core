@@ -708,7 +708,9 @@ public class Face extends Feature implements Boundable {
       while (he != he0);
 
       referenceArea = normal.norm();
-      normal.scale (1 / referenceArea);
+      if (referenceArea != 0) {
+         normal.scale (1 / referenceArea);
+      }
       // John Lloyd, Jul 29, 2013: seems to be old debugging code
       // if (v0.myMesh.myXMeshToWorldIsIdentity) {
       //    Point3d tst = new Point3d();

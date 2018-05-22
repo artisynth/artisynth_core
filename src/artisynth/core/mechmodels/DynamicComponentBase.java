@@ -20,7 +20,7 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
    LinkedList<DynamicAttachment> myMasterAttachments;
    ArrayList<Constrainer> myConstrainers;
 
-   boolean myDynamicP;
+   protected boolean myDynamicP;
    // Activity myActivity;
    int mySolveIdx;
 
@@ -32,7 +32,7 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
       if (myDynamicP != dynamic) {
          myDynamicP = dynamic;
          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-      }
+      }    
    }
 
    public boolean isDynamic() {

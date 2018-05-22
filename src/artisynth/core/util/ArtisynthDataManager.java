@@ -3,6 +3,7 @@ package artisynth.core.util;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -170,8 +171,35 @@ public class ArtisynthDataManager {
     * 
     * @param remote remote file system root directory
     */
+   public void setRemoteRoot(URI remote) {
+      manager.setRemoteSource (remote.toString ());
+   }
+   
+   /**
+    * Sets the root directory of the remote filesystem
+    * 
+    * @param remote remote file system root directory
+    */
+   public void setRemoteRoot(URIx remote) {
+      manager.setRemoteSource (remote);
+   }
+   
+   /**
+    * Sets the root directory of the remote filesystem
+    * 
+    * @param remote remote file system root directory
+    */
    public void setRemoteRoot(String remote) {
       manager.setRemoteSource(remote);
+   }
+   
+   /**
+    * Gets the root directory of the remove filesystem
+    * 
+    * @return remote root directory (URI)
+    */
+   public URIx getRemoteRoot() {
+      return manager.getRemoteSource ();
    }
    
    /**
@@ -184,6 +212,14 @@ public class ArtisynthDataManager {
          file.mkdirs();
       }
       manager.setDownloadDir(file);
+   }
+   
+   /**
+    * Gets the local directory containing downloaded files
+    * @return local directory root
+    */
+   public File getLocalRoot() {
+      return manager.getDownloadDir ();
    }
    
    /**
@@ -404,7 +440,7 @@ public class ArtisynthDataManager {
     * Get underlying file manager
     * @return delegate for handling file transfers
     */
-   protected FileManager getFileManager() {
+   public FileManager getFileManager() {
       return manager;
    }
 

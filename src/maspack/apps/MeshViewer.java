@@ -939,6 +939,8 @@ public class MeshViewer extends GLViewerFrame
 
             WavefrontReader reader = new WavefrontReader (meshFile);
             reader.parse ();
+            reader.close ();
+            
             String[] names = reader.getPolyhedralGroupNames();
             for (int i=0; i<names.length; i++) {
 

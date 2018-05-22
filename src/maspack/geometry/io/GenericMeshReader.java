@@ -47,27 +47,31 @@ public class GenericMeshReader implements MeshReader {
    public GenericMeshReader (String fileName) throws IOException {
       this (new File(fileName));
    }
-
-   public GenericMeshReader (File file) throws IOException {
+   
+   public static MeshReader createReader(String fileName) throws IOException {
+      return createReader(new File(fileName));
+   }
+   
+   public static MeshReader createReader(File file) throws IOException {
       String fileName = file.getName();
       String lfileName = fileName.toLowerCase();
       if (lfileName.endsWith (".ply")) {
-         myReader = new PlyReader (file);
+         return new PlyReader (file);
       }
       else if (lfileName.endsWith (".obj")) {
-         myReader = new WavefrontReader(file);
+         return new WavefrontReader(file);
       }
       else if (lfileName.endsWith (".off")) {
-         myReader = new OffReader(file);
+         return new OffReader(file);
       }
       else if (lfileName.endsWith (".stl")) {
-         myReader = new StlReader(file);
+         return new StlReader(file);
       }
       else if (lfileName.endsWith (".xyzb")) {
-         myReader = new XyzbReader(file);
+         return new XyzbReader(file);
       }
       else if (lfileName.endsWith(".vtk")) {
-         myReader = new VtkAsciiReader(file);
+         return new VtkAsciiReader(file);
       }
       else {
 
@@ -75,16 +79,23 @@ public class GenericMeshReader implements MeshReader {
             for (String ext : factory.getFileExtensions()) {
                String lext = ext.toLowerCase();
                if (lfileName.endsWith(lext)) {
-                  myReader = factory.newReader(file);
-                  break;
+                  return factory.newReader(file);
                }
             }
          }
 
-         if (myReader == null) {
-            throw new UnsupportedOperationException (
-               "File "+fileName+" has unrecognized extension");
-         }
+         
+      }
+      
+      return null;
+   }
+
+   public GenericMeshReader (File file) throws IOException {
+      myReader = createReader (file);
+      
+      if (myReader == null) {
+         throw new UnsupportedOperationException (
+            "File "+file.getName ()+" has unrecognized extension");
       }
    }
 

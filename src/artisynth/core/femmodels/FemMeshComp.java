@@ -684,9 +684,11 @@ implements CollidableBody, PointAttachable {
                   elem.getNaturalCoordinates (c3, vtx.pnt, 1000) >= 0;
                   if (!converged) {
                      System.err.println(
-                        "Warning: getNaturalCoordinatesRobust() did not converge, "+
+                        "Warning: getNaturalCoordinates() did not converge, "+
                            "element=" + ComponentUtils.getPathName(elem) +
                            ", point=" + vtx.pnt);
+                     c3.setZero ();
+                     // elem.getNaturalCoordinatesGSS (coords, vtx.pnt, 1000);
                      // c3.setZero();
                      // XXX debugging:
                      //    elem.getNaturalCoordinates(c3,  vtx.pnt, 1000); // try again once more

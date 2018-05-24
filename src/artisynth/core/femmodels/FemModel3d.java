@@ -782,13 +782,19 @@ PointAttachable, ConnectableBody {
       //===========================================
 
       // potentially update cached linear material
-      StiffnessWarper3d warper = e.getStiffnessWarper(); // internally updates
+      StiffnessWarper3d warper = 
+         e.getStiffnessWarper(1.0); // internally updates
 
       // if there is cached linear material, then apply
       if (!warper.isCacheEmpty()) {
 
          // compute warping rotation
          warper.computeWarpingRotation(e);
+
+         IntegrationPoint3d wp = e.getWarpingPoint();
+         IntegrationData3d wd = e.getWarpingData();
+         Matrix3d F = new Matrix3d();
+         wp.computeGradient(F, e.getNodes(), wd.myInvJ0);
 
          // add force and stiffness
          for (int i = 0; i < nodes.length; i++) {
@@ -1175,6 +1181,8 @@ PointAttachable, ConnectableBody {
             }
          }
       }
+
+
    }
 
    /**
@@ -1454,6 +1462,7 @@ PointAttachable, ConnectableBody {
             }
          }
       }
+
       myStiffnessesValidP = true;
       myStressesValidP = true;
       // timerStop("stressAndStiffness");

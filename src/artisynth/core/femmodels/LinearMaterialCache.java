@@ -56,8 +56,10 @@ public class LinearMaterialCache {
     * Computes and stores the initial stiffness K0 and force f0 terms
     * @param e   element
     * @param mat linear material
+    * @param weight weight to combine with integration point weights
     */
-   public void addInitialStiffness (FemElement3d e, FemMaterial mat) {
+   public void addInitialStiffness (
+      FemElement3d e, FemMaterial mat, double weight) {
       
       FemDeformedPoint dpnt = new FemDeformedPoint();
       
@@ -73,7 +75,7 @@ public class LinearMaterialCache {
          dpnt.setFromIntegrationPoint (
             pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
                   
-         double dv0 = dt.myDetJ0*pt.getWeight();
+         double dv0 = dt.myDetJ0*weight*pt.getWeight();
          if (dt.myScaling != 1) {
             dv0 *= dt.myScaling;
          }
@@ -111,8 +113,10 @@ public class LinearMaterialCache {
     * Computes and stores the initial stiffness K0 and force f0 terms
     * @param e   element
     * @param mat linear material
+    * @param weight weight to combine with integration point weights
     */
-   public void addInitialStiffness (FemElement3d e, AuxiliaryMaterial mat) {
+   public void addInitialStiffness (
+      FemElement3d e, AuxiliaryMaterial mat, double weight) {
       FemDeformedPoint dpnt = new FemDeformedPoint();
       
       // compute stiffness matrix
@@ -127,7 +131,7 @@ public class LinearMaterialCache {
          dpnt.setFromIntegrationPoint (
             pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
          
-         double dv0 = dt.myDetJ0*pt.getWeight();
+         double dv0 = dt.myDetJ0*weight*pt.getWeight();
          if (dt.myScaling != 1) {
             dv0 *= dt.myScaling;
          }

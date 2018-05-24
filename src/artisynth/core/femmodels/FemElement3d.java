@@ -1177,13 +1177,14 @@ public abstract class FemElement3d extends FemElement
    /**
     * Retrieves the current stiffness warper.  The warper's
     * cached rest stiffness is updated if necessary
-    * 
+    * @param weight meta weighting to be applied to integration points
+    * when updating the rest stiffness. Default value should be 1.0. 
     * @return stiffness warper
     */
-   public StiffnessWarper3d getStiffnessWarper() {
+   public StiffnessWarper3d getStiffnessWarper(double weight) {
       // don't allow invalid stiffness to leak
       if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness();
+         updateWarpingStiffness(weight);
       }
       return myWarper;
    }
@@ -1192,7 +1193,7 @@ public abstract class FemElement3d extends FemElement
       return new StiffnessWarper3d (this);
    }
    
-   protected void updateWarpingStiffness() {
+   protected void updateWarpingStiffness(double weight) {
       FemMaterial mat = getEffectiveMaterial();
       if (myWarper == null){
          myWarper = createStiffnessWarper();
@@ -1201,11 +1202,11 @@ public abstract class FemElement3d extends FemElement
       }
       
       if (mat.isLinear()) {
-         myWarper.addInitialStiffness (this, mat);
+         myWarper.addInitialStiffness (this, mat, weight);
       }
       for (AuxiliaryMaterial amat : getAuxiliaryMaterials()) {
          if (amat.isLinear()) {
-            myWarper.addInitialStiffness(this, amat);
+            myWarper.addInitialStiffness(this, amat, weight);
          }
       }
       myWarpingStiffnessValidP = true;

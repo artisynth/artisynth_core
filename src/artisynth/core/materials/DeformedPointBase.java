@@ -47,7 +47,7 @@ public class DeformedPointBase implements DeformedPoint {
       myF.set (F);
       myDetF = F.determinant();
    }
-
+   
    public double getAveragePressure() {
       return myP;
    }

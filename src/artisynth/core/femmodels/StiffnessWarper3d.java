@@ -83,8 +83,10 @@ public class StiffnessWarper3d {
     * Adds linear stiffness contributions to an underlying cache
     * @param e    FEM element
     * @param mat  linear material
+    * @param weight weight to combine with integration point weights
     */
-   public void addInitialStiffness (FemElement3d e, FemMaterial mat) {
+   public void addInitialStiffness (
+      FemElement3d e, FemMaterial mat, double weight) {
 
       LinearMaterialCache cache = null;
       if (mat.isCorotated()) {
@@ -93,15 +95,17 @@ public class StiffnessWarper3d {
          cache = getOrCreateLinearCache();
       }
       
-      cache.addInitialStiffness(e, mat);
+      cache.addInitialStiffness(e, mat, weight);
    }
    
    /**
     * Adds linear stiffness contributions to an underlying cache
     * @param e    FEM element
     * @param mat  linear material
+    * @param weight weight to combine with integration point weights
     */
-   public void addInitialStiffness (FemElement3d e, AuxiliaryMaterial mat) {
+   public void addInitialStiffness (
+      FemElement3d e, AuxiliaryMaterial mat, double weight) {
 
       LinearMaterialCache cache = null;
       if (mat.isCorotated()) {
@@ -110,7 +114,7 @@ public class StiffnessWarper3d {
          cache = getOrCreateLinearCache();
       }
       
-      cache.addInitialStiffness(e, mat);
+      cache.addInitialStiffness(e, mat, weight);
    }
 
    

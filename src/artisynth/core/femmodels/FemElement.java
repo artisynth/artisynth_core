@@ -57,6 +57,8 @@ public abstract class FemElement extends RenderableComponentBase
    protected double myRestVolume = 0;
    protected double myVolume = 0;
    protected boolean myInvertedP = false;
+   // pre-deformation gradient for implementing pre-strain
+   protected Matrix3d myF0 = null; 
    int myIndex;  // index number for associating with other info
    int myIntegrationIndex; // base index of element's integration points
 
@@ -100,6 +102,23 @@ public abstract class FemElement extends RenderableComponentBase
          return null;
       }
    }
+
+   public void setPreStrain (Matrix3d F0) {
+      if (F0 == null) {
+         myF0 = null;
+      }
+      else {
+         if (myF0 == null) {
+            myF0 = new Matrix3d();
+         }
+         myF0.set (F0);
+      }
+   }
+
+   public Matrix3d getPreStrain() {
+      return myF0;
+   }
+
 
    // public void updateNodeMasses (double elementMass) {
    //    // double perNodeMass = elementMass / numNodes();
@@ -286,7 +305,7 @@ public abstract class FemElement extends RenderableComponentBase
    /**
     * Warping now mostly handled separately by stiffness warper
     */
-   protected abstract void updateWarpingStiffness();
+   protected abstract void updateWarpingStiffness(double weight);
 
    //public abstract void computeWarping();
 

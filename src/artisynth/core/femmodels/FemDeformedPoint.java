@@ -49,6 +49,9 @@ public class FemDeformedPoint extends DeformedPointBase {
          myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
       }
       myF.mul (myJ, idat.myInvJ0);
+      if (elem.getPreStrain() != null) {
+         myF.mul (elem.getPreStrain());
+      }
       myDetF = myF.determinant();      
       setR (R);
 

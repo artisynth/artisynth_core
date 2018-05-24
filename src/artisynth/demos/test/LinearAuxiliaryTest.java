@@ -88,8 +88,8 @@ public class LinearAuxiliaryTest extends RootModel {
          for (int eidx=0; eidx<fem1.numElements(); ++eidx) {
             FemElement3d e1 = fem1.getElement(eidx);
             FemElement3d e2 = fem2.getElement(eidx);
-            StiffnessWarper3d w1 = e1.getStiffnessWarper();
-            StiffnessWarper3d w2 = e2.getStiffnessWarper();
+            StiffnessWarper3d w1 = e1.getStiffnessWarper(/*weight=*/1.0);
+            StiffnessWarper3d w2 = e2.getStiffnessWarper(/*weight=*/1.0);
 
             FemNode3d[] nodes1 = e1.getNodes();
             FemNode3d[] nodes2 = e1.getNodes();

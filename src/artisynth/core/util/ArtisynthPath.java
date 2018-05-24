@@ -305,7 +305,7 @@ public class ArtisynthPath {
       File cache = null;
       
       String cacheEnv  = System.getenv ("ARTISYNTH_CACHE");
-      if (cacheEnv == null) {
+      if (cacheEnv != null) {
     	  //         cache = findFile(".cache/");
     	  //      } else {
          cache = new File(cacheEnv);

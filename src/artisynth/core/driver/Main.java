@@ -410,7 +410,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       File file = ArtisynthPath.findFile(filename);
       if (file == null) {
-         System.out.println ("Warning: history file '" + filename + "' not found");
+         // System.out.println ("Warning: history file '" + filename + "' not found");
          myModelHistory = new ModelHistory();
       }
       else {

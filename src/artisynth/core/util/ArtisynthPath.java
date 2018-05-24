@@ -269,11 +269,9 @@ public class ArtisynthPath {
 
    /**
     * Finds the Artisynth temporary directory.  Uses the ARTISYNTH_TMP 
-    * environment variable, if defined.  Otherwise, it will search for a 
-    * folder named "tmp/".  If none are found, a "tmp/" directory will be 
+    * environment variable, if defined.  Otherwise, a "tmp/" directory will be 
     * created in the ARTISYNTH_HOME directory.
     * 
-    * @see ArtisynthPath#findFiles(String)
     * @see ArtisynthPath#getHomeDir()
     * @return Artisynth tmp directory
     */
@@ -297,11 +295,9 @@ public class ArtisynthPath {
    
    /**
     * Finds the Artisynth cache directory.  Uses the ARTISYNTH_CACHE 
-    * environment variable if defined.  Otherwise, it will search for a folder 
-    * named ".cache".  If none are found, a ".cache/" directory will be created
+    * environment variable if defined.  Otherwise, a ".cache/" directory will be created
     * in the ARTISYNTH_TMP directory.
     * 
-    * @see ArtisynthPath#findFiles(String)
     * @see #getTempDir()
     * @return Artisynth cache directory
     */
@@ -310,8 +306,8 @@ public class ArtisynthPath {
       
       String cacheEnv  = System.getenv ("ARTISYNTH_CACHE");
       if (cacheEnv == null) {
-         cache = findFile(".cache/");
-      } else {
+    	  //         cache = findFile(".cache/");
+    	  //      } else {
          cache = new File(cacheEnv);
       }
       if (cache == null) {

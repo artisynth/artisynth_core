@@ -43,7 +43,7 @@ public class DeformedPointBase implements DeformedPoint {
       return myDetF;
    }
    
-   public void setF (Matrix3d F) {
+   public void setF (Matrix3dBase F) {
       myF.set (F);
       myDetF = F.determinant();
    }

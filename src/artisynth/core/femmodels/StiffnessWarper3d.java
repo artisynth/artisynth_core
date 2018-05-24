@@ -128,6 +128,8 @@ public class StiffnessWarper3d {
 
    /**
     * Computes a corotated rotation based on the deformation gradient
+    * and stores the result in this warper
+
     * @param F deformation gradient
     * @param P symmetric part of gradient after rotation
     */
@@ -135,6 +137,17 @@ public class StiffnessWarper3d {
       if (R == null) {
          R = new RotationMatrix3d();
       }
+      computeRotation (R, P, F);
+   }
+   
+   /**
+    * Computes a corotated rotation based on the deformation gradient
+    * @param R returns the rotation
+    * @param F deformation gradient
+    * @param P symmetric part of gradient after rotation
+    */
+   public static void computeRotation (
+      RotationMatrix3d R, SymmetricMatrix3d P, Matrix3d F) {
       SVDecomposition3d SVD = new SVDecomposition3d();
       SVD.polarDecomposition(R, P, F);
    }

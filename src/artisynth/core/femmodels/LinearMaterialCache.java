@@ -4,6 +4,7 @@ import artisynth.core.materials.FemMaterial;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 
@@ -52,6 +53,18 @@ public class LinearMaterialCache {
       }
    }
    
+   private RotationMatrix3d adjustDeformationGradientForPreStrain (
+      FemDeformedPoint dpnt) {
+
+      // if there is pre-strain, the (rest) deformation gradient F will not be
+      // the identity, and we need to remove the rotation component from it
+      SymmetricMatrix3d P = new SymmetricMatrix3d();
+      RotationMatrix3d R = new RotationMatrix3d();
+      StiffnessWarper3d.computeRotation (R, P, dpnt.getF());
+      dpnt.setF (P);
+      return R;
+   }
+
    /**
     * Computes and stores the initial stiffness K0 and force f0 terms
     * @param e   element
@@ -62,6 +75,11 @@ public class LinearMaterialCache {
       FemElement3d e, FemMaterial mat, double weight) {
       
       FemDeformedPoint dpnt = new FemDeformedPoint();
+      FemNode3d[] nodes = e.getNodes();
+
+      for (int i = 0; i < nodes.length; i++) {
+         f0[i].setZero();
+      }
       
       // compute stiffness matrix
       Matrix6d D = new Matrix6d();
@@ -71,10 +89,14 @@ public class LinearMaterialCache {
 
          IntegrationPoint3d pt = ipnts[k];
          IntegrationData3d dt = idata[k];
+         RotationMatrix3d R = null; // used if element has prestrain
          
          dpnt.setFromIntegrationPoint (
             pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
-                  
+         if (e.getPreStrain() != null) {
+            R = adjustDeformationGradientForPreStrain (dpnt);
+         }            
+
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
          if (dt.myScaling != 1) {
             dv0 *= dt.myScaling;
@@ -84,28 +106,34 @@ public class LinearMaterialCache {
          Vector3d[] GNx0 = pt.updateShapeGradient(dt.myInvJ0);
 
          // compute tangent matrix under zero stress
-         SymmetricMatrix3d sigma = new SymmetricMatrix3d();
-         mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0);
-         //mat.computeTangent(D, SymmetricMatrix3d.ZERO, def, Q, null);
+         SymmetricMatrix3d stress = new SymmetricMatrix3d();
+         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0);
+         if (e.getPreStrain() != null) {
+            // rotate stress back
+            stress.mulLeftAndTransposeRight (R);
+         }
          
-         FemNode3d[] nodes = e.getNodes();
          for (int i = 0; i < nodes.length; i++) {
+            // normally stress will be zero, unless there is prestrain ...
+            FemUtilities.addStressForce(f0[i], GNx0[i], stress, dv0);
             for (int j = 0; j < nodes.length; j++) {
                FemUtilities.addMaterialStiffness (
                   K0[i][j], GNx0[i], D, GNx0[j], dv0);
+               // XXX adding geometric stiffness makes things unstable - need to check why
+               //FemUtilities.addGeometricStiffness (
+               //   K0[i][j], GNx0[i], stress, GNx0[j], dv0);   
             }
          }
       }      
       
       // initial RHS
       Vector3d tmp = new Vector3d();
-      FemNode3d[] nodes = e.getNodes();
       for (int i = 0; i < nodes.length; i++) {
          tmp.setZero();
          for (int j=0; j<nodes.length; j++) {
             K0[i][j].mulAdd (tmp, nodes[j].getRestPosition(), tmp);
          }
-         f0[i].set (tmp);
+         f0[i].sub (tmp, f0[i]);
       }
    }
    
@@ -117,8 +145,14 @@ public class LinearMaterialCache {
     */
    public void addInitialStiffness (
       FemElement3d e, AuxiliaryMaterial mat, double weight) {
+
       FemDeformedPoint dpnt = new FemDeformedPoint();
+      FemNode3d[] nodes = e.getNodes();
       
+      for (int i = 0; i < nodes.length; i++) {
+         f0[i].setZero();
+      }
+
       // compute stiffness matrix
       Matrix6d D = new Matrix6d();
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
@@ -127,9 +161,13 @@ public class LinearMaterialCache {
 
          IntegrationPoint3d pt = ipnts[k];
          IntegrationData3d dt = idata[k];
+         RotationMatrix3d R = null; // used if element has prestrain
                   
          dpnt.setFromIntegrationPoint (
             pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
+         if (e.getPreStrain() != null) {
+            R = adjustDeformationGradientForPreStrain (dpnt);
+         }            
          
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
          if (dt.myScaling != 1) {
@@ -139,28 +177,34 @@ public class LinearMaterialCache {
          Vector3d[] GNx0 = pt.updateShapeGradient(dt.myInvJ0);
 
          // compute tangent matrix under zero stress
-         SymmetricMatrix3d sig = new SymmetricMatrix3d();
-         mat.computeStressAndTangent(sig, D, dpnt, pt, dt);
-         //mat.computeTangent(D, SymmetricMatrix3d.ZERO, def, pt, dt, null);
+         SymmetricMatrix3d stress = new SymmetricMatrix3d();
+         mat.computeStressAndTangent(stress, D, dpnt, pt, dt);
+          if (e.getPreStrain() != null) {
+            // rotate stress back
+            stress.mulLeftAndTransposeRight (R);
+         }
          
-         FemNode3d[] nodes = e.getNodes();
          for (int i = 0; i < nodes.length; i++) {
+            // normally stress will be zero, unless there is prestrain ...
+            FemUtilities.addStressForce(f0[i], GNx0[i], stress, dv0);
             for (int j = 0; j < nodes.length; j++) {
                FemUtilities.addMaterialStiffness (
                   K0[i][j], GNx0[i], D, GNx0[j], dv0);
+               // XXX adding geometric stiffness makes things unstable - need to check why
+               //FemUtilities.addGeometricStiffness (
+               //   K0[i][j], GNx0[i], stress, GNx0[j], dv0);   
             }
          }
       }      
       
       // initial RHS
       Vector3d tmp = new Vector3d();
-      FemNode3d[] nodes = e.getNodes();
       for (int i = 0; i < nodes.length; i++) {
          tmp.setZero();
          for (int j=0; j<nodes.length; j++) {
             K0[i][j].mulAdd (tmp, nodes[j].getRestPosition(), tmp);
          }
-         f0[i].set (tmp);
+         f0[i].sub (tmp, f0[i]);
       }
    }
   

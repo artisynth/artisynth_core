@@ -10,8 +10,12 @@ package maspack.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.JarURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -25,13 +29,13 @@ import java.util.regex.Pattern;
  *
  */
 public class ClassFinder {
-   
+
    static Logger myLogger = null;
-   
+
    static void setLogger(Logger logger) {
       myLogger = logger;
    }
-   
+
    private static Logger getLogger() {
       if (myLogger == null) {
          return Logger.getSystemLogger();
@@ -42,7 +46,7 @@ public class ClassFinder {
    public static ArrayList<String> findClassNames(String pkg, Class<?> base) {
       return findClassNames(pkg, ".*", base);
    }
-   
+
    public static ArrayList<String> findClassNames(String pkg, String regex, Class<?> base) {
       ArrayList<String> clsNames = new ArrayList<String>();
 
@@ -100,7 +104,7 @@ public class ClassFinder {
          throw new InternalError ("Cannot find appropriate class loader");
       }
       String path = pkg.replace('.', '/'); // replace package structure with
-                                           // folder structure
+      // folder structure
       // terminate with '/'
       if (!path.endsWith("/")) {
          path = path + "/";
@@ -112,17 +116,17 @@ public class ClassFinder {
       } catch (IOException mue) {
          return new ArrayList<>();
       }
-      
+
       ArrayList<File> dirs = new ArrayList<File>(); // list of contained directories
       ArrayList<URL> jars = new ArrayList<URL>();   // list of contained jar files
 
       // need to do some shuffling to account for paths with spaces
       while (res.hasMoreElements()) {
          URL url = res.nextElement();
-         
+
          if ("file".equals(url.getProtocol())) {
-            String dirName = url.getPath();
-            
+            String dirName = getPathDecoded (url);
+
             // dirName ending in "/./" corresponds to a "." in the CLASSPATH,
             // which we want to ignore.
             if (!dirName.endsWith ("/./")) {
@@ -138,7 +142,7 @@ public class ClassFinder {
       for (File dir : dirs) {
          classList.addAll(findClasses(dir, pkg, pattern, T));
       }
-      
+
       for (URL url : jars) {
          classList.addAll(findClasses(url, pkg, pattern, T));
       }
@@ -180,17 +184,17 @@ public class ClassFinder {
 
             String className = file.getName();
             className = className.substring(0, className.length() - 6); // remove
-                                                                        // extension
+            // extension
             className = pkg + "." + className;
             maybeAddClass(className, regex, T, classList);
          }
       }
       return classList;
    }
-   
+
    private static boolean maybeAddClass(String className, Pattern regex, Class<?> base, List<Class<?>> out) {
       boolean added = false;
-      
+
       if (regex.matcher(className).matches()) {
 
          // check if we can assign the found class to Class T
@@ -198,7 +202,7 @@ public class ClassFinder {
          // initialized
          try {
             Class<?> clz = Class.forName(className, false, ClassFinder.class.getClassLoader());
-            
+
             if (base.equals(Object.class)) { // don't bother checking if we're dealing with Object
                out.add(clz);
                added = true;
@@ -213,27 +217,48 @@ public class ClassFinder {
             Logger logger = getLogger();
             logger.debug(
                "Class " + className + "' could not be initialized: " +
-                  e.toString() + ", " + e.getMessage());
+               e.toString() + ", " + e.getMessage());
             logger.trace(e);
          } catch (Error err) {
             Logger logger = getLogger();
             logger.debug(
                "Error: Class " + className + "' could not be initialized: " +
-                  err.toString() + ", " + err.getMessage());
+               err.toString() + ", " + err.getMessage());
             logger.trace(err);
          }
       } // no regex match
-      
+
       return added;
    }
-   
+
+   /**
+    * Get decoded path from url
+    * @param url
+    * @return decoded path
+    */
+   private static String getPathDecoded(URL url) {
+      String path;
+      try {
+         URI uri = url.toURI ();
+         path = uri.getPath ();
+      }
+      catch (URISyntaxException e) {
+         try {
+            path = URLDecoder.decode (url.getPath (), "UTF-8");
+         } catch (UnsupportedEncodingException e1) {
+            path = url.getPath ();
+         }
+      }
+      return path;
+   }
+
    /**
     * Searches through all "subdirectories" of a URL, gathering classes of type T that
     * match regex
     */
    public static ArrayList<Class<?>> findClasses(URL url, String pkg,
       Pattern regex, Class<?> T) {
-      
+
       ArrayList<Class<?>> classList = new ArrayList<Class<?>>();
 
       // remove initial period
@@ -242,13 +267,13 @@ public class ClassFinder {
       }
 
       if ("file".equals(url.getProtocol())) {
-         File file = new File(url.getPath());
+         File file = new File(getPathDecoded(url));
          return findClasses(file, pkg, regex, T);
       } else if ("jar".equals(url.getProtocol())) {
-         
+
          JarFile jar = null;
          JarEntry jarEntry = null;
-         
+
          try {
             JarURLConnection connection = (JarURLConnection)(url.openConnection());
             jar = connection.getJarFile();
@@ -259,7 +284,7 @@ public class ClassFinder {
             logger.trace(ioe);
             return classList;
          }
-         
+
          if (jarEntry.getName().endsWith(".class")) {
             String className = jarEntry.getName();
             // remove extension
@@ -282,7 +307,7 @@ public class ClassFinder {
             }
          }
       }
-      
+
       return classList;
    }
 

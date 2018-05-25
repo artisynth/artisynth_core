@@ -1186,6 +1186,8 @@ public abstract class FemModel extends MechSystemBase
       myForcesNeedUpdating = true;
       invalidateStressAndStiffness();
       invalidateIntegrationIndices();
+      // need to completely rebuild the tree since the elements may have changed
+      myAABBTree = null;
       myBVTreeValid = false;
    }
 

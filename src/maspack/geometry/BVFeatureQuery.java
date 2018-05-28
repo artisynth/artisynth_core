@@ -6,15 +6,20 @@
  */
 package maspack.geometry;
 
-import java.util.Comparator;
-import java.util.PriorityQueue;
 import java.util.ArrayList;
-import java.util.Random;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.PriorityQueue;
+import java.util.Random;
+import java.util.TreeSet;
 
-import maspack.matrix.*;
-import maspack.util.InternalErrorException;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
 import maspack.util.DoubleHolder;
+import maspack.util.InternalErrorException;
 import maspack.util.RandomGenerator;
 
 /**
@@ -31,7 +36,7 @@ public class BVFeatureQuery {
    TriangleIntersector myIntersector;
    Vector3d myTmp1;
    Vector3d myTmp2;
-   
+
    public enum InsideQuery {
       INSIDE,
       ON,
@@ -77,8 +82,8 @@ public class BVFeatureQuery {
     */
    public Feature nearestFeatureToPoint(Point3d nearPnt, BVTree featureTree, Point3d pnt) {
       PointFeatureDistanceCalculator calc = new PointFeatureDistanceCalculator();
-      calc.setPoint(pnt);
-      
+      calc.setPoint(pnt, featureTree.getBvhToWorld ());
+
       return (Feature)nearestObjectToPoint(nearPnt, featureTree, calc);
    }
 
@@ -303,18 +308,18 @@ public class BVFeatureQuery {
          Face face = (Face)nearest;
          myLineFaceCalc.nearestDistance (nearest);
          if (duv != null) {
-            duv.set (myLineFaceCalc.muDuv);
+            duv.set (myLineFaceCalc.myDuv);
          }
          if (nearPnt != null) {
             nearPnt.scaledAdd (
-               myLineFaceCalc.muDuv.x, dir, origin);
+               myLineFaceCalc.myDuv.x, dir, origin);
          }
          return face;
       }
       else {
          return null;
       }
-      
+
    }
 
    /**
@@ -371,7 +376,7 @@ public class BVFeatureQuery {
 
       vtx.computeAngleWeightedNormal (fnrm);
       int nume = 0;
-      
+
       for (Iterator<HalfEdge> hit = vtx.getIncidentHalfEdges(); hit.hasNext();){
          HalfEdge he = hit.next();
          u.sub (he.head.pnt, he.tail.pnt);
@@ -453,7 +458,7 @@ public class BVFeatureQuery {
       if (myPointFaceCalc.myFace == null) {
          throw new InternalErrorException ("NO");
       }
-      
+
       // diff is the vector from the nearest face point to pnt, in face coords
       diff.sub (myPointFaceCalc.myPnt, myPointFaceCalc.myNearest);
       if (diff.norm() <= tol) {
@@ -500,10 +505,10 @@ public class BVFeatureQuery {
       }
 
       boolean inside;
-   
+
       if (nearVertex != null) {
          numVertexCases++;
-         
+
          Iterator<HalfEdge> it = nearVertex.getIncidentHalfEdges();
          HalfEdge he = it.next();
          double dot = diff.dot(he.getFace().getNormal());
@@ -690,7 +695,7 @@ public class BVFeatureQuery {
       }
       return q;
    }
-   
+
    public InsideQuery isInsideOrOnMesh (
       PolygonalMesh mesh, BVTree bvh, Point3d pnt, double tol) {
 
@@ -731,7 +736,7 @@ public class BVFeatureQuery {
       }      
       dir.sub(pnt, nearestPoint);
       dir.normalize();
-      
+
       ArrayList<BVNode> nodes = new ArrayList<BVNode>();
       double eps = 1e-12;
 
@@ -739,12 +744,12 @@ public class BVFeatureQuery {
       Random rand = RandomGenerator.get();
       ArrayList<Face> rootFaces = mesh.getFaces();
       RigidTransform3d trans = mesh.getMeshToWorld();
-      
-      
+
+
       Vector3d duv = new Vector3d();   // for triangle-face intersection
       int iters = 0;
       do {
-         
+
          int nIntersections = 0;
          boolean unsure = false;
          nodes.clear();
@@ -754,7 +759,7 @@ public class BVFeatureQuery {
          } else {
             ldir.set (dir);
          }
-         
+
          bvh.intersectLine (nodes, pnt, dir, 0, INF);
 
          // loop through all potential faces we may intersect
@@ -772,15 +777,15 @@ public class BVFeatureQuery {
                   Point3d p2 = he.head.pnt;
 
                   int isect =
-                     myIntersector.intersect (
-                        p0, p1, p2, lpnt, ldir, duv);
+                  myIntersector.intersect (
+                     p0, p1, p2, lpnt, ldir, duv);
 
                   if (isect == 0) {
                      // no intersection
                      continue;
                   }
                   else if (Math.abs(duv.x) <= tol) {
-                	  
+
                      return InsideQuery.ON;
                   }
                   else if (duv.x < 0) {
@@ -797,7 +802,7 @@ public class BVFeatureQuery {
                      // either close or well inside
 
                      if (w0 > eps && w1 > eps && w2 > eps &&
-                         (1-w0) > eps && (1-w1) > eps && (1-w2) > eps) {
+                     (1-w0) > eps && (1-w1) > eps && (1-w2) > eps) {
                         nIntersections++;
                      } else {
                         unsure = true;
@@ -810,7 +815,7 @@ public class BVFeatureQuery {
                break;
             }
          }
-         
+
          if (!unsure) {
             if  (( nIntersections % 2) == 0 ) {
                return InsideQuery.OUTSIDE;
@@ -818,7 +823,7 @@ public class BVFeatureQuery {
                return InsideQuery.INSIDE;
             }
          }
-         
+
          // queue up next direction
          int iface = rand.nextInt(rootFaces.size());
          rootFaces.get(iface).computeCentroid (centroid);
@@ -828,10 +833,10 @@ public class BVFeatureQuery {
             return InsideQuery.ON;
          }
          dir.normalize();
-         
+
          iters++;
       } while (iters < myMaxRayCasts);
-      
+
       return InsideQuery.UNSURE;
    }
 
@@ -964,7 +969,7 @@ public class BVFeatureQuery {
        * Reset any internal `nearest' cache so calculator can be re-used
        */
       public void reset();
-      
+
       /**
        * Computes the nearest distance to the bounding node
        * 
@@ -988,13 +993,157 @@ public class BVFeatureQuery {
        * @return last computed nearest object
        */
       public Boundable nearestObject();
-      
+
       /**
        * Returns the last computed nearest distance
        * 
        * @return last computed nearest distance
        */
       public double nearestDistance();
+      
+      public Point3d nearestPoint();
+   }
+
+   /**
+    * Utility class for collecting objects when performing
+    * a nearest-distance search until a condition is met
+    * (e.g. nearest K objects, or continue collecting objects 
+    * until condition is satisfied)
+    *
+    */
+   public static interface ObjectDistanceCollector {
+
+      /**
+       * Checks if a request has the potential to satisfy the condition,
+       * otherwise we can stop the search.
+       * @param bvcr request, containg BVNode and distance
+       * @return true if we should continue checking, false to signal
+       * quitting
+       */
+      public boolean check(BVCheckRequest bvcr);
+
+      public boolean add(Boundable b, double distance);
+
+   }
+
+   /**
+    * Pair of { Object, Distance}, used by nearest object queries
+    *
+    * @param <T> object type
+    */
+   public static class ObjectDistanceEntry<T> 
+      implements Comparable<ObjectDistanceEntry<T>>{
+      T object;
+      double distance;
+
+      public ObjectDistanceEntry(T object, double distance) {
+         this.object = object;
+         this.distance = distance;
+      }
+      
+      /**
+       * Underlying object
+       * @return object
+       */
+      public T getObject() {
+         return object;
+      }
+      
+      /**
+       * Distance
+       * @return distance
+       */
+      public double getDistance() {
+         return distance;
+      }
+
+      /**
+       * Compares by distance (ascending) then by object hashcode (ascending) to enforce
+       * uniqueness
+       */
+      @Override
+      public int compareTo (ObjectDistanceEntry<T> o) {
+         int c = Double.compare (distance, o.distance);
+         if (c != 0) {
+            return c;
+         }
+
+         // hash-code
+         c = Integer.compare (object.hashCode (), o.object.hashCode ());
+         return c;
+      }
+   }
+   
+   /**
+    * Collects the nearest K boundables, as in a k-nearest-neighbor search
+    * @param <T> boundable class
+    */
+   public static class NearestKCollector<T> 
+   implements ObjectDistanceCollector {
+
+      TreeSet<ObjectDistanceEntry<T>> nearest;
+      PriorityQueue<Double> thresholdQueue;  // stores exactly the kth limit
+      double distanceThreshold;
+      int klimit;
+
+      public NearestKCollector (int k) {
+         nearest = new TreeSet<>();
+         thresholdQueue = new PriorityQueue<>(Collections.reverseOrder ());
+         distanceThreshold = Double.POSITIVE_INFINITY;
+         klimit = k;
+      }
+
+      @Override
+      public boolean check(BVCheckRequest bvcr) {
+         if (bvcr.myDist > distanceThreshold) {
+            return false;
+         }
+         return true;
+      }
+
+      @Override
+      public boolean add(Boundable object, double distance) {
+
+         if (distance > distanceThreshold) {
+            return false;
+         }
+
+         @SuppressWarnings("unchecked")
+         ObjectDistanceEntry<T> entry = new ObjectDistanceEntry<> ((T)object, distance);
+
+         nearest.add (entry);
+
+         thresholdQueue.add (distance);
+         if (thresholdQueue.size () > klimit) {
+            thresholdQueue.poll ();
+            distanceThreshold = thresholdQueue.peek ();
+         } else if (thresholdQueue.size () == klimit) {
+            distanceThreshold = thresholdQueue.peek ();
+         }
+
+         // maybe remove from back
+         if (nearest.size () > klimit) {
+            Iterator<ObjectDistanceEntry<T>> dit = nearest.descendingIterator ();
+            while (dit.hasNext () && dit.next ().distance > distanceThreshold) {
+               dit.remove ();
+            }
+         }
+
+         return true;
+      }
+
+      /**
+       * Retrieves the current set of nearest entries
+       * 
+       * Note: could be < k if there are fewer than k bounded elements, 
+       * and > k if the last several elements have the exact same distance
+       * 
+       * @return (approximately) k nearest elements
+       */
+      public TreeSet<ObjectDistanceEntry<T>> nearest() {
+         return nearest;
+      }
+
    }
 
    private class PointFaceDistanceCalculator implements ObjectDistanceCalculator {
@@ -1020,7 +1169,7 @@ public class BVFeatureQuery {
          myFace = null;
          myDist = Double.POSITIVE_INFINITY;
       }
-      
+
       public void setPoint (Point3d pnt, RigidTransform3d XBvhToWorld) {
          if (XBvhToWorld == RigidTransform3d.IDENTITY) {
             myPnt.set (pnt);
@@ -1033,7 +1182,7 @@ public class BVFeatureQuery {
       public void setPoint (Point3d pnt) {
          myPnt.set (pnt);
       }          
-      
+
       public double nearestDistance (BVNode node) {
          return node.distanceToPoint (myPnt);
       }
@@ -1062,11 +1211,15 @@ public class BVFeatureQuery {
             return -1;
          }
       }
+      
+      public Point3d nearestPoint() {
+         return myNearest;
+      }
 
       public Face nearestObject () {
          return myFace;
       }
-      
+
       @Override
       public double nearestDistance() {
          return myDist;
@@ -1074,7 +1227,7 @@ public class BVFeatureQuery {
    }
 
    private class PointVertexDistanceCalculator
-      implements ObjectDistanceCalculator {
+   implements ObjectDistanceCalculator {
 
       Point3d myPnt;
       Vertex3d myVertex;
@@ -1087,7 +1240,7 @@ public class BVFeatureQuery {
          myPnt = new Point3d();
          reset();
       }
-      
+
       @Override
       public void reset() {
          myVertex = null;
@@ -1106,7 +1259,7 @@ public class BVFeatureQuery {
       public void setPoint (Point3d pnt) {
          myPnt.set (pnt);
       }          
-      
+
       public double nearestDistance (BVNode node) {
          return node.distanceToPoint (myPnt);
       }
@@ -1159,26 +1312,32 @@ public class BVFeatureQuery {
       public Vertex3d nearestObject() {
          return myVertex;
       }
-      
+
       @Override
       public double nearestDistance() {
          return myDist;
       }
+      
+      public Point3d nearestPoint() {
+         return myVertex.getWorldPoint ();
+      }
    }
 
    private class PointEdgeDistanceCalculator
-      implements ObjectDistanceCalculator {
+   implements ObjectDistanceCalculator {
 
       Point3d myPnt;
       Boundable myEdge;
       double myS = 0;
       double myDist;
+      Point3d myNearest;
 
       public PointEdgeDistanceCalculator () {
          myPnt = new Point3d();
+         myNearest = new Point3d();
          reset();
       }
-      
+
       @Override
       public void reset() {
          myS = 0;
@@ -1198,7 +1357,7 @@ public class BVFeatureQuery {
       public void setPoint (Point3d pnt) {
          myPnt.set (pnt);
       }          
-      
+
       public double nearestDistance (BVNode node) {
          return node.distanceToPoint (myPnt);
       }
@@ -1207,7 +1366,7 @@ public class BVFeatureQuery {
          double ux = p1.x - p0.x;
          double uy = p1.y - p0.y;
          double uz = p1.z - p0.z;
-         
+
          double dx, dy, dz;
 
          dx = myPnt.x - p1.x;
@@ -1291,13 +1450,19 @@ public class BVFeatureQuery {
       public Boundable nearestObject() {
          return myEdge;
       }
-      
+
       @Override
       public double nearestDistance() {
          return myDist;
       }
+      
+      public Point3d nearestPoint() {
+         computeNearestPoint (myNearest, myEdge);
+         return myNearest;
+      }
+      
    }
-   
+
    private static class PointFeatureDistanceCalculator implements ObjectDistanceCalculator {
 
       Point3d myPnt;
@@ -1316,7 +1481,7 @@ public class BVFeatureQuery {
          myFeature = null;
          myDist = Double.POSITIVE_INFINITY;
       }
-      
+
       public void setPoint (Point3d pnt, RigidTransform3d XBvhToWorld) {
          if (XBvhToWorld == RigidTransform3d.IDENTITY) {
             myPnt.set (pnt);
@@ -1329,7 +1494,7 @@ public class BVFeatureQuery {
       public void setPoint (Point3d pnt) {
          myPnt.set (pnt);
       }          
-      
+
       public double nearestDistance (BVNode node) {
          return node.distanceToPoint (myPnt);
       }
@@ -1356,10 +1521,14 @@ public class BVFeatureQuery {
       public Feature nearestObject () {
          return myFeature;
       }
-      
+
       @Override
       public double nearestDistance() {
          return myDist;
+      }
+      
+      public Point3d nearestPoint() {
+         return myNearest;
       }
    }
 
@@ -1369,20 +1538,22 @@ public class BVFeatureQuery {
       Vector3d myDir;
       double myMin;
       double myMax;
-      Vector3d muDuv;
+      Vector3d myDuv;
       Face myFace;
       double myDist;
-
+      Point3d myNearest;
+      
       public LineFaceDistanceCalculator () {
          if (myIntersector == null) {
             myIntersector = new TriangleIntersector();
          }
          myOrigin = new Point3d();
          myDir = new Vector3d();
-         muDuv = new Vector3d();
+         myDuv = new Vector3d();
+         myNearest = new Point3d();
          reset();
       }
-      
+
       @Override
       public void reset() {
          myMin = 0;
@@ -1432,14 +1603,14 @@ public class BVFeatureQuery {
                   "face "+face.getIndex()+" is not triangular");
             }
             int rcode = myIntersector.intersect (
-               p0, p1, p2, myOrigin, myDir, muDuv);
+               p0, p1, p2, myOrigin, myDir, myDuv);
             if (rcode == 0) {
                myFace = null;
                myDist = Double.POSITIVE_INFINITY;
                return -1;
             }
             else if (rcode == 1) {
-               double d = muDuv.x;
+               double d = myDuv.x;
                if (d > myMax || d < myMin) {
                   myFace = null;
                   myDist = Double.POSITIVE_INFINITY;
@@ -1466,13 +1637,37 @@ public class BVFeatureQuery {
       public Face nearestObject() {
          return myFace;
       }         
-      
+
       @Override
       public double nearestDistance() {
          return myDist;
       }
+      
+      boolean computeNearestPoint(Point3d nearest) {
+         if (myFace == null) {
+            return false;
+         }
+         
+         nearest.setZero ();
+         HalfEdge he = myFace.firstHalfEdge ();
+         nearest.scale (1-myDuv.y-myDuv.z, he.head.getWorldPoint ());
+         he = he.next;
+         nearest.scaledAdd (myDuv.y, he.head.getWorldPoint ());
+         he = he.next;
+         nearest.scaledAdd (myDuv.z, he.head.getWorldPoint ());
+         
+         return true;
+      }
+      
+      public Point3d nearestPoint() {
+         if (myFace != null) {
+            computeNearestPoint (myNearest);
+            return myNearest;
+         }
+         return null;
+      }
    }
-   
+
    /**
     * Returns the nearest Object to a point, using a specified
     * bounding volume hierarchy. 
@@ -1492,10 +1687,10 @@ public class BVFeatureQuery {
       if (nearest != null) {
          calc.nearestDistance (nearest);
          if (nearPnt != null) {
-            nearPnt.set (myPointFaceCalc.myNearest);
+            nearPnt.set (calc.nearestPoint ());
             nearPnt.transform (bvh.getBvhToWorld());
          }
-         return (Face)nearest;
+         return nearest;
       }
       else {
          return null;
@@ -1509,7 +1704,7 @@ public class BVFeatureQuery {
       dcalc.reset();
 
       PriorityQueue<BVCheckRequest> queue =
-         new PriorityQueue<BVCheckRequest> (11, new BVCheckComparator());
+      new PriorityQueue<BVCheckRequest> (11, new BVCheckComparator());
 
       double d = dcalc.nearestDistance (bvh.getRoot());
       if (d != -1) {
@@ -1542,23 +1737,98 @@ public class BVFeatureQuery {
             }
          }
       }
-      
+
       // trigger storing of nearest feature
       if (nearestFeature != null) {
          dcalc.nearestDistance(nearestFeature);
       }
       return nearestFeature;
    }
-   
-   public BVNode nearestLeafToPoint(BVTree bvh, Point3d pnt) {
-      
-      double nearestDistance = INF;
-      BVNode nearestNode = null;
-      
+
+   /**
+    * Find and collect objects starting at the nearest and working outwards 
+    * until a given criteria is met
+    * 
+    * @param bvh bounding object hierarchy
+    * @param dcalc distance calculator
+    * @param cond distance condition
+    */
+   public void nearestObjects (BVTree bvh, ObjectDistanceCalculator dcalc, 
+      ObjectDistanceCollector cond) {
+
+      //	   double nearestDistance = INF;
+      //	   Boundable nearestFeature = null;
+      dcalc.reset();
+
       PriorityQueue<BVCheckRequest> queue =
       new PriorityQueue<BVCheckRequest> (11, new BVCheckComparator());
+
+      double d = dcalc.nearestDistance (bvh.getRoot());
+      if (d != -1) {
+         queue.add (new BVCheckRequest (bvh.getRoot(), d));
+      }
+      while (!queue.isEmpty()) {
+         BVCheckRequest req = queue.poll();
+
+         // req contains node and distance to node
+         if (!cond.check(req)) {
+            break;
+         }
+         BVNode node = req.myNode;
+         if (node.isLeaf()) {
+            Boundable[] elems = node.getElements();
+            for (int i=0; i<elems.length; i++) {
+               d = dcalc.nearestDistance (elems[i]);
+               if (d != -1) {
+                  cond.add(elems[i], d);
+               }
+            }
+         }
+         else {
+            // process node
+            BVNode child;
+            for (child=node.myFirstChild; child!=null; child=child.myNext) {
+               d = dcalc.nearestDistance (child);
+               if (d != -1) {
+                  queue.add (new BVCheckRequest (child, d));
+               }
+            }
+         }
+      }
+   }
+
+   /**
+    * Finds the K nearest features in the bounding-volume hierarchy to a point in world coordinates
+    * 
+    * The resulting tree is ordered by distance (nearest to furthest).  There may be fewer than K
+    * entries if the bounding tree contains fewer than K elements, and there may be more than K
+    * entries if the last size()-k+1 elements all have exactly the same distance
+    *  
+    * @param bvh bounding volume hierarchy
+    * @param k number of elements to return
+    * @param pnt point (world-coordinates)
+    * @return set of nearest features
+    */
+   public TreeSet<ObjectDistanceEntry<Feature>> nearestKFeaturesToPoint(BVTree bvh, int k, Point3d pnt) {
       
+      PointFeatureDistanceCalculator calc = new PointFeatureDistanceCalculator();
+      calc.setPoint(pnt, bvh.getBvhToWorld ());
       
+      NearestKCollector<Feature> collector = new NearestKCollector<> (k);
+      nearestObjects (bvh, calc, collector);
+
+     return collector.nearest();      
+   }
+
+   public BVNode nearestLeafToPoint(BVTree bvh, Point3d pnt) {
+
+      double nearestDistance = INF;
+      BVNode nearestNode = null;
+
+      PriorityQueue<BVCheckRequest> queue =
+      new PriorityQueue<BVCheckRequest> (11, new BVCheckComparator());
+
+
       double d = bvh.getRoot().distanceToPoint (pnt);
       if (d != -1) {
          queue.add (new BVCheckRequest (bvh.getRoot(), d));

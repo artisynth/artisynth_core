@@ -91,7 +91,7 @@ public class LinearMaterialCache {
          IntegrationData3d dt = idata[k];
          RotationMatrix3d R = null; // used if element has prestrain
          
-         dpnt.setFromIntegrationPoint (
+         dpnt.setFromRestPoint (
             pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
          if (e.getPreStrain() != null) {
             R = adjustDeformationGradientForPreStrain (dpnt);
@@ -163,7 +163,7 @@ public class LinearMaterialCache {
          IntegrationData3d dt = idata[k];
          RotationMatrix3d R = null; // used if element has prestrain
                   
-         dpnt.setFromIntegrationPoint (
+         dpnt.setFromRestPoint (
             pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
          if (e.getPreStrain() != null) {
             R = adjustDeformationGradientForPreStrain (dpnt);

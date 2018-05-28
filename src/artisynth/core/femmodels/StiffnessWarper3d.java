@@ -177,7 +177,7 @@ public class StiffnessWarper3d {
     * @param Krot rotated stiffness
     * @param K initial stiffness
     */
-   protected void rotateStiffness(Matrix3d Krot, Matrix3d K) {
+   protected void rotateStiffness (Matrix3d Krot, Matrix3d K) {
       Krot.mulTransposeRight(K, R);
       Krot.mul(R, Krot);
    }

@@ -25,8 +25,6 @@ public abstract class DeformableBody extends RigidBody
    protected static double DEFAULT_STIFFNESS_DAMPING = 0;
    protected static double DEFAULT_MASS_DAMPING = 0;
 
-   protected static boolean freezeFrame = false;
-
    FemMaterial myMaterial;
    VectorNd myElasticPos;
    VectorNd myElasticVel;
@@ -36,6 +34,9 @@ public abstract class DeformableBody extends RigidBody
    MatrixNd myStiffnessMatrix;
    boolean myStiffnessValidP = false;
    SVDecomposition3d mySVD = new SVDecomposition3d();
+
+   // hack to be able to anchor the body
+   boolean myFreezeFrame = false;
 
    protected double myStiffnessDamping = DEFAULT_STIFFNESS_DAMPING;
    protected double myMassDamping = DEFAULT_MASS_DAMPING;
@@ -125,6 +126,14 @@ public abstract class DeformableBody extends RigidBody
          this, "material", myMaterial, mat);
       // issue DynamicActivityChange in case solve matrix symmetry has changed:
       notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+   }
+
+   public boolean getFreezeFrame() {
+      return myFreezeFrame;
+   }
+
+   public void setFreezeFrame (boolean freeze) {
+      myFreezeFrame = freeze;
    }
 
    public void propertyChanged (PropertyChangeEvent e) {
@@ -355,7 +364,7 @@ public abstract class DeformableBody extends RigidBody
 
    @Override      
    public int setPosState (double[] buf, int idx) {
-      if (freezeFrame) {
+      if (myFreezeFrame) {
          idx += 7;
       }
       else {
@@ -375,7 +384,7 @@ public abstract class DeformableBody extends RigidBody
 
    @Override      
    public int setVelState (double[] buf, int idx) {
-      if (freezeFrame) {
+      if (myFreezeFrame) {
          idx += 6;
       }
       else {

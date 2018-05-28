@@ -55,20 +55,6 @@ public class PointFrameAttachment extends PointAttachment {
       return myLoc;
    }
 
-   // protected void updateJacobian() {
-   //    if (myFrame != null) {
-   //       if (myGT == null) {
-   //          if (myFrame.getVelStateSize() == 6) {
-   //             myGT = new Matrix6x3Block();
-   //          }
-   //          else {
-   //             myGT = new MatrixNdBlock(myFrame.getVelStateSize(), 3);
-   //          }
-   //       }
-   //       myFrame.computeWorldPointForceJacobian (myGT, myLoc);
-   //    }
-   // }
-
    void setFrame (Frame body, Point3d loc) {
       removeBackRefsIfConnected();
       myFrame = body;
@@ -94,7 +80,6 @@ public class PointFrameAttachment extends PointAttachment {
 
    public void detachSlave() {
    }
-
 
    public void getCurrentPos (Vector3d pos) {
       myFrame.computePointPosition (pos, myLoc);
@@ -318,43 +303,6 @@ public class PointFrameAttachment extends PointAttachment {
       this (slave);
       setFrame (master, loc);
    }
-
-//   @Override
-//   public void connectToHierarchy () {
-//      Point point = getPoint();
-//      Frame frame = getFrame();
-//      if (point == null || frame == null) {
-//         throw new InternalErrorException ("null point and/or frame");
-//      }
-//      super.connectToHierarchy ();
-//      point.setAttached (this);
-//      frame.addMasterAttachment (this);
-//   }
-//
-//   @Override
-//   public void disconnectFromHierarchy() {
-//      Point point = getPoint();
-//      Frame frame = getFrame();
-//      if (point == null || frame == null) {
-//         throw new InternalErrorException ("null point and/or frame");
-//      }
-//      super.disconnectFromHierarchy();
-//      point.setAttached (null);
-//      frame.removeMasterAttachment (this);
-//   }
-
-//   @Override
-//   public void getHardReferences (List<ModelComponent> refs) {
-//      super.getHardReferences (refs);
-//      Point point = getPoint();
-//      Frame frame = getFrame();
-//      if (point == null || frame == null) {
-//         throw new InternalErrorException ("null point and/or frame");
-//      }
-//      super.getHardReferences (refs);
-//      refs.add (point);
-//      refs.add (frame);
-//   }
 
    public PointFrameAttachment copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {

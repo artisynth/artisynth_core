@@ -59,6 +59,41 @@ public class FemDeformedPoint extends DeformedPointBase {
       mySpatialPosValid = false;
    }
    
+   public void setFromRestPoint (
+      IntegrationPoint3d ipnt, IntegrationData3d idat,
+      RotationMatrix3d R, FemElement elem, int idx) {
+
+      myElem = elem;
+      myElemNum = elem.getNumber();
+      myIpnt = ipnt;
+      myPointIdx = idx;
+      myP = 0; // assume 0 by default
+
+      myJ.setZero();
+      FemNode3d[] nodes = (FemNode3d[])elem.getNodes();
+      if (nodes.length != myNodeNumbers.length) {
+         myNodeNumbers = new int[nodes.length];
+         myNodeWeights = new double[nodes.length];
+      }
+      VectorNd N = ipnt.getShapeWeights();
+      for (int i=0; i<nodes.length; i++) {
+         myNodeNumbers[i] = nodes[i].getNumber();
+         myNodeWeights[i] = N.get(i);
+      }
+      if (elem.getPreStrain() != null) {
+         myF.set (elem.getPreStrain());
+      }
+      else {
+         myF.setIdentity();
+      }
+      myDetF = myF.determinant();      
+      myJ.invert (idat.myInvJ0);
+      setR (R);
+
+      myRestPosValid = false;
+      mySpatialPosValid = false;
+   }
+   
    public Point3d getSpatialPos() {
       if (!mySpatialPosValid) {
          myIpnt.computePosition (mySpatialPos, myElem.getNodes());

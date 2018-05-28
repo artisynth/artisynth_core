@@ -194,6 +194,8 @@ public class FrameFrameAttachment extends FrameAttachment {
 
    @Override
    public void updateVelStates() {
+      // XXX Is this right?
+      // XXX Where is the elastic velocity for a deformable body?
       Twist velAW = new Twist();
 
       // add velocity from master

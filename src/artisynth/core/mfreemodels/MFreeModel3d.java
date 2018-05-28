@@ -372,6 +372,10 @@ public class MFreeModel3d extends FemModel3d  {
          return myDist;
       }
 
+      public Point3d nearestPoint() {
+         return myIpnt.getPosition ();
+      }
+      
    }
 
    private static class RestNode implements Boundable {

@@ -16,6 +16,7 @@ import java.util.Map;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.DualQuaternion;
 import maspack.matrix.Matrix1x6Block;
+import maspack.matrix.Matrix3x3Block;
 import maspack.matrix.Matrix3x6Block;
 import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.Matrix6x1Block;
@@ -300,6 +301,8 @@ public class PointSkinAttachment extends PointAttachment
       public abstract Connection copy();
       
       public abstract boolean addPointForce (Vector3d f);
+      
+      public abstract boolean getPointForceJacobian(MatrixBlock blk);
    }
 
    public class FrameConnection extends Connection {
@@ -350,6 +353,15 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
+      @Override
+      public boolean getPointForceJacobian (MatrixBlock blk) {
+         Point3d loc = new Point3d();
+         loc.inverseTransform (myFrameInfo.myBasePose, myBasePos);
+         myFrameInfo.myFrame.computeWorldPointForceJacobian (blk, loc);
+         blk.scale (myWeight);
+         return true;
+      }
+
    }
 
    public class ParticleConnection extends Connection {
@@ -381,6 +393,21 @@ public class PointSkinAttachment extends PointAttachment
          return new ParticleConnection(myParticle, myWeight);
       }
 
+      @Override
+      public boolean getPointForceJacobian (MatrixBlock blk) {
+         Matrix3x3Block blk3x3 = (Matrix3x3Block)blk;
+         blk3x3.m00 = myWeight;
+         blk3x3.m11 = myWeight;
+         blk3x3.m22 = myWeight;
+         blk3x3.m01 = 0;
+         blk3x3.m02 = 0;
+         blk3x3.m12 = 0;
+         blk3x3.m10 = 0;
+         blk3x3.m20 = 0;
+         blk3x3.m21 = 0;
+         return true;
+      }
+
    }
 
    public class BaseConnection extends Connection {
@@ -405,6 +432,11 @@ public class PointSkinAttachment extends PointAttachment
 
       public BaseConnection copy() {
          return new BaseConnection(myWeight);
+      }
+
+      @Override
+      public boolean getPointForceJacobian (MatrixBlock blk) {
+         return false;
       }
 
    }
@@ -436,6 +468,21 @@ public class PointSkinAttachment extends PointAttachment
 
       public FemDisplacementConnection copy() {
          return new FemDisplacementConnection(myNode, myWeight);
+      }
+
+      @Override
+      public boolean getPointForceJacobian (MatrixBlock blk) {
+         Matrix3x3Block blk3x3 = (Matrix3x3Block)blk;
+         blk3x3.m00 = myWeight;
+         blk3x3.m11 = myWeight;
+         blk3x3.m22 = myWeight;
+         blk3x3.m01 = 0;
+         blk3x3.m02 = 0;
+         blk3x3.m12 = 0;
+         blk3x3.m10 = 0;
+         blk3x3.m20 = 0;
+         blk3x3.m21 = 0;
+         return true;
       }
    }
 

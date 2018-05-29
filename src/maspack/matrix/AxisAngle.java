@@ -224,7 +224,41 @@ public class AxisAngle {
       values[2] = axis.z;
       values[3] = angle;
    }
+   
+   /** 
+    * Transforms a vector v1 by the rotation implied by this axis-angle
+    * using Rodriguez's rotation formula
+    * 
+    * @param vr result vector
+    * @param v1 vector to be transformed
+    */
+   public void transform(Vector3d vr, Vector3d v1) {
+      // rotate location
+      double cosa = Math.cos (angle);
+      double sina = Math.sin (angle);
+      vr.cross (axis, v1);
+      vr.scale (sina);
+      vr.scaledAdd (cosa, v1);
+      vr.scaledAdd ((1-cosa)*axis.dot (v1), axis);
+   }
 
+   /** 
+    * Transforms a vector v1 by the rotation implied by the
+    * inverse of this axis-angle using Rodriguez's rotation formula
+    * 
+    * @param vr result vector
+    * @param v1 vector to be transformed
+    */
+   public void inverseTransform(Vector3d vr, Vector3d v1) {
+      // rotate location
+      double cosa = Math.cos (angle);
+      double sina = -Math.sin (angle);
+      vr.cross (axis, v1);
+      vr.scale (sina);
+      vr.scaledAdd (cosa, v1);
+      vr.scaledAdd ((1-cosa)*axis.dot (v1), axis);
+   }
+   
    /**
     * Returns a String representation of this AxisAngle, consisting of the x, y,
     * and z components of the axis, followed by the angle (in radians).

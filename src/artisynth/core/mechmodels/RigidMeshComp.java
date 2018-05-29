@@ -272,7 +272,7 @@ public class RigidMeshComp extends DynamicMeshComponent
    public PointAttachment getAttachment(Vertex3d vtx) {
       if (getGrandParent() instanceof RigidBody) {
          RigidBody rb = (RigidBody)getGrandParent();
-         return new PointFrameAttachment (rb, null, vtx.getWorldPoint ());
+         return new PointFrameAttachment (rb, null, vtx.getPosition ());
       }
       return null;
    }

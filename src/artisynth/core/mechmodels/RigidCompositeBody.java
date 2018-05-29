@@ -57,6 +57,12 @@ CompositeComponent {
       initializeChildComponents();
    }
 
+   @Override
+   public void setSurfaceMesh (PolygonalMesh mesh, String fileName, AffineTransform3dBase X) {
+      addMesh (mesh, fileName, X, true);
+      setMeshFromInfo ();
+   }
+   
    /**
     * returns the first available PolygonalMesh, for compatibility with RigidBody
     */
@@ -72,6 +78,10 @@ CompositeComponent {
 
    public MeshComponentList<RigidMeshComp> getMeshComps() {
       return myMeshList;
+   }
+   
+   public RigidMeshComp getMeshComp(int idx) {
+      return myMeshList.get (idx);
    }
 
    public RigidMeshComp getMeshComp(String name) {

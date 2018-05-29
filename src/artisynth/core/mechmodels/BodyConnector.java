@@ -32,6 +32,8 @@ public abstract class BodyConnector extends RenderableComponentBase
    
    private boolean myEnabledP = true;
    protected RigidBodyCoupling myCoupling;
+   
+   private boolean myAdjustBodyAExplicitP = false;  // automatically select body to adjust
 
    protected VectorNd myCompliance = null;
    protected VectorNd myDamping = null;
@@ -1692,6 +1694,24 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
       body.transformPose (T);
    }
+   
+   /**
+    * Sets the connector to explicitly adjust body A's pose only when
+    * pose needs to be manually corrected to account for constraints.
+    * 
+    * By default, any adjustments to pose are performed on the body that is
+    * "free" (i.e. dynamic and only attached to other free bodies).
+    * If both bodyA and bodyB are free, then the one with fewer attached
+    * bodies is moved. 
+    * 
+    * This behavior can be overridden by setting bodyA to be moved
+    * explicitly.
+    * 
+    * @param set if true, only adjusts body A
+    */
+   public void setAlwaysAdjustBodyA(boolean set) {
+      myAdjustBodyAExplicitP = set;
+   }
 
    protected void adjustPoses (RigidTransform3d TGD) {
 
@@ -1706,15 +1726,17 @@ public abstract class BodyConnector extends RenderableComponentBase
       boolean AIsFree = findAttachedBodies (myBodyA, myBodyB, bodiesA);
       boolean BIsFree = false;
       boolean moveBodyA = true;
-      if (myBodyB != null) {
+      if (!myAdjustBodyAExplicitP && myBodyB != null) {
          BIsFree = findAttachedBodies (myBodyB, myBodyA, bodiesB);
          if (AIsFree != BIsFree) {
             moveBodyA = AIsFree;
          }
          else {
+            // if either or neither are free, move the one with fewer attached bodies
             moveBodyA = bodiesA.size() <= bodiesB.size();
          }
       }
+      
       if (moveBodyA) {
          RigidTransform3d TCWnew = new RigidTransform3d();
          TCWnew.mul (TDW, TGD);

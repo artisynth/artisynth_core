@@ -633,6 +633,9 @@ public class SkinMeshBody extends SkinMeshBase
       return myVertexAttachments.getByNumber (idx);
    }
    
+   public PointSkinAttachment getAttachment(Vertex3d vtx) {
+      return getAttachment(vtx.getIndex ());
+   }
 
    protected void setMeshFromInfo () {
       // Overloaded from super class. Is called by super.setMesh() and by scan

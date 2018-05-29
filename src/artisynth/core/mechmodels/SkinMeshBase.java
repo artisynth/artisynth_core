@@ -21,7 +21,7 @@ import artisynth.core.util.*;
  * vertex is attached to one or more underlying dynamic master components using
  * a {@link PointAttachment}.
  */
-public abstract class SkinMeshBase extends MeshComponent
+public abstract class SkinMeshBase extends DynamicMeshComponent
    implements HasSlaveObjects, CompositeComponent, HasSurfaceMesh {
 
    protected ComponentListImpl<ModelComponent> myComponents;

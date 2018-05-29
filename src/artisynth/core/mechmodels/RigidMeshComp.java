@@ -11,23 +11,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import maspack.geometry.MeshBase;
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.BVFeatureQuery;
-import maspack.geometry.Vertex3d;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.modelbase.TransformableGeometry;
+import maspack.geometry.DistanceGrid;
 import maspack.geometry.Face;
 import maspack.geometry.GeometryTransformer;
-import maspack.geometry.DistanceGrid;
+import maspack.geometry.MeshBase;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point3d;
-import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
-import maspack.render.Renderer;
 import maspack.render.RenderProps;
-import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.Collidable.Collidability;
+import maspack.render.Renderer;
 
-public class RigidMeshComp extends MeshComponent 
+public class RigidMeshComp extends DynamicMeshComponent 
    implements PointAttachable, HasSurfaceMesh, CollidableBody {
 
    public static boolean DEFAULT_PHYSICAL = true;
@@ -261,6 +262,19 @@ public class RigidMeshComp extends MeshComponent
             "RigidMeshComp not associated with a rigid body");
       }
       mlist.add (new ContactMaster (rb, 1));
+   }
+   
+   @Override
+   public PointAttachment getAttachment(int vidx) {
+      return getAttachment(getVertex(vidx));
+   }
+   
+   public PointAttachment getAttachment(Vertex3d vtx) {
+      if (getGrandParent() instanceof RigidBody) {
+         RigidBody rb = (RigidBody)getGrandParent();
+         return new PointFrameAttachment (rb, null, vtx.getWorldPoint ());
+      }
+      return null;
    }
    
    public boolean containsContactMaster (CollidableDynamicComponent comp) {

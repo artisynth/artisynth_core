@@ -21,4 +21,8 @@
     <!-- loads all RootModels in the root package and displays in compact hierarchical format -->
     <package source="artisynth.models" view="hierarchical" />
   </menu>
+  <separator/>
+  <menu text="Recent">
+  	<history/>
+  </menu>
 </ModelMenu>

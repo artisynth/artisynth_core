@@ -77,9 +77,14 @@ public class SolidJoint extends JointBase implements CopyableComponent {
       this();
       RigidTransform3d TCA = new RigidTransform3d();  // identity
       RigidTransform3d XDB = new RigidTransform3d();
-      XDB.mulInverseLeft(bodyB.getPose(), bodyA.getPose());
       
-      setBodies(bodyA, TCA, bodyB, XDB);
+      if (bodyB != null) {
+         XDB.mulInverseLeft(bodyB.getPose(), bodyA.getPose());
+         setBodies(bodyA, TCA, bodyB, XDB);
+      } else {
+         setBodies (bodyA, bodyB, bodyA.getPose ());
+      }
+      
    }
 
    @Override

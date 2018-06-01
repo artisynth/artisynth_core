@@ -1001,6 +1001,11 @@ public class BVFeatureQuery {
        */
       public double nearestDistance();
       
+      /**
+       * Returns the last computed nearest point, in local coordinates.
+       * 
+       * @return last computed nearest point
+       */
       public Point3d nearestPoint();
    }
 
@@ -1319,7 +1324,7 @@ public class BVFeatureQuery {
       }
       
       public Point3d nearestPoint() {
-         return myVertex.getWorldPoint ();
+         return myVertex.getPosition ();
       }
    }
 
@@ -1751,10 +1756,10 @@ public class BVFeatureQuery {
     * 
     * @param bvh bounding object hierarchy
     * @param dcalc distance calculator
-    * @param cond distance condition
+    * @param coll distance condition
     */
    public void nearestObjects (BVTree bvh, ObjectDistanceCalculator dcalc, 
-      ObjectDistanceCollector cond) {
+      ObjectDistanceCollector coll) {
 
       //	   double nearestDistance = INF;
       //	   Boundable nearestFeature = null;
@@ -1771,7 +1776,7 @@ public class BVFeatureQuery {
          BVCheckRequest req = queue.poll();
 
          // req contains node and distance to node
-         if (!cond.check(req)) {
+         if (!coll.check(req)) {
             break;
          }
          BVNode node = req.myNode;
@@ -1780,7 +1785,7 @@ public class BVFeatureQuery {
             for (int i=0; i<elems.length; i++) {
                d = dcalc.nearestDistance (elems[i]);
                if (d != -1) {
-                  cond.add(elems[i], d);
+                  coll.add(elems[i], d);
                }
             }
          }

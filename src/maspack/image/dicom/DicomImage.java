@@ -434,6 +434,39 @@ public class DicomImage {
    }
    
    /**
+    * Width of a row
+    * @return row spacing
+    */
+   public double getRowSpacing() {
+      return pixelSpacingRows;
+   }
+   
+   public double getColSpacing() {
+      return pixelSpacingCols;
+   }
+
+   /**
+    * Spacing between slices
+    * @return slice spacing
+    */
+   public double getSliceSpacing() {
+      
+      int nSlices = getNumSlices();
+      
+      // compute slice thickness directly from slice separation
+      // (slice thickness is sometimes different)
+      if (nSlices > 1) {
+         double zsize = slices[nSlices-1].info.imagePosition.p.distance(slices[0].info.imagePosition.p);
+         pixelSpacingSlice = zsize/(nSlices-1);
+      } 
+      if (pixelSpacingSlice == 0) {
+         pixelSpacingSlice = slices[0].info.pixelSpacingSlice;
+      }
+      
+      return pixelSpacingSlice;
+   }
+   
+   /**
     * @return Maximum intensity value in the entire image set, useful for
     * adjusting an intensity window for display
     */
@@ -496,18 +529,8 @@ public class DicomImage {
     * @return the 3D affine transform for converting voxels to spatial locations
     */
    public AffineTransform3d getVoxelTransform() {
-      
-      int nSlices = getNumSlices();
-      
-      // compute slice thickness directly from slice separation
-      // (slice thickness is sometimes different)
-      if (nSlices > 1) {
-         double zsize = slices[nSlices-1].info.imagePosition.p.distance(slices[0].info.imagePosition.p);
-         pixelSpacingSlice = zsize/(nSlices-1);
-      } 
-      if (pixelSpacingSlice == 0) {
-         pixelSpacingSlice = slices[0].info.pixelSpacingSlice;
-      }
+    
+      double pixelSpacingSlice = getSliceSpacing();
       
       AffineTransform3d pixelTrans = new AffineTransform3d(trans);
       pixelTrans.applyScaling(pixelSpacingRows, pixelSpacingCols, pixelSpacingSlice);

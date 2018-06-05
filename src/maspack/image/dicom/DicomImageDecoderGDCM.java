@@ -258,7 +258,8 @@ public class DicomImageDecoderGDCM implements DicomImageDecoder {
                frames.add(buff);
             }
             
-            
+            // clear file
+            ir.SetFile (null);
          } else {
             System.err.println("GDCM failed to detect type " + pi.GetString());
             return false;

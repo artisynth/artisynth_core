@@ -431,6 +431,7 @@ public class JMenuScroller {
 
       public void mouseWheelMoved (MouseWheelEvent mwe) {
          firstIndex += mwe.getWheelRotation ();
+         mwe.consume ();  // prevent default wheel action
          refreshMenu ();
       }
    }

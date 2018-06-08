@@ -424,7 +424,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
     * Texture coordinates for a given plane ({@link #COL_ROW_PLANE}, 
     * {@link #ROW_SLICE_PLANE}, or {@link #COL_SLICE_PLANE}), starting with the
     * bottom-left corner and working around clockwise.
-    *
+    * @param plane plane index to compute coordinates of
     * @return texture coordinates
     */
    public Point2d[] getTextureCoordinates(int plane) {

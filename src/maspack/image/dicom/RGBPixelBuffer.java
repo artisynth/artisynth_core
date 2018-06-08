@@ -69,7 +69,7 @@ public class RGBPixelBuffer extends DicomPixelBufferBase {
    }
 
    @Override
-   protected int getValue(int idx) {
+   public int getValue(int idx) {
       return pixels[idx];
    }
    
@@ -245,6 +245,11 @@ public class RGBPixelBuffer extends DicomPixelBufferBase {
       }
 
       return off;
+   }
+   
+   @Override
+   public int getNumChannels () {
+      return 3;
    }
 
 }

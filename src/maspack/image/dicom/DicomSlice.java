@@ -245,6 +245,26 @@ public class DicomSlice {
    }
    
    /**
+    * Gets raw pixel value from the slice
+    * @param channel image channel 
+    * @param x starting x pixel
+    * @param y starting y pixel
+    * @return raw value
+    */
+   public double getPixelValue(int channel, int x, int y) {
+      int idx = y*info.cols+x;
+      return pixelBuff.getRescaledValue (idx);
+   }
+   
+   /**
+    * Number of channels in the slice
+    * @return
+    */
+   public int getNumChannels() {
+      return pixelBuff.getNumChannels();
+   }
+   
+   /**
     * @return maximum pixel intensity in the slice
     */
    public double getMaxIntensity() {

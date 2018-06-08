@@ -33,7 +33,7 @@ public class UBytePixelBuffer extends DicomPixelBufferBase {
    }
 
    @Override
-   protected int getValue(int idx) {
+   public int getValue(int idx) {
       return pixels[idx] & UBYTE_MAX;
    }
    
@@ -55,6 +55,11 @@ public class UBytePixelBuffer extends DicomPixelBufferBase {
    @Override
    public byte[] getBuffer() {
       return pixels;
+   }
+   
+   @Override
+   public int getNumChannels () {
+      return 1;
    }
 
 }

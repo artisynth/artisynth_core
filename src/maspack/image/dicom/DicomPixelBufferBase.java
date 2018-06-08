@@ -60,9 +60,9 @@ public abstract class DicomPixelBufferBase implements DicomPixelBuffer {
     * @param idx value index
     * @return pixel value
     */
-   protected abstract int getValue(int idx);
+   public abstract int getValue(int idx);
    
-   protected double getRescaledValue(int idx) {
+   public double getRescaledValue(int idx) {
       return getValue(idx)*rescaleSlope + rescaleIntercept;
    }
    

@@ -10,12 +10,13 @@ package maspack.image.dicom;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import maspack.image.VolumeImage;
 import maspack.image.dicom.DicomPixelBuffer.PixelType;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 
-public class DicomImage {
+public class DicomImage implements VolumeImage {
 
    /**
     * Increase image capacity at most by this much when dynamically adding slice information
@@ -542,6 +543,19 @@ public class DicomImage {
     */
    public String getTitle() {
       return title;
+   }
+
+   @Override
+   public double getValue (int channel, int col, int row, int slice) {
+      return slices[slice].getPixelValue (channel, col, row);
+   }
+
+   @Override
+   public int getNumChannels () {
+      if (slices == null || slices.length == 0) {
+         return 0;
+      }
+      return slices[0].getNumChannels ();
    }
    
 }

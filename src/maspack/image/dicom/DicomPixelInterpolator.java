@@ -29,7 +29,7 @@ import maspack.util.ReaderTokenizer;
 public abstract class DicomPixelInterpolator implements CompositeProperty {
 
    static Class<?>[] mySubClasses =
-      new Class<?>[] { DicomWindowPixelInterpolator.class };
+      new Class<?>[] { DicomWindowPixelInterpolator.class, DicomRawPixelInterpolator.class };
 
    public static Class<?>[] getSubClasses() {
       return mySubClasses;

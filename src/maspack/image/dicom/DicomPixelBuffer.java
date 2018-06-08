@@ -10,8 +10,7 @@ package maspack.image.dicom;
 import java.nio.ByteBuffer;
 
 /**
- * Stores a set of pixels, either as grayscale bytes, grayscale shorts,
- * or RGB bytes.
+ * Stores a set of pixels, either as grayscale bytes, grayscale shorts, or RGB bytes.
  * @author Antonio
  *
  */
@@ -91,6 +90,28 @@ public interface DicomPixelBuffer {
     * @return the rescale intercept
     */
    public double getRescaleIntercept();
+   
+
+   /**
+    * Return the internal pixel value at x.  For RGB buffers, colors are interlaced, so
+    * the ith pixel red value is actually at x=3*i
+    * @param x value index
+    * @return pixel value
+    */
+   public int getValue(int x);
+   
+   /**
+    * Returns the raw rescaled value within the buffer at location x
+    * @param x index within the buffer
+    * @return rescaled value
+    */
+   public double getRescaledValue(int x);
+   
+   /**
+    * Number of "color" channels in the buffer
+    * @return number of channels
+    */
+   public abstract int getNumChannels();
    
    /**
     * @return the underlying buffer

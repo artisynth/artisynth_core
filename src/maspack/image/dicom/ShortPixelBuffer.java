@@ -38,7 +38,7 @@ public class ShortPixelBuffer extends DicomPixelBufferBase {
    }
 
    @Override
-   protected int getValue(int idx) {
+   public int getValue(int idx) {
       return pixels[idx];
    }
    
@@ -54,6 +54,11 @@ public class ShortPixelBuffer extends DicomPixelBufferBase {
 
    public short[] getBuffer() {
       return pixels;
+   }
+   
+   @Override
+   public int getNumChannels () {
+      return 1;
    }
    
 }

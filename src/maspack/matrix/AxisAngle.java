@@ -236,10 +236,12 @@ public class AxisAngle {
       // rotate location
       double cosa = Math.cos (angle);
       double sina = Math.sin (angle);
-      vr.cross (axis, v1);
-      vr.scale (sina);
-      vr.scaledAdd (cosa, v1);
-      vr.scaledAdd ((1-cosa)*axis.dot (v1), axis);
+      Vector3d tmp = new Vector3d();
+      tmp.cross (axis, v1);
+      tmp.scale (sina);
+      tmp.scaledAdd (cosa, v1);
+      tmp.scaledAdd ((1-cosa)*axis.dot (v1), axis);
+      vr.set (tmp);
    }
 
    /** 
@@ -253,10 +255,12 @@ public class AxisAngle {
       // rotate location
       double cosa = Math.cos (angle);
       double sina = -Math.sin (angle);
-      vr.cross (axis, v1);
-      vr.scale (sina);
-      vr.scaledAdd (cosa, v1);
-      vr.scaledAdd ((1-cosa)*axis.dot (v1), axis);
+      Vector3d tmp = new Vector3d();
+      tmp.cross (axis, v1);
+      tmp.scale (sina);
+      tmp.scaledAdd (cosa, v1);
+      tmp.scaledAdd ((1-cosa)*axis.dot (v1), axis);
+      vr.set (tmp);
    }
    
    /**

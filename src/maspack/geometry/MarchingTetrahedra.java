@@ -198,7 +198,7 @@ public class MarchingTetrahedra {
     * array <code>vals</code>, and arranged, for the vertex at <code>(i, j,
     * k)</code> by
     * <pre>
-    *   val[vertex(i,j,k)] = [i + j*numVY + k*numVY*numVZ];
+    *   val[vertex(i,j,k)] = [i + j*numVX + k*numVX*numVY];
     * </pre>
     *
     * @param vals contains grid values at each vertex
@@ -213,8 +213,7 @@ public class MarchingTetrahedra {
       double[] vals, Vector3d minCoord, Vector3d cellWidths,
       Vector3i res, double iso) {
       
-      GridPointGenerator vgen =
-      new GridPointGenerator (minCoord, cellWidths, res);
+      GridPointGenerator vgen = new GridPointGenerator (minCoord, cellWidths, res);
 
       if (vals.length < vgen.maxGridPoints()) {
          throw new IllegalArgumentException (

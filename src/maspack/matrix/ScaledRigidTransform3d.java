@@ -22,7 +22,7 @@ import maspack.util.ReaderTokenizer;
  * 
  * <p>
  * A rigid body transformation is used to transform a point from one spatial
- * coordinate frame into another. If x0 and x1 denote the point in the orginal
+ * coordinate frame into another. If x0 and x1 denote the point in the original
  * frame 0 and target frame 1, respectively, then the transformation is computed
  * according to
  * 

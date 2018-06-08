@@ -12,7 +12,7 @@ package maspack.matrix;
 import maspack.util.RandomGenerator;
 
 /**
- * Forms the eigenvalue decomposition of an n X n matrix M, such such
+ * Forms the eigenvalue decomposition of an n X n matrix M, such that
  * <pre>
  * M V = V D
  * </pre>
@@ -33,7 +33,7 @@ import maspack.util.RandomGenerator;
  * </pre>
  * If v1 and v2 are the columns of V corresponding to this block, then the
  * eigenvectors corresponding to (a + b i), (a - b i) are (a v1 - b v2 i) and
- * (b v1 + a v2 i). V is no longer guaranteeed to be orthogonal, and may also
+ * (b v1 + a v2 i). V is no longer guaranteed to be orthogonal, and may also
  * be singular.
  *
  * The methods <code>hqr2</code> and <code>tlr2</code> in this class were

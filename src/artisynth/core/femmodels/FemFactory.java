@@ -912,15 +912,15 @@ public class FemFactory {
          model.clear();
       }
 
-      FemNode3d nodes[][][] = new FemNode3d[nt][nl][nr];
+      FemNode3d nodes[][][] = new FemNode3d[nt][nl+1][nr+1];
 
-      double dl = l / (nl - 1);
+      double dl = l / nl;
       double dt = 2 * Math.PI / nt;
-      double dr = 1.0 / (nr - 1);
+      double dr = 1.0 / nr;
 
       // generate nodes
-      for (int k = 0; k < nr; k++) {
-         for (int j = 0; j < nl; j++) {
+      for (int k = 0; k < nr+1; k++) {
+         for (int j = 0; j < nl+1; j++) {
 
             if (k == 0) {
                FemNode3d node =
@@ -942,8 +942,8 @@ public class FemFactory {
       }
 
       // generate elements
-      for (int k = 0; k < nr - 1; k++) {
-         for (int j = 0; j < nl - 1; j++) {
+      for (int k = 0; k < nr; k++) {
+         for (int j = 0; j < nl; j++) {
             for (int i = 0; i < nt; i++) {
 
                if (k == 0) {

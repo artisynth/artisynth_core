@@ -511,6 +511,209 @@ public class FemFactory {
        FemModel3d model, double r, int nt, int nl, int ns) {
       return createEllipsoid (model, r, r, r, nt, nl, ns);
    }
+   
+   /**
+    * Creates a tetrahedral sphere by connecting together concentric octohedral sphere
+    * divisions
+    * 
+    * @param fem model to populate
+    * @param r radius of sphere
+    * @param nr number of layers
+    * @return populated model
+    */
+   public static FemModel3d createTetSphere(FemModel3d fem, double r, int nr) {
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+      
+      if (nr < 1) {
+         nr = 1;
+      }
+      double dr = r/nr;
+      
+      int nfaces = 8;
+      int nvertices = 6;
+      int nedges = 12;
+      
+      // concentric octohedral sphere divisions
+      PolygonalMesh unitSphere = MeshFactory.createOctahedron (1);
+      
+      // center of sphere
+      FemNode3d lastLayer[] = new FemNode3d[1];
+      lastLayer[0] = new FemNode3d(0, 0, 0);
+      fem.addNode (lastLayer[0]);
+      
+      // create first layer of nodes
+      FemNode3d layer[] = new FemNode3d[unitSphere.numVertices ()];
+      for (Vertex3d vtx : unitSphere.getVertices ()) {
+         Point3d pos = new Point3d(vtx.getPosition ());
+         pos.scale (dr);
+         FemNode3d node = new FemNode3d(pos);
+         fem.addNode (node);
+         layer[vtx.getIndex ()] = node;
+      }
+      // create first layer of tets
+      for (Face f : unitSphere.getFaces ()) {
+         HalfEdge he = f.firstHalfEdge ();
+         int v0 = he.head.getIndex ();
+         he = he.getNext ();
+         int v1 = he.head.getIndex ();
+         he = he.getNext ();
+         int v2 = he.head.getIndex ();
+         TetElement tet = new TetElement (layer[v0], layer[v2], layer[v1], lastLayer[0]);
+         fem.addElement (tet);
+      }
+      
+      // additional layers
+      for (int k=1; k<nr; ++k) {
+         lastLayer = layer;
+         layer = new FemNode3d[nvertices + nedges];
+         
+         double rr = (k+1)*dr;
+
+         // duplicate original nodes
+         for (Vertex3d vtx : unitSphere.getVertices()) {
+            Point3d pos = new Point3d(vtx.getPosition ());
+            pos.scale (rr);
+            FemNode3d node = new FemNode3d(pos);
+            fem.addNode (node);
+            layer[vtx.getIndex ()] = node;
+         }
+         
+         // add mid-edge nodes
+         HashMap<HalfEdge,Vertex3d> edgeVtxs = new HashMap<> ();
+         for (Face f : unitSphere.getFaces ()) {
+            HalfEdge he0 = f.firstHalfEdge ();
+            HalfEdge he = he0;
+            do {
+               if (he .isPrimary ()) {                  
+                  Point3d npos = new Point3d();
+                  npos.interpolate (he.getHead ().getPosition (), 0.5, he.getTail ().getPosition ());
+                  npos.normalize ();  // unit sphere
+                  Vertex3d vtx = unitSphere.addVertex (npos);
+                  
+                  // node
+                  FemNode3d node = new FemNode3d(npos.x*rr, npos.y*rr, npos.z*rr);
+                  fem.addNode (node);
+                  layer[vtx.getIndex ()] = node;
+                  edgeVtxs.put (he, vtx);
+               }
+               he = he.getNext ();
+            } while (he != he0);
+         }
+         
+         // add new tets and faces
+         ArrayList<Vertex3d[]> newFaces = new ArrayList<>(4*nfaces);
+
+         for (Face face : unitSphere.getFaces()) {
+            HalfEdge he = face.firstHalfEdge ();
+            HalfEdge hep = (he.isPrimary () ? he : he.opposite);
+            
+            Vertex3d vtx0 = he.head;
+            Vertex3d vtxm0 = edgeVtxs.get (hep);
+            he = he.getNext ();
+            hep = (he.isPrimary () ? he : he.opposite);
+            Vertex3d vtx1 = he.head;
+            Vertex3d vtxm1 = edgeVtxs.get (hep);
+            he = he.getNext ();
+            hep = (he.isPrimary () ? he : he.opposite);
+            Vertex3d vtx2 = he.head;
+            Vertex3d vtxm2 = edgeVtxs.get (hep);
+         
+            // faces
+            newFaces.add (new Vertex3d[] {vtx0, vtxm1, vtxm0});
+            newFaces.add (new Vertex3d[] {vtx1, vtxm2, vtxm1});
+            newFaces.add (new Vertex3d[] {vtx2, vtxm0, vtxm2});
+            newFaces.add (new Vertex3d[] {vtxm0, vtxm1, vtxm2});
+            
+            FemNode3d o0 = lastLayer[vtx0.getIndex ()];
+            FemNode3d o1 = lastLayer[vtx1.getIndex ()];
+            FemNode3d o2 = lastLayer[vtx2.getIndex ()];
+            
+            FemNode3d n0 = layer[vtx0.getIndex ()];
+            FemNode3d n1 = layer[vtx1.getIndex ()];
+            FemNode3d n2 = layer[vtx2.getIndex ()];
+            
+            FemNode3d m0 = layer[vtxm0.getIndex ()];
+            FemNode3d m1 = layer[vtxm1.getIndex ()];
+            FemNode3d m2 = layer[vtxm2.getIndex ()];
+            
+            // tets
+            TetElement t0 = new TetElement(n0, m0, m1, o0);
+            TetElement t1 = new TetElement(n1, m1, m2, o1);
+            TetElement t2 = new TetElement(n2, m2, m0, o2);
+            
+            TetElement t3 = new TetElement(o0, o1, o2, m0);
+            
+            TetElement t4 = new TetElement(o1, o2, m0, m2);
+            TetElement t5 = new TetElement(o1, m2, m0, m1);
+            TetElement t6 = new TetElement(o0, o1, m0, m1);
+            
+            fem.addElement (t0);
+            fem.addElement (t1);
+            fem.addElement (t2);
+            fem.addElement (t3);
+            fem.addElement (t4);
+            fem.addElement (t5);
+            fem.addElement (t6);
+         }
+         
+         // clear mesh faces and add new ones
+         unitSphere.clearFaces ();
+         for (Vertex3d[] nface : newFaces) {
+            unitSphere.addFace (nface);
+         }
+         nvertices = nvertices + nedges;
+         nedges = 2*nedges + 3*nfaces;
+         nfaces = 4*nfaces;
+      }
+      
+      return fem;
+   }
+   
+   /**
+    * Creates a hex sphere by first generating a regular grid, then mapping it to the sphere using 
+    * a volume-preserving bi-lipschitz projection
+    * 
+    * @param fem model to populate
+    * @param r radius
+    * @param nr number of elements radially along each axis from the sphere center
+    * @return populated model
+    */
+   public static FemModel3d createHexSphere(FemModel3d fem, double r, int nr) {
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+      
+      FemFactory.createHexGrid (fem, 2, 2, 2, 2*nr, 2*nr, 2*nr);
+      Point2d pnt2d = new Point2d();
+      Point3d pnt3d = new Point3d();
+      
+      // map nodes
+      for (FemNode3d node : fem.getNodes ()) {
+         Point3d pos = node.getRestPosition ();
+         
+         // map x-y to conformal unit circle
+         pnt2d.x = pos.x;
+         pnt2d.y = pos.y;
+         conformalMapRectangleEllipse (1, 1, 1, 1, pnt2d, pnt2d);
+         
+         // map disc to sphere
+         pnt3d.x = pnt2d.x;
+         pnt3d.y = pnt2d.y;
+         pnt3d.z = pos.z;
+         bilipschitzMapCylinderSphere (pnt3d, pnt3d);
+         
+         // scale to appropriate radius
+         pnt3d.scale (r);
+         node.setRestPosition (pnt3d);
+         node.setPosition (pnt3d);
+         
+      }
+      
+      return fem;
+   }
+   
 
    /**
     * Creates an ellipsoidal model using a combination of hex, wedge, and tet
@@ -618,6 +821,64 @@ public class FemFactory {
    }
    
    /**
+    * Creates a ellipsoidal model using a hex elements by first
+    * creating a hex sphere and then scaling it.
+    *
+    * @param model empty FEM model to which elements are added; if
+    * <code>null</code> then a new model is allocated
+    * @param rz longest radius (also the polar radius)
+    * @param rsx first radius perpendicular to the polar axis
+    * @param rsy second radius perpendicular to the polar axis
+    * @param nr number of nodes in each radial line extending out from
+    * the polar axis (including end nodes)
+    * @return the FEM model (which will be <code>model</code> if
+    * <code>model</code> is not <code>null</code>).
+    */
+   public static FemModel3d createHexEllipsoid(
+      FemModel3d model, 
+      double rz, double rsx, double rsy, int nr) {
+   
+      model = createHexSphere (model, 1, nr);
+      for (FemNode3d node : model.getNodes ()) {
+         Point3d pos = node.getRestPosition ();
+         pos.scale (rsx, rsy, rz);
+         node.setRestPosition (pos);
+         node.setPosition (pos);
+      }
+      
+      return model;
+   }
+   
+   /**
+    * Creates a ellipsoidal model using a tet elements by first
+    * creating a tet sphere and then scaling it.
+    *
+    * @param model empty FEM model to which elements are added; if
+    * <code>null</code> then a new model is allocated
+    * @param rz longest radius (also the polar radius)
+    * @param rsx first radius perpendicular to the polar axis
+    * @param rsy second radius perpendicular to the polar axis
+    * @param nr number of nodes in each radial line extending out from
+    * the polar axis (including end nodes)
+    * @return the FEM model (which will be <code>model</code> if
+    * <code>model</code> is not <code>null</code>).
+    */
+   public static FemModel3d createTetEllipsoid(
+      FemModel3d model, 
+      double rz, double rsx, double rsy, int nr) {
+   
+      model = createTetSphere (model, 1, nr);
+      for (FemNode3d node : model.getNodes ()) {
+         Point3d pos = node.getRestPosition ();
+         pos.scale (rsx, rsy, rz);
+         node.setRestPosition (pos);
+         node.setPosition (pos);
+      }
+      
+      return model;
+   }
+   
+   /**
     * Creates a cylinder made of mostly hex elements, with wedges in the centre
     * column.
     *
@@ -713,6 +974,233 @@ public class FemFactory {
       }
 
       return model;
+   }
+   
+   /**
+    * Creates a tetrahedral cylinder by tetrahedralizing a hex-wegde cylinder
+    * 
+    * @param fem model to populate
+    * @param l length of cylinder (z-axis)
+    * @param r radius of cylinder
+    * @param nt number of elements around the arc
+    * @param nl number of elements along the length
+    * @param nr number of elements radially
+    * @return populated model
+    */
+   public static FemModel3d createTetCylinder(FemModel3d fem, double l, double r, int nt, int nl, int nr) {
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+
+      // round nt up to even to allow proper tesselation
+      if ((nt % 2) == 1) {
+         nt++;
+      }
+      // HexModel model = new HexModel();
+
+      FemNode3d nodes[][][] = new FemNode3d[nt][nl+1][nr+1];
+
+      double dl = l / nl;
+      double dt = 2 * Math.PI / nt;
+      double dr = r / nr;
+
+      // height
+      for (int j = 0; j < nl+1; j++) {
+         
+         // centre
+         nodes[0][j][0] = new FemNode3d(new Point3d(
+            0, 0, -l / 2 + j * dl));
+         fem.addNode (nodes[0][j][0]);
+         
+         // radius
+         for (int k = 1; k < nr+1; k++) {
+            // angle
+            for (int i = 0; i < nt; i++) {
+               nodes[i][j][k] =
+                  new FemNode3d(new Point3d(
+                     -(dr * k) * Math.sin(dt * i), (dr * k)
+                        * Math.cos(dt * i), -l / 2 + j * dl));
+               fem.addNode(nodes[i][j][k]);
+            }
+         }
+      }
+
+      TetElement elems[][][][] = new TetElement[nt][nl][nr][5];
+
+      for (int j = 0; j < nl; j++) {
+         
+         // k = 0, wedges
+         for (int i = 0; i < nt; i++) {
+            
+            boolean even = (i + j) % 2 == 0;
+            
+            FemNode3d p0 = nodes[i][j][1];
+            FemNode3d p1 = nodes[(i + 1) % nt][j][1];
+            FemNode3d p2 = nodes[(i + 1) % nt][j + 1][1];
+            FemNode3d p3 = nodes[i][j + 1][1];
+            FemNode3d p4 = nodes[0][j][0];
+            FemNode3d p5 = nodes[0][j + 1][0]; 
+            
+            if (even) {
+               elems[i][j][0][0] = new TetElement (p0, p1, p4, p3);
+               elems[i][j][0][1] = new TetElement (p2, p3, p5, p1);
+               elems[i][j][0][2] = new TetElement (p1, p5, p4, p3);
+            } else {
+               elems[i][j][0][0] = new TetElement (p1, p0, p2, p4);
+               elems[i][j][0][1] = new TetElement (p3, p0, p5, p2);
+               elems[i][j][0][2] = new TetElement (p0, p2, p4, p5);
+            }
+            
+            fem.addElement(elems[i][j][0][0]);
+            fem.addElement(elems[i][j][0][1]);
+            fem.addElement(elems[i][j][0][2]);
+         }
+         
+         // hexes
+         for (int k = 1; k < nr; k++) {
+            for (int i = 0; i < nt; i++) {
+               elems[i][j][k] =
+                  TetElement.createCubeTesselation(
+                     nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
+                     nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k + 1],
+                     nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
+                        % nt][j + 1][k], nodes[i][j + 1][k], (i + j + k) % 2 == 0);
+               
+               fem.addElement(elems[i][j][k][0]);
+               fem.addElement(elems[i][j][k][1]);
+               fem.addElement(elems[i][j][k][2]);
+               fem.addElement(elems[i][j][k][3]);
+               fem.addElement(elems[i][j][k][4]);
+            }
+         }
+      }
+      
+      return fem;
+   }
+   
+   /**
+    * </p>
+    * Conformally maps a rectangular grid to an ellipse using the method of 
+    * <p>
+    * <quote>
+    * Daniela Rosca, Uniform and refinable grids on elliptic domains and on some surfaces of revolution, 
+    * Applied Mathematics and Computation,Volume 217, Issue 19, 2011, Pages 7812-7817
+    * </quote>
+    *</p>
+    *</p>
+    * @param a ellipsoid radius along x
+    * @param b ellipsoid radius along y
+    * @param L1 rectangle half-width along x
+    * @param L2 rectangle half-width along y
+    * @param input input point
+    * @param output output point
+    */
+   public static void conformalMapRectangleEllipse(double a, double b, double L1, double L2, Point2d input, Point2d output) {
+      double x = input.x;
+      double y = input.y;
+      
+      double absx = Math.abs (x);
+      double absy = Math.abs (y);
+      
+      if (absy*L1 <= absx*L2) {
+         if ( absx == 0) {
+            output.x = 0;
+            output.y = 0;
+         } else {
+            double theta = Math.PI*L1*y/4/L2/x;
+            output.x = x*Math.sqrt (a*L2/b/L1)*Math.cos (theta);
+            output.y = x*Math.sqrt (b*L2/a/L1)*Math.sin (theta);
+         }
+      } else {
+         double theta = Math.PI*L2*x/4/L1/y;
+         output.x = y*Math.sqrt (a*L1/b/L2)*Math.sin (theta);
+         output.y = y*Math.sqrt (b*L1/a/L2)*Math.cos (theta);         
+      }
+   }
+   
+   /**
+    * <p>
+    * Maps a cylinder with unit radius and z in [-1,1] to a unit sphere using the bilipschitz method described in
+    * <p>
+    * <quote>
+    * A bi-Lipschitz continuous, volume preserving map from the unit ball onto a cube”, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
+    * </quote>
+    * </p>
+    * </p>
+    * @param input
+    * @param output
+    */
+   public static void bilipschitzMapCylinderSphere(Point3d input, Point3d output) {
+      double a = input.x;
+      double b = input.y;
+      double z = input.z;
+      double z2 = z*z;
+      
+      double r2 = a*a + b*b;
+      if (z2 >= r2) {
+         if (z2 > 0) {
+            double s = Math.sqrt (2.0/3-r2/9/z2);
+            output.x = a*s;
+            output.y = b*s;
+            output.z = z - r2/3/z;
+         } else {
+            output.x = 0;
+            output.y = 0;
+            output.z = 0;
+         }
+      } else {
+         double s = Math.sqrt(1-4*z2/9/r2);
+         output.x = a*s;
+         output.y = b*s;
+         output.z = 2.0/3*z;
+      }
+   }
+   
+   /**
+    * Creates a hex cylinder by first generating a hex grid, then mapping it to a cylinder using 
+    * a conformal map
+    * 
+    * @param fem model
+    * @param l length of cylinder (z-axis)
+    * @param r radius of cylinder 
+    * @param nl number of elements along the length
+    * @param nr number of elements outward from the radius along the x,y-axes
+    * @return generated model
+    */
+   public static FemModel3d createHexCylinder(FemModel3d fem, double l, double r, int nl, int nr) {
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+      
+      FemFactory.createHexGrid (fem, 2*r, 2*r, l, 2*nr, 2*nr, nl);
+      Point2d pnt = new Point2d();
+      
+      // map nodes
+      for (FemNode3d node : fem.getNodes ()) {
+         Point3d pos = node.getRestPosition ();
+         double d2 = pos.x*pos.x + pos.y*pos.y;  // 2D squared distance 
+         
+         if (d2 > 0) {
+            // radial scaling
+            //            double rd = Math.max (Math.abs (pos.x), Math.abs (pos.y)); // radial distance of current square
+            //            // scale x, y so that new distance is rd
+            //            double s = Math.sqrt (rd*rd/d2);
+            //            pos.x *= s;
+            //            pos.y *= s;
+            
+            // conformal scaling
+            pnt.x = pos.x;
+            pnt.y = pos.y;
+            conformalMapRectangleEllipse (r, r, r, r, pnt, pnt);
+            pos.x = pnt.x;
+            pos.y = pnt.y;
+            
+            node.setRestPosition (pos);
+            node.setPosition (pos);
+         }
+      }
+      
+      return fem;
    }
    
    /**

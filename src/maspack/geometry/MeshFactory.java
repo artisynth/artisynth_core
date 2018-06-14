@@ -1103,46 +1103,46 @@ public class MeshFactory {
    }
 
 
-   private static class MidEdgeVertexList extends ArrayList<MidEdgeVertex> {
+   //   private static class MidEdgeVertexList extends ArrayList<MidEdgeVertex> {
+   //
+   //      private static final long serialVersionUID = -1887188834611352010L;
+   //
+   //      public MidEdgeVertex get(Vertex3d a, Vertex3d b) {
+   //         for (MidEdgeVertex vtx : this) {
+   //            if (vtx.a == a && vtx.b == b) {
+   //               return vtx;
+   //            } else if (vtx.a == b && vtx.b == a) {
+   //               return vtx;
+   //            }
+   //         }
+   //         return null;
+   //      }
+   //
+   //      public MidEdgeVertex getOrCreate(Vertex3d a, Vertex3d b) {
+   //         MidEdgeVertex vtx = get(a, b);
+   //         if (vtx == null) {
+   //            vtx = new MidEdgeVertex(a, b);
+   //            add(vtx);
+   //         }
+   //         return vtx;
+   //      }
+   //   }
 
-      private static final long serialVersionUID = -1887188834611352010L;
-
-      public MidEdgeVertex get(Vertex3d a, Vertex3d b) {
-         for (MidEdgeVertex vtx : this) {
-            if (vtx.a == a && vtx.b == b) {
-               return vtx;
-            } else if (vtx.a == b && vtx.b == a) {
-               return vtx;
-            }
-         }
-         return null;
-      }
-
-      public MidEdgeVertex getOrCreate(Vertex3d a, Vertex3d b) {
-         MidEdgeVertex vtx = get(a, b);
-         if (vtx == null) {
-            vtx = new MidEdgeVertex(a, b);
-            add(vtx);
-         }
-         return vtx;
-      }
-   }
-
-   private static class MidEdgeVertex {
-      public Vertex3d a = null;
-      public Vertex3d b = null;
-      public Vertex3d mid = null;
-
-      public MidEdgeVertex (Vertex3d a, Vertex3d b) {
-         this.a = a;
-         this.b = b;
-         Point3d pnt = new Point3d(a.getPosition());
-         pnt.add(b.getPosition());
-         pnt.scale(0.5);
-
-         mid = new Vertex3d(pnt);
-      }
-   }
+   //   private static class MidEdgeVertex {
+   //      public Vertex3d a = null;
+   //      public Vertex3d b = null;
+   //      public Vertex3d mid = null;
+   //
+   //      public MidEdgeVertex (Vertex3d a, Vertex3d b) {
+   //         this.a = a;
+   //         this.b = b;
+   //         Point3d pnt = new Point3d(a.getPosition());
+   //         pnt.add(b.getPosition());
+   //         pnt.scale(0.5);
+   //
+   //         mid = new Vertex3d(pnt);
+   //      }
+   //   }
 
    public static PolygonalMesh subdivide(PolygonalMesh orig, int numIters) {
       PolygonalMesh out = orig;
@@ -1163,32 +1163,44 @@ public class MeshFactory {
          mesh.addVertex(newVtx);
       }
 
-      MidEdgeVertexList vtxList = new MidEdgeVertexList();
+      HashMap<HalfEdge,Vertex3d> vtxList = new HashMap<>();
 
       Vertex3d vtxo1, vtxo2, vtxo3, vtxo4;
       Vertex3d vtxc1, vtxc2, vtxc3, vtxc4, vtxmid;
       //Point3d centroid = new Point3d();
+      
+      /// create mid-edge nodes
+      for (Face face : orig.getFaces ()) {
+         HalfEdge he0 = face.firstHalfEdge ();
+         HalfEdge he = he0;
+         do {
+            if (he .isPrimary ()) {                  
+               Point3d npos = new Point3d();
+               npos.interpolate (he.getHead ().getPosition (), 0.5, he.getTail ().getPosition ());
+               Vertex3d vtx = mesh.addVertex (npos);
+               vtxList.put (he, vtx);
+            }
+            he = he.getNext ();
+         } while (he != he0);
+      }
 
+      // add new faces
       for (Face face : orig.getFaces()) {
          if (face.numVertices() == 3) {
 
-            vtxo1 = newVtxMap.get(face.getVertex(0));
-            vtxo2 = newVtxMap.get(face.getVertex(1));
-            vtxo3 = newVtxMap.get(face.getVertex(2));
-
-            vtxc1 = vtxList.getOrCreate(vtxo1, vtxo2).mid;
-            if (!mesh.getVertices().contains(vtxc1)) {
-               mesh.addVertex(vtxc1);
-            }
-            vtxc2 = vtxList.getOrCreate(vtxo2, vtxo3).mid;
-            if (!mesh.getVertices().contains(vtxc2)) {
-               mesh.addVertex(vtxc2);
-            }
-            vtxc3 = vtxList.getOrCreate(vtxo3, vtxo1).mid;
-            if (!mesh.getVertices().contains(vtxc3)) {
-               mesh.addVertex(vtxc3);
-            }
-
+            HalfEdge he = face.firstHalfEdge ();
+            HalfEdge hep = (he.isPrimary () ? he : he.opposite);
+            vtxo1 = newVtxMap.get(he.head);
+            vtxc3 = vtxList.get (hep);
+            he = he.next;
+            hep = (he.isPrimary () ? he : he.opposite);
+            vtxo2 = newVtxMap.get(he.head);
+            vtxc1 = vtxList.get (hep);
+            he = he.next;
+            hep = (he.isPrimary () ? he : he.opposite);
+            vtxo3 = newVtxMap.get(he.head);
+            vtxc2 = vtxList.get(hep);
+            
             mesh.addFace(vtxo1, vtxc1, vtxc3);
             mesh.addFace(vtxc1, vtxo2, vtxc2);
             mesh.addFace(vtxc3, vtxc2, vtxo3);
@@ -1196,27 +1208,23 @@ public class MeshFactory {
 
          } else if (face.numVertices() == 4) {
 
-            vtxo1 = newVtxMap.get(face.getVertex(0));
-            vtxo2 = newVtxMap.get(face.getVertex(1));
-            vtxo3 = newVtxMap.get(face.getVertex(2));
-            vtxo4 = newVtxMap.get(face.getVertex(3));
-
-            vtxc1 = vtxList.getOrCreate(vtxo1, vtxo2).mid;
-            if (!mesh.getVertices().contains(vtxc1)) {
-               mesh.addVertex(vtxc1);
-            }
-            vtxc2 = vtxList.getOrCreate(vtxo2, vtxo3).mid;
-            if (!mesh.getVertices().contains(vtxc2)) {
-               mesh.addVertex(vtxc2);
-            }
-            vtxc3 = vtxList.getOrCreate(vtxo3, vtxo4).mid;
-            if (!mesh.getVertices().contains(vtxc3)) {
-               mesh.addVertex(vtxc3);
-            }
-            vtxc4 = vtxList.getOrCreate(vtxo4, vtxo1).mid;
-            if (!mesh.getVertices().contains(vtxc4)) {
-               mesh.addVertex(vtxc4);
-            }
+            HalfEdge he = face.firstHalfEdge ();
+            HalfEdge hep = (he.isPrimary () ? he : he.opposite);
+            vtxo1 = newVtxMap.get(he.head);
+            vtxc4 = vtxList.get (hep);
+            he = he.next;
+            hep = (he.isPrimary () ? he : he.opposite);
+            vtxo2 = newVtxMap.get(he.head);
+            vtxc1 = vtxList.get (hep);
+            he = he.next;
+            hep = (he.isPrimary () ? he : he.opposite);
+            vtxo3 = newVtxMap.get(he.head);
+            vtxc2 = vtxList.get(hep);
+            he = he.next;
+            hep = (he.isPrimary () ? he : he.opposite);
+            vtxo4 = newVtxMap.get(he.head);
+            vtxc3 = vtxList.get(hep);
+            
             Point3d centroid = new Point3d();
             face.computeCentroid(centroid);
             vtxmid = new Vertex3d(centroid);
@@ -1233,15 +1241,21 @@ public class MeshFactory {
             face.computeCentroid(centroid);
             vtxmid = new Vertex3d(centroid);
             mesh.addVertex(vtxmid);
-            int n = face.numVertices();
 
-            for (int i = 0; i < n; i++) {
-               vtxo1 = face.getVertex(i);
-               vtxo2 = face.getVertex((i + 1) % n);
-               Vertex3d vtxlmid = vtxList.getOrCreate(vtxo1, vtxo2).mid;
-               mesh.addFace(vtxo1, vtxlmid, vtxmid);
-               mesh.addFace(vtxlmid, vtxo2, vtxmid);
-            }
+            HalfEdge he0 = face.firstHalfEdge ();
+            HalfEdge he = he0;
+            do {
+               vtxo1 = newVtxMap.get (he.tail);
+               vtxo2 = newVtxMap.get (he.head);
+               HalfEdge hep = (he.isPrimary () ? he : he.opposite);
+               vtxc1 = vtxList.get (hep);
+               
+               mesh.addFace(vtxo1, vtxc1, vtxmid);
+               mesh.addFace(vtxc1, vtxo2, vtxmid);
+               
+               he = he.next;
+            } while (he != he0);
+            
          }
       }
 

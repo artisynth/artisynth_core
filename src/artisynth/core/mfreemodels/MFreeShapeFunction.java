@@ -8,14 +8,15 @@ package artisynth.core.mfreemodels;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 
 public interface MFreeShapeFunction {
     
    /**
-    * Current coordinate to be used for evaluation
-    * @return current coordinate
+    * Set the rest nodes
+    * @param nodes nodes
     */
-   public Point3d getCoordinate();
+   public void setNodes(MFreeNode3d[] nodes);
    
    /**
     * Current nodes used for evaluation
@@ -24,12 +25,21 @@ public interface MFreeShapeFunction {
    public MFreeNode3d[] getNodes();
    
    /**
-    * Update internals for computing the shape function value and derivatives at the
-    * given point
-    * @param pnt  point at which to evaluate shape functions
-    * @param nodes dependent nodes
+    * Invalidate any stored rest information
     */
-   public void update(Point3d pnt, MFreeNode3d[] nodes);
+   public void invalidateRestData();
+   
+   /**
+    * Set the evaluation coordinate
+    * @param pnt
+    */
+   public void setCoordinate(Point3d pnt);
+   
+   /**
+    * Current coordinate to be used for evaluation
+    * @return current coordinate
+    */
+   public Point3d getCoordinate();
    
    /**
     * Returns the value of the i'th shape function (related to node i)
@@ -39,18 +49,29 @@ public interface MFreeShapeFunction {
    public double eval(int nidx);
    
    /**
+    * Returns the values of the shape functions at the current point
+    * @param N vector of shape functions
+    */
+   public void eval(VectorNd N);
+   
+   /**
     * Returns the value of the i'th shape function derivatives
     * @param nidx node index
     * @param dNds derivatives (d/dx, d/dy, d/dz)
     */
    public void evalDerivative(int nidx, Vector3d dNds);
-
+   
    /**
-    * Update only if coords and nodes are different
-    * @param coords natural coordinates
-    * @param myNodes nodes for shape function
-    * @return true if updated
+    * Returns the value of all shape function derivatives
+    * @param dNds derivatives (d/dx, d/dy, d/dz)
     */
-   public boolean maybeUpdate(Vector3d coords, MFreeNode3d[] myNodes);
+   public void evalDerivative(Vector3d[] dNds);
+   
+   /**
+    * Evaluates both the shape function and derivatives at a given point
+    * @param N shape function outputs
+    * @param dNds shape function derivative outputs
+    */
+   public void eval(VectorNd N, Vector3d[] dNds);
    
 }

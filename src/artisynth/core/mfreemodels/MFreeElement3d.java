@@ -7,6 +7,7 @@
 package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemNode3d;
@@ -30,11 +31,10 @@ import maspack.render.Renderer.Shading;
 import maspack.util.DynamicArray;
 import maspack.util.InternalErrorException;
 
-public class MFreeElement3d extends FemElement3d implements Boundable {
+public class MFreeElement3d extends FemElement3d implements Boundable { //, TransformableGeometry {
 
    private MFreeShapeFunction myShapeFunction;
    
-   protected DynamicArray<IntegrationData3d> myIntegrationData;
    protected DynamicArray<MFreeIntegrationPoint3d> myIntegrationPoints;
    double[] myNodalExtrapolationMatrix = null;
    MFreeIntegrationPoint3d myWarpingPoint;
@@ -58,8 +58,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
          }
          myNodes[i] = (MFreeNode3d)nodes[i];
       }
-      
-      myIntegrationData = new DynamicArray<>(IntegrationData3d.class);
       myIntegrationPoints = new DynamicArray<>(MFreeIntegrationPoint3d.class);
 
       setShapeFunction(fun);
@@ -119,14 +117,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
    public int getIntegrationPointIndex(IntegrationPoint3d pnt) {
       return pnt.getNumber();
    }
-   
-   public IntegrationData3d[] getIntegrationData() {
-      return myIntegrationData.getArray();
-   }
-   
-   public IntegrationData3d getIntegrationData(int idx) {
-      return myIntegrationData.get(idx);
-   }
       
    public void clearState() {
       for (IntegrationData3d idat : myIntegrationData) {
@@ -157,12 +147,17 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
       
       //      int idx = myIntegrationWeights.adjustSize(1);
       //      myIntegrationWeights.set(idx, iwgt);
-      myIntegrationData.add(idata);
-      // ipnt.setNumber(myIntegrationPoints.size());
-      ipnt.setNumber(myIntegrationPoints.size());
+      int nipnts = numIntegrationPoints ();
+      if (myIntegrationData == null) {
+         myIntegrationData = new IntegrationData3d[1];
+      } else if (myIntegrationData.length < nipnts + 1){
+         myIntegrationData = Arrays.copyOf (myIntegrationData, nipnts+1);
+      }
+      myIntegrationData[nipnts] = idata;
+      
+      ipnt.setNumber(nipnts);
       myIntegrationPoints.add(ipnt);
       //      myIntegrationNodeIdxs.add(idxs);
-      
       
       myNodalExtrapolationMatrix = null;
       
@@ -172,13 +167,17 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
    }
 
    public void setIntegrationData(ArrayList<IntegrationData3d> data) {
-      myIntegrationData = new DynamicArray<>(IntegrationData3d.class, data.size());
-      myIntegrationData.addAll(data);
+      myIntegrationData = new IntegrationData3d[data.size ()];
+      for (int i=0; i<data.size (); ++i) {
+         myIntegrationData[i] = data.get (i);
+      }
    }
    
-   public void setIntegrationPoints(ArrayList<MFreeIntegrationPoint3d> points, ArrayList<IntegrationData3d> data) {
+   public void setIntegrationPoints(ArrayList<MFreeIntegrationPoint3d> points, 
+      ArrayList<IntegrationData3d> data) {
       
       myIntegrationPoints = new DynamicArray<>(MFreeIntegrationPoint3d.class, points.size()); 
+      myIntegrationData = new IntegrationData3d[points.size ()];
       // myIntegrationNodeIdxs = new ArrayList<int[]>(points.size());
       
       for (int i=0; i<points.size(); i++) {
@@ -196,7 +195,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
    public void setIntegrationPoints(MFreeIntegrationPoint3d[] points, IntegrationData3d[] data) {
       
       myIntegrationPoints = new DynamicArray<>(points);
-      myIntegrationData = new DynamicArray<>(data);
+      myIntegrationData = Arrays.copyOf (data, data.length);
       myNodalExtrapolationMatrix = null;
       updateAllVolumes();
    }
@@ -719,7 +718,8 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
       //      if (!coordsAreInside(coords)) {
       //         return -1;
       //      }
-      myShapeFunction.update(coords, (MFreeNode3d[])myNodes);
+      myShapeFunction.setNodes ((MFreeNode3d[])myNodes);
+      myShapeFunction.setCoordinate (coords);
       computeNaturalCoordsResidual (res, coords, pnt, N);
       
       double prn = res.norm();
@@ -759,7 +759,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
          //         if (!coordsAreInside(coords)) {
          //            return -1;
          //         }
-         myShapeFunction.update(coords,(MFreeNode3d[])myNodes);
+         myShapeFunction.setCoordinate(coords);
          computeNaturalCoordsResidual (res, coords, pnt, N);
          double rn = res.norm();
          //System.out.println ("res=" + rn);
@@ -783,7 +783,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
                if (!coordsAreInside(coords)) {
                   return -1;
                }
-               myShapeFunction.update(coords, (MFreeNode3d[])myNodes);
+               myShapeFunction.setCoordinate(coords);
                computeNaturalCoordsResidual (res, coords, pnt, N);
                rn = res.norm();
                alpha *= 0.5;
@@ -799,24 +799,25 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
       return -1; // failed
    }
    
-   public double getN(int i, Point3d coords) {
-      myShapeFunction.maybeUpdate(coords, (MFreeNode3d[])myNodes);
+   @Override
+   public double getN(int i, Vector3d coords) {
+      Point3d pnt = new Point3d(coords);
+      myShapeFunction.setNodes ((MFreeNode3d[])myNodes);
+      myShapeFunction.setCoordinate (pnt);
       return myShapeFunction.eval(i);
    }
    
+   @Override
    public void getdNds(Vector3d dNds, int i, Vector3d coords) {
-      myShapeFunction.maybeUpdate(coords, (MFreeNode3d[])myNodes);
+      Point3d pnt = new Point3d(coords);
+      myShapeFunction.setNodes ((MFreeNode3d[])myNodes);
+      myShapeFunction.setCoordinate(pnt);
       myShapeFunction.evalDerivative(i, dNds);
    }
 
    @Override
    public double[] getIntegrationCoords() {
       return new double[0];
-   }
-
-   @Override
-   public double getN(int i, Vector3d coords) {
-      return 0;
    }
 
    @Override
@@ -836,7 +837,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable {
 
    @Override
    public void renderWidget(Renderer renderer, double size, RenderProps props) {
-      
       
    }
    

@@ -506,7 +506,8 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
          // compute shape function
          VectorNd N = new VectorNd(deps.size());
          MFreeNode3d[] dnodes = deps.toArray(new MFreeNode3d[deps.size()]);
-         sfunc.update(vtx.pnt, dnodes);
+         sfunc.setNodes (dnodes);
+         sfunc.setCoordinate (vtx.pnt);
          sfunc.eval(N);
          
          // first see if there's a node within reduceTol of the point,

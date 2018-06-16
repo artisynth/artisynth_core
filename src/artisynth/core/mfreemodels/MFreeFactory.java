@@ -8,7 +8,6 @@ package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,7 +28,6 @@ import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointParticleAttachment;
 import artisynth.core.mfreemodels.RadialWeightFunction.RadialWeightFunctionType;
 import maspack.geometry.AABBTree;
-import maspack.geometry.BSPTree;
 import maspack.geometry.BVNode;
 import maspack.geometry.BVTree;
 import maspack.geometry.Boundable;
@@ -39,15 +37,10 @@ import maspack.geometry.KDComparator;
 import maspack.geometry.KDTree;
 import maspack.geometry.MeshBase;
 import maspack.geometry.MeshFactory;
+import maspack.geometry.MeshFactory.FaceType;
 import maspack.geometry.OBB;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.MeshFactory.FaceType;
-import maspack.graph.DirectedEdge;
-import maspack.graph.DirectedGraph;
-import maspack.graph.Vertex;
-import maspack.matrix.AffineTransform3d;
-import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -312,6 +305,80 @@ public class MFreeFactory {
       return out;
    }
 
+   /**
+    * Creates a cylinder made of mostly hex elements, with wedges in the centre
+    * column.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param l length along the z axis
+    * @param r radius in the x-y plane
+    * @param nt node resolution around the center axis
+    * @param nl node resolution along the length
+    * @param nr node resolution along the radius (including center)
+    * @return created FEM model
+    */
+   public static MFreeModel3d createCylinder(
+      MFreeModel3d model, double l, double r, int nt, int nl, int nr) {
+      
+      Point3d[] nodeLocs = new Point3d[nl*(nt*(nr-1)+1)];
+      PolygonalMesh surface = MeshFactory.createCylinder (r, l, nt, nr-1, nl-1);
+      
+      double hmin = -l/2;
+      double dh = l/(nl-1);
+      double dr = r/(nr-1);
+      double dt = 2*Math.PI/nt; 
+      
+      int nidx = 0;
+      
+      // generate nodes
+      // height
+      for (int k=0; k<nl; ++k) {
+         // center
+         double h = hmin + k*dh;
+         nodeLocs[nidx++] = new Point3d(0, 0, h);
+         // radial
+         for (int i=1; i<nr; ++i) {
+            double rr = i*dr;
+            // angle
+            for (int j=0; j<nt; ++j) {
+               double theta = j*dt;
+               nodeLocs[nidx++] = new Point3d(rr*Math.cos (theta), rr*Math.sin (theta), h);
+            }
+         }
+      }
+      
+      // generate ipnts
+      int ipntFactor = 2;
+      int nil = ipntFactor*(nl-1)+1;
+      int nir = ipntFactor*(nr-1)+1;
+      int nit = ipntFactor*nt;
+      
+      double dih = l/(nil-1);
+      double dir = r/(nir-1);
+      double dit = 2*Math.PI/nit; 
+      
+      int iidx = 0;
+      Point3d[] ipntLocs = new Point3d[nil*(nit*(nir-1)+1)];
+      
+      for (int k=0; k<nil; ++k) {
+         // center
+         double h = hmin + k*dih;
+         ipntLocs[iidx++] = new Point3d(0, 0, h);
+         // radial
+         for (int i=1; i<nir; ++i) {
+            double rr = i*dir;
+            // angle
+            for (int j=0; j<nit; ++j) {
+               double theta = j*dit;
+               ipntLocs[iidx++] = new Point3d(rr*Math.cos (theta), rr*Math.sin (theta), h);
+            }
+         }
+      }
+      
+      return createModel(model, nodeLocs, ipntLocs, surface);
+   }
+   
    public static MFreeModel3d createModel(MFreeModel3d model,
       Point3d[] nodeLocs, Point3d[] ipntLoc, PolygonalMesh surface) {
    
@@ -808,10 +875,13 @@ public class MFreeFactory {
    private static void distributeIPointsFromMap(
       HashMap<MFreeIntegrationPoint3d,MFreeElement3d> pntMap) {
 
+      // Matrix3d invJ0 = new Matrix3d();
       for (MFreeIntegrationPoint3d ipnt : pntMap.keySet()) {
          IntegrationData3d idat = new IntegrationData3d();
          idat.setRestInverseJacobian(new Matrix3d(Matrix3d.IDENTITY), 1);
          MFreeElement3d elem = pntMap.get(ipnt);
+         // IntegrationData3d.computeRestJacobian (invJ0, ipnt.getGNs (), elem.getNodes ());
+         
          elem.addIntegrationPoint(ipnt, idat, ipnt.getWeight(), false);
       }
 
@@ -871,7 +941,11 @@ public class MFreeFactory {
          elem.computeCentroid(pos);
       }
 
-      MFreeNode3d[] deps = findNodesContaining(pos, nodeTree, 0);
+      FemNode3d[] enodes = elem.getNodes ();
+      MFreeNode3d[] deps = new MFreeNode3d[enodes.length];
+      for (int i=0; i<enodes.length; ++i) {
+         deps[i] = (MFreeNode3d)enodes[i];
+      }
       VectorNd coords = new VectorNd(deps.length);
       ArrayList<Vector3d> grad = new ArrayList<Vector3d>(deps.length);
       getShapeCoordsAndGradients(elem.getShapeFunction(), coords, grad, pos, deps);
@@ -1264,12 +1338,10 @@ public class MFreeFactory {
    private static void getShapeCoords(MFreeShapeFunction fun, VectorNd coords, Point3d pnt,
       MFreeNode3d[] deps) {
 
-      int nDeps = deps.length;
       coords.setSize(deps.length);
-      fun.update(pnt, deps);
-      for (int i = 0; i < nDeps; i++) {
-         coords.set(i, fun.eval(i));
-      }
+      fun.setNodes (deps);
+      fun.setCoordinate (pnt);
+      fun.eval (coords);
 
    }
 
@@ -1284,10 +1356,11 @@ public class MFreeFactory {
       grad.ensureCapacity(nDeps);
       coords.setSize(deps.length);
 
-      fun.update(pnt, deps);
+      fun.setNodes (deps);
+      fun.setCoordinate (pnt);
 
+      fun.eval (coords);
       for (int i = 0; i < nDeps; i++) {
-         coords.set(i, fun.eval(i));
          Vector3d nodegrad = new Vector3d();
          fun.evalDerivative(i, nodegrad);
          grad.add(nodegrad);

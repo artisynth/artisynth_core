@@ -1885,9 +1885,226 @@ public class MeshFactory {
 
    }
 
-   // public static PolygonalMesh createDodecahedron(double r) {
-   //
-   // }
+   /**
+    * Creates a sphere out of approximately uniform triangles by separating the sphere into a
+    * hexagonal prism with hexagonal pyramid caps, and dividing each edge into k segments.
+    * 
+    * @param r radius of sphere
+    * @param k number of divisions
+    * @return sphere mesh
+    */
+   public static PolygonalMesh createOctadecahedralSphere(double r, int k) {
+      
+      PolygonalMesh mesh = new PolygonalMesh();
+      
+      int ngs = 6;
+      int ngt = 3;
+      
+      if (k < 1) {
+         r = 1;
+      }
+      
+      // distribute nodes radially
+      double dr = r/k;
+      
+      // radial layers
+
+      int nt = ngt*k;
+      double rr = k*dr;
+      double dphi = Math.PI/nt;
+      
+      Vertex3d[][] layer = new Vertex3d[nt+1][];
+
+      // distribute nodes
+
+      // north pole
+      {
+         layer[0] = new Vertex3d[2];
+         Vertex3d node = new Vertex3d(0,0,rr);
+         mesh.addVertex (node);
+         layer[0][0] = node;
+         layer[0][1] = node;
+      }
+
+      // first latitude group grows
+      {
+         int gt = 0;
+         for (int i=1; i<k; ++i) {
+            int t = gt*k+i;
+            int ns = ngs*i;
+            layer[t] = new Vertex3d[ns+1];
+
+            double phi = t*dphi;
+            double z = rr*Math.cos (phi);
+            double xy = rr*Math.sin (phi);
+            double dtheta = 2*Math.PI/ns;  
+
+            // longitude groups
+            for (int gs=0; gs<ngs; ++gs) {
+               for (int j=0; j<i; ++j) {
+                  int s = gs*i+j;
+                  double theta = s*dtheta;
+                  double x = xy*Math.cos (theta);
+                  double y = xy*Math.sin (theta);
+                  Vertex3d node = new Vertex3d(x,y,z);
+                  layer[t][s] = node;
+                  mesh.addVertex (node);
+               }
+            }
+            layer[t][ns] = layer[t][0]; // wrap around
+         }
+      }
+
+      // middle groups constant width
+      for (int gt=1; gt<ngt-1; ++gt) {
+         for (int i=0; i<k; ++i) {
+            int t = gt*k+i;
+            int ns = ngs*k;
+            layer[t] = new Vertex3d[ns+1];
+
+            double phi = t*dphi;
+            double z = rr*Math.cos (phi);
+            double xy = rr*Math.sin (phi);
+            double dtheta = 2*Math.PI/ns;  
+
+            // longitude groups
+            for (int gs=0; gs<ngs; ++gs) {
+               for (int j=0; j<k; ++j) {
+                  int s = gs*k+j;
+                  double theta = s*dtheta;
+                  double x = xy*Math.cos (theta);
+                  double y = xy*Math.sin (theta);
+                  Vertex3d node = new Vertex3d(x,y,z);
+                  layer[t][s] = node;
+                  mesh.addVertex (node);
+               }
+            }
+            layer[t][ns] = layer[t][0]; // wrap around
+         }
+      }
+
+      // last group shrinks
+      {
+         int gt = ngt-1;
+         for (int i=0; i<k; ++i) {
+            int t = gt*k+i;
+            int ns = ngs*(k-i);
+            layer[t] = new Vertex3d[ns+1];
+
+            double phi = t*dphi;
+            double z = rr*Math.cos (phi);
+            double xy = rr*Math.sin (phi);
+            double dtheta = 2*Math.PI/ns;  
+
+            // longitude groups
+            for (int gs=0; gs<ngs; ++gs) {
+               for (int j=0; j<k-i; ++j) {
+                  int s = gs*(k-i)+j;
+                  double theta = s*dtheta;
+                  double x = xy*Math.cos (theta);
+                  double y = xy*Math.sin (theta);
+                  Vertex3d node = new Vertex3d(x,y,z);
+                  layer[t][s] = node;
+                  mesh.addVertex (node);
+               }
+            }
+            layer[t][ns] = layer[t][0]; // wrap around
+         }
+      }
+
+      // south pole
+      {
+         layer[nt] = new Vertex3d[2];
+         Vertex3d node = new Vertex3d(0,0,-rr);
+         mesh.addVertex (node);
+         layer[nt][0] = node;
+         layer[nt][1] = node;
+      }
+
+      // generate faces, move in groups
+
+      // first latitude group
+      {
+         int gt = 0;
+         for (int i=0; i<k; ++i) {
+            int t = gt*k+i;
+
+            // longitude groups
+            for (int gs=0; gs<ngs; ++gs) {
+               for (int j=0; j<i; ++j) {
+                  int s = gs*i+j;
+                  int sdown = s+gs;
+                  
+                  // triangle
+                  mesh.addFace (layer[t][s], layer[t+1][sdown], layer[t+1][sdown+1]);
+
+                  // flipped triangle
+                  mesh.addFace (layer[t+1][sdown+1], layer[t][s+1], layer[t][s]);
+               }
+
+               // trailing triangle
+               int s = gs*i + i;  // current s
+               int sdown = s+gs;
+               mesh.addFace (layer[t][s], layer[t+1][sdown], layer[t+1][sdown+1]);
+            }
+         }
+      }
+
+      // middle groups constant width
+      for (int gt=1; gt<ngt-1; ++gt) {
+         for (int i=0; i<k; ++i) {
+            int t = gt*k+i;
+
+            // longitude groups
+            for (int gs=0; gs<ngs; ++gs) {
+
+               // first k-1 columns
+               for (int j=0; j<k; ++j) {
+                  int s = gs*k+j;
+
+                  // parity
+                  boolean even = ((j + t) % 2) == 0;
+
+                  // squares
+                  if (even) {
+                     mesh.addFace (layer[t][s], layer[t+1][s+1], layer[t][s+1]);
+                     mesh.addFace (layer[t][s], layer[t+1][s], layer[t+1][s+1]);
+                  } else {
+                     mesh.addFace (layer[t][s], layer[t+1][s], layer[t][s+1]);
+                     mesh.addFace (layer[t][s+1], layer[t+1][s], layer[t+1][s+1]);
+                  }
+               }
+            }
+         }
+      }
+
+      // last group shrinks
+      {
+         int gt = ngt-1;
+         for (int i=0; i<k; ++i) {
+            int t = gt*k+i;
+
+            // longitude groups
+            for (int gs=0; gs<ngs; ++gs) {
+               for (int j=0; j<k-i-1; ++j) {
+                  int s = gs*(k-i)+j;
+
+                  int sdown = s-gs;
+
+                  mesh.addFace(layer[t][s], layer[t+1][sdown], layer[t][s+1]);
+                  mesh.addFace (layer[t][s+1], layer[t+1][sdown], layer[t+1][sdown+1]);
+               }
+               int s = (gs+1)*(k-i)-1;
+               int sdown = s-gs;
+
+               // last triangle
+               mesh.addFace(layer[t][s], layer[t+1][sdown], layer[t][s+1]);
+            }
+         }
+      }
+      
+      return mesh;
+   }
 
    public static PolygonalMesh createQuadSphere(double r, int nslices) {
       return createQuadSphere(r, nslices, 0, 0, 0);

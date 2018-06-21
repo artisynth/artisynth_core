@@ -6,14 +6,29 @@
  */
 package artisynth.core.femmodels;
 
-import maspack.matrix.*;
-import maspack.geometry.*;
-import maspack.util.*;
-import maspack.render.RenderableUtils;
-import artisynth.core.mechmodels.*;
-import artisynth.core.modelbase.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Random;
 
-import java.util.*;
+import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.modelbase.ComponentList;
+import artisynth.core.modelbase.ComponentListView;
+import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.modelbase.ModelComponent;
+import maspack.geometry.Face;
+import maspack.geometry.HalfEdge;
+import maspack.geometry.MeshFactory;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.TetgenTessellator;
+import maspack.geometry.Vertex3d;
+import maspack.matrix.Point2d;
+import maspack.matrix.Point3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderableUtils;
+import maspack.util.InternalErrorException;
 
 public class FemFactory {
 
@@ -491,6 +506,160 @@ public class FemFactory {
          r, Point3d.ZERO, ndivisions);
       return createFromMesh (model, mesh, quality);
    }
+   
+   /**
+    * Creates a fem model with tet, pyramid and hex elements by breaking
+    * the domain into spherical (3D polar) coordinates.  The radius is adjusted
+    * geometrically so that elements maintain equal proportions
+    * 
+    * @param model model to populate, null to create one
+    * @param r radius of sphere
+    * @param nlat number of latitude divisions (not including 0)
+    * @param nlong number of longitude divisions
+    * @param nr number of radial divisions (not including 0)
+    * @return populated or created model
+    */
+   public static FemModel3d createPolarSphere(FemModel3d model,
+      double r, int nlat, int nlong, int nr) {
+      
+      if (nr < 1) {
+         nr = 1;
+      }
+      if (nlat < 4) {
+         nlat = 4;
+      }
+      nlat += (nlat % 2);
+      
+      if (nlong < 4) {
+         nlong = 4;
+      }
+      nlong += (4-(nlong % 4)) % 4;
+      
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
+      
+      FemNode3d[][][] nodes = new FemNode3d[nr+1][nlat+1][nlong];
+      
+      nodes[0][0][0] = new FemNode3d(0,0,0);
+      model.addNode (nodes[0][0][0]);
+      
+      double dt = Math.PI/nlat;
+      double ds = Math.PI*2/nlong;
+      
+      // geometric growth of r
+      double cr = 2.78;
+      double rr = r/Math.pow (cr, nr);
+      
+      for (int k = 1; k <= nr; ++k) {
+         rr = rr*cr; // increase radius
+         
+         // top
+         nodes[k][0][0] = new FemNode3d(0, 0, rr);
+         model.addNode (nodes[k][0][0]);
+         
+         // arc
+         for (int t = 1; t < nlat; ++t) {
+            double theta = t*dt;
+            double sint = Math.sin (theta);
+            double cost = Math.cos (theta);
+            
+            for (int s = 0; s < nlong; ++s) {
+               double phi = s*ds;
+               
+               double x = rr*sint*Math.cos (phi);
+               double y = rr*sint*Math.sin (phi);
+               double z = rr*cost;
+               nodes[k][t][s] = new FemNode3d(x, y, z);
+               model.addNode (nodes[k][t][s]);
+            }
+         }
+         // bottom
+         nodes[k][nlat][0] = new FemNode3d(0, 0, -rr);
+         model.addNode (nodes[k][nlat][0]);
+      }
+      
+      // add elements
+      
+      // k == 0
+      // tets, t=0
+      for (int s=0; s<nlong; ++s) {
+         FemNode3d n0 = nodes[1][1][s];
+         FemNode3d n1 = nodes[1][0][0];
+         FemNode3d n2 = nodes[1][1][(s+1)%nlong];
+         FemNode3d n3 = nodes[0][0][0];
+         model.addElement (new TetElement(n0, n1, n2, n3));
+      }
+      // pyramids
+      for (int t=1; t<nlat-1; ++t) {
+         for (int s=0; s<nlong; ++s) {
+            int snext = (s+1) % nlong;
+            FemNode3d n0 = nodes[1][t+1][s];
+            FemNode3d n1 = nodes[1][t][s];
+            FemNode3d n2 = nodes[1][t][snext];
+            FemNode3d n3 = nodes[1][t+1][snext];
+            FemNode3d n4 = nodes[0][0][0];
+            model.addElement (new PyramidElement(n0, n1, n2, n3, n4));
+         }
+      }
+      // tet t=nlat-1
+      for (int s=0; s<nlong; ++s) {
+         
+         FemNode3d n0 = nodes[1][nlat][0];
+         FemNode3d n1 = nodes[1][nlat-1][s];
+         FemNode3d n2 = nodes[1][nlat-1][(s+1) % nlong];
+         FemNode3d n3 = nodes[0][0][0];
+         model.addElement (new TetElement(n0, n1, n2, n3));
+      }
+      
+      for (int k=1; k<nr; ++k) {
+         
+         // wedges t=0;
+         for (int s=0; s<nlong; ++s) {
+            int snext = (s+1) % nlong;
+            FemNode3d n0 = nodes[k+1][1][s];
+            FemNode3d n1 = nodes[k+1][0][0];
+            FemNode3d n2 = nodes[k+1][1][snext];
+            FemNode3d n3 = nodes[k][1][s];
+            FemNode3d n4 = nodes[k][0][0];
+            FemNode3d n5 = nodes[k][1][snext];
+            model.addElement (new WedgeElement (n0, n1, n2, n3, n4, n5));
+         }
+         // hexes
+         for (int t=1; t<nlat-1; ++t) {
+            for (int s = 0; s<nlong; ++s) {
+               int snext = (s+1) % nlong;
+               FemNode3d n0 = nodes[k+1][t+1][s];
+               FemNode3d n1 = nodes[k+1][t][s];
+               FemNode3d n2 = nodes[k+1][t][snext];
+               FemNode3d n3 = nodes[k+1][t+1][snext];
+               FemNode3d n4 = nodes[k][t+1][s];
+               FemNode3d n5 = nodes[k][t][s];
+               FemNode3d n6 = nodes[k][t][snext];
+               FemNode3d n7 = nodes[k][t+1][snext];
+               // hex has backwards definition
+               model.addElement (new HexElement(n0, n3, n2, n1, n4, n7, n6, n5));
+            }
+         }
+         // wedges t=nlat-1;
+         for (int s=0; s<nlong; ++s) {
+            int snext = (s+1) % nlong;
+            FemNode3d n0 = nodes[k+1][nlat][0];
+            FemNode3d n1 = nodes[k+1][nlat-1][s];
+            FemNode3d n2 = nodes[k+1][nlat-1][snext];
+            
+            FemNode3d n3 = nodes[k][nlat][0];
+            FemNode3d n4 = nodes[k][nlat-1][s];
+            FemNode3d n5 = nodes[k][nlat-1][snext];
+            
+            model.addElement (new WedgeElement (n0, n1, n2, n3, n4, n5));
+         }
+      }
+      
+      return model;
+   }
 
    /**
     * Convenience method to create a symmetric hex/wedge dominant sphere
@@ -513,162 +682,1008 @@ public class FemFactory {
    }
    
    /**
-    * Creates a tetrahedral sphere by connecting together concentric octohedral sphere
-    * divisions
+    * Tessellate a pyramid.  Even splits have a rising edge from n0 to n2
+    * @param fem model to add elements to
+    * @param n0 first node on quad face
+    * @param n1 second node on quad face
+    * @param n2 third node on quad face
+    * @param n3 fourth node on quad face
+    * @param n4 opposite node
+    * @param even split control
+    */
+   private static void addPyramidTesselation(FemModel3d fem, FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3, FemNode3d n4, boolean even) {
+      if (even) {
+         fem.addElement (new TetElement(n0, n1, n2, n4));
+         fem.addElement (new TetElement(n0, n2, n3, n4));
+      } else {
+         fem.addElement (new TetElement(n0, n1, n3, n4));
+         fem.addElement (new TetElement(n1, n2, n3, n4));
+      }
+   }
+   
+   /**
+    * Tessellate a pyramid with quadratic tets.  Even splits have a rising edge from n0 to n2
+    * @param fem model to add elements to
+    * @param n0 first node on quad face
+    * @param n1 second node on quad face
+    * @param n2 third node on quad face
+    * @param n3 fourth node on quad face
+    * @param n4 opposite node
+    * @param n01 node half-way between 0 and 1
+    * @param n12 node half-way between 1 and 2
+    * @param n23 node half-way between 2 and 3
+    * @param n30 node half-way between 3 and 0
+    * @param n04 node half-way between 0 and 4
+    * @param n14 node half-way between 1 and 4
+    * @param n24 node half-way between 2 and 4
+    * @param n34 node half-way between 3 and 4
+    * @param n0123 node in center of face
+    
     * 
-    * @param fem model to populate
+    * @param even split control
+    */
+   private static void addPyramidQuadTesselation(FemModel3d fem, 
+      FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3, FemNode3d n4, 
+      FemNode3d n01, FemNode3d n12, FemNode3d n23, FemNode3d n30, 
+      FemNode3d n04, FemNode3d n14, FemNode3d n24, FemNode3d n34,
+      FemNode3d n0123,
+      boolean even) {
+      if (even) {
+         fem.addElement (new QuadtetElement(n0, n1, n2, n4, n01, n12, n0123, n04, n14, n24));
+         fem.addElement (new QuadtetElement(n0, n2, n3, n4, n0123, n23, n30, n04, n24, n34));
+      } else {
+         fem.addElement (new QuadtetElement(n0, n1, n3, n4, n01, n0123, n30, n04, n14, n34));
+         fem.addElement (new QuadtetElement(n1, n2, n3, n4, n12, n23, n0123, n14, n24, n34));
+      }
+   }
+   
+   /**
+    * Adds tests to fill a space between two triangles facing opposite directions.  The resulting shape has a total of 8 triangular
+    * faces.  The volume is tessellated symmetrically with 4 tets, with the first face connected to node 5.  Nodes are ordered such that n0-n2 describe the first triangle CW, n3-n5 the second CCW,
+    * and n0 is connected to edge n3-n4
+    * 
+    * @param fem model to add elements to
+    * @param n0 first node of triangle 1
+    * @param n1 second node of triangle 1
+    * @param n2 third node of triangle 1
+    * @param n3 first node of triangle 2
+    * @param n4 second node of triangle 2
+    * @param n5 third node of triangle 2
+    */
+   private static void addFlippedTriTessellation(FemModel3d fem, FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3, FemNode3d n4, FemNode3d n5) {
+      
+      fem.addElement (new TetElement(n0, n1, n2, n5));
+      fem.addElement (new TetElement(n5, n4, n3, n0));
+      fem.addElement (new TetElement(n1, n0, n4, n5));
+      fem.addElement (new TetElement(n2, n0, n5, n3));
+      
+   }
+   
+   /**
+    * Adds tests to fill a space between two triangles facing opposite directions.  The resulting shape has a total of 8 triangular
+    * faces.  The volume is tessellated symmetrically with 4 tets, with the first face connected to node 5.  Nodes are ordered such that n0-n2 describe the first triangle CW, n3-n5 the second CCW,
+    * and n0 is connected to edge n3-n4
+    * 
+    * @param fem model to add elements to
+    * @param n0 first node of triangle 1
+    * @param n1 second node of triangle 1
+    * @param n2 third node of triangle 1
+    * @param n3 first node of triangle 2
+    * @param n4 second node of triangle 2
+    * @param n5 third node of triangle 2
+    * @param n01 node half-way between 0 and 1
+    * @param n12 node half-way between 1 and 2
+    * @param n20 node half-way between 2 and 0
+    * @param n34 node half-way between 3 and 4
+    * @param n45 node half-way between 4 and 5
+    * @param n53 node half-way between 5 and 3
+    * @param n03 node half-way between 0 and 3
+    * @param n04 node half-way between 0 and 4
+    * @param n14 node half-way between 1 and 4
+    * @param n15 node half-way between 1 and 5
+    * @param n25 node half-way between 2 and 5
+    * @param n23 node half-way between 2 and 3
+    * @param n05 node half-way between 0 and 5 (center)
+    */
+   private static void addFlippedTriQuadTessellation(FemModel3d fem, 
+      FemNode3d n0, FemNode3d n1, FemNode3d n2, 
+      FemNode3d n3, FemNode3d n4, FemNode3d n5,
+      FemNode3d n01, FemNode3d n12, FemNode3d n20,
+      FemNode3d n34, FemNode3d n45, FemNode3d n53,
+      FemNode3d n03, FemNode3d n04,
+      FemNode3d n14, FemNode3d n15, 
+      FemNode3d n25, FemNode3d n23,
+      FemNode3d n05) {
+      
+      fem.addElement (new QuadtetElement(n0, n1, n2, n5, n01, n12, n20, n05, n15, n25));
+      fem.addElement (new QuadtetElement(n5, n4, n3, n0, n45, n34, n53, n05, n04, n03));
+      fem.addElement (new QuadtetElement(n1, n0, n4, n5, n01, n04, n14, n15, n05, n45));
+      fem.addElement (new QuadtetElement(n2, n0, n5, n3, n20, n05, n25, n23, n03, n53));
+      
+   }
+   
+   /**
+    * Creates a sphere out of approximately uniform tets.  This is accomplished by separating the sphere into a
+    * hexagonal prism with hexagonal pyramid caps, dividing each edge into k segments for the kth radius, and
+    * connecting the layers with patterns of tets.
+    * 
+    * @param model model to populate, created if null
     * @param r radius of sphere
     * @param nr number of layers
-    * @return populated model
+    * @return populated or created model
     */
-   public static FemModel3d createTetSphere(FemModel3d fem, double r, int nr) {
-      if (fem == null) {
-         fem = new FemModel3d();
+   public static FemModel3d createTetSphere(FemModel3d model, double r, int nr) {
+      
+      if (model == null) {
+         model = new FemModel3d();
       }
+      
+      int ngs = 6;
+      int ngt = 3;
       
       if (nr < 1) {
-         nr = 1;
+         r = 1;
       }
+      
+      FemNode3d[][] layer = new FemNode3d[1][2];
+      FemNode3d[][] lastLayer;
+      {
+         // center
+         FemNode3d node = new FemNode3d(0,0,0);
+         model.addNode (node);
+         layer[0][0] = node;
+         layer[0][1] = node;
+      }
+      
+      
+      // distribute nodes radially
       double dr = r/nr;
       
-      int nfaces = 8;
-      int nvertices = 6;
-      int nedges = 12;
-      
-      // concentric octohedral sphere divisions
-      PolygonalMesh unitSphere = MeshFactory.createOctahedron (1);
-      
-      // center of sphere
-      FemNode3d lastLayer[] = new FemNode3d[1];
-      lastLayer[0] = new FemNode3d(0, 0, 0);
-      fem.addNode (lastLayer[0]);
-      
-      // create first layer of nodes
-      FemNode3d layer[] = new FemNode3d[unitSphere.numVertices ()];
-      for (Vertex3d vtx : unitSphere.getVertices ()) {
-         Point3d pos = new Point3d(vtx.getPosition ());
-         pos.scale (dr);
-         FemNode3d node = new FemNode3d(pos);
-         fem.addNode (node);
-         layer[vtx.getIndex ()] = node;
-      }
-      // create first layer of tets
-      for (Face f : unitSphere.getFaces ()) {
-         HalfEdge he = f.firstHalfEdge ();
-         int v0 = he.head.getIndex ();
-         he = he.getNext ();
-         int v1 = he.head.getIndex ();
-         he = he.getNext ();
-         int v2 = he.head.getIndex ();
-         TetElement tet = new TetElement (layer[v0], layer[v2], layer[v1], lastLayer[0]);
-         fem.addElement (tet);
-      }
-      
-      // additional layers
-      for (int k=1; k<nr; ++k) {
+      // radial layers
+      for (int k = 1; k<=nr; ++k) {
+
+         int nt = ngt*k;
+         double rr = k*dr;
+         double dphi = Math.PI/nt;
+         
          lastLayer = layer;
-         layer = new FemNode3d[nvertices + nedges];
+         layer = new FemNode3d[nt+1][];
+      
+         // distribute nodes
          
-         double rr = (k+1)*dr;
-
-         // duplicate original nodes
-         for (Vertex3d vtx : unitSphere.getVertices()) {
-            Point3d pos = new Point3d(vtx.getPosition ());
-            pos.scale (rr);
-            FemNode3d node = new FemNode3d(pos);
-            fem.addNode (node);
-            layer[vtx.getIndex ()] = node;
+         // north pole
+         {
+            layer[0] = new FemNode3d[2];
+            FemNode3d node = new FemNode3d(0,0,rr);
+            model.addNode (node);
+            layer[0][0] = node;
+            layer[0][1] = node;
          }
          
-         // add mid-edge nodes
-         HashMap<HalfEdge,Vertex3d> edgeVtxs = new HashMap<> ();
-         for (Face f : unitSphere.getFaces ()) {
-            HalfEdge he0 = f.firstHalfEdge ();
-            HalfEdge he = he0;
-            do {
-               if (he .isPrimary ()) {                  
-                  Point3d npos = new Point3d();
-                  npos.interpolate (he.getHead ().getPosition (), 0.5, he.getTail ().getPosition ());
-                  npos.normalize ();  // unit sphere
-                  Vertex3d vtx = unitSphere.addVertex (npos);
-                  
-                  // node
-                  FemNode3d node = new FemNode3d(npos.x*rr, npos.y*rr, npos.z*rr);
-                  fem.addNode (node);
-                  layer[vtx.getIndex ()] = node;
-                  edgeVtxs.put (he, vtx);
+         // first latitude group grows
+         {
+            int gt = 0;
+            for (int i=1; i<k; ++i) {
+               int t = gt*k+i;
+               int ns = ngs*i;
+               layer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*dphi;
+               double z = rr*Math.cos (phi);
+               double xy = rr*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<i; ++j) {
+                     int s = gs*i+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     layer[t][s] = node;
+                     model.addNode (node);
+                  }
                }
-               he = he.getNext ();
-            } while (he != he0);
+               layer[t][ns] = layer[t][0]; // wrap around
+            }
          }
          
-         // add new tets and faces
-         ArrayList<Vertex3d[]> newFaces = new ArrayList<>(4*nfaces);
+         // middle groups constant width
+         for (int gt=1; gt<ngt-1; ++gt) {
+            for (int i=0; i<k; ++i) {
+               int t = gt*k+i;
+               int ns = ngs*k;
+               layer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*dphi;
+               double z = rr*Math.cos (phi);
+               double xy = rr*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<k; ++j) {
+                     int s = gs*k+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     layer[t][s] = node;
+                     model.addNode (node);
+                  }
+               }
+               layer[t][ns] = layer[t][0]; // wrap around
+            }
+         }
+         
+         // last group shrinks
+         {
+            int gt = ngt-1;
+            for (int i=0; i<k; ++i) {
+               int t = gt*k+i;
+               int ns = ngs*(k-i);
+               layer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*dphi;
+               double z = rr*Math.cos (phi);
+               double xy = rr*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<k-i; ++j) {
+                     int s = gs*(k-i)+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     layer[t][s] = node;
+                     model.addNode (node);
+                  }
+               }
+               layer[t][ns] = layer[t][0]; // wrap around
+            }
+         }
+         
+         // south pole
+         {
+            layer[nt] = new FemNode3d[2];
+            FemNode3d node = new FemNode3d(0,0,-rr);
+            model.addNode (node);
+            layer[nt][0] = node;
+            layer[nt][1] = node;
+         }
+         
+         // generate elements, move in groups
+         
+         // first latitude group
+         {
+            int gt = 0;
+            for (int i=0; i<k; ++i) {
+               int t = gt*k+i;
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<i; ++j) {
+                     int s = gs*i+j;
+                     int sdown = s+gs;
+                     int sup = s-gs;
+                     // downward tet 
+                     model.addElement (new TetElement(layer[t][s], layer[t+1][sdown+1], layer[t+1][sdown], lastLayer[t][s]));
+                     
+                     // flipped 4-tet
+                     addFlippedTriTessellation (model, layer[t+1][sdown+1], layer[t][s], layer[t][s+1], 
+                        lastLayer[t][s+1], lastLayer[t][s], lastLayer[t-1][sup]);
+                  }
+                  
+                  // trailing tet
+                  int s = gs*i + i;  // current s
+                  int sdown = s+gs;
+                  model.addElement (new TetElement(layer[t][s], layer[t+1][sdown+1], layer[t+1][sdown], lastLayer[t][s]));
+               }
+            }
+            
+            // upward tets connect to interior group nodes
+            for (int i=2; i<k; ++i) {
+               int t = gt*k+i;
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=1; j<i; ++j) {
+                     int s = gs*i+j;
+                     int sup = s-gs;
+                     model.addElement (new TetElement (lastLayer[t][s], lastLayer[t-1][sup], lastLayer[t-1][sup-1], layer[t][s]));
+                  }
+               }
+            }
+         }
+         
+         // middle groups constant width
+         for (int gt=1; gt<ngt-1; ++gt) {
+            
+            // first k-1 rows
+            for (int i=0; i<k-1; ++i) {
+               int t = gt*k+i;
+               int tlast = t-gt;
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  
+                  // first k-1 columns
+                  for (int j=0; j<k-1; ++j) {
+                     int s = gs*k+j;
+                     int slast = s-gs;
+                     
+                     // parity
+                     boolean even = ((j + t) % 2) == 0;
+                     
+                     // pyramids up and down
+                     addPyramidTesselation (model, layer[t][s], layer[t][s+1], layer[t+1][s+1], layer[t+1][s], 
+                        lastLayer[tlast][slast], even);
+                     
+                     addPyramidTesselation (model, lastLayer[tlast][slast], lastLayer[tlast+1][slast], lastLayer[tlast+1][slast+1], lastLayer[tlast][slast+1],
+                        layer[t+1][s+1], !even);
+                     
+                     // tets below and right
+                     model.addElement (new TetElement(layer[t+1][s], layer[t+1][s+1], lastLayer[tlast+1][slast], lastLayer[tlast][slast]));
+                     model.addElement (new TetElement(layer[t+1][s+1], layer[t][s+1], lastLayer[tlast][slast+1], lastLayer[tlast][slast]));
+                  }
+                  // last column 
+                  {
+                     // pyramid down
+                     int s = (gs+1)*k-1;
+                     int slast = s-gs;
+                     boolean even = ((t + k + 1 ) % 2) == 0;
+                     addPyramidTesselation (model, layer[t][s], layer[t][s+1], layer[t+1][s+1], layer[t+1][s], 
+                        lastLayer[tlast][slast], even);
+                     
+                     // tet below
+                     model.addElement (new TetElement(layer[t+1][s], layer[t+1][s+1], lastLayer[tlast+1][slast], lastLayer[tlast][slast]));
+                  }
+                  
+               }
+            }
+            
+            // last row
+            {
+               int i=k-1;
+               int t = gt*k+i;
+               int tlast = t-gt;
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  
+                  // first k-1 columns
+                  for (int j=0; j<k-1; ++j) {
+                     int s = gs*k+j;
+                     int slast = s-gs;
+                     
+                     // parity
+                     boolean even = ((t + j) % 2) == 0;
+                     
+                     // pyramids down
+                     addPyramidTesselation (model, layer[t][s], layer[t][s+1], layer[t+1][s+1], layer[t+1][s], 
+                        lastLayer[tlast][slast], even);
+                     
+                     // tets right
+                     model.addElement (new TetElement(layer[t+1][s+1], layer[t][s+1], lastLayer[tlast][slast+1], lastLayer[tlast][slast]));
+                  }
+                  // last column 
+                  {
+                     int s = (gs+1)*k - 1;
+                     int slast = s - gs;
+                     // parity
+                     boolean even = ((t + k + 1) % 2) == 0;
+                     // pyramid down
+                     addPyramidTesselation (model, layer[t][s], layer[t][s+1], layer[t+1][s+1], layer[t+1][s], 
+                        lastLayer[tlast][slast], even);
+                     
+                  }
+                  
+               }
+               
+            }
+         }
+         
+         // last group shrinks
+         {
+            int gt = ngt-1;
+            for (int i=0; i<k; ++i) {
+               int t = gt*k+i;
+               int tlast = t-gt;
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<k-i-1; ++j) {
+                     int s = gs*(k-i)+j;
+               
+                     int sdown = s-gs;
+                     int slast = s-gs;
 
-         for (Face face : unitSphere.getFaces()) {
-            HalfEdge he = face.firstHalfEdge ();
-            HalfEdge hep = (he.isPrimary () ? he : he.opposite);
+                     // downward tet
+                     model.addElement (new TetElement(layer[t][s], layer[t][s+1], layer[t+1][sdown], lastLayer[tlast][slast]));
+                     
+                     // flipped 4-tet
+                     addFlippedTriTessellation (model, 
+                        layer[t][s+1], layer[t+1][sdown+1], layer[t+1][sdown], 
+                        lastLayer[tlast][slast], lastLayer[tlast][slast+1], lastLayer[tlast+1][slast-gs]);
+                  }
+                  int s = (gs+1)*(k-i)-1;
+                  int sdown = s-gs;
+                  int slast = s-gs;
+                  
+                  // downward tet
+                  model.addElement (new TetElement(layer[t][s], layer[t][s+1], layer[t+1][sdown], lastLayer[tlast][slast]));
+               }
+            }
             
-            Vertex3d vtx0 = he.head;
-            Vertex3d vtxm0 = edgeVtxs.get (hep);
-            he = he.getNext ();
-            hep = (he.isPrimary () ? he : he.opposite);
-            Vertex3d vtx1 = he.head;
-            Vertex3d vtxm1 = edgeVtxs.get (hep);
-            he = he.getNext ();
-            hep = (he.isPrimary () ? he : he.opposite);
-            Vertex3d vtx2 = he.head;
-            Vertex3d vtxm2 = edgeVtxs.get (hep);
-         
-            // faces
-            newFaces.add (new Vertex3d[] {vtx0, vtxm1, vtxm0});
-            newFaces.add (new Vertex3d[] {vtx1, vtxm2, vtxm1});
-            newFaces.add (new Vertex3d[] {vtx2, vtxm0, vtxm2});
-            newFaces.add (new Vertex3d[] {vtxm0, vtxm1, vtxm2});
-            
-            FemNode3d o0 = lastLayer[vtx0.getIndex ()];
-            FemNode3d o1 = lastLayer[vtx1.getIndex ()];
-            FemNode3d o2 = lastLayer[vtx2.getIndex ()];
-            
-            FemNode3d n0 = layer[vtx0.getIndex ()];
-            FemNode3d n1 = layer[vtx1.getIndex ()];
-            FemNode3d n2 = layer[vtx2.getIndex ()];
-            
-            FemNode3d m0 = layer[vtxm0.getIndex ()];
-            FemNode3d m1 = layer[vtxm1.getIndex ()];
-            FemNode3d m2 = layer[vtxm2.getIndex ()];
-            
-            // tets
-            TetElement t0 = new TetElement(n0, m0, m1, o0);
-            TetElement t1 = new TetElement(n1, m1, m2, o1);
-            TetElement t2 = new TetElement(n2, m2, m0, o2);
-            
-            TetElement t3 = new TetElement(o0, o1, o2, m0);
-            
-            TetElement t4 = new TetElement(o1, o2, m0, m2);
-            TetElement t5 = new TetElement(o1, m2, m0, m1);
-            TetElement t6 = new TetElement(o0, o1, m0, m1);
-            
-            fem.addElement (t0);
-            fem.addElement (t1);
-            fem.addElement (t2);
-            fem.addElement (t3);
-            fem.addElement (t4);
-            fem.addElement (t5);
-            fem.addElement (t6);
+            // upward tets connect to interior group nodes
+            for (int i=1; i<k-1; ++i) {
+               int t = gt*k+i;
+               int tlast = t-gt;
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=1; j<k-i; ++j) {
+                     int s = gs*(k-i)+j;
+                     int slast = s-gs;
+                     int slastup = slast+gs;
+                     
+                     model.addElement (new TetElement (lastLayer[tlast][slast], lastLayer[tlast-1][slastup], lastLayer[tlast][slast-1], layer[t][s]));
+                  }
+               }
+            }
          }
-         
-         // clear mesh faces and add new ones
-         unitSphere.clearFaces ();
-         for (Vertex3d[] nface : newFaces) {
-            unitSphere.addFace (nface);
-         }
-         nvertices = nvertices + nedges;
-         nedges = 2*nedges + 3*nfaces;
-         nfaces = 4*nfaces;
       }
       
-      return fem;
+      return model;
+   }
+   
+   
+   /**
+    * Creates a sphere out of approximately uniform quadratic tets.  This is accomplished by separating the sphere into a
+    * hexagonal prism with hexagonal pyramid caps, dividing each edge into k segments for the kth radius, and
+    * connecting the layers with patterns of tets.
+    * 
+    * @param model model to populate, created if null
+    * @param r radius of sphere
+    * @param nr number of layers
+    * @return populated or created model
+    */
+   public static FemModel3d createQuadtetSphere(FemModel3d model, double r, int nr) {
+      
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      
+      int ngs = 6;
+      int ngt = 3;
+      
+      if (nr < 1) {
+         r = 1;
+      }
+      
+      FemNode3d[][] outerLayer = new FemNode3d[1][2];
+      FemNode3d[][] lastOuterLayer;
+      {
+         // center
+         FemNode3d node = new FemNode3d(0,0,0);
+         model.addNode (node);
+         outerLayer[0][0] = node;
+         outerLayer[0][1] = node;
+      }
+      
+      
+      // distribute nodes radially
+      double dr = r/(2*nr);
+      
+      // radial layers
+      for (int k = 1; k<=nr; ++k) {
+
+         // inner and outer layers
+         int ik = 2*k-1;
+         int ok = 2*k;
+         int nit = ngt*ik;
+         int not = ngt*ok;
+         
+         double rir = ik*dr;
+         double ror = ok*dr;
+         
+         double diphi = Math.PI/nit;
+         double dophi = Math.PI/not;
+         
+         lastOuterLayer = outerLayer;
+         FemNode3d[][] innerLayer = new FemNode3d[nit+1][];
+         outerLayer = new FemNode3d[not+1][];
+      
+         // distribute nodes
+         
+         // inner nodes
+         // north pole
+         {
+            innerLayer[0] = new FemNode3d[2];
+            FemNode3d node = new FemNode3d(0,0,rir);
+            model.addNode (node);
+            innerLayer[0][0] = node;
+            innerLayer[0][1] = node;
+         }
+         
+         // first latitude group grows
+         {
+            int gt = 0;
+            for (int i=1; i<ik; ++i) {
+               int t = gt*ik+i;
+               int ns = ngs*i;
+               innerLayer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*diphi;
+               double z = rir*Math.cos (phi);
+               double xy = rir*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<i; ++j) {
+                     int s = gs*i+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     innerLayer[t][s] = node;
+                     model.addNode (node);
+                  }
+               }
+               innerLayer[t][ns] = innerLayer[t][0]; // wrap around
+            }
+         }
+         
+         // middle groups constant width
+         for (int gt=1; gt<ngt-1; ++gt) {
+            for (int i=0; i<ik; ++i) {
+               int t = gt*ik+i;
+               int ns = ngs*ik;
+               innerLayer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*diphi;
+               double z = rir*Math.cos (phi);
+               double xy = rir*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<ik; ++j) {
+                     int s = gs*ik+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     innerLayer[t][s] = node;
+                     model.addNode (node);
+                  }
+               }
+               innerLayer[t][ns] = innerLayer[t][0]; // wrap around
+            }
+         }
+         
+         // last group shrinks
+         {
+            int gt = ngt-1;
+            for (int i=0; i<ik; ++i) {
+               int t = gt*ik+i;
+               int ns = ngs*(ik-i);
+               innerLayer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*diphi;
+               double z = rir*Math.cos (phi);
+               double xy = rir*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<ik-i; ++j) {
+                     int s = gs*(ik-i)+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     innerLayer[t][s] = node;
+                     model.addNode (node);
+                  }
+               }
+               innerLayer[t][ns] = innerLayer[t][0]; // wrap around
+            }
+         }
+         
+         // south pole
+         {
+            innerLayer[nit] = new FemNode3d[2];
+            FemNode3d node = new FemNode3d(0,0,-rir);
+            model.addNode (node);
+            innerLayer[nit][0] = node;
+            innerLayer[nit][1] = node;
+         }
+         
+         // outer nodes
+         // north pole
+         {
+            outerLayer[0] = new FemNode3d[2];
+            FemNode3d node = new FemNode3d(0,0,ror);
+            model.addNode (node);
+            outerLayer[0][0] = node;
+            outerLayer[0][1] = node;
+         }
+         
+         // first latitude group grows
+         {
+            int gt = 0;
+            for (int i=1; i<ok; ++i) {
+               int t = gt*ok+i;
+               int ns = ngs*i;
+               outerLayer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*dophi;
+               double z = ror*Math.cos (phi);
+               double xy = ror*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<i; ++j) {
+                     int s = gs*i+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     outerLayer[t][s] = node;
+                     model.addNode (node);
+                  }
+               }
+               outerLayer[t][ns] = outerLayer[t][0]; // wrap around
+            }
+         }
+         
+         // middle groups constant width
+         for (int gt=1; gt<ngt-1; ++gt) {
+            for (int i=0; i<ok; ++i) {
+               int t = gt*ok+i;
+               int ns = ngs*ok;
+               outerLayer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*dophi;
+               double z = ror*Math.cos (phi);
+               double xy = ror*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<ok; ++j) {
+                     int s = gs*ok+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     outerLayer[t][s] = node;
+                     model.addNode (node);
+                  }
+               }
+               outerLayer[t][ns] = outerLayer[t][0]; // wrap around
+            }
+         }
+         
+         // last group shrinks
+         {
+            int gt = ngt-1;
+            for (int i=0; i<ok; ++i) {
+               int t = gt*ok+i;
+               int ns = ngs*(ok-i);
+               outerLayer[t] = new FemNode3d[ns+1];
+               
+               double phi = t*dophi;
+               double z = ror*Math.cos (phi);
+               double xy = ror*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<ok-i; ++j) {
+                     int s = gs*(ok-i)+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     FemNode3d node = new FemNode3d(x,y,z);
+                     outerLayer[t][s] = node;
+                     model.addNode (node);
+                  }
+               }
+               outerLayer[t][ns] = outerLayer[t][0]; // wrap around
+            }
+         }
+         
+         // south pole
+         {
+            outerLayer[not] = new FemNode3d[2];
+            FemNode3d node = new FemNode3d(0,0,-ror);
+            model.addNode (node);
+            outerLayer[not][0] = node;
+            outerLayer[not][1] = node;
+         }
+         
+         // generate elements, move in groups
+         
+         // first latitude group
+         {
+            int gt = 0;
+            for (int i=0; i<k; ++i) {
+               int t = 2*(gt*k+i);
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<i; ++j) {
+                     int s = 2*(gs*i+j);
+                     int sd = s+gs;
+                     int sdd = s+2*gs;
+                     int su = s-gs;
+                     int suu = s-2*gs;
+                     
+                     // downward tet 
+                     model.addElement (
+                        new QuadtetElement(outerLayer[t][s], outerLayer[t+2][sdd+2], outerLayer[t+2][sdd], lastOuterLayer[t][s],
+                           outerLayer[t+1][sd+1], outerLayer[t+2][sdd+1], outerLayer[t+1][sd],
+                           innerLayer[t][s], innerLayer[t+1][sd+1], innerLayer[t+1][sd]));
+                     
+                     // flipped 4-tet
+                     addFlippedTriQuadTessellation (model, 
+                        outerLayer[t+2][sdd+2], outerLayer[t][s], outerLayer[t][s+2], 
+                        lastOuterLayer[t][s+2], lastOuterLayer[t][s], lastOuterLayer[t-2][suu],
+                        outerLayer[t+1][sd+1], outerLayer[t][s+1], outerLayer[t+1][sd+2],
+                        lastOuterLayer[t][s+1], lastOuterLayer[t-1][su], lastOuterLayer[t-1][su+1],
+                        innerLayer[t+1][sd+2], innerLayer[t+1][sd+1],
+                        innerLayer[t][s], innerLayer[t-1][su],
+                        innerLayer[t-1][su+1], innerLayer[t][s+2],
+                        innerLayer[t][s+1]);
+                  }
+                  
+                  // trailing tet
+                  int s = 2*(gs+1)*i;  // current s
+                  int sd = s+gs;
+                  int sdd = s+2*gs;
+                  model.addElement (
+                     new QuadtetElement(outerLayer[t][s], outerLayer[t+2][sdd+2], outerLayer[t+2][sdd], lastOuterLayer[t][s],
+                        outerLayer[t+1][sd+1], outerLayer[t+2][sdd+1], outerLayer[t+1][sd],
+                        innerLayer[t][s], innerLayer[t+1][sd+1], innerLayer[t+1][sd]));
+               }
+            }
+            
+            // upward tets connect to interior group nodes
+            for (int i=2; i<k; ++i) {
+               int t = 2*(gt*k+i);
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=1; j<i; ++j) {
+                     int s = 2*(gs*i+j);
+                     int su = s-gs;
+                     int suu = s-2*gs;
+                     model.addElement (new QuadtetElement (
+                        lastOuterLayer[t][s], lastOuterLayer[t-2][suu], lastOuterLayer[t-2][suu-2], outerLayer[t][s],
+                        lastOuterLayer[t-1][su], lastOuterLayer[t-2][suu-1], lastOuterLayer[t-1][su-1],
+                        innerLayer[t][s], innerLayer[t-1][su], innerLayer[t-1][su-1]));
+                  }
+               }
+            }
+         }
+         
+         // middle groups constant width
+         for (int gt=1; gt<ngt-1; ++gt) {
+            
+            // first k-1 rows
+            for (int i=0; i<k-1; ++i) {
+               int t = 2*(gt*k+i);
+               int tl = t-gt;    // half level lower
+               int tll = t-2*gt; // full level lower
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  
+                  // first k-1 columns
+                  for (int j=0; j<k-1; ++j) {
+                     int s = 2*(gs*k+j);
+                     int sl = s-gs;    // half level lower
+                     int sll = s-2*gs; // full level lower
+                     
+                     // parity
+                     boolean even = ((t/2 + j) % 2) == 0;
+                     
+                     // pyramids up and down
+                     addPyramidQuadTesselation (model, 
+                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][s+2], outerLayer[t+2][s], 
+                        lastOuterLayer[tll][sll],
+                        outerLayer[t][s+1], outerLayer[t+1][s+2], outerLayer[t+2][s+1], outerLayer[t+1][s],
+                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sl+1], innerLayer[tl+1][sl],
+                        outerLayer[t+1][s+1],
+                        even);
+                     
+                     addPyramidQuadTesselation (model, 
+                        lastOuterLayer[tll][sll], lastOuterLayer[tll+2][sll], lastOuterLayer[tll+2][sll+2], lastOuterLayer[tll][sll+2],
+                        outerLayer[t+2][s+2],
+                        lastOuterLayer[tll+1][sll], lastOuterLayer[tll+2][sll+1], lastOuterLayer[tll+1][sll+2], lastOuterLayer[tll][sll+1],
+                        innerLayer[tl+1][sl+1], innerLayer[tl+2][sl+1], innerLayer[tl+2][sl+2], innerLayer[tl+1][sl+2],
+                        lastOuterLayer[tll+1][sll+1],
+                        !even);
+                     
+                     // tets below and right
+                     model.addElement (new QuadtetElement(
+                        outerLayer[t+2][s], outerLayer[t+2][s+2], lastOuterLayer[tll+2][sll], lastOuterLayer[tll][sll],
+                        outerLayer[t+2][s+1], innerLayer[tl+2][sl+1], innerLayer[tl+2][sl],
+                        innerLayer[tl+1][sl], innerLayer[tl+1][sl+1], lastOuterLayer[tll+1][sll]));
+                     model.addElement (new QuadtetElement(
+                        outerLayer[t+2][s+2], outerLayer[t][s+2], lastOuterLayer[tll][sll+2], lastOuterLayer[tll][sll],
+                        outerLayer[t+1][s+2], innerLayer[tl][sl+2], innerLayer[tl+1][sl+2],
+                        innerLayer[tl+1][sl+1], innerLayer[tl][sl+1], lastOuterLayer[tll][sll+1]));
+                  }
+                  // last column 
+                  {
+                     // pyramid down
+                     int s = 2*((gs+1)*k-1);
+                     int sl = s-gs;
+                     int sll = s-2*gs;
+                     boolean even = ((t/2 + k + 1 ) % 2) == 0;
+                     addPyramidQuadTesselation (model, 
+                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][s+2], outerLayer[t+2][s], 
+                        lastOuterLayer[tll][sll],
+                        outerLayer[t][s+1], outerLayer[t+1][s+2], outerLayer[t+2][s+1], outerLayer[t+1][s],
+                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sl+1], innerLayer[tl+1][sl],
+                        outerLayer[t+1][s+1],
+                        even);
+                     
+                     // tet below
+                     model.addElement (new QuadtetElement(
+                        outerLayer[t+2][s], outerLayer[t+2][s+2], lastOuterLayer[tll+2][sll], lastOuterLayer[tll][sll],
+                        outerLayer[t+2][s+1], innerLayer[tl+2][sl+1], innerLayer[tl+2][sl],
+                        innerLayer[tl+1][sl], innerLayer[tl+1][sl+1], lastOuterLayer[tll+1][sll]));
+                  }
+                  
+               }
+            }
+            
+            // last row
+            {
+               int i=k-1;
+               int t = 2*(gt*k+i);
+               int tl = t-gt;
+               int tll = t-2*gt;
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  
+                  // first k-1 columns
+                  for (int j=0; j<k-1; ++j) {
+                     int s = 2*(gs*k+j);
+                     int sl = s-gs;
+                     int sll = s-2*gs;
+                     
+                     // parity
+                     boolean even = ((t/2 + j) % 2) == 0;
+                     
+                     // pyramids down
+                     addPyramidQuadTesselation (model, 
+                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][s+2], outerLayer[t+2][s], 
+                        lastOuterLayer[tll][sll],
+                        outerLayer[t][s+1], outerLayer[t+1][s+2], outerLayer[t+2][s+1], outerLayer[t+1][s],
+                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sl+1], innerLayer[tl+1][sl],
+                        outerLayer[t+1][s+1],
+                        even);
+                     
+                     // tets right
+                     model.addElement (new QuadtetElement(
+                        outerLayer[t+2][s+2], outerLayer[t][s+2], lastOuterLayer[tll][sll+2], lastOuterLayer[tll][sll],
+                        outerLayer[t+1][s+2], innerLayer[tl][sl+2], innerLayer[tl+1][sl+2],
+                        innerLayer[tl+1][sl+1], innerLayer[tl][sl+1], lastOuterLayer[tll][sll+1]));
+                  }
+                  // last column 
+                  {
+                     int s = 2*((gs+1)*k - 1);
+                     int sl = s - gs;
+                     int sll = s - 2*gs;
+                     // parity
+                     boolean even = ((t/2 + k + 1) % 2) == 0;
+                     // pyramid down
+                     addPyramidQuadTesselation (model, 
+                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][s+2], outerLayer[t+2][s], 
+                        lastOuterLayer[tll][sll],
+                        outerLayer[t][s+1], outerLayer[t+1][s+2], outerLayer[t+2][s+1], outerLayer[t+1][s],
+                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sl+1], innerLayer[tl+1][sl],
+                        outerLayer[t+1][s+1],
+                        even);
+                     
+                  }
+               }
+            }
+         }
+         
+         // last group shrinks
+         {
+            int gt = ngt-1;
+            for (int i=0; i<k; ++i) {
+               int t = 2*(gt*k+i);
+               int tl = t-gt;
+               int tll = t-2*gt;
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<k-i-1; ++j) {
+                     int s = 2*(gs*(k-i)+j);
+               
+                     int sd = s-gs;
+                     int sdd = s-2*gs;
+                     int sl = s-gs;
+                     int sll = s-2*gs;
+                     int sld = sl-gs;
+                     int sldd = sl-2*gs;
+                     int slld = sll-gs;
+                     int slldd = sll-2*gs;
+
+                     // downward tet
+                     model.addElement (new QuadtetElement(
+                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][sdd], lastOuterLayer[tll][sll],
+                        outerLayer[t][s+1], outerLayer[t+1][sd+1], outerLayer[t+1][sd],
+                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sld]
+                        ));
+                     
+                     // flipped 4-tet
+                     addFlippedTriQuadTessellation (model, 
+                        outerLayer[t][s+2], outerLayer[t+2][sdd+2], outerLayer[t+2][sdd], 
+                        lastOuterLayer[tll][sll], lastOuterLayer[tll][sll+2], lastOuterLayer[tll+2][slldd],
+                        outerLayer[t+1][sd+2], outerLayer[t+2][sdd+1], outerLayer[t+1][sd+1],
+                        lastOuterLayer[tll][sll+1], lastOuterLayer[tll+1][slld+1], lastOuterLayer[tll+1][slld],
+                        innerLayer[tl][sl+1], innerLayer[tl][sl+2], 
+                        innerLayer[tl+1][sld+2], innerLayer[tl+2][sldd+1],
+                        innerLayer[tl+2][sldd], innerLayer[tl+1][sld],
+                        innerLayer[tl+1][sld+1]
+                        );
+                  }
+                  int s = 2*((gs+1)*(k-i)-1);
+                  int sd = s-gs;
+                  int sdd = s-2*gs;
+                  int sl = s-gs;
+                  int sld = sl-gs;
+                  int sll = s-2*gs;
+                  
+                  // downward tet
+                  model.addElement (new QuadtetElement(
+                     outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][sdd], lastOuterLayer[tll][sll],
+                     outerLayer[t][s+1], outerLayer[t+1][sd+1], outerLayer[t+1][sd],
+                     innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sld]
+                     ));
+               }
+            }
+            
+            // upward tets connect to interior group nodes
+            for (int i=1; i<k-1; ++i) {
+               int t = 2*(gt*k+i);
+               int tl = t-gt;
+               int tll = t-2*gt;
+               
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=1; j<k-i; ++j) {
+                     int s = 2*(gs*(k-i)+j);
+                     int sl = s-gs;
+                     int slu = sl+gs;
+                     int sll = s-2*gs;
+                     int sllu = sll+gs;
+                     int slluu = sll+2*gs;
+                     
+                     model.addElement (new QuadtetElement (
+                        lastOuterLayer[tll][sll], lastOuterLayer[tll-2][slluu], lastOuterLayer[tll][sll-2], outerLayer[t][s],
+                        lastOuterLayer[tll-1][sllu], lastOuterLayer[tll-1][sllu-1], lastOuterLayer[tll][sll-1],
+                        innerLayer[tl][sl], innerLayer[tl-1][slu], innerLayer[tl][sl-1]));
+                  }
+               }
+            }
+         }
+      }
+      
+      return model;
    }
    
    /**
@@ -775,13 +1790,24 @@ public class FemFactory {
                   }
                } else {
                   for (int i = 0; i < nt; i++) {
-                     double kInterp =
-                        Math.pow(((double)k) / (ns - 1), 2) * (rs1 + rs2)
-                           / (2 * rl);
+                     
+                     //    // XXX inverted elements at poles for large r, rAdj is not strictly increasing with k
+                     //    double kInterp = Math.pow(((double)k) / (ns - 1), 2) * (rs1 + rs2) / (2 * rl);
+                     //    double l = (-rl + 2 * rl * dl * j / Math.PI) * (1 - kInterp)
+                     //                + (-rl * Math.cos(j * dl)) * (kInterp);        
+                     //    double rAdj = dr * k * Math.sqrt(1 - l * l / rl / rl);
+                     
+                     // need kInterp(0) = 0, kInterp(ns-1) = 1
+                     double a = (double)k/(ns-1);
+                     double kInterp = 1-Math.sqrt (1-a*a);
+                     // interpolate between axis and arc
                      double l =
-                        (-rl + 2 * rl * dl * j / Math.PI) * (1 - kInterp)
-                           + (-rl * Math.cos(j * dl)) * (kInterp);
-                     double rAdj = dr * k * Math.sqrt(1 - l * l / rl / rl);
+                     (-rl + j*2.0*rl/(2*nl-2)) * (1 - kInterp)
+                     + (-rl * Math.cos(j*Math.PI/(2*nl-2))) * (kInterp);
+                     // linearly interpolate radius scale factor
+                     kInterp = a;
+                     double rAdj = kInterp*Math.sin (j*Math.PI/(2*nl-2)); // dr * k * Math.sqrt(1 - l * l / rl / rl); 
+                     
                      nodes[i][j][k] =
                         new FemNode3d(
                            new Point3d(-rs1 * rAdj * Math.sin(dt * i), rs2
@@ -794,8 +1820,7 @@ public class FemFactory {
          }
       }
 
-      FemNode3d[] node8List = new FemNode3d[8]; // storing 8 nodes, repeated or
-                                                // not
+      FemNode3d[] node8List = new FemNode3d[8]; // storing 8 nodes, repeated or not
 
       // generate elements
       for (int k = 0; k < ns - 1; k++) {
@@ -813,6 +1838,133 @@ public class FemFactory {
 
                FemElement3d elem = createElem(node8List);
                model.addElement(elem);
+            }
+         }
+      }
+
+      return model;
+   }
+   
+   /**
+    * Creates an ellipsoidal model using tet elements. The model is created 
+    * symmetrically about a central polar axis,
+    * using tesselated wedge elements at the core.  <code>rl</code> should be the longest
+    * radius, and corresponds to the polar axis.
+    *
+    * @param model empty FEM model to which elements are added; if
+    * <code>null</code> then a new model is allocated
+    * @param rl longest radius (also the polar radius)
+    * @param rs1 first radius perpendicular to the polar axis
+    * @param rs2 second radius perpendicular to the polar axis
+    * @param nt number of nodes in each ring parallel to the equator
+    * @param nl number of nodes in each quarter ring perpendicular to the
+    * equator (including end nodes)
+    * @param ns number of nodes in each radial line extending out from
+    * the polar axis (including end nodes)
+    * @return the FEM model (which will be <code>model</code> if
+    * <code>model</code> is not <code>null</code>).
+    */
+   public static FemModel3d createTetEllipsoid(
+      FemModel3d model, 
+      double rl, double rs1, double rs2, int nt, int nl, int ns) {
+
+      if (ns < 1) {
+         ns = 1;
+      }
+      nt += (nt % 2);  // make nt even
+      
+      double dl = Math.PI / (2 * nl - 2);
+      double dt = 2 * Math.PI / nt;
+      double dr = 1.0 / (ns - 1);
+
+      FemNode3d nodes[][][] = new FemNode3d[nt][2 * nl - 1][ns];
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
+
+      // generate nodes
+      for (int k = 0; k < ns; k++) {
+         for (int j = 0; j < 2 * nl - 1; j++) {
+
+            if (k == 0) {
+               FemNode3d node =
+                  new FemNode3d(new Point3d(0, 0, -rl + 2 * rl * dl * j
+                     / Math.PI));
+               
+               for (int i = 0; i < nt; i++) {
+                  nodes[i][j][k] = node;
+               }
+               model.addNode(node);
+            } else {
+               if (j == 0) {
+                  for (int i = 0; i < nt; i++) {
+                     nodes[i][j][k] = nodes[i][j][0];
+                  }
+               } else if (j == 2 * nl - 2) {
+                  for (int i = 0; i < nt; i++) {
+                     nodes[i][j][k] = nodes[i][j][0];
+                  }
+               } else {
+                  for (int i = 0; i < nt; i++) {
+                      //    // XXX inverted elements at poles for large r, rAdj is not strictly increasing with k
+                     //    double kInterp = Math.pow(((double)k) / (ns - 1), 2) * (rs1 + rs2) / (2 * rl);
+                     //    double l = (-rl + 2 * rl * dl * j / Math.PI) * (1 - kInterp)
+                     //                + (-rl * Math.cos(j * dl)) * (kInterp);        
+                     //    double rAdj = dr * k * Math.sqrt(1 - l * l / rl / rl);
+                     
+                     // need kInterp(0) = 0, kInterp(ns-1) = 1
+                     double a = (double)k/(ns-1);
+                     double kInterp = 1-Math.sqrt (1-a*a);
+                     // interpolate between axis and arc
+                     double l =
+                     (-rl + j*2.0*rl/(2*nl-2)) * (1 - kInterp)
+                     + (-rl * Math.cos(j*Math.PI/(2*nl-2))) * (kInterp);
+                     // linearly interpolate radius scale factor
+                     kInterp = a;
+                     double rAdj = kInterp*Math.sin (j*Math.PI/(2*nl-2));
+                     
+                     nodes[i][j][k] =
+                        new FemNode3d(
+                           new Point3d(-rs1 * rAdj * Math.sin(dt * i), rs2
+                              * rAdj * Math.cos(dt * i), l));
+                     model.addNode(nodes[i][j][k]);
+                  }
+               }
+            }
+         }
+      }
+
+      FemNode3d[] node8List = new FemNode3d[8]; // storing 8 nodes, repeated or not
+
+      // generate elements
+      for (int k = 0; k < ns - 1; k++) {
+         for (int j = 0; j < 2 * nl - 2; j++) {
+            for (int i = 0; i < nt; i++) {
+
+               boolean even = ((i+j+k) % 2) == 0;
+               node8List[0] = nodes[i][j][k];
+               node8List[1] = nodes[(i + 1) % nt][j][k];
+               node8List[2] = nodes[(i + 1) % nt][j + 1][k];
+               node8List[3] = nodes[i][j + 1][k];
+               node8List[4] = nodes[i][j][k + 1];
+               node8List[5] = nodes[(i + 1) % nt][j][k + 1];
+               node8List[6] = nodes[(i + 1) % nt][j + 1][k + 1];
+               node8List[7] = nodes[i][j + 1][k + 1];
+               
+               TetElement elems[] = TetElement.createCubeTesselation (node8List[0], node8List[3], node8List[2], node8List[1], 
+                  node8List[4], node8List[7], node8List[6], node8List[5], even);
+               
+               // only add non-degenerate elements
+               for (TetElement elem : elems) {
+                  FemNode3d[] enodes = elem.getNodes ();
+                  if (enodes[0] != enodes[1] && enodes[0] != enodes[2] && enodes[0] != enodes[3]
+                     && enodes[1] != enodes[2] && enodes[1] != enodes[3]
+                     && enodes[2]!= enodes[3]) {
+                     model.addElement (elem);
+                  }
+               }
             }
          }
       }
@@ -977,7 +2129,7 @@ public class FemFactory {
    }
    
    /**
-    * Creates a tetrahedral cylinder by tetrahedralizing a hex-wegde cylinder
+    * Creates a tetrahedral cylinder by tetrahedralizing a hex-wedge cylinder
     * 
     * @param fem model to populate
     * @param l length of cylinder (z-axis)
@@ -1025,7 +2177,7 @@ public class FemFactory {
          }
       }
 
-      TetElement elems[][][][] = new TetElement[nt][nl][nr][5];
+      TetElement elems[][][][] = new TetElement[nt][nl][nr][];
 
       for (int j = 0; j < nl; j++) {
          
@@ -1041,6 +2193,7 @@ public class FemFactory {
             FemNode3d p4 = nodes[0][j][0];
             FemNode3d p5 = nodes[0][j + 1][0]; 
             
+            elems[i][j][0] = new TetElement[3];
             if (even) {
                elems[i][j][0][0] = new TetElement (p0, p1, p4, p3);
                elems[i][j][0][1] = new TetElement (p2, p3, p5, p1);
@@ -1076,6 +2229,590 @@ public class FemFactory {
       }
       
       return fem;
+   }
+   
+   /**
+    * Creates a quadratic tetrahedral cylinder by tetrahedralizing a hex-wedge cylinder
+    * 
+    * @param fem model to populate
+    * @param l length of cylinder (z-axis)
+    * @param r radius of cylinder
+    * @param nt number of elements around the arc
+    * @param nl number of elements along the length
+    * @param nr number of elements radially
+    * @return populated model
+    */
+   public static FemModel3d createQuadtetCylinder(FemModel3d fem, double l, double r, int nt, int nl, int nr) {
+      if (fem == null) {
+         fem = new FemModel3d();
+      }
+
+      // round nt up to even to allow proper tesselation
+      if ((nt % 2) == 1) {
+         nt++;
+      }
+      // HexModel model = new HexModel();
+
+      FemNode3d nodes[][][] = new FemNode3d[2*nr+1][2*nt][2*nl+1];
+
+      double dl = l / nl / 2;
+      double dt = Math.PI / nt;
+      double dr = r / nr / 2;
+
+      // height
+      for (int j = 0; j < 2*nl+1; j++) {
+         
+         // centre
+         nodes[0][0][j] = new FemNode3d(new Point3d(
+            0, 0, -l / 2 + j * dl));
+         fem.addNode (nodes[0][0][j]);
+         
+         for (int k=1; k<2*nr+1; ++k) {
+            
+            // angle inner ring, skip middle if 
+            //   t odd && (k == 1 || j odd)
+            int tinc = 1;
+            if ( (k == 1) || (((k % 2) == 1) && ((j % 2) == 1)) ) {
+               tinc = 2;
+            }
+            
+            for (int i = 0; i < 2*nt; i+=tinc) {
+               nodes[k][i][j] =
+               new FemNode3d(new Point3d(
+                  -(dr * k) * Math.sin(dt * i), (dr * k)
+                  * Math.cos(dt * i), -l / 2 + j * dl));
+               fem.addNode(nodes[k][i][j]);
+            }
+         }
+      }
+
+      QuadtetElement elems[][][][] = new QuadtetElement[nr][nt][nl][];
+
+      for (int j = 0; j < nl; j++) {
+
+         // k = 0, wedges
+         for (int i = 0; i < nt; ++i) {
+
+            boolean even = (((i+j) % 2) == 0);
+
+            int ni = 2*i;
+            int nin = (ni+1) % (2*nt);
+            int ninn = (ni+2) % (2*nt);
+            int nj = 2*j;
+            
+            FemNode3d[] p0 = nodes[0][0];
+            
+            FemNode3d[] p1 = nodes[1][ni];
+            FemNode3d[] p2 = nodes[1][ninn];
+            
+            FemNode3d[] p3 = nodes[2][ni];
+            FemNode3d[] p4 = nodes[2][nin];
+            FemNode3d[] p5 = nodes[2][ninn];
+                        
+            elems[0][i][j] = new QuadtetElement[3]; 
+            if (even) {
+               elems[0][i][j][0] = new QuadtetElement (p0[nj], p3[nj], p5[nj], p3[nj+2], p1[nj], p4[nj], p2[nj], p1[nj+1], p3[nj+1], p4[nj+1]);
+               elems[0][i][j][1] = new QuadtetElement (p3[nj+2], p0[nj+2], p5[nj+2], p5[nj], p1[nj+2], p2[nj+2], p4[nj+2], p4[nj+1], p2[nj+1], p5[nj+1]);
+               elems[0][i][j][2] = new QuadtetElement (p0[nj], p0[nj+2], p3[nj+2], p5[nj], p0[nj+1], p1[nj+2], p1[nj+1], p2[nj], p2[nj+1], p4[nj+1]);
+            } else {
+               elems[0][i][j][0] = new QuadtetElement (p0[nj], p3[nj], p5[nj], p5[nj+2], p1[nj], p4[nj], p2[nj], p2[nj+1], p4[nj+1], p5[nj+1]);
+               elems[0][i][j][1] = new QuadtetElement (p3[nj+2], p0[nj+2], p5[nj+2], p3[nj], p1[nj+2], p2[nj+2], p4[nj+2], p3[nj+1], p1[nj+1], p4[nj+1]);
+               elems[0][i][j][2] = new QuadtetElement (p0[nj], p5[nj+2], p0[nj+2], p3[nj], p2[nj+1], p2[nj+2], p0[nj+1], p1[nj], p4[nj+1], p1[nj+1]);
+            }
+
+            fem.addElement(elems[0][i][j][0]);
+            fem.addElement(elems[0][i][j][1]);
+            fem.addElement(elems[0][i][j][2]);
+            
+         }
+
+         // hexes
+         for (int k = 1; k < nr; k++) {
+            for (int i = 0; i < nt; i++) {
+               
+               boolean even = (((i+j+k) % 2) == 0);
+               elems[k][i][j] = new QuadtetElement[5];
+               
+               int ni = 2*i;
+               int nin = (ni+1) % (2*nt);
+               int ninn = (ni+2) % (2*nt);
+               int nj = 2*j;
+               int nk = 2*k;
+               
+               FemNode3d[] p0 = nodes[nk][ni];
+               FemNode3d[] p1 = nodes[nk][nin];
+               FemNode3d[] p2 = nodes[nk][ninn];
+               
+               FemNode3d[] p3 = nodes[nk+1][ni];
+               FemNode3d[] p4 = nodes[nk+1][nin];
+               FemNode3d[] p5 = nodes[nk+1][ninn];
+               
+               FemNode3d[] p6 = nodes[nk+2][ni];
+               FemNode3d[] p7 = nodes[nk+2][nin];
+               FemNode3d[] p8 = nodes[nk+2][ninn];
+               
+               elems[k][i][j] = new QuadtetElement[5]; 
+               if (even) {
+                  elems[k][i][j][0] = new QuadtetElement (p0[nj], p8[nj], p2[nj], p2[nj+2], p4[nj], p5[nj], p1[nj], p1[nj+1], p5[nj+1], p2[nj+1]);
+                  elems[k][i][j][1] = new QuadtetElement (p0[nj], p6[nj], p8[nj], p6[nj+2], p3[nj], p7[nj], p4[nj], p3[nj+1], p6[nj+1], p7[nj+1]);
+                  elems[k][i][j][2] = new QuadtetElement (p0[nj+2], p2[nj+2], p6[nj+2], p0[nj], p1[nj+2], p4[nj+2], p3[nj+2], p0[nj+1], p1[nj+1], p3[nj+1]);
+                  elems[k][i][j][3] = new QuadtetElement (p8[nj+2], p6[nj+2], p2[nj+2], p8[nj], p7[nj+2], p4[nj+2], p5[nj+2], p8[nj+1], p7[nj+1], p5[nj+1]);
+                  elems[k][i][j][4] = new QuadtetElement (p0[nj], p6[nj+2], p8[nj], p2[nj+2], p3[nj+1], p7[nj+1], p4[nj], p1[nj+1], p4[nj+2], p5[nj+1]);
+               } else {
+                  elems[k][i][j][0] = new QuadtetElement (p0[nj], p6[nj], p2[nj], p0[nj+2], p3[nj], p4[nj], p1[nj], p0[nj+1], p3[nj+1], p1[nj+1]);
+                  elems[k][i][j][1] = new QuadtetElement (p2[nj], p6[nj], p8[nj], p8[nj+2], p4[nj], p7[nj], p5[nj], p5[nj+1], p7[nj+1], p8[nj+1]);
+                  elems[k][i][j][2] = new QuadtetElement (p0[nj+2], p2[nj+2], p8[nj+2], p2[nj], p1[nj+2], p5[nj+2], p4[nj+2], p1[nj+1], p2[nj+1], p5[nj+1]);
+                  elems[k][i][j][3] = new QuadtetElement (p0[nj+2], p8[nj+2], p6[nj+2], p6[nj], p4[nj+2], p7[nj+2], p3[nj+2], p3[nj+1], p7[nj+1], p6[nj+1]);
+                  elems[k][i][j][4] = new QuadtetElement (p2[nj], p6[nj], p8[nj+2], p0[nj+2], p4[nj], p7[nj+1], p5[nj+1], p1[nj+1], p3[nj+1], p4[nj+2]);
+               }
+               
+               fem.addElement (elems[k][i][j][0]);
+               fem.addElement (elems[k][i][j][1]);
+               fem.addElement (elems[k][i][j][2]);
+               fem.addElement (elems[k][i][j][3]);
+               fem.addElement (elems[k][i][j][4]);
+            }
+         }
+      }
+      
+      return fem;
+   }
+   
+   /**
+    * Creates a cylinder made entirely of wedges, all approximately uniform in size
+    * @param model model to populate, created if null
+    * @param h height of cylinder (z-axis)
+    * @param r radius of cylinder
+    * @param nh element resolution in z
+    * @param nr radial element resolution
+    * @return populated or created model
+    */
+   public static FemModel3d createWedgeCylinder(FemModel3d model, double h, double r, int nh, int nr) {
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      
+      if (nr < 1) {
+         nr = 1;
+      }
+      double dr = r/nr;
+      
+      double zmin = -h/2;
+      double dh = h/nh;
+      FemNode3d[][] layer = new FemNode3d[nh+1][1];
+      FemNode3d[][] lastLayer;
+      
+      // axis nodes
+      for (int k=0; k<=nh; ++k) {
+         FemNode3d node = new FemNode3d(0, 0, zmin+k*dh);
+         layer[k][0] = node;
+         model.addNode (node);
+      }
+      
+      int ngroups = 6;  // even split around circle
+      
+      // circle nodes
+      for (int i=1; i<=nr; ++i) {
+         
+         // next layer of nodes
+         double rr = dr*i;
+         lastLayer = layer;
+         int nt = ngroups*i;
+         double dt = 2*Math.PI/nt;
+         layer = new FemNode3d[nh+1][nt];
+         for (int k=0; k<=nh; ++k) {
+            double z = zmin+k*dh;
+            for (int j=0; j<nt; ++j) {
+               double theta = j*dt;
+               double x = rr*Math.cos (theta);
+               double y = rr*Math.sin (theta);
+               FemNode3d node = new FemNode3d(x, y, z);
+               layer[k][j] = node;
+               model.addNode (node);
+            }
+         }
+            
+         // layer of elements
+         for (int k=0; k<nh; ++k) {
+            for (int g=0; g<ngroups; ++g) {
+               int j = (g*i);
+               int pj = g*(i-1);
+               for (int t=0; t<i-1; ++t) {
+                  int nextpj = (pj+1) % (nt-ngroups);
+                  int nextj = (j+1) % nt;
+                  
+                  model.addElement (new WedgeElement(layer[k][j], layer[k][nextj], lastLayer[k][pj],
+                                                      layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj]));
+                  model.addElement (new WedgeElement(lastLayer[k][nextpj], lastLayer[k][pj], layer[k][nextj],
+                                                      lastLayer[k+1][nextpj], lastLayer[k+1][pj], layer[k+1][nextj]));
+                  
+                  j = nextj;
+                  pj = nextpj;
+               }
+               int nextj = (j+1) % nt;
+               
+               model.addElement (new WedgeElement(layer[k][j], layer[k][nextj], lastLayer[k][pj],
+                  layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj]));
+            }
+         }
+      }
+         
+      return model;
+   }
+   
+   /**
+    * Tessellate a wedge, adding tets to model
+    * @param model model to add tets to
+    * @param n0 wedge node 0
+    * @param n1 wedge node 1
+    * @param n2 wedge node 2
+    * @param n3 wedge node 3
+    * @param n4 wedge node 4
+    * @param n5 wedge node 5
+    * @param code code to indicate splitting of wedge (1-6), @see {@link TetElement#createWedgeTesselation(FemNode3d, FemNode3d, FemNode3d, FemNode3d, FemNode3d, FemNode3d, int)}
+    */
+   private static void addWedgeTessellation(FemModel3d model, FemNode3d n0, FemNode3d n1, FemNode3d n2, 
+      FemNode3d n3, FemNode3d n4, FemNode3d n5, int code) {
+      // wedge is ordered opposite orientation
+      TetElement[] elems = TetElement.createWedgeTesselation (n0, n2, n1, n3, n5, n4, code);
+      for (TetElement elem : elems) {
+         model.addElement (elem);
+      }
+   }
+   
+   /**
+    * Tessellate a wedge with quadratic tets
+    */
+   private static void addQuadwedgeTessellation(FemModel3d model, 
+      FemNode3d n0, FemNode3d n1, FemNode3d n2, 
+      FemNode3d n3, FemNode3d n4, FemNode3d n5, 
+      FemNode3d n01, FemNode3d n7, FemNode3d n8,     // m01, m12, m20
+      FemNode3d n34, FemNode3d n45, FemNode3d n53,   // m34, m45, m53
+      FemNode3d n03, FemNode3d n14, FemNode3d n15,  // m03, m14, m15
+      FemNode3d n0134, FemNode3d n1245, FemNode3d n2053,  // mid-quad: m0134, m1245, m2053 
+      int code) {
+      // wedge is ordered opposite orientation
+      QuadtetElement[] elems = new QuadtetElement[3];
+      
+      // switch around for consistency with TetElement.createWedgeTessellation
+      FemNode3d p0 = n0;
+      FemNode3d p1 = n2;
+      FemNode3d p2 = n1;
+      FemNode3d p3 = n3;
+      FemNode3d p4 = n5;
+      FemNode3d p5 = n4;
+      FemNode3d p6 = n8;
+      FemNode3d p7 = n7;
+      FemNode3d p8 = n01;
+      FemNode3d p9 = n53;
+      FemNode3d p10 = n45;
+      FemNode3d p11 = n34;
+      FemNode3d p12 = n03;
+      FemNode3d p13 = n15;
+      FemNode3d p14 = n14;
+      FemNode3d p15 = n2053;
+      FemNode3d p16 = n1245;
+      FemNode3d p17 = n0134;
+      
+      switch (code) {
+         case 0x1: { /* R, F, F */ 
+            elems[0] = new QuadtetElement (p0, p2, p1, p3, p8, p7, p6, p12, p17, p15);
+            elems[1] = new QuadtetElement (p2, p5, p1, p3, p14, p16, p7, p17, p11, p15);
+            elems[2] = new QuadtetElement (p1, p5, p4, p3, p16, p10, p13, p15, p11, p9);
+            break;
+         }
+         case 0x2: { /* F, R, F */ 
+            elems[0] = new QuadtetElement (p0, p2, p1, p4, p8,  p7,  p6, p15, p16, p13);
+            elems[1] = new QuadtetElement (p0, p3, p2, p4, p12, p17, p8, p15, p9, p16);
+            elems[2] = new QuadtetElement (p2, p3, p5, p4, p17, p11, p14, p16, p9, p10);
+            break;
+         }
+         case 0x3: { /* R, R, F */ 
+            elems[0] = new QuadtetElement (p0, p2, p1, p3, p8, p7, p6, p12, p17, p15);
+            elems[1] = new QuadtetElement (p1, p2, p4, p3, p7, p16, p13, p15, p17, p9);
+            elems[2] = new QuadtetElement (p2, p5, p4, p3, p14, p10, p16, p17, p11, p9);
+            break;
+         }
+         case 0x4: { /* F, F, R */ 
+            elems[0] = new QuadtetElement (p0, p2, p1, p5, p8, p7, p6, p17, p14, p16);
+            elems[1] = new QuadtetElement (p1, p4, p0, p5, p13, p15, p6, p16, p10, p17);
+            elems[2] = new QuadtetElement (p0, p4, p3, p5, p15, p9, p12, p17, p10, p11);
+            break;
+         }
+         case 0x5: { /* R, F, R */ 
+            elems[0] = new QuadtetElement (p0, p2, p1, p5, p8, p7, p6, p17, p14, p16);
+            elems[1] = new QuadtetElement (p0, p1, p3, p5, p6, p15, p12, p17, p16, p11);
+            elems[2] = new QuadtetElement (p1, p4, p3, p5, p13, p9, p15, p16, p10, p11);
+            break;
+         }
+         case 0x6: { /* F, R, R */ 
+            elems[0] = new QuadtetElement (p0, p2, p1, p4, p8, p7, p6, p15, p16, p13);
+            elems[1] = new QuadtetElement (p2, p0, p5, p4, p8, p17, p14, p16, p15, p10);
+            elems[2] = new QuadtetElement (p0, p3, p5, p4, p12, p11, p17, p15, p9, p10);
+            break;
+         }
+         default: {
+            throw new IllegalArgumentException (
+               "Illegal or unknown configuration type: " + code);
+         }
+      }
+      
+      for (QuadtetElement elem : elems) {
+         model.addElement (elem);
+      }
+   }
+   
+   /**
+    * Creates a cylinder of tets, all with approximately uniform size
+    * @param model model to populate (if null, one is created)
+    * @param h height of cylinder
+    * @param r radius of cylinder
+    * @param nh element resolution along height
+    * @param nr radial element resolution
+    * @return populated or created model
+    */
+   public static FemModel3d createTetCylinder(FemModel3d model, double h, double r, int nh, int nr) {
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      
+      if (nr < 1) {
+         nr = 1;
+      }
+      double dr = r/nr;
+      
+      double zmin = -h/2;
+      double dh = h/nh;
+      FemNode3d[][] layer = new FemNode3d[nh+1][1];
+      FemNode3d[][] lastLayer;
+      
+      // axis nodes
+      for (int k=0; k<=nh; ++k) {
+         FemNode3d node = new FemNode3d(0, 0, zmin+k*dh);
+         layer[k][0] = node;
+         model.addNode (node);
+      }
+      
+      int ngroups = 6;  // even split around circle
+      
+      // way to split hex
+      // int split = 0x02;  // options are 0b001, 0b010, 0b101, 0b110
+      
+      
+      // circle nodes
+      for (int i=1; i<=nr; ++i) {
+         
+         // next layer of nodes
+         double rr = dr*i;
+         lastLayer = layer;
+         int nt = ngroups*i;
+         double dt = 2*Math.PI/nt;
+         layer = new FemNode3d[nh+1][nt];
+         
+         for (int k=0; k<=nh; ++k) {
+            double z = zmin+k*dh;
+            for (int j=0; j<nt; ++j) {
+               double theta = j*dt;
+               double x = rr*Math.cos (theta);
+               double y = rr*Math.sin (theta);
+               FemNode3d node = new FemNode3d(x, y, z);
+               layer[k][j] = node;
+               model.addNode (node);
+            }
+         }
+            
+         // layer of elements
+         for (int k=0; k<nh; ++k) {
+            for (int g=0; g<ngroups; ++g) {
+               int j = (g*i);
+               int pj = g*(i-1);
+               for (int t=0; t<i-1; ++t) {
+                  int nextpj = (pj+1) % (nt-ngroups);
+                  int nextj = (j+1) % nt;
+                  
+                  int outerParity = (i + k + j) % 2;
+                  int sideParity = (i + k) % 2;
+                  int parity = outerParity*4 + sideParity+1;
+                  
+                  addWedgeTessellation(model, layer[k][j], layer[k][nextj], lastLayer[k][pj],
+                     layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj], parity);
+
+                  outerParity = (i + k + pj) % 2;
+                  sideParity = (i + k + 1) % 2;
+                  parity = outerParity*4 + sideParity + 1;
+                  addWedgeTessellation(model, lastLayer[k][nextpj], lastLayer[k][pj], layer[k][nextj],
+                                                      lastLayer[k+1][nextpj], lastLayer[k+1][pj], layer[k+1][nextj], 
+                                                      parity);
+                  
+                  j = nextj;
+                  pj = nextpj;
+               }
+               int nextj = (j+1) % nt;
+
+               int outerParity = (i + j + k) % 2;
+               int sideParity = (i + k)%2;
+               int parity = outerParity*4 + sideParity+1;
+               
+               addWedgeTessellation(model, layer[k][j], layer[k][nextj], lastLayer[k][pj],
+                  layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj], parity);
+
+            }
+            // next height
+         }
+         // next radius
+      }
+         
+      return model;
+   }
+
+   /**
+    * Creates a cylinder of quadratic tets, all with approximately uniform size
+    * @param model model to populate (if null, one is created)
+    * @param h height of cylinder
+    * @param r radius of cylinder
+    * @param nh element resolution along height
+    * @param nr radial element resolution
+    * @return populated or created model
+    */
+   public static FemModel3d createQuadtetCylinder(FemModel3d model, double h, double r, int nh, int nr) {
+      if (model == null) {
+         model = new FemModel3d();
+      }
+      
+      if (nr < 1) {
+         nr = 1;
+      }
+      double dr = r/(2*nr);
+      
+      double zmin = -h/2;
+      double dh = h/(2*nh);
+      FemNode3d[][] outerlayer = new FemNode3d[2*nh+1][1];
+      FemNode3d[][] lastOuterLayer;
+      
+      // axis nodes
+      for (int k=0; k<=2*nh; ++k) {
+         FemNode3d node = new FemNode3d(0, 0, zmin+k*dh);
+         outerlayer[k][0] = node;
+         model.addNode (node);
+      }
+      
+      int ngroups = 6;  // even split around circle
+      
+      // circle nodes
+      for (int i=1; i<=nr; ++i) {
+         
+         // next layer of nodes
+         double ri = dr*(2*i-1);
+         double ro = dr*(2*i);
+         lastOuterLayer = outerlayer;
+         int nit = ngroups*(2*i-1); // inner
+         int not = ngroups*(2*i);   // outer
+         int npt = ngroups*(2*i-2); // previous outer
+         
+         double dit = 2*Math.PI/nit;
+         double dot = 2*Math.PI/not;
+         
+         outerlayer = new FemNode3d[2*nh+1][not];
+         FemNode3d[][] innerlayer = new FemNode3d[2*nh+1][nit];
+         
+         // generate nodes
+         for (int k=0; k<=2*nh; ++k) {
+            double z = zmin+k*dh;
+            
+            for (int j=0; j<nit; ++j) {
+               double theta = j*dit;
+               double x = ri*Math.cos (theta);
+               double y = ri*Math.sin (theta);
+               FemNode3d node = new FemNode3d(x, y, z);
+               innerlayer[k][j] = node;
+               model.addNode (node);
+            }
+            
+            for (int j=0; j<not; ++j) {
+               double theta = j*dot;
+               double x = ro*Math.cos (theta);
+               double y = ro*Math.sin (theta);
+               FemNode3d node = new FemNode3d(x, y, z);
+               outerlayer[k][j] = node;
+               model.addNode (node);
+            }
+         }
+            
+         // layer of elements
+         for (int k=0; k<2*nh; k += 2) {
+            int nnk = k+2;
+            int nk = k+1;
+            
+            for (int g=0; g<ngroups; ++g) {
+               int j = g*(2*i);      // outer group
+               int mj = g*(2*i-1);   // inner group
+               int pj = g*(2*i-2);   // last outer group
+               
+               for (int t=0; t<i-1; ++t) {
+                  
+                  int nnpj = (pj+2) % npt;
+                  int npj = (pj+1) % npt;
+                  
+                  int nnmj = (mj+2) % nit;
+                  int nmj = (mj+1) % nit;
+                  
+                  int nj = (j+1) % not;
+                  int nnj = (j+2) % not;
+                  
+                  int outerParity = (i + k + j) % 2;
+                  int sideParity = (i + k) % 2;
+                  int parity = outerParity*4 + sideParity+1;
+                  
+                  addQuadwedgeTessellation(model, 
+                     outerlayer[k][j], outerlayer[k][nnj], lastOuterLayer[k][pj],
+                     outerlayer[nnk][j], outerlayer[nnk][nnj], lastOuterLayer[nnk][pj], 
+                     outerlayer[k][nj], innerlayer[k][nmj], innerlayer[k][mj],           // bottom edges
+                     outerlayer[nnk][nj], innerlayer[nnk][nmj], innerlayer[nnk][mj],     // top edges
+                     outerlayer[nk][j], outerlayer[nk][nnj], lastOuterLayer[nk][pj],     // sides
+                     outerlayer[nk][nj], innerlayer[nk][nmj], innerlayer[nk][mj],        // quads
+                     parity);
+
+                  outerParity = (i + k + pj) % 2;
+                  sideParity = (i + k + 1) % 2;
+                  parity = outerParity*4 + sideParity + 1;
+                  
+                  addQuadwedgeTessellation(model, 
+                     lastOuterLayer[k][nnpj], lastOuterLayer[k][pj], outerlayer[k][nnj],
+                     lastOuterLayer[nnk][nnpj], lastOuterLayer[nnk][pj], outerlayer[nnk][nnj], 
+                     lastOuterLayer[k][npj], innerlayer[k][nmj], innerlayer[k][nnmj],             // bottom edges
+                     lastOuterLayer[nnk][npj], innerlayer[nnk][nmj], innerlayer[nnk][nnmj],       // top edges
+                     lastOuterLayer[nk][nnpj], lastOuterLayer[nk][pj], outerlayer[nk][nnj],       // sides
+                     lastOuterLayer[nk][npj], innerlayer[nk][nmj], innerlayer[nk][nnmj],          // quads
+                     parity);
+                  
+                  j = nnj;
+                  pj = nnpj;
+                  mj = nnmj;
+               }
+               int nmj = (mj+1) % nit;
+               int nj = (j+1) % not;
+               int nnj = (j+2) % not;
+               
+               int outerParity = (i + j + k) % 2;
+               int sideParity = (i + k) % 2;
+               int parity = outerParity*4 + sideParity+1;
+               
+               addQuadwedgeTessellation(model, 
+                  outerlayer[k][j], outerlayer[k][nnj], lastOuterLayer[k][pj],
+                  outerlayer[nnk][j], outerlayer[nnk][nnj], lastOuterLayer[nnk][pj], 
+                  outerlayer[k][nj], innerlayer[k][nmj], innerlayer[k][mj],           // bottom edges
+                  outerlayer[nnk][nj], innerlayer[nnk][nmj], innerlayer[nnk][mj],     // top edges
+                  outerlayer[nk][j], outerlayer[nk][nnj], lastOuterLayer[nk][pj],     // sides
+                  outerlayer[nk][nj], innerlayer[nk][nmj], innerlayer[nk][mj],        // quads
+                  parity);
+               
+            }
+            // next height
+         }
+         // next radius
+      }
+         
+      return model;
    }
    
    /**

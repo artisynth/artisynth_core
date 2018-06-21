@@ -57,8 +57,6 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
    private double myFrac = 1;
    private double[] myFracs;     
 
-   protected float[] myWidgetColor; // render color for elements
-
    public AuxMaterialElementDesc() {
       super();
    }
@@ -383,7 +381,7 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       
       if (widgetSize != 0 || rad > 0) {
          Shading savedShading = renderer.setPropsShading (props);
-         renderer.setFaceColoring (props, myWidgetColor, isSelected());
+         renderer.setFaceColoring (props, props.getFaceColorF (), isSelected());
          if (widgetSize != 0) {
             myElement.renderWidget (renderer, widgetSize, props);
          }

@@ -20,6 +20,7 @@ public class KKTSolver {
    private static boolean myUseUmfpack = false;
    public static boolean computeResidualMG = false;
 
+   boolean myTimeSolves = false;
    boolean myMDiagonalP = false;
    int mySizeM;
    int myTypeM = Matrix.SYMMETRIC;
@@ -456,12 +457,19 @@ public class KKTSolver {
       SparseBlockMatrix NT, VectorNd Rn) {
       long t0 = System.nanoTime();
       checkMGStructure (M, sizeM, GT);
+      if (myTimeSolves) timerStart();
       factorMG (M, sizeM, GT, Rg);
+
+      if (myTimeSolves) timerStop ("factorMG:");
       if (NT != null && NT.colSize() != 0) {
          if ((myTypeM & Matrix.SYMMETRIC) == 0) {
             warnAboutUnsymmetricUnilateralSolves();
          }
+         if (myTimeSolves) timerStart();
          buildLCP (NT, Rn);
+         if (myTimeSolves) {
+            timerStop ("buildLCP m=" + NT.colSize() + ":");
+         }
       }
       myState = State.FACTORED;
       long t1 = System.nanoTime();
@@ -780,7 +788,9 @@ public class KKTSolver {
       }
       Status status;
       if (myNumN == 0 || the == null) {
+         if (myTimeSolves) timerStart();
          solveMG (vel, lam, bm, bg);
+         if (myTimeSolves) timerStop ("solveMG:");
          status = Status.SOLVED;
       }
       else if (the != null && phi == null) {
@@ -814,7 +824,9 @@ public class KKTSolver {
       for (int i = mySizeM; i < mySizeM + myNumG; i++) {
          xbuf[i] = bg.get (i - mySizeM);
       }
+      if (myTimeSolves) timerStart();
       solveMG (myMGy, myMGx);
+      if (myTimeSolves) timerStop ("solveMG:");
       myNT.mulTranspose (myQ, myMGy, myNT.colSize(), mySizeM);
       double[] qbuf = myQ.getBuffer();
       for (int i = 0; i < myNumN; i++) {
@@ -828,8 +840,10 @@ public class KKTSolver {
       // System.out.println ("Q=" + myQ);
 
       myDantzig.setComputeResidual (true);
+      if (myTimeSolves) timerStart();
       DantzigLCPSolver.Status status =
          myDantzig.solve (myZ, myLcpM, myQ, myZBasic);
+      if (myTimeSolves) timerStop("solveLCP:");
       myDantzig.setComputeResidual (false);
       // System.out.println ("status=" + status + " res=" + myDantzig.getResidual());
       // System.out.println ("M=\n" + myLcpM);
@@ -1341,6 +1355,15 @@ public class KKTSolver {
    }
 
    FunctionTimer timer = new FunctionTimer();
+
+   private void timerStart() {
+      timer.start();
+   }
+
+   private void timerStop (String msg) {
+      timer.stop();
+      System.out.println (msg + " " + timer.result(1));
+   }
 
    private void factorMG (
       Object M, int sizeM, SparseBlockMatrix GT, VectorNd Rg) {

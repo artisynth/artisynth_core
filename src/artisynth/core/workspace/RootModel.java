@@ -82,6 +82,8 @@ public class RootModel extends RenderableModelBase
    implements Disposable {
    // DependencyClosure[] myClosures = null;
 
+   protected boolean debugNextAdvanceTime = false;
+
    // Set this to true to test save-and-restore state before each model advance
    // step. (This will take some time, so you normally want it to be false).
    public static boolean testSaveAndRestoreState = false;
@@ -346,9 +348,17 @@ public class RootModel extends RenderableModelBase
          double hmax = getEffectiveMaxStepSize();
          if (hmax != maxStepSize) {
             maxStepSize = hmax;
+            if (debugNextAdvanceTime) {
+               System.out.println (
+                  "NextAdvanceTime: reducing h and maxStepSize to hmax: " + hmax);
+            }
             h = hmax;
          }
          else if (h > hmax) {
+            if (debugNextAdvanceTime) {
+               System.out.println (
+                  "NextAdvanceTime: reducing h to hmax: " + hmax);
+            }
             h = hmax;
          }
          double te = nextProbeEvent (outputProbes, t0);
@@ -1527,6 +1537,11 @@ public class RootModel extends RenderableModelBase
          
          double ta = p.nextEventTime (t0);
          if (ta != -1 && ta < te) {
+            if (debugNextAdvanceTime) {
+               System.out.println (
+                  "NextAdvanceTime: probe reducing te to " + ta +
+                  ", " + p.getName() + " " + p);
+            }
             te = ta;
          }
       }

@@ -618,7 +618,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       if (myScanCnt < size()) {
          // use or replace existing component
          comp = get(myScanCnt);
-         C newcomp = null;         
+         C newcomp = null;
          if (!comp.isFixed() ||
              !scannedCompMatches (comp, classInfo, compNumber)) {
             // try creating a new component to replace the existing one

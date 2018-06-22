@@ -18,6 +18,9 @@ import artisynth.core.workspace.Workspace;
 import java.util.*;
 
 public class Scheduler {
+
+   private boolean debugStepComputation = false;
+
    private double myTime = 0;
    private boolean myRealTimeAdvanceP = true;
    private RenderProbe myRenderProbe;
@@ -608,6 +611,11 @@ public class Scheduler {
             if (TimeBase.compare (t1, min) <= 0) {
                if (TimeBase.compare (t1, min) < 0) {
                   probeList.clear();
+                  if (debugStepComputation && t0 != -1) {
+                     System.out.println (
+                        "Step comoute: next probe event time is " + t1 + ", " +
+                        p.getName()+" "+p);
+                  }
                   min = t1;
                }
                probeList.add (p);
@@ -632,6 +640,9 @@ public class Scheduler {
          // check for the next step size boundary
          double nextStepTime = t0+(stepSize-TimeBase.modulo(t0,stepSize));
          if (TimeBase.compare (nextStepTime, min) < 0) {
+            if (debugStepComputation && t0 != -1) {
+               System.out.println ("Step comoute: step size is " + stepSize);
+            }         
             min = nextStepTime;
             probeList.clear();
          }
@@ -639,7 +650,6 @@ public class Scheduler {
       if (min == t0) {
          return -1;
       }
-      //System.out.println ("next "+TimeBase.ticksToSeconds(min));
       return TimeBase.round (min);
    }
 

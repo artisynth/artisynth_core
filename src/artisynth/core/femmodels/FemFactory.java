@@ -2851,7 +2851,7 @@ public class FemFactory {
     * Maps a cylinder with unit radius and z in [-1,1] to a unit sphere using the bilipschitz method described in
     * <p>
     * <quote>
-    * A bi-Lipschitz continuous, volume preserving map from the unit ball onto a cube”, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
+    * A bi-Lipschitz continuous, volume preserving map from the unit ball onto a cube, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
     * </quote>
     * </p>
     * </p>

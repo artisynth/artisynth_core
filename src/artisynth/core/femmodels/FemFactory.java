@@ -1791,7 +1791,7 @@ public class FemFactory {
                } else {
                   for (int i = 0; i < nt; i++) {
                      
-                     //    // XXX inverted elements at poles for large r, rAdj is not strictly increasing with k
+                     //    // XXX inverted elements at poles for large r
                      //    double kInterp = Math.pow(((double)k) / (ns - 1), 2) * (rs1 + rs2) / (2 * rl);
                      //    double l = (-rl + 2 * rl * dl * j / Math.PI) * (1 - kInterp)
                      //                + (-rl * Math.cos(j * dl)) * (kInterp);        
@@ -1908,23 +1908,13 @@ public class FemFactory {
                   }
                } else {
                   for (int i = 0; i < nt; i++) {
-                      //    // XXX inverted elements at poles for large r, rAdj is not strictly increasing with k
-                     //    double kInterp = Math.pow(((double)k) / (ns - 1), 2) * (rs1 + rs2) / (2 * rl);
-                     //    double l = (-rl + 2 * rl * dl * j / Math.PI) * (1 - kInterp)
-                     //                + (-rl * Math.cos(j * dl)) * (kInterp);        
-                     //    double rAdj = dr * k * Math.sqrt(1 - l * l / rl / rl);
-                     
-                     // need kInterp(0) = 0, kInterp(ns-1) = 1
-                     double a = (double)k/(ns-1);
-                     double kInterp = 1-Math.sqrt (1-a*a);
-                     // interpolate between axis and arc
+                     double kInterp =
+                        Math.pow(((double)k) / (ns - 1), 2) * (rs1 + rs2)
+                           / (2 * rl);
                      double l =
-                     (-rl + j*2.0*rl/(2*nl-2)) * (1 - kInterp)
-                     + (-rl * Math.cos(j*Math.PI/(2*nl-2))) * (kInterp);
-                     // linearly interpolate radius scale factor
-                     kInterp = a;
-                     double rAdj = kInterp*Math.sin (j*Math.PI/(2*nl-2));
-                     
+                        (-rl + 2 * rl * dl * j / Math.PI) * (1 - kInterp)
+                           + (-rl * Math.cos(j * dl)) * (kInterp);
+                     double rAdj = dr * k * Math.sqrt(1 - l * l / rl / rl);
                      nodes[i][j][k] =
                         new FemNode3d(
                            new Point3d(-rs1 * rAdj * Math.sin(dt * i), rs2
@@ -1965,6 +1955,7 @@ public class FemFactory {
                      model.addElement (elem);
                   }
                }
+               
             }
          }
       }

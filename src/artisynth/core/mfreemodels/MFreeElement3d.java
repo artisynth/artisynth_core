@@ -76,11 +76,16 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
          BVFeatureQuery query = new BVFeatureQuery();
          return query.isInsideOrientedMesh (myBoundaryMesh, pnt, 1e-10);
       }
-      //      for (MFreeNode3d node : myNodes) {
-      //         if (!node.isInDomain(pnt, 0)) {
-      //            return false;
-      //         }
-      //      }
+      
+      // inclusion
+      for (FemNode3d node : myNodes) {
+         MFreeNode3d mnode = (MFreeNode3d)(node);
+         if (!mnode.isInDomain(pnt, 0)) {
+            return false;
+         }
+      }
+      
+      // XXX assumes nodes at rest, does not consider exclusion
       return true;
    }
 
@@ -178,7 +183,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       
       myIntegrationPoints = new DynamicArray<>(MFreeIntegrationPoint3d.class, points.size()); 
       myIntegrationData = new IntegrationData3d[points.size ()];
-      // myIntegrationNodeIdxs = new ArrayList<int[]>(points.size());
       
       for (int i=0; i<points.size(); i++) {
          IntegrationData3d idata = null;
@@ -204,14 +208,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       setIntegrationPoints(points, null);
    }
 
-   //   public MFreeIntegrationPoint3d getWarpingPoint() {
-   //      return myWarpingPoint;
-   //   }
-   //   
-   //   public IntegrationData3d getWarpingData() {
-   //      return myWarpingData;
-   //   }
-   
    public void setWarpingPoint(MFreeIntegrationPoint3d warp) {
       myWarpingPoint = warp;
       myWarpingData = new IntegrationData3d();
@@ -246,6 +242,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
          if (myIntegrationPoints.size() > 0) {
             centroid.setZero();
             for (MFreeIntegrationPoint3d ipnt : myIntegrationPoints) {
+               ipnt.updatePosState ();
                centroid.add(ipnt.getPosition());
             }
             centroid.scale(1.0/myIntegrationPoints.size());
@@ -409,6 +406,12 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
    private PolygonalMeshRenderer myRenderInfo = null;
    
    @Override
+      public RenderProps createRenderProps () {
+         // allow points
+         return new RenderProps ();
+      }
+   
+   @Override
    public void prerender (RenderList list) {
       super.prerender(list);
       renderMeshValid = false;
@@ -457,14 +460,21 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
          
          renderer.pushModelMatrix();
          renderer.mulModelMatrix (trans);
-         //renderer.drawMesh(props, myBoundaryMesh, 0);
          
          if (isSelected()) {
             flags |= Renderer.HIGHLIGHT;
          }
+         
          myBoundaryMesh.render (renderer, props, flags);
          renderer.popModelMatrix();
+      } else {
          
+         // draw ipnts
+         float[] coords = new float[3];
+         for (MFreeIntegrationPoint3d ipnt : getIntegrationPoints ()) {
+            ipnt.getPosition ().get (coords);
+            renderer.drawPoint (myRenderProps, coords, isSelected());
+         }         
       }
    }
 
@@ -586,6 +596,9 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
                break;
          }
       }
+      
+      renderWidget (renderer, rprops, flags);
+      
       renderer.setShading (savedShading);
    }   
    

@@ -8,12 +8,10 @@ package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemMeshComp;
@@ -57,7 +55,7 @@ import maspack.util.Point3dGridUtility;
 public class MFreeFactory {
 
    public static double DEFAULT_TOLERANCE = 1e-10;
-   // public static int DEFAULT_GRID_IPNT_FACTOR = 3; // for every node, pick 3 ipnts along each dimension
+   public static int DEFAULT_IPNT_FACTOR = 3;      // for every node, pick N ipnts along each dimension
    public static int DEFAULT_MINIMUM_DEPENDENCIES = 6;
    
    public static RadialWeightFunctionType DEFAULT_RADIAL_KERNEL_TYPE = 
@@ -76,7 +74,7 @@ public class MFreeFactory {
       // 4 ipnts along each dimension for every node 
       int ires[] = new int[3];
       for (int i = 0; i < 3; i++) {
-         ires[i] = res[i] * 4;
+         ires[i] = res[i] * DEFAULT_IPNT_FACTOR;
       }
       return createBeam(model, fType, size, res, ires);
    }
@@ -306,77 +304,233 @@ public class MFreeFactory {
    }
 
    /**
-    * Creates a cylinder made of mostly hex elements, with wedges in the centre
-    * column.
-    *
+    * Creates a cylinder by distributing nodes and points radially
+    * 
     * @param model model to which the elements should be added, or
     * <code>null</code> if the model is to be created from scratch.
-    * @param l length along the z axis
+    * @param h length along the z axis
     * @param r radius in the x-y plane
-    * @param nt node resolution around the center axis
-    * @param nl node resolution along the length
+    * @param nh node resolution along the length
     * @param nr node resolution along the radius (including center)
     * @return created FEM model
     */
    public static MFreeModel3d createCylinder(
-      MFreeModel3d model, double l, double r, int nt, int nl, int nr) {
+      MFreeModel3d model, double h, double r, int nh, int nr) {
       
-      Point3d[] nodeLocs = new Point3d[nl*(nt*(nr-1)+1)];
-      PolygonalMesh surface = MeshFactory.createCylinder (r, l, nt, nr-1, nl-1);
+      int nt1 = 6;
       
-      double hmin = -l/2;
-      double dh = l/(nl-1);
+      PolygonalMesh surface = MeshFactory.createCylinder (r, h, nt1*(nr-1), nr-1, nh-1);
+      
       double dr = r/(nr-1);
-      double dt = 2*Math.PI/nt; 
+      double zmin = -h/2;
+      double dh = h/(nh-1);
       
+      // axis nodes
       int nidx = 0;
+      int nnodes = nh*(1 + nt1*nr*(nr-1)/2);
+      Point3d[] nodeLocs = new Point3d[nnodes];
+      for (int k=0; k<nh; ++k) {
+         nodeLocs[nidx++] = new Point3d(0,0,zmin+k*dh);
+      }
       
-      // generate nodes
-      // height
-      for (int k=0; k<nl; ++k) {
-         // center
-         double h = hmin + k*dh;
-         nodeLocs[nidx++] = new Point3d(0, 0, h);
-         // radial
-         for (int i=1; i<nr; ++i) {
-            double rr = i*dr;
-            // angle
+      // circle nodes
+      for (int i=1; i<nr; ++i) {
+         // next layer of nodes
+         double rr = dr*i;
+         int nt = nt1*i;
+         double dt = 2*Math.PI/nt;
+         for (int k=0; k<nh; ++k) {
+            double z = zmin+k*dh;
             for (int j=0; j<nt; ++j) {
                double theta = j*dt;
-               nodeLocs[nidx++] = new Point3d(rr*Math.cos (theta), rr*Math.sin (theta), h);
+               double x = rr*Math.cos (theta);
+               double y = rr*Math.sin (theta);
+               nodeLocs[nidx++] = new Point3d(x,y,z);
             }
          }
       }
       
       // generate ipnts
-      int ipntFactor = 2;
-      int nil = ipntFactor*(nl-1)+1;
+      int ipntFactor = DEFAULT_IPNT_FACTOR;
+      int nih = ipntFactor*(nh-1)+1;
       int nir = ipntFactor*(nr-1)+1;
-      int nit = ipntFactor*nt;
       
-      double dih = l/(nil-1);
+      double dih = h/(nih-1);
       double dir = r/(nir-1);
-      double dit = 2*Math.PI/nit; 
       
       int iidx = 0;
-      Point3d[] ipntLocs = new Point3d[nil*(nit*(nir-1)+1)];
+      int nipnts = nih*(1 + nt1*nir*(nir-1)/2);
+      Point3d[] ipntLocs = new Point3d[nipnts];
+      for (int k=0; k<nih; ++k) {
+         ipntLocs[iidx++] = new Point3d(0,0,zmin+k*dih);
+      }
       
-      for (int k=0; k<nil; ++k) {
-         // center
-         double h = hmin + k*dih;
-         ipntLocs[iidx++] = new Point3d(0, 0, h);
-         // radial
-         for (int i=1; i<nir; ++i) {
-            double rr = i*dir;
-            // angle
+      // circle pnts
+      for (int i=1; i<nir; ++i) {
+         // next layer of pnts
+         double rr = dir*i;
+         int nit = nt1*i;
+         double dt = 2*Math.PI/nit;
+         for (int k=0; k<nih; ++k) {
+            double z = zmin+k*dih;
             for (int j=0; j<nit; ++j) {
-               double theta = j*dit;
-               ipntLocs[iidx++] = new Point3d(rr*Math.cos (theta), rr*Math.sin (theta), h);
+               double theta = j*dt;
+               double x = rr*Math.cos (theta);
+               double y = rr*Math.sin (theta);
+               ipntLocs[iidx++] = new Point3d(x,y,z);
             }
          }
       }
       
+      
       return createModel(model, nodeLocs, ipntLocs, surface);
+   }
+   
+   /**
+    * Generate layers of divided octadecahedral spheres
+    * @param r radius of outer sphere
+    * @param nr number of radial layers
+    * @param ngt number of latitude groups
+    * @param ngs number of longitude groups
+    * @param pnts output populated locations
+    * @param idx initial offset into output array
+    * @return next index in array to add to (after last added point)
+    */
+   private static int generateOctadecahedralLayers(double r, int nr, int ngt, int ngs, Point3d[] pnts, int idx) {
+      
+      // center
+      pnts[idx++] = new Point3d(0,0,0);
+            
+      // distribute nodes radially
+      double dr = r/nr;
+
+      // radial layers
+      for (int k = 1; k<=nr; ++k) {
+         int nt = ngt*k;
+         double rr = k*dr;
+         double dphi = Math.PI/nt;
+
+         // north pole
+         pnts[idx++] = new Point3d(0,0,rr);
+
+         // first latitude group grows
+         {
+            int gt = 0;
+            for (int i=1; i<k; ++i) {
+               int t = gt*k+i;
+               int ns = ngs*i;
+
+               double phi = t*dphi;
+               double z = rr*Math.cos (phi);
+               double xy = rr*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<i; ++j) {
+                     int s = gs*i+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     pnts[idx++] = new Point3d(x,y,z);
+                  }
+               }
+            }
+         }
+
+         // middle groups constant width
+         for (int gt=1; gt<ngt-1; ++gt) {
+            for (int i=0; i<k; ++i) {
+               int t = gt*k+i;
+               int ns = ngs*k;
+
+               double phi = t*dphi;
+               double z = rr*Math.cos (phi);
+               double xy = rr*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<k; ++j) {
+                     int s = gs*k+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     pnts[idx++] = new Point3d(x,y,z);
+                  }
+               }
+            }
+         }
+
+         // last group shrinks
+         {
+            int gt = ngt-1;
+            for (int i=0; i<k; ++i) {
+               int t = gt*k+i;
+               int ns = ngs*(k-i);
+
+               double phi = t*dphi;
+               double z = rr*Math.cos (phi);
+               double xy = rr*Math.sin (phi);
+               double dtheta = 2*Math.PI/ns;  
+
+               // longitude groups
+               for (int gs=0; gs<ngs; ++gs) {
+                  for (int j=0; j<k-i; ++j) {
+                     int s = gs*(k-i)+j;
+                     double theta = s*dtheta;
+                     double x = xy*Math.cos (theta);
+                     double y = xy*Math.sin (theta);
+                     pnts[idx++] = new Point3d(x,y,z);
+                  }
+               }
+            }
+         }
+
+         // south pole
+         pnts[idx++] = new Point3d(0,0,-rr);
+      }
+      
+      return idx;
+   }
+   
+   /**
+    * Creates an MFree model of a sphere, distributing nodes and integration points
+    * using subdivided octadecahedrals.
+    * 
+    * @param model model to populate, created if null
+    * @param r radius
+    * @param nr number of radial layers, including the center
+    * @return created model
+    */
+   public static MFreeModel3d createSphere(MFreeModel3d model, double r, int nr) {
+      
+      --nr; // exclude center
+      
+      // distribute nodes and ipnts using uniform hexagonal distribution
+      if (nr < 1) {
+         r = 1;
+      }
+         
+      int ngs = 6;
+      int ngt = 3;
+      
+      int nnodes = nr*(nr+1)/2*(2*nr+1)/3*ngs*(ngt-1)+2*nr+1;
+      Point3d[] nodeLocs = new Point3d[nnodes];
+      generateOctadecahedralLayers (r, nr, ngt, ngs, nodeLocs, 0);
+            
+      // integration points
+      int ipntFactor = DEFAULT_IPNT_FACTOR;
+      int nir = ipntFactor*nr;
+      
+      int nipnts = nir*(nir+1)/2*(2*nir+1)/3*ngs*(ngt-1)+2*nir+1;
+      Point3d[] ipntLocs = new Point3d[nipnts];
+      generateOctadecahedralLayers (r, nir, ngt, ngs, ipntLocs, 0);
+            
+      PolygonalMesh surface = MeshFactory.createOctadecahedralSphere(r, nr);
+      
+      return createModel(model, nodeLocs, ipntLocs, surface);
+      
    }
    
    public static MFreeModel3d createModel(MFreeModel3d model,
@@ -722,8 +876,11 @@ public class MFreeFactory {
       MFreeNode3d[] nodes, PolygonalMesh surface,
       CubaturePoint3d[] cpnts) {
 
-      MFreeShapeFunction func = new MLSShapeFunction();
-      
+      if (model == null) {
+         model = new MFreeModel3d();
+      }
+      model.addNodes(Arrays.asList(nodes));
+
       FunctionTimer timer = new FunctionTimer();
 
       // timer.start();
@@ -743,11 +900,23 @@ public class MFreeFactory {
       timer.stop();
       System.out.println("Node BVTree: " + timer.getTimeUsec() / 1000 + " ms");
 
+      Comparator<FemNode3d> byNumber = new Comparator<FemNode3d>() {
+         @Override
+         public int compare (FemNode3d n0, FemNode3d n1) {
+            return Integer.compare (n0.getNumber(), n1.getNumber());
+         }
+      };
+      
       
       // compute node dependencies and coordinates
       timer.start();
+      MFreeShapeFunction func = new MLSShapeFunction();
       for (MFreeNode3d node : nodes) {
          MFreeNode3d[] deps = findNodesContaining(node.getRestPosition(), nodeTree, 0);
+         
+         // sort nodes by number
+         Arrays.sort (nodes, byNumber);
+         
          VectorNd coords = new VectorNd();
          getShapeCoords(func, coords, node.getRestPosition(), deps);
          node.setDependentNodes(deps, coords);
@@ -793,11 +962,6 @@ public class MFreeFactory {
 
       // surface = (PolygonalMesh)convertToMFreeMesh(surface, nodeTree, DEFAULT_TOLERANCE);
 
-      if (model == null) {
-         model = new MFreeModel3d();
-      }
-
-      model.addNodes(Arrays.asList(nodes));
       model.addElements(elemList);
       model.setSurfaceMesh(surface);
       
@@ -833,8 +997,18 @@ public class MFreeFactory {
       MFreeIntegrationPoint3d[] ipnts =
          new MFreeIntegrationPoint3d[cpnts.length];
 
+      Comparator<FemNode3d> byNumber = new Comparator<FemNode3d>() {
+         @Override
+         public int compare (FemNode3d n0, FemNode3d n1) {
+            return Integer.compare (n0.getNumber(), n1.getNumber());
+         }
+      };
+      
       for (int i = 0; i < cpnts.length; i++) {
          MFreeNode3d[] deps = findNodesContaining(cpnts[i], nodeTree, 0);
+         // sort nodes by number
+         Arrays.sort (deps, byNumber);
+         
          VectorNd coords = new VectorNd(deps.length);
          ArrayList<Vector3d> grad = new ArrayList<Vector3d>(deps.length);
          getShapeCoordsAndGradients(fun, coords, grad, cpnts[i], deps);
@@ -884,11 +1058,6 @@ public class MFreeFactory {
          
          elem.addIntegrationPoint(ipnt, idat, ipnt.getWeight(), false);
       }
-
-      for (MFreeElement3d elem : pntMap.values()) {
-         elem.updateAllVolumes();
-      }
-
    }
 
    //   public static void distributePartitionedIPoints(
@@ -1277,6 +1446,7 @@ public class MFreeFactory {
             }
          }
       }
+      
       return deps.getArray();
    }
 
@@ -1578,26 +1748,20 @@ public class MFreeFactory {
       createPartitionedElementsFromPoints(A[] pnts, HashMap<A,MFreeElement3d> pntMap) {
       
       ArrayList<MFreeElement3d> elems = new ArrayList<MFreeElement3d>();
-      HashMap<FemNode3d,LinkedList<MFreeElement3d>> elemMap = new HashMap<>();
+      ElemTree etree = new ElemTree();
       
       MFreeShapeFunction fun = new MLSShapeFunction();
+      
       for (A pnt : pnts) {
-         FemNode3d[] nodes = pnt.getDependentNodes();
-         MFreeElement3d elem = findElem(nodes, elemMap);
+         FemNode3d[] nodes = pnt.getDependentNodes();      
+         
+         ElemTree leaf = etree.get (nodes, 0);
+         
+         MFreeElement3d elem = (MFreeElement3d)leaf.elem;
          if (elem == null) {
             elem = new MFreeElement3d(fun, Arrays.copyOf(nodes, nodes.length));
             elems.add(elem);
-            
-            for (FemNode3d node : nodes) {
-               LinkedList<MFreeElement3d> elemList = elemMap.get(node);
-               if (elemList == null) {
-                  elemList = new LinkedList<>();
-                  elemList.add(elem);
-                  elemMap.put(node,  elemList);
-               } else {
-                  elemList.add(elem);
-               }
-            }
+            leaf.elem = elem;
          }
          pntMap.put(pnt, elem);
       }
@@ -1605,47 +1769,52 @@ public class MFreeFactory {
       return elems;
 
    }
-
-   private static MFreeElement3d findElem(FemNode3d[] nodes,
-      Map<FemNode3d,LinkedList<MFreeElement3d>> elemMap) {
-
-      // only check elements of dependent nodes
-      for (FemNode3d node : nodes) {
-         LinkedList<MFreeElement3d> elemList = elemMap.get(node);
-         if (elemList != null) {
-            for (MFreeElement3d elem : elemList) {
-               FemNode3d[] enodes = elem.getNodes();
-               if (enodes.length == nodes.length) {
-                  if (compareArrays(enodes, nodes)) {
-                     return elem;
-                  }
-               }     
-            }
-         }
-      }
-      return null;
-
-   }
-
-   //   private static <E> boolean compareLists(List<E> list1, List<E> list2) {
-   //      HashSet<E> set1 = new HashSet<E>(list1);
-   //      HashSet<E> set2 = new HashSet<E>(list2);
-   //      return set1.equals(set2);
-   //   }
    
-   private static <E> boolean compareArrays(E[] list1, E[] list2) {
-      if (list1.length != list2.length) {
-         return false;
+   private static class ElemTree {
+      FemElement3d elem;
+      HashMap<FemNode3d,ElemTree> children;
+      
+      public ElemTree() {
+         elem = null;
+         children = new HashMap<> ();
       }
-      HashSet<E> set1 = new HashSet<>();
-      for (E e : list1) {
-         set1.add(e);
+      
+      /**
+       * returns leaf node
+       * @param nodes
+       * @param offset
+       * @return
+       */
+      public ElemTree append(FemNode3d[] nodes, int offset) {
+         if (offset == nodes.length) {
+            return this;
+         }
+         ElemTree child = new ElemTree();
+         ElemTree leaf = child.append (nodes, offset+1);
+         children.put (nodes[offset], child);
+         return leaf;
       }
-      HashSet<E> set2 = new HashSet<>();
-      for (E e : list2) {
-         set2.add(e);
+      
+      /**
+       * Finds or creates an element tree node for the following Fem nodes
+       * @param nodes nodes
+       * @param offset offset within nodes array
+       * @return tree node that should contain element if it exists
+       */
+      public ElemTree get(FemNode3d[] nodes, int offset) {
+         if (offset == nodes.length) {
+            return this;
+         }
+         
+         ElemTree child = children.get (nodes[offset]);
+         if (child == null) {
+            child = new ElemTree();
+            ElemTree leaf = child.append(nodes, offset+1);
+            children.put (nodes[offset], child);
+            return leaf;
+         }
+         return child.get (nodes, offset+1);
       }
-      return set1.equals(set2);
    }
    
 }

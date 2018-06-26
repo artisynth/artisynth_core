@@ -413,9 +413,11 @@ public class MeshUtilities {
          else {
             if (heOpp != null) {
                heOpp.setHard (false);
+               heOpp.setPrimary (true);
             }
             if (hnOpp != null) {
-               hnOpp.setHard (false);  
+               hnOpp.setHard (false);
+               hnOpp.setPrimary (true);
             }
          }
          return true;
@@ -643,6 +645,7 @@ public class MeshUtilities {
       
       // reconnect edge
       edge.opposite = edgeOpp;
+      edge.setPrimary (true);
       if (edgeOpp != null) {
          edgeOpp.opposite = edge;
          edgeOpp.setPrimary (false);
@@ -660,6 +663,15 @@ public class MeshUtilities {
          return false;
       }
       
+      // opposite edge
+      HalfEdge hopp = he.opposite;
+      if (hopp != null) {
+         HalfEdge hnext = hopp.next;
+         if (hnext.head == hopp.tail) {
+            return false;
+         }
+      }
+      
       // check if collapsing would change topology 
       HalfEdgeNode node = tail.incidentHedges;
       while (node != null) {
@@ -668,7 +680,7 @@ public class MeshUtilities {
             if (ee.tail == head) {
                return false;
             }
-            if (ee.next.tail == head) {
+            if (ee.next != he && ee.next.head == head) {
                return false;
             }
          }
@@ -965,7 +977,6 @@ public class MeshUtilities {
          }
       }
       
-      // mesh.removeDisconnectedVertices ();
       mesh.notifyVertexPositionsModified ();
       mesh.updateTriQuadCounts ();
       mesh.notifyStructureChanged ();
@@ -1237,11 +1248,18 @@ public class MeshUtilities {
       for (Vertex3d vtx : mesh.getVertices ()) {
          Vertex3d[] nbrs = new Vertex3d[2];
          int nborders = 0;
+         HashSet<Vertex3d> opposites = new HashSet<>();
          
          // collect neighboring borders
          HalfEdgeNode hen = vtx.incidentHedges;
          while (hen != null) {
             HalfEdge he = hen.he;
+            if (opposites.contains (he.tail)) {
+               nborders = -1;  // non-manifold
+               break;
+            } else {
+               opposites.add (he.tail);
+            }
             if (isBorderEdge (he)) {
                if (nborders == 0) {
                   nbrs[0] = he.tail;
@@ -1258,6 +1276,12 @@ public class MeshUtilities {
             }
             // non-incident border edge
             if (he.next.opposite == null) {
+               if (opposites.contains (he.next.head)) {
+                  nborders = -1;  // non-manifold
+                  break;
+               } else {
+                  opposites.add(he.next.head);
+               }
                if (nborders == 0) {
                   nbrs[0] = he.next.head;
                   ++nborders;
@@ -1312,10 +1336,24 @@ public class MeshUtilities {
                   // find next and previous border vertices for interpolation
                   Vertex3d head = he.head;
                   Vertex3d tail = he.tail;
-                  BorderVertexData headData = (BorderVertexData)vdata.get (head.getIndex ());
-                  BorderVertexData tailData = (BorderVertexData)vdata.get (tail.getIndex ());
-                  Vertex3d left = tailData.getOtherNeighbour (head);
-                  Vertex3d right = headData.getOtherNeighbour (tail);
+                  Vertex3d left = null;
+                  Vertex3d right = null;
+                  VertexData vdat = vdata.get (head.getIndex ());
+                  BorderVertexData headData = null;
+                  if (vdat.isBorder ()) {
+                     headData = (BorderVertexData)vdat;
+                     right = headData.getOtherNeighbour (tail);
+                  } else {
+                     System.out.println ("Error on vertex " + head.getIndex ());
+                  }
+                  vdat = vdata.get (tail.getIndex ());
+                  BorderVertexData tailData = null;
+                  if (vdat.isBorder ()) {
+                     tailData = (BorderVertexData)vdat;
+                     left = tailData.getOtherNeighbour (head);
+                  } else {
+                     System.out.println ("Error on vertex " + tail.getIndex ());
+                  }
                   
                   // split from tail to head
                   HalfEdge be0 = edgeSplit3 (face.he0);
@@ -1345,8 +1383,12 @@ public class MeshUtilities {
                   }
                   
                   // mark next neighbours
-                  headData.queueNeighbour (tail, be2.tail);
-                  tailData.queueNeighbour (head, be0.head);
+                  if (headData != null) {
+                     headData.queueNeighbour (tail, be2.tail);
+                  }
+                  if (tailData != null) {
+                     tailData.queueNeighbour (head, be0.head);
+                  }
                   
                   // add new vdata for border vertices
                   vdata.add(new BorderVertexData (be0.tail, be0.head, be1.tail));

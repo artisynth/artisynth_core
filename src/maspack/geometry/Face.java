@@ -17,7 +17,6 @@ import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.util.ArraySupport;
 import maspack.util.InternalErrorException;
-import maspack.util.DoubleHolder;
 
 public class Face extends Feature implements Boundable {
    HalfEdge he0; // half edge associated with first vertex
@@ -1713,7 +1712,7 @@ public class Face extends Feature implements Boundable {
          // find the indices of the best chord triangle, add the
          // corresponding face to the new face list, and remove
          // the vertex
-         Vertex3d[] chord = bestChord (verts);
+         Vertex3d[] chord = bestChord (verts, nVerts);
          tris.add(chord);
 
          int j = 0;
@@ -1757,14 +1756,14 @@ public class Face extends Feature implements Boundable {
    }
 
 
-   private Vertex3d[] bestChord (Vertex3d[] vtxs) {
-      if (vtxs.length < 3) {
+   private Vertex3d[] bestChord (Vertex3d[] vtxs, int nVerts) {
+      if (nVerts < 3) {
          throw new InternalErrorException ("less than three indices specified");
       }
-      else if (vtxs.length == 3) {
+      else if (nVerts == 3) {
          return new Vertex3d[] { vtxs[0], vtxs[1], vtxs[2] };
       }
-      else if (vtxs.length == 4) {
+      else if (nVerts == 4) {
          double cos301 = maxCosine (vtxs[3], vtxs[0], vtxs[1]);
          double cos012 = maxCosine (vtxs[0], vtxs[1], vtxs[2]);
          if (cos301 < cos012) {
@@ -1778,18 +1777,18 @@ public class Face extends Feature implements Boundable {
          double minCos = Double.POSITIVE_INFINITY;
          int i_min = 0;
          int i_prev, i_next;
-         for (int i = 0; i < vtxs.length; i++) {
+         for (int i = 0; i < nVerts; i++) {
 
-            i_prev = (i == 0 ? vtxs.length - 1 : i - 1);
-            i_next = (i == vtxs.length - 1 ? 0 : i + 1);
+            i_prev = (i == 0 ? nVerts - 1 : i - 1);
+            i_next = (i == nVerts - 1 ? 0 : i + 1);
             double cos = maxCosine (vtxs[i_prev], vtxs[i], vtxs[i_next]);
             if (cos < minCos) {
                i_min = i;
                minCos = cos;
             }
          }
-         i_prev = (i_min == 0 ? vtxs.length - 1 : i_min - 1);
-         i_next = (i_min == vtxs.length - 1 ? 0 : i_min + 1);
+         i_prev = (i_min == 0 ? nVerts - 1 : i_min - 1);
+         i_next = (i_min == nVerts - 1 ? 0 : i_min + 1);
          return new Vertex3d[] { vtxs[i_prev], vtxs[i_min], vtxs[i_next] };
       }
    }

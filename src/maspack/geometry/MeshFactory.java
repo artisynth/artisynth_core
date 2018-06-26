@@ -1180,7 +1180,7 @@ public class MeshFactory {
       
       if (mesh instanceof PolygonalMesh) {
          PolygonalMesh pmesh = (PolygonalMesh)mesh;
-         DistanceGrid sdg = new DistanceGrid (((PolygonalMesh)mesh).getFaces (), margin, res, true);
+         DistanceGrid sdg = new DistanceGrid (pmesh.getFaces (), margin, res, true);
          double[] phi2 = sdg.getDistances ();
          
          // take lower of distances

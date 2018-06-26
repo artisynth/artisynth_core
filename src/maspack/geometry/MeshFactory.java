@@ -9,6 +9,7 @@ package maspack.geometry;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.PriorityQueue;
@@ -16,6 +17,7 @@ import java.util.PriorityQueue;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
 import maspack.util.InternalErrorException;
 
 /**
@@ -1149,6 +1151,54 @@ public class MeshFactory {
       for (int i = 0; i < numIters; i++) {
          out = subdivide(out);
       }
+      return out;
+   }
+   
+   /**
+    * Wrap all features of a mesh with a polygonal mesh
+    * 
+    * @param mesh mesh to wrap
+    * @param res resolution for evaluating distances
+    * @param dist level-set of distances to consider
+    * @return wrapped mesh
+    */
+   public static PolygonalMesh wrapMesh(MeshBase mesh, Vector3i res, double margin, double dist) {
+      
+      ArrayList<Feature> features = new ArrayList<>();
+      
+      features.addAll (mesh.getVertices ());
+      
+      if (mesh instanceof PolylineMesh) {
+         PolylineMesh lmesh = (PolylineMesh)mesh;
+         for (Polyline line : lmesh.getLines ()) {
+            features.addAll (Arrays.asList(line.getSegments ()));
+         }
+      }
+      
+      DistanceGrid dg = new DistanceGrid (features, margin, res, false);
+      double[] phi = dg.getDistances ();
+      
+      if (mesh instanceof PolygonalMesh) {
+         PolygonalMesh pmesh = (PolygonalMesh)mesh;
+         DistanceGrid sdg = new DistanceGrid (((PolygonalMesh)mesh).getFaces (), margin, res, true);
+         double[] phi2 = sdg.getDistances ();
+         
+         // take lower of distances
+         for (int i=0; i<phi2.length; ++i) {
+            if (phi2[i] < phi[i]) {
+               phi[i] = phi2[i];
+            }
+         }
+      }
+      
+      
+      MarchingTetrahedra marcher = new MarchingTetrahedra ();
+      PolygonalMesh out = marcher.createMesh (
+         phi, Vector3d.ZERO, new Vector3d(1,1,1), res, dist);
+      out.transform (dg.getGridToLocalTransformer ());
+      
+      out.setMeshToWorld (mesh.getMeshToWorld ());
+      
       return out;
    }
 

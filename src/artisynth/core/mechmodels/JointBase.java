@@ -6,6 +6,7 @@
  */
 package artisynth.core.mechmodels;
 
+import java.awt.Color;
 import java.util.Map;
 
 import maspack.matrix.Point3d;
@@ -116,6 +117,7 @@ public abstract class JointBase extends BodyConnector  {
 
    public void render (Renderer renderer, int flags) {
       int lineWidth = myRenderProps.getLineWidth();
+      
       if (myDrawFrameD) {
          renderer.drawAxes (
             myRenderFrameD, myAxisLength, lineWidth, isSelected());
@@ -125,6 +127,28 @@ public abstract class JointBase extends BodyConnector  {
          // second frame
          renderer.drawAxes (
             myRenderFrameC, myAxisLength, lineWidth, isSelected());
+      }
+      
+      if (myDrawFrameC && myDrawFrameD) {
+         // distinguish one from the other
+         Point3d pnt = new Point3d();
+         pnt.transform (myRenderFrameC);
+         renderer.setPointSize (myRenderProps.getPointSize ());
+         
+         pnt.scale (myAxisLength, Vector3d.X_UNIT);
+         pnt.transform (myRenderFrameC);
+         renderer.setColor (Color.RED);
+         renderer.drawPoint (pnt);
+         
+         pnt.scale (myAxisLength, Vector3d.Y_UNIT);
+         pnt.transform (myRenderFrameC);
+         renderer.setColor (Color.GREEN);
+         renderer.drawPoint (pnt);
+         
+         pnt.scale (myAxisLength, Vector3d.Z_UNIT);
+         pnt.transform (myRenderFrameC);
+         renderer.setColor (Color.BLUE);
+         renderer.drawPoint (pnt);
       }
    }
 

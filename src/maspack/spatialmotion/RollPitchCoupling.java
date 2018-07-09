@@ -167,36 +167,35 @@ public class RollPitchCoupling extends RigidBodyCoupling {
    @Override
    public void projectToConstraint (RigidTransform3d TGD, RigidTransform3d TCD) {
       TGD.R.set (TCD.R);
-      
+
       // apply a Givens rotation to 0 the m12 entry of TGD.R. This
       // means that we apply a rotation about the x axis (in R coordinates)
       // to remove any residual "yaw" angle.
 
       double a = TGD.R.m22;  // cpitch*cyaw
       double b = TGD.R.m12;  // cpitch*syaw
-      
+
 
       if (b != 0) {
          // XXX very unstable near singularities p = +/-90,
          // causes roll to jump around sporadically.  There should be
          // no singularity here, since constraint can be defined without
          // resorting to euler angles.
-         // 
-         //   double s, c;
-         //         if (Math.abs(b) > Math.abs(a)) {
-         //            double tau = -a/b;
-         //            s = 1/Math.sqrt(1+tau*tau);
-         //            c = s*tau;
-         //         }
-         //         else {
-         //            double tau = -b/a;
-         //            c = 1/Math.sqrt(1+tau*tau);
-         //            s = c*tau;
-         //         }
-         //         
-         //         RotationMatrix3d RXT = new RotationMatrix3d (1, 0, 0,  0, c, s,  0, -s, c);
-         //         TGD.R.mul (RXT, TGD.R);
-         
+         //            double s, c;
+         //            if (Math.abs(b) > Math.abs(a)) {
+         //               double tau = -a/b;
+         //               s = 1/Math.sqrt(1+tau*tau);
+         //               c = s*tau;
+         //            }
+         //            else {
+         //               double tau = -b/a;
+         //               c = 1/Math.sqrt(1+tau*tau);
+         //               s = c*tau;
+         //            }
+         //   
+         //            RotationMatrix3d RXT = new RotationMatrix3d (1, 0, 0,  0, c, s,  0, -s, c);
+         //            TGD.R.mul (RXT, TGD.R);
+
          // Alternate constraint correction:
          // rotate RCD*z  such that it is perpendicular to y (enforces 
          //   Universal joint constraint that the two rotation axes remain perpendicular)
@@ -209,7 +208,7 @@ public class RollPitchCoupling extends RigidBodyCoupling {
          } else {
             // restore angle to 90 degrees
             double theta = Math.PI/2 - Math.atan2 (u, b);
-            AxisAngle aa = new AxisAngle (cc/u, 0, -a/u, theta);
+            AxisAngle aa = new AxisAngle (a/u, 0, -cc/u, theta);
             RotationMatrix3d RXT2 = new RotationMatrix3d(aa);
             TGD.R.mul (RXT2, TCD.R);
          }
@@ -229,7 +228,7 @@ public class RollPitchCoupling extends RigidBodyCoupling {
    }      
 
    public void getRollPitch (double[] angs, RigidTransform3d TGD) {
-      
+
       // on entry, TGD is set to TCD. It is then projected to TGD
       projectToConstraint (TGD, TGD);
       RotationMatrix3d RDC = new RotationMatrix3d();
@@ -293,12 +292,12 @@ public class RollPitchCoupling extends RigidBodyCoupling {
          denom = (denom >= 0 ? 0.0001 : -0.0001);
       }
       double tp = sp/denom;
-      
+
       // Don't need to transform because vel is now in Frame C
-//      // get angular velocity of B with respect to A in frame C
-//      if (!myComputeVelInFrameC) {
-//         wBA.transform (RDC, myVelBA.w);
-//      }
+      //      // get angular velocity of B with respect to A in frame C
+      //      if (!myComputeVelInFrameC) {
+      //         wBA.transform (RDC, myVelBA.w);
+      //      }
 
       info[4].distance = 0;
       info[5].distance = 0;

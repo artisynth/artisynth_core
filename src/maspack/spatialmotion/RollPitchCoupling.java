@@ -100,20 +100,20 @@ public class RollPitchCoupling extends RigidBodyCoupling {
     */
    public boolean hasRestrictedRange() {
       return (myMinRoll != Double.NEGATIVE_INFINITY ||
-              myMaxRoll != Double.POSITIVE_INFINITY ||
-              myMinPitch != Double.NEGATIVE_INFINITY ||
-              myMaxPitch != Double.POSITIVE_INFINITY);
+      myMaxRoll != Double.POSITIVE_INFINITY ||
+      myMinPitch != Double.NEGATIVE_INFINITY ||
+      myMaxPitch != Double.POSITIVE_INFINITY);
    }
 
    public RollPitchCoupling() {
       super();
    }
 
-//   public RollPitchCoupling (RigidTransform3d TCA, RigidTransform3d XDB) {
-//      this();
-//      setXDB (XDB);
-//      setXFA (TCA);
-//   }
+   //   public RollPitchCoupling (RigidTransform3d TCA, RigidTransform3d XDB) {
+   //      this();
+   //      setXDB (XDB);
+   //      setXFA (TCA);
+   //   }
 
    @Override
    public int maxUnilaterals() {
@@ -177,6 +177,7 @@ public class RollPitchCoupling extends RigidBodyCoupling {
 
 
       if (b != 0) {
+         
          // XXX very unstable near singularities p = +/-90,
          // causes roll to jump around sporadically.  There should be
          // no singularity here, since constraint can be defined without

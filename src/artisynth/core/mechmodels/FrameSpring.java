@@ -6,6 +6,7 @@
  */
 package artisynth.core.mechmodels;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.LinkedList;
@@ -18,6 +19,7 @@ import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix6dBlock;
+import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -85,6 +87,10 @@ public class FrameSpring extends Spring
    protected float[] myRenderPnt1 = new float[3];
    protected float[] myRenderPnt2 = new float[3];
    
+   protected static final boolean defaultDrawFrame = false;
+   protected boolean myDrawFrameD = defaultDrawFrame;
+   protected boolean myDrawFrameC = false;
+   
    private Matrix3d myTmpM = new Matrix3d();
    // private RotationMatrix3d myRBA = new RotationMatrix3d();
 
@@ -109,9 +115,11 @@ public class FrameSpring extends Spring
       myProps.add (
          "material", "spring material parameters", createDefaultMaterial(), "CE");
       myProps.add ("axisLength * *", "length of rendered frame axes", 1f);
-      // Masoud STARTS
       myProps.addReadOnly("springForce *", "The spring force");
-      // Masoud ENDS
+      myProps.add (
+         "drawFrame", "if true, draw the D coordinate frame", defaultDrawFrame);
+      myProps.add (
+         "drawMovingFrame getDrawFrameC setDrawFrameC", "if true, draw the C coordinate frame", false);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -149,6 +157,31 @@ public class FrameSpring extends Spring
       myAxisLength = Math.max (0, len);
    }
 
+   public boolean getDrawFrame() {
+      return getDrawFrameD();
+   }
+
+   public void setDrawFrame (boolean draw) {
+      setDrawFrameD(draw);
+   }
+
+   public boolean getDrawFrameD() {
+      return myDrawFrameD;
+   }
+
+   public void setDrawFrameD (boolean draw) {
+      myDrawFrameD = draw;
+   }
+
+   
+   public void setDrawFrameC(boolean draw) {
+      myDrawFrameC = draw;
+   }
+   
+   public boolean getDrawFrameC() {
+      return myDrawFrameC;
+   }
+   
    public void setInitialT21 (RigidTransform3d X21) {
       myInitialX21.set (X21);
    }
@@ -220,9 +253,31 @@ public class FrameSpring extends Spring
       myRenderFrame.p.get (myRenderPnt1);
 
       int lineWidth = myRenderProps.getLineWidth();
-      if (myAxisLength > 0) {
+      if (myDrawFrameC && myAxisLength > 0) {
          renderer.drawAxes (
             myRenderFrame, myAxisLength, lineWidth, isSelected());
+         
+         if (myDrawFrameD) {
+            // distinguish one from the other
+            Point3d pnt = new Point3d();
+            pnt.transform (myRenderFrame);
+            renderer.setPointSize (myRenderProps.getPointSize ());
+            
+            pnt.scale (myAxisLength, Vector3d.X_UNIT);
+            pnt.transform (myRenderFrame);
+            renderer.setColor (Color.RED);
+            renderer.drawPoint (pnt);
+            
+            pnt.scale (myAxisLength, Vector3d.Y_UNIT);
+            pnt.transform (myRenderFrame);
+            renderer.setColor (Color.GREEN);
+            renderer.drawPoint (pnt);
+            
+            pnt.scale (myAxisLength, Vector3d.Z_UNIT);
+            pnt.transform (myRenderFrame);
+            renderer.setColor (Color.BLUE);
+            renderer.drawPoint (pnt);
+         }
       }
 
       if (myFrameB != null) {
@@ -234,7 +289,7 @@ public class FrameSpring extends Spring
       myRenderFrame.mul (myX2B);
       myRenderFrame.p.get (myRenderPnt2);
          
-      if (myAxisLength > 0) {
+      if (myDrawFrameD && myAxisLength > 0) {
          renderer.drawAxes (
             myRenderFrame, myAxisLength, lineWidth, isSelected());
       }

@@ -539,6 +539,23 @@ public class Quaternion extends VectorBase {
          axisAng.axis.scale (1/mag, u);      
       }
    }
+   
+   public void getRotationMatrix(RotationMatrix3d R) {
+      double n2 = 1.0/normSquared ();
+      double qr = this.s;
+      double qi = this.u.x;
+      double qj = this.u.y;
+      double qk = this.u.z;
+      R.m00 = 1-2*n2*(qj*qj + qk*qk);
+      R.m01 = 2*n2*(qi*qj - qk*qr);
+      R.m02 = 2*n2*(qi*qk + qj*qr);
+      R.m10 = 2*n2*(qi*qj + qk*qr);
+      R.m11 = 1-2*n2*(qi*qi + qk*qk);
+      R.m12 = 2*n2*(qj*qk-qi*qr);
+      R.m20 = 2*n2*(qi*qk-qj*qr);
+      R.m21 = 2*n2*(qj*qk + qi*qr);
+      R.m22 = 1-2*n2*(qi*qi + qj*qj);
+   }
 
    public void setExp (double scale, Vector3d v) {
       double ang = v.norm();

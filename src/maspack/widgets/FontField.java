@@ -123,7 +123,8 @@ public class FontField extends LabeledControl {
          public void actionPerformed (ActionEvent e) {
             if (!myMasked) {
                Font base = (Font)myComboBox.getSelectedItem ();
-               int size = (int)(myFontSize.getSelectedItem ());
+               Float f = (Float)(myFontSize.getSelectedItem ());
+               int size = (int)f.intValue ();
                int style = 0;
                if (myBold.isSelected ()) {
                   style |= Font.BOLD;

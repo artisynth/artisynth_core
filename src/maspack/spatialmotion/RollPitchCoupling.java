@@ -6,26 +6,25 @@
  */
 package maspack.spatialmotion;
 
-import maspack.matrix.*;
-import maspack.util.*;
-
-import java.util.ArrayList;
+import maspack.matrix.AxisAngle;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.Vector3d;
 
 /**
  * Implements a two DOF roll-pitch coupling. Frames C and D share a common
  * origin, and the transform from C to D is given by a <code>roll</code>
  * rotation about the z axis, followed by a <code>pitch</code> rotation about
- * the subsequent <code>y</code> axis.  Range limits can be placed on both the
+ * the subsequent <code>y</code> axis (i.e. D's y-axis).  Range limits can be placed on both the
  * roll and pitch angles.
  */
 public class RollPitchCoupling extends RigidBodyCoupling {
 
    private double myMaxRoll = Math.PI;
-   private double myMaxPitch = Math.PI/2;
+   private double myMaxPitch = Math.PI; // Math.PI/2
 
    private double myMinRoll = -Math.PI;
-   private double myMinPitch = -Math.PI/2;
-
+   private double myMinPitch = -Math.PI;  // Math.PI/2
 
    private double clip (double value, double min, double max) {
       if (value < min) {
@@ -48,7 +47,7 @@ public class RollPitchCoupling extends RigidBodyCoupling {
     */
    public void setRollRange (double min, double max) {
       if (min > max) {
-         throw new IllegalArgumentException ("min exceeeds max");
+         throw new IllegalArgumentException ("min exceeds max");
       }
       myMinRoll = clip (min, -Math.PI, Math.PI);
       myMaxRoll = clip (max, -Math.PI, Math.PI);
@@ -101,20 +100,20 @@ public class RollPitchCoupling extends RigidBodyCoupling {
     */
    public boolean hasRestrictedRange() {
       return (myMinRoll != Double.NEGATIVE_INFINITY ||
-              myMaxRoll != Double.POSITIVE_INFINITY ||
-              myMinPitch != Double.NEGATIVE_INFINITY ||
-              myMaxPitch != Double.POSITIVE_INFINITY);
+      myMaxRoll != Double.POSITIVE_INFINITY ||
+      myMinPitch != Double.NEGATIVE_INFINITY ||
+      myMaxPitch != Double.POSITIVE_INFINITY);
    }
 
    public RollPitchCoupling() {
       super();
    }
 
-//   public RollPitchCoupling (RigidTransform3d TCA, RigidTransform3d XDB) {
-//      this();
-//      setXDB (XDB);
-//      setXFA (TCA);
-//   }
+   //   public RollPitchCoupling (RigidTransform3d TCA, RigidTransform3d XDB) {
+   //      this();
+   //      setXDB (XDB);
+   //      setXFA (TCA);
+   //   }
 
    @Override
    public int maxUnilaterals() {
@@ -136,7 +135,6 @@ public class RollPitchCoupling extends RigidBodyCoupling {
     * @see #setRollPitch(RotationMatrix3d,double,double)
     */
    private void getRollPitch (double[] angs, RotationMatrix3d R) {
-
       angs[0] = Math.atan2 (-R.m01, R.m11);
       angs[1] = Math.atan2 (-R.m20, R.m22);
    }
@@ -169,31 +167,53 @@ public class RollPitchCoupling extends RigidBodyCoupling {
    @Override
    public void projectToConstraint (RigidTransform3d TGD, RigidTransform3d TCD) {
       TGD.R.set (TCD.R);
-      // apply a Givens rotation to 0 the m21 entry of TGD.R. This
+
+      // apply a Givens rotation to 0 the m12 entry of TGD.R. This
       // means that we apply a rotation about the x axis (in R coordinates)
       // to remove any residual "yaw" angle.
 
-      double a = TGD.R.m22;
-      double b = TGD.R.m12;
-      double s, c;
-      if (b == 0) {
-         c = 1; s = 0;
-      }
-      else {
-         if (Math.abs(b) > Math.abs(a)) {
-            double tau = -a/b;
-            s = 1/Math.sqrt(1+tau*tau);
-            c = s*tau;
+      double a = TGD.R.m22;  // cpitch*cyaw
+      double b = TGD.R.m12;  // cpitch*syaw
+
+
+      if (b != 0) {
+         
+         // XXX very unstable near singularities p = +/-90,
+         // causes roll to jump around sporadically.  There should be
+         // no singularity here, since constraint can be defined without
+         // resorting to euler angles.
+         //            double s, c;
+         //            if (Math.abs(b) > Math.abs(a)) {
+         //               double tau = -a/b;
+         //               s = 1/Math.sqrt(1+tau*tau);
+         //               c = s*tau;
+         //            }
+         //            else {
+         //               double tau = -b/a;
+         //               c = 1/Math.sqrt(1+tau*tau);
+         //               s = c*tau;
+         //            }
+         //   
+         //            RotationMatrix3d RXT = new RotationMatrix3d (1, 0, 0,  0, c, s,  0, -s, c);
+         //            TGD.R.mul (RXT, TGD.R);
+
+         // Alternate constraint correction:
+         // rotate RCD*z  such that it is perpendicular to y (enforces 
+         //   Universal joint constraint that the two rotation axes remain perpendicular)
+         double cc = TCD.R.m02;
+         // u should be near one, since column has unit magnitude and b should be near 0
+         double u = Math.sqrt (a*a + cc*cc);  // magnitude of rotation axis
+         if (u == 0) {
+            // should never happen in practice, rotate 90 degrees about x
+            TGD.R.mul(RotationMatrix3d.ROT_X_90, TCD.R);
+         } else {
+            // restore angle to 90 degrees
+            double theta = Math.PI/2 - Math.atan2 (u, b);
+            AxisAngle aa = new AxisAngle (a/u, 0, -cc/u, theta);
+            RotationMatrix3d RXT2 = new RotationMatrix3d(aa);
+            TGD.R.mul (RXT2, TCD.R);
          }
-         else {
-            double tau = -b/a;
-            c = 1/Math.sqrt(1+tau*tau);
-            s = c*tau;
-         }
       }
-      RotationMatrix3d RX =
-         new RotationMatrix3d (1, 0, 0,  0, c, -s,  0, s, c);
-      TGD.R.mulInverseLeft (RX, TGD.R);
       TGD.p.setZero();
 
    }
@@ -209,7 +229,7 @@ public class RollPitchCoupling extends RigidBodyCoupling {
    }      
 
    public void getRollPitch (double[] angs, RigidTransform3d TGD) {
-      
+
       // on entry, TGD is set to TCD. It is then projected to TGD
       projectToConstraint (TGD, TGD);
       RotationMatrix3d RDC = new RotationMatrix3d();
@@ -273,12 +293,12 @@ public class RollPitchCoupling extends RigidBodyCoupling {
          denom = (denom >= 0 ? 0.0001 : -0.0001);
       }
       double tp = sp/denom;
-      
+
       // Don't need to transform because vel is now in Frame C
-//      // get angular velocity of B with respect to A in frame C
-//      if (!myComputeVelInFrameC) {
-//         wBA.transform (RDC, myVelBA.w);
-//      }
+      //      // get angular velocity of B with respect to A in frame C
+      //      if (!myComputeVelInFrameC) {
+      //         wBA.transform (RDC, myVelBA.w);
+      //      }
 
       info[4].distance = 0;
       info[5].distance = 0;

@@ -147,6 +147,10 @@ public class PolygonalMesh extends MeshBase {
          myTriQuadCountsValid = true;
       }
    }
+   
+   protected void invalidateTriQuadCounts() {
+      myTriQuadCountsValid = false;
+   }
 
    /**
     * {@inheritDoc}
@@ -1022,6 +1026,7 @@ public class PolygonalMesh extends MeshBase {
       tail.removeIncidentHalfEdge (hprev);
       head.addIncidentHalfEdge (hprev);
       hprev.next = hnext;
+      
       hprev.head = head;
       if (he.face.he0 == he) {
          he.face.he0 = hprev;

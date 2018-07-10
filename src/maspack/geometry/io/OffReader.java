@@ -127,16 +127,21 @@ public class OffReader extends MeshReaderBase {
             "Mesh type "+mesh.getClass()+" not supported by this reader");
       }
    }
-
-   // public PolygonalMesh readMesh (PolygonalMesh mesh) throws IOException {
-   //    BufferedReader iread = 
-   //       new BufferedReader (new InputStreamReader(myIstream));
-   //    return read(mesh, iread);
-   // }
    
    public static PolygonalMesh read (File file) throws IOException {
-      OffReader reader = new OffReader (file);
-      return (PolygonalMesh)reader.readMesh (null);
+      OffReader reader = null;
+      try {
+         reader = new OffReader (file);
+         return (PolygonalMesh)reader.readMesh (null);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }      
     }
 
    public static PolygonalMesh read (String fileName) throws IOException {

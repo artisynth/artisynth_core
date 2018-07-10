@@ -417,8 +417,19 @@ public class StlReader extends MeshReaderBase {
    }
    
    public static PolygonalMesh read (File file) throws IOException {
-      StlReader reader = new StlReader (file);
-      return (PolygonalMesh)reader.readMesh (null);
+      StlReader reader = null;
+      try {
+         reader = new StlReader (file);
+         return (PolygonalMesh)reader.readMesh (null);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }      
     }
 
    public static PolygonalMesh read (String fileName) throws IOException {

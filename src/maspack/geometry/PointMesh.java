@@ -60,7 +60,19 @@ public class PointMesh extends MeshBase {
     */
    public PointMesh (File file) throws IOException {
       this();
-      read (new BufferedReader (new FileReader (file)));
+      BufferedReader reader = null;
+      try {
+         reader = new BufferedReader(new FileReader (file));
+         read (reader);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }
    }
 
    public double getNormalRenderLen() {
@@ -74,15 +86,7 @@ public class PointMesh extends MeshBase {
       }
    }
 
-
-
    public void readBinary (File file) throws IOException {
-      // BinaryInputStream in = 
-      //    new BinaryInputStream (
-      //       new BufferedInputStream (new FileInputStream (file)));
-      // in.setLittleEndian (true);
-      // readBinary (in);
-
       XyzbReader reader = new XyzbReader (file);
       reader.setLittleEndian (true);
       reader.readMesh (this);
@@ -107,6 +111,7 @@ public class PointMesh extends MeshBase {
          wfr.setZeroIndexed (true);
       }
       wfr.readMesh (this);
+      wfr.close();
    }
 
    /**

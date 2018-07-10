@@ -67,9 +67,19 @@ public class AmiraMeshWriter extends MeshWriterBase {
    }
    
    public static void writeMesh(String fileName, PolylineMesh mesh) throws IOException {
-      AmiraMeshWriter writer = new AmiraMeshWriter(fileName);
-      writer.writeMesh(mesh);
-      writer.close();
+      AmiraMeshWriter writer = null;
+      try {
+         writer = new AmiraMeshWriter(fileName);
+         writer.writeMesh(mesh);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (writer != null) {
+            writer.close();
+         }
+      }
    }
    
    @Override

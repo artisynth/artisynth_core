@@ -1066,6 +1066,7 @@ public class Polygon3dCalcTest extends UnitTest {
             v.scan (rtok);
             vertices.add (v);
          }
+         rtok.close();
       }
       catch (Exception e) {
          e.printStackTrace(); 

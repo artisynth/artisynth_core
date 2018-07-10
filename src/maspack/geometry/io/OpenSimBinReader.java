@@ -140,8 +140,19 @@ public class OpenSimBinReader extends MeshReaderBase {
    }
 
    public static PolygonalMesh read (File file) throws IOException {
-      OpenSimBinReader reader = new OpenSimBinReader (file);
-      return (PolygonalMesh)reader.readMesh (new PolygonalMesh());
+      OpenSimBinReader reader = null;
+      try {
+         reader = new OpenSimBinReader (file);
+         return (PolygonalMesh)reader.readMesh (new PolygonalMesh());
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }     
     }
 
    public static PolygonalMesh read (String fileName) throws IOException {

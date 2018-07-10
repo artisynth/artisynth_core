@@ -1931,7 +1931,15 @@ public class WavefrontReader extends MeshReaderBase {
 
    public static MeshBase read (File file) throws IOException {
       WavefrontReader reader = new WavefrontReader (file);
-      return (PolygonalMesh)reader.readMesh (null);
+      try {
+         return reader.readMesh (null);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         reader.close();
+      }
     }
 
    public static MeshBase read (String fileName) throws IOException {
@@ -1948,6 +1956,9 @@ public class WavefrontReader extends MeshReaderBase {
       catch (Exception e) {
          throw new IllegalArgumentException (
             "Illegal mesh input string: " + e.getMessage());
+      }
+      finally {
+         reader.close();
       }
    }
 

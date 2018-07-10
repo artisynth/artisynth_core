@@ -167,8 +167,19 @@ public class GtsReader extends MeshReaderBase {
    }
 
    public static PolygonalMesh read (File file) throws IOException {
-      GtsReader reader = new GtsReader(file);
-      return (PolygonalMesh)reader.readMesh ();
+      GtsReader reader = null;
+      try {
+         reader = new GtsReader(file);
+         return (PolygonalMesh)reader.readMesh ();
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }
    }
 
    public static PolygonalMesh read (String fileName) throws IOException {

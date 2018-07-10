@@ -99,8 +99,19 @@ public class XyzbWriter extends MeshWriterBase {
 
    public static void writeMesh (File file, MeshBase mesh)
       throws IOException {
-      XyzbWriter writer = new XyzbWriter(file);
-      writer.writeMesh (mesh);
+      XyzbWriter writer = null;
+      try {
+         writer = new XyzbWriter(file);
+         writer.writeMesh (mesh);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (writer != null) {
+            writer.close();
+         }
+      }     
    }      
 
    private void closeQuietly(OutputStream out) {

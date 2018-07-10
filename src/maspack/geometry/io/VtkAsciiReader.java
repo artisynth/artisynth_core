@@ -261,8 +261,19 @@ public class VtkAsciiReader extends MeshReaderBase {
    }
    
    public static PolygonalMesh read (File file) throws IOException {
-      VtkAsciiReader reader = new VtkAsciiReader (file);
-      return (PolygonalMesh)reader.readMesh (new PolygonalMesh());
+      VtkAsciiReader reader = null;
+      try {
+         reader = new VtkAsciiReader (file);
+         return (PolygonalMesh)reader.readMesh (new PolygonalMesh());
+      }
+      catch (Exception e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }
     }
 
    public static PolygonalMesh read (String fileName) throws IOException {

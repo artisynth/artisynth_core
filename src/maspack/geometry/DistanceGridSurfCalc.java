@@ -153,6 +153,7 @@ public class DistanceGridSurfCalc {
                new ReaderTokenizer (
                   new BufferedReader (new FileReader (new File(fileName))));
             prob.scan (rtok, null);
+            rtok.close();
          }
          catch (Exception e) {
             e.printStackTrace();

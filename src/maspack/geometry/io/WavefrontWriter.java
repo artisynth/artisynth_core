@@ -342,8 +342,19 @@ public class WavefrontWriter extends MeshWriterBase {
 
    public static void writeMesh (File file, MeshBase mesh)
       throws IOException {
-      WavefrontWriter writer = new WavefrontWriter(file);
-      writer.writeMesh (mesh);
+      WavefrontWriter writer = null;
+      try {
+         writer = new WavefrontWriter(file);
+         writer.writeMesh (mesh);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (writer != null) {
+            writer.close();
+         }
+      }      
    }      
 
    private void closeQuietly(OutputStream out) {

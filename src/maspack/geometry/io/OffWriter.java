@@ -35,9 +35,19 @@ public class OffWriter extends MeshWriterBase {
    }
    
    public static void writeMesh(String fileName, PolygonalMesh mesh) throws IOException {
-      OffWriter writer = new OffWriter(fileName);
-      writer.writeMesh(mesh);
-      writer.close();
+      OffWriter writer = null;
+      try {
+         new OffWriter(fileName);
+         writer.writeMesh(mesh);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (writer != null) {
+            writer.close();
+         }
+      }
    }
    
    public void writeMesh (PolygonalMesh mesh) throws IOException {

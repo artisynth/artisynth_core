@@ -44,7 +44,7 @@ public class XyzbReader extends MeshReaderBase {
 
    public PointMesh readMesh (PointMesh mesh, InputStream in)
       throws IOException {
-      
+
       BinaryInputStream bin = new BinaryInputStream (
          new BufferedInputStream (in));
 
@@ -130,8 +130,19 @@ public class XyzbReader extends MeshReaderBase {
    }
    
    public static PointMesh read(File file) throws IOException {
-      XyzbReader reader = new XyzbReader(file);
-      return reader.readMesh(null);
+      XyzbReader reader = null;
+      try {
+         reader = new XyzbReader(file);
+         return reader.readMesh(null);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }      
    }
 
    public static PointMesh read(String filename) throws IOException {

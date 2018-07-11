@@ -91,7 +91,19 @@ public class PolylineMesh extends MeshBase {
     */
    public PolylineMesh (File file) throws IOException {
       this();
-      read (new BufferedReader (new FileReader (file)));
+      BufferedReader reader = null;
+      try {
+         reader = new BufferedReader(new FileReader (file));
+         read (reader);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }
    }
 
    public PolylineMesh (PolylineMesh old) {

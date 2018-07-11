@@ -262,8 +262,19 @@ public class PlyWriter extends MeshWriterBase {
 
    public static void writeMesh (File file, MeshBase mesh)
       throws IOException {
-      PlyWriter writer = new PlyWriter(file);
-      writer.writeMesh (mesh);
+      PlyWriter writer = null;
+      try {
+         writer = new PlyWriter(file);
+         writer.writeMesh (mesh);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (writer != null) {
+            writer.close();
+         }
+      }     
    }      
 
 

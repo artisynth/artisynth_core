@@ -871,8 +871,19 @@ public class PlyReader extends MeshReaderBase {
    }
    
    public static MeshBase read (File file) throws IOException {
-      PlyReader reader = new PlyReader(file);
-      return reader.readMesh ();
+      PlyReader reader = null;
+      try {
+         reader = new PlyReader(file);
+         return reader.readMesh ();
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }
     }
 
    public static MeshBase read (String fileName) throws IOException {

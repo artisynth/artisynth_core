@@ -619,7 +619,19 @@ public class PolygonalMesh extends MeshBase {
     */
    public PolygonalMesh (File file) throws IOException {
       this();
-      read (new BufferedReader (new FileReader (file)));
+      BufferedReader reader = null;
+      try {
+         reader = new BufferedReader(new FileReader (file));
+         read (reader);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }
    }
 
    public PolygonalMesh (PolygonalMesh old) {
@@ -1826,9 +1838,19 @@ public class PolygonalMesh extends MeshBase {
          fmtStr = "%.8g";
       }
       NumberFormat fmt = new NumberFormat (fmtStr);
-      PrintWriter pw =
-         new PrintWriter (new BufferedWriter (new FileWriter (file)));
-      write (pw, fmt, /*zeroIndexed=*/false, /*facesClockwise=*/false);
+      PrintWriter pw = null;
+      try {
+         pw = new PrintWriter (new BufferedWriter (new FileWriter (file)));
+         write (pw, fmt, /*zeroIndexed=*/false, /*facesClockwise=*/false);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (pw != null) {
+            pw.close();
+         }
+      }
    }
 
    /**
@@ -1853,9 +1875,19 @@ public class PolygonalMesh extends MeshBase {
          fmtStr = "%.8g";
       }
       NumberFormat fmt = new NumberFormat (fmtStr);
-      PrintWriter pw =
-         new PrintWriter (new BufferedWriter (new FileWriter (file)));
-      write (pw, fmt, zeroIndexed, /*facesClockwise=*/false);
+      PrintWriter pw = null;
+      try {
+         pw = new PrintWriter (new BufferedWriter (new FileWriter (file)));
+         write (pw, fmt, zeroIndexed, /*facesClockwise=*/false);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (pw != null) {
+            pw.close();
+         }
+      }      
    }
 
    /**
@@ -1935,10 +1967,20 @@ public class PolygonalMesh extends MeshBase {
 
    /* Write the mesh to a file in the .poly format for tetgen. */
    public void writePoly (String nodeString) throws Exception {
-      FileOutputStream fos = new FileOutputStream (nodeString);
-      PrintStream ps = new PrintStream (new BufferedOutputStream (fos));
-      writePoly (ps);
-      fos.close();
+      FileOutputStream fos = null;
+      try {
+         fos = new FileOutputStream (nodeString);
+         PrintStream ps = new PrintStream (new BufferedOutputStream (fos));
+         writePoly (ps);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (fos != null) {
+            fos.close();
+         }
+      }
    }
 
    public void writePoly (PrintStream ps) throws Exception {
@@ -3605,20 +3647,24 @@ public class PolygonalMesh extends MeshBase {
       ps.flush();
    }
 
-   // Debug methods used by Andrew Larkin's collison code
-   public void dumpToFile(String str) {
-      FileOutputStream fos;
-      try {
-         fos = new FileOutputStream (str);
-         writeWorld(new PrintStream(new BufferedOutputStream (fos)));
-         fos.close();
-      } catch (FileNotFoundException e) {
-         e.printStackTrace();
-      } catch (IOException e) {
-         e.printStackTrace();
-      }
-   }
-
+   // // Debug methods used by Andrew Larkin's collison code
+   // public void dumpToFile(String str) throws IOException {
+   //    FileOutputStream fos = null;
+   //    try {
+   //       fos = new FileOutputStream (str);
+   //       writeWorld(new PrintStream(new BufferedOutputStream (fos)));
+   //    } catch (FileNotFoundException e) {
+   //       e.printStackTrace();
+   //    } catch (IOException e) {
+   //       e.printStackTrace();
+   //    }
+   //    finally {
+   //       if (fos != null) {
+   //          fos.close();
+   //       }
+   //    }
+      
+   // }
 
    private boolean vectorListsEqual (
       ArrayList<Vector3d> list0, ArrayList<Vector3d> list1, double eps) {

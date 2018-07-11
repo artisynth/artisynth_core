@@ -423,7 +423,18 @@ public class MayaAsciiReader {
 
    public MayaAsciiReader(File file) throws IOException {
       this();
-      BufferedReader reader = new BufferedReader(new FileReader(file));
+      BufferedReader reader = null;
+      try {
+         reader = new BufferedReader(new FileReader(file));
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }
       read(reader);
    }
 

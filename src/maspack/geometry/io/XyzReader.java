@@ -50,8 +50,8 @@ public class XyzReader extends MeshReaderBase {
          catch (EOFException e) {
             done = true;
          }
-      }   
-      
+      }
+
       mesh.set (vtxs.toArray(new Point3d[0]), nrms.toArray(new Vector3d[0]));
       return mesh;
    }
@@ -125,8 +125,19 @@ public class XyzReader extends MeshReaderBase {
 //   }
    
    public static PointMesh read(File file) throws IOException {
-      XyzbReader reader = new XyzbReader(file);
-      return reader.readMesh ();
+      XyzbReader reader = null;
+      try {
+         reader = new XyzbReader(file);
+         return reader.readMesh ();
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         if (reader != null) {
+            reader.close();
+         }
+      }     
    }
 
    public static PointMesh read(String filename) throws IOException {

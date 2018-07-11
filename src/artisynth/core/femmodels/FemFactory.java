@@ -2641,7 +2641,7 @@ public class FemFactory {
                int nextj = (j+1) % nt;
 
                int outerParity = (i + j + k) % 2;
-               int sideParity = (i + k)%2;
+               int sideParity = (i + k) % 2;
                int parity = outerParity*4 + sideParity+1;
                
                addWedgeTessellation(model, layer[k][j], layer[k][nextj], lastLayer[k][pj],
@@ -2670,6 +2670,9 @@ public class FemFactory {
          model = new FemModel3d();
       }
       
+      if (nh < 1) {
+         nh = 1;
+      }
       if (nr < 1) {
          nr = 1;
       }
@@ -2750,8 +2753,8 @@ public class FemFactory {
                   int nj = (j+1) % not;
                   int nnj = (j+2) % not;
                   
-                  int outerParity = (i + k + j) % 2;
-                  int sideParity = (i + k) % 2;
+                  int outerParity = (i + k/2 + j/2) % 2;
+                  int sideParity = (i + k/2) % 2;
                   int parity = outerParity*4 + sideParity+1;
                   
                   addQuadwedgeTessellation(model, 
@@ -2763,8 +2766,8 @@ public class FemFactory {
                      outerlayer[nk][nj], innerlayer[nk][nmj], innerlayer[nk][mj],        // quads
                      parity);
 
-                  outerParity = (i + k + pj) % 2;
-                  sideParity = (i + k + 1) % 2;
+                  outerParity = (i + k/2 + pj/2) % 2;
+                  sideParity = (i + k/2 + 1) % 2;
                   parity = outerParity*4 + sideParity + 1;
                   
                   addQuadwedgeTessellation(model, 
@@ -2784,8 +2787,8 @@ public class FemFactory {
                int nj = (j+1) % not;
                int nnj = (j+2) % not;
                
-               int outerParity = (i + j + k) % 2;
-               int sideParity = (i + k) % 2;
+               int outerParity = (i + j/2 + k/2) % 2;
+               int sideParity = (i + k/2) % 2;
                int parity = outerParity*4 + sideParity+1;
                
                addQuadwedgeTessellation(model, 

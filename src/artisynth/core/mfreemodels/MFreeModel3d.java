@@ -154,6 +154,7 @@ public class MFreeModel3d extends FemModel3d  {
       Point3d coord = new Point3d();
       VectorNd N = new VectorNd();
 
+      coord.set(pos);
       FemNode3d[] nodes =  findNaturalCoordinates(pos, coord, N);
 
       mkr.setPosition(pos);
@@ -206,7 +207,8 @@ public class MFreeModel3d extends FemModel3d  {
 
       // try to compute coords
       coords.set(ipnt.getRestPosition());
-      int n = ((MFreeElement3d)elem).getNaturalCoordinates(coords, pnt, 1000, N);
+      N.set (ipnt.getNodeCoordinates ());
+      // int n = ((MFreeElement3d)elem).getNaturalCoordinates(coords, pnt, 1000, N);
       return elem.getNodes();
    }
    

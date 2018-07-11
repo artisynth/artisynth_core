@@ -971,10 +971,12 @@ PointAttachable, ConnectableBody {
                else if (e.integrationPointsInterpolateToNodes()){
                   // interpolate using shape function
                   VectorNd N = pt.getShapeWeights();
-                  pressure = 0;
-                  for (int i=0; i<N.size(); ++i) {
-                     pressure += nodes[i].myPressure*N.get(i);
-                  }
+                  // XXX map to nearest node
+                  int maxIdx = N.maxIndex ();
+                  pressure = nodes[maxIdx].myPressure;
+                  //                  for (int i=0; i<N.size(); ++i) {
+                  //                     pressure += nodes[i].myPressure*N.get(i);
+                  //                  }
                }
                break;
             }
@@ -1134,16 +1136,27 @@ PointAttachable, ConnectableBody {
                }
             }
             else if (e.integrationPointsInterpolateToNodes()) {
+               
                // distribute according to shape function weights
                VectorNd N = pt.getShapeWeights();
-               for (int i = 0; i < N.size(); ++i) {
-                  for (FemNodeNeighbor nbr : getNodeNeighbors(e.myNodes[i])) {
-                     int j = e.getLocalNodeIndex(nbr.getNode());
-                     if (j != -1) {
-                        nbr.myDivBlk.scaledAdd(N.get(i)*dv, GNx[j]);
-                     }
+               // XXX map to nearest node
+               int maxIdx = N.maxIndex ();
+               pressure = nodes[maxIdx].myPressure;
+               for (FemNodeNeighbor nbr : getNodeNeighbors(e.myNodes[maxIdx])) {
+                  int j = e.getLocalNodeIndex(nbr.myNode);
+                  if (j != -1) {
+                     // myNodalConstraints[i].scale(dv, GNx[i]);
+                     nbr.myDivBlk.scaledAdd(dv, GNx[j]);
                   }
                }
+               //               for (int i = 0; i < N.size(); ++i) {
+               //                  for (FemNodeNeighbor nbr : getNodeNeighbors(e.myNodes[i])) {
+               //                     int j = e.getLocalNodeIndex(nbr.getNode());
+               //                     if (j != -1) {
+               //                        nbr.myDivBlk.scaledAdd(N.get(i)*dv, GNx[j]);
+               //                     }
+               //                  }
+               //               }
             }
          } // soft incompressibility
       } // end looping through integration points
@@ -1252,15 +1265,25 @@ PointAttachable, ConnectableBody {
                }
             }
             else if (e.integrationPointsInterpolateToNodes()){ 
-               // distribute using shape function
+               
+               // XXX map ipnts to nearest node
                IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
                IntegrationData3d[] idata = e.getIntegrationData();
                for (int k=0; k<ipnts.length; ++k) {
                   VectorNd N = ipnts[k].getShapeWeights();
-                  for (int i = 0; i < nodes.length; i++) {
-                     nodes[i].myVolume += idata[k].getDv()*N.get(i);
-                  }
+                  int maxIdx = N.maxIndex ();
+                  nodes[maxIdx].myVolume += idata[k].getDv();
                }
+               
+               //               // distribute using shape function
+               //               IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+               //               IntegrationData3d[] idata = e.getIntegrationData();
+               //               for (int k=0; k<ipnts.length; ++k) {
+               //                  VectorNd N = ipnts[k].getShapeWeights();
+               //                  for (int i = 0; i < nodes.length; i++) {
+               //                     nodes[i].myVolume += idata[k].getDv()*N.get(i);
+               //                  }
+               //               }
             }
          }
       }
@@ -1299,16 +1322,26 @@ PointAttachable, ConnectableBody {
                }
             }
             else if (e.integrationPointsInterpolateToNodes()) {
-               // distribute based on shape functions
+               // XXX map ipnt to closest node
                IntegrationData3d[] idata = e.getIntegrationData();
                IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
                for (int k=0; k<ipnts.length; ++k) {
                   VectorNd N = ipnts[k].getShapeWeights();
-                  for (int i = 0; i < nodes.length; i++) {
-                     nodes[i].myRestVolume +=
-                        ipnts[k].getWeight()* idata[k].getDetJ0()*N.get(i);
-                  }
+                  int maxIdx = N.maxIndex ();
+                  nodes[maxIdx].myRestVolume +=
+                        ipnts[k].getWeight()* idata[k].getDetJ0();
                }
+               
+               //               // distribute based on shape functions
+               //               IntegrationData3d[] idata = e.getIntegrationData();
+               //               IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+               //               for (int k=0; k<ipnts.length; ++k) {
+               //                  VectorNd N = ipnts[k].getShapeWeights();
+               //                  for (int i = 0; i < nodes.length; i++) {
+               //                     nodes[i].myRestVolume +=
+               //                        ipnts[k].getWeight()* idata[k].getDetJ0()*N.get(i);
+               //                  }
+               //               }
             }
          }
       }
@@ -2350,22 +2383,40 @@ PointAttachable, ConnectableBody {
                double detJ = pt.computeInverseJacobian (invJ, e.myNodes);
                double dv = detJ * pt.getWeight();
                Vector3d[] GNx = pt.updateShapeGradient(invJ);
-               for (int i = 0; i < enodes.length; i++) {  
-                  FemNode3d n = enodes[i];
-                  // sum over nodes
-                  if ((idx = n.getIncompressIndex()) != -1) {
-                     for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
-                        FemNode3d nnode = nbr.myNode;
-                        int j = e.getLocalNodeIndex(nnode);
-                        if (j != -1) {
-                           // if (isControllable (nnode)) {
-                           nbr.myDivBlk.scaledAdd(dv*N.get(i), GNx[j]);
-                           // }
-                        }
+               
+               // XXX map to nearest node
+               int maxIdx = N.maxIndex ();
+               FemNode3d n = enodes[maxIdx];
+               // sum over nodes
+               if ((idx = n.getIncompressIndex()) != -1) {
+                  for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
+                     FemNode3d nnode = nbr.myNode;
+                     int j = e.getLocalNodeIndex(nnode);
+                     if (j != -1) {
+                        // if (isControllable (nnode)) {
+                        nbr.myDivBlk.scaledAdd(dv, GNx[j]);
+                        // }
                      }
-                     b.add(idx, dg);
                   }
-               } // looping through nodes
+                  b.add(idx, dg);
+               }
+               
+               //               for (int i = 0; i < enodes.length; i++) {  
+               //                  FemNode3d n = enodes[i];
+               //                  // sum over nodes
+               //                  if ((idx = n.getIncompressIndex()) != -1) {
+               //                     for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
+               //                        FemNode3d nnode = nbr.myNode;
+               //                        int j = e.getLocalNodeIndex(nnode);
+               //                        if (j != -1) {
+               //                           // if (isControllable (nnode)) {
+               //                           nbr.myDivBlk.scaledAdd(dv*N.get(i), GNx[j]);
+               //                           // }
+               //                        }
+               //                     }
+               //                     b.add(idx, dg);
+               //                  }
+               //               } // looping through nodes
             } // loop through ipnts
       
          } // type of element for nodal incompressibility

@@ -71,7 +71,6 @@ public class TextComponent3d extends TextComponentBase implements
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;
-      myFontSize = defaultFontSize;
       
       myText = "";
       myPos = new Point3d();

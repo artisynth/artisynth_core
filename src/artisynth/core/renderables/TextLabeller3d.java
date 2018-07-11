@@ -97,7 +97,6 @@ public class TextLabeller3d extends TextComponentBase {
       hAlignment = defaultHAlignment;
       vAlignment = defaultVAlignment;
       myTextSize = defaultTextSize;
-      myFontSize = defaultFontSize;
       
       myTextOffset = new Point2d(defaultTextOffset);
       myItems = new ArrayList<LabelItem>();

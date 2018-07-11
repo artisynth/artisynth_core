@@ -40,7 +40,6 @@ public abstract class TextComponentBase extends RenderableComponentBase {
    protected HorizontalAlignment hAlignment = defaultHAlignment;
    protected VerticalAlignment vAlignment = defaultVAlignment;
    protected Font myFont;
-   protected double myFontSize = defaultFontSize;
    protected double myTextSize = defaultTextSize;
    
    public static PropertyList myProps = new PropertyList(
@@ -52,7 +51,6 @@ public abstract class TextComponentBase extends RenderableComponentBase {
          createDefaultRenderProps());
       
       myProps.add("font", "font", defaultFont);
-      myProps.add("fontSize", "font size", defaultFontSize);
       myProps.add("textSize", "text size", defaultTextSize);
       myProps.add("horizontalAlignment", "horizontal alignment", defaultHAlignment);
       myProps.add("verticalAlignment", "vertical alignment", defaultVAlignment);
@@ -87,20 +85,6 @@ public abstract class TextComponentBase extends RenderableComponentBase {
     */
    public void setFont(Font font) {
       myFont = font;
-   }
-      
-   /**
-    * Sets the size of the font
-    */
-   public void setFontSize(double size) {
-      myFontSize = size;
-   }
-   
-   /**
-    * Gets the size of the font
-    */
-   public double getFontSize() {
-      return myFontSize;
    }
    
    /**

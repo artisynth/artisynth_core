@@ -777,7 +777,7 @@ implements CollidableBody, PointAttachable {
          createVertex (node, vtx);
          //myNodeVertexMap.put (node, newVtx);
       }
-      System.out.println ("num base faces: " + baseFaces.size());
+      // System.out.println ("num base faces: " + baseFaces.size());
       for (int k=0; k<baseFaces.size(); k++) {
          Face face = baseFaces.get(k);
          // store sub vertices for the face in the upper triangular half of

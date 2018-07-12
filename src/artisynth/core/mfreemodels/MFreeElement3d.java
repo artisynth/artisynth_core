@@ -679,6 +679,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
    }
    
    public boolean coordsAreInside(Vector3d coords) {
+      // XXX assumes at rest
       for (FemNode3d node : myNodes) {
          if (!((MFreeNode3d)node).isInRestDomain(coords)) {
             return false;

@@ -33,11 +33,13 @@ import maspack.geometry.DistanceGrid;
 import maspack.geometry.Face;
 import maspack.geometry.KDComparator;
 import maspack.geometry.KDTree;
+import maspack.geometry.KDTree3d;
 import maspack.geometry.MeshBase;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.MeshFactory.FaceType;
 import maspack.geometry.OBB;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.TetgenTessellator;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
@@ -351,18 +353,20 @@ public class MFreeFactory {
       }
       
       // generate ipnts
+      
       int ipntFactor = DEFAULT_IPNT_FACTOR;
-      int nih = ipntFactor*(nh-1)+1;
+      int nih = ipntFactor*(nh-1);
       int nir = ipntFactor*(nr-1)+1;
       
       double dih = h/(nih-1);
+      zmin += dih/2;
       double dir = r/(nir-1);
       
       int iidx = 0;
       int nipnts = nih*(1 + nt1*nir*(nir-1)/2);
-      Point3d[] ipntLocs = new Point3d[nipnts];
+      CubaturePoint3d[] cpnts = new CubaturePoint3d[nipnts];
       for (int k=0; k<nih; ++k) {
-         ipntLocs[iidx++] = new Point3d(0,0,zmin+k*dih);
+         cpnts[iidx++] = new CubaturePoint3d(0,0,zmin+k*dih, Math.PI*dir*dir*dih);
       }
       
       // circle pnts
@@ -371,19 +375,42 @@ public class MFreeFactory {
          double rr = dir*i;
          int nit = nt1*i;
          double dt = 2*Math.PI/nit;
+         
+         // area of circular section
+         double iv = rr*dir*dt*dih;
+         if (i == (nir-1)) {
+            iv = (rr*dir/2 - dir*dir/4)*dt*dih;
+         }
+        
          for (int k=0; k<nih; ++k) {
             double z = zmin+k*dih;
             for (int j=0; j<nit; ++j) {
                double theta = j*dt;
                double x = rr*Math.cos (theta);
                double y = rr*Math.sin (theta);
-               ipntLocs[iidx++] = new Point3d(x,y,z);
+               cpnts[iidx++] = new CubaturePoint3d(x,y,z,iv);
             }
          }
       }
       
+      //      CubaturePoint3d[] cpnts2 = computeVoronoiCubature (cpnts, surface);
+      //      for (int i=0; i<cpnts2.length; ++i) {
+      //         double d = cpnts2[i].w - cpnts[i].w;
+      //         if (Math.abs(d) > 1e-18) {
+      //            System.out.println ("debug...");
+      //         }
+      //      }
+      double vol = surface.computeVolume ();
+      double cvol = 0;
+      for (CubaturePoint3d cpnt : cpnts) {
+         cvol += cpnt.w;
+      }
+      if (Math.abs (cvol-vol) > 1e-18) {
+         System.out.println ("Volume error: " + vol + " vs " + cvol);
+      }
       
-      return createModel(model, nodeLocs, ipntLocs, surface);
+      
+      return createModel(model, nodeLocs, cpnts, surface);
    }
    
    /**
@@ -541,6 +568,110 @@ public class MFreeFactory {
       
    }
    
+   /**
+    * Computes cubature points at a set of provided locations, assigning a weight equal to
+    * the volume of the voronoi region about each point
+    * @param locs original locations
+    * @param surface mesh surface
+    * @return
+    */
+   public static CubaturePoint3d[] computeVoronoiCubature(Point3d[] locs, PolygonalMesh surface) {
+      
+      CubaturePoint3d[] cpnts = new CubaturePoint3d[locs.length];
+      for (int i=0; i<locs.length; ++i) {
+         cpnts[i] = new CubaturePoint3d (locs[i], 0);
+      }
+      
+      Point3d pmin = new Point3d(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+      Point3d pmax = new Point3d(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY);
+      surface.updateBounds (pmin, pmax);
+      double eps = pmax.distance (pmin)*1e-18;
+      
+      // compute tetrahedralization
+      TetgenTessellator tesselator = new TetgenTessellator ();
+      tesselator.buildFromMeshAndPoints (surface, -1, locs);
+      int[] tets = tesselator.getTets ();
+      Point3d[] pnts = tesselator.getPoints ();
+      
+      // kdtree for nearest ipnt look-up
+      KDTree3d kdtree = new KDTree3d (Arrays.asList (cpnts));
+      
+      // map tet points to locs
+      CubaturePoint3d[] pntMap = new CubaturePoint3d[pnts.length];
+      for (int i=0; i<pnts.length; ++i) {
+         CubaturePoint3d nearest = (CubaturePoint3d)kdtree.nearestNeighbourSearch (pnts[i], eps);
+         if (nearest.distance (pnts[i]) < eps) {
+            pntMap[i] = nearest;
+         }
+      }
+      
+      // assign cubature weights
+      int tet[] = new int[4];
+      for (int i=0; i<tets.length; i+= 4) {
+         for (int j=0; j<4; ++j) {
+            tet[j] = tets[i+j];
+         }
+         
+         // tet volume
+         Vector3d a = new Vector3d();
+         a.sub (pnts[tet[0]], pnts[tet[3]]);
+         Vector3d b = new Vector3d();
+         b.sub (pnts[tet[1]], pnts[tet[3]]);
+         Vector3d c = new Vector3d();
+         c.sub (pnts[tet[2]], pnts[tet[3]]);
+         double v = a.dot (b.cross (c))/6;
+         
+         // distribute volume
+         double evol = 0;  // "extra" volume not from a cubature point
+         double nc = 0;    // number of cubature points in tet
+         for (int j=0; j<4; ++j) {
+            CubaturePoint3d cpnt = pntMap[tet[j]];
+            if (cpnt != null) {
+               cpnt.w += v/4;
+               ++nc;
+            } else {
+               evol += v/4;
+            }
+         }
+         
+         // distribute extra volume
+         if (evol != 0) {
+            for (int j = 0; j < 4; ++j) {
+               CubaturePoint3d cpnt = pntMap[tet[j]];
+               if (cpnt != null) {
+                  cpnt.w += evol/nc;
+               }
+            }
+         }   
+      }
+      
+      
+      return cpnts;
+   }
+   
+   public static MFreeModel3d createModel(MFreeModel3d model,
+      Point3d[] nodeLocs, CubaturePoint3d[] ipnts, 
+      PolygonalMesh surface, RadialWeightFunctionType fType) {
+
+      if (model == null) {
+         model = new MFreeModel3d();
+      }
+
+      MFreeNode3d[] nodes = new MFreeNode3d[nodeLocs.length];
+      
+      // determine best node-radii to use
+      double[] nodeRad = computeNodeRadii(nodeLocs, ipnts, surface, 
+         DEFAULT_MINIMUM_DEPENDENCIES, 1.1);
+
+      for (int i=0; i<nodeLocs.length; ++i) {
+         Point3d pnt = nodeLocs[i];
+         MFreeNode3d node = createNode(pnt.x, pnt.y, pnt.z, nodeRad[i], fType);
+         nodes[i] = node;
+      }
+      
+      return createModel(model, nodes, surface, ipnts);
+   }
+   
    public static MFreeModel3d createModel(MFreeModel3d model,
       Point3d[] nodeLocs, Point3d[] ipntLocs, 
       PolygonalMesh surface, RadialWeightFunctionType fType) {
@@ -560,7 +691,7 @@ public class MFreeFactory {
          MFreeNode3d node = createNode(pnt.x, pnt.y, pnt.z, nodeRad[i], fType);
          nodes[i] = node;
       }
-
+      
       // XXX assumes equal volume contribution of each ipnt
       CubaturePoint3d[] cpnts = new CubaturePoint3d[ipntLocs.length];
       double wp = surface.computeVolume() / ipntLocs.length;
@@ -569,7 +700,6 @@ public class MFreeFactory {
       }
 
       return createModel(model, nodes, surface, cpnts);
-
    }
    
    //   public static MFreeModel3d createPairedModel(MFreeModel3d model,

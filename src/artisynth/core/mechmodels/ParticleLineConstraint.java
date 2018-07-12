@@ -82,13 +82,13 @@ public class ParticleLineConstraint extends ParticleConstraintBase
       myOrigin.set (origin);
    }
 
-   public ParticleLineConstraint (Particle p, Line plane) {
-      this (plane);
+   public ParticleLineConstraint (Particle p, Line line) {
+      this (line);
       addParticle (p);
    }
 
-   public ParticleLineConstraint (Particle p, Vector3d nrml, Point3d center) {
-      this (nrml, center);
+   public ParticleLineConstraint (Particle p, Vector3d dir, Point3d center) {
+      this (dir, center);
       addParticle (p);
    }
 

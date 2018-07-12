@@ -15,25 +15,38 @@ import maspack.matrix.Point3d;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.VectorNd;
 import maspack.matrix.VectorNi;
+import maspack.properties.PropertyList;
+import maspack.render.PointLineRenderProps;
 import maspack.render.Renderer;
 
 /**
  * 
- * Constrain a linear combination of points to sum to zero:
- *   sum( w_i p_i, i=0..N ) = [0 0 0]'
+ * Constrain a linear combination of points to sum to a value:
+ *   sum( w_i p_i, i=0..N ) = pos
  *   
  *   Useful for "attaching" an arbitrary position inside one finite element
- *   to another arbitrary position inside a different element
+ *   to another arbitrary position inside a different element, or to a
+ *   specific point in space
  *
  */
 public class LinearPointConstraint extends ConstrainerBase {
 
    Point[] myPoints;
    double[] myWgts;
+   Point3d myTarget;
    Matrix3x3Block[] myBlks;
-   Point3d sumPos = new Point3d();
    double[] myLam;
 
+   static PropertyList myProps = new PropertyList (LinearPointConstraint.class, ConstrainerBase.class);
+   static {
+      myProps.add ("renderProps", "render props", new PointLineRenderProps ());
+   }
+   
+   @Override
+   public PropertyList getAllPropertyInfo () {
+      return myProps;
+   }
+   
    /**
     * General constructor.  Make sure to call {@link #setPoints(Point[], double[])}.
     */
@@ -55,6 +68,7 @@ public class LinearPointConstraint extends ConstrainerBase {
     * @param wgts set of weights
     */
    public void setPoints(Point[] pnts, double[] wgts) {
+      myTarget = new Point3d(0, 0, 0);
       myPoints = Arrays.copyOf(pnts, pnts.length);
       myLam = new double[3];    // 3 constraints (x, y, z)
       myWgts = Arrays.copyOf(wgts, wgts.length);
@@ -65,6 +79,14 @@ public class LinearPointConstraint extends ConstrainerBase {
          myBlks[i].m11 = myWgts[i];
          myBlks[i].m22 = myWgts[i];
       }
+   }
+   
+   /**
+    * Sets a target sum of positions
+    * @param pos target position
+    */
+   public void setTarget(Point3d pos) {
+      myTarget.set (pos);
    }
 
    /**
@@ -79,6 +101,10 @@ public class LinearPointConstraint extends ConstrainerBase {
     */
    public double[] getWeights() {
       return myWgts;
+   }
+   
+   public Point3d getTarget() {
+      return myTarget;
    }
 
    @Override
@@ -114,7 +140,7 @@ public class LinearPointConstraint extends ConstrainerBase {
    @Override
    public int getBilateralInfo(ConstraintInfo[] ginfo, int idx) {
 
-      sumPos.setZero();
+      Point3d sumPos = new Point3d();
       int nValid = 0;
       for (int i=0; i<myPoints.length; i++) {
          Point pnt = myPoints[i];
@@ -123,6 +149,7 @@ public class LinearPointConstraint extends ConstrainerBase {
          }
          sumPos.scaledAdd(myWgts[i], pnt.getPosition());
       }
+      sumPos.sub (myTarget);
 
       if (nValid == 0) {
          return idx;
@@ -198,6 +225,23 @@ public class LinearPointConstraint extends ConstrainerBase {
    
    @Override
    public void render(Renderer renderer, int flags) {
+      
+      Point3d diff = new Point3d();
+      Point3d avgPos = new Point3d();
+      for (int i=0; i<myPoints.length; i++) {
+         Point pnt = myPoints[i];
+         diff.scaledAdd(myWgts[i], pnt.getPosition());
+         avgPos.add (pnt.getPosition ());
+      }
+      diff.sub (myTarget);
+      
+      avgPos.scale (1.0/myPoints.length);
+      
+      float[] fpnt0 = new float[] {(float)avgPos.x, (float)avgPos.y, (float)avgPos.z};
+      float[] fpnt1 = new float[] {(float)(avgPos.x-diff.x), (float)(avgPos.y-diff.y), (float)(avgPos.z-diff.z)};
+      
+      renderer.drawLine (getRenderProps (), fpnt0, fpnt1, isSelected());
+      
    }
 
 }

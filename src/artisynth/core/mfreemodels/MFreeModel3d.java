@@ -7,6 +7,7 @@
 package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -15,29 +16,16 @@ import artisynth.core.femmodels.FemMarker;
 import artisynth.core.femmodels.FemModel;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode3d;
-import artisynth.core.femmodels.FrameFem3dAttachment;
-import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
 import artisynth.core.femmodels.PointFem3dAttachment;
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.FemControlPanel;
-import artisynth.core.mechmodels.Collidable;
-import artisynth.core.mechmodels.ConnectableBody;
-import artisynth.core.mechmodels.DynamicAttachment;
-import artisynth.core.mechmodels.Frame;
-import artisynth.core.mechmodels.HasAuxState;
-import artisynth.core.mechmodels.HasSurfaceMesh;
-import artisynth.core.mechmodels.MechSystemModel;
 import artisynth.core.mechmodels.Point;
-import artisynth.core.mechmodels.PointAttachable;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.mechmodels.PointParticleAttachment;
 import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.TransformableGeometry;
-import artisynth.core.util.ScalableUnits;
 import maspack.function.ConstantFuntion3x1;
 import maspack.function.Function3x1;
 import maspack.geometry.AABBTree;
@@ -50,7 +38,6 @@ import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseMatrixNd;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
@@ -155,7 +142,7 @@ public class MFreeModel3d extends FemModel3d  {
       VectorNd N = new VectorNd();
 
       coord.set(pos);
-      FemNode3d[] nodes =  findNaturalCoordinates(pos, coord, N);
+      FemNode3d[] nodes = findNaturalCoordinates(pos, coord, N);
 
       mkr.setPosition(pos);
       double[] wgts = new double[N.size()];
@@ -198,18 +185,28 @@ public class MFreeModel3d extends FemModel3d  {
 
       BVFeatureQuery query = new BVFeatureQuery();
 
-      NearestIPointCalculator dcalc 
-      = new NearestIPointCalculator(pnt);
+      NearestIPointCalculator dcalc = new NearestIPointCalculator(pnt);
       query.nearestObject(getElementBVTree(), dcalc);
 
-      FemElement3d elem = dcalc.nearestObject();
+      // FemElement3d elem = dcalc.nearestObject();
       MFreeIntegrationPoint3d ipnt = dcalc.nearestIPoint();
+      
+      // check if any nodes are closer
+      MFreePoint3d nearest = ipnt;
+      double d = ipnt.getPosition ().distance (pnt);
+      for (FemNode3d node : ipnt.getDependentNodes ()) {
+         double nd = node.distance (pnt);
+         if (nd < d) {
+            nearest = (MFreeNode3d)node;
+            d = nd;
+         }
+      }
 
       // try to compute coords
-      coords.set(ipnt.getRestPosition());
-      N.set (ipnt.getNodeCoordinates ());
+      coords.set(nearest.getRestPosition ());
+      N.set (nearest.getNodeCoordinates ());
       // int n = ((MFreeElement3d)elem).getNaturalCoordinates(coords, pnt, 1000, N);
-      return elem.getNodes();
+      return nearest.getDependentNodes ();
    }
    
    /**
@@ -598,6 +595,26 @@ public class MFreeModel3d extends FemModel3d  {
 
          checkElementCondition (region, detJ, /*recordInversion=*/true);
       }
+   }
+   
+   public PointAttachment createPointAttachment(Point pnt, double reduceTol) {
+      
+      if (pnt.isAttached()) {
+         throw new IllegalArgumentException ("point is already attached");
+      }
+      if (ComponentUtils.isAncestorOf (this, pnt)) {
+         throw new IllegalArgumentException (
+            "FemModel is an ancestor of the point");
+      }
+      
+      Point3d coord = new Point3d();
+      VectorNd N = new VectorNd();
+      coord.set(pnt.getPosition ());
+      FemNode3d[] nodes =  findNaturalCoordinates(pnt.getPosition (), coord, N);
+      
+      PointFem3dAttachment ax = new PointFem3dAttachment (pnt);
+      ax.setFromNodes (Arrays.asList (nodes), N);
+      return ax;
    }
    
    public PointAttachment createPointAttachment (Point pnt) {

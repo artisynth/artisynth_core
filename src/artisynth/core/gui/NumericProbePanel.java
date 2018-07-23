@@ -1335,9 +1335,9 @@ public class NumericProbePanel extends JPanel {
                (maxYRange - ((zoomSelectRect.y + zoomSelectRect.height) * yValuePerPixel));
             double newYMax = maxYRange - (zoomSelectRect.y * yValuePerPixel);
 
-            double newXMin =zoomSelectRect.x * secondsPerPixel;
+            double newXMin = minXRange + zoomSelectRect.x * secondsPerPixel;
             //   TimeBase.ticksToSeconds ((zoomSelectRect.x * ticksPerPixel));
-            double newXMax =
+            double newXMax = minXRange +
                (zoomSelectRect.x + zoomSelectRect.width) * secondsPerPixel;
                // TimeBase.ticksToSeconds (
                   //((zoomSelectRect.x + zoomSelectRect.width) * ticksPerPixel));

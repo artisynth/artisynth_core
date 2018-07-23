@@ -48,6 +48,5 @@ public class Test {
       }
       timer.stop();
       System.out.println ("int: " + timer.result (cnt));
-
    }
 }

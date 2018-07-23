@@ -63,13 +63,21 @@ ArtiSynth webserver reboots. This is achieved by the following line in
 
 sudo -u www-data /var/www/artisynth.org/bin/startInfoCenter
 
-There is not usually much reason to restart the InfoCenter. The HTML
-files that the InfoCenter uses are located under the html directory,
-and these can be changed while the InfoCenter is running. The
-exception to this is when there is a change in the table of contents
-(i.e., the "xxxToc.xml" files) for one or more manuals. Because the
-InfoCenter caches the table of contents internally, it may be
-necessary to restart the InfoCenter under such circumstances.
+It is not always necessary to restart the InfoCenter. The HTML files
+that the InfoCenter uses are located under the html directory, and
+these can be changed while the InfoCenter is running. The main reasons
+for restarting the InfoCenter are
+
+1) when there is a change in the table of contents (i.e., the
+"xxxToc.xml" files) for one or more manuals, or
+
+2) when content has changed enough to require the search index
+to be rebuilt.
+
+In particular, the search index is cleared inside restartInfoCenter by
+simply removing the index directory with the line
+
+rm -rf $ECLIPSE_HOME/configuration/org.eclipse.help.base/index
 
 Connecting the InfoCenter to the Websever
 -----------------------------------------

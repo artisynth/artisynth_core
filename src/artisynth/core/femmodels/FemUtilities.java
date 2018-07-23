@@ -590,10 +590,12 @@ public class FemUtilities {
     * Shape function of j-th node and integration point.
     * 
     * @param idN
-    * Derivative of shape function of i-th node and integration point.
+    * Derivative of shape function (wrt natural coords) of i-th node
+    * and integration point.
     * 
     * @param jdN 
-    * Derivative of shape function of j-th node and integration point.
+    * Derivative of shape function (wrt natural coords) of j-th node
+    * and integration point.
     * 
     * @param dv
     * integrationPt.detJ * integrationPt.weight

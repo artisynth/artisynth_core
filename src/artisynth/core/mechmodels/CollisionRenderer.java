@@ -47,6 +47,7 @@ public class CollisionRenderer {
    private static int CONSTRAINT_GRP = 0;
    private static int SEGMENT_GRP = 1;
    private static int CONTOUR_GRP = 2;
+   private static int FORCE_GRP = 3;
 
    private void addPoint (RenderObject ro, Point3d p) {
       ro.addPoint (ro.vertex ((float)p.x, (float)p.y, (float)p.z));
@@ -227,6 +228,7 @@ public class CollisionRenderer {
       ro.createLineGroup();     // constraints
       ro.createLineGroup();     // segments
       ro.createLineGroup();     // contours
+      ro.createLineGroup();     // forces
       ro.createPointGroup();    // contact info
       ro.createTriangleGroup(); // intersection faces
 
@@ -257,13 +259,8 @@ public class CollisionRenderer {
          Method method = handler.getMethod();
          if (method == Method.CONTOUR_REGION) {
             int numc = 0;
-            for (ContactPlane region : cinfo.getContactPlanes()) {
-               for (Point3d p : region.points) {
-                  if (numc >= handler.myMaxUnilaterals) {
-                     break;        
-                  }
-                  addLineSeg (ro, p, region.normal, normalLen);
-               }
+            for (ContactConstraint cc : handler.myUnilaterals) {
+               addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, normalLen);
             }
          }
          else if (method != Method.INACTIVE) {
@@ -272,6 +269,38 @@ public class CollisionRenderer {
             }
             for (ContactConstraint cc : handler.myBilaterals1.values()) {
                maybeAddVertexFaceNormal (ro, cc, normalLen);
+            }
+         }
+      }
+
+      double forceScale = 0;
+      if (behav.getDrawContactForces()) {
+         forceScale = handler.getContactForceLenScale();
+      }
+      if (forceScale != 0 && cinfo != null) {
+         ro.lineGroup (FORCE_GRP);
+         Method method = handler.getMethod();
+         if (method == Method.CONTOUR_REGION) {
+            int numc = 0;
+            for (ContactConstraint cc : handler.myPrevUnilaterals) {
+               double len = forceScale*cc.myLambda;
+               if (len != 0) {
+                  addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
+               }
+            }
+         }
+         else if (method != Method.INACTIVE) {
+            for (ContactConstraint cc : handler.myBilaterals0.values()) {
+               double len = forceScale*cc.myLambda;
+               if (len != 0) {
+                  addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
+               }
+            }
+            for (ContactConstraint cc : handler.myBilaterals1.values()) {
+               double len = forceScale*cc.myLambda;
+               if (len != 0) {
+                  addLineSeg (ro, cc.myCpnt0.myPoint, cc.myNormal, len);
+               }
             }
          }
       }
@@ -492,6 +521,22 @@ public class CollisionRenderer {
       if (ro.numLines(CONSTRAINT_GRP) > 0) {
          ro.lineGroup (CONSTRAINT_GRP);
          drawLines (renderer, ro, props);
+      }
+
+      if (ro.numLines(FORCE_GRP) > 0) {
+         int width = props.getEdgeWidth();
+         if (width > 0) {
+            ro.lineGroup (FORCE_GRP);
+            float[] rgb = props.getEdgeColorF();
+            if (rgb == null) {
+               rgb = props.getLineColorF();
+            }
+            renderer.setColor (rgb, /*highlight=*/false);
+            Shading save = renderer.getShading();
+            renderer.setShading (Shading.NONE);
+            renderer.drawLines (ro, LineStyle.LINE, width);
+            renderer.setShading (save);
+         }
       }
 
       if (ro.numLines(SEGMENT_GRP) > 0) {

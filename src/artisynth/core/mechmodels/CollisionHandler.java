@@ -50,6 +50,9 @@ public class CollisionHandler extends ConstrainerBase
    LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals0;
    LinkedHashMap<ContactPoint,ContactConstraint> myBilaterals1;
    ArrayList<ContactConstraint> myUnilaterals;
+   // myPrevUnilaterals stores previous unilaterals so we have access
+   // to impulse values in rendering code
+   ArrayList<ContactConstraint> myPrevUnilaterals;
    int myMaxUnilaterals = 100;
    ContactInfo myLastContactInfo; // last contact info produced by this handler
    ContactInfo myRenderContactInfo; // contact info to be used for rendering
@@ -101,6 +104,15 @@ public class CollisionHandler extends ConstrainerBase
       }
    }
 
+   double getContactForceLenScale() {
+      if (myManager != null && myBehavior.getDrawContactForces()) {
+         return myManager.getContactForceLenScale();
+      }
+      else {
+         return 0;
+      }
+   }
+
    void setLastContactInfo(ContactInfo info) {
       myLastContactInfo = info;
    }
@@ -117,6 +129,7 @@ public class CollisionHandler extends ConstrainerBase
       myBilaterals0 = new LinkedHashMap<ContactPoint,ContactConstraint>();
       myBilaterals1 = new LinkedHashMap<ContactPoint,ContactConstraint>();
       myUnilaterals = new ArrayList<ContactConstraint>();
+      myPrevUnilaterals = new ArrayList<ContactConstraint>();
       //myCollider = SurfaceMeshCollider.newCollider();
       myManager = manager;
    }
@@ -277,6 +290,7 @@ public class CollisionHandler extends ConstrainerBase
          clearContactActivity();
          removeInactiveContacts();
          myUnilaterals.clear();
+         myPrevUnilaterals.clear();
       }
       setLastContactInfo(cinfo);
       updateCompliance(myBehavior);
@@ -699,7 +713,12 @@ public class CollisionHandler extends ConstrainerBase
    double computeContourRegionConstraints (
       ContactInfo info, CollidableBody collidable0, CollidableBody collidable1) {
 
+      // store unilateral data in myPrevUnilaterals so we have access to
+      // impulse data in rendering code
+      myPrevUnilaterals.clear();
+      myPrevUnilaterals.addAll(myUnilaterals);
       myUnilaterals.clear();
+      
       double maxpen = 0;
 
       //clearRenderData();
@@ -739,6 +758,7 @@ public class CollisionHandler extends ConstrainerBase
       myBilaterals0.clear();
       myBilaterals1.clear();
       myUnilaterals.clear();
+      myPrevUnilaterals.clear();
    }
 
    public void clearContactActivity() {

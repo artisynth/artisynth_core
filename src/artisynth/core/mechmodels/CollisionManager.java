@@ -272,6 +272,9 @@ public class CollisionManager extends RenderableCompositeBase
 
    private double myContactNormalLen = Property.DEFAULT_DOUBLE;
 
+   static double DEFAULT_CONTACT_FORCE_LEN_SCALE = 1.0;
+   private double myContactForceLenScale = DEFAULT_CONTACT_FORCE_LEN_SCALE;
+   
    // Estimate of the radius of the set of collidable objects.
    // Used for computing default tolerances.
    protected double myCollisionArenaRadius = -1;
@@ -291,6 +294,10 @@ public class CollisionManager extends RenderableCompositeBase
    static boolean defaultDrawContactNormals = false;
    boolean myDrawContactNormals = defaultDrawContactNormals;
    PropertyMode myDrawContactNormalsMode = PropertyMode.Inherited;
+
+   static boolean defaultDrawContactForces = false;
+   boolean myDrawContactForces = defaultDrawContactForces;
+   PropertyMode myDrawContactForcesMode = PropertyMode.Inherited;
 
    static ColorMapBase defaultColorMap = new HueColorMap (2.0/3, 0);
    ColorMapBase myColorMap = defaultColorMap.copy();
@@ -335,6 +342,11 @@ public class CollisionManager extends RenderableCompositeBase
          "contactNormalLen",
          "draw contact normals with indicated length", Property.DEFAULT_DOUBLE);
 
+      myProps.add (
+         "contactForceLenScale",
+         "length scale to be used when drawing contact forces",
+         DEFAULT_CONTACT_FORCE_LEN_SCALE);
+
       myProps.addInheritable (
          "acceleration:Inherited",
          "acceleration used to compute collision compliance from penetrationTol",
@@ -359,7 +371,9 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.addInheritable (
          "drawContactNormals:Inherited", 
          "draw normals at each contact point", defaultDrawContactNormals);
-
+      myProps.addInheritable (
+         "drawContactForces:Inherited", 
+         "draw forces at each contact point", defaultDrawContactForces);
       myProps.add (
          "penetrationDepthRange", "range for drawing contact penetration", 
          defaultPenetrationDepthRange);
@@ -469,6 +483,8 @@ public class CollisionManager extends RenderableCompositeBase
       myDrawIntersectionPointsMode = PropertyMode.Inherited;
       myDrawContactNormals = defaultDrawContactNormals;
       myDrawContactNormalsMode = PropertyMode.Inherited;
+      myDrawContactForces = defaultDrawContactForces;
+      myDrawContactForcesMode = PropertyMode.Inherited;
       setPenetrationDepthRange (defaultPenetrationDepthRange);
       myForceBehavior = null;
    }
@@ -515,14 +531,24 @@ public class CollisionManager extends RenderableCompositeBase
       }
    }
 
-    public double getContactNormalLen() {
+   public double getContactNormalLen() {
       return myContactNormalLen;
    }
-    
+
    public double getDefaultContactNormalLen() {
       return 0.1*getCollisionArenaRadius();
    }
 
+   public void setContactForceLenScale (double scale) {
+      if (scale != myContactForceLenScale) {
+         myContactForceLenScale = scale;
+      }
+   }
+
+    public double getContactForceLenScale() {
+      return myContactForceLenScale;
+   }
+    
    /** 
     * Gets the Coulomb friction coefficient
     * 
@@ -648,7 +674,7 @@ public class CollisionManager extends RenderableCompositeBase
       myReduceConstraints = enable;
       myReduceConstraintsMode =
          PropertyUtils.propagateValue (
-            this, "bodyFaceContact", myReduceConstraints,myReduceConstraintsMode);
+            this, "reduceConstraints", myReduceConstraints,myReduceConstraintsMode);
    }
 
    public void setReduceConstraintsMode (PropertyMode mode) {
@@ -880,6 +906,28 @@ public class CollisionManager extends RenderableCompositeBase
 
    public PropertyMode getDrawContactNormalsMode() {
       return myDrawContactNormalsMode;
+   }
+
+   public boolean getDrawContactForces() {
+      return myDrawContactForces;
+   }
+
+   public void setDrawContactForces (boolean enable) {
+      myDrawContactForces = enable;
+      myDrawContactForcesMode =
+         PropertyUtils.propagateValue (
+            this, "drawContactForces",
+            myDrawContactForces, myDrawContactForcesMode);
+   }
+
+   public void setDrawContactForcesMode (PropertyMode mode) {
+      myDrawContactForcesMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "drawContactForces", myDrawContactForcesMode, mode);
+   }
+
+   public PropertyMode getDrawContactForcesMode() {
+      return myDrawContactForcesMode;
    }
 
    public void setColorMap (ColorMapBase map) {
@@ -2289,6 +2337,7 @@ public class CollisionManager extends RenderableCompositeBase
       if (myContactNormalLen != Property.DEFAULT_DOUBLE) {
          myContactNormalLen *= s;
       }
+      myContactForceLenScale *= s;
       myAcceleration *= s;
       myPenetrationDepthRange.scale (s);
       myRenderProps.scaleDistance (s);
@@ -2300,6 +2349,7 @@ public class CollisionManager extends RenderableCompositeBase
    public void scaleMass (double s) {
       myCompliance /= s;
       myDamping *= s;
+      myContactForceLenScale *= s;
       for (CollisionBehavior behav : myBehaviors) {
          behav.scaleMass (s);
       }
@@ -2349,13 +2399,7 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    public void reduceBilateralConstraints (
-      ArrayList<CollisionHandler> handlers, int idx0) {
-      ArrayList<ContactConstraint> bilaterals =
-         new ArrayList<ContactConstraint>();
-      for (int i=idx0; i<handlers.size(); i++) {
-         CollisionHandler handler = handlers.get(i);
-         handler.getBilateralConstraints (bilaterals);
-      }        
+      ArrayList<ContactConstraint> bilaterals) {
       Collections.sort (bilaterals, new DescendingDistance());
       int[] dofs = new int[myMechModel.numActiveComponents()];
       myMechModel.getDynamicDOFs (dofs);
@@ -2464,8 +2508,15 @@ public class CollisionManager extends RenderableCompositeBase
 
       // for handlers just added by this manager, reduce constraints
       // constraints if necessary and remove all inactive contacts
-      if (myReduceConstraints) {
-         reduceBilateralConstraints (handlers, hidx1);
+      ArrayList<ContactConstraint> reducedBilaterals = new ArrayList<ContactConstraint>();
+      for (int i=hidx1; i<handlers.size(); i++) {
+         CollisionHandler handler = handlers.get(i);
+         if (handler.getBehavior().getReduceConstraints()) {
+            handler.getBilateralConstraints (reducedBilaterals);
+         }
+      }
+      if (reducedBilaterals.size() > 0) {
+         reduceBilateralConstraints (reducedBilaterals);
       }
       for (int i=hidx1; i<handlers.size(); i++) {      
          handlers.get(i).removeInactiveContacts();

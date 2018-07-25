@@ -53,6 +53,10 @@ public class BlockTest extends RootModel {
       msmod.addRigidBody (myBase);
 
       msmod.setDefaultCollisionBehavior (true, 0.2);
+      CollisionManager cm = msmod.getCollisionManager();
+      //cm.setReduceConstraints (true);
+      //cm.setColliderType (CollisionManager.ColliderType.SIGNED_DISTANCE);
+
 
       if (seeContacts) {
          RenderProps.setFaceStyle (myBlock, Renderer.FaceStyle.NONE);

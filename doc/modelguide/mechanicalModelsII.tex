@@ -1899,13 +1899,21 @@ intersection) and the fact that the opposite mesh does {\it not} have
 to be triangular, closed, or manifold.  However, signed distance
 fields can (at present) only be computed for fixed meshes, and so at
 least one colliding body must be rigid.  The signed distance field
-also does not yield contact region information, and so the collision
+also does not yet yield contact region information, and so the collision
 method is restricted to
 \javaclassAlt{%
 artisynth.core.mechmodels.CollisionBehavior\$Method\#VERTEX\_PENETRATION}%
 {VERTEX\_PENETRATION}.
 Contacts generated from a signed distance field are illustrated in
 Figure Figure~\ref{SDCollision:fig}.
+
+\begin{sideblock}
+Because the {\tt SIGNED\_DISTANCE} collider type currently supports
+only the {\tt VERTEX\_PENETRATION} method, its use between rigid
+bodies, or low DOF deformable bodies, will generally result in an
+overconstrained system unless the constraints are either regularized
+using compliance or constraint reduction is enabled.
+\end{sideblock}
 
 \end{description}
 
@@ -2081,11 +2089,26 @@ pointRadius}, and {\sf pointColor} render properties.
 \item[drawContactNormals]\mbox{}
 
 Boolean value requesting drawing of the normals associated with each
-contact constraint, using the {\sf lineStyle}, {\sf lineWidth}, {\sf
-lineRadius}, and {\sf lineColor} render properties. The length of the
+contact constraint, using the {\sf lineStyle}, {\sf lineRadius}, {\sf
+lineWidth}, and {\sf lineColor} render properties. The length of the
 normals is controlled by the {\sf contactNormalLen} property of the
 collision manager, which will be set to an appropriate default value
 if not set explicitly.
+
+\item[drawContactForces]\mbox{}
+
+Boolean value requesting drawing of the forces associated with each
+contact constraint, using the {\sf lineStyle}, {\sf lineRadius}, {\sf
+edgeWidth}, and {\sf edgeColor} (or {\sf lineColor} if {\sf edgeColor}
+is {\tt null}) render properties.  The forces are drawn as line
+segments starting at each contact point and running parallel to the
+contact normal, with a length given by the current contact impulse
+value multiplied by the {\sf contactForceLenScale} property of the
+collision manager (which has a default value of 1).  The reason for
+using {\sf edgeWidth} and {\sf edgeColor} instead of {\sf lineWidth}
+and {\sf lineColor} is to allow the application to set the render
+properties such that both normals and forces can be visible if both
+are being rendered at the same time.
 
 \item[drawPenetrationDepth]\mbox{}
 

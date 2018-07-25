@@ -149,6 +149,10 @@ public class CollisionBehavior extends CollisionComponent
    boolean myDrawContactNormals = defaultDrawContactNormals;
    PropertyMode myDrawContactNormalsMode = PropertyMode.Inherited;
 
+   static boolean defaultDrawContactForces = false;
+   boolean myDrawContactForces = defaultDrawContactForces;
+   PropertyMode myDrawContactForcesMode = PropertyMode.Inherited;
+
    static boolean defaultDrawConstraints = false;
    boolean myDrawConstraints = defaultDrawConstraints;
    PropertyMode myDrawConstraintsMode = PropertyMode.Inherited;
@@ -193,6 +197,8 @@ public class CollisionBehavior extends CollisionComponent
       myDrawIntersectionPointsMode = PropertyMode.Inherited;
       myDrawContactNormals = defaultDrawContactNormals;
       myDrawContactNormalsMode = PropertyMode.Inherited;
+      myDrawContactForces = defaultDrawContactForces;
+      myDrawContactForcesMode = PropertyMode.Inherited;
       myDrawConstraints = defaultDrawConstraints;
       myDrawConstraintsMode = PropertyMode.Inherited;
       myDrawPenetrationDepth = defaultDrawPenetrationDepth;
@@ -254,6 +260,9 @@ public class CollisionBehavior extends CollisionComponent
       myProps.addInheritable (
          "drawContactNormals:Inherited", "draw normals at each contact point",
          defaultDrawContactNormals);
+      myProps.addInheritable (
+         "drawContactForces:Inherited", "draw forces at each contact point",
+         defaultDrawContactForces);
       myProps.addInheritable (
          "drawConstraints:Inherited", "draw contact constraints",
          defaultDrawConstraints);
@@ -773,6 +782,28 @@ public class CollisionBehavior extends CollisionComponent
 
    public PropertyMode getDrawContactNormalsMode() {
       return myDrawContactNormalsMode;
+   }
+
+   public boolean getDrawContactForces() {
+      return myDrawContactForces;
+   }
+
+   public void setDrawContactForces (boolean enable) {
+      myDrawContactForces = enable;
+      myDrawContactForcesMode =
+         PropertyUtils.propagateValue (
+            this, "drawContactForces",
+            myDrawContactForces, myDrawContactForcesMode);
+   }
+
+   public void setDrawContactForcesMode (PropertyMode mode) {
+      myDrawContactForcesMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "drawContactForces", myDrawContactForcesMode, mode);
+   }
+
+   public PropertyMode getDrawContactForcesMode() {
+      return myDrawContactForcesMode;
    }
 
    public boolean getDrawConstraints() {

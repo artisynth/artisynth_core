@@ -476,14 +476,12 @@ public class CollisionRenderer {
    }
 
    private void drawLines (
-      Renderer renderer, RenderObject ro, RenderProps props) {
-   
-      LineStyle style = props.getLineStyle();
+      Renderer renderer, RenderObject ro, RenderProps props, int width) {
+
       Shading savedShading = renderer.setLineShading (props);
-      renderer.setLineColoring (props, /*highlight=*/false);
+      LineStyle style = props.getLineStyle();
       switch (style) {
          case LINE: {
-            int width = props.getLineWidth();
             if (width > 0) {
                //renderer.setLightingEnabled (false);
                //renderer.setColor (props.getLineColorArray(), /*highlight=*/false);
@@ -520,28 +518,20 @@ public class CollisionRenderer {
       }
       if (ro.numLines(CONSTRAINT_GRP) > 0) {
          ro.lineGroup (CONSTRAINT_GRP);
-         drawLines (renderer, ro, props);
+         renderer.setLineColoring (props, /*highlight=*/false);
+         drawLines (renderer, ro, props, props.getLineWidth());
       }
 
       if (ro.numLines(FORCE_GRP) > 0) {
-         int width = props.getEdgeWidth();
-         if (width > 0) {
-            ro.lineGroup (FORCE_GRP);
-            float[] rgb = props.getEdgeColorF();
-            if (rgb == null) {
-               rgb = props.getLineColorF();
-            }
-            renderer.setColor (rgb, /*highlight=*/false);
-            Shading save = renderer.getShading();
-            renderer.setShading (Shading.NONE);
-            renderer.drawLines (ro, LineStyle.LINE, width);
-            renderer.setShading (save);
-         }
+         ro.lineGroup (FORCE_GRP);
+         renderer.setEdgeColoring (props, /*highlight=*/false);
+         drawLines (renderer, ro, props, props.getEdgeWidth());
       }
 
       if (ro.numLines(SEGMENT_GRP) > 0) {
          ro.lineGroup (SEGMENT_GRP);
-         drawLines (renderer, ro, props);
+         renderer.setLineColoring (props, /*highlight=*/false);
+         drawLines (renderer, ro, props, props.getLineWidth());
       }
 
       if (ro.numLines(CONTOUR_GRP) > 0) {

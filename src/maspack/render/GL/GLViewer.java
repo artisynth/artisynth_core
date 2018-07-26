@@ -4301,7 +4301,6 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
          rgba = props.getLineColorF();
       }
       setPropsColoring (props, rgba, highlight);
-      setShading (props.getShading());
    }
 
    public void setFaceColoring (RenderProps props, boolean highlight) {

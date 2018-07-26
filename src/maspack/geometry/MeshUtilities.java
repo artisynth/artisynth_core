@@ -46,8 +46,9 @@ public class MeshUtilities {
    }
    
    /**
-    * Applies the Taubin smoothing operating to the mesh, with cotangent weights,
-    *  suggested factors 0 < lambda < -mu <= 1.  Meshlab uses lambda=0.5, mu=-0.53 by default.
+    * Applies the Taubin smoothing operating to the mesh, with cotangent
+    * weights, suggested factors 0 {@code <} lambda {@code <} -mu {@code <=} 1.
+    * Meshlab uses lambda=0.5, mu=-0.53 by default.
     *  
     * 
     * @param mesh polygonal mesh to smooth
@@ -1495,7 +1496,8 @@ public class MeshUtilities {
    /**
     * Attempts to close holes smaller or equal to the given size
     * @param mesh mesh to close
-    * @param size max number of edges in hole (if <= 0, closes holes of any size)
+    * @param size max number of edges in hole (if {@code <=} 0, closes holes of
+    * any size)
     */
    public static void closeHoles(PolygonalMesh mesh, int size) {
       

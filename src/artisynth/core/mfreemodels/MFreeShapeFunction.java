@@ -31,7 +31,6 @@ public interface MFreeShapeFunction {
    
    /**
     * Set the evaluation coordinate
-    * @param pnt
     */
    public void setCoordinate(Point3d pnt);
    

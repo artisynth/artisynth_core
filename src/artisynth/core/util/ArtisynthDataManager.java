@@ -85,7 +85,7 @@ public class ArtisynthDataManager {
     * a default is assumed.  An encrypted password takes precedence over a plaintext one if both are
     * provided.
     * 
-    * @param configFile
+    * @param configFile configuration file
     */
    public void loadConfig(File configFile) {
       JSONReader jreader = new JSONReader();

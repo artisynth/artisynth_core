@@ -2810,14 +2810,11 @@ public class FemFactory {
    }
    
    /**
-    * </p>
+    *
     * Conformally maps a rectangular grid to an ellipse using the method of 
     * <p>
-    * <quote>
     * Daniela Rosca, Uniform and refinable grids on elliptic domains and on some surfaces of revolution, 
     * Applied Mathematics and Computation,Volume 217, Issue 19, 2011, Pages 7812-7817
-    * </quote>
-    *</p>
     *</p>
     * @param a ellipsoid radius along x
     * @param b ellipsoid radius along y
@@ -2853,13 +2850,8 @@ public class FemFactory {
     * <p>
     * Maps a cylinder with unit radius and z in [-1,1] to a unit sphere using the bilipschitz method described in
     * <p>
-    * <quote>
     * A bi-Lipschitz continuous, volume preserving map from the unit ball onto a cube, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
-    * </quote>
     * </p>
-    * </p>
-    * @param input
-    * @param output
     */
    public static void bilipschitzMapCylinderSphere(Point3d input, Point3d output) {
       double a = input.x;

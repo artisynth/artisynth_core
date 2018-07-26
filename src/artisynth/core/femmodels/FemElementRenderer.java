@@ -190,13 +190,13 @@ public class FemElementRenderer {
     */
    public static void updateQuadFace (
       RenderObject r, int nsegs,
-      int p0, int p1, int p2, int pm01, int vm12, int pm20, int vidx0) {
+      int p0, int p1, int p2, int pm01, int pm12, int pm20, int vidx0) {
 
       float[] pos0 = r.getPosition (p0);
       float[] pos1 = r.getPosition (p1);
       float[] pos2 = r.getPosition (p2);
       float[] posm01 = r.getPosition (pm01);
-      float[] posm12 = r.getPosition (vm12);
+      float[] posm12 = r.getPosition (pm12);
       float[] posm20 = r.getPosition (pm20);
       
       int k = vidx0;

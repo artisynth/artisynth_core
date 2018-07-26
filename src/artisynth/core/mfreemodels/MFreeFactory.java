@@ -573,7 +573,7 @@ public class MFreeFactory {
     * the volume of the voronoi region about each point
     * @param locs original locations
     * @param surface mesh surface
-    * @return
+    * @return cubature points
     */
    public static CubaturePoint3d[] computeVoronoiCubature(Point3d[] locs, PolygonalMesh surface) {
       

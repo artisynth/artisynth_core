@@ -258,7 +258,6 @@ public class DicomSlice {
    
    /**
     * Number of channels in the slice
-    * @return
     */
    public int getNumChannels() {
       return pixelBuff.getNumChannels();

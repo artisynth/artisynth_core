@@ -1140,8 +1140,8 @@ public class BVFeatureQuery {
       /**
        * Retrieves the current set of nearest entries
        * 
-       * Note: could be < k if there are fewer than k bounded elements, 
-       * and > k if the last several elements have the exact same distance
+       * Note: could be {@code <} k if there are fewer than k bounded elements, 
+       * and {@code >} k if the last several elements have the exact same distance
        * 
        * @return (approximately) k nearest elements
        */

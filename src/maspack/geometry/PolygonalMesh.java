@@ -3382,7 +3382,7 @@ public class PolygonalMesh extends MeshBase {
          // compute projection direction
          Vector3d nrml = f.getNormal();
 
-         if (nrml.containsNaN()) {
+         if (nrml.containsNaN() || nrml.equals(Vector3d.ZERO)) {
             //System.out.println ("Warning: PolygonalMesh.computeVolumeIntegrals: face "+i+" is badly formed");
             // sanity check for badly formed meshes
             continue;

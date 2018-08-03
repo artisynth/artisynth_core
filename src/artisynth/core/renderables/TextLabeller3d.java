@@ -62,9 +62,9 @@ public class TextLabeller3d extends TextComponentBase {
    
    static {
       // change default font size
-      PropertyDesc info = myProps.get("fontSize");
-      info.setDefaultValue(defaultFontSize);
-      info = myProps.get("textSize");
+      // PropertyDesc info = myProps.get("fontSize");
+      // info.setDefaultValue(defaultFontSize);
+      PropertyDesc info = myProps.get("textSize");
       info.setDefaultValue(defaultTextSize);
       myProps.add("textOffset", "space to offset text", Point2d.ZERO);
    }

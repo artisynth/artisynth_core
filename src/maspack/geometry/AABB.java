@@ -247,6 +247,15 @@ public class AABB extends BVNode {
       myMax.add(margin, margin, margin);
    }
 
+   public void set (AABB aabb, double margin) {
+      myMin.x = aabb.myMin.x - margin;
+      myMin.y = aabb.myMin.y - margin;
+      myMin.z = aabb.myMin.z - margin;
+      myMax.x = aabb.myMax.x + margin;
+      myMax.y = aabb.myMax.y + margin;
+      myMax.z = aabb.myMax.z + margin;
+   }
+
    public boolean updateForPoint(Point3d pnt, double margin) {
       boolean modified = false;
       double diff = 0;

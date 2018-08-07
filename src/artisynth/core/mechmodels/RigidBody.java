@@ -1367,7 +1367,29 @@ public class RigidBody extends Frame
     * @return box-shaped rigid body
     */
    public static RigidBody createBox (
-      String bodyName, double wx, double wy, double wz, double density, boolean addNormals) {
+      String bodyName, double wx, double wy, double wz, double density) {
+
+      RigidBody body = new RigidBody (bodyName);
+      PolygonalMesh mesh = MeshFactory.createBox (wx, wy, wz);
+      body.setInertiaFromDensity (density);
+      body.setMesh (mesh, null);
+      return body;
+   }
+
+   /** 
+    * Creates a box-shaped RigidBody with a prescribed uniform density.
+    * The box is centered on the origin.
+    * 
+    * @param bodyName name of the RigidBody
+    * @param wx width of the box in the x direction
+    * @param wy width of the box in the y direction
+    * @param wz width of the box in the z direction
+    * @param density density of the body
+    * @return box-shaped rigid body
+    */
+   public static RigidBody createBox (
+      String bodyName, double wx, double wy, double wz, double density,
+      boolean addNormals) {
 
       RigidBody body = new RigidBody (bodyName);
       PolygonalMesh mesh = MeshFactory.createBox (wx, wy, wz, addNormals);
@@ -1384,19 +1406,26 @@ public class RigidBody extends Frame
     * @param wx width of the box in the x direction
     * @param wy width of the box in the y direction
     * @param wz width of the box in the z direction
+    * @param nx number of mesh divisions in the x direction
+    * @param ny number of mesh divisions in the y direction
+    * @param nz number of mesh divisions in the z direction
     * @param density density of the body
     * @return box-shaped rigid body
     */
    public static RigidBody createBox (
-      String bodyName, double wx, double wy, double wz, double density) {
+      String bodyName, double wx, double wy, double wz,
+      int nx, int ny, int nz, double density,
+      boolean addNormals) {
 
       RigidBody body = new RigidBody (bodyName);
-      PolygonalMesh mesh = MeshFactory.createBox (wx, wy, wz);
+      PolygonalMesh mesh =
+         MeshFactory.createBox (
+            wx, wy, wz, Point3d.ZERO, nx, ny, nz, addNormals);
       body.setInertiaFromDensity (density);
       body.setMesh (mesh, null);
       return body;
    }
-
+   
    /** 
     * Creates a cylindrical RigidBody with a prescribed uniform density.  The
     * cylinder is centered on the origin and is parallel to the z axis.

@@ -39,6 +39,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.FunctionTimer;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
@@ -299,11 +300,19 @@ public class CollisionManager extends RenderableCompositeBase
    boolean myDrawContactForces = defaultDrawContactForces;
    PropertyMode myDrawContactForcesMode = PropertyMode.Inherited;
 
+   static ColorMapType defaultDrawColorMap = ColorMapType.NONE;
+   ColorMapType myDrawColorMap = defaultDrawColorMap;
+   PropertyMode myDrawColorMapMode = PropertyMode.Inherited;
+
+   static int defaultColorMapCollidableNum = 0;
+   int myColorMapCollidableNum = defaultColorMapCollidableNum;
+   PropertyMode myColorMapCollidableMode = PropertyMode.Inherited;
+
    static ColorMapBase defaultColorMap = new HueColorMap (2.0/3, 0);
    ColorMapBase myColorMap = defaultColorMap.copy();
 
-   static ScalarRange defaultPenetrationDepthRange = new ScalarRange();
-   ScalarRange myPenetrationDepthRange = defaultPenetrationDepthRange.clone();
+   static ScalarRange defaultColorMapRange = new ScalarRange();
+   ScalarRange myColorMapRange = defaultColorMapRange.clone();
 
    ContactForceBehavior myForceBehavior;
 
@@ -374,9 +383,18 @@ public class CollisionManager extends RenderableCompositeBase
       myProps.addInheritable (
          "drawContactForces:Inherited", 
          "draw forces at each contact point", defaultDrawContactForces);
-      myProps.add (
-         "penetrationDepthRange", "range for drawing contact penetration", 
-         defaultPenetrationDepthRange);
+      myProps.addInheritable (
+         "drawColorMap:Inherited", 
+         "draw a color map of the specified data",
+         defaultDrawColorMap);
+      myProps.addInheritable (
+         "colorMapCollidable:Inherited", 
+         "number of the collidable (0 or 1) on which the color map show be drawn",
+         defaultColorMapCollidableNum, "[0,1] NoSlider");
+
+       myProps.add (
+         "colorMapRange", "range for drawing color maps", 
+         defaultColorMapRange);
 
       myProps.add (
          "colorMap", "color map for penetration plotting", 
@@ -485,7 +503,11 @@ public class CollisionManager extends RenderableCompositeBase
       myDrawContactNormalsMode = PropertyMode.Inherited;
       myDrawContactForces = defaultDrawContactForces;
       myDrawContactForcesMode = PropertyMode.Inherited;
-      setPenetrationDepthRange (defaultPenetrationDepthRange);
+      myDrawColorMap = defaultDrawColorMap;
+      myDrawColorMapMode = PropertyMode.Inherited;
+      myColorMapCollidableNum = defaultColorMapCollidableNum;
+      myColorMapCollidableMode = PropertyMode.Inherited;
+      setColorMapRange (defaultColorMapRange);
       myForceBehavior = null;
    }
 
@@ -930,6 +952,53 @@ public class CollisionManager extends RenderableCompositeBase
       return myDrawContactForcesMode;
    }
 
+   public ColorMapType getDrawColorMap() {
+      return myDrawColorMap;
+   }
+
+   public void setDrawColorMap (ColorMapType type) {
+      myDrawColorMap = type;
+      myDrawColorMapMode =
+         PropertyUtils.propagateValue (
+            this, "drawColorMap",
+            myDrawColorMap, myDrawColorMapMode);
+   }
+
+   public void setDrawColorMapMode (PropertyMode mode) {
+      myDrawColorMapMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "drawColorMap", myDrawColorMapMode, mode);
+   }
+
+   public PropertyMode getDrawColorMapMode() {
+      return myDrawColorMapMode;
+   }
+
+   public int getColorMapCollidable() {
+      return myColorMapCollidableNum;
+   }
+
+   public void setColorMapCollidable (int colNum) {
+      if (colNum != 0 && colNum != 1) {
+         throw new InternalErrorException ("colNum must be 0 or 1");
+      }
+      myColorMapCollidableNum = colNum;
+      myColorMapCollidableMode =
+         PropertyUtils.propagateValue (
+            this, "colorMapCollidable",
+            myColorMapCollidableNum, myColorMapCollidableMode);
+   }
+
+   public void setColorMapCollidableMode (PropertyMode mode) {
+      myColorMapCollidableMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "colorMapCollidable", myColorMapCollidableMode, mode);
+   }
+
+   public PropertyMode getColorMapCollidableMode() {
+      return myColorMapCollidableMode;
+   }
+
    public void setColorMap (ColorMapBase map) {
       ColorMapBase newMap = map.copy();
       PropertyUtils.updateCompositeProperty (
@@ -941,15 +1010,15 @@ public class CollisionManager extends RenderableCompositeBase
       return myColorMap;
    }
    
-   public void setPenetrationDepthRange (ScalarRange range) {
+   public void setColorMapRange (ScalarRange range) {
       ScalarRange newRange = range.clone();
       PropertyUtils.updateCompositeProperty (
-            this, "penetrationDepthRange", myPenetrationDepthRange, newRange);
-      myPenetrationDepthRange = newRange;
+            this, "colorMapRange", myColorMapRange, newRange);
+      myColorMapRange = newRange;
    }
    
-   public ScalarRange getPenetrationDepthRange() {
-      return myPenetrationDepthRange;
+   public ScalarRange getColorMapRange() {
+      return myColorMapRange;
    }
    
    public ContactForceBehavior getForceBehavior () {
@@ -2044,11 +2113,14 @@ public class CollisionManager extends RenderableCompositeBase
    void checkForContact (
       CollidableBody c0, CollidableBody c1, 
       CollisionBehavior behav, boolean testMode) {
+      
       if (c0.getCollidableIndex() > c1.getCollidableIndex()) {
+         // swap the collidable references to reflect their handler order
          CollidableBody tmp = c0;
          c0 = c1;
          c1 = tmp;
       }
+      
       PolygonalMesh mesh0 = c0.getCollisionMesh();
       PolygonalMesh mesh1 = c1.getCollisionMesh();
       ContactInfo cinfo;
@@ -2086,7 +2158,7 @@ public class CollisionManager extends RenderableCompositeBase
                      regions0 = RegionType.NONE;
                   }
                   else if (CollisionHandler.isRigid (c1) && 
-                      !CollisionHandler.isRigid (c0)) {
+                           !CollisionHandler.isRigid (c0)) {
                      regions1 = RegionType.NONE;
                   }
                }
@@ -2339,7 +2411,7 @@ public class CollisionManager extends RenderableCompositeBase
       }
       myContactForceLenScale *= s;
       myAcceleration *= s;
-      myPenetrationDepthRange.scale (s);
+      myColorMapRange.scale (s);
       myRenderProps.scaleDistance (s);
       for (CollisionBehavior behav : myBehaviors) {
          behav.scaleDistance (s);
@@ -2423,16 +2495,14 @@ public class CollisionManager extends RenderableCompositeBase
    public double updateConstraints (double t, int flags) {
       
       // this method will only be called from the top level
-
       if ((flags & MechSystem.UPDATE_CONTACTS) != 0) {
          // right now just leave the same contacts in place ...
-         return 0;
+         return myHandlers.size() == 0 ? -1 : 0;
       }
 
       myHandlers.clear();
       double maxpen = updateConstraints (myHandlers, t, flags);      
-
-      return maxpen;
+      return myHandlers.size() == 0 ? -1 : maxpen;
    }
    
    double updateConstraints (

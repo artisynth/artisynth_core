@@ -151,10 +151,16 @@ public class AABBTree extends BVTree {
       }
       else {
          AABB child = (AABB)node.myFirstChild;
-         while (child != null) {
+         if (child != null) {
             updateRecursively (child);
-            node.updateForAABB (child, margin);
+            //node.updateForAABB (child, margin);
+            node.set (child, margin);
             child = (AABB)child.getNext();
+            while (child != null) {
+               updateRecursively (child);
+               node.updateForAABB (child, margin);
+               child = (AABB)child.getNext();
+            }
          }
       }
    }

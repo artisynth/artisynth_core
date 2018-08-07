@@ -1282,7 +1282,7 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public double updateConstraints (double t, int flags) {
-      return 0;
+      return -1;
    }
    
    public void getConstrainedComponents (List<DynamicComponent> list) {

@@ -693,8 +693,9 @@ public interface MechSystem {
     * (optional) can be used to indicate whether the current advance
     * should be redone with a smaller step size.
     * @param flags information flags
+    * @return true if the system contains constraints
     */
-   public void updateConstraints (
+   public boolean updateConstraints (
       double t, StepAdjustment stepAdjust, int flags);
    
    /**

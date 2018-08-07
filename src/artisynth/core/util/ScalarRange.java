@@ -76,6 +76,14 @@ public class ScalarRange
       return myProps;
    }
 
+   public ScalarRange() {
+   }
+   
+   public ScalarRange (double lo, double hi) {
+      setInterval (new DoubleInterval(lo, hi));
+      setUpdating (Updating.FIXED);
+   }
+   
    public ScalarRange clone() {
       ScalarRange range = null;
       try {
@@ -143,8 +151,7 @@ public class ScalarRange
    }
 
    public void expandInterval (DoubleInterval range) {
-      myInterval = new DoubleInterval (range);
-      myInterval.merge (myInterval);
+      myInterval.merge (range);
       myIntervalMode =
          PropertyUtils.propagateValue (
             this, "interval", range, myIntervalMode);

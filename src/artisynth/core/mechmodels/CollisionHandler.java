@@ -56,6 +56,7 @@ public class CollisionHandler extends ConstrainerBase
    int myMaxUnilaterals = 100;
    ContactInfo myLastContactInfo; // last contact info produced by this handler
    ContactInfo myRenderContactInfo; // contact info to be used for rendering
+   double myLastH; // time step associated with most recently set impulses
 
    boolean myStateNeedsContactInfo = false;
    
@@ -966,6 +967,7 @@ public class CollisionHandler extends ConstrainerBase
       for (ContactConstraint c : myBilaterals1.values()) {
          c.setImpulse (lam.get (idx++));
       }
+      myLastH = h;
       return idx;
    }
 
@@ -1046,6 +1048,7 @@ public class CollisionHandler extends ConstrainerBase
       for (int i=0; i<myUnilaterals.size(); i++) {
          myUnilaterals.get(i).setImpulse (buf[idx++]);
       }
+      myLastH = h;
       return idx;
    }
 

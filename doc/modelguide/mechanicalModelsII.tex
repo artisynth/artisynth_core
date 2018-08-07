@@ -2077,13 +2077,13 @@ contract rendering include:
 \item[drawIntersectionContours]\mbox{}
 
 Boolean value requesting drawing of the intersection contours between
-meshes, using the {\sf edgeWidth} and {\sf edgeColor} render
+collidable meshes, using the {\sf edgeWidth} and {\sf edgeColor} render
 properties.
 
 \item[drawIntersectionPoints]\mbox{}
 
 Boolean value requesting drawing of the interpenetrating vertices on
-each mesh, using the {\sf pointStyle}, {\sf pointSize}, {\sf
+each collidable mesh, using the {\sf pointStyle}, {\sf pointSize}, {\sf
 pointRadius}, and {\sf pointColor} render properties.
 
 \item[drawContactNormals]\mbox{}
@@ -2110,32 +2110,67 @@ and {\sf lineColor} is to allow the application to set the render
 properties such that both normals and forces can be visible if both
 are being rendered at the same time.
 
-\item[drawPenetrationDepth]\mbox{}
+\item[drawColorMap]\mbox{}
 
-Integer value requesting drawing of the interpenetration depth of one
-mesh with respect to the other.  The integer value should be either
-{\tt -1}, {\tt 0} or {\tt 1}, where {\tt -1} disables this feature and
-{\tt 0} or {\tt 1} select depth drawing for either the first or second
-mesh associated with the collision behavior. 
+An enum of type
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior\$ColorMapType}
+requesting that a color map be drawn over the contact regions showing
+a scalar value such as penetration depth or contact force pressure.
+The collidable (0 or 1) onto which the color map is drawn is controlled by
+the {\sf colorMapCollidable} property (decsribed below). The range of values
+used for generating the map is controlled by the {\sf colorMapRange}
+property, also described below.  The values are mapped onto colors
+using the {\sf colorMap} property of the collision manager.
 
-Penetration depth is drawn using a ``heat map'' type of rendering,
-where the depth value range is controlled using the {\sf
-penetrationDepthRange} property (see next item) and depth values are
-mapped onto colors using the {\sf colorMap} property of the collision
-manager. The depth map itself is drawn as a patch formed from the
+Values of
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior\$ColorMapType}
+include:
+
+\begin{description}
+
+\item[NONE]\mbox{}
+
+The color map is disabled. This is the default.
+
+\item[PENETRATION\_DEPTH]\mbox{}
+
+The color map shows penetration depth of one collidable mesh with
+respect to the other. If one or more of the collidable meshes is open,
+then the interpenetration computation works more reliably if the {\sf
+colliderType} property is set to {\tt AJL\_CONTOUR} (Section
+\ref{collisionBehavior:sec}).
+
+\item[CONTACT\_PRESSURE]\mbox{}
+
+The color map shows the contact pressures over the contact region.
+Contact pressures are determined by examining the impulses at the
+contact constraints, dividing by the time step to obtain forces, and
+then distributing these over the surrounding faces.  
+
+\end{description}
+
+The color map itself is drawn as a patch formed from the collidable
 mesh's penetrating faces, using vertex coloring where the color at
-each vertex is determined by the penetration depth.  An example is
-given in Section \ref{renderingDepth:sec}.
+each vertex is determined by the associated value of that vertex.  An
+example is given in Section \ref{renderingDepth:sec}.
 
-\item[penetrationDepthRange]\mbox{}
+\item[colorMapCollidable]
+
+Integer value of either 0 or 1 specifying the collidable onto which color
+maps should be drawn when the {\sf drawColorMap} property is set to a
+value other than {\tt NONE}. 0 or 1 selects either the first or second
+collidable associated with the collision behavior.
+
+\item[colorMapRange]\mbox{}
 
 Composite property of the type
 \javaclass[artisynth.core.util]{ScalarRange} that controls the range
-used for depth rendering. Sub properties include {\sf interval}, which
-gives the depth range to be used for the depth map, and {\sf updating},
-which specifies how this range should be updated: {\tt FIXED} (no
-updating), {\tt AUTO\_EXPAND} (range is expanded as depth increases),
-and {\tt AUTO\_FIT} (range is reset every step).
+of values used for color map rendering. Sub properties include {\sf
+interval}, which gives the value range itself, and {\sf updating},
+which specifies how this interval should be updated: {\tt FIXED} (no
+updating), {\tt AUTO\_EXPAND} (interval is expanded as values increase
+or decrease), and {\tt AUTO\_FIT} (interval is reset to fit the values
+at every render step).
 
 \end{description}
 
@@ -2205,20 +2240,37 @@ BallPlateCollide} from the {\sf Models} menu. When run, the ball
 will collide with the plate and the contact normals and collision 
 contours will be drawn as shown in Figure \ref{BallPlateCollide:fig}.
 
-\subsection{Example: Rendering penetration depth}
+\subsection{Example: Rendering a color map}
 \label{renderingDepth:sec}
 
-As described above, it is possible to use the {\sf
-drawPenetrationDepth} property to render the extent to which one mesh
-interpenetrates another. A simple example
-of this is defined in
+As described above, it is possible to use the {\sf drawColorMap}
+property of the collision behavior to render a color map over the
+contact area showing a scalar value such as penetration depth or
+contact pressure. A simple example of this is defined in
 %
 \begin{verbatim}
   artisynth.demos.tutorial.PenetrationRender
 \end{verbatim}
 %
-which displays the penetration depth of one hemispherical mesh with
-respect to another.
+which sets {\sf drawColorMap} to {\tt PENETRATION\_DEPTH} in order to
+display the penetration depth of one hemispherical mesh with respect
+to another. 
+
+\begin{sideblock}
+The code to render contact pressure is very similar, with {\sf
+drawColorMap} instead set to {\tt CONTACT\_PRESSURE}.  An example for
+finite elements models is shown in Section
+\ref{renderingContactPressure:sec}.
+\end{sideblock}
+
+\begin{sideblock}
+Color map rendering uses the faces of the collidable meshes, and its
+resolution is correspondingly limited. For good visual results, it is
+necessary to ensure that the colliable meshes are sufficiently
+detailed.  If a mesh has only a few triangles (e.g., a rectangle with
+two triangles per face), the color interpolation may be spread over an
+unreasonably large area.
+\end{sideblock}
 
 \begin{figure}[ht]
 \begin{center}
@@ -2244,38 +2296,40 @@ The complete source code is shown below:
 
 To improve visibility, the example uses two rigid bodies, each created
 from an open hemispherical mesh using the method {\tt
-createHemiBody()} (lines 31-46). Because this example is strictly
+createHemiBody()} (lines 32-47). Because this example is strictly
 graphical, the bodies are set to be non-dynamic so that they can be
 moved around using the viewer's graphical dragger fixtures (see the
 section ``Geometric Manipulation'' in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}). 
 Rendering properties for each body are set at lines
-66-67 and 72-75, with the top body being rendered as a wireframe to
+67-68 and 73-76, with the top body being rendered as a wireframe to
 improve visibility.
 
-Lines 79-84 create and set a collision behavior between the two bodies
-with penetration depth rendering enabled. Because for this example we
+Lines 80-87 create and set a collision behavior between the two bodies
+with the {\sf drawColorMap} property set to
+{\tt PENETRATION\_DEPTH}. Because for this example we
 want to show only the penetration and don't want a collision response,
 we set the collision method to be \javaclassAlt{%
 artisynth.core.mechmodels.CollisionBehavior\$Method\#INACTIVE}%
 {Method.INACTIVE}. The updating of the penetration range is also set
 to {\tt AUTO\_FIT} so that it will be recomputed at every time step.
-At line 82, the collider type used by the collision manager is set to
+At line 91, the collider type used by the collision manager is set to
 \javaclassAlt{%
 artisynth.core.mechmodels.CollisionManager\$ColliderType\#AJL\_CONTOUR}%
-{ColliderType.AJL\_CONTOUR}, since this is needed for depth rendering.
+{ColliderType.AJL\_CONTOUR}, since this provides more reliable penetration
+calculations for open meshes.
 Other rendering properties are set for the collision manager at lines
-90-105, including a custom color map that varies between {\tt CREAM}
+93-108, including a custom color map that varies between {\tt CREAM}
 (the color of the mesh) for no penetration and dark red for maximum
 penetration.
 
-At line 109, a color bar is created and added to the scene, using the
-method {\tt createColorBar()} (lines 49-58), to explicitly show the
+At line 112, a color bar is created and added to the scene, using the
+method {\tt createColorBar()} (lines 50-59), to explicitly show the
 depth that corresponds to the different colors. The color bar is given
 the same color map that is used to render the depth. Since the depth
 range is updated every time step, it is also necessary to update the
 corresponding labels in the color bar. This is done by overriding the
-root model's {\tt prerender()} method (lines 113-130), where we obtain
+root model's {\tt prerender()} method (lines 116-133), where we obtain
 the collision behavior between the two bodies, and use its depth range
 to update the color bar labels. References to the color bar, {\tt
 MechModel}, and bodies are obtained using the
@@ -2290,6 +2344,13 @@ To run this example in ArtiSynth, select {\sf All demos > tutorial >
 PenetrationRender} from the {\sf Models} menu. When run, the meshes
 will collide and render the penetration depth of the bottom mesh, 
 as shown in Figure \ref{PenetrationRender:fig}.
+
+\begin{sideblock}
+When defining the color map for rendering (lines 99-108 in the
+example), it is recommended that the color corresponding to zero be
+set to the face color of the colliable mesh.  This will allow
+the color map to blend properly to the regular mesh color.
+\end{sideblock}
 
 \section{Transforming geometry}
 \label{TransformingGeometry:sec}

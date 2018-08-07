@@ -251,6 +251,10 @@ interface PropertyInfo
    // should be able to expand or contract in order to save GUI space. 
    ExpandState getWidgetExpandState();
 
+   // Indicates if a slider is allowed in this property's editing
+   // widget
+   boolean isSliderAllowed();
+
    // returns the default value for this property
    Object getDefaultValue();
 
@@ -514,6 +518,14 @@ GUI space, and that it is initially contracted.  Causes the
 {\tt ExpandState.Contracted}.  This is generally relevant only for
 properties such as CompositeProperties (Section \ref{compositeSec}) whose
 editing widgets have several sub-widgets.
+
+\item[{\tt NS}, {\tt NoSlider}] \mbox{}
+
+Indicates that a slider should not be allowed in the widget for
+editing this property. Causes the {\tt PropertyInfo} method {\tt
+isSliderAllowed()} to return {\tt false}. In order for the editing
+widget to contain a slider, the property must also have both a numeric
+value and a defined range.
 
 \item[{\tt D}X, {\tt Dimension}X] \mbox{}
 

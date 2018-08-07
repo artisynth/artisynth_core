@@ -234,7 +234,6 @@ public abstract class LabeledControl extends LabeledComponent {
          }
          return null;
       }
-      System.out.println ("validValue=" + validValue);
       return validValue;
    }
 

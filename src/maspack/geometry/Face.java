@@ -44,11 +44,11 @@ public class Face extends Feature implements Boundable {
    public static final int VERTEX_2 = (EDGE_12 | EDGE_20);
 
    /*
-    * Length of edge0 cross edge1. Used for calculating barycentric coordinates
-    * of a point relative to the triangle. Cached for efficiency. Must be
-    * recalculated if the face is deformed.
+    * Planar area of this face, computed by {@link #computeNormal()} 
+    * with the assumption that all  sub-triangles are perpendicular 
+    * to the the normal.
     */
-   private double referenceArea;
+   private double myPlanarArea;
 
    /**
     * Creates an empty face with a specified index value.
@@ -134,7 +134,11 @@ public class Face extends Feature implements Boundable {
 
       HalfEdge he;
       VertexIterator() {
-         // dummy pointing to starting vertex
+         // dummy p
+         // public Vector3d getWorldNormal() {
+         // updateWorldCoordinates();
+         // return myWorldNormal;
+         // }ointing to starting vertex
          he = new HalfEdge();  
          he.head = he0.head;
          he.next = he0.next; 
@@ -220,45 +224,15 @@ public class Face extends Feature implements Boundable {
       }
    }
 
-   // public Vector3d getWorldNormal() {
-   // updateWorldCoordinates();
-   // return myWorldNormal;
-   // }
-
    public double getPoint0DotNormal() {
       return getVertex (0).getWorldPoint().dot (getWorldNormal());
    }
-
-   //   /**
-   //    * Returns the number of redundant half-edges associated with this face. A
-   //    * half-edge is redundant if its opposite half-edge is connected to a
-   //    * <i>different</i> half-edge. Opposite half-edges are found inspecting the
-   //    * incident half-edges on the vertices associated with this face.
-   //    * 
-   //    * @return number of redundant half-edges.
-   //    */
-   //   public int numRedundantHalfEdges() {
-   //      int numRedundant = 0;
-   //      HalfEdge he = he0;
-   //      do {
-   //         HalfEdge heNext = he.next;
-   //         HalfEdge oppHe = he.head.findOppositeHalfEdge (heNext.head);
-   //         if (oppHe != null && oppHe.opposite != null &&
-   //             oppHe.opposite != heNext) {
-   //            numRedundant++;
-   //         }
-   //         he = heNext;
-   //      }
-   //      while (he != he0);
-   //      return numRedundant;
-   //   }
 
    public static Face create (Vertex3d... vtxs) {
       Face face = new Face (0);
       face.set (vtxs, vtxs.length, /* connect= */false);
       return face;
    }
-   
    
    /**
     * Flips the face, disconnecting HEdges as required
@@ -363,33 +337,7 @@ public class Face extends Feature implements Boundable {
       while (he != he0);
    }
 
-   // /**
-   //  * Disconnects this face from any mesh to which it is attached, and returns
-   //  * the number of half edges which are redundant.
-   //  * 
-   //  * @return number of redundant half-edges
-   //  */
-   // int oldDisconnect() {
-   //    int numRedundant = 0;
-   //    HalfEdge he = he0;
-   //    do {
-   //       HalfEdge heNext = he.next;
-   //       HalfEdge oppHe = he.head.findOppositeHalfEdge (heNext.head);
-   //       if (oppHe != null && oppHe.opposite != null) {
-   //          if (oppHe.opposite != heNext) {
-   //             numRedundant++;
-   //          }
-   //          else {
-   //             oppHe.opposite = null;
-   //             heNext.opposite = null;
-   //          }
-   //       }
-   //       he.head.removeIncidentHalfEdge (he);
-   //       he = heNext;
-   //    }
-   //    while (he != he0);
-   //    return numRedundant;
-   // }
+
 
    /**
     * Looks for a half edge, with the given tail and head, contained within this
@@ -416,41 +364,7 @@ public class Face extends Feature implements Boundable {
     * returns the centroid
     */
    public void computeCentroid (Vector3d centroid) {
-      // Hey! This wasn't the centroid of the face.
-      // It was the center of mass (or centroid) of the vertices ...
-      // int nverts = 1;
-      // HalfEdge he = he0;
-      // centroid.set (he.head.pnt);
-      // he = he.next;
-      // while (he != he0)
-      // { centroid.add (he.head.pnt);
-      // he = he.next;
-      // nverts++;
-      // }
-      // centroid.scale (1/(double)nverts);
 
-      // for now, compute a "poor man's" centroid, weighted by the edge
-      // lengths instead of triangle areas
-
-      // double length = 0;
-      // centroid.setZero();
-      // HalfEdge ha = he0;
-      // do {
-      //    HalfEdge hb = ha.next;
-      //    Point3d pa = ha.head.pnt;
-      //    Point3d pb = hb.head.pnt;
-      //    // compute edge length
-      //    double ux = pb.x - pa.x;
-      //    double uy = pb.y - pa.y;
-      //    double uz = pb.z - pa.z;
-      //    double l = Math.sqrt (ux * ux + uy * uy + uz * uz);
-      //    centroid.scaledAdd (l, pa);
-      //    centroid.scaledAdd (l, pb);
-      //    length += l;
-      //    ha = hb;
-      // }
-      // while (ha != he0);
-      // centroid.scale (1 / (2 * length));
 
       HalfEdge he = he0;
       Point3d p0 = he.head.pnt;
@@ -529,39 +443,9 @@ public class Face extends Feature implements Boundable {
       he = he.next;
       Point3d p2 = he.head.pnt;
 
-      // double d2x = p1.x - p0.x;
-      // double d2y = p1.y - p0.y;
-      // double d2z = p1.z - p0.z;
-
       do {
          double a = CovarianceUtils.addTriangleCovariance (C, p0, p1, p2);
          area += a;
-
-         // // compute and add triangle area
-         // double d1x = d2x;
-         // double d1y = d2y;
-         // double d1z = d2z;
-         // d2x = p2.x - p0.x;
-         // d2y = p2.y - p0.y;
-         // d2z = p2.z - p0.z;
-         // double nx = d1y * d2z - d1z * d2y;
-         // double ny = d1z * d2x - d1x * d2z;
-         // double nz = d1x * d2y - d1y * d2x;
-         // double a = Math.sqrt (nx*nx + ny*ny + nz*nz)/2;
-         // area += a;
-
-         // // compute and add covariance for triangle
-         // double pcx = (p0.x + p1.x + p2.x) / 3;
-         // double pcy = (p0.y + p1.y + p2.y) / 3;
-         // double pcz = (p0.z + p1.z + p2.z) / 3;
-
-         // C.m00 += a * (9*pcx*pcx + p0.x*p0.x + p1.x*p1.x + p2.x*p2.x);
-         // C.m11 += a * (9*pcy*pcy + p0.y*p0.y + p1.y*p1.y + p2.y*p2.y);
-         // C.m22 += a * (9*pcz*pcz + p0.z*p0.z + p1.z*p1.z + p2.z*p2.z);
-
-         // C.m01 += a * (9*pcx*pcy + p0.x*p0.y + p1.x*p1.y + p2.x*p2.y);
-         // C.m02 += a * (9*pcx*pcz + p0.x*p0.z + p1.x*p1.z + p2.x*p2.z);
-         // C.m12 += a * (9*pcy*pcz + p0.y*p0.z + p1.y*p1.z + p2.y*p2.z);
 
          p1 = p2;
          he = he.next;
@@ -637,46 +521,60 @@ public class Face extends Feature implements Boundable {
       
    }
 
-   //   public void computeWorldCentroid (Point3d centroid) {
-   //      double length = 0;
-   //      centroid.setZero();
-   //      HalfEdge ha = he0;
-   //      do {
-   //         HalfEdge hb = ha.next;
-   //         Point3d pa = ha.head.getWorldPoint();
-   //         Point3d pb = hb.head.getWorldPoint();
-   //         // compute edge length
-   //         double ux = pb.x - pa.x;
-   //         double uy = pb.y - pa.y;
-   //         double uz = pb.z - pa.z;
-   //         double l = Math.sqrt (ux * ux + uy * uy + uz * uz);
-   //         centroid.scaledAdd (l, pa);
-   //         centroid.scaledAdd (l, pb);
-   //         length += l;
-   //         ha = hb;
-   //      }
-   //      while (ha != he0);
-   //      centroid.scale (1 / (2 * length));
-   //   }
-
    /**
-    * Computes the normal for this face.
+    * Computes the normal for this face, and returns the planar area.
+    * The planar area is the area computed assuming that all sub-triangles
+    * are perpendicular to the normal. The normal and area values are
+    * cached and can be retrieved using {@link #getNormal()} and 
+    * {@link #getPlanarArea()}.
     */
-   public void computeNormal() {
+   public double computeNormal() {
       if (myNormal == null) {
          myNormal = new Vector3d();
       }
-      computeNormal (myNormal);
+      myPlanarArea = computeNormal (myNormal);
+      return myPlanarArea;
    }
 
    /**
-    * Computes the normal for this face.
+    * Returns the normal computed from the most recent call to
+    * {@link #computeNormal()}. If the normal has been cleared, 
+    * {@link #computeNormal()} is called to recompute it.
+    * 
+    * @return normal vector
+    */
+   public Vector3d getNormal() {
+      if (myNormal == null) {
+         computeNormal();
+      }
+      return myNormal;
+   }
+
+   /**
+    * Returns the planar area computed from the most recent call to
+    * {@link #computeNormal()}. The planar area is the area computed assuming 
+    * that all sub-triangles are perpendicular to the normal. If the normal 
+    * has been cleared, {@link #computeNormal()} is called to recompute it.
+    * 
+    * @return planar area.
+    */
+   public double getPlanarArea() {
+      if (myNormal == null) {
+         computeNormal();
+      }
+      return myPlanarArea;
+   }
+   
+   /**
+    * Computes the normal for this face, and returns the planar area.
+    * The planar area is the area computed assuming that all sub-triangles
+    * are perpendicular to the normal.
     * 
     * @param normal
     * returns the normal
     * @see #getNormal
     */
-   public void computeNormal (Vector3d normal) {
+   public double computeNormal (Vector3d normal) {
       Vertex3d v0 = he0.head;
       Vertex3d v2 = he0.next.head;
 
@@ -706,22 +604,17 @@ public class Face extends Feature implements Boundable {
       }
       while (he != he0);
 
-      referenceArea = normal.norm();
-      if (referenceArea != 0) {
-         normal.scale (1 / referenceArea);
+      double planarArea = normal.norm();
+      if (planarArea != 0) {
+         normal.scale (1 / planarArea);
       }
-      // John Lloyd, Jul 29, 2013: seems to be old debugging code
-      // if (v0.myMesh.myXMeshToWorldIsIdentity) {
-      //    Point3d tst = new Point3d();
-      //    tst.sub (v0.pnt, v0.getWorldPoint());
-      //    double tstn = tst.norm();
-      //    if (tstn > 1e-8)
-      //       throw new InternalErrorException ("bad world point" + tstn);
-      // }
+      return planarArea;
    }
 
    /**
-    * Computes the area of this face.
+    * Computes the area of this face. This is potentially different from the
+    * planarArea in that it does {\it not} assume that all sub-triangles 
+    * are perpendicular to the normal.
     */
    public double computeArea () {
       double area = 0;
@@ -813,76 +706,6 @@ public class Face extends Feature implements Boundable {
       myRenderNormal.normalize();
    }
 
-   // void flipEdgeDirs()
-   // {
-   // HalfEdge he = he0;
-   // do
-   // { he.uLength *= -1;
-   // he.u.negate();
-   // he = he.next;
-   // }
-   // while (he != he0);
-   // }
-
-   // /**
-   // * Computes the distance from this face to a vertex.
-   // * Associated information, such as the closest point
-   // * on the face or the nearest features, is returned
-   // * in a supplied distance record.
-   // *
-   // * @param rec returns associated distance information
-   // * @param vtx vertex to compute closest point to
-   // * @return distance from the vertex to the plane
-   // */
-   // public double distance (DistanceRecord rec, Vertex3d vtx)
-   // {
-   // HalfEdge he = he0;
-   // Vector3d dv = rec.pnt0; // use rec.pnt0 as scratch space
-   // Point3d p1 = vtx.pnt;
-   // Vector3d nrml = getNormal();
-   // do
-   // { HalfEdge heNext = he.next;
-   // dv.sub (p1, he.head.pnt);
-   //
-   // double dotNext = heNext.dot(dv);
-   // double dotPrev = he.dot(dv);
-   //
-   // if (dotNext <= 0 && dotPrev >= 0)
-   // { // then the closest point is he.head
-   // rec.setFeatures (he.head, vtx);
-   // rec.setPoints (he.head.pnt, p1);
-   // rec.computeDistanceAndNormal();
-   // return rec.dist;
-   // }
-   // else if (dotNext > 0 && dotNext < heNext.length() &&
-   // heNext.sideProduct (dv, nrml) >= 0)
-   // { // then the closest point is on the edge heNext
-   // rec.setFeatures (heNext, vtx);
-   // heNext.extrapolate (rec.pnt0, dotNext, he.head.pnt);
-   // rec.pnt1.set (p1);
-   // rec.computeDistanceAndNormal();
-   // return rec.dist;
-   // }
-   // he = heNext;
-   // }
-   // while (he != he0);
-   //
-   // // the closest point is on the face
-   // dv.sub (p1, he0.head.pnt);
-   // double d = dv.dot(nrml);
-   // rec.pnt0.scaledAdd (-d, nrml, p1);
-   // rec.pnt1.set (p1);
-   // if (d >= 0)
-   // { rec.dist = d;
-   // rec.nrml.set (nrml);
-   // }
-   // else
-   // { rec.dist = -d;
-   // rec.nrml.negate (nrml);
-   // }
-   // rec.setFeatures (this, vtx);
-   // return rec.dist;
-   // }
 
    /**
     * Computes the closest point on this face to a specified point.
@@ -1023,10 +846,7 @@ public class Face extends Feature implements Boundable {
       //long time = System.nanoTime();
       HalfEdge he = he0;
       Vector3d dv = new Vector3d();
-      if (myNormal == null) {
-         myNormal = new Vector3d();
-      }
-      computeNormal (myNormal);
+      computeNormal(); // make sure normal is current
       do {
          HalfEdge heNext = he.next;
          dv.sub (p1, he.head.pnt);
@@ -1060,46 +880,6 @@ public class Face extends Feature implements Boundable {
       return;// time;
    }
 
-   // /**
-   // * Tests to see if the head of the half edge indicated by seg is
-   // * closest to either the head or the edge of the half-edge he.
-   // */
-   // private boolean testHalfEdgeToVertex (
-   // DistanceRecord drec, HalfEdge he, HalfEdge seg)
-   // {
-   // Vector3d dvh = drec.pnt0; // use drec.pnt0 as scratch space
-   // Vector3d tmp = drec.pnt1; // use drec.pnt1 as scratch space
-   // Vector3d nrml = getNormal();
-   // HalfEdge heNext = he.next;
-   //
-   // dvh.sub (seg.head.pnt, he.head.pnt);
-   //
-   // double dotNext = heNext.dot(dvh);
-   // double dotPrev = he.dot(dvh);
-   //
-   // if (dotNext <= 0 && dotPrev >= 0 && seg.dot (dvh) <= 0)
-   // { // then he.head is in Voronoi(seg.head) and
-   // // seg.head is in Voronoi(he.head)
-   // drec.setFeatures (he.head, seg.head);
-   // drec.setPoints (he.head.pnt, seg.head.pnt);
-   // drec.computeDistanceAndNormal();
-   // return true;
-   // }
-   // else if (dotPrev < 0 && dotPrev > -he.length() &&
-   // he.sideProduct (dvh, nrml) >= 0)
-   // { // then he.head is in Voronoi(seg)
-   // he.extrapolate (tmp, -dotPrev, dvh);
-   // if (seg.dot (tmp) <= 0)
-   // { // the seg is in Voronoi(he.head)
-   // drec.setFeatures (he, seg.head);
-   // he.extrapolate (drec.pnt0, dotPrev);
-   // drec.pnt1.set (seg.head.pnt);
-   // drec.computeDistanceAndNormal();
-   // return true;
-   // }
-   // }
-   // return false;
-   // }
 
    /**
     * Computes the (signed) distance of a point from the plane corresponding to
@@ -1120,190 +900,6 @@ public class Face extends Feature implements Boundable {
       return nrml.x * x + nrml.y * y + nrml.z * z;
    }
 
-   // /**
-   // * Tests to see if the edge of seg is closest to either the head or the
-   // * edge of he.
-   // */
-   // private boolean testHalfEdgeToHalfEdge (
-   // DistanceRecord drec, HalfEdge he, HalfEdge seg)
-   // {
-   // Vector3d dvh = drec.pnt0; // use drec.pnt0 as scratch space
-   // Vector3d tmp = drec.pnt1; // use drec.pnt1 as scratch space
-   // HalfEdge heNext = he.next;
-   // Vector3d nrml = getNormal();
-   //
-   // dvh.sub (seg.head.pnt, he.head.pnt);
-   //         
-   // double dvhU1 = seg.dot(dvh);
-   // if (dvhU1 >= 0 && dvhU1 <= seg.length())
-   // { // then he.head is in Voronoi(seg)
-   // seg.extrapolate (tmp, -dvhU1, dvh);
-   // if (heNext.dot(tmp) <= 0 && he.dot(tmp) >= 0)
-   // { // tmp is in Voronoi(he.head)
-   // drec.setFeatures (he.head, seg);
-   // drec.pnt0.set (he.head.pnt);
-   // seg.extrapolate (drec.pnt1, -dvhU1);
-   // drec.computeDistanceAndNormal();
-   // return true;
-   // }
-   // }
-   // // test edge-edge
-   // if (he.lineDistance (drec, seg, /*forceOntoSegment=*/false))
-   // { // just need to check that drec.pnt0 is outside the edge
-   // if (!he.isInside (drec.pnt1, nrml))
-   // { return true;
-   // }
-   // }
-   // return false;
-   // }
-
-   // public boolean culledDistance (
-   // DistanceRecord drec, HalfEdge seg, double dcull)
-   // {
-   // distance (drec, seg);
-   // if (dcull > 0 && drec.dist > dcull)
-   // { return false;
-   // }
-   // if (drec.feature0 != null)
-   // { if (!drec.feature0.voronoiCheck (drec.pnt1))
-   // { return false;
-   // }
-   // }
-   // return true;
-   // }
-
-   // public boolean culledDistance (
-   // DistanceRecord drec, Vertex3d vtx, double dcull)
-   // {
-   // distance (drec, vtx);
-   // if (dcull > 0 && drec.dist > dcull)
-   // { return false;
-   // }
-   // if (drec.feature0 != null)
-   // { if (!drec.feature0.voronoiCheck (drec.pnt1))
-   // { return false;
-   // }
-   // }
-   // return true;
-   // }
-
-   // /**
-   // * Compute the nearest points between this face and a line segment
-   // * represented by the HalfEdge seg, and returns the information in a
-   // * distance record.
-   // * seg must point to two opposite half-edges, linked
-   // * by their next fields.
-   // *
-   // * @param drec returns nearest point information
-   // * @param seg represents the line segment
-   // * @return distance between the face and the line segment
-   // */
-   // public double distance (DistanceRecord drec, HalfEdge seg)
-   // {
-   // HalfEdge he = he0;
-   // Vertex3d headVtx = seg.head;
-   // Vertex3d tailVtx = seg.next.head;
-   // Vector3d tmp = drec.pnt0; // use pnt0 as scratch space
-   // Vector3d nrml = getNormal();
-   //
-   // boolean headInside = true;
-   // boolean tailInside = true;
-   //
-   // do
-   // { // test if the head or tail of the line segment is
-   // // closest to the edge or head of the half edge he.
-   // if (testHalfEdgeToVertex (drec, he, seg) ||
-   // testHalfEdgeToVertex (drec, he, seg.next))
-   // { return drec.dist;
-   // }
-   // // test if the edge of the line segment is closest
-   // // to the edge or head of the half edge he.
-   // if (testHalfEdgeToHalfEdge (drec, he, seg))
-   // { return drec.dist;
-   // }
-   //
-   // if (headInside)
-   // { if (!he.isInside (headVtx.pnt, nrml))
-   // { headInside = false;
-   // }
-   // }
-   // if (tailInside)
-   // { if (!he.isInside (tailVtx.pnt, nrml))
-   // { tailInside = false;
-   // }
-   // }
-   // he = he.next;
-   // }
-   // while (he != he0);
-   //
-   // double dh = distanceToPlane (headVtx.pnt);
-   // double dt = distanceToPlane (tailVtx.pnt);
-   //         
-   // if (headInside)
-   // { tmp.scale (dh, nrml);
-   // if (seg.dot (tmp) <= 0)
-   // { drec.pnt0.sub (headVtx.pnt, tmp);
-   // drec.pnt1.set (headVtx.pnt);
-   // drec.nrml.scale (dh < 0 ? -1 : 1, nrml);
-   // drec.setFeatures (this, headVtx);
-   // drec.computeDistance();
-   // return drec.dist;
-   // }
-   // }
-   //
-   // if (tailInside)
-   // { tmp.scale (dt, nrml);
-   // if (seg.dot (tmp) >= 0)
-   // { drec.pnt0.sub (tailVtx.pnt, tmp);
-   // drec.pnt1.set (tailVtx.pnt);
-   // drec.nrml.scale (dt < 0 ? -1 : 1, nrml);
-   // drec.setFeatures (this, tailVtx);
-   // drec.computeDistance();
-   // return drec.dist;
-   // }
-   // }
-   //
-   // // the only remaining possibilities are face-edge contact
-   // // and interection. Face-edge contact should actually
-   // // have appeared earlier as a lower-DOF contact condition,
-   // // so we will not test for this now. Instead, we will assume
-   // // intersection
-   //
-   // drec.setFeatures (null, null);
-   // drec.dist = 0;
-   // if (dh == 0)
-   // { drec.setPoints (headVtx.pnt, headVtx.pnt);
-   // }
-   // else if (dt == 0)
-   // { drec.setPoints (tailVtx.pnt, tailVtx.pnt);
-   // }
-   // else if (dh*dt < 0)
-   // { drec.pnt0.interpolate (tailVtx.pnt,
-   // Math.abs(dh/(dh-dt)), headVtx.pnt);
-   // drec.pnt1.set (drec.pnt0);
-   // }
-   // else
-   // { // ??? Oh well!
-   // }
-   // return drec.dist;
-   // }
-
-   /**
-    * Returns a normal vector for this face. The normal vector is allocated
-    * on-demand and computed, upon initialization, using {@link #computeNormal
-    * computeNormal}. In order to have the normal vector recomputed, one should
-    * first clear it using {@link #clearNormal clearNormal}.
-    * 
-    * @return normal vector
-    */
-   public Vector3d getNormal() {
-      if (myNormal == null) {
-         myNormal = new Vector3d();
-         computeNormal (myNormal);
-      }
-      return myNormal;
-   }
-
    /**
     * Clears the normal vector for this face. A subsequent call to {@link
     * #getNormal getNormal} will cause the normal vector to be reallocated and
@@ -1312,23 +908,6 @@ public class Face extends Feature implements Boundable {
    public void clearNormal() {
       myNormal = null;
    }
-
-
-   //   public Point3d getCentroid() {
-   //      if (myCentroid == null) {
-   //         myCentroid = new Point3d();
-   //         computeCentroid (myCentroid);
-   //      }
-   //      return myCentroid;
-   //   }
-   //
-   //   /**
-   //    * Clears the centroid for this face. A subsequent call to {@link
-   //    * #getCentroid getCentroid} will cause the centroid to be recomputed.
-   //    */
-   //   public void clearCentroid() {
-   //      myCentroid = null;
-   //   }
 
    /**
     * Returns the number of edges associated with the face.
@@ -1415,40 +994,6 @@ public class Face extends Feature implements Boundable {
       return he0;
    }
 
-   // public void addPoints (IndexedPointSet set)
-   // {
-   // HalfEdge he = he0;
-   // do
-   // { Vertex3d vtx = he.head;
-   // set.add (vtx.pnt, vtx.idx);
-   // he = he.next;
-   // }
-   // while (he != he0);
-   // }
-
-   // public int addPoints (Point3d[] points, int indices[], int off)
-   // {
-   // HalfEdge he = he0;
-   // int idx = off;
-   // if (indices != null)
-   // { do
-   // { Vertex3d vtx = he.head;
-   // points[idx] = vtx.pnt;
-   // indices[idx++] = vtx.idx;
-   // he = he.next;
-   // }
-   // while (he != he0);
-   // }
-   // else
-   // { do
-   // { Vertex3d vtx = he.head;
-   // points[idx++] = vtx.pnt;
-   // he = he.next;
-   // }
-   // while (he != he0);
-   // }
-   // return idx;
-   // }
 
    public void updateBounds (Vector3d min, Vector3d max) {
       HalfEdge he = he0;
@@ -1559,73 +1104,9 @@ public class Face extends Feature implements Boundable {
    
    public static boolean debugIntersect = false;
    
-//   private static double orient3d (Vector3d r0, Vector3d r1, Vector3d r2) {
-//      Vector3d xprod = new Vector3d();
-//      xprod.cross (r0, r1);
-//      return r2.dot(xprod);
-//   }
-   
    private static double ORIENT_EPS = (7+56*DOUBLE_PREC)*DOUBLE_PREC;
 
-//   public static double orient3dx (
-//      Vector3d a, Vector3d b, Vector3d c, DoubleHolder err) {
-//
-//      double cybx = c.y*b.x;
-//      double cxby = c.x*b.y;
-//      double cxay = c.x*a.y;
-//      double cyax = c.y*a.x;
-//      double axby = a.x*b.y;
-//      double aybx = a.y*b.x;
-//
-//      double az = a.z;
-//      double bz = b.z;
-//      double cz = c.z;
-//
-//      double res = az*(cybx-cxby) + bz*(cxay-cyax) + cz*(axby-aybx);
-//
-//      if (cybx < 0) {
-//         cybx = -cybx;
-//      }
-//      if (cxby < 0) {
-//         cxby = -cxby;
-//      }
-//      if (cxay < 0) {
-//         cxay = -cxay;
-//      }
-//      if (cyax < 0) {
-//         cyax = -cyax;
-//      }
-//      if (axby < 0) {
-//         axby = -axby;
-//      }
-//      if (aybx < 0) {
-//         aybx = -aybx;
-//      }
-//      if (az < 0) {
-//         az = -az;
-//      }
-//      if (bz < 0) {
-//         bz = -bz;
-//      }
-//      if (cz < 0) {
-//         cz = -cz;
-//      }
-//
-//      double e = ORIENT_EPS*(az*(cybx+cxby) + bz*(cxay+cyax) + cz*(axby+aybx));
-//
-//      if (err != null) {
-//         err.value = e;
-//         return res;
-//      }
-//      else {
-//         if (res <= e && res >= -e) {
-//            return 0;
-//         }
-//         else {
-//            return res;
-//         }
-//      }
-//   }
+
 
    static boolean orientDebug = false;
    
@@ -1642,10 +1123,11 @@ public class Face extends Feature implements Boundable {
    public static double insideTriangleTolerance = 1e-13;
 
    public boolean isPointInside (double x, double y, double z) {
-      if (myNormal == null)
-         computeNormal(); // Make sure referenceArea is current.
+      if (myNormal == null) {
+         computeNormal(); // Make sure planar area has been computed
+      }
 
-      double tol = referenceArea*insideTriangleTolerance;
+      double tol = myPlanarArea*insideTriangleTolerance;
       
       Point3d p0 = he0.tail.getWorldPoint();
       double xp0 = x - p0.x;
@@ -1659,9 +1141,9 @@ public class Face extends Feature implements Boundable {
       double ya = zp0 * xp1 - xp0 * zp1;
       double za = xp0 * yp1 - yp0 * xp1;
       double q0 = Math.sqrt (xa * xa + ya * ya + za * za);
-      double q = referenceArea - q0;
+      double q = myPlanarArea - q0;
       if (q < -tol) {
-         if (debugIntersect) System.out.println (" fail 1 q=" + q + " ra=" + referenceArea);
+         if (debugIntersect) System.out.println (" fail 1 q=" + q + " ra=" + myPlanarArea);
          return false;
       }
 
@@ -1675,7 +1157,7 @@ public class Face extends Feature implements Boundable {
       q0 = Math.sqrt (xa * xa + ya * ya + za * za);
       q = q - q0;
       if (q < -tol) {
-         if (debugIntersect) System.out.println (" fail 2 q=" + q + " ra=" + referenceArea);
+         if (debugIntersect) System.out.println (" fail 2 q=" + q + " ra=" + myPlanarArea);
          return false;
       }
 
@@ -1687,7 +1169,7 @@ public class Face extends Feature implements Boundable {
       if (q < 0) { // q can only be > 0 due to rounding errors. If it is >= 0,
          // the point is inside.
          if (q < -tol) {
-            if (debugIntersect) System.out.println (" fail 3 q=" + q + " ra=" + referenceArea);
+            if (debugIntersect) System.out.println (" fail 3 q=" + q + " ra=" + myPlanarArea);
             return false;
          }
       }

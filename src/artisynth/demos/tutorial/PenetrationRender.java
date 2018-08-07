@@ -10,6 +10,7 @@ import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import artisynth.core.mechmodels.*;
 import artisynth.core.mechmodels.CollisionManager.ColliderType;
+import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.util.ScalarRange;
 import artisynth.core.workspace.RootModel;
 import artisynth.core.renderables.ColorBar;
@@ -78,13 +79,15 @@ public class PenetrationRender extends RootModel {
       // collisions INACTIVE since we only care about graphical display
       CollisionBehavior behav = new CollisionBehavior (true, 0);
       behav.setMethod (CollisionBehavior.Method.INACTIVE);
-      behav.setDrawPenetrationDepth (0); // show penetration of mesh 0
-      behav.getPenetrationDepthRange().setUpdating (
+
+      behav.setDrawColorMap (ColorMapType.PENETRATION_DEPTH); 
+      behav.setColorMapCollidable (1); // show penetration of mesh 0
+      behav.getColorMapRange().setUpdating (
          ScalarRange.Updating.AUTO_FIT);
       mech.setCollisionBehavior (body0, body1, behav);
 
       CollisionManager cm = mech.getCollisionManager();
-      // penetration rendering only works with contour-based collisions
+      // works better with open meshes if AJL_CONTOUR is selected
       cm.setColliderType (ColliderType.AJL_CONTOUR); 
       // set other rendering properities in the collision manager:
       RenderProps.setVisible (cm, true);    // enable collision rendering

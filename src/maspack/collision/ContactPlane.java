@@ -35,7 +35,7 @@ public class ContactPlane {
 
    /*
     * Use mPoints temporarily while SurfaceMeshCollider and MeshCollider
-    * coexist. The former requires points to be ArrayList<MeshIntersectionPoint>
+    * coexist. The former requires points to be ArrayList<IntersectionPoint>
     * and the latter requires points to be ArrayList<Point3d>
     */
    public ArrayList<IntersectionPoint> mPoints =

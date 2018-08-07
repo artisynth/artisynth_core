@@ -152,7 +152,7 @@ public class PropertyWidget {
    public static NumericInterval getNumericRange (Property prop) {
       NumericInterval nrange = null;
       PropertyInfo info = prop.getInfo();
-      if (info.isReadOnly()) {
+      if (info.isReadOnly() || !info.isSliderAllowed()) {
          return null;
       }
       Class<?> type = info.getValueClass();
@@ -688,51 +688,6 @@ public class PropertyWidget {
       }
       // finishWidget (widget, prop);
       return true;
-   }
-
-   private static LabeledComponentBase createWidget (Class<?> clazz) {
-      Method m = null;
-      try {
-         m = clazz.getMethod ("createWidget");
-      }
-      catch (Exception e) {
-      }
-      if (m != null && Modifier.isStatic (m.getModifiers())) {
-         Object obj = null;
-         try {
-            obj = m.invoke (null);
-         }
-         catch (Exception e) {
-         }
-         if (obj instanceof LabeledComponentBase) {
-            return (LabeledComponentBase)obj;
-         }
-      }
-      return null;
-   }
-
-   private static boolean initializeWidget (Class<?> clazz, 
-      LabeledComponentBase widget, Property prop) {
-      Method m = null;
-      try {
-         m = clazz.getMethod (
-            "initializeWidget", LabeledComponentBase.class, Property.class);
-      }
-      catch (Exception e) {
-      }
-      if (m != null && Modifier.isStatic (m.getModifiers())) {
-         Object obj = null;
-         try {
-            obj = m.invoke (null, widget, prop);
-         }
-         catch (Exception e) {
-            e.printStackTrace();
-         }
-         if (obj instanceof Boolean) {
-            return ((Boolean)obj).booleanValue();
-         }
-      }
-      return false;
    }
 
    protected static LabeledComponentBase createWidget (Property prop) {

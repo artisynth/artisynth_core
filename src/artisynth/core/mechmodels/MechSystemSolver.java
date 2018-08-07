@@ -47,7 +47,10 @@ public class MechSystemSolver {
 
    public boolean profileKKTSolveTime = false;
    public boolean profileWholeSolve = false;
-
+   public boolean profileConstrainedBE = false;
+   // always updating friction causes inverseMassMatrix updates
+   public boolean alwaysUpdateFriction = true;
+   
    //public static boolean useStiffnessPosProjection = true;
    public static boolean useVelProjection = true;
    public static boolean useGlobalFriction = true;
@@ -263,14 +266,12 @@ public class MechSystemSolver {
       // assumes that updateStateSizes() has been called
       int version = mySys.getStructureVersion();
       if (version != myMassVersion) {
-
          myMass = new SparseNumberedBlockMatrix();
          myMassForces = new VectorNd (myMass.rowSize());
          myMassConstantP = mySys.buildMassMatrix (myMass);
          mySys.getMassMatrix (myMass, myMassForces, t);
          myMassVersion = version;
          myMassTime = t;
-
       }
       else if (t == -1 || myMassTime != t) {
          mySys.getMassMatrix (myMass, myMassForces, t);
@@ -917,8 +918,9 @@ public class MechSystemSolver {
       constrainedVelSolve (myU, myF, t0, t1);
       mySys.setActiveVelState (myU);         
 
-      projectFrictionConstraints (myU, t1);
-      mySys.setActiveVelState (myU);
+      if (projectFrictionConstraints (myU, t1)) {
+         mySys.setActiveVelState (myU);
+      }
 
       mySys.getActivePosState (myQ);
 
@@ -1273,7 +1275,7 @@ public class MechSystemSolver {
       myThe.setSize (myNsize);
    }
 
-   protected void updateFrictionConstraints () {
+   protected boolean updateFrictionConstraints () {
       // assumes that updateStateSizes() has been called
       myDT = new SparseNumberedBlockMatrix ();
 
@@ -1292,7 +1294,8 @@ public class MechSystemSolver {
       }
       else {
          myBd.setZero();
-      }        
+      }
+      return alwaysUpdateFriction ? true : sizeD > 0;
    }
 
    /** 
@@ -2076,58 +2079,63 @@ public class MechSystemSolver {
       return phi;
    }
 
-   protected void projectFrictionConstraints (VectorNd vel, double t0) {
+   protected boolean projectFrictionConstraints (VectorNd vel, double t0) {
       // BEGIN project friction constraints
-      updateFrictionConstraints();
-      // assumes that updateMassMatrix() has been called
-      myRBSolver.updateStructure (myMass, myGT, myGTVersion);
+      if (updateFrictionConstraints()) {
+         // assumes that updateMassMatrix() has been called
+         myRBSolver.updateStructure (myMass, myGT, myGTVersion);
 
-      myRBSolver.projectFriction (
-         myMass, myGT, myNT, myDT,
-         myRg, myBg, myRn, myBn, myBd, myFrictionInfo, vel, myLam, myThe, myPhi);
+         myRBSolver.projectFriction (
+            myMass, myGT, myNT, myDT,
+            myRg, myBg, myRn, myBn, myBd, myFrictionInfo, vel, myLam, myThe, myPhi);
 
-      // do a Gauss-Siedel project on remaining friction constraints:
+         // do a Gauss-Siedel project on remaining friction constraints:
 
-      int[] RBDTmap = myRBSolver.getDTMap();
-      if (RBDTmap != null) {
-         int[] DTmap = new int[myDT.numBlockCols()-RBDTmap.length];
-         int i = 0;
-         int k = 0;
-         for (int bj=0; bj<myDT.numBlockCols(); bj++) {
-            if (k < RBDTmap.length && RBDTmap[k] == bj) {
-               k++;
+         int[] RBDTmap = myRBSolver.getDTMap();
+         if (RBDTmap != null) {
+            int[] DTmap = new int[myDT.numBlockCols()-RBDTmap.length];
+            int i = 0;
+            int k = 0;
+            for (int bj=0; bj<myDT.numBlockCols(); bj++) {
+               if (k < RBDTmap.length && RBDTmap[k] == bj) {
+                  k++;
+               }
+               else {
+                  DTmap[i++] = bj;
+               }
             }
-            else {
-               DTmap[i++] = bj;
+            if (i != DTmap.length) {
+               throw new InternalErrorException ("inconsistent DTmap");
+            }
+            updateInverseMassMatrix (t0);
+            for (i=0; i<DTmap.length; i++) {
+               FrictionInfo info = myFrictionInfo[DTmap[i]];
+               double phiMax;
+               if ((info.flags & FrictionInfo.BILATERAL) != 0) {
+                  phiMax = info.getMaxFriction (myLam);
+               }
+               else {
+                  phiMax = info.getMaxFriction (myThe);
+               }
+               int bj = DTmap[i];
+               int j = myDT.getBlockColOffset(bj);
+               double doff = myBd.get(j);
+               double phi = projectSingleFrictionConstraint (
+                  vel, myDT, bj, phiMax, doff, /*ignore rigid bodies=*/true);
+               myPhi.set (j, phi);
             }
          }
-         if (i != DTmap.length) {
-            throw new InternalErrorException ("inconsistent DTmap");
-         }
-         updateInverseMassMatrix (t0);
-         for (i=0; i<DTmap.length; i++) {
-            FrictionInfo info = myFrictionInfo[DTmap[i]];
-            double phiMax;
-            if ((info.flags & FrictionInfo.BILATERAL) != 0) {
-               phiMax = info.getMaxFriction (myLam);
+
+         if (myUpdateForcesAtStepEnd) {
+            int velSize = myActiveVelSize;
+            if (myDsize > 0) {
+               myDT.mulAdd (myFcon, myPhi, velSize, myDsize);
             }
-            else {
-               phiMax = info.getMaxFriction (myThe);
-            }
-            int bj = DTmap[i];
-            int j = myDT.getBlockColOffset(bj);
-            double doff = myBd.get(j);
-            double phi = projectSingleFrictionConstraint (
-               vel, myDT, bj, phiMax, doff, /*ignore rigid bodies=*/true);
-            myPhi.set (j, phi);
          }
+         return true;
       }
-
-      if (myUpdateForcesAtStepEnd) {
-         int velSize = myActiveVelSize;
-         if (myDsize > 0) {
-            myDT.mulAdd (myFcon, myPhi, velSize, myDsize);
-         }
+      else {
+         return false;
       }
    }
 
@@ -2444,8 +2452,9 @@ public class MechSystemSolver {
       computeVelCorrections (vel, t0, t1);
       mySys.setActiveVelState (vel);
 
-      projectFrictionConstraints (vel, t1);
-      mySys.setActiveVelState (vel);
+      if (projectFrictionConstraints (vel, t1)) {
+         mySys.setActiveVelState (vel);
+      }
    }
 
    protected void updateActiveForces (double t0, double t1) {
@@ -2461,26 +2470,40 @@ public class MechSystemSolver {
    protected void applyPosCorrection (
       VectorNd pos, VectorNd vel,
       double t, StepAdjustment stepAdjust) {
-
-      updateMassMatrix (-1);
-      mySys.updateConstraints (
+      
+      //FunctionTimer timer = new FunctionTimer();
+      //timer.start();
+      boolean hasConstraints = mySys.updateConstraints (
          t, stepAdjust, /*flags=*/MechSystem.COMPUTE_CONTACTS);
-      computePosCorrections (pos, vel, t);
+      //timer.stop();
+      //System.out.println ("      updateConstraints " + timer.result(1));   
+      if (hasConstraints) {
+         //timer.start();
+         updateMassMatrix (-1);
+         //timer.stop();
+         //System.out.println ("      updateMassMatrix " + timer.result(1));
 
-      mySys.setActivePosState (pos);
+         //timer.start();
+         if (computePosCorrections (pos, vel, t)) {
+            mySys.setActivePosState (pos);
+         }
+         //timer.stop();
+         //System.out.println ("      computePosCorrections " + timer.result(1));
+      }
       // mySys.updateConstraints (
       //    t, stepAdjust, /*flags=*/MechSystem.UPDATE_CONTACTS);
 
       //mySys.updateForces (t1, stepAdjust);
    }
 
-   protected void computePosCorrections (VectorNd pos, VectorNd vel, double t) {
+   protected boolean computePosCorrections (
+      VectorNd pos, VectorNd vel, double t) {
 
       boolean correctionNeeded = false;
       // assumes that updateMassMatrix() has been called
       int velSize = myActiveVelSize;
       if (velSize == 0) {
-         return;
+         return false;
       }            
       if (myConSolver == null) {
          myConSolver = new KKTSolver();
@@ -2490,6 +2513,7 @@ public class MechSystemSolver {
 
       // myVel.setSize (velSize);
       if (myGsize > 0 || myNsize > 0) {
+         //System.out.println ("gsize= " + myGsize + " nsize=" +myNsize);
          boolean allConstraintsCompliant = true;
          mySys.getBilateralInfo (myGInfo);
          double[] gbuf = myBg.getBuffer();
@@ -2539,6 +2563,7 @@ public class MechSystemSolver {
       if (correctionNeeded) {
          mySys.addActivePosImpulse (pos, 1, vel);
       }
+      return correctionNeeded;
    }
 
    public void projectRigidBodyPosConstraints (double t) {
@@ -2749,6 +2774,11 @@ public class MechSystemSolver {
       int velSize = myActiveVelSize;
       int posSize = myActivePosSize;
 
+      FunctionTimer timer = null;
+      if (profileConstrainedBE) {
+         timer = new FunctionTimer();
+         timer.start();
+      }
       myB.setSize (velSize);
       myUtmp.setSize (velSize);
       myF.setSize (velSize);
@@ -2758,7 +2788,18 @@ public class MechSystemSolver {
       myFparC.setSize (myParametricVelSize);
 
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
+      if (profileConstrainedBE) {
+         timer.stop();
+         System.out.println ("    updateConstraints=" + timer.result(1));
+         timer.start();
+      }
+
       mySys.updateForces (t1);
+      if (profileConstrainedBE) {
+         timer.stop();
+         System.out.println ("    updateForces=" + timer.result(1));
+         timer.start();
+      }
 
       // b = M v
 
@@ -2769,12 +2810,29 @@ public class MechSystemSolver {
       myB.scaledAdd (h, myF, myB);
 
       KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
-
+      if (profileConstrainedBE) {
+         timer.stop();
+         System.out.println ("    KKT solve " + timer.result(1));
+         timer.start();
+      }
+      
       mySys.setActiveVelState (myUtmp);
+      if (profileConstrainedBE) {
+         timer.stop();
+         System.out.println ("    setActiveVel " + timer.result(1));
+      }
 
       if (useGlobalFriction) {
-         projectFrictionConstraints (myUtmp, t1);
-         mySys.setActiveVelState (myUtmp);
+         if (profileConstrainedBE) {
+            timer.start();
+         }
+         if (projectFrictionConstraints (myUtmp, t1)) {
+            mySys.setActiveVelState (myUtmp);
+         }
+         if (profileConstrainedBE) {
+            timer.stop();
+            System.out.println ("    friction " + timer.result(1));
+         }
       }
 
       // back solve for parametric forces
@@ -2782,8 +2840,21 @@ public class MechSystemSolver {
 
       mySys.getActivePosState (myQ);
       mySys.addActivePosImpulse (myQ, h, myUtmp);
+
+      if (profileConstrainedBE) {
+         timer.start();
+      }
       mySys.setActivePosState (myQ);
+      if (profileConstrainedBE) {
+         timer.stop();
+         System.out.println ("    setActivePos " + timer.result(1));
+         timer.start();
+      }
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
+      if (profileConstrainedBE) {
+         timer.stop();
+         System.out.println ("    posCorrection=" + timer.result(1));
+      }
    }
 
    private double computeForceResidual (
@@ -2912,8 +2983,10 @@ public class MechSystemSolver {
 
       //computeImplicitParametricForces (myUtmp, myFparC);
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
-      projectFrictionConstraints (myUtmp, t1);
-      mySys.setActiveVelState (myUtmp);
+      if (projectFrictionConstraints (myUtmp, t1)) {
+         mySys.setActiveVelState (myUtmp);
+      }
+      
 
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
    }
@@ -2955,8 +3028,9 @@ public class MechSystemSolver {
 
       mySys.setActiveVelState (myUtmp);
       if (useGlobalFriction) {
-         projectFrictionConstraints (myUtmp, t1);
-         mySys.setActiveVelState (myUtmp);
+         if (projectFrictionConstraints (myUtmp, t1)) {
+            mySys.setActiveVelState (myUtmp);
+         }
       }
       //      else {
       //         mySys.projectVelConstraints (t0, t1);
@@ -3549,8 +3623,9 @@ public class MechSystemSolver {
 
       mySys.setActiveVelState (myUtmp);
       if (useGlobalFriction) {
-         projectFrictionConstraints (myUtmp, t1);
-         mySys.setActiveVelState (myUtmp);
+         if (projectFrictionConstraints (myUtmp, t1)) {
+            mySys.setActiveVelState (myUtmp);
+         }
       }
 
       // move forward

@@ -1832,7 +1832,11 @@ PointAttachable, ConnectableBody {
       if (myAutoGenerateSurface && !mySurfaceMeshValid) {
          getSurfaceMesh();  // triggers creation of surface mesh
       }
-
+      // BVTree bvt = getSurfaceMesh().getBVTree();
+      // if (bvt != null) {
+      //    list.addIfVisible (bvt);
+      // }
+            
       updateStressPlotRange();
 
       myAuxiliaryMaterialList.prerender(list);
@@ -3150,7 +3154,7 @@ PointAttachable, ConnectableBody {
     * myNumInverted. The minimum determinant, and the associated element, is
     * stored in myMinDetJ and myMinDetJElement.
     */
-   private void updateVolumeAndCheckForInversion() {
+   protected void updateVolumeAndCheckForInversion() {
       // special implementation of updateVolume that checks for inverted
       // Jacobians
       double volume = 0;
@@ -3256,16 +3260,19 @@ PointAttachable, ConnectableBody {
    // === Constrainer interface ===
 
    public double updateConstraints(double t, int flags) {
+      double maxpen = -1;
       if (usingAttachedRelativeFrame()) {
          myFrameConstraint.updateConstraints (t, flags);
+         maxpen = 0;
       }
       if (!myVolumeValid) {
          updateVolume();
       }
       if (getHardIncompMethod() != IncompMethod.OFF) {
          updateHardIncompInfo(t);
+         maxpen = 0;
       }
-      return 0;
+      return maxpen;
    }
 
    public void getConstrainedComponents (List<DynamicComponent> list) {

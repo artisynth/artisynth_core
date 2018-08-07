@@ -8,14 +8,12 @@ package artisynth.core.mechmodels;
 
 import java.io.*;
 import java.util.Deque;
-import java.util.List;
 import java.util.LinkedList;
 
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.render.*;
 import maspack.properties.*;
-import maspack.render.*;
 import artisynth.core.util.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.CollisionManager.ColliderType;
@@ -82,6 +80,27 @@ public class CollisionBehavior extends CollisionComponent
        * no collision response.
        */
       INACTIVE
+   }
+
+   /**
+    * Specified what type of data should be used when drawing a color
+    * map over the collision area.
+    */
+   public enum ColorMapType {
+      /**
+       * No color map should be drawn
+       */
+      NONE,
+
+      /**
+       * Draw a color map of the penetration depth
+       */
+      PENETRATION_DEPTH,
+
+      /**
+       * Draw a color map of the contact pressure
+       */
+      CONTACT_PRESSURE
    }
 
    protected RenderProps myRenderProps;
@@ -157,12 +176,16 @@ public class CollisionBehavior extends CollisionComponent
    boolean myDrawConstraints = defaultDrawConstraints;
    PropertyMode myDrawConstraintsMode = PropertyMode.Inherited;
 
-   static int defaultDrawPenetrationDepth = -1;
-   int myDrawPenetrationDepth = defaultDrawPenetrationDepth;
-   PropertyMode myDrawPenetrationDepthMode = PropertyMode.Inherited;
+   static ScalarRange defaultColorMapRange = new ScalarRange();
+   ScalarRange myColorMapRange = defaultColorMapRange.clone();
 
-   static ScalarRange defaultPenetrationDepthRange = new ScalarRange();
-   ScalarRange myPenetrationDepthRange = defaultPenetrationDepthRange.clone();
+   static ColorMapType defaultDrawColorMap = ColorMapType.NONE;
+   ColorMapType myDrawColorMap = defaultDrawColorMap;
+   PropertyMode myDrawColorMapMode = PropertyMode.Inherited;
+
+   static int defaultColorMapCollidableNum = 0;
+   int myColorMapCollidableNum = defaultColorMapCollidableNum;
+   PropertyMode myColorMapCollidableMode = PropertyMode.Inherited;
 
    ContactForceBehavior myForceBehavior = null;
 
@@ -201,9 +224,11 @@ public class CollisionBehavior extends CollisionComponent
       myDrawContactForcesMode = PropertyMode.Inherited;
       myDrawConstraints = defaultDrawConstraints;
       myDrawConstraintsMode = PropertyMode.Inherited;
-      myDrawPenetrationDepth = defaultDrawPenetrationDepth;
-      myDrawPenetrationDepthMode = PropertyMode.Inherited;
-      setPenetrationDepthRange (defaultPenetrationDepthRange);
+      myDrawColorMap = defaultDrawColorMap;
+      myDrawColorMapMode = PropertyMode.Inherited;
+      myColorMapCollidableNum = defaultColorMapCollidableNum;
+      myColorMapCollidableMode = PropertyMode.Inherited;
+      setColorMapRange (defaultColorMapRange);
       myForceBehavior = null;
    }
 
@@ -267,13 +292,17 @@ public class CollisionBehavior extends CollisionComponent
          "drawConstraints:Inherited", "draw contact constraints",
          defaultDrawConstraints);
       myProps.addInheritable (
-         "drawPenetrationDepth:Inherited", 
-         "draw interpenetration of specified mesh using a heat plot",
-         defaultDrawPenetrationDepth);
+         "drawColorMap:Inherited", 
+         "draw a color map of the specified data",
+         defaultDrawColorMap);
+      myProps.addInheritable (
+         "colorMapCollidable:Inherited", 
+         "number of the collidable (0 or 1) on which the color map show be drawn",
+         defaultColorMapCollidableNum, "[0,1] NoSlider");
 
       myProps.add (
-         "penetrationDepthRange", "range for drawing contact penetration", 
-         defaultPenetrationDepthRange);
+         "colorMapRange", "range for drawing color maps", 
+         defaultColorMapRange);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -827,37 +856,98 @@ public class CollisionBehavior extends CollisionComponent
       return myDrawConstraintsMode;
    }
 
+   /**
+    * @deprecated
+    * Replaced by getColorMapCollidable()
+    */
    public int getDrawPenetrationDepth() {
-      return myDrawPenetrationDepth;
+      if (getDrawColorMap() == ColorMapType.PENETRATION_DEPTH) {
+         return getColorMapCollidable();
+      }
+      else {
+         return -1;
+      }
    }
 
-   public void setDrawPenetrationDepth (int meshNum) {
-      myDrawPenetrationDepth = meshNum;
-      myDrawPenetrationDepthMode =
-         PropertyUtils.propagateValue (
-            this, "drawConstraints",
-            myDrawPenetrationDepth, myDrawPenetrationDepthMode);
-   }
-
-   public void setDrawPenetrationDepthMode (PropertyMode mode) {
-      myDrawPenetrationDepthMode =
-         PropertyUtils.setModeAndUpdate (
-            this, "drawConstraints", myDrawPenetrationDepthMode, mode);
-   }
-
-   public PropertyMode getDrawPenetrationDepthMode() {
-      return myDrawPenetrationDepthMode;
+   /**
+    * @deprecated
+    * Replaced by the combination of
+    * {@link #setDrawColorMap} and {@link setColorMapCollidable}.
+    */
+   public void setDrawPenetrationDepth (int colNum) {
+      if (colNum == -1) {
+         setDrawColorMap (ColorMapType.NONE);
+      }
+      else {
+         setDrawColorMap (ColorMapType.PENETRATION_DEPTH);
+         setColorMapCollidable (colNum);
+      }
    }
 
    public void setPenetrationDepthRange (ScalarRange range) {
-      ScalarRange newRange = range.clone();
-      PropertyUtils.updateCompositeProperty (
-            this, "penetrationDepthRange", myPenetrationDepthRange, newRange);
-      myPenetrationDepthRange = newRange;
+      setColorMapRange (range);
    }
    
    public ScalarRange getPenetrationDepthRange() {
-      return myPenetrationDepthRange;
+      return getColorMapRange();
+   }
+
+   public void setColorMapRange (ScalarRange range) {
+      ScalarRange newRange = range.clone();
+      PropertyUtils.updateCompositeProperty (
+            this, "colorMapRange", myColorMapRange, newRange);
+      myColorMapRange = newRange;
+   }
+   
+   public ScalarRange getColorMapRange() {
+      return myColorMapRange;
+   }
+
+   public ColorMapType getDrawColorMap() {
+      return myDrawColorMap;
+   }
+
+   public void setDrawColorMap (ColorMapType type) {
+      myDrawColorMap = type;
+      myDrawColorMapMode =
+         PropertyUtils.propagateValue (
+            this, "drawColorMap",
+            myDrawColorMap, myDrawColorMapMode);
+   }
+
+   public void setDrawColorMapMode (PropertyMode mode) {
+      myDrawColorMapMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "drawColorMap", myDrawColorMapMode, mode);
+   }
+
+   public PropertyMode getDrawColorMapMode() {
+      return myDrawColorMapMode;
+   }
+
+   public int getColorMapCollidable() {
+      return myColorMapCollidableNum;
+   }
+
+   public void setColorMapCollidable (int colNum) {
+      if (colNum != 0 && colNum != 1) {
+         throw new InternalErrorException ("colNum must be 0 or 1");
+      }
+      myColorMapCollidableNum = colNum;
+      myColorMapCollidableMode =
+         PropertyUtils.propagateValue (
+            this, "colorMapCollidable",
+            myColorMapCollidableNum, myColorMapCollidableMode);
+   }
+
+   public void setColorMapCollidableMode (PropertyMode mode) {
+      myColorMapCollidableMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "colorMapCollidable", myColorMapCollidableMode, mode);
+   }
+
+   public PropertyMode getColorMapCollidableMode() {
+      return myColorMapCollidableMode;
    }
 
    public boolean isCompliant() {
@@ -918,8 +1008,10 @@ public class CollisionBehavior extends CollisionComponent
       myDrawIntersectionPointsMode = behav.myDrawIntersectionPointsMode;
       myDrawConstraints = behav.myDrawConstraints;
       myDrawConstraintsMode = behav.myDrawConstraintsMode;
-      myDrawPenetrationDepth = behav.myDrawPenetrationDepth;
-      myDrawPenetrationDepthMode = behav.myDrawPenetrationDepthMode;
+      myDrawColorMap = behav.myDrawColorMap;
+      myDrawColorMapMode = behav.myDrawColorMapMode;
+      myColorMapCollidableNum = behav.myColorMapCollidableNum;
+      myColorMapCollidableMode = behav.myColorMapCollidableMode;
       myForceBehavior = behav.myForceBehavior; // XXX should we copy?
       setRenderProps (behav.myRenderProps);
    }
@@ -1030,11 +1122,18 @@ public class CollisionBehavior extends CollisionComponent
                myDrawConstraints != behav.myDrawConstraints) {
          return false;
       }
-      if (myDrawPenetrationDepthMode != behav.myDrawPenetrationDepthMode) {
+      if (myDrawColorMapMode != behav.myDrawColorMapMode) {
          return false;
       }
-      else if (myDrawPenetrationDepthMode == EXPLICIT &&
-               myDrawPenetrationDepth != behav.myDrawPenetrationDepth) {
+      else if (myDrawColorMapMode == EXPLICIT &&
+               myDrawColorMap != behav.myDrawColorMap) {
+         return false;
+      }
+      if (myColorMapCollidableMode != behav.myColorMapCollidableMode) {
+         return false;
+      }
+      else if (myColorMapCollidableMode == EXPLICIT &&
+               myColorMapCollidableNum != behav.myColorMapCollidableNum) {
          return false;
       }
       if ((myForceBehavior==null) != (behav.myForceBehavior==null)) {
@@ -1111,7 +1210,7 @@ public class CollisionBehavior extends CollisionComponent
          myRigidRegionTol *= s;
       }
       myAcceleration *= s;
-      myPenetrationDepthRange.scale (s);
+      myColorMapRange.scale (s);
       if (myRenderProps != null) {
          myRenderProps.scaleDistance (s);
       }

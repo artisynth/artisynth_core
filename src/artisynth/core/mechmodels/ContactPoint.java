@@ -61,6 +61,10 @@ public class ContactPoint {
       return myVtxs;
    }
 
+   public int numVertices() {
+      return myVtxs != null ? myVtxs.length : 0;
+   }
+
    public double[] getWeights() {
       return myWgts;
    }

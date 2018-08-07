@@ -151,6 +151,16 @@ public interface PropertyInfo {
    public ExpandState getWidgetExpandState();
    
    /**
+    * Returns <code>true</code> if a slider is allowed to be used in
+    * the interactive editing widget created for this property. In addition
+    * to this, creation of sliders also require that the property have
+    * a numeric value and a valid range.
+    * 
+    * @return <code>true</code> if a slider is allowed in the widget
+    */
+   public boolean isSliderAllowed();
+   
+   /**
     * Returns the default value for the property, or
     * <code>Property.VoidValue</code> if there is not default value.
     * 

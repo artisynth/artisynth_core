@@ -63,6 +63,7 @@ public class PropertyDesc implements PropertyInfo {
    boolean myAutoWriteP = true;
    protected Edit myEdit = Edit.Always;
    protected ExpandState myWidgetExpandState = ExpandState.Unexpandable;
+   protected boolean mySliderAllowed = true;
    boolean myReadOnlyP = false;
    NumericInterval myNumericRange = null;
    protected int myDimension;
@@ -625,6 +626,17 @@ public class PropertyDesc implements PropertyInfo {
       myWidgetExpandState = state;
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isSliderAllowed() {
+      return mySliderAllowed;
+   }
+
+   public void setSliderAllowed (boolean allowed) {
+      mySliderAllowed = allowed;
+   }
+ 
    /**
     * {@inheritDoc}
     */
@@ -1960,6 +1972,9 @@ public class PropertyDesc implements PropertyInfo {
          }
          else if (token.equals ("NV") || token.equals ("NullOK")) {
             setNullValueOK (true);
+         }
+         else if (token.equals ("NS") || token.equals ("NoSlider")) {
+            setSliderAllowed (false);
          }
          else if (token.startsWith ("D")) {
             String dimStr;

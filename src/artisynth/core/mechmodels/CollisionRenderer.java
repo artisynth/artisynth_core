@@ -3,6 +3,9 @@ package artisynth.core.mechmodels;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.Iterator;
 
 import maspack.collision.ContactInfo;
 import maspack.collision.ContactPlane;
@@ -20,6 +23,7 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.BVFeatureQuery;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector2d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -29,6 +33,7 @@ import maspack.render.Renderer.PointStyle;
 import maspack.render.Renderer.Shading;
 import artisynth.core.mechmodels.Collidable.Group;
 import artisynth.core.mechmodels.CollisionBehavior.Method;
+import artisynth.core.mechmodels.CollisionBehavior.ColorMapType;
 import artisynth.core.util.ScalarRange;
 
 /**
@@ -371,14 +376,11 @@ public class CollisionRenderer {
 
       RenderObject oldRob = myRob;
       myRob = ro;
-//      if (oldRob != null) {
-//         oldRob.dispose();
-//      }
 
       RenderObject rd = null;
-      if (behav.myDrawPenetrationDepth != -1 && cinfo != null) {
+      if (behav.myDrawColorMap != ColorMapType.NONE && cinfo != null) {
 
-         int num = behav.myDrawPenetrationDepth;
+         int num = behav.myColorMapCollidableNum;
          Collidable b0 = behav.getCollidable(0);
          CollidableBody h0 = handler.getCollidable(0);
          if (!(b0 instanceof Group)) {
@@ -387,34 +389,175 @@ public class CollisionRenderer {
                num = (num == 0 ? 1 : 0);
             }
          }
-         ArrayList<PenetrationRegion> regions;
-         ArrayList<PenetratingPoint> points;
-         if (num == 0) {
-            regions = cinfo.getRegions(0);
-            points = cinfo.getPenetratingPoints(0);
-         }
-         else {
-            regions = cinfo.getRegions(1);
-            points = cinfo.getPenetratingPoints(1);
-         }
-         if (regions != null && regions.size() > 0) {
-            rd = createPenetrationRenderObject (handler, points, regions);
+         HashSet<Face> faces = new HashSet<Face>();
+         HashMap<Vertex3d,Double> valueMap =
+            createValueMap (faces, cinfo, handler, behav, num);
+
+         if (faces.size() > 0) {
+            double minv = 0;
+            double maxv = 0;
+            for (Double d : valueMap.values()) {
+               if (d > maxv) {
+                  maxv = d;
+               }
+               else if (d < minv) {
+                  minv = d;
+               }
+            }
+            rd = createPenetrationRenderObject (
+               handler, valueMap, minv, maxv, faces);
          }
       }
       
       oldRob = myDepthRob;
       myDepthRob = rd;
-//      if (oldRob != null) {
-//         oldRob.dispose();
-//      }
    }
+
+   protected void storeVertexImpulses (
+      HashMap<Vertex3d,Double> valueMap,
+      Vertex3d[] vtxs, double[] wgts, double lam) {
+
+      if (vtxs != null) {
+         for (int i=0; i<vtxs.length; i++) {
+            double weightedLam = lam*wgts[i];
+            Double prevLam = valueMap.get (vtxs[i]);
+            if (prevLam != null) {
+               weightedLam += prevLam;
+            }
+            valueMap.put (vtxs[i], weightedLam);                     
+         }
+      }
+   }
+
+   private boolean containsMeshVertices (ContactPoint cp, PolygonalMesh mesh) {
+      return (cp.numVertices() > 0 && cp.getVertices()[0].getMesh() == mesh);
+   }
+
+   protected void storeVertexImpulses (
+      HashMap<Vertex3d,Double> valueMap,
+      ContactConstraint cc, PolygonalMesh mesh) {
+
+      Vertex3d[] vtxs = null;
+      double[] wgts = null;
+
+      // check cpnt0 and cpnt1 for vertices belonging to the mesh
+      if (containsMeshVertices (cc.myCpnt0, mesh)) {
+         vtxs = cc.myCpnt0.getVertices();
+         wgts = cc.myCpnt0.getWeights();
+      }
+      else if (containsMeshVertices (cc.myCpnt1, mesh)) {
+         vtxs = cc.myCpnt1.getVertices();
+         wgts = cc.myCpnt1.getWeights();
+      }
+      else {
+         // have to find the face and vertices directly. Assume 
+         // that we can use the position of cpnt0
+         BVFeatureQuery query = new BVFeatureQuery();
+         Vector2d uv = new Vector2d();
+         Point3d nearPnt = new Point3d();
+         Face face = query.getNearestFaceToPoint (
+            nearPnt, uv, mesh, cc.myCpnt0.getPoint());
+         if (face != null) {
+            vtxs = face.getVertices();
+            wgts = new double[] {1-uv.x-uv.y, uv.x, uv.y};
+         }
+      }
+      // check vtxs == null just in case query.getNearestFaceToPoint failed
+      // for some reason
+      if (vtxs != null) {
+         for (int i=0; i<vtxs.length; i++) {
+            double lam = cc.myLambda*wgts[i];
+            Double prevLam = valueMap.get (vtxs[i]);
+            if (prevLam != null) {
+               lam += prevLam;
+            }
+            valueMap.put (vtxs[i], lam);                     
+         }
+      }
+   }
+
+   HashMap<Vertex3d,Double> createValueMap (
+      HashSet<Face> faces, ContactInfo cinfo,
+      CollisionHandler handler, CollisionBehavior behav,
+      int num) {
+      
+      HashMap<Vertex3d,Double> valueMap = new HashMap<Vertex3d,Double>();
+      if (behav.myDrawColorMap == ColorMapType.PENETRATION_DEPTH) {
+         ArrayList<PenetratingPoint> points;
+         for (PenetratingPoint pp : cinfo.getPenetratingPoints (num)) {
+            valueMap.put (pp.vertex, pp.distance);
+         }
+         for (Vertex3d vertex : valueMap.keySet()) {
+            Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
+            while (it.hasNext()) {
+               HalfEdge he = it.next();
+               Face face = he.getFace();
+               if (!faces.contains(face)) {
+                  faces.add (face);
+               }
+            }
+         }
+      }
+      else if (behav.myDrawColorMap == ColorMapType.CONTACT_PRESSURE) {
+         PolygonalMesh mesh;
+         if (num == 0) {
+            mesh = handler.myCollidable0.getCollisionMesh();
+         }
+         else {
+            mesh = handler.myCollidable1.getCollisionMesh();
+         }
+         
+         for (ContactConstraint cc : handler.myBilaterals0.values()) {
+            if (cc.myLambda > 0) {
+               storeVertexImpulses (valueMap, cc, mesh);
+            }
+         }
+         for (ContactConstraint cc : handler.myBilaterals1.values()) {
+            if (cc.myLambda > 0) {
+               storeVertexImpulses (valueMap, cc, mesh);
+            }
+         }
+         for (ContactConstraint cc : handler.myPrevUnilaterals) {
+            if (cc.myLambda > 0) {
+               storeVertexImpulses (valueMap, cc, mesh);
+            }
+         }
+         for (Map.Entry<Vertex3d,Double> entry : valueMap.entrySet()) {
+            // convert impulses to pressures
+            Vertex3d vertex = entry.getKey();
+            double lam = entry.getValue();
+            // Pressure at the vertex is related to force at the vertex
+            // by the formula
+            // 
+            //    force = 1/3 * pressure * adjacentFaceArea
+            //
+            // and to get force, we divide the impulse lam by the time
+            // step (stored in hander.myLastH)
+            double adjacentFaceArea = 0;
+            Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
+            while (it.hasNext()) {
+               HalfEdge he = it.next();
+               Face face = he.getFace();
+               if (!faces.contains(face)) {
+                  // update planar area for the face
+                  face.computeNormal();
+                  faces.add (face);
+               }
+               adjacentFaceArea += face.getPlanarArea();
+            }
+            double pressure = 3*(lam*handler.myLastH)/adjacentFaceArea;
+            valueMap.put (vertex, pressure);              
+         }
+      }
+      return valueMap;
+   }            
 
    int getColorIndex (
       ScalarRange range,
-      Vertex3d vtx, HashMap<Vertex3d,Double> depthMap) { 
+      Vertex3d vtx, HashMap<Vertex3d,Double> valueMap) { 
 
       double depth = 0;
-      Double value = depthMap.get(vtx);
+      Double value = valueMap.get(vtx);
       if (value != null) {
          depth = range.clip(value);
       }
@@ -423,20 +566,12 @@ public class CollisionRenderer {
    }
 
    RenderObject createPenetrationRenderObject (
-      CollisionHandler handler,
-      ArrayList<PenetratingPoint> points, ArrayList<PenetrationRegion> regions) {
+      CollisionHandler handler, HashMap<Vertex3d,Double> valueMap,
+      double minv, double maxv, HashSet<Face> faces) {
       
       RenderObject rd = new RenderObject();
-      HashMap<Vertex3d,Double> depthMap = new HashMap<Vertex3d,Double>();
-      double maxd = 0;
-      for (PenetratingPoint pp : points) {
-         depthMap.put (pp.vertex, pp.distance);
-         if (pp.distance > maxd) {
-            maxd = pp.distance;
-         }
-      }
-      ScalarRange range = handler.myBehavior.myPenetrationDepthRange;
-      range.updateInterval (0, maxd);
+      ScalarRange range = handler.myBehavior.myColorMapRange;
+      range.updateInterval (minv, maxv);
       float[] rgb = new float[3];
       for (int i=0; i<256; i++) {
          handler.myManager.myColorMap.getRGB (i/255.0, rgb);
@@ -445,32 +580,31 @@ public class CollisionRenderer {
 
       Point3d wpnt = new Point3d();
       Vector3d wnrm = new Vector3d();
-      for (PenetrationRegion region : regions) {
-         for (Face face : region.getFaces()) {
-            HalfEdge he = face.firstHalfEdge();
-            Vertex3d v0 = he.getHead();
-            Vertex3d v1 = he.getNext().getHead();
-            Vertex3d v2 = he.getTail();
 
-            v0.getWorldPoint (wpnt);
-            int pi0 = rd.addPosition (wpnt);
-            v1.getWorldPoint (wpnt);
-            int pi1 = rd.addPosition (wpnt);
-            v2.getWorldPoint (wpnt);
-            int pi2 = rd.addPosition (wpnt);
+      for (Face face : faces) {
+         HalfEdge he = face.firstHalfEdge();
+         Vertex3d v0 = he.getHead();
+         Vertex3d v1 = he.getNext().getHead();
+         Vertex3d v2 = he.getTail();
 
-            int ci0 = getColorIndex (range, v0, depthMap);
-            int ci1 = getColorIndex (range, v1, depthMap);
-            int ci2 = getColorIndex (range, v2, depthMap);
+         v0.getWorldPoint (wpnt);
+         int pi0 = rd.addPosition (wpnt);
+         v1.getWorldPoint (wpnt);
+         int pi1 = rd.addPosition (wpnt);
+         v2.getWorldPoint (wpnt);
+         int pi2 = rd.addPosition (wpnt);
+
+         int ci0 = getColorIndex (range, v0, valueMap);
+         int ci1 = getColorIndex (range, v1, valueMap);
+         int ci2 = getColorIndex (range, v2, valueMap);
             
-            face.getWorldNormal (wnrm);
-            int ni = rd.addNormal (wnrm);
+         face.getWorldNormal (wnrm);
+         int ni = rd.addNormal (wnrm);
 
-            int v0idx = rd.addVertex (pi0, ni, ci0, -1);
-            int v1idx = rd.addVertex (pi1, ni, ci1, -1);
-            int v2idx = rd.addVertex (pi2, ni, ci2, -1);
-            rd.addTriangle (v0idx, v1idx, v2idx);
-         }
+         int v0idx = rd.addVertex (pi0, ni, ci0, -1);
+         int v1idx = rd.addVertex (pi1, ni, ci1, -1);
+         int v2idx = rd.addVertex (pi2, ni, ci2, -1);
+         rd.addTriangle (v0idx, v1idx, v2idx);
       }
       return rd;
    }

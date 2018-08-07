@@ -30,6 +30,7 @@ import maspack.render.RenderableUtils;
 import maspack.util.DataBuffer;
 import maspack.util.IntHolder;
 import maspack.util.NumberFormat;
+import maspack.util.FunctionTimer;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.ArtisynthIO;
@@ -419,15 +420,19 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
    
-   public void updateConstraints (
+   public boolean updateConstraints (
       double t, StepAdjustment stepAdjust, int flags) {
 
       updateForceComponentList();
       double maxpen = 0;
+      boolean hasConstraints = false;
       for (int i=0; i<myConstrainers.size(); i++) {
          double pen = myConstrainers.get(i).updateConstraints (t, flags);
-         if (pen > maxpen) {
-            maxpen = pen;
+         if (pen >= 0) {
+            hasConstraints = true;
+            if (pen > maxpen) {
+               maxpen = pen;
+            }
          }
       } 
       double penlimit = getPenetrationLimit();
@@ -435,6 +440,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          stepAdjust.recommendAdjustment (
             0.5 /*penlimit/maxpen*/, "contact penetration exceeds "+penlimit);
       }
+      return hasConstraints;
    }
    
 
@@ -881,24 +887,29 @@ public abstract class MechSystemBase extends RenderableModelBase
       advanceAuxState (t0, t1);
       // zero forces
       updateDynamicComponentLists();
+      //FunctionTimer timer = new FunctionTimer();
+      //timer.start();
       for (int i=0; i<myDynamicComponents.size(); i++) {
          myDynamicComponents.get(i).zeroForces();
       }
+      //timer.stop();
+      //System.out.println ("preadvance=" + timer.result(1));
       return null;
    }
 
    public StepAdjustment advance (double t0, double t1, int flags) {
 
       myInsideAdvanceP = true;
-      if (myProfilingP) {
-         mySolveTime = System.nanoTime();
-      }      
       StepAdjustment stepAdjust = new StepAdjustment();
       collectInitialForces();
 
       if (t0 == 0) {
          updateForces (t0);
       }
+
+      if (myProfilingP) {
+         mySolveTime = System.nanoTime();
+      }      
 
       if (!myDynamicsEnabled) {
          mySolver.nonDynamicSolve (t0, t1, stepAdjust);
@@ -910,6 +921,8 @@ public abstract class MechSystemBase extends RenderableModelBase
          }
          checkState();
          mySolver.solve (t0, t1, stepAdjust);
+         FunctionTimer timer = new FunctionTimer();
+
          DynamicComponent c = checkVelocityStability();
          if (c != null) {
             throw new NumericalException (
@@ -1471,12 +1484,16 @@ public abstract class MechSystemBase extends RenderableModelBase
       } else {
          f = new VectorNd(mySystemSize); // XXX it seems some components require it to exist
       }
+      //FunctionTimer timer = new FunctionTimer();
+      //timer.start();
       for (int i=0; i<myDynamicComponents.size(); i++) {
          myDynamicComponents.get(i).resetEffectiveMass();
       }      
       for (DynamicAttachment a : getOrderedAttachments()) {
          a.addMassToMasters ();
       }
+      //timer.stop();
+      //System.out.println ("add mass to masters " + timer.result(1));
       getMassMatrixValues (M, f, t);
       // TODO - need to fix this for non-block diagonal mass matrices:
       // for (DynamicAttachment a : getOrderedAttachments()) {
@@ -1781,13 +1798,18 @@ public abstract class MechSystemBase extends RenderableModelBase
    }
 
    public void collectInitialForces () {
+      //FunctionTimer timer = new FunctionTimer();
+      //timer.start();
       updateDynamicComponentLists();
       updateForceComponentList();
       // add external forces
       for (int i=0; i<myDynamicComponents.size(); i++) {
          myDynamicComponents.get(i).applyExternalForces();
       }
+      //timer.stop();
       getForces (myInitialForces);
+
+      //System.out.println ("  collect " + timer.result(1));
    }
 
    public void updateForces (double t) {

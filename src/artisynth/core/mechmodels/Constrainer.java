@@ -50,7 +50,7 @@ public interface Constrainer {
 
    /**
     * Updates the current set of constraints, and returns the maximum
-    * penetration > 0 associated with all of them. If no constraints are
+    * penetration {@code >} 0 associated with all of them. If no constraints are
     * presently active, returns -1.
     */
    public double updateConstraints (double t, int flags);

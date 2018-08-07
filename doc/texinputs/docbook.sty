@@ -75,6 +75,15 @@
 % To have title rendering changed
 \usepackage[sf,bf]{titlesec}
 
+% this next section of code fixes the missing section numbers
+% in titlesec - see tex.stackexchange.com/questions/299969/titlesec-loss-of-section-numbering-with-the-new-update-2016-03-15
+%
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
+\patchcmd{\ttlh@hang}{\noindent}{}{}{}
+\makeatother
+
 
 % Display ``DRAFT'' as a water mark:
 \usepackage{ifthen}

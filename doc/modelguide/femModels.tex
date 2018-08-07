@@ -2223,11 +2223,13 @@ of Section \ref{renderingDepth:sec}, which shows how to render
 pentration depth.
 
 \begin{sideblock}
-The caveats about color map rendering described in
-Section \ref{ContactRendering:sec} apply. In particular, the
-resolution of the color map is limited by the resolution of the
-collidable meshes, and so the aplication should ensure that these are
-sufficiently fine.
+The caveats about color map rendering described in Section
+\ref{ContactRendering:sec} apply. In particular, the resolution of the
+color map is limited by the resolution of the collision mesh for the
+collidable on which the map is drawn, and so the aplication should
+ensure that this is sufficiently fine. Also, to allow the map to blend
+properly with the rest of the collidable, the color corresponding to
+$0$ should match the default face color for the collidable.
 \end{sideblock}
 
 \begin{figure}[ht]
@@ -2238,10 +2240,9 @@ sufficiently fine.
  \includegraphics[width=3.75in]{images/ContactPressureRender}
 \fi
 \end{center}
-\caption{ContactPressureRender showing the contact pressure
-as a spherical FEM model falls onto a rectangular one.  The color map
-is drawn on the lower (rectangular) model, with redder valuse
-indicating greater.}
+\caption{ContactPressureRender showing the contact pressure as a
+spherical FEM model falls onto an FEM sheet.  The color map is drawn
+on the sheet model, with redder values indicating greater pressure.}
 \label{ContactPressureRender:fig}
 \end{figure}
 
@@ -2252,20 +2253,20 @@ The complete source code is shown below:
 \lstset{numbers=none} 
 
 To begin, the demo creates two FEM models: a spherical ball (lines
-52-56) and a rectangular surface (lines 59-66), and then fixes the end
-nodes of the surface (lines 69-74). Surface rendering is enabled for
-the surface (line 65), but not for the ball, in order to improve the
+52-56) and a rectangular sheet (lines 59-66), and then fixes the end
+nodes of the sheet (lines 69-74). Surface rendering is enabled for
+the sheet (line 65), but not for the ball, in order to improve the
 visibility of the color map.
 
 Lines 77-81 create and set a collision behavior between the two
 models, with the {\sf drawColorMap} property set to {\tt
 CONTACT\_PRESSURE}. Because for this example we want the color map to
-be drawn on the {\it second} collidable (the surface), we set the {\sf
+be drawn on the {\it second} collidable (the sheet), we set the {\sf
 setColorMapCollidable} property to 1 (line 79); otherwise, the default
 value of 0 would cause the color map to be drawn on the first
-collidable (the ball). Alternatively, we could have simply defined the
+collidable (the ball). (Alternatively, we could have simply defined the
 collision behavior as being between the suface and the ball instead of
-the ball and the surface. The color map range is explicitly set to lie
+the ball and the sheet.) The color map range is explicitly set to lie
 between $[0, 1.3]$ (line 80); this is in contrast to the example in
 Section \ref{renderingDepth:sec}, where the range is auto-updated on
 each step.  Other rendering properties are set for the collision
@@ -2276,11 +2277,11 @@ red for maximum pressure.
 At line 100, a color bar is created and added to the scene, using the
 method {\tt createColorBar()} (lines 36-45), to explicitly show the
 pressure that corresponds to the different colors. The color bar is
-given the same color map and value range that is used to render the
+given the same color map and value range used to render the
 pressure. Finally, default face and line colors for all components in
 the model are set at lines 105-106.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
-ContactPressureRender} from the {\sf Models} menu. When run, the
-FEM models will collide and render the contact pressure on the bottom
-object, as shown in Figure \ref{ContactPressureRender:fig}.
+ContactPressureRender} from the {\sf Models} menu. When run, the FEM
+models will collide and render the contact pressure on the sheet, as
+shown in Figure \ref{ContactPressureRender:fig}.

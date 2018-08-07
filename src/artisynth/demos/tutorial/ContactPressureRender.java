@@ -55,18 +55,18 @@ public class ContactPressureRender extends RootModel {
       ball.setMaterial (new LinearMaterial (100000, 0.4));
       mech.addModel (ball);
 
-      // create FEM surface
-      FemModel3d surf = new FemModel3d("surf");
-      surf.setDensity (density);
+      // create FEM sheet
+      FemModel3d sheet = new FemModel3d("sheet");
+      sheet.setDensity (density);
       FemFactory.createHexGrid (
-         surf, /*wx*/0.5, /*wy*/0.3, /*wz*/0.05, /*nx*/20, /*ny*/10, /*nz*/1);
-      surf.transformGeometry (new RigidTransform3d (0, 0, -0.2));
-      surf.setMaterial (new LinearMaterial (500000, 0.4));
-      surf.setSurfaceRendering (SurfaceRender.Shaded);
-      mech.addModel (surf);
+         sheet, /*wx*/0.5, /*wy*/0.3, /*wz*/0.05, /*nx*/20, /*ny*/10, /*nz*/1);
+      sheet.transformGeometry (new RigidTransform3d (0, 0, -0.2));
+      sheet.setMaterial (new LinearMaterial (500000, 0.4));
+      sheet.setSurfaceRendering (SurfaceRender.Shaded);
+      mech.addModel (sheet);
 
       // fix the side nodes of the surface
-      for (FemNode3d n : surf.getNodes()) {
+      for (FemNode3d n : sheet.getNodes()) {
          double x = n.getPosition().x;
          if (Math.abs(x-(-0.25)) <= EPS || Math.abs(x-(0.25)) <= EPS) {
             n.setDynamic (false);
@@ -76,9 +76,9 @@ public class ContactPressureRender extends RootModel {
       // create and set a collision behavior between the ball and surface.
       CollisionBehavior behav = new CollisionBehavior (true, 0);
       behav.setDrawColorMap (ColorMapType.CONTACT_PRESSURE); 
-      behav.setColorMapCollidable (1); // show color map on collidable 1 (surf);
+      behav.setColorMapCollidable (1); // show color map on collidable 1 (sheet);
       behav.setColorMapRange (new ScalarRange(0, 1.3));
-      mech.setCollisionBehavior (ball, surf, behav);
+      mech.setCollisionBehavior (ball, sheet, behav);
 
       CollisionManager cm = mech.getCollisionManager();
       // set rendering properties in the collision manager:

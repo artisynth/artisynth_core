@@ -2135,8 +2135,8 @@ The color map is disabled. This is the default.
 \item[PENETRATION\_DEPTH]\mbox{}
 
 The color map shows penetration depth of one collidable mesh with
-respect to the other. If one or more of the collidable meshes is open,
-then the interpenetration computation works more reliably if the {\sf
+respect to the other. If one or both collidable meshes are open, then
+the penetration computation works more reliably if the {\sf
 colliderType} property is set to {\tt AJL\_CONTOUR} (Section
 \ref{collisionBehavior:sec}).
 
@@ -2149,10 +2149,18 @@ then distributing these over the surrounding faces.
 
 \end{description}
 
-The color map itself is drawn as a patch formed from the collidable
-mesh's penetrating faces, using vertex coloring where the color at
-each vertex is determined by the associated value of that vertex.  An
-example is given in Section \ref{renderingDepth:sec}.
+The color map itself is drawn as a patch formed from the collidable's
+collision mesh, using faces and vertices associated with the collision
+region. The vertices of the patch are set to colors corresponding to
+the associated value (e.g., penetration depth or pressure) at that
+vertex, and the surrounding faces are colored appropriately.  The
+resolution of the color map is thus determined by the resolution of
+the collision mesh, and so the application must ensure this is high
+enough to ensure proper results. If the mesh has only a few triangles
+(e.g., a rectangle with two triangles per face), the color
+interpolation may be spread over an unreasonably large area.  Examples
+of color map usage are given in Sections \ref{renderingDepth:sec} and
+\ref{renderingContactPressure:sec}.
 
 \item[colorMapCollidable]
 
@@ -2264,12 +2272,9 @@ finite elements models is shown in Section
 \end{sideblock}
 
 \begin{sideblock}
-Color map rendering uses the faces of the collidable meshes, and its
-resolution is correspondingly limited. For good visual results, it is
-necessary to ensure that the colliable meshes are sufficiently
-detailed.  If a mesh has only a few triangles (e.g., a rectangle with
-two triangles per face), the color interpolation may be spread over an
-unreasonably large area.
+As mentioned above, proper results require that the collision mesh for
+the collidable on which the map is being drawn has a sufficiently high
+resolution.
 \end{sideblock}
 
 \begin{figure}[ht]

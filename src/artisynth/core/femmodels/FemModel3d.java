@@ -1841,6 +1841,14 @@ PointAttachable, ConnectableBody {
 
       myAuxiliaryMaterialList.prerender(list);
    }
+   
+   /**
+    * Return BV tree for those who know what to do with it
+    */
+   @Override
+   public BVTree getBVTree () {
+      return super.getBVTree ();
+   }
 
    public void getSelection(LinkedList<Object> list, int qid) {
       super.getSelection(list, qid);

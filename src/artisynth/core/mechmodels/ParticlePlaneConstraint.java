@@ -113,8 +113,9 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
    }
    
    public void setOffset(double off) {
+      double ooff = myOff;
       myOff = off;
-      myCenter.scale(myOff, myNrm);
+      myCenter.scaledAdd(off-ooff, myNrm);
       updateConstraints (0, 0);
    }
    
@@ -124,6 +125,11 @@ public class ParticlePlaneConstraint extends ParticleConstraintBase
 
    public Point3d getCenter() {
       return new Point3d (myCenter);
+   }
+   
+   public void setCenter(Point3d c) {
+      myCenter.set (c);
+      myOff = c.dot (myNrm);
    }
 
    public Vector3d getNormal() {

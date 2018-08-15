@@ -1701,7 +1701,6 @@ public class FemFactory {
       }
       
       FemFactory.createHexGrid (fem, 2, 2, 2, 2*nr, 2*nr, 2*nr);
-      Point2d pnt2d = new Point2d();
       Point3d pnt3d = new Point3d();
       
       // map nodes
@@ -1709,14 +1708,12 @@ public class FemFactory {
          Point3d pos = node.getRestPosition ();
          
          // map x-y to conformal unit circle
-         pnt2d.x = pos.x;
-         pnt2d.y = pos.y;
-         conformalMapRectangleEllipse (1, 1, 1, 1, pnt2d, pnt2d);
+         pnt3d.x = pos.x;
+         pnt3d.y = pos.y;
+         pnt3d.z = pos.z;
+         conformalMapRectangleEllipse (1, 1, 1, 1, pnt3d, pnt3d);
          
          // map disc to sphere
-         pnt3d.x = pnt2d.x;
-         pnt3d.y = pnt2d.y;
-         pnt3d.z = pos.z;
          bilipschitzMapCylinderSphere (pnt3d, pnt3d);
          
          // scale to appropriate radius
@@ -2810,20 +2807,62 @@ public class FemFactory {
    }
    
    /**
-    *
-    * Conformally maps a rectangular grid to an ellipse using the method of 
+    * Conformally maps an ellipse to a rectangular grid using the method of 
     * <p>
+    * <quote>
     * Daniela Rosca, Uniform and refinable grids on elliptic domains and on some surfaces of revolution, 
     * Applied Mathematics and Computation,Volume 217, Issue 19, 2011, Pages 7812-7817
+    * </quote>
     *</p>
     * @param a ellipsoid radius along x
     * @param b ellipsoid radius along y
     * @param L1 rectangle half-width along x
     * @param L2 rectangle half-width along y
-    * @param input input point
-    * @param output output point
+    * @param input input point (x,y)
+    * @param output output point (x,y) modified, z left unchanged
     */
-   public static void conformalMapRectangleEllipse(double a, double b, double L1, double L2, Point2d input, Point2d output) {
+   public static void conformalMapEllipseRectangle(double a, double b, double L1, double L2, Point3d input, Point3d output) {
+      double x = input.x;
+      double y = input.y;
+      
+      double absx = Math.abs (x);
+      double absy = Math.abs (y);
+      
+      double sx = Math.signum (x);
+      double sy = Math.signum (y);
+      
+      if (absy*a <= absx*b) {
+         if ( absx == 0) {
+            output.x = 0;
+            output.y = 0;
+         } else {
+            double c = sx*Math.sqrt (x*x + a*a/(b*b)*y*y);
+            output.x = c*Math.sqrt (Math.PI)/2;
+            output.y = c*2*b/a/Math.sqrt (Math.PI)*Math.atan (a*y/(b*x));
+         }
+      } else {
+         double c = sy*Math.sqrt (b*b/(a*a)*x*x + y*y);
+         output.x = c*2*a/b/Math.sqrt (Math.PI)*Math.atan (b*x/(a*y));
+         output.y = c*Math.sqrt (Math.PI)/2;         
+      }
+   }
+   
+   /**
+    * Conformally maps a rectangular grid to an ellipse using the method of 
+    * <p>
+    * <quote>
+    * Daniela Rosca, Uniform and refinable grids on elliptic domains and on some surfaces of revolution, 
+    * Applied Mathematics and Computation,Volume 217, Issue 19, 2011, Pages 7812-7817
+    * </quote>
+    *</p>
+    * @param a ellipsoid radius along x
+    * @param b ellipsoid radius along y
+    * @param L1 rectangle half-width along x
+    * @param L2 rectangle half-width along y
+    * @param input input point using (x,y)
+    * @param output output point, only x,y are modified
+    */
+   public static void conformalMapRectangleEllipse(double a, double b, double L1, double L2, Point3d input, Point3d output) {
       double x = input.x;
       double y = input.y;
       
@@ -2847,11 +2886,55 @@ public class FemFactory {
    }
    
    /**
+    * Maps a unit sphere to a cylinder with unit radius and z in [-1,1] using the bilipschitz method described in
     * <p>
+    * <quote>
+    * A bi-Lipschitz continuous, volume preserving map from the unit ball onto a cube, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
+    * </quote>
+    * </p>
+    * @param input sphere input point
+    * @param output cylinder input point
+    */
+   public static void bilipschitzMapSphereCylinder(Point3d input, Point3d output) {
+      double x1 = input.x;
+      double x2 = input.y;
+      double y = input.z;
+      
+      double ay = Math.abs (y);
+      double xx = Math.sqrt (x1*x1+x2*x2);
+      double xy = Math.cbrt (Math.abs (x1*x1*x1) + Math.abs (x2*x2*x2) + Math.abs (y*y*y));
+
+      double c = Math.sqrt (5)/2;
+      if (xx == 0 && ay == 0) {
+         output.x = 0;
+         output.y = 0;
+         output.z = 0;
+      } else if (c*ay <= xx) {
+         output.x = x1*xy/xx;
+         output.y = x2*xy/xx;
+         output.z = 3*y/2;
+      } else if ( c*y >= xx) {
+         double d = Math.sqrt (3*xy/(xy+ay));
+         output.x = x1*d;
+         output.y = x2*d;
+         output.z = xy;
+      } else {
+         double d = Math.sqrt (3*xy/(xy+ay));
+         output.x = x1*d;
+         output.y = x2*d;
+         output.z = -xy;
+      }
+   }
+   
+   /**
     * Maps a cylinder with unit radius and z in [-1,1] to a unit sphere using the bilipschitz method described in
     * <p>
+    * <quote>
     * A bi-Lipschitz continuous, volume preserving map from the unit ball onto a cube, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
+    * </quote>
     * </p>
+    * @param input cylinder input point
+    * @param output sphere output point
     */
    public static void bilipschitzMapCylinderSphere(Point3d input, Point3d output) {
       double a = input.x;
@@ -2877,6 +2960,35 @@ public class FemFactory {
          output.y = b*s;
          output.z = 2.0/3*z;
       }
+   }
+   
+   /**
+    * Maps a 2x2x2 cube to a unit sphere
+    * @param cube input point in cube coordinates
+    * @param sphere output point in sphere coordinates
+    */
+   public static void mapCubeToSphere(Point3d cube, Point3d sphere) {
+      // map x-y to conformal unit circle
+      sphere.x = cube.x;
+      sphere.y = cube.y;
+      sphere.z = cube.z;
+      conformalMapRectangleEllipse (1, 1, 1, 1, sphere, sphere);
+      
+      // map disc to sphere
+      bilipschitzMapCylinderSphere (sphere, sphere);
+   }
+   
+   /**
+    * Maps a unit sphere to a 2x2x2 cube
+    * @param sphere input point in sphere coordinates
+    * @param cube output point in cube coordinates
+    */
+   public static void mapSphereToCube(Point3d sphere, Point3d cube) {
+      cube.x = sphere.x;
+      cube.y = sphere.y;
+      cube.z = sphere.z;
+      bilipschitzMapSphereCylinder (cube, cube);
+      conformalMapEllipseRectangle (1, 1, 1, 1, cube, cube);
    }
    
    /**
@@ -2912,11 +3024,7 @@ public class FemFactory {
             //            pos.y *= s;
             
             // conformal scaling
-            pnt.x = pos.x;
-            pnt.y = pos.y;
-            conformalMapRectangleEllipse (r, r, r, r, pnt, pnt);
-            pos.x = pnt.x;
-            pos.y = pnt.y;
+            conformalMapRectangleEllipse (r, r, r, r, pos, pos);
             
             node.setRestPosition (pos);
             node.setPosition (pos);

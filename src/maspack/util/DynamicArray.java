@@ -248,4 +248,11 @@ public class DynamicArray<T> implements Iterable<T>, Clonable {
       return copy;
    }
 
+   public void clear () {
+      mySize = 0;
+      for (int i=0; i<myBuffer.length; ++i) {
+         myBuffer[i] = null;
+      }
+   }
+
 }

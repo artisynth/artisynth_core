@@ -125,4 +125,11 @@ public abstract class FemNode extends Particle {
    }
 
    public abstract Point3d getRestPosition();
+
+   // public void setPosition (Point3d pos) {
+   //    super.setPosition (pos);
+   //    // send a geometry change event to cause the BVHierachy to be
+   //    // invalidated:
+   //    notifyParentOfChange (new GeometryChangeEvent (this,null));
+   // }
 }

@@ -18,6 +18,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Matrix;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.MatrixNdBlock;
+import maspack.matrix.MatrixBlock;
 import maspack.matrix.NumericalException;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -29,6 +30,7 @@ import maspack.properties.PropertyUtils;
 import maspack.render.RenderableUtils;
 import maspack.util.DataBuffer;
 import maspack.util.IntHolder;
+import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.FunctionTimer;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
@@ -53,7 +55,9 @@ public abstract class MechSystemBase extends RenderableModelBase
    
    protected ArrayList<DynamicComponent> myDynamicComponents;
    protected ArrayList<MotionTargetComponent> myParametricComponents;
-   protected ArrayList<DynamicAttachment> myOrderedAttachments;
+   protected ArrayList<DynamicAttachment> myAttachments;
+   protected ArrayList<DynamicAttachment> myActiveAttachments;
+   protected ArrayList<DynamicAttachment> myParametricAttachments;
    protected ArrayList<Constrainer> myConstrainers;
    protected ArrayList<ForceEffector> myForceEffectors;
    protected ArrayList<HasAuxState> myAuxStateComponents;
@@ -223,10 +227,10 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public void reduceVelocityJacobian (SparseBlockMatrix J) {
       updateDynamicComponentLists();
-      if (getOrderedAttachments().size() > 0 && !J.isVerticallyLinked()) {
+      if (getAttachments().size() > 0 && !J.isVerticallyLinked()) {
 	 J.setVerticallyLinked(true);
       }
-      for (DynamicAttachment a : getOrderedAttachments()) {
+      for (DynamicAttachment a : getAttachments()) {
          a.reduceRowMatrix (J);
       }
    }
@@ -264,7 +268,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          idx = myConstrainers.get(i).addUnilateralConstraints (
             NT, dn, idx);
       }
-      for (DynamicAttachment a : getOrderedAttachments()) {
+      for (DynamicAttachment a : getAttachments()) {
          a.reduceConstraints (NT, dn);
       }
       // need this for now - would be good to get rid of it:
@@ -306,8 +310,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          idx = myConstrainers.get(i).addBilateralConstraints (
             GT, dg, idx);
       }      
-      
-      for (DynamicAttachment a : getOrderedAttachments()) {
+      for (DynamicAttachment a : getAttachments()) {
          a.reduceConstraints (GT, dg);
       }
       // need this for now - would be good to get rid of it:
@@ -415,7 +418,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          idx = myConstrainers.get(i).addFrictionConstraints (DT, finfo, idx);
       }      
       //idxh.value = addFrictionConstraints (DT, finfo, idxh.value);
-      for (DynamicAttachment a : getOrderedAttachments()) {
+      for (DynamicAttachment a : getAttachments()) {
          a.reduceConstraints (DT, null);
       }
    }
@@ -574,7 +577,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    }
 
    /**
-    * Should be overridden in subclasses to return all the HasSlaveObjects '
+    * Should be overridden in subclasses to return all the HasSlaveObjects
     * components within this model.
     * @param comps HasSlaveObjects components should be added to this list
     */
@@ -655,8 +658,12 @@ public abstract class MechSystemBase extends RenderableModelBase
       for (int i=0; i<myNumActive; i++) {
          idx = myDynamicComponents.get(i).setPosState (buf, idx);
       }
-      updatePosState();
-      updateVelState();
+      updateAttachmentPos (getActiveAttachments());
+      updateSlavePos();
+      updateAttachmentVel (getActiveAttachments());
+      updateSlaveVel(); 
+      //updatePosState();
+      //updateVelState();
       return idx;
    }
 
@@ -688,7 +695,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       for (int i=0; i<myNumActive; i++) {
          idx = myDynamicComponents.get(i).setVelState (buf, idx);
       }
-      updateVelState();
+      updateAttachmentVel (getActiveAttachments());
+      updateSlaveVel();
+      //updateVelState();
       return idx;
    }
 
@@ -921,8 +930,8 @@ public abstract class MechSystemBase extends RenderableModelBase
          }
          checkState();
          mySolver.solve (t0, t1, stepAdjust);
-         FunctionTimer timer = new FunctionTimer();
-
+         //FunctionTimer timer = new FunctionTimer();
+         //timer.start();
          DynamicComponent c = checkVelocityStability();
          if (c != null) {
             throw new NumericalException (
@@ -930,6 +939,8 @@ public abstract class MechSystemBase extends RenderableModelBase
                ComponentUtils.getPathName (c));
          }
          recursivelyFinalizeAdvance (stepAdjust, t0, t1, flags, 0);
+         //timer.stop();
+         //System.out.println ("finalize " + timer.result(1));
          if (myPrintState != null) {
             printState (myPrintState, t1);
          }
@@ -1291,7 +1302,9 @@ public abstract class MechSystemBase extends RenderableModelBase
    
    protected void clearCachedData (ComponentChangeEvent e) {
       myDynamicComponents = null;
-      myOrderedAttachments = null;
+      myAttachments = null;
+      myActiveAttachments = null;
+      myParametricAttachments = null;
       myConstrainers = null;
       myForceEffectors = null;
       myAuxStateComponents = null;
@@ -1324,7 +1337,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    public SparseBlockMatrix getAttachmentConstraints () {
       updateDynamicComponentLists();
       // figure out the column sizes
-      ArrayList<DynamicAttachment> attachments = getOrderedAttachments();
+      ArrayList<DynamicAttachment> attachments = getAttachments();
       int[] colSizes = new int[attachments.size()];
       for (int k=0; k<attachments.size(); k++) {
          DynamicComponent slave = attachments.get(k).getSlave();
@@ -1353,20 +1366,80 @@ public abstract class MechSystemBase extends RenderableModelBase
       return GT;
    }
 
-   protected ArrayList<DynamicAttachment> getOrderedAttachments() {
-      if (myOrderedAttachments == null) {
-         LinkedList<DynamicAttachment> list =
-            new LinkedList<DynamicAttachment>();
-         getAttachments (list, 0);
-         myOrderedAttachments = DynamicAttachment.createOrderedList (list);
-         Collections.reverse (myOrderedAttachments);
+   protected static final int HAS_ACTIVE_MASTERS = 0x01;
+   protected static final int HAS_PARAMETRIC_MASTERS = 0x02;
+
+   /**
+    * Recursively determines whether the underlying master components
+    * for an attachment are active, parametric, or both.
+    */
+   protected int findMasterDisposition (DynamicAttachment a, int disp) {
+      for (DynamicComponent m : a.getMasters()) {
+         if (m.isActive()) {
+            disp |= HAS_ACTIVE_MASTERS;
+         }
+         else if (m.isParametric()) {
+            disp |= HAS_PARAMETRIC_MASTERS;
+         }
+         else {
+            if (!m.isAttached()) {
+               throw new InternalErrorException (
+                  "master component "+m+" for slave "+a.getSlave()+
+                  " is neither active, parametric, or attached");
+            }
+            else {
+               disp |= findMasterDisposition (m.getAttachment(), disp);
+            }
+         }
       }
-      return myOrderedAttachments;
+      return disp;
+   }
+   
+   protected void updateAttachmentLists() {
+      LinkedList<DynamicAttachment> list =
+         new LinkedList<DynamicAttachment>();
+      getAttachments (list, 0);
+      myAttachments = DynamicAttachment.createOrderedList (list);
+      Collections.reverse (myAttachments);
+      myActiveAttachments = new ArrayList<DynamicAttachment>();
+      myParametricAttachments = new ArrayList<DynamicAttachment>();
+      // create lists of attachments controlled by active and parametric
+      // components
+      for (DynamicAttachment a : myAttachments) {
+         int disp = findMasterDisposition (a, 0);
+         if ((disp & HAS_ACTIVE_MASTERS) != 0) {
+            myActiveAttachments.add (a);
+         }
+         if ((disp & HAS_PARAMETRIC_MASTERS) != 0) {
+            myParametricAttachments.add (a);
+         }
+      }
+   }
+   
+   protected ArrayList<DynamicAttachment> getAttachments() {
+      if (myAttachments == null) {
+         updateAttachmentLists();
+      }
+      return myAttachments;
+   }
+
+   protected ArrayList<DynamicAttachment> getActiveAttachments() {
+      if (myActiveAttachments == null) {
+         updateAttachmentLists();
+      }
+      return myActiveAttachments;
+   }
+
+   protected ArrayList<DynamicAttachment> getParametricAttachments() {
+      if (myParametricAttachments == null) {
+         updateAttachmentLists();
+      }
+      return myParametricAttachments;
    }
 
    public VectorNd getAttachmentDerivatives() {
       updateDynamicComponentLists();
-      ArrayList<DynamicAttachment> attachments = getOrderedAttachments();
+      ArrayList<DynamicAttachment> attachments = getAttachments();
       int csize = 0;
       for (int k=0; k<attachments.size(); k++) {
          DynamicAttachment a = attachments.get(k);
@@ -1388,57 +1461,75 @@ public abstract class MechSystemBase extends RenderableModelBase
    public void addAttachmentJacobian (SparseNumberedBlockMatrix S, VectorNd f) {
       //System.out.println ("addAttachmentJacobian");
       updateDynamicComponentLists();
-
+      //FunctionTimer timer = new FunctionTimer();
+      //timer.start();
       boolean[] reduced = new boolean[S.numBlockRows()];
-      for (DynamicAttachment a : getOrderedAttachments()) {
+      int i = 0;
+      for (DynamicAttachment a : getAttachments()) {
          a.addAttachmentJacobian (S, f, reduced);
+         i++;
       }
+      //timer.stop();
+      //System.out.println ("addAttachmentJacobian " + timer.result(1));
    }
-
+   
    // Called from the top level
    public void addAttachmentSolveBlocks (SparseNumberedBlockMatrix S) {
       boolean[] reduced = new boolean[S.numBlockRows()];
-      for (DynamicAttachment a : getOrderedAttachments()) {
+      for (DynamicAttachment a : getAttachments()) {
          a.addSolveBlocks (S, reduced);
       }
    }
 
    // Called from the top level
    public void updateAttachmentPos() {
-      ArrayList<DynamicAttachment> list = getOrderedAttachments();
-      for (int i=list.size()-1; i>=0; i--) {
-         list.get(i).updatePosStates();
+      updateAttachmentPos (getAttachments());
+   }
+   
+   protected void updateAttachmentPos(ArrayList<DynamicAttachment> alist) {
+      for (int i=alist.size()-1; i>=0; i--) {
+         alist.get(i).updatePosStates();
       }
    }
-
-   public void updatePosState() {
-      //recursivelyUpdatePosState (0);
-      updateAttachmentPos();
+   
+   // Called from the top level
+   public void updateAttachmentVel() {
+      updateAttachmentVel (getAttachments());
+   }
+   
+   protected void updateAttachmentVel (ArrayList<DynamicAttachment> alist) {
+      for (int i=alist.size()-1; i>=0; i--) {
+         alist.get(i).updateVelStates();
+      }
+   }
+ 
+   private void updateSlavePos() {
       updateSlaveObjectComponentList();
       for (int i=0; i<mySlaveObjectComponents.size(); i++) {
          mySlaveObjectComponents.get(i).updateSlavePos();
-      } 
+      }       
+   }
+   
+   private void updateSlaveVel() {
+      updateSlaveObjectComponentList();
+      for (int i=0; i<mySlaveObjectComponents.size(); i++) {
+         mySlaveObjectComponents.get(i).updateSlaveVel();
+      }       
+   }
+   
+   public void updatePosState() {
+      updateAttachmentPos();
+      updateSlavePos();
    }
 
    public void updateVelState() {
       updateAttachmentVel();
-      updateSlaveObjectComponentList();
-      for (int i=0; i<mySlaveObjectComponents.size(); i++) {
-         mySlaveObjectComponents.get(i).updateSlaveVel();
-      }
-   }
-
-   // Called from the top level
-   public void updateAttachmentVel() {
-      ArrayList<DynamicAttachment> list = getOrderedAttachments();
-      for (int i=list.size()-1; i>=0; i--) {
-         list.get(i).updateVelStates();
-      }
+      updateSlaveVel();
    }
 
    // Called from the top level
    public void applyAttachmentForces() {
-      for (DynamicAttachment a : getOrderedAttachments()) {
+      for (DynamicAttachment a : getAttachments()) {
          a.applyForces();
       }
    }
@@ -1485,11 +1576,11 @@ public abstract class MechSystemBase extends RenderableModelBase
          f = new VectorNd(mySystemSize); // XXX it seems some components require it to exist
       }
       //FunctionTimer timer = new FunctionTimer();
-      //timer.start();
       for (int i=0; i<myDynamicComponents.size(); i++) {
          myDynamicComponents.get(i).resetEffectiveMass();
-      }      
-      for (DynamicAttachment a : getOrderedAttachments()) {
+      }
+      //timer.start();
+      for (DynamicAttachment a : getAttachments()) {
          a.addMassToMasters ();
       }
       //timer.stop();
@@ -1523,6 +1614,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public void buildSolveMatrix (SparseNumberedBlockMatrix S) {
       updateDynamicComponentLists();
+      
       if (S.numBlockRows() != 0 || S.numBlockCols() != 0) {
          throw new IllegalArgumentException (
             "On entry, S should be empty with zero size");
@@ -1535,7 +1627,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          if (c.getSolveIndex() != -1) {
             c.addSolveBlock (S);
          }
-      }      
+      }
       addGeneralMassBlocks (S);
       addGeneralSolveBlocks (S);
       addAttachmentSolveBlocks (S);
@@ -1634,9 +1726,10 @@ public abstract class MechSystemBase extends RenderableModelBase
          idx = myParametricComponents.get(i).setPosState (buf, idx);
       }
       if (getParametricPosStateSize() > 0) {
-         // inefficient - should limit to parametric attachments
-         updatePosState();
-         updateVelState();
+         updateAttachmentPos (getParametricAttachments());
+         updateSlavePos();
+         updateAttachmentVel (getParametricAttachments());
+         updateSlaveVel();
       }
       return idx;
    }      
@@ -1693,8 +1786,8 @@ public abstract class MechSystemBase extends RenderableModelBase
          idx = myParametricComponents.get(i).setVelState (buf, idx);
       }
       if (getParametricVelStateSize() > 0) {
-         // inefficient - should limit to parametric attachments
-         updateVelState();
+         updateAttachmentVel (getParametricAttachments());
+         updateSlaveVel();
       }
       return idx;
    }      
@@ -1709,7 +1802,9 @@ public abstract class MechSystemBase extends RenderableModelBase
       // reset anyway by updateDynamicComponents()
       msb.myDynamicComponents = null;
       msb.myParametricComponents = null;
-      msb.myOrderedAttachments = null;
+      msb.myAttachments = null;
+      msb.myActiveAttachments = null;
+      msb.myParametricAttachments = null;
       msb.myConstrainers = null;
       msb.myDynamicSizes = null;
       msb.myNumActive = 0;
@@ -1883,10 +1978,10 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    public void addGeneralSolveBlocks (SparseNumberedBlockMatrix M) {
       updateForceComponentList();
+      int numb = M.numBlocks();
       for (int i=0; i<myForceEffectors.size(); i++) {
          myForceEffectors.get(i).addSolveBlocks (M);
       }
-//      addAttachmentSolveBlocks(M);
    }
 
    public double getActiveMass() {

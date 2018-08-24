@@ -113,6 +113,7 @@ public abstract class FemElement extends RenderableComponentBase
          }
          myF0.set (F0);
       }
+      invalidateRestData();
    }
 
    public Matrix3d getPreStrain() {

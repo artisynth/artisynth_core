@@ -276,45 +276,24 @@ public class FemModel3dTest extends UnitTest {
 
    }
 
-   private void writeState (String fileName, FemModel3d fem) {
-      try {
-         PrintWriter pw = new PrintWriter (new FileWriter (fileName));
-         for (FemNode3d n : fem.getNodes()) {
-            pw.println (n.getLocalPosition());
-            pw.println (n.getLocalVelocity());
-         }
-         pw.println (fem.getFrame().getPose());
-         pw.println (fem.getFrame().getVelocity());
-         pw.close();
-      }
-      catch (Exception e) {
-         e.printStackTrace(); 
-      }
-   }
+//   private void writeState (String fileName, FemModel3d fem) {
+//      try {
+//         PrintWriter pw = new PrintWriter (new FileWriter (fileName));
+//         for (FemNode3d n : fem.getNodes()) {
+//            pw.println (n.getLocalPosition());
+//            pw.println (n.getLocalVelocity());
+//         }
+//         pw.println (fem.getFrame().getPose());
+//         pw.println (fem.getFrame().getVelocity());
+//         pw.close();
+//      }
+//      catch (Exception e) {
+//         e.printStackTrace(); 
+//      }
+//   }
 
-   private void readState (String fileName, FemModel3d fem) {
-      try {
-         ReaderTokenizer rtok =
-            new ReaderTokenizer (new FileReader (fileName));
-         Vector3d tmp = new Vector3d();
-         for (FemNode3d n : fem.getNodes()) {
-            tmp.scan (rtok);
-            n.setLocalPosition(tmp);
-            tmp.scan (rtok);
-            n.setLocalVelocity(tmp);
-         }
-         RigidTransform3d T = new RigidTransform3d();
-         Twist v = new Twist();
-         T.scan (rtok);
-         v.scan (rtok);
-         fem.getFrame().setPose (T);
-         fem.getFrame().setVelocity (v);
-         rtok.close();
-      }
-      catch (Exception e) {
-         e.printStackTrace(); 
-      }
-   }
+
+
    public void test() {
       testFrameRelativeMass();
    }

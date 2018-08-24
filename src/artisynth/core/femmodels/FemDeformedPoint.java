@@ -50,7 +50,7 @@ public class FemDeformedPoint extends DeformedPointBase {
       }
       myF.mul (myJ, idat.myInvJ0);
       if (elem.getPreStrain() != null) {
-         myF.mul (elem.getPreStrain());
+         myF.mulInverse (elem.getPreStrain()); // PRESTRAIN
       }
       myDetF = myF.determinant();      
       setR (R);
@@ -81,7 +81,7 @@ public class FemDeformedPoint extends DeformedPointBase {
          myNodeWeights[i] = N.get(i);
       }
       if (elem.getPreStrain() != null) {
-         myF.set (elem.getPreStrain());
+         myF.invert (elem.getPreStrain()); // PRESTRAIN
       }
       else {
          myF.setIdentity();

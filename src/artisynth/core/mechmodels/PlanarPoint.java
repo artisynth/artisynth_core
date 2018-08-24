@@ -347,4 +347,15 @@ public class PlanarPoint extends Point implements PlanarComponent {
       comp.setPlanarComponent (myPlanarComponent);
       return comp;
    }
+   
+   @Override
+   public void setPointFrame (Frame frame) {
+      if (frame != null){
+         throw new UnsupportedOperationException (
+            "point frames not supported for PlanarPoints");
+      }
+      else {
+         super.setPointFrame (null);
+      }
+   }
 }

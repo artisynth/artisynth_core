@@ -67,6 +67,7 @@ public class MechSystemSolver {
    private int myInverseMassVersion = -1;
    private double myInverseMassTime = -1;
    private boolean myMassConstantP = true;
+   private boolean myInverseMassConstantP = true;
    private SparseNumberedBlockMatrix myMass;  
    private VectorNd myMassForces;
    private SparseNumberedBlockMatrix myInverseMass;
@@ -246,7 +247,7 @@ public class MechSystemSolver {
       mySys.getParametricPosTarget (myQpar, s, h);
       mySys.setParametricVelState (myUpar);
       mySys.setParametricPosState (myQpar);
-   }   
+   }
 
    public void computeParametricForces (double h) {
       int velSize = myActiveVelSize;
@@ -269,11 +270,12 @@ public class MechSystemSolver {
          myMass = new SparseNumberedBlockMatrix();
          myMassForces = new VectorNd (myMass.rowSize());
          myMassConstantP = mySys.buildMassMatrix (myMass);
+         //System.out.println ("mass constant = " + myMassConstantP);
          mySys.getMassMatrix (myMass, myMassForces, t);
          myMassVersion = version;
          myMassTime = t;
       }
-      else if (t == -1 || myMassTime != t) {
+      else if (!myMassConstantP && (t == -1 || myMassTime != t)) {
          mySys.getMassMatrix (myMass, myMassForces, t);
          myMassTime = t;
       }
@@ -300,13 +302,13 @@ public class MechSystemSolver {
       if (version != myInverseMassVersion) {
 
          myInverseMass = new SparseNumberedBlockMatrix();
-         mySys.buildMassMatrix (myInverseMass);
+         myInverseMassConstantP = mySys.buildMassMatrix (myInverseMass);
          mySys.getInverseMassMatrix (myInverseMass, myMass);
          myInverseMassVersion = version;
          myInverseMassTime = t;
          structureChanged = true;
       }
-      else if (t == -1 || myInverseMassTime != t) {
+      else if (!myInverseMassConstantP && (t == -1 || myInverseMassTime != t)) {
          mySys.getInverseMassMatrix (myInverseMass, myMass);
          myInverseMassTime = t;
       }
@@ -674,6 +676,7 @@ public class MechSystemSolver {
       if (profileWholeSolve) {
          timerStart();
       }
+
       updateStateSizes();
       updateMassMatrix (t0);
       setParametricTargets (1, t1-t0);
@@ -1434,6 +1437,7 @@ public class MechSystemSolver {
       VectorNd vel, VectorNd fpar, VectorNd bf, VectorNd btmp, VectorNd vel0,
       double h, double a0, double a1, double a2, double a3) {
 
+      //FunctionTimer timer = new FunctionTimer();
       // assumes that updateMassMatrix() has been called
       updateStateSizes();
 
@@ -1481,7 +1485,6 @@ public class MechSystemSolver {
       }
 
       addActiveMassMatrix (mySys, S);
-
       if (velSize > 0 && myParametricVelSize > 0) {
          S.mulTranspose (
             btmp, myUpar, 0, velSize, velSize, myParametricVelSize);
@@ -1493,6 +1496,7 @@ public class MechSystemSolver {
       }
 
       updateBilateralConstraints ();
+
       if (myKKTGTVersion != myGTVersion) {
          analyze = true;
          myKKTGTVersion = myGTVersion;

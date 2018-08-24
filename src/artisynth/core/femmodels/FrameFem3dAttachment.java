@@ -673,7 +673,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
 
    @Override
    public void addMassToMasters() {
-      if (myFrame.getMass(0) != 0) {
+      if (myFrame.getEffectiveMass() != 0) {
          if (myFrame instanceof RigidBody) {
             RigidBody body = (RigidBody)myFrame;
             SpatialInertia MB = new SpatialInertia(body.getEffectiveInertia());

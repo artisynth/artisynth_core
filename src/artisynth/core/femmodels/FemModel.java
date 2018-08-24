@@ -61,6 +61,7 @@ import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformableGeometry;
 
 public abstract class FemModel extends MechSystemBase
@@ -726,11 +727,11 @@ public abstract class FemModel extends MechSystemBase
 
    protected void handleComponentChanged (ComponentChangeEvent e) {
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
-         clearCachedData(null);
+         clearCachedData (e);
       }
       else if (
          e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED) { 
-         clearCachedData(null);
+         clearCachedData (e);
          if (e instanceof MaterialChangeEvent) {
             invalidateRestData();
          }
@@ -1186,9 +1187,14 @@ public abstract class FemModel extends MechSystemBase
       myForcesNeedUpdating = true;
       invalidateStressAndStiffness();
       invalidateIntegrationIndices();
-      // need to completely rebuild the tree since the elements may have changed
-      myAABBTree = null;
-      myBVTreeValid = false;
+      if (e instanceof StructureChangeEvent) {
+         StructureChangeEvent sce = (StructureChangeEvent)e;
+         if (sce.getComponent() == getElements()) {
+            // need to completely rebuild the tree since the elements may have changed
+            myAABBTree = null;
+            myBVTreeValid = false;
+         }
+      }
    }
 
    public double getCharacteristicSize() {

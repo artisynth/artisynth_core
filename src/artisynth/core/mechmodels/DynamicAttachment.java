@@ -35,6 +35,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
 
    private int attachedMasterCnt; // used internally for ordering the attachments
    private MatrixBlock[] myMasterBlks = null;
+   private boolean myAffectsStiffnessP = true;
 
    public abstract DynamicComponent[] getMasters();
 
@@ -160,7 +161,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     */
    public void reduceConstraints (SparseBlockMatrix GT, VectorNd dg) {
       DynamicComponent[] masters = getMasters();
-      if (masters.length == 0) {
+      if (masters.length == 0 || GT.colSize() == 0) {
          return;
       }
       int bs = getSlaveSolveIndex();
@@ -177,27 +178,27 @@ public abstract class DynamicAttachment extends ModelComponentBase {
          dbuf = getNegatedDerivative (new VectorNd (ssize));
       }
       
-      MatrixBlock blk = GT.firstBlockInRow (bs);
-      while (blk != null) {
-         int bj = blk.getBlockCol();
+      MatrixBlock sblk = GT.firstBlockInRow (bs);
+      while (sblk != null) {
+         int bj = sblk.getBlockCol();
          for (int i = 0; i < masters.length; i++) {
             if (masters[i].getSolveIndex() != -1) {
                int bm = masters[i].getSolveIndex();
                MatrixBlock depBlk = GT.getBlock (bm, bj);
                if (depBlk == null) {
                   depBlk = MatrixBlockBase.alloc (
-                     GT.getBlockRowSize(bm), blk.colSize());
-                  //depBlk = createRowBlock (blk.colSize());
+                     GT.getBlockRowSize(bm), sblk.colSize());
+                  //depBlk = createRowBlock (sblk.colSize());
                   GT.addBlock (bm, bj, depBlk);
                }
-               mulSubGT (depBlk, blk, i);               
+               mulSubGT (depBlk, sblk, i);
                if (gbuf != null && dbuf != null) {
                   int goff = GT.getBlockColOffset (bj);
-                  blk.mulTransposeAdd (gbuf, goff, dbuf, 0);
+                  sblk.mulTransposeAdd (gbuf, goff, dbuf, 0);
                }
             }
          }
-         blk = blk.next();
+         sblk = sblk.next();
       }
    }
 
@@ -244,23 +245,23 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       if (bs == -1) {
          return;
       }
-      MatrixBlock blk = G.firstBlockInCol (bs);
-      while (blk != null) {
-         int bi = blk.getBlockRow();
+      MatrixBlock sblk = G.firstBlockInCol (bs);
+      while (sblk != null) {
+         int bi = sblk.getBlockRow();
          for (int j = 0; j < masters.length; j++) {
             if (masters[j].getSolveIndex() != -1) {
                int bm = masters[j].getSolveIndex();
                MatrixBlock depBlk = G.getBlock (bi, bm);
                if (depBlk == null) {
                   depBlk = MatrixBlockBase.alloc (
-                     blk.rowSize(), G.getBlockColSize (bm)); 
-                  //depBlk = createColBlock (blk.rowSize());
+                     sblk.rowSize(), G.getBlockColSize (bm)); 
+                  //depBlk = createColBlock (sblk.rowSize());
                   G.addBlock (bi, bm, depBlk);
                }
-               mulSubG (depBlk, blk, j);               
+               mulSubG (depBlk, sblk, j);               
             }
          }
-         blk = blk.down();
+         sblk = sblk.down();
       }
    }
 
@@ -305,6 +306,8 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    }
 
    public void addSolveBlocks (SparseNumberedBlockMatrix S, boolean[] reduced) {
+
+      myAffectsStiffnessP = false;
       DynamicComponent[] masters = getMasters();
       if (masters.length == 0) {
          return;
@@ -319,44 +322,51 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       if (bs == -1) {
          return;
       }
+
+      MatrixBlock srowBlk = S.firstBlockInRow (bs);      
+      MatrixBlock scolBlk = S.firstBlockInCol (bs);
+      // optimization: this attachment does not affect stiffness if the slave
+      // itself has no force and it is not connected to any other force
+      // effectors.
+      if (srowBlk.next() == null && scolBlk.down() == null &&
+          !getSlave().hasForce()) {
+         return;
+      }
+      myAffectsStiffnessP = true;
+
       // rows first
-      MatrixBlock blk = S.firstBlockInRow (bs);
-      while (blk != null) {
-         int bj = blk.getBlockCol();
+      while (srowBlk != null) {
+         int bj = srowBlk.getBlockCol();
          for (int i = 0; i < masters.length; i++) {
             if (masters[i].getSolveIndex() != -1) {
                int bm = masters[i].getSolveIndex();
                if (S.getBlock (bm, bj) == null) {
                   MatrixBlock newBlk = MatrixBlockBase.alloc (
-                     S.getBlockRowSize(bm), blk.colSize());
-                  //S.addBlock (bm, bj, createRowBlock (blk.colSize()));
+                     S.getBlockRowSize(bm), srowBlk.colSize());
                   S.addBlock (bm, bj, newBlk);
-                  // System.out.println ("adding " + bm + " " + bj);
                }
             }
          }
-         blk = blk.next();
+         srowBlk = srowBlk.next();
       }
       reduced[bs] = true;
+
       // columns next
-      blk = S.firstBlockInCol (bs);
-      while (blk != null) {
-         int bi = blk.getBlockRow();
+      while (scolBlk != null) {
+         int bi = scolBlk.getBlockRow();
          if (!reduced[bi]) {
             for (int i = 0; i < masters.length; i++) {
                if (masters[i].getSolveIndex() != -1) {
                   int bm = masters[i].getSolveIndex();
                   if (S.getBlock (bi, bm) == null) {
                      MatrixBlock newBlk = MatrixBlockBase.alloc (
-                        blk.rowSize(), S.getBlockColSize(bm));
-                     //S.addBlock (bi, bm, createColBlock (blk.rowSize()));
+                        scolBlk.rowSize(), S.getBlockColSize(bm));
                      S.addBlock (bi, bm, newBlk);
-                     // System.out.println ("adding " + bi + " " + bm);
                   }
                }
             }
          }
-         blk = blk.down();
+         scolBlk = scolBlk.down();
       }
    }
 
@@ -378,11 +388,11 @@ public abstract class DynamicAttachment extends ModelComponentBase {
     */
    public void addAttachmentJacobian (
       SparseBlockMatrix S, VectorNd f, boolean[] reduced) {
-
-      DynamicComponent[] masters = getMasters();
-      if (masters.length == 0) {
+      
+      if (!myAffectsStiffnessP) {
          return;
       }
+      DynamicComponent[] masters = getMasters();
       if (myMasterBlks == null || masters.length > myMasterBlks.length) {
          //System.out.println ("new num master blocks: " + masters.length);
          myMasterBlks = new MatrixBlock[masters.length];
@@ -412,15 +422,15 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       //
       // rows first: M = P M
       //
-      MatrixBlock blk = S.firstBlockInRow (bs);
+      MatrixBlock srowBlk = S.firstBlockInRow (bs);
       // get first row block for each master
       for (int i = 0; i < masters.length; i++) {
          if ((bm = masters[i].getSolveIndex()) != -1) {
             myMasterBlks[i] = S.firstBlockInRow (bm);
          }
       }
-      while (blk != null) {
-         int bj = blk.getBlockCol();
+      while (srowBlk != null) {
+         int bj = srowBlk.getBlockCol();
          for (int i = 0; i < masters.length; i++) {
             if ((bm = masters[i].getSolveIndex()) != -1) {
                MatrixBlock depBlk = myMasterBlks[i];
@@ -432,25 +442,25 @@ public abstract class DynamicAttachment extends ModelComponentBase {
                      "slave blk at ("+bs+","+bj+"), master at ("+
                      depBlk.getBlockRow()+","+depBlk.getBlockCol()+")");
                }
-               mulSubGT (depBlk, blk, i);
+               mulSubGT (depBlk, srowBlk, i);
                myMasterBlks[i] = depBlk;
             }
          }
-         blk.setZero();
-         blk = blk.next();
+         srowBlk.setZero();
+         srowBlk = srowBlk.next();
       }
       reduced[bs] = true;
       //                      T
       // columns next: M = M P, and f += M dg
       //
-      blk = S.firstBlockInCol (bs);
+      MatrixBlock scolBlk = S.firstBlockInCol (bs);
       for (int i = 0; i < masters.length; i++) {
          if ((bm = masters[i].getSolveIndex()) != -1) {
             myMasterBlks[i] = S.firstBlockInCol (bm);
          }
       }
-      while (blk != null) {
-         int bi = blk.getBlockRow();
+      while (scolBlk != null) {
+         int bi = scolBlk.getBlockRow();
          if (!reduced[bi]) {
             for (int i = 0; i < masters.length; i++) {
                if ((bm = masters[i].getSolveIndex()) != -1) {
@@ -463,17 +473,17 @@ public abstract class DynamicAttachment extends ModelComponentBase {
                         "slave blk at ("+bi+","+bs+"), master at ("+
                         depBlk.getBlockRow()+","+depBlk.getBlockCol()+")");
                   }
-                  mulSubG (depBlk, blk, i);
+                  mulSubG (depBlk, scolBlk, i);
                   myMasterBlks[i] = depBlk;
                }
             }
             if (fbuf != null && dbuf != null) {
                int foff = S.getBlockRowOffset (bi);
-               blk.mulAdd (fbuf, foff, dbuf, 0);
+               scolBlk.mulAdd (fbuf, foff, dbuf, 0);
             }
-            blk.setZero();
+            scolBlk.setZero();
          }
-         blk = blk.down();
+         scolBlk = scolBlk.down();
       }
 
       if (fbuf != null) {
@@ -667,6 +677,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
    public Object clone() throws CloneNotSupportedException {
       DynamicAttachment a = (DynamicAttachment)super.clone();
       a.myMasterBlks = null;
+      a.myAffectsStiffnessP = true;
       return a;
    }
 
@@ -674,6 +685,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       DynamicAttachment a = (DynamicAttachment)super.copy (flags, copyMap);
       a.myMasterBlks = null;
+      a.myAffectsStiffnessP = true;
       return a;
    }   
   

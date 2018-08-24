@@ -40,6 +40,7 @@ import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.HasCoordinateFrame;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.Traceable;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
@@ -784,10 +785,16 @@ public class Frame extends DynamicComponentBase
    }
 
    public void setFrameDamping (double d) {
+      boolean hadZeroValue = (myFrameDamping == 0); 
       myFrameDamping = d;
       myFrameDampingMode =
          PropertyUtils.propagateValue (
             this, "frameDamping", d, myFrameDampingMode);
+      if (hadZeroValue != (myFrameDamping == 0)) {
+         // return value of hasForces() will be changed
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent); 
+      }
    }
 
    public PropertyMode getFrameDampingMode() {
@@ -795,9 +802,15 @@ public class Frame extends DynamicComponentBase
    }
 
    public void setFrameDampingMode (PropertyMode mode) {
+      boolean hadZeroValue = (myFrameDamping == 0); 
       myFrameDampingMode =
          PropertyUtils.setModeAndUpdate (
             this, "frameDamping", myFrameDampingMode, mode);
+      if (hadZeroValue != (myFrameDamping == 0)) {
+         // return value of hasForces() will be changed
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent); 
+      }
    }
 
    public double getRotaryDamping() {
@@ -805,10 +818,16 @@ public class Frame extends DynamicComponentBase
    }
 
    public void setRotaryDamping (double d) {
+      boolean hadZeroValue = (myRotaryDamping == 0);
       myRotaryDamping = d;
       myRotaryDampingMode =
          PropertyUtils.propagateValue (
             this, "rotaryDamping", d, myRotaryDampingMode);
+      if (hadZeroValue != (myRotaryDamping == 0)) {
+         // return value of hasForces() will be changed
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent); 
+      }
    }
 
    public PropertyMode getRotaryDampingMode() {
@@ -816,9 +835,19 @@ public class Frame extends DynamicComponentBase
    }
 
    public void setRotaryDampingMode (PropertyMode mode) {
+      boolean hadZeroValue = (myRotaryDamping == 0);
       myRotaryDampingMode =
          PropertyUtils.setModeAndUpdate (
             this, "rotaryDamping", myRotaryDampingMode, mode);
+      if (hadZeroValue != (myRotaryDamping == 0)) {
+         // return value of hasForces() will be changed
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent); 
+      }
+   }
+
+   public boolean hasForce() {
+      return (myRotaryDamping != 0 || myFrameDamping != 0);
    }
 
    /* ======== Renderable implementation ======= */
@@ -948,6 +977,10 @@ public class Frame extends DynamicComponentBase
       doGetInertia (M, SpatialInertia.ZERO);
    }
 
+   public double getEffectiveMass() {
+      return 0;
+   }
+   
    public void getEffectiveMass (Matrix M, double t) {
       doGetInertia (M, SpatialInertia.ZERO);
    }

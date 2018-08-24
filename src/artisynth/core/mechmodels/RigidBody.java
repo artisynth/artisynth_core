@@ -244,6 +244,10 @@ public class RigidBody extends Frame
       }
    }
    
+   public double getEffectiveMass() {
+      return myEffectiveInertia.getMass();
+   }
+   
    public void getEffectiveMass (Matrix M, double t) {
       SpatialInertia S = getEffectiveInertia();
       if (dynamicVelInWorldCoords) {

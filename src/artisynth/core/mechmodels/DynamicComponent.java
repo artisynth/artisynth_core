@@ -7,6 +7,7 @@
 package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformableGeometry;
 import maspack.util.DataBuffer;
 import maspack.matrix.Matrix;
@@ -215,6 +216,15 @@ public interface DynamicComponent extends
     * @param t current time
     */
    public void getEffectiveMass (Matrix M, double t);
+   
+   /**
+    * Gets the effective scalar mass of this component.  The
+    * effective mass is the nominal mass plus any additional mass incurred from
+    * attached components.
+    * 
+    * @return effective scalar mass
+    */
+   public double getEffectiveMass();
 
    public int mulInverseEffectiveMass (Matrix M, double[] a, double[] f, int idx);
 
@@ -289,7 +299,6 @@ public interface DynamicComponent extends
     */
    public void applyGravity (Vector3d gacc);
    
-   
    // Flag stuff
    /**
     * Set flag
@@ -305,4 +314,20 @@ public interface DynamicComponent extends
     * Clear a flag
     */
    public void clearFlag(int mask);
+   
+   /** 
+    * Queries whether or not this component actually exerts its own
+    * state-dependent forces (typically associated with damping). If
+    * it does not, then the component makes no contribution to its
+    * stiffness and damping matrices, a fact that can be exploited to
+    * improve the efficiency of the physics solve.
+    * 
+    * <p>Any action that alters the return value of this method should
+    * propagate a {@link StructureChangeEvent}. This can be
+    * a <i>state-not-changed</i> event if component's state structure
+    * is not altered (which it typically won't be).
+    * 
+    * @return <code>true</code> if this component exerts its own forces.
+    */
+   public boolean hasForce();
 }

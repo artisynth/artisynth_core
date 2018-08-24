@@ -39,6 +39,7 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.Traceable;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
@@ -179,9 +180,9 @@ public class Point extends DynamicComponentBase
       myForce.add (f);
    }
 
-   public void addScaledLocalForce (double s, Vector3d f) {
-      myForce.scaledAdd (s, f, myForce);
-   }
+//   public void addScaledLocalForce (double s, Vector3d f) {
+//      myForce.scaledAdd (s, f, myForce);
+//   }
 
    public void subLocalForce (Vector3d f) {
       myForce.sub (f);
@@ -516,10 +517,16 @@ public class Point extends DynamicComponentBase
    }
 
    public void setPointDamping (double d) {
+      boolean hadZeroValue = (myPointDamping == 0);
       myPointDamping = d;
       myPointDampingMode =
          PropertyUtils.propagateValue (
             this, "pointDamping", d, myPointDampingMode);
+      if (hadZeroValue != (myPointDamping == 0)) {
+         // return value of hasForces() will be changed
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent); 
+      }
    }
 
    public PropertyMode getPointDampingMode() {
@@ -527,9 +534,19 @@ public class Point extends DynamicComponentBase
    }
 
    public void setPointDampingMode (PropertyMode mode) {
+      boolean hadZeroValue = (myPointDamping == 0);
       myPointDampingMode =
          PropertyUtils.setModeAndUpdate (
             this, "pointDamping", myPointDampingMode, mode);
+      if (hadZeroValue != (myPointDamping == 0)) {
+         // return value of hasForces() will be changed
+         notifyParentOfChange (
+            StructureChangeEvent.defaultStateNotChangedEvent); 
+      }      
+   }
+   
+   public boolean hasForce() {
+      return myPointDamping != 0;
    }
 
    /**
@@ -826,26 +843,26 @@ public class Point extends DynamicComponentBase
       updatePosState();
    }
 
-   public void setLocalPosition (double x, double y, double z) {
-      setLocalPosition (new Point3d (x, y, z));
-   }
+//   public void setLocalPosition (double x, double y, double z) {
+//      setLocalPosition (new Point3d (x, y, z));
+//   }
 
-   public void getLocalVelocity (Vector3d vel) {
-      myState.getVel (vel);
-   }
+//   public void getLocalVelocity (Vector3d vel) {
+//      myState.getVel (vel);
+//   }
 
    public Vector3d getLocalVelocity() {
       return myState.getVel();
    }
 
-   public void setLocalVelocity (Vector3d vel) {
-      myState.setVel (vel);
-      updateVelState();
-   }
-
-   public void setLocalVelocity (double x, double y, double z) {
-      setLocalVelocity (new Vector3d (x, y, z));
-   }
+//   public void setLocalVelocity (Vector3d vel) {
+//      myState.setVel (vel);
+//      updateVelState();
+//   }
+//
+//   public void setLocalVelocity (double x, double y, double z) {
+//      setLocalVelocity (new Vector3d (x, y, z));
+//   }
 
    public void updatePosState() {
       if (myState != myWorldState) {

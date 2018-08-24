@@ -578,4 +578,8 @@ public class FemNode3d extends FemNode {
 
    }
 
+   /* --- Methods for shell directors --- */
+
+   
+
 }

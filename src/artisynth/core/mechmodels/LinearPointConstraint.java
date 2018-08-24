@@ -31,11 +31,17 @@ import maspack.render.Renderer;
  */
 public class LinearPointConstraint extends ConstrainerBase {
 
+   public static double DEFAULT_COMPLIANCE = 0;
+   public static double DEFAULT_DAMPING = 0;
+   
    Point[] myPoints;
    double[] myWgts;
    Point3d myTarget;
    Matrix3x3Block[] myBlks;
    double[] myLam;
+   double myCompliance;
+   double myDamping;
+   
 
    static PropertyList myProps = new PropertyList (LinearPointConstraint.class, ConstrainerBase.class);
    static {
@@ -50,7 +56,10 @@ public class LinearPointConstraint extends ConstrainerBase {
    /**
     * General constructor.  Make sure to call {@link #setPoints(Point[], double[])}.
     */
-   public LinearPointConstraint() {}
+   public LinearPointConstraint() {
+      myDamping = DEFAULT_DAMPING;
+      myCompliance = DEFAULT_COMPLIANCE;
+   }
 
    /**
     * General constructor
@@ -58,9 +67,34 @@ public class LinearPointConstraint extends ConstrainerBase {
     * @param wgts list of weights
     */
    public LinearPointConstraint(Point[] pnts, double[] wgts) {
+      this(pnts, wgts, Point3d.ZERO);
+   }
+   
+   /**
+    * General constructor
+    * @param pnts list of points to constrain
+    * @param wgts list of weights
+    * @param target target sum
+    */
+   public LinearPointConstraint(Point[] pnts, double[] wgts, Point3d target) {
+      this();
       setPoints(pnts, wgts);
+      setTarget (target);
    }
 
+   /**
+    * General constructor
+    * @param pnts list of points to constrain
+    * @param wgts list of weights
+    * @param target target sum
+    */
+   public LinearPointConstraint(Point[] pnts, VectorNd wgts, Point3d target) {
+      double[] dwgts = new double[wgts.size ()];
+      wgts.get (dwgts);
+      setPoints(pnts, dwgts);
+      setTarget (target);
+   }
+   
    /**
     * Initializes the constraint with a set of points and weights.  All
     * {@code Point} objects should be unique.
@@ -105,6 +139,22 @@ public class LinearPointConstraint extends ConstrainerBase {
    
    public Point3d getTarget() {
       return myTarget;
+   }
+   
+   public double getCompliance() {
+      return myCompliance;
+   }
+   
+   public void setCompliance(double c) {
+      myCompliance = c;
+   }
+   
+   public double getDamping() {
+      return myDamping;
+   }
+   
+   public void setDamping(double d) {
+      myDamping = d;
    }
 
    @Override
@@ -158,22 +208,22 @@ public class LinearPointConstraint extends ConstrainerBase {
       // x
       ConstraintInfo gi = ginfo[idx++];
       gi.dist = sumPos.x;
-      gi.compliance = 0;
-      gi.damping = 0;
+      gi.compliance = myCompliance;
+      gi.damping = myDamping;
       gi.force = 0;
 
       // y
       gi = ginfo[idx++];
       gi.dist = sumPos.y;
-      gi.compliance = 0;
-      gi.damping = 0;
+      gi.compliance = myCompliance;
+      gi.damping = myDamping;
       gi.force = 0;
 
       // z
       gi = ginfo[idx++];
       gi.dist = sumPos.z;
-      gi.compliance = 0;
-      gi.damping = 0;
+      gi.compliance = myCompliance;
+      gi.damping = myDamping;
       gi.force = 0;
 
       return idx;
@@ -225,22 +275,24 @@ public class LinearPointConstraint extends ConstrainerBase {
    
    @Override
    public void render(Renderer renderer, int flags) {
-      
+
       Point3d diff = new Point3d();
       Point3d avgPos = new Point3d();
       for (int i=0; i<myPoints.length; i++) {
          Point pnt = myPoints[i];
          diff.scaledAdd(myWgts[i], pnt.getPosition());
-         avgPos.add (pnt.getPosition ());
+         if (myWgts[i] > 0) {
+            avgPos.scaledAdd (myWgts[i], pnt.getPosition ());
+         }
       }
       diff.sub (myTarget);
-      
-      avgPos.scale (1.0/myPoints.length);
       
       float[] fpnt0 = new float[] {(float)avgPos.x, (float)avgPos.y, (float)avgPos.z};
       float[] fpnt1 = new float[] {(float)(avgPos.x-diff.x), (float)(avgPos.y-diff.y), (float)(avgPos.z-diff.z)};
       
       renderer.drawLine (getRenderProps (), fpnt0, fpnt1, isSelected());
+      renderer.drawPoint (getRenderProps(), fpnt0, isSelected());
+      renderer.drawPoint (getRenderProps(), fpnt1, isSelected());
       
    }
 

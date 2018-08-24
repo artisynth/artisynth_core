@@ -18,6 +18,7 @@ import maspack.geometry.DelaunayInterpolator;
 import maspack.geometry.PolylineMesh;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
+import maspack.matrix.Matrix;
 import maspack.matrix.Point3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.Vector3d;
@@ -459,6 +460,28 @@ public class MuscleBundle extends CompositeComponentBase
             myFibres.get(i).applyForces (t);
          }
       }
+   }
+   
+   /**
+    * Apply forces due to fibres in bundle, consistent with force-effector
+    * @param t time at which force is applied
+    */
+   public void applyForces(double t) {
+      applyForce(t);
+   }
+   
+   /**
+    * Return Jacobian type for use as force effector
+    * @return type code
+    */
+   public int getJacobianType() {
+      int type = Matrix.SPD;
+      if (myFibresActive) {
+         for (Muscle m : myFibres) {
+            type &= m.getJacobianType ();
+         }
+      }
+      return type;
    }
 
    public void setMaxForce (double maxForce) {

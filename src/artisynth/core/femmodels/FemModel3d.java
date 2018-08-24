@@ -1938,7 +1938,7 @@ PointAttachable, ConnectableBody {
          myRinv.set(0, 0, scale*imat.getEffectiveModulus(Jpartial) / restVol);
       }
    }
-
+   
    private void updateNodalRestVolumes() {
 
       for (FemNode3d n : myNodes) {
@@ -4590,6 +4590,14 @@ PointAttachable, ConnectableBody {
    /* --- Misc Methods --- */
 
    public void dispose() {
+   }
+
+   /**
+    * Return BV tree for those who know what to do with it
+    */
+   @Override
+   public BVTree getBVTree () {
+      return super.getBVTree ();
    }
 
 }

@@ -25,14 +25,12 @@ import maspack.render.Renderer.PointStyle;
 import maspack.spatialmotion.Twist;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.mechmodels.Frame;
-import artisynth.core.mechmodels.FrameState;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.mechmodels.MotionTargetComponent;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointList;
-import artisynth.core.mechmodels.PointState;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -641,8 +639,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return veltmp;
    }
 
-   PointState tmpPointState = new PointState();
-   FrameState tmpFrameState = new FrameState();
+//   PointState tmpPointState = new PointState();
+//   FrameState tmpFrameState = new FrameState();
 
    private void updateTargetVelocityVec() {
       if (myTargetVel == null || myTargetVel.size() != myTargetVelSize)

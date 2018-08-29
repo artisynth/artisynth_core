@@ -49,8 +49,8 @@ public class FemDeformedPoint extends DeformedPointBase {
          myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
       }
       myF.mul (myJ, idat.myInvJ0);
-      if (elem.getPreStrain() != null) {
-         myF.mulInverse (elem.getPreStrain()); // PRESTRAIN
+      if (elem.getPlasticDeformation() != null) {
+         myF.mulInverse (elem.getPlasticDeformation());
       }
       myDetF = myF.determinant();      
       setR (R);
@@ -80,8 +80,15 @@ public class FemDeformedPoint extends DeformedPointBase {
          myNodeNumbers[i] = nodes[i].getNumber();
          myNodeWeights[i] = N.get(i);
       }
-      if (elem.getPreStrain() != null) {
-         myF.invert (elem.getPreStrain()); // PRESTRAIN
+      if (elem.getPlasticDeformation() != null) {
+         // compute the strain E associated with the plastic deformation ...
+         Matrix3d E = new Matrix3d();
+         E.setSymmetric(elem.getPlasticDeformation());
+         E.m00 -= 1;
+         E.m11 -= 1;
+         E.m22 -= 1;
+         // ... and then set myF to correspond to I - E
+         myF.sub (Matrix3d.IDENTITY, E);
       }
       else {
          myF.setIdentity();

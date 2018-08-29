@@ -57,8 +57,7 @@ public abstract class FemElement extends RenderableComponentBase
    protected double myRestVolume = 0;
    protected double myVolume = 0;
    protected boolean myInvertedP = false;
-   // pre-deformation gradient for implementing pre-strain
-   protected Matrix3d myF0 = null; 
+   protected Matrix3d myFg = null; // plastic deformation gradient component
    int myIndex;  // index number for associating with other info
    int myIntegrationIndex; // base index of element's integration points
 
@@ -103,21 +102,21 @@ public abstract class FemElement extends RenderableComponentBase
       }
    }
 
-   public void setPreStrain (Matrix3d F0) {
+   public void setPlasticDeformation (Matrix3d F0) {
       if (F0 == null) {
-         myF0 = null;
+         myFg = null;
       }
       else {
-         if (myF0 == null) {
-            myF0 = new Matrix3d();
+         if (myFg == null) {
+            myFg = new Matrix3d();
          }
-         myF0.set (F0);
+         myFg.set (F0);
       }
       invalidateRestData();
    }
 
-   public Matrix3d getPreStrain() {
-      return myF0;
+   public Matrix3d getPlasticDeformation() {
+      return myFg;
    }
 
 

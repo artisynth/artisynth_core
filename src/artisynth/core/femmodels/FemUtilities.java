@@ -670,7 +670,7 @@ public class FemUtilities {
       Matrix3d Kdd = new Matrix3d();
       TensorUtils.v3DotTens4sDotv3 (Kdd, iGradMd, matTangent, jGradMd);
       Kdd.scale (dv);
-      
+
       // Material component 
       
       K.m00 += Kuu.m00;  K.m01 += Kuu.m01;  K.m02 += Kuu.m02;

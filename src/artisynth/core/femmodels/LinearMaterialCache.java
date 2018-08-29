@@ -53,18 +53,6 @@ public class LinearMaterialCache {
       }
    }
    
-   private RotationMatrix3d adjustDeformationGradientForPreStrain (
-      FemDeformedPoint dpnt) {
-
-      // if there is pre-strain, the (rest) deformation gradient F will not be
-      // the identity, and we need to remove the rotation component from it
-      SymmetricMatrix3d P = new SymmetricMatrix3d();
-      RotationMatrix3d R = new RotationMatrix3d();
-      StiffnessWarper3d.computeRotation (R, P, dpnt.getF());
-      dpnt.setF (P);
-      return R;
-   }
-
    /**
     * Computes and stores the initial stiffness K0 and force f0 terms
     * @param e   element
@@ -93,9 +81,6 @@ public class LinearMaterialCache {
          
          dpnt.setFromRestPoint (
             pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
-         if (e.getPreStrain() != null) {
-            R = adjustDeformationGradientForPreStrain (dpnt);
-         }            
 
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
          if (dt.myScaling != 1) {
@@ -108,11 +93,6 @@ public class LinearMaterialCache {
          // compute tangent matrix under zero stress
          SymmetricMatrix3d stress = new SymmetricMatrix3d();
          mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0);
-         if (e.getPreStrain() != null) {
-            // rotate stress back
-            stress.mulLeftAndTransposeRight (R);
-         }
-         
          for (int i = 0; i < nodes.length; i++) {
             // normally stress will be zero, unless there is prestrain ...
             FemUtilities.addStressForce(f0[i], GNx0[i], stress, dv0);
@@ -165,9 +145,6 @@ public class LinearMaterialCache {
                   
          dpnt.setFromRestPoint (
             pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
-         if (e.getPreStrain() != null) {
-            R = adjustDeformationGradientForPreStrain (dpnt);
-         }            
          
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
          if (dt.myScaling != 1) {
@@ -179,11 +156,6 @@ public class LinearMaterialCache {
          // compute tangent matrix under zero stress
          SymmetricMatrix3d stress = new SymmetricMatrix3d();
          mat.computeStressAndTangent(stress, D, dpnt, pt, dt);
-          if (e.getPreStrain() != null) {
-            // rotate stress back
-            stress.mulLeftAndTransposeRight (R);
-         }
-         
          for (int i = 0; i < nodes.length; i++) {
             // normally stress will be zero, unless there is prestrain ...
             FemUtilities.addStressForce(f0[i], GNx0[i], stress, dv0);

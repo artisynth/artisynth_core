@@ -28,7 +28,6 @@ import artisynth.core.femmodels.TetGenReader;
 import artisynth.core.mechmodels.CollisionManager;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.PointState;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 import artisynth.core.modelbase.StepAdjustment;

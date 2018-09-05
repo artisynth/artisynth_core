@@ -245,7 +245,7 @@ public class RigidBody extends Frame
    }
    
    public double getEffectiveMass() {
-      return myEffectiveInertia.getMass();
+      return getEffectiveInertia().getMass();
    }
    
    public void getEffectiveMass (Matrix M, double t) {

@@ -430,12 +430,12 @@ public class MayaAsciiReader {
       catch (IOException e) {
          throw e;
       }
-      finally {
-         if (reader != null) {
-            reader.close();
-         }
-      }
+      
       read(reader);
+      
+      if (reader != null) {
+         reader.close();
+      }
    }
 
    public void read(Reader reader) throws IOException {

@@ -352,6 +352,7 @@ public abstract class DynamicAttachment extends ModelComponentBase {
       reduced[bs] = true;
 
       // columns next
+      scolBlk = S.firstBlockInCol (bs); 
       while (scolBlk != null) {
          int bi = scolBlk.getBlockRow();
          if (!reduced[bi]) {

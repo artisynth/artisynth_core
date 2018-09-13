@@ -995,6 +995,26 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
    }
 
    /**
+    * Multiplies M1 by M2^T and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeRightAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeRightAdd.mulTransposeRightAdd3x3 (this, M1, M2);
+   }
+
+   /**
+    * Multiplies M1^T by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeLeftAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeLeftAdd.mulTransposeLeftAdd3x3 (this, M1, M2);
+   }
+
+   /**
     * Multiplies this matrix by the column vector v1 and places the result in
     * the vector vr. If M represents this matrix, this is equivalent to
     * computing
@@ -1603,8 +1623,8 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
       double d21 = M.m21;
       double d22 = M.m22;
 
-      double det = (d00*d11*d22 + d10*d21*d02 + d01*d12*d20 -
-                    d11*d20*d02 - d00*d21*d12 - d10*d01*d22);      
+      double det = (d00*d11*d22 + d10*d21*d02 + d20*d01*d12 -
+                    d20*d11*d02 - d00*d21*d12 - d10*d01*d22); 
 
       if (det != 0) {
          double deti = 1.0 / det;

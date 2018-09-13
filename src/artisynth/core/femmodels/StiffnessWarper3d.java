@@ -238,7 +238,8 @@ public class StiffnessWarper3d {
       if (linear != null) {
          Vector3d tmp = new Vector3d();
          for (int j=0; j<nodes.length; j++) {
-            linear.getInitialStiffness(i, j).mulAdd (tmp, nodes[j].getLocalPosition(), tmp);
+            linear.getInitialStiffness(i, j).mulAdd (
+               tmp, nodes[j].getLocalPosition(), tmp);
          }
          tmp.sub (linear.getInitialForce(i));
          f.add (tmp);

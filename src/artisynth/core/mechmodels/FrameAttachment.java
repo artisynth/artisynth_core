@@ -16,7 +16,7 @@ import artisynth.core.util.*;
 
 import java.io.*;
 
-public abstract class FrameAttachment extends DynamicAttachment 
+public abstract class FrameAttachment extends DynamicAttachmentBase 
    implements CopyableComponent, ScalableUnits {
 
    protected Frame myFrame;
@@ -29,15 +29,6 @@ public abstract class FrameAttachment extends DynamicAttachment
 
    public Frame getFrame() {
       return myFrame;
-   }
-
-   public int getSlaveSolveIndex() {
-      if (myFrame != null) {
-         return myFrame.getSolveIndex();
-      }
-      else {
-         return -1;
-      }
    }
 
    /**
@@ -231,26 +222,32 @@ public abstract class FrameAttachment extends DynamicAttachment
    /**
     * {@inheritDoc}
     */
-   protected void mulSubGT (
-      MatrixBlock D, MatrixBlock B, int idx) {
+   public void mulSubGTM (
+      MatrixBlock D, MatrixBlock M, int idx) {
 
-      D.mulAdd (myMasterBlocks[idx], B); 
+      D.mulAdd (myMasterBlocks[idx], M); 
    }
 
    /**
     * {@inheritDoc}
     */
-   protected void mulSubG (
-      MatrixBlock D, MatrixBlock B, int idx) {
+   public void mulSubMG (
+      MatrixBlock D, MatrixBlock M, int idx) {
 
       MatrixBlock G = myMasterBlocks[idx].createTranspose();
-      D.mulAdd (B, G); 
+      D.mulAdd (M, G); 
    }
 
+   public MatrixBlock getGT (int idx) {
+      MatrixBlock blk = myMasterBlocks[idx].clone();
+      blk.negate();
+      return blk;
+   }
+   
    /**
     * {@inheritDoc}
     */
-   protected void mulSubGT (
+   public void mulSubGT (
       double[] ybuf, int yoff, double[] xbuf, int xoff, int idx) {
 
       myMasterBlocks[idx].mulAdd (ybuf, yoff, xbuf, xoff);

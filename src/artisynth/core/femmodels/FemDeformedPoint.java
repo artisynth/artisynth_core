@@ -40,19 +40,20 @@ public class FemDeformedPoint extends DeformedPointBase {
          myNodeNumbers = new int[nodes.length];
          myNodeWeights = new double[nodes.length];
       }
-      VectorNd N = ipnt.getShapeWeights();
-      for (int i=0; i<nodes.length; i++) {
-         Vector3d pos = nodes[i].getLocalPosition();
-         Vector3d dNds = ipnt.GNs[i];
-         myNodeNumbers[i] = nodes[i].getNumber();
-         myNodeWeights[i] = N.get(i);
-         myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
-      }
+      ipnt.computeJacobian (myJ, nodes);
       myF.mul (myJ, idat.myInvJ0);
       if (elem.getPlasticDeformation() != null) {
          myF.mulInverse (elem.getPlasticDeformation());
       }
       myDetF = myF.determinant();      
+      VectorNd N = ipnt.getShapeWeights();
+      for (int i=0; i<nodes.length; i++) {
+         //Vector3d pos = nodes[i].getLocalPosition();
+         //Vector3d dNds = ipnt.GNs[i];
+         myNodeNumbers[i] = nodes[i].getNumber();
+         myNodeWeights[i] = N.get(i);
+         //myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+      }
       setR (R);
 
       myRestPosValid = false;
@@ -69,12 +70,12 @@ public class FemDeformedPoint extends DeformedPointBase {
       myPointIdx = idx;
       myP = 0; // assume 0 by default
 
-      myJ.setZero();
       FemNode3d[] nodes = (FemNode3d[])elem.getNodes();
       if (nodes.length != myNodeNumbers.length) {
          myNodeNumbers = new int[nodes.length];
          myNodeWeights = new double[nodes.length];
       }
+      ipnt.computeRestJacobian (myJ, nodes); //.invert (idat.myInvJ0);
       VectorNd N = ipnt.getShapeWeights();
       for (int i=0; i<nodes.length; i++) {
          myNodeNumbers[i] = nodes[i].getNumber();
@@ -94,7 +95,6 @@ public class FemDeformedPoint extends DeformedPointBase {
          myF.setIdentity();
       }
       myDetF = myF.determinant();      
-      myJ.invert (idat.myInvJ0);
       setR (R);
 
       myRestPosValid = false;

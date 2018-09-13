@@ -32,9 +32,10 @@ import artisynth.core.modelbase.*;
 /**
  * Responsible for attaching particles to each other within a mech model
  */
-public class AttachParticleAgent extends AddComponentAgent<DynamicAttachment> {
+public class AttachParticleAgent
+   extends AddComponentAgent<DynamicAttachmentComp> {
    protected MechModel myAncestor;
-   protected ComponentList<DynamicAttachment> myList;
+   protected ComponentList<DynamicAttachmentComp> myList;
    //   private boolean myContinuousAdd = false;
    private Particle myParticle;
    private Particle myTarget;
@@ -183,19 +184,20 @@ public class AttachParticleAgent extends AddComponentAgent<DynamicAttachment> {
    }
 
    private void createAndAddAttachment() {
-      DynamicAttachment a = new PointParticleAttachment (myTarget, myParticle);
+      DynamicAttachmentComp ac =
+         new PointParticleAttachment (myTarget, myParticle);
       uninstallSelectionFilter();
       if (myParticle.isAttached()) {
          EditorUtils.showError (myDisplay, "Particle already attached");         
          mySelectionManager.clearSelections();
       }
-      else if (DynamicAttachment.containsLoop (a, myParticle, null)) {
+      else if (DynamicAttachmentWorker.containsLoop (ac, myParticle, null)) {
          EditorUtils.showError (myDisplay, "Attachment contains a loop");
          mySelectionManager.clearSelections();
       }
       else {
          addComponent (new AddComponentsCommand (
-                          "attach particle-particle", a, myList));
+                          "attach particle-particle", ac, myList));
       }
       //      myParticle.setPosition (myTarget.getPosition());
    }
@@ -222,43 +224,27 @@ public class AttachParticleAgent extends AddComponentAgent<DynamicAttachment> {
    }
 }
 
-class ParticleParticleView extends SubListView<DynamicAttachment> {
+class ParticleParticleView extends SubListView<DynamicAttachmentComp> {
 
-   public ParticleParticleView (ListView<DynamicAttachment> view) {
+   public ParticleParticleView (ListView<DynamicAttachmentComp> view) {
       super (view);
    }         
 
    public boolean isMember (Object obj) {
-      if (!(obj instanceof DynamicAttachment)) {
+      if (!(obj instanceof DynamicAttachmentComp)) {
          return false;
       }
-      DynamicAttachment a = (DynamicAttachment)obj;
-      return (a.numMasters() == 1 && a.getMasters()[0] instanceof Particle);
+      DynamicAttachmentComp ac = (DynamicAttachmentComp)obj;
+      return (ac.numMasters() == 1 && ac.getMasters()[0] instanceof Particle);
    }
 }      
 
-class ParticleAttachmentList extends ComponentListWidget<DynamicAttachment> {
+class ParticleAttachmentList extends ComponentListWidget<DynamicAttachmentComp> {
 
    ParticleAttachmentList (
-      ComponentListView<DynamicAttachment> list, CompositeComponent ancestor) {
+      ComponentListView<DynamicAttachmentComp> list,
+      CompositeComponent ancestor) {
       super (new ParticleParticleView(list), ancestor);
    }
 
-//   @Override
-//   protected String getName (
-//      DynamicAttachment a, CompositeComponent ancestor) {
-//      Particle particle = (Particle)a.getSlave();
-//      Particle target = null;
-//      if (a.getMasters()[0] instanceof Particle) {
-//         target = (Particle)a.getMasters()[0];
-//      }
-//      if (target != null) {
-//         return (ComponentUtils.getPathName (ancestor, particle) + " - " +
-//                 ComponentUtils.getPathName (ancestor, target));
-//      }
-//      else {
-//         // this shouldn't happen, but just in case ...
-//         return (ComponentUtils.getPathName (ancestor, particle) + " - ???");
-//      }
-//   }
 }

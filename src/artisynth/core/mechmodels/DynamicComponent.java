@@ -72,7 +72,7 @@ public interface DynamicComponent extends
     * in the list can be notified when aspects of this component change in a
     * way that requires the attention of the Constrainer. For example, calling
     * <code>transformGeometry()</code> on this component may require some of
-    * its contrainers to be updated.
+    * its constrainers to be updated.
     * 
     * @return list of Constrainers associated with this component.
     */
@@ -298,22 +298,23 @@ public interface DynamicComponent extends
     * gravity acceleration vector.
     */
    public void applyGravity (Vector3d gacc);
-   
-   // Flag stuff
+
    /**
-    * Set flag
+    * Sets the position state of this component to a random value.  Used for
+    * testing.
     */
-   public void setFlag(int mask);
-   
+   public void setRandomPosState();
+
    /**
-    * Check if a flag is set
+    * Sets the velocity state of this component to a random value.  Used for
+    * testing.
     */
-   public boolean checkFlag(int mask);
-   
+   public void setRandomVelState();
+
    /**
-    * Clear a flag
+    * Sets the force of this component to a random value.  Used for testing.
     */
-   public void clearFlag(int mask);
+   public void setRandomForce();
    
    /** 
     * Queries whether or not this component actually exerts its own

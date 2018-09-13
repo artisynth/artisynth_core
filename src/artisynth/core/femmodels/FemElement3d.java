@@ -13,7 +13,6 @@ import maspack.matrix.*;
 import maspack.numerics.GoldenSectionSearch;
 import maspack.util.*;
 import maspack.function.Function1x1;
-import maspack.geometry.*;
 import maspack.properties.*;
 import maspack.util.InternalErrorException;
 import maspack.render.Renderer;
@@ -21,7 +20,7 @@ import maspack.render.RenderableUtils;
 import maspack.render.RenderProps;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.IncompressibleMaterial;
-import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.mechmodels.DynamicAttachmentWorker;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.PointAttachable;
@@ -416,7 +415,7 @@ public abstract class FemElement3d extends FemElement
          // compute rest Jacobians and such
          IntegrationPoint3d[] ipnts = getIntegrationPoints();
          for (int i=0; i<idata.length; i++) {
-            idata[i].computeRestJacobian (ipnts[i].GNs, myNodes);
+            idata[i].computeInverseRestJacobian (ipnts[i], myNodes);
          }
          myIntegrationDataValid = true;
       }
@@ -440,7 +439,7 @@ public abstract class FemElement3d extends FemElement
          }
          else {
             wdata = new IntegrationData3d();
-            wdata.computeRestJacobian (getWarpingPoint().GNs, myNodes);
+            wdata.computeInverseRestJacobian (getWarpingPoint(), myNodes);
          }
          myWarpingData = wdata;
       }
@@ -1598,7 +1597,7 @@ public abstract class FemElement3d extends FemElement
          return null;
       }
       if (frame != null) {
-         if (DynamicAttachment.containsLoop (ffa, frame, null)) {
+         if (DynamicAttachmentWorker.containsLoop (ffa, frame, null)) {
             throw new IllegalArgumentException (
                "attachment contains loop");
          }

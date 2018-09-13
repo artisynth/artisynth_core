@@ -191,6 +191,21 @@ public class IntegrationPoint3d {
       }      
    }
 
+   public void computeRestJacobian (Matrix3d J0, FemNode3d[] nodes) {
+      J0.setZero();
+      for (int i=0; i<nodes.length; i++) {
+         Vector3d pos = nodes[i].getLocalRestPosition();
+         Vector3d dNds = GNs[i];
+         J0.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+      }
+   }
+
+   public double computeInverseRestJacobian (Matrix3d invJ0, FemNode3d[] nodes) {
+      Matrix3d J0 = new Matrix3d();
+      computeRestJacobian (J0, nodes);
+      return invJ0.fastInvert (J0);
+   }
+
    /**
     * Computes the determinant of the current Jacobian at this 
     * integration point.

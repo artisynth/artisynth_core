@@ -34,9 +34,9 @@ import artisynth.core.modelbase.*;
  * Responsible for attaching particles to each other within a mech model
  */
 public class AttachParticleBodyAgent 
-   extends AddComponentAgent<DynamicAttachment> {
+   extends AddComponentAgent<DynamicAttachmentComp> {
    protected MechModel myAncestor;
-   protected ComponentList<DynamicAttachment> myList;
+   protected ComponentList<DynamicAttachmentComp> myList;
    private boolean myProjectPoints = false;
    private RigidBody myBody;
    private Particle myParticle;
@@ -239,7 +239,7 @@ public class AttachParticleBodyAgent
          }
          list.add (a);
       }
-      if (DynamicAttachment.containsLoops (list)) {
+      if (DynamicAttachmentWorker.containsLoops (list)) {
          EditorUtils.showError (myDisplay, "attachments contain loops");
          return true;
       }
@@ -271,44 +271,27 @@ public class AttachParticleBodyAgent
    }
 }
 
-class ParticleFrameView extends SubListView<DynamicAttachment> {
+class ParticleFrameView extends SubListView<DynamicAttachmentComp> {
 
-   public ParticleFrameView (ListView<DynamicAttachment> view) {
+   public ParticleFrameView (ListView<DynamicAttachmentComp> view) {
       super (view);
    }         
 
    public boolean isMember (Object obj) {
-      if (!(obj instanceof DynamicAttachment)) {
+      if (!(obj instanceof DynamicAttachmentComp)) {
          return false;
       }
-      DynamicAttachment a = (DynamicAttachment)obj;
-      return (a.numMasters() == 1 && a.getMasters()[0] instanceof Frame);
+      DynamicAttachmentComp ac = (DynamicAttachmentComp)obj;
+      return (ac.numMasters() == 1 && ac.getMasters()[0] instanceof Frame);
    }
 }      
 
 class ParticleFrameAttachmentList
-   extends ComponentListWidget<DynamicAttachment> {
+   extends ComponentListWidget<DynamicAttachmentComp> {
 
    ParticleFrameAttachmentList (
-      ComponentListView<DynamicAttachment> list, CompositeComponent ancestor) {
+      ComponentListView<DynamicAttachmentComp> list,
+      CompositeComponent ancestor) {
       super (new ParticleFrameView(list), ancestor);
    }
-
-//   @Override
-//   protected String getName (
-//      DynamicAttachment a, CompositeComponent ancestor) {
-//      Particle particle = (Particle)a.getSlave();
-//      Frame target = null;
-//      if (a.getMasters()[0] instanceof Frame) {
-//         target = (Frame)a.getMasters()[0];
-//      }
-//      if (target != null) {
-//         return (ComponentUtils.getPathName (ancestor, particle) + " - " +
-//                 ComponentUtils.getPathName (ancestor, target));
-//      }
-//      else {
-//         // this shouldn't happen, but just in case ...
-//         return (ComponentUtils.getPathName (ancestor, particle) + " - ???");
-//      }
-//   }
 }

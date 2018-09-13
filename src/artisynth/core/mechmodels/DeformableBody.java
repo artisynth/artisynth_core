@@ -667,8 +667,7 @@ public abstract class DeformableBody extends RigidBody
       }
    }
    
-   public void computeLocalPointForceJacobian (
-      MatrixBlock GT, Vector3d loc, RotationMatrix3d R) {
+   public void computeLocalPointForceJacobian (MatrixBlock GT, Vector3d loc) {
       
       MatrixNdBlock blk;
       try {
@@ -693,57 +692,31 @@ public abstract class DeformableBody extends RigidBody
       double y = myTmpPos.y;
       double z = myTmpPos.z;
 
-      if (R == null) {
-         blk.set (0, 0, 1);
-         blk.set (0, 1, 0);
-         blk.set (0, 2, 0);
-         blk.set (1, 0, 0);
-         blk.set (1, 1, 1);
-         blk.set (1, 2, 0);
-         blk.set (2, 0, 0);
-         blk.set (2, 1, 0);
-         blk.set (2, 2, 1);
+      blk.set (0, 0, 1);
+      blk.set (0, 1, 0);
+      blk.set (0, 2, 0);
+      blk.set (1, 0, 0);
+      blk.set (1, 1, 1);
+      blk.set (1, 2, 0);
+      blk.set (2, 0, 0);
+      blk.set (2, 1, 0);
+      blk.set (2, 2, 1);
 
-         blk.set (3, 0, 0);
-         blk.set (3, 1, -z);
-         blk.set (3, 2, y);
-         blk.set (4, 0, z);
-         blk.set (4, 1, 0);
-         blk.set (4, 2, -x);           
-         blk.set (5, 0, -y);
-         blk.set (5, 1, x);
-         blk.set (5, 2, 0);
-      }
-      else {
-         blk.set (0, 0, R.m00);
-         blk.set (0, 1, R.m01);
-         blk.set (0, 2, R.m02);
-         blk.set (1, 0, R.m10);
-         blk.set (1, 1, R.m11);
-         blk.set (1, 2, R.m12);
-         blk.set (2, 0, R.m20);
-         blk.set (2, 1, R.m21);
-         blk.set (2, 2, R.m22);
-
-         blk.set (3, 0, y*R.m20 - z*R.m10);
-         blk.set (3, 1, y*R.m21 - z*R.m11);
-         blk.set (3, 2, y*R.m22 - z*R.m12);
-         blk.set (4, 0, z*R.m00 - x*R.m20);
-         blk.set (4, 1, z*R.m01 - x*R.m21);
-         blk.set (4, 2, z*R.m02 - x*R.m22);
-         blk.set (5, 0, x*R.m10 - y*R.m00);
-         blk.set (5, 1, x*R.m11 - y*R.m01);
-         blk.set (5, 2, x*R.m12 - y*R.m02);
-      }
+      blk.set (3, 0, 0);
+      blk.set (3, 1, -z);
+      blk.set (3, 2, y);
+      blk.set (4, 0, z);
+      blk.set (4, 1, 0);
+      blk.set (4, 2, -x);           
+      blk.set (5, 0, -y);
+      blk.set (5, 1, x);
+      blk.set (5, 2, 0);
 
       int numc = numElasticCoords();
       Vector3d shp = new Vector3d();
       for (int i=0; i<numc; i++) {
          getShape (shp, i, loc);
          shp.transform (RF);
-         if (R != null) {
-            shp.inverseTransform (R);
-         }
          blk.set (6+i, 0, shp.x);
          blk.set (6+i, 1, shp.y);
          blk.set (6+i, 2, shp.z);
@@ -1148,4 +1121,23 @@ public abstract class DeformableBody extends RigidBody
       vel.y += w*(v.y - lz*o.x + lx*o.z + tmp.y);
       vel.z += w*(v.z - lx*o.y + ly*o.x + tmp.z);
    }
+   
+   @Override
+   public void setRandomPosState() {
+      super.setRandomPosState();
+      myElasticPos.setRandom();
+   }
+   
+   @Override
+   public void setRandomVelState() {
+      super.setRandomVelState();
+      myElasticVel.setRandom();
+   }
+   
+   @Override
+   public void setRandomForce() {
+      super.setRandomForce();
+      myElasticForce.setRandom();
+   }
+   
 }

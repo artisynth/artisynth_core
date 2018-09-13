@@ -90,7 +90,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    protected ComponentList<MechSystemModel> myModels;
 
-   protected ComponentList<DynamicAttachment> myAttachments;
+   protected ComponentList<DynamicAttachmentComp> myAttachments;
    SparseNumberedBlockMatrix mySolveMatrix;
 
    // flag to indicate that CollidableBodies need re-indexing. This
@@ -248,8 +248,8 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
             ConstrainerBase.class, "particleConstraints", "pc");
 
       myAttachments =
-         new ComponentList<DynamicAttachment> (
-            DynamicAttachment.class, "attachments", "a");
+         new ComponentList<DynamicAttachmentComp> (
+            DynamicAttachmentComp.class, "attachments", "a");
 
       myExciterList =
          new ComponentList<MuscleExciter> (MuscleExciter.class, "exciters", "e");
@@ -1382,11 +1382,12 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
     * @param comp Component to attach the particle to.
     */
    public void attachPoint (Point p1, PointAttachable comp) {
-      if (p1.isAttached()) {
-         throw new IllegalArgumentException ("point is already attached");
+      if (p1.getAttachment() instanceof ModelComponent) {
+         throw new IllegalArgumentException (
+            "point is already attached via an attachment component");
       }
       PointAttachment ax = comp.createPointAttachment (p1);
-      if (DynamicAttachment.containsLoop (ax, p1, null)) {
+      if (DynamicAttachmentWorker.containsLoop (ax, p1, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
       }
@@ -1394,11 +1395,12 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    public void attachPoint (Point p1, RigidBody body, Point3d loc) {
-      if (p1.isAttached()) {
-         throw new IllegalArgumentException ("point is already attached");
+      if (p1.getAttachment() instanceof ModelComponent) {
+         throw new IllegalArgumentException (
+            "point is already attached via an attachment component");
       }
       PointFrameAttachment rbax = new PointFrameAttachment (body, p1, loc);
-      if (DynamicAttachment.containsLoop (rbax, p1, null)) {
+      if (DynamicAttachmentWorker.containsLoop (rbax, p1, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
       }
@@ -1406,14 +1408,15 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    public boolean detachPoint (Point p1) {
-      DynamicAttachment a = p1.getAttachment();
-      if (a != null && a.getParent() == myAttachments) {
-         removeAttachment (a);
-         return true;
+      DynamicAttachment at = p1.getAttachment();
+      if (at instanceof DynamicAttachmentComp) {
+         DynamicAttachmentComp ac = (DynamicAttachmentComp)at;
+         if (ac.getParent() == myAttachments) {
+            removeAttachment (ac);
+            return true;
+         }
       }
-      else {
-         return false;
-      }
+      return false;
    }
 
     /** 
@@ -1432,7 +1435,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          throw new IllegalArgumentException ("frame is already attached");
       }
       FrameAttachment ax = comp.createFrameAttachment (frame, TFW);
-      if (DynamicAttachment.containsLoop (ax, frame, null)) {
+      if (DynamicAttachmentWorker.containsLoop (ax, frame, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
       }
@@ -1452,76 +1455,27 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
 
    public boolean detachFrame (Frame frame) {
-      DynamicAttachment a = frame.getAttachment();
-      if (a != null && a.getParent() == myAttachments) {
-         removeAttachment (a);
-         return true;
+      DynamicAttachment at = frame.getAttachment();
+      if (at instanceof DynamicAttachmentComp) {
+         DynamicAttachmentComp ac = (DynamicAttachmentComp)at;
+         if (ac.getParent() == myAttachments) {
+            removeAttachment (ac);
+            return true;
+         }
       }
-      else {
-         return false;
-      }
+      return false;
    }
 
-//   /** 
-//    * Attaches a point to an FEM. The point in question is connected to either
-//    * its containing element, or projected to the nearest surface element.
-//    * 
-//    * @param p1 Point to connect. Must currently be a particle.
-//    * @param fem FemModel to connect the point to.
-//    * @param reduceTol if > 0, attempts to reduce the number of nodes
-//    * in the connection by removing any whose coordinate weights are
-//    * less than <code>reduceTol</code>. 
-//    */
-//   public void attachPoint (Point p1, FemModel3d fem, double reduceTol) {
-//      if (p1.isAttached()) {
-//         throw new IllegalArgumentException ("point is already attached");
-//      }
-//      if (!(p1 instanceof Particle)) {
-//         throw new IllegalArgumentException ("point is not a particle");
-//      }
-//      if (ComponentUtils.isAncestorOf (fem, p1)) {
-//         throw new IllegalArgumentException (
-//            "FemModel is an ancestor of the point");
-//      }
-//      Point3d loc = new Point3d();
-//      FemElement3d elem = fem.findNearestElement (loc, p1.getPosition());
-//      FemNode3d nearestNode = null;
-//      double nearestDist = Double.MAX_VALUE;
-//      for (FemNode3d n : elem.getNodes()) {
-//         double d = n.distance (p1);
-//         if (d < nearestDist) {
-//            nearestNode = n;
-//            nearestDist = d;
-//         }
-//      }
-//      if (nearestDist <= reduceTol) {
-//         // just attach to the node
-//         attachPoint (p1, nearestNode);
-//      }
-//      else {
-//         PointFem3dAttachment ax =
-//            PointFem3dAttachment.create (p1, elem, loc, reduceTol);
-//         // Coords are computed in createNearest.  the point's position will be
-//         // updated, if necessary, by the addRemove hook when the attachement is
-//         // added.
-//         addAttachment (ax);
-//      }
-//   }
-
-   // public void attachPoint (Point p1, RigidBody body) {
-   //    attachPoint (p1, body, null);
-   // }
-
-   public ComponentList<DynamicAttachment> attachments() {
+   public ComponentList<DynamicAttachmentComp> attachments() {
       return myAttachments;
    }
 
-   public void addAttachment (DynamicAttachment ax) {
+   public void addAttachment (DynamicAttachmentComp ax) {
       ax.updatePosStates();
       myAttachments.add (ax);
    }
 
-   void removeAttachment (DynamicAttachment ax) {
+   void removeAttachment (DynamicAttachmentComp ax) {
       myAttachments.remove (ax);
    }
 

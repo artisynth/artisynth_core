@@ -2763,6 +2763,58 @@ LinearTransformNd, Clonable {
       }
    }
 
+   public void mulTransposeRightAdd (Matrix M1, Matrix M2) {
+      if (M1.rowSize() != rowSize() ||
+          M2.rowSize() != colSize() ||
+          M1.colSize() != M2.colSize()) {
+         throw new ImproperSizeException (
+            "matrix sizes "+M1.getSize()+" and "+M2.getSize()+
+            " do not conform to "+getSize());
+      }
+      MatrixNd R = this;
+      if (M1 == this || M2 == this) {
+         R = new MatrixNd (this);
+      }
+      for (int i=0; i<rowSize(); i++) {
+         for (int j=0; j<colSize(); j++) {
+            double sum = 0;
+            for (int k=0; k<M1.colSize(); k++) {
+               sum += M1.get(i,k)*M2.get(j,k);
+            }
+            R.add (i, j, sum);
+         }
+      }
+      if (R != this) {
+         set (R);
+      }
+   }
+
+   public void mulTransposeLeftAdd (Matrix M1, Matrix M2) {
+      if (M1.colSize() != rowSize() ||
+          M2.colSize() != colSize() ||
+          M1.rowSize() != M2.rowSize()) {
+         throw new ImproperSizeException (
+            "matrix sizes "+M1.getSize()+" and "+M2.getSize()+
+            " do not conform to "+getSize());
+      }
+      MatrixNd R = this;
+      if (M1 == this || M2 == this) {
+         R = new MatrixNd (this);
+      }
+      for (int i=0; i<rowSize(); i++) {
+         for (int j=0; j<colSize(); j++) {
+            double sum = 0;
+            for (int k=0; k<M1.rowSize(); k++) {
+               sum += M1.get(k,i)*M2.get(k,j);
+            }
+            R.add (i, j, sum);
+         }
+      }
+      if (R != this) {
+         set (R);
+      }
+   }
+
    public static void main (String[] args) {
       MatrixNd M3x4 = new MatrixNd (3, 4);
       MatrixNd M4x3 = new MatrixNd (4, 3);

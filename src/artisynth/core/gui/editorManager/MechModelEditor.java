@@ -34,13 +34,15 @@ public class MechModelEditor extends EditorBase {
    }
 
    private MechModel getAttachmentModel (DynamicComponent c) {
-      CompositeComponent gp = ComponentUtils.getGrandParent(c.getAttachment());
-      if (gp instanceof MechModel) {
-         return (MechModel)gp;
+      DynamicAttachment at = c.getAttachment();
+      if (at instanceof DynamicAttachmentComp) {
+         CompositeComponent gp =
+            ComponentUtils.getGrandParent((DynamicAttachmentComp)at);
+         if (gp instanceof MechModel) {
+            return (MechModel)gp;
+         }
       }
-      else {
-         return null;
-      }
+      return null;
    }
 
    public static MechModel lowestCommonModel (

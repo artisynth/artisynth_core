@@ -2765,6 +2765,27 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
    }
 
    /**
+    * Sets this matrix to a diagonal matrix whose values are specified.
+    * 
+    * @param m00 first diagonal value
+    * @param m11 second diagonal value
+    * @param m22 third diagonal value
+    * @param m33 fourth diagonal value
+    * @param m44 fifth diagonal value
+    * @param m55 sixth diagonal value
+    */
+   protected void setDiagonal (
+      double m00, double m11, double m22, double m33, double m44, double m55) {
+      setZero();
+      this.m00 = m00;
+      this.m11 = m11;
+      this.m22 = m22;
+      this.m33 = m33;
+      this.m44 = m44;
+      this.m55 = m55;
+   }
+
+   /**
     * Returns the determinant of this matrix
     * 
     * @return matrix determinant

@@ -64,7 +64,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       FemNode3d[] nodes = myElement.getNodes();
       VectorNd N = myIpnt.getShapeWeights();
       for (int i=0; i<nodes.length; i++) {
-         int bk = nodes[i].getSolveIndex();
+         int bk = nodes[i].getLocalSolveIndex();
          if (bk != -1) {
             Matrix3x6Block blk = new Matrix3x6Block();
             double Ni = N.get(i);
@@ -228,7 +228,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       myIpnt = IntegrationPoint3d.create (
          elem, coords.x, coords.y, coords.z, 1.0);
       myData = new IntegrationData3d();
-      myData.computeRestJacobian (myIpnt.GNs, elem.getNodes());
+      myData.computeInverseRestJacobian (myIpnt, elem.getNodes());
 
       Matrix3d F = new Matrix3d();
       myIpnt.computeGradient (F, elem.getNodes(), myData.myInvJ0);
@@ -325,7 +325,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       RigidTransform3d T = new RigidTransform3d();
       computeFrame (T);
       if (!frameRelative) {
-         T.R.mul (myRC);
+         //T.R.mul (myRC);
       }
       else {
          // multiply by existing frame to get the new pose

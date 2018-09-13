@@ -35,9 +35,9 @@ import artisynth.core.modelbase.*;
  * Responsible for attaching particles to each other within a mech model
  */
 public class AttachParticleFemAgent 
-   extends AddComponentAgent<DynamicAttachment> {
+   extends AddComponentAgent<DynamicAttachmentComp> {
    protected MechModel myAncestor;
-   protected ComponentList<DynamicAttachment> myList;
+   protected ComponentList<DynamicAttachmentComp> myList;
    private boolean myProjectPoints = false;
    private FemModel3d myFem;
    private Particle myParticle;
@@ -236,7 +236,7 @@ public class AttachParticleFemAgent
          }
          list.add (a);
       }
-      if (DynamicAttachment.containsLoops (list)) {
+      if (DynamicAttachmentWorker.containsLoops (list)) {
          EditorUtils.showError (myDisplay, "attachments contain loops");
          return true;
       }
@@ -268,9 +268,9 @@ public class AttachParticleFemAgent
    }
 }
 
-class ParticleFemView extends SubListView<DynamicAttachment> {
+class ParticleFemView extends SubListView<DynamicAttachmentComp> {
 
-   public ParticleFemView (ListView<DynamicAttachment> view) {
+   public ParticleFemView (ListView<DynamicAttachmentComp> view) {
       super (view);
    }         
 
@@ -284,29 +284,11 @@ class ParticleFemView extends SubListView<DynamicAttachment> {
 }      
 
 class ParticleFemAttachmentList
-   extends ComponentListWidget<DynamicAttachment> {
+   extends ComponentListWidget<DynamicAttachmentComp> {
 
    ParticleFemAttachmentList (
-      ComponentListView<DynamicAttachment> list, CompositeComponent ancestor) {
+      ComponentListView<DynamicAttachmentComp> list,
+      CompositeComponent ancestor) {
       super (new ParticleFemView(list), ancestor);
    }
-
-//   @Override
-//   protected String getName (
-//      DynamicAttachment a, CompositeComponent ancestor) {
-//      Particle particle = (Particle)a.getSlave();
-//      FemModel3d target = null;
-//      if (a.getMasters()[0] instanceof FemNode3d) {
-//         FemNode3d node = (FemNode3d)a.getMasters()[0];
-//         target = (FemModel3d)node.getGrandParent();
-//      }
-//      if (target != null) {
-//         return (ComponentUtils.getPathName (ancestor, particle) + " - " +
-//                 ComponentUtils.getPathName (ancestor, target));
-//      }
-//      else {
-//         // this shouldn't happen, but just in case ...
-//         return (ComponentUtils.getPathName (ancestor, particle) + " - ???");
-//      }
-//   }
 }

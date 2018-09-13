@@ -18,15 +18,13 @@ public abstract class Marker extends Point implements HasAttachments {
 
    protected void removeBackRefsIfConnected() {
       if (isConnectedToHierarchy()) {
-         DynamicAttachment ax = getAttachment();
-         ax.removeBackRefs();
+         DynamicAttachmentBase.removeBackRefs (getAttachment());
       }
    }
 
    protected void addBackRefsIfConnected() {
       if (isConnectedToHierarchy()) {
-         DynamicAttachment ax = getAttachment();
-         ax.addBackRefs();
+         DynamicAttachmentBase.addBackRefs (getAttachment());
       }
    }
 
@@ -34,19 +32,20 @@ public abstract class Marker extends Point implements HasAttachments {
     * {@inheritDoc}
     */
    public void getAttachments (List<DynamicAttachment> list) {
-      DynamicAttachment ax = getAttachment();
-      if (ax != null) { // paranoid
-         list.add (ax);
+      DynamicAttachment at = getAttachment();
+      if (at != null) { // paranoid
+         list.add (at);
       }
    }  
 
    @Override
    public void getHardReferences (List<ModelComponent> refs) {
       super.getHardReferences (refs);
-      DynamicAttachment ax = getAttachment();
-      if (ax != null) {
+      DynamicAttachment at = getAttachment();
+      if (at instanceof DynamicAttachmentComp) {
+         DynamicAttachmentComp ac = (DynamicAttachmentComp)at;
          ArrayList<ModelComponent> allrefs = new ArrayList<ModelComponent>();
-         ax.getHardReferences (allrefs);
+         ac.getHardReferences (allrefs);
          allrefs.remove (this); // remove this component
          refs.addAll (allrefs);
       }
@@ -55,9 +54,9 @@ public abstract class Marker extends Point implements HasAttachments {
    @Override
    public void connectToHierarchy () {
       super.connectToHierarchy ();
-      DynamicAttachment ax = getAttachment();
-      if (ax != null) {
-         ax.addBackRefs();
+      DynamicAttachment at = getAttachment();
+      if (at != null) {
+         DynamicAttachmentBase.addBackRefs(at);
       }
       updateState(); // do we need this?
    }
@@ -65,9 +64,9 @@ public abstract class Marker extends Point implements HasAttachments {
    @Override
    public void disconnectFromHierarchy() {
       super.disconnectFromHierarchy();
-      DynamicAttachment ax = getAttachment();
-      if (ax != null) {
-         ax.removeBackRefs();
+      DynamicAttachment at = getAttachment();
+      if (at != null) {
+         DynamicAttachmentBase.removeBackRefs(at);
       }
    }
 

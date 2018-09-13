@@ -40,9 +40,8 @@ public class FemGeometryTransformer extends DeformationTransformer {
       IntegrationPoint3d ipnt =
          IntegrationPoint3d.create (restElem, coords.x, coords.y, coords.z, 1);
       Matrix3d invJ0 = new Matrix3d();
-      double detJ0 =
-         IntegrationData3d.computeRestJacobian (
-            invJ0, ipnt.GNs, restElem.getNodes());
+      double detJ0 = 
+         ipnt.computeInverseRestJacobian (invJ0, restElem.getNodes());
       if (detJ0 <= 0) {
          //System.out.println ("warning...");
       }

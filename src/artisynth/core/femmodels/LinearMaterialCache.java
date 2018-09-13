@@ -111,7 +111,7 @@ public class LinearMaterialCache {
       for (int i = 0; i < nodes.length; i++) {
          tmp.setZero();
          for (int j=0; j<nodes.length; j++) {
-            K0[i][j].mulAdd (tmp, nodes[j].getRestPosition(), tmp);
+            K0[i][j].mulAdd (tmp, nodes[j].getLocalRestPosition(), tmp);
          }
          f0[i].sub (tmp, f0[i]);
       }
@@ -174,7 +174,7 @@ public class LinearMaterialCache {
       for (int i = 0; i < nodes.length; i++) {
          tmp.setZero();
          for (int j=0; j<nodes.length; j++) {
-            K0[i][j].mulAdd (tmp, nodes[j].getRestPosition(), tmp);
+            K0[i][j].mulAdd (tmp, nodes[j].getLocalRestPosition(), tmp);
          }
          f0[i].sub (tmp, f0[i]);
       }

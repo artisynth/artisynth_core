@@ -541,7 +541,7 @@ public class PointModel extends RootModel
    
    
    public SparseBlockMatrix getK() {
-      return model.getActiveStiffness();
+      return model.getActiveStiffnessMatrix();
    }
 
 }

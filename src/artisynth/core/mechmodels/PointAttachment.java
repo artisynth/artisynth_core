@@ -15,12 +15,11 @@ import artisynth.core.util.*;
 
 import java.io.*;
 
-public abstract class PointAttachment extends DynamicAttachment 
+public abstract class PointAttachment extends DynamicAttachmentBase 
    implements CopyableComponent {
 
    protected Point myPoint;
    protected DynamicComponent[] myMasters;
-   protected MatrixBlock[] myMasterBlocks;
 
    public Point getSlave() {
       return myPoint;
@@ -28,15 +27,6 @@ public abstract class PointAttachment extends DynamicAttachment
 
    public Point getPoint() {
       return myPoint;
-   }
-
-   public int getSlaveSolveIndex() {
-      if (myPoint != null) {
-         return myPoint.getSolveIndex();
-      }
-      else {
-         return -1;
-      }
    }
 
    /**
@@ -47,10 +37,6 @@ public abstract class PointAttachment extends DynamicAttachment
          initializeMasters();
       }
       return myMasters;
-   }
-
-   public MatrixBlock[] getMasterBlocks() {
-      return myMasterBlocks;
    }
 
    /**
@@ -71,54 +57,9 @@ public abstract class PointAttachment extends DynamicAttachment
       ArrayList<DynamicComponent> masters = new ArrayList<DynamicComponent>();
       collectMasters (masters);
       myMasters = masters.toArray (new DynamicComponent[0]);
-      myMasterBlocks = new MatrixBlock[myMasters.length];
-      for (int i=0; i<myMasterBlocks.length; i++) {
-         myMasterBlocks[i] =
-            MatrixBlockBase.alloc (myMasters[i].getVelStateSize(), 3);
-      }
-      updateMasterBlocks();      
    }
 
    protected void collectMasters (List<DynamicComponent> masters) {
-      if (myPoint != null && myPoint.getPointFrame() != null) {
-         masters.add (myPoint.getPointFrame());
-      }
-   }
-
-   protected void printMasterBlocks (String fmtStr) {
-      for (int i=0; i<myMasterBlocks.length; i++) {
-         System.out.println ("M"+i+"\n");
-         System.out.println (myMasterBlocks[i].toString(fmtStr));
-      }
-   }
-
-   protected Vector3d computeMasterVelocity() {
-      double[] vel = new double[3];
-
-      for (int i=0; i<myMasterBlocks.length; i++) {
-         DynamicComponent master = myMasters[i];
-         double[] mvel = new double[master.getVelStateSize()];
-         master.getVelState (mvel, 0);
-         myMasterBlocks[i].mulTransposeAdd (vel, 0, mvel, 0);
-      }
-      return new Vector3d (vel[0], vel[1], vel[2]);
-   }
-
-   protected int updateMasterBlocks() {
-      if (myMasters == null) {
-         initializeMasters();
-      }      
-      if (myPoint != null) {
-         Frame frame = myPoint.getPointFrame();
-         if (frame != null) {
-            MatrixBlock blk = myMasterBlocks[0];
-            frame.computeLocalPointForceJacobian (
-               blk, myPoint.getLocalPosition(),frame.getPose().R);
-            blk.scale (-1);
-            return 1;
-         }
-      }
-      return 0;
    }
    
    /**
@@ -175,7 +116,6 @@ public abstract class PointAttachment extends DynamicAttachment
       PointAttachment a = (PointAttachment)super.copy (flags, copyMap);
 
       a.myMasters = null;
-      a.myMasterBlocks = null;
       // EDIT: for FrameMarker.copy() can eventually lead here with copyMap=null, Sanchez (Nov 30, 2011)
       if (copyMap != null) {
 //         if (copyMap.get (myPoint) == null) {
@@ -191,10 +131,6 @@ public abstract class PointAttachment extends DynamicAttachment
    }
 
    public void applyForces() {
-      Frame pframe = myPoint.getPointFrame();
-      if (pframe != null) {
-         pframe.subPointForce (myPoint.getLocalPosition(), myPoint.myForce);
-      }
    }
 
    /**

@@ -80,6 +80,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected int myParametricPosStateSize;
 
    protected MechSystemSolver mySolver;
+   protected DynamicAttachmentWorker myAttachmentWorker;
 
    protected static boolean DEFAULT_DYNAMICS_ENABLED = true;
    protected static boolean DEFAULT_PROFILING = false;
@@ -189,6 +190,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    public MechSystemBase (String name) {
       super (name);
       allocateSolver (/*oldSolver=*/null);
+      myAttachmentWorker = new DynamicAttachmentWorker();
       //setStabilization (myDefaultStabilization);
       //setUpdateForcesAtStepEnd (DEFAULT_UPDATE_FORCES_AT_STEP_END);
    }
@@ -231,7 +233,7 @@ public abstract class MechSystemBase extends RenderableModelBase
 	 J.setVerticallyLinked(true);
       }
       for (DynamicAttachment a : getAttachments()) {
-         a.reduceRowMatrix (J);
+         myAttachmentWorker.reduceRowMatrix (a, J);
       }
    }
 
@@ -269,7 +271,7 @@ public abstract class MechSystemBase extends RenderableModelBase
             NT, dn, idx);
       }
       for (DynamicAttachment a : getAttachments()) {
-         a.reduceConstraints (NT, dn);
+         myAttachmentWorker.reduceConstraints (a, NT, dn);
       }
       // need this for now - would be good to get rid of it:
       NT.setVerticallyLinked (true);
@@ -311,7 +313,7 @@ public abstract class MechSystemBase extends RenderableModelBase
             GT, dg, idx);
       }      
       for (DynamicAttachment a : getAttachments()) {
-         a.reduceConstraints (GT, dg);
+         myAttachmentWorker.reduceConstraints (a, GT, dg);
       }
       // need this for now - would be good to get rid of it:
       GT.setVerticallyLinked (true);
@@ -419,7 +421,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       }      
       //idxh.value = addFrictionConstraints (DT, finfo, idxh.value);
       for (DynamicAttachment a : getAttachments()) {
-         a.reduceConstraints (DT, null);
+         myAttachmentWorker.reduceConstraints (a, DT, null);
       }
    }
    
@@ -660,10 +662,8 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       updateAttachmentPos (getActiveAttachments());
       updateSlavePos();
-      updateAttachmentVel (getActiveAttachments());
-      updateSlaveVel(); 
-      //updatePosState();
-      //updateVelState();
+      updateAttachmentVel (getActiveAttachments()); // AVEL
+      updateSlaveVel(); // AVEL
       return idx;
    }
 
@@ -1358,7 +1358,7 @@ public abstract class MechSystemBase extends RenderableModelBase
             int bi = masters[i].getSolveIndex();
             int msize = myDynamicSizes[bi];
             MatrixNdBlock mblk = new MatrixNdBlock (msize, ssize);
-            a.mulSubGT (mblk, sblk, i);
+            a.mulSubGTM (mblk, sblk, i);
             mblk.negate();
             GT.addBlock (bi, bj, mblk);
          }
@@ -1399,7 +1399,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       LinkedList<DynamicAttachment> list =
          new LinkedList<DynamicAttachment>();
       getAttachments (list, 0);
-      myAttachments = DynamicAttachment.createOrderedList (list);
+      myAttachments = myAttachmentWorker.createOrderedList (list);
       Collections.reverse (myAttachments);
       myActiveAttachments = new ArrayList<DynamicAttachment>();
       myParametricAttachments = new ArrayList<DynamicAttachment>();
@@ -1466,7 +1466,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       boolean[] reduced = new boolean[S.numBlockRows()];
       int i = 0;
       for (DynamicAttachment a : getAttachments()) {
-         a.addAttachmentJacobian (S, f, reduced);
+         myAttachmentWorker.addAttachmentJacobian (a, S, f, reduced);
          i++;
       }
       //timer.stop();
@@ -1477,7 +1477,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    public void addAttachmentSolveBlocks (SparseNumberedBlockMatrix S) {
       boolean[] reduced = new boolean[S.numBlockRows()];
       for (DynamicAttachment a : getAttachments()) {
-         a.addSolveBlocks (S, reduced);
+         myAttachmentWorker.addSolveBlocks (a, S, reduced);
       }
    }
 
@@ -1728,8 +1728,8 @@ public abstract class MechSystemBase extends RenderableModelBase
       if (getParametricPosStateSize() > 0) {
          updateAttachmentPos (getParametricAttachments());
          updateSlavePos();
-         updateAttachmentVel (getParametricAttachments());
-         updateSlaveVel();
+         updateAttachmentVel (getParametricAttachments()); // AVEL
+         updateSlaveVel(); // AVEL
       }
       return idx;
    }      
@@ -1836,15 +1836,32 @@ public abstract class MechSystemBase extends RenderableModelBase
       return msb;
    }
 
-   public void printActiveStiffness ()
-      throws IOException {
-      MatrixNd K = new MatrixNd (getActiveStiffness());
-      System.out.println ("K=\n" + K.toString ("%8.3f"));
+   public void printActiveStiffness () throws IOException {
+      printActiveStiffness ("%.6g");
    }
 
-   public SparseBlockMatrix getActiveStiffness () {
+   public void printActiveStiffness (String fmtStr) throws IOException {
+      MatrixNd K = new MatrixNd (getActiveStiffnessMatrix());
+      System.out.println ("K=\n" + K.toString (fmtStr));
+   }
+
+   public SparseBlockMatrix getActiveStiffnessMatrix () {
       updatePosState();
       return mySolver.createActiveStiffnessMatrix(1);
+   }
+
+   public void printActiveMass () throws IOException {
+      printActiveMass ("%.6g");
+   }
+
+   public void printActiveMass (String fmtStr) throws IOException {
+      MatrixNd M = new MatrixNd (getActiveMassMatrix());
+      System.out.println ("M=\n" + M.toString (fmtStr));
+   }
+
+   public SparseBlockMatrix getActiveMassMatrix () {
+      updatePosState();
+      return mySolver.createActiveMassMatrix(0);
    }
 
    public void writeStiffnessMatrix (

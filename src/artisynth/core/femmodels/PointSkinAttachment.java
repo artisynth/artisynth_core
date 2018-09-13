@@ -512,11 +512,8 @@ public class PointSkinAttachment extends PointAttachment
       }
    }
    
-   @Override
-   protected int updateMasterBlocks() {
+   protected void updateMasterBlocks() {
       // TODO: need to finish this to make attachments work correctly
-      int idx = super.updateMasterBlocks();
-      return idx;
    }
    
    /**
@@ -647,10 +644,14 @@ public class PointSkinAttachment extends PointAttachment
       }      
    }
    
-   public void mulSubGT(MatrixBlock D, MatrixBlock B, int idx) {
+   public void mulSubGTM(MatrixBlock D, MatrixBlock M, int idx) {
    }
 
-   public void mulSubG(MatrixBlock D, MatrixBlock B, int idx) {
+   public void mulSubMG(MatrixBlock D, MatrixBlock M, int idx) {
+   }
+
+   public MatrixBlock getGT (int idx) {
+      throw new UnsupportedOperationException ("getGT not supported");
    }
 
    public void mulSubGT(
@@ -663,9 +664,6 @@ public class PointSkinAttachment extends PointAttachment
    public void addMassToMasters() {
    }
    
-   public void addMassToMaster(MatrixBlock mblk, MatrixBlock sblk, int idx) {
-   }
-
    protected boolean scanConnection(
       String id, ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {

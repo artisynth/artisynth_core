@@ -604,8 +604,8 @@ public class FemUtilities {
     * t-component of (r,s,t) integration point coordinates (i.e. x-component of 
     * gauss point)
     * 
-    * @param gct 
-    * Contravariant base vectors of integration point.
+    * @param invJ
+    * Current inverse Jacobian at the integration point
     * 
     * @param matStress
     * Material stress of integration point.
@@ -618,41 +618,45 @@ public class FemUtilities {
     */
    public static void addShellMaterialStiffness (
       Matrix6d K, double iN, double jN, Vector3d idN, Vector3d jdN, double dv,
-      double t, Vector3d[] gct, SymmetricMatrix3d matStress,
+      double t, Matrix3d invJ, SymmetricMatrix3d matStress,
       Matrix6d matTangent) {
-     
+
+      Vector3d gct0 = new Vector3d (invJ.m00, invJ.m01, invJ.m02);
+      Vector3d gct1 = new Vector3d (invJ.m10, invJ.m11, invJ.m12);
+      Vector3d gct2 = new Vector3d (invJ.m20, invJ.m21, invJ.m22);
+
       // Compute gradM for i and j
       
       Vector3d iGradM = new Vector3d();
-      iGradM.scaledAdd(idN.x, gct[0]);
-      iGradM.scaledAdd(idN.y, gct[1]);
+      iGradM.scaledAdd(idN.x, gct0);
+      iGradM.scaledAdd(idN.y, gct1);
       
       Vector3d jGradM = new Vector3d();
-      jGradM.scaledAdd(jdN.x, gct[0]);
-      jGradM.scaledAdd(jdN.y, gct[1]);
+      jGradM.scaledAdd(jdN.x, gct0);
+      jGradM.scaledAdd(jdN.y, gct1);
       
       // Compute gradMu for i and j
       
       Vector3d iGradMu = new Vector3d();
       iGradMu.scaledAdd(1+t, iGradM);
-      iGradMu.scaledAdd(iN, gct[2]);
+      iGradMu.scaledAdd(iN, gct2);
       iGradMu.scale(0.5);
       
       Vector3d jGradMu = new Vector3d();
       jGradMu.scaledAdd(1+t, jGradM);
-      jGradMu.scaledAdd(jN, gct[2]);
+      jGradMu.scaledAdd(jN, gct2);
       jGradMu.scale(0.5);
       
       // Compute gradMd for i and j
       
       Vector3d iGradMd = new Vector3d();
       iGradMd.scaledAdd (1-t, iGradM);
-      iGradMd.scaledAdd (-iN, gct[2]);
+      iGradMd.scaledAdd (-iN, gct2);
       iGradMd.scale (0.5);
       
       Vector3d jGradMd = new Vector3d();
       jGradMd.scaledAdd (1-t, jGradM);
-      jGradMd.scaledAdd (-jN, gct[2]);
+      jGradMd.scaledAdd (-jN, gct2);
       jGradMd.scale (0.5);
       
       Matrix3d Kuu = new Matrix3d();
@@ -719,6 +723,164 @@ public class FemUtilities {
       K.m55 += sKdd;
    }
    
+   /** 
+    * Add weighted material stiffness for this (i,j) node neighbor pair
+    * (represented by 6x6 stiffness block), relative to a particular integration
+    * point of the shell element.
+    * 
+    * This material stiffness also accounts for geometrical stiffness.
+    * 
+    * FEBio: FEElasticShellDomain::ElementStiffness
+    * 
+    * @param nbr FemNodeNeighbor containing the 3x3 stiffness blocks
+    * to be increased with material stiffness.
+    * 
+    * @param iN
+    * Shape function of i-th node and integration point.
+    * 
+    * @param jN
+    * Shape function of j-th node and integration point.
+    * 
+    * @param idN
+    * Derivative of shape function (wrt natural coords) of i-th node
+    * and integration point.
+    * 
+    * @param jdN 
+    * Derivative of shape function (wrt natural coords) of j-th node
+    * and integration point.
+    * 
+    * @param dv
+    * integrationPt.detJ * integrationPt.weight
+    * 
+    * @param t
+    * t-component of (r,s,t) integration point coordinates (i.e. x-component of 
+    * gauss point)
+    * 
+    * @param invJ
+    * Current inverse Jacobian at the integration point
+    * 
+    * @param matStress
+    * Material stress of integration point.
+    * 
+    * @param matTangent
+    * Material tangent of integration point.
+    * 
+    * Postcond:
+    * Stiffness is applied to K
+    */
+   public static void addShellMaterialStiffness (
+      FemNodeNeighbor nbr,
+      double iN, double jN, Vector3d idN, Vector3d jdN, double dv,
+      double t, Matrix3d invJ, SymmetricMatrix3d matStress,
+      Matrix6d matTangent) {
+     
+      // Compute gradM for i and j
+
+      Vector3d gct0 = new Vector3d (invJ.m00, invJ.m01, invJ.m02);
+      Vector3d gct1 = new Vector3d (invJ.m10, invJ.m11, invJ.m12);
+      Vector3d gct2 = new Vector3d (invJ.m20, invJ.m21, invJ.m22);
+
+      Vector3d iGradM = new Vector3d();
+      iGradM.scaledAdd(idN.x, gct0);
+      iGradM.scaledAdd(idN.y, gct1);
+      
+      Vector3d jGradM = new Vector3d();
+      jGradM.scaledAdd(jdN.x, gct0);
+      jGradM.scaledAdd(jdN.y, gct1);
+      
+      // Compute gradMu for i and j
+      
+      Vector3d iGradMu = new Vector3d();
+      iGradMu.scaledAdd(1+t, iGradM);
+      iGradMu.scaledAdd(iN, gct2);
+      iGradMu.scale(0.5);
+      
+      Vector3d jGradMu = new Vector3d();
+      jGradMu.scaledAdd(1+t, jGradM);
+      jGradMu.scaledAdd(jN, gct2);
+      jGradMu.scale(0.5);
+      
+      // Compute gradMd for i and j
+      
+      Vector3d iGradMd = new Vector3d();
+      iGradMd.scaledAdd (1-t, iGradM);
+      iGradMd.scaledAdd (-iN, gct2);
+      iGradMd.scale (0.5);
+      
+      Vector3d jGradMd = new Vector3d();
+      jGradMd.scaledAdd (1-t, jGradM);
+      jGradMd.scaledAdd (-jN, gct2);
+      jGradMd.scale (0.5);
+      
+      Matrix3d Kuu = new Matrix3d();
+      TensorUtils.v3DotTens4sDotv3 (/*out=*/Kuu, iGradMu, matTangent, jGradMu);
+      Kuu.scale(dv);
+      
+      Matrix3d Kud = new Matrix3d();
+      TensorUtils.v3DotTens4sDotv3 (Kud, iGradMu, matTangent, jGradMd);
+      Kud.scale (dv);
+      
+      Matrix3d Kdu = new Matrix3d();
+      TensorUtils.v3DotTens4sDotv3 (Kdu, iGradMd, matTangent, jGradMu);
+      Kdu.scale (dv);
+      
+      Matrix3d Kdd = new Matrix3d();
+      TensorUtils.v3DotTens4sDotv3 (Kdd, iGradMd, matTangent, jGradMd);
+      Kdd.scale (dv);
+
+      // Material component 
+
+      Matrix3d K00 = nbr.myK;
+      Matrix3d K01 = nbr.myK01;
+      Matrix3d K10 = nbr.myK10;
+      Matrix3d K11 = nbr.myK11;
+      
+      K00.m00 += Kuu.m00;  K00.m01 += Kuu.m01;  K00.m02 += Kuu.m02;
+      K00.m10 += Kuu.m10;  K00.m11 += Kuu.m11;  K00.m12 += Kuu.m12;
+      K00.m20 += Kuu.m20;  K00.m21 += Kuu.m21;  K00.m22 += Kuu.m22;
+      
+      K01.m00 += Kud.m00;  K01.m01 += Kud.m01;  K01.m02 += Kud.m02;
+      K01.m10 += Kud.m10;  K01.m11 += Kud.m11;  K01.m12 += Kud.m12;
+      K01.m20 += Kud.m20;  K01.m21 += Kud.m21;  K01.m22 += Kud.m22;
+      
+      K10.m00 += Kdu.m00;  K10.m01 += Kdu.m01;  K10.m02 += Kdu.m02;
+      K10.m10 += Kdu.m10;  K10.m11 += Kdu.m11;  K10.m12 += Kdu.m12;
+      K10.m20 += Kdu.m20;  K10.m21 += Kdu.m21;  K10.m22 += Kdu.m22;
+      
+      K11.m00 += Kdd.m00;  K11.m01 += Kdd.m01;  K11.m02 += Kdd.m02;
+      K11.m10 += Kdd.m10;  K11.m11 += Kdd.m11;  K11.m12 += Kdd.m12;
+      K11.m20 += Kdd.m20;  K11.m21 += Kdd.m21;  K11.m22 += Kdd.m22;
+      
+      // Stress component 
+      
+      Vector3d sjGradMu = new Vector3d( jGradMu );   
+      matStress.mul (sjGradMu);
+      
+      Vector3d sjGradMd = new Vector3d( jGradMd ); 
+      matStress.mul (sjGradMd);
+                              
+      double sKuu = iGradMu.dot(sjGradMu) * dv;
+      double sKud = iGradMu.dot(sjGradMd) * dv;
+      double sKdu = iGradMd.dot(sjGradMu) * dv;
+      double sKdd = iGradMd.dot(sjGradMd) * dv;
+      
+      K00.m00 += sKuu;
+      K00.m11 += sKuu;
+      K00.m22 += sKuu; 
+      
+      K01.m00 += sKud;
+      K01.m11 += sKud;
+      K01.m22 += sKud; 
+      
+      K10.m00 += sKdu;
+      K10.m11 += sKdu;
+      K10.m22 += sKdu;
+      
+      K11.m00 += sKdd;
+      K11.m11 += sKdd;
+      K11.m22 += sKdd;
+   }
+   
    
    /** 
     * Adds the material+geometric forces on a node resulting from a given stress
@@ -753,28 +915,32 @@ public class FemUtilities {
     * y (i.e. s) component of derivative of shape function of node and
     * integration point.
     * 
-    * @param gct 
-    * Contravariant base vectors of integration point.
+    * @param invJ
+    * Current inverse Jacobian at the integration point
     * 
     * Postcond:
     * Stress forces are applied to f and df
     */
    public static void addShellStressForce (
       Vector3d f, Vector3d df, SymmetricMatrix3d sig, double t, double dv, 
-      double N, double dNdr, double dNds, Vector3d[] gct) {
+      double N, double dNdr, double dNds, Matrix3d invJ) {
+
+      Vector3d gct0 = new Vector3d (invJ.m00, invJ.m01, invJ.m02);
+      Vector3d gct1 = new Vector3d (invJ.m10, invJ.m11, invJ.m12);
+      Vector3d gct2 = new Vector3d (invJ.m20, invJ.m21, invJ.m22);
       
       Vector3d gradM = new Vector3d();
-      gradM.scaledAdd(dNdr, gct[0]);
-      gradM.scaledAdd(dNds, gct[1]);
+      gradM.scaledAdd(dNdr, gct0);
+      gradM.scaledAdd(dNds, gct1);
       
       Vector3d gradMu = new Vector3d();
       gradMu.scaledAdd (1+t, gradM);
-      gradMu.scaledAdd (N, gct[2]);
+      gradMu.scaledAdd (N, gct2);
       gradMu.scale (0.5);
       
       Vector3d gradMd = new Vector3d();
       gradMd.scaledAdd (1-t, gradM);
-      gradMd.scaledAdd (-N, gct[2]);
+      gradMd.scaledAdd (-N, gct2);
       gradMd.scale (0.5);
       
       Vector3d fu = new Vector3d(gradMu);

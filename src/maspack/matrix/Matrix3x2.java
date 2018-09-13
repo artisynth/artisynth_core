@@ -391,6 +391,28 @@ public class Matrix3x2 extends DenseMatrixBase {
    }
 
    /**
+    * Sets this matrix to the negative of M.
+    * 
+    * @param M
+    * matrix to negate
+    */
+   public void negate (Matrix3x2 M) {
+      m00 = -M.m00;
+      m01 = -M.m01;
+      m10 = -M.m10;
+      m11 = -M.m11;
+      m20 = -M.m20;
+      m21 = -M.m21;
+   }
+
+   /**
+    * Negates this matrix in place.
+    */
+   public void negate() {
+      negate (this);
+   }
+
+   /**
     * Subtracts this matrix from M and places the result in this matrix.
     * 
     * @param M
@@ -455,6 +477,26 @@ public class Matrix3x2 extends DenseMatrixBase {
     */
    public void mulAdd (Matrix M1, Matrix M2) {
       MatrixMulAdd.mulAdd3x2 (this, M1, M2);
+   }
+
+   /**
+    * Multiplies M1 by M2^T and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeRightAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeRightAdd.mulTransposeRightAdd3x2 (this, M1, M2);
+   }
+
+   /**
+    * Multiplies M1^T by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeLeftAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeLeftAdd.mulTransposeLeftAdd3x2 (this, M1, M2);
    }
 
    /** 

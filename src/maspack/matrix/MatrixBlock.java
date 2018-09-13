@@ -92,6 +92,11 @@ public interface MatrixBlock extends DenseMatrix, Clonable {
    public void sub (Matrix M);
 
    /**
+    * Negates this matrix in place.
+    */
+   public void negate();
+
+   /**
     * Gets the number of the block column of this matrix block within a
     * {@link maspack.matrix.SparseBlockMatrix SparseBlockMatrix}.
     * 
@@ -154,6 +159,23 @@ public interface MatrixBlock extends DenseMatrix, Clonable {
     * @param M2 right matrix term
     */
    public void mulAdd (Matrix M1, Matrix M2);
+
+   /**
+    * Multiplies M1 by M2^T and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeRightAdd (Matrix M1, Matrix M2);
+
+
+   /**
+    * Multiplies M1^T by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeLeftAdd (Matrix M1, Matrix M2);
 
    /**
     * Pre-multiplies a column vector by this matrix block and adds the result to

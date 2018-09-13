@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
-import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.mechmodels.DynamicAttachmentComp;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ComponentListView;
 import artisynth.core.modelbase.CopyableComponent;
@@ -5384,8 +5384,8 @@ public class FemFactory {
          newm.setName(m.getName());
          fem0.myMarkers.add(newm);
       }
-      for (DynamicAttachment a : fem1.myAttachments) {
-         DynamicAttachment newa = a.copy(flags, copyMap);
+      for (DynamicAttachmentComp a : fem1.myAttachments) {
+         DynamicAttachmentComp newa = a.copy(flags, copyMap);
          newa.setName(a.getName());
          fem0.myAttachments.add(newa);
       }

@@ -95,24 +95,33 @@ public class IntegrationData3d {
       myDetJ0 = detJ0;
    }
    
-   public static double computeRestJacobian (
-      Matrix3d invJ0, Vector3d[] GNs, FemNode3d[] nodes) {
-      
-      Matrix3d J0 = new Matrix3d();
-      J0.setZero();
-      for (int i=0; i<nodes.length; i++) {
-         Vector3d pos = nodes[i].getLocalRestPosition();
-         Vector3d dNds = GNs[i];
-         J0.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
-      }
-      return invJ0.fastInvert (J0);
-   }
+//   public static double computeRestJacobian (
+//      Matrix3d invJ0, Vector3d[] GNs, FemNode3d[] nodes) {
+//      
+//      Matrix3d J0 = new Matrix3d();
+//      J0.setZero();
+//      for (int i=0; i<nodes.length; i++) {
+//         Vector3d pos = nodes[i].getLocalRestPosition();
+//         Vector3d dNds = GNs[i];
+//         J0.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+//      }
+//      return invJ0.fastInvert (J0);
+//   }
    
-   public void computeRestJacobian (Vector3d[] GNs, FemNode3d[] nodes) {
-      myDetJ0 = computeRestJacobian (myInvJ0, GNs, nodes);
+//   public void computeRestJacobian (Vector3d[] GNs, FemNode3d[] nodes) {
+//      myDetJ0 = computeRestJacobian (myInvJ0, GNs, nodes);
+//      if (myDetJ0 <= 0) {
+//         System.out.println ("Warning: inverted rest element, det="+myDetJ0);
+//      }
+//   }
+   
+   public double computeInverseRestJacobian (
+      IntegrationPoint3d ipnt, FemNode3d[] nodes) {
+      myDetJ0 = ipnt.computeInverseRestJacobian (myInvJ0, nodes);
       if (myDetJ0 <= 0) {
          System.out.println ("Warning: inverted rest element, det="+myDetJ0);
       }
+      return myDetJ0;
    }
 
    /** 

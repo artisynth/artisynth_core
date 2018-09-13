@@ -1341,7 +1341,7 @@ public class MechSystemSolver {
 
    // Setting crsFileName will cause the KKT system matrix and RHS
    // to be logged in CCS format.
-   private String crsFileName = null; // "testDataZiva.txt";
+   private String crsFileName = null; //"testData.txt";
    private PrintWriter crsWriter = null;
    private boolean crsOmitDiag = false;
 
@@ -1591,8 +1591,6 @@ public class MechSystemSolver {
                   myNT.colSize()+"): " + res);
          }
          //System.out.println ("bg=" + myBg);
-         //System.out.println ("S=\n" + S);
-
          if (crsWriter != null) {
             String msg = 
                "# KKTsolve M="+velSize+" G="+myGT.colSize()+
@@ -2812,7 +2810,7 @@ public class MechSystemSolver {
       mySys.getActiveForces (myF);
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
-
+      
       KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
       if (profileConstrainedBE) {
          timer.stop();

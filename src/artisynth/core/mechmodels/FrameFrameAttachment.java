@@ -259,14 +259,6 @@ public class FrameFrameAttachment extends FrameAttachment {
    }
 
    @Override
-   public void addMassToMaster (MatrixBlock mblk, MatrixBlock sblk, int i) {
-      if (myFrame.getMass(0) != 0) {
-         throw new UnsupportedOperationException (
-            "addMassToMaster() not yet supported for frames with non-zero mass");
-      }
-   }
-
-   @Override
    public void addMassToMasters() {
       if (myFrame.getEffectiveMass() != 0) {
          if (myFrame instanceof RigidBody && myMaster instanceof RigidBody) {

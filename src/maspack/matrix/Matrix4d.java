@@ -306,6 +306,36 @@ public class Matrix4d extends Matrix4dBase {
       m33 = vals[3];
    }
    
+   /**
+    * Sets this matrix to a diagonal matrix whose values are specified.
+    * 
+    * @param m00 first diagonal value
+    * @param m11 second diagonal value
+    * @param m22 third diagonal value
+    * @param m33 fourth diagonal value
+    */
+   public void setDiagonal (double m00, double m11, double m22, double m33) {
+      this.m00 = m00;
+      this.m01 = 0;
+      this.m02 = 0;
+      this.m03 = 0;
+
+      this.m10 = 0;
+      this.m11 = m11;
+      this.m12 = 0;
+      this.m13 = 0;
+
+      this.m20 = 0;
+      this.m21 = 0;
+      this.m22 = m22;
+      this.m23 = 0;
+
+      this.m30 = 0;
+      this.m31 = 0;
+      this.m32 = 0;
+      this.m33 = m33;
+   }
+
    public Matrix4d clone() {
       return (Matrix4d)super.clone();
    }

@@ -195,7 +195,7 @@ public class StiffnessTest {
    }
 
    private void testStiffness () {
-      SparseBlockMatrix S = fem.getActiveStiffness();
+      SparseBlockMatrix S = fem.getActiveStiffnessMatrix();
 
       // Vector3d[] GNx = getShapeGradient();
       // for (int i=0; i<4; i++) {

@@ -263,6 +263,26 @@ public class Matrix6d extends Matrix6dBase {
    }
 
    /**
+    * Multiplies M1 by M2^T and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeRightAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeRightAdd.mulTransposeRightAdd6x6 (this, M1, M2);
+   }
+
+   /**
+    * Multiplies M1^T by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeLeftAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeLeftAdd.mulTransposeLeftAdd6x6 (this, M1, M2);
+   }
+
+   /**
     * {@inheritDoc}
     */
    public void add (Matrix6dBase M1, Matrix6dBase M2) {
@@ -365,6 +385,14 @@ public class Matrix6d extends Matrix6dBase {
     */
    public void setDiagonal (double[] vals) {
       super.setDiagonal(vals);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setDiagonal (
+      double m00, double m11, double m22, double m33, double m44, double m55) {
+      super.setDiagonal (m00, m11, m22, m33, m44, m55);
    }
 
    /**

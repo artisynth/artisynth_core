@@ -437,7 +437,7 @@ public class Matrix3d extends Matrix3dBase {
    public void setDiagonal(double[] vals) {
       super.setDiagonal(vals);
    }
-
+ 
    /**
     * {@inheritDoc}
     */
@@ -445,7 +445,7 @@ public class Matrix3d extends Matrix3dBase {
       super.setDiagonal(m00, m11, m22);
    }
    
-   /**
+  /**
     * Sets this matrix to the symmetric component of matrix M1
     */
    public void setSymmetric (Matrix3dBase M1) {

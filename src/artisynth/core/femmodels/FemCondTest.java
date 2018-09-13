@@ -28,7 +28,7 @@ public class FemCondTest {
       }
       int nactive = fem.numActiveComponents();
       System.out.println ("nactive=" + nactive);
-      MatrixNd K = new MatrixNd (fem.getActiveStiffness());
+      MatrixNd K = new MatrixNd (fem.getActiveStiffnessMatrix());
       System.out.println ("K="+K.rowSize()+"X"+K.colSize());
       SVDecomposition svd = new SVDecomposition();
       svd.factor (K);

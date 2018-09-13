@@ -47,6 +47,8 @@ import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.mechmodels.Constrainer;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.mechmodels.DynamicAttachmentComp;
+import artisynth.core.mechmodels.DynamicAttachmentWorker;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.ForceEffector;
 import artisynth.core.mechmodels.HasSlaveObjects;
@@ -75,7 +77,7 @@ public abstract class FemModel extends MechSystemBase
    }
 
    protected PointList<FemMarker> myMarkers;
-   protected ComponentList<DynamicAttachment> myAttachments;
+   protected ComponentList<DynamicAttachmentComp> myAttachments;
 
    public enum SurfaceRender {
       None,
@@ -244,8 +246,8 @@ public abstract class FemModel extends MechSystemBase
       myMarkers = new PointList<FemMarker> (FemMarker.class, "markers", "m");
       addFixed (myMarkers);
       myAttachments =
-         new ComponentList<DynamicAttachment> (
-            DynamicAttachment.class, "attachments", "a");
+         new ComponentList<DynamicAttachmentComp> (
+            DynamicAttachmentComp.class, "attachments", "a");
 
       addFixed (myAttachments);
    }
@@ -665,7 +667,7 @@ public abstract class FemModel extends MechSystemBase
       return myMarkers;
    }
 
-   public ComponentList<DynamicAttachment> attachments() {
+   public ComponentList<DynamicAttachmentComp> attachments() {
       return myAttachments;
    }
 
@@ -684,7 +686,7 @@ public abstract class FemModel extends MechSystemBase
       }
       PointFem3dAttachment ax = new PointFem3dAttachment (p);
       ax.setFromNodes (nodes, coords);
-      if (DynamicAttachment.containsLoop (ax, p, null)) {
+      if (DynamicAttachmentWorker.containsLoop (ax, p, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
       }
@@ -693,8 +695,8 @@ public abstract class FemModel extends MechSystemBase
 
    public boolean detachPoint (Point p) {
       DynamicAttachment a = p.getAttachment();
-      if (a != null) {
-         removeAttachment (a);
+      if (a instanceof DynamicAttachmentComp) {
+         removeAttachment ((DynamicAttachmentComp)a);
          return true;
       }
       else {
@@ -702,12 +704,12 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
-   void addAttachment (DynamicAttachment ax) {
+   void addAttachment (DynamicAttachmentComp ax) {
       ax.updatePosStates();
       myAttachments.add (ax);
    }
 
-   void removeAttachment (DynamicAttachment ax) {
+   void removeAttachment (DynamicAttachmentComp ax) {
       myAttachments.remove (ax);
    }
 

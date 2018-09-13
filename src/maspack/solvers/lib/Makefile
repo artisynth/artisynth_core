@@ -44,8 +44,8 @@ PARDISO_VERSION = 11.1.2.1
 
 ifeq ($(SYSTEM),Linux)
 	ifndef MKL_HOME
-	   MKL_HOME = /scratch/intel/composer_xe_2013_sp1.2.144
-	   #MKL_HOME = /scratch/intel/composer_xe_2015.2.164
+	   MKL_HOME = /data/intel/composer_xe_2013_sp1.2.144
+	   #MKL_HOME = /data/intel/composer_xe_2015.2.164
         endif
 	ifeq ($(ARCH), 64)
 	   NATIVE_DIR = Linux64
@@ -69,7 +69,7 @@ ifeq ($(SYSTEM),Linux)
              $(MKL)/libmkl_intel_lp64.a $(MKL)/libmkl_intel_thread.a \
              $(MKL)/libmkl_core.a -Wl,--end-group -Wl,--wrap=memcpy \
 	     -ldl -liomp5 -lpthread -lm
-	   CC_FLAGS = -m64 -O2 -fno-strict-aliasing -fPIC -pthread -DLINUX
+	   CC_FLAGS = -m64 -O2 -fno-strict-aliasing -fpermissive -fPIC -pthread -DLINUX
 	else
 	   # 32 bit Linux is no longer supported, so this may not work
 	   NATIVE_DIR = Linux

@@ -13,6 +13,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorBase;
 import maspack.matrix.Matrix6x1;
+import maspack.matrix.Matrix1x6;
 import maspack.util.NumberFormat;
 
 /**
@@ -139,6 +140,22 @@ public abstract class SpatialVector extends VectorBase
       M.m30 = b.x;
       M.m40 = b.y;
       M.m50 = b.z;
+    }
+
+   /**
+    * Copies the value of this spatial vector into a Matrix1x6.
+    * 
+    * @param M
+    * matrix to be set
+    */
+   public void get (Matrix1x6 M)
+    { 
+      M.m00 = a.x;
+      M.m01 = a.y;
+      M.m02 = a.z;
+      M.m03 = b.x;
+      M.m04 = b.y;
+      M.m05 = b.z;
     }
 
    /**

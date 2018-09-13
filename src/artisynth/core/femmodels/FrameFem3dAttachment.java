@@ -85,13 +85,17 @@ public class FrameFem3dAttachment extends FrameAttachment {
       return null;
    }
 
-   private FemModelFrame getFemFrame() {
+   private FemModelFrame getFemFrameX() {
       if (myFem.usingAttachedRelativeFrame()) {
          return myFem.getFrame();
       }
       else {
          return null;
       }
+   }
+
+   private FemModelFrame getFemFrame() {
+      return null;
    }
 
    // =========== Constraint code - need to finish =======
@@ -148,7 +152,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       // update dot P
       Matrix3d dF = new Matrix3d();
       for (int i=0; i<myNodes.length; i++) {
-         dF.addOuterProduct (myNodes[i].getLocalVelocity(), myGNX[i]);
+         dF.addOuterProduct (myNodes[i].getVelocity(), myGNX[i]);
       }
       Matrix3d dotP = new Matrix3d();
       Matrix3d wP = new Matrix3d();
@@ -228,7 +232,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       myIpnt = IntegrationPoint3d.create (
          elem, coords.x, coords.y, coords.z, 1.0);
       myData = new IntegrationData3d();
-      myData.computeRestJacobian (myIpnt.GNs, elem.getNodes());
+      myData.computeInverseRestJacobian (myIpnt, elem.getNodes());
 
       VectorNd N = myIpnt.getShapeWeights();
       myWeights = Arrays.copyOf (N.getBuffer(), N.size());
@@ -478,12 +482,12 @@ public class FrameFem3dAttachment extends FrameAttachment {
          Matrix3d F = new Matrix3d();
          Vector3d pos = new Vector3d();
          for (int i=0; i<myNodes.length; i++) {
-            pos.scaledAdd (myWeights[i], myNodes[i].getLocalPosition());
+            pos.scaledAdd (myWeights[i], myNodes[i].getPosition());
          }
          for (int i=0; i<myNodes.length; i++) {
             Vector3d udef = new Vector3d();
             Vector3d gNX = myGNX[i];
-            udef.sub (myNodes[i].getLocalPosition(), pos);
+            udef.sub (myNodes[i].getPosition(), pos);
             F.addOuterProduct (
                udef.x, udef.y, udef.z, gNX.x, gNX.y, gNX.z);
          }
@@ -575,7 +579,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
    private void computeFramePosition (Vector3d p) {
       p.setZero();
       for (int i=0; i<myNodes.length; i++) {
-         p.scaledAdd (myWeights[i], myNodes[i].getLocalPosition());
+         p.scaledAdd (myWeights[i], myNodes[i].getPosition());
       }
    }
    
@@ -596,13 +600,13 @@ public class FrameFem3dAttachment extends FrameAttachment {
 
       velFM.setZero();
       for (int i=0; i<myNodes.length; i++) {
-         velFM.v.scaledAdd (myWeights[i], myNodes[i].getLocalVelocity());
+         velFM.v.scaledAdd (myWeights[i], myNodes[i].getVelocity());
       }
       RotationMatrix3d RE = new RotationMatrix3d();
       RE.mulInverseRight (myTFM.R, myRFD);
       Vector3d vloc = new Vector3d();
       for (int i=0; i<myNodes.length; i++) {
-         vloc.inverseTransform (RE, myNodes[i].getLocalVelocity());
+         vloc.inverseTransform (RE, myNodes[i].getVelocity());
          velFM.w.crossAdd (myGNX[i], vloc, velFM.w);
       }
       myInvB.mul (velFM.w, velFM.w);
@@ -645,7 +649,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       for (int i=0; i<myNodes.length; i++) {
          Matrix3x6Block blk = (Matrix3x6Block)myMasterBlocks[idx++];
          computeNodeForce (f, blk, forceA);
-         myNodes[i].addLocalForce (f);
+         myNodes[i].addForce (f);
       }
    }
 
@@ -661,14 +665,6 @@ public class FrameFem3dAttachment extends FrameAttachment {
       buf[idx+4] = dvel.w.y;
       buf[idx+5] = dvel.w.z;
       return true;
-   }
-
-   @Override
-   public void addMassToMaster (MatrixBlock mblk, MatrixBlock sblk, int i) {
-      if (myFrame.getMass(0) != 0) {
-         throw new UnsupportedOperationException (
-            "addMassToMaster() not yet supported for frames with non-zero mass");
-      }
    }
 
    @Override
@@ -765,7 +761,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       Vector3d term2 = new Vector3d();
       
       for (int i=0; i<myNodes.length; i++) {
-         vloc.inverseTransform (RE, myNodes[i].getLocalVelocity());
+         vloc.inverseTransform (RE, myNodes[i].getVelocity());
          wXv.cross (wD, vloc);
          term2.crossAdd (myGNX[i], wXv, term2);
          dw.crossAdd (myGNX[i], vloc, dw);
@@ -787,7 +783,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       
       vel.setZero();
       for (int i=0; i<myNodes.length; i++) {
-         vel.v.scaledAdd (myWeights[i], myNodes[i].getLocalVelocity());
+         vel.v.scaledAdd (myWeights[i], myNodes[i].getVelocity());
       }
       vel.v.inverseTransform (RFM);
 
@@ -795,7 +791,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       RE.mulInverseRight (RFM, myRFD);
       Vector3d vloc = new Vector3d();
       for (int i=0; i<myNodes.length; i++) {
-         vloc.inverseTransform (RE, myNodes[i].getLocalVelocity());
+         vloc.inverseTransform (RE, myNodes[i].getVelocity());
          vel.w.crossAdd (myGNX[i], vloc, vel.w);
       }
       myInvB.mul (vel.w, vel.w);
@@ -871,13 +867,13 @@ public class FrameFem3dAttachment extends FrameAttachment {
      
       vel.setZero();
       for (int i=0; i<myNodes.length; i++) {
-         vel.v.scaledAdd (myWeights[i], myNodes[i].getLocalVelocity());
+         vel.v.scaledAdd (myWeights[i], myNodes[i].getVelocity());
       }
       RotationMatrix3d RE = new RotationMatrix3d();
       RE.mulInverseRight (RFM, myRFD);
       Vector3d vloc = new Vector3d();
       for (int i=0; i<myNodes.length; i++) {
-         vloc.inverseTransform (RE, myNodes[i].getLocalVelocity());
+         vloc.inverseTransform (RE, myNodes[i].getVelocity());
          vel.w.crossAdd (myGNX[i], vloc, vel.w);
       }
       myInvB.mul (vel.w, vel.w);

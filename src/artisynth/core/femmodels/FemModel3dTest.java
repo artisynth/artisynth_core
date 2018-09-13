@@ -48,7 +48,7 @@ public class FemModel3dTest extends UnitTest {
       for (int i=0; i<nnodes; i++) {
          FemNode3d n = fem.getNodes().get(i);
          double m = n.getMass();
-         n.getLocalPosition(cl);
+         cl.set(n.getLocalPosition());
          cw.transform (R, cl);
 
          // compute matrix components

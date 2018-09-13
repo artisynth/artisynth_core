@@ -6,8 +6,6 @@
  */
 package artisynth.core.mechmodels;
 
-import artisynth.core.mechmodels.MotionTarget.TargetActivity;
-import artisynth.core.modelbase.*;
 import maspack.matrix.*;
 import maspack.util.*;
 
@@ -17,12 +15,10 @@ import maspack.util.*;
 public class PointTarget extends MotionTarget {
    protected Point3d myPos;
    protected Vector3d myVel;
-   protected Vector3d myTmp;
 
    public PointTarget (TargetActivity explicitActivity) {
       myPos = new Point3d();
       myVel = new Vector3d();
-      myTmp = new Vector3d();
       setActivity (explicitActivity);
    }
 
@@ -165,10 +161,11 @@ public class PointTarget extends MotionTarget {
    public int getTargetVel (
       double[] buf, double s, double h, PointState state, int idx) {
 
-      getTargetVel (myTmp, s, h, state);
-      buf[idx++] = myTmp.x;
-      buf[idx++] = myTmp.y;
-      buf[idx++] = myTmp.z;
+      Vector3d tmp = new Vector3d();
+      getTargetVel (tmp, s, h, state);
+      buf[idx++] = tmp.x;
+      buf[idx++] = tmp.y;
+      buf[idx++] = tmp.z;
       return idx;
    }
 
@@ -184,10 +181,11 @@ public class PointTarget extends MotionTarget {
    public int getTargetPos (
       double[] buf, double s, double h, PointState state, int idx) {
 
-      getTargetPos (myTmp, s, h, state);
-      buf[idx++] = myTmp.x;
-      buf[idx++] = myTmp.y;
-      buf[idx++] = myTmp.z;
+      Vector3d tmp = new Vector3d();
+      getTargetPos (tmp, s, h, state);
+      buf[idx++] = tmp.x;
+      buf[idx++] = tmp.y;
+      buf[idx++] = tmp.z;
       return idx;
    }
 

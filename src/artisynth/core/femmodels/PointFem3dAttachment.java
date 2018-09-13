@@ -50,9 +50,6 @@ public class PointFem3dAttachment extends PointAttachment {
    private FemElement myElement;
    private FemNode[] myNodes;
    private VectorNd myCoords;
-   private Frame myFemFrame;
-   // neither the point nor the FEM are frame-relative
-   boolean myNoFrameRelativeP = true;
 
    public PointFem3dAttachment() {
    }
@@ -73,74 +70,14 @@ public class PointFem3dAttachment extends PointAttachment {
    
    protected void collectMasters (List<DynamicComponent> masters) {
       super.collectMasters (masters);
-      myFemFrame = null;
       if (myNodes != null) {
-         // check to see if nodes are associated with a frame-based FEM.
-         // if so, then add that frame as a master
-         for (int i=0; i<myNodes.length; i++) {
-            FemNode n = myNodes[i];
-            Frame nframe = n.getPointFrame();
-            if (nframe != null) {
-               if (myFemFrame == null) {
-                  myFemFrame = nframe;
-                  masters.add (myFemFrame);
-               }
-               else if (myFemFrame != nframe) {
-                  throw new UnsupportedOperationException (
-                     "PointFem3d attachment not supported for multiple " +
-                     "frame-based FEMs");
-               }
-            }
-         }
-         // add nodes as master components as well
+         // add nodes as master components
          for (int i=0; i<myNodes.length; i++) {
             masters.add (myNodes[i]);
          }
       }
    }
    
-   @Override
-   protected int updateMasterBlocks() {
-      int idx = super.updateMasterBlocks();
-      RotationMatrix3d R1 = null;
-      RotationMatrix3d R2 = null;
-      if (idx == 1) {
-         // then the point also has a frame; set R1 to that frame's rotation
-         R1 = myPoint.getPointFrame().getPose().R;
-      }
-      myNoFrameRelativeP = false;
-      if (myFemFrame != null) {
-         R2 = myFemFrame.getPose().R;
-         Point3d lpos = new Point3d(); // local position in FemFrame
-         lpos.inverseTransform (myFemFrame.getPose(), myPoint.getPosition());
-         myFemFrame.computeLocalPointForceJacobian (
-            myMasterBlocks[idx++], lpos, R1);
-      }
-      else if (R1 == null) {
-         myNoFrameRelativeP = true;
-      }
-      if (!myNoFrameRelativeP) {
-         RotationMatrix3d R = new RotationMatrix3d();
-         if (R1 != null && R2 != null) {
-            R.mulInverseLeft (R2, R1);
-         }
-         else if (R1 != null){
-            R.set (R1);
-         }
-         else if (R2 != null) {
-            R.transpose (R2);
-         }
-         for (int i=0; i<myNodes.length; i++) {
-            Matrix3x3Block pblk = (Matrix3x3Block)myMasterBlocks[idx++];
-            pblk.scale (myCoords.get(i), R);
-         }
-      }
-      else {
-         // no need to update blocks since blocks will not be used
-      }
-      return idx;
-   }
-
    FemModel3d getFemModel () {
       if (myElement != null) {
          ModelComponent gparent = myElement.getGrandParent();
@@ -309,7 +246,6 @@ public class PointFem3dAttachment extends PointAttachment {
          Point3d pntw = new Point3d();
          getCurrentPos (pntw);
          myPoint.setPosition (pntw);
-         updateMasterBlocks();
       }
    }
 
@@ -324,29 +260,23 @@ public class PointFem3dAttachment extends PointAttachment {
       }
    }
 
-   public void getCurrentVel (Vector3d vel, Vector3d dvel) {
+   public void getCurrentVel (Vector3d vel) {
       if (myNodes != null) {
          double[] coords = myCoords.getBuffer();
          vel.setZero();
          for (int i = 0; i < myNodes.length; i++) {
             vel.scaledAdd (coords[i], myNodes[i].getVelocity(), vel);
          }
-         if (dvel != null) {
-           computeVelDerivative (dvel); 
-         }
       }
       else {
          vel.setZero();
-         if (dvel != null) {
-            dvel.setZero();
-         }
       }
    }
 
    public void updateVelStates() {
       if (myPoint != null) {
          Vector3d velw = new Vector3d();
-         getCurrentVel (velw, null);
+         getCurrentVel (velw);
          myPoint.setVelocity (velw);
       }
    }
@@ -385,11 +315,6 @@ public class PointFem3dAttachment extends PointAttachment {
             Vector3d nodeForce = myNodes[i].getForce();
             nodeForce.scaledAdd (coords[i], force, nodeForce);
          }
-         if (myFemFrame != null) {
-            Point3d ploc = new Point3d(myPoint.getPosition());
-            ploc.inverseTransform (myFemFrame.getPose());
-            myFemFrame.addPointForce (ploc, force);
-         }
       }
    }
 
@@ -405,36 +330,27 @@ public class PointFem3dAttachment extends PointAttachment {
       depBlk.scaledAdd (myCoords.get (idx), blk);
    }
 
-   public void mulSubGT (MatrixBlock D, MatrixBlock B, int idx) {
-      if (myNoFrameRelativeP) {
-         addBlock (D, B, idx);
-      }
-      else {
-         D.mulAdd (myMasterBlocks[idx], B);   
-      }
+   public void mulSubGTM (MatrixBlock D, MatrixBlock M, int idx) {
+      addBlock (D, M, idx);
    }
 
-   public void mulSubG (MatrixBlock D, MatrixBlock B, int idx) {
-      if (myNoFrameRelativeP) {
-         addBlock (D, B, idx);
-      }
-      else {
-         MatrixBlock G = myMasterBlocks[idx].createTranspose();
-         D.mulAdd (B, G);         
-      }
+   public void mulSubMG (MatrixBlock D, MatrixBlock M, int idx) {
+      addBlock (D, M, idx);
+   }
+
+   public MatrixBlock getGT (int idx) {
+      Matrix3x3Block blk = new Matrix3x3Block();
+      double s = myCoords.get (idx);
+      blk.setDiagonal (-s, -s, -s);
+      return blk;
    }
 
    public void mulSubGT (
       double[] ybuf, int yoff, double[] xbuf, int xoff, int idx) {
-      if (myNoFrameRelativeP) {
-         double s = myCoords.get (idx);
-         ybuf[yoff  ] += s*xbuf[xoff  ];
-         ybuf[yoff+1] += s*xbuf[xoff+1];
-         ybuf[yoff+2] += s*xbuf[xoff+2];
-      }
-      else {
-         myMasterBlocks[idx].mulAdd (ybuf, yoff, xbuf, xoff);
-      }
+      double s = myCoords.get (idx);
+      ybuf[yoff  ] += s*xbuf[xoff  ];
+      ybuf[yoff+1] += s*xbuf[xoff+1];
+      ybuf[yoff+2] += s*xbuf[xoff+2];
    }
 
    protected static void scanNodes (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -749,95 +665,11 @@ public class PointFem3dAttachment extends PointAttachment {
       myPoint.addEffectiveMass(-m);
    }
    
-   public void addMassToMaster (MatrixBlock mblk, MatrixBlock sblk, int idx) {
-      if (idx >= myNodes.length) {
-         throw new IllegalArgumentException (
-            "Master idx="+idx+" must be in the range [0,"+(myNodes.length-1)+"]");
-      }
-      if (!(mblk instanceof Matrix3x3Block)) {
-         throw new IllegalArgumentException (
-            "Master blk not instance of Matrix6dBlock");
-      }
-      if (!(sblk instanceof Matrix3x3Block)) {
-         throw new IllegalArgumentException (
-            "Master blk not instance of Matrix3x3Block");
-      }
-      double ci = myCoords.get(idx);
-      // This is ci instead of ci*ci because mass is lumped ...
-      double m = ci*((Matrix3x3Block)sblk).m00;
-      Matrix3x3Block dblk = (Matrix3x3Block)mblk;
-      dblk.m00 += m;
-      dblk.m11 += m;
-      dblk.m22 += m;
-   }
-
-   private boolean computeVelDerivative (Vector3d dvel) {
-      Frame pframe = myPoint.getPointFrame();
-      boolean isNonZero = false;
-
-      // can we optimize this? If the attachment has been enforced, then can we
-      // compute lp2 and lv2 directly from the point itself?
-      Vector3d lv2 = new Vector3d();
-      Vector3d lp2 = new Vector3d();
-      double[] coords = myCoords.getBuffer();      
-      for (int i=0; i<myNodes.length; i++) {
-         FemNode node = myNodes[i];
-         double w = coords[i];
-         lv2.scaledAdd (w, node.getLocalVelocity());
-         lp2.scaledAdd (w, node.getLocalPosition());
-      }
-
-      if (myFemFrame != null) {
-         RotationMatrix3d R2 = myFemFrame.getPose().R;
-         Twist vel2 = myFemFrame.getVelocity();
-         Vector3d tmp1 = new Vector3d();
-         Vector3d tmp2 = new Vector3d();
-         tmp1.transform (R2, lp2);  // R2*lp2
-         tmp2.transform (R2, lv2);  // R2*lv2
-         // tmp1 = w2 X R2*lp2 + R2*lv2
-         tmp1.crossAdd (vel2.w, tmp1, tmp2);
-         // dvel = w2 X R2*lv2 + w2 X tmp1
-         dvel.cross (vel2.w, tmp2);
-         dvel.crossAdd (vel2.w, tmp1, dvel);
-         if (pframe != null) {
-            RotationMatrix3d R1 = pframe.getPose().R;
-            Twist vel1 = pframe.getVelocity();
-            tmp2.transform (R1, myPoint.getLocalVelocity());  // R1*lv1
-            tmp2.negate();
-            // tmp2 = -R1*lv1 - u2 + u1 - tmp1
-            tmp2.sub (vel2.v);
-            tmp2.add (vel1.v);
-            tmp2.sub (tmp1);
-            // dvel = R1^T (w1 X tmp2 + dvel)
-            dvel.crossAdd (vel1.w, tmp2, dvel);
-            dvel.inverseTransform (R1);            
-         }
-         isNonZero = true;
-      }
-      else if (pframe != null) {
-         RotationMatrix3d R1 = pframe.getPose().R;
-         Twist vel1 = pframe.getVelocity();
-         // dvel = R1^T (w1 X (u1 - R1*lv1 - lv2))
-         dvel.transform (R1, myPoint.getLocalVelocity()); // R1*lv1
-         dvel.negate();
-         // since Fem has no frame, lv2 and world velocity are the same
-         dvel.sub (lv2);
-         dvel.add (vel1.v);
-         dvel.cross (vel1.w, dvel);
-         dvel.inverseTransform (R1);
-         isNonZero = true;
-      }
-      return isNonZero;
-   }
-   
    public boolean getDerivative (double[] buf, int idx) {
-
-      Vector3d dvel = new Vector3d();
-      boolean isNonZero = computeVelDerivative (dvel);
-      buf[idx  ] = dvel.x;
-      buf[idx+1] = dvel.y;
-      buf[idx+2] = dvel.z;
-      return isNonZero;
+      buf[idx  ] = 0;
+      buf[idx+1] = 0;
+      buf[idx+2] = 0;
+      return false;
    }
 
    public FemNode[] getNodes() {
@@ -857,7 +689,6 @@ public class PointFem3dAttachment extends PointAttachment {
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       PointFem3dAttachment a = (PointFem3dAttachment)super.copy (flags, copyMap);
 
-      myFemFrame = null; // will be reset in collectMasters()
       if (myNodes != null) {
          a.myNodes = new FemNode[myNodes.length];
          for (int i=0; i<myNodes.length; i++) {

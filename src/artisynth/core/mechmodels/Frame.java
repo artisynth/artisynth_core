@@ -390,14 +390,12 @@ public class Frame extends DynamicComponentBase
     }
 
     /**
-     * Computes a force Jacobian for a point attached to this frame, and then
-     * optionally rotates its columns using a rotation matrix R. If the
+     * Computes a force Jacobian for a point attached to this frame. If the
      * velocity state size (vsize) of this frame is 6, then G should be an
      * instance of Matrix6x3Block. Otherwise, it should be an instance of
      * MatrixNdBlock with a size of vsize x 3.
      * 
-     * If the rotation matrix R is <code>null</code>, then the Jacobian
-     * takes the following form for the 6x3 matrix case:
+     * The Jacobian takes the following form for the 6x3 matrix case:
      * <pre>
      * [     I       ]
      * [             ]
@@ -407,20 +405,10 @@ public class Frame extends DynamicComponentBase
      * point in frame coordinates, and [ x ] denotes the 3x3 skew-symmetric
      * cross product matrix.
      *
-     * If the rotation matrix R is not <code>null</code>, then the
-     * 6x3 case takes the following form:
-     * <pre>
-     * [     R         ]
-     * [               ]
-     * [ [ RF loc ]  R ]
-     * </pre>
-     *
      * @param GT returns the force Jacobian
      * @param loc location of the point, relative to the frame
-     * @param R optional rotation transform
      */
-     public void computeLocalPointForceJacobian (
-        MatrixBlock GT, Vector3d loc, RotationMatrix3d R) {
+     public void computeLocalPointForceJacobian (MatrixBlock GT, Vector3d loc) {
         
         Matrix6x3Block blk;
         try {
@@ -437,48 +425,25 @@ public class Frame extends DynamicComponentBase
         double y = locw.y;
         double z = locw.z;
 
-        if (R == null) {
-           blk.m00 = 1;
-           blk.m01 = 0;
-           blk.m02 = 0;
-           blk.m10 = 0;
-           blk.m11 = 1;
-           blk.m12 = 0;
-           blk.m20 = 0;
-           blk.m21 = 0;
-           blk.m22 = 1;
+        blk.m00 = 1;
+        blk.m01 = 0;
+        blk.m02 = 0;
+        blk.m10 = 0;
+        blk.m11 = 1;
+        blk.m12 = 0;
+        blk.m20 = 0;
+        blk.m21 = 0;
+        blk.m22 = 1;
 
-           blk.m30 = 0;
-           blk.m31 = -z;
-           blk.m32 = y;
-           blk.m40 = z;
-           blk.m41 = 0;
-           blk.m42 = -x;           
-           blk.m50 = -y;
-           blk.m51 = x;
-           blk.m52 = 0;
-        }
-        else {
-           blk.m00 = R.m00;
-           blk.m01 = R.m01;
-           blk.m02 = R.m02;
-           blk.m10 = R.m10;
-           blk.m11 = R.m11;
-           blk.m12 = R.m12;
-           blk.m20 = R.m20;
-           blk.m21 = R.m21;
-           blk.m22 = R.m22;
-
-           blk.m30 = y*R.m20 - z*R.m10;
-           blk.m31 = y*R.m21 - z*R.m11;
-           blk.m32 = y*R.m22 - z*R.m12;
-           blk.m40 = z*R.m00 - x*R.m20;
-           blk.m41 = z*R.m01 - x*R.m21;
-           blk.m42 = z*R.m02 - x*R.m22;
-           blk.m50 = x*R.m10 - y*R.m00;
-           blk.m51 = x*R.m11 - y*R.m01;
-           blk.m52 = x*R.m12 - y*R.m02;
-        }
+        blk.m30 = 0;
+        blk.m31 = -z;
+        blk.m32 = y;
+        blk.m40 = z;
+        blk.m41 = 0;
+        blk.m42 = -x;           
+        blk.m50 = -y;
+        blk.m51 = x;
+        blk.m52 = 0;
      }
 
    /**
@@ -1222,7 +1187,7 @@ public class Frame extends DynamicComponentBase
 
    public PointFrameAttachment createPointAttachment (Point pnt) {
       PointFrameAttachment pfa = new PointFrameAttachment (this, pnt, null);
-      if (DynamicAttachment.containsLoop (pfa, pnt, null)) {
+      if (DynamicAttachmentWorker.containsLoop (pfa, pnt, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
       }
@@ -1241,7 +1206,7 @@ public class Frame extends DynamicComponentBase
       FrameFrameAttachment ffa = new FrameFrameAttachment (frame);
       ffa.set (this, TFW);
       if (frame != null) {
-         if (DynamicAttachment.containsLoop (ffa, frame, null)) {
+         if (DynamicAttachmentWorker.containsLoop (ffa, frame, null)) {
             throw new IllegalArgumentException (
                "attachment contains loop");
          }
@@ -1335,6 +1300,35 @@ public class Frame extends DynamicComponentBase
    protected void updateVelState() {
       
    }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRandomPosState() {
+      RigidTransform3d XFW = new RigidTransform3d();
+      XFW.setRandom();
+      setPose (XFW);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRandomVelState() {
+      Twist vel = new Twist();
+      vel.setRandom();
+      setVelocity (vel);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setRandomForce() {
+      Wrench force = new Wrench();
+      force.setRandom();
+      setForce (force);
+   }
+
+
 //   public boolean requiresContactVertexInfo() {
 //      return false;
 //   }

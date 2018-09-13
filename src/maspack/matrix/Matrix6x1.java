@@ -484,6 +484,28 @@ public class Matrix6x1 extends DenseMatrixBase {
    }
 
    /**
+    * Sets this matrix to the negative of M.
+    * 
+    * @param M
+    * matrix to negate
+    */
+   public void negate (Matrix6x1 M) {
+      m00 = -M.m00;
+      m10 = -M.m10;
+      m20 = -M.m20;
+      m30 = -M.m30;
+      m40 = -M.m40;
+      m50 = -M.m50;
+   }
+
+   /**
+    * Negates this matrix in place.
+    */
+   public void negate() {
+      negate (this);
+   }
+
+   /**
     * Multiplies M1 by M2 and places the result in this matrix.
     *
     * @param M1 left matrix term
@@ -491,6 +513,26 @@ public class Matrix6x1 extends DenseMatrixBase {
     */
    public void mulAdd (Matrix M1, Matrix M2) {
       MatrixMulAdd.mulAdd6x1 (this, M1, M2);
+   }
+
+   /**
+    * Multiplies M1 by M2^T and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeRightAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeRightAdd.mulTransposeRightAdd6x1 (this, M1, M2);
+   }
+
+   /**
+    * Multiplies M1^T by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeLeftAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeLeftAdd.mulTransposeLeftAdd6x1 (this, M1, M2);
    }
 
    /**

@@ -20,11 +20,6 @@ import java.util.Map;
 public class Particle extends Point implements PointAttachable {
    protected double myMass;
    protected double myEffectiveMass;
-   // protected double myEffectiveMass;
-   protected Vector3d myConstraint;
-   protected boolean myConstraintSet;
-
-   // private static final Vector3d zeroVect = new Vector3d();
 
    public static PropertyList myProps =
       new PropertyList (Particle.class, Point.class);
@@ -41,38 +36,38 @@ public class Particle extends Point implements PointAttachable {
       return myProps;
    }
 
-   /**
-    * Returns the constraint for this particle, if any. The constraint is a
-    * one-DOF restriction on particle movement, usually imparted by surface
-    * contact.
-    * 
-    * @return constraint for this particle. Should not be modified by the
-    * caller.
-    */
-   public Vector3d getConstraint() {
-      return myConstraintSet ? myConstraint : null;
-   }
-
-   /**
-    * Sets a constraint for this particle. The specified constraint is copied
-    * internally, and passing a null value will cause the constraint to be
-    * cleared.
-    * 
-    * @param c
-    * constraint value.
-    */
-   public void setConstraint (Vector3d c) {
-      if (c != null) {
-         if (myConstraint == null) {
-            myConstraint = new Vector3d();
-         }
-         myConstraint.set (c);
-         myConstraintSet = true;
-      }
-      else {
-         myConstraintSet = false;
-      }
-   }
+//   /**
+//    * Returns the constraint for this particle, if any. The constraint is a
+//    * one-DOF restriction on particle movement, usually imparted by surface
+//    * contact.
+//    * 
+//    * @return constraint for this particle. Should not be modified by the
+//    * caller.
+//    */
+//   public Vector3d getConstraint() {
+//      return myConstraintSet ? myConstraint : null;
+//   }
+//
+//   /**
+//    * Sets a constraint for this particle. The specified constraint is copied
+//    * internally, and passing a null value will cause the constraint to be
+//    * cleared.
+//    * 
+//    * @param c
+//    * constraint value.
+//    */
+//   public void setConstraint (Vector3d c) {
+//      if (c != null) {
+//         if (myConstraint == null) {
+//            myConstraint = new Vector3d();
+//         }
+//         myConstraint.set (c);
+//         myConstraintSet = true;
+//      }
+//      else {
+//         myConstraintSet = false;
+//      }
+//   }
 
    public Particle() {
       this (1);
@@ -212,7 +207,7 @@ public class Particle extends Point implements PointAttachable {
 
    public PointParticleAttachment createPointAttachment (Point pnt) {
       PointParticleAttachment ppa = new PointParticleAttachment (this, pnt);
-      if (DynamicAttachment.containsLoop (ppa, pnt, null)) {
+      if (DynamicAttachmentWorker.containsLoop (ppa, pnt, null)) {
          throw new IllegalArgumentException (
             "attachment contains loop");
       }

@@ -26,6 +26,8 @@ import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.ConnectableBody;
 import artisynth.core.mechmodels.DynamicAttachment;
+import artisynth.core.mechmodels.DynamicAttachmentComp;
+import artisynth.core.mechmodels.DynamicAttachmentWorker;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.HasAuxState;
@@ -289,9 +291,20 @@ PointAttachable, ConnectableBody {
          if (enable) {
             System.out.println ("Frame relative ENABLED");
          }
-         Frame frame = enable ? myFrame : null;
-         for (int i=0; i<myNodes.size(); i++) {
-            myNodes.get(i).setFrame (frame);
+         if (myFrameConstraint == null) {
+            // need to attach the frame to the FEM
+            attachFrame (myFrame.getPose());
+         }
+         if (enable) {
+            for (int i=0; i<myNodes.size(); i++) {
+               FemNode3d node = myNodes.get(i);
+               node.setFrameNode (new FrameNode3d (node, myFrame));
+            }
+         }
+         else {
+            for (int i=0; i<myNodes.size(); i++) {
+               myNodes.get(i).setFrameNode (null);
+            }
          }
          notifyStructureChanged(this);
       }
@@ -1988,9 +2001,9 @@ PointAttachable, ConnectableBody {
             // myKp[0] = 1;
             if (kp != 0) {
                for (FemNodeNeighbor nbr_i : getNodeNeighbors(n)) {
-                  int bi = nbr_i.myNode.getSolveIndex();
+                  int bi = nbr_i.myNode.getLocalSolveIndex();
                   for (FemNodeNeighbor nbr_j : getNodeNeighbors(n)) {
-                     int bj = nbr_j.myNode.getSolveIndex();
+                     int bj = nbr_j.myNode.getLocalSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {
                         FemNodeNeighbor nbr =
                            nbr_i.myNode.getNodeNeighbor(nbr_j.myNode);
@@ -2042,6 +2055,8 @@ PointAttachable, ConnectableBody {
          fk.set(n.myInternalForce);
          fd.setZero();
          if (myStiffnessDamping != 0) {
+            // TODO: check that was want to use local velocity for
+            // stiffness damping if we are frame relative
             for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
                nbr.addDampingForce(fd);
             }
@@ -2052,17 +2067,32 @@ PointAttachable, ConnectableBody {
             fd.scale(myStiffnessDamping);
          }
          if (usingAttachedRelativeFrame()) {
-            md.scale (myMassDamping * n.getMass(), n.getVelocity());
+            // apply damping in world coordinates since the nodes may not 
+            // even be moving in local coordinates.
+            //
+            // TODO This also means that the frame terms in the stiffness 
+            // matrix need to be updated. (The NodeFrameNode attachments
+            // won't do this since damping is assumed to be handled
+            // internally by the FemModel.) For mass damping, the solve
+            // matrix update is simple and takes the form 
+            //
+            // M' = d G^t G
+            //
+            // where d is the mass damping and G is the constraint matrix 
+            // for a NodeFramNode attachment. If R is the frame rotation
+            // and lw is the frame node coordinate rotated into world
+            // coordinates, then for each node, G = [ -I  [lw] -R ] and
+            // the update is
+            //
+            // [  I     -[lw]       R     ]
+            // [ [lw] -[lw][lw]  [lw] R^T ]
+            // [  R^T  -R^T[lw]     I     ]
+            //
+            md.scale (myMassDamping*n.getMass(), n.getVelocity());
             n.subForce (md);
-            // if (n.isActive()) {
-            //    myFrame.addPointForce (n.getLocalPosition(), n.getForce());
-            // }
             fk.add (fd);
-            fk.transform (myFrame.getPose().R);
-            n.subLocalForce (fk);
-            //if (n.isActive()) {
-            // myFrame.addPointForce (n.getLocalPosition(), n.getForce());
-            //}
+            fk.negate();
+            n.addLocalForce (fk);
          }
          else {
             fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
@@ -2070,6 +2100,7 @@ PointAttachable, ConnectableBody {
             n.subForce(fd);
          }
       }
+      
    }
 
    public void updateStress() {
@@ -2198,10 +2229,10 @@ PointAttachable, ConnectableBody {
 
       if (!myStiffnessesValidP && mySolveMatrixSymmetricP) {
          for (FemNode3d n : myNodes) {
-            int bi = n.getSolveIndex();
+            int bi = n.getLocalSolveIndex();
             if (bi != -1) {
                for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
-                  int bj = nbr.myNode.getSolveIndex();
+                  int bj = nbr.myNode.getLocalSolveIndex();
                   if (bj > bi) {
                      FemNodeNeighbor nbrT =
                         nbr.myNode.getNodeNeighborBySolveIndex(bi);
@@ -2210,7 +2241,7 @@ PointAttachable, ConnectableBody {
                }
                // used for soft nodal-based incompressibilty:
                for (FemNodeNeighbor nbr : getIndirectNeighbors(n)) {
-                  int bj = nbr.myNode.getSolveIndex();
+                  int bj = nbr.myNode.getLocalSolveIndex();
                   if (bj > bi) {
                      FemNodeNeighbor nbrT =
                         nbr.myNode.getIndirectNeighborBySolveIndex(bi);
@@ -2268,12 +2299,12 @@ PointAttachable, ConnectableBody {
 
          // add force and stiffness
          for (int i = 0; i < nodes.length; i++) {
-            int bi = nodes[i].getSolveIndex();
+            int bi = nodes[i].getLocalSolveIndex();
             if (bi != -1) {
                FemNode3d n = nodes[i];
                if (!myStiffnessesValidP) {
                   for (int j = 0; j < nodes.length; j++) {
-                     int bj = nodes[j].getSolveIndex();
+                     int bj = nodes[j].getLocalSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {
                         warper.addNodeStiffness(e.myNbrs[i][j].getK(), i, j);
                      }
@@ -2528,7 +2559,7 @@ PointAttachable, ConnectableBody {
          // sum stress/stiffness contributions to each node
          for (int i = 0; i < e.myNodes.length; i++) {
             FemNode3d nodei = e.myNodes[i];
-            int bi = nodei.getSolveIndex();
+            int bi = nodei.getLocalSolveIndex();
 
             FemUtilities.addStressForce(
                nodei.myInternalForce, GNx[i], sigma, dv);
@@ -2550,7 +2581,7 @@ PointAttachable, ConnectableBody {
                // compute stiffness
                if (bi != -1) {
                   for (int j = 0; j < e.myNodes.length; j++) {
-                     int bj = e.myNodes[j].getSolveIndex();
+                     int bj = e.myNodes[j].getLocalSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {
                         FemNodeNeighbor nbr = e.myNbrs[i][j];
                         nbr.addMaterialStiffness (GNx[i], D, GNx[j], dv);
@@ -2651,10 +2682,10 @@ PointAttachable, ConnectableBody {
          else if (softIncomp == IncompMethod.ELEMENT) {
             // element-wise incompressibility
             for (int i = 0; i < e.myNodes.length; i++) {
-               int bi = e.myNodes[i].getSolveIndex();
+               int bi = e.myNodes[i].getLocalSolveIndex();
                if (bi != -1) {
                   for (int j = 0; j < e.myNodes.length; j++) {
-                     int bj = e.myNodes[j].getSolveIndex();
+                     int bj = e.myNodes[j].getLocalSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {
                         e.myNbrs[i][j].addDilationalStiffness(
                            myRinv, constraints[i], constraints[j]);
@@ -2696,59 +2727,56 @@ PointAttachable, ConnectableBody {
       return true;
    }
 
-   protected void addNodeNeighborBlock(
-      SparseNumberedBlockMatrix S, FemNodeNeighbor nbr, int bi) {
-
-      int bj = nbr.myNode.getSolveIndex();
-      Matrix3x3Block blk = null;
-      int blkNum = -1;
-      if (bj != -1) {
-         blk = (Matrix3x3Block)S.getBlock(bi, bj);
-         if (blk == null) {
-            blk = new Matrix3x3Block();
-            S.addBlock(bi, bj, blk);
-         }
-         blkNum = blk.getBlockNumber();
-      }
-      // nbr.setBlock (blk);
-      nbr.setBlockNumber(blkNum);
-   }
+//   protected void addNodeNeighborBlock(
+//      SparseNumberedBlockMatrix S, FemNodeNeighbor nbr, int bi) {
+//
+//      int bj = nbr.myNode.getLocalSolveIndex();
+//      Matrix3x3Block blk = null;
+//      int blkNum = -1;
+//      if (bj != -1) {
+//         blk = (Matrix3x3Block)S.getBlock(bi, bj);
+//         if (blk == null) {
+//            blk = new Matrix3x3Block();
+//            S.addBlock(bi, bj, blk);
+//         }
+//         blkNum = blk.getBlockNumber();
+//      }
+//      // nbr.setBlock (blk);
+//      nbr.setBlockNumber(blkNum);
+//   }
 
    public void addSolveBlocks(SparseNumberedBlockMatrix S) {
       setNodalIncompBlocksAllocated(getSoftIncompMethod() == IncompMethod.NODAL);
 
       for (int i = 0; i < myNodes.size(); i++) {
          FemNode3d node = myNodes.get(i);
-         int bi = node.getSolveIndex();
-         if (bi != -1) {
-            for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
-               addNodeNeighborBlock(S, nbr, bi);
-            }
-            // used for soft nodal-based incompressibilty:
-            for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
-               addNodeNeighborBlock(S, nbr, bi);
-            }
+         for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
+            nbr.addSolveBlocks (S, node);
          }
+         // used for soft nodal-based incompressibilty:
+         for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
+            nbr.addSolveBlocks (S, node);
+         }        
       }
       // System.out.println ("sparsity=\n" + S.getBlockPattern());
    }
 
-   protected void addNeighborVelJacobian(
-      SparseNumberedBlockMatrix M, FemNode3d node,
-      FemNodeNeighbor nbr, double s) {
-
-      if (nbr.myNode.getSolveIndex() != -1) {
-         Matrix3x3Block blk =
-            (Matrix3x3Block)M.getBlockByNumber(nbr.myBlkNum);
-         if (nbr.myNode == node && node.isActive()) {
-            nbr.addVelJacobian(
-               blk, s, myStiffnessDamping, myMassDamping);
-         }
-         else {
-            nbr.addVelJacobian(blk, s, myStiffnessDamping, 0);
-         }
-      }
-   }
+//   protected void addNeighborVelJacobian(
+//      SparseNumberedBlockMatrix M, FemNode3d node,
+//      FemNodeNeighbor nbr, double s) {
+//
+//      if (nbr.myNode.getLocalSolveIndex() != -1) {
+//         Matrix3x3Block blk =
+//            (Matrix3x3Block)M.getBlockByNumber(nbr.myBlkNum);
+//         if (nbr.myNode == node && node.isActiveLocal()) {
+//            nbr.addVelJacobian(
+//               blk, s, myStiffnessDamping, myMassDamping);
+//         }
+//         else {
+//            nbr.addVelJacobian(blk, s, myStiffnessDamping, 0);
+//         }
+//      }
+//   }
 
    public void addVelJacobian(
       SparseNumberedBlockMatrix M, double s) {
@@ -2756,15 +2784,19 @@ PointAttachable, ConnectableBody {
       if (!myStressesValidP || !myStiffnessesValidP) {
          updateStressAndStiffness();
       }
+      double sm = -s*myMassDamping;
+      double sk = -s*myStiffnessDamping;
       for (int i = 0; i < myNodes.size(); i++) {
          FemNode3d node = myNodes.get(i);
-         if (node.getSolveIndex() != -1) {
+         if (node.getLocalSolveIndex() != -1) {
             for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
-               addNeighborVelJacobian(M, node, nbr, s);
+               //addNeighborVelJacobian(M, node, nbr, s);
+               nbr.addVelJacobian (M, node, sm, sk);
             }
             // used for soft nodal-based incompressibilty:
             for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
-               addNeighborVelJacobian(M, node, nbr, s);
+               //addNeighborVelJacobian(M, node, nbr, s);
+               nbr.addVelJacobian (M, node, sm, sk);
             }
          }
       }
@@ -2778,21 +2810,13 @@ PointAttachable, ConnectableBody {
       }
       for (int i = 0; i < myNodes.size(); i++) {
          FemNode3d node = myNodes.get(i);
-         if (node.getSolveIndex() != -1) {
+         if (node.getLocalSolveIndex() != -1) {
             for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
-               if (nbr.myNode.getSolveIndex() != -1) {
-                  Matrix3x3Block blk =
-                     (Matrix3x3Block)M.getBlockByNumber(nbr.myBlkNum);
-                  nbr.addPosJacobian(blk, s);
-               }
+               nbr.addPosJacobian (M, node, -s);
             }
             // used for soft nodal-based incompressibilty:
             for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
-               if (nbr.myNode.getSolveIndex() != -1) {
-                  Matrix3x3Block blk =
-                     (Matrix3x3Block)M.getBlockByNumber(nbr.myBlkNum);
-                  nbr.addPosJacobian(blk, s);
-               }
+               nbr.addPosJacobian (M, node, -s);
             }
          }
       }
@@ -2806,7 +2830,7 @@ PointAttachable, ConnectableBody {
          updateStressAndStiffness();
       }
 
-      SparseBlockMatrix M = new SparseBlockMatrix();
+      SparseNumberedBlockMatrix M = new SparseNumberedBlockMatrix();
       int nnodes = numNodes();
       int[] sizes = new int[nnodes];
       for (int i=0; i<nnodes; ++i) {
@@ -2829,15 +2853,8 @@ PointAttachable, ConnectableBody {
       for (int i = 0; i < myNodes.size(); i++) {
          FemNode3d node = myNodes.get(i);
          for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
-            FemNode3d other = nbr.getNode();
-            Matrix3x3Block blk = null;
-            if (other != node) {
-               blk = new Matrix3x3Block();
-               M.addBlock(node.getIndex(), nbr.getNode().getIndex(), blk);
-            } else {
-               blk = (Matrix3x3Block)M.getBlock(node.getIndex(), node.getIndex());
-            }
-            nbr.addPosJacobian(blk, -1.0);
+            nbr.addSolveBlocks (M, node);
+            nbr.addPosJacobian (M, node, 1.0);
          }
       }
       return M;
@@ -2980,7 +2997,7 @@ PointAttachable, ConnectableBody {
    }
 
    private boolean volumeIsControllable(FemNode3d node) {
-      return node.isActive();
+      return node.isActiveLocal();
    }
 
    private boolean hasControllableNodes(FemElement3d elem) {
@@ -3035,7 +3052,7 @@ PointAttachable, ConnectableBody {
 
    private boolean hasActiveNodes() {
       for (int i = 0; i < myNodes.size(); i++) {
-         if (myNodes.get(i).isActive()) {
+         if (myNodes.get(i).isActiveLocal()) {
             return true;
          }
       }
@@ -3045,7 +3062,7 @@ PointAttachable, ConnectableBody {
    private int numActiveNodes() {
       int num = 0;
       for (int i = 0; i < myNodes.size(); i++) {
-         if (myNodes.get(i).isActive()) {
+         if (myNodes.get(i).isActiveLocal()) {
             num++;
          }
       }
@@ -3063,8 +3080,8 @@ PointAttachable, ConnectableBody {
                      if (node_i.getNodeNeighbor(node_j) == null &&
                         node_i.getIndirectNeighbor(node_j) == null) {
                         // System.out.println (
-                        // "adding block at "+node_i.getSolveIndex()+" "+
-                        // node_j.getSolveIndex());
+                        // "adding block at "+node_i.getLocalSolveIndex()+" "+
+                        // node_j.getLocalSolveIndex());
                         node_i.addIndirectNeighbor(node_j);
                      }
                   }
@@ -3251,7 +3268,7 @@ PointAttachable, ConnectableBody {
       FrameFem3dAttachment ffa = new FrameFem3dAttachment (frame);
       ffa.setFromElement (TFW, elem);
       if (frame != null) {
-         if (DynamicAttachment.containsLoop (ffa, frame, null)) {
+         if (DynamicAttachmentWorker.containsLoop (ffa, frame, null)) {
             throw new IllegalArgumentException (
                "attachment contains loop");
          }
@@ -3297,7 +3314,7 @@ PointAttachable, ConnectableBody {
       FrameFem3dAttachment ffa = new FrameFem3dAttachment (frame);
       ffa.setFromElement (TFW, elem);
       if (frame != null) {
-         if (DynamicAttachment.containsLoop (ffa, frame, null)) {
+         if (DynamicAttachmentWorker.containsLoop (ffa, frame, null)) {
             throw new IllegalArgumentException (
                "attachment contains loop");
          }
@@ -3434,10 +3451,10 @@ PointAttachable, ConnectableBody {
       LinkedList<FemNode3d> addedNodes = new LinkedList<FemNode3d>();
       LinkedList<FemElement3d> addedElements =
          new LinkedList<FemElement3d>();
-      LinkedList<DynamicAttachment> addedAttachments =
-         new LinkedList<DynamicAttachment>();
-      LinkedList<DynamicAttachment> removedAttachments =
-         new LinkedList<DynamicAttachment>();
+      LinkedList<DynamicAttachmentComp> addedAttachments =
+         new LinkedList<DynamicAttachmentComp>();
+      LinkedList<DynamicAttachmentComp> removedAttachments =
+         new LinkedList<DynamicAttachmentComp>();
 
       int idx = 0;
       FemNode3d[] nodes = new FemNode3d[27];
@@ -3512,7 +3529,7 @@ PointAttachable, ConnectableBody {
       addedElements.add(createHex(nodes, 26, 21, 18, 25, 22, 13, 6, 14));
       addedElements.add(createHex(nodes, 23, 26, 25, 19, 15, 22, 14, 7));
 
-      for (DynamicAttachment a : removedAttachments) {
+      for (DynamicAttachmentComp a : removedAttachments) {
          removeAttachment(a);
       }
       removeElement(hex);
@@ -3522,7 +3539,7 @@ PointAttachable, ConnectableBody {
       for (FemElement3d e : addedElements) {
          addElement(e);
       }
-      for (DynamicAttachment a : addedAttachments) {
+      for (DynamicAttachmentComp a : addedAttachments) {
          addAttachment(a);
       }
    }
@@ -3670,7 +3687,7 @@ PointAttachable, ConnectableBody {
                   for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
                      // if (isControllable (nbr.myNode)) {
                      GT.addBlock(
-                        nbr.myNode.getSolveIndex(), bj, nbr.myDivBlk);
+                        nbr.myNode.getLocalSolveIndex(), bj, nbr.myDivBlk);
                      // }
                   }
                   bj++;
@@ -3685,7 +3702,7 @@ PointAttachable, ConnectableBody {
                   for (int i = 0; i < e.numNodes(); i++) {
                      FemNode3d n = e.myNodes[i];
                      // if (isControllable (n)) {
-                     GT.addBlock(n.getSolveIndex(), bj, constraints[i]);
+                     GT.addBlock(n.getLocalSolveIndex(), bj, constraints[i]);
                      // }
                   }
                   bj++;
@@ -4101,8 +4118,8 @@ PointAttachable, ConnectableBody {
          fem.myMarkers.addNumbered(newm, m.getNumber());
          fem.myMarkers.setRenderProps(myMarkers.getRenderProps());
       }
-      for (DynamicAttachment a : myAttachments) {
-         DynamicAttachment newa = a.copy(flags, copyMap);
+      for (DynamicAttachmentComp a : myAttachments) {
+         DynamicAttachmentComp newa = a.copy(flags, copyMap);
          newa.setName(a.getName());
          fem.myAttachments.addNumbered(newa, a.getNumber());
       }
@@ -4283,6 +4300,15 @@ PointAttachable, ConnectableBody {
          else {
             parametric.add (myFrame);
          }
+         for (int i=0; i<numNodes(); i++) {
+            FrameNode3d frameNode = getNode(i).myFrameNode;
+            if (frameNode.isAttached()) {
+               attached.add (frameNode);
+            }
+            else {
+               active.add (frameNode);
+            }
+         }
       }
       else {
          attached.add (myFrame);
@@ -4294,7 +4320,7 @@ PointAttachable, ConnectableBody {
          int bi = myFrame.getSolveIndex();
          if (bi != -1) {
             for (int i=0; i<myNodes.size(); i++) {
-               int bj = myNodes.get(i).getSolveIndex();
+               int bj = myNodes.get(i).getLocalSolveIndex();
                if (bj != -1) {
                   M.addBlock (bi, bj, new Matrix6x3Block());
                   M.addBlock (bj, bi, new Matrix3x6Block());
@@ -4354,7 +4380,7 @@ PointAttachable, ConnectableBody {
 
       int bk;
       for (int k=0; k<nodes.length; k++) {
-         if ((bk = nodes[k].getSolveIndex()) != -1) {
+         if ((bk = nodes[k].getLocalSolveIndex()) != -1) {
             M.getBlock (bk, bk).scale (s);
             M.getBlock (bf, bk).scale (s);
             M.getBlock (bk, bf).scale (s);
@@ -4374,10 +4400,12 @@ PointAttachable, ConnectableBody {
       int bk;
 
       for (int k=0; k<myNodes.size(); k++) {
+
          FemNode3d n = myNodes.get(k);
-         if ((bk = n.getSolveIndex()) != -1) {
-            n.getEffectiveMass (M.getBlock (bk, bk), t);
-            n.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+         DynamicComponent dc = (myFrameRelativeP ? n.getFrameNode() : n);
+         if ((bk = dc.getSolveIndex()) != -1) {
+            dc.getEffectiveMass (M.getBlock (bk, bk), t);
+            dc.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
          }
       }
 
@@ -4408,11 +4436,12 @@ PointAttachable, ConnectableBody {
 
          for (int k=0; k<myNodes.size(); k++) {
             FemNode3d n = myNodes.get(k);
+            DynamicComponent dc = n.getFrameNode();
 
-            if ((bk = n.getSolveIndex()) != -1) {
+            if ((bk = dc.getSolveIndex()) != -1) {
                c.transform (R, n.getLocalPosition());
                v.transform (R, n.getLocalVelocity());
-               double m = n.getEffectiveMass();
+               double m = dc.getEffectiveMass();
                //System.out.println ("m " + k + " " + m);
                com.scaledAdd (m, c);
                mass += m;
@@ -4535,7 +4564,7 @@ PointAttachable, ConnectableBody {
          double[] tmp6 = new double[6];
          for (int i=0; i<myNodes.size(); i++) {
             FemNode3d n = myNodes.get(i);
-            if ((bk=n.getSolveIndex()) != -1) {
+            if ((bk=n.getLocalSolveIndex()) != -1) {
                int idx = M.getBlockRowOffset (bk);
                if (idx < asize) {
                   MatrixBlock Mfk = M.getBlock (bf, bk);
@@ -4558,7 +4587,7 @@ PointAttachable, ConnectableBody {
          double[] tmp3 = new double[3];
          for (int i=0; i<myNodes.size(); i++) {
             FemNode3d n = myNodes.get(i);
-            if ((bk=n.getSolveIndex()) != -1) {
+            if ((bk=n.getLocalSolveIndex()) != -1) {
                int idx = M.getBlockRowOffset (bk);
                if (idx < asize) {
                   MatrixBlock Mkf = M.getBlock (bk, bf);
@@ -4576,7 +4605,7 @@ PointAttachable, ConnectableBody {
       else {
          for (int i=0; i<myNodes.size(); i++) {
             FemNode3d n = myNodes.get(i);
-            if ((bk=n.getSolveIndex()) != -1) {
+            if ((bk=n.getLocalSolveIndex()) != -1) {
                int idx = M.getBlockRowOffset (bk);
                if (idx < asize) {
                   n.mulInverseEffectiveMass (
@@ -4587,6 +4616,15 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   public void getAttachments (List<DynamicAttachment> list, int level) {
+      super.getAttachments (list, level);
+      if (myFrameRelativeP) {
+         for (FemNode3d n : myNodes) {
+            list.add (n.getFrameAttachment());
+         }
+      }
+   }
+   
    /* --- Misc Methods --- */
 
    public void dispose() {
@@ -4601,3 +4639,19 @@ PointAttachable, ConnectableBody {
    }
 
 }
+
+/**
+
+Frame support TODO:
+
+    Attachment structure changes on:
+
+        Adding a node
+
+        changing node dynamic 
+
+        changing node attachment
+
+    Implement correct handling of node mass
+
+ */

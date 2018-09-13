@@ -22,25 +22,21 @@ public class PointFrameAttachment extends PointAttachment {
 //   DynamicComponent[] myMasters;
    Point3d myLoc = new Point3d(); // location of point in frame coordinates
    Frame myFrame;
+   protected MatrixBlock[] myMasterBlocks;
 
    protected void collectMasters (List<DynamicComponent> masters) {
       super.collectMasters (masters);
       masters.add (myFrame);
    }
    
-   @Override
-   protected int updateMasterBlocks() {
-      int idx = super.updateMasterBlocks();
+   protected void updateMasterBlocks() {
+      if (myMasters == null) {
+         initializeMasters();
+      }      
       if (myFrame != null) {
-         RotationMatrix3d R = null;
-         if (idx == 1) {
-            // then point has a frame; set R to the rotation matrix for that frame
-            R = myPoint.getPointFrame().getPose().R;
-         }
          myFrame.computeLocalPointForceJacobian (
-            myMasterBlocks[idx++], myLoc, R);
+            myMasterBlocks[0], myLoc);
       }
-      return idx;
    }
    
    public Frame getFrame() {
@@ -53,6 +49,16 @@ public class PointFrameAttachment extends PointAttachment {
 
    public Point3d getLocation() {
       return myLoc;
+   }
+
+   protected void initializeMasters() {
+      super.initializeMasters();
+      myMasterBlocks = new MatrixBlock[myMasters.length];
+      for (int i=0; i<myMasterBlocks.length; i++) {
+         myMasterBlocks[i] =
+            MatrixBlockBase.alloc (myMasters[i].getVelStateSize(), 3);
+      }
+      updateMasterBlocks();
    }
 
    void setFrame (Frame body, Point3d loc) {
@@ -121,15 +127,25 @@ public class PointFrameAttachment extends PointAttachment {
       myFrame.addPointForce (myLoc, myPoint.myForce);
    }
 
-   public void mulSubGT (MatrixBlock D, MatrixBlock B, int idx) {
-      D.mulAdd (myMasterBlocks[idx], B);
+   public void mulSubGTM (MatrixBlock D, MatrixBlock M, int idx) {
+      D.mulAdd (myMasterBlocks[idx], M);
    }
 
-   public void mulSubG (MatrixBlock D, MatrixBlock B, int idx) {
+   public void mulSubMG (MatrixBlock D, MatrixBlock M, int idx) {
       if (myMasterBlocks != null) {
          MatrixBlock G = myMasterBlocks[idx].createTranspose();
-         D.mulAdd (B, G);
+         D.mulAdd (M, G);
       }         
+   }
+   public MatrixBlock getGT (int idx) {
+      if (myMasterBlocks != null) {
+         MatrixBlock blk = myMasterBlocks[idx].clone();
+         blk.negate();
+         return blk;
+      }
+      else {
+         return null;
+      }
    }
 
    // FIX: use getPointJacobian()? mulPointJacobian()?
@@ -153,10 +169,6 @@ public class PointFrameAttachment extends PointAttachment {
 
    // FIX: use getPointJacobian?
    public int addTargetJacobian (SparseBlockMatrix J, int bi) { // FIX
-      if (myMasterBlocks.length != 1) {
-         throw new UnsupportedOperationException (
-            "addTargetJacobian not supported for frame-relative points");
-      }
       MatrixBlock blk = myMasterBlocks[0].createTranspose();
       J.addBlock (bi, myFrame.getSolveIndex(), blk);
       return bi++;      
@@ -170,27 +182,6 @@ public class PointFrameAttachment extends PointAttachment {
       myPoint.addEffectiveMass(-m);      
    }
    
-   // FIX: add addPointMass to Frame?
-   public void addMassToMaster (MatrixBlock mblk, MatrixBlock sblk, int idx) {
-      if (!(sblk instanceof Matrix3x3Block)) {
-         throw new IllegalArgumentException (
-            "Slave block not instance of Matrix3x3Block");
-      }
-      Matrix3x3Block slaveBlk = (Matrix3x3Block)sblk;
-      double mass = slaveBlk.m00;
-      if (mass != 0) {
-         Vector3d vec = new Vector3d();
-         Frame pframe = myPoint.getPointFrame();
-         // TODO: need to remove mass from pframe
-         myFrame.computePointPosition (vec, myLoc);
-         if (pframe != null && idx == 1 || pframe == null && idx == 0) {
-            // sub Frame position since vec only wanted in world orientation 
-            vec.sub (myFrame.getPosition());
-            myFrame.addPointMass (mblk, mass, vec);
-         }
-      }
-   }
-
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
@@ -232,7 +223,6 @@ public class PointFrameAttachment extends PointAttachment {
    }
    
    private void computeVelDerivative (Vector3d dvel) {
-      Frame pframe = myPoint.getPointFrame();
 
       RotationMatrix3d R2 = myFrame.getPose().R;
       Twist vel2 = myFrame.getVelocity();
@@ -258,19 +248,6 @@ public class PointFrameAttachment extends PointAttachment {
          tmp1.cross (vel2.w, tmp1);
          // dvel = w2 X tmp1
          dvel.cross (vel2.w, tmp1);
-      }
-      if (pframe != null) {
-         RotationMatrix3d R1 = pframe.getPose().R;
-         Twist vel1 = pframe.getVelocity();
-         tmp2.transform (R1, myPoint.getLocalVelocity());  // R1*lv1
-         tmp2.negate();
-         // tmp2 = -R1*lv1 - u2 + u1 - tmp1
-         tmp2.sub (vel2.v);
-         tmp2.add (vel1.v);
-         tmp2.sub (tmp1);
-         // dvel = R1^T (w1 X tmp2 + dvel)
-         dvel.crossAdd (vel1.w, tmp2, dvel);
-         dvel.inverseTransform (R1);            
       }
    }
 
@@ -309,6 +286,7 @@ public class PointFrameAttachment extends PointAttachment {
       PointFrameAttachment a = (PointFrameAttachment)super.copy (flags, copyMap);
 
       a.myLoc = new Point3d (myLoc);
+      a.myMasterBlocks = null; // will be reinitialized
       if (myFrame != null) {
          Frame frame = (Frame)ComponentUtils.maybeCopy (flags, copyMap, myFrame);
          a.setFrame (frame);

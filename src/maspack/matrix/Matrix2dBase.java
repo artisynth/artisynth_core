@@ -818,6 +818,26 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
    }
 
    /**
+    * Multiplies M1 by M2^T and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeRightAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeRightAdd.mulTransposeRightAdd2x2 (this, M1, M2);
+   }
+
+   /**
+    * Multiplies M1^T by M2 and places the result in this matrix.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulTransposeLeftAdd (Matrix M1, Matrix M2) {
+      MatrixMulTransposeLeftAdd.mulTransposeLeftAdd2x2 (this, M1, M2);
+   }
+
+   /**
     * Adds matrix M1 to M2 and places the result in this matrix.
     * 
     * @param M1

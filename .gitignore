@@ -4,6 +4,11 @@
 /priv
 
 ######################
+# Custom settings
+######################
+/EXTCLASSPATH
+
+######################
 # Other repositories
 ######################
 .svn
@@ -59,3 +64,4 @@ CVS
 # MacOS files
 ######################
 .DS_Store
+

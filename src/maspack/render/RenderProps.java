@@ -553,7 +553,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       doSetSpecular (color);
       mySpecularMode =
          PropertyUtils.propagateValue (
-            this, "edgeColor", color, mySpecularMode);
+            this, "specular", color, mySpecularMode);
    }
 
    /**
@@ -583,7 +583,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       if (mode != mySpecularMode) {
          mySpecularMode =
             PropertyUtils.setModeAndUpdate (
-               this, "edgeColor", mySpecularMode, mode);
+               this, "specular", mySpecularMode, mode);
       }
    }
 

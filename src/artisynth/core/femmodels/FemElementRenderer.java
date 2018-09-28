@@ -723,9 +723,9 @@ public class FemElementRenderer {
                if (i == 0 && j == 0) {
                   vidxs[i][j] = r.addVertex (myP0);
                } else if (i == 0 && j == nsegs) {
-                  vidxs[i][j] = r.addVertex(myP1);
-               } else if (i == nsegs && j == 0) {
                   vidxs[i][j] = r.addVertex(myP3);
+               } else if (i == nsegs && j == 0) {
+                  vidxs[i][j] = r.addVertex(myP1);
                } else if (i == nsegs && j == nsegs) {
                   vidxs[i][j] = r.addVertex(myP2);
                } else {
@@ -774,7 +774,7 @@ public class FemElementRenderer {
                float t = 2.0f*j/nsegs-1.0f;
 
                // interpolate faces
-               if (     !(i == 0 && j == 0) 
+               if (!(i == 0 && j == 0) 
                   && !(i == 0 && j == nsegs) 
                   && !(i == nsegs && j == 0)
                   && !(i == nsegs && j == nsegs)) {

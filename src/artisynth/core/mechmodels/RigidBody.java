@@ -430,9 +430,10 @@ public class RigidBody extends Frame
     * Adjusts the pose so that it reflects the rigid body's center of mass
     */
    public void centerPoseOnCenterOfMass() {
-      Point3d com = mySpatialInertia.getCenterOfMass();
+      Point3d com = new Point3d(mySpatialInertia.getCenterOfMass());
       mySpatialInertia.setCenterOfMass(0,0,0);
       myState.pos.add(com);
+      myState.updatePose ();
    }
 
    /** 

@@ -30,6 +30,7 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
@@ -332,11 +333,30 @@ public class RigidBody extends Frame
       SpatialInertia.addPointMass (myEffectiveInertia, m, loc);
    }
 
-   public void addEffectiveInertia (SpatialInertia M) {
+   /**
+    * {@inheritDoc}
+    */
+   public void addEffectiveFrameMass (SpatialInertia M, RigidTransform3d TFL) {
       if (myEffectiveInertia == null) {
          myEffectiveInertia = new SpatialInertia (mySpatialInertia);
       }
-      myEffectiveInertia.add (M);
+      SpatialInertia MB = new SpatialInertia (M);
+      MB.transform (TFL);
+      myEffectiveInertia.add (MB);
+   }
+
+//   public void addEffectiveInertia (SpatialInertia M) {
+//      if (myEffectiveInertia == null) {
+//         myEffectiveInertia = new SpatialInertia (mySpatialInertia);
+//      }
+//      myEffectiveInertia.add (M);
+//   }
+
+   public void subEffectiveInertia (SpatialInertia M) {
+      if (myEffectiveInertia == null) {
+         myEffectiveInertia = new SpatialInertia (mySpatialInertia);
+      }
+      myEffectiveInertia.sub (M);
    }
 
    public void getInverseMass (Matrix Minv, Matrix M) {

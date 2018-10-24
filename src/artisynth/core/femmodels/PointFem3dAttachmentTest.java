@@ -48,7 +48,7 @@ public class PointFem3dAttachmentTest
       force.set (nodeForce);
    }
 
-   public PointFem3dAttachment createAttachment() {
+   public PointFem3dAttachment createTestAttachment(int idx) {
       Point point = new Point();
       int nnodes = 4;
       FemNode3d[] nodes = new FemNode3d[nnodes];

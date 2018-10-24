@@ -21,12 +21,12 @@ import artisynth.core.mechmodels.*;
 public class FaceNodes3d {
    FemNode3d[] nodes;    // list of corner nodes
    FemNode3d[] allNodes; // list of all nodes, including those attached to edges
-   FemElement3d myElement;
+   FemElement3dBase myElement;
    int myFlags = 0;
    private static int HIDDEN = 0x01;
    private static int OVERLAPPING = 0x02;
 
-   protected FaceNodes3d (FemElement3d elem, int n) {
+   protected FaceNodes3d (FemElement3dBase elem, int n) {
       myElement = elem;
       nodes = new FemNode3d[n];
    }
@@ -129,7 +129,7 @@ public class FaceNodes3d {
       return builder.toString();
    }
 
-   public FemElement3d getElement () {
+   public FemElement3dBase getElement () {
       return myElement;
    }
 

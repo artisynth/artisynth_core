@@ -67,7 +67,7 @@ public class NodeFrameNodeAttachmentTest
       }
    }
 
-   public NodeFrameNodeAttachment createAttachment() {
+   public NodeFrameNodeAttachment createTestAttachment(int idx) {
       Frame frame = new Frame();
       FemNode3d node = new FemNode3d();
       FrameNode3d frameNode = new FrameNode3d (node, frame);

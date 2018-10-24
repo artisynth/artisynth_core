@@ -2595,30 +2595,30 @@ public class MechSystemSolver {
       MR.mulTransposeRight (MR, RR);
    }
 
-   private RotationMatrix3d[] getRBW() {
-      RotationMatrix3d[] RBW = new RotationMatrix3d[2*myNumActive];
-      MechSystemBase base = (MechSystemBase)mySys;
-      for (int i=0; i<myNumActive; i++) {
-         DynamicComponent c = base.myDynamicComponents.get(i);
-         RotationMatrix3d R = new RotationMatrix3d(((RigidBody)c).getPose().R);
-         RBW[i*2+0] = R;         
-         RBW[i*2+1] = R;
-      }
-      return RBW;
-   }
-
-   private RotationMatrix3d[] getRWB() {
-      RotationMatrix3d[] RWB = new RotationMatrix3d[2*myNumActive];
-      MechSystemBase base = (MechSystemBase)mySys;
-      for (int i=0; i<myNumActive; i++) {
-         DynamicComponent c = base.myDynamicComponents.get(i);
-         RotationMatrix3d R = new RotationMatrix3d(((RigidBody)c).getPose().R);
-         R.transpose();
-         RWB[i*2+0] = R;         
-         RWB[i*2+1] = R;
-      }
-      return RWB;
-   }
+//   private RotationMatrix3d[] getRBW() {
+//      RotationMatrix3d[] RBW = new RotationMatrix3d[2*myNumActive];
+//      MechSystemBase base = (MechSystemBase)mySys;
+//      for (int i=0; i<myNumActive; i++) {
+//         DynamicComponent c = base.myDynamicComponents.get(i);
+//         RotationMatrix3d R = new RotationMatrix3d(((RigidBody)c).getPose().R);
+//         RBW[i*2+0] = R;         
+//         RBW[i*2+1] = R;
+//      }
+//      return RBW;
+//   }
+//
+//   private RotationMatrix3d[] getRWB() {
+//      RotationMatrix3d[] RWB = new RotationMatrix3d[2*myNumActive];
+//      MechSystemBase base = (MechSystemBase)mySys;
+//      for (int i=0; i<myNumActive; i++) {
+//         DynamicComponent c = base.myDynamicComponents.get(i);
+//         RotationMatrix3d R = new RotationMatrix3d(((RigidBody)c).getPose().R);
+//         R.transpose();
+//         RWB[i*2+0] = R;         
+//         RWB[i*2+1] = R;
+//      }
+//      return RWB;
+//   }
 
    private MatrixNd preRotate (MatrixNd M1, RotationMatrix3d[] R) {
       int nbr = R.length;
@@ -3641,6 +3641,7 @@ public class MechSystemSolver {
 
    public SparseBlockMatrix createActiveStiffnessMatrix (double h) {
       updateStateSizes();
+      mySys.updateForces (0);
       if (mySolveMatrixVersion != mySys.getStructureVersion()) {
          mySolveMatrixVersion = mySys.getStructureVersion();
          mySolveMatrix =

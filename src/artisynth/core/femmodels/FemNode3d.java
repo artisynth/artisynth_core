@@ -11,6 +11,8 @@ import java.io.PrintWriter;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 
 import artisynth.core.mechmodels.Frame;
@@ -24,9 +26,11 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.femmodels.FemElement.ElementType;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
+import maspack.render.RenderList;
 import maspack.properties.PropertyList;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
@@ -37,7 +41,8 @@ public class FemNode3d extends FemNode {
    protected Point3d myRest;
    protected Vector3d myInternalForce;
 
-   private LinkedList<FemElement3d> myElementDeps;
+   private LinkedList<FemElement3dBase> myElementDeps;
+   protected int myShellElemCnt;
    protected LinkedList<FemNodeNeighbor> myNodeNeighbors;
    private LinkedList<FemNodeNeighbor> myIndirectNeighbors;
    int myIndex = -1;
@@ -65,6 +70,12 @@ public class FemNode3d extends FemNode {
          "targetDisplacement",
          "target specified as a displacement from rest position", Point3d.ZERO,
          "%.8g NW");
+      myProps.add (
+         "backPosition", "back position used for shell nodes",
+         Point3d.ZERO, "%.8g NW");
+      myProps.add (
+         "backRestPosition", "rest back position used for shell nodes",
+         Point3d.ZERO, "%.8g NW");
       myProps.addReadOnly (
          "displacement", "displacement from rest position");
       myProps.addReadOnly (
@@ -86,7 +97,7 @@ public class FemNode3d extends FemNode {
       super();
       myRest = new Point3d();
       myInternalForce = new Vector3d();
-      myElementDeps = new LinkedList<FemElement3d>();
+      myElementDeps = new LinkedList<FemElement3dBase>();
       myNodeNeighbors = new LinkedList<FemNodeNeighbor>();
    }
 
@@ -307,14 +318,20 @@ public class FemNode3d extends FemNode {
       return myNodeNeighbors;
    }
 
-   protected void registerNodeNeighbor (FemNode3d nbrNode) {
+   protected void registerNodeNeighbor (FemNode3d nbrNode, boolean shell) {
       FemNodeNeighbor nbr = getNodeNeighbor (nbrNode);
       if (nbr == null) {
          nbr = new FemNodeNeighbor (nbrNode);
          myNodeNeighbors.add (nbr);
       }
+      if (shell) {
+         if (nbr.myShellRefCnt == 0) {
+            nbr.allocateDirectorStorage();
+         }        
+         nbr.myShellRefCnt++;
+      }
       else {
-         nbr.myRefCnt++;
+         nbr.myVolumeRefCnt++;
       }
    }
 
@@ -336,12 +353,21 @@ public class FemNode3d extends FemNode {
       return null;
    }
 
-   public void deregisterNodeNeighbor (FemNode3d nbrNode) {
+   public void deregisterNodeNeighbor (FemNode3d nbrNode, boolean shell) {
       FemNodeNeighbor nbr = getNodeNeighbor (nbrNode);
       if (nbr == null) {
          throw new InternalErrorException ("node not registered as a neighbor");
       }
-      if (--nbr.myRefCnt == 0) {
+      if (shell) {
+         nbr.myShellRefCnt--;
+         if (nbr.myShellRefCnt == 0 && nbr.myVolumeRefCnt != 0) {
+            nbr.deallocateDirectorStorage();
+         }
+      }
+      else {
+         nbr.myVolumeRefCnt--;
+      }
+      if (nbr.myShellRefCnt + nbr.myVolumeRefCnt == 0) {
          myNodeNeighbors.remove (nbr);
       }
    }
@@ -416,6 +442,14 @@ public class FemNode3d extends FemNode {
          myRest.scan (rtok);
          return true;
       }
+      else if (scanAttributeName (rtok, "backNode")) {
+         myBackNode = new BackNode3d (this);
+         // call myBackNode with tokens=null since we don't want it 
+         // to generate BEGIN/END on the token stream
+         myBackNode.scan (rtok, null);
+         myBackNode.setDynamic (isDynamic());
+         return true;
+      }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
@@ -427,6 +461,10 @@ public class FemNode3d extends FemNode {
       pw.print ("rest=");
       myRest.write (pw, fmt, /* withBrackets= */true);
       pw.println ("");
+      if (myBackNode != null) {
+         pw.print ("backNode=");
+         myBackNode.write (pw, fmt, ancestor);
+      }
    }
 
    public void transformGeometry (
@@ -452,16 +490,58 @@ public class FemNode3d extends FemNode {
       myInternalForce.scale (s);
    }
    
-   public void addElementDependency (FemElement3d e) {
+   public void addElementDependency (FemElement3dBase e) {
       myElementDeps.add (e);
+      if (e.getType() == ElementType.SHELL) {
+         myShellElemCnt++;
+         if (!hasDirector()) {
+            setDirectorActive (true);
+         }
+      }
    }
 
-   public void removeElementDependency (FemElement3d e) {
+   public void removeElementDependency (FemElement3dBase e) {
       myElementDeps.remove (e);
+      if (e.getType() == ElementType.SHELL) {
+         myShellElemCnt--;
+         if (myShellElemCnt == 0 && hasDirector()) {
+            setDirectorActive (false);
+         }
+      }
    }
 
    public LinkedList<FemElement3d> getElementDependencies() {
+      LinkedList<FemElement3d> elems = new LinkedList<FemElement3d>();
+      for (FemElement3dBase e : myElementDeps) {
+         if (e instanceof FemElement3d) {
+            elems.add ((FemElement3d)e);
+         }
+      }
+      return elems;
+   }
+   
+   public List<FemElement3dBase> getAdjacentElements() {
       return myElementDeps;
+   }
+   
+   public List<FemElement3d> getAdjacentVolumeElements() {
+      ArrayList<FemElement3d> elems = new ArrayList<FemElement3d>();
+      for (FemElement3dBase e : myElementDeps) {
+         if (e instanceof FemElement3d) {
+            elems.add ((FemElement3d)e);
+         }
+      }
+      return elems;
+   }
+
+   public List<ShellElement3d> getAdjacentShellElements() {
+      ArrayList<ShellElement3d> elems = new ArrayList<ShellElement3d>();
+      for (FemElement3dBase e : myElementDeps) {
+         if (e instanceof ShellElement3d) {
+            elems.add ((ShellElement3d)e);
+         }
+      }
+      return elems;
    }
 
    public int numAdjacentElements() {
@@ -470,10 +550,16 @@ public class FemNode3d extends FemNode {
    
    public double computeMassFromDensity() {
       double mass = 0;
-      Iterator<FemElement3d> it = myElementDeps.iterator();
-      while (it.hasNext()) {
-         FemElement3d e = it.next();
-         mass += e.getRestVolume()*e.getDensity()/e.numNodes();
+      for (FemElement3dBase e : myElementDeps) {
+         if (e instanceof FemElement3d) {
+            FemElement3d ee = (FemElement3d)e;
+            mass += ee.getRestVolume()*ee.getDensity()/ee.numNodes();
+         }
+         else if (e instanceof ShellElement3d) {
+            // XXX TODO use area?
+            ShellElement3d ee = (ShellElement3d)e;
+            mass += ee.getRestVolume()*ee.getDensity()/ee.numNodes();           
+         }
       }
       return mass;
    }
@@ -532,8 +618,7 @@ public class FemNode3d extends FemNode {
       return null;
    }
 
-   public void setRestPosition (Point3d pos) {
-      myRest.set (pos);
+   private void invalidateRestData() {
       invalidateAdjacentNodeMasses();
       // invalidate rest data for attached elements
       FemModel3d fem = findFem();
@@ -541,9 +626,14 @@ public class FemNode3d extends FemNode {
          fem.invalidateNodalRestVolumes();
          fem.invalidateStressAndStiffness();
       }
-      for (FemElement3d elem : myElementDeps) {
+      for (FemElement elem : myElementDeps) {
          elem.invalidateRestData();
       }
+   }
+
+   public void setRestPosition (Point3d pos) {
+      myRest.set (pos);
+      invalidateRestData();
    }
 
    public FemNode3d copy (
@@ -553,7 +643,8 @@ public class FemNode3d extends FemNode {
 
       node.myRest = new Point3d (myRest);
       node.myInternalForce = new Vector3d();
-      node.myElementDeps = new LinkedList<FemElement3d>();
+      node.myElementDeps = new LinkedList<FemElement3dBase>();
+      node.myShellElemCnt = 0;
       node.myNodeNeighbors = new LinkedList<FemNodeNeighbor>();
       node.myIndirectNeighbors = null;
 
@@ -652,6 +743,9 @@ public class FemNode3d extends FemNode {
       if (myFrameNode != null) {
          updateFrameAttachment();
       }
+      if (myBackNode != null) {
+         myBackNode.setDynamic (enable);
+      }
    }
 
    public Point3d getLocalPosition() {
@@ -719,38 +813,44 @@ public class FemNode3d extends FemNode {
 
    /* --- Methods for shell directors --- */
 
-   protected Point3d myBackPos = null;
-   protected Vector3d myBackVel = null;
-   protected Vector3d myBackForce = null;
-   protected Point3d myBackRest = null;
-
-   protected float[] myBackRenderPos = null;
+   protected BackNode3d myBackNode = null;
 
    public int getBackSolveIndex() {
-      // XXX TODO finish
-      return -1;
+      if (myBackNode != null) {
+         return myBackNode.getSolveIndex();
+      }
+      else {
+         return -1;
+      }
+   }
+
+   public BackNode3d getBackNode() {
+      return myBackNode;
    }
 
    protected void setDirectorActive (boolean active) {
-      // XXX should we also try to initialize this will values?
+      // XXX should we also try to initialize this with values?
       if (active != hasDirector()) {
          if (active) {
-            myBackPos = new Point3d();
-            myBackVel = new Vector3d();
-            myBackForce = new Vector3d();
-            myBackRest = new Point3d();
+            myBackNode = new BackNode3d (this, myState.getPos());
+            myBackNode.setDynamic (isDynamic());
          }
          else {
-            myBackPos = null;
-            myBackVel = null;
-            myBackForce = null;
-            myBackRest = null;
+            myBackNode = null;
+         }
+         // if this node is attached to a frame using a 
+         // ShellNodeFrameAttachment, we may need to update whether or 
+         // not that frame needs a director attachment
+         if (getAttachment() instanceof ShellNodeFrameAttachment) {
+            ShellNodeFrameAttachment at = 
+               (ShellNodeFrameAttachment)getAttachment();
+            at.updateDirectorAttachment();
          }
       }
    }
 
    public boolean hasDirector() {
-      return myBackPos != null;
+      return myBackNode != null;
    }
 
    public Vector3d getDirector() {
@@ -759,14 +859,23 @@ public class FemNode3d extends FemNode {
       }
       else {
          Vector3d dir = new Vector3d();
-         dir.sub (myState.getPos(), myBackPos);
+         dir.sub (myState.getPos(), myBackNode.getPosition());
          return dir;
       }
    }
 
    public void setDirector (Vector3d dir) {
       if (hasDirector()) {
-         myBackPos.sub (myState.getPos(), dir);
+         myBackNode.setPosition (myState.getPos(), dir);
+         myBackNode.setPositionExplicit (true);
+      }
+   }
+
+   public void initializeDirectorIfNecessary() {
+      if (hasDirector()) {
+         if (!myBackNode.isPositionExplicit()) {
+            myBackNode.setPositionToRest();
+         }
       }
    }
 
@@ -776,31 +885,105 @@ public class FemNode3d extends FemNode {
       }
       else {
          Vector3d dir = new Vector3d();
-         dir.sub (myState.getVel(), myBackVel);
+         dir.sub (myState.getVel(), myBackNode.myVel);
          return dir;
       }
    }
 
    public void setDirectorVel (Vector3d vel) {
       if (hasDirector()) {
-         myBackVel.sub (myState.getVel(), vel);
+         myBackNode.myVel.sub (myState.getVel(), vel);
       }
    }
 
-   public Point3d getDirectorRest() {
+   public Point3d getRestDirector() {
       if (!hasDirector()) {
          return new Point3d();
       }
       else {
          Point3d rest = new Point3d();
-         rest.sub (myRest, myBackRest);
+         rest.sub (myRest, myBackNode.getRestPosition());
          return rest;
       }
    }
 
-   public void setDirectorRest (Point3d rest) {
+   public void setRestDirector (Vector3d restDir) {
       if (hasDirector()) {
-         myBackRest.sub (myRest, rest);
+         myBackNode.setRestPosition (myRest, restDir);
+         invalidateRestData();
+      }
+   }
+
+   public boolean isRestDirectorExplicit() {
+      if (hasDirector()) {
+         return myBackNode.isRestPositionExplicit();
+      }
+      else {
+         return false;
+      }
+   }
+
+   public boolean isRestDirectorValid() {
+      if (hasDirector()) {
+         return myBackNode.isRestPositionValid();
+      }
+      else {
+         return false;
+      }
+   }
+
+   public void invalidateRestDirectorIfNecessary() {
+      if (hasDirector()) {
+         if (!myBackNode.isRestPositionExplicit()) {
+            myBackNode.setRestPositionValid (false);
+         }
+      }
+   }
+
+   public Point3d getBackPosition() {
+      if (!hasDirector()) {
+         return new Point3d();
+      }
+      else {
+         return myBackNode.getPosition();
+      }
+   }
+
+   public void setBackPosition (Point3d pos) {
+      if (hasDirector()) {
+         myBackNode.setPosition (pos);
+         myBackNode.setPositionExplicit (true);
+      }
+   }
+
+   public Point3d getBackRestPosition() {
+      if (!hasDirector()) {
+         return new Point3d();
+      }
+      else {
+         return myBackNode.getRestPosition();
+      }
+   }
+
+   public void setBackRestPosition (Point3d rest) {
+      if (hasDirector()) {
+         myBackNode.setRestPosition (rest);
+         invalidateRestData();
+      }
+   }
+
+   public Vector3d getBackVelocity () {
+      if (!hasDirector()) {
+         return new Vector3d();
+      }
+      else {
+         return myBackNode.myVel;
+      }
+   }
+
+   public void setBackVelocity (Vector3d vel) {
+      if (hasDirector()) {
+         myBackNode.myVel.set (vel);
       }
    }
 
@@ -809,299 +992,57 @@ public class FemNode3d extends FemNode {
          return new Vector3d();
       }
       else {
-         return myBackForce;
+         return myBackNode.myForce;
       }
    }
 
    public void setBackForce (Vector3d f) {
       if (hasDirector()) {
-         myBackForce.set (f);
+         myBackNode.myForce.set (f);
       }
-   }
-
-   @Override
-   public int getPosState(double[] x, int idx) {
-      idx = super.getPosState(x, idx);
-      if (hasDirector()) {
-         x[idx++] = myBackPos.x;
-         x[idx++] = myBackPos.y;
-         x[idx++] = myBackPos.z;
-      }
-      return idx;
-   }
-   
-   @Override 
-   public int setPosState(double[] p, int idx) {
-      idx = super.setPosState(p, idx);
-      if (hasDirector()) {
-         myBackPos.x = p[idx++];
-         myBackPos.y = p[idx++];
-         myBackPos.z = p[idx++];
-      }
-      return idx;
-   }
-   
-   @Override 
-   public void addPosImpulse (
-      double[] xbuf, int xidx, double h, double[] vbuf, int vidx) {
-      xbuf[xidx  ] += h*vbuf[vidx  ];
-      xbuf[xidx+1] += h*vbuf[vidx+1];
-      xbuf[xidx+2] += h*vbuf[vidx+2];
-      if (hasDirector()) {
-         xbuf[xidx+3] += h*vbuf[vidx+3];
-         xbuf[xidx+4] += h*vbuf[vidx+4];
-         xbuf[xidx+5] += h*vbuf[vidx+5];
-      }
-   }
-   
-   @Override
-   public int getPosDerivative (double[] dxdt, int idx) {
-      idx = super.getPosDerivative(dxdt, idx);
-      if (hasDirector()) {
-         dxdt[idx++] = myBackVel.x;
-         dxdt[idx++] = myBackVel.y;
-         dxdt[idx++] = myBackVel.z;
-      }
-      return idx;
-   }
-   
-   @Override
-   public int getVelState (double[] v, int idx) {
-      idx = super.getVelState(v, idx);
-      if (hasDirector()) {
-         v[idx++] = myBackVel.x;
-         v[idx++] = myBackVel.y;
-         v[idx++] = myBackVel.z;
-      }
-      return idx;
-   }
-   
-   @Override
-   public int setVelState (double[] v, int idx) {
-      idx = super.setVelState (v, idx);
-      if (hasDirector()) {
-         myBackVel.x = v[idx++];
-         myBackVel.y = v[idx++];
-         myBackVel.z = v[idx++];
-      }
-      return idx;
-   }
-   
-   @Override 
-   public int getVelStateSize() {
-      return hasDirector() ? 6 : 3;
-   }
-   
-   @Override 
-   public int getPosStateSize() {
-      return hasDirector() ? 6 : 3;
-   }
-   
-   @Override
-   public void setState (Point pt) {
-      super.setState(pt);
-      if (hasDirector() && pt instanceof FemNode3d) {
-         FemNode3d fn = (FemNode3d)pt;
-         if (fn.hasDirector()) {
-            myBackPos.set (fn.myBackPos);
-            myBackVel.set (fn.myBackVel);
-         }
-      }
-   }
-   
-   @Override
-   public int setState (VectorNd x, int idx) {
-      idx = super.setState(x, idx);
-      if (hasDirector()) {
-         double[] xb = x.getBuffer();
-         myBackPos.x = xb[idx++];
-         myBackPos.y = xb[idx++];
-         myBackPos.z = xb[idx++];
-         myBackVel.x = xb[idx++];
-         myBackVel.y = xb[idx++];
-         myBackVel.z = xb[idx++];
-      }
-      return idx;
-   }
-   
-   @Override
-   public int getState (VectorNd x, int idx) {
-      idx = super.getState(x, idx);
-      if (hasDirector()) {
-         double[] xb = x.getBuffer();
-         xb[idx++] = myBackPos.x;
-         xb[idx++] = myBackPos.y;
-         xb[idx++] = myBackPos.z;
-         xb[idx++] = myBackVel.x;
-         xb[idx++] = myBackVel.y;
-         xb[idx++] = myBackVel.z;
-      }
-      return idx;
-   }
-   
-   @Override
-   public boolean velocityLimitExceeded (double tlimit, double rlimit) {
-      if (super.velocityLimitExceeded (tlimit, rlimit)) {
-         return true;
-      }
-      if (hasDirector()) {
-         return (myBackVel.containsNaN() || myBackVel.infinityNorm() > tlimit);
-      }
-      else {
-         return false;
-      }
-   }
-   
-   @Override
-   public int getForce (double[] f, int idx) {
-      idx = super.getForce(f, idx);
-      if (hasDirector()) {
-         f[idx++] = myBackForce.x;
-         f[idx++] = myBackForce.y;
-         f[idx++] = myBackForce.z;
-      }
-      return idx;
-   }
-   
-   @Override
-   public int setForce (double[] f, int idx) {
-      idx = super.setForce(f, idx);
-      if (hasDirector()) {
-         myBackForce.x = f[idx++];
-         myBackForce.y = f[idx++];
-         myBackForce.z = f[idx++];
-      }
-      return idx;
    }
    
    @Override
    public void zeroForces() {
       super.zeroForces();
       if (hasDirector()) {
-         myBackForce.setZero();
+         myBackNode.myForce.setZero();
       }
    }
 
-   @Override
-   public MatrixBlock createMassBlock() {
-      if (!hasDirector()) {
-         return super.createMassBlock();
-      }
-      else {
-         return new Matrix6dDiagBlock();
-      }
+   public void computeRestDirector () {
+      Vector3d dir = new Vector3d();
+      computeRestDirector (dir);
+      setRestDirector (dir);
    }
-   
-   @Override 
-   protected void doGetMass(Matrix M, double m) {
-      if (!hasDirector()) {
-         super.doGetMass (M, m);
-      }
-      else {
-         if (M instanceof Matrix6d) {
-            Matrix6d M6 = (Matrix6d)M;
-            M6.setDiagonal (m, m, m, m, m, m);
+
+   public void computeRestDirector (Vector3d dir) {
+
+      double thickness = 0;
+      int ecnt = 0;
+
+      for (FemElement e : myElementDeps) {
+         if (e instanceof ShellElement3d) {
+            ShellElement3d se = (ShellElement3d)e;
+
+            Vector3d d = new Vector3d();
+            double area = se.computeRestNodeNormal (d, this);
+            dir.scaledAdd (area, d);
+            thickness += se.getDefaultThickness();
+            ecnt++;
          }
-         else {
-            throw new IllegalArgumentException (
-               "Matrix not instance of Matrix6d");
-         }
       }
-   }
-   
-   @Override
-   public void getInverseMass (Matrix Minv, Matrix M) {
-      if (!hasDirector()) {
-         super.getInverseMass (Minv, M);
-      }
-      else {
-         if (!(Minv instanceof Matrix6d)) {
-            throw new IllegalArgumentException ("Minv not instance of Matrix6d");
-         }
-         if (!(M instanceof Matrix6d)) {
-            throw new IllegalArgumentException ("M not instance of Matrix6d");
-         }
-         double inv = 1/((Matrix6d)M).m00;
-         ((Matrix6d)Minv).setDiagonal (inv, inv, inv, inv, inv, inv);
-      }
-   }
-   
-   @Override 
-   public void addSolveBlock (SparseNumberedBlockMatrix S) {
-      if (!hasDirector()) {
-         super.addSolveBlock (S);
-      }
-      else {
-         int bi = getSolveIndex();
-         Matrix6dBlock blk = new Matrix6dBlock();
-         S.addBlock(bi, bi, blk);
+      if (ecnt > 0) {
+         dir.normalize();
+         dir.scale (thickness/ecnt);         
       }
    }
 
-   @Override 
-   public MatrixBlock createSolveBlock() {
-      if (!hasDirector()) {
-         return super.createSolveBlock();
-      }
-      else {
-         Matrix6dBlock blk = new Matrix6dBlock();
-         return blk;
-      }
-   }
-   
-   @Override 
-   public void addToSolveBlockDiagonal(SparseNumberedBlockMatrix S, double d) {
-      if (!hasDirector()) {
-         super.addToSolveBlockDiagonal (S, d);
-      }
-      else {
-         if (getSolveIndex() != -1) {
-            Matrix6dBlock blk = 
-               (Matrix6dBlock)S.getBlockByNumber(getSolveIndex());
-            blk.m00 += d;
-            blk.m11 += d;
-            blk.m22 += d;
-            blk.m33 += d;
-            blk.m44 += d;
-            blk.m55 += d;
-         }
-      }
-   }
-   
-   @Override
-   public int mulInverseEffectiveMass (
-      Matrix M, double[] a, double[] f, int idx) {
-      if (!hasDirector()) {
-         return super.mulInverseEffectiveMass (M, a, f, idx);
-      }    
-      else {
-         double minv = 1/myEffectiveMass;
-         a[idx++] = minv*f[idx];
-         a[idx++] = minv*f[idx];
-         a[idx++] = minv*f[idx];
-         a[idx++] = minv*f[idx];
-         a[idx++] = minv*f[idx];
-         a[idx++] = minv*f[idx];
-         return idx;
+   public void prerender (RenderList list) {
+      super.prerender (list);
+      if (hasDirector()) {
+         myBackNode.saveRenderCoords();
       }
    }
 
-   @Override
-   public int getEffectiveMassForces (VectorNd f, double t, int idx) {
-      if (!hasDirector()) {
-         return super.getEffectiveMassForces (f, t, idx);
-      }
-      else {
-         double[] buf = f.getBuffer();
-         // Note that if the point is attached to a moving frame, then that
-         // will produce mass forces that are not computed here.
-         buf[idx++] = 0;
-         buf[idx++] = 0;
-         buf[idx++] = 0;
-         buf[idx++] = 0;
-         buf[idx++] = 0;
-         buf[idx++] = 0;
-         return idx;
-      }
-   }
 }

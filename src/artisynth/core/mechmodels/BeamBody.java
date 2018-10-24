@@ -121,7 +121,7 @@ public class BeamBody extends DeformableBody {
          DeformedPointBase def = new DeformedPointBase();
          IntegrationPoint3d pt = myIntegrationPoints[k];
          IntegrationData3d dt = new IntegrationData3d ();
-         pt.setF (Matrix3d.IDENTITY);
+         //pt.setF (Matrix3d.IDENTITY);
          def.setF (Matrix3d.IDENTITY);
          // get the tangent at the rest position
          Matrix3d Q = Matrix3d.IDENTITY;

@@ -25,10 +25,8 @@ public class FrameFrameAttachment extends FrameAttachment {
    private Frame myMaster;
    // Transform from Slave to Master
    private RigidTransform3d myTFM = new RigidTransform3d();
-
-   private PolarDecomposition3d myPolarD = null;
-   private Matrix3d myF = null;
-   private Vector3d myPos = null;
+   // Current transform from Slave to World
+   private RigidTransform3d myTFW = new RigidTransform3d();
 
    private boolean myMasterBlockInWorldCoords = true;
 
@@ -36,6 +34,10 @@ public class FrameFrameAttachment extends FrameAttachment {
    }
 
    public FrameFrameAttachment (Frame frame) {
+      if (frame instanceof DeformableBody) {
+         throw new IllegalArgumentException (
+"Deformable bodies not supported as slaves in FrameFrameAttachments");
+      }
       myFrame = frame;
    }
 
@@ -59,16 +61,6 @@ public class FrameFrameAttachment extends FrameAttachment {
 
    protected void setMaster (Frame master) {
       removeBackRefsIfConnected();
-      if (master instanceof DeformableBody) {
-         myF = new Matrix3d();
-         myPolarD = new PolarDecomposition3d();
-         myPos = new Vector3d();
-      }
-      else {
-         myF = null;
-         myPolarD = null;
-         myPos = null;
-      }
       myMaster = master;
       invalidateMasters();
       addBackRefsIfConnected();
@@ -78,9 +70,8 @@ public class FrameFrameAttachment extends FrameAttachment {
    public void set (Frame master, RigidTransform3d TFW) {
       setMaster (master);
       if (master != null) {
-         RigidTransform3d TFM = new RigidTransform3d();
-         TFM.mulInverseLeft (master.getPose(), TFW);
-         doSetTFM (TFM);
+         master.computeFrameLocation (myTFM, TFW);
+         myTFW.set (TFW);
       }
       else {
          myTFM.set (TFW);
@@ -89,18 +80,17 @@ public class FrameFrameAttachment extends FrameAttachment {
 
    public void setWithTFM (Frame master, RigidTransform3d TFM) {
       setMaster (master);
-      doSetTFM (TFM);
-   }
-
-   private void doSetTFM (RigidTransform3d TFM) {
       if (myMaster instanceof DeformableBody) {
          DeformableBody defBody = (DeformableBody)myMaster;
-         defBody.computeUndeformedFrame (myTFM, myPolarD, TFM);
+         defBody.computeUndeformedFrame (myTFM, TFM);
       }
       else {
          myTFM.set (TFM);
       }
-   }      
+      if (myMaster != null) {
+         myTFW.mul (myMaster.getPose(), myTFM);
+      }
+   }
 
    @Override
    protected void collectMasters (List<DynamicComponent> masters) {
@@ -110,85 +100,30 @@ public class FrameFrameAttachment extends FrameAttachment {
       }
    }
 
-   protected void setElasticPartOfMasterBlock (
-      MatrixNd blk, boolean worldCoords) {
-
-      DeformableBody defBody = (DeformableBody)myMaster;
-      int numc = defBody.numElasticCoords();
-      if (blk.rowSize() != 6+numc) {
-         throw new InternalErrorException (
-            "Master block should be 6 x "+numc+"; is "+blk.getSize());
-      }
-      MatrixNd Pi = new MatrixNd (6, numc);
-      defBody.computeElasticJacobian (Pi, myPolarD, myTFM, worldCoords);
-      // set the lower n x 6 submatrix of blk to the transpose of Pi
-      double[] bbuf = blk.getBuffer();
-      double[] pbuf = Pi.getBuffer();
-      if (blk.getBufferWidth() != 6) {
-         throw new InternalErrorException (
-            "Master block has buffer width of "+blk.getBufferWidth()+
-            "; expecting 6");
-      }
-      int k = 36;
-      for (int i=0; i<numc; i++) {
-         for (int j=0; j<6; j++) {
-            bbuf[k++] = pbuf[j*numc+i];
-         }
-      }
-   }
-
-   @Override
-   protected int updateMasterBlocks() {
-
-      boolean worldCoords = myMasterBlockInWorldCoords;
-
-      int idx = super.updateMasterBlocks();
-      if (idx != 0) {
-         throw new UnsupportedOperationException (
-            "Unsupported case: master block added in FrameAttachment base class");
-      }
-      if (myMasterBlocks.length > 0) {
-         Vector3d pAFw = new Vector3d();
-         MatrixBlock blk = myMasterBlocks[idx++];
-         RotationMatrix3d RFW = null;
-         if (!worldCoords) {
-            RFW = new RotationMatrix3d();
-            RFW.mul (myMaster.getPose().R, myTFM.R);
-         }
-         if (myMaster instanceof DeformableBody) {
-            if (!(blk instanceof MatrixNdBlock)) {
-               throw new InternalErrorException (
-                  "Master block is not an instance of MatrixNdBlock; is " +
-                  blk.getClass());
-            }
-            setElasticPartOfMasterBlock ((MatrixNdBlock)blk, worldCoords);
-            // rotate into world coords
-            pAFw.transform (myMaster.getPose().R, myPos); 
-         }
-         else {
-            // rotate TFM.p into world coords
-            pAFw.transform (myMaster.getPose().R, myTFM.p);
-         }
-         computeFrameFrameJacobian (blk, pAFw, RFW);
-      }
-      return idx;
-   }
-
    @Override
    public void updatePosStates() {
       if (myMaster != null) {
-         if (myMaster instanceof DeformableBody) {
-            DeformableBody defBody = (DeformableBody)myMaster;
-            defBody.computeDeformedPos (myPos, myTFM.p);
-            defBody.computeDeformationGradient (myF, myTFM.p);
-            myPolarD.factor (myF);
+         if (myMasters == null) {
+            initializeMasters();
          }
+//        if (myMaster instanceof DeformableBody) {
+//           DeformableBody defBody = (DeformableBody)myMaster;
+//           defBody.computeDeformedPos (myPos, myTFM.p);
+//           defBody.computeDeformationGradient (myF, myTFM.p);
+//           myPolarD.factor (myF);
+//        }
+         // if (myFrame != null) {
+         //    computeTFW (TFW);
+         //    myFrame.setPose (TFW);
+         // }
+         // updateMasterBlocks();
+
+         Twist vel = new Twist();
+         myMaster.computeFramePosVel (
+            myTFW, vel, myMasterBlocks[0], null, myTFM); 
          if (myFrame != null) {
-            RigidTransform3d TFW = new RigidTransform3d();
-            computeTFW (TFW);
-            myFrame.setPose (TFW);
+            myFrame.setPose (myTFW);
          }
-         updateMasterBlocks();
       }
    }
 
@@ -211,27 +146,51 @@ public class FrameFrameAttachment extends FrameAttachment {
    @Override
    public void updateAttachment() {
       if (myMaster != null && myFrame != null) {
-         RigidTransform3d TFM = new RigidTransform3d();         
-         TFM.mulInverseLeft (myMaster.getPose(), myFrame.getPose());
-         doSetTFM (TFM);
+         myTFW.set (myFrame.getPose());
+         myMaster.computeFrameLocation (myTFM, myTFW);
       }
    }
    
    @Override
    public boolean setCurrentTFW (RigidTransform3d TFW) {
       if (myMaster != null) {
-         RigidTransform3d TFM = new RigidTransform3d(); 
-         TFM.mulInverseLeft (myMaster.getPose(), TFW);
-         doSetTFM (TFM);
+         myMaster.computeFrameLocation (myTFM, TFW);
+         myTFW.set (TFW);
          if (myMaster instanceof DeformableBody) {
             updatePosStates();
          }
       }
       else {
-         doSetTFM (TFW);
+         myTFM.set (TFW);
       }
       return false;
    }
+
+   VectorNd getMasterForce() {
+      VectorNd force = new VectorNd(myMaster.getVelStateSize());
+      for (int i=0; i<6; i++) {
+         force.set (i, myMaster.getForce().get(i));
+      }
+      if (myMaster instanceof DeformableBody) {
+         DeformableBody defb = (DeformableBody)myMaster;
+         for (int i=0; i<defb.numElasticCoords(); i++) {
+            force.set (i+6, defb.getElasticForce().get(i));
+         }         
+      }
+      return force;
+   }      
+   
+   void setMasterForce (VectorNd force) {
+      for (int i=0; i<6; i++) {
+         myMaster.getForce().set (i, force.get(i));
+      }
+      if (myMaster instanceof DeformableBody) {
+         DeformableBody defb = (DeformableBody)myMaster;
+         for (int i=0; i<defb.numElasticCoords(); i++) {
+            defb.getElasticForce().set (i, force.get(i+6));
+         }         
+      }
+   }      
    
    @Override
    public void applyForces() {
@@ -239,9 +198,36 @@ public class FrameFrameAttachment extends FrameAttachment {
       Wrench forceF = new Wrench(forceA);
       Vector3d pAFw = new Vector3d();
       // rotate TFM.p into world coords
+      VectorNd oldForce = getMasterForce();
       pAFw.transform (myMaster.getPose().R, myTFM.p); 
       forceF.m.crossAdd (pAFw, forceA.f, forceF.m);
-      myMaster.addForce (forceF);
+      if (myMaster instanceof DeformableBody) {
+         myMaster.addFrameForce (myTFM, forceA);
+         VectorNd addForce = getMasterForce();
+         addForce.sub (oldForce);
+
+         VectorNd chkForce = new VectorNd (myMaster.getVelStateSize());
+         VectorNd forceV = new VectorNd(6);
+         forceV.set (forceA);
+         myMasterBlocks[0].mul (chkForce, forceV);
+
+         if (!addForce.epsilonEquals(chkForce, 1e-10)) {
+            System.out.println ("Not equal");
+            System.out.println ("DEF add=" + addForce.toString ("%12.8f"));
+            System.out.println ("DEF chk=" + chkForce.toString ("%12.8f"));
+         }
+         //setMasterForce (oldForce);
+         //myMaster.addForce (forceF);
+      }
+      else {
+         myMaster.addFrameForce (myTFM, forceA);
+         VectorNd addForce = getMasterForce();
+         addForce.sub (oldForce);  
+         if (!addForce.epsilonEquals(forceF, 1e-12)) {
+            System.out.println ("Not equal");
+
+         }
+      }
    }
 
    @Override
@@ -264,14 +250,8 @@ public class FrameFrameAttachment extends FrameAttachment {
          if (myFrame instanceof RigidBody && myMaster instanceof RigidBody) {
             RigidBody body = (RigidBody)myFrame;
             SpatialInertia MB = new SpatialInertia(body.getEffectiveInertia());
-            SpatialInertia MX = new SpatialInertia();
-            RigidTransform3d TFM = new RigidTransform3d();
-            TFM.mulInverseLeft (myMaster.getPose(), myFrame.getPose());
-            MX.set (MB);
-            MX.transform (TFM);
-            ((RigidBody)myMaster).addEffectiveInertia (MX);
-            MB.negate();
-            body.addEffectiveInertia (MB);
+            body.subEffectiveInertia (MB);
+            ((RigidBody)myMaster).addEffectiveFrameMass (MB, myTFM);
          }
          else {
             throw new UnsupportedOperationException (
@@ -283,7 +263,8 @@ public class FrameFrameAttachment extends FrameAttachment {
    @Override
    public void getCurrentTFW (RigidTransform3d TFW) {
       if (myMaster != null) {
-         computeTFW (TFW);
+         TFW.set (myTFW);
+         //computeTFW (TFW);
       }
       else {
          TFW.set (myTFM);
@@ -300,20 +281,20 @@ public class FrameFrameAttachment extends FrameAttachment {
       }
    }
 
-   protected void computeTFW (RigidTransform3d TFW) {
-      if (myMaster instanceof DeformableBody) {
-         RigidTransform3d TFM = new RigidTransform3d();
-         // polar decomposition should already have been computed in 
-         // updatePosStates()
-         TFM.R.mul (myPolarD.getR(), myTFM.R);
-         TFM.p.set (myPos);
-         TFW.mul (myMaster.getPose(), TFM);
-      }
-      else {
-         TFW.mul (myMaster.getPose(), myTFM);
-      }      
-   }
-
+//   protected void computeTFW (RigidTransform3d TFW) {
+//      if (myMaster instanceof DeformableBody) {
+//         RigidTransform3d TFM = new RigidTransform3d();
+//         // polar decomposition should already have been computed in 
+//         // updatePosStates()
+//         TFM.R.mul (myPolarD.getR(), myTFM.R);
+//         TFM.p.set (myPos);
+//         TFW.mul (myMaster.getPose(), TFM);
+//      }
+//      else {
+//         TFW.mul (myMaster.getPose(), myTFM);
+//      }      
+//   }
+//
    protected double[] getTotalVel (DeformableBody defBody) {
       int numc = defBody.numElasticCoords();
       double[] totalVel = new double[6+numc];
@@ -337,10 +318,14 @@ public class FrameFrameAttachment extends FrameAttachment {
          if (myMasterBlockInWorldCoords) {
             // master block gives velocity in world coordinates. Need to rotate
             // into coords of the attached frame
-            vel.inverseTransform (myMaster.getPose().R);
-            vel.inverseTransform (myPolarD.getR());
-            vel.inverseTransform (myTFM.R);
+            vel.inverseTransform (myTFW.R);
          }
+
+         // Twist chk = new Twist();
+         // defBody.computeFrameVelocity (chk, myTFM);
+         // chk.inverseTransform (myTFW.R);
+         // System.out.println ("vel=" + vel.toString ("%12.8f"));
+         // System.out.println ("chk=" + chk.toString ("%12.8f"));          
       }
       else if (myMaster != null) {
          double[] bvel = new double[6];
@@ -390,11 +375,12 @@ public class FrameFrameAttachment extends FrameAttachment {
          if (myMasterBlockInWorldCoords) {
             // master block expects force in world coordinates. Need to rotate
             // from coords of the attached frame
-            wtmp.transform (myTFM.R);
-            if (myMaster instanceof DeformableBody) {
-               wtmp.transform (myPolarD.getR());
-            }
-            wtmp.transform (myMaster.getPose().R);
+            wtmp.transform (myTFW.R);
+//            wtmp.transform (myTFM.R);
+//            if (myMaster instanceof DeformableBody) {
+//               wtmp.transform (myPolarD.getR());
+//            }
+//            wtmp.transform (myMaster.getPose().R);
          }
          wtmp.get (wbuf);
          // assumes that master blocks have been updated
@@ -510,8 +496,8 @@ public class FrameFrameAttachment extends FrameAttachment {
          Frame master = postscanReference (tokens, Frame.class, ancestor);
          setMaster (master);
          if (master instanceof DeformableBody) {
-            // reset the TFM and update deformable info
-            doSetTFM (new RigidTransform3d(myTFM));
+            // used to reset the TFM - don't think we need this
+            // doSetTFM (new RigidTransform3d(myTFM));
             updatePosStates();
          }
          return true;
@@ -623,16 +609,7 @@ public class FrameFrameAttachment extends FrameAttachment {
       FrameFrameAttachment a = (FrameFrameAttachment)super.copy (flags, copyMap);
 
       a.myTFM = new RigidTransform3d(myTFM);
-
-      if (myPos != null) {
-         a.myPos = new Vector3d();
-      }
-      if (myF != null) {
-         a.myF = new Matrix3d();
-      }
-      if (myPolarD != null) {
-         a.myPolarD = new PolarDecomposition3d();
-      }
+      a.myTFW = new RigidTransform3d(myTFW);
 
       if (myFrame != null) {
          Frame frame =
@@ -644,8 +621,7 @@ public class FrameFrameAttachment extends FrameAttachment {
             (Frame)ComponentUtils.maybeCopy (flags, copyMap, myMaster);
          a.setMaster (master);
          if (master instanceof DeformableBody) {
-            // reset the TFM and update deformable info
-            a.doSetTFM (new RigidTransform3d(a.myTFM));
+            // do we need this?
             a.updatePosStates();
          }
       }

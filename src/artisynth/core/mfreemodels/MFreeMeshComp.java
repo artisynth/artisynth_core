@@ -395,10 +395,10 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
       HashSet<FemElement3d> elems = null;
       for (MFreeNode3d node : nodes) {
          if (elems == null) {
-            elems = new HashSet<>(node.getElementDependencies());
+            elems = new HashSet<>(getAdjacentVolumetricElems(node));
          }
          else {
-            elems.retainAll (node.getElementDependencies());
+            elems.retainAll (getAdjacentVolumetricElems(node));
          }
       }
       if (elems.size() != 1) {

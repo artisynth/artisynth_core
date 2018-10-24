@@ -249,6 +249,87 @@ public class RigidTransform3d extends AffineTransform3dBase {
    }
 
    /**
+    * Sets the origin of the frame associated with this transform.  This is
+    * equivalent to setting the <code>p</code> field directly.
+    *
+    * @param x x origin coordinate 
+    * @param y y origin coordinate 
+    * @param z z origin coordinate 
+    */
+   public void setXyz (double x, double y, double z) {
+      p.set (x, y, z);
+   }
+
+   /**
+    * Sets the rotation of the frame associated with this transform.  This is
+    * equivalent to setting the <code>R</code> field directly.  The rotation is
+    * specified as a rotation <code>roll</code> about the z axis, followed by a
+    * rotation <code>pitch</code> about the y axis, followed by a rotation
+    * <code>yaw</code> about the x axis.
+    *
+    * @param roll rotation about the z axis (radians)
+    * @param pitch rotation about the y axis (radians)
+    * @param yaw rotation about the x axis (radians)
+    */
+   public void setRpy (double roll, double pitch, double yaw) {
+      R.setRpy (roll, pitch, yaw);
+   }
+
+   /**
+    * Sets the rotation of the frame associated with this transform.  This is
+    * equivalent to {@link #setRpy}, only with the rotation angles specified in
+    * degrees instead of radians.
+    *
+    * @param roll rotation about the z axis (degrees)
+    * @param pitch rotation about the y axis (degrees)
+    * @param yaw rotation about the x axis (degrees)
+    */
+   public void setRpyDeg (double roll, double pitch, double yaw) {
+      double DTOR = Math.PI/180.0;
+      R.setRpy (DTOR*roll, DTOR*pitch, DTOR*yaw);
+   }
+
+   /**
+    * Sets both the origin and rotation of the frame associated with this
+    * transform. This is equivalent to setting the <code>p</code> and
+    * <code>R</code> fields directly. The rotation is specified
+    * as a rotation <code>roll</code> about the z axis, followed
+    * by a rotation <code>pitch</code> about the y axis, followed
+    * by a rotation <code>yaw</code> about the x axis.
+    *
+    * @param x x origin coordinate 
+    * @param y y origin coordinate 
+    * @param z z origin coordinate 
+    * @param roll rotation about the z axis (radians)
+    * @param pitch rotation about the y axis (radians)
+    * @param yaw rotation about the x axis (radians)
+    */ 
+   public void setXyzRpy (
+      double x, double y, double z, double roll, double pitch, double yaw) {
+      setXyz (x, y, z);
+      setRpy (roll, pitch, yaw);
+   }     
+
+   /**
+    * Sets both the origin and rotation of the frame associated with this
+    * transform. This is equivalent to {@link #setXyzRpy}, only
+    * with the rotation angles specified in
+    * degrees instead of radians.
+    *
+    * @param x x origin coordinate 
+    * @param y y origin coordinate 
+    * @param z z origin coordinate 
+    * @param roll rotation about the z axis (degrees)
+    * @param pitch rotation about the y axis (degrees)
+    * @param yaw rotation about the x axis (degrees)
+    */ 
+   public void setXyzRpyDeg (
+      double x, double y, double z, double roll, double pitch, double yaw) {
+      setXyz (x, y, z);
+      setRpyDeg (roll, pitch, yaw);
+   }      
+
+   /**
     * Post-multiplies this transformation by another and places the result in
     * this transformation.
     * 

@@ -20,7 +20,7 @@ import artisynth.core.util.*;
 
 public class PointFrameAttachment extends PointAttachment {
 //   DynamicComponent[] myMasters;
-   Point3d myLoc = new Point3d(); // location of point in frame coordinates
+   protected Point3d myLoc = new Point3d(); // location of point in frame coords
    Frame myFrame;
    protected MatrixBlock[] myMasterBlocks;
 
@@ -29,16 +29,24 @@ public class PointFrameAttachment extends PointAttachment {
       masters.add (myFrame);
    }
    
-   protected void updateMasterBlocks() {
-      if (myMasters == null) {
-         initializeMasters();
-      }      
-      if (myFrame != null) {
-         myFrame.computeLocalPointForceJacobian (
-            myMasterBlocks[0], myLoc);
-      }
+   public PointFrameAttachment() {
    }
    
+   public PointFrameAttachment (Point slave) {
+      this();
+      setSlave (slave);
+   }
+
+   public PointFrameAttachment (Frame master, Point slave) {
+      this (slave);
+      setFrame (master);
+   }
+
+   public PointFrameAttachment (Frame master, Point slave, Point3d loc) {
+      this (slave);
+      setFrame (master, loc);
+   }
+
    public Frame getFrame() {
       return myFrame;
    }
@@ -51,17 +59,18 @@ public class PointFrameAttachment extends PointAttachment {
       return myLoc;
    }
 
-   protected void initializeMasters() {
-      super.initializeMasters();
+   protected void allocateMasterBlocks() {
+      if (myMasters == null) {
+         initializeMasters();
+      }
       myMasterBlocks = new MatrixBlock[myMasters.length];
       for (int i=0; i<myMasterBlocks.length; i++) {
          myMasterBlocks[i] =
             MatrixBlockBase.alloc (myMasters[i].getVelStateSize(), 3);
       }
-      updateMasterBlocks();
    }
 
-   void setFrame (Frame body, Point3d loc) {
+   protected void setFrame (Frame body, Point3d loc) {
       removeBackRefsIfConnected();
       myFrame = body;
       if (loc != null) {
@@ -69,7 +78,7 @@ public class PointFrameAttachment extends PointAttachment {
       }
       else {
          myFrame.computePointLocation (myLoc, myPoint.getPosition());
-      }     
+      }
       //updateJacobian();
       invalidateMasters();
       addBackRefsIfConnected();
@@ -109,11 +118,16 @@ public class PointFrameAttachment extends PointAttachment {
    }
 
    public void updatePosStates() {
-      Point3d pntw = new Point3d();
-      getCurrentPos (pntw);
-      myPoint.setPosition (pntw);
+
+      if (myMasterBlocks == null) {
+         allocateMasterBlocks();
+      } 
+      Point3d posw = new Point3d();
+      Vector3d velw = new Vector3d();
+      myFrame.computePointPosVel (posw, velw, myMasterBlocks[0], null, myLoc);
+      myPoint.setPosition (posw);
       //updateJacobian();
-      updateMasterBlocks();
+      //updateMasterBlocks();
    }
 
    public void updateVelStates() {
@@ -222,63 +236,16 @@ public class PointFrameAttachment extends PointAttachment {
       pw.println ("");
    }
    
-   private void computeVelDerivative (Vector3d dvel) {
-
-      RotationMatrix3d R2 = myFrame.getPose().R;
-      Twist vel2 = myFrame.getVelocity();
-      Vector3d tmp1 = new Vector3d();
-      Vector3d tmp2 = new Vector3d();
-      if (myFrame instanceof DeformableBody) {
-         // XXX shouldn't have to check explicitly for deformable body;
-         // Frame should have the necessary methods
-         DeformableBody defb = (DeformableBody)myFrame;
-         defb.computeDeformedPos (tmp1, myLoc);
-         tmp1.transform (R2); // R2*lp2
-         defb.computeDeformedVel (tmp2, myLoc);
-         tmp2.transform (R2); // R2*lv2
-         // tmp1 = w2 X R2*lp2 + R2*lv2
-         tmp1.crossAdd (vel2.w, tmp1, tmp2);
-         // dvel = w2 X R2*lv2 + w2 X tmp1
-         dvel.cross (vel2.w, tmp2);
-         dvel.crossAdd (vel2.w, tmp1, dvel);
-      }
-      else {
-         // tmp1 = w2 X R2*lp2
-         tmp1.transform (R2, myLoc);  // R2*lp2
-         tmp1.cross (vel2.w, tmp1);
-         // dvel = w2 X tmp1
-         dvel.cross (vel2.w, tmp1);
-      }
-   }
-
    // FIX
    public boolean getDerivative (double[] buf, int idx) {
       Vector3d dvel = new Vector3d();
-      computeVelDerivative (dvel);
+      //computeVelDerivative (dvel);
       
-      //myFrame.computePointCoriolis (dvel, myLoc);
+      myFrame.computePointCoriolis (dvel, myLoc);
       buf[idx  ] = dvel.x;
       buf[idx+1] = dvel.y;
       buf[idx+2] = dvel.z;
       return true;
-   }
-
-   public PointFrameAttachment() {
-   }
-   
-   public PointFrameAttachment (Point slave) {
-      this();
-      setSlave (slave);
-   }
-
-   public PointFrameAttachment (Frame master, Point slave) {
-      this (slave);
-      setFrame (master);
-   }
-
-   public PointFrameAttachment (Frame master, Point slave, Point3d loc) {
-      this (slave);
-      setFrame (master, loc);
    }
 
    public PointFrameAttachment copy (

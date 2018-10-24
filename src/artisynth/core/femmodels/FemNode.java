@@ -51,31 +51,6 @@ public abstract class FemNode extends Particle {
       myMassValidP = true;
    }
 
-   public void clearMass() {
-      if (!myMassExplicitP) {
-         myMass = 0;
-         myMassValidP = false;
-      }
-   }
-   
-   public void invalidateMassIfNecessary() {
-      if (!myMassExplicitP) {
-         myMassValidP = false;
-      }
-   }
-   
-   protected abstract void invalidateAdjacentNodeMasses();
-   
-   public void setMassExplicit (boolean explicit) {
-      myMassExplicitP = explicit;
-   }
-   
-   public boolean isMassExplicit() {
-      return myMassExplicitP;
-   }
-   
-   public abstract double computeMassFromDensity();
-   
    public void addMass (double m) {
       myMass += m;
       myMassValidP = true; // assume we are building it up in a valid way
@@ -88,6 +63,31 @@ public abstract class FemNode extends Particle {
       }
       super.scaleMass(s);
    }
+   
+   public void clearMass() {
+      if (!myMassExplicitP) {
+         myMass = 0;
+         myMassValidP = false;
+      }
+   }
+   
+   public void setMassExplicit (boolean explicit) {
+      myMassExplicitP = explicit;
+   }
+   
+   public boolean isMassExplicit() {
+      return myMassExplicitP;
+   }
+
+   public void invalidateMassIfNecessary () {
+      if (!myMassExplicitP) {
+         myMassValidP = false;
+      }      
+   }
+   
+   protected abstract void invalidateAdjacentNodeMasses();
+   
+   public abstract double computeMassFromDensity();
    
    @Override
    public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -120,7 +120,15 @@ public abstract class FemNode extends Particle {
    public FemNode copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FemNode node = (FemNode)super.copy (flags, copyMap);
-      node.myMass = 0;
+      node.myMass = myMass;
+      if (myMassExplicitP) {
+         node.myMassValidP = true;
+         node.myMassExplicitP = true;
+      }
+      else {
+         node.myMassValidP = false;
+         node.myMassExplicitP = false;
+      }
       return node;
    }
 

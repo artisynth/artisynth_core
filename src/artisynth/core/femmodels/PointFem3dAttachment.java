@@ -104,7 +104,7 @@ public class PointFem3dAttachment extends PointAttachment {
          return null;
       }
       FemNode3d node0 = (FemNode3d)nodes[0];
-      for (FemElement3d elem : node0.getElementDependencies()) {
+      for (FemElement3dBase elem : node0.getElementDependencies()) {
          FemNode[] enodes = elem.getNodes();
          if (enodes.length == nodes.length) {
             int i = 0;

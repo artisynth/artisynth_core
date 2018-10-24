@@ -302,7 +302,7 @@ public class PointSkinAttachment extends PointAttachment
       
       public abstract boolean addPointForce (Vector3d f);
       
-      public abstract boolean getPointForceJacobian(MatrixBlock blk);
+      //public abstract boolean getPointForceJacobian(MatrixBlock blk);
    }
 
    public class FrameConnection extends Connection {
@@ -353,14 +353,14 @@ public class PointSkinAttachment extends PointAttachment
          return true;
       }
 
-      @Override
-      public boolean getPointForceJacobian (MatrixBlock blk) {
-         Point3d loc = new Point3d();
-         loc.inverseTransform (myFrameInfo.myBasePose, myBasePos);
-         myFrameInfo.myFrame.computeWorldPointForceJacobian (blk, loc);
-         blk.scale (myWeight);
-         return true;
-      }
+//      @Override
+//      public boolean getPointForceJacobian (MatrixBlock blk) {
+//         Point3d loc = new Point3d();
+//         loc.inverseTransform (myFrameInfo.myBasePose, myBasePos);
+//         myFrameInfo.myFrame.computeWorldPointForceJacobian (blk, loc);
+//         blk.scale (myWeight);
+//         return true;
+//      }
 
    }
 
@@ -393,20 +393,20 @@ public class PointSkinAttachment extends PointAttachment
          return new ParticleConnection(myParticle, myWeight);
       }
 
-      @Override
-      public boolean getPointForceJacobian (MatrixBlock blk) {
-         Matrix3x3Block blk3x3 = (Matrix3x3Block)blk;
-         blk3x3.m00 = myWeight;
-         blk3x3.m11 = myWeight;
-         blk3x3.m22 = myWeight;
-         blk3x3.m01 = 0;
-         blk3x3.m02 = 0;
-         blk3x3.m12 = 0;
-         blk3x3.m10 = 0;
-         blk3x3.m20 = 0;
-         blk3x3.m21 = 0;
-         return true;
-      }
+//      @Override
+//      public boolean getPointForceJacobian (MatrixBlock blk) {
+//         Matrix3x3Block blk3x3 = (Matrix3x3Block)blk;
+//         blk3x3.m00 = myWeight;
+//         blk3x3.m11 = myWeight;
+//         blk3x3.m22 = myWeight;
+//         blk3x3.m01 = 0;
+//         blk3x3.m02 = 0;
+//         blk3x3.m12 = 0;
+//         blk3x3.m10 = 0;
+//         blk3x3.m20 = 0;
+//         blk3x3.m21 = 0;
+//         return true;
+//      }
 
    }
 
@@ -434,10 +434,10 @@ public class PointSkinAttachment extends PointAttachment
          return new BaseConnection(myWeight);
       }
 
-      @Override
-      public boolean getPointForceJacobian (MatrixBlock blk) {
-         return false;
-      }
+//      @Override
+//      public boolean getPointForceJacobian (MatrixBlock blk) {
+//         return false;
+//      }
 
    }
 
@@ -470,20 +470,20 @@ public class PointSkinAttachment extends PointAttachment
          return new FemDisplacementConnection(myNode, myWeight);
       }
 
-      @Override
-      public boolean getPointForceJacobian (MatrixBlock blk) {
-         Matrix3x3Block blk3x3 = (Matrix3x3Block)blk;
-         blk3x3.m00 = myWeight;
-         blk3x3.m11 = myWeight;
-         blk3x3.m22 = myWeight;
-         blk3x3.m01 = 0;
-         blk3x3.m02 = 0;
-         blk3x3.m12 = 0;
-         blk3x3.m10 = 0;
-         blk3x3.m20 = 0;
-         blk3x3.m21 = 0;
-         return true;
-      }
+//      @Override
+//      public boolean getPointForceJacobian (MatrixBlock blk) {
+//         Matrix3x3Block blk3x3 = (Matrix3x3Block)blk;
+//         blk3x3.m00 = myWeight;
+//         blk3x3.m11 = myWeight;
+//         blk3x3.m22 = myWeight;
+//         blk3x3.m01 = 0;
+//         blk3x3.m02 = 0;
+//         blk3x3.m12 = 0;
+//         blk3x3.m10 = 0;
+//         blk3x3.m20 = 0;
+//         blk3x3.m21 = 0;
+//         return true;
+//      }
    }
 
    protected void doInitializeMasters() {

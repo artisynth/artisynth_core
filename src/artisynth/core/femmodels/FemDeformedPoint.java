@@ -34,7 +34,6 @@ public class FemDeformedPoint extends DeformedPointBase {
       myPointIdx = idx;
       myP = 0; // assume 0 by default
 
-      myJ.setZero();
       FemNode3d[] nodes = (FemNode3d[])elem.getNodes();
       if (nodes.length != myNodeNumbers.length) {
          myNodeNumbers = new int[nodes.length];
@@ -48,11 +47,8 @@ public class FemDeformedPoint extends DeformedPointBase {
       myDetF = myF.determinant();      
       VectorNd N = ipnt.getShapeWeights();
       for (int i=0; i<nodes.length; i++) {
-         //Vector3d pos = nodes[i].getLocalPosition();
-         //Vector3d dNds = ipnt.GNs[i];
          myNodeNumbers[i] = nodes[i].getNumber();
          myNodeWeights[i] = N.get(i);
-         //myJ.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
       }
       setR (R);
 

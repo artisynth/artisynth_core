@@ -350,11 +350,12 @@ public class DynamicAttachmentWorker {
    }
 
    /**
-    * Orders a list of (possibly interdependent) attachments so that the
-    * masters of any given attachment do not depend on any attachments further
-    * along the list. This means that state can be updated correctly by
-    * starting at the beginning of the list and running through to the end.  It
-    * also implicitly requires that the attachment configuration does not
+    * Orders a list of (possibly interdependent) attachments so that
+    * state can be updated correctly by starting at the beginning of the list
+    * and running through to the end. Unattached components will be at
+    * the beginning of the list, and the masters of any given attachment do not
+    * depend on any attachments further along the list. This
+    * implicitly requires that the attachment configuration does not
     * contain loops.
     */
    public ArrayList<DynamicAttachment> createOrderedList (

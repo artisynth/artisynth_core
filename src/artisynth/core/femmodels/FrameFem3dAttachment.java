@@ -64,6 +64,10 @@ public class FrameFem3dAttachment extends FrameAttachment {
 
    public FrameFem3dAttachment (Frame frame) {
       myRFD = new RotationMatrix3d();
+      if (frame instanceof DeformableBody) {
+         throw new IllegalArgumentException (
+            "Deformable bodies not supported for FrameFem3dAttachment");
+      }
       myFrame = frame;
    }
 
@@ -677,8 +681,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
             for (int i=0; i<myNodes.length; i++) {
                myNodes[i].addEffectiveMass (myWeights[i]*mass);
             }
-            MB.negate();
-            body.addEffectiveInertia (MB);
+            body.subEffectiveInertia (MB);
          }
          else {
             throw new UnsupportedOperationException (

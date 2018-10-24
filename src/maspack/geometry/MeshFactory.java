@@ -8,6 +8,7 @@ package maspack.geometry;
 
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -3799,5 +3800,84 @@ public class MeshFactory {
       
       return out;
    }
+   
+   /**
+    * Traverses faces, collected all that are connected within a certain angle limit
+    * @param f starting face
+    * @param visited list of attached faces
+    * @param minCosLimit cosine of limit angle, all cosines above this are considered
+    */
+   private static void traverseAndAdd(Face f, ArrayList<Face> visited, double minCosLimit) {
 
+      ArrayDeque<Face> queue = new ArrayDeque<>();
+      f.setVisited();
+      queue.add(f);
+
+      while (!queue.isEmpty()) {
+         f = queue.remove();
+         visited.add(f);
+
+         HalfEdge he0 = f.firstHalfEdge();
+         HalfEdge he = he0;
+         do {
+            if (he.opposite != null) {
+               Face oface = he.opposite.getFace();
+               if (oface != null && !oface.isVisited()) {
+                  double c = oface.getNormal().dot(f.getNormal());
+                  if (c >= minCosLimit) {
+                     oface.setVisited();
+                     queue.add(oface);
+                  }
+               }
+            }
+            he = he.getNext();
+         } while (he != he0);
+      }
+   }
+   
+   /**
+    * Splits a mesh into several pieces based on connectivity and angle between faces
+    * @param splitme mesh to split
+    * @param minCosLimit cosine of limit angle, if neighbour's cosine is above this, considered connected
+    * @param minSize minimum number of faces to consider as a new piece (groups of few faces are discarded)
+    * @return set of split meshes
+    */
+   public static ArrayList<PolygonalMesh> splitMesh(PolygonalMesh splitme, double minCosLimit, int minSize) {
+
+      ArrayList<PolygonalMesh> out = new ArrayList<>();
+
+      // clear visited flag
+      for (Face f : splitme.getFaces()) {
+         f.clearVisited();
+      }
+      // start with a face, move to neighbors as long as within given angle
+      boolean done = false;
+      while (!done) {
+         done = true;
+         for (Face f : splitme.getFaces()) {
+            if (!f.isVisited()) {
+               done = false;
+               ArrayList<Face> nfaces = new ArrayList<Face>();
+               traverseAndAdd(f, nfaces, minCosLimit);
+               if (nfaces.size() >= minSize) {
+                  PolygonalMesh splitted = MeshFactory.createFromFaces(nfaces);
+                  out.add(splitted);
+               }
+            }
+         }
+      }
+
+      return out;
+
+   }
+
+   /**
+    * Splits a mesh into several pieces based on connectivity
+    * @param splitme mesh to split
+    * @return set of split meshes
+    */
+   public static ArrayList<PolygonalMesh> splitMesh(PolygonalMesh splitme) {
+      return splitMesh(splitme, -2, -1);
+   }
+   
 }

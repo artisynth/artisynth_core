@@ -16,13 +16,13 @@ import java.util.*;
 
 public abstract class DynamicComponentBase extends RenderableComponentBase
    implements DynamicComponent {
-   DynamicAttachment myAttachment;
-   LinkedList<DynamicAttachment> myMasterAttachments;
-   ArrayList<Constrainer> myConstrainers;
+   protected DynamicAttachment myAttachment;
+   protected LinkedList<DynamicAttachment> myMasterAttachments;
+   protected ArrayList<Constrainer> myConstrainers;
 
    protected boolean myDynamicP;
    // Activity myActivity;
-   int mySolveIdx;
+   protected int mySolveIdx = -1;
 
    public DynamicAttachment getAttachment() {
       return myAttachment;
@@ -99,6 +99,9 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
          "Inverse mass does not exist for "+getClass());
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void addMasterAttachment (DynamicAttachment a) {
       if (myMasterAttachments == null) {
          myMasterAttachments = new LinkedList<DynamicAttachment>();
@@ -106,6 +109,9 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
       myMasterAttachments.add (a);
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void removeMasterAttachment (DynamicAttachment a) {
       if (myMasterAttachments == null || !myMasterAttachments.remove (a)) {
          throw new InternalErrorException (
@@ -116,6 +122,9 @@ public abstract class DynamicComponentBase extends RenderableComponentBase
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public LinkedList<DynamicAttachment> getMasterAttachments() {
       return myMasterAttachments;
    }

@@ -14,6 +14,8 @@ import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix6d;
+import maspack.matrix.Matrix3d;
+import maspack.matrix.MatrixNd;
 import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.Matrix6x3Block;
 import maspack.matrix.MatrixBlock;
@@ -291,6 +293,7 @@ public class Frame extends DynamicComponentBase
     * @param loc
     * position of the point, in body coordinates
     */
+   // 2 refs
    public void computePointPosition (Vector3d pos, Point3d loc) {
       pos.transform (myState.XFrameToWorld.R, loc);
       pos.add (myState.XFrameToWorld.p);
@@ -306,6 +309,7 @@ public class Frame extends DynamicComponentBase
     * @param pos
     * position of the point, in world coordinates
     */
+   // 13 refs
    public void computePointLocation (Vector3d loc, Vector3d pos) {
       loc.sub (pos, myState.XFrameToWorld.p);
       loc.inverseTransform (myState.XFrameToWorld.R);
@@ -320,21 +324,90 @@ public class Frame extends DynamicComponentBase
     * @param loc
     * position of the point, in body coordinates
     */
-   public void computePointVelocity (Vector3d vel, Point3d loc) {
-      computePointVelocity (vel, loc, myState.getVelocity());
+   // 5 refs
+   public void computePointVelocity (Vector3d vel, Vector3d loc) {
+      Twist frameVel = myState.getVelocity();
+      // use vel to store loc transformed into world coords
+      vel.transform (myState.XFrameToWorld.R, loc);
+      vel.crossAdd (frameVel.w, vel, frameVel.v);
    }
 
-   /**
-    * Adds a point mass to a matrix that contains the spatial
-    * inertia for this Frame.
-    *
-    * @param M matrix containing existing spatial inertia
-    * @param m mass of the point
-    * @param loc location of the point (in local frame coordinates)
-    */
-   public void addPointMass (Matrix M, double m, Vector3d loc) {
-      SpatialInertia.addPointMass (M, m, loc);
+   public void computePointPosVel (
+      Point3d pos, Vector3d vel, MatrixBlock J, Vector3d dv, Point3d loc) {
+      
+      computePointPosition (pos, loc);
+      computePointVelocity (vel, loc);
+      
+      if (J != null) {
+         computeWorldPointForceJacobian (J, loc);
+      }
+      if (dv != null) {
+         computePointCoriolis (dv, loc);
+      }
    }
+   
+   public void computeFramePosition (
+      RigidTransform3d TFW, RigidTransform3d TFL) {
+      TFW.mul (getPose(), TFL);
+   }
+   
+   public void computeFrameLocation (
+      RigidTransform3d TFL, RigidTransform3d TFW) {
+      TFL.mulInverseLeft (getPose(), TFW);
+   }
+   
+   public void computeFrameVelocity (Twist vel, RigidTransform3d TFL) {
+      computePointVelocity (vel.v, TFL.p);
+      vel.w.set (getVelocity().w);      
+   }
+   
+   public void computeFramePosVel (
+      RigidTransform3d TFW, Twist vel, MatrixBlock J, Twist dv,
+      RigidTransform3d TFL) {
+      
+      computeFramePosition (TFW, TFL);
+      computeFrameVelocity (vel, TFL);
+      if (J != null) {
+         computeFrameFrameJacobian (J, TFL);
+      }
+      if (dv != null) {
+         // TODO XXX FINISH
+         dv.setZero();
+      }
+   }
+   
+   protected void computeFrameFrameJacobian (
+      MatrixBlock J, RigidTransform3d TFL) {
+      
+      Vector3d pFLw = new Vector3d();
+      pFLw.transform (getPose().R, TFL.p);      
+      Matrix3d PX = new Matrix3d();
+      PX.setSkewSymmetric (pFLw);
+      
+      if (J instanceof Matrix6dBlock) {
+         Matrix6dBlock blk = (Matrix6dBlock)J;
+         blk.setSubMatrix00 (RotationMatrix3d.IDENTITY);
+         blk.setSubMatrix03 (Matrix3d.ZERO);
+         blk.setSubMatrix30 (PX);
+         blk.setSubMatrix33 (RotationMatrix3d.IDENTITY);
+      }
+      else {
+         throw new IllegalArgumentException (
+            "J is not an nstance of Matrix6x6Block; is " + J.getClass());         
+      }
+   }
+      
+//   /**
+//    * Adds a point mass to a matrix that contains the spatial
+//    * inertia for this Frame.
+//    *
+//    * @param M matrix containing existing spatial inertia
+//    * @param m mass of the point
+//    * @param loc location of the point (in local frame coordinates)
+//    */
+//   public void addPointMass (Matrix M, double m, Vector3d loc) {
+//      SpatialInertia.addPointMass (M, m, loc);
+//   }
 
    /**
     * Computes the force Jacobian, in world coordinates, for a point attached
@@ -356,8 +429,8 @@ public class Frame extends DynamicComponentBase
     * @param loc
     * position of the point, in body coordinates
     */
-    public void computeWorldPointForceJacobian (MatrixBlock GT, Point3d loc) {
-       
+   // 1 ref
+    protected void computeWorldPointForceJacobian (MatrixBlock GT, Point3d loc) {
        Matrix6x3Block blk;
        try {
           blk = (Matrix6x3Block)GT;
@@ -389,100 +462,80 @@ public class Frame extends DynamicComponentBase
        blk.m42 = -lxw;
     }
 
-    /**
-     * Computes a force Jacobian for a point attached to this frame. If the
-     * velocity state size (vsize) of this frame is 6, then G should be an
-     * instance of Matrix6x3Block. Otherwise, it should be an instance of
-     * MatrixNdBlock with a size of vsize x 3.
-     * 
-     * The Jacobian takes the following form for the 6x3 matrix case:
-     * <pre>
-     * [     I       ]
-     * [             ]
-     * [ [ RF loc ]  ]
-     * </pre>
-     * where RF is the frame orientation matrix, loc is the location of the
-     * point in frame coordinates, and [ x ] denotes the 3x3 skew-symmetric
-     * cross product matrix.
-     *
-     * @param GT returns the force Jacobian
-     * @param loc location of the point, relative to the frame
-     */
-     public void computeLocalPointForceJacobian (MatrixBlock GT, Vector3d loc) {
-        
-        Matrix6x3Block blk;
-        try {
-           blk = (Matrix6x3Block)GT;
-        }
-        catch (ClassCastException e) {
-           throw new IllegalArgumentException (
-              "GT is not an instance of Matrix6x3Block, is "+GT.getClass());
-        }       
+//    /**
+//     * Computes a force Jacobian for a point attached to this frame. If the
+//     * velocity state size (vsize) of this frame is 6, then G should be an
+//     * instance of Matrix6x3Block. Otherwise, it should be an instance of
+//     * MatrixNdBlock with a size of vsize x 3.
+//     * 
+//     * The Jacobian takes the following form for the 6x3 matrix case:
+//     * <pre>
+//     * [     I       ]
+//     * [             ]
+//     * [ [ RF loc ]  ]
+//     * </pre>
+//     * where RF is the frame orientation matrix, loc is the location of the
+//     * point in frame coordinates, and [ x ] denotes the 3x3 skew-symmetric
+//     * cross product matrix.
+//     *
+//     * @param GT returns the force Jacobian
+//     * @param loc location of the point, relative to the frame
+//     */
+//    // 1 ref
+//     public void computeLocalPointForceJacobian (MatrixBlock GT, Vector3d loc) {
+//        Matrix6x3Block blk;
+//        try {
+//           blk = (Matrix6x3Block)GT;
+//        }
+//        catch (ClassCastException e) {
+//           throw new IllegalArgumentException (
+//              "GT is not an instance of Matrix6x3Block, is "+GT.getClass());
+//        }       
+//
+//        Vector3d locw = new Vector3d();
+//        locw.transform (getPose().R, loc);
+//        double x = locw.x;
+//        double y = locw.y;
+//        double z = locw.z;
+//
+//        blk.m00 = 1;
+//        blk.m01 = 0;
+//        blk.m02 = 0;
+//        blk.m10 = 0;
+//        blk.m11 = 1;
+//        blk.m12 = 0;
+//        blk.m20 = 0;
+//        blk.m21 = 0;
+//        blk.m22 = 1;
+//
+//        blk.m30 = 0;
+//        blk.m31 = -z;
+//        blk.m32 = y;
+//        blk.m40 = z;
+//        blk.m41 = 0;
+//        blk.m42 = -x;           
+//        blk.m50 = -y;
+//        blk.m51 = x;
+//        blk.m52 = 0;
+//     }
 
-        Vector3d locw = new Vector3d();
-        locw.transform (getPose().R, loc);
-        double x = locw.x;
-        double y = locw.y;
-        double z = locw.z;
-
-        blk.m00 = 1;
-        blk.m01 = 0;
-        blk.m02 = 0;
-        blk.m10 = 0;
-        blk.m11 = 1;
-        blk.m12 = 0;
-        blk.m20 = 0;
-        blk.m21 = 0;
-        blk.m22 = 1;
-
-        blk.m30 = 0;
-        blk.m31 = -z;
-        blk.m32 = y;
-        blk.m40 = z;
-        blk.m41 = 0;
-        blk.m42 = -x;           
-        blk.m50 = -y;
-        blk.m51 = x;
-        blk.m52 = 0;
-     }
-
-   /**
-    * Computes the velocity, in world coordinates, of a point attached to this
-    * frame.
-    * 
-    * @param vel
-    * returns the point velocity
-    * @param loc
-    * position of the point, in body coordinates
-    * @param frameVel
-    * velocity of the frame, in rotated world coordinates
-    */
-   public void computePointVelocity (Vector3d vel, Point3d loc, Twist frameVel) {
-      // use vel to store loc transformed into world coords
-      vel.transform (myState.XFrameToWorld.R, loc);
-      vel.crossAdd (frameVel.w, vel, frameVel.v);
-   }
-
-   /**
-    * Computes the velocity, in world coordinates, of a point attached to this
-    * frame.
-    * 
-    * @param vel
-    * returns the point velocity
-    * @param loc
-    * position of the point, in body coordinates
-    * @param pvel
-    * independent velocity for the point, in body coordinates
-    */
-   public void computePointVelocity (Vector3d vel, Point3d loc, Vector3d pvel) {
-      // use vel to store loc transformed into world coords
-      Twist frameVel = myState.getVelocity();
-      vel.transform (myState.XFrameToWorld.R, loc);
-      vel.crossAdd (frameVel.w, vel, frameVel.v);
-      Vector3d tmp = new Vector3d();
-      tmp.transform (myState.XFrameToWorld.R, pvel);
-      vel.add (tmp);
-   }
+//   /**
+//    * Computes the velocity, in world coordinates, of a point attached to this
+//    * frame.
+//    * 
+//    * @param vel
+//    * returns the point velocity
+//    * @param loc
+//    * position of the point, in body coordinates
+//    * @param frameVel
+//    * velocity of the frame, in rotated world coordinates
+//    */
+//   // 1 ref
+//   public void computePointVelocity (Vector3d vel, Point3d loc, Twist frameVel) {
+//      // use vel to store loc transformed into world coords
+//      vel.transform (myState.XFrameToWorld.R, loc);
+//      vel.crossAdd (frameVel.w, vel, frameVel.v);
+//   }
 
    /**
     * Computes the velocity derivative of a point attached to this frame
@@ -493,6 +546,7 @@ public class Frame extends DynamicComponentBase
     * @param loc
     * position of the point, in body coordinates
     */
+   // 1 ref
    public void computePointCoriolis (Vector3d cor, Vector3d loc) {
       Twist tw = getVelocity();
 
@@ -501,20 +555,20 @@ public class Frame extends DynamicComponentBase
       cor.cross (tw.w, cor);      
    }
 
-   /**
-    * Subtracts from <code>wr</code> the wrench arising from applying a force
-    * <code>f</code> on a point <code>loc</code>.
-    *
-    * @param wr wrench from which force is subtracted (world coordinates
-    * @param loc location of the point (body coordinates)
-    * @param f force acting on the point (world coordinates)
-    */
-   public void subPointForce (Wrench wr, Point3d loc, Vector3d f) {
-      // transform position to world coordinates
-      myTmpPos.transform (myState.XFrameToWorld.R, loc);
-      wr.f.sub (f);
-      wr.m.crossAdd (f, myTmpPos, wr.m);
-   }
+//   /**
+//    * Subtracts from <code>wr</code> the wrench arising from applying a force
+//    * <code>f</code> on a point <code>loc</code>.
+//    *
+//    * @param wr wrench from which force is subtracted (world coordinates
+//    * @param loc location of the point (body coordinates)
+//    * @param f force acting on the point (world coordinates)
+//    */
+//   public void subPointForce (Wrench wr, Point3d loc, Vector3d f) {
+//      // transform position to world coordinates
+//      myTmpPos.transform (myState.XFrameToWorld.R, loc);
+//      wr.f.sub (f);
+//      wr.m.crossAdd (f, myTmpPos, wr.m);
+//   }
 
    /**
     * Adds to <code>wr</code> the wrench arising from applying a force
@@ -533,7 +587,7 @@ public class Frame extends DynamicComponentBase
 
    /**
     * Adds to this body's forces the wrench arising from applying a force
-    * <code>f</code> on a point <code>loc</code>.
+    * <code>f</code> on an attached point.
     *
     * @param loc location of the point (body coordinates)
     * @param f force applied to the point (world coordinates)
@@ -543,15 +597,30 @@ public class Frame extends DynamicComponentBase
    }
    
    /**
-    * Subtracts from this body's forces the wrench arising from applying a force
-    * <code>f</code> on a point <code>loc</code>.
+    * Adds to this body's forces the wrench arising from applying a wrench
+    * <code>f</code> on an attached frame.
     *
-    * @param loc location of the point (body coordinates)
-    * @param f force applied to the point (world coordinates)
+    * @param TFL location of the frame with respect to the body
+    * @param wr 6 DOF force applied to the frame (world coordinates)
     */
-   public void subPointForce (Point3d loc, Vector3d f) {
-      subPointForce (myForce, loc, f);
+   public void addFrameForce (RigidTransform3d TFL, Wrench wr) {
+      Point3d locw = new Point3d(); // body-frame vector rotated to world
+      locw.transform (myState.XFrameToWorld.R, TFL.p);
+      myForce.f.add (wr.f);
+      myForce.m.add (wr.m);
+      myForce.m.crossAdd (locw, wr.f, myForce.m);
    }
+   
+//   /**
+//    * Subtracts from this body's forces the wrench arising from applying a force
+//    * <code>f</code> on a point <code>loc</code>.
+//    *
+//    * @param loc location of the point (body coordinates)
+//    * @param f force applied to the point (world coordinates)
+//    */
+//   public void subPointForce (Point3d loc, Vector3d f) {
+//      subPointForce (myForce, loc, f);
+//   }
 
 //   /**
 //    * Adds to this body's external forces the wrench arising from
@@ -571,6 +640,7 @@ public class Frame extends DynamicComponentBase
     * @param wr returns the wrench in body coordinates
     * @param f applied force at the point (world coordinates)
     * @param p location of the point on the body (body coordinates)
+    * @deprecated
     */
    public void computeAppliedWrench (Wrench wr, Vector3d f, Vector3d p) {
       wr.f.inverseTransform (myState.XFrameToWorld.R, f);
@@ -974,6 +1044,16 @@ public class Frame extends DynamicComponentBase
       // subclasses must override if necessary; Frame itself has no inertia
    }
 
+   /**
+    * Adds a frame inertia to the effective spatial inertia for this Frame.
+    *
+    * @param M spatial inertia to be added
+    * @param TFL0 location of the inertia (in local frame coordinates)
+    */
+   public void addEffectiveFrameMass (SpatialInertia M, RigidTransform3d TFL0) {
+      // subclasses must override if necessary; Frame itself has no inertia
+   }
+
    public int getEffectiveMassForces (VectorNd f, double t, int idx) {
       double[] buf = f.getBuffer();
       buf[idx++] = 0;
@@ -1134,6 +1214,16 @@ public class Frame extends DynamicComponentBase
       myForce.m.x = f[idx++];
       myForce.m.y = f[idx++];
       myForce.m.z = f[idx++];
+      return idx;
+   }
+ 
+   public int addForce (double[] f, int idx) {
+      myForce.f.x += f[idx++];
+      myForce.f.y += f[idx++];
+      myForce.f.z += f[idx++];
+      myForce.m.x += f[idx++];
+      myForce.m.y += f[idx++];
+      myForce.m.z += f[idx++];
       return idx;
    }
  

@@ -24,7 +24,7 @@ public class PointParticleAttachmentTest
       force.set (at.getPoint().getForce());
    }
 
-   public PointParticleAttachment createAttachment() {
+   public PointParticleAttachment createTestAttachment(int idx) {
       Point point = new Point();
       Particle particle = new Particle();
       return new PointParticleAttachment (particle, point);

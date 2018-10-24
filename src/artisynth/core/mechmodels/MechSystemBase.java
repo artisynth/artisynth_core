@@ -471,6 +471,23 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
+   public static void placeDynamicComponent (
+      List<DynamicComponent> active,
+      List<DynamicComponent> attached, 
+      List<DynamicComponent> parametric,
+      DynamicComponent d) {
+
+      if (d.isActive()) {
+         active.add (d);
+      }
+      else if (d.isAttached()) {
+         attached.add (d);
+      }
+      else {
+         parametric.add (d);
+      }
+   }
+
    protected void updateDynamicComponentLists() {
 
       if (myDynamicComponents == null) {
@@ -933,10 +950,14 @@ public abstract class MechSystemBase extends RenderableModelBase
          //FunctionTimer timer = new FunctionTimer();
          //timer.start();
          DynamicComponent c = checkVelocityStability();
-         if (c != null) {
+         if (c instanceof DynamicComponent) {
             throw new NumericalException (
                "Unstable velocity detected, component " +
-               ComponentUtils.getPathName (c));
+               ComponentUtils.getPathName ((DynamicComponent)c));
+         }
+         else if (c != null) {
+            throw new NumericalException (
+               "Unstable velocity detected, dynamic agent " + c);
          }
          recursivelyFinalizeAdvance (stepAdjust, t0, t1, flags, 0);
          //timer.stop();
@@ -1836,11 +1857,11 @@ public abstract class MechSystemBase extends RenderableModelBase
       return msb;
    }
 
-   public void printActiveStiffness () throws IOException {
+   public void printActiveStiffness() {
       printActiveStiffness ("%.6g");
    }
 
-   public void printActiveStiffness (String fmtStr) throws IOException {
+   public void printActiveStiffness (String fmtStr) {
       MatrixNd K = new MatrixNd (getActiveStiffnessMatrix());
       System.out.println ("K=\n" + K.toString (fmtStr));
    }
@@ -1850,11 +1871,11 @@ public abstract class MechSystemBase extends RenderableModelBase
       return mySolver.createActiveStiffnessMatrix(1);
    }
 
-   public void printActiveMass () throws IOException {
+   public void printActiveMass() {
       printActiveMass ("%.6g");
    }
 
-   public void printActiveMass (String fmtStr) throws IOException {
+   public void printActiveMass (String fmtStr) {
       MatrixNd M = new MatrixNd (getActiveMassMatrix());
       System.out.println ("M=\n" + M.toString (fmtStr));
    }

@@ -7,6 +7,7 @@
 package artisynth.core.femmodels;
 
 import artisynth.core.materials.FemMaterial;
+import artisynth.core.femmodels.FemElement.ElementType;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
@@ -28,6 +29,7 @@ public class StiffnessWarper3d {
    // cached linear material info
    LinearMaterialCache linear;
    LinearMaterialCache corotated;
+   ElementType elemType;
    
    protected RotationMatrix3d R = null;  // warping rotation
    protected int numNodes;
@@ -35,37 +37,40 @@ public class StiffnessWarper3d {
    //   protected Matrix3d J0inv = null;
    //   protected double myConditionNum = 0;
    
-   public StiffnessWarper3d (FemElement3d elem) {
+   public StiffnessWarper3d (FemElement3dBase elem) {
       this.numNodes = elem.numNodes();
+      this.elemType = elem.getType();
    }
    
    /**
     * Initializes the warper, clears any cached values
     * @param elem element to be used by warper
     */
-   public void initialize(FemElement3d elem) {
+   public void initialize(FemElement3dBase elem) {
       linear = null;
       corotated = null;      
    }
    
    /**
     * Ensures linear (non-corotated) cache is available, creating if necessary
+    * @param e element for which the cache is created
     * @return linear cache
     */
-   LinearMaterialCache getOrCreateLinearCache() {
+   LinearMaterialCache getOrCreateLinearCache (FemElement3dBase e) {
       if (linear == null) {
-         linear = new LinearMaterialCache(numNodes);
+         linear = new LinearMaterialCache(e);
       }
       return linear;
    }
    
    /**
     * Ensures corotated cache is available, creating if necessary
+    * @param e element for which the cache is created
     * @return corotated cache
     */
-   LinearMaterialCache getOrCreateCorotatedCache() {
+   LinearMaterialCache getOrCreateCorotatedCache (FemElement3dBase e) {
       if (corotated == null) {
-         corotated = new LinearMaterialCache(numNodes);
+         corotated = new LinearMaterialCache(e);
       }
       return corotated;
    }
@@ -86,16 +91,24 @@ public class StiffnessWarper3d {
     * @param weight weight to combine with integration point weights
     */
    public void addInitialStiffness (
-      FemElement3d e, FemMaterial mat, double weight) {
+      FemElement3dBase e, FemMaterial mat, double weight) {
 
       LinearMaterialCache cache = null;
       if (mat.isCorotated()) {
-         cache = getOrCreateCorotatedCache();
+         cache = getOrCreateCorotatedCache(e);
       } else {
-         cache = getOrCreateLinearCache();
+         cache = getOrCreateLinearCache(e);
       }
-      
-      cache.addInitialStiffness(e, mat, weight);
+      if (e instanceof FemElement3d) {
+         cache.addInitialStiffness((FemElement3d)e, mat, weight);
+      }
+      else if (e instanceof ShellElement3d) {
+         cache.addInitialStiffness((ShellElement3d)e, mat, weight);
+      }
+      else {
+         throw new UnsupportedOperationException (
+            "FemElement type "+e.getClass()+" not supported");
+      }
    }
    
    /**
@@ -109,16 +122,15 @@ public class StiffnessWarper3d {
 
       LinearMaterialCache cache = null;
       if (mat.isCorotated()) {
-         cache = getOrCreateCorotatedCache();
+         cache = getOrCreateCorotatedCache(e);
       } else {
-         cache = getOrCreateLinearCache();
+         cache = getOrCreateLinearCache(e);
       }
-      
       cache.addInitialStiffness(e, mat, weight);
    }
 
    
-   public void computeWarpingRotation(FemElement3d elem) {
+   public void computeWarpingRotation (FemElement3dBase elem) {
       IntegrationPoint3d wpnt = elem.getWarpingPoint();
       IntegrationData3d wdata = elem.getWarpingData();
       Matrix3d F = new Matrix3d();
@@ -196,13 +208,41 @@ public class StiffnessWarper3d {
       // corotated component
       if (corotated != null) {
          Matrix3d Kr = new Matrix3d();
-         rotateStiffness(Kr, corotated.getInitialStiffness(i, j));
+         rotateStiffness(Kr, corotated.getInitialStiffness00(i, j));
          K.add(Kr);
       }
       
       // linear component
       if (linear != null) {
-         K.add (linear.getInitialStiffness(i, j));
+         K.add (linear.getInitialStiffness00(i, j));
+      }
+   }
+
+   public void addNodeStiffness (FemNodeNeighbor nbr, int i, int j) {
+      
+      // corotated component
+      if (corotated != null) {
+         Matrix3d Kr = new Matrix3d();
+         Kr.transform (R, corotated.getInitialStiffness00(i,j));
+         nbr.myK00.add(Kr);
+         if (corotated.hasShellData()) {
+            Kr.transform (R, corotated.getInitialStiffness01(i,j));
+            nbr.myK01.add(Kr);
+            Kr.transform (R, corotated.getInitialStiffness10(i,j));
+            nbr.myK10.add(Kr);
+            Kr.transform (R, corotated.getInitialStiffness11(i,j));
+            nbr.myK11.add(Kr);
+         }
+      }
+      
+      // linear component
+      if (linear != null) {
+         nbr.myK00.add (linear.getInitialStiffness00(i, j));
+         if (linear.hasShellData()) {
+            nbr.myK01.add (linear.getInitialStiffness01(i, j));
+            nbr.myK10.add (linear.getInitialStiffness10(i, j));
+            nbr.myK11.add (linear.getInitialStiffness11(i, j));
+         }
       }
    }
 
@@ -224,7 +264,7 @@ public class StiffnessWarper3d {
          for (int j=0; j<nodes.length; j++) {
             // rotate position
             R.mulTranspose (pos, nodes[j].getLocalPosition());
-            corotated.getInitialStiffness(i, j).mulAdd (tmp, pos, tmp);
+            corotated.getInitialStiffness00(i, j).mulAdd (tmp, pos, tmp);
          }
          // subtract f0
          tmp.sub (corotated.getInitialForce(i));
@@ -238,14 +278,54 @@ public class StiffnessWarper3d {
       if (linear != null) {
          Vector3d tmp = new Vector3d();
          for (int j=0; j<nodes.length; j++) {
-            linear.getInitialStiffness(i, j).mulAdd (
+            linear.getInitialStiffness00(i, j).mulAdd (
                tmp, nodes[j].getLocalPosition(), tmp);
          }
          tmp.sub (linear.getInitialForce(i));
          f.add (tmp);
       }
    }
-   
+
+
+   public void addNodeForce (
+      Vector3d f, Vector3d fdir, int i, FemNode3d[] nodes) {
+      
+      // corotated
+      if (corotated != null) {
+         Vector3d tmp0 = new Vector3d();
+         Vector3d tmp1 = new Vector3d();
+         Vector3d posx = new Vector3d();
+         Vector3d posy = new Vector3d();
+
+         for (int j=0; j<nodes.length; j++) {
+            // rotate position and dir
+            R.mulTranspose (posx, nodes[j].getPosition());
+            R.mulTranspose (posy, nodes[j].getBackPosition());
+            corotated.mulAddK (i, j, tmp0, tmp1, posx, posy);
+         }   
+         tmp0.sub (corotated.getInitialForce(i));
+         R.mul (tmp0, tmp0);
+         f.add (tmp0);
+         tmp1.sub (corotated.getInitialDirForce(i));
+         R.mul (tmp1, tmp1);
+         fdir.add (tmp1);        
+      }
+      
+      // linear
+      if (linear != null) {
+         Vector3d tmp0 = new Vector3d();
+         Vector3d tmp1 = new Vector3d();
+         for (int j=0; j<nodes.length; j++) {
+            Vector3d posx = nodes[j].getPosition();
+            Vector3d posy = nodes[j].getBackPosition();
+            linear.mulAddK (i, j, tmp0, tmp1, posx, posy);
+         }
+         tmp0.sub (linear.getInitialForce(i));
+         f.add (tmp0);
+         tmp1.sub (linear.getInitialDirForce(i));
+         fdir.add (tmp1);
+      }
+   }
    
    // required for static analysis
    /**
@@ -275,41 +355,41 @@ public class StiffnessWarper3d {
       }
    }
    
-   /**
-    * Gets initial stiffness contribution from all linear
-    * and corotated linear cached materials
-    * @param K0 matrix to populate
-    * @param i first node index
-    * @param j second node index
-    */
-   public void getInitialStiffness(Matrix3d K0, int i, int j) {
+   // /**
+   //  * Gets initial stiffness contribution from all linear
+   //  * and corotated linear cached materials
+   //  * @param K0 matrix to populate
+   //  * @param i first node index
+   //  * @param j second node index
+   //  */
+   // public void getInitialStiffness (Matrix3d K0, int i, int j) {
       
-      K0.setZero();
-      if (linear != null) {
-         K0.add(linear.K0[i][j]);
-      }
+   //    K0.setZero();
+   //    if (linear != null) {
+   //       K0.add(linear.K0[i][j]);
+   //    }
       
-      if (corotated != null) {
-         K0.add(corotated.K0[i][j]);
-      }
-   }
+   //    if (corotated != null) {
+   //       K0.add(corotated.K0[i][j]);
+   //    }
+   // }
    
-   /**
-    * Gets initial force contribution from all linear
-    * and corotated linear cached materials
-    * @param f0 force vector to populate
-    * @param i first node index
-    */
-   public void getInitialForce(Vector3d f0, int i) {
+   // /**
+   //  * Gets initial force contribution from all linear
+   //  * and corotated linear cached materials
+   //  * @param f0 force vector to populate
+   //  * @param i first node index
+   //  */
+   // public void getInitialForce (Vector3d f0, int i) {
       
-      f0.setZero();
-      if (linear != null) {
-         f0.add(linear.f0[i]);
-      }
+   //    f0.setZero();
+   //    if (linear != null) {
+   //       f0.add(linear.f0[i]);
+   //    }
       
-      if (corotated != null) {
-         f0.add(corotated.f0[i]);
-      }
-   }
+   //    if (corotated != null) {
+   //       f0.add(corotated.f0[i]);
+   //    }
+   // }
    
 }

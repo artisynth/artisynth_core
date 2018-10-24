@@ -2,6 +2,8 @@ package artisynth.core.mechmodels;
 
 import java.util.*;
 
+import org.python.antlr.PythonParser.classdef_return;
+
 import maspack.matrix.*;
 import maspack.spatialmotion.*;
 import maspack.geometry.*;
@@ -54,20 +56,49 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
 
    /**
     * Computes the force for the idx-th master given the current force on the
-    * slave component.
+    * slave component. A default implementation of this method works using the
+    * GT matrix computed by the attachment. This is acceptable since the GT
+    * matrix itself is validated using computeSlaveVel().  However, subclasses
+    * can override this method if desired.
     *
     * @param force returns the computed force. On input, will be set to the
     * velocity state size of the master.
     * @param idx index of the master component
     * @param at attachment for which the force is to be computed
     */
-   public abstract void computeMasterForce (VectorNd force, int idx, C at);
+   public void computeMasterForce (VectorNd force, int idx, C at) {
+      DynamicComponent slave = at.getSlave();
+      int ssize = slave.getVelStateSize();
+
+      MatrixNd GT = new MatrixNd (at.getGT(idx));
+      VectorNd sforce = new VectorNd (ssize);
+      slave.getForce (sforce.getBuffer(), 0);
+      GT.mul (force, sforce);
+      force.negate();
+   }
 
    /**
-    * Returns an instance of the attachment, complete with master and slave
-    * components.
+    * Returns the number of test attachments to be created and returned by
+    * {@link #createTestAttachment}. By default this is 1, but test classes can
+    * override this to supply a larger number. This might be necessary, for
+    * instance, to test attachments with different kinds of master components.
     */
-   public abstract C createAttachment();
+   public int numTestAttachments() {
+      return 1;
+   }
+   
+   /**
+    * Creates and returns an test attachment, with associated master and slave
+    * components, to be used for testing. The method will be called {@code
+    * maxNum} times, where {@code maxNum} is the value returned by {@link
+    * #numTestAttachments}, with the parameter {@code num} varying
+    * from {@code 0} to {@code maxNum-1}. This allows the testing application
+    * to create different kinds of test attachments, which might be
+    * necessary in some situtations.
+    * 
+    * @param num instance number for the attachment to be created.
+    */
+   public abstract C createTestAttachment (int num);
 
    protected void setRandomStates (C at) {
       DynamicComponent slave = at.getSlave();
@@ -199,15 +230,51 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
             }
          }
       }
+
+      // Confirm that GT is correct by computing the velocity
+      // associated with each column.
+      //
+      // Start by zeroing the velocity for all masters
+      for (int idx=0; idx<masters.length; idx++) {
+         int msize = masters[idx].getVelStateSize();
+         masters[idx].setVelState (new double[msize], 0);
+      }
+      // Now, set the velocity coordinates to 1 on a one-by-one basis and use
+      // computeSlaveVel() to find the corresponding columns of GT
+
+      VectorNd svel = new VectorNd(ssize);
+      for (int idx=0; idx<masters.length; idx++) {
+         int msize = masters[idx].getVelStateSize();
+
+         MatrixNd GT = new MatrixNd (at.getGT(idx));
+         MatrixNd GTchk = new MatrixNd (msize, ssize);
+
+         for (int j=0; j<msize; j++) {
+            VectorNd mvel = new VectorNd(msize);
+            mvel.set (j, 1);
+            masters[idx].setVelState (mvel.getBuffer(), 0);
+
+            computeSlaveVel (svel, at);
+            GTchk.setRow (j, svel);
+            // re-zero master velocities
+            masters[idx].setVelState (new double[msize], 0);
+         }
+         GTchk.negate();
+         checkEquals ("GT("+idx+") from computeSlaveVel()", GT, GTchk, EPS);
+      }
    }
    
    public void test() {
-      C at = createAttachment();
 
-      int ntrials = 10;
-      for (int i=0; i<ntrials; i++) {
-         setRandomStates (at);
-         test (at);
+      for (int num=0; num<numTestAttachments(); num++) {
+         C at = createTestAttachment(num);
+
+         int ntrials = 10;
+
+         for (int i=0; i<ntrials; i++) {
+            setRandomStates (at);
+            test (at);
+         }
       }
    }
    

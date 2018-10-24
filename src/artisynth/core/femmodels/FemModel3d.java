@@ -33,6 +33,7 @@ import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.HasAuxState;
 import artisynth.core.mechmodels.HasSurfaceMesh;
 import artisynth.core.mechmodels.MechSystemModel;
+import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.mechmodels.MeshComponentList;
 import artisynth.core.mechmodels.Point;
@@ -52,6 +53,7 @@ import artisynth.core.modelbase.StepAdjustment;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
+import artisynth.core.femmodels.FemElement.ElementType;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.IntegerToken;
 import artisynth.core.util.ScalableUnits;
@@ -96,6 +98,7 @@ import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 import maspack.render.RenderList;
 import maspack.render.Renderer;
+import maspack.render.Renderer.DrawMode;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.spatialmotion.SpatialInertia;
@@ -156,8 +159,14 @@ PointAttachable, ConnectableBody {
       System.out.println(msg + ": " + timer.result(1));
    }
 
-   protected FemElement3dList myElements;
+   protected FemElement3dList<FemElement3d> myElements;
+   protected FemElement3dList<ShellElement3d> myShellElements;
+   // create a list of element lists to streamline code that needs to
+   // iterate through all elements.
+   protected ArrayList<FemElement3dList<? extends FemElement3dBase>> myElemLists;
    protected AuxMaterialBundleList myAuxiliaryMaterialList;
+
+   //protected boolean myNodeNeighborsValidP = false;
 
    // private String mySolveMatrixFile = "solve.mat";
    private String mySolveMatrixFile = null;
@@ -195,12 +204,15 @@ PointAttachable, ConnectableBody {
    private int myNumQuadraticElements = 0;
 
    protected double myMinDetJ; // used to record inverted elements
-   protected FemElement3d myMinDetJElement = null; // element with "worst" DetJ
+   protected FemElement3dBase myMinDetJElement = null; // elem with "worst" DetJ
    protected int myNumInverted = 0; // used to tally number of inverted elements
 
    private static double DEFAULT_ELEMENT_WIDGET_SIZE = 0.0;
    private double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
    PropertyMode myElementWidgetSizeMode = PropertyMode.Inherited;
+
+   private static double DEFAULT_DIRECTOR_RENDER_LEN = 0.0;
+   private double myDirectorRenderLen = DEFAULT_DIRECTOR_RENDER_LEN;
 
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
@@ -265,6 +277,9 @@ PointAttachable, ConnectableBody {
       myProps.add (
          "collidable", 
          "sets the collidability of the FEM", DEFAULT_COLLIDABILITY);
+      myProps.add (
+         "directorRenderLen", "length of line used to render directors",
+         DEFAULT_DIRECTOR_RENDER_LEN);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -496,6 +511,15 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   public double getDirectorRenderLen() {
+      return myDirectorRenderLen;
+   }
+
+   public void setDirectorRenderLen (double len) {
+      myDirectorRenderLen = len;
+   }
+
+
    @Override
    public Collidability getCollidable () {
       getSurfaceMesh(); // build surface mesh if necessary
@@ -531,7 +555,7 @@ PointAttachable, ConnectableBody {
       updateSoftIncompMethod();
    }
 
-   private FemMaterial getElementMaterial(FemElement3d e) {
+   private FemMaterial getElementMaterial (FemElement3dBase e) {
       FemMaterial mat = e.getMaterial();
       if (mat == null) {
          mat = myMaterial;
@@ -591,16 +615,25 @@ PointAttachable, ConnectableBody {
    protected void initializeChildComponents() {
       myFrame = new FemModelFrame ("frame");
       myNodes = new PointList<FemNode3d>(FemNode3d.class, "nodes", "n");
-      myElements = new FemElement3dList("elements", "e");
+      myElements = new FemElement3dList<FemElement3d> (
+         FemElement3d.class, "elements", "e");
+      myShellElements = new FemElement3dList<ShellElement3d> (
+         ShellElement3d.class, "shellElements", "s");
       myAuxiliaryMaterialList = new AuxMaterialBundleList("materials", "mat");
       myMeshList =  new MeshComponentList<FemMeshComp>(
          FemMeshComp.class, "meshes", "msh");
       addFixed(myFrame);
       addFixed(myNodes);
       addFixed(myElements);
+      addFixed(myShellElements);
       addFixed(myAuxiliaryMaterialList);
       addFixed(myMeshList);
       super.initializeChildComponents();
+
+      myElemLists =
+         new ArrayList<FemElement3dList<? extends FemElement3dBase>>();
+      myElemLists.add (myElements);
+      myElemLists.add (myShellElements);
    }
 
    public void addMaterialBundle(AuxMaterialBundle bundle) {
@@ -656,8 +689,8 @@ PointAttachable, ConnectableBody {
    public boolean removeNode(FemNode3d p) {
 
       // check if any elements dependent on this node
-      LinkedList<FemElement3d> elems = p.getElementDependencies();
-      for (FemElement3d elem : elems) {
+      List<FemElement3dBase> elems = p.getAdjacentElements();
+      for (FemElement3dBase elem : elems) {
          if (myElements.contains(elem)) {
             System.err.println("Error: unable to remove node because some elements still depend on it");
             return false;
@@ -728,7 +761,7 @@ PointAttachable, ConnectableBody {
    }
 
    @Override
-   public RenderableComponentList<FemElement3d> getElements() {
+   public FemElement3dList<FemElement3d> getElements() {
       return myElements;
    }
 
@@ -773,6 +806,66 @@ PointAttachable, ConnectableBody {
 
    public void clearElements() {
       myElements.removeAll();
+      for (int i = 0; i < myNodes.size(); i++) {
+         myNodes.get(i).clearMass();
+      }
+      if (myAutoGenerateSurface) {
+         mySurfaceMeshValid = false;
+         myInternalSurfaceMeshComp = null;
+      }
+   }
+
+   /* --- Shell element Methods --- */
+   
+   public ShellElement3d getShellElement(int idx) {
+      return myShellElements.get(idx);
+   }
+
+   public ShellElement3d getShellElementByNumber(int num) {
+      return myShellElements.getByNumber(num);
+   }
+
+   public FemElement3dList<ShellElement3d> getShellElements() {
+      return myShellElements;
+   }
+
+   public ShellElement3d getShellSurfaceElement (Face face) {
+      return null; // finish
+   }
+
+   public void addShellElement(ShellElement3d e) {
+      myShellElements.add(e);
+      if (myAutoGenerateSurface) {
+         mySurfaceMeshValid = false;
+         myInternalSurfaceMeshComp = null;
+      }
+   }
+
+   public void addShellElements(Collection<? extends ShellElement3d> elems) {
+      for (ShellElement3d elem : elems) {
+         addShellElement(elem);
+      }
+   }
+
+   public void addNumberedShellElement(ShellElement3d e, int elemId) {
+      myShellElements.addNumbered(e, elemId);
+      if (myAutoGenerateSurface) {
+         mySurfaceMeshValid = false;
+         myInternalSurfaceMeshComp = null;
+      }
+   }
+
+   public boolean removeShellElement(ShellElement3d e) {
+      boolean success = myShellElements.remove(e);
+      if (myAutoGenerateSurface) {
+         mySurfaceMeshValid = false;
+         myInternalSurfaceMeshComp = null;
+      }
+      return success;
+   }
+
+   public void clearShellElements() {
+      myShellElements.removeAll();
       for (int i = 0; i < myNodes.size(); i++) {
          myNodes.get(i).clearMass();
       }
@@ -1117,7 +1210,8 @@ PointAttachable, ConnectableBody {
       // by default, build fine surface mesh if quadratic elements present
       if (numQuadraticElements() > 0) {
          meshc.createFineSurface (3, new ElementFilter());
-      } else {
+      }
+      else {
          meshc.createSurface(new ElementFilter());
       }
    }
@@ -1331,16 +1425,53 @@ PointAttachable, ConnectableBody {
    @Override
    public void scaleDistance(double s) {
       super.scaleDistance(s);
+      for (ShellElement3d e : myShellElements) {
+         e.scaleDistance (s);
+      }      
       myAuxiliaryMaterialList.scaleDistance(s);
       myVolume *= (s * s * s);
       updateSlavePos();
    }
 
    @Override
+   public double getMass() {
+      double mass = super.getMass();
+      for (ShellElement3d e : myShellElements) {
+         mass += e.getMass();
+      }
+      return mass;
+   }
+
+   @Override
    public void scaleMass(double s) {
       super.scaleMass(s);
+      for (ShellElement3d e : myShellElements) {
+         e.scaleMass (s);
+      }
       myAuxiliaryMaterialList.scaleMass(s);
    }
+
+   @Override
+   public double updateVolume() {
+      double volume = super.updateVolume();
+      for (ShellElement3d e : myShellElements) {
+         e.computeVolumes();
+         volume += e.getVolume();
+      }
+      myVolume = volume;
+      return volume;
+   }  
+
+   @Override
+   public double updateRestVolume() {
+      double volume = super.updateRestVolume();
+      for (ShellElement3d e : myShellElements) {
+         e.computeRestVolumes();
+         volume += e.getRestVolume();
+      }
+      myRestVolume = volume;
+      return volume;
+   }  
 
    /* --- Connectable Body Methods --- */
 
@@ -1392,12 +1523,13 @@ PointAttachable, ConnectableBody {
    protected void doclear() {
       super.doclear();
       myElements.clear();
+      myShellElements.clear();
       myNodes.clear();
       myAuxiliaryMaterialList.removeAll();
       clearMeshComps();
    }
 
-      protected void clearCachedData(ComponentChangeEvent e) {
+   protected void clearCachedData(ComponentChangeEvent e) {
       super.clearCachedData(e);
       // clearIncompressVariables();
       mySolveMatrix = null;
@@ -1406,6 +1538,7 @@ PointAttachable, ConnectableBody {
       myHardIncompMethodValidP = false;
       myHardIncompConfigValidP = false;
       myNumTetElements = -1; // invalidates all element counts
+      //myNodeNeighborsValidP = false;
    }
 
    // Called when the geometry (but not the topology) of one or
@@ -1430,7 +1563,9 @@ PointAttachable, ConnectableBody {
 
       super.handleComponentChanged (e);
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
-         if (e.getComponent() == myElements || e.getComponent() == myNodes) {
+         if (e.getComponent() == myElements ||
+             e.getComponent() == myShellElements ||
+             e.getComponent() == myNodes) {
             // XXX this invalidates the surface mesh even during scanning
             // which we don't really want. Specifically, the postscan
             // for nodes and elements issue a change event from 
@@ -1458,6 +1593,11 @@ PointAttachable, ConnectableBody {
 
    public void invalidateRestData() {
       super.invalidateRestData();
+      if (getShellElements() != null) {
+         for (ShellElement3d e : getShellElements()) {
+            e.invalidateRestData();
+         }
+      }     
       invalidateNodalRestVolumes();
    }
 
@@ -1583,6 +1723,14 @@ PointAttachable, ConnectableBody {
       }
    }
    
+   public void initializeDirectorsIfNecessary() {
+      for (FemNode3d n : myNodes) {
+         if (n.hasDirector()) {
+            n.initializeDirectorIfNecessary();
+         }
+      }     
+   }
+      
    public void recursivelyInitialize(double t, int level) {
       if (t == 0) {
          setNodalIncompBlocksAllocated (
@@ -1597,8 +1745,17 @@ PointAttachable, ConnectableBody {
             }
             e.clearState();
          }
+         for (ShellElement3d e : myShellElements) {
+            e.invalidateRestData();
+            // e.getRestVolume();
+            e.setInverted(false);
+            e.clearState();
+         }         
          for (FemNode3d n : myNodes) {
             n.zeroStress();
+            if (n.hasDirector()) {
+               n.initializeDirectorIfNecessary();
+            }
          }
          // paranoid ... should already be invalid:
          invalidateStressAndStiffness();
@@ -2030,6 +2187,27 @@ PointAttachable, ConnectableBody {
 
    /* --- Force and Solve Matrix Methods --- */
 
+   private void printNodeNeighborDirStructure() {
+
+      int nn = myNodes.size();
+      boolean[][] set = new boolean[nn][nn];
+
+      for (FemNode3d n : myNodes) {
+         for (FemNodeNeighbor nbr : n.getNodeNeighbors()) {
+            if (nbr.hasDirectorStorage()) {
+               set[n.getNumber()][nbr.myNode.getNumber()] = true;
+            }
+         }
+      }
+      for (int i=0; i<nn; i++) {
+         System.out.print (myNodes.get(i).hasDirector() ? "d " : "  ");
+         for (int j=0; j<nn; j++) {
+            System.out.print (set[i][j] ? "x " : "  ");
+         }
+         System.out.println ("");
+      }
+   }      
+
    public void invalidateStressAndStiffness() {
       super.invalidateStressAndStiffness();
       // should invalidate matrices for incompressibility here. However, at the
@@ -2052,52 +2230,72 @@ PointAttachable, ConnectableBody {
          if (hasGravity) {
             n.addScaledForce(n.getMass(), myGravity);
          }
-         fk.set(n.myInternalForce);
-         fd.setZero();
-         if (myStiffnessDamping != 0) {
-            // TODO: check that was want to use local velocity for
-            // stiffness damping if we are frame relative
-            for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
-               nbr.addDampingForce(fd);
+         if (n.hasDirector()) {
+            BackNode3d b = n.getBackNode();
+            n.subForce (n.myInternalForce);
+            b.subForce (b.myInternalForce);
+            fd.setZero();
+            fk.setZero(); // use fk to store stiffness damping for back node
+            if (myStiffnessDamping != 0) {
+               for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
+                  nbr.addStiffnessDampingForce (fd, fk);
+               }
+               fd.scale(myStiffnessDamping);
+               fk.scale(myStiffnessDamping);
             }
-            // used for soft nodal-based incompressibilty:
-            for (FemNodeNeighbor nbr : getIndirectNeighbors(n)) {
-               nbr.addDampingForce(fd);
-            }
-            fd.scale(myStiffnessDamping);
-         }
-         if (usingAttachedRelativeFrame()) {
-            // apply damping in world coordinates since the nodes may not 
-            // even be moving in local coordinates.
-            //
-            // TODO This also means that the frame terms in the stiffness 
-            // matrix need to be updated. (The NodeFrameNode attachments
-            // won't do this since damping is assumed to be handled
-            // internally by the FemModel.) For mass damping, the solve
-            // matrix update is simple and takes the form 
-            //
-            // M' = d G^t G
-            //
-            // where d is the mass damping and G is the constraint matrix 
-            // for a NodeFramNode attachment. If R is the frame rotation
-            // and lw is the frame node coordinate rotated into world
-            // coordinates, then for each node, G = [ -I  [lw] -R ] and
-            // the update is
-            //
-            // [  I     -[lw]       R     ]
-            // [ [lw] -[lw][lw]  [lw] R^T ]
-            // [  R^T  -R^T[lw]     I     ]
-            //
-            md.scale (myMassDamping*n.getMass(), n.getVelocity());
-            n.subForce (md);
-            fk.add (fd);
-            fk.negate();
-            n.addLocalForce (fk);
+            fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
+            fk.scaledAdd(myMassDamping * b.getMass(), b.getVelocity(), fk);
+            n.subForce (fd);
+            b.subForce (fk);
          }
          else {
-            fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
-            n.subForce(fk);
-            n.subForce(fd);
+            fk.set(n.myInternalForce);
+            fd.setZero();
+            if (myStiffnessDamping != 0) {
+               // TODO: check that was want to use local velocity for
+               // stiffness damping if we are frame relative
+               for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
+                  nbr.addDampingForce(fd);
+               }
+               // used for soft nodal-based incompressibilty:
+               for (FemNodeNeighbor nbr : getIndirectNeighbors(n)) {
+                  nbr.addDampingForce(fd);
+               }
+               fd.scale(myStiffnessDamping);
+            }
+            if (usingAttachedRelativeFrame()) {
+               // apply damping in world coordinates since the nodes may not 
+               // even be moving in local coordinates.
+               //
+               // TODO This also means that the frame terms in the stiffness 
+               // matrix need to be updated. (The NodeFrameNode attachments
+               // won't do this since damping is assumed to be handled
+               // internally by the FemModel.) For mass damping, the solve
+               // matrix update is simple and takes the form 
+               //
+               // M' = d G^t G
+               //
+               // where d is the mass damping and G is the constraint matrix 
+               // for a NodeFramNode attachment. If R is the frame rotation
+               // and lw is the frame node coordinate rotated into world
+               // coordinates, then for each node, G = [ -I  [lw] -R ] and
+               // the update is
+               //
+               // [  I     -[lw]       R     ]
+               // [ [lw] -[lw][lw]  [lw] R^T ]
+               // [  R^T  -R^T[lw]     I     ]
+               //
+               md.scale (myMassDamping*n.getMass(), n.getVelocity());
+               n.subForce (md);
+               fk.add (fd);
+               fk.negate();
+               n.addLocalForce (fk);
+            }
+            else {
+               fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
+               n.subForce(fk);
+               n.subForce(fd);
+            }
          }
       }
       
@@ -2109,6 +2307,9 @@ PointAttachable, ConnectableBody {
       timerStart();
       for (FemNode3d n : myNodes) {
          n.myInternalForce.setZero();
+         if (n.myBackNode != null) {
+            n.myBackNode.myInternalForce.setZero();
+         }
          for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
             nbr.zeroStiffness();
          }
@@ -2139,6 +2340,10 @@ PointAttachable, ConnectableBody {
          computeStressAndStiffness(
             e, mat, /* D= */null, softIncomp);
       }
+      for (ShellElement3d e : myShellElements) {
+         FemMaterial mat = getElementMaterial(e);
+         computeShellStressAndStiffness(e, mat, /* D= */null);
+      }
       myStressesValidP = true;
    }
 
@@ -2151,6 +2356,9 @@ PointAttachable, ConnectableBody {
       // clear existing internal forces and maybe stiffnesses
       for (FemNode3d n : myNodes) {
          n.myInternalForce.setZero();
+         if (n.myBackNode != null) {
+            n.myBackNode.myInternalForce.setZero();
+         }
          if (!myStiffnessesValidP) {
             for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
                nbr.zeroStiffness();
@@ -2192,7 +2400,7 @@ PointAttachable, ConnectableBody {
       clearElementConditionInfo();
 
       double mins = Double.MAX_VALUE;
-      FemElement3d minE = null;
+      FemElement3dBase minE = null;
 
       for (FemElement3d e : myElements) {
          FemMaterial mat = getElementMaterial(e);
@@ -2205,6 +2413,22 @@ PointAttachable, ConnectableBody {
             }
          }
       }
+      for (ShellElement3d e : myShellElements) {
+         FemMaterial mat = getElementMaterial(e);
+         if (e.getType() == ElementType.SHELL) {
+            computeShellStressAndStiffness(e, mat, D);
+         }
+         else {
+            computeMembraneStressAndStiffness(e, mat, D);
+         }
+         if (checkTangentStability) {
+            double s = checkMatrixStability(D);
+            if (s < mins) {
+               mins = s;
+               minE = e;
+            }
+         }
+      }     
 
       // incompressibility
       if ( (softIncomp == IncompMethod.NODAL) && myMaterial != null && myMaterial.isIncompressible()) {
@@ -2697,6 +2921,268 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   protected void computeShellStressAndStiffness(
+      ShellElement3d e, FemMaterial mat, Matrix6d D) {
+
+      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+      IntegrationData3d[] idata = e.getIntegrationData();
+      FemNode3d[] nodes = e.getNodes();
+      if (D != null) {
+         D.setZero();
+      }
+
+      // see if material is linear
+      boolean linearOnly = mat.isLinear();
+
+      // potentially update cached linear material
+
+      e.setInverted(false); // will check this below
+            
+      StiffnessWarper3d warper = e.getStiffnessWarper(); // internally updates
+      // if there is cached linear material, then apply
+      if (!warper.isCacheEmpty()) {
+
+         // compute warping rotation
+         warper.computeWarpingRotation(e);
+
+         // add force and stiffness
+         for (int i = 0; i < nodes.length; i++) {
+            int bi = nodes[i].getSolveIndex();
+            if (bi != -1) {
+               FemNode3d n = nodes[i];
+               if (!myStiffnessesValidP) {
+                  for (int j = 0; j < nodes.length; j++) {
+                     int bj = nodes[j].getSolveIndex();
+                     if (!mySolveMatrixSymmetricP || bj >= bi) {
+                        warper.addNodeStiffness(e.myNbrs[i][j], i, j);
+                     }
+                  }
+               }
+               // add node force
+               warper.addNodeForce(
+                  n.myInternalForce, n.myBackNode.myInternalForce, i, nodes);
+            }
+         }
+      }
+
+      if (linearOnly) {
+         return;
+      }
+      
+      SymmetricMatrix3d sigma = new SymmetricMatrix3d();
+         
+      FemDeformedPoint dpnt = new FemDeformedPoint();
+      Matrix3d invJ = new Matrix3d();
+         
+      int nump = e.numPlanarIntegrationPoints();
+
+      for (int k = 0; k < ipnts.length; k++) {
+         IntegrationPoint3d pt = ipnts[k];
+         IntegrationData3d dt = idata[k];
+            
+         dpnt.setFromIntegrationPoint (
+            pt, dt, null, e, e.getIntegrationIndex()+(k%nump));
+         double detJ = invJ.fastInvert (dpnt.getJ());
+         if (detJ < myMinDetJ) {
+            myMinDetJ = detJ;
+            myMinDetJElement = e;
+         }
+         // SKIPPED
+         if (detJ <= 0 && !e.materialsAreInvertible()) {
+            e.setInverted(true);
+            myNumInverted++;
+         }
+
+         double t = pt.getCoords().z;
+         double dv = detJ * pt.getWeight();
+         VectorNd Ns = pt.getShapeWeights ();
+         Vector3d[] dNs = pt.getGNs();
+
+         Matrix3d Q = (dt.getFrame() != null ? dt.getFrame() : Matrix3d.IDENTITY);
+
+         double scaling = dt.getScaling();
+
+
+         // clear stress/tangents
+         sigma.setZero();
+         if (D != null) {
+            D.setZero();
+         }
+         if (!mat.isLinear()) {
+            mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0);
+            // SKIPPED
+            if (scaling != 1) {
+               sigma.scale (scaling);
+               if (D != null) {
+                  D.scale (scaling);
+               }
+            }
+         }
+
+         dt.clearState();
+            
+         for (int i = 0; i < e.myNodes.length; i++) {
+            FemNode3d nodei = (FemNode3d) e.myNodes[i];
+            int bi = nodei.getSolveIndex();
+               
+            // Add stress (pt.sigma) to node force
+            FemUtilities.addShellStressForce(
+               nodei.myInternalForce, nodei.myBackNode.myInternalForce,
+               sigma, t, dv, Ns.get(i), dNs[i].x, dNs[i].y, invJ);
+
+            if (D != null) {
+               if (bi != -1) {
+                  for (int j = 0; j < e.myNodes.length; j++) {
+                     int bj = e.myNodes[j].getSolveIndex();
+                     if (!mySolveMatrixSymmetricP || bj >= bi) {
+                           
+                        double iN = Ns.get(i);
+                        double jN = Ns.get(j);
+                           
+                        Vector3d idN = dNs[i];
+                        Vector3d jdN = dNs[j];
+                           
+                        FemNodeNeighbor nbr = e.myNbrs[i][j];
+                        /* Add shell-specific material stiffness */
+                        FemUtilities.addShellMaterialStiffness (
+                           nbr.myK00, nbr.myK01, nbr.myK10, nbr.myK11,
+                           iN, jN, idN, jdN, dv, t, invJ, 
+                           /*material stress=*/sigma, 
+                           /*material tangent=*/D);
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   protected void computeMembraneStressAndStiffness(
+      ShellElement3d e, FemMaterial mat, Matrix6d D) {
+
+      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+      IntegrationData3d[] idata = e.getIntegrationData();
+      FemNode3d[] nodes = e.getNodes();
+      if (D != null) {
+         D.setZero();
+      }
+
+      // see if material is linear
+      boolean linearOnly = mat.isLinear();
+
+      // potentially update cached linear material
+
+      e.setInverted(false); // will check this below
+            
+      StiffnessWarper3d warper = e.getStiffnessWarper(); // internally updates
+      // if there is cached linear material, then apply
+      if (!warper.isCacheEmpty()) {
+
+         // compute warping rotation
+         warper.computeWarpingRotation(e);
+
+         // add force and stiffness
+         for (int i = 0; i < nodes.length; i++) {
+            int bi = nodes[i].getSolveIndex();
+            if (bi != -1) {
+               FemNode3d n = nodes[i];
+               if (!myStiffnessesValidP) {
+                  for (int j = 0; j < nodes.length; j++) {
+                     int bj = nodes[j].getSolveIndex();
+                     if (!mySolveMatrixSymmetricP || bj >= bi) {
+                        warper.addNodeStiffness(e.myNbrs[i][j], i, j);
+                     }
+                  }
+               }
+               // add node force
+               warper.addNodeForce(n.myInternalForce, i, nodes);
+            }
+         }
+      }
+
+      if (linearOnly) {
+         return;
+      }
+      
+      SymmetricMatrix3d sigma = new SymmetricMatrix3d();
+         
+      FemDeformedPoint dpnt = new FemDeformedPoint();
+      Matrix3d invJ = new Matrix3d();
+         
+      int nump = e.numPlanarIntegrationPoints();
+
+      for (int k = 0; k < nump; k++) {
+         IntegrationPoint3d pt = ipnts[k];
+         IntegrationData3d dt = idata[k];
+            
+         dpnt.setFromIntegrationPoint (
+            pt, dt, null, e, e.getIntegrationIndex()+k);
+         double detJ = invJ.fastInvert (dpnt.getJ());
+         if (detJ < myMinDetJ) {
+            myMinDetJ = detJ;
+            myMinDetJElement = e;
+         }
+         // SKIPPED
+         if (detJ <= 0 && !e.materialsAreInvertible()) {
+            e.setInverted(true);
+            myNumInverted++;
+         }
+
+         double dv = detJ*pt.getWeight()*e.getDefaultThickness();
+         Vector3d[] dNs = pt.getGNs();
+
+         Matrix3d Q = (dt.getFrame() != null ? dt.getFrame() : Matrix3d.IDENTITY);
+
+         double scaling = dt.getScaling();
+
+         // clear stress/tangents
+         sigma.setZero();
+         if (D != null) {
+            D.setZero();
+         }
+         if (!mat.isLinear()) {
+            mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0);
+            // SKIPPED
+            if (scaling != 1) {
+               sigma.scale (scaling);
+               if (D != null) {
+                  D.scale (scaling);
+               }
+            }
+         }
+
+         dt.clearState();
+            
+         for (int i = 0; i < e.myNodes.length; i++) {
+            FemNode3d nodei = (FemNode3d) e.myNodes[i];
+            int bi = nodei.getSolveIndex();
+               
+            // Add stress (pt.sigma) to node force
+            FemUtilities.addMembraneStressForce(
+               nodei.myInternalForce, 
+               sigma, dv, dNs[i].x, dNs[i].y, invJ);
+
+            if (D != null) {
+               if (bi != -1) {
+                  for (int j = 0; j < e.myNodes.length; j++) {
+                     int bj = e.myNodes[j].getSolveIndex();
+                     if (!mySolveMatrixSymmetricP || bj >= bi) {
+                        Vector3d idN = dNs[i];
+                        Vector3d jdN = dNs[j];
+                           
+                        /* Add membrane-specific material stiffness */
+                        FemUtilities.addMembraneMaterialStiffness (
+                           e.myNbrs[i][j].myK00, idN, jdN, dv, invJ, 
+                           /*material stress=*/sigma, 
+                           /*material tangent=*/D);
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
    public int getJacobianType() {
       if (mySolveMatrixSymmetricP) {
          return Matrix.SYMMETRIC;
@@ -2722,6 +3208,13 @@ PointAttachable, ConnectableBody {
                   return false;
                }
             }
+         }
+      }
+      for (int i = 0; i < myShellElements.size(); i++) {
+         ShellElement3d e = myShellElements.get(i);
+         FemMaterial m = e.getMaterial();
+         if (m != null && !m.hasSymmetricTangent()) {
+            return false;
          }
       }
       return true;
@@ -3191,14 +3684,15 @@ PointAttachable, ConnectableBody {
    }
 
    private FemElement3d[] elementsWithEdge(FemNode3d n0, FemNode3d n1) {
-      HashSet<FemElement3d> allElems = new HashSet<FemElement3d>();
-      LinkedList<FemElement3d> elemsWithEdge =
-         new LinkedList<FemElement3d>();
+      HashSet<FemElement> allElems = new HashSet<FemElement>();
+      LinkedList<FemElement> elemsWithEdge =
+         new LinkedList<FemElement>();
 
       allElems.addAll(n0.getElementDependencies());
       allElems.addAll(n1.getElementDependencies());
-      for (FemElement3d e : allElems) {
-         if (e.hasEdge(n0, n1)) {
+      for (FemElement e : allElems) {
+         if (e instanceof FemElement3d && 
+             ((FemElement3d)e).hasEdge(n0, n1)) {
             elemsWithEdge.add(e);
          }
       }
@@ -3375,22 +3869,23 @@ PointAttachable, ConnectableBody {
       return null;
    }
 
-   private FemElement3d[] elementsWithFace(
+   private FemElement[] elementsWithFace(
       FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3) {
-      HashSet<FemElement3d> allElems = new HashSet<FemElement3d>();
-      LinkedList<FemElement3d> elemsWithFace =
-         new LinkedList<FemElement3d>();
+      HashSet<FemElement> allElems = new HashSet<FemElement>();
+      LinkedList<FemElement> elemsWithFace =
+         new LinkedList<FemElement>();
 
       allElems.addAll(n0.getElementDependencies());
       allElems.addAll(n1.getElementDependencies());
       allElems.addAll(n2.getElementDependencies());
       allElems.addAll(n3.getElementDependencies());
-      for (FemElement3d e : allElems) {
-         if (e.hasFace(n0, n1, n2, n3)) {
+      for (FemElement e : allElems) {
+         if (e instanceof FemElement3d &&
+             ((FemElement3d)e).hasFace(n0, n1, n2, n3)) {
             elemsWithFace.add(e);
          }
       }
-      return elemsWithFace.toArray(new FemElement3d[0]);
+      return elemsWithFace.toArray(new FemElement[0]);
    }
 
    private int numElementsWithFace(
@@ -3816,22 +4311,25 @@ PointAttachable, ConnectableBody {
    }
 
    public void advanceAuxState(double t0, double t1) {
-      for (int i = 0; i < myElements.size(); i++) {
-         FemElement3d e = myElements.get(i);
-         FemMaterial mat = getElementMaterial(e);
-         if (mat.getViscoBehavior() != null) {
-            ViscoelasticBehavior veb = mat.getViscoBehavior();
-            IntegrationData3d[] idata = e.getIntegrationData();
-            for (int k = 0; k < idata.length; k++) {
-               ViscoelasticState state = idata[k].getViscoState();
-               if (state == null) {
-                  state = veb.createState();
-                  idata[k].setViscoState(state);
+
+      for (FemElement3dList<? extends FemElement3dBase> elist : myElemLists) {
+         for (int i = 0; i < elist.size(); i++) {
+            FemElement3dBase e = elist.get(i);
+            FemMaterial mat = getElementMaterial(e);
+            if (mat.getViscoBehavior() != null) {
+               ViscoelasticBehavior veb = mat.getViscoBehavior();
+               IntegrationData3d[] idata = e.getIntegrationData();
+               for (int k = 0; k < idata.length; k++) {
+                  ViscoelasticState state = idata[k].getViscoState();
+                  if (state == null) {
+                     state = veb.createState();
+                     idata[k].setViscoState(state);
+                  }
+                  veb.advanceState(state, t0, t1);
                }
-               veb.advanceState(state, t0, t1);
             }
          }
-      }
+      }      
    }
 
    /**
@@ -3852,11 +4350,13 @@ PointAttachable, ConnectableBody {
       data.zput (0);    // reserve space for storing dsize and zsize
       data.zput (0);
 
-      for (int i = 0; i < myElements.size(); i++) {
-         IntegrationData3d[] idata = myElements.get(i).getIntegrationData();
-         for (int k = 0; k < idata.length; k++) {
-            idata[k].getState(data);
-         }          
+      for (FemElement3dList<? extends FemElement3dBase> elist : myElemLists) {
+         for (int i = 0; i < elist.size(); i++) {
+            IntegrationData3d[] idata = elist.get(i).getIntegrationData();
+            for (int k = 0; k < idata.length; k++) {
+               idata[k].getState(data);
+            }          
+         }
       }
       // store the amount of space used, for use by increaseAuxStateOffsets
       data.zset (zidx0, data.dsize()-didx0);
@@ -3870,10 +4370,12 @@ PointAttachable, ConnectableBody {
       newData.zput (0);     // make space for size spaces, to be stored below
       newData.zput (0);
 
-      for (int i = 0; i < myElements.size(); i++) {
-         IntegrationData3d[] idata = myElements.get(i).getIntegrationData();
-         for (int k=0; k<idata.length; k++) {
-            idata[k].getZeroState (newData);
+      for (FemElement3dList<? extends FemElement3dBase> elist : myElemLists) {
+         for (int i = 0; i < elist.size(); i++) {
+            IntegrationData3d[] idata = elist.get(i).getIntegrationData();
+            for (int k=0; k<idata.length; k++) {
+               idata[k].getZeroState (newData);
+            }
          }
       }
       // store the amount of space used, for use by increaseAuxStateOffsets
@@ -3886,10 +4388,12 @@ PointAttachable, ConnectableBody {
       int dsize = data.zget(); // should use this for sanity checking?
       int zsize = data.zget();
 
-      for (int i = 0; i < myElements.size(); i++) {
-         IntegrationData3d[] idata = myElements.get(i).getIntegrationData();
-         for (int k = 0; k < idata.length; k++) {
-            idata[k].setState (data);
+      for (FemElement3dList<? extends FemElement3dBase> elist : myElemLists) {
+         for (int i = 0; i < elist.size(); i++) {
+            IntegrationData3d[] idata = elist.get(i).getIntegrationData();
+            for (int k = 0; k < idata.length; k++) {
+               idata[k].setState (data);
+            }
          }
       }
    }
@@ -3903,9 +4407,10 @@ PointAttachable, ConnectableBody {
    public void prerender(RenderList list) {
       super.prerender(list);
 
-      list.addIfVisible (myFrame);
+      list.addIfVisible(myFrame);
       list.addIfVisible(myNodes);
       list.addIfVisible(myElements);
+      list.addIfVisible(myShellElements);
       list.addIfVisible(myMarkers);
       list.addIfVisible(myMeshList);
 
@@ -3924,6 +4429,25 @@ PointAttachable, ConnectableBody {
    }
 
    public void render(Renderer renderer, int flags) {
+      if (myDirectorRenderLen > 0) {
+         float s = (float)myDirectorRenderLen;
+         renderer.beginDraw (DrawMode.LINES);
+         renderer.setLineWidth (myRenderProps.getLineWidth());
+         renderer.setColor (myRenderProps.getLineColor());
+         for (FemNode3d n : myNodes) {
+            if (n.hasDirector()) {
+               // let x and y be the positions of the front and back nodes.
+               // then draw a line from x to (1+s)x+y
+               float[] x = n.myRenderCoords;
+               float[] y = n.myBackNode.myRenderCoords;
+               renderer.addVertex (
+                  x[0], x[1], x[2]);
+               renderer.addVertex (
+                  (1+s)*x[0]-s*y[0], (1+s)*x[1]-s*y[1], (1+s)*x[2]-s*y[2]);
+            }
+         }
+         renderer.endDraw ();
+      }
    }
 
    @Override
@@ -4292,8 +4816,21 @@ PointAttachable, ConnectableBody {
       List<DynamicComponent> attached, 
       List<DynamicComponent> parametric) {
 
-      super.getDynamicComponents (active, attached, parametric);
+      for (int i=0; i<numNodes(); i++) {
+         FemNode3d n = getNodes().get(i);
+         MechSystemBase.placeDynamicComponent (
+            active, attached, parametric, n);
+         if (n.hasDirector()) {
+            MechSystemBase.placeDynamicComponent (
+               active, attached, parametric, n.myBackNode);
+         }
+      }
+      for (int i=0; i<myMarkers.size(); i++) {
+         attached.add (myMarkers.get(i));
+      }    
+
       if (myFrameRelativeP) {
+         // XXX not yet supported for shell models
          if (myFrame.isActive()) {
             active.add (myFrame);
          }
@@ -4301,13 +4838,8 @@ PointAttachable, ConnectableBody {
             parametric.add (myFrame);
          }
          for (int i=0; i<numNodes(); i++) {
-            FrameNode3d frameNode = getNode(i).myFrameNode;
-            if (frameNode.isAttached()) {
-               attached.add (frameNode);
-            }
-            else {
-               active.add (frameNode);
-            }
+            MechSystemBase.placeDynamicComponent (
+               active, attached, parametric, getNode(i).myFrameNode);
          }
       }
       else {
@@ -4399,17 +4931,33 @@ PointAttachable, ConnectableBody {
 
       int bk;
 
-      for (int k=0; k<myNodes.size(); k++) {
+      if (!myFrameRelativeP) {
 
-         FemNode3d n = myNodes.get(k);
-         DynamicComponent dc = (myFrameRelativeP ? n.getFrameNode() : n);
-         if ((bk = dc.getSolveIndex()) != -1) {
-            dc.getEffectiveMass (M.getBlock (bk, bk), t);
-            dc.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+         for (int k=0; k<myNodes.size(); k++) {
+            FemNode3d n = myNodes.get(k);
+            if ((bk = n.getSolveIndex()) != -1) {
+               n.getEffectiveMass (M.getBlock (bk, bk), t);
+               n.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+            }
+            if (n.hasDirector()) {
+               BackNode3d b = n.getBackNode();
+               if ((bk = b.getSolveIndex()) != -1) {
+                  b.getEffectiveMass (M.getBlock (bk, bk), t);
+                  b.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+               }
+            }
          }
       }
+      else {
+         // frame relative case - not supported yet for shell elements
 
-      if (myFrameRelativeP) {
+         for (int k=0; k<myNodes.size(); k++) {
+            DynamicComponent fn = myNodes.get(k).getFrameNode();
+            if ((bk = fn.getSolveIndex()) != -1) {
+               fn.getEffectiveMass (M.getBlock (bk, bk), t);
+               fn.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+            }
+         }        
 
          Vector3d wbod = new Vector3d(); // angular velocity in body coords
          RotationMatrix3d R = myFrame.getPose().R;
@@ -4637,6 +5185,19 @@ PointAttachable, ConnectableBody {
    public BVTree getBVTree () {
       return super.getBVTree ();
    }
+
+   protected int assignIntegrationIndices() {
+      int idx = super.assignIntegrationIndices();
+      for (ShellElement3d e : myShellElements) {
+         e.setIntegrationIndex (idx);
+         int numi = e.numIntegrationPoints();
+         // increase the index to accommodate the warping point, if any
+         // if there is only one integration point, then it is assumed
+         // to be the same as the warping point.
+         idx += (numi == 1 ? 1 : numi + 1);
+      }
+      return idx;
+   }  
 
 }
 

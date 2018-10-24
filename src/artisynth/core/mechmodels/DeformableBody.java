@@ -215,7 +215,7 @@ public abstract class DeformableBody extends RigidBody
       return new MatrixNdBlock (msize, msize);
    }
 
-   private void checkMassMatrixType (String name, Matrix M) {
+   protected void checkMassMatrixType (String name, Matrix M) {
       int msize = 6 + numElasticCoords();      
       if (M instanceof MatrixNd) {
          MatrixNd Mn = (MatrixNd)M;
@@ -403,6 +403,16 @@ public abstract class DeformableBody extends RigidBody
    }
  
    @Override      
+   public int addForce (double[] f, int idx) {
+      idx = super.addForce (f, idx);
+      int numc = numElasticCoords();
+      for (int i=0; i<numc; i++) {
+         myElasticForce.add (i, f[idx++]);
+      }
+      return idx;
+   }
+ 
+   @Override      
    public int getForce (double[] f, int idx) {
       idx = super.getForce (f, idx);
       myElasticForce.get (f, idx);
@@ -456,32 +466,61 @@ public abstract class DeformableBody extends RigidBody
 
    public abstract void updateStiffnessMatrix ();
 
-   @Override public void applyForces (double t) {
+   protected void addElasticMassDamping (VectorNd eforce) {
+      // by default, assume elastic mass matrix is diagonal
+      double mass = getMass();
+      int numc = numElasticCoords();
+      for (int i=0; i<numc; i++) {
+         eforce.add (i, -mass*myMassDamping*myElasticVel.get(i));
+      }
+   } 
+
+   protected void addElasticMassDampingJacobian (
+      MatrixNdBlock blk, double s) {
+      // by default, assume elastic mass matrix is diagonal
+      double mass = getMass();
+      int numc = numElasticCoords();
+      int idx = 6;
+      double d = -s*mass*myMassDamping;
+      for (int i=0; i<numc; i++) {
+         blk.add (idx, idx, d);
+         idx++;
+      }
+   } 
+
+   @Override 
+   public void applyForces (double t) {
       super.applyForces (t);
       updateStiffnessMatrix();
-      int numc = numElasticCoords();
+
+      // add damping forces first ...
       myStiffnessMatrix.mul (myElasticTmp, myElasticVel);
-      myElasticTmp.scale (myStiffnessDamping);
-      // assume elastic mass matrix is diagonal for now
-      double mass = getMass();
-      for (int i=0; i<numc; i++) {
-         myElasticTmp.add (i, mass*myMassDamping*myElasticVel.get(i));
-      }
-      myStiffnessMatrix.mulAdd (myElasticTmp, myElasticPos);
+      myElasticTmp.scale (-myStiffnessDamping);
+      addElasticMassDamping (myElasticTmp);
+      myElasticForce.add (myElasticTmp);
+      // then add elastic forces ...
+      myStiffnessMatrix.mul (myElasticTmp, myElasticPos);
       myElasticForce.sub (myElasticTmp);
    }
 
    @Override public void addVelJacobian (SparseNumberedBlockMatrix S, double s) {
-       if (mySolveBlockNum != -1) {
+      if (mySolveBlockNum != -1) {
+         MatrixNdBlock blk =
+         (MatrixNdBlock)S.getBlockByNumber (mySolveBlockNum);
          if (myFrameDamping != 0 || myRotaryDamping != 0) {
-            MatrixNdBlock blk =
-               (MatrixNdBlock)S.getBlockByNumber (mySolveBlockNum);
             blk.add (0, 0, s*myFrameDamping);
             blk.add (1, 1, s*myFrameDamping);
             blk.add (2, 2, s*myFrameDamping);
             blk.add (3, 3, s*myRotaryDamping);
             blk.add (4, 4, s*myRotaryDamping);
             blk.add (5, 5, s*myRotaryDamping);
+         }
+         if (myStiffnessDamping != 0) {
+            blk.addScaledSubMatrix (
+               6, 6, -s*myStiffnessDamping, myStiffnessMatrix);
+         }
+         if (myMassDamping != 0) {
+            addElasticMassDampingJacobian (blk, s);
          }
       }     
    }
@@ -502,7 +541,7 @@ public abstract class DeformableBody extends RigidBody
          // adjust mesh vertex positions
          ArrayList<Vertex3d> verts = mesh.getVertices();
          for (int i=0; i<verts.size(); i++) {
-            computeDeformedPos (verts.get(i).pnt, myRestVertices[i]);
+            computeDeformedLocation (verts.get(i).pnt, myRestVertices[i]);
          }
          mesh.notifyVertexPositionsModified();        
       }         
@@ -512,45 +551,48 @@ public abstract class DeformableBody extends RigidBody
 
    public abstract void getDShape (Matrix3d Dshp, int i, Vector3d pos0);
 
-   @Override
-   public void addPointMass (Matrix M, double m, Vector3d pos) {
-      SpatialInertia.addPointMass (M, m, pos);
-      if (M instanceof MatrixNd) {
-         // for now, just assuming that elastic mass is diagonal
-         MatrixNd MN = (MatrixNd)M;
-         int numc = numElasticCoords();
-         for (int i=0; i<numc; i++) {
-            MN.add (i+6, i+6, m);
-         }
-      }
-   }
+//   @Override
+//   public void addPointMass (Matrix M, double m, Vector3d pos) {
+//      SpatialInertia.addPointMass (M, m, pos);
+//      if (M instanceof MatrixNd) {
+//         // for now, just assuming that elastic mass is diagonal
+//         MatrixNd MN = (MatrixNd)M;
+//         int numc = numElasticCoords();
+//         for (int i=0; i<numc; i++) {
+//            MN.add (i+6, i+6, m);
+//         }
+//      }
+//   }
 
   @Override 
    public void computePointPosition (Vector3d pos, Point3d loc) {
-      computeDeformedPos (pos, loc);
+      computeDeformedLocation (pos, loc);
       pos.transform (myState.XFrameToWorld.R, pos);
       pos.add (myState.XFrameToWorld.p);
    }
 
    @Override 
-   public void computePointLocation (Vector3d loc, Vector3d pos) {
-      Vector3d locdef = new Vector3d();
-      locdef.sub (pos, myState.XFrameToWorld.p);
-      locdef.inverseTransform (myState.XFrameToWorld.R);
-      computeUndeformedPos (loc, locdef, 1e-8);
+   public void computePointLocation (Vector3d loc0, Vector3d pos) {
+      Vector3d loc = new Vector3d();
+      loc.sub (pos, myState.XFrameToWorld.p);
+      loc.inverseTransform (myState.XFrameToWorld.R);
+      computeUndeformedLocation (loc0, loc);
+   }
+
+   public void computeUndeformedLocation (Vector3d loc0, Vector3d loc) {
+      computeUndeformedLocation (loc0, loc, 1e-8);
    }
 
    @Override 
-      public void computePointVelocity (
-         Vector3d vel, Point3d loc, Twist frameVel) {
-
+      public void computePointVelocity (Vector3d vel, Vector3d loc) {
+      Twist frameVel = myState.getVelocity();
       // compute elastic velocity in body coords
-      computeDeformedVel (vel, loc);
+      computeDeformedVelocity (vel, loc);
       // rotate to world coords
       vel.transform (myState.XFrameToWorld.R);
       // add additional velocity components from body motion
       vel.add (frameVel.v); 
-      computeDeformedPos (myTmpPos, loc);
+      computeDeformedLocation (myTmpPos, loc);
       myTmpPos.transform (myState.XFrameToWorld.R);
       vel.crossAdd (frameVel.w, myTmpPos, vel);
    }
@@ -570,7 +612,7 @@ public abstract class DeformableBody extends RigidBody
       cor.transform (R);
       cor.scale (2);
 
-      computeDeformedPos (tmp, loc);
+      computeDeformedLocation (tmp, loc);
       tmp.transform (R);
       cor.crossAdd (tw.w, tmp, cor);
       cor.cross (tw.w, cor);
@@ -590,9 +632,12 @@ public abstract class DeformableBody extends RigidBody
 
       Vector3d pos = new Vector3d();
       // compute deformed position in frame
-      computeDeformedPos (pos, loc);
+      computeDeformedLocation (pos, loc);
       // rotate position to world coordinates
       pos.transform (myState.XFrameToWorld.R);
+
+      Vector3d m = new Vector3d();
+      m.cross (pos, f);
 
       wr.f.add (f);
       wr.m.crossAdd (pos, f, wr.m);
@@ -611,9 +656,29 @@ public abstract class DeformableBody extends RigidBody
    /**
     * {@inheritDoc}
     */
-   @Override public void addPointForce (Point3d loc, Vector3d f) {
+   @Override
+   public void addPointForce (Point3d loc, Vector3d f) {
       addPointForce (myForce, myElasticForce, loc, f);
    }
+
+   /**
+    * {@inheritDoc}
+    */
+   @Override
+   public void addFrameForce (RigidTransform3d TFL0, Wrench wr) {
+      Point3d locw = new Point3d(); // body-frame vector rotated to world
+      computeDeformedLocation (locw, TFL0.p);
+      locw.transform (myState.XFrameToWorld.R);
+      myForce.f.add (wr.f);
+      myForce.m.add (wr.m);
+      myForce.m.crossAdd (locw, wr.f, myForce.m);
+      
+      Wrench wrbody = new Wrench();
+      wrbody.inverseTransform (getPose().R, wr);
+
+      addDeformedFrameForce (TFL0, wrbody);
+   }
+
 
 //   /**
 //    * {@inheritDoc}
@@ -645,7 +710,7 @@ public abstract class DeformableBody extends RigidBody
       blk.set (1, 1, 1.0);
       blk.set (2, 2, 1.0);
        
-      computeDeformedPos (myTmpPos, loc);
+      computeDeformedLocation (myTmpPos, loc);
       myTmpPos.transform (R);
 
       blk.set (4, 0,  myTmpPos.z);
@@ -667,66 +732,10 @@ public abstract class DeformableBody extends RigidBody
       }
    }
    
-   public void computeLocalPointForceJacobian (MatrixBlock GT, Vector3d loc) {
-      
-      MatrixNdBlock blk;
-      try {
-         blk = (MatrixNdBlock)GT;
-      }
-      catch (ClassCastException e) {
-         throw new IllegalArgumentException (
-            "GT is not an instance of MatrixNdBlock, is "+GT.getClass());
-      }
-      if (blk.rowSize() != getVelStateSize() ||
-          blk.colSize() != 3) {
-         throw new IllegalArgumentException (
-            "GT has wrong size "+GT.getSize()+
-            ", expecting "+getVelStateSize()+"x3");
-      }
-
-      RotationMatrix3d RF = getPose().R;
-      computeDeformedPos (myTmpPos, loc);
-      myTmpPos.transform (RF);
-
-      double x = myTmpPos.x;
-      double y = myTmpPos.y;
-      double z = myTmpPos.z;
-
-      blk.set (0, 0, 1);
-      blk.set (0, 1, 0);
-      blk.set (0, 2, 0);
-      blk.set (1, 0, 0);
-      blk.set (1, 1, 1);
-      blk.set (1, 2, 0);
-      blk.set (2, 0, 0);
-      blk.set (2, 1, 0);
-      blk.set (2, 2, 1);
-
-      blk.set (3, 0, 0);
-      blk.set (3, 1, -z);
-      blk.set (3, 2, y);
-      blk.set (4, 0, z);
-      blk.set (4, 1, 0);
-      blk.set (4, 2, -x);           
-      blk.set (5, 0, -y);
-      blk.set (5, 1, x);
-      blk.set (5, 2, 0);
-
-      int numc = numElasticCoords();
-      Vector3d shp = new Vector3d();
-      for (int i=0; i<numc; i++) {
-         getShape (shp, i, loc);
-         shp.transform (RF);
-         blk.set (6+i, 0, shp.x);
-         blk.set (6+i, 1, shp.y);
-         blk.set (6+i, 2, shp.z);
-      }
-   }
-
    /**
     * Computes the deformed position in body coordinates
     */
-   public void computeDeformedPos (Vector3d pos, Vector3d pos0) {
+   public void computeDeformedLocation (Vector3d pos, Vector3d pos0) {
       int numc = numElasticCoords();
       Vector3d shp = new Vector3d();
       pos.setZero();
@@ -742,12 +751,12 @@ public abstract class DeformableBody extends RigidBody
    /**
     * Computes the undeformed position of a given position in body coordinates
     */
-   public double computeUndeformedPos (Vector3d pos0, Vector3d pos, double tol) {
+   public double computeUndeformedLocation (Vector3d pos0, Vector3d pos, double tol) {
       int numc = numElasticCoords();
       Vector3d shp = new Vector3d();
       Vector3d res = new Vector3d();
       Matrix3d F = new Matrix3d();
-      computeDeformedPos (res, pos0);
+      computeDeformedLocation (res, pos0);
       res.sub (pos, res);
       double resNorm;
       int icnt = 0;
@@ -755,7 +764,7 @@ public abstract class DeformableBody extends RigidBody
          computeDeformationGradient (F, pos0);
          F.fastInvert(F);
          F.mulAdd (pos0, res, pos0);
-         computeDeformedPos (res, pos0);
+         computeDeformedLocation (res, pos0);
          res.sub (pos, res);
       }
       return resNorm;
@@ -764,7 +773,7 @@ public abstract class DeformableBody extends RigidBody
    /**
     * Computes the deformed velocity in body coordinates
     */
-   public void computeDeformedVel (Vector3d vel, Vector3d pos0) {
+   public void computeDeformedVelocity (Vector3d vel, Vector3d pos0) {
       int numc = numElasticCoords();
       Vector3d shp = new Vector3d();
       vel.setZero();
@@ -784,33 +793,106 @@ public abstract class DeformableBody extends RigidBody
       }
    }
 
-   public void computeDeformedFrame (
-      RigidTransform3d A, PolarDecomposition3d polarDecomp, 
-      RigidTransform3d A0) {
+   public void computeFramePosition (
+      RigidTransform3d TFW, RigidTransform3d TFL0) {
+      RigidTransform3d TFL = new RigidTransform3d();
+      computeDeformedFrame (TFL, TFL0);
+      TFW.mul (getPose(), TFL);
+   }  
 
-      computeDeformedPos (A.p, A0.p);
-      Matrix3d F = new Matrix3d();
-      computeDeformationGradient (F, A0.p);
-      // get polar decomposition for F
-      polarDecomp.factor (F);
-      A.R.mul (polarDecomp.getR(), A0.R);
+   public void computeFrameLocation (
+      RigidTransform3d TFL0, RigidTransform3d TFW) {
+
+      RigidTransform3d TFL = new RigidTransform3d();
+      TFL.mulInverseLeft (getPose(), TFW);
+      computeUndeformedFrame (TFL0, TFL);
+   }   
+
+   public void computeFrameVelocity (Twist vel, RigidTransform3d TFL0) {
+      Vector3d defp = new Vector3d();
+      computeDeformedLocation (defp, TFL0.p);
+      super.computePointVelocity (vel.v, defp);
+      vel.w.set (getVelocity().w);
+
+      Twist evel = new Twist();
+      computeDeformedFrameVel (evel, TFL0);
+      // transform to world coords
+      evel.transform (getPose().R);
+      vel.add (evel);
+   }
+   
+   protected void computeFrameFrameJacobian (
+      MatrixBlock J, RigidTransform3d TFL0) {
+      
+      int numc = numElasticCoords();
+      if (!(J instanceof MatrixNdBlock)) {
+          throw new IllegalArgumentException (
+             "J is not an instance of MatrixNdBlock; is " + J.getClass());
+      }
+      MatrixNdBlock Jb = (MatrixNdBlock)J;
+      if (Jb.colSize() != 6 || Jb.rowSize() != 6+numc) {
+         throw new IllegalArgumentException (
+            "J expected to be "+(6+numc)+"x6, is " + J.getSize());
+      }
+
+      Vector3d pFLw = new Vector3d();
+      computeDeformedLocation (pFLw, TFL0.p);
+      pFLw.transform (getPose().R);
+      Matrix3d PX = new Matrix3d();
+      PX.setSkewSymmetric (pFLw);
+      
+      Jb.setSubMatrix (0, 0, RotationMatrix3d.IDENTITY);
+      Jb.setSubMatrix (0, 3, Matrix3d.ZERO);
+      Jb.setSubMatrix (3, 0, PX);
+      Jb.setSubMatrix (3, 3, RotationMatrix3d.IDENTITY);
+
+      // set the elastic sub matrix:
+
+      MatrixNd Pi = new MatrixNd (6, numc);
+      computeElasticJacobian (Pi, TFL0, /*worldCoords=*/true);
+      // set the lower n x 6 submatrix of blk to the transpose of Pi
+      double[] bbuf = Jb.getBuffer();
+      double[] pbuf = Pi.getBuffer();
+      if (Jb.getBufferWidth() != 6) {
+         throw new InternalErrorException (
+            "Master block has buffer width of "+Jb.getBufferWidth()+
+            "; expecting 6");
+      }
+      int k = 36;
+      for (int i=0; i<numc; i++) {
+         for (int j=0; j<6; j++) {
+            bbuf[k++] = pbuf[j*numc+i];
+         }
+      }
    }
 
-   public void computeUndeformedFrame (
-      RigidTransform3d A0, PolarDecomposition3d polarDecomp, 
-      RigidTransform3d A) {
+//   public void computeDeformedFrame (
+//      RigidTransform3d A, PolarDecomposition3d polarDecomp, 
+//      RigidTransform3d A0) {
+//
+//      computeDeformedPos (A.p, A0.p);
+//      Matrix3d F = new Matrix3d();
+//      computeDeformationGradient (F, A0.p);
+//      // get polar decomposition for F
+//      polarDecomp.factor (F);
+//      A.R.mul (polarDecomp.getR(), A0.R);
+//   }
 
-      computeUndeformedPos (A0.p, A.p, 1e-8);
+   public void computeUndeformedFrame (
+      RigidTransform3d A0, RigidTransform3d A) {
+
+      computeUndeformedLocation (A0.p, A.p, 1e-8);
       Matrix3d F = new Matrix3d();
       computeDeformationGradient (F, A0.p);
+      PolarDecomposition3d polarD = new PolarDecomposition3d();
       // get polar decomposition for F
-      polarDecomp.factor (F);
-      A0.R.mulInverseLeft (polarDecomp.getR(), A.R);
+      polarD.factor (F);
+      A0.R.mulInverseLeft (polarD.getR(), A.R);
    }
 
    public void computeDeformedFrame (RigidTransform3d A, RigidTransform3d A0) {
       int numc = numElasticCoords();
-      computeDeformedPos (A.p, A0.p);
+      computeDeformedLocation (A.p, A0.p);
       Matrix3d Dshp = new Matrix3d();
       Matrix3d F = new Matrix3d();
       RotationMatrix3d R = new RotationMatrix3d();
@@ -914,17 +996,24 @@ public abstract class DeformableBody extends RigidBody
    // }
 
    /**
-    * Computes the spatial velocity of an attached frame A, as represented
-    * in the coordinates of A.
+    * Computes the spatial velocity of an attached frame A, as represented in
+    * body coordinates.
     */
    public void computeDeformedFrameVel (
-      Twist vel, PolarDecomposition3d polarDecomp, RigidTransform3d A0) {
+      Twist vel, RigidTransform3d A0) {
+
+      Matrix3d F = new Matrix3d();
+      PolarDecomposition3d polarD = new PolarDecomposition3d();
+      computeDeformationGradient (F, A0.p);
+      polarD.factor (F);
 
       int numc = numElasticCoords();      
-      computeDeformedVel (vel.v, A0.p);
-      // transform from body to A coords:
-      vel.v.inverseTransform (polarDecomp.getR());
-      vel.v.inverseTransform (A0.R);
+      computeDeformedVelocity (vel.v, A0.p);
+
+      // uncomment to transform from body to A coords:
+      // vel.v.inverseTransform (polarD.getR());
+      // vel.v.inverseTransform (A0.R);
+
       Matrix3d Dshp = new Matrix3d();
       Matrix3d D = new Matrix3d();
       for (int i=0; i<numc; i++) {
@@ -932,14 +1021,14 @@ public abstract class DeformableBody extends RigidBody
          D.scaledAdd (myElasticVel.get(i), Dshp);
       }
       // compute inv(R) * D
-      D.mulTransposeLeft (polarDecomp.getR(), D);
+      D.mulTransposeLeft (polarD.getR(), D);
 
       Vector3d sig = new Vector3d();
-      polarDecomp.getSig(sig);
-      Matrix3d Binv = new Matrix3d(polarDecomp.getV());
+      polarD.getSig(sig);
+      Matrix3d Binv = new Matrix3d(polarD.getV());
       Binv.mulCols (
          -1/(sig.y+sig.z), -1/(sig.x+sig.z), -1/(sig.x+sig.y));
-      Binv.mulTransposeRight (Binv, polarDecomp.getV());
+      Binv.mulTransposeRight (Binv, polarD.getV());
 
       Vector3d avec = new Vector3d();
       avec.x =  D.m12 - D.m21;
@@ -947,28 +1036,91 @@ public abstract class DeformableBody extends RigidBody
       avec.z =  D.m01 - D.m10;
       Binv.mul (vel.w, avec);
 
-      vel.w.inverseTransform (A0.R);
+      // transform velocity to body coords
+      vel.w.transform (polarD.getR());
 
-      // uncomment if we want velocity in frame coords
-      //vel.w.transform (A0.R);
-      //vel.w.transform (polarDecomp.getR());
+      // Uncomment and use instead to get velocity in A coords:
+      // vel.w.inverseTransform (A0.R);
    }
+
+   /**
+    * Compute the skew symmetric terms P(1,2), P(2,0) and P(0,1)
+    * of the product
+    * <pre>
+    * P = R^T D - D^T R
+    * </pre>
+    * and place the results in <code>p</code>.
+    */
+   private void skewSymmetricTerms (Vector3d p, Matrix3dBase R, Matrix3dBase D) {
+      p.x = (R.m01*D.m02 + R.m11*D.m12 + R.m21*D.m22 -
+             R.m02*D.m01 + R.m12*D.m11 + R.m22*D.m21);
+
+      p.y = (R.m02*D.m00 + R.m12*D.m10 + R.m22*D.m20 -
+             R.m00*D.m02 + R.m10*D.m12 + R.m20*D.m22);
+
+      p.z = (R.m00*D.m01 + R.m10*D.m11 + R.m20*D.m21 -
+             R.m01*D.m00 + R.m11*D.m10 + R.m21*D.m20);
+   }
+
+   /**
+    * Adds to this body's elastic forces the forces arising from applying a
+    * wrench <code>f</code> on an attached frame.
+    *
+    * @param TFL0 undeformed location of the frame with respect to the body
+    * @param wr 6 DOF force applied to the frame (body coordinates)
+    */
+   public void addDeformedFrameForce (
+      RigidTransform3d A0, Wrench wr) {
+
+      Matrix3d F = new Matrix3d();
+      PolarDecomposition3d polarD = new PolarDecomposition3d();
+      computeDeformationGradient (F, A0.p);
+      polarD.factor (F);
+
+      int numc = numElasticCoords();      
+      Vector3d shp = new Vector3d();
+      for (int i=0; i<numc; i++) {
+         getShape (shp, i, A0.p);
+         myElasticForce.add (i, shp.dot(wr.f));
+      }
+
+      Vector3d sig = new Vector3d();
+      polarD.getSig(sig);
+      Matrix3d Binv = new Matrix3d(polarD.getV());
+      Binv.mulCols (
+         -1/(sig.y+sig.z), -1/(sig.x+sig.z), -1/(sig.x+sig.y));
+      Binv.mulTransposeRight (Binv, polarD.getV());
+
+      Vector3d mb = new Vector3d();
+      mb.inverseTransform (polarD.getR(), wr.m);
+      Binv.mulTranspose (mb, mb);
+
+      Matrix3d Dshp = new Matrix3d();
+      Vector3d tmp = new Vector3d();
+      for (int i=0; i<numc; i++) {
+         getDShape (Dshp, i, A0.p);
+         skewSymmetricTerms (tmp, polarD.getR(), Dshp);
+         myElasticForce.add (i, tmp.dot(mb));
+      }
+   }   
 
    /**
     * Compute the transform that maps elastic velocities onto the spatial
     * velocity of an attached frame A.
     *
     * @param Pi stores the elastic Jacobian
-    * @param polarDecomp should be initialized to the polar decomposition
-    * of the deformation gradient at the origin of A
     * @param A0 rest pose of A (relative to the body frame)
     * @param worldCoords if <code>true</code>, the spatial velocity is rotated
     * into world coordinates. Otherwise, it is returned in the coordinates of
     * A.
     */
    public void computeElasticJacobian (
-      MatrixNd Pi, PolarDecomposition3d polarDecomp, 
-      RigidTransform3d A0, boolean worldCoords) {
+      MatrixNd Pi, RigidTransform3d A0, boolean worldCoords) {
+
+      Matrix3d F = new Matrix3d();
+      PolarDecomposition3d polarD = new PolarDecomposition3d();
+      computeDeformationGradient (F, A0.p);
+      polarD.factor (F);
 
       int numc = numElasticCoords();   
       Vector3d shp = new Vector3d();
@@ -984,7 +1136,7 @@ public abstract class DeformableBody extends RigidBody
          }
          else {
             // transform from body coords to A coords
-            shp.inverseTransform (polarDecomp.getR());
+            shp.inverseTransform (polarD.getR());
             shp.inverseTransform (A0.R);
          }
          Pi.set (0, i, shp.x);
@@ -995,17 +1147,17 @@ public abstract class DeformableBody extends RigidBody
       Matrix3d Dshp = new Matrix3d();
       
       Vector3d sig = new Vector3d();
-      polarDecomp.getSig(sig);
-      Matrix3d Binv = new Matrix3d(polarDecomp.getV());
+      polarD.getSig(sig);
+      Matrix3d Binv = new Matrix3d(polarD.getV());
       Binv.mulCols (
          -1/(sig.y+sig.z), -1/(sig.x+sig.z), -1/(sig.x+sig.y));
-      Binv.mulTransposeRight (Binv, polarDecomp.getV());
+      Binv.mulTransposeRight (Binv, polarD.getV());
       Vector3d avec = new Vector3d();
 
       for (int i=0; i<numc; i++) {
          getDShape (Dshp, i, A0.p);
          // compute inv(R) * Dshp
-         Dshp.mulTransposeLeft (polarDecomp.getR(), Dshp);
+         Dshp.mulTransposeLeft (polarD.getR(), Dshp);
          avec.x =  Dshp.m12 - Dshp.m21;
          avec.y = -Dshp.m02 + Dshp.m20;
          avec.z =  Dshp.m01 - Dshp.m10;
@@ -1013,7 +1165,7 @@ public abstract class DeformableBody extends RigidBody
 
          if (worldCoords) {
             // rotate into world coords
-            avec.transform (polarDecomp.getR());
+            avec.transform (polarD.getR());
             avec.transform (RBW);
          }
          else {
@@ -1107,7 +1259,7 @@ public abstract class DeformableBody extends RigidBody
       Vector3d tmp = new Vector3d();
       computePointLocation (loc, cpnt.myPoint);
       // compute elastic velocity in body coords
-      computeDeformedVel (tmp, loc);
+      computeDeformedVelocity (tmp, loc);
       // rotate to world coords
       tmp.transform (myState.XFrameToWorld.R);
 

@@ -365,43 +365,6 @@ implements CollidableBody, PointAttachable {
       return vtx;
    }
 
-   /**
-    * Find the FEM element corresponding to a surface face.
-    */
-   FemElement3d getFaceElementOld (Face face) {
-
-      // Form the intersection of all the element dependencies of all three
-      // nodes associated with the face. If the face is on the surface,
-      // there should be only one element left.
-      HalfEdge he0 = face.firstHalfEdge();
-      HalfEdge he1 = he0.getNext();
-      HalfEdge he2 = he1.getNext();
-
-      HashSet<FemElement3d> elems =
-         new HashSet<FemElement3d>(getEdgeNode(he0).getElementDependencies());
-      elems.retainAll (getEdgeNode(he1).getElementDependencies());
-      elems.retainAll (getEdgeNode(he2).getElementDependencies());
-
-      if (elems.size() != 1) {
-         FemElement3d[] elemArray = elems.toArray(new FemElement3d[0]);
-         System.out.println (
-            "face is "+
-               getEdgeNode(he0).getNumber()+" "+
-               getEdgeNode(he1).getNumber()+" "+
-               getEdgeNode(he2).getNumber());
-
-         for (int i=0; i<elemArray.length; i++) {
-            System.out.println (" element "+elemArray[i].getNumber());
-         }
-         return null;
-         // ignore for now ...
-         // throw new InternalErrorException (
-         //    "Face "+face+" associated with "+elems.size()+" elements");
-
-      }
-      return (FemElement3d)elems.toArray()[0];
-   }
-
    private void addVertexNodes (HashSet<FemNode3d> nodes, Vertex3d vtx) {
 
       PointAttachment pa = getAttachment(vtx.getIndex());
@@ -416,6 +379,17 @@ implements CollidableBody, PointAttachable {
          PointParticleAttachment ppa = (PointParticleAttachment)pa;
          nodes.add ((FemNode3d)ppa.getParticle());
       }      
+   }
+
+   protected ArrayList<FemElement3d> getAdjacentVolumetricElems (
+      FemNode3d node) {
+      ArrayList<FemElement3d> deps = new ArrayList<FemElement3d>();
+      for (FemElement3dBase eb : node.getElementDependencies()) {
+         if (eb instanceof FemElement3d) {
+            deps.add ((FemElement3d)eb);
+         }
+      }
+      return deps;
    }
 
    public FemElement3d getFaceElement (Face face) {
@@ -435,10 +409,10 @@ implements CollidableBody, PointAttachable {
       HashSet<FemElement3d> elems = null;
       for (FemNode3d node : nodes) {
          if (elems == null) {
-            elems = new HashSet<FemElement3d>(node.getElementDependencies());
+            elems = new HashSet<FemElement3d>(getAdjacentVolumetricElems(node));
          }
          else {
-            elems.retainAll (node.getElementDependencies());
+            elems.retainAll (getAdjacentVolumetricElems(node));
          }
       }
       if (elems.size() != 1) {
@@ -731,17 +705,36 @@ implements CollidableBody, PointAttachable {
       String name, FemModel3d fem, Collection<FemElement3d> elems) {
       FemMeshComp femMesh = new FemMeshComp(fem);
       femMesh.setName (name);
-      femMesh.createSurface (elems);
+      femMesh.createVolumetricSurface (elems);
       return femMesh; 
    }
 
    public static FemMeshComp createSurface (
       String name, FemModel3d fem, ElementFilter efilter) {
-      return createSurface (name, fem, getFilteredElements (fem, efilter));
+      return createSurface (
+         name, fem, getFilteredElements (fem.getElements(), efilter));
    }
 
    public static FemMeshComp createSurface (String name, FemModel3d fem) {
       return createSurface (name, fem, fem.getElements());
+   }
+
+   public static FemMeshComp createShellSurface (
+      String name, FemModel3d fem, Collection<ShellElement3d> elems) {
+      FemMeshComp femMesh = new FemMeshComp(fem);
+      femMesh.setName (name);
+      femMesh.createShellSurface (elems);
+      return femMesh; 
+   }
+
+   public static FemMeshComp createShellSurface (
+      String name, FemModel3d fem, ElementFilter efilter) {
+      return createShellSurface (
+         name, fem, getFilteredElements (fem.getShellElements(), efilter));
+   }
+
+   public static FemMeshComp createShellSurface (String name, FemModel3d fem) {
+      return createShellSurface (name, fem, fem.getShellElements());
    }
 
    protected void createFineSurface (int resolution, ElementFilter efilter) {
@@ -844,19 +837,6 @@ implements CollidableBody, PointAttachable {
       finalizeSurfaceBuild();
    }
 
-   //   public static FemMeshComp createSurface (FemModel3d fem, int resolution) {
-   //      return createSurface (new FemMeshComp (fem), resolution);
-   //   }
-
-   // private static boolean containsNode(FemNode3d n, FemNode[] nodes) {
-   //    for (int i = 0; i < nodes.length; i++) {
-   //       if (nodes[i] == n) {
-   //          return true;
-   //       }
-   //    }
-   //    return false;
-   // }
-
    private ArrayList<FemNode3d> getEdgeNodes(
       FemNode3d n0, FemNode3d n1, FemModel3d fem) {
 
@@ -918,28 +898,37 @@ implements CollidableBody, PointAttachable {
       face.setAllNodes(allNodes.toArray(new FemNode3d[0]));
    }
 
-   private static ArrayList<FemElement3d> getFilteredElements (
-      FemModel3d fem, ElementFilter efilter) {
-      ArrayList<FemElement3d> elems = 
-         new ArrayList<FemElement3d>(fem.numElements());
+   private static <E extends FemElement3dBase> ArrayList<E> getFilteredElements (
+      FemElement3dList<E> elems, ElementFilter efilter) {
+      ArrayList<E> filtered = new ArrayList<E>(elems.size());
       // create a list of all the faces for all the elements, and for
       // each node, create a list of all the faces it is associated with
-      for (FemElement3d e : fem.getElements()) {
+      for (E e : elems) {
          if (efilter.elementIsValid(e)) {
-            elems.add (e);
+            filtered.add (e);
          }
       }
-      return elems;
+      return filtered;
    }
 
    public void createSurface (ElementFilter efilter) {
 
-      createSurface (getFilteredElements (myFem, efilter));
+      if (myFem.numElements() > 0) {
+         createVolumetricSurface (
+            getFilteredElements (myFem.getElements(), efilter));
+         // createVolumetricShellSurface (
+         //    getFilteredElements (myFem.getElements(), efilter),
+         //    getFilteredElements (myFem.getShellElements(), efilter));
+      }
+      else {
+         createShellSurface (
+            getFilteredElements (myFem.getShellElements(), efilter));
+      }
    }
 
    //Throwable throwable = null;
 
-   public void createSurface (Collection<FemElement3d> elems) {
+   public void createVolumetricSurface (Collection<FemElement3d> elems) {
 
       initializeSurfaceBuild();
       // nodeVertexMap is used during the construction of this surface,
@@ -948,23 +937,79 @@ implements CollidableBody, PointAttachable {
       myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
       myNumSingleAttachments = 0;
 
-      LinkedList<FaceNodes3d> allFaces = new LinkedList<FaceNodes3d>();
-      // faces adjacent to each node
-      ArrayList<LinkedList<FaceNodes3d>> nodeFaces =
+      // faces nodes adjacent to each node
+      ArrayList<LinkedList<FaceNodes3d>> faceNodesPerNode =
          new ArrayList<LinkedList<FaceNodes3d>>(myFem.numNodes());
-
       for (int i = 0; i < myFem.numNodes(); i++) {
-         nodeFaces.add(new LinkedList<FaceNodes3d>());
+         faceNodesPerNode.add(new LinkedList<FaceNodes3d>());
       }
+      LinkedList<FaceNodes3d> faceNodes = createFaceNodes (
+         faceNodesPerNode, elems, myFem);
 
-      PointList<FemNode3d> femNodes = myFem.getNodes();
+      markOverlappingFaces (faceNodes, faceNodesPerNode, myFem);
+      faceNodes = removeOverlappingFaces (faceNodes);
+      createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
+
+      finalizeSurfaceBuild();
+   }
+
+   public void createShellSurface (Collection<ShellElement3d> elems) {
+
+      initializeSurfaceBuild();
+      // nodeVertexMap is used during the construction of this surface,
+      // so we build it during the construction rather then letting
+      // it be built in finalizeSurfaceBuild()
+      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
+      myNumSingleAttachments = 0;
+
+      LinkedList<FaceNodes3d> faceNodes = createFaceNodes (null, elems, myFem);
+      createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
+      finalizeSurfaceBuild();
+   }
+
+   public void createVolumetricShellSurface (
+      Collection<FemElement3d> volElems, Collection<ShellElement3d> shellElems) {
+
+      initializeSurfaceBuild();
+      // nodeVertexMap is used during the construction of this surface,
+      // so we build it during the construction rather then letting
+      // it be built in finalizeSurfaceBuild()
+      myNodeVertexMap = new HashMap<FemNode3d,Vertex3d>();
+      myNumSingleAttachments = 0;
+
+      // faces nodes adjacent to each node
+      ArrayList<LinkedList<FaceNodes3d>> faceNodesPerNode =
+         new ArrayList<LinkedList<FaceNodes3d>>(myFem.numNodes());
+      for (int i = 0; i < myFem.numNodes(); i++) {
+         faceNodesPerNode.add(new LinkedList<FaceNodes3d>());
+      }
+      LinkedList<FaceNodes3d> faceNodes = createFaceNodes (
+         faceNodesPerNode, volElems, myFem);
+
+      markOverlappingFaces (faceNodes, faceNodesPerNode, myFem);
+      faceNodes = removeOverlappingFaces (faceNodes);
+      faceNodes.addAll (createFaceNodes (null, shellElems, myFem));
+      createMeshFromFaceNodes ((PolygonalMesh)getMesh(), faceNodes);
+
+      finalizeSurfaceBuild();
+   }
+
+   // create a list of all faces for a collection of elements. If
+   // faceNodesPerNode is not null, use it to record all the faces associated
+   // with each node.
+   LinkedList<FaceNodes3d> createFaceNodes (
+      ArrayList<LinkedList<FaceNodes3d>> faceNodesPerNode,
+      Collection<? extends FemElement3dBase> elems, FemModel3d fem) {
+
+      LinkedList<FaceNodes3d> faceNodes = new LinkedList<FaceNodes3d>();
+      PointList<FemNode3d> femNodes = fem.getNodes();
 
       // create a list of all the faces for all the elements, and for
       // each node, create a list of all the faces it is associated with
-      for (FemElement3d e : elems) {
+      for (FemElement3dBase e : elems) {
          FaceNodes3d[] faces = e.getFaces();
          for (FaceNodes3d f : faces) {
-            addEdgeNodesToFace(f, myFem);
+            addEdgeNodesToFace (f, myFem);
             for (FemNode3d n : f.getAllNodes()) {
                int idx = femNodes.indexOf(n);
                if (idx == -1) {
@@ -972,20 +1017,29 @@ implements CollidableBody, PointAttachable {
                      "Element " + e.getNumber() + ": bad node "
                         + n.getNumber());
                }
-               nodeFaces.get(femNodes.indexOf(n)).add(f);
+               if (faceNodesPerNode != null) {
+                  faceNodesPerNode.get(femNodes.indexOf(n)).add(f);
+               }
             }
-            allFaces.add(f);
+            faceNodes.add(f);
          }
       }
+      return faceNodes;
+   }
 
-      // now for each face, check to see if it is overlapping with other faces
+   void markOverlappingFaces (
+      LinkedList<FaceNodes3d> faceNodes,
+      ArrayList<LinkedList<FaceNodes3d>> faceNodesPerNode,
+      FemModel3d fem) {
+      
+      PointList<FemNode3d> femNodes = fem.getNodes();      
       HashSet<FaceNodes3d> adjacentFaces = new HashSet<FaceNodes3d>();
-      for (FaceNodes3d f : allFaces) {
+      for (FaceNodes3d f : faceNodes) {
          if (!f.isHidden()) {
             adjacentFaces.clear();
             for (FemNode3d n : f.getAllNodes()) {
                Iterator<FaceNodes3d> it =
-                  nodeFaces.get(femNodes.indexOf(n)).iterator();
+                  faceNodesPerNode.get(femNodes.indexOf(n)).iterator();
                while (it.hasNext()) {
                   FaceNodes3d g = it.next();
                   if (g.isHidden()) {
@@ -1008,50 +1062,51 @@ implements CollidableBody, PointAttachable {
             }
          }
       }
-      int num = 0;
-      for (FaceNodes3d f : allFaces) {
-         if (!f.isOverlapping() &&
-            !f.isSelfAttachedToFace()) {
+   }
 
-            num++;
+   LinkedList<FaceNodes3d> removeOverlappingFaces (
+      LinkedList<FaceNodes3d> faceNodes) {
+      LinkedList<FaceNodes3d> newNodes = new LinkedList<FaceNodes3d>();
+
+      for (FaceNodes3d fn : faceNodes) {
+         if (!fn.isOverlapping() &&
+            !fn.hasSelfAttachedNode() &&
+            !fn.isSelfAttachedToFace()) {
+            newNodes.add (fn);
          }
       }
+      return newNodes;
+   }
 
-      // form the surface mesh from the non-overlapping faces
-      PolygonalMesh mesh = (PolygonalMesh)getMesh();
-      for (FaceNodes3d f : allFaces) {
-         if (!f.isOverlapping() &&
-            !f.hasSelfAttachedNode() &&
-            !f.isSelfAttachedToFace()) {
-            FemNode3d[][] triangles = f.triangulate();
-            boolean triangulatedQuad =
-               (triangles.length == 2 && triangles[0][0] == triangles[1][0]);
-            for (int i = 0; i < triangles.length; i++) {
-               FemNode3d[] tri = triangles[i];
-               Vertex3d[] vtxs = new Vertex3d[3];
-               for (int j = 0; j < 3; j++) {
-                  FemNode3d node = tri[j];
-                  if ((vtxs[j] = myNodeVertexMap.get(node)) == null) {
-                     Vertex3d vtx =
-                        new Vertex3d (new Point3d(node.getPosition()));
-                     mesh.addVertex (vtx);
-                     myVertexAttachments.add (
-                        new PointParticleAttachment (node, null));
-                     myNumSingleAttachments++;
-                     myNodeVertexMap.put (node, vtx);
-                     vtxs[j] = vtx;
-                  }
+   protected void createMeshFromFaceNodes (
+      PolygonalMesh mesh, LinkedList<FaceNodes3d> faceNodes) {
+
+      for (FaceNodes3d fn : faceNodes) {
+         FemNode3d[][] triangles = fn.triangulate();
+         boolean triangulatedQuad =
+            (triangles.length == 2 && triangles[0][0] == triangles[1][0]);
+         for (int i = 0; i < triangles.length; i++) {
+            FemNode3d[] tri = triangles[i];
+            Vertex3d[] vtxs = new Vertex3d[3];
+            for (int j = 0; j < 3; j++) {
+               FemNode3d node = tri[j];
+               if ((vtxs[j] = myNodeVertexMap.get(node)) == null) {
+                  Vertex3d vtx =
+                     new Vertex3d (new Point3d(node.getPosition()));
+                  mesh.addVertex (vtx);
+                  myVertexAttachments.add (
+                     new PointParticleAttachment (node, null));
+                  myNumSingleAttachments++;
+                  myNodeVertexMap.put (node, vtx);
+                  vtxs[j] = vtx;
                }
-               Face face = mesh.addFace(vtxs);
-               if (triangulatedQuad && i == 0) {
-                  face.setFirstQuadTriangle(true);
-               }
+            }
+            Face face = mesh.addFace(vtxs);
+            if (triangulatedQuad && i == 0) {
+               face.setFirstQuadTriangle(true);
             }
          }
       }
-
-      finalizeSurfaceBuild();
-      //throwable = null;
    }
 
    protected void updateVertexColors() {

@@ -13,13 +13,11 @@ import artisynth.core.modelbase.*;
 public class FrameNode3d extends DynamicComponentBase {
    
    protected FemNode3d myNode;
-   int mySolveIdx = -1;
+
    Point3d myPos = new Point3d();
    Vector3d myVel = new Vector3d();
    Vector3d myForce = new Vector3d();
    Frame myFrame;
-   DynamicAttachment myAttachment;
-   LinkedList<DynamicAttachment> myMasterAttachments;
    double myEffectiveMass = 0;
    
    FrameNode3d (FemNode3d node, Frame frame) {
@@ -59,122 +57,6 @@ public class FrameNode3d extends DynamicComponentBase {
 
    public void addForce (Vector3d f) {
       myForce.add (f);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public DynamicAttachment getAttachment() {
-      return myAttachment;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void setAttached (DynamicAttachment attachment) {
-      myAttachment = attachment;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void addMasterAttachment (DynamicAttachment a) {
-      if (myMasterAttachments == null) {
-         myMasterAttachments = new LinkedList<DynamicAttachment>();
-      }
-      myMasterAttachments.add (a);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void removeMasterAttachment (DynamicAttachment a) {
-      if (myMasterAttachments == null || !myMasterAttachments.remove (a)) {
-         throw new InternalErrorException (
-            "attempt to remove non-existent master attachment");
-      }
-      if (myMasterAttachments.size() == 0) {
-         myMasterAttachments = null;
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public LinkedList<DynamicAttachment> getMasterAttachments() {
-      return myMasterAttachments;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public List<Constrainer> getConstrainers() {
-      return null;
-   }   
-
-   /**
-    * {@inheritDoc}
-    */
-   public void addConstrainer (Constrainer c) {
-      throw new UnsupportedOperationException (
-         "addConstrainer() not supported for FrameFemNode3d");      
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean removeConstrainer (Constrainer c) {
-      throw new UnsupportedOperationException (
-         "removeConstrainer() not supported for FrameFemNode3d");
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isDynamic() {
-      return true;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isActive() {
-      return myAttachment == null;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isAttached() {
-      return myAttachment != null;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isParametric() {
-      return false;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isControllable() {
-      return isActive();
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public int getSolveIndex() {
-      return mySolveIdx;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void setSolveIndex (int idx) {
-      mySolveIdx = idx;
    }
 
    /**
@@ -333,6 +215,13 @@ public class FrameNode3d extends DynamicComponentBase {
       myForce.x = buf[idx++];
       myForce.y = buf[idx++];
       myForce.z = buf[idx++];
+      return idx;
+   }
+
+   public int addForce (double[] buf, int idx) {
+      myForce.x += buf[idx++];
+      myForce.y += buf[idx++];
+      myForce.z += buf[idx++];
       return idx;
    }
 

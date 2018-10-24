@@ -1,12 +1,14 @@
 package artisynth.core.femmodels;
 
 import artisynth.core.materials.FemMaterial;
+import artisynth.core.femmodels.FemElement.ElementType;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 
 /**
  * Cached stiffness and initial force terms for faster
@@ -15,46 +17,90 @@ import maspack.matrix.Vector3d;
 public class LinearMaterialCache {
 
    // non-corotated terms
-   Matrix3d[][] K0;
-   Vector3d[] f0;
+   protected Matrix3d[] K00;
+   protected Matrix3d[] K01;
+   protected Matrix3d[] K10;
+   protected Matrix3d[] K11;
+   protected Vector3d[] f0;
+   protected Vector3d[] fdir0;
+   protected int nnodes;
 
    /**
     * Initializes empty cache
     * @param numNodes number of nodes in associated element
     */
-   public LinearMaterialCache (int numNodes) {
-      // create K0
-      K0 = new Matrix3d[numNodes][numNodes];
-      for (int i=0; i<numNodes; i++) {
-         for (int j=0; j<numNodes; j++) {
-            K0[i][j] = new Matrix3d();
-         }
-      }
-      
-      // create f0
-      f0 = new Vector3d[numNodes];
-      for (int i=0; i<numNodes; i++) {
-         f0[i] = new Vector3d();
-      }
+   public LinearMaterialCache (FemElement3dBase e) {
+      ensureCapacity (e);
    }
+
+   public boolean hasShellData() {
+      return K10 != null;
+   }
+
+   private Matrix3d[] allocK (int n) {
+      Matrix3d[] K = new Matrix3d[n*n];
+      for (int i=0; i<n*n; i++) {
+         K[i] = new Matrix3d();
+      }
+      return K;
+   }
+
+   private Vector3d[] allocF (int n) {
+      Vector3d[] f = new Vector3d[n];
+      for (int i=0; i<n; i++) {
+         f[i] = new Vector3d();
+      }
+      return f;
+   }
+
+   private void ensureCapacity (FemElement3dBase e) {
+      int n = e.numNodes();
+      if (n != nnodes ||
+          (e.getType() == ElementType.SHELL) != (hasShellData())) {
+         // allocate K00 and f0
+         K00 = allocK (n);
+         f0 = allocF (n);
+         // allocate K01, K10, K11 and fdir0 for shell elements
+         if (e.getType() == ElementType.SHELL) {
+            K01 = allocK (n);
+            K10 = allocK (n);
+            K11 = allocK (n);
+            fdir0 = allocF (n);
+         }
+         else {
+            K01 = null;
+            K10 = null;
+            K11 = null;
+            fdir0 = null;
+         }
+         nnodes = n;
+      }
+   }      
    
    /**
     * Sets all stiffness and force values to zero
     */
    public void clearInitialStiffness() {
-      for (int i=0; i<K0.length; i++) {
-         for (int j=0; j<K0[i].length; j++) {
-            K0[i][j].setZero();
-         }
+      for (int i=0; i<nnodes*nnodes; i++) {
+         K00[i].setZero();
       }
-      
-      for (int i=0; i<f0.length; ++i) {
+      for (int i=0; i<nnodes; ++i) {
          f0[i].setZero();
+      }
+      if (hasShellData()) {
+         for (int i=0; i<nnodes*nnodes; i++) {
+            K01[i].setZero();
+            K10[i].setZero();
+            K11[i].setZero();
+         }
+         for (int i=0; i<nnodes; ++i) {
+            fdir0[i].setZero();
+         }
       }
    }
    
    /**
-    * Computes and stores the initial stiffness K0 and force f0 terms
+    * Computes and stores the initial stiffness K00 and force f0 terms
     * @param e   element
     * @param mat linear material
     * @param weight weight to combine with integration point weights
@@ -65,9 +111,9 @@ public class LinearMaterialCache {
       FemDeformedPoint dpnt = new FemDeformedPoint();
       FemNode3d[] nodes = e.getNodes();
 
-      for (int i = 0; i < nodes.length; i++) {
-         f0[i].setZero();
-      }
+//      for (int i = 0; i < nodes.length; i++) {
+//         f0[i].setZero();
+//      }
       
       // compute stiffness matrix
       Matrix6d D = new Matrix6d();
@@ -98,10 +144,10 @@ public class LinearMaterialCache {
             FemUtilities.addStressForce(f0[i], GNx0[i], stress, dv0);
             for (int j = 0; j < nodes.length; j++) {
                FemUtilities.addMaterialStiffness (
-                  K0[i][j], GNx0[i], D, GNx0[j], dv0);
+                  K00[i*nnodes+j], GNx0[i], D, GNx0[j], dv0);
                // XXX adding geometric stiffness makes things unstable - need to check why
                //FemUtilities.addGeometricStiffness (
-               //   K0[i][j], GNx0[i], stress, GNx0[j], dv0);   
+               //   K00[i*nnodes+j], GNx0[i], stress, GNx0[j], dv0);   
             }
          }
       }      
@@ -111,14 +157,159 @@ public class LinearMaterialCache {
       for (int i = 0; i < nodes.length; i++) {
          tmp.setZero();
          for (int j=0; j<nodes.length; j++) {
-            K0[i][j].mulAdd (tmp, nodes[j].getLocalRestPosition(), tmp);
+            K00[i*nnodes+j].mulAdd (tmp, nodes[j].getLocalRestPosition(), tmp);
          }
          f0[i].sub (tmp, f0[i]);
       }
    }
    
    /**
-    * Computes and stores the initial stiffness K0 and force f0 terms
+    * Computes and stores the initial stiffness K00 and force f0 terms
+    * @param e   element
+    * @param mat linear material
+    * @param weight weight to combine with integration point weights
+    */
+   public void addInitialStiffness (
+      ShellElement3d e, FemMaterial mat, double weight) {
+
+      if (e.getType() == ElementType.SHELL) {
+         addInitialShellStiffness (e, mat, weight);
+      }
+      else {
+         addInitialMembraneStiffness (e, mat, weight);
+      }
+   }
+
+   public void addInitialShellStiffness (
+      ShellElement3d e, FemMaterial mat, double weight) {
+      
+      FemDeformedPoint dpnt = new FemDeformedPoint();
+      FemNode3d[] nodes = e.getNodes();
+      
+      // compute stiffness matrix
+      Matrix6d D = new Matrix6d();
+      SymmetricMatrix3d stress = new SymmetricMatrix3d();
+      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+      IntegrationData3d[] idata = e.getIntegrationData();
+
+      int nump = e.numPlanarIntegrationPoints();
+      for (int k=0; k<ipnts.length; k++) {
+
+         IntegrationPoint3d pt = ipnts[k];
+         IntegrationData3d dt = idata[k];
+         RotationMatrix3d R = null; // used if element has prestrain
+         
+         dpnt.setFromRestPoint (
+            pt, dt, RotationMatrix3d.IDENTITY, e,
+            e.getIntegrationIndex()+(k%nump));
+
+         double dv0 = dt.myDetJ0*weight*pt.getWeight();
+         double t = pt.getCoords().z;
+         if (dt.myScaling != 1) {
+            dv0 *= dt.myScaling;
+         }
+
+         Matrix3d Q = dt.myFrame == null ? Matrix3d.IDENTITY : dt.myFrame;
+
+         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0);
+         VectorNd Ns = pt.getShapeWeights ();
+         Vector3d[] dNs = pt.getGNs();
+         for (int i = 0; i < nodes.length; i++) {
+            // normally stress will be zero, unless there is prestrain ...
+            double iN = Ns.get(i);
+            Vector3d idN = dNs[i];
+            FemUtilities.addShellStressForce(
+               f0[i], fdir0[i], stress, t, dv0, iN, idN.x, idN.y, dt.getInvJ0());
+            for (int j = 0; j < nodes.length; j++) {
+               double jN = Ns.get(j);
+               Vector3d jdN = dNs[j];
+               // XXX should presumably use stress instead of
+               // SymmetricMatrix3d.ZERO, but results are unstable
+               FemUtilities.addShellMaterialStiffness (
+                  K00[i*nnodes+j], K01[i*nnodes+j],
+                  K10[i*nnodes+j], K11[i*nnodes+j],
+                  iN, jN, idN, jdN, dv0, t,
+                  dt.getInvJ0(), SymmetricMatrix3d.ZERO, D);
+            }
+         }
+      }      
+      
+      // initial RHS
+      Vector3d tmp0 = new Vector3d();
+      Vector3d tmp1 = new Vector3d();
+      for (int i = 0; i < nodes.length; i++) {
+         tmp0.setZero();
+         tmp1.setZero();
+         for (int j=0; j<nodes.length; j++) {
+            Vector3d pos = nodes[j].getRestPosition();
+            Vector3d backPos = nodes[j].getBackRestPosition();
+            mulAddK (i, j, tmp0, tmp1, pos, backPos);
+         }
+         f0[i].sub (tmp0, f0[i]);
+         fdir0[i].sub (tmp1, fdir0[i]);
+      }
+   }
+
+   public void addInitialMembraneStiffness (
+      ShellElement3d e, FemMaterial mat, double weight) {
+      
+      FemDeformedPoint dpnt = new FemDeformedPoint();
+      FemNode3d[] nodes = e.getNodes();
+      
+      // compute stiffness matrix
+      Matrix6d D = new Matrix6d();
+      SymmetricMatrix3d stress = new SymmetricMatrix3d();
+      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+      IntegrationData3d[] idata = e.getIntegrationData();
+
+      for (int k=0; k<ipnts.length; k++) {
+
+         IntegrationPoint3d pt = ipnts[k];
+         IntegrationData3d dt = idata[k];
+         RotationMatrix3d R = null; // used if element has prestrain
+         
+         dpnt.setFromRestPoint (
+            pt, dt, RotationMatrix3d.IDENTITY, e,
+            e.getIntegrationIndex()+k);
+
+         double dv0 = e.getDefaultThickness()*dt.myDetJ0*weight*pt.getWeight();
+         if (dt.myScaling != 1) {
+            dv0 *= dt.myScaling;
+         }
+
+         Matrix3d Q = dt.myFrame == null ? Matrix3d.IDENTITY : dt.myFrame;
+
+         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0);
+         Vector3d[] dNs = pt.getGNs();
+         for (int i = 0; i < nodes.length; i++) {
+            // normally stress will be zero, unless there is prestrain ...
+            Vector3d idN = dNs[i];
+            FemUtilities.addMembraneStressForce(
+               f0[i], stress, dv0, idN.x, idN.y, dt.getInvJ0());
+            for (int j = 0; j < nodes.length; j++) {
+               Vector3d jdN = dNs[j];
+               // XXX should presumably use stress instead of
+               // SymmetricMatrix3d.ZERO, but results are unstable
+               FemUtilities.addMembraneMaterialStiffness (
+                  K00[i*nnodes+j], idN, jdN, dv0,
+                  dt.getInvJ0(), SymmetricMatrix3d.ZERO, D);
+            }
+         }
+      }      
+      
+      // initial RHS
+      Vector3d tmp = new Vector3d();
+      for (int i = 0; i < nodes.length; i++) {
+         tmp.setZero();
+         for (int j=0; j<nodes.length; j++) {
+            K00[i*nnodes+j].mulAdd (tmp, nodes[j].getLocalRestPosition(), tmp);
+         }
+         f0[i].sub (tmp, f0[i]);
+      }
+   }
+   
+   /**
+    * Computes and stores the initial stiffness K00 and force f0 terms
     * @param e   element
     * @param mat linear material
     * @param weight weight to combine with integration point weights
@@ -129,9 +320,9 @@ public class LinearMaterialCache {
       FemDeformedPoint dpnt = new FemDeformedPoint();
       FemNode3d[] nodes = e.getNodes();
       
-      for (int i = 0; i < nodes.length; i++) {
-         f0[i].setZero();
-      }
+//      for (int i = 0; i < nodes.length; i++) {
+//         f0[i].setZero();
+//      }
 
       // compute stiffness matrix
       Matrix6d D = new Matrix6d();
@@ -161,10 +352,10 @@ public class LinearMaterialCache {
             FemUtilities.addStressForce(f0[i], GNx0[i], stress, dv0);
             for (int j = 0; j < nodes.length; j++) {
                FemUtilities.addMaterialStiffness (
-                  K0[i][j], GNx0[i], D, GNx0[j], dv0);
+                  K00[i*nnodes+j], GNx0[i], D, GNx0[j], dv0);
                // XXX adding geometric stiffness makes things unstable - need to check why
                //FemUtilities.addGeometricStiffness (
-               //   K0[i][j], GNx0[i], stress, GNx0[j], dv0);   
+               //   K00[i][j], GNx0[i], stress, GNx0[j], dv0);   
             }
          }
       }      
@@ -174,28 +365,67 @@ public class LinearMaterialCache {
       for (int i = 0; i < nodes.length; i++) {
          tmp.setZero();
          for (int j=0; j<nodes.length; j++) {
-            K0[i][j].mulAdd (tmp, nodes[j].getLocalRestPosition(), tmp);
+            K00[i*nnodes+j].mulAdd (tmp, nodes[j].getLocalRestPosition(), tmp);
          }
          f0[i].sub (tmp, f0[i]);
       }
    }
   
    /**
-    * Retrieves the local stiffness contribution between nodes i and j
+    * Retrieves the K00 contribution between nodes i and j
     * @param i first node index
     * @param j second node index
     * @return local stiffness contribution
     */
-   public Matrix3d getInitialStiffness(int i, int j) {
-      return K0[i][j];
+   public Matrix3d getInitialStiffness00(int i, int j) {
+      return K00[i*nnodes+j];
    }
    
    /**
-    * Retrieves all local stiffness contributions
-    * @return K0
+    * Retrieves the K01 contribution between nodes i and j
+    * @param i first node index
+    * @param j second node index
+    * @return local stiffness contribution
     */
-   public Matrix3d[][] getInitialStiffness() {
-      return K0;
+   public Matrix3d getInitialStiffness01(int i, int j) {
+      return K01[i*nnodes+j];
+   }
+   
+   /**
+    * Retrieves the K10 contribution between nodes i and j
+    * @param i first node index
+    * @param j second node index
+    * @return local stiffness contribution
+    */
+   public Matrix3d getInitialStiffness10(int i, int j) {
+      return K10[i*nnodes+j];
+   }
+   
+   /**
+    * Retrieves the K00 contribution between nodes i and j
+    * @param i first node index
+    * @param j second node index
+    * @return local stiffness contribution
+    */
+   public Matrix3d getInitialStiffness11(int i, int j) {
+      return K11[i*nnodes+j];
+   }
+   
+   public void mulAddK (
+      int i, int j, Vector3d r0, Vector3d x0) {
+ 
+      int idx = i*nnodes+j;
+      K00[idx].mulAdd (r0, x0, r0);
+   }
+   
+   public void mulAddK (
+      int i, int j, Vector3d r0, Vector3d r1, Vector3d x0, Vector3d x1) {
+ 
+      int idx = i*nnodes+j;
+      K00[idx].mulAdd (r0, x0, r0);
+      K01[idx].mulAdd (r0, x1, r0);
+      K10[idx].mulAdd (r1, x0, r1);
+      K11[idx].mulAdd (r1, x1, r1);
    }
    
    /**
@@ -206,69 +436,46 @@ public class LinearMaterialCache {
    public Vector3d getInitialForce(int i) {
       return f0[i];
    }
-   
-   /**
-    * Retries all stiffness-induced initial forces
-    * @return f0
-    */
-   public Vector3d[] getInitialForces() {
-      return f0;
+
+   public Vector3d getInitialDirForce(int i) {
+      return fdir0[i];
    }
    
    public boolean equals(LinearMaterialCache cache) {
       
-      if (cache.K0.length != K0.length) {
+      if (cache.nnodes != nnodes) {
          return false;
       }
-      
-      for (int i=0; i<K0.length; ++i) {
-         if (cache.K0[i].length != K0[i].length) {
+      for (int i=0; i<nnodes*nnodes; i++) {
+         if (!K00[i].equals(cache.K00[i])) {
             return false;
          }
-         
-         for (int j=0; j<K0[i].length; ++j) {
-            if (!K0[i][j].equals(cache.K0[i][j])) {
-               return false;
-            }
-         }
       }
-      
       if (cache.f0.length != f0.length) {
          return false;
       }
-      
-      for (int i=0; i<f0.length; ++i) {
+      for (int i=0; i<f0.length; i++) {
          if (!f0[i].equals(cache.f0[i])) {
             return false;
          }
       }
-      
       return true;
    }
    
    public boolean epsilonEquals(LinearMaterialCache cache, double eps) {
       
-      if (cache.K0.length != K0.length) {
+      if (cache.nnodes != nnodes) {
          return false;
       }
-      
-      for (int i=0; i<K0.length; ++i) {
-         if (cache.K0[i].length != K0[i].length) {
+      for (int i=0; i<nnodes*nnodes; i++) {
+         if (!K00[i].epsilonEquals(cache.K00[i], eps)) {
             return false;
          }
-         
-         for (int j=0; j<K0[i].length; ++j) {
-            if (!K0[i][j].epsilonEquals(cache.K0[i][j], eps)) {
-               return false;
-            }
-         }
       }
-      
       if (cache.f0.length != f0.length) {
          return false;
       }
-      
-      for (int i=0; i<f0.length; ++i) {
+      for (int i=0; i<f0.length; i++) {
          if (!f0[i].epsilonEquals(cache.f0[i], eps)) {
             return false;
          }
@@ -283,29 +490,21 @@ public class LinearMaterialCache {
       Matrix3d diff = new Matrix3d();
       Vector3d dvec = new Vector3d();
       
-      if (cache.K0.length != K0.length) {
+      if (cache.nnodes != nnodes) {
          return Double.POSITIVE_INFINITY;
       }
 
-      for (int i=0; i<K0.length; ++i) {
-         if (cache.K0[i].length != K0[i].length) {
-            return Double.POSITIVE_INFINITY;
-         }
-
-         for (int j=0; j<K0[i].length; ++j) {
-            diff.sub(K0[i][j], cache.K0[i][j]);
-            double dist = diff.maxNorm();
-            if (dist > maxdist) {
-               maxdist = dist;
-            }
+      for (int i=0; i<nnodes*nnodes; i++) {
+         diff.sub(K00[i], cache.K00[i]);
+         double dist = diff.maxNorm();
+         if (dist > maxdist) {
+            maxdist = dist;
          }
       }
-
       if (cache.f0.length != f0.length) {
          return Double.POSITIVE_INFINITY;
       }
-
-      for (int i=0; i<f0.length; ++i) {
+      for (int i=0; i<f0.length; i++) {
          dvec.sub(f0[i], cache.f0[i]);
          double dist = dvec.oneNorm();
          if (dist > maxdist) {

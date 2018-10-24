@@ -22,13 +22,13 @@ public interface MotionTargetComponent extends DynamicComponent {
 
    public int getTargetVel (double[] velt, double s, double h, int idx);
 
-   public int setTargetVel (double[] velt, int idx);
+   //public int setTargetVel (double[] velt, int idx);
 
    public int getPosStateSize();
 
    public int getTargetPos (double[] post, double s, double h, int idx);
 
-   public int setTargetPos (double[] post, int idx);
+   //public int setTargetPos (double[] post, int idx);
 
    /** 
     * Add a row to the motion target Jacobian for this motion target.

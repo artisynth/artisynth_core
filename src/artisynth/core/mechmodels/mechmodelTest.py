@@ -131,6 +131,44 @@ run()
 waitForStop()
 reset()
 
+loadModel ("artisynth.demos.mech.BodyBodyAttachment")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
+pw.println ("#BodyBodyAttachment SymplecticEuler");
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
+pw.println ("#BodyBodyAttachment RungeKutta");
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+pw.println ("#BodyBodyAttachment ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.mech.BodyBodyJoint")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
+pw.println ("#BodyBodyJoint SymplecticEuler");
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
+pw.println ("#BodyBodyJoint RungeKutta");
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+pw.println ("#BodyBodyJoint ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
 loadModel ("artisynth.demos.fem.ArticulatedFem")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
@@ -208,6 +246,15 @@ waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
 pw.println ("#AttachedBeamDemo ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.fem.BodyFemAttachment")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+pw.println ("#BodyFemAttachment ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()

@@ -11,7 +11,9 @@ import java.util.Iterator;
 import java.util.Map;
 
 import artisynth.core.femmodels.FemElement3d;
+import artisynth.core.femmodels.FemElement3dBase;
 import artisynth.core.femmodels.FemNode3d;
+import artisynth.core.femmodels.ShellElement3d;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointState;
 import artisynth.core.modelbase.ModelComponent;
@@ -342,14 +344,17 @@ public class MFreeNode3d extends FemNode3d implements MFreePoint3d, Boundable {
    
    public double computeMassFromDensity() {
       double mass = 0;
-      Iterator<FemElement3d> it = getElementDependencies().iterator();
-      while (it.hasNext()) {
-         FemElement3d e = it.next();
-         mass += e.getRestVolume()*e.getDensity()/e.numNodes();
+      for (FemElement3dBase e : getElementDependencies()) {
+         if (e instanceof FemElement3d) {
+            FemElement3d ee = (FemElement3d)e;
+            mass += ee.getRestVolume()*ee.getDensity()/ee.numNodes();
+         }
+         else if (e instanceof ShellElement3d) {
+            // XXX TODO use area
+         }
       }
       return mass;
    }
-   
-   
+
    
 }

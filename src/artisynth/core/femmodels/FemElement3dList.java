@@ -27,7 +27,8 @@ import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLSupport;
 
-public class FemElement3dList extends RenderableComponentList<FemElement3d> {
+public class FemElement3dList<C extends FemElement3dBase> extends 
+   RenderableComponentList<C> {
    protected static final long serialVersionUID = 1;
 
    private RenderObject myEdgeRob = null;
@@ -45,7 +46,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
    PropertyMode myElementWidgetSizeMode = DEFAULT_ELEMENT_WIDGET_SIZE_MODE;
 
-   private class EdgeDesc {
+   private static class EdgeDesc {
       int myVidx0;
       int myVidx1;
       int myHashCode;
@@ -84,7 +85,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       }
    }
 
-   private class QuadEdgeDesc extends EdgeDesc {
+   private static class QuadEdgeDesc extends EdgeDesc {
       int myVidxm;
       int myPidx0;
 
@@ -146,17 +147,17 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       return myElementWidgetSizeMode;
    }
    
-   public FemElement3dList () {
-      this (null, null);
+   public FemElement3dList (Class<C> type) {
+      this (type, null, null);
    }
 
-   public FemElement3dList (String name, String shortName) {
-      super (FemElement3d.class, name, shortName);
+   public FemElement3dList (Class<C> type, String name, String shortName) {
+      super (type, name, shortName);
       setRenderProps (createRenderProps());
    }
    
    public boolean hasParameterizedType() {
-      return false;
+      return true;
    }   
 
    /* ======== Renderable implementation ======= */
@@ -184,7 +185,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
    private static final int IS_LIST_RENDERED = 0x40;
 
    protected void addEdgeLines (
-      RenderObject r, FeatureIndexArray lines, FemElement3d elem,
+      RenderObject r, FeatureIndexArray lines, FemElement3dBase elem,
       ComponentList<? extends FemNode> nodes, HashSet<EdgeDesc> edges) {
      
       int[] eidxs = elem.getEdgeIndices();
@@ -220,7 +221,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       
    }
 
-   private byte getRobFlags (FemElement3d elem) {
+   private byte getRobFlags (FemElement3dBase elem) {
       if (elem.getRenderProps() != null) {
          return (byte)0;
       }
@@ -276,7 +277,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       HashSet<EdgeDesc> edges = new HashSet<EdgeDesc>();
       r.lineGroup (SEL_GRP);
       for (int i=0; i<size(); i++) {
-         FemElement3d elem = get (i);
+         FemElement3dBase elem = get (i);
          if (elem.getRenderProps() == null) {
             if (elem.isSelected()) {
                myEdgeFeatures[SEL_GRP].beginFeature (i);
@@ -287,7 +288,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       }
       r.lineGroup (REG_GRP);
       for (int i=0; i<size(); i++) {
-         FemElement3d elem = get (i);
+         FemElement3dBase elem = get (i);
          if (elem.getRenderProps() == null) {
             if (!elem.isSelected()) {
                myEdgeFeatures[REG_GRP].beginFeature (i);
@@ -315,7 +316,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          }
          
          for (int i=0; i<size(); i++) {
-            FemElement3d elem = get (i);
+            FemElement3dBase elem = get (i);
             if (elem.getRenderProps() == null) {
                byte flags = getRobFlags(elem);
                if ((flags & HAS_WIDGET) != 0) {
@@ -370,13 +371,13 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
       // usual. We add the selected elements first, so that they
       // will render first and be more visible.
       for (int i = 0; i < size(); i++) {
-         FemElement3d elem = get (i);
+         FemElement3dBase elem = get (i);
          if (elem.isSelected() && elem.getRenderProps() != null) {
             list.addIfVisible (elem);
          }
       }
       for (int i = 0; i < size(); i++) {
-         FemElement3d elem = get (i);
+         FemElement3dBase elem = get (i);
          if (!elem.isSelected() && elem.getRenderProps() != null) {
             list.addIfVisible (elem);
          }
@@ -391,7 +392,7 @@ public class FemElement3dList extends RenderableComponentList<FemElement3d> {
          RenderObject r = myWidgetRob;
          int pidx = 0;
          for (int i=0; i<size(); i++) {
-            FemElement3d elem = get (i);
+            FemElement3dBase elem = get (i);
             byte flags = getRobFlags(elem);
             if ((flags & HAS_WIDGET) != 0) {
                double wsize = elem.getElementWidgetSize();

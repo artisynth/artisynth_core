@@ -286,6 +286,13 @@ public class Point extends DynamicComponentBase
       return idx;
    }
  
+   public int addForce (double[] f, int idx) {
+      myForce.x += f[idx++];
+      myForce.y += f[idx++];
+      myForce.z += f[idx++];
+      return idx;
+   }
+ 
    public int getForce (double[] f, int idx) {
       f[idx++] = myForce.x;
       f[idx++] = myForce.y;

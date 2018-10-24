@@ -37,7 +37,6 @@ public abstract class FrameAttachment extends DynamicAttachmentBase
    public DynamicComponent[] getMasters() {
       if (myMasters == null) {
          initializeMasters();
-         updateMasterBlocks();
       }
       return myMasters;
    }
@@ -52,7 +51,6 @@ public abstract class FrameAttachment extends DynamicAttachmentBase
    public int numMasters() {
       if (myMasters == null) {
          initializeMasters();
-         updateMasterBlocks();
       }
       return myMasters.length;
    }
@@ -79,7 +77,7 @@ public abstract class FrameAttachment extends DynamicAttachmentBase
    }
 
    protected int updateMasterBlocks() {
-      // must be overriden by subclasses
+      // must be overriden if needed by subclasses
       if (myMasters == null) {
          initializeMasters();
       }      

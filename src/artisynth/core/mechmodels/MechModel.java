@@ -1819,7 +1819,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       for (MechSystemModel m : myLocalModels) {
          m.recursivelyInitialize (t, level+1);
       }
-      zeroExternalForces();
+      //zeroExternalForces();
       super.recursivelyInitialize (t, level);
    }
 

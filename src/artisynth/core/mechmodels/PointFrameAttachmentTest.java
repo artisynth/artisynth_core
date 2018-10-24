@@ -40,7 +40,7 @@ public class PointFrameAttachmentTest
       force.set (frameForce);
    }
 
-   public PointFrameAttachment createAttachment() {
+   public PointFrameAttachment createTestAttachment(int idx) {
       Point point = new Point();
       Frame frame = new Frame();
       Point3d loc = new Point3d();

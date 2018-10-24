@@ -22,7 +22,7 @@ public class FemElementRenderer {
    ArrayList<EdgeCurve> myEdges = new ArrayList<EdgeCurve>();
    ArrayList<WidgetFacePatch> myFaces = new ArrayList<WidgetFacePatch>();
 
-   public FemElementRenderer (FemElement3d elem) {
+   public FemElementRenderer (FemElement3dBase elem) {
       myRob = new RenderObject ();
       addEdges (myRob, null, myEdges, elem, numQuadEdgeSegs);
       myWidgetPos0Idx = myRob.numPositions ();
@@ -452,7 +452,7 @@ public class FemElementRenderer {
     * @param r render object
     * @param elem element
     */
-   public static void addWidgetFaces (RenderObject r, FemElement3d elem) {
+   public static void addWidgetFaces (RenderObject r, FemElement3dBase elem) {
       addWidgetFaces(r, null, elem); 
    }
    
@@ -463,7 +463,7 @@ public class FemElementRenderer {
     * @param elem element
     */
    public static void addWidgetFaces (RenderObject r, 
-      FeatureIndexArray faces, FemElement3d elem) {
+      FeatureIndexArray faces, FemElement3dBase elem) {
       
       // add positions for storing widget vertices, one for each node
       int p0idx = r.numPositions();
@@ -491,7 +491,7 @@ public class FemElementRenderer {
     * @return position index after widget nodes
     */
    public static int updateWidgetPositions (
-      RenderObject r, FemElement3d elem, double size, int idx) {
+      RenderObject r, FemElement3dBase elem, double size, int idx) {
 
       FemNode[] enodes = elem.getNodes();
 
@@ -1068,7 +1068,7 @@ public class FemElementRenderer {
    }
    
    public static void addEdges(RenderObject r, FeatureIndexArray lines, 
-      List<EdgeCurve> curves, FemElement3d elem, int nsegs) {
+      List<EdgeCurve> curves, FemElement3dBase elem, int nsegs) {
       
       r.addNormal (1, 0, 0); // dummy normal for lines
       
@@ -1103,7 +1103,7 @@ public class FemElementRenderer {
    }
    
    public static void addWidgetFaces(RenderObject r, FeatureIndexArray tris, 
-      List<WidgetFacePatch> patches, FemElement3d elem, int nsegs) {
+      List<WidgetFacePatch> patches, FemElement3dBase elem, int nsegs) {
       
       // widget node locations
       int wp0 = r.numPositions ();
@@ -1177,7 +1177,8 @@ public class FemElementRenderer {
       
    }
 
-   public static void updateEdgePositions (RenderObject r, List<EdgeCurve> edges, FemElement3d elem,
+   public static void updateEdgePositions (
+      RenderObject r, List<EdgeCurve> edges, FemElement3dBase elem,
       int ep0) {
 
       FemNode[] nodes = elem.getNodes();
@@ -1194,7 +1195,7 @@ public class FemElementRenderer {
    }
    
    static void updateWidgets(RenderObject r, List<WidgetFacePatch> patches, 
-      FemElement3d elem, double size, int wp0) {
+      FemElement3dBase elem, double size, int wp0) {
       
       // update nodes
       updateWidgetPositions (r, elem, size, wp0);
@@ -1205,7 +1206,7 @@ public class FemElementRenderer {
    }
 
    public void renderWidget (
-      Renderer renderer, FemElement3d elem, double size, RenderProps props) {
+      Renderer renderer, FemElement3dBase elem, double size, RenderProps props) {
 
       RenderObject r = myRob;      
 
@@ -1229,7 +1230,7 @@ public class FemElementRenderer {
    }
 
    public void renderRestWidget (
-      Renderer renderer, FemElement3d elem, double size, RenderProps props) {
+      Renderer renderer, FemElement3dBase elem, double size, RenderProps props) {
 
       RenderObject r = myRob;      
 
@@ -1249,7 +1250,7 @@ public class FemElementRenderer {
    }
 
    public void render (
-      Renderer renderer, FemElement3d elem, RenderProps props) {
+      Renderer renderer, FemElement3dBase elem, RenderProps props) {
 
       RenderObject r = myRob;      
       updateEdgePositions (r, myEdges, elem, 0);

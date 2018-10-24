@@ -48,9 +48,21 @@ public abstract class FemElement extends RenderableComponentBase
    implements Boundable, ScalableUnits, CopyableComponent,
               PropertyChangeListener {
    
+   /**
+    * Describes the different element types.
+    */
+   public enum ElementType {
+      VOLUMETRIC,
+      SHELL,
+      MEMBRANE
+   }
+   
+   public abstract ElementType getType();
+   
    protected double myDensity = 1000;
    protected PropertyMode myDensityMode = PropertyMode.Inherited;
    protected double myMass = 0;
+   protected boolean myMassValidP = false;
    protected boolean myMassExplicitP = false;
    protected boolean myWarpingStiffnessValidP = false;
    protected boolean myRestVolumeValidP = false;
@@ -62,7 +74,7 @@ public abstract class FemElement extends RenderableComponentBase
    int myIntegrationIndex; // base index of element's integration points
 
    FemMaterial myMaterial = null;
-
+   
    public static PropertyList myProps =
       new PropertyList (FemElement.class, RenderableComponentBase.class);
 
@@ -140,22 +152,41 @@ public abstract class FemElement extends RenderableComponentBase
    }
    
    protected void updateElementAndNodeMasses () {
-      myMass = myDensity * getRestVolume();
+      invalidateMassIfNecessary();
       invalidateNodeMasses();
    }
 
    static FemElement firstElement = null;
 
+   public double getMass() {
+      if (!myMassExplicitP && !myMassValidP) {
+         myMass = computeMassFromDensity();
+         myMassValidP = true;
+      }
+      return myMass;
+   }
+
    public void setMass (double m) {
       myMass = m;
+      myMassValidP = true;
    }
-   
-   public void setMassExplicit(boolean set) {
-      myMassExplicitP = set;
+
+   public void setMassExplicit (boolean explicit) {
+      myMassExplicitP = explicit;
    }
    
    public boolean isMassExplicit() {
       return myMassExplicitP;
+   }
+   
+   public void invalidateMassIfNecessary() {
+      if (!myMassExplicitP) {
+         myMassValidP = false;
+      }
+   }
+
+   protected double computeMassFromDensity() {
+      return myDensity * getRestVolume();
    }
 
    public void setDensity (double p) {
@@ -259,10 +290,6 @@ public abstract class FemElement extends RenderableComponentBase
     */
    public abstract double computeVolumes();
 
-   public double getMass() {
-      return myMass;
-   }
-
    /**
     * Invalidate data that relies on the element's rest position,
     * such as rest Jacobians and the base stiffness for co-rotated
@@ -285,6 +312,7 @@ public abstract class FemElement extends RenderableComponentBase
       if (!myRestVolumeValidP) {
          double newVol = computeRestVolumes();
          invalidateNodeMasses();
+         invalidateMassIfNecessary();
 //         if (!myMassExplicitP) {
 //            updateNodeMasses ((newVol*myDensity)-myMass);
 //            myMass = newVol*myDensity;
@@ -583,7 +611,16 @@ public abstract class FemElement extends RenderableComponentBase
 
       e.myDensityMode = PropertyMode.Inherited;
       e.myDensity = myDensity;
+
       e.myMass = myMass;
+      if (myMassExplicitP) {
+         e.myMassValidP = true;
+         e.myMassExplicitP = true;
+      }
+      else {
+         e.myMassValidP = false;
+         e.myMassExplicitP = false;
+      }
       e.myWarpingStiffnessValidP = false;
       e.myRestVolumeValidP = false;
       e.myRestVolume = 0;

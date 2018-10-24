@@ -1016,8 +1016,8 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    public void setBodies (
-      RigidBody bodyA, RigidTransform3d TCA, RigidBody bodyB,
-      RigidTransform3d TDB) {
+      RigidBody bodyA, RigidTransform3d TCA,
+      RigidBody bodyB, RigidTransform3d TDB) {
 
       setBodies (bodyA, createAttachmentWithTSM (bodyA, TCA), 
                  bodyB, createAttachmentWithTSM (bodyB, TDB));

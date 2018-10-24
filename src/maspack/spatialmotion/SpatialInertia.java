@@ -265,6 +265,15 @@ public class SpatialInertia extends Matrix6dBlock
    }
 
    /**
+    * Invalidate the center of mass and inertia components of this spatial
+    * inertia. Should be called after the entry fields (e.g., m00, m01, etc)
+    * are externally modified.
+    */
+   public void invalidateComponents() {
+      componentUpdateNeeded = true;
+   }
+
+   /**
     * {@inheritDoc}
     */
    public double get (int i, int j) {
@@ -610,10 +619,7 @@ public class SpatialInertia extends Matrix6dBlock
       return new SymmetricMatrix3d (m33, m44, m55, m34, m35, m45);
    }
 
-   /**
-    * Gets the center of mass vector for this spatial ine
-    * 
-    * /** Sets the rotational interia for this spatial inertia.
+   /** Sets the rotational interia for this spatial inertia.
     * 
     * @param J
     * rotational inertia (with respect to the center of mass)

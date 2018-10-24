@@ -1408,7 +1408,7 @@ public class CollisionManager extends RenderableCompositeBase
                "Collidable c0 is a descendant of collidable c1");
          }
       }
-      if (c0 == c1 || c1 ==Collidable.Self) {
+      if (c0 == c1 || c1 == Collidable.Self) {
          // pair specifies self collision
          if (!c0.isDeformable() || !c0.isCompound()) {
             throw new IllegalArgumentException (

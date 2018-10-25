@@ -510,6 +510,15 @@ public class FemNode3d extends FemNode {
       }
    }
 
+   /**
+    * Returns all the volumetric elements referencing this node.
+    * Should use {@link #getAdjacentElements},
+    * {@link #getAdjacentVolumetricElements}, or  
+    * {@link #getAdjacentShellElements}, as appropriate.
+    * 
+    * @deprecated
+    * @return list of all volumetric elements referencing this node
+    */
    public LinkedList<FemElement3d> getElementDependencies() {
       LinkedList<FemElement3d> elems = new LinkedList<FemElement3d>();
       for (FemElement3dBase e : myElementDeps) {
@@ -520,10 +529,21 @@ public class FemNode3d extends FemNode {
       return elems;
    }
    
+   /**
+    * Returns all elements (either shell or volumetric) 
+    * that reference this node.
+    * 
+    * @return List of all elements referencing this node.
+    */
    public List<FemElement3dBase> getAdjacentElements() {
       return myElementDeps;
    }
    
+   /**
+    * Returns all volumetric elements that reference this node.
+    * 
+    * @return List of all volumetric elements referencing this node.
+    */    
    public List<FemElement3d> getAdjacentVolumeElements() {
       ArrayList<FemElement3d> elems = new ArrayList<FemElement3d>();
       for (FemElement3dBase e : myElementDeps) {
@@ -534,6 +554,11 @@ public class FemNode3d extends FemNode {
       return elems;
    }
 
+   /**
+    * Returns all shell elements that reference this node.
+    * 
+    * @return List of all shell elements referencing this node.
+    */  
    public List<ShellElement3d> getAdjacentShellElements() {
       ArrayList<ShellElement3d> elems = new ArrayList<ShellElement3d>();
       for (FemElement3dBase e : myElementDeps) {

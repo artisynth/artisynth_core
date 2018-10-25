@@ -294,6 +294,9 @@ public abstract class ShellElement3d extends FemElement3dBase
          vol += detJ*ipnts[i].getWeight();
       }
       if (myType == ElementType.MEMBRANE) {
+         // for membrane elements, we need to explicitly scale the volume
+         // by the thickness because the deformation gradient contains
+         // no scaling in the normal direction.
          vol *= myDefaultThickness;
       }
       return vol;

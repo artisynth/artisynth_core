@@ -288,7 +288,7 @@ public class StiffnessWarper3d {
 
 
    public void addNodeForce (
-      Vector3d f, Vector3d fdir, int i, FemNode3d[] nodes) {
+      Vector3d f, Vector3d fback, int i, FemNode3d[] nodes) {
       
       // corotated
       if (corotated != null) {
@@ -306,9 +306,9 @@ public class StiffnessWarper3d {
          tmp0.sub (corotated.getInitialForce(i));
          R.mul (tmp0, tmp0);
          f.add (tmp0);
-         tmp1.sub (corotated.getInitialDirForce(i));
+         tmp1.sub (corotated.getInitialBackForce(i));
          R.mul (tmp1, tmp1);
-         fdir.add (tmp1);        
+         fback.add (tmp1);        
       }
       
       // linear
@@ -322,8 +322,8 @@ public class StiffnessWarper3d {
          }
          tmp0.sub (linear.getInitialForce(i));
          f.add (tmp0);
-         tmp1.sub (linear.getInitialDirForce(i));
-         fdir.add (tmp1);
+         tmp1.sub (linear.getInitialBackForce(i));
+         fback.add (tmp1);
       }
    }
    

@@ -17,12 +17,16 @@ import maspack.matrix.VectorNd;
 public class LinearMaterialCache {
 
    // non-corotated terms
-   protected Matrix3d[] K00;
+   protected Matrix3d[] K00; // stiffness
+   protected Vector3d[] f0;  // force
+   
+   // extra terms required for shell elements - stiffness and forces
+   // associated with the backNodes used to implement directors.
    protected Matrix3d[] K01;
    protected Matrix3d[] K10;
    protected Matrix3d[] K11;
-   protected Vector3d[] f0;
-   protected Vector3d[] fdir0;
+
+   protected Vector3d[] f1;
    protected int nnodes;
 
    /**
@@ -60,18 +64,18 @@ public class LinearMaterialCache {
          // allocate K00 and f0
          K00 = allocK (n);
          f0 = allocF (n);
-         // allocate K01, K10, K11 and fdir0 for shell elements
+         // allocate K01, K10, K11 and f1 for shell elements
          if (e.getType() == ElementType.SHELL) {
             K01 = allocK (n);
             K10 = allocK (n);
             K11 = allocK (n);
-            fdir0 = allocF (n);
+            f1 = allocF (n);
          }
          else {
             K01 = null;
             K10 = null;
             K11 = null;
-            fdir0 = null;
+            f1 = null;
          }
          nnodes = n;
       }
@@ -94,7 +98,7 @@ public class LinearMaterialCache {
             K11[i].setZero();
          }
          for (int i=0; i<nnodes; ++i) {
-            fdir0[i].setZero();
+            f1[i].setZero();
          }
       }
    }
@@ -219,7 +223,7 @@ public class LinearMaterialCache {
             double iN = Ns.get(i);
             Vector3d idN = dNs[i];
             FemUtilities.addShellStressForce(
-               f0[i], fdir0[i], stress, t, dv0, iN, idN.x, idN.y, dt.getInvJ0());
+               f0[i], f1[i], stress, t, dv0, iN, idN.x, idN.y, dt.getInvJ0());
             for (int j = 0; j < nodes.length; j++) {
                double jN = Ns.get(j);
                Vector3d jdN = dNs[j];
@@ -246,7 +250,7 @@ public class LinearMaterialCache {
             mulAddK (i, j, tmp0, tmp1, pos, backPos);
          }
          f0[i].sub (tmp0, f0[i]);
-         fdir0[i].sub (tmp1, fdir0[i]);
+         f1[i].sub (tmp1, f1[i]);
       }
    }
 
@@ -437,8 +441,8 @@ public class LinearMaterialCache {
       return f0[i];
    }
 
-   public Vector3d getInitialDirForce(int i) {
-      return fdir0[i];
+   public Vector3d getInitialBackForce(int i) {
+      return f1[i];
    }
    
    public boolean equals(LinearMaterialCache cache) {

@@ -7,7 +7,7 @@
 package artisynth.core.femmodels;
 
 import maspack.matrix.*;
-import artisynth.core.femmodels.FemElement.ElementType;
+import artisynth.core.femmodels.FemElement.ElementClass;
 
 /**
  * This class stores readonly and transient information for each integration
@@ -41,7 +41,7 @@ public class IntegrationPoint3d {
 
    protected double myWeight = 1;     // static
    protected int myNum = -1;          // static
-   protected ElementType myElemType;  
+   protected ElementClass myElemType;  
 
    protected void init(int nnodes, int npvals) {
       //myJ = new Matrix3d();
@@ -129,7 +129,7 @@ public class IntegrationPoint3d {
 	 pnt.setShapeGrad (i, dNds);
       }
       pnt.setShapeWeights (shapeWeights);
-      pnt.myElemType = elem.getType();
+      pnt.myElemType = elem.getElementClass();
       if (npvals > 0) {
          for (int i=0; i<npvals; i++) {
             pressureWeights.set (i, ((FemElement3d)elem).getH (i, coords));
@@ -186,7 +186,7 @@ public class IntegrationPoint3d {
    }
 
    public void computeJacobian (
-      Matrix3d J, FemNode3d[] nodes, ElementType type) {
+      Matrix3d J, FemNode3d[] nodes, ElementClass type) {
       
       J.setZero();
       switch (type) {
@@ -247,7 +247,7 @@ public class IntegrationPoint3d {
    }
 
    public void computeRestJacobian (
-      Matrix3d J0, FemNode3d[] nodes, ElementType type) {
+      Matrix3d J0, FemNode3d[] nodes, ElementClass type) {
       J0.setZero();
       switch (type) {
          case VOLUMETRIC: {

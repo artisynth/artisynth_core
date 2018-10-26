@@ -1,6 +1,6 @@
 package artisynth.core.femmodels;
 
-import artisynth.core.femmodels.FemElement.ElementType;
+import artisynth.core.femmodels.FemElement.ElementClass;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Point3d;
 import maspack.geometry.TriangleIntersector;
@@ -102,7 +102,7 @@ public class ShellQuadElement extends ShellElement3d {
       this ();
       setNodes (p0, p1, p2, p3);
       myDefaultThickness = thickness;
-      myType = (membrane ? ElementType.MEMBRANE : ElementType.SHELL);
+      myType = (membrane ? ElementClass.MEMBRANE : ElementClass.SHELL);
    }
 
    public void setNodes (
@@ -206,7 +206,7 @@ public class ShellQuadElement extends ShellElement3d {
    }
 
    public int numIntegrationPoints () {
-      if (myType == ElementType.MEMBRANE) {
+      if (myType == ElementClass.MEMBRANE) {
          return numPlanarIntegrationPoints();
       }
       else {
@@ -219,7 +219,7 @@ public class ShellQuadElement extends ShellElement3d {
          myDefaultIntegrationPoints = 
             createIntegrationPoints (myDefaultIntegrationCoords);
       }
-      if (myType == ElementType.MEMBRANE) {
+      if (myType == ElementClass.MEMBRANE) {
          if (myMembraneIntegrationPoints == null) {
             myMembraneIntegrationPoints = 
                createMembraneIntegrationPoints (myDefaultIntegrationPoints);

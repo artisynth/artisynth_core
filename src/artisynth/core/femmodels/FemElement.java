@@ -51,13 +51,13 @@ public abstract class FemElement extends RenderableComponentBase
    /**
     * Describes the different element types.
     */
-   public enum ElementType {
+   public enum ElementClass {
       VOLUMETRIC,
       SHELL,
       MEMBRANE
    }
    
-   public abstract ElementType getType();
+   public abstract ElementClass getElementClass();
    
    protected double myDensity = 1000;
    protected PropertyMode myDensityMode = PropertyMode.Inherited;
@@ -171,15 +171,37 @@ public abstract class FemElement extends RenderableComponentBase
       myMassValidP = true;
    }
 
-   public void setMassExplicit (boolean explicit) {
-      myMassExplicitP = explicit;
-   }
-   
+   /**
+    * Queries whether the mass for this element has been explicitly set.
+    * 
+    * @return true if the mass has been explicitly set
+    */
    public boolean isMassExplicit() {
       return myMassExplicitP;
    }
    
-   public void invalidateMassIfNecessary() {
+   /**
+    * Sets the mass for this element to an explicit value. This means that
+    * the mass will no longer be determined from the rest volume and density.
+    * 
+    * @param mass explicit mass value
+    */  
+   public void setExplicitMass (double mass) {
+      myMass = mass;
+      myMassExplicitP = true;
+      myMassValidP = true;
+   }
+   
+   /**
+    * Unsets an explicit mass for this element. This means that
+    * the mass will be determined from the rest volume and density.
+    */
+   public void unsetExplicitMass () {
+      myMassExplicitP = false;
+      myMassValidP = false;
+   }  
+   
+  public void invalidateMassIfNecessary() {
       if (!myMassExplicitP) {
          myMassValidP = false;
       }
@@ -356,13 +378,10 @@ public abstract class FemElement extends RenderableComponentBase
       rtok.nextToken();     
       if (scanAttributeName (rtok, "mass")) {
          double mass = rtok.scanNumber();
-         setMass (mass);
+         setExplicitMass (mass);
          return true;
-      } else if (scanAttributeName (rtok, "massExplicit")) {
-         boolean explicit = rtok.scanBoolean();
-         setMassExplicit(explicit);
-         return true;
-      } else if ((cnt=scanAndStoreReferences (rtok, "nodes", tokens)) >= 0) {
+      } 
+      else if ((cnt=scanAndStoreReferences (rtok, "nodes", tokens)) >= 0) {
          if (cnt != numNodes()) {
             throw new IOException (
                "Expecting "+numNodes()+" node references, got "+cnt+
@@ -395,7 +414,6 @@ public abstract class FemElement extends RenderableComponentBase
       super.writeItems (pw, fmt, ancestor);
       if (myMassExplicitP) {
          pw.println ("mass=" + fmt.format(myMass));
-         pw.println("massExplicit=true");
       }
    }
 

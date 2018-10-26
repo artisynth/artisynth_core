@@ -1683,8 +1683,7 @@ public class MFreeFactory {
       for (FemNode3d node : fem.getNodes()) {
          MFreeNode3d mnode = new MFreeNode3d(node.getRestPosition());
          // explicit node masses
-         mnode.setMassExplicit(true);
-         mnode.setMass(node.getMass());
+         mnode.setExplicitMass(node.getMass());
          MFreeNode3d[] deps = new MFreeNode3d[1];
          deps[0] = mnode;
          VectorNd coords = new VectorNd(new double[] { 1 });

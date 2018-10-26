@@ -53,7 +53,7 @@ import artisynth.core.modelbase.StepAdjustment;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
-import artisynth.core.femmodels.FemElement.ElementType;
+import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.IntegerToken;
 import artisynth.core.util.ScalableUnits;
@@ -2415,7 +2415,7 @@ PointAttachable, ConnectableBody {
       }
       for (ShellElement3d e : myShellElements) {
          FemMaterial mat = getElementMaterial(e);
-         if (e.getType() == ElementType.SHELL) {
+         if (e.getElementClass() == ElementClass.SHELL) {
             computeShellStressAndStiffness(e, mat, D);
          }
          else {

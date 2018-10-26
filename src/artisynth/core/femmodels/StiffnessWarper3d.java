@@ -7,7 +7,7 @@
 package artisynth.core.femmodels;
 
 import artisynth.core.materials.FemMaterial;
-import artisynth.core.femmodels.FemElement.ElementType;
+import artisynth.core.femmodels.FemElement.ElementClass;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
@@ -29,7 +29,7 @@ public class StiffnessWarper3d {
    // cached linear material info
    LinearMaterialCache linear;
    LinearMaterialCache corotated;
-   ElementType elemType;
+   ElementClass elemType;
    
    protected RotationMatrix3d R = null;  // warping rotation
    protected int numNodes;
@@ -39,7 +39,7 @@ public class StiffnessWarper3d {
    
    public StiffnessWarper3d (FemElement3dBase elem) {
       this.numNodes = elem.numNodes();
-      this.elemType = elem.getType();
+      this.elemType = elem.getElementClass();
    }
    
    /**

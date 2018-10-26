@@ -1,7 +1,7 @@
 package artisynth.core.femmodels;
 
 import artisynth.core.materials.FemMaterial;
-import artisynth.core.femmodels.FemElement.ElementType;
+import artisynth.core.femmodels.FemElement.ElementClass;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
@@ -60,12 +60,12 @@ public class LinearMaterialCache {
    private void ensureCapacity (FemElement3dBase e) {
       int n = e.numNodes();
       if (n != nnodes ||
-          (e.getType() == ElementType.SHELL) != (hasShellData())) {
+          (e.getElementClass() == ElementClass.SHELL) != (hasShellData())) {
          // allocate K00 and f0
          K00 = allocK (n);
          f0 = allocF (n);
          // allocate K01, K10, K11 and f1 for shell elements
-         if (e.getType() == ElementType.SHELL) {
+         if (e.getElementClass() == ElementClass.SHELL) {
             K01 = allocK (n);
             K10 = allocK (n);
             K11 = allocK (n);
@@ -176,7 +176,7 @@ public class LinearMaterialCache {
    public void addInitialStiffness (
       ShellElement3d e, FemMaterial mat, double weight) {
 
-      if (e.getType() == ElementType.SHELL) {
+      if (e.getElementClass() == ElementClass.SHELL) {
          addInitialShellStiffness (e, mat, weight);
       }
       else {

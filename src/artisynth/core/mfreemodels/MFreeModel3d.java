@@ -569,8 +569,7 @@ public class MFreeModel3d extends FemModel3d  {
       for (FemNode3d node : myNodes) {
          int i = node.getNumber();
          double m = totalMass / mTrace * massMatrixDiag.get(i);
-         node.setMass(m);
-         node.setMassExplicit(true);
+         node.setExplicitMass(m);
       }
 
    }

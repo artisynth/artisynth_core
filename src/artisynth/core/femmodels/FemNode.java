@@ -71,10 +71,33 @@ public abstract class FemNode extends Particle {
       }
    }
    
-   public void setMassExplicit (boolean explicit) {
-      myMassExplicitP = explicit;
+   /**
+    * Sets the mass for this node to an explicit value. This means that
+    * the mass will no longer be determined from the masses of the surrounding
+    * elements.
+    * 
+    * @param mass explicit mass value
+    */
+   public void setExplicitMass (double mass) {
+      myMass = mass;
+      myMassExplicitP = true;
+      myMassValidP = true;
    }
    
+   /**
+    * Unsets an explicit mass for this node. This means that the mass will
+    * be determined from the masses of the surrounding elements.
+    */
+   public void unsetExplicitMass () {
+      myMassExplicitP = false;
+      myMassValidP = false;
+   }  
+   
+   /**
+    * Queries whether the mass for this node has been explicitly set.
+    * 
+    * @return true if the mass has been explicitly set
+    */
    public boolean isMassExplicit() {
       return myMassExplicitP;
    }
@@ -96,13 +119,9 @@ public abstract class FemNode extends Particle {
       rtok.nextToken();
       if (scanAttributeName (rtok, "mass")) {
          double mass = rtok.scanNumber();
-         setMass (mass);
+         setExplicitMass (mass);
          return true;
-      } else if (scanAttributeName (rtok, "massExplicit")) {
-         boolean explicit = rtok.scanBoolean();
-         setMassExplicit(explicit);
-         return true;
-      }
+      } 
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
@@ -113,7 +132,6 @@ public abstract class FemNode extends Particle {
       super.writeItems (pw, fmt, ancestor);
       if (myMassExplicitP) {
          pw.println ("mass=" + fmt.format(myMass));
-         pw.println ("massExplicit=true");
       }
    }
 

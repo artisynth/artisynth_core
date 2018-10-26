@@ -42,7 +42,7 @@ public abstract class ShellElement3d extends FemElement3dBase
    // used for corotated linear behavior and other things
    protected IntegrationData3d myWarpingData;
    protected StiffnessWarper3d myWarper = null;
-   protected ElementType myType;
+   protected ElementClass myType;
    
    // per-element integration point data
    protected IntegrationData3d[] myIntegrationData = null;
@@ -73,7 +73,7 @@ public abstract class ShellElement3d extends FemElement3dBase
    public ShellElement3d() {
    }
 
-   public ElementType getType() {
+   public ElementClass getElementClass() {
       return myType;
    }
    
@@ -293,7 +293,7 @@ public abstract class ShellElement3d extends FemElement3dBase
          }
          vol += detJ*ipnts[i].getWeight();
       }
-      if (myType == ElementType.MEMBRANE) {
+      if (myType == ElementClass.MEMBRANE) {
          // for membrane elements, we need to explicitly scale the volume
          // by the thickness because the deformation gradient contains
          // no scaling in the normal direction.
@@ -464,7 +464,7 @@ public abstract class ShellElement3d extends FemElement3dBase
       for (int i = 0; i < nodes.length; i++) {
          for (int j = 0; j < nodes.length; j++) {
             nodes[i].registerNodeNeighbor(
-               nodes[j], /*shell=*/myType==ElementType.SHELL);
+               nodes[j], /*shell=*/myType==ElementClass.SHELL);
          }
          nodes[i].addElementDependency(this);
       }
@@ -499,7 +499,7 @@ public abstract class ShellElement3d extends FemElement3dBase
       for (int i = 0; i < nodes.length; i++) {
          for (int j = 0; j < nodes.length; j++) {
             nodes[i].deregisterNodeNeighbor (
-               nodes[j], /*shell=*/myType==ElementType.SHELL);
+               nodes[j], /*shell=*/myType==ElementClass.SHELL);
          }
          // nodes[i].addMass(-massPerNode);
          nodes[i].invalidateMassIfNecessary ();  // signal dirty
@@ -539,7 +539,7 @@ public abstract class ShellElement3d extends FemElement3dBase
 
       rtok.nextToken();
       if (scanAttributeName (rtok, "type")) {
-         myType = rtok.scanEnum(ElementType.class);
+         myType = rtok.scanEnum(ElementClass.class);
          return true;
       }
       else if (scanAttributeName (rtok, "defaultThickness")) {

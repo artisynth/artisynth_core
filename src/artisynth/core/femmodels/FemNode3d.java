@@ -26,7 +26,7 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
-import artisynth.core.femmodels.FemElement.ElementType;
+import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.*;
@@ -492,7 +492,7 @@ public class FemNode3d extends FemNode {
    
    public void addElementDependency (FemElement3dBase e) {
       myElementDeps.add (e);
-      if (e.getType() == ElementType.SHELL) {
+      if (e.getElementClass() == ElementClass.SHELL) {
          myShellElemCnt++;
          if (!hasDirector()) {
             setDirectorActive (true);
@@ -502,7 +502,7 @@ public class FemNode3d extends FemNode {
 
    public void removeElementDependency (FemElement3dBase e) {
       myElementDeps.remove (e);
-      if (e.getType() == ElementType.SHELL) {
+      if (e.getElementClass() == ElementClass.SHELL) {
          myShellElemCnt--;
          if (myShellElemCnt == 0 && hasDirector()) {
             setDirectorActive (false);

@@ -3,7 +3,7 @@ package artisynth.demos.fem;
 import java.awt.Color;
 
 import artisynth.core.femmodels.FemModel.SurfaceRender;
-import artisynth.core.femmodels.FemElement.ElementType;
+import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.femmodels.*;
 import artisynth.core.materials.NeoHookeanMaterial;
 import artisynth.core.materials.LinearMaterial;
@@ -106,8 +106,8 @@ public class SingleShellTri extends RootModel {
       IntegrationPoint3d ip = tri.getIntegrationPoints()[0];
 
       ip.computeRestJacobian (
-         J0, tri.getNodes(), ElementType.MEMBRANE);
-      ip.computeJacobian (J, tri.getNodes(), ElementType.MEMBRANE);
+         J0, tri.getNodes(), ElementClass.MEMBRANE);
+      ip.computeJacobian (J, tri.getNodes(), ElementClass.MEMBRANE);
       invJ0.fastInvert (J0);
       F.mul (J, invJ0);
 

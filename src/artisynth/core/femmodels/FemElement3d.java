@@ -81,8 +81,8 @@ public abstract class FemElement3d extends FemElement3dBase
       myVolumes = new double[npvals];
    }
    
-   public ElementType getType() {
-      return ElementType.VOLUMETRIC;
+   public ElementClass getElementClass() {
+      return ElementClass.VOLUMETRIC;
    }
 
    /* --- Element Widget Size --- */

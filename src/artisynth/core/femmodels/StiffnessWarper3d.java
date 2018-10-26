@@ -27,9 +27,9 @@ import maspack.matrix.VectorNd;
 public class StiffnessWarper3d {
  
    // cached linear material info
-   LinearMaterialCache linear;
-   LinearMaterialCache corotated;
-   ElementClass elemType;
+   protected LinearMaterialCache linear;
+   protected LinearMaterialCache corotated;
+   protected ElementClass elemClass;
    
    protected RotationMatrix3d R = null;  // warping rotation
    protected int numNodes;
@@ -39,7 +39,7 @@ public class StiffnessWarper3d {
    
    public StiffnessWarper3d (FemElement3dBase elem) {
       this.numNodes = elem.numNodes();
-      this.elemType = elem.getElementClass();
+      this.elemClass = elem.getElementClass();
    }
    
    /**
@@ -56,7 +56,7 @@ public class StiffnessWarper3d {
     * @param e element for which the cache is created
     * @return linear cache
     */
-   LinearMaterialCache getOrCreateLinearCache (FemElement3dBase e) {
+   protected LinearMaterialCache getOrCreateLinearCache (FemElement3dBase e) {
       if (linear == null) {
          linear = new LinearMaterialCache(e);
       }
@@ -68,7 +68,7 @@ public class StiffnessWarper3d {
     * @param e element for which the cache is created
     * @return corotated cache
     */
-   LinearMaterialCache getOrCreateCorotatedCache (FemElement3dBase e) {
+   protected LinearMaterialCache getOrCreateCorotatedCache (FemElement3dBase e) {
       if (corotated == null) {
          corotated = new LinearMaterialCache(e);
       }

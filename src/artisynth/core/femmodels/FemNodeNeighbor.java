@@ -63,8 +63,20 @@ public class FemNodeNeighbor {
       }
    }
    
-   public Matrix3d getK()  {
+   public Matrix3d getK00()  {
       return myK00;
+   }
+   
+   public Matrix3d getK01()  {
+      return myK01;
+   }
+   
+   public Matrix3d getK10()  {
+      return myK10;
+   }
+   
+   public Matrix3d getK11()  {
+      return myK11;
    }
    
    public Matrix3x1Block getDivBlk() {

@@ -61,13 +61,13 @@ public class HexElement extends FemElement3d {
    public IntegrationPoint3d[] getIntegrationPoints() {
       
       if (myIntegrationPoints == null) {  
-         
          // set (maybe construct) default integration points
          if (myDefaultIntegrationPoints == null) {
             if (myDefaultIntegrationCoords == null) {
                myDefaultIntegrationCoords = INTEGRATION_COORDS_GAUSS_8;
             }
-            myDefaultIntegrationPoints = createIntegrationPoints(myDefaultIntegrationCoords);
+            myDefaultIntegrationPoints = 
+               createIntegrationPoints(myDefaultIntegrationCoords);
          }
          myIntegrationPoints = myDefaultIntegrationPoints;
       }

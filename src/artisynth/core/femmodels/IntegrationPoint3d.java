@@ -106,8 +106,8 @@ public class IntegrationPoint3d {
     * @param w weight 
     * @return new integration point
     */
-   public static IntegrationPoint3d create (FemElement3dBase elem,
-	 double s0, double s1, double s2, double w) {
+   public static IntegrationPoint3d create (
+      FemElement3dBase elem, double s0, double s1, double s2, double w) {
 
       int nnodes = elem.numNodes();
       int npvals = 0;

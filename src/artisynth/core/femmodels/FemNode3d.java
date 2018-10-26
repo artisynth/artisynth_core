@@ -1027,6 +1027,15 @@ public class FemNode3d extends FemNode {
       }
    }
    
+   public Vector3d getBackInternalForce() {
+      if (!hasDirector()) {
+         return new Vector3d();
+      }
+      else {
+         return myBackNode.myInternalForce;
+      }
+   }
+
    @Override
    public void zeroForces() {
       super.zeroForces();

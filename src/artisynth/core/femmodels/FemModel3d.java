@@ -211,8 +211,8 @@ PointAttachable, ConnectableBody {
    private double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
    PropertyMode myElementWidgetSizeMode = PropertyMode.Inherited;
 
-   private static double DEFAULT_DIRECTOR_RENDER_LEN = 0.0;
-   private double myDirectorRenderLen = DEFAULT_DIRECTOR_RENDER_LEN;
+   protected static double DEFAULT_DIRECTOR_RENDER_LEN = 0.0;
+   protected double myDirectorRenderLen = DEFAULT_DIRECTOR_RENDER_LEN;
 
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
@@ -2530,7 +2530,7 @@ PointAttachable, ConnectableBody {
                   for (int j = 0; j < nodes.length; j++) {
                      int bj = nodes[j].getLocalSolveIndex();
                      if (!mySolveMatrixSymmetricP || bj >= bi) {
-                        warper.addNodeStiffness(e.myNbrs[i][j].getK(), i, j);
+                        warper.addNodeStiffness(e.myNbrs[i][j].getK00(), i, j);
                      }
                   }
                }
@@ -2938,7 +2938,7 @@ PointAttachable, ConnectableBody {
 
       e.setInverted(false); // will check this below
             
-      StiffnessWarper3d warper = e.getStiffnessWarper(); // internally updates
+      StiffnessWarper3d warper = e.getStiffnessWarper(1.0); // internally updates
       // if there is cached linear material, then apply
       if (!warper.isCacheEmpty()) {
 
@@ -3074,7 +3074,7 @@ PointAttachable, ConnectableBody {
 
       e.setInverted(false); // will check this below
             
-      StiffnessWarper3d warper = e.getStiffnessWarper(); // internally updates
+      StiffnessWarper3d warper = e.getStiffnessWarper(1.0); // internally updates
       // if there is cached linear material, then apply
       if (!warper.isCacheEmpty()) {
 

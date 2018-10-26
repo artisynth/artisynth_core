@@ -29,6 +29,10 @@ public class LinearMaterialCache {
    protected Vector3d[] f1;
    protected int nnodes;
 
+   protected FemDeformedPoint createDeformedPoint() {
+      return new FemDeformedPoint();
+   }
+
    /**
     * Initializes empty cache
     * @param numNodes number of nodes in associated element
@@ -112,7 +116,7 @@ public class LinearMaterialCache {
    public void addInitialStiffness (
       FemElement3d e, FemMaterial mat, double weight) {
       
-      FemDeformedPoint dpnt = new FemDeformedPoint();
+      FemDeformedPoint dpnt = createDeformedPoint();
       FemNode3d[] nodes = e.getNodes();
 
 //      for (int i = 0; i < nodes.length; i++) {
@@ -187,7 +191,7 @@ public class LinearMaterialCache {
    public void addInitialShellStiffness (
       ShellElement3d e, FemMaterial mat, double weight) {
       
-      FemDeformedPoint dpnt = new FemDeformedPoint();
+      FemDeformedPoint dpnt = createDeformedPoint();
       FemNode3d[] nodes = e.getNodes();
       
       // compute stiffness matrix
@@ -257,7 +261,7 @@ public class LinearMaterialCache {
    public void addInitialMembraneStiffness (
       ShellElement3d e, FemMaterial mat, double weight) {
       
-      FemDeformedPoint dpnt = new FemDeformedPoint();
+      FemDeformedPoint dpnt = createDeformedPoint();
       FemNode3d[] nodes = e.getNodes();
       
       // compute stiffness matrix
@@ -321,7 +325,7 @@ public class LinearMaterialCache {
    public void addInitialStiffness (
       FemElement3d e, AuxiliaryMaterial mat, double weight) {
 
-      FemDeformedPoint dpnt = new FemDeformedPoint();
+      FemDeformedPoint dpnt = createDeformedPoint();
       FemNode3d[] nodes = e.getNodes();
       
 //      for (int i = 0; i < nodes.length; i++) {

@@ -122,6 +122,10 @@ public class BackNode3d extends DynamicComponentBase
       myForce.sub (f);
    }
 
+   public Vector3d getInternalForce() {
+      return myInternalForce;
+   }
+
    /**
     * {@inheritDoc}
     */
@@ -532,4 +536,9 @@ public class BackNode3d extends DynamicComponentBase
       myRenderCoords[1] = (float)pos.y;
       myRenderCoords[2] = (float)pos.z;
    }
+
+   public float[] getRenderCoords() {
+      return myRenderCoords;
+   }
+
 }

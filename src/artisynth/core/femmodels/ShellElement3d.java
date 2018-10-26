@@ -38,115 +38,19 @@ import maspack.util.ReaderTokenizer;
 public abstract class ShellElement3d extends FemElement3dBase
    implements Boundable {
    
-   // the warping point is an integration point at the center of the element,
-   // used for corotated linear behavior and other things
-   protected IntegrationData3d myWarpingData;
-   protected StiffnessWarper3d myWarper = null;
-   protected ElementClass myType;
-   
-   // per-element integration point data
-   protected IntegrationData3d[] myIntegrationData = null;
-   protected boolean myIntegrationDataValid = false;
-   
+   protected ElementClass myElementClass;
    protected double myDefaultThickness = 0.01; 
-   
-   private static double DEFAULT_ELEMENT_WIDGET_SIZE = 0.0;
-   protected double myElementWidgetSize = DEFAULT_ELEMENT_WIDGET_SIZE;
-   protected PropertyMode myElementWidgetSizeMode = PropertyMode.Inherited;
    
    protected static FemElementRenderer myRenderer;
    
-   public static PropertyList myProps =
-      new PropertyList (ShellElement3d.class, FemElement.class);
-   
-   static {
-      myProps.addInheritable (
-         "elementWidgetSize:Inherited",
-         "size of rendered widget in each element's center",
-         DEFAULT_ELEMENT_WIDGET_SIZE, "[0,1]");
-   }
-   
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
-
    public ShellElement3d() {
    }
 
    public ElementClass getElementClass() {
-      return myType;
+      return myElementClass;
    }
    
-   /* --- Element Widget Size --- */
-   
-   public void setElementWidgetSize (double size) {
-      myElementWidgetSize = size;
-      myElementWidgetSizeMode = 
-         PropertyUtils.propagateValue (
-            this, "elementWidgetSize",
-            myElementWidgetSize, myElementWidgetSizeMode);
-   }
-
-   public double getElementWidgetSize () {
-      return myElementWidgetSize;
-   }
-
-   public void setElementWidgetSizeMode (PropertyMode mode) {
-      myElementWidgetSizeMode =
-         PropertyUtils.setModeAndUpdate (
-            this, "elementWidgetSize", myElementWidgetSizeMode, mode);
-   }
-
-   public PropertyMode getElementWidgetSizeMode() {
-      return myElementWidgetSizeMode;
-   }
-
-   public abstract double[] getNodeCoords ();
-   
-   public void getNodeCoords (Vector3d coords, int nodeIdx) {
-      if (nodeIdx < 0 || nodeIdx >= numNodes()) {
-         throw new IllegalArgumentException (
-            "Node index must be in the range [0,"+(numNodes()-1)+"]");
-      }
-      double[] c = getNodeCoords();
-      coords.set (c[nodeIdx*3], c[nodeIdx*3+1], c[nodeIdx*3+2]);
-   }
-
    /* --- Integration points and data --- */
-
-   public abstract IntegrationPoint3d getWarpingPoint();
-
-   public IntegrationData3d getWarpingData() {
-      IntegrationData3d wdata = myWarpingData;
-      if (wdata == null) {
-         wdata = new IntegrationData3d();
-         wdata.computeInverseRestJacobian (getWarpingPoint(), getNodes());
-         myWarpingData = wdata;
-      }
-      return wdata;
-   }
-
-   public abstract double[] getIntegrationCoords ();
-
-   public abstract IntegrationPoint3d[] getIntegrationPoints ();
-
-   protected IntegrationPoint3d[] createIntegrationPoints (
-      double[] integCoords) {
-      int numi = integCoords.length/4;
-      IntegrationPoint3d[] pnts = new IntegrationPoint3d[numi];
-      if (integCoords.length != 4*numi) {
-         throw new InternalErrorException (
-            "Coordinate data length is "+integCoords.length+","
-            + " expecting "+4*numi);
-      }
-      for (int k=0; k<numi; k++) {
-         pnts[k] = IntegrationPoint3d.create (
-            this, integCoords[k*4], integCoords[k*4+1], integCoords[k*4+2],
-            integCoords[k*4+3]);
-         pnts[k].setNumber (k);
-      }
-      return pnts;
-   }
 
    protected IntegrationPoint3d[] createMembraneIntegrationPoints (
       IntegrationPoint3d[] ipnts) {
@@ -160,108 +64,15 @@ public abstract class ShellElement3d extends FemElement3dBase
       return mpnts;
    }   
    
-   protected IntegrationData3d[] doGetIntegrationData() {
-      IntegrationData3d[] idata = myIntegrationData;
-      if (idata == null) {
-         int numPnts = numIntegrationPoints();
-         idata = new IntegrationData3d[numPnts];
-         for (int i=0; i<numPnts; i++) {
-            idata[i] = new IntegrationData3d();
-         }
-         myIntegrationData = idata;
-      }
-      return idata;
-   }
-
    /**
     * Number of integration points in the shell plane.
     */
    public abstract int numPlanarIntegrationPoints();
-
-   public IntegrationData3d[] getIntegrationData() {
-      IntegrationData3d[] idata = doGetIntegrationData();
-      if (!myIntegrationDataValid) {
-         // compute rest Jacobians and such
-         IntegrationPoint3d[] ipnts = getIntegrationPoints();
-         for (int i=0; i<idata.length; i++) {
-            idata[i].computeInverseRestJacobian (ipnts[i], getNodes());
-         }
-         myIntegrationDataValid = true;
-      }
-      return idata;
-   }
-   
-   // /** 
-   //  * Set reference frame information for this element. This can be used for
-   //  * computing anisotropic material parameters. In principle, each integration
-   //  * point can have its own frame information, but this method simply sets the
-   //  * same frame information for all the integration points, storing it in each
-   //  * IntegrationData structure. Setting <code>M</code> to <code>null</code>
-   //  * removes the frame information.
-   //  * 
-   //  * @param M frame information (is copied by the method)
-   //  */
-   // public void setFrame (Matrix3dBase M) {
-   //    Matrix3d F = null;
-   //    if (M != null) {
-   //       F = new Matrix3d (M);
-   //    }
-   //    IntegrationData3d[] idata = doGetIntegrationData();
-   //    for (int i=0; i<idata.length; i++) {
-   //       idata[i].myFrame = F;
-   //    }
-   // }
-
-   // public Matrix3d getFrame() {
-   //    IntegrationData3d[] idata = doGetIntegrationData();
-   //    return idata[0].getFrame();
-   // }
-
-   public void invalidateRestData () {
-      super.invalidateRestData();
-      // will cause rest Jacobians to be recalculated
-      myIntegrationDataValid = false;
-      myWarpingData = null;
-   }
    
    /* --- coordinates --- */
 
    public int getNaturalCoordinates (Vector3d coords, Point3d pnt, int maxIters) {
       throw new RuntimeException("Unimplemented");
-   }
-
-   /* --- Stiffness warping --- */
-   
-   /**
-    * Retrieves the current stiffness warper.  The warper's
-    * cached rest stiffness is updated if necessary
-    * 
-    * @return stiffness warper
-    */
-   public StiffnessWarper3d getStiffnessWarper () {
-      // don't allow invalid stiffness to leak
-      if (!myWarpingStiffnessValidP) {
-         updateWarpingStiffness(/*weight=*/1.0);
-      }
-      return myWarper;
-   }
-   
-   protected StiffnessWarper3d createStiffnessWarper () {
-      return new StiffnessWarper3d (this);
-   }
-   
-   protected void updateWarpingStiffness(double weight) {
-      FemMaterial mat = getEffectiveMaterial();
-      if (myWarper == null){
-         myWarper = createStiffnessWarper();
-      } else {
-         myWarper.initialize(this);
-      }
-      
-      if (mat.isLinear()) {
-         myWarper.addInitialStiffness (this, mat, weight);
-      }
-      myWarpingStiffnessValidP = true;
    }
 
    /* --- Volume --- */
@@ -293,7 +104,7 @@ public abstract class ShellElement3d extends FemElement3dBase
          }
          vol += detJ*ipnts[i].getWeight();
       }
-      if (myType == ElementClass.MEMBRANE) {
+      if (myElementClass == ElementClass.MEMBRANE) {
          // for membrane elements, we need to explicitly scale the volume
          // by the thickness because the deformation gradient contains
          // no scaling in the normal direction.
@@ -333,49 +144,6 @@ public abstract class ShellElement3d extends FemElement3dBase
    }
    
    /* --- Edges and Faces --- */
-   
-   public abstract int[] getEdgeIndices ();
-
-   public abstract int[] getFaceIndices ();
-   
-   public FemNode3d[][] triangulateFace (FaceNodes3d face) {
-      FemNode3d[] nodes = face.getNodes();
-      FemNode3d[][] triangles = new FemNode3d[nodes.length-2][3];
-      for (int i=0; i<triangles.length; i++) {
-         setTriangle (triangles[i], nodes[0], nodes[i+1], nodes[i+2]);
-      }
-      return triangles;
-   }
-   
-   protected void setTriangle (
-      FemNode3d[] tri, FemNode3d n0, FemNode3d n1, FemNode3d n2) {
-      tri[0] = n0;
-      tri[1] = n1;
-      tri[2] = n2;
-   }
-   
-   public FaceNodes3d[] getFaces() {
-      FaceNodes3d[] faces = new FaceNodes3d[getNumFaces()];
-      int[] idxs = getFaceIndices();
-      int k = 0;
-      for (int i=0; i<faces.length; i++ ) {
-         faces[i] = new FaceNodes3d(this, idxs[k++]);
-         FemNode3d[] faceNodes = faces[i].getNodes();
-         for (int j=0; j<faceNodes.length; j++) {
-            faceNodes[j] = myNodes[idxs[k++]];
-         }
-      }
-      return faces;
-   }
-   
-   public int getNumFaces() {
-      int num = 0;
-      int[] idxs = getFaceIndices();
-      for (int i=0; i<idxs.length; i+=(idxs[i]+1)) {
-         num++;
-      }
-      return num;
-   }
    
    /* --- Extrpolation matrices --- */
 
@@ -464,7 +232,7 @@ public abstract class ShellElement3d extends FemElement3dBase
       for (int i = 0; i < nodes.length; i++) {
          for (int j = 0; j < nodes.length; j++) {
             nodes[i].registerNodeNeighbor(
-               nodes[j], /*shell=*/myType==ElementClass.SHELL);
+               nodes[j], /*shell=*/myElementClass==ElementClass.SHELL);
          }
          nodes[i].addElementDependency(this);
       }
@@ -499,7 +267,7 @@ public abstract class ShellElement3d extends FemElement3dBase
       for (int i = 0; i < nodes.length; i++) {
          for (int j = 0; j < nodes.length; j++) {
             nodes[i].deregisterNodeNeighbor (
-               nodes[j], /*shell=*/myType==ElementClass.SHELL);
+               nodes[j], /*shell=*/myElementClass==ElementClass.SHELL);
          }
          // nodes[i].addMass(-massPerNode);
          nodes[i].invalidateMassIfNecessary ();  // signal dirty
@@ -538,8 +306,8 @@ public abstract class ShellElement3d extends FemElement3dBase
       throws IOException {
 
       rtok.nextToken();
-      if (scanAttributeName (rtok, "type")) {
-         myType = rtok.scanEnum(ElementClass.class);
+      if (scanAttributeName (rtok, "elementClass")) {
+         myElementClass = rtok.scanEnum(ElementClass.class);
          return true;
       }
       else if (scanAttributeName (rtok, "defaultThickness")) {
@@ -555,23 +323,10 @@ public abstract class ShellElement3d extends FemElement3dBase
       throws IOException {
 
       super.writeItems (pw, fmt, ancestor);
-      pw.println ("type=" + myType);
+      pw.println ("elementClass=" + myElementClass);
       pw.println ("defaultThickness=" + fmt.format(myDefaultThickness));
    }   
    
-   /**
-    * {@inheritDoc}
-    */
-   public boolean getCopyReferences (
-      List<ModelComponent> refs, ModelComponent ancestor) {
-      for (int i=0; i<numNodes(); i++) {
-         if (!ComponentUtils.addCopyReferences (refs, myNodes[i], ancestor)) {
-            return false;
-         }
-      }
-      return true;
-   }
-
    public ShellElement3d copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
 

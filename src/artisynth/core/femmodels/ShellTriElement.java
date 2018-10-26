@@ -106,7 +106,7 @@ public class ShellTriElement extends ShellElement3d {
       this ();
       setNodes (p0, p1, p2);
       myDefaultThickness = thickness;
-      myType = (membrane ? ElementClass.MEMBRANE : ElementClass.SHELL);
+      myElementClass = (membrane ? ElementClass.MEMBRANE : ElementClass.SHELL);
    }
 
    public void setNodes (FemNode3d p0, FemNode3d p1, FemNode3d p2) {
@@ -191,7 +191,7 @@ public class ShellTriElement extends ShellElement3d {
    }
 
    public int numIntegrationPoints () {
-      if (myType == ElementClass.MEMBRANE) {
+      if (myElementClass == ElementClass.MEMBRANE) {
          return numPlanarIntegrationPoints();
       }
       else {
@@ -204,7 +204,7 @@ public class ShellTriElement extends ShellElement3d {
          myDefaultIntegrationPoints = 
             createIntegrationPoints (myDefaultIntegrationCoords);
       }
-      if (myType == ElementClass.MEMBRANE) {
+      if (myElementClass == ElementClass.MEMBRANE) {
          if (myMembraneIntegrationPoints == null) {
             myMembraneIntegrationPoints = 
                createMembraneIntegrationPoints (myDefaultIntegrationPoints);

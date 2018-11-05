@@ -235,8 +235,10 @@ public class MultiPointSpring extends PointSpringBase
     */
    public class Segment {
 
-      public Point myPntB; // end-point B
-      public Point myPntA; // end-point A
+      // myPntB and myPntA are the first and last segment end points
+      // as we traverse the segments in point order
+      public Point myPntB; 
+      public Point myPntA; 
       Vector3d mydFdxB;    // derivative of tension force F wrt point B
       Vector3d mydFdxA;    // derivative of tension force F wrt point A
       
@@ -4345,17 +4347,61 @@ public class MultiPointSpring extends PointSpringBase
       setSegmentWrappable (numk, null);
    }
 
-   public void setSegmentWrappable (int numk, Point3d[] initialPnts) {
-      if (numPoints() == 0) {
-         throw new IllegalStateException (
-            "setSegmentWrappable() called before first call to addPoint()");
-      }
+   protected void doSetSegmentWrappable (
+      int segIdx, int numk, Point3d[] initialPnts) {
+
       WrapSegment seg = new WrapSegment(numk, initialPnts);
-      seg.myPntB = mySegments.get(mySegments.size()-1).myPntB;
-      mySegments.set (mySegments.size()-1, seg);
-      myRenderObjValidP = false;
+      seg.myPntB = mySegments.get (segIdx).myPntB;
+      // note: if segIdx corresponds to the last current segment, pntA will
+      // still be null and will not be set until the next call to addPoint().
+      seg.myPntA = mySegments.get (segIdx).myPntA;
+      mySegments.set (segIdx, seg);
    }
 
+   public void setSegmentWrappable (int numk, Point3d[] initialPnts) {
+      if (mySegments.size() == 0) {
+         throw new ImproperStateException (
+            "setSegmentWrappable() called before first call to addPoint()");
+      }
+      doSetSegmentWrappable (mySegments.size()-1, numk, initialPnts);
+      invalidateSegments();
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      // if (numPoints() == 0) {
+      //    throw new IllegalStateException (
+      //       "setSegmentWrappable() called before first call to addPoint()");
+      // }
+      // WrapSegment seg = new WrapSegment(numk, initialPnts);
+      // seg.myPntB = mySegments.get(mySegments.size()-1).myPntB;
+      // mySegments.set (mySegments.size()-1, seg);
+      // myRenderObjValidP = false;
+   }
+
+   public void setSegmentWrappable (
+      int segIdx, int numk, Point3d[] initialPnts) {
+      if (segIdx >= mySegments.size()) {
+         throw new IllegalArgumentException (
+            "Segment "+segIdx+" does not exist");
+      }
+      doSetSegmentWrappable (segIdx, numk, initialPnts);
+      invalidateSegments();
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+   }
+
+   public void setAllSegmentsWrappable (int numk) {
+      if (mySegments.size() == 0) {
+         throw new ImproperStateException (
+            "setSegmentWrappable() called before first call to addPoint()");
+      }
+      for (int i=0; i<mySegments.size(); i++) {
+         doSetSegmentWrappable (i, numk, null);
+      }
+      invalidateSegments();
+      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+   }   
+
+   public void setPreviousSegmentsWrappable (int numk) {
+   }                                                
+         
    public void initializeSegment (int segIdx, Point3d[] initialPnts) {
       if (segIdx >= mySegments.size()) {
          throw new IllegalArgumentException (

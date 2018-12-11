@@ -89,6 +89,7 @@ public abstract class ModelAgentBase extends ModelComponentBase
       throws IOException {
 
       getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      //getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       pw.println ("model=" + ComponentUtils.getWritePathName (
                      ancestor, myModel));      
    }
@@ -130,6 +131,14 @@ public abstract class ModelAgentBase extends ModelComponentBase
    @Override
    public void finalize() {
       dispose();
+   }
+
+   protected NumericState castToNumericState (ComponentState state) {
+      if (!(state instanceof NumericState)) {
+         throw new IllegalArgumentException (
+            "state not an instance of NumericState");
+      }
+      return (NumericState)state;
    }
    
    

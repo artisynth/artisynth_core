@@ -45,9 +45,12 @@ import artisynth.core.mechmodels.PointList;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ComponentListImpl;
+import artisynth.core.modelbase.ComponentState;
+import artisynth.core.modelbase.NumericState;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ControllerBase;
+import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ReferenceList;
 import artisynth.core.modelbase.RenderableComponent;
@@ -128,7 +131,9 @@ public class TrackingController extends ControllerBase
    protected ComponentList<ExcitationComponent> exciters;
    protected MuscleExciter myExciters;  // list of inputs
    protected boolean useMyExciters = false;
-   
+
+   protected static final boolean DEFAULT_EXCITATIONS_ARE_STATE = false;
+   protected boolean myExcitationsAreState = DEFAULT_EXCITATIONS_ARE_STATE;
    /*
     * Weights used to emphasize or de-emphasize certain excitation components,
     * by altering the component regularization term associated with that excitation component.
@@ -185,6 +190,9 @@ public class TrackingController extends ControllerBase
       myProps.add (
          "debug", "enables output of debug info to the console",
          DEFAULT_DEBUG);
+      myProps.add (
+         "excitationsAreState", "enables excitations to be stored as state",
+         DEFAULT_EXCITATIONS_ARE_STATE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1303,6 +1311,96 @@ public class TrackingController extends ControllerBase
 
    public MotionForceInverseData getData() {
       return myMotionForceData;
+   }
+
+   /* ---- Reimplementation of HasState to store excitations --- */
+
+   /**
+    * Sets whether or not excitations are stored as state. The default value is
+    * {@code false}. Storing exitations as state means that excitations will be
+    * stored in WayPoints, which means that things likes excitation-dependent
+    * muscle coloring will render correctly as WayPoints are traversed.
+    *
+    * @param enable if {@code true}, excitations will be stored as state.
+    */
+   public void setExcitationsAreState (boolean enable) {
+      if (myExcitationsAreState != enable) {
+         myExcitationsAreState = enable;
+         // propagate DynamicActivityChangeEvent to invalidate waypoints
+         notifyParentOfChange (new DynamicActivityChangeEvent(this));
+      }
+   }
+
+   /**
+    * Query whether excitations are stored as state.
+    *
+    * @return true if excitations are stored as state
+    */
+   public boolean getExcitationsAreState () {
+      return myExcitationsAreState;
+   }
+
+   /**
+    * {@inheritDoc}
+    */   
+   public boolean hasState() {
+      return myExcitationsAreState;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */   
+   public ComponentState createState(ComponentState prevState) {
+      if (!hasState()) {
+         return super.createState (prevState);
+      }
+      else {
+         // store excitations in a NumericState
+         return new NumericState (numExcitations(), 1);
+      }
+   }
+   
+   /**
+    * {@inheritDoc}
+    */   
+   public void getState (ComponentState state) {
+      if (hasState()) {
+         NumericState nstate = castToNumericState(state);
+         nstate.resetOffsets();
+         // Store number of excitation values
+         int numStoredExcitationValues = numExcitations();
+         nstate.zput (numStoredExcitationValues);
+         for (int i=0; i<numStoredExcitationValues; i++) {
+            double exval = 0;
+            // In some cases, myExcitations may have a size < numExcitations().
+            // Just store a 0 in that case.
+            if (i < myExcitations.size()) {
+               exval = myExcitations.get(i);
+            }
+            nstate.dput (exval);
+         }
+      }
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void setState (ComponentState state) {
+      if (hasState()) {
+         NumericState nstate = castToNumericState(state);
+         nstate.resetOffsets();
+         // Get number of stored excitation values
+         int numStoredExcitationValues = nstate.zget();
+         for (int i=0; i<numStoredExcitationValues; i++) {
+            double val = nstate.dget();
+            // If numExcitations() has changed, we may have more
+            // value than we need. Just ignore extra values.
+            if (i < myExcitations.size()) {
+               myExcitations.set (i, val);
+            }
+         }
+         setExcitations (myExcitations, 0);
+      }
    }
    
 }

@@ -132,8 +132,8 @@ public class TrackingController extends ControllerBase
    protected MuscleExciter myExciters;  // list of inputs
    protected boolean useMyExciters = false;
 
-   protected static final boolean DEFAULT_EXCITATIONS_ARE_STATE = false;
-   protected boolean myExcitationsAreState = DEFAULT_EXCITATIONS_ARE_STATE;
+   protected static final boolean DEFAULT_SAVE_EXCITATIONS_AS_STATE = false;
+   protected boolean mySaveExcitationsAsState = DEFAULT_SAVE_EXCITATIONS_AS_STATE;
    /*
     * Weights used to emphasize or de-emphasize certain excitation components,
     * by altering the component regularization term associated with that excitation component.
@@ -191,8 +191,8 @@ public class TrackingController extends ControllerBase
          "debug", "enables output of debug info to the console",
          DEFAULT_DEBUG);
       myProps.add (
-         "excitationsAreState", "enables excitations to be stored as state",
-         DEFAULT_EXCITATIONS_ARE_STATE);
+         "saveExcitationsAsState", "enables excitations to be stored as state",
+         DEFAULT_SAVE_EXCITATIONS_AS_STATE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -1323,9 +1323,9 @@ public class TrackingController extends ControllerBase
     *
     * @param enable if {@code true}, excitations will be stored as state.
     */
-   public void setExcitationsAreState (boolean enable) {
-      if (myExcitationsAreState != enable) {
-         myExcitationsAreState = enable;
+   public void setSaveExcitationsAsState (boolean enable) {
+      if (mySaveExcitationsAsState != enable) {
+         mySaveExcitationsAsState = enable;
          // propagate DynamicActivityChangeEvent to invalidate waypoints
          notifyParentOfChange (new DynamicActivityChangeEvent(this));
       }
@@ -1336,15 +1336,15 @@ public class TrackingController extends ControllerBase
     *
     * @return true if excitations are stored as state
     */
-   public boolean getExcitationsAreState () {
-      return myExcitationsAreState;
+   public boolean getSaveExcitationsAsState () {
+      return mySaveExcitationsAsState;
    }
 
    /**
     * {@inheritDoc}
     */   
    public boolean hasState() {
-      return myExcitationsAreState;
+      return mySaveExcitationsAsState;
    }
    
    /**

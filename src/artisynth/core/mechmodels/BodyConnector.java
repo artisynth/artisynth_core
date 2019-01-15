@@ -33,6 +33,9 @@ public abstract class BodyConnector extends RenderableComponentBase
    private boolean myEnabledP = true;
    protected RigidBodyCoupling myCoupling;
    
+   // use an old (and presumably inaccurate) method for computing constraint
+   // derivatives, simply for compatibility
+   public boolean useOldDerivativeMethod = false;
    private boolean myAdjustBodyAExplicitP = false;  // automatically select body to adjust
 
    protected VectorNd myCompliance = null;
@@ -461,6 +464,14 @@ public abstract class BodyConnector extends RenderableComponentBase
    private void computeDotXv (
       Twist dotXv, Twist velAinC, Twist velBinD, RigidTransform3d TCD,
       Twist dvelAinC, Twist dvelBinD) {
+
+      if (useOldDerivativeMethod) {
+         // incorrect results; provided for legacy use only
+         Twist velBinC = new Twist(velBinD);
+         velBinC.inverseTransform (TCD);
+         dotXv.cross (velBinC, velAinC);
+         return;
+      }
 
       dotXv.set (dvelAinC);
 

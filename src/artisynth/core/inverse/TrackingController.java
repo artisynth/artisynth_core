@@ -292,6 +292,26 @@ public class TrackingController extends ControllerBase
       }
    }
 
+   public int getUseTrapezoidalSolver() {
+      return myMotionForceData.useTrapezoidalSolver;
+   }
+
+   public void setUseTrapezoidalSolver (int enable) {
+      myMotionForceData.useTrapezoidalSolver = enable;
+   }
+
+   public boolean getKeepVelocityJacobianConstant() {
+      return myMotionTerm.keepVelocityJacobianConstant;
+   }
+
+   /**
+    * Disables recomputation of the velocity Jacobian. This actually gives
+    * incorrect results and is provided for comparison with legacy code only.
+    */
+   public void setKeepVelocityJacobianConstant (boolean keepConstant) {
+      myMotionTerm.keepVelocityJacobianConstant = keepConstant;
+   }
+
    /**
     * Returns the "motion" term, responsible for tracking error
     * @return motion term for tracking error

@@ -35,7 +35,7 @@ public abstract class BodyConnector extends RenderableComponentBase
    
    // use an old (and presumably inaccurate) method for computing constraint
    // derivatives, simply for compatibility
-   public boolean useOldDerivativeMethod = false;
+   public static boolean useOldDerivativeMethod = false;
    private boolean myAdjustBodyAExplicitP = false;  // automatically select body to adjust
 
    protected VectorNd myCompliance = null;

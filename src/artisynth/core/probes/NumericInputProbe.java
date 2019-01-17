@@ -154,6 +154,7 @@ public class NumericInputProbe extends NumericProbeBase
 //   }
 
    public NumericInputProbe (Property[] props, ModelComponent e) {
+      this();
       setModelFromComponent (e);
       setInputProperties (props);      
       //this (props, e, 0, 0);

@@ -69,6 +69,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    boolean debug = false;
    boolean enabled = true;
+   // Avoids recomputation of the velocity Jacobian. This actually gives
+   // incorrect results and is provided for comparison with legacy code only.
+   public static boolean keepVelocityJacobianConstant = false;
 
    protected TrackingController myController;
    protected MechSystemBase myMech;    // mech system, used to compute forces
@@ -735,10 +738,11 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * as the model moves
     */
    public SparseBlockMatrix getVelocityJacobian() {
-      
-//      if (myVelJacobian == null) {
+      // Again, keepVelocityJacobianConstant should be false, unless set true
+      // for comparison with legacy code
+      if (myVelJacobian == null || !keepVelocityJacobianConstant) {
          createVelocityJacobian();
-//      }
+      }
       return myVelJacobian;
    }
 

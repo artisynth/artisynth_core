@@ -492,7 +492,6 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
       ArrayList<Vertex3d> verts = mesh.getVertices();
 
       Point3d coords = new Point3d();
-      ArrayList<FemNode3d> deps = new ArrayList<>();
       MLSShapeFunction sfunc = new MLSShapeFunction();
       
       surf.myVertexAttachments.clear();
@@ -501,14 +500,8 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
          // marker points into a mesh
          Vertex3d vtx = verts.get(i);
          
-         deps.clear();
-         mfree.findDependentNodesAtRest(vtx.pnt, deps);
-         // compute shape function
-         VectorNd N = new VectorNd(deps.size());
-         MFreeNode3d[] dnodes = deps.toArray(new MFreeNode3d[deps.size()]);
-         sfunc.setNodes (dnodes);
-         sfunc.setCoordinate (vtx.pnt);
-         sfunc.eval(N);
+         VectorNd N = new VectorNd();
+         MFreeNode3d[] dnodes = (MFreeNode3d[])mfree.findNaturalRestCoordinates (vtx.pnt, coords, N);
          
          // first see if there's a node within reduceTol of the point,
          // and if so just use that

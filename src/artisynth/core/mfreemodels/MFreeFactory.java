@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import artisynth.core.femmodels.FemElement;
 import artisynth.core.femmodels.FemElement3d;
 import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel3d;
@@ -58,7 +59,7 @@ public class MFreeFactory {
 
    public static double DEFAULT_TOLERANCE = 1e-10;
    public static int DEFAULT_IPNT_FACTOR = 3;      // for every node, pick N ipnts along each dimension
-   public static int DEFAULT_MINIMUM_DEPENDENCIES = 6;
+   public static int DEFAULT_MINIMUM_DEPENDENCIES = 4;
    
    public static RadialWeightFunctionType DEFAULT_RADIAL_KERNEL_TYPE = 
       RadialWeightFunctionType.SPLINE;
@@ -356,31 +357,36 @@ public class MFreeFactory {
       
       int ipntFactor = DEFAULT_IPNT_FACTOR;
       int nih = ipntFactor*(nh-1);
-      int nir = ipntFactor*(nr-1)+1;
+      // int nir = ipntFactor*(nr-1)+1;
+      int nir = ipntFactor*(nr-1);
       
-      double dih = h/(nih-1);
+      double dih = h/(nih);
       zmin += dih/2;
-      double dir = r/(nir-1);
+      // double dir = r/(nir-1);
+      double dir = r/nir;
+      double rmin = dir/2;
       
       int iidx = 0;
-      int nipnts = nih*(1 + nt1*nir*(nir-1)/2);
+      // int nipnts = nih*(1 + nt1*nir*(nir-1)/2);
+      int nipnts = nih*(nt1*(nir+1)*(nir)/2);
       CubaturePoint3d[] cpnts = new CubaturePoint3d[nipnts];
-      for (int k=0; k<nih; ++k) {
-         cpnts[iidx++] = new CubaturePoint3d(0,0,zmin+k*dih, Math.PI*dir*dir*dih);
-      }
+      
+      //      for (int k=0; k<nih; ++k) {
+      //         cpnts[iidx++] = new CubaturePoint3d(0,0,zmin+k*dih, Math.PI*dir*dir*dih);
+      //      }
       
       // circle pnts
-      for (int i=1; i<nir; ++i) {
+      for (int i=0; i<nir; ++i) {
          // next layer of pnts
-         double rr = dir*i;
-         int nit = nt1*i;
+         double rr = dir*i + rmin;
+         int nit = nt1*(i+1);
          double dt = 2*Math.PI/nit;
          
          // area of circular section
          double iv = rr*dir*dt*dih;
-         if (i == (nir-1)) {
-            iv = (rr*dir/2 - dir*dir/4)*dt*dih;
-         }
+         //         if (i == (nir-1)) {
+         //            iv = (rr*dir/2 - dir*dir/4)*dt*dih;
+         //         }
         
          for (int k=0; k<nih; ++k) {
             double z = zmin+k*dih;
@@ -661,7 +667,7 @@ public class MFreeFactory {
       
       // determine best node-radii to use
       double[] nodeRad = computeNodeRadii(nodeLocs, ipnts, surface, 
-         DEFAULT_MINIMUM_DEPENDENCIES, 1.1);
+         DEFAULT_MINIMUM_DEPENDENCIES, 1.01);
 
       for (int i=0; i<nodeLocs.length; ++i) {
          Point3d pnt = nodeLocs[i];
@@ -1095,6 +1101,7 @@ public class MFreeFactory {
       // surface = (PolygonalMesh)convertToMFreeMesh(surface, nodeTree, DEFAULT_TOLERANCE);
 
       model.addElements(elemList);
+      
       if (surface != null) {
          model.setSurfaceMesh(surface);
       }
@@ -1881,20 +1888,20 @@ public class MFreeFactory {
       createPartitionedElementsFromPoints(A[] pnts, HashMap<A,MFreeElement3d> pntMap) {
       
       ArrayList<MFreeElement3d> elems = new ArrayList<MFreeElement3d>();
-      ElemTree etree = new ElemTree();
+      FemElementTreeNode etree = new FemElementTreeNode();
       
       MFreeShapeFunction fun = new MLSShapeFunction();
       
       for (A pnt : pnts) {
          FemNode3d[] nodes = pnt.getDependentNodes();      
          
-         ElemTree leaf = etree.get (nodes, 0);
+         FemElementTreeNode leaf = etree.findOrCreate (nodes);
          
-         MFreeElement3d elem = (MFreeElement3d)leaf.elem;
+         MFreeElement3d elem = (MFreeElement3d)leaf.getElement ();
          if (elem == null) {
             elem = new MFreeElement3d(fun, Arrays.copyOf(nodes, nodes.length));
             elems.add(elem);
-            leaf.elem = elem;
+            leaf.setElement (elem);
          }
          pntMap.put(pnt, elem);
       }
@@ -1903,50 +1910,97 @@ public class MFreeFactory {
 
    }
    
-   private static class ElemTree {
-      FemElement3d elem;
-      HashMap<FemNode3d,ElemTree> children;
+   /**
+    * Class for storing node make-up of elements
+    */
+   public static class FemElementTreeNode {
+      FemElement elem;
+      HashMap<FemNode3d,FemElementTreeNode> children;
       
-      public ElemTree() {
+      public FemElementTreeNode() {
          elem = null;
          children = new HashMap<> ();
       }
       
+      public FemElement getElement() {
+         return elem;
+      }
+      
+      public void setElement(FemElement elem) {
+         this.elem = elem;
+      }
+      
       /**
-       * returns leaf node
-       * @param nodes
-       * @param offset
-       * @return
+       * Appends a set of nodes to the tree
+       * @param nodes FEM nodes making up element, must be sorted by number
+       * @param offset offset into the nodes list
+       * @return created leaf node
        */
-      public ElemTree append(FemNode3d[] nodes, int offset) {
+      protected FemElementTreeNode append(FemNode3d[] nodes, int offset) {
          if (offset == nodes.length) {
             return this;
          }
-         ElemTree child = new ElemTree();
-         ElemTree leaf = child.append (nodes, offset+1);
+         FemElementTreeNode child = new FemElementTreeNode();
+         FemElementTreeNode leaf = child.append (nodes, offset+1);
          children.put (nodes[offset], child);
          return leaf;
       }
       
       /**
-       * Finds or creates an element tree node for the following Fem nodes
-       * @param nodes nodes
-       * @param offset offset within nodes array
-       * @return tree node that should contain element if it exists
+       * Finds an element tree node for the following FEM nodes
+       * @param nodes nodes making up element, sorted by number
+       * @return tree node that contains element, null if not found
        */
-      public ElemTree get(FemNode3d[] nodes, int offset) {
+      public FemElementTreeNode find(FemNode3d[] nodes) {
+         return find(nodes, 0);
+      }
+      
+      /**
+       * Finds an element tree node for the following FEM nodes
+       * @param nodes nodes making up element, sorted by number
+       * @param offset offset within nodes array
+       * @return tree node that contains element
+       */
+      protected FemElementTreeNode find(FemNode3d[] nodes, int offset) {
          if (offset == nodes.length) {
             return this;
          }
          
-         ElemTree child = children.get (nodes[offset]);
+         FemElementTreeNode child = children.get (nodes[offset]);
          if (child == null) {
-            child = new ElemTree();
-            ElemTree leaf = child.append(nodes, offset+1);
+            return null;            // not found
+         }
+         return child.find (nodes, offset+1);
+      }
+      
+      /**
+       * Finds an element tree node for the following FEM nodes
+       * @param nodes nodes making up element, sorted by number
+       * @return tree node that should contain element if it exists
+       */
+      public FemElementTreeNode findOrCreate(FemNode3d[] nodes) {
+         return findOrCreate(nodes, 0);
+      }
+      
+      /**
+       * Finds an element tree node for the following FEM nodes
+       * @param nodes nodes making up element, sorted by number
+       * @param offset offset within nodes array
+       * @return tree node that should contain element if it exists
+       */
+      protected FemElementTreeNode findOrCreate(FemNode3d[] nodes, int offset) {
+         if (offset == nodes.length) {
+            return this;
+         }
+         
+         FemElementTreeNode child = children.get (nodes[offset]);
+         if (child == null) {
+            child = new FemElementTreeNode();
+            FemElementTreeNode leaf = child.append(nodes, offset+1);
             children.put (nodes[offset], child);
             return leaf;
          }
-         return child.get (nodes, offset+1);
+         return child.findOrCreate (nodes, offset+1);
       }
    }
    

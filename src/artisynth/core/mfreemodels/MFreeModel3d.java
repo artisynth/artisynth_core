@@ -22,7 +22,8 @@ import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.FemControlPanel;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
-import artisynth.core.mechmodels.PointParticleAttachment;
+import artisynth.core.mfreemodels.MFreeFactory.FemElementTreeNode;
+import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
@@ -41,14 +42,15 @@ import maspack.matrix.Point3d;
 import maspack.matrix.SparseMatrixNd;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
+import maspack.util.DynamicArray;
 import maspack.util.InternalErrorException;
 
 public class MFreeModel3d extends FemModel3d  {
 
-   protected AABBTree myElementTree;
    protected AABBTree myNodeTree;
-   protected boolean myBVTreeValid;
-   protected AABBTree myRestNodeTree; // rest nodes only
+   protected AABBTree myRestNodeTree;               // rest nodes only
+   protected FemElementTreeNode myElementNodeTree;  // composition of elements
+   protected boolean myModelIsAtRest;                        // model is at rest
 
    public MFreeModel3d () {
       this(null);
@@ -56,7 +58,16 @@ public class MFreeModel3d extends FemModel3d  {
 
    public MFreeModel3d (String name) {
       super(name);
-      myRestNodeTree = null;      
+      myRestNodeTree = null;
+      myElementNodeTree = null;
+      myModelIsAtRest = true;
+   }
+   
+   @Override
+   protected void clearCachedData (ComponentChangeEvent e) {
+      super.clearCachedData (e);
+      myRestNodeTree = null;
+      myElementNodeTree = null;
    }
 
    /**
@@ -88,15 +99,15 @@ public class MFreeModel3d extends FemModel3d  {
    }
 
    private void updateBVHierarchies() {
-      if (myElementTree == null) {
-         myElementTree = new AABBTree();
+      if (myAABBTree == null) {
+         myAABBTree = new AABBTree();
          Boundable[] elements = new Boundable[numElements()];
          for (int i = 0; i < elements.length; i++) {
             elements[i] = myElements.get(i);
          }
-         myElementTree.build(elements, numElements());
+         myAABBTree.build(elements, numElements());
       } else {
-         myElementTree.update();
+         myAABBTree.update();
       }
       if (myNodeTree == null) {
          myNodeTree = new AABBTree();
@@ -111,6 +122,139 @@ public class MFreeModel3d extends FemModel3d  {
       myBVTreeValid = true;
    }
 
+   /**
+    * Wrapper boundable class around MFreeNode3d that considers the node
+    * at rest, as well as its influence radius. 
+    */
+   public static class MFreeRestNode3d implements Boundable {
+      MFreeNode3d node;
+      public MFreeRestNode3d(MFreeNode3d node) {
+         this.node = node;
+      }
+      
+      @Override
+      public int numPoints () {
+         return 9;  // box around sphere of influence
+      }
+      
+      @Override
+      public Point3d getPoint (int idx) {
+         Point3d pos = new Point3d();
+         pos.set (node.getRestPosition ());
+         double r = node.getInfluenceRadius ();
+         switch(idx) {
+            case 0:
+               break;
+            case 1: {
+               pos.x -= r;
+               pos.y -= r;
+               pos.z -= r;
+               break;
+            }
+            case 2: {
+               pos.x -= r;
+               pos.y += r;
+               pos.z -= r;
+               break;
+            }
+            case 3: {
+               pos.x += r;
+               pos.y += r;
+               pos.z -= r;
+               break;
+            }
+            case 4: {
+               pos.x += r;
+               pos.y -= r;
+               pos.z -= r;
+               break;
+            } 
+            case 5: {
+               pos.x -= r;
+               pos.y -= r;
+               pos.z += r;
+               break;
+            }
+            case 6: {
+               pos.x -= r;
+               pos.y += r;
+               pos.z += r;
+               break;
+            } 
+            case 7: {
+               pos.x += r;
+               pos.y += r;
+               pos.z += r;
+               break;
+            } 
+            case 8: {
+               pos.x += r;
+               pos.y -= r;
+               pos.z += r;
+               break;
+            } 
+         }
+         return pos;
+      }
+      @Override
+      public void computeCentroid (Vector3d centroid) {
+         centroid.set (node.getRestPosition ());
+      }
+      
+      @Override
+      public void updateBounds (Vector3d min, Vector3d max) {
+         Point3d pos = new Point3d(node.getRestPosition ());
+         double r = node.getInfluenceRadius ();
+         pos.x -= r;
+         pos.y -= r;
+         pos.z -= r;
+         pos.updateBounds (min, max);
+         pos.x += 2*r;
+         pos.y += 2*r;
+         pos.z += 2*r;
+         pos.updateBounds (min, max);
+      }
+      
+      @Override
+      public double computeCovariance (Matrix3d C) {
+         int np = numPoints();
+         for (int i=0; i<np; ++i) {
+            Point3d pos = getPoint (i);
+            C.addOuterProduct (pos, pos);
+         }
+         return np;
+      }
+      
+      public MFreeNode3d getNode() {
+         return node;
+      }
+   }
+   
+   /**
+    * BV Tree that bounds the nodes at rest, and their spherical influence regions.  The
+    * Boundables are "rest nodes".
+    * 
+    * @see MFreeRestNode3d
+    * @return BV tree for nodes at rest
+    */
+   public BVTree getRestNodeBVTree() {
+      if (myRestNodeTree == null) {
+         myRestNodeTree = new AABBTree();
+         Boundable[] nodes = new Boundable[numNodes()];
+         for (int i = 0; i < nodes.length; i++) {
+            nodes[i] = new MFreeRestNode3d((MFreeNode3d)myNodes.get(i));
+         }
+         myRestNodeTree.build(nodes, numNodes());
+      }
+      return myRestNodeTree;
+   }
+   
+   /**
+    * Gets a BV tree that surrounds nodes (both false and true positions)
+    * 
+    * Note: does not surround influence regions, since these may be quite deformed 
+    * if not at rest, only bounds the nodes themselves
+    */
    public BVTree getNodeBVTree() {
       if (!myBVTreeValid || myNodeTree == null) {
          updateBVHierarchies();
@@ -118,22 +262,33 @@ public class MFreeModel3d extends FemModel3d  {
       return myNodeTree;
    }
 
+   /**
+    * The element bv tree bounds integration points contained by the element, which may be
+    * slightly smaller than the true element bounds
+    * @return bvtree for elements
+    */
    public BVTree getElementBVTree() {
-      if (myElementTree == null || myElementTree == null) {
+      if (!myBVTreeValid || myAABBTree == null) {
          updateBVHierarchies();
       }
-      return myElementTree;
+      return myAABBTree;
+   }
+   
+   /**
+    * @see #getElementBVTree()
+    */
+   @Override
+   public BVTree getBVTree () {
+      return getElementBVTree ();
    }
 
 
    /**
     * Adds a marker to this FemModel. The element to which it belongs is
     * determined automatically. If the marker's current position does not lie
-    * within the model and {@code project == true}, it will be projected onto 
-    * the model's surface.
+    * within the model, then null is returned.
     * 
-    * @param pos
-    * position to place a marker in the model
+    * @param pos position to place a marker in the model
     * 
     */
    public FemMarker addMarker(Point3d pos) {
@@ -143,14 +298,15 @@ public class MFreeModel3d extends FemModel3d  {
 
       coord.set(pos);
       FemNode3d[] nodes = findNaturalCoordinates(pos, coord, N);
-
-      mkr.setPosition(pos);
-      double[] wgts = new double[N.size()];
-      for (int i=0; i<N.size(); ++i) {
-         wgts[i] = N.get(i);
+      
+      if (nodes == null) {
+         return null;
       }
-      mkr.setFromNodes(nodes, wgts);
+      
+      mkr.setPosition(pos);
+      mkr.setFromNodes(nodes, N.getBuffer ());
       addMarker(mkr);
+
       return mkr;
    }
 
@@ -173,22 +329,113 @@ public class MFreeModel3d extends FemModel3d  {
       mesh.setCollidable (Collidability.INTERNAL);
       myMeshList.add(mesh);
    }
+   
+   public boolean areCoplanarAtRest(MFreeNode3d[] nodes) {
+      if (nodes.length <= 3) {
+         return true;
+      }
+
+      // assumes points do not overlap
+      Vector3d v1 = new Vector3d(nodes[0].getRestPosition ());
+      v1.sub(nodes[1].getRestPosition ());
+      double v1n = v1.norm();
+      double eps = v1n*1e-5;  // epsilon for plane projection
+      v1.scale(1.0/v1n); // normalize
+
+      // find non-colinear point
+      Vector3d v2 = new Vector3d();
+      Vector3d normal = new Vector3d();
+      int jl = -1;
+      for (int j=2; j<nodes.length; ++j) {
+         v2.sub(nodes[0].getRestPosition (), nodes[j].getRestPosition ());
+         v2.normalize();
+         normal.cross(v1, v2);
+         double v3n = normal.norm();
+         if (v3n  > 1e-10) {
+            normal.scale(1.0/v3n);
+            jl = j;
+            break;
+         }
+      }
+
+      // colinear
+      if (jl < 0) {
+         return true;
+      }
+
+      double d = normal.dot(nodes[0].getRestPosition ());
+      for (int k=jl+1; k<nodes.length; ++k) {
+         double dd = normal.dot(nodes[k].getRestPosition ())-d;
+         if (Math.abs(dd) > eps) {
+            return false;
+         }
+      }
+
+      return true;
+   }
+   
+   /**
+    * Computes natural coordinates at rest, along with dependent nodes and the shape
+    * function evaluated at the given point
+    * @param rpnt position at rest
+    * @param coords coordinates at rest
+    * @param N evaluated shape functions
+    * @return dependent nodes
+    */
+   public MFreeNode3d[] findNaturalRestCoordinates(Point3d rpnt, Point3d coords, VectorNd N) {
+      
+      coords.set (rpnt);
+      
+      ArrayList<BVNode> bvnodes = new ArrayList<BVNode>();
+      BVTree restTree = getRestNodeBVTree ();
+      restTree.intersectPoint (bvnodes, rpnt);
+      
+      DynamicArray<MFreeNode3d> nodes = new DynamicArray<> (MFreeNode3d.class);
+      for (BVNode bvnode : bvnodes) {
+         for (Boundable b : bvnode.getElements ()) {
+            MFreeNode3d mnode = ((MFreeRestNode3d)b).getNode ();
+            if (mnode.isInRestDomain (rpnt)) {
+               nodes.add (mnode);
+            }
+         }
+      }
+      
+      if (nodes.size () == 0) {
+         return null;
+      }
+      
+      // compute shape function
+      int order = MLSShapeFunction.LINEAR_ORDER;
+      if (nodes.size () < 4 || areCoplanarAtRest (nodes.getArray ())) {
+         order = MLSShapeFunction.CONSTANT_ORDER;
+      }
+      MLSShapeFunction mls = new MLSShapeFunction (nodes.getArray (), order);
+      
+      mls.setCoordinate (rpnt);
+      N.setSize (nodes.size ());
+      mls.eval (N);
+      
+      return nodes.getArray ();
+   }
 
    /**
     * Finds the containing element and node coordinates
     * @param pnt 3D point in world coordinates to find natural coordinates of
     * @param coords natural coordinates
     * @param N shape function values
-    * @return the containing element if it exists
+    * @return the dependent nodes
     */
-   public FemNode3d[] findNaturalCoordinates(Point3d pnt, Point3d coords, VectorNd N) {
+   public MFreeNode3d[] findNaturalCoordinates(Point3d pnt, Point3d coords, VectorNd N) {
 
+      // if at rest, use rest coordinates
+      if (myModelIsAtRest) {
+         return findNaturalRestCoordinates (pnt, coords, N);
+      }
+      
+      // otherwise, solve for rest coordinates, start with a guess at nearest ipnt or node
       BVFeatureQuery query = new BVFeatureQuery();
-
       NearestIPointCalculator dcalc = new NearestIPointCalculator(pnt);
-      query.nearestObject(getElementBVTree(), dcalc);
-
-      // FemElement3d elem = dcalc.nearestObject();
+      MFreeElement3d elem = (MFreeElement3d)query.nearestObject(getElementBVTree(), dcalc);
       MFreeIntegrationPoint3d ipnt = dcalc.nearestIPoint();
       
       // check if any nodes are closer
@@ -203,10 +450,12 @@ public class MFreeModel3d extends FemModel3d  {
       }
 
       // try to compute coords
+      // XXX may not be within element, but use as approximation
       coords.set(nearest.getRestPosition ());
       N.set (nearest.getNodeCoordinates ());
-      // int n = ((MFreeElement3d)elem).getNaturalCoordinates(coords, pnt, 1000, N);
-      return nearest.getDependentNodes ();
+      elem.getNaturalCoordinates(coords, pnt, 1000, N);
+      
+      return (MFreeNode3d[])nearest.getDependentNodes ();
    }
    
    /**
@@ -226,18 +475,38 @@ public class MFreeModel3d extends FemModel3d  {
     * @return the nearest element
     */
    public FemElement3d findNearestElement(Point3d nearest, Point3d pnt, VectorNd N) {
-
+      // XXX may not truly be nearest
       BVFeatureQuery query = new BVFeatureQuery();
-
-      NearestIPointCalculator dcalc 
-      = new NearestIPointCalculator(pnt);
+      NearestIPointCalculator dcalc = new NearestIPointCalculator(pnt);
       query.nearestObject(getElementBVTree(), dcalc);
 
-      FemElement3d elem = dcalc.nearestObject();
+      MFreeElement3d elem = (MFreeElement3d)dcalc.nearestObject();
+
+      // nearest ipnt or node
       MFreeIntegrationPoint3d ipnt = dcalc.nearestIPoint();
 
-      nearest.set(ipnt.getPosition());
-      N.set(ipnt.getShapeWeights());
+      // check if any nodes are closer
+      MFreePoint3d np = ipnt;
+      double d = ipnt.getPosition ().distance (pnt);
+      for (FemNode3d node : ipnt.getDependentNodes ()) {
+         double nd = node.distance (pnt);
+         if (nd < d) {
+            np = (MFreeNode3d)node;
+            d = nd;
+         }
+      }
+      nearest.set(np.getPosition());
+      N.set(np.getNodeCoordinates ());
+
+      // try to compute natural coordinates within element
+      elem.getNaturalCoordinates (nearest, pnt, N);
+      
+      // recompute nearest
+      FemNode3d[] nodes = elem.getNodes ();
+      nearest.setZero ();
+      for (int i=0; i<nodes.length; ++i) {
+         nearest.scaledAdd (N.get (i), nodes[i].getPosition ());
+      }
 
       return elem;
 
@@ -259,21 +528,20 @@ public class MFreeModel3d extends FemModel3d  {
       if (maxDist < 0) {
          return null;
       }
-      BVTree bvtree = getElementBVTree();
+      BVTree bvtree = getNodeBVTree();
       ArrayList<BVNode> nodes = new ArrayList<BVNode>();
       bvtree.intersectSphere(nodes, pnt, maxDist);
+      
       FemNode3d nearest = null;
       double dist = 1 + 2 * maxDist;
       for (BVNode n : nodes) {
          Boundable[] elements = n.getElements();
          for (int i = 0; i < elements.length; i++) {
-            FemElement3d e = (FemElement3d)elements[i];
-            for (int k = 0; k < e.numNodes(); k++) {
-               double d = e.getNodes()[k].getPosition().distance(pnt);
-               if (d < dist && d <= maxDist) {
-                  dist = d;
-                  nearest = e.getNodes()[k];
-               }
+            MFreeNode3d node = (MFreeNode3d)elements[i];
+            double d = node.getTruePosition().distance(pnt);
+            if (d < dist && d <= maxDist) {
+               dist = d;
+               nearest = node;
             }
          }
       }
@@ -283,9 +551,13 @@ public class MFreeModel3d extends FemModel3d  {
    public void updateSlavePos () {
       super.updateSlavePos ();
 
+      myModelIsAtRest = true;
       // nodes
       for (FemNode3d node : myNodes) {
          ((MFreeNode3d)node).updateSlavePos();
+         if (node.getPosition ().distanceSquared (node.getRestPosition ()) != 0) {
+            myModelIsAtRest = false;
+         }
       }
 
       // integration points
@@ -376,99 +648,7 @@ public class MFreeModel3d extends FemModel3d  {
       }
       
    }
-
-   private static class RestNode implements Boundable {
-
-      FemNode3d node;
-      Point3d[] pnts;
-
-      public RestNode(FemNode3d node, double r) {
-         this.node = node;
-         pnts = new Point3d[2];
-         Point3d pos = node.getRestPosition();
-         pnts[0] = new Point3d(pos.x+r, pos.y+r, pos.z+r);
-         pnts[1] = new Point3d(pos.x-r, pos.y-r, pos.z-r);
-      }
-
-      public FemNode3d getNode() {
-         return node;
-      }
-
-      @Override
-      public int numPoints() {
-         return 2;
-      }
-
-      @Override
-      public Point3d getPoint(int idx) {
-         return pnts[idx];
-      }
-
-      @Override
-      public void computeCentroid(Vector3d centroid) {
-         centroid.set(node.getRestPosition());
-      }
-
-      @Override
-      public void updateBounds(Vector3d min, Vector3d max) {
-         pnts[0].updateBounds(min, max);
-         pnts[1].updateBounds(min, max);
-      }
-
-      @Override
-      public double computeCovariance(Matrix3d C) {
-         return -1;
-      }
-   }
-
-   private static AABBTree buildRestNodeTree(Collection<FemNode3d> nodes) {
-      AABBTree nodeTree = new AABBTree();
-      RestNode[] rnodes = new RestNode[nodes.size()];
-      int idx = 0;
-      for (FemNode3d node : nodes) {
-         rnodes[idx] = new RestNode(node, ((MFreeNode3d)node).getInfluenceRadius());
-         ++idx;
-      }
-      nodeTree.build(rnodes, rnodes.length);
-      return nodeTree;
-   }
-
-   /**
-    * Finds nodes containing the given point at rest
-    * @param pnt point to find nodes for
-    * @param out output list of nodes influencing region
-    * @return number of nodes found
-    */
-   public int findDependentNodesAtRest(Point3d pnt, List<FemNode3d> out) {
-
-      AABBTree nodeTree = myRestNodeTree;
-      if (nodeTree == null) {
-         nodeTree = buildRestNodeTree(myNodes);
-         myRestNodeTree = nodeTree;
-      }
-
-      ArrayList<BVNode> bvNodes = new ArrayList<BVNode>(16);
-      nodeTree.intersectPoint(bvNodes, pnt);
-
-      if (bvNodes.size() == 0) {
-         return 0;
-      }
-
-      int count = 0;
-      for (BVNode n : bvNodes) {
-         Boundable[] elements = n.getElements();
-         for (int i = 0; i < elements.length; i++) {
-            RestNode rnode = (RestNode)elements[i];
-            FemNode3d node = rnode.getNode();
-            if (((MFreeNode3d)node).isInDomain(pnt, 0)) {
-               out.add(node);
-               ++count;
-            }
-         }
-      }
-      return count;
-   }
-
+   
    public double integrate(Function3x1 fun) {
       double out = 0;
       if (!myStiffnessesValidP) {
@@ -511,8 +691,7 @@ public class MFreeModel3d extends FemModel3d  {
       SparseMatrixNd M = new SparseMatrixNd(nNodes, nNodes);
 
       updateJacobians();
-
-      Matrix3d F = new Matrix3d();
+      
       for (FemElement3d e : myElements) {
          for (int k = 0; k < e.numIntegrationPoints(); k++) {
 
@@ -522,7 +701,7 @@ public class MFreeModel3d extends FemModel3d  {
             double detJ = ipnt.computeJacobianDeterminant (e.getNodes());
             for (int i = 0; i < e.numNodes(); i++) {
                for (int j = i; j < e.numNodes(); j++) {
-                  // if (e.isTermActive(i, j)) {
+
                   int bi = e.getNodes()[i].getNumber();
                   int bj = e.getNodes()[j].getNumber();
 
@@ -534,8 +713,6 @@ public class MFreeModel3d extends FemModel3d  {
                   if (i != j) {
                      M.set(bj, bi, M.get(bj, bi) + m);
                   }
-
-                  // }
                }
             }
          }
@@ -554,14 +731,13 @@ public class MFreeModel3d extends FemModel3d  {
       if (massMatrixDiag == null) {
          SparseMatrixNd massMatrix = computeConsistentMassMatrix();
          massMatrixDiag = new VectorNd(massMatrix.rowSize());
-         for (int i = 0; i < massMatrix.rowSize(); i++) {
-            double rowSum = 0;
-            for (int j = 0; j < massMatrix.colSize(); j++) {
-               rowSum += massMatrix.get(i, j);
-            }
-            // rowSum += massMatrix.get(i, i);
-            massMatrixDiag.set(i, rowSum);
+         
+         VectorNd ones = new VectorNd(massMatrix.rowSize ());
+         for (int i=0; i<ones.size (); ++i) {
+            ones.set (i, 1);
          }
+         
+         massMatrix.mul (massMatrixDiag, ones);
       }
 
       double mTrace = massMatrixDiag.sum();
@@ -621,11 +797,12 @@ public class MFreeModel3d extends FemModel3d  {
    }
    
    @Override
-      public void initialize(double t) {
-         super.initialize(t);
-         
-         updateSlavePos();
-         updateSlaveVel();
-      }
+   public void initialize(double t) {
+      super.initialize(t);
+
+      updateSlavePos();
+      updateSlaveVel();
+
+   }
    
 }

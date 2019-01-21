@@ -8,8 +8,11 @@ package artisynth.core.mfreemodels;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 import artisynth.core.femmodels.FemElement3d;
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.femmodels.FemNode;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.IntegrationData3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
@@ -22,8 +25,10 @@ import maspack.matrix.AffineTransform3d;
 import maspack.matrix.LUDecomposition;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
+import maspack.matrix.SparseMatrixCRS;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
+import maspack.numerics.GoldenSectionSearch;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -77,16 +82,11 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
          return query.isInsideOrientedMesh (myBoundaryMesh, pnt, 1e-10);
       }
       
-      // inclusion
-      for (FemNode3d node : myNodes) {
-         MFreeNode3d mnode = (MFreeNode3d)(node);
-         if (!mnode.isInDomain(pnt, 0)) {
-            return false;
-         }
-      }
-      
-      // XXX assumes nodes at rest, does not consider exclusion
-      return true;
+      Point3d coords = new Point3d();
+      VectorNd N = new VectorNd(numNodes ());
+      getNaturalCoordinates (coords, pnt, 1000, N);
+        
+      return coordsAreInside (coords);
    }
 
    public boolean isInvertedAtRest() {
@@ -146,7 +146,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       for (int j=0; j<numNodes(); j++) {
          idxs[j] = ipnt.getNodeCoordIdx(myNodes[j]);
          if (idxs[j]<0) {
-            return; //XXX happens when right on the boundary
+            return; // happens when right on the boundary
          }
       }
       
@@ -237,8 +237,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       if (myBoundaryMesh != null) {
          myBoundaryMesh.computeCentroid(centroid);
       } else {
-         // XXX HACK
-         // based on integration points
+         // centroid of integration points
          if (myIntegrationPoints.size() > 0) {
             centroid.setZero();
             for (MFreeIntegrationPoint3d ipnt : myIntegrationPoints) {
@@ -253,31 +252,110 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
             }
             centroid.scale(1.0/myNodes.length);
          }
-         
+
       }
    }
+
+   SparseMatrixCRS volumeExtrapolationMatrix;
+   public static boolean extrapolateVolumeFromShapeFunctions = true;
    
-   @Override
-   public boolean integrationPointsInterpolateToNodes() {
+   public boolean extrapolatesNodalVolume() {
       return true;
    }
    
+   private void computeVolumeExtrapolationMatrix() {
+
+      IntegrationPoint3d[] ipnts = getIntegrationPoints ();
+      int[] indices = new int[ipnts.length*numNodes ()*2];
+      double[] values = new double[ipnts.length*numNodes ()];
+      int numVals = 0;
+      
+      for (int i=0; i<numIntegrationPoints (); ++i) {
+         if (extrapolateVolumeFromShapeFunctions) {
+            VectorNd N = ipnts[i].getShapeWeights ();
+            for (int j = 0; j<numNodes(); ++j) {
+               indices[2*numVals] = i;
+               indices[2*numVals+1] = j;
+               values[numVals] = N.get (j);
+               ++numVals;
+            }
+         } else {
+            
+            // set to nearest node, or divide equally if equidistant
+            // XXX for some reason this ends up being non-symmetric, leads to instabilities?
+            VectorNd N = ipnts[i].getShapeWeights ();
+            double maxN = Double.NEGATIVE_INFINITY;
+            
+            int maxIdx = -1;
+            for (int j=0; j<N.size (); ++j) {
+               double n = N.get (j);
+               if (n > maxN ) {
+                  maxN = n;
+                  maxIdx = j;
+               }
+            }
+            
+            // count how many within epsilon?
+            double eps = 1e-12/N.size ();
+            int maxCount = 0;
+            for (int j=0; j<N.size (); ++j) {
+               double n = N.get (j);
+               if (n > maxN-eps) {
+                  ++maxCount;
+               }
+            }
+            
+            //            double w = 1.0/maxCount;
+            //            int nmaxCount = 0;
+            //            for (int j=0; j<N.size (); ++j) {
+            //               if (N.get (j) > maxN-eps) {
+            //                  indices[2*numVals] = i;
+            //                  indices[2*numVals+1] = j;
+            //                  values[numVals] = w;
+            //                  ++numVals;
+            //                  ++nmaxCount;
+            //               }
+            //            }
+            //            if (nmaxCount != maxCount) {
+            //               System.out.println ("hmm...");
+            //            }
+            indices[2*numVals] = i;
+            indices[2*numVals+1] = maxIdx;
+            values[numVals] = 1.0;
+            ++numVals;
+            
+         }
+      }
+      
+      volumeExtrapolationMatrix = new SparseMatrixCRS (numIntegrationPoints (), numNodes ());
+      volumeExtrapolationMatrix.set (values, indices, numVals);
+      
+   }
+
+   public SparseMatrixCRS getNodalVolumeExtrapolationMatrix () {
+      if (volumeExtrapolationMatrix == null) {
+         computeVolumeExtrapolationMatrix ();
+      }
+      return volumeExtrapolationMatrix;
+   }
+
    public void updateBounds(Vector3d min, Vector3d max) {
       
       if (myBoundaryMesh != null) {
          myBoundaryMesh.updateBounds(min, max);
       } else { 
-         // XXX HACK, based on ipnts or nodes
+         // based on ipnts or nodes
          if (myIntegrationPoints.size() > 0) {
             for (MFreeIntegrationPoint3d ipnt : myIntegrationPoints) {
                Point3d pos = ipnt.getPosition();
                pos.updateBounds(min, max);
             }
-         } else {
-            for (FemNode3d node : myNodes) {
-               node.updateBounds(min, max);
-            }
          }
+         //         else {
+         //            for (FemNode3d node : myNodes) {
+         //               node.updateBounds(min, max);
+         //            }
+         //         }
       }
    }
 
@@ -679,12 +757,14 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
    }
    
    public boolean coordsAreInside(Vector3d coords) {
-      // XXX assumes at rest
+      
       for (FemNode3d node : myNodes) {
          if (!((MFreeNode3d)node).isInRestDomain(coords)) {
             return false;
          }
       }
+      
+      // XXX exclusion
       return true;
    }
    
@@ -712,43 +792,100 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
     * @return the number of iterations required for convergence, or
     * -1 if the calculation did not converge.
     */
-   public int getNaturalCoordinates (Point3d coords, Point3d pnt, int maxIters,
-      VectorNd N) {
-
-      Vector3d res = new Point3d();
-      int i;
-
-      double tol = ((MFreeNode3d)myNodes[0]).getInfluenceRadius() * 1e-12;
-      if (tol <= 0) {
-         tol = 1e-12;
+   public int getNaturalCoordinates (Vector3d coords, Point3d pnt, int maxIters) {
+      VectorNd N = new VectorNd(numNodes ());
+      return getNaturalCoordinates (coords, pnt, maxIters, N);
+   }
+   
+   protected boolean isElementAtRest() {
+      for (FemNode3d node : myNodes) {
+         double d = node.getPosition ().distanceSquared (node.getRestPosition ());
+         if (d > 0) {
+            return false;
+         }
       }
-      
+      return true;
+   }
+   
+   public void getNaturalRestCoordinates (Vector3d coords, Point3d pnt, VectorNd N) {
+      coords.set (pnt);
+      myShapeFunction.setNodes ((MFreeNode3d[])this.getNodes ());
+      myShapeFunction.setCoordinate (pnt);
+      myShapeFunction.eval (N);
+   }
+   
+   /**
+    * Given point p, get its natural coordinates with respect to this element.
+    * Returns true if the algorithm converges, false if a maximum number of 
+    * iterations is reached. Uses a modified Newton's method and Golden-Section Search to solve the 
+    * equations. The <code>coords</code> argument that returned the coordinates is
+    * used, on input, to supply an initial guess of the coordinates.
+    * 
+    * @param coords
+    * Outputs the natural coordinates, and supplies (on input) an initial
+    * guess as to their position.
+    * @param pnt
+    * A given point (in world coords)
+    * @param maxIters
+    * Maximum number of iterations
+    * @param N
+    * Resulting shape function values
+    * @return the number of iterations required for convergence, or
+    * -1 if the calculation did not converge.
+    */
+   public int getNaturalCoordinates (Vector3d coords, Point3d pnt, int maxIters, VectorNd N) {
+
       if (N == null) {
          N = new VectorNd(numNodes());
       } else {
          N.setSize(numNodes());
       }
       
-      //      if (!coordsAreInside(coords)) {
-      //         return -1;
-      //      }
+      // if FEM is frame-relative, transform to local coords
+      Point3d lpnt = new Point3d(pnt);
+      // initialize coords
+      Point3d pcoord = new Point3d(coords);
+      
+      
+      if (getGrandParent() instanceof FemModel3d) {
+         FemModel3d fem = (FemModel3d)getGrandParent();
+         if (fem.isFrameRelative()) {
+            lpnt.inverseTransform (fem.getFrame().getPose());
+         }
+      }
+      
+      if (isElementAtRest ()) {
+         getNaturalRestCoordinates (coords, lpnt, N);
+         return 0;
+      }
+
+      Vector3d res = new Point3d();
+      int i;
+
+      double eps = 1e-12;
+      double tol = ((MFreeNode3d)myNodes[0]).getInfluenceRadius() * eps;
+
       myShapeFunction.setNodes ((MFreeNode3d[])myNodes);
-      myShapeFunction.setCoordinate (coords);
-      computeNaturalCoordsResidual (res, coords, pnt, N);
+      myShapeFunction.setCoordinate (pcoord);
+      
+      computeNaturalCoordsResidual (res, pcoord, lpnt, N);
       
       double prn = res.norm();
       //System.out.println ("res=" + prn);
       if (prn < tol) {
          // already have the right answer
+         coords.set (pcoord);
          return 0;
       }
 
       LUDecomposition LUD = new LUDecomposition();
-      Vector3d prevCoords = new Vector3d();
+      Point3d prevCoords = new Point3d();
       Vector3d dNds = new Vector3d();
       Matrix3d dxds = new Matrix3d();
       Vector3d del = new Point3d();
 
+      GSSResidual func = new GSSResidual(this, lpnt);
+      
       /*
        * solve using Newton's method.
        */
@@ -757,7 +894,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
          dxds.setZero();
          for (int k=0; k<numNodes(); k++) {
             myShapeFunction.evalDerivative(k, dNds);
-            dxds.addOuterProduct (myNodes[k].getPosition(), dNds);
+            dxds.addOuterProduct (myNodes[k].getLocalPosition(), dNds);
          }
          LUD.factor (dxds);
          double cond = LUD.conditionEstimate (dxds);
@@ -767,49 +904,43 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
                + cond);
          // solve Jacobian to obtain an update for the coords
          LUD.solve (del, res);
+         del.negate ();
+         
+         if (del.norm () < tol) {
+            coords.set (pcoord);
+            return i+1;
+         }
 
-         prevCoords.set (coords); 
-         coords.sub (del);
-         //         if (!coordsAreInside(coords)) {
-         //            return -1;
-         //         }
-         myShapeFunction.setCoordinate(coords);
-         computeNaturalCoordsResidual (res, coords, pnt, N);
+         prevCoords.set (pcoord); 
+         pcoord.add (del);
+         
+         myShapeFunction.setCoordinate(pcoord);
+         computeNaturalCoordsResidual (res, pcoord, lpnt, N);
          double rn = res.norm();
          //System.out.println ("res=" + rn);
 
          // If the residual norm is within tolerance, we have converged.
          if (rn < tol) {
             //System.out.println ("2 res=" + rn);
+            coords.set (pcoord);
             return i+1;
          }
          
-         if (rn > prn) {
-            // it may be that "coords + del" is a worse solution.  Let's make
-            // sure we go the correct way binary search suitable alpha in [0 1]
-            double eps = 1e-12;
-            
-            // and keep cutting the step size in half until the residual starts
-            // dropping again
-            double alpha = 0.5;
-            while (alpha > eps && rn > prn) {
-               coords.scaledAdd (-alpha, del, prevCoords);
-               if (!coordsAreInside(coords)) {
-                  return -1;
-               }
-               myShapeFunction.setCoordinate(coords);
-               computeNaturalCoordsResidual (res, coords, pnt, N);
-               rn = res.norm();
-               alpha *= 0.5;
-               //System.out.println ("  alpha=" + alpha + " rn=" + rn);
-            }
-            //System.out.println (" alpha=" + alpha + " rn=" + rn + " prn=" + prn);
-            if (alpha < eps) {
-               return -1;  // failed
-            }
+         // do a golden section search in range
+         func.set (prevCoords, del);
+         double alpha = GoldenSectionSearch.minimize(func, 0, 1, eps, 0.8*prn*prn);
+         pcoord.scaledAdd (alpha, del, prevCoords);
+         computeNaturalCoordsResidual(res, pcoord, lpnt, N);
+         rn = res.norm();
+         
+         //System.out.println (" alpha=" + alpha + " rn=" + rn + " prn=" + prn);
+         if (alpha < eps) {
+            return -1;  // failed
          }
+         
          prn = rn;
       }
+      coords.set (pcoord);
       return -1; // failed
    }
    
@@ -829,6 +960,23 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       myShapeFunction.evalDerivative(i, dNds);
    }
 
+   // cache local node index
+   HashMap<FemNode,Integer> cachedLocalNodeIndex = null;
+   @Override
+   public int getLocalNodeIndex (FemNode p) {
+      if (cachedLocalNodeIndex == null) {
+         cachedLocalNodeIndex = new HashMap<> ();
+         for (int i=0; i<myNodes.length; ++i) {
+            cachedLocalNodeIndex.put (myNodes[i], i);
+         }
+      }
+      Integer idx = cachedLocalNodeIndex.get (p);
+      if (idx == null) {
+         idx = -1;
+      }
+      return idx;
+   }
+   
    @Override
    public double[] getIntegrationCoords() {
       return new double[0];

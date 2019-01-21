@@ -9,10 +9,10 @@ package artisynth.core.mfreemodels;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.IntegrationPoint3d;
 import artisynth.core.mechmodels.PointState;
-import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
@@ -25,6 +25,7 @@ public class MFreeIntegrationPoint3d extends IntegrationPoint3d implements MFree
 
    public MFreeIntegrationPoint3d() {
       super(0);
+      super.setElementClass (ElementClass.VOLUMETRIC);
       myState = new PointState();
       myRest = new Point3d();
    }

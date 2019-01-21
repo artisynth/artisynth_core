@@ -61,6 +61,11 @@ CVS
 *.launch
 
 ######################
+# User Settings
+######################
+EXTCLASSPATH
+
+######################
 # MacOS files
 ######################
 .DS_Store

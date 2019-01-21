@@ -17,6 +17,7 @@ import artisynth.core.modelbase.ComponentListImpl;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
@@ -139,7 +140,7 @@ CompositeComponent {
       RigidMeshComp mc = new RigidMeshComp();
       mc.setMesh(mesh, fileName, Xh);
       if (mesh.getName() != null) {
-         mc.setName(mesh.getName());
+         mc.setName(ModelComponentBase.makeValidName (mesh.getName()));
       }
       mc.setPhysical(physical);
 

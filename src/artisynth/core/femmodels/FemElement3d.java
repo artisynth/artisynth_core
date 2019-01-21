@@ -209,7 +209,7 @@ public abstract class FemElement3d extends FemElement3dBase
       return -1; // failed
    }
    
-   private static class GSSResidual implements Function1x1 {
+   protected static class GSSResidual implements Function1x1 {
       private Point3d c0;
       private Point3d target;
       private Vector3d dir;

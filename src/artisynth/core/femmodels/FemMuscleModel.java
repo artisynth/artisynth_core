@@ -477,7 +477,7 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
    public void applyForces(double t) {
       super.applyForces(t);
       for (MuscleBundle mus : myMuscleList) {
-         mus.applyForce(t);
+         mus.applyForces(t);
       }
    }
 

@@ -166,7 +166,7 @@ public abstract class FemModel extends MechSystemBase
    protected double myMassDamping;
    protected double myStiffnessDamping;
 
-   int myNumInverted = 0;
+   protected int myNumInverted = 0;
 
    protected double myMaxTranslationalVel = 1e10;
 

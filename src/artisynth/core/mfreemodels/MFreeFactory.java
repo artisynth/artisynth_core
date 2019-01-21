@@ -937,19 +937,21 @@ public class MFreeFactory {
          }
       }
       
-      for (Vertex3d vtx : mesh.getVertices()) {
-         idpnt.pnt = vtx.getWorldPoint();
-         List<IndexedPoint3d> nearest = kdtree.nearestNeighbourSearch(idpnt, minK, 0);
-         // check for coplanarity
-         int kk = minK;
-         while (isCoplanar(nearest)) {
-            kk += 1;
-            nearest = kdtree.nearestNeighbourSearch(idpnt,  kk, 0);
-         }
-         for (IndexedPoint3d nbr : nearest) {
-            double rl = nbr.pnt.distance(idpnt.pnt)*marginScale;
-            if (rl > r[nbr.idx]) {
-               r[nbr.idx] = rl;
+      if (mesh != null) {
+         for (Vertex3d vtx : mesh.getVertices()) {
+            idpnt.pnt = vtx.getWorldPoint();
+            List<IndexedPoint3d> nearest = kdtree.nearestNeighbourSearch(idpnt, minK, 0);
+            // check for coplanarity
+            int kk = minK;
+            while (isCoplanar(nearest)) {
+               kk += 1;
+               nearest = kdtree.nearestNeighbourSearch(idpnt,  kk, 0);
+            }
+            for (IndexedPoint3d nbr : nearest) {
+               double rl = nbr.pnt.distance(idpnt.pnt)*marginScale;
+               if (rl > r[nbr.idx]) {
+                  r[nbr.idx] = rl;
+               }
             }
          }
       }
@@ -1093,7 +1095,9 @@ public class MFreeFactory {
       // surface = (PolygonalMesh)convertToMFreeMesh(surface, nodeTree, DEFAULT_TOLERANCE);
 
       model.addElements(elemList);
-      model.setSurfaceMesh(surface);
+      if (surface != null) {
+         model.setSurfaceMesh(surface);
+      }
       
       model.updateNodeMasses(-1, null);
 

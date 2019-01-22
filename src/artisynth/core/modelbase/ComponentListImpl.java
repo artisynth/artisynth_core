@@ -18,6 +18,8 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
 
    // if not -1, indices at and beyond this value need to revalidated
    protected int myValidateIndices = -1;
+   // if true, we need to reset all indices in number map
+   protected boolean myResetIndices = false;
    // counts components as they are scanned in
    protected int myScanCnt;
    // CompositeComponet that we are implementing for
@@ -32,9 +34,13 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    }
 
    // ========== Begin CompositeComponent implementation ==========
-
+   
    protected void validateIndices() {
       if (myValidateIndices != -1) {
+         if (myResetIndices) {
+            myComponentMap.clearIndices();
+            myResetIndices = false;
+         }
          for (int i=myValidateIndices; i<size(); i++) {
             myComponentMap.resetIndex (get(i), i);
          }
@@ -79,6 +85,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    }
 
    public int getNumberLimit() {
+      validateIndices ();
       return myComponentMap.getNumberLimit();
    }
 
@@ -97,6 +104,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    }
 
    public int nextComponentNumber() {
+      validateIndices ();
       return myComponentMap.nextNumber();
    }
 
@@ -138,6 +146,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
 
    // prepare a component for insertion in the list
    private void initComponent (C comp, int number, int idx) {
+      validateIndices ();
       if (number == -1) {
          number = myComponentMap.nextNumber();
       }
@@ -375,6 +384,8 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       catch (ClassCastException e) {
          throw e;
       }
+      
+      validateIndices ();
       int k = 0;
       for (int i = 0; i < mySize; i++) {
          C c = myArray[i];
@@ -445,7 +456,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       }
    }
 
-   private void clearComponent (C comp) {
+   private void clearComponent (C comp) {      
       myComponentMap.unmapComponent (comp);
       comp.setParent (null);
    }
@@ -718,6 +729,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
     */
    public void invalidateNumbers() {
       myValidateIndices = 0;
+      myResetIndices = true;
    }
 
    // public Object clone() throws CloneNotSupportedException {

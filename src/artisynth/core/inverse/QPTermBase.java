@@ -15,9 +15,14 @@ public abstract class QPTermBase implements QPTerm, HasProperties {
 
    public static final double defaultWeight = 1;
    
+   public static final boolean DEFAULT_ENABLED = true;
+   protected boolean enabled = DEFAULT_ENABLED;
+   
+   
    public static PropertyList myProps = new PropertyList (QPTermBase.class);
 
    static {
+      myProps.add ("enabled isEnabled setEnabled", "enable this term", DEFAULT_ENABLED);
       myProps.add ("weight * *", "weighting factor for this optimization term", 1);
    }
       
@@ -43,6 +48,14 @@ public abstract class QPTermBase implements QPTerm, HasProperties {
    
    public double getWeight() {
       return myWeight;
+   }
+   
+   public boolean isEnabled () {
+      return enabled;
+   }
+
+   public void setEnabled (boolean enabled) {
+      this.enabled = enabled;
    }
    
    public int getSize() {

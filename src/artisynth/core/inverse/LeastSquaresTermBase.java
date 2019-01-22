@@ -19,15 +19,11 @@ public abstract class LeastSquaresTermBase extends QPTermBase
    protected VectorNd f = new VectorNd(); //right hand side
   
    public static final double defaultWeight = 1;
-   
-   public static final boolean DEFAULT_ENABLED = true;
-   private boolean enabled = DEFAULT_ENABLED;
 
    public static PropertyList myProps =
       new PropertyList (LeastSquaresTermBase.class, QPTermBase.class);
 
    static {
-      myProps.add ("enabled isEnabled setEnabled", "enable this constraint", DEFAULT_ENABLED);
    }
    
    public PropertyList getAllPropertyInfo() {
@@ -93,11 +89,5 @@ public abstract class LeastSquaresTermBase extends QPTermBase
    }
    
 
-   public boolean isEnabled () {
-      return enabled;
-   }
 
-   public void setEnabled (boolean enabled) {
-      this.enabled = enabled;
-   }
 }

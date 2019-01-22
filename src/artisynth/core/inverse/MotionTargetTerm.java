@@ -68,7 +68,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
    
    boolean debug = false;
-   boolean enabled = true;
    // Avoids recomputation of the velocity Jacobian. This actually gives
    // incorrect results and is provided for comparison with legacy code only.
    public static boolean keepVelocityJacobianConstant = false;
@@ -327,16 +326,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       prevTargetPos.set (myTargetPos);
    }
 
-   public boolean isEnabled() {
-      return enabled;
-   }
-
-   public void setEnabled(boolean enabled) {
-      this.enabled = enabled;
-      // if (myMech != null && myMech instanceof MechModel) {
-      // ((MechModel)myMech).setDynamicsEnabled(enabled);
-      // }
-   }
 
    /**
     * get current velocity projected into target velocity subspace

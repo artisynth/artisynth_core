@@ -196,7 +196,7 @@ public class AABB extends BVNode {
       double[] min = {myMin.x, myMin.y, myMin.z};
       double[] max = {myMax.x, myMax.y, myMax.z};
       double[] p1v = {p1.x, p1.y, p1.z};
-      double[] p2v = {p2.x, p2.y, p2.z};
+      // double[] p2v = {p2.x, p2.y, p2.z};
 
       double near = Double.NEGATIVE_INFINITY;
       double far = Double.POSITIVE_INFINITY;
@@ -205,12 +205,14 @@ public class AABB extends BVNode {
       // check line/plane intersections
       for (int i=0; i<3; i++) {
          if (dir[i] == 0) {
-            if ( (min[i]-p1v[i] > 0) || (max[i]-p1v[i] < 0)) {
+            // outside range of [min[i], max[i]]
+            if ( (p1v[i] < min[i]) || (p1v[i] > max[i])) {
                return false;
             }
          } else {
+            // intersect with near/far planes
             t1 = (min[i]-p1v[i]) / dir[i];
-            t2 = (min[i]-p2v[i]) / dir[i];
+            t2 = (max[i]-p1v[i]) / dir[i];
             tMin = Math.min(t1, t2);
             tMax = Math.max(t1, t2);
             if (tMin > near) {

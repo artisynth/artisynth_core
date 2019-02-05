@@ -82,7 +82,7 @@ public class MFreeMuscleModel extends MFreeModel3d
       
    PropertyMode myDirectionRenderTypeMode = PropertyMode.Inherited;
    PropertyMode myDirectionRenderLenMode = PropertyMode.Inherited;
-//   private boolean myDrawFibers = false;
+   //   private boolean myDrawFibers = false;
 
    protected float[] myExcitationColor = null;
    protected PropertyMode myExcitationColorMode = PropertyMode.Inherited;
@@ -91,8 +91,8 @@ public class MFreeMuscleModel extends MFreeModel3d
 
    // fields related to fiber mesh and making the entire muscle an
    // excitation component
-//   protected PolylineMesh myFiberMesh = null;
-//   protected boolean myFiberMeshActive = false;
+   //   protected PolylineMesh myFiberMesh = null;
+   //  protected boolean myFiberMeshActive = false;
    protected Vector3d myTmpDir = new Vector3d();
    private double myExcitation = 0;
    protected ExcitationSourceList myExcitationSources;
@@ -502,7 +502,7 @@ public class MFreeMuscleModel extends MFreeModel3d
    public void applyForces(double t) {
       super.applyForces(t);
       for (MuscleBundle mus : myMuscleList) {
-         mus.applyForce(t);
+         mus.applyForces(t);
       }
    }
 

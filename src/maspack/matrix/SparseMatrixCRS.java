@@ -37,6 +37,57 @@ public class SparseMatrixCRS extends SparseMatrixBase implements LinearTransform
    public SparseMatrixCRS () {
       this (0, 0);
    }
+   
+   /**
+    * Returns the value at provided index within compressed storage format
+    * @param idx value index
+    * @return value
+    */
+   public double getValue(int idx) {
+      return myVals[idx];
+   }
+   
+   /**
+    * Returns the offset of the row within the compressed storage format
+    * @param ridx index of row
+    * @return row offset
+    */
+   public int getRowOffset(int ridx) {
+      return myRowOffs[ridx];
+   }
+   
+   /**
+    * Returns the column at the provided index within compressed storage format 
+    * @param idx index in compressed storage
+    * @return column
+    */
+   public int getColumn(int idx) {
+      return myCols[idx];
+   }
+   
+   /**
+    * Returns the row at the provided index within compressed storage format
+    * @param idx index in compressed storage
+    * @return row
+    */
+   public int getRow(int idx) {
+      // binary search offsets
+      int low = 0;
+      int hi = nrows;
+      
+      while (hi != low) {
+         int row = (hi+low)/2;
+         int v = myRowOffs[row];
+         if (idx < v) {
+            hi = row;
+         } else if (idx < myRowOffs[row+1]) {
+            return row;
+         } else {
+            low = row+1;
+         }
+      }
+      return low;
+   }
 
    /** 
     * Creates an empty sparse matrix with a specified size.
@@ -1640,7 +1691,7 @@ public class SparseMatrixCRS extends SparseMatrixBase implements LinearTransform
       if (offset >= 0) {
          myVals[offset] += v;
       } else {
-         set(i,j, v);
+         set(i, j, v);
       }
    }
 }

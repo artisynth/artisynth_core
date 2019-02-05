@@ -20,8 +20,10 @@ if [ "$OSNAME" = "Linux" ] ; then
        OS=$OSNAME
        MEM_LIMIT="-Xmx2G"
     fi
-    contains $LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/$OS
-    if [ $? -ne 0 ] || [ -z $LD_LIBRARY_PATH ] ; then
+    # contains $LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/$OS
+    # if [ $? -ne 0 ] || [ -z $LD_LIBRARY_PATH ] ; then
+    if [[ "$LD_LIBRARY_PATH" != *"$ARTISYNTH_HOME/lib/$OS"* ]] || [ -z $LD_LIBRARY_PATH ] ; then
+        # echo exporting LD_LIBRARY_PATH=$ART/lib/$OS:$LD_LIBRARY_PATH
         export LD_LIBRARY_PATH=$ART/lib/$OS:$LD_LIBRARY_PATH
     fi
     PATH="$PATH:$ART/bin"

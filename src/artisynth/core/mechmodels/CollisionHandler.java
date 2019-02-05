@@ -547,33 +547,35 @@ public class CollisionHandler extends ConstrainerBase
 
       double maxpen = 0;
 
-      for (EdgeEdgeContact eec : eecs) {
-         // Check if the contact has already been corrected by other contact
-         // corrections.
-         //if (eec.calculate()) {
-
-         ContactPoint pnt0, pnt1;
-         pnt0 = new ContactPoint (eec.point0, eec.edge0, eec.s0);
-         pnt1 = new ContactPoint (eec.point1, eec.edge1, eec.s1);
-
-         ContactConstraint cons = getContact (
-            myBilaterals0, pnt0, pnt1, false, eec.displacement);
-         // As long as the constraint exists and is not already marked 
-         // as active, then we add it
-         if (cons != null) {
-            cons.setActive (true);
-
-            double dist = setEdgeEdge (cons, eec, collidable0, collidable1);
-            if (!cons.isControllable()) {
-               cons.setActive (false);
-               continue;
-            } 
-            cons.setDistance (dist);
-            if (-dist > maxpen) {
-               maxpen = -dist;
-            }               
+      if (eecs != null) {
+         for (EdgeEdgeContact eec : eecs) {
+            // Check if the contact has already been corrected by other contact
+            // corrections.
+            //if (eec.calculate()) {
+   
+            ContactPoint pnt0, pnt1;
+            pnt0 = new ContactPoint (eec.point0, eec.edge0, eec.s0);
+            pnt1 = new ContactPoint (eec.point1, eec.edge1, eec.s1);
+   
+            ContactConstraint cons = getContact (
+               myBilaterals0, pnt0, pnt1, false, eec.displacement);
+            // As long as the constraint exists and is not already marked 
+            // as active, then we add it
+            if (cons != null) {
+               cons.setActive (true);
+   
+               double dist = setEdgeEdge (cons, eec, collidable0, collidable1);
+               if (!cons.isControllable()) {
+                  cons.setActive (false);
+                  continue;
+               } 
+               cons.setDistance (dist);
+               if (-dist > maxpen) {
+                  maxpen = -dist;
+               }               
+            }
+            //}
          }
-         //}
       }
       return maxpen;
    }

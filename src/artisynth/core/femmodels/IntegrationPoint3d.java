@@ -55,16 +55,26 @@ public class IntegrationPoint3d {
       init (nnodes, npvals);
       setCoords (s0, s1, s2);
       setWeight (w);
+      setElementClass (ElementClass.VOLUMETRIC); // XXX default volumetric
    }
-
+   
    public IntegrationPoint3d (int nnodes) {
       this(nnodes, 1);
    }
    
    public IntegrationPoint3d (int nnodes, int npvals) {
       init(nnodes, npvals);
+      setElementClass (ElementClass.VOLUMETRIC); // XXX default volumetric
    }
 
+   protected void setElementClass (ElementClass elemClass) {
+      myElemClass = elemClass;
+   }
+   
+   public ElementClass getElementClass() {
+      return myElemClass;
+   }
+   
    /**
     * Returns the number of this integration point. This will be
     * in the range 0 to numi-1, where numi is the number of
@@ -116,7 +126,7 @@ public class IntegrationPoint3d {
 	 pnt.setShapeGrad (i, dNds);
       }
       pnt.setShapeWeights (shapeWeights);
-      pnt.myElemClass = elem.getElementClass();
+      pnt.setElementClass (elem.getElementClass());
       pnt.myElem = elem;
       if (npvals > 0) {
          for (int i=0; i<npvals; i++) {

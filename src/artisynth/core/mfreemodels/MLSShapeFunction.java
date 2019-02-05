@@ -40,7 +40,17 @@ public class MLSShapeFunction implements MFreeShapeFunction {
    VectorNd[] dNds;
    
    public MLSShapeFunction() {
-      setBasisFunctions(getPolynomialBasis(LINEAR_ORDER));
+      this(LINEAR_ORDER);
+   }
+   
+   public MLSShapeFunction(int order) {
+      setBasisFunctions(getPolynomialBasis(order));
+      myPnt = new Point3d();
+   }
+   
+   public MLSShapeFunction(MFreeNode3d[] nodes, int order) {
+      setBasisFunctions(getPolynomialBasis(order));
+      setNodes (nodes);
       myPnt = new Point3d();
    }
    
@@ -231,10 +241,14 @@ public class MLSShapeFunction implements MFreeShapeFunction {
          addScaledOuterProduct (M, w, pRest[i]);
       }
       
-      SVDecomposition svd = new SVDecomposition(M);
-      svd.pseudoInverse(Minv);
-      if (svd.condition()>1e10) {
-         System.out.println("Warning: poor condition number, "+svd.condition());
+      if (M.rowSize () == 1) {
+         Minv.set (0,0,1.0/M.get (0, 0));
+      } else {
+         SVDecomposition svd = new SVDecomposition(M);
+         svd.pseudoInverse(Minv);
+         if (svd.condition()>1e10) {
+            System.out.println("Warning: poor condition number, "+svd.condition());
+         }
       }
       
       // evaluation point p

@@ -27,6 +27,7 @@ import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemBase;
+import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.mechmodels.MotionTargetComponent;
 import artisynth.core.mechmodels.Point;
@@ -69,6 +70,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    boolean debug = false;
    boolean enabled = true;
+   // Avoids recomputation of the velocity Jacobian. This actually gives
+   // incorrect results and is provided for comparison with legacy code only.
+   public static boolean keepVelocityJacobianConstant = false;
 
    protected TrackingController myController;
    protected MechSystemBase myMech;    // mech system, used to compute forces
@@ -555,9 +559,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       myTargets.add(tframe);
 
       // add mesh to TargetFrame
-      if (source.getMesh() != null) {
-         tframe.setMesh(new PolygonalMesh(source.getMesh()),
-            source.getMeshFileName());
+      PolygonalMesh mesh = null;
+      if ((mesh = source.getSurfaceMesh()) != null) {
+         tframe.setSurfaceMesh(mesh, source.getSurfaceMeshComp().getFileName());
          tframe.setRenderProps (source.getRenderProps ());
          RenderProps.setDrawEdges (tframe, true);
          RenderProps.setFaceStyle (tframe, FaceStyle.NONE);
@@ -735,10 +739,11 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * as the model moves
     */
    public SparseBlockMatrix getVelocityJacobian() {
-      
-//      if (myVelJacobian == null) {
+      // Again, keepVelocityJacobianConstant should be false, unless set true
+      // for comparison with legacy code
+      if (myVelJacobian == null || !keepVelocityJacobianConstant) {
          createVelocityJacobian();
-//      }
+      }
       return myVelJacobian;
    }
 

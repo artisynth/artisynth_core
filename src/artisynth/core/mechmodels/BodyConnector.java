@@ -17,7 +17,6 @@ import maspack.spatialmotion.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import artisynth.core.femmodels.*;
 import artisynth.core.util.*;
 
 public abstract class BodyConnector extends RenderableComponentBase
@@ -33,6 +32,9 @@ public abstract class BodyConnector extends RenderableComponentBase
    private boolean myEnabledP = true;
    protected RigidBodyCoupling myCoupling;
    
+   // use an old (and presumably inaccurate) method for computing constraint
+   // derivatives, simply for compatibility
+   public static boolean useOldDerivativeMethod = false;
    private boolean myAdjustBodyAExplicitP = false;  // automatically select body to adjust
 
    protected VectorNd myCompliance = null;
@@ -461,6 +463,14 @@ public abstract class BodyConnector extends RenderableComponentBase
    private void computeDotXv (
       Twist dotXv, Twist velAinC, Twist velBinD, RigidTransform3d TCD,
       Twist dvelAinC, Twist dvelBinD) {
+
+      if (useOldDerivativeMethod) {
+         // incorrect results; provided for legacy use only
+         Twist velBinC = new Twist(velBinD);
+         velBinC.inverseTransform (TCD);
+         dotXv.cross (velBinC, velAinC);
+         return;
+      }
 
       dotXv.set (dvelAinC);
 
@@ -1398,16 +1408,25 @@ public abstract class BodyConnector extends RenderableComponentBase
 
       public void transformGeometry (
          GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-
-         if (myAttachment == myAttachmentA) {
-            //System.out.println ("Updating TCW");
-         }
-         else {
-            //System.out.println ("Updating TDW");
-         }
          updateAttachment (myAttachment, myTXW);
       }
    }
+   
+   private class UpdatePosStateAction implements TransformGeometryAction {
+
+      FrameAttachment myAttachment;
+
+      UpdatePosStateAction (FrameAttachment attachment) {
+         myAttachment = attachment;
+      }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         myAttachment.updatePosStates();
+      }
+   }
+   
+   
 
    private boolean allMastersTransforming (
       FrameAttachment a, TransformGeometryContext context) {
@@ -1502,7 +1521,6 @@ public abstract class BodyConnector extends RenderableComponentBase
             updateAttachmentA = true;
          }
       }
-
       if (updateAttachmentA || updateAttachmentB) {
          boolean correctErrors = numBilateralConstraints() > 0;
          if (correctErrors) {
@@ -1527,7 +1545,15 @@ public abstract class BodyConnector extends RenderableComponentBase
             context.addAction (new UpdateConnectorAction (TDW, myAttachmentB));
          }
       }
-      
+      // for attachments that don't need updating, still issue a request
+      // to update their pos states after the transforming is done (in
+      // case we need to update things like world locations).
+      if (!updateAttachmentA) {
+         context.addAction (new UpdatePosStateAction (myAttachmentA));
+      }
+      if (!updateAttachmentB) {
+         context.addAction (new UpdatePosStateAction (myAttachmentB));
+      }
    }
    
    public void addTransformableDependencies (
@@ -1906,6 +1932,14 @@ public abstract class BodyConnector extends RenderableComponentBase
    //    boolean allFree = recursivelyFindFreeAttachedBodies (
    //       body, freeBodies, connectors, visited, context);
    //    return allFree;
-   // }   
+   // }  
+   
+   public FrameAttachment getFrameAttachmentA() {
+      return myAttachmentA;
+   }
+   
+   public FrameAttachment getFrameAttachmentB() {
+      return myAttachmentB;
+   }
 
 }

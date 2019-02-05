@@ -21,6 +21,7 @@ import maspack.geometry.PolygonalMeshRenderer;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.LUDecomposition;
 import maspack.matrix.Matrix3d;
+import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
@@ -36,7 +37,7 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
    private MFreeShapeFunction myShapeFunction;
    
    protected DynamicArray<MFreeIntegrationPoint3d> myIntegrationPoints;
-   double[] myNodalExtrapolationMatrix = null;
+   MatrixNd myNodalExtrapolationMatrix = null;
    MFreeIntegrationPoint3d myWarpingPoint;
  
    protected boolean myIntegrationDataValid = false;
@@ -288,9 +289,9 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
    public void setRestVolume(double vol) {
       // adjust integration weights
       
-      double rcompute = computeRestVolumes();
+      computeRestVolumes();
       for (MFreeIntegrationPoint3d pt : myIntegrationPoints.getArray()) {
-         pt.setWeight(pt.getWeight() * vol / rcompute);
+         pt.setWeight(pt.getWeight() * vol / getRestVolume());
       }
       computeVolumes();
          
@@ -635,16 +636,17 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
 //      return myPressureWeightMatrix;
 //   }
 //
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          // build
          IntegrationData3d[] idata = getIntegrationData();
          IntegrationPoint3d[] ipnts = getIntegrationPoints();
-         myNodalExtrapolationMatrix = new double[idata.length*myNodes.length];
+         myNodalExtrapolationMatrix = 
+            new MatrixNd (idata.length, myNodes.length);
          for (int k=0; k<idata.length; ++k) {
             VectorNd N = ipnts[k].getShapeWeights();
             for (int j=0; j<myNodes.length; ++j) {
-               myNodalExtrapolationMatrix[j * ipnts.length + k] = N.get(j);
+               myNodalExtrapolationMatrix.set (j, k, N.get(j));
             }
          }
       }
@@ -841,6 +843,11 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
 
    @Override
    public int[] getFaceIndices() {
+      return new int[0];
+   }
+
+   @Override
+   public int[] getTriangulatedFaceIndices() {
       return new int[0];
    }
 

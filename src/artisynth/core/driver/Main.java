@@ -2847,8 +2847,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
          }
       }
       else if (e.getCode() == ComponentChangeEvent.Code.GEOMETRY_CHANGED) {
-         // getWorkspace().getWayPoints().invalidateAll();
-         // myTimeline.requestUpdateDisplay();
          if (!getScheduler().isPlaying()) {
             rerender();
          }

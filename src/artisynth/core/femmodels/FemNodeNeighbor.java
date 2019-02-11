@@ -210,7 +210,7 @@ public class FemNodeNeighbor {
             blk = (Matrix3x3Block)S.getBlockByNumber(myBlkNum11);
             blk.scaledAdd (sk, myK11, blk);
             if (node == myNode && node.isActiveLocal()) {
-               addMassDamping (blk, sm*myNode.getMass());
+               addMassDamping (blk, sm*myNode.getBackNode().getMass());
             }
          }
       }

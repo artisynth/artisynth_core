@@ -1028,11 +1028,11 @@ public class TriangleIntersector {
     * The third vertice.
     * @param p
     * The point to measure from.
-    * @param closest
-    * The closest point to p on the triangle.
-    * @param uv
-    * The barycentric coordinates of the nearest point where u and v are the
-    * weights for vertices 1 and 2 respectively.
+    * @param closest (optional) 
+    * Returns the closest point to p on the triangle.
+    * @param uv (optional)
+    * Returns the barycentric coordinates of the nearest
+    * point where u and v are the weights for vertices 1 and 2 respectively.
     * @return The distance from point p to the nearest point on triangle v0, v1
     * and v2.
     */

@@ -353,7 +353,7 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       IndentingPrintWriter.addIndentation (pw, 2);
       printElementReference (pw, ancestor);
       pw.println ("");
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
    }

@@ -84,6 +84,7 @@ public class DantzigLCPSolver {
    protected int myIterationCnt;
    protected boolean myComputeResidual = false;
    protected double myResidual = 0;
+   protected boolean mySilentP = false;
 
    public static final int SHOW_NONE = 0x00;
    public static final int SHOW_PIVOTS = 0x01;
@@ -133,6 +134,14 @@ public class DantzigLCPSolver {
 
    public void setDebug (int code) {
       myDebug = code;
+   }
+
+   public boolean getSilent() {
+      return mySilentP;
+   }
+
+   public void setSilent (boolean code) {
+      mySilentP = code;
    }
 
    public boolean getComputeResidual() {
@@ -1170,8 +1179,10 @@ public class DantzigLCPSolver {
             else {
                myPivotOK[s] = false;
                myTol = 2 * Math.abs (mv[s]);
-               System.out.println (
-                  "pivot " + s + " REJECTED, r=" + r + " tol=" + myTol);
+               if (!mySilentP) {
+                  System.out.println (
+                     "pivot " + s + " REJECTED, r=" + r + " tol=" + myTol);
+               }
             }
          }
          while (theta != theta0 && theta != theta1);

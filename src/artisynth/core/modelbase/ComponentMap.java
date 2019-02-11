@@ -246,7 +246,7 @@ public class ComponentMap {
 
    public void resetIndex (ModelComponent comp, int idx) {
       myNumberMap[comp.getNumber()] = idx;
-      myNumberCacheValid = false;
+      //myNumberCacheValid = false;
    }
    
    public void clearIndices() {

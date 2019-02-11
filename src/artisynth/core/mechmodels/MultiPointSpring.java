@@ -81,7 +81,8 @@ public class MultiPointSpring extends PointSpringBase
    protected boolean myRenderObjValidP = false;
    protected static final Color DEFAULT_CONTACTING_KNOTS_COLOR = null;
    protected Color myContactingKnotsColor = DEFAULT_CONTACTING_KNOTS_COLOR;
-   protected Color myABPointColor = Color.CYAN;
+   protected static final Color DEFAULT_AB_POINT_COLOR = Color.CYAN;
+   protected Color myABPointColor =  DEFAULT_AB_POINT_COLOR;
 
    protected static double DEFAULT_WRAP_STIFFNESS = 1;
    protected static double DEFAULT_WRAP_DAMPING = -1;
@@ -93,7 +94,7 @@ public class MultiPointSpring extends PointSpringBase
    protected static double DEFAULT_CONV_TOL = 1e-4;
    protected static boolean DEFAULT_DRAW_KNOTS = false;
    protected static boolean DEFAULT_DRAW_AB_POINTS = false;
-   protected static int DEFAULT_MAX_WRAP_ITERATIONS = 100;
+   protected static int DEFAULT_MAX_WRAP_ITERATIONS = 10;
    protected static int DEFAULT_MAX_WRAP_DISPLACEMENT = -1;
    protected static boolean DEFAULT_PROFILING = false;
 
@@ -226,7 +227,58 @@ public class MultiPointSpring extends PointSpringBase
          myRenderPos[2] = (float)myPos.z;
          return myRenderPos;
       }
+
+      void write (PrintWriter pw, NumberFormat fmt) throws IOException {
+         pw.print ("[ ");
+         pw.print ("pos=");
+         myPos.write (pw, fmt, true);
+         IndentingPrintWriter.addIndentation (pw, 2);
+         pw.println ("");
+         if (!myLocPos.equals (Vector3d.ZERO)) {
+            pw.print ("loc=");
+            myLocPos.write (pw, fmt, true);
+            pw.println ("");
+         }
+         pw.println ("prevDist=" + fmt.format(myPrevDist));
+         pw.println ("prevWrapIdx=" + myPrevWrappableIdx);
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
+
+      void scan (ReaderTokenizer rtok, boolean contacting) throws IOException {
+         rtok.scanToken ('[');
+         while (rtok.nextToken() != ']') {
+            if (ScanWriteUtils.scanAttributeName (rtok, "pos")) {
+               myPos.scan (rtok);
+            }
+            else if (ScanWriteUtils.scanAttributeName (rtok, "loc")) {
+               myLocPos.scan (rtok);
+            }
+            else if (ScanWriteUtils.scanAttributeName (rtok, "prevDist")) {
+               if (contacting) {
+                  myDist = rtok.scanNumber();
+               }
+               else {
+                  myPrevDist = rtok.scanNumber();
+                  myDist = Wrappable.OUTSIDE;
+               }
+            }
+            else if (ScanWriteUtils.scanAttributeName (rtok, "prevWrapIdx")) {
+               if (contacting) {
+                  myWrappableIdx = rtok.scanInteger();
+               }
+               else {
+                  myPrevWrappableIdx = rtok.scanInteger();
+                  myWrappableIdx = -1;
+               }
+            }
+            else {
+               throw new IOException ("Unrecognized token " + rtok);
+            }
+         }
+      }
    }
+
 
    /**
     * Stores information for an individual segment of this spring.  This
@@ -591,6 +643,17 @@ public class MultiPointSpring extends PointSpringBase
          }
          return myContactCnts;
       }
+
+      protected boolean isContacting() {
+         if (myContactCnts != null) {
+            for (int i=0; i<myContactCnts.length; i++) {
+               if (myContactCnts[i] > 0) {
+                  return true;
+               }
+            }
+         }
+         return false;
+      }         
      
       WrapSegment () {
          this (0, null);
@@ -805,8 +868,8 @@ public class MultiPointSpring extends PointSpringBase
             WrapKnot knot = myKnots[k];
             Wrappable wrappable = knot.getWrappable();
             if (wrappable != null) {
-               // transform knot position to accomodate rigid body
-               // displacement. Compute displacment in disp1.
+               // transform knot position to accommodate rigid body
+               // displacement. Compute displacement in disp1.
                disp1.set (knot.myPos);
                knot.myPos.transform (wrappable.getPose(), knot.myLocPos);
                disp1.sub (knot.myPos, disp1);
@@ -1197,23 +1260,23 @@ public class MultiPointSpring extends PointSpringBase
             boolean invalid = false;
 
             if (wrappable != null) {
-               TetDesc tet0 = null;
-               if (wrappable instanceof RigidMesh) {
-                  tet0 = ((RigidMesh)wrappable).getQuadTet(q0);
-               }
+//               TetDesc tet0 = null;
+//               if (wrappable instanceof RigidMesh) {
+//                  tet0 = ((RigidMesh)wrappable).getQuadTet(q0);
+//               }
                double d = wrappable.penetrationDistance (nrm, null, q0);
                f0.scale (-d*myContactStiffness, nrm);
                for (int i=0; i<3; i++) {
                   q.set (q0);
                   q.set (i, q.get(i)+h);
                   d = wrappable.penetrationDistance (nrm, null, q);
-                  if (tet0 != null) {
-                     TetDesc tet = ((RigidMesh)wrappable).getQuadTet(q);
-                     if (!tet.equals (tet0)) {
-                        tetChanged = true;
-                        invalid = true;
-                     }
-                  }
+//                  if (tet0 != null) {
+//                     TetDesc tet = ((RigidMesh)wrappable).getQuadTet(q);
+//                     if (!tet.equals (tet0)) {
+//                        tetChanged = true;
+//                        invalid = true;
+//                     }
+//                  }
                   if (d > 0) {
                      contactChanged = true;
                      invalid = true;
@@ -2155,7 +2218,7 @@ public class MultiPointSpring extends PointSpringBase
 
             //updateStiffnessNumerically(dscale);
             boolean clipped = (factorAndSolve(dvec) < 1.0);
-            
+                                
             double r0 = forceDotDisp(dvec);
             double denom = forceNorm()*dvec.norm();
             double cos = r0/denom;
@@ -2282,6 +2345,7 @@ public class MultiPointSpring extends PointSpringBase
             //prevForce = forceNorm();
          }
          while (++icnt < maxIter && !converged);
+
          if (myUpdateContactsP) {
             saveContactingKnotPositions();
          }
@@ -2304,26 +2368,6 @@ public class MultiPointSpring extends PointSpringBase
             totalFails++;
          }
          myIterationCnt += icnt;
-         if (false && debugLevel > 0) {
-            for (int k=0; k<myNumKnots; k++) {
-               WrapKnot knot = myKnots[k];
-               Wrappable wrappable = null;
-               if ((wrappable=knot.getWrappable()) != null) {
-                  System.out.printf (
-                     " %d d=%9.6f  nrm=%9.6f %9.6f %9.6f  mag=%9.6f ", 
-                     k, knot.myDist,
-                     knot.myNrml.x, knot.myNrml.y, knot.myNrml.z,
-                     knot.myNrml.norm());
-                  if (wrappable instanceof RigidMesh) {
-                     TetDesc tdesc = ((RigidMesh)wrappable).getQuadTet (knot.myPos);
-                     System.out.println (tdesc);
-                  }
-                  else {
-                     System.out.println ("");
-                  }
-               }
-            }
-         }
          if ((totalCalls % 100) == 0) {
             // System.out.println (
             //    "fails=" + totalFails + "/" + totalCalls + "  avg icnt=" +
@@ -2698,15 +2742,40 @@ public class MultiPointSpring extends PointSpringBase
          throws IOException {
 
          rtok.nextToken();
-         if (ScanWriteUtils.scanAttributeName (rtok, "knots")) {
-            Vector3d[] list = ScanWriteUtils.scanVector3dList (rtok);
-            myNumKnots = list.length;
-            myKnots = new WrapKnot[myNumKnots];
-            for (int i=0; i<list.length; i++) {
-               WrapKnot knot = new WrapKnot();
-               knot.myPos.set (list[i]);
-               myKnots[i] = knot;
+         if (ScanWriteUtils.scanAttributeName (rtok, "contactCnts")) {
+            rtok.scanToken ('[');
+            ArrayList<Integer> contactCnts = new ArrayList<Integer>();
+            while (rtok.nextToken() != ']') {
+               rtok.pushBack();
+               contactCnts.add (rtok.scanInteger());
             }
+            myContactCnts = ArraySupport.toIntArray (contactCnts);
+            return true;
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "lastPntA")) {
+            myLastPntA.scan (rtok);
+            return true;
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "lastPntB")) {
+            myLastPntB.scan (rtok);
+            return true;
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "dscale")) {
+            myDscale = rtok.scanNumber();
+            return true;
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "knots")) {
+            boolean contacting = isContacting();
+            rtok.scanToken ('[');
+            ArrayList<WrapKnot> knots = new ArrayList<WrapKnot>();
+            while (rtok.nextToken() != ']') {
+               rtok.pushBack();
+               WrapKnot knot = new WrapKnot();
+               knot.scan (rtok, contacting);
+               knots.add (knot);
+            }
+            myKnots = (WrapKnot[])knots.toArray(new WrapKnot[0]);
+            myNumKnots = knots.size();
             return true;
          }
          else if (ScanWriteUtils.scanAttributeName (rtok, "initialPoints")) {
@@ -2730,13 +2799,27 @@ public class MultiPointSpring extends PointSpringBase
          throws IOException {
 
          super.writeItems (pw, fmt, ancestor);
+         int[] contactCnts = getContactCnts();
+         pw.print ("contactCnts=[ ");
+         for (int cnt : contactCnts) {
+            pw.print (cnt + " ");
+         }
+         pw.println ("]");
+         pw.print ("lastPntA=");
+         myLastPntA.write (pw, fmt, true);
+         pw.println ("");
+         pw.print ("lastPntB=");
+         myLastPntB.write (pw, fmt, true);
+         pw.println ("");
+         pw.println ("dscale=" + fmt.format(myDscale));
          if (myNumKnots > 0) {
-            pw.print ("knots=");
-            Vector3d[] list = new Vector3d[myKnots.length];
+            pw.println ("knots=[");
+            IndentingPrintWriter.addIndentation (pw, 2);
             for (int i=0; i<myKnots.length; i++) {
-               list[i] = myKnots[i].myPos;
+               myKnots[i].write (pw, fmt);
             }
-            ScanWriteUtils.writeVector3dList (pw, fmt, list);
+            IndentingPrintWriter.addIndentation (pw, -2);
+            pw.println ("]");
          }
          if (myInitialPnts != null) {
             pw.print ("initialPoints=");
@@ -3036,8 +3119,11 @@ public class MultiPointSpring extends PointSpringBase
          "drawKnots", "draw wrap strand knots",
          DEFAULT_DRAW_KNOTS);
       myProps.add (
-         "drawABPoints", "draw A and B points on wrapping obstacles",
+         "drawABPoints", "draw A/B points on wrapping obstacles",
          DEFAULT_DRAW_AB_POINTS);
+      myProps.add (
+         "ABPointColor", "color to use when drawing A/B points",
+         DEFAULT_AB_POINT_COLOR);
       myProps.add (
          "contactingKnotsColor", "draw contacting knots with this color",
          DEFAULT_CONTACTING_KNOTS_COLOR);
@@ -3198,7 +3284,7 @@ public class MultiPointSpring extends PointSpringBase
                WrapSegment wrapSeg = (WrapSegment)seg;
                wrapSeg.initializeStrand (/*initialPnts=*/null);
                wrapSeg.updateWrapStrand(myMaxWrapIterations);
-               // A/B points are computed here
+               // A/B points are computed here:
                wrapSeg.updateSubSegments();
             }
          }
@@ -3215,7 +3301,7 @@ public class MultiPointSpring extends PointSpringBase
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
             wrapSeg.updateWrapStrand(maxIter);
-            // A/B points are computed here
+            // A/B points are computed here:
             wrapSeg.updateSubSegments();
          }
       }
@@ -3263,8 +3349,8 @@ public class MultiPointSpring extends PointSpringBase
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
          if (seg.hasSubSegments()) {
-            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
-               sg.applyForce (F);
+            for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
+               ss.applyForce (F);
             }
          }
          else {
@@ -3347,6 +3433,14 @@ public class MultiPointSpring extends PointSpringBase
                   "Unexpected token for segment "+i+": " + tokens.poll());
             }
          }
+         if (seg instanceof WrapSegment) {
+            WrapSegment wrapSeg = (WrapSegment)seg;
+            if (wrapSeg.isContacting()) {
+               wrapSeg.updateContacts (wrapSeg.myContactCnts, true);
+            }
+            wrapSeg.updateSubSegments();
+            wrapSeg.myLength = wrapSeg.computeLength();
+         }
          tokens.poll(); // eat END token      
       }
       tok = tokens.poll();
@@ -3377,6 +3471,11 @@ public class MultiPointSpring extends PointSpringBase
       super.scan (rtok, ref);
    }
 
+   public void postscan (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      super.postscan (tokens, ancestor);
+   }
+   
    protected boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       if (postscanAttributeName (tokens, "segments")) {
@@ -3515,17 +3614,17 @@ public class MultiPointSpring extends PointSpringBase
             if (seg instanceof WrapSegment) {
                WrapSegment wrapSeg = (WrapSegment)seg;
                ArrayList<float[]> renderPoints = null;
-               SubSegment sg = wrapSeg.firstSubSegment();
-               if (sg != null) {
+               SubSegment ss = wrapSeg.firstSubSegment();
+               if (ss != null) {
                   renderPoints = new ArrayList<float[]>(10);
-                  while (sg!=null) {
-                     if (sg.myAttachmentB != null) {
-                        renderPoints.add (getRenderCoords (sg.myPntB));
+                  while (ss!=null) {
+                     if (ss.myAttachmentB != null) {
+                        renderPoints.add (getRenderCoords (ss.myPntB));
                      }
-                     if (sg.myAttachmentA != null) {
-                        renderPoints.add (getRenderCoords (sg.myPntA));
+                     if (ss.myAttachmentA != null) {
+                        renderPoints.add (getRenderCoords (ss.myPntA));
                      }
-                     sg = sg.myNext;
+                     ss = ss.myNext;
                   }
                }
                wrapSeg.myRenderABPoints = renderPoints;
@@ -3650,8 +3749,8 @@ public class MultiPointSpring extends PointSpringBase
          Segment seg = mySegments.get(i);
          
          if (seg.hasSubSegments()) {
-            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
-               sg.updateU();
+            for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
+               ss.updateU();
             }
          }
          else {
@@ -3683,8 +3782,8 @@ public class MultiPointSpring extends PointSpringBase
          }
          // TODO: need to make sure uvec is up to for the segments
          if (seg.hasSubSegments()) {
-            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
-               lenDot += sg.getLengthDot();
+            for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
+               lenDot += ss.getLengthDot();
             }
          }
          else {
@@ -3745,8 +3844,8 @@ public class MultiPointSpring extends PointSpringBase
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
          if (seg.hasSubSegments()) {
-            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
-               sg.updateDfdx (dFdl, dFdldot);
+            for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
+               ss.updateDfdx (dFdl, dFdldot);
             }
          }
          else {
@@ -3759,8 +3858,8 @@ public class MultiPointSpring extends PointSpringBase
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
          if (seg.hasSubSegments()) {
-            for (SubSegment sg=seg.firstSubSegment(); sg!=null; sg=sg.myNext) {
-               sg.updateP();
+            for (SubSegment ss=seg.firstSubSegment(); ss!=null; ss=ss.myNext) {
+               ss.updateP();
             }
          }
          else {
@@ -4510,15 +4609,15 @@ public class MultiPointSpring extends PointSpringBase
          Segment seg = mySegments.get (i);
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
-            SubSegment sg = wrapSeg.firstSubSegment ();
-            while (sg != null) {
-               if (sg.myAttachmentB != null) {
-                  pnts.add (sg.myPntB);
+            SubSegment ss = wrapSeg.firstSubSegment ();
+            while (ss != null) {
+               if (ss.myAttachmentB != null) {
+                  pnts.add (ss.myPntB);
                }
-               if (sg.myAttachmentA != null) {
-                  pnts.add (sg.myPntA);
+               if (ss.myAttachmentA != null) {
+                  pnts.add (ss.myPntA);
                }
-               sg = sg.myNext;
+               ss = ss.myNext;
             }
          }
       }

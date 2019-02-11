@@ -49,29 +49,6 @@ public class Scan {
       }
    }
 
-//   /**
-//    * Reads and returns am AxisAngle from a tokenizer. The AxisAngle should be
-//    * represented as four numbers surrounded by square brackets <code>[ ]</code>,
-//    * representing x, y, and z axis values, and the angle in degrees.
-//    * 
-//    * @param rtok
-//    * Tokenizer from which the color is read
-//    * @return AxisAngle object produced by the input
-//    * @throws IOException
-//    * if the AxisAngle is formatted incorrectly or if an I/O error occured
-//    */
-//   public static AxisAngle scanAxisAngle (ReaderTokenizer rtok)
-//      throws IOException {
-//      rtok.scanToken ('[');
-//      double x = rtok.scanNumber();
-//      double y = rtok.scanNumber();
-//      double z = rtok.scanNumber();
-//      double ang = rtok.scanNumber();
-//      rtok.scanToken (']');
-//
-//      return new AxisAngle (x, y, z, Math.toRadians (ang));
-//   }
-
    /**
     * Reads a set of double values, enclosed in square brackets <code>[
     * ]</code>.
@@ -446,50 +423,160 @@ public class Scan {
       return strings.toArray (new String[0]);
    }
 
-   /** 
-    * Scans a Scannable object, which is preceeded by it's class name.  An
-    * instance of the object is then created, and is itself then scanned.
+   /**
+    * Scans a class name and then returns the class associated with that
+    * name.
+    * 
+    * <p><i>Since this method temporarily changes the accepted word characters
+    * in order to read a class name, it should not be called if the next
+    * available token might have been pushed back on the token stream using
+    * {@link ReaderTokenizer#pushBack pushBack()}</i>.
     * 
     * @param rtok
     * Tokenizer from which values are read
-    * @return scannable object that was read.
+    * @return class object that was read
     * @throws IOException
-    * if there was an I/O error or if the Scannable object could not
-    * be instantiated.
+    * if no class is found for the class name
     */
-   public static Scannable scanScannable (ReaderTokenizer rtok, Object ref)
-      throws IOException {
-
-      Scannable sobj = null;
+   public static Class<?> scanClass (ReaderTokenizer rtok) throws IOException {
+      
       int savedDotSetting = rtok.getCharSetting ('.');
+      int savedDollarSetting = rtok.getCharSetting ('$');
       rtok.wordChar ('.');
+      rtok.wordChar ('$');
       String className = rtok.scanWord();
-      if (!className.equals ("null")) {
-         Class<?> sclass = null;
+      rtok.setCharSetting ('.', savedDotSetting);
+      rtok.setCharSetting ('$', savedDollarSetting);
+      
+      Class<?> clazz = null;
+      try {
+         clazz = Class.forName (className);
+      }
+      catch (Exception e) {
+         throw new IOException (
+            "No class found for class name '"+className+"'");
+      }
+      return clazz;
+   }
+
+   /**
+    * Scans a class name, creates an instance of that class, and then, if the
+    * class is Scannable, scans the instance.
+    * 
+    * <p><i>Since this method temporarily changes the accepted word characters
+    * in order to read a class name, it should not be called if the next
+    * available token might have been pushed back on the token stream using
+    * {@link ReaderTokenizer#pushBack pushBack()}</i>.
+    * 
+    * @param rtok
+    * Tokenizer from which values are read
+    * @param ref 
+    * if the object is {@link Scannable}, is passed to its {@link Scannable#scan
+    * scan()} method.
+    * @return instantiated and scanned object
+    * @throws IOException
+    * if no class is found for the class name, the class
+    * cannot be instantiated, or there was an error in scanning
+    */
+   public static Object scanClassAndObject (
+      ReaderTokenizer rtok, Object ref) throws IOException {
+      Class<?> clazz = scanClass (rtok);
+      Object obj = null;
+      if (clazz != null) {
          try {
-            sclass = Class.forName (className);
+            obj = clazz.newInstance();
          }
          catch (Exception e) {
-            // ignore
+            throw new IOException (
+               "Cannot instantiate class "+clazz.getName()+": "+e.getMessage());
          }
-         if (sclass == null) {
-            rtok.setCharSetting ('.', savedDotSetting);
-            throw new IOException ("Cannot resolve class " + className);
+         if (obj instanceof Scannable) {
+            Scannable sobj = (Scannable)obj;
+            sobj.scan (rtok, ref);
          }
+      }
+      return obj;
+   }
+
+   /**
+    * Attemptes to create and return a class instance based on a {@code
+    * defaultClass} and input from a tokenizer.
+    *
+    * <ol>
+    *
+    * <li> If the next token is a word, then this token is read. If it is
+    * {@code "null"}, then no instance is created and {@code null} is
+    * returned. Otherwise, the word is assumed to be the name of a class for
+    * which an instance is created and returned. The class must equal or be a
+    * subclass of {@code defaultClass}.
+    *
+    * <li> If the next token is not a word, then no token is read and
+    * an instance of {@code defaultClass} is created and returned.
+    *
+    * </ol>
+    *
+    * <p><i>Since this method temporarily changes the accepted word characters
+    * in order to read a class name, it should not be called if the next
+    * available token might have been pushed back on the token stream using
+    * {@link ReaderTokenizer#pushBack pushBack()}</i>.
+    *
+    * @param rtok
+    * Tokenizer from which values are read
+    * @param defaultClass default class type
+    * @return instantiated class object
+    * @throws IOException if no class is found for the class name specified in
+    * the input stream, or the class is not equal to, or a subclass of, {@code
+    * defaultClass}, or the class cannot be instantiated.
+    */
+   public static Object scanInstance (
+      ReaderTokenizer rtok, Class<?> defaultClass)
+      throws IOException {
+
+      Class<?> clazz = defaultClass;
+      boolean valueIsNull = false;
+            
+      int savedDotSetting = rtok.getCharSetting('.');
+      int savedDollarSetting = rtok.getCharSetting('$');
+      rtok.wordChar('.');
+      rtok.wordChar('$');
+      rtok.nextToken();
+      rtok.setCharSetting('.', savedDotSetting);
+      rtok.setCharSetting('$', savedDollarSetting);
+            
+      if (rtok.tokenIsWord()) {
+         if (rtok.sval.equals ("null")) {
+            valueIsNull = true;
+         }
+         else {
+            try {
+               clazz = Class.forName (rtok.sval);
+            }
+            catch (Exception e) {
+               throw new IOException ("Cannot resolve class " + rtok.sval);
+            }
+            if (!defaultClass.isAssignableFrom (clazz)) {
+               throw new IOException (
+                  "Class "
+                  + clazz.getName() + " not a sub class of "
+                  + defaultClass.getName());
+            }
+         }
+      }
+      else {
+         rtok.pushBack();
+      }
+      Scannable sobj = null;
+      if (!valueIsNull) {
          try {
-            sobj = (Scannable)sclass.newInstance();
+            sobj = (Scannable)clazz.newInstance();
          }
          catch (Exception e) {
             e.printStackTrace();
-            rtok.setCharSetting ('.', savedDotSetting);
-            throw new IOException (
-               "Cannot instantiate class " + sclass.getName());
+            throw new IOException ("Cannot instantiate class");
          }
-         sobj.scan (rtok, ref);         
       }
-      rtok.setCharSetting ('.', savedDotSetting);
       return sobj;
-   }
+   }  
 
    /**
     * Checks to see if the next input token corresponds to a specific field

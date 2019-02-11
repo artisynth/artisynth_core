@@ -13,6 +13,9 @@ import java.io.IOException;
 import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
 
+/**
+ * NOTE: Does not currently support shell elements
+ */
 public class SimpleFemReader {
 
    String nodeToken = "v";

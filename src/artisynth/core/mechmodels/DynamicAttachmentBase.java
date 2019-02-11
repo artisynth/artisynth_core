@@ -146,12 +146,12 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
     * Computes
     * <pre>
     *       T
-    * D -= G  B
+    * D -= G  M
     * </pre>
-    * where D and B are matrices associated with master and slave components,
+    * where D and M are matrices associated with master and slave components,
     * respectively, and G is the constraint matrix for the attachment.
     * @param D dependent matrix associated with a master component
-    * @param B matrix associated with a slave component
+    * @param M matrix associated with a slave component
     */
    public abstract void mulSubGTM (
       MatrixBlock D, MatrixBlock M, int idx);
@@ -167,7 +167,7 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
     * @param M matrix associated with a slave component
     */
    public abstract void mulSubMG (
-      MatrixBlock D, MatrixBlock B, int idx);
+      MatrixBlock D, MatrixBlock M, int idx);
 
    /**
     * Returns the transpose of the constraint matrix G associated

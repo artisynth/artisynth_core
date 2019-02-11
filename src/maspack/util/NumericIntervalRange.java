@@ -97,7 +97,7 @@ public class NumericIntervalRange extends RangeBase {
       if (rtok.nextToken() == ReaderTokenizer.TT_WORD) {
          if (rtok.sval.equals ("maxRange")) {
             rtok.scanToken ('=');
-            myMaxRange = (NumericInterval)Scan.scanScannable (rtok, ref);
+            myMaxRange = (NumericInterval)Scan.scanClassAndObject (rtok, ref);
          }
          else {
             throw new IOException ("Unrecognized keyword: "+rtok);

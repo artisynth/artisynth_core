@@ -743,7 +743,12 @@ public class Vector3i extends VectoriBase {
       if (withBrackets) {
          pw.print ("[ ");
       }
-      pw.print (fmt.format(x)+" "+fmt.format(y)+" "+fmt.format(z));
+      if (fmt.isFloatingPoint()) {
+         pw.print (x+" "+y+" "+z);
+      }
+      else {
+         pw.print (fmt.format(x)+" "+fmt.format(y)+" "+fmt.format(z));
+      }
       if (withBrackets) {
          pw.print (" ]");
       }

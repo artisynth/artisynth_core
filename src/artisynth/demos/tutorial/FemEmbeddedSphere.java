@@ -45,7 +45,7 @@ public class FemEmbeddedSphere extends RootModel {
       
       // Boundary condition: fixed LHS
       for (FemNode3d node : fem.getNodes()) {
-         if (node.getPosition().x < -0.49) {
+         if (node.getPosition().x == -0.2) {
             node.setDynamic(false);
          }
       }

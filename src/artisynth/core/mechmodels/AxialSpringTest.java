@@ -13,7 +13,7 @@ import java.util.Random;
 
 import artisynth.core.materials.LinearAxialMaterial;
 
-public class AxialSpringTest {
+public class AxialSpringTest extends UnitTest {
    private double DEFAULT_K = 2;
    private double DEFAULT_D = 10;
    private double DEFAULT_R = 1;
@@ -316,7 +316,7 @@ public class AxialSpringTest {
       return Mvv;
    }
 
-   private void test() {
+   public void test() {
       Point p0 = new Point();
       Point p1 = new Point();
 
@@ -337,13 +337,6 @@ public class AxialSpringTest {
 
    public static void main (String[] args) {
       AxialSpringTest tester = new AxialSpringTest();
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
-      }
-      System.out.println ("\nPassed\n");
+      tester.runtest();
    }
 }

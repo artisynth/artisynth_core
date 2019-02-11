@@ -284,7 +284,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
    @Override
    public void render(
       Renderer renderer, RenderProps props, int flags) {
-
       // highlight if either fem or mesh is selected
       if (isSelected()) {
          flags |= Renderer.HIGHLIGHT;
@@ -340,16 +339,6 @@ public abstract class FemMeshBase extends SkinMeshBase {
       return super.scanItem (rtok, tokens);
    }
 
-   protected boolean postscanItem (
-   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-      if (ScanWriteUtils.postscanPropertyValue (
-                  tokens, this, "surfaceRendering")) {
-         return true;
-      }
-      return super.postscanItem (tokens, ancestor);
-   }
-
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
@@ -358,7 +347,8 @@ public abstract class FemMeshBase extends SkinMeshBase {
 
       // surfaceRendering has to be written near the end because it has to be
       // scanned after the model and mesh structures.
-      myProps.get("surfaceRendering").writeIfNonDefault (this, pw, fmt);      
+      myProps.get("surfaceRendering").writeIfNonDefault (
+         this, pw, fmt, ancestor);      
    }
 
    @Override

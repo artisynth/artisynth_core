@@ -353,7 +353,7 @@ public abstract class Probe extends ModelAgentBase {
          pw.println ("stopTime=" + (long)(1e9)*getStopTime());
          pw.println ("updateInterval=" + (long)(1e9)*getUpdateInterval());
       }
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       pw.println ("track=" + myTrackNum);
       pw.println ("model=" + ComponentUtils.getPathName (ancestor, myModel));
    }

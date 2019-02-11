@@ -6,61 +6,75 @@
  */
 package artisynth.core.mechmodels;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
-import maspack.geometry.DistanceGrid;
-import maspack.geometry.Face;
+import artisynth.core.util.ScanToken;
 import maspack.geometry.GeometryTransformer;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 public class RigidMeshComp extends DynamicMeshComponent 
-   implements PointAttachable, HasSurfaceMesh, CollidableBody {
+   implements PointAttachable {
 
-   public static boolean DEFAULT_PHYSICAL = true;
+   private static double DEFAULT_VOLUME = 0;
+   protected double myVolume = 0;
+   protected boolean myVolumeValid = false;
+   protected boolean myVolumeExplicit = false;
 
-   protected boolean physical = DEFAULT_PHYSICAL;
+   private static double DEFAULT_DENSITY = 0;
+   protected double myDensity = 0;
+   protected boolean myDensityExplicit = false;
+   
+   private static double DEFAULT_MASS = 0;
+   protected double myMass = 0;
+   protected boolean myMassExplicit = false;
 
-   protected static final Collidability DEFAULT_COLLIDABILITY =
-      Collidability.ALL;   
-   protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
-   protected int myCollidableIndex;
+   public static boolean DEFAULT_HAS_MASS = true;
+   protected boolean myHasMassP = DEFAULT_HAS_MASS;
 
-   static int DEFAULT_MAX_GRID_DIVISIONS = 10; 
-   DistanceGrid mySDGrid = null;
-   int myMaxGridDivisions = DEFAULT_MAX_GRID_DIVISIONS;
-   double myGridMargin = 0.1;
+   protected static final boolean DEFAULT_IS_COLLIDABLE = true;
+   protected boolean myCollidableP = DEFAULT_IS_COLLIDABLE;
 
    public static PropertyList myProps = new PropertyList(
       RigidMeshComp.class, MeshComponent.class);
 
    static {
-      myProps.add("physical isPhysical setPhysical", "", DEFAULT_PHYSICAL);
+      myProps.add(
+         "hasMass hasMass setHasMass", 
+         "controls whether or not the mesh contributes to inertia", 
+         DEFAULT_HAS_MASS);
       myProps.add (
-         "collidable", 
-         "sets the collidability of the mesh", DEFAULT_COLLIDABILITY);
+         "volume", "volume of the mesh", DEFAULT_VOLUME, "NW");
       myProps.add (
-         "maxGridDivisions", 
-         "max divisions for signed distance grid", DEFAULT_MAX_GRID_DIVISIONS);
+         "mass", "mass of the mesh", DEFAULT_MASS, "NW");
+      myProps.add (
+         "density", "density of the mesh", DEFAULT_DENSITY, "NW");
+      myProps.add (
+         "isCollidable isCollidable setIsCollidable", 
+         "controls whether or not the mesh is collidable", 
+         DEFAULT_IS_COLLIDABLE);
    }
    
    public RigidMeshComp() {
       super();
-      physical = DEFAULT_PHYSICAL;
+      myHasMassP = DEFAULT_HAS_MASS;
    }
    
    public RigidMeshComp(String name) {
@@ -74,18 +88,228 @@ public class RigidMeshComp extends DynamicMeshComponent
       setMesh (mesh, fileName, X);
    }
 
+   public RigidMeshComp (MeshBase mesh) {
+      this (mesh, null, null);
+   }
+
+   @Override
+   public void setMesh (
+      MeshBase mesh, String fileName, AffineTransform3dBase X) {
+      super.setMesh (mesh, fileName, X);
+      if (mesh instanceof PolygonalMesh) {
+         myCollidableP = true;
+      }
+   }
+   
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
 
-   public boolean isPhysical() {
-      return physical;
+   /**
+    * Queries whether or not this RigidMeshComp has mass.  See {@link
+    * #setHasMass} for a description of what this means.
+    * 
+    * @return {@code true} if this RigidMeshComp has mass
+    */
+   public boolean hasMass() {
+      return myHasMassP;
    }
 
-   public void setPhysical(boolean set) {
-      physical = set;
+   /**
+    * Sets whether or not this RigidMeshComp has mass. If it does,
+    * then it contributes to the computation of the inertia of the associated
+    * rigid body when the <i>inertiaMode</i>} for that body is either {@link
+    * RigidBody.InertiaMethod#DENSITY} or {@link RigidBody.InertiaMethod#MASS}.
+
+    * @param enable if {@code true}, sets this RigidMeshComp to have mass
+    */
+   public void setHasMass (boolean enable) {
+      if (myHasMassP != enable) {
+         myHasMassP = enable;
+         updateBodyForMeshChanges();
+      }
    }
    
+   /**
+    * Returns the volume of this RigidMeshComp. If the mesh is a 
+    * {@link PolygonalMesh}, this is the value returned by 
+    * {@link PolygonalMesh#computeVolume()}. Otherwise, the volume is 0, unless 
+    * {@link #setVolume} is used to explicitly set a non-zero volume value.
+    * 
+    * @return volume of this RigidMeshComp
+    * @see #setVolume 
+    */
+   public double getVolume() {
+      if (!myVolumeValid) {
+         if (getMesh() instanceof PolygonalMesh) {
+            PolygonalMesh mesh = (PolygonalMesh)getMesh();
+            myVolume = mesh.computeVolume();
+         }
+         else {
+            myVolume = 0;
+         }
+         myVolumeValid = true;
+      }
+      return myVolume;
+   }
+   
+   /**
+    * Explicitly sets a volume value for this RigidMeshComp if
+    * the {@code vol >= 0} and the mesh is not a {@link PolygonalMesh}.
+    * Otherwise, causes the value returned by 
+    * {@code #getVolume} to return to its default value.
+    * 
+    * @param vol explicit volume value if {@code >= 0}
+    * @see #getVolume
+    */
+   public void setVolume (double vol) {
+      if (vol < 0 || getMesh() instanceof PolygonalMesh) {
+         myVolumeExplicit = false;
+         myVolumeValid = false;
+      }
+      else {
+         myVolumeExplicit = true;
+         myVolumeValid = true;
+         myVolume = vol;
+      }
+      updateBodyForVolumeChanges();
+   }
+   
+   /**
+    * Queries if a volume has been explicitly set by {@link #setVolume}.
+    * 
+    * @return {@code true} if a volume has been explicitly set
+    * @see #setVolume
+    */
+   public boolean hasExplicitVolume() {
+      return myVolumeExplicit;
+   }
+
+   private double getRigidBodyDensity() {
+      RigidBody body = getRigidBody();
+      if (body != null) {
+         return body.getDensity();
+      }
+      else {
+         return 0;
+      }     
+   }
+
+   /**
+    * Returns the mass of this RigidMeshComp. By default, this is the volume
+    * (as returned by {@link #getVolume}) times the density (as returned by
+    * {@link #getDensity}). Otherwise, if a mass value has been explicitly set
+    * using {@link #setMass}, then this explicit value is returned.
+    * 
+    * @return mass of this RigidMeshComp
+    * @see #setMass 
+    */
+   public double getMass() {
+      if (myMassExplicit) {
+         return myMass;
+      }
+      else {
+         return getDensity()*getVolume();
+      }
+   }
+
+   /**
+    * Explicitly sets a mass value for this RigidMeshComp if {@code mass >= 0}.
+    * Otherwise, if {@code mass < 0}, causes the value returned by 
+    * {@code #getMass} to return to its default value. In both cases,
+    * any explicit density set by {@link #setDensity} is unset.
+    * 
+    * @param mass explicit mass value if {@code >= 0}.
+    * @see #getMass
+    */
+   public void setMass (double mass) {
+      if (mass < 0) {
+         myMassExplicit = false;
+      }
+      else {
+         myMass = mass;
+         myMassExplicit = true;
+      }
+      myDensityExplicit = false;
+      updateBodyForMeshChanges();
+   }
+   
+   /**
+    * Queries if a mass has been explicitly set by {@link #setMass}.
+    * 
+    * @return {@code true} if a mass has been explicitly set
+    * @see #setMass
+    */
+   public boolean hasExplicitMass() {
+      return myMassExplicit;
+   }
+   
+   /**
+    * Returns the density of this RigidMeshComp. By default, this is the
+    * density of the associated RigidBody (or 0 if there is no such body).
+    * Otherwise, if the density has been explicitly set (using {@link
+    * #setDensity}), the density is this explicit value, or if the mass has
+    * been explicitly set (using {@link #setMass}), the density is the mass
+    * divided by the volume (as returned by {@link #getVolume}).
+    * 
+    * @return density of this RigidMeshComp
+    * @see #setDensity
+    */
+   public double getDensity() {
+      if (myDensityExplicit) {
+         return myDensity;
+      }
+      else if (myMassExplicit) {
+         return myMass/getVolume();
+      }
+      else {
+         return getRigidBodyDensity();
+      }
+   }
+   
+  /**
+    * Explicitly sets a density value for this RigidMeshComp if {@code d >= 0}.
+    * Otherwise, if {@code d < 0}, unsets any explicitly set density.  In both
+    * cases, any explicit mass set by {@link #setMass} is also unset.
+    * 
+    * @param d explicit density value if {@code >= 0}.
+    * @see #getDensity
+    */
+   public void setDensity (double d) {
+      if (d < 0) {
+         myDensityExplicit = false;
+      }
+      else {
+         myDensity = d;
+         myDensityExplicit = true;
+      }
+      myMassExplicit = false;
+      updateBodyForMeshChanges();
+   }
+
+   /**
+    * Queries if a density has been explicitly set by {@link #setDensity}.
+    * 
+    * @return {@code true} if a density has been explicitly set
+    * @see #setDensity
+    */
+   public boolean hasExplicitDensity() {
+      return myDensityExplicit;
+   }
+   
+   /**
+    * Queries if either the mass or density has been explicitly set 
+    * by {@link #setMass} or {@link #setDensity}.
+    * 
+    * @return {@code true} if mass or density has been explicitly set
+    * @see #setMass
+    */
+   public boolean hasExplicitMassOrDensity() {
+      return myMassExplicit || myDensityExplicit;
+   }
+   
+   
+
    @Override
    public void render (Renderer renderer, RenderProps props, int flags) {
 
@@ -105,75 +329,32 @@ public class RigidMeshComp extends DynamicMeshComponent
       }
       return null;
    }
+
+   protected void updateBodyForVolumeChanges () {
+      RigidBody body = getRigidBody();
+      if (body != null) {
+         body.updateInertiaForVolumeChanges ();
+      }
+   }
+   
+   protected void updateBodyForMeshChanges () {
+      RigidBody body = getRigidBody();
+      if (body != null) {
+         body.updateInertiaForMeshChanges (this);
+      }
+   }
    
    @Override
    public RigidMeshComp copy(int flags,
       Map<ModelComponent,ModelComponent> copyMap) {
 
       RigidMeshComp rmc = (RigidMeshComp)super.copy(flags, copyMap);
-      rmc.physical = physical;
+      rmc.myHasMassP = myHasMassP;
+      rmc.myCollidableP = myCollidableP;
       
       return rmc;
    }
    
-   // Pullable interface
-   private static class PullableOrigin {
-      RigidBody rb;
-      Point3d bodyPnt;
-      public PullableOrigin(RigidBody rb, Point3d pnt) {
-         this.rb = rb;
-         this.bodyPnt = new Point3d(pnt);
-         this.bodyPnt.inverseTransform(rb.getPose());
-      }
-   }
-   
-//   @Override
-//   public boolean isPullable() {
-//      MeshBase mb = getMesh();
-//      if (mb instanceof PolygonalMesh) {
-//         CompositeComponent gp = getGrandParent();
-//         if (gp instanceof RigidBody) {
-//            return true;
-//         }
-//      }
-//      return false;
-//   }
-//
-//   @Override
-//   public Object getOriginData (Point3d origin, Vector3d dir) {
-//
-//      RigidBody rb = (RigidBody)getGrandParent();
-//      PullableOrigin data = null;
-//
-//      Point3d pnt = BVFeatureQuery.nearestPointAlongRay (
-//         (PolygonalMesh)getMesh(), origin, dir);
-//      if (pnt != null) {
-//         data = new PullableOrigin(rb, pnt);
-//      }
-//      return data;
-//   }
-//
-//   @Override
-//   public Point3d getOriginPoint(Object data) {
-//      
-//      PullableOrigin orig = (PullableOrigin)data;
-//      Point3d pnt = new Point3d(orig.bodyPnt);
-//      pnt.transform (orig.rb.getPose());
-//      return pnt;
-//   }
-//
-//   @Override
-//   public double getPointRenderRadius() {
-//      return 0;
-//   }
-//
-//   @Override
-//   public void applyForce(Object orig, Vector3d force) {
-//      PullableOrigin origin = (PullableOrigin)orig;
-//      origin.rb.applyForce(origin.bodyPnt, force);
-//   }
-//   
-
    @Override
    public int numSelectionQueriesNeeded() {
       return 1;   // trigger so we can add a rigid body
@@ -187,65 +368,38 @@ public class RigidMeshComp extends DynamicMeshComponent
       }
       list.addLast(this);
    }
-   
-   @Override
-   public PolygonalMesh getCollisionMesh () {
-      MeshBase mesh = getMesh();
-      if (mesh instanceof PolygonalMesh) {
-         return (PolygonalMesh)mesh;
-      }
-      return null;
-   }
 
-   @Override
-   public boolean hasDistanceGrid() {
-      return getMesh() instanceof PolygonalMesh;
+   /**
+    * Queries whether or not this RigidMeshComp is collidable.  See {@link
+    * #setIsCollidable} for a description of what this means.
+    * 
+    * @return {@code true} if this RigidMeshComp is collidable
+    */
+   public boolean isCollidable() {
+      return myCollidableP;
    }
    
-   @Override   
-   public DistanceGrid getDistanceGrid() {
-      if (getMesh() instanceof PolygonalMesh) {
-         if (mySDGrid == null) {
-            List<Face> faces = ((PolygonalMesh)getMesh()).getFaces();
-            mySDGrid = new DistanceGrid (
-               faces, myGridMargin, myMaxGridDivisions, /*signed=*/true);
-         }
+   /**
+    * Sets whether or not this RigidMeshComp is collidable. If it is
+    * collidable, then it contributes to the collision mesh used for both
+    * collision detection and spring/muscle wrapping.
+    * @param enable if {@code true}, makes this RigidMeshComp collidable.
+    */
+   public void setIsCollidable (boolean enable) {
+      if (!(getMesh() instanceof PolygonalMesh)) {
+         // can't collide unless we have a PolygonalMesh
+         enable = false;
       }
-      else {
-         mySDGrid = null;
-      }
-      return mySDGrid;
-   }
-
-   @Override
-   public double getMass () {
-      return getRigidBody().getMass();
-   }
-   
-   @Override
-   public Collidable getCollidableAncestor() {
-      return getRigidBody();
-   }
-
-   @Override
-   public boolean isCompound() {
-      return false;
-   }
-
-   @Override
-   public Collidability getCollidable () {
-      getSurfaceMesh(); // build surface mesh if necessary
-      return myCollidability;
-   }
-
-   public void setCollidable (Collidability c) {
-      if (myCollidability != c) {
-         myCollidability = c;
+      if (myCollidableP != enable) {
+         myCollidableP = enable;
+         // send a structure change event instead of a property change
+         // event since the collision mesh(s) will be changed, which
+         // will in turn invalidate collision state
          notifyParentOfChange (new StructureChangeEvent (this));
       }
    }
 
-   @Override
+   // XXX
    public boolean isDeformable () {
       RigidBody rb = getRigidBody();
       if (rb == null) {
@@ -280,36 +434,6 @@ public class RigidMeshComp extends DynamicMeshComponent
    public boolean containsContactMaster (CollidableDynamicComponent comp) {
       return comp == getRigidBody();    
    }   
-   
-//   public boolean requiresContactVertexInfo() {
-//      return false;
-//   }
-   
-   public boolean allowCollision (
-      ContactPoint cpnt, Collidable other, Set<Vertex3d> attachedVertices) {
-      return true;
-   }
-
-   public int getCollidableIndex() {
-      return myCollidableIndex;
-   }
-   
-   public void setCollidableIndex (int idx) {
-      myCollidableIndex = idx;
-   }
-   
-   // end Collidable interface
-
-   public void setMaxGridDivisions (int max) {
-      if (myMaxGridDivisions != max) {
-         mySDGrid = null; // will need to rebuild grid
-         myMaxGridDivisions = max;
-      }
-   }
-
-   public int getMaxGridDivisions () {
-      return myMaxGridDivisions;
-   }
 
    public PointFrameAttachment createPointAttachment (Point pnt) {
       
@@ -322,35 +446,133 @@ public class RigidMeshComp extends DynamicMeshComponent
       }
    }
 
-   public PolygonalMesh getSurfaceMesh() {
-      if (getMesh() instanceof PolygonalMesh) {
-         return (PolygonalMesh)getMesh();
-      }
-      else {
-         return null;
-      }
-   }
-   
-   public int numSurfaceMeshes() {
-      return getSurfaceMesh() != null ? 1 : 0;
-   }
-   
-   public PolygonalMesh[] getSurfaceMeshes() {
-      return MeshComponent.createSurfaceMeshArray (getSurfaceMesh());
-   }
-
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-      
-      if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
-         myMeshInfo.transformGeometryAndPose (gtr, null);
+
+      RigidBody body = getRigidBody();  
+
+      if (body == null) {
+         myMeshInfo.transformGeometry (gtr);
+         if (!myVolumeExplicit) {
+            myVolumeValid = false;
+         }
+      }
+      else if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
+         GeometryTransformer.Constrainer constrainer = null;
+         if (body.getSurfaceMeshComp() == this) {
+            // only apply constrainer to the primary surface mesh
+            constrainer = body.myTransformConstrainer;
+         }
+         if (context.contains (body)) {
+            myMeshInfo.transformGeometryAndPose (gtr, constrainer);
+         }
+         else {
+            myMeshInfo.transformGeometry (gtr, constrainer);
+         }
+         if (!myVolumeExplicit) {
+            myVolumeValid = false;
+         }
+         if (body != null && !context.contains (body)) {
+            context.addAction (new RigidBody.UpdateInertiaAction(body));
+         }
       }
       else {
          MeshBase mesh = myMeshInfo.getMesh();
-         mesh.setMeshToWorld (getRigidBody().getPose());
+         if (context.contains (body)) {
+            mesh.setMeshToWorld (body.getPose());
+         }
+         else {
+            // do nothing - shouldn't transform
+         }
       }
    }   
-   
+
+   public void connectToHierarchy() {
+      // no need to do anything here at the moment. RigidBody will notice
+      // addition of mesh in its componentChanged() method
+      super.connectToHierarchy();
+   }
+
+   public void disconnectFromHierarchy() {
+      // no need to do anything here at the moment. RigidBody will notice
+      // removal of mesh in its componentChanged() method
+      super.disconnectFromHierarchy();
+   }
+
+   public void scaleMass (double s) {
+      super.scaleMass (s);
+      if (myMassExplicit) {
+         myMass *= s;
+      }
+      else if (myDensityExplicit) {
+         myDensity *= s;
+      }
+      // XXX For now, don't update rigidBody inertia since we assume
+      // this is done elsewhere
+   }
+
+   public void scaleDistance (double s) {
+      super.scaleDistance (s);
+      if (myVolumeExplicit) {
+         myVolume *= (s*s*s);
+      }
+      else {
+         myVolumeValid = false;
+      }
+      if (myDensityExplicit) {
+         myDensity /= (s*s*s);
+      }
+      // XXX For now, don't update rigidBody inertia since we assume
+      // this is done elsewhere      
+   }
+
+   public void scaleMesh (double sx, double sy, double sz) {
+      myMeshInfo.scale (sx, sy, sz);
+      if (myVolumeExplicit) {
+         myVolume *= (sx*sy*sz);
+      }
+      else {
+         myVolumeValid = false;
+      }
+      updateBodyForVolumeChanges();
+   }  
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "mass")) {
+         double mass = rtok.scanNumber();
+         setMass (mass);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "volume")) {
+         double volume = rtok.scanNumber();
+         setVolume (volume);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "density")) {
+         double density = rtok.scanNumber();
+         setDensity (density);
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }     
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+      if (myMassExplicit) {
+         pw.println ("mass=" + fmt.format (getMass()));
+      }
+      else if (myDensityExplicit) {
+         pw.println ("density=" + fmt.format (getDensity()));
+      }
+      if (myVolumeExplicit) {
+         pw.println ("volume=" + fmt.format (getVolume()));
+      }
+      super.writeItems (pw, fmt, ancestor);
+   }
+
 }
-
-

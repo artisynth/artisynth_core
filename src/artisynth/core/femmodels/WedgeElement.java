@@ -29,7 +29,8 @@ public class WedgeElement extends FemElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
-         myDefaultIntegrationPoints = createIntegrationPoints();
+         myDefaultIntegrationPoints = 
+            createIntegrationPoints (new WedgeElement());
       }
       return myDefaultIntegrationPoints;
    }
@@ -90,9 +91,9 @@ public class WedgeElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   private static double[] myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalExtrapolationMatrix = null;
 
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          // nodal coordinates for the wedge are a hybrid of barycentric
          // and euclidean. See the comment in QuadtetElement on transforming
@@ -223,12 +224,28 @@ public class WedgeElement extends FemElement3d {
          4,   2, 0, 3, 5
       };
 
+   static int[] myTriangulatedFaceIdxs = new int[] 
+      {
+         0, 2, 1,
+         3, 4, 5,
+         0, 1, 4,
+         0, 4, 3,
+         1, 2, 5,
+         1, 5, 4,
+         2, 0, 3,
+         2, 3, 5
+      };
+
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
    }
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public int[] getTriangulatedFaceIndices() {
+      return myTriangulatedFaceIdxs;
    }
 
    /** 

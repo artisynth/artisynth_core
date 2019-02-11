@@ -430,10 +430,11 @@ public class QuadraticUtilsTest extends UnitTest {
 
       int rtotal = QuadraticUtils.ellipseCallTotal;
       int itotal = QuadraticUtils.ellipseIterationTotal;
-      System.out.println (
-         "Ellipse root stats: calls="+ rtotal + 
-         " avg iterations=" + (itotal/(double)rtotal));
-
+      if (!mySilentP) {
+         System.out.println (
+            "Ellipse root stats: calls="+ rtotal + 
+            " avg iterations=" + (itotal/(double)rtotal));
+      }
    }
 
    public double clipDratio (double a, double b, double dratio) {
@@ -623,6 +624,7 @@ public class QuadraticUtilsTest extends UnitTest {
       timer.stop();
       int rtotal = QuadraticUtils.ellipsoidCallTotal;
       int itotal = QuadraticUtils.ellipsoidIterationTotal;      
+
       System.out.println (
          "Eberly: " + timer.result(numtests) + " calls="+ rtotal + 
          " avg iterations=" + (itotal/(double)rtotal));
@@ -688,9 +690,11 @@ public class QuadraticUtilsTest extends UnitTest {
       }
       int rtotal = QuadraticUtils.ellipsoidCallTotal;
       int itotal = QuadraticUtils.ellipsoidIterationTotal;
-      System.out.println (
-         "Ellipsoid root stats: calls="+ rtotal + 
-         " avg iterations=" + (itotal/(double)rtotal));
+      if (!mySilentP) {
+         System.out.println (
+            "Ellipsoid root stats: calls="+ rtotal + 
+            " avg iterations=" + (itotal/(double)rtotal));
+      }
    }
 
    void timeEllipsoidMethods () {
@@ -705,13 +709,33 @@ public class QuadraticUtilsTest extends UnitTest {
       testEllipsoidSurfaceTangent ();
       testEllipseDistance ();
       testEllipsoidDistance ();
-      timeEllipsoidMethods();
    }
 
    public static void main (String[] args) {
 
       QuadraticUtilsTest tester = new QuadraticUtilsTest();
-      tester.runtest();
+      tester.setSilent (true);
+      boolean doTiming = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-verbose")) {
+            tester.setSilent (false);
+         }
+         else if (args[i].equals ("-timing")) {
+            doTiming = true;
+         }
+         else {
+            System.out.println (
+               "Usage: java "+tester.getClass().getName() +
+               " [-verbose] [-timing]");
+            System.exit(1);
+         }
+      }
+      if (doTiming) {
+         tester.timeEllipsoidMethods();
+      }
+      else {
+         tester.runtest();
+      }
    }
 
 }

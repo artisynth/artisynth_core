@@ -222,7 +222,7 @@ public class PointFem3dAttachment extends PointAttachment {
 
    public boolean setFromFem (Point3d pos, FemModel3d fem, boolean project) {
       Point3d loc = new Point3d();
-      FemElement3d elem = fem.findNearestElement (loc, pos);
+      FemElement3dBase elem = fem.findNearestElement (loc, pos);
       if (!loc.equals (pos)) {
          if (!project) {
             return false;
@@ -389,8 +389,8 @@ public class PointFem3dAttachment extends PointAttachment {
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
       if (postscanAttributeName (tokens, "element")) {
-         FemElement3d elem = postscanReference (
-            tokens, FemElement3d.class, ancestor);
+         FemElement3dBase elem = postscanReference (
+            tokens, FemElement3dBase.class, ancestor);
          myElement = elem;
          return true;
       }
@@ -613,12 +613,13 @@ public class PointFem3dAttachment extends PointAttachment {
     * @return an attachment for 
     */
    public static PointFem3dAttachment create (
-      Point pnt, FemElement3d elem, Point3d loc, double reduceTol) {
+      Point pnt, FemElement3dBase elem, Point3d loc, double reduceTol) {
 
       PointFem3dAttachment ax = null;
       // Figure out the coordinates for the attachment point
       VectorNd coords = new VectorNd (elem.numNodes());
-      elem.getMarkerCoordinates (coords, loc!=null ? loc : pnt.getPosition(), false);
+      elem.getMarkerCoordinates (
+         coords, loc!=null ? loc : pnt.getPosition(), false);
 //      if (reduceTol > 0) {
 //         FemNode3d[] nodes = elem.getNodes();
 //         // Find number of coordinates which are close to zero

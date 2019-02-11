@@ -49,6 +49,7 @@ import artisynth.core.modelbase.MutableCompositeComponent;
 import artisynth.core.modelbase.ReferenceComponent;
 import artisynth.core.modelbase.ReferenceList;
 import artisynth.core.modelbase.RenderableComponent;
+import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.Traceable;
 import artisynth.core.probes.TracingProbe;
@@ -90,23 +91,23 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       }
    }
 
-   private boolean isVisible (RenderableComponent rcomp) {
-      RenderProps props = rcomp.getRenderProps();
-      if (props != null) {
-         return props.isVisible();
-      }
-      CompositeComponent parent = rcomp.getParent();
-      if (parent instanceof RenderableComponentList) {
-         return ((RenderableComponentList<?>)parent).rendersSubComponents();
-      }
-      return false;
-   }
-
-   private void setVisible (RenderableComponent rcomp, boolean enable) {
-      if (isVisible (rcomp) != enable) {
-         RenderProps.setVisible (rcomp, enable);
-      }
-   }
+//   private boolean isVisible (RenderableComponent rcomp) {
+//      RenderProps props = rcomp.getRenderProps();
+//      if (props != null) {
+//         return props.isVisible();
+//      }
+//      CompositeComponent parent = rcomp.getParent();
+//      if (parent instanceof RenderableComponentList) {
+//         return ((RenderableComponentList<?>)parent).rendersSubComponents();
+//      }
+//      return false;
+//   }
+//
+//   private void setVisible (RenderableComponent rcomp, boolean enable) {
+//      if (isVisible (rcomp) != enable) {
+//         RenderProps.setVisible (rcomp, enable);
+//      }
+//   }
 
    private boolean componentsAreDeletable (
       Collection<? extends ModelComponent> comps) {
@@ -149,7 +150,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             if (c instanceof RenderableComponent) {
                oneSelectedIsRenderable = true;
                RenderableComponent rcomp = (RenderableComponent)c;
-               if (isVisible (rcomp)) {
+               if (RenderableComponentBase.isVisible (rcomp)) {
                   oneSelectedIsVisible = true;
                }
                else {
@@ -606,7 +607,8 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       else if (command.equals ("Set visible")) {
          for (ModelComponent c : myPropertyEditSelection) {
             if (c instanceof RenderableComponent) {
-               setVisible ((RenderableComponent)c, true);
+               RenderableComponentBase.setVisible (
+                  (RenderableComponent)c, true);
             }
          }
          requestViewerUpdate();
@@ -614,7 +616,8 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       else if (command.equals ("Set invisible")) {
          for (ModelComponent c : myPropertyEditSelection) {
             if (c instanceof RenderableComponent) {
-               setVisible ((RenderableComponent)c, false);
+               RenderableComponentBase.setVisible (
+                  (RenderableComponent)c, false);
             }
          }
          requestViewerUpdate();

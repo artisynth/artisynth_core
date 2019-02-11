@@ -19,7 +19,8 @@ public class ShellTriElement extends ShellElement3d {
    protected static double[] myNodeCoords = null;
    protected static int[] myEdgeIdxs = null;
    protected static int[] myFaceIdxs = null;
-   protected static double[] myNodalExtrapolationMatrix = null;
+   protected static int[] myTriangulatedFaceIdxs = null;
+   protected static MatrixNd myNodalExtrapolationMatrix = null;
    protected static IntegrationPoint3d[] myDefaultIntegrationPoints;
    protected static IntegrationPoint3d[] myMembraneIntegrationPoints;
    protected IntegrationPoint3d myWarpingPoint;
@@ -56,10 +57,17 @@ public class ShellTriElement extends ShellElement3d {
       myFaceIdxs = new int[] { 
          3, 0, 1, 2
       };
+
+      myTriangulatedFaceIdxs = new int[] { 
+         0, 1, 2
+      };
    }
 
    protected static double[] myDefaultIntegrationCoords = null;
+   protected static double[] myMembraneIntegrationCoords = null;
    public static final double[] INTEGRATION_COORDS_GAUSS_9;
+   public static final double[] INTEGRATION_COORDS_MEMBRANE;
+
    static {
       double a = 1/6.0;
       double b = 2/3.0;
@@ -79,6 +87,14 @@ public class ShellTriElement extends ShellElement3d {
          a, b, b, a*w1
       };
       myDefaultIntegrationCoords = INTEGRATION_COORDS_GAUSS_9;
+
+      double w3 = 1/6.0; // membrane weights should sum to 1/2
+      INTEGRATION_COORDS_MEMBRANE = new double[] { 
+         a, a, 0, w3,
+         b, a, 0, w3,
+         a, b, 0, w3
+      };
+      myMembraneIntegrationCoords = INTEGRATION_COORDS_MEMBRANE;
    }
    
    /*** End of variables and static blocks declarations ****/
@@ -186,6 +202,10 @@ public class ShellTriElement extends ShellElement3d {
       return myFaceIdxs;
    }
    
+   public int[] getTriangulatedFaceIndices() {
+      return myTriangulatedFaceIdxs;
+   }
+
    public double[] getIntegrationCoords () {
       return myDefaultIntegrationCoords;
    }
@@ -201,13 +221,17 @@ public class ShellTriElement extends ShellElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints () {
       if (myDefaultIntegrationPoints == null) {
+         ShellTriElement sampleElem = new ShellTriElement();
+         sampleElem.myElementClass = ElementClass.SHELL;
          myDefaultIntegrationPoints = 
-            createIntegrationPoints (myDefaultIntegrationCoords);
+            createIntegrationPoints (sampleElem, myDefaultIntegrationCoords);
       }
       if (myElementClass == ElementClass.MEMBRANE) {
          if (myMembraneIntegrationPoints == null) {
+            ShellTriElement sampleElem = new ShellTriElement();
+            sampleElem.myElementClass = ElementClass.MEMBRANE;
             myMembraneIntegrationPoints = 
-               createMembraneIntegrationPoints (myDefaultIntegrationPoints);
+               createIntegrationPoints (sampleElem, myMembraneIntegrationCoords);
          }
          return myMembraneIntegrationPoints;
       }
@@ -227,17 +251,27 @@ public class ShellTriElement extends ShellElement3d {
       }
       return myWarpingPoint;
    }  
+
+   public boolean coordsAreInside (Vector3d coords) {
+      double s1 = coords.x;
+      double s2 = coords.y;
+      double s3 = coords.z;
+      double s0 = 1 - s1 - s2;
+
+      return (s0 >= 0 && s1 >= 0 && s2 >= 0 && s3 >= -1 && s3 <= 1);
+   }
    
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          // For now, just use integration point values at corresponding nodes
          double a = 0.4444444444;
          double b = (1-a)/2;
-         myNodalExtrapolationMatrix = new double[] {
+         myNodalExtrapolationMatrix = new MatrixNd (3, 9);
+         myNodalExtrapolationMatrix.set (new double[] {
             b, 0, 0, a, 0, 0, b, 0, 0,
             0, b, 0, 0, a, 0, 0, b, 0,
             0, 0, b, 0, 0, a, 0, 0, b,
-         };
+         });
       }
       return myNodalExtrapolationMatrix;
    }

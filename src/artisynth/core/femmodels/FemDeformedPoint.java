@@ -11,7 +11,7 @@ public class FemDeformedPoint extends DeformedPointBase {
    protected boolean mySpatialPosValid = false;
 
    protected IntegrationPoint3d myIpnt;
-   protected FemElement myElem;
+   protected FemElement3dBase myElem;
 
    public FemDeformedPoint() {
       super();
@@ -26,7 +26,7 @@ public class FemDeformedPoint extends DeformedPointBase {
 
    public void setFromIntegrationPoint (
       IntegrationPoint3d ipnt, IntegrationData3d idat,
-      RotationMatrix3d R, FemElement elem, int idx) {
+      RotationMatrix3d R, FemElement3dBase elem, int idx) {
 
       myElem = elem;
       myElemNum = elem.getNumber();
@@ -58,7 +58,7 @@ public class FemDeformedPoint extends DeformedPointBase {
    
    public void setFromRestPoint (
       IntegrationPoint3d ipnt, IntegrationData3d idat,
-      RotationMatrix3d R, FemElement elem, int idx) {
+      RotationMatrix3d R, FemElement3dBase elem, int idx) {
 
       myElem = elem;
       myElemNum = elem.getNumber();

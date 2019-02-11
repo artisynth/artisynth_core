@@ -87,11 +87,12 @@ public interface CollidableBody extends Collidable {
    public boolean hasDistanceGrid();
    
    /**
-    * Returns a signed distance grid that can be used with a 
-    * SignedDistanceCollider, or <code>null</code> if this Collidable
+    * Returns a {@link DistanceGridComp} object that in turn contains
+    * a signed distance grid that can be used with a SignedDistanceCollider, 
+    * or <code>null</code> if this Collidable
     * does not support a signed distance grid (i.e., if 
     * {@link #hasDistanceGrid} returns <code>false</code>).
     */
-   public DistanceGrid getDistanceGrid();
+   public DistanceGridComp getDistanceGridComp();
 
 }

@@ -19,7 +19,8 @@ import artisynth.core.util.*;
 /**
  * Basic interface for all Artisynth elements
  */
-public interface ModelComponent extends HasProperties, HierarchyNode, Scannable {
+public interface ModelComponent
+   extends HasProperties, HierarchyNode, PostScannable {
    
    /**
     * Controls the visibility of this component in the navigation panel.
@@ -231,24 +232,6 @@ public interface ModelComponent extends HasProperties, HierarchyNode, Scannable 
    public boolean hasState();
    
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException;
-
-   /**
-    * Performs any required post-scanning for this component. 
-    * This involves handling any information whose processing was deferred 
-    * during the <code>scan()</code> method and stored in the token queue.
-    * The most common use of this method is to resolve the paths
-    * of component references, which may not have been created
-    * at the time of the initial <code>scan()</code> call.
-    * 
-    * @param tokens token information that was stored during 
-    * <code>scan()</code>.
-    * @param ancestor ancestor component with respect to which
-    * reference component paths are defined.
-    * @throws IOException if an error is encountered (such as a reference to a
-    * non-existent component)
-    */
-   public void postscan (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException;
 
    /**
     * May be called by the system if any of the soft references for

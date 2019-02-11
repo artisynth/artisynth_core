@@ -9,8 +9,9 @@ package maspack.geometry;
 import maspack.matrix.*;
 import maspack.util.TestException;
 import maspack.util.FunctionTimer;
+import maspack.util.UnitTest;
 
-public class TetgenTessellatorTest {
+public class TetgenTessellatorTest extends UnitTest {
 
    TetgenTessellator myTessellator = null;
    boolean verbose = true;
@@ -105,10 +106,6 @@ public class TetgenTessellatorTest {
                "%d %d %d %d\n", tets[i], tets[i+1], tets[i+2], tets[i+3]);
          }
       }
-//       Point3d[] pnts = myTessellator.getPoints();
-//       for (int i=0; i<tets.length; i += 4) {
-//          testTetOrientation (pnts, tets, i);
-//       }
    }
 
    private void printPoints () {
@@ -126,58 +123,68 @@ public class TetgenTessellatorTest {
    }
 
    FunctionTimer timer = new FunctionTimer();
+   
+   protected void checkHull() {
+      if (!myTessellator.checkConvexHull (System.out)) {
+         throw new TestException ("Convex hull check failed");
+      }
+   }
 
    public void test() {
       myTessellator.buildFromPoints (plane);
-      printHullFaces();
-      printTets();
+      if (!mySilentP) {
+         printHullFaces();
+         printTets();
+      }
+      checkHull();
 
       PolygonalMesh mesh;
       mesh = MeshFactory.createQuadBox (3, 2, 1);
       myTessellator.buildFromMesh (mesh, 0);
-      System.out.println ("Quad Cube");
-      printHullFaces();
-      printTets();
+      if (!mySilentP) {
+         System.out.println ("Quad Cube");
+         printHullFaces();
+         printTets();
+      }
+      checkHull();
 
       mesh.triangulate();
       myTessellator.buildFromMesh (mesh, 0);
-      System.out.println ("Triangle Cube");
-      printHullFaces();
-      printTets();
+      if (!mySilentP) {
+         System.out.println ("Triangle Cube");
+         printHullFaces();
+         printTets();
+      }
+      checkHull();
 
       mesh = MeshFactory.createQuadSphere (1.0, 8);
       myTessellator.buildFromMesh (mesh, 0);
-      System.out.println ("Quad Sphere");
-      System.out.println ("Num mesh vertices=" + mesh.numVertices());
-      
-      printHullFaces();
-      printTets();
-      printPoints();
-
-      // int cnt = 1000000;
-      // timer.start();
-      // for (int i=0; i<cnt; i++) {
-      //    mesh.triangulate();
-      // }
-      // timer.stop();
-      // System.out.println ("time=" + timer.result(cnt));
+      if (!mySilentP) {
+         System.out.println ("Quad Sphere, num vertices=" + mesh.numVertices());
+         printHullFaces();
+         printTets();
+         printPoints();
+      }
+      checkHull();
 
       myTessellator.dispose();
    }
 
    public static void main (String[] args) {
 
-      try {
-         TetgenTessellatorTest tester = new TetgenTessellatorTest();
-         tester.test();
+      TetgenTessellatorTest tester = new TetgenTessellatorTest();
+      tester.setSilent (true);
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-verbose")) {
+            tester.setSilent (false);
+         }
+         else {
+            System.out.println (
+               "Usage: java "+tester.getClass().getName() + " [-verbose]");
+            System.exit(1);
+         }
       }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit(1);
-      }
-
-      System.out.println ("\nPassed\n");
-      
+      tester.runtest();
    }
 
 }

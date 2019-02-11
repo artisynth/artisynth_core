@@ -14,6 +14,7 @@ import java.util.Map;
 
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.MatrixNd;
 import maspack.render.Renderer;
 import maspack.render.RenderProps;
 import maspack.util.InternalErrorException;
@@ -46,14 +47,18 @@ public class HexElement extends FemElement3d {
       return myDefaultIntegrationPoints;
    }
 
-   public void setIntegrationPoints(IntegrationPoint3d[] ipnts, double[] nodalExtrapMat) {
-      myIPointsMapToNodes = mapIPointsToNodes(ipnts, nodalExtrapMat, myNodes);
-      setIntegrationPoints(ipnts, nodalExtrapMat, myIPointsMapToNodes);
+   public void setIntegrationPoints (
+      IntegrationPoint3d[] ipnts, MatrixNd nodalExtrapMat) {
+      myIPointsMapToNodes = mapIPointsToNodes (ipnts, nodalExtrapMat, myNodes);
+      setIntegrationPoints (ipnts, nodalExtrapMat, myIPointsMapToNodes);
    }
-   public void setIntegrationPoints(IntegrationPoint3d[] ipnts,  double[] nodalExtrapMat, boolean mapToNodes) {
+   
+   public void setIntegrationPoints (
+      IntegrationPoint3d[] ipnts,  MatrixNd nodalExtrapMat, 
+      boolean mapToNodes) {
       myIntegrationPoints = ipnts;
       myIPointsMapToNodes = mapToNodes;
-      myNodalExtrapolationMatrix = nodalExtrapMat;
+      myNodalExtrapolationMatrix = new MatrixNd (nodalExtrapMat);
       myIntegrationData = null;
       clearState();  // trigger re-creating integration data
    }
@@ -67,7 +72,8 @@ public class HexElement extends FemElement3d {
                myDefaultIntegrationCoords = INTEGRATION_COORDS_GAUSS_8;
             }
             myDefaultIntegrationPoints = 
-               createIntegrationPoints(myDefaultIntegrationCoords);
+               createIntegrationPoints (
+                  new HexElement(), myDefaultIntegrationCoords);
          }
          myIntegrationPoints = myDefaultIntegrationPoints;
       }
@@ -97,9 +103,9 @@ public class HexElement extends FemElement3d {
    public static final double[] INTEGRATION_COORDS_LOBATTO_27;
    public static final double[] INTEGRATION_COORDS_LOBATTO_64;
    
-   public static final double[] NODAL_EXTRAPOLATION_8;
-   public static final double[] NODAL_EXTRAPOLATION_27;
-   public static final double[] NODAL_EXTRAPOLATION_64;
+   public static final MatrixNd NODAL_EXTRAPOLATION_8;
+   public static final MatrixNd NODAL_EXTRAPOLATION_27;
+   public static final MatrixNd NODAL_EXTRAPOLATION_64;
 
    public int numIntegrationPoints() {
       if (myIntegrationPoints != null) {
@@ -197,29 +203,21 @@ public class HexElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   private static double[] myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalExtrapolationMatrix = null;
    
-   public void setNodalExtrapolationMatrix(double [] nem) {
-      myNodalExtrapolationMatrix = nem;
+   public void setNodalExtrapolationMatrix (MatrixNd NX) {
+      myNodalExtrapolationMatrix = new MatrixNd(NX);
    }
    
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          Vector3d[] ncoords = getScaledNodeCoords (Math.sqrt(3), null);
          myNodalExtrapolationMatrix =
             createNodalExtrapolationMatrix (ncoords, 8, new HexElement());
          
          // For now, just use integration point values at corresponding nodes
-         myNodalExtrapolationMatrix = new double[] {
-            1, 0, 0, 0, 0, 0, 0, 0,
-            0, 1, 0, 0, 0, 0, 0, 0,
-            0, 0, 1, 0, 0, 0, 0, 0,
-            0, 0, 0, 1, 0, 0, 0, 0,
-            0, 0, 0, 0, 1, 0, 0, 0,
-            0, 0, 0, 0, 0, 1, 0, 0,
-            0, 0, 0, 0, 0, 0, 1, 0,
-            0, 0, 0, 0, 0, 0, 0, 1,
-         };
+         myNodalExtrapolationMatrix = new MatrixNd (8, 8);
+         myNodalExtrapolationMatrix.setIdentity();
       }
       return myNodalExtrapolationMatrix;
    }
@@ -281,12 +279,32 @@ public class HexElement extends FemElement3d {
          4,   3, 2, 6, 7
       };
 
+   static int[] myTriangulatedFaceIdxs = new int[] 
+      {
+         0, 1, 2,
+         0, 2, 3,
+         1, 5, 6,
+         1, 6, 2,
+         5, 4, 7,
+         5, 7, 6,
+         4, 0, 3,
+         4, 3, 7,
+         0, 4, 5,
+         0, 5, 1,
+         3, 2, 6,
+         3, 6, 7
+      };
+
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
    }
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public int[] getTriangulatedFaceIndices() {
+      return myTriangulatedFaceIdxs;
    }
 
    public int getParity() {
@@ -1024,7 +1042,8 @@ public class HexElement extends FemElement3d {
       
    }
    
-   public static boolean mapIPointsToNodes(IntegrationPoint3d[] ipnts, double[] nodalInterp, FemNode3d[] nodes) {
+   public static boolean mapIPointsToNodes (
+      IntegrationPoint3d[] ipnts, MatrixNd nodalInterp, FemNode3d[] nodes) {
       int nNodes = nodes.length;
       int nIPnts = ipnts.length;
       
@@ -1053,9 +1072,9 @@ public class HexElement extends FemElement3d {
             ipnts[closest] = ipnts[i];
             ipnts[i] = tmp;
             for (int j=0; j<nNodes; j++) {
-               tmpd = nodalInterp[j*ipnts.length + closest];
-               nodalInterp[j*ipnts.length + closest] = nodalInterp[j*ipnts.length + i];
-               nodalInterp[j*ipnts.length + i] = tmpd;
+               tmpd = nodalInterp.get (j, closest);
+               nodalInterp.set (j, closest, nodalInterp.get (j, i));
+               nodalInterp.set (j, i, tmpd);
             }
          }
       }
@@ -1100,7 +1119,7 @@ public class HexElement extends FemElement3d {
       return true;
    }
    
-   static double[] createTensorProductExtrapolation(int nx) {
+   static MatrixNd createTensorProductExtrapolation(int nx) {
       
       int nx2 = nx*nx;
       int nx3 = nx*nx2;
@@ -1117,7 +1136,9 @@ public class HexElement extends FemElement3d {
       out[nx3-nx + 3*nx3] = 1;   // node 3
       out[nx3-1  + 2*nx3] = 1;   // node 2
       
-      return out;
+      MatrixNd NX = new MatrixNd (8, nx3);
+      NX.set (out);
+      return NX;
    }
    
    

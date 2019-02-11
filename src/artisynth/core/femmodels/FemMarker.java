@@ -190,16 +190,11 @@ public class FemMarker extends Marker {
     */
    public boolean resetElement (FemModel3d model, boolean project) {
       Point3d pos = getPosition();
-      FemElement updatedElement = model.findContainingElement (pos);
-      if (updatedElement == null) {
-         Point3d res = new Point3d();
-         updatedElement = model.findNearestSurfaceElement (res,pos);
-         if (project) {
-            setPosition (res);
-         } else {
-            //setPosition(pos); //XXX no need to reposition
-         }
-      }
+      Point3d res = new Point3d();
+      FemElement updatedElement = model.findNearestElement (res, pos);
+      if (project) {
+         setPosition (res);
+      } 
       if (updatedElement != getElement()) {
          myNodeAttachment.setFromElement(getPosition(), updatedElement);
          myNodeAttachment.updateAttachment();

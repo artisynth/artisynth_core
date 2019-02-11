@@ -2,11 +2,11 @@ package artisynth.demos.tutorial;
 
 import java.io.IOException;
 import maspack.matrix.*;
+import maspack.util.PathFinder;
 
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.probes.*;
-import artisynth.core.util.*;
 
 public class SimpleMuscleWithProbes extends SimpleMuscleWithPanel
 {
@@ -14,7 +14,7 @@ public class SimpleMuscleWithProbes extends SimpleMuscleWithPanel
       NumericInputProbe p1probe =
          new NumericInputProbe (
             mech, "particles/p1:targetPosition",
-            ArtisynthPath.getSrcRelativePath (this, "simpleMuscleP1Pos.txt"));
+            PathFinder.getSourceRelativePath (this, "simpleMuscleP1Pos.txt"));
       p1probe.setName("Particle Position");
       addInputProbe (p1probe);
    }
@@ -23,7 +23,7 @@ public class SimpleMuscleWithProbes extends SimpleMuscleWithPanel
       NumericOutputProbe mkrProbe =
          new NumericOutputProbe (
             mech, "frameMarkers/0:velocity",
-            ArtisynthPath.getSrcRelativePath (this, "simpleMuscleMkrVel.txt"),
+            PathFinder.getSourceRelativePath (this, "simpleMuscleMkrVel.txt"),
             0.01);
       mkrProbe.setName("FrameMarker Velocity");
       mkrProbe.setDefaultDisplayRange (-4, 4);

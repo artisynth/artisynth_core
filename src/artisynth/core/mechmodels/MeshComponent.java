@@ -190,15 +190,67 @@ public class MeshComponent extends RenderableComponentBase
       }
    }      
    
+   /**
+    * Returns the file name, if any, associated with this mesh.  If the mesh
+    * does <i>not</i> have a file name, then when this component is written out
+    * (using its {@link #write} method), the mesh itself is written out inline
+    * using an {@code .obj} format. Otherwise, if the mesh has a file name,
+    * then that is written out instead, so that when the component is read in
+    * (using its {@link #scan} method), the mesh is read from the indicated
+    * file.
+    * 
+    * @return file name for this mesh.
+    */
+   public String getFileName() {
+      return myMeshInfo.getFileName();
+   }
+   
+   /**
+    * Sets a file name for this mesh, or clears it if {@code name} is {@code
+    * null}. See {@link #getFileName} for a description of what the file name
+    * does.
+    * 
+    * @param name file name for this mesh.
+    */
+   public void setFileName (String name) {
+      myMeshInfo.setFileName (name);
+   }
+   
+   /**
+    * Returns the file transform, if any, associated with this mesh.  If
+    * non-null, and if the mesh also has a file name (see {@link
+    * #getFileName}), then this specifies a rigid or affine transform that was
+    * used to modify the mesh after it was read in from the file. When this
+    * component is written out (using its {@link #write} method), this
+    * transform is written out along with the file name, so that it can be
+    * applied by {@link #scan} after reading the mesh from the file, thus
+    * ensuring that the mesh is properly reconstructed.
+    *
+    * <p>The file transform has no relevance if the mesh does not have a file
+    * name.
+    * 
+    * @return file transform for this mesh.
+    */   
    public AffineTransform3d getFileTransform() {
       return new AffineTransform3d(myMeshInfo.myFileTransform);
+   }
+
+   /**
+    * Sets a file transform for this mesh, or clears it if {@code name} is
+    * {@code null}. See {@link #getFileTransform} for a description of what the
+    * file transform does.
+    * 
+    * @param X file transform for this mesh.
+    */
+   public void setFileTransform (AffineTransform3dBase X) {
+      myMeshInfo.setFileTransform (X);
    }
 
    public boolean isFileTransformRigid() {
       return myMeshInfo.myFileTransformRigidP;
    }
 
-   public boolean isMeshModfied() {
+   public boolean isMeshModified() {
       return myMeshInfo.myMeshModifiedP;
    }
 
@@ -230,6 +282,9 @@ public class MeshComponent extends RenderableComponentBase
             mesh.notifyVertexPositionsModified();
          }
          mesh.prerender (myRenderProps);
+         //if (((PolygonalMesh)mesh).getBVTree() != null) {
+         //   list.addIfVisible (((PolygonalMesh)mesh).getBVTree());
+         //}
       }
    }
 
@@ -292,7 +347,7 @@ public class MeshComponent extends RenderableComponentBase
       // this is necessary because the mesh determines what type of renderProps
       // should be instantiated
       myMeshInfo.write (pw, fmt);
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)

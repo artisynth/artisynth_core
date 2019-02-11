@@ -214,7 +214,7 @@ class NumberFormatTest {
 
          tester.format (99.9995, "%7.4f", "99.9995");
          tester.format (99.9994, "%7.3f", " 99.999");
-         tester.format (99.9995, "%7.3f", "100.000");
+         tester.format (99.99950001, "%7.3f", "100.000");
          tester.format (99.9996, "%7.3f", "100.000");
 
          // now do some meatier things ...

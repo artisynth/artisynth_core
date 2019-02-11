@@ -105,11 +105,13 @@ public class LinearMaterial extends LinearMaterialBase {
       
    public void setYoungsModulusFunction (FieldPointFunction<Double> func) {
       myEFunc = func;
+      notifyHostOfPropertyChange();
    }
    
    public void setYoungsModulusField (
       Field<Double> field, boolean useRestPos) {
       myEFunc = FieldUtils.createFieldFunction (field, useRestPos);
+      notifyHostOfPropertyChange();
    }
 
    public Field<Double> getYoungsModulusField () {

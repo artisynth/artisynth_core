@@ -254,7 +254,7 @@ public class IsRenderableHolder extends RenderableComponentBase {
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       
       // write renderable if possible
       try {

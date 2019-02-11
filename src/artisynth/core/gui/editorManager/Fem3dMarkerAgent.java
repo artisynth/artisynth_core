@@ -147,12 +147,10 @@ public class Fem3dMarkerAgent extends AddComponentAgent<FemMarker> {
       FemMarker marker = new FemMarker();
 
       // add the marker to the model
-      FemElement3d elem = femModel.findContainingElement (pnt);
-      if (elem == null) {
-         Point3d newLoc = new Point3d();
-         elem = femModel.findNearestSurfaceElement (newLoc, pnt);
-         pnt.set (newLoc);
-      }
+      Point3d newLoc = new Point3d();
+      FemElement3dBase elem = femModel.findNearestElement (newLoc, pnt);
+      pnt.set (newLoc);
+
       marker.setPosition (pnt);
       marker.setFromElement (elem);
       marker.setName (getNameFieldValue());

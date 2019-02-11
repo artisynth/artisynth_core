@@ -34,6 +34,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
 import maspack.render.GL.GLViewer;
+import maspack.util.PathFinder;
 
 public class FemMuscleHeart extends RootModel {
 
@@ -58,7 +59,7 @@ public class FemMuscleHeart extends RootModel {
       //-------------------------------------------------------------
       
       // Heart surface mesh, with texture
-      String heartFile = ArtisynthPath.getSrcRelativePath(this, "data/HumanHeart.obj");
+      String heartFile = PathFinder.getSourceRelativePath(this, "data/HumanHeart.obj");
       WavefrontReader wfr = new WavefrontReader(new File(heartFile));
       PolygonalMesh heartMesh = new PolygonalMesh();
       wfr.readMesh(heartMesh);
@@ -69,8 +70,8 @@ public class FemMuscleHeart extends RootModel {
       //    - embedded heart surface geometry
       FemMuscleModel heart = new FemMuscleModel("heart");
       TetGenReader.read(heart, 
-         ArtisynthPath.getSrcRelativePath(this,"data/HumanHeartHull.node"),
-         ArtisynthPath.getSrcRelativePath(this, "data/HumanHeartHull.ele"));
+         PathFinder.getSourceRelativePath(this,"data/HumanHeartHull.node"),
+         PathFinder.getSourceRelativePath(this, "data/HumanHeartHull.ele"));
       FemMeshComp embeddedHeart = heart.addMesh(heartMesh); // add real-looking mesh
       embeddedHeart.setName("embedded");
       

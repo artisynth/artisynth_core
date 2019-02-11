@@ -28,11 +28,11 @@ public class FrameFem3dAttachment extends FrameAttachment {
    private static final double DOUBLE_PREC = 1e-16;
 
    private boolean myMasterBlockInWorldCoords = true;
-   private boolean myUseProcrustes = true;
+   private boolean myUseProcrustes = false;
 
    // myCoords is used when frame is associate with an element
    private Vector3d myCoords = new Vector3d(); 
-   private FemElement3d myElement;
+   private FemElement3dBase myElement;
    private FemNode3d[] myNodes;
    private double[] myWeights;
    private RotationMatrix3d myRFD = new RotationMatrix3d();
@@ -221,7 +221,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       return hasFullRank (myGNX);
    }
 
-   public FemElement3d getElement() {
+   public FemElement3dBase getElement() {
       return myElement;
    }
 
@@ -230,7 +230,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
    }
 
    protected void doSetFromElement (
-      FemElement3d elem, Vector3d coords) {
+      FemElement3dBase elem, Vector3d coords) {
 
       removeBackRefsIfConnected();
       myIpnt = IntegrationPoint3d.create (
@@ -288,7 +288,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       return status;
    }
 
-   public boolean setFromElement (RigidTransform3d T, FemElement3d elem) {
+   public boolean setFromElement (RigidTransform3d T, FemElement3dBase elem) {
       Vector3d coords = new Vector3d();
       boolean converged = 
          elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000) >= 0;
@@ -347,7 +347,9 @@ public class FrameFem3dAttachment extends FrameAttachment {
 
    public boolean debug = false;
 
-   protected boolean resetFromElement (RigidTransform3d T, FemElement3d elem) {
+   protected boolean resetFromElement (
+      RigidTransform3d T, FemElement3dBase elem) {
+
       // first, see if we need to reset the weights ...
 
       Vector3d coords = new Vector3d();
@@ -379,7 +381,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       RigidTransform3d TFW, FemModel3d fem, boolean project) {
       Point3d loc = new Point3d();
       Point3d pos = new Point3d(TFW.p);
-      FemElement3d elem = fem.findNearestElement (loc, pos);
+      FemElement3dBase elem = fem.findNearestElement (loc, pos);
       if (!loc.equals (pos)) {
          if (!project) {
             return false;
@@ -961,8 +963,8 @@ public class FrameFem3dAttachment extends FrameAttachment {
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
       if (postscanAttributeName (tokens, "element")) {
-         FemElement3d elem = postscanReference (
-            tokens, FemElement3d.class, ancestor);
+         FemElement3dBase elem = postscanReference (
+            tokens, FemElement3dBase.class, ancestor);
          doSetFromElement (elem, myCoords);
          return true;
       }

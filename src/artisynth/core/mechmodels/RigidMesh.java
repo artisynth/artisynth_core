@@ -42,23 +42,6 @@ public class RigidMesh extends RigidBody implements Wrappable {
       return myRayCastTangent;
    }
 
-   // public void setMaxGridDivisions (int max) {
-   //    if (myMaxGridDivisions != max) {
-   //       if (max <= 0) {
-   //          max = 0;
-   //          mySDGrid = null;
-   //       }
-   //       else {
-   //          mySDGrid = new SignedDistanceGrid (getMesh(), 0.1, max);
-   //       }
-   //       myMaxGridDivisions = max;
-   //    }
-   // }
-
-   // public int getMaxGridDivisions () {
-   //    return myMaxGridDivisions;
-   // }
-
    public static PropertyList myProps =
       new PropertyList (RigidMesh.class, RigidBody.class);
 
@@ -70,9 +53,6 @@ public class RigidMesh extends RigidBody implements Wrappable {
       myProps.add (
          "rayCastTangent", 
          "use ray cast to determine surface tangent", false);
-      // myProps.add (
-      //    "maxGridDivisions", 
-      //    "max divisions for signed distance grid", 0);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -93,22 +73,6 @@ public class RigidMesh extends RigidBody implements Wrappable {
          throw new IllegalArgumentException("Mesh is not triangular");
       }
       mesh.scale (scale);
-      //Point3d center = new Point3d();
-      //mesh.computeCentreOfVolume (center);
-      //center.scale (scale);
-      // AffineTransform3dBase X = null;
-      // if (scale != 1) {
-         // AffineTransform3d XA = new AffineTransform3d();
-         // XA.p.negate (center);
-         // XA.applyScaling (scale, scale, scale);
-         // X = XA;
-         //mesh.transform (X);
-      // }
-      // else {
-      //    RigidTransform3d XR = new RigidTransform3d();
-      //    XR.p.negate (center);
-      //    X = XR;
-      // }
       AffineTransform3d X = null;
       if (scale != 1) {
          X = AffineTransform3d.createScaling (scale);

@@ -789,8 +789,6 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
     * A given point (in world coords)
     * @param maxIters
     * Maximum number of Newton iterations
-    * @param N
-    * Resulting shape functionvalues
     * @return the number of iterations required for convergence, or
     * -1 if the calculation did not converge.
     */

@@ -8,6 +8,7 @@ import maspack.render.*;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
 import maspack.util.PathFinder;
+import maspack.spatialmotion.SpatialInertia;
 import artisynth.core.mechmodels.*;
 import artisynth.core.workspace.RootModel;
 
@@ -76,4 +77,15 @@ public class SphericalTextureMapping extends RootModel {
       RenderProps.setBumpMap (ball1, bprops);
       RenderProps.setBumpMap (ball2, bprops);
    }
+
+   // public void initialize (double t0) {
+   //    super.initialize (t0);
+   //    MechModel mech = (MechModel)findComponent ("models/0");
+   //    for (RigidBody body : mech.rigidBodies()) {
+   //       SpatialInertia M = new SpatialInertia();
+   //       body.getInertia (M);
+   //       System.out.println ("inertia " + body.getName() + ":");
+   //       System.out.println (M);
+   //    }
+   // }
 }

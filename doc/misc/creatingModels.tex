@@ -1,0 +1,345 @@
+% Aug 27, 2014: has 118 sections. artisynth.tex and maspack.tex have
+%   about 28 and 23 sections, with about 375 words/sec, so we can
+%   expect this to be around 45,000 words, or about 120 pages.
+
+\documentclass{article}
+
+% Add search paths for input files
+\makeatletter
+\def\input@path{{../}{../../}{../texinputs/}}
+\makeatother
+
+\usepackage{amsmath}
+\usepackage{framed}
+%\usepackage{bibtopic}
+
+%\usepackage{layout}
+%\usepackage{showframe}
+\input{artisynthDoc}
+\input{mathdefs}
+
+\def\mech{artisynth.core.mechmodels}
+\def\rend{artisynth.core.renderables}
+\def\fem{artisynth.core.femmodels}
+\def\mgeo{maspack.geometry}
+
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{3}
+
+\title{Creating Models in ArtiSynth}
+\author{John Lloyd}
+\setpubdate{October 2018}
+
+\iflatexml
+\date{}
+\fi
+
+% graphics paths
+\graphicspath{{./}{images/}}
+
+\begin{document}
+
+%\frontmatter
+
+%\layout
+\maketitle
+
+%\iflatexml{\large\pubdate}\fi
+
+%\tableofcontents
+
+% basic links to other docs: http://www.artisynth.org/doc/html/xxx/xxx.html#sec
+
+\section{Introduction}
+
+This note provides a broad overview of
+how to create models in ArtiSynth. It begins with a general overview
+of the different modeling components, and then discusses the typical steps
+required to assemble (in code) these components into a working model.
+
+\section{Component Overview}
+
+In a very broad sense, ArtiSynth components divide into (a) dynamic
+components that carry the state variables (e.g., positions and
+velocities) associated with the simulation, (b) connecting components
+that provide forces and constraints which control how the dynamic
+components move and interact, and finally (c) passive components such
+as meshes or renderable objects.
+
+Some of this component functionality may be exhibited by composite
+components that contains multiple sub-components.  A good example of
+this is a finite element model (\javaclass[\fem]{FemModel3d}), which
+contains nodes, elements, meshes, and other possible
+constituents. Each of the nodes represents a dynamic component.
+However, the model as a whole acts as both a force effector (applying
+forces to the nodes), and also as a constrainer (applying hard
+incompressibility to the nodal positions when requested).
+
+\subsection{Dynamic Components}
+\label{DynamicComponents:sec}
+
+Dynamic components carry the position and velocity states that
+collectively describe the model's configuration. Generally, dynamic
+components move in response to forces acting on them, but components
+can also be made "parametric", so that their positions and velocities
+are controlled directly by external inputs. Some components, such as
+points and frames, are {\it only} parametric, and their state can be
+changed only by external inputs or by being attached to other dynamic
+components. Dynamic components include:
+
+\begin{itemize}
+
+\item Points, implemented by \javaclass[\mech]{Point}, describing a 3
+DOF point in space (parametric only).
+
+\item Frames, implemented by \javaclass[\mech]{Frame}, describing a 6 DOF
+spatial coordinate frame (parametric only).
+
+\item Particles, which are points with mass and are implemented
+by \javaclass[\mech]{Particle}, which is a subclass of \javaclass[\mech]{Point}.
+
+\item Rigid bodies, which are frames with inertia and are implemented
+by \javaclass[\mech]{RigidBody}, which is a subclass of \javaclass[\mech]{Frame}.
+
+\item Finite element nodes, implemented by \javaclass[\fem]{FemNode3d}
+which is a subclass of \javaclass[\mech]{Particle}.
+
+\item Markers, which are points attached to other components, using
+the attachment mechanism described in Section \ref{attachments:sec}.
+They are implemented as subclasses of \javaclass[\mech]{Point}, and include
+\javaclass[\mech]{FrameMarker} and \javaclass[\fem]{FemMarker}, which
+can be attached to frames or finite element models, respectively.
+
+\end{itemize}
+
+There is also support for "deformable" bodies, that are like rigid
+bodies with some extra DOFs to handle deformation, but these are
+currently experimental and aren't used much.
+
+\subsection{Force Effectors}
+
+These generate the forces that act on dynamic components, and include:
+
+\begin{itemize}
+
+\item Axial springs (class \javaclass[\mech]{AxialSpring}), which a applies
+a force between two points.
+
+\item Multi-point springs (class \javaclass[\mech]{MultiPointSpring}),
+which applies forces between multiple points connected together in a
+series of segments. Multi-point springs can also {\it wrap} around
+rigid obstacles.
+
+\item Frame springs (class \javaclass[\mech]{FrameSpring}), which apply
+translational and rotational forces between two rigid bodies.
+
+\item Point-to-point muscles (class \javaclass[\mech]{Muscle}) which are
+axial springs that also incorporate an intrinsic tension based on an
+"excitation" input.
+
+\item Multi-point muscles (class \javaclass[\mech]{MultiPointMuscle}), which are
+multi-point springs that also incorporate an intrinsic tension based on
+an "excitation" input.
+
+\item Finite element models (main class
+\javaclass[\fem]{FemModel3d}), which apply forces to their nodes,
+based on the local deformations of their elements and (for damping)
+their nodal velocities.
+
+\item Dynamic components can act as their own force effectors by
+providing velocity base damping forces
+
+\item Gravity loading, implemented directly by either finite element
+model or within \javaclass[\mech]{MechModel}, using the {\tt applyGravity()}
+method supplied by dynamic components.
+
+\end{itemize}
+
+\subsection{Constrainers}
+
+Constrainers restrict the ways in which dynamic components can move.
+Constraint relationships involve either qualities (bilateral) or
+inequalities (unilateral). Bilateral constraints include:
+
+\begin{itemize}
+
+\item Joints, such as \javaclass[\mech]{RevoluteJoint},
+\javaclass[\mech]{RollPitchJoint}, \javaclass[\mech]{SphericalJoint} and
+\javaclass[\mech]{SolidJoint}, which constrain the relative motions of
+two frames or rigid bodies.
+
+\item RigidBody to planar constraints, such as
+\javaclass[\mech]{PlanarConnector} and
+\javaclass[\mech]{SegmentedPlanarConnector}, which constrain a point
+on a rigid body to lie on a plane or segmented plane.
+
+\item Particle constraints, such as
+\javaclass[\mech]{ParticlePlaneConstraint} and
+\javaclass[\mech]{ParticleMeshConstraint}, which constrain a particle
+to lie on a plane or a mesh.
+
+\item Hard incompressibility within finite element models.
+
+\end{itemize}
+
+Unilateral constraints include:
+
+\begin{itemize}
+
+\item Contact between rigid bodies or finite elements models. The
+actual contact constraints are generated by the
+\javaclass[\mech]{CollisionManager} component of
+\javaclass[\mech]{MechModel}.
+
+\item Joint limits in joints such as \javaclass[\mech]{RevoluteJoint},
+\javaclass[\mech]{RollPitchJoint}, and \javaclass[\mech]{SphericalJoint}.
+
+\end{itemize}
+
+\subsection{Attachments}
+\label{attachments:sec}
+
+Attachments directly connect a "slave" dynamic component to one or
+more "master" components. Attachments are really just constraints, but
+they're implemented differently: attachments involve an equality
+relationship between the velocity of the slave and the velocities of
+the masters, which can be used to remove the slave from the physical
+system that has to be solved. This in turn reduces the size of the
+physical system and can increase solution times.
+
+At present, attachments are used to connect points and frames to other
+dynamic components.
+
+\begin{itemize}
+
+\item Point attachments, including
+\javaclass[\mech]{PointParticleAttachment},
+\javaclass[\mech]{PointFrameAttachment} and
+\javaclass[\fem]{PointFem3dAttachment}, attach a point to either a
+particle, a frame, or a finite element model. Another attachment,
+\javaclass[\fem]{PointSkinAttachment}, can attach a point to a
+\javaclass[\fem]{SkinMeshBody} (see below).
+
+\item Frame attachments, including
+\javaclass[\mech]{FrameFrameAttachment} and
+\javaclass[\fem]{FrameFem3dAttachment}, can attach a frame to either
+another frame or a finite element model.
+
+\end{itemize}
+
+Markers, as described in Section \ref{DynamicComponents:sec}, work by
+using their own internal attachments.
+
+\subsection{Mesh geometry}
+
+Models often include various kind of mesh geometry, often for
+visualization but also to control various properties of the
+simulation.
+
+The {\tt maspack.geometry} package supports three types of mesh:
+\javaclass[\mgeo]{PolygonalMesh}, \javaclass[\mgeo]{PolylineMesh}, and
+\javaclass[\mgeo]{PointMesh}, which describe meshes composed of
+polygons (usually triangles), line segments, and points,
+respectively. Each of these may be added to a model or incorporated
+into one of it's components. Meshes can be purely passive, playing no
+role in the simulation, or they may be attached to underlying dynamic
+components in some way.
+
+Within ArtiSynth, meshes are contained within a \javaclass[\mech]{MeshComponent},
+for which the following subclasses exist:
+
+\begin{itemize}
+
+\item \javaclass[\mech]{FixedMeshBody}, which contains a passive mesh used for
+visualization purposes. The mesh can be positioned in space using a
+rigid transform (its {\it pose}) but otherwise is generally fixed.
+
+\item \javaclass[\fem]{FemMeshComp} contains a deformable mesh which is embedded
+within a finite element model, and hence moves with that model. Such
+meshes are used to implement the model's surface mesh, or various
+submeshes within the model. Line segment meshes can be used to
+indicate the directions of fibre fields within an muscle activated FEM,
+while triangular meshes can be used for collision response between the
+FEM and other objects, or to display ``heat maps'' of stress or strain
+values. All FEM embedded meshes are implemented by having their
+vertices ``attached'' to one or more FEM nodes, in a manner identical
+to that used for FEM markers.
+
+\item \javaclass[\mech]{RigidMeshComp} contains a rigid mesh that is
+associated with a \javaclass[\mech]{RigidCompositeBody}. The mesh
+moves in space as the rigid body moves, but otherwise does not
+deform. Rigid body meshes can be used for collision response with
+other FEMs or rigid bodies, and can also be used to determine the
+inertia properties of the body given an assumption of uniform density.
+
+\begin{sideblock}
+At present, the use of {\tt RigidMeshComp} is presently restricted to
+{\tt RigidCompositeBody}, which is a rigid body that may contain
+multiple meshes. The standard {\tt RigidBody} component at present may
+have only one mesh, which it contains directly. Future plans call
+for merging the multiple mesh feature of {\tt RigidCompositeBody} 
+into {\tt RigidBody}.
+\end{sideblock}
+
+\item \javaclass[\fem]{SkinMeshBody} contains a deformable {\it skin}
+mesh that is attached to a combination of rigid bodies and finite
+element models and deforms in response to their motions. Skin meshes
+are used to implement a uniform covering over a variety of other model
+components.
+
+\end{itemize}
+
+\subsection{Renderables}
+
+Some components exist purely for visualization purposes. Many of these
+are contained within {\tt artisynth.core.renderables}, and include:
+
+\begin{itemize}
+
+\item \javaclass[\rend]{ColorBar}, used to display a color bar,
+typically as a key for a heat map.
+
+\item \javaclass[\rend]{DicomViewer}, used to display medical imagery
+from DICOM files.
+
+\item \javaclass[\rend]{TextComponent2d} and
+\javaclass[\rend]{TextComponent3d}, used for displaying text in 2D or
+3D.
+
+\item \javaclass[\rend]{LightComponent}, for adding illumination to
+the scene.
+
+\end{itemize}
+
+\section{Assembling Components}
+
+A common workflow for assembling an ArtiSynth model is the following:
+
+\begin{itemize}
+
+\item {\bf Creating the primary components}, such as finite element
+models, rigid bodies, meshes, and isolated particles. This generally
+entails defining the component geometry (either by reading it in from
+an external file or calling a suitable factory method), transforming
+the geometry if necessary (through translation, rotation, scaling, or
+applying a more general deformation), and setting material parameters
+such as density, stiffness coefficients, and damping.
+
+\item {\bf Adding the connecting components}, such as springs,
+muscles, joints, contact constraints, and attachments. This typically
+requires identifying the locations of the points and frames that are
+used to position or anchor these components. Such locations may be
+known a-priori, and either read from a file or simply defined in code,
+or they may be determined computationally.
+
+\item {\bf Adding the controls and monitors}, such as control panels,
+input and output probes, controllers, and monitors that are used to
+control and monitor the simulation. Control panels and probes are
+usually built by connecting widgets and input/output channels directly
+to the {\it properties} of selected components, wheres controllers and
+monitors can be implemented with application-defined code (and so can
+perform arbitrary tasks).
+
+\end{itemize}
+
+\end{document}

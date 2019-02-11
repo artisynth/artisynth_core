@@ -12,6 +12,8 @@ public class PointModel2d extends PointModel {
 
    public void build(String[] args) throws IOException {
       build (DemoType.Point2d);
+
+      addWayPoint (0.2);
    }
    
    public void addTrackingController() {

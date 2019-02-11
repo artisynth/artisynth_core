@@ -9,7 +9,7 @@ package artisynth.core.femmodels;
 import maspack.matrix.*;
 import maspack.util.*;
 
-public class QuadhexElementTest {
+public class QuadhexElementTest extends UnitTest {
 
    QuadhexElement myElem;
 
@@ -116,15 +116,8 @@ public class QuadhexElementTest {
    }
 
    public static void main (String[] args) {
+      RandomGenerator.setSeed (0x1234);
       QuadhexElementTest tester = new QuadhexElementTest();
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit(1);
-      }
-      
-      System.out.println ("\nPassed\n"); 
+      tester.runtest();
    }
 }

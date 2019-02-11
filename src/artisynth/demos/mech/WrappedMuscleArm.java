@@ -11,6 +11,7 @@ import javax.swing.JFrame;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.*;
 import artisynth.core.mechmodels.*;
+import artisynth.core.modelbase.*;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.util.ArtisynthPath;
@@ -260,6 +261,5 @@ public class WrappedMuscleArm extends RootModel {
       catch (Exception e) {
          System.out.println(e.getMessage());
       }
-        
    }
 }

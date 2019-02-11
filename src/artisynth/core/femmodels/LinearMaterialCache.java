@@ -35,7 +35,6 @@ public class LinearMaterialCache {
 
    /**
     * Initializes empty cache
-    * @param numNodes number of nodes in associated element
     */
    public LinearMaterialCache (FemElement3dBase e) {
       ensureCapacity (e);

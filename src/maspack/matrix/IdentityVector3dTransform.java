@@ -73,5 +73,10 @@ public class IdentityVector3dTransform implements VectorTransformer3d {
       return true;
    }
    
-
+   /**
+    * {@inheritDoc}
+    */
+   public IdentityVector3dTransform copy() {
+      return new IdentityVector3dTransform ();
+   } 
 }

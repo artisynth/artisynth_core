@@ -2,6 +2,9 @@
 \usepackage{amsmath}
 \input{artisynthDoc}
 
+\def\mech{artisynth.core.mechmodels}
+\def\mgeo{maspack.geometry}
+
 \setcounter{tocdepth}{0}
 \setcounter{secnumdepth}{0}
 
@@ -24,14 +27,330 @@
 %
 %\subsection{Adding editable mesh bodies}
 %
-%\subsection{Rendering signed distance grid surfaces}
-%
-%\subsection*{Wrapping surfaces}
-%
 %\subsection*{Flip methods}
 %
 %\subsection*{Disabling sliders in property widgets}
+
+\section*{Feb 11, 2019}
 %
+\subsection*{Muscle wrapping added}
+
+Muscle wrapping has now been officially added to ArtiSynth, with
+documentation supplied by a new chapter called ``Muscle Wrapping'' in
+the
+\href{http://www.artisynth.org/doc/info/modelguide/modelguide.html}
+{Modeling Guide}.  This documentation refers to a number of examples
+that have been added to {\tt artisynth.demos.tutorials}.
+
+\subsection*{RigidBody and RigidCompositeBody Merged}
+
+It is now possible to add multiple meshes to a 
+\javaclass[artisynth.core.mechmodels]{RigidBody},
+subsuming the functionality previously offered by {\tt
+RigidCompositeBody}, which is now deprecated.
+
+Each rigid body mesh is stored in a mesh component, 
+\javaclass[artisynth.core.mechmodels]{RigidMeshComp}, which is in turn
+contained in a subcomponent list named {\tt meshes}. Meshes can be of
+any type, including 
+\javaclass[maspack.geometry]{PolygonalMesh},
+\javaclass[maspack.geometry]{PolylineMesh} and
+\javaclass[maspack.geometry]{PointMesh}.
+The method 
+\javamethod[\mech.RigidBody]{getSurfaceMesh()}
+returns the first {\tt PolygonalMesh} in the list, and 
+\javamethod[\mech.RigidBody]{getSurfaceMeshComp()}
+returns its associated {\tt RigidMeshComp}.
+
+Meshes can be added to a {\tt RigidBody} by creating a {\tt
+RigidMeshComp} for them and then using methods such as
+%
+\begin{lstlisting}[]
+  void addMeshComp (RigidMeshComp mcomp)
+  boolean removeMeshComp (RigidMeshComp mcomp)
+  int numMeshComps()
+  void clearMeshComps()
+\end{lstlisting}
+%
+They can also be added directly, using the methods
+%
+\begin{lstlisting}[]
+  RigidMeshComp addMesh (MeshBase base)
+  RigidMeshComp addMesh (MeshBase base, boolean hasMass, boolean isCollidable)
+\end{lstlisting}
+%
+which allocate and return a {\tt RigidMeshComp}.  The latter method
+also specifies {\tt hasMass}, which indicates if the mesh should
+contribute to the body's inertia, and {\tt isCollidable}, which
+indicates if it should contribute to the body's collision mesh.
+
+\javaclass[artisynth.core.mechmodels]{RigidMeshComp} also contains new
+properties, {\sf mass} and {\sf density}, that can directly control
+how the mesh contributes to the rigid body's inertia when
+its {\sf inertiaMethod} is {\tt MASS} or {\tt DENSITY}.
+
+Full details are given in the new section ``Multiple meshes'',
+located under ``Rigid bodies'', in the
+\href{http://www.artisynth.org/doc/info/modelguide/modelguide.html}
+{Modeling Guide}.
+
+\subsection*{Distance grids stored in DistanceGridComp}
+
+A new component, \javaclass[\mech]{DistanceGridComp}, has been added
+for containing, controlling, and visualizing the distances grids
+represented by \javaclass[\mgeo]{DistanceGrid}.
+Full documentation is given in the new section
+``Distance Grids and Components'' in the 
+\href{http://www.artisynth.org/doc/info/modelguide/modelguide.html}
+{Modeling Guide}.
+
+In particular, the distance grid for a rigid body has been moved into
+its own {\tt DistanceGridComp}, which is a subcomponent of the body
+named {\tt "distanceGrid"}. One can obtain a reference to the grid
+component via the method
+%
+\begin{lstlisting}[]
+  DistanceGridComp getDistanceGridComp();
+\end{lstlisting}
+%
+
+\subsection*{API changes involving RigidBody}
+
+The wrapping code and the removal of {\tt RigidCompositeBody} have
+engendered some API cnanges involving {\tt RigidBody}.
+
+1) The following methods concerning surface meshes have been renamed. The
+old methods have been retained but deprecated:
+
+\begin{tabular}{ll}
+\hline
+Old method & New method \\
+\hline
+{\tt getMesh()} & {\tt getSurfaceMesh()} \\
+{\tt setMesh(mesh)} & {\tt setSurfaceMesh(mesh)} \\
+{\tt setMesh(mesh,fileName)} & {\tt setSurfaceMesh(mesh,fileName)}\\
+{\tt setMesh(mesh,fileName,X)} & {\tt setSurfaceMesh(mesh,fileName,X)}\\
+\hline
+\end{tabular}
+
+2) The field names for the enumerated type {\tt RigidBody.InertiaMethod}
+have been capitalized, so that {\tt Density}, {\tt Mass}, and {\tt
+Explicit} are now {\tt DENSITY}, {\tt MASS}, and {\tt EXPLICIT}.
+
+3) The rigid body's distance grid has been moved into its own
+component, which is a {\tt DistanceGridComp} that can be obtained via
+{\tt getDistanceGridComp()}. The old {\tt RigidBody} properties for
+controlling the distance grid have therefore been replaced by their
+equivalent properties in the grid component:
+
+\begin{tabular}{ll}
+\hline
+Old {\tt RigidBody} property & New {\tt DistanceGridComp} property \\
+\hline
+{\sf distanceGridRes} & {\sf resolution} \\
+{\sf distanceGridMaxRes} & {\sf maxResolution} \\
+{\sf distanceGridOBB} & {\sf fitWithOBB} \\
+{\sf distanceSurfaceIso} & {\sf surfaceDistance} \\
+{\sf renderDistanceGrid} & {\sf renderGrid} \\
+{\sf distanceGridRenderRanges} & {\sf renderRanges} \\
+\hline
+\end{tabular}
+
+In addition, the old {\tt RigidBody} property {\sf
+renderDistanceSurface} has been replaced by the combination of the
+{\tt DistanceGridComp} properties {\sf renderSurface} and {\sf
+surfaceType}, along with the new {\tt RigidBody} property {\sf
+gridSurfaceRendering}. The latter, if set {\tt true}, will cause the
+grid's isosurface to be rendered instead of the rigid body mesh
+components.
+
+4) The component {\tt RigidMesh}, which allowed wrapping around a rigid
+body with a general polygonal mesh, has been removed. Instead,
+wrapping is now supported for all rigid bodies. Wrapping is still
+computed using analytic methods for the special {\tt RigidBody}
+subclasses {\tt RigidCylinder}, {\tt RigidSphere}, {\tt
+RigidEllipsoid}, and {\tt RigidTorus}.
+
+5) In the class \javaclass[\mech]{RigidMeshComp}, the propery {\sf
+physical} has been renamed {\sf hasMass}.  The class no longer
+contains a distance grid, and so methods and properties relating to
+this have been removed.  Also, the {\tt RigidBody} method
+\begin{lstlisting}[]
+  RigidMeshComp addMesh (MeshBase base, boolean hasMass, boolean isCollidable)
+\end{lstlisting}
+%
+takes the additional argument {\tt isCollidable} indicating if the
+mesh should be treated as collidable.
+
+\subsection*{addFrameMarkerWorld() added to MechModel}
+
+A new method, \javamethodAlt{\mech.MechModel.addFrameMarkerWorld()}{%
+addFrameMarkerWorld(frame,pos)}, has been added to
+\javaclass[\mech]{MechModel}. This creates a
+\javaclass[\mech]{FrameMarker}, attaches it to {\tt frame}
+at the position {\tt pos} in world coordinates, adds it to the {\tt
+MechModel}, and returns it.  It differs from the existing method
+\javamethodAlt{\mech.MechModel.addFrameMarker(FrameMarker,Point3d)}{%
+addFrameMarker(frame,loc)} in that the latter places the marker at the
+location {\tt loc} in {\it frame} coordinates.
+
+\subsection*{Shell elements added to FemModel}
+
+Shell elements have been added to FEM models. Full documentation on
+this will be provided soon; in the meantime, please note the
+following:
+
+Shell elements are described by instances of
+\javaclass[artisynth.core.femmodels]{ShellElement3d}, and currently
+include \javaclass[artisynth.core.femmodels]{ShellTriElement} and
+\javaclass[artisynth.core.femmodels]{ShellQuadElement}.  They may be
+added and removed from a {\tt FemModel3d} using the following methods:
+%
+\begin{lstlisting}[]
+  void addShellElement (elem)        // add a shell element
+  void addShellElements (elems)      // add several shell elements
+  boolean removeShellElement (elem)  // remove a shell element
+  void clearShellElements ()         // remove all shell elements
+  int numShellElements ()            // returns the number of shell elements
+\end{lstlisting}
+%
+Both shell elements and the usual volumetric elements use the same
+nodes (\javaclass[artisynth.core.femmodels]{FemNode3d}), and can share
+nodes between elements. 
+
+Regular volumetric elements are still identified simply as
+``elements'', and are added and removed using the original methods {\tt
+addElement(e)}, {\tt removeElement(e)}, etc. In particular, {\tt
+numElements()} still returns the number of volumetric elements.  In
+order to query the total number of volumetric and shell elements, one
+should use the method
+%
+\begin{lstlisting}[]
+  int numAllElements ()              // number of shell and volumetric elements
+\end{lstlisting}
+%
+
+When used in connection with a shell element, an FEM node must supply
+an extra three degrees of freedom which specify a direction vector
+(known as a {\it director}) that is used for the shell
+computations. By default, this director vector is allocated and
+initialized automatically. It may be queried using the methods:
+%
+\begin{lstlisting}[]
+  boolean hasDirector ()             // returns true is a director is allocated
+  Vector3d getDirector ()            // gets director value
+  Vector3d getDirectorVel ()         // gets director velocity
+  void setDirector (dir)             // explicitly sets director value
+  void setDirectorVel (dvel)         // explicitly sets director velocity
+
+  Vector3d getRestDirector()         // gets director rest value
+  void setRestDirector (dir)         // explicitly sets director rest value
+\end{lstlisting}
+%
+
+\subsection*{API changes related to shell elements}
+
+\subsubsection*{FemElement3d replaced by FemElement3dBase in some cases}
+
+Both shell and volumetric elements now subclass from
+\javaclass[artisynth.core.femmodels]{FemElement3dBase}. Consequently,
+some methods which are general to all elements now use {\tt
+FemElement3dBase} instead of {\tt FemElement3d}. This includes
+the following query methods in {\tt FemModel3d}:
+%
+\begin{lstlisting}[]
+  FemElement3dBase findNearestElement (loc, pnt) 
+  FemElement3dBase findSurfaceElement (loc, pos) 
+  FemElement3dBase findContainingElement (pos) 
+  FemElement3dBase getSurfaceElement (face) 
+\end{lstlisting}
+%
+
+\subsubsection*{New and reimplemented element and node queries}
+
+The following element and nodal query methods have also been added to
+{\tt FemModel3d}:
+%
+\begin{lstlisting}[]
+  FemElement3d findNearestVolumetricElement (loc, pnt) 
+  ShellElement3d findNearestShellElement (loc, pnt) 
+  FemElement3dBase findNearestElement (loc, pnt, filter) 
+\end{lstlisting}
+%
+
+\subsubsection*{FemElement3d.hasFace() replaced by containsFace()}
+
+The {\tt FemElement3d} methods 
+%
+\begin{lstlisting}
+  hasFace(n0,n1,n2)
+  hasFace(n0,n1,n2,n3)
+\end{lstlisting}
+%
+used to determine if an element contains a
+specific triangular or quadrilateral face, have been lifted
+to {\tt FemElement3dBase} and renamed to
+%
+\begin{lstlisting}
+  containsFace(n0,n1,n2)
+  containsFace(n0,n1,n2,n3)
+\end{lstlisting}
+%
+
+\subsubsection*{FemElement.computeRestVolumes() returns
+minimum Jacobian determinant}
+
+The method
+\javamethod[artisynth.core.femmodels]{FemElement.computeRestVolumes()}
+no longer returns the computed rest volume. Instead, it stores the
+rest volume in the element and returns the minimum Jacobian
+determinant that was used in the volume computation. This makes {\tt
+computeRestVolumes()} behave the same as {\tt computeVolumes()}. To
+obtain the rest volume, one should use {\tt getRestVolume()}:
+%
+\begin{lstlisting}[]
+  elem.computeRestVolumes();
+  dpuble vol = elem.getRestVolume();
+\end{lstlisting}
+%
+
+\subsubsection*{FemNode3d.getElementDependenices() is deprecated}
+
+The method
+\javamethod[artisynth.core.femmodels]{FemNode3d.getElementDependencies()}
+is now deprecated. Instead, one should use the following:
+
+%
+\begin{lstlisting}[]
+  getAdjacentElements()               // returns all adjacent elements
+  getAdjacentVolumetricElements()     // returns adjacent volumetric elements
+  getAdjacentShellElements()          // returns adjacent shell elements
+\end{lstlisting}
+%
+
+\subsubsection*{FemModel3d.getElementNeighbors() is deprecated}
+
+The method {\tt FemModel3d.getElementNeighbors(node)} is now
+deprecated. Instead, one should use one of the {\tt FemNode3d}
+methods: 
+%
+\begin{lstlisting}[]
+  getAdjacentElements()
+  getAdjacentVolumetricElements()
+  getAdjacentShellElements()
+\end{lstlisting}
+%
+
+\subsubsection*{FemModel.ElementFilter is now an interface}
+
+The class {\tt FemModel.ElementFilter} has been changed to an interface.
+
+\subsubsection*{FemElement3dBase.computePosition() renamed to computeLocalPosition()}
+
+The method {\tt FemElement3dBase.computePosition(pos,ncoords)}, which
+computes a point position within an element based on natural
+coordinate values, has been renamed to {\tt
+computeLocalPosition(pos,ncoords)}.
 
 \section*{Mar 14, 2018}
 
@@ -504,9 +823,8 @@ The ArtiSynth collision handling mechanism has now been extended to
 work using signed distance fields, in situations where at least one of
 the collidable bodies has a fixed mesh and maintains and exports a
 signed distance grid (via the {\tt CollidableBody} methods
-\javamethod[artisynth.core.mechmodels.CollidableBody]{hasDistanceGrid()}
-and
-\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGrid()}).
+{\tt hasDistanceGrid()} and
+{\tt getDistanceGrid()}).
 Although more approximate than the methods based on intersecting
 triangles and contours, signed distance methods can be significantly
 faster. Signed distance collisions can be activated by setting the
@@ -6563,7 +6881,7 @@ and is consistent with the fact that the displays themselves are owned
 by the probe. All Legend code that was in
 \javaclass[artisynth.core.gui.timeline]{ProbeInfo} has been removed. 
 Also, the {\tt LegendDisplay} is now a subclass 
-of \javaclass[artisynth.core.gui]{PropertyPanel}, which greatly simplifies 
+of {\tt PropertyPanel}, which greatly simplifies 
 the code.
 
 \section*{July 20, 2009}

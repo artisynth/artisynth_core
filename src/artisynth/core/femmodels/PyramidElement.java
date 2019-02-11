@@ -29,7 +29,8 @@ public class PyramidElement extends FemElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
-         myDefaultIntegrationPoints = createIntegrationPoints();
+         myDefaultIntegrationPoints = 
+            createIntegrationPoints (new PyramidElement());
       }
       return myDefaultIntegrationPoints;
    }
@@ -89,18 +90,13 @@ public class PyramidElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   private static double[] myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalExtrapolationMatrix = null;
 
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          // For now, just use integration point values at corresponding nodes
-         myNodalExtrapolationMatrix = new double[] {
-            1, 0, 0, 0, 0,
-            0, 1, 0, 0, 0,
-            0, 0, 1, 0, 0,
-            0, 0, 0, 1, 0,
-            0, 0, 0, 0, 1,
-         };
+         myNodalExtrapolationMatrix = new MatrixNd (5, 5);
+         myNodalExtrapolationMatrix.setIdentity();
       }
       return myNodalExtrapolationMatrix;
    }
@@ -286,12 +282,26 @@ public class PyramidElement extends FemElement3d {
          3,   3, 0, 4,
       };
 
+   static int[] myTriangulatedFaceIdxs = new int[] 
+      {
+         0, 3, 2, 
+         0, 2, 1,
+         0, 1, 4,
+         1, 2, 4,
+         2, 3, 4,
+         3, 0, 4,
+      };
+
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
    }
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public int[] getTriangulatedFaceIndices() {
+      return myTriangulatedFaceIdxs;
    }
 
    /** 

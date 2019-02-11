@@ -198,9 +198,9 @@ TEST:: $(JAVA_SUBDIRS)
 
 TEST test::
 ifneq ($(JAVA_TEST_PROGRAMS),)
-	@for p in $(JAVA_TEST_PROGRAMS) ; do \
+	-@for p in $(JAVA_TEST_PROGRAMS) ; do \
 	   echo java $(PACKAGE_NAME).$$p ; \
-	   java $(PACKAGE_NAME).$$p ; \
+	     java $(PACKAGE_NAME).$$p ; \
 	done
 endif
 

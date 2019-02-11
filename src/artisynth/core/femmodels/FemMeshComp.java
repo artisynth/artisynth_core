@@ -28,6 +28,7 @@ import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.DistanceGridComp;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Particle;
@@ -392,7 +393,7 @@ implements CollidableBody, PointAttachable {
       return deps;
    }
 
-   public FemElement3d getFaceElement (Face face) {
+   public FemElement3dBase getFaceElement (Face face) {
 
       // Form the intersection of all the element dependencies of all three
       // nodes associated with the face. If the face is on the surface,
@@ -406,13 +407,28 @@ implements CollidableBody, PointAttachable {
       }
       while (he != he0);
 
-      HashSet<FemElement3d> elems = null;
+      HashSet<FemElement3dBase> elems = null;
+      // check volumetric elements first
       for (FemNode3d node : nodes) {
          if (elems == null) {
-            elems = new HashSet<FemElement3d>(getAdjacentVolumetricElems(node));
+            elems =
+               new HashSet<FemElement3dBase>(node.getAdjacentVolumeElements());
          }
          else {
-            elems.retainAll (getAdjacentVolumetricElems(node));
+            elems.retainAll (node.getAdjacentVolumeElements());
+         }
+      }
+      if (elems.size() != 1) {
+         // check shell elements next
+         elems = null;
+         for (FemNode3d node : nodes) {
+            if (elems == null) {
+               elems =
+                  new HashSet<FemElement3dBase>(node.getAdjacentShellElements());
+            }
+            else {
+               elems.retainAll (node.getAdjacentShellElements());
+            }
          }
       }
       if (elems.size() != 1) {
@@ -434,7 +450,7 @@ implements CollidableBody, PointAttachable {
          // throw new InternalErrorException (
          //    "Face "+face+" associated with "+elems.size()+" elements");
       }
-      return (FemElement3d)elems.toArray()[0];
+      return (FemElement3dBase)elems.toArray()[0];
    }
 
    private Vertex3d createVertex (FemNode3d node, Vertex3d v) {
@@ -447,7 +463,7 @@ implements CollidableBody, PointAttachable {
    }
 
    private void addNodeCoords (
-      Vector3d coords, double s0, double s1, double s2, FemElement3d elem, 
+      Vector3d coords, double s0, double s1, double s2, FemElement3dBase elem, 
       FemNode3d n0, FemNode3d n1, FemNode3d n2) {
 
       Vector3d coordsv = new Vector3d();
@@ -479,7 +495,7 @@ implements CollidableBody, PointAttachable {
    }
 
    private Vertex3d createVertex (
-      double s0, double s1, double s2, FemElement3d elem, 
+      double s0, double s1, double s2, FemElement3dBase elem, 
       FemNode3d n0, FemNode3d n1, FemNode3d n2) {
 
       Vector3d coords = new Vector3d();
@@ -516,7 +532,7 @@ implements CollidableBody, PointAttachable {
 
    private Vertex3d[] collectEdgeVertices (
       HashMap<EdgeDesc,Vertex3d[]> edgeVtxMap, Vertex3d v0, Vertex3d v1, 
-      FemNode3d n0, FemNode3d n1, FemElement3d elem, int res) {
+      FemNode3d n0, FemNode3d n1, FemElement3dBase elem, int res) {
 
       int numv = res+1;
       // numv is total number of vertices along the edge, including
@@ -621,7 +637,7 @@ implements CollidableBody, PointAttachable {
          // }
          // else 
          {
-            FemElement3d elem = surf.myFem.findContainingElement (vtx.pnt);
+            FemElement3dBase elem = surf.myFem.findContainingElement (vtx.pnt);
             Point3d newLoc = new Point3d(vtx.pnt);
             if (elem == null) {
                // won't use newLoc since we're not projecting vertex onto FEM
@@ -777,7 +793,7 @@ implements CollidableBody, PointAttachable {
          // subv.
          MeshFactory.VertexSet subv = new MeshFactory.VertexSet (numv);
 
-         FemElement3d elem = getFaceElement (face);
+         FemElement3dBase elem = getFaceElement (face);
          if (elem == null) {
             continue;
          }
@@ -1705,7 +1721,7 @@ implements CollidableBody, PointAttachable {
    }
    
    @Override   
-   public DistanceGrid getDistanceGrid() {
+   public DistanceGridComp getDistanceGridComp() {
       return null;
    }
 

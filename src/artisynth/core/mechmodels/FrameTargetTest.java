@@ -14,7 +14,7 @@ import maspack.spatialmotion.*;
 /**
  * Contains motion target information for a point.
  */
-public class FrameTargetTest {
+public class FrameTargetTest extends UnitTest {
 
    FrameTarget target = new FrameTarget(null);
    FrameState state = new FrameState();
@@ -120,13 +120,6 @@ public class FrameTargetTest {
 
    public static void main (String[] args) {
       FrameTargetTest tester = new FrameTargetTest();
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit(1);
-      }
-      System.out.println ("\nPassed\n");         
+      tester.runtest();
    }
 }

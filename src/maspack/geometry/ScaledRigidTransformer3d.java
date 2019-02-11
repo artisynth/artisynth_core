@@ -127,4 +127,21 @@ public class ScaledRigidTransformer3d implements VectorTransformer3d {
    public boolean isRigid() {
       return false;
    }
+   /**
+    * Scale the distance units associated with this transformer. This
+    * is done by scaling both the scaling factors and the origin by {@code s}.
+    * 
+    * @param s scaling factor
+    */
+   public void scaleDistance (double s) {
+      myRigidTrans.p.scale (s);
+      myScaling.scale (s);
+      myInvScaling.scale (1/s);
+   }  
+   /**
+    * {@inheritDoc}
+    */   
+   public ScaledRigidTransformer3d copy() {
+      return new ScaledRigidTransformer3d (myScaling, myRigidTrans);      
+   }  
 }

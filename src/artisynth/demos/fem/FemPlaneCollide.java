@@ -17,7 +17,7 @@ public class FemPlaneCollide extends RootModel {
    double density = 1000;
 
    // exclude elements with nodes for which x < 0
-   private class RightFilter extends ElementFilter {
+   private class RightFilter implements ElementFilter {
       public boolean elementIsValid (FemElement e) {
          for (FemNode n : e.getNodes()) {
             if (n.getPosition().x < 0) {

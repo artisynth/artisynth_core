@@ -154,7 +154,9 @@ public class ReaderTokenizerTest {
    private Record[] testResults3 =
       new Record[] { new Record ("__FOO", WORD, 1), new Record ("", EOL, 2),
                     new Record ("BAD", WORD, 3), new Record ("", EOL, 4),
-                    new Record ("", EOL, 5), new Record ("", EOF, 5), };
+                     // EOL is now skipped - see ReaderTokenizer line 1820
+                     //new Record ("", EOL, 5),
+                    new Record ("", EOF, 5), };
 
    private String testString4 = "777E 0xdeadL 1e-8msec 0.8H 0.8 ";
 

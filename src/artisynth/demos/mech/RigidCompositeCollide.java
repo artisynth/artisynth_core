@@ -25,7 +25,7 @@ public class RigidCompositeCollide extends RootModel {
       PolygonalMesh axis = MeshFactory.createCylinder (0.2, 2.0, 12);
       axis.transform (new RigidTransform3d (0, 0, 0, 0, Math.PI/2, 0));
 
-      RigidCompositeBody body = new RigidCompositeBody ("body");
+      RigidBody body = new RigidBody ("body");
       body.setDensity (10);
       body.addMesh (ball1);
       body.addMesh (ball2);

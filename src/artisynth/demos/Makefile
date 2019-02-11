@@ -4,7 +4,8 @@ PACKAGE_NAME = artisynth.demos
 JAVA_SUBDIRS = \
 	fem \
 	inverse \
-	mech
+	mech \
+	test
 
 default: build
 

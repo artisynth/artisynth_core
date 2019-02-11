@@ -6,20 +6,33 @@ PACKAGE_NAME = maspack.geometry
 
 PACKAGE_JAVA_FILES = 
 
+JAVA_SUBDIRS = io
+
 JAVA_TEST_PROGRAMS = \
+	AffineTransformerTest \
 	BVBoxNodeTest \
 	BVBoxNodeTesterTest \
 	BVFeatureQueryTest \
-	MeshRayIntersectionTest \
 	BVIntersectorTest \
 	BVTreeTest \
 	ConvexPolygonIntersectorTest \
+	DeformationTransformerTest \
 	DelaunayInterpolatorTest \
+	DistanceGridTest \
 	FaceTest \
 	HalfEdgeTest \
+	MeshFactoryTest \
+	MeshRayIntersectionTest \
 	NagataInterpolatorTest \
-	FaceTest \
-	PolygonalMeshTest
+	Polygon3dCalcTest \
+	PolygonalMeshTest \
+	QuadraticUtilsTest \
+	RigidTransformerTest \
+	RobustPredsTest \
+	TetgenConvexHullTest \
+	TetgenTessellatorTest \
+	Vertex3dListTest \
+	WindingCalculatorTest
 
 OTHER_CLASSES = 
 

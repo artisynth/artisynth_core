@@ -8,7 +8,7 @@ package maspack.matrix;
 
 import maspack.util.*;
 
-public class SparseNumberedBlockMatrixTest {
+public class SparseNumberedBlockMatrixTest extends UnitTest {
 
    public void test(int initialCapacity) {
       int[] sizes = new int[] {
@@ -40,21 +40,17 @@ public class SparseNumberedBlockMatrixTest {
       SparseNumberedBlockMatrix C = M.clone();
       C.checkConsistency();
    }
-   
+
+   public void test() {
+      SparseBlockMatrix.warningLevel = 0;
+      test(0);
+      test(4);
+      test(40);
+   }
+
    public static void main (String[] args) {
 
       SparseNumberedBlockMatrixTest tester = new SparseNumberedBlockMatrixTest();
-      SparseBlockMatrix.warningLevel = 0;
-      try {
-         tester.test(0);
-         tester.test(4);
-         tester.test(40);
-      }
-      catch (Exception e) {
-         e.printStackTrace(); 
-         System.exit(1); 
-      }
-      System.out.println ("\nPASSED\n");
-
+      tester.runtest();
    }
 }

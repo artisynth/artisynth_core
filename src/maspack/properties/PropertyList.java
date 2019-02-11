@@ -674,10 +674,16 @@ public class PropertyList implements PropertyInfoList {
     * writtem is itself {@link maspack.util.Scannable Scannable}, in which case
     * it is passed to that value's {@link maspack.util.Scannable#write write}
     * method.
+    * @param ref
+    * Reference object. This is only used when the value to be
+    * writtem is itself {@link maspack.util.Scannable Scannable}, in which case
+    * it is passed to that value's {@link maspack.util.Scannable#write write}
+    * method.
     * @throws IOException
     * if an I/O error occurred writing to the stream
     */
-   public void writeProps (HasProperties host, PrintWriter pw, NumberFormat fmt)
+   public void writeProps (
+      HasProperties host, PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException {
       for (PropertyDesc desc : myProps.values()) {
          if (desc.getAutoWrite()) {
@@ -690,7 +696,7 @@ public class PropertyList implements PropertyInfoList {
             }
             else if (mode == PropertyMode.Explicit) {
                pw.print (desc.myName + "=");
-               desc.writeValue (desc.getValue (host), pw, fmt);
+               desc.writeValue (desc.getValue (host), pw, fmt, ref);
             }
          }
       }
@@ -721,18 +727,24 @@ public class PropertyList implements PropertyInfoList {
     * PrintWriter to which properties are written
     * @param fmt
     * Numeric formatting information. This is only used when the value to be
-    * writtem is itself {@link maspack.util.Scannable Scannable}, in which case
+    * written is itself {@link maspack.util.Scannable Scannable}, in which case
+    * it is passed to that value's {@link maspack.util.Scannable#write write}
+    * method.
+    * @param ref
+    * Reference object. This is only used when the value to be
+    * written is itself {@link maspack.util.Scannable Scannable}, in which case
     * it is passed to that value's {@link maspack.util.Scannable#write write}
     * method.
     * @throws IOException
     * if an I/O error occurred writing to the stream
     */
    public boolean writeNonDefaultProps (
-      HasProperties host, PrintWriter pw, NumberFormat fmt) throws IOException {
+      HasProperties host, PrintWriter pw, NumberFormat fmt, Object ref) 
+      throws IOException {
       boolean wroteSomething = false;
       for (PropertyDesc desc : myProps.values()) {
          if (desc.getAutoWrite()) {
-            boolean wrote = desc.writeIfNonDefault (host, pw, fmt);
+            boolean wrote = desc.writeIfNonDefault (host, pw, fmt, ref);
             wroteSomething |= wrote;
          }
       }
@@ -741,8 +753,8 @@ public class PropertyList implements PropertyInfoList {
    
    /**
     * Identical to {@link
-    * #writeNonDefaultProps(HasProperties,PrintWriter,NumberFormat)
-    * writeNonDefaultProps(host,pw,fmt)}
+    * #writeNonDefaultProps(HasProperties,PrintWriter,NumberFormat,Object)
+    * writeNonDefaultProps(host,pw,fmt,obj)}
     * but also takes an optional array of property names which are
     * to be excluded.
     * 
@@ -752,7 +764,12 @@ public class PropertyList implements PropertyInfoList {
     * PrintWriter to which properties are written
     * @param fmt
     * Numeric formatting information. This is only used when the value to be
-    * writtem is itself {@link maspack.util.Scannable Scannable}, in which case
+    * written is itself {@link maspack.util.Scannable Scannable}, in which case
+    * it is passed to that value's {@link maspack.util.Scannable#write write}
+    * method.
+    * @param ref
+    * Reference object. This is only used when the value to be
+    * written is itself {@link maspack.util.Scannable Scannable}, in which case
     * it is passed to that value's {@link maspack.util.Scannable#write write}
     * method.
     * @param exclude
@@ -761,13 +778,14 @@ public class PropertyList implements PropertyInfoList {
     * if an I/O error occurred writing to the stream
     */
    public boolean writeNonDefaultProps (
-      HasProperties host, PrintWriter pw, NumberFormat fmt, String[] exclude)
+      HasProperties host, PrintWriter pw, NumberFormat fmt, Object ref, 
+      String[] exclude)
       throws IOException {
       boolean wroteSomething = false;
       for (PropertyDesc desc : myProps.values()) {
          if (desc.getAutoWrite()) {
             if (!excluded (desc.myName, exclude)) {
-               wroteSomething |= desc.writeIfNonDefault (host, pw, fmt);
+               wroteSomething |= desc.writeIfNonDefault (host, pw, fmt, ref);
             }
             // Object value = desc.getValue (host);
             // PropertyMode mode = PropertyMode.Explicit;

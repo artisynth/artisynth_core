@@ -57,14 +57,9 @@ public abstract class ModelBase extends ComponentList<ModelComponent>
    public void getState (ComponentState state) {
    }
 
-   public void setInitialState (ComponentState state) {
-      setState (state);
-   }
-
-   public void getInitialState (ComponentState state) {
-      getState (state);
-   }
-
+   /**
+    * {@inheritDoc}
+    */ 
    public void getInitialState (
       ComponentState newstate, ComponentState oldstate) {
       if (oldstate == null) {

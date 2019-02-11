@@ -93,8 +93,8 @@ public class LigamentAxialMaterial extends AxialMaterial {
       return myDamping;
    }
 
-   public synchronized void setDamping (double E) {
-      myDamping = E;
+   public synchronized void setDamping (double d) {
+      myDamping = d;
       myDampingMode =
          PropertyUtils.propagateValue (
             this, "damping", myDamping, myDampingMode);

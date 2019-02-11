@@ -88,8 +88,8 @@ public abstract class ModelAgentBase extends ModelComponentBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
-      //getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
+      //getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       pw.println ("model=" + ComponentUtils.getWritePathName (
                      ancestor, myModel));      
    }

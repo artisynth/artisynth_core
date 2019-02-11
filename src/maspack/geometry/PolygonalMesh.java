@@ -2013,12 +2013,15 @@ public class PolygonalMesh extends MeshBase {
    /**
     * Translates the vertices of this mesh so that its origin coincides
     * with the center of volume. The topology of the mesh remains unchanged.
+    *
+    * @return the resulting rigid transform that was applied to the mesh
     */
-   public void translateToCenterOfVolume () {
+   public RigidTransform3d translateToCenterOfVolume () {
       Vector3d off = new Vector3d();
       computeCentreOfVolume (off);
       off.negate();
       translate (off);
+      return new RigidTransform3d (off.x, off.y, off.z);
    }
    
    /**
@@ -3363,6 +3366,8 @@ public class PolygonalMesh extends MeshBase {
       //Point3d cov;
       //RigidTransform3d X;
 
+      updateFaceNormals();
+
       if (mov1 != null) {
          mov1.setZero();
       }
@@ -3766,6 +3771,7 @@ public class PolygonalMesh extends MeshBase {
          new SymmetricMatrix3d (
             mov2.y+mov2.z, mov2.x+mov2.z, mov2.x+mov2.y, -pov.z, -pov.y, -pov.x); 
       J.scale (density);
+
       // J contains the mass[com][com] term; remove this:
       J.m00 -= mass * (cov.z * cov.z + cov.y * cov.y);
       J.m11 -= mass * (cov.z * cov.z + cov.x * cov.x);

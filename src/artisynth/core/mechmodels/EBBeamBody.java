@@ -6,27 +6,37 @@
  */
 package artisynth.core.mechmodels;
 
-import java.io.PrintWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Deque;
 
-import maspack.geometry.PolygonalMesh;
+import artisynth.core.materials.FemMaterial;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.util.ScanToken;
 import maspack.geometry.MeshFactory;
-import maspack.matrix.*;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.Matrix;
+import maspack.matrix.Matrix2d;
+import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix6d;
+import maspack.matrix.MatrixBlock;
+import maspack.matrix.MatrixNd;
+import maspack.matrix.MatrixNdBlock;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.SymmetricMatrix3d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
-import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.SpatialInertia;
+import maspack.spatialmotion.Twist;
 import maspack.util.InternalErrorException;
-import maspack.util.ReaderTokenizer;
-import maspack.util.RandomGenerator;
 import maspack.util.NumberFormat;
-import artisynth.core.femmodels.IntegrationData3d;
-import artisynth.core.femmodels.IntegrationPoint3d;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.DeformedPointBase;
-import artisynth.core.util.ScanToken;
+import maspack.util.RandomGenerator;
+import maspack.util.ReaderTokenizer;
 
 public class EBBeamBody extends DeformableBody {
 
@@ -338,59 +348,6 @@ public class EBBeamBody extends DeformableBody {
       }
    }
 
-   private static IntegrationPoint3d[] myIntegrationPoints =
-      new IntegrationPoint3d[] {
-      new IntegrationPoint3d (0,0, -Math.sqrt(3/5.0), 0, 0, /*weight=*/5.0/9.0), 
-      new IntegrationPoint3d (0,0,  0, 0, 0,                 /*weight=*/8.0/9.0), 
-      new IntegrationPoint3d (0,0,  Math.sqrt(3/5.0), 0, 0,  /*weight=*/5.0/9.0)
-   };
-
-   private void computeBFromDShape (Matrix6x1 B, Matrix3d DS) {
-      B.m00 = DS.m00;
-      B.m10 = DS.m11;
-      B.m20 = DS.m22;
-      B.m30 = DS.m01 + DS.m10;
-      B.m40 = DS.m12 + DS.m21;
-      B.m50 = DS.m02 + DS.m20;
-   }
-
-   public void computeStiffnessFromIntegration () {
-      int numc = numElasticCoords();
-      Matrix6d D = new Matrix6d();
-      Matrix3d DS = new Matrix3d();
-      Matrix6x1 Bi = new Matrix6x1();
-      Matrix6x1 Bj = new Matrix6x1();
-      Matrix6x1 Bx = new Matrix6x1();
-
-      myStiffnessMatrix.setZero();
-
-      for (int k=0; k<myIntegrationPoints.length; k++) {
-
-         DeformedPointBase def = new DeformedPointBase();
-         IntegrationPoint3d pt = myIntegrationPoints[k];
-         IntegrationData3d dt = new IntegrationData3d ();
-         def.setF (Matrix3d.IDENTITY);
-         // get the tangent at the rest position
-         Matrix3d Q = Matrix3d.IDENTITY;
-         //myMaterial.computeTangent (D, pt.getStress(), pt, dt, null);
-         //myMaterial.computeTangent (D, SymmetricMatrix3d.ZERO, def, Q, null);
-         SymmetricMatrix3d sigma = new SymmetricMatrix3d();
-         myMaterial.computeStressAndTangent (sigma, D, def, Q, 0.0);
-         double dl = (myLen/2)*pt.getWeight();
-
-         for (int i=0; i<numc; i++) {
-            getDShape (DS, i, pt.getCoords());
-            computeBFromDShape (Bi, DS);
-            for (int j=0; j<numc; j++) {
-               getDShape (DS, j, pt.getCoords());
-               computeBFromDShape (Bj, DS);
-               Bx.mul (D, Bj);
-               myStiffnessMatrix.add (i, j, dl*Bi.dot(Bx));
-            }
-         }
-      }
-   }
-
    public void computeStiffnessMatrix() {
       myStiffnessMatrix.setZero();
 
@@ -401,13 +358,13 @@ public class EBBeamBody extends DeformableBody {
       double l = myLen;
       double lsqr = l*l;
       double lcub = l*lsqr;
-      double E = myStiffness;
+      double Jxx0 = mySpatialInertia.getRotationalInertia().m00;
 
       Ksub.set (new double[] {
             12/lcub, -6/lsqr,
             -6/lsqr, 4/l });
 
-      Ksub.scale (myStiffness);
+      Ksub.scale (Jxx0*myStiffness);
 
       myStiffnessMatrix.setSubMatrix (0, 0, Ksub);
       myStiffnessMatrix.setSubMatrix (2, 2, Ksub);

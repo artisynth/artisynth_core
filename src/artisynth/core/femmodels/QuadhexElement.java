@@ -24,7 +24,8 @@ public class QuadhexElement extends FemElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
-         myDefaultIntegrationPoints = createIntegrationPoints();
+         myDefaultIntegrationPoints = 
+            createIntegrationPoints (new QuadhexElement());
       }
       return myDefaultIntegrationPoints;
    }
@@ -64,6 +65,7 @@ public class QuadhexElement extends FemElement3d {
             pressureWeights.set (i, getH (i, coords));
          }
          pnt.setPressureWeights (pressureWeights);
+         pnt.myElemClass = ElementClass.VOLUMETRIC;
          
          myWarpingPoint = pnt;
          
@@ -314,61 +316,69 @@ public class QuadhexElement extends FemElement3d {
       }
    }
 
-   private static double[] myNodalExtrapolationMatrix8 = new double[] {
-      1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 
-      0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 
-      0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 
-      0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5,
-      0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 
-      0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 
-      0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 
-      0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5
-   };
+   private static MatrixNd myNodalExtrapolationMatrix8 = null;
+   static {
+      myNodalExtrapolationMatrix8 = new MatrixNd (20,8);
+      myNodalExtrapolationMatrix8.set (new double[] 
+      {
+       1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 
+       0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 
+       0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 
+       0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5,
+       0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 
+       0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 
+       0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 
+       0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5
+      });
+   }
 
-   private static double[] myNodalExtrapolationMatrix14 = new double[] {
-      1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-      0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-   };
+   private static MatrixNd myNodalExtrapolationMatrix14 = null;
+   static {
+      myNodalExtrapolationMatrix14 = new MatrixNd (20, 14);
+      myNodalExtrapolationMatrix14.set (new double[] 
+      {
+       1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+       0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+      });
+   }
 
-   private static double[] myNodalExtrapolationMatrix27;   
+   private static MatrixNd myNodalExtrapolationMatrix27;   
 
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNumIntPoints == 27) {
          if (myNodalExtrapolationMatrix27 == null) {
-            myNodalExtrapolationMatrix27 = new double[20*27];
-            for (int i=0; i<20; i++) {
-               myNodalExtrapolationMatrix27[27*i+i] = 1;
-            }
+            myNodalExtrapolationMatrix27 = new MatrixNd(20, 27);
+            myNodalExtrapolationMatrix27.setIdentity();
          }
          return myNodalExtrapolationMatrix27;
       }
@@ -577,7 +587,7 @@ public class QuadhexElement extends FemElement3d {
          8,   0, 16,  4, 12,  5, 17,  1,  8
       };
 
-   static int[] myWidgetFaces = FemUtilities.triangulateFaceIndices (myFaceIdxs);
+   static int[] myTriangulatedFaceIdxs;
 
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
@@ -585,6 +595,14 @@ public class QuadhexElement extends FemElement3d {
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public int[] getTriangulatedFaceIndices() {
+      if (myTriangulatedFaceIdxs == null) {
+         myTriangulatedFaceIdxs =
+            FemUtilities.triangulateFaceIndices (myFaceIdxs);
+      }
+      return myTriangulatedFaceIdxs;
    }
 
    public void render(Renderer renderer, RenderProps props, int flags) {

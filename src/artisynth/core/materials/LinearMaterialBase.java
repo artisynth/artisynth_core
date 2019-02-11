@@ -38,7 +38,7 @@ public abstract class LinearMaterialBase extends FemMaterial {
    }
    
    protected LinearMaterialBase(boolean corotated) {
-      myCorotated = corotated;
+      setCorotated (corotated);
    }
 
    @Override

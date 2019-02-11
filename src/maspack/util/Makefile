@@ -10,10 +10,14 @@ JAVA_TEST_PROGRAMS = \
 	ArraySortTest \
 	BinaryStreamTest \
 	CubicSolverTest \
+	DynamicArrayTest \
+	ListRemoveTest \
 	NumberFormatTest \
 	NumericIntervalTest \
 	ReaderTokenizerTest \
-	DynamicArrayTest
+	RoundTest
+
+        # QuarticSolverTest
 
 OTHER_CLASSES = 
 

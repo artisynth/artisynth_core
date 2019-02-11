@@ -34,9 +34,9 @@ import maspack.util.ReaderTokenizer;
  * homogenous coordinates, this operation can be represented as
  * 
  * <pre>
- * [ x1 ]   [ sR p ] [ x0 ]
- * [    ] = [      ] [    ]
- * [  1 ]   [ 0  1 ] [  1 ]
+ * [ x1 ]   [ s R   p ] [ x0 ]
+ * [    ] = [         ] [    ]
+ * [  1 ]   [  0    1 ] [  1 ]
  * </pre>
  * 
  * <p>
@@ -1256,7 +1256,7 @@ Clonable {
     * 
     * @param s scale factor
     */
-   public void setScale(double s) {
+   public void setScale (double s) {
       if (!myExternalComponentsValidP) {
          updateExternalComponents();
       }
@@ -1266,8 +1266,9 @@ Clonable {
    
    /**
     * Post-multiplies this transform by a uniform scaling transform:
-    *  [ sI 0 ]
-    *  [  0 1 ]
+    * 
+    *  [ s I   0 ]
+    *  [  0    1 ]
     *  
     * @param s scale factor
     */
@@ -1445,5 +1446,4 @@ Clonable {
       R.mulTranspose (vr, v0);
       vr.scale (1/s);
    }
-
 }

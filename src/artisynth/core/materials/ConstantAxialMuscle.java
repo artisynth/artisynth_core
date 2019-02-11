@@ -8,7 +8,7 @@ public class ConstantAxialMuscle extends AxialMuscleMaterial {
    
    public ConstantAxialMuscle (double fmax) {
       super();
-      myMaxForce = fmax;
+      setMaxForce (fmax);
    }
    
    public double computeF(double l, double ldot, double l0, double ex) {

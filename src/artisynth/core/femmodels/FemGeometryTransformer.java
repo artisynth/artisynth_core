@@ -28,11 +28,7 @@ public class FemGeometryTransformer extends DeformationTransformer {
    public void getDeformation (Vector3d p, Matrix3d F, Vector3d r) {
       
       Point3d rpos = new Point3d(r);
-      FemElement3d restElem = myRestFem.findContainingElement(rpos);
-      if (restElem == null) {
-         Point3d newLoc = new Point3d();
-         restElem = myRestFem.findNearestSurfaceElement(newLoc, rpos);
-      }
+      FemElement3dBase restElem = myRestFem.findNearestElement (null, rpos);
       Vector3d coords = new Vector3d();
       if (!restElem.getNaturalCoordinates (coords, rpos)) {
          //System.out.println ("warning...");

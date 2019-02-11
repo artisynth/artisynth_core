@@ -185,6 +185,32 @@ public class AffineTransform3d extends AffineTransform3dBase {
    }
 
    /**
+    * Sets A to diagonal scaling matrix.
+    * 
+    * @param sx
+    * x scale factor
+    * @param sy
+    * y scale factor
+    * @param sz
+    * z scale factor
+    */
+   public void setScaling(double sx, double sy, double sz) {
+      A.m00 = sx;
+      A.m10 = 0;
+      A.m20 = 0;
+
+      A.m01 = 0;
+      A.m11 = sy;
+      A.m21 = 0;
+
+      A.m02 = 0;
+      A.m12 = 0;
+      A.m22 = sz;
+   }
+
+
+
+   /**
     * Scales the columns of A by the specified amounts. This is equivalent to
     * post-multiplying A by a diagonal matrix. Note that the resulting scaling
     * effect will be in addition to any previous scaling effect.

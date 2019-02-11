@@ -29,6 +29,16 @@ public class SingleShellTri extends RootModel {
 
    public void build (String[] args) {
 
+      boolean membrane = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-membrane")) {
+            membrane = true;
+         }
+         else {
+            System.out.println ("Warning: unknown model argument '"+args[i]+"'");
+         }
+      }
+
       MechModel mech = new MechModel ("mech");
       addModel (mech);
 
@@ -41,7 +51,7 @@ public class SingleShellTri extends RootModel {
       n0.setDynamic (false);
       //n2.setDynamic (false);
 
-      ShellTriElement triShell = new ShellTriElement(n0, n1, n2, 0.01);
+      ShellTriElement triShell = new ShellTriElement (n0, n1, n2, 0.01, membrane);
       fem.addNode (n0);
       fem.addNode (n1);
       fem.addNode (n2);
@@ -91,32 +101,4 @@ public class SingleShellTri extends RootModel {
          renderer.drawArrow (curPos, curDir, 0.01, true);
       }
    }
-
-   public StepAdjustment advance (double t0, double t1, int flags) {
-
-      FemModel3d fem = (FemModel3d)findComponent ("models/mech/models/0");
-      ShellTriElement tri = (ShellTriElement)fem.getShellElement(0);
-
-      Matrix3d J0 = new Matrix3d();
-      Matrix3d invJ0 = new Matrix3d();
-      Matrix3d J = new Matrix3d();
-      Matrix3d F = new Matrix3d();
-      Matrix3d R = new Matrix3d();
-      Matrix3d P = new Matrix3d();
-      IntegrationPoint3d ip = tri.getIntegrationPoints()[0];
-
-      ip.computeRestJacobian (
-         J0, tri.getNodes(), ElementClass.MEMBRANE);
-      ip.computeJacobian (J, tri.getNodes(), ElementClass.MEMBRANE);
-      invJ0.fastInvert (J0);
-      F.mul (J, invJ0);
-
-      SVDecomposition3d svd = new SVDecomposition3d();
-      svd.polarDecomposition (R, P, F);
-      System.out.println ("P=\n" + P.toString ("%10.6f"));
-
-      return super.advance (t0, t1, flags);
-   }
-   
-
 }

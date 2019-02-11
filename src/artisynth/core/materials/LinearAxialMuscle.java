@@ -8,10 +8,10 @@ public class LinearAxialMuscle extends AxialMuscleMaterial {
    
    public LinearAxialMuscle(double fmax, double lrest) {
       super();
-      myMaxForce = fmax;
-      myOptLength = lrest;
-      myMaxLength = lrest*1.5;
-      myPassiveFraction = 1;
+      setMaxForce (fmax);
+      setOptLength (lrest);
+      setMaxLength (lrest*1.5);
+      setPassiveFraction (1.0);
    }
    
    public double computeF(double l, double ldot, double l0, double ex) {

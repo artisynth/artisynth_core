@@ -1,11 +1,18 @@
 package artisynth.core.materials;
 
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.util.Deque;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.ScanToken;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
+import maspack.util.ReaderTokenizer;
+import maspack.util.NumberFormat;
 
 public class NeoHookeanMaterial extends FemMaterial {
 
@@ -17,6 +24,7 @@ public class NeoHookeanMaterial extends FemMaterial {
 
    private double myNu = DEFAULT_NU;
    private double myE = DEFAULT_E;
+   private FieldPointFunction<Double> myEFxn;
 
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
@@ -86,6 +94,34 @@ public class NeoHookeanMaterial extends FemMaterial {
       return myEMode;
    }
 
+   public double getYoungsModulus (FieldPoint dp) {
+      if (myEFxn == null) {
+         return getYoungsModulus();
+      }
+      else {
+         return myEFxn.eval (dp);
+      }
+   }
+
+   public FieldPointFunction<Double> getYoungsModulusFunction() {
+      return myEFxn;
+   }
+      
+   public void setYoungsModulusFunction (FieldPointFunction<Double> func) {
+      myEFxn = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setYoungsModulusField (
+      Field<Double> field, boolean useRestPos) {
+      myEFxn = FieldUtils.createFieldFunction (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public Field<Double> getYoungsModulusField () {
+      return FieldUtils.getFieldFromFunction (myEFxn);
+   }
+
    public void computeStress (
       SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat) {
@@ -93,8 +129,9 @@ public class NeoHookeanMaterial extends FemMaterial {
       double J = def.getDetF();
 
       // express constitutive law in terms of Lama parameters
-      double G = myE/(2*(1+myNu)); // bulk modulus
-      double lam = (myE*myNu)/((1-2*myNu)*(1+myNu));
+      double E = getYoungsModulus(def);
+      double G = E/(2*(1+myNu)); // bulk modulus
+      double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
       double mu = G;
 
       computeLeftCauchyGreen (myB,def);
@@ -115,8 +152,9 @@ public class NeoHookeanMaterial extends FemMaterial {
       computeLeftCauchyGreen (myB,def);
 
       // express constitutive law in terms of Lama parameters
-      double G = myE/(2*(1+myNu)); // bulk modulus
-      double lam = (myE*myNu)/((1-2*myNu)*(1+myNu));
+      double E = getYoungsModulus(def);
+      double G = E/(2*(1+myNu)); // bulk modulus
+      double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
       double mu = G;
 
       D.setZero();
@@ -181,5 +219,35 @@ public class NeoHookeanMaterial extends FemMaterial {
       }
    }
 
+   public void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+      super.writeItems (pw, fmt, ancestor);
+      FieldUtils.writeFunctionInfo (
+         pw, "YoungsModulusFunc", myEFxn, fmt, ancestor);
+   }
+
+   protected boolean scanItem (
+      ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
+      rtok.nextToken();
+      if (ScanWriteUtils.scanAttributeName (rtok, "YoungsModulusFunc")) {
+         myEFxn = FieldUtils.scanFunctionInfo (
+            rtok, "YoungsModulusFunc", tokens);
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+       if (ScanWriteUtils.postscanAttributeName (
+          tokens, "YoungsModulusFunc")) {
+          myEFxn = FieldUtils.postscanFunctionInfo (tokens, ancestor);
+          return true;
+       }
+       return super.postscanItem (tokens, ancestor);
+   }       
 
 }

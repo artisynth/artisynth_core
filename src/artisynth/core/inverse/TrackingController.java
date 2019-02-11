@@ -292,6 +292,26 @@ public class TrackingController extends ControllerBase
       }
    }
 
+   public int getUseTrapezoidalSolver() {
+      return myMotionForceData.useTrapezoidalSolver;
+   }
+
+   public void setUseTrapezoidalSolver (int enable) {
+      myMotionForceData.useTrapezoidalSolver = enable;
+   }
+
+   public boolean getKeepVelocityJacobianConstant() {
+      return myMotionTerm.keepVelocityJacobianConstant;
+   }
+
+   /**
+    * Disables recomputation of the velocity Jacobian. This actually gives
+    * incorrect results and is provided for comparison with legacy code only.
+    */
+   public void setKeepVelocityJacobianConstant (boolean keepConstant) {
+      myMotionTerm.keepVelocityJacobianConstant = keepConstant;
+   }
+
    /**
     * Returns the "motion" term, responsible for tracking error
     * @return motion term for tracking error
@@ -753,15 +773,28 @@ public class TrackingController extends ControllerBase
       return idx;
    }
 
-   private void invalidateStressIfFem(MechSystemModel model) {
-      if (model instanceof MechModel) {
-         for (MechSystemModel subModel : ((MechModel)model).models()) {
-            invalidateStressIfFem(subModel);
+   private void invalidateStressIfFemRecursive(ModelComponent model) {
+      if (model instanceof FemModel) {
+         ((FemModel)model).invalidateStressAndStiffness ();
+      } else if (model instanceof ComponentList<?>) {
+         for (ModelComponent mc : (ComponentList<?>)model) {
+            invalidateStressIfFemRecursive (mc);
          }
       }
-      else if (model instanceof FemModel) {
-         ((FemModel)model).invalidateStressAndStiffness();
-      }
+   }
+   
+   private void invalidateStressIfFem(MechSystemModel model) {
+      // recursively look for FEM models
+      invalidateStressIfFemRecursive (model);
+      //      
+      //      if (model instanceof MechModel) {
+      //         for (MechSystemModel subModel : ((MechModel)model).models()) {
+      //            invalidateStressIfFem(subModel);
+      //         }
+      //      }
+      //      else if (model instanceof FemModel) {
+      //         ((FemModel)model).invalidateStressAndStiffness();
+      //      }
    }
 
    /**

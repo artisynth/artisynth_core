@@ -33,8 +33,9 @@ public class MotionForceInverseData
    public static boolean DEFAULT_USE_KKT_FACTORANDSOLVE = false;
    protected boolean useKKTFactorAndSolve = DEFAULT_USE_KKT_FACTORANDSOLVE;
    
-   public static boolean DEFAULT_USE_TRAPEZOIDAL_SOLVER = false;
-   protected boolean useTrapezoidalSolver = DEFAULT_USE_TRAPEZOIDAL_SOLVER;
+   // 1 for true, 0 for false, -1 for automatic
+   public static int DEFAULT_USE_TRAPEZOIDAL_SOLVER = -1;
+   protected int useTrapezoidalSolver = DEFAULT_USE_TRAPEZOIDAL_SOLVER;
    
    public static boolean DEFAULT_NORMALIZE_H = false;
    protected boolean normalizeH = DEFAULT_NORMALIZE_H;
@@ -79,8 +80,26 @@ public class MotionForceInverseData
       // identical to earlier results when t0, t1 where given as nsec integers
       double h = TimeBase.round(t1 - t0);
       
-      if (myMech instanceof MechModel) {
-         useTrapezoidalSolver = ((MechModel)myMech).getIntegrator ()==Integrator.Trapezoidal;
+      boolean useTrapezoidal = false;
+      switch (useTrapezoidalSolver) {
+         case 0: {
+            useTrapezoidal = false;
+            break;
+         }
+         case 1: {
+            useTrapezoidal = true;
+            break;
+         }
+         default: {
+            if (myMech instanceof MechModel) {
+               useTrapezoidal =
+                  ((MechModel)myMech).getIntegrator ()==Integrator.Trapezoidal;
+            }
+            else {
+               useTrapezoidal = false;
+            }
+            break;
+         }
       }
 
       int velSize = myMech.getActiveVelStateSize ();
@@ -150,7 +169,7 @@ public class MotionForceInverseData
          System.out.println ("\th: " + h);
       }
 
-      if (useTrapezoidalSolver) {
+      if (useTrapezoidal) {
          // use Trapezoidal integration
          myMechSysSolver.KKTFactorAndSolve (
             u0, null, bf, /*tmp=*/ftmp, curVel, 
@@ -232,7 +251,7 @@ public class MotionForceInverseData
          fa.scale (h);
          
          if (useKKTFactorAndSolve) {        
-            if (useTrapezoidalSolver) {
+            if (useTrapezoidal) {
                 // use Trapezoidal integration
                 myMechSysSolver.KKTFactorAndSolve (
                    Hu_j, null, fa, /*tmp=*/ftmp, curVel, 
@@ -251,8 +270,6 @@ public class MotionForceInverseData
             myMechSysSolver.KKTSolve(Hu_j, lam, the, fa);
          }
          
-
-         
 //         if (TrackingController.isDebugTimestep (t0, t1)) {
 //            System.out.println("fa"+j+" = " + fa);            
 //            System.out.println("Hu_"+j+" = " + Hu_j);
@@ -260,10 +277,12 @@ public class MotionForceInverseData
 //         
          Hu.setColumn (j, Hu_j.getBuffer ());
          // Hm_j = Jm Hu_j;
-         if (Jm != null)
+         if (Jm != null) {
             Jm.mul(Hm_j, Hu_j, Jm.rowSize (), velSize);
-         else
+         }      
+         else {
             Hm_j.set(Hu_j);
+         }
 
          Hv.setColumn(j, Hm_j.getBuffer());
          

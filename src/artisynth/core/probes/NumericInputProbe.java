@@ -154,6 +154,7 @@ public class NumericInputProbe extends NumericProbeBase
 //   }
 
    public NumericInputProbe (Property[] props, ModelComponent e) {
+      this();
       setModelFromComponent (e);
       setInputProperties (props);      
       //this (props, e, 0, 0);
@@ -618,11 +619,7 @@ public class NumericInputProbe extends NumericProbeBase
    }
    
    public void getState (ComponentState state) {
-      if (!(state instanceof NumericState)) {
-         throw new IllegalArgumentException (
-            "state not an instance of NumericState");
-      }
-      NumericState nstate = (NumericState)state;
+      NumericState nstate = castToNumericState(state);
       nstate.resetOffsets();
       nstate.dEnsureCapacity (myVsize);
       if (myVsize > 0) {
@@ -637,11 +634,7 @@ public class NumericInputProbe extends NumericProbeBase
    }
 
    public void setState (ComponentState state) {
-      if (!(state instanceof NumericState)) {
-         throw new IllegalArgumentException (
-            "state not an instance of NumericState");
-      }
-      NumericState nstate = (NumericState)state;
+      NumericState nstate = castToNumericState(state);
       nstate.resetOffsets();
       if (nstate.dsize() != myVsize) {
          throw new IllegalArgumentException (

@@ -638,10 +638,22 @@ public class RootModel extends RenderableModelBase
 
    public void addController (Controller controller) {
       if (controller.getModel() != null) {
-         if (!myModels.contains (controller.getModel())) {
-            throw new IllegalArgumentException (
-               "Model not contained within RootModel");
+         // find as subcomponent
+         Model model = controller.getModel ();
+         // root parent
+         CompositeComponent parent = model.getParent ();
+         CompositeComponent grandParent = parent.getParent ();
+         while (grandParent != null) {
+            parent = grandParent;
+            grandParent = parent.getParent ();
          }
+         if (parent != this) {
+            throw new IllegalArgumentException ("Model not contained within RootModel");
+         }
+         //         if (!myModels.contains (controller.getModel())) {
+         //            throw new IllegalArgumentException (
+         //               "Model not contained within RootModel");
+         //         }
       }
       myControllers.add (controller);
    }

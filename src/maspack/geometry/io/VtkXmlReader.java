@@ -4,16 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Stack;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.MeshBase;
-import maspack.util.ReaderTokenizer;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -21,21 +17,30 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
+import maspack.geometry.MeshBase;
+import maspack.geometry.PointMesh;
+import maspack.geometry.PolygonalMesh;
+import maspack.geometry.PolylineMesh;
+import maspack.util.ReaderTokenizer;
+
 /**
  * Reads a polygonal mesh from the VTK vtp format
  * 
- * @author antonio
- * 
+ * see http://www.cacr.caltech.edu/~slombey/asci/vtk/vtk_formats.simple.html
  */
 
 public class VtkXmlReader extends MeshReaderBase {
+   
+   VtkSaxHandler sax;
 
    public VtkXmlReader (InputStream is) throws IOException {
       super (is);
+      sax = null;
    }
 
    public VtkXmlReader (File file) throws IOException {
       super (file);
+      sax = null;
    }
 
    public VtkXmlReader (String fileName) throws IOException {
@@ -51,26 +56,50 @@ public class VtkXmlReader extends MeshReaderBase {
    private static class VtkSaxHandler extends DefaultHandler {
 
       private PolygonalMesh mesh = null;
+      private PolylineMesh lmesh = null;
+      private PointMesh pmesh = null;
 
       private StringBuilder xmlContent = new StringBuilder();
       private DATA_TYPE currentData;
-      private int nFaces = 0;
-      private int nVertices = 0;
-      private ArrayList<Integer> faceNodes;
-      private int[] offsets;
+      private int nPolys = 0;
+      private int nPoints = 0;
+      private int nVerts = 0;
+      private int nLines = 0;
+      private int nStrips = 0;
+      private ArrayList<Integer> connectivity;
+      private ArrayList<Integer> offsets;
       private double[][] coords;
 
       enum DATA_TYPE {
-         NORMALS, POINTS, FACES, OFFSETS
+         NORMALS, POINTS, CONNECTIVITY, OFFSETS
       }
 
       enum TAG_TYPE {
-         VTK_FILE, POLY_DATA, PIECE, POINT_DATA, POINTS, POLYS, DATA_ARRAY
+         VTK_FILE, POLY_DATA, PIECE, POINT_DATA, POINTS, POLYS, DATA_ARRAY, CELL_DATA,
+         VERTS, LINES, STRIPS
       }
 
-      private Stack<TAG_TYPE> tagStack = new Stack<TAG_TYPE>();
+      static class VTKElement {
+         TAG_TYPE type;
+         String name;
+         Attributes attrs;
+         public VTKElement(TAG_TYPE type, String name, Attributes attrs) {
+            this.type = type;
+            this.name = name;
+            this.attrs = attrs;
+         }
+      }
 
+      private ArrayDeque<VTKElement> elementStack = new ArrayDeque<VTKElement>();
+
+      public VtkSaxHandler() {
+      }
+      
       public VtkSaxHandler (PolygonalMesh mesh) {
+         setMesh(mesh);
+      }
+      
+      public VtkSaxHandler (PolylineMesh mesh) {
          setMesh(mesh);
       }
 
@@ -80,14 +109,46 @@ public class VtkXmlReader extends MeshReaderBase {
          }
          this.mesh = mesh;
       }
+
+      public void setMesh(PolylineMesh mesh) {
+         if (mesh == null) {
+            mesh = new PolylineMesh();
+         }
+         this.lmesh = mesh;
+      }
       
       public PolygonalMesh getMesh() {
          return mesh;
       }
 
+      public PolylineMesh getPolylineMesh() {
+         return lmesh;
+      }
+
+      public int numLines() {
+         return nLines;
+      }
+
+      public int numFaces() {
+         return nPolys;
+      }
+
       // SAX parser stuff
       public void startDocument() throws SAXException {
-         mesh.clear();
+         if (mesh != null) {
+            mesh.clear ();
+         }
+         if (lmesh != null) {
+            lmesh.clear ();
+         }
+      }
+
+      private static int getIntegerAttribute(Attributes atts, String attribute, int defaultValue) {
+         String attr = atts.getValue(attribute);
+         if (attr == null) {
+            return defaultValue;
+         }
+         return Integer.parseInt (attr);
       }
 
       public void startElement(String namespaceURI,
@@ -96,79 +157,120 @@ public class VtkXmlReader extends MeshReaderBase {
          Attributes atts) throws SAXException {
 
          if (localName.equals("VTKFile")) {
-            tagStack.push(TAG_TYPE.VTK_FILE);
+            elementStack.addLast(new VTKElement (TAG_TYPE.VTK_FILE, localName, atts));
          } else if (localName.equals("PolyData")) {
-            tagStack.push(TAG_TYPE.POLY_DATA);
+            elementStack.addLast(new VTKElement (TAG_TYPE.POLY_DATA, localName, atts));
          } else if (localName.equals("Piece")) {
-            tagStack.push(TAG_TYPE.PIECE);
+            elementStack.addLast(new VTKElement (TAG_TYPE.PIECE, localName, atts));
 
-            nVertices = Integer.parseInt(atts.getValue("NumberOfPoints"));
-            nFaces = Integer.parseInt(atts.getValue("NumberOfPolys"));
-            faceNodes = new ArrayList<Integer>();
-            coords = new double[nVertices][3];
-            offsets = new int[nFaces];
+            nPoints = getIntegerAttribute(atts, "NumberOfPoints", 0);
+            nPolys = getIntegerAttribute(atts, "NumberOfPolys", 0);
+            nVerts = getIntegerAttribute(atts, "NumberOfVerts", 0);
+            nLines = getIntegerAttribute(atts, "NumberOfLines", 0);
+            nStrips = getIntegerAttribute(atts, "NumberOfStrips", 0);
 
          } else if (localName.equals("PointData")) {
-            tagStack.push(TAG_TYPE.POINT_DATA);
-
+            elementStack.addLast(new VTKElement (TAG_TYPE.POINT_DATA, localName, atts));
          } else if (localName.equals("Points")) {
-            tagStack.push(TAG_TYPE.POINTS);
-
+            coords = new double[nPoints][3];
+            elementStack.addLast(new VTKElement (TAG_TYPE.POINTS, localName, atts));
+         } else if (localName.equals ("Lines")) {
+            offsets = new ArrayList<Integer>(nLines);
+            connectivity = new ArrayList<Integer>();
+            elementStack.addLast (new VTKElement (TAG_TYPE.LINES, localName, atts));
+         } else if (localName.equals("Verts")) {
+            elementStack.addLast (new VTKElement (TAG_TYPE.VERTS, localName, atts));
          } else if (localName.equals("Polys")) {
-            tagStack.push(TAG_TYPE.POLYS);
-
+            offsets = new ArrayList<Integer>(nPolys);
+            connectivity = new ArrayList<Integer>();
+            elementStack.addLast(new VTKElement (TAG_TYPE.POLYS, localName, atts));
          } else if (localName.equals("DataArray")) {
 
-            if (tagStack.peek() == TAG_TYPE.POINTS) {
+            VTKElement parent = elementStack.peekLast ();
+
+            if (parent.type == TAG_TYPE.POINTS) {
                currentData = DATA_TYPE.POINTS;
-            } else if (tagStack.peek() == TAG_TYPE.POLYS) {
+            } else if (parent.type == TAG_TYPE.POLYS) {
                String type = atts.getValue("Name");
                if (type.equals("connectivity")) {
-                  currentData = DATA_TYPE.FACES;
+                  currentData = DATA_TYPE.CONNECTIVITY;
+               } else if (type.equals("offsets")) {
+                  currentData = DATA_TYPE.OFFSETS;
+               }
+            } else if (parent.type == TAG_TYPE.LINES) {
+               String type = atts.getValue("Name");
+               if (type.equals("connectivity")) {
+                  currentData = DATA_TYPE.CONNECTIVITY;
                } else if (type.equals("offsets")) {
                   currentData = DATA_TYPE.OFFSETS;
                }
             }
 
             xmlContent = new StringBuilder();
-            tagStack.push(TAG_TYPE.DATA_ARRAY);
+            elementStack.addLast(new VTKElement (TAG_TYPE.DATA_ARRAY, localName, atts));
+         } else {
+            elementStack.addLast (new VTKElement(null, localName, atts));
          }
 
       }
 
       public void endElement(String uri, String localName, String qName)
-         throws SAXException {
+      throws SAXException {
 
-         if (tagStack.peek() == TAG_TYPE.POINTS) {
+         TAG_TYPE type = elementStack.peekLast ().type;
+
+         if (type == TAG_TYPE.POINTS) {
+
+         } else if (type == TAG_TYPE.POLY_DATA) {
             // assign vertices
-
-            for (int i = 0; i < nVertices; i++) {
+            if (mesh == null) {
+               mesh = new PolygonalMesh();
+            }
+            for (int i = 0; i < nPoints; i++) {
                mesh.addVertex(coords[i][0], coords[i][1], coords[i][2]);
             }
 
-         } else if (tagStack.peek() == TAG_TYPE.POLY_DATA) {
             // assign faces
-
             int idx = 0;
-            for (int i = 0; i < nFaces; i++) {
-               int nV = offsets[i] - idx;
+            for (int i = 0; i < nPolys; i++) {
+               int nV = offsets.get (i) - idx;
                int[] face = new int[nV];
 
                for (int j = 0; j < nV; j++) {
-                  face[j] = faceNodes.get(j + idx);
+                  face[j] = connectivity.get(j + idx);
                }
                mesh.addFace(face);
-               idx = offsets[i];
+               idx = offsets.get (i);
+            }
+         } else if (type == TAG_TYPE.LINES) {
+            // assign vertices
+            if (lmesh == null) {
+               lmesh = new PolylineMesh();
+            }
+            for (int i = 0; i < nPoints; i++) {
+               lmesh.addVertex(coords[i][0], coords[i][1], coords[i][2]);
             }
 
-         } else if (tagStack.peek() == TAG_TYPE.DATA_ARRAY) {
+            // assign faces
+            int idx = 0;
+            for (int i = 0; i < nLines; i++) {
+               int nV = offsets.get (i) - idx;
+               int[] line = new int[nV];
+
+               for (int j = 0; j < nV; j++) {
+                  line[j] = connectivity.get(j + idx);
+               }
+               lmesh.addLine (line);
+               idx = offsets.get (i);
+            }
+         } else if (type == TAG_TYPE.DATA_ARRAY) {
 
             ReaderTokenizer rtok =
-               new ReaderTokenizer(new StringReader(xmlContent.toString()));
+            new ReaderTokenizer(new StringReader(xmlContent.toString()));
 
             if (currentData == DATA_TYPE.POINTS) {
                // parse points from xmlContent
-               for (int i = 0; i < nVertices; i++) {
+               for (int i = 0; i < nPoints; i++) {
                   int nRead = 0;
                   try {
                      nRead = rtok.scanNumbers(coords[i], 3);
@@ -180,10 +282,10 @@ public class VtkXmlReader extends MeshReaderBase {
                   }
                }
 
-            } else if (currentData == DATA_TYPE.FACES) {
+            } else if (currentData == DATA_TYPE.CONNECTIVITY) {
 
                try {
-                  scanIntegers(rtok, faceNodes, Integer.MAX_VALUE);
+                  scanIntegers(rtok, connectivity, Integer.MAX_VALUE);
                } catch (IOException e) {
                   e.printStackTrace();
                }
@@ -193,27 +295,30 @@ public class VtkXmlReader extends MeshReaderBase {
                // parse offsets
                int nRead = 0;
                try {
-                  nRead = scanIntegers(rtok, offsets, nFaces);
+                  nRead = scanIntegers(rtok, offsets, Integer.MAX_VALUE);
                } catch (IOException e) {
                   e.printStackTrace();
                }
-               if (nRead != nFaces) {
+               if (nRead != offsets.size ()) {
                   throw new SAXException("Invalid number of offsets");
                }
 
             }
 
+            currentData = null;
+
          }
-         tagStack.pop();
+
+         elementStack.removeLast();
       }
 
       public void endDocument() throws SAXException {
       }
 
       public void characters(char ch[], int start, int length)
-         throws SAXException {
+      throws SAXException {
 
-         if (tagStack.peek() == TAG_TYPE.DATA_ARRAY) {
+         if (elementStack.peekLast().type == TAG_TYPE.DATA_ARRAY) {
             xmlContent.append(new String(ch, start, length));
          }
 
@@ -234,7 +339,7 @@ public class VtkXmlReader extends MeshReaderBase {
       }
 
       private static int scanIntegers(ReaderTokenizer rt, int[] vals, int max)
-         throws IOException {
+      throws IOException {
          for (int i = 0; i < max; i++) {
             rt.nextToken();
             if (rt.ttype == ReaderTokenizer.TT_NUMBER) {
@@ -256,7 +361,9 @@ public class VtkXmlReader extends MeshReaderBase {
 
    public MeshBase readMesh (MeshBase mesh) throws IOException {
       if (mesh instanceof PolygonalMesh) {
-         return readMesh ((PolygonalMesh)mesh);
+         return readMesh((PolygonalMesh)mesh);
+      } else if (mesh instanceof PolylineMesh) {
+         return readMesh((PolylineMesh)mesh);
       }
       else {
          throw new UnsupportedOperationException (
@@ -264,8 +371,44 @@ public class VtkXmlReader extends MeshReaderBase {
       }
    }
 
+   public void parse() throws IOException {
+      // create a SAX handler
+      SAXParserFactory spf = SAXParserFactory.newInstance();
+      spf.setNamespaceAware(true);
+      try {
+         SAXParser saxParser = spf.newSAXParser();
+         XMLReader xmlReader = saxParser.getXMLReader();
+
+         this.sax = new VtkSaxHandler();
+         xmlReader.setContentHandler(sax);
+
+         InputSource isource = new InputSource(myIstream);
+         xmlReader.parse(isource);
+
+      } catch (SAXException e) {
+         throw new IOException(e.getMessage(), e);
+      } catch (ParserConfigurationException e) {
+         throw new IOException(e.getMessage(), e);
+      }
+   }
+   
+   public PolygonalMesh getPolygonalMesh() {
+      if (sax != null) {
+         return sax.getMesh ();
+      }
+      return null;
+   }
+   
+   public PolylineMesh getPolylineMesh() {
+      if (sax != null) {
+         return sax.getPolylineMesh ();
+      }
+      return null;
+   }
+   
+   
    public PolygonalMesh readMesh (PolygonalMesh mesh)
-      throws IOException {
+   throws IOException {
 
       // create a SAX handler
       SAXParserFactory spf = SAXParserFactory.newInstance();
@@ -274,7 +417,32 @@ public class VtkXmlReader extends MeshReaderBase {
          SAXParser saxParser = spf.newSAXParser();
          XMLReader xmlReader = saxParser.getXMLReader();
 
-         VtkSaxHandler sax = new VtkSaxHandler(mesh);
+         this.sax = new VtkSaxHandler(mesh);
+         xmlReader.setContentHandler(sax);
+
+         InputSource isource = new InputSource(myIstream);
+         xmlReader.parse(isource);
+
+         return sax.getMesh();
+
+      } catch (SAXException e) {
+         throw new IOException(e.getMessage(), e);
+      } catch (ParserConfigurationException e) {
+         throw new IOException(e.getMessage(), e);
+      }
+
+   }
+
+   public PolygonalMesh readMesh (PolylineMesh mesh) throws IOException {
+
+      // create a SAX handler
+      SAXParserFactory spf = SAXParserFactory.newInstance();
+      spf.setNamespaceAware(true);
+      try {
+         SAXParser saxParser = spf.newSAXParser();
+         XMLReader xmlReader = saxParser.getXMLReader();
+
+         this.sax = new VtkSaxHandler(mesh);
          xmlReader.setContentHandler(sax);
 
          InputSource isource = new InputSource(myIstream);
@@ -293,11 +461,11 @@ public class VtkXmlReader extends MeshReaderBase {
    public static PolygonalMesh read (File file) throws IOException {
       VtkXmlReader reader = new VtkXmlReader (file);
       return (PolygonalMesh)reader.readMesh (new PolygonalMesh());
-    }
-   
+   }
+
    public static PolygonalMesh read (String fileName) throws IOException {
       return read (new File(fileName));
-    }
-   
+   }
+
 
 }

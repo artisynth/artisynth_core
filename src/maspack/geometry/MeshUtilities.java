@@ -1242,7 +1242,7 @@ public class MeshUtilities {
       ArrayList<VertexData> vdata = new ArrayList<VertexData>(mesh.numVertices ());
       
       // collect border neighbours
-      HashMap<Vertex3d,HashSet<Vertex3d>> borderNeighbors = new HashMap<> ();
+      // HashMap<Vertex3d,HashSet<Vertex3d>> borderNeighbors = new HashMap<> ();
       
       // determine if a vertex is a border, end-point or center
       //  end-points have one or 3+ border edges, will remain fixed

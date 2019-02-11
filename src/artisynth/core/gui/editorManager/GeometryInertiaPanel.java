@@ -101,7 +101,7 @@ ActionListener, ValueChangeListener {
       AffineTransform3dBase meshXform = new RigidTransform3d();
       double density;
       SpatialInertia inertia = new SpatialInertia();
-      InertiaMethod inertiaMethod = InertiaMethod.Density;
+      InertiaMethod inertiaMethod = InertiaMethod.DENSITY;
 
       public GeometrySettings() {
       }
@@ -160,27 +160,30 @@ ActionListener, ValueChangeListener {
       if (body != null) {
          if (myAttachedBody == body) {
             settings.geometryType = GeometryType.Mesh;
-            if (body.getMeshFileName() != null) {
-               settings.meshFileName = body.getMeshFileName();
-            }
-            if (body.getMeshFileTransform() != null) {
-               settings.meshXform = body.getMeshFileTransform().copy();
-            }
-            if (body.getMesh() != null) {
-               myFileMesh = body.getMesh().copy();
+            PolygonalMesh mesh;
+            if ((mesh = body.getSurfaceMesh()) != null) {
+               MeshComponent mcomp = body.getSurfaceMeshComp();
+               myFileMesh = mesh.copy();
+               if (mcomp.getFileName() != null) {
+                  settings.meshFileName = mcomp.getFileName();
+               }              
+               if (mcomp.getFileTransform() != null) {
+                  settings.meshXform = mcomp.getFileTransform().copy();
+               }
                if (settings.meshXform != null) {
                   myFileMesh.inverseTransform (settings.meshXform);
                }
             }
          }
          else {
-            if (body.getMeshFileName() != null) {
-               myFileMesh = loadMeshFromFile (body.getMeshFileName());
+            MeshComponent mcomp = body.getSurfaceMeshComp();
+            if (mcomp != null && mcomp.getFileName() != null) {
+               myFileMesh = loadMeshFromFile (mcomp.getFileName());
             }
             if (myFileMesh != null) {
-               settings.meshFileName = body.getMeshFileName();
-               if (body.getMeshFileTransform() != null) {
-                  settings.meshXform = body.getMeshFileTransform().copy();
+               settings.meshFileName = mcomp.getFileName();
+               if (mcomp.getFileTransform() != null) {
+                  settings.meshXform = mcomp.getFileTransform().copy();
                }
             }
          }
@@ -194,7 +197,7 @@ ActionListener, ValueChangeListener {
          settings.density = 1.0;
          // default inertia: unit mass and identity rotational inertia
          settings.inertia.set (1, 1, 1, 1); 
-         settings.inertiaMethod = InertiaMethod.Density;
+         settings.inertiaMethod = InertiaMethod.DENSITY;
       }
       if (body != null && body.getMesh() != null) {
          PolygonalMesh mesh = body.getMesh();
@@ -347,11 +350,19 @@ ActionListener, ValueChangeListener {
       updateDensityAndInertia();
       if (myAttachedBody != null && myMesh != null) {
          // don't update the body unless we need to ...
-         if (myMesh != myAttachedBody.getMesh() ||
-             !objectsEqual (myMeshFileName, myAttachedBody.getMeshFileName()) ||
-             !objectsEqual (myMeshFileTransform,
-                            myAttachedBody.getMeshFileTransform())) {
-            myAttachedBody.setMesh (myMesh, myMeshFileName, myMeshFileTransform);
+
+         String bodyMeshFileName = null;
+         AffineTransform3dBase bodyMeshFileTransform = null;
+         MeshComponent mcomp = myAttachedBody.getSurfaceMeshComp();
+         if (mcomp != null) {
+            bodyMeshFileName = mcomp.getFileName();
+            bodyMeshFileTransform = mcomp.getFileTransform();
+         }
+         if (myMesh != myAttachedBody.getSurfaceMesh() ||
+             !objectsEqual (myMeshFileName, bodyMeshFileName) ||
+             !objectsEqual (myMeshFileTransform, bodyMeshFileTransform)) {
+            myAttachedBody.setSurfaceMesh (
+               myMesh, myMeshFileName, myMeshFileTransform);
             Main.getMain().rerender();
          }
       }
@@ -359,13 +370,13 @@ ActionListener, ValueChangeListener {
 
    private void updateDensityAndInertia (){
       if (myMesh != null) {
-         if (getInertiaMethod() == InertiaMethod.Density) {
+         if (getInertiaMethod() == InertiaMethod.DENSITY) {
             updateInertiaFromDensity (getDensity());
          }
          else {
             double density = getMass()/myMesh.computeVolume();
             setWidget (myDensityField, density);
-            if (getInertiaMethod() == InertiaMethod.Mass) {
+            if (getInertiaMethod() == InertiaMethod.MASS) {
                updateInertiaFromDensity (density);
             }
          }
@@ -378,15 +389,15 @@ ActionListener, ValueChangeListener {
    public void setBodyInertia (RigidBody body) {
 
       switch (getInertiaMethod()) {
-         case Density: {
+         case DENSITY: {
             body.setInertiaFromDensity (getDensity());
             break;            
          }
-         case Mass: {
+         case MASS: {
             body.setInertiaFromMass (getMass());
             break;            
          }
-         case Explicit: {
+         case EXPLICIT: {
             body.setInertia (getInertia());
             break;
          }
@@ -690,9 +701,17 @@ ActionListener, ValueChangeListener {
       if (body != null && attached) {
          body.getInertia (myOriginalInertia);
          myOriginalDensity = body.getDensity();
-         myOriginalMesh = body.getMesh();
-         myOriginalMeshFileName = body.getMeshFileName();
-         myOriginalMeshFileTransform = body.getMeshFileTransform();
+         MeshComponent mcomp = body.getSurfaceMeshComp();
+         if (mcomp != null) {
+            myOriginalMesh = body.getSurfaceMesh();
+            myOriginalMeshFileName = mcomp.getFileName();
+            myOriginalMeshFileTransform = mcomp.getFileTransform();
+         }
+         else {
+            myOriginalMesh = null;
+            myOriginalMeshFileName = null;
+            myOriginalMeshFileTransform = null;
+         }
          myOriginalInertiaMethod = body.getInertiaMethod();
          myAttachedBody = body;
       }
@@ -719,9 +738,17 @@ ActionListener, ValueChangeListener {
 	 if (body != null) {
 	    myOriginalDensity = body.getDensity();
 	    body.getInertia (myOriginalInertia);
-            myOriginalMesh = body.getMesh();
-            myOriginalMeshFileName = body.getMeshFileName();
-            myOriginalMeshFileTransform = body.getMeshFileTransform();
+	    MeshComponent mcomp = body.getSurfaceMeshComp();
+	    if (mcomp != null) {
+	       myOriginalMesh = body.getSurfaceMesh();
+	       myOriginalMeshFileName = mcomp.getFileName();
+	       myOriginalMeshFileTransform = mcomp.getFileTransform();
+	    }
+	    else {
+               myOriginalMesh = null;
+               myOriginalMeshFileName = null;
+               myOriginalMeshFileTransform = null;
+	    }
             myOriginalInertiaMethod = body.getInertiaMethod();
             setInertiaWidgets (myOriginalInertia);
             setDensity (myOriginalDensity);
@@ -775,8 +802,8 @@ ActionListener, ValueChangeListener {
          double density = myDensityField.getDoubleValue();
          if (myMesh != null) {
             double mass = density*myMesh.computeVolume();
-            if (getInertiaMethod() == InertiaMethod.Mass ||
-                getInertiaMethod() == InertiaMethod.Density) {
+            if (getInertiaMethod() == InertiaMethod.MASS ||
+                getInertiaMethod() == InertiaMethod.DENSITY) {
                updateInertiaFromDensity (density);
             }
             setWidget (myMassField, mass);
@@ -786,8 +813,8 @@ ActionListener, ValueChangeListener {
          double mass = myMassField.getDoubleValue();
          if (myMesh != null) {
             double density = mass/myMesh.computeVolume();
-            if (getInertiaMethod() == InertiaMethod.Mass ||
-                getInertiaMethod() == InertiaMethod.Density) {
+            if (getInertiaMethod() == InertiaMethod.MASS ||
+                getInertiaMethod() == InertiaMethod.DENSITY) {
                updateInertiaFromDensity (density);
             }
             setWidget (myDensityField, density);
@@ -821,21 +848,21 @@ ActionListener, ValueChangeListener {
 
    private void setInertiaWidgetEnabling (InertiaMethod method) {
       switch (method) {
-         case Density: {
+         case DENSITY: {
             myDensityField.setEnabledAll (true);
             myMassField.setEnabledAll (false);
             myInertiaField.setEnabledAll (false);
             myCOMField.setEnabledAll (false);
             break;
          }
-         case Mass: {
+         case MASS: {
             myDensityField.setEnabledAll (false);
             myMassField.setEnabledAll (true);
             myInertiaField.setEnabledAll (false);
             myCOMField.setEnabledAll (false);
             break;
          }
-         case Explicit: {
+         case EXPLICIT: {
             myDensityField.setEnabledAll (false);
             myMassField.setEnabledAll (true);
             myInertiaField.setEnabledAll (true);

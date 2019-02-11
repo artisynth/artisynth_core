@@ -87,9 +87,10 @@ public class FrameSpring extends Spring
    protected float[] myRenderPnt1 = new float[3];
    protected float[] myRenderPnt2 = new float[3];
    
-   protected static final boolean defaultDrawFrame = false;
-   protected boolean myDrawFrameD = defaultDrawFrame;
-   protected boolean myDrawFrameC = false;
+   protected static final boolean DEFAULT_DRAW_FRAME_D = true;
+   protected boolean myDrawFrameD = DEFAULT_DRAW_FRAME_D;
+   protected static final boolean DEFAULT_DRAW_FRAME_C = true;
+   protected boolean myDrawFrameC = DEFAULT_DRAW_FRAME_C;
    
    private Matrix3d myTmpM = new Matrix3d();
    // private RotationMatrix3d myRBA = new RotationMatrix3d();
@@ -117,9 +118,11 @@ public class FrameSpring extends Spring
       myProps.add ("axisLength * *", "length of rendered frame axes", 1f);
       myProps.addReadOnly("springForce *", "The spring force");
       myProps.add (
-         "drawFrame", "if true, draw the D coordinate frame", defaultDrawFrame);
+         "drawFrameD", "if true, draw the D coordinate frame", 
+         DEFAULT_DRAW_FRAME_D);
       myProps.add (
-         "drawMovingFrame getDrawFrameC setDrawFrameC", "if true, draw the C coordinate frame", false);
+         "drawFrameC", "if true, draw the C coordinate frame", 
+         DEFAULT_DRAW_FRAME_C);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -155,14 +158,6 @@ public class FrameSpring extends Spring
 
    public void setAxisLength (double len) {
       myAxisLength = Math.max (0, len);
-   }
-
-   public boolean getDrawFrame() {
-      return getDrawFrameD();
-   }
-
-   public void setDrawFrame (boolean draw) {
-      setDrawFrameD(draw);
    }
 
    public boolean getDrawFrameD() {

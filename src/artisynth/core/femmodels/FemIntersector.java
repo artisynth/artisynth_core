@@ -25,6 +25,9 @@ import maspack.matrix.Plane;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 
+/**
+ * Intersects the volumetric elements of a finite element model with a plane
+ */
 public class FemIntersector {
 
    private static double defaultTolerance = 1e-10;
@@ -47,8 +50,10 @@ public class FemIntersector {
    }
    
    /**
-    * Intersects a FEM 3d model with a plane, returning a Polygonal mesh
-    * on the plane corresponding to inside the FEM
+    * Intersects the volumetric elements of an FEM model with a plane,
+    * returning a Polygonal mesh on the plane corresponding to the element
+    * intersections.
+    *
     * @param fem model to intersect with the plane
     * @param plane plane to intersect with
     * @return intersection mesh
@@ -63,7 +68,8 @@ public class FemIntersector {
       ArrayList<BVNode> nodes = new ArrayList<BVNode>();
       aabb.intersectPlane(nodes, plane);
 
-      DirectedGraph<Point3d,Vector3d> nodeGraph = new DirectedGraph<Point3d,Vector3d>();
+      DirectedGraph<Point3d,Vector3d> nodeGraph =
+         new DirectedGraph<Point3d,Vector3d>();
 
       TriangleIntersector ti = new TriangleIntersector();
       ti.setEpsilon(epsilon);

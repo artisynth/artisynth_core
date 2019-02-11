@@ -741,8 +741,6 @@ public class Polygon3dCalcTest extends UnitTest {
    
    public void testNearestFeature() {
 
-      if (true) {
-         
          //testNF (myTri,   0.400000, -0.100000,  OUT, 0, 1);
          //testNF (myTri,   0.999999, -0.100000,  OUT, 0, 1);
       testNF (myTri,   1.000001, -0.100000,  OUT, 0, 1, 2);
@@ -877,8 +875,6 @@ public class Polygon3dCalcTest extends UnitTest {
       testNF (myLines, 3.1,       3.1+EPS,    IN, 4, 5);
       testNF (myLines, 2.9,       2.9-EPS,   OUT, 4, 5);
       testNF (myLines, 2.9,       2.9+EPS,   OUT, 4, 5);
-      }
-      
       
       double[] triangle = new double[] {
         -3, -1,  5, -2, 5, 5 };
@@ -1033,9 +1029,9 @@ public class Polygon3dCalcTest extends UnitTest {
 
    public void test() {
 
-      testSpecial0();
-      testTriangulate ();
-      //testNearestFeature ();
+      //testSpecial0();
+      //testTriangulate ();
+      testNearestFeature ();
    }
 
    private ArrayList<Vertex3d> createVertices (double[] pval, int idx) {

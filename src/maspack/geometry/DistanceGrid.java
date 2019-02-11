@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import maspack.matrix.*;
 import maspack.matrix.Vector3d;
@@ -153,11 +154,12 @@ public class DistanceGrid implements Renderable, Scannable {
    protected double[] myPhi;            // distance values at each vertex
    protected Vector3d[] myNormals;      // normal values at each vertex
    protected double[][] myQuadCoefs;    // quad tet interpolation coefficients 
-   protected TetDesc[] myTets;    // quad tet interpolation coefficients 
+   protected TetDesc[] myTets;          // quad tet interpolation coefficients 
 
    protected int myDebug = 0;
 
    protected static boolean storeQuadCoefs = true;
+   private static int MAX_INT = Integer.MAX_VALUE;
 
    /**
     * Special distance value indicating that a query point is outside the grid.
@@ -229,7 +231,7 @@ public class DistanceGrid implements Renderable, Scannable {
    protected Feature[] myFeatures;
    protected RigidTransform3d myTLocalToWorld;
 
-   DistanceGrid () {
+   public DistanceGrid () {
       myRenderProps = createRenderProps();
       myWidths = new Vector3d();
       myLocalToWorld = new IdentityVector3dTransform();
@@ -469,6 +471,17 @@ public class DistanceGrid implements Renderable, Scannable {
    }
 
    /**
+    * Creates a new distance grid that is a copy of an existing grid.
+    *
+    * @param grid distance grid to copy
+    */
+   public DistanceGrid (DistanceGrid grid) {
+
+      this();
+      set (grid);
+   }
+
+   /**
     * Sets the resolution for this grid along the x, y, and z axes.
     * Resolutions are rounded up to be an even number, to allow quadratic
     * interpolation. If features are present for this grid, as described for
@@ -526,35 +539,35 @@ public class DistanceGrid implements Renderable, Scannable {
          }
          // adjust render ranges
          if (myRenderRanges == null) {
-            myRenderRanges = new int[] {0, myNx, 0, myNy, 0, myNz};
+            myRenderRanges = new int[] {0, MAX_INT, 0, MAX_INT, 0, MAX_INT};
          }
          else {
-            if (myRenderRanges[0] == 0 && myRenderRanges[1] == oldNx) {
-               myRenderRanges[1] = myNx;
-            }
-            else {
-               myRenderRanges[0] = clip(myRenderRanges[0], 0, myNx);
-               myRenderRanges[1] = clip(myRenderRanges[1], 0, myNx);
-            }
-            if (myRenderRanges[2] == 0 && myRenderRanges[3] == oldNy) {
-               myRenderRanges[3] = myNy;
-            }
-            else {
-               myRenderRanges[2] = clip(myRenderRanges[2], 0, myNy);
-               myRenderRanges[3] = clip(myRenderRanges[3], 0, myNy);
-            }
-            if (myRenderRanges[4] == 0 && myRenderRanges[5] == oldNz) {
-               myRenderRanges[5] = myNz;
-            }
-            else {
-               myRenderRanges[4] = clip(myRenderRanges[4], 0, myNz);
-               myRenderRanges[5] = clip(myRenderRanges[5], 0, myNz);
-            }
+            adjustRenderRanges (myRenderRanges);
          }
          clearColors();
       }
    }
 
+   private boolean adjustRenderRanges (int[] ranges) {
+      boolean changed = false;
+      if (ranges[0] >= myNx) {
+         ranges[0] = 0;
+         ranges[1] = MAX_INT;
+         changed = true;
+      }
+      if (ranges[2] >= myNy) {
+         ranges[2] = 0;
+         ranges[3] = MAX_INT;
+         changed = true;
+      }
+      if (ranges[4] >= myNz) {
+         ranges[4] = 0;
+         ranges[5] = MAX_INT;
+         changed = true;
+      }      
+      return changed;
+   }
+   
    /**
     * Sets the widths of this grid along the x, y, and z axes. The grid
     * resolution, center, orientation, features and distances remain unchanged.
@@ -566,6 +579,121 @@ public class DistanceGrid implements Renderable, Scannable {
          myWidths.set (widths);
          myRadius = widths.norm()/2;
       }
+   }
+
+   /**
+    * Sets this grid to be a copy of an existing grid.
+    *
+    * @param grid distance grid to copy
+    */
+   public void set (DistanceGrid grid) {
+
+      myWidths.set (grid.myWidths);
+      if (grid.myPhi != null) {
+         myPhi = Arrays.copyOf (grid.myPhi, grid.myPhi.length);
+      }
+      else {
+         myPhi = null;
+      }
+      if (grid.myNormals != null) {
+         myNormals = new Vector3d[grid.myNormals.length];
+         for (int i=0; i<myNormals.length; i++) {
+            myNormals[i] = new Vector3d (grid.myNormals[i]);
+         }
+      }
+      else {
+         myNormals = null;
+      }
+      
+      myQuadCoefs = null; // will be recomputed on demand
+      myTets = null;      // will be recomputed on demand
+      
+      if (grid.myColorMap != null) {
+         myColorMap = new LinkedHashMap<Color,Integer>();
+         for (Map.Entry<Color,Integer> e : grid.myColorMap.entrySet()) {
+            myColorMap.put (e.getKey(), e.getValue());
+         }
+      }
+      else {
+         myColorMap = null;
+      }
+      
+      if (grid.myColors != null) {
+         myColors = new ArrayList<Color>();
+         myColors.addAll (grid.myColors);
+      }
+      else {
+         myColors = null;
+      }
+      if (grid.myColorIndices != null) {
+         myColorIndices = Arrays.copyOf (
+            grid.myColorIndices, grid.myColorIndices.length);
+      }
+      else {
+         myColorIndices = null;
+      }
+      myRenderProps = new RenderProps (grid.myRenderProps);
+      if (grid.myRenderRanges != null) {
+         myRenderRanges = Arrays.copyOf (
+            grid.myRenderRanges, grid.myRenderRanges.length);
+      }
+      else {
+         myRenderRanges = null;
+      }
+
+      myDrawEdges = grid.myDrawEdges;
+      myRobValid = false;
+      
+      if (grid.myGridToLocal != null) {
+         myGridToLocal = grid.myGridToLocal.copy();
+      }
+      else {
+         myGridToLocal = null;
+      }
+
+      if (grid.myQuadGridToLocal != null) {
+         myQuadGridToLocal = grid.myQuadGridToLocal.copy();
+      }
+      else {
+         myQuadGridToLocal = null;
+      }
+
+      if (grid.myQuadGridToWorld != null) {
+         myQuadGridToWorld = grid.myQuadGridToWorld.copy();
+      }
+      else {
+         myQuadGridToWorld = null;
+      }
+
+      myRadius = grid.myRadius;
+      mySignedP = grid.mySignedP;
+
+      myNx = grid.myNx;
+      myNy = grid.myNy;
+      myNz = grid.myNz;
+      myNxNy = grid.myNxNy;
+
+      myQx = grid.myQx;
+      myQy = grid.myQy;
+      myQz = grid.myQz;
+      myQxQy = grid.myQxQy;
+
+      if (grid.myClosestFeatureIdxs != null) {
+         myClosestFeatureIdxs = Arrays.copyOf (
+            grid.myClosestFeatureIdxs, grid.myClosestFeatureIdxs.length);
+      }
+      else {
+         myClosestFeatureIdxs = null;
+      }
+      if (grid.myFeatures != null) {
+         myFeatures = Arrays.copyOf (
+            grid.myFeatures, grid.myFeatures.length);
+      }
+      else {
+         myFeatures = null;
+      }
+
+      setLocalToWorld (grid.myTLocalToWorld);
    }
 
    /**
@@ -886,6 +1014,20 @@ public class DistanceGrid implements Renderable, Scannable {
       calculatePhi (features, signed);      
    }
 
+   /**
+    * Fits the widths and center of this grid to a set of features. The way in
+    * which this is done is the same as for {@link #computeFromFeatures};
+    * however, no distance field is computed and the features are not stored.
+    *
+    * @param features features used to fit the grid
+    * @param marginFrac specifies the fractional amount that the
+    * grid should be grown in each direction to better contain the features
+    * @param TCL optional - if non-null, specifies the pose of the grid center
+    * @param maxRes if {@code > 0},
+    * specifies the resolution along the longest
+    * width, with resolutions along other widths set to ensure uniform
+    * cell size
+    */
    public void fitToFeatures (
       List<? extends Feature> features, double marginFrac,
       RigidTransform3d TCL, int maxRes) {
@@ -896,6 +1038,21 @@ public class DistanceGrid implements Renderable, Scannable {
       fitToFeatures (featureList, marginFrac, TCL, maxRes);
    }
 
+   /**
+    * Fits the widths and center of this grid to a several sets of
+    * features. The way in which this is done is the same as for {@link
+    * #computeFromFeatures}; however, no distance field is computed and the
+    * features are not stored.
+    *
+    * @param featureSets lists of features used to fit the grid
+    * @param marginFrac specifies the fractional amount that the
+    * grid should be grown in each direction to better contain the features
+    * @param TCL optional - if non-null, specifies the pose of the grid center
+    * @param maxRes if {@code > 0},
+    * specifies the resolution along the longest
+    * width, with resolutions along other widths set to ensure uniform
+    * cell size
+    */
    public void fitToFeatures (
       Collection<List<? extends Feature>> featureSets, double marginFrac,
       RigidTransform3d TCL, int maxRes) {
@@ -958,6 +1115,19 @@ public class DistanceGrid implements Renderable, Scannable {
       calculatePhi (features, signed);      
    }
 
+   /**
+    * Fits the widths, center and local orientation of this grid to a set of
+    * features. The way in which this is done is the same as for {@link
+    * #computeFromFeaturesOBB}; however, no distance field is computed and the
+    * features are not stored.
+    *
+    * @param features features used to fit the grid
+    * @param marginFrac specifies the fractional amount that the
+    * grid should be grown in each direction to better contain the features
+    * @param maxRes if {@code >} 0, specfies the resolution along the longest
+    * width, with resolutions along other widths set to ensure uniform
+    * cell size
+    */
    public void fitToFeaturesOBB (
       List<? extends Feature> features, double marginFrac, int maxRes) {
 
@@ -967,8 +1137,22 @@ public class DistanceGrid implements Renderable, Scannable {
       fitToFeaturesOBB (featureList, marginFrac, maxRes);
    }
 
+   /**
+    * Fits the widths, center and local orientation of this grid to several
+    * sets of features. The way in which this is done is the same as for {@link
+    * #computeFromFeaturesOBB}; however, no distance field is computed and the
+    * features are not stored.
+    *
+    * @param featureSets lists of features used to fit the grid
+    * @param marginFrac specifies the fractional amount that the
+    * grid should be grown in each direction to better contain the features
+    * @param maxRes if {@code >} 0, specfies the resolution along the longest
+    * width, with resolutions along other widths set to ensure uniform
+    * cell size
+    */
    public void fitToFeaturesOBB (
-      Collection<List<? extends Feature>> featureSets, double marginFrac, int maxRes) {
+      Collection<List<? extends Feature>> featureSets,
+      double marginFrac, int maxRes) {
       
       Vector3d widths = new Vector3d();
       RigidTransform3d TCL = new RigidTransform3d();
@@ -2293,11 +2477,11 @@ public class DistanceGrid implements Renderable, Scannable {
       int vidx=0;
       Vector3d coords = new Vector3d();
       int xlo = myRenderRanges[0];
-      int xhi = myRenderRanges[1];
+      int xhi = Math.min(myNx,myRenderRanges[1]);
       int ylo = myRenderRanges[2];
-      int yhi = myRenderRanges[3];
+      int yhi = Math.min(myNy,myRenderRanges[3]);
       int zlo = myRenderRanges[4];
-      int zhi = myRenderRanges[5];
+      int zhi = Math.min(myNz,myRenderRanges[5]);
 
       rob.lineGroup (NORMAL_GROUP);
       for (int xi=xlo; xi<xhi; xi++) {
@@ -2439,6 +2623,8 @@ public class DistanceGrid implements Renderable, Scannable {
    
    public void render (Renderer renderer, RenderProps props, int flags) {
 
+      boolean highlight = ((flags & Renderer.HIGHLIGHT) != 0);
+
       if (myTLocalToWorld != null) {
          renderer.pushModelMatrix();
          renderer.mulModelMatrix (myTLocalToWorld);
@@ -2452,13 +2638,13 @@ public class DistanceGrid implements Renderable, Scannable {
       if (rob != null) {
          if (props.getPointStyle() == PointStyle.POINT) {
             if (props.getPointSize() != 0) {
-               renderer.setColor (props.getPointColor());
+               renderer.setPointColoring (props, highlight);
                renderer.drawPoints (rob, PointStyle.POINT, props.getPointSize());
             }
          }
          else {
             if (props.getPointRadius() > 0) {
-               renderer.setColor (props.getPointColor());
+               renderer.setPointColoring (props, highlight);
                renderer.drawPoints (
                   rob, props.getPointStyle(), props.getPointRadius());
             }
@@ -2466,14 +2652,14 @@ public class DistanceGrid implements Renderable, Scannable {
          if (props.getLineStyle() == LineStyle.LINE) {
             if (props.getLineWidth() != 0) {
                rob.lineGroup (NORMAL_GROUP);
-               renderer.setColor (props.getLineColor());
+               renderer.setLineColoring (props, highlight);
                renderer.drawLines (rob, LineStyle.LINE, props.getLineWidth());
             }
          }
          else {
             if (props.getLineRadius() > 0) {
                rob.lineGroup (NORMAL_GROUP);
-               renderer.setColor (props.getLineColor());
+               renderer.setLineColoring (props, highlight);
                renderer.drawLines (
                   rob, props.getLineStyle(), props.getLineRadius());
             }
@@ -2482,7 +2668,7 @@ public class DistanceGrid implements Renderable, Scannable {
          if (myDrawEdges && rob.numLineGroups() == 2) {
             if (props.getEdgeWidth() > 0) {
                rob.lineGroup (EDGE_GROUP);
-               renderer.setColor (props.getEdgeOrLineColorF());
+               renderer.setEdgeColoring (props, highlight);
                renderer.drawLines (rob, LineStyle.LINE, props.getEdgeWidth());
             }
          }
@@ -2649,18 +2835,17 @@ public class DistanceGrid implements Renderable, Scannable {
     */
    public String getRenderRanges() {
       StringBuilder sbuild = new StringBuilder();
-      int[] numv = new int[] { myNx, myNy, myNz };
       for (int i=0; i<3; i++) {
          int lo = myRenderRanges[2*i];
-         int hi = myRenderRanges[2*i+1]-1;
-         if (lo == 0 && hi == numv[i]-1) {
+         int hi = myRenderRanges[2*i+1];
+         if (lo == 0 && hi == MAX_INT) {
             sbuild.append ("*");
          }
-         else if (lo == hi) {
+         else if (lo == (hi-1)) {
             sbuild.append (lo);
          }
          else {
-            sbuild.append (lo + ":" + hi);
+            sbuild.append (lo + ":" + (hi-1));
          }
          if (i < 2) {
             sbuild.append (" ");
@@ -2693,6 +2878,7 @@ public class DistanceGrid implements Renderable, Scannable {
       StringHolder errMsg = new StringHolder();
       int[] ranges = parseRenderRanges (str, errMsg);
       if (ranges != null) {
+         adjustRenderRanges (ranges);
          myRenderRanges = ranges;
          myRobValid = false;
       }
@@ -2706,33 +2892,34 @@ public class DistanceGrid implements Renderable, Scannable {
     * Parses a render range specification for this grid. The specification must
     * have the format described for {@link #setRenderRanges}. This method does
     * not set anything; it simply parses the ranges and converts then into an
-    * integer array of length 6. Applications can use this method to test if a
-    * range specification is valid prior to calling {@link #setRenderRanges}.
-    * If the specification is invalid, then an error message is placed in
-    * <code>errorMsg</code> and the method returns <code>null</code>.
+    * integer array of length 6, giving the upper and lower bounds along each
+    * of the x, y, and z axes. For the ``all'' specifier ({@code '*'}), the
+    * values {@code 0} and {@code Integer.MAX_VALUE} are used. Applications can
+    * use this method to test if a range specification is valid prior to
+    * calling {@link #setRenderRanges}.  If the specification is invalid, then
+    * an error message is placed in <code>errorMsg</code> and the method
+    * returns <code>null</code>.
     * 
     * @param str range specification
     * @param errorMsg returns an error message in case of an error
     * @return array giving the ranges, or <code>null</code> if there
     * is an error
     */
-   public int[] parseRenderRanges (String str, StringHolder errorMsg) {
+   public static int[] parseRenderRanges (String str, StringHolder errorMsg) {
 
       String[] strs = str.split ("\\s+");
       if (strs.length > 0 && strs[0].equals ("")) {
          strs = Arrays.copyOfRange (strs, 1, strs.length);
       }
-      int numv[] = new int[] { myNx, myNy, myNz };
-
       int[] ranges = new int[6];
       String error = null;
       if (strs.length == 1 && strs[0].equals ("*")) {
          ranges[0] = 0;
-         ranges[1] = numv[0];
+         ranges[1] = MAX_INT;
          ranges[2] = 0;
-         ranges[3] = numv[1];
+         ranges[3] = MAX_INT;
          ranges[4] = 0;
-         ranges[5] = numv[2];
+         ranges[5] = MAX_INT;
       }
       else if (strs.length > 3) {
          error = "More than three subranges specified";
@@ -2741,10 +2928,10 @@ public class DistanceGrid implements Renderable, Scannable {
          int i = 0;
          for (String s : strs) {
             int lo = -1;
-            int hi = -1;
+            int hi = 0;
             if (s.equals ("*")) {
                lo = 0;
-               hi = numv[i]-1;
+               hi = MAX_INT;
             }
             else if (s.indexOf(':') != -1) {
                String[] substrs = s.split (":");
@@ -2757,17 +2944,13 @@ public class DistanceGrid implements Renderable, Scannable {
                   break;
                }
                lo = parsePositiveInt (substrs[0]);
-               hi = parsePositiveInt (substrs[1]);
-               if (lo < 0 || hi < 0) {
-                  error = "Malformed or negative integer";
-                  break;
-               }
-               if (lo > hi) {
+               hi = parsePositiveInt (substrs[1])+1;
+               if (lo >= hi) {
                   error = "Low > high in subrange";
                   break;
                }
-               if (lo > numv[i]-1 || hi > numv[i]-1) {
-                  error = "Range error in subrange";
+               if (lo < 0 || hi <= 0) {
+                  error = "Malformed or negative integer";
                   break;
                }
             }
@@ -2777,14 +2960,10 @@ public class DistanceGrid implements Renderable, Scannable {
                   error = "Malformed or negative integer";
                   break;
                }
-               if (lo > numv[i]-1) {
-                  error = "Range error in subrange";
-                  break;
-               }
-               hi = lo;
+               hi = lo+1;
             }
             ranges[2*i] = lo;
-            ranges[2*i+1] = hi+1;
+            ranges[2*i+1] = hi;
             i++;
          }
          if (i < 3 && error == null) {
@@ -4120,6 +4299,36 @@ public class DistanceGrid implements Renderable, Scannable {
 
    public void setDebug (int level) {
       myDebug = level;
+   }
+
+   private void scaleTransformer (VectorTransformer3d transformer, double s) {
+      Vector3d origin = new Vector3d();
+      Vector3d scaling = new Vector3d();
+      if (transformer instanceof ScaledTranslation3d) {
+         ScaledTranslation3d xform = (ScaledTranslation3d)transformer;
+         xform.scaleDistance (s);
+      }
+      else if (transformer instanceof ScaledRigidTransformer3d) {
+         ScaledRigidTransformer3d xform = (ScaledRigidTransformer3d)transformer;
+         xform.scaleDistance (s);
+      }
+   }
+
+   public void scaleDistance (double s) {
+      myWidths.scale (s);
+      for (int i=0; i<myPhi.length; i++) {
+         myPhi[i] *= s;
+      }
+      myRadius *= s;
+      if (myTLocalToWorld != null) {
+         myTLocalToWorld.p.scale (s);
+      }
+      if (myGridToLocal != null) {
+         scaleTransformer (myGridToLocal, s);
+         scaleTransformer (myQuadGridToLocal, s);
+         updateQuadGridToWorld (myQuadGridToLocal);
+      }
+      myRobValid = false;
    }
  
 }

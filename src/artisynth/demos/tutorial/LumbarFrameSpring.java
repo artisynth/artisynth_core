@@ -6,11 +6,11 @@ import java.awt.Color;
 import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.materials.*;
-import artisynth.core.util.*;
 import artisynth.core.workspace.RootModel;
 import maspack.matrix.*;
 import maspack.geometry.*;
 import maspack.render.*;
+import maspack.util.PathFinder;
 
 /**
  * Demo of two rigid bodies connected by a 6 DOF frame spring
@@ -20,7 +20,7 @@ public class LumbarFrameSpring extends RootModel {
    double density = 1500;
 
    // path from which meshes will be read
-   private String geometryDir = ArtisynthPath.getSrcRelativePath (
+   private String geometryDir = PathFinder.getSourceRelativePath (
       LumbarFrameSpring.class, "../mech/geometry/");
 
    // create and add a rigid body from a mesh

@@ -9,7 +9,7 @@ package artisynth.core.femmodels;
 import maspack.matrix.*;
 import maspack.util.*;
 
-public class QuadpyramidElementTest {
+public class QuadpyramidElementTest extends UnitTest {
 
    QuadpyramidElement myElem;
 
@@ -119,15 +119,8 @@ public class QuadpyramidElementTest {
    }
 
    public static void main (String[] args) {
+      RandomGenerator.setSeed (0x1234);
       QuadpyramidElementTest tester = new QuadpyramidElementTest();
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit(1);
-      }
-      
-      System.out.println ("\nPassed\n"); 
+      tester.runtest();
    }
 }

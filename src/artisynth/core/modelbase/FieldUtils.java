@@ -1,11 +1,28 @@
 package artisynth.core.modelbase;
 
+import java.util.Deque;
+import java.util.ArrayDeque;
+import java.lang.reflect.Constructor;
+import java.io.PrintWriter;
+import java.io.IOException;
+import artisynth.core.util.*;
+import maspack.util.*;
+
 public class FieldUtils {
 
-   public static abstract class FieldFunction<T>
-      implements FieldPointFunction<T> {
+   public static abstract class FieldFunction<T> 
+      implements FieldPointFunction<T>  {
       public abstract Field<T> getField();
+      public boolean useRestPos() {
+         return true;
+      }
+      
+      public boolean isWritable() {
+         return (getField() instanceof ModelComponent);
+      }
    }
+
+   private static String FieldFunctionClassName = FieldFunction.class.getName();
 
    static class NodalFieldFunction<T>
       extends FieldFunction<T> {
@@ -103,6 +120,10 @@ public class FieldUtils {
       public T eval (FieldPoint def) {
          return myField.getValue (def.getSpatialPos());
       }
+      
+      public boolean useRestPos() {
+         return false;
+      }
    }
 
    static abstract class IndexedFieldFunction<T>
@@ -196,6 +217,148 @@ public class FieldUtils {
       }
       else {
          return null;
+      }
+   }
+
+   public static void writeFieldFunction (
+      PrintWriter pw, FieldFunction fxn, NumberFormat fmt, Object ref) 
+      throws IOException {
+      Field field = fxn.getField();
+      if (field instanceof ModelComponent) {
+         String fieldPath = 
+            ComponentUtils.getWritePathName (
+               ComponentUtils.castRefToAncestor(ref), (ModelComponent)field);
+         IndentingPrintWriter.addIndentation (pw, 2);
+         pw.println ("[");
+         pw.println ("field=" + fieldPath);
+         if (fxn.useRestPos()) {
+            pw.println ("useRestPos=true");
+         }
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
+   }
+      
+   public static void scanFieldFunction (
+      ReaderTokenizer rtok, Object ref) throws IOException {
+      Deque<ScanToken> tokens = (Deque<ScanToken>)ref;
+      if (tokens == null) {
+         tokens = new ArrayDeque<> ();
+      }
+      tokens.offer (ScanToken.BEGIN);
+      rtok.scanToken ('[');
+      boolean useRest = false;
+      while (rtok.nextToken() != ']') {
+         if (ScanWriteUtils.scanAttributeName(rtok, "field")) {
+            if (!ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
+               throw new IOException ("Expected quoted string, got " + rtok);
+            }
+         }
+         else if (ScanWriteUtils.scanAttributeName(rtok, "useRestPos")) {
+            useRest = rtok.scanBoolean();
+         }
+      }
+      tokens.offer (new IntegerToken (useRest ? 1 : 0));
+      tokens.offer (ScanToken.END);
+   }
+
+   public static FieldPointFunction postscanFieldFunction (
+      Deque<ScanToken> tokens,
+      CompositeComponent ancestor) throws IOException {
+
+      ScanToken tok;
+      ScanWriteUtils.postscanBeginToken (tokens, "FieldPointFunction");
+      Field field = ScanWriteUtils.postscanReference (
+         tokens, Field.class, ancestor);
+      if (!((tok=tokens.poll()) instanceof IntegerToken)) {
+         throw new IOException ("Expected IntegerToken, got "+tok);
+      }    
+      ScanWriteUtils.postscanEndToken (tokens, "FieldPointFunction");
+      boolean useRest = (((IntegerToken)tok).value() != 0 ? true : false);
+      return createFieldFunction (field, useRest);
+   }
+
+   private static boolean hasNoArgsConstructor (Class<?> clazz) {
+      Constructor<?> constructor = null;
+      try {
+         constructor = clazz.getConstructor();
+      }
+      catch (Exception e) {
+         // ignore
+      }
+      return constructor != null;
+   }
+
+   public static void writeFunctionInfo (
+      PrintWriter pw, String name,
+      FieldPointFunction func, NumberFormat fmt,
+      CompositeComponent ancestor) throws IOException {
+      
+      if (func instanceof FieldFunction) {
+         pw.print (name + "=" + FieldFunctionClassName);
+         writeFieldFunction (pw, (FieldFunction)func, fmt, ancestor);
+      }
+      else if (func != null) {
+         Class fclass = func.getClass();
+         if (hasNoArgsConstructor (fclass)) {
+            pw.print (name + "=" + fclass.getName());
+            if (func instanceof Scannable) {
+               ((Scannable)func).write (pw, fmt, ancestor);
+            }
+            else {
+               pw.println("");
+            }
+         }
+      }
+   }
+
+   public static FieldPointFunction scanFunctionInfo (
+      ReaderTokenizer rtok, String name,
+      Deque<ScanToken> tokens) throws IOException {
+
+      Class<?> clazz = Scan.scanClass (rtok);
+      if (clazz == FieldFunction.class) {
+         tokens.offer (new StringToken (name));
+         scanFieldFunction (rtok, tokens);
+         return null;
+      }
+      else {
+         // instantiate class
+         Object obj;
+         try {
+            obj = clazz.newInstance();
+         }
+         catch (Exception e) {
+            throw new IOException (
+               "Cannot instantiate class "+clazz.getName()+": "+e.getMessage());
+         }
+         if (!(obj instanceof FieldPointFunction)) {
+            throw new IOException (
+               "Class "+clazz.getName()+" not an instance of FieldPointFunction");
+         }
+         if (obj instanceof Scannable) {
+            if (obj instanceof PostScannable) {
+               tokens.offer (new StringToken (name));
+               tokens.offer (new ObjectToken (obj));
+            }
+            ((Scannable)obj).scan (rtok, tokens);
+         }
+         return (FieldPointFunction)obj;         
+      }
+   }
+
+   public static FieldPointFunction postscanFunctionInfo (
+      Deque<ScanToken> tokens,
+      CompositeComponent ancestor) throws IOException {
+      
+      if (tokens.peek() instanceof ObjectToken) {
+         // application defined function
+         FieldPointFunction fxn = (FieldPointFunction)tokens.poll().value();
+         ((PostScannable)fxn).postscan (tokens, ancestor);
+         return fxn;
+      }
+      else {
+         return postscanFieldFunction (tokens, ancestor);
       }
    }
    

@@ -20,7 +20,8 @@ public class QuadpyramidElement extends FemElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
-         myDefaultIntegrationPoints = createIntegrationPoints();
+         myDefaultIntegrationPoints = 
+            createIntegrationPoints (new QuadpyramidElement());
       }
       return myDefaultIntegrationPoints;
    }
@@ -60,6 +61,7 @@ public class QuadpyramidElement extends FemElement3d {
             pressureWeights.set (i, getH (i, coords));
          }
          pnt.setPressureWeights (pressureWeights);
+         pnt.myElemClass = ElementClass.VOLUMETRIC;
          
          myWarpingPoint = pnt;
       }
@@ -166,9 +168,9 @@ public class QuadpyramidElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   private static double[] myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalExtrapolationMatrix = null;
 
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          // set the transform parameters that map the integration
          // points onto nodes 0-4.
@@ -381,7 +383,7 @@ public class QuadpyramidElement extends FemElement3d {
          6,   3, 8, 0, 9, 4, 12,
       };
 
-   static int[] myWidgetFaces = FemUtilities.triangulateFaceIndices (myFaceIdxs);
+   static int[] myTriangulatedFaceIdxs;
 
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
@@ -389,6 +391,14 @@ public class QuadpyramidElement extends FemElement3d {
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public int[] getTriangulatedFaceIndices() {
+      if (myTriangulatedFaceIdxs == null) {
+         myTriangulatedFaceIdxs =
+            FemUtilities.triangulateFaceIndices (myFaceIdxs);
+      }
+      return myTriangulatedFaceIdxs;
    }
 
    public void render(Renderer renderer, RenderProps props, int flags) {

@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -74,7 +75,9 @@ public abstract class FemElement extends RenderableComponentBase
    int myIntegrationIndex; // base index of element's integration points
 
    FemMaterial myMaterial = null;
-   
+   // Augmenting materials, used to add to behavior
+   protected ArrayList<FemMaterial> myAugMaterials = null;
+
    public static PropertyList myProps =
       new PropertyList (FemElement.class, RenderableComponentBase.class);
 
@@ -114,6 +117,55 @@ public abstract class FemElement extends RenderableComponentBase
       }
    }
 
+   /* --- Augmenting materials --- */
+   
+   public void addAugmentingMaterial (FemMaterial mat) {
+      if (myAugMaterials == null) {
+         myAugMaterials = new ArrayList<FemMaterial>(4);
+      }
+      myAugMaterials.add (mat);
+   }
+
+   public boolean removeAugmentingMaterial (FemMaterial mat) {
+      if (myAugMaterials != null) {
+         return myAugMaterials.remove (mat);
+      }
+      else {
+         return false;
+      }
+   }
+
+   public int numAugmentingMaterials() {
+      return myAugMaterials == null ? 0 : myAugMaterials.size();
+   }
+
+   public ArrayList<FemMaterial> getAugmentingMaterials() {
+      return myAugMaterials;
+   }
+
+
+   /**
+    * Queries if the effective material for this element, and all auxiliary
+    * materials, are defined for non-positive deformation gradients.
+    *
+    * @return <code>true</code> if the materials associated with this
+    * element are invertible
+    */
+   public boolean materialsAreInvertible() {
+      FemMaterial mat = getEffectiveMaterial();
+      if (!mat.isInvertible()) {
+         return false;
+      }
+      if (myAugMaterials != null) {
+         for (FemMaterial amat : myAugMaterials) {
+            if (!amat.isInvertible()) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+
    public void setPlasticDeformation (Matrix3d F0) {
       if (F0 == null) {
          myFg = null;
@@ -151,7 +203,7 @@ public abstract class FemElement extends RenderableComponentBase
       }      
    }
    
-   protected void updateElementAndNodeMasses () {
+   protected void invalidateElementAndNodeMasses () {
       invalidateMassIfNecessary();
       invalidateNodeMasses();
    }
@@ -214,7 +266,7 @@ public abstract class FemElement extends RenderableComponentBase
    public void setDensity (double p) {
       myDensity = p;
       if (!myMassExplicitP) {
-         updateElementAndNodeMasses ();
+         invalidateElementAndNodeMasses ();
       }
       myDensityMode =
          PropertyUtils.propagateValue (
@@ -304,11 +356,14 @@ public abstract class FemElement extends RenderableComponentBase
    }
 
    /** 
-    * Computes the volume and partial volumes associated with this element. 
-    * The volume result is stored in the element's myVolume 
-    * field, and the partial volumes are stored in the myVolumes field.
+    * Computes the volume associated with this element and stores the result in
+    * the {@code myVolume} field.
+    *
+    * <p>The method should return the minimum Jacobian determinant ratio
+    * (det(J)/det(J0)) over all integration points. A negative value indicates
+    * that the element is "inverted" at one or more integration points.
     * 
-    * @return minimum Jacobian value resulting from volume computation
+    * @return minimum Jacobian determinant ratio
     */
    public abstract double computeVolumes();
 
@@ -324,7 +379,7 @@ public abstract class FemElement extends RenderableComponentBase
 
    public double getRestVolume () {
       if (!myRestVolumeValidP) {
-         myRestVolume = computeRestVolumes();
+         computeRestVolumes();
          myRestVolumeValidP = true;
       }
       return myRestVolume;
@@ -332,24 +387,24 @@ public abstract class FemElement extends RenderableComponentBase
    
    public void updateRestVolumeAndMass() {
       if (!myRestVolumeValidP) {
-         double newVol = computeRestVolumes();
+         computeRestVolumes();
          invalidateNodeMasses();
          invalidateMassIfNecessary();
-//         if (!myMassExplicitP) {
-//            updateNodeMasses ((newVol*myDensity)-myMass);
-//            myMass = newVol*myDensity;
-//         }
-         myRestVolume = newVol;
+         myRestVolume = getRestVolume();
       }
    }
 
    /** 
-    * Computes the rest volume and partial rest volumes associated with this
-    * element.
+    * Computes the rest volume associated with this element and stores the
+    * result in the {@code myRestVolume} field.
+    *
+    * <p>The method should return the minimum Jacobian determinant (det(J0))
+    * over all integration points. A negative value indicates that the element
+    * is "inverted" in its rest position at one or more integration points.
     * 
-    * @return element rest volume
-    */     
-   protected abstract double computeRestVolumes();
+    * @return minimum Jacobian determinant
+    */
+   public abstract double computeRestVolumes();
 
    @Deprecated
    /**
@@ -434,36 +489,8 @@ public abstract class FemElement extends RenderableComponentBase
       }
    }  
 
-   //protected abstract void renderEdges (Renderer renderer, RenderProps props);
-
    public abstract void render(
       Renderer renderer, RenderProps rprops, int flags);
-//   
-//      
-//      if (rprops.getLineWidth() > 0) {
-//         switch (rprops.getLineStyle()) {
-//            case LINE: {
-//               renderer.setLightingEnabled (false);
-//               renderer.setLineWidth (rprops.getLineWidth());
-//               renderer.setColor (
-//                  rprops.getLineColorArray(), isSelected());
-//               renderEdges (renderer, rprops);
-//               renderer.setLineWidth (1);
-//               renderer.setLightingEnabled (true);
-//               break;
-//            }
-//            case CYLINDER: {
-//               renderer.setMaterialAndShading (
-//                  rprops, myRenderProps.getLineMaterial(), isSelected());
-//               renderEdges (renderer,rprops);
-//               renderer.restoreShading (rprops);
-//               break;
-//            }
-//            default:
-//               break;
-//         }
-//      }
-//   }
    
    public void render (Renderer renderer, int flags) {
       render(renderer, myRenderProps, flags);
@@ -472,8 +499,12 @@ public abstract class FemElement extends RenderableComponentBase
    public void getSelection (LinkedList<Object> list, int qid) {
    }
    
+   /* --- ScalableUnits --- */
+
    public void scaleDistance (double s) {
       myDensity /= (s * s * s);
+      myVolume *= (s * s * s);
+      myRestVolume *= (s * s * s);      
       //      myE /= s;
       invalidateRestData();
       if (myRenderProps != null) {
@@ -590,8 +621,8 @@ public abstract class FemElement extends RenderableComponentBase
    }
    
    /**
-    * Returns the index of this element's first integration point
-    * with respect to it's FEM model. 
+    * Returns the index of this element's first integration point with respect
+    * to it's FEM model.
     * @see #setIntegrationIndex
     * @return index of first integration point
     */
@@ -600,11 +631,10 @@ public abstract class FemElement extends RenderableComponentBase
    }
    
    /**
-    * Sets the index of this element's first integration point
-    * with respect to it's FEM model. Used internally by FEM models
-    * to assign each integration point an index, which is in turn
-    * used for caching Field values on a per-integration point
-    * basis.
+    * Sets the index of this element's first integration point with respect to
+    * it's FEM model. Used internally by FEM models to assign each integration
+    * point an index, which is in turn used for caching Field values on a
+    * per-integration point basis.
     * @see #getIntegrationIndex
     * @param idx assigned index of first integration point
     */
@@ -646,6 +676,12 @@ public abstract class FemElement extends RenderableComponentBase
       
       e.myInvertedP = false;
       e.setMaterial (myMaterial);
+      e.myAugMaterials = null;
+      if (myAugMaterials != null) {
+         // ??? do we want to copy augmenting materials by reference?
+         e.myAugMaterials = new ArrayList<FemMaterial>(myAugMaterials.size());
+         e.myAugMaterials.addAll (myAugMaterials);
+      }
 
       return e;
    }

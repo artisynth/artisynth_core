@@ -11,6 +11,7 @@ import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.mechmodels.Collidable.Collidability;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
 import maspack.geometry.MeshFactory;
@@ -97,6 +98,8 @@ public class FemCollisions extends RootModel {
       int ref = 2;      // level of refinement
       PolygonalMesh sphere = MeshFactory.createOctahedralSphere(r, ref);
       FemMeshComp embeddedSphere = block.addMesh("embedded", sphere);
+      // need to explicity set this mesh to be collidable
+      embeddedSphere.setCollidable (Collidability.EXTERNAL);
       
       // Transform: rotate 90 degrees about X-Axis
       //            translate left by 0.003

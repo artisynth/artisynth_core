@@ -195,7 +195,7 @@ public class FemMaterialTest extends UnitTest {
       // numeric and analytical tangents should match within this tolerance
       double tol = 1e-6;
 
-      testMaterial (new NeoHookeanMaterial(), tol);   
+      testMaterial (new NeoHookeanMaterial(10000.0, 0.49), tol);   
       testMaterial (
          new MooneyRivlinMaterial (1.2, 3.4, 0, 0, 0, 0), tol);
       testMaterial (new StVenantKirchoffMaterial (1234, 0.3), tol);

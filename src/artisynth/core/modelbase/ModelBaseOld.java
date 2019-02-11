@@ -54,14 +54,6 @@ public abstract class ModelBaseOld extends CompositeComponentBase
    public void getState (ComponentState state) {
    }
 
-   public void setInitialState (ComponentState state) {
-      setState (state);
-   }
-
-   public void getInitialState (ComponentState state) {
-      getState (state);
-   }
-
    public void getInitialState (
       ComponentState newstate, ComponentState oldstate) {
       if (oldstate == null) {

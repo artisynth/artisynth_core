@@ -965,7 +965,7 @@ public class MeshViewer extends GLViewerFrame
                         System.out.println ("polygonal");
                      }
                      mesh.transform (X);
-                     if (names[i].equals ("default")) {
+                     if (names[i] == null || names[i].equals ("default")) {
                         infoList.add (
                            new MeshInfo(meshFile.getName(), mesh));
                      }

@@ -15,6 +15,9 @@ import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
 import maspack.util.NumberFormat;
 
+/**
+ * NOTE: Does not currently support shell elements
+ */
 public class SimpleFemWriter {
    
    NumberFormat myFmt = new NumberFormat("%g");
@@ -118,7 +121,7 @@ public class SimpleFemWriter {
    
    public void writeElemFile (FemModel3d fem, PrintWriter elemWriter) {
       
-      for (FemElement3d e : fem.getElements()) {
+      for (FemElement3dBase e : fem.getElements()) {
          FemNode3d[] nodes = e.getNodes();
          elemWriter.print(elemToken);
          for (FemNode3d node : nodes) {

@@ -262,15 +262,28 @@ public abstract class VectoriBase implements Vectori {
       if (withBrackets) {
          pw.print ("[ ");
       }
-      for (int i = 0; i < size(); i++) {
-         String str;
-         if (i < size() - 1) {
-            str = fmt.format (get (i)) + " ";
+      String str;
+      if (fmt.isFloatingPoint()) {
+         for (int i = 0; i < size(); i++) {
+            if (i < size() - 1) {
+               str = fmt.format (get (i)) + " ";
+            }
+            else {
+               str = fmt.format (get (i));
+            }
+            pw.print (str);
          }
-         else {
-            str = fmt.format (get (i));
+      }
+      else {
+         for (int i = 0; i < size(); i++) {
+            if (i < size() - 1) {
+               str = get(i) + " ";
+            }
+            else {
+               str = get(i) + "";
+            }
+            pw.print (str);
          }
-         pw.print (str);
       }
       if (withBrackets) {
          pw.print (" ]");

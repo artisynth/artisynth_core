@@ -154,6 +154,9 @@ public class SpatialInertia extends Matrix6dBlock
       None, Zero, SPD
    }
 
+   public static SpatialInertia ZERO = new SpatialInertia();
+   public static SpatialInertia UNIT = new SpatialInertia(1.0, 1.0, 1.0, 1.0);
+
    // State of the decomposition of J
    protected Decomp JDecomp = Decomp.None;
 
@@ -351,7 +354,7 @@ public class SpatialInertia extends Matrix6dBlock
       JDecomp = Decomp.SPD;
    }
 
-   private void updateComponents() {
+   public void updateComponents() {
       mass = m00;
       com.x = m15 / mass;
       com.y = -m05 / mass;
@@ -858,8 +861,9 @@ public class SpatialInertia extends Matrix6dBlock
       J.set (M.J);
       L.set (M.L);
       componentUpdateNeeded = M.componentUpdateNeeded;
+      JDecomp = M.JDecomp;
    }
-
+   
    /**
     * Sets this spatial inertia to have a specific mass and rotational inertia.
     * The center of mass is set to zero.
@@ -1969,7 +1973,65 @@ public class SpatialInertia extends Matrix6dBlock
       J.m20 = J.m02;
       J.m21 = J.m12;
    }
+   
+   public boolean equals (Matrix6dBase M1) {
+      return super.equals (M1);
+   }
+   
+   /**
+    * For debugging: compares all the fields of M with the this
+    * inertia, including the component fields that depend on the
+    * matrix entries.
+    * 
+    * @param M inertia to compare with
+    * @return true if all fields of M 
+    */
+   public boolean fullEquals (SpatialInertia M) {
+      if (!equals(M)) {
+         return false;
+      }
+      if (mass != M.mass) {
+         return false;
+      }
+      if (sqrtMass != M.sqrtMass) {
+         return false;
+      }
+      if (!com.equals (M.com)) {
+         return false;
+      }
+      if (!J.equals (M.J)) {
+         return false;
+      }
+      if (!L.equals (M.L)) {
+         return false;
+      }
+      if (componentUpdateNeeded != M.componentUpdateNeeded) {
+         return false;
+      }
+      if (JDecomp != M.JDecomp) {
+         return false;
+      }
+      return true;
+   }
 
+   /**
+    * For debugging: creates a string showing this inertia and all its fields
+    * 
+    * @param fmt numeric format
+    * @return string representation of the inertia and all its components
+    */
+   public String toStringAll (String fmt) {
+      StringBuilder sbuild = new StringBuilder();
+      sbuild.append (toString(fmt)+"\n");
+      sbuild.append ("mass="+mass+"\n");
+      sbuild.append ("com="+com.toString(fmt)+"\n");
+      sbuild.append ("J=\n"+J.toString(fmt));
+      sbuild.append ("L=\n"+L.toString(fmt));
+      sbuild.append ("componentUpdateNeeded=" + componentUpdateNeeded+"\n");
+      sbuild.append ("JDecomp=" + JDecomp);
+      return sbuild.toString();      
+   }
+   
 //   /**
 //    * Creates a new spatial inertia corresponding to a closed volume with a
 //    * specified density.

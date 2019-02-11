@@ -3,7 +3,8 @@ PACKAGE_NAME = maspack.fileutil
 
 PACKAGE_JAVA_FILES = 
 
-JAVA_TEST_PROGRAMS = 
+JAVA_TEST_PROGRAMS = \
+	NativeLibraryManagerTest
 
 OTHER_CLASSES = 
 

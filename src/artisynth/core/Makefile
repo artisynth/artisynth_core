@@ -5,6 +5,7 @@ JAVA_SUBDIRS = \
 	driver \
 	femmodels \
 	gui \
+	materials \
 	mechmodels \
 	modelbase \
 	moviemaker \

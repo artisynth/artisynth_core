@@ -8,6 +8,7 @@ package maspack.geometry;
 
 import java.util.*;
 import java.io.PrintStream;
+import java.io.File;
 
 import maspack.fileutil.NativeLibraryManager;
 import maspack.matrix.*;
@@ -16,7 +17,11 @@ import maspack.util.ArraySort;
 public class TetgenTessellator {
    
    public static String NATIVE_LIB = "TetgenJNI.1.5.1.0";
-   // public static String NATIVE_LIB = "TetgenJNI.1.4.3.0";
+   //public static String NATIVE_LIB = "TetgenJNI.1.5.1.1";
+   //protected boolean myHullFacesClockwise = false;
+
+   //public static String NATIVE_LIB = "TetgenJNI.1.0";
+   //protected boolean myHullFacesClockwise = true;
    
    private native int doBuildFromPoints (
       long handle, double[] pntCoords, int numPnts);
@@ -486,6 +491,82 @@ public class TetgenTessellator {
       buildFromMeshAndPoints(pntCoords, faceIndices, numFaces, quality, null, 0);
    }
 
+   // /**
+   //  * Returns true if the faces returned by {@link #getHullFaces} are
+   //  * clockwise. This was true under earlier versions of Tetgen, and is false
+   //  * under later versions.
+   //  *
+   //  * @return {@code true} if hull faces are clockwise
+   //  */
+   // public boolean getHullFacesClockwise() {
+   //    return myHullFacesClockwise;
+   // }
+
+   private void fixFaceOrientation (int[] faces) {
+      // Very annoying thing to have to do. Tetgen doesn't guarantee the
+      // orientation of the hull faces. Under 1.5, faces seem to be CCW when
+      // the tesselation is created from points, but CCW when created from a
+      // mesh. So have to manually check the orientation of each face, and flip
+      // it to ensure that it is CCW. We check the orientation against the
+      // centroid of the hull, which we also compute here.
+
+      // Get points to compute centroid and orientations
+      int numPnts = doGetNumPoints (myHandle);
+      double[] coords = new double[3*numPnts];
+      if (numPnts > 0) {
+         doGetPoints (myHandle, coords);
+         // place points in an array of Point3d()
+         Point3d[] pnts = new Point3d[numPnts];
+         for (int i=0; i<numPnts; i++) {
+            pnts[i] = new Point3d (coords[3*i], coords[3*i+1], coords[3*i+2]);
+         }
+         int nump = 0;
+         // compute centroid. Add each face vertex that hasn't already
+         // contributed
+         boolean[] marked = new boolean[numPnts];
+         Point3d centroid = new Point3d();
+         for (int i=0; i<faces.length; i+=3) {
+            for (int k=i; k<i+3; k++) {
+               int pidx = faces[k];
+               if (!marked[pidx]) {
+                  centroid.add (pnts[pidx]);
+                  nump++;
+               }
+            }
+         }
+         centroid.scale (1.0/nump);
+         // Now check orientation of each face, using RobustPreds.orient3dFast.
+         // Record the orientation (CW, CCW, or unsure) as -1, 1, 0         
+         double maxlen = getCharacteristicLength();
+         int numFaces = faces.length/3;
+         int numCcw = 0;
+         int numCw = 0;
+         int[] orientation = new int[numFaces];
+         for (int i=0; i<faces.length; i+=3) {
+            Point3d p0 = pnts[faces[i]];
+            Point3d p1 = pnts[faces[i+1]];
+            Point3d p2 = pnts[faces[i+2]];
+            double vol = RobustPreds.orient3dFast (p0, p1, p2, centroid, maxlen);
+            if (vol > 0) {
+               orientation[i/3] = -1;
+               numCw++;
+            }
+            else if (vol < 0) {
+               orientation[i/3] = 1;
+               numCcw++;
+            }
+         }
+         // Flips faces that have CW orientation. Hopefully there weren't any
+         // unsure results, but if there are, flip only if CW outnumbers CCW.
+         for (int i=0; i<faces.length; i+=3) {
+            int orient = orientation[i/3];
+            if (orient == -1 || (orient == 0 && numCw > numCcw)) {
+               int tmp = faces[i+2]; faces[i+2] = faces[i+1]; faces[i+1] = tmp;
+            }
+         }
+      }
+   }
+
    public int[] getHullFaces() {
       int[] faces;
       if (myDimen <= 1) {
@@ -502,6 +583,7 @@ public class TetgenTessellator {
          faces = new int[3*numFaces];
          if (numFaces > 0) {
             doGetHullFaces (myHandle, faces);
+            fixFaceOrientation (faces);
          }
       }
       return faces;
@@ -602,42 +684,79 @@ public class TetgenTessellator {
       return myCharLength;
    }      
 
-   // assume face points are givne clockwise
-   private double distanceToFace (
-      Point3d p0, Point3d p1, Point3d p2, Point3d pos) {
+   // private double distanceToFace (
+   //    Point3d p0, Point3d p1, Point3d p2, Point3d pos) {
 
-      Vector3d d1 = new Vector3d();
-      Vector3d d2 = new Vector3d();
-      Vector3d nrm = new Vector3d();
-      d1.sub (p1, p0);
-      d2.sub (p2, p0);
-      nrm.cross (d2, d1);
-      nrm.normalize();
-      d2.sub (pos, p0);
-      return nrm.dot (d2);
+   //    Vector3d d1 = new Vector3d();
+   //    Vector3d d2 = new Vector3d();
+   //    Vector3d nrm = new Vector3d();
+   //    d1.sub (p1, p0);
+   //    d2.sub (p2, p0);
+   //    nrm.cross (d2, d1);
+   //    nrm.normalize();
+   //    d2.sub (pos, p0);
+   //    if (myHullFacesClockwise) {
+   //       return nrm.dot (d2);
+   //    }
+   //    else {
+   //       return -nrm.dot (d2);
+   //    }
+   // }
+
+   private void writeMesh (
+      String fileName, Point3d[] pnts, int[] faces) {
+
+      PolygonalMesh mesh = new PolygonalMesh();
+      for (Point3d p : pnts) {
+         mesh.addVertex (p);
+      }
+      for (int k=0; k<faces.length; k+=3) {
+         mesh.addFace (new int[] {faces[k], faces[k+1], faces[k+2]});
+      }
+      try {
+         mesh.write (new File(fileName), "%g");
+      }
+      catch (Exception e) {
+         System.out.println ("Can't write mesh " + fileName);
+      }
    }
 
-   public boolean checkConvexHull (PrintStream ps, double tol) {
+   public boolean checkConvexHull (PrintStream ps) {
       int[] faces = getHullFaces();
       Point3d[] pnts = getPoints();
       // make sure no points are above any of the faces ....
 
+      // System.out.println ("points:");
+      // for (int i=0; i<pnts.length; i++) {
+      //    System.out.println (" " + pnts[i].toString ("%8.3f"));
+      // }
+      // System.out.println ("faces:");
+      // for (int k=0; k<faces.length; k += 3) {
+      //    System.out.println (faces[k]+" "+faces[k+1]+" "+faces[k+2]);
+      // }
       for (int i=0; i<pnts.length; i++) {
          Point3d pnt = pnts[i];
          for (int k=0; k<faces.length; k += 3) {
-            double dist = distanceToFace (
-               pnts[faces[k]], pnts[faces[k+1]], pnts[faces[k+2]], pnt);
-            if (dist > tol) {
-               if (ps != null)  {
-                  ps.println (
-                     "Point "+i+" "+dist+" above face "+
-                        faces[k]+" "+faces[k+1]+" "+faces[k+2]);
-                  ps.println ("p0=" + pnts[faces[k]]);
-                  ps.println ("p1=" + pnts[faces[k+1]]);
-                  ps.println ("p2=" + pnts[faces[k+2]]);
-                  ps.println ("pnt=" + pnt);
+            int i0, i1, i2;
+            i0 = faces[k]; i1 = faces[k+1]; i2 = faces[k+2];
+            Point3d p0 = pnts[i0];
+            Point3d p1 = pnts[i1];
+            Point3d p2 = pnts[i2];
+            double vol;
+            if (p0 != pnt && p1 != pnt && p2 != pnt) {
+               vol = RobustPreds.orient3dFast (p0, p1, p2, pnt, 0);
+               if (vol > 0) {
+                  if (ps != null) {
+                     ps.println ("Point "+i+" above face ["+i0+","+i1+","+i2+"]");
+                     ps.println ("volume=" + vol);
+                     ps.println ("p0=" + p0);
+                     ps.println ("p1=" + p1);
+                     ps.println ("p2=" + p2);
+                     ps.println ("pnt=" + pnt);
+                  }
+                  writeMesh ("convexHullFail.obj", pnts, faces);
+                  return false;
                }
-               return false;
             }
          }
       }

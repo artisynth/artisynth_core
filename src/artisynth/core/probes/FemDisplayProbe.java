@@ -34,7 +34,7 @@ import maspack.render.color.HueColorMap;
 import maspack.util.DoubleInterval;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
-import artisynth.core.femmodels.FemElement3d;
+import artisynth.core.femmodels.FemElement3dBase;
 import artisynth.core.femmodels.FemIntersector;
 import artisynth.core.femmodels.FemModel.Ranging;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
@@ -383,7 +383,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
    private static double getStressValue(Point3d pnt, FemModel3d model) {
 
       Point3d loc = new Point3d();
-      FemElement3d elem = model.findContainingElement(pnt);
+      FemElement3dBase elem = model.findContainingElement(pnt);
       if (elem == null) {
          elem = model.findNearestElement(loc, pnt);
       }
@@ -405,7 +405,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
    private static double getStrainValue(Point3d pnt, FemModel3d model) {
 
       Point3d loc = new Point3d();
-      FemElement3d elem = model.findNearestElement(loc, pnt);
+      FemElement3dBase elem = model.findNearestElement(loc, pnt);
       Vector3d coords = new Vector3d();
       double strain = 0;
       if (elem != null) {
@@ -641,7 +641,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
       Vector3d ncoords = new Vector3d();
       for (Vertex3d vtx : myPlaneSurface.getVertices()) {
          
-         FemElement3d elem = myFem.findNearestElement(loc, vtx.getWorldPoint());
+         FemElement3dBase elem = myFem.findNearestElement(loc, vtx.getWorldPoint());
          elem.getNaturalCoordinates(ncoords, vtx.getWorldPoint());
          VtxInfo info = new VtxInfo();
          info.nodes = elem.getNodes();

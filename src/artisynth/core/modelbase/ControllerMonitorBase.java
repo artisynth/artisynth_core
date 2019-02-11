@@ -99,10 +99,9 @@ implements RenderableComponent {
    public void setState (ComponentState state) {
    }
    
-   public void getInitialState (ComponentState state) {
-      getState (state);
-   }
-   
+   /**
+    * {@inheritDoc}
+    */  
    public void getInitialState (
       ComponentState newstate, ComponentState oldstate) {
       if (oldstate == null) {
@@ -111,10 +110,6 @@ implements RenderableComponent {
       else {
          newstate.set (oldstate);
       }
-   }
-   
-   public void setInitialState (ComponentState state) {
-      setState (state);
    }
    
 }

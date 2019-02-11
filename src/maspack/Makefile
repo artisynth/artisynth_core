@@ -2,16 +2,18 @@ ROOT_DIR = ../..
 PACKAGE_NAME = maspack
 
 JAVA_SUBDIRS = \
-	matrix \
-	geometry \
-	spatialmotion \
-	render \
-	interpolation \
 	collision \
-	properties \
-	util \
+	fileutil \
+	geometry \
+	interpolation \
 	matlab \
-	solvers
+	matrix \
+	numerics \
+	properties \
+	render \
+	solvers \
+	spatialmotion \
+	util
 
 default: build
 

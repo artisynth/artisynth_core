@@ -52,7 +52,8 @@ JAVADOC_URL = $(DOC_DIR_FROM_HTML)/javadocs
 
 # LaTeXML post-processing command that turns .xml into .html
 LATEXMLPOST = latexmlpost --mathimages --format=html4 $(LATEXMLPOST_ARGS) \
- --css=$(DOC_DIR_ROOT)/style/artisynth.css --destination=$@
+ --css=$(DOC_DIR_ROOT)/style/artisynth.css --destination=$@ \
+ --mathimagemagnification=1.5
 
 # Post-processing command for .html files created by latexmlpost.
 # Calls both setJavadocLinks to set references to Javadocs and ArtiSynth

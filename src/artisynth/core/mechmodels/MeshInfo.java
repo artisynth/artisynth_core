@@ -151,7 +151,7 @@ public class MeshInfo {
       }
    }
    
-   public void transformGeometry (GeometryTransformer gtr) {
+   public void transformGeometryOld (GeometryTransformer gtr) {
       gtr.transform (myMesh);
       
       boolean oldRigidP = myFileTransformRigidP;
@@ -173,6 +173,50 @@ public class MeshInfo {
       saveOrRestoreModBitsIfNecessary (gtr, oldRigidP, oldModifiedP);
    }
    
+   public void transformGeometry (GeometryTransformer gtr) {
+      transformGeometry (gtr, /*constrainer=*/null);
+   }
+   
+   public void transformGeometry (
+      GeometryTransformer gtr, GeometryTransformer.Constrainer constrainer) {
+
+      if (myMesh != null) {
+         gtr.transform (myMesh, constrainer);
+      
+         boolean oldRigidP = myFileTransformRigidP;
+         boolean oldModifiedP = myMeshModifiedP;
+         
+         if (gtr.isAffine() || constrainer != null) {
+            boolean reflecting;
+            if (gtr.isRestoring()) {
+               myFileTransform.set (gtr.restoreObject (myFileTransform));
+               reflecting = gtr.restoreObject (new Boolean(false));
+            }
+            else {
+               AffineTransform3dBase XC =
+                  gtr.computeLinearizedTransform (Vector3d.ZERO);
+               if (constrainer != null) {
+                  constrainer.apply (XC);
+               }
+               reflecting = (XC.getMatrix().determinant() < 0);
+               if (gtr.isSaving()) {
+                  gtr.saveObject (new AffineTransform3d(myFileTransform));
+                  gtr.saveObject (new Boolean(reflecting));
+               }
+               preMultiplyFileTransform (XC);
+            }
+            if (reflecting && myMesh instanceof PolygonalMesh) {
+               myFlippedP = !myFlippedP;
+               ((PolygonalMesh)myMesh).flip();
+            }           
+         }
+         else {
+            myMeshModifiedP = true;
+         }
+         saveOrRestoreModBitsIfNecessary (gtr, oldRigidP, oldModifiedP);
+      }
+   }
+   
    public boolean transformGeometryAndPose (
       GeometryTransformer gtr, GeometryTransformer.Constrainer constrainer) {
 
@@ -184,23 +228,27 @@ public class MeshInfo {
             boolean oldModifiedP = myMeshModifiedP;
 
             if (gtr.isAffine() || constrainer != null) {
-               // Update myFileTransform
+               boolean reflecting;
                if (gtr.isRestoring()) {
                   myFileTransform.set (gtr.restoreObject (myFileTransform));
+                  reflecting = gtr.restoreObject (new Boolean(false));
                }
                else {
-                  if (gtr.isSaving()) {
-                     gtr.saveObject (new AffineTransform3d(myFileTransform));
-                  }
                   // Pre-multiply myFileTransform by the local affine
                   // transform XL, which adjusts local vertex positions
                   // for the non-rigid parts of the transform that cannot
-                  // be accommodated by the mesh-to-world transform                  // of the mesh-to-world transform
+                  // be accommodated by the mesh-to-world transform 
+                  // of the mesh-to-world transform
                   AffineTransform3d XL = gtr.computeLocalAffineTransform (
                      myMesh.getMeshToWorld(), constrainer);
+                  reflecting = (XL.A.determinant() < 0);
+                  if (gtr.isSaving()) {
+                     gtr.saveObject (new AffineTransform3d(myFileTransform));
+                     gtr.saveObject (new Boolean(reflecting));
+                  }
                   preMultiplyFileTransform (XL);
                }
-               if (gtr.isReflecting() && myMesh instanceof PolygonalMesh) {
+               if (reflecting && myMesh instanceof PolygonalMesh) {
                   myFlippedP = !myFlippedP;
                   ((PolygonalMesh)myMesh).flip();
                }

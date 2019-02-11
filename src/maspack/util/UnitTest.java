@@ -16,6 +16,16 @@ import maspack.matrix.Matrix;
  */
 public class UnitTest {
 
+   protected boolean mySilentP = false;
+
+   public boolean getSilent() {
+      return mySilentP;
+   }
+
+   public void setSilent (boolean silent) {
+      mySilentP = silent;
+   }
+
    public void check (String msg, boolean test) {
       if (!test) {
          throw new TestException ("Check failed: " + msg);

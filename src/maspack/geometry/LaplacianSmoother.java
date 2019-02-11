@@ -10,8 +10,10 @@ import java.util.Iterator;
 import maspack.matrix.*;
 
 /**
- * Applies a simple Laplacian smoothing algorithm to a polygonal mesh, along
- * with volume compenstation.
+ * Applies Laplacian or Taubin smoothing to a polygonal mesh. Taubin smoothing
+ * is a modification to Laplacian smoothing that can prevent shrinkage (see
+ * Taubin, ``Curve and surface smoothing without shrinkage'', Fifth
+ * International Conference on Computer Vision, 1995).
  */
 public class LaplacianSmoother {
 
@@ -62,11 +64,18 @@ public class LaplacianSmoother {
 
    /**
     * Implements a specified number of iterations of Taubin smoothing.  lam
-    * should be positive, and mu should be negative, with an absolute greater
-    * than lam. Typical values are lam = 0.33, mu = -0.34.
+    * should be positive, and mu should be negative, with an absolute value
+    * greater than lam. Typical values are {@code lam = 0.33}, {@code mu =
+    * -0.34}. Setting {@code lam = 1} and {@code mu = 0} results in traditional
+    * Laplacian smoothing.
+    *
+    * @param mesh mesh to be smoothed
+    * @param numi number of iterations
+    * @param lam first Taubin parameter
+    * @param mu second Taubin parameter
     */
    public static void smooth (
-      PolygonalMesh mesh, int iterations, double lam, double mu) {
+      PolygonalMesh mesh, int numi, double lam, double mu) {
       double r0, r1;
 
       r0 = estimateRadius (mesh);
@@ -75,7 +84,7 @@ public class LaplacianSmoother {
       for (int i=0; i<mesh.numVertices(); i++) {
          L[i] = new Vector3d();
       }
-      for (int k=0; k<iterations; k++) {
+      for (int k=0; k<numi; k++) {
          addScaledLaplacian (mesh, lam, L);
          if (mu != 0) {
             addScaledLaplacian (mesh, mu, L);

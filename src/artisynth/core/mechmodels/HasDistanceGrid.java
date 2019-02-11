@@ -40,7 +40,8 @@ public interface HasDistanceGrid {
    /**
     * Sets the default maximum cell resolution that should be used when
     * constructing a signed distance grid for this component. This is the
-    * number of cells that will be used along the maximum x, y, or z direction,
+    * number of cells that will be used along the maximum length in
+    * either the x, y, or z direction,
     * with the number of cells in other directions adjusted accordingly so as
     * to provide cells of uniform size. If <code>max</code> is {@code <=} 0,
     * the value will be set to 0. If the values returned by {@link

@@ -190,7 +190,7 @@ public class AttachParticleFemAgent
          if (c instanceof Particle) {
             Point3d loc = new Point3d();
             Particle p = (Particle)c;
-            FemElement3d elem;
+            FemElement3dBase elem;
             if (myProjectPoints) {
                 elem = myFem.findNearestSurfaceElement (loc, p.getPosition());
             }

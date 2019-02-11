@@ -455,7 +455,7 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       pw.print ("particles=");
       ScanWriteUtils.writeBracketedReferences (pw, getParticleList(), ancestor);
    }

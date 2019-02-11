@@ -327,7 +327,7 @@ and any image format supported by Java's \lstinline{ImageIO} framework,
 which includes JPEG, PNG, BMP, WBMP, and GIF.  Many medical images, however,
 rely on lossless or near-lossless encoding, such as lossless JPEG, JPEG 2000, or TIFF.
 For these formats, we provide an interface that interacts with the third-party
-command-line utilies provided by \textbf{ImageMagick} (\url{http://www.imagemagick.org}).
+command-line utilities provided by \textbf{ImageMagick} (\url{http://www.imagemagick.org}).
 To enable this interface, the \textbf{ImageMagick} utilities \texttt{identify} and 
 \texttt{convert} must be available and exist somewhere on the system's \texttt{PATH}
 environment variable.
@@ -464,7 +464,7 @@ public DicomViewer(String name, String imagePath, Pattern filePattern, boolean c
 public DicomViewer(String name, List<File> files);
 \end{lstlisting}
 These constructors generate a new \lstinline{DicomImage} internal to the viewer.  The image
-can be retreived from the viewer using the \lstinline{getImage()} method.
+can be retrieved from the viewer using the \lstinline{getImage()} method.
 
 \section{DICOM example}
 
@@ -483,9 +483,9 @@ import java.io.IOException;
 import java.util.regex.Pattern;
 
 import artisynth.core.renderables.DicomViewer;
-import artisynth.core.util.ArtisynthPath;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.RootModel;
+import maspack.util.PathFinder;
 import maspack.image.dicom.DicomImageDecoderImageMagick;
 import maspack.fileutil.FileManager;
 
@@ -501,7 +501,7 @@ public class DicomTestImageMagick extends RootModel {
    public void build(String[] args) throws IOException {
       
       // grab remote zip file with DICOM data
-      String localDir = ArtisynthPath.getSrcRelativePath(this, "data/WRIX");
+      String localDir = PathFinder.getSourceRelativePath(this, "data/WRIX");
       FileManager FileManager = new FileManager(localDir, "zip:" + dicom_url + "!/");
       FileManager.setConsoleProgressPrinting(true);
       FileManager.setOptions(FileManager.DOWNLOAD_ZIP); // download zip file first

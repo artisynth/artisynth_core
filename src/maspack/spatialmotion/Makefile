@@ -7,12 +7,8 @@ PACKAGE_NAME = maspack.spatialmotion
 PACKAGE_JAVA_FILES = 
 
 JAVA_TEST_PROGRAMS = \
-	DantzigLCPSolverTest \
-	LemkeContactSolverTest \
 	SpatialInertiaTest \
-	TwistTest \
-	KKTSolverTest \
-	TreeBodySolverTest
+	TwistTest
 
 OTHER_CLASSES = 
 

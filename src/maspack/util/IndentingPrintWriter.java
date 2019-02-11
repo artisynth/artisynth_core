@@ -424,10 +424,10 @@ public class IndentingPrintWriter extends PrintWriter {
     * newline. The method returns -1 if (a) applies, 1 if (b) applies,
     * and 0 otherwise.
     *
-    * <p>The purpose of this method is to facilitate the cuddling of openning
+    * <p>The purpose of this method is to facilitate the cuddling of opening
     * delimiters. Suppose we want to write a block of items delimited
     * by '[' and ']'. Then to keep everything aligned, we may want
-    * the openning string to be simply "[ " if there was nothing
+    * the opening string to be simply "[ " if there was nothing
     * written before it, as in
     * <pre>
     * [ name="joe"

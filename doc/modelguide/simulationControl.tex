@@ -93,7 +93,7 @@ public class SimpleMuscleWithPanel extends SimpleMuscle {
 
       super.build (args);
 
-      // add control panel for gravity, rigod body mass and color, and excitation
+      // add control panel for gravity, rigid body mass and color, and excitation
       panel = new ControlPanel("controls");
       panel.addWidget (mech, "gravity");
       panel.addWidget (mech, "rigidBodies/box:mass");
@@ -774,9 +774,10 @@ relative to the {\tt MechModel} {\tt mech}. The same constructor
 attaches the probe to the file\\ {\tt simpleMuscleP1Pos.txt}, which is
 read to load the probe data. The format of this and other probe data
 files is described in Section \ref{DataFileFormat:sec}.  The method
-\javamethod*[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
+\javamethod*[maspack.util]{PathFinder.getSourceRelativePath()}
 is used to locate the file relative to the source directory for the
-application model. The probe is then given the name {\tt "Particle
+application model (see Section
+\ref{PathFinder:sec}). The probe is then given the name {\tt "Particle
 Position"} (line 18) and added to the root model (line 19).
 
 Similarly, {\tt createOutputProbe()} creates a new output probe which

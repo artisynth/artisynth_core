@@ -16,6 +16,7 @@ import java.util.List;
 
 import maspack.geometry.DelaunayInterpolator;
 import maspack.geometry.PolylineMesh;
+import maspack.geometry.PolylineInterpolator;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
@@ -750,6 +751,7 @@ public class MuscleBundle extends CompositeComponentBase
 
       FemModel3d femMod = getAncestorFem(this);
 
+      PolylineInterpolator interp = new PolylineInterpolator(mesh);
       for (FemElement3d e : femMod.getElements()) {
          IntegrationPoint3d[] pnts = e.getIntegrationPoints();
          boolean elemIsActive = false;
@@ -757,8 +759,7 @@ public class MuscleBundle extends CompositeComponentBase
          for (int i = 0; i < pnts.length; i++) {
             pnts[i].computePosition(pos, e.getNodes());
            
-            int nsegs = FemMuscleModel.computeAverageFiberDirection(
-               dir, pos, rad, mesh);
+            int nsegs = interp.computeAverageDirection(dir, pos, rad);
 
             if (nsegs > 0) {
                dirs[i] = new Vector3d (dir);
@@ -796,7 +797,7 @@ public class MuscleBundle extends CompositeComponentBase
       return interpolator;
    }
 
-   public Vector3d[] getFibreRestDirections () {
+   public Vector3d[] getFibreRestDirections() {
 
       if (myFibres.size() == 0) {
          return null;

@@ -4,10 +4,10 @@ PACKAGE_NAME = artisynth.core.materials
 
 JAVA_SUBDIRS =
 
-PACKAGE_JAVA_FILES = 
+PACKAGE_JAVA_FILES = \
+	FemMaterialTest
 
-JAVA_TEST_PROGRAMS = \
-	AxialSpringTest
+JAVA_TEST_PROGRAMS =
 
 default: build
 

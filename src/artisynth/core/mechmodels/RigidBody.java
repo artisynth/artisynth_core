@@ -6,38 +6,53 @@
  */
 package artisynth.core.mechmodels;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import artisynth.core.modelbase.ComponentChangeEvent;
+import artisynth.core.modelbase.ComponentListImpl;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.StructureChangeEvent;
+import artisynth.core.modelbase.TransformGeometryAction;
+import artisynth.core.modelbase.TransformGeometryContext;
+import artisynth.core.util.ArtisynthPath;
+import artisynth.core.util.ScanToken;
+import maspack.geometry.DistanceGrid;
 import maspack.geometry.GeometryTransformer;
+import maspack.geometry.MeshBase;
 import maspack.geometry.MeshFactory;
 import maspack.geometry.PolygonalMesh;
 import maspack.geometry.Vertex3d;
-import maspack.geometry.Face;
-import maspack.matrix.Vector3i;
-import maspack.geometry.DistanceGrid;
 import maspack.matrix.AffineTransform3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Quaternion;
 import maspack.matrix.RigidTransform3d;
-import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector3i;
 import maspack.matrix.VectorNd;
+import maspack.properties.HierarchyNode;
 import maspack.properties.PropertyList;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
+import maspack.render.Renderer.LineStyle;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
@@ -45,25 +60,17 @@ import maspack.util.DoubleInterval;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.Range;
-import maspack.util.RangeBase;
 import maspack.util.ReaderTokenizer;
-import maspack.util.StringHolder;
-import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.ModelComponent;
-import artisynth.core.modelbase.StructureChangeEvent;
-import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
-import artisynth.core.util.ArtisynthPath;
-import artisynth.core.util.ScanToken;
 
 public class RigidBody extends Frame 
-   implements CollidableBody, HasSurfaceMesh, HasDistanceGrid, ConnectableBody {
-   
+   implements CollidableBody, HasSurfaceMesh,
+              ConnectableBody, CompositeComponent, Wrappable {
+
    protected SpatialInertia mySpatialInertia;
    protected SpatialInertia myEffectiveInertia;
    protected GeometryTransformer.Constrainer myTransformConstrainer = null;
    
-   MeshInfo myMeshInfo = new MeshInfo();
+   //MeshInfo myMeshInfo = null;
    protected ArrayList<BodyConnector> myConnectors;
 
    // pre-allocated temporary storage variables
@@ -71,50 +78,31 @@ public class RigidBody extends Frame
    protected Twist myBodyVel = new Twist();
    protected Twist myBodyAcc = new Twist();
 
+   private static double DEFAULT_DENSITY = 1.0;
    protected double myDensity = DEFAULT_DENSITY;
 
    static final boolean useExternalAttachments = false;
 
    private static final Vector3d zeroVect = new Vector3d();
    
-   /**
-    * Describes how the distance surface should be rendered, if at all
-    */
-   public enum DistanceSurfaceRendering {
-      /**
-       * Do not render the distance surface
-       */
-      NONE,
-      
-      /**
-       * Render the distance surface using linear interpolation
-       */
-      LINEAR,
-      
-      /**
-       * Render the distance surface using quadratic interpolation
-       */
-      QUADRATIC
-   }
-
    /* Indicates how inertia is determined for a RigidBody */
    public enum InertiaMethod {
       /**
        * Inertia is determined implicitly from the surface mesh and a specified 
        * density.
        */
-      Density, 
+      DENSITY, 
       
       /**
        * Inertia is determined implicitly from the surface mesh and a specified 
        * mass (which is divided by the mesh volume to determine a density).
        */     
-      Mass, 
+      MASS, 
       
       /** 
        * Inertia is explicitly specified.
        */
-      Explicit
+      EXPLICIT
    };
    
    protected InertiaMethod myInertiaMethod = DEFAULT_INERTIA_METHOD;
@@ -123,40 +111,30 @@ public class RigidBody extends Frame
       new PropertyList (RigidBody.class, Frame.class);
 
    private static InertiaMethod DEFAULT_INERTIA_METHOD =
-      InertiaMethod.Density;
+      InertiaMethod.DENSITY;
    private static SymmetricMatrix3d DEFAULT_INERTIA =      
       new SymmetricMatrix3d (1, 1, 1, 0, 0, 0);
    private static double DEFAULT_MASS = 1.0;
    private static Point3d DEFAULT_CENTER_OF_MASS = new Point3d (0, 0, 0);
-   private static double DEFAULT_DENSITY = 1.0;
 
    protected static final Collidability DEFAULT_COLLIDABILITY =
       Collidability.ALL;   
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
    protected int myCollidableIndex;
 
-   static int DEFAULT_DISTANCE_GRID_MAX_RES = 20;
-   static Vector3i DEFAULT_DISTANCE_GRID_RES = new Vector3i(0, 0, 0);
-   static boolean DEFAULT_DISTANCE_GRID_OBB = false;
-   static boolean DEFAULT_RENDER_DISTANCE_GRID = false;
-   static DistanceSurfaceRendering DEFAULT_RENDER_DISTANCE_SURFACE = 
-      DistanceSurfaceRendering.NONE;
-   static double DEFAULT_DISTANCE_SURFACE_ISO = 0;
-   static String DEFAULT_DISTANCE_GRID_RENDER_RANGES = "* * *";
-   DistanceGrid mySDGrid = null;
-   DistanceGrid mySDRenderGrid = null;
-   PolygonalMesh mySDSurface = null;
    PolygonalMesh mySDRenderSurface = null;
-   boolean mySDGridValid = false;
-   Vector3i myDistanceGridRes = new Vector3i(DEFAULT_DISTANCE_GRID_RES);
-   int myDistanceGridMaxRes = DEFAULT_DISTANCE_GRID_MAX_RES;
-   boolean myDistanceGridOBB = DEFAULT_DISTANCE_GRID_OBB;
-   boolean myRenderDistanceGrid = DEFAULT_RENDER_DISTANCE_GRID;
-   double myDistanceSurfaceIso = DEFAULT_DISTANCE_SURFACE_ISO;
-   DistanceSurfaceRendering myRenderDistanceSurface = 
-      DEFAULT_RENDER_DISTANCE_SURFACE;
-   String myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;
-   double myGridMargin = 0.1;
+   static boolean DEFAULT_GRID_SURFACE_RENDERING = false;
+   boolean myGridSurfaceRendering = DEFAULT_GRID_SURFACE_RENDERING;
+
+   //double myGridMargin = 0.1;
+
+   protected ComponentListImpl<ModelComponent> myComponents;
+   protected NavpanelDisplay myDisplayMode = NavpanelDisplay.NORMAL;
+   protected MeshComponentList<RigidMeshComp> myMeshList = null;
+   protected ArrayList<MeshComponent> myCollisionMeshes = new ArrayList<>();
+   protected PolygonalMesh myCompoundCollisionMesh;
+
+   DistanceGridComp myDistanceGridComp;
 
     static {
       myProps.remove ("renderProps");
@@ -180,33 +158,9 @@ public class RigidBody extends Frame
          "collidable", 
          "sets the collidability of this body", DEFAULT_COLLIDABILITY);
       myProps.add (
-         "distanceGridRes", 
-         "divisions for signed distance grid along x, y, and z",
-         DEFAULT_DISTANCE_GRID_RES);
-      myProps.add (
-         "distanceGridMaxRes", 
-         "max divisions for signed distance grid",
-         DEFAULT_DISTANCE_GRID_MAX_RES);
-      myProps.add (
-         "distanceGridOBB", 
-         "if true, distance grid is fitted using OBB",
-         DEFAULT_DISTANCE_GRID_OBB);
-      myProps.add (
-         "renderDistanceGrid", 
-         "render the distance grid in the viewer",
-         DEFAULT_RENDER_DISTANCE_GRID);
-      myProps.add (
-         "renderDistanceSurface", 
-         "render the iso-surface of the distance grid in the viewer",
-         DEFAULT_RENDER_DISTANCE_SURFACE);
-      myProps.add (
-         "distanceSurfaceIso", 
-         "iso value for the distance surface",
-         DEFAULT_DISTANCE_SURFACE_ISO);
-      myProps.add (
-         "distanceGridRenderRanges",
-         "which part of the distance grid to render", 
-         DEFAULT_DISTANCE_GRID_RENDER_RANGES);
+         "gridSurfaceRendering", 
+         "renders the grid surface instead of the meshes", 
+         DEFAULT_GRID_SURFACE_RENDERING);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -267,8 +221,6 @@ public class RigidBody extends Frame
    
    public int mulInverseEffectiveMass (
       Matrix M, double[] a, double[] f, int idx) {
-      SpatialInertia S = getEffectiveInertia();
-
       return mulInverseEffectiveMass (getEffectiveInertia(), a, f, idx);
    }
    
@@ -345,13 +297,6 @@ public class RigidBody extends Frame
       myEffectiveInertia.add (MB);
    }
 
-//   public void addEffectiveInertia (SpatialInertia M) {
-//      if (myEffectiveInertia == null) {
-//         myEffectiveInertia = new SpatialInertia (mySpatialInertia);
-//      }
-//      myEffectiveInertia.add (M);
-//   }
-
    public void subEffectiveInertia (SpatialInertia M) {
       if (myEffectiveInertia == null) {
          myEffectiveInertia = new SpatialInertia (mySpatialInertia);
@@ -384,6 +329,7 @@ public class RigidBody extends Frame
       return myInertiaMethod;
    }
    
+
    /**
     * Sets the {@link RigidBody.InertiaMethod InertiaMethod} method used to
     * determine the inertia for this RigidBody.
@@ -394,26 +340,17 @@ public class RigidBody extends Frame
     * @see #setInertiaFromMass
     */
    public void setInertiaMethod (InertiaMethod method) {
-      PolygonalMesh mesh = getMesh();
       if (method != myInertiaMethod) {
          switch (method) {
-            case Density: {
-               if (mesh != null) {
-                  double mass = mesh.computeVolume()*myDensity;
-                  setInertiaFromMesh (myDensity);
-                  mySpatialInertia.setMass (mass);
-               }
+            case DENSITY: {
+               updateInertiaFromMeshes();
                break;
             }
-            case Mass: {
-               if (mesh != null) {
-                  double density = getMass()/mesh.computeVolume();
-                  setInertiaFromMesh (density);
-                  myDensity = density;
-               }
+            case MASS: {
+               updateInertiaFromMeshes();
                break;
             }
-            case Explicit: {
+            case EXPLICIT: {
                break;
             }
             default: {
@@ -435,7 +372,7 @@ public class RigidBody extends Frame
 
    public void setCenterOfMass (Point3d com) {
       mySpatialInertia.setCenterOfMass (com);
-      myInertiaMethod = InertiaMethod.Explicit;
+      myInertiaMethod = InertiaMethod.EXPLICIT;
    }
 
    public void getCenterOfMass (Point3d com) {
@@ -462,7 +399,7 @@ public class RigidBody extends Frame
     * the inertia remains unchanged. Subsequent (non-<code>null</code>) changes
     * to the mesh will cause the inertia to be recomputed.
     * The inertia method is set to
-    * {@link RigidBody.InertiaMethod#Density Density}. 
+    * {@link RigidBody.InertiaMethod#DENSITY DENSITY}. 
     * 
     * @param density desired uniform density
     */
@@ -470,11 +407,8 @@ public class RigidBody extends Frame
       if (density < 0) {
          throw new IllegalArgumentException ("density must be non-negative");
       }
-      if (getMesh() != null) {
-         setInertiaFromMesh (density);
-      }
-      myDensity = density;
-      myInertiaMethod = InertiaMethod.Density;
+      myInertiaMethod = InertiaMethod.DENSITY;
+      setBodyDensity (density);
    }
 
    /** 
@@ -484,7 +418,7 @@ public class RigidBody extends Frame
     * of the inertia is updated but the otherwise the inertia and density
     * are left unchanged. Subsequent (non-<code>null</code>) changes
     * to the mesh will cause the inertia to be recomputed.
-    * The inertia method is set to {@link RigidBody.InertiaMethod#Mass Mass}. 
+    * The inertia method is set to {@link RigidBody.InertiaMethod#MASS MASS}. 
     * 
     * @param mass desired body mass
     */
@@ -492,28 +426,20 @@ public class RigidBody extends Frame
       if (mass < 0) {
          throw new IllegalArgumentException ("mass must be non-negative");
       }
-      if (getMesh() != null) {
-         myDensity = mass/getMesh().computeVolume();
-         setInertiaFromMesh (myDensity);
-      }
-      mySpatialInertia.setMass (mass);
-      myInertiaMethod = InertiaMethod.Mass;      
+      myInertiaMethod = InertiaMethod.MASS;      
+      setBodyMass (mass);
    }
    
-   public double computeVolume() {
-      PolygonalMesh mesh = getMesh();
-      if (mesh != null) {
-         return mesh.computeVolume();
-      }
-      return 0;
+   public double getVolume() {
+      return sumMeshVolumes();
    }
 
    /**
     * Sets the density for the mesh, which is defined at the mass divided
     * by the mesh volume. If the mesh is currently non-null, the mass
     * will be updated accordingly. If the current InertiaMethod
-    * is either {@link RigidBody.InertiaMethod#Density Density} or 
-    * {@link RigidBody.InertiaMethod#Mass Mass}, the other components of
+    * is either {@link RigidBody.InertiaMethod#DENSITY DENSITY} or 
+    * {@link RigidBody.InertiaMethod#MASS MASS}, the other components of
     * the spatial inertia will also be updated.
     * 
     * @param density
@@ -523,15 +449,9 @@ public class RigidBody extends Frame
       if (density < 0) {
          throw new IllegalArgumentException ("density must be non-negative");
       }
-      if (getMesh() != null) {
-         double mass = density*computeVolume();
-         if (myInertiaMethod == InertiaMethod.Mass ||
-             myInertiaMethod == InertiaMethod.Density) {
-            setInertiaFromMesh (density);
-         }
-         mySpatialInertia.setMass (mass);
+      if (density != myDensity) {
+         setBodyDensity(density);
       }
-      myDensity = density;
    }
 
    public Range getDensityRange () {
@@ -553,8 +473,8 @@ public class RigidBody extends Frame
     * Sets the mass for the mesh. If the mesh is currently non-null, then the
     * density (defined as the mass divided by the mesh volume) will be updated
     * accordingly. If the current InertiaMethod is either {@link
-    * InertiaMethod#Density Density} or
-    * {@link RigidBody.InertiaMethod#Mass Mass}, the
+    * InertiaMethod#DENSITY DENSITY} or
+    * {@link RigidBody.InertiaMethod#MASS MASS}, the
     * other components of the spatial inertia will also be updated.
     * 
     * @param mass
@@ -564,15 +484,7 @@ public class RigidBody extends Frame
       if (mass < 0) {
          throw new IllegalArgumentException ("Mass must be non-negative");
       }
-      if (getMesh() != null) {
-         double density = mass/getMesh().computeVolume();
-         if (myInertiaMethod == InertiaMethod.Mass ||
-             myInertiaMethod == InertiaMethod.Density) {
-            setInertiaFromMesh (myDensity);
-         }
-         myDensity = density;
-      }    
-      mySpatialInertia.setMass (mass);
+      setBodyMass (mass);
    }
 
    /**
@@ -592,7 +504,7 @@ public class RigidBody extends Frame
     */
    public void setRotationalInertia (SymmetricMatrix3d J) {
       mySpatialInertia.setRotationalInertia (J);
-      myInertiaMethod = InertiaMethod.Explicit;
+      myInertiaMethod = InertiaMethod.EXPLICIT;
    }
 
    public void getRotationalInertia (SymmetricMatrix3d J) {
@@ -608,12 +520,9 @@ public class RigidBody extends Frame
       return mySpatialInertia.getRotationalInertia();
    }
 
-   private void doSetInertia (SpatialInertia M) {
-      mySpatialInertia.set (M);
-      if (getMesh() != null) {
-         myDensity = M.getMass()/getMesh().computeVolume();
-      } 
-      myInertiaMethod = InertiaMethod.Explicit;
+   protected void doSetInertia (SpatialInertia M) {
+      setBodyInertia (M);
+      myInertiaMethod = InertiaMethod.EXPLICIT;
    }
 
    /**
@@ -622,15 +531,6 @@ public class RigidBody extends Frame
     */
    public void setInertia (SpatialInertia M) {
       doSetInertia (M);
-   }
-
-   private void setInertiaFromMesh (double density) {
-      PolygonalMesh mesh = null;
-      if ((mesh = getMesh()) == null) {
-         throw new IllegalStateException ("Mesh has not been set");
-      }
-      SpatialInertia M = mesh.createInertia (density);
-      mySpatialInertia.set (M);
    }
 
    /**
@@ -665,139 +565,437 @@ public class RigidBody extends Frame
          new SpatialInertia (m, Jxx, Jyy, Jzz));
    }
 
+   protected boolean hasMassMeshes() {
+      for (RigidMeshComp mcomp : myMeshList) {
+         if (mcomp.hasMass()) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   protected void updateInertiaFromMeshes () {
+      if (hasMassMeshes()) {
+         SpatialInertia Mtotal = new SpatialInertia();         
+         for (RigidMeshComp mcomp : myMeshList) {
+            if (mcomp.hasMass()) {
+               MeshBase base = mcomp.getMesh();
+               if (base instanceof PolygonalMesh) {
+                  PolygonalMesh mesh = (PolygonalMesh)base;
+                  SpatialInertia M = mesh.createInertia (mcomp.getDensity());
+                  Mtotal.add (M);
+               }
+               else {
+                  // for now, just add inertias of vertices
+                  double massPerVertex = mcomp.getMass()/base.numVertices();
+                  for (Vertex3d vtx : base.getVertices()) {
+                     Mtotal.addPointMass (
+                        massPerVertex, vtx.getPosition());
+                  }
+               }
+            }
+         }
+         mySpatialInertia.set (Mtotal);
+      }
+      else if (myInertiaMethod == InertiaMethod.DENSITY) {
+         mySpatialInertia.setZero();
+      }
+   }
+
+   protected void scaleExplicitMeshMasses (double scale) {
+      for (RigidMeshComp mcomp : myMeshList) {
+         if (mcomp.hasMass()) {
+            if (mcomp.hasExplicitMass()) {
+               mcomp.setMass (scale*mcomp.getMass());
+            }
+            else if (mcomp.hasExplicitDensity()) {
+               mcomp.setDensity (scale*mcomp.getDensity());
+            }
+         }
+      }
+   }
+
+   protected double sumMeshVolumes() {
+      double volume = 0;
+      for (RigidMeshComp mcomp : myMeshList) {
+         if (mcomp.hasMass()) {
+            volume += mcomp.getVolume();
+         }
+      }
+      return volume;
+   }
+
+   protected double sumMeshMasses() {
+      double mass = 0;
+      for (RigidMeshComp mcomp : myMeshList) {
+         if (mcomp.hasMass()) {
+            mass += mcomp.getMass();
+         }
+      }
+      return mass;
+   }
+
+   protected double sumExplicitMeshMasses() {
+      double mass = 0;
+      for (RigidMeshComp mcomp : myMeshList) {
+         if (mcomp.hasMass() && mcomp.hasExplicitMassOrDensity()) {
+            mass += mcomp.getMass();
+         }
+      }
+      return mass;
+   }
+
+   protected double sumImplicitMeshVolumes() {
+      double volume = 0;
+      for (RigidMeshComp mcomp : myMeshList) {
+         if (mcomp.hasMass() && !mcomp.hasExplicitMassOrDensity()) {
+            volume += mcomp.getVolume();
+         }
+      }
+      return volume;
+   }
+
+   protected void setBodyMass (double mass) {
+      double oldMass = mySpatialInertia.getMass();
+      mySpatialInertia.setMass (mass);
+      if (oldMass != 0) {
+         double scale = mass/oldMass;
+         myDensity *= scale;
+         scaleExplicitMeshMasses (scale);
+      }
+      if (myInertiaMethod != InertiaMethod.EXPLICIT) {
+         updateInertiaFromMeshes();
+      }
+   }
+
+   protected void setBodyInertia (SpatialInertia M) {
+      double oldMass = mySpatialInertia.getMass();
+      mySpatialInertia.set (M);
+      if (oldMass != 0) {
+         double scale = M.getMass()/oldMass;
+         myDensity *= scale;
+         scaleExplicitMeshMasses (scale);
+      }
+   }
+
+   protected void setBodyDensity (double density) {
+      myDensity = density;
+      mySpatialInertia.setMass (sumMeshMasses());
+      if (myInertiaMethod != InertiaMethod.EXPLICIT) {
+         updateInertiaFromMeshes();
+      }
+   }
+
+   protected void updateInertiaForVolumeChanges () {
+
+      if (myInertiaMethod == InertiaMethod.DENSITY) {
+         mySpatialInertia.setMass (sumMeshMasses());
+      }
+      else {
+         double implicitMass = getMass()-sumExplicitMeshMasses();
+         double implicitVolume = sumImplicitMeshVolumes();
+         if (implicitVolume > 0) {
+            myDensity = implicitMass/implicitVolume;
+         }        
+      }
+      if (myInertiaMethod != InertiaMethod.EXPLICIT) {
+         updateInertiaFromMeshes();
+      }
+   }
+
+   protected void updateInertiaForMeshChanges (RigidMeshComp mcomp) {
+
+      if (mcomp.hasExplicitMassOrDensity() || 
+          myInertiaMethod == InertiaMethod.DENSITY) {
+         mySpatialInertia.setMass (sumMeshMasses());
+      }
+      else if (mcomp.getVolume() > 0) { // then mesh has mass
+         double implicitMass = getMass()-sumExplicitMeshMasses();
+         double implicitVolume = sumImplicitMeshVolumes();
+         if (implicitVolume > 0) {
+            myDensity = implicitMass/implicitVolume;
+         }
+      }
+      if (myInertiaMethod != InertiaMethod.EXPLICIT) {
+         updateInertiaFromMeshes();
+      }
+   }
+
    //**************************************************************************
 
-   public PolygonalMesh getMesh() {
-      return getSurfaceMesh();
-   }
-   
-   public AffineTransform3d getFileTransform() {
-      return new AffineTransform3d(myMeshInfo.myFileTransform);
-   }
-
-   public boolean isFileTransformRigid() {
-      return myMeshInfo.myFileTransformRigidP;
-   }
-
-   public boolean isMeshModfied() {
-      return myMeshInfo.myMeshModifiedP;
-   }
-
-   public PolygonalMesh getSurfaceMesh() {
-      return (PolygonalMesh)myMeshInfo.myMesh;
-   }
-   
-   public int numSurfaceMeshes() {
-      return getSurfaceMesh() != null ? 1 : 0;
-   }
-   
-   public PolygonalMesh[] getSurfaceMeshes() {
-      return MeshComponent.createSurfaceMeshArray (getSurfaceMesh());
-   }
-   
-   //   public MeshBase getMeshBase() {
-   //      return myMeshInfo.myMesh;
-   //   }
-   
-   public String getMeshFileName() {
-      return myMeshInfo.getFileName();
-   }
-
-   public void setMeshFileName (String filename) {
-      myMeshInfo.setFileName (filename);
+   /**
+    * Returns the mesh component, if any, associated with the surface
+    * mesh for this body. If there is no surface mesh, then {@code null}
+    * is returned.
+    * 
+    * @return surface mesh component, or {@code null}.
+    */
+   public RigidMeshComp getSurfaceMeshComp() {
+      for (RigidMeshComp mc : myMeshList) {
+         if (mc.getMesh() instanceof PolygonalMesh) {
+            return mc;
+         }
+      }
+      return null;
    }
 
    /**
-    * Returns the file transform associated with this rigid body's mesh.
-    * 
-    * @return mesh file transform (should not be modified)
+    * @deprecated Use {@link #getSurfaceMesh()} instead.
     */
-   public AffineTransform3dBase getMeshFileTransform() {
-      return myMeshInfo.getFileTransform();
+   public PolygonalMesh getMesh() {
+      return getSurfaceMesh();
    }
 
-//   /**
-//    * Sets the transform used to modify a mesh originally read from a file. It
-//    * is only meaningful if there is a also mesh file name.
-//    * 
-//    * @param X
-//    * new mesh file transform, or <code>null</code>
-//    */
-//   public void setMeshFileTransform (AffineTransform3dBase X) {
-//      myMeshInfo.setFileTransform (X);
-//   }
+   /**
+    * Returns the surface mesh for this rigid body. By definition, this
+    * is the first mesh in the component mesh list which is
+    * a {@link PolygonalMesh}. If no such mesh exists, then
+    * {@code null} is returned.
+    * 
+    * @return surface mesh for this rigid body
+    */
+   public PolygonalMesh getSurfaceMesh() {
+      RigidMeshComp mc = getSurfaceMeshComp();
+      if (mc != null) {
+         return (PolygonalMesh)mc.getMesh();
+      }
+      else {
+         return null;
+      }
+   }
 
+   @Override
+   public int numSurfaceMeshes() {
+      return MeshComponent.numSurfaceMeshes (myMeshList);
+   }
+   
+   @Override
+   public PolygonalMesh[] getSurfaceMeshes() {
+      return MeshComponent.getSurfaceMeshes (myMeshList);
+   }
+
+   /**
+    * @deprecated Use {@link #setSurfaceMesh(PolygonalMesh)} instead.
+    */
    public void setMesh (PolygonalMesh mesh) {
       setSurfaceMesh (mesh, null, null);
    }
    
+   /**
+    * @deprecated Use {@link #setSurfaceMesh(PolygonalMesh,String)} instead.
+    */   
    public void setMesh (PolygonalMesh mesh, String fileName) {
       setSurfaceMesh (mesh, fileName, null);
    }
    
+   /**
+    * @deprecated Use {@link 
+    * #setSurfaceMesh(PolygonalMesh,String,AffineTransform3dBase)} instead.
+    */
+   public void setMesh (
+      PolygonalMesh mesh, String fileName, AffineTransform3dBase X) {
+      setSurfaceMesh (mesh, fileName, X);
+   }
+   
+   /**
+    * Sets the surface mesh for this body. This method is equivalent
+    * to {@link #setSurfaceMesh(PolygonalMesh,String,AffineTransform3dBase)
+    * setSurfaceMesh(mesh,fileName,X)} with {@code fileName} and
+    * {@code X} set to {@code null}.
+    * 
+    * @param mesh new surface mesh
+    */
+   public void setSurfaceMesh (PolygonalMesh mesh) {
+      setSurfaceMesh (mesh, null, null);
+   }
+    
+   /**
+    * Sets the surface mesh for this body. This method is equivalent
+    * to {@link #setSurfaceMesh(PolygonalMesh,String,AffineTransform3dBase)
+    * #setSurfaceMesh(mesh,fileName,X)} with {@code X} set to {@code null}.
+    * 
+    * @param mesh new surface mesh
+    * @param fileName optional file name to be associated with the mesh
+    */
    public void setSurfaceMesh (PolygonalMesh mesh, String fileName) {
       setSurfaceMesh (mesh, fileName, null);
    }
    
-   public void scaleMesh (double sx, double sy, double sz) {
-      myMeshInfo.scale (sx, sy, sz);
-      if (myInertiaMethod == InertiaMethod.Density) {
-         setInertiaFromMesh (myDensity);
-      }     
-   }
-   
-   public void scaleMesh (double s) {
-      scaleMesh (s, s, s);
-   }
-
-   protected void setMeshFromInfo () {
-      PolygonalMesh mesh = getMesh();
-      if (mesh != null) {
-         mesh.setFixed (true);
-         mesh.setMeshToWorld (myState.XFrameToWorld);
-         if (myInertiaMethod == InertiaMethod.Density) {
-            setInertiaFromMesh (myDensity);
-         }
-         else {
-            myDensity = mySpatialInertia.getMass()/mesh.computeVolume();
-            if (myInertiaMethod == InertiaMethod.Mass) {
-               setInertiaFromMesh (myDensity);            
-            }
-         }
-         mySDGrid = null;
-         mySDSurface = null;
-         mySDGridValid = false;
-      }
-      else {
-         mySDGrid = null;
-         mySDSurface = null;
-         mySDGridValid = true;
-      }
-   }
-
    /**
-    * Sets a mesh for this body. If the body has a uniform density (i.e.,
-    * {@link #getDensity getDensity} returns a non-negative value), then the
-    * spatial inertia is automatically calculated from the mesh and the uniform
-    * density.
-    */
-   public void setMesh (
-      PolygonalMesh mesh, String fileName, AffineTransform3dBase X) {
-      setSurfaceMesh(mesh, fileName, X);
-   }
-   
-   /**
-    * Sets a mesh for this body. If the body has a uniform density (i.e.,
-    * {@link #getDensity getDensity} returns a non-negative value), then the
-    * spatial inertia is automatically calculated from the mesh and the uniform
-    * density.
+    * Sets the surface mesh for this body. If a surface mesh already exists
+    * (i.e., {@link #getSurfaceMesh} returns non-{@code null}), then this mesh
+    * replaces the existing one, at the same location within the {\tt meshes}
+    * sublist. Otherwise, a new surface mesh component is created and placed at
+    * the top of the {\tt meshes} sublist.
+    *
+    * <p>If {@code mesh} is {@code null}, then the any existing surface mesh is
+    * removed.
+    *
+    * <p>The arguments {@code fileName} and {@code X} specify an optional file
+    * name and rigid or affine transform for the mesh. If specified, these are
+    * used by {@link #scan} and {@link #write} for saving and restoring mesh
+    * information. For details, see {@link MeshComponent#getFileName} and
+    * {@link MeshComponent#getFileTransform}.
+    *
+    * <p>If the body's inertia method is {@link InertiaMethod#MASS} or {@link
+    * InertiaMethod#DENSITY}, then its inertia will be updated to reflect the
+    * new mesh geometry.
+    * 
+    * @param mesh new surface mesh
+    * @param fileName optional file name to be associated with the mesh
+    * @param X optional affine transform to be associated with the mesh
     */
    public void setSurfaceMesh (
       PolygonalMesh mesh, String fileName, AffineTransform3dBase X) {
-
-      myMeshInfo.set (mesh, fileName, X);
-      setMeshFromInfo();
+         
+      // see if there is a surface mesh component already
+      RigidMeshComp oldComp = getSurfaceMeshComp();
+      if (oldComp != null) {
+         if (mesh == null) {
+            // remove the existing surface mesh
+            removeMeshComp (oldComp);
+         }
+         else {
+            oldComp.setMesh (mesh, fileName, X);
+         }
+      }
+      else if (mesh != null) {
+         RigidMeshComp newComp = new RigidMeshComp (mesh, fileName, X);
+         if (myMeshList.get ("surfaceMesh") == null) {
+            // name the component "surfaceMesh" if that name is not taken
+            newComp.setName ("surfaceMesh");
+         }
+         addMeshComp (newComp, 0);
+      }
+      setSurfaceMeshFromInfo();
    }
+
+   public void scaleSurfaceMesh (double sx, double sy, double sz) {
+      RigidMeshComp mc = getSurfaceMeshComp();
+      if (mc != null) {
+         mc.scaleMesh (sx, sy, sz);
+      }
+   }
+
+   protected void setSurfaceMeshFromInfo () {
+      PolygonalMesh mesh = getSurfaceMesh();
+      if (mesh != null) {
+         mesh.setFixed (true);
+         mesh.setMeshToWorld (myState.XFrameToWorld);
+      }
+   }
+
+   /* --- methods for mesh components --- */
+
+   public MeshComponentList<RigidMeshComp> getMeshComps() {
+      return myMeshList;
+   }
+   
+   public RigidMeshComp getMeshComp(int idx) {
+      return myMeshList.get (idx);
+   }
+
+   public RigidMeshComp getMeshComp(String name) {
+      return myMeshList.get (name);
+   }
+
+   /**
+    * Adds a mesh to this object.  Can be of any type.
+    * @param mesh Instance of MeshBase
+    * @return a special "mesh component" object that is created internally 
+    */
+   public RigidMeshComp addMesh(MeshBase mesh) {
+      return addMesh (
+         mesh, null, null, 
+         RigidMeshComp.DEFAULT_HAS_MASS, RigidMeshComp.DEFAULT_IS_COLLIDABLE);
+   }
+
+   /**
+    * Adds a mesh to this object.  Can be of any type.
+    * @param mesh Instance of MeshBase
+    * @param hasMass true if to be used for mass/inertia calculations 
+    * @param collidable true if to be used for collisions
+    * @return a special "mesh component" object that is created internally 
+    */
+   public RigidMeshComp addMesh (
+      MeshBase mesh, boolean hasMass, boolean collidable) {
+      return addMesh(mesh, null, null, hasMass, collidable);
+   }
+
+   /**
+    * Adds a mesh to this object
+    * @param mesh Instance of MeshBase
+    * @param fileName name of file (can be null)
+    * @param Xh transform associated with mesh
+    * @param hasMass if true, this mesh is used for computing mass and inertia
+    * @return a special "mesh component" object that is created internally 
+    */
+   public RigidMeshComp addMesh (
+      MeshBase mesh, String fileName, AffineTransform3dBase Xh, 
+      boolean hasMass, boolean collidable) {
+
+      RigidMeshComp mc = new RigidMeshComp();
+      mc.setMesh(mesh, fileName, Xh);
+      if (mesh.getName() != null) {
+         mc.setName(mesh.getName());
+      }
+      mc.setHasMass(hasMass);
+      mc.setIsCollidable (collidable);
+
+      if (mesh.getRenderProps() != null) {
+         mc.setRenderProps(mesh.getRenderProps());
+      }
+
+      addMeshComp(mc);
+
+      return mc;
+   }
+
+   /**
+    * Explicitly adds a mesh component.  If the flag mc.hasMass() is true,
+    * then this mesh is used for mass/inertia computations
+    */
+   public void addMeshComp(RigidMeshComp mc) {
+      addMeshComp (mc, myMeshList.size());
+   }
+
+   protected void addMeshComp (RigidMeshComp mc, int idx) {
+      mc.getMesh().setFixed(true);
+      mc.getMesh().setMeshToWorld (myState.XFrameToWorld);
+      myMeshList.add(mc, idx);
+   }
+
+   /**
+    * Number of meshes associated with this object
+    */
+   public int numMeshComps() {
+      return myMeshList.size();
+   }
+
+   /**
+    * Checks if this object contains a particular geometry
+    */
+   public boolean containsMeshComp(RigidMeshComp mc) {
+      return myMeshList.contains(mc);
+   }
+
+   public boolean removeMeshComp(RigidMeshComp mc) {
+      return myMeshList.remove(mc);
+   }
+
+   public RigidMeshComp removeMeshComp(String name) {
+      RigidMeshComp mesh = getMeshComp(name);
+      if (mesh != null) {
+         myMeshList.remove(mesh);
+      }
+      return null;
+   }
+
+   public void clearMeshComps() {
+      myMeshList.removeAll();
+   }  
+ 
+   /* --- --- */
 
    @Override
    protected void updatePosState() {
@@ -805,25 +1003,19 @@ public class RigidBody extends Frame
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
-         PolygonalMesh surf = null;
-         if (myRenderDistanceSurface != myRenderDistanceSurface.NONE && 
-             (surf = getDistanceSurface()) != null) {
-            surf.setMeshToWorld (myState.XFrameToWorld);
-         }
-         DistanceGrid grid = null;
-         if (hasDistanceGrid() && (grid = mySDGrid) != null) {
-            grid.setLocalToWorld (myState.XFrameToWorld);
-         }
+      }
+      for (RigidMeshComp mc : myMeshList) {
+         MeshBase mbase = mc.getMesh();
+         mbase.setMeshToWorld(myState.XFrameToWorld);
+      }
+      myDistanceGridComp.setLocalToWorld (myState.XFrameToWorld);
+      if (myCompoundCollisionMesh != null) {
+         myCompoundCollisionMesh.setMeshToWorld (myState.XFrameToWorld);
       }
    }
 
    protected void updateVelState() {
    }
-
-//   public void setPose (RigidTransform3d XBodyToWorld) {
-//      super.setPose (XBodyToWorld);
-//      updatePosState();
-//   }
 
    public void setPose (double x, double y, double z,
                         double roll, double pitch, double yaw) {
@@ -835,71 +1027,10 @@ public class RigidBody extends Frame
       setPose (X);
    }
 
-//   public void setPosition (Point3d pos) {
-//      super.setPosition (pos);
-//      updatePosState();
-//   }   
-//
-//   public void setRotation (Quaternion q) {
-//      super.setRotation (q);
-//      updatePosState();
-//   }   
-
    public void extrapolatePose (Twist vel, double h) {
       myState.adjustPose (vel, h);
       updatePosState();
    }
-
-//   public void setVelocity (Twist v) {
-//      super.setVelocity (v);
-//      updateVelState();
-//   }
-//
-//   public void setBodyVelocity (Twist v) {
-//      myState.setBodyVelocity (v);
-//      updateVelState();
-//   }
-
-//   public void addVelocity (Twist v) {
-//      myState.addVelocity (v);
-//      updateVelState();
-//   }
-//
-//   public void addScaledVelocity (double s, Twist v) {
-//      myState.addScaledVelocity (s, v);
-//      updateVelState();
-//   }
-
-//   public void setState (Frame frame) {
-//      super.setState (frame);
-//      updatePosState();
-//      updateVelState();
-//   }
-
-//   public int setState (VectorNd x, int idx) {
-//      idx = super.setState (x, idx);
-//      updatePosState();
-//      updateVelState();
-//      return idx;
-//   }
-
-//   public void setState (ComponentState state) {
-//      super.setState (state);
-//      updatePosState();
-//      updateVelState();
-//   }
-
-//   public int setPosState (double[] buf, int idx) {
-//      idx = myState.setPos (buf, idx);
-//      updatePosState();
-//      return idx;
-//   }
-//
-//   public int setVelState (double[] buf, int idx) {
-//      idx = super.setVelState (buf, idx);
-//      updateVelState();
-//      return idx;
-//   }
 
    public RigidBody() {
       super();
@@ -907,9 +1038,11 @@ public class RigidBody extends Frame
       // so that even if the body is inactives, we don't need to
       // handle zero inertia in the numerics code.
       mySpatialInertia = new SpatialInertia (1, 1, 1, 1);
+      mySpatialInertia = new SpatialInertia ();
       // myEffectiveInertia = new SpatialInertia (1, 1, 1, 1);
       setDynamic (true);
       setRenderProps (createRenderProps());
+      initializeChildComponents();
    }
 
    public RigidBody (String name) {
@@ -924,11 +1057,53 @@ public class RigidBody extends Frame
       setInertia (M);
       setMesh (mesh, meshFileName);
    }
+   
+   public RigidBody (
+      String name, PolygonalMesh mesh, String meshFilePath, 
+      double density, double scale) {
+      this (name);
+      if (!mesh.isTriangular()) {
+         throw new IllegalArgumentException("Mesh is not triangular");
+      }
+      AffineTransform3d X = null;
+      if (scale != 1) {
+         mesh.scale (scale);
+         X = AffineTransform3d.createScaling (scale);
+      }    
+      setDensity (density);
+      setMesh (mesh, meshFilePath, X);
+   }
 
-//   public void updatePose() {
-//      super.updatePose();
-//      updatePosState();
-//   }
+   protected DistanceGridComp createDistanceGridComp() {
+      DistanceGridComp comp = new DistanceGridComp ("distanceGrid");
+      //RenderProps.setVisible (comp, false);
+      comp.setRenderGrid (false);
+      RenderProps.setPointRadius (comp, 0.0);
+      RenderProps.setPointSize (comp, 0);
+      RenderProps.setLineStyle (comp, LineStyle.LINE);
+      RenderProps.setLineColor (comp, Color.BLUE);
+      return comp;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public DistanceGridComp getDistanceGridComp() {
+      return myDistanceGridComp;
+   }
+
+   protected void initializeChildComponents() {
+      myComponents = 
+         new ComponentListImpl<ModelComponent>(ModelComponent.class, this);
+      myMeshList =
+         new MeshComponentList<RigidMeshComp>(
+            RigidMeshComp.class, "meshes", "msh");
+
+      myDistanceGridComp = createDistanceGridComp();
+
+      add (myMeshList);
+      add (myDistanceGridComp);
+   }
 
    public void applyGravity (Vector3d gacc) {
       // apply a force of -mass gacc at the bodies's center of mass
@@ -943,34 +1118,28 @@ public class RigidBody extends Frame
       myForce.m.crossAdd (com, fgrav, myForce.m);
    }
 
-//   public int applyPosImpulse (double[] delx, int idx) {
-//      Twist tw = new Twist();
-//      tw.v.x = delx[idx++];
-//      tw.v.y = delx[idx++];
-//      tw.v.z = delx[idx++];
-//      tw.w.x = delx[idx++];
-//      tw.w.y = delx[idx++];
-//      tw.w.z = delx[idx++];
-//      //myState.adjustPose (tw);
-//      myState.adjustPose (tw, 1);
-//      updatePosState();
-//      return idx;
-//   }
-
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      myComponents.scanBegin();
       myState.vel.setZero();
       super.scan (rtok, ref);
+      updateCollisionMeshes();
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
-      if (scanAttributeName (rtok, "mesh")) {
-         myMeshInfo.scan (rtok);  
-         setMeshFromInfo();
+      // if (ScanWriteUtils.scanProperty (rtok, this)) {
+      //    return true;
+      // }
+      if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {
          return true;
       }
+      // else if (scanAttributeName (rtok, "mesh")) {
+      //    myMeshInfo.scan (rtok);  
+      //    setMeshFromInfo();
+      //    return true;
+      // }
       else if (scanAttributeName (rtok, "pose")) {
          RigidTransform3d X = new RigidTransform3d();
          X.scan (rtok);
@@ -1015,10 +1184,31 @@ public class RigidBody extends Frame
       return super.scanItem (rtok, tokens);
    }
 
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) 
+         throws IOException {
+
+      if (myComponents.postscanComponent (tokens, ancestor)) {
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
+
+   @Override
+   public void postscan (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      super.postscan (tokens, ancestor);
+      myComponents.scanEnd();
+      updatePosState();
+      if (myInertiaMethod != InertiaMethod.EXPLICIT) {
+         updateInertiaFromMeshes();
+      }
+   }
+
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       pw.println ("position=[ " + myState.getPosition().toString (fmt) + "]");
       pw.println ("rotation=[ " + myState.getRotation().toString (fmt) + "]");
       // pw.println ("pose=" + myState.XFrameToWorld.toString (
@@ -1029,17 +1219,17 @@ public class RigidBody extends Frame
          pw.println (" ]");
       }
       switch (myInertiaMethod) {
-         case Explicit: {
+         case EXPLICIT: {
             pw.println (
                "inertia=" + mySpatialInertia.toString (
                   fmt, SpatialInertia.MASS_INERTIA_STRING));
             break;
          }
-         case Mass: {
+         case MASS: {
             pw.println ("mass=" + fmt.format (getMass()));
             break;
          }
-         case Density: {
+         case DENSITY: {
             pw.println ("density=" + fmt.format (getDensity()));
             break;
          }
@@ -1048,7 +1238,8 @@ public class RigidBody extends Frame
                "Unimplemented inertia method " + myInertiaMethod);
          }
       }
-      myMeshInfo.write (pw, fmt);      
+      //myMeshInfo.write (pw, fmt);
+      myComponents.writeComponentsByName (pw, fmt, ancestor);
    }
 
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)
@@ -1071,29 +1262,38 @@ public class RigidBody extends Frame
       else {
          myState.pos.updateBounds (pmin, pmax);
       }
+      for (RigidMeshComp mc : myMeshList) {
+         mc.updateBounds(pmin, pmax);
+      }
    }
 
    public void prerender (RenderList list) {
       myRenderFrame.set (myState.XFrameToWorld);
-      // list.addIfVisible (myMarkers);
+      if (myRenderProps == null) {
+         throw new InternalErrorException (
+            "RigidBody has null RenderProps");
+      }
       PolygonalMesh surf = null;
-      if (myRenderDistanceSurface != DistanceSurfaceRendering.NONE &&
-         (surf = getDistanceSurface()) != null) {
+      if (myGridSurfaceRendering && (surf = getDistanceSurface()) != null) {
          surf.prerender (myRenderProps); 
       }
       else {
-         if (myRenderProps == null) {
-            throw new InternalErrorException (
-               "RigidBody has null RenderProps");
+         if (myMeshList.size() > 1) {
+            // If more than one mesh, render them separately. 
+            list.addIfVisible (myMeshList);
          }
-         myMeshInfo.prerender (myRenderProps);      
+         else if (myMeshList.size() == 1) {
+            // Otherwise, render directly, so rigid body can be 
+            // selected directly
+            RigidMeshComp mcomp = myMeshList.get(0);
+            if (mcomp.getRenderProps().isVisible()) {
+               mcomp.myMeshInfo.prerender(mcomp.getRenderProps());
+            }
+         }
       }
       mySDRenderSurface = surf;
-      DistanceGrid grid = null;
-      if (myRenderDistanceGrid && (grid = getDistanceGrid()) != null) {
-         grid.prerender (myRenderProps);
-      }
-      mySDRenderGrid = grid;
+      list.addIfVisible (myDistanceGridComp);
+      //list.addIfVisible (myMeshList);
    }
    
    public void render (Renderer renderer, int flags) {
@@ -1106,105 +1306,101 @@ public class RigidBody extends Frame
          flags |= Renderer.HIGHLIGHT;
       }
       PolygonalMesh surf = null;
-      if (myRenderDistanceSurface != DistanceSurfaceRendering.NONE &&
-          (surf = mySDRenderSurface) != null) {
+      if (myGridSurfaceRendering && (surf = mySDRenderSurface) != null) {
          surf.render (renderer, myRenderProps, flags);
       }
-      else {
-         myMeshInfo.render (renderer, myRenderProps, flags);
-      }
-      DistanceGrid grid = null;
-      if (myRenderDistanceGrid && (grid = mySDRenderGrid) != null) {
-         grid.render (renderer, myRenderProps, flags);
+      else if (myMeshList.size() == 1) {
+         // If only one mesh, render directly, so rigid body can be selected
+         // directly
+         RigidMeshComp mcomp = myMeshList.get(0);
+         if (mcomp.getRenderProps().isVisible()) {
+            mcomp.myMeshInfo.render (renderer, mcomp.getRenderProps(), flags);
+         }
       }
    }
    
-   protected void transformInternalGeometry(
-		   GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-	   
-      PolygonalMesh mesh = getMesh();
-      if (mesh != null) {
-         // for now, only transform the mesh if we are not
-         // simulating. Otherwise, just update the mesh's transform.
-         if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
-            if (myMeshInfo.transformGeometryAndPose (
-               gtr, myTransformConstrainer)) {
-               if (myInertiaMethod == InertiaMethod.Density) {
-                  setInertiaFromMesh (myDensity);
-               }
-            }
-         }
-         else {
-            mesh.setMeshToWorld (myState.XFrameToWorld);
-         }
+   protected static class UpdateInertiaAction implements TransformGeometryAction {
+
+      RigidBody myBody;
+
+      UpdateInertiaAction (RigidBody body) {
+         myBody = body;
       }
+
+      public void transformGeometry (
+         GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+         myBody.updateInertiaForVolumeChanges();     
+      }
+      
+      public int hashCode() {
+         return myBody.hashCode();
+      }
+
+      public boolean equals (Object obj) {
+         return (obj instanceof UpdateInertiaAction &&
+                 ((UpdateInertiaAction)obj).myBody == myBody);
+      }     
+   }
+
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      context.addAll (myMeshList);
+      context.add (myDistanceGridComp);
    }
 
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
       
       super.transformGeometry (gtr, context, flags);
-      transformInternalGeometry(gtr, context, flags);
       
       if (!gtr.isRigid()) {
-         mySDGridValid = false;
-         mySDSurface = null;
+         context.addAction (new UpdateInertiaAction(this));
       }
-      else {
-         if (mySDSurface != null) {
-            mySDSurface.setMeshToWorld (myState.XFrameToWorld);
-         }
-         if (mySDGrid != null) {
-            mySDGrid.setLocalToWorld (myState.XFrameToWorld);
-         }
-      }
+      myCompoundCollisionMesh = null;
    }   
-   
-   // separated to prevent surface mesh from being scaled twice
-   protected void scaleInternalGeometry(double s) {
-      PolygonalMesh mesh = getMesh();
-      if (mesh != null) {
-         mesh.scale (s);
-         mesh.setMeshToWorld (myState.XFrameToWorld);
-      }
-   }
    
    public void scaleDistance (double s) {
       super.scaleDistance (s);
       this.myAxisLength *= s;
-      mySpatialInertia.scaleDistance (s);
-      // probably don't need this, since effectiveInertia will be recalculated:
-      // myEffectiveInertia.scaleDistance (s); 
-      scaleInternalGeometry(s);
-      
-      mySDGridValid = false;
-      mySDSurface = null;
+
+      for (RigidMeshComp mc : myMeshList) {
+         mc.scaleDistance(s);
+         mc.getMesh().setMeshToWorld(myState.XFrameToWorld);
+      }
       myDensity /= (s * s * s);
-      // Should we send a GEOMETRY_CHANGED event? Don't for now ...
+      if (myInertiaMethod == InertiaMethod.EXPLICIT) {
+         mySpatialInertia.scaleDistance (s);
+      }
+      else {
+         updateInertiaFromMeshes();
+      }
+      if (myDistanceGridComp != null) {
+         myDistanceGridComp.scaleDistance (s);
+      }
+      if (myCompoundCollisionMesh != null) {
+         myCompoundCollisionMesh.scale (s);
+      }
    }
 
    public void scaleMass (double s) {
       mySpatialInertia.scaleMass (s);
-      // probably don't need this, since effectiveIneria will be recalculated:
-      // myEffectiveInertia.scaleMass (s);
+      for (RigidMeshComp mc : myMeshList) {
+         mc.scaleMass(s);
+      }
       myDensity *= s;
       myFrameDamping *= s;
       myRotaryDamping *= s;
+      if (myInertiaMethod == InertiaMethod.EXPLICIT) {
+         mySpatialInertia.scaleMass (s);
+      }
+      else {
+         updateInertiaFromMeshes();
+      }
    }
 
    public void setDynamic (boolean dynamic) {
       super.setDynamic (dynamic);
    }
-
-   // protected void notifyStructureChanged (Object comp) {
-   //    if (comp instanceof CompositeComponent) {
-   //       notifyParentOfChange (new StructureChangeEvent (
-   //          (CompositeComponent)comp));
-   //    }
-   //    else {
-   //       notifyParentOfChange (StructureChangeEvent.defaultEvent);
-   //    }
-   // }
 
    /**
     * {@inheritDoc}
@@ -1226,27 +1422,9 @@ public class RigidBody extends Frame
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       RigidBody comp = (RigidBody)super.copy (flags, copyMap);
 
-      // comp.myAttachments = new ArrayList<PointFrameAttachment>();
-      // comp.myComponents = new ArrayList<ModelComponent>();
-      // comp.indicesValidP = false;
       comp.setDynamic (true);
 
       comp.mySpatialInertia = new SpatialInertia (mySpatialInertia);
-      // comp.myEffectiveInertia = new SpatialInertia (mySpatialInertia);
-      PolygonalMesh mesh = getMesh();
-      comp.myMeshInfo = new MeshInfo();
-      if (mesh != null) {
-         PolygonalMesh meshCopy = mesh.copy();
-         comp.setMesh (meshCopy, getMeshFileName(), getMeshFileTransform());
-         comp.myMeshInfo.myFlippedP = myMeshInfo.myFlippedP;
-      }
-      else {
-         comp.setMesh (null, null, null);
-      }
-      // comp.myMarkers =
-      // new PointList<FrameMarker> (
-      // FrameMarker.class, "markers", "k");
-      // comp.add (comp.myMarkers);
 
       comp.myBodyForce = new Wrench();
       comp.myCoriolisForce = new Wrench();
@@ -1255,6 +1433,16 @@ public class RigidBody extends Frame
       comp.myQvel = new Quaternion();
       comp.myTmpPos = new Point3d();
       comp.myConnectors = null;
+      
+      comp.initializeChildComponents();
+      comp.setName(null);
+      comp.setNavpanelVisibility(getNavpanelVisibility());
+
+      for (int i=0; i<myMeshList.size(); i++) {
+         RigidMeshComp mc = myMeshList.get(i);
+         RigidMeshComp newFmc = mc.copy(flags, copyMap);
+         comp.addMeshComp(newFmc);
+      }     
 
       return comp;
    }
@@ -1521,212 +1709,80 @@ public class RigidBody extends Frame
       return createFromMesh (bodyName, path, density, scale);
    }
     
-
-   //   private void recursivelyFindFreeAttachedBodies (
-   //      LinkedHashSet<RigidBody> bodies, RigidBody top) {
-   //
-   //      if (myConnectors != null) {
-   //         for (BodyConnector c : myConnectors) {
-   //         }
-   //      }
-   //   }
-  
-//   private static RigidBody getOtherBody (
-//      BodyConnector c, RigidBody body) {
-//      
-//      if (c.myBodyA == body) {
-//         return c.myBodyB;
-//      }
-//      else if (c.myBodyB == body) {
-//         return c.myBodyA;
-//      }
-//      else {
-//         throw new InternalErrorException (
-//            "Connector does not reference body " +
-//            ComponentUtils.getPathName(body));
-//      }
-//   }
-//
-//   private static boolean recursivelyFindFreeAttachedBodies (
-//      RigidBody body, LinkedList<RigidBody> list, boolean rejectSelected) {
-//
-//      if (body == null) {
-//         return false;
-//      }
-//      boolean isFree = true;     
-//      if (!body.isMarked()) {
-//         body.setMarked (true);
-//         list.add (body);
-//         if (body.isParametric()) {
-//            isFree = false;
-//         }
-//         if (rejectSelected && body.isSelected()) {
-//            isFree = false;
-//         }
-//         if (body.myConnectors != null) {
-//            for (BodyConnector c : body.myConnectors) {
-//               RigidBody obody = getOtherBody (c, body);
-//               if (!recursivelyFindFreeAttachedBodies (
-//                      obody, list, rejectSelected)) {
-//                  isFree = false;
-//               }
-//            }
-//         }
-//      }
-//      return isFree;
-//   }
-//  
-//   public boolean findFreeAttachedBodies (
-//      List<RigidBody> freeBodies, boolean rejectSelected) {
-//      LinkedList<RigidBody> nonfreeBodies = new LinkedList<RigidBody>();
-//      LinkedList<RigidBody> list = new LinkedList<RigidBody>();
-//      boolean allFree = true;
-//      setMarked (true);
-//      if (isParametric() || (rejectSelected && isSelected())) {
-//         allFree = false;
-//      }
-//      if (myConnectors != null) {
-//         for (BodyConnector c : myConnectors) {
-//            RigidBody body = getOtherBody (c, this);
-//            list.clear();
-//            if (recursivelyFindFreeAttachedBodies (body, list, rejectSelected)) {
-//               freeBodies.addAll (list);
-//            }
-//            else {
-//               nonfreeBodies.addAll (list);
-//               allFree = false;
-//            }
-//         }
-//      }
-//      for (RigidBody b : freeBodies) {
-//         b.setMarked (false);
-//      }
-//      for (RigidBody b : nonfreeBodies) {
-//         b.setMarked (false);
-//      }
-//      setMarked (false);
-//      return allFree;
-//   }
-
-   // public ArrayList<RigidTransform3d> getRelativePoses (
-   //    List<RigidBody> bodies) {
-   //    ArrayList<RigidTransform3d> poses =
-   //       new ArrayList<RigidTransform3d>(bodies.size());
-
-   //    for (RigidBody bod : bodies) {
-   //       // X is the transform from bod to this body
-   //       RigidTransform3d X = new RigidTransform3d();
-   //       X.mulInverseLeft (getPose(), bod.getPose());
-   //       poses.add (X);
-   //    }
-   //    return poses;
-   // }
-
-   // public void setRelativePoses (
-   //    List<RigidBody> bodies, ArrayList<RigidTransform3d> poses) {
-      
-   //    if (bodies.size() != poses.size()) {
-   //       throw new IllegalArgumentException (
-   //          "Error: poses and bodies have inconsistent sizes");
-   //    }
-   //    int i = 0;
-   //    RigidTransform3d X = new RigidTransform3d();
-   //    for (RigidBody bod : bodies) {
-   //       X.mul (getPose(), poses.get(i));
-   //       bod.setPose (X);
-   //       i++;
-   //    }
-   // }
-   
-   // begin Collidable interface
+   protected PolygonalMesh buildCompoundMesh (ArrayList<MeshComponent> meshes) {
+      PolygonalMesh compound = null;
+      for (MeshComponent mcomp : meshes) {
+         if (mcomp.getMesh() instanceof PolygonalMesh) {
+            PolygonalMesh mesh = (PolygonalMesh)mcomp.getMesh();
+            if (compound == null) {
+               compound = mesh.copy();
+            }
+            else {
+               compound.addMesh (mesh, false);
+            }
+         }
+      }
+      return compound;
+   }
 
    @Override
    public PolygonalMesh getCollisionMesh() {
-      return getMesh();
+      if (myCollisionMeshes.size() > 0) {
+         if (myCollisionMeshes.size() == 1) {
+            return (PolygonalMesh)myCollisionMeshes.get(0).getMesh();
+         }
+         else {
+            if (myCompoundCollisionMesh == null) {
+               myCompoundCollisionMesh = buildCompoundMesh (myCollisionMeshes);
+               myCompoundCollisionMesh.setMeshToWorld (getPose());
+            }
+            return myCompoundCollisionMesh;
+         }
+      }
+      else {
+         return null;
+      }
    }
 
    /**
     * Returns <code>true</code> if this RigidBody supports a signed
     * distance grid that can be used with a SignedDistanceCollider.
-    * A grid is available if either the property
-    * <code>distanceGridMaxRes</code> is positive, or
-    * the property <code>distanceGridRes</code> contains all positive values.
+    * The grid itself can be obtained with {@link #getDistanceGrid}.
     * 
     * @return <code>true</code> if a signed distance grid is available
     * for this RigidBody
-    * @see #getDistanceGridMaxRes
-    * @see #getDistanceGridRes
     */
    public boolean hasDistanceGrid() {
-      return (myDistanceGridMaxRes > 0 ||
-              !myDistanceGridRes.equals (Vector3i.ZERO));
+      return myDistanceGridComp.hasGrid();
+   }
+
+   protected void updateCollisionMeshes() {
+      myCollisionMeshes.clear();      
+      for (RigidMeshComp mc : myMeshList) {
+         if (mc.isCollidable()) {
+            myCollisionMeshes.add (mc);
+         }
+         myDistanceGridComp.setGeneratingMeshes (myCollisionMeshes);
+      }
+      myCompoundCollisionMesh = null;
    }
 
    /**
     * Returns a signed distance grid that can be used with a
-    * SignedDistanceCollider, or <code>null</code> if a grid is not available
-    * (i.e., if {@link #hasDistanceGrid} returns <code>false</code>).
-    * The number of divisons in the grid is controlled explicitly by the
-    * property <code>distanceGridRes</code>, or, that is 0, by the property
-    * <code>distanceGridMaxRes</code>. If both properties are 0, no grid is
-    * available and <code>null</code> will be returned.
+    * SignedDistanceCollider, or <code>null</code> if a grid is not available.
+    * Aspects of the grid, including its visibility, resolution, and
+    * mesh fit, can be controlled using properties of its encapsulating
+    * {@link DistanceGridComp}, returned by {@link #getDistanceGridComp}.
     *
     * @return signed distance grid, or <code>null</code> if a grid is
     * not available this RigidBody
-    * @see #getDistanceGridMaxRes
-    * @see #getDistanceGridRes
     */
    public DistanceGrid getDistanceGrid() {
-      if (mySDGrid == null || !mySDGridValid) {
-         int maxRes = myDistanceGridMaxRes;
-         if (!myDistanceGridRes.equals (Vector3i.ZERO) || maxRes > 0) {
-            if (!myDistanceGridRes.equals (Vector3i.ZERO)) {
-               mySDGrid = new DistanceGrid (myDistanceGridRes);
-               maxRes = 0;
-            }
-            else {
-               // resolution will be recomputed in computeFromFeatures
-               mySDGrid = new DistanceGrid (new Vector3i (1,1,1));
-            }
-            mySDGrid.setDrawEdges (true);
-            List<Face> faces = getMesh().getFaces();
-            if (myDistanceGridOBB) {
-               mySDGrid.computeFromFeaturesOBB (
-                  faces, myGridMargin, maxRes, /*signed=*/true);
-            }
-            else {
-               mySDGrid.computeFromFeatures (
-                  faces, myGridMargin, /*TGL=*/null, maxRes, /*signed=*/true);
-            }
-            mySDGrid.setLocalToWorld (getPose());
-         }
-         else {
-            mySDGrid = null;
-         }
-         //mySDGrid.smooth (0.33, -0.34, 2);
-         mySDSurface = null;
-         mySDGridValid = true;
-      }
-      return mySDGrid;
+      return myDistanceGridComp.getGrid();
    }
-
+   
    protected PolygonalMesh getDistanceSurface() {
-      if (mySDSurface == null) {
-         if (hasDistanceGrid()) {
-            PolygonalMesh surf;
-            DistanceGrid grid = getDistanceGrid();
-            if (myRenderDistanceSurface == DistanceSurfaceRendering.QUADRATIC) {
-               surf = grid.createQuadDistanceSurface(myDistanceSurfaceIso, 4);
-               surf.setMeshToWorld (myState.XFrameToWorld);
-            }
-            else {
-               surf = grid.createDistanceSurface(myDistanceSurfaceIso, 4);
-               surf.setMeshToWorld (myState.XFrameToWorld);
-            }
-            mySDSurface = surf;
-         }
-      }
-      return mySDSurface;
+      return myDistanceGridComp.getSurface();
    }
 
    @Override
@@ -1742,7 +1798,7 @@ public class RigidBody extends Frame
 
    @Override
    public boolean isCompound() {
-      return false;
+      return true;
    }
 
    public void setCollidable (Collidability c) {
@@ -1777,186 +1833,212 @@ public class RigidBody extends Frame
    public void setCollidableIndex (int idx) {
       myCollidableIndex = idx;
    }
-   
+
+   /* --- Wrappable --- */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void surfaceTangent (
+      Point3d pr, Point3d pa, Point3d p1, double lam0, Vector3d sideNrm) {
+      myDistanceGridComp.surfaceTangent (pr, pa, p1, lam0, sideNrm);
+   }
+
+   /**
+    * {@inheritDoc}
+    */   
+   public double penetrationDistance (Vector3d nrm, Matrix3d Dnrm, Point3d p0) {
+      return myDistanceGridComp.penetrationDistance (nrm, Dnrm, p0);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public double getCharacteristicRadius() {
+      DistanceGrid grid = getDistanceGrid();
+      if (grid != null) {
+         return grid.getWidths().minElement()/2;
+      }
+      else {
+         return RenderableUtils.getRadius (this);         
+      }
+   }
+
    // end Collidable interface
 
    // begin HasDistanceGrid
 
    /**
-    * {@inheritDoc}
-    */
-   public void setDistanceGridMaxRes (int max) {
-      if (myDistanceGridMaxRes != max) {
-         if (myDistanceGridRes.equals (Vector3i.ZERO)) {
-            // will need to rebuild grid
-            mySDGridValid = false;
-            mySDSurface = null;
-         }
-         if (max < 0) {
-            // MaxDivs == 0 and Divs == (0,0,0) disables grid
-            max = 0;
-         }
-         myDistanceGridMaxRes = max;
-         myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public int getDistanceGridMaxRes () {
-      return myDistanceGridMaxRes;
-   }
-
-   /**
-    * {@inheritDoc}
+    * Convenience method to call {@link DistanceGridComp#setResolution}
+    * for this body's distance grid.
+    * 
+    * @param res x, y, and z cell divisions to be used in constructing the grid
     */
    public void setDistanceGridRes (Vector3i res) {
-      if (!myDistanceGridRes.equals (res)) {
-         if (res.x <= 0 || res.y <= 0 || res.z <= 0) {
-            // MaxDivs == 0 and Divs == (0,0,0) disables grid
-            myDistanceGridRes.setZero();
-         }
-         else {
-            myDistanceGridRes.set (res);
-         }
-         mySDGridValid = false; // will need to rebuild grid
-         mySDSurface = null;
-         myDistanceGridRenderRanges = DEFAULT_DISTANCE_GRID_RENDER_RANGES;
-      }
-   }
-
-   public boolean getDistanceGridOBB () {
-      return myDistanceGridOBB;
-   }
-
-   public void setDistanceGridOBB (boolean enable) {
-      if (myDistanceGridOBB != enable) {
-         myDistanceGridOBB = enable;
-         mySDGridValid = false; // will need to rebuild grid
-         mySDSurface = null;
-      }
+      myDistanceGridComp.setResolution (res);
    }
 
    /**
-    * {@inheritDoc}
+    * Convenience method to call {@link DistanceGridComp#getResolution}
+    * for this body's distance grid.
+    * 
+    * @return x, y, and z cell divisions to be used in constructing the grid
     */
    public Vector3i getDistanceGridRes () {
-      return myDistanceGridRes;
+      return myDistanceGridComp.getResolution();
    }
 
    /**
-    * {@inheritDoc}
-    */
-   public boolean getRenderDistanceGrid() {
-      return myRenderDistanceGrid;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void setRenderDistanceGrid(boolean enable) {
-      myRenderDistanceGrid = enable;
-   }
-
-   /**
-    * Queries if and how the distance surface is rendered.
+    * Queries if grid surface rendering is enabled.
     *
-    * @return code describing if/how the distance surface is rendered
-    * @see #setRenderDistanceSurface
+    * @return {@code true} if grid surface rendering is enabled
+    * @see #setGridSurfaceRendering
     */
-   public DistanceSurfaceRendering getRenderDistanceSurface() {
-      return myRenderDistanceSurface;
+   public boolean getGridSurfaceRendering() {
+      return myGridSurfaceRendering;
    }
 
    /**
-    * Specifies if and how the distance surface is rendered. If enabled,
-    * an approximation of the isosurface for the signed distance grid is
-    * rendered <i>instead</i> of the surface mesh. This can give the user a
-    * better understanding of how the distance grid approximates the associated
-    * mesh. The rendering is done using either linear or quadratic 
-    * interpolation, depending on the value of <code>rendering</code>.
+    * Enables or disables grid surface rendering. If enabled, this means that
+    * the iso surface of this rigid body's distance grid will be rendered
+    * <i>instead</i> of its surface mesh(es). This rendering will occur
+    * independently of the visibility settings for the meshes or the body's
+    * distance grid component. Characteristics of the grid
+    * surface (such its distance value, or whether it is created using linear
+    * of quadratic interpolation) can be controlled by setting properties of
+    * this body's {@link DistanceGridComp}, returned by
+    * {@link #getDistanceGridComp}.
     *
-    * @param rendering specifies if and how the distance surface is rendered.
-    * @see #getRenderDistanceSurface
+    * @param enable if {@code true}, enables grid surface rendering.
+    * @see #getGridSurfaceRendering
     */
-   public void setRenderDistanceSurface (DistanceSurfaceRendering rendering) {
-      if (myRenderDistanceSurface != rendering) {
-         myRenderDistanceSurface = rendering;
-         mySDSurface = null;
+   public void setGridSurfaceRendering (boolean enable) {
+      if (myGridSurfaceRendering != enable) {
+         myGridSurfaceRendering = enable;
       }
    }
 
-   public double getDistanceSurfaceIso() {
-      return myDistanceSurfaceIso;
+   /* --- Composite component --- */
+
+   public void updateNameMap (
+      String newName, String oldName, ModelComponent comp) {
+      myComponents.updateNameMap (newName, oldName, comp);
    }
 
-   public void setDistanceSurfaceIso (double iso) {
-      if (myDistanceSurfaceIso != iso) {
-         myDistanceSurfaceIso = iso;
-         mySDSurface = null;
+   /**
+    * {@inheritDoc}
+    */
+   public ModelComponent findComponent (String path) {
+      return ComponentUtils.findComponent (this, path);
+   }
+
+   protected void add (ModelComponent comp) {
+      myComponents.add (comp);
+   }
+
+   protected boolean remove (ModelComponent comp) {
+      return myComponents.remove (comp);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public ModelComponent get (String nameOrNumber) {
+      return myComponents.get (nameOrNumber);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public ModelComponent get (int idx) {
+      return myComponents.get (idx);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public ModelComponent getByNumber (int num) {
+      return myComponents.getByNumber (num);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int getNumberLimit() {
+      return myComponents.getNumberLimit();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int indexOf (ModelComponent comp) {
+      return myComponents.indexOf (comp);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public int numComponents() {
+      return myComponents.size();
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void componentChanged (ComponentChangeEvent e) {
+      myComponents.componentChanged (e);
+      if (e.getComponent() == myMeshList) {
+         updateInertiaForVolumeChanges();
+         updateCollisionMeshes();
       }
+      else if (e instanceof StructureChangeEvent &&
+               e.getComponent() instanceof RigidMeshComp) {
+         updateCollisionMeshes();
+      }
+      notifyParentOfChange (e);
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public String getDistanceGridRenderRanges() {
-      return myDistanceGridRenderRanges;
-   }
-   
-   /**
-    * {@inheritDoc}
-    */
-   public void setDistanceGridRenderRanges (String ranges) {
-      if (ranges.matches ("\\s*\\*\\s*") ||
-          ranges.matches ("\\s*\\*\\s+\\*\\s+\\*\\s*")) {
-         myDistanceGridRenderRanges = "* * *";
-         if (mySDGrid != null) {
-            mySDGrid.setRenderRanges (ranges);
-         }
+   protected void notifyStructureChanged (Object comp) {
+      if (comp instanceof CompositeComponent) {
+         notifyParentOfChange (new StructureChangeEvent (
+            (CompositeComponent)comp));
       }
       else {
-         DistanceGrid grid = getDistanceGrid();
-         StringHolder errMsg = new StringHolder();
-         if (grid.parseRenderRanges (ranges, errMsg) == null) {
-            throw new IllegalArgumentException (
-               "Illegal range spec: " + errMsg.value);
-         }
-         else {
-            grid.setRenderRanges (ranges);
-            myDistanceGridRenderRanges = grid.getRenderRanges();
-         }
-      }
-   }
-   
-   protected class DistanceGridRenderRangesRange extends RangeBase {
-
-      @Override
-      public boolean isValid (Object obj, StringHolder errMsg) {
-         if (!(obj instanceof String)) {
-            errMsg.value = "Object is not a string";
-            return false;
-         }
-         String ranges = (String)obj;
-         if (ranges.matches ("\\s*\\*\\s*") ||
-             ranges.matches ("\\s*\\*\\s+\\*\\s+\\*\\s*")) {
-            return true;
-         }
-         else if (mySDGrid != null) {
-            mySDGrid.parseRenderRanges (ranges, errMsg);
-            return errMsg.value == null;
-         }
-         else {
-            errMsg.value = 
-               "Ranges must be '* * *' when distance grid uninitialized";
-            return false;
-         }
+         notifyParentOfChange (StructureChangeEvent.defaultEvent);
       }
    }
 
-   public Range getDistanceGridRenderRangesRange() {
-      return new DistanceGridRenderRangesRange();
+   /**
+    * {@inheritDoc}
+    */
+   public NavpanelDisplay getNavpanelDisplay() {
+      return myDisplayMode;
+   }
+
+   /**
+    * Sets the display mode for this component. This controls
+    * how the component is displayed in a navigation panel. The default
+    * setting is <code>NORMAL</code>.
+    *
+    * @param mode new display mode
+    */
+   public void setDisplayMode (NavpanelDisplay mode) {
+      myDisplayMode = mode;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean hierarchyContainsReferences() {
+      return false;
+   }
+
+   public Iterator<? extends HierarchyNode> getChildren() {
+      return myComponents.iterator();
+   }
+
+   public boolean hasChildren() {
+      return myComponents != null && myComponents.size() > 0;
    }
 
 }

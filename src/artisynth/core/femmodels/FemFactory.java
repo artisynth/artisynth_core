@@ -33,7 +33,8 @@ import maspack.util.InternalErrorException;
 public class FemFactory {
 
    public enum FemElementType {
-      Tet, Hex, Wedge, Pyramid, QuadTet, QuadHex, QuadWedge, QuadPyramid
+      Tet, Hex, Wedge, Pyramid, QuadTet, QuadHex, QuadWedge, QuadPyramid,
+      ShellTri, ShellQuad
    }
 
    // not currently used
@@ -45,6 +46,9 @@ public class FemFactory {
 //      Tet, Hex, QuadTet, QuadHex, Wedge, QuadWedge
 //   }
 
+   /**
+    * Create the grid nodes for a volumetric grid.
+    */
    private static void createGridNodes(
       FemModel3d model, double widthX, double widthY, double widthZ, int numX,
       int numY, int numZ) {
@@ -285,6 +289,272 @@ public class FemFactory {
       return model;
    }
 
+   /**
+    * Creates a regular grid composed of quadratic tet elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadTet}.
+    */
+   public static FemModel3d createQuadtetGrid(
+      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
+      int numY, int numZ) {
+      FemModel3d tetmod = new FemModel3d();
+      createTetGrid(tetmod, widthX, widthY, widthZ, numX, numY, numZ);
+
+      model = createQuadraticModel(model, tetmod);
+      setGridEdgesHard(model, widthX, widthY, widthZ);
+      return model;
+   }
+
+   /**
+    * Creates a regular grid composed of quadratic hex elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadHex}.
+    */
+   public static FemModel3d createQuadhexGrid(
+      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
+      int numY, int numZ) {
+      
+      FemModel3d hexmod = new FemModel3d();
+      createHexGrid(hexmod, widthX, widthY, widthZ, numX, numY, numZ);
+      model = createQuadraticModel(model, hexmod);
+      setGridEdgesHard(model, widthX, widthY, widthZ);
+      return model;
+   }
+
+   /**
+    * Creates a regular grid composed of quadratic wedge elements. Identical to
+    * {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadWedge}.
+    */
+   public static FemModel3d createQuadwedgeGrid(
+      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
+      int numY, int numZ) {
+      FemModel3d linmod = new FemModel3d();
+      createWedgeGrid(linmod, widthX, widthY, widthZ, numX, numY, numZ);
+
+      model = createQuadraticModel(model, linmod);
+      setGridEdgesHard(model, widthX, widthY, widthZ);
+
+      return model;
+   }
+
+   /**
+    * Creates a regular grid composed of quadratic pyramid elements. Identical
+    * to {@link
+    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
+    * with the element type set to {@link FemElementType#QuadPyramid}.
+    */
+   public static FemModel3d createQuadpyramidGrid(
+      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
+      int numY, int numZ) {
+      FemModel3d linmod = new FemModel3d();
+      createPyramidGrid(linmod, widthX, widthY, widthZ, numX, numY, numZ);
+
+      model = createQuadraticModel(model, linmod);
+      setGridEdgesHard(model, widthX, widthY, widthZ);
+
+      return model;
+   }
+
+   /**
+    * Creates a regular grid, composed of elements of the type specified by
+    * <code>type</code>, centered on the origin, with specified widths and grid
+    * resolutions along each axis.
+    *
+    * @param model model to which the elements be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param type desired element type
+    * @param widthX x axis model width
+    * @param widthY y axis model width
+    * @param widthZ z axis model width
+    * @param numX element resolution along the x axis
+    * @param numY element resolution along the y axis
+    * @param numZ element resolution along the z axis
+    * @return created FEM model
+    * @throws IllegalArgumentException if the specified element type
+    * is not supported
+    */
+   public static FemModel3d createGrid(
+      FemModel3d model, FemElementType type, double widthX, double widthY,
+      double widthZ, int numX, int numY, int numZ) {
+      switch (type) {
+         case Tet:
+            return createTetGrid(
+               model, widthX, widthY, widthZ, numX, numY, numZ);
+         case Hex:
+            return createHexGrid(
+               model, widthX, widthY, widthZ, numX, numY, numZ);
+         case Wedge:
+            return createWedgeGrid(
+               model, widthX, widthY, widthZ, numX, numY, numZ);
+         case Pyramid:
+            return createPyramidGrid(
+               model, widthX, widthY, widthZ, numX, numY, numZ);
+         case QuadTet:
+            return createQuadtetGrid(
+               model, widthX, widthY, widthZ, numX, numY, numZ);
+         case QuadHex:
+            return createQuadhexGrid(
+               model, widthX, widthY, widthZ, numX, numY, numZ);
+         case QuadWedge:
+            return createQuadwedgeGrid(
+               model, widthX, widthY, widthZ, numX, numY, numZ);
+         case QuadPyramid:
+            return createQuadpyramidGrid(
+               model, widthX, widthY, widthZ, numX, numY, numZ);
+         default:
+            throw new IllegalArgumentException (
+               "Unsupported element type " + type.toString());
+      }
+   }
+
+   /**
+    * Create the grid nodes for a shell grid.
+    */
+   private static void createShellGridNodes(
+      FemModel3d model, double widthX, double widthY, int numX, int numY) {
+
+      if (numX < 1 || numY < 1) {
+         throw new IllegalArgumentException(
+            "number of elements in each direction must be >= 1");
+      }
+      // create all the particles
+      double dx = 1.0 / numX;
+      double dy = 1.0 / numY;
+
+      Point3d p = new Point3d();
+
+      for (int j = 0; j <= numY; j++) {
+         for (int i = 0; i <= numX; i++) {
+            p.x = widthX * (-0.5 + i * dx);
+            p.y = widthY * (-0.5 + j * dy);
+            p.z = 0;
+            model.addNode(new FemNode3d(p));
+         }
+      }
+   }
+
+   /**
+    * Creates a regular grid composed of shell triangle elements. Identical to
+    * {@link
+    * #createShellGrid(FemModel3d,FemElementType,double,double,int,int,double,
+    * boolean)}
+    * with the element type set to {@link FemElementType#ShellTri}.
+    */
+   public static FemModel3d createShellTriGrid (
+      FemModel3d model, double widthX, double widthY,
+      int numX, int numY, double thickness, boolean membrane) {
+
+      if (model != null) {
+         model.clear();
+      }
+      else {
+         model = new FemModel3d();
+      }
+      createShellGridNodes(model, widthX, widthY, numX, numY);
+      // create all the elements
+      ComponentList<FemNode3d> nodes = model.getNodes();
+      int wj = (numX + 1);
+      for (int j = 0; j < numY; j++) {
+         for (int i = 0; i < numX; i++) {
+            FemNode3d n0 = nodes.get (j*wj + i);
+            FemNode3d n1 = nodes.get (j*wj + i+1);
+            FemNode3d n2 = nodes.get ((j+1)*wj + i+1);
+            FemNode3d n3 = nodes.get ((j+1)*wj + i);
+            if ((i+j)%2 == 0) {
+               // even parity
+               model.addShellElement (
+                  new ShellTriElement (n0, n1, n2, thickness, membrane));
+               model.addShellElement (
+                  new ShellTriElement (n0, n2, n3, thickness, membrane));
+            }
+            else {
+               // odd parity
+               model.addShellElement (
+                  new ShellTriElement (n0, n1, n3, thickness, membrane));
+               model.addShellElement (
+                  new ShellTriElement (n1, n2, n3, thickness, membrane));
+            }
+         }
+      }
+      model.invalidateStressAndStiffness();
+      return model;
+   }
+
+   /**
+    * Creates a regular grid composed of shell quad elements. Identical to
+    * {@link
+    * #createShellGrid(FemModel3d,FemElementType,double,double,int,int,double,
+    * boolean)}
+    * with the element type set to {@link FemElementType#ShellQuad}.
+    */
+   public static FemModel3d createShellQuadGrid (
+      FemModel3d model, double widthX, double widthY,
+      int numX, int numY, double thickness, boolean membrane) {
+
+      if (model != null) {
+         model.clear();
+      }
+      else {
+         model = new FemModel3d();
+      }
+      createShellGridNodes(model, widthX, widthY, numX, numY);
+      // create all the elements
+      ComponentList<FemNode3d> nodes = model.getNodes();
+      int wj = (numX + 1);
+      for (int j = 0; j < numY; j++) {
+         for (int i = 0; i < numX; i++) {
+            FemNode3d n0 = nodes.get (j*wj + i);
+            FemNode3d n1 = nodes.get (j*wj + i+1);
+            FemNode3d n2 = nodes.get ((j+1)*wj + i+1);
+            FemNode3d n3 = nodes.get ((j+1)*wj + i);
+            model.addShellElement (
+               new ShellQuadElement (n0, n1, n2, n3, thickness, membrane));
+         }
+      }
+      model.invalidateStressAndStiffness();
+      return model;
+   }
+
+   /**
+    * Creates a regular grid of shell elements of the type specified by
+    * <code>type</code>, centered on the origin, with specified widths and grid
+    * resolutions along each axis.
+    *
+    * @param model model to which the elements be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param type desired element type
+    * @param widthX x axis model width
+    * @param widthY y axis model width
+    * @param numX element resolution along the x axis
+    * @param numY element resolution along the y axis
+    * @param thickness element rest thickness
+    * @param membrane if {@code true}, defined the elements to
+    * to be membrane elements
+    * @return created FEM model
+    * @throws IllegalArgumentException if the specified element type
+    * is not supported or is not an shell element
+    */
+   public static FemModel3d createShellGrid (
+      FemModel3d model, FemElementType type,
+      double widthX, double widthY, int numX, int numY,
+      double thickness, boolean membrane) {
+      switch (type) {
+         case ShellTri:
+            return createShellTriGrid (
+               model, widthX, widthY, numX, numY, thickness, membrane);
+         case ShellQuad:
+            return createShellQuadGrid (
+               model, widthX, widthY, numX, numY, thickness, membrane);
+         default:
+            throw new IllegalArgumentException (
+               "Unsupported element type " + type.toString());
+      }
+   }
+
    public static FemModel3d mergeCollapsedNodes(
       FemModel3d model, FemModel3d orig, double epsilon) {
 
@@ -298,7 +568,8 @@ public class FemFactory {
 
          boolean found = false;
          for (FemNode3d pos : invPointMap.keySet()) {
-            if (node.getRestPosition().distance(pos.getRestPosition()) < epsilon) {
+            if (node.getRestPosition().distance (
+                   pos.getRestPosition()) < epsilon) {
                found = true;
                pointMap.put(node, pos);
                invPointMap.get(pos).add(node);
@@ -640,7 +911,8 @@ public class FemFactory {
                FemNode3d n6 = nodes[k][t][snext];
                FemNode3d n7 = nodes[k][t+1][snext];
                // hex has backwards definition
-               model.addElement (new HexElement(n0, n3, n2, n1, n4, n7, n6, n5));
+               model.addElement (
+                  new HexElement(n0, n3, n2, n1, n4, n7, n6, n5));
             }
          }
          // wedges t=nlat-1;
@@ -691,7 +963,9 @@ public class FemFactory {
     * @param n4 opposite node
     * @param even split control
     */
-   private static void addPyramidTesselation(FemModel3d fem, FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3, FemNode3d n4, boolean even) {
+   private static void addPyramidTesselation (
+      FemModel3d fem, FemNode3d n0, FemNode3d n1, FemNode3d n2,
+      FemNode3d n3, FemNode3d n4, boolean even) {
       if (even) {
          fem.addElement (new TetElement(n0, n1, n2, n4));
          fem.addElement (new TetElement(n0, n2, n3, n4));
@@ -702,7 +976,9 @@ public class FemFactory {
    }
    
    /**
-    * Tessellate a pyramid with quadratic tets.  Even splits have a rising edge from n0 to n2
+    * Tessellate a pyramid with quadratic tets. Even splits have a rising edge
+    * from n0 to n2
+    * 
     * @param fem model to add elements to
     * @param n0 first node on quad face
     * @param n1 second node on quad face
@@ -729,18 +1005,25 @@ public class FemFactory {
       FemNode3d n0123,
       boolean even) {
       if (even) {
-         fem.addElement (new QuadtetElement(n0, n1, n2, n4, n01, n12, n0123, n04, n14, n24));
-         fem.addElement (new QuadtetElement(n0, n2, n3, n4, n0123, n23, n30, n04, n24, n34));
+         fem.addElement (
+            new QuadtetElement(n0, n1, n2, n4, n01, n12, n0123, n04, n14, n24));
+         fem.addElement (
+            new QuadtetElement(n0, n2, n3, n4, n0123, n23, n30, n04, n24, n34));
       } else {
-         fem.addElement (new QuadtetElement(n0, n1, n3, n4, n01, n0123, n30, n04, n14, n34));
-         fem.addElement (new QuadtetElement(n1, n2, n3, n4, n12, n23, n0123, n14, n24, n34));
+         fem.addElement (
+            new QuadtetElement(n0, n1, n3, n4, n01, n0123, n30, n04, n14, n34));
+         fem.addElement (
+            new QuadtetElement(n1, n2, n3, n4, n12, n23, n0123, n14, n24, n34));
       }
    }
    
    /**
-    * Adds tests to fill a space between two triangles facing opposite directions.  The resulting shape has a total of 8 triangular
-    * faces.  The volume is tessellated symmetrically with 4 tets, with the first face connected to node 5.  Nodes are ordered such that n0-n2 describe the first triangle CW, n3-n5 the second CCW,
-    * and n0 is connected to edge n3-n4
+    * Adds tests to fill a space between two triangles facing opposite
+    * directions.  The resulting shape has a total of 8 triangular faces.  The
+    * volume is tessellated symmetrically with 4 tets, with the first face
+    * connected to node 5.  Nodes are ordered such that n0-n2 describe the
+    * first triangle CW, n3-n5 the second CCW, and n0 is connected to edge
+    * n3-n4
     * 
     * @param fem model to add elements to
     * @param n0 first node of triangle 1
@@ -750,7 +1033,9 @@ public class FemFactory {
     * @param n4 second node of triangle 2
     * @param n5 third node of triangle 2
     */
-   private static void addFlippedTriTessellation(FemModel3d fem, FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3, FemNode3d n4, FemNode3d n5) {
+   private static void addFlippedTriTessellation (
+      FemModel3d fem, FemNode3d n0, FemNode3d n1, FemNode3d n2,
+      FemNode3d n3, FemNode3d n4, FemNode3d n5) {
       
       fem.addElement (new TetElement(n0, n1, n2, n5));
       fem.addElement (new TetElement(n5, n4, n3, n0));
@@ -760,9 +1045,12 @@ public class FemFactory {
    }
    
    /**
-    * Adds tests to fill a space between two triangles facing opposite directions.  The resulting shape has a total of 8 triangular
-    * faces.  The volume is tessellated symmetrically with 4 tets, with the first face connected to node 5.  Nodes are ordered such that n0-n2 describe the first triangle CW, n3-n5 the second CCW,
-    * and n0 is connected to edge n3-n4
+    * Adds tests to fill a space between two triangles facing opposite
+    * directions.  The resulting shape has a total of 8 triangular faces.  The
+    * volume is tessellated symmetrically with 4 tets, with the first face
+    * connected to node 5.  Nodes are ordered such that n0-n2 describe the
+    * first triangle CW, n3-n5 the second CCW, and n0 is connected to edge
+    * n3-n4
     * 
     * @param fem model to add elements to
     * @param n0 first node of triangle 1
@@ -795,16 +1083,21 @@ public class FemFactory {
       FemNode3d n25, FemNode3d n23,
       FemNode3d n05) {
       
-      fem.addElement (new QuadtetElement(n0, n1, n2, n5, n01, n12, n20, n05, n15, n25));
-      fem.addElement (new QuadtetElement(n5, n4, n3, n0, n45, n34, n53, n05, n04, n03));
-      fem.addElement (new QuadtetElement(n1, n0, n4, n5, n01, n04, n14, n15, n05, n45));
-      fem.addElement (new QuadtetElement(n2, n0, n5, n3, n20, n05, n25, n23, n03, n53));
+      fem.addElement (
+         new QuadtetElement(n0, n1, n2, n5, n01, n12, n20, n05, n15, n25));
+      fem.addElement (
+         new QuadtetElement(n5, n4, n3, n0, n45, n34, n53, n05, n04, n03));
+      fem.addElement (
+         new QuadtetElement(n1, n0, n4, n5, n01, n04, n14, n15, n05, n45));
+      fem.addElement (
+         new QuadtetElement(n2, n0, n5, n3, n20, n05, n25, n23, n03, n53));
       
    }
    
    /**
-    * Creates a sphere out of approximately uniform tets.  This is accomplished by separating the sphere into a
-    * hexagonal prism with hexagonal pyramid caps, dividing each edge into k segments for the kth radius, and
+    * Creates a sphere out of approximately uniform tets.  This is accomplished
+    * by separating the sphere into a hexagonal prism with hexagonal pyramid
+    * caps, dividing each edge into k segments for the kth radius, and
     * connecting the layers with patterns of tets.
     * 
     * @param model model to populate, created if null
@@ -812,7 +1105,8 @@ public class FemFactory {
     * @param nr number of layers
     * @return populated or created model
     */
-   public static FemModel3d createTetSphere(FemModel3d model, double r, int nr) {
+   public static FemModel3d createTetSphere (
+      FemModel3d model, double r, int nr) {
       
       if (model == null) {
          model = new FemModel3d();
@@ -970,17 +1264,25 @@ public class FemFactory {
                      int sdown = s+gs;
                      int sup = s-gs;
                      // downward tet 
-                     model.addElement (new TetElement(layer[t][s], layer[t+1][sdown+1], layer[t+1][sdown], lastLayer[t][s]));
+                     model.addElement (
+                        new TetElement(
+                           layer[t][s], layer[t+1][sdown+1],
+                           layer[t+1][sdown], lastLayer[t][s]));
                      
                      // flipped 4-tet
-                     addFlippedTriTessellation (model, layer[t+1][sdown+1], layer[t][s], layer[t][s+1], 
-                        lastLayer[t][s+1], lastLayer[t][s], lastLayer[t-1][sup]);
+                     addFlippedTriTessellation (
+                        model, layer[t+1][sdown+1], layer[t][s],
+                        layer[t][s+1], lastLayer[t][s+1],
+                        lastLayer[t][s], lastLayer[t-1][sup]);
                   }
                   
                   // trailing tet
                   int s = gs*i + i;  // current s
                   int sdown = s+gs;
-                  model.addElement (new TetElement(layer[t][s], layer[t+1][sdown+1], layer[t+1][sdown], lastLayer[t][s]));
+                  model.addElement (
+                     new TetElement(
+                        layer[t][s], layer[t+1][sdown+1],
+                        layer[t+1][sdown], lastLayer[t][s]));
                }
             }
             
@@ -992,7 +1294,10 @@ public class FemFactory {
                   for (int j=1; j<i; ++j) {
                      int s = gs*i+j;
                      int sup = s-gs;
-                     model.addElement (new TetElement (lastLayer[t][s], lastLayer[t-1][sup], lastLayer[t-1][sup-1], layer[t][s]));
+                     model.addElement (
+                        new TetElement (
+                           lastLayer[t][s], lastLayer[t-1][sup],
+                           lastLayer[t-1][sup-1], layer[t][s]));
                   }
                }
             }
@@ -1018,15 +1323,24 @@ public class FemFactory {
                      boolean even = ((j + t) % 2) == 0;
                      
                      // pyramids up and down
-                     addPyramidTesselation (model, layer[t][s], layer[t][s+1], layer[t+1][s+1], layer[t+1][s], 
-                        lastLayer[tlast][slast], even);
+                     addPyramidTesselation (
+                        model, layer[t][s], layer[t][s+1], layer[t+1][s+1],
+                        layer[t+1][s], lastLayer[tlast][slast], even);
                      
-                     addPyramidTesselation (model, lastLayer[tlast][slast], lastLayer[tlast+1][slast], lastLayer[tlast+1][slast+1], lastLayer[tlast][slast+1],
-                        layer[t+1][s+1], !even);
+                     addPyramidTesselation (
+                        model, lastLayer[tlast][slast],
+                        lastLayer[tlast+1][slast], lastLayer[tlast+1][slast+1],
+                        lastLayer[tlast][slast+1], layer[t+1][s+1], !even);
                      
                      // tets below and right
-                     model.addElement (new TetElement(layer[t+1][s], layer[t+1][s+1], lastLayer[tlast+1][slast], lastLayer[tlast][slast]));
-                     model.addElement (new TetElement(layer[t+1][s+1], layer[t][s+1], lastLayer[tlast][slast+1], lastLayer[tlast][slast]));
+                     model.addElement (
+                        new TetElement(
+                           layer[t+1][s], layer[t+1][s+1],
+                           lastLayer[tlast+1][slast], lastLayer[tlast][slast]));
+                     model.addElement (
+                        new TetElement(
+                           layer[t+1][s+1], layer[t][s+1],
+                           lastLayer[tlast][slast+1], lastLayer[tlast][slast]));
                   }
                   // last column 
                   {
@@ -1034,11 +1348,15 @@ public class FemFactory {
                      int s = (gs+1)*k-1;
                      int slast = s-gs;
                      boolean even = ((t + k + 1 ) % 2) == 0;
-                     addPyramidTesselation (model, layer[t][s], layer[t][s+1], layer[t+1][s+1], layer[t+1][s], 
-                        lastLayer[tlast][slast], even);
+                     addPyramidTesselation (
+                        model, layer[t][s], layer[t][s+1], layer[t+1][s+1],
+                        layer[t+1][s], lastLayer[tlast][slast], even);
                      
                      // tet below
-                     model.addElement (new TetElement(layer[t+1][s], layer[t+1][s+1], lastLayer[tlast+1][slast], lastLayer[tlast][slast]));
+                     model.addElement (
+                        new TetElement(
+                           layer[t+1][s], layer[t+1][s+1],
+                           lastLayer[tlast+1][slast], lastLayer[tlast][slast]));
                   }
                   
                }
@@ -1062,11 +1380,15 @@ public class FemFactory {
                      boolean even = ((t + j) % 2) == 0;
                      
                      // pyramids down
-                     addPyramidTesselation (model, layer[t][s], layer[t][s+1], layer[t+1][s+1], layer[t+1][s], 
-                        lastLayer[tlast][slast], even);
+                     addPyramidTesselation (
+                        model, layer[t][s], layer[t][s+1], layer[t+1][s+1],
+                        layer[t+1][s], lastLayer[tlast][slast], even);
                      
                      // tets right
-                     model.addElement (new TetElement(layer[t+1][s+1], layer[t][s+1], lastLayer[tlast][slast+1], lastLayer[tlast][slast]));
+                     model.addElement (
+                        new TetElement(
+                           layer[t+1][s+1], layer[t][s+1],
+                           lastLayer[tlast][slast+1], lastLayer[tlast][slast]));
                   }
                   // last column 
                   {
@@ -1075,8 +1397,9 @@ public class FemFactory {
                      // parity
                      boolean even = ((t + k + 1) % 2) == 0;
                      // pyramid down
-                     addPyramidTesselation (model, layer[t][s], layer[t][s+1], layer[t+1][s+1], layer[t+1][s], 
-                        lastLayer[tlast][slast], even);
+                     addPyramidTesselation (
+                        model, layer[t][s], layer[t][s+1], layer[t+1][s+1],
+                        layer[t+1][s], lastLayer[tlast][slast], even);
                      
                   }
                   
@@ -1101,19 +1424,27 @@ public class FemFactory {
                      int slast = s-gs;
 
                      // downward tet
-                     model.addElement (new TetElement(layer[t][s], layer[t][s+1], layer[t+1][sdown], lastLayer[tlast][slast]));
+                     model.addElement (
+                        new TetElement(
+                           layer[t][s], layer[t][s+1], layer[t+1][sdown],
+                           lastLayer[tlast][slast]));
                      
                      // flipped 4-tet
-                     addFlippedTriTessellation (model, 
-                        layer[t][s+1], layer[t+1][sdown+1], layer[t+1][sdown], 
-                        lastLayer[tlast][slast], lastLayer[tlast][slast+1], lastLayer[tlast+1][slast-gs]);
+                     addFlippedTriTessellation (
+                        model, layer[t][s+1], layer[t+1][sdown+1],
+                        layer[t+1][sdown], lastLayer[tlast][slast],
+                        lastLayer[tlast][slast+1],
+                        lastLayer[tlast+1][slast-gs]);
                   }
                   int s = (gs+1)*(k-i)-1;
                   int sdown = s-gs;
                   int slast = s-gs;
                   
                   // downward tet
-                  model.addElement (new TetElement(layer[t][s], layer[t][s+1], layer[t+1][sdown], lastLayer[tlast][slast]));
+                  model.addElement (
+                     new TetElement (
+                        layer[t][s], layer[t][s+1], layer[t+1][sdown],
+                        lastLayer[tlast][slast]));
                }
             }
             
@@ -1129,7 +1460,10 @@ public class FemFactory {
                      int slast = s-gs;
                      int slastup = slast+gs;
                      
-                     model.addElement (new TetElement (lastLayer[tlast][slast], lastLayer[tlast-1][slastup], lastLayer[tlast][slast-1], layer[t][s]));
+                     model.addElement (
+                        new TetElement (
+                           lastLayer[tlast][slast], lastLayer[tlast-1][slastup],
+                           lastLayer[tlast][slast-1], layer[t][s]));
                   }
                }
             }
@@ -1141,16 +1475,18 @@ public class FemFactory {
    
    
    /**
-    * Creates a sphere out of approximately uniform quadratic tets.  This is accomplished by separating the sphere into a
-    * hexagonal prism with hexagonal pyramid caps, dividing each edge into k segments for the kth radius, and
-    * connecting the layers with patterns of tets.
+    * Creates a sphere out of approximately uniform quadratic tets.  This is
+    * accomplished by separating the sphere into a hexagonal prism with
+    * hexagonal pyramid caps, dividing each edge into k segments for the kth
+    * radius, and connecting the layers with patterns of tets.
     * 
     * @param model model to populate, created if null
     * @param r radius of sphere
     * @param nr number of layers
     * @return populated or created model
     */
-   public static FemModel3d createQuadtetSphere(FemModel3d model, double r, int nr) {
+   public static FemModel3d createQuadtetSphere (
+      FemModel3d model, double r, int nr) {
       
       if (model == null) {
          model = new FemModel3d();
@@ -1427,16 +1763,22 @@ public class FemFactory {
                      
                      // downward tet 
                      model.addElement (
-                        new QuadtetElement(outerLayer[t][s], outerLayer[t+2][sdd+2], outerLayer[t+2][sdd], lastOuterLayer[t][s],
-                           outerLayer[t+1][sd+1], outerLayer[t+2][sdd+1], outerLayer[t+1][sd],
-                           innerLayer[t][s], innerLayer[t+1][sd+1], innerLayer[t+1][sd]));
+                        new QuadtetElement (
+                           outerLayer[t][s], outerLayer[t+2][sdd+2],
+                           outerLayer[t+2][sdd], lastOuterLayer[t][s],
+                           outerLayer[t+1][sd+1], outerLayer[t+2][sdd+1],
+                           outerLayer[t+1][sd], innerLayer[t][s],
+                           innerLayer[t+1][sd+1], innerLayer[t+1][sd]));
                      
                      // flipped 4-tet
-                     addFlippedTriQuadTessellation (model, 
-                        outerLayer[t+2][sdd+2], outerLayer[t][s], outerLayer[t][s+2], 
-                        lastOuterLayer[t][s+2], lastOuterLayer[t][s], lastOuterLayer[t-2][suu],
-                        outerLayer[t+1][sd+1], outerLayer[t][s+1], outerLayer[t+1][sd+2],
-                        lastOuterLayer[t][s+1], lastOuterLayer[t-1][su], lastOuterLayer[t-1][su+1],
+                     addFlippedTriQuadTessellation (
+                        model,
+                        outerLayer[t+2][sdd+2], outerLayer[t][s],
+                        outerLayer[t][s+2], lastOuterLayer[t][s+2],
+                        lastOuterLayer[t][s], lastOuterLayer[t-2][suu],
+                        outerLayer[t+1][sd+1], outerLayer[t][s+1],
+                        outerLayer[t+1][sd+2], lastOuterLayer[t][s+1],
+                        lastOuterLayer[t-1][su], lastOuterLayer[t-1][su+1],
                         innerLayer[t+1][sd+2], innerLayer[t+1][sd+1],
                         innerLayer[t][s], innerLayer[t-1][su],
                         innerLayer[t-1][su+1], innerLayer[t][s+2],
@@ -1448,9 +1790,12 @@ public class FemFactory {
                   int sd = s+gs;
                   int sdd = s+2*gs;
                   model.addElement (
-                     new QuadtetElement(outerLayer[t][s], outerLayer[t+2][sdd+2], outerLayer[t+2][sdd], lastOuterLayer[t][s],
-                        outerLayer[t+1][sd+1], outerLayer[t+2][sdd+1], outerLayer[t+1][sd],
-                        innerLayer[t][s], innerLayer[t+1][sd+1], innerLayer[t+1][sd]));
+                     new QuadtetElement (
+                        outerLayer[t][s], outerLayer[t+2][sdd+2],
+                        outerLayer[t+2][sdd], lastOuterLayer[t][s],
+                        outerLayer[t+1][sd+1], outerLayer[t+2][sdd+1],
+                        outerLayer[t+1][sd], innerLayer[t][s],
+                        innerLayer[t+1][sd+1], innerLayer[t+1][sd]));
                }
             }
             
@@ -1464,9 +1809,11 @@ public class FemFactory {
                      int su = s-gs;
                      int suu = s-2*gs;
                      model.addElement (new QuadtetElement (
-                        lastOuterLayer[t][s], lastOuterLayer[t-2][suu], lastOuterLayer[t-2][suu-2], outerLayer[t][s],
-                        lastOuterLayer[t-1][su], lastOuterLayer[t-2][suu-1], lastOuterLayer[t-1][su-1],
-                        innerLayer[t][s], innerLayer[t-1][su], innerLayer[t-1][su-1]));
+                        lastOuterLayer[t][s], lastOuterLayer[t-2][suu],
+                        lastOuterLayer[t-2][suu-2], outerLayer[t][s],
+                        lastOuterLayer[t-1][su], lastOuterLayer[t-2][suu-1],
+                        lastOuterLayer[t-1][su-1], innerLayer[t][s],
+                        innerLayer[t-1][su], innerLayer[t-1][su-1]));
                   }
                }
             }
@@ -1494,31 +1841,44 @@ public class FemFactory {
                      boolean even = ((t/2 + j) % 2) == 0;
                      
                      // pyramids up and down
-                     addPyramidQuadTesselation (model, 
-                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][s+2], outerLayer[t+2][s], 
-                        lastOuterLayer[tll][sll],
-                        outerLayer[t][s+1], outerLayer[t+1][s+2], outerLayer[t+2][s+1], outerLayer[t+1][s],
-                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sl+1], innerLayer[tl+1][sl],
-                        outerLayer[t+1][s+1],
+                     addPyramidQuadTesselation (
+                        model, 
+                        outerLayer[t][s], outerLayer[t][s+2],
+                        outerLayer[t+2][s+2], outerLayer[t+2][s], 
+                        lastOuterLayer[tll][sll], outerLayer[t][s+1],
+                        outerLayer[t+1][s+2], outerLayer[t+2][s+1],
+                        outerLayer[t+1][s], innerLayer[tl][sl],
+                        innerLayer[tl][sl+1], innerLayer[tl+1][sl+1],
+                        innerLayer[tl+1][sl], outerLayer[t+1][s+1],
                         even);
                      
-                     addPyramidQuadTesselation (model, 
-                        lastOuterLayer[tll][sll], lastOuterLayer[tll+2][sll], lastOuterLayer[tll+2][sll+2], lastOuterLayer[tll][sll+2],
-                        outerLayer[t+2][s+2],
-                        lastOuterLayer[tll+1][sll], lastOuterLayer[tll+2][sll+1], lastOuterLayer[tll+1][sll+2], lastOuterLayer[tll][sll+1],
-                        innerLayer[tl+1][sl+1], innerLayer[tl+2][sl+1], innerLayer[tl+2][sl+2], innerLayer[tl+1][sl+2],
+                     addPyramidQuadTesselation (
+                        model, 
+                        lastOuterLayer[tll][sll], lastOuterLayer[tll+2][sll],
+                        lastOuterLayer[tll+2][sll+2],
+                        lastOuterLayer[tll][sll+2],
+                        outerLayer[t+2][s+2], lastOuterLayer[tll+1][sll],
+                        lastOuterLayer[tll+2][sll+1],
+                        lastOuterLayer[tll+1][sll+2],
+                        lastOuterLayer[tll][sll+1],
+                        innerLayer[tl+1][sl+1], innerLayer[tl+2][sl+1],
+                        innerLayer[tl+2][sl+2], innerLayer[tl+1][sl+2],
                         lastOuterLayer[tll+1][sll+1],
                         !even);
                      
                      // tets below and right
                      model.addElement (new QuadtetElement(
-                        outerLayer[t+2][s], outerLayer[t+2][s+2], lastOuterLayer[tll+2][sll], lastOuterLayer[tll][sll],
-                        outerLayer[t+2][s+1], innerLayer[tl+2][sl+1], innerLayer[tl+2][sl],
-                        innerLayer[tl+1][sl], innerLayer[tl+1][sl+1], lastOuterLayer[tll+1][sll]));
+                        outerLayer[t+2][s], outerLayer[t+2][s+2],
+                        lastOuterLayer[tll+2][sll], lastOuterLayer[tll][sll],
+                        outerLayer[t+2][s+1], innerLayer[tl+2][sl+1],
+                        innerLayer[tl+2][sl], innerLayer[tl+1][sl],
+                        innerLayer[tl+1][sl+1], lastOuterLayer[tll+1][sll]));
                      model.addElement (new QuadtetElement(
-                        outerLayer[t+2][s+2], outerLayer[t][s+2], lastOuterLayer[tll][sll+2], lastOuterLayer[tll][sll],
-                        outerLayer[t+1][s+2], innerLayer[tl][sl+2], innerLayer[tl+1][sl+2],
-                        innerLayer[tl+1][sl+1], innerLayer[tl][sl+1], lastOuterLayer[tll][sll+1]));
+                        outerLayer[t+2][s+2], outerLayer[t][s+2],
+                        lastOuterLayer[tll][sll+2], lastOuterLayer[tll][sll],
+                        outerLayer[t+1][s+2], innerLayer[tl][sl+2],
+                        innerLayer[tl+1][sl+2], innerLayer[tl+1][sl+1],
+                        innerLayer[tl][sl+1], lastOuterLayer[tll][sll+1]));
                   }
                   // last column 
                   {
@@ -1527,19 +1887,24 @@ public class FemFactory {
                      int sl = s-gs;
                      int sll = s-2*gs;
                      boolean even = ((t/2 + k + 1 ) % 2) == 0;
-                     addPyramidQuadTesselation (model, 
-                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][s+2], outerLayer[t+2][s], 
-                        lastOuterLayer[tll][sll],
-                        outerLayer[t][s+1], outerLayer[t+1][s+2], outerLayer[t+2][s+1], outerLayer[t+1][s],
-                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sl+1], innerLayer[tl+1][sl],
-                        outerLayer[t+1][s+1],
+                     addPyramidQuadTesselation (
+                        model, 
+                        outerLayer[t][s], outerLayer[t][s+2],
+                        outerLayer[t+2][s+2], outerLayer[t+2][s], 
+                        lastOuterLayer[tll][sll], outerLayer[t][s+1],
+                        outerLayer[t+1][s+2], outerLayer[t+2][s+1],
+                        outerLayer[t+1][s], innerLayer[tl][sl],
+                        innerLayer[tl][sl+1], innerLayer[tl+1][sl+1],
+                        innerLayer[tl+1][sl], outerLayer[t+1][s+1],
                         even);
                      
                      // tet below
                      model.addElement (new QuadtetElement(
-                        outerLayer[t+2][s], outerLayer[t+2][s+2], lastOuterLayer[tll+2][sll], lastOuterLayer[tll][sll],
-                        outerLayer[t+2][s+1], innerLayer[tl+2][sl+1], innerLayer[tl+2][sl],
-                        innerLayer[tl+1][sl], innerLayer[tl+1][sl+1], lastOuterLayer[tll+1][sll]));
+                        outerLayer[t+2][s], outerLayer[t+2][s+2],
+                        lastOuterLayer[tll+2][sll], lastOuterLayer[tll][sll],
+                        outerLayer[t+2][s+1], innerLayer[tl+2][sl+1],
+                        innerLayer[tl+2][sl], innerLayer[tl+1][sl],
+                        innerLayer[tl+1][sl+1], lastOuterLayer[tll+1][sll]));
                   }
                   
                }
@@ -1565,19 +1930,24 @@ public class FemFactory {
                      boolean even = ((t/2 + j) % 2) == 0;
                      
                      // pyramids down
-                     addPyramidQuadTesselation (model, 
-                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][s+2], outerLayer[t+2][s], 
-                        lastOuterLayer[tll][sll],
-                        outerLayer[t][s+1], outerLayer[t+1][s+2], outerLayer[t+2][s+1], outerLayer[t+1][s],
-                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sl+1], innerLayer[tl+1][sl],
-                        outerLayer[t+1][s+1],
+                     addPyramidQuadTesselation (
+                        model,
+                        outerLayer[t][s], outerLayer[t][s+2],
+                        outerLayer[t+2][s+2], outerLayer[t+2][s], 
+                        lastOuterLayer[tll][sll], outerLayer[t][s+1],
+                        outerLayer[t+1][s+2], outerLayer[t+2][s+1],
+                        outerLayer[t+1][s], innerLayer[tl][sl],
+                        innerLayer[tl][sl+1], innerLayer[tl+1][sl+1],
+                        innerLayer[tl+1][sl], outerLayer[t+1][s+1],
                         even);
                      
                      // tets right
                      model.addElement (new QuadtetElement(
-                        outerLayer[t+2][s+2], outerLayer[t][s+2], lastOuterLayer[tll][sll+2], lastOuterLayer[tll][sll],
-                        outerLayer[t+1][s+2], innerLayer[tl][sl+2], innerLayer[tl+1][sl+2],
-                        innerLayer[tl+1][sl+1], innerLayer[tl][sl+1], lastOuterLayer[tll][sll+1]));
+                        outerLayer[t+2][s+2], outerLayer[t][s+2],
+                        lastOuterLayer[tll][sll+2], lastOuterLayer[tll][sll],
+                        outerLayer[t+1][s+2], innerLayer[tl][sl+2],
+                        innerLayer[tl+1][sl+2], innerLayer[tl+1][sl+1],
+                        innerLayer[tl][sl+1], lastOuterLayer[tll][sll+1]));
                   }
                   // last column 
                   {
@@ -1587,12 +1957,15 @@ public class FemFactory {
                      // parity
                      boolean even = ((t/2 + k + 1) % 2) == 0;
                      // pyramid down
-                     addPyramidQuadTesselation (model, 
-                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][s+2], outerLayer[t+2][s], 
-                        lastOuterLayer[tll][sll],
-                        outerLayer[t][s+1], outerLayer[t+1][s+2], outerLayer[t+2][s+1], outerLayer[t+1][s],
-                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sl+1], innerLayer[tl+1][sl],
-                        outerLayer[t+1][s+1],
+                     addPyramidQuadTesselation (
+                        model, 
+                        outerLayer[t][s], outerLayer[t][s+2],
+                        outerLayer[t+2][s+2], outerLayer[t+2][s], 
+                        lastOuterLayer[tll][sll], outerLayer[t][s+1],
+                        outerLayer[t+1][s+2], outerLayer[t+2][s+1],
+                        outerLayer[t+1][s], innerLayer[tl][sl],
+                        innerLayer[tl][sl+1], innerLayer[tl+1][sl+1],
+                        innerLayer[tl+1][sl], outerLayer[t+1][s+1],
                         even);
                      
                   }
@@ -1623,18 +1996,25 @@ public class FemFactory {
                      int slldd = sll-2*gs;
 
                      // downward tet
-                     model.addElement (new QuadtetElement(
-                        outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][sdd], lastOuterLayer[tll][sll],
-                        outerLayer[t][s+1], outerLayer[t+1][sd+1], outerLayer[t+1][sd],
-                        innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sld]
-                        ));
+                     model.addElement (
+                        new QuadtetElement(
+                           outerLayer[t][s], outerLayer[t][s+2],
+                           outerLayer[t+2][sdd], lastOuterLayer[tll][sll],
+                           outerLayer[t][s+1], outerLayer[t+1][sd+1],
+                           outerLayer[t+1][sd], innerLayer[tl][sl],
+                           innerLayer[tl][sl+1], innerLayer[tl+1][sld]));
                      
                      // flipped 4-tet
-                     addFlippedTriQuadTessellation (model, 
-                        outerLayer[t][s+2], outerLayer[t+2][sdd+2], outerLayer[t+2][sdd], 
-                        lastOuterLayer[tll][sll], lastOuterLayer[tll][sll+2], lastOuterLayer[tll+2][slldd],
-                        outerLayer[t+1][sd+2], outerLayer[t+2][sdd+1], outerLayer[t+1][sd+1],
-                        lastOuterLayer[tll][sll+1], lastOuterLayer[tll+1][slld+1], lastOuterLayer[tll+1][slld],
+                     addFlippedTriQuadTessellation (
+                        model, 
+                        outerLayer[t][s+2], outerLayer[t+2][sdd+2],
+                        outerLayer[t+2][sdd], lastOuterLayer[tll][sll],
+                        lastOuterLayer[tll][sll+2],
+                        lastOuterLayer[tll+2][slldd],
+                        outerLayer[t+1][sd+2], outerLayer[t+2][sdd+1],
+                        outerLayer[t+1][sd+1], lastOuterLayer[tll][sll+1],
+                        lastOuterLayer[tll+1][slld+1],
+                        lastOuterLayer[tll+1][slld],
                         innerLayer[tl][sl+1], innerLayer[tl][sl+2], 
                         innerLayer[tl+1][sld+2], innerLayer[tl+2][sldd+1],
                         innerLayer[tl+2][sldd], innerLayer[tl+1][sld],
@@ -1650,9 +2030,11 @@ public class FemFactory {
                   
                   // downward tet
                   model.addElement (new QuadtetElement(
-                     outerLayer[t][s], outerLayer[t][s+2], outerLayer[t+2][sdd], lastOuterLayer[tll][sll],
-                     outerLayer[t][s+1], outerLayer[t+1][sd+1], outerLayer[t+1][sd],
-                     innerLayer[tl][sl], innerLayer[tl][sl+1], innerLayer[tl+1][sld]
+                     outerLayer[t][s], outerLayer[t][s+2],
+                     outerLayer[t+2][sdd], lastOuterLayer[tll][sll],
+                     outerLayer[t][s+1], outerLayer[t+1][sd+1],
+                     outerLayer[t+1][sd], innerLayer[tl][sl],
+                     innerLayer[tl][sl+1], innerLayer[tl+1][sld]
                      ));
                }
             }
@@ -1674,9 +2056,13 @@ public class FemFactory {
                      int slluu = sll+2*gs;
                      
                      model.addElement (new QuadtetElement (
-                        lastOuterLayer[tll][sll], lastOuterLayer[tll-2][slluu], lastOuterLayer[tll][sll-2], outerLayer[t][s],
-                        lastOuterLayer[tll-1][sllu], lastOuterLayer[tll-1][sllu-1], lastOuterLayer[tll][sll-1],
-                        innerLayer[tl][sl], innerLayer[tl-1][slu], innerLayer[tl][sl-1]));
+                        lastOuterLayer[tll][sll], lastOuterLayer[tll-2][slluu],
+                        lastOuterLayer[tll][sll-2], outerLayer[t][s],
+                        lastOuterLayer[tll-1][sllu],
+                        lastOuterLayer[tll-1][sllu-1],
+                        lastOuterLayer[tll][sll-1],
+                        innerLayer[tl][sl],
+                        innerLayer[tl-1][slu], innerLayer[tl][sl-1]));
                   }
                }
             }
@@ -1687,12 +2073,13 @@ public class FemFactory {
    }
    
    /**
-    * Creates a hex sphere by first generating a regular grid, then mapping it to the sphere using 
-    * a volume-preserving bi-lipschitz projection
+    * Creates a hex sphere by first generating a regular grid, then mapping it
+    * to the sphere using a volume-preserving bi-lipschitz projection
     * 
     * @param fem model to populate
     * @param r radius
-    * @param nr number of elements radially along each axis from the sphere center
+    * @param nr number of elements radially along each axis from the sphere
+    * center
     * @return populated model
     */
    public static FemModel3d createHexSphere(FemModel3d fem, double r, int nr) {
@@ -1788,11 +2175,13 @@ public class FemFactory {
                } else {
                   for (int i = 0; i < nt; i++) {
                      
-                     //    // XXX inverted elements at poles for large r
-                     //    double kInterp = Math.pow(((double)k) / (ns - 1), 2) * (rs1 + rs2) / (2 * rl);
-                     //    double l = (-rl + 2 * rl * dl * j / Math.PI) * (1 - kInterp)
-                     //                + (-rl * Math.cos(j * dl)) * (kInterp);        
-                     //    double rAdj = dr * k * Math.sqrt(1 - l * l / rl / rl);
+                     // // XXX inverted elements at poles for large r
+                     // double kInterp =
+                     //    Math.pow(((double)k)/(ns-1), 2)*(rs1 + rs2)/(2*rl);
+                     // double l =
+                     //       (-rl + 2 * rl * dl * j / Math.PI) * (1 - kInterp)
+                     //       + (-rl * Math.cos(j * dl)) * (kInterp);        
+                     // double rAdj = dr * k * Math.sqrt(1 - l * l / rl / rl);
                      
                      // need kInterp(0) = 0, kInterp(ns-1) = 1
                      double a = (double)k/(ns-1);
@@ -1803,7 +2192,8 @@ public class FemFactory {
                      + (-rl * Math.cos(j*Math.PI/(2*nl-2))) * (kInterp);
                      // linearly interpolate radius scale factor
                      kInterp = a;
-                     double rAdj = kInterp*Math.sin (j*Math.PI/(2*nl-2)); // dr * k * Math.sqrt(1 - l * l / rl / rl); 
+                     // dr * k * Math.sqrt(1 - l * l / rl / rl); 
+                     double rAdj = kInterp*Math.sin (j*Math.PI/(2*nl-2)); 
                      
                      nodes[i][j][k] =
                         new FemNode3d(
@@ -1817,7 +2207,8 @@ public class FemFactory {
          }
       }
 
-      FemNode3d[] node8List = new FemNode3d[8]; // storing 8 nodes, repeated or not
+      FemNode3d[] node8List =
+         new FemNode3d[8]; // storing 8 nodes, repeated or not
 
       // generate elements
       for (int k = 0; k < ns - 1; k++) {
@@ -1843,10 +2234,10 @@ public class FemFactory {
    }
    
    /**
-    * Creates an ellipsoidal model using tet elements. The model is created 
-    * symmetrically about a central polar axis,
-    * using tesselated wedge elements at the core.  <code>rl</code> should be the longest
-    * radius, and corresponds to the polar axis.
+    * Creates an ellipsoidal model using tet elements. The model is created
+    * symmetrically about a central polar axis, using tesselated wedge elements
+    * at the core.  <code>rl</code> should be the longest radius, and
+    * corresponds to the polar axis.
     *
     * @param model empty FEM model to which elements are added; if
     * <code>null</code> then a new model is allocated
@@ -1923,7 +2314,8 @@ public class FemFactory {
          }
       }
 
-      FemNode3d[] node8List = new FemNode3d[8]; // storing 8 nodes, repeated or not
+      FemNode3d[] node8List =
+         new FemNode3d[8]; // storing 8 nodes, repeated or not
 
       // generate elements
       for (int k = 0; k < ns - 1; k++) {
@@ -1940,15 +2332,18 @@ public class FemFactory {
                node8List[6] = nodes[(i + 1) % nt][j + 1][k + 1];
                node8List[7] = nodes[i][j + 1][k + 1];
                
-               TetElement elems[] = TetElement.createCubeTesselation (node8List[0], node8List[3], node8List[2], node8List[1], 
-                  node8List[4], node8List[7], node8List[6], node8List[5], even);
+               TetElement elems[] =
+                  TetElement.createCubeTesselation (
+                     node8List[0], node8List[3], node8List[2], node8List[1], 
+                     node8List[4], node8List[7], node8List[6], node8List[5],
+                     even);
                
                // only add non-degenerate elements
                for (TetElement elem : elems) {
                   FemNode3d[] enodes = elem.getNodes ();
-                  if (enodes[0] != enodes[1] && enodes[0] != enodes[2] && enodes[0] != enodes[3]
-                     && enodes[1] != enodes[2] && enodes[1] != enodes[3]
-                     && enodes[2]!= enodes[3]) {
+                  if (enodes[0] != enodes[1] && enodes[0] != enodes[2] &&
+                      enodes[0] != enodes[3] && enodes[1] != enodes[2] &&
+                      enodes[1] != enodes[3] && enodes[2]!= enodes[3]) {
                      model.addElement (elem);
                   }
                }
@@ -2127,7 +2522,8 @@ public class FemFactory {
     * @param nr number of elements radially
     * @return populated model
     */
-   public static FemModel3d createTetCylinder(FemModel3d fem, double l, double r, int nt, int nl, int nr) {
+   public static FemModel3d createTetCylinder (
+      FemModel3d fem, double l, double r, int nt, int nl, int nr) {
       if (fem == null) {
          fem = new FemModel3d();
       }
@@ -2205,7 +2601,8 @@ public class FemFactory {
                      nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
                      nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k + 1],
                      nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
-                        % nt][j + 1][k], nodes[i][j + 1][k], (i + j + k) % 2 == 0);
+                        % nt][j + 1][k], nodes[i][j + 1][k],
+                     (i + j + k) % 2 == 0);
                
                fem.addElement(elems[i][j][k][0]);
                fem.addElement(elems[i][j][k][1]);
@@ -2220,7 +2617,8 @@ public class FemFactory {
    }
    
    /**
-    * Creates a quadratic tetrahedral cylinder by tetrahedralizing a hex-wedge cylinder
+    * Creates a quadratic tetrahedral cylinder by tetrahedralizing a hex-wedge
+    * cylinder
     * 
     * @param fem model to populate
     * @param l length of cylinder (z-axis)
@@ -2230,7 +2628,8 @@ public class FemFactory {
     * @param nr number of elements radially
     * @return populated model
     */
-   public static FemModel3d createQuadtetCylinder(FemModel3d fem, double l, double r, int nt, int nl, int nr) {
+   public static FemModel3d createQuadtetCylinder (
+      FemModel3d fem, double l, double r, int nt, int nl, int nr) {
       if (fem == null) {
          fem = new FemModel3d();
       }
@@ -2299,13 +2698,31 @@ public class FemFactory {
                         
             elems[0][i][j] = new QuadtetElement[3]; 
             if (even) {
-               elems[0][i][j][0] = new QuadtetElement (p0[nj], p3[nj], p5[nj], p3[nj+2], p1[nj], p4[nj], p2[nj], p1[nj+1], p3[nj+1], p4[nj+1]);
-               elems[0][i][j][1] = new QuadtetElement (p3[nj+2], p0[nj+2], p5[nj+2], p5[nj], p1[nj+2], p2[nj+2], p4[nj+2], p4[nj+1], p2[nj+1], p5[nj+1]);
-               elems[0][i][j][2] = new QuadtetElement (p0[nj], p0[nj+2], p3[nj+2], p5[nj], p0[nj+1], p1[nj+2], p1[nj+1], p2[nj], p2[nj+1], p4[nj+1]);
+               elems[0][i][j][0] =
+                  new QuadtetElement (
+                     p0[nj], p3[nj], p5[nj], p3[nj+2], p1[nj],
+                     p4[nj], p2[nj], p1[nj+1], p3[nj+1], p4[nj+1]);
+               elems[0][i][j][1] =
+                  new QuadtetElement (
+                     p3[nj+2], p0[nj+2], p5[nj+2], p5[nj], p1[nj+2],
+                     p2[nj+2], p4[nj+2], p4[nj+1], p2[nj+1], p5[nj+1]);
+               elems[0][i][j][2] =
+                  new QuadtetElement (
+                     p0[nj], p0[nj+2], p3[nj+2], p5[nj], p0[nj+1],
+                     p1[nj+2], p1[nj+1], p2[nj], p2[nj+1], p4[nj+1]);
             } else {
-               elems[0][i][j][0] = new QuadtetElement (p0[nj], p3[nj], p5[nj], p5[nj+2], p1[nj], p4[nj], p2[nj], p2[nj+1], p4[nj+1], p5[nj+1]);
-               elems[0][i][j][1] = new QuadtetElement (p3[nj+2], p0[nj+2], p5[nj+2], p3[nj], p1[nj+2], p2[nj+2], p4[nj+2], p3[nj+1], p1[nj+1], p4[nj+1]);
-               elems[0][i][j][2] = new QuadtetElement (p0[nj], p5[nj+2], p0[nj+2], p3[nj], p2[nj+1], p2[nj+2], p0[nj+1], p1[nj], p4[nj+1], p1[nj+1]);
+               elems[0][i][j][0] =
+                  new QuadtetElement (
+                     p0[nj], p3[nj], p5[nj], p5[nj+2], p1[nj],
+                     p4[nj], p2[nj], p2[nj+1], p4[nj+1], p5[nj+1]);
+               elems[0][i][j][1] =
+                  new QuadtetElement (
+                     p3[nj+2], p0[nj+2], p5[nj+2], p3[nj], p1[nj+2],
+                     p2[nj+2], p4[nj+2], p3[nj+1], p1[nj+1], p4[nj+1]);
+               elems[0][i][j][2] =
+                  new QuadtetElement (
+                     p0[nj], p5[nj+2], p0[nj+2], p3[nj], p2[nj+1],
+                     p2[nj+2], p0[nj+1], p1[nj], p4[nj+1], p1[nj+1]);
             }
 
             fem.addElement(elems[0][i][j][0]);
@@ -2341,17 +2758,47 @@ public class FemFactory {
                
                elems[k][i][j] = new QuadtetElement[5]; 
                if (even) {
-                  elems[k][i][j][0] = new QuadtetElement (p0[nj], p8[nj], p2[nj], p2[nj+2], p4[nj], p5[nj], p1[nj], p1[nj+1], p5[nj+1], p2[nj+1]);
-                  elems[k][i][j][1] = new QuadtetElement (p0[nj], p6[nj], p8[nj], p6[nj+2], p3[nj], p7[nj], p4[nj], p3[nj+1], p6[nj+1], p7[nj+1]);
-                  elems[k][i][j][2] = new QuadtetElement (p0[nj+2], p2[nj+2], p6[nj+2], p0[nj], p1[nj+2], p4[nj+2], p3[nj+2], p0[nj+1], p1[nj+1], p3[nj+1]);
-                  elems[k][i][j][3] = new QuadtetElement (p8[nj+2], p6[nj+2], p2[nj+2], p8[nj], p7[nj+2], p4[nj+2], p5[nj+2], p8[nj+1], p7[nj+1], p5[nj+1]);
-                  elems[k][i][j][4] = new QuadtetElement (p0[nj], p6[nj+2], p8[nj], p2[nj+2], p3[nj+1], p7[nj+1], p4[nj], p1[nj+1], p4[nj+2], p5[nj+1]);
+                  elems[k][i][j][0] =
+                     new QuadtetElement (
+                        p0[nj], p8[nj], p2[nj], p2[nj+2], p4[nj],
+                        p5[nj], p1[nj], p1[nj+1], p5[nj+1], p2[nj+1]);
+                  elems[k][i][j][1] =
+                     new QuadtetElement (
+                        p0[nj], p6[nj], p8[nj], p6[nj+2], p3[nj],
+                        p7[nj], p4[nj], p3[nj+1], p6[nj+1], p7[nj+1]);
+                  elems[k][i][j][2] =
+                     new QuadtetElement (
+                        p0[nj+2], p2[nj+2], p6[nj+2], p0[nj], p1[nj+2],
+                        p4[nj+2], p3[nj+2], p0[nj+1], p1[nj+1], p3[nj+1]);
+                  elems[k][i][j][3] = 
+                     new QuadtetElement (
+                        p8[nj+2], p6[nj+2], p2[nj+2], p8[nj], p7[nj+2],
+                        p4[nj+2], p5[nj+2], p8[nj+1], p7[nj+1], p5[nj+1]);
+                  elems[k][i][j][4] = 
+                     new QuadtetElement (
+                        p0[nj], p6[nj+2], p8[nj], p2[nj+2], p3[nj+1],
+                        p7[nj+1], p4[nj], p1[nj+1], p4[nj+2], p5[nj+1]);
                } else {
-                  elems[k][i][j][0] = new QuadtetElement (p0[nj], p6[nj], p2[nj], p0[nj+2], p3[nj], p4[nj], p1[nj], p0[nj+1], p3[nj+1], p1[nj+1]);
-                  elems[k][i][j][1] = new QuadtetElement (p2[nj], p6[nj], p8[nj], p8[nj+2], p4[nj], p7[nj], p5[nj], p5[nj+1], p7[nj+1], p8[nj+1]);
-                  elems[k][i][j][2] = new QuadtetElement (p0[nj+2], p2[nj+2], p8[nj+2], p2[nj], p1[nj+2], p5[nj+2], p4[nj+2], p1[nj+1], p2[nj+1], p5[nj+1]);
-                  elems[k][i][j][3] = new QuadtetElement (p0[nj+2], p8[nj+2], p6[nj+2], p6[nj], p4[nj+2], p7[nj+2], p3[nj+2], p3[nj+1], p7[nj+1], p6[nj+1]);
-                  elems[k][i][j][4] = new QuadtetElement (p2[nj], p6[nj], p8[nj+2], p0[nj+2], p4[nj], p7[nj+1], p5[nj+1], p1[nj+1], p3[nj+1], p4[nj+2]);
+                  elems[k][i][j][0] = 
+                     new QuadtetElement (
+                        p0[nj], p6[nj], p2[nj], p0[nj+2], p3[nj],
+                        p4[nj], p1[nj], p0[nj+1], p3[nj+1], p1[nj+1]);
+                  elems[k][i][j][1] = 
+                     new QuadtetElement (
+                        p2[nj], p6[nj], p8[nj], p8[nj+2], p4[nj],
+                        p7[nj], p5[nj], p5[nj+1], p7[nj+1], p8[nj+1]);
+                  elems[k][i][j][2] = 
+                     new QuadtetElement (
+                        p0[nj+2], p2[nj+2], p8[nj+2], p2[nj], p1[nj+2],
+                        p5[nj+2], p4[nj+2], p1[nj+1], p2[nj+1], p5[nj+1]);
+                  elems[k][i][j][3] = 
+                     new QuadtetElement (
+                        p0[nj+2], p8[nj+2], p6[nj+2], p6[nj], p4[nj+2],
+                        p7[nj+2], p3[nj+2], p3[nj+1], p7[nj+1], p6[nj+1]);
+                  elems[k][i][j][4] = 
+                     new QuadtetElement (
+                        p2[nj], p6[nj], p8[nj+2], p0[nj+2], p4[nj],
+                        p7[nj+1], p5[nj+1], p1[nj+1], p3[nj+1], p4[nj+2]);
                }
                
                fem.addElement (elems[k][i][j][0]);
@@ -2367,7 +2814,8 @@ public class FemFactory {
    }
    
    /**
-    * Creates a cylinder made entirely of wedges, all approximately uniform in size
+    * Creates a cylinder made entirely of wedges, all approximately uniform in
+    * size
     * @param model model to populate, created if null
     * @param h height of cylinder (z-axis)
     * @param r radius of cylinder
@@ -2375,7 +2823,8 @@ public class FemFactory {
     * @param nr radial element resolution
     * @return populated or created model
     */
-   public static FemModel3d createWedgeCylinder(FemModel3d model, double h, double r, int nh, int nr) {
+   public static FemModel3d createWedgeCylinder (
+      FemModel3d model, double h, double r, int nh, int nr) {
       if (model == null) {
          model = new FemModel3d();
       }
@@ -2429,18 +2878,25 @@ public class FemFactory {
                   int nextpj = (pj+1) % (nt-ngroups);
                   int nextj = (j+1) % nt;
                   
-                  model.addElement (new WedgeElement(layer[k][j], layer[k][nextj], lastLayer[k][pj],
-                                                      layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj]));
-                  model.addElement (new WedgeElement(lastLayer[k][nextpj], lastLayer[k][pj], layer[k][nextj],
-                                                      lastLayer[k+1][nextpj], lastLayer[k+1][pj], layer[k+1][nextj]));
+                  model.addElement (
+                     new WedgeElement (
+                        layer[k][j], layer[k][nextj], lastLayer[k][pj],
+                        layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj]));
+                  model.addElement (
+                     new WedgeElement(
+                        lastLayer[k][nextpj], lastLayer[k][pj], layer[k][nextj],
+                        lastLayer[k+1][nextpj], lastLayer[k+1][pj],
+                        layer[k+1][nextj]));
                   
                   j = nextj;
                   pj = nextpj;
                }
                int nextj = (j+1) % nt;
                
-               model.addElement (new WedgeElement(layer[k][j], layer[k][nextj], lastLayer[k][pj],
-                  layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj]));
+               model.addElement (
+                  new WedgeElement(
+                     layer[k][j], layer[k][nextj], lastLayer[k][pj],
+                     layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj]));
             }
          }
       }
@@ -2457,12 +2913,15 @@ public class FemFactory {
     * @param n3 wedge node 3
     * @param n4 wedge node 4
     * @param n5 wedge node 5
-    * @param code code to indicate splitting of wedge (1-6), @see {@link TetElement#createWedgeTesselation(FemNode3d, FemNode3d, FemNode3d, FemNode3d, FemNode3d, FemNode3d, int)}
+    * @param code code to indicate splitting of wedge (1-6), @see {@link
+    * TetElement#createWedgeTesselation(FemNode3d,FemNode3d,FemNode3d,FemNode3d, FemNode3d,FemNode3d,int)}
     */
-   private static void addWedgeTessellation(FemModel3d model, FemNode3d n0, FemNode3d n1, FemNode3d n2, 
+   private static void addWedgeTessellation (
+      FemModel3d model, FemNode3d n0, FemNode3d n1, FemNode3d n2, 
       FemNode3d n3, FemNode3d n4, FemNode3d n5, int code) {
       // wedge is ordered opposite orientation
-      TetElement[] elems = TetElement.createWedgeTesselation (n0, n2, n1, n3, n5, n4, code);
+      TetElement[] elems =
+         TetElement.createWedgeTesselation (n0, n2, n1, n3, n5, n4, code);
       for (TetElement elem : elems) {
          model.addElement (elem);
       }
@@ -2471,13 +2930,15 @@ public class FemFactory {
    /**
     * Tessellate a wedge with quadratic tets
     */
-   private static void addQuadwedgeTessellation(FemModel3d model, 
+   private static void addQuadwedgeTessellation (
+      FemModel3d model, 
       FemNode3d n0, FemNode3d n1, FemNode3d n2, 
       FemNode3d n3, FemNode3d n4, FemNode3d n5, 
       FemNode3d n01, FemNode3d n7, FemNode3d n8,     // m01, m12, m20
       FemNode3d n34, FemNode3d n45, FemNode3d n53,   // m34, m45, m53
       FemNode3d n03, FemNode3d n14, FemNode3d n15,  // m03, m14, m15
-      FemNode3d n0134, FemNode3d n1245, FemNode3d n2053,  // mid-quad: m0134, m1245, m2053 
+      FemNode3d n0134, FemNode3d n1245,
+      FemNode3d n2053, // mid-quad: m0134, m1245, m2053 
       int code) {
       // wedge is ordered opposite orientation
       QuadtetElement[] elems = new QuadtetElement[3];
@@ -2504,39 +2965,57 @@ public class FemFactory {
       
       switch (code) {
          case 0x1: { /* R, F, F */ 
-            elems[0] = new QuadtetElement (p0, p2, p1, p3, p8, p7, p6, p12, p17, p15);
-            elems[1] = new QuadtetElement (p2, p5, p1, p3, p14, p16, p7, p17, p11, p15);
-            elems[2] = new QuadtetElement (p1, p5, p4, p3, p16, p10, p13, p15, p11, p9);
+            elems[0] = new QuadtetElement (
+               p0, p2, p1, p3, p8, p7, p6, p12, p17, p15);
+            elems[1] = new QuadtetElement (
+               p2, p5, p1, p3, p14, p16, p7, p17, p11, p15);
+            elems[2] = new QuadtetElement (
+               p1, p5, p4, p3, p16, p10, p13, p15, p11, p9);
             break;
          }
          case 0x2: { /* F, R, F */ 
-            elems[0] = new QuadtetElement (p0, p2, p1, p4, p8,  p7,  p6, p15, p16, p13);
-            elems[1] = new QuadtetElement (p0, p3, p2, p4, p12, p17, p8, p15, p9, p16);
-            elems[2] = new QuadtetElement (p2, p3, p5, p4, p17, p11, p14, p16, p9, p10);
+            elems[0] = new QuadtetElement (
+               p0, p2, p1, p4, p8,  p7,  p6, p15, p16, p13);
+            elems[1] = new QuadtetElement (
+               p0, p3, p2, p4, p12, p17, p8, p15, p9, p16);
+            elems[2] = new QuadtetElement (
+               p2, p3, p5, p4, p17, p11, p14, p16, p9, p10);
             break;
          }
          case 0x3: { /* R, R, F */ 
-            elems[0] = new QuadtetElement (p0, p2, p1, p3, p8, p7, p6, p12, p17, p15);
-            elems[1] = new QuadtetElement (p1, p2, p4, p3, p7, p16, p13, p15, p17, p9);
-            elems[2] = new QuadtetElement (p2, p5, p4, p3, p14, p10, p16, p17, p11, p9);
+            elems[0] = new QuadtetElement (
+               p0, p2, p1, p3, p8, p7, p6, p12, p17, p15);
+            elems[1] = new QuadtetElement (
+               p1, p2, p4, p3, p7, p16, p13, p15, p17, p9);
+            elems[2] = new QuadtetElement (
+               p2, p5, p4, p3, p14, p10, p16, p17, p11, p9);
             break;
          }
          case 0x4: { /* F, F, R */ 
-            elems[0] = new QuadtetElement (p0, p2, p1, p5, p8, p7, p6, p17, p14, p16);
-            elems[1] = new QuadtetElement (p1, p4, p0, p5, p13, p15, p6, p16, p10, p17);
-            elems[2] = new QuadtetElement (p0, p4, p3, p5, p15, p9, p12, p17, p10, p11);
+            elems[0] = new QuadtetElement (
+               p0, p2, p1, p5, p8, p7, p6, p17, p14, p16);
+            elems[1] = new QuadtetElement (
+               p1, p4, p0, p5, p13, p15, p6, p16, p10, p17);
+            elems[2] = new QuadtetElement (
+               p0, p4, p3, p5, p15, p9, p12, p17, p10, p11);
             break;
          }
          case 0x5: { /* R, F, R */ 
-            elems[0] = new QuadtetElement (p0, p2, p1, p5, p8, p7, p6, p17, p14, p16);
-            elems[1] = new QuadtetElement (p0, p1, p3, p5, p6, p15, p12, p17, p16, p11);
-            elems[2] = new QuadtetElement (p1, p4, p3, p5, p13, p9, p15, p16, p10, p11);
+            elems[0] = new QuadtetElement (
+               p0, p2, p1, p5, p8, p7, p6, p17, p14, p16);
+            elems[1] = new QuadtetElement (
+               p0, p1, p3, p5, p6, p15, p12, p17, p16, p11);
+            elems[2] = new QuadtetElement (
+               p1, p4, p3, p5, p13, p9, p15, p16, p10, p11);
             break;
          }
          case 0x6: { /* F, R, R */ 
-            elems[0] = new QuadtetElement (p0, p2, p1, p4, p8, p7, p6, p15, p16, p13);
-            elems[1] = new QuadtetElement (p2, p0, p5, p4, p8, p17, p14, p16, p15, p10);
-            elems[2] = new QuadtetElement (p0, p3, p5, p4, p12, p11, p17, p15, p9, p10);
+            elems[0] = new QuadtetElement (
+               p0, p2, p1, p4, p8, p7, p6, p15, p16, p13);
+            elems[1] = new QuadtetElement (
+               p2, p0, p5, p4, p8, p17, p14, p16, p15, p10);
+            elems[2] = new QuadtetElement (
+               p0, p3, p5, p4, p12, p11, p17, p15, p9, p10);
             break;
          }
          default: {
@@ -2559,7 +3038,8 @@ public class FemFactory {
     * @param nr radial element resolution
     * @return populated or created model
     */
-   public static FemModel3d createTetCylinder(FemModel3d model, double h, double r, int nh, int nr) {
+   public static FemModel3d createTetCylinder (
+      FemModel3d model, double h, double r, int nh, int nr) {
       if (model == null) {
          model = new FemModel3d();
       }
@@ -2622,15 +3102,19 @@ public class FemFactory {
                   int sideParity = (i + k) % 2;
                   int parity = outerParity*4 + sideParity+1;
                   
-                  addWedgeTessellation(model, layer[k][j], layer[k][nextj], lastLayer[k][pj],
-                     layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj], parity);
+                  addWedgeTessellation (
+                     model, layer[k][j], layer[k][nextj], lastLayer[k][pj],
+                     layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj],
+                     parity);
 
                   outerParity = (i + k + pj) % 2;
                   sideParity = (i + k + 1) % 2;
                   parity = outerParity*4 + sideParity + 1;
-                  addWedgeTessellation(model, lastLayer[k][nextpj], lastLayer[k][pj], layer[k][nextj],
-                                                      lastLayer[k+1][nextpj], lastLayer[k+1][pj], layer[k+1][nextj], 
-                                                      parity);
+                  addWedgeTessellation (
+                     model, lastLayer[k][nextpj], lastLayer[k][pj],
+                     layer[k][nextj], lastLayer[k+1][nextpj],
+                     lastLayer[k+1][pj], layer[k+1][nextj], 
+                     parity);
                   
                   j = nextj;
                   pj = nextpj;
@@ -2641,8 +3125,10 @@ public class FemFactory {
                int sideParity = (i + k) % 2;
                int parity = outerParity*4 + sideParity+1;
                
-               addWedgeTessellation(model, layer[k][j], layer[k][nextj], lastLayer[k][pj],
-                  layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj], parity);
+               addWedgeTessellation (
+                  model, layer[k][j], layer[k][nextj], lastLayer[k][pj],
+                  layer[k+1][j], layer[k+1][nextj], lastLayer[k+1][pj],
+                  parity);
 
             }
             // next height
@@ -2662,7 +3148,8 @@ public class FemFactory {
     * @param nr radial element resolution
     * @return populated or created model
     */
-   public static FemModel3d createQuadtetCylinder(FemModel3d model, double h, double r, int nh, int nr) {
+   public static FemModel3d createQuadtetCylinder (
+      FemModel3d model, double h, double r, int nh, int nr) {
       if (model == null) {
          model = new FemModel3d();
       }
@@ -2754,26 +3241,38 @@ public class FemFactory {
                   int sideParity = (i + k/2) % 2;
                   int parity = outerParity*4 + sideParity+1;
                   
-                  addQuadwedgeTessellation(model, 
-                     outerlayer[k][j], outerlayer[k][nnj], lastOuterLayer[k][pj],
-                     outerlayer[nnk][j], outerlayer[nnk][nnj], lastOuterLayer[nnk][pj], 
-                     outerlayer[k][nj], innerlayer[k][nmj], innerlayer[k][mj],           // bottom edges
-                     outerlayer[nnk][nj], innerlayer[nnk][nmj], innerlayer[nnk][mj],     // top edges
-                     outerlayer[nk][j], outerlayer[nk][nnj], lastOuterLayer[nk][pj],     // sides
-                     outerlayer[nk][nj], innerlayer[nk][nmj], innerlayer[nk][mj],        // quads
+                  addQuadwedgeTessellation(
+                     model, 
+                     outerlayer[k][j], outerlayer[k][nnj],
+                     lastOuterLayer[k][pj], outerlayer[nnk][j],
+                     outerlayer[nnk][nnj], lastOuterLayer[nnk][pj], 
+                     outerlayer[k][nj], innerlayer[k][nmj],
+                     innerlayer[k][mj],           // bottom edges
+                     outerlayer[nnk][nj], innerlayer[nnk][nmj],
+                     innerlayer[nnk][mj],     // top edges
+                     outerlayer[nk][j], outerlayer[nk][nnj],
+                     lastOuterLayer[nk][pj],     // sides
+                     outerlayer[nk][nj], innerlayer[nk][nmj],
+                     innerlayer[nk][mj],        // quads
                      parity);
 
                   outerParity = (i + k/2 + pj/2) % 2;
                   sideParity = (i + k/2 + 1) % 2;
                   parity = outerParity*4 + sideParity + 1;
                   
-                  addQuadwedgeTessellation(model, 
-                     lastOuterLayer[k][nnpj], lastOuterLayer[k][pj], outerlayer[k][nnj],
-                     lastOuterLayer[nnk][nnpj], lastOuterLayer[nnk][pj], outerlayer[nnk][nnj], 
-                     lastOuterLayer[k][npj], innerlayer[k][nmj], innerlayer[k][nnmj],             // bottom edges
-                     lastOuterLayer[nnk][npj], innerlayer[nnk][nmj], innerlayer[nnk][nnmj],       // top edges
-                     lastOuterLayer[nk][nnpj], lastOuterLayer[nk][pj], outerlayer[nk][nnj],       // sides
-                     lastOuterLayer[nk][npj], innerlayer[nk][nmj], innerlayer[nk][nnmj],          // quads
+                  addQuadwedgeTessellation(
+                     model, 
+                     lastOuterLayer[k][nnpj], lastOuterLayer[k][pj],
+                     outerlayer[k][nnj], lastOuterLayer[nnk][nnpj],
+                     lastOuterLayer[nnk][pj], outerlayer[nnk][nnj], 
+                     lastOuterLayer[k][npj], innerlayer[k][nmj],
+                     innerlayer[k][nnmj],             // bottom edges
+                     lastOuterLayer[nnk][npj], innerlayer[nnk][nmj],
+                     innerlayer[nnk][nnmj],       // top edges
+                     lastOuterLayer[nk][nnpj], lastOuterLayer[nk][pj],
+                     outerlayer[nk][nnj],       // sides
+                     lastOuterLayer[nk][npj], innerlayer[nk][nmj],
+                     innerlayer[nk][nnmj],          // quads
                      parity);
                   
                   j = nnj;
@@ -2788,13 +3287,19 @@ public class FemFactory {
                int sideParity = (i + k/2) % 2;
                int parity = outerParity*4 + sideParity+1;
                
-               addQuadwedgeTessellation(model, 
-                  outerlayer[k][j], outerlayer[k][nnj], lastOuterLayer[k][pj],
-                  outerlayer[nnk][j], outerlayer[nnk][nnj], lastOuterLayer[nnk][pj], 
-                  outerlayer[k][nj], innerlayer[k][nmj], innerlayer[k][mj],           // bottom edges
-                  outerlayer[nnk][nj], innerlayer[nnk][nmj], innerlayer[nnk][mj],     // top edges
-                  outerlayer[nk][j], outerlayer[nk][nnj], lastOuterLayer[nk][pj],     // sides
-                  outerlayer[nk][nj], innerlayer[nk][nmj], innerlayer[nk][mj],        // quads
+               addQuadwedgeTessellation(
+                  model, 
+                  outerlayer[k][j], outerlayer[k][nnj],
+                  lastOuterLayer[k][pj], outerlayer[nnk][j],
+                  outerlayer[nnk][nnj], lastOuterLayer[nnk][pj], 
+                  outerlayer[k][nj], innerlayer[k][nmj],
+                  innerlayer[k][mj],           // bottom edges
+                  outerlayer[nnk][nj], innerlayer[nnk][nmj],
+                  innerlayer[nnk][mj],     // top edges
+                  outerlayer[nk][j], outerlayer[nk][nnj],
+                  lastOuterLayer[nk][pj],     // sides
+                  outerlayer[nk][nj], innerlayer[nk][nmj],
+                  innerlayer[nk][mj],        // quads
                   parity);
                
             }
@@ -2808,12 +3313,11 @@ public class FemFactory {
    
    /**
     * Conformally maps an ellipse to a rectangular grid using the method of 
-    * <p>
-    * <quote>
-    * Daniela Rosca, Uniform and refinable grids on elliptic domains and on some surfaces of revolution, 
-    * Applied Mathematics and Computation,Volume 217, Issue 19, 2011, Pages 7812-7817
-    * </quote>
-    *</p>
+    * <blockquote>
+    * Daniela Rosca, Uniform and refinable grids on elliptic domains and on
+    * some surfaces of revolution, Applied Mathematics and Computation,Volume
+    * 217, Issue 19, 2011, Pages 7812-7817
+    * </blockquote>
     * @param a ellipsoid radius along x
     * @param b ellipsoid radius along y
     * @param L1 rectangle half-width along x
@@ -2821,7 +3325,8 @@ public class FemFactory {
     * @param input input point (x,y)
     * @param output output point (x,y) modified, z left unchanged
     */
-   public static void conformalMapEllipseRectangle(double a, double b, double L1, double L2, Point3d input, Point3d output) {
+   public static void conformalMapEllipseRectangle (
+      double a, double b, double L1, double L2, Point3d input, Point3d output) {
       double x = input.x;
       double y = input.y;
       
@@ -2849,12 +3354,11 @@ public class FemFactory {
    
    /**
     * Conformally maps a rectangular grid to an ellipse using the method of 
-    * <p>
-    * <quote>
-    * Daniela Rosca, Uniform and refinable grids on elliptic domains and on some surfaces of revolution, 
-    * Applied Mathematics and Computation,Volume 217, Issue 19, 2011, Pages 7812-7817
-    * </quote>
-    *</p>
+    * <blockquote>
+    * Daniela Rosca, Uniform and refinable grids on elliptic domains and on
+    * some surfaces of revolution, Applied Mathematics and Computation,Volume
+    * 217, Issue 19, 2011, Pages 7812-7817
+    * </blockquote>
     * @param a ellipsoid radius along x
     * @param b ellipsoid radius along y
     * @param L1 rectangle half-width along x
@@ -2862,7 +3366,8 @@ public class FemFactory {
     * @param input input point using (x,y)
     * @param output output point, only x,y are modified
     */
-   public static void conformalMapRectangleEllipse(double a, double b, double L1, double L2, Point3d input, Point3d output) {
+   public static void conformalMapRectangleEllipse (
+      double a, double b, double L1, double L2, Point3d input, Point3d output) {
       double x = input.x;
       double y = input.y;
       
@@ -2886,23 +3391,25 @@ public class FemFactory {
    }
    
    /**
-    * Maps a unit sphere to a cylinder with unit radius and z in [-1,1] using the bilipschitz method described in
-    * <p>
-    * <quote>
-    * A bi-Lipschitz continuous, volume preserving map from the unit ball onto a cube, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
-    * </quote>
-    * </p>
+    * Maps a unit sphere to a cylinder with unit radius and z in [-1,1] using
+    * the bilipschitz method described in
+    * <blockquote>
+    * A bi-Lipschitz continuous, volume preserving map from the unit ball onto
+    * a cube, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
+    * </blockquote>
     * @param input sphere input point
     * @param output cylinder input point
     */
-   public static void bilipschitzMapSphereCylinder(Point3d input, Point3d output) {
+   public static void bilipschitzMapSphereCylinder (
+      Point3d input, Point3d output) {
       double x1 = input.x;
       double x2 = input.y;
       double y = input.z;
       
       double ay = Math.abs (y);
       double xx = Math.sqrt (x1*x1+x2*x2);
-      double xy = Math.cbrt (Math.abs (x1*x1*x1) + Math.abs (x2*x2*x2) + Math.abs (y*y*y));
+      double xy = Math.cbrt (
+         Math.abs (x1*x1*x1) + Math.abs (x2*x2*x2) + Math.abs (y*y*y));
 
       double c = Math.sqrt (5)/2;
       if (xx == 0 && ay == 0) {
@@ -2927,16 +3434,17 @@ public class FemFactory {
    }
    
    /**
-    * Maps a cylinder with unit radius and z in [-1,1] to a unit sphere using the bilipschitz method described in
-    * <p>
-    * <quote>
-    * A bi-Lipschitz continuous, volume preserving map from the unit ball onto a cube, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
-    * </quote>
-    * </p>
+    * Maps a cylinder with unit radius and z in [-1,1] to a unit sphere using
+    * the bilipschitz method described in
+    * <blockquote>
+    * A bi-Lipschitz continuous, volume preserving map from the unit ball onto
+    * a cube, Griepentrog, Hoppner, Kaiser, Rehberg, 2008
+    * </blockquote>
     * @param input cylinder input point
     * @param output sphere output point
     */
-   public static void bilipschitzMapCylinderSphere(Point3d input, Point3d output) {
+   public static void bilipschitzMapCylinderSphere (
+      Point3d input, Point3d output) {
       double a = input.x;
       double b = input.y;
       double z = input.z;
@@ -2992,8 +3500,8 @@ public class FemFactory {
    }
    
    /**
-    * Creates a hex cylinder by first generating a hex grid, then mapping it to a cylinder using 
-    * a conformal map
+    * Creates a hex cylinder by first generating a hex grid, then mapping it to
+    * a cylinder using a conformal map
     * 
     * @param fem model
     * @param l length of cylinder (z-axis)
@@ -3002,7 +3510,8 @@ public class FemFactory {
     * @param nr number of elements outward from the radius along the x,y-axes
     * @return generated model
     */
-   public static FemModel3d createHexCylinder(FemModel3d fem, double l, double r, int nl, int nr) {
+   public static FemModel3d createHexCylinder (
+      FemModel3d fem, double l, double r, int nl, int nr) {
       if (fem == null) {
          fem = new FemModel3d();
       }
@@ -3017,11 +3526,12 @@ public class FemFactory {
          
          if (d2 > 0) {
             // radial scaling
-            //            double rd = Math.max (Math.abs (pos.x), Math.abs (pos.y)); // radial distance of current square
-            //            // scale x, y so that new distance is rd
-            //            double s = Math.sqrt (rd*rd/d2);
-            //            pos.x *= s;
-            //            pos.y *= s;
+            //    // radial distance of current square:
+            //    double rd = Math.max (Math.abs (pos.x), Math.abs (pos.y));
+            //    // scale x, y so that new distance is rd
+            //    double s = Math.sqrt (rd*rd/d2);
+            //    pos.x *= s;
+            //    pos.y *= s;
             
             // conformal scaling
             conformalMapRectangleEllipse (r, r, r, r, pos, pos);
@@ -3137,7 +3647,8 @@ public class FemFactory {
     * with the element type set to {@link FemElementType#Hex}.
     */
    public static FemModel3d createHexTube(
-      FemModel3d model, double l, double rin, double rout, int nt, int nl, int nr) {
+      FemModel3d model, double l, double rin, double rout,
+      int nt, int nl, int nr) {
       FemNode3d nodes[][][] = new FemNode3d[nt][nl+1][nr+1];
 
       double dl = l / nl;
@@ -3250,7 +3761,7 @@ public class FemFactory {
                      nodes[i][j][k + 1], nodes[(i + 1) % nt][j][k + 1],
                      nodes[(i + 1) % nt][j + 1][k + 1], nodes[i][j + 1][k + 1],
                      nodes[i][j][k], nodes[(i + 1) % nt][j][k], nodes[(i + 1)
-                        % nt][j + 1][k], nodes[i][j + 1][k], (i + j + k) % 2 == 0);
+                        % nt][j + 1][k], nodes[i][j + 1][k], (i+j+k) % 2 == 0);
 
                model.addElement(elems[i][j][k][0]);
                model.addElement(elems[i][j][k][1]);
@@ -3997,7 +4508,8 @@ public class FemFactory {
       }
 
       ComponentListView<FemNode3d> quadNodes = quadMod.getNodes();
-      HashMap<FemNode3d,FemNode3d> nodeMap = new HashMap<FemNode3d,FemNode3d>();
+      HashMap<FemNode3d,FemNode3d> nodeMap =
+         new HashMap<FemNode3d,FemNode3d>();
 
       for (FemNode3d n : linMod.getNodes()) {
          FemNode3d newn = new FemNode3d(n.getPosition());
@@ -4079,23 +4591,6 @@ public class FemFactory {
    }
 
    /**
-    * Creates a regular grid composed of quadratic tet elements. Identical to
-    * {@link
-    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
-    * with the element type set to {@link FemElementType#QuadTet}.
-    */
-   public static FemModel3d createQuadtetGrid(
-      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
-      int numY, int numZ) {
-      FemModel3d tetmod = new FemModel3d();
-      createTetGrid(tetmod, widthX, widthY, widthZ, numX, numY, numZ);
-
-      model = createQuadraticModel(model, tetmod);
-      setGridEdgesHard(model, widthX, widthY, widthZ);
-      return model;
-   }
-
-   /**
     * Creates a tube made of quadratic tet elements. Identical to {@link
     * #createTube(FemModel3d,FemElementType,double,double,double,int,int,int)}
     * with the element type set to {@link FemElementType#QuadTet}.
@@ -4138,60 +4633,6 @@ public class FemFactory {
       model = createQuadraticModel(model, tetmod);
       return model;
    }
-
-   /**
-    * Creates a regular grid composed of quadratic hex elements. Identical to
-    * {@link
-    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
-    * with the element type set to {@link FemElementType#QuadHex}.
-    */
-   public static FemModel3d createQuadhexGrid(
-      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
-      int numY, int numZ) {
-      
-      FemModel3d hexmod = new FemModel3d();
-      createHexGrid(hexmod, widthX, widthY, widthZ, numX, numY, numZ);
-      model = createQuadraticModel(model, hexmod);
-      setGridEdgesHard(model, widthX, widthY, widthZ);
-      return model;
-   }
-
-   /**
-    * Creates a regular grid composed of quadratic wedge elements. Identical to
-    * {@link
-    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
-    * with the element type set to {@link FemElementType#QuadWedge}.
-    */
-   public static FemModel3d createQuadwedgeGrid(
-      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
-      int numY, int numZ) {
-      FemModel3d linmod = new FemModel3d();
-      createWedgeGrid(linmod, widthX, widthY, widthZ, numX, numY, numZ);
-
-      model = createQuadraticModel(model, linmod);
-      setGridEdgesHard(model, widthX, widthY, widthZ);
-
-      return model;
-   }
-
-   /**
-    * Creates a regular grid composed of quadratic pyramid elements. Identical
-    * to {@link
-    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
-    * with the element type set to {@link FemElementType#QuadPyramid}.
-    */
-   public static FemModel3d createQuadpyramidGrid(
-      FemModel3d model, double widthX, double widthY, double widthZ, int numX,
-      int numY, int numZ) {
-      FemModel3d linmod = new FemModel3d();
-      createPyramidGrid(linmod, widthX, widthY, widthZ, numX, numY, numZ);
-
-      model = createQuadraticModel(model, linmod);
-      setGridEdgesHard(model, widthX, widthY, widthZ);
-
-      return model;
-   }
-
 
    /**
     * Creates a tube made of quadratic hex elements. Identical to {@link
@@ -4520,12 +4961,13 @@ public class FemFactory {
                // elem will be set to null.
                FemNode3d quadNode = null;
                if (surfaceFem != null) {
-                  FemElement3d elem = surfaceFem.getSurfaceElement(f);
-                  if (elem != null && numv == 3) {
+                  FemElement3dBase elem = surfaceFem.getSurfaceElement(f);
+                  if (elem instanceof FemElement3d && numv == 3) {
                      // If there is an element associated with f, and f is a
                      // triangle, see if the element has a corresponding quad 
                      // face and if so, find the extra node associated with it.
-                     quadNode = getQuadFaceNode(f, elem, surfaceFem);
+                     quadNode =
+                        getQuadFaceNode(f, (FemElement3d)elem, surfaceFem);
                   }
                }
                if (quadNode != null) {
@@ -4870,59 +5312,6 @@ public class FemFactory {
    }
 
    /**
-    * Creates a regular grid composed of tet elements. Identical to
-    * {@link
-    * #createGrid(FemModel3d,FemElementType,double,double,double,int,int,int)}
-    * with the element type set to {@link FemElementType#Tet}.
-    */
-
-   /**
-    * Creates a regular grid, composed of elements of the type specified by
-    * <code>type</code>, centered on the origin, with specified widths and grid
-    * resolutions along each axis.
-    *
-    * @param model model to which the hex elements be added, or
-    * <code>null</code> if the model is to be created from scratch.
-    * @param type desired element type
-    * @param widthX x axis model width
-    * @param widthY y axis model width
-    * @param widthZ z axis model width
-    * @param numX element resolution along the x axis
-    * @param numY element resolution along the y axis
-    * @param numZ element resolution along the z axis
-    * @return created FEM model
-    * @throws IllegalArgumentException if the specified element type
-    * is not supported
-    */
-   public static FemModel3d createGrid(
-      FemModel3d model, FemElementType type, double widthX, double widthY,
-      double widthZ, int numX, int numY, int numZ) {
-      switch (type) {
-         case Tet:
-            return createTetGrid(
-               model, widthX, widthY, widthZ, numX, numY, numZ);
-         case Hex:
-            return createHexGrid(
-               model, widthX, widthY, widthZ, numX, numY, numZ);
-         case Wedge:
-            return createWedgeGrid(
-               model, widthX, widthY, widthZ, numX, numY, numZ);
-         case QuadTet:
-            return createQuadtetGrid(
-               model, widthX, widthY, widthZ, numX, numY, numZ);
-         case QuadHex:
-            return createQuadhexGrid(
-               model, widthX, widthY, widthZ, numX, numY, numZ);
-         case QuadWedge:
-            return createQuadwedgeGrid(
-               model, widthX, widthY, widthZ, numX, numY, numZ);
-         default:
-            throw new IllegalArgumentException (
-               "Unsupported element type " + type.toString());
-      }
-   }
-
-   /**
     * Creates a tube made of either tet, hex, quadTet, or quadHex elements, as
     * specified by <code>type</code>. Note that the element resolution 
     * <code>nt</code> around the central axis will be rounded up to 
@@ -4961,8 +5350,8 @@ public class FemFactory {
    }
 
    /**
-    * Creates a partial tube made of either tet or hex elements, as specified by
-    * <code>type</code>.
+    * Creates a partial tube made of either tet or hex elements, as specified
+    * by <code>type</code>.
     *
     * @param model model to which the elements should be added, or
     * <code>null</code> if the model is to be created from scratch.
@@ -5079,9 +5468,9 @@ public class FemFactory {
 
    /**
     * Creates a tetrahedral FEM model from a triangular surface mesh. The
-    * tetrahedra will be added to either an existing model (supplied through the
-    * argument <code>model</code>), or a newly created <code>FemModel3d</code>
-    * (if <code>model</code> is <code>null</code>).
+    * tetrahedra will be added to either an existing model (supplied through
+    * the argument <code>model</code>), or a newly created
+    * <code>FemModel3d</code> (if <code>model</code> is <code>null</code>).
     * 
     * <p>
     * The tessellation is done using tetgen, which is called through a JNI
@@ -5089,8 +5478,8 @@ public class FemFactory {
     * <code>quality</code> variable, described below.
     *
     * @param model
-    * model to which the tetrahedra should be added, or <code>null</code> if the
-    * model is to be created from scratch.
+    * model to which the tetrahedra should be added, or <code>null</code> if
+    * the model is to be created from scratch.
     * @param surface
     * triangular surface mesh used to define the tessellation.
     * @param quality
@@ -5339,7 +5728,8 @@ public class FemFactory {
     * @param fem1
     * FEM model providing components
     * @param nodeMergeDist
-    * If &gt;= 0, causes nearby nodes of <code>fem1</code> and <code>fem0</code> to
+    * If &gt;= 0,
+    * causes nearby nodes of <code>fem1</code> and <code>fem0</code> to
     * be merged: any node of <code>fem1</code> that is within
     * <code>nodeMergeDist</code> of a node in <code>fem0</code> is replaced by
     * the nearest node in <code>fem0</code>.
@@ -5361,15 +5751,15 @@ public class FemFactory {
       // constantly recomputing the bounding volume hierarchy in fem0).
       for (FemNode3d n : fem1.myNodes) {
          FemNode3d newn;
-         if (nodeMergeDist < 0
-            || (newn = fem0.findNearestNode(n.getPosition(), nodeMergeDist)) == null) {
+         if (nodeMergeDist < 0 ||
+             (newn=fem0.findNearestNode (
+                n.getPosition(), nodeMergeDist))==null) {
             newn = n.copy(flags, copyMap);
             newn.setName(n.getName());
             newNodes.add(newn);
          }
          copyMap.put(n, newn);
       }
-
       for (FemNode3d n : newNodes) {
          fem0.myNodes.add(n);
       }
@@ -5378,6 +5768,12 @@ public class FemFactory {
          newe.setName(e.getName());
          copyMap.put(e, newe);
          fem0.myElements.add(newe);
+      }
+      for (ShellElement3d e : fem1.myShellElements) {
+         ShellElement3d newe = e.copy(flags, copyMap);
+         newe.setName(e.getName());
+         copyMap.put(e, newe);
+         fem0.myShellElements.add(newe);
       }
       for (FemMarker m : fem1.myMarkers) {
          FemMarker newm = m.copy(flags, copyMap);
@@ -5404,7 +5800,8 @@ public class FemFactory {
       public boolean equals(Object obj) {
          if (obj instanceof Edge) {
             Edge e = (Edge)obj;
-            return ((e.myN0 == myN0 && e.myN1 == myN1) || (e.myN1 == myN0 && e.myN0 == myN1));
+            return ((e.myN0 == myN0 && e.myN1 == myN1) ||
+                    (e.myN1 == myN0 && e.myN0 == myN1));
          } else {
             return false;
          }

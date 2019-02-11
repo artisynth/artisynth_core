@@ -18,6 +18,7 @@ import maspack.collision.SurfaceMeshIntersector;
 import maspack.collision.SurfaceMeshIntersector.RegionType;
 import maspack.collision.SignedDistanceCollider;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.DistanceGrid;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
@@ -1274,9 +1275,9 @@ public class CollisionManager extends RenderableCompositeBase
       if (!isCollidable(c)) {
          return false;
       }
-      else if (c instanceof CollidableBody &&
+      else if (c instanceof CollidableBody) {
          // XXX hack until RigidBody and RigidCompositeBody are merged
-         !(c instanceof RigidCompositeBody)) {
+         //!(c instanceof RigidBody)) {
          CollidableBody body = (CollidableBody)c;
          return (body.getCollisionMesh() != null);
       }
@@ -1699,7 +1700,6 @@ public class CollisionManager extends RenderableCompositeBase
                setExplicitBehavior (myExplicitBehaviors, pair, behav);
             }
          }
-
          // now update the lists of collidable bodies
          ArrayList<Collidable> collidables = new ArrayList<Collidable>();
          getTopCollidables (collidables);
@@ -2120,7 +2120,6 @@ public class CollisionManager extends RenderableCompositeBase
          c0 = c1;
          c1 = tmp;
       }
-      
       PolygonalMesh mesh0 = c0.getCollisionMesh();
       PolygonalMesh mesh1 = c1.getCollisionMesh();
       ContactInfo cinfo;
@@ -2177,9 +2176,11 @@ public class CollisionManager extends RenderableCompositeBase
                if (mySDCollider == null) {
                   mySDCollider = new SignedDistanceCollider();
                }
+               DistanceGridComp gcomp0 = c0.getDistanceGridComp();
+               DistanceGridComp gcomp1 = c1.getDistanceGridComp();
                cinfo = mySDCollider.getContacts (
-                  mesh0, c0.getDistanceGrid(),
-                  mesh1, c1.getDistanceGrid());
+                  mesh0, gcomp0 != null ? gcomp0.getGrid() : null,
+                  mesh1, gcomp1 != null ? gcomp1.getGrid() : null);
                break;
             }
             default: {

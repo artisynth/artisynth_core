@@ -32,7 +32,8 @@ public class QuadtetElement extends FemElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
-         myDefaultIntegrationPoints = createIntegrationPoints();
+         myDefaultIntegrationPoints = 
+            createIntegrationPoints(new QuadtetElement());
       }
       return myDefaultIntegrationPoints;
    }
@@ -72,6 +73,7 @@ public class QuadtetElement extends FemElement3d {
             pressureWeights.set (i, getH (i, coords));
          }
          pnt.setPressureWeights (pressureWeights);
+         pnt.myElemClass = ElementClass.VOLUMETRIC;
          
          myWarpingPoint = pnt;
          
@@ -259,9 +261,9 @@ public class QuadtetElement extends FemElement3d {
       return myIntegrationCoords;
    }
 
-   private static double[] myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalExtrapolationMatrix = null;
 
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          // adjusting barycentric coordinates 'a' to reflect a scaling by s
          // is done by
@@ -369,7 +371,7 @@ public class QuadtetElement extends FemElement3d {
          6,   3, 9, 2, 6, 0, 7
       };
 
-   static int[] myWidgetFaces = FemUtilities.triangulateFaceIndices (myFaceIdxs);
+   static int[] myTriangulatedFaceIdxs;
 
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
@@ -377,6 +379,14 @@ public class QuadtetElement extends FemElement3d {
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public int[] getTriangulatedFaceIndices() {
+      if (myTriangulatedFaceIdxs == null) {
+         myTriangulatedFaceIdxs =
+            FemUtilities.triangulateFaceIndices (myFaceIdxs);
+      }
+      return myTriangulatedFaceIdxs;
    }
 
    public void render(Renderer renderer, RenderProps props, int flags) {

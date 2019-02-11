@@ -194,19 +194,29 @@ public interface PropertyInfo {
     * PrintWriter to which value is written
     * @param fmt
     * Numeric formatting information. This is only used when the value to be
-    * writtem is itself {@link maspack.util.Scannable Scannable}, in which case
+    * written is itself {@link maspack.util.Scannable Scannable}, in which case
+    * it is passed to that value's {@link maspack.util.Scannable#write write}
+    * method.
+    * @param ref Reference object. This is only used when the value to be
+    * written is itself {@link maspack.util.Scannable Scannable}, in which case
     * it is passed to that value's {@link maspack.util.Scannable#write write}
     * method.
     * @throws IOException
     * if an I/O error occurred, or the value has a type which PropertyInfo does
     * not know about
     */
-   public void writeValue (Object value, PrintWriter pw, NumberFormat fmt)
+   public void writeValue (
+      Object value, PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException;
 
    /**
     * Scans a value of the type associated with the property from a
     * ReaderTokenizer.
+    *
+    * <p><i>Since this method temporarily changes the accepted word characters
+    * in order to read a class name, it should not be called if the next
+    * available token might have been pushed back on the token stream using
+    * {@link ReaderTokenizer#pushBack pushBack()}</i>.
     * 
     * @param rtok
     * ReaderTokenizer supplying input tokens used to specify the property value
@@ -215,7 +225,44 @@ public interface PropertyInfo {
     * value has a type which PropertyInfo does not know about
     */
    public Object scanValue (ReaderTokenizer rtok) throws IOException;
-
+   
+   /**
+    * For a property whose class type implements {@link Scannable}, attempts to
+    * create and return a class instance based on input from a tokenizer.
+    *
+    * <ol>
+    * 
+    * <li> If the next token is a word, then this token is read. If it is
+    * {@code "null"}, then no instance is created and {@code null} is
+    * returned. Otherwise, the word is assumed to be the name of a class for
+    * which an instance is created and returned. The class must equal or be a
+    * subclass of the property's value class.
+    *
+    * <li> If the next token is not a word, then no token is read and an
+    * instance of the property's value class is created and returned.
+    *
+    * </ol>
+    *
+    * <p>Any returned value instance will need to subsequently scan itself from
+    * the input stream using its {@link Scannable#scan scan} method. As
+    * mentioned above, it is assumed the initial token required for this scan
+    * is a {@code '['}.
+    *
+    * <p><i>Since this method temporarily changes the accepted word characters
+    * in order to read a class name, it should not be called if the next
+    * available token might have been pushed back on the token stream using
+    * {@link ReaderTokenizer#pushBack pushBack()}</i>.
+    * 
+    * @param rtok
+    * ReaderTokenizer supplying input tokens
+    * @return A new instance of the property type (or specified subclass), or
+    * {@code null} if {@code "null"} appears as the next token.
+    * @throws IOException if no class is found for the class name specified in
+    * the input stream, or the class is not equal to, or a subclass of,
+    * the property's value class, or the class cannot be instantiated.
+    */
+   public Object scanInstance (ReaderTokenizer rtok) throws IOException;
+   
    /**
     * Creates a handle to the property for a specified host object. The host
     * must export the property (i.e., it must be an instance of the class
@@ -242,16 +289,6 @@ public interface PropertyInfo {
     * maspack.properties.InheritableProperty inheritable} property.
     */
    public boolean isInheritable();
-
-   // /**
-   // * Returns true if the value associated with this property is immutable.
-   // * Immutable objects can not be changed after creation, and
-   // * so can be shared without side-effects by different components
-   // * of a program.
-   // *
-   // * @return true if this object's value is immutable.
-   // */
-   // public boolean isImmutable();
 
    /**
     * Returns the default inheritance mode for the property. If the property is

@@ -184,7 +184,7 @@ public class CompositeComponentBase extends ModelComponentBase
       throws IOException {
 
       rtok.nextToken();
-      if (ScanWriteUtils.scanProperty (rtok, this)) {
+      if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
          return true;
       }
       else if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {

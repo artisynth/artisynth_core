@@ -24,7 +24,8 @@ public class QuadwedgeElement extends FemElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
-         myDefaultIntegrationPoints = createIntegrationPoints();
+         myDefaultIntegrationPoints = 
+            createIntegrationPoints (new QuadwedgeElement());
       }
       return myDefaultIntegrationPoints;
    }
@@ -63,6 +64,7 @@ public class QuadwedgeElement extends FemElement3d {
             pressureWeights.set (i, getH (i, coords));
          }
          pnt.setPressureWeights (pressureWeights);
+         pnt.myElemClass = ElementClass.VOLUMETRIC;
          
          myWarpingPoint = pnt;
       }
@@ -171,9 +173,9 @@ public class QuadwedgeElement extends FemElement3d {
       return myNodeCoords;
    }
 
-   private static double[] myNodalExtrapolationMatrix = null;
+   private static MatrixNd myNodalExtrapolationMatrix = null;
 
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          // nodal coordinates for the wedge are a hybrid of barycentric
          // and euclidean. See the comment in QuadtetElement on transforming
@@ -390,7 +392,7 @@ public class QuadwedgeElement extends FemElement3d {
          8,   2, 8, 0, 12, 3, 11, 5, 14,
       };
 
-   static int[] myWidgetFaces = FemUtilities.triangulateFaceIndices (myFaceIdxs);
+   static int[] myTriangulatedFaceIdxs;
 
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
@@ -398,6 +400,14 @@ public class QuadwedgeElement extends FemElement3d {
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public int[] getTriangulatedFaceIndices() {
+      if (myTriangulatedFaceIdxs == null) {
+         myTriangulatedFaceIdxs =
+            FemUtilities.triangulateFaceIndices (myFaceIdxs);
+      }
+      return myTriangulatedFaceIdxs;
    }
 
    public void render(Renderer renderer, RenderProps props, int flags) {

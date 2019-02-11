@@ -89,7 +89,7 @@ public abstract class DeformableBody extends RigidBody
    }
    
    @Override   
-   public DistanceGrid getDistanceGrid() {
+   public DistanceGridComp getDistanceGridComp() {
       return null;
    }   
    
@@ -453,8 +453,8 @@ public abstract class DeformableBody extends RigidBody
       myElasticForce.add (myExternalElasticForce);
    }
 
-   @Override protected void setMeshFromInfo () {
-      super.setMeshFromInfo();
+   @Override protected void setSurfaceMeshFromInfo () {
+      super.setSurfaceMeshFromInfo();
       PolygonalMesh mesh = getMesh();
       mesh.setFixed (false);
       ArrayList<Vertex3d> verts = mesh.getVertices();
@@ -1066,7 +1066,7 @@ public abstract class DeformableBody extends RigidBody
     * Adds to this body's elastic forces the forces arising from applying a
     * wrench <code>f</code> on an attached frame.
     *
-    * @param TFL0 undeformed location of the frame with respect to the body
+    * @param A0 undeformed location of the frame with respect to the body
     * @param wr 6 DOF force applied to the frame (body coordinates)
     */
    public void addDeformedFrameForce (

@@ -470,7 +470,8 @@ public class ControlPanel extends ModelComponentBase
                pw.println ("property=" + propPath);
             }
          }
-         widget.getAllPropertyInfo().writeNonDefaultProps (widget, pw, fmt);
+         widget.getAllPropertyInfo().writeNonDefaultProps (
+            widget, pw, fmt, ancestor);
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
       }
@@ -482,7 +483,7 @@ public class ControlPanel extends ModelComponentBase
          ComponentUtils.castRefToAncestor (ref);
       pw.print ("[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
       String optionsStr = null;
       if (myFrame != null) {
          OptionPanel optpanel = myFrame.getOptionPanel();
@@ -537,7 +538,7 @@ public class ControlPanel extends ModelComponentBase
          }
          else if (rtok.tokenIsWord()) {
             String fieldName = rtok.sval;               
-            if (!ScanWriteUtils.scanProperty (rtok, widget)) {
+            if (!ScanWriteUtils.scanProperty (rtok, widget, tokens)) {
                System.out.println (
                   "Warning: internal widget property '" + fieldName +
                   "' not found for " + widget + "; ignoring");

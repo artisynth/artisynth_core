@@ -79,49 +79,6 @@ public class ClassAliases {
       }
    }
 
-   protected static void initializeFromFile (File file) throws IOException {
-      try {
-         ReaderTokenizer rtok =
-            new ReaderTokenizer (new BufferedReader (new FileReader (file)));
-         rtok.commentChar ('#');
-         rtok.wordChar ('/');
-         rtok.wordChar ('.');
-         rtok.wordChar ('$');
-         rtok.wordChar ('_');
-         rtok.wordChar ('-');
-         String alias = null;
-         while (rtok.nextToken() != ReaderTokenizer.TT_EOF
-         && rtok.tokenIsWordOrQuotedString ('"')) {
-            if (alias == null) {
-               alias = rtok.sval;
-            }
-            else {
-               Class<?> cls;
-               try {
-                  cls = Class.forName (rtok.sval);
-               }
-               catch (Exception e) {
-                  System.err.println ("Error: class \"" + rtok.sval
-                  + "\" in file " + file.getAbsolutePath()
-                  + " cannot be located");
-                  cls = null;
-               }
-               if (cls != null) {
-                  doAddEntry (alias, cls);
-               }
-            }
-         }
-         if (rtok.ttype != ReaderTokenizer.TT_EOF) {
-            throw new IOException ("Warning: unknown token "
-            + rtok.tokenName() + " in file " + file.getAbsolutePath());
-         }
-      }
-      catch (Exception e) {
-         throw new IOException ("Warning: error reading file "
-         + file.getAbsolutePath() + "\n" + e.getMessage());
-      }
-   }
-
    protected static void initializeFromTable (String[] table) {
       for (int i = 0; i < table.length; i += 2) {
          String alias = table[i];

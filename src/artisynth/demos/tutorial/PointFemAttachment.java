@@ -64,7 +64,7 @@ public class PointFemAttachment extends RootModel {
 
    // Filter to select only elements for which the nodes are entirely on the
    // positive side of the x-z plane.
-   private class MyFilter extends ElementFilter {
+   private class MyFilter implements ElementFilter {
 
       public boolean elementIsValid (FemElement e) {
          for (FemNode n : e.getNodes()) {

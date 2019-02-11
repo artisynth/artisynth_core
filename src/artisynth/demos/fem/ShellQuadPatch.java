@@ -7,6 +7,7 @@ import artisynth.core.gui.ControlPanel;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.NeoHookeanMaterial;
 import artisynth.core.mechmodels.MechModel;
+import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.femmodels.*;
 import artisynth.core.workspace.RootModel;
 import maspack.geometry.Face;
@@ -72,8 +73,19 @@ public class ShellQuadPatch extends RootModel {
 
 
    public void build (String[] args) {
+
+      boolean membrane = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-membrane")) {
+            membrane = true;
+         }
+         else {
+            System.out.println ("Warning: unknown model argument '"+args[i]+"'");
+         }
+      }
+
       build_pre();
-      build_modelStructure();
+      build_modelStructure (membrane);
       build_modelProperties();
       build_femRendering();
       build_meshRendering();
@@ -85,7 +97,7 @@ public class ShellQuadPatch extends RootModel {
       
    }
    
-   protected void build_modelStructure() {
+   protected void build_modelStructure (boolean membrane) {
       myMech = new MechModel ("mech");
       myFem = new FemModel3d();
 
@@ -116,7 +128,7 @@ public class ShellQuadPatch extends RootModel {
 
          // Create a shell fem element for these 3 fem nodes
          ShellQuadElement ele =
-            new ShellQuadElement(n0, n1, n2, n3, myShellThickness);
+            new ShellQuadElement(n0, n1, n2, n3, myShellThickness, membrane);
          ele.setIndex (face.idx);
          myFem.addNumberedShellElement(ele, face.idx);
       }
@@ -127,19 +139,29 @@ public class ShellQuadPatch extends RootModel {
    
    protected void build_modelProperties() {
       LinearMaterial lmat = new LinearMaterial(myYoungsModulus, myPoissonsRatio);
-      lmat.setCorotated (false);
+      lmat.setCorotated (true);
       myFem.setMaterial (lmat);
       myFem.setStiffnessDamping (myStiffnessDamping);
       myFem.setGravity (mGravity);
       myFem.setDensity (myDensity);
       myFem.setParticleDamping (myParticleDamping);
 
-      // Hold some nodes in-place
-      for (FemNode3d node : myNodes) {
+      // Freeze left nodes
+      for (FemNode3d node : myFem.getNodes()) {
          node.setRenderProps( node.createRenderProps() );
-         if (shouldBeFrozen(node)) {
+         if (Math.abs(node.getPosition().x-(-myMeshX/2.0)) < EPS) {
             node.getRenderProps ().setPointColor (myNodeNonDynamicColor);
             node.setDynamic (false);
+         }
+      }
+
+      // Set mass and directors for right nodes
+      for (FemNode3d node : myFem.getNodes()) {
+         node.setRenderProps( node.createRenderProps() );
+         if (Math.abs(node.getPosition().x-(myMeshX/2.0)) < EPS) {
+            node.getRenderProps ().setPointColor (Color.CYAN);
+            node.setRestDirector (new Vector3d (0, 0, 0.1));
+            node.setExplicitMass (2);
          }
       }
    }
@@ -200,12 +222,31 @@ public class ShellQuadPatch extends RootModel {
    }
    
    public double getShellThickness() {
-      return myFem.getShellElement(0).getDefaultThickness();
+      FemModel3d fem = findFem();
+      if (fem != null) {
+         return fem.getShellElement(0).getDefaultThickness();
+      }
+      else {
+         return 0;
+      }
    }
    
    public void setShellThickness(double newThickness) {
-      for (ShellElement3d e : myFem.getShellElements()) {
-         e.setDefaultThickness (newThickness);
+      FemModel3d fem = findFem();
+      if (fem != null) {
+         for (ShellElement3d e : fem.getShellElements()) {
+            e.setDefaultThickness (newThickness);
+         }
+      }
+   }
+
+   protected FemModel3d findFem() {
+      ModelComponent comp = findComponent ("models/mech/models/0");
+      if (comp instanceof FemModel3d) {
+         return (FemModel3d)comp;
+      }
+      else {
+         return null;
       }
    }
    

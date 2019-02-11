@@ -292,10 +292,148 @@ public class FemModel3dTest extends UnitTest {
 //      }
 //   }
 
+   private static double EPS = 1e-12;
 
+   private FemNode3d getOrCreateNode (
+      FemModel3d fem, double x, double y, double z) {
+      Point3d pos = new Point3d (x, y, z);
+      for (FemNode3d n : fem.getNodes()) {
+         if (pos.epsilonEquals (n.getPosition(), EPS)) {
+            return n;
+         }
+      }
+      FemNode3d n = new FemNode3d (pos);
+      fem.addNode (n);
+      return n;
+   }
+   
+
+   /**
+    * For testing purposes, create a FemModel consisting of a 2 x 2 x 2 grid of
+    * hex elements and a 4 x 4 grid of quad shell elements in the x-y plane,
+    * centered at the origin, with the hexes and quad shells having unit
+    * widths.
+    */
+   private FemModel3d createCombinedShellVolumeModel () {
+      FemModel3d fem = new FemModel3d();
+      FemFactory.createHexGrid (fem, 2, 2, 2, 2, 2, 2);
+
+      // number and width of shell elements in X and Y
+      int numX = 4;
+      double widthX = 1;
+      int numY = 4;
+      double widthY = 1;
+
+      for (int i=0; i<numX; i++) {
+         for (int j=0; j<numY; j++) {
+            double x0 = i*widthX - (numX*widthX)/2;
+            double x1 = x0 + widthX;
+            double y0 = j*widthY - (numY*widthY)/2;
+            double y1 = y0 + widthY;
+            double z = 0;
+            
+            FemNode3d n0 = getOrCreateNode (fem, x0, y0, z);
+            FemNode3d n1 = getOrCreateNode (fem, x1, y0, z);
+            FemNode3d n2 = getOrCreateNode (fem, x1, y1, z);
+            FemNode3d n3 = getOrCreateNode (fem, x0, y1, z);
+            ShellQuadElement e = new ShellQuadElement (n0, n1, n2, n3, 0.01);
+            fem.addShellElement (e);
+         }
+      }
+      return fem;
+   }
+
+   private enum ElemType {
+      ANY,
+      SHELL,
+      VOLUME
+   };
+
+   private ElemType elementType (FemElement3dBase e) {
+      return (e instanceof ShellElement3d ? ElemType.SHELL : ElemType.VOLUME);
+   }
+
+   private String elementDescription (ElemType etype, int num) {
+      
+      return "" + etype + " element " + num;
+   }
+
+   private String elementDescription (FemElement3dBase e) {
+      return elementDescription (elementType(e), e.getNumber());
+   }
+
+   private void testFindElem (
+      FemModel3d fem, ElemType type, double x, double y, double z, 
+      double chkx, double chky, double chkz, ElemType chkType, int chkNum) {
+
+      Point3d pos = new Point3d (x, y, z);
+      Point3d loc = new Point3d ();
+      Point3d chk = new Point3d (chkx, chky, chkz);
+      FemElement3dBase e = null;
+      switch (type) {
+         case ANY: {
+            e = fem.findNearestElement (loc, pos);
+            break;
+         }
+         case SHELL: {
+            e = fem.findNearestShellElement (loc, pos);
+            break;
+         }
+         case VOLUME: {
+            e = fem.findNearestVolumetricElement (loc, pos);
+            break;
+         }
+      }
+      checkEquals ("location for nearest element:", loc, chk, EPS);
+      String edesc = elementDescription (e);
+      if (chkNum == -1) {
+         if (chkType != elementType(e)) {
+            throw new TestException (
+               "nearest element: expected "+chkType+", got " + edesc);
+         }
+      }
+      else {
+         String chkdesc = elementDescription (chkType, chkNum);
+         if (!edesc.equals (chkdesc)) {
+            throw new TestException (
+               "nearest element: expected "+chkdesc+", got " + edesc);
+         }
+      }
+   }
+
+   private void testFindNearestElement() {
+      FemModel3d fem = createCombinedShellVolumeModel();
+
+      ElemType ANY = ElemType.ANY;
+      ElemType SHELL = ElemType.SHELL;
+      ElemType VOLUME = ElemType.VOLUME;
+
+      testFindElem (fem, ANY,    0.0, 0.0, 9.0,   0.0, 0.0, 1.0, VOLUME, -1);
+      testFindElem (fem, ANY,    0.5, 0.5, 9.0,   0.5, 0.5, 1.0, VOLUME, 7);
+      testFindElem (fem, ANY,    9.0, 0.0, 0.0,   2.0, 0.0, 0.0, SHELL, -1);
+      testFindElem (fem, ANY,    9.0, 0.5, 0.5,   2.0, 0.5, 0.0, SHELL, 14);
+      testFindElem (fem, ANY,    9.0, 0.0, 9.0,   1.0, 0.0, 1.0, VOLUME, -1);
+      testFindElem (fem, ANY,    9.0,-0.5, 9.0,   1.0,-0.5, 1.0, VOLUME, 5);
+
+      testFindElem (fem, SHELL,  0.0, 0.0, 9.0,   0.0, 0.0, 0.0, SHELL, -1);
+      testFindElem (fem, SHELL,  0.5, 0.5, 9.0,   0.5, 0.5, 0.0, SHELL, 10);
+      testFindElem (fem, SHELL,  9.0, 0.0, 0.0,   2.0, 0.0, 0.0, SHELL, -1);
+      testFindElem (fem, SHELL,  9.0, 0.5, 0.5,   2.0, 0.5, 0.0, SHELL, 14);
+      testFindElem (fem, SHELL,  9.0, 0.0, 9.0,   2.0, 0.0, 0.0, SHELL, -1);
+      testFindElem (fem, SHELL,  9.0,-0.5, 9.0,   2.0,-0.5, 0.0, SHELL, 13);
+
+      testFindElem (fem, VOLUME, 0.0, 0.0, 9.0,   0.0, 0.0, 1.0, VOLUME, -1);
+      testFindElem (fem, VOLUME, 0.5, 0.5, 9.0,   0.5, 0.5, 1.0, VOLUME, 7);
+      testFindElem (fem, VOLUME, 9.0, 0.0, 0.0,   1.0, 0.0, 0.0, VOLUME, -1);
+      testFindElem (fem, VOLUME, 9.0, 0.5, 0.5,   1.0, 0.5, 0.5, VOLUME, 7);
+      testFindElem (fem, VOLUME, 9.0, 0.0, 9.0,   1.0, 0.0, 1.0, VOLUME, -1);
+      testFindElem (fem, VOLUME, 9.0,-0.5, 9.0,   1.0,-0.5, 1.0, VOLUME, 5);
+
+   }
 
    public void test() {
-      testFrameRelativeMass();
+      //testFrameRelativeMass();
+      testFindNearestElement();
    }
 
    public static void main (String[] args) {

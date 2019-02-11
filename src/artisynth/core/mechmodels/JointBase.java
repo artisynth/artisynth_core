@@ -21,12 +21,14 @@ import artisynth.core.modelbase.*;
 public abstract class JointBase extends BodyConnector  {
 
    protected double myAxisLength;
-   protected static final double defaultAxisLength = 1;
-   protected static final boolean defaultDrawFrame = false;
+   protected static final double DEFAULT_AXIS_LENGTH = 1;
+   
    protected RigidTransform3d myRenderFrameD = new RigidTransform3d();
-   protected RigidTransform3d myRenderFrameC = new RigidTransform3d();  
-   protected boolean myDrawFrameD = defaultDrawFrame;
-   protected boolean myDrawFrameC = false;
+   protected RigidTransform3d myRenderFrameC = new RigidTransform3d();
+   protected static final boolean DEFAULT_DRAW_FRAME_D = false;
+   protected boolean myDrawFrameD = DEFAULT_DRAW_FRAME_D;
+   protected static final boolean DEFAULT_DRAW_FRAME_C = false;
+   protected boolean myDrawFrameC = DEFAULT_DRAW_FRAME_C;
    
    public static PropertyList myProps =
       new PropertyList (SolidJoint.class, BodyConnector.class);
@@ -46,11 +48,13 @@ public abstract class JointBase extends BodyConnector  {
    static {
       myProps.add (
          "axisLength", "length of the axis for this joint",
-         defaultAxisLength);
+         DEFAULT_AXIS_LENGTH);
       myProps.add (
-         "drawFrame", "if true, draw the D coordinate frame", defaultDrawFrame);
+         "drawFrameD", "if true, draw the D coordinate frame", 
+         DEFAULT_DRAW_FRAME_D);
       myProps.add (
-         "drawMovingFrame getDrawFrameC setDrawFrameC", "if true, draw the C coordinate frame", false);
+         "drawFrameC", "if true, draw the C coordinate frame", 
+         DEFAULT_DRAW_FRAME_C);
       myProps.add (
          "renderProps * *", "renderer properties", defaultRenderProps (null));
    }
@@ -58,15 +62,6 @@ public abstract class JointBase extends BodyConnector  {
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
-
-   public boolean getDrawFrame() {
-      return getDrawFrameD();
-   }
-
-   public void setDrawFrame (boolean draw) {
-      setDrawFrameD(draw);
-   }
-
 
    public boolean getDrawFrameD() {
       return myDrawFrameD;

@@ -100,12 +100,18 @@ public abstract class GeometryTransformer {
        * Modfies the value of <code>X</code>, if necessary, to satisfy some
        * constraint.
        */
-      public void apply (AffineTransform3dBase X);      
+      public void apply (AffineTransform3dBase X); 
+      
+      /**
+       * Returns true if the constrainer transform is reflecting. In
+       * most cases this method will likely return false.
+       */
+      public boolean isReflecting();
    }
 
    /**
-    * Constrains an affine transform so that its matrix component results in
-    * uniform scaling.
+    * Constrains an affine transform so that it results in
+    * uniform scaling with no translation
     */
    public static class UniformScalingConstrainer implements Constrainer {
       
@@ -114,23 +120,33 @@ public abstract class GeometryTransformer {
       
       public void apply (AffineTransform3dBase X) {
 
-         if (X instanceof AffineTransform3d && 
-             !X.equals (AffineTransform3d.IDENTITY)) {
+         if (X instanceof AffineTransform3d) {
+            if (!X.equals (AffineTransform3d.IDENTITY)) {
             
-            Matrix3d A = new Matrix3d (((AffineTransform3d)X).A);
+               AffineTransform3d XA = (AffineTransform3d)X;
+               Matrix3d A = new Matrix3d (XA.A);
             
-            // factor A into the polar decomposition A = Q P,
-            // then constrain P to be a uniform scaling transform
-            // with the same volume change
-            PolarDecomposition3d pd = new PolarDecomposition3d(A);
-            Matrix3d P = pd.getP();
-            double s = Math.pow (Math.abs(P.determinant()), 1/3.0);
-            A.setDiagonal (s, s, s);
-            A.mul (pd.getQ(), A);
-            
-            ((AffineTransform3d)X).A.set(A);
+               // factor A into the polar decomposition A = Q P,
+               // then constrain P to be a uniform scaling transform
+               // with the same volume change
+               PolarDecomposition3d pd = new PolarDecomposition3d(A);
+               Matrix3d P = pd.getP();
+               double s = Math.pow (Math.abs(P.determinant()), 1/3.0);
+               A.setDiagonal (s, s, s);
+               A.mul (pd.getQ(), A);
+               
+               XA.A.set(A);
+               XA.p.setZero();               
+            }
+         }
+         else if (X instanceof RigidTransform3d) {
+            ((RigidTransform3d)X).set (RigidTransform3d.IDENTITY);
          }
       }
+      
+      public boolean isReflecting() {
+         return false;
+      }    
    }
 
    /**
@@ -894,6 +910,10 @@ public abstract class GeometryTransformer {
     * @param mesh Mesh to be transformed
     */
    public void transform (MeshBase mesh) {
+      transform (mesh, /*constrainer=*/null);
+   }
+
+   public void transform (MeshBase mesh, Constrainer constrainer) {
       if (isRestoring()) {
          restoreVertices (mesh);
          if (mesh.hasExplicitNormals()) {
@@ -911,16 +931,42 @@ public abstract class GeometryTransformer {
             saveNormals (mesh);
          }
       }
+      // if there is a constrainer, apply it to the linearization of this
+      // transform at the origin, and use the resulting affine transform XC to
+      // transform the mesh.
+      AffineTransform3dBase XC = null;
+      if (constrainer != null) {
+         XC = computeLinearizedTransform (Vector3d.ZERO);
+         constrainer.apply (XC);
+      }
       // transform normals first because we need unmodified vertex points
       if (mesh.hasExplicitNormals()) {
          ArrayList<Vector3d> normals = mesh.getNormals();
          if (normals != null) {
-            Point3d[] refs = getNormalPointRefs(mesh);
-
-            ArrayList<Vertex3d> vertices = mesh.getVertices();
+            Point3d[] refs = null;
+            Matrix3d invA = null;
+            if (XC == null) {
+               refs = getNormalPointRefs(mesh); // reference points for normals
+            }
+            else {
+               // invA is needed to transform normals
+               if (XC instanceof RigidTransform3d) {
+                  invA.transpose (((RigidTransform3d)XC).R);
+               }
+               else {
+                  invA.invert (((AffineTransform3d)XC).A);
+               }
+            }
             for (int ni=0; ni<normals.size(); ni++) {
                Vector3d nrm = normals.get(ni);
-               transformNormal (nrm, refs[ni]);
+               if (XC == null) {
+                  // transform normal using this transformer
+                  transformNormal (nrm, refs[ni]);
+               }
+               else {
+                  // transform normal using the constrained XC
+                  invA.mulTranspose (nrm, nrm);
+               }
                nrm.normalize();
             }
          }
@@ -929,7 +975,14 @@ public abstract class GeometryTransformer {
          mesh.clearNormals(); // regenerate on demand
       }
       for (Vertex3d v : mesh.getVertices()) {
-         transformPnt (v.pnt);
+         if (XC == null) {
+            // transform point using this transformer
+            transformPnt (v.pnt);
+         }
+         else {
+            // transform point using the constrained XC
+            v.pnt.transform (XC);
+         }
       }
       mesh.notifyVertexPositionsModified();
    }

@@ -1194,6 +1194,5 @@ public class RigidTransform3d extends AffineTransform3dBase {
    public boolean isRigid() {
       return true;
    }
-   
-  
+
 }

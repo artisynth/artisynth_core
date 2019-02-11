@@ -1045,6 +1045,18 @@ public class NumberFormat {
       return ((type == 'g' || type == 'G') && precision == -1);
    }
 
+   /** 
+    * Returns true if this number format corresponds to one
+    * of the floating point formats ('eEfgaA')
+    * 
+    * @return true if format corresponds to floating point
+    */
+   public boolean isFloatingPoint() {
+      return (type == 'g' || type == 'G' ||
+              type == 'e' || type == 'E' ||
+              type == 'a' || type == 'A');
+   }
+
    String toLongString() {
       return "prefix=" + prefix + "\n" + "suffix=" + suffix + "\n" + "width="
       + width + "\n" + "precision=" + precision + "\n" + "type=" + (char)type

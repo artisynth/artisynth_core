@@ -24,6 +24,17 @@ public class SingleShellQuad extends RootModel {
    protected final double myNodeRadius = 0.05;
 
    public void build (String[] args) {
+
+      boolean membrane = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-membrane")) {
+            membrane = true;
+         }
+         else {
+            System.out.println ("Warning: unknown model argument '"+args[i]+"'");
+         }
+      }
+
       FemModel3d fem = new FemModel3d();
       
       FemNode3d n0 = new FemNode3d (0, 0, 0);        
@@ -33,7 +44,7 @@ public class SingleShellQuad extends RootModel {
       n0.setDynamic (false);
       n3.setDynamic (false);
      
-      ShellQuadElement el = new ShellQuadElement(n0, n1, n2, n3, 0.01);
+      ShellQuadElement el = new ShellQuadElement(n0, n1, n2, n3, 0.01, membrane);
       fem.addNode (n0);
       fem.addNode (n1);
       fem.addNode (n2);
@@ -41,7 +52,7 @@ public class SingleShellQuad extends RootModel {
       fem.addShellElement (el);
       
       //fem.setMaterial (new NeoHookeanMaterial());
-      fem.setMaterial (new LinearMaterial(100000.0, 0.33, false));
+      fem.setMaterial (new LinearMaterial(100000.0, 0.33, true));
       fem.setGravity (0, 0, -9.8);
       fem.setDensity (myDensity);
       fem.setParticleDamping (myParticleDamping);

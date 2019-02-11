@@ -44,6 +44,7 @@ import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.DistanceGridComp;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
@@ -1288,7 +1289,7 @@ public class SkinMeshBody extends SkinMeshBase
    }
    
    @Override   
-   public DistanceGrid getDistanceGrid() {
+   public DistanceGridComp getDistanceGridComp() {
       return null;
    }
 

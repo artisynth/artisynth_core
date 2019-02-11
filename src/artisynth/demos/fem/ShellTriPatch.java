@@ -73,8 +73,19 @@ public class ShellTriPatch extends RootModel {
 
 
    public void build (String[] args) {
+
+      boolean membrane = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-membrane")) {
+            membrane = true;
+         }
+         else {
+            System.out.println ("Warning: unknown model argument '"+args[i]+"'");
+         }
+      }
+
       build_pre();
-      build_modelStructure();
+      build_modelStructure(membrane);
       build_modelProperties();
       build_femRendering();
       build_meshRendering();
@@ -86,7 +97,7 @@ public class ShellTriPatch extends RootModel {
       
    }
    
-   protected void build_modelStructure() {
+   protected void build_modelStructure(boolean membrane) {
       myMech = new MechModel ("mech");
       myFem = new FemModel3d();
 
@@ -114,7 +125,8 @@ public class ShellTriPatch extends RootModel {
          FemNode3d n2 = myNodes[ triVtx[2].getIndex() ];
 
          // Create a shell fem element for these 3 fem nodes
-         ShellTriElement ele = new ShellTriElement(n0, n1, n2, myShellThickness);
+         ShellTriElement ele =
+            new ShellTriElement(n0, n1, n2, myShellThickness, membrane);
          ele.setIndex (face.idx);
          myFem.addNumberedShellElement(ele, face.idx);
       }

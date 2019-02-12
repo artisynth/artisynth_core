@@ -163,7 +163,10 @@ public abstract class BodyConnector extends RenderableComponentBase
          ffa.getMasterForces (f, forceG);
          // wrench values will be the first 6 values of f
          wr.set (f.getBuffer());
-         wr.inverseTransform (ffa.getMaster().getPose().R);
+         Frame master = ffa.getMaster ();
+         if (master != null) {
+            wr.inverseTransform (master.getPose().R);
+         }
       }
       else {
          wr.setZero();

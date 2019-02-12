@@ -131,7 +131,7 @@ step is achieved by calling each model's
 This method advances the model from time {\tt t0} to time {\tt t1},
 performing whatever physical simulation is required (see Section
 \ref{PhysicsSimulation:sec}). The method may optionally return a {\tt
-StepAdjusment} indicating that the step size ({\tt t1} - {\tt t0}) was
+StepAdjustment} indicating that the step size ({\tt t1} - {\tt t0}) was
 too large and that the advance should be redone with a smaller step
 size. 
 
@@ -499,12 +499,34 @@ instances, their definitions are class-specific.
 Properties are exported by a class through code contained in the class
 definition, as described in Section \ref{CustomProperties:sec}.
 
+\subsection{Querying and setting property values}
+\label{ControllingPropertyValues:sec}
+
+Each property has a unique name that can be used to access its value
+interactively in the GUI. This can be done either by using a custom
+control panel (Section \ref{ControlPanels:sec}) or by selecting the
+component and choosing {\sf Edit properties ...} from the right-click
+context menu).
+
+Properties can also be accessed in code using their set/get accessor
+methods. Unless otherwise specified, the names for these are formed by
+simply prepending {\tt set} or {\tt get} to the property's name.
+More specifically, a property with the name {\sf foo} and a value type
+of {\tt Bar} will usually have accessor signatures of
+%
+\begin{lstlisting}[]
+  Bar getFoo()
+
+  void setFoo (Bar value)
+\end{lstlisting}
+%
+
 \subsection{Property handles and paths}
 \label{PropertyHandlesAndPaths:sec}
 
-Each property has a unique name which may be used to obtain a {\it
-property handle} through which the property's value may be queried or
-set for a particular component. Property handles are implemented by
+A property's name can also be used to obtain a {\it
+property handle} through which its value may be queried or
+set generically. Property handles are implemented by
 the class \javaclass[maspack.properties]{Property} and are returned by
 the component's
 \javamethod*[maspack.properties.HasProperties]{getProperty()} method.

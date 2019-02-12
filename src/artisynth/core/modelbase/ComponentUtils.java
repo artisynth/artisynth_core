@@ -633,17 +633,20 @@ public class ComponentUtils {
    
 
    /**
-    * Returns name information for a model comonent suitable for diagnistic
+    * Returns name information for an object suitable for diagnostic
     * printing.
     */
-   public static String getDiagnosticName (ModelComponent comp) {
-      if (comp == null) {
+   public static String getDiagnosticName (Object obj) {
+      if (obj == null) {
          return "null";
       }
-      String name = comp.getClass().getSimpleName();
-      String path = getPathName (comp);
-      if (!path.equals ("-1")) {
-         name += " " + path;
+      String name = obj.getClass().getSimpleName();
+      if (obj instanceof ModelComponent) {
+         ModelComponent comp = (ModelComponent)obj;
+         String path = getPathName (comp);
+         if (!path.equals ("-1")) {
+            name += " " + path;
+         }
       }
       return name;
    }
@@ -1388,13 +1391,16 @@ public class ComponentUtils {
       return map;
    }
 
-   public static <C extends ModelComponent> void updateReferences (
+   public static <C extends ModelComponent> boolean updateReferences (
       ModelComponent c, List<C> refs, boolean undo, Deque<Object> undoInfo) {
 
       if (undo) {
          Object obj = undoInfo.removeFirst();
          if (obj != ModelComponentBase.NULL_OBJ) {
-            ((ListRemove<C>)obj).undo();
+            return ((ListRemove<C>)obj).undo();
+         }
+         else {
+            return false;
          }
       }
       else {
@@ -1412,9 +1418,11 @@ public class ComponentUtils {
          if (remove != null) {
             remove.remove();
             undoInfo.addLast (remove);
+            return true;
          }
          else {
             undoInfo.addLast (ModelComponentBase.NULL_OBJ);
+            return false;
          }
       }
    }

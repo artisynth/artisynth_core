@@ -43,6 +43,7 @@ import artisynth.core.mechmodels.PointList;
 import artisynth.core.mechmodels.PointParticleAttachment;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;
+import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
@@ -161,9 +162,11 @@ PointAttachable, ConnectableBody {
 
    protected FemElement3dList<FemElement3d> myElements;
    protected FemElement3dList<ShellElement3d> myShellElements;
-   // create a list of element lists to streamline code that needs to
-   // iterate through all elements.
-   protected ArrayList<FemElement3dList<? extends FemElement3dBase>> myElemLists;
+   // list of all elements, created on demand
+   protected ArrayList<FemElement3dBase> myAllElements;
+   // // create a list of element lists to streamline code that needs to
+   // // iterate through all elements.
+   // protected ArrayList<FemElement3dList<? extends FemElement3dBase>> myElemLists;
    protected AuxMaterialBundleList myAuxiliaryMaterialList;
 
    //protected boolean myNodeNeighborsValidP = false;
@@ -236,6 +239,7 @@ PointAttachable, ConnectableBody {
 
    // protected ArrayList<FemSurface> myEmbeddedSurfaces;
    protected MeshComponentList<FemMeshComp> myMeshList;
+   protected ComponentList<FemField> myFieldList;
 
    HashMap<FemElement3d,int[]> ansysElemProps = new HashMap<FemElement3d,int[]>();
 
@@ -555,7 +559,7 @@ PointAttachable, ConnectableBody {
       updateSoftIncompMethod();
    }
 
-   private FemMaterial getElementMaterial (FemElement3dBase e) {
+   public FemMaterial getElementMaterial (FemElement3dBase e) {
       FemMaterial mat = e.getMaterial();
       if (mat == null) {
          mat = myMaterial;
@@ -622,18 +626,22 @@ PointAttachable, ConnectableBody {
       myAuxiliaryMaterialList = new AuxMaterialBundleList("materials", "mat");
       myMeshList =  new MeshComponentList<FemMeshComp>(
          FemMeshComp.class, "meshes", "msh");
+      myFieldList =  new ComponentList<FemField>(
+         FemField.class, "fields", "fld");
+
       addFixed(myFrame);
       addFixed(myNodes);
       addFixed(myElements);
       addFixed(myShellElements);
       addFixed(myAuxiliaryMaterialList);
       addFixed(myMeshList);
+      addFixed(myFieldList);
       super.initializeChildComponents();
 
-      myElemLists =
-         new ArrayList<FemElement3dList<? extends FemElement3dBase>>();
-      myElemLists.add (myElements);
-      myElemLists.add (myShellElements);
+      // myElemLists =
+      //    new ArrayList<FemElement3dList<? extends FemElement3dBase>>();
+      // myElemLists.add (myElements);
+      // myElemLists.add (myShellElements);
    }
 
    public void addMaterialBundle(AuxMaterialBundle bundle) {
@@ -749,9 +757,44 @@ PointAttachable, ConnectableBody {
       return false;
    }
    
-   /* --- Element Methods --- */
+   /**
+    * Returns a list of all elements, volumetric and shell. This is the
+    * concatination of the element lists returned by {@link #getElements()} and
+    * {@link #getShellElements()}.
+    *
+    * @return list of all elements
+    */
+   public ArrayList<FemElement3dBase> getAllElements() {
+      if (myAllElements == null) {
+         if (myElements == null) {
+            // myElements not initialized yet
+            return null;
+         }
+         myAllElements = new ArrayList<FemElement3dBase> (
+            numElements() + numShellElements());
+         for (FemElement3d e : myElements) {
+            myAllElements.add (e);
+         }
+         for (ShellElement3d e : myShellElements) {
+            myAllElements.add (e);
+         }
+      }
+      return myAllElements;
+   }      
+
+   /**
+    * Returns the number of all elements, volumetric and shell. This is the
+    * addition of the numbers returned by {@link #numElements()} and
+    * {@link #numShellElements()}.
+    *
+    * @return number of all elements
+    */
+   public int numAllElements() {
+      return getAllElements().size();
+   }
+
+   /* --- Volumetric element Methods --- */
    
-   @Override
    public FemElement3d getElement(int idx) {
       return myElements.get(idx);
    }
@@ -760,16 +803,19 @@ PointAttachable, ConnectableBody {
       return myElements.getByNumber(num);
    }
 
-   @Override
    public FemElement3dList<FemElement3d> getElements() {
       return myElements;
+   }
+   
+   public int numElements() {
+      return myElements.size();
    }
 
    public LinkedList<FemElement3d> getElementNeighbors(FemNode3d node) {
       return node.getElementDependencies();
    }
 
-   public FemElement3d getSurfaceElement (Face face) {
+   public FemElement3dBase getSurfaceElement (Face face) {
       return getSurfaceMeshComp().getFaceElement (face);
    }
 
@@ -816,6 +862,10 @@ PointAttachable, ConnectableBody {
    }
 
    /* --- Shell element Methods --- */
+   
+   public int numShellElements() {
+      return myShellElements.size();
+   }
    
    public ShellElement3d getShellElement(int idx) {
       return myShellElements.get(idx);
@@ -887,13 +937,13 @@ PointAttachable, ConnectableBody {
     * marker point to add to the model
     */
    public void addMarker (FemMarker mkr) {
+      if (numAllElements() == 0) {
+         throw new IllegalStateException (
+            "Can't add marker to a FEM with no elements");
+      }
       if (mkr.getAttachment().numMasters() == 0) {
-         FemElement3d elem = findContainingElement(mkr.getPosition());
-         if (elem == null) {
-            Point3d newLoc = new Point3d();
-            elem = findNearestSurfaceElement(newLoc, mkr.getPosition());
-            mkr.setPosition(newLoc);
-         }
+         FemElement3dBase elem = findElementForMarker (
+            mkr, mkr.getPosition(), /*project=*/true);
          addMarker(mkr, elem);
       }
       else {
@@ -914,6 +964,25 @@ PointAttachable, ConnectableBody {
       return addMarker(pos, true);
    }
 
+   private FemElement3dBase findElementForMarker (
+      FemMarker mkr, Point3d pos, boolean project) {
+      Point3d newLoc = new Point3d();
+      FemElement3dBase elem = findNearestElement (newLoc, pos);
+      if (elem != null) {
+         if (project) {
+            mkr.setPosition (newLoc);
+         } 
+         else {
+            mkr.setPosition (pos);
+         }
+      }
+      else {
+         throw new InternalErrorException (
+            "Unable to find nearest element to point " + pos);
+      }
+      return elem;
+   }
+   
    /**
     * Creates and adds a marker to this FemModel. The element to which it
     * belongs is determined automatically. If the marker's current position
@@ -923,24 +992,17 @@ PointAttachable, ConnectableBody {
     * @param pos
     * position to place a marker in the model
     * @param project
-    * if true and pnt is outside the model, projects to the nearest point
-    * on the surface.  Otherwise, uses the original position.
+    * if true and pnt is outside the model, projects to the nearest element.
+    * Otherwise, uses the original position.
     * @return created marker
     */
-   public FemMarker addMarker(Point3d pos, boolean project) {
-      FemMarker mkr = new FemMarker();
-      FemElement3d elem = findContainingElement(pos);
-      if (elem == null) {
-         Point3d newLoc = new Point3d();
-         elem = findNearestSurfaceElement(newLoc, pos);
-         if (project) {
-            mkr.setPosition(newLoc);
-         } else {
-            mkr.setPosition(pos);
-         }
-      } else {
-         mkr.setPosition(pos);
+   public FemMarker addMarker (Point3d pos, boolean project) {
+      if (numAllElements() == 0) {
+         throw new IllegalStateException (
+            "Can't add marker to a FEM with no elements");
       }
+      FemMarker mkr = new FemMarker();
+      FemElement3dBase elem = findElementForMarker (mkr, pos, project);
       addMarker(mkr, elem);
       return mkr;
    }
@@ -949,26 +1011,52 @@ PointAttachable, ConnectableBody {
       return addNumberedMarker(pos, true, markerId);
    }
 
-   public FemMarker addNumberedMarker(Point3d pos, boolean project, int markerId) {
-      FemMarker mkr = new FemMarker();
-      FemElement3d elem = findContainingElement(pos);
-      if (elem == null) {
-         Point3d newLoc = new Point3d();
-         elem = findNearestSurfaceElement(newLoc, pos);
-         if (project) {
-            mkr.setPosition(newLoc);
-         } else {
-            mkr.setPosition(pos);
-         }
-      } else {
-         mkr.setPosition(pos);
+   public FemMarker addNumberedMarker (
+      Point3d pos, boolean project, int markerId) {
+      if (numAllElements() == 0) {
+         throw new IllegalStateException (
+            "Can't add marker to a FEM with no elements");
       }
+      FemMarker mkr = new FemMarker();
+      FemElement3dBase elem = findElementForMarker (mkr, pos, project);
       addMarker(mkr, elem, markerId);
       return mkr;
    }
 
    /* --- Nearest Node and Element Query Methods --- */
    
+   @Override
+   protected void updateBVHierarchies() {
+      if (myAABBTree == null) {
+         myAABBTree = new AABBTree();
+         // BVH should contain all elements, plus isolated nodes
+         int niso = 0;
+         for (FemNode3d n : myNodes) {
+            if (n.getAdjacentElements().size() == 0) {
+               niso++;
+            }
+         }
+         ArrayList<FemElement3dBase> elist = getAllElements();
+         Boundable[] elements = new Boundable[elist.size() + niso];
+         int k = 0;
+         for (int i=0; i<elist.size(); i++) {
+            elements[k++] = elist.get(i);
+         }
+         if (niso > 0) {
+            for (FemNode3d n : myNodes) {
+               if (n.getAdjacentElements().size() == 0) {
+                  elements[k++] = n;
+               }
+            }
+         }
+         myAABBTree.build(elements, elements.length);
+      }
+      else {
+         myAABBTree.update();
+      }
+      myBVTreeValid = true;
+   }   
+
    /**
     * Returns the element within an FEM that contains a specified
     * point, or <code>null</code> if there is no such element.
@@ -986,9 +1074,11 @@ PointAttachable, ConnectableBody {
       for (BVNode n : nodes) {
          Boundable[] elements = n.getElements();
          for (int i = 0; i < elements.length; i++) {
-            boolean inside = ((FemElement3d)elements[i]).isInside(pnt);
-            if (inside) {
-               return (FemElement3d)elements[i];
+            if (elements[i] instanceof FemElement3d) {
+               boolean inside = ((FemElement3d)elements[i]).isInside(pnt);
+               if (inside) {
+                  return (FemElement3d)elements[i];
+               }
             }
          }
       }
@@ -1004,7 +1094,7 @@ PointAttachable, ConnectableBody {
     * @param pnt Point for which nearest surface element is desired.
     * @return Nearest surface element.
     */
-   public FemElement3d findNearestSurfaceElement(Point3d loc, Point3d pnt) {
+   public FemElement3dBase findNearestSurfaceElement(Point3d loc, Point3d pnt) {
       Vector2d coords = new Vector2d();
       PolygonalMesh surf = getSurfaceMesh();
       if (surf == null || surf.numFaces() == 0) {
@@ -1013,7 +1103,7 @@ PointAttachable, ConnectableBody {
       if (surf != null) {
          Face face = BVFeatureQuery.getNearestFaceToPoint (
             loc, coords, surf, pnt);
-         FemElement3d elem = getSurfaceElement(face);
+         FemElement3dBase elem = getSurfaceElement(face);
          if (elem == null) {
             throw new InternalErrorException (
                "surface element not found for face");
@@ -1025,26 +1115,67 @@ PointAttachable, ConnectableBody {
       }
    }
 
-   /**
-    * Returns the element within an FEM that contains a specified point, or if
-    * there is no such element, finds the closest surface element.
-    * 
-    * @param loc Location of the point, within the FEM or projected onto the
-    * surface.
-    * @param pnt Point for which the nearest element is desired.
-    * @return Nearest element.
-    */
-   public FemElement3d findNearestElement(Point3d loc, Point3d pnt) {
-      FemElement3d e = findContainingElement(pnt);
-      if (e == null) {
-         e = findNearestSurfaceElement(loc, pnt);
+   public FemElement3dBase findNearestElement (
+      Point3d loc, Point3d pnt, ElementFilter filter) {
+      FemElement3dBase e = null;
+      if (numElements() > 0) {
+         e = findContainingElement (pnt);
       }
-      else {
+      if (e == null) {
+         BVFeatureQuery query = new BVFeatureQuery();
+         PointElem3dDistanceCalculator calc =
+            new PointElem3dDistanceCalculator (filter);
+         calc.setPoint (pnt);
+         e = (FemElement3dBase)query.nearestObjectToPoint (
+            loc, getBVTree(), calc);
+      }
+      else if (loc != null) {
          loc.set(pnt);
       }
       return e;
-   }
+   }      
 
+   /**
+    * Returns the element within an FEM that contains a specified point, or if
+    * there is no such element, finds the nearest element.
+    * 
+    * @param loc (optional) If non-null, returns the location of the
+    * point, within the FEM or projected onto the nearest element.
+    * @param pnt Point for which the nearest element is desired.
+    * @return Nearest element.
+    */
+   public FemElement3dBase findNearestElement (Point3d loc, Point3d pnt) {
+      return findNearestElement (loc, pnt, null);
+   }
+   
+   /**
+    * Returns the volumetric element within an FEM that contains a specified
+    * point, or if there is no such element, finds the nearest element.
+    * 
+    * @param loc (optional) If non-null, returns the location of the point,
+    * within the FEM or projected onto the nearest element.
+    * @param pnt Point for which the nearest element is desired.
+    * @return Nearest element.
+    */
+   public FemElement3d findNearestVolumetricElement (Point3d loc, Point3d pnt) {
+      return (FemElement3d)findNearestElement (
+         loc, pnt, e -> e instanceof FemElement3d);
+   }
+   
+   /**
+    * Returns the shell element within an FEM that is nearest to a
+    * specified point.
+    * 
+    * @param loc (optional) If non-null, returns the location of the
+    * point projected onto the nearest element.
+    * @param pnt Point for which the nearest element is desired.
+    * @return Nearest element.
+    */
+   public ShellElement3d findNearestShellElement (Point3d loc, Point3d pnt) {
+      return (ShellElement3d)findNearestElement (
+         loc, pnt, e -> e instanceof ShellElement3d);
+   }
+   
    /**
     * Finds the nearest node to a specified point that is within
     * a specified maximum distance. If no node is within the
@@ -1057,24 +1188,34 @@ PointAttachable, ConnectableBody {
     * @return Nearest point within the prescribed distance, or <code>null</code>
     * if there is no such point
     */
-   public FemNode3d findNearestNode(Point3d pnt, double maxDist) {
+   public FemNode3d findNearestNode (Point3d pnt, double maxDist) {
       if (maxDist < 0) {
          return null;
       }
       BVTree bvtree = getBVTree();
-      ArrayList<BVNode> nodes = new ArrayList<BVNode>();
-      bvtree.intersectSphere(nodes, pnt, maxDist);
+      ArrayList<BVNode> bvnodes = new ArrayList<BVNode>();
+      bvtree.intersectSphere(bvnodes, pnt, maxDist);
       FemNode3d nearest = null;
       double dist = 1 + 2 * maxDist;
-      for (BVNode n : nodes) {
+      for (BVNode n : bvnodes) {
          Boundable[] elements = n.getElements();
          for (int i = 0; i < elements.length; i++) {
-            FemElement3d e = (FemElement3d)elements[i];
-            for (int k = 0; k < e.numNodes(); k++) {
-               double d = e.myNodes[k].getPosition().distance(pnt);
+            if (elements[i] instanceof FemElement3dBase) {
+               FemElement3dBase e = (FemElement3dBase)elements[i];
+               for (int k = 0; k < e.numNodes(); k++) {
+                  double d = e.myNodes[k].getPosition().distance(pnt);
+                  if (d < dist && d <= maxDist) {
+                     dist = d;
+                     nearest = e.myNodes[k];
+                  }
+               }
+            }
+            else if (elements[i] instanceof FemNode3d) {
+               FemNode3d node = (FemNode3d)elements[i];
+               double d = node.getPosition().distance(pnt);
                if (d < dist && d <= maxDist) {
                   dist = d;
-                  nearest = e.myNodes[k];
+                  nearest = node;
                }
             }
          }
@@ -1153,6 +1294,38 @@ PointAttachable, ConnectableBody {
       myInternalSurfaceMeshComp = null;
    }
 
+   /* --- Field Component Methods --- */
+
+   public FemField getField (String name) {
+      return myFieldList.get(name);
+   }
+
+   public ComponentList<FemField> getFields() {
+      return myFieldList;
+   }
+
+   public int numFields() {
+      return myFieldList.size();
+   }
+
+   public void addField (FemField<?> field) {
+      if (field.getParent() == myFieldList) {
+         throw new IllegalArgumentException (
+            "FemModel3d already contains specified field component");
+      }
+      myFieldList.add (field);
+   }
+
+   public boolean removeField (FemField<?> field) {
+      return myFieldList.remove(field);
+   }
+
+   public void clearFields() {
+      for (int i=myFieldList.size()-1; i>0; i--) {
+         myFieldList.remove (i);
+      }
+   }
+
    /* --- Surface Methods --- */
    
    /**
@@ -1209,10 +1382,10 @@ PointAttachable, ConnectableBody {
    protected void createDefaultSurfaceMesh (FemMeshComp meshc) {
       // by default, build fine surface mesh if quadratic elements present
       if (numQuadraticElements() > 0) {
-         meshc.createFineSurface (3, new ElementFilter());
+         meshc.createFineSurface (3, e -> true);
       }
       else {
-         meshc.createSurface(new ElementFilter());
+         meshc.createSurface (e -> true);
       }
    }
 
@@ -1425,53 +1598,16 @@ PointAttachable, ConnectableBody {
    @Override
    public void scaleDistance(double s) {
       super.scaleDistance(s);
-      for (ShellElement3d e : myShellElements) {
-         e.scaleDistance (s);
-      }      
       myAuxiliaryMaterialList.scaleDistance(s);
       myVolume *= (s * s * s);
       updateSlavePos();
    }
 
    @Override
-   public double getMass() {
-      double mass = super.getMass();
-      for (ShellElement3d e : myShellElements) {
-         mass += e.getMass();
-      }
-      return mass;
-   }
-
-   @Override
    public void scaleMass(double s) {
       super.scaleMass(s);
-      for (ShellElement3d e : myShellElements) {
-         e.scaleMass (s);
-      }
       myAuxiliaryMaterialList.scaleMass(s);
    }
-
-   @Override
-   public double updateVolume() {
-      double volume = super.updateVolume();
-      for (ShellElement3d e : myShellElements) {
-         e.computeVolumes();
-         volume += e.getVolume();
-      }
-      myVolume = volume;
-      return volume;
-   }  
-
-   @Override
-   public double updateRestVolume() {
-      double volume = super.updateRestVolume();
-      for (ShellElement3d e : myShellElements) {
-         e.computeRestVolumes();
-         volume += e.getRestVolume();
-      }
-      myRestVolume = volume;
-      return volume;
-   }  
 
    /* --- Connectable Body Methods --- */
 
@@ -1531,12 +1667,23 @@ PointAttachable, ConnectableBody {
 
    protected void clearCachedData(ComponentChangeEvent e) {
       super.clearCachedData(e);
+      if (e instanceof StructureChangeEvent) {
+         StructureChangeEvent sce = (StructureChangeEvent)e;
+         if (sce.getComponent() == myElements ||
+             sce.getComponent() == myShellElements) {
+            // need to completely rebuild the tree since the elements
+            // may have changed
+            myAABBTree = null;
+            myBVTreeValid = false;
+         }
+      }
       // clearIncompressVariables();
       mySolveMatrix = null;
       // myActiveNodes = null;
       mySoftIncompMethodValidP = false;
       myHardIncompMethodValidP = false;
       myHardIncompConfigValidP = false;
+      myAllElements = null;
       myNumTetElements = -1; // invalidates all element counts
       //myNodeNeighborsValidP = false;
    }
@@ -1591,13 +1738,9 @@ PointAttachable, ConnectableBody {
       myNodalRestVolumesValidP = false;
    }
 
+   @Override
    public void invalidateRestData() {
       super.invalidateRestData();
-      if (getShellElements() != null) {
-         for (ShellElement3d e : getShellElements()) {
-            e.invalidateRestData();
-         }
-      }     
       invalidateNodalRestVolumes();
    }
 
@@ -1646,7 +1789,7 @@ PointAttachable, ConnectableBody {
 
    public int markInvertedRestElements() {
       int cnt = 0;
-      for (FemElement3d e : getElements()) {
+      for (FemElement3dBase e : getAllElements()) {
          IntegrationData3d[] idata = e.getIntegrationData();
          boolean inverted = false;
          for (int i = 0; i < idata.length; i++) {
@@ -1677,7 +1820,7 @@ PointAttachable, ConnectableBody {
       // Jacobians
       double volume = 0;
       clearElementConditionInfo();
-      for (FemElement3d e : getElements()) {
+      for (FemElement3dBase e : getAllElements()) {
          FemMaterial mat = getElementMaterial(e);
          double detJ = e.computeVolumes();
          e.setInverted(false);
@@ -1723,14 +1866,6 @@ PointAttachable, ConnectableBody {
       }
    }
    
-   public void initializeDirectorsIfNecessary() {
-      for (FemNode3d n : myNodes) {
-         if (n.hasDirector()) {
-            n.initializeDirectorIfNecessary();
-         }
-      }     
-   }
-      
    public void recursivelyInitialize(double t, int level) {
       if (t == 0) {
          setNodalIncompBlocksAllocated (
@@ -1753,9 +1888,6 @@ PointAttachable, ConnectableBody {
          }         
          for (FemNode3d n : myNodes) {
             n.zeroStress();
-            if (n.hasDirector()) {
-               n.initializeDirectorIfNecessary();
-            }
          }
          // paranoid ... should already be invalid:
          invalidateStressAndStiffness();
@@ -2481,6 +2613,114 @@ PointAttachable, ConnectableBody {
       // timerStop("stressAndStiffness");
    }
 
+   /**
+    * Accumulates nodal stress and strain values for linear materials.
+    */
+   protected void accumulateLinearNodalStressStrain (
+      FemElement3dBase e, StiffnessWarper3d warper,
+      FemMaterial mat, FemDeformedPoint dpnt) {
+      
+      SymmetricMatrix3d sigma = new SymmetricMatrix3d();
+      FemNode3d[] nodes = e.getNodes();
+
+      // estimate at warping point
+      RotationMatrix3d R = warper.getRotation();
+      IntegrationPoint3d wpnt = e.getWarpingPoint();
+      IntegrationData3d wdata = e.getWarpingData();
+            
+      int widx = e.getIntegrationIndex();
+      if (e.numIntegrationPoints() > 1) {
+         widx += e.numIntegrationPoints();
+      }
+      dpnt.setFromIntegrationPoint (wpnt, wdata, R, e, widx);
+
+      SymmetricMatrix3d tmp = new SymmetricMatrix3d();
+
+      // compute nodal stress at wpnt
+      if (myComputeNodalStress) {
+         // compute linear stress
+         mat.computeStressAndTangent (tmp, /*D=*/null, dpnt, null, 0.0);
+         sigma.add(tmp);
+         if (e instanceof FemElement3d) {
+            for (AuxiliaryMaterial amat :
+                    ((FemElement3d)e).getAuxiliaryMaterials()) {
+               amat.computeStressAndTangent (
+                  tmp, /*D=*/null, dpnt, wpnt, wdata);
+               sigma.add(tmp);
+            }
+         }
+         if (e.getAugmentingMaterials() != null) {
+            for (FemMaterial amat : e.getAugmentingMaterials()) {
+               amat.computeStressAndTangent (tmp, /*D=*/null, dpnt, null, 0.0);
+               sigma.add(tmp);
+            }
+         }
+         
+         
+         // distribute stress to nodes
+         for (int i = 0; i < nodes.length; i++) {
+            nodes[i].addScaledStress (
+               1.0 / nodes[i].numAdjacentElements(), sigma);
+         }
+      }
+
+      if (myComputeNodalStrain && mat.isLinear()) {
+         
+         // Cauchy strain at warping point
+         if (mat.isCorotated()) {
+            // remove rotation from F
+            sigma.mulTransposeLeftSymmetric(R, dpnt.getF());
+         } else {
+            sigma.setSymmetric(dpnt.getF());
+         }
+         sigma.m00 -= 1;
+         sigma.m11 -= 1;
+         sigma.m22 -= 1;
+         
+         // distribute strain to nodes
+         for (int i = 0; i < nodes.length; i++) {
+            nodes[i].addScaledStrain (
+               1.0 / nodes[i].numAdjacentElements(), sigma);
+         }
+      }
+   }
+
+   /**
+    * Accumulates nodal stress and strain values for nonlinear materials.
+    */
+   protected void accumulateNonlinearNodalStressStrain (
+      FemElement3dBase e, int i, int k,
+      SymmetricMatrix3d sigma, FemMaterial mat, FemDeformedPoint dpnt) {
+
+      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+      FemNode3d nodei = e.myNodes[i];
+      MatrixNd nodalExtrapMat = e.getNodalExtrapolationMatrix();
+      double[] nodalExtrapMatBuf = nodalExtrapMat.getBuffer();
+      if (nodalExtrapMat != null) {
+         if (myComputeNodalStress) {
+            double a = nodalExtrapMatBuf[i*ipnts.length + k];
+            if (a != 0) {
+               nodei.addScaledStress(
+                  a / nodei.numAdjacentElements(), sigma);
+            }
+         }
+         
+         // if base material non-linear and computing nodal strain 
+         if (myComputeNodalStrain && !mat.isLinear()) {
+            double a = nodalExtrapMatBuf[i*ipnts.length + k];
+            if (a != 0) {
+               SymmetricMatrix3d C = new SymmetricMatrix3d();
+               mat.computeRightCauchyGreen(C,dpnt);
+               C.m00 -= 1;
+               C.m11 -= 1;
+               C.m22 -= 1;
+               C.scale(0.5);
+               nodei.addScaledStrain(
+                  a / nodei.numAdjacentElements(), C);
+            }
+         }
+      }
+   }
 
    // DIVBLK
    public void computeStressAndStiffness(FemElement3d e, FemMaterial mat, 
@@ -2516,10 +2756,10 @@ PointAttachable, ConnectableBody {
          // compute warping rotation
          warper.computeWarpingRotation(e);
 
-         IntegrationPoint3d wp = e.getWarpingPoint();
-         IntegrationData3d wd = e.getWarpingData();
-         Matrix3d F = new Matrix3d();
-         wp.computeGradient(F, e.getNodes(), wd.myInvJ0);
+//         IntegrationPoint3d wp = e.getWarpingPoint();
+//         IntegrationData3d wd = e.getWarpingData();
+//         Matrix3d F = new Matrix3d();
+//         wp.computeGradient(F, e.getNodes(), wd.myInvJ0);
 
          // add force and stiffness
          for (int i = 0; i < nodes.length; i++) {
@@ -2540,58 +2780,8 @@ PointAttachable, ConnectableBody {
          }
 
          if (myComputeNodalStress || (myComputeNodalStrain && mat.isLinear()) ) {
-
-            // estimate at warping point
-            RotationMatrix3d R = warper.getRotation();
-            IntegrationPoint3d wpnt = e.getWarpingPoint();
-            IntegrationData3d wdata = e.getWarpingData();
-            //wpnt.computeJacobianAndGradient(nodes, wdata.myInvJ0);
-            
-            int widx = e.getIntegrationIndex();
-            if (e.numIntegrationPoints() > 1) {
-               widx += e.numIntegrationPoints();
-            }
-            dpnt.setFromIntegrationPoint (wpnt, wdata, R, e, widx);
-
-            SymmetricMatrix3d tmp = new SymmetricMatrix3d();
-
-            // compute nodal stress at wpnt
-            if (myComputeNodalStress) {
-               // compute linear stress
-               //mat.computeStress (tmp, def, null, null);
-               mat.computeStressAndTangent (tmp, /*D=*/null, dpnt, null, 0.0);
-               sigma.add(tmp);
-               for (AuxiliaryMaterial amat : e.getAuxiliaryMaterials()) {
-                  amat.computeStressAndTangent (
-                     tmp, /*D=*/null, dpnt, wpnt, wdata);
-                  sigma.add(tmp);
-               }
-
-               // distribute stress to nodes
-               for (int i = 0; i < nodes.length; i++) {
-                  nodes[i].addScaledStress(1.0 / nodes[i].numAdjacentElements(), sigma);
-               }
-            }
-
-            if (myComputeNodalStrain && mat.isLinear()) {
-
-               // Cauchy strain at warping point
-               if (mat.isCorotated()) {
-                  // remove rotation from F
-                  sigma.mulTransposeLeftSymmetric(R, dpnt.getF());
-               } else {
-                  sigma.setSymmetric(dpnt.getF());
-               }
-               sigma.m00 -= 1;
-               sigma.m11 -= 1;
-               sigma.m22 -= 1;
-
-               // distribute strain to nodes
-               for (int i = 0; i < nodes.length; i++) {
-                  nodes[i].addScaledStrain(1.0 / nodes[i].numAdjacentElements(), sigma);
-               }
-            }
-         } // stress or strain         
+            accumulateLinearNodalStressStrain (e, warper, mat, dpnt);
+         }
       }
 
       // exit early if no non-linear materials
@@ -2601,6 +2791,14 @@ PointAttachable, ConnectableBody {
             if (!amat.isLinear()) {
                linearOnly = false;
                break;
+            }
+         }
+         if (e.getAugmentingMaterials() != null) {
+            for (FemMaterial amat : e.getAugmentingMaterials()) {
+               if (!amat.isLinear()) {
+                  linearOnly = false;
+                  break;
+               }
             }
          }
       }
@@ -2699,9 +2897,6 @@ PointAttachable, ConnectableBody {
                   // XXX map to nearest node
                   int maxIdx = N.maxIndex ();
                   pressure = nodes[maxIdx].myPressure;
-                  //                  for (int i=0; i<N.size(); ++i) {
-                  //                     pressure += nodes[i].myPressure*N.get(i);
-                  //                  }
                }
                break;
             }
@@ -2713,7 +2908,6 @@ PointAttachable, ConnectableBody {
                // no need to compute pressure
             }
          }
-         
 
          // anisotropy rotational frame
          Matrix3d Q = (dt.myFrame != null ? dt.myFrame : Matrix3d.IDENTITY);
@@ -2743,12 +2937,29 @@ PointAttachable, ConnectableBody {
 
          if (e.numAuxiliaryMaterials() > 0) {
             for (AuxiliaryMaterial amat : e.getAuxiliaryMaterials()) {
-
                // skip linear materials
                if (!amat.isLinear()) {
-
                   amat.computeStressAndTangent (
                      sigmaTmp, D != null ? Dtmp : null, dpnt, pt, dt);
+                  if (scaling != 1) {
+                     sigmaTmp.scale(scaling);
+                     if (D != null) {
+                        Dtmp.scale (scaling);
+                     }
+                  }
+                  sigma.add(sigmaTmp);
+                  if (D != null) {
+                     D.add(Dtmp);
+                  }
+               }
+            }
+         }
+         if (e.numAugmentingMaterials() > 0) {
+            for (FemMaterial amat : e.getAugmentingMaterials()) {
+               // skip linear materials
+               if (!amat.isLinear()) {
+                  amat.computeStressAndTangent (
+                     sigmaTmp, D != null ? Dtmp : null, dpnt, null, 0.0);
                   if (scaling != 1) {
                      sigmaTmp.scale(scaling);
                      if (D != null) {
@@ -2822,29 +3033,10 @@ PointAttachable, ConnectableBody {
             } // if D != null
 
             // nodal stress/strain
-            double[] nodalExtrapMat = e.getNodalExtrapolationMatrix();
-            if (nodalExtrapMat != null) {
-               if (myComputeNodalStress) {
-                  double a = nodalExtrapMat[i * ipnts.length + k];
-                  if (a != 0) {
-                     nodei.addScaledStress(
-                        a / nodei.numAdjacentElements(), sigma);
-                  }
-               }
-
-               // if base material non-linear and computing nodal strain 
-               if (myComputeNodalStrain && !mat.isLinear()) {
-                  double a = nodalExtrapMat[i * ipnts.length + k];
-                  if (a != 0) {
-                     mat.computeRightCauchyGreen(C,dpnt);
-                     C.m00 -= 1;
-                     C.m11 -= 1;
-                     C.m22 -= 1;
-                     C.scale(0.5);
-                     nodei.addScaledStrain(
-                        a / nodei.numAdjacentElements(), C);
-                  }
-               }
+            if (myComputeNodalStress ||
+                (myComputeNodalStrain && !mat.isLinear())) {
+               accumulateNonlinearNodalStressStrain (
+                  e, i, k, sigma, mat, dpnt);
             }
          } // looping through nodes computing stress
 
@@ -2874,14 +3066,6 @@ PointAttachable, ConnectableBody {
                      nbr.myDivBlk.scaledAdd(dv, GNx[j]);
                   }
                }
-               //               for (int i = 0; i < N.size(); ++i) {
-               //                  for (FemNodeNeighbor nbr : getNodeNeighbors(e.myNodes[i])) {
-               //                     int j = e.getLocalNodeIndex(nbr.getNode());
-               //                     if (j != -1) {
-               //                        nbr.myDivBlk.scaledAdd(N.get(i)*dv, GNx[j]);
-               //                     }
-               //                  }
-               //               }
             }
          } // soft incompressibility
       } // end looping through integration points
@@ -2939,6 +3123,7 @@ PointAttachable, ConnectableBody {
       e.setInverted(false); // will check this below
             
       StiffnessWarper3d warper = e.getStiffnessWarper(1.0); // internally updates
+      FemDeformedPoint dpnt = new FemDeformedPoint();         
       // if there is cached linear material, then apply
       if (!warper.isCacheEmpty()) {
 
@@ -2963,6 +3148,10 @@ PointAttachable, ConnectableBody {
                   n.myInternalForce, n.myBackNode.myInternalForce, i, nodes);
             }
          }
+
+         if (myComputeNodalStress || (myComputeNodalStrain && mat.isLinear()) ) {
+            accumulateLinearNodalStressStrain (e, warper, mat, dpnt);
+         }
       }
 
       if (linearOnly) {
@@ -2970,8 +3159,6 @@ PointAttachable, ConnectableBody {
       }
       
       SymmetricMatrix3d sigma = new SymmetricMatrix3d();
-         
-      FemDeformedPoint dpnt = new FemDeformedPoint();
       Matrix3d invJ = new Matrix3d();
          
       int nump = e.numPlanarIntegrationPoints();
@@ -3053,6 +3240,12 @@ PointAttachable, ConnectableBody {
                   }
                }
             }
+            // nodal stress/strain
+            if (myComputeNodalStress ||
+                (myComputeNodalStrain && !mat.isLinear())) {
+               accumulateNonlinearNodalStressStrain (
+                  e, i, k, sigma, mat, dpnt);
+            }
          }
       }
    }
@@ -3075,6 +3268,8 @@ PointAttachable, ConnectableBody {
       e.setInverted(false); // will check this below
             
       StiffnessWarper3d warper = e.getStiffnessWarper(1.0); // internally updates
+      FemDeformedPoint dpnt = new FemDeformedPoint();
+
       // if there is cached linear material, then apply
       if (!warper.isCacheEmpty()) {
 
@@ -3098,6 +3293,10 @@ PointAttachable, ConnectableBody {
                warper.addNodeForce(n.myInternalForce, i, nodes);
             }
          }
+
+         if (myComputeNodalStress || (myComputeNodalStrain && mat.isLinear()) ) {
+            accumulateLinearNodalStressStrain (e, warper, mat, dpnt);
+         }
       }
 
       if (linearOnly) {
@@ -3105,8 +3304,6 @@ PointAttachable, ConnectableBody {
       }
       
       SymmetricMatrix3d sigma = new SymmetricMatrix3d();
-         
-      FemDeformedPoint dpnt = new FemDeformedPoint();
       Matrix3d invJ = new Matrix3d();
          
       int nump = e.numPlanarIntegrationPoints();
@@ -3179,6 +3376,12 @@ PointAttachable, ConnectableBody {
                   }
                }
             }
+            // nodal stress/strain
+            if (myComputeNodalStress ||
+                (myComputeNodalStrain && !mat.isLinear())) {
+               accumulateNonlinearNodalStressStrain (
+                  e, i, k, sigma, mat, dpnt);
+            }
          }
       }
    }
@@ -3205,6 +3408,13 @@ PointAttachable, ConnectableBody {
          if (e.numAuxiliaryMaterials() > 0) {
             for (AuxiliaryMaterial aux : e.myAuxMaterials) {
                if (!aux.hasSymmetricTangent()) {
+                  return false;
+               }
+            }
+         }
+         if (e.numAugmentingMaterials() > 0) {
+            for (FemMaterial aug : e.getAugmentingMaterials()) {
+               if (!aug.hasSymmetricTangent()) {
                   return false;
                }
             }
@@ -3364,43 +3574,6 @@ PointAttachable, ConnectableBody {
       }
       else {
          return max / min;
-      }
-   }
-
-   // Not Currently Used
-   public void getNodalDeformationGradients (Matrix3d[] Fnodal) {
-      if (Fnodal.length < myNodes.size()) {
-         throw new IllegalArgumentException (
-            "Fnodal must have length >= " + myNodes.size());
-      }
-      Matrix3d F = new Matrix3d();
-      for (FemElement3d e : myElements) {
-         FemNode3d[] enodes = e.myNodes;
-         FemMaterial mat = getElementMaterial(e);
-         if (mat.isLinear()) {
-            IntegrationPoint3d wpnt = e.getWarpingPoint();
-            IntegrationData3d data = e.getWarpingData();
-            wpnt.computeGradient (F, enodes, data.myInvJ0);
-            for (int i=0; i<enodes.length; i++) {          
-               int nidx = myNodes.indexOf(enodes[i]);
-               Fnodal[nidx].scaledAdd (
-                  1.0/enodes[i].numAdjacentElements(), F);
-            }
-         }
-         else {
-            IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
-            IntegrationData3d[] idata = e.getIntegrationData();
-            double[] nodalExtrapMat = e.getNodalExtrapolationMatrix();
-            for (int k=0; k<ipnts.length; k++) {
-               ipnts[k].computeGradient (F, e.myNodes, idata[k].myInvJ0);
-               for (int i=0; i<enodes.length; i++) {  
-                  double a = nodalExtrapMat[i*ipnts.length + k];
-                  int nidx = myNodes.indexOf(enodes[i]);                  
-                  Fnodal[nidx].scaledAdd (
-                     a/enodes[i].numAdjacentElements(), F);
-               }
-            }
-         }
       }
    }
 
@@ -3668,7 +3841,7 @@ PointAttachable, ConnectableBody {
    }
    
    public boolean checkElementCondition (
-      FemElement3d e, double detJ, boolean recordInversion) {
+      FemElement3dBase e, double detJ, boolean recordInversion) {
       if (detJ < myMinDetJ) {
          myMinDetJ = detJ;
          myMinDetJElement = e;
@@ -3681,26 +3854,6 @@ PointAttachable, ConnectableBody {
       else {
          return true;
       }
-   }
-
-   private FemElement3d[] elementsWithEdge(FemNode3d n0, FemNode3d n1) {
-      HashSet<FemElement> allElems = new HashSet<FemElement>();
-      LinkedList<FemElement> elemsWithEdge =
-         new LinkedList<FemElement>();
-
-      allElems.addAll(n0.getElementDependencies());
-      allElems.addAll(n1.getElementDependencies());
-      for (FemElement e : allElems) {
-         if (e instanceof FemElement3d && 
-             ((FemElement3d)e).hasEdge(n0, n1)) {
-            elemsWithEdge.add(e);
-         }
-      }
-      return elemsWithEdge.toArray(new FemElement3d[0]);
-   }
-
-   private int numElementsWithEdge(FemNode3d n0, FemNode3d n1) {
-      return elementsWithEdge(n0, n1).length;
    }
 
    public PointAttachment createPointAttachment (Point pnt) {
@@ -3717,7 +3870,7 @@ PointAttachable, ConnectableBody {
             "FemModel is an ancestor of the point");
       }
       Point3d loc = new Point3d();
-      FemElement3d elem = findNearestElement (loc, pnt.getPosition());
+      FemElement3dBase elem = findNearestElement (loc, pnt.getPosition());
       FemNode3d nearestNode = null;
       double nearestDist = Double.MAX_VALUE;
       for (FemNode3d n : elem.getNodes()) {
@@ -3732,7 +3885,9 @@ PointAttachable, ConnectableBody {
          return new PointParticleAttachment (nearestNode, pnt);
       }
       else {
-         return PointFem3dAttachment.create (pnt, elem, loc, reduceTol);
+         PointAttachment pa =
+            PointFem3dAttachment.create (pnt, elem, loc, reduceTol);
+         return pa;
          // Coords are computed in createNearest.  the point's position will be
          // updated, if necessary, by the addRemove hook when the attachement
          // is added.
@@ -3754,7 +3909,7 @@ PointAttachable, ConnectableBody {
       }
       Point3d loc = new Point3d();
       Point3d pos = new Point3d(TFW != null ? TFW.p : frame.getPose().p);
-      FemElement3d elem = findNearestElement (loc, pos);
+      FemElement3dBase elem = findNearestElement (loc, pos);
       if (!loc.equals (pos)) {
          TFW = new RigidTransform3d (TFW);
          TFW.p.set (loc);
@@ -3800,7 +3955,7 @@ PointAttachable, ConnectableBody {
       }
       Point3d loc = new Point3d();
       Point3d pos = new Point3d(TFW != null ? TFW.p : frame.getPose().p);
-      FemElement3d elem = findNearestElement (loc, pos);
+      FemElement3dBase elem = findNearestElement (loc, pos);
       if (project && !loc.equals (pos)) {
          TFW = new RigidTransform3d (TFW);
          TFW.p.set (loc);
@@ -3869,7 +4024,10 @@ PointAttachable, ConnectableBody {
       return null;
    }
 
-   private FemElement[] elementsWithFace(
+   /**
+    * Used only by SubdivideHex, so only concerned with volumetric elements
+    */
+   private int numVolumetricElementsWithFace(
       FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3) {
       HashSet<FemElement> allElems = new HashSet<FemElement>();
       LinkedList<FemElement> elemsWithFace =
@@ -3881,17 +4039,32 @@ PointAttachable, ConnectableBody {
       allElems.addAll(n3.getElementDependencies());
       for (FemElement e : allElems) {
          if (e instanceof FemElement3d &&
-             ((FemElement3d)e).hasFace(n0, n1, n2, n3)) {
+             ((FemElement3d)e).containsFace(n0, n1, n2, n3)) {
             elemsWithFace.add(e);
          }
-      }
-      return elemsWithFace.toArray(new FemElement[0]);
+      }      
+      return elemsWithFace.size();
+   }
+   
+   /**
+    * Used only by SubdivideHex, so only concerned with volumetric elements
+    */
+   private int numVolumetricElementsWithEdge(FemNode3d n0, FemNode3d n1) {
+      HashSet<FemElement> allElems = new HashSet<FemElement>();
+      LinkedList<FemElement> elemsWithEdge =
+         new LinkedList<FemElement>();
+
+      allElems.addAll(n0.getElementDependencies());
+      allElems.addAll(n1.getElementDependencies());
+      for (FemElement e : allElems) {
+         if (e instanceof FemElement3d && 
+             ((FemElement3d)e).containsEdge(n0, n1)) {
+            elemsWithEdge.add(e);
+         }
+      }     
+      return elemsWithEdge.size();
    }
 
-   private int numElementsWithFace(
-      FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3) {
-      return elementsWithFace(n0, n1, n2, n3).length;
-   }
 
    private static double[] faceWeights = new double[] {0.25, 0.25, 0.25, 0.25};
    private static double[] edgeWeights = new double[] { 0.5, 0.5 };
@@ -3965,7 +4138,7 @@ PointAttachable, ConnectableBody {
          if (edgeAttach != null) {
             // use the existing mid node as the edge node
             edgeNode = (FemNode3d)edgeAttach.getSlave();
-            if (numElementsWithEdge(n0, n1) == 1) {
+            if (numVolumetricElementsWithEdge(n0, n1) == 1) {
                // don't need the attachment any more, so remove it
                removedAttachments.add(edgeAttach);
             }
@@ -3973,7 +4146,7 @@ PointAttachable, ConnectableBody {
          else {
             edgeNode = createNode(new FemNode3d[] { n0, n1 });
             addedNodes.add(edgeNode);
-            if (numElementsWithEdge(n0, n1) > 1) {
+            if (numVolumetricElementsWithEdge(n0, n1) > 1) {
                PointFem3dAttachment a = new PointFem3dAttachment(edgeNode);
                a.setFromNodes (new FemNode[] { n0, n1 }, edgeWeights);
                addedAttachments.add(a);
@@ -3992,7 +4165,7 @@ PointAttachable, ConnectableBody {
          if (faceAttach != null) {
             // use the existing center node as the face node
             faceNode = (FemNode3d)faceAttach.getSlave();
-            if (numElementsWithFace(n0, n1, n2, n3) == 1) {
+            if (numVolumetricElementsWithFace(n0, n1, n2, n3) == 1) {
                // don't need the attachment any more, so remove it
                removedAttachments.add(faceAttach);
             }
@@ -4000,7 +4173,7 @@ PointAttachable, ConnectableBody {
          else {
             faceNode = createNode(new FemNode3d[] { n0, n1, n2, n3 });
             addedNodes.add(faceNode);
-            if (numElementsWithFace(n0, n1, n2, n3) > 1) {
+            if (numVolumetricElementsWithFace(n0, n1, n2, n3) > 1) {
                PointFem3dAttachment a = new PointFem3dAttachment(faceNode);
                a.setFromNodes (new FemNode[] { n0, n1, n2, n3 }, faceWeights);
                addedAttachments.add(a);
@@ -4312,21 +4485,20 @@ PointAttachable, ConnectableBody {
 
    public void advanceAuxState(double t0, double t1) {
 
-      for (FemElement3dList<? extends FemElement3dBase> elist : myElemLists) {
-         for (int i = 0; i < elist.size(); i++) {
-            FemElement3dBase e = elist.get(i);
-            FemMaterial mat = getElementMaterial(e);
-            if (mat.getViscoBehavior() != null) {
-               ViscoelasticBehavior veb = mat.getViscoBehavior();
-               IntegrationData3d[] idata = e.getIntegrationData();
-               for (int k = 0; k < idata.length; k++) {
-                  ViscoelasticState state = idata[k].getViscoState();
-                  if (state == null) {
-                     state = veb.createState();
-                     idata[k].setViscoState(state);
-                  }
-                  veb.advanceState(state, t0, t1);
+      ArrayList<FemElement3dBase> elist = getAllElements();
+      for (int i = 0; i < elist.size(); i++) {
+         FemElement3dBase e = elist.get(i);
+         FemMaterial mat = getElementMaterial(e);
+         if (mat.getViscoBehavior() != null) {
+            ViscoelasticBehavior veb = mat.getViscoBehavior();
+            IntegrationData3d[] idata = e.getIntegrationData();
+            for (int k = 0; k < idata.length; k++) {
+               ViscoelasticState state = idata[k].getViscoState();
+               if (state == null) {
+                  state = veb.createState();
+                  idata[k].setViscoState(state);
                }
+               veb.advanceState(state, t0, t1);
             }
          }
       }      
@@ -4350,14 +4522,14 @@ PointAttachable, ConnectableBody {
       data.zput (0);    // reserve space for storing dsize and zsize
       data.zput (0);
 
-      for (FemElement3dList<? extends FemElement3dBase> elist : myElemLists) {
-         for (int i = 0; i < elist.size(); i++) {
-            IntegrationData3d[] idata = elist.get(i).getIntegrationData();
-            for (int k = 0; k < idata.length; k++) {
-               idata[k].getState(data);
-            }          
-         }
+      ArrayList<FemElement3dBase> elist = getAllElements();
+      for (int i = 0; i < elist.size(); i++) {
+         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
+         for (int k = 0; k < idata.length; k++) {
+            idata[k].getState(data);
+         }          
       }
+
       // store the amount of space used, for use by increaseAuxStateOffsets
       data.zset (zidx0, data.dsize()-didx0);
       data.zset (zidx0+1, data.zsize()-zidx0-2);
@@ -4370,12 +4542,11 @@ PointAttachable, ConnectableBody {
       newData.zput (0);     // make space for size spaces, to be stored below
       newData.zput (0);
 
-      for (FemElement3dList<? extends FemElement3dBase> elist : myElemLists) {
-         for (int i = 0; i < elist.size(); i++) {
-            IntegrationData3d[] idata = elist.get(i).getIntegrationData();
-            for (int k=0; k<idata.length; k++) {
-               idata[k].getZeroState (newData);
-            }
+      ArrayList<FemElement3dBase> elist = getAllElements();
+      for (int i = 0; i < elist.size(); i++) {
+         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
+         for (int k=0; k<idata.length; k++) {
+            idata[k].getZeroState (newData);
          }
       }
       // store the amount of space used, for use by increaseAuxStateOffsets
@@ -4388,12 +4559,11 @@ PointAttachable, ConnectableBody {
       int dsize = data.zget(); // should use this for sanity checking?
       int zsize = data.zget();
 
-      for (FemElement3dList<? extends FemElement3dBase> elist : myElemLists) {
-         for (int i = 0; i < elist.size(); i++) {
-            IntegrationData3d[] idata = elist.get(i).getIntegrationData();
-            for (int k = 0; k < idata.length; k++) {
-               idata[k].setState (data);
-            }
+      ArrayList<FemElement3dBase> elist = getAllElements();
+      for (int i = 0; i < elist.size(); i++) {
+         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
+         for (int k = 0; k < idata.length; k++) {
+            idata[k].setState (data);
          }
       }
    }
@@ -4412,18 +4582,14 @@ PointAttachable, ConnectableBody {
       list.addIfVisible(myElements);
       list.addIfVisible(myShellElements);
       list.addIfVisible(myMarkers);
-      list.addIfVisible(myMeshList);
 
       // build surface mesh if needed
       if (myAutoGenerateSurface && !mySurfaceMeshValid) {
          getSurfaceMesh();  // triggers creation of surface mesh
       }
-      // BVTree bvt = getSurfaceMesh().getBVTree();
-      // if (bvt != null) {
-      //    list.addIfVisible (bvt);
-      // }
-            
       updateStressPlotRange();
+      // must add meshList *after* mesh and plot ranges have been updated
+      list.addIfVisible(myMeshList);
 
       myAuxiliaryMaterialList.prerender(list);
    }
@@ -4798,14 +4964,16 @@ PointAttachable, ConnectableBody {
          myFrame.setVelocity (Twist.ZERO);
       }
       else {
+         if (numAllElements() == 0) {
+            throw new IllegalStateException (
+               "Can't attach frame to a FEM with no elements");
+         }
          RigidTransform3d TX = new RigidTransform3d(TRW);
          Point3d pos = new Point3d(TRW.p);
-         FemElement3d elem = findContainingElement (pos);
-         if (elem == null) {
-            Point3d newLoc = new Point3d();
-            elem = findNearestSurfaceElement(newLoc, pos);
-            TX.p.set (newLoc);
-         }         
+         Point3d newLoc = new Point3d();
+         FemElement3dBase elem = findNearestElement (newLoc, pos);
+         TX.p.set (newLoc);
+
          myFrame.setPose (TX);
          myFrameConstraint = new FrameFem3dConstraint (myFrame, elem);
       }
@@ -5201,6 +5369,56 @@ PointAttachable, ConnectableBody {
 
 }
 
+/**
+
+Optimization of Jacobian Computation at Integration Points
+----------------------------------------------------------
+
+Jacobians and their determinants are computed at integration points and are
+required within the following methods (where the -> indicates subsequent
+calling methods:
+
+computePressuresAndRinv() - JacobianDeterminant if npvals > 1  
+   -> computeStressAndStiffness (FemElement3dBase e)
+      -> FemModel3d.updateStressAndStiffness()
+
+computeVolumes() JacobianDeterminant - dv (detJ*weight) stored in idat.dv
+   -> FemModel.updateVolume()
+      -> FemModel3d.updateConstraints(); - on demand
+      -> FemModel3d.updateStressAndStiffness(); - on demand
+      -> FemModel3d.getBilateralInfo(); - on demand
+   -> FemModel3d.updateVolumeAndCheckForInversion()
+      -> FemModel3d.recursivelyFinalizeAdvance()
+
+DeformedPoint.setFromIntegrationPoint() - Jacobian
+   -> computeStressAndStiffness (FemElement3dBase e)
+      -> FemModel3d.updateStressAndStiffness()
+
+IntegrationPoint.computeGradient() - Jacobian
+   -> StiffnessWarper.computeWarpingRotation();
+   -> getNodalDeformationGradients() - (not currently used)
+
+IntegrationPoint.computeInverseJacobian() - Jacobian
+   -> computeAvgGNx(FemElement3d)
+      -> updateHardElementIncompInfo
+         -> updateHardIncompInfo()
+            -> FemModel3d.updateConstraints()
+   -> updateHardNodalIncompInfo()
+      -> updateHardIncompInfo()
+         -> FemModel3d.updateConstraints()
+
+In brief, Jacobians are needed within the main per-element stress/stiffness
+loop, but also when computing hard incompressibility constraints, which happens
+outside this loop. Therefere, the most optimal strategy might be to store the
+Jacobian and its determinant in IntegrationData, and update it in accordance
+with myVolumeValid.
+
+Right now, detJ*weight is stored as dv in IntegrationData, where it is used
+(for soft NODAL incompressibility) within updateStressAndStiffness() by
+updateNodalPressures(). The subsequent pressures are then used within the main
+per-element stress/stiffness loop.
+
+*/
 /**
 
 Frame support TODO:

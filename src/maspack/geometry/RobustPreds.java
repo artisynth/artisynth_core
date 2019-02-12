@@ -511,7 +511,55 @@ public class RobustPreds {
       return res;
    }
 
-    /**
+   /**
+    * Fast test to see if p3 is "below", or "inside" the plane formed by the
+    * counterclockwise triangle p0, p1, p2. This is done by computing the and
+    * returning the volume of the corresponding tetrahedron. p3 is "below" if
+    * this volume is negative, and "above" if it is positive. If the volume can
+    * not be determined accurately within machine precision, the 0 is returned.
+    * To help determine this precision, the argument {@code maxlen} may be
+    * used; this should be {@code >=} the maximum length of all edges
+    * associated with the calculation. If {@code maxlen} is given as zero, then
+    * it is computed automatically from the edges of the tetrahedron.
+
+    * @param p0 first triangle point
+    * @param p1 second triangle point
+    * @param p2 third triangle point
+    * @param p3 point to test
+    * @param maxlen optional; if {@code > 0}, should be the maximum length
+    * of all edges associated with the calculation
+    * @return positive or negative if p3 is above or inside the plane, or 0 if
+    * this cannot be determined.
+    */
+   public static double orient3dFast (
+      Vector3d p0, Vector3d p1, Vector3d p2, Vector3d p3, double maxlen) {
+
+      Vector3d r1 = new Vector3d();
+      Vector3d r2 = new Vector3d();
+      Vector3d r3 = new Vector3d();
+
+      r1.sub (p1, p0);
+      r2.sub (p2, p0);
+      r3.sub (p3, p0);
+
+      if (maxlen == 0) {
+         double maxSqr = r1.normSquared();
+         double nrmSqr = r2.normSquared();
+         if (nrmSqr > maxSqr) {
+            maxSqr = nrmSqr;
+         }
+         nrmSqr = r3.normSquared();
+         if (nrmSqr > maxSqr) {
+            maxSqr = nrmSqr;
+         }
+         maxlen = Math.sqrt (maxSqr);
+      }
+      double maxerr = ORIENT_EPS*6*maxlen*maxlen*maxlen;
+
+      return orient3dFast (r1, r2, r3, maxerr);
+   }
+
+   /**
     * Computes the volume of the tet formed by the direction vectors a, b, c.
     * Also computes the rounding error associated with this calculation, using
     * the formulation given by equation (5) of Aftosmis, et al. 1998 ``Robust

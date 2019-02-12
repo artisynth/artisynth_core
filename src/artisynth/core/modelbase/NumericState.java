@@ -90,4 +90,15 @@ public class NumericState extends DataBuffer implements ComponentState {
       state.set (this);
       return state;
    }
+
+   public String toString () {
+      return ("NumericState " + hashCode() +
+              " dsize=" + dsize + 
+              " doff=" + doff +
+              " zsize=" + zsize + 
+              " zoff=" + zoff + 
+              " osize=" + osize + 
+              " ooff=" + ooff);
+      
+   }
 }

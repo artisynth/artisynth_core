@@ -15,12 +15,14 @@ import artisynth.core.materials.FemMaterial;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.mechmodels.*;
 import artisynth.core.util.ScanToken;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.geometry.Boundable;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
@@ -36,45 +38,50 @@ import maspack.util.ReaderTokenizer;
  * Examples include water surfaces, living tissue, clothing, and aluminium sheet.
  */
 public abstract class ShellElement3d extends FemElement3dBase
-   implements Boundable {
+   implements Boundable, FrameAttachable {
    
-   protected ElementClass myElementClass;
-   protected double myDefaultThickness = 0.01; 
+   protected static double DEFAULT_THICKNESS = 0.01;
+   protected double myDefaultThickness = DEFAULT_THICKNESS;
    
    protected static FemElementRenderer myRenderer;
    
+   public static PropertyList myProps =
+      new PropertyList (ShellElement3d.class, FemElement3dBase.class);
+
+   static {
+      myProps.add (
+         "defaultThickness",
+         "default rest thickness associated with this element",
+         DEFAULT_THICKNESS);
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }
+
    public ShellElement3d() {
    }
 
-   public ElementClass getElementClass() {
-      return myElementClass;
-   }
-   
    /* --- Integration points and data --- */
 
-   protected IntegrationPoint3d[] createMembraneIntegrationPoints (
-      IntegrationPoint3d[] ipnts) {
-      // assume that the membrane integration points are simply the first nump
-      // integration points, where nump = numPlanarIntegrationPoints()
-      int nump = numPlanarIntegrationPoints();
-      IntegrationPoint3d[] mpnts = new IntegrationPoint3d[nump];
-      for (int i=0; i<nump; i++) {
-         mpnts[i] = ipnts[i];
-      }
-      return mpnts;
-   }   
+   // protected IntegrationPoint3d[] createMembraneIntegrationPoints (
+   //    IntegrationPoint3d[] ipnts) {
+   //    // assume that the membrane integration points are simply the first nump
+   //    // integration points, where nump = numPlanarIntegrationPoints()
+   //    int nump = numPlanarIntegrationPoints();
+   //    IntegrationPoint3d[] mpnts = new IntegrationPoint3d[nump];
+   //    for (int i=0; i<nump; i++) {
+   //       mpnts[i] = ipnts[i];
+   //    }
+   //    return mpnts;
+   // }
+   
    
    /**
     * Number of integration points in the shell plane.
     */
    public abstract int numPlanarIntegrationPoints();
    
-   /* --- coordinates --- */
-
-   public int getNaturalCoordinates (Vector3d coords, Point3d pnt, int maxIters) {
-      throw new RuntimeException("Unimplemented");
-   }
-
    /* --- Volume --- */
 
    @Override
@@ -90,19 +97,30 @@ public abstract class ShellElement3d extends FemElement3dBase
    public double doComputeVolume (boolean isRest) {
       double vol = 0;
 
+      double minDetJ = Double.MAX_VALUE;
+
       // For each integration point...
       IntegrationPoint3d[] ipnts = getIntegrationPoints ();
       IntegrationData3d[] idata= getIntegrationData ();
       int nump = numIntegrationPoints();
       for (int i = 0; i < nump; i++) {
+         IntegrationPoint3d pt = ipnts[i];
          double detJ;
+         double dv;
          if (isRest) {
             detJ = idata[i].getDetJ0();
+            dv = detJ*pt.getWeight();
          }
          else {
-            detJ = ipnts[i].computeJacobianDeterminant(getNodes());
+            detJ = pt.computeJacobianDeterminant(getNodes());
+            dv = detJ*pt.getWeight();
+            // normalize detJ to get true value relative to rest position
+            detJ /= idata[i].getDetJ0();           
          }
-         vol += detJ*ipnts[i].getWeight();
+         if (detJ < minDetJ) {
+            minDetJ = detJ;
+         }        
+         vol += dv;
       }
       if (myElementClass == ElementClass.MEMBRANE) {
          // for membrane elements, we need to explicitly scale the volume
@@ -110,7 +128,13 @@ public abstract class ShellElement3d extends FemElement3dBase
          // no scaling in the normal direction.
          vol *= myDefaultThickness;
       }
-      return vol;
+      if (isRest) {
+         myRestVolume = vol;
+      }
+      else {
+         myVolume = vol;
+      }
+      return minDetJ;
    }
 
    /* --- Thickness and directors --- */
@@ -120,68 +144,47 @@ public abstract class ShellElement3d extends FemElement3dBase
    }
    
    public void setDefaultThickness(double newThickness) {
+      double prevThickness = myDefaultThickness;
       myDefaultThickness = newThickness;
       
-      // Update static dependencies that depend on knowing the shell thickness.
-      
-      computeRestDirectors ();
-      //updateCoContraVectors ();
-      invalidateRestData ();
+      // Update rest data since it may depend on knowing the shell thickness.
+      super.invalidateRestData();
+      if (isConnectedToHierarchy()) {
+         invalidateElementAndNodeMasses(); // masses depend on thickness
+         for (FemNode3d n : myNodes) {
+            n.rescaleDirectorsIfNecessary (this, prevThickness);
+         }
+      }
    }
    
-   /**
-    * Update the rest director of each node.
-    * 
-    * This should be called whenever node.myAdjElements is updated or 
-    * shell thickness is modified, both which the rest director depends on.
-    */
-   public void computeRestDirectors() {
+//   /**
+//    * Update the rest director of each node. There should be no need
+//    * 
+//    * This should be called whenever node.myAdjElements is updated or 
+//    * shell thickness is modified, both which the rest director depends on.
+//    */
+//   public void computeRestDirectors() {
+//      for (FemNode3d n : myNodes) {
+//         if (n.hasDirector()) {
+//            n.computeRestDirector ();
+//         }
+//      }
+//   }
+   
+   void invalidateRestDirectorsIfNecessary() {
       for (FemNode3d n : myNodes) {
-         if (n.hasDirector()) {
-            n.computeRestDirector ();
+         // make sure n is not null: it might be if this method is called early
+         // during a scan process before nodes have been initialized
+         if (n != null) {
+            n.invalidateRestDirectorIfNecessary();
          }
       }
    }
    
-   /* --- Edges and Faces --- */
-   
-   /* --- Extrpolation matrices --- */
-
-   public abstract double[] getNodalExtrapolationMatrix();
-   
-   /**
-    * Create a matrix to map data from the nodes to the integration points.
-    * 
-    * This is the inverse of getNodalExtrapolationMatrix().
-    * 
-    * @return
-    * N-by-K matrix where N is the number of nodes and K is the number of 
-    * integration points of this element.
-    */
-   public MatrixNd getIntegExtrapolationMatrix() {
-      int numNodes = myNodes.length;
-      int numIntegPts = numIntegrationPoints();
-      
-      MatrixNd shapeAtIntegMtx = new MatrixNd(numNodes, numIntegPts);
-      for (int n = 0; n < numNodes; n++) {
-         for (int k = 0; k < numIntegPts; k++) {
-            IntegrationPoint3d iPt = getIntegrationPoints()[k];
-            double shapeFunc = getN(n, iPt.getCoords ()) ;
-            shapeAtIntegMtx.set (n,k, shapeFunc);
-         }
-      }
-      
-      return shapeAtIntegMtx;
+   public void invalidateRestData () {
+      super.invalidateRestData();
+      invalidateRestDirectorsIfNecessary();
    }
-
-   public void clearState() {
-      IntegrationData3d[] idata = doGetIntegrationData();
-      for (int i=0; i<idata.length; i++) {
-         idata[i].clearState();
-      }
-   }
-   
-   /* --- Geometry --- */
 
    /**
     * Computes the shell element normal, with respect to rest coordinates, at a
@@ -208,94 +211,97 @@ public abstract class ShellElement3d extends FemElement3dBase
       return mag/2;
    }         
 
+   /* --- Shape functions and coordinates --- */
+
    /**
-    * Queries if the effective material for this element, and all auxiliary
-    * materials, are defined for non-positive deformation gradients.
-    *
-    * @return <code>true</code> if the materials associated with this
-    * element are invertible
+    * {@inheritDoc}
     */
-   public boolean materialsAreInvertible() {
-      FemMaterial mat = getEffectiveMaterial();
-      return mat.isInvertible();
+   @Override   
+   public void computeLocalPosition (Vector3d pnt, Vector3d ncoords) {
+      pnt.setZero();
+      Vector3d tmp = new Vector3d();
+      switch (myElementClass) {
+         case SHELL: {     
+            for (int i=0; i<numNodes(); ++i) {
+               myNodes[i].getDirector (tmp);
+               tmp.scaledAdd (
+                  0.5*(ncoords.z-1), tmp, myNodes[i].getLocalPosition());
+               pnt.scaledAdd (getN(i,ncoords), tmp);
+            }
+            break;
+         }
+         case MEMBRANE: {
+            for (int i=0; i<numNodes(); ++i) {
+               pnt.scaledAdd (getN(i,ncoords), myNodes[i].getLocalPosition());
+            }  
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Element class " + myElementClass + " not supported");
+         }  
+      }
+   }   
+
+   public void computeJacobian (Matrix3d J, Vector3d ncoords) {
+      Vector3d dNds = new Vector3d();
+      switch (myElementClass) {
+         case SHELL: {
+            Vector3d d = new Vector3d();
+            Vector3d v = new Vector3d();
+
+            double st = -0.5*(1-ncoords.z);
+            for (int i=0; i<numNodes(); i++) {
+               FemNode3d node = myNodes[i];
+               d.sub (node.getLocalPosition(), node.getBackPosition());
+               v.scaledAdd (st, d, node.getLocalPosition());
+               
+               getdNds (dNds, i, ncoords);
+               double s0 = dNds.x;
+               double s1 = dNds.y;
+               double s2 = getN(i,ncoords)*0.5;
+               
+               J.m00 += s0*v.x; J.m01 += s1*v.x; J.m02 += s2*d.x;
+               J.m10 += s0*v.y; J.m11 += s1*v.y; J.m12 += s2*d.y;
+               J.m20 += s0*v.z; J.m21 += s1*v.z; J.m22 += s2*d.z;
+            }            
+            break;
+         }
+         case MEMBRANE: {
+            Vector3d jc0 = new Vector3d();
+            Vector3d jc1 = new Vector3d();
+            Vector3d jc2 = new Vector3d();
+            for (int i=0; i<numNodes(); i++) {
+               Vector3d pos = myNodes[i].getLocalPosition();
+               getdNds (dNds, i, ncoords);
+               jc0.scaledAdd (dNds.x, pos);
+               jc1.scaledAdd (dNds.y, pos);
+            }            
+            jc2.cross (jc0, jc1);
+            jc2.normalize();
+
+            J.m00 = jc0.x; J.m01 = jc1.x; J.m02 = jc2.x; 
+            J.m10 = jc0.y; J.m11 = jc1.y; J.m12 = jc2.y; 
+            J.m20 = jc0.z; J.m21 = jc1.z; J.m22 = jc2.z; 
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Element class " + myElementClass + " not supported");
+         }  
+      }
    }
-   
-   
+
    /* --- Hierarchy --- */
    
    public void connectToHierarchy () {
       super.connectToHierarchy ();
-      
-      FemNode3d[] nodes = getNodes();
-      // add element dependency first, so that directors will be enabled
-      // for the each node and hence also for the node neighbors
-      for (int i = 0; i < nodes.length; i++) {
-         for (int j = 0; j < nodes.length; j++) {
-            nodes[i].registerNodeNeighbor(
-               nodes[j], /*shell=*/myElementClass==ElementClass.SHELL);
-         }
-         nodes[i].addElementDependency(this);
-      }
-      invalidateRestDirectors();
-      setMass(0);
-
-      myNbrs = new FemNodeNeighbor[numNodes()][numNodes()];
-      for (int i=0; i<myNodes.length; i++) {
-         FemNode3d node = myNodes[i];
-         int cnt = 0;
-         for (FemNodeNeighbor nbr : node.getNodeNeighbors()){
-            int j = getLocalNodeIndex (nbr.myNode);
-            if (j != -1) {
-               myNbrs[i][j] = nbr;
-               cnt++;
-            }
-         }
-         if (cnt != myNodes.length) {
-            System.out.println ("element class " + getClass());
-            throw new InternalErrorException (
-               "Node "+node.getNumber()+" has "+cnt+
-               " local neighbors, expecting "+myNodes.length);
-         }
-      }
+      invalidateRestDirectorsIfNecessary();
    }
    
    public void disconnectFromHierarchy () {
-      myNbrs = null;
-
-      FemNode3d[] nodes = getNodes();
-      //double massPerNode = getMass()/numNodes();
-      for (int i = 0; i < nodes.length; i++) {
-         for (int j = 0; j < nodes.length; j++) {
-            nodes[i].deregisterNodeNeighbor (
-               nodes[j], /*shell=*/myElementClass==ElementClass.SHELL);
-         }
-         // nodes[i].addMass(-massPerNode);
-         nodes[i].invalidateMassIfNecessary ();  // signal dirty
-         nodes[i].removeElementDependency(this);
-      }
-      invalidateRestDirectors();
-
+      invalidateRestDirectorsIfNecessary();
       super.disconnectFromHierarchy ();
-   }
-   
-   
-   /* --- Collision Box ---*/
-   
-   public void computeCentroid (Vector3d centroid) {
-      throw new RuntimeException("computeCentroid() :: unimplemented.");
-   }
-
-   public double computeCovariance (Matrix3d C) {
-      throw new RuntimeException("computeCovariance() :: unimplemented.");
-   }
-
-   /**
-    * Tests whether or not a point is inside an element.  
-    * @param pnt point to check if is inside
-    * @return true if point is inside the element
-    */
-   public boolean isInside (Point3d pnt) {
-      return false;
    }
    
    public abstract double nearestPoint (Point3d near, Point3d pnt);
@@ -310,10 +316,6 @@ public abstract class ShellElement3d extends FemElement3dBase
          myElementClass = rtok.scanEnum(ElementClass.class);
          return true;
       }
-      else if (scanAttributeName (rtok, "defaultThickness")) {
-         myDefaultThickness = rtok.scanNumber();
-         return true;
-      }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }      
@@ -324,43 +326,44 @@ public abstract class ShellElement3d extends FemElement3dBase
 
       super.writeItems (pw, fmt, ancestor);
       pw.println ("elementClass=" + myElementClass);
-      pw.println ("defaultThickness=" + fmt.format(myDefaultThickness));
    }   
    
    public ShellElement3d copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
 
-      ShellElement3d e = (ShellElement3d)super.copy (flags, copyMap);
-      e.myNodes = new FemNode3d[numNodes()];
-      for (int i=0; i<numNodes(); i++) {
-         FemNode3d n = myNodes[i];
-         FemNode3d newn = (FemNode3d)ComponentUtils.maybeCopy (flags, copyMap, n);
-         if (newn == null) {
-            throw new InternalErrorException (
-               "No duplicated node found for node number "+n.getNumber());
-         }
-         e.myNodes[i] = newn;
-      }
-      e.myNbrs = null;
-   
-      // Note that frame information is not presently duplicated
-      e.myIntegrationData = null;
-      e.myIntegrationDataValid = false;
-
-      e.myWarper = null;
-
-      e.setElementWidgetSizeMode (myElementWidgetSizeMode);
-      if (myElementWidgetSizeMode == PropertyMode.Explicit) {
-         e.setElementWidgetSize (myElementWidgetSize);
-      }
-      return e;
+      return (ShellElement3d)super.copy (flags, copyMap);
    }
 
-   void invalidateRestDirectors() {
-      for (FemNode3d n : myNodes) {
-         n.invalidateRestDirectorIfNecessary();
+   /* --- Element creation --- */
+
+   public static ShellElement3d createElement (
+      FemNode3d[] nodes, double thickness, boolean membrane,
+      boolean flipped) {
+      
+      switch(nodes.length) {
+         case 3:
+            if (flipped) {
+               return new ShellTriElement(
+                  nodes[0], nodes[2], nodes[1], thickness, membrane);
+            }
+            else {
+               return new ShellTriElement(
+                  nodes[0], nodes[1], nodes[2], thickness, membrane);
+            }
+         case 4:
+            if (flipped) {
+               return new ShellQuadElement(
+                  nodes[0], nodes[3], nodes[2], nodes[1], thickness, membrane);
+            }
+            else {
+               return new ShellQuadElement(
+                  nodes[0], nodes[1], nodes[2], nodes[3], thickness, membrane);
+            }          
+         default:
+            throw new IllegalArgumentException(
+               "Unknown shell element type with " + nodes.length + " nodes");
       }
    }
 
-   /* --- Misc Methods --- */
+
 }

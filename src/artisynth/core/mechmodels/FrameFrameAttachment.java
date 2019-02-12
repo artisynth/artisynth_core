@@ -29,6 +29,8 @@ public class FrameFrameAttachment extends FrameAttachment {
    private RigidTransform3d myTFW = new RigidTransform3d();
 
    private boolean myMasterBlockInWorldCoords = true;
+   
+   public boolean debug = false;
 
    public FrameFrameAttachment () {
    }
@@ -71,11 +73,11 @@ public class FrameFrameAttachment extends FrameAttachment {
       setMaster (master);
       if (master != null) {
          master.computeFrameLocation (myTFM, TFW);
-         myTFW.set (TFW);
       }
       else {
          myTFM.set (TFW);
       }
+      myTFW.set (TFW);
    }
 
    public void setWithTFM (Frame master, RigidTransform3d TFM) {
@@ -89,6 +91,9 @@ public class FrameFrameAttachment extends FrameAttachment {
       }
       if (myMaster != null) {
          myTFW.mul (myMaster.getPose(), myTFM);
+      }
+      else {
+         myTFW.set (myTFM);
       }
    }
 
@@ -155,13 +160,11 @@ public class FrameFrameAttachment extends FrameAttachment {
    public boolean setCurrentTFW (RigidTransform3d TFW) {
       if (myMaster != null) {
          myMaster.computeFrameLocation (myTFM, TFW);
-         myTFW.set (TFW);
-         if (myMaster instanceof DeformableBody) {
-            updatePosStates();
-         }
+         updatePosStates();
       }
       else {
          myTFM.set (TFW);
+         myTFW.set (TFW);
       }
       return false;
    }
@@ -495,11 +498,7 @@ public class FrameFrameAttachment extends FrameAttachment {
       if (postscanAttributeName (tokens, "master")) {
          Frame master = postscanReference (tokens, Frame.class, ancestor);
          setMaster (master);
-         if (master instanceof DeformableBody) {
-            // used to reset the TFM - don't think we need this
-            // doSetTFM (new RigidTransform3d(myTFM));
-            updatePosStates();
-         }
+         updatePosStates(); // need to update TFM, etc.
          return true;
       }
       return super.postscanItem (tokens, ancestor);

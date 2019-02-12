@@ -14,10 +14,7 @@ import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.FemControlPanel;
 //import artisynth.core.gui.widgets.MaterialPanel;
 
-
-
 import java.awt.Color;
-import java.awt.Point;
 
 import javax.swing.JFrame;
 
@@ -77,10 +74,10 @@ public class SingleHex extends RootModel {
 
       //addModel (mod);
 
-      RenderProps.setPointStyle (mod, Renderer.PointStyle.SPHERE);
-      RenderProps.setPointRadius (mod, 0.05);
+      RenderProps.setPointStyle (mechMod, Renderer.PointStyle.SPHERE);
+      RenderProps.setPointRadius (mechMod, 0.05);
 
-      mod.setGravity (0, 0, -9.8);
+      mod.setGravity (0, 0, 0);
       mod.setIncompressible (FemModel.IncompMethod.OFF);
       //mod.setGravity (0, 0, -1);
 
@@ -94,7 +91,7 @@ public class SingleHex extends RootModel {
       monMat.setBulkModulus (15000000);
       monMat.setC10 (150000);
       monMat.setJLimit (0.2);
-      //      mod.setMaterial (new StVenantKirchoffMaterial());
+      // mod.setMaterial (new StVenantKirchoffMaterial());
       // mod.setMaterial (new NeoHookeanMaterial());
       mod.setMaterial (monMat);
       //mod.setMaterial (linMat);
@@ -105,6 +102,10 @@ public class SingleHex extends RootModel {
 
       FemMarker mkr = new FemMarker (0, -1, 0);
       mod.addMarker (mkr, mod.findContainingElement (mkr.getPosition()));
+
+      Point pnt = new Point (new Point3d(0, -1, 0));
+      mechMod.add (pnt);
+      mechMod.attachPoint (pnt, mod);
 
 //       nodes[1].setPosition (-1, -1, -0.5);
 //       nodes[5].setPosition ( 1, -1, -0.5);
@@ -167,11 +168,11 @@ public class SingleHex extends RootModel {
    }      
 
    public StepAdjustment advance (double t0, double t1, int flags) {
-      MechModel mech = getMechMod();
-      if (mech != null) {
-         SolveMatrixTest tester = new SolveMatrixTest();
-         System.out.println ("error=" + tester.testStiffness (mech, 1e-8));
-      }
+      // MechModel mech = getMechMod();
+      // if (mech != null) {
+      //    SolveMatrixTest tester = new SolveMatrixTest();
+      //    System.out.println ("error=" + tester.testStiffness (mech, 1e-8));
+      // }
       return super.advance (t0, t1, flags);
    }
 

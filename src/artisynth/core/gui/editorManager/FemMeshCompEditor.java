@@ -55,7 +55,7 @@ public class FemMeshCompEditor extends EditorBase {
       // }
    }
 
-   private class ClippedElementFilter extends FemModel.ElementFilter {
+   private class ClippedElementFilter implements FemModel.ElementFilter {
       GLClipPlane[] myPlanes;
 
       public ClippedElementFilter (GLClipPlane[] planes) {

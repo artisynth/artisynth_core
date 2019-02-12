@@ -602,7 +602,12 @@ public class Vector2i extends VectoriBase {
       if (withBrackets) {
          pw.print ("[ ");
       }
-      pw.print (fmt.format(x)+" "+fmt.format(y));
+      if (fmt.isFloatingPoint()) {
+         pw.print (x+" "+y);
+      }
+      else {
+         pw.print (fmt.format(x)+" "+fmt.format(y));
+      }
       if (withBrackets) {
          pw.print (" ]");
       }

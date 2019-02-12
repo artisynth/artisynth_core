@@ -31,6 +31,7 @@ import artisynth.core.mechmodels.CollidableDynamicComponent;
 import artisynth.core.mechmodels.CollisionHandler;
 import artisynth.core.mechmodels.ContactMaster;
 import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.DistanceGridComp;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.Point;
@@ -1152,7 +1153,7 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
    }
    
    @Override   
-   public DistanceGrid getDistanceGrid() {
+   public DistanceGridComp getDistanceGridComp() {
       return null;
    }
 

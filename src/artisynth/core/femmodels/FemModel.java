@@ -7,6 +7,7 @@
 package artisynth.core.femmodels;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Collection;
 import java.util.Deque;
@@ -70,10 +71,8 @@ public abstract class FemModel extends MechSystemBase
    implements TransformableGeometry, ScalableUnits, Constrainer, 
    ForceEffector, PropertyChangeListener, HasSlaveObjects {
 
-   public static class ElementFilter {
-      public boolean elementIsValid (FemElement e) {
-         return true;
-      }
+   public interface ElementFilter {
+      public boolean elementIsValid (FemElement e);
    }
 
    protected PointList<FemMarker> myMarkers;
@@ -382,8 +381,10 @@ public abstract class FemModel extends MechSystemBase
    }
    
    public void invalidateRestData() {
-      if (getElements() != null) {
-         for (FemElement e : getElements()) {
+      // getAllElements() can be null if called early during 
+      // FemModel3d initialization
+      if (getAllElements() != null) {
+         for (FemElement e : getAllElements()) {
             e.invalidateRestData();
          }
       }
@@ -552,19 +553,10 @@ public abstract class FemModel extends MechSystemBase
 //      }
 //   }
 
-   private void updateBVHierarchies() {
-      if (myAABBTree == null) {
-         myAABBTree = new AABBTree();
-         Boundable[] elements = new Boundable[numElements()];
-         for (int i = 0; i < elements.length; i++) {
-            elements[i] = getElements().get(i);
-         }
-         myAABBTree.build(elements, numElements());
-      } else {
-         myAABBTree.update();
-      }
-      myBVTreeValid = true;
-   }
+   /**
+    * Creates myAABBTree if it is null, or otherwise updates it.
+    */
+   protected abstract void updateBVHierarchies();
 
    protected BVTree getBVTree() {
       if (myAABBTree == null || !myBVTreeValid) {
@@ -602,7 +594,9 @@ public abstract class FemModel extends MechSystemBase
 
    public abstract FemNode getNode (int idx);
 
-   public abstract ComponentList<? extends FemElement> getElements();
+   public abstract ArrayList<? extends FemElement> getAllElements();
+
+   public abstract int numAllElements();
 
    public void addMarker (FemMarker mkr) {
       myMarkers.add (mkr);
@@ -757,16 +751,6 @@ public abstract class FemModel extends MechSystemBase
       return super.scanItem (rtok, tokens);
    }
 
-   protected boolean postscanItem (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-      if (ScanWriteUtils.postscanPropertyValue (
-             tokens, this, "surfaceRendering")) {
-         return true;
-      }
-      return super.postscanItem (tokens, ancestor);
-   } 
-
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
@@ -774,13 +758,8 @@ public abstract class FemModel extends MechSystemBase
       super.writeItems (pw, fmt, ancestor); 
       // surfaceRendering has to be written near the end because it has to be
       // scanned after the model and mesh structures.
-      myProps.get("surfaceRendering").writeIfNonDefault (this, pw, fmt);
-   }
-
-   public abstract FemElement getElement (int idx);
-
-   public int numElements() {
-      return getElements().size();
+      myProps.get("surfaceRendering").writeIfNonDefault (
+         this, pw, fmt, ancestor);
    }
 
    public void setBounds (Point3d pmin, Point3d pmax) {
@@ -892,7 +871,7 @@ public abstract class FemModel extends MechSystemBase
       }
 
       myDensity /= (s * s * s);
-      for (FemElement e : getElements()) {
+      for (FemElement e : getAllElements()) {
          e.scaleDistance (s);
       }
       invalidateStressAndStiffness();
@@ -912,7 +891,7 @@ public abstract class FemModel extends MechSystemBase
 
    public double getMass() {
       double mass = 0;
-      for (FemElement e : getElements()) {
+      for (FemElement e : getAllElements()) {
          mass += e.getMass();
       }
       return mass;
@@ -944,12 +923,12 @@ public abstract class FemModel extends MechSystemBase
    public void scaleMass (double s) {
       for (int i = 0; i < numNodes(); i++) {
          FemNode n = getNode (i);
-         n.setMass (s * n.getMass());
+         n.scaleMass (s);
       }
       myDensity *= s;
       //myE *= s;
       myMaterial.scaleMass (s);
-      for (FemElement e : getElements()) {
+      for (FemElement e : getAllElements()) {
          e.scaleMass (s);
       }
       invalidateStressAndStiffness();
@@ -1069,7 +1048,7 @@ public abstract class FemModel extends MechSystemBase
 
    public double updateVolume() {
       double volume = 0;
-      for (FemElement e : getElements()) {
+      for (FemElement e : getAllElements()) {
          e.computeVolumes();
          volume += e.getVolume();
       }
@@ -1087,7 +1066,7 @@ public abstract class FemModel extends MechSystemBase
    
    public double updateRestVolume() {
       double volume = 0;
-      for (FemElement e : getElements()) {
+      for (FemElement e : getAllElements()) {
          e.computeRestVolumes();
          volume += e.getRestVolume();
       }
@@ -1096,18 +1075,6 @@ public abstract class FemModel extends MechSystemBase
       return volume;
    }
    
-//   protected void computeMasses() {
-//      getRestVolume();
-//      for (int i=0; i<numNodes(); i++) {
-//         getNode(i).setMass(0);
-//      }
-//      for (int i=0; i<numElements(); i++) {
-//         FemElement e = getElement(i);
-//         e.setMass (0);
-//         e.updateElementAndNodeMasses(); 
-//      }
-//   }
-
    public double getVolume() {
       // we don't update the volume in this method, since that might
       // result in FemElement.computeVolume() being called by a thread
@@ -1189,14 +1156,6 @@ public abstract class FemModel extends MechSystemBase
       myForcesNeedUpdating = true;
       invalidateStressAndStiffness();
       invalidateIntegrationIndices();
-      if (e instanceof StructureChangeEvent) {
-         StructureChangeEvent sce = (StructureChangeEvent)e;
-         if (sce.getComponent() == getElements()) {
-            // need to completely rebuild the tree since the elements may have changed
-            myAABBTree = null;
-            myBVTreeValid = false;
-         }
-      }
    }
 
    public double getCharacteristicSize() {
@@ -1321,7 +1280,7 @@ public abstract class FemModel extends MechSystemBase
    
    protected int assignIntegrationIndices() {
       int idx = 0;
-      for (FemElement e : getElements()) {
+      for (FemElement e : getAllElements()) {
          e.setIntegrationIndex (idx);
          int numi = e.numIntegrationPoints();
          // increase the index to accommodate the warping point, if any

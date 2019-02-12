@@ -7,9 +7,12 @@ JAVA_TEST_PROGRAMS = \
 	KKTSolverTest \
 	KellerLCPSolverTest \
 	LemkeContactSolverTest \
+	DantzigLCPSolverTest \
 	PardisoSolverTest \
 	CGSolverTest \
 	CRSolverTest
+
+        # DantzigQPSolverTest
 
 OTHER_CLASSES = 
 

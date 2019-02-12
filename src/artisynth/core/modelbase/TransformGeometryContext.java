@@ -436,7 +436,7 @@ public class TransformGeometryContext {
          new ArrayList<TransformGeometryAction>();
       actions.addAll (myActions);
       while (actions.size() > 0) {
-          for (TransformGeometryAction a : actions) {         
+          for (TransformGeometryAction a : actions) {    
              a.transformGeometry (gtr, this, flags);
              myActions.remove (a);
           }

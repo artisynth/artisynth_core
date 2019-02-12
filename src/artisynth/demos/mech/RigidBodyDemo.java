@@ -79,10 +79,6 @@ public class RigidBodyDemo extends RootModel {
       PolygonalMesh mesh;
       double wx, wy, wz;
 
-      // // set view so tha points upwards
-      // X.R.setAxisAngle (1, 0, 0, -Math.PI/2);
-      // viewer.setTransform (X);
-
       // top box
       wx = 10;
       wy = 5;
@@ -91,10 +87,6 @@ public class RigidBodyDemo extends RootModel {
       topBox.setInertia (
          SpatialInertia.createBoxInertia (10, wx, wy, wz));
       mesh = MeshFactory.createBox (wx, wy, wz);
-      // mesh.getVertices().get(0).setColor (Color.RED);
-      // mesh.getVertices().get(1).setColor (Color.BLUE);
-      // mesh.getVertices().get(2).setColor (Color.GREEN);
-      // mesh.setRenderMaterial (Material.createSpecial (Material.GRAY));
       topBox.setMesh (mesh, /* fileName= */null);
       X.R.setIdentity();
       X.p.set (0, 0, 9);
@@ -114,17 +106,6 @@ public class RigidBodyDemo extends RootModel {
       X.p.set (5, 0, 5);
       X.R.setAxisAngle (0, 1, 0, -Math.PI / 4);
       lowerBox.setPose (X);
-
-      // // ball
-      // RigidBody ball = new RigidBody();
-      // double radius = 1.5;
-      // ball.setSpatialInertia(
-      // SpatialInertia.createSphereInertia(10, radius));
-      // mesh = MeshFactory.createSphere (radius, 16);
-      // mesh.setRenderMaterial (Material.createSpecial (Material.RED));
-      // ball.setMesh (mesh, /*fileName=*/null);
-      // X.p.set (5, 0, 0);
-      // ball.setPose (X);
 
       FrameMarker at0 = new FrameMarker (1, 0, -1);
       FrameMarker at1 = new FrameMarker (-1, 0, -1);
@@ -163,9 +144,6 @@ public class RigidBodyDemo extends RootModel {
       props.setLineColor (Color.GREEN);
       spring1.setRenderProps (props);
 
-      // msmod.addRigidBody (topBox);
-      // msmod.addRigidBody (lowerBox);
-
       FrameMarker at4 = new FrameMarker (-2.5, -2, -1);
       FrameMarker at5 = new FrameMarker (-2.5, 2, -1);
 
@@ -181,39 +159,9 @@ public class RigidBodyDemo extends RootModel {
       msmod.attachAxialSpring (at1, part1, spring2);
       msmod.attachAxialSpring (part1, at3, spring3);
 
-      //part1.setDynamic(false);
-
-
-      // Particle part3 = new Particle(1, -4, 0, 8);
-      // Particle part4 = new Particle(1, -4, 0, 4);
-      // Particle part5 = new Particle(1, -4, 0, 4);
-      // part5.setMass (2);
-      // AxialSpring spring4 = new AxialSpring (2, 5, 0);
-
-      // part3.setDynamic(false);
-      // msmod.addParticle (part3);
-      // msmod.addParticle (part5);
-      // msmod.addParticle (part4);
-      // RenderProps.setPointColor (part5, Color.RED);
-      // msmod.attachAxialSpring (part3, part4, spring4);
-      // msmod.attachPoint (part5, part4);
-
       msmod.setBounds (new Point3d (0, 0, -10), new Point3d (0, 0, 10));
-
       msmod.scaleDistance (5);
-      // msmod.scaleMass (5);
-
-      // AffineTransform3d XT = new AffineTransform3d();
-      // XT.setIdentity();
-      // XT.applyScaling (1, 1, 1);
-      // XT.getOffset().set (0, 0, -5);
-
       addModel (msmod);
-
-      // AffineTransform3d XA = new AffineTransform3d();
-      // XA.applyScaling (1, 1, 1.2);
-      // lowerBox.transformGeometry (XA);
-      // lowerBox.transformGeometry (XA);
 
       int numWays = 0;
       double res = 1;
@@ -221,61 +169,12 @@ public class RigidBodyDemo extends RootModel {
          addWayPoint (new WayPoint ((i + 1)*res, true));
       }
 
-      // msmod.initialize(0L);
-
-      // lowerBox.setDynamic (false);
-      // try {
-      //    NumericInputProbe inprobe =
-      //       new NumericInputProbe (
-      //          msmod, "rigidBodies/1:pose", 0, 10);
-      //    // inprobe.setDefaultDisplayRange (-10, 10);
-      //    addInputProbe (inprobe);
-      // }
-      // catch (Exception e) {
-      //    e.printStackTrace();
-      // }
-
       ControlPanel panel = new ControlPanel ("options");
       panel.addWidget (this, "models/msmod:integrator");
       panel.addWidget (this, "models/msmod:maxStepSize");
-      //panel.pack();
-      //panel.setVisible (true);
-      // java.awt.Point loc = Main.getFrame().getLocation();
-      // panel.setLocation (
-      //    loc.x + driver.getFrame().getWidth(), loc.y);
       addControlPanel (panel);
       Main.getMain().arrangeControlPanels (this);
-
-      // addController (new MeshModifier (topBox));
    }
-
-   // ControlPanel myControlPanel;
-
-   // public void attach (DriverInterface driver) {
-   //    // System.out.println();
-   //    super.attach (driver);
-
-   //    myControlPanel = new ControlPanel ("options");
-   //    myControlPanel.addWidget (this, "models/msmod:integrator");
-   //    myControlPanel.addWidget (this, "models/msmod:maxStepSize");
-   //    myControlPanel.pack();
-   //    //myControlPanel.setVisible (true);
-   //    java.awt.Point loc = driver.getFrame().getLocation();
-   //    myControlPanel.setLocation (
-   //       loc.x + driver.getFrame().getWidth(), loc.y);
-   //    addControlPanel (myControlPanel);
-   // }
-
-   // public void detach (DriverInterface driver) {
-   //    super.detach (driver);
-   //    // if (myControlPanel != null)
-   //    // {
-   //    // myControlPanel.setVisible(false);
-   //    // myControlPanel = null;
-   //    // }
-
-   //    System.out.println ("Cleaning up Rigid Body Demo");
-   // }
 
    /**
     * {@inheritDoc}

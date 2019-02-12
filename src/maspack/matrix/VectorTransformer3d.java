@@ -83,5 +83,12 @@ public interface VectorTransformer3d {
     * transform.
     */
    public boolean isAffine();  
+   
+   /**
+    * Creates and returns a copy of this transformer.
+    * 
+    * @return copy of this transformer
+    */
+   public VectorTransformer3d copy();
 
 }

@@ -27,6 +27,7 @@ import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MechSystemBase;
+import artisynth.core.mechmodels.MeshComponent;
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.mechmodels.MotionTargetComponent;
 import artisynth.core.mechmodels.Point;
@@ -558,9 +559,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       myTargets.add(tframe);
 
       // add mesh to TargetFrame
-      if (source.getMesh() != null) {
-         tframe.setMesh(new PolygonalMesh(source.getMesh()),
-            source.getMeshFileName());
+      PolygonalMesh mesh = null;
+      if ((mesh = source.getSurfaceMesh()) != null) {
+         tframe.setSurfaceMesh(mesh, source.getSurfaceMeshComp().getFileName());
          tframe.setRenderProps (source.getRenderProps ());
          RenderProps.setDrawEdges (tframe, true);
          RenderProps.setFaceStyle (tframe, FaceStyle.NONE);

@@ -30,8 +30,8 @@ C_FLAGS = -O2 -std=c99 -mfpmath=sse -msse -I.
 #C_FLAGS = -O0 -g -fPIC -std=c99 -mfpmath=sse -msse -I.
 
 # current version of tetgen. Make sure there is no whitespace at the end.
-TETGEN_VERSION = 1.5.1.0
-TETGEN_DIR = tetgen1.5.0
+TETGEN_VERSION = 1.5.1.1
+TETGEN_DIR = tetgen1.5.1
 
 TETGEN_OBJ_FILES = $(TETGEN_DIR)/tetgen.o $(TETGEN_DIR)/predicates.o
 
@@ -233,7 +233,7 @@ $(LIB_TARGET_DIR)/$(ROBUST_TARGET): RobustPredsJNI.o geoPred.o geoPredShewchuck.
 LIB_ROBUST_TARGET = $(LIB_TARGET_DIR)/$(ROBUST_TARGET)
 LIB_TETGEN_TARGET = $(LIB_TARGET_DIR)/$(TETGEN_TARGET)
 
-LIB_TARGETS = $(LIB_ROBUST_TARGET) # $(LIB_TETGEN_TARGET)
+LIB_TARGETS = $(LIB_ROBUST_TARGET) $(LIB_TETGEN_TARGET)
 
 libs:	$(LIB_TARGETS)
 #$(LIB_TARGET_DIR)/$(GETCW_TARGET)

@@ -192,7 +192,7 @@ public abstract class SkinMeshBase extends DynamicMeshComponent
       throws IOException {
 
       rtok.nextToken();
-      if (ScanWriteUtils.scanProperty (rtok, this)) {
+      if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
          return true;
       }
       else if (myComponents.scanAndStoreComponentByName (rtok, tokens)) {

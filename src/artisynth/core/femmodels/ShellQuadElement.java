@@ -3,6 +3,7 @@ package artisynth.core.femmodels;
 import artisynth.core.femmodels.FemElement.ElementClass;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Point3d;
+import maspack.matrix.MatrixNd;
 import maspack.geometry.TriangleIntersector;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
@@ -18,7 +19,8 @@ public class ShellQuadElement extends ShellElement3d {
    protected static double[] myNodeCoords = null;
    protected static int[] myEdgeIdxs = null;
    protected static int[] myFaceIdxs = null;
-   protected static double[] myNodalExtrapolationMatrix = null;
+   protected static int[] myTriangulatedFaceIdxs = null;
+   protected static MatrixNd myNodalExtrapolationMatrix = null;
    protected static IntegrationPoint3d[] myDefaultIntegrationPoints;
    protected static IntegrationPoint3d[] myMembraneIntegrationPoints;
    protected IntegrationPoint3d myWarpingPoint;
@@ -56,30 +58,45 @@ public class ShellQuadElement extends ShellElement3d {
       myFaceIdxs = new int[] { 
          4, 0, 1, 2, 3
       };
+
+      myTriangulatedFaceIdxs = new int[] { 
+         0, 1, 2,
+         0, 2, 3
+      };
+      
    }
       
    protected static double[] myDefaultIntegrationCoords = null;
+   protected static double[] myMembraneIntegrationCoords = null;
+   
    public static final double[] INTEGRATION_COORDS_GAUSS_8;
+   public static final double[] INTEGRATION_COORDS_MEMBRANE;
+   
    static {
       double a = 1 / Math.sqrt (3);
       double w = 1.0;
       INTEGRATION_COORDS_GAUSS_8 = new double[] { 
          -a, -a, -a, w,
          +a, -a, -a, w,
-         
+                                                 
          +a, +a, -a, w,
          -a, +a, -a, w,
-         
+                                                 
          -a, -a, +a, w,
          +a, -a, +a, w,
-         
+                                                 
          +a, +a, +a, w,
          -a, +a, +a, w };
       myDefaultIntegrationCoords = INTEGRATION_COORDS_GAUSS_8;
+      
+      INTEGRATION_COORDS_MEMBRANE = new double[] { 
+         -a, -a, 0, w,
+         +a, -a, 0, w,
+                                                 
+         +a, +a, 0, w,
+         -a, +a, 0, w };                                              
+      myMembraneIntegrationCoords = INTEGRATION_COORDS_MEMBRANE;
    }
-
-
-
    
    /*** End of variables and static blocks declarations ****/
 
@@ -201,6 +218,10 @@ public class ShellQuadElement extends ShellElement3d {
       return myFaceIdxs;
    }
    
+   public int[] getTriangulatedFaceIndices() {
+      return myTriangulatedFaceIdxs;
+   }
+
    public double[] getIntegrationCoords () {
       return myDefaultIntegrationCoords;
    }
@@ -216,13 +237,17 @@ public class ShellQuadElement extends ShellElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints () {
       if (myDefaultIntegrationPoints == null) {
+         ShellElement3d sampleElem = new ShellQuadElement();
+         sampleElem.myElementClass = ElementClass.SHELL; 
          myDefaultIntegrationPoints = 
-            createIntegrationPoints (myDefaultIntegrationCoords);
+            createIntegrationPoints (sampleElem, myDefaultIntegrationCoords);
       }
       if (myElementClass == ElementClass.MEMBRANE) {
          if (myMembraneIntegrationPoints == null) {
+            ShellElement3d sampleElem = new ShellQuadElement();
+            sampleElem.myElementClass = ElementClass.MEMBRANE;            
             myMembraneIntegrationPoints = 
-               createMembraneIntegrationPoints (myDefaultIntegrationPoints);
+            createIntegrationPoints (sampleElem, myMembraneIntegrationCoords);
          }
          return myMembraneIntegrationPoints;
       }
@@ -232,6 +257,7 @@ public class ShellQuadElement extends ShellElement3d {
    }
 
    public int numPlanarIntegrationPoints() {
+
       return 4;
    }
 
@@ -242,6 +268,14 @@ public class ShellQuadElement extends ShellElement3d {
       }
       return myWarpingPoint;
    }
+
+   public boolean coordsAreInside (Vector3d coords) {
+      double s0 = coords.x;
+      double s1 = coords.y;
+      double s2 = coords.z;
+
+      return (s0 >= -1 && s0 <= 1 && s1 >= -1 && s1 <= 1 && s2 >= -1 && s2 <= 1);
+   }
    
 //   protected void updateWarpingPoint() {
 //      if (myWarpingPoint != null) {
@@ -249,15 +283,16 @@ public class ShellQuadElement extends ShellElement3d {
 //      }
 //   }
 
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
       if (myNodalExtrapolationMatrix == null) {
          // For now, just use integration point values at corresponding nodes
-         myNodalExtrapolationMatrix = new double[] {
+         myNodalExtrapolationMatrix = new MatrixNd (4, 8);
+         myNodalExtrapolationMatrix.set (new double[] {
             0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,
             0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0,
             0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0,
             0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.5,
-         };
+         });
       }
       return myNodalExtrapolationMatrix;
    }

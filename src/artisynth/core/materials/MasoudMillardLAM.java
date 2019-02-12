@@ -12,8 +12,8 @@ public class MasoudMillardLAM extends AxialMuscleMaterial {
    protected double myFMTratioLit = 0.5; // FascicleLength/MuscleTendonLength
 
    public MasoudMillardLAM () {
-      myOptLength = 1;
-      myFMTratioLit = 1;
+      setOptLength (1);
+      setMyFMTratioLit (1);
    }
 
    public MasoudMillardLAM (double penAngleLit, double sarcomereLenLit,

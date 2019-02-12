@@ -10,13 +10,12 @@ import maspack.matrix.*;
 import maspack.util.*;
 import java.util.Random;
 
-public class KellerLCPSolverTest {
+public class KellerLCPSolverTest extends UnitTest {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPS = 1000 * DOUBLE_PREC;
 
    private KellerLCPSolver mySolver;
    private Random myRandom;
-   private boolean verbose = false;
 
    private FunctionTimer timer = new FunctionTimer();
    private int pivotCnt;
@@ -48,7 +47,7 @@ public class KellerLCPSolverTest {
             k++;
          }
          while (k < cnt && status != KellerLCPSolver.Status.SOLVED);
-         if (verbose) {
+         if (!mySilentP) {
             System.out.println ("random retry level " + k);
          }
       }
@@ -131,20 +130,37 @@ public class KellerLCPSolverTest {
          // System.out.println (
          // "SPSD "+i+", pivots=" + mySolver.getIterationCount());
       }
-      System.out.println ("average time: " + timer.result (2 * numRandomTests)
-      + ", " + pivotCnt / (2 * numRandomTests) + " pivots");
-
+      if (!mySilentP) {
+         System.out.println (
+            "average time: " + timer.result (2 * numRandomTests)
+            + ", " + pivotCnt / (2 * numRandomTests) + " pivots");
+      }
    }
+
+   public void test() {
+      execute();
+   }
+
+   private void printUsageAndExit (int code) {
+      System.out.println ("Usage: java "+getClass()+" [-verbose]");
+      System.exit (code); 
+   }   
 
    public static void main (String[] args) {
       KellerLCPSolverTest tester = new KellerLCPSolverTest();
-      try {
-         tester.execute();
+
+      tester.setSilent (true);
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-verbose")) {
+            tester.setSilent (false);
+         }
+         else if (args[i].equals ("-help")) {
+            tester.printUsageAndExit (0);
+         }
+         else {
+            tester.printUsageAndExit (1);
+         }
       }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
-      }
-      System.out.println ("\nPassed\n");
+      tester.runtest();
    }
 }

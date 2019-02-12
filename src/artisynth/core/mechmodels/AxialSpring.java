@@ -192,7 +192,7 @@ public class AxialSpring extends PointSpringBase
       throws IOException {
 
       printPointReferences (pw, ancestor);
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
    }
 
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)

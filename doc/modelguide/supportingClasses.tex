@@ -40,7 +40,7 @@ multiplication:
 \end{lstlisting}
 %
 As illustrated in the above example, vectors and matrices both provide
-a {\tt toString()} method that allows their elements to be formated
+a {\tt toString()} method that allows their elements to be formatted
 using a C-printf style format string. This is useful for providing
 concise and uniformly formatted output, particularly for diagnostics.
 The output from the above example is
@@ -118,10 +118,10 @@ used of which include:
 %
 \begin{lstlisting}[]
    RigidTransform3d();         // create and set to the identity
-   RigidTransfrom3d(x, y, z);  // create and set translation to x, y, z
+   RigidTransform3d(x, y, z);  // create and set translation to x, y, z
 
    // create and set translation to x, y, z and rotation to roll-pitch-yaw
-   RigidTransfrom3d(x, y, z, roll, pitch, yaw);
+   RigidTransform3d(x, y, z, roll, pitch, yaw);
 
    invert ();                  // invert this transform
    mul (T)                     // post multiply this transform by T
@@ -240,7 +240,7 @@ coordinate systems, inversion, and multiplying by spatial vectors.
 \label{Meshes:sec}
 
 ArtiSynth makes extensive use of 3D meshes, which are defined in {\tt
-maspack.geometry}.  They are used for a variety of purposes, including
+\mgeo}.  They are used for a variety of purposes, including
 visualization, collision detection, and computing physical properties
 (such as inertia or stiffness variation within a finite element
 model).
@@ -248,7 +248,7 @@ model).
 A mesh is essentially a collection of vertices
 (i.e., points) that are topologically connected in some way.  All
 meshes extend the abstract base class
-\javaclass[maspack.geometry]{MeshBase}, which supports the vertex
+\javaclass[\mgeo]{MeshBase}, which supports the vertex
 definitions, while subclasses provide the topology.
 
 Through {\tt MeshBase}, all meshes provide methods for
@@ -263,12 +263,12 @@ adding and accessing vertices. Some of these include:
   ArrayList<Vertex3d> getVertices(); // return the list of vertices
 \end{lstlisting}
 %
-Vertices are implemented by \javaclass[maspack.geometry]{Vertex3d},
+Vertices are implemented by \javaclass[\mgeo]{Vertex3d},
 which defines the position of the vertex (returned by the method
-\javamethod*[maspack.geometry.Vertex3d]{getPosition()}), and also
+\javamethod*[\mgeo.Vertex3d]{getPosition()}), and also
 contains support for topological connections. In addition, each vertex
 maintains an index, obtainable via
-\javamethod*[maspack.geometry.Vertex3d]{getIndex()}, that equals the
+\javamethod*[\mgeo.Vertex3d]{getIndex()}, that equals the
 index of its location within the mesh's vertex list. This makes it
 easy to set up parallel array structures for augmenting mesh vertex
 properties.
@@ -277,24 +277,24 @@ Mesh subclasses currently include:
 
 \begin{description}
 
-\item[\protect{\javaclass[maspack.geometry]{PolygonalMesh}}]\mbox{}
+\item[\protect{\javaclass[\mgeo]{PolygonalMesh}}]\mbox{}
 
 Implements a 2D surface
 mesh containing faces implemented using half-edges.
 
-\item[\protect{\javaclass[maspack.geometry]{PolylineMesh}}]\mbox{}
+\item[\protect{\javaclass[\mgeo]{PolylineMesh}}]\mbox{}
 
 Implements a mesh
 consisting of connected line-segments (polylines).
 
-\item[\protect{\javaclass[maspack.geometry]{PointMesh}}]\mbox{}
+\item[\protect{\javaclass[\mgeo]{PointMesh}}]\mbox{}
 
 Implements a point cloud with
 no topological connectivity.
 
 \end{description}
 
-\javaclass[maspack.geometry]{PolygonalMesh} is used quite extensively
+\javaclass[\mgeo]{PolygonalMesh} is used quite extensively
 and provides a number of methods for implementing faces, including:
 %
 \begin{lstlisting}[]
@@ -305,19 +305,19 @@ and provides a number of methods for implementing faces, including:
   ArrayList<Face> getFaces();     // return the list of faces
 \end{lstlisting}
 %
-The class \javaclass[maspack.geometry]{Face} implements a face as a
+The class \javaclass[\mgeo]{Face} implements a face as a
 counter-clockwise arrangement of vertices linked together by
-half-edges (class \javaclass[maspack.geometry]{HalfEdge}).
+half-edges (class \javaclass[\mgeo]{HalfEdge}).
 {\tt Face} also supplies a face's (outward facing) normal
 via 
-\javamethod[maspack.geometry.Face]{getNormal()}.
+\javamethod[\mgeo.Face]{getNormal()}.
 
 Some mesh uses within ArtiSynth, such as collision detection, require a
 {\it triangular} mesh; i.e., one where all faces have three vertices.
-The method \javamethod[maspack.geometry.PolygonalMesh]{isTriangular()}
+The method \javamethod[\mgeo.PolygonalMesh]{isTriangular()}
 can be used to check for this. Meshes that are not triangular can be
 made triangular using 
-\javamethod[maspack.geometry.PolygonalMesh]{triangulate()}.
+\javamethod[\mgeo.PolygonalMesh]{triangulate()}.
 
 \subsection{Mesh creation}
 
@@ -340,7 +340,7 @@ surface:
 %
 
 However, meshes are more commonly created using either one of the
-factory methods supplied by \javaclass[maspack.geometry]{MeshFactory},
+factory methods supplied by \javaclass[\mgeo]{MeshFactory},
 or by reading a definition from a file (Section \ref{MeshFileIO:sec}).
 
 Some of the more commonly used factory methods for creating polyhedral
@@ -348,6 +348,7 @@ meshes include:
 %
 \begin{lstlisting}[]
   MeshFactory.createSphere (radius, nslices, nlevels);
+  MeshFactory.createIcosahedralSphere (radius, divisons);
   MeshFactory.createBox (widthx, widthy, widthz);
   MeshFactory.createCylinder (radius, height, nslices);
   MeshFactory.createPrism (double[] xycoords, height);
@@ -356,7 +357,7 @@ meshes include:
 %
 Each factory method creates a mesh in some standard coordinate
 frame. After creation, the mesh can be transformed using the
-\javamethodAlt{maspack.geometry.MeshBase.transform(AffineTransform3dBase)}%
+\javamethodAlt{\mgeo.MeshBase.transform(AffineTransform3dBase)}%
 {transform(X)} method, where {\tt X} is either a rigid transform (
 \javaclass[maspack.matrix]{RigidTransform3d}) or a more general affine
 transform (\javaclass[maspack.matrix]{AffineTransform3d}).
@@ -365,7 +366,7 @@ one could do:
 %
 \begin{lstlisting}[]
   // create a box centered at the origin with widths 10, 20, 30:
-  PolygonalMesh box = MeshFactor.createBox (10, 20, 20);
+  PolygonalMesh box = MeshFactory.createBox (10, 20, 20);
 
   // move the origin to 5, 6, 7 and rotate using roll-pitch-yaw
   // angles 0, 0, 45 degrees:
@@ -374,23 +375,23 @@ one could do:
 \end{lstlisting}
 %
 One can also scale a mesh using
-\javamethodAlt{maspack.geometry.MeshBase.scale(double)}{scale(s)},
+\javamethodAlt{\mgeo.MeshBase.scale(double)}{scale(s)},
 where {\tt s} is a single scale factor, or
-\javamethodAlt{maspack.geometry.MeshBase.scale(double,double,double)}%
+\javamethodAlt{\mgeo.MeshBase.scale(double,double,double)}%
 {scale(sx,sy,sz)}, where {\tt sx}, {\tt sy}, and {\tt sz} are separate
 scale factors for the x, y and z axes. This provides a useful way to
 create an ellipsoid:
 %
 \begin{lstlisting}[]
    // start with a unit sphere with 12 slices and 6 levels ...
-  PolygonalMesh ellipsoid = MeshFactor.createSphere (1.0, 12, 6);
+  PolygonalMesh ellipsoid = MeshFactory.createSphere (1.0, 12, 6);
 
   // and then turn it into an ellipsoid by scaling about the axes:
   ellipsoid.scale (1.0, 2.0, 3.0);
 \end{lstlisting}
 %
-\javaclass[maspack.geometry]{MeshFactory} can also be used to create
-new meshes by performing boolean operations on existing ones:
+\javaclass[\mgeo]{MeshFactory} can also be used to create
+new meshes by performing Boolean operations on existing ones:
 %
 \begin{lstlisting}[]
   MeshFactory.getIntersection (mesh1, mesh2);
@@ -429,7 +430,7 @@ the following methods:
   clearNormals();                           // clear all normals and indices
 \end{lstlisting}
 %
-The method \javamethod[maspack.geometry.MeshBase]{setNormals()} takes
+The method \javamethod[\mgeo.MeshBase]{setNormals()} takes
 two arguments: a set of normal vectors ({\tt nrmls}), along with a set
 of index values ({\tt indices}) that map these normals onto the
 vertices of each of the mesh's geometric features. Often, there will
@@ -441,7 +442,7 @@ vertices for {\tt PointMesh}.  If {\tt indices} is specified as {\tt
 null}, then {\tt normals} is assumed to have a size equal to the
 number of vertices, and an appropriate index set is created
 automatically using
-\javamethod[maspack.geometry.MeshBase]{createVertexIndices()}
+\javamethod[\mgeo.MeshBase]{createVertexIndices()}
 (described below). Otherwise, {\tt indices} should have a size of
 equal to the number of features times the number of vertices per
 feature. For example, consider a {\tt PolygonalMesh} consisting of two
@@ -461,19 +462,19 @@ nrmls} argument will exceed the number of vertices.
 The method {\tt setNormals()} makes internal copies of the specified
 normal and index information, and this information can be
 later read back using 
-\javamethod[maspack.geometry.MeshBase]{getNormals()} 
+\javamethod[\mgeo.MeshBase]{getNormals()} 
 and
-\javamethod[maspack.geometry.MeshBase]{getNormalIndices()}.
+\javamethod[\mgeo.MeshBase]{getNormalIndices()}.
 The number of normals can be queried using
-\javamethod[maspack.geometry.MeshBase]{numNormals()},
+\javamethod[\mgeo.MeshBase]{numNormals()},
 and individual normals can be queried or set using
-\javamethodAlt{maspack.geometry.MeshBase.getNormal(int)}{getNormal(idx)}
+\javamethodAlt{\mgeo.MeshBase.getNormal(int)}{getNormal(idx)}
 and
-\javamethodAlt{maspack.geometry.MeshBase.setNormal(,)}{setNormal(idx,nrml)}.
+\javamethodAlt{\mgeo.MeshBase.setNormal(,)}{setNormal(idx,nrml)}.
 All normals and indices can be explicitly cleared using 
-\javamethod[maspack.geometry.MeshBase]{clearNormals()}.
+\javamethod[\mgeo.MeshBase]{clearNormals()}.
 
-Color and texture information can be set using analagous methods.
+Color and texture information can be set using analogous methods.
 For colors, we have
 %
 \begin{lstlisting}[]
@@ -495,7 +496,7 @@ For colors, we have
 When specified as {\tt float[]}, colors are given as RGB or
 RGBA values, in the range $[0,1]$, with array lengths of 3 and 4,
 respectively.  The colors returned by
-\javamethod[maspack.geometry.MeshBase]{getColors()} are always RGBA
+\javamethod[\mgeo.MeshBase]{getColors()} are always RGBA
 values.
 
 %
@@ -526,9 +527,9 @@ Finally, for texture coordinates, we have
 \end{lstlisting}
 
 When specifying indices using 
-\javamethodAlt{maspack.geometry.MeshBase.setNormals(,)}{setNormals},
-\javamethodAlt{maspack.geometry.MeshBase.setColors(,)}{setColors}, or
-\javamethodAlt{maspack.geometry.MeshBase.setTextureCoords(,)}{setTextureCoords},
+\javamethodAlt{\mgeo.MeshBase.setNormals(,)}{setNormals},
+\javamethodAlt{\mgeo.MeshBase.setColors(,)}{setColors}, or
+\javamethodAlt{\mgeo.MeshBase.setTextureCoords(,)}{setTextureCoords},
 it is common to use the same index set as that which
 associates vertices with features. For convenience,
 this index set can be created automatically using
@@ -557,7 +558,7 @@ triangle, the resulting feature index set would be
 
 \begin{sideblock}
 Note: when a mesh is modified by the {\it addition} of new features
-(such as faces for \javaclass[maspack.geometry]{PolygonalMesh}), all
+(such as faces for \javaclass[\mgeo]{PolygonalMesh}), all
 normal, color and texture information is cleared by default (with
 normal information being automatically recomputed on demand if
 automatic normal creation is enabled; see Section \ref{AutoNormalCreation:sec}).
@@ -610,17 +611,17 @@ In general, the various {\tt get} methods return references to
 internal storage information and so should
 {\bf not} be modified. However, specific values within the lists
 returned by 
-\javamethod[maspack.geometry.MeshBase]{getNormals()}, 
-\javamethod[maspack.geometry.MeshBase]{getColors()}, or
-\javamethod[maspack.geometry.MeshBase]{getTextureCoords()}
+\javamethod[\mgeo.MeshBase]{getNormals()}, 
+\javamethod[\mgeo.MeshBase]{getColors()}, or
+\javamethod[\mgeo.MeshBase]{getTextureCoords()}
 may be modified by the application.  This may be
-necessary when attribute information changes as the simultion
+necessary when attribute information changes as the simulation
 proceeds. Alternatively, one may use methods such
 as 
-\javamethodAlt{maspack.geometry.MeshBase.setNormal(,)}{setNormal(idx,nrml)}
-\javamethodAlt{maspack.geometry.MeshBase.setColor(int,float)}%
+\javamethodAlt{\mgeo.MeshBase.setNormal(,)}{setNormal(idx,nrml)}
+\javamethodAlt{\mgeo.MeshBase.setColor(int,float)}%
 {setColor(idx,color)}, or
-\javamethodAlt{maspack.geometry.MeshBase.setTextureCoords(int,)}%
+\javamethodAlt{\mgeo.MeshBase.setTextureCoords(int,)}%
 {setTextureCoords(idx,coords)}.
 
 Also, in some situations, particularly with colors and textures, it
@@ -686,9 +687,9 @@ specified either directly or using their indices.
 \subsection{Vertex and feature coloring}
 \label{vertexAndFeatureColoring:sec}
 
-The method \javamethod[maspack.geometry.MeshBase]{setColors()} makes
+The method \javamethod[\mgeo.MeshBase]{setColors()} makes
 it possible to assign any desired coloring scheme to a mesh. However,
-it does require that the user explicity reset the color information
+it does require that the user explicitly reset the color information
 whenever new features are added.
 
 For convenience, an application can also request that a mesh
@@ -744,8 +745,8 @@ Similarly, feature-based coloring can be requested using the method
 %
 This will create a separate (default) color for each of the mesh's
 features (faces for 
-\javaclass[maspack.geometry]{PolygonalMesh}, polylines for
-\javaclass[maspack.geometry]{PolylineMesh}, etc.),
+\javaclass[\mgeo]{PolygonalMesh}, polylines for
+\javaclass[\mgeo]{PolylineMesh}, etc.),
 and set the color indices to equal the feature 
 index set, which is equivalent to the call
 %
@@ -767,7 +768,7 @@ is enabled can be queried using
 \subsection{Reading and writing mesh files}
 \label{MeshFileIO:sec}
 
-The package {\tt maspack.geometry.io} supplies a number of classes for
+The package {\tt \mgeo.io} supplies a number of classes for
 writing and reading meshes to and from files of different formats.
 
 Some of the supported formats and their associated readers and writers
@@ -807,8 +808,8 @@ which must be either caught, as in the example above, or
 thrown out of the calling routine.
 
 For convenience, one can also use the classes
-\javaclass[maspack.geometry.io]{GenericMeshReader} or
-\javaclass[maspack.geometry.io]{GenericMeshWriter}, which internally
+\javaclass[\mgeo.io]{GenericMeshReader} or
+\javaclass[\mgeo.io]{GenericMeshWriter}, which internally
 create an appropriate reader or writer based on the file
 extension. This enables the writing of code
 that does not depend on the file format:
@@ -856,7 +857,7 @@ contains hard edges, and multiple automatic normals are enabled (i.e.,
 getWriteNormals()} will return {\tt true}.
 
 Default normal writing behavior can be overridden within 
-the \javaclass[maspack.geometry.io]{MeshWriter} classes
+the \javaclass[\mgeo.io]{MeshWriter} classes
 using the following methods:
 %
 \begin{lstlisting}[]
@@ -876,3 +877,181 @@ When reading a {\tt PolygonalMesh} from a file, if the file contains
 normal information with multiple normals per vertex that suggests the
 existence of hard edges, then the corresponding edges are set to be
 hard within the mesh.
+
+\subsection{Constructive solid geometry}
+\label{CSG:sec}
+
+ArtiSynth contains primitives for performing constructive solid
+geometry (CSG) operations on volumes bounded by triangular meshes. The
+class that performs these operations is
+\javaclass{maspack.collision.SurfaceMeshIntersector}, and it works by
+robustly determining the intersection contour(s) between a pair of
+meshes, and then using these to compute the triangles that need to be
+added or removed to produce the necessary CSG surface.
+
+\begin{figure}[th]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/dumbbellMeshUnion}
+\else
+ \includegraphics[width=3in]{images/dumbbellMeshUnion}
+\fi
+\end{center}
+\caption{Dumbbell shaped mesh produced from the CSG union of
+two balls and a cylinder.}
+\label{dumbbellMeshUnion:fig}
+\end{figure}
+
+The CSG operations include union, intersection, and difference, and
+are implemented by the following {\tt SurfaceMeshIntersector} methods:
+%
+\begin{lstlisting}[]
+  findUnion (mesh0, mesh1);         // volume0 U volume1
+  findIntersection (mesh0, mesh1);  // volume0 ^ volume1
+  findDifference01 (mesh0, mesh1);  // volume0 - volume1 
+  findDifference10 (mesh0, mesh1);  // volume1 - volume0 
+\end{lstlisting}
+%
+Each takes two {\tt PolyhedralMesh} objects, {\tt mesh0} and {\tt
+mesh1}, and creates and returns another {\tt PolyhedralMesh} which
+represents the boundary surface of the requested operation. If the
+result of the operation is {\tt null}, the returned mesh will be empty.
+
+The example below uses {\tt findUnion} to create a dumbbell shaped mesh
+from two balls and a cylinder:
+%
+\begin{lstlisting}[]
+  // first create two ball meshes and a bar mesh
+  double radius = 1.0;
+  int division = 1; // number of divisons for icosahedral sphere
+  PolygonalMesh ball0 = MeshFactory.createIcosahedralSphere (radius, division);
+  ball0.transform (new RigidTransform3d (0, -2*radius, 0));
+  PolygonalMesh ball1 = MeshFactory.createIcosahedralSphere (radius, division);
+  ball1.transform (new RigidTransform3d (0, 2*radius, 0));
+  PolygonalMesh bar = MeshFactory.createCylinder (
+     radius/2, radius*4, /*ns=*/32, /*nr=*/1, /*nh*/10);
+  bar.transform (new RigidTransform3d (0, 0, 0, 0, 0, Math.PI/2));
+
+  // use a SurfaceMeshIntersector to create a CSG union of these meshes
+  SurfaceMeshIntersector smi = new SurfaceMeshIntersector();
+  PolygonalMesh balls = smi.findUnion (ball0, ball1);
+  PolygonalMesh mesh = smi.findUnion (balls, bar);
+\end{lstlisting}
+%
+The balls and cylinder are created using the
+\javaclass[\mgeo]{MeshFactory} methods
+\javamethod*[\mgeo.MeshFactory]{createIcosahedralSphere(double,int)}
+and
+\javamethod*[\mgeo.MeshFactory]{createCylinder(double,double,int,int,int)},
+where the latter takes arguments {\tt ns}, {\tt nr}, and {\tt nh}
+giving the number of slices along the circumference, end-cap radius,
+and length. The final resulting mesh is shown in Figure
+\ref{dumbbellMeshUnion:fig}.
+
+\section{Reading source relative files}
+\label{PathFinder:sec}
+
+ArtiSynth applications frequently need to read in various kinds of
+data files, including mesh files (as discussed in Section
+\ref{MeshFileIO:sec}), FEM mesh geometry (Section
+\ref{FemGeometryFiles:sec}), probe data (Section
+\ref{DataFileFormat:sec}), and custom application data.
+
+Often these data files do not reside in an absolute location but
+instead in a location relative to the application's class or source
+files.  For example, it is common for applications to store geometric
+data in a subdirectory {\tt "geometry"} located beneath the source
+directory. In order to access such files in a robust way, and ensure
+that the code does not break when the source tree is moved, it is
+useful to determine the application's source (or class) directory at
+run time. This can be accomplished using
+\javaclass{maspack.util.PathFinder}, which provides several methods
+for locating source and class directories:
+%
+\begin{lstlisting}[]
+  String findSourceDir (Object classObj);
+  String getSourceRelativePath (Object classObj, String relpath);
+
+  String findClassDir (Object classObj);
+  String getClassRelativePath (Object classObj, String relpath);
+\end{lstlisting}
+%
+The ``find'' methods return a string path to the indicated class or
+source directory, while the ``relative path'' methods locate the class
+or source directory and append
+the additional path {\tt relpath}.  For all of these, the class is
+determined from {\tt classObj}, either directly (if it is an instance
+of {\tt Class}), by name (if it is a {\tt String}), or otherwise by
+calling {\tt classObj.getClass()}. When identifying a package by name,
+the name should be either a fully qualified class name, or a simple
+name that can be located with respect to the packages obtained via
+{\tt Package.getPackages()}. For example, if we have a class whose
+fully qualified name is {\tt artisynth.models.test.Foo}, then the
+following calls should all return the same result:
+%
+\begin{lstlisting}[]
+   Foo foo = new Foo();
+
+   findSourceDir (foo);
+   findSourceDir (Foo.class);
+   findSourceDir ("artisynth.models.test.Foo");
+   findSourceDir ("Foo");
+\end{lstlisting}
+%
+If the source directory for {\tt Foo} happens to be {\tt
+/home/projects/src/artisynth/models/test}, then
+%
+\begin{lstlisting}[]
+   getSourceRelativePath (foo, "geometry/mesh.obj");
+\end{lstlisting}
+%
+will return
+{\tt /home/projects/src/artisynth/models/test/geometry/mesh.obj}.
+
+\begin{sideblock}
+When calling {\tt PathFinder} methods from {\it within} the relevant
+class, one can specify {\tt this} as the {\tt classObj} argument.
+\end{sideblock}
+
+As a specific example, assume that we have an application model whose
+{\tt build()} method needs to load in a mesh {\tt torus.obj} from a
+subdirectory {\tt meshes} located beneath the source directory. This
+could be done as follows:
+%
+\begin{lstlisting}[]
+  String pathToMesh = PathFinder.getSourceRelativePath (
+     this, "meshes/torus.obj");
+  // read the mesh from a .obj file :
+  WavefrontReader reader = new WavefrontReader (pathToMesh);
+  PolygonalMesh mesh = null;
+  try {
+     mesh = reader.readMesh () ;
+  }
+  catch (IOException e) {
+     System.err.println ("Can't read mesh:");
+     e.printStackTrace () ;
+  }
+\end{lstlisting}
+Note that the class was indicated by simply passing {\tt this} to {\tt
+getSourceRelativePath()}.
+
+\begin{sideblock}
+As an alternative to placing data files in the source directory, one
+could place them in the class directory, and then use {\tt
+findClassDir()} and {\tt getClassRelativePath()}. If the data files
+were originally defined in the source directory, it will be necessary
+to copy them to the class directory. Some Java IDEs will perform this
+automatically.
+\end{sideblock}
+
+The {\tt PathFinder} methods work by climbing the class's resource
+hierarchy.  Source directories are assumed to be located relative to
+the parent of the root class directory, via one of the paths specified
+by \javamethod[maspack.util.PathFinder]{getSourceRootPaths()}. By default, this
+list includes {\tt "src"}, {\tt "source"}, and {\tt "bin"}. Additional
+paths can be added using
+\javamethodAlt{maspack.util.PathFinder.addSourceRootPath()}%
+{addSourceRootPath(path)},
+or the entire list can be set using
+\javamethodAlt{maspack.util.PathFinder.setSourceRootPaths()}%
+{setSourceRootPaths(paths)}.

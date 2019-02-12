@@ -49,7 +49,7 @@ public class LeafBranchDemo extends RootModel {
    // Leaf material properties
    static double DEFAULT_LEAF_STIFFNESS = 2000;
    double myLeafStiffness = DEFAULT_LEAF_STIFFNESS;
-   static double DEFAULT_BRANCH_STIFFNESS = 10000;
+   static double DEFAULT_BRANCH_STIFFNESS = 400000;
    double myBranchStiffness = DEFAULT_BRANCH_STIFFNESS;
 
    static double DEFAULT_LEAF_MASS_DAMPING = 0.1;
@@ -166,7 +166,6 @@ public class LeafBranchDemo extends RootModel {
       if (branch != null) {
          // connect middle nodes to branch
          for (FemNode3d n : midNodes) {
-            n.initializeDirectorIfNecessary ();
             ShellNodeFrameAttachment at =
                new ShellNodeFrameAttachment (n, branch);
             mech.addAttachment (at);

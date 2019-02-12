@@ -3,7 +3,7 @@ PACKAGE_NAME = artisynth
 
 JAVA_SUBDIRS = \
 	core \
-	models
+	demos
 
 default: build
 

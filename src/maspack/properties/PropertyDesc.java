@@ -42,20 +42,14 @@ public class PropertyDesc implements PropertyInfo {
    protected boolean myInheritableP = false;
    protected boolean myNullValueOK = false;
 
-   // protected boolean myImmutableP = true;
-
    public static boolean debug = false;
-   // String myPutMethodName;
    protected Method myGetMethod;
    protected Method mySetMethod;
    protected Method myGetRangeMethod;
    protected Method myGetDefaultMethod; // not current used
-   //protected Method myValidateMethod;
    protected Method myGetModeMethod;
    protected Method mySetModeMethod;
-   // protected Method myGetModeObjectMethod;
    protected Method myCreateMethod;
-   // protected Field myModeObjectField;
 
    boolean myDefaultIsAuto = false;
    Object myDefaultValue;
@@ -154,9 +148,6 @@ public class PropertyDesc implements PropertyInfo {
       if (prop.mySetMethod != null) {
          initSetMethod (prop.mySetMethod.getName());
       }
-      // if (prop.myValidateMethod != null) {
-      //    initValidateMethod (prop.myValidateMethod.getName());
-      // }
       if (prop.myGetRangeMethod != null) {
          initGetRangeMethod (prop.myGetRangeMethod.getName());
       }
@@ -169,18 +160,9 @@ public class PropertyDesc implements PropertyInfo {
       if (prop.mySetModeMethod != null) {
          initSetModeMethod (prop.mySetModeMethod.getName());
       }
-      // if (prop.myGetModeObjectMethod != null)
-      // { tryToInitGetModeObjectMethod (prop.myGetModeObjectMethod.getName());
-      // }
       if (prop.myCreateMethod != null) {
          tryToInitCreateMethod (prop.myCreateMethod.getName());
       }
-      // if (prop.myGetRangeMethod != null) {
-      //    tryToInitGetRangeMethod (prop.myGetRangeMethod.getName());
-      // }
-      // if (prop.myModeObjectField != null)
-      // { tryToInitModeObjectField (prop.myModeObjectField.getName());
-      // }
       if (myDefaultIsAuto) {
          myDefaultValue = createDefaultValue();
       }
@@ -733,21 +715,6 @@ public class PropertyDesc implements PropertyInfo {
       checkReturnType (myGetDefaultMethod, myValueClass);
    }
 
-   // private void maybeSetValidateMethod (String methodName) {
-   //    if (myValueClass == null) {
-   //       throw new IllegalStateException (
-   //          "attempt to set validate method with value class unknown");
-   //    }
-   //    try {
-   //       myValidateMethod =
-   //          myHostClass.getMethod (
-   //             methodName, getValidationClass(), StringHolder.class);
-   //    }
-   //    catch (Exception e) {
-   //       myValidateMethod = null;
-   //    }
-   // }
-
    private void maybeSetGetRangeMethod (String methodName) {
       if (myValueClass == null) {
          throw new IllegalStateException (
@@ -756,9 +723,6 @@ public class PropertyDesc implements PropertyInfo {
       try {
          myGetRangeMethod = myHostClass.getMethod (methodName);
          checkReturnType (myGetRangeMethod, Range.class);
-//         System.out.println (
-//            "GET_RANGE method set to " + methodName + 
-//            " for " + myHostClass.getName()+":"+myName);        
       }
       catch (Exception e) {
          myGetRangeMethod = null;
@@ -774,9 +738,6 @@ public class PropertyDesc implements PropertyInfo {
       try {
          myGetDefaultMethod = myHostClass.getMethod (methodName);
          checkReturnType (myGetDefaultMethod, myValueClass);
-//         System.out.println (
-//            "GET_DEFAULT method set to " + methodName + 
-//            " for " + myHostClass.getName()+":"+myName);
       }
       catch (Exception e) {
          myGetDefaultMethod = null;
@@ -793,18 +754,6 @@ public class PropertyDesc implements PropertyInfo {
       checkReturnType (mySetModeMethod, Void.TYPE);
    }
 
-   // private void tryToInitGetModeObjectMethod (String methodName)
-   // {
-   // try
-   // { myGetModeObjectMethod = myHostClass.getMethod(methodName);
-   // checkReturnType (myGetModeObjectMethod, ModeObject.class);
-   // // System.out.println ("getModeObjectMethod '"+methodName+"' found");
-   // }
-   // catch (Exception e)
-   // { myGetModeObjectMethod = null;
-   // }
-   // }
-
    private void tryToInitCreateMethod (String methodName) {
       try {
          myCreateMethod = myHostClass.getMethod (methodName);
@@ -815,44 +764,6 @@ public class PropertyDesc implements PropertyInfo {
       }
    }
 
-   // private void tryToInitGetRangeMethod (String methodName) {
-   //    try {
-   //       myGetRangeMethod = myHostClass.getMethod (methodName);
-   //       checkReturnType (myGetRangeMethod, Range.class);
-   //    }
-   //    catch (Exception e) {
-   //       myGetRangeMethod = null;
-   //    }
-   // }
-
-   // private void tryToInitModeObjectField (String fieldName)
-   // {
-   // try
-   // { myModeObjectField = myHostClass.getField(fieldName);
-   // if (myModeObjectField.getType() != ModeObject.class)
-   // { myModeObjectField = null;
-   // }
-   // else
-   // {
-   // // System.out.println ("modeObjectField '"+fieldName+"' found");
-   // }
-   // }
-   // catch (Exception e)
-   // { myModeObjectField = null;
-   // }
-   // }
-
-   // public void initialize (Class hostClass)
-   // {
-   // super.initialize (hostClass);
-   // if (mySetMethodName != null)
-   // { initSetMethod();
-   // }
-   // if (myDefaultValue != null)
-   // { checkDefaultValueType();
-   // }
-   // }
-
    public void setGetMethod (String methodName) {
       initGetMethod (methodName);
    }
@@ -860,10 +771,6 @@ public class PropertyDesc implements PropertyInfo {
    public void setSetMethod (String methodName) {
       initSetMethod (methodName);
    }
-
-//   public void setGetRangeMethod (String methodName) {
-//      initGetRangeMethod (methodName);
-//   }
 
    public void setGetModeMethod (String methodName) {
       initGetModeMethod (methodName);
@@ -950,8 +857,6 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    protected Object createDefaultValue() {
-      //String errorMsg = null;
-
       if (myValueClass == Byte.TYPE || myValueClass == Byte.class) {
          return new Byte ((byte)0);
       }
@@ -1029,9 +934,6 @@ public class PropertyDesc implements PropertyInfo {
     * {@inheritDoc}
     */
    public Property createHandle (HasProperties host) {
-      // if (myHostClass == null)
-      // { initialize (host.getClass());
-      // }
       checkGetAndSetMethods (host);
       if (isInheritable()) {
          return new InheritablePropertyHandle (host, this);
@@ -1040,38 +942,6 @@ public class PropertyDesc implements PropertyInfo {
          return new GenericPropertyHandle (host, this);
       }
    }
-
-   // protected ModeObject getPropertyMode (HasProperties host)
-   // {
-   // checkHostClass (host);
-   // if (myGetModeObjectMethod != null)
-   // { try
-   // { return (ModeObject)myGetModeObjectMethod.invoke (host);
-   // }
-   // catch (Exception e)
-   // { System.err.println ("Class " + host.getClass().getName()+":");
-   // System.err.println (
-   // "Error invoking " + myGetMethod.getName());
-   // e.printStackTrace();
-   // System.exit(1);
-   // }
-   // }
-   // if (myModeObjectField != null)
-   // { try
-   // { return (ModeObject)myModeObjectField.get (host);
-   // }
-   // catch (Exception e)
-   // { System.err.println ("Class " + host.getClass().getName()+":");
-   // System.err.println (
-   // "Error obtaining mode object from field " +
-   // myModeObjectField.getName());
-   // e.printStackTrace();
-   // System.exit(1);
-   // }
-   // }
-
-   // return null;
-   // }
 
    protected void checkHostClass (Object host) {
       if (!myHostClass.isAssignableFrom (host.getClass())) {
@@ -1153,23 +1023,6 @@ public class PropertyDesc implements PropertyInfo {
          }
       }
    }
-
-//   public Object validateValue (
-//      HasProperties host, Object value, StringHolder errMsg) {
-//      if (myValidateMethod == null) {
-//         return host.getProperty (myName).validate (value, errMsg);
-//      }
-//      else {
-//         checkHostClass (host);
-//         try {
-//            return myValidateMethod.invoke (host, value, errMsg);
-//         }
-//         catch (Exception e) {
-//            methodInvocationError (e, host, myValidateMethod);
-//            return null;
-//         }
-//      }
-//   }
 
    protected InheritableProperty getInheritableProperty (HasProperties host) {
       try {
@@ -1317,21 +1170,11 @@ public class PropertyDesc implements PropertyInfo {
       if (propType == REGULAR || propType == INHERITABLE) {
          desc.setSetMethod (strs[2]);
          desc.maybeSetGetRangeMethod (strs[3]);
-         //desc.maybeSetGetDefaultMethod (strs[4]);
       }
 
       if (propType == INHERITABLE) {
          desc.setGetModeMethod (strs[4]);
          desc.setSetModeMethod (strs[5]);
-         // desc.tryToInitGetModeObjectMethod (strs[5]);
-         // if (desc.myGetModeObjectMethod == null)
-         // { desc.tryToInitModeObjectField (
-         // propName + "Mode");
-         // }
-         // if (desc.myModeObjectField == null)
-         // { desc.tryToInitModeObjectField (
-         // "my" + capitalize(propName) + "Mode");
-         // }
       }
 
       if (descriptor != null) {
@@ -1362,8 +1205,6 @@ public class PropertyDesc implements PropertyInfo {
          desc.setDimension (desc.getDimensionFromDefaultValue());
       }
       
-      //desc.tryToInitGetRangeMethod ("get"+capitalize (propName)+"Range");
-
       // For composite properties, see if there is a createXXX method
       if (CompositeProperty.class.isAssignableFrom (desc.myValueClass)) {
          desc.tryToInitCreateMethod ("create" + capitalize (propName));
@@ -1490,12 +1331,12 @@ public class PropertyDesc implements PropertyInfo {
       myNumericRange = (rng == null ? null : new DoubleInterval (rng));
    }
 
-   private String classToName (Class<? extends Object> cls) {
+   private static String classToName (Class<? extends Object> cls) {
       // was ClassAliases.getAliasOrName (cls);
       return cls.getName();
    }
 
-   private Class<?> nameToClass (String name) {
+   private static Class<?> nameToClass (String name) {
       // was: ClassAliases.resolveClass (name)
       try {
          return Class.forName (name);
@@ -1555,7 +1396,8 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    public boolean writeIfNonDefault (
-      HasProperties host, PrintWriter pw, NumberFormat fmt) throws IOException {
+      HasProperties host, PrintWriter pw, NumberFormat fmt, Object ref) 
+      throws IOException {
 
       Object value = getValue (host);
       PropertyMode mode = PropertyMode.Explicit;
@@ -1567,7 +1409,7 @@ public class PropertyDesc implements PropertyInfo {
           (getDefaultMode() == PropertyMode.Inherited ||
            !valueEqualsDefault (value))) {
          pw.print (myName + "=");
-         writeValue (getValue (host), pw, fmt);
+         writeValue (getValue (host), pw, fmt, ref);
          return true;
       }
       else if (mode != getDefaultMode()) {
@@ -1579,22 +1421,19 @@ public class PropertyDesc implements PropertyInfo {
       }
    }
 
-   /**
-    * {@inheritDoc}
-    */
-   public void writeValue (Object value, PrintWriter pw, NumberFormat fmt)
+   public static boolean writeValue (
+      Object value, PrintWriter pw, TypeCode valueType, Class<?> valueClass,
+      NumberFormat floatFmt, NumberFormat fmt, Object ref)
       throws IOException {
-      // supplied format for floating point only
-      NumberFormat floatFmt = (fmt != null ? fmt : myFmt);
 
-      switch (myValueType) {
+      switch (valueType) {
          case BYTE: {
-            if (myFmt == null) {
+            if (fmt == null) {
                pw.println ("0x"
                + Integer.toHexString (((Byte)value).byteValue()));
             }
             else {
-               pw.println (myFmt.format (((Byte)value).byteValue()));
+               pw.println (fmt.format (((Byte)value).byteValue()));
             }
             break;
          }
@@ -1603,29 +1442,29 @@ public class PropertyDesc implements PropertyInfo {
             break;
          }
          case SHORT: {
-            if (myFmt == null) {
+            if (fmt == null) {
                pw.println (((Short)value).shortValue());
             }
             else {
-               pw.println (myFmt.format (((Short)value).shortValue()));
+               pw.println (fmt.format (((Short)value).shortValue()));
             }
             break;
          }
          case INT: {
-            if (myFmt == null) {
+            if (fmt == null) {
                pw.println (((Integer)value).intValue());
             }
             else {
-               pw.println (myFmt.format (((Integer)value).intValue()));
+               pw.println (fmt.format (((Integer)value).intValue()));
             }
             break;
          }
          case LONG: {
-            if (myFmt == null) {
+            if (fmt == null) {
                pw.println (((Long)value).longValue());
             }
             else {
-               pw.println (myFmt.format (((Long)value).longValue()));
+               pw.println (fmt.format (((Long)value).longValue()));
             }
             break;
          }
@@ -1652,15 +1491,15 @@ public class PropertyDesc implements PropertyInfo {
             break;
          }
          case SHORT_ARRAY: {
-            Write.writeShorts (pw, (short[])value, myFmt);
+            Write.writeShorts (pw, (short[])value, fmt);
             break;
          }
          case INT_ARRAY: {
-            Write.writeInts (pw, (int[])value, myFmt);
+            Write.writeInts (pw, (int[])value, fmt);
             break;
          }
          case LONG_ARRAY: {
-            Write.writeLongs (pw, (long[])value, myFmt);
+            Write.writeLongs (pw, (long[])value, fmt);
             break;
          }
          case FLOAT_ARRAY: {
@@ -1715,35 +1554,71 @@ public class PropertyDesc implements PropertyInfo {
             break;
          }
          case SCANABLE: {
-            if (value != null && myValueClass != value.getClass()) {
-               if (myValueClass.isAssignableFrom (value.getClass())) {
+            if (value != null && valueClass != value.getClass()) {
+               if (valueClass.isAssignableFrom (value.getClass())) {
                   pw.print (classToName (value.getClass()) + " ");
                }
                else {
                   throw new IOException ("Value class " + value.getClass()
-                  + " not a subclass of " + myValueClass.getName());
+                  + " not a subclass of " + valueClass.getName());
                }
             }
             if (value == null) {
                pw.println ("null");
             }
             else {
-               ((Scannable)value).write (pw, floatFmt, null);
+               ((Scannable)value).write (pw, floatFmt, ref);
             }
             break;
          }
          default: {
-            throw new IOException ("Prop " + myName
-            + ": Unknown class type for value: " + value.getClass().getName());
+            throw new IOException (
+               "Unknown class type for value: " + value.getClass().getName());
          }
       }
+      return true;
    }
 
    /**
     * {@inheritDoc}
     */
-   public Object scanValue (ReaderTokenizer rtok) throws IOException {
-      switch (myValueType) {
+   public void writeValue (
+      Object value, PrintWriter pw, NumberFormat fmt, Object ref)
+      throws IOException {
+      // supplied format for floating point only
+      NumberFormat floatFmt = (fmt != null ? fmt : myFmt);
+
+      try {
+         writeValue (
+            value, pw, myValueType, myValueClass, floatFmt, myFmt, ref);
+      }
+      catch (IOException e) {
+         throw new IOException (
+            "Can't property '"+myName+"': " + e.getMessage());
+      }
+   }
+
+   /**
+    * Static version of {@link #scanValue}, with the value type and
+    * class explicitly specified.
+    * 
+    * @param rtok 
+    * ReaderTokenizer supplying input tokens used to specify the property value
+    * @param valueType
+    * Code specifying the class type of the value. It is possible to
+    * obtain this from {@code valueClass} by calling {@link #getTypeCode}.
+    * @param valueClass
+    * Class type for the value
+    * @return scanned object value
+    * @throws IOException
+    * if the input is not in the correct format, an I/O error occurred, or the
+    * value has a type which PropertyInfo does not know about
+    */
+   public static Object scanValue (
+      ReaderTokenizer rtok, TypeCode valueType, Class<?> valueClass)
+      throws IOException {
+
+      switch (valueType) {
          case BYTE: {
             return (new Byte ((byte)rtok.scanInteger()));
          }
@@ -1803,7 +1678,7 @@ public class PropertyDesc implements PropertyInfo {
          case ENUM: {
             rtok.scanWord();
 
-            Enum<?>[] validEnums = (Enum[])myValueClass.getEnumConstants();
+            Enum<?>[] validEnums = (Enum[])valueClass.getEnumConstants();
             for (int i = 0; i < validEnums.length; i++) {
                if (validEnums[i].toString().equals (rtok.sval)) {
                   return validEnums[i];
@@ -1815,12 +1690,11 @@ public class PropertyDesc implements PropertyInfo {
          case VECTOR: {
             Vector vobj;
             try {
-               vobj = (Vector)myValueClass.newInstance();
+               vobj = (Vector)valueClass.newInstance();
             }
             catch (Exception e) {
                e.printStackTrace();
-               throw new IOException ("Cannot instantiate Vector for prop "
-               + myName);
+               throw new IOException ("Cannot instantiate Vector");
             }
             vobj.scan (rtok);
             return vobj;
@@ -1828,12 +1702,11 @@ public class PropertyDesc implements PropertyInfo {
          case VECTORI: {
             Vectori vobj;
             try {
-               vobj = (Vectori)myValueClass.newInstance();
+               vobj = (Vectori)valueClass.newInstance();
             }
             catch (Exception e) {
                e.printStackTrace();
-               throw new IOException ("Cannot instantiate Vectori for prop "
-               + myName);
+               throw new IOException ("Cannot instantiate Vectori");
             }
             vobj.scan (rtok);
             return vobj;
@@ -1841,12 +1714,11 @@ public class PropertyDesc implements PropertyInfo {
          case MATRIX: {
             DenseMatrix mobj;
             try {
-               mobj = (DenseMatrix)myValueClass.newInstance();
+               mobj = (DenseMatrix)valueClass.newInstance();
             }
             catch (Exception e) {
                e.printStackTrace();
-               throw new IOException ("Cannot instantiate Matrix for prop "
-               + myName);
+               throw new IOException ("Cannot instantiate Matrix");
             }
             mobj.scan (rtok);
             return mobj;
@@ -1872,56 +1744,43 @@ public class PropertyDesc implements PropertyInfo {
             return Scan.scanFont (rtok);
          }
          case SCANABLE: {
-            Class<?> valueClass = myValueClass;
-            boolean valueIsNull = false;
-            
-            int period = rtok.getCharSetting('.');
-            rtok.wordChar('.');
-            rtok.nextToken();
-            rtok.setCharSetting('.', period);
-            
-            if (rtok.ttype == '[') {
-               rtok.pushBack();
-            }
-            else if (rtok.tokenIsWord()) {
-               if (rtok.sval.equals ("null")) {
-                  valueIsNull = true;
-               }
-               else {
-                  valueClass = nameToClass (rtok.sval);
-                  if (valueClass == null) {
-                     throw new IOException ("Cannot resolve class " + rtok.sval
-                     + " for prop " + myName);
-                  }
-                  if (!myValueClass.isAssignableFrom (valueClass)) {
-                     throw new IOException ("Prop " + myName + ": " + "Class "
-                     + valueClass.getName() + " not a sub class of "
-                     + myValueClass.getName());
-                  }
-               }
-            }
-            else {
-               throw new IOException (
-                  "Expecting either '[' or class alias/name, got " + rtok);
-            }
-            Scannable sobj = null;
-            if (!valueIsNull) {
-               try {
-                  sobj = (Scannable)valueClass.newInstance();
-               }
-               catch (Exception e) {
-                  e.printStackTrace();
-                  throw new IOException ("Cannot instantiate class "
-                  + valueClass.getName() + " for prop " + myName);
-               }
-               sobj.scan (rtok, null);
+            Object sobj = Scan.scanInstance (rtok, valueClass);
+            if (sobj instanceof Scannable) {
+               // paranoid - should be Scannable if valueType is SCANNABLE
+               ((Scannable)sobj).scan (rtok, null);
             }
             return sobj;
          }
          default: {
-            throw new IOException ("Prop " + myName
-            + ": Unknown class type for value: " + myValueClass.getName());
+            throw new IOException (
+               "Unknown class type for value: " + valueClass.getName());
          }
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Object scanInstance (ReaderTokenizer rtok) throws IOException {
+      try {
+         return Scan.scanInstance (rtok, (Class<?>)myValueClass);
+      }
+      catch (IOException e) {
+         throw new IOException (
+            "Property '"+myName+"': " + e.getMessage());
+      }      
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Object scanValue (ReaderTokenizer rtok) throws IOException {
+      try {
+         return scanValue (rtok, myValueType, myValueClass);
+      }
+      catch (IOException e) {
+         throw new IOException (
+            "Property '"+myName+"': " + e.getMessage());
       }
    }
 
@@ -2018,14 +1877,6 @@ public class PropertyDesc implements PropertyInfo {
    public boolean isInheritable() {
       return myInheritableP;
    }
-
-   // /**
-   // * {@inheritDoc}
-   // */
-   // public boolean isImmutable()
-   // {
-   // return myImmutableP;
-   // }
 
    /**
     * {@inheritDoc}

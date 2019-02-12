@@ -8,6 +8,7 @@ package artisynth.core.femmodels;
 
 import maspack.matrix.*;
 import artisynth.core.femmodels.FemElement.ElementClass;
+import artisynth.core.femmodels.FemNode3d.CoordType;
 
 /**
  * This class stores readonly and transient information for each integration
@@ -22,34 +23,20 @@ import artisynth.core.femmodels.FemElement.ElementClass;
  */
 public class IntegrationPoint3d {
 
-   // protected Matrix3d F;              // transient
-   // protected double detF;          // transient
-   // protected double avgp;          // transient  can remove
-
-   // protected SymmetricMatrix3d sigma; // transient  removed from TriRemesher
-
    protected int myNumNodes;          // static
    protected Vector3d coords;         // static
    protected VectorNd N;              // static
    protected VectorNd H;              // static
    protected Vector3d GNs[];          // static
 
-   //protected Matrix3d myJ;            // transient
-   //protected Matrix3d myInvJ;         // transient - mfreemodels
-
    protected Vector3d[] GNx = null;   // transient
 
    protected double myWeight = 1;     // static
    protected int myNum = -1;          // static
-   protected ElementClass myElemType;  
+   protected ElementClass myElemClass; 
+   protected FemElement3dBase myElem;
 
    protected void init(int nnodes, int npvals) {
-      //myJ = new Matrix3d();
-      //myInvJ = new Matrix3d();
-
-      // F = new Matrix3d();
-      // sigma = new SymmetricMatrix3d();
-
       myNumNodes = nnodes;
       N = new VectorNd(nnodes);
       H = new VectorNd(npvals);
@@ -80,12 +67,12 @@ public class IntegrationPoint3d {
       setElementClass (ElementClass.VOLUMETRIC); // XXX default volumetric
    }
 
-   protected void setElementClass(ElementClass type) {
-      myElemType = type;
+   protected void setElementClass (ElementClass elemClass) {
+      myElemClass = elemClass;
    }
    
    public ElementClass getElementClass() {
-      return myElemType;
+      return myElemClass;
    }
    
    /**
@@ -140,6 +127,7 @@ public class IntegrationPoint3d {
       }
       pnt.setShapeWeights (shapeWeights);
       pnt.setElementClass (elem.getElementClass());
+      pnt.myElem = elem;
       if (npvals > 0) {
          for (int i=0; i<npvals; i++) {
             pressureWeights.set (i, ((FemElement3d)elem).getH (i, coords));
@@ -192,7 +180,7 @@ public class IntegrationPoint3d {
     * @param nodes FEM nodes, used to obtain the element node positions
     */
    public void computeJacobian (Matrix3d J, FemNode3d[] nodes) {
-      computeJacobian (J, nodes, myElemType);
+      computeJacobian (J, nodes, myElemClass);
    }
 
    public void computeJacobian (
@@ -215,8 +203,8 @@ public class IntegrationPoint3d {
             double st = -0.5*(1-getCoords().z);
             for (int i=0; i<nodes.length; i++) {
                FemNode3d node = nodes[i];
-               d.sub(node.getPosition(), node.getBackPosition());
-               v.scaledAdd (st, d, node.getPosition());
+               d.sub(node.getLocalPosition(), node.getBackPosition());
+               v.scaledAdd (st, d, node.getLocalPosition());
                
                double s0 = GNs[i].x;
                double s1 = GNs[i].y;
@@ -247,24 +235,19 @@ public class IntegrationPoint3d {
          }
          default: {
             throw new UnsupportedOperationException (
-               "Element type " + myElemType + " not supported");
+               "Element type " + type + " not supported");
          }
       }
    }
 
-   public void computeRestJacobian (Matrix3d J0, FemNode3d[] nodes) {
-      computeRestJacobian (J0, nodes, myElemType);
-   }
-
-   public void computeRestJacobian (
-      Matrix3d J0, FemNode3d[] nodes, ElementClass type) {
-      J0.setZero();
+   public void computeJacobian (
+      Matrix3d J, FemNode3d[] nodes, ElementClass type, CoordType ctype) {
+      
+      J.setZero();
       switch (type) {
          case VOLUMETRIC: {
             for (int i=0; i<nodes.length; i++) {
-               Vector3d pos = nodes[i].getLocalRestPosition();
-               Vector3d dNds = GNs[i];
-               J0.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+               J.addOuterProduct (nodes[i].getLocalCoordinates (ctype), GNs[i]);
             }      
             break;
          }
@@ -274,17 +257,18 @@ public class IntegrationPoint3d {
 
             double st = -0.5*(1-getCoords().z);
             for (int i=0; i<nodes.length; i++) {
-               FemNode3d node = nodes[i];
-               d.sub(node.getRestPosition(), node.getBackRestPosition());
-               v.scaledAdd (st, d, node.getRestPosition());
+               Point3d pos = nodes[i].getLocalCoordinates (ctype);
+               Point3d backPos = nodes[i].getBackCoordinates (ctype);
+               d.sub (pos, backPos);
+               v.scaledAdd (st, d, pos);
                
                double s0 = GNs[i].x;
                double s1 = GNs[i].y;
                double s2 = N.get(i)*0.5;
                
-               J0.m00 += s0*v.x; J0.m01 += s1*v.x; J0.m02 += s2*d.x;
-               J0.m10 += s0*v.y; J0.m11 += s1*v.y; J0.m12 += s2*d.y;
-               J0.m20 += s0*v.z; J0.m21 += s1*v.z; J0.m22 += s2*d.z;
+               J.m00 += s0*v.x; J.m01 += s1*v.x; J.m02 += s2*d.x;
+               J.m10 += s0*v.y; J.m11 += s1*v.y; J.m12 += s2*d.y;
+               J.m20 += s0*v.z; J.m21 += s1*v.z; J.m22 += s2*d.z;
             }            
             break;
          }
@@ -293,24 +277,85 @@ public class IntegrationPoint3d {
             Vector3d jc1 = new Vector3d();
             Vector3d jc2 = new Vector3d();
             for (int i=0; i<nodes.length; i++) {
-               Vector3d pos = nodes[i].getLocalRestPosition();
+               Point3d pos = nodes[i].getLocalCoordinates (ctype);
                jc0.scaledAdd (GNs[i].x, pos);
                jc1.scaledAdd (GNs[i].y, pos);
             }            
             jc2.cross (jc0, jc1);
             jc2.normalize();
 
-            J0.m00 = jc0.x; J0.m01 = jc1.x; J0.m02 = jc2.x; 
-            J0.m10 = jc0.y; J0.m11 = jc1.y; J0.m12 = jc2.y; 
-            J0.m20 = jc0.z; J0.m21 = jc1.z; J0.m22 = jc2.z; 
+            J.m00 = jc0.x; J.m01 = jc1.x; J.m02 = jc2.x; 
+            J.m10 = jc0.y; J.m11 = jc1.y; J.m12 = jc2.y; 
+            J.m20 = jc0.z; J.m21 = jc1.z; J.m22 = jc2.z; 
             break;
          }
          default: {
             throw new UnsupportedOperationException (
-               "Element type " + myElemType + " not supported");
+               "Element type " + type + " not supported");
          }
       }
    }
+
+   public void computeRestJacobian (Matrix3d J0, FemNode3d[] nodes) {
+      //computeRestJacobian (J0, nodes, myElemType);
+      computeJacobian (J0, nodes, myElemClass, CoordType.REST);
+   }
+
+//   public void computeRestJacobian (
+//      Matrix3d J0, FemNode3d[] nodes, ElementClass type) {
+//      J0.setZero();
+//      switch (type) {
+//         case VOLUMETRIC: {
+//            for (int i=0; i<nodes.length; i++) {
+//               Vector3d pos = nodes[i].getLocalRestPosition();
+//               Vector3d dNds = GNs[i];
+//               J0.addOuterProduct (pos.x, pos.y, pos.z, dNds.x, dNds.y, dNds.z);
+//            }      
+//            break;
+//         }
+//         case SHELL: {
+//            Vector3d d = new Vector3d();
+//            Vector3d v = new Vector3d();
+//
+//            double st = -0.5*(1-getCoords().z);
+//            for (int i=0; i<nodes.length; i++) {
+//               FemNode3d node = nodes[i];
+//               d.sub(node.getRestPosition(), node.getBackRestPosition());
+//               v.scaledAdd (st, d, node.getRestPosition());
+//               
+//               double s0 = GNs[i].x;
+//               double s1 = GNs[i].y;
+//               double s2 = N.get(i)*0.5;
+//               
+//               J0.m00 += s0*v.x; J0.m01 += s1*v.x; J0.m02 += s2*d.x;
+//               J0.m10 += s0*v.y; J0.m11 += s1*v.y; J0.m12 += s2*d.y;
+//               J0.m20 += s0*v.z; J0.m21 += s1*v.z; J0.m22 += s2*d.z;
+//            }            
+//            break;
+//         }
+//         case MEMBRANE: {
+//            Vector3d jc0 = new Vector3d();
+//            Vector3d jc1 = new Vector3d();
+//            Vector3d jc2 = new Vector3d();
+//            for (int i=0; i<nodes.length; i++) {
+//               Vector3d pos = nodes[i].getLocalRestPosition();
+//               jc0.scaledAdd (GNs[i].x, pos);
+//               jc1.scaledAdd (GNs[i].y, pos);
+//            }            
+//            jc2.cross (jc0, jc1);
+//            jc2.normalize();
+//
+//            J0.m00 = jc0.x; J0.m01 = jc1.x; J0.m02 = jc2.x; 
+//            J0.m10 = jc0.y; J0.m11 = jc1.y; J0.m12 = jc2.y; 
+//            J0.m20 = jc0.z; J0.m21 = jc1.z; J0.m22 = jc2.z; 
+//            break;
+//         }
+//         default: {
+//            throw new UnsupportedOperationException (
+//               "Element type " + type + " not supported");
+//         }
+//      }
+//   }
 
    public double computeInverseRestJacobian (Matrix3d invJ0, FemNode3d[] nodes) {
       Matrix3d J0 = new Matrix3d();
@@ -411,44 +456,38 @@ public class IntegrationPoint3d {
    public void computeGradientForRender (
       Matrix3d Fmat, FemNode3d[] nodes, Matrix3d invJ0) {
 
-      // compute J in Fmat
-      Fmat.setZero();
-      for (int i=0; i<nodes.length; i++) {
-         float[] npos = nodes[i].myRenderCoords;
-         Vector3d dNds = GNs[i];
-         Fmat.addOuterProduct (npos[0], npos[1], npos[2], dNds.x, dNds.y, dNds.z);
-      }
-      // now F = J * inv(J0)
+      // first compute J in Fmat
+      computeJacobian (Fmat, nodes, myElemClass, CoordType.RENDER);  
+      // then F = J * inv(J0)
       Fmat.mul (invJ0);
    }      
 
-   /**
-    * Compute size of an element's render coordinates along a specified
-    * direction.
-    */
-   public double computeDirectedSizeForRender (Vector3d dir, FemNode3d[] nodes) {
-
-      double max = -Double.MAX_VALUE;
-      double min = Double.MAX_VALUE;
-      for (int i=0; i<nodes.length; i++) {
-         float[] npos = nodes[i].myRenderCoords;
-         double l = npos[0]*dir.x + npos[1]*dir.y + npos[2]*dir.z;
-         if (l > max) {
-            max = l;
-         }
-         if (l < min) {
-            min = l;
-         }
-      }
-      return max-min;
-   }
-
-   public void computePosition (Point3d pos, FemNode[] nodes) {
+   public void computePosition (Point3d pos, FemNode3d[] nodes) {
       double[] Nbuf = N.getBuffer();
       pos.setZero();
-      for (int i=0; i<nodes.length; i++) {
-         pos.scaledAdd (Nbuf[i], nodes[i].getPosition());
-      }
+      switch (myElemClass) {
+         case VOLUMETRIC: 
+         case MEMBRANE: {
+            for (int i=0; i<nodes.length; ++i) {
+               pos.scaledAdd (Nbuf[i], nodes[i].getPosition());
+            }  
+            break;
+         } 
+         case SHELL: {     
+            Vector3d tmp = new Vector3d();
+            for (int i=0; i<nodes.length; ++i) {
+               nodes[i].getDirector (tmp);
+               tmp.scaledAdd (
+                  0.5*(coords.z-1), tmp, nodes[i].getPosition());
+               pos.scaledAdd (Nbuf[i], tmp);
+            }
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Element class " + myElemClass + " not supported");
+         }  
+      }     
    }
    
    public void computePosition (Point3d pos, FemElement3d elem) {
@@ -459,15 +498,37 @@ public class IntegrationPoint3d {
       computeRestPosition(pos, elem.getNodes());
    }
    
-   public void computeRestPosition (Point3d pos, FemNode[] nodes) {
+   public void computeRestPosition (Point3d pos, FemNode3d[] nodes) {
       double[] Nbuf = N.getBuffer();
       pos.setZero();
-      for (int i=0; i<nodes.length; i++) {
-         pos.scaledAdd (Nbuf[i], nodes[i].getRestPosition());
-      }
+      switch (myElemClass) {
+         case VOLUMETRIC: 
+         case MEMBRANE: {
+            for (int i=0; i<nodes.length; ++i) {
+               pos.scaledAdd (Nbuf[i], nodes[i].getRestPosition());
+            }  
+            break;
+         } 
+         case SHELL: {     
+            Vector3d tmp = new Vector3d();
+            for (int i=0; i<nodes.length; ++i) {
+               nodes[i].getRestDirector (tmp);
+               tmp.scaledAdd (
+                  0.5*(coords.z-1), tmp, nodes[i].getRestPosition());
+               pos.scaledAdd (Nbuf[i], tmp);
+            }
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Element class " + myElemClass + " not supported");
+         }  
+      }     
    }
 
    public void computeCoordsForRender (float[] coords, FemNode3d[] nodes) {
+      // can use the same code for both volume and shell elements
+      // because for shells we ignore the director component
       double[] Nbuf = N.getBuffer();
       coords[0] = coords[1] = coords[2] = 0;
       for (int i=0; i<nodes.length; i++) {

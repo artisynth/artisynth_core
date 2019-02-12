@@ -756,6 +756,7 @@ which computes a simple force according to
 %
 \begin{equation}
 f(l, \dot l) = k (l-l_0) + d \dot l + m_f a
+\label{SimpleAxialMuscle:eqn}
 \end{equation}
 %
 where $k$ and $d$ are stiffness and damping terms, $a$ is the
@@ -764,7 +765,7 @@ $k$, $d$ and $m_f$ are exposed through the properties {\tt
 stiffness}, {\tt damping}, and {\tt maxForce}.
 
 More complex muscle materials are typically used for biomechanical
-modeling applications, generally with non-linear passive terms and
+modeling applications, generally with nonlinear passive terms and
 active terms that depend on the muscle length $l$.  Some of those
 available in ArtiSynth include
 \javaclass[artisynth.core.materials]{ConstantAxialMuscle},
@@ -862,7 +863,7 @@ between different pairs of bodies.
 Collision handling is also challenging because if collisions are
 enabled among $n$ objects, then one needs to be able to easily specify
 the characteristics of up to $O(n^2)$ collision interactions, while
-also managing the fact that these interactioons are highly transient.
+also managing the fact that these interactions are highly transient.
 In ArtiSynth, collision handling is done by a
 \javaclass[artisynth.core.mechmodels]{CollisionManager} that is a
 sub-component of each
@@ -1683,7 +1684,7 @@ method, and then query them when the simulation is running, such from
 the {\tt apply()} method of a {\tt Monitor} (
 Section \ref{ControllersAndMonitors:sec}). For example,
 in the root model {\tt build()} method, the response
-coule be created with the call
+could be created with the call
 %
 \begin{lstlisting}[]
    CollisionResponse resp = mech.setCollisionResponse (femA, femB);
@@ -1785,7 +1786,7 @@ response. Some of these methods include:
 
    boolean hasDistanceGrid();
 
-   SignedDistanceGrid getDistanceGrid();
+   DistanceGridComp getDistanceGridComp();
 \end{lstlisting}
 %
 
@@ -1794,7 +1795,7 @@ returns the surface mesh which is used as the basis for collision.  If
 \javamethod[artisynth.core.mechmodels.CollidableBody]{hasDistanceGrid()}
 returns {\tt true}, then the body also maintains a signed distance
 grid for the mesh, which can be obtained using
-\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGrid()} and
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGridComp()} and
 is used by the collider type {\tt SIGNED\_DISTANCE} (Section
 \ref{CollisionMethods:sec}).
 
@@ -1860,13 +1861,13 @@ specific pair of collidables. Since different colliders may provide
 different collision information, some colliders may restrict the type
 of collision method that may be used.
 
-Three collider types are presently supprted:
+Three collider types are presently supported:
 
 \begin{description}
 
 \item[AJL\_CONTOUR]\mbox{}
 
-A bounding-box hierachy is used to locate all triangle intersections
+A bounding-box hierarchy is used to locate all triangle intersections
 between the two surface meshes, and the intersection points are then
 connected to find the (piecewise linear) intersection contours.  The
 surface meshes must (at present) be triangular, closed, and manifold.
@@ -1877,12 +1878,12 @@ constraints generated from them are shown in Figure~\ref{Collision:fig}.
 
 \item[TRI\_INTERSECTION]\mbox{}
 
-A legacy method which also uses a bounding-box hierachy to locate all
+A legacy method which also uses a bounding-box hierarchy to locate all
 triangle intersections between the two surface meshes. However,
 contours are not generated. Instead, contact regions are estimated by
 grouping the intersection points together, and penetrating vertices
 are computed separately using point-mesh distance queries based on the
-bounding-box hierachy. This latter step requires interating over all
+bounding-box hierarchy. This latter step requires iterating over all
 mesh vertices, which may be slow for large meshes.
 
 \item[SIGNED\_DISTANCE]\mbox{}
@@ -1892,7 +1893,7 @@ determine the penetrating vertices of the opposite mesh, along with
 the penetration distance and normals.  This is only available for
 collidable pairs where at least one of the bodies maintains a signed
 distance grid which can be obtained using
-\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGrid()}.
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGridComp()}.
 Advantages include speed (often
 an order of magnitude faster that the colliders based on triangle
 intersection) and the fact that the opposite mesh does {\it not} have
@@ -1950,70 +1951,61 @@ constraints (yellow lines).}
 \label{SDCollision:fig}
 \end{figure}
 
-\subsection{Configuring and rendering signed distance grids}
+\subsection{Collision meshes and signed distance grids}
+\label{collisionMeshes:sec}
 
-As mentioned above, bodies which maintain signed distance grids expose
-these using the
+As mentioned above, collidable bodies declare the method
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getCollisionMesh()},
+which returns a mesh defining the collision surface.  This is either
+used directly, or, for {\tt SIGNED\_DISTANCE} collision handling, to
+compute a signed distance grid which is in turn used to handle
+collisions.
+
+For \javaclass[\mech]{RigidBody} objects, the mesh returned by {\tt
+getCollisionMesh()} is typically the same as the surface mesh.
+However, it is possible to change this, by adding additional
+meshes to the body and modifying mesh collidability (see Section
+\ref{rigidBodyMultipleMeshes:sec}). The collision mesh is then formed
+as the sum of all polygonal meshes in the body's {\tt meshes} list
+whose {\sf collidable} property is {\tt true}.
+
+\begin{sideblock}
+The {\it sum} operation used to create the {\tt RigidBody} collision
+mesh uses \javamethod*[\mgeo.PolygonalMesh]{addMesh()}, which simply
+adds all vertices and faces together. While the result works
+correctly for collisions, it does not represent a proper CSG union
+operation (such as that described in Section \ref{CSG:sec}) and may
+contain interpenetrating and overlapping features.
+\end{sideblock}
+
+Collidable bodies also declare the methods
 \javamethod[artisynth.core.mechmodels.CollidableBody]{hasDistanceGrid()}
 and
-\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGrid()}
-methods. By default, these grids are created automatically on-demand
-within an axis-aligned bounding volume for the mesh. The cell
-resolution (number of cells along the x, y, z directions) is also
-choosen automatically. However, in some cases it may be necessary to
-control the cell resolution more precisely. If the body supports the
-interface \javaclass[artisynth.core.mechmodels]{HasDistanceGrid}, this
-provides a set of methods for controlling the cell resolution:
-%
-\begin{lstlisting}[]
-   void setDistanceGridRes (Vector3i res);
-   Vector3i getDistanceGridRes();
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getDistanceGridComp()}.
+If the former returns {\tt true}, then the body has a distance grid
+and the latter returns a \javaclass[\mech]{DistanceGridComp}
+containing it.  A distance grid is a regular 3D grid, with uniformly
+arranged vertices and cells, that is used to represent a scalar
+distance field, with distance values stored implicitly at each vertex
+and interpolated within cells. Distance grids are used for {\tt
+SIGNED\_DISTANCE} collision handling, and by default are generated
+on-demand, using an automatically chosen resolution and the mesh
+returned by
+\javamethod[artisynth.core.mechmodels.CollidableBody]{getCollisionMesh()}
+as the surface against which distances are computed.
 
-   void setDistanceGridMaxRes (int max);
-   int getDistanceGridMaxRes();
-\end{lstlisting}
-%
-\javamethod[artisynth.core.mechmodels.HasDistanceGrid]{setDistanceGridRes()}
-explicity sets the grid resolution, which is the number of grid cells
-along the x, y, z axes. If any of these values are specified as 0,
-then all values are set to zero and the resolution is determined
-instead by the maximum cell resolution returned by
-\javamethod[artisynth.core.mechmodels.HasDistanceGrid]{getDistanceGridMaxRes()},
-which specifies the number of cells along the {\it maximum} x, y, z
-direction, with the cell counts along the other directions adjusted to
-maintain a uniform cell size.
-
-{\tt HasDistanceGrid} also provides methods to support the rendering
-of the signed distance grid:
-%
-\begin{lstlisting}[]
-   void setRenderDistanceGrid (boolean enable);
-   boolean getRenderDistanceGrid();
-
-   void setDistanceGridRenderRanges (String ranges);
-   String getDistanceGridRenderRanges();
-\end{lstlisting}
-%
-\javamethod[artisynth.core.mechmodels.HasDistanceGrid]{setRenderDistanceGrid()}
-enables or disables grid rendering. By default, grids are rendered by
-drawing each cell vertex along with the associated normal (which is
-the numeric derivative of the distance field), using the point and
-line render properties for the component. In some cases, it may be
-desirable to restrict which vertices are drawn. This can be done using
-\javamethod[artisynth.core.mechmodels.HasDistanceGrid]{%
-setDistanceGridRenderRanges()}, which takes a string argument
-containing vertex render ranges for the x, y, and z axes.  A vertex
-render range may be either {\tt *} (all vertices), {\tt n:m} (vertices
-in the index range {\tt n} to {\tt m}, inclusive), or {\tt n}
-(vertices only at index {\tt n}). For example:
-%
-\begin{lstlisting}[]
-  "* * *"      - all vertices  
-  "* 7 *"      - all vertices along x and z, and those at index 7 along y
-  "0 2 3"      - a single vertex at indices (0, 2, 3)
-  "0:3 4:5 *"  - all vertices between indices 0-3 along x, and 4-5 along y
-\end{lstlisting}
-%
+When used for collision handling, values within a distance grid are
+interpolated trilinearly within each cell. This means that the
+effective collision surface is actually the trilinearly interpolated
+isosurface corresponding to a distance of 0. This surface will differ
+somewhat from the original surface returned by {\tt
+getCollisionMesh()}, in a manner that depends on the grid resolution.
+Consequently, when using {\tt SIGNED\_DISTANCE} collision handling, it
+is important to be able to visualize the trilinear isosurface, and
+possibly modify it by adjusting the grid resolution. The {\tt
+DistanceGridComp} returned by {\tt getDistanceGridComp()} exports
+properties to facilitate both of these requirements, as described in
+detail in Section \ref{DistanceGrids:sec}.
 
 \subsection{Penetration tolerance and limitations}
 \label{ContactLimitations:sec}
@@ -2117,7 +2109,7 @@ An enum of type
 requesting that a color map be drawn over the contact regions showing
 a scalar value such as penetration depth or contact force pressure.
 The collidable (0 or 1) onto which the color map is drawn is controlled by
-the {\sf colorMapCollidable} property (decsribed below). The range of values
+the {\sf colorMapCollidable} property (described below). The range of values
 used for generating the map is controlled by the {\sf colorMapRange}
 property, also described below.  The values are mapped onto colors
 using the {\sf colorMap} property of the collision manager.
@@ -2353,9 +2345,244 @@ as shown in Figure \ref{PenetrationRender:fig}.
 \begin{sideblock}
 When defining the color map for rendering (lines 99-108 in the
 example), it is recommended that the color corresponding to zero be
-set to the face color of the colliable mesh.  This will allow
+set to the face color of the collidable mesh.  This will allow
 the color map to blend properly to the regular mesh color.
 \end{sideblock}
+
+\section{Distance Grids and Components}
+\label{DistanceGrids:sec}
+
+Distance grids, implemented by the class
+\javaclass[maspack.geometry]{DistanceGrid}, are currently used in
+ArtiSynth for both collision handling (Section
+\ref{CollisionMethods:sec}) and spring and muscle wrapping around
+general surfaces (Section \ref{GeneralSurfaceWrapping:sec}).  A
+distance grid is a regular three dimensional grid that is used to
+interpolate a scalar distance field and its associated normals.
+For collision handling and wrapping purposes, this distance function
+is assumed to be signed and is used to estimate the penetration depth
+and associated normal direction of a point within some 3D object.
+
+A distance grid consists of $n_x \times n_y \times n_z$ evenly spaced
+vertices partitioning a volume into $r_x \times r_y \times r_z$ cuboid
+cells, with
+%
+\begin{equation*}
+r_x = n_x-1, \quad r_y = n_y-1, \quad r_z = n_z-1.
+\end{equation*}
+%
+The grid has overall widths $w_x$, $w_y$, $w_z$ along each axis, so
+that the widths of each cell are $w_x/r_x$, $w_y/r_y$, $w_z/r_z$. 
+
+Scalar distances and normal vectors are stored at each vertex, and
+interpolated at points within each cell using trilinear interpolation.
+Distance values (although not normals) can also be interpolated {\it
+quadratically} over a composite {\it quadratic} cell composed of $2
+\times 2 \times 2$ regular cells. This provides a smoother result than
+trilinear interpolation and is currently used for muscle wrapping. To
+ensure that all points within the grid can be assigned a unique
+quadratic cell, the grid resolution is restricted so that $r_x$,
+$r_y$, $r_z$ are always even. Distance grids are typically generated
+automatically from mesh data.  More details on the actual
+functionality of distance grids is contained in 
+the \javaclass[maspack.geometry]{DistanceGrid} API documentation.
+
+When used within ArtiSynth, distance grids are generally contained
+within an encapsulating \javaclass[\mech]{DistanceGridComp} component,
+which maintains a mesh (or list of meshes) used to generate the grid,
+and exports properties for controlling its resolution, mesh fit, and
+visualization. For any object that implements
+\javaclass[\mech]{CollidableBody} (which includes
+\javaclass[\mech]{RigidBody}), its distance grid component can be
+obtained using the method
+%
+\begin{lstlisting}
+  DistanceGridComp getDistanceGridComp();
+\end{lstlisting}
+%
+
+A distance grid maintains its own local coordinate system, which is
+related to world coordinates by a {\it local-to-world} transform that
+can be queried and set via the component methods
+\javamethod*[\mech.DistanceGridComp]{setLocalToWorld()} and
+\javamethod*[\mech.DistanceGridComp]{getLocalToWorld()}.
+For grids associated with a rigid body, the local coordinate system is
+synchronized with the rigid body's coordinate system (which
+is queried and set via
+\javamethod*[\mech.Frame]{setPose()} and
+\javamethod*[\mech.Frame]{getPose()}).
+The grid's axes are nominally aligned with the local coordinate
+system, although they can be subject to an additional orientation
+offset (e.g., see the description of the property {\sf fitWithOBB}
+below).
+
+By default, a {\tt DistanceGridComp} generates its grid automatically
+from its mesh data, within an axis-aligned bounding volume with the
+resolutions $r_x$, $r_y$, $r_z$ chosen automatically. However, in
+some cases it may be necessary to control the resolution explicitly.
+{\tt DistanceGridComp} exports the following properties to control
+both the grid's resolution and how it is fit around the mesh data:
+
+\begin{description}
+
+\item[resolution] A vector of 3 integers that specifies the
+resolutions $r_x$, $r_y$, $r_z$.  If any value in this vector is set
+$\le 0$, then all values are set to zero and
+the {\sf maxResolution} property is used to determine the grid
+divisions instead.
+
+\item[maxResolution] Sets the default maximum cell resolution that
+should be used when constructing the grid. This is the number of cells
+that should be used along the {\it longest} bounding volume axis, with the
+cell counts along the other axes adjusted to maintain a uniform cell
+size. If all three values of {\sf resolution} are $> 0$, those
+will be used to specify the cell resolutions instead.
+
+\item[fitWithOBB] If {\tt true}, offsets the orientation of the grid's
+x, y, and z axes (with respect to local coordinates) to align with an
+oriented bounding box fit to the mesh. Otherwise, the grid axes are
+aligned with those of the local coordinate frame.
+
+\item[marginFraction] Specifies the fractional amount by which the
+mesh should be extended with respect to a bounding box fit around
+the mesh(es). The default value is {\tt 0.1}.
+
+\end{description}
+
+As with all properties, these can be set either interactively (either
+using a custom control panel or by selecting the component and then
+choosing {\sf Edit properties ...} from the right-click context
+menu), or through their set/get accessor methods.  For example, {\sf
+resolution} and {\sf maxResolution} can be set and queried via the
+methods:
+%
+\begin{lstlisting}[]
+   void setResolution (Vector3i res)
+   Vector3i getResolution()
+
+   void setMaxResolution (int max)
+   int getMaxResolution()
+\end{lstlisting}
+
+When used for either collisions or wrapping, the distance values
+interpolated by a distance grid are used to determine whether a point
+is inside or outside some 3D object, with the inside/outside boundary
+being the isosurface surface corresponding to a distance
+value of 0.  This isosurface surface (which differs depending on
+whether trilinear or quadratic distance interpolation is used)
+therefore represents the effective collision boundary, and it may be
+somewhat different from the mesh surface used to generate it. It may
+be smoother, or may have discretization artifacts, depending on both
+the smoothness and complexity of the mesh and the grid's resolution
+(Figure \ref{rigidBodySurfacesAndGrid:fig}).  It is therefore
+important to be able to visualize both the trilinear and quadratic
+isosurfaces.  {\tt DistanceGridComp} provides a number of properties
+to control this along with other aspects of grid visualization:
+
+\begin{description}
+
+\item[renderProps] Render properties that control the colors, styles,
+and sizes (or widths) used to render faces, lines and points (Section
+\ref{RenderProperties:sec}). Point, line and edge properties are used
+for rendering grid vertices, normals, and cell edges, while face
+properties are used for rendering the isosurface.
+One can select which
+components are visible by zeroing appropriate render properties:
+zeroing {\tt pointRadius} (or {\tt pointSize}, if the {\tt pointStyle}
+is {\tt POINT}) disables drawing of the vertices; zeroing {\tt
+lineRadius} (or {\tt lineWidth}, if the {\tt lineStyle} is {\tt LINE})
+disables drawing of the normals; and zeroing {\tt edgeWidth}
+disables drawing of the cell edges. For an illustration,
+see Figure \ref{rigidBodySubGrid:fig}.
+
+\item[renderGrid] If set to {\tt true}, causes the grid's vertices,
+normals and cell edges to be rendered, using the render properties as
+described above.
+
+\item[renderRanges] Can be used to restrict which part of the distance
+grid is drawn. The value is a string which specifies the vertex ranges
+along the $x$, $y$, and $z$ axes. In general, the grid will have $n_x
+\times n_y \times n_z$ vertices along the $x$, $y$, and $z$ axes,
+where $n_x$, $n_y$, and $n_z$ are each one greater than the cell
+resolutions $r_x$, $r_y$, and $r_z$. The range string should contain
+three range specifications, one for each axis, where each
+specification is either {\tt *} (all vertices), {\tt n:m} (vertices in
+the index range {\tt n} to {\tt m}, inclusive), or {\tt n} (vertices
+only at index {\tt n}). A range specification of {\tt "* * *"} (or
+{\tt "*"}) means draw all vertices, which is the default
+behavior. Other examples include:
+\begin{verbatim}
+ "* 7 *"      all vertices along x and z, and those at index 7 along y
+ "0 2 3"      a single vertex at indices (0, 2, 3)
+ "0:3 4:5 *"  all vertices between 0 and 3 along x, and 4 and 5 along y
+\end{verbatim}
+For an illustration, see Figure \ref{rigidBodySubGrid:fig}.
+
+\item[renderSurface] If set to {\tt true}, renders the grid's
+isosurface, as determined by the {\sf surfaceType} property.
+See Figure \ref{rigidBodySurfacesAndGrid:fig}, right.
+
+\item[surfaceType] Controls the interpolation used to form the
+isosurface rendered in response to the {\sf renderSurface}
+property. {\tt QUADRATIC} (the default) specifies a quadratic
+isosurface, while {\tt TRILINEAR} specifies a trilinear isosurface.
+
+\item[surfaceDistance] Controls the level set value used to determine
+the isosurface. To render the isosurface used for collision
+handling or muscle wrapping, this value should be 0.
+
+\end{description}
+
+\begin{figure}[ht]
+\begin{center}
+  \begin{tabular}{ccc}
+    \iflatexml
+       \includegraphics[]{images/dumbbellMesh}&
+       \includegraphics[]{images/dumbbellDistanceGrid}&
+       \includegraphics[]{images/dumbbellDistanceSurface}
+    \else
+       \includegraphics[width=1.75in]{images/dumbbellMesh}&
+       \includegraphics[width=2.5in]{images/dumbbellDistanceGrid}&
+       \includegraphics[width=1.75in]{images/dumbbellDistanceSurface}
+    \fi
+  \end{tabular}
+\end{center}
+\caption{A mesh used to generate a distance grid, (left), along with a
+visualization of the grid itself (middle) and the corresponding
+quadratic isosurface (right). Notice how in this case the quadratic
+isosurface is smoother than the coarser features of the
+original mesh.}
+\label{rigidBodySurfacesAndGrid:fig}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+  \begin{tabular}{cc}
+    \iflatexml
+       \includegraphics[]{images/dumbbellDistanceGridSub}&
+       \includegraphics[]{images/dumbbellDistanceGridGrad}
+    \else
+       \includegraphics[width=2in]{images/dumbbellDistanceGridSub}&
+       \includegraphics[width=2in]{images/dumbbellDistanceGridGrad}
+    \fi
+  \end{tabular}
+\end{center}
+\caption{Rendering a subportion of a distance grid
+restricted along the x axis by setting {\sf renderRanges} 
+to {\tt "9:12 * *"}, with render properties set to show the grid cells
+(left), and the vertices and normals (right).}
+\label{rigidBodySubGrid:fig}
+\end{figure}
+
+When visualizing the isosurface for a distance grid, it is generally
+convenient to also turn {\it off} visualization for the meshes used to
+generate the grid. For {\tt RigidBody} objects, this can be
+accomplished easily using the convenience property {\sf
+gridSurfaceRendering}. If set {\tt true}, it will cause the
+isosurface to be rendered {\it instead} of its mesh components.  The
+isosurface type will be that indicated by the grid component's {\sf
+surfaceType} property, and the rendering will occur independently of
+the visibility settings for the meshes or the grid component.
 
 \section{Transforming geometry}
 \label{TransformingGeometry:sec}
@@ -2384,7 +2611,7 @@ actually changes the physical geometry and so may change the
 simulation behavior. For example, applying {\tt transformGeometry()}
 to a \javaclass[artisynth.core.mechmodels]{RigidBody} will cause the
 shape of its mesh to change, which will change its mass if its {\sf
-inertiaDensity} property is set to {\sf Density}.
+inertiaMethod} property is set to {\tt DENSITY}.
 Figure \ref{RigidAndAffineTransforms:fig} shows a simplified
 illustration of both rigid and affine transformations being applied to
 a model.
@@ -2392,9 +2619,15 @@ a model.
 \begin{figure}[ht]
 \begin{center}
    \begin{tabular}{ccc}
-   \includegraphics[width=0.27\textwidth]{images/tgenModel} &
-   \includegraphics[width=0.34\textwidth]{images/tgenModelRigid} &
-   \includegraphics[width=0.34\textwidth]{images/tgenModelAffine}
+   \iflatexml
+      \includegraphics[width=2truein]{images/tgenModel} &
+      \includegraphics[width=2truein]{images/tgenModelRigid} &
+      \includegraphics[width=2truein]{images/tgenModelAffine}
+   \else
+      \includegraphics[width=0.27\textwidth]{images/tgenModel} &
+      \includegraphics[width=0.34\textwidth]{images/tgenModelRigid} &
+      \includegraphics[width=0.34\textwidth]{images/tgenModelAffine}
+   \fi
    \end{tabular}
 \end{center}
 \caption{Simple illustration of a model (left) undergoing a rigid
@@ -2419,14 +2652,14 @@ axis:
    
    RigidTransform3d T = 
       new RigidTransform3d (/*x,y,z=*/0, 0, 0, /*r,p,y=*/0, 0, Math.PI);
-   mech.transformGeomerty (T);
+   mech.transformGeometry (T);
 \end{lstlisting}
 %
 
 \subsection{Nonlinear transformations}
 
 The \javaclass[artisynth.core.modelbase]{TransformableGeometry}
-interface also supports general, non-linear geometric transforms.
+interface also supports general, nonlinear geometric transforms.
 This can be done using a
 \javaclass[maspack.geometry]{GeometryTransformer}, which is an
 abstract class for performing general transformations.  To apply such
@@ -2609,7 +2842,7 @@ where the {\tt JointedCollide} example of Section
  \includegraphics[width=5in]{images/DeformedJointedCollide}
 \fi
 \end{center}
-\caption{The DeformedJointedCollide example initially loaded
+\caption{The {\tt DeformedJointedCollide} example initially loaded
 into ArtiSynth.}
 \label{DeformedJointedCollide:fig}
 \end{figure}
@@ -2671,7 +2904,7 @@ The result of a possible deformation is shown in Figure
   \fi
   \end{tabular}
 \end{center}
-\caption{Deformation achieved in DeformedJointedCollide,
+\caption{Deformation achieved in {\tt DeformedJointedCollide},
 showing both the model and grid (using an orthographic view)
 before and after the deformation.}
 \label{JointedCollideDeformation:fig}
@@ -2679,7 +2912,7 @@ before and after the deformation.}
 
 \begin{sideblock}
 Note: {\tt FemModelDeformer} is not intended to provide a general
-purpose solution to non-linear geometric transformations. Rather, it
+purpose solution to nonlinear geometric transformations. Rather, it
 is mainly intended to illustrate the capabilities of
 \javaclass[maspack.geometry]{GeometryTransformer} and the
 \javaclass[artisynth.core.modelbase]{TransformableGeometry} interface.
@@ -2910,14 +3143,6 @@ best suited to implement hierarchical groupings.
 
 \subsection{Example: a net formed from balls and springs}
 
-A simple example showing an arrangement of balls and springs formed into
-a net is defined in
-%
-\begin{verbatim}
-  artisynth.demos.tutorial.NetDemo
-\end{verbatim}
-%
-
 \begin{figure}[ht]
 \begin{center}
 \iflatexml
@@ -2929,6 +3154,14 @@ a net is defined in
 \caption{NetDemo model loaded into ArtiSynth.}
 \label{NetDemo:fig}
 \end{figure}
+
+A simple example showing an arrangement of balls and springs formed into
+a net is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.NetDemo
+\end{verbatim}
+%
 
 The {\tt build()} method and some of the supporting definitions for
 this example are shown below.

@@ -150,7 +150,7 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
       throws IOException {
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
    }
 
    protected void dowrite (PrintWriter pw, NumberFormat fmt, Object ref)
@@ -199,15 +199,15 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-      throws IOException {
-      // if keyword is a property name, try scanning that
-      rtok.nextToken();
-      if (ScanWriteUtils.scanProperty (rtok, this)) {
-         return true;
-      }
-      rtok.pushBack();
-      return false;
+   throws IOException {
+   // if keyword is a property name, try scanning that
+   rtok.nextToken();
+   if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
+      return true;
    }
+   rtok.pushBack();
+   return false;
+}
 
    protected boolean postscanAttributeName (Deque<ScanToken> tokens, String name)
       throws IOException {
@@ -250,12 +250,15 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
 
    protected boolean postscanItem (
       Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      if (ScanWriteUtils.postscanPropertyValue (tokens, ancestor)) {
+         return true;
+      }
       return false;
    }
 
    public void postscan (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-      ScanWriteUtils.postscanComponentBegin (tokens, this);
+      ScanWriteUtils.postscanBeginToken (tokens, this);
       while (tokens.peek() != ScanToken.END) {
          if (!postscanItem (tokens, ancestor)) {
             throw new IOException (

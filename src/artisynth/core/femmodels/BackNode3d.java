@@ -4,7 +4,6 @@ import java.util.*;
 import java.io.*;
 
 import maspack.matrix.*;
-import maspack.spatialmotion.*;
 import maspack.geometry.*;
 import maspack.util.*;
 import maspack.render.*;
@@ -24,44 +23,52 @@ public class BackNode3d extends DynamicComponentBase
    Vector3d myInternalForce = new Vector3d();
    float[] myRenderCoords = new float[3];
    double myEffectiveMass = 0;
+   // see comments under getMass() for how BackNode mass is defined
+   double myMass = 0;
 
    boolean myRestValidP = false;
    boolean myRestExplicitP = false;
-   boolean myPosExplicitP = false;
+   boolean myPosValidP = false;
 
    public BackNode3d (FemNode3d node) {
       myNode = node;
-   }
-
-   public BackNode3d (FemNode3d node, Point3d pos) {
-      myPos.set (pos);
-      myRest.set (pos);
-      myNode = node;
-      setDynamic (true);
+      myPosValidP = false;
    }
 
    public Point3d getPosition() {
+      if (!myPosValidP) {
+         setPositionToRest();
+      }
       return myPos;
    }
 
    public void setPosition (Point3d pos) {
       myPos.set (pos);
+      myPosValidP = true;
    }
    
    public void setPosition (Point3d frontPos, Vector3d dir) {
       myPos.sub (frontPos, dir);
+      myPosValidP = true;
+   }
+   
+   public void scalePosition (double s, Point3d frontPos) {
+      Vector3d dir = new Vector3d();
+      dir.sub (frontPos, myPos);
+      myPos.scaledAdd (-s, dir, frontPos);
+   }
+   
+   public void clearPosition() {
+      myPosValidP = false;
    }
  
-   public boolean isPositionExplicit() {
-      return myPosExplicitP;
-   }
-
-   public void setPositionExplicit (boolean explicit) {
-      myPosExplicitP = explicit;
+   public boolean isPositionValid() {
+      return myPosValidP;
    }
 
    public void setPositionToRest() {
       myPos.set (getRestPosition());
+      myPosValidP = true;
    }
 
    public Vector3d getVelocity() {
@@ -93,18 +100,32 @@ public class BackNode3d extends DynamicComponentBase
       myRestValidP = true;
       myRestExplicitP = true;
    }
-
-   public boolean isRestPositionValid() {
-      return myRestValidP;
+   
+   public void scaleRestPosition (double s, Point3d frontRest) {
+      Vector3d dir = new Vector3d();
+      dir.sub (frontRest, myRest);
+      myRest.scaledAdd (-s, dir, frontRest);
+      // do NOT mark as explicit
    }
 
-   void setRestPositionValid (boolean valid) {
+   public void clearRestPosition() {
+      myRestExplicitP = false;
       myRestValidP = false;
    }
 
    public boolean isRestPositionExplicit() {
       return myRestExplicitP;
    }
+
+   public boolean isRestPositionValid() {
+      return myRestValidP;
+   }
+
+   public Point3d getRenderPosition() {
+      Point3d coords =
+         new Point3d (myRenderCoords[0], myRenderCoords[1], myRenderCoords[2]);
+      return coords;
+   }   
 
    public Vector3d getForce() {
       return myForce;
@@ -116,6 +137,10 @@ public class BackNode3d extends DynamicComponentBase
 
    public void addForce (Vector3d f) {
       myForce.add (f);
+   }
+
+   public void addScaledForce (double s, Vector3d f) {
+      myForce.scaledAdd (s, f);
    }
 
    public void subForce (Vector3d f) {
@@ -141,21 +166,34 @@ public class BackNode3d extends DynamicComponentBase
    }
 
    /**
-    * {@inheritDoc}
+    * This method is required by the interface, but is not currently used.
     */
    public double getMass (double t) {
-      return myNode.getMass();
-   }
-
-   public double getMass() {
-      return myNode.getMass();
+      return getMass();
    }
 
    /**
-    * {@inheritDoc}
+    * Returns the mass for this backnode. This is the portion of the front
+    * node's mass that is used as the effective mass for the back node.
+    * Correspondingly, the front node's effective mass is its own mass minus
+    * the back node mass.
+    * 
+    * <p>If computed from density, the back node's mass is half of
+    * the total nodal mass due to shell elements. Otherwise, if the
+    * front node's mass is explicitly set, the back node's mass is set
+    * to half the front node mass.
+    * @return mass of this backnode
+    */
+   public double getMass() {
+      myNode.getMass(); // call to ensure mass is updated if necessary
+      return myMass;
+   }
+
+   /**
+    * This method is required by the interface, but is not currently used.
     */
    public void getMass (Matrix M, double t) {
-      doGetMass (M, myNode.getMass());
+      doGetMass (M, getMass());
    }
 
    /**
@@ -187,7 +225,7 @@ public class BackNode3d extends DynamicComponentBase
     * {@inheritDoc}
     */
    public void resetEffectiveMass() {
-      myEffectiveMass = myNode.getMass();
+      myEffectiveMass = myMass;
    }
 
    public void addEffectiveMass (double m) {
@@ -266,6 +304,7 @@ public class BackNode3d extends DynamicComponentBase
       myPos.x = buf[idx++];
       myPos.y = buf[idx++];
       myPos.z = buf[idx++];
+      myPosValidP = true;
       return idx;
    }
 
@@ -332,7 +371,10 @@ public class BackNode3d extends DynamicComponentBase
    }
 
    /**
-    * Shouldn't need this because gravity is applied to world nodes
+    * Note: this method is required by the interface, but is not currently
+    * used since gravity is applied directly to nodes within 
+    * FemModel3d.updateNodeForces(), and gravity action is lumped
+    * together with the front node.
     */
    public void applyGravity (Vector3d gacc) {
       myForce.scaledAdd (getMass(0), gacc);
@@ -344,6 +386,7 @@ public class BackNode3d extends DynamicComponentBase
 
    public void setRandomPosState() {
       myPos.setRandom();
+      myPosValidP = true;
    }
    
    public void setRandomVelState() {
@@ -384,6 +427,9 @@ public class BackNode3d extends DynamicComponentBase
 
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
+      if (!myPosValidP) {
+         setPositionToRest();
+      }
       gtr.transformPnt (myPos);
    }
 
@@ -450,11 +496,6 @@ public class BackNode3d extends DynamicComponentBase
       }
    }
 
-   // public int setTargetVel (double[] velt, int idx) {
-   //    // TODO Auto-generated method stub
-   //    return 0;
-   // }
-
    @Override
    public int getTargetPos (double[] post, double s, double h, int idx) {
       Point3d pos = getPosition();
@@ -468,11 +509,6 @@ public class BackNode3d extends DynamicComponentBase
          return myTarget.getTargetPos (post, s, h, pos, myVel, idx);
       }
    }
-
-   // public int setTargetPos (double[] post, int idx) {
-   //    // TODO Auto-generated method stub
-   //    return 0;
-   // }
 
    @Override
    public int addTargetJacobian (SparseBlockMatrix J, int bi) {
@@ -497,7 +533,7 @@ public class BackNode3d extends DynamicComponentBase
       rtok.nextToken();
       if (scanAttributeName (rtok, "position")) {
          myPos.scan (rtok);
-         myPosExplicitP = true;
+         myPosValidP = true;
          return true;
       }
       else if (scanAttributeName (rtok, "velocity")) {
@@ -520,7 +556,9 @@ public class BackNode3d extends DynamicComponentBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
-      pw.println ("position=[ " + getPosition().toString (fmt) + " ]");
+      if (myPosValidP) {
+         pw.println ("position=[ " + getPosition().toString (fmt) + " ]");
+      }
       if (!myVel.equals(Vector3d.ZERO)) {
          pw.println ("velocity=[ " + myVel.toString (fmt) + " ]");
       }

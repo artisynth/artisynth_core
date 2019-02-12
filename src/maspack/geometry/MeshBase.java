@@ -977,21 +977,29 @@ public abstract class MeshBase implements Renderable, Cloneable {
    /**
     * Translates the vertices of this mesh so that its origin coincides
     * with the centroid. The topology of the mesh remains unchanged.
+    * 
+    * @return the resulting rigid transform that was applied to the mesh
     */
-   public void translateToCentroid () {
+   public RigidTransform3d translateToCentroid () {
       Vector3d off = new Vector3d();
       computeCentroid (off);
       off.negate();
       translate (off);
+      return new RigidTransform3d (off.x, off.y, off.z);
    }
 
    /**
     * Transforms this mesh so that its center and orientation are aligned
     * with its oriented bounding box (OBB) as computed by {@link #computeOBB()}.
+    *
+    * @return the resulting rigid transform that was applied to the mesh
     */
-   public void transformToOBB () {
+   public RigidTransform3d transformToOBB () {
       OBB obb = computeOBB();
-      inverseTransform (obb.getTransform());
+      RigidTransform3d T = new RigidTransform3d();
+      T.invert (obb.getTransform());
+      transform (T);
+      return T;
    }
    
    /**
@@ -1000,10 +1008,14 @@ public abstract class MeshBase implements Renderable, Cloneable {
     * {@link #computeOBB(OBB.Method)}.
     * 
     * @param method method used to compute the OBB.
+    * @return the resulting rigid transform that was applied to the mesh
     */
-   public void transformToOBB (OBB.Method method) {
-      OBB obb = computeOBB();
-      inverseTransform (obb.getTransform());
+   public RigidTransform3d transformToOBB (OBB.Method method) {
+      OBB obb = computeOBB(method);
+      RigidTransform3d T = new RigidTransform3d();
+      T.invert (obb.getTransform());
+      transform (T);
+      return T;
    }
    
    /**

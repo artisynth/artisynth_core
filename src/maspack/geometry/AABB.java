@@ -555,7 +555,7 @@ public class AABB extends BVNode {
    public void render (Renderer renderer, int flags) {
       
       renderer.setShading (Shading.NONE);
-      renderer.setColor (0, 1f, 0);
+      renderer.setColor (0f, 0f, 1f);
       renderer.beginDraw (DrawMode.LINE_LOOP);
       renderer.addVertex (myMin.x, myMin.y, myMin.z);
       renderer.addVertex (myMax.x, myMin.y, myMin.z);

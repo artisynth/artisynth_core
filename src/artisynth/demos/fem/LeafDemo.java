@@ -233,15 +233,27 @@ public class LeafDemo extends RootModel {
    }
    
    public double getShellThickness() {
-      return myFem.getShellElement(0).getDefaultThickness();
+      FemModel3d fem = findFem();
+      return fem != null ? fem.getShellElement(0).getDefaultThickness() : 0;
    }
    
    public void setShellThickness(double newThickness) {
-      for (ShellElement3d e : myFem.getShellElements()) {
-         e.setDefaultThickness (newThickness);
+      FemModel3d fem = findFem();
+      if (fem != null) {
+         for (ShellElement3d e : fem.getShellElements()) {
+            e.setDefaultThickness (newThickness);
+         }
       }
-      
-      System.out.println ("Num control panels: " + this.getControlPanels ().size ());
+   }
+
+   protected FemModel3d findFem() {
+      ModelComponent comp = findComponent ("models/mech/models/0");
+      if (comp instanceof FemModel3d) {
+         return (FemModel3d)comp;
+      }
+      else {
+         return null;
+      }
    }
 
    /**

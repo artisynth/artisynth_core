@@ -114,7 +114,7 @@ public class FemModel3dEditor extends EditorBase {
       }
    }
 
-   private class ClippedElementFilter extends FemModel.ElementFilter {
+   private class ClippedElementFilter implements FemModel.ElementFilter {
       GLClipPlane[] myPlanes;
 
       public ClippedElementFilter (GLClipPlane[] planes) {
@@ -151,7 +151,7 @@ public class FemModel3dEditor extends EditorBase {
       model.addMeshComp (mcomp);
    }
 
-   private class SelectedElementFilter extends FemModel.ElementFilter {
+   private class SelectedElementFilter implements FemModel.ElementFilter {
 
       public boolean elementIsValid (FemElement e) {
          return e.isSelected();

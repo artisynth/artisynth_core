@@ -14,7 +14,7 @@ import maspack.matrix.*;
 import maspack.util.*;
 import maspack.spatialmotion.*;
 
-public class MultiPointSpringTest {
+public class MultiPointSpringTest extends UnitTest {
 
    private void zeroForces (ArrayList<Point> pnts) {
       for (int i=0; i<pnts.size(); i++) {
@@ -149,6 +149,7 @@ public class MultiPointSpringTest {
    }
 
    public void test (int numPnts, int[] passiveSegs) {
+      // need to have zero damping to get Jacobian to pass
       MultiPointSpring spring = new MultiPointSpring(1, 2, 3);
       ArrayList<Point> pnts = new ArrayList<Point>();
       Point3d pos = new Point3d();
@@ -185,20 +186,18 @@ public class MultiPointSpringTest {
          throw new TestException (
             "Numeric position Jacobian differs from analytic by " + err);
       }
-      System.out.println ("pos err = " + err);
+      //System.out.println ("pos err = " + err);
 
       M.setZero();
       spring.addVelJacobian (M, 1);
       //System.out.println ("D=\n" + M.toString("%8.3f"));
       MatrixNd Dcheck = numericVelJacobian (spring, pnts);
       err = compareMatrices (M, Dcheck);
-         System.out.println ("M=\n" + M.toString("%8.3f"));
-         System.out.println ("Dcheck=\n" + Dcheck.toString("%8.3f"));
       if (err > 1e-7) {
          throw new TestException (
             "Numeric velocity Jacobian differs from analytic by " + err);
       }
-      System.out.println ("vel err = " + err);
+      //System.out.println ("vel err = " + err);
 
       // test scan and write. Create a MechModel to use as a reference object
       // for the points
@@ -209,26 +208,25 @@ public class MultiPointSpringTest {
       ScanTest.testScanAndWrite (spring, mech, null);
    }
 
+   public void test() {
+      //tester.test(0); // force and Jacobians should be 0
+      //tester.test(1); // force and Jacobians should be 0
+      test(2);
+      test(3);
+      test(4);
+      test(5);
+      test(2, new int[] {0});               
+      test(4, new int[] {0, 1});               
+      test(5, new int[] {0, 2, 4});   
+   }
+
    public static void main (String[] args) {
       MultiPointSpringTest tester = new MultiPointSpringTest();
-
+      // have to set myIgnoreCoriolisInJacobian to false since otherwise
+      // non-symmetric Jacobian terms will not be computed and the Jacobian
+      // will not match the numeric check
+      MultiPointSpring.myIgnoreCoriolisInJacobian = false;
       RandomGenerator.setSeed (0x1234);
-      try {
-         //tester.test(0); // force and Jacobians should be 0
-         //tester.test(1); // force and Jacobians should be 0
-         tester.test(2);
-         tester.test(3);
-         tester.test(4);
-         tester.test(5);
-         tester.test(2, new int[] {0});               
-         tester.test(4, new int[] {0, 1});               
-         tester.test(5, new int[] {0, 2, 4});   
-         
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit(1); 
-      }
-      System.out.println ("\nPassed\n");      
+      tester.runtest();
    }
 }

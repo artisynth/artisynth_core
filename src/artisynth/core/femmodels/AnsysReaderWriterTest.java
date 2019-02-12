@@ -13,8 +13,9 @@ import java.io.StringWriter;
 
 import maspack.util.ReaderTokenizer;
 import maspack.util.TestException;
+import maspack.util.UnitTest;
 
-public class AnsysReaderWriterTest {
+public class AnsysReaderWriterTest extends UnitTest {
 
    public static final String testNodeStr = 
       "       1                   0                   0    0.05000000000000\n" +
@@ -102,49 +103,45 @@ public class AnsysReaderWriterTest {
       }
    }
 
+   public void test() throws IOException {
+      
+      FemModel3d fem = new FemModel3d();
+      AnsysReader.read (
+         fem, new StringReader(testNodeStr), new StringReader(testElemStr),
+         1.0, null, /*options=*/0);
+
+      StringWriter nodeWriter = new StringWriter ();
+      StringWriter elemWriter = new StringWriter ();
+      
+      AnsysWriter.writeNodeFile (fem, new PrintWriter (nodeWriter));
+      AnsysWriter.writeElemFile (fem, new PrintWriter (elemWriter));
+      
+      String nodeStr = nodeWriter.toString ();
+      String elemStr = elemWriter.toString ();
+
+      checkStrings ("Nodes", nodeStr, testNodeStr);
+      checkStrings ("Elems", elemStr, testElemStr);
+
+      fem = new FemModel3d();
+      AnsysReader.read (
+         fem, new StringReader(testNodeStr), new StringReader(reducedElemStr),
+         1.0, null, /*options=*/0);
+
+      nodeWriter = new StringWriter ();
+      elemWriter = new StringWriter ();
+      
+      AnsysWriter.writeNodeFile (fem, new PrintWriter (nodeWriter));
+      AnsysWriter.writeElemFile (fem, new PrintWriter (elemWriter));
+      
+      nodeStr = nodeWriter.toString ();
+      elemStr = elemWriter.toString ();
+
+      checkStrings ("Nodes", nodeStr, testNodeStr);
+      checkStrings ("Elems", elemStr, testElemStr);
+   }      
+
    public static void main (String args[]) {
-
-      try {
-         FemModel3d fem = new FemModel3d();
-         AnsysReader.read (
-            fem, new StringReader(testNodeStr), new StringReader(testElemStr),
-            1.0, null, /*options=*/0);
-
-         StringWriter nodeWriter = new StringWriter ();
-         StringWriter elemWriter = new StringWriter ();
-      
-         AnsysWriter.writeNodeFile (fem, new PrintWriter (nodeWriter));
-         AnsysWriter.writeElemFile (fem, new PrintWriter (elemWriter));
-      
-         String nodeStr = nodeWriter.toString ();
-         String elemStr = elemWriter.toString ();
-
-         checkStrings ("Nodes", nodeStr, testNodeStr);
-         checkStrings ("Elems", elemStr, testElemStr);
-
-         fem = new FemModel3d();
-         AnsysReader.read (
-            fem, new StringReader(testNodeStr), new StringReader(reducedElemStr),
-            1.0, null, /*options=*/0);
-
-         nodeWriter = new StringWriter ();
-         elemWriter = new StringWriter ();
-      
-         AnsysWriter.writeNodeFile (fem, new PrintWriter (nodeWriter));
-         AnsysWriter.writeElemFile (fem, new PrintWriter (elemWriter));
-      
-         nodeStr = nodeWriter.toString ();
-         elemStr = elemWriter.toString ();
-
-         checkStrings ("Nodes", nodeStr, testNodeStr);
-         checkStrings ("Elems", elemStr, testElemStr);
-
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
-      }
-      
-      System.out.println ("\nPassed\n");
+      AnsysReaderWriterTest tester = new AnsysReaderWriterTest();
+      tester.runtest();
    }
 }

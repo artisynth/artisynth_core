@@ -76,7 +76,7 @@ public class CollisionManagerTest extends UnitTest {
       fem.addMeshComp (comp);
    }
 
-   RigidCompositeBody createCompositeBody (String name, double rad) {
+   RigidBody createCompositeBody (String name, double rad) {
       
       // create and add the composite body and plate
       PolygonalMesh ball1 = MeshFactory.createIcosahedralSphere (rad, 1);
@@ -86,7 +86,7 @@ public class CollisionManagerTest extends UnitTest {
       PolygonalMesh axis = MeshFactory.createCylinder (rad/4, 2.5*rad, 12);
       axis.transform (new RigidTransform3d (0, 0, 0, 0, Math.PI/2, 0));
 
-      RigidCompositeBody body = new RigidCompositeBody (name);
+      RigidBody body = new RigidBody (name);
       body.setDensity (10);
       body.addMesh (ball1);
       body.addMesh (ball2);
@@ -119,7 +119,7 @@ public class CollisionManagerTest extends UnitTest {
       addSubMesh (fem2, "sub1", new int[] { 5, 6, 9, 10 });
       addSubMesh (fem2, "sub2", new int[] { 53, 54, 57, 58 });
 
-      RigidCompositeBody bod = createCompositeBody ("comp", 0.3);
+      RigidBody bod = createCompositeBody ("comp", 0.3);
       bod.transformGeometry (new RigidTransform3d (0, 0, 3));
       mech.addRigidBody (bod);
 
@@ -155,9 +155,7 @@ public class CollisionManagerTest extends UnitTest {
    }
 
    boolean isBody (ModelComponent c) {
-      return (c instanceof CollidableBody &&
-              // XXX hack until RigidBody and RigidCompositeBody are merged
-              !(c instanceof RigidCompositeBody));
+      return (c instanceof CollidableBody);
    }
 
    ArrayList<CollidableBody> getSubBodies (Collidable c) {
@@ -1236,24 +1234,22 @@ public class CollisionManagerTest extends UnitTest {
       CollisionManager cm = myMech.getCollisionManager();
       CollisionBehavior cb;
       
-      //top/models/fem1/meshes/surface  . . . 1 1 1 . . . . .
-      //top/models/fem1/meshes/sub1     . . . 1 1 1 . . . . .
-      //top/models/fem1/meshes/sub2     . . . 1 1 1 . . . . .
-      //top/models/fem2/meshes/surface  1 1 1 . . . . . . . .
-      //top/models/fem2/meshes/sub1     1 1 1 . . . . . . . .
-      //top/models/fem2/meshes/sub2     1 1 1 . . . . . . . .
-      //top/rigidBodies/comp/meshes/0   . . . . . . . . . . .
-      //top/rigidBodies/comp/meshes/1   . . . . . . . . . . .
-      //top/rigidBodies/comp/meshes/2   . . . . . . . . . . .
-      //top/rigidBodies/ball            . . . . . . . . . . .
-      //top/rigidBodies/base            . . . . . . . . . . .
+      //top/models/fem1/meshes/surface  . . . 1 1 1 . . .
+      //top/models/fem1/meshes/sub1     . . . 1 1 1 . . .
+      //top/models/fem1/meshes/sub2     . . . 1 1 1 . . .
+      //top/models/fem2/meshes/surface  1 1 1 . . . . . .
+      //top/models/fem2/meshes/sub1     1 1 1 . . . . . .
+      //top/models/fem2/meshes/sub2     1 1 1 . . . . . .
+      //top/rigidBodies/comp            . . . . . . . . .
+      //top/rigidBodies/ball            . . . . . . . . .
+      //top/rigidBodies/base            . . . . . . . . .
 
       Collidable fem1 = findCollidable ("models/fem1");
       Collidable fem2 = findCollidable ("models/fem2");
       Collidable comp = findCollidable ("rigidBodies/comp");
-      Collidable comp2 = findCollidable ("rigidBodies/comp/meshes/2");
-      Collidable comp1 = findCollidable ("rigidBodies/comp/meshes/1");
-      Collidable comp0 = findCollidable ("rigidBodies/comp/meshes/0");
+      //RigidMeshComp comp2 = findCollidable ("rigidBodies/comp/meshes/2");
+      //RigidMeshComp comp1 = findCollidable ("rigidBodies/comp/meshes/1");
+      //RigidMeshComp comp0 = findCollidable ("rigidBodies/comp/meshes/0");
 
       Collidable surf1 = findCollidable ("models/fem1/meshes/surface");
       FemMeshComp sub11 = (FemMeshComp)findCollidable ("models/fem1/meshes/sub1");
@@ -1301,51 +1297,47 @@ public class CollisionManagerTest extends UnitTest {
          Collidable.Deformable, Collidable.Deformable, true, 1);
 
       setResponses (myMech, new Collidable[] {
-            fem1, fem2, comp, comp0, comp1, comp2,
+            fem1, fem2, comp,
             surf1, sub11, sub12, surf2, sub21, sub22, ball, base
          });
 
-      verify (". . . 1 . . . . . . . "+  // surf1
-              "  . . . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . . . . . . "+  // surf2
-              "        . . . . . . . "+  // sub21
-              "          . . . . . . "); // sub22
+      verify (". . . 1 . . . . . "+  // surf1
+              "  . . . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . . . . "+  // surf2
+              "        . . . . . "+  // sub21
+              "          . . . . "); // sub22
       setDefaultBehavior (Collidable.Deformable, Collidable.Self, true, 2);
       
-      verify (". . . 1 . . . . . . . "+  // surf1
-              "  . 2 . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . . . . . . "+  // surf2
-              "        . 2 . . . . . "+  // sub21
-              "          . . . . . . "); // sub22
+      verify (". . . 1 . . . . . "+  // surf1
+              "  . 2 . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . . . . "+  // surf2
+              "        . 2 . . . "+  // sub21
+              "          . . . . "); // sub22
       setDefaultBehavior (Collidable.Deformable, Collidable.Rigid, true, 3);
 
-      verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
-              "  . 2 . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . 3 3 3 3 3 "+  // surf2
-              "        . 2 . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . . . "+  // comp0
-              "              . . . . "+  // comp1
-              "                . . . "+  // comp2
-              "                  . . "+  // ball
-              "                    . "); // base
+      verify (". . . 1 . . 3 3 3 "+  // surf1
+              "  . 2 . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . 3 3 3 "+  // surf2
+              "        . 2 . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . . . "+  // comp
+              "              . . "+  // ball
+              "                . "); // base
 
       setDefaultBehavior (Collidable.Rigid, Collidable.Rigid, true, 2);
 
-      verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
-              "  . 2 . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . 3 3 3 3 3 "+  // surf2
-              "        . 2 . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . 2 2 "+  // comp0
-              "              . . 2 2 "+  // comp1
-              "                . 2 2 "+  // comp2
-              "                  . 2 "+  // ball
-              "                    . "); // base
+      verify (". . . 1 . . 3 3 3 "+  // surf1
+              "  . 2 . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . 3 3 3 "+  // surf2
+              "        . 2 . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . 2 2 "+  // comp
+              "              . 2 "+  // ball
+              "                . "); // base
       setDefaultBehavior (Collidable.Deformable, Collidable.Self, false,0);
       setDefaultBehavior (Collidable.Deformable, Collidable.Rigid, false,0);
       setDefaultBehavior (Collidable.Rigid, Collidable.Rigid, false,0); 
@@ -1360,17 +1352,15 @@ public class CollisionManagerTest extends UnitTest {
       setDefaultBehavior (Collidable.Deformable, Collidable.Self, true,2);
       setDefaultBehavior (Collidable.Deformable, Collidable.Rigid, true,3);
       setDefaultBehavior (Collidable.Rigid, Collidable.Rigid, true,2);
-      verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
-              "  . 2 . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . 3 3 3 3 3 "+  // surf2
-              "        . 2 . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . 2 2 "+  // comp0
-              "              . . 2 2 "+  // comp1
-              "                . 2 2 "+  // comp2
-              "                  . 2 "+  // ball
-              "                    . "); // base
+      verify (". . . 1 . . 3 3 3 "+  // surf1
+              "  . 2 . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . 3 3 3 "+  // surf2
+              "        . 2 . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . 2 2 "+  // comp
+              "              . 2 "+  // ball
+              "                . "); // base
       
       setBehavior (ball, base, true, 4);
       setBehavior (ball, fem1, true, 4);
@@ -1384,17 +1374,15 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (sub22, surf2, true, 5);
       azzert ("behavior count changed", numb==cm.numBehaviors());      
 
-      verify (". . . 1 . . 5 5 5 4 3 "+  // surf1
-              "  . 2 . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . 5 5 5 3 3 "+  // surf2
-              "        . 2 . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . 2 2 "+  // comp0
-              "              . . 2 2 "+  // comp1
-              "                . 2 2 "+  // comp2
-              "                  . 4 "+  // ball
-              "                    . "); // base
+      verify (". . . 1 . . 5 4 3 "+  // surf1
+              "  . 2 . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . 5 3 3 "+  // surf2
+              "        . 2 . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . 2 2 "+  // comp
+              "              . 4 "+  // ball
+              "                . "); // base
 
       clearBehavior (ball, base);
       clearBehavior (ball, fem1);
@@ -1403,30 +1391,26 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (fem2, base, false, 0);
       setBehavior (fem2, fem2, true, 7);
 
-      verify (". . . 1 . . 5 5 5 3 4 "+  // surf1
-              "  . . . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . 5 5 5 3 . "+  // surf2
-              "        . 7 . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . 2 2 "+  // comp0
-              "              . . 2 2 "+  // comp1
-              "                . 2 2 "+  // comp2
-              "                  . 2 "+  // ball
-              "                    . "); // base
+      verify (". . . 1 . . 5 3 4 "+  // surf1
+              "  . . . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . 5 3 . "+  // surf2
+              "        . 7 . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . 2 2 "+  // comp
+              "              . 2 "+  // ball
+              "                . "); // base
 
       clearBehaviors();
-      verify (". . . 1 . . 3 3 3 3 3 "+  // surf1
-              "  . 2 . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . 3 3 3 3 3 "+  // surf2
-              "        . 2 . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . 2 2 "+  // comp0
-              "              . . 2 2 "+  // comp1
-              "                . 2 2 "+  // comp2
-              "                  . 2 "+  // ball
-              "                    . "); // base
+      verify (". . . 1 . . 3 3 3 "+  // surf1
+              "  . 2 . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . 3 3 3 "+  // surf2
+              "        . 2 . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . 2 2 "+  // comp
+              "              . 2 "+  // ball
+              "                . "); // base
 
       setDefaultBehavior (Collidable.All, Collidable.All, false, 0);
       setBehavior (sub11, Collidable.All, true, 1);
@@ -1438,71 +1422,63 @@ public class CollisionManagerTest extends UnitTest {
       azzert ("behavior count changed", numb==cm.numBehaviors()); 
       setBehavior (surf1, surf2, true, 5);
 
-      verify (". . . 5 . . . . . . . "+  // surf1
-              "  . . . . . . . . . . "+  // sub11
-              "    . . . . . . . . . "+  // sub12
-              "      . . . . . . . . "+  // surf2
-              "        . 3 . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . 2 2 "+  // comp0
-              "              . . 2 2 "+  // comp1
-              "                . 2 2 "+  // comp2
-              "                  . . "+  // ball
-              "                    . "); // base
+      verify (". . . 5 . . . . . "+  // surf1
+              "  . . . . . . . . "+  // sub11
+              "    . . . . . . . "+  // sub12
+              "      . . . . . . "+  // surf2
+              "        . 3 . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . 2 2 "+  // comp
+              "              . . "+  // ball
+              "                . "); // base
 
       clearBehaviors();
       sub11.setCollidable (Collidability.ALL);
       sub12.setCollidable (Collidability.ALL);
       setBehavior (fem1, Collidable.All, true, 0);
       setBehavior (comp, Collidable.Rigid, true, 2);
-      setBehavior (comp2, Collidable.AllBodies, true, 3);
-      setBehavior (comp2, surf2, true, 4);
+      //setBehavior (comp2, Collidable.AllBodies, true, 3);
+      //setBehavior (comp2, surf2, true, 4);
 
-      verify (". . . 0 . . 0 0 3 0 0 "+  // surf1
-              "  . 0 0 . . 0 0 3 0 0 "+  // sub11
-              "    . 0 . . 0 0 3 0 0 "+  // sub12
-              "      . . . . . 4 . . "+  // surf2
-              "        . . . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . 2 2 "+  // comp0
-              "              . . 2 2 "+  // comp1
-              "                . 3 3 "+  // comp2
-              "                  . . "+  // ball
-              "                    . "); // base
+      verify (". . . 0 . . 0 0 0 "+  // surf1
+              "  . 0 0 . . 0 0 0 "+  // sub11
+              "    . 0 . . 0 0 0 "+  // sub12
+              "      . . . . . . "+  // surf2
+              "        . . . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . 2 2 "+  // comp
+              "              . . "+  // ball
+              "                . "); // base
 
       clearBehaviors();
       setBehavior (fem1, Collidable.AllBodies, true, 0);
       setBehavior (comp, Collidable.Deformable, true, 2);
-      setBehavior (comp2, Collidable.Deformable, true, 3);
+      //setBehavior (comp2, Collidable.Deformable, true, 3);
       setBehavior (sub11, sub12, true, 4);
 
-      verify (". . . 0 . . 2 2 3 0 0 "+  // surf1
-              "  . 4 0 . . 2 2 3 0 0 "+  // sub11
-              "    . 0 . . 2 2 3 0 0 "+  // sub12
-              "      . . . 2 2 3 . . "+  // surf2
-              "        . . . . . . . "+  // sub21
-              "          . . . . . . "+  // sub22
-              "            . . . . . "+  // comp0
-              "              . . . . "+  // comp1
-              "                . . . "+  // comp2
-              "                  . . "+  // ball
-              "                    . "); // base
+      verify (". . . 0 . . 2 0 0 "+  // surf1
+              "  . 4 0 . . 2 0 0 "+  // sub11
+              "    . 0 . . 2 0 0 "+  // sub12
+              "      . . . 2 . . "+  // surf2
+              "        . . . . . "+  // sub21
+              "          . . . . "+  // sub22
+              "            . . . "+  // comp
+              "              . . "+  // ball
+              "                . "); // base
 
       sub21.setCollidable (Collidability.ALL);
       sub22.setCollidable (Collidability.ALL);
       updateBehaviorMap();
 
-      verify (". . . 0 0 0 2 2 3 0 0 "+  // surf1
-              "  . 4 0 0 0 2 2 3 0 0 "+  // sub11
-              "    . 0 0 0 2 2 3 0 0 "+  // sub12
-              "      . . . 2 2 3 . . "+  // surf2
-              "        . . 2 2 3 . . "+  // sub21
-              "          . 2 2 3 . . "+  // sub22
-              "            . . . . . "+  // comp0
-              "              . . . . "+  // comp1
-              "                . . . "+  // comp2
-              "                  . . "+  // ball
-              "                    . "); // base
+      verify (". . . 0 0 0 2 0 0 "+  // surf1
+              "  . 4 0 0 0 2 0 0 "+  // sub11
+              "    . 0 0 0 2 0 0 "+  // sub12
+              "      . . . 2 . . "+  // surf2
+              "        . . 2 . . "+  // sub21
+              "          . 2 . . "+  // sub22
+              "            . . . "+  // comp
+              "              . . "+  // ball
+              "                . "); // base
 
       clearBehaviors();
       setBehavior (fem1, Collidable.Rigid, true, 0);
@@ -1510,50 +1486,44 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (comp, Collidable.AllBodies, true, 3);
       setBehavior (base, Collidable.AllBodies, true, 7);
 
-      verify (". . . 2 2 2 3 3 3 0 7 "+  // surf1
-              "  . . 2 2 2 3 3 3 0 7 "+  // sub11
-              "    . 2 2 2 3 3 3 0 7 "+  // sub12
-              "      . . . 3 3 3 . 7 "+  // surf2
-              "        . . 3 3 3 . 7 "+  // sub21
-              "          . 3 3 3 . 7 "+  // sub22
-              "            . . . 3 7 "+  // comp0
-              "              . . 3 7 "+  // comp1
-              "                . 3 7 "+  // comp2
-              "                  . 7 "+  // ball
-              "                    . "); // base
+      verify (". . . 2 2 2 3 0 7 "+  // surf1
+              "  . . 2 2 2 3 0 7 "+  // sub11
+              "    . 2 2 2 3 0 7 "+  // sub12
+              "      . . . 3 . 7 "+  // surf2
+              "        . . 3 . 7 "+  // sub21
+              "          . 3 . 7 "+  // sub22
+              "            . 3 7 "+  // comp
+              "              . 7 "+  // ball
+              "                . "); // base
 
       cb = setBehavior (comp, Collidable.All, true, 3);
       setBehavior (base, Collidable.All, true, 7);
       azzert ("unexpected handler", getActingBehavior(fem1,comp) == cb);
       azzert ("unexpected handler", getActingBehavior(fem2,comp) == cb);
 
-      verify (". . . 2 2 2 3 3 3 0 7 "+  // surf1
-              "  . . 2 2 2 3 3 3 0 7 "+  // sub11
-              "    . 2 2 2 3 3 3 0 7 "+  // sub12
-              "      . . . 3 3 3 . 7 "+  // surf2
-              "        . . 3 3 3 . 7 "+  // sub21
-              "          . 3 3 3 . 7 "+  // sub22
-              "            . . . 3 7 "+  // comp0
-              "              . . 3 7 "+  // comp1
-              "                . 3 7 "+  // comp2
-              "                  . 7 "+  // ball
-              "                    . "); // base
+      verify (". . . 2 2 2 3 0 7 "+  // surf1
+              "  . . 2 2 2 3 0 7 "+  // sub11
+              "    . 2 2 2 3 0 7 "+  // sub12
+              "      . . . 3 . 7 "+  // surf2
+              "        . . 3 . 7 "+  // sub21
+              "          . 3 . 7 "+  // sub22
+              "            . 3 7 "+  // comp
+              "              . 7 "+  // ball
+              "                . "); // base
 
       setBehavior (comp, fem1, true, 8);
       cb = setBehavior (fem1, fem1, true, 5);
       azzert ("unexpected handler", getActingBehavior(fem1,fem1) == cb);
 
-      verify (". . . 2 2 2 8 8 8 0 7 "+  // surf1
-              "  . 5 2 2 2 8 8 8 0 7 "+  // sub11
-              "    . 2 2 2 8 8 8 0 7 "+  // sub12
-              "      . . . 3 3 3 . 7 "+  // surf2
-              "        . . 3 3 3 . 7 "+  // sub21
-              "          . 3 3 3 . 7 "+  // sub22
-              "            . . . 3 7 "+  // comp0
-              "              . . 3 7 "+  // comp1
-              "                . 3 7 "+  // comp2
-              "                  . 7 "+  // ball
-              "                    . "); // base
+      verify (". . . 2 2 2 8 0 7 "+  // surf1
+              "  . 5 2 2 2 8 0 7 "+  // sub11
+              "    . 2 2 2 8 0 7 "+  // sub12
+              "      . . . 3 . 7 "+  // surf2
+              "        . . 3 . 7 "+  // sub21
+              "          . 3 . 7 "+  // sub22
+              "            . 3 7 "+  // comp
+              "              . 7 "+  // ball
+              "                . "); // base
 
       clearBehaviors();
       setBehavior (surf1, Collidable.Rigid, true, 1);
@@ -1561,72 +1531,62 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (sub12, Collidable.AllBodies, true, 3);
       setBehavior (surf2, Collidable.All, true, 4);
       setBehavior (base, Collidable.Deformable, true, 5);
-      cb = setBehavior (comp2, Collidable.Rigid, true, 6);
-      setBehavior (comp1, Collidable.All, true, 7);
+      //cb = setBehavior (comp2, Collidable.Rigid, true, 6);
+      //setBehavior (comp1, Collidable.All, true, 7);
 
-      azzert ("unexpected handler", getActingBehavior(comp2,ball) == cb);
+      //azzert ("unexpected handler", getActingBehavior(comp2,ball) == cb);
       azzert ("expected null behavior", getActingBehavior(fem1,fem2) == null);
-      azzert ("expected null behavior", getActingBehavior(base,comp) == null);
 
       cb = myMech.getCollisionBehavior (base, Collidable.Deformable);
       azzert ("unexpected handler", getActingBehavior(base,fem1) == cb);
       azzert ("unexpected handler", getActingBehavior(fem2,base) == cb);
-      azzert ("expected null behavior", getActingBehavior(base,comp) == null);
 
-      verify (". . . 4 . . 1 7 1 1 5 "+  // surf1
-              "  . . 4 2 2 . 7 . . 5 "+  // sub11
-              "    . 4 3 3 3 7 3 3 5 "+  // sub12
-              "      . . . 4 7 4 4 5 "+  // surf2
-              "        . . . 7 . . 5 "+  // sub21
-              "          . . 7 . . 5 "+  // sub22
-              "            . . . . . "+  // comp0
-              "              . . 7 7 "+  // comp1
-              "                . 6 6 "+  // comp2
-              "                  . . "+  // ball
-              "                    . "); // base
+      verify (". . . 4 . . 1 1 5 "+  // surf1
+              "  . . 4 2 2 . . 5 "+  // sub11
+              "    . 4 3 3 3 3 5 "+  // sub12
+              "      . . . 4 4 5 "+  // surf2
+              "        . . . . 5 "+  // sub21
+              "          . . . 5 "+  // sub22
+              "            . . . "+  // comp
+              "              . . "+  // ball
+              "                . "); // base
 
       setBehavior (base, Collidable.Rigid, true, 8);
 
-      verify (". . . 4 . . 1 7 1 1 5 "+  // surf1
-              "  . . 4 2 2 . 7 . . 5 "+  // sub11
-              "    . 4 3 3 3 7 3 3 5 "+  // sub12
-              "      . . . 4 7 4 4 5 "+  // surf2
-              "        . . . 7 . . 5 "+  // sub21
-              "          . . 7 . . 5 "+  // sub22
-              "            . . . . 8 "+  // comp0
-              "              . . 7 8 "+  // comp1
-              "                . 6 8 "+  // comp2
-              "                  . 8 "+  // ball
-              "                    . "); // base
+      verify (". . . 4 . . 1 1 5 "+  // surf1
+              "  . . 4 2 2 . . 5 "+  // sub11
+              "    . 4 3 3 3 3 5 "+  // sub12
+              "      . . . 4 4 5 "+  // surf2
+              "        . . . . 5 "+  // sub21
+              "          . . . 5 "+  // sub22
+              "            . . 8 "+  // comp
+              "              . 8 "+  // ball
+              "                . "); // base
 
       setBehavior (comp, surf2, true, 0);
       setBehavior (surf1, fem2, true, 9);
 
-      verify (". . . 9 9 9 1 7 1 1 5 "+  // surf1
-              "  . . 4 2 2 . 7 . . 5 "+  // sub11
-              "    . 4 3 3 3 7 3 3 5 "+  // sub12
-              "      . . . 0 0 0 4 5 "+  // surf2
-              "        . . . 7 . . 5 "+  // sub21
-              "          . . 7 . . 5 "+  // sub22
-              "            . . . . 8 "+  // comp0
-              "              . . 7 8 "+  // comp1
-              "                . 6 8 "+  // comp2
-              "                  . 8 "+  // ball
-              "                    . "); // base
+      verify (". . . 9 9 9 1 1 5 "+  // surf1
+              "  . . 4 2 2 . . 5 "+  // sub11
+              "    . 4 3 3 3 3 5 "+  // sub12
+              "      . . . 0 4 5 "+  // surf2
+              "        . . . . 5 "+  // sub21
+              "          . . . 5 "+  // sub22
+              "            . . 8 "+  // comp
+              "              . 8 "+  // ball
+              "                . "); // base
 
       setBehavior (sub12, Collidable.AllBodies, true, 3);
 
-      verify (". . . 9 9 9 1 7 1 1 5 "+  // surf1
-              "  . . 4 2 2 . 7 . . 5 "+  // sub11
-              "    . 3 3 3 3 3 3 3 3 "+  // sub12
-              "      . . . 0 0 0 4 5 "+  // surf2
-              "        . . . 7 . . 5 "+  // sub21
-              "          . . 7 . . 5 "+  // sub22
-              "            . . . . 8 "+  // comp0
-              "              . . 7 8 "+  // comp1
-              "                . 6 8 "+  // comp2
-              "                  . 8 "+  // ball
-              "                    . "); // base
+      verify (". . . 9 9 9 1 1 5 "+  // surf1
+              "  . . 4 2 2 . . 5 "+  // sub11
+              "    . 3 3 3 3 3 3 "+  // sub12
+              "      . . . 0 4 5 "+  // surf2
+              "        . . . . 5 "+  // sub21
+              "          . . . 5 "+  // sub22
+              "            . . 8 "+  // comp
+              "              . 8 "+  // ball
+              "                . "); // base
 
       sub21.setCollidable (Collidability.INTERNAL);
       sub22.setCollidable (Collidability.INTERNAL);
@@ -1664,7 +1624,7 @@ public class CollisionManagerTest extends UnitTest {
 
       clearResponses();
       setResponses (myMech, new Collidable[] {
-            fem1, fem2, fem3, comp, comp0, comp1, comp2,
+            fem1, fem2, fem3, comp,
             surf1, sub11, sub12, surf2, sub21, sub22,
             surf3, sub31, sub32, ball1, ball2, ball, base
          });
@@ -1672,22 +1632,20 @@ public class CollisionManagerTest extends UnitTest {
       setResponses (mySubMech, new Collidable[] {
             fem3, surf3, sub31, sub32, ball1, ball2});
 
-      verify (". . . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // surf1
-              "  . 2 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub11
-              "    . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub12
-              "      . . . 1 . . 3 3 3 3 3 3 3 "+ // surf2 
-              "        . 2 1 . . 3 3 3 3 3 3 3 "+ // sub21
-              "          . 1 . . 3 3 3 3 3 3 3 "+ // sub22
-              "            . . . . . 3 3 3 3 3 "+ // surf3
-              "              . . . . . . . . . "+ // sub31
-              "                . . . . . . . . "+ // sub32
-              "                  . . 2 2 2 2 2 "+ // ball1
-              "                    . 2 2 2 2 2 "+ // ball2
-              "                      . . . 2 2 "+ // comp0
-              "                        . . 2 2 "+ // comp1
-              "                          . 2 2 "+ // comp2
-              "                            . 2 "+ // ball
-              "                              . ");// base
+      verify (". . . 1 1 1 1 . . 3 3 3 3 3 "+ // surf1
+              "  . 2 1 1 1 1 . . 3 3 3 3 3 "+ // sub11
+              "    . 1 1 1 1 . . 3 3 3 3 3 "+ // sub12
+              "      . . . 1 . . 3 3 3 3 3 "+ // surf2 
+              "        . 2 1 . . 3 3 3 3 3 "+ // sub21
+              "          . 1 . . 3 3 3 3 3 "+ // sub22
+              "            . . . . . 3 3 3 "+ // surf3
+              "              . . . . . . . "+ // sub31
+              "                . . . . . . "+ // sub32
+              "                  . . 2 2 2 "+ // ball1
+              "                    . 2 2 2 "+ // ball2
+              "                      . 2 2 "+ // comp
+              "                        . 2 "+ // ball
+              "                          . ");// base
 
       setBehavior (mySubMech, fem3, fem3, true, 7);
       setDefaultBehavior (
@@ -1696,44 +1654,40 @@ public class CollisionManagerTest extends UnitTest {
       setBehavior (mySubMech, surf3, ball1, true, 8);
       setBehavior (ball, sub31, true, 7);
 
-      verify (". . . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // surf1
-              "  . 2 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub11
-              "    . 1 1 1 1 . . 3 3 3 3 3 3 3 "+ // sub12
-              "      . . . 1 . . 3 3 3 3 3 3 3 "+ // surf2 
-              "        . 2 1 . . 3 3 3 3 3 3 3 "+ // sub21
-              "          . 1 . . 3 3 3 3 3 3 3 "+ // sub22
-              "            . . . 8 2 3 3 3 3 3 "+ // surf3
-              "              . 7 . . . . . . . "+ // sub31
-              "                . . . . . . . . "+ // sub32
-              "                  . 6 2 2 2 2 2 "+ // ball1
-              "                    . 2 2 2 2 2 "+ // ball2
-              "                      . . . 2 2 "+ // comp0
-              "                        . . 2 2 "+ // comp1
-              "                          . 2 2 "+ // comp2
-              "                            . 2 "+ // ball
-              "                              . ");// base
+      verify (". . . 1 1 1 1 . . 3 3 3 3 3 "+ // surf1
+              "  . 2 1 1 1 1 . . 3 3 3 3 3 "+ // sub11
+              "    . 1 1 1 1 . . 3 3 3 3 3 "+ // sub12
+              "      . . . 1 . . 3 3 3 3 3 "+ // surf2 
+              "        . 2 1 . . 3 3 3 3 3 "+ // sub21
+              "          . 1 . . 3 3 3 3 3 "+ // sub22
+              "            . . . 8 2 3 3 3 "+ // surf3
+              "              . 7 . . . . . "+ // sub31
+              "                . . . . . . "+ // sub32
+              "                  . 6 2 2 2 "+ // ball1
+              "                    . 2 2 2 "+ // ball2
+              "                      . 2 2 "+ // comp
+              "                        . 2 "+ // ball
+              "                          . ");// base
 
       clearBehavior (mySubMech, ball1, surf3);
       clearBehavior (mySubMech, ball1, ball2);
       setBehavior (mySubMech, ball1, Collidable.All, true, 0);
       setBehavior (ball1, Collidable.All, true, 9);
 
-      verify (". . . 1 1 1 1 . . 9 3 3 3 3 3 3 "+ // surf1
-              "  . 2 1 1 1 1 . . 9 3 3 3 3 3 3 "+ // sub11
-              "    . 1 1 1 1 . . 9 3 3 3 3 3 3 "+ // sub12
-              "      . . . 1 . . 9 3 3 3 3 3 3 "+ // surf2 
-              "        . 2 1 . . 9 3 3 3 3 3 3 "+ // sub21
-              "          . 1 . . 9 3 3 3 3 3 3 "+ // sub22
-              "            . . . 0 2 3 3 3 3 3 "+ // surf3
-              "              . 7 . . . . . . . "+ // sub31
-              "                . . . . . . . . "+ // sub32
-              "                  . 0 9 9 9 9 9 "+ // ball1
-              "                    . 2 2 2 2 2 "+ // ball2
-              "                      . . . 2 2 "+ // comp0
-              "                        . . 2 2 "+ // comp1
-              "                          . 2 2 "+ // comp2
-              "                            . 2 "+ // ball
-              "                              . ");// base
+      verify (". . . 1 1 1 1 . . 9 3 3 3 3 "+ // surf1
+              "  . 2 1 1 1 1 . . 9 3 3 3 3 "+ // sub11
+              "    . 1 1 1 1 . . 9 3 3 3 3 "+ // sub12
+              "      . . . 1 . . 9 3 3 3 3 "+ // surf2 
+              "        . 2 1 . . 9 3 3 3 3 "+ // sub21
+              "          . 1 . . 9 3 3 3 3 "+ // sub22
+              "            . . . 0 2 3 3 3 "+ // surf3
+              "              . 7 . . . . . "+ // sub31
+              "                . . . . . . "+ // sub32
+              "                  . 0 9 9 9 "+ // ball1
+              "                    . 2 2 2 "+ // ball2
+              "                      . 2 2 "+ // comp
+              "                        . 2 "+ // ball
+              "                          . ");// base
 
       sub31.setCollidable (Collidability.ALL);
       sub32.setCollidable (Collidability.ALL);
@@ -1741,22 +1695,20 @@ public class CollisionManagerTest extends UnitTest {
 
       setBehavior (mySubMech, fem3, fem3, true, 5);
 
-      verify (". . . 1 1 1 1 1 1 9 3 3 3 3 3 3 "+ // surf1
-              "  . 2 1 1 1 1 1 1 9 3 3 3 3 3 3 "+ // sub11
-              "    . 1 1 1 1 1 1 9 3 3 3 3 3 3 "+ // sub12
-              "      . . . 1 1 1 9 3 3 3 3 3 3 "+ // surf2 
-              "        . 2 1 1 1 9 3 3 3 3 3 3 "+ // sub21
-              "          . 1 1 1 9 3 3 3 3 3 3 "+ // sub22
-              "            . . . 0 2 3 3 3 3 3 "+ // surf3 
-              "              . 5 0 2 3 3 3 7 3 "+ // sub31 
-              "                . 0 2 3 3 3 3 3 "+ // sub32 
-              "                  . 0 9 9 9 9 9 "+ // ball1 
-              "                    . 2 2 2 2 2 "+ // ball2 
-              "                      . . . 2 2 "+ // comp0
-              "                        . . 2 2 "+ // comp1
-              "                          . 2 2 "+ // comp2
-              "                            . 2 "+ // ball
-              "                              . ");// base
+      verify (". . . 1 1 1 1 1 1 9 3 3 3 3 "+ // surf1
+              "  . 2 1 1 1 1 1 1 9 3 3 3 3 "+ // sub11
+              "    . 1 1 1 1 1 1 9 3 3 3 3 "+ // sub12
+              "      . . . 1 1 1 9 3 3 3 3 "+ // surf2 
+              "        . 2 1 1 1 9 3 3 3 3 "+ // sub21
+              "          . 1 1 1 9 3 3 3 3 "+ // sub22
+              "            . . . 0 2 3 3 3 "+ // surf3 
+              "              . 5 0 2 3 7 3 "+ // sub31 
+              "                . 0 2 3 3 3 "+ // sub32 
+              "                  . 0 9 9 9 "+ // ball1 
+              "                    . 2 2 2 "+ // ball2 
+              "                      . 2 2 "+ // comp
+              "                        . 2 "+ // ball
+              "                          . ");// base
 
    }
 

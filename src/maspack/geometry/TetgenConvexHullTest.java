@@ -10,6 +10,8 @@ import java.util.*;
 import java.io.*;
 
 import maspack.matrix.*;
+import maspack.util.UnitTest;
+import maspack.util.TestException;
 
 /**
  * Testing class for the convex hull part of TetgenTessellator.
@@ -29,7 +31,8 @@ import maspack.matrix.*;
  *
  * @author John E. Lloyd, Fall 2004
  */
-public class TetgenConvexHullTest {
+public class TetgenConvexHullTest extends UnitTest {
+   
    static private final double DOUBLE_PREC = 2.2204460492503131e-16;
 
    static boolean triangulate = true;
@@ -328,8 +331,7 @@ public class TetgenConvexHullTest {
 
    int cnt = 0;
 
-   void singleTest (double[] coords, int[][] checkFaces)
-      throws Exception {
+   void singleTest (double[] coords, int[][] checkFaces) {
 	  
       TetgenTessellator hull = new TetgenTessellator ();
       //hull.setDebug (debugEnable);
@@ -338,10 +340,8 @@ public class TetgenConvexHullTest {
 //       if (triangulate) {
 //          hull.triangulate();
 //       }
-      double tol = hull.getCharacteristicLength()*1e-10;
-      if (!hull.checkConvexHull (System.out, tol)) {
-         (new Throwable()).printStackTrace();
-         System.exit(1); 
+      if (!hull.checkConvexHull (System.out)) {
+         throw new TestException ("Convex hull check failed");
       }
       if (checkFaces != null) {
          //explicitFaceCheck (hull, checkFaces); 
@@ -390,8 +390,7 @@ public class TetgenConvexHullTest {
       return coordsx;
    }
 	
-   void degenerateTest (TetgenTessellator hull, double[] coords)
-      throws Exception {
+   void degenerateTest (TetgenTessellator hull, double[] coords) {
 	  
       double[] coordsx = addDegeneracy (degeneracyTest, coords, hull);
 
@@ -412,10 +411,8 @@ public class TetgenConvexHullTest {
                coordsx[i*3+2]+", ");
          } 
       }
-      double tol = hull.getCharacteristicLength()*1e-10;
-      if (!xhull.checkConvexHull (System.out, tol)) {
-         (new Throwable()).printStackTrace();
-         System.exit(1);
+      if (!xhull.checkConvexHull (System.out)) {
+         throw new TestException ("Convex hull check failed");
       }
    }
 
@@ -489,8 +486,7 @@ public class TetgenConvexHullTest {
       }
    }
 
-   void test (double[] coords, int[][] checkFaces)
-      throws Exception {
+   void test (double[] coords, int[][] checkFaces) {
 	   
       double[][] rpyList = new double[][]
          { 
@@ -520,111 +516,126 @@ public class TetgenConvexHullTest {
     * and prints <code>Passed</code> to System.out if all is well.
     */
    public void explicitAndRandomTests() {
-      try {
-         double[] coords = null;
+      double[] coords = null;
 
-//          System.out.println (
-//             "Testing degenerate input ...");
-//          for (int dimen=0; dimen<3; dimen++) {
-//             for (int i=0; i<10; i++) {
-//                coords = randomDegeneratePoints (10, dimen);
-//                if (dimen == 0) {
-//                   testException (
-//                      coords, "Input points appear to be coincident");
-//                }
-//                else if (dimen == 1) {
-//                   testException (
-//                      coords, "Input points appear to be colinear"); 
-//                }
-//                else if (dimen == 2) {
-//                   testException (
-//                      coords, "Input points appear to be coplanar");  
-//                }
-//             }
-//          }
+      //          System.out.println (
+      //             "Testing degenerate input ...");
+      //          for (int dimen=0; dimen<3; dimen++) {
+      //             for (int i=0; i<10; i++) {
+      //                coords = randomDegeneratePoints (10, dimen);
+      //                if (dimen == 0) {
+      //                   testException (
+      //                      coords, "Input points appear to be coincident");
+      //                }
+      //                else if (dimen == 1) {
+      //                   testException (
+      //                      coords, "Input points appear to be colinear"); 
+      //                }
+      //                else if (dimen == 2) {
+      //                   testException (
+      //                      coords, "Input points appear to be coplanar");  
+      //                }
+      //             }
+      //          }
 
-         System.out.println (
-            "Explicit tests ...");
+      if (!mySilentP) {
+         System.out.println ("Explicit tests ...");
+      }
 
-         // test cases furnished by Mariano Zelke, Berlin
-         coords = new double[] {
-            21, 0, 0,
-            0, 21, 0,
-            0, 0, 0,
-            18, 2, 6,
-            1, 18, 5,
-            2, 1, 3,
-            14, 3, 10,
-            4, 14, 14,
-            3, 4, 10,
-            10, 6, 12,
-            5, 10, 15,
-         };
-         test (coords, null);
+      coords = new double[] {
+         0, 0, 0,
+         1, 1, 1,
+         1, 1, -1,
+         1, -1, 1,
+         1, -1, -1,
+         -1, 1, 1,
+         -1, 1, -1,
+         -1, -1, 1,
+         -1, -1, -1,
+      };
+      test (coords, null);
 
-         coords = new double[] {
+      // test cases furnished by Mariano Zelke, Berlin
+      coords = new double[] {
+         21, 0, 0,
+         0, 21, 0,
+         0, 0, 0,
+         18, 2, 6,
+         1, 18, 5,
+         2, 1, 3,
+         14, 3, 10,
+         4, 14, 14,
+         3, 4, 10,
+         10, 6, 12,
+         5, 10, 15,
+      };
+      test (coords, null);
+
+      coords = new double[] {
              
-            0.0 , 0.0 , 0.0,
-            21.0, 0.0 , 0.0,
-            0.0 , 21.0, 0.0,
-            2.0 , 1.0 , 2.0,
-            17.0, 2.0 , 3.0,
-            1.0 , 19.0, 6.0,
-            4.0 , 3.0 , 5.0,
-            13.0, 4.0 , 5.0,
-            3.0 , 15.0, 8.0,
-            6.0 , 5.0 , 6.0,
-            9.0 , 6.0 , 11.0,
-         };
-         test (coords, null);
+         0.0 , 0.0 , 0.0,
+         21.0, 0.0 , 0.0,
+         0.0 , 21.0, 0.0,
+         2.0 , 1.0 , 2.0,
+         17.0, 2.0 , 3.0,
+         1.0 , 19.0, 6.0,
+         4.0 , 3.0 , 5.0,
+         13.0, 4.0 , 5.0,
+         3.0 , 15.0, 8.0,
+         6.0 , 5.0 , 6.0,
+         9.0 , 6.0 , 11.0,
+      };
+      test (coords, null);
 	   
-         System.out.println (
-            "Testing 20 to 200 random points ...");
-         for (int n=20; n<200; n+=10) {
-            // System.out.println (n);
-            for (int i=0; i<10; i++) {
-               coords = randomPoints (n, 1.0);
-               test (coords, null);
-            }
+      if (!mySilentP) {
+         System.out.println ("Testing 20 to 200 random points ...");
+      }
+      
+      for (int n=20; n<200; n+=10) {
+         // System.out.println (n);
+         for (int i=0; i<10; i++) {
+            coords = randomPoints (n, 1.0);
+            test (coords, null);
          }
+      }
 
-         System.out.println (
-            "Testing 20 to 200 random points in a sphere ...");
-         for (int n=20; n<200; n+=10) {
-            // System.out.println (n);
-            for (int i=0; i<10; i++) {
-               coords = randomSphericalPoints (n, 1.0);
-               test (coords, null);
-            }
+      if (!mySilentP) {
+         System.out.println ("Testing 20 to 200 random points in a sphere ...");
+      }
+      
+      for (int n=20; n<200; n+=10) {
+         // System.out.println (n);
+         for (int i=0; i<10; i++) {
+            coords = randomSphericalPoints (n, 1.0);
+            test (coords, null);
          }
+      }
 
+      if (!mySilentP) {
          System.out.println (
             "Testing 20 to 200 random points clipped to a cube ...");
-         for (int n=20; n<200; n+=10) {
-            // System.out.println (n);
-            for (int i=0; i<10; i++) {
-               coords = randomCubedPoints (n, 1.0, 0.5);
-               test (coords, null);
-            }
+      }
+      
+      for (int n=20; n<200; n+=10) {
+         // System.out.println (n);
+         for (int i=0; i<10; i++) {
+            coords = randomCubedPoints (n, 1.0, 0.5);
+            test (coords, null);
          }
+      }
 
+      if (!mySilentP) {
          System.out.println (
-            "Testing 8 to 1000 randomly shuffled points on a grid ...");
-         for (int n=2; n<=10; n++) {
-            // System.out.println (n*n*n);
-            for (int i=0; i<10; i++) {
-               coords = randomGridPoints (n, 4.0);
-               test (coords, null);
-            }
+            "Testing 8 to 125 randomly shuffled points on a grid ...");
+      }
+      
+      for (int n=2; n<=5; n++) {
+         // System.out.println (n*n*n);
+         for (int i=0; i<10; i++) {
+            coords = randomGridPoints (n, 4.0);
+            test (coords, null);
          }
-
       }
-      catch (Exception e)  {
-         e.printStackTrace();
-         System.exit(1); 
-      }
-
-      System.out.println ("\nPassed\n");
    }
 
    /**
@@ -655,6 +666,10 @@ public class TetgenConvexHullTest {
       }
    }
 
+   public void test() {
+      explicitAndRandomTests();
+   }
+
    /**
     * Runs a set of tests on the TetgenTessellator class, and
     * prints <code>Passed</code> if all is well.
@@ -667,19 +682,24 @@ public class TetgenConvexHullTest {
    public static void main (String[] args) {
       TetgenConvexHullTest tester = new TetgenConvexHullTest();
 
+      tester.setSilent (true);
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-timing")) {
             doTiming = true;
             doTesting = false;
          }
+         else if (args[i].equals ("-verbose")) {
+            tester.setSilent (false);
+         }
          else {
             System.out.println (
-               "Usage: java quickhull3d.TetgenConvexHullTest [-timing]");
+               "Usage: java "+tester.getClass().getName() +
+               " [-timing] [-verbose]");
             System.exit(1);
          }
       }
       if (doTesting) {
-         tester.explicitAndRandomTests();
+         tester.runtest();
       }
 
       if (doTiming) {

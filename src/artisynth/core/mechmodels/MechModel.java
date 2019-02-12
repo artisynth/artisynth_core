@@ -871,9 +871,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       getCollidables (collidables, /*level=*/0);
       ArrayList<CollidableBody> cbodies = new ArrayList<CollidableBody>();
       for (Collidable c : collidables) {
-         if (c instanceof CollidableBody &&
-             // XXX hack until RigidBody and RigidCompositeBody are merged
-             !(c instanceof RigidCompositeBody)) {
+         if (c instanceof CollidableBody) {
             cbodies.add ((CollidableBody)c);
          }
       }
@@ -1275,14 +1273,31 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
    }
    
    /**
-    * Adds a frame marker to a particular frame, with the location
+    * Creates and add a frame marker to a particular frame, with a location
     * specified relative to the frame's coordinate frame
+    * 
     * @param frame frame object to add a marker to
-    * @param loc location within the frame (according to its own coordinate system)
+    * @param loc marker location in frame coordinates
     * @return the created marker
     */
-   public FrameMarker addFrameMarker(Frame frame, Point3d loc) {
+   public FrameMarker addFrameMarker (Frame frame, Point3d loc) {
       FrameMarker mkr = new FrameMarker(frame, loc);
+      addFrameMarker(mkr);
+      return mkr;
+   }
+
+   /**
+    * Creates and add a frame marker to a particular frame, with a location
+    * specified in world coordinates
+    * 
+    * @param frame frame object to add a marker to
+    * @param pos marker position in world coordinates
+    * @return the created marker
+    */
+   public FrameMarker addFrameMarkerWorld (Frame frame, Point3d pos) {
+      FrameMarker mkr = new FrameMarker ();
+      mkr.setFrame (frame);
+      mkr.setWorldLocation (pos);
       addFrameMarker(mkr);
       return mkr;
    }

@@ -143,14 +143,14 @@ public class ListRemove<C> {
       }
    }
 
-   public void undo() {
+   public boolean undo() {
       if (myState != State.EXECUTED) {
          throw new IllegalStateException (
             "Remove has not yet been called");
       }
       myState = State.UNDONE;
       if (myRemoved.size() == 0) {
-         return;
+         return false;
       }
       if (myList instanceof ArrayList<?>) {
          // create space at list end:
@@ -188,6 +188,7 @@ public class ListRemove<C> {
             }
          }
       }
+      return true;
    }
 
 }

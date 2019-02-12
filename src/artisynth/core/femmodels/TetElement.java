@@ -21,7 +21,8 @@ public class TetElement extends FemElement3d {
 
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
-         myDefaultIntegrationPoints = createIntegrationPoints();
+         myDefaultIntegrationPoints = 
+            createIntegrationPoints (new TetElement());
       }
       return myDefaultIntegrationPoints;
    }
@@ -212,10 +213,13 @@ public class TetElement extends FemElement3d {
       return myIntegrationCoords;
    }
 
-   private static double[] myNodalExtrapolationMatrix =
-      new double[] { 1, 1, 1, 1 };
+   private static MatrixNd myNodalExtrapolationMatrix = null;
 
-   public double[] getNodalExtrapolationMatrix() {
+   public MatrixNd getNodalExtrapolationMatrix() {
+      if (myNodalExtrapolationMatrix == null) {
+         myNodalExtrapolationMatrix = new MatrixNd (1, 4);
+         myNodalExtrapolationMatrix.set (new double[] { 1, 1, 1, 1 });
+      }
       return myNodalExtrapolationMatrix;
    }
 
@@ -280,12 +284,24 @@ public class TetElement extends FemElement3d {
          3,   2, 0, 3
       };
 
+   static int[] myTriangulatedFaceIdxs = new int[] 
+      {
+         0, 2, 1,
+         0, 1, 3,
+         1, 2, 3, 
+         2, 0, 3
+      };
+
    public int[] getEdgeIndices() {
       return myEdgeIdxs;
    }
 
    public int[] getFaceIndices() {
       return myFaceIdxs;
+   }
+
+   public int[] getTriangulatedFaceIndices() {
+      return myTriangulatedFaceIdxs;
    }
 
    public void render(Renderer renderer, RenderProps props, int flags) {
@@ -311,7 +327,8 @@ public class TetElement extends FemElement3d {
             myNodes[0].myRest, myNodes[1].myRest,
             myNodes[2].myRest, myNodes[3].myRest);
       myRestVolumes[0] = vol;
-      return vol;
+      myRestVolume = vol;
+      return 6*vol; // detJ0 is 6 * restVolume
    }
 
    /** 
@@ -361,7 +378,7 @@ public class TetElement extends FemElement3d {
    public double computeVolumes() {
       myVolume = computeVolume (myNodes[0], myNodes[1], myNodes[2], myNodes[3]);
       myVolumes[0] = myVolume;
-      return myVolume/myRestVolume;
+      return myVolume/getRestVolume();
    }
 
    /**

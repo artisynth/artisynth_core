@@ -36,7 +36,7 @@ public class ScaledTranslation3d implements VectorTransformer3d {
    public void getOrigin (Vector3d p) {
       p.set (myOrigin);
    }
-
+   
    /**
     * {@inheritDoc}
     */
@@ -105,5 +105,24 @@ public class ScaledTranslation3d implements VectorTransformer3d {
     */
    public boolean isRigid() {
       return false;
+   }
+   
+   /**
+    * Scale the distance units associated with this transformer. This
+    * is done by scaling both the scaling factors and the origin by {@code s}.
+    * 
+    * @param s scaling factor
+    */
+   public void scaleDistance (double s) {
+      myOrigin.scale (s);
+      myScaling.scale (s);
+      myInvScaling.scale (1/s);
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public ScaledTranslation3d copy() {
+      return new ScaledTranslation3d (myScaling, myOrigin);      
    }
 }

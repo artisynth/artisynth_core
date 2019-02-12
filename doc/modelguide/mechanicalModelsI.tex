@@ -46,7 +46,7 @@ damping terms. Both $k$ and $d$ are properties of the material, while
 $l_0$ is a property of the spring.
 
 Axial springs are assigned a linear axial material by default.  More
-complex, non-linear axial materials may be defined in the package {\tt
+complex, nonlinear axial materials may be defined in the package {\tt
 artisynth.core.materials}. Setting or querying a spring's material
 may be done with the methods {\tt setMaterial()} and {\tt
 getMaterial()}.
@@ -106,7 +106,7 @@ update its position in response to forces (Section
 The remaining calls control aspects of how the model is graphically
 rendered.  {\tt setBounds()} (line 37) increases the model's
 ``bounding box'' so that by default it will occupy a larger part of
-the viewer frustum. The covenience method {\tt
+the viewer frustum. The convenience method {\tt
 RenderProps.setSphericalPoints()} is used to set points {\tt p1} and
 {\tt p2} to render as solid red spheres with a radius of 0.06, while
 {\tt RenderProps.setCylindricalLines()} is used to set {\tt spring} to
@@ -135,7 +135,7 @@ can be done using the method
 \end{verbatim}
 %
 The method
-\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isDynamic()}
+\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isDynamic()}
 can be used to query the {\tt dynamic} property.
 
 Dynamic components can also be {\it attached} to other dynamic
@@ -145,9 +145,9 @@ components that they are attached to.  To attach a dynamic component,
 one creates an {\tt AttachmentComponent} specifying the attachment
 connection and adds it to the {\tt MechModel}, as described in Section
 \ref{Attachments:sec}.  The method
-\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isAttached()}
+\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isAttached()}
 can be used to determine if a component is attached, and if it is,
-\javamethod*[artisynth.core.mechmodels.DynamicComponent]{getAttachment()}
+\javamethod*[artisynth.core.mechmodels.DynamicAgent]{getAttachment()}
 can be used to find the corresponding {\tt AttachmentComponent}.
 
 Overall, a dynamic component can be in one of three states:
@@ -157,14 +157,14 @@ Overall, a dynamic component can be in one of three states:
 \item[active]\mbox{}
 
 Component is dynamic and unattached. The method
-\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isActive()}
+\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isActive()}
 returns {\tt true}. The component will move in response to forces.
 
 \item[parametric]\mbox{}
 
 Component is not dynamic, and is unattached. 
 The method
-\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isParametric()}
+\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isParametric()}
 returns {\tt true}.
 The component will either remain
 fixed, or will move around in response to external inputs specifying
@@ -175,7 +175,7 @@ Section \ref{SimulationControl:sec}.
 \item[attached]\mbox{}
 
 Component is attached. The method
-\javamethod*[artisynth.core.mechmodels.DynamicComponent]{isAttached()}
+\javamethod*[artisynth.core.mechmodels.DynamicAgent]{isAttached()}
 returns {\tt true}. The component will move so as to follow the other
 master component(s) to which it is attached.
 
@@ -321,6 +321,54 @@ generates a spatial force $\hat\f$ (Section
 \end{equation}
 %
 
+Frame markers can be created using a variety of constructors, including
+%
+\begin{lstlisting}[]
+  FrameMarker ();
+  FrameMarker (String name);
+  FrameMarker (Frame frame, Point3d loc);
+\end{lstlisting}
+%
+where {\tt FrameMarker()} creates an empty marker, {\tt
+FrameMarker(name)} creates an empty marker with a name, and {\tt
+FrameMarker(frame,loc)} creates an unnamed marker attached to {\tt
+frame} at the location {\tt loc} with respect to the frame's
+coordinates. Once created, a marker's frame can be set and queried
+with
+%
+\begin{lstlisting}[]
+  void setFrame (Frame frame);
+  Frame getFrame (); 
+\end{lstlisting}
+%
+A frame marker can be added to a \javaclass[\mech]{MechModel} with the
+{\tt MechModel} methods
+%
+\begin{lstlisting}[]
+  void addFrameMarker (FrameMarker mkr);
+  void addFrameMarker (FrameMarker mkr, Frame frame, Point3d loc);
+\end{lstlisting}
+%
+where {\tt addFrameMarker(mkr,frame,loc)} also sets the frame and the
+marker's location with respect to it. 
+
+{\tt MechModel} also supplies convenience methods to create a
+marker, attach it to a frame, and add it to the model:
+%
+\begin{lstlisting}[]
+  FrameMarker addFrameMarker (Frame frame, Point3d loc);
+  FrameMarker addFrameMarkerWorld (Frame frame, Point3d locw);
+\end{lstlisting}
+%
+Both methods return the created marker. 
+The first, {\tt addFrameMarker(frame,loc)}, places it at the
+location {\tt loc} with respect to the frame, while {\tt
+addFrameMarkerWorld(frame,pos)} places it at {\tt pos} with respect to
+{\it world} coordinates.
+
+\subsection{Example: A simple rigid body-spring model}
+\label{RigidBodySpringExample:sec}
+
 \begin{figure}[ht]
 \begin{center}
 \iflatexml
@@ -332,9 +380,6 @@ generates a spatial force $\hat\f$ (Section
 \caption{RigidBodySpring model loaded into ArtiSynth.}
 \label{RigidBodySpring:fig}
 \end{figure}
-
-\subsection{Example: A simple rigid body-spring model}
-\label{RigidBodySpringExample:sec}
 
 A simple rigid body-spring model is defined in
 %
@@ -508,7 +553,8 @@ to control its pose during the simulation, but in that case it is
 better to set its {\it target pose} and/or {\it target velocity}, as
 described in Section \ref{ControllerImplementation:sec}.
 
-\subsection{Inertia and meshes}
+\subsection{Inertia and the surface mesh}
+\label{rigidBodyInertia:sec}
 
 The ``mass'' of a rigid body is described by its spatial inertia
 (Section \ref{SpatialInertia:sec}), implemented by a
@@ -520,9 +566,9 @@ Most rigid bodies are also associated with a polygonal surface mesh,
 which can be set and queried using the methods
 %
 \begin{lstlisting}[]
-  setMesh (PolygonalMesh mesh);
-  setMesh (PolygonalMesh mesh, String meshFileName);
-  PolygonalMesh getMesh();
+  setSurfaceMesh (PolygonalMesh mesh);
+  setSurfaceMesh (PolygonalMesh mesh, String meshFileName);
+  PolygonalMesh getSurfaceMesh();
 \end{lstlisting}
 %
 The second method takes an optional {\tt fileName} argument that can
@@ -552,22 +598,24 @@ and can be queried using
 In practice, it is often more convenient to simply specify a mass or a
 density, and then use the volume defined by the surface mesh to
 compute the remaining inertial values. How a rigid body's inertia is
-computed is determined by its {\tt inertiaMethod} property, which can
+computed is determined by its {\sf inertiaMethod} property, which can
 be one
 
 \begin{description}
 
-\item[Density]\mbox{}
-
-Inertia is computed from density;
-
-\item[Mass]\mbox{}
-
-Inertia is computed from mass;
-
-\item[Explicit]\mbox{}
+\item[EXPLICIT]\mbox{}
 
 Inertia is set explicitly.
+
+\item[DENSITY]\mbox{}
+
+Inertia is determined implicitly from the surface mesh and 
+the body's density.
+
+\item[MASS]\mbox{}
+
+Inertia is determined implicitly from the surface mesh and the
+body's mass (which is divided by the mesh volume to determine a density).
 
 \end{description}
 
@@ -578,16 +626,16 @@ This property can be set and queried using
   InertiaMethod getInertiaMethod();
 \end{lstlisting}
 %
-and its default value is {\tt Density}. Explicitly setting the
+and its default value is {\tt DENSITY}. Explicitly setting the
 inertia using one of {\tt setInertia()} methods described above will
-set {\tt inertiaMethod} to {\tt Explicit}. The method
+set {\tt inertiaMethod} to {\tt EXPLICIT}. The method
 %
 \begin{lstlisting}[]
   setInertiaFromDensity (density); 
 \end{lstlisting}
 %
 will (re)compute the inertia using the mesh and a density value
-and set {\tt inertiaMethod} to {\tt Density}, and
+and set {\tt inertiaMethod} to {\tt DENSITY}, and
 the method
 %
 \begin{lstlisting}[]
@@ -595,7 +643,7 @@ the method
 \end{lstlisting}
 %
 will (re)compute the inertia using the mesh and mass value
-and set {\tt inertiaMethod} to {\tt Mass}.
+and set {\tt inertiaMethod} to {\tt MASS}.
 
 Finally, the (assumed uniform) density of the body can be queried
 using
@@ -604,6 +652,13 @@ using
    getDensity();
 \end{lstlisting}
 %
+
+\begin{sideblock}
+There are some subtleties involved in determining the inertia using
+either the {\tt DENSITY} or {\tt MASS} methods when the rigid body
+contains more than one mesh. Details are given in Section
+\ref{rigidBodyMultipleMeshes:sec}.
+\end{sideblock}
 
 \subsection{Damping parameters}
 \label{RigidBodyDamping:sec}
@@ -643,6 +698,241 @@ Frame and rotary damping can also be set for individual bodies using
 their own (inherited) {\tt frameDamping} and {\tt rotaryDamping}
 properties.
 
+\subsection{Multiple meshes}
+\label{rigidBodyMultipleMeshes:sec}
+
+A {\tt RigidBody} may contain multiple meshes, which can be useful for
+various reasons:
+
+\begin{itemize}
+
+\item It may be desirable to use different meshes for collision
+detection, inertia computation, and visual presentation;
+
+\item Different render properties can be set for different mesh
+components, allowing the body to be rendered in a more versatile way;
+
+\item Different mesh components can be selected individually.
+
+\end{itemize}
+
+Each rigid body mesh is encapsulated inside a
+\javaclass[\mech]{RigidMeshComp} component, which is in turn stored in
+a subcomponent list called {\tt meshes}. Meshes do not need to be
+instances of \javaclass[maspack.geometry]{PolygonalMesh}; instead,
+they can be any instance of \javaclass[maspack.geometry]{MeshBase},
+including \javaclass[maspack.geometry]{PointMesh} and
+\javaclass[maspack.geometry]{PolylineMesh}.
+
+\begin{sideblock}
+The default surface mesh, returned by {\tt getSurfaceMesh()}, is also
+stored inside a {\tt RigidMeshComp} in the {\tt meshes} list. By
+default, the surface mesh is the first mesh in the list, but is
+otherwise defined to be the first mesh in {\tt meshes} which is also
+an instance of {\tt PolygonalMesh}. The {\tt RigidMeshComp} containing
+the surface mesh can be obtained using the method {\tt
+getSurfaceMeshComp()}.
+\end{sideblock}
+
+A {\tt RigidMeshComp} contains a number of properties that control how
+the mesh is displayed and interacts with its rigid body:
+
+\begin{description}
+
+\item[renderProps] Render properties controlling how the mesh is
+rendered (see Section \ref{RenderProperties:sec}).
+
+\item[hasMass] A boolean, which if {\tt true} means that the mesh
+will contribute to the body's inertia when the {\sf inertiaMethod}
+is either {\tt MASS} or {\tt DENSITY}. The default value is {\tt true}.
+
+\item[isCollidable] A boolean, which if {\tt true}, and if the mesh is a
+{\tt PolygonalMesh}, means that the mesh will take part in collision
+and wrapping interactions (Sections \ref{sec:mechii:collisions} and
+\ref{GeneralSurfaceWrapping:sec}). The default value is {\tt true},
+and the get/set accessors have the names {\tt isCollidable()} and
+{\tt setIsCollidable()}.
+
+\item[volume] A double whose value is the volume of the mesh.  If the
+mesh is a {\tt PolygonalMesh}, this is the value returned by its
+\javamethod[maspack.geometry.PolygonalMesh]{computeVolume()} method.
+Otherwise, the volume is 0, unless
+\javamethodAlt{\mech.RigidMeshComp.setVolume(double)}{setVolume(vol)} is
+used to explicitly set a non-zero volume value.
+
+\item[mass] A double whose default value is the product of the {\sf
+density} and {\sf volume} properties. Otherwise,
+if {\sf mass} has been explicitly set using
+\javamethodAlt{\mech.RigidMeshComp.setMass(double)}{setMass(mass)},
+the value is the explicit mass.
+
+\item[density] A double whose default value is the rigid body's
+density.  Otherwise, if {\sf density} has been explicitly set using
+\javamethodAlt{\mech.RigidMeshComp.setDensity(double)}{setDensity(density)},
+the value is the explicit density, or if {\sf mass} has been explicitly
+set using
+\javamethodAlt{\mech.RigidMeshComp.setMass(double)}{setMass(mass)}, the
+value is the explicit {\sf mass} divided by {\sf volume}.
+
+\end{description}
+
+Note that by default, the {\sf density} of a {\tt RigidMeshComp} is
+simply the {\sf density} setting for the rigid body, and the {\sf
+mass} is this times the {\sf volume}. However, it is possible to set
+either an explicit mass or a density value that will override
+this. (Also, explicitly setting a mass will unset any explicit
+density, and explicitly setting the density will unset any explicit
+mass.)
+
+When the {\sf inertiaMethod} of the rigid body is either {\tt MASS} or
+{\tt DENSITY}, then its inertia is computed from the sum of all the
+inertias $\M_k$ of component meshes $k$ for which {\sf hasMass} is
+{\tt true}. If the mesh is a {\tt PolygonalMesh}, then $\M_k$ is
+computed by its
+\javamethodAlt{maspack.geometry.PolygonalMesh.createInertia(double)}%
+{createInertia(density)} method, using the {\sf density} property of
+its {\tt RigidMeshComp}. Otherwise, if the mesh is a {\tt PointMesh}
+or {\tt PolylineMesh}, then $\M_k$ is computed as the sum of the
+point-based inertias for each vertex, with the per-vertex mass
+computed by dividing the {\sf mass} property by the number of
+vertices.
+
+\begin{sideblock}
+When forming the body inertia from the inertia components of
+individual meshes, no attempt is made to account for mesh overlap.  If
+this is important, the meshes themselves should be modified in advance
+so that they do not overlap, perhaps by using the CSG primitives
+described in Section \ref{CSG:sec}.
+\end{sideblock}
+
+Instances of {\tt RigidMeshComp} can be created directly, using
+constructions such as
+%
+\begin{lstlisting}[]
+  PolygonalMesh mesh;
+
+  ... initialize mesh ...
+
+  RigidMeshComp mcomp = new RigidMeshComp (mesh);
+\end{lstlisting}
+%
+or
+%
+\begin{lstlisting}[]
+  RigidMeshComp mcomp = new RigidMeshComp ("meshName");
+  mcomp.setMesh (mesh);
+\end{lstlisting}
+%
+after which they can be added or removed from the {\tt meshes} list
+using the methods
+%
+\begin{lstlisting}[]
+  void addMeshComp (RigidMeshComp mcomp)
+  void addMeshComp (RigidMeshComp mcomp, int idx)
+  int numMeshComps()
+  boolean removeMeshComp (RigidMeshComp mcomp)
+  boolean removeMeshComp (String name)
+  void clearMeshComps()
+\end{lstlisting}
+%
+It is also possible to add meshes directly to the {\tt meshes} list,
+using the methods
+%
+\begin{lstlisting}[]
+  RigidMeshComp addMesh (MeshBase mesh)
+  RigidMeshComp addMesh (MeshBase mesh, boolean hasMass, boolean collidable)
+\end{lstlisting}
+%
+each of which creates a {\tt RigidMeshComp}, adds it to the mesh list,
+and returns it.  The second method also specifies the values of the
+{\sf hasMass} and {\sf collidable} properties (both of which are {\tt
+true} by default).
+
+\iflatexml
+\subsection{Example: a composite rigid body}
+\fi
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/RigidCompositeBody}
+\else
+ \includegraphics[width=3.75in]{images/RigidCompositeBody}
+\fi
+\end{center}
+\caption{{\tt RigidCompositeBody} loaded into ArtiSynth and run for 0.75 seconds.
+The ball on the right falls less because it has a lower
+density than the rest of the body.}
+\label{RigidCompositeBody:fig}
+\end{figure}
+
+\iflatexml
+\else
+\subsection{Example: a composite rigid body}
+\fi
+
+An example of constructing a rigid body from multiple meshes is
+defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.RigidCompositeBody
+\end{verbatim}
+%
+This uses three meshes to construct a rigid
+body whose shape resembles a dumbbell. The code, with the include
+files omitted, is listed below:
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-14}}
+\lstinputlisting[firstline=1]{../../src/artisynth/demos/tutorial/RigidCompositeBody.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=16]{../../src/artisynth/demos/tutorial/RigidCompositeBody.java}
+\fi
+\lstset{numbers=none}
+
+As in the previous examples, the {\tt build()} method starts by
+creating a {\tt MechModel} (lines 6-7). Three different meshes
+(two balls and an axis) are then constructed at lines 10-15,
+using {\tt MeshFactory} methods (Section \ref{Meshes:sec})
+and transforming each result to an appropriate position/orientation with
+respect to the body's coordinate frame.
+
+The body itself is constructed at lines 18-24. Its default density is
+set to 10, and its frame damping (Section \ref{RigidBodyDamping:sec})
+is also set to 10 (the previous rigid body example in Section 
+\ref{RigidBodySpringExample:sec} relied on spring damping to dissipate energy).
+The meshes are added using
+\javamethod*[\mech.RigidBody]{addMesh()},
+which allocates and returns a 
+\javaclass[\mech]{RigidMeshComp}. For the ball meshes,
+these are saved in {\tt bcomp1} and {\tt bcomp2} and used later to
+adjust density and/or render properties.
+
+Lines 27-34 create a simple linear spring, connected to a fixed point
+{\tt p0} and a marker {\tt mkr}. The marker is created and attached to
+the body by the {\tt MechModel} method
+\javamethod*[\mech.MechModel]{addFrameMarkerWorld()}, which places the
+marker at a known position in world coordinates.  The spring is
+created using an \javaclass[\mech]{AxialSpring} constructor that
+accepts a name, along with stiffness, damping, and rest length
+parameters to specify a
+\javaclass[artisynth.core.materials]{LinearAxialMaterial}.
+
+At line 37, {\tt bcomp1} is used to set the density of {\tt ball1} to
+8. Since this is less than the default body density, the inertia
+component of {\tt ball1} will be lighter than that of {\tt ball2}.
+Finally, render properties are set at lines 41-45. This includes
+setting the default face colors for the body and for each ball.
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+RigidCompositeBody} from the {\sf Models} menu. The model should load
+and initially appear as in Figure \ref{RigidCompositeBody:fig}.
+Running the model (Section \ref{LoadingAndRunning:sec}) will cause the
+rigid body to fall and swing about under gravity, with the right ball
+({\tt ball1}) not falling as far because it has less density.
+
 \section{Joints and connectors}
 \label{JointsAndConnectors:sec}
 
@@ -681,7 +971,7 @@ motions therefore correspond to the allowed values of the {\it joint transform}
 $\T_{CD}$.  D is the {\it base} frame and C is the {\it motion}
 frame. For a revolute joint (Figure \ref{jointExample:fig}), C can
 move with respect to D by rotating about the z axis. Other motions are
-prohibited. $\T_{CD}$ should therefore alway have the form
+prohibited. $\T_{CD}$ should therefore always have the form
 %
 \begin{equation}
 \T_{CD} = \matl
@@ -796,7 +1086,7 @@ The same body and transform settings can be made on an existing
 joint using the method
 \javamethodAlt{%
 artisynth.core.mechmodels.BodyConnector.setBodies(,,)}
-{setBodies(bodyA, bodyB, TDW)}.
+{setBodies(bodyA,bodyB,TDW)}.
 
 Alternatively, if we prefer to explicitly specify $\T_{CA}$ or $\T_{DB}$, then we
 can determine $\T_{DW}$ from $\T_{AW}$ or $\T_{BW}$ using
@@ -823,7 +1113,7 @@ the following code fragment:
 
 Another method,
 \javamethodAlt{artisynth.core.mechmodels.BodyConnector.setBodies(,,,)}
-{setBodies(bodyA, TCA, bodyB, TDB)}, allows us to set both values of
+{setBodies(bodyA,TCA,bodyB,TDB)}, allows us to set both values of
 $\T_{CA}$ or $\T_{BA}$ explicitly. This is useful if the joint
 transform $\T_{CD}$ is known to be some value {\it other} than the
 identity, in which case $\T_{CA}$ or $\T_{BA}$ can be computed
@@ -1174,7 +1464,7 @@ the material. Each of these specifies stiffness or damping values
 along or about a particular axis. Specifying different values for
 different axes will result in anisotropic behavior.
 
-Other frame materials offering nonlinear behaviour may be defined in
+Other frame materials offering nonlinear behavior may be defined in
 {\tt artisynth.core.materials}.
 
 \subsection{Creating frame springs}
@@ -1254,15 +1544,15 @@ added, and the name of the bone. Surface meshes for the bones are
 located in {\tt .obj} files located in the directory {\tt
 ../mech/geometry} relative to the source directory for the model
 itself.
-\javamethod*[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
-is used to find a proper path to this directory given the model class
-type ({\tt LumbarFrameSpring.class}), and this is stored in the static
-string {\tt geometryDir}. Within {\tt addBone()}, the directory path
-and the bone name are used to create a path to the bone mesh itself,
-which is in turn used to create a {\tt PolygonalMesh} (line 28). The
-mesh is then used in conjunction with a {\tt density} to create a
-rigid body which is added to the {\tt MechModel} (lines 29-30) and
-returned.
+\javamethod*[maspack.util]{PathFinder.getSourceRelativePath()}
+is used to find a proper path to this directory (see Section
+\ref{PathFinder:sec}) given the model class type ({\tt
+LumbarFrameSpring.class}), and this is stored in the static string
+{\tt geometryDir}. Within {\tt addBone()}, the directory path and the
+bone name are used to create a path to the bone mesh itself, which is
+in turn used to create a {\tt PolygonalMesh} (line 28). The mesh is
+then used in conjunction with a {\tt density} to create a rigid body
+which is added to the {\tt MechModel} (lines 29-30) and returned.
 
 The {\tt build()} method begins by creating and adding a {\tt
 MechModel}, specifying a low value for gravity, and setting the rigid
@@ -1518,7 +1808,7 @@ calling
 
 \begin{sideblock}
 While it is possible to create composite rigid bodies using {\tt
-FrameAttachments}, this is much less computationally efficient (and
+FrameAttachment}s, this is much less computationally efficient (and
 less accurate) than creating a single rigid body through mesh merging
 or similar techniques.
 \end{sideblock}

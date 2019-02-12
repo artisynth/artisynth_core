@@ -4,14 +4,14 @@ import java.io.*;
 import java.util.*;
 
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.modelbase.PropertyChangeListener;
-import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.util.ScanToken;
+import artisynth.core.modelbase.*;
 
 import maspack.properties.*;
 import maspack.util.*;
 
 public abstract class MaterialBase
-   implements CompositeProperty, Scannable, ScalableUnits, Clonable {
+   implements CompositeProperty, PostScannable, ScalableUnits, Clonable {
 
    protected PropertyInfo myPropInfo;
    protected HasProperties myPropHost;
@@ -66,28 +66,71 @@ public abstract class MaterialBase
       return true;
    }
 
+   public void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ancestor);
+   }
+
    public void write (PrintWriter pw, NumberFormat fmt, Object ref) 
       throws IOException {
-
+      CompositeComponent ancestor = ComponentUtils.castRefToAncestor(ref);
       pw.println ("[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      writeItems (pw, fmt, ancestor);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
    }
 
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+      // if keyword is a property name, try scanning that
+      rtok.nextToken();
+      if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
+         return true;
+      }
+      rtok.pushBack();
+      return false;
+   }
+
    public void scan (ReaderTokenizer rtok, Object ref) 
       throws IOException {
-
+      Deque<ScanToken> tokens = (Deque<ScanToken>)ref;
+      if (tokens == null) {
+         tokens = new ArrayDeque<> ();
+      }
       getAllPropertyInfo().setDefaultValues (this);
       getAllPropertyInfo().setDefaultModes (this);
       rtok.scanToken ('[');
+      tokens.offer (ScanToken.BEGIN);
       while (rtok.nextToken() != ']') {
          rtok.pushBack();
-         if (!getAllPropertyInfo().scanProp (this, rtok)) {
+         if (!scanItem (rtok, tokens)) {
             throw new IOException ("unexpected input: " + rtok);
          }
       }
+      tokens.offer (ScanToken.END); // terminator token
+   }
+
+    protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      if (ScanWriteUtils.postscanPropertyValue (tokens, ancestor)) {
+         return true;
+      }
+      return false;
+   }  
+
+   public void postscan (
+   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      ScanWriteUtils.postscanBeginToken (tokens, this);
+      while (tokens.peek() != ScanToken.END) {
+         if (!postscanItem (tokens, ancestor)) {
+            throw new IOException (
+               "Unexpected token for " + 
+               ComponentUtils.getDiagnosticName(this) + ": " + tokens.poll());
+         }
+      }      
+      tokens.poll(); // eat END token      
    }
 
    public static MaterialBase updateMaterial (

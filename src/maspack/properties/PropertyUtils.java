@@ -316,7 +316,8 @@ public class PropertyUtils {
     * @return inherited value for the property, or
     * <code>Property.VoidValue</code> if no such value is found
     */
-   static Object findInheritedValue (HasProperties host, PropertyInfo info) {
+   static Object findInheritedValue (
+      HasProperties host, PropertyInfo info) {
       HierarchyNode node = getHierarchyNode (host);
       if (node != null) {
          PropTreeCell inherited = new PropTreeCell();

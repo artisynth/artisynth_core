@@ -4,6 +4,9 @@
 
 \documentclass{book}
 
+\def\mech{artisynth.core.mechmodels}
+\def\mgeo{maspack.geometry}
+
 % Add search paths for input files
 \makeatletter
 \def\input@path{{../}{../../}{../texinputs/}}
@@ -119,7 +122,7 @@ contain detailed examples, all of which are available in
 the package {\tt artisynth.demos.tutorial} and which may be run from
 ArtiSynth using {\sf Models > All demos > tutorials}. 
 More experienced readers may wish to find an appropriate example and
-then work backwards into the text and preceeding sections for any
+then work backwards into the text and preceding sections for any
 needed explanatory detail.
 
 \mainmatter
@@ -135,6 +138,8 @@ needed explanatory detail.
 \input{simulationControl}
 
 \input{femModels}
+
+\input{muscleWrapping}
 
 \input{dicom}
 

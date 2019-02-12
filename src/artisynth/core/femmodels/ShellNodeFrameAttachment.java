@@ -50,12 +50,32 @@ public class ShellNodeFrameAttachment
          if (node.hasDirector()) {
             myDirectorAttachment = 
                new DirectorFrameAttachment (node, getFrame());
-            backNode.setAttached (myDirectorAttachment);
+            if (isConnectedToHierarchy()) {
+               backNode.setAttached (myDirectorAttachment);
+            }
          }
          else {
             myDirectorAttachment = null;
-            backNode.setAttached (null);
+            if (isConnectedToHierarchy()) {
+               backNode.setAttached (null);
+            }
          }
+      }
+   }
+
+   public void connectToHierarchy () {
+      super.connectToHierarchy ();
+      FemNode3d node = getNode();
+      if (node.hasDirector()) {
+         node.getBackNode().setAttached (myDirectorAttachment);
+      }
+   }
+
+   public void disconnectFromHierarchy () {
+      super.disconnectFromHierarchy ();
+      FemNode3d node = getNode();
+      if (node.hasDirector()) {
+         node.getBackNode().setAttached (null);
       }
    }
    

@@ -155,7 +155,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       }
       RandomGenerator.setSeed (randomSeed);
       myRandomSeed = randomSeed;
-      System.out.printf ("random seed=%x\n", randomSeed);
+      //System.out.printf ("random seed=%x\n", randomSeed);
 
       myDiamond = new PolygonalMesh();
       try {
@@ -524,8 +524,10 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
    private ContactInfo createTestInfo (
       TestInfo testInfo, PolygonalMesh mesh0, PolygonalMesh mesh1, double tol) {
       
-      SurfaceMeshCollider collider = new SurfaceMeshCollider();
-      ContactInfo cinfo = collider.getContacts (mesh0, mesh1);
+//      SurfaceMeshCollider collider = new SurfaceMeshCollider();
+//      ContactInfo cinfo = collider.getContacts (mesh0, mesh1);
+      SurfaceMeshIntersector smi = createIntersector();
+      ContactInfo cinfo = smi.findContoursAndRegions (mesh0, mesh1);
 
       if (cinfo != null) {
          int numContours =
@@ -1140,10 +1142,15 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       return true;
    }      
 
+   protected SurfaceMeshIntersector createIntersector() {
+      SurfaceMeshIntersector smi = new SurfaceMeshIntersector();
+      smi.setSilent (getSilent());
+      return smi;
+   }
+   
    public void testContacts (
       PolygonalMesh mesh0, PolygonalMesh mesh1, TestInfo tinfo) {
 
-      SurfaceMeshCollider collider = new SurfaceMeshCollider();
 //      collider.meshIntersector.myCheckCoincidentOrdering =
 //         checkCoincidentOrdering;
 
@@ -1184,7 +1191,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       ContactInfo cinfo = null;
       ContactInfo uinfo = null;
       ContactInfo dinfo = null;
-      SurfaceMeshIntersector smi = collider.meshIntersector;
+      SurfaceMeshIntersector smi = createIntersector();
       try {
          ArrayList<IntersectionContour> contours = 
             smi.findContours (mesh0, mesh1);
@@ -1492,7 +1499,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
     */
    public void singleFaceTests() {
 
-      System.out.println ("Single face tests:");
+      if (!mySilentP) {
+         System.out.println ("Single face tests:");
+      }
 
       String denseOuterStr = new String(
          "v  2  3  0.5\n" + 
@@ -1654,7 +1663,7 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
             0.0,0.0,0.0,1.0
          });
       singleFaceTestOuterInner (denseOuter, sparseInner, TBW);            
-      System.out.println ("done");
+      //System.out.println ("done");
 
       if (false) {
          
@@ -1697,7 +1706,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void simpleBoxTests() {
 
-      System.out.println ("Simple box tests:");
+      if (!mySilentP) {
+         System.out.println ("Simple box tests:");
+      }
 
       PolygonalMesh cube = MeshFactory.createBox (1.0, 1.0, 1.0);
       PolygonalMesh box5 =
@@ -2069,7 +2080,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void torusTests() {  
 
-      System.out.println ("Torus tests:");
+      if (!mySilentP) {
+         System.out.println ("Torus tests:");
+      }
 
       RandomTransform randt = new RandomTransform2d (0.5);
 
@@ -2288,7 +2301,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void singleFaceContourTests() {
 
-      System.out.println ("Single face contour tests:");
+      if (!mySilentP) {
+         System.out.println ("Single face contour tests:");
+      }
 
       PolygonalMesh lego1 = MeshFactory.createSkylineMesh (
          22.0, 16.0, 2.0, 22, 16,
@@ -2486,9 +2501,11 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void crownTopBoxTests() {
 
-      System.out.println ("Crown top box tests:");
+      if (!mySilentP) {
+         System.out.println ("Crown top box tests:");
+      }
 
-      SurfaceMeshIntersector smi = new SurfaceMeshIntersector();
+      SurfaceMeshIntersector smi = createIntersector();
 
       // crown box
       PolygonalMesh crownBox = MeshFactory.createBox (
@@ -2670,9 +2687,11 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void crownCylinderTests() {
 
-      System.out.println ("Crown cylinder tests:");
+      if (!mySilentP) {
+         System.out.println ("Crown cylinder tests:");
+      }
 
-      SurfaceMeshIntersector smi = new SurfaceMeshIntersector();
+      SurfaceMeshIntersector smi = createIntersector();
 
       PolygonalMesh crownCylinder = MeshFactory.createCylinder (1.0, 2.0, 12);
 
@@ -2702,8 +2721,8 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          /*addNormals=*/false, FaceType.ALT_TRI);
       vertexPlate.transform (new RigidTransform3d (0, 0, 1.5));
 
-      System.out.println ("plate area=" + facePlate.computeArea());
-      System.out.println ("crown area=" + crownCylinder.computeArea());
+      //System.out.println ("plate area=" + facePlate.computeArea());
+      //System.out.println ("crown area=" + crownCylinder.computeArea());
 
       checkIntersectionTopology = WATERTIGHT;
       checkUnionTopology = WATERTIGHT;
@@ -2776,7 +2795,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void perturbedPlateTests() {
 
-      System.out.println ("Perturbed plate tests:");
+      if (!mySilentP) {
+         System.out.println ("Perturbed plate tests:");
+      }
 
       PolygonalMesh plate1x1_0 =
          MeshFactory.createRectangle (10.0, 10.0, 1, 1, false);
@@ -2869,7 +2890,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void miscTests() {
 
-      System.out.println ("Misc tests:");
+      if (!mySilentP) {
+         System.out.println ("Misc tests:");
+      }
 
       PolygonalMesh hollowRect = MeshFactory.createSkylineMesh (
          3.0, 4.0, 1.0, 3, 4,
@@ -2975,7 +2998,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void closedContourTests() {
 
-      System.out.println ("Closed contour tests:");
+      if (!mySilentP) {
+         System.out.println ("Closed contour tests:");
+      }
       //abortOnFail = false;
       //printFailInfo = false;
 
@@ -3103,7 +3128,9 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
 
    public void openContourTests() {
 
-      System.out.println ("Open contour tests:");
+      if (!mySilentP) {
+         System.out.println ("Open contour tests:");
+      }
       //abortOnFail = false;
       //printFailInfo = false;
 
@@ -3422,42 +3449,45 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          System.out.println ("fail=" + failCount);
       }
 
-      System.out.println ("Detected mesh degeneracies:");
-      System.out.println (
-         "nonManifoldEdges="+numNonManifoldEdges+
-         "/"+numNonManifoldEdgeChecks);
-      System.out.println (
-         "nonManifoldVertices="+numNonManifoldVertices+
-         "/"+numNonManifoldVertexChecks);
-      System.out.println (
-         "openEdges="+numOpenEdges+
-         "/"+numOpenEdgeChecks);
-      System.out.println (
-         "isolatedVertices="+numIsolatedVertices+
-         "/"+numIsolatedVertexChecks);
+      if (!mySilentP) {
+         System.out.println ("Detected mesh degeneracies:");
+         System.out.println (
+            "nonManifoldEdges="+numNonManifoldEdges+
+            "/"+numNonManifoldEdgeChecks);
+         System.out.println (
+            "nonManifoldVertices="+numNonManifoldVertices+
+            "/"+numNonManifoldVertexChecks);
+         System.out.println (
+            "openEdges="+numOpenEdges+
+            "/"+numOpenEdgeChecks);
+         System.out.println (
+            "isolatedVertices="+numIsolatedVertices+
+            "/"+numIsolatedVertexChecks);
 
-      System.out.println ("");
-      System.out.println (
-         "numRegularCalls=" + SurfaceMeshIntersector.numRegularCalls);
-      System.out.println (
-         "numRobustCalls=" + SurfaceMeshIntersector.numRobustCalls);
-      System.out.println (
-         "numEdgeAdds=" + SurfaceMeshIntersector.numEdgeAdds);
-      System.out.println (
-         "numClosestIntersectionCalls=" +
-         SurfaceMeshIntersector.numClosestIntersectionCalls);
+         System.out.println ("");
+         System.out.println (
+            "numRegularCalls=" + SurfaceMeshIntersector.numRegularCalls);
+         System.out.println (
+            "numRobustCalls=" + SurfaceMeshIntersector.numRobustCalls);
+         System.out.println (
+            "numEdgeAdds=" + SurfaceMeshIntersector.numEdgeAdds);
+         System.out.println (
+            "numClosestIntersectionCalls=" +
+            SurfaceMeshIntersector.numClosestIntersectionCalls);
 
-      System.out.println (
-         "numEdgeOutsideTests = " +
-         Polygon3dCalc.numOutsideTests);
-      System.out.println (
-         "numEdgeAmbiguous = " +
-         Polygon3dCalc.numOutsideAmbiguous);
+         System.out.println (
+            "numEdgeOutsideTests = " +
+            Polygon3dCalc.numOutsideTests);
+         System.out.println (
+            "numEdgeAmbiguous = " +
+            Polygon3dCalc.numOutsideAmbiguous);
+      }      
    }
 
    static BooleanHolder testTiming = new BooleanHolder (false);
    static StringHolder testFile = new StringHolder();
    static IntHolder randomSeed = new IntHolder(0x1234);
+   static BooleanHolder verbose = new BooleanHolder (false);
 
    public static void main (String[] args) {
 
@@ -3471,13 +3501,16 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
       parser.addOption (
          "-randomSeed %x " +
          "#seed for random values. -1 means choose one randomly", randomSeed);
+      parser.addOption (
+         "-verbose %v #print information about tests", verbose);
 
       parser.matchAllArgs (args, 0, 0);
 
-      System.out.println ("randomSeed=" + randomSeed.value);
+      //System.out.println ("randomSeed=" + randomSeed.value);
 
       SurfaceMeshIntersectorTest tester =
          new SurfaceMeshIntersectorTest (randomSeed.value);
+      tester.setSilent (!verbose.value);
 
       if (testFile.value != null) {
          try {
@@ -3494,45 +3527,5 @@ public class SurfaceMeshIntersectorTest extends UnitTest {
          tester.setTestFailFileName ("contactTestFail.out");
          tester.runtest();
       }
-
-      // String testFile = null;
-      // boolean testTiming = false;
-
-      // for (int i=0; i<args.length; i++) {
-      //    if (args[i].equals ("-help")) {
-      //       printUsageAndExit();
-      //    }
-      //    else if (args[i].equals ("-test")) {
-      //       if (++i == args.length) {
-      //          printUsageAndExit();
-      //       }
-      //       testFile = args[i];
-      //    }
-      //    else if (args[i].equals ("-timing")) {
-      //       testTiming = true;
-      //    }
-      //    else {
-      //       printUsageAndExit();
-      //    }
-      // }
-
-
-      // SurfaceMeshIntersectorTest tester = new SurfaceMeshIntersectorTest();
-
-      // if (testFile != null) {
-      //    try {
-      //       tester.runTestProblem (testFile);
-      //    }
-      //    catch (Exception e) {
-      //       e.printStackTrace(); 
-      //    }
-      // }
-      // else if (testTiming) {
-      //    tester.runTimingTest();
-      // }
-      // else {
-      //    tester.setTestFailFileName ("contactTestFail.out");
-      //    tester.runtest();
-      // }
    }
 }

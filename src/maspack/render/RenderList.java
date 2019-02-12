@@ -51,9 +51,9 @@ public class RenderList {
    private int myLevel = 0;
 
    /**
-    * If a specified renderable is visible, add it to this list and
-    * call its {@link IsRenderable#prerender} method. The renderable
-    * is considered to be visible if either
+    * Calls the {@link IsRenderable#prerender} method for a specified 
+    * renderable, and then adds it to this list if it is also visible.
+    * The renderable is considered to be visible if either
     * 
     * <ol>
     * <li>it is not an instance of {@link HasRenderProps}, or

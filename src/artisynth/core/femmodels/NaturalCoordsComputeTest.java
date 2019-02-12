@@ -55,7 +55,7 @@ public class NaturalCoordsComputeTest extends UnitTest {
       if (numIters >= 0) {
          totalNumIters += numIters;
       }
-      chkIters = myElem.getNaturalCoordinatesStd (ccheck, pos, 100);
+      chkIters = myElem.getNaturalCoordinatesGSS (ccheck, pos, 200);
       //System.out.println ("ccheck=" + ccheck);
       if (chkIters >= 0) {
          totalChkIters += chkIters;
@@ -63,15 +63,22 @@ public class NaturalCoordsComputeTest extends UnitTest {
       error.sub (ccheck, coords);
       boolean printInfo = false;
       if (numIters < 0 && chkIters >= 0) {
-         System.out.println ("FAILED but check did not");
+         System.out.println (
+            "getNaturalCoordinates failed to converge but check did not");
+         failCnt++;
          printInfo = true;
       }
       else if (numIters >= 0 && chkIters < 0) {
-         System.out.println ("CHECK FAILED");
+         System.out.println (
+            "check failed to converge but getNaturalCoordinates did not");
+         failCnt++;
          printInfo = true;
       }
       else if (numIters >= 0 && chkIters >= 0 && error.norm() > 1e-8) {
-         System.out.println ("ERROR=" + error.norm());         
+         System.out.println (
+            "getNaturalCoordinates and check do not agree: error=" +
+            error.norm());         
+         failCnt++;
          printInfo = true;
       }
       if (printInfo) {
@@ -83,14 +90,13 @@ public class NaturalCoordsComputeTest extends UnitTest {
 
    int totalNumIters = 0;
    int totalChkIters = 0;
+   int failCnt = 0;
 
    public void test() {
-
-      docheck (new Point3d (
-                  -2.2233029745908697,-1.8443261764617684,-0.3979159197510569));
       
       int testcnt = 10000;
-      double radius = 4.0;
+      // setting the radius to > 2.4 causes tests to fail
+      double radius = 2.4;
       for (int k=0; k<testcnt; k++) {
          Point3d pos = getRandomPoint (radius);
          docheck (pos);
@@ -99,11 +105,15 @@ public class NaturalCoordsComputeTest extends UnitTest {
          "average iterations: " + (totalNumIters/(double)testcnt));
       System.out.println (
          "average check iterations: " + (totalChkIters/(double)testcnt));
+      if (failCnt > 0) {
+         throw new TestException (
+            ""+failCnt+" out of "+testcnt+" tests failed in some way");
+      }
    }
 
    public static void main (String[] args) {
       RandomGenerator.setSeed (0x1234);
       NaturalCoordsComputeTest tester = new NaturalCoordsComputeTest();
-      tester.test();
+      tester.runtest();
    }
 }

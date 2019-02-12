@@ -426,7 +426,7 @@ public abstract class TextureMapProps implements CompositeProperty, Scannable, C
    throws IOException {
       IndentingPrintWriter.printOpening (pw, "[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ref);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
    }

@@ -22,24 +22,34 @@ public class RigidCylinder extends RigidBody implements Wrappable {
       public void apply (AffineTransform3dBase X) {
 
          // constrain the transform to uniform scaling in the x-y plane
-         if (X instanceof AffineTransform3d && 
-             !X.equals (AffineTransform3d.IDENTITY)) {
+         if (X instanceof AffineTransform3d) {
+            if (!X.equals (AffineTransform3d.IDENTITY)) {
 
-            Matrix3d A = new Matrix3d(((AffineTransform3d)X).A);
+               AffineTransform3d XA = (AffineTransform3d)X;
+               Matrix3d A = new Matrix3d(XA.A);
 
-            // factor A into the polar decomposition A = Q P, then remove all
-            // the off-diagonal terms of P, with P.m00 and P.m11 set to
-            // identical scale factors than give the same change in cross
-            // cylindrical area as P(0:1,0:1).
-            PolarDecomposition3d pd = new PolarDecomposition3d(A);
-            Matrix3d P = pd.getP();
-            double sxy = Math.sqrt (Math.abs(P.m00*P.m11 - P.m01*P.m10));
-            double sz = P.m22;
-            A.setDiagonal (sxy, sxy, sz);
-            A.mul (pd.getQ(), A);
+               // factor A into the polar decomposition A = Q P, then remove all
+               // the off-diagonal terms of P, with P.m00 and P.m11 set to
+               // identical scale factors than give the same change in cross
+               // cylindrical area as P(0:1,0:1).
+               PolarDecomposition3d pd = new PolarDecomposition3d(A);
+               Matrix3d P = pd.getP();
+               double sxy = Math.sqrt (Math.abs(P.m00*P.m11 - P.m01*P.m10));
+               double sz = P.m22;
+               A.setDiagonal (sxy, sxy, sz);
+               A.mul (pd.getQ(), A);
 
-            ((AffineTransform3d)X).A.set (A);
+               XA.A.set (A);
+               XA.p.setZero();
+            }
          }
+         else if (X instanceof RigidTransform3d) {
+            ((RigidTransform3d)X).set (RigidTransform3d.IDENTITY);
+         }        
+      }
+      
+      public boolean isReflecting() {
+         return false;
       }
    }
 

@@ -23,6 +23,8 @@ import artisynth.demos.fem.*;
 
 public class TransformGeometryTest {
 
+   boolean debug = false;
+
    ArrayList<AffineTransform3dBase> myRandomTransforms;
 
    public TransformGeometryTest() {
@@ -105,6 +107,19 @@ public class TransformGeometryTest {
                   msg += " Expecting "+obj+"; got " + e.getValue();
                }
                throw new TestException (msg);
+            }
+         }
+      }
+
+      public void print() {
+         for (Map.Entry<CompAttr,Object> e : myMap.entrySet()) {
+            Object obj = e.getValue();
+            System.out.print (" " + e.getKey() + ": ");
+            if (obj instanceof Matrix) {
+               System.out.println ("\n" + obj);
+            }
+            else {
+               System.out.println (obj);
             }
          }
       }
@@ -307,18 +322,12 @@ public class TransformGeometryTest {
          attrs.set (r, "outerRadius", r.getOuterRadius());
       }
       if (c instanceof MeshComponent) {
+         // this will capture the mesh info for rigid bodies as well
          MeshComponent m = (MeshComponent)c;
          attrs.set (m, "fileTransform", m.getFileTransform());
          attrs.set (m, "fileTransformRigid", m.isFileTransformRigid());
-         attrs.set (m, "meshModified", m.isMeshModfied());
+         attrs.set (m, "meshModified", m.isMeshModified());
          attrs.set (m, "mesh", m.getMesh());
-      }
-      if (c instanceof RigidBody) {
-         RigidBody r = (RigidBody)c;
-         attrs.set (r, "fileTransform", r.getFileTransform());
-         attrs.set (r, "fileTransformRigid", r.isFileTransformRigid());
-         attrs.set (r, "meshModified", r.isMeshModfied());
-         attrs.set (r, "mesh", r.getMesh());
       }
       if (c instanceof ParticlePlaneConstraint) {
          ParticlePlaneConstraint p = (ParticlePlaneConstraint)c;
@@ -703,11 +712,20 @@ public class TransformGeometryTest {
    void setRigidBodyMeshChecks (
       AffineTransform3dBase X, AttributeSet check, RigidBody rb) {
 
-      PolygonalMesh mesh = rb.getMesh();
-      if (mesh != null) {
-         setAllMeshChecks (
-            X, check, rb, mesh, rb.getPose(), rb.getFileTransform());
+      for (RigidMeshComp mcomp : rb.getMeshComps()) {
+         MeshBase mesh = mcomp.getMesh();
+         if (mesh != null) {
+            setAllMeshChecks (
+               X, check, mcomp, mesh, rb.getPose(), mcomp.getFileTransform());
+         }
       }
+
+      // PolygonalMesh mesh = rb.getSurfaceMesh();
+      // if (mesh != null) {
+      //    MeshComponent mcomp = rb.getSurfaceMeshComp();
+      //    setAllMeshChecks (
+      //       X, check, rb, mesh, rb.getPose(), mcomp.getFileTransform());
+      // }
    }
 
    void setSkinMeshBodyChecks (

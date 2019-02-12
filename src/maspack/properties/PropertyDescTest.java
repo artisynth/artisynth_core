@@ -12,7 +12,7 @@ import java.util.*;
 import maspack.matrix.*;
 import maspack.util.*;
 
-public class PropertyDescTest implements HasProperties {
+public class PropertyDescTest extends UnitTest implements HasProperties {
    enum GeomObj {
       POINT, LINE, PLANE
    };
@@ -310,7 +310,7 @@ public class PropertyDescTest implements HasProperties {
       throws IOException {
       pw.print ("\n[ ");
       pw.addIndentation (2);
-      props.writeProps (this, pw, fmt);
+      props.writeProps (this, pw, fmt, null);
       pw.addIndentation (-2);
       pw.println ("]");
    }
@@ -324,23 +324,20 @@ public class PropertyDescTest implements HasProperties {
       }
    }
 
-   public static void main (String[] args) {
-      PropertyDescTest tester = new PropertyDescTest();
-      IndentingPrintWriter pw;
-      StringWriter sw;
-
+   public void test() {
+      StringWriter sw = new StringWriter (1024);
+      IndentingPrintWriter pw = new IndentingPrintWriter (sw);
+      
       try {
-         sw = new StringWriter (1024);
-         pw = new IndentingPrintWriter (sw);
-         tester.writeAll (pw, null);
+         writeAll (pw, null);
          pw.flush();
          String str0 = sw.toString();
-         System.out.println (str0);
+         //System.out.println (str0);
          ReaderTokenizer rtok = new ReaderTokenizer (new StringReader (str0));
-         tester.scan (rtok);
+         scan (rtok);
          sw = new StringWriter (1024);
          pw = new IndentingPrintWriter (sw);
-         tester.writeAll (pw, null);
+         writeAll (pw, null);
          pw.flush();
          String str1 = sw.toString();
          if (!str1.equals (str0)) {
@@ -351,10 +348,13 @@ public class PropertyDescTest implements HasProperties {
             throw new TestException ("contents changed by rescaning output");
          }
       }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
+      catch (IOException e) {
+         throw new TestException ("IOException during test: "+e);
       }
-      System.out.println ("\nPassed\n");
+   }
+
+   public static void main (String[] args) {
+      PropertyDescTest tester = new PropertyDescTest();
+      tester.runtest();
    }
 }

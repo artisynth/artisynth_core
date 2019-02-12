@@ -5,7 +5,7 @@ import java.io.IOException;
 import maspack.matrix.RigidTransform3d;
 import artisynth.core.femmodels.*;
 import artisynth.core.materials.LinearMaterial;
-import artisynth.core.util.ArtisynthPath;
+import maspack.util.PathFinder;
 
 public class FemBeamWithFemSphere extends FemBeam {
 
@@ -19,8 +19,8 @@ public class FemBeamWithFemSphere extends FemBeam {
       mech.addModel(femSphere);
       // Read from TetGen file
       TetGenReader.read(femSphere, 
-         ArtisynthPath.getSrcRelativePath(FemModel3d.class, "meshes/sphere2.1.node"),
-         ArtisynthPath.getSrcRelativePath(FemModel3d.class, "meshes/sphere2.1.ele"));
+         PathFinder.getSourceRelativePath(FemModel3d.class, "meshes/sphere2.1.node"),
+         PathFinder.getSourceRelativePath(FemModel3d.class, "meshes/sphere2.1.ele"));
       femSphere.scaleDistance(0.22);
       // FEM properties
       femSphere.setDensity(10);

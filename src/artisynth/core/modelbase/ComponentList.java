@@ -396,7 +396,7 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       throws IOException {
 
       rtok.nextToken();
-      if (ScanWriteUtils.scanProperty (rtok, this)) {
+      if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
          return true;
       }
       else if (myComponents.scanAndStoreComponent (rtok, tokens)) {
@@ -410,6 +410,9 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       Deque<ScanToken> tokens, CompositeComponent ancestor) 
       throws IOException {
 
+      if (ScanWriteUtils.postscanPropertyValue (tokens, ancestor)) {
+         return true;
+      }
       return myComponents.postscanComponent (tokens, ancestor);
    }
 

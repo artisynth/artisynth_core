@@ -240,16 +240,6 @@ public class RevoluteJoint extends JointBase
       return super.scanItem (rtok, tokens);
    }
 
-   protected boolean postscanItem (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-      if (ScanWriteUtils.postscanPropertyValues (tokens, this, deferredProps)) {
-         return true;
-      }
-      else {
-         return super.postscanItem (tokens, ancestor);
-      }
-   }
-
    @Override
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {

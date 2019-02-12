@@ -26,7 +26,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
    
    //private FemElement myElement;
 
-   private FemElement3d myElement;
+   private FemElement3dBase myElement;
    private IntegrationPoint3d myIpnt;
    private IntegrationData3d myData;
    private RotationMatrix3d myRC;
@@ -215,11 +215,11 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       }
    }
 
-   public FemElement3d getElement() {
+   public FemElement3dBase getElement() {
       return myElement;
    }
 
-   public void setFromElement (RigidTransform3d T, FemElement3d elem) {
+   public void setFromElement (RigidTransform3d T, FemElement3dBase elem) {
       Vector3d coords = new Vector3d();
       if (elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000) < 0) {
          throw new NumericalException (
@@ -334,7 +334,7 @@ public class FrameFem3dConstraint extends ConstrainerBase {
       myFrame.setPose (T);
    }
 
-   public FrameFem3dConstraint (Frame frame, FemElement3d elem) {
+   public FrameFem3dConstraint (Frame frame, FemElement3dBase elem) {
       this();
       myFrame = frame;
       setFromElement (frame.getPose(), elem);

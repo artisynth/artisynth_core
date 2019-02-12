@@ -213,12 +213,17 @@ public class ComponentTest {
 
       // check that component nunbers are reused after deletion
       listA.remove (E);
+      checkNames (listA, "compA", "compC", "compB", "compF", null);
+      checkNumbers (listA, 0, 1, 2, 4, 5);
       listA.remove (F);
       checkRemoval (listA, E, F);
+      checkNumbers (listA, 0, 1, 2, 5);
 
       listA.add (G);
       listA.add (H);
       checkNames (listA, "compA", "compC", "compB", null, "compG", "compH");
+      // numbers 3, 4 not in deletion order because free number list was
+      // rebuilt
       checkNumbers (listA, 0, 1, 2, 5, 4, 3);
 
       listA.remove (D);

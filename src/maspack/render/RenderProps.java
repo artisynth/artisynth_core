@@ -1510,7 +1510,7 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
 
       pw.println ("[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt);
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ref);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
    }

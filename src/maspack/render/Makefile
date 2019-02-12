@@ -3,7 +3,8 @@ PACKAGE_NAME = maspack.render
 
 JAVA_SUBDIRS =
 
-PACKAGE_JAVA_FILES = 
+PACKAGE_JAVA_FILES = \
+	ConvexPoly2dTest
 
 OTHER_CLASSES =
 

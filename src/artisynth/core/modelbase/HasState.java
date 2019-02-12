@@ -32,10 +32,6 @@ public interface HasState {
     */
    public void getState (ComponentState state);
    
-//   public void getInitialState (ComponentState state);
-   
-//   public void setInitialState (ComponentState state);
-   
    /**
     * Gets an initial state for this component and returns the value in
     * <code>state</code>. If <code>prevstate</code> is non-null, then it is

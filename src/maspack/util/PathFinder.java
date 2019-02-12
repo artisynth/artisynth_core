@@ -9,9 +9,34 @@ package maspack.util;
 import java.io.File;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 
+/**
+ * Locates file paths relative to the class and source directories for Java
+ * objects, and also expands path names using environment variables.
+ * 
+ * The methods for locating class and source directories work by climbing the
+ * class's resource hierarchy. For finding source directories, it is assumed
+ * that the root source directory is located relative to the parent of the root
+ * class directory, via one of the paths specified by {@link
+ * #getSourceRootPaths()}. By default, this list includes {@code "src"}, {@code
+ * "source"}, and {@code "bin"}. Additional paths can be added using
+ * {@link #addSourceRootPath}, or the entire list can be set using
+ * {@link #setSourceRootPaths}.
+ * 
+ * @author lloyd
+  */
 public class PathFinder {
 
+   private static ArrayList<String> mySourceRootPaths = new ArrayList<String>();
+   
+   static {
+      mySourceRootPaths.add ("src");
+      mySourceRootPaths.add ("source");
+      mySourceRootPaths.add ("bin");
+   }
+   
    private PathFinder() {
    }
 
@@ -114,24 +139,99 @@ public class PathFinder {
          "Can't find class directory for '"+cls.getName()+"'");
    }
 
+   /**
+    * Returns a list of the paths used for detecting root source
+    * directories relative to the parent of the root class directory.
+    * 
+    * @return list of the source root paths
+    */
+   public static ArrayList<String> getSourceRootPaths() {
+      ArrayList<String> list = new ArrayList<String>();
+      list.addAll (mySourceRootPaths);
+      return list;
+   }
+   
+   /**
+    * Sets the list of the paths used for detecting root source
+    * directories relative to the parent of the root class directory.
+    * 
+    * @param paths new list of the source root paths
+    */
+   public static void setSourceRootPaths(Collection<String> paths) {
+      mySourceRootPaths.clear();
+      mySourceRootPaths.addAll (paths);
+   }
+   
+   /**
+    * Adds a path to the list used for detecting root source directories 
+    * relative to the parent of the root class directory.
+    * 
+    * @param path source root path to add
+    */
+   public static void addSourceRootPath (String path) {
+      if (!mySourceRootPaths.contains(path)) {
+         mySourceRootPaths.add (path);
+      }
+   }
+   
+   /**
+    * Returns the path of the source directory for a class identified by name.
+    * The name should be either a fully qualified class name, or a simple name
+    * that can be located with respect to the packages obtained via {@link
+    * Package#getPackages()}.
+    * 
+    * <p>This method works by climbing the class's resource hierarchy, and
+    * assumes that the root source directory is located relative to the parent
+    * of the root class directory by one of the paths listed in {@link
+    * #getSourceRootPaths()}.
+    * 
+    * @param className name of the class
+    * @return path to the source directory
+    */
    public static String findSourceDir (String className) {
       Class<?> cls = getClassForName(className);
       return findSourceDir (cls);
    }
 
-
-   public static String findSourceDir (Object obj) {
-      if (obj instanceof Class<?>) {
-         return findSourceDir ((Class<?>)obj);
+   /**
+    * Returns the path of the source directory for a Java class identified by
+    * {@code classObj}. The class is determined either directly, if
+    * <code>classObj</code> is an instance of <code>Class</code>; by name, if
+    * it is a {@code String}; or otherwise by calling
+    * <code>classObj.getClass()</code>. The class must be associated with a
+    * package.
+    * 
+    * <p>This method works by climbing the class's resource hierarchy, and
+    * assumes that the root source directory is located relative to the parent
+    * of the root class directory by one of the paths listed in {@link
+    * #getSourceRootPaths()}.
+    * 
+    * @param classObj identifies the Java class
+    * @return path to the source directory
+    */
+   public static String findSourceDir (Object classObj) {
+      if (classObj instanceof Class<?>) {
+         return findSourceDir ((Class<?>)classObj);
       }
-      else if (obj instanceof String) {
-         return findSourceDir ((String)obj);
+      else if (classObj instanceof String) {
+         return findSourceDir ((String)classObj);
       }
       else {
-         return findSourceDir (obj.getClass());
+         return findSourceDir (classObj.getClass());
       }
    }
 
+   /**
+    * Returns the path of the source directory for a specific class.
+    * 
+    * <p>This method works by climbing the class's resource hierarchy, and
+    * assumes that the root source directory is located relative to the parent
+    * of the root class directory by one of the paths listed in {@link
+    * #getSourceRootPaths()}.
+    * 
+    * @param cls identifies the class
+    * @return path to the source directory
+    */
    public static String findSourceDir (Class<?> cls) {
       File classDir = doGetClassDir (cls);
       if (new File (classDir, cls.getSimpleName()+".java").exists()) {
@@ -144,15 +244,20 @@ public class PathFinder {
          for (int k=0; k<pkgNames.length; k++) {
             dir = dir.getParentFile();
          }  
-         StringBuilder srcDirName = new StringBuilder();
-         srcDirName.append ("src");
-         for (int k=0; k<pkgNames.length; k++) {
-            srcDirName.append (SEP+pkgNames[k]);
-         }
-         if (dir.getParentFile() != null) {
-            File srcDir = new File (dir.getParentFile(), srcDirName.toString());
-            if (srcDir.isDirectory()) {
-               return srcDir.toString();
+         // iterate over the list of source dir names until we find a source
+         // directory
+         for (String sname : mySourceRootPaths) {
+            StringBuilder srcDirName = new StringBuilder();
+            srcDirName.append (sname);
+            for (int k=0; k<pkgNames.length; k++) {
+               srcDirName.append (SEP+pkgNames[k]);
+            }
+            if (dir.getParentFile() != null) {
+               File srcDir =
+                  new File (dir.getParentFile(), srcDirName.toString());
+               if (srcDir.isDirectory()) {
+                  return srcDir.toString();
+               }
             }
          }
       }
@@ -160,20 +265,57 @@ public class PathFinder {
          "Can't find source directory for '"+cls.getName()+"'");
    }
 
+   /**
+    * Returns the path of the class directory for a class identified by name.
+    * The name should be either a fully qualified class name, or a simple
+    * name that can be located with respect to the packages obtained via {@link
+    * Package#getPackages()}.
+    *
+    * <p>This method works by climbing the class's resource hierarchy.
+    * 
+    * @param className name of the class
+    * @return path to the class directory
+    */
    public static String findClassDir (String className) {
       Class<?> cls = getClassForName(className);
       return doGetClassDir(cls).toString();
-   }
-      
+   } 
+
+   /**
+    * Returns the path of the class directory for a specific class.
+    * 
+    * <p>This method works by climbing the class's resource hierarchy.
+    * 
+    * @param cls identifies the class
+    * @return path to the class directory
+    */     
    public static String findClassDir (Class<?> cls) {
       return doGetClassDir(cls).toString();
    }
-      
-   public static String findClassDir (Object obj) {
-      if (obj instanceof Class<?>) {
-         return findClassDir((Class<?>)obj);
+
+   /**
+    * Returns the path of the class directory for a Java class identified by
+    * {@code classObj}. The class is determined either directly, if
+    * <code>classObj</code> is an instance of <code>Class</code>; by name, if
+    * it is a {@code String}; or otherwise by calling
+    * <code>classObj.getClass()</code>. The class must be associated with a
+    * package.
+    * 
+    * <p>This method works by climbing the class's resource hierarchy.
+    * 
+    * @param classObj identifies the Java class
+    * @return path to the class directory
+    */   
+   public static String findClassDir (Object classObj) {
+      if (classObj instanceof Class<?>) {
+         return findClassDir((Class<?>)classObj);
       }
-      return findClassDir (obj.getClass());
+      else if (classObj instanceof String) {
+         return findClassDir ((String)classObj);
+      }
+      else {
+         return findClassDir (classObj.getClass());
+      }
    }
       
    private static String expandVariable (String var) {
@@ -212,6 +354,88 @@ public class PathFinder {
       }
    }
 
+   /**
+    * Returns a complete file path from a path relative to the source directory
+    * for a specified class. The class is determined from
+    * <code>classObj</code>, either directly, if <code>classObj</code> is an
+    * instance of <code>Class</code>; by name, if it is a {@code String}; or
+    * otherwise by calling <code>classObj.getClass()</code>. The class must be
+    * associated with a package.
+    *
+    * <p>This method works by climbing the class's resource hierarchy, and
+    * assumes that the root source directory is located relative to the parent
+    * of the root class directory by one of the paths listed in {@link
+    * #getSourceRootPaths()}.
+    *
+    * <p>If the relative path specified by <code>relpath</code> is
+    * <code>null</code>, then the path for the source directory itself is
+    * returned. Within the returned file path, instances of either the Unix or
+    * Windows file separator characters (i.e., <code>'/'</code> or
+    * <code>'\'</code>) are mapped to the file separator character for the
+    * current system.
+    * 
+    * @param classObj
+    * object used to deterine the class
+    * @param relpath
+    * path relative to class's source directory
+    * @return expanded file path
+    */
+   public static String getSourceRelativePath (Object classObj, String relpath) {
+      String srcPath = findSourceDir (classObj);
+      if (relpath != null) {
+         srcPath += File.separatorChar + relpath;
+      }
+      return convertToLocalSeparators(srcPath);
+   }
+
+   /**
+    * Returns a complete file path from a path relative to the class
+    * directory for a specified class. The class is determined from
+    * <code>classObj</code>, either directly, if <code>classObj</code> is an
+    * instance of <code>Class</code>, or by calling
+    * <code>classObj.getClass()</code>; by name, if it is a {@code String}; or
+    * otherwise by calling <code>classObj.getClass()</code>. The class must be
+    * associated with a package.
+    *
+    * <p>This method works by climbing the class's resource hierarchy.
+    *
+    * <p>If the relative path specified by <code>relpath</code> is
+    * <code>null</code>, then the path for the class directory itself is
+    * returned.  Within the returned file path, instances of either the Unix or
+    * Windows file separator characters (i.e., <code>'/'</code> or
+    * <code>'\'</code>) are mapped to the file separator character for the
+    * current system.
+    * 
+    * @param classObj
+    * object used to deterine the class
+    * @param relpath
+    * path relative to class's class directory
+    * @return expanded file path
+    */
+   public static String getClassRelativePath (Object classObj, String relpath) {
+      String srcPath = findClassDir (classObj);
+      if (relpath != null) {
+         srcPath += File.separatorChar + relpath;
+      }
+      return convertToLocalSeparators(srcPath);
+   }
+
+   /**
+    * Expands a path name to include environment and special variables
+    * identified by a dollar sign ({@code '$'}). Valid expansions include:
+    * <pre>
+    *  $ENV_VAR          - value of the environment variable ENV_VAR
+    *  ${srcdir CLASS}   - source directory of class identified by CLASS
+    *  ${classdir CLASS} - class directory of class identified by CLASS
+    *  $$                - a dollar sign '$'
+    * </pre>
+    * In the above description, {@code CLASS} is either a fully qualified
+    * class name, or a simple name that can be located with respect to
+    * the packages obtained via {@link Package#getPackages()}.
+    *
+    * @param path path name to expand
+    * @return expanded path name
+    */
    public static String expand (String path) {
       if (path.indexOf ("$") == -1) {
          return path;

@@ -7,10 +7,18 @@ JAVA_SUBDIRS =
 PACKAGE_JAVA_FILES = 
 
 JAVA_TEST_PROGRAMS = \
-	CollisionManagerTest \
-	CollisionHandlerTableTest \
-	ContactPointTest \
 	AxialSpringTest \
+	CollisionHandlerTableTest \
+	CollisionManagerTest \
+	ContactPointTest \
+        EBBeamBodyTest \
+	FrameSpringTest \
+	FrameTargetTest \
+	MultiPointSpringTest \
+	PointFrameAttachmentTest \
+	PointParticleAttachmentTest \
+	PointTargetTest \
+	RigidBodyTest
 
 default: build
 

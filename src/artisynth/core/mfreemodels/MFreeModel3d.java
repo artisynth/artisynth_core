@@ -98,7 +98,7 @@ public class MFreeModel3d extends FemModel3d  {
       return surfMesh;
    }
 
-   private void updateBVHierarchies() {
+   protected void updateBVHierarchies() {
       if (myAABBTree == null) {
          myAABBTree = new AABBTree();
          Boundable[] elements = new Boundable[numElements()];

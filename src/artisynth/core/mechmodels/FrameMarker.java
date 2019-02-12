@@ -57,14 +57,14 @@ public class FrameMarker extends Marker {
       setName (name);
    }
 
-   public FrameMarker (Frame frame, Point3d pos) {
-      this (pos);
+   public FrameMarker (Frame frame, Point3d loc) {
+      this (loc);
       setFrame (frame);
    }
 
-   public FrameMarker (Point3d pos) {
+   public FrameMarker (Point3d loc) {
       this();
-      myFrameAttachment.setLocation (pos);
+      myFrameAttachment.setLocation (loc);
    }
 
    public FrameMarker (double x, double y, double z) {

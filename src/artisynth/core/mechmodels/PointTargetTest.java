@@ -13,7 +13,7 @@ import maspack.util.*;
 /**
  * Contains motion target information for a point.
  */
-public class PointTargetTest {
+public class PointTargetTest extends UnitTest {
 
    PointTarget target = new PointTarget(null);
    PointState state = new PointState();
@@ -98,13 +98,6 @@ public class PointTargetTest {
 
    public static void main (String[] args) {
       PointTargetTest tester = new PointTargetTest();
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit(1);
-      }
-      System.out.println ("\nPassed\n");         
+      tester.runtest();
    }
 }

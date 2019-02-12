@@ -8,7 +8,10 @@ PACKAGE_JAVA_FILES =
 
 JAVA_TEST_PROGRAMS = \
 	AffineTransform3dTest \
+	AxisAlignedRotationTest \
 	CholeskyDecompositionTest \
+	DualQuaternionTest \
+	EigenDecompositionTest \
 	LUDecompositionTest \
 	Matrix1x1Test \
 	Matrix1x3Test \
@@ -23,11 +26,9 @@ JAVA_TEST_PROGRAMS = \
 	Matrix3x6Test \
 	Matrix4dTest \
 	Matrix4x3Test \
+	Matrix6dTest \
 	Matrix6x1Test \
 	Matrix6x2Test \
-	Matrix6x3Test \
-	Matrix6dTest \
-	Matrix3x6Test \
 	Matrix6x3Test \
 	MatrixNdTest \
 	PlaneTest \
@@ -37,22 +38,22 @@ JAVA_TEST_PROGRAMS = \
 	QuaternionTest \
 	RigidTransform3dTest \
 	RotationMatrix3dTest \
-	SparseBlockMatrixTest \
-	SparseNumberedBlockMatrixTest \
 	SVDecompositionTest \
 	SVDecomposition3dTest \
-	EigenDecompositionTest \
+	ScaledRigidTransform3dTest \
+	SparseBlockMatrixTest \
+	SparseMatrixCRSTest \
+	SparseMatrixNdTest \
+	SparseNumberedBlockMatrixTest \
+	SparseVectorNdTest \
+	SymmetricMatrix3dTest \
 	Vector2dTest \
+	Vector2iTest \
 	Vector3dTest \
+	Vector3iTest \
 	Vector4dTest \
 	VectorNdTest \
 	VectorNiTest \
-	Vector3iTest \
-	Vector2iTest \
-	SymmetricMatrix3dTest \
-	SparseMatrixNdTest \
-	SparseMatrixCRSTest \
-	SparseVectorNdTest
 
 OTHER_CLASSES = 
 

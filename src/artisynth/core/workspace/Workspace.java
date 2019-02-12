@@ -150,11 +150,11 @@ public class Workspace {
          myRequestedUpdateAction = new UpdateAction();
          Scheduler scheduler = myMain.getScheduler();
          if (scheduler.requestAction (myRequestedUpdateAction)) {
-            //System.out.println ("$sched");
+            // System.out.println ("$sched");
          }
          else {
             SwingUtilities.invokeLater (myRequestedUpdateAction);
-            //System.out.println ("$swing");
+            // System.out.println ("$swing");
          }
       }
    }

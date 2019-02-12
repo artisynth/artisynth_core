@@ -40,8 +40,8 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterial {
       setBulkModulus (kappa);
    }
 
-   public synchronized void setShearModulus (double E) {
-      myG = E;
+   public synchronized void setShearModulus (double G) {
+      myG = G;
       myGMode =
          PropertyUtils.propagateValue (this, "shearModulus", myG, myGMode);
       notifyHostOfPropertyChange();

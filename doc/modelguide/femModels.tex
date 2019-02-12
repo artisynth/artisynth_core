@@ -363,7 +363,7 @@ disable this corotational formulation, use
 artisynth.core.materials.LinearMaterialBase.setCorotated(boolean)}%
 {LinearMaterial.setCorotated(boolean)}.
 
-All material models, including linear and non-linear, are available in the package  
+All material models, including linear and nonlinear, are available in the package  
 {\tt artisynth.core.materials}.  A list of common materials is provided in 
 Table \ref{tbl:fem:materials}.  Those that are subclasses of 
 \javaclass[artisynth.core.materials]{IncompressibleMaterial} allow for 
@@ -504,6 +504,7 @@ mech.addModel(beam);
 \end{lstlisting}
 
 \subsection{Loading external FEM meshes}
+\label{FemGeometryFiles:sec}
 
 For more complex geometries, volumetric meshes can be loaded from external
 files.  A list of supported file types is provided in Table 
@@ -541,9 +542,9 @@ FemModel3d tongue = new FemModel3d("tongue");
 // Read FEM from file
 try {
    // Get files relative to THIS class
-   String nodeFileName = ArtisynthPath.getSrcRelativePath(this, 
+   String nodeFileName = PathFinder.getSourceRelativePath(this, 
                             "data/tongue.node");
-   String elemFileName = ArtisynthPath.getSrcRelativePath(this, 
+   String elemFileName = PathFinder.getSourceRelativePath(this, 
                             "data/tongue.elem");
 
    AnsysReader.read(tongue, nodeFileName, elemFileName);
@@ -556,10 +557,12 @@ try {
 // Add to model
 mech.addModel(tongue);
 \end{lstlisting}
-The method \javamethod[artisynth.core.util]{ArtisynthPath.getSrcRelativePath()}
-is used to find a path within the ArtiSynth source tree that is relative to the
-current model's source file.  Note the try-catch block.  Most of these readers 
-throw an {\tt IOException} if the read fails.
+The method
+\javamethod[maspack.util]{PathFinder.getSourceRelativePath()}
+is used to find a path within the ArtiSynth source tree that is
+relative to the current model's source file (Section
+\ref{PathFinder:sec}). Note the try-catch block.  Most of these
+readers throw an {\tt IOException} if the read fails.
 
 \subsection{Generating from surfaces}
 
@@ -639,7 +642,7 @@ ArtiSynth uses a clockwise convention with respect to the outward
 normal for the first face, followed by the opposite node(s).  To determine the
 correct ordering for a particular element, check the coordinates returned by 
 the function 
-\javamethod*[artisynth.core.femmodels]{FemElement3d.getNodeCoords()}.
+\javamethod*[artisynth.core.femmodels]{FemElement3dBase.getNodeCoords()}.
 This returns the concatenated coordinate list for an ``ideal'' element of
 the given type.
 
@@ -883,7 +886,7 @@ relation can be derived based on the conservation of energy.
 If $\p$ is embedded within a single element, then the $\p_k$ are
 simply the element nodes and the $w_i$ are corresponding shape
 function values; this is known as an {\it element-based} attachment.
-On the other hand, as desribed below, it is sometimes desirable to
+On the other hand, as described below, it is sometimes desirable to
 form an attachment using a more general set of nodes that extends
 beyond a single element; this is known as a {\it nodal-based}
 attachment (Section \ref{sec:fem:nodalAttachments}).
@@ -1163,7 +1166,7 @@ the auxiliary method {\tt addParticle()}, lines
 mech.attachPoint()} (line 52), which creates an element-based
 attachment at the point's current location. Point {\tt m2} is then
 attached to {\tt fem2} using a nodal-based attachment.  The nodes for
-these are collected as the union of all nodes for a specufied set of
+these are collected as the union of all nodes for a specified set of
 elements (lines 58-59, and the method {\tt collectNodes()} defined at
 lines 16-25). These are then used to create a nodal-based attachment
 (lines 61-63), where the weights are determined automatically using
@@ -1274,12 +1277,12 @@ as with any other particles, using the methods
 %
 \begin{lstlisting}[]
   Point3d getPosition();     // returns the current position
-  Vectord getVelocity();     // returns the current velocity
+  Vector3d getVelocity();     // returns the current velocity
 \end{lstlisting}
 %
 The return values from these methods should not be
 modified. Alternatively, when a 3D force $\f$ is applied to the
-marker, it is distributed to the attached nodes according to the nodel
+marker, it is distributed to the attached nodes according to the nodal
 weights, as described in Equation \eqref{pointFemForces:eqn}.
 
 \subsection{Example: attaching a FEM beam to a muscle}
@@ -1313,7 +1316,7 @@ containing or nearest element.  The loaded model is shown in Figure
 It is also possible to attach frame components, including rigid
 bodies, directly to FEM models, using the attachment component
 \javaclass[artisynth.core.femmodels]{FrameFem3dAttachment}.
-Analagously to
+Analogously to
 \javaclass[artisynth.core.femmodels]{PointFem3dAttachment}, the
 attachment is implemented by connecting the frame to a set of FEM
 nodes, and attachments can be either element-based or nodal-based.  The
@@ -1362,7 +1365,7 @@ or, equivalently,
 %
 
 As with point-to-FEM attachments, it may be desirable to create a
-nodel-based attachment in which the nodes and weights are not tied to
+nodal-based attachment in which the nodes and weights are not tied to
 a specific element. The reasons for this are generally the same as
 with nodal-based point attachments (Section
 \ref{sec:fem:nodalAttachments}): the need to distribute the forces and
@@ -1577,7 +1580,7 @@ pull manipulator
 (see the section ``Pull Manipulator'' in the
 \artisynthManual{uiguide}{ArtiSynth User Interface Guide}).
 
-\section{Incompressiblity}
+\section{Incompressibility}
 
 FEM incompressibility within ArtiSynth is enforced by trying to ensure
 that the volume of a FEM remains locally constant. This, in turn, is
@@ -1601,7 +1604,7 @@ the restoring force used to enforce incompressibility, usually by
 adjusting the value of the \emph{bulk modulus} material property.  As
 the bulk modulus is increased, soft incompressibility starts to act
 more like `hard' incompressibility, with an infinite bulk modulus
-corresponding to perfect incompressibilty. However, very large bulk
+corresponding to perfect incompressibility. However, very large bulk
 modulus values will generally produce stability problems.
 
 \subsection{Volume regions and locking}
@@ -1626,10 +1629,10 @@ on each element may result in $O(5 n)$ constraints, which exceeds the
 $3 n$ degrees of freedom (DOF) in the FEM. This overconstraining results in an
 artificially increased stiffness known as \emph{locking}. Because of
 locking, for tetrahedrally based meshes it may be better to use
-nodal-based incomressibility, which creates a single volume constraint
+nodal-based incompressibility, which creates a single volume constraint
 around each node, resulting in only $n$ constraints, leaving $2 n$ DOF
 to handle the remaining deformation.  However, nodal-based
-imcompressibility is computationally more costly than element-based
+incompressibility is computationally more costly than element-based
 and may not be as stable.
 
 Generally, the best solution for incompressible problems is to use
@@ -1673,10 +1676,10 @@ equal to the number of nodes.
 \end{description}
 
 Hard incompressibility uses explicit constraints on the nodal
-velocities to enforce the incompressibilty, which increases
+velocities to enforce the incompressibility, which increases
 computational cost. Also, if the number of constraints is too large,
 {\it perturbed pivot} errors may be encountered by the solver.
-However, hard incompressibility can in principle handle situtations
+However, hard incompressibility can in principle handle situations
 where complete incompressibility is required. It is equivalent to the
 mixed u-P formulation used in commercial FEM codes (such as ANSYS),
 and the Lagrange multipliers computed for the constraints are pressure
@@ -1761,7 +1764,7 @@ equal to the number of nodes.
 
 Within a linear material, incompressibility is controlled by Poisson's
 ratio $\nu$, which for isotropic materials can assume a value in the
-range $[-1, 0.5]$. This specifies the amount of transvere contraction
+range $[-1, 0.5]$. This specifies the amount of transverse contraction
 (or expansion) exhibited by the material as it compressed or extended
 along a particular direction. A value of $0$ allows the material to be
 compressed or extended without any transverse contraction or
@@ -1792,9 +1795,9 @@ bulk modulus to something like 100 times the other (deviatoric)
 stiffnesses of the material.
 
 We have found stability behavior to be complex, and while hard
-incompressibilty often results in less stable behavior, this is not
+incompressibility often results in less stable behavior, this is not
 always the case: in some situations the stronger enforcement afforded
-by hard incompressibility actually improves stabilty.
+by hard incompressibility actually improves stability.
 
 \section{Muscle activated FEM models}
 \label{sec:fem:muscle}
@@ -2035,7 +2038,7 @@ the muscle seems to bulge.  In the material-based muscle, the entire
 continuous volume contracts, leading to a uniform deformation.  
 
 Material-based muscles are more realistic.  However, this often comes at the cost
-of stability.  The added terms to the constitutive law are highly non-linear,
+of stability.  The added terms to the constitutive law are highly nonlinear,
 which may cause numerical issues as elements become highly contracted or
 highly deformed.  Fibre-based muscles are, in general, more stable.  However,
 they can lead to bulging and other deformation artifacts due to their discrete
@@ -2056,7 +2059,7 @@ its underlying mesh structure.  At present, only meshes of type
 
 Since {\tt FemMeshComp} is also a {\tt Collidable}, this means we can enable 
 collisions with any embedded mesh inside a FEM.  Any forces resulting from
-the collision are then automatically transfered back to the underlying nodes 
+the collision are then automatically transferred back to the underlying nodes 
 of the model using Equation \eqref{pointFemForces:eqn}.
 
 \subsection{Example: FEM collisions}
@@ -2220,13 +2223,13 @@ which sets the {\sf drawColorMap} property of the collision behavior to {\tt
 CONTACT\_PRESSURE} in order to display a color map of the contact
 pressure. The example is similar to that
 of Section \ref{renderingDepth:sec}, which shows how to render
-pentration depth.
+penetration depth.
 
 \begin{sideblock}
 The caveats about color map rendering described in Section
 \ref{ContactRendering:sec} apply. In particular, the resolution of the
 color map is limited by the resolution of the collision mesh for the
-collidable on which the map is drawn, and so the aplication should
+collidable on which the map is drawn, and so the application should
 ensure that this is sufficiently fine. Also, to allow the map to blend
 properly with the rest of the collidable, the color corresponding to
 $0$ should match the default face color for the collidable.
@@ -2265,7 +2268,7 @@ be drawn on the {\it second} collidable (the sheet), we set the {\sf
 setColorMapCollidable} property to 1 (line 79); otherwise, the default
 value of 0 would cause the color map to be drawn on the first
 collidable (the ball). (Alternatively, we could have simply defined the
-collision behavior as being between the suface and the ball instead of
+collision behavior as being between the surface and the ball instead of
 the ball and the sheet.) The color map range is explicitly set to lie
 between $[0, 1.3]$ (line 80); this is in contrast to the example in
 Section \ref{renderingDepth:sec}, where the range is auto-updated on

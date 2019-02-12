@@ -15,6 +15,8 @@ import artisynth.core.materials.MooneyRivlinMaterial;
 /**
  * Helper class to implement fem element stiffening with muscle activation
  * 
+ * NOTE: at present, the stiffening effects apply only to volumetric elements
+ * 
  * @author stavness
  */
 public class FemMuscleStiffener {
@@ -39,8 +41,8 @@ public class FemMuscleStiffener {
    public void updateElemStiffnesses () {
       
       // update activation stiffness
-      if (elemAct.size () != myFemMuscle.getElements().size ())
-         elemAct = new VectorNd (myFemMuscle.getElements().size ());
+      if (elemAct.size () != myFemMuscle.numElements())
+         elemAct = new VectorNd (myFemMuscle.numElements());
       else
          elemAct.setZero ();
 

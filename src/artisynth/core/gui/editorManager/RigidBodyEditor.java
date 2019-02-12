@@ -9,6 +9,7 @@
 import java.awt.Rectangle;
 
 import artisynth.core.driver.Main;
+import artisynth.core.mechmodels.DistanceGridComp;
 import artisynth.core.mechmodels.FrameMarker;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.MechModel;
@@ -28,7 +29,7 @@ public class RigidBodyEditor extends EditorBase {
       super (main, editManager);
    }
 
-    public void addActions (EditActionMap actions, SelectionManager selManager) {
+   public void addActions (EditActionMap actions, SelectionManager selManager) {
       LinkedList<ModelComponent> selection = selManager.getCurrentSelection();
 
       if (containsMultipleSelection (selection, RigidBody.class)) {
@@ -36,7 +37,8 @@ public class RigidBodyEditor extends EditorBase {
          if (containsSingleSelection (selection, RigidBody.class)) {
             RigidBody body = (RigidBody)selection.get (0);
             actions.add (this, "Edit geometry and inertia ...", EXCLUSIVE);
-            actions.add (this, "Save mesh as ...");
+            actions.add (this, "Save local mesh as ...");
+            actions.add (this, "Save world mesh as ...");
             if (body.getGrandParent() instanceof MechModel) {
                actions.add (this, "Attach particles ...", EXCLUSIVE);
             }
@@ -44,6 +46,42 @@ public class RigidBodyEditor extends EditorBase {
                actions.add (this, "Add mesh inspector");
             }
          }
+         // actions for controlling distance grid visibility 
+         boolean oneDistanceGridVisible = false;
+         boolean oneDistanceGridInvisible = false;
+         for (ModelComponent c : selection) {
+            DistanceGridComp gcomp = ((RigidBody)c).getDistanceGridComp();
+            if (RenderableComponentBase.isVisible (gcomp) && gcomp.getRenderGrid()) {
+               oneDistanceGridVisible = true;
+            }
+            else {
+               oneDistanceGridInvisible = true;
+            }
+         }
+         if (oneDistanceGridVisible) {
+            actions.add (this, "Set distance grid invisible");
+         }
+         if (oneDistanceGridInvisible) {
+            actions.add (this, "Set distance grid visible");
+         }
+
+         // // actions for controlling grid surface rendering
+         // boolean oneGridSurfaceRenderingOn = false;
+         // boolean oneGridSurfaceRenderingOff = false;
+         // for (ModelComponent c : selection) {
+         //    if (((RigidBody)c).getGridSurfaceRendering()) {
+         //       oneGridSurfaceRenderingOn = true;
+         //    }
+         //    else {
+         //       oneGridSurfaceRenderingOff = true;
+         //    }
+         // }
+         // if (oneGridSurfaceRenderingOn) {
+         //    actions.add (this, "Disable grid surface rendering");
+         // }
+         // if (oneGridSurfaceRenderingOff) {
+         //    actions.add (this, "Enable grid surface rendering");
+         // }
       }
    }
 
@@ -62,6 +100,41 @@ public class RigidBodyEditor extends EditorBase {
                myMain.getSelectionManager().removeSelected (c);
             }
          }
+         else if (actionCommand == "Set distance grid visible") {
+            LinkedList<ModelComponent> list =
+               (LinkedList<ModelComponent>)selection.clone();
+            for (ModelComponent c : list) {
+               DistanceGridComp gcomp = ((RigidBody)c).getDistanceGridComp();
+               RenderableComponentBase.setVisible (gcomp, true);
+               gcomp.setRenderGrid (true);
+            }
+            myMain.rerender();
+         }
+         else if (actionCommand == "Set distance grid invisible") {
+            LinkedList<ModelComponent> list =
+               (LinkedList<ModelComponent>)selection.clone();
+            for (ModelComponent c : list) {
+               DistanceGridComp gcomp = ((RigidBody)c).getDistanceGridComp();
+               gcomp.setRenderGrid (false);
+            }
+            myMain.rerender();
+         }
+         // else if (actionCommand == "Enable grid surface rendering") {
+         //    LinkedList<ModelComponent> list =
+         //       (LinkedList<ModelComponent>)selection.clone();
+         //    for (ModelComponent c : list) {
+         //       ((RigidBody)c).setGridSurfaceRendering (true);
+         //    }
+         //    myMain.rerender();
+         // }
+         // else if (actionCommand == "Disable grid surface rendering") {
+         //    LinkedList<ModelComponent> list =
+         //       (LinkedList<ModelComponent>)selection.clone();
+         //    for (ModelComponent c : list) {
+         //       ((RigidBody)c).setGridSurfaceRendering (false);
+         //    }
+         //    myMain.rerender();
+         // }
          if (containsSingleSelection (selection, RigidBody.class)) {
             if (actionCommand == "Edit geometry and inertia ...") {
                if (myEditManager.acquireEditLock()) {
@@ -71,7 +144,12 @@ public class RigidBodyEditor extends EditorBase {
                   agent.show (popupBounds);
                }
             }
-            else if (actionCommand == "Save mesh as ...") {
+            else if (actionCommand == "Save local mesh as ...") {
+               RigidBody body = (RigidBody)selection.get (0);
+               PolygonalMesh mesh = body.getMesh();
+               EditorUtils.saveMesh (mesh, null);
+            }
+            else if (actionCommand == "Save world mesh as ...") {
                RigidBody body = (RigidBody)selection.get (0);
                PolygonalMesh mesh = body.getMesh();
                EditorUtils.saveMesh (

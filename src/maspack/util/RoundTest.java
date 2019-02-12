@@ -6,7 +6,7 @@
  */
 package maspack.util;
 
-public class RoundTest {
+public class RoundTest extends UnitTest {
 
    static final double DOUBLE_PREC = 1e-15;
 
@@ -173,15 +173,7 @@ public class RoundTest {
 
    public static void main (String[] args) {
       RoundTest tester = new RoundTest();
-
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace(); 
-         System.exit(1); 
-      }
-      System.out.println ("\nPASSED\n");
+      tester.runtest();
    }
 
 }

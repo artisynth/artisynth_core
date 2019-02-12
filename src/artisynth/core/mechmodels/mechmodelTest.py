@@ -8,6 +8,12 @@ def setModelOpts (t, file) :
     addBreakPoint (t)
     return mech
 
+def dorun() :
+    run()
+    waitForStop()
+    reset()
+    #sys.stdin.readline() # uncommet for single stepping 
+
 # Adjust certain solver settings to ensure repeatable results:
 MechSystemSolver.myDefaultHybridSolveP = False
 MechSystemBase.setDefaultStabilization (PosStabilization.GlobalMass)
@@ -15,7 +21,7 @@ FemModel3d.noIncompressStiffnessDamping = False
 SurfaceMeshCollider.useAjlCollision = False
 PardisoSolver.setDefaultNumThreads (1)
 
-#main.maskFocusStealing (True)
+main.maskFocusStealing (True)
 dataFileName = "mechmodelTest.out"
 loadModel ("artisynth.demos.mech.SpringMeshDemo")
 mech = setModelOpts (1, dataFileName)
@@ -422,6 +428,16 @@ run()
 waitForStop()
 reset()
 
+loadModel ("artisynth.demos.mech.RigidCompositeCollide")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+pw.println ("#RigidCompositeCollide SymplecticEuler");
+mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
+dorun()
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+pw.println ("#RigidCompositeCollide ConstrainedBackwardEuler");
+dorun()
+
 loadModel ("artisynth.demos.fem.FemSkinDemo")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
@@ -544,5 +560,7 @@ run()
 waitForStop()
 reset()
 
-#main.maskFocusStealing (False)
-quit()
+main.maskFocusStealing (False)
+if main.getMainFrame() == None:
+   main.quit()
+

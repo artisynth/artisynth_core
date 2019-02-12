@@ -379,11 +379,14 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
                   "Class corresponding to '"+ className+
                   "' not an instance of ParameterizedClass, "+rtok);
             }
-            // class names may have package
-            int savedPeriod = rtok.getCharSetting ('.');
+            // class names can have '.' and '$'
+            int savedDot = rtok.getCharSetting ('.');
+            int savedDollar = rtok.getCharSetting ('$');
             rtok.wordChar ('.');
+            rtok.wordChar ('$');
             String paramName = rtok.scanWord();
-            rtok.setCharSetting ('.',savedPeriod);
+            rtok.setCharSetting ('.',savedDot);
+            rtok.setCharSetting ('$',savedDollar);
             
             typeParam = ClassAliases.resolveClass (paramName);
             if (typeParam == null) {

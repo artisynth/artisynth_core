@@ -5,7 +5,11 @@ PACKAGE_NAME = maspack.collision
 
 PACKAGE_JAVA_FILES = 
 
-JAVA_TEST_PROGRAMS = 
+JAVA_TEST_PROGRAMS = \
+	NearestPolygon3dFeatureTest \
+	RobustPredsTest \
+	SurfaceMeshIntersectorTest \
+	WindingCalculatorTest
 
 OTHER_CLASSES = 
 

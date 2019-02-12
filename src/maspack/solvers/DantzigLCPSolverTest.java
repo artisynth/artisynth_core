@@ -14,7 +14,7 @@ import maspack.util.*;
 
 import java.util.Random;
 
-public class DantzigLCPSolverTest {
+public class DantzigLCPSolverTest extends UnitTest {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPS = 10000 * DOUBLE_PREC;
 
@@ -32,6 +32,11 @@ public class DantzigLCPSolverTest {
       mySolver = new DantzigLCPSolver();
       myRandom = maspack.util.RandomGenerator.get();
       myRandom.setSeed (0x1234);
+   }
+
+   public void setSilent (boolean silent) {
+      super.setSilent (silent);
+      mySolver.setSilent (silent);
    }
 
    public void testSolver (
@@ -1062,15 +1067,26 @@ public class DantzigLCPSolverTest {
       // System.out.println ("timerB: " + mySolver.getUsecB());
    }
 
+   private void printUsageAndExit (int code) {
+      System.out.println ("Usage: java "+getClass()+" [-verbose]");
+      System.exit (code); 
+   }   
+
    public static void main (String[] args) {
       DantzigLCPSolverTest tester = new DantzigLCPSolverTest();
-      try {
-         tester.execute();
+
+      tester.setSilent (true);
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-verbose")) {
+            tester.setSilent (false);
+         }
+         else if (args[i].equals ("-help")) {
+            tester.printUsageAndExit (0);
+         }
+         else {
+            tester.printUsageAndExit (1);
+         }
       }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
-      }
-      System.out.println ("\nPassed\n");
+      tester.runtest();
    }
 }

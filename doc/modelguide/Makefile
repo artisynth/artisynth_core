@@ -15,6 +15,7 @@ SOURCES = \
 	mechanicalModelsII.tex \
 	simulationControl.tex \
 	femModels.tex \
+	muscleWrapping.tex \
         dicom.tex \
 	appendix.tex \
 	../texinputs/artisynthDoc.tex
@@ -35,6 +36,10 @@ pdf: $(PDF_TARG)
 
 $(PDF_TARG): modelguide.pdf
 	cp modelguide.pdf $(PDF_TARG)
+
+multipoint.pdf: multipoint.tex $(EPS_FILES)
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) multipoint.ps
 
 modelguide.pdf: $(SOURCES) $(EPS_FILES)
 	latex modelguide.tex #extra call because of bibtex

@@ -29,6 +29,7 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.GeometryTransformer;
+import maspack.geometry.Boundable;
 import maspack.matrix.*;
 import maspack.render.RenderList;
 import maspack.properties.PropertyList;
@@ -36,7 +37,27 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
-public class FemNode3d extends FemNode {
+public class FemNode3d extends FemNode implements Boundable {
+
+   /**
+    * Specifies a nodal coordinate type
+    */
+   public enum CoordType {
+      /**
+       * regular positions
+       */
+      SPATIAL,
+   
+      /**
+       * rest positions
+       */
+      REST,
+
+      /**
+       * render coordinates
+       */
+      RENDER
+   };
 
    protected Point3d myRest;
    protected Vector3d myInternalForce;
@@ -112,7 +133,43 @@ public class FemNode3d extends FemNode {
       setPosition (x, y, z);
       myRest.set (x, y, z);
    }
-   
+
+   public Point3d getLocalCoordinates (CoordType ctype) {
+      switch (ctype) {
+         case SPATIAL: {
+            return getLocalPosition();
+         }
+         case REST: {
+            return getLocalRestPosition();
+         }
+         case RENDER: {
+            return getLocalRenderPosition();
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented coordinate type " + ctype);
+         }
+      }      
+   }
+
+   public Point3d getCoordinates (CoordType ctype) {
+      switch (ctype) {
+         case SPATIAL: {
+            return getPosition();
+         }
+         case REST: {
+            return getRestPosition();
+         }
+         case RENDER: {
+            return getRenderPosition();
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented coordinate type " + ctype);
+         }
+      }      
+   }
+
    public int getIndex() {
       return myIndex;
    }
@@ -444,10 +501,12 @@ public class FemNode3d extends FemNode {
       }
       else if (scanAttributeName (rtok, "backNode")) {
          myBackNode = new BackNode3d (this);
+         myBackNode.setDynamic (true);
          // call myBackNode with tokens=null since we don't want it 
          // to generate BEGIN/END on the token stream
          myBackNode.scan (rtok, null);
          myBackNode.setDynamic (isDynamic());
+         myDirectorActive = true;
          return true;
       }
       rtok.pushBack();
@@ -457,14 +516,16 @@ public class FemNode3d extends FemNode {
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
+      // need to write director before super.writeItems(), so that it
+      // already exists if we later scan an explicit mass
+      if (hasDirector()) {
+         pw.print ("backNode=");
+         myBackNode.write (pw, fmt, ancestor);
+      }
       super.writeItems (pw, fmt, ancestor);
       pw.print ("rest=");
       myRest.write (pw, fmt, /* withBrackets= */true);
       pw.println ("");
-      if (myBackNode != null) {
-         pw.print ("backNode=");
-         myBackNode.write (pw, fmt, ancestor);
-      }
    }
 
    public void transformGeometry (
@@ -513,7 +574,7 @@ public class FemNode3d extends FemNode {
    /**
     * Returns all the volumetric elements referencing this node.
     * Should use {@link #getAdjacentElements},
-    * {@link #getAdjacentVolumetricElements}, or  
+    * {@link #getAdjacentVolumeElements}, or  
     * {@link #getAdjacentShellElements}, as appropriate.
     * 
     * @deprecated
@@ -575,20 +636,43 @@ public class FemNode3d extends FemNode {
    
    public double computeMassFromDensity() {
       double mass = 0;
+      if (myBackNode != null) {
+         myBackNode.myMass = 0;
+      }
       for (FemElement3dBase e : myElementDeps) {
-         if (e instanceof FemElement3d) {
-            FemElement3d ee = (FemElement3d)e;
-            mass += ee.getRestVolume()*ee.getDensity()/ee.numNodes();
+         double massPerNode = e.getRestVolume()*e.getDensity()/e.numNodes();
+         if (e.getElementClass() == ElementClass.SHELL) {
+            if (getBackNode() == null) {
+               // should be allocated already, but just in case
+               allocateBackNode();
+            }
+            // back node takes half the shell mass
+            myBackNode.myMass += 0.5*massPerNode;
          }
-         else if (e instanceof ShellElement3d) {
-            // XXX TODO use area?
-            ShellElement3d ee = (ShellElement3d)e;
-            mass += ee.getRestVolume()*ee.getDensity()/ee.numNodes();           
-         }
+         mass += massPerNode;
       }
       return mass;
    }
 
+   @Override
+   public void resetEffectiveMass() {
+      myEffectiveMass = myMass;
+      if (hasDirector()) {
+         // share mass with the back node
+         myEffectiveMass -= myBackNode.getMass();
+      }
+   }
+   
+   @Override
+   public void setExplicitMass (double m) {
+      super.setExplicitMass (m);
+      if (hasDirector()) {
+         // back node takes half the mass
+         myMass = m;
+         myBackNode.myMass = 0.5*m;
+      }
+   }
+   
    @Override
    public void connectToHierarchy () {
       super.connectToHierarchy ();
@@ -622,17 +706,12 @@ public class FemNode3d extends FemNode {
       return myRest;
    }
 
-   public Point3d getLocalRestPosition() {
-      if (myFrameNode != null) {
-         Point3d rest = new Point3d(myRest);
-         rest.inverseTransform (myFrameNode.myFrame.getPose());
-         return rest;
-      }
-      else {
-         return myRest;
-      }
+   public Point3d getRenderPosition() {
+      Point3d pos =
+         new Point3d (myRenderCoords[0], myRenderCoords[1], myRenderCoords[2]);
+      return pos;
    }
-   
+
    private FemModel3d findFem() {
       // XXX current hack to get FEM,
       // dependent on current hierarchy
@@ -681,6 +760,38 @@ public class FemNode3d extends FemNode {
       node.myAvgStrain = null;
 
       return node;   
+   }
+
+   /* --- Boundable --- */
+
+   /**
+    * {@inheritDoc}
+    */
+   public int numPoints() {
+      return 1;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public Point3d getPoint (int idx) {
+      return getPosition();
+   }  
+
+   /**
+    * {@inheritDoc}
+    */
+   public void computeCentroid (Vector3d centroid) {
+      centroid.set (getPosition());
+   }
+
+   /**
+    * Not implemented for FemNode3d.
+    *
+    * @return -1 (not implemented)
+    */
+   public double computeCovariance (Matrix3d C) {
+      return -1;
    }
 
    /* --- FrameFemNode --- */
@@ -836,12 +947,33 @@ public class FemNode3d extends FemNode {
       }
    }
 
+   public Point3d getLocalRestPosition() {
+      if (myFrameNode != null) {
+         Point3d rest = new Point3d(myRest);
+         rest.inverseTransform (myFrameNode.myFrame.getPose());
+         return rest;
+      }
+      else {
+         return myRest;
+      }
+   }
+   
+   public Point3d getLocalRenderPosition() {
+      Point3d pos = 
+         new Point3d (myRenderCoords[0], myRenderCoords[1], myRenderCoords[2]);
+      if (myFrameNode != null) {
+         pos.inverseTransform (myFrameNode.myFrame.getPose());
+      }
+      return pos;
+   }
+
    /* --- Methods for shell directors --- */
 
    protected BackNode3d myBackNode = null;
+   protected boolean myDirectorActive = false;
 
    public int getBackSolveIndex() {
-      if (myBackNode != null) {
+      if (myDirectorActive) {
          return myBackNode.getSolveIndex();
       }
       else {
@@ -852,17 +984,25 @@ public class FemNode3d extends FemNode {
    public BackNode3d getBackNode() {
       return myBackNode;
    }
+   
+   private void allocateBackNode() {
+      myBackNode = new BackNode3d (this);
+      myBackNode.setDynamic (isDynamic());     
+   }
 
    protected void setDirectorActive (boolean active) {
       // XXX should we also try to initialize this with values?
       if (active != hasDirector()) {
          if (active) {
-            myBackNode = new BackNode3d (this, myState.getPos());
-            myBackNode.setDynamic (isDynamic());
+            if (myBackNode == null) {
+               allocateBackNode();
+            }
+            if (myMassExplicitP) {
+               // back node takes half the mass
+               myBackNode.myMass = 0.5*myMass;
+            }
          }
-         else {
-            myBackNode = null;
-         }
+         myDirectorActive = active;
          // if this node is attached to a frame using a 
          // ShellNodeFrameAttachment, we may need to update whether or 
          // not that frame needs a director attachment
@@ -875,37 +1015,39 @@ public class FemNode3d extends FemNode {
    }
 
    public boolean hasDirector() {
-      return myBackNode != null;
+      return myDirectorActive;
    }
 
    public Vector3d getDirector() {
-      if (!hasDirector()) {
-         return new Vector3d();
+      Vector3d dir = new Vector3d();
+      getDirector (dir);
+      return dir;
+   }
+
+   public void getDirector (Vector3d dir) {
+      if (myBackNode == null) {
+         dir.setZero();
       }
       else {
-         Vector3d dir = new Vector3d();
          dir.sub (myState.getPos(), myBackNode.getPosition());
-         return dir;
       }
    }
 
    public void setDirector (Vector3d dir) {
-      if (hasDirector()) {
-         myBackNode.setPosition (myState.getPos(), dir);
-         myBackNode.setPositionExplicit (true);
+      if (myBackNode == null) {
+         allocateBackNode();
       }
+      myBackNode.setPosition (myState.getPos(), dir);
    }
-
-   public void initializeDirectorIfNecessary() {
-      if (hasDirector()) {
-         if (!myBackNode.isPositionExplicit()) {
-            myBackNode.setPositionToRest();
-         }
+   
+   public void clearDirector() {
+      if (myBackNode != null) {
+         myBackNode.clearPosition();
       }
    }
 
    public Vector3d getDirectorVel() {
-      if (!hasDirector()) {
+      if (myBackNode == null) {
          return new Vector3d();
       }
       else {
@@ -916,31 +1058,37 @@ public class FemNode3d extends FemNode {
    }
 
    public void setDirectorVel (Vector3d vel) {
-      if (hasDirector()) {
-         myBackNode.myVel.sub (myState.getVel(), vel);
+      if (myBackNode == null) {
+         allocateBackNode();
       }
+      myBackNode.myVel.sub (myState.getVel(), vel);
    }
 
    public Point3d getRestDirector() {
-      if (!hasDirector()) {
-         return new Point3d();
+      Point3d rdir = new Point3d();
+      getRestDirector (rdir);
+      return rdir;
+   }
+
+   public void getRestDirector (Vector3d rdir) {
+      if (myBackNode == null) {
+         rdir.setZero();
       }
       else {
-         Point3d rest = new Point3d();
-         rest.sub (myRest, myBackNode.getRestPosition());
-         return rest;
+         rdir.sub (getRestPosition(), myBackNode.getRestPosition());
       }
    }
 
    public void setRestDirector (Vector3d restDir) {
-      if (hasDirector()) {
-         myBackNode.setRestPosition (myRest, restDir);
-         invalidateRestData();
+      if (myBackNode == null) {
+         allocateBackNode();
       }
+      myBackNode.setRestPosition (myRest, restDir);
+      invalidateRestData();
    }
 
    public boolean isRestDirectorExplicit() {
-      if (hasDirector()) {
+      if (myBackNode != null) {
          return myBackNode.isRestPositionExplicit();
       }
       else {
@@ -948,25 +1096,22 @@ public class FemNode3d extends FemNode {
       }
    }
 
-   public boolean isRestDirectorValid() {
-      if (hasDirector()) {
-         return myBackNode.isRestPositionValid();
-      }
-      else {
-         return false;
+   public void clearRestDirector() {
+      if (myBackNode != null) {
+         myBackNode.clearRestPosition();
       }
    }
 
    public void invalidateRestDirectorIfNecessary() {
-      if (hasDirector()) {
+      if (myBackNode != null) {
          if (!myBackNode.isRestPositionExplicit()) {
-            myBackNode.setRestPositionValid (false);
+            myBackNode.clearRestPosition();
          }
       }
    }
 
    public Point3d getBackPosition() {
-      if (!hasDirector()) {
+      if (myBackNode == null) {
          return new Point3d();
       }
       else {
@@ -975,14 +1120,14 @@ public class FemNode3d extends FemNode {
    }
 
    public void setBackPosition (Point3d pos) {
-      if (hasDirector()) {
-         myBackNode.setPosition (pos);
-         myBackNode.setPositionExplicit (true);
+      if (myBackNode == null) {
+         allocateBackNode();
       }
+      myBackNode.setPosition (pos);
    }
 
    public Point3d getBackRestPosition() {
-      if (!hasDirector()) {
+      if (myBackNode == null) {
          return new Point3d();
       }
       else {
@@ -991,14 +1136,24 @@ public class FemNode3d extends FemNode {
    }
 
    public void setBackRestPosition (Point3d rest) {
-      if (hasDirector()) {
-         myBackNode.setRestPosition (rest);
-         invalidateRestData();
+      if (myBackNode == null) {
+         allocateBackNode();
+      }
+      myBackNode.setRestPosition (rest);
+      invalidateRestData();
+   }
+
+   public Point3d getBackRenderPosition() {
+      if (myBackNode == null) {
+         return new Point3d();
+      }
+      else {
+         return myBackNode.getRenderPosition();
       }
    }
 
    public Vector3d getBackVelocity () {
-      if (!hasDirector()) {
+      if (myBackNode == null) {
          return new Vector3d();
       }
       else {
@@ -1007,13 +1162,14 @@ public class FemNode3d extends FemNode {
    }
 
    public void setBackVelocity (Vector3d vel) {
-      if (hasDirector()) {
-         myBackNode.myVel.set (vel);
+      if (myBackNode == null) {
+         allocateBackNode();
       }
+      myBackNode.myVel.set (vel);
    }
 
    public Vector3d getBackForce() {
-      if (!hasDirector()) {
+      if (myBackNode == null) {
          return new Vector3d();
       }
       else {
@@ -1022,13 +1178,14 @@ public class FemNode3d extends FemNode {
    }
 
    public void setBackForce (Vector3d f) {
-      if (hasDirector()) {
-         myBackNode.myForce.set (f);
+      if (myBackNode == null) {
+         allocateBackNode();
       }
+      myBackNode.myForce.set (f);
    }
    
    public Vector3d getBackInternalForce() {
-      if (!hasDirector()) {
+      if (myBackNode == null) {
          return new Vector3d();
       }
       else {
@@ -1039,7 +1196,7 @@ public class FemNode3d extends FemNode {
    @Override
    public void zeroForces() {
       super.zeroForces();
-      if (hasDirector()) {
+      if (myBackNode != null) {
          myBackNode.myForce.setZero();
       }
    }
@@ -1071,6 +1228,40 @@ public class FemNode3d extends FemNode {
          dir.scale (thickness/ecnt);         
       }
    }
+   
+   protected boolean rescaleDirectorsIfNecessary (
+      ShellElement3d elem, double prevThickness) {
+      
+      if (myBackNode == null) {
+         // shouldn't happen
+         return false;
+      }
+      if (!myBackNode.isRestPositionExplicit() && 
+          myBackNode.isRestPositionValid()) {
+         double thicknessSum = 0;
+         for (FemElement e : myElementDeps) {
+            if (e instanceof ShellElement3d && e != elem) {
+               ShellElement3d se = (ShellElement3d)e;
+               thicknessSum += se.getDefaultThickness();
+            }
+         }
+         double scale = 
+            (thicknessSum+elem.getDefaultThickness()) /
+            (thicknessSum+prevThickness);
+         if (scale != 1) {
+            myBackNode.scaleRestPosition (scale, getRestPosition());
+            if (myBackNode.isPositionValid()) {
+               // then scale the director as well
+               myBackNode.scalePosition (scale, getPosition());
+               if (myBackNode.isAttached()) {
+                  myBackNode.getAttachment().updateAttachment();
+               }
+            }
+            return true;
+         }
+      }
+      return false;
+   }
 
    public void prerender (RenderList list) {
       super.prerender (list);
@@ -1079,4 +1270,21 @@ public class FemNode3d extends FemNode {
       }
    }
 
+   public Point3d getBackCoordinates (CoordType ctype) {
+      switch (ctype) {
+         case SPATIAL: {
+            return getBackPosition();
+         }
+         case REST: {
+            return getBackRestPosition();
+         }
+         case RENDER: {
+            return getBackRenderPosition();
+         }
+         default: {
+            throw new InternalErrorException (
+               "Unimplemented coordinate type " + ctype);
+         }
+      }      
+   }
 }

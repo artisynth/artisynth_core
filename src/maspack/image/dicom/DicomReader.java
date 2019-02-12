@@ -474,9 +474,15 @@ public class DicomReader {
          }
 
          // queue up next tag
-         s[0] = in.readShort();
-         s[1] = in.readShort();
-         tagId = toTagId(s[0], s[1]);
+         try {
+            s[0] = in.readShort();
+            s[1] = in.readShort();
+            tagId = toTagId(s[0], s[1]);
+         } catch (IOException ioe) {
+            // XXX
+            System.err.println("Failed to load slice from file " + file.getAbsolutePath());
+            return null;
+         }
 
          // outside file header, might need to switch
          // endian-ness and explicit-ness

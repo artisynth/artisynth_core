@@ -65,7 +65,6 @@ public class ComponentMap {
 
    public void freeNumber (int num) {
       if (!myNumberCacheValid) {
-         System.out.println ("cache was invalid");
          collectFreeNumbers();
       }
       doFreeNumber (num);
@@ -89,7 +88,6 @@ public class ComponentMap {
    }
 
    public void collectFreeNumbers() {
-      System.out.println ("collecting numbers");
       int highestNum = myNumberMap.length - 1;
       while (highestNum >= 0 && myNumberMap[highestNum] == -1) {
          highestNum--;
@@ -101,7 +99,6 @@ public class ComponentMap {
             doFreeNumber (i);
          }
       }
-      System.out.println ("done collecting");
       myNumberCacheValid = true;
    }
 
@@ -119,7 +116,6 @@ public class ComponentMap {
       else {
          // will have to rebuild number cache later since number is being
          // specified outside of the cache
-               System.out.println ("mapComponnt");
          myNumberCacheValid = false; 
       }
       put (comp.getName(), number, comp, idx);

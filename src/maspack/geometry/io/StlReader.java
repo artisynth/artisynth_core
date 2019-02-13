@@ -1,27 +1,25 @@
 package maspack.geometry.io;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.BufferedReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.CharBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
-//import maspack.geometry.KDTree3d;
-import maspack.geometry.PolygonalMesh;
+import maspack.geometry.AABBTree;
+import maspack.geometry.BVNode;
+import maspack.geometry.Boundable;
 import maspack.geometry.MeshBase;
-import maspack.geometry.SpatialHashTable;
+// import maspack.geometry.KDTree3d;
+import maspack.geometry.PolygonalMesh;
+import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
+import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
 
 /**
@@ -119,105 +117,114 @@ public class StlReader extends MeshReaderBase {
       int facetSize = 50;
       bbuf = new byte[facetSize];
       
-      List<Point3d> allPoints = new ArrayList<Point3d>(3*(int)numFacets);
-      List<Point3d[]> allFaces = new ArrayList<Point3d[]>((int)numFacets);
+      ArrayList<Point3d> allPoints = new ArrayList<Point3d>(3*(int)numFacets);
+      ArrayList<ArrayList<Integer>> allFaces = new ArrayList<ArrayList<Integer>>((int)numFacets);
 
-      for (long i=0; i<numFacets; i++) {
-         int nBytesRead = is.read(bbuf,0,facetSize);
-         if (nBytesRead < facetSize) {
-            throw new IOException ("Invalid STL file detected! (non-matching size)");
-         }
-         ByteBuffer bb = ByteBuffer.wrap(bbuf);
-         bb.order(ByteOrder.LITTLE_ENDIAN);
-         
-         // Ignore normal
-         bb.getFloat ();
-         bb.getFloat ();
-         bb.getFloat ();
-         
-         Point3d[] face = new Point3d[3];
-         // Read all 3 vertices
-         double[] vals = new double[3];
-         for (int j=0; j<3; j++) {
-            vals[0] = bb.getFloat();
-            vals[1] = bb.getFloat();
-            vals[2] = bb.getFloat();
-            Point3d pnt;
-            pnt = new Point3d(vals);
-            allPoints.add (pnt);
-            face[j] = pnt;
-         }
-         allFaces.add (face);
-         bb.getShort (); // Attribute byte count should = 0
-      }
-
-      if (_printDebug) {
-         System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
-         System.out.print ("Building spatial hash table... ");
-         start = System.nanoTime ();
-      }
-      
-      SpatialHashTable<Point3d> table = new SpatialHashTable<Point3d>(tol);
-      table.setup (allPoints, allPoints);
-      
-      if (_printDebug) {
-         System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
-         System.out.print ("Scanning for unique verts... ");
-         start = System.nanoTime ();
-      }
-      
-      HashMap<Point3d, Integer> allToUniqueMap = new HashMap<Point3d, Integer> (allPoints.size());
-      double tolSq = tol*tol;
-      for (Point3d pnt : allPoints) {
-         if (allToUniqueMap.containsKey (pnt)) {
-            continue;
-         }
-         
-         // Find all points within tol of pnt
-         List<Point3d> results = new ArrayList<Point3d>(); 
-         List<Point3d> cell = table.getElsNear (pnt);//table.getCellsNearOld (pnt);
-         //while (it.hasNext ()) {
-         //   List<Point3d> cell = it.next ();
-         //   if (cell == null) 
-         //      continue;
-         if (cell != null) {
-            for (Point3d neighbour : cell) {
-               if (neighbour.distanceSquared (pnt) < tolSq) {
-                  results.add (neighbour);
-               }
+      {
+         int idx = 0;
+         for (long i=0; i<numFacets; i++) {
+            int nBytesRead = is.read(bbuf,0,facetSize);
+            if (nBytesRead < facetSize) {
+               throw new IOException ("Invalid STL file detected! (non-matching size)");
             }
-         }
-         int idx = nodeList.size();
-         nodeList.add (pnt);
-         for (Point3d neighbour : results) {
-            allToUniqueMap.put (neighbour, idx);
+            ByteBuffer bb = ByteBuffer.wrap(bbuf);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+            
+            // Ignore normal
+            bb.getFloat ();
+            bb.getFloat ();
+            bb.getFloat ();
+            
+            ArrayList<Integer> face = new ArrayList<Integer>();
+            // Read all 3 vertices
+            double[] vals = new double[3];
+            for (int j=0; j<3; j++) {
+               vals[0] = bb.getFloat();
+               vals[1] = bb.getFloat();
+               vals[2] = bb.getFloat();
+               Point3d pnt;
+               pnt = new Point3d(vals);
+               allPoints.add (pnt);
+               face.add (idx++);
+            }
+            allFaces.add (face);
+            bb.getShort (); // Attribute byte count should = 0
          }
       }
       
-      if (_printDebug) {
-         System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
-         System.out.print ("Building faceList... ");
-         start = System.nanoTime ();
-
-      }
-
-      // Build face list by looking up the index of the Unique vert through hashmap.
-      for (Point3d[] face : allFaces) {
-         ArrayList<Integer> faceNodes = new ArrayList<Integer>(3);
-         for (int i=0; i<3; i++) {
-            int idx = allToUniqueMap.get (face[i]);
-            faceNodes.add(idx);
-         }
-         
-         faceList.add (faceNodes);
-      }
+      //      if (_printDebug) {
+      //         System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
+      //         System.out.print ("Building spatial hash table... ");
+      //         start = System.nanoTime ();
+      //      }
+      //      
+      //      SpatialHashTable<Point3d> table = new SpatialHashTable<Point3d>(tol);
+      //      table.setup (allPoints, allPoints);
       
+      //      if (_printDebug) {
+      //         System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
+      //         System.out.print ("Scanning for unique verts... ");
+      //         start = System.nanoTime ();
+      //      }
+      //      
+      //      HashMap<Point3d, Integer> allToUniqueMap = new HashMap<Point3d, Integer> (allPoints.size());
+      //      double tolSq = tol*tol;
+      //      for (Point3d pnt : allPoints) {
+      //         if (allToUniqueMap.containsKey (pnt)) {
+      //            continue;
+      //         }
+      //         
+      //         // Find all points within tol of pnt
+      //         List<Point3d> results = new ArrayList<Point3d>(); 
+      //         List<Point3d> cell = table.getElsNear (pnt);//table.getCellsNearOld (pnt);
+      //         //while (it.hasNext ()) {
+      //         //   List<Point3d> cell = it.next ();
+      //         //   if (cell == null) 
+      //         //      continue;
+      //         if (cell != null) {
+      //            for (Point3d neighbour : cell) {
+      //               if (neighbour.distanceSquared (pnt) < tolSq) {
+      //                  results.add (neighbour);
+      //               }
+      //            }
+      //         }
+      //         int idx = nodeList.size();
+      //         nodeList.add (pnt);
+      //         for (Point3d neighbour : results) {
+      //            allToUniqueMap.put (neighbour, idx);
+      //         }
+      //      }
+      //      
+      //      if (_printDebug) {
+      //         System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
+      //         System.out.print ("Building faceList... ");
+      //         start = System.nanoTime ();
+      //
+      //      }
+      //
+      //      // Build face list by looking up the index of the Unique vert through hashmap.
+      //      for (ArrayList<Integer> face : allFaces) {
+      //         ArrayList<Integer> faceNodes = new ArrayList<Integer>(3);
+      //         for (int i=0; i<3; i++) {
+      //            int idx = allToUniqueMap.get (allPoints.get (face.get(i)));
+      //            faceNodes.add(idx);
+      //         }
+      //         
+      //         faceList.add (faceNodes);
+      //      }
+      //      
       if (_printDebug) {
          System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
          System.out.print ("building mesh... ");
          start = System.nanoTime ();
       }
-      mesh = buildMesh(mesh, nodeList,faceList);
+      
+      // XXX tested 2x faster than spatial hashmap
+      nodeList.addAll (allPoints);
+      faceList.addAll (allFaces);
+      mergeNearbyNodes (nodeList, faceList, tol);
+      mesh = buildMesh(mesh, nodeList, faceList);
+      
       if (_printDebug) {
          System.out.println ("("+1.e-9*(System.nanoTime()-start)+")");
          System.out.println("Done!");
@@ -261,7 +268,9 @@ public class StlReader extends MeshReaderBase {
                if (mesh != null) {
                   setMeshName = false;
                }
-               mesh = buildMesh(mesh, nodeList,faceList);
+               
+               mergeNearbyNodes (nodeList, faceList, tol);
+               mesh = buildMesh(mesh, nodeList, faceList);
                
                if (setMeshName) {
                   mesh.setName(solidName);
@@ -331,7 +340,8 @@ public class StlReader extends MeshReaderBase {
             throw new IOException("Invalid vertex on line " + rtok.lineno());
          }
          
-         int idx = findOrAddNode(new Point3d(vals), nodes, tol);
+         int idx = nodes.size ();  // findOrAddNode(new Point3d(vals), nodes, tol);
+         nodes.add (new Point3d(vals));
          faceNodes.add(idx);
          
          toEOL(rtok);
@@ -354,16 +364,110 @@ public class StlReader extends MeshReaderBase {
       return faceNodes;
    }
    
-   private static int findOrAddNode(Point3d pos, ArrayList<Point3d> nodes, double tol) {
+   private static class PointBoundable implements Boundable {
+
+      Point3d pnt;
+      int idx;
       
-      for (int i=0; i<nodes.size(); i++){
-         if (nodes.get(i).distance(pos) < tol) {
-            return i;
+      public PointBoundable(Point3d pnt, int idx) {
+         this.pnt = pnt;
+         this.idx = idx;
+      }
+      
+      @Override
+      public int numPoints () {
+         return 1;
+      }
+
+      @Override
+      public Point3d getPoint (int idx) {
+         return pnt;
+      }
+
+      @Override
+      public void computeCentroid (Vector3d centroid) {
+         centroid.set (pnt);
+      }
+
+      @Override
+      public void updateBounds (Vector3d min, Vector3d max) {
+         pnt.updateBounds (min, max);
+      }
+
+      @Override
+      public double computeCovariance (Matrix3d C) {
+         return -1;
+      }
+   }
+   
+   private static void mergeNearbyNodes(ArrayList<Point3d> nodes, ArrayList<ArrayList<Integer>> faces, double tol) {
+      
+      // build bounding volume tree if points
+      AABBTree tree = new AABBTree ();
+      tree.setMargin (tol);
+      tree.setMaxLeafElements (4);
+      ArrayList<PointBoundable> nb = new ArrayList<>(nodes.size ());
+      for (int i=0; i<nodes.size (); ++i) {
+         nb.add (new PointBoundable (nodes.get (i), i));
+      }
+      tree.build (nb);
+      
+      // map each point to nearest
+      int[] idxmap = new int[nodes.size ()];
+      for (int i=0; i<idxmap.length; ++i) {
+         idxmap[i] = -1;
+      }
+      
+      ArrayList<BVNode> bvnodes = new ArrayList<>();
+      ArrayList<Point3d> npoints = new ArrayList<>();
+      
+      int nidx = 0;
+      for (int i=0; i<idxmap.length; ++i) {
+         if (idxmap[i] < 0) {
+            idxmap[i] = nidx;
+            
+            Point3d p = nodes.get (i);
+            npoints.add (new Point3d(p));
+            
+            // find other nearby nodes
+            bvnodes.clear ();
+            tree.intersectPoint (bvnodes, p);
+            for (BVNode node : bvnodes) {
+               for (Boundable b : node.getElements ()) {
+                  PointBoundable pb = (PointBoundable)b;
+                  // mark any nearby nodes
+                  if (idxmap[pb.idx] < 0) {
+                     if (pb.pnt.distance (p) < tol) {
+                        idxmap[pb.idx] = nidx;
+                     }
+                  } // unmarked
+               } // boundables
+            } // nodes
+            nidx++;  // next new node
+         } // unmarked
+      } // nodes
+      
+      nodes.clear ();
+      nodes.addAll (npoints);
+      
+      for (ArrayList<Integer> face : faces) {
+         for (int j=0; j<face.size (); ++j) {
+            face.set (j, idxmap[face.get (j)]);
          }
       }
-      nodes.add(pos);
-      return nodes.size()-1;
+      
    }
+   
+   //   private static int findOrAddNode(Point3d pos, ArrayList<Point3d> nodes, double tol) {
+   //      
+   //      for (int i=0; i<nodes.size(); i++){
+   //         if (nodes.get(i).distance(pos) < tol) {
+   //            return i;
+   //         }
+   //      }
+   //      nodes.add(pos);
+   //      return nodes.size()-1;
+   //   }
    
    private static void toEOL(ReaderTokenizer rtok) throws IOException {
       while (rtok.ttype != ReaderTokenizer.TT_EOL &&  

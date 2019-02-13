@@ -147,8 +147,8 @@ public class RigidTransform3d extends AffineTransform3dBase {
    public RigidTransform3d (Vector3d p, RotationMatrix3d R) {
       this.R = new RotationMatrix3d (R);
       this.p = new Vector3d (p);
-      M = R;
-      b = p;
+      M = this.R;
+      b = this.p;
    }
 
    /**
@@ -245,7 +245,7 @@ public class RigidTransform3d extends AffineTransform3dBase {
       this.R = new RotationMatrix3d (axisAng);
       this.p = new Vector3d (p);
       M = R;
-      b = p;
+      b = this.p;
    }
 
    /**

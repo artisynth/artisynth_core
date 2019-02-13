@@ -35,6 +35,7 @@ def runIntegratorTest(title, t, file, integrator) :
     pw = mech.reopenPrintStateFile(file)
     mech.setIntegrator (integrator)
     pw.println(title)
+    System.out.println(title)
     doRunStopReset()
     mech.closePrintStateFile()
     return mech;
@@ -43,6 +44,7 @@ def runTest(title, t, file) :
     mech = setModelOpts (t)
     pw = mech.reopenPrintStateFile(file)
     pw.println(title)
+    System.out.println(title)
     doRunStopReset()
     mech.closePrintStateFile()
     return mech
@@ -264,6 +266,5 @@ runTest("#FrameFemConstraintTest", 0.5, dataFileName)
 
 # Exit
 main.maskFocusStealing (False)
-if main.getMainFrame() == None:
-   main.quit()
+main.quit()
 

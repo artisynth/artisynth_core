@@ -2779,6 +2779,28 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
    }
 
+   /**
+    * Applies a random perturbation to the vertex positions of this mesh.  The
+    * magnitude of the pertubation is given by {@code rad} * {@code tol}, where
+    * {@code rad} is an estimate of the mesh's ``radius'', as computed by
+    * {@link #getRadius}, and {@code tol} is a supplied tolerance argument.
+    *
+    * <p>This method calls {@link #notifyVertexPositionsModified} after
+    * applying the perturbation.
+    *
+    * @param tol controls the size of the perturbation
+    */
+   public void perturb (double tol) {
+      double eps = getRadius()*tol/2;
+      Point3d p = new Point3d();
+      for (Vertex3d v : getVertices()) {
+         p.setRandom (-eps, eps);
+         p.add (v.getPosition());
+         v.setPosition (p);
+      }
+      notifyVertexPositionsModified();
+   }
+
    public long checksum() {
       CRC32 crc = new CRC32();
       for (Vertex3d vtx : getVertices()) {

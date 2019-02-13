@@ -279,7 +279,6 @@ public class MultiPointSpring extends PointSpringBase
       }
    }
 
-
    /**
     * Stores information for an individual segment of this spring.  This
     * includes both segments between fixed via-points, and subsegments within
@@ -4155,11 +4154,14 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    public void preadvance (double t0, double t1, int flags) {
-      updateWrapSegments(myMaxWrapIterations);
+      if (t0 == 0) {
+         updateWrapSegments(myMaxWrapIterations);
+      }
    }
    
    public void postadvance (double t0, double t1, int flags) {
       updateStructure();
+      updateWrapSegments(myMaxWrapIterations);
    }
 
    /** 
@@ -4586,9 +4588,6 @@ public class MultiPointSpring extends PointSpringBase
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
-   /**
-    * Applies one iteration of the wrap segment updating method.
-    */
    public void updateWrapSegments() {
       // use 10 x wrap iterations just in case
       updateWrapSegments(10*myMaxWrapIterations);

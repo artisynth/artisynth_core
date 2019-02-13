@@ -90,8 +90,6 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       return new EdgeIterator (incidentHedges);
    }
 
-   
-
    /**
     * Returns the number of half-edges which are incident onto this
     * vertex.

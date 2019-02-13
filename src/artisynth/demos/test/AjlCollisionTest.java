@@ -252,6 +252,9 @@ public class AjlCollisionTest extends RootModel {
       String crashFile = null;
       boolean contoursOnly = false;
 
+      double perturb0 = 0;
+      double perturb1 = 0;
+
       for (int i=0; i<args.length; i++) {
          if (args[i].equals ("-intersection")) {
             csg = SurfaceMeshIntersector.CSG.INTERSECTION;
@@ -267,6 +270,24 @@ public class AjlCollisionTest extends RootModel {
          }
          else if (args[i].equals ("-contoursOnly")) {
             contoursOnly = true;
+         }
+         else if (args[i].equals ("-perturb0")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "WARNING: -perturb0 needs an additional argument");
+            }
+            else {
+               perturb0 = Double.valueOf (args[i]);
+            }
+         }
+         else if (args[i].equals ("-perturb1")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "WARNING: -perturb1 needs an additional argument");
+            }
+            else {
+               perturb1 = Double.valueOf (args[i]);
+            }
          }
          else if (!args[i].startsWith ("-")) {
             crashFile = args[i];
@@ -757,6 +778,14 @@ public class AjlCollisionTest extends RootModel {
          setupBodies (myMech, mesh0, mesh1);
       }
 
+      if (perturb0 != 0) {
+         myBody0.getMesh().perturb (perturb0);
+         System.out.println ("perturb0 " + perturb0);
+      }
+      if (perturb1 != 0) {
+         myBody1.getMesh().perturb (perturb1);
+         System.out.println ("perturb1 " + perturb1);
+      }
 
       //myMech.addMeshBody (new FixedMeshBody (mesh0));
       //myBody0 = addBody (myMech, mesh0, mesh0.getMeshToWorld());

@@ -140,7 +140,7 @@ Clonable {
       A = new Matrix3d();
       A.scale(s, this.R);
       M = A;
-      b = p;
+      b = this.p;
       myExternalComponentsValidP = true;
    }
 
@@ -258,7 +258,7 @@ Clonable {
       A = new Matrix3d();
       A.scale(s, this.R);
       M = A;
-      b = p;
+      b = this.p;
       myExternalComponentsValidP = true;
    }
 

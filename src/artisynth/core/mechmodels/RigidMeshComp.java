@@ -31,7 +31,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
 public class RigidMeshComp extends DynamicMeshComponent 
-   implements PointAttachable {
+   implements PointAttachable, HasSurfaceMesh {
 
    private static double DEFAULT_VOLUME = 0;
    protected double myVolume = 0;
@@ -573,6 +573,23 @@ public class RigidMeshComp extends DynamicMeshComponent
          pw.println ("volume=" + fmt.format (getVolume()));
       }
       super.writeItems (pw, fmt, ancestor);
+   }
+
+   public PolygonalMesh getSurfaceMesh() {
+      if (getMesh() instanceof PolygonalMesh) {
+         return (PolygonalMesh)getMesh();
+      }
+      else {
+         return null;
+      }
+   }
+   
+   public int numSurfaceMeshes() {
+      return getSurfaceMesh() != null ? 1 : 0;
+   }
+   
+   public PolygonalMesh[] getSurfaceMeshes() {
+      return MeshComponent.createSurfaceMeshArray (getSurfaceMesh());
    }
 
 }

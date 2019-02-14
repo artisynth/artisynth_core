@@ -21,6 +21,8 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
 import maspack.util.InternalErrorException;
 
+import quickhull3d.QuickHull3D;
+
 /**
  * Creates specific instances of polygonal meshes.
  */
@@ -3866,9 +3868,32 @@ public class MeshFactory {
             }
          }
       }
-
       return out;
+   }
 
+   /**
+    * Creates a convex hull from the vertex positions of an input mesh.
+    *
+    * @param mesh input mesh providing the vertex positions
+    * @return convex hull mesh
+    */
+   public static PolygonalMesh createConvexHull (MeshBase mesh) {
+      quickhull3d.Point3d[] pnts = new quickhull3d.Point3d[mesh.numVertices()];
+      for (int i=0; i<pnts.length; i++) {
+         Point3d pos = mesh.getVertex(i).getPosition();
+         pnts[i] = new quickhull3d.Point3d(pos.x, pos.y, pos.z);
+      }
+      QuickHull3D chull = new QuickHull3D();
+      chull.build (pnts);
+      PolygonalMesh hull = new PolygonalMesh();
+      for (quickhull3d.Point3d pnt : chull.getVertices()) {
+         hull.addVertex (pnt.x, pnt.y, pnt.z);
+      }
+      for (int[] faceIdxs : chull.getFaces()) {
+         hull.addFace (faceIdxs);
+      }
+      hull.triangulate();
+      return hull;
    }
 
    /**

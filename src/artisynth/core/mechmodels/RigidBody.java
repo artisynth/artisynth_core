@@ -1038,7 +1038,7 @@ public class RigidBody extends Frame
       // so that even if the body is inactives, we don't need to
       // handle zero inertia in the numerics code.
       mySpatialInertia = new SpatialInertia (1, 1, 1, 1);
-      mySpatialInertia = new SpatialInertia ();
+      //mySpatialInertia = new SpatialInertia ();
       // myEffectiveInertia = new SpatialInertia (1, 1, 1, 1);
       setDynamic (true);
       setRenderProps (createRenderProps());

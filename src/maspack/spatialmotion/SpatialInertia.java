@@ -356,9 +356,14 @@ public class SpatialInertia extends Matrix6dBlock
 
    public void updateComponents() {
       mass = m00;
-      com.x = m15 / mass;
-      com.y = -m05 / mass;
-      com.z = m04 / mass;
+      if (mass == 0) {
+         com.setZero();
+      }
+      else {
+         com.x = m15 / mass;
+         com.y = -m05 / mass;
+         com.z = m04 / mass;
+      }
       J.m00 = m33 - mass * (com.z * com.z + com.y * com.y);
       J.m11 = m44 - mass * (com.z * com.z + com.x * com.x);
       J.m22 = m55 - mass * (com.y * com.y + com.x * com.x);

@@ -24,6 +24,7 @@ import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URLClassLoader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -3511,6 +3512,28 @@ public class Main implements DriverInterface, ComponentChangeListener {
       for (Thread thr : threads) {
          System.out.println (thr.getClass());
       }
+   }
+
+   public void printClassPath() {
+      URL[] urls = null;
+      if (getClass().getClassLoader() instanceof URLClassLoader) {
+         URLClassLoader ucl = (URLClassLoader)getClass().getClassLoader();
+         System.out.println ("ArtiSynth class path:");
+         for (URL url : ucl.getURLs()) {
+            System.out.println (" " + url);
+         }
+      }
+      else {
+         System.out.println (
+            "Can't print class path: " +
+            "expected ClassLoader to be a URLClassLoader but instead it is "+
+            getClass().getClassLoader().getClass());
+            
+      }
+   }
+
+   public String getHomeDir() {
+      return ArtisynthPath.getHomeDir();
    }
    
 }

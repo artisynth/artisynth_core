@@ -16,8 +16,8 @@ import maspack.util.ArraySort;
 
 public class TetgenTessellator {
    
-   public static String NATIVE_LIB = "TetgenJNI.1.5.1.0";
-   //public static String NATIVE_LIB = "TetgenJNI.1.5.1.1";
+   //public static String NATIVE_LIB = "TetgenJNI.1.5.1.0"; // used tetgen 1.5
+   public static String NATIVE_LIB = "TetgenJNI.1.5.1.1"; // uses tetgen 1.5.1
    //protected boolean myHullFacesClockwise = false;
 
    //public static String NATIVE_LIB = "TetgenJNI.1.0";

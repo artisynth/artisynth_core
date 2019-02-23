@@ -67,25 +67,15 @@ public class SphericalTextureMapping extends RootModel {
 
       // apply color map to balls 0 and 2. Can do this by setting color map
       // properties in the MechModel, so that properties are controlled in one
-      // place - but we must then also explicitly enable color mapping in balls
-      // 0 and 2.
+      // place - but we must then also explicitly enable color mapping in
+      // the surface mesh components for balls 0 and 2.
       RenderProps.setColorMap (mech, cprops);
-      RenderProps.setColorMapEnabled (ball0, true);
-      RenderProps.setColorMapEnabled (ball2, true);
+      RenderProps.setColorMapEnabled (ball0.getSurfaceMeshComp(), true);
+      RenderProps.setColorMapEnabled (ball2.getSurfaceMeshComp(), true);
 
-      // apply bump map to balls 1 and 2.
-      RenderProps.setBumpMap (ball1, bprops);
-      RenderProps.setBumpMap (ball2, bprops);
+      // apply bump map to balls 1 and 2. Again, we do this by setting
+      // the render properties for their surface mesh components
+      RenderProps.setBumpMap (ball1.getSurfaceMeshComp(), bprops);
+      RenderProps.setBumpMap (ball2.getSurfaceMeshComp(), bprops);
    }
-
-   // public void initialize (double t0) {
-   //    super.initialize (t0);
-   //    MechModel mech = (MechModel)findComponent ("models/0");
-   //    for (RigidBody body : mech.rigidBodies()) {
-   //       SpatialInertia M = new SpatialInertia();
-   //       body.getInertia (M);
-   //       System.out.println ("inertia " + body.getName() + ":");
-   //       System.out.println (M);
-   //    }
-   // }
 }

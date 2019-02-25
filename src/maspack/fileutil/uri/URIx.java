@@ -1087,8 +1087,7 @@ public class URIx {
          if (a < 0) {
             out = out.substring(idx + 4);
          } else {
-            out = out.substring(0, a);
-            out += out.substring(idx + 3);
+            out = out.substring(0, a) + out.substring(idx + 3);
          }
       }
 

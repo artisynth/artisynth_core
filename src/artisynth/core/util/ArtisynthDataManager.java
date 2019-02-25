@@ -354,6 +354,24 @@ public class ArtisynthDataManager {
    }
    
    /**
+    * Get file with path relative to storage root.
+    * 
+    * @param src file path name relative to storage root
+    * @param dst local destination
+    * 
+    * @return link to local file
+    */
+   public File getFile(String src, String dst) {
+      File out = null;
+      try {
+          out = manager.get(dst, src);
+      } catch (FileTransferException e) {
+         e.printStackTrace();
+      }
+      return out;
+   }
+   
+   /**
     * Uploads a file to the data storage server, at a location specified relative to 
     * a given package.  The fully qualified package name is expanded into a folder 
     * structure used for identifying the desired target destination on the storage server.

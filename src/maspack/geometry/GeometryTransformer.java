@@ -1278,6 +1278,15 @@ public abstract class GeometryTransformer {
       else if (X instanceof AffineTransform3d) {
          return new AffineTransformer ((AffineTransform3d)X);
       }
+      else if (X instanceof ScaledRigidTransform3d) {
+         
+         ScaledRigidTransform3d srt = (ScaledRigidTransform3d)X;
+         AffineTransform3d trans = new AffineTransform3d();
+         trans.setRotation (srt.R);
+         trans.setTranslation (srt.p);
+         trans.setScaling (srt.s, srt.s, srt.s);
+         return new AffineTransformer(trans);
+      }
       else 
          throw new IllegalArgumentException (
             "Unknown argument type: " + X.getClass());

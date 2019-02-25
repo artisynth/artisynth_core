@@ -38,9 +38,10 @@ TETGEN_OBJ_FILES = $(TETGEN_DIR)/tetgen.o $(TETGEN_DIR)/predicates.o
 ifeq ($(SYSTEM),Linux)
 	ifeq ($(ARCH), 64) 
 	   NATIVE_DIR = Linux64
-	   X_FLAGS = -DAMD_64
+	   X_FLAGS = -DAMD_64 -DPOINTER_EXCEEDS_LONG
 	else
 	   NATIVE_DIR = Linux
+	   X_FLAGS = -m32
 	endif
 	TETGEN_TARGET = libTetgenJNI.so.$(TETGEN_VERSION)
 	ROBUST_TARGET = libRobustPreds.so.1.1
@@ -48,7 +49,7 @@ ifeq ($(SYSTEM),Linux)
 	GETCW_TARGET = libGetCW.so
 	SHEWCHUK_DEF = -DLINUX
 	LIB_FLAGS = -shared
-	X_FLAGS = -fPIC
+	X_FLAGS += -fPIC
 	C_FLAGS += -fPIC
 	CC_INCS = -I$(JAVA_HOME)/include/ -I$(JAVA_HOME)/include/linux -I$(TETGEN_DIR)
 else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)

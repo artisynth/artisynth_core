@@ -708,10 +708,15 @@ These map to spherical coordinates on the mesh.}
 \end{figure}
 
 Color mapping is applied to balls 0 and 2, and bump mapping to balls 1
-and 2. To illustrate setting mapping properties in an ancestor
-component, the color mapping is arranged by setting the {\sf colorMap}
-render property of the {\tt MechModel}, and then, as described above,
-enabling color mapping within the individual balls.
+and 2. This is done by setting color map and/or bump map render
+properties in the components holding the actual meshes, which in this
+case is the mesh components for the balls' surfaces meshes, obtained
+using {\tt getSurfaceMeshComp()}. As mentioned above, it is also
+possible to set these render properties in an ancestor component, and
+that is done here by setting the {\sf colorMap} render property of the
+{\tt MechModel}, but then it is also necessary to enable color mapping
+within the individual mesh components, using {\tt
+RenderProps.setColorMapEnabled()}.
 
 To run this example in ArtiSynth, select {\sf All demos > tutorial >
 SphericalTextureMapping} from the {\sf Models} menu. The model should

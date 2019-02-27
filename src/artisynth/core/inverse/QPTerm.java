@@ -20,4 +20,11 @@ public interface QPTerm extends HasProperties {
     * @param t1 time at end of step
     */
    public void getQP(MatrixNd Q, VectorNd P, double t0, double t1);
+   
+   /**
+    * Returns that enabled status of this term, for use if term is 
+    * an inequality / equality constraint
+    * @return is this term enabled
+    */
+   public boolean isEnabled();
 }

@@ -561,7 +561,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       // add mesh to TargetFrame
       PolygonalMesh mesh = null;
       if ((mesh = source.getSurfaceMesh()) != null) {
-         tframe.setSurfaceMesh(mesh, source.getSurfaceMeshComp().getFileName());
+         tframe.setSurfaceMesh(mesh.clone (), source.getSurfaceMeshComp().getFileName());
          tframe.setRenderProps (source.getRenderProps ());
          RenderProps.setDrawEdges (tframe, true);
          RenderProps.setFaceStyle (tframe, FaceStyle.NONE);

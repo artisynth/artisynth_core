@@ -34,6 +34,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.mechmodels.Frame;
+import artisynth.core.mechmodels.LinearPointConstraint;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointAttachment;
 import artisynth.core.modelbase.ComponentUtils;
@@ -353,22 +354,6 @@ public class PointFem3dAttachment extends PointAttachment {
       ybuf[yoff+2] += s*xbuf[xoff+2];
    }
 
-   protected static void scanNodes (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-      throws IOException {
-
-      ArrayList<Double> coordList = new ArrayList<Double>();
-      rtok.scanToken ('[');
-      tokens.offer (ScanToken.BEGIN); // begin token
-      while (ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
-         coordList.add (rtok.scanNumber());
-      }
-      if (rtok.ttype != ']') {
-         throw new IOException ("Expected ']', got " + rtok);
-      }
-      tokens.offer (ScanToken.END); // terminator token
-      tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (coordList)));
-   }
-
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
@@ -378,7 +363,7 @@ public class PointFem3dAttachment extends PointAttachment {
       }
       else if (scanAttributeName (rtok, "nodes")) {
          tokens.offer (new StringToken ("nodes", rtok.lineno()));
-         scanNodes (rtok, tokens);
+         ScanWriteUtils.scanComponentsAndWeights (rtok, tokens);
          return true;
       }
       rtok.pushBack();
@@ -403,24 +388,6 @@ public class PointFem3dAttachment extends PointAttachment {
       }
       return super.postscanItem (tokens, ancestor);
    }
-   
-   protected static void writeNodes (
-      PrintWriter pw, NumberFormat fmt,
-      FemNode[] nodes, double[] weights, Object ref)
-
-      throws IOException {
-      CompositeComponent ancestor =
-         ComponentUtils.castRefToAncestor (ref);
-      pw.println ("[");
-      IndentingPrintWriter.addIndentation (pw, 2);
-      for (int i=0; i<nodes.length; i++) {
-         pw.println (
-            ComponentUtils.getWritePathName (ancestor, nodes[i])+" "+
-            weights[i]);
-      }
-      IndentingPrintWriter.addIndentation (pw, -2);
-      pw.println ("]");
-   }
 
    public void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
@@ -431,7 +398,8 @@ public class PointFem3dAttachment extends PointAttachment {
             "element="+ComponentUtils.getWritePathName (ancestor, myElement));
       }
       pw.print ("nodes=");
-      writeNodes (pw, fmt, myNodes, myCoords.getBuffer(), ancestor);
+      ScanWriteUtils.writeComponentsAndWeights (
+         pw, fmt, myNodes, myCoords.getBuffer(), ancestor);
    }
 
    public int addTargetJacobian (SparseBlockMatrix J, int bi) {

@@ -52,25 +52,28 @@ public class SphericalRpyJoint extends SphericalJointBase {
    }
 
    public Vector3d getRpyRad() {
-      // initialize TGD to TCD; it will get projected to TGD within
-      // myCoupling.getTheta();
-      RigidTransform3d TGD = new RigidTransform3d();
-      getCurrentTCD (TGD);
-      
       Vector3d rpy = new Vector3d();
+      RigidTransform3d TGD = null;
+      if (attachmentsInitialized()) {
+         // initialize TGD to TCD; it will get projected to TGD within
+         TGD = new RigidTransform3d();
+         getCurrentTCD (TGD);
+      }
       ((SphericalCoupling)myCoupling).getRpy (rpy, TGD);
       return rpy;
    }
 
    public void setRpyRad (Vector3d rpy) {
-      RigidTransform3d TGD = new RigidTransform3d();
+      RigidTransform3d TGD = null;
+      if (isConnectedToBodies()) {
+         TGD = new RigidTransform3d();
+      }      
       ((SphericalCoupling)myCoupling).setRpy (TGD, rpy);
-      if (getParent() != null) {
+      if (TGD != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.         
          adjustPoses (TGD);
       }
-      
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -132,8 +135,8 @@ public class SphericalRpyJoint extends SphericalJointBase {
          Math.toRadians (range.getLowerBound()),
          Math.toRadians (range.getUpperBound()));
       myRollRange.set (range);
-      if (getParent() != null) {
-         // we are attached - might have to update theta
+      if (isConnectedToBodies()) {
+         // if we are connected to the hierarchy, might have to update theta
          double roll = getRoll();
          double clipped = myRollRange.clipToRange (roll);
          if (clipped != roll) {
@@ -184,8 +187,8 @@ public class SphericalRpyJoint extends SphericalJointBase {
          Math.toRadians (range.getLowerBound()),
          Math.toRadians (range.getUpperBound()));
       myPitchRange.set (range);
-      if (getParent() != null) {
-         // we are attached - might have to update theta
+      if (isConnectedToBodies()) {
+         // if we are connected to the hierarchy, might have to update theta
          double pitch = getPitch();
          double clipped = myPitchRange.clipToRange (pitch);
          if (clipped != pitch) {
@@ -219,8 +222,8 @@ public class SphericalRpyJoint extends SphericalJointBase {
          Math.toRadians (range.getLowerBound()),
          Math.toRadians (range.getUpperBound()));
       myYawRange.set (range);
-      if (getParent() != null) {
-         // we are attached - might have to update theta
+      if (isConnectedToBodies()) {
+         // if we are connected to the hierarchy, might have to update theta
          double yaw = getYaw();
          double clipped = myYawRange.clipToRange (yaw);
          if (clipped != yaw) {
@@ -231,21 +234,6 @@ public class SphericalRpyJoint extends SphericalJointBase {
 
    public void setYawRange (double min, double max) {
       setYawRange (new DoubleInterval (min, max));
-   }
-
-   // Scanning of the following properties must be deferred until after
-   // references have been resolved:
-   static String[] deferredProps = new String[] {
-      "roll", "pitch", "yaw", "rollRange", "pitchRange", "yawRange"};
-
-   public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-      throws IOException {
-      rtok.nextToken();
-      if (ScanWriteUtils.scanAndStorePropertyValues (rtok, this, deferredProps, tokens)) {
-         return true;
-      }
-      rtok.pushBack();
-      return super.scanItem (rtok, tokens);
    }
 
    @Override

@@ -154,21 +154,30 @@ public class SlottedRevoluteCoupling extends RigidBodyCoupling {
    }
 
    public double getTheta (RigidTransform3d TGD) {
-      // on entry, TGD is set to TCD. It is then projected to TGD
-      projectToConstraint (TGD, TGD);
-      return doGetTheta (TGD);
+      if (TGD != null) {
+         // on entry, TGD is set to TCD. It is then projected to TGD
+         projectToConstraint (TGD, TGD);
+         return doGetTheta (TGD);
+      }
+      else {
+         // simply read back coordinate settings
+         checkConstraintStorage();
+         return myConstraintInfo[5].coordinate;
+      }     
    }
 
    public void setTheta (
       RigidTransform3d TGD, double theta) {
       checkConstraintStorage();
-      TGD.setIdentity();
-      double c = Math.cos (theta);
-      double s = Math.sin (theta);
-      TGD.R.m00 = c;
-      TGD.R.m01 = s;
-      TGD.R.m10 = -s;
-      TGD.R.m11 = c;
+      if (TGD != null) {
+         TGD.setIdentity();
+         double c = Math.cos (theta);
+         double s = Math.sin (theta);
+         TGD.R.m00 = c;
+         TGD.R.m01 = s;
+         TGD.R.m10 = -s;
+         TGD.R.m11 = c;
+      }
       myConstraintInfo[5].coordinate = theta;
    }
 
@@ -180,15 +189,24 @@ public class SlottedRevoluteCoupling extends RigidBodyCoupling {
    }
 
    public double getX (RigidTransform3d TGD) {
-      // on entry, TGD is set to TCD. It is then projected to TGD
-      projectToConstraint (TGD, TGD);
-      return doGetX (TGD);
+      if (TGD != null) {
+         // on entry, TGD is set to TCD. It is then projected to TGD
+         projectToConstraint (TGD, TGD);
+         return doGetX (TGD);
+      }
+      else {
+         // simply read back coordinate settings
+         checkConstraintStorage();
+         return myConstraintInfo[4].coordinate;
+      }
    }
 
    public void setX (
       RigidTransform3d TGD, double x) {
       checkConstraintStorage();
-      TGD.p.set (x, 0, 0);
+      if (TGD != null) {
+         TGD.p.set (x, 0, 0);
+      }
       myConstraintInfo[4].coordinate = x;
    }
 

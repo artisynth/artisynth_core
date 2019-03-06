@@ -24,6 +24,7 @@ import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
+import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CompositeComponentBase;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
@@ -325,9 +326,9 @@ public class AuxMaterialBundle extends CompositeComponentBase
    }
 
    @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      if (getAncestorFem (this) != null) {
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (hcomp == getParent() && getAncestorFem (this) != null) {
          for (int i=0; i<myElementDescs.size(); i++) {
             myElementDescs.get(i).referenceElement();
          }
@@ -335,13 +336,13 @@ public class AuxMaterialBundle extends CompositeComponentBase
    }
 
    @Override
-   public void disconnectFromHierarchy() {
-      if (getAncestorFem (this) != null) {
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      if (hcomp == getParent() && getAncestorFem (this) != null) {
          for (int i=0; i<myElementDescs.size(); i++) {
             myElementDescs.get(i).dereferenceElement();
          }
       }
-      super.disconnectFromHierarchy();
+      super.disconnectFromHierarchy(hcomp);
    }
 
    public void transformGeometry(AffineTransform3dBase X) {

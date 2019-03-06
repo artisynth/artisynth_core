@@ -7,6 +7,7 @@ import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.SparseBlockMatrix;
 import maspack.properties.PropertyList;
+import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
@@ -78,23 +79,27 @@ public class GenericMarker extends Marker {
    }
 
    @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      DynamicComponent masters[] = myAttachment.getMasters();
-      if (masters != null) {
-         for (DynamicComponent master : masters) {
-            master.addMasterAttachment (myAttachment);
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (hcomp == getParent()) {
+         DynamicComponent masters[] = myAttachment.getMasters();
+         if (masters != null) {
+            for (DynamicComponent master : masters) {
+               master.addMasterAttachment (myAttachment);
+            }
          }
       }
    }
    
    @Override
-   public void disconnectFromHierarchy() {
-      super.disconnectFromHierarchy();
-      DynamicComponent masters[] = myAttachment.getMasters();
-      if (masters != null) {
-         for (DynamicComponent master : masters) {
-            master.removeMasterAttachment (myAttachment);
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      super.disconnectFromHierarchy(hcomp);
+      if (hcomp == getParent()) {
+         DynamicComponent masters[] = myAttachment.getMasters();
+         if (masters != null) {
+            for (DynamicComponent master : masters) {
+               master.removeMasterAttachment (myAttachment);
+            }
          }
       }
    }

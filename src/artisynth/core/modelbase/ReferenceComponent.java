@@ -34,15 +34,6 @@ public class ReferenceComponent extends ModelComponentBase {
 
    public void setReference (ModelComponent ref) {
       if (ref != myRef) {
-//         if (getParent() != null) { 
-//            // then change is happening when connected to hierarchy
-//            if (myRef != null) {
-//               myRef.removeBackReference (this);
-//            }
-//            if (ref != null) {
-//               ref.addBackReference (this);
-//            }
-//         }
          myRef = ref;
       }      
    }

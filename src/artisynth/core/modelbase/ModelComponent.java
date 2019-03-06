@@ -99,33 +99,33 @@ public interface ModelComponent
    public void setParent (CompositeComponent parent);
 
    /**
-    * Called by the system after this component is added to the
-    * component hierarchy (i.e., when it is added as a child of another
-    * CompositeComponent). This method is responsible for doing
-    * any required hierarchy-dependent initialization.
-    * <p>
-    * When this method is called, {@link #getParent} will return
-    * the new parent component; the system will have set this beforehand.
+    * Called by the system after this component, or an ancestor of this
+    * component, is added to the component hierarchy (i.e., added as
+    * a child of another CompositeComponent). This method is responsible for
+    * doing any required hierarchy-dependent initialization, including any
+    * updating of referenced components.
+    *
+    * <p> When this method is called, {@link #getParent} will return the new
+    * parent component; the system will have set this beforehand.
+    * @param hcomp hierarchy component to which this component, 
+    * or its ancestor, was attached
     */
-   public void connectToHierarchy();
+   public void connectToHierarchy (CompositeComponent hcomp);
 
    /**
-    * Called by the system after this component is removed from the component
-    * hierarchy (i.e., when it is removed as a child of its parent).  This
-    * method is responsible for any required hierarchy-dependent
-    * deinitialization.
+    * Called by the system after this component, or an ancestor of this
+    * component, is removed from the component hierarchy (i.e., removed as a
+    * child of its parent).  This method is responsible for any required
+    * hierarchy-dependent deinitialization, including any updating of
+    * referenced components.
     *
-    * <p> When this
-    * method is called, {@link #getParent} will still return this original
-    * parent component; the system will set this to <code>null</code> after.
+    * <p> When this method is called, {@link #getParent} will still return this
+    * original parent component; the system will set this to <code>null</code>
+    * after.
+    * @param hcomp hierarchy component from which this component, 
+    * or its ancestor, was detached
     */
-   public void disconnectFromHierarchy();
-
-   // /**
-   // * Returns true if this component is currently the child
-   // * of a parent in the model hierarchy.
-   // */
-   // public boolean isConnected();
+   public void disconnectFromHierarchy (CompositeComponent hcomp);
 
    /**
     * Returns true if this model component is selected.
@@ -238,7 +238,7 @@ public interface ModelComponent
     * this component are removed from the the component hierarchy.
     * If called with <code>undo</code> equal to <code>false</code>,
     * this component should then examine its soft references and
-    * use {@link ComponentUtils#isConnected ComponentUtils.isConnected()}
+    * use {@link ComponentUtils#areConnected ComponentUtils.areConnected()}
     * to determine which of them have been disconnected from the hierarchy.
     * Disconnected references should be removed, and sufficient information
     * should be appended to <code>undoInfo</code> to allow this update

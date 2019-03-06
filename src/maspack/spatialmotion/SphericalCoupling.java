@@ -354,24 +354,33 @@ public class SphericalCoupling extends RigidBodyCoupling {
    }
 
    public void getRpy (Vector3d angs, RigidTransform3d TGD) {
-      
-      // on entry, TGD is set to TCD. It is then projected to TGD
-      projectToConstraint(TGD, TGD);
-      double[] rpy = new double[3];
-      RotationMatrix3d RDC = new RotationMatrix3d();
-      RDC.transpose(TGD.R);
-      doGetRpy(rpy, RDC);
-      angs.x = rpy[2];
-      angs.y = rpy[1];
-      angs.z = rpy[0];
+      if (TGD != null) {
+         // on entry, TGD is set to TCD. It is then projected to TGD
+         projectToConstraint(TGD, TGD);
+         double[] rpy = new double[3];
+         RotationMatrix3d RDC = new RotationMatrix3d();
+         RDC.transpose(TGD.R);
+         doGetRpy(rpy, RDC);
+         angs.x = rpy[2];
+         angs.y = rpy[1];
+         angs.z = rpy[0];
+      }
+      else {
+         // no TGD. Simply read back the coordinate settings
+         checkConstraintStorage();
+         angs.x = myConstraintInfo[5].coordinate;
+         angs.y = myConstraintInfo[4].coordinate;
+         angs.z = myConstraintInfo[3].coordinate;
+      }
    }
 
    public void setRpy(RigidTransform3d TGD, Vector3d angs) {
-      TGD.setIdentity();
-      RotationMatrix3d RDC = new RotationMatrix3d();
-      RDC.setRpy(angs.z, angs.y, angs.x);
-      TGD.R.transpose(RDC);
-
+      if (TGD != null) {
+         TGD.setIdentity();
+         RotationMatrix3d RDC = new RotationMatrix3d();
+         RDC.setRpy(angs.z, angs.y, angs.x);
+         TGD.R.transpose(RDC);
+      }
       checkConstraintStorage();
       myConstraintInfo[5].coordinate = angs.x;
       myConstraintInfo[4].coordinate = angs.y;

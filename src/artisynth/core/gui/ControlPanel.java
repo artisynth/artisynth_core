@@ -908,7 +908,7 @@ public class ControlPanel extends ModelComponentBase
                if (prop instanceof GenericPropertyHandle) {
                   ModelComponent comp =
                      ComponentUtils.getPropertyComponent (prop);
-                  if (comp != null && !ComponentUtils.isConnected (this, comp)) {
+                  if (comp != null && !ComponentUtils.areConnected (this, comp)) {
                      removeList.add (new WidgetRemoveInfo (prop, widget, i));
                      changed = true;
                   }
@@ -929,21 +929,25 @@ public class ControlPanel extends ModelComponentBase
       }
    }
 
-   public void connectToHierarchy () {
-      RootModel rootModel = RootModel.getRoot (this);
-      if (rootModel != null) {
-         setSynchronizeObject (rootModel);
-         setFocusableWindowState (rootModel.isFocusable());
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      if (hcomp == getParent()) {
+         RootModel rootModel = RootModel.getRoot (this);
+         if (rootModel != null) {
+            setSynchronizeObject (rootModel);
+            setFocusableWindowState (rootModel.isFocusable());
+         }
+         addGlobalValueChangeListener (myRerenderListener);
+         pack();
+         setVisible (true);
       }
-      addGlobalValueChangeListener (myRerenderListener);
-      pack();
-      setVisible (true);
-      super.connectToHierarchy ();
+      super.connectToHierarchy (hcomp);
    }
 
-   public void disconnectFromHierarchy () {
-      super.disconnectFromHierarchy();
-      dispose();
+   public void disconnectFromHierarchy (CompositeComponent hcomp) {
+      super.disconnectFromHierarchy(hcomp);
+      if (hcomp == getParent()) {
+         dispose();
+      }
    }
 
 

@@ -13,13 +13,13 @@ import java.util.*;
  * ModelComponents.
  */
 public class ComponentMap {
-   private HashMap<String,ModelComponent> myNameMap;
-   private int[] myNumberMap;
+   private HashMap<String,ModelComponent> myNameMap; // maps names to components
+   private int[] myNumberMap;    // maps numbers to compnent indices
    private int myDefaultNumberCapacity;
 
-   private int myStackSize;
-   private int myNumberLimit;
-   private int[] myNameStack;
+   private int myNumberLimit;    // next number beyond the current highest number
+   private int[] myNameStack;    // stack of free numbers
+   private int myNameStackSize;  // size of free number stack
    private boolean myNumberCacheValid = true;
 
    public int allocNumber() {
@@ -27,8 +27,8 @@ public class ComponentMap {
          collectFreeNumbers();
       }
       int num;
-      if (myStackSize > 0) {
-         num = myNameStack[--myStackSize];
+      if (myNameStackSize > 0) {
+         num = myNameStack[--myNameStackSize];
       }
       else {
          num = myNumberLimit;
@@ -40,7 +40,7 @@ public class ComponentMap {
    }
 
    public void printNameStack () {
-      for (int i=myStackSize-1; i>=0; i--) {
+      for (int i=myNameStackSize-1; i>=0; i--) {
          System.out.println (" " + myNameStack[i]);
       }
    }
@@ -55,8 +55,8 @@ public class ComponentMap {
       if (!myNumberCacheValid) {
          collectFreeNumbers();
       }
-      if (myStackSize > 0) {
-         return myNameStack[myStackSize - 1];
+      if (myNameStackSize > 0) {
+         return myNameStack[myNameStackSize - 1];
       }
       else {
          return myNumberLimit;
@@ -71,13 +71,13 @@ public class ComponentMap {
    }
 
    private void doFreeNumber (int num) {
-      if (myStackSize >= myNameStack.length) { // grow the name stack
+      if (myNameStackSize >= myNameStack.length) { // grow the name stack
          int newLength = (3 * myNameStack.length) / 2 + 1;
          int[] newStack = new int[newLength];
          System.arraycopy (myNameStack, 0, newStack, 0, myNameStack.length);
          myNameStack = newStack;
       }
-      myNameStack[myStackSize++] = num;
+      myNameStack[myNameStackSize++] = num;
       if (num == myNumberLimit - 1) {
          int k = num - 1;
          while (k >= 0 && myNumberMap[k] == -1) {
@@ -93,7 +93,7 @@ public class ComponentMap {
          highestNum--;
       }
       myNumberLimit = highestNum + 1;
-      myStackSize = 0;
+      myNameStackSize = 0;
       for (int i = highestNum - 1; i >= 0; i--) {
          if (myNumberMap[i] == -1) {
             doFreeNumber (i);
@@ -155,7 +155,7 @@ public class ComponentMap {
       for (int i = 0; i < myDefaultNumberCapacity; i++) {
          myNumberMap[i] = -1;
       }
-      myStackSize = 0;
+      myNameStackSize = 0;
       myNumberLimit = 0;
       myNameStack = new int[myDefaultNumberCapacity];
    }
@@ -244,6 +244,26 @@ public class ComponentMap {
       return myNumberLimit;
    }
 
+   /**
+    * Reset the number map so that numbers and indices match.  The number of
+    * components is given by {@code numc}.
+    */
+   protected void resetNumbersToIndices (int numc) {
+      if (myNumberMap.length < numc) {
+         myNumberMap = new int[numc];
+      }
+      for (int i=0; i<numc; i++) {
+         myNumberMap[i] = i;
+      }
+      for (int i=numc; i<myNumberMap.length; i++) {
+         myNumberMap[i] = -1;
+      }
+      // clear the name stack
+      myNumberLimit = numc;
+      myNameStackSize = 0;
+      myNumberCacheValid = true;
+   }
+
    public void resetIndex (ModelComponent comp, int idx) {
       myNumberMap[comp.getNumber()] = idx;
       //myNumberCacheValid = false;
@@ -286,7 +306,38 @@ public class ComponentMap {
       }
    }
 
-   public void startNumberingAtOne() {
-      myNumberLimit = 1;
+   /**
+    * Adjusts all number values by a given increment. This is used to implement
+    * zero or one-based numbering.
+    */
+   void incrementNumbers (int inc) {
+      ensureNumberCapacity (myNumberLimit + inc);
+      if (inc > 0) {
+         int i = myNumberMap.length-1;
+         // shift all entries up by inc
+         for ( ; i>=inc; i--) {
+            myNumberMap[i] = myNumberMap[i-inc];
+         }
+         // fill first inc entries with -1
+         for ( ; i>=0; i--) {
+            myNumberMap[i] = -1;
+         }
+      }
+      else if (inc < 0) {
+         int i = 0;
+         // shift all entries down by -inc
+         for ( ; i<myNumberMap.length+inc; i++) {
+            myNumberMap[i] = myNumberMap[i-inc];
+         }
+         // fill last entries with -1
+         for ( ; i<myNumberMap.length; i++) {
+            myNumberMap[i] = -1;
+         }
+      }
+      myNumberLimit += inc;
+      for (int i=0; i<myNameStackSize; i++) {
+         myNameStack[i] += inc;
+      }
    }
+
 }

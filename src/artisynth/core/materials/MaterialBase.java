@@ -146,8 +146,7 @@ public abstract class MaterialBase
          PropertyUtils.updateCompositeProperty (comp, matName, null, newMat);
       }
       else if (oldMat != null) {
-         PropertyUtils.updateCompositeProperty (
-            comp, matName, oldMat, null);
+         PropertyUtils.updateCompositeProperty (comp, matName, oldMat, null);
       }
       return newMat;
    }     

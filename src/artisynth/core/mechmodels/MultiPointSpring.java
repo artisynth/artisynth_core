@@ -2373,7 +2373,8 @@ public class MultiPointSpring extends PointSpringBase
             //    totalIterations/(double)totalCalls);
          }
          myDscale = dscale;
-         //myPrevForceNorm = prevForceNorm;
+         // recompute the contact counts so that they are up to date
+         getContactCounts (contactCnts);
          return icnt;
       }
 
@@ -4116,7 +4117,7 @@ public class MultiPointSpring extends PointSpringBase
          // remove soft references which aren't in the hierarchy any more:
          ListRemove<Wrappable> wrappableRemove = null;
          for (int i=0; i<myWrappables.size(); i++) {
-            if (!ComponentUtils.isConnected (
+            if (!ComponentUtils.areConnected (
                    this, myWrappables.get(i))) {
                if (wrappableRemove == null) {
                   wrappableRemove = new ListRemove<Wrappable>(myWrappables);
@@ -4133,7 +4134,7 @@ public class MultiPointSpring extends PointSpringBase
          }
          ListRemove<Segment> segmentRemove = null;
          for (int i=1; i<mySegments.size(); i++) {
-            if (!ComponentUtils.isConnected (this, mySegments.get(i).myPntB)) {
+            if (!ComponentUtils.areConnected (this, mySegments.get(i).myPntB)) {
                if (segmentRemove == null) {
                   segmentRemove = new ListRemove<Segment>(mySegments);
                }

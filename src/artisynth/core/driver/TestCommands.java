@@ -187,7 +187,7 @@ public class TestCommands {
          System.out.println ("loading model from "+saveFileName+" ...");
          myMain.loadModelFile (saveFile);
          rootModel = myMain.getRootModel();
-         System.out.println ("saving model from "+checkFileName+" ...");
+         System.out.println ("saving model to "+checkFileName+" ...");
          myMain.saveModelFile (checkFile, fmtStr);
 
          System.out.println (

@@ -4940,7 +4940,7 @@ PointAttachable, ConnectableBody {
    }
 
    public void useAnsysNumbering() {
-      myNodes.setNumberingStartAtOne();
+      myNodes.setZeroBasedNumbering (false);
    }
 
    /* --- Frame Support Methods --- */

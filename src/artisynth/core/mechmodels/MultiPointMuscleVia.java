@@ -78,30 +78,4 @@ public class MultiPointMuscleVia extends MultiPointMuscle {
    public void updateStructure() {
       updateViaPoints();
    }
-   
-   // public void insertPoint (Point pnt, int idx) {
-   //    if (idx < 0 || idx > myPnts.size()) {
-   //       throw new IndexOutOfBoundsException ("idx=" + idx + ", numPnts="
-   //       + myPnts.size());
-   //    }
-   //    if (idx == myPnts.size()) {
-   //       addPoint (pnt);
-   //    }
-   //    else {
-   //       if (getParent() != null) { // then change is happening when connected to hierarchy
-   //          pnt.addBackReference (this);
-   //       }
-   //       addPoint (idx, pnt);
-   //       mySegsValidP = false;
-   //    }
-   // }
-   
-   // public void applyForces (double t) {
-      
-   //    //update point set
-   //    updateViaPoints();
-      
-   //    super.applyForces (t);
-   // }
-
 }

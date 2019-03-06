@@ -17,15 +17,17 @@ public abstract class Marker extends Point implements HasAttachments {
    public abstract void updateState();
 
    protected void removeBackRefsIfConnected() {
-      if (isConnectedToHierarchy()) {
-         DynamicAttachmentBase.removeBackRefs (getAttachment());
-      }
+      DynamicAttachmentBase.removeBackRefsIfConnected (this, getAttachment());
+      // if (isConnectedToHierarchy()) {
+      //    DynamicAttachmentBase.removeBackRefs (getAttachment());
+      // }
    }
 
    protected void addBackRefsIfConnected() {
-      if (isConnectedToHierarchy()) {
-         DynamicAttachmentBase.addBackRefs (getAttachment());
-      }
+      DynamicAttachmentBase.addBackRefsIfConnected (this, getAttachment());
+      // if (isConnectedToHierarchy()) {
+      //    DynamicAttachmentBase.addBackRefs (getAttachment());
+      // }
    }
 
    /**
@@ -52,21 +54,44 @@ public abstract class Marker extends Point implements HasAttachments {
    }
 
    @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      DynamicAttachment at = getAttachment();
-      if (at != null) {
-         DynamicAttachmentBase.addBackRefs(at);
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (DynamicAttachmentBase.useNewConnect) {
+         DynamicAttachment at = getAttachment();
+         if (at != null) {
+            DynamicAttachmentBase.addNewlyConnectedBackRefs (
+               this, at, hcomp);
+         }
+         updateState(); // do we need this?
       }
-      updateState(); // do we need this?
+      else { 
+         if (hcomp == getParent()) {
+            DynamicAttachment at = getAttachment();
+            if (at != null) {
+               DynamicAttachmentBase.addBackRefs(at);
+            }
+            updateState(); // do we need this?
+         }
+      }
    }
 
    @Override
-   public void disconnectFromHierarchy() {
-      super.disconnectFromHierarchy();
-      DynamicAttachment at = getAttachment();
-      if (at != null) {
-         DynamicAttachmentBase.removeBackRefs(at);
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      super.disconnectFromHierarchy(hcomp);
+      if (DynamicAttachmentBase.useNewConnect) {
+         DynamicAttachment at = getAttachment();
+         if (at != null) {
+            DynamicAttachmentBase.removeNewlyDisconnectedBackRefs (
+               this, at, hcomp);
+         }         
+      }
+      else {      
+         if (hcomp == getParent()) {
+            DynamicAttachment at = getAttachment();
+            if (at != null) {
+               DynamicAttachmentBase.removeBackRefs(at);
+            }
+         }
       }
    }
 

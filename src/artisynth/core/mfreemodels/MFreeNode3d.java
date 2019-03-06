@@ -16,6 +16,7 @@ import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.ShellElement3d;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.PointState;
+import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
 import maspack.geometry.Boundable;
@@ -281,18 +282,22 @@ public class MFreeNode3d extends FemNode3d implements MFreePoint3d, Boundable {
    }
    
    @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      // paranoid; do this in both connect and disconnect
-      myNodeNeighbors.clear();
-      clearIndirectNeighbors();
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (hcomp == getParent()) {
+         // paranoid; do this in both connect and disconnect
+         myNodeNeighbors.clear();
+         clearIndirectNeighbors();
+      }
    }
 
    @Override
-   public void disconnectFromHierarchy() {
-      super.disconnectFromHierarchy();
-      myNodeNeighbors.clear();
-      clearIndirectNeighbors();
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      super.disconnectFromHierarchy(hcomp);
+      if (hcomp == getParent()) {
+         myNodeNeighbors.clear();
+         clearIndirectNeighbors();
+      }
    }
 
    public void computeCentroid(Vector3d centroid) {

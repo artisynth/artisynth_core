@@ -24,6 +24,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    protected int myScanCnt;
    // CompositeComponet that we are implementing for
    protected CompositeComponent myComp;
+   protected boolean myZeroBasedNumbering = true;
 
    protected ComponentMap myComponentMap;
    
@@ -162,7 +163,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       super.add (comp);
       try {
          ComponentUtils.checkReferenceContainment (comp);
-         comp.connectToHierarchy ();
+         ComponentUtils.recursivelyConnect (comp, myComp);
       }
       catch (RuntimeException e) {
          // if connectToHierarchy() throws an exception, remove the component
@@ -179,24 +180,13 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    private C doSet (int idx, C comp, int number) {
       C prev = get(idx);
       if (prev != null) {
-         prev.disconnectFromHierarchy();
+         ComponentUtils.recursivelyDisconnect (prev, myComp);
          clearComponent (prev);
       }
       initComponent (comp, number, idx);
       super.set (idx, comp);
-      comp.connectToHierarchy ();
+      ComponentUtils.recursivelyConnect (comp, myComp);
       PropertyUtils.updateAllInheritedProperties (comp);
-      return prev;
-   }
-
-   private C doSetX (int idx, C comp, int number) {
-      C prev = get(idx);
-      if (prev != null) {
-         prev.disconnectFromHierarchy();
-         clearComponent (prev);
-      }
-      initComponent (comp, number, idx);
-      super.set (idx, comp);
       return prev;
    }
 
@@ -289,7 +279,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       Class currentClass = null;
       for (int i=0; i<ncomps; i++) {
          ModelComponent comp = comps[i];
-         comp.connectToHierarchy();
+         ComponentUtils.recursivelyConnect (comp, myComp);
          if (comp.hasState()) {
             stateless = false;
          }
@@ -337,7 +327,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
          myValidateIndices = idx;
       }
       C comp = super.remove (idx);
-      comp.disconnectFromHierarchy();
+      ComponentUtils.recursivelyDisconnect (comp, myComp);
       clearComponent (comp);
       notifyStructureChanged (myComp, comp.hasState());
       return comp;
@@ -370,7 +360,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
                throw new InternalErrorException (
                   "some components specified for removal are marked");
             }
-            c.disconnectFromHierarchy();
+            ComponentUtils.recursivelyDisconnect (c, myComp);
             //myComponentMap.unmapComponent (c);
             //clearComponent ((C)c);
             c.setMarked (true);
@@ -427,7 +417,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       boolean stateless = isStateless (myArray, mySize);
       for (int i = 0; i < mySize; i++) {
          C comp = myArray[i];
-         comp.disconnectFromHierarchy();
+         ComponentUtils.recursivelyDisconnect (comp, myComp);
          comp.setParent (null);
          myArray[i] = null;
       }
@@ -467,8 +457,19 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
 
    // ========== End MutableCompositeComponent implementation ===== 
 
-   public void setNumberingStartAtOne () {
-      myComponentMap.startNumberingAtOne ();
+   public void setZeroBasedNumbering (boolean enable) {
+      if (myZeroBasedNumbering != enable) {
+         int inc = enable ? -1 : 1;
+         myComponentMap.incrementNumbers (inc);
+         for (ModelComponent mc : this) {
+            mc.setNumber (mc.getNumber()+inc);
+         }
+         myZeroBasedNumbering = enable;
+      }
+   }
+
+   public boolean getZeroBasedNumbering() {
+      return myZeroBasedNumbering;
    }
 
    protected void printClassTagIfNecessary (PrintWriter pw, C comp) {
@@ -638,7 +639,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
          if (newcomp != null) {
             // was able to create a new component. Use this to replace the
             // old component
-            comp.disconnectFromHierarchy();
+            ComponentUtils.recursivelyDisconnect (comp, myComp);
             clearComponent (comp);
             if (compNumber == -1) {
                compNumber = comp.getNumber();
@@ -682,19 +683,21 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       if (tok != null) {
          ModelComponent comp = (ModelComponent)tok.value();
          if (!comp.isFixed()) {
-            comp.setParent (null);
+            //comp.setParent (null);
             comp.postscan (tokens, ancestor);
-            comp.setParent (myComp);
-            try {
-               ComponentUtils.checkReferenceContainment (comp);
-               comp.connectToHierarchy ();
+            //comp.setParent (myComp);
+            if (!ScanWriteUtils.connectAfterScanning) {
+               try {
+                  //ComponentUtils.checkReferenceContainment (comp);
+                  comp.connectToHierarchy (myComp);
+               }
+               catch (Exception e) {
+                  throw new IOException (
+                     "Cannot connect component to hierarchy, component type "+
+                     comp.getClass() + ", near line " + tok.lineno(), e);
+               }
+               PropertyUtils.updateAllInheritedProperties (comp);
             }
-            catch (Exception e) {
-               throw new IOException (
-                  "Cannot connect component to hierarchy, component type "+
-                  comp.getClass() + ", near line " + tok.lineno(), e);
-            }
-            PropertyUtils.updateAllInheritedProperties (comp);
          }
          else {
             comp.postscan (tokens, ancestor);
@@ -724,6 +727,16 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    }
 
    /**
+    * Reset the number map so that numbers and indices match.
+    */
+   public void resetNumbersToIndices() {
+      myComponentMap.resetNumbersToIndices (size());
+      for (int i=0; i<size(); i++) {
+         get(i).setNumber(i);
+      }
+   }
+
+   /**
     * Force update of numbering (for example, if a component's number
     * has been manually changed)
     */
@@ -732,13 +745,4 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       myResetIndices = true;
    }
 
-   // public Object clone() throws CloneNotSupportedException {
-   //    ComponentListImpl comp = (ComponentListImpl)super.clone();
-
-   //    comp.clear();
-   //    comp.myValidateIndices = -1;
-   //    comp.myComponentMap = new ComponentMap();
-
-   //    return comp;
-   // }
 }

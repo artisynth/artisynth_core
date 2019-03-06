@@ -52,6 +52,7 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
       freeFlags = freeFlags & (~flag);
       return flag;
    }
+
    public static void removeTempFlag(int mask) {
       mask = mask & FREE_FLAG_MASK;
       freeFlags |= mask;
@@ -272,25 +273,13 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    /**
     * {@inheritDoc}
     */
-   public void connectToHierarchy () {
+   public void connectToHierarchy (CompositeComponent hcomp) {
    }
 
    /**
     * {@inheritDoc}
     */
-   public void disconnectFromHierarchy() {
-   }
-
-   /**
-    * Queries if this component is currently connected to a component
-    * hierarchy. This means that it currently has an ancestor under which all
-    * inter-component references should be contained.
-    *
-    * @return <code>true</code> if this component is connected to a component
-    * hierarchy
-    */
-   public boolean isConnectedToHierarchy() {
-      return ComponentUtils.nearestEncapsulatingAncestor(this) != null;
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
    }
 
    /**

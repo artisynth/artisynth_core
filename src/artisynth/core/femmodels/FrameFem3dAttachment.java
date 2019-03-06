@@ -230,9 +230,11 @@ public class FrameFem3dAttachment extends FrameAttachment {
    }
 
    protected void doSetFromElement (
-      FemElement3dBase elem, Vector3d coords) {
+      FemElement3dBase elem, Vector3d coords, boolean maybeConnected) {
 
-      removeBackRefsIfConnected();
+      if (maybeConnected) {
+         removeBackRefsIfConnected();
+      }
       myIpnt = IntegrationPoint3d.create (
          elem, coords.x, coords.y, coords.z, 1.0);
       myData = new IntegrationData3d();
@@ -251,14 +253,18 @@ public class FrameFem3dAttachment extends FrameAttachment {
       myElement = elem;
       myFem = getFemModel (elem);
       invalidateMasters();
-      addBackRefsIfConnected();
+      if (maybeConnected) {
+         addBackRefsIfConnected();
+      }
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
    }
 
    protected boolean doSetFromNodes (
-      FemNode3d[] nodes, double[] weights) {
+      FemNode3d[] nodes, double[] weights, boolean maybeConnected) {
 
-      removeBackRefsIfConnected();
+      if (maybeConnected) {
+         removeBackRefsIfConnected();
+      }
       myFem = null;
       for (int i=0; i<nodes.length; i++) {
          FemModel3d fem = getFemModel (nodes[i]);
@@ -283,7 +289,9 @@ public class FrameFem3dAttachment extends FrameAttachment {
       boolean status = initializeGNX (nodes, weights);
       myElement = null;
       invalidateMasters();
-      addBackRefsIfConnected();
+      if (maybeConnected) {
+         addBackRefsIfConnected();
+      }
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
       return status;
    }
@@ -294,7 +302,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
          elem.getNaturalCoordinates (coords, new Point3d(T.p), 1000) >= 0;
 
       myCoords.set (coords);
-      doSetFromElement (elem, coords);
+      doSetFromElement (elem, coords, /*maybeConnected=*/true);
 
       updateDeformationGradient();
       myRFD.mulInverseLeft (myPolard.getR(), T.R);
@@ -322,7 +330,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
          throw new IllegalArgumentException (
          "Number of weights is less than the number of nodes");
       }      
-      boolean status = doSetFromNodes (nodes, weights);
+      boolean status = doSetFromNodes (nodes, weights, /*maybeConnected=*/true);
       updateDeformationGradient();
       myRFD.mulInverseLeft (myPolard.getR(), TFW.R);
       return status;
@@ -339,7 +347,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       new InverseDistanceWeights (1, 1, /*normalize=*/true);
       VectorNd weights = new VectorNd();
       boolean status = idweights.compute (weights, TFW.p, support);
-      doSetFromNodes (nodes, weights.getBuffer());
+      doSetFromNodes (nodes, weights.getBuffer(), /*maybeConnected=*/true);
       updateDeformationGradient();
       myRFD.mulInverseLeft (myPolard.getR(), TFW.R);
       return status;
@@ -367,7 +375,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
          return false;
       }
       myCoords.set (coords);
-      doSetFromElement (elem, coords);
+      doSetFromElement (elem, coords, /*maybeConnected=*/true);
       updateDeformationGradient();
       myRFD.mulInverseLeft (myPolard.getR(), T.R);
       return true;
@@ -948,7 +956,7 @@ public class FrameFem3dAttachment extends FrameAttachment {
       }
       else if (scanAttributeName (rtok, "nodes")) {
          tokens.offer (new StringToken ("nodes", rtok.lineno()));
-         PointFem3dAttachment.scanNodes (rtok, tokens);
+         ScanWriteUtils.scanComponentsAndWeights (rtok, tokens);
          return true;
       }
       else if (scanAttributeName (rtok, "coords")) {
@@ -965,14 +973,14 @@ public class FrameFem3dAttachment extends FrameAttachment {
       if (postscanAttributeName (tokens, "element")) {
          FemElement3dBase elem = postscanReference (
             tokens, FemElement3dBase.class, ancestor);
-         doSetFromElement (elem, myCoords);
+         doSetFromElement (elem, myCoords, /*maybeConnected=*/false);
          return true;
       }
       else if (postscanAttributeName (tokens, "nodes")) {
          FemNode3d[] nodes = ScanWriteUtils.postscanReferences (
             tokens, FemNode3d.class, ancestor);
          double[] weights = (double[])tokens.poll().value();
-         doSetFromNodes (nodes, weights);
+         doSetFromNodes (nodes, weights, /*maybeConnected=*/false);
          return true;
       }
       return super.postscanItem (tokens, ancestor);
@@ -990,7 +998,8 @@ public class FrameFem3dAttachment extends FrameAttachment {
       }
       else {
          pw.print ("nodes=");
-         PointFem3dAttachment.writeNodes (pw, fmt, myNodes, myWeights, ancestor);
+         ScanWriteUtils.writeComponentsAndWeights (
+            pw, fmt, myNodes, myWeights, ancestor);
       }
       int writeFormat = RigidTransform3d.AXIS_ANGLE_STRING;
       if (fmt.isFullPrecisionDouble()) {

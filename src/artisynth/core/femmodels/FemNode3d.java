@@ -674,26 +674,30 @@ public class FemNode3d extends FemNode implements Boundable {
    }
    
    @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      // paranoid; do this in both connect and disconnect
-      myNodeNeighbors.clear();
-      clearIndirectNeighbors();
-      ModelComponent gp = getGrandParent();
-      if (gp instanceof FemModel3d) {
-         FemModel3d fem = (FemModel3d)gp;
-         if (fem.isFrameRelative()) {
-            setFrameNode (new FrameNode3d (this, fem.getFrame()));
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (hcomp == getParent()) {
+         // paranoid; do this in both connect and disconnect
+         myNodeNeighbors.clear();
+         clearIndirectNeighbors();
+         ModelComponent gp = getGrandParent();
+         if (gp instanceof FemModel3d) {
+            FemModel3d fem = (FemModel3d)gp;
+            if (fem.isFrameRelative()) {
+               setFrameNode (new FrameNode3d (this, fem.getFrame()));
+            }
          }
       }
    }
 
    @Override
-   public void disconnectFromHierarchy() {
-      super.disconnectFromHierarchy();
-      myNodeNeighbors.clear();
-      clearIndirectNeighbors();
-      setFrameNode (null);
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      super.disconnectFromHierarchy(hcomp);
+      if (hcomp == getParent()) {
+         myNodeNeighbors.clear();
+         clearIndirectNeighbors();
+         setFrameNode (null);
+      }
    }
 
    public void resetRestPosition() {

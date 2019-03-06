@@ -50,33 +50,49 @@ public class ShellNodeFrameAttachment
          if (node.hasDirector()) {
             myDirectorAttachment = 
                new DirectorFrameAttachment (node, getFrame());
-            if (isConnectedToHierarchy()) {
+            if (ComponentUtils.areConnected (this, node)) {
                backNode.setAttached (myDirectorAttachment);
             }
          }
          else {
             myDirectorAttachment = null;
-            if (isConnectedToHierarchy()) {
+            if (ComponentUtils.areConnected (this, node)) {
                backNode.setAttached (null);
             }
          }
       }
    }
 
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
       FemNode3d node = getNode();
-      if (node.hasDirector()) {
-         node.getBackNode().setAttached (myDirectorAttachment);
+      if (ComponentUtils.areConnectedVia (this, node, hcomp)) {
+         if (node.hasDirector()) {
+            node.getBackNode().setAttached (myDirectorAttachment);
+         }
       }
+      // if (connector == getParent()) {
+      //    FemNode3d node = getNode();
+      //    if (node.hasDirector()) {
+      //       node.getBackNode().setAttached (myDirectorAttachment);
+      //    }
+      // }
    }
 
-   public void disconnectFromHierarchy () {
-      super.disconnectFromHierarchy ();
+   public void disconnectFromHierarchy (CompositeComponent hcomp) {
+      super.disconnectFromHierarchy (hcomp);
       FemNode3d node = getNode();
-      if (node.hasDirector()) {
-         node.getBackNode().setAttached (null);
+      if (ComponentUtils.areConnectedVia (this, node, hcomp)) {
+         if (node.hasDirector()) {
+            node.getBackNode().setAttached (null);
+         }
       }
+      // if (connector == getParent()) {
+      //    FemNode3d node = getNode();
+      //    if (node.hasDirector()) {
+      //       node.getBackNode().setAttached (null);
+      //    }
+      // }
    }
    
    public DirectorFrameAttachment getDirectorAttachment() {

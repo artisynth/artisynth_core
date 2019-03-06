@@ -84,7 +84,17 @@ public abstract class FemElement3dBase extends FemElement
    public PropertyMode getElementWidgetSizeMode() {
       return myElementWidgetSizeMode;
    }
-
+   
+   public FemModel3d getFemModel() {
+      ModelComponent gparent = getGrandParent();
+      if (gparent instanceof FemModel) {
+         return (FemModel3d)gparent;
+      }
+      else {
+         return null;
+      }
+   }
+   
    /* --- Nodes and neighbors --- */
 
    public abstract double[] getNodeCoords ();
@@ -959,55 +969,58 @@ public abstract class FemElement3dBase extends FemElement
 
    /* --- Hierarchy --- */
    
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      
-      FemNode3d[] nodes = getNodes();
-      // add element dependency first, so that in the case of shells directors
-      // will be enabled for the each node and hence also for the node
-      // neighbors
-      for (int i = 0; i < nodes.length; i++) {
-         for (int j = 0; j < nodes.length; j++) {
-            nodes[i].registerNodeNeighbor (
-               nodes[j], /*shell=*/myElementClass==ElementClass.SHELL);
-         }
-         nodes[i].addElementDependency(this);
-      }
-      invalidateMassIfNecessary();
-
-      myNbrs = new FemNodeNeighbor[numNodes()][numNodes()];
-      for (int i=0; i<myNodes.length; i++) {
-         FemNode3d node = myNodes[i];
-         int cnt = 0;
-         for (FemNodeNeighbor nbr : node.getNodeNeighbors()){
-            int j = getLocalNodeIndex (nbr.myNode);
-            if (j != -1) {
-               myNbrs[i][j] = nbr;
-               cnt++;
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (hcomp == getParent()) {
+         FemNode3d[] nodes = getNodes();
+         // add element dependency first, so that in the case of shells directors
+         // will be enabled for the each node and hence also for the node
+         // neighbors
+         for (int i = 0; i < nodes.length; i++) {
+            for (int j = 0; j < nodes.length; j++) {
+               nodes[i].registerNodeNeighbor (
+                  nodes[j], /*shell=*/myElementClass==ElementClass.SHELL);
             }
+            nodes[i].addElementDependency(this);
          }
-         if (cnt != myNodes.length) {
-            System.out.println ("element class " + getClass());
-            throw new InternalErrorException (
-               "Node "+node.getNumber()+" has "+cnt+
-               " local neighbors, expecting "+myNodes.length);
+         invalidateMassIfNecessary();
+
+         myNbrs = new FemNodeNeighbor[numNodes()][numNodes()];
+         for (int i=0; i<myNodes.length; i++) {
+            FemNode3d node = myNodes[i];
+            int cnt = 0;
+            for (FemNodeNeighbor nbr : node.getNodeNeighbors()){
+               int j = getLocalNodeIndex (nbr.myNode);
+               if (j != -1) {
+                  myNbrs[i][j] = nbr;
+                  cnt++;
+               }
+            }
+            if (cnt != myNodes.length) {
+               System.out.println ("element class " + getClass());
+               throw new InternalErrorException (
+                  "Node "+node.getNumber()+" has "+cnt+
+                  " local neighbors, expecting "+myNodes.length);
+            }
          }
       }
    }
    
-   public void disconnectFromHierarchy () {
-      myNbrs = null;
+   public void disconnectFromHierarchy (CompositeComponent hcomp) {
+      if (hcomp == getParent()) {
+         myNbrs = null;
 
-      FemNode3d[] nodes = getNodes();
-      for (int i = 0; i < nodes.length; i++) {
-         for (int j = 0; j < nodes.length; j++) {
-            nodes[i].deregisterNodeNeighbor (
-               nodes[j], /*shell=*/myElementClass==ElementClass.SHELL);
+         FemNode3d[] nodes = getNodes();
+         for (int i = 0; i < nodes.length; i++) {
+            for (int j = 0; j < nodes.length; j++) {
+               nodes[i].deregisterNodeNeighbor (
+                  nodes[j], /*shell=*/myElementClass==ElementClass.SHELL);
+            }
+            nodes[i].invalidateMassIfNecessary ();  // signal dirty
+            nodes[i].removeElementDependency(this);
          }
-         nodes[i].invalidateMassIfNecessary ();  // signal dirty
-         nodes[i].removeElementDependency(this);
       }
-      super.disconnectFromHierarchy ();
+      super.disconnectFromHierarchy (hcomp);
    }
 
    /* --- Boundable --- */ 

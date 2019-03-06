@@ -146,10 +146,9 @@ public abstract class ShellElement3d extends FemElement3dBase
    public void setDefaultThickness(double newThickness) {
       double prevThickness = myDefaultThickness;
       myDefaultThickness = newThickness;
-      
       // Update rest data since it may depend on knowing the shell thickness.
       super.invalidateRestData();
-      if (isConnectedToHierarchy()) {
+      if (getFemModel() != null) {
          invalidateElementAndNodeMasses(); // masses depend on thickness
          for (FemNode3d n : myNodes) {
             n.rescaleDirectorsIfNecessary (this, prevThickness);
@@ -294,14 +293,18 @@ public abstract class ShellElement3d extends FemElement3dBase
 
    /* --- Hierarchy --- */
    
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      invalidateRestDirectorsIfNecessary();
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (hcomp == getParent()) {
+         invalidateRestDirectorsIfNecessary();
+      }
    }
    
-   public void disconnectFromHierarchy () {
-      invalidateRestDirectorsIfNecessary();
-      super.disconnectFromHierarchy ();
+   public void disconnectFromHierarchy (CompositeComponent hcomp) {
+      super.disconnectFromHierarchy (hcomp);
+      if (hcomp == getParent()) {
+         invalidateRestDirectorsIfNecessary();
+      }
    }
    
    public abstract double nearestPoint (Point3d near, Point3d pnt);

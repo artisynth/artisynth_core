@@ -1044,17 +1044,17 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
    }
 
    @Override
-   public void connectToHierarchy () {
+   public void connectToHierarchy (CompositeComponent hcomp) {
       // XXX not sure what to do here. Probably don't want to add back
       // references to all master components, but then we need a way to remove
       // masters from the attachments when masters disappear
-      super.connectToHierarchy ();
+      super.connectToHierarchy (hcomp);
    }
 
    @Override
-   public void disconnectFromHierarchy() {
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
       // XXX not sure what to do here ... see comment in connectToParent()
-      super.disconnectFromHierarchy();
+      super.disconnectFromHierarchy(hcomp);
    }
 
    @Override

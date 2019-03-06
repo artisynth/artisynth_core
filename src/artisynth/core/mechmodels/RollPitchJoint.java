@@ -18,6 +18,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.spatialmotion.RollPitchCoupling;
 import maspack.util.DoubleInterval;
+import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 
@@ -54,25 +55,25 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       return myProps;
    }
    
-  public double[] getRollPitchRad() {
-      // initialize TGD to TCD; it will get projected to TGD within
-      // myCoupling.getTheta();
-      RigidTransform3d TGD = new RigidTransform3d();
-      getCurrentTCD (TGD);
-            
+   public double[] getRollPitchRad() {
+      RigidTransform3d TGD = null;
+      if (attachmentsInitialized()) {
+         // initialize TGD to TCD; it will get projected to TGD within
+         TGD = new RigidTransform3d();
+         getCurrentTCD (TGD);
+      }            
       double[] angs = new double[2];
-      
       ((RollPitchCoupling)myCoupling).getRollPitch (angs, TGD);
-      // System.out.println ("roll pitch rad "+
-      //                     Math.toDegrees(angs[0])+" "+
-      //                     Math.toDegrees(angs[1]));
       return angs;
    }
 
    public void setRollPitchRad (double[] angs) {
-      RigidTransform3d TGD = new RigidTransform3d();
+      RigidTransform3d TGD = null;
+      if (isConnectedToBodies()) {
+         TGD = new RigidTransform3d();
+      }      
       ((RollPitchCoupling)myCoupling).setRollPitch (TGD, angs);
-      if (getParent() != null) {
+      if (TGD != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.         
          adjustPoses (TGD);
@@ -143,8 +144,8 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
          Math.toRadians (range.getLowerBound()),
          Math.toRadians (range.getUpperBound()));
       myRollRange.set (range);
-      if (getParent() != null) {
-         // we are attached - might have to update theta
+      if (isConnectedToBodies()) {
+         // if we are connected to the hierarchy, might have to update theta
          double roll = getRoll();
          double clipped = myRollRange.clipToRange (roll);
          if (clipped != roll) {
@@ -178,8 +179,8 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
          Math.toRadians (range.getLowerBound()),
          Math.toRadians (range.getUpperBound()));
       myPitchRange.set (range);
-      if (getParent() != null) {
-         // we are attached - might have to update theta
+      if (isConnectedToBodies()) {
+         // if we are connected to the hierarchy, might have to update theta
          double pitch = getPitch();
          double clipped = myPitchRange.clipToRange (pitch);
          if (clipped != pitch) {

@@ -131,7 +131,7 @@ public class ExcitationSourceList extends ArrayList<ExcitationSource> {
       else {
          ListRemove<ExcitationSource> remove = null;
          for (int i=0; i<size(); i++) {
-            if (!ComponentUtils.isConnected (
+            if (!ComponentUtils.areConnected (
                    host, get(i).myComp)) {
                if (remove == null) {
                   remove = new ListRemove<ExcitationSource>(this);

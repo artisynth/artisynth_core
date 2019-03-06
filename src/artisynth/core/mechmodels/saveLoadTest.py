@@ -1,7 +1,7 @@
 # ArtisynthScript: "saveLoadTest"
 
-def testSaveLoadFull (modelName, sec, fmt, tsim, hsim) :
-    if loadModel (modelName) == False:
+def testSaveLoadFull (sec, fmt, tsim, hsim, modelName, *args) :
+    if loadModel (modelName, *args) == False:
         print "Model %s not found" % modelName
         return
     delay (sec)
@@ -14,8 +14,8 @@ def testSaveLoadFull (modelName, sec, fmt, tsim, hsim) :
         #abort()
         #main.maskFocusStealing (False)
 
-def testSaveLoad (modelName) :
-    testSaveLoadFull (modelName, 0, "%g", 1.0, 0.10)
+def testSaveLoad (modelName, *args) :
+    testSaveLoadFull (0, "%g", 1.0, 0.10, modelName, *args)
 
 # Adjust certain solver settings to ensure repeatable results:
 MechSystemSolver.myDefaultHybridSolveP = False
@@ -40,45 +40,62 @@ testSaveLoad ("artisynth.demos.mech.SegmentedPlaneDemo")
 testSaveLoad ("artisynth.demos.fem.ArticulatedFem")
 testSaveLoad ("artisynth.demos.fem.AttachDemo")
 testSaveLoad ("artisynth.demos.fem.AttachedBeamDemo")
+testSaveLoad ("artisynth.demos.fem.CombinedShellFem")
 testSaveLoad ("artisynth.demos.fem.FemCollision")
-testSaveLoadFull ("artisynth.demos.fem.FemMuscleArm", 0, "%g", 1.0, 0.10)
+testSaveLoadFull (0, "%g", 1.0, 0.10, "artisynth.demos.fem.FemMuscleArm")
 testSaveLoad ("artisynth.demos.fem.FemMuscleDemo")
 testSaveLoad ("artisynth.demos.fem.FemPlaneCollide");
 testSaveLoad ("artisynth.demos.fem.FemSkinDemo")
 testSaveLoad ("artisynth.demos.fem.Hex3dBlock")
+testSaveLoad ("artisynth.demos.fem.LeafDemo")
 testSaveLoad ("artisynth.demos.fem.PlaneConstrainedFem")
 testSaveLoad ("artisynth.demos.fem.SelfCollision")
-testSaveLoadFull ("artisynth.demos.fem.TetBeam3d", 0, "%.10g", 1.0, 0.10)
+testSaveLoad ("artisynth.demos.fem.ShellTriPatch")
+testSaveLoad ("artisynth.demos.fem.ShellTriPatch", "-membrane")
+testSaveLoad ("artisynth.demos.fem.ShellQuadPatch")
+testSaveLoad ("artisynth.demos.fem.ShellQuadPatch", "-membrane")
+testSaveLoad ("artisynth.demos.fem.ShellBlock")
+testSaveLoad ("artisynth.demos.fem.ShellBlock", "-membrane")
+testSaveLoadFull (0, "%.10g", 1.0, 0.10, "artisynth.demos.fem.TetBeam3d")
 testSaveLoad ("artisynth.demos.fem.ViscousBeam")
 
-testSaveLoadFull ("artisynth.models.alanMasseter.MasseterM16462John",0,"%g",0.2,0.02)
+testSaveLoadFull (0,"%g",0.2,0.02, "artisynth.models.alanMasseter.MasseterM16462John")
 testSaveLoad ("artisynth.models.phuman.SimpleJointedArm")
 testSaveLoad ("artisynth.demos.mech.ConstrainedParticle")
-testSaveLoadFull ("artisynth.demos.mech.BlockTest", 0, "%g", 1.5, 0.10)
+testSaveLoadFull (0, "%g", 1.5, 0.10, "artisynth.demos.mech.BlockTest")
 testSaveLoad ("artisynth.demos.mech.FrameSpringDemo")
 testSaveLoad ("artisynth.demos.mech.RigidBodyCollision")
 testSaveLoad ("artisynth.demos.mech.RigidCompositeCollide")
 testSaveLoad ("artisynth.demos.mech.LaymanDemo")
-testSaveLoadFull ("artisynth.models.tongue3d.HexTongueDemo", 0, "%g", 0.2, 0.02)
-testSaveLoadFull ("artisynth.models.tongue3d.FemMuscleTongueDemo", 0, "%g", 0.2, 0.02)
+testSaveLoad ("artisynth.demos.mech.RollPitchJointDemo")
+testSaveLoad ("artisynth.demos.mech.WrappedMuscleArm")
+
+testSaveLoadFull (0, "%g", 0.2, 0.02, "artisynth.models.tongue3d.HexTongueDemo")
+testSaveLoadFull (0, "%g", 0.2, 0.02, "artisynth.models.tongue3d.FemMuscleTongueDemo")
 #testSaveLoad ("artisynth.models.inversedemos.TongueInvDemo") // Doesn't work
 #testSaveLoad ("artisynth.models.inversedemos.HydrostatInvDemo") // Doesn't work
 
-testSaveLoadFull ("artisynth.models.dynjaw.JawLarynxDemo", 1, "%g", 1.0, 0.10)
+testSaveLoadFull (1, "%g", 1.0, 0.10, "artisynth.models.dynjaw.JawLarynxDemo")
 testSaveLoad ("artisynth.demos.mech.SkinDemo")
 # JawDemo needs delay since rendering sets Jaw textureProps.enabled=false
-testSaveLoadFull ("artisynth.models.dynjaw.JawDemo", 0.5, "%g", 1.0, 0.10)
+testSaveLoadFull (0.5, "%g", 1.0, 0.10, "artisynth.models.dynjaw.JawDemo")
 testSaveLoad ("artisynth.models.dangTongue.FemTongueDemo")
 
+testSaveLoad ("artisynth.models.wrapping.DynamicWrapTest", "-geo", "CYLINDER")
+testSaveLoad ("artisynth.models.wrapping.DynamicWrapTest", "-geo", "SPHERE")
+testSaveLoad ("artisynth.models.wrapping.DynamicWrapTest", "-geo", "ELLIPSOID")
+testSaveLoad ("artisynth.models.wrapping.DynamicWrapTest", "-geo", "TORUS")
+testSaveLoad ("artisynth.models.wrapping.DynamicWrapTest", "-geo", "PHALANX")
+
 testSaveLoad ("artisynth.demos.tutorial.BallPlateCollide")
-testSaveLoad ("artisynth.demos.tutorial.PenetrationRender")
 testSaveLoad ("artisynth.demos.tutorial.DeformedJointedCollide")
+testSaveLoad ("artisynth.demos.tutorial.CylinderWrapping")
 testSaveLoad ("artisynth.demos.tutorial.FemBeam")
 #testSaveLoad ("artisynth.demos.tutorial.FemBeamColored") # member variables
 testSaveLoad ("artisynth.demos.tutorial.FemBeamWithBlock")
 testSaveLoad ("artisynth.demos.tutorial.FemBeamWithFemSphere")
 testSaveLoad ("artisynth.demos.tutorial.FemBeamWithMuscle")
-testSaveLoadFull ("artisynth.demos.tutorial.FemCollisions", 0, "%g", 0.04, 0.002)
+testSaveLoadFull (0, "%g", 0.04, 0.002, "artisynth.demos.tutorial.FemCollisions")
 testSaveLoad ("artisynth.demos.tutorial.FemEmbeddedSphere")
 testSaveLoad ("artisynth.demos.tutorial.FemMuscleBeams")
 testSaveLoad ("artisynth.demos.tutorial.FrameBodyAttachment")
@@ -91,17 +108,25 @@ testSaveLoad ("artisynth.demos.tutorial.NetDemoWithPan")
 testSaveLoad ("artisynth.demos.tutorial.NetDemoWithRefs")
 testSaveLoad ("artisynth.demos.tutorial.ParticleAttachment")
 testSaveLoad ("artisynth.demos.tutorial.ParticleSpring")
+testSaveLoad ("artisynth.demos.tutorial.PenetrationRender")
+testSaveLoad ("artisynth.demos.tutorial.PhalanxWrapping")
 testSaveLoad ("artisynth.demos.tutorial.PointFemAttachment")
 testSaveLoad ("artisynth.demos.tutorial.RigidBodyJoint")
 testSaveLoad ("artisynth.demos.tutorial.RigidBodySpring")
+testSaveLoad ("artisynth.demos.tutorial.RigidCompositeBody")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscle")
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithController") # scan not implemented
-testSaveLoad ("artisynth.demos.tutorial.CylinderWrapping")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithPanel")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProbes")
 testSaveLoad ("artisynth.demos.tutorial.SphericalTextureMapping")
+testSaveLoad ("artisynth.demos.tutorial.TalusWrapping")
+testSaveLoad ("artisynth.demos.tutorial.TorusWrapping")
+testSaveLoad ("artisynth.demos.tutorial.ViaPointMuscle")
 
+testSaveLoad ("artisynth.demos.test.OneBasedNumbering");
 testSaveLoad ("artisynth.demos.test.ReflectedBodies");
+testSaveLoad ("artisynth.demos.test.TorusWrapTest")
+testSaveLoad ("artisynth.demos.test.LinearPointConstraintTest")
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 
 
@@ -111,4 +136,3 @@ testSaveLoad ("artisynth.demos.test.ReflectedBodies");
 #testSaveLoad ("artisynth.models.inversedemos.PointModel3d")
 
 main.maskFocusStealing (False)
-

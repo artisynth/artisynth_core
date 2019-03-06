@@ -47,6 +47,7 @@ import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CompositeComponentBase;
+import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
@@ -923,26 +924,6 @@ public class MuscleBundle extends CompositeComponentBase
       for (int i=0; i<myElementDescs.size(); i++) {
          myElementDescs.get(i).scaleMass (s);
       }
-   }
-
-   @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      if (getAncestorFem (this) != null) {
-         for (int i=0; i<myElementDescs.size(); i++) {
-            myElementDescs.get(i).referenceElement();
-         }
-      }
-   }
-
-   @Override
-   public void disconnectFromHierarchy() {
-      if (getAncestorFem (this) != null) {
-         for (int i=0; i<myElementDescs.size(); i++) {
-            myElementDescs.get(i).dereferenceElement();
-         }
-      }
-      super.disconnectFromHierarchy();
    }
 
    /*

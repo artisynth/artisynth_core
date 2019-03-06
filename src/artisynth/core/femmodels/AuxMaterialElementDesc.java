@@ -302,19 +302,19 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
    }
 
    @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      if (MuscleBundle.getAncestorFem (this) != null) {
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (ComponentUtils.areConnectedVia (this, myElement, hcomp)) {
          referenceElement();
       }
    }
 
    @Override
-   public void disconnectFromHierarchy() {
-      if (MuscleBundle.getAncestorFem (this) != null) {
+   public void disconnectFromHierarchy (CompositeComponent hcomp) {
+      if (ComponentUtils.areConnectedVia (this, myElement, hcomp)) {
          dereferenceElement();
       }
-      super.disconnectFromHierarchy();
+      super.disconnectFromHierarchy(hcomp);
    }
 
    public void printElementReference (PrintWriter pw, CompositeComponent ancestor)

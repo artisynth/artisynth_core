@@ -117,6 +117,16 @@ public abstract class FemElement extends RenderableComponentBase
       }
    }
 
+   public FemModel getFemModel() {
+      ModelComponent gparent = getGrandParent();
+      if (gparent instanceof FemModel) {
+         return (FemModel)gparent;
+      }
+      else {
+         return null;
+      }
+   }
+   
    /* --- Augmenting materials --- */
    
    public void addAugmentingMaterial (FemMaterial mat) {

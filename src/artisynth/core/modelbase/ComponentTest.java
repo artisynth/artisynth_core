@@ -9,7 +9,8 @@ package artisynth.core.modelbase;
 import maspack.util.*;
 import java.util.*;
 
-public class ComponentTest {
+public class ComponentTest extends UnitTest {
+   
    private void doAssert (String msg, boolean pred) {
       if (!pred) {
          throw new TestException ("assertion failed: " + msg);
@@ -24,6 +25,10 @@ public class ComponentTest {
    }
 
    private class TestList extends ComponentList<TestComp> {
+      TestList (String name) {
+         super (TestComp.class, name);
+      }
+
       TestList (String name, String shortName) {
          super (TestComp.class, name, shortName);
       }
@@ -157,11 +162,107 @@ public class ComponentTest {
       return list;
    }
 
-   ComponentTest() {
-
+   private void checkConnectedVia (
+      ModelComponent comp1, ModelComponent comp2,
+      ModelComponent viacomp, boolean value) {
+      
+      String msg =
+         "areConnectedVia " +
+         (comp1.getName()+","+comp2.getName()+","+viacomp.getName());
+      boolean result =
+         ComponentUtils.areConnectedVia (comp1, comp2, viacomp);
+      if (value != result) {
+         throw new TestException (
+            msg + " yielded " + result + ", expected " + value);
+      }
    }
 
-   public void test() {
+   private boolean containedIn (ModelComponent comp, ModelComponent[] comps) {
+      for (ModelComponent c : comps) {
+         if (c == comp) {
+            return true;
+         }
+      }
+      return false;
+   }
+
+   private void checkConnectedVia (
+      ModelComponent comp1, ModelComponent comp2,
+      ModelComponent[] allComps, ModelComponent... viacomps) {
+
+      checkConnectedVia (comp1, comp2, comp1, true);
+      checkConnectedVia (comp1, comp2, comp2, true);
+      for (ModelComponent comp : viacomps) {
+         checkConnectedVia (comp1, comp2, comp, true);
+         checkConnectedVia (comp2, comp1, comp, true);
+      }
+      for (ModelComponent comp : allComps) {
+         if (comp != comp1 && comp != comp2 && !containedIn (comp, viacomps)) {
+            checkConnectedVia (comp1, comp2, comp, false);
+            checkConnectedVia (comp2, comp1, comp, false);
+         }
+      }
+   }
+
+   private void checkNotConnected (
+      ModelComponent comp1, ModelComponent comp2, ModelComponent[] allComps) {
+      
+      for (ModelComponent comp : allComps) {
+         checkConnectedVia (comp1, comp2, comp, false);
+         checkConnectedVia (comp2, comp1, comp, false);
+      }
+   }
+
+   public void testAreConnectedVia() {
+
+      ComponentList<ModelComponent> A, B, C, D, J, K;
+      TestComp E, F, G, H, I, L;
+
+      A = new ComponentList<ModelComponent> (ModelComponent.class, "A");
+      B = new ComponentList<ModelComponent> (ModelComponent.class, "B");
+      C = new ComponentList<ModelComponent> (ModelComponent.class, "C");
+
+      D = new ComponentList<ModelComponent> (ModelComponent.class, "D");
+      J = new ComponentList<ModelComponent> (ModelComponent.class, "J");
+      K = new ComponentList<ModelComponent> (ModelComponent.class, "K");
+
+      E = new TestComp ("E");
+      F = new TestComp ("F");
+
+      G = new TestComp ("G");
+      H = new TestComp ("H");
+      I = new TestComp ("I");
+
+      L = new TestComp ("L");
+
+      ModelComponent[] allComps = new ModelComponent[] {
+         A, B, C, D, E, F, G, H, I, J, K, L};
+
+      A.add (B);
+      A.add (C);
+      B.add (D);
+      B.add (E);
+      C.add (F);
+      C.add (G);
+      D.add (H);
+      D.add (I);
+
+      J.add (K);
+      K.add (L);
+
+      checkConnectedVia (I, E, D, true);
+      checkConnectedVia (I, E, C, false);
+      checkConnectedVia (I, D, D, true);
+
+      checkConnectedVia (E, F, allComps, A, B, C);
+      checkConnectedVia (D, E, allComps, B);
+      checkConnectedVia (J, L, allComps, K);
+      checkConnectedVia (F, G, allComps, C);
+      checkConnectedVia (I, G, allComps, D, B, A, C);
+      checkConnectedVia (I, A, allComps, D, B);
+   }
+
+   public void testComponentLists() {
       TestComp A, B, C, D, E, F, G, H, I, J, K, L, M, N, O;
 
       A = new TestComp ("compA");
@@ -222,8 +323,6 @@ public class ComponentTest {
       listA.add (G);
       listA.add (H);
       checkNames (listA, "compA", "compC", "compB", null, "compG", "compH");
-      // numbers 3, 4 not in deletion order because free number list was
-      // rebuilt
       checkNumbers (listA, 0, 1, 2, 5, 4, 3);
 
       listA.remove (D);
@@ -335,6 +434,33 @@ public class ComponentTest {
       checkNames (listB, "compJ", "compK", "compL", null, null, null);
       checkNumbers (listB, 5, 4, 3, 2, 1, 0);
 
+      listA.resetNumbersToIndices();
+      checkNames (listA, "compA", "compC", "compB", null, "compG", "compH");
+      checkNumbers (listA, 0, 1, 2, 3, 4, 5);
+
+      listB.resetNumbersToIndices();
+      checkNames (listB, "compJ", "compK", "compL", null, null, null);
+      checkNumbers (listB, 0, 1, 2, 3, 4, 5);
+
+      listA.setZeroBasedNumbering (false);
+      checkNames (listA, "compA", "compC", "compB", null, "compG", "compH");
+      checkNumbers (listA, 1, 2, 3, 4, 5, 6);
+
+      listA.setZeroBasedNumbering (true);
+      checkNames (listA, "compA", "compC", "compB", null, "compG", "compH");
+      checkNumbers (listA, 0, 1, 2, 3, 4, 5);
+
+      listA.clear();
+      listA.setZeroBasedNumbering (false);
+      listA.add (G);
+      listA.add (H);
+      checkNames (listA, "compG", "compH");
+      checkNumbers (listA, 1, 2);
+
+      listA.setZeroBasedNumbering (true);
+      checkNames (listA, "compG", "compH");
+      checkNumbers (listA, 0, 1);
+
       // make sure dynamic resizing of numberMap and nameStack works
       for (int i = 0; i < 1000; i++) {
          listA.add (new TestComp (null));
@@ -359,15 +485,13 @@ public class ComponentTest {
 
    }
 
+   public void test() {
+      testComponentLists();
+      testAreConnectedVia();
+   }
+
    public static void main (String[] args) {
       ComponentTest tester = new ComponentTest();
-      try {
-         tester.test();
-      }
-      catch (Exception e) {
-         e.printStackTrace();
-         System.exit (1);
-      }
-      System.out.println ("\nPassed\n");
+      tester.runtest();
    }
 }

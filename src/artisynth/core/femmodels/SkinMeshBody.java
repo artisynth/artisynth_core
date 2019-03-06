@@ -1191,17 +1191,17 @@ public class SkinMeshBody extends SkinMeshBase
    }
 
    @Override
-   public void connectToHierarchy () {
+   public void connectToHierarchy (CompositeComponent hcomp) {
       // XXX not sure what to do here. Probably don't want to add back
       // references to all master components, but then we need a way to remove
       // masters from the attachments when masters disappear
-      super.connectToHierarchy ();
+      super.connectToHierarchy (hcomp);
    }
 
    @Override
-   public void disconnectFromHierarchy() {
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
       // XXX not sure what to do here ... see comment in connectToParent()
-      super.disconnectFromHierarchy();
+      super.disconnectFromHierarchy(hcomp);
    }
 
    /**
@@ -1235,7 +1235,7 @@ public class SkinMeshBody extends SkinMeshBase
       else {
          ListRemove<FrameInfo> frameRemove = null;
          for (int i=0; i<myFrameInfo.size(); i++) {
-            if (!ComponentUtils.isConnected (
+            if (!ComponentUtils.areConnected (
                    this, myFrameInfo.get(i).myFrame)) {
                if (frameRemove == null) {
                   frameRemove = new ListRemove<FrameInfo>(myFrameInfo);
@@ -1252,7 +1252,7 @@ public class SkinMeshBody extends SkinMeshBase
          }
          ListRemove<FemModelInfo> femModelRemove = null;
          for (int i=0; i<myFemModelInfo.size(); i++) {
-            if (!ComponentUtils.isConnected (
+            if (!ComponentUtils.areConnected (
                    this, myFemModelInfo.get(i).myFemModel)) {
                if (femModelRemove == null) {
                   femModelRemove = new ListRemove<FemModelInfo>(myFemModelInfo);

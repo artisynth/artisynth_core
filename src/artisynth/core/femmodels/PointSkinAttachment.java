@@ -904,7 +904,7 @@ public class PointSkinAttachment extends PointAttachment
          for (int i = 0; i < myNumConnections; i++) {
             Connection c = myConnections[i];
             ModelComponent m = c.getMaster();
-            if (m == null || ComponentUtils.isConnected (this, m)) {
+            if (m == null || ComponentUtils.areConnected (this, m)) {
                updated.add(c);
                if (c instanceof BaseConnection) {
                   wbaseOld += c.myWeight;

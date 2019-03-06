@@ -60,13 +60,13 @@ public class ReflectedBodies extends RootModel {
       sphereMesh.setNormals (
          sphereMesh.getNormals(), sphereMesh.getNormalIndices());
            
-      try {
-         sphereMesh.write (new File("sphere.obj"), null);
-         sphereMesh = new PolygonalMesh ("sphere.obj");
-      }
-      catch (Exception e) {
-         System.out.println();
-      }
+      // try {
+      //    sphereMesh.write (new File("sphere.obj"), null);
+      //    sphereMesh = new PolygonalMesh ("sphere.obj");
+      // }
+      // catch (Exception e) {
+      //    System.out.println();
+      // }
 
       RigidBody scaledSphere =
          RigidBody.createFromMesh ("scaledSphere_L", "sphere.obj", 1000, 1);

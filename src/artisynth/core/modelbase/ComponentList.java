@@ -320,8 +320,25 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
 
    // ========== End MutableCompositeComponent implementation ===== 
 
-   public void setNumberingStartAtOne () {
-      myComponents.setNumberingStartAtOne ();
+   /**
+    * Sets whether or not zero-based numbering is enabled for this component
+    * list. Zero-based numbering implies that numbers start at zero.
+    * Otherwise, numbers start at one.
+    * 
+    * @param enable if {@code true}, enabled zero-based numbering
+    */
+   public void setZeroBasedNumbering (boolean enable) {
+      myComponents.setZeroBasedNumbering (enable);
+   }
+
+   /**
+    * Queries if zero-based numbering is enabled for this component list.
+    * See {@link #setZeroBasedNumbering}.
+    * 
+    * @return {@code true} if zero-based numbering is enabled 
+    */
+   public boolean getZeroBasedNumbering() {
+      return myComponents.getZeroBasedNumbering();
    }
 
    public void setShortName (String name) {
@@ -354,6 +371,9 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
          ancestor = this;
       }
       super.writeItems (pw, fmt, ancestor);
+      if (!myComponents.getZeroBasedNumbering()) {
+         pw.println ("zeroBasedNumbering=false");
+      }
       myComponents.writeComponents (pw, fmt, ancestor);
    }
 
@@ -397,6 +417,10 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
 
       rtok.nextToken();
       if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
+         return true;
+      }
+      else if (ScanWriteUtils.scanAttributeName (rtok, "zeroBasedNumbering")) {
+         myComponents.setZeroBasedNumbering (rtok.scanBoolean());
          return true;
       }
       else if (myComponents.scanAndStoreComponent (rtok, tokens)) {
@@ -478,5 +502,12 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
     */
    public void invalidateNumbers() {
       myComponents.invalidateNumbers();
+   }
+
+   /**
+    * Reset the numbering so that numbers and indices match.
+    */
+   public void resetNumbersToIndices() {
+      myComponents.resetNumbersToIndices ();
    }
 }

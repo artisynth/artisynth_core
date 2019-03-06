@@ -241,7 +241,7 @@ public class ExcitationUtils {
          ListRemove<ExcitationSource> remove = null;
          if (sources != null) {
             for (int i=0; i<sources.size(); i++) {
-               if (!ComponentUtils.isConnected (
+               if (!ComponentUtils.areConnected (
                       host, sources.get(i).myComp)) {
                   if (remove == null) {
                      remove = new ListRemove<ExcitationSource>(sources);

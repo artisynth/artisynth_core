@@ -529,7 +529,7 @@ public class ComponentUtils {
     * Returns true if <code>comp2</code> is connected to the same
     * component hierarchy as <code>comp1</code>.
     */
-   public static boolean isConnected (
+   public static boolean areConnected (
       ModelComponent comp1, ModelComponent comp2) {
       return haveCommonAncestor (comp1, comp2);
    }
@@ -565,6 +565,65 @@ public class ComponentUtils {
       else {
          return null;
       }
+   }
+
+   /**
+    * Returns {@code true} if components {@code comp1} and {@code comp2} are
+    * connected via the component hierarchy, with the path running through the
+    * specified intermediate component {@code viacomp} (which may equal {@code
+    * comp1}, {@code comp2}, or any component on the path in between).
+    *
+    * @param comp1 first component
+    * @param comp2 second component to which path is being checked
+    * @param viacomp required intermediate component
+    * @return {@code true} if components are connected via a path containing
+    * {@code viacomp}.
+    */
+   public static boolean areConnectedVia (
+      ModelComponent comp1, ModelComponent comp2, ModelComponent viacomp) {
+
+      int depth1 = getDepth (comp1);
+      int depth2 = getDepth (comp2);
+      ModelComponent ancestor1 = comp1;
+      ModelComponent ancestor2 = comp2;
+      
+      boolean viaFound = false;
+
+      if (depth1 > depth2) {
+         while (depth1 > depth2) {
+            if (!viaFound && ancestor1 == viacomp) {
+               viaFound = true;
+            }
+            ancestor1 = ancestor1.getParent();
+            depth1--;
+         }
+      }
+      else {
+         while (depth2 > depth1) {
+            if (!viaFound && ancestor2 == viacomp) {
+               viaFound = true;
+            }
+            ancestor2 = ancestor2.getParent();
+            depth2--;
+         }
+      }
+      // ancestor1 and ancestor2 are now at the same depth. Move upward,
+      // looking for a common ancestor, and checking for viacomp if it
+      // hasn't been found yet
+      while (depth1 >= 0) {
+         if (!viaFound) {
+            if (ancestor1 == viacomp || ancestor2 == viacomp) {
+               viaFound = true;
+            }
+         }
+         if (ancestor1 == ancestor2) {
+            return viaFound;
+         }
+         ancestor1 = ancestor1.getParent();
+         ancestor2 = ancestor2.getParent();
+         depth1--;
+      }
+      return false;
    }
 
    /**
@@ -1407,7 +1466,7 @@ public class ComponentUtils {
          ListRemove<C> remove = null;
          if (refs != null) {
             for (int i=0; i<refs.size(); i++) {
-               if (!ComponentUtils.isConnected (c, refs.get(i))) {
+               if (!ComponentUtils.areConnected (c, refs.get(i))) {
                   if (remove == null) {
                      remove = new ListRemove<C> (refs);
                   }
@@ -1423,6 +1482,28 @@ public class ComponentUtils {
          else {
             undoInfo.addLast (ModelComponentBase.NULL_OBJ);
             return false;
+         }
+      }
+   }
+
+   public static void recursivelyConnect (
+      ModelComponent comp, CompositeComponent connector) {
+      comp.connectToHierarchy (connector);
+      if (comp instanceof CompositeComponent) {
+         CompositeComponent ccomp = (CompositeComponent)comp;
+         for (int i=0; i<ccomp.numComponents(); i++) {
+            recursivelyConnect (ccomp.get(i), connector);
+         }
+      }
+   }
+
+   public static void recursivelyDisconnect (
+      ModelComponent comp, CompositeComponent connector) {
+      comp.disconnectFromHierarchy (connector);
+      if (comp instanceof CompositeComponent) {
+         CompositeComponent ccomp = (CompositeComponent)comp;
+         for (int i=0; i<ccomp.numComponents(); i++) {
+            recursivelyDisconnect (ccomp.get(i), connector);
          }
       }
    }

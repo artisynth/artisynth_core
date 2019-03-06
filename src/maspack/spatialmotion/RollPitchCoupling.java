@@ -158,10 +158,6 @@ public class RollPitchCoupling extends RigidBodyCoupling {
       R.m02 = croll*spitch;
       R.m12 = sroll*spitch;
       R.m22 = cpitch;
-
-      double[] angs = new double[2];
-      getRollPitch (angs, R);
-
    }
 
    @Override
@@ -229,19 +225,28 @@ public class RollPitchCoupling extends RigidBodyCoupling {
    }      
 
    public void getRollPitch (double[] angs, RigidTransform3d TGD) {
-
-      // on entry, TGD is set to TCD. It is then projected to TGD
-      projectToConstraint (TGD, TGD);
-      RotationMatrix3d RDC = new RotationMatrix3d();
-      RDC.transpose (TGD.R);
-      doGetRollPitch (angs, RDC);
+      if (TGD != null) {
+         // on entry, TGD is set to TCD. It is then projected to TGD
+         projectToConstraint (TGD, TGD);
+         RotationMatrix3d RDC = new RotationMatrix3d();
+         RDC.transpose (TGD.R);
+         doGetRollPitch (angs, RDC);
+      }
+      else {
+         // simply read back the coordinate settings
+         checkConstraintStorage();
+         angs[0] = myConstraintInfo[5].coordinate;
+         angs[1] = myConstraintInfo[4].coordinate;
+      }
    }
 
    public void setRollPitch (RigidTransform3d TGD, double[] angs) {
-      TGD.setIdentity();
-      RotationMatrix3d RDC = new RotationMatrix3d();
-      setRollPitch (RDC, angs[0], angs[1]);
-      TGD.R.transpose (RDC);
+      if (TGD != null) {
+         TGD.setIdentity();
+         RotationMatrix3d RDC = new RotationMatrix3d();
+         setRollPitch (RDC, angs[0], angs[1]);
+         TGD.R.transpose (RDC);
+      }
 
       checkConstraintStorage();
       myConstraintInfo[5].coordinate = angs[0];

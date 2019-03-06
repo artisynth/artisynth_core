@@ -1,6 +1,8 @@
 \documentclass{article}
 \input{artisynthDoc}
 
+\def\mbase{artisynth.core.modelbase}
+
 \setcounter{tocdepth}{5}
 \setcounter{secnumdepth}{3}
 
@@ -35,7 +37,7 @@ this manual.
 
 Artsynth models are created from a hierarchy of components. Each
 component is an instance of
-\javaclass[artisynth.core.modelbase]{ModelComponent}, which contains a
+\javaclass[\mbase]{ModelComponent}, which contains a
 number of methods used to maintain the component hierarchy.  These
 include methods for naming and numbering components:
 
@@ -58,7 +60,7 @@ characters that does not begin with a digit, does not contain the
 characters '{\tt .}', '{\tt /}', '{\tt :}', '{\tt *}', or '{\tt ?}',
 and does not equal the string {\tt "null"}.
 For components which are not assigned a name,
-\javamethod[artisynth.core.modelbase.ModelComponent]{getName()} 
+\javamethod[\mbase.ModelComponent]{getName()} 
 will return {\tt null}.
 
 Artisynth may also be configured so that components names must be
@@ -92,10 +94,12 @@ and maintaining hierarchy structure:
   // sets the parent of this component (internal use only)
   void setParent(CompositeComponent parent);
 
-  // called by the system after a component is added to a parent
-  void connectToHierarchy();
+  // called by the system after a component, or one of its ancestors,
+  // is added to the component hierarchy by attaching it to hcomp
+  void connectToHierarchy (CompositeComponent hcomp);
 
-  // called by the system before a component is removed from a parent
+  // called by the system before a component, or one of its ancestors,
+  // is removed from the component hierarchy by detaching it from hcomp
   void disconnectFromHierarchy();
 
   // get all hard references for this component (see below)
@@ -114,22 +118,25 @@ and maintaining hierarchy structure:
   boolean hasState();
 \end{lstlisting}
 
-\javamethod[artisynth.core.modelbase.ModelComponent]{getParent()} 
+\javamethod[\mbase.ModelComponent]{getParent()} 
 returns the component's parent, which is a 
-\javaclass[artisynth.core.modelbase]{CompositeComponent} (Section
+\javaclass[\mbase]{CompositeComponent} (Section
 \ref{CompositeComponentSec}). Conversely, if {\tt getParent()} returns
 null, the component is not attached to any parent and is not connected
 to the hierarchy unless it is the top-level {\tt RootModel} component
 (Section \ref{RootModelSec}).
 
-When a model component is added to a parent, its method
-\javamethod[artisynth.core.modelbase.ModelComponent]{connectToHierarchy()}
-is called, and when it is removed from its parent, its method
-\javamethod[artisynth.core.modelbase.ModelComponent]{disconnectFromHierarchy()}
-is called.  When either of these methods are called, the component's
-parent (as returned by
-\javamethod[artisynth.core.modelbase.ModelComponent]{getParent()})
-will be valid, and so hierarchy-dependent initialization can be
+When a model component (or one of its ancestors) is added or removed
+from the component hierarchy, its methods
+\javamethodAlt{\mbase.ModelComponent.connectToHierarchy()}%
+{connectToHierarchy(hcomp)} or
+\javamethodAlt{\mbase.ModelComponent.disconnectFromHierarchy()}%
+{disconnectFromHierarchy(hcomp)} are
+called, with {\tt hcomp} indicating the hierarchy component
+to which the component (or ancestor) was attached or detached.
+When either of these methods are called, the component
+will still be connected to the hierarchy, 
+and so hierarchy-dependent initialization or deinitialization can be
 performed, like setting (or removing) back pointers to references,
 etc.:
 \begin{lstlisting}[]
@@ -149,14 +156,14 @@ It is also necessary to notify components in the hierarchy when there
 are changes in structure or component properties, so that the
 necessary adjustments can be made, including the clearing of cached
 data. Notification is done using the method
-\javamethod[artisynth.core.modelbase.ModelComponent]{notifyParentOfChange()},
+\javamethod[\mbase.ModelComponent]{notifyParentOfChange()},
 which propagates an appropriate change event up the hierarchy. It will
 typically do this by calling the
-\javamethod[artisynth.core.modelbase.CompositeComponent]{componentChanged()}
+\javamethod[\mbase.CompositeComponent]{componentChanged()}
 method of the parent (see Section \ref{CompositeComponentSec}).
 
 The method
-\javamethod[artisynth.core.modelbase.ModelComponent]{hasState()}
+\javamethod[\mbase.ModelComponent]{hasState()}
 should return {\tt true} if the component contains state
 information. This is always true if the component contains dynamic
 state information such as positions or velocities, but components may
@@ -164,8 +171,8 @@ sometimes contain additional state information (such as contact
 state). Structural changes involving the addtion or removal of
 state-bearing components should be announced to the system by calling
 {\tt notifyParentOfChange()} with a
-\javaclass[artisynth.core.modelbase]{StructureChangeEvent} for which
-\javamethod[artisynth.core.modelbase.StructureChangeEvent]{stateIsChanged()}
+\javaclass[\mbase]{StructureChangeEvent} for which
+\javamethod[\mbase.StructureChangeEvent]{stateIsChanged()}
 returns {\tt true}.
 
 A {\tt ModelComponent} also maintains a number of flags:
@@ -197,7 +204,7 @@ All of these flags are {\tt false} by default.
 Components can be selected using various selection mechanisms in the
 Artisynth interface, such as the navigation panel or the viewer.  When
 selected, its
-\javamethod[artisynth.core.modelbase.ModelComponent]{isSelected()}
+\javamethod[\mbase.ModelComponent]{isSelected()}
 method will return {\tt true}.
 
 \item [fixed] indicates, if {\tt true}, that a component should
@@ -214,7 +221,7 @@ used with care to avoid side effects.
 
 \begin{sideblock}
 {\bf Important:}\\
-\javamethod[artisynth.core.modelbase.ModelComponent]{setSelected()}
+\javamethod[\mbase.ModelComponent]{setSelected()}
 should only be used by the SelectionManager, and should not be called
 by applications. Programmatic component selection should be performed
 by calling the {\tt addSelected()} or {\tt removeSelected()} methods
@@ -227,7 +234,7 @@ writing and scanning to and from persistent storage.  Details are
 given in Section \ref{writingAndScanningSec}.
 
 For convenience,
-\javaclass[artisynth.core.modelbase]{ModelComponentBase} provides a
+\javaclass[\mbase]{ModelComponentBase} provides a
 base implementations of all the {\tt ModelComponent} methods.  Most
 ArtiSynth components inherit from {\tt ModelComponentBase}.
 
@@ -246,9 +253,9 @@ order for its continued existence to be meaningful. The end-point
 references for a point-to-point spring are usually hard. A {\it soft}
 reference is one that the component can do without, such as the
 excitation source inputs mentioned above. The methods
-\javamethod[artisynth.core.modelbase.ModelComponent]{getHardReferences()}
+\javamethod[\mbase.ModelComponent]{getHardReferences()}
 and
-\javamethod[artisynth.core.modelbase.ModelComponent]{getSoftReferences()}
+\javamethod[\mbase.ModelComponent]{getSoftReferences()}
 are used to report all hard and soft references held by a component.
 
 \begin{sideblock}
@@ -262,7 +269,7 @@ The distinction between hard and soft references is used by the system
 when components in the hierarchy are deleted. A component that holds a
 hard reference to a deleted component is generally deleted as well.
 However, when only soft references are deleted, then the
-\javamethod[artisynth.core.modelbase.ModelComponent]{updateReferences()}
+\javamethod[\mbase.ModelComponent]{updateReferences()}
 method of the referring component is called to update the component's
 internal structures. {\tt updateReferences()} should also store
 information about the update, to allow the update to be undone in case
@@ -287,7 +294,7 @@ of soft references, and store information needed to undo this later:
          // remove soft references which aren't in the hierarchy any more:
 	 ListRemove<ModelComponent> remove = null;
          for (int i=0; i<mySoftRefs.size(); i++) {
-            if (!ComponentUtils.isConnected (this, mySoftRefs.get(i)) {
+            if (!ComponentUtils.areConnected (this, mySoftRefs.get(i)) {
 	       // reference isn't in the hierarchy; request its removal
 	       if (remove == null) {
                   remove = new ListRemove<ModelComponent>(mySoftRefs);
@@ -306,7 +313,7 @@ of soft references, and store information needed to undo this later:
    }
 \end{lstlisting}
 When updating, the method uses
-\javamethod[artisynth.core.modelbase]{ComponentUtils.isConnected()} 
+\javamethod[\mbase]{ComponentUtils.areConnected()} 
 to determine which soft
 references have been deleted from the hierarchy.  A {\tt ListRemove}
 object is used to assemble the remove requests and then perform the
@@ -321,8 +328,8 @@ for the super class, to be performed in sequence.
 \subsection{Composite Components}
 \label{CompositeComponentSec}
 
-\javaclass[artisynth.core.modelbase]{CompositeComponent} is a
-subinterface of \javaclass[artisynth.core.modelbase]{ModelComponent}
+\javaclass[\mbase]{CompositeComponent} is a
+subinterface of \javaclass[\mbase]{ModelComponent}
 which can contain children. Its main methods include:
 
 \begin{lstlisting}[]
@@ -361,9 +368,9 @@ property changes. Appropriate actions may include clearing cached
 data, and propogating the event further up the hierarchy (using
 {\tt notifyParentOfChange()}).
 
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} is a
+\javaclass[\mbase]{MutableCompositeComponent} is a
 subinterface of
-\javaclass[artisynth.core.modelbase]{CompositeComponent} which allows
+\javaclass[\mbase]{CompositeComponent} which allows
 child components to be added and removed by an ArtiSynth
 application. It is a generic class parameterized by a class type {\tt
 C} which must be an extension of {\tt ModelComponent}. Its definition
@@ -394,15 +401,15 @@ ComponentListImpl}
 \label{CompositeComponentBaseSec}
 
 A default implementation of
-\javaclass[artisynth.core.modelbase]{CompositeComponent} is provided
-by \javaclass[artisynth.core.modelbase]{CompositeComponentBase}. It is
+\javaclass[\mbase]{CompositeComponent} is provided
+by \javaclass[\mbase]{CompositeComponentBase}. It is
 a non-generic class that provides a base for composite components
 whose composition is created at construction time and is not intended
 to change during the running of an ArtiSynth application.
 
-\javaclass[artisynth.core.modelbase]{ComponentList} is a much more
+\javaclass[\mbase]{ComponentList} is a much more
 flexible class which implements
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} and
+\javaclass[\mbase]{MutableCompositeComponent} and
 provides for collections of components whose composition may be built
 and changed by an application. {\tt ComponentList} is used widely to
 store the many lists of components that comprise a working ArtiSynth
@@ -437,31 +444,31 @@ own component lists to the model itself:
 
 \begin{sideblock}
 By default, child components that belong to a
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} (which
+\javaclass[\mbase]{MutableCompositeComponent} (which
 includes {\tt ComponentList}) may be selected by the ArtiSynth
 application for deletion.  This may be undesirable, particularly if
 internal structures depend on certain child components.  Components
 that should not be removed from their parents should have their {\it
 fixed} flag set to {\tt true} in the composite component constructor,
 either by calling
-\javamethod[artisynth.core.modelbase.ModelComponent]{setFixed()}, or
+\javamethod[\mbase.ModelComponent]{setFixed()}, or
 by adding the component using the
-\javamethod[artisynth.core.modelbase.ComponentList]{addFixed()} method
+\javamethod[\mbase.ComponentList]{addFixed()} method
 of {\tt ComponentList}.
 \end{sideblock}
 
-The class \javaclass[artisynth.core.modelbase]{ComponentListImpl} is
+The class \javaclass[\mbase]{ComponentListImpl} is
 available as an internal implementation class for constructing
 instances of either
-\javaclass[artisynth.core.modelbase]{CompositeComponent} or
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent}.  It
+\javaclass[\mbase]{CompositeComponent} or
+\javaclass[\mbase]{MutableCompositeComponent}.  It
 provides most of the implementation methods needed for a mutable
 component list, which can be exposed in the client class using
 delegate methods.  Components implementing only {\tt
 CompositeComponent} may choose to expose only some of these
 methods. For details, one should consult the source code for
-\javaclass[artisynth.core.modelbase]{CompositeComponentBase} or
-\javaclass[artisynth.core.modelbase]{ComponentList}.
+\javaclass[\mbase]{CompositeComponentBase} or
+\javaclass[\mbase]{ComponentList}.
 
 \section{Models}
 \label{Models}
@@ -469,8 +476,8 @@ methods. For details, one should consult the source code for
 \subsection{Models and State}
 \label{ModelsAndStateSec}
 
-A \javaclass[artisynth.core.modelbase]{Model} is a specific
-\javaclass[artisynth.core.modelbase]{ModelComponent} that can contain
+A \javaclass[\mbase]{Model} is a specific
+\javaclass[\mbase]{ModelComponent} that can contain
 state and be advanced forward in time.
 
 The methods associated with time advancement are:
@@ -500,7 +507,7 @@ supplied for situtations where the model needs to perform computation
 {\it before} the application of controllers or input probes (Section
 \ref{ModelAgentsSec}), such as evolving internal state in some way.
 The method can optionally return a
-\javaclass[artisynth.core.modelbase]{StepAdjustment} object to request
+\javaclass[\mbase]{StepAdjustment} object to request
 a change in step size (Section \ref{AdaptiveSteppingSec}).
 
 {\tt advance()} is called to advance the model from time {\tt t0} to
@@ -508,7 +515,7 @@ a change in step size (Section \ref{AdaptiveSteppingSec}).
 involves solving an ordinary differential equation (ODE) associated
 with an underlying mechanical system, for which the model employs an
 internal physics solver. The method can optionally return a
-\javaclass[artisynth.core.modelbase]{StepAdjustment} object to request
+\javaclass[\mbase]{StepAdjustment} object to request
 a change in step size (Section \ref{AdaptiveSteppingSec}).
 
 A very basic simulation might proceed as follows:
@@ -682,8 +689,8 @@ are the same times passed to the model's {\tt advance()} method.
 As with probes, controllers and monitors can be active or inactive, as
 determined the method {\tt isActive()}. Controllers or monitors which
 are based on the default implementation classes
-\javaclass[artisynth.core.modelbase]{ControllerBase} or
-\javaclass[artisynth.core.modelbase]{MonitorBase} export also provide
+\javaclass[\mbase]{ControllerBase} or
+\javaclass[\mbase]{MonitorBase} export also provide
 a {\tt setActive()} method to control this setting, and export it as
 the property {\sf active}. This allows controller and monitor activity
 to be controlled at run time.
@@ -918,7 +925,7 @@ It is possible for models to request adaptive time stepping, which may
 be necessary if the model determines that a requested time step is too
 large for stable simulation. The model can indicate this by having
 either its {\tt preadvance()} or {\tt advance()} methods return a
-\javaclass[artisynth.core.modelbase]{StepAdjustment} object, which
+\javaclass[\mbase]{StepAdjustment} object, which
 contains a recommended scaling for the step size via its {\tt scaling}
 attribute.  Then, if adaptive stepping is enabled in the root model,
 it will reduce the effective time step for the model and redo the
@@ -1014,8 +1021,8 @@ themselves from persistent storage. They do this by implementing the
 \javamethod[maspack.util.Scannable]{write()} and 
 \javamethod[maspack.util.Scannable]{scan()} methods of
 \javaclass{maspack.util.Scannable}, and the 
-\javamethod[artisynth.core.modelbase.ModelComponent]{postscan()}
-method of \javaclass[artisynth.core.modelbase]{ModelComponent}:
+\javamethod[\mbase.PostScannable]{postscan()}
+method of \javaclass[\mbase]{ModelComponent}:
 
 \begin{lstlisting}[]
   // write this component to a PrintWriter:
@@ -1166,8 +1173,8 @@ references to its two end-point particles, and a
 \javaclass[artisynth.core.femmodels]{FemElement3d} will contain
 references to its nodes. The set of all references refered to
 by a component is returned by the combination of the component's
-\javamethod[artisynth.core.modelbase.ModelComponent]{getHardReferences()}
-\javamethod[artisynth.core.modelbase.ModelComponent]{getSoftReferences()}
+\javamethod[\mbase.ModelComponent]{getHardReferences()}
+\javamethod[\mbase.ModelComponent]{getSoftReferences()}
 methods.
 
 Because they generally reside outside a component's immediate ancestor
@@ -1180,7 +1187,7 @@ the component's {\tt write()} method through the {\tt ref} argument, and is cast
 explicitly to {\tt CompositeComponent} and passed to {\tt
 writeItems()} as the {\tt ancestor} argument.  A component can
 then use
-\javamethod[artisynth.core.modelbase]{ComponentUtils.getWritePathName()}
+\javamethod[\mbase]{ComponentUtils.getWritePathName()}
 to obtain the path name of each reference with respect to the
 ancestor, and write this to the output.
 
@@ -1234,11 +1241,11 @@ The ancestor used for reading and writing references will always be a
 common ancestor of both the references and the refering component.
 This may sometimes be the root model (i.e., the top of the hierarchy),
 but more typically it will be the first common ancestor for which
-\javamethod[artisynth.core.modelbase.CompositeComponent]
+\javamethod[\mbase.CompositeComponent]
 {hierarchyContainsReferences()} returns {\tt true} (implying that all
 references are contained within the ancestors's descendants).  This allows
 paths to be written more compactly.
-Most \javaclass[artisynth.core.modelbase]{Model} components
+Most \javaclass[\mbase]{Model} components
 presently enforce the {\tt hierarchyContainsReferences()} condition.
 \end{sideblock}
 
@@ -1251,7 +1258,7 @@ can be done by recursively calling the children's {\tt write()} methods.
 
 If the child component configuration is fixed (i.e., the component
 does not implement
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent})
+\javaclass[\mbase]{MutableCompositeComponent})
 and the children are created in the composite's constructor,
 then attribute names can be used to delimit each child. For example, suppose
 a component contains two children: a list of particles and a
@@ -1271,10 +1278,10 @@ a code construction such as:
 \end{lstlisting}
 If the composite component has been implemented internally using
 an instance of 
-\javaclass[artisynth.core.modelbase]{ComponentListImpl}
+\javaclass[\mbase]{ComponentListImpl}
 (Section \ref{CompositeComponentBaseSec}), then the
 above can be written using the latter's
-\javamethod[artisynth.core.modelbase.ComponentListImpl]{writeComponentsByName()}
+\javamethod[\mbase.ComponentListImpl]{writeComponentsByName()}
 method, which writes each child, using its component name as an attribute name:
 \begin{lstlisting}[]
    ComponentListImpl myComponents; 
@@ -1289,7 +1296,7 @@ method, which writes each child, using its component name as an attribute name:
 \end{lstlisting}
 
 One the other hand, composite components which are instances of
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} may
+\javaclass[\mbase]{MutableCompositeComponent} may
 not have predetermined component arrangements and so these components
 cannot be identified by an attribute name. Instead, the components
 must simply be printed out in sequence.  For example, the {\tt
@@ -1322,7 +1329,7 @@ This would produce output such as:
   ]
 \end{lstlisting}
 However, when scanning a
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent}, the
+\javaclass[\mbase]{MutableCompositeComponent}, the
 {\tt scan()} method (discussed below) needs to create and scan new
 child components as it encounters them in the input.  It is therefore
 necessary for {\tt scan()} to know what class of component to create.
@@ -1337,9 +1344,9 @@ of the component output.  The details of how to do
 this are beyond the scope of this document. However,
 if the composite component has been implemented internally using
 an instance of 
-\javaclass[artisynth.core.modelbase]{ComponentListImpl},
+\javaclass[\mbase]{ComponentListImpl},
 then one can use the latter's
-\javamethod[artisynth.core.modelbase.ComponentListImpl]{writeComponents()}
+\javamethod[\mbase.ComponentListImpl]{writeComponents()}
 method to automatically write out all the components, along with the necessary
 class information:
 \begin{lstlisting}[]
@@ -1442,7 +1449,7 @@ code for reading property values and looks something like this:
    }
 \end{lstlisting}
 The method begins by getting the next token and then calling
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanProperty()}
+\javamethod[\mbase]{ScanWriteUtils.scanProperty()}
 to see if the token is a word matching the name of one of the
 component's properties. If so, then {\tt scanProperty()} scans and
 sets the property value and returns {\tt true}, and {\tt scanItem()}
@@ -1641,7 +1648,7 @@ which allows this to be compressed into
       }
 \end{lstlisting}
 One may also use
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanAndStoreReference()}
+\javamethod[\mbase]{ScanWriteUtils.scanAndStoreReference()}
 for the same purpose.
 The {\tt scanItem()} method for a two-point spring can then be written as:
 \begin{lstlisting}[]
@@ -1705,7 +1712,7 @@ via the convenience method {\tt scanAndStoreReferences()}:
       }
 \end{lstlisting}
 One may also use
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanAndStoreReferences()}
+\javamethod[\mbase]{ScanWriteUtils.scanAndStoreReferences()}
 for the same purpose.
 
 \subsubsection{Scanning child components}
@@ -1717,7 +1724,7 @@ children's {\tt scan()} methods.
 If the child component configuration is fixed
 (i.e., the component
 does not implement
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent}),
+\javaclass[\mbase]{MutableCompositeComponent}),
 and the children are created in the composite's constructor
 and written out using attribute names as delimiters,
 then these attributes names can be used to drive the scanning.
@@ -1746,10 +1753,10 @@ could be scanned in using code such as:
 Here, an {\tt ObjectToken()} identifying each scanned componet is
 stored on the token queue for later use in the post-scan step.  If the
 composite component has been implemented internally using an instance
-of \javaclass[artisynth.core.modelbase]{ComponentListImpl} (Section
+of \javaclass[\mbase]{ComponentListImpl} (Section
 \ref{CompositeComponentBaseSec}), then the above can be written more
 succinctly using the latter's
-\javamethod[artisynth.core.modelbase.ComponentListImpl]%
+\javamethod[\mbase.ComponentListImpl]%
 {scanAndStoreComponentByName()}
 method:
 \begin{lstlisting}[]
@@ -1768,7 +1775,7 @@ method:
 \end{lstlisting}
 
 On the other hand, composite components which are instances of
-\javaclass[artisynth.core.modelbase]{MutableCompositeComponent} are
+\javaclass[\mbase]{MutableCompositeComponent} are
 written out in sequence, without using attribute names but with
 possible prefixed information giving information about the component's
 class. When scanning in these children, {\tt scanItem()} must
@@ -1776,11 +1783,11 @@ determine the class for the child, create an instance of the child,
 and then scan it in. The code required for these steps is beyond the
 scope of this document. However, if the mutable composite
 has been implemented internally using an instance of
-\javaclass[artisynth.core.modelbase]{ComponentListImpl}, then one can
+\javaclass[\mbase]{ComponentListImpl}, then one can
 use the latter's methods 
-\javamethod[artisynth.core.modelbase.ComponentListImpl]{scanBegin()},
-\javamethod[artisynth.core.modelbase.ComponentListImpl]{scanAndStoreComponent()},
-and \javamethod[artisynth.core.modelbase.ComponentListImpl]{scanEnd()}
+\javamethod[\mbase.ComponentListImpl]{scanBegin()},
+\javamethod[\mbase.ComponentListImpl]{scanAndStoreComponent()},
+and \javamethod[\mbase.ComponentListImpl]{scanEnd()}
 to handle the scanning.
 
 First, {\tt scanBegin()} is called in an override of {\tt scan()}:
@@ -1816,7 +1823,7 @@ the {\tt super} method to avoid confusing attribute names with class
 information.
 
 \begin{sideblock}
-\javamethod[artisynth.core.modelbase.ComponentListImpl]{scanAndStoreComponent()}
+\javamethod[\mbase.ComponentListImpl]{scanAndStoreComponent()}
 will not create a new component if a {\it fixed} component (Section
 \ref{CompositeComponentBaseSec}) of the appropriate class already
 exists at the current list position. Instead, the existing component
@@ -1846,7 +1853,7 @@ looks something like this:
    public void postscan (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-      ScanWriteUtils.postscanComponentBegin (tokens, this);
+      ScanWriteUtils.postscanBeginToken (tokens, this);
       while (tokens.peek() != ScanToken.END) {
          if (!postscanItem (tokens, ancestor)) {
             throw new IOException (
@@ -1856,7 +1863,7 @@ looks something like this:
       tokens.poll(); // consume the END token
    }   
 \end{lstlisting}
-\javamethod[artisynth.core.modelbase.ScanWriteUtils]{postscanComponentBegin()}
+\javamethod[\mbase.ScanWriteUtils]{postscanBeginToken()}
 gets the next token on the queue, checks that it is a {\tt BEGIN}
 token, and throws an exception if this is not the case.  Then the
 method simply calls {\tt postScanItem()}, which does the actual token
@@ -1880,7 +1887,7 @@ postscanItem()}. Tokens can be removed from the queue using
 the queue's {\tt poll()} method, and can be examined (without removing
 them) using the queue's {\tt peek()} method. More usefully, 
 the utility class 
-\javaclass[artisynth.core.modelbase]{ScanWriteUtils} provides
+\javaclass[\mbase]{ScanWriteUtils} provides
 a number of methods for token processing, including:
 \begin{lstlisting}[]
    boolean postscanAttributeName (tokens, name);
@@ -1891,15 +1898,15 @@ a number of methods for token processing, including:
 \end{lstlisting}
 {\tt ModelComponentBase} also makes convenience wrappers for these
 directly available within the class.
-\javamethod[artisynth.core.modelbase.ScanWriteUtils]{postscanAttributeName()}
+\javamethod[\mbase.ScanWriteUtils]{postscanAttributeName()}
 checks if the next token in the queue is a {\tt StringToken} matching
 {\tt name}, and if it is, consumes that token and returns {\tt true}.
-\javamethod[artisynth.core.modelbase.ScanWriteUtils]{postscanReference()}
+\javamethod[\mbase.ScanWriteUtils]{postscanReference()}
 checks that the next token is a {\tt StringToken} containing a path
 reference, finds the component referenced by that path relative to
 {\tt ancestor}, checks that it is an instance of {\tt clazz}, and
 returns it.
-\javamethod[artisynth.core.modelbase.ScanWriteUtils]{postscanReferences()}
+\javamethod[\mbase.ScanWriteUtils]{postscanReferences()}
 obtains a set of component references described by a sequence of {\tt
 StringTokens} located between {\tt BEGIN} and {\tt END} tokens, and
 returns the referenced components in an array.  These methods will
@@ -1939,9 +1946,9 @@ Similarly, the {\tt points} reference example can be handled as:
 
 Finally, for composite components, it is necessary to call {\tt postscan()} for
 each of their children. For composites implemented using
-\javaclass[artisynth.core.modelbase]{ComponentListImpl},
+\javaclass[\mbase]{ComponentListImpl},
 this can be done by calling the latter's
-\javamethod[artisynth.core.modelbase.ComponentListImpl]{postscanComponent()}
+\javamethod[\mbase.ComponentListImpl]{postscanComponent()}
 method. For both 
 {\tt CompositeComponent} and {\tt MutableCompositeComponent}
 implementations, the corresponding code looks like this:
@@ -1965,39 +1972,38 @@ returns {\tt true}.
 
 As described in \ref{scanningComponentsSec}, base implementations of
 {\tt scanItem()} automatically read in and set property values for the
-component. However, since this is done during the first scan step,
-problems may arise if any properties depend on references having
-already been set. An example of this is the {\tt theta} property for
-the joint component
-\javaclass[artisynth.core.mechmodels]{RevoluteJoint}, which requires
-knowledge of the frames referenced by the joint.
+component. However, in a few cases it may be necessary to defer
+setting the property value until the post-scan step, either because it
+depends on component references, or requires the component structure
+to be fully realized. A current example of this is the {\sf
+surfaceRendering} property for
+\javaclass[artisynth.core.femmodels]{FemModel}.
 
-The solution to this is to defer setting the values for such
-properties until the post-scan step. This is done by saving the
-scanned property values in the token queue, and then actually setting
-the properties during the post-scan. Two convenience methods,
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanAndStorePropertyValues()}
-and 
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.postscanPropertyValues()}
-allow this to be done fairly easily:
+Deferring the settting of property values until the post-scan step can
+be done by saving the scanned property values in the token queue, and
+then actually setting the properties during the post-scan. Two
+convenience methods,
+\javamethod[\mbase]{ScanWriteUtils.scanAndStorePropertyValue()} and
+\javamethod[\mbase]{ScanWriteUtils.postscanPropertyValue()} allow
+this to be done fairly easily:
 \begin{lstlisting}[]
-   // properties that must be set during post-scan:
-   String[] deferredProps = new String[] { "theta", "thetaRange" };
-
    public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-   throws IOException {
+      throws IOException {
 
-   if (ScanWriteUtils.scanAndStorePropertyValues (
-      rtok, this, deferredProps, tokens)) {
+      rtok.nextToken();
+      if (ScanWriteUtils.scanAndStorePropertyValue (
+          rtok, this, "surfaceRendering", tokens)) {
          return true;
       }
       else {
          ... remaining scanItem() implementation ...
       }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
    }
 
    public boolean postscanItem (
-   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
       if (ScanWriteUtils.postscanPropertyValues (tokens, this, deferredProps)) {
          return true;
@@ -2005,22 +2011,26 @@ allow this to be done fairly easily:
       else {
          ... remaining postscanItem() implementation ...
       }
+      return false;
    }
 \end{lstlisting}
-Here, {\tt defernedProps} is an array of the names of the properties
-whose values must be set in the post-scan step ({\tt "theta"} and {\tt
-"thetaRange"} are taken from the specific {\tt RevoluteJoint} example).
 
-To ensure that this works properly, it is also important that the
-reference information be written out {\it before} the property
-information, so that in the post-scan step, it will be set before the
-property values.  That means that {\tt writeItems()} should be
-structured as follows:
+\begin{sideblock}
+Note that it is often not necessary to provide a component-specific
+implementation of {\tt postscanItem()} since the defaullt
+implementation for most components already contains a call to {\tt
+ScanWriteUtils.postscanPropertyValues()}.
+\end{sideblock}
+
+If a property value depends on references, it is also important to
+ensure that reference information is written out {\it before} the
+property information, so that in the post-scan step, it will be set
+before the property values.  In such cases, that means that {\tt
+writeItems()} should be structured as follows:
 \begin{lstlisting}[]
    protected void writeItems (
-   PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
-
-   throws IOException {
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+      throws IOException {
 
       ... write out reference information first ...
       super.writeItems (pw, fmt, ancestor);
@@ -2039,7 +2049,7 @@ queue as the {\tt ref} argument, and then call {\tt postscan()}:
       comp.postscan (tokens, ancestor);
 \end{lstlisting}
 For convenience, the above code fragment is encapsulated into the
-method \javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanfull()}.
+method \javamethod[\mbase]{ScanWriteUtils.scanfull()}.
 
 If we are scanning an entire hierarchy from scratch, then {\tt comp}
 will be the root component of the hierarchy and {\tt ancestor} will
@@ -2154,12 +2164,12 @@ offending line number.
 Problems that occur in post-scan can be slightly harder to solve
 because the token queue is not normally written out in any place where it can
 be inspected. To help with this, once can use
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.setTokenPrinting()}
+\javamethod[\mbase]{ScanWriteUtils.setTokenPrinting()}
 to enable the token queue produced by
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanfull()} to be
+\javamethod[\mbase]{ScanWriteUtils.scanfull()} to be
 printed to the standard output. It is also possible to print a token
 queue directly using 
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.printTokens()}.
+\javamethod[\mbase]{ScanWriteUtils.printTokens()}.
 
 \subsection{Summary}
 \label{summarySec}
@@ -2172,7 +2182,7 @@ as follows:
 \item Writing and scanning are done using the component's
 \javamethod[maspack.util.Scannable]{write()},
 \javamethod[maspack.util.Scannable]{scan()},
-\javamethod[artisynth.core.modelbase.ModelComponent]{postscan()}
+\javamethod[\mbase.PostScannable]{postscan()}
 methods.  These methods usually employ {\tt writeItems()}, {\tt
 scanItem()}, and {\tt postscanItem()} to handle the writing and
 scanning of individual attributes and child components.
@@ -2199,7 +2209,7 @@ implementation to override any methods at all.
 \item Composite components need to call {\tt
 write()}, {\tt scan()}, and {\tt postscan()} for their child
 components. Composites implemented using
-\javaclass[artisynth.core.modelbase]{ComponentListImpl}
+\javaclass[\mbase]{ComponentListImpl}
 can do this using methods supplied by that class, such as
 {\tt writeComponents()}, {\tt scanAndStoreComponent()}, 
 and {\tt postscanComponent()}.
@@ -2208,10 +2218,10 @@ and {\tt postscanComponent()}.
 a token queue and then calling both {\tt scan()} and
 {\tt postscan()} for the top-level component.
 This can be done using the convenience method
-\javamethod[artisynth.core.modelbase]{ScanWriteUtils.scanfull()}.
+\javamethod[\mbase]{ScanWriteUtils.scanfull()}.
 
 \item The utility class
-\javaclass[artisynth.core.modelbase]{ScanWriteUtils} contains a large
+\javaclass[\mbase]{ScanWriteUtils} contains a large
 number of methods that facilitate writing and scanning.
 
 \end{enumerate}

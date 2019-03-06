@@ -83,21 +83,25 @@ public class SlottedRevoluteJoint extends JointBase
    }
 
    public double getTheta() {
-      // initialize TGD to TCD; it will get projected to TGD within
-      // myCoupling.getTheta();
-      RigidTransform3d TGD = new RigidTransform3d();
-      getCurrentTCD (TGD);
-      
+      RigidTransform3d TGD = null;
+      if (attachmentsInitialized()) {      
+         // initialize TGD to TCD; it will get projected to TGD within
+         TGD = new RigidTransform3d();
+         getCurrentTCD (TGD);
+      }      
       double theta = Math.toDegrees (
          ((SlottedRevoluteCoupling)myCoupling).getTheta(TGD));
       return theta;
    }
 
    public void setTheta (double theta) {
+      RigidTransform3d TGD = null;
+      if (isConnectedToBodies()) {
+         TGD = new RigidTransform3d();
+      }      
       theta = myThetaRange.makeValid (theta);
-      RigidTransform3d TGD = new RigidTransform3d();
       ((SlottedRevoluteCoupling)myCoupling).setTheta(TGD, Math.toRadians(theta));
-      if (getParent() != null) {
+      if (TGD != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.
          adjustPoses (TGD);
@@ -105,20 +109,24 @@ public class SlottedRevoluteJoint extends JointBase
    }
 
    public double getX() {
-      // initialize TGD to TCD; it will get projected to TGD within
-      // myCoupling.getTheta();
-      RigidTransform3d TGD = new RigidTransform3d();
-      getCurrentTCD (TGD);
-      
+      RigidTransform3d TGD = null;
+      if (attachmentsInitialized()) {
+         TGD = new RigidTransform3d();
+         // initialize TGD to TCD; it will get projected to TGD within
+         getCurrentTCD (TGD);
+      }      
       double x = ((SlottedRevoluteCoupling)myCoupling).getX(TGD);
       return x;
    }
 
    public void setX (double x) {
+      RigidTransform3d TGD = null;
+      if (isConnectedToBodies()) {
+         TGD = new RigidTransform3d();
+      }
       x = myXRange.makeValid (x);
-      RigidTransform3d TGD = new RigidTransform3d();
       ((SlottedRevoluteCoupling)myCoupling).setX(TGD, x);
-      if (getParent() != null) {
+      if (TGD != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.
          adjustPoses (TGD);
@@ -134,8 +142,8 @@ public class SlottedRevoluteJoint extends JointBase
       coupling.setMaximumTheta (Math.toRadians(range.getUpperBound()));
       coupling.setMinimumTheta (Math.toRadians(range.getLowerBound()));
       myThetaRange.set (range);
-      if (getParent() != null) {
-         // we are attached - might have to update theta
+      if (isConnectedToBodies()) {
+         // if we are connected to the hierarchy, might have to update theta
          double theta = getTheta();
          double clipped = myThetaRange.clipToRange (theta);
          if (clipped != theta) {
@@ -153,8 +161,8 @@ public class SlottedRevoluteJoint extends JointBase
       coupling.setMaximumX (range.getUpperBound());
       coupling.setMinimumX (range.getLowerBound());
       myXRange.set (range);
-      if (getParent() != null) {
-         // we are attached - might have to update x
+      if (isConnectedToBodies()) {
+         // if we are connected to the hierarchy, might have to update x
          double x = getX();
          double clipped = myXRange.clipToRange (x);
          if (clipped != x) {
@@ -388,12 +396,12 @@ public class SlottedRevoluteJoint extends JointBase
 
    public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
-      rtok.nextToken();
-      if (ScanWriteUtils.scanAndStorePropertyValues (
-             rtok, this, deferredProps, tokens)) {
-         return true;
-      }
-      rtok.pushBack();
+//      rtok.nextToken();
+//      if (ScanWriteUtils.scanAndStorePropertyValues (
+//             rtok, this, deferredProps, tokens)) {
+//         return true;
+//      }
+//      rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
 

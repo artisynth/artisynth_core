@@ -25,6 +25,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.util.ScanToken;
 import artisynth.core.materials.AxialMaterial;
+import artisynth.core.materials.SimpleAxialMuscle;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.materials.LinearAxialMaterial;
@@ -73,6 +74,13 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
    
    public MultiPointMuscle(String name) {
       super (name);
+   }
+
+   public MultiPointMuscle (
+      String name, double k, double d, double maxf, double l) {
+      this (name);
+      setRestLength (l);
+      setMaterial (new SimpleAxialMuscle (k, d, maxf));
    }
 
    public static MultiPointMuscle createConstant (double maxForce) {

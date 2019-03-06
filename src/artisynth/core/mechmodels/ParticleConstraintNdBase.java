@@ -394,7 +394,7 @@ implements ScalableUnits {
          ListRemove<ParticleInfo> particleRemove = null;
          for (int i=0; i<myParticleInfo.size(); ++i) {
             ParticleInfo pi = myParticleInfo.get(i);
-            if (!ComponentUtils.isConnected (this, pi.myPart)) {
+            if (!ComponentUtils.areConnected (this, pi.myPart)) {
                if (particleRemove == null) {
                   particleRemove =
                      new ListRemove<ParticleInfo>(myParticleInfo);

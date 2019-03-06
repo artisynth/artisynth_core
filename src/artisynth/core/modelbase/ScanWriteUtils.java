@@ -25,6 +25,8 @@ public class ScanWriteUtils {
       
    private static final int TT_WORD = ReaderTokenizer.TT_WORD;
 
+   public static boolean connectAfterScanning = true;
+
    /**
     * Debugging hook to enable printing of the token queue produced
     * in the {@link #scanfull scanfull()} method, before <code>postscan()</code>
@@ -463,26 +465,28 @@ public class ScanWriteUtils {
    }
 
    public static <C> C postscanReference (
-      StringToken strtok, Class<C> clazz, CompositeComponent ancestor)
+      StringToken strtok, Class<C> clazz, 
+      CompositeComponent ancestor)
       throws IOException {
 
-      ModelComponent comp = null;
+      ModelComponent refcomp = null;
       String str = strtok.value();
       if (str.equals ("null")) {
          return null;
       }
-      comp = ComponentUtils.findComponent (ancestor, str);
-      if (comp == null) {
+      refcomp = ComponentUtils.findComponent (ancestor, str);
+      if (refcomp == null) {
          throw new IOException (
-            "Can't find component corresponding to "+str+
+            "Can't find reference to "+str+
+            ", ancestor=" + ComponentUtils.getPathName(ancestor)+
             ", line "+strtok.lineno());
       }
-      if (clazz.isAssignableFrom(comp.getClass())) {
-         return (C)comp;
+      if (clazz.isAssignableFrom(refcomp.getClass())) {
+         return (C)refcomp;
       }
       else {
          throw new IOException (
-            "Component "+comp+" referenced by " + str +
+            "Component "+refcomp+" referenced by " + str +
             " not an instance of " + clazz +", line " + strtok.lineno());
       }
    }
@@ -501,7 +505,8 @@ public class ScanWriteUtils {
     * if the reference cannot be found
     */
    public static <C> C postscanReference (
-      Deque<ScanToken> tokens, Class<C> clazz, CompositeComponent ancestor)
+      Deque<ScanToken> tokens, Class<C> clazz, 
+      CompositeComponent ancestor)
       throws IOException {
       
       ScanToken tok = tokens.poll();
@@ -529,7 +534,8 @@ public class ScanWriteUtils {
     * the referenced components cannot be found.
     */
    public static <C> C[] postscanReferences (
-      Deque<ScanToken> tokens, Class<C> clazz, CompositeComponent ancestor)
+      Deque<ScanToken> tokens, Class<C> clazz, 
+      CompositeComponent ancestor)
       throws IOException {
 
       ScanToken tok = tokens.poll();
@@ -655,8 +661,32 @@ public class ScanWriteUtils {
       if (myTokenPrinting) {
          printTokens (tokens);
       }
-      comp.postscan (tokens, ancestor);         
+      comp.postscan (tokens, ancestor);
+      if (connectAfterScanning) {
+         recursivelyConnectComponents (comp);
+      }
    }
+   
+   public static void recursivelyConnectComponents (ModelComponent comp) throws
+      IOException {
+      try {
+         //ComponentUtils.checkReferenceContainment (comp);
+         comp.connectToHierarchy (comp.getParent());
+      }
+      catch (Exception e) {
+         throw new IOException (
+            "Cannot connect component to hierarchy: " + 
+            ComponentUtils.getPathName(comp));
+      }
+      PropertyUtils.updateAllInheritedProperties (comp);
+      if (comp instanceof CompositeComponent) {
+         CompositeComponent ccomp = (CompositeComponent)comp;
+         for (int i=0; i<ccomp.numComponents(); i++) {
+            recursivelyConnectComponents (ccomp.get(i));
+         }
+      }
+}
+
 
    /**
     * Scans and discards the input associated with a component, which is
@@ -1161,6 +1191,43 @@ public class ScanWriteUtils {
       }
       return list.toArray (new Vector3d[0]);
    }
+
+   public static void scanComponentsAndWeights (
+      ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      ArrayList<Double> weights = new ArrayList<Double>();
+      rtok.scanToken ('[');
+      tokens.offer (ScanToken.BEGIN); // begin token
+      while (ScanWriteUtils.scanAndStoreReference (rtok, tokens)) {
+         weights.add (rtok.scanNumber());
+      }
+      if (rtok.ttype != ']') {
+         throw new IOException ("Expected ']', got " + rtok);
+      }
+      tokens.offer (ScanToken.END); // terminator token
+      tokens.offer (new ObjectToken(ArraySupport.toDoubleArray (weights)));
+   }
+
+   public static void writeComponentsAndWeights (
+      PrintWriter pw, NumberFormat fmt,
+      ModelComponent[] comps, double[] weights, Object ref)
+
+      throws IOException {
+      CompositeComponent ancestor =
+         ComponentUtils.castRefToAncestor (ref);
+      pw.println ("[");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      for (int i=0; i<comps.length; i++) {
+         pw.println (
+            ComponentUtils.getWritePathName (ancestor, comps[i])+" "+
+            weights[i]);
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+   }
+
+
 
 }
 

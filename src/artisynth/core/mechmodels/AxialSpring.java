@@ -91,29 +91,11 @@ public class AxialSpring extends PointSpringBase
    }
 
    public void setFirstPoint (Point pnt) {
-//      if (getParent() != null) { 
-//         // then change is happening when connected to hierarchy
-//         if (myPnt0 != null) {
-//            myPnt0.removeBackReference (this);
-//         }
-//         if (pnt != null) {
-//            pnt.addBackReference (this);
-//         }
-//      }
       myPnt0 = pnt;
       mySeg.pnt0 = pnt;
    }
 
    public void setSecondPoint (Point pnt) {
-//      if (getParent() != null) { 
-//         // then change is happening when connected to hierarchy
-//         if (myPnt1 != null) {
-//            myPnt1.removeBackReference (this);
-//         }
-//         if (pnt != null) {
-//            pnt.addBackReference (this);
-//         }
-//      }
       myPnt1 = pnt;
       mySeg.pnt1 = pnt;
    }

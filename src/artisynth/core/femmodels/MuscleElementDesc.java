@@ -745,21 +745,19 @@ public void interpolateIpntDirection (
    }
    
    @Override
-      public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      if (MuscleBundle.getAncestorFem (this) != null) {
+      public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      if (ComponentUtils.areConnectedVia (this, myElement, hcomp)) {
          referenceElement();
       }
-      //ExcitationUtils.addAncestorAsSource (this, /*up to grandparent*/2);
    }
 
    @Override
-      public void disconnectFromHierarchy() {
-      //ExcitationUtils.removeAncestorAsSource (this, /*up to grandparent*/2);
-      if (MuscleBundle.getAncestorFem (this) != null) {
+      public void disconnectFromHierarchy (CompositeComponent hcomp) {
+      if (ComponentUtils.areConnectedVia (this, myElement, hcomp)) {
          dereferenceElement();
       }
-      super.disconnectFromHierarchy();
+      super.disconnectFromHierarchy(hcomp);
    }
  
    void scanDirections (ReaderTokenizer rtok) throws IOException {

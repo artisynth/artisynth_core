@@ -63,35 +63,25 @@ public class RevoluteJoint extends JointBase
    }
 
    public double getTheta() {
-//      RigidTransform3d XAW = myBodyA.getPose();
-//      RigidTransform3d XBW = 
-//         myBodyB != null ? myBodyB.getPose() : RigidTransform3d.IDENTITY;
-//      
-//         // initialize TGD to TCD; it will get projected to TGD within
-//         // myCoupling.getTheta();
-//         RigidTransform3d TCA = new RigidTransform3d();
-//         RigidTransform3d TGD = new RigidTransform3d();
-//      getCurrentTCA (TCA);
-//      getCurrentTDB (TGD);
-//      TGD.mulInverseBoth (TGD, XBW);
-//      TGD.mul (XAW);
-//      TGD.mul (TCA);
-      
-      // initialize TGD to TCD; it will get projected to TGD within
-      // myCoupling.getTheta();
-      RigidTransform3d TGD = new RigidTransform3d();
-
-      getCurrentTCD (TGD);
+      RigidTransform3d TGD = null;
+      if (attachmentsInitialized()) {
+         // initialize TGD to TCD; it will get projected to TGD within
+         TGD = new RigidTransform3d();
+         getCurrentTCD (TGD);
+      }
       double theta = Math.toDegrees (
          ((RevoluteCoupling)myCoupling).getTheta(TGD));
       return theta;
    }
 
    public void setTheta (double theta) {
+      RigidTransform3d TGD = null;
+      if (isConnectedToBodies()) {
+         TGD = new RigidTransform3d();
+      }     
       theta = myThetaRange.makeValid (theta);
-      RigidTransform3d TGD = new RigidTransform3d();
       ((RevoluteCoupling)myCoupling).setTheta(TGD, Math.toRadians(theta));
-      if (getParent() != null) {
+      if (TGD != null) {
          // if we are connected to the hierarchy, adjust the poses of the
          // attached bodies appropriately.
          adjustPoses (TGD);
@@ -107,8 +97,8 @@ public class RevoluteJoint extends JointBase
       coupling.setMaximumTheta (Math.toRadians(range.getUpperBound()));
       coupling.setMinimumTheta (Math.toRadians(range.getLowerBound()));
       myThetaRange.set (range);
-      if (getParent() != null) {
-         // we are attached - might have to update theta
+      if (isConnectedToBodies()) {
+         // if we are connected to the hierarchy, might have to update theta
          double theta = getTheta();
          double clipped = myThetaRange.clipToRange (theta);
          if (clipped != theta) {
@@ -232,11 +222,11 @@ public class RevoluteJoint extends JointBase
 
    public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
-      rtok.nextToken();
-      if (ScanWriteUtils.scanAndStorePropertyValues (rtok, this, deferredProps, tokens)) {
-         return true;
-      }
-      rtok.pushBack();
+//      rtok.nextToken();
+//      if (ScanWriteUtils.scanAndStorePropertyValues (rtok, this, deferredProps, tokens)) {
+//         return true;
+//      }
+//      rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
 

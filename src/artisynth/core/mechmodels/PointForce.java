@@ -85,15 +85,6 @@ public class PointForce extends ModelComponentBase
    }
 
    public void setPoint (Point pnt) {
-//      if (getParent() != null) { // then change is happening when connected
-//                                    // to hierarchy
-//         if (myPnt != null) {
-//            myPnt.removeBackReference (this);
-//         }
-//         if (pnt != null) {
-//            pnt.addBackReference (this);
-//         }
-//      }
       myPnt = pnt;
    }
 

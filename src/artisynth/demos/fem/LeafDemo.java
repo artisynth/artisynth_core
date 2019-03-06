@@ -112,12 +112,6 @@ public class LeafDemo extends RootModel {
       // vertices.
       myMesh = createLeafMesh (
          new double[] {0.1, 1.0, -1.8, 0.7}, mySizeX, mySizeY, myNumSegs);
-      try {
-         myMesh.write (new File ("leaf.obj"), "%g");
-      }
-      catch (Exception e) {
-         System.out.println (e);
-      }
       
       myNodes = new FemNode3d[myMesh.numVertices()];
       double DTOR = Math.PI/180.0;

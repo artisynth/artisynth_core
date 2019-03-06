@@ -34,6 +34,8 @@ import artisynth.core.modelbase.*;
 public abstract class DynamicAttachmentBase extends ModelComponentBase 
   implements DynamicAttachmentComp {
 
+   public static boolean useNewConnect = true;
+
    private boolean mySlaveAffectsStiffnessP = true;
 
    public boolean slaveAffectsStiffness() {
@@ -71,12 +73,72 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
       }
    }
    
+   public static void addBackRefsIfConnected (
+      ModelComponent comp, DynamicAttachment at) {
+      if (comp.getParent() != null) {
+         // check comp.getParent(0 first because at.getMasters() may not work
+         // if comp==at and is still being initialized
+         DynamicComponent[] masters = at.getMasters();
+         if (masters != null) {
+            for (int i=0; i<masters.length; i++) {
+               DynamicComponent m = masters[i];
+               if (m != null && ComponentUtils.haveCommonAncestor (comp, m)) {
+                  m.addMasterAttachment (at);
+               }
+            }     
+         }      
+      }
+   }
+   
+   public static void addNewlyConnectedBackRefs (
+      ModelComponent comp, DynamicAttachment at, CompositeComponent connector) {
+      DynamicComponent[] masters = at.getMasters();
+      if (masters != null) {
+         for (int i=0; i<masters.length; i++) {
+            DynamicComponent m = masters[i];
+            if (ComponentUtils.areConnectedVia (comp, m, connector)) {
+               m.addMasterAttachment (at);
+            }
+         }     
+      }      
+   }
+   
    public static void removeBackRefs (DynamicAttachment at) {
       DynamicComponent[] masters = at.getMasters();
       if (masters != null) {
          for (int i = 0; i < masters.length; i++) {
             masters[i].removeMasterAttachment (at);
          }     
+      }
+   }
+   
+   public static void removeBackRefsIfConnected (
+      ModelComponent comp, DynamicAttachment at) {
+      if (comp.getParent() != null) {
+         // check comp.getParent(0 first because at.getMasters() may not work
+         // if comp==at and is still being initialized
+         DynamicComponent[] masters = at.getMasters();
+         if (masters != null) {
+            for (int i=0; i<masters.length; i++) {
+               DynamicComponent m = masters[i];
+               if (m != null && ComponentUtils.haveCommonAncestor (comp, m)) {
+                  m.removeMasterAttachment (at);
+               }
+            }     
+         }
+      }
+   }
+   
+   public static void removeNewlyDisconnectedBackRefs (
+      ModelComponent comp, DynamicAttachment at, CompositeComponent connector) {
+      DynamicComponent[] masters = at.getMasters();
+      if (masters != null) {
+         for (int i=0; i<masters.length; i++) {
+            DynamicComponent m = masters[i];
+            if (ComponentUtils.areConnectedVia (comp, m, connector)) {
+               m.removeMasterAttachment (at);
+            }
+         }
       }
    }
    
@@ -102,9 +164,10 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
     * connected to the hierarchy.
     */
    protected void addBackRefsIfConnected() {
-      if (isConnectedToHierarchy()) {
-         addBackRefs();
-      }
+      addBackRefsIfConnected (this, this);
+      // if (isConnectedToHierarchy()) {
+      //    addBackRefs();
+      // }
    }
 
    /**
@@ -112,9 +175,10 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
     * connected to the hierarchy.
     */
    protected void removeBackRefsIfConnected() {
-      if (isConnectedToHierarchy()) {
-         removeBackRefs();
-      }
+      removeBackRefsIfConnected (this, this);
+      // if (isConnectedToHierarchy()) {
+      //    removeBackRefs();
+      // }
    }
 
   /**
@@ -209,27 +273,55 @@ public abstract class DynamicAttachmentBase extends ModelComponentBase
     * Update the attachment position state whenever we connect to the parent
     * (i.e., plug in to the hierarchy).
     */
-   public void connectToHierarchy () {
-      updatePosStates();
-      super.connectToHierarchy ();
-      DynamicComponent slave = getSlave();
-      if (slave != null) {
-         slave.setAttached (this);
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      if (useNewConnect) {
+         updatePosStates(); // do we need this?
+         super.connectToHierarchy (hcomp);
+         DynamicComponent slave = getSlave();
+         if (slave != null &&
+             ComponentUtils.areConnectedVia (this, slave, hcomp)) {
+            slave.setAttached (this);
+         }
+         addNewlyConnectedBackRefs (this, this, hcomp);
       }
-      addBackRefs();
+      else {
+         if (hcomp == getParent()) {
+            updatePosStates();
+         }
+         super.connectToHierarchy (hcomp);
+         if (hcomp == getParent()) {
+            DynamicComponent slave = getSlave();
+            if (slave != null) {
+               slave.setAttached (this);
+            }
+            addBackRefs();
+         }
+      }
    }
    
    /**
     * Update the attachment position state whenever we connect to the parent
     * (i.e., plug in to the hierarchy).
     */
-   public void disconnectFromHierarchy () {
-      super.disconnectFromHierarchy ();
-      DynamicComponent slave = getSlave();
-      if (slave != null) {
-         slave.setAttached (null);
+   public void disconnectFromHierarchy (CompositeComponent hcomp) {
+      super.disconnectFromHierarchy (hcomp);
+      if (useNewConnect) {
+         DynamicComponent slave = getSlave();
+         if (slave != null &&
+             ComponentUtils.areConnectedVia (this, slave, hcomp)) {
+            slave.setAttached (null);
+         }
+         removeNewlyDisconnectedBackRefs (this, this, hcomp);
       }
-      removeBackRefs();
+      else {
+         if (hcomp == getParent()) {
+            DynamicComponent slave = getSlave();
+            if (slave != null) {
+               slave.setAttached (null);
+            }
+            removeBackRefs();
+         }
+      }
    }
 
    public Object clone() throws CloneNotSupportedException {

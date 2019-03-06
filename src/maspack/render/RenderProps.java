@@ -181,9 +181,9 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
    protected static PropertyMode INACTIVE = PropertyMode.Inactive;
    protected static PropertyMode EXPLICIT = PropertyMode.Explicit;
 
-   protected boolean myColorMapPropsInactive = true;
-   protected boolean myNormalMapPropsInactive = true;
-   protected boolean myBumpMapPropsInactive = true;
+//   protected boolean myColorMapPropsInactive = true;
+//   protected boolean myNormalMapPropsInactive = true;
+//   protected boolean myBumpMapPropsInactive = true;
 
    static {
       myProps.addInheritable (
@@ -1259,11 +1259,11 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
       }
       myEdgeColorMode = r.myEdgeColorMode;
       
-      myColorMapPropsInactive = r.myColorMapPropsInactive;
+      //myColorMapPropsInactive = r.myColorMapPropsInactive;
       setColorMap (r.myColorMapProps);
-      myNormalMapPropsInactive = r.myNormalMapPropsInactive;
+      //myNormalMapPropsInactive = r.myNormalMapPropsInactive;
       setNormalMap (r.myNormalMapProps);
-      myBumpMapPropsInactive = r.myBumpMapPropsInactive;
+      //myBumpMapPropsInactive = r.myBumpMapPropsInactive;
       setBumpMap (r.myBumpMapProps);
       
       myLineStyle = r.myLineStyle;
@@ -1459,22 +1459,25 @@ public class RenderProps implements CompositeProperty, Scannable, Clonable {
             return false;
          }
       }
-      if (myColorMapPropsInactive != r.myColorMapPropsInactive) {
+//      if (myColorMapPropsInactive != r.myColorMapPropsInactive) {
+//         return false;
+//      }
+//      else if (!myColorMapPropsInactive && !equalsOrBothNull (r.myColorMapProps, myColorMapProps)) {\
+      if (!equalsOrBothNull (r.myColorMapProps, myColorMapProps)) {
          return false;
       }
-      else if (!myColorMapPropsInactive && !equalsOrBothNull (r.myColorMapProps, myColorMapProps)) {
+//      if (myNormalMapPropsInactive != r.myNormalMapPropsInactive) {
+//         return false;
+//      }
+//      else if (!myNormalMapPropsInactive && !equalsOrBothNull(myNormalMapProps, r.myNormalMapProps)) {
+      if (!equalsOrBothNull(myNormalMapProps, r.myNormalMapProps)) {
          return false;
       }
-      if (myNormalMapPropsInactive != r.myNormalMapPropsInactive) {
-         return false;
-      }
-      else if (!myNormalMapPropsInactive && !equalsOrBothNull(myNormalMapProps, r.myNormalMapProps)) {
-         return false;
-      }
-      if (myBumpMapPropsInactive != r.myBumpMapPropsInactive) {
-         return false;
-      }
-      else if (!myBumpMapPropsInactive && !equalsOrBothNull(myBumpMapProps, r.myBumpMapProps)) {
+//      if (myBumpMapPropsInactive != r.myBumpMapPropsInactive) {
+//         return false;
+//      }
+//      else if (!myBumpMapPropsInactive && !equalsOrBothNull(myBumpMapProps, r.myBumpMapProps)) {
+      if (!equalsOrBothNull(myBumpMapProps, r.myBumpMapProps)) {
          return false;
       }
       return true;

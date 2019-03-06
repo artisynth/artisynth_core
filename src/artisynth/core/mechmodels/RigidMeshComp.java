@@ -487,16 +487,16 @@ public class RigidMeshComp extends DynamicMeshComponent
       }
    }   
 
-   public void connectToHierarchy() {
+   public void connectToHierarchy(CompositeComponent hcomp) {
       // no need to do anything here at the moment. RigidBody will notice
       // addition of mesh in its componentChanged() method
-      super.connectToHierarchy();
+      super.connectToHierarchy(hcomp);
    }
 
-   public void disconnectFromHierarchy() {
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
       // no need to do anything here at the moment. RigidBody will notice
       // removal of mesh in its componentChanged() method
-      super.disconnectFromHierarchy();
+      super.disconnectFromHierarchy(hcomp);
    }
 
    public void scaleMass (double s) {

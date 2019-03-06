@@ -386,6 +386,24 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
+   /**
+    * Queries whether or not this connector is connected to its bodies
+    * via a component hierarchy.
+    *
+    * @return {@code true} if this connector is connected to its bodies
+    */
+   public boolean isConnectedToBodies() {
+      if (myBodyA == null || !ComponentUtils.areConnected (this, myBodyA)) {
+         return false;
+      }
+      if (myBodyB == null) {
+         return true;
+      }
+      else {
+         return ComponentUtils.areConnected (this, myBodyB);
+      }
+   }      
+
    protected double getAverageBodyMass() {
       double mass = 
          myAttachmentA.getAverageMasterMass() + 
@@ -1040,16 +1058,12 @@ public abstract class BodyConnector extends RenderableComponentBase
       ConnectableBody bodyA, FrameAttachment attachmentA, 
       ConnectableBody bodyB, FrameAttachment attachmentB) {
 
-      if (isConnectedToHierarchy()) {
-         disconnectBodies();
-      }
+      disconnectBodies();
       myBodyA = bodyA;
       myAttachmentA = attachmentA;
       myBodyB = bodyB;
       myAttachmentB = attachmentB;
-      if (isConnectedToHierarchy()) {
-         connectBodies();
-      }
+      connectBodies();
    }
 
    public void setBodies (
@@ -1394,6 +1408,15 @@ public abstract class BodyConnector extends RenderableComponentBase
          return false;
       }
    }
+   
+   /**
+    * Queries whether or not the attachments have been initialized.  
+    * 
+    * @return {@code true} if the attachments are initialized.  
+    */
+   protected boolean attachmentsInitialized() {
+      return myAttachmentA != null && myAttachmentB != null;
+   }
 
    public void transformGeometry (AffineTransform3dBase X) {
       TransformGeometryContext.transform (this, X, 0);
@@ -1587,13 +1610,43 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
+   protected void connectNewlyConnectedBodies (
+      CompositeComponent connector) {
+      
+      if (myBodyA != null && 
+          ComponentUtils.areConnectedVia (this, myBodyA, connector)) {
+         myBodyA.addConnector (this);
+         connectAttachmentMasters (myAttachmentA.getMasters());        
+      }
+      if (myBodyB != null && 
+          ComponentUtils.areConnectedVia (this, myBodyB, connector)) {
+         myBodyB.addConnector (this);
+         connectAttachmentMasters (myAttachmentB.getMasters());        
+      }
+   }
+   
+   protected void disconnectNewlyDisconnectedBodies (
+      CompositeComponent connector) {
+      
+      if (myBodyA != null && 
+          ComponentUtils.areConnectedVia (this, myBodyA, connector)) {
+         myBodyA.removeConnector (this);
+         disconnectAttachmentMasters (myAttachmentA.getMasters());        
+      }
+      if (myBodyB != null && 
+          ComponentUtils.areConnectedVia (this, myBodyB, connector)) {
+         myBodyB.removeConnector (this);
+         disconnectAttachmentMasters (myAttachmentB.getMasters());        
+      }
+   }
+   
    private void connectBodies() {
       // Note: in normal operation, bodyA is not null
-      if (myBodyA != null) {
+      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
          myBodyA.addConnector (this);
          connectAttachmentMasters (myAttachmentA.getMasters());
       }
-      if (myBodyB != null) {
+      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
          myBodyB.addConnector (this);
          connectAttachmentMasters (myAttachmentB.getMasters());
       }
@@ -1601,26 +1654,26 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    private void disconnectBodies() {
       // Note: in normal operation, bodyA is not null
-      if (myBodyA != null) {
+      if (myBodyA != null && ComponentUtils.areConnected (this, myBodyA)) {
          myBodyA.removeConnector (this);
          disconnectAttachmentMasters (myAttachmentA.getMasters());
       }
-      if (myBodyB != null) {
+      if (myBodyB != null && ComponentUtils.areConnected (this, myBodyB)) {
          myBodyB.removeConnector (this);
          disconnectAttachmentMasters (myAttachmentB.getMasters());
       }
    }
 
    @Override
-   public void connectToHierarchy () {
-      super.connectToHierarchy ();
-      connectBodies();
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      super.connectToHierarchy (hcomp);
+      connectNewlyConnectedBodies (hcomp);
    }
 
    @Override
-   public void disconnectFromHierarchy() {
-      super.disconnectFromHierarchy();
-      disconnectBodies();
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      super.disconnectFromHierarchy(hcomp);
+      disconnectNewlyDisconnectedBodies (hcomp);
    }
 
    public boolean isDuplicatable() {

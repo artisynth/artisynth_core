@@ -34,16 +34,6 @@ public class CollisionComponent extends ModelComponentBase {
       myPair = new CollidablePair (c0, c1);
    }
 
-//   public boolean isExplicit() {
-//      return (myPair.get0().getParent() != null &&
-//              myPair.get0().getParent() != null);
-//   }
-//
-//   public boolean isExplicitGeneric() {
-//      return (myPair.get0().getParent() != null &&
-//              myPair.get0().getParent() != null);
-//   }
-
    private String getReferenceName (
       Collidable col, CompositeComponent ancestor)
       throws IOException {

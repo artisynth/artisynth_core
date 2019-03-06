@@ -7,17 +7,19 @@
 package artisynth.core.mechmodels;
 
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
+import java.io.*;
 
 import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
-import maspack.matrix.Matrix3x3Block;
-import maspack.matrix.Point3d;
-import maspack.matrix.SparseBlockMatrix;
-import maspack.matrix.VectorNd;
-import maspack.matrix.VectorNi;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.*;
+import maspack.matrix.*;
 import maspack.properties.PropertyList;
 import maspack.render.PointLineRenderProps;
 import maspack.render.Renderer;
+import maspack.util.*;
 
 /**
  * 
@@ -34,18 +36,23 @@ public class LinearPointConstraint extends ConstrainerBase {
    public static double DEFAULT_COMPLIANCE = 0;
    public static double DEFAULT_DAMPING = 0;
    
-   Point[] myPoints;
+   ArrayList<Point> myPoints;
    double[] myWgts;
    Point3d myTarget;
    Matrix3x3Block[] myBlks;
    double[] myLam;
+
    double myCompliance;
    double myDamping;
    
 
-   static PropertyList myProps = new PropertyList (LinearPointConstraint.class, ConstrainerBase.class);
+   static PropertyList myProps =
+      new PropertyList (LinearPointConstraint.class, ConstrainerBase.class);
+
    static {
       myProps.add ("renderProps", "render props", new PointLineRenderProps ());
+      myProps.add ("compliance", "constraint compliance", DEFAULT_COMPLIANCE);
+      myProps.add ("damping", "constraint damping", DEFAULT_DAMPING);
    }
    
    @Override
@@ -103,11 +110,14 @@ public class LinearPointConstraint extends ConstrainerBase {
     */
    public void setPoints(Point[] pnts, double[] wgts) {
       myTarget = new Point3d(0, 0, 0);
-      myPoints = Arrays.copyOf(pnts, pnts.length);
+      myPoints = new ArrayList<Point>();
+      for (Point pnt : pnts) {
+         myPoints.add (pnt);
+      }
       myLam = new double[3];    // 3 constraints (x, y, z)
       myWgts = Arrays.copyOf(wgts, wgts.length);
-      myBlks = new Matrix3x3Block[myPoints.length];
-      for (int i=0; i<myPoints.length; i++) {
+      myBlks = new Matrix3x3Block[myPoints.size()];
+      for (int i=0; i<myPoints.size(); i++) {
          myBlks[i] = new Matrix3x3Block();
          myBlks[i].m00 = myWgts[i];
          myBlks[i].m11 = myWgts[i];
@@ -127,7 +137,7 @@ public class LinearPointConstraint extends ConstrainerBase {
     * @return the set of points involved in the constraint
     */
    public Point[] getPoints() {
-      return myPoints;
+      return myPoints.toArray (new Point[0]);
    }
 
    /**
@@ -192,8 +202,8 @@ public class LinearPointConstraint extends ConstrainerBase {
 
       Point3d sumPos = new Point3d();
       int nValid = 0;
-      for (int i=0; i<myPoints.length; i++) {
-         Point pnt = myPoints[i];
+      for (int i=0; i<myPoints.size(); i++) {
+         Point pnt = myPoints.get(i);
          if (pnt.getSolveIndex() > -1) {
             nValid++;
          }
@@ -268,8 +278,8 @@ public class LinearPointConstraint extends ConstrainerBase {
    }
 
    public void getConstrainedComponents (List<DynamicComponent> list) {
-      for (int i=0; i<myPoints.length; i++) {
-         list.add (myPoints[i]);
+      for (int i=0; i<myPoints.size(); i++) {
+         list.add (myPoints.get(i));
       }
    }
    
@@ -278,8 +288,8 @@ public class LinearPointConstraint extends ConstrainerBase {
 
       Point3d diff = new Point3d();
       Point3d avgPos = new Point3d();
-      for (int i=0; i<myPoints.length; i++) {
-         Point pnt = myPoints[i];
+      for (int i=0; i<myPoints.size(); i++) {
+         Point pnt = myPoints.get(i);
          diff.scaledAdd(myWgts[i], pnt.getPosition());
          if (myWgts[i] > 0) {
             avgPos.scaledAdd (myWgts[i], pnt.getPosition ());
@@ -294,6 +304,54 @@ public class LinearPointConstraint extends ConstrainerBase {
       renderer.drawPoint (getRenderProps(), fpnt0, isSelected());
       renderer.drawPoint (getRenderProps(), fpnt1, isSelected());
       
+   }
+
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException  {
+      myTarget = new Point3d();
+      super.scan (rtok, ref);
+   }
+
+   public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "points")) {
+         tokens.offer (new StringToken ("points", rtok.lineno()));
+         ScanWriteUtils.scanComponentsAndWeights (rtok, tokens);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "target")) {
+         myTarget = new Point3d();
+         myTarget.scan (rtok);
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      if (postscanAttributeName (tokens, "points")) {
+         Point[] points = ScanWriteUtils.postscanReferences (
+            tokens, Point.class, ancestor);
+         double[] weights = (double[])tokens.poll().value();
+         setPoints (points, weights);
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }   
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      super.writeItems (pw, fmt, ancestor);
+      pw.print ("points=");
+      ScanWriteUtils.writeComponentsAndWeights (
+         pw, fmt, myPoints.toArray(new Point[0]), myWgts, ancestor);
+      if (!myTarget.equals (Point3d.ZERO)) {
+         pw.println ("target=[" + myTarget.toString (fmt) + "]");
+      }
    }
 
 }

@@ -213,9 +213,10 @@ public class FrameFrameAttachment extends FrameAttachment {
          VectorNd forceV = new VectorNd(6);
          forceV.set (forceA);
          myMasterBlocks[0].mul (chkForce, forceV);
-
-         if (!addForce.epsilonEquals(chkForce, 1e-10)) {
-            System.out.println ("Not equal");
+         double tol = addForce.norm()*1e-10;
+         if (!addForce.epsilonEquals(chkForce, tol)) {
+            System.out.println (
+               "FrameFrameAttachment: force check mismatch");
             System.out.println ("DEF add=" + addForce.toString ("%12.8f"));
             System.out.println ("DEF chk=" + chkForce.toString ("%12.8f"));
          }
@@ -225,10 +226,11 @@ public class FrameFrameAttachment extends FrameAttachment {
       else {
          myMaster.addFrameForce (myTFM, forceA);
          VectorNd addForce = getMasterForce();
-         addForce.sub (oldForce);  
-         if (!addForce.epsilonEquals(forceF, 1e-12)) {
-            System.out.println ("Not equal");
-
+         addForce.sub (oldForce);
+         double tol = addForce.norm()*1e-12;
+         if (!addForce.epsilonEquals(forceF, tol)) {
+            System.out.println (
+               "FrameFrameAttachment: force check mismatch");
          }
       }
    }

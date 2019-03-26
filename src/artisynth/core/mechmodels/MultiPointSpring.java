@@ -557,7 +557,7 @@ public class MultiPointSpring extends PointSpringBase
     * associated with. The physics used to do this is first-order, and
     * independent of the second order physics of the overall simulation.
     */
-   public class WrapSegment extends Segment {
+   public class WrapSegment extends Segment implements HasAuxState {
       int myNumKnots;                       // number of knot points
       WrapKnot[] myKnots;                   // list of knot points
       double myDscale;
@@ -2637,12 +2637,12 @@ public class MultiPointSpring extends PointSpringBase
       // Auxiliary state for a wrappable segment consists of the positions of
       // all the knot points.
 
-      void skipAuxState (DataBuffer data) {
+      public void skipAuxState (DataBuffer data) {
          data.dskip (7*myNumKnots+1);
          data.zskip (myNumKnots+myWrappables.size());
       }
 
-      void getAuxState (DataBuffer data) {
+      public void getAuxState (DataBuffer data) {
          int[] contactCnts = getContactCnts();
          for (int i=0; i<myWrappables.size(); i++) {
             data.zput (contactCnts[i]);
@@ -2672,7 +2672,7 @@ public class MultiPointSpring extends PointSpringBase
          data.dput(myDscale);
       }
 
-      void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
+      public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
          if (oldData == null) {
             getAuxState (newData);
          }
@@ -2682,7 +2682,7 @@ public class MultiPointSpring extends PointSpringBase
          }
       }
 
-      void setAuxState (DataBuffer data) {
+      public void setAuxState (DataBuffer data) {
          boolean contacting = false;
          int[] contactCnts = getContactCnts();
          for (int i=0; i<myWrappables.size(); i++) {
@@ -2729,7 +2729,11 @@ public class MultiPointSpring extends PointSpringBase
          pos.z = data.dget();
 
          updateSubSegments();
+         myLength = computeLength();
          myDscale = data.dget();
+      }
+
+      public void advanceAuxState (double t0, double t1) {
       }
 
       // End methods to save and restore auxiliary state.

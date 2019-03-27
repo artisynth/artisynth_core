@@ -12,6 +12,7 @@ import java.io.*;
 import maspack.matrix.*;
 import maspack.util.UnitTest;
 import maspack.util.TestException;
+import maspack.fileutil.NativeLibraryManager;
 
 /**
  * Testing class for the convex hull part of TetgenTessellator.
@@ -668,6 +669,16 @@ public class TetgenConvexHullTest extends UnitTest {
 
    public void test() {
       explicitAndRandomTests();
+   }
+
+   public void setSilent (boolean silent) {
+      super.setSilent(silent);
+      if (!silent) {
+         NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
+      }
+      else {
+         NativeLibraryManager.setFlags (0);
+      }
    }
 
    /**

@@ -10,6 +10,7 @@ import maspack.matrix.*;
 import maspack.util.TestException;
 import maspack.util.FunctionTimer;
 import maspack.util.UnitTest;
+import maspack.fileutil.NativeLibraryManager;
 
 public class TetgenTessellatorTest extends UnitTest {
 
@@ -17,7 +18,6 @@ public class TetgenTessellatorTest extends UnitTest {
    boolean verbose = true;
 
    public TetgenTessellatorTest () {
-      myTessellator = new TetgenTessellator();
    }
 
    private double[] plane = new double[] {
@@ -131,6 +131,7 @@ public class TetgenTessellatorTest extends UnitTest {
    }
 
    public void test() {
+      myTessellator = new TetgenTessellator();
       myTessellator.buildFromPoints (plane);
       if (!mySilentP) {
          printHullFaces();
@@ -168,6 +169,16 @@ public class TetgenTessellatorTest extends UnitTest {
       checkHull();
 
       myTessellator.dispose();
+   }
+
+   public void setSilent (boolean silent) {
+      super.setSilent(silent);
+      if (!silent) {
+         NativeLibraryManager.setFlags (NativeLibraryManager.VERBOSE);
+      }
+      else {
+         NativeLibraryManager.setFlags (0);
+      }
    }
 
    public static void main (String[] args) {

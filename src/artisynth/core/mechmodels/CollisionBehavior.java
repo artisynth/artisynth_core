@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.render.*;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.properties.*;
 import artisynth.core.util.*;
 import artisynth.core.modelbase.*;
@@ -179,6 +180,11 @@ public class CollisionBehavior extends CollisionComponent
    static ScalarRange defaultColorMapRange = new ScalarRange();
    ScalarRange myColorMapRange = defaultColorMapRange.clone();
 
+   static ColorInterpolation defaultColorMapInterpolation =
+      ColorInterpolation.HSV;
+   ColorInterpolation myColorMapInterpolation = defaultColorMapInterpolation;
+   PropertyMode myColorMapInterpolationMode = PropertyMode.Inherited;
+
    static ColorMapType defaultDrawColorMap = ColorMapType.NONE;
    ColorMapType myDrawColorMap = defaultDrawColorMap;
    PropertyMode myDrawColorMapMode = PropertyMode.Inherited;
@@ -226,6 +232,8 @@ public class CollisionBehavior extends CollisionComponent
       myDrawConstraintsMode = PropertyMode.Inherited;
       myDrawColorMap = defaultDrawColorMap;
       myDrawColorMapMode = PropertyMode.Inherited;
+      myColorMapInterpolation = defaultColorMapInterpolation;
+      myColorMapInterpolationMode = PropertyMode.Inherited;
       myColorMapCollidableNum = defaultColorMapCollidableNum;
       myColorMapCollidableMode = PropertyMode.Inherited;
       setColorMapRange (defaultColorMapRange);
@@ -299,10 +307,14 @@ public class CollisionBehavior extends CollisionComponent
          "colorMapCollidable:Inherited", 
          "number of the collidable (0 or 1) on which the color map show be drawn",
          defaultColorMapCollidableNum, "[0,1] NoSlider");
-
       myProps.add (
          "colorMapRange", "range for drawing color maps", 
          defaultColorMapRange);
+      myProps.addInheritable (
+         "colorMapInterpolation",
+         "explicit setting for how to interpolate color map (RGB or HSV)",
+         defaultColorMapInterpolation);
+      
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -901,6 +913,28 @@ public class CollisionBehavior extends CollisionComponent
    
    public ScalarRange getColorMapRange() {
       return myColorMapRange;
+   }
+
+   public void setColorMapInterpolation (ColorInterpolation interp) {
+      myColorMapInterpolation = interp;
+      myColorMapInterpolationMode =
+         PropertyUtils.propagateValue (
+            this, "colorMapInterpolation",
+            myColorMapInterpolation, myColorMapInterpolationMode);
+   }
+   
+   public ColorInterpolation getColorMapInterpolation() {
+      return myColorMapInterpolation;
+   }
+
+   public void setColorMapInterpolationMode (PropertyMode mode) {
+      myColorMapInterpolationMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "colorMapInterpolation", myColorMapInterpolationMode, mode);
+   }
+
+   public PropertyMode getColorMapInterpolationMode() {
+      return myColorMapInterpolationMode;
    }
 
    public ColorMapType getDrawColorMap() {

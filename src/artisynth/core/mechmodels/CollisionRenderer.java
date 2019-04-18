@@ -27,6 +27,7 @@ import maspack.matrix.Vector2d;
 import maspack.render.RenderObject;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.LineStyle;
 import maspack.render.Renderer.PointStyle;
@@ -721,13 +722,22 @@ public class CollisionRenderer {
       if (rd != null && rd.numTriangles() > 0) {
          Shading savedShadeModel = renderer.getShading();
          FaceStyle savedFaceStyle = renderer.getFaceStyle();
-
+         ColorInterpolation savedColorInterp = null;
+         ColorInterpolation interp =
+            handler.myBehavior.getColorMapInterpolation();
+         if (interp != ColorInterpolation.RGB) {
+            savedColorInterp = renderer.setColorInterpolation (interp);
+         }
+            
          renderer.setFaceStyle (props.getFaceStyle());
          renderer.setShading (Shading.SMOOTH); //props.getShading());
 
          renderer.setDepthOffset (2);
          renderer.drawTriangles (rd);
 
+         if (savedColorInterp != null) {
+            renderer.setColorInterpolation (savedColorInterp);
+         }
          renderer.setFaceStyle (savedFaceStyle);
          renderer.setShading (savedShadeModel);
       }

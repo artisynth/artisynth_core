@@ -446,6 +446,10 @@ public class RigidMeshComp extends DynamicMeshComponent
       }
    }
 
+   public void transformMesh (AffineTransform3dBase X) {
+      TransformGeometryContext.transform (this, X, /*flags=*/0);
+   }
+
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
 

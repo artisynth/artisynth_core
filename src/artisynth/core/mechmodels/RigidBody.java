@@ -387,12 +387,35 @@ public class RigidBody extends Frame
     * Adjusts the pose so that it reflects the rigid body's center of mass
     */
    public void centerPoseOnCenterOfMass() {
-      Point3d com = new Point3d(mySpatialInertia.getCenterOfMass());
-      mySpatialInertia.setCenterOfMass(0,0,0);
-      myState.pos.add(com);
-      myState.updatePose ();
+      translateCoordinateFrame (getCenterOfMass());
    }
-
+   
+   /**
+    * Shifts the coordinate frame by a specified offset. The offset
+    * is added to the pose, and subtracted from the mesh vertex
+    * positions and inertia.
+    */
+   public void translateCoordinateFrame (Point3d off) {
+      Point3d newPos = new Point3d(getPosition());
+      Point3d newCom = new Point3d(getCenterOfMass());
+      newPos.add (off);
+      newCom.sub (off);
+      Vector3d del = new Vector3d();
+      del.negate (off);
+      if (myInertiaMethod == InertiaMethod.EXPLICIT) {
+         mySpatialInertia.setCenterOfMass (newCom);
+      }
+      for (RigidMeshComp mcomp : myMeshList) {
+         mcomp.transformMesh (new RigidTransform3d (del.x, del.y, del.z));
+         // MeshBase mesh = mcomp.getMesh ();
+         // if (mesh != null) { // Paranoid
+         //    mesh.tran
+         //    mesh.translate (del);
+         // }
+      }
+      setPosition (newPos);
+   }
+   
    /** 
     * Causes the inertia to be automatically computed from the mesh volume
     * and a given density. If the mesh is currently <code>null</code> then

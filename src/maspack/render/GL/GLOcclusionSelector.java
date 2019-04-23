@@ -128,6 +128,7 @@ public class GLOcclusionSelector extends GLSelector {
                int nums = (numq >= 0 ? numq : 1);
                if (s.isSelectable()) {
                   for (int i=0; i<nums; i++) {
+                     if (myQuerySamples.length <= qid+i) break;
                      if (myQuerySamples[qid+i] > 0) {
                         HitRecord rec = new HitRecord(myQuerySamples[qid+i]);
                         if (numq < 0) {

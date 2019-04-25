@@ -1687,7 +1687,7 @@ public class MechSystemSolver {
     * @param bg
     */
    private void getUnilateralDeviation(VectorNd bn) {
-      if (myGsize > 0 ) {
+      if (myNsize > 0 ) {
          mySys.getUnilateralInfo (myNInfo);
          bn.setZero();
          double[] gbuf = bn.getBuffer();

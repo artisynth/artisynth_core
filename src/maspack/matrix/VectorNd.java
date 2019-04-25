@@ -670,7 +670,7 @@ Clonable {
    }
 
    /**
-    * Subtracts vector v1 from v2 and places the result in this vector. This
+    * Subtracts vector v2 from v1 and places the result in this vector. This
     * vector is resized if necessary.
     * 
     * @param v1

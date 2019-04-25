@@ -546,7 +546,7 @@ public class CollisionRenderer {
                }
                adjacentFaceArea += face.getPlanarArea();
             }
-            double pressure = 3*(lam*handler.myLastH)/adjacentFaceArea;
+            double pressure = 3*(lam/handler.myLastH)/adjacentFaceArea;
             valueMap.put (vertex, pressure);              
          }
       }

@@ -245,7 +245,7 @@ public class DataBuffer {
    /**
     * Returns the boolean value at the current int buffer offset, and
     * increases the offset. This value is {@code false} if the underlying
-    * int value is 0, and {@true} otherwise. If the current offset is 
+    * int value is 0, and {@code true} otherwise. If the current offset is 
     * equal to <code>zsize()</code>, an exception is thrown.
     *
     * @return boolean value at the current offset

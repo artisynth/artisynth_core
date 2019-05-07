@@ -93,6 +93,7 @@ public class CollisionRenderer {
          double lam = c.myLambda;
          p0.add (c.myCpnt0.myPoint, c.myCpnt1.myPoint);
          p0.scale (0.5);
+         System.out.println ("  " + nrmlLen*(lam/maxlam));
          p1.scaledAdd (nrmlLen*(lam/maxlam), c.myNormal, p0);
          addLineSeg (ro, p0, p1);
       }
@@ -116,7 +117,7 @@ public class CollisionRenderer {
 //      return max;
 //   }
 
-   private double maxlam = 0.20;
+   private double maxlam = 20;
 //
 //   private Vector3d getVec(float[] coords) {
 //      return new Vector3d (coords[0], coords[1], coords[2]);
@@ -414,7 +415,7 @@ public class CollisionRenderer {
       myDepthRob = rd;
    }
 
-   protected void storeVertexImpulses (
+   protected void storeVertexForces (
       HashMap<Vertex3d,Double> valueMap,
       Vertex3d[] vtxs, double[] wgts, double lam) {
 
@@ -434,7 +435,7 @@ public class CollisionRenderer {
       return (cp.numVertices() > 0 && cp.getVertices()[0].getMesh() == mesh);
    }
 
-   protected void storeVertexImpulses (
+   protected void storeVertexForces (
       HashMap<Vertex3d,Double> valueMap,
       ContactConstraint cc, PolygonalMesh mesh) {
 
@@ -510,21 +511,21 @@ public class CollisionRenderer {
          
          for (ContactConstraint cc : handler.myBilaterals0.values()) {
             if (cc.myLambda > 0) {
-               storeVertexImpulses (valueMap, cc, mesh);
+               storeVertexForces (valueMap, cc, mesh);
             }
          }
          for (ContactConstraint cc : handler.myBilaterals1.values()) {
             if (cc.myLambda > 0) {
-               storeVertexImpulses (valueMap, cc, mesh);
+               storeVertexForces (valueMap, cc, mesh);
             }
          }
          for (ContactConstraint cc : handler.myPrevUnilaterals) {
             if (cc.myLambda > 0) {
-               storeVertexImpulses (valueMap, cc, mesh);
+               storeVertexForces (valueMap, cc, mesh);
             }
          }
          for (Map.Entry<Vertex3d,Double> entry : valueMap.entrySet()) {
-            // convert impulses to pressures
+            // convert forces to pressures
             Vertex3d vertex = entry.getKey();
             double lam = entry.getValue();
             // Pressure at the vertex is related to force at the vertex
@@ -532,8 +533,6 @@ public class CollisionRenderer {
             // 
             //    force = 1/3 * pressure * adjacentFaceArea
             //
-            // and to get force, we divide the impulse lam by the time
-            // step (stored in hander.myLastH)
             double adjacentFaceArea = 0;
             Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
             while (it.hasNext()) {
@@ -546,7 +545,7 @@ public class CollisionRenderer {
                }
                adjacentFaceArea += face.getPlanarArea();
             }
-            double pressure = 3*(lam/handler.myLastH)/adjacentFaceArea;
+            double pressure = 3*lam/adjacentFaceArea;
             valueMap.put (vertex, pressure);              
          }
       }

@@ -277,10 +277,13 @@ public abstract class FemModel extends MechSystemBase
          throw new IllegalArgumentException (
             "Material not allowed to be null");
       }
+      FemMaterial old = myMaterial;
       myMaterial = (FemMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      componentChanged (MaterialChangeEvent.defaultEvent);
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         componentChanged (MaterialChangeEvent.defaultEvent);
+      }
       invalidateStressAndStiffness();
       invalidateRestData();  // added to invalidate cached linear data (mirrors property change event)
    }
@@ -1128,22 +1131,22 @@ public abstract class FemModel extends MechSystemBase
       return numf;
    }
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx) {
+   public int setBilateralForces (VectorNd lam, double s, int idx) {
       return idx;
    }
    
-   public void zeroImpulses() {
+   public void zeroForces() {
    }
 
-   public int getBilateralImpulses (VectorNd lam, int idx) {
+   public int getBilateralForces (VectorNd lam, int idx) {
       return idx;
    }
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
+   public int setUnilateralForces (VectorNd the, double s, int idx) {
       return idx;
    }
 
-   public int getUnilateralImpulses (VectorNd the, int idx) {
+   public int getUnilateralForces (VectorNd the, int idx) {
       return idx;
    }
 

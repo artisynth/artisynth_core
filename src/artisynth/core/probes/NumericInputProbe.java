@@ -609,9 +609,11 @@ public class NumericInputProbe extends NumericProbeBase
       return isActive();
    }
    
-   public ComponentState createState(ComponentState prevState) {
+   public ComponentState createState (
+      ComponentState prevState) {
       if (isActive()) {
-         return new NumericState (myVsize, 0);
+         NumericState state = new NumericState (0, myVsize);
+         return state;
       }
       else {
          return new EmptyState();

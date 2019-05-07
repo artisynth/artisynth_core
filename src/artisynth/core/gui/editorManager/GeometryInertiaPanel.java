@@ -429,55 +429,36 @@ ActionListener, ValueChangeListener {
       }
    }
 
-   /**
-    * Method to compute the exact spatial inertia of a body, given its
-    * parametric representation (or simply the mesh, if no parametroc
-    * representation exists).
-    */
-   private SpatialInertia computeExactInertia (double density, double vol) {
-      SpatialInertia M = new SpatialInertia();
-      switch ((GeometryType) myGeometrySelector.getValue()) {
-         case Box: {
-            Vector3d widths = (Vector3d)myBoxWidthsField.getValue();
-            M.setBox (density * vol, widths.x, widths.y, widths.z);
-            break;
-         }
-         case Sphere: {
-            double radius = myPointRadiusField.getDoubleValue();
-            M.setSphere (density * vol, radius);
-            break;
-         }
-         default: {
-            myMesh.computeInertia (M, density);
-         }
-      }
-      return M;
-   }
+//   /**
+//    * Method to compute the exact spatial inertia of a body, given its
+//    * parametric representation (or simply the mesh, if no parametroc
+//    * representation exists).
+//    */
+//   private SpatialInertia computeExactInertia (double density, double vol) {
+//      SpatialInertia M = new SpatialInertia();
+//      switch ((GeometryType) myGeometrySelector.getValue()) {
+//         case Box: {
+//            Vector3d widths = (Vector3d)myBoxWidthsField.getValue();
+//            M.setBox (density * vol, widths.x, widths.y, widths.z);
+//            break;
+//         }
+//         case Sphere: {
+//            double radius = myPointRadiusField.getDoubleValue();
+//            M.setSphere (density * vol, radius);
+//            break;
+//         }
+//         default: {
+//            myMesh.computeInertia (M, density);
+//         }
+//      }
+//      return M;
+//   }
 
    /**
     * Computes the body inertia from the mesh, given a density
     */
    private void updateInertiaFromDensity (double density) {
       SpatialInertia M = new SpatialInertia();
-      myMesh.computeInertia (M, density);
-      //      System.out.println ("COM=" + M.getCenterOfMass());
-      RigidTransform3d X = new RigidTransform3d (1, 2, 3);
-      myMesh.transform (X);
-      myMesh.computeInertia (M, density);
-      // System.out.println ("COM=" + M.getCenterOfMass());
-      myMesh.inverseTransform (X);
-      myMesh.computeInertia (M, density);
-      // System.out.println ("COM=" + M.getCenterOfMass());
-      updateInertia (M);
-   }
-
-   /**
-    * Computes the body inertia from the mesh, given a mass. The density is
-    * updated as well, if it is not void
-    */
-   private void updateInertiaFromMass (double mass) {
-      SpatialInertia M = new SpatialInertia();
-      double density = mass / myMesh.computeVolume();
       myMesh.computeInertia (M, density);
       updateInertia (M);
    }

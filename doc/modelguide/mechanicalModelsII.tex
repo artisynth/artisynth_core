@@ -1655,7 +1655,7 @@ previously set using one of the {\tt setCollisionResponse()} methods.
 Information that can be queried by a
 \javaclass[artisynth.core.mechmodels]{CollisionResponse} component
 includes whether or not the collidable is in collision, contact
-impulses acting on the vertices of the colliding meshes, the
+forces acting on the vertices of the colliding meshes, the
 penetration regions of each mesh associated with the collision, and
 the underlying \javaclass[artisynth.core.mechmodels]{CollisionHandler}
 objects that maintain the contact constraints between each colliding
@@ -1665,10 +1665,10 @@ mesh. This information may be queried with the following methods:
   // Queries if the collidables associated with this response are in contact
   boolean inContact(); 
 
-  // Returns a map specifying the contact impulses acting on all the deformable 
+  // Returns a map specifying the contact forces acting on all the deformable 
   // bodies associated with the first or second collidable, as specified by
   // cidx=0 or cidx=1.
-  Map<Vertex3d,Vector3d> getContactImpulses(int cidx);
+  Map<Vertex3d,Vector3d> getContactForces(int cidx);
 
   // Returns a list of all the penetration regions on either the first
   // or second collidable, as specified by cidx=0 or cidx=1. Penetration
@@ -1698,7 +1698,7 @@ could be created with the call
 and then used in some runtime code as follows:
 %
 \begin{lstlisting}[]
-   Map<Vertex3d,Vector3d> collMap = resp.getContactImpulses (0);
+   Map<Vertex3d,Vector3d> collMap = resp.getContactForces (0);
 \end{lstlisting}
 %
 If for some reason it is difficult to store a reference to the
@@ -1707,7 +1707,7 @@ getCollisionResponse()} can be used to retrieve it:
 %
 \begin{lstlisting}[]
    CollisionResponse resp = mech.getCollisionResponse (femA, femB);
-   Map<Vertex3d,Vector3d> collMap = resp.getContactImpulses (0);
+   Map<Vertex3d,Vector3d> collMap = resp.getContactForces (0);
 \end{lstlisting}
 %
 
@@ -2140,9 +2140,9 @@ colliderType} property is set to {\tt AJL\_CONTOUR} (Section
 \item[CONTACT\_PRESSURE]\mbox{}
 
 The color map shows the contact pressures over the contact region.
-Contact pressures are determined by examining the impulses at the
-contact constraints, dividing by the time step to obtain forces, and
-then distributing these over the surrounding faces.  
+Contact pressures are determined by examining the forces at the
+contact constraints and then distributing these over the surrounding
+faces.
 
 \end{description}
 
@@ -2176,6 +2176,15 @@ which specifies how this interval should be updated: {\tt FIXED} (no
 updating), {\tt AUTO\_EXPAND} (interval is expanded as values increase
 or decrease), and {\tt AUTO\_FIT} (interval is reset to fit the values
 at every render step).
+
+\item[colorMapInterpolation]\mbox{}
+
+An enum of type
+\javaclass[maspack.render]{Renderer.ColorInterpolation} that explicity
+specifies how colors in any rendered color map should be interpolated.
+{\tt RGB} and {\tt HSV} (the default) specify interpolation in RGB and
+HSV space, respectively. HSV interpolation is the default as it is
+generally better suited to rendering maps that are purely color-based.
 
 \end{description}
 

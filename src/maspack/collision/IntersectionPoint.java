@@ -6,10 +6,13 @@ import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
 import maspack.geometry.Vertex3d;
 import maspack.geometry.RobustPreds;
+import maspack.util.DataBuffer;
 
 public class IntersectionPoint extends Point3d {
 
    private static final long serialVersionUID = 1L;
+
+   private static final int FACE_ON_MESH1 = 0x40000000;
 
    static final IntersectionPoint COINCIDENT = new IntersectionPoint();
 
@@ -21,14 +24,6 @@ public class IntersectionPoint extends Point3d {
 
    public int intersectionCode; // code for intersection that created this point
 
-   Vertex3d myVertex; // vertex associated with this mip - used when creating
-                      // intersection meshes
-
-   Face effectiveFace0;
-   Face effectiveFace1;
-   HalfEdge nearEdge0;
-   HalfEdge nearEdge1;
-
    static final int EMPTY_PROJECTED = 0x01;
    static final int EMPTY_BEGIN = 0x02;
    static final int EMPTY_END = 0x04;
@@ -36,6 +31,13 @@ public class IntersectionPoint extends Point3d {
    static final int EMPTY_SEG_BEGIN = (EMPTY_PROJECTED | EMPTY_BEGIN);
    static final int EMPTY_SEG_END = (EMPTY_PROJECTED | EMPTY_END);
 
+   // Following attributes are transient and used when creating CSG methods:
+   
+   Vertex3d myVertex; // vertex associated with this mip
+   Face effectiveFace0;
+   Face effectiveFace1;
+   HalfEdge nearEdge0;
+   HalfEdge nearEdge1;
    int emptyMark0;
    int emptyMark1;
 
@@ -314,5 +316,98 @@ public class IntersectionPoint extends Point3d {
       IntersectionPoint pnt = (IntersectionPoint)super.clone();
       pnt.myVertex = null;
       return pnt;
+   }
+
+   static DataBuffer.Offsets getStateSize () {
+      return new DataBuffer.Offsets (4, 3, 0);
+   }
+
+   void getState (
+      DataBuffer data, PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      
+      int code = intersectionCode;
+      if (edge.head.getMesh() == mesh0) {
+         code |= FACE_ON_MESH1;
+      }
+      data.zput (code);
+      data.zput (face.getIndex());
+      data.zput (edge.getIndex());
+      if (primaryCoincident == null) {
+         data.zput (-1);
+      }
+      else if (primaryCoincident == IntersectionPoint.COINCIDENT) {
+         data.zput (-2);
+      }
+      else {
+         data.zput (primaryCoincident.contourIndex);
+      }
+      data.dput (this);      
+   }
+
+   void setState (DataBuffer data, PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      data.dget (this);
+      int code = data.zget();
+      if ((code & FACE_ON_MESH1) != 0) {
+         face = mesh1.getFace (data.zget());
+         edge = mesh0.getHalfEdge (data.zget());
+      }
+      else {
+         face = mesh0.getFace (data.zget());
+         edge = mesh1.getHalfEdge (data.zget());
+      }
+      intersectionCode = (code & ~FACE_ON_MESH1);
+      int pcidx = data.zget();
+      if (pcidx == -2) {
+         primaryCoincident = IntersectionPoint.COINCIDENT;
+      }
+      else if (pcidx >= 0) {
+         primaryCoincident = contour.get(pcidx);
+      }      
+   }
+
+   public boolean equals (IntersectionPoint mip, StringBuilder msg) {
+      if (!super.equals (mip)) {
+         if (msg != null) msg.append ("point position differs\n");
+         return false;
+      }
+      if (face != mip.face) {
+         if (msg != null) msg.append ("face differs\n");
+         return false;
+      }
+      if (edge != mip.edge) {
+         if (msg != null) msg.append ("edge differs\n");
+         return false;
+      }
+      if (intersectionCode != mip.intersectionCode) {
+         if (msg != null) msg.append ("intersectionCode differs\n");
+         return false;
+      }
+      if (contourIndex != mip.contourIndex) {
+         if (msg != null) msg.append ("contourIndex differs\n");
+         return false;
+      }
+      if ((primaryCoincident == null) != (mip.primaryCoincident == null)) {
+         if (msg != null) msg.append ("primaryCoincident == null differs\n");
+         return false;
+      }
+      if (primaryCoincident != null) {
+         if ((primaryCoincident == COINCIDENT) !=
+             (mip.primaryCoincident == COINCIDENT)) {
+            if (msg != null) {
+               msg.append ("primaryCoincident == COINCIDENT differs\n");
+            }
+            return false;
+         }
+         if (primaryCoincident != COINCIDENT) {
+            if (primaryCoincident.contourIndex !=
+                mip.primaryCoincident.contourIndex) {
+               if (msg != null) {
+                  msg.append ("primaryCoincident.contourIndex differs\n");
+               }
+               return false;
+            }
+         }
+      }
+      return true;
    }
 }

@@ -38,21 +38,21 @@ public class RigidBodyTest extends UnitTest {
       RigidBody body, double densityChk,
       SpatialInertia MChk, InertiaMethod methodChk) {
 
-      checkEquals ("body.getDensity()=", body.getDensity(), densityChk, EPS);
+      checkEquals ("body.getDensity()", body.getDensity(), densityChk, EPS);
       SpatialInertia M = new SpatialInertia();
       body.getInertia(M);
-      checkEquals ("body.getInertia()=", M, MChk, EPS);
+      checkEquals ("body.getInertia()", M, MChk, EPS);
       checkEquals (
-         "body.getInertiaMethod()=", body.getInertiaMethod(), methodChk);
+         "body.getInertiaMethod()", body.getInertiaMethod(), methodChk);
 
       double implicitVolume = body.sumImplicitMeshVolumes();
       if (implicitVolume > 0) {
          double implicitMass = body.getMass() - body.sumExplicitMeshMasses();
          double massSum = body.sumMeshMasses();
          checkEquals (
-            "sumMeshMasses:", massSum, body.getMass(), EPS);
+            "sumMeshMasses", massSum, body.getMass(), EPS);
          checkEquals (
-            "computedDensity:", implicitMass/implicitVolume,
+            "computedDensity", implicitMass/implicitVolume,
             body.getDensity(), EPS);
       }
    }

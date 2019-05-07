@@ -577,6 +577,9 @@ model itself is saved to a file, the model file will specify the mesh
 using the file name instead of explicit vertex and face information,
 which can reduce the model file size considerably.
 
+Rigid bodies can also have more than one mesh, as described
+in Section \ref{rigidBodyMultipleMeshes:sec}.
+
 The inertia of a rigid body can be explicitly set using a variety
 of methods including
 %
@@ -596,10 +599,10 @@ and can be queried using
 %
 
 In practice, it is often more convenient to simply specify a mass or a
-density, and then use the volume defined by the surface mesh to
-compute the remaining inertial values. How a rigid body's inertia is
-computed is determined by its {\sf inertiaMethod} property, which can
-be one
+density, and then use the geometry of the surface mesh (and possibly
+other meshes, Section \ref{rigidBodyMultipleMeshes:sec}) to compute
+the remaining inertial values. How a rigid body's inertia is computed
+is determined by its {\sf inertiaMethod} property, which can be one
 
 \begin{description}
 
@@ -607,19 +610,28 @@ be one
 
 Inertia is set explicitly.
 
-\item[DENSITY]\mbox{}
-
-Inertia is determined implicitly from the surface mesh and 
-the body's density.
-
 \item[MASS]\mbox{}
 
-Inertia is determined implicitly from the surface mesh and the
-body's mass (which is divided by the mesh volume to determine a density).
+Inertia is determined implicitly from the mesh geometry and the body's
+mass.
+
+\item[DENSITY]\mbox{}
+
+Inertia is determined implicitly from the mesh geometry and the body's
+density (which is multiplied by the mesh volume(s) to determine a
+mass).
 
 \end{description}
 
-This property can be set and queried using
+\begin{sideblock}
+When using {\tt DENSITY} to determine the inertia, it is generally
+assumed that the contributing meshes are both polygonal and
+closed. Meshes which are either open or non-polygonal generally do not
+have a well-defined volume which can be multipled by the density to
+determine the mass.
+\end{sideblock}
+
+The {\sf inertiaMethod} property can be set and queried using
 %
 \begin{lstlisting}[]
   setInertiaMethod (InertiaMethod method);
@@ -634,7 +646,7 @@ set {\tt inertiaMethod} to {\tt EXPLICIT}. The method
   setInertiaFromDensity (density); 
 \end{lstlisting}
 %
-will (re)compute the inertia using the mesh and a density value
+will (re)compute the inertia using the mesh geometry and a density value
 and set {\tt inertiaMethod} to {\tt DENSITY}, and
 the method
 %
@@ -642,7 +654,7 @@ the method
   setInertiaFromMass (mass); 
 \end{lstlisting}
 %
-will (re)compute the inertia using the mesh and mass value
+will (re)compute the inertia using the mesh geometry and a mass value
 and set {\tt inertiaMethod} to {\tt MASS}.
 
 Finally, the (assumed uniform) density of the body can be queried
@@ -746,6 +758,19 @@ rendered (see Section \ref{RenderProperties:sec}).
 will contribute to the body's inertia when the {\sf inertiaMethod}
 is either {\tt MASS} or {\tt DENSITY}. The default value is {\tt true}.
 
+\item[massDistribution] An enumerated type defined by
+\javaclass[maspack.geometry]{MassDistribution} which specifies how the
+mesh's inertia contribution is determined for a given mass.  {\tt
+VOLUME}, {\tt AREA}, {\tt LENGTH}, and {\tt POINT} indicate,
+respectively, that the mass is distributed evenly over the mesh's
+volume, area (faces), length (edges), or points. The default value is
+determined by the mesh type: {\tt VOLUME} for a closed {\tt
+PolygonalMesh}, {\tt AREA} for an open {\tt PolygonalMesh}, {\tt
+LENGTH} for a {\tt PolylineMesh}, and {\tt POINT} for a {\tt
+PointMesh}. Applications can specify an alternate value providing the
+mesh has the features to support it. Specifying {\tt DEFAULT} will
+restore the default value.
+
 \item[isCollidable] A boolean, which if {\tt true}, and if the mesh is a
 {\tt PolygonalMesh}, means that the mesh will take part in collision
 and wrapping interactions (Sections \ref{sec:mechii:collisions} and
@@ -786,16 +811,12 @@ mass.)
 
 When the {\sf inertiaMethod} of the rigid body is either {\tt MASS} or
 {\tt DENSITY}, then its inertia is computed from the sum of all the
-inertias $\M_k$ of component meshes $k$ for which {\sf hasMass} is
-{\tt true}. If the mesh is a {\tt PolygonalMesh}, then $\M_k$ is
-computed by its
-\javamethodAlt{maspack.geometry.PolygonalMesh.createInertia(double)}%
-{createInertia(density)} method, using the {\sf density} property of
-its {\tt RigidMeshComp}. Otherwise, if the mesh is a {\tt PointMesh}
-or {\tt PolylineMesh}, then $\M_k$ is computed as the sum of the
-point-based inertias for each vertex, with the per-vertex mass
-computed by dividing the {\sf mass} property by the number of
-vertices.
+inertias $\M_k$ of the component meshes $k$ for which {\sf hasMass} is
+{\tt true}. Each $\M_k$ is computed by the mesh's
+\javamethodAlt{maspack.geometry.MeshBase.createInertia(double,)}%
+{createInertia(mass,massDistribution)} method,
+using the {\sf mass} and {\sf massDistribution} properties of
+its {\tt RigidMeshComp}.
 
 \begin{sideblock}
 When forming the body inertia from the inertia components of

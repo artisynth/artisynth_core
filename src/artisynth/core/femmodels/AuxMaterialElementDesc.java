@@ -124,13 +124,13 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
    }
 
    public void setMaterial (FemMaterial mat) {
+      FemMaterial old = myMat;
       myMat = (FemMaterial)MaterialBase.updateMaterial (
          this, "material", myMat, mat);
-      //      myMat = mat;
-
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (MaterialChangeEvent.defaultEvent);      
-
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      }
    }
 
    @Override

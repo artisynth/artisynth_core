@@ -34,6 +34,7 @@ import maspack.render.Renderable;
 import maspack.render.GL.GLViewer;
 import maspack.util.Disposable;
 import maspack.util.InternalErrorException;
+import maspack.util.IntHolder;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.util.Round;
@@ -100,6 +101,12 @@ public class RootModel extends RenderableModelBase
    protected ComponentList<Controller> myControllers;
    protected ComponentList<Monitor> myMonitors;
 
+   // model info structures produced by last call to getInitialState()
+   protected ArrayList<ModelInfo> myInitialInfos;
+
+   // in development: specifies start time for root model simulation
+   protected double myStartTime;
+
    // flag to stop advancing - which we need if we are in the midst of 
    // lots of small adaptive steps
    protected boolean myStopAdvance = false;
@@ -147,6 +154,9 @@ public class RootModel extends RenderableModelBase
       int failedIncreaseCnt;
       boolean attemptingIncrease;
 
+      // state-bearing components created during last call to getInitialState()
+      ArrayList<ModelComponent> initialStateComps;
+
       ModelInfo (Model m) {
          controllers = new LinkedList<Controller>();
          monitors = new LinkedList<Monitor>();
@@ -179,7 +189,7 @@ public class RootModel extends RenderableModelBase
          return new CompositeState();
       }
 
-      CompositeState createFullState() {
+      CompositeState createFullState () {
          return new CompositeState();
       }
       
@@ -189,6 +199,9 @@ public class RootModel extends RenderableModelBase
             HasState c = (HasState)comp;
             ComponentState prevState = lastStateMap.get(c);
             ComponentState substate = c.createState(prevState);
+            if (state.isAnnotated()) {
+               substate.setAnnotated(true);
+            }            
             lastStateMap.put(c, substate);
             c.getState (substate);
             state.addState (substate);
@@ -207,10 +220,14 @@ public class RootModel extends RenderableModelBase
             HasState c = (HasState)comp;
             ComponentState prevState = lastStateMap.get(c);
             ComponentState substate = c.createState(prevState);
+            if (state.isAnnotated()) {
+               substate.setAnnotated(true);
+            }
             lastStateMap.put(c, substate);
             c.getInitialState (substate, stateMap.get(comp));
             state.addState (substate);
-            state.addComponent (comp);
+            //state.addComponent (comp);
+            initialStateComps.add (comp);
             return true;
          }
          else {
@@ -253,22 +270,24 @@ public class RootModel extends RenderableModelBase
 
       void getInitialState (CompositeState newstate, CompositeState oldstate) {
          HashMap<Object,ComponentState> stateMap =
-            new HashMap<Object,ComponentState>();
+         new HashMap<Object,ComponentState>();
 
          if (oldstate != null) {
-            if (oldstate.numComponents() != oldstate.numSubStates()) {
+            if (initialStateComps == null) {
+               throw new IllegalStateException (
+                  "initialStateComps not initialized");
+            }
+            if (initialStateComps.size() != oldstate.numSubStates()) {
                throw new InternalErrorException (
-                  "Oldstate has "+oldstate.numComponents()+" components and "+
+                  "Oldstate has "+initialStateComps.size()+" components and "+
                   oldstate.numSubStates()+" substates");
             }
-            ArrayList<Object> comps = oldstate.getComponents();
-            if (comps != null) {
-               for (int i=0; i<oldstate.numSubStates(); i++) {
-                  stateMap.put (comps.get(i), oldstate.getState(i));
-               }
+            for (int i=0; i<initialStateComps.size(); i++) {
+               stateMap.put (initialStateComps.get(i), oldstate.getState(i));
             }
          }
          
+         initialStateComps = new ArrayList<ModelComponent>();
          for (Controller ctl : controllers) {
             maybeGetInitialSubState (newstate, ctl, stateMap);
          }
@@ -276,7 +295,8 @@ public class RootModel extends RenderableModelBase
             ComponentState substate = RootModel.this.createRootState();
             RootModel.this.getRootState (substate);
             newstate.addState (substate);
-            newstate.addComponent (RootModel.this);
+            //newstate.addComponent (RootModel.this);
+            initialStateComps.add (RootModel.this);
          }
          else {
             maybeGetInitialSubState (newstate, model, stateMap);
@@ -323,6 +343,10 @@ public class RootModel extends RenderableModelBase
          } 
          for (Probe prb : inputProbes) {
             if (prb.hasState()) {
+               if (idx >= state.numSubStates()) {
+                  System.out.println ("num substates=" + state.numSubStates());
+                  System.out.println ("idx = " + idx);
+               }
                prb.setState (state.getState(idx++));
             }
          }
@@ -466,7 +490,7 @@ public class RootModel extends RenderableModelBase
          data.dput (maxStepSize); // not sure we need to save this ...
          data.dput (lasts);
       }
-      
+
       protected void setState (DataBuffer data) {
          successCnt = data.zget();
          failedIncreaseCnt = data.zget();
@@ -917,6 +941,20 @@ public class RootModel extends RenderableModelBase
    }
 
    /**
+    * In development: specifies the simulation start time for a root model.
+    */
+   public double getStartTime() {
+      return myStartTime;
+   }
+
+   /**
+    * In development: specifies the simulation start time for a root model.
+    */
+   public void setStartTime (double time) {
+      myStartTime = time;
+   }
+
+   /**
     * Convenience routine to add a tracing probe to this RootModel. The probe is
     * created for a specified trace of a Traceable component. Start and stop
     * times are given in seconds. The probe's update interval is set to the
@@ -995,6 +1033,11 @@ public class RootModel extends RenderableModelBase
    private double getTime() {
       return Main.getMain().getTime();
    }
+
+//   private void setTime (double time) {
+//      Main.getMain().getScheduler().setInitialTime(time);
+//      initialize (time);
+//   }
 
    // WS
    public void addWayPoint (WayPoint way) {
@@ -1349,11 +1392,15 @@ public class RootModel extends RenderableModelBase
    /**
     * {@inheritDoc}
     */
-   public ComponentState createState(ComponentState prevState) {
+   public CompositeState createState (
+      ComponentState prevState) {
+      if (!myModelInfoValid) {
+         updateModelInfo();
+         myModelInfoValid = true;
+      }      
       // state is a composite state for every model plus a numeric state
       // for the root model itself
-      int numMods = myModelInfo.size();
-      CompositeState state = new CompositeState(numMods+1);
+      CompositeState state = new CompositeState();
       for (ModelInfo info : myModelInfo.values()) {
          state.addState (info.createFullState());
       }
@@ -1367,7 +1414,7 @@ public class RootModel extends RenderableModelBase
       int numMods = myModelInfo.size();
       int dsize = numMods*myRootInfo.getDStateSize();
       int zsize = numMods*myRootInfo.getZStateSize();
-      return new NumericState(dsize, zsize);
+      return new NumericState(zsize, dsize);
    }
 
    /**
@@ -1381,7 +1428,7 @@ public class RootModel extends RenderableModelBase
       if (newState.numSubStates() != myModels.size()+1) {
          throw new IllegalArgumentException (
             "new state has "+newState.numSubStates()+
-            " sub-states vs. "+myModels.size()+1);
+            " sub-states vs. "+(myModels.size()+1));
       }
       int k = 0;
       for (ModelInfo info : myModelInfo.values()) {
@@ -1390,18 +1437,6 @@ public class RootModel extends RenderableModelBase
       myRootInfo.setFullState ((CompositeState)newState.getState(k++));      
    }
    
-   protected void setRootState (ComponentState state) {
-      if (!(state instanceof NumericState)) {
-         throw new IllegalArgumentException ("state is not a NumericState");
-      }
-      // Set local state, including adaptive integration info for all models
-      NumericState rootState = (NumericState)state;
-      rootState.resetOffsets();
-      for (ModelInfo info : myModelInfo.values()) {
-         info.setState (rootState);
-      }
-   }
-
    /**
     * {@inheritDoc}
     */
@@ -1413,11 +1448,11 @@ public class RootModel extends RenderableModelBase
       CompositeState saveState = (CompositeState)state;
       saveState.clear();
       for (ModelInfo info : myModelInfo.values()) {
-         substate = new CompositeState();
+         substate = new CompositeState(saveState.isAnnotated());
          info.getFullState (substate);
          saveState.addState (substate);
       }
-      substate = new CompositeState();
+      substate = new CompositeState(saveState.isAnnotated());
       myRootInfo.getFullState (substate);
       saveState.addState (substate);
    }
@@ -1440,31 +1475,33 @@ public class RootModel extends RenderableModelBase
             throw new IllegalArgumentException (
                "oldstate is not a CompositeState");
          }
+         if (myInitialInfos == null) {
+            throw new IllegalStateException (
+               "initialInfos not initialized");
+         }
          CompositeState ostate = (CompositeState)oldstate;
-         if (ostate.numComponents() != ostate.numSubStates()) {
+         if (myInitialInfos.size() != ostate.numSubStates()) {
             throw new IllegalArgumentException (
-               "oldstate has "+ostate.numComponents()+" components vs. "+
+               "oldstate has "+myInitialInfos.size()+" components vs. "+
                ostate.numSubStates()+" substates");
          }
-         ArrayList<Object> comps = ostate.getComponents();
-         if (comps != null) {
-            for (int k=0; k<comps.size(); k++) {
-               stateMap.put ((ModelInfo)comps.get(k),
-                             (CompositeState)ostate.getState(k));
-            }
+         for (int k=0; k<myInitialInfos.size(); k++) {
+            ModelInfo info = myInitialInfos.get(k);
+            stateMap.put (info, (CompositeState)ostate.getState(k));
          }
       }
       saveState.clear();
-       for (ModelInfo info : myModelInfo.values()) {
+      myInitialInfos = new ArrayList<ModelInfo>();
+      for (ModelInfo info : myModelInfo.values()) {
          substate = new CompositeState();
          info.getInitialState (substate, stateMap.get(info));
          saveState.addState (substate);
-         saveState.addComponent (info);
+         myInitialInfos.add (info);
       }
       substate = new CompositeState();
       myRootInfo.getInitialState (substate, stateMap.get(myRootInfo));
       saveState.addState (substate);
-      saveState.addComponent (myRootInfo);
+      myInitialInfos.add (myRootInfo);
    }
 
    protected void getRootState (ComponentState state) {
@@ -1479,6 +1516,34 @@ public class RootModel extends RenderableModelBase
       }
    }
 
+   protected void setRootState (ComponentState state) {
+      if (!(state instanceof NumericState)) {
+         throw new IllegalArgumentException ("state is not a NumericState");
+      }
+      // Set local state, including adaptive integration info for all models
+      NumericState rootState = (NumericState)state;
+      rootState.resetOffsets();
+      for (ModelInfo info : myModelInfo.values()) {
+         info.setState (rootState);
+      }
+   }
+
+   /**
+    * Convenience method that creates and returns a {@link CompositeState}
+    * containing the current state of the root model.
+    * 
+    * @param annotated specifies if the state should be annotated
+    * @return current state of the root model
+    */
+   public CompositeState getState (boolean annotated) {
+      CompositeState state = createState (null);
+      if (annotated) {
+         state.setAnnotated (true);
+      }
+      getState (state);
+      return state;      
+   }
+   
    public StepAdjustment advance (
       double t0, double t1, int flags) {
 
@@ -1600,7 +1665,7 @@ public class RootModel extends RenderableModelBase
    public boolean getStopRequest() {
       return myStopRequest;
    }
-
+   
    protected void advanceModel (
       ModelInfo info, double t0, double t1, int flags) {
 
@@ -1616,15 +1681,18 @@ public class RootModel extends RenderableModelBase
          if (testSaveAndRestoreState) {  
             // test save-and-restore of model state 
             CompositeState fullState = info.createFullState();
+            fullState.setAnnotated(true);
             CompositeState testState = info.createFullState();
+            testState.setAnnotated(true);
             info.getFullState (fullState);
             info.setFullState (fullState);
             info.getFullState (testState);
-            if (!testState.equals (fullState)) {
+            if (!testState.equals (fullState, null)) {
                throw new InternalErrorException (
                   "Error: save/restore state test failed");
             }  
          }
+         
          double tb = info.getNextAdvanceTime (ta, t1);
          do {
             synchronized (this) {
@@ -1658,7 +1726,10 @@ public class RootModel extends RenderableModelBase
    }
 
    protected void doadvance (double t0, double t1, int flags) {
-      
+
+      if (myWayPoints.isEventTime (t0)) {
+         flags |= Model.STATE_IS_VOLATILE;
+      }
       double ta = t0;
       if (t0 == 0) {
          applyOutputProbes (myRootInfo.outputProbes, t0, myRootInfo);
@@ -1692,7 +1763,13 @@ public class RootModel extends RenderableModelBase
       // probes and waypoints. Probe file should have same format as model file
       // see Workspace.writeProbes()
       pw.println ("waypoints=");
-      myWayPoints.write (pw, fmt, this);
+      if (getTime() != 0) {
+         myWayPoints.write (pw, fmt, this, WayPointProbe.WRITE_FIRST_STATE);
+         pw.println ("time=" + fmt.format(getTime()));
+      }
+      else {
+         myWayPoints.write (pw, fmt, this);
+      }
    }
 
    public void scanProbes (ReaderTokenizer rtok) throws IOException {
@@ -1727,6 +1804,10 @@ public class RootModel extends RenderableModelBase
       else if (scanAttributeName (rtok, "waypoints")) {
          tokens.add (new StringToken ("waypoints", rtok.lineno()));
          myWayPoints.scan (rtok, tokens);
+         return true;
+      }
+      else if (scanAttributeName (rtok, "time")) {
+         myStartTime = rtok.scanNumber();
          return true;
       }
       rtok.pushBack();

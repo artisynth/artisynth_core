@@ -41,9 +41,10 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    protected static final int FIXED = 0x8;
    protected static final int NAVPANEL_HIDDEN = 0x10;
    protected static final int NAVPANEL_ALWAYS = 0x20;
+   protected static final int SCANNING = 0x40;
    
    // Allow for creation of custom flags
-   protected static int FREE_FLAG_MASK = 0xFFC0;
+   protected static int FREE_FLAG_MASK = 0xFF80;
    protected static int freeFlags = FREE_FLAG_MASK;
    
    public static int createTempFlag() {
@@ -188,6 +189,7 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
       if (tokens == null) {
          tokens = new ArrayDeque<> ();
       }
+      setScanning (true);
       rtok.scanToken ('[');
       tokens.offer (ScanToken.BEGIN);
       while (rtok.nextToken() != ']') {
@@ -200,15 +202,15 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-   throws IOException {
-   // if keyword is a property name, try scanning that
-   rtok.nextToken();
-   if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
-      return true;
+      throws IOException {
+      // if keyword is a property name, try scanning that
+      rtok.nextToken();
+      if (ScanWriteUtils.scanProperty (rtok, this, tokens)) {
+         return true;
+      }
+      rtok.pushBack();
+      return false;
    }
-   rtok.pushBack();
-   return false;
-}
 
    protected boolean postscanAttributeName (Deque<ScanToken> tokens, String name)
       throws IOException {
@@ -268,6 +270,7 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
          }
       }      
       tokens.poll(); // eat END token
+      setScanning (false);
    }   
 
    /**
@@ -408,18 +411,31 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
       }
    }
    
-   public boolean checkFlag(int mask) {
+   public void setScanning (boolean scanning) {
+      if (scanning) {
+         myFlags |= SCANNING;
+      }
+      else {
+         myFlags &= ~SCANNING;
+      }
+   }
+
+   public boolean isScanning() {
+      return (myFlags & SCANNING) != 0;
+   }
+
+   public boolean checkFlag (int mask) {
       if ( (myFlags & mask) > 0) {
          return true;
       }
       return false;
    }
    
-   public void setFlag(int mask) {
+   public void setFlag (int mask) {
       myFlags |= mask;
    }
    
-   public void clearFlag(int mask) {
+   public void clearFlag (int mask) {
       myFlags = myFlags & ~mask;
    }
 

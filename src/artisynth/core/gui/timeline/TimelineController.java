@@ -1176,7 +1176,7 @@ public class TimelineController extends Timeline
          return true;
       }
       int idx = 0;
-      for (WayPoint wayPoint : root.getWayPoints().getPoints()) {
+      for (WayPoint wayPoint : root.getWayPoints()) {
          if (wayInfos.get(idx++).myWaypoint != wayPoint) {
             return true;
          }
@@ -1186,7 +1186,7 @@ public class TimelineController extends Timeline
 
    // Refresh the set of waypoint from info the RootModel. Return true if
    // changes were made, and false otherwise.
-   private boolean refreshWayPoints(RootModel root) {
+   public boolean refreshWayPoints(RootModel root) {
       myToolBar.updateToolbarState(root);
       if (!wayPointsNeedRefreshing(root)) {
          return false;
@@ -1201,7 +1201,7 @@ public class TimelineController extends Timeline
       
       // now add new ones from rootModel ...
       int idx = 0;
-      for (WayPoint wayPoint : root.getWayPoints().getPoints ()) {
+      for (WayPoint wayPoint : root.getWayPoints()) {
          WayPointInfo info = new WayPointInfo (this, wayPoint);
          wayInfos.add (info);
          info.setIndex (idx++);
@@ -1253,7 +1253,7 @@ public class TimelineController extends Timeline
       refreshWayPoints(root);
    }
 
-   private void setAttachedFileFromUser (WayPointProbe wayPoints, String text) {
+   public void setAttachedFileFromUser (WayPointProbe wayPoints, String text) {
       String workspace = new String (ArtisynthPath.getWorkingDirPath());
       File current = wayPoints.getAttachedFile();
 

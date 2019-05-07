@@ -88,7 +88,7 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    public VectorNd getSubspaceForce (double t0, double t1) {   
       myMech.updateConstraints (t0, null, 0);
       double h=t1-t0;
-      VectorNd lambda = new VectorNd(myMech.getNumBilateralImpulses ());
+      VectorNd lambda = new VectorNd(myMech.getNumBilateralForces ());
       myMech.getBilateralForces (lambda);
   
       SparseBlockMatrix Jc = getForceJacobian ();

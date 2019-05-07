@@ -38,6 +38,7 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
+import maspack.util.DataBuffer;
 
 public class Point extends DynamicComponentBase
    implements TransformableGeometry, ScalableUnits,
@@ -641,20 +642,6 @@ public class Point extends DynamicComponentBase
       myState.set (point.myState);
    }
 
-   public int setState (VectorNd x, int idx) {
-      idx = myState.set (x, idx);
-      return idx;
-   }
-
-//   public void getState (PointState state) {
-//      state.set (myState);
-//   }
-
-   public int getState (VectorNd x, int idx) {
-      return myState.get (x, idx);
-   }
-
-
    public void addToSolveBlockDiagonal (
       SparseNumberedBlockMatrix S, double d) {
       if (getSolveIndex() != -1) {
@@ -733,6 +720,24 @@ public class Point extends DynamicComponentBase
    }      
 
    public void updateVelState() {
+   }
+
+   public void getState (DataBuffer data) {
+      data.dput (myState.pos);
+      data.dput (myState.vel);
+      if (MechSystemBase.mySaveForcesAsState) {
+         data.dput (myForce);
+      }
+   }
+
+   public void setState (DataBuffer data) {
+      data.dget (myState.pos);
+      updatePosState();
+      data.dget (myState.vel);
+      updateVelState();
+      if (MechSystemBase.mySaveForcesAsState) {
+         data.dget (myForce);
+      }
    }
 
    /**

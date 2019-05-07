@@ -14,7 +14,9 @@ import maspack.util.DoubleHolder;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public interface BodyConstrainer extends HasAuxState {
+import artisynth.core.modelbase.HasNumericState;
+
+public interface BodyConstrainer extends HasNumericState {
    /**
     * Updates internal information needed for computing constraints.
     * 
@@ -84,9 +86,9 @@ public interface BodyConstrainer extends HasAuxState {
     */
    public int getBilateralConstraints (ArrayList<RigidBodyConstraint> bilaterals);
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx);
+   public int setBilateralForces (VectorNd lam, double s, int idx);
 
-   public int getBilateralImpulses (VectorNd lam, int idx);
+   public int getBilateralForces (VectorNd lam, int idx);
 
    // added to implement Constrainer
 
@@ -109,11 +111,11 @@ public interface BodyConstrainer extends HasAuxState {
    public double getUnilateralConstraints (
       ArrayList<RigidBodyConstraint> unilaterals, boolean setEngaged);
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx);
+   public int setUnilateralForces (VectorNd the, double s, int idx);
 
-   public int getUnilateralImpulses (VectorNd the, int idx);
+   public int getUnilateralForces (VectorNd the, int idx);
    
-   public void zeroImpulses();
+   public void zeroForces();
 
    /**
     * Returns true if this constrainer has unilateral constraints.

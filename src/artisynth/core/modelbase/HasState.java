@@ -31,7 +31,7 @@ public interface HasState {
     * if the supplied state object is incompatible with this component
     */
    public void getState (ComponentState state);
-   
+
    /**
     * Gets an initial state for this component and returns the value in
     * <code>state</code>. If <code>prevstate</code> is non-null, then it is
@@ -68,7 +68,6 @@ public interface HasState {
     * @param prevState If non-null, supplies a previous state that
     * was created by this component and which can be used to provide
     * pre-sizing hints.
-    * 
     * @return new object for storing this component's state
     */
    public ComponentState createState (ComponentState prevState);

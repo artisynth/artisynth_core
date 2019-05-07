@@ -384,7 +384,7 @@ public class FemModel3dTest extends UnitTest {
             break;
          }
       }
-      checkEquals ("location for nearest element:", loc, chk, EPS);
+      checkEquals ("location for nearest element", loc, chk, EPS);
       String edesc = elementDescription (e);
       if (chkNum == -1) {
          if (chkType != elementType(e)) {

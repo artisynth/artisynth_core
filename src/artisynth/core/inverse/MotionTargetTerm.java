@@ -780,7 +780,7 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       
       MatrixNd Hv = new MatrixNd (myTargetVelSize, myController.numExcitations ());
       Hv.set (myController.getData ().getHv ());
-      
+
       if (myController.getData ().normalizeH) {
          double fn = 1.0 / Hv.frobeniusNorm ();
          Hv.scale (fn);

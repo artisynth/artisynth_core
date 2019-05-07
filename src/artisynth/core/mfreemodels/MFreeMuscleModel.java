@@ -413,10 +413,13 @@ public class MFreeMuscleModel extends MFreeModel3d
          throw new IllegalArgumentException(
             "MuscleMaterial not allowed to be null for MuscleBundle");
       }
+      MuscleMaterial old = myMuscleMat;
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial(
          this, "muscleMaterial", myMuscleMat, mat);
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      componentChanged(MaterialChangeEvent.defaultEvent);
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         componentChanged (MaterialChangeEvent.defaultEvent);
+      }
    }
 
    public void addMuscleBundle(MuscleBundle bundle) {

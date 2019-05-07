@@ -33,6 +33,149 @@
 
 %\subsection*{connectToHierarchy() modified}
 
+\section*{May 6, 2019}
+
+\subsection*{Enhanced rigid body inertia computation}
+
+The method by which inertia is automatically computed for a rigid body
+based on the geometry of its mesh components (when its {\sf
+inertiaMethod} is {\tt MASS} or {\tt DENSITY}) has been improved.
+Mesh components now have a property {\sf massDistribution} which
+determines how the mesh's inertia contribution is determined for a
+given mass.  {\tt VOLUME}, {\tt AREA}, {\tt LENGTH}, and {\tt POINT}
+indicate, respectively, that the mass is distributed evenly over the
+mesh's volume, area (faces), length (edges), or points. The default
+value is determined by the mesh type: {\tt VOLUME} for a closed {\tt
+PolygonalMesh}, {\tt AREA} for an open {\tt PolygonalMesh}, {\tt
+LENGTH} for a {\tt PolylineMesh}, and {\tt POINT} for a {\tt
+PointMesh}. Applications can specify an alternate value providing the
+mesh has the features to support it. Specifying {\tt DEFAULT} will
+restore the default value.should be determined.
+
+Full details are given in the section ``Multiple meshes'',
+located under ``Rigid bodies'', in the
+\href{http://www.artisynth.org/doc/info/modelguide/modelguide.html}
+{Modeling Guide}.
+
+\subsection*{Saving models in mid-simulation}
+
+It is now possible to save a model to a file in mid-simulation.
+Previously, it was assumed that the simulation ``time'' was 0.  Now,
+however, you can simulate to some time $t$, and then save the model
+(using {\sf File > Save model as ...}). Loading the resulting file
+(using {\sf File > Load model ...}) will restore the model to the
+simulation time $t$.
+
+If the model contains valid waypoints, the state of these waypoints is
+now also saved and restored. One caution is that if there are many
+waypoints and the model state is large, the resulting save file may
+also be quite large.
+
+\subsection*{Forces and nodal stress/strains now saved as
+state}
+
+Forces and nodal stress/strain values are now saved as state within
+waypoints.  This ensures that when a model is reset to a given
+waypoint at time $t$, forces and stress/strains will be reset to the
+same values they had when the simulation originally reached $t$.
+
+\subsection*{Improvement and simplification of the state mechanism}
+
+The interface {\tt HasAuxState}, used to indicate components which
+store state, has been renamed to {\tt HasNumericState} and moved to
+{\tt artisynth.core.modelbase}. It has also been simplified, with the
+methods {\tt skipAuxState()} and {\tt getInitialState()} removed and
+{\tt getAuxState()}, {\tt setAuxState()}, and {\tt advanceAuxState()}
+renamed to {\tt getState()}, {\tt setState()} and {\tt
+advanceState()}.
+
+Numerous internal changes have been made to the mechanism by which
+model state is saved and restored, both from waypoints and from model
+files, largely with the goal of ensuring exact repeatability of results
+when simulation resumes from a previously stored state.
+
+\subsection*{Menu command for saving and loading waypoints}
+
+A new set of menu commands have been added for saving and loading
+waypoints. These are accessed from the {\sf File} menu and include:
+
+\begin{description}
+
+\item[Load wayPoints ...]\mbox{}
+
+Loads a set of waypoints from a specified file. As before, loading
+waypoints are superimposed on top of any existing waypoints.
+
+\item[Save wayPoints as ...]\mbox{}
+
+Saves the current set of waypoints to a specified file.
+
+\item[Save wayPoints]\mbox{}
+
+Saves the current set of waypoints to a previously specified file.
+
+\end{description}
+
+Previously, saving and loading waypoints had to be performed from the
+timeline. The save file now also includes information for all
+waypoints, with or without state, along with information identifying
+breakpoints.
+
+As before, the waypoint data file is binary, since this typically
+requires half the file size and improves file I/O times by as much as
+tenfold.
+
+\subsection*{Changes to nodal stress/strain computation and 
+contact rendering}
+
+Stress or strain computation can now be explicitly enabled for
+individual FEM nodes via the {\sf computeStress} and {\sf
+computeStrain} properties of
+\javaclass[artisynth.core.femmodels]{FemNode3d}.  Otherwise, when
+needed for {\tt Stress} or {\tt Strain} rendering of an FEM mesh,
+nodal computation of stress/strain is now optimized to require
+computation of stress/strain values only for those nodes associated
+with the mesh.
+
+A new property {\sf colorMapInterpolation} has been added to
+\javaclass[artisynth.core.mechmodels]{CollisionManager} and
+\javaclass[artisynth.core.mechmodels]{CollisionBehavior}
+to control color interpolation when a penetration depth or
+contact pressure map is requested via the {\sf drawColorMap} property.
+The default interpolation is HSV.
+
+\subsection*{Constraint impulses now stored as forces}
+
+Bilateral and unilateral constraint impulses are now converted to
+forces when they are stored in the model. This means that it is no
+longer necessary to convert impulses to forces by dividing by the
+simulation time step. In particular:
+
+\begin{itemize}
+
+\item The methods {\tt setBilateralImpulses(lam,h,idx)} and {\tt
+setUnilateralImpulses(the,h,idx)} (in {\tt MechSystem} and {\tt
+Constrainer}) have been changed to {\tt setBilateralForces(lam,s,idx)}
+and {\tt setUnilateralForces(the,s,idx)}. Within each of these, the
+forces should be computed from {\tt s*lam} and {\tt s*the}.
+
+\item The methods {\tt getBilateralImpulses(lam,idx)} and {\tt
+getUnilateralImpulses(the,idx)} have been changed to {\tt
+getBilateralForces(lam,idx)} and {\tt getUnilateralForces(the,idx)}.
+
+\item Related '{\tt Impulse}' methods have been renamed to '{\tt
+Force}'.
+
+\item {\tt CollisionResponse.getContactImpulses()} has been changed to
+{\tt getContactForces()}.
+
+\item The last argument for {\tt
+ContactForceBehavior.computeResponse()} has been changed from {\tt
+region} (giving the contact's penetration region) to {\tt contactArea}
+(which gives the estimated average area associated with the contact).
+
+\end{itemize}
+
 \section*{Feb 11, 2019}
 %
 \subsection*{Muscle wrapping added}

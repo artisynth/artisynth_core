@@ -216,20 +216,6 @@ public class RevoluteJoint extends JointBase
       }
    }
 
-   // Scanning of the following properties must be deferred until after
-   // references have been resolved:
-   static String[] deferredProps = new String[] {"theta", "thetaRange"};
-
-   public boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-      throws IOException {
-//      rtok.nextToken();
-//      if (ScanWriteUtils.scanAndStorePropertyValues (rtok, this, deferredProps, tokens)) {
-//         return true;
-//      }
-//      rtok.pushBack();
-      return super.scanItem (rtok, tokens);
-   }
-
    @Override
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {

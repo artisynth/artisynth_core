@@ -45,7 +45,7 @@ def runIntegratorTest(title, t, file, integrator) :
     mech = setModelOpts (t)
     pw = mech.reopenPrintStateFile(file)
     mech.setIntegrator (integrator)
-    pw.println(title)
+    mech.writePrintStateHeader(title)
     doRunStopReset()
     mech.closePrintStateFile()
     return mech;
@@ -53,7 +53,7 @@ def runIntegratorTest(title, t, file, integrator) :
 def runTest(title, t, file) :
     mech = setModelOpts (t)
     pw = mech.reopenPrintStateFile(file)
-    pw.println(title)
+    mech.writePrintStateHeader(title)
     doRunStopReset()
     mech.closePrintStateFile()
     return mech
@@ -69,16 +69,16 @@ clearFile(dataFileName)
 
 # START OF MODELS TO TEST
 loadModel ("artisynth.models.inversedemos.TongueInvDemo")
-runIntegratorTest("#TongueInvDemo ConstrainedBackwardEuler", 0.1, dataFileName, Integrator.ConstrainedBackwardEuler)
+runIntegratorTest("TongueInvDemo ConstrainedBackwardEuler", 0.1, dataFileName, Integrator.ConstrainedBackwardEuler)
 
 loadModel ("artisynth.demos.inverse.PointModel2d")
-runIntegratorTest("#PointInv2d Trapezoidal", 1, dataFileName, Integrator.Trapezoidal)
+runIntegratorTest("PointInv2d Trapezoidal", 1, dataFileName, Integrator.Trapezoidal)
 
 loadModel ("artisynth.demos.inverse.PointModel3d")
-runIntegratorTest("#PointInv3d Trapezoidal", 1, dataFileName, Integrator.Trapezoidal)
+runIntegratorTest("PointInv3d Trapezoidal", 1, dataFileName, Integrator.Trapezoidal)
 
 loadModel ("artisynth.demos.inverse.HydrostatInvDemo")
-runIntegratorTest("#HydrostatInvDemo Trapezoidal", 1, dataFileName, Integrator.Trapezoidal)
+runIntegratorTest("HydrostatInvDemo Trapezoidal", 1, dataFileName, Integrator.Trapezoidal)
 
 # Exit
 main.maskFocusStealing (False)

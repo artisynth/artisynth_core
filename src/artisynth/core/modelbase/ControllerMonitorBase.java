@@ -83,7 +83,8 @@ implements RenderableComponent {
    /**
     * {@inheritDoc}
     */   
-   public ComponentState createState(ComponentState prevState) {
+   public ComponentState createState (
+      ComponentState prevState) {
       return new EmptyState();
    }
    

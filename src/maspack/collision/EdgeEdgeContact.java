@@ -1,9 +1,13 @@
 package maspack.collision;
 
+import java.util.ArrayList;
+
 import maspack.geometry.Face;
 import maspack.geometry.HalfEdge;
+import maspack.geometry.PolygonalMesh;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.util.DataBuffer;
 
 public class EdgeEdgeContact {
    public HalfEdge edge0, edge1;
@@ -41,7 +45,21 @@ public class EdgeEdgeContact {
    }
 
    static double insideLim = 0.25;
-
+   
+   /**
+    * Returns the average area associated with this contact, or -1
+    * if this information is not available.
+    * 
+    * @return average contact area, or -1
+    */
+   public double getContactArea() {
+      if (region != null) {
+         return region.getArea()/region.numVertices();
+      }
+      else {
+         return -1;
+      }
+   }
    /*
     * return true if the specified point is "opposite" and inside the face,
     * which means close to being inside a volume swept by translating the face
@@ -113,6 +131,121 @@ public class EdgeEdgeContact {
          point1ToPoint0Normal.negate();
       }
       return true;
+   }
+
+   boolean equals (EdgeEdgeContact econ, StringBuilder msg) {
+      if (edge0 != econ.edge0) {
+         if (msg != null) msg.append ("edge0 differs\n");
+         return false;
+      }
+      if (edge1 != econ.edge1) {
+         if (msg != null) msg.append ("edge1 differs\n");
+         return false;
+      }
+      if (!point0.equals (econ.point0)) {
+         if (msg != null) msg.append ("point0 differs\n");
+         return false;
+      }
+      if (!point1.equals (econ.point1)) {
+         if (msg != null) msg.append ("point1 differs\n");
+         return false;
+      }
+      if (!point1ToPoint0Normal.equals (econ.point1ToPoint0Normal)) {
+         if (msg != null) msg.append ("point1ToPoint0Normal differs\n");
+         return false;
+      }
+      if (displacement != econ.displacement) {
+         if (msg != null) msg.append ("displacement differs\n");
+         return false;
+      }
+      if (s0 != econ.s0) {
+         if (msg != null) msg.append ("s0 differs\n");
+         return false;
+      }
+      if (s1 != econ.s1) {
+         if (msg != null) msg.append ("s1 differs\b");
+         return false;
+      }
+      return true;
+   }
+
+   static boolean equals (
+      ArrayList<EdgeEdgeContact> contacts0,
+      ArrayList<EdgeEdgeContact> contacts1,
+      StringBuilder msg) {
+
+      if ((contacts0 != null) != (contacts1 != null)) {
+         if (msg != null) msg.append ("contacts != null differs\n");
+         return false;
+      }
+      if (contacts0 != null) {
+         if (contacts0.size() != contacts1.size()) {
+            if (msg != null) msg.append ("contacts size differs\n");
+            return false;
+         }
+         for (int i=0; i<contacts0.size(); i++) {
+            if (!contacts0.get(i).equals (contacts1.get(i), msg)) {
+               if (msg != null) msg.append ("contacts "+i+" differs\n");
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+
+   static DataBuffer.Offsets getStateSize() {
+      return new DataBuffer.Offsets (2, 12, 0);
+   }
+
+   void getState (DataBuffer data) {
+      data.zput (edge0.getIndex());
+      data.zput (edge1.getIndex());
+      data.dput (point0);
+      data.dput (point1);
+      data.dput (point1ToPoint0Normal);
+      data.dput (displacement);
+      data.dput (s0);
+      data.dput (s1);
+   }
+
+   void setState (DataBuffer data, PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      edge0 = mesh0.getHalfEdge (data.zget());
+      edge1 = mesh1.getHalfEdge (data.zget());
+      data.dget (point0);
+      data.dget (point1);
+      data.dget (point1ToPoint0Normal);
+      displacement = data.dget();
+      s0 = data.dget();
+      s1 = data.dget();
+   }
+
+   static void getState (
+      DataBuffer data, ArrayList<EdgeEdgeContact> contacts) {
+
+      if (contacts == null) {
+         data.zput (-1);
+         return;
+      }
+      data.zput (contacts.size());
+      for (int i=0; i<contacts.size(); i++) {
+         contacts.get(i).getState (data);
+      }
+   }
+
+   static ArrayList<EdgeEdgeContact> setStateArray (
+      DataBuffer data, PolygonalMesh mesh0, PolygonalMesh mesh1) {
+
+      int size = data.zget();
+      if (size == -1) {
+         return null;
+      }
+      ArrayList<EdgeEdgeContact> contacts = new ArrayList<EdgeEdgeContact>(size);
+      for (int i=0; i<size; i++) {
+         EdgeEdgeContact c = new EdgeEdgeContact();
+         c.setState (data, mesh0, mesh1);
+         contacts.add (c);
+      }
+      return contacts;
    }
 
 //   /*

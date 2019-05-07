@@ -56,7 +56,7 @@ public abstract class ModelBase extends ComponentList<ModelComponent>
     */
    public void getState (ComponentState state) {
    }
-
+   
    /**
     * {@inheritDoc}
     */ 
@@ -113,7 +113,8 @@ public abstract class ModelBase extends ComponentList<ModelComponent>
    /**
     * {@inheritDoc}
     */
-   public ComponentState createState(ComponentState prevState) {
+   public ComponentState createState (
+      ComponentState prevState) {
       return null;
    }
 

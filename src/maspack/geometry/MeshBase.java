@@ -36,6 +36,7 @@ import maspack.render.Renderer;
 import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.Renderer.ColorMixing;
 import maspack.render.Renderer.Shading;
+import maspack.spatialmotion.SpatialInertia;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
@@ -2808,6 +2809,52 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       addChecksum (crc, XMeshToWorld);
       return crc.getValue();
+   }
+
+   /**
+    * Computes a spatial inertia for this mesh, given a mass and a mass
+    * distribution.  Not all meshes support all distributions. For example, all
+    * meshes support the {@link MassDistribution#POINT} distribution (since all
+    * meshes contain vertices), but only meshes with area features (such as
+    * faces) support an {@link MassDistribution#AREA} distribution.
+    *
+    * @param mass overall mass
+    * @param dist how the mass is distributed across the features
+    * @throws IllegalArgumentException if the distribution is not compatible
+    * with the available mesh features.
+    */
+   public SpatialInertia createInertia (double mass, MassDistribution dist) {
+      if (dist == MassDistribution.DEFAULT) {
+         dist = MassDistribution.POINT;
+      }
+      if (dist == MassDistribution.POINT) {
+         SpatialInertia M = new SpatialInertia();
+         double massPerVertex = mass/numVertices();
+         for (Vertex3d vtx : getVertices()) {
+            M.addPointMass (massPerVertex, vtx.getPosition());
+         }
+         return M;
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Mass distribution "+dist+
+            " not supported for mesh type "+getClass().getName());
+      }
+   }
+
+   /**
+    * Queries whether or not a given mass distrubution is supported for this
+    * mesh type.
+    *
+    * @return {@code true} if the indicated mass distrubution is supported
+    */
+   public boolean supportsMassDistribution (MassDistribution dist) {
+      if (dist == MassDistribution.POINT) {
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
 }

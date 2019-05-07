@@ -27,17 +27,17 @@ loadModel ("artisynth.demos.mech.SpringMeshDemo")
 mech = setModelOpts (1, dataFileName)
 pw = mech.openPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ForwardEuler)
-pw.println ("#SpringMesh ForwardEuler");
+mech.writePrintStateHeader ("SpringMesh ForwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#SpringMesh RungeKutta");
+mech.writePrintStateHeader ("SpringMesh RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#SpringMesh BackwardEuler");
+mech.writePrintStateHeader ("SpringMesh BackwardEuler");
 run()
 waitForStop()
 reset()
@@ -46,22 +46,22 @@ loadModel ("artisynth.demos.mech.RigidBodyDemo")
 mech = setModelOpts (1.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ForwardEuler)
-pw.println ("#RigidBody ForwardEuler");
+mech.writePrintStateHeader ("RigidBody ForwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#RigidBody RungeKutta");
+mech.writePrintStateHeader ("RigidBody RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#RigidBody BackwardEuler");
+mech.writePrintStateHeader ("RigidBody BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#RigidBody ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("RigidBody ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -69,22 +69,22 @@ reset()
 loadModel ("artisynth.demos.mech.MechModelDemo")
 mech = setModelOpts (2.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
-pw.println ("#MechModel SymplecticEuler");
+mech.writePrintStateHeader ("MechModel SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#MechModel RungeKutta");
+mech.writePrintStateHeader ("MechModel RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#MechModel BackwardEuler");
+mech.writePrintStateHeader ("MechModel BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#MechModel ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("MechModel ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -93,22 +93,22 @@ loadModel ("artisynth.demos.mech.MultiSpringDemo")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#MultiSpringDemo SymplecticEuler");
+mech.writePrintStateHeader ("MultiSpringDemo SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#MultiSpringDemo RungeKutta");
+mech.writePrintStateHeader ("MultiSpringDemo RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#MultiSpringDemo BackwardEuler");
+mech.writePrintStateHeader ("MultiSpringDemo BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#MultiSpringDemo ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("MultiSpringDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -117,22 +117,22 @@ loadModel ("artisynth.demos.mech.SegmentedPlaneDemo")
 mech = setModelOpts (2, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#SegmentedPlaneDemo SymplecticEuler");
+mech.writePrintStateHeader ("SegmentedPlaneDemo SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#SegmentedPlaneDemo RungeKutta");
+mech.writePrintStateHeader ("SegmentedPlaneDemo RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#SegmentedPlaneDemo BackwardEuler");
+mech.writePrintStateHeader ("SegmentedPlaneDemo BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#SegmentedPlaneDemo ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("SegmentedPlaneDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -141,17 +141,17 @@ loadModel ("artisynth.demos.mech.BodyBodyAttachment")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#BodyBodyAttachment SymplecticEuler");
+mech.writePrintStateHeader ("BodyBodyAttachment SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#BodyBodyAttachment RungeKutta");
+mech.writePrintStateHeader ("BodyBodyAttachment RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#BodyBodyAttachment ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("BodyBodyAttachment ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -160,17 +160,17 @@ loadModel ("artisynth.demos.mech.BodyBodyJoint")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#BodyBodyJoint SymplecticEuler");
+mech.writePrintStateHeader ("BodyBodyJoint SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#BodyBodyJoint RungeKutta");
+mech.writePrintStateHeader ("BodyBodyJoint RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#BodyBodyJoint ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("BodyBodyJoint ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -179,12 +179,12 @@ loadModel ("artisynth.demos.fem.ArticulatedFem")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#ArticulatedFem BackwardEuler");
+mech.writePrintStateHeader ("ArticulatedFem BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#ArticulatedFem ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("ArticulatedFem ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -195,12 +195,12 @@ pw = mech.reopenPrintStateFile (dataFileName)
 fem = mech.findComponent ("models/fem")
 fem.setIncompressible (FemModel.IncompMethod.AUTO)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#HexBlock BackwardEuler");
+mech.writePrintStateHeader ("HexBlock BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#HexBlock ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("HexBlock ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -213,13 +213,13 @@ fem.setIncompressible (FemModel.IncompMethod.AUTO)
 prop = root().getProperty("excitation0")
 prop.set (0.5)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#TetBeam3d BackwardEuler");
+mech.writePrintStateHeader ("TetBeam3d BackwardEuler");
 run()
 waitForStop()
 reset()
 prop.set (0.5)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#TetBeam3d ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("TetBeam3d ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -230,12 +230,12 @@ pw = mech.reopenPrintStateFile (dataFileName)
 fem = mech.findComponent ("models/fem")
 fem.setIncompressible (FemModel.IncompMethod.AUTO)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#PlaneConstrainedFem BackwardEuler");
+mech.writePrintStateHeader ("PlaneConstrainedFem BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#PlaneConstrainedFem ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("PlaneConstrainedFem ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -246,12 +246,12 @@ pw = mech.reopenPrintStateFile (dataFileName)
 fem = mech.findComponent ("models/beam1")
 fem.setIncompressible (FemModel.IncompMethod.AUTO)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#AttachedBeamDemo BackwardEuler");
+mech.writePrintStateHeader ("AttachedBeamDemo BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#AttachedBeamDemo ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("AttachedBeamDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -260,7 +260,7 @@ loadModel ("artisynth.demos.fem.BodyFemAttachment")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#BodyFemAttachment ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("BodyFemAttachment ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -270,7 +270,7 @@ mech = find ("models/0")
 mech.setPrintState ("%g")
 fem = find ("models/0/models/0");
 pw = mech.reopenPrintStateFile (dataFileName)
-pw.println ("#NodalIncompTest ConstrainedBackwardEuler")
+mech.writePrintStateHeader ("NodalIncompTest ConstrainedBackwardEuler")
 fem.setMaterial (MooneyRivlinMaterial())
 addBreakPoint (0.3)
 addBreakPoint (0.6)
@@ -290,7 +290,7 @@ run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#NodalIncompTest BackwardEuler")
+mech.writePrintStateHeader ("NodalIncompTest BackwardEuler")
 run()
 waitForStop()
 fem.setSoftIncompMethod (FemModel3d.IncompMethod.NODAL)
@@ -310,12 +310,12 @@ loadModel ("artisynth.demos.fem.SelfCollision")
 mech = setModelOpts (0.7, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#SelfCollision BackwardEuler");
+mech.writePrintStateHeader ("SelfCollision BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#SelfCollision ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("SelfCollision ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -324,12 +324,12 @@ loadModel ("artisynth.demos.fem.FemMuscleDemo")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#FemMuscleDemo BackwardEuler");
+mech.writePrintStateHeader ("FemMuscleDemo BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#FemMuscleDemo ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("FemMuscleDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -338,12 +338,12 @@ loadModel ("artisynth.demos.fem.ViscousBeam")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#ViscousBeam BackwardEuler");
+mech.writePrintStateHeader ("ViscousBeam BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#ViscousBeam ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("ViscousBeam ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -352,7 +352,7 @@ loadModel ("artisynth.demos.mech.ArticulatedBeamBody")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#ArticulatedBeamBody SymplecticEuler");
+mech.writePrintStateHeader ("ArticulatedBeamBody SymplecticEuler");
 run()
 waitForStop()
 reset()
@@ -361,7 +361,21 @@ loadModel ("artisynth.demos.mech.AttachedBeamBody")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#AttachedBeamBody ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("AttachedBeamBody ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.mech.BeamBodyCollide")
+mech = setModelOpts (1.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("BeamBodyCollide ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
+mech.writePrintStateHeader ("BeamBodyCollide SymplecticEuler");
 run()
 waitForStop()
 reset()
@@ -370,17 +384,17 @@ loadModel ("artisynth.demos.mech.BlockTest")
 mech = setModelOpts (2, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#BlockTest SymplecticEuler");
+mech.writePrintStateHeader ("BlockTest SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#BlockTest RungeKutta");
+mech.writePrintStateHeader ("BlockTest RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#BlockTest ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("BlockTest ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -389,17 +403,17 @@ loadModel ("artisynth.demos.mech.FrameSpringDemo")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#FrameSpring SymplecticEuler");
+mech.writePrintStateHeader ("FrameSpring SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#FrameSpring RungeKutta");
+mech.writePrintStateHeader ("FrameSpring RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#FrameSpring ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("FrameSpring ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -408,22 +422,22 @@ loadModel ("artisynth.demos.mech.RigidBodyCollision")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#RigidBodyCollision SymplecticEuler");
+mech.writePrintStateHeader ("RigidBodyCollision SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#RigidBodyCollision RungeKutta");
+mech.writePrintStateHeader ("RigidBodyCollision RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#RigidBodyCollision BackwardEuler");
+mech.writePrintStateHeader ("RigidBodyCollision BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#RigidBodyCollision ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("RigidBodyCollision ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -431,18 +445,18 @@ reset()
 loadModel ("artisynth.demos.mech.RigidCompositeCollide")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
-pw.println ("#RigidCompositeCollide SymplecticEuler");
+mech.writePrintStateHeader ("RigidCompositeCollide SymplecticEuler");
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
 dorun()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#RigidCompositeCollide ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("RigidCompositeCollide ConstrainedBackwardEuler");
 dorun()
 
 loadModel ("artisynth.demos.fem.FemSkinDemo")
 mech = setModelOpts (0.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#FemSkinDemo ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("FemSkinDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -451,7 +465,7 @@ loadModel ("artisynth.models.collision.SkinCollisionTest")
 mech = setModelOpts (2.0, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#SkinCollisionTest ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("SkinCollisionTest ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -460,7 +474,7 @@ loadModel ("artisynth.demos.mech.SkinDemo")
 mech = setModelOpts (2.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#SkinDemo ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("SkinDemo ConstrainedBackwardEuler");
 root().getInputProbes().get(0).setActive(True)
 run()
 waitForStop()
@@ -470,22 +484,22 @@ loadModel ("artisynth.demos.mech.LaymanDemo")
 mech = setModelOpts (1.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#LaymanDemo SymplecticEuler");
+mech.writePrintStateHeader ("LaymanDemo SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#LaymanDemo RungeKutta");
+mech.writePrintStateHeader ("LaymanDemo RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#LaymanDemo BackwardEuler");
+mech.writePrintStateHeader ("LaymanDemo BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#LaymanDemo ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("LaymanDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -494,12 +508,12 @@ loadModel ("artisynth.demos.fem.FemCollision")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.BackwardEuler)
-pw.println ("#FemCollision BackwardEuler");
+mech.writePrintStateHeader ("FemCollision BackwardEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#FemCollision ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("FemCollision ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -508,17 +522,17 @@ loadModel ("artisynth.models.dynjaw.JawLarynxDemo");
 mech = setModelOpts (2, dataFileName) # there is an earlier breakpoint at 0.575
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
-pw.println ("#JawLarynxDemo SymplecticEuler");
+mech.writePrintStateHeader ("JawLarynxDemo SymplecticEuler");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.RungeKutta4)
-pw.println ("#JawLarynxDemo RungeKutta");
+mech.writePrintStateHeader ("JawLarynxDemo RungeKutta");
 run()
 waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
-pw.println ("#JawLarynxDemo Trapezoidal");
+mech.writePrintStateHeader ("JawLarynxDemo Trapezoidal");
 run()
 waitForStop()
 reset()
@@ -527,7 +541,7 @@ loadModel ("artisynth.models.inversedemos.TongueInvDemo")
 mech = setModelOpts (0.1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
-pw.println ("#TongueInvDemo ConstrainedBackwardEuler");
+mech.writePrintStateHeader ("TongueInvDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
@@ -536,7 +550,7 @@ loadModel ("artisynth.demos.inverse.PointModel2d")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
-pw.println ("#PointInv2d Trapezoidal");
+mech.writePrintStateHeader ("PointInv2d Trapezoidal");
 run()
 waitForStop()
 reset()
@@ -546,7 +560,7 @@ mech = setModelOpts (1, dataFileName)
 mech.setMaxStepSize (0.05)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
-pw.println ("#PointInv3d Trapezoidal");
+mech.writePrintStateHeader ("PointInv3d Trapezoidal");
 run()
 waitForStop()
 reset()
@@ -555,7 +569,7 @@ loadModel ("artisynth.demos.inverse.HydrostatInvDemo")
 mech = setModelOpts (1, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
 mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
-pw.println ("#HydrostatInvDemo Trapezoidal");
+mech.writePrintStateHeader ("HydrostatInvDemo Trapezoidal");
 run()
 waitForStop()
 reset()

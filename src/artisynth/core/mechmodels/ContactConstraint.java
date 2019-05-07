@@ -31,7 +31,7 @@ public class ContactConstraint {
    //CollisionHandler myHandler; // handler to which the constraint belongs
    ContactPoint myCpnt0; // first point associated with the contact
    ContactPoint myCpnt1; // second point associated with the contact
-   double myLambda;      // most recent impulse used to enforce the constraint
+   double myLambda;      // most recent force used to enforce the constraint
    double myDistance;    // contact penetration distance
    boolean myActive;     // whether or not this constraint is active
    boolean myIdentifyByPoint1; // if true, this constraint should be identified
@@ -39,14 +39,14 @@ public class ContactConstraint {
    Vector3d myNormal;    // contact direction normal
    int mySolveIndex;     // block index of this constraint in either the
                          // bilateral or unilateral constraint matrix (GT or NT)
-   PenetrationRegion myRegion; // penetration region on the mesh associated
-                         // with the first point (if available)
+   double myContactArea; // average area associated with the contact, or
+                         // -1 if not available
 
-   public double getImpulse() {
+   public double getForce() {
       return myLambda;
    }
 
-   public void setImpulse (double lam) {
+   public void setForce (double lam) {
       myLambda = lam;
    }
 
@@ -306,11 +306,10 @@ public class ContactConstraint {
       ContactPoint.getState (data, myCpnt1);
       data.dput (myLambda);
       data.dput (myDistance);
-      data.zput (myActive ? 1 : 0);
-      data.zput (myIdentifyByPoint1 ? 1 : 0);
-      data.dput (myNormal.x);
-      data.dput (myNormal.y);
-      data.dput (myNormal.z);
+      data.zputBool (myActive);
+      data.zputBool (myIdentifyByPoint1);
+      data.dput (myNormal);
+      data.dput (myContactArea);
    }
 
    public void setState (
@@ -323,27 +322,11 @@ public class ContactConstraint {
       }
       myLambda = data.dget();
       myDistance = data.dget();
-      myActive = (data.zget() == 1);
-      myIdentifyByPoint1 = (data.zget() == 1);
-      myNormal.x = data.dget();
-      myNormal.y = data.dget();
-      myNormal.z = data.dget();
+      myActive = data.zgetBool();
+      myIdentifyByPoint1 = data.zgetBool();
+      data.dget(myNormal);
+      myContactArea = data.dget();
       assignMasters (collidable0, collidable1);
-   }
-
-   public static void skipState (DataBuffer data) {
-
-      ContactPoint.skipState (data);
-      ContactPoint.skipState (data);
-      data.dskip (5);
-      data.zskip (1);
-   }
-
-   public static void putState (DataBuffer newData, DataBuffer oldData) {
-
-      ContactPoint.putState (newData, oldData);
-      ContactPoint.putState (newData, oldData);
-      newData.putData (oldData, 5, 1);
    }
 
    public String toString (String fmtStr) {

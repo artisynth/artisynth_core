@@ -31,7 +31,7 @@ public class BlockTestX extends RootModel {
    private class ContactForce implements ContactForceBehavior {
       public void computeResponse (
          double[] fres, double dist, ContactPoint cpnt1, ContactPoint cpnt2, 
-         Vector3d nrml, PenetrationRegion region) {
+         Vector3d nrml, double regionArea) {
          
          double c = 0.001;
 

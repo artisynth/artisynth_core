@@ -420,6 +420,57 @@ public class PolygonalMeshTest extends UnitTest {
          114.10071614, 294.63934170, 294.63934170, 533.67589197);
       checkInertia (M, Mcheck, tol);
       checkTranslatedInertia (torus, M, density, 1, 2, 3, tol);
+
+      RigidTransform3d XMW = new RigidTransform3d();
+      XMW.setRandom();
+
+      double w = 3.0;
+      double h = 2.0;
+      double m = 1.23;
+      Mcheck.set (m, m*h*h/12, m*w*w/12, m*(h*h+w*w)/12);
+      Mcheck.transform (XMW);
+
+      PolygonalMesh plate = MeshFactory.createRectangle (w, h, 10, 10, false);
+      plate.transform (XMW);
+      M = plate.createAreaInertia(m);
+      checkInertia (M, Mcheck, tol);
+
+      plate = MeshFactory.createQuadRectangle (w, h, 10, 10);
+      plate.transform (XMW);
+      M = plate.createAreaInertia(m);
+      checkInertia (M, Mcheck, tol);
+
+      SymmetricMatrix3d J = new SymmetricMatrix3d();
+      double l = 2*w+2*h;
+      double mw = m*w/l;
+      double mh = m*h/l;
+      J.m00 = mh*h*h/6 + mw*h*h/2;
+      J.m11 = mw*w*w/6 + mh*w*w/2;
+      J.m22 = 0.5*(mh*w*w+mw*h*h) + (mh*h*h+mw*w*w)/6;
+      Mcheck.set (m, J);
+      Mcheck.transform (XMW);
+      plate = MeshFactory.createQuadRectangle (w, h, 1, 1);
+      plate.transform (XMW);
+      M = plate.createEdgeLengthInertia(m);
+      checkInertia (M, Mcheck, tol);      
+
+      double d = Math.sqrt(h*h+w*w);
+      l = 2*w+2*h+d;
+      double md = m*d/l;
+      mw = m*w/l;
+      mh = m*h/l;
+      J.m00 = mh*h*h/6 + mw*h*h/2 + md*h*h/12;
+      J.m01 = md*h*w/12;
+      J.m10 = md*h*w/12;
+      J.m11 = mw*w*w/6 + mh*w*w/2 + md*w*w/12;
+      J.m22 = 0.5*(mh*w*w+mw*h*h) + (mh*h*h+mw*w*w)/6 + md*d*d/12;
+      Mcheck.set (m, J);
+      Mcheck.transform (XMW);
+      plate = MeshFactory.createRectangle (w, h, 1, 1, false);
+      plate.transform (XMW);
+      M = plate.createEdgeLengthInertia(m);
+      checkInertia (M, Mcheck, tol);       
+
    }
 
 
@@ -855,8 +906,8 @@ public class PolygonalMeshTest extends UnitTest {
    }
 
    public static void main (String[] args) {
+      RandomGenerator.setSeed (0x1234);
       PolygonalMeshTest tester = new PolygonalMeshTest();
-
       tester.runtest();
    }
 }

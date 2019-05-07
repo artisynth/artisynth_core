@@ -307,10 +307,13 @@ public class FrameSpring extends Spring
    }
    
    public void setMaterial (FrameMaterial mat) {
+      FrameMaterial old = myMaterial;
       myMaterial = (FrameMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      }
    }
 
    public void setRotaryStiffness (double k) {

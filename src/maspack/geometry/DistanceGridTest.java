@@ -570,8 +570,8 @@ public class DistanceGridTest extends UnitTest {
          double d = grid.getLocalDistanceAndNormal (nrm, Dnrm, q);
          double dw = grid.getWorldDistanceAndNormal (nrmW, qw);
          double dchk = distanceCheck (grid, q);
-         checkEquals ("localDistanceAndNormal, d=", d, dchk, EPS);
-         checkEquals ("worldDistanceAndNormal, d=", dw, dchk, EPS);
+         checkEquals ("localDistanceAndNormal, d", d, dchk, EPS);
+         checkEquals ("worldDistanceAndNormal, d", dw, dchk, EPS);
          if (d != DistanceGrid.OUTSIDE_GRID) {
             // check Dnrm
             Matrix3d Dchk = computeNumericNormalDerivative (grid, q);
@@ -622,7 +622,7 @@ public class DistanceGridTest extends UnitTest {
          Vector3d gradWT = new Vector3d();
 
          d = grid.getLocalDistanceAndGradient (grad, q);
-         checkEquals ("localDistanceAndGradient, d=", d, dchk, EPS);
+         checkEquals ("localDistanceAndGradient, d", d, dchk, EPS);
          if (d != DistanceGrid.OUTSIDE_GRID) {
             // check grad
             Vector3d gchk = computeNumericGradient (grid, q);
@@ -645,44 +645,44 @@ public class DistanceGridTest extends UnitTest {
          d = grid.getQuadDistance (q);
          dchk = quadDistanceCheck (grid, q);
          dw = grid.getWorldQuadDistance (qw);
-         checkEquals ("getQuadDistance, d=", d, dchk, EPS);
-         checkEquals ("getWorldQuadDistance, d=", dw, dchk, EPS);
+         checkEquals ("getQuadDistance, d", d, dchk, EPS);
+         checkEquals ("getWorldQuadDistance, d", dw, dchk, EPS);
 
          d = gridT.getQuadDistance (qt);
          dw = gridT.getWorldQuadDistance (qwt);
-         checkEquals ("getQuadDistanceT, d=", d, dchk, EPS);
-         checkEquals ("getWorldQuadDistanceT, d=", dw, dchk, EPS);
+         checkEquals ("getQuadDistanceT, d", d, dchk, EPS);
+         checkEquals ("getWorldQuadDistanceT, d", dw, dchk, EPS);
  
          d = grid.getQuadDistanceAndGradient (grad, Dgrad, q);
          dw = grid.getWorldQuadDistanceAndGradient (gradW, DgradW, qw);
-         checkEquals ("getQuadDistanceAndGradient, d=", d, dchk, EPS);
-         checkEquals ("getWorldQuadDistanceAndGradient, d=", dw, dchk, EPS);
+         checkEquals ("getQuadDistanceAndGradient, d", d, dchk, EPS);
+         checkEquals ("getWorldQuadDistanceAndGradient, d", dw, dchk, EPS);
 
          d = gridT.getQuadDistanceAndGradient (gradT, DgradT, qt);
          dw = gridT.getWorldQuadDistanceAndGradient (gradWT, DgradWT, qwt);
-         checkEquals ("getQuadDistanceAndGradientT, d=", d, dchk, EPS);
-         checkEquals ("getWorldQuadDistanceAndGradientT, d=", dw, dchk, EPS);
+         checkEquals ("getQuadDistanceAndGradientT, d", d, dchk, EPS);
+         checkEquals ("getWorldQuadDistanceAndGradientT, d", dw, dchk, EPS);
 
          if (d != DistanceGrid.OUTSIDE_GRID) {
             // check grad
             Vector3d gchk = computeNumericQuadGradient (grid, q);
             checkEquals (
-               "grad in getQuadDistanceAndGradient:",
+               "grad in getQuadDistanceAndGradient",
                grad, gchk, grad.norm()*5e-7);
 
             gchk.transform (TLW.R, grad);
             checkEquals (
-               "grad in getWorldQuadDistanceAndGradient:",
+               "grad in getWorldQuadDistanceAndGradient",
                gradW, gchk, grad.norm()*1e-12);
 
             gchk.transform (TGL.R, grad);
             checkEquals (
-               "grad in getQuadDistanceAndGradient(T):",
+               "grad in getQuadDistanceAndGradient(T)",
                gradT, gchk, grad.norm()*1e-12);
 
             gchk.transform (TGW.R, grad);
             checkEquals (
-               "grad in getWorldQuadDistanceAndGradient(T):",
+               "grad in getWorldQuadDistanceAndGradient(T)",
                gradWT, gchk, grad.norm()*1e-12);
 
 
@@ -690,22 +690,22 @@ public class DistanceGridTest extends UnitTest {
             double DgradNorm = Dgrad.frobeniusNorm();
             Matrix3d Dgchk = computeNumericQuadGradDerivative (grid, q);
             checkEquals (
-               "Dgrad in getQuadDistanceAndGradient:",
+               "Dgrad in getQuadDistanceAndGradient",
                Dgrad, Dgchk, DgradNorm*5e-7);
 
             Dgchk.transform (TLW.R, Dgrad);
             checkEquals (
-               "Dgrad in getWorldQuadDistanceAndGradient:",
+               "Dgrad in getWorldQuadDistanceAndGradient",
                DgradW, Dgchk, DgradNorm*1e-12);
 
             Dgchk.transform (TGL.R, Dgrad);
             checkEquals (
-               "Dgrad in getQuadDistanceAndGradient(T):",
+               "Dgrad in getQuadDistanceAndGradient(T)",
                DgradT, Dgchk, DgradNorm*1e-12);
 
             Dgchk.transform (TGW.R, Dgrad);
             checkEquals (
-               "Dgrad in getWorldQuadDistanceAndGradient(T):",
+               "Dgrad in getWorldQuadDistanceAndGradient(T)",
                DgradWT, Dgchk, DgradNorm*1e-12);
 
          }

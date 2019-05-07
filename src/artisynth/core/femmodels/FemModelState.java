@@ -12,7 +12,7 @@ public class FemModelState extends NumericState {
    private static final long serialVersionUID = 1L;
 
    public FemModelState (int dsize, int zsize) {
-      super (dsize, zsize);
+      super (zsize, dsize);
    }
 
    public FemModelState() {

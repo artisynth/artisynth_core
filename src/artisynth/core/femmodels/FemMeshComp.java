@@ -134,19 +134,11 @@ implements CollidableBody, PointAttachable {
 
       if (oldMode != mode) {
          if (myFem != null) { // paranoid: myFem should always be non-null here
-            switch (mode) {
-               case Strain:
-                  myFem.setComputeNodalStrain(true);
+            if (!isScanning()) {
+               myFem.updateInternalNodalStressSettings();
+               myFem.updateInternalNodalStrainSettings();
+               if (mode==SurfaceRender.Strain || mode==SurfaceRender.Stress) {
                   myFem.updateStressAndStiffness();
-                  break;
-               case Stress:
-                  myFem.setComputeNodalStress(true);
-                  myFem.updateStressAndStiffness();
-                  break;
-               default: {
-                  myFem.setComputeNodalStrain(false);
-                  myFem.setComputeNodalStress(false);
-                  break;
                }
             }
          }
@@ -366,9 +358,7 @@ implements CollidableBody, PointAttachable {
       return vtx;
    }
 
-   private void addVertexNodes (HashSet<FemNode3d> nodes, Vertex3d vtx) {
-
-      PointAttachment pa = getAttachment(vtx.getIndex());
+   private void addVertexNodes (HashSet<FemNode3d> nodes, PointAttachment pa) {
       if (pa instanceof PointFem3dAttachment) {
          PointFem3dAttachment pfa = (PointFem3dAttachment)pa;
          FemNode[] masters = pfa.getNodes();
@@ -380,6 +370,10 @@ implements CollidableBody, PointAttachable {
          PointParticleAttachment ppa = (PointParticleAttachment)pa;
          nodes.add ((FemNode3d)ppa.getParticle());
       }      
+   }
+
+   private void addVertexNodes (HashSet<FemNode3d> nodes, Vertex3d vtx) {
+      addVertexNodes (nodes, getAttachment(vtx.getIndex()));
    }
 
    protected ArrayList<FemElement3d> getAdjacentVolumetricElems (
@@ -1125,6 +1119,16 @@ implements CollidableBody, PointAttachable {
       }
    }
 
+   /**
+    * Adds all nodes which are referenced by this FemMeshComp to a HashSet.
+    * Used internally by the system.
+    */
+   protected void addAllVertexNodes (HashSet<FemNode3d> nodes) {
+      for (int i=0; i<myVertexAttachments.size(); i++) {
+         addVertexNodes (nodes, myVertexAttachments.get(i));
+      }
+   }
+
    protected void updateVertexColors() {
 
       if (mySurfaceRendering != SurfaceRender.Stress &&
@@ -1528,19 +1532,6 @@ implements CollidableBody, PointAttachable {
          myVertexAttachments.add (pfa);
       }
    }
-
-   //   @Override
-   //   public void scan(ReaderTokenizer rtok, Object ref) throws IOException {
-   //      SurfaceRender shad1 = mySurfaceRendering;
-   //      super.scan(rtok, ref);
-   //      SurfaceRender shad2 = mySurfaceRendering;
-   //      if (shad1 != shad2) {
-   //         System.out.println("Different shading");
-   //      }
-   //      if (mySurfaceRenderingMode == PropertyMode.Inherited) {
-   //         System.out.println("Why isn't it explicit?");
-   //      }
-   //   }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {

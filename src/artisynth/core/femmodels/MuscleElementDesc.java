@@ -154,10 +154,13 @@ public class MuscleElementDesc
    }
 
    public void setMuscleMaterial (MuscleMaterial mat) {
+      MuscleMaterial old = myMuscleMat;
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial (
          this, "muscleMaterial", myMuscleMat, mat);
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (MaterialChangeEvent.defaultEvent);            
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      }
    }
 
    @Override

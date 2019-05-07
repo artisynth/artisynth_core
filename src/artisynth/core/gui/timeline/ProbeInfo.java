@@ -511,7 +511,7 @@ public class ProbeInfo implements Clonable, ActionListener {
 
       if (myController.getCurrentTime() > earliestTime) {
          if (getMain().getWorkspace().rootModelHasState()) {
-            WayPoint way = wayProbe.getNearestValidBefore (earliestTime);
+            WayPoint way = wayProbe.getValidOnOrBefore (earliestTime);
             if (way != null) {
                getScheduler().setTime (way);
             }

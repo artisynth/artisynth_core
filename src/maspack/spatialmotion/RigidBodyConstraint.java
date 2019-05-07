@@ -212,49 +212,24 @@ public class RigidBodyConstraint {
 
    public void getState (DataBuffer data) {
 
-      data.dput (myWrenchA.f.x);
-      data.dput (myWrenchA.f.y);
-      data.dput (myWrenchA.f.z);
-      data.dput (myWrenchA.m.x);
-      data.dput (myWrenchA.m.y);
-      data.dput (myWrenchA.m.z);
-
-      data.dput (myWrenchB.f.x);
-      data.dput (myWrenchB.f.y);
-      data.dput (myWrenchB.f.z);
-      data.dput (myWrenchB.m.x);
-      data.dput (myWrenchB.m.y);
-      data.dput (myWrenchB.m.z);
-
-      data.dput (myContactPoint.x);
-      data.dput (myContactPoint.y);
-      data.dput (myContactPoint.z);
-
+      data.dput (myWrenchA.f);
+      data.dput (myWrenchA.m);
+      data.dput (myWrenchB.f);
+      data.dput (myWrenchB.m);
+      data.dput (myContactPoint);
       data.dput (myDistance);
       data.dput (myDerivative);
    }
    
    public void setState (DataBuffer data) {
-      myWrenchA.f.x = data.dget();
-      myWrenchA.f.y = data.dget();
-      myWrenchA.f.z = data.dget();
-      myWrenchA.m.x = data.dget();
-      myWrenchA.m.y = data.dget();
-      myWrenchA.m.z = data.dget();
-
-      myWrenchB.f.x = data.dget();
-      myWrenchB.f.y = data.dget();
-      myWrenchB.f.z = data.dget();
-      myWrenchB.m.x = data.dget();
-      myWrenchB.m.y = data.dget();
-      myWrenchB.m.z = data.dget();
-
+      data.dget(myWrenchA.f);
+      data.dget(myWrenchA.m);
+      data.dget(myWrenchB.f);
+      data.dget(myWrenchB.m);
       if (myContactPoint == null) {
          myContactPoint = new Point3d();
       }
-      myContactPoint.x = data.dget();
-      myContactPoint.y = data.dget();
-      myContactPoint.z = data.dget();
+      data.dget(myContactPoint);
 
       myDistance = data.dget();
       myDerivative = data.dget();      

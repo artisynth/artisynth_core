@@ -470,9 +470,17 @@ public interface MechSystem {
     */
    public void addPosJacobian (SparseNumberedBlockMatrix S, VectorNd f, double h);
 
+   /**
+    * Queries whether or not the matrix structure of the bilateral constraints
+    * returned by this system is constant for a given structure version.
+    * 
+    * @return {@code true} if bilateral constraints have a constant structure
+    */
+   public boolean isBilateralStructureConstant();   
+   
    /** 
-    * Obtains the transpose of the current bilateral constraint matrix G for this
-    * system. This is built and stored in <code>GT</code>. On input,
+    * Obtains the transpose of the current bilateral constraint matrix G for
+    * this system. This is built and stored in <code>GT</code>. On input,
     * <code>GT</code> should be empty with zero size; it will be sized
     * appropriately by the system. The derivative term is returned
     * in <code>dg</code>; this is given by
@@ -482,15 +490,10 @@ public interface MechSystem {
     * where <code>u</code> is the current system velocity.
     * <code>dg</code> will also be sized appropriately by the system.
     *
-    * <p>The method returns a version number for the constraint structure. This
-    * number should be incremented whenever the block structure of the
-    * constraint matrix changes.
-    *
     * @param GT returns the transpose of G
     * @param dg returns the derivative term for G
-    * @return constraint structure version number
     */
-   public int getBilateralConstraints (SparseBlockMatrix GT, VectorNd dg);
+   public void getBilateralConstraints (SparseBlockMatrix GT, VectorNd dg);
 
    /** 
     * Obtains information for all the constraint directions returned
@@ -510,39 +513,38 @@ public interface MechSystem {
     */
    public void getBilateralInfo (ConstraintInfo[] ginfo);
 
-   //public int getNumBilateralImpulses ();
-
    /** 
     * Supplies to the system the most recently computed bilateral constraint
-    * impulses.  These are supplied by the vector <code>lam</code>, which
-    * should have a size greater or equal to the column size of
-    * <code>GT</code> returned by {@link #getBilateralConstraints
-    * getBilateralConstraints()}.
+    * forces. These are supplied in the form {@code lam*s}, where {@code lam}
+    * is a vector of impulses and {@code s} is the inverse of the step size
+    * used in the computation. <code>lam</code>, which should have a size
+    * greater or equal to the column size of <code>GT</code> returned by {@link
+    * #getBilateralConstraints getBilateralConstraints()}.
     * 
     * @param lam
-    * Bilateral constraint impulses being supplied to the system.
-    * @param h
-    * Time interval associated with the impulses. Dividing by this
-    * should give the average constraint forces.
+    * When scaled by {@code s}, gives the bilateral constraint forces 
+    * being supplied to the system.
+    * @param s 
+    * Scaling factor to be applied to the {@code lam}.
     */
-   public void setBilateralImpulses (VectorNd lam, double h);
+   public void setBilateralForces (VectorNd lam, double s);
 
    /** 
     * Returns from the system the most recently computed bilateral constraint
-    * impulses.  These are stored in the vector <code>lam</code>, which should
+    * forces.  These are stored in the vector <code>lam</code>, which should
     * have a size greater or equal to the column size of <code>GT</code>
     * returned by {@link #getBilateralConstraints getBilateralConstraints()}.  
     * For constraints which
-    * where present in the previous solve step, the impulse values should equal
+    * where present in the previous solve step, the force values should equal
     * those which were set by the prevous call to {@link
-    * #setBilateralImpulses setBilateralImpulses()}.  
+    * #setBilateralForces setBilateralForces()}.  
     * Otherwise, values can be estimated from
-    * previous impulse values (where appropriate), or supplied as 0.
+    * previous force values (where appropriate), or supplied as 0.
     * 
     * @param lam
-    * Bilateral constraint impulses being returned from the system.
+    * Bilateral constraint forces being returned from the system.
     */
-   public void getBilateralImpulses (VectorNd lam);
+   public void getBilateralForces (VectorNd lam);
 
    /** 
     * Obtains the transpose of the current unilateral constraint matrix N for this
@@ -579,38 +581,37 @@ public interface MechSystem {
     */
    public void getUnilateralInfo (ConstraintInfo[] ninfo);
 
-   //public int getNumUnilateralImpulses ();
-
    /** 
     * Supplies to the system the most recently computed unilateral constraint
-    * impulses.  These are supplied by the vector <code>the</code>, which
-    * should have a size greater or equal to the column size of
-    * <code>NT</code> returned by {@link #getUnilateralConstraints
-    * getUnilateralConstraints()}.
+    * forces. These are supplied in the form {@code the*s}, where {@code the}
+    * is a vector of impulses and {@code s} is the inverse of the step size
+    * used in the computation. <code>the</code> should have a size greater or
+    * equal to the column size of <code>NT</code> returned by {@link
+    * #getUnilateralConstraints getUnilateralConstraints()}.
     * 
     * @param the
-    * Unilateral constraint impulses being supplied to the system.
-    * @param h 
-    * Time interval associated with the impulses. Dividing by this
-    * should give the average constraint forces.
+    * When scaled by {@code s}, gives the unilateral constraint forces 
+    * being supplied to the system.
+    * @param s 
+    * Scaling factor to be applied to the {@code the}.
     */
-   public void setUnilateralImpulses (VectorNd the, double h);
+   public void setUnilateralForces (VectorNd the, double s);
 
    /** 
     * Returns from the system the most recently computed unilateral constraint
-    * impulses.  These are stored in the vector <code>the</code>, which should
+    * forces.  These are stored in the vector <code>the</code>, which should
     * have a size greater or equal to the column size of <code>NT</code>
     * returned by {@link #getUnilateralConstraints getUnilateralConstraints()}.
     * For constraints which where present in the previous solve step, the
-    * impulse values should equal those which were set by the prevous call to
-    * {@link #setUnilateralImpulses setUnilateralImpulses()}.  Otherwise,
-    * values can be estimated from previous impulse values (where appropriate),
+    * force values should equal those which were set by the previous call to
+    * {@link #setUnilateralForces setUnilateralForces()}.  Otherwise,
+    * values can be estimated from previous force values (where appropriate),
     * or supplied as 0.
     * 
     * @param the
-    * Unilateral constraint impulses being returned from the system.
+    * Unilateral constraint forces being returned from the system.
     */
-   public void getUnilateralImpulses (VectorNd the);
+   public void getUnilateralForces (VectorNd the);
 
    /** 
     * Returns that maximum number of friction constraint set that may be added by

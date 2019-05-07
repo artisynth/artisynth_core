@@ -212,10 +212,6 @@ public class FemCollision extends RootModel {
          }
 
          addModel (mechmod);
-
-         //mechmod.setIntegrator (Integrator.BackwardEuler);
-         //addBreakPoint (2.36);
-         // reset();
       }
       catch (IOException e) {
          throw e;

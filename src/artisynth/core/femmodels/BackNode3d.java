@@ -384,6 +384,23 @@ public class BackNode3d extends DynamicComponentBase
       return false;
    }
 
+   public void getState (DataBuffer data) {
+      data.dput (getPosition());
+      data.dput (myVel);
+      if (MechSystemBase.mySaveForcesAsState) {
+         data.dput (myForce);
+      }
+   }
+
+   public void setState (DataBuffer data) {
+      data.dget (myPos);
+      data.dget (myVel);
+      myPosValidP = true;
+      if (MechSystemBase.mySaveForcesAsState) {
+         data.dget (myForce);
+      }
+   }
+
    public void setRandomPosState() {
       myPos.setRandom();
       myPosValidP = true;

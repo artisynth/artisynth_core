@@ -602,20 +602,7 @@ public class RigidBody extends Frame
          SpatialInertia Mtotal = new SpatialInertia();         
          for (RigidMeshComp mcomp : myMeshList) {
             if (mcomp.hasMass()) {
-               MeshBase base = mcomp.getMesh();
-               if (base instanceof PolygonalMesh) {
-                  PolygonalMesh mesh = (PolygonalMesh)base;
-                  SpatialInertia M = mesh.createInertia (mcomp.getDensity());
-                  Mtotal.add (M);
-               }
-               else {
-                  // for now, just add inertias of vertices
-                  double massPerVertex = mcomp.getMass()/base.numVertices();
-                  for (Vertex3d vtx : base.getVertices()) {
-                     Mtotal.addPointMass (
-                        massPerVertex, vtx.getPosition());
-                  }
-               }
+               Mtotal.add (mcomp.createInertia());
             }
          }
          mySpatialInertia.set (Mtotal);

@@ -18,7 +18,7 @@ import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 
 public interface Constrainer {
-
+   
    public void getBilateralSizes (VectorNi sizes);
 
    public int addBilateralConstraints (
@@ -26,11 +26,11 @@ public interface Constrainer {
 
    public int getBilateralInfo (ConstraintInfo[] ginfo, int idx);
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx);   
+   public int setBilateralForces (VectorNd lam, double s, int idx);   
 
-   public int getBilateralImpulses (VectorNd lam, int idx);
+   public int getBilateralForces (VectorNd lam, int idx);
    
-   public void zeroImpulses();
+   public void zeroForces();
 
    public void getUnilateralSizes (VectorNi sizes);
 
@@ -39,9 +39,9 @@ public interface Constrainer {
 
    public int getUnilateralInfo (ConstraintInfo[] ninfo, int idx);
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx);
+   public int setUnilateralForces (VectorNd the, double s, int idx);
 
-   public int getUnilateralImpulses (VectorNd the, int idx);
+   public int getUnilateralForces (VectorNd the, int idx);
 
    public int maxFrictionConstraintSets();
    

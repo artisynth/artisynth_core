@@ -34,20 +34,6 @@ public class TestCommands {
    // numbers, because the UI can make control panel size hard to repeat
    // exactly
    private boolean isSizeLine (String line) {
-      //      ReaderTokenizer rtok =
-      //         new ReaderTokenizer (new StringReader (line));
-      //      try {
-      //         rtok.scanWord ("size");
-      //         rtok.scanToken ('=');
-      //         rtok.scanToken ('[');
-      //         rtok.scanNumber();
-      //         rtok.scanNumber();
-      //         rtok.scanToken (']');
-      //      }
-      //      catch (Exception e) {
-      //         return false;
-      //      }
-      //      return true; 
       return sizeLine.matcher (line).matches ();
    }
    
@@ -55,20 +41,6 @@ public class TestCommands {
    // numbers, because the UI can make control panel location hard to repeat
    // exactly
    private boolean isLocationLine (String line) {
-      //      ReaderTokenizer rtok =
-      //         new ReaderTokenizer (new StringReader (line));
-      //      try {
-      //         rtok.scanWord ("location");
-      //         rtok.scanToken ('=');
-      //         rtok.scanToken ('[');
-      //         rtok.scanNumber();
-      //         rtok.scanNumber();
-      //         rtok.scanToken (']');
-      //      }
-      //      catch (Exception e) {
-      //         return false;
-      //      }
-      //      return true;
       return locationLine.matcher (line).matches ();
    }
 
@@ -179,6 +151,7 @@ public class TestCommands {
                System.out.println ("running model for "+tsim+" seconds ...");
                mech.setPrintState ("%g", hsim);
                mech.openPrintStateFile (stateFile0Name);
+               mech.writePrintStateHeader ("saveAndLoad");
                myMain.play (tsim);
                myMain.waitForStop();
             }
@@ -209,6 +182,7 @@ public class TestCommands {
                   "running restored model for "+tsim+" seconds ...");
                mech.setPrintState ("%g", hsim);
                mech.openPrintStateFile (stateFile1Name);
+               mech.writePrintStateHeader ("saveAndLoad");
                myMain.play (tsim);
                myMain.waitForStop();
 
@@ -239,6 +213,103 @@ public class TestCommands {
          return "IO Exception";
       }
       return null;
+   }
+
+   private static long maxAsciiStateFileSize = 0;
+   private static long maxBinaryStateFileSize = 0;
+   private static boolean printIOTimes = false;
+
+   public static void testSaveLoadState (ComponentState state) {
+      ComponentState testState = state.duplicate();
+      FunctionTimer timer = new FunctionTimer();
+      StringBuilder msg = new StringBuilder();
+      if (!testState.equals (state, msg)) {
+         System.out.println (msg);
+         throw new TestException (
+            "duplicated state does not equals state for " + state);
+      }
+      // test binary save/load
+      String binaryFileName = "__stateTest__.dat";
+      try {
+         File file = new File(binaryFileName);
+         DataOutputStream dos =
+            new DataOutputStream (
+               new BufferedOutputStream(new FileOutputStream (file)));
+         timer.start();
+         state.writeBinary (dos);
+         dos.close();
+         timer.stop();
+         if (printIOTimes) {
+            System.out.println (
+               "writeBinary time="+timer.result(1)+", size="+file.length());
+         }
+         DataInputStream dis =
+            new DataInputStream (
+               new BufferedInputStream(new FileInputStream (file)));
+         if (file.length() > maxBinaryStateFileSize) {
+            maxBinaryStateFileSize = file.length();
+            System.out.println (
+               "maxBinaryStateFileSize=" + maxBinaryStateFileSize);
+         }
+         timer.start();
+         testState.readBinary (dis);
+         timer.stop();
+         if (printIOTimes) {
+            System.out.println (
+               "readBinary time="+timer.result(1)+", size="+file.length());
+         }         
+         dis.close();
+         file.delete();
+      }
+      catch (Exception e) {
+         throw new TestException (
+            "I/O error occurred in binary save/load: " + e);
+      }
+      msg = new StringBuilder();
+      if (!testState.equals (state, msg)) {
+         System.out.println (msg);
+         throw new TestException (
+            "saved binary state does not equals state");
+      }
+      // test binary save/load
+      String asciiFileName = "__stateTest__.txt";
+      try {
+         File file = new File(asciiFileName);
+         PrintWriter pw = ArtisynthIO.newIndentingPrintWriter (file);
+         timer.start();
+         state.write (pw, new NumberFormat("%g"), null);
+         pw.close();
+         timer.stop();
+         if (printIOTimes) {
+            System.out.println (
+               "writeAscii time="+timer.result(1)+", size="+file.length());
+         }   
+         ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (file);
+         if (file.length() > maxAsciiStateFileSize) {
+            maxAsciiStateFileSize = file.length();
+            System.out.println (
+               "maxAsciiStateFileSize=" + maxAsciiStateFileSize);
+         }
+         timer.start();
+         testState.scan (rtok, null);
+         timer.stop();
+         if (printIOTimes) {
+            System.out.println (
+               "readAscii time="+timer.result(1)+", size="+file.length());
+         }   
+         rtok.close();
+         file.delete();
+      }
+      catch (Exception e) {
+         throw new TestException (
+            "I/O error occurred in ascii save/load: " + e);
+      }
+      msg = new StringBuilder();
+      if (!testState.equals (state, msg)) {
+         System.out.println (msg);
+         throw new TestException (
+            "saved ascii state does not equals state");
+      }
    }
 
    public TestCommands (Main main) {

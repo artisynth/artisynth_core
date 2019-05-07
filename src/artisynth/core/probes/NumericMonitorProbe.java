@@ -11,20 +11,21 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.util.ScanToken;
 import maspack.interpolation.NumericList;
 import maspack.interpolation.NumericListKnot;
-import maspack.matrix.ImproperStateException;
 import maspack.matrix.VectorNd;
-import maspack.properties.NumericConverter;
-import maspack.properties.Property;
 import maspack.properties.PropertyList;
-import maspack.util.*;
-import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.HasAuxState;
-
-import artisynth.core.util.*;
+import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * An output probe that generates data with an application-supplied
@@ -36,17 +37,13 @@ import artisynth.core.util.*;
  * <li>Overriding the {@link #apply} method.
  * </ul>
  */
-public class NumericMonitorProbe extends NumericProbeBase 
-   implements CopyableComponent {
+public class NumericMonitorProbe extends NumericDataFunctionProbe {
+
    private boolean myShowTime;
    private static boolean defaultShowTime = true;
 
    private boolean myShowHeader;
    private static boolean defaultShowHeader = true;
-   private boolean myHasStateP = false;
-
-   protected ArrayList<DataFunction> myDataFunctions =
-      new ArrayList<DataFunction>();
 
    public static PropertyList myProps =
       new PropertyList (NumericMonitorProbe.class, NumericProbeBase.class);
@@ -69,42 +66,6 @@ public class NumericMonitorProbe extends NumericProbeBase
       super.setDefaultValues();
       myShowTime = defaultShowTime;
       myShowHeader = defaultShowHeader;
-   }
-
-   /**
-    * Sets a data function to be used by this probe's {@link #generateData} 
-    * method to generate data for this probe. If the data function is set to
-    * <code>null</code>, then this probe's data is simply set to zero. If the
-    * {@link #generateData} method is overridden by a subclass, then the data
-    * generation is determined instead by the overriding method.
-    *
-    * @see #getDataFunction
-    */
-   public void setDataFunction (DataFunction func) {
-      if (myDataFunctions.size() == 0) {
-         if (func != null) {
-            myDataFunctions.add (func);
-         }
-      }
-      else {
-         if (func != null) {
-            myDataFunctions.set (0, func);
-         }
-         else {
-            myDataFunctions.clear();
-         }
-      }
-      myHasStateP = (func != null && func instanceof HasAuxState);
-   }
-
-   /**
-    * Returns the data function, if any, that is used by this probe's {@link
-    * #apply(double)} method to generate data for this probe.
-    *
-    * @see #setDataFunction
-    */
-   public DataFunction getDataFunction() {
-      return myDataFunctions.size() > 0 ? myDataFunctions.get(0) : null;
    }
 
    public boolean getShowTime() {
@@ -285,13 +246,6 @@ public class NumericMonitorProbe extends NumericProbeBase
       myNumericList.clearAfter (knot);
    }
 
-   public Object clone() throws CloneNotSupportedException {
-      NumericMonitorProbe probe = (NumericMonitorProbe)super.clone();
-      probe.myDataFunctions = copyDataFunctions (myDataFunctions);
-      //probe.myNumericList.clear();
-      return probe;
-   }
-
    public NumericList getOutput() {
       return myNumericList;
    }
@@ -347,73 +301,6 @@ public class NumericMonitorProbe extends NumericProbeBase
       if (myLegend != null) {
          myLegend.rebuild();
       }
-   }
-
-   public boolean hasState() {
-      return myHasStateP;
-   }
-
-   public ComponentState createState (ComponentState prevState) {
-      if (myHasStateP){
-         return new NumericState();
-      }
-      else {
-         return new EmptyState();
-      }
-   }
-
-   public void getState (ComponentState state) {
-      if (myHasStateP) {
-         DataBuffer data = (NumericState)state;
-         for (DataFunction func : myDataFunctions) {
-            if (func instanceof HasAuxState) {
-               ((HasAuxState)func).getAuxState (data);
-            }
-         }
-      }
-   }
-
-   public void setState (ComponentState state) {
-      if (myHasStateP) {
-         DataBuffer data = (NumericState)state;
-         for (DataFunction func : myDataFunctions) {
-            if (func instanceof HasAuxState) {
-               ((HasAuxState)func).setAuxState (data);
-            }
-         }
-      }
-   }
-
-   public void getInitialState (
-      ComponentState newstate, ComponentState oldstate) {
-      if (myHasStateP) {
-         DataBuffer newData = (NumericState)newstate;
-         DataBuffer oldData = (oldstate != null ? (NumericState)oldstate : null);
-         for (DataFunction func : myDataFunctions) {
-            if (func instanceof HasAuxState) {
-               HasAuxState sfunc = (HasAuxState)func;
-               if (oldData != null) {
-                  sfunc.skipAuxState (oldData);
-               }
-               sfunc.getInitialAuxState (newData, oldData);
-            }
-         }
-      }
-   }
-   
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isDuplicatable() {
-      return dataFunctionsAreCopyable (myDataFunctions);
-   }
-   
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public boolean isCloneable() {
-      return isDuplicatable();
    }
 
    /**

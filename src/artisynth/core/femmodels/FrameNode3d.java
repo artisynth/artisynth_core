@@ -265,6 +265,22 @@ public class FrameNode3d extends DynamicComponentBase {
       return myNode.hasForce();
    }
 
+   public void getState (DataBuffer data) {
+      data.dput (myPos);
+      data.dput (myVel);
+      if (MechSystemBase.mySaveForcesAsState) {
+         data.dput (myForce);
+      }
+   }
+
+   public void setState (DataBuffer data) {
+      data.dget (myPos);
+      data.dget (myVel);
+      if (MechSystemBase.mySaveForcesAsState) {
+         data.dget (myForce);
+      }
+   }
+
    public void setRandomPosState() {
       myPos.setRandom();
    }

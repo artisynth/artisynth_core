@@ -16,6 +16,10 @@ public class WayPoint {
    protected boolean myValidP;
    protected boolean myBreakPointP;
 
+   // links for maintaining double linked list inside the WayPointProbe
+   protected WayPoint myNext;
+   protected WayPoint myPrev;
+
    public WayPoint (double t) {
       setTime (t);
    }
@@ -30,7 +34,7 @@ public class WayPoint {
    }
 
    public void setTime (double t) {
-      myTime = t;
+      myTime = TimeBase.round(t);
       myValidP = false;
    }
 

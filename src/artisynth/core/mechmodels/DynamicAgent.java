@@ -6,6 +6,7 @@
  */
 package artisynth.core.mechmodels;
 
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformableGeometry;
@@ -19,7 +20,7 @@ import maspack.matrix.Vector3d;
 
 import java.util.*;
 
-public interface DynamicAgent {
+public interface DynamicAgent extends HasNumericState {
 
    /**
     * Returns the slave attachment associated with this component, if any.
@@ -332,4 +333,9 @@ public interface DynamicAgent {
     * @return <code>true</code> if this component exerts its own forces.
     */
    public boolean hasForce();
+
+   public void getState (DataBuffer data);
+
+   public void setState (DataBuffer data);
+
 }

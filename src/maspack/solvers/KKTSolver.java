@@ -928,7 +928,6 @@ public class KKTSolver {
          myLo.set (myNumN+i, -fmax);
          myHi.set (myNumN+i, +fmax);
       }
-
       DantzigLCPSolver.Status status =
          myDantzig.solve (myZ, myW, myLcpM, myQ, myLo, myHi, 0, myZState);
       if (status != DantzigLCPSolver.Status.SOLVED) {

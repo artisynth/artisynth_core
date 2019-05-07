@@ -19,11 +19,10 @@ import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.util.*;
 import artisynth.core.modelbase.*;
-import artisynth.core.mechmodels.HasAuxState;
 import artisynth.core.util.*;
 
-public class NumericControlProbe extends NumericProbeBase 
-   implements CopyableComponent {
+public class NumericControlProbe extends NumericDataFunctionProbe {
+
    public static final double EXPLICIT_TIME = -1;
 
    // private double[][] myPropValues;
@@ -31,12 +30,6 @@ public class NumericControlProbe extends NumericProbeBase
    private VectorNd myTmpVec;
 
    protected static boolean defaultExtendData = true;
-
-   private boolean myHasStateP = false;
-
-   protected ArrayList<DataFunction> myDataFunctions =
-      new ArrayList<DataFunction>();
-
 
    public static PropertyList myProps =
       new PropertyList (NumericControlProbe.class, NumericProbeBase.class);
@@ -55,42 +48,6 @@ public class NumericControlProbe extends NumericProbeBase
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
-   }
-
-   /**
-    * Sets a data function to be used by this probe's {@link #applyData} 
-    * method to apply data for this probe. If the data function is set to
-    * <code>null</code>, then this probe will do nothing. If the
-    * {@link #applyData} method is overridden by a subclass, then the data
-    * application is determined instead by the overriding method.
-    *
-    * @see #getDataFunction
-    */
-   public void setDataFunction (DataFunction func) {
-      if (myDataFunctions.size() == 0) {
-         if (func != null) {
-            myDataFunctions.add (func);
-         }
-      }
-      else {
-         if (func != null) {
-            myDataFunctions.set (0, func);
-         }
-         else {
-            myDataFunctions.clear();
-         }
-      }
-      myHasStateP = (func != null && func instanceof HasAuxState);
-   }
-
-   /**
-    * Returns the data function, if any, that is used by this probe's {@link
-    * #apply(double)} method to apply data for this probe.
-    *
-    * @see #setDataFunction
-    */
-   public DataFunction getDataFunction() {
-      return myDataFunctions.size() > 0 ? myDataFunctions.get(0) : null;
    }
 
    public NumericControlProbe() {
@@ -543,58 +500,6 @@ public class NumericControlProbe extends NumericProbeBase
       applyData (myTmpVec, t, trel);
    }
    
-   public boolean hasState() {
-      return myHasStateP;
-   }
-   
-   public ComponentState createState (ComponentState prevState) {
-      if (myHasStateP){
-         return new NumericState();
-      }
-      else {
-         return new EmptyState();
-      }
-   }
-
-   public void getState (ComponentState state) {
-      if (myHasStateP) {
-         DataBuffer data = (NumericState)state;
-         for (DataFunction func : myDataFunctions) {
-            if (func instanceof HasAuxState) {
-               ((HasAuxState)func).getAuxState (data);
-            }
-         }
-      }
-   }
-
-   public void setState (ComponentState state) {
-      if (myHasStateP) {
-         DataBuffer data = (NumericState)state;
-         for (DataFunction func : myDataFunctions) {
-            if (func instanceof HasAuxState) {
-               ((HasAuxState)func).setAuxState (data);
-            }
-         }
-      }
-   }
-
-   public void getInitialState (
-      ComponentState newstate, ComponentState oldstate) {
-      if (myHasStateP) {
-         DataBuffer newData = (NumericState)newstate;
-         DataBuffer oldData = (oldstate != null ? (NumericState)oldstate : null);
-         for (DataFunction func : myDataFunctions) {
-            if (func instanceof HasAuxState) {
-               HasAuxState sfunc = (HasAuxState)func;
-               if (oldData != null) {
-                  sfunc.skipAuxState (oldData);
-               }
-               sfunc.getInitialAuxState (newData, oldData);
-            }
-         }
-      }
-   }
-
    public boolean isSettable() {
       // for now
       return false;
@@ -606,7 +511,6 @@ public class NumericControlProbe extends NumericProbeBase
    public Object clone() throws CloneNotSupportedException {
       NumericControlProbe probe = (NumericControlProbe)super.clone();
       probe.myTmpVec = new VectorNd (myTmpVec.size());
-      probe.myDataFunctions = copyDataFunctions (myDataFunctions);
       return probe;
    }
 
@@ -713,21 +617,6 @@ public class NumericControlProbe extends NumericProbeBase
          myLegend.rebuild();
       }
    }      
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isDuplicatable() {
-      return dataFunctionsAreCopyable (myDataFunctions);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public boolean isCloneable() {
-      return isDuplicatable();
-   }
 
    /**
     * {@inheritDoc}

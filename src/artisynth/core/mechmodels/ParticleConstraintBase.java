@@ -97,7 +97,7 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
    public void setUnilateral (boolean unilateral) {
       if (myUnilateralP != unilateral) {
          myUnilateralP = unilateral;
-         //notifyParentOfChange (StructureChangeEvent.defaultEvent);
+         notifyParentOfChange (StructureChangeEvent.defaultEvent);
       }
    }
 
@@ -196,20 +196,20 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
       return idx;
    }
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx) {
+   public int setBilateralForces (VectorNd lam, double s, int idx) {
 
       if (!myUnilateralP) {
          for (int i=0; i<myParticleInfo.size(); i++) {
             ParticleInfo pi = myParticleInfo.get(i);
             if (pi.myPart.getSolveIndex() != -1) {
-               pi.myLam = lam.get(idx++);
+               pi.myLam = lam.get(idx++)*s;
             }
          }
       }
       return idx;
    }
 
-   public int getBilateralImpulses (VectorNd lam, int idx) {
+   public int getBilateralForces (VectorNd lam, int idx) {
 
       if (!myUnilateralP) {
          for (int i=0; i<myParticleInfo.size(); i++) {
@@ -271,20 +271,20 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
       return idx;
    }
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
+   public int setUnilateralForces (VectorNd the, double s, int idx) {
 
       if (myUnilateralP) {
          for (int i=0; i<myParticleInfo.size(); i++) {
             ParticleInfo pi = myParticleInfo.get(i);
             if (pi.myEngagedP && pi.myPart.getSolveIndex() != -1) {
-               pi.myLam = the.get(idx++);
+               pi.myLam = the.get(idx++)*s;
             }
          }
       }
       return idx;
    }
 
-   public int getUnilateralImpulses (VectorNd the, int idx) {
+   public int getUnilateralForces (VectorNd the, int idx) {
 
       if (myUnilateralP) {
          for (int i=0; i<myParticleInfo.size(); i++) {
@@ -297,7 +297,7 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
       return idx;
    }
    
-   public void zeroImpulses() {
+   public void zeroForces() {
 
       for (int i=0; i<myParticleInfo.size(); i++) {
          myParticleInfo.get(i).myLam = 0;
@@ -376,37 +376,16 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
       }
    }
 
-    /** 
-    * {@inheritDoc}
-    */
-   public void skipAuxState (DataBuffer data) {
-      int nump = data.zget();
-      data.zskip (nump); // state stored is "myEngagedP" for each particle
-   }
-
-   public void getAuxState (DataBuffer data) {
+   public void getState (DataBuffer data) {
       // store engaged information for particles, regardless of whether
       // we are unilateral or not
       data.zput (myParticleInfo.size());
       for (int i=0; i<myParticleInfo.size(); i++) {
-         data.zput (myParticleInfo.get(i).myEngagedP ? 1 : 0);
+         data.zputBool (myParticleInfo.get(i).myEngagedP);
       }
    }
 
-   public void getInitialAuxState (
-      DataBuffer newData, DataBuffer oldData) {
-
-      // engaged always starts out as false
-      newData.zput (myParticleInfo.size());
-      for (int i=0; i<myParticleInfo.size(); i++) {
-         newData.zput (0);
-      }
-      if (oldData != null) {
-         skipAuxState (oldData);
-      }
-   }
-   
-   public void setAuxState (DataBuffer data) {
+   public void setState (DataBuffer data) {
       int nump = data.zget();
       if (nump != numParticles()) {
          throw new InternalErrorException (
@@ -414,7 +393,7 @@ public abstract class ParticleConstraintBase extends ConstrainerBase
             " particles, but constraint has " + numParticles());
       }
       for (int i=0; i<myParticleInfo.size(); i++) {
-         myParticleInfo.get(i).myEngagedP = (data.zget() != 0);
+         myParticleInfo.get(i).myEngagedP = data.zgetBool();
       }
    }      
 

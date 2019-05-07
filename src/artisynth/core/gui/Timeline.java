@@ -10,6 +10,7 @@ import javax.swing.JFrame;
 import artisynth.core.gui.probeEditor.NumericProbeEditor;
 import artisynth.core.gui.NumericProbeDisplayLarge;
 import artisynth.core.probes.WayPoint;
+import artisynth.core.probes.WayPointProbe;
 import artisynth.core.probes.Probe;
 import artisynth.core.workspace.RootModel;
 
@@ -46,6 +47,10 @@ public abstract class Timeline extends JFrame {
    public abstract void setTrackMuted (
 	      boolean muted, boolean isInput, int modelIdx, int trackIdx);
    //public abstract void updateToolbar ();
+
+   public abstract void setAttachedFileFromUser(
+      WayPointProbe wayPoints, String text);
+   public abstract boolean refreshWayPoints(RootModel root);
    
    public static void setMultipleProbeSelecting (boolean selecting) {
       multipleSelecting = selecting;

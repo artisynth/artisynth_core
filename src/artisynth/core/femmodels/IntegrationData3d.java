@@ -167,7 +167,7 @@ public class IntegrationData3d {
          myViscoState.getState (data);
       }
    }
-   
+
    /** 
     * Sets the state data from a DataBuffer.
     */

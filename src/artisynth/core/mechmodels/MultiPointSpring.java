@@ -52,7 +52,7 @@ import artisynth.core.driver.Main;
 public class MultiPointSpring extends PointSpringBase
    implements ScalableUnits, TransformableGeometry,
               CopyableComponent, RequiresPrePostAdvance,
-              HasSlaveObjects, HasAuxState {
+              HasSlaveObjects, HasNumericStateComponents {
 
    public enum SeparationControl {
       RESCALE,
@@ -557,7 +557,7 @@ public class MultiPointSpring extends PointSpringBase
     * associated with. The physics used to do this is first-order, and
     * independent of the second order physics of the overall simulation.
     */
-   public class WrapSegment extends Segment implements HasAuxState {
+   public class WrapSegment extends Segment implements HasNumericState {
       int myNumKnots;                       // number of knot points
       WrapKnot[] myKnots;                   // list of knot points
       double myDscale;
@@ -1436,11 +1436,6 @@ public class MultiPointSpring extends PointSpringBase
             dbuf[i*3+1] = dv.y;
             dbuf[i*3+2] = dv.z;
          }
-         // for (int i=0; i<myNumKnots; i++) {
-         //    knot = myKnots[i];
-         //    knot.myPos.add (knot.myDvec);
-         // }
-         // myLength = computeLength();
          if (s < 1.0) {
             if (myDebugLevel > 1) {
                System.out.println ("  clipped " + s);
@@ -1448,52 +1443,6 @@ public class MultiPointSpring extends PointSpringBase
          }
          return s;
       }
-
-//      void rescaleSolution (double s) {
-//         for (int i=0; i<myNumKnots; i++) {
-//            WrapKnot knot = myKnots[i];
-//            knot.myPos.scaledAdd (s, knot.myDvec);
-//         }
-//         myLength = computeLength();
-//      }
-
-//      double maxDisplacement() {
-//         double maxDisp = 0;
-//         for (int i=0; i<myNumKnots; i++) {
-//            double disp = myKnots[i].myDvec.norm();
-//            if (disp > maxDisp) {
-//               maxDisp = disp;
-//            }
-//         }
-//         return maxDisp;
-//      }         
-
-//      double maxLateralDisplacement() {
-//         Vector3d u = new Vector3d();
-//         Vector3d xprod = new Vector3d();
-//         double maxDisp = 0;
-//         for (int i=0; i<myNumKnots-1; i++) {
-//            u.sub (myKnots[i+1].myPos, myKnots[i].myPos);
-//            double len = u.norm();
-//            if (len != 0) {
-//               xprod.cross (u, myKnots[i].myDvec);
-//               double disp = xprod.norm()/len;
-//               if (disp > maxDisp) {
-//                  maxDisp = disp;
-//               }
-//            }
-//         }
-//         return maxDisp;
-//      }         
-
-//      double computeDecrement() {
-//         double dot = 0;
-//         for (int i=0; i<myNumKnots; i++) {
-//            WrapKnot knot = myKnots[i];
-//            dot += knot.myForce.dot (knot.myDvec);
-//         }
-//         return Math.sqrt(dot);
-//      }
 
       double forceNorm() {
          double sumSqr = 0;
@@ -2213,11 +2162,13 @@ public class MultiPointSpring extends PointSpringBase
                //checkStiffness();
             }
             updateStiffness(1.0, dscale);
+
             updateContactGroups();
 
             //updateStiffnessNumerically(dscale);
             boolean clipped = (factorAndSolve(dvec) < 1.0);
                                 
+
             double r0 = forceDotDisp(dvec);
             double denom = forceNorm()*dvec.norm();
             double cos = r0/denom;
@@ -2299,6 +2250,7 @@ public class MultiPointSpring extends PointSpringBase
                   df1 = -forceDotDisp(dvec);
                }
             }
+            
             // check for convergence before line search, to avoid
             // unnecessary line search. At the moment, convergence
             // is force drops below a threshhold.
@@ -2496,6 +2448,11 @@ public class MultiPointSpring extends PointSpringBase
             Point3d pprev = getKnotPos (ka-1);
             Point3d pa = getKnotPos (ka);
             Point3d pnext = getKnotPos (ka+1);
+            // System.out.println ("  pntB= " + myPntB.getPosition());
+            // System.out.println ("  pa=   " + pa);
+            // System.out.println ("  pb=   " + pb);
+            // System.out.println ("  pnext=" + pnext);
+            // System.out.println ("  pprev=" + pprev);
             wrappableA.penetrationDistance (nrml, null, pa);
             double lam0 = LineSegment.projectionParameter (pb, pnext, pprev);
             if (lam0 <= 0.0 || lam0 >= 1.0) {
@@ -2637,52 +2594,24 @@ public class MultiPointSpring extends PointSpringBase
       // Auxiliary state for a wrappable segment consists of the positions of
       // all the knot points.
 
-      public void skipAuxState (DataBuffer data) {
-         data.dskip (7*myNumKnots+1);
-         data.zskip (myNumKnots+myWrappables.size());
-      }
-
-      public void getAuxState (DataBuffer data) {
+      public void getState (DataBuffer data) {
          int[] contactCnts = getContactCnts();
          for (int i=0; i<myWrappables.size(); i++) {
             data.zput (contactCnts[i]);
          }
-         Point3d pos = myLastPntA;
-         data.dput (pos.x);
-         data.dput (pos.y);
-         data.dput (pos.z);
+         data.dput (myLastPntA);
          for (int k=0; k<myNumKnots; k++) {
             WrapKnot knot = myKnots[k];
-            pos = knot.myPos;
-            data.dput (pos.x);
-            data.dput (pos.y);
-            data.dput (pos.z);
-            pos = knot.myLocPos;
-            data.dput (pos.x);
-            data.dput (pos.y);
-            data.dput (pos.z);
+            data.dput (knot.myPos);
+            data.dput (knot.myLocPos);
             data.dput (knot.myPrevDist);
             data.zput (knot.myPrevWrappableIdx);
          }
-         pos = myLastPntB;
-         data.dput (pos.x);
-         data.dput (pos.y);
-         data.dput (pos.z);
-
+         data.dput (myLastPntB);
          data.dput(myDscale);
       }
 
-      public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
-         if (oldData == null) {
-            getAuxState (newData);
-         }
-         else {
-            newData.putData (
-               oldData, 7*myNumKnots+7, myNumKnots+myWrappables.size());
-         }
-      }
-
-      public void setAuxState (DataBuffer data) {
+      public void setState (DataBuffer data) {
          boolean contacting = false;
          int[] contactCnts = getContactCnts();
          for (int i=0; i<myWrappables.size(); i++) {
@@ -2692,19 +2621,11 @@ public class MultiPointSpring extends PointSpringBase
             }
          }        
          Point3d pos = myLastPntA;
-         pos.x = data.dget();
-         pos.y = data.dget();
-         pos.z = data.dget();
+         data.dget (myLastPntA);
          for (int k=0; k<myNumKnots; k++) {
             WrapKnot knot = myKnots[k];
-            pos = knot.myPos;
-            pos.x = data.dget();
-            pos.y = data.dget();
-            pos.z = data.dget();
-            pos = knot.myLocPos;
-            pos.x = data.dget();
-            pos.y = data.dget();
-            pos.z = data.dget();
+            data.dget (knot.myPos);
+            data.dget (knot.myLocPos);
             if (contacting) {
                // load prevDist and prevWrappableIdx into dist and
                // wrappableIdx, from which they will be loaded into prevDist
@@ -2721,21 +2642,21 @@ public class MultiPointSpring extends PointSpringBase
          }
          if (contacting) {
             // call updateContacts to update the myWrappable field for each knot
-            updateContacts (null, false); 
+            updateContacts (null, true); 
          }
-         pos = myLastPntB;
-         pos.x = data.dget();
-         pos.y = data.dget();
-         pos.z = data.dget();
+         data.dget (myLastPntB);
 
          updateSubSegments();
          myLength = computeLength();
          myDscale = data.dget();
       }
 
-      public void advanceAuxState (double t0, double t1) {
+      public void advanceState (double t0, double t1) {
       }
 
+      public boolean hasState() {
+         return true;
+      }
       // End methods to save and restore auxiliary state.
 
       /**
@@ -4305,47 +4226,17 @@ public class MultiPointSpring extends PointSpringBase
    public void updateSlaveVel() {
    }
 
-   @Override
-   public void advanceAuxState (double t0, double t1) {
-      // nothing needed here
-   }
+//   //@Override
+//   public void advanceState (double t0, double t1) {
+//      // nothing needed here
+//   }
 
    @Override
-   public void skipAuxState (DataBuffer data) {
+   public void getNumericStateComponents (List<HasNumericState> list) {
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
          if (seg instanceof WrapSegment) {
-            ((WrapSegment)seg).skipAuxState (data);
-         }
-      }
-   }
-
-   @Override
-   public void getAuxState (DataBuffer data) {
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
-         if (seg instanceof WrapSegment) {
-            ((WrapSegment)seg).getAuxState (data);
-         }
-      }
-   }
-
-   @Override
-   public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
-         if (seg instanceof WrapSegment) {
-            ((WrapSegment)seg).getInitialAuxState (newData, oldData);
-         }
-      }
-   }
-
-   @Override
-   public void setAuxState (DataBuffer data) {
-      for (int i=0; i<numSegments(); i++) {
-         Segment seg = mySegments.get(i);
-         if (seg instanceof WrapSegment) {
-            ((WrapSegment)seg).setAuxState (data);
+            list.add ((WrapSegment)seg);
          }
       }
    }

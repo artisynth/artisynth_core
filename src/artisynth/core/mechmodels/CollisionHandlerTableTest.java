@@ -28,7 +28,8 @@ public class CollisionHandlerTableTest extends UnitTest {
       public CollisionHandler put (
          CollidableBody col0, CollidableBody col1, CollisionBehavior behav) {
 
-         CollisionHandler ch = new CollisionHandler (null, col0, col1, behav);
+         CollisionHandler ch = 
+            new CollisionHandler (null, col0, col1, behav, null);
          myMap.put (new CollidablePair (col0, col1), ch);
          return ch;
       }
@@ -48,6 +49,13 @@ public class CollisionHandlerTableTest extends UnitTest {
          bodies.add (body);
       }
       return bodies;
+   }
+
+   private void reindexBodies (ArrayList<CollidableBody> bodies) {
+      int k = 0;
+      for (CollidableBody cbody : bodies) {
+         cbody.setCollidableIndex (k++);
+      }
    }
 
    private ArrayList<CollidablePair> createRandomPairs (
@@ -84,7 +92,7 @@ public class CollisionHandlerTableTest extends UnitTest {
 
          CollisionHandler ch = table.get (col0, col1);
          if (ch == null) {
-            table.put (col0, col1, behav);
+            table.put (col0, col1, behav, null);
             CollisionHandler ch0 = table.get (col0, col1);
             CollisionHandler ch1 = table.get (col1, col0);
             if (ch0 == null || ch0 != ch1) {
@@ -130,6 +138,7 @@ public class CollisionHandlerTableTest extends UnitTest {
       }
       // and add some bodies
       bodies.addAll (createBodies (tsize1/2, tsize1));
+      reindexBodies (bodies);
 
       ArrayList<CollisionHandler> handlers = new ArrayList<CollisionHandler>();
       table.collectHandlers (handlers);
@@ -181,7 +190,7 @@ public class CollisionHandlerTableTest extends UnitTest {
          CollidableBody col0 = (CollidableBody)pairs.get(i).get(0);
          CollidableBody col1 = (CollidableBody)pairs.get(i).get(1);
          if (table.get (col0, col1) == null) {
-            table.put (col0, col1, behav);
+            table.put (col0, col1, behav, null);
             puts++;
          }
       }

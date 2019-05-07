@@ -131,13 +131,13 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
       VectorNd posCheck = new VectorNd(slave.getPosStateSize());
       computeSlavePos (posCheck, at);
       VectorNd slavePos = getPosState (slave);
-      checkEquals ("slave pos =", slavePos, posCheck, EPS);      
+      checkEquals ("slave pos", slavePos, posCheck, EPS);      
 
       // check slave velocity with value computed by computeSlaveVel()
       VectorNd velCheck = new VectorNd(slave.getVelStateSize());
       computeSlaveVel (velCheck, at);
       VectorNd slaveVel = getVelState (slave);
-      checkEquals ("slave vel =", slaveVel, velCheck, EPS);      
+      checkEquals ("slave vel", slaveVel, velCheck, EPS);      
 
       // load slave force into ssize X 1 matrix S for use in mulSubGTM()
       MatrixNdBlock S = new MatrixNdBlock (ssize, 1);
@@ -155,7 +155,7 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
          computeMasterForce (forceCheck, idx, at);
          VectorNd masterForce = getForce(master);
          checkEquals (
-            "master force "+idx+" =", masterForce, forceCheck, EPS);
+            "master force "+idx, masterForce, forceCheck, EPS);
 
          // check master force with value computed by at.mulSubGTM()
          MatrixNdBlock M = new MatrixNdBlock (msize, 1);
@@ -164,7 +164,7 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
             forceCheck.set (i, M.get (i, 0));
          }
          checkEquals (
-            "master force "+idx+" from mulSubGTM() =",
+            "master force "+idx+" from mulSubGTM()",
             masterForce, forceCheck, EPS);
       }
 
@@ -178,7 +178,7 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
          G.mulAdd (slaveVel, masterVel);
       }
       slaveVel.negate();
-      checkEquals ("slave vel from GT =", slaveVel, velCheck, EPS);
+      checkEquals ("slave vel from GT", slaveVel, velCheck, EPS);
 
       // test mulSubGTM() and mulSubMG() for different matrix sizes, making
       // sure that M G = (G^T M^T)^T. Also check that the vector method
@@ -201,7 +201,7 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
 
             MatrixBlock D = MatrixBlockBase.alloc (msize,k);
             at.mulSubGTM (D, M, idx);
-            checkEquals ("D from mulSubGTM(D,M,"+idx+")=", D, Dcheck, EPS);
+            checkEquals ("D from mulSubGTM(D,M,"+idx+")", D, Dcheck, EPS);
 
             // check against mulSubMG()
             MatrixBlock DT = MatrixBlockBase.alloc (k,msize);
@@ -212,7 +212,7 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
             MT.set (MVT);
             at.mulSubMG (DT, MT, idx);
             DTcheck.transpose (Dcheck);
-            checkEquals ("D from mulSubMD(D,M,"+idx+")=", DT, DTcheck, EPS);
+            checkEquals ("D from mulSubMD(D,M,"+idx+")", DT, DTcheck, EPS);
 
             if (k==1) {
                int xoff = 7; // assume an offset of 7
@@ -226,7 +226,7 @@ public abstract class DynamicAttachmentTestBase<C extends DynamicAttachment>
                for (int i=0; i<msize; i++) {
                   D.set(i,0, ybuf[i+yoff]);
                }
-               checkEquals ("mulSubGT(D,M,"+idx+") =", D, Dcheck, EPS);
+               checkEquals ("mulSubGT(D,M,"+idx+")", D, Dcheck, EPS);
             }
          }
       }

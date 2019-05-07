@@ -16,7 +16,7 @@ public class BodyFemAttachment extends RootModel {
    // Collect and return all the nodes of a fem associated with a
    // set of elements specified by an array of element numbers
    private HashSet<FemNode3d> collectNodes (FemModel3d fem, int[] elemNums) {
-      HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
+      HashSet<FemNode3d> nodes = new LinkedHashSet<FemNode3d>();
       for (int i=0; i<elemNums.length; i++) {
          FemElement3d e = fem.getElements().getByNumber (elemNums[i]);
          for (FemNode3d n : e.getNodes()) {

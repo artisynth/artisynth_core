@@ -6,7 +6,10 @@
  */
 package maspack.matrix;
 
+import java.io.*;
 import java.util.*;
+
+import maspack.util.NumberFormat;
 
 /**
  * Base implementation of {@link maspack.matrix.Matrix Matrix}.
@@ -311,6 +314,20 @@ public abstract class SparseMatrixBase extends MatrixBase
          nnz += cnt;
       }
       return nnz;
+   }
+
+   public void writeToFileCRS (String fileName, String fmtStr) {
+      NumberFormat fmt = new NumberFormat (fmtStr);
+      try {
+         PrintWriter pw =
+            new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
+         write (pw, fmt, WriteFormat.CRS);
+         pw.close();
+      }
+      catch (Exception e) {
+         System.out.println ("Error writing matrix to file "+ fileName + ":");
+         System.out.println (e);
+      }
    }
 
    // /**

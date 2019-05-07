@@ -32,6 +32,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
+import maspack.render.Renderer.ColorInterpolation;
 import maspack.render.color.ColorMapBase;
 import maspack.render.color.HueColorMap;
 import maspack.util.DataBuffer;
@@ -49,6 +50,7 @@ import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableCompositeBase;
@@ -118,7 +120,7 @@ import artisynth.core.util.ScanToken;
  * pairs of leaf-nodes located at or below A and B.
  */
 public class CollisionManager extends RenderableCompositeBase
-   implements ScalableUnits, Constrainer, HasAuxState {
+   implements ScalableUnits, Constrainer, HasNumericState {
 
    // Current assumptions:
    //
@@ -154,6 +156,7 @@ public class CollisionManager extends RenderableCompositeBase
    boolean myBehaviorStructuresValid = false;
    boolean myResponseStructuresValid = false;
    boolean myHandlerTableValid = false;
+   int myUsesBilateralConstraints = -1; // -1 means we don't know
 
    AbstractCollider myCollider = null;
 
@@ -214,6 +217,16 @@ public class CollisionManager extends RenderableCompositeBase
    
    public static ColliderType getDefaultColliderType() {
       return myDefaultColliderType;
+   }
+   
+   /**
+    * Describes where to look for the collision behavior of a given
+    * collidable.
+    */
+   enum BehaviorSource {
+      EXPLICIT,
+      EXTERNAL,
+      INTERNAL;
    }
    
    CollisionBehavior myDefaultRigidRigid;
@@ -300,6 +313,11 @@ public class CollisionManager extends RenderableCompositeBase
    static boolean defaultDrawContactForces = false;
    boolean myDrawContactForces = defaultDrawContactForces;
    PropertyMode myDrawContactForcesMode = PropertyMode.Inherited;
+
+   static ColorInterpolation defaultColorMapInterpolation =
+      ColorInterpolation.HSV;
+   ColorInterpolation myColorMapInterpolation = defaultColorMapInterpolation;
+   PropertyMode myColorMapInterpolationMode = PropertyMode.Inherited;
 
    static ColorMapType defaultDrawColorMap = ColorMapType.NONE;
    ColorMapType myDrawColorMap = defaultDrawColorMap;
@@ -396,6 +414,10 @@ public class CollisionManager extends RenderableCompositeBase
        myProps.add (
          "colorMapRange", "range for drawing color maps", 
          defaultColorMapRange);
+      myProps.addInheritable (
+         "colorMapInterpolation",
+         "explicit setting for how to interpolate color map (RGB or HSV)",
+         defaultColorMapInterpolation);
 
       myProps.add (
          "colorMap", "color map for penetration plotting", 
@@ -506,6 +528,8 @@ public class CollisionManager extends RenderableCompositeBase
       myDrawContactForcesMode = PropertyMode.Inherited;
       myDrawColorMap = defaultDrawColorMap;
       myDrawColorMapMode = PropertyMode.Inherited;
+      myColorMapInterpolation = defaultColorMapInterpolation;
+      myColorMapInterpolationMode = PropertyMode.Inherited;
       myColorMapCollidableNum = defaultColorMapCollidableNum;
       myColorMapCollidableMode = PropertyMode.Inherited;
       setColorMapRange (defaultColorMapRange);
@@ -951,6 +975,28 @@ public class CollisionManager extends RenderableCompositeBase
 
    public PropertyMode getDrawContactForcesMode() {
       return myDrawContactForcesMode;
+   }
+
+   public void setColorMapInterpolation (ColorInterpolation interp) {
+      myColorMapInterpolation = interp;
+      myColorMapInterpolationMode =
+         PropertyUtils.propagateValue (
+            this, "colorMapInterpolation",
+            myColorMapInterpolation, myColorMapInterpolationMode);
+   }
+   
+   public ColorInterpolation getColorMapInterpolation() {
+      return myColorMapInterpolation;
+   }
+
+   public void setColorMapInterpolationMode (PropertyMode mode) {
+      myColorMapInterpolationMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "colorMapInterpolation", myColorMapInterpolationMode, mode);
+   }
+
+   public PropertyMode getColorMapInterpolationMode() {
+      return myColorMapInterpolationMode;
    }
 
    public ColorMapType getDrawColorMap() {
@@ -1630,27 +1676,6 @@ public class CollisionManager extends RenderableCompositeBase
    public void getTopCollidables (List<Collidable> list) {
       recursivelyGetTopCollidables (list, myMechModel);
    }      
-
-   // void updateCollider() {
-   //    switch (myColliderType) {
-   //       case TRI_INTERSECTION: {
-   //          if (!(myCollider instanceof MeshCollider)) {
-   //             myCollider = new MeshCollider();
-   //          }  
-   //          break;
-   //       }
-   //       case AJL_CONTOUR: {
-   //          if (!(myCollider instanceof SurfaceMeshCollider)) {
-   //             myCollider = new SurfaceMeshCollider();
-   //          }
-   //          break;
-   //       }
-   //       default: {
-   //          throw new InternalErrorException (
-   //             "Unimplemented collider type " + myColliderType);
-   //       }
-   //    }
-   // }
    
    void updateBehaviorStructures() {
       if (!myBehaviorStructuresValid) {
@@ -1898,14 +1923,19 @@ public class CollisionManager extends RenderableCompositeBase
 
    private void updateHandlerTable() {
       if (!myHandlerTableValid) {
-         MechModel mech = MechModel.topMechModel(this);
-         mech.updateCollidableBodyIndices();
-         ArrayList<CollidableBody> cbodies = myMechModel.getCollidableBodies();
-         myHandlerTable.reinitialize (cbodies);     
+         MechModel topMech = MechModel.topMechModel(this);
+         topMech.updateCollidableBodyIndices();
+         ArrayList<CollidableBody> bodies = myMechModel.getCollidableBodies();
+         myHandlerTable.reinitialize (bodies);     
          myHandlers.clear();
-         myHandlerTable.collectHandlers(myHandlers);
+         collectHandlers (myHandlers);
          myHandlerTableValid = true;
       }
+   }
+
+   CollisionHandlerTable getHandlerTable() {
+      updateHandlerTable();
+      return myHandlerTable;
    }
 
    private CollisionBehavior dominantBehavior (
@@ -2110,9 +2140,79 @@ public class CollisionManager extends RenderableCompositeBase
       }
    }
 
+   ContactInfo computeContactInfo (
+      CollidableBody c0, CollidableBody c1, CollisionBehavior behav) {
+
+      PolygonalMesh mesh0 = c0.getCollisionMesh();
+      PolygonalMesh mesh1 = c1.getCollisionMesh();
+      ContactInfo cinfo;
+      ColliderType colliderType = behav.getColliderType();
+      if (colliderType == ColliderType.SIGNED_DISTANCE) {
+         // if using signed distance collider, at least one collidable
+         // must be rigid and support signed distance grids
+         if ((c0.isDeformable() || !c0.hasDistanceGrid()) &&
+             (c1.isDeformable() || !c1.hasDistanceGrid())) {
+            colliderType = ColliderType.AJL_CONTOUR;
+         }
+      }
+      //FunctionTimer timer = new FunctionTimer();
+      //timer.start();
+      switch (colliderType) {
+         case AJL_CONTOUR: {
+            if (myAjlIntersector == null) {
+               myAjlIntersector = new SurfaceMeshIntersector();
+            }
+            // types of regions that we need to compute for mesh0 and mesh1
+            RegionType regions0 = RegionType.INSIDE;
+            RegionType regions1 = RegionType.INSIDE;
+            Method method = behav.getMethod();
+            if (method != Method.VERTEX_EDGE_PENETRATION &&
+                method != Method.CONTOUR_REGION &&
+                behav.getBodyFaceContact() == false) {
+               // vertex penetration method may not require computing
+               // regions for both meshes
+               if (CollisionHandler.isRigid (c0) && 
+                   !CollisionHandler.isRigid (c1)) {
+                  regions0 = RegionType.NONE;
+               }
+               else if (CollisionHandler.isRigid (c1) && 
+                        !CollisionHandler.isRigid (c0)) {
+                  regions1 = RegionType.NONE;
+               }
+            }
+            cinfo = myAjlIntersector.findContoursAndRegions (
+               mesh0, regions0, mesh1, regions1);
+            break;
+         }
+         case TRI_INTERSECTION: {
+            if (myTriTriCollider == null) {
+               myTriTriCollider = new MeshCollider();
+            }
+            cinfo = myTriTriCollider.getContacts (mesh0, mesh1);
+            break;
+         }
+         case SIGNED_DISTANCE: {
+            if (mySDCollider == null) {
+               mySDCollider = new SignedDistanceCollider();
+            }
+            DistanceGridComp gcomp0 = c0.getDistanceGridComp();
+            DistanceGridComp gcomp1 = c1.getDistanceGridComp();
+            cinfo = mySDCollider.getContacts (
+               mesh0, gcomp0 != null ? gcomp0.getGrid() : null,
+               mesh1, gcomp1 != null ? gcomp1.getGrid() : null);
+            break;
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unimplemented collider type " + colliderType);
+         }
+      }
+      return cinfo;    
+   }
+   
    void checkForContact (
       CollidableBody c0, CollidableBody c1, 
-      CollisionBehavior behav, boolean testMode) {
+      CollisionBehavior behav, BehaviorSource src, boolean testMode) {
       
       if (c0.getCollidableIndex() > c1.getCollidableIndex()) {
          // swap the collidable references to reflect their handler order
@@ -2120,83 +2220,46 @@ public class CollisionManager extends RenderableCompositeBase
          c0 = c1;
          c1 = tmp;
       }
-      PolygonalMesh mesh0 = c0.getCollisionMesh();
-      PolygonalMesh mesh1 = c1.getCollisionMesh();
       ContactInfo cinfo;
       if (testMode) {
-         cinfo = new ContactInfo (mesh0, mesh1);
+         cinfo = new ContactInfo (c0.getCollisionMesh(), c1.getCollisionMesh());
       }
       else {
-         ColliderType colliderType = behav.getColliderType();
-         if (colliderType == ColliderType.SIGNED_DISTANCE) {
-            // if using signed distance collider, at least one collidable
-            // must be rigid and support signed distance grids
-            if ((c0.isDeformable() || !c0.hasDistanceGrid()) &&
-                (c1.isDeformable() || !c1.hasDistanceGrid())) {
-               colliderType = ColliderType.AJL_CONTOUR;
-            }
-         }
-         //FunctionTimer timer = new FunctionTimer();
-         //timer.start();
-         switch (colliderType) {
-            case AJL_CONTOUR: {
-               if (myAjlIntersector == null) {
-                  myAjlIntersector = new SurfaceMeshIntersector();
-               }
-               // types of regions that we need to compute for mesh0 and mesh1
-               RegionType regions0 = RegionType.INSIDE;
-               RegionType regions1 = RegionType.INSIDE;
-               Method method = behav.getMethod();
-               if (method != Method.VERTEX_EDGE_PENETRATION &&
-                   method != Method.CONTOUR_REGION &&
-                   behav.getBodyFaceContact() == false) {
-                  // vertex penetration method may not require computing
-                  // regions for both meshes
-                  if (CollisionHandler.isRigid (c0) && 
-                      !CollisionHandler.isRigid (c1)) {
-                     regions0 = RegionType.NONE;
-                  }
-                  else if (CollisionHandler.isRigid (c1) && 
-                           !CollisionHandler.isRigid (c0)) {
-                     regions1 = RegionType.NONE;
-                  }
-               }
-               cinfo = myAjlIntersector.findContoursAndRegions (
-                  mesh0, regions0, mesh1, regions1);
-               break;
-            }
-            case TRI_INTERSECTION: {
-               if (myTriTriCollider == null) {
-                  myTriTriCollider = new MeshCollider();
-               }
-               cinfo = myTriTriCollider.getContacts (mesh0, mesh1);
-               break;
-            }
-            case SIGNED_DISTANCE: {
-               if (mySDCollider == null) {
-                  mySDCollider = new SignedDistanceCollider();
-               }
-               DistanceGridComp gcomp0 = c0.getDistanceGridComp();
-               DistanceGridComp gcomp1 = c1.getDistanceGridComp();
-               cinfo = mySDCollider.getContacts (
-                  mesh0, gcomp0 != null ? gcomp0.getGrid() : null,
-                  mesh1, gcomp1 != null ? gcomp1.getGrid() : null);
-               break;
-            }
-            default: {
-               throw new UnsupportedOperationException (
-                  "Unimplemented collider type " + colliderType);
-            }
-         }
+         cinfo = computeContactInfo (c0, c1, behav);
          //timer.stop();
          //System.out.println ("time=" + timer.getTimeUsec());
          //cinfo = myCollider.getContacts (mesh0, mesh1);
       }
       if (cinfo != null) {
-         addOrUpdateHandler (cinfo, c0, c1, behav);
+         addOrUpdateHandler (cinfo, c0, c1, behav, src);
       }     
    }
 
+   CollisionBehavior getBehavior (
+      CollidableBody c0, CollidableBody c1, BehaviorSource src) {
+      switch (src) {
+         case EXPLICIT: {
+            return getExplicitBehavior (c0, c1);
+         }
+         case EXTERNAL: {
+            return getExternalBehavior (c0, c1);
+         }
+         case INTERNAL: {
+            Collidable ancestor = nearestCommonCollidableAncestor (c0, c1);
+            if (ancestor != null) {
+               return getInternalBehavior (ancestor);
+            }
+            else {
+               return null;
+            }
+         }
+         default: {
+            throw new UnsupportedOperationException (
+               "Unknown behavior source: "+ src);
+         }
+      }
+   }
+   
    /**
     * Check external collisions for different component lists cols0 and cols1.
     */
@@ -2212,7 +2275,8 @@ public class CollisionManager extends RenderableCompositeBase
             if (getExplicitBehavior (ci, cj) == null) {
                CollisionBehavior behav = getExternalBehavior (ci, cj);
                if (behav.isEnabled()) {
-                  checkForContact (ci, cj, behav, testMode);
+                  checkForContact (
+                     ci, cj, behav, BehaviorSource.EXTERNAL, testMode);
                }
             }               
          }
@@ -2233,7 +2297,8 @@ public class CollisionManager extends RenderableCompositeBase
                 nearestCommonCollidableAncestor (ci, cj) == null) {
                CollisionBehavior behav = getExternalBehavior (ci, cj);
                if (behav.isEnabled()) {
-                  checkForContact (ci, cj, behav, testMode);
+                  checkForContact (
+                     ci, cj, behav, BehaviorSource.EXTERNAL, testMode);
                }
             }               
          }
@@ -2255,7 +2320,8 @@ public class CollisionManager extends RenderableCompositeBase
                if (ancestor != null) {
                   CollisionBehavior behav = getInternalBehavior (ancestor);
                   if (behav.isEnabled()) {
-                     checkForContact (ci, cj, behav, testMode);
+                     checkForContact (
+                        ci, cj, behav, BehaviorSource.INTERNAL, testMode);
                   }
                }
             }               
@@ -2265,15 +2331,15 @@ public class CollisionManager extends RenderableCompositeBase
 
    private void addOrUpdateHandler (
       ContactInfo cinfo, CollidableBody c0, CollidableBody c1,
-      CollisionBehavior behav) {
+      CollisionBehavior behav, BehaviorSource src) {
 
       CollisionHandler ch = myHandlerTable.get (c0, c1);
       if (ch == null) {
          //ch = new CollisionHandlerX (this, c0, c1, behav);
-         ch = myHandlerTable.put (c0, c1, behav);
+         ch = myHandlerTable.put (c0, c1, behav, src);
       }
       else {
-         ch.setBehavior (behav);
+         ch.setBehavior (behav, src);
       }
       ch.setActive (true);
       ch.myStateNeedsContactInfo = isVisible(ch);
@@ -2357,6 +2423,7 @@ public class CollisionManager extends RenderableCompositeBase
       myBehaviorStructuresValid = false;
       myResponseStructuresValid = false;
       myHandlerTableValid = false;
+      myUsesBilateralConstraints = -1;
    }
 
    // ===== Scan and write code ====
@@ -2493,6 +2560,8 @@ public class CollisionManager extends RenderableCompositeBase
 
    // ==== Begin Constrainer implementation ====
    
+   public int maxNumContourPoints = 0;
+   
    public double updateConstraints (double t, int flags) {
       
       // this method will only be called from the top level
@@ -2502,7 +2571,14 @@ public class CollisionManager extends RenderableCompositeBase
       }
 
       myHandlers.clear();
-      double maxpen = updateConstraints (myHandlers, t, flags);      
+      double maxpen = updateConstraints (myHandlers, t, flags);
+      int nump = 0;
+      for (CollisionHandler ch : myHandlers) {
+         nump += ch.getLastContactInfo().numContourPoints();
+      }
+      if (nump > maxNumContourPoints ) {
+         maxNumContourPoints = nump;
+      }
       return myHandlers.size() == 0 ? -1 : maxpen;
    }
    
@@ -2546,7 +2622,7 @@ public class CollisionManager extends RenderableCompositeBase
             CollidablePair pair = e.getKey();
             CollidableBody c0 = (CollidableBody)pair.myComp0;
             CollidableBody c1 = (CollidableBody)pair.myComp1;
-            checkForContact (c0, c1, behav, testMode);            
+            checkForContact (c0, c1, behav, BehaviorSource.EXPLICIT, testMode); 
          }
       }
       // compute implicit collisions
@@ -2579,7 +2655,8 @@ public class CollisionManager extends RenderableCompositeBase
 
       // for handlers just added by this manager, reduce constraints
       // constraints if necessary and remove all inactive contacts
-      ArrayList<ContactConstraint> reducedBilaterals = new ArrayList<ContactConstraint>();
+      ArrayList<ContactConstraint> reducedBilaterals =
+         new ArrayList<ContactConstraint>();
       for (int i=hidx1; i<handlers.size(); i++) {
          CollisionHandler handler = handlers.get(i);
          if (handler.getBehavior().getReduceConstraints()) {
@@ -2635,23 +2712,23 @@ public class CollisionManager extends RenderableCompositeBase
       return idx;
    }
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx) {
+   public int setBilateralForces (VectorNd lam, double s, int idx) {
       for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setBilateralImpulses (lam, h, idx);
+         idx = myHandlers.get(i).setBilateralForces (lam, s, idx);
       }
       return idx;
    }
 
-   public int getBilateralImpulses (VectorNd lam, int idx) {
+   public int getBilateralForces (VectorNd lam, int idx) {
       for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getBilateralImpulses (lam, idx);
+         idx = myHandlers.get(i).getBilateralForces (lam, idx);
       }
       return idx;
    }
    
-   public void zeroImpulses() {
+   public void zeroForces() {
       for (int i=0; i<myHandlers.size(); i++) {
-         myHandlers.get(i).zeroImpulses();
+         myHandlers.get(i).zeroForces();
       }
    }
 
@@ -2683,16 +2760,16 @@ public class CollisionManager extends RenderableCompositeBase
       return idx;
    }
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
+   public int setUnilateralForces (VectorNd the, double s, int idx) {
       for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).setUnilateralImpulses (the, h, idx);
+         idx = myHandlers.get(i).setUnilateralForces (the, s, idx);
       }
       return idx;
    }
 
-   public int getUnilateralImpulses (VectorNd the, int idx) {
+   public int getUnilateralForces (VectorNd the, int idx) {
       for (int i=0; i<myHandlers.size(); i++) {
-         idx = myHandlers.get(i).getUnilateralImpulses (the, idx);
+         idx = myHandlers.get(i).getUnilateralForces (the, idx);
       }
       return idx;
    }
@@ -2716,6 +2793,128 @@ public class CollisionManager extends RenderableCompositeBase
    public void getConstrainedComponents (List<DynamicComponent> list) {
       // STUB - not currently used
    }
+
+
+   // ===== BEGIN query of bilateral use =====
+   //
+   // The next set of methods are used to query whether or not this collision
+   // manager may use bilateral constraints. It's complicated because we need
+   // to make the same collidable peir queries that we use during regular
+   // collision detection.
+
+   /**
+    * Queries whether or not this collision manager may use bilateral
+    * constraints given its current collision configuration.
+    *
+    * @return {@code true} if this collision manager may use bilateral
+    * constraints
+    */
+   public boolean usesBilateralConstraints() {
+      if (myUsesBilateralConstraints == -1) {
+         myUsesBilateralConstraints = (usesBilaterals() ? 1 : 0);
+      }
+      return myUsesBilateralConstraints != 0 ? true : false;
+   }
+
+   // check bilateral use among externally collidable pairs
+   private boolean usesBilateralsExt (
+      ArrayList<CollidableBody> cols0, ArrayList<CollidableBody> cols1) {
+      for (CollidableBody c0 : cols0) {
+         for (CollidableBody c1 : cols1) {
+            if (getExplicitBehavior (c0, c1) == null) {
+               CollisionBehavior behav = getExternalBehavior (c0, c1);
+               if (behav.isEnabled()) {
+                  if (CollisionHandler.usesBilateralConstraints (c0, c1, behav)) {
+                     return true;
+                  }
+
+               }
+            }               
+         }
+      }
+      return false;
+   }
+
+   // check bilateral use among internally collidable pairs
+   private boolean usesBilateralsInt (ArrayList<CollidableBody> cols) {
+      for (CollidableBody c0 : cols) {
+         for (CollidableBody c1 : cols) {
+            if (getExplicitBehavior (c0, c1) == null) {
+               Collidable ancestor = nearestCommonCollidableAncestor (c0, c1);
+               if (ancestor != null) {
+                  CollisionBehavior behav = getInternalBehavior (ancestor);
+                  if (behav.isEnabled()) {
+                     if (CollisionHandler.usesBilateralConstraints (
+                            c0, c1, behav)) {
+                        return true;
+                     }
+                  }
+               }
+            }               
+         }
+      }
+      return false;
+   }   
+
+   // check bilateral use among all collidables under this manager
+   private boolean usesBilaterals() {
+      updateBehaviorStructures();
+      updateResponseStructures();
+      updateHandlerTable();
+
+      // check sub mech models first
+      ArrayList<MechModel> subMechs = new ArrayList<MechModel>();
+      subMechs.add (myMechModel);
+      for (MechSystemModel m : myMechModel.getLocalModels()) {
+         if (m instanceof MechModel) {
+            MechModel mech = (MechModel)m;
+            if (mech.getCollisionManager().usesBilaterals()) {
+               return true;
+            }
+            subMechs.add (mech);
+         }
+      }     
+
+      // query explicit collisions
+      for (Map.Entry<CollidablePair,CollisionBehavior> e :
+              myExplicitBehaviors.entrySet()) {
+         CollisionBehavior behav = e.getValue();
+         if (behav.isEnabled()) {
+            CollidablePair pair = e.getKey();
+            CollidableBody c0 = (CollidableBody)pair.myComp0;
+            CollidableBody c1 = (CollidableBody)pair.myComp1;
+            if (CollisionHandler.usesBilateralConstraints (c0, c1, behav)) {
+               return true;
+            }
+         }
+      }
+      // query implicit collisions
+      if (usesBilateralsExt (myRigidExts, myRigidExts) ||
+          usesBilateralsExt (myDeformableExts, myRigidExts) || 
+          usesBilateralsExt (myDeformableExts, myDeformableExts) ||
+          usesBilateralsInt (myDeformableInts)) {
+         return true;
+      }
+
+      for (int i=0; i<subMechs.size(); i++) {
+         CollisionManager cmi = null;
+         cmi = subMechs.get(i).getCollisionManager();
+         for (int j=i+1; j<subMechs.size(); j++) {
+            CollisionManager cmj = null;
+            cmj = subMechs.get(j).getCollisionManager();
+            
+            if (usesBilateralsExt (cmi.myRigidExts, cmj.myRigidExts) ||
+                usesBilateralsExt (cmi.myRigidExts, cmj.myDeformableExts) ||
+                usesBilateralsExt (cmi.myDeformableExts, cmj.myRigidExts) ||
+                usesBilateralsExt (cmi.myDeformableExts, cmj.myDeformableExts)){
+               return true;
+            }
+         }
+      }    
+      return false;
+   }
+
+   // ===== END query of bilateral use =====
    
    // ===== RenderableComponent methods ======
 
@@ -2749,27 +2948,33 @@ public class CollisionManager extends RenderableCompositeBase
    public void render (Renderer renderer, int flags) {
    }
 
-   // ***** Begin HasAuxState *****
+   // ***** Begin HasNumericState *****
 
-   public void advanceAuxState (double t0, double t1) {
+   public void advanceState (double t0, double t1) {
       // contact constraints don't need to advance their aux state
    }
 
-   public void skipAuxState (DataBuffer data) {
-      myHandlerTable.skipAuxState (data);
-   }
-
-   public void getAuxState (DataBuffer data) {
+   public void getState (DataBuffer data) {
       updateHandlerTable();
-      myHandlerTable.getAuxState (data);
+      myHandlerTable.getState (data);
    }
 
-   public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
-      myHandlerTable.getInitialAuxState (newData, oldData);
-   }
-
-   public void setAuxState (DataBuffer data) {
-      myHandlerTable.setAuxState (data);
+   public void setState (DataBuffer data) {
+      if (!myHandlerTableValid) {
+         MechModel topMech = MechModel.topMechModel(this);
+         topMech.updateCollidableBodyIndices();
+         ArrayList<CollidableBody> bodies = myMechModel.getCollidableBodies();
+         // initialize, but *without* handlers, since these should be added
+         // by setState. However, if the table was not valid, all states
+         // except the zero state should have also been invalidated, and the
+         // zero state has no handlers and hence and empty table
+         myHandlerTable.initialize (bodies);     
+         myHandlerTableValid = true;
+      }
+      else {
+         myHandlerTable.removeAllHandlers();
+      }
+      myHandlerTable.setState (data);
       if (myMechModel == MechModel.topMechModel(this)) {
          myHandlers.clear();
          collectHandlers (myHandlers);

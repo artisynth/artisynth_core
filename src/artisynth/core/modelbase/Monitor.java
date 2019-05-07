@@ -6,7 +6,7 @@
  */
 package artisynth.core.modelbase;
 
-public interface Monitor extends ModelAgent, HasState {
+public interface Monitor extends ModelAgent {
 
    /**
     * Called at the end of a {@code RootModel}'s advance procedure

@@ -18,7 +18,7 @@ import artisynth.core.mechmodels.MechSystem.ConstraintInfo;
 import artisynth.core.mechmodels.MechSystem.FrictionInfo;
 
 public abstract class ConstrainerBase
-   extends RenderableComponentBase implements Constrainer, HasAuxState {
+   extends RenderableComponentBase implements Constrainer, HasNumericState {
 
    public abstract void getBilateralSizes (VectorNi sizes);
 
@@ -27,11 +27,11 @@ public abstract class ConstrainerBase
 
    public abstract int getBilateralInfo (ConstraintInfo[] ginfo, int idx);
 
-   public abstract int setBilateralImpulses (VectorNd lam, double h, int idx);   
+   public abstract int setBilateralForces (VectorNd lam, double s, int idx);   
 
-   public abstract int getBilateralImpulses (VectorNd lam, int idx);
+   public abstract int getBilateralForces (VectorNd lam, int idx);
    
-   public abstract void zeroImpulses();
+   public abstract void zeroForces();
 
    public void getUnilateralSizes (VectorNi sizes) {
    }
@@ -45,11 +45,11 @@ public abstract class ConstrainerBase
       return idx;
    }
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
+   public int setUnilateralForces (VectorNd the, double s, int idx) {
       return idx;
    }
 
-   public int getUnilateralImpulses (VectorNd the, int idx) {
+   public int getUnilateralForces (VectorNd the, int idx) {
       return idx;
    }
 
@@ -66,23 +66,13 @@ public abstract class ConstrainerBase
    
    public abstract void getConstrainedComponents (List<DynamicComponent> list);
    
-   public void advanceAuxState (double t0, double t1) {
+   public void advanceState (double t0, double t1) {
    }
 
-   /** 
-    * {@inheritDoc}
-    */
-   public void skipAuxState (DataBuffer data) {
-   }
-
-   public void getAuxState (DataBuffer data) {
-   }
-
-   public void getInitialAuxState (
-      DataBuffer newData, DataBuffer oldData) {
+   public void getState (DataBuffer data) {
    }
    
-   public void setAuxState (DataBuffer data) {
+   public void setState (DataBuffer data) {
    }
  
    /**

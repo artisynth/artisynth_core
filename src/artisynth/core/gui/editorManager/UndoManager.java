@@ -137,7 +137,8 @@ public class UndoManager {
       CompositeState state = null;
       RootModel rootModel = Main.getMain().getRootModel();
       if (rootModel != null) {
-         state = (CompositeState)rootModel.createState(null);
+         state = (CompositeState)rootModel.createState(
+            null);
          rootModel.getState (state);
       }
       return state;

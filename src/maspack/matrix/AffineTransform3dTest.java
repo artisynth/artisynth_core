@@ -121,39 +121,39 @@ class AffineTransform3dTest extends MatrixTest {
       pchk.add (X.b);
 
       X.transformPnt (pr, p0);
-      checkEquals ("transformPoint=", pr, pchk, EPS);
+      checkEquals ("transformPoint", pr, pchk, EPS);
       pr.set (p0);
       X.transformPnt (pr, pr);
-      checkEquals ("transformPoint=", pr, pchk, EPS);
+      checkEquals ("transformPoint", pr, pchk, EPS);
       X.inverseTransformPnt (pr, pr);
-      checkEquals ("inverseTransformPoint=", pr, p0, EPS);
+      checkEquals ("inverseTransformPoint", pr, p0, EPS);
       X.inverseTransformPnt (pr, pchk);
-      checkEquals ("inverseTransformPoint=", pr, p0, EPS);
+      checkEquals ("inverseTransformPoint", pr, p0, EPS);
       
 
       X.M.mul (vchk, v0);
 
       X.transformVec (vr, v0);
-      checkEquals ("transformVector=", vr, vchk, EPS);
+      checkEquals ("transformVector", vr, vchk, EPS);
       vr.set (v0);
       X.transformVec (vr, vr);
-      checkEquals ("transformVector=", vr, vchk, EPS);
+      checkEquals ("transformVector", vr, vchk, EPS);
       X.inverseTransformVec (vr, vr);
-      checkEquals ("inverseTransformVector=", vr, v0, EPS);
+      checkEquals ("inverseTransformVector", vr, v0, EPS);
       X.inverseTransformVec (vr, vchk);
-      checkEquals ("inverseTransformVector=", vr, v0, EPS);
+      checkEquals ("inverseTransformVector", vr, v0, EPS);
       
       X.M.mulInverseTranspose (nchk, n0);
 
       X.transformCovec (nr, n0);
-      checkEquals ("transformNormal=", nr, nchk, EPS);
+      checkEquals ("transformNormal", nr, nchk, EPS);
       nr.set (n0);
       X.transformCovec (nr, nr);
-      checkEquals ("transformNormal=", nr, nchk, EPS);
+      checkEquals ("transformNormal", nr, nchk, EPS);
       X.inverseTransformCovec (nr, nr);
-      checkEquals ("inverseTransformNormal=", nr, n0, EPS);
+      checkEquals ("inverseTransformNormal", nr, n0, EPS);
       X.inverseTransformCovec (nr, nchk);
-      checkEquals ("inverseTransformNormal=", nr, n0, EPS);
+      checkEquals ("inverseTransformNormal", nr, n0, EPS);
 
    }
 

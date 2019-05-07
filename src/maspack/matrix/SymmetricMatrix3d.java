@@ -6,7 +6,12 @@
  */
 package maspack.matrix;
 
+import java.io.PrintWriter;
+import java.io.IOException;
 import java.util.Random;
+
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * A symmetric 3 x 3 matrix with the elements stored as explicit fields.
@@ -1314,6 +1319,39 @@ public class SymmetricMatrix3d extends Matrix3dBase {
       }
 
       L.m01 = L.m02 = L.m12 = 0;
+   }
+
+   public void writeAsVector (PrintWriter pw, NumberFormat fmt)
+      throws IOException {
+
+      pw.print (fmt.format(m00)+" ");
+      pw.print (fmt.format(m11)+" ");
+      pw.print (fmt.format(m22)+" ");
+      pw.print (fmt.format(m01)+" ");
+      pw.print (fmt.format(m02)+" ");
+      pw.print (fmt.format(m12));
+   }
+   
+   public void scanAsVector (ReaderTokenizer rtok) throws IOException {
+      boolean bracketed = false;
+      if (rtok.nextToken() == '[') {
+         bracketed = true;
+      }
+      else {
+         rtok.pushBack();
+      }
+      m00 = rtok.scanNumber();
+      m11 = rtok.scanNumber();
+      m22 = rtok.scanNumber();
+      m01 = rtok.scanNumber();
+      m02 = rtok.scanNumber();
+      m12 = rtok.scanNumber();
+      m10 = m01;
+      m20 = m02;
+      m21 = m12;
+      if (bracketed) {
+         rtok.scanToken (']');
+      }
    }
 
 }

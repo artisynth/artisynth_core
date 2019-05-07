@@ -19,6 +19,7 @@ import maspack.matrix.Point3d;
 import maspack.properties.HasProperties;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.spatialmotion.SpatialInertia;
 import maspack.util.ArraySupport;
 import maspack.util.FunctionTimer;
 import maspack.util.NumberFormat;
@@ -585,5 +586,64 @@ public class PolylineMesh extends MeshBase {
 
    protected void autoUpdateNormals() {
    }
-   
+
+   /**
+    * Computes a spatial inertia for this mesh, given a mass and a mass
+    * distribution.  Only {@link MassDistribution#POINT} and {@link
+    * MassDistribution#LENGTH} distributions are supported.
+    *
+    * @param mass overall mass
+    * @param dist how the mass is distributed across the features
+    * @throws IllegalArgumentException if the distribution is not compatible
+    * with the available mesh features.
+    */  
+   public SpatialInertia createInertia (double mass, MassDistribution dist) {
+      if (dist == MassDistribution.DEFAULT) {
+         dist = MassDistribution.LENGTH;
+      }
+      if (dist == MassDistribution.LENGTH) {
+         SpatialInertia M = new SpatialInertia();
+
+         int nsegs = 0;
+         for (Polyline line : myLines) {
+            nsegs += (line.numVertices()-1);
+         }
+         double[] lens = new double[nsegs];
+         double totalLength = 0;
+         int k = 0;
+         for (Polyline line : myLines) {
+            for (int i=0; i<line.numVertices()-1; i++) {
+               Point3d p0 = line.getVertex(i).getPosition();
+               Point3d p1 = line.getVertex(i+1).getPosition();
+               double len = p0.distance (p1);
+               totalLength += len;
+               lens[k++] = len;
+            }
+         }
+         k = 0;
+         for (Polyline line : myLines) {
+            for (int i=0; i<line.numVertices()-1; i++) {
+               Point3d p0 = line.getVertex(i).getPosition();
+               Point3d p1 = line.getVertex(i+1).getPosition();
+               M.addLineSegmentInertia (mass*lens[k++]/totalLength, p0, p1);
+            }
+         }
+         return M;
+      }
+      else {
+         return super.createInertia (mass, dist);
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean supportsMassDistribution (MassDistribution dist) {
+      if (dist == MassDistribution.POINT || dist == MassDistribution.LENGTH) {
+         return true;
+      }
+      else {
+         return false;
+      }
+   }  
 }

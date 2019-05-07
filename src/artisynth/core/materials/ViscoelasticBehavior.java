@@ -4,7 +4,7 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 
 public abstract class ViscoelasticBehavior extends MaterialBase {
-
+   
    static Class<?>[] mySubClasses = new Class[] {
       QLVBehavior.class
    };

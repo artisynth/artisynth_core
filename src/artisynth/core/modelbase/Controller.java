@@ -6,7 +6,7 @@
  */
 package artisynth.core.modelbase;
 
-public interface Controller extends ModelAgent, HasState {
+public interface Controller extends ModelAgent {
 
    /**
     * Called at the beginning of a {@code RootModel}'s advance procedure

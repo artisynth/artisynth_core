@@ -20,9 +20,9 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
 
    public boolean isClosed = false;
    public boolean isContinuable = true;
-   public boolean openMesh = false;
-   public Face containingFace = null;
-   public double singleFaceArea = 0;
+   // public boolean openMesh = false;
+   public Face containingFace = null; // computed by findPenetrationRegion()
+   public double singleFaceArea = 0;  // computed by findPenetrationRegion()
    boolean emptySegmentsMarked = false;
 
    public IntersectionContour () {
@@ -786,7 +786,7 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
 
       contour.isClosed = isClosed;
       contour.isContinuable = isContinuable;
-      contour.openMesh = openMesh;
+//      contour.openMesh = openMesh;
       contour.containingFace = containingFace;
       contour.singleFaceArea = singleFaceArea;
 
@@ -797,6 +797,54 @@ public class IntersectionContour extends ArrayList<IntersectionPoint> {
          pcopy.contourIndex = i;
       }
       return contour;
+   }
+
+   HalfEdge edgeFromIndex (int idx, PolygonalMesh mesh) {
+      Face face = mesh.getFace(idx/3);
+      return face.getEdge (idx%3);
+   }
+
+   public void getState (
+      DataBuffer data, PolygonalMesh mesh0, PolygonalMesh mesh1) {
+      
+      data.zputBool (isClosed);
+      data.zputBool (isContinuable);
+      data.zput (size());
+      for (int i=0; i<size(); i++) {
+         get(i).getState (data, mesh0, mesh1);
+      }
+   }
+
+   public void setState (
+      DataBuffer data, PolygonalMesh mesh0, PolygonalMesh mesh1) {
+
+      isClosed = data.zgetBool();
+      isContinuable = data.zgetBool();
+      clear();
+      int size = data.zget();
+      for (int i=0; i<size; i++) {
+         IntersectionPoint mip = new IntersectionPoint();
+         mip.contour = this;
+         mip.contourIndex = i;
+         add (mip);
+      }
+      for (int i=0; i<size; i++) {
+         get(i).setState (data, mesh0, mesh1);
+      }
+   }
+
+   public boolean equals (IntersectionContour contour, StringBuilder msg) {
+      if (size() != contour.size()) {
+         if (msg != null) msg.append ("contour size differs\n");
+         return false;
+      }
+      for (int i=0; i<size(); i++) {
+         if (!get(i).equals (contour.get(i), msg)) {
+            if (msg != null) msg.append ("contour point "+i+" differs\n");
+            return false;
+         }
+      }
+      return true;
    }
 
 }

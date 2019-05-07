@@ -59,6 +59,7 @@ import artisynth.core.modelmenu.ArtisynthModelMenu;
 import artisynth.core.modelmenu.ModelActionEvent;
 import artisynth.core.modelmenu.ModelActionListener;
 import artisynth.core.probes.Probe;
+import artisynth.core.probes.WayPointProbe;
 import artisynth.core.probes.TracingProbe;
 import artisynth.core.util.AliasTable;
 import artisynth.core.util.ArtisynthPath;
@@ -848,6 +849,44 @@ public class MenuBarHandler implements
       }
    }
 
+   /**
+    * save the waypoints
+    */
+   private void doSaveWayPoints() {
+      RootModel root = myMain.getRootModel();
+      if (root == null) {
+         return;
+      }
+      WayPointProbe wayPoints = root.getWayPoints();
+      wayPoints.save();
+   }
+
+   private void doSaveWayPointsAs() {
+      RootModel root = myMain.getRootModel();
+      if (root == null) {
+         return;
+      }
+      WayPointProbe wayPoints = root.getWayPoints();
+      myMain.getTimeline().setAttachedFileFromUser (wayPoints, "Save As");
+      wayPoints.save();
+   }
+
+   /**
+    * load the wayPoints into the model
+    */
+   private void doLoadWayPoints() {
+      RootModel root = myMain.getRootModel();
+      if (root == null) {
+         return;
+      }
+      WayPointProbe wayPoints = root.getWayPoints();
+      myMain.getTimeline().setAttachedFileFromUser (wayPoints, "Load From");
+      wayPoints.load();
+      myMain.getTimeline().refreshWayPoints(root);
+      // not sure why we need to rerender here but *not* if called from timeline
+      myMain.rerender();
+   }
+
    private void saveViewerImage() {
       JFileChooser chooser;
       if ((chooser = myViewerImageFileChooser) == null) {
@@ -1308,6 +1347,15 @@ public class MenuBarHandler implements
       }
       else if (cmd.equals("Save probes as ...")) {
          doSaveProbesAs();
+      }
+      else if (cmd.equals("Load wayPoints ...")) {
+         doLoadWayPoints();
+      }
+      else if (cmd.equals("Save wayPoints")) {
+         doSaveWayPoints();
+      }
+      else if (cmd.equals("Save wayPoints as ...")) {
+         doSaveWayPointsAs();
       }
       else if (cmd.equals("Load probes from ...")) {
          newLoadProbesFrom();
@@ -1855,13 +1903,23 @@ public class MenuBarHandler implements
          saveProbesItem = addMenuItem(menu, "Save probes", "Save probes new");
          saveProbesAsItem = addMenuItem(menu, "Save probes in ...");
       }
-      menu.add(new JSeparator());
-
       loadProbesItem.setEnabled(workspaceExists);
       saveProbesItem.setEnabled(
          workspaceExists && myMain.getProbesFile() != null);
       saveProbesAsItem.setEnabled(workspaceExists);
 
+      menu.add(new JSeparator());
+
+      JMenuItem loadWayPointsItem = addMenuItem(menu, "Load wayPoints ...");
+      JMenuItem saveWayPointsItem = addMenuItem(menu, "Save wayPoints");
+      JMenuItem saveWayPointsAsItem = addMenuItem(menu, "Save wayPoints as ...");
+
+      loadWayPointsItem.setEnabled(rootModelExists);
+      saveWayPointsItem.setEnabled(
+         rootModelExists & myMain.getWayPointsFile() != null);
+      saveWayPointsAsItem.setEnabled(rootModelExists);      
+
+      menu.add(new JSeparator());
       addMenuItem(menu, "Save viewer image ...");
       addMenuItem(menu, "Switch workspace ...");
 

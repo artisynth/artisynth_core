@@ -63,10 +63,13 @@ RenderableComponentList<S> implements ScalableUnits {
    }
 
    public void setMaterial (AxialMaterial mat) {
+      AxialMaterial old = myMaterial;
       myMaterial = (AxialMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      }
    }
 
    /* ======== Renderable implementation ======= */

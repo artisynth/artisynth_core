@@ -232,22 +232,12 @@ public class ContactPoint {
       myVtxs = new Vertex3d[] { v1, v2, v3 };
    }
 
-   public static void skipState (DataBuffer data) {
-      int numv = data.zget();
-      if (numv >= 0) {
-         data.zskip (numv);
-         data.dskip (6+numv);
-      }
-   }      
-
    public static void getState (DataBuffer data, ContactPoint cpnt) {
       if (cpnt == null) {
          data.zput (-1);
          return;
       }
-      data.dput (cpnt.myPoint.x);
-      data.dput (cpnt.myPoint.y);
-      data.dput (cpnt.myPoint.z);
+      data.dput (cpnt.myPoint);
       if (cpnt.myVtxs == null) {
          data.zput (0);
          return;
@@ -271,9 +261,7 @@ public class ContactPoint {
          return null;
       }
       ContactPoint cpnt = new ContactPoint();
-      cpnt.myPoint.x = data.dget();
-      cpnt.myPoint.y = data.dget();
-      cpnt.myPoint.z = data.dget();
+      data.dget(cpnt.myPoint);
       if (numv == 0) {
          return cpnt;
       }
@@ -287,14 +275,6 @@ public class ContactPoint {
       cpnt.myWgts = wgts;
       return cpnt;
    }
-
-   protected static void putState (DataBuffer newData, DataBuffer oldData) {
-      int numv = oldData.zget();
-      newData.zput (numv);
-      if (numv >= 0) {
-         newData.putData (oldData, 6+numv, numv);
-      }
-   }         
 
    public int hashCode() {
       if (myVtxs == null) {

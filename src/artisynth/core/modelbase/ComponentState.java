@@ -11,10 +11,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 
+import maspack.util.Scannable;
+
 /**
  * Object containing state information for an Artisynth model or component.
  */
-public interface ComponentState extends Serializable {
+public interface ComponentState extends Serializable, Scannable {
+   
    /**
     * Writes this state (in binary format) to a data output stream.
     * 
@@ -52,8 +55,47 @@ public interface ComponentState extends Serializable {
     * @param state
     * state to compare to
     */
-   public boolean equals (ComponentState state);
+   default public boolean equals (ComponentState state) {
+      return equals (state, /*msg=*/null);
+   }
+   
+   /**
+    * Returns true if this state equals another component state.
+    * 
+    * @param state
+    * state to compare to
+    * @param msg
+    * If not {@code null}, can be used to append diagnostic
+    * information if the states are not equal.
+    */
+   public boolean equals (ComponentState state, StringBuilder msg);
 
+   /**
+    * Queries whether or not this state is annotated. Annotation means that 
+    * the state may contain additional information about its contents. 
+    * In particular, this can be used to give details about how two states 
+    * differ (via the {@code msg} argument to 
+    * {@link #equals(ComponentState,StringBuilder) equals(state,msg)}.
+    * 
+    * @return {@code true} if this state is annotated.
+    */
+   default public boolean isAnnotated() {
+      return false;
+   }
+   
+   /**
+    * Requests that this state be annotated. See {@link #isAnnotated}
+    * for more details.
+    * 
+    * <p>Support for this method is optional. Applications should
+    * check {@code isAnnotated()} to determine if the request has been
+    * honored.
+    * 
+    * @param annotated if {@code true}, requests that this state be annotated.
+    */
+   default public void setAnnotated (boolean annotated) {
+   }
+   
    /**
     * Create a duplicate of this state which can be used for storing this
     * state's values.

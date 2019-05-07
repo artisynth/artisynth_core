@@ -9,6 +9,7 @@ package maspack.geometry;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.util.InternalErrorException;
 
 /**
  * Half-edge for 3D dimensional polyhedral objects. A half-edge is a directed
@@ -202,7 +203,31 @@ public class HalfEdge extends Feature implements Boundable {
    public Face getFace() {
       return face;
    }
-   
+
+   /**
+    * Returns an index for this half-edge, computed as
+    * <pre>
+    * 3 * faceIdx + edgeNum
+    * </pre>
+    * where {@code faceIdx} is the index of its face, and {@code edgeNum} is
+    * the edge number with respect to the face (with {@code
+    * face.firstHalfEdge()} corresponding to 0).
+    */
+   public int getIndex() {
+      int edgeNum = 0;
+      HalfEdge he = face.he0;
+      do {
+         if (he == this) {
+            return 3*face.getIndex() + edgeNum;
+         }
+         edgeNum++;
+         he = he.next;
+      }
+      while (he != face.he0);
+      throw new InternalErrorException (
+         "HalfEdge not found in its face");
+   }
+
    /**
     * Returns the face opposite to this half-edge, if any
     * 

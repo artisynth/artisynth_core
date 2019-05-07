@@ -21,6 +21,7 @@ import maspack.matrix.Vector3d;
 import maspack.properties.HasProperties;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.spatialmotion.SpatialInertia;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -353,6 +354,30 @@ public class PointMesh extends MeshBase {
          adjustAttributesForRemovedFeatures (removed);
       }
       return removed;
+   }
+
+   /**
+    * Computes a spatial inertia for this mesh, given a mass which
+    * is assumed to be distributed uniformly across its vertices.
+    *
+    * @param mass overall mass
+    */  
+   public SpatialInertia createInertia (double mass) {
+      return super.createInertia (mass, MassDistribution.POINT);
+   }
+
+   /**
+    * Computes a spatial inertia for this mesh, given a mass and a mass
+    * distribution.  Only the {@link MassDistribution#POINT} distribution is 
+    * supported.
+    *
+    * @param mass overall mass
+    * @param dist how the mass is distributed across the features
+    * @throws IllegalArgumentException if the distribution is not compatible
+    * with the available mesh features.
+    */  
+   public SpatialInertia createInertia (double mass, MassDistribution dist) {
+      return super.createInertia (mass, dist);
    }
    
 }

@@ -11,6 +11,7 @@ import maspack.geometry.*;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector2d;
+import maspack.util.DataBuffer;
 
 /**
  * This class returns information describing contact between two polygonal
@@ -27,7 +28,7 @@ import maspack.matrix.Vector2d;
  */
 public class ContactInfo {
 
-   // the intersections
+   // Triangle intersections. Produced by MeshCollider only
    ArrayList<TriTriIntersection> myIntersections =
       new ArrayList<TriTriIntersection>();
 
@@ -35,7 +36,8 @@ public class ContactInfo {
    PolygonalMesh myMesh0 = null;
    PolygonalMesh myMesh1 = null;
 
-   // interpenetration regions - produced by SurfaceMeshCollider only
+   // interpenetration regions - produced by SurfaceMeshCollider only,
+   // based on the contours
    ArrayList<PenetrationRegion> myRegions0 = null;
    RegionType myRegionsType0;
    ArrayList<PenetrationRegion> myRegions1 = null;
@@ -51,7 +53,8 @@ public class ContactInfo {
    // edge-edge contacts - produced by SurfaceMeshCollider only
    ArrayList<EdgeEdgeContact> myEdgeEdgeContacts = null;
 
-   // contact regions with normals facing mesh 0
+   // contact regions with normals facing mesh 0. Computed on-demand
+   // from either penetration regions or triangle intersections
    ArrayList<ContactPlane> myContactPlanes = null;
 
    double myPointTol = 1e-4;
@@ -441,54 +444,123 @@ public class ContactInfo {
    public ArrayList<TriTriIntersection> getIntersections() {
       return myIntersections;
    }
-   /**
-    * 
-    * @param renderer
-    * @param flags
-    */
-   
-//   public void render (Renderer renderer, int flags) {
-//
-//      /*
-//       * For fem-fem collisions render lines from each penetrating vertex to the
-//       * nearest point on an opposing face.
-//       */
-//      renderCPPoints (renderer, getPenetratingPoints0());
-//      renderCPPoints (renderer, getPenetratingPoints1());
-//      if (regions.isEmpty()) {
-//         for (MeshIntersectionContour contour : contours)
-//            contour.render (renderer, flags);
-//      }
-//      else {
-//         for (ContactRegion region : regions)
-//            region.render (renderer, flags);
-//      }
-//      ;
-//   }
 
-//   void renderCPPoints (
-//      Renderer renderer, ArrayList<ContactPenetratingPoint> points) {
-//      
-//      renderer.setColor (0.9f, 0.6f, 0.8f);
-//      renderer.beginDraw (DrawMode.LINES);
-//      for (ContactPenetratingPoint p : points) {
-//         Point3d n1 = p.position;
-//         renderer.addVertex (n1);
-//         n1 = p.vertex.getWorldPoint();
-//         renderer.addVertex (n1);
-//      }
-//      renderer.endDraw();
-//
-//      renderer.setColor (1f, 0f, 0f);
-//      renderer.setPointSize (30);
-//      renderer.beginDraw (DrawMode.POINTS);
-//      for (ContactPenetratingPoint p : points) {
-//         renderer.addVertex (p.position);
-//      }
-//      renderer.endDraw();
-//      renderer.setPointSize (1);
-//      renderer.setColor (0f, 1f, 0f);
-//
-//   }
+   public int numContourPoints() {
+      int nump = 0;
+      if (myContours != null) {
+         for (IntersectionContour c : myContours) {
+            nump += c.size();
+         }
+      }
+      return nump;
+   }
 
+   public void getContourState (
+      DataBuffer state, ArrayList<IntersectionContour> contours) {
+      if (contours == null) {
+         state.zput (-1);
+         return;
+      }
+      else {
+         state.zput (contours.size());
+         for (IntersectionContour contour : contours) {
+            contour.getState (state, myMesh0, myMesh1);
+         }
+      }
+   }
+
+   public ArrayList<IntersectionContour> setContourState (DataBuffer state) {
+      ArrayList<IntersectionContour> contours = null;
+      int numc = state.zget();
+      if (numc != -1) {
+         contours = new ArrayList<IntersectionContour>();
+         for (int i=0; i<numc; i++) {
+            IntersectionContour contour = new IntersectionContour();
+            contour.setState (state, myMesh0, myMesh1);
+            contours.add (contour);
+         }
+      }
+      return contours;
+   }
+
+   public void getState (DataBuffer state) {
+      TriTriIntersection.getState (state, myIntersections);
+      getContourState (state, myContours);
+      PenetratingPoint.getState (state, myPoints0);
+      PenetratingPoint.getState (state, myPoints1);
+      EdgeEdgeContact.getState (state, myEdgeEdgeContacts);
+   }
+
+   public void setState (DataBuffer state) {
+      myIntersections = TriTriIntersection.setStateArray (
+         state, myMesh0, myMesh1);
+      myContours = setContourState (state);
+      myPoints0 = PenetratingPoint.setState (state, myMesh0, myMesh1);
+      myPoints1 = PenetratingPoint.setState (state, myMesh1, myMesh0);
+      myEdgeEdgeContacts =
+         EdgeEdgeContact.setStateArray (state, myMesh0, myMesh1);
+   }
+
+   public boolean equals (ContactInfo cinfo, StringBuilder msg) {
+      if (myMesh0 != cinfo.myMesh0) {
+         if (msg != null) msg.append ("mesh0 differs\n");
+         return false;
+      }
+      if (myMesh1 != cinfo.myMesh1) {
+         if (msg != null) msg.append ("mesh1 differs\n");
+         return false;
+      }
+      if ((myIntersections == null) != (cinfo.myIntersections == null)) {
+         if (msg != null) msg.append ("intersections != null differs\n");
+         return false;
+      }
+      if (myIntersections != null) {
+         if (myIntersections.size() != cinfo.myIntersections.size()) {
+            if (msg != null) msg.append ("intersections size differs\n");
+            return false;
+         }
+         for (int i=0; i<myIntersections.size(); i++) {
+            if (!myIntersections.get(i).equals (
+               cinfo.myIntersections.get(i), msg)) {
+               if (msg != null) {
+                  msg.append ("TriTriIntersection "+i+" differs\n");
+               }
+               return false;
+            }
+         }
+      }
+      if ((myContours == null) != (cinfo.myContours == null)) {
+         if (msg != null) msg.append ("countours != null differs\n");
+         return false;
+      }
+      if (myContours != null) {
+         if (myContours.size() != cinfo.myContours.size()) {
+            if (msg != null) msg.append ("contours size differs\n");
+            return false;
+         }
+         for (int i=0; i<myContours.size(); i++) {
+            if (!myContours.get(i).equals (cinfo.myContours.get(i), msg)) {
+               if (msg != null) {
+                  msg.append ("IntersectionContour "+i+" differs\n");
+               }
+               return false;
+            }
+         }
+      }
+      if (!PenetratingPoint.equals (myPoints0, cinfo.myPoints0, msg)) {
+         if (msg != null) msg.append ("points0 differs\n");
+         return false;
+      }
+      if (!PenetratingPoint.equals (myPoints1, cinfo.myPoints1, msg)) {
+         if (msg != null) msg.append ("points1 differs\n");
+         return false;
+      }
+      if (!EdgeEdgeContact.equals (
+             myEdgeEdgeContacts, cinfo.myEdgeEdgeContacts, msg)) {
+         if (msg != null) msg.append ("edgeEdgeContacts differs\n");
+         return false;
+      }
+      
+      return true;      
+   }
 }

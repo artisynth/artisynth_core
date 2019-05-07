@@ -80,6 +80,9 @@ def addWayPoint (t) :
 def addBreakPoint (t) :
     return getMain().addBreakPoint (t)
 
+def getWayPoint (t) :
+    return getMain().getWayPoint (t)
+
 def removeWayPoint (time) :
     return getMain().removeWayPoint (time)
 

@@ -611,6 +611,22 @@ public class Face extends Feature implements Boundable {
       return planarArea;
    }
 
+   public static double computeTriangleArea (Point3d p0, Point3d p1, Point3d p2) {
+      double d1x = p1.x - p0.x;
+      double d1y = p1.y - p0.y;
+      double d1z = p1.z - p0.z;
+
+      double d2x = p2.x - p0.x;
+      double d2y = p2.y - p0.y;
+      double d2z = p2.z - p0.z;
+
+      double x = (d1y * d2z - d1z * d2y);
+      double y = (d1z * d2x - d1x * d2z);
+      double z = (d1x * d2y - d1y * d2x);
+
+      return 0.5 * Math.sqrt (x*x + y*y + z*z);
+   }
+
    /**
     * Computes the area of this face. This is potentially different from the
     * planarArea in that it does {\it not} assume that all sub-triangles 

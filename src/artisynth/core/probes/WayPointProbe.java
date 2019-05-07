@@ -14,11 +14,101 @@ import artisynth.core.util.*;
 import artisynth.core.workspace.RootModel;
 import maspack.util.*;
 
-public class WayPointProbe extends OutputProbe {
-   protected LinkedList<WayPoint> myWayPoints;
-   protected RootModel myRootModel;
-   protected WayPoint myWay0;
-   protected boolean myCheckStateP = false;
+public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
+   protected TreeMap<Double,WayPoint> myWayPoints;
+   protected RootModel myRootModel; // root model associated with the waypoints
+   protected WayPoint myWay0; // hard wired way point at time = 0
+   protected boolean myCheckStateP = false; // for testing only
+
+   public static final int WRITE_FIRST_STATE = 0x01;
+   public static final int WRITE_ALL_STATES = 0x02;
+
+   protected int myWriteFlags = 0;
+
+   private class MyIterator implements Iterator<WayPoint> {
+
+      WayPoint myNext;
+
+      MyIterator() {
+         myNext = myWay0;
+      }
+
+      public boolean hasNext() {
+         return myNext != null;
+      }
+
+      public WayPoint next() {
+         WayPoint way = myNext;
+         if (way == null) {
+            throw new NoSuchElementException();
+         }
+         myNext = way.myNext;
+         return way;
+      }
+   }
+
+   private class MyListIterator implements ListIterator<WayPoint> {
+
+      WayPoint myNext;
+      WayPoint myPrev;
+      int myIndex;
+
+      MyListIterator() {
+         myNext = myWay0;
+         myPrev = null;
+         myIndex = -1;
+      }
+
+      public boolean hasNext() {
+         return myNext != null;
+      }
+
+      public WayPoint next() {
+         WayPoint way = myNext;
+         if (way == null) {
+            throw new NoSuchElementException();
+         }
+         myNext = way.myNext;
+         myPrev = way;
+         myIndex++;
+         return way;
+      }
+
+      public boolean hasPrevious() {
+         return myPrev != null;
+      }
+
+      public WayPoint previous() {
+         WayPoint way = myPrev;
+         if (way == null) {
+            throw new NoSuchElementException();
+         }
+         myPrev = way.myPrev;
+         myNext = way;
+         myIndex--;
+         return way;
+      }
+
+      public int previousIndex() {
+         return myIndex;
+      }
+
+      public int nextIndex() {
+         return myIndex+1;
+      }
+
+      public void remove() throws UnsupportedOperationException {
+         throw new UnsupportedOperationException();
+      }
+
+      public void set (WayPoint obj) throws UnsupportedOperationException {
+         throw new UnsupportedOperationException();
+      }
+
+      public void add (WayPoint obj) throws UnsupportedOperationException {
+         throw new UnsupportedOperationException();
+      }
+   }
 
    public WayPointProbe() {
       setStartTime (0);
@@ -26,8 +116,8 @@ public class WayPointProbe extends OutputProbe {
       setUpdateInterval (-1);
       myActiveP = true;
       myWay0 = new WayPoint (0);
-      myWayPoints = new LinkedList<WayPoint>();
-      myWayPoints.add (myWay0);
+      myWayPoints = new TreeMap<Double,WayPoint>();
+      myWayPoints.put (0.0, myWay0);
       myWay0.setValid (false);
    }
 
@@ -45,149 +135,237 @@ public class WayPointProbe extends OutputProbe {
    }
 
    /**
-    * Adds a WayPoint to this probe, and returns any WayPoint that previously
-    * occupied the same time location.
+    * Adds a waypoint to this probe, and returns any waypoint that previously
+    * occupied the same time slot.
     * 
     * @param newWay
-    * new WayPoint to add
-    * @return previous WayPoint with the same time, if any
+    * new waypoint to add
+    * @return previous waypoint with the same time, if any
     */
    public WayPoint add (WayPoint newWay) {
-      ListIterator<WayPoint> it = myWayPoints.listIterator();
-      while (it.hasNext()) {
-         WayPoint way = it.next();
-         if (newWay.getTime() <= way.getTime()) {
-            if (it.hasPrevious()) {
-               it.previous();
-               it.add (newWay);
+      if (newWay.getTime() <= 0) {
+         throw new IllegalArgumentException (
+            "Added WayPoint must have time > 0");
+      }
+      Map.Entry<Double,WayPoint> prevEntry =
+         myWayPoints.lowerEntry (newWay.getTime());
+      if (prevEntry == null) {
+         throw new InternalErrorException (
+            "Added WayPoint does not have a previous entry"); 
+      }
+      WayPoint prev = prevEntry.getValue();
+      WayPoint next = prev.myNext;
+      WayPoint oldWay = null;
+      if (next != null && next.getTime() == newWay.getTime()) {
+         // replace current way point
+         oldWay = next;
+         next = oldWay.myNext;
+      }
+      newWay.myPrev = prev;
+      newWay.myNext = next;
+      prev.myNext = newWay;
+      if (next != null) {
+         next.myPrev = newWay;
+      }
+      WayPoint old = myWayPoints.put (newWay.getTime(), newWay);
+      if (old != oldWay) {
+         throw new InternalErrorException (
+            "TreeMap and linked list report different existing WayPoint");
+      }
+      return oldWay;
+   }
+
+   /**
+    * Removes and returns the waypoint at time {@code t} in this probe.  If the
+    * waypoint does not exist, or if {@code t <= 0}, {@code null} is returned.
+    *
+    * @param t time of the waypoint that should be removed
+    * @return removed waypoint, or {@code null}
+    */
+   public WayPoint remove (double t) {
+      double tround = TimeBase.round (t);
+      if (tround <= 0) {
+         return null;
+      }
+      else {
+         WayPoint way = myWayPoints.remove (tround);
+         if (way != null) {
+            WayPoint prev = way.myPrev;
+            WayPoint next = way.myNext;
+            if (prev == null) {
+               throw new InternalErrorException (
+                  "Removed WayPoint does not have a previous WayPoint"); 
             }
-            else {
-               myWayPoints.addFirst (newWay);
-            }
-            if (newWay.getTime() == way.getTime()) {
-               myWayPoints.remove (way);
-               return way;
-            }
-            else {
-               return null;
+            prev.myNext = next;
+            if (next != null) {
+               next.myPrev = prev;
             }
          }
+         return way;
       }
-      myWayPoints.addLast (newWay);
-      newWay.setValid (false);
-      return null;
    }
 
-   public Iterator<WayPoint> get() {
-      return myWayPoints.iterator();
-   }
-
+   /**
+    * Removes a specified waypoint from this probe, if it exists.
+    * 
+    * @param way waypoint to remove
+    * @return {@code true} if the waypoint exists and was removed
+    */
    public boolean remove (WayPoint way) {
       if (way == myWay0) {
          return false;
       }
       else {
-         return myWayPoints.remove (way);
+         return remove (way.getTime()) != null;
       }
    }
 
+   /**
+    * Clears all waypoints in this probe, except for the waypoint at time 0.
+    */
    public void clear() {
       myWayPoints.clear();
-      myWayPoints.add (myWay0);
+      myWayPoints.put (0.0, myWay0);
+      myWay0.myNext = null;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public double nextEventTime (double t) {
-      for (WayPoint way : myWayPoints) {
-         if (TimeBase.compare (way.getTime(), t) > 0) {
-            return way.getTime();
-         }
+      Map.Entry<Double,WayPoint> nextEntry =
+         myWayPoints.higherEntry (TimeBase.round(t));
+      if (nextEntry != null) {
+         return nextEntry.getKey();
       }
-      return -1;
+      else {
+         return -1;
+      }
    }
-
+   
+   /**
+    * {@inheritDoc}
+    */
    public boolean isEventTime (double t) {
-      for (WayPoint way : myWayPoints) {
-         int comp = TimeBase.compare (way.getTime(), t);
-         if (comp == 0) {
-            return true;
-         }
-         else if (comp > 0) {
-            return false;
-         }
-      }
-      return false;
+      return myWayPoints.get (TimeBase.round(t)) != null;
    }
 
+   /**
+    * Queries the number of waypoints in this probe.
+    * 
+    * @return number of waypoints
+    */
    public int size() {
       return myWayPoints.size();
    }
    
+   /**
+    * Queries the number of currently valid waypoints in this probe.
+    * 
+    * @return number of valid waypoints
+    */
    public int numValid() {
       int count = 0;
-      for (WayPoint way : myWayPoints) {
-         if (way.isValid ())
+      for (WayPoint way : myWayPoints.values()) {
+         if (way.isValid ()) {
             count++;
+         }
       }
       return count;
    }
-
+   
+   /**
+    * Queries the maximum event time in this probe. This corresponds
+    * to the waypoint with the largest time value.
+    * 
+    * @return largest waypoint time value
+    */
    public double maxEventTime() {
-      double max = 0;
-      // XXX think we can just use the last way point here and forget the loop
-      for (WayPoint way : myWayPoints) {
-         double t = way.getTime();
-         if (t > max) {
-            max = t;
-         }
+      Map.Entry<Double,WayPoint> lastEntry = myWayPoints.lastEntry();
+      if (lastEntry != null) {
+         return lastEntry.getKey();
       }
-      return max;
+      else {
+         return 0;
+      }
    }
 
-   public LinkedList<WayPoint> getPoints() {
-      return myWayPoints;
+   /**
+    * Returns an interator for the waypoints in this probe
+    * 
+    * @return waypoint iterator
+    */
+   public Iterator<WayPoint> iterator() {
+      return new MyIterator();
    }
 
+   /**
+    * Returns a list interator for the waypoints in this probe
+    * 
+    * @return waypoint iterator
+    */
+   public ListIterator<WayPoint> listIterator() {
+      return new MyListIterator();
+   }
+
+   /**
+    * Returns a {@code Collection} view of the waypoints in this probe.
+    * 
+    * @return collection of all the waypoints
+    */
+   public Collection<WayPoint> getPoints() {
+      return myWayPoints.values();
+   }
+
+   /**
+    * Returns the next waypoint immediately after time {@code t}, or {@code
+    * null} if none exists.
+    *
+    * @param t time after which next waypoint is sought
+    * @return next waypoint after {@code t}, or {@code null}
+    */
    public WayPoint getAfter (double t) {
-      for (WayPoint way : myWayPoints) {
-         if (TimeBase.compare (t, way.getTime()) < 0) {
-            return way;
-         }
+      Map.Entry<Double,WayPoint> nextEntry =
+         myWayPoints.higherEntry(TimeBase.round(t));
+      if (nextEntry != null) {
+         return nextEntry.getValue();
       }
-      return null;
+      else {
+         return null;
+      }      
    }
 
+   /**
+    * Returns the next <i>valid</i> waypoint immediately after time {@code t},
+    * or {@code null} if none exists.
+    * 
+    * @param t time after which next valid waypoint is sought
+    * @return next valid waypoint after {@code t}, or {@code null}
+    */
    public WayPoint getValidAfter (double t) {
-      for (WayPoint way : myWayPoints) {
-         if (TimeBase.compare (t, way.getTime()) < 0 && way.myValidP) {
-            return way;
+      Map.Entry<Double,WayPoint> nextEntry =
+         myWayPoints.higherEntry(TimeBase.round(t));
+      if (nextEntry != null) {
+         WayPoint way = nextEntry.getValue();
+         // search forward looking for first valid way point
+         while (way != null && !way.isValid()) {
+            way = way.myNext;
          }
+         return way;
       }
-      return null;
+      else {
+         return null;
+      }      
    }
    
-  /** 
-   * Find the nearest valid waypoint to a time t, whose time
-   * is less or equal to t. Return null if there is no such waypoint.
-   */
-   public WayPoint getNearestValidBefore (double time) {
-      
-      WayPoint nearest = null;
-      for (WayPoint way : myWayPoints) {
-         if (way.getTime() > time) {
-            break;
-         }
-         else if (way.isValid()) {
-            nearest = way;
-         }
-      }
-      return nearest;
-   }
-
+   /**
+    * Returns the last valid waypoint
+    *
+    * @return last valid waypoint
+    */
    public WayPoint getLastValid () {
-      ListIterator<WayPoint> it = myWayPoints.listIterator();
       WayPoint prev = null;
-      while (it.hasNext()) {
-         WayPoint way = it.next();
+      for (WayPoint way : myWayPoints.values()) {
          if (!way.isValid()) {
             break;
          }
@@ -196,82 +374,142 @@ public class WayPointProbe extends OutputProbe {
       return prev;
    }
 
-   public WayPoint getBreakPointAfter (double time) {
-      for (WayPoint way : myWayPoints) {
-         if (TimeBase.compare (way.getTime(), time) > 0 && 
-             way.isBreakPoint()) {
-            return way;
+   /**
+    * Returns the next breakpoint immediately after time {@code t},
+    * or {@code null} if none exists.
+    * 
+    * @param t time after which next breakpoint is sought
+    * @return next breakpoint after {@code t}, or {@code null}
+    */
+   public WayPoint getBreakPointAfter (double t) {
+      Map.Entry<Double,WayPoint> nextEntry =
+         myWayPoints.higherEntry (TimeBase.round(t));
+      if (nextEntry != null) {
+         WayPoint way = nextEntry.getValue();
+         // search forward looing for break point
+         while (way != null && !way.isBreakPoint()) {
+            way = way.myNext;
          }
+         return way;
       }
-      return null;
+      else {
+         return null;
+      }
    }
 
    /**
-    * Return the waypoint immediately on or before time, or null if
-    * there is no such waypoint.
+    * Returns the <i>valid</i> waypoint immediately at or before time {@code
+    * t}, or {@code null} if none exists.
+    * 
+    * @param t time at or before which valid waypoint is sought
+    * @return valid waypoint at or before {@code t}, or {@code null}
     */
-   public WayPoint getValidOnOrBefore (double time) {
-      WayPoint prev = null;
-      for (WayPoint way : myWayPoints) {
-         if (TimeBase.compare (way.getTime(), time) <= 0) {
-            if (way.isValid()) {
-               prev = way;
-            }
+   public WayPoint getValidOnOrBefore (double t) {
+      double tround = TimeBase.round(t);
+      if (tround < 0) {
+         return null;
+      }
+      else if (tround == 0) {
+         if (myWay0.isValid()) {
+            return myWay0;
          }
          else {
-            break;
+            return null;
          }
       }
-      return prev;
+      else {
+         Map.Entry<Double,WayPoint> prevEntry = myWayPoints.lowerEntry (tround);
+         if (prevEntry == null) {
+            throw new InternalErrorException (
+               "No WayPoint with time < " + tround);
+         }
+         WayPoint way = prevEntry.getValue();
+         if (way.myNext != null && way.myNext.getTime() == tround) {
+            // bump starting waypoint to one with time == t
+            way = way.myNext;
+         }
+         // search backward looking for first valid waypoint
+         while (way != null && !way.isValid()) {
+            way = way.myPrev;
+         }
+         return way;               
+      }
    }
 
    /**
-    * Return the valid waypoint immediately before time, or null if
-    * there is no such waypoint.
+    * Returns the previous <i>valid</i> waypoint immediately before time {@code
+    * t}, or {@code null} if none exists.
+    * 
+    * @param t time before which previous valid waypoint is sought
+    * @return previous valid waypoint before {@code t}, or {@code null}
     */
-   public WayPoint getValidBefore (double time) {
-      WayPoint prev = null;
-      for (WayPoint way : myWayPoints) {
-         if (TimeBase.compare (way.getTime(), time) < 0) {
-            if (way.isValid()) {
-               prev = way;
-            }
-         }
-         else {
-            break;
-         }
+   public WayPoint getValidBefore (double t) {
+      double tround = TimeBase.round(t);
+      if (tround <= 0) {
+         return null;
       }
-      return prev;
+      else {
+         Map.Entry<Double,WayPoint> prevEntry = myWayPoints.lowerEntry (tround);
+         if (prevEntry == null) {
+            throw new InternalErrorException (
+               "No WayPoint with time < " + tround);
+         }
+         WayPoint way = prevEntry.getValue();
+         // search backward looking for first valid waypoint
+         while (way != null && !way.isValid()) {
+            way = way.myPrev;
+         }
+         return way;               
+      }
    }
 
-   public WayPoint get (double time) {
-      for (WayPoint way : myWayPoints) {
-         double t = way.getTime();
-         if (t == time) {
-            return way;
-         }
-         else if (t > time) {
-            break;
-         }
+   /**
+    * Returns the waypoint at time {@code t}, or {@code null} if none exists.
+    *
+    * @param t time at which waypoint is sought
+    * @return waypoint at {@code t}, or {@code null}
+    */
+   public WayPoint get (double t) {
+      return myWayPoints.get (TimeBase.round(t));
+   }
+   
+   /**
+    * Returns the waypoint at a specified positional index.
+    * 
+    * @param idx index of the requested waypoint
+    * @return waypoint at index {@code ix}
+    * @throws IndexOutOfBoundsException if the index is out of bounds
+    */
+   public WayPoint getByIndex (int idx) {
+      if (idx < 0 || idx >= size()) {
+         throw new IndexOutOfBoundsException ("index="+idx+", size="+size());
       }
-      return null;
+      WayPoint way = myWay0;
+      for (int i=0; i<idx; i++) {
+         way = way.myNext;
+      }
+      return way;
    }
 
+   /**
+    * {@inheritDoc}
+    */
    public void apply (double t) {
-      
-      Iterator<WayPoint> it = myWayPoints.iterator();
-      while (it.hasNext()) {
-         WayPoint way = it.next();
-         if (TimeBase.equals (way.getTime(), t)) {
-            ComponentState checkState = null;
-            if (myCheckStateP && way.isValid()) {
-               checkState = way.getState().duplicate();
-            }
-            way.setState (myRootModel);
-            if (myCheckStateP && checkState != null) {
-               if (!checkState.equals (way.getState())) {
-                  System.out.println ("States unequal at time "+t);
-               }
+      double tround = TimeBase.round(t);
+      if (tround == 0) {
+         // skip for t == 0 since way point should already be set
+         return;
+      }
+      WayPoint way = myWayPoints.get(tround);
+      if (way != null) {
+         ComponentState checkState = null;
+         if (myCheckStateP && way.isValid()) {
+            checkState = way.getState().duplicate();
+         }
+         way.setState (myRootModel);
+         if (myCheckStateP && checkState != null) {
+            if (!checkState.equals (way.getState(), null)) {
+               System.out.println ("States unequal at time "+tround);
             }
          }
       }
@@ -280,33 +518,38 @@ public class WayPointProbe extends OutputProbe {
    /**
     * Invalidates all waypoints after a specified time.
     * 
-    * @param t
-    * invalidate waypoints after this time
+    * @param t time after which waypoints will be invalidated
     */
    public void invalidateAfterTime (double t) {
-      Iterator<WayPoint> it = myWayPoints.iterator();
-      while (it.hasNext()) {
-         WayPoint way = it.next();
-         if (way.getTime() > t) {
-            way.setValid (false);
+      double tround = TimeBase.round(t);
+      WayPoint way = null;
+      if (tround <= 0) {
+         way = myWay0.myNext;
+      }
+      else {
+         Map.Entry<Double,WayPoint> nextEntry = myWayPoints.higherEntry (tround);
+         if (nextEntry != null) {
+            way = nextEntry.getValue();
          }
+      }
+      while (way != null) {
+         way.setValid (false);
+         way = way.myNext;
       }
    }
 
    /**
-    * Invalidates all waypoints
+    * Invalidates all waypoints in this probe
     */
    public void invalidateAll() {
-      Iterator<WayPoint> it = myWayPoints.iterator();
-      while (it.hasNext()) {
-         WayPoint way = it.next();
+      for (WayPoint way : myWayPoints.values()) {
          way.setValid (false);
       }
    }
    
    /**
-    * Write all waypoint state to the attached file if it exists.
-    * 
+    * Writes all waypoints and their state as binary data to the attached 
+    * file if it exists.
     */
    public void save () {
       File file = getAttachedFile ();
@@ -317,13 +560,18 @@ public class WayPointProbe extends OutputProbe {
             }
             System.out.println ("saving waypoint data to " + file.getName ());
             DataOutputStream dos =
-               new DataOutputStream (new BufferedOutputStream(new FileOutputStream (file)));
-            dos.writeInt (numValid ());
-            for (WayPoint way : myWayPoints) {
+               new DataOutputStream (
+                  new BufferedOutputStream(new FileOutputStream (file)));
+            dos.writeInt (myWayPoints.size());
+            for (WayPoint way : myWayPoints.values()) {
+               dos.writeDouble (way.getTime());
+               dos.writeBoolean (way.isBreakPoint());
                if (way.getState () != null) {
-                  System.out.println (" writing way " + way.getTime());
-                  dos.writeDouble (way.getTime());
+                  dos.writeBoolean (true);
                   way.getState ().writeBinary (dos);
+               }
+               else {
+                  dos.writeBoolean (false);
                }
             }
             dos.close ();
@@ -335,19 +583,13 @@ public class WayPointProbe extends OutputProbe {
       }
    }
 
-//   public void saveas () {
-//      setAttachedFileFromUser ("Save As");
-//      save ();
-//   }
-//   
-  public void saveas(String fileName) {
-     setAttachedFileName(fileName);
-     save ();
-  }
+   public void saveas(String fileName) {
+      setAttachedFileName(fileName);
+      save ();
+   }
 
    /**
-    * Load waypoint state data from the attached file.
-    * 
+    * Loads waypoints and state from binary data in the attached file.
     */
    public void load () {
       invalidateAll();
@@ -361,56 +603,42 @@ public class WayPointProbe extends OutputProbe {
             // read data from binary file
             try {
                DataInputStream dis =
-                  new DataInputStream (new BufferedInputStream(new FileInputStream (file)));
+                  new DataInputStream (
+                     new BufferedInputStream(new FileInputStream (file)));
 
-               ListIterator<WayPoint> li = myWayPoints.listIterator();
-
-               int numvalid = dis.readInt();
-               for (int i = 0; i < numvalid; i++) {
-                  double time = dis.readDouble();
-                  
-                  WayPoint way = null;
-                  if (li.hasNext()) {
-                     while (li.hasNext()) {
-                        way = li.next();
-                        if (way.getTime() >= time) {
-                           break;
-                        }
-                     }
-                     if (TimeBase.equals (way.getTime(), time)) {
-                        // use current way point
-                     }
-                     else if (way.getTime() > time) {
-                        // use new WayPoint added before the current one
-                        li.previous();
-                        way = new WayPoint(time);
-                        li.add (way);
-                     }
-                     else { // way.getTime() < time
-                        // use new WayPoint added at the end of this list
-                        way = new WayPoint(time);
-                        li.add (way);
-                     }
-                     // else use current way point
+               int numways = dis.readInt();
+               for (int i = 0; i < numways; i++) {
+                  double t = dis.readDouble();
+                  WayPoint way = get(t);
+                  if (way == null) {
+                     way = new WayPoint(t);
+                     add (way);
                   }
-                  else {
-                     // use new WayPoint added at the end of this list
-                     way = new WayPoint(time);
-                     li.add (way);
+                  way.setBreakPoint (dis.readBoolean());
+                  boolean hasState = dis.readBoolean();
+                  if (hasState) {
+                     CompositeState cs =
+                        (CompositeState)myRootModel.createState (
+                           null);
+                     cs.readBinary (dis);
+                     way.setState (cs);
                   }
-                  CompositeState cs = (CompositeState)myRootModel.createState (null);
-                  cs.readBinary (dis);
-                  way.setState (cs);
                }
                dis.close ();
             }
             catch (IOException e) {
-               System.err.println ("Could not load waypoint data: \n   " + e.getMessage ());
+               System.err.println (
+                  "Could not load waypoint data: \n   " + e.getMessage ());
             }
          }
       }
    }
 
+   /**
+    * Loads waypoint data from the specified file.
+    *
+    * @param fileName file to waypoints from
+    */
    public void loadfrom (String fileName) {
       setAttachedFileName(fileName);
       load ();
@@ -429,31 +657,76 @@ public class WayPointProbe extends OutputProbe {
       }
    }
    
+   private void scanWayPoints (ReaderTokenizer rtok) throws IOException {
+      WayPoint way = myWay0;
+      while (rtok.nextToken() != ']') {
+         rtok.pushBack();
+         rtok.scanToken ('[');
+         if (way == null) {
+            way = new WayPoint (0);
+         }
+         while (rtok.nextToken() != ']') {
+            if (scanAttributeName (rtok, "time")) {
+               double t = scanTimeQuantity(rtok);
+               if (t != 0) {
+                  way.setTime (t);
+               }
+            }
+            else if (scanAttributeName (rtok, "breakpoint")) {
+               way.setBreakPoint (rtok.scanBoolean());
+            }
+            else if (scanAttributeName (rtok, "state")) {
+               CompositeState state = new CompositeState();
+               state.scan (rtok, null);
+               way.setState (state);
+            }
+            else {
+               throw new IOException ("Unexpected input: " + rtok);
+            }
+         }
+         if (way != myWay0) {
+            add (way);
+         }
+         way = null;
+      }
+   }
+
+   private void scanWayPointsLegacy (ReaderTokenizer rtok) throws IOException {
+      while (rtok.nextToken() != ']') {
+         rtok.pushBack();
+         double t = scanTimeQuantity(rtok);
+         if (t != 0) {
+            WayPoint newWay = new WayPoint (t);
+            add (newWay);
+            newWay.setValid (false);
+
+            // check for "breakpoint", which signifies breakpoint
+            rtok.nextToken();
+            if (rtok.ttype == ReaderTokenizer.TT_WORD &&
+                rtok.sval.equals ("breakpoint")) {
+               newWay.setBreakPoint (true);
+            }
+            else {
+               rtok.pushBack();
+            }
+         }
+      }      
+   } 
 
    public boolean scanItem (
       ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
 
       rtok.nextToken();
       if (scanAttributeName (rtok, "wayPoints")) {
-         myWayPoints.clear();
-         myWayPoints.add (myWay0);
+         clear();
          rtok.scanToken ('[');
-         while (rtok.nextToken() != ']') {
+         if (rtok.nextToken() == '[') {
             rtok.pushBack();
-            double time = scanTimeQuantity(rtok);
-            if (time != 0) {
-               WayPoint newWay = new WayPoint (time);
-               myWayPoints.addLast (newWay);
-               newWay.setValid (false);
-
-               // check for "breakpoint", which signifies breakpoint
-               rtok.nextToken();
-               if (rtok.ttype == ReaderTokenizer.TT_WORD &&
-               rtok.sval.equals ("breakpoint"))
-                  newWay.setBreakPoint (true);
-               else
-                  rtok.pushBack();
-            }
+            scanWayPoints (rtok);
+         }
+         else {
+            rtok.pushBack();
+            scanWayPointsLegacy (rtok);
          }
          return true;
       }
@@ -468,24 +741,51 @@ public class WayPointProbe extends OutputProbe {
       super.writeItems (pw, fmt, ancestor);
 
       if (myWayPoints.size() > 0) {
-         pw.println ("wayPoints=\n[ ");
+         pw.println ("wayPoints=[");
          IndentingPrintWriter.addIndentation (pw, 2);
-         for (WayPoint way : myWayPoints) {
+         int i = 0;
+         for (WayPoint way : myWayPoints.values()) {
+            pw.print ("[ ");
+            IndentingPrintWriter.addIndentation (pw, 2);
             if (Probe.writeStartStopTimeInSeconds) {
-               pw.print (way.getTime());
+               pw.println ("time=" + way.getTime());
             }
             else {
-               pw.print ((long)(1e9*way.getTime()));
+               pw.println ("time=" + (long)(1e9*way.getTime()));
             }
-            if (way.isBreakPoint())
-               pw.print (" breakpoint");
-            pw.println();
+            if (way.isBreakPoint()) {
+               pw.println ("breakpoint=true");
+            }
+            boolean writeState =
+               (((myWriteFlags & WRITE_FIRST_STATE) != 0 && i == 0) ||
+                ((myWriteFlags & WRITE_ALL_STATES) != 0));
+            if (way.isValid() && writeState) {
+               pw.print ("state=");
+               CompositeState state = way.getState();
+               state.write (pw, fmt, ancestor);
+            }
+            IndentingPrintWriter.addIndentation (pw, -2);
+            pw.println ("]");
+            i++;
          }
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
       }
    }
 
+   public void write (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor, int flags)
+      throws IOException {
+      myWriteFlags = flags;
+      super.write (pw, fmt, ancestor);
+      myWriteFlags = 0;
+   }
+
+   /**
+    * Returns the RootModel associated with this probe.
+    * 
+    * @return RootModel associated with this probe
+    */
    public RootModel getRootModel() {
       return myRootModel;
    }

@@ -7,7 +7,7 @@ import maspack.properties.PropertyList;
 import maspack.util.ArraySupport;
 
 public class QLVBehavior extends ViscoelasticBehavior {
-
+   
    public static PropertyList myProps =
       new PropertyList (QLVBehavior.class, ViscoelasticBehavior.class);
 

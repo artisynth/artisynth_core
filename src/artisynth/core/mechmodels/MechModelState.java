@@ -11,7 +11,7 @@ import artisynth.core.modelbase.*;
 public class MechModelState extends NumericState {
    
    public MechModelState (int dsize, int zsize) {
-      super (dsize, zsize);
+      super (zsize, dsize);
    }
 
    public MechModelState() {

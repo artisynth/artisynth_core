@@ -1182,8 +1182,157 @@ public class SpatialInertia extends Matrix6dBlock
       }
       mass += m;
       setMassDiagonal (mass);
-      addScaledComCom (-m, pos);
       setMassCom (m15+m*pos.x, -m05+m*pos.y, m04+m*pos.z);
+      addScaledComCom (-m, pos);
+      updateComponents();
+   }
+
+   /**
+    * Adds the inertia of a line segment to this inertia. The line segment is
+    * assumed to have uniform density and is defined by two points relative to
+    * this inertia's coordinate frame.
+    *
+    * @param m line segment mass
+    * @param p0 first line segment point
+    * @param p1 second line segment point
+    */
+   public void addLineSegmentInertia (double m, Vector3d p0, Vector3d p1) {
+      if (componentUpdateNeeded) {
+         updateComponents();
+      }
+      // compute center of mass
+      Vector3d com = new Vector3d();
+      com.add (p0, p1);
+      com.scale (0.5);
+
+      // add mass an center of mass components to the inertia
+      mass += m;
+      setMassDiagonal (mass);
+      setMassCom (m15+m*com.x, -m05+m*com.y, m04+m*com.z);
+
+      // compute and add the inertia tensor components. In evaluating these
+      // integrals, we assume that a point on the line segment is defined
+      // parametrically by
+      //
+      // p = a + s b
+      //
+      // where a = p0, b = (p1 - p0), and s is a scalar in the interval [0,1].
+
+      double ax = p0.x;
+      double ay = p0.y;
+      double az = p0.z;
+
+      double bx = p1.x - ax;
+      double by = p1.y - ay;
+      double bz = p1.z - az;
+
+      // intxx, intxy, etc. denote the integrals of x*x, x*y, etc. over the domain:
+
+      double intxx = m*(ax*ax + ax*bx + bx*bx/3);
+      double intyy = m*(ay*ay + ay*by + by*by/3);
+      double intzz = m*(az*az + az*bz + bz*bz/3);
+
+      double intxy = m*(ax*ay + 0.5*(ax*by+ay*bx) + bx*by/3);
+      double intyz = m*(ay*az + 0.5*(ay*bz+az*by) + by*bz/3);
+      double intzx = m*(az*ax + 0.5*(az*bx+ax*bz) + bz*bx/3);
+
+      m33 += (intyy + intzz);
+      m44 += (intzz + intxx);
+      m55 += (intxx + intyy);
+
+      m34 -= intxy;
+      m35 -= intzx;
+      m45 -= intyz;
+
+      m43 = m34;
+      m53 = m35;
+      m54 = m45;
+
+      updateComponents();
+   }
+
+   /**
+    * Adds the inertia of a triangle to this inertia. The triangle is
+    * assumed to have uniform density and is defined by two points relative to
+    * this inertia's coordinate frame.
+    *
+    * @param m triangle mass
+    * @param p0 first triangle point
+    * @param p1 second triangle point
+    * @param p2 third triangle point
+    */
+   public void addTriangleInertia (
+      double m, Vector3d p0, Vector3d p1, Vector3d p2) {
+      if (componentUpdateNeeded) {
+         updateComponents();
+      }
+      // compute center of mass
+      Vector3d com = new Vector3d();
+      com.add (p0, p1);
+      com.add (p2);
+      com.scale (1/3.0);
+
+      // add mass an center of mass components to the inertia
+      mass += m;
+      setMassDiagonal (mass);
+      setMassCom (m15+m*com.x, -m05+m*com.y, m04+m*com.z);
+
+      // compute and add the inertia tensor components. In evaluating these
+      // integrals, we assume that a point on the triangle is defined
+      // parametrically by
+      //
+      // p = a + s1 b + s2 c 
+      //
+      // where a = p0, b = (p1 - p0), c = (p2 - p0), and s1 and s2 are scalars
+      // in the intervals [0,1-s2] and [0,1].
+      //
+      // The inertia terms are then defined by product integrals of the form:
+      //
+      // int_xy = \rho \int_0^1 ( \int_0^{1-s2} x y ds1) ds2
+      //
+      // Note also that in terms of mass m, \rho = m/A, where A is the area of
+      // the domain, which for s1, s2 is 1/2, and so
+      //
+      // int_xy = 2 m \int_0^1 ( \int_0^{1-s2} x y ds1) ds2
+
+      double ax = p0.x;
+      double ay = p0.y;
+      double az = p0.z;
+
+      double bx = p1.x - ax;
+      double by = p1.y - ay;
+      double bz = p1.z - az;
+
+      double cx = p2.x - ax;
+      double cy = p2.y - ay;
+      double cz = p2.z - az;
+
+      // intxx, intxy, etc. denote the integrals for x*x, x*y, etc., multiplied
+      // by \rho = 2 m
+
+      double intxx = m*(ax*ax + 2*(ax*bx+ax*cx)/3 + (bx*bx+bx*cx+cx*cx)/6);
+      double intyy = m*(ay*ay + 2*(ay*by+ay*cy)/3 + (by*by+by*cy+cy*cy)/6);
+      double intzz = m*(az*az + 2*(az*bz+az*cz)/3 + (bz*bz+bz*cz+cz*cz)/6);
+
+      double intxy = m*(ax*ay + (ax*by+ay*bx+ax*cy+ay*cx)/3 +
+                        (bx*by+cx*cy)/6 + (bx*cy+by*cx)/12);
+      double intyz = m*(ay*az + (ay*bz+az*by+ay*cz+az*cy)/3 +
+                        (by*bz+cy*cz)/6 + (by*cz+bz*cy)/12);
+      double intzx = m*(az*ax + (az*bx+ax*bz+az*cx+ax*cz)/3 +
+                        (bz*bx+cz*cx)/6 + (bz*cx+bx*cz)/12);
+
+      m33 += (intyy + intzz);
+      m44 += (intzz + intxx);
+      m55 += (intxx + intyy);
+
+      m34 -= intxy;
+      m35 -= intzx;
+      m45 -= intyz;
+
+      m43 = m34;
+      m53 = m35;
+      m54 = m45;
+
       updateComponents();
    }
 

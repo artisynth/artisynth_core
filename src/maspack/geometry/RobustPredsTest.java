@@ -25,19 +25,19 @@ public class RobustPredsTest extends UnitTest {
 
       rc = RobustPreds.intersectSegmentTriangle (
          ipnt, 0, ps0, 1, ps1, 10, pt10, 5, pt5, 4, pt4);
-      checkEquals ("intersectSegmentTriangle result=", rc, 0);
+      checkEquals ("intersectSegmentTriangle result", rc, 0);
       if (verbose) {
          System.out.println ("0 rc=" + rc);
       }
       rc = RobustPreds.intersectSegmentTriangle (
          ipnt, 0, ps0, 1, ps1, 10, pt10, 4, pt4, 7, pt7);
-      checkEquals ("intersectSegmentTriangle result=", rc, 0);
+      checkEquals ("intersectSegmentTriangle result", rc, 0);
       if (verbose) {
          System.out.println ("1 rc=" + rc);
       }
       rc = RobustPreds.intersectSegmentTriangle (
          ipnt, 0, ps0, 1, ps1, 10, pt10, 7, pt7, 9, pt9);
-      checkEquals ("intersectSegmentTriangle result=", rc, 0);
+      checkEquals ("intersectSegmentTriangle result", rc, 0);
       if (verbose) {
          System.out.println ("2 rc=" + rc);
       }
@@ -98,9 +98,9 @@ public class RobustPredsTest extends UnitTest {
             (int)vals[16], vals[17], vals[18], vals[19], pnt);
 
          checkEquals (
-            "jniIntersectSegmentTriangle: result=", res, 0x41);
+            "jniIntersectSegmentTriangle: result", res, 0x41);
          checkEquals (
-            "jniIntersectSegmentTriangle: intersection point=", pnt, chk);
+            "jniIntersectSegmentTriangle: intersection point", pnt, chk);
 
          if (verbose) {
             System.out.printf ("res=%x\n", res);
@@ -121,7 +121,7 @@ public class RobustPredsTest extends UnitTest {
          RobustPreds.jniOrient3d (
             1, p0.x, p0.y, p0.z, 2, p1.x, p1.y, p1.z, 3, p2.x, p2.y, p2.z, 4,
             p3.x, p3.y, p3.z);
-      checkEquals ("orient result=", result, 1);
+      checkEquals ("orient result", result, 1);
       if (verbose) {
          System.out.println ("orient result=" + result);
       }
@@ -132,8 +132,8 @@ public class RobustPredsTest extends UnitTest {
             2, 1, 0, 0, 
             3, 0, 1, 0, 
             4, 0, 0, 1e-10);
-      checkEquals ("orient result=", result, 0);
-      checkEquals ("orient volume=", volume[0], 0.0);
+      checkEquals ("orient result", result, 0);
+      checkEquals ("orient volume", volume[0], 0.0);
       if (verbose) {
          System.out.println ("orient result=" + result + " volume=" + volume[0]);
       }
@@ -142,7 +142,7 @@ public class RobustPredsTest extends UnitTest {
          RobustPreds.jniOrient3d (
             1, 1, 0, 0,  2, 0, 1, 0,  3, 0, 0, 1,  4, 0, 0, 0);
 
-      checkEquals ("simple orient result=", result, 1);
+      checkEquals ("simple orient result", result, 1);
       if (verbose) {
          System.out.println ("simple orient result=" + result);
       }
@@ -162,8 +162,8 @@ public class RobustPredsTest extends UnitTest {
          RobustPreds.jniIntersectSegmentTriangle (
             1, a.x, a.y, a.z, 2, b.x, b.y, b.z, 3, c0.x, c0.y, c0.z, 4, c1.x,
             c1.y, c1.z, 5, c2.x, c2.y, c2.z, ipnt);
-      checkEquals ("jniIntersectSegmentTriangle result=", result, 3);
-      checkEquals ("jniIntersectSegmentTriangle ipnt=", ipnt, ichk);
+      checkEquals ("jniIntersectSegmentTriangle result", result, 3);
+      checkEquals ("jniIntersectSegmentTriangle ipnt", ipnt, ichk);
       if (verbose) {
          System.out.println (
             "jniIntersectSegmentTriangle result=" + result + " ipnt=" + ipnt);
@@ -173,8 +173,8 @@ public class RobustPredsTest extends UnitTest {
          RobustPreds.jniIntersectSegmentTriangle (
             1, a.x, a.y, a.z, 2, b.x, b.y, b.z, 6, d0.x, d0.y, d0.z, 7, d1.x,
             d1.y, d1.z, 8, d2.x, d2.y, d2.z, ipnt);
-      checkEquals ("jniIntersectSegmentTriangle result=", result, 3);
-      checkEquals ("jniIntersectSegmentTriangle ipnt=", ipnt, ichk);
+      checkEquals ("jniIntersectSegmentTriangle result", result, 3);
+      checkEquals ("jniIntersectSegmentTriangle ipnt", ipnt, ichk);
       if (verbose) {
          System.out.println (
             "jniIntersectSegmentTriangle result=" + result + " ipnt=" + ipnt);
@@ -185,7 +185,7 @@ public class RobustPredsTest extends UnitTest {
             a.x, a.y, a.z, b.x, b.y, b.z, c0.x, c0.y, c0.z, c1.x, c1.y, c1.z,
             c2.x, c2.y, c2.z, d0.x, d0.y, d0.z, d1.x, d1.y, d1.z, d2.x, d2.y,
             d2.z);
-      checkEquals ("jniClosestIntersection result=", result, -1);
+      checkEquals ("jniClosestIntersection result", result, -1);
       if (verbose) {
          System.out.println ("jniClosestIntersection result=" + result);
       }

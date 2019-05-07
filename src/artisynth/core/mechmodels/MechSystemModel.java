@@ -10,6 +10,7 @@ import java.util.List;
 
 import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.VectorNd;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.Model;
 import artisynth.core.modelbase.StepAdjustment;
 
@@ -28,7 +29,7 @@ public interface MechSystemModel extends Model, MechSystem {
 
    public void getForceEffectors (List<ForceEffector> list, int level);
 
-   public void getAuxStateComponents (List<HasAuxState> list, int level);
+   public void getAuxStateComponents (List<HasNumericState> list, int level);
    
    public void getSlaveObjectComponents (List<HasSlaveObjects> list, int level);
 

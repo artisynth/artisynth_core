@@ -59,9 +59,7 @@ public class FemMuscleStiffener {
 
       // stiffen elements based on activation
       for (int i = 0; i < elemAct.size(); i++) {
-	 if (elemAct.get(i) > 0) {
-	    scaleElemStiffness(myFemMuscle.getElement(i), elemAct.get(i));
-	 }
+         scaleElemStiffness(myFemMuscle.getElement(i), elemAct.get(i));
       }
    }
 
@@ -110,12 +108,14 @@ public class FemMuscleStiffener {
       }
       else {
          elemMat = new MooneyRivlinMaterial ();
-         elem.setMaterial (elemMat);
       }
       elemMat.setC10 (restMat.getC10 () * s);
       elemMat.setC20 (restMat.getC20 () * s);
       elemMat.setBulkModulus (restMat.getBulkModulus () * s);
-   }
+      if (elem.getMaterial () == null) {
+         elem.setMaterial (elemMat);
+      }
+    }
  
    
    public void validateElementList(FemModel3d fem, MuscleBundle b) {

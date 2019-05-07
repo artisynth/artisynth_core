@@ -296,16 +296,6 @@ public class PlanarPoint extends Point implements PlanarComponent {
    }  
 
    // OK
-   public int setState (VectorNd x, int idx) {
-      myState.set (x, idx);
-      myState.pos.z = 0; // just to be sure ...
-      myState.vel.z = 0;
-      transformToWorld (myPos3d, myState.pos);
-      transformToWorld (myVel3d, myState.vel);
-      return idx + 6;
-   }
-
-   // OK
    public void addSolveBlock (SparseNumberedBlockMatrix S) {
       int bi = getSolveIndex();
       Matrix2x2Block blk = new Matrix2x2Block();

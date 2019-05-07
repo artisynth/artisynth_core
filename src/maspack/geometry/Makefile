@@ -26,6 +26,7 @@ JAVA_TEST_PROGRAMS = \
 	NagataInterpolatorTest \
 	Polygon3dCalcTest \
 	PolygonalMeshTest \
+	PolylineMeshTest \
 	QuadraticUtilsTest \
 	RigidTransformerTest \
 	RobustPredsTest \

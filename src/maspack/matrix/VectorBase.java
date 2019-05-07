@@ -8,6 +8,8 @@ package maspack.matrix;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 
 import maspack.util.ReaderTokenizer;
 
@@ -457,6 +459,22 @@ public abstract class VectorBase implements Vector {
          }
       }
       return buf.toString();
+   }
+
+   public void writeToFile (String fileName, String fmtStr) {
+      NumberFormat fmt = new NumberFormat (fmtStr);
+      try {
+         PrintWriter pw =
+            new PrintWriter (new BufferedWriter (new FileWriter (fileName)));
+         for (int i=0; i<size(); i++) {
+            pw.println (fmt.format(get(i)));
+         }
+         pw.close();
+      }
+      catch (Exception e) {
+         System.out.println ("Error writing vector to file "+ fileName + ":");
+         System.out.println (e);
+      }
    }
 
    /**

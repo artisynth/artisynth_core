@@ -56,16 +56,16 @@ public abstract class FemNode extends Particle {
       myMassValidP = true; // assume we are building it up in a valid way
    }
    
-//   @Override
-//   public void scaleMass(double s) {
-//      if (myMassExplicitP) {
-//         myMass *= s;
-//      }
-//      else {
-//         myMassValidP = false;
-//      }
-//      super.scaleMass(s);
-//   }
+   @Override
+   public void scaleMass(double s) {
+      if (myMassExplicitP) {
+         myMass *= s;
+      }
+      else {
+         myMassValidP = false;
+      }
+      super.scaleMass(s);
+   }
    
    public void clearMass() {
       if (!myMassExplicitP) {

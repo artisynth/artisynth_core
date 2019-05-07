@@ -20,13 +20,16 @@ import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 import maspack.geometry.GeometryTransformer;
+import maspack.geometry.MassDistribution;
 import maspack.geometry.MeshBase;
 import maspack.geometry.PolygonalMesh;
+import maspack.geometry.PolylineMesh;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.spatialmotion.SpatialInertia;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
@@ -35,8 +38,9 @@ public class RigidMeshComp extends DynamicMeshComponent
 
    private static double DEFAULT_VOLUME = 0;
    protected double myVolume = 0;
-   protected boolean myVolumeValid = false;
    protected boolean myVolumeExplicit = false;
+
+   protected double myMeshVolume = 0;
 
    private static double DEFAULT_DENSITY = 0;
    protected double myDensity = 0;
@@ -52,14 +56,22 @@ public class RigidMeshComp extends DynamicMeshComponent
    protected static final boolean DEFAULT_IS_COLLIDABLE = true;
    protected boolean myCollidableP = DEFAULT_IS_COLLIDABLE;
 
+   protected static final MassDistribution DEFAULT_MASS_DISTRIBUTION =
+      MassDistribution.DEFAULT;
+   protected MassDistribution myMassDistribution = DEFAULT_MASS_DISTRIBUTION;
+
    public static PropertyList myProps = new PropertyList(
       RigidMeshComp.class, MeshComponent.class);
 
    static {
       myProps.add(
          "hasMass hasMass setHasMass", 
-         "controls whether or not the mesh contributes to inertia", 
+         "controls whether the mesh contributes to inertia", 
          DEFAULT_HAS_MASS);
+      myProps.add(
+         "massDistribution", 
+         "controls how inertia is computed from the geometry", 
+         DEFAULT_MASS_DISTRIBUTION);
       myProps.add (
          "volume", "volume of the mesh", DEFAULT_VOLUME, "NW");
       myProps.add (
@@ -100,7 +112,31 @@ public class RigidMeshComp extends DynamicMeshComponent
          myCollidableP = true;
       }
    }
-   
+
+   private void updateMeshVolume() {
+      MeshBase mesh = getMesh();
+      if (mesh != null && mesh instanceof PolygonalMesh) {
+         myMeshVolume = ((PolygonalMesh)mesh).computeVolume();
+      }
+      else {
+         myMeshVolume = 0;
+      }
+      if (!myVolumeExplicit) {
+         myVolume = Math.max (0, myMeshVolume);
+      }
+   }
+
+   @Override
+   protected void setMeshFromInfo () {
+      super.setMeshFromInfo();
+      updateMeshVolume();
+      MeshBase mesh = getMesh();
+      if (myMassDistribution == MassDistribution.DEFAULT ||
+          (mesh != null && !mesh.supportsMassDistribution (myMassDistribution))) {
+         myMassDistribution = getDefaultMassDistribution (mesh);
+      }
+   }
+
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
@@ -129,7 +165,75 @@ public class RigidMeshComp extends DynamicMeshComponent
          updateBodyForMeshChanges();
       }
    }
-   
+
+   /**
+    * Queries the mass distribution for this RigidMeshComp.  See {@link
+    * #getMassDistribution} for a description of what this means.
+    * 
+    * @return mass distribution for this RigidMeshComp
+    */
+   public MassDistribution getMassDistribution() {
+      return myMassDistribution;
+   }
+
+   /**
+    * Sets the mass distribution for this RigidMeshComp. This controls
+    * how inertia is computed from the mesh's geometric features.
+    * TODO FINISH
+    * then it contributes to the computation of the inertia of the associated
+    * rigid body when the <i>inertiaMode</i>} for that body is either {@link
+    * RigidBody.InertiaMethod#DENSITY} or {@link RigidBody.InertiaMethod#MASS}.
+
+    * @param dist new mass distribution for this RigidMeshComp
+    */
+   public void setMassDistribution (MassDistribution dist) {
+      MeshBase mesh = getMesh();
+      if (mesh == null) {
+         myMassDistribution = dist;
+      }
+      else {
+         if (dist == MassDistribution.DEFAULT) {
+            dist = getDefaultMassDistribution (mesh);
+         }
+         else if (!mesh.supportsMassDistribution (dist)) {
+            return;
+         }
+         if (myMassDistribution != dist) {
+            myMassDistribution = dist;
+            updateBodyForMeshChanges();
+         }
+      }
+   }
+
+   protected SpatialInertia createInertia () {
+      SpatialInertia M = new SpatialInertia();
+      MeshBase mesh = getMesh();
+      if (mesh != null) {
+         return mesh.createInertia (getMass(), myMassDistribution);
+      }
+      return M;
+   }
+
+   public MassDistribution getDefaultMassDistribution (MeshBase mesh) {
+      if (mesh == null) {
+         return DEFAULT_MASS_DISTRIBUTION;
+      }
+      else if (mesh instanceof PolygonalMesh) {
+         if (((PolygonalMesh)mesh).isClosed()) {
+            return MassDistribution.VOLUME;
+         }
+         else {
+            return MassDistribution.AREA;
+         }
+      }
+      else if (mesh instanceof PolylineMesh) {
+         return MassDistribution.LENGTH;
+      }
+      else {
+         return MassDistribution.POINT;
+      }
+   }
+
    /**
     * Returns the volume of this RigidMeshComp. If the mesh is a 
     * {@link PolygonalMesh}, this is the value returned by 
@@ -140,16 +244,6 @@ public class RigidMeshComp extends DynamicMeshComponent
     * @see #setVolume 
     */
    public double getVolume() {
-      if (!myVolumeValid) {
-         if (getMesh() instanceof PolygonalMesh) {
-            PolygonalMesh mesh = (PolygonalMesh)getMesh();
-            myVolume = mesh.computeVolume();
-         }
-         else {
-            myVolume = 0;
-         }
-         myVolumeValid = true;
-      }
       return myVolume;
    }
    
@@ -163,13 +257,12 @@ public class RigidMeshComp extends DynamicMeshComponent
     * @see #getVolume
     */
    public void setVolume (double vol) {
-      if (vol < 0 || getMesh() instanceof PolygonalMesh) {
+      if (vol < 0) {
          myVolumeExplicit = false;
-         myVolumeValid = false;
+         myVolume = Math.max (0, myMeshVolume);
       }
       else {
          myVolumeExplicit = true;
-         myVolumeValid = true;
          myVolume = vol;
       }
       updateBodyForVolumeChanges();
@@ -260,7 +353,8 @@ public class RigidMeshComp extends DynamicMeshComponent
          return myDensity;
       }
       else if (myMassExplicit) {
-         return myMass/getVolume();
+         double vol = getVolume();
+         return vol > 0 ? myMass/vol : 0;
       }
       else {
          return getRigidBodyDensity();
@@ -457,9 +551,7 @@ public class RigidMeshComp extends DynamicMeshComponent
 
       if (body == null) {
          myMeshInfo.transformGeometry (gtr);
-         if (!myVolumeExplicit) {
-            myVolumeValid = false;
-         }
+         updateMeshVolume();
       }
       else if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
          GeometryTransformer.Constrainer constrainer = null;
@@ -473,9 +565,7 @@ public class RigidMeshComp extends DynamicMeshComponent
          else {
             myMeshInfo.transformGeometry (gtr, constrainer);
          }
-         if (!myVolumeExplicit) {
-            myVolumeValid = false;
-         }
+         updateMeshVolume();
          if (body != null && !context.contains (body)) {
             context.addAction (new RigidBody.UpdateInertiaAction(body));
          }
@@ -520,9 +610,7 @@ public class RigidMeshComp extends DynamicMeshComponent
       if (myVolumeExplicit) {
          myVolume *= (s*s*s);
       }
-      else {
-         myVolumeValid = false;
-      }
+      updateMeshVolume();
       if (myDensityExplicit) {
          myDensity /= (s*s*s);
       }
@@ -535,9 +623,7 @@ public class RigidMeshComp extends DynamicMeshComponent
       if (myVolumeExplicit) {
          myVolume *= (sx*sy*sz);
       }
-      else {
-         myVolumeValid = false;
-      }
+      updateMeshVolume();
       updateBodyForVolumeChanges();
    }  
 

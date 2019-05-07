@@ -1416,7 +1416,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
       }
 
       // model scheduler initialization called within initialize
-      getScheduler().initialize();
+      getScheduler().initialize(newRoot.getStartTime());
       if (myMovieMaker != null) {
          myMovieMaker.updateForNewRootModel (modelName, newRoot);
       }
@@ -2643,7 +2643,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
     * 
     * @return file with probe data
     */
-
    public File getProbesFile() {
       return myProbeFile;
    }
@@ -2676,6 +2675,37 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myTimeline.automaticProbesZoom();
       }
       return true;
+   }
+
+   /**
+    * to save the probes file
+    * 
+    * @param file probe information file
+    * @throws IOException if an I/O error occurred
+    */
+   public boolean saveProbesFile (File file) throws IOException {
+      if (getWorkspace() == null) {
+         return false;
+      }
+      IndentingPrintWriter pw = ArtisynthIO.newIndentingPrintWriter (file);
+      getWorkspace().writeProbes (pw, null);
+      myProbeFile = file;
+      return true;
+   }
+
+   /**
+    * get the file for the wayPoints, if any
+    * 
+    * @return file with wayPoint data
+    */
+   public File getWayPointsFile() {
+      RootModel root = getRootModel();
+      if (root != null) {
+         return root.getWayPoints().getAttachedFile();
+      }
+      else {
+         return null;
+      }
    }
 
    public void dispose() {
@@ -2712,22 +2742,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
    public void quit () {
       dispose();
       exit (0);
-   }
-
-   /**
-    * to save the probes file
-    * 
-    * @param file probe information file
-    * @throws IOException if an I/O error occurred
-    */
-   public boolean saveProbesFile (File file) throws IOException {
-      if (getWorkspace() == null) {
-         return false;
-      }
-      IndentingPrintWriter pw = ArtisynthIO.newIndentingPrintWriter (file);
-      getWorkspace().writeProbes (pw, null);
-      myProbeFile = file;
-      return true;
    }
 
    /**

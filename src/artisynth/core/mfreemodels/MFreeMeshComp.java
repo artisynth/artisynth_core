@@ -130,21 +130,11 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
       super.setSurfaceRendering(mode);
 
       if (oldMode != mode) {
-         if (myModel != null) { // paranoid: myFem should always be non-null here
-            switch (mode) {
-               case Strain:
-                  myModel.setComputeNodalStrain(true);
-                  myModel.updateStressAndStiffness();
-                  break;
-               case Stress:
-                  myModel.setComputeNodalStress(true);
-                  myModel.updateStressAndStiffness();
-                  break;
-               default: {
-                  myModel.setComputeNodalStrain(false);
-                  myModel.setComputeNodalStress(false);
-                  break;
-               }
+         if (myModel != null) { // paranoid: myModel should always be non-null here
+            myModel.updateInternalNodalStressSettings();
+            myModel.updateInternalNodalStrainSettings();
+            if (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress){
+               myModel.updateStressAndStiffness();
             }
          }
          // save/restore original vertex colors

@@ -547,24 +547,25 @@ public abstract class RigidBodyCoupling {
       return numb;
    }
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx) {
+   int setBilateralForces (double[] buf, double s, int idx) {
       checkConstraintStorage();
-      double[] buf = lam.getBuffer();
       myBilateralWrenchG.setZero();
       for (int i=0; i<myConstraintInfo.length; i++) {
          if (myConstraintInfo[i].isBilateral()) {
-            double l = buf[idx++];
+            double l = buf[idx++]*s;
             myConstraints[i].setMultiplier (l);
             myBilateralWrenchG.scaledAdd (l, myConstraints[i].getWrenchC());
          }
       }
-      myBilateralWrenchG.scale (1/h);
       myBilateralWrenchG.inverseTransform (myTCG);
       return idx;      
    }
+
+   public int setBilateralForces (VectorNd lam, double h, int idx) {
+      return setBilateralForces (lam.getBuffer(), h, idx);
+   }
    
-   
-   public void zeroImpulses() {
+   public void zeroForces() {
       checkConstraintStorage();
       for (int i=0; i<myConstraintInfo.length; i++) {
          myConstraints[i].setMultiplier (0);
@@ -573,9 +574,8 @@ public abstract class RigidBodyCoupling {
       myUnilateralWrenchG.setZero();
    }
 
-   public int getBilateralImpulses (VectorNd lam, int idx) {
+   int getBilateralForces (double[] buf, int idx) {
       checkConstraintStorage();
-      double[] buf = lam.getBuffer();
       for (int i=0; i<myConstraintInfo.length; i++) {
          if (myConstraintInfo[i].isBilateral()) {
             buf[idx++] = myConstraints[i].getMultiplier();
@@ -584,6 +584,22 @@ public abstract class RigidBodyCoupling {
       return idx;      
    }
    
+   public int getBilateralForces (VectorNd lam, int idx) {
+      return getBilateralForces (lam.getBuffer(), idx);
+   }
+   
+   private int numConstraints() {
+      // assumes checkConstraintStorage() has been called
+      int numc = 0;
+      for (int i = 0; i < myConstraintInfo.length; i++) {
+         ConstraintInfo info = myConstraintInfo[i];
+         if (info.isBilateral() || info.engaged != 0) {
+            numc++;
+         }
+      }
+      return numc;
+   }
+
    /**
     * Returns the number of currently engaged unilateral constraints.
     * 
@@ -678,27 +694,27 @@ public abstract class RigidBodyCoupling {
       }
    }
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
+   int setUnilateralForces (double[] buf, double s, int idx) {
       checkConstraintStorage();
-      double[] buf = the.getBuffer();
       myUnilateralWrenchG.setZero();
       for (int i=0; i<myConstraintInfo.length; i++) {
          ConstraintInfo info = myConstraintInfo[i];
          if (!info.isBilateral() && info.engaged != 0) {
-            double l = buf[idx++];
+            double l = buf[idx++]*s;
             myConstraints[i].setMultiplier (l);
             myUnilateralWrenchG.scaledAdd (l, myConstraints[i].getWrenchC());
          }
       }
-      myUnilateralWrenchG.scale (1/h);
       myUnilateralWrenchG.inverseTransform (myTCG);
       return idx;      
    }
 
-   public int getUnilateralImpulses (VectorNd the, int idx) {
-      int idx0 = idx;
+   public int setUnilateralForces (VectorNd the, double h, int idx) {
+      return setUnilateralForces (the.getBuffer(), h, idx);
+   }
+
+   int getUnilateralForces (double[] buf, int idx) {
       checkConstraintStorage();
-      double[] buf = the.getBuffer();
       for (int i=0; i<myConstraintInfo.length; i++) {
          ConstraintInfo info = myConstraintInfo[i];
          if (!info.isBilateral() && info.engaged != 0) {
@@ -706,6 +722,10 @@ public abstract class RigidBodyCoupling {
          }
       }
       return idx;      
+   }
+
+   public int getUnilateralForces (VectorNd the, int idx) {
+      return getUnilateralForces (the.getBuffer(), idx);
    }
 
    public int maxConstraints() {
@@ -834,15 +854,7 @@ public abstract class RigidBodyCoupling {
    }
 
 
-   public void skipAuxState (DataBuffer data) {
-      checkConstraintStorage();
-      int maxu = maxUnilaterals();
-      data.zskip (maxu);
-      data.dskip (maxu);
-   }
-
-   
-   public void getAuxState (DataBuffer data) {
+   public void getState (DataBuffer data) {
 
       checkConstraintStorage();
       if (maxUnilaterals() > 0) {
@@ -854,9 +866,8 @@ public abstract class RigidBodyCoupling {
          }
       }
    }
-
-   public void setAuxState (DataBuffer data) {
-
+   
+   public void setState (DataBuffer data) {
       checkConstraintStorage();
       if (maxUnilaterals() > 0) {
          for (int i = 0; i < myConstraintInfo.length; i++) {
@@ -864,22 +875,6 @@ public abstract class RigidBodyCoupling {
                myConstraintInfo[i].engaged = data.zget();
                myConstraintInfo[i].coordinate = data.dget();
             }
-         }
-      }
-   }
-   
-   public void getInitialAuxState (
-      DataBuffer newData, DataBuffer oldData) {
-
-      if (oldData == null) {
-         getAuxState (newData);
-      }
-      else {
-         // copy data from oldData
-         checkConstraintStorage();
-         int maxu = maxUnilaterals();
-         if (maxu > 0) {
-            newData.putData (oldData, maxu, maxu);
          }
       }
    }

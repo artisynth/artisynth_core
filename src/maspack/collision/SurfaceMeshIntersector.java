@@ -1948,7 +1948,7 @@ public class SurfaceMeshIntersector {
       }
    }
 
-   /**
+    /**
     * Sorts the coincident points associated with p. All coincident points
     * associated with p are found by locating all coincident points along the
     * edge that have the same 'coincidentGroup'. These points are then examined
@@ -1966,133 +1966,6 @@ public class SurfaceMeshIntersector {
     * adjacent pairs, and we don't know the correct adjacency relationships
     * until all points have been added.
     */
-   void sortCoincidentPointsNew (IntersectionPoint p) {
-
-      HalfEdge edge = p.edge;
-      EdgeInfo einfo = myEdgeInfos.get(p.edge);
-      // find the lohi indices of the coincident points
-      int[] lohi = findCoincidentBounds (p, einfo);
-      IntersectionPoint plo = p;
-
-      boolean debug = false; // p.edge.faceStr().equals("34-37");
-      
-      if (debug) {
-         System.out.println ("Sort coincident "+edge.faceStr());
-         System.out.println ("lohi=" + lohi[0]+" " + lohi[1]);
-      }
-
-      
-      int numc = lohi[1]-lohi[0]+1;
-      int lo = lohi[0];
-      IntersectionPoint[] points = new IntersectionPoint[numc];
-      // for (int k=0; k<numc; k++) {
-      //    points[k] = einfo.getMip(lo+k);
-      // }
-      if (numc == 2) {
-         points[0] = einfo.getMip(lo);
-         points[1] = einfo.getMip(lo+1);
-      }
-      else {
-         int cnt = 1;
-         for (IntersectionPoint prev = p.prev(); prev!=null; prev = prev.prev()) {
-            if (prev.primaryCoincident == p.primaryCoincident) {
-               plo = prev;
-               cnt++;
-            }
-            // equal wouldn't work here, as coincident points not always equal:
-            if (prev.distance (p) > myPositionTol) {
-               break;
-            }
-         }
-         if (debug) {
-            System.out.println ("plo=" + plo.contourIndex);
-         }
-         IntersectionPoint phi = p;
-         for (IntersectionPoint next = p.next(); next!=null; next = next.next()) {
-            if (next.primaryCoincident == p.primaryCoincident) {
-               phi = next;
-               cnt++;
-            }
-            // equal wouldn't work here, as coincident points not always equal:
-            if (next.distance (p) > myPositionTol) {
-               break;
-            }
-         }
-         if (debug) {
-            System.out.println ("phi=" + phi.contourIndex);
-         }
-         if (cnt != numc) {
-            System.out.println (
-               "ERROR: cnt=" + cnt + " lohi=["+lohi[0]+","+lohi[1]+"]");
-            if (false) {
-               System.out.println ("problem written to contactTestFail.out");
-               try {
-                  SurfaceMeshIntersectorTest.writeProblem (
-                     "contactTestFail.out", myMesh0, myMesh1, null);
-               }
-               catch (Exception e) {
-                  e.printStackTrace();
-               }
-            }
-         }
-         if (!mySilentP && (debug || cnt > 2)) {
-            System.out.println ("HIGH CNT=" + cnt);
-         }
-         
-         int k = 0;
-         IntersectionPoint primary = p.primaryCoincident;
-         for (IntersectionPoint q=plo; k<cnt; q=q.next()) {
-            if (q.primaryCoincident == primary) {
-               //q.primaryCoincident = IntersectionPoint.COINCIDENT;
-               points[k++] = q;
-            }
-         }
-      }
-
-      int direction = 0;
-      for (int i=0; i<numc-1; i++) {
-         int res = commonEdgeConvexityTest (points[i], points[i+1], debug);
-         if (res != -1) {
-            direction = determineEdgeDirection (points[i], points[i+1], res==1, i);
-            if (debug) System.out.println (
-               "commonEdge res="+res+" mips "+points[i].contourIndex+" "+
-               points[i+1].contourIndex);
-            break;
-         }
-      }
-      if (direction == 0) {
-         for (int i=0; i<numc-1; i++) {
-            int res = commonVertexConvexityTest (points[i], points[i+1], debug);
-            if (res != -1) {
-               direction = determineEdgeDirection (points[i], points[i+1], res==1, i);
-            if (debug) System.out.println (
-               "commonVertex res="+res+" mips "+points[i].contourIndex+" "+
-               points[i+1].contourIndex);
-               break;
-            }
-         }
-      }
-      if (direction == 0) {
-         int res = distanceConvexityTest (points[0], points[1], debug);
-         if (debug) System.out.println (
-            "distanceConvexity res="+res+" mips "+points[0].contourIndex+" "+
-            points[1].contourIndex);
-         direction = determineEdgeDirection (points[0], points[1], res==1, 0);
-      }
-
-      for (int k=0; k<numc; k++) {
-         IntersectionPoint q;
-         if (direction==1) {
-            q = points[numc-1-k];
-         }
-         else {
-            q = points[k];
-         }         
-         einfo.setMip (lo+k, q);
-         q.primaryCoincident = IntersectionPoint.COINCIDENT;
-      }
-   }
-
    void sortCoincidentPoints (IntersectionPoint p) {
 
       HalfEdge edge = p.edge;
@@ -2461,7 +2334,7 @@ public class SurfaceMeshIntersector {
             edge = nextEdge.opposite; // Move to next edge and face in the same
                                       // mesh radiating from the same vertex.
             if (edge == null) {
-               contour.openMesh = true;
+               // contour.openMesh = true;
                edgeFace = null;
             }
             else {
@@ -2479,7 +2352,7 @@ public class SurfaceMeshIntersector {
             else {
                edge = edge.opposite;
                if (edge == null) {
-                  contour.openMesh = true;
+                  // contour.openMesh = true;
                   edgeFace = null;
                }
                else {

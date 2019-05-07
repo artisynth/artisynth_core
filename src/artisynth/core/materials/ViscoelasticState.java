@@ -1,6 +1,7 @@
 package artisynth.core.materials;
 
 import maspack.util.DataBuffer;
+
 /**
  * Stores state information for viscoelastic behavior
  */

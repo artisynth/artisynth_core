@@ -532,10 +532,27 @@ public class PolygonalMesh extends MeshBase {
     * Returns the face with a specified index
     *
     * @param idx index of the face
-    * @return index face
+    * @return indexed face
     */
    public Face getFace (int idx) {
       return myFaces.get(idx);
+   }
+
+   /**
+    * Returns the half-edge with a specified index. The index is assumed to be
+    * <pre>
+    * 3 * faceIdx + edgeNum
+    * </pre>
+    * where {@code faceIdx} is the index for the edge's face, and {@code
+    * edgeNum} is the edge's number with respect to the face (with {@code
+    * face.firstHalfEdge()} corresponding to 0).
+    *
+    * @param idx index of the half-edge
+    * @return indexed half-edge
+    */
+   public HalfEdge getHalfEdge (int idx) {
+      Face face = getFace(idx/3);
+      return face.getEdge (idx%3);
    }
 
    public int countEdges() {
@@ -3388,8 +3405,7 @@ public class PolygonalMesh extends MeshBase {
          Vector3d nrml = f.getNormal();
 
          if (nrml.containsNaN() || nrml.equals(Vector3d.ZERO)) {
-            //System.out.println ("Warning: PolygonalMesh.computeVolumeIntegrals: face "+i+" is badly formed");
-            // sanity check for badly formed meshes
+            // just in case 
             continue;
          }
 
@@ -3534,7 +3550,7 @@ public class PolygonalMesh extends MeshBase {
       return computePrincipalAxes(this);
    }
    
-   public static RigidTransform3d computePrincipalAxes(PolygonalMesh mesh) {
+   public static RigidTransform3d computePrincipalAxes (PolygonalMesh mesh) {
 
       Vector3d mov1 = new Vector3d();
       Vector3d mov2 = new Vector3d();
@@ -3741,15 +3757,11 @@ public class PolygonalMesh extends MeshBase {
    }
 
    /**
-    * Computes a spatial inertia for volume defined by this mesh, assuming a
-    * constant density. It is assumed that the mesh is closed, although small
-    * holes in the mesh should not affect the calculation that much.  Is is
-    * also assumed that the faces are oriented counter-clockwise about their
-    * outward-facing normal.
-    *
-    * The code for this was taken from vclip, by Brian Mirtich. See "Fast and
-    * Accurate Computation of Polyhedral Mass Properties," Brian Mirtich,
-    * journal of graphics tools, volume 1, number 2, 1996.
+    * Computes a spatial inertia for the volume defined by this mesh, assuming
+    * a uniform density density. It is assumed that the mesh is
+    * closed, although small holes in the mesh should not affect the
+    * calculation that much.  It is also assumed that the faces are oriented
+    * counter-clockwise about their outward-facing normal.
     *
     * @param M returns the computed spatial inertia
     * @param density
@@ -3757,36 +3769,50 @@ public class PolygonalMesh extends MeshBase {
     * @return the volume of the mesh
     */
    public double computeInertia (SpatialInertia M, double density) {
+      Point3d cov = new Point3d();
+      SymmetricMatrix3d J = new SymmetricMatrix3d();
+      double vol = computeUnitInertiaComps (cov, J);
+      double mass = vol*density;
+      J.scale (mass);
+      M.set (mass, J, cov);
+      return vol;
+   }
+
+   /**
+    * Computes the volume, center of volume, and inertia tensor (with respect
+    * to the center of volume) for this mesh, assuming a unit mass.
+    *
+    * @param cov returns the center of volume
+    * @param J inertia tensor (with respect to the center of volume)
+    * @return volume of the mesh
+    */
+   protected double computeUnitInertiaComps (Point3d cov, SymmetricMatrix3d J) {
       Vector3d mov1 = new Vector3d();
       Vector3d mov2 = new Vector3d();
       Vector3d pov = new Vector3d();
 
       double vol = computeVolumeIntegrals (mov1, mov2, pov);
+      double invVol = 1.0/vol;
 
-      Point3d cov = new Point3d();
-      cov.scale (1.0 / vol, mov1); // center of volume
+      cov.scale (invVol, mov1); // center of volume
 
-      double mass = density*vol;
-      SymmetricMatrix3d J =
-         new SymmetricMatrix3d (
-            mov2.y+mov2.z, mov2.x+mov2.z, mov2.x+mov2.y, -pov.z, -pov.y, -pov.x); 
-      J.scale (density);
+      J.set (mov2.y+mov2.z, mov2.x+mov2.z, mov2.x+mov2.y,
+             -pov.z, -pov.y, -pov.x); 
+      J.scale (invVol);
 
       // J contains the mass[com][com] term; remove this:
-      J.m00 -= mass * (cov.z * cov.z + cov.y * cov.y);
-      J.m11 -= mass * (cov.z * cov.z + cov.x * cov.x);
-      J.m22 -= mass * (cov.y * cov.y + cov.x * cov.x);
-      J.m01 += mass * cov.x * cov.y;
-      J.m02 += mass * cov.x * cov.z;
-      J.m12 += mass * cov.z * cov.y;
+      J.m00 -= (cov.z * cov.z + cov.y * cov.y);
+      J.m11 -= (cov.z * cov.z + cov.x * cov.x);
+      J.m22 -= (cov.y * cov.y + cov.x * cov.x);
+      J.m01 += (cov.x * cov.y);
+      J.m02 += (cov.x * cov.z);
+      J.m12 += (cov.z * cov.y);
       J.m10 = J.m01;
       J.m20 = J.m02;
       J.m21 = J.m12;
-
-      M.set (mass, J, cov);
       return vol;
    }
-   
+
    /**
     * Computes the centre of volume of the mesh
     */
@@ -3800,8 +3826,6 @@ public class PolygonalMesh extends MeshBase {
 
       return vol;
    }
-
-
 
    /**
     * Creates a spatial inertia for the volume defined by this mesh, assuming a
@@ -3819,6 +3843,135 @@ public class PolygonalMesh extends MeshBase {
       return M;
    }
 
+   SpatialInertia createEdgeLengthInertia (double mass) {
+      SpatialInertia M = new SpatialInertia();
+      // first compute the total length of all edges
+      double totalLength = 0;
+      for (Face face : myFaces) {
+         HalfEdge he0 = face.firstHalfEdge();
+         HalfEdge he = he0;
+         do {
+            if (he.isPrimary()) {
+               totalLength += he.length();
+            }
+            he = he.getNext();
+         }
+         while (he != he0);
+      }
+      // use this to determine the partial inertia for each edge
+      for (Face face : myFaces) {
+         HalfEdge he0 = face.firstHalfEdge();
+         HalfEdge he = he0;
+         do {
+            if (he.isPrimary()) {
+               double l = he.length();
+               M.addLineSegmentInertia (
+                  mass*l/totalLength, he.tail.pnt, he.head.pnt);
+            }
+            he = he.getNext();
+         }
+         while (he != he0);
+      }
+      return M;
+   }
+
+   SpatialInertia createAreaInertia (double mass) {
+      SpatialInertia M = new SpatialInertia();
+      // determine total number of triangles, to save the area for each
+      int numt = 0;
+      for (Face face : myFaces) {
+         numt += face.numVertices()-2;
+      }
+      double[] areas = new double[numt];
+      // compute area for each triangle, along with total area
+      double totalArea = 0;
+      int k = 0;
+      for (Face face : myFaces) {
+         HalfEdge he0 = face.firstHalfEdge();
+         HalfEdge he = he0;
+         Point3d p0 = he.tail.pnt;
+         he = he.next;
+         Point3d p1 = he.tail.pnt;
+         he = he.next;
+         do {
+            Point3d p2 = he.tail.pnt;            
+            double a = Face.computeTriangleArea (p0, p1, p2);
+            areas[k++] = a;
+            totalArea += a;
+            p1 = p2;
+            he = he.next;
+         }
+         while (he != he0);
+      }
+      // use these areas to determine the partial inertia for each triangle
+      k = 0;
+      for (Face face : myFaces) {
+         HalfEdge he0 = face.firstHalfEdge();
+         HalfEdge he = he0;
+         Point3d p0 = he.tail.pnt;
+         he = he.next;
+         Point3d p1 = he.tail.pnt;
+         he = he.next;
+         do {
+            Point3d p2 = he.tail.pnt;            
+            M.addTriangleInertia (mass*areas[k++]/totalArea, p0, p1, p2);
+            p1 = p2;
+            he = he.next;
+         }
+         while (he != he0);
+      }
+      return M;
+   }
+
+   SpatialInertia createVolumeInertia (double mass) {
+      SpatialInertia M = new SpatialInertia();
+      Point3d cov = new Point3d();
+      SymmetricMatrix3d J = new SymmetricMatrix3d();
+      computeUnitInertiaComps (cov, J);
+      J.scale (mass);
+      M.set (mass, J, cov);
+      return M;
+   }
+
+   /**
+    * Computes a spatial inertia for this mesh, given a mass and a mass
+    * distribution.  All distributions are supported.
+    *
+    * @param mass overall mass
+    * @param dist how the mass is distributed across the features
+    */   
+   public SpatialInertia createInertia (double mass, MassDistribution dist) {
+      if (dist == MassDistribution.DEFAULT) {
+         dist = isClosed() ? MassDistribution.VOLUME : MassDistribution.AREA;
+      }
+      if (dist == MassDistribution.LENGTH) {
+         return createEdgeLengthInertia (mass);
+      }
+      else if (dist == MassDistribution.AREA) {
+         return createAreaInertia (mass);
+      }
+      else if (dist == MassDistribution.VOLUME) {
+         return createVolumeInertia (mass);
+      }
+      else {
+         return super.createInertia (mass, dist);
+      }
+   }   
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean supportsMassDistribution (MassDistribution dist) {
+      switch (dist) {
+         case POINT:
+         case LENGTH:
+         case AREA:
+         case VOLUME:
+            return true;
+         default:
+            return false;
+      }
+   }  
 
    public boolean isBorderVertex(Vertex3d vtx) {
 
@@ -4435,5 +4588,6 @@ public class PolygonalMesh extends MeshBase {
       }
       return 84*numFaces() + 92*numVertices() + 64*numHalfEdges;      
    }
+
    
 }

@@ -39,7 +39,7 @@ public class DataBufferTest {
       }
       
       int cnt = 100;
-      DataBuffer buf = new DataBuffer (size, 0, 0);
+      DataBuffer buf = new DataBuffer (0, size, 0);
       for (int i=0; i<cnt; i++) {
          storeUsingRaw (buf, stuff);
          storeUsingAppend (buf, stuff);

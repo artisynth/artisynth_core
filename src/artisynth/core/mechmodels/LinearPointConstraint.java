@@ -108,13 +108,13 @@ public class LinearPointConstraint extends ConstrainerBase {
     * @param pnts list of points to constrain
     * @param wgts set of weights
     */
-   public void setPoints(Point[] pnts, double[] wgts) {
+   protected void setPoints(Point[] pnts, double[] wgts) {
       myTarget = new Point3d(0, 0, 0);
       myPoints = new ArrayList<Point>();
       for (Point pnt : pnts) {
          myPoints.add (pnt);
       }
-      myLam = new double[3];    // 3 constraints (x, y, z)
+      myLam = new double[3*myPoints.size()];
       myWgts = Arrays.copyOf(wgts, wgts.length);
       myBlks = new Matrix3x3Block[myPoints.size()];
       for (int i=0; i<myPoints.size(); i++) {
@@ -240,12 +240,13 @@ public class LinearPointConstraint extends ConstrainerBase {
    }
 
    @Override
-   public int setBilateralImpulses(VectorNd lam, double h, int idx) {
+   public int setBilateralForces(VectorNd lam, double s, int idx) {
+      int k = 0;
       for (Point p : myPoints) {
          if (p.getSolveIndex() != -1) {
-            myLam[0] = lam.get(idx++);
-            myLam[1] = lam.get(idx++);
-            myLam[2] = lam.get(idx++);
+            myLam[k++] = lam.get(idx++)*s;
+            myLam[k++] = lam.get(idx++)*s;
+            myLam[k++] = lam.get(idx++)*s;
             return idx;
          }
       }
@@ -253,12 +254,13 @@ public class LinearPointConstraint extends ConstrainerBase {
    }
 
    @Override
-   public int getBilateralImpulses(VectorNd lam, int idx) {
+   public int getBilateralForces(VectorNd lam, int idx) {
+      int k = 0;
       for (Point p : myPoints) {
          if (p.getSolveIndex() != -1) {
-            lam.set(idx++, myLam[0]);
-            lam.set(idx++, myLam[1]);
-            lam.set(idx++, myLam[2]);
+            lam.set(idx++, myLam[k++]);
+            lam.set(idx++, myLam[k++]);
+            lam.set(idx++, myLam[k++]);
             return idx;
          }
       }
@@ -266,10 +268,10 @@ public class LinearPointConstraint extends ConstrainerBase {
    }
 
    @Override
-   public void zeroImpulses() {
-      myLam[0] = 0;
-      myLam[1] = 0;
-      myLam[2] = 0;
+   public void zeroForces() {
+      for (int k=0; k<myLam.length; k++) {
+         myLam[k] = 0;
+      }
    }
 
    @Override

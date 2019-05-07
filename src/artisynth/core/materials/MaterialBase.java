@@ -6,7 +6,6 @@ import java.util.*;
 import artisynth.core.util.ScalableUnits;
 import artisynth.core.util.ScanToken;
 import artisynth.core.modelbase.*;
-
 import maspack.properties.*;
 import maspack.util.*;
 
@@ -173,10 +172,33 @@ public abstract class MaterialBase
 
    public static boolean tangentSymmetryChanged (
       MaterialBase mat1, MaterialBase mat2) {
-      boolean sym1 = mat1 == null || mat1.hasSymmetricTangent();
-      boolean sym2 = mat2 == null || mat2.hasSymmetricTangent();
+      boolean sym1 = (mat1 == null || mat1.hasSymmetricTangent());
+      boolean sym2 = (mat2 == null || mat2.hasSymmetricTangent());
       return sym1 != sym2;
    }
+
+   public static boolean symmetryOrStateChanged (
+      MaterialBase mat1, MaterialBase mat2) {
+      if (tangentSymmetryChanged (mat1, mat2)) {
+         return true;
+      }
+      boolean hasState1 = (mat1 != null && mat1 instanceof HasNumericState);
+      boolean hasState2 = (mat2 != null && mat2 instanceof HasNumericState);
+      if (hasState1 || hasState2) {
+         if (hasState1 && hasState2) {
+            // if both materials have state, then state will be assumed to be
+            // unchanged only if both have the same class
+            return mat1.getClass() != mat2.getClass();
+         }
+         else {
+            // one material has state and the other doesn't means state changed
+            return true;
+         }
+      }
+      else {
+         return false;
+      }
+   }      
 
    protected void notifyHostOfPropertyChange (String name) {
       if (myPropHost instanceof PropertyChangeListener) {
@@ -184,6 +206,9 @@ public abstract class MaterialBase
             new PropertyChangeEvent (this, name));
       }
    }
+
+   
+
 }
    
    

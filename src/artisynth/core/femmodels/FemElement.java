@@ -98,10 +98,13 @@ public abstract class FemElement extends RenderableComponentBase
    }
 
    public void setMaterial (FemMaterial mat) {
+      FemMaterial old = myMaterial;
       myMaterial = (FemMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      }
    }
 
    public FemMaterial getEffectiveMaterial () {
@@ -209,8 +212,13 @@ public abstract class FemElement extends RenderableComponentBase
    void invalidateNodeMasses () {
       FemNode[] nodes = getNodes();
       for (int i = 0; i < nodes.length; i++) {
-         nodes[i].invalidateMassIfNecessary();
-      }      
+         FemNode n = nodes[i];
+         // node[i] could be null if this method is called early
+         // during element construction or scanning         
+         if (n != null) {
+            nodes[i].invalidateMassIfNecessary();
+         }
+      }
    }
    
    protected void invalidateElementAndNodeMasses () {

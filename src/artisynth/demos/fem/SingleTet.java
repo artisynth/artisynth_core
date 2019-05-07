@@ -92,7 +92,7 @@ public class SingleTet extends RootModel {
 
       createControlPanel (mod);
 
-      mechMod.setProfiling (true);
+      //mechMod.setProfiling (true);
       //myN4.setPosition (-2, 0, 0);
 
       //testInvertedForces (tet);

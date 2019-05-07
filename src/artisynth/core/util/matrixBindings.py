@@ -203,5 +203,5 @@ setattr(Matrix, '__setitem__', Matrix__setitem__)
 setattr(VectorBase, 'toString', Vector__str__)
 setattr(MatrixBase, 'toString', Matrix__str__)
 
-setFormat ("%.5g")
+#setFormat ("%.5g") - don't set default numeric format by default
 #VectorBase.setColumnVectorStringsVertical(1)

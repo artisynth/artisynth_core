@@ -41,6 +41,8 @@ import artisynth.core.modelbase.ComponentListView;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.GeometryChangeEvent;
+import artisynth.core.modelbase.HasNumericState;
+import artisynth.core.modelbase.HasNumericStateComponents;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -51,7 +53,7 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.*;
 
 public class MechModel extends MechSystemBase implements
-TransformableGeometry, ScalableUnits, MechSystemModel {
+TransformableGeometry, ScalableUnits {
 
    boolean addConstraintJacobian = false;
    protected static boolean addConstraintForces = false;
@@ -1632,6 +1634,13 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isBilateralStructureConstant() {
+      return !myCollisionManager.usesBilateralConstraints();
+   }
+   
    public void getConstrainers (List<Constrainer> list, int level) {
       recursivelyGetConstrainers (this, list, level);
    }
@@ -1651,7 +1660,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
          m.addGeneralMassBlocks (M);
       }
    }
-
+   
    @Override
    public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t) {
       updateLocalModels();
@@ -1702,7 +1711,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
 
    protected void recursivelyGetAuxStateComponents (
       CompositeComponent comp,
-      List<HasAuxState> list, int level) {
+      List<HasNumericState> list, int level) {
 
       for (int i=0; i<comp.numComponents(); i++) {
          ModelComponent c = comp.get (i);
@@ -1713,10 +1722,16 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
             CollisionManager cm = (CollisionManager)c;
             list.add (cm);
          }
-         else if (c instanceof HasAuxState) {
-            // this will include inactive RigidBodyConnecters;
-            // that should be OK
-            list.add ((HasAuxState)c);
+         else if (c instanceof HasNumericStateComponents) {
+            ((HasNumericStateComponents)c).getNumericStateComponents(list);
+         }
+         else if (c instanceof HasNumericState) {
+            if (!(c instanceof DynamicComponent) &&
+                  ((HasNumericState)c).hasState()) {
+               // this will include inactive RigidBodyConnecters;
+               // that should be OK
+               list.add ((HasNumericState)c);
+            }
          }
          else if (c instanceof CompositeComponent) {
             recursivelyGetAuxStateComponents (
@@ -1725,7 +1740,7 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       }
    }
 
-   public void getAuxStateComponents (List<HasAuxState> list, int level) {
+   public void getAuxStateComponents (List<HasNumericState> list, int level) {
       recursivelyGetAuxStateComponents (this, list, level);
    }
    
@@ -1761,39 +1776,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       return super.preadvance (t0, t1, flags);
    }
 
-   // public StepAdjustment advance (double t0, double t1, int flags) {
-
-   //    initializeAdvance (t0, t1, flags);
-
-   //    if (t0 == 0) {
-   //       updateForces (t0);
-   //    }
-
-   //    if (!myDynamicsEnabled) {
-   //       mySolver.nonDynamicSolve (t0, t1, myStepAdjust);
-   //       recursivelyFinalizeAdvance (null, t0, t1, flags, 0);
-   //    }
-   //    else {
-   //       if (t0 == 0 && myPrintState != null) {
-   //          printState (myPrintState, 0);
-   //       }
-   //       checkState();
-   //       mySolver.solve (t0, t1, myStepAdjust);
-   //       DynamicComponent c = checkVelocityStability();
-   //       if (c != null) {
-   //          throw new NumericalException (
-   //             "Unstable velocity detected, component " +
-   //             ComponentUtils.getPathName (c));
-   //       }
-   //       recursivelyFinalizeAdvance (myStepAdjust, t0, t1, flags, 0);
-   //       if (myPrintState != null) {
-   //          printState (myPrintState, t1);
-   //       }
-   //    }
-
-   //    finalizeAdvance (t0, t1, flags);
-   //    return myStepAdjust;
-   // }
 
    private void zeroExternalForces() {
       updateLocalDynamicComponents();
@@ -1834,7 +1816,6 @@ TransformableGeometry, ScalableUnits, MechSystemModel {
       for (MechSystemModel m : myLocalModels) {
          m.recursivelyInitialize (t, level+1);
       }
-      //zeroExternalForces();
       super.recursivelyInitialize (t, level);
    }
 

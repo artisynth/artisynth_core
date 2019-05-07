@@ -83,8 +83,9 @@ public class QPCostFunction {
       Q.setZero ();
       P.setZero ();
       for (QPTerm term : myCostTerms) {
-         if (term.isEnabled ())
+         if (term.isEnabled ()) {
             term.getQP (Q,P,t0,t1);
+         }
       }
       int rowoff = 0;
       for (LeastSquaresTerm term : myInequalityTerms) {

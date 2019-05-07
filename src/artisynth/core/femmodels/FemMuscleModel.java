@@ -16,6 +16,7 @@ import java.util.Deque;
 import maspack.util.NumberFormat;
 import maspack.util.ObjectHolder;
 import maspack.util.ReaderTokenizer;
+import maspack.util.DataBuffer;
 import maspack.geometry.BVNode;
 import maspack.geometry.BVTree;
 import maspack.geometry.Boundable;
@@ -61,6 +62,10 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 
 public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
+
+   // option added just in case at some point it proves necessary to save
+   // muscle excitation values as state
+   protected static boolean saveExcitationsAsState = false;
 
    protected MuscleBundleList myMuscleList;
    protected MuscleMaterial myMuscleMat;
@@ -414,10 +419,13 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
          throw new IllegalArgumentException(
          "MuscleMaterial not allowed to be null for MuscleBundle");
       }
+      MuscleMaterial old = myMuscleMat;
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial(
          this, "muscleMaterial", myMuscleMat, mat);
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      componentChanged(MaterialChangeEvent.defaultEvent);
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         componentChanged (MaterialChangeEvent.defaultEvent);
+      }
    }
 
    public void addMuscleBundle(MuscleBundle bundle) {
@@ -708,6 +716,62 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
       bundle.addFiberMeshElements(rad, mesh);
       return bundle;
    }
+
+   /* --- Aux State Methods --- */
+
+   /*
+    * state get/set methods have been augmented to optionally save/restore
+    * excitation values, in case this proves necessary at some point. This
+    * feature is controlled by saveExcitationsAsState and is currently
+    * disabled.
+    */
+
+   public void advanceState(double t0, double t1) {
+      super.advanceState (t0, t1);
+   }
+
+   public void getState(DataBuffer data) {
+      super.getState (data);
+      if (saveExcitationsAsState) {
+         // save exitation values for both muscles and exciters
+         data.zput (myMuscleList.size());
+         for (MuscleBundle b : myMuscleList) {
+            data.dput (b.getExcitation());
+         }
+         data.zput (myExciterList.size());
+         for (MuscleExciter e : myExciterList) {
+            data.dput (e.getExcitation());
+         }
+      }
+   }
+   
+   public void setState(DataBuffer data) {
+
+      super.setState (data);
+      if (saveExcitationsAsState) {
+         // restore exitation values for both muscles and exciters
+         int numm = data.zget();
+         if (numm != myMuscleList.size()) {
+            throw new IllegalStateException (
+               "state has "+numm+" muscle excitations, expecting " +
+               myMuscleList.size());
+         }
+         for (MuscleBundle b : myMuscleList) {
+            b.setExcitation (data.dget());
+         }
+         int nume = data.zget();
+         if (nume != myExciterList.size()) {
+            throw new IllegalStateException (
+               "state has "+nume+" exciter excitations, expecting " +
+               myExciterList.size());
+         }
+         for (MuscleExciter e : myExciterList) {
+            e.setExcitation (data.dget());
+         }
+      }
+   }
+
+   /* --- Render Methods --- */
 
    public void prerender(RenderList list) {
       super.prerender(list);

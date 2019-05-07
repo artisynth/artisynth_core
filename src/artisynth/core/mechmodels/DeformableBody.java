@@ -122,10 +122,13 @@ public abstract class DeformableBody extends RigidBody
          throw new IllegalArgumentException (
             "Material not allowed to be null");
       }
+      FemMaterial old = myMaterial;
       myMaterial = (FemMaterial)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
-      // issue DynamicActivityChange in case solve matrix symmetry has changed:
-      notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      // issue change event in case solve matrix symmetry or state has changed:
+      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
+         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      }
    }
 
    public boolean getFreezeFrame() {
@@ -138,11 +141,12 @@ public abstract class DeformableBody extends RigidBody
 
    public void propertyChanged (PropertyChangeEvent e) {
       myStiffnessValidP = false;
-      if (e.getHost() instanceof FemMaterial) {
-          // issue DynamicActivityChange in case solve matrix symmetry has
-          // changed:
-          notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-      }
+      // used to issue DynamicActivityChange in case solve matrix symmetry has
+      // changed. However, this is unlikely and needs to be handled more
+      // broadly in any case
+      // if (e.getHost() instanceof FemMaterial) {
+      //     notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      // }
    }
 
    public VectorNd getElasticPos() {

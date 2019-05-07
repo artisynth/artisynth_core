@@ -6,6 +6,7 @@
  */
 package artisynth.core.mechmodels;
 
+import artisynth.core.modelbase.ComponentState;
 import maspack.matrix.*;
 import maspack.util.*;
 
@@ -32,8 +33,6 @@ public class SolveMatrixTest {
       myK = new MatrixNd (myVsize, myVsize);
 
       VectorNd u0 = new VectorNd (myVsize);
-      VectorNd usave = new VectorNd (myVsize);
-
       VectorNd q0 = new VectorNd (myQsize);
       VectorNd f0 = new VectorNd (myVsize);
       VectorNd uimp = new VectorNd (myVsize);
@@ -41,13 +40,12 @@ public class SolveMatrixTest {
       VectorNd f = new VectorNd (myVsize);
       sys.buildSolveMatrix (myS);
 
-
-      DataBuffer auxsave = new DataBuffer();
-      // save old velocity and any auxiliary state, because we are going to
-      // zero the velocity and advance the auxState and we will need to restore
-      sys.getActiveVelState (usave);
+      ComponentState savestate = sys.createState (null);
+      savestate.setAnnotated(true);
+      // save old state, because we are going to zero the velocity and advance
+      // the state and we will need to restore
+      sys.getState (savestate);
       sys.setActiveVelState (u0);
-      sys.getAuxState (auxsave);
 
       // build numeric stiffness matrix
       sys.getActivePosState (q0);
@@ -57,7 +55,7 @@ public class SolveMatrixTest {
 
       // the aux state code is necessary to handle situations involving
       // state-bearing force effectors like viscous materials
-      sys.advanceAuxState (0, h);
+      sys.advanceState (0, h);
 
       for (int i=0; i<myVsize; i++) {
          // increment position by a small amount
@@ -82,9 +80,8 @@ public class SolveMatrixTest {
 
       sys.addPosJacobian (myS, null, 1);
 
-      sys.setAuxState (auxsave);
-      sys.setActiveVelState (usave);
-      sys.updateForces (0);
+      // restore entire system state
+      sys.setState (savestate);
 
       MatrixNd Sdense = new MatrixNd (myS);
       Sdense.getSubMatrix (0, 0, myK);

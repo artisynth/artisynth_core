@@ -37,6 +37,8 @@ import maspack.render.Renderer;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
+import maspack.util.DataBuffer;
+
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.HasCoordinateFrame;
@@ -1081,38 +1083,11 @@ public class Frame extends DynamicComponentBase
       mySolveBlock = blk;
    }
 
-//   public MatrixBlock createSolveBlock () {
-//      FrameBlock blk = new FrameBlock (this);
-//      mySolveBlock = blk;
-//      return blk;
-//   }
-                                        
    public void setState (Frame frame) {
       myState.set (frame.myState);
       updatePosState();
       updateVelState();
    }
-
-//   public int setState (VectorNd x, int idx) {
-//      return myState.set (x, idx);
-//   }
-
-//   public void getState (FrameState state) {
-//      state.set (myState);
-//   }
-
-//   public int getState (VectorNd x, int idx) {
-//      return myState.get (x, idx);
-//   }
-
-//   public void setState (DynamicComponent c) {
-//      if (c instanceof Frame) {
-//         setState ((Frame)c);
-//      }
-//      else {
-//         throw new IllegalArgumentException ("component c is not a Frame");
-//      }
-//   }
    
    public int getPosState (double[] buf, int idx) {
       idx = myState.getPos (buf, idx);
@@ -1388,7 +1363,48 @@ public class Frame extends DynamicComponentBase
     * on the velocity state.
     */
    protected void updateVelState() {
-      
+   }
+
+   public void getState (DataBuffer data) {
+      int dsize;
+      if (MechSystemBase.mySaveForcesAsState) {
+         dsize = getPosStateSize()+2*getVelStateSize();
+      }
+      else {
+         dsize = getPosStateSize()+getVelStateSize();
+      }
+      int idx = data.dsize();
+      data.dsetSize (idx+dsize);
+      double[] dbuf = data.dbuffer();
+      idx = getPosState (dbuf, idx);
+      idx = getVelState (dbuf, idx);
+      if (MechSystemBase.mySaveForcesAsState) {
+         idx = getForce (dbuf, idx);
+      }
+   }
+
+   public void setState (DataBuffer data) {
+      int dsize;
+      if (MechSystemBase.mySaveForcesAsState) {
+         dsize = getPosStateSize()+2*getVelStateSize();
+      }
+      else {
+         dsize = getPosStateSize()+getVelStateSize();
+      }
+      int idx = data.doffset();
+      if (idx > data.dsize()-dsize) {
+         throw new ArrayIndexOutOfBoundsException (
+            "buffer does not have "+dsize+" doubles past the offset "+
+            "(doff=" + data.doffset() + ", size=" + data.dsize() +")");
+      }
+      double[] dbuf = data.dbuffer();
+      idx = setPosState (dbuf, idx);
+      idx = setVelState (dbuf, idx);
+      data.dskip (getPosStateSize()+getVelStateSize());
+      if (MechSystemBase.mySaveForcesAsState) {
+         idx = getForce (dbuf, idx);
+         data.dskip (getVelStateSize());
+      }
    }
 
    /**

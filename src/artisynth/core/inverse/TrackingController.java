@@ -132,8 +132,6 @@ public class TrackingController extends ControllerBase
    protected MuscleExciter myExciters;  // list of inputs
    protected boolean useMyExciters = false;
 
-   protected static final boolean DEFAULT_SAVE_EXCITATIONS_AS_STATE = false;
-   protected boolean mySaveExcitationsAsState = DEFAULT_SAVE_EXCITATIONS_AS_STATE;
    /*
     * Weights used to emphasize or de-emphasize certain excitation components,
     * by altering the component regularization term associated with that excitation component.
@@ -190,9 +188,6 @@ public class TrackingController extends ControllerBase
       myProps.add (
          "debug", "enables output of debug info to the console",
          DEFAULT_DEBUG);
-      myProps.add (
-         "saveExcitationsAsState", "enables excitations to be stored as state",
-         DEFAULT_SAVE_EXCITATIONS_AS_STATE);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -388,7 +383,6 @@ public class TrackingController extends ControllerBase
       else {
          myExcitations.set (myCostFunction.solve (t0, t1));
       }
-      
       
       /*
        * limit excitation jumps
@@ -668,7 +662,9 @@ public class TrackingController extends ControllerBase
          myExciters.addTarget(ex, gain);
       } else {
          exciters.add (ex);
-      }      
+      }
+      // keep size of myExcitations synced with number of exciters
+      myExcitations.append (0); 
       excitationRegularizationWeights.append (weight);
       
       if (ex instanceof MultiPointMuscle) {
@@ -711,6 +707,7 @@ public class TrackingController extends ControllerBase
 
          }
          exciters.clear ();
+         myExcitations.setSize(0);
       }
    }
 
@@ -1349,69 +1346,38 @@ public class TrackingController extends ControllerBase
    /* ---- Reimplementation of HasState to store excitations --- */
 
    /**
-    * Sets whether or not excitations are stored as state. The default value is
-    * {@code false}. Storing exitations as state means that excitations will be
-    * stored in WayPoints, which means that things likes excitation-dependent
-    * muscle coloring will render correctly as WayPoints are traversed.
-    *
-    * @param enable if {@code true}, excitations will be stored as state.
-    */
-   public void setSaveExcitationsAsState (boolean enable) {
-      if (mySaveExcitationsAsState != enable) {
-         mySaveExcitationsAsState = enable;
-         // propagate DynamicActivityChangeEvent to invalidate waypoints
-         notifyParentOfChange (new DynamicActivityChangeEvent(this));
-      }
-   }
-
-   /**
-    * Query whether excitations are stored as state.
-    *
-    * @return true if excitations are stored as state
-    */
-   public boolean getSaveExcitationsAsState () {
-      return mySaveExcitationsAsState;
-   }
-
-   /**
     * {@inheritDoc}
-    */   
+    */      
    public boolean hasState() {
-      return mySaveExcitationsAsState;
+      return true;
    }
    
    /**
     * {@inheritDoc}
     */   
-   public ComponentState createState(ComponentState prevState) {
-      if (!hasState()) {
-         return super.createState (prevState);
-      }
-      else {
-         // store excitations in a NumericState
-         return new NumericState (numExcitations(), 1);
-      }
+   public ComponentState createState (
+      ComponentState prevState) {
+      // store excitations in a NumericState
+      return new NumericState (1, numExcitations());
    }
    
    /**
     * {@inheritDoc}
     */   
    public void getState (ComponentState state) {
-      if (hasState()) {
-         NumericState nstate = castToNumericState(state);
-         nstate.resetOffsets();
-         // Store number of excitation values
-         int numStoredExcitationValues = numExcitations();
-         nstate.zput (numStoredExcitationValues);
-         for (int i=0; i<numStoredExcitationValues; i++) {
-            double exval = 0;
-            // In some cases, myExcitations may have a size < numExcitations().
-            // Just store a 0 in that case.
-            if (i < myExcitations.size()) {
-               exval = myExcitations.get(i);
-            }
-            nstate.dput (exval);
+      NumericState nstate = castToNumericState(state);
+      nstate.resetOffsets();
+      // Store number of excitation values
+      int nexvals = numExcitations();
+      nstate.zput (nexvals);
+      for (int i=0; i<nexvals; i++) {
+         double exval = 0;
+         // In some cases, myExcitations may have a size < numExcitations().
+         // Just store a 0 in that case.
+         if (i < myExcitations.size()) {
+            exval = myExcitations.get(i);
          }
+         nstate.dput (exval);
       }
    }
    
@@ -1419,21 +1385,19 @@ public class TrackingController extends ControllerBase
     * {@inheritDoc}
     */
    public void setState (ComponentState state) {
-      if (hasState()) {
-         NumericState nstate = castToNumericState(state);
-         nstate.resetOffsets();
-         // Get number of stored excitation values
-         int numStoredExcitationValues = nstate.zget();
-         for (int i=0; i<numStoredExcitationValues; i++) {
-            double val = nstate.dget();
-            // If numExcitations() has changed, we may have more
-            // value than we need. Just ignore extra values.
-            if (i < myExcitations.size()) {
-               myExcitations.set (i, val);
-            }
+      NumericState nstate = castToNumericState(state);
+      nstate.resetOffsets();
+      // Get number of stored excitation values
+      int numStoredExcitationValues = nstate.zget();
+      for (int i=0; i<numStoredExcitationValues; i++) {
+         double val = nstate.dget();
+         // If numExcitations() has changed, we may have more
+         // value than we need. Just ignore extra values.
+         if (i < myExcitations.size()) {
+            myExcitations.set (i, val);
          }
-         setExcitations (myExcitations, 0);
       }
+      setExcitations (myExcitations, 0);
    }
    
 }

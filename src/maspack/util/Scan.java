@@ -652,4 +652,5 @@ public class Scan {
       font = font.deriveFont (fontStyle, (float)fontSize);
       return font;
    }
+
 }

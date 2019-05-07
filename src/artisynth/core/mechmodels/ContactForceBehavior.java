@@ -31,10 +31,10 @@ public interface ContactForceBehavior {
     * @param cpnt1 first contact point
     * @param cpnt2 second contact point
     * @param normal contact normal, facing outward from the surface
-    * @param region penetration region on the mesh associated with the 
-    * first contact point, if available
+    * @param contactArea average area associated with the contact, or
+    * -1 if this information is not available
     */
    public void computeResponse (
       double[] fres, double dist, ContactPoint cpnt1, ContactPoint cpnt2,
-      Vector3d normal, PenetrationRegion region);
+      Vector3d normal, double contactArea);
 }

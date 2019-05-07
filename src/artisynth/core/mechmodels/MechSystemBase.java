@@ -41,18 +41,15 @@ import artisynth.core.util.TimeBase;
 public abstract class MechSystemBase extends RenderableModelBase
    implements MechSystemModel {
 
+   public static boolean mySaveForcesAsState = true;
    public static boolean myParametricsInSystemMatrix = true;
    //public static boolean myZeroForcesInPreadvance = true;
 
    protected int myStructureVersion = 0;
+   // flag indicating that the state resulting from the current 
+   // advance will be saved
+   protected boolean myStateWillBeSaved = false;
 
-   // last time step associated with bilateral impulses. Initialize to 1
-   // to ensure constrainer.setBilateralImpulses is never called with h = 0
-   protected double myLastBilateralH = 1;
-   // last time step associated with unilateral impulses. Initialize to 1
-   // to ensure constrainer.setUnilateralImpulses is never called with h = 0
-   protected double myLastUnilateralH = 1;
-   
    protected ArrayList<DynamicComponent> myDynamicComponents;
    protected ArrayList<MotionTargetComponent> myParametricComponents;
    protected ArrayList<DynamicAttachment> myAttachments;
@@ -60,7 +57,7 @@ public abstract class MechSystemBase extends RenderableModelBase
    protected ArrayList<DynamicAttachment> myParametricAttachments;
    protected ArrayList<Constrainer> myConstrainers;
    protected ArrayList<ForceEffector> myForceEffectors;
-   protected ArrayList<HasAuxState> myAuxStateComponents;
+   protected ArrayList<HasNumericState> myAuxStateComponents;
    protected ArrayList<HasSlaveObjects> mySlaveObjectComponents;
 
    protected VectorNd myInitialForces = new VectorNd();
@@ -97,8 +94,9 @@ public abstract class MechSystemBase extends RenderableModelBase
 
    protected boolean myDynamicsEnabled = DEFAULT_DYNAMICS_ENABLED; 
    protected boolean myProfilingP = DEFAULT_PROFILING;
+   protected int myProfilingCnt = 0;
    protected boolean myInsideAdvanceP = false;
-   protected long mySolveTime;
+   protected double myAvgSolveTime;
    protected StepAdjustment myStepAdjust;
 
    String myPrintState = null;
@@ -117,11 +115,71 @@ public abstract class MechSystemBase extends RenderableModelBase
    VectorNi myUnilateralSizes = new VectorNi(100);
 
    private double myPenetrationLimit = -1;
-//   private int myMassConstraintCnt = 0;
-//   private int myGTConstraintCnt = 0;
 
    public static PropertyList myProps =
       new PropertyList (MechModel.class, RenderableModelBase.class);
+
+   /**
+    * Special class to save/restore constraint forces as state
+    */
+   public class ConstraintForceStateSaver implements HasNumericState {
+
+      public boolean hasState() {
+         return true;
+      }
+
+      public void getInitialState (NumericState nstate) {
+         int numf = getNumBilateralForces() + getNumUnilateralForces();
+         nstate.zput (numf);
+         int di = nstate.dsize();
+         int dsize = di+numf;
+         nstate.dsetSize (dsize);
+         double[] dbuf = nstate.dbuffer();
+         while (di < dsize) {
+            dbuf[di++] = 0;
+         }
+         if (nstate.hasDataFrames()) {
+            nstate.addDataFrame (this);
+         }
+      }
+
+      public void getState (DataBuffer data) {
+         int numf = getNumBilateralForces() + getNumUnilateralForces();
+         data.zput (numf);
+         int di = data.dsize();
+         data.dsetSize (di+numf);
+         // create special vector to access the state ...
+         VectorNd dvec = new VectorNd();
+         dvec.setBuffer (data.dsize(), data.dbuffer());
+         for (int i=0; i<myConstrainers.size(); i++) {
+            Constrainer c = myConstrainers.get(i);
+            di = c.getBilateralForces (dvec, di);
+            di = c.getUnilateralForces (dvec, di);
+         }         
+      }
+
+      public void setState (DataBuffer data) {
+         int chkf = getNumBilateralForces() + getNumUnilateralForces();
+         int numf = data.zget();
+         if (numf != chkf) {
+            throw new IllegalArgumentException (
+               "number of impulse forces is "+numf+", expecting "+chkf);
+         }
+         // create special vector to access the state ...
+         VectorNd dvec = new VectorNd();
+         dvec.setBuffer (data.dsize(), data.dbuffer());
+         int di = data.doffset();
+         for (int i=0; i<myConstrainers.size(); i++) {
+            Constrainer c = myConstrainers.get(i);
+            di = c.setBilateralForces (dvec, 1.0, di);
+            di = c.setUnilateralForces (dvec, 1.0, di);
+         }
+         data.dsetOffset (di);
+      }
+   }
+
+   ConstraintForceStateSaver myConstraintForceStateSaver =
+      new ConstraintForceStateSaver();
 
    static {
       myProps.add (
@@ -166,7 +224,6 @@ public abstract class MechSystemBase extends RenderableModelBase
          mySolver.setUpdateForcesAtStepEnd (DEFAULT_UPDATE_FORCES_AT_STEP_END);
       }
    }
-
 
    public boolean getDynamicsEnabled() {
       return myDynamicsEnabled;
@@ -237,7 +294,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   public int getNumUnilateralImpulses () {
+   public int getNumUnilateralForces () {
       myUnilateralSizes.setSize (0);
       getUnilateralConstraintSizes (myUnilateralSizes);
       return myUnilateralSizes.sum();
@@ -277,7 +334,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       NT.setVerticallyLinked (true);
    }
 
-   public int getNumBilateralImpulses () {
+   public int getNumBilateralForces () {
       myBilateralSizes.setSize (0);
       getBilateralConstraintSizes (myBilateralSizes);
       return myBilateralSizes.sum();
@@ -290,7 +347,15 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   public int getBilateralConstraints (SparseBlockMatrix GT, VectorNd dg) {
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isBilateralStructureConstant() {
+      // assume true - override if 
+      return true;
+   }
+   
+   public void getBilateralConstraints (SparseBlockMatrix GT, VectorNd dg) {
 
       if (GT.numBlockRows() != 0 || GT.numBlockCols() != 0) {
          throw new IllegalArgumentException (
@@ -317,7 +382,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       // need this for now - would be good to get rid of it:
       GT.setVerticallyLinked (true);
-      return 0;
    }
 
    public void getBilateralInfo (ConstraintInfo[] ginfo) {
@@ -328,32 +392,26 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   public void setBilateralImpulses (VectorNd lam, double h) {
-      setBilateralImpulses (lam, h, 0);
+   public void setBilateralForces (VectorNd lam, double s) {
+      setBilateralForces (lam, s, 0);
    }         
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx) {
+   public int setBilateralForces (VectorNd lam, double s, int idx) {
       updateForceComponentList();
-      myLastBilateralH = h;
       for (int i=0; i<myConstrainers.size(); i++) {
-         idx = myConstrainers.get(i).setBilateralImpulses (lam, h, idx);
+         idx = myConstrainers.get(i).setBilateralForces (lam, s, idx);
       }
       return idx;
    }
 
-   public void getBilateralImpulses (VectorNd lam) {
+   public void getBilateralForces (VectorNd lam) {
       updateForceComponentList();
-      getBilateralImpulses (lam, 0);
+      getBilateralForces (lam, 0);
    }
    
-   public void getBilateralForces(VectorNd lam) {
-      getBilateralImpulses(lam);
-      lam.scale(1.0/myLastBilateralH);
-   }
-   
-   public int getBilateralImpulses (VectorNd lam, int idx) {
+   public int getBilateralForces (VectorNd lam, int idx) {
       for (int i=0; i<myConstrainers.size(); i++) {
-         idx = myConstrainers.get(i).getBilateralImpulses (lam, idx);
+         idx = myConstrainers.get(i).getBilateralForces (lam, idx);
       }
       return idx;
    }
@@ -366,32 +424,26 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   public void setUnilateralImpulses (VectorNd the, double h) {
-      setUnilateralImpulses (the, h, 0);
+   public void setUnilateralForces (VectorNd the, double s) {
+      setUnilateralForces (the, s, 0);
    }         
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
+   public int setUnilateralForces (VectorNd the, double s, int idx) {
       updateForceComponentList();
-      myLastUnilateralH = h;
       for (int i=0; i<myConstrainers.size(); i++) {
-         idx = myConstrainers.get(i).setUnilateralImpulses (the, h, idx);
+         idx = myConstrainers.get(i).setUnilateralForces (the, s, idx);
       }
       return idx;
    }
 
-   public void getUnilateralImpulses (VectorNd the) {
+   public void getUnilateralForces (VectorNd the) {
       updateForceComponentList();
-      getUnilateralImpulses (the, 0);
+      getUnilateralForces (the, 0);
    }         
-   
-   public void getUnilateralForces(VectorNd the) {
-      getUnilateralImpulses(the);
-      the.scale(1.0/myLastUnilateralH);
-   }
 
-   public int getUnilateralImpulses (VectorNd the, int idx) {
+   public int getUnilateralForces (VectorNd the, int idx) {
       for (int i=0; i<myConstrainers.size(); i++) {
-         idx = myConstrainers.get(i).getUnilateralImpulses (the, idx);
+         idx = myConstrainers.get(i).getUnilateralForces (the, idx);
       }
       return idx;
    }
@@ -589,7 +641,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          // clearCachedData(). So, we need to make sure
          // updateAuxStateComponentList() is called before any other updates
          // are called.
-         ArrayList<HasAuxState> list = new ArrayList<HasAuxState>();
+         ArrayList<HasNumericState> list = new ArrayList<HasNumericState>();
          getAuxStateComponents (list, 0);
          myAuxStateComponents = list;
       }
@@ -829,29 +881,73 @@ public abstract class MechSystemBase extends RenderableModelBase
       setPrintState (fmt, -1);
    }
 
-   public synchronized PrintWriter openPrintStateFile (String name)
+   public synchronized PrintWriter openPrintStateFile (String fileName)
       throws IOException {
       if (myPrintStateWriter != null) {
          myPrintStateWriter.close();
       }
       myPrintStateWriter = new PrintWriter (
-         new BufferedWriter (new FileWriter (name)));
+         new BufferedWriter (new FileWriter (fileName)));
       return myPrintStateWriter;
    }
 
-   public synchronized PrintWriter reopenPrintStateFile (String name)
+   public synchronized PrintWriter reopenPrintStateFile (String fileName)
       throws IOException {
       if (myPrintStateWriter != null) {
          myPrintStateWriter.close();
       }
       myPrintStateWriter = new PrintWriter (
-         new BufferedWriter (new FileWriter (name, /*append=*/true)));
+         new BufferedWriter (new FileWriter (fileName, /*append=*/true)));
       return myPrintStateWriter;
    }
 
    public synchronized void closePrintStateFile () throws IOException {
       if (myPrintStateWriter != null) {
          myPrintStateWriter.close();
+      }
+   }
+
+   public synchronized void writePrintStateHeader (String description) {
+      
+      updateDynamicComponentLists();
+      if (myPrintStateWriter == null) {
+         System.out.println ("TEST \""+description+"\"");
+         System.out.print ("comps: [");
+      }
+      else {
+         myPrintStateWriter.println ("TEST \""+description+"\"");
+         myPrintStateWriter.print ("comps: [");
+      }
+      for (int i=0; i<myNumActive; i++) {
+         DynamicComponent c = myDynamicComponents.get(i);
+         String symbol = null;
+         if (c.getPosStateSize() == 3) {
+            // XXX HACK - shouldn't assume posStateSize == 3 means a point
+            symbol = "P";
+         }
+         else if (c instanceof Frame) {
+            symbol = "F";
+            if (c.getPosStateSize() > 7) {
+               symbol += " R" + (c.getPosStateSize()-7);
+            }
+         }
+         else {
+            throw new UnsupportedOperationException (
+               "printState not supported for " + c.getClass());
+         }
+         if (myPrintStateWriter == null) {
+            System.out.print (" " + symbol);
+         }
+         else {
+            myPrintStateWriter.print (" " + symbol);
+         }           
+      }
+      if (myPrintStateWriter == null) {
+         System.out.println (" ]");
+      }
+      else {
+         myPrintStateWriter.println (" ]");
+         myPrintStateWriter.flush();
       }
    }
 
@@ -888,29 +984,15 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   private void checkState() {
-//      updateDynamicComponents();
-//      RootModel root = Main.getRootModel();
-//      if (root.isCheckEnabled()) {
-//         VectorNd x = new VectorNd (myActivePosStateSize);
-//         VectorNd v = new VectorNd (myActiveVelStateSize);
-//         getActivePosState (x, 0);
-//         getActiveVelState (v, 0);
-//         root.checkWrite ("v: " + v.toString ("%g"));
-//         root.checkWrite ("x: " + x.toString ("%g"));
-//      }
-   }
-
-   
-   protected void advanceAuxState (double t0, double t1) {
+   protected void advanceState (double t0, double t1) {
       updateAuxStateComponentList();
       for (int i=0; i<myAuxStateComponents.size(); i++) {
-         myAuxStateComponents.get(i).advanceAuxState (t0, t1);
+         myAuxStateComponents.get(i).advanceState (t0, t1);
       }
    }      
 
    public StepAdjustment preadvance (double t0, double t1, int flags) {
-      advanceAuxState (t0, t1);
+      advanceState (t0, t1);
       // zero forces
       updateDynamicComponentLists();
       //FunctionTimer timer = new FunctionTimer();
@@ -923,18 +1005,24 @@ public abstract class MechSystemBase extends RenderableModelBase
       return null;
    }
 
+   private String getName (Object obj) {
+      if (obj instanceof ModelComponent) {
+         return ComponentUtils.getPathName ((ModelComponent)obj);
+      }
+      else {
+         return obj.toString();
+      }
+   }
+
    public StepAdjustment advance (double t0, double t1, int flags) {
 
       myInsideAdvanceP = true;
       StepAdjustment stepAdjust = new StepAdjustment();
       collectInitialForces();
 
-      if (t0 == 0) {
-         updateForces (t0);
-      }
-
+      double solveTime = 0;
       if (myProfilingP) {
-         mySolveTime = System.nanoTime();
+         solveTime = System.nanoTime();
       }      
 
       if (!myDynamicsEnabled) {
@@ -945,15 +1033,25 @@ public abstract class MechSystemBase extends RenderableModelBase
          if (t0 == 0 && myPrintState != null) {
             printState (myPrintState, 0);
          }
-         checkState();
+         // Force solver to perform an analyze step on its bilateral constraint
+         // matrices if state is volatile, the bilateral constraint structure
+         // is not constant, and t0 != 0. This is to ensure precise numeric
+         // repeatability: if the orginal advance didn't require an analyze
+         // step but the restored state did, there may be small (machine
+         // precision level) differences in the results. t0 == 0 is ignored
+         // because it is assume an analyze step will be performed there
+         // regardless
+         if ((flags & Model.STATE_IS_VOLATILE) != 0 && t0 != 0 &&
+             !isBilateralStructureConstant()) {
+            mySolver.forceBilateralAnalysis();
+         }
          mySolver.solve (t0, t1, stepAdjust);
          //FunctionTimer timer = new FunctionTimer();
          //timer.start();
          DynamicComponent c = checkVelocityStability();
          if (c instanceof DynamicComponent) {
             throw new NumericalException (
-               "Unstable velocity detected, component " +
-               ComponentUtils.getPathName ((DynamicComponent)c));
+               "Unstable velocity detected, component " + getName(c));
          }
          else if (c != null) {
             throw new NumericalException (
@@ -968,48 +1066,31 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
 
       if (myProfilingP) {
-         mySolveTime = System.nanoTime() - mySolveTime;
+         solveTime = System.nanoTime() - solveTime;
+         int cnt = myProfilingCnt++;
+         myAvgSolveTime = (cnt*myAvgSolveTime + solveTime)/(cnt+1);
          System.out.println (
-            "T1=" + t1 + " solveTime=" + mySolveTime/1e6 + " ms");
+            "T1=" + t1 + " avgSolveTime=" + myAvgSolveTime/1e6 + " ms");
       }
       myInsideAdvanceP = false;
       return stepAdjust;
    }
 
-//   public void increaseAuxStateOffsets (DataBuffer data) {
-//      updateAuxStateComponentList();
-//      for (int i=0; i<myAuxStateComponents.size(); i++) {
-//         myAuxStateComponents.get(i).increaseAuxStateOffsets (
-//            data, StateContext.CURRENT);
-//      }
-//   }
-
-   public void getAuxState (DataBuffer data) {
-      updateAuxStateComponentList();
-      for (int i=0; i<myAuxStateComponents.size(); i++) {
-         myAuxStateComponents.get(i).getAuxState (data);
-      }
-   }
-
-   public void setAuxState (DataBuffer data) {
-      updateAuxStateComponentList();
-      for (int i=0; i<myAuxStateComponents.size(); i++) {
-         myAuxStateComponents.get(i).setAuxState (data);
-      }
-   }
-
-   public ComponentState createState (ComponentState prevState) {
+   public ComponentState createState (
+      ComponentState prevState) {
+      NumericState state;
       if (prevState instanceof NumericState) {
          NumericState last = (NumericState)prevState;
          // use old state to set capacity. Make the capacity a 10%
          // bigger, just in case
          int dcap = (int)(1.1*last.dsize());
          int zcap = (int)(1.1*last.zsize());
-         return new NumericState (dcap, zcap, 0);
+         state = new NumericState (zcap, dcap, 0);
        }
       else {
-         return new NumericState (1000, 1000, 0);
+         state = new NumericState (1000, 1000, 0);
       }
+      return state;
    }
 
    private class DynamicStateOffsets {
@@ -1045,20 +1126,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       return map;
    }
 
-   private void checkState (ComponentState state, String name) {
-      if (!(state instanceof NumericState)) {
-         throw new IllegalArgumentException (name+" not a NumericState");
-      }
-      NumericState nstate = (NumericState)state;
-      if (nstate.osize() == 0) {
-         throw new IllegalArgumentException (name+" does not contain components");
-      }
-      if (nstate.zpeek (0) != 0x1234) {
-         throw new IllegalArgumentException (
-            "checksum for "+name+" is "+nstate.zpeek(0)+", expecting "+0x1234);
-      }
-   }
-
    // NEWX
    public void setState (ComponentState pstate) {
       if (!(pstate instanceof NumericState)) {
@@ -1081,7 +1148,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
       int numDynComps = state.zget();
       int numAuxStateComps = state.zget();
-      int numConstrainers = state.zget();
 
       if (numDynComps != myNumActive+myNumParametric) {
          throw new IllegalArgumentException (
@@ -1093,65 +1159,25 @@ public abstract class MechSystemBase extends RenderableModelBase
             "number of AuxState components is "+numAuxStateComps+
             ", expecting "+myAuxStateComponents.size());
       }
-      if (numConstrainers != -1 && numConstrainers != myConstrainers.size()) {
-         throw new IllegalArgumentException (
-            "number of constrainers is "+numConstrainers+
-            ", expecting "+myConstrainers.size());
-      }
 
-      int di = 0;
-      double[] dbuf = state.dbuffer();
       for (int i=0; i<myNumActive+myNumParametric; i++) {
          DynamicComponent c = myDynamicComponents.get(i);
-         int size = c.getPosStateSize() + c.getVelStateSize();
-         // XXX should check size here
-         di = c.setPosState (dbuf, di);
-         di = c.setVelState (dbuf, di);
-      }      
-      updatePosState();
-      updateVelState();
-      state.dskip (di);
+         c.setState (state);
+      }
+      updatePosState(); // do we need?
+      updateVelState(); // do we need?
+//      state.dskip (di);
 
       // setting aux state must be done here because it may change the number
-      // of bilateral and unilateral impulses expected by the constrainers
-      setAuxState (state);
-
-      // Hack to make sure Andrew Ho's earlier version way point data still
-      // reads.  In that earlier version, numConstrainers == 0 meant that
-      // myLastBilateralH and myLastUnilateralH were not stored. 
-      if (state.doffset() == state.dsize() && numConstrainers == 0) {
-         numConstrainers = -1;
+      // of bilateral and unilateral forces expected by the constrainers
+      for (int i=0; i<myAuxStateComponents.size(); i++) {
+         myAuxStateComponents.get(i).setState (state);
       }
-
-      // numConstrainers == -1 indicates initial state
-      if (numConstrainers == -1) {
-         myLastBilateralH = 1;
-         myLastUnilateralH = 1;
-         for (int i=0; i<myConstrainers.size(); i++) {
-            myConstrainers.get(i).zeroImpulses();
-         }
-      }
-      else {
-         myLastBilateralH = state.dget();
-         myLastUnilateralH = state.dget();
-         // create special vector to access the state ...
-         VectorNd dvec = new VectorNd();
-         dvec.setBuffer (state.dsize(), state.dbuffer());
-         di = state.doffset();
-         for (int i=0; i<myConstrainers.size(); i++) {
-            Constrainer c = myConstrainers.get(i);
-            di = c.setBilateralImpulses (dvec, myLastBilateralH, di);
-            di = c.setUnilateralImpulses (dvec, myLastUnilateralH, di);
-         }
-         state.dsetOffset (di);
-      }
-
+      myConstraintForceStateSaver.setState (state);
    }
-
+   
    // NEWX
    public void getState (ComponentState pstate) {
-      long t0 = System.nanoTime();
-
       if (!(pstate instanceof NumericState)) {
          throw new IllegalArgumentException ("pstate not a NumericState");
       }
@@ -1163,41 +1189,25 @@ public abstract class MechSystemBase extends RenderableModelBase
       updateDynamicComponentLists();
       updateForceComponentList();
 
-
-      int numb = getNumBilateralImpulses();
-      int numu = getNumUnilateralImpulses();
+      int numb = getNumBilateralForces();
+      int numu = getNumUnilateralForces();
 
       state.zput (0x1234);
       state.zput (myNumActive+myNumParametric);
       state.zput (myAuxStateComponents.size());
-      state.zput (myConstrainers.size());
+      if (state.hasDataFrames()) {
+         state.addDataFrame (null);
+      }
 
       for (int i=0; i<myNumActive+myNumParametric; i++) {
          DynamicComponent c = myDynamicComponents.get(i);
-         int size = c.getVelStateSize()+c.getPosStateSize();
-         int di = state.dsize();
-         state.dsetSize (di+size);
-         double[] dbuf = state.dbuffer();
-         di = c.getPosState (dbuf, di);
-         di = c.getVelState (dbuf, di);
-      }      
-      getAuxState (state);
-
-      state.dput (myLastBilateralH);
-      state.dput (myLastUnilateralH);
-      int di = state.dsize();
-      state.dsetSize (di+numb+numu);
-      // create special vector to access the state ...
-      VectorNd dvec = new VectorNd();
-      dvec.setBuffer (state.dsize(), state.dbuffer());
-      for (int i=0; i<myConstrainers.size(); i++) {
-         Constrainer c = myConstrainers.get(i);
-         di = c.getBilateralImpulses (dvec, di);
-         di = c.getUnilateralImpulses (dvec, di);
+         state.getState (c);
       }
-
-      long t1 = System.nanoTime();
-      //System.out.println ("getState=" + (t1-t0)*1e-6 + "msec");
+      updateAuxStateComponentList();
+      for (int i=0; i<myAuxStateComponents.size(); i++) {
+         state.getState (myAuxStateComponents.get(i));
+      }
+      state.getState (myConstraintForceStateSaver);
    }
  
    public void getInitialState (
@@ -1207,89 +1217,71 @@ public abstract class MechSystemBase extends RenderableModelBase
          throw new IllegalArgumentException ("newstate not a NumericState");
       }
       NumericState nstate = (NumericState)newstate;
+      nstate.setHasDataFrames (true);
       nstate.clear();
 
       updateAuxStateComponentList();
       updateDynamicComponentLists();
       updateForceComponentList();
 
-      HashMap<DynamicComponent,DataBuffer> dynCompMap =
-         new HashMap<DynamicComponent,DataBuffer>();
+      HashMap<HasNumericState,NumericState.DataFrame> compMap = 
+         new HashMap<HasNumericState,NumericState.DataFrame>();
 
-      HashMap<HasAuxState,DataBuffer> auxCompMap =
-         new HashMap<HasAuxState,DataBuffer>();
-
+      NumericState ostate = null;
       if (oldstate != null) {
          if (!(oldstate instanceof NumericState)) {
             throw new IllegalArgumentException ("oldstate not a NumericState");
          }
-         NumericState ostate = (NumericState)oldstate;
+         ostate = (NumericState)oldstate;
+         if (!ostate.hasDataFrames()) {
+            throw new IllegalArgumentException ("oldstate does not have frames");
+         }
          ostate.resetOffsets();
-
          int chk = ostate.zget();
          if (chk != 0x1234) {
             throw new IllegalArgumentException (
                "oldstate checksum is "+chk+", expecting "+0x1234);
          }
-         int numOldDynComps = ostate.zget();
-         int numOldAuxStateComps = ostate.zget();
-         int numOldConstrainers = ostate.zget();
-
-         for (int i=0; i<numOldDynComps; i++) {
-            DynamicComponent c = (DynamicComponent)ostate.oget();
-            DataBuffer data = new DataBuffer ();
-            data.setBuffersAndOffsets (ostate);
-            dynCompMap.put (c, data);           
-            ostate.dskip (c.getPosStateSize()+c.getVelStateSize());
-         }
-
-         for (int i=0; i<numOldAuxStateComps; i++) {
-            HasAuxState c = (HasAuxState)ostate.oget();
-            DataBuffer data = new DataBuffer ();
-            data.setBuffersAndOffsets (ostate);
-            auxCompMap.put (c, data);
-            c.skipAuxState (ostate);
+         for (int k=0; k<ostate.numDataFrames(); k++) {
+            NumericState.DataFrame frame = ostate.getDataFrame(k);
+            compMap.put (frame.getComp(), frame);
          }
       }
-      
-//      // add object information: active and parametric components,
-//      // aux state components, and constrainers
-//      for (int i=0; i<myNumActive+myNumParametric; i++) {
-//         nstate.oput (myDynamicComponents.get(i));
-//      }      
-//      nstate.oputs (myAuxStateComponents);
       
       nstate.zput (0x1234);
       nstate.zput (myNumActive+myNumParametric);
       nstate.zput (myAuxStateComponents.size());
-      // specify -1 constrainers, to cause impulses to be zeroed
-      nstate.zput (-1);
+      // specify -1 constrainers, to cause forces to be zeroed
 
-      //double[] dbufNew = nstate.dbuffer();
+      nstate.addDataFrame (null);
+
       for (int i=0; i<myNumActive+myNumParametric; i++) {
-         DynamicComponent c = myDynamicComponents.get(i);
-         nstate.oput (c);
-         DataBuffer data = dynCompMap.get (c);
-         int size = c.getVelStateSize()+c.getPosStateSize();
-         if (data != null) {
-            nstate.putData (data, size, 0);
+         HasNumericState c = myDynamicComponents.get(i);
+         NumericState.DataFrame frame = compMap.get(c);
+         if (frame != null && frame.getVersion() == c.getStateVersion()) {
+            nstate.getState (frame, ostate);
          }
          else {
-            int di = nstate.dsize();
-            nstate.dsetSize (di + size);
-            double[] dbuf = nstate.dbuffer();
-            di = c.getPosState (dbuf, di);
-            di = c.getVelState (dbuf, di);
+            nstate.getState (c);
          }
       }
-
-      for (HasAuxState c : myAuxStateComponents) {
-         nstate.oput (c);
-         c.getInitialAuxState (nstate, auxCompMap.get (c));
+      for (HasNumericState c : myAuxStateComponents) {
+         NumericState.DataFrame frame = compMap.get(c);
+         if (frame != null && frame.getVersion() == c.getStateVersion()) {
+            nstate.getState (frame, ostate);
+         }
+         else {
+            nstate.getState (c);
+         }
       }
+      myConstraintForceStateSaver.getInitialState (nstate);
    }
 
    public void initialize (double t) {
+      if (t == 0) {
+         myAvgSolveTime = 0;
+         myProfilingCnt = 0;
+      }
       updatePosState();
       updateVelState();
       collectInitialForces();
@@ -1301,11 +1293,13 @@ public abstract class MechSystemBase extends RenderableModelBase
          if (t == 0) {
             clearCachedData(null);
             updateDynamicComponentLists();
+            updateForceComponentList();
             for (int i=0; i<myNumParametric; i++) {
                myParametricComponents.get(i).resetTargets();
             }
+            updateForces (t);
          }
-         updateForces (t);
+         //updateForces (t);
       }
    }
 
@@ -1314,7 +1308,13 @@ public abstract class MechSystemBase extends RenderableModelBase
    }  
 
    public void setProfiling (boolean enable) {
-      myProfilingP = enable;
+      if (myProfilingP != enable) {
+         if (enable) {
+            myAvgSolveTime = 0;
+            myProfilingCnt = 0;
+         }
+         myProfilingP = enable;
+      }
    }
 
    public boolean getProfiling() {

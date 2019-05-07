@@ -5,7 +5,8 @@ JAVA_SUBDIRS =
 
 PACKAGE_JAVA_FILES = 
 
-JAVA_TEST_PROGRAMS =
+JAVA_TEST_PROGRAMS = \
+	WayPointProbeTest
 
 default: build
 

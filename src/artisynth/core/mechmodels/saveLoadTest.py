@@ -129,10 +129,9 @@ testSaveLoad ("artisynth.demos.test.TorusWrapTest")
 testSaveLoad ("artisynth.demos.test.LinearPointConstraintTest")
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 
-
 #testSaveLoad ("artisynth.demos.mech.PointForceDemo")
 
-#testSaveLoad ("artisynth.models.inversedemos.PointModel2d")
-#testSaveLoad ("artisynth.models.inversedemos.PointModel3d")
-
 main.maskFocusStealing (False)
+if main.getMainFrame() == None:
+   main.quit()
+

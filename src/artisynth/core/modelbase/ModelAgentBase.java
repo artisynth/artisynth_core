@@ -41,7 +41,11 @@ public abstract class ModelAgentBase extends ModelComponentBase
    }
    
    public void setActive (boolean enable) {
-      myActiveP = enable;
+      if (enable != myActiveP) {
+         myActiveP = enable;
+         // changing activity changes whether or not probe has state 
+         notifyParentOfChange (new StructureChangeEvent(this));
+      }
    }
 
    public void initialize(double t) {

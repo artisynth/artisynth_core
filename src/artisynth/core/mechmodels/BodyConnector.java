@@ -945,6 +945,8 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
+   private static double ftol = 1e-2;
+
    protected int addFrictionConstraints (
       SparseBlockMatrix DT, FrictionInfo[] finfo, int numf,
       ArrayList<RigidBodyConstraint> constraints) {
@@ -981,7 +983,7 @@ public abstract class BodyConnector extends RenderableComponentBase
          }
          // only add friction constraint if friction is large enough,
          // and if the friction dimension is 1 or 2
-         if (mu*lam > 1e-4 && (fdimv == 1 || fdimv == 2)) {
+         if (mu*lam > ftol && (fdimv == 1 || fdimv == 2)) {
             Wrench wr0 = null;
             Wrench wr1 = null;
 
@@ -995,7 +997,7 @@ public abstract class BodyConnector extends RenderableComponentBase
                wr0.f.set (tdir);
                wr1 = new Wrench();
                wr1.f.cross (vdir, tdir);
-               // friction calculation will use impulses from 1 constraint
+               // friction calculation will use forces from 1 constraint
                finfo[numf].contactIdx0 = idxs[0];
                finfo[numf].contactIdx1 = -1;
             }
@@ -1004,7 +1006,7 @@ public abstract class BodyConnector extends RenderableComponentBase
                // Set this directions in the wrenches wr0.
                wr0 = new Wrench();
                wr0.f.set (vdir);
-               // friction calculation will use impulses from 2 constraints
+               // friction calculation will use forces from 2 constraints
                finfo[numf].contactIdx0 = idxs[0];
                finfo[numf].contactIdx1 = idxs[1];
             }
@@ -1332,17 +1334,17 @@ public abstract class BodyConnector extends RenderableComponentBase
       return myCoupling.getBilateralConstraints (bilaterals);
    }
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx) {
-      idx = myCoupling.setBilateralImpulses (lam, h, idx);
+   public int setBilateralForces (VectorNd lam, double s, int idx) {
+      idx = myCoupling.setBilateralForces (lam, s, idx);
       return idx;
    }
 
-   public int getBilateralImpulses (VectorNd lam, int idx) {
-      return myCoupling.getBilateralImpulses (lam, idx);
+   public int getBilateralForces (VectorNd lam, int idx) {
+      return myCoupling.getBilateralForces (lam, idx);
    }
 
-   public void zeroImpulses() {
-      myCoupling.zeroImpulses();
+   public void zeroForces() {
+      myCoupling.zeroForces();
    }
    
    public boolean hasUnilateralConstraints() {
@@ -1383,13 +1385,13 @@ public abstract class BodyConnector extends RenderableComponentBase
       myCoupling.updateUnilateralConstraints (unilaterals, offset, numc);
    }
 
-   public int setUnilateralImpulses (VectorNd the, double h, int idx) {
-      idx = myCoupling.setUnilateralImpulses (the, h, idx);
+   public int setUnilateralForces (VectorNd the, double s, int idx) {
+      idx = myCoupling.setUnilateralForces (the, s, idx);
       return idx;
    }
 
-   public int getUnilateralImpulses (VectorNd the, int idx) {
-      return myCoupling.getUnilateralImpulses (the, idx);
+   public int getUnilateralForces (VectorNd the, int idx) {
+      return myCoupling.getUnilateralForces (the, idx);
    }
 
    /**
@@ -1835,24 +1837,17 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
-   public void advanceAuxState (double t0, double t1) {
+   public void advanceState (double t0, double t1) {
    }
 
-   /** 
-    * {@inheritDoc}
-    */
-   public void skipAuxState (DataBuffer data) {
-      myCoupling.skipAuxState (data);
+   public void getState (DataBuffer data) {
+      myCoupling.getState (data);
    }
 
-   public void getAuxState (DataBuffer data) {
-      myCoupling.getAuxState (data);
-   }
-
-   public void setAuxState (DataBuffer data) {
+   public void setState (DataBuffer data) {
       myAttachmentA.updatePosStates();
       myAttachmentB.updatePosStates();
-      myCoupling.setAuxState (data);
+      myCoupling.setState (data);
       if (hasUnilateralConstraints()) {
          if (myUnilaterals == null) {
             myUnilaterals = new ArrayList<RigidBodyConstraint>();
@@ -1862,11 +1857,6 @@ public abstract class BodyConnector extends RenderableComponentBase
          }
          getUnilateralConstraints (myUnilaterals, /*setEngaged=*/false);
       }
-   }
-   
-   public void getInitialAuxState (
-      DataBuffer newData, DataBuffer oldData) {
-      myCoupling.getInitialAuxState (newData, oldData);
    }
    
    /**

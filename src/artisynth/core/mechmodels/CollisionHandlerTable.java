@@ -4,6 +4,8 @@ import java.util.*;
 import maspack.util.*;
 
 import artisynth.core.mechmodels.Collidable.Group;
+import artisynth.core.mechmodels.CollisionManager.BehaviorSource;
+import artisynth.core.modelbase.ComponentUtils;
 
 /**
  * Structure to store ColllisionHandlers within a CollisionManager.  The
@@ -22,15 +24,24 @@ import artisynth.core.mechmodels.Collidable.Group;
  */
 public class CollisionHandlerTable {
 
+   public static boolean useCollidableIndices = true;
+
    private CollisionManager myManager;
+   private LinkedHashMap<CollidableBody,Anchor> myAnchors;
 
    private class Anchor {
+      CollidableBody myBody;
       CollisionHandler myRowHead;
       CollisionHandler myRowTail;
       CollisionHandler myColHead;
       CollisionHandler myColTail;
 
-      Anchor () {
+      Anchor (CollidableBody body) {
+         myBody = body;
+      }
+
+      CollidableBody getBody() {
+         return myBody;
       }
 
       void addRow (CollisionHandler ch) {
@@ -53,6 +64,13 @@ public class CollisionHandlerTable {
             myColTail.setDown (ch);
          }
          myColTail = ch;
+      }
+
+      void removeAllHandlers() {
+         myRowHead = null;
+         myRowTail = null;
+         myColHead = null;
+         myColTail = null;
       }
 
       void removeInactiveHandlers () {
@@ -144,8 +162,6 @@ public class CollisionHandlerTable {
       myManager = manager;
    }
 
-   private LinkedHashMap<CollidableBody,Anchor> myAnchors;
-
    void setHandlerActivity (boolean activity) {
       for (Anchor a : myAnchors.values()) {
          a.setRowActivity (activity);
@@ -155,6 +171,12 @@ public class CollisionHandlerTable {
    void removeInactiveHandlers () {
       for (Anchor a : myAnchors.values()) {
          a.removeInactiveHandlers ();
+      }
+   }
+
+   void removeAllHandlers () {
+      for (Anchor a : myAnchors.values()) {
+         a.removeAllHandlers ();
       }
    }
 
@@ -261,7 +283,7 @@ public class CollisionHandlerTable {
    public void initialize (List<CollidableBody> collidables) {
       myAnchors.clear();
       for (CollidableBody cbody : collidables) {
-         myAnchors.put (cbody, new Anchor ());
+         myAnchors.put (cbody, new Anchor (cbody));
       }
    }
 
@@ -307,7 +329,7 @@ public class CollisionHandlerTable {
       collectHandlers(handlers);
       if (!newCollidables.isEmpty()) {
          for (CollidableBody cbody : newCollidables) {
-            myAnchors.put (cbody, new Anchor ());
+            myAnchors.put (cbody, new Anchor (cbody));
          }
       }
 
@@ -334,19 +356,20 @@ public class CollisionHandlerTable {
       return null;
    }
 
-   public CollisionHandler put (CollidableBody col0, CollidableBody col1, 
-      CollisionBehavior behav) {
+   public CollisionHandler put (
+      CollidableBody col0, CollidableBody col1, 
+      CollisionBehavior behav, BehaviorSource src) {
       
       CollisionHandler ch;
       Anchor anchor0 = myAnchors.get(col0);
       Anchor anchor1 = myAnchors.get(col1);
       if (col0.getCollidableIndex() <= col1.getCollidableIndex()) {
-         ch = new CollisionHandler (myManager, col0, col1, behav);
+         ch = new CollisionHandler (myManager, col0, col1, behav, src);
          anchor0.addRow (ch);
          anchor1.addCol (ch);
       }
       else {
-         ch = new CollisionHandler (myManager, col1, col0, behav);
+         ch = new CollisionHandler (myManager, col1, col0, behav, src);
          anchor1.addRow (ch);
          anchor0.addCol (ch);
       }
@@ -364,51 +387,77 @@ public class CollisionHandlerTable {
       return num;
    }
 
-   public void skipAuxState (DataBuffer data) {
-      CollisionHandler stub = new CollisionHandler(myManager, null, null, null);
-      int numh = data.zget();
-      for (int k=0; k<numh; k++) {
-         data.oskip (3);
-         stub.skipAuxState (data);
-      }
-   }
-
-   public void getAuxState (DataBuffer data) {
+   public void getState (DataBuffer data) {
       int numh = size();
       data.zput (numh);
       for (Anchor anchor : myAnchors.values()) {
          for (CollisionHandler ch=anchor.myRowHead; ch!=null; ch=ch.getNext()) {
-            data.oput (ch.getCollidable(0));
-            data.oput (ch.getCollidable(1));
-            data.oput (ch.getBehavior());
-            ch.getAuxState (data);
+            data.zput (ch.getCollidable(0).getCollidableIndex());
+            data.zput (ch.getCollidable(1).getCollidableIndex());
+            data.zput (ch.getBehaviorSource().ordinal());
+            ch.getState (data);
          }
       }
    }
 
-   public void getInitialAuxState (DataBuffer newData, DataBuffer oldData) {
-      // just create a state in which there are no contacts
-      newData.zput (0);
-   }
-
-   public void setAuxState (DataBuffer data) {
+   public void setState (DataBuffer data) {
+      ArrayList<CollidableBody> allBodies = getAllBodies();
       int numh = data.zget();
-      setHandlerActivity (false);
+      //setHandlerActivity (false);
       for (int k=0; k<numh; k++) {
-         CollidableBody cb0 = (CollidableBody)data.oget();
-         CollidableBody cb1 = (CollidableBody)data.oget();
-         CollisionBehavior behav = (CollisionBehavior)data.oget();
-         CollisionHandler ch = get (cb0, cb1);
-         if (ch == null) {
-            ch = put (cb0, cb1, behav);
-         }
-         else if (ch.getBehavior() != behav) {
-            // not sure if ch.behavior will be different; just being sure
-            ch.setBehavior(behav);
-         }
+         CollidableBody cb0 = allBodies.get(data.zget());
+         CollidableBody cb1 = allBodies.get(data.zget());         
+         BehaviorSource bsrc = BehaviorSource.values()[data.zget()];
+         CollisionBehavior behav = myManager.getBehavior (cb0, cb1, bsrc);
+         CollisionHandler ch = put (cb0, cb1, behav, bsrc);
          ch.setActive (true);
-         ch.setAuxState (data);
+         ch.setState (data);
       }
-      removeInactiveHandlers();
+      //removeInactiveHandlers();
+   }
+
+   private ArrayList<CollidableBody> getAllBodies() {
+      MechModel topMech = MechModel.topMechModel(myManager);
+      topMech.updateCollidableBodyIndices();
+      return topMech.getCollidableBodies();
+   }
+
+   /**
+    * For debugging
+    */
+   void printTable() {
+      int maxlen = 0;
+      for (Anchor a : myAnchors.values()) {
+         int len = ComponentUtils.getPathName(a.getBody()).length();
+         if (len > maxlen) {
+            maxlen = len;
+         }
+      }
+      System.out.println (
+         "Table for " + ComponentUtils.getPathName(myManager.myMechModel));
+      System.out.println ("");
+      for (Anchor a : myAnchors.values()) {
+         StringBuilder stb = new StringBuilder();
+         CollidableBody ci = a.getBody();
+         stb.append (ComponentUtils.getPathName(ci));
+         // pad name 
+         while (stb.length() < maxlen) {
+            stb.append (' ');
+         }                    
+         System.out.print (stb);
+         for (Anchor b : myAnchors.values()) {
+            CollidableBody cj = b.getBody();
+            String entry = " ,";
+            for (CollisionHandler ch=a.myRowHead; ch != null; ch = ch.getNext()) {
+               if (ch.getCollidable(1) == cj) {
+                  entry = (" " + (int)ch.getBehavior().getFriction());
+                  break;
+               }
+            }
+            System.out.print (entry);
+         }
+         System.out.println ("");
+      }
+      System.out.println ("");      
    }
 }

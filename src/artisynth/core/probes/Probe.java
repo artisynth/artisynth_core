@@ -193,6 +193,12 @@ public abstract class Probe extends ModelAgentBase {
       return null;
    }
 
+   /**
+    * Queries whether time {@code t} is an event time for this probe.
+    * 
+    * @param t time to query
+    * @return {@code true} if {@code t} is an event time
+    */
    public boolean isEventTime (double t) {
 
       double timeFromStart = t - myStartTime;
@@ -211,6 +217,12 @@ public abstract class Probe extends ModelAgentBase {
       }
    }            
 
+   /**
+    * Returns the time of the next probe event <i>after</i> time {@code t}.
+    * 
+    * @param t reference time for the next event
+    * @return time of next probe event after t
+    */
    public double nextEventTime (double t) {
       
       double timeFromStart = t - myStartTime;
@@ -240,7 +252,9 @@ public abstract class Probe extends ModelAgentBase {
    }
 
    /**
-    * Called when the probe is being applied to a model
+    * Called at time {@code t} to apply this probe
+    * 
+    * @param t time at which probe is being applied
     */
    public abstract void apply (double t);
    
@@ -444,7 +458,8 @@ public abstract class Probe extends ModelAgentBase {
       return false;
    }
    
-   public ComponentState createState(ComponentState prevState) {
+   public ComponentState createState (
+      ComponentState prevState) {
       return new EmptyState();
    }
    

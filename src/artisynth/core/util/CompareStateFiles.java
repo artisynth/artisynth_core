@@ -24,36 +24,207 @@ import maspack.matrix.*;
  * system, record the state trajectories again, save these in another file
  * (usually XXXTestData.out), and then compare with the original.
  *
- * Because of numeric round-off error, we can't expect the numbers to always be
- * exactly the same - without introducing error, refactorization may change the
- * order of arithmetic operations, leading to small differences in
+ * <p>Because of numeric round-off error, we can't expect the numbers to always
+ * be exactly the same - without introducing error, refactorization may change
+ * the order of arithmetic operations, leading to small differences in
  * output. Hence we can't simply 'diff' the files, and so we use this program
  * instead.
  *
- * Each file consists of a series of sections, arranged like this:
+ * <p>Each file consists of a series of sections, arranged like this:
  *
  * <pre>
- * # comment line describing the section
+ * TEST "string describing the section"
+ * comps: [ P P F ]
  * t=0.00:
- * v: xxx xxx xxx xxx
- * x: xxx xxx xxx xxx xxx
+ * v: xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx
+ * x: xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx
  * t=0.01:
- * v: xxx xxx xxx xxx
- * x: xxx xxx xxx xxx xxx
+ * v: xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx
+ * x: xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx xxx
  * ...
  * </pre>
-
- * where <code>t</code>, <code>v</code>, <code>x</code> denote time, velocity,
- * and position. Note that velocity and position do not necessarily have the
- * same number of state variables.  Between the two files, each section must
- * have the same comment line and the same number of time entries. This program
- * then compares the maximum error between the velocity and position
- * trajectories for each section, and outputs the maximum overall. With the
- * <code>-a</code> option, the errors for each section are also output.
+ * The section begins with the keyword {@code TEST}, followed by a quoted
+ * string describing the section.
+ *
+ * <p>The next line, beginning with {@code comps:}, lists a sequence of letter
+ * codes, delimited by square brackets, describing the dynamic components that
+ * make up the state. The following letter codes are defined: 'P' denotes a
+ * particle, 'F' denotes a frame, and 'RXX' denotes a reduced model where 'XX'
+ * is an integer giving the number of coordinates.
+ *
+ * <p>The following lines give the simulation time (after {@code t=}), velocity
+ * state (after {@code v:}, and position state (after {@code x:}), and these
+ * lines repeat until the end of the section.
+ *
+ * <p>Between the two files, each section must have the description string and
+ * the same number of time entries. This program then compares the maximum
+ * error between the velocity and position trajectories for each section (in a
+ * manner appropriate to the components), and outputs the maximum 
+ * overall. With the <code>-a</code> option, the errors for each section are
+ * also output.
  */
 public class CompareStateFiles {
 
    NumberFormat fmt = new NumberFormat ("%.6g");
+
+   private static class ErrorDesc {
+      double err;
+      double mag;
+      double time;
+      CompDesc comp;
+
+      double normalizedError() {
+         if (mag != 0) {
+            return err/mag;
+         }
+         else {
+            return err;
+         }
+      }
+   }
+
+   // component descriptor
+   private abstract class CompDesc {
+      ErrorDesc myVelErr;
+      ErrorDesc myPosErr;
+
+      int myVelSize;
+      int myPosSize;
+      String mySymbol;
+
+      CompDesc (String symbol, int velSize, int posSize) {
+         mySymbol = symbol;
+         myVelSize = velSize;
+         myPosSize = posSize;
+      }
+
+      String getSymbol() {
+         return mySymbol;
+      }
+
+      int computeError (
+         ErrorDesc edesc, VectorNd vec1, VectorNd vec2,
+         double time, int size, int idx) {
+         VectorNd v1 = new VectorNd (size);
+         VectorNd v2 = new VectorNd (size);
+         VectorNd err = new VectorNd (size);
+         vec1.getSubVector (idx, v1);
+         vec2.getSubVector (idx, v2);
+         err.sub (v1, v2);
+         if (err.norm() > edesc.err) {
+            edesc.err = err.norm();
+            edesc.time = time;
+            edesc.comp = this;
+         }
+         double mag = Math.max (v1.norm(), v2.norm());
+         if (mag > edesc.mag) {
+            edesc.mag = mag;
+         }
+         return idx + size;
+      }
+
+      abstract int computeVelError (
+         VectorNd vel1, VectorNd vel2, double time, int idx);
+
+      abstract int computePosError (
+         VectorNd pos1, VectorNd pos2, double time, int idx);
+
+      int getVelSize() {
+         return myVelSize;
+      }
+
+      int getPosSize() {
+         return myPosSize;
+      }
+
+      void setErrDescs (ErrorDesc velErr, ErrorDesc posErr) {
+         myVelErr = velErr;
+         myPosErr = posErr;
+      }
+   }
+
+   private class ParticleDesc extends CompDesc {
+
+      ParticleDesc() {
+         super ("P", 3, 3);
+      }
+
+      int computeVelError (VectorNd vel1, VectorNd vel2, double time, int idx) {
+         idx = computeError (myVelErr, vel1, vel2, time, 3, idx);
+         return idx;
+      }
+
+      int computePosError (VectorNd pos1, VectorNd pos2, double time, int idx) {
+         idx = computeError (myPosErr, pos1, pos2, time, 3, idx);
+         return idx;
+      }
+   }
+      
+   private class FrameDesc extends CompDesc {
+
+      ErrorDesc myAngVelErr;
+      ErrorDesc myAngPosErr;
+
+      FrameDesc() {
+         super ("F", 6, 7);
+      }
+
+      int computeVelError (VectorNd vel1, VectorNd vel2, double time, int idx) {
+         idx = computeError (myVelErr, vel1, vel2, time, 3, idx);
+         idx = computeError (myAngVelErr, vel1, vel2, time, 3, idx);
+         return idx;
+      }
+
+      int computePosError (VectorNd pos1, VectorNd pos2, double time, int idx) {
+         idx = computeError (myPosErr, pos1, pos2, time, 3, idx);
+         idx = computeQuaternionError (pos1, pos2, time, idx);
+         return idx;
+      }
+
+      int computeQuaternionError (
+         VectorNd pos1, VectorNd pos2, double time, int idx) {
+         Quaternion q1 = new Quaternion();
+         Quaternion q2 = new Quaternion();
+         pos1.getSubVector (idx, q1);
+         pos2.getSubVector (idx, q2);
+         double err = Math.abs(q1.rotationAngle(q2))/Math.PI;
+         if (err > myAngPosErr.err) {
+            myAngPosErr.err = err;
+            myAngPosErr.time = time;
+            myAngPosErr.comp = this;
+         }
+         return idx + 4;
+      }
+
+      void setAngErrDescs (ErrorDesc angVelErr, ErrorDesc angPosErr) {
+         myAngVelErr = angVelErr;
+         myAngPosErr = angPosErr;
+         myAngPosErr.mag = 1.0;
+      }
+   }
+      
+   private class ReducedDesc extends CompDesc {
+
+      int myNumCoords = 0;
+
+      ReducedDesc (int numCoords) {
+         super ("R", numCoords, numCoords);
+         myNumCoords = numCoords;
+      }
+
+      int computeVelError (
+         VectorNd vel1, VectorNd vel2, double time, int idx) {
+         idx = computeError (myVelErr, vel1, vel2, time, myNumCoords, idx);
+         return idx;
+      }
+
+      int computePosError (
+         VectorNd pos1, VectorNd pos2, double time, int idx) {
+         idx = computeError (myPosErr, pos1, pos2, time, myNumCoords, idx);
+         return idx;
+      }
+   }
+      
 
    VectorNd scanVector (ReaderTokenizer rtok) throws IOException {
       ArrayList<Double> values = new ArrayList<Double>();
@@ -68,13 +239,13 @@ public class CompareStateFiles {
       return vec;
    }
 
-   double scanTime (ReaderTokenizer rtok, String lastComment) 
+   double scanTime (ReaderTokenizer rtok) 
       throws IOException {
 
       if (rtok.nextToken() == ReaderTokenizer.TT_EOF) {
          return -1;
       }
-      if (lastComment != null && !commentsEqual(rtok.lastCommentLine(), lastComment)) {
+      if (rtok.tokenIsWord() && rtok.sval.equals ("TEST")) {
          rtok.pushBack();
          return -1;
       }
@@ -86,27 +257,104 @@ public class CompareStateFiles {
       return t;
    }
 
-   double scanTimes (
-      ReaderTokenizer rtok1, ReaderTokenizer rtok2, String lastComment)
+   ArrayList<CompDesc> scanComps (ReaderTokenizer rtok) throws IOException {
+      ArrayList<CompDesc> comps = new ArrayList<CompDesc>();
+      rtok.scanWord ("comps");
+      rtok.scanToken (':');
+      rtok.scanToken ('[');
+      while (rtok.nextToken() != ']') {
+         rtok.pushBack();
+         String symbol = rtok.scanWord();
+         if (symbol.equals ("P")) {
+            comps.add (new ParticleDesc());
+         }
+         else if (symbol.equals ("F")) {
+            comps.add (new FrameDesc());
+         }
+         else if (symbol.startsWith ("R")) {
+            int ncoords = -1;
+            try {
+               ncoords = Integer.valueOf (symbol.substring (1));
+            }
+            catch (Exception e) {
+               throw new IOException (
+                  "Component symbol R does not have an integer suffix:" + rtok);
+            }
+            comps.add (new ReducedDesc(ncoords));
+         }
+         else {
+            throw new IOException (
+               "Unexpected component symbol:" + rtok);
+         }
+      }
+      return comps;
+   }                               
+
+   String scanSectionStart (
+      ArrayList<CompDesc> comps, ReaderTokenizer rtok1, ReaderTokenizer rtok2) 
       throws IOException {
-      
-      double t1 = scanTime (rtok1, lastComment);
-      double t2 = scanTime (rtok2, lastComment);
-      
-      String com1 = rtok1.lastCommentLine();
-      if (com1 != null) {
-         com1 = com1.trim();
-      }
-      String com2 = rtok2.lastCommentLine();
-      if (com2 != null) {
-         com2 = com2.trim();
-      }
-      
-      if (!commentsEqual (com1, com2)) {
+
+      rtok1.nextToken();
+      rtok2.nextToken();
+
+      if (rtok1.ttype != rtok2.ttype) {
          throw new IOException (
-            "Inconsistent sections: '"+com1+"' vs. '"+com2+
+            "Inconsistent inputs: " + rtok1 + " vs. " + rtok2);
+      }
+      if (rtok1.ttype == ReaderTokenizer.TT_EOF) {
+         return null;
+      }
+      else if (rtok1.tokenIsWord()) {
+         if (!rtok1.sval.equals ("TEST")) {
+            throw new IOException (
+               "First file, expected TEST keyword, got " + rtok1);
+         }
+         if (!rtok2.sval.equals ("TEST")) {
+            throw new IOException (
+               "Second file, expected TEST keyword, got " + rtok2);
+         }
+      }
+      else {
+         throw new IOException (
+            "First file, Expected TEST keyword, got " + rtok1);
+      }
+
+      String desc1 = rtok1.scanQuotedString('"');
+      String desc2 = rtok2.scanQuotedString('"');
+
+      if (!desc1.equals (desc2)) {
+         throw new IOException (
+            "Inconsistent sections: '"+desc1+"' vs. '"+desc2+
             "', line "+rtok1.lineno());
       }
+      ArrayList<CompDesc> comps1 = scanComps (rtok1);
+      ArrayList<CompDesc> comps2 = scanComps (rtok2);
+      if (comps1.size() != comps2.size()) {
+         throw new IOException (
+            "Inconsistent component counts: "+
+            comps1.size()+" vs. "+comps2.size()+", line "+rtok1.lineno());
+      }
+      for (int i=0; i<comps1.size(); i++) {
+         CompDesc c1 = comps1.get(i);
+         CompDesc c2 = comps2.get(i);
+         if (!c1.getSymbol().equals (c2.getSymbol())) {
+            throw new IOException (
+               "Inconsistent component "+i+": "+
+               c1.getSymbol()+" vs. "+c2.getSymbol()+", line "+rtok1.lineno());
+         }
+      }
+      comps.clear();
+      comps.addAll (comps1);
+      return desc1;
+   }
+
+   double scanTimes (
+      ReaderTokenizer rtok1, ReaderTokenizer rtok2)
+      throws IOException {
+      
+      double t1 = scanTime (rtok1);
+      double t2 = scanTime (rtok2);
+
       if (t1 != t2) {
          if (t1 != -1 && t2 != -1) {
             throw new IOException (
@@ -118,41 +366,49 @@ public class CompareStateFiles {
       return t1;
    }
 
-   VectorNd scanVelocity (ReaderTokenizer rtok) throws IOException {
+   VectorNd scanVelocity (ReaderTokenizer rtok, int velSize) throws IOException {
       rtok.scanWord ("v");
       rtok.scanToken (':');
-      return scanVector (rtok);
+      VectorNd vec = scanVector (rtok);
+      if (vec.size() != velSize) {
+         throw new IOException (
+            "Read "+vec.size()+" velocity values, expected " + velSize);
+      }
+      return vec;
    }
 
-   VectorNd scanPosition (ReaderTokenizer rtok) throws IOException {
+   VectorNd scanPosition (ReaderTokenizer rtok, int posSize) throws IOException {
       rtok.scanWord ("x");
       rtok.scanToken (':');
-      return scanVector (rtok);
+      VectorNd vec = scanVector (rtok);
+      if (vec.size() != posSize) {
+         throw new IOException (
+            "Read "+vec.size()+" position values, expected " + posSize);
+      }
+      return vec;
    }
 
    double myMaxVelErr = 0;
    double myMaxVelErrTime = 0;
-   String myMaxVelErrComment = null;
+   String myMaxVelErrDescription = null;
 
    double myMaxPosErr = 0;
    double myMaxPosErrTime = 0;
-   String myMaxPosErrComment = null;
+   String myMaxPosErrDescription = null;
 
-   private boolean commentsEqual (String s1, String s2) {
-      if ((s1 == null) != (s2 == null)) {
-         return false;
+   ErrorDesc findMaxError (ArrayList<ErrorDesc> edescs) {
+      ErrorDesc maxdesc = null;
+      double maxerr = 0;
+      for (ErrorDesc ed : edescs) {
+         if (maxdesc == null || ed.normalizedError() > maxerr) {
+            maxdesc = ed;
+            maxerr = ed.normalizedError();
+         }
       }
-      else if (s1 != null) {
-         s1 = s1.trim();
-         s2 = s2.trim();
-         s1 = s1.replace("\r", "");
-         s2 = s2.replace("\r", "");
-         return s1.equals (s2);
-      }
-      else {
-         return true;
-      }
+      return maxdesc;
    }
+
+   ArrayList<CompDesc> myComps;
 
    public boolean compareSections (
       ReaderTokenizer rtok1, ReaderTokenizer rtok2, int showLevel) 
@@ -161,67 +417,95 @@ public class CompareStateFiles {
       VectorNd vel1, vel2;
       VectorNd pos1, pos2;
 
-      double maxVelMag = 0;
-      double maxPosMag = 0;
-      double maxVelErr = 0;
-      double maxPosErr = 0;
-      double maxVelErrTime = 0;
-      double maxPosErrTime = 0;
+      ArrayList<ErrorDesc> vdescs = new ArrayList<ErrorDesc>();
+      ErrorDesc maxPntVelErr = new ErrorDesc();
+      ErrorDesc maxAngVelErr = new ErrorDesc();
+      ErrorDesc maxRedVelErr = new ErrorDesc();
+      vdescs.add (maxPntVelErr);
+      vdescs.add (maxAngVelErr);
+      vdescs.add (maxRedVelErr);
+
+      ArrayList<ErrorDesc> pdescs = new ArrayList<ErrorDesc>();
+      ErrorDesc maxPntPosErr = new ErrorDesc();
+      ErrorDesc maxAngPosErr = new ErrorDesc();
+      ErrorDesc maxRedPosErr = new ErrorDesc();
+      pdescs.add (maxPntPosErr);
+      pdescs.add (maxAngPosErr);
+      pdescs.add (maxRedPosErr);
+
+      ArrayList<CompDesc> comps = new ArrayList<CompDesc>();
+      String description = scanSectionStart (comps, rtok1, rtok2);
+      myComps = comps;
+      if (description == null) {
+         // EOF
+         return false;
+      }
+      int posSize = 0;
+      int velSize = 0;
+      for (CompDesc comp : comps) {
+         velSize += comp.getVelSize();
+         posSize += comp.getPosSize();
+      }
+
+      for (CompDesc comp : comps) {
+         if (comp instanceof ParticleDesc) {
+            ParticleDesc pcomp = (ParticleDesc)comp;
+            pcomp.setErrDescs (maxPntVelErr, maxPntPosErr);
+         }
+         else if (comp instanceof FrameDesc) {
+            FrameDesc fcomp = (FrameDesc)comp;
+            fcomp.setErrDescs (maxPntVelErr, maxPntPosErr);
+            fcomp.setAngErrDescs (maxAngVelErr, maxAngPosErr);
+         }
+         else if (comp instanceof ReducedDesc) {
+            ReducedDesc rcomp = (ReducedDesc)comp;
+            rcomp.setErrDescs (maxRedVelErr, maxRedPosErr);
+         }
+         else {
+            throw new UnsupportedOperationException (
+               "Unknown component type " + comp.getClass());
+         }
+      }
 
       double time;
-      String comment = null;
-      int cnt = 0;
-
-      while ((time = scanTimes (rtok1, rtok2, comment)) != -1) {
-
-         // trim any white space after the comment
-         // e.g. '\r', which was interfering with output
-         comment = rtok1.lastCommentLine();
-         if (comment != null) {
-            comment = comment.trim();
-         }
-         
-         cnt++;
-
-         vel1 = scanVelocity (rtok1);
-         vel2 = scanVelocity (rtok2);
+      while ((time = scanTimes (rtok1, rtok2)) != -1) {
+         vel1 = scanVelocity (rtok1, velSize);
+         vel2 = scanVelocity (rtok2, velSize);
          if (vel1.size() != vel2.size()) {
             throw new IOException ("different velocity sizes: " + vel1.size()
             + " vs. " + vel2.size() + ", line " + rtok1.lineno());
          }
-         maxVelMag = Math.max (maxVelMag, vel1.norm());
-         vel1.sub (vel2);
-         if (vel1.norm() > maxVelErr) {
-            maxVelErr = vel1.norm();
-            maxVelErrTime = time;
+         int idx = 0;
+         for (CompDesc c : comps) {
+            idx = c.computeVelError (vel1, vel2, time, idx);
          }
 
-         pos1 = scanPosition (rtok1);
-         pos2 = scanPosition (rtok2);
+         pos1 = scanPosition (rtok1, posSize);
+         pos2 = scanPosition (rtok2, posSize);
          if (pos1.size() != pos2.size()) {
             throw new IOException ("different position sizes: " + pos1.size()
             + " vs. " + pos2.size() + ", line " + rtok1.lineno());
          }
-         maxPosMag = Math.max (maxPosMag, pos1.norm());
-         pos1.sub (pos2);
-         if (pos1.norm() > maxPosErr) {
-            maxPosErr = pos1.norm();
-            maxPosErrTime = time;
+         idx = 0;
+         for (CompDesc c : comps) {
+            idx = c.computePosError (pos1, pos2, time, idx);
          }
 
          if (showLevel > 1) {
-            vel1.absolute();
-            pos1.absolute();
-            double maxVel = vel1.maxElement();
-            int maxVelIdx = vel1.maxIndex();
-            double maxPos = pos1.maxElement();
-            int maxPosIdx = pos1.maxIndex();
-            System.out.println (
-               "time " + time + 
-               ": verr="+fmt.format(maxVel)+" (at "+maxVelIdx+")" + 
-               " perr="+fmt.format(maxPos)+" (at "+maxPosIdx+")");
+            ErrorDesc maxVelErr = findMaxError (vdescs);
+            ErrorDesc maxPosErr = findMaxError (pdescs);
+            double verr = maxVelErr.normalizedError();
+            String vmsg = " verr=" + fmt.format(verr);
+            if (verr != 0) {
+               vmsg += " (comp "+comps.indexOf (maxVelErr.comp)+")";
+            }
+            double perr = maxPosErr.normalizedError();
+            String pmsg = " perr=" + fmt.format(perr);
+            if (perr != 0) {
+               pmsg += " (comp "+comps.indexOf (maxPosErr.comp)+")";
+            }
+            System.out.println ("time " + time + ":" + vmsg + "," + pmsg);
          }
-         
       }
       if ((rtok1.ttype == ReaderTokenizer.TT_EOF) !=
           (rtok2.ttype == ReaderTokenizer.TT_EOF)) {
@@ -233,28 +517,26 @@ public class CompareStateFiles {
             System.out.println ("Warning: first file ended prematurely");
          }    
       }
-      if (cnt == 0) {
-         return false;
-      }
-      
-      maxVelErr /= maxVelMag;
-      maxPosErr /= maxPosMag;
+      ErrorDesc maxVelErr = findMaxError (vdescs);
+      ErrorDesc maxPosErr = findMaxError (pdescs);
 
       if (showLevel > 0) {
-         System.out.println (comment + ":");
-         System.out.println ("vel error=" + fmt.format(maxVelErr));
-         System.out.println ("pos error=" + fmt.format(maxPosErr));
+         System.out.println (description + ":");
+         System.out.println (
+            "vel error=" + fmt.format(maxVelErr.normalizedError()));
+         System.out.println (
+            "pos error=" + fmt.format(maxPosErr.normalizedError()));
       }
 
-      if (maxVelErr > myMaxVelErr) {
-         myMaxVelErr = maxVelErr;
-         myMaxVelErrTime = maxVelErrTime;
-         myMaxVelErrComment = comment;
+      if (maxVelErr.normalizedError() > myMaxVelErr) {
+         myMaxVelErr = maxVelErr.normalizedError();
+         myMaxVelErrTime = maxVelErr.time;
+         myMaxVelErrDescription = description;
       }
-      if (maxPosErr > myMaxPosErr) {
-         myMaxPosErr = maxPosErr;
-         myMaxPosErrTime = maxPosErrTime;
-         myMaxPosErrComment = comment;
+      if (maxPosErr.normalizedError() > myMaxPosErr) {
+         myMaxPosErr = maxPosErr.normalizedError();
+         myMaxPosErrTime = maxPosErr.time;
+         myMaxPosErrDescription = description;
       }
       return true;
    }
@@ -296,10 +578,10 @@ public class CompareStateFiles {
 
       myMaxVelErr = 0;
       myMaxVelErrTime = 0;
-      myMaxVelErrComment = null;
+      myMaxVelErrDescription = null;
       myMaxPosErr = 0;
       myMaxPosErrTime = 0;
-      myMaxPosErrComment = null;
+      myMaxPosErrDescription = null;
       
       while (compareSections (rtok1, rtok2, showLevel))
          ;
@@ -316,10 +598,10 @@ public class CompareStateFiles {
    public void printMaxErrors (PrintWriter pw) {
       pw.println (
          "max vel error="+fmt.format(myMaxVelErr)+" at '"+
-         myMaxVelErrComment+"', time "+myMaxVelErrTime);
+         myMaxVelErrDescription+"', time "+myMaxVelErrTime);
       pw.println (
          "max pos error="+fmt.format(myMaxPosErr)+" at '"+
-         myMaxPosErrComment+"', time "+myMaxPosErrTime); 
+         myMaxPosErrDescription+"', time "+myMaxPosErrTime); 
       pw.flush();
    }
 

@@ -57,33 +57,32 @@ public class CollisionResponse extends CollisionComponent {
    }
 
    /**
-    * Returns a map specifying the contact impulses acting on all the deformable
+    * Returns a map specifying the contact forces acting on all the deformable
     * bodies associated with either the first or second collidable (as indicated
     * by <code> cidx</code>).
     *
     * <p>
-    * The map gives the most recently computed impulses acting on each vertex of
+    * The map gives the most recently computed forces acting on each vertex of
     * the collision meshes of the deformable bodies (this is the same mesh
     * returned by {@link CollidableBody#getCollisionMesh}). Vertices for which
-    * no impulses were computed do not appear in the map. To turn the impulses
-    * into forces, one must divide by the current step size.
+    * no forces were computed do not appear in the map.
     *
     * <p>
-    * Contact impulses give the forces that arise in order to prevent further
+    * Contact forces are those that arise in order to prevent further
     * interpenetration between <code>colA</code> and <code>colB</code>. They do
-    * <i>not</i> include impulses that are computed to separate
+    * <i>not</i> include forces that are computed to separate
     * <code>colA</code> and <code>colB</code> when they initially come into
     * contact.
     * @param cidx collidable index - 0 for first, 1 for second
     *
-    * @return map giving the contact impulses acting on the deformable bodies in
+    * @return map giving the contact forces acting on the deformable bodies in
     * this response.
     */
-   public Map<Vertex3d,Vector3d> getContactImpulses (int cidx) {
+   public Map<Vertex3d,Vector3d> getContactForces (int cidx) {
       LinkedHashMap<Vertex3d,Vector3d> map =
          new LinkedHashMap<Vertex3d,Vector3d> ();
       for (CollisionHandler ch : myHandlers) {
-         ch.getContactImpulses (
+         ch.getContactForces (
             map, getBodyForCollidable (myPair.get(cidx), ch));
       }
       return map;

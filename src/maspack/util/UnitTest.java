@@ -35,7 +35,7 @@ public class UnitTest {
    public void checkEquals (String msg, Object result, Object check) {
       if (!result.equals(check)) {
          throw new TestException (
-            msg + result.toString() +
+            msg + " = " + result.toString() +
             ", expected " + check.toString());
       }
    }
@@ -43,7 +43,7 @@ public class UnitTest {
    public void checkEquals (String msg, Vector result, Vector check) {
       if (!result.equals(check)) {
          throw new TestException (
-            msg + "\n" + result.toString() +
+            msg + " =\n" + result.toString() +
             ", expected\n" + check.toString());
       }
    }
@@ -51,7 +51,7 @@ public class UnitTest {
    public void checkEquals (String msg, Vector result, Vector check, double eps) {
       if (!result.epsilonEquals(check, eps)) {
          throw new TestException (
-            msg + "\n" + result.toString() +
+            msg + " =\n" + result.toString() +
             ", expected\n" + check.toString() + ", eps=" + eps);
       }
    }
@@ -59,7 +59,7 @@ public class UnitTest {
    public void checkEquals (String msg, Matrix result, Matrix check) {
       if (!result.equals(check)) {
          throw new TestException (
-            msg + "\n" + result.toString() +
+            msg + " =\n" + result.toString() +
             ", expected\n" + check.toString());
       }
    }
@@ -67,7 +67,7 @@ public class UnitTest {
    public void checkEquals (String msg, Matrix result, Matrix check, double eps) {
       if (!result.epsilonEquals(check, eps)) {
          throw new TestException (
-            msg + "\n" + result.toString() +
+            msg + " =\n" + result.toString() +
             ", expected\n" + check.toString() + "\neps=" + eps);
       }
    }
@@ -75,7 +75,7 @@ public class UnitTest {
    public void checkEquals (String msg, double result, double check, double eps) {
       if (Math.abs(result-check) > eps) {
          throw new TestException (
-            msg + result + ", expected " + check + ", eps=" + eps);
+            msg + " = " + result + ", expected " + check + ", eps=" + eps);
       }
    }
 

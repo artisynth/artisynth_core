@@ -7,6 +7,7 @@
 package artisynth.core.driver;
 
 import maspack.matrix.NumericalException;
+import maspack.util.InternalErrorException;
 import artisynth.core.modelbase.*;
 import artisynth.core.probes.*;
 import artisynth.core.util.TimeBase;
@@ -19,6 +20,9 @@ import java.util.*;
 
 public class Scheduler {
 
+   public static boolean checkState = false;
+
+   public boolean setStateBeforeInit = true;
    private boolean debugStepComputation = false;
 
    private double myTime = 0;
@@ -165,9 +169,25 @@ public class Scheduler {
          }
       }
 
+      void checkState (RootModel root) {
+         CompositeState rootState = root.getState (/*annotated=*/true);
+         root.setState (rootState);
+         CompositeState testState = root.getState (/*annotated=*/true);
+         StringBuilder errMsg = new StringBuilder();
+         if (!testState.equals (rootState, errMsg)) {
+            System.out.println (errMsg);
+            throw new InternalErrorException (
+               "Error: state differs after set");
+         }           
+      }
+
       void doadvance (double t0sec, double t1sec, int flags) {
          
          RootModel rootModel = getRootModel();
+         if (checkState) {
+            checkState (rootModel);
+         }
+         
          rootModel.advance (t0sec, t1sec, flags);
          myTime = t1sec;
 
@@ -208,56 +228,6 @@ public class Scheduler {
          }
          while (action != null);
       }         
-
-      // public void oldplay() {
-      //    ArrayList<Probe> eventProbes = new ArrayList<Probe>();
-      //    realStartMsec = System.currentTimeMillis();
-      //    startTime = myTime;
-      //    lastYieldMsec = realStartMsec;
-      //    RootModel root = getRootModel();
-
-      //    while (myAlive) {
-      //       double t0 = myTime;
-      //       double t1;
-
-      //       if (t0 == 0) {
-      //          // apply any output probes that need to be applied at t0. 
-      //          // use -1 as current time to get any events at t0
-      //          t1 = nextEvent (root, eventProbes, -1, endTime);
-      //          if (t1 == 0) {
-      //             applyOutputProbes (t1, eventProbes);
-      //             eventProbes.clear();
-      //          }
-      //       }
-      //       if ((t1 = nextEvent (root, eventProbes, t0, endTime)) != -1) {
-      //          try {
-      //             doadvance (t0, t1, 0);
-      //             fireListeners (Action.Advance);
-      //             applyOutputProbes (t1, eventProbes);
-      //          }
-      //          catch (NumericalException e) {
-      //             // stop the scheduler if there is a stop request
-      //             e.printStackTrace();
-      //             myStopReq = true;
-      //          }
-      //       }
-      //       synchronized (Scheduler.this) {
-      //          if (myStopReq || t1 == -1) {
-      //             myStopReq = false;
-      //             myAlive = false;
-      //          }
-      //       }
-      //       if (TimeBase.compare (myTime, endTime) >= 0) {
-      //          //myWorkspace.rerender(); // do a final rerender
-      //          myAlive = false;
-      //       }
-      //       processActionRequests();
-      //    }
-      //    myWorkspace.rerender(); // do a final rerender
-      //    myWorkspace.waitForRerender();
-
-      //    fireListeners (Action.Stopped);
-      // }         
 
       public void play() {
          ArrayList<Probe> eventProbes = new ArrayList<Probe>();
@@ -374,12 +344,21 @@ public class Scheduler {
       return myRealTimeScaling;
    }
 
-   public void initialize() {
-      myTime = 0;
-      getWorkspace().initialize (0);
-      WayPoint way0 = getWayPoint (0);
-      if (way0 != null) {
-         way0.setState (getRootModel());
+   public void initialize (double time) {
+      myTime = TimeBase.round(time);
+      if (setStateBeforeInit) {
+         WayPoint way0 = getWayPoint (0);
+         if (way0 != null && !way0.isValid()) {
+            way0.setState (getRootModel());
+         }         
+         getWorkspace().initialize (time);
+      }
+      else {
+         getWorkspace().initialize (time);
+         WayPoint way0 = getWayPoint (0);
+         if (way0 != null && !way0.isValid()) {
+            way0.setState (getRootModel());
+         }
       }
    }
 
@@ -395,6 +374,7 @@ public class Scheduler {
 
    public void setTime (double time) {
 
+      time = TimeBase.round(time);
       if (getWorkspace().rootModelHasState()) {
          WayPoint way = getWayPoint (time);
          if (way == null) {
@@ -416,6 +396,10 @@ public class Scheduler {
       }
    }
 
+   public void setInitialTime (double time) { 
+      myTime = TimeBase.round(time);
+   }
+
    public void setTime (WayPoint way) {
       if (isPlaying()) {
          stopRequest();
@@ -426,7 +410,7 @@ public class Scheduler {
          throw new IllegalArgumentException (
             "way point at time "+way.getTime()+" is not valid");
       }
-      myTime = way.getTime();
+      myTime = TimeBase.round(way.getTime());
       getWorkspace().getRootModel().setState (way.getState());
       getWorkspace().getRootModel().initialize (myTime);
       getWorkspace().rerender(); // force a repaint
@@ -444,8 +428,14 @@ public class Scheduler {
       }
       else {
          myTime = 0;
-         getWorkspace().initialize (myTime);
-         way.setState (getRootModel());
+         if (setStateBeforeInit) {
+            way.setState (getRootModel());           
+            getWorkspace().initialize (myTime);
+         }
+         else {
+            getWorkspace().initialize (myTime);
+            way.setState (getRootModel());
+         }
          getWorkspace().rerender();
          fireListeners (Action.Reset);
       }
@@ -456,14 +446,20 @@ public class Scheduler {
          stopRequest();
          waitForPlayingToStop();
       }
-      updateInitialStateIfNecessary();
-      myTime = way.getTime();
-      if (way.isValid()) {
-         getWorkspace().getRootModel().setState (way.getState());
+      if (!way.isValid()) {
+         throw new IllegalStateException ("waypoint is not valid");
       }
-      // System.out.println ("scheduler: initializing");
-      getWorkspace().initialize (myTime);
-      way.setState (getRootModel());
+      updateInitialStateIfNecessary();
+      myTime = TimeBase.round(way.getTime());
+      if (setStateBeforeInit) {
+         getWorkspace().getRootModel().setState (way.getState());
+         getWorkspace().initialize (myTime);
+      }
+      else {
+         getWorkspace().getRootModel().setState (way.getState());
+         getWorkspace().initialize (myTime);
+         way.setState (getRootModel());
+      }
       getWorkspace().rerender();
       fireListeners (Action.Reset);
    }
@@ -588,7 +584,8 @@ public class Scheduler {
          RootModel root = getRootModel();
          WayPoint way0 = getWayPoint (0);
          if (root != null && way0 != null) {
-            CompositeState state = (CompositeState)root.createState(null);
+            CompositeState state = 
+               (CompositeState)root.createState(null);
             root.getInitialState (state, way0.getState());
             way0.setState (state);
          }

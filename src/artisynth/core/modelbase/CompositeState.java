@@ -9,27 +9,27 @@ package artisynth.core.modelbase;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
+
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
+import maspack.util.Scan;
 
 public class CompositeState implements ComponentState {
    private static final long serialVersionUID = 1L;
    protected ArrayList<ComponentState> myStates;
-   // optional list of sub-components used to facilitate list merging
-   protected ArrayList<Object> myComps; 
+   protected boolean myAnnotatedP = false;
 
    public CompositeState() {
       myStates = new ArrayList<ComponentState>();
    }
 
-//   public CompositeState (boolean hasComps) {
-//      myStates = new ArrayList<ComponentState>();
-//      if (hasComps) {
-//         myComps = new ArrayList<Object>();
-//      }
-//      else {
-//         myComps = null;
-//      }      
-//   }
+   public CompositeState (boolean annotated) {
+      myStates = new ArrayList<ComponentState>();
+      myAnnotatedP = annotated;
+   }
 
    public CompositeState (int capacity) {
       myStates = new ArrayList<ComponentState>(capacity);
@@ -41,28 +41,6 @@ public class CompositeState implements ComponentState {
 
    public ComponentState getState (int i) {
       return myStates.get (i);
-   }
-
-   public void addComponents (Collection<? extends Object> comps) {
-      if (myComps == null) {
-         myComps = new ArrayList<Object>();
-      }
-      myComps.addAll (comps);
-   }
-
-   public void addComponent (Object comp) {
-      if (myComps == null) {
-         myComps = new ArrayList<Object>();
-      }
-      myComps.add (comp);
-   }
-
-   public ArrayList<Object> getComponents() {
-      return myComps;
-   }
-
-   public int numComponents() {
-      return myComps != null ? myComps.size() : 0;
    }
 
    public void addState (ComponentState state) {
@@ -84,31 +62,39 @@ public class CompositeState implements ComponentState {
    /** 
     * {@inheritDoc}
     */
-   public boolean equals (ComponentState state) {
+   public boolean equals (ComponentState state, StringBuilder msg) {
       if (state instanceof CompositeState) {
          ArrayList<ComponentState> otherStates = ((CompositeState)state).myStates;
-         if (otherStates.size() != myStates.size()) {
-            System.out.println (
-               "size=" + myStates.size() + " other.size=" + otherStates.size());
+         if (myStates.size() != otherStates.size()) {
+            if (msg != null) {
+               msg.append (
+                  "num states = "+myStates.size()+" vs. "+otherStates.size()+"\n");
+            }
             return false;
          }
          for (int i=0; i<myStates.size(); i++) {
             ComponentState substate = myStates.get(i);
             ComponentState otherSubstate = otherStates.get(i);
             if ((substate == null) != (otherSubstate == null)) {
-               System.out.println (
-                  "substate="+substate+" other.substate="+otherSubstate);
+               if (msg != null) {
+                  msg.append (
+                     "substate="+substate+" other.substate="+otherSubstate+"\n");
+               }
                return false;
             }
-            if (substate != null && !substate.equals (otherSubstate)) {
-               System.out.println ("substates not equal");
+            if (substate != null && !substate.equals (otherSubstate, msg)) {
+               if (msg != null) {
+                  msg.append ("substate "+i+" not equal\n");
+               }               
                return false;
             }
          }
          return true;
       }
       else {
-         System.out.println ("not composite state");
+         if (msg != null) {
+            msg.append ("other state is not a CompositeState\n");
+         }
          return false;
       }
    }
@@ -136,41 +122,79 @@ public class CompositeState implements ComponentState {
       dos.writeInt (myStates.size());
       for (ComponentState substate : myStates) {
          writeString (dos, substate.getClass().getName());
-         System.out.println ("writing " + substate.getClass().getName());
          substate.writeBinary (dos);
       }
    }
-
+   
+   private ComponentState createSubState (Class<?> clazz) {
+      ComponentState substate = null;
+      try {
+         substate = (ComponentState)clazz.newInstance();
+      }
+      catch (ClassCastException e) {
+         throw new IllegalStateException (
+            "Class "+clazz.getName()+" not an instance of ComponentState");
+      }
+      catch (Exception e) {
+         throw new IllegalStateException (
+            "Class "+clazz.getName()+" cannot be instantiated");
+      }
+      if (isAnnotated()) {
+         substate.setAnnotated (true);
+      }
+      return substate;
+   }
+   
    public void readBinary (DataInputStream dis) throws IOException {
       int numsub = dis.readInt();
       myStates.clear();
+      setAnnotated (false);
       for (int i=0; i<numsub; i++) {
          String className = readString (dis);
-         Class cls = null;
+         Class<?> clazz = null;
          try {
-            cls = Class.forName (className);
+            clazz = Class.forName (className);
          }
          catch (Exception e) {
             throw new IllegalStateException (
                "Class "+className+" not found");
          }
-         ComponentState substate = null;
-         try {
-            substate = (ComponentState)cls.newInstance();
-         }
-         catch (ClassCastException e) {
-            throw new IllegalStateException (
-               "Class "+className+" not an instance of ComponentState");
-         }
-         catch (Exception e) {
-            throw new IllegalStateException (
-               "Class "+className+" cannot be instantiated");
-         }
+         ComponentState substate = createSubState (clazz);
          substate.readBinary (dis);
          myStates.add (substate);
       }
    }
 
+   public boolean isWritable() {
+      return true;
+   }
+   
+   public void write (PrintWriter pw, NumberFormat fmt, Object ref) 
+      throws IOException {
+      
+      IndentingPrintWriter.addIndentation (pw, 2);
+      pw.println ("[");
+      for (ComponentState substate : myStates) {
+         pw.print (substate.getClass().getName()+" ");
+         substate.write (pw, fmt, ref);
+      }
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");
+   }
+
+   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
+      myStates.clear();
+      setAnnotated (false);
+      rtok.scanToken ('[');
+      while (rtok.nextToken() != ']') {
+         rtok.pushBack();
+         Class<?> clazz = Scan.scanClass (rtok);
+         ComponentState substate = createSubState (clazz);
+         substate.scan (rtok, ref);
+         myStates.add (substate);
+      }
+   }
+   
    public void set (ComponentState stateToCopy) {
       if (!(stateToCopy instanceof CompositeState)) {
          throw new IllegalArgumentException (
@@ -195,6 +219,7 @@ public class CompositeState implements ComponentState {
       for (ComponentState substate : myStates) {
          state.myStates.add (substate.duplicate());
       }
+      state.myAnnotatedP = myAnnotatedP;
       return state;
    }
    
@@ -213,4 +238,20 @@ public class CompositeState implements ComponentState {
       }
    }
    
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isAnnotated () {
+      return myAnnotatedP;
+   }  
+   
+   /**
+    * {@inheritDoc}
+    */
+   public void setAnnotated (boolean annotated) {
+      myAnnotatedP = annotated;
+      for (ComponentState substate : myStates) {
+         substate.setAnnotated (annotated);
+      }
+   }
 }

@@ -116,7 +116,6 @@ public class ShellQuadPatch extends RootModel {
             int v = vertex.getIndex();
             if (myNodes[v] == null) {
                myNodes[v] = new FemNode3d(vertex.getPosition());
-               myNodes[v].setIndex(v);
                myFem.addNumberedNode(myNodes[v], v);
             }
          }

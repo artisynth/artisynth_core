@@ -132,21 +132,21 @@ public class FrameFem3dAttachment extends FrameAttachment {
       return idx;
    }
 
-   public int setBilateralImpulses (VectorNd lam, double h, int idx) {
+   public int setBilateralForces (VectorNd lam, double s, int idx) {
       for (int i=0; i<6; i++) {
-         myLam[i] = lam.get(idx++);
+         myLam[i] = lam.get(idx++)*s;
       }
       return idx;
    }
 
-   public int getBilateralImpulses (VectorNd lam, int idx) {
+   public int getBilateralForces (VectorNd lam, int idx) {
       for (int i=0; i<6; i++) {
          lam.set (idx++, myLam[i]);
       }
       return idx;
    }
    
-   public void zeroImpulses() {
+   public void zeroForces() {
       for (int i=0; i<6; i++) {
          myLam[i] = 0;
       }

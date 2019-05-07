@@ -15,7 +15,7 @@ import artisynth.core.femmodels.*;
 import artisynth.core.workspace.*;
 
 /**
- * Test jig for the CollisionManagerNew. Note that this does *not* test actual
+ * Test jig for the CollisionManager. Note that this does *not* test actual
  * collision handling; it just tests the CollisionManagerNew's management
  * of what components collide with what.
  */
@@ -510,7 +510,7 @@ public class CollisionManagerTest extends UnitTest {
       }
    }
 
-   private void checkHandlerTable() {
+   private void checkHandlerTable () {
       CollisionManager cm = myMech.getCollisionManager();
       ArrayList<CollidableBody> cbodies = myMech.getCollidableBodies();
       cm.updateConstraints (0, /*flags=*/CollisionManager.CONTACT_TEST_MODE);
@@ -527,7 +527,7 @@ public class CollisionManagerTest extends UnitTest {
             CollidableBody cbj = cbodies.get(j);
             MechModel mech = MechModel.lowestCommonModel (cbi, cbj);
             CollisionHandler handler =
-               mech.getCollisionManager().myHandlerTable.get (cbi, cbj);
+               mech.getCollisionManager().getHandlerTable().get (cbi, cbj);
             CollisionBehavior behav = myMech.getActingCollisionBehavior(cbi,cbj);
             CollidablePair pair = new CollidablePair (cbi, cbj);
             if (handler == null) {
@@ -539,6 +539,8 @@ public class CollisionManagerTest extends UnitTest {
             }
             else {
                if (handler.myBehavior != behav) {
+                  System.out.println ("");
+                  printHandlerMap();
                   throw new TestException (
                      "Response for "+pair+" has behavior "+
                      toStr(handler.myBehavior)+", expecting "+toStr(behav));
@@ -687,7 +689,7 @@ public class CollisionManagerTest extends UnitTest {
 
       MechModel mech = MechModel.lowestCommonModel(cb0, cb1);
       CollisionManager cm = mech.getCollisionManager();
-      return cm.myHandlerTable.get (cb0, cb1);
+      return cm.getHandlerTable().get (cb0, cb1);
    }
 
    private boolean hasCommonAncestor (Collidable c0, Collidable c1) {
@@ -803,23 +805,23 @@ public class CollisionManagerTest extends UnitTest {
       }
    }
 
-   private void checkCollisionResponse() {
-      ArrayList<Collidable> collidables = new ArrayList<Collidable>();
-      ArrayList<CollidableBody> cbodies = myMech.getCollidableBodies();
-      myMech.getCollidables(collidables, 0);
-      for (int i=0; i<collidables.size(); i++) {
-         Collidable ci = collidables.get(i);
-         checkCollisionResponse (ci, cbodies, Collidable.All);
-         checkCollisionResponse (ci, cbodies, Collidable.AllBodies);
-         checkCollisionResponse (ci, cbodies, Collidable.Rigid);
-         checkCollisionResponse (ci, cbodies, Collidable.Deformable);
-         checkCollisionResponse (ci, cbodies, Collidable.Self);
-         for (int j=0; j<collidables.size(); j++) {
-            Collidable cj = collidables.get(j);
-            checkCollisionResponse (ci, cbodies, cj);
-         }
-      }
-   }
+//   private void checkCollisionResponse() {
+//      ArrayList<Collidable> collidables = new ArrayList<Collidable>();
+//      ArrayList<CollidableBody> cbodies = myMech.getCollidableBodies();
+//      myMech.getCollidables(collidables, 0);
+//      for (int i=0; i<collidables.size(); i++) {
+//         Collidable ci = collidables.get(i);
+//         checkCollisionResponse (ci, cbodies, Collidable.All);
+//         checkCollisionResponse (ci, cbodies, Collidable.AllBodies);
+//         checkCollisionResponse (ci, cbodies, Collidable.Rigid);
+//         checkCollisionResponse (ci, cbodies, Collidable.Deformable);
+//         checkCollisionResponse (ci, cbodies, Collidable.Self);
+//         for (int j=0; j<collidables.size(); j++) {
+//            Collidable cj = collidables.get(j);
+//            checkCollisionResponse (ci, cbodies, cj);
+//         }
+//      }
+//   }
 
    private void printName (String name, int maxlen) {
       System.out.print (name);
@@ -877,7 +879,7 @@ public class CollisionManagerTest extends UnitTest {
                }
                case HANDLERS: {
                   CollisionManager cm = mech.getCollisionManager();
-                  CollisionHandler ch = cm.myHandlerTable.get (ci, cj);
+                  CollisionHandler ch = cm.getHandlerTable().get (ci, cj);
                   if (ch != null) {
                      behavior = ch.getBehavior();
                   }
@@ -1614,6 +1616,7 @@ public class CollisionManagerTest extends UnitTest {
 
       // reset Collidability of FEM sub meshes so that they
       // can collide with anything
+
       sub11.setCollidable (Collidability.ALL);
       sub12.setCollidable (Collidability.ALL);
       sub21.setCollidable (Collidability.ALL);

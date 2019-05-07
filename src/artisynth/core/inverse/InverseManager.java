@@ -416,7 +416,7 @@ public class InverseManager {
    }
    
    public static void setLoneBreakpoint(RootModel root, double t) {
-      for (WayPoint wp : root.getWayPoints ().getPoints ()) {
+      for (WayPoint wp : root.getWayPoints ()) {
          if (wp.isBreakPoint ())
             wp.setBreakPoint (false);
       }

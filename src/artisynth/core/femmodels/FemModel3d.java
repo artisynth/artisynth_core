@@ -584,8 +584,12 @@ PointAttachable, ConnectableBody {
 
    public void updateInternalNodalStressSettings() {
       HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
+      
       for (FemMeshComp comp : myMeshList) {
          if (comp.getSurfaceRendering() == SurfaceRender.Stress) {
+            if (!mySurfaceMeshValid) {
+               getSurfaceMeshComp(); // auto generate mesh if necessary
+            }
             comp.addAllVertexNodes (nodes);
          }
       }
@@ -611,6 +615,9 @@ PointAttachable, ConnectableBody {
       HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
       for (FemMeshComp comp : myMeshList) {
          if (comp.getSurfaceRendering() == SurfaceRender.Strain) {
+            if (!mySurfaceMeshValid) {
+               getSurfaceMeshComp(); // auto generate mesh if necessary
+            }
             comp.addAllVertexNodes (nodes);
          }
       }

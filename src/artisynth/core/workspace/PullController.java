@@ -145,7 +145,7 @@ implements SelectionListener, MouseInputListener {
       Point3d nearest, HasSurfaceMesh comp, Line ray) {
       
       PolygonalMesh[] meshes = comp.getSurfaceMeshes();
-      if (meshes == null && meshes.length == 0) {
+      if (meshes == null || meshes.length == 0) {
          return false;
       }
       double nearestDistance = Double.POSITIVE_INFINITY;

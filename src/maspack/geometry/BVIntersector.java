@@ -6,9 +6,17 @@
  */
 package maspack.geometry;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
-import maspack.matrix.*;
+import maspack.matrix.Line;
+import maspack.matrix.Plane;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
 
 /**
  * Worker class for computing intersections using bounding volume hierarchies.
@@ -294,7 +302,6 @@ public class BVIntersector {
       Vector3d rdir = new Vector3d(-dir.x, -dir.y, -dir.z);
       Point3d orig = l.getOrigin();
       Point3d p = new Point3d();
-      
 
       for (int k = 0; k < elems.length; k++) {
 
@@ -384,7 +391,67 @@ public class BVIntersector {
    }
    
    // merges a set of triangle-plane intersections into a contour(s)
-   private ArrayList<LinkedList<Point3d>> buildContours (
+   public ArrayList<LinkedList<Point3d>> buildMeshContours (
+      List<TriTriIntersection> intersections, double tol) {
+      
+      // expecting only one contour
+      ArrayList<LinkedList<Point3d>> contours =
+         new ArrayList<LinkedList<Point3d>>(1);
+      
+      LinkedList<TriTriIntersection> remaining =
+         new LinkedList<TriTriIntersection>();
+      
+      // initialize with all 2-point intersection
+      for (TriTriIntersection tti : intersections) {
+         
+         if (tti.numPoints() == 2) {
+            addIfUnique(tti, remaining, tol);
+         }
+      }
+      
+      // no contours
+      while (remaining.size() > 0) {
+         LinkedList<Point3d> contour = new LinkedList<Point3d>();
+         TriTriIntersection tpi = remaining.getFirst();
+         
+         contour.addFirst(tpi.points[0]);
+         contour.addLast(tpi.points[1]);
+         remaining.removeFirst();
+         
+         Iterator<TriTriIntersection> rit;
+         boolean closed = false;
+         boolean didAttach = true;
+         boolean attach = false;
+         while (didAttach && !closed) {
+            didAttach = false;
+            rit = remaining.iterator();
+            
+            while (rit.hasNext()) {
+               tpi = rit.next();
+               attach = attachSegment(contour, tpi.points[0], tpi.points[1], tol);
+               if (attach) {
+                  rit.remove();
+                  didAttach = true;
+                  closed = isContourClosed(contour, tol);
+               }
+            }
+         }
+         
+         if (closed) {
+            // replace last with first for better conditioning
+            contour.removeLast(); 
+            contour.addLast(contour.getFirst());
+         }
+         
+         contours.add(contour);
+         
+      }
+      
+      return contours;
+   }
+   
+   // merges a set of triangle-plane intersections into a contour(s)
+   public ArrayList<LinkedList<Point3d>> buildContours (
       List<TriPlaneIntersection> intersections, double tol) {
       
       // expecting only one contour
@@ -448,6 +515,26 @@ public class BVIntersector {
       double tol) {
       
       for (TriPlaneIntersection t : list) {
+         if (tpi.points[0].distance(t.points[0]) < tol &&
+            tpi.points[1].distance(t.points[1])<tol ) {
+            return false;
+         } else if (tpi.points[0].distance(t.points[1]) < tol &&
+            tpi.points[1].distance(t.points[0])<tol ) {
+            return false;
+         }
+      }
+      
+      list.add(tpi);
+      return true;
+      
+   }
+   
+   // only adds to the contour if the section is unique
+   private boolean addIfUnique (
+      TriTriIntersection tpi, List<TriTriIntersection> list,
+      double tol) {
+      
+      for (TriTriIntersection t : list) {
          if (tpi.points[0].distance(t.points[0]) < tol &&
             tpi.points[1].distance(t.points[1])<tol ) {
             return false;

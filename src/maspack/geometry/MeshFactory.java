@@ -924,6 +924,9 @@ public class MeshFactory {
          ArrayList<Vector3d> normals = new ArrayList<>();
          normals.add(new Vector3d(0,0,1));
          int[] indices = mesh.createVertexIndices();
+         for (int i=0; i<indices.length; ++i) {
+            indices[i] = 0;
+         }
          mesh.setNormals(normals, indices);
       }
       return mesh;

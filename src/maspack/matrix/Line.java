@@ -181,7 +181,12 @@ public class Line {
       tmp.cross (u1, u2);
       double denom = tmp.normSquared();
       if (denom < 100 * DOUBLE_PREC) {
-         return myP.distance (line.myP);
+         // lines are parallel, project other line's origin
+         // onto this line
+         tmp.sub (line.myP, myP);
+         double lam1 = tmp.dot (myU);
+         tmp.scaledAdd (lam1, myU, myP);
+         return tmp.distance (line.myP);
       }
       else {
          tmp.sub (myP, line.myP);
@@ -196,6 +201,47 @@ public class Line {
          tmp.sub (line.myP);
          tmp.scaledAdd (-lam2, u2, tmp);
          return tmp.norm();
+      }
+   }
+   
+   /**
+    * Returns the perpendicular distance of this line to another line.
+    * 
+    * @param line
+    * line to find distance to
+    * @param point
+    * point on the current line nearest to the provided line
+    * @param nearPoint
+    * point on line nearest to this
+    * @return distance of the line from this line
+    */
+   public double distance (Line line, Point3d point, Point3d nearPoint) {
+      Vector3d u1 = myU; // break out u1 and u2 for clarity
+      Vector3d u2 = line.myU;
+
+      Vector3d tmp = new Vector3d();
+      tmp.cross (u1, u2);
+      double denom = tmp.normSquared();
+      if (denom < 100 * DOUBLE_PREC) {
+         // lines are parallel
+         tmp.sub (line.myP, myP);
+         double lam1 = tmp.dot (myU);
+         point.scaledAdd (lam1, myU, myP);
+         nearPoint.set (line.myP);
+         return point.distance (nearPoint);
+      }
+      else {
+         tmp.sub (myP, line.myP);
+         double k1 = -u1.dot (tmp);
+         double k2 = u2.dot (tmp);
+         double dotU = u1.dot (u2);
+         double lam1 = (k1 + dotU * k2) / denom;
+         double lam2 = (dotU * k1 + k2) / denom;
+         // find the closest point on this line and then subtract
+         // the closest point on the other line
+         point.scaledAdd (lam1, u1, myP); // closest point on this line
+         nearPoint.scaledAdd (lam2, u2, line.myP);
+         return point.distance (nearPoint);
       }
    }
 

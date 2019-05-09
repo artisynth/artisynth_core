@@ -990,7 +990,7 @@ public abstract class GeometryTransformer {
    /**
     * Applies a geometric transformation to both the vertex positions of a mesh
     * and its mesh-to-world transform TMW, in world coordinates. The local
-    * vertex positions <code>p</code> are modified to accomodate that of part
+    * vertex positions <code>p</code> are modified to accommodate that of part
     * of the transformation not provided by the change to TMW. Specifically,
     * <pre> p' = TMWnew X (TMW p) </pre> where <code>X( )</code> indicates the
     * transform applied by this transformer and TMWnew is the transformed value

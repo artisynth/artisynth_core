@@ -61,6 +61,10 @@ public class TriTriIntersection {
       }
       return faceCoords;
    }
+   
+   public int numPoints() {
+      return points.length;
+   }
 
    public boolean equals (TriTriIntersection isect, StringBuilder msg) {
       if (face0 != isect.face0) {

@@ -227,10 +227,12 @@ public class FrameFrameAttachment extends FrameAttachment {
          myMaster.addFrameForce (myTFM, forceA);
          VectorNd addForce = getMasterForce();
          addForce.sub (oldForce);
-         double tol = addForce.norm()*1e-12;
-         if (!addForce.epsilonEquals(forceF, tol)) {
+         double mag = addForce.norm();
+         if (!addForce.epsilonEquals(forceF, mag*1e-12)) {
+            addForce.sub (new VectorNd(forceF));
             System.out.println (
-               "FrameFrameAttachment: force check mismatch");
+               "FrameFrameAttachment: force check mismatch, error=" +
+               (addForce.norm()/mag));
          }
       }
    }

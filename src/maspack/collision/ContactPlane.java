@@ -73,28 +73,18 @@ public class ContactPlane {
     */
    private double epsilonPointTolerance = 1e-8;
 
+   /**
+    * Estimate of the contact area per point, or -1 if no estimate is
+    * available. This should be approximately the area of the contact region
+    * divided by the number of points.
+    */
+   public double contactAreaPerPoint = -1;
+
    public ContactPlane() {
    }
 
    double sTotal;
 
-//   public boolean build (MeshIntersectionContour aContour, double pointTol) {
-//      if (aContour.isClosed && aContour.size() > 1) {
-//         contour = aContour;
-//         pointTolerance = pointTol;
-//         PenetrationRegion region0 = new PenetrationRegion();
-//         PenetrationRegion region1 = new PenetrationRegion();
-//         region0.setInsideVertices (aContour.insideVertices0);
-//         region1.setInsideVertices (aContour.insideVertices1);
-//         region0.setInsideFaces (aContour.insideFaces0);
-//         region1.setInsideFaces (aContour.insideFaces1);
-//         return compute(region0, region1);
-//      }
-//      else {
-//         return false;
-//      }
-//   }
-//
    public boolean build (
       PenetrationRegion region0, PenetrationRegion region1, 
       PolygonalMesh mesh0, double pointTol) {
@@ -140,12 +130,7 @@ public class ContactPlane {
          return false;
       }
    }
-   
-//   public ContactPlane (
-//      PenetrationRegion region0, PenetrationRegion region1, double pointTol) {
-//      build (region0, region1, pointTol);
-//   }
-//
+
    double turn (Point3d p0, Point3d p1, Point3d p2, Vector3d nrm) {
       Vector3d del01 = new Vector3d();
       Vector3d del12 = new Vector3d();
@@ -217,7 +202,8 @@ public class ContactPlane {
        */
       depth *= 0.5;
 
-      /* Filter the points to remove one of any pair closer than pointTolerance. */
+      /* Filter the points to remove one of any pair <i>closer</i> than
+       * pointTolerance. */
       Vector3d dist = new Vector3d();
       points = new ArrayList<Point3d>();
       Point3d p1 = mPoints.get (mPoints.size() - 1); // last point -- it's a
@@ -233,6 +219,10 @@ public class ContactPlane {
       if (points.size() == 0) {
          points.add (centroid);
       }
+      // estimate the contact area. Use the average of the two region
+      // areas to get the total area.
+      contactAreaPerPoint =
+         0.5*(region0.getArea()+region1.getArea())/points.size();
       return true;
    }
 

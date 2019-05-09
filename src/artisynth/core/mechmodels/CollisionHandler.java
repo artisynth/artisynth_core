@@ -803,6 +803,7 @@ public class CollisionHandler extends ConstrainerBase
                c.equateContactPoints();
                c.setNormal (region.normal);
                c.assignMasters (collidable0, collidable1);
+               c.myContactArea = region.contactAreaPerPoint;
 
                maxpen = region.depth;
                c.setDistance (-region.depth);

@@ -133,15 +133,15 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
          if (myModel != null) { // paranoid: myModel should always be non-null here
             myModel.updateInternalNodalStressSettings();
             myModel.updateInternalNodalStrainSettings();
-            if (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress){
+            if (mode.usesStressOrStrain()) {
                myModel.updateStressAndStiffness();
             }
          }
          // save/restore original vertex colors
          MeshBase mesh = getMesh();   
          if (mesh != null) {
-            boolean oldStressOrStrain = isStressOrStrainRendering (oldMode);
-            boolean newStressOrStrain = isStressOrStrainRendering (mode);
+            boolean oldStressOrStrain = oldMode.usesStressOrStrain();
+            boolean newStressOrStrain = mode.usesStressOrStrain();
 
             if (newStressOrStrain != oldStressOrStrain) {
                if (newStressOrStrain) {
@@ -549,8 +549,7 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
 
    protected void updateVertexColors() {
 
-      if (mySurfaceRendering != SurfaceRender.Stress &&
-         mySurfaceRendering != SurfaceRender.Strain) {
+      if (!mySurfaceRendering.usesStressOrStrain()) {
          return;
       }
 
@@ -575,10 +574,17 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
                if (nodes[j] instanceof MFreeNode3d) { // paranoid!
                   MFreeNode3d node = (MFreeNode3d)nodes[j];
                   double w = weights.get(j);
-                  if (mySurfaceRendering == SurfaceRender.Strain) {
-                     sval += w*node.getVonMisesStrain();
-                  } else if (mySurfaceRendering == SurfaceRender.Stress) {
+                  if (mySurfaceRendering == SurfaceRender.Stress) {
                      sval += w*node.getVonMisesStress();
+                  }
+                  else if (mySurfaceRendering == SurfaceRender.MAPStress) {
+                     sval += w*node.getMaxAbsPrincipalStress();
+                  }
+                  else if (mySurfaceRendering == SurfaceRender.Strain) {
+                     sval += w*node.getVonMisesStrain();
+                  } 
+                  else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
+                     sval += w*node.getMaxAbsPrincipalStrain();
                   }
                }
             }
@@ -586,10 +592,17 @@ public class MFreeMeshComp extends FemMeshComp implements CollidableBody, PointA
          else if (attacher instanceof PointParticleAttachment) {
             PointParticleAttachment ppa = (PointParticleAttachment)attacher;
             MFreeNode3d node = (MFreeNode3d)ppa.getParticle();
-            if (mySurfaceRendering == SurfaceRender.Strain) {
-               sval = node.getVonMisesStrain();
-            } else if (mySurfaceRendering == SurfaceRender.Stress) {
+            if (mySurfaceRendering == SurfaceRender.Stress) {
                sval = node.getVonMisesStress();
+            }
+            else if (mySurfaceRendering == SurfaceRender.MAPStress) {
+               sval = node.getMaxAbsPrincipalStress();
+            }
+            else if (mySurfaceRendering == SurfaceRender.Strain) {
+               sval = node.getVonMisesStrain();
+            } 
+            else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
+               sval = node.getMaxAbsPrincipalStrain();
             }
          }
          double smin = myStressPlotRange.getLowerBound();

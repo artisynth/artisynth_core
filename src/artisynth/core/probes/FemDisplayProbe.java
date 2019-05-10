@@ -21,6 +21,7 @@ import maspack.geometry.TriangleIntersector;
 import maspack.geometry.Vertex3d;
 import maspack.matrix.AxisAngle;
 import maspack.matrix.Point3d;
+import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
@@ -135,9 +136,10 @@ public class FemDisplayProbe extends CutPlaneProbe {
       myFem = model;
       
       if (myFem != null) {
-         if (mySurfaceRendering == SurfaceRender.Strain) {
+         if (mySurfaceRendering.usesStrain()) {
             myFem.setComputeNodalStrain(true);
-         } else if (mySurfaceRendering == SurfaceRender.Stress) {
+         } 
+         else if (mySurfaceRendering.usesStress()) {
             myFem.setComputeNodalStress(true);
          }
       }
@@ -240,6 +242,12 @@ public class FemDisplayProbe extends CutPlaneProbe {
       myPlaneSurface.setColor (vtx.getIndex(), color);
    }
    
+   private void setMapColor (Vertex3d vtx, double val, float a) {
+      float[] carray = new float[3];
+      myColorMap.getRGB(val/myStressPlotRange.getRange(), carray);
+      setColor (vtx, carray[0], carray[1], carray[2], a);
+   }
+
    private void setColor (Vertex3d vtx, float r, float g, float b, float a){
       myPlaneSurface.setColor (vtx.getIndex(), r, g, b, a);
    }
@@ -256,9 +264,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
       Color femFaceColor = null;
       double stressVal = 0;
 
-      if (mySurfaceRendering == SurfaceRender.Stress ||
-         mySurfaceRendering == SurfaceRender.Strain) {
-
+      if (mySurfaceRendering.usesStressOrStrain()) {
          if (myStressPlotRanging == Ranging.Auto) {
             myStressPlotRange
                .merge(myFem.getNodalPlotRange(mySurfaceRendering));
@@ -282,24 +288,34 @@ public class FemDisplayProbe extends CutPlaneProbe {
                case None:
                   setColor (vtx, faceColor, alpha);
                   break;
-               case Strain:
-                  vtxInfo = clippedVtxMap.get(vtx);
-                  if (vtxInfo != null) {
-                     stressVal = getStrainValue(vtxInfo);
-                     myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-                     setColor (vtx, carray[0], carray[1], carray[2], alpha);
-                  } else {
-                     setColor (vtx, femFaceColor, backAlpha);
-                  }
-                     
-                  
-                  break;
                case Stress:
                   vtxInfo = clippedVtxMap.get(vtx);
                   if (vtxInfo != null) {
-                     stressVal = getStressValue(clippedVtxMap.get(vtx));
-                     myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-                     setColor (vtx, carray[0], carray[1], carray[2], alpha);
+                     setMapColor (vtx, getVMStress (vtxInfo), alpha);
+                  } else {
+                     setColor (vtx, femFaceColor, backAlpha);
+                  }
+                  break;
+               case MAPStress:
+                  vtxInfo = clippedVtxMap.get(vtx);
+                  if (vtxInfo != null) {
+                     setMapColor (vtx, getMAPStress (vtxInfo), alpha);
+                  } else {
+                     setColor (vtx, femFaceColor, backAlpha);
+                  }
+                  break;
+               case Strain:
+                  vtxInfo = clippedVtxMap.get(vtx);
+                  if (vtxInfo != null) {
+                     setMapColor (vtx, getVMStrain (vtxInfo), alpha);
+                  } else {
+                     setColor (vtx, femFaceColor, backAlpha);
+                  }
+                  break;
+               case MAPStrain:
+                  vtxInfo = clippedVtxMap.get(vtx);
+                  if (vtxInfo != null) {
+                     setMapColor (vtx, getMAPStrain (vtxInfo), alpha);
                   } else {
                      setColor (vtx, femFaceColor, backAlpha);
                   }
@@ -323,13 +339,11 @@ public class FemDisplayProbe extends CutPlaneProbe {
       float backAlpha = (float)myBackgroundAlpha*alpha;
       Color faceColor = rprops.getFaceColor();
       Color femFaceColor = null;
-      double stressVal = 0;
+      double val = 0;
       float[] carray = new float[3];
 
       if (myFem != null) {
-         if (mySurfaceRendering == SurfaceRender.Stress ||
-            mySurfaceRendering == SurfaceRender.Strain) {
-   
+         if (mySurfaceRendering.usesStressOrStrain()) {   
             if (myStressPlotRanging == Ranging.Auto) {
                myStressPlotRange
                   .merge(myFem.getNodalPlotRange(mySurfaceRendering));
@@ -355,16 +369,21 @@ public class FemDisplayProbe extends CutPlaneProbe {
                   case None:
                      setColor (vtx, faceColor, alpha);
                      break;
-                  case Strain:
-                     stressVal = getStrainValue(vtx.getWorldPoint(), myFem);
-
-                     myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-                     setColor (vtx, carray[0], carray[1], carray[2], alpha);
-                     break;
                   case Stress:
-                     stressVal = getStressValue(vtx.getWorldPoint(), myFem);
-                     myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-                     setColor (vtx, carray[0], carray[1], carray[2], alpha);
+                     val = getVMStress(vtx.getWorldPoint(), myFem);
+                     setMapColor (vtx, val, alpha);
+                     break;
+                  case MAPStress:
+                     val = getMAPStress(vtx.getWorldPoint(), myFem);
+                     setMapColor (vtx, val, alpha);
+                     break;
+                  case Strain:
+                     val = getVMStrain(vtx.getWorldPoint(), myFem);
+                     setMapColor (vtx, val, alpha);
+                     break;
+                  case MAPStrain:
+                     val = getMAPStrain(vtx.getWorldPoint(), myFem);
+                     setMapColor (vtx, val, alpha);
                      break;
                   default:
                      setColor (vtx, femFaceColor, alpha);
@@ -378,9 +397,33 @@ public class FemDisplayProbe extends CutPlaneProbe {
 
    }
 
-   // computes stress value of a point inside the FemModel based on 
+    private static double computeMaxAbsEigenvalue (SymmetricMatrix3d M) {    
+      Vector3d eigs = new Vector3d();
+      M.getEigenValues (eigs);
+      return eigs.get(eigs.maxAbsIndex());
+   }  
+
+   // computes stress of a point inside the model based on FEM shape
+   // function interpolation
+   private static void getStressValue (
+      SymmetricMatrix3d stress, Point3d pnt, FemModel3d model) {
+
+      Point3d loc = new Point3d();
+      FemElement3dBase elem = model.findNearestElement(loc, pnt);
+      Vector3d coords = new Vector3d();
+      stress.setZero();
+      if (elem != null) {
+         elem.getNaturalCoordinates(coords, pnt);
+         FemNode3d[] nodes = elem.getNodes();
+         for (int i = 0; i < elem.numNodes(); i++) {
+            stress.scaledAdd (elem.getN(i, coords), nodes[i].getStress());
+         }
+      }
+   }
+
+   // computes von Mises stress value of a point inside the FemModel based on
    // shape function interpolation
-   private static double getStressValue(Point3d pnt, FemModel3d model) {
+   private static double getVMStress(Point3d pnt, FemModel3d model) {
 
       Point3d loc = new Point3d();
       FemElement3dBase elem = model.findContainingElement(pnt);
@@ -400,9 +443,36 @@ public class FemDisplayProbe extends CutPlaneProbe {
       return stress;
    }
 
+   // computes maximum principal stress value of a point inside the FemModel
+   // based on shape function interpolation
+   private static double getMAPStress (
+      Point3d pnt, FemModel3d model) {
+      SymmetricMatrix3d stress = new SymmetricMatrix3d();
+      getStressValue (stress, pnt, model);
+      return computeMaxAbsEigenvalue (stress);
+   }
+
    // computes strain of a point inside the model based on FEM shape
    // function interpolation
-   private static double getStrainValue(Point3d pnt, FemModel3d model) {
+   private static void getStrainValue (
+      SymmetricMatrix3d strain, Point3d pnt, FemModel3d model) {
+
+      Point3d loc = new Point3d();
+      FemElement3dBase elem = model.findNearestElement(loc, pnt);
+      Vector3d coords = new Vector3d();
+      strain.setZero();
+      if (elem != null) {
+         elem.getNaturalCoordinates(coords, pnt);
+         FemNode3d[] nodes = elem.getNodes();
+         for (int i = 0; i < elem.numNodes(); i++) {
+            strain.scaledAdd (elem.getN(i, coords), nodes[i].getStrain());
+         }
+      }
+   }
+
+   // computes von Mises strain of a point inside the model based on FEM shape
+   // function interpolation
+   private static double getVMStrain(Point3d pnt, FemModel3d model) {
 
       Point3d loc = new Point3d();
       FemElement3dBase elem = model.findNearestElement(loc, pnt);
@@ -418,6 +488,15 @@ public class FemDisplayProbe extends CutPlaneProbe {
       return strain;
    }
 
+   // computes maximum principal strain value of a point inside the FemModel
+   // based on shape function interpolation
+   private static double getMAPStrain (
+      Point3d pnt, FemModel3d model) {
+      SymmetricMatrix3d strain = new SymmetricMatrix3d();
+      getStrainValue (strain, pnt, model);
+      return computeMaxAbsEigenvalue (strain);
+   }
+
    // if we are clipped to the FEM, then the shape function values are fixed   
    private void computeClippedVertexColors() {
 
@@ -425,11 +504,8 @@ public class FemDisplayProbe extends CutPlaneProbe {
       float alpha = (float)rprops.getAlpha();
       Color faceColor = rprops.getFaceColor();
       Color femFaceColor = null;
-      double stressVal = 0;
 
-      if (mySurfaceRendering == SurfaceRender.Stress ||
-         mySurfaceRendering == SurfaceRender.Strain) {
-
+      if (mySurfaceRendering.usesStressOrStrain()) {
          if (myStressPlotRanging == Ranging.Auto) {
             myStressPlotRange
                .merge(myFem.getNodalPlotRange(mySurfaceRendering));
@@ -437,8 +513,6 @@ public class FemDisplayProbe extends CutPlaneProbe {
       } else {
          femFaceColor = myFem.getRenderProps().getFaceColor();
       }
-      
-      float[] carray = new float[3];
 
       // use our stored map of values
       for (Vertex3d vtx : myPlaneSurface.getVertices()) {
@@ -447,15 +521,17 @@ public class FemDisplayProbe extends CutPlaneProbe {
             case None:
                setColor (vtx, faceColor, alpha);
                break;
-            case Strain:
-               stressVal = getStrainValue(clippedVtxMap.get(vtx));
-               myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-               setColor (vtx, carray[0], carray[1], carray[2], alpha);
-               break;
             case Stress:
-               stressVal = getStressValue(clippedVtxMap.get(vtx));
-               myColorMap.getRGB(stressVal/myStressPlotRange.getRange(), carray);
-               setColor (vtx, carray[0], carray[1], carray[2], alpha);
+               setMapColor (vtx, getVMStress(clippedVtxMap.get(vtx)), alpha);
+               break;
+            case MAPStress:
+               setMapColor (vtx, getMAPStress(clippedVtxMap.get(vtx)), alpha);
+               break;
+            case Strain:
+               setMapColor (vtx, getVMStrain(clippedVtxMap.get(vtx)), alpha);
+               break;
+            case MAPStrain:
+               setMapColor (vtx, getMAPStrain(clippedVtxMap.get(vtx)), alpha);
                break;
             default:
                setColor (vtx, femFaceColor, alpha);
@@ -465,7 +541,7 @@ public class FemDisplayProbe extends CutPlaneProbe {
       }
    }
 
-   private static double getStrainValue(VtxInfo info) {
+   private static double getVMStrain(VtxInfo info) {
       double strain = 0;
       for (int i = 0; i < info.nodes.length; i++) {
          strain += info.nodes[i].getVonMisesStrain() * info.coords[i];
@@ -473,12 +549,38 @@ public class FemDisplayProbe extends CutPlaneProbe {
       return strain;
    }
 
-   private static double getStressValue(VtxInfo info) {
+   private static void getStrainValue (SymmetricMatrix3d strain, VtxInfo info) {
+      strain.setZero();
+      for (int i = 0; i < info.nodes.length; i++) {
+         strain.scaledAdd (info.coords[i], info.nodes[i].getStrain());
+      }
+   }
+
+   private static double getMAPStrain (VtxInfo info) {
+      SymmetricMatrix3d strain = new SymmetricMatrix3d();
+      getStrainValue (strain, info);
+      return computeMaxAbsEigenvalue (strain);
+   }
+
+   private static double getVMStress(VtxInfo info) {
       double stress = 0;
       for (int i = 0; i < info.nodes.length; i++) {
          stress += info.nodes[i].getVonMisesStress() * info.coords[i];
       }
       return stress;
+   }
+
+   private static void getStressValue (SymmetricMatrix3d stress, VtxInfo info) {
+      stress.setZero();
+      for (int i = 0; i < info.nodes.length; i++) {
+         stress.scaledAdd (info.coords[i], info.nodes[i].getStress());
+      }
+   }
+
+   private static double getMAPStress (VtxInfo info) {
+      SymmetricMatrix3d stress = new SymmetricMatrix3d();
+      getStressValue (stress, info);
+      return computeMaxAbsEigenvalue (stress);
    }
 
    /**
@@ -669,14 +771,11 @@ public class FemDisplayProbe extends CutPlaneProbe {
          mySurfaceRendering = mode;
 
          if (myFem != null) {
-            switch (mode) {
-               case Strain:
-                  myFem.setComputeNodalStrain(true);
-                  break;
-               case Stress:
-                  myFem.setComputeNodalStress(true);
-                  break;
-               default:
+            if (mode.usesStress()) {
+               myFem.setComputeNodalStress(true);               
+            }
+            else if (mode.usesStrain()) {
+               myFem.setComputeNodalStrain(true);               
             }
          }
       }

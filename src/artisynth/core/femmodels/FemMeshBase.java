@@ -135,19 +135,15 @@ public abstract class FemMeshBase extends SkinMeshBase {
          mesh.setColorInterpolation (getColorInterpolation());
       }
    }
-
-   public boolean isStressOrStrainRendering (SurfaceRender mode) {
-      return (mode == SurfaceRender.Strain || mode == SurfaceRender.Stress);
-   }
    
    protected void doSetMesh (
       MeshBase mesh, String fileName, AffineTransform3dBase X) {
       MeshBase oldMesh = getMesh();
-      if (oldMesh != null && isStressOrStrainRendering (mySurfaceRendering)) {
+      if (oldMesh != null && mySurfaceRendering.usesStressOrStrain()) {
          restoreMeshColoring (oldMesh);
       }      
       super.doSetMesh (mesh, fileName, X);
-      if (isStressOrStrainRendering (mySurfaceRendering)) {
+      if (mySurfaceRendering.usesStressOrStrain()) {
          saveMeshColoring (mesh);
          mesh.setVertexColoringEnabled();
          updateVertexColors(); // not sure we need this here
@@ -275,7 +271,7 @@ public abstract class FemMeshBase extends SkinMeshBase {
    
    @Override
    public void prerender(RenderList list) {
-      if (isStressOrStrainRendering (mySurfaceRendering)) {
+      if (mySurfaceRendering.usesStressOrStrain()) {
          updateVertexColors();
       }
       super.prerender(list);

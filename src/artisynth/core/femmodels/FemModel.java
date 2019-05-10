@@ -83,7 +83,21 @@ public abstract class FemModel extends MechSystemBase
       Shaded,
       // Fine,
       Stress,
-      Strain
+      Strain,
+      MAPStress,
+      MAPStrain;
+
+      public boolean usesStress() {
+         return this == Stress || this == MAPStress;
+      }
+
+      public boolean usesStrain() {
+         return this == Strain || this == MAPStrain;
+      }
+      
+      public boolean usesStressOrStrain() {
+         return this != None && this != Shaded;
+      }
    };
 
    public enum Ranging {

@@ -244,18 +244,60 @@ public class FemNode3d extends FemNode implements Boundable {
    }
    
    /**
+    * Computes and returns the eigenvalue with the maximum absolute value for
+    * a symmetric 3x3 matrix.
+    *
+    * @param M matrix to compute maximum absolute eigenvalue for
+    * @return maximum absolute eigenvalue
+    */
+   private double computeMaxAbsEigenvalue (SymmetricMatrix3d M) {    
+      Vector3d eigs = new Vector3d();
+      M.getEigenValues (eigs);
+      return eigs.get(eigs.maxAbsIndex());
+   }
+
+   /**
     * Compute the Von Mises Stress criterion
     * https://en.wikipedia.org/wiki/Von_Mises_yield_criterion
     * The Von Mises Stress is equal to sqrt(3 J2), where J2 is
     * the second invariant of the average deviatoric strain for the node.
-    * @param e Strain tensor
-    * @return Von Mises Strain Equivalent
+    * @param e stress tensor
+    * @return Von Mises stress
     */
    private double computeVonMisesStress (SymmetricMatrix3d stress) {
       double J2 = computeJ2 (stress);
       return Math.sqrt (3.0*J2);    
    }
    
+   /** 
+    * Returns the von Mises stress for this node. This is equal to sqrt (3 J2),
+    * where J2 is the second invariant of the average deviatoric stress for the
+    * node.
+    *
+    * <p>This quantity is available only when stress values are being computed
+    * for this node, as described in the documentation for {@link #getStress}.
+    * If stress values are not being computed, 0 is returned.
+    *
+    * @return van Mises stress, or 0 is stress is not being computed
+    */   
+   public double getVonMisesStress () {
+      return (myAvgStress == null) ? 0 : computeVonMisesStress(myAvgStress);
+   }
+
+   /** 
+    * Returns the principal stress with the maximum absolute value for this
+    * node.
+    *
+    * <p>This quantity is available only when stress values are being computed
+    * for this node, as described in the documentation for {@link #getStress}.
+    * If stress values are not being computed, 0 is returned.
+    * 
+    * @return max abs principal stress, or 0 is stress is not being computed
+    */   
+   public double getMaxAbsPrincipalStress () {
+      return (myAvgStress == null) ? 0 : computeMaxAbsEigenvalue(myAvgStress);
+   }
+
    /**
     * Compute the Von Mises strain equivalent according to
     * http://www.continuummechanics.org/vonmisesstress.html
@@ -263,8 +305,8 @@ public class FemNode3d extends FemNode implements Boundable {
     * https://dianafea.com/manuals/d944/Analys/node405.html
     * The Von Mises Strain Equivalent is equal to sqrt(4/3 J2), where J2 is
     * the second invariant of the average deviatoric strain for the node.
-    * @param e Strain tensor
-    * @return Von Mises Strain Equivalent
+    * @param strain strain tensor
+    * @return von Mises strain Equivalent
     */
    private double computeVonMisesStrain(SymmetricMatrix3d strain) {
       double J2 = computeJ2 (strain);
@@ -272,17 +314,34 @@ public class FemNode3d extends FemNode implements Boundable {
    }
 
    /** 
-    * Returns the von Mises stress for this node. This is equal to sqrt (3 J2),
-    * where J2 is the second invariant of the average deviatoric stress for the
-    * node.  This quantity is computed from the average nodal stress, which is
-    * in turn computed only when computeNodeStresses is enabled for the FEM
-    * model containing this node.
+    * Returns the von Mises strain for this node. This is equal to sqrt (4/3 J2),
+    * where J2 is the second invariant of the average deviatoric strain for the
+    * node.
     *
-    * @return van Mises stress
+    * <p>This quantity is available only when strain values are being computed
+    * for this node, as described in the documentation for {@link #getStrain}.
+    * If strain values are not being computed, 0 is returned.
+    *
+    * @return von Mises strain, or 0 is strain is not being computed
     */   
-   public double getVonMisesStress () {
-      return (myAvgStress == null) ? 0 : computeVonMisesStress(myAvgStress);
+   public double getVonMisesStrain () {
+      return (myAvgStrain == null) ? 0 : computeVonMisesStrain (myAvgStrain);
    }
+
+   /** 
+    * Returns the principal strain with the maximum absolute value for this
+    * node.
+    * 
+    * <p>This quantity is available only when strain values are being computed
+    * for this node, as described in the documentation for {@link #getStrain}.
+    * If strain values are not being computed, 0 is returned.
+
+    * @return max abs strain, or 0 is strain is not being computed
+    */
+   public double getMaxAbsPrincipalStrain () {
+      return (myAvgStrain == null) ? 0 : computeMaxAbsEigenvalue(myAvgStrain);
+   }
+
 
    public Vector3d getDisplacement () {
       Vector3d del = new Vector3d();
@@ -342,11 +401,12 @@ public class FemNode3d extends FemNode implements Boundable {
     * nodes for each element, and then computing the average of these
     * extrapolated values at each node. 
     * 
-    * <p>Average nodal stress is computed only
-    * when computeNodeStresses is enabled for the FEM model containing this
-    * node, or when one of the model's meshes is rendered using
-    * {@link SurfaceRender#Stress}. If stress is not being computed for
-    * this node, then this method returns a zero-valued matrix.
+    * <p>Average nodal stress is computed for this node only when explicitly
+    * requested using {@link #setComputeStress} (or {@link
+    * FemModel3d#setComputeNodalStress} in its FEM model), or when needed
+    * internally, such as when an FEM mesh containing this node is rendered
+    * using stress information. If stress is not being computed for this node,
+    * then this method returns a zero-valued matrix.
     *
     * @return average nodal stress (should not be modified)
     */   
@@ -419,27 +479,17 @@ public class FemNode3d extends FemNode implements Boundable {
    }
    
    /** 
-    * Returns the von Mises strain for this node. This is equal to sqrt (4/3 J2),
-    * where J2 is the second invariant of the average deviatoric strain for the
-    * node.  This quantity is computed from the average nodal strain, which is
-    * in turn computed only when computeNodeStrain is enabled for the FEM
-    * model containing this node.
-    *
-    * @return von Mises strain
-    */   
-   public double getVonMisesStrain () {
-      return (myAvgStrain == null) ? 0 : computeVonMisesStrain (myAvgStrain);
-   }
-
-   /** 
     * Returns the average strain for this node. Average node strains are
     * computed by extrapolating the integration point strains back to the
     * nodes for each element, and then computing the average of these
-    * extrapolated values at each node. Average nodal strain is computed only
-    * when computeNodeStrain is enabled for the FEM model containing this
-    * node, or when one of the model's meshes is rendered using
-    * {@link SurfaceRender#Strain}. If strain is not being computed
-    * for this node, then this method returns a zero-valued matrix.
+    * extrapolated values at each node.
+    *
+    * <p>Average nodal strain is computed for this node only when explicitly
+    * requested using {@link #setComputeStrain} (or {@link
+    * FemModel3d#setComputeNodalStrain} in its FEM model), or when needed
+    * internally, such as when an FEM mesh containing this node is rendered
+    * using strain information. If strain is not being computed for this node,
+    * then this method returns a zero-valued matrix.
     *
     * @return average nodal strain (should not be modified)
     */   

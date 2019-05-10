@@ -137,7 +137,7 @@ implements CollidableBody, PointAttachable {
             if (!isScanning()) {
                myFem.updateInternalNodalStressSettings();
                myFem.updateInternalNodalStrainSettings();
-               if (mode==SurfaceRender.Strain || mode==SurfaceRender.Stress) {
+               if (mode.usesStressOrStrain()) {
                   myFem.updateStressAndStiffness();
                }
             }
@@ -145,8 +145,8 @@ implements CollidableBody, PointAttachable {
          // save/restore original vertex colors
          MeshBase mesh = getMesh();   
          if (mesh != null) {
-            boolean oldStressOrStrain = isStressOrStrainRendering (oldMode);
-            boolean newStressOrStrain = isStressOrStrainRendering (mode);
+            boolean oldStressOrStrain = oldMode.usesStressOrStrain();
+            boolean newStressOrStrain = mode.usesStressOrStrain();
 
             if (newStressOrStrain != oldStressOrStrain) {
                if (newStressOrStrain) {
@@ -1131,8 +1131,7 @@ implements CollidableBody, PointAttachable {
 
    protected void updateVertexColors() {
 
-      if (mySurfaceRendering != SurfaceRender.Stress &&
-         mySurfaceRendering != SurfaceRender.Strain) {
+      if (!mySurfaceRendering.usesStressOrStrain()) {
          return;
       }
 
@@ -1157,10 +1156,17 @@ implements CollidableBody, PointAttachable {
                if (nodes[j] instanceof FemNode3d) { // paranoid!
                   FemNode3d node = (FemNode3d)nodes[j];
                   double w = weights.get(j);
-                  if (mySurfaceRendering == SurfaceRender.Strain) {
-                     sval += w*node.getVonMisesStrain();
-                  } else if (mySurfaceRendering == SurfaceRender.Stress) {
+                  if (mySurfaceRendering == SurfaceRender.Stress) {
                      sval += w*node.getVonMisesStress();
+                  }
+                  else if (mySurfaceRendering == SurfaceRender.MAPStress) {
+                     sval += w*node.getMaxAbsPrincipalStress();
+                  }
+                  else if (mySurfaceRendering == SurfaceRender.Strain) {
+                     sval += w*node.getVonMisesStrain();
+                  } 
+                  else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
+                     sval += w*node.getMaxAbsPrincipalStrain();
                   }
                }
             }
@@ -1168,10 +1174,17 @@ implements CollidableBody, PointAttachable {
          else if (attacher instanceof PointParticleAttachment) {
             PointParticleAttachment ppa = (PointParticleAttachment)attacher;
             FemNode3d node = (FemNode3d)ppa.getParticle();
-            if (mySurfaceRendering == SurfaceRender.Strain) {
-               sval = node.getVonMisesStrain();
-            } else if (mySurfaceRendering == SurfaceRender.Stress) {
+            if (mySurfaceRendering == SurfaceRender.Stress) {
                sval = node.getVonMisesStress();
+            }
+            else if (mySurfaceRendering == SurfaceRender.MAPStress) {
+               sval = node.getMaxAbsPrincipalStress();
+            }            
+            else if (mySurfaceRendering == SurfaceRender.Strain) {
+               sval = node.getVonMisesStrain();
+            } 
+            else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
+               sval = node.getMaxAbsPrincipalStrain();
             }
          }
          double smin = myStressPlotRange.getLowerBound();

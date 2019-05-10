@@ -586,7 +586,7 @@ PointAttachable, ConnectableBody {
       HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
       
       for (FemMeshComp comp : myMeshList) {
-         if (comp.getSurfaceRendering() == SurfaceRender.Stress) {
+         if (comp.getSurfaceRendering().usesStress()) {
             if (!mySurfaceMeshValid) {
                getSurfaceMeshComp(); // auto generate mesh if necessary
             }
@@ -614,7 +614,7 @@ PointAttachable, ConnectableBody {
    public void updateInternalNodalStrainSettings() {
       HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
       for (FemMeshComp comp : myMeshList) {
-         if (comp.getSurfaceRendering() == SurfaceRender.Strain) {
+         if (comp.getSurfaceRendering().usesStrain()) {
             if (!mySurfaceMeshValid) {
                getSurfaceMeshComp(); // auto generate mesh if necessary
             }
@@ -1905,7 +1905,7 @@ PointAttachable, ConnectableBody {
       boolean updateForces = getUpdateForcesAtStepEnd();
       if (!updateForces) {
          for (FemMeshComp mc : myMeshList) {
-            if (mc.isStressOrStrainRendering (mc.getSurfaceRendering())) {
+            if (mc.getSurfaceRendering().usesStressOrStrain()) {
                updateForces = true;
                break;
             }
@@ -3681,8 +3681,7 @@ PointAttachable, ConnectableBody {
 
    public DoubleInterval getNodalPlotRange(SurfaceRender rendering) {
 
-      if (!(rendering == SurfaceRender.Strain || 
-         rendering == SurfaceRender.Stress)) {
+      if (!rendering.usesStressOrStrain()) {
          return null;
       }
 
@@ -3690,12 +3689,18 @@ PointAttachable, ConnectableBody {
       double max = 0;
       for (int i = 0; i < myNodes.size(); i++) {
          FemNode3d node = myNodes.get(i);
-         double s;
+         double s = 0;
          if (rendering == SurfaceRender.Stress) {
             s = (float)node.getVonMisesStress();
          }
-         else {
+         else if (rendering == SurfaceRender.MAPStress) {
+            s = (float)node.getMaxAbsPrincipalStress();
+         }
+         else if (rendering == SurfaceRender.Strain) {
             s = (float)node.getVonMisesStrain();
+         }
+         else if (rendering == SurfaceRender.MAPStrain) {
+            s = (float)node.getMaxAbsPrincipalStrain();
          }
          if (s < min) {
             min = s;
@@ -3709,8 +3714,7 @@ PointAttachable, ConnectableBody {
 
    private void updateStressPlotRange() {
 
-      if (mySurfaceRendering != SurfaceRender.Stress &&
-         mySurfaceRendering != SurfaceRender.Strain) {
+      if (!mySurfaceRendering.usesStressOrStrain()) {
          return;
       }
 

@@ -3,18 +3,17 @@ package artisynth.core.mechmodels;
 import java.util.List;
 import java.util.Map;
 
-import maspack.geometry.GeometryTransformer;
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.SparseBlockMatrix;
-import maspack.properties.PropertyList;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
+import maspack.geometry.GeometryTransformer;
+import maspack.matrix.Point3d;
+import maspack.matrix.SparseBlockMatrix;
+import maspack.properties.PropertyList;
 
 public class GenericMarker extends Marker {
 
-   protected PointAttachment myAttachment;
+   protected PointAttachment myPointAttachment;
    
    public static PropertyList myProps =
       new PropertyList (GenericMarker.class, Point.class);
@@ -22,15 +21,34 @@ public class GenericMarker extends Marker {
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
+   
+   public GenericMarker(Point3d pnt) {
+      this.setPosition (pnt);
+      myPointAttachment = null;
+   }
 
    public GenericMarker(PointAttachment attach) {
       super();
-      myAttachment = attach;
-      setAttached (myAttachment);
+      myPointAttachment = attach;
+      setAttached (myPointAttachment);
+   }
+   
+   @Override
+   public void setAttached (DynamicAttachment attachment) {
+      if (!(attachment instanceof PointAttachment)) {
+         throw new IllegalArgumentException ("Attachment must be of type PointAttachment");
+      }
+      myPointAttachment = (PointAttachment)attachment;
+      super.setAttached (attachment);
+   }
+   
+   @Override
+   public PointAttachment getAttachment () {
+      return myPointAttachment;
    }
    
    public boolean hasState() {
-      return myAttachment.hasState ();
+      return myPointAttachment.hasState ();
    }
    
    /** 
@@ -41,7 +59,7 @@ public class GenericMarker extends Marker {
          throw new IllegalStateException (
             "Target marker is not controllable");
       }
-      return myAttachment.addTargetJacobian (J, bi);
+      return myPointAttachment.addTargetJacobian (J, bi);
    }
    
    @Override
@@ -51,24 +69,24 @@ public class GenericMarker extends Marker {
 
    @Override
    public void updateState () {
-      myAttachment.updatePosStates();
-      myAttachment.updateVelStates();
+      myPointAttachment.updatePosStates();
+      myPointAttachment.updateVelStates();
    }
    
    public void updatePosState() {
-      myAttachment.updatePosStates();
+      myPointAttachment.updatePosStates();
    }
 
    public void updateVelState() {
-      myAttachment.updateVelStates();
+      myPointAttachment.updateVelStates();
    }
    
    public void applyForces() {
-      myAttachment.applyForces();
+      myPointAttachment.applyForces();
    }
    
    public void updateAttachment() {
-      myAttachment.updateAttachment();
+      myPointAttachment.updateAttachment();
    }
    
    public void transformGeometry (
@@ -82,10 +100,10 @@ public class GenericMarker extends Marker {
    public void connectToHierarchy (CompositeComponent hcomp) {
       super.connectToHierarchy (hcomp);
       if (hcomp == getParent()) {
-         DynamicComponent masters[] = myAttachment.getMasters();
+         DynamicComponent masters[] = myPointAttachment.getMasters();
          if (masters != null) {
             for (DynamicComponent master : masters) {
-               master.addMasterAttachment (myAttachment);
+               master.addMasterAttachment (myPointAttachment);
             }
          }
       }
@@ -95,10 +113,10 @@ public class GenericMarker extends Marker {
    public void disconnectFromHierarchy(CompositeComponent hcomp) {
       super.disconnectFromHierarchy(hcomp);
       if (hcomp == getParent()) {
-         DynamicComponent masters[] = myAttachment.getMasters();
+         DynamicComponent masters[] = myPointAttachment.getMasters();
          if (masters != null) {
             for (DynamicComponent master : masters) {
-               master.removeMasterAttachment (myAttachment);
+               master.removeMasterAttachment (myPointAttachment);
             }
          }
       }
@@ -130,10 +148,10 @@ public class GenericMarker extends Marker {
       if (copyMap != null) {
          copyMap.put (this, m);       // EDIT: if copyMap is null, this throws an error!  Sanchez, Nov 30,2011
       }
-      m.myAttachment = myAttachment.copy (flags, copyMap);
+      m.myPointAttachment = myPointAttachment.copy (flags, copyMap);
          // (PointFem3dAttachment)ComponentUtils.maybeGetCopy (
          //    flags, copyMap, myNodeAttachment);
-      m.setAttached (m.myAttachment);        
+      m.setAttached (m.myPointAttachment);        
 
       return m;
    }

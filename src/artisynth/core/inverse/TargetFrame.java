@@ -14,16 +14,19 @@ import maspack.matrix.RigidTransform3d;
 public class TargetFrame extends RigidBody {
 
    public TargetFrame () {
+      super.setDynamic (false);
    }
 
    public TargetFrame (RigidTransform3d X) {
-      super ();
+      this();
       setPose(X);
    }
    
-   @Override
-   public boolean isDynamic () {
-      return false;
+   /**
+    * Cannot set target frame as dynamic
+    */
+   public void setDynamic (boolean dynamic) {
+      // prevent setting as dynamic
    }
 
    public void transformGeometry (

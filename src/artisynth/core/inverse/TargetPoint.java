@@ -6,26 +6,26 @@
  */
 package artisynth.core.inverse;
 
-import maspack.matrix.AffineTransform3dBase;
-import maspack.matrix.Point3d;
-import maspack.geometry.GeometryTransformer;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
+import maspack.geometry.GeometryTransformer;
+import maspack.matrix.Point3d;
 
 public class TargetPoint extends Point {
 
    public TargetPoint () {
+      super.setDynamic (false);
    }
 
    public TargetPoint (Point3d pnt) {
       super (pnt);
+      super.setDynamic (false);
       myTarget.setTargetPos (pnt);
    }
-
+   
    @Override
-   public boolean isDynamic () {
-      return false;
+   protected void setDynamic (boolean dynamic) {
+      // prevent setting as dynamic
    }
 
    public void transformGeometry (

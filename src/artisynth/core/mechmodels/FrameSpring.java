@@ -23,7 +23,9 @@ import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
@@ -48,7 +50,8 @@ import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.util.*;
 
 public class FrameSpring extends Spring
-   implements RenderableComponent, ScalableUnits, CopyableComponent {
+   implements RenderableComponent, ScalableUnits,
+              CopyableComponent, MinimizableForceComponent {
 
    protected Frame myFrameA;
    protected Frame myFrameB;
@@ -138,7 +141,8 @@ public class FrameSpring extends Spring
       setMaterial (createDefaultMaterial());
    }
 
-   public FrameSpring (String name, double k, double kRot, double d, double dRot) {
+   public FrameSpring (
+      String name, double k, double kRot, double d, double dRot) {
       super (name);
       setMaterial (new RotAxisFrameMaterial (k, kRot, d, dRot));
       myStiffness = k;
@@ -654,6 +658,25 @@ public class FrameSpring extends Spring
          return;
       }
 
+      Matrix6dBlock blk00 = getBlock (M, myBlk00Num);
+      Matrix6dBlock blk11 = getBlock (M, myBlk11Num);
+      Matrix6dBlock blk01 = getBlock (M, myBlk01Num);
+      Matrix6dBlock blk10 = getBlock (M, myBlk10Num);
+      
+      computePosJacobianWorld (
+         mat, s, s, blk00, blk01, blk10, blk11, mySymmetricJacobian);
+   }
+
+   private void computePosJacobianWorld (
+      FrameMaterial mat, double sk, double sd,
+      Matrix6dBlock blk00, Matrix6dBlock blk01, 
+      Matrix6dBlock blk10, Matrix6dBlock blk11,
+      boolean symmetric) {
+
+      if (symmetric) {
+         sd = 0;
+      }
+
       Matrix6d JK = new Matrix6d();
       Matrix6d JD = null;
       RotationMatrix3d R1W = new RotationMatrix3d();
@@ -675,14 +698,11 @@ public class FrameSpring extends Spring
       p1.transform (XAW.R, myX1A.p);
       p2.transform (XBW.R, myX2B.p);
 
-      Matrix6dBlock blk00 = getBlock (M, myBlk00Num);
-      Matrix6dBlock blk11 = getBlock (M, myBlk11Num);
-      Matrix6dBlock blk01 = getBlock (M, myBlk01Num);
-      Matrix6dBlock blk10 = getBlock (M, myBlk10Num);
-
       Matrix3d T = myTmpM;
 
       computeRelativeDisplacements();
+
+      Twist vel21 = (sd != 0.0 ? myVel21 : Twist.ZERO);
 
       x21.set (myX21.p);
       x21.transform (R1W);
@@ -695,23 +715,24 @@ public class FrameSpring extends Spring
          myVel2.setZero();
       }
 
-      if (!mySymmetricJacobian) {
-         mat.computeF (myF, myX21, myVel21, myInitialX21);
-
+      if (!symmetric) {
+         // compute forces for assymetric force component
+         mat.computeF (myF, myX21, vel21, myInitialX21);
          // map forces back to World coords
          myF.transform (R1W);
 
-         JD = new Matrix6d();
-         mat.computeDFdu (JD, myX21, myVel21, myInitialX21, 
-            mySymmetricJacobian);
-         JD.transform (R1W);
+         if (sd != 0) {
+            JD = new Matrix6d();
+            mat.computeDFdu (
+               JD, myX21, vel21, myInitialX21, /*symmetric=*/false);
+            JD.transform (R1W);
+         }
       }
 
-      mat.computeDFdq (JK, myX21, myVel21, myInitialX21, 
-         mySymmetricJacobian);
+      mat.computeDFdq (JK, myX21, vel21, myInitialX21, symmetric);
       JK.transform (R1W);
-      JK.scale (-s);
-      myVel21.transform (R1W);
+      JK.scale (-sk);
+      vel21.transform (R1W);
 
       if (blk00 != null) {
          myTmp00.set (JK);
@@ -727,71 +748,84 @@ public class FrameSpring extends Spring
          postMulMoment (myTmp01, p2);
          myTmp10.set (JK);
          postMulMoment (myTmp10, p1);
-
       }      
       if (blk00 != null) {
-         if (!mySymmetricJacobian) {
+         if (!symmetric) {
             
-            // NEW
-            postMulMoment (myTmp00, x21);
-            setScaledCrossProd (T, -s, myF.f);
-            myTmp00.addSubMatrix03 (T);
-            setScaledCrossProd (T, -s, myF.m);
-            myTmp00.addSubMatrix33 (T);
-            postMulWrenchCross (myTmp00, JD, s, myVel21);
+            // QK term
+            postMulMoment (myTmp00, x21);          
 
-            setScaledCrossProd (T, s, p1);
+            // QF(0,0) term
+            setScaledCrossProd (T, -sk, myF.f);
+            myTmp00.addSubMatrix03 (T);
+            setScaledCrossProd (T, -sk, myF.m);
+            myTmp00.addSubMatrix33 (T);
+            setScaledCrossProd (T, sk, p1);
             T.crossProduct (myF.f, T);
             myTmp00.addSubMatrix33 (T);
 
-            //setScaledCrossProd (T, -s, myFk.m);
-            //myTmp00.addSubMatrix33 (T);
-
-            setScaledCrossProd (T, s, p1);
-            T.crossProduct (myVel1.w, T);
-            postMul03Block (myTmp00, JD, T);
-            if (blk10 != null) {
-
-               // NEW
-               postMulMoment (myTmp10, x21);
-               setScaledCrossProd (T, s, myF.f);
-               myTmp10.addSubMatrix03 (T);
-               setScaledCrossProd (T, s, myF.m);
-               myTmp10.addSubMatrix33 (T);
-               postMulWrenchCross (myTmp10, JD, -s, myVel21);
-
-               setScaledCrossProd (T, -s, p1);
+            // QD term
+            if (sd != 0) {
+               postMulWrenchCross (myTmp00, JD, sd, vel21);
+               setScaledCrossProd (T, sd, p1);
                T.crossProduct (myVel1.w, T);
-               postMul03Block (myTmp10, JD, T);
-
-               //setScaledCrossProd (T, s, myFk.m);
-               //myTmp10.addSubMatrix33 (T);
+               postMul03Block (myTmp00, JD, T);
             }
          }
          preMulMoment (myTmp00, p1);
          blk00.add (myTmp00);
       }
       if (blk11 != null) {
-         if (!mySymmetricJacobian) {
-            setScaledCrossProd (T, -s, p2);
+         if (!symmetric) {
+            // QF(1,1) term
+            setScaledCrossProd (T, -sk, p2);
             T.crossProduct (myF.f, T);
             myTmp11.addSubMatrix33 (T);
 
-            setScaledCrossProd (T, s, p2);
-            T.crossProduct (myVel2.w, T);
-            postMul03Block (myTmp11, JD, T);
-            if (blk01 != null) {
-               T.negate();
-               postMul03Block (myTmp01, JD, T);
+            // QD term
+            if (sd != 0) {
+               setScaledCrossProd (T, sd, p2);
+               T.crossProduct (myVel2.w, T);
+               postMul03Block (myTmp11, JD, T);
             }
+            
          }
          preMulMoment (myTmp11, p2);
          blk11.add (myTmp11);
       }
-      if (blk01 != null && blk10 != null) {
+      if (blk01 != null) {
+         if (!symmetric) {
+            // QD term
+            if (sd != 0) {
+               setScaledCrossProd (T, -sd, p2);
+               T.crossProduct (myVel2.w, T);
+               postMul03Block (myTmp01, JD, T);
+            }
+            
+         }
          preMulMoment (myTmp01, p1);
-         preMulMoment (myTmp10, p2);
          blk01.add (myTmp01);
+      }
+      if (blk10 != null) {
+         if (!symmetric) {
+            // QK term
+            postMulMoment (myTmp10, x21);
+
+            // QF(1,0) term
+            setScaledCrossProd (T, sk, myF.f);
+            myTmp10.addSubMatrix03 (T);
+            setScaledCrossProd (T, sk, myF.m);
+            myTmp10.addSubMatrix33 (T);
+
+            // QD term
+            if (sd != 0) {
+               postMulWrenchCross (myTmp10, JD, -sd, vel21);
+               setScaledCrossProd (T, -sd, p1);
+               T.crossProduct (myVel1.w, T);
+               postMul03Block (myTmp10, JD, T);
+            }
+         }
+         preMulMoment (myTmp10, p2);
          blk10.add (myTmp10);
       }      
    }
@@ -812,6 +846,14 @@ public class FrameSpring extends Spring
       Matrix6dBlock blk11 = getBlock (M, myBlk11Num);
       Matrix6dBlock blk01 = getBlock (M, myBlk01Num);
       Matrix6dBlock blk10 = getBlock (M, myBlk10Num);
+
+      computeVelJacobianWorld (mat, s, blk00, blk01, blk10, blk11);
+   }
+
+   public void computeVelJacobianWorld (
+      FrameMaterial mat, double sd,
+      Matrix6d blk00, Matrix6d blk01, 
+      Matrix6d blk10, Matrix6d blk11) {
 
       Matrix6d D = new Matrix6d();
       RotationMatrix3d R1W = new RotationMatrix3d();
@@ -839,7 +881,7 @@ public class FrameSpring extends Spring
       computeRelativeDisplacements();
       mat.computeDFdu (D, myX21, myVel21, myInitialX21, mySymmetricJacobian);
       D.transform (R1W);
-      D.scale (-s);
+      D.scale (-sd);
       if (blk00 != null) {
          myTmp00.set (D);
          postMulMoment (myTmp00, p1);
@@ -854,15 +896,19 @@ public class FrameSpring extends Spring
       }
       if (blk01 != null && blk10 != null) {
          D.negate();
-         myTmp01.set (D);
-         postMulMoment (myTmp01, p2);
-         preMulMoment (myTmp01, p1);
 
-         myTmp10.set (D);
-         postMulMoment (myTmp10, p1);
-         preMulMoment (myTmp10, p2);
-         blk01.add (myTmp01);
-         blk10.add (myTmp10);
+         if (blk01 != null) {
+            myTmp01.set (D);
+            postMulMoment (myTmp01, p2);
+            preMulMoment (myTmp01, p1);
+            blk01.add (myTmp01);
+         }
+         if (blk10 != null) {
+            myTmp10.set (D);
+            postMulMoment (myTmp10, p1);
+            preMulMoment (myTmp10, p2);
+            blk10.add (myTmp10);
+         }
       }      
    }
 
@@ -897,6 +943,75 @@ public class FrameSpring extends Spring
       myBlk00Num = (bi0 != -1 ? M.getBlock(bi0, bi0).getBlockNumber() : -1);
       myBlk11Num = (bi1 != -1 ? M.getBlock(bi1, bi1).getBlockNumber() : -1);
    }      
+
+   /* --- Begin MinimizeForceComponent interface (for inverse controller) --- */
+
+   public int getMinForceSize() {
+      return 6;
+   }
+
+   public void getMinForce (VectorNd minf, boolean staticOnly) {
+      minf.setSize (6);
+
+      FrameMaterial mat = myMaterial;
+      if (mat != null) { // just in case implementation allows null material ...
+         computeRelativeDisplacements();
+         if (!staticOnly) {
+            mat.computeF (myF, myX21, myVel21, myInitialX21);
+         }
+         else {
+            mat.computeF (myF, myX21, Twist.ZERO, myInitialX21);
+         }
+         myFTmp.transform (myX1A, myF);
+         myFTmp.transform (myFrameA.getPose().R); // put into rotated world coords
+         minf.set (myFTmp);
+      }
+      else {
+         minf.setZero();
+      }
+   }
+
+   Matrix6dBlock getOrCreateBlock (SparseBlockMatrix J, Frame frame, int bi) {
+      int bj;
+      Matrix6dBlock blk = null;
+      if (frame != null && (bj = frame.getSolveIndex()) != -1) {
+         blk = (Matrix6dBlock)J.getBlock (bi, bj);
+         if (blk == null) {
+            blk = new Matrix6dBlock();
+            J.addBlock (bi, bj, blk);
+         }
+      }     
+      return blk;
+   }
+
+   public int addMinForcePosJacobian (
+      SparseBlockMatrix J, double h, boolean staticOnly, int bi) {
+
+      Matrix6dBlock blk00 = getOrCreateBlock (J, myFrameA, bi);
+      Matrix6dBlock blk01 = getOrCreateBlock (J, myFrameB, bi);
+      FrameMaterial mat = myMaterial;
+      double sd = staticOnly ? 0.0 : h;
+      if (mat != null) {
+         // just in case implementation allows null material ...
+         computePosJacobianWorld (
+            mat, h, sd, blk00, blk01, null, null, /*symmetric=*/false);
+      }
+      return bi++;
+   }
+
+   public int addMinForceVelJacobian (
+      SparseBlockMatrix J, double h, int bi) {
+
+      Matrix6dBlock blk00 = getOrCreateBlock (J, myFrameA, bi);
+      Matrix6dBlock blk01 = getOrCreateBlock (J, myFrameB, bi);
+      FrameMaterial mat = myMaterial;
+      if (mat != null) {
+         computeVelJacobianWorld (mat, h, blk00, blk01, null, null);
+      }
+      return bi++;
+   }
+
+   /* --- End MinimizeForceComponent interface --- */
 
    public void scaleDistance (double s) {
       if (myMaterial != null) {

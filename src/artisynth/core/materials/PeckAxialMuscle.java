@@ -1,7 +1,22 @@
 package artisynth.core.materials;
 
 public class PeckAxialMuscle extends AxialMuscleMaterial {
-
+   
+   public PeckAxialMuscle () {
+   }
+   
+   public PeckAxialMuscle (
+      double maxF, double optL, double maxL, 
+      double tendonRatio, double passiveFraction, double damping) {
+      
+      setMaxForce (maxF);
+      setOptLength (optL);
+      setMaxLength (maxL);
+      setTendonRatio (tendonRatio);
+      setPassiveFraction (passiveFraction);
+      setDamping (damping);
+   }
+   
    public double computeF(double l, double ldot, double l0, double ex) {
       double passive = 0, active = 0;
 

@@ -11,8 +11,10 @@ import java.util.Map;
 
 import maspack.matrix.Matrix3d;
 import maspack.matrix.MatrixBlock;
+import maspack.matrix.Matrix3x3Block;
 import maspack.matrix.MatrixBlockBase;
 import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
@@ -209,15 +211,30 @@ public abstract class PointSpringBase extends Spring
    /* ======== End renderable implementation ======= */
 
    /**
-    * Computes the force magnitude acting along the unit vector from the first
-    * to the second particle.
-    * 
-    * @return force magnitude
+    * Computes the tension F acting along the unit vector from the first to the
+    * second particle.
+    *
+    * @param l spring length
+    * @param ldot spring length derivative
+    * @return force tension
     */
    public double computeF (double l, double ldot) {
+      return computeF (l, ldot, 0);
+   }
+
+   /**
+    * Computes the tension F acting along the unit vector from the first to the
+    * second particle.
+    *
+    * @param l spring length
+    * @param ldot spring length derivative
+    * @param ex excitation applied to the muscle material
+    * @return force tension
+    */
+   public double computeF (double l, double ldot, double ex) {
       AxialMaterial mat = getEffectiveMaterial();
       if (mat != null) {
-         return mat.computeF (l, ldot, myRestLength, 0);
+         return mat.computeF (l, ldot, myRestLength, ex);
       }
       else {
          return 0;
@@ -225,34 +242,63 @@ public abstract class PointSpringBase extends Spring
    }
 
    /**
-    * Computes the derivative of spring force magnitude (acting along the unit
-    * vector from the first to the second particle) with respect to spring
-    * length.
+    * Computes the derivative of the tension F (acting along the unit vector
+    * from the first to the second particle) with respect to spring length.
     * 
-    * @return force magnitude derivative with respect to length
+    * @param l spring length
+    * @param ldot spring length derivative
+    * @return force tension derivative with respect to length
     */
    public double computeDFdl (double l, double ldot) {
+      return computeDFdl (l, ldot, 0);
+   }
+
+   /**
+    * Computes the derivative of the tension F (acting along the unit vector
+    * from the first to the second particle) with respect to spring length.
+    * 
+    * @param l spring length
+    * @param ldot spring length derivative
+    * @param ex excitation applied to the muscle material
+    * @return force tension derivative with respect to length
+    */
+   public double computeDFdl (double l, double ldot, double ex) {
       AxialMaterial mat = getEffectiveMaterial();
       if (mat != null) {
-         return mat.computeDFdl (l, ldot, myRestLength, 0);
+         return mat.computeDFdl (l, ldot, myRestLength, ex);
       }
       else {
          return 0;
       }
    }
 
-
    /**
-    * Computes the derivative of spring force magnitude (acting along the unit
-    * vector from the first to the second particle)with respect to the time
-    * derivative of spring length.
+    * Computes the derivative of the tension F (acting along the unit vector
+    * from the first to the second particle)with respect to the time derivative
+    * of spring length.
     * 
-    * @return force magnitude derivative with respect to length time derivative
+    * @param l spring length
+    * @param ldot spring length derivative
+    * @return force tension derivative with respect to length time derivative
     */
    public double computeDFdldot (double l, double ldot) {
+      return computeDFdldot (l, ldot, 0);
+   }
+
+   /**
+    * Computes the derivative of the tension F (acting along the unit vector
+    * from the first to the second particle)with respect to the time derivative
+    * of spring length.
+    * 
+    * @param l spring length
+    * @param ldot spring length derivative
+    * @param ex excitation applied to the muscle material
+    * @return force tension derivative with respect to length time derivative
+    */
+   public double computeDFdldot (double l, double ldot, double ex) {
       AxialMaterial mat = getEffectiveMaterial();
       if (mat != null) {
-         return mat.computeDFdldot (l, ldot, myRestLength, 0);
+         return mat.computeDFdldot (l, ldot, myRestLength, ex);
       }
       else {
          return 0;
@@ -349,12 +395,95 @@ public abstract class PointSpringBase extends Spring
       protected void addPosJacobian (
          SparseNumberedBlockMatrix M, double s, double F, double dFdl, 
          double dFdldot, double len, Matrix3d T) {
-         computeForcePositionJacobian (T, F, dFdl, dFdldot, len);
+         computeForcePositionJacobian (
+            T, F, dFdl, dFdldot, len, myIgnoreCoriolisInJacobian);
          T.scale (s);
          addToJacobianBlocks (M, T);
       }
 
-      protected void addToJacobianBlocks (SparseNumberedBlockMatrix S, Matrix3d M) {
+      protected void addMinForcePosJacobian (
+         SparseBlockMatrix J, double s, double F, double dFdl, double dFdldot,
+         double len, boolean staticOnly, int bi) {
+
+         Matrix3d K = new Matrix3d();
+         computeForcePositionJacobian (
+            K, F, dFdl, dFdldot, len, /*symmetric=*/false);
+         K.scale (s);
+         addToMinForceJacobianBlocks (J, K, bi);
+      }
+
+      protected void addMinForceVelJacobian (
+         SparseBlockMatrix J, double s, double dFdldot, int bi) {
+
+         Matrix3d D = new Matrix3d();
+         computeForceVelocityJacobian (D, dFdldot);
+         D.scale (s);
+         System.out.println ("s=" + s + " D=\n" + D);
+         addToMinForceJacobianBlocks (J, D, bi);
+      }
+
+      protected void addToMinForceJacobianBlocks (
+         SparseBlockMatrix J, Matrix3d K, int bi) {
+
+         int bj;
+         if ((bj = pnt0.getSolveIndex()) != -1) {
+            MatrixBlock blk = J.getBlock (bi, bj);
+            if (blk == null) {
+               blk = new Matrix3x3Block();
+               J.addBlock (bi, bj, blk);
+            }
+            blk.add (K);
+         }
+         if ((bj = pnt1.getSolveIndex()) != -1) {
+            MatrixBlock blk = J.getBlock (bi, bj);
+            if (blk == null) {
+               blk = new Matrix3x3Block();
+               J.addBlock (bi, bj, blk);
+            }
+            blk.sub (K);
+         }
+      }
+
+      protected void addMinForceJacobian (
+         SparseBlockMatrix J, double F, double dFdl, double dFdldot,
+         double len, double h, boolean staticOnly, int bi) {
+
+         Matrix3d K = new Matrix3d();
+         Matrix3d D = null;
+         int bj = 0;
+         computeForcePositionJacobian (
+            K, F, dFdl, dFdldot, len, /*symmetric=*/false);
+         K.scale (h);
+         if (!staticOnly) {
+            D = new Matrix3d();
+            computeForceVelocityJacobian (D, dFdldot);
+         }
+         if ((bj = pnt0.getSolveIndex()) != -1) {
+            MatrixBlock blk = J.getBlock (bi, bj);
+            if (blk == null) {
+               blk = new Matrix3x3Block();
+               J.addBlock (bi, bj, blk);
+            }
+            blk.add (K);
+            if (D != null) {
+               blk.add (D);
+            }
+         }
+         if ((bj = pnt1.getSolveIndex()) != -1) {
+            MatrixBlock blk = J.getBlock (bi, bj);
+            if (blk == null) {
+               blk = new Matrix3x3Block();
+               J.addBlock (bi, bj, blk);
+            }
+            blk.sub (K);
+            if (D != null) {
+               blk.sub (D);
+            }
+         }
+      }
+
+      protected void addToJacobianBlocks (
+         SparseNumberedBlockMatrix S, Matrix3d M) {
 
          if (blk00Num != -1) {
             S.getBlockByNumber(blk00Num).add (M);
@@ -371,7 +500,8 @@ public abstract class PointSpringBase extends Spring
       }
 
       void computeForcePositionJacobian (
-         Matrix3d T, double F, double dFdl, double dFdldot, double totalLen) {
+         Matrix3d T, double F, double dFdl, double dFdldot,
+         double totalLen, boolean symmetric) {
 
          if (len == 0) {
             T.setZero();
@@ -387,7 +517,7 @@ public abstract class PointSpringBase extends Spring
          double uyz = uvec.y * uvec.z;
 
          // Now compute T = (-dFdldot * u * (vel1-vel0)' - F I) / length
-         if (!myIgnoreCoriolisInJacobian && dFdldot != 0) {
+         if (!symmetric && dFdldot != 0) {
             Vector3d vel1 = pnt1.getVelocity();
             Vector3d vel0 = pnt0.getVelocity();
 

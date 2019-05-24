@@ -58,27 +58,28 @@ public class DynamicAttachmentWorker {
          dbuf = getNegatedDerivative (at, new VectorNd (ssize));
       }
       
-      MatrixBlock sblk = GT.firstBlockInRow (bs);
-      while (sblk != null) {
-         int bj = sblk.getBlockCol();
+      MatrixBlock srowBlk = GT.firstBlockInRow (bs);
+      while (srowBlk != null) {
+         int bj = srowBlk.getBlockCol();
          for (int i = 0; i < masters.length; i++) {
             if (masters[i].getSolveIndex() != -1) {
                int bm = masters[i].getSolveIndex();
                MatrixBlock depBlk = GT.getBlock (bm, bj);
                if (depBlk == null) {
                   depBlk = MatrixBlockBase.alloc (
-                     GT.getBlockRowSize(bm), sblk.colSize());
-                  //depBlk = createRowBlock (sblk.colSize());
+                     GT.getBlockRowSize(bm), srowBlk.colSize());
+                  //depBlk = createRowBlock (srowBlk.colSize());
                   GT.addBlock (bm, bj, depBlk);
                }
-               at.mulSubGTM (depBlk, sblk, i);
+               at.mulSubGTM (depBlk, srowBlk, i);
                if (gbuf != null && dbuf != null) {
                   int goff = GT.getBlockColOffset (bj);
-                  sblk.mulTransposeAdd (gbuf, goff, dbuf, 0);
+                  srowBlk.mulTransposeAdd (gbuf, goff, dbuf, 0);
                }
             }
          }
-         sblk = sblk.next();
+         srowBlk.setZero();         
+         srowBlk = srowBlk.next();
       }
    }
 
@@ -127,23 +128,24 @@ public class DynamicAttachmentWorker {
       if (bs == -1) {
          return;
       }
-      MatrixBlock sblk = G.firstBlockInCol (bs);
-      while (sblk != null) {
-         int bi = sblk.getBlockRow();
+      MatrixBlock scolBlk = G.firstBlockInCol (bs);
+      while (scolBlk != null) {
+         int bi = scolBlk.getBlockRow();
          for (int j = 0; j < masters.length; j++) {
             if (masters[j].getSolveIndex() != -1) {
                int bm = masters[j].getSolveIndex();
                MatrixBlock depBlk = G.getBlock (bi, bm);
                if (depBlk == null) {
                   depBlk = MatrixBlockBase.alloc (
-                     sblk.rowSize(), G.getBlockColSize (bm)); 
-                  //depBlk = createColBlock (sblk.rowSize());
+                     scolBlk.rowSize(), G.getBlockColSize (bm)); 
+                  //depBlk = createColBlock (scolBlk.rowSize());
                   G.addBlock (bi, bm, depBlk);
                }
-               at.mulSubMG (depBlk, sblk, j);               
+               at.mulSubMG (depBlk, scolBlk, j);               
             }
          }
-         sblk = sblk.down();
+         scolBlk.setZero();
+         scolBlk = scolBlk.down();
       }
    }
 

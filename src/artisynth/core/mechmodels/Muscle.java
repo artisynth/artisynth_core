@@ -552,6 +552,10 @@ public class Muscle extends AxialSpring
       }
    }
 
+   public boolean hasState() {
+      return (myStateMat != null);
+   }
+   
    // end HasNumericState interface
    
    // PropertyChangeListener interface:

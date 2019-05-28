@@ -78,7 +78,7 @@ public class DynamicAttachmentWorker {
                }
             }
          }
-         srowBlk.setZero();         
+         //srowBlk.setZero();         
          srowBlk = srowBlk.next();
       }
    }

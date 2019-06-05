@@ -1,1 +1,1 @@
-mingw32-make -f Makefile.win32
+mingw32-make %*

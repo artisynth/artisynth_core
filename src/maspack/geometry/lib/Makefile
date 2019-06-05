@@ -80,7 +80,7 @@ else ifeq ($(findstring CYGWIN,$(SYSTEM)),CYGWIN)
 	SEMICOLON = ;
 	CLASS_ROOT_DIR := $(subst $(COLON),$(SEMICOLON),$(CLASS_ROOT_DIR))
 	CLASS_ROOT_DIR := "$(subst /,\,$(CLASS_ROOT_DIR))"
-	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static-libgcc
+	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static -static-libgcc
 else ifeq ($(findstring MINGW,$(SYSTEM)),MINGW)
 	X_FLAGS = -D_JNI_IMPLEMENTATION_
 	ifeq ($(ARCH), 64)
@@ -104,7 +104,7 @@ else ifeq ($(findstring MINGW,$(SYSTEM)),MINGW)
 	ROBUST_TARGET = RobustPreds.1.0.dll
 	ROBUST_TARGET_OLD = RobustPreds.0.0.dll
 	SHEWCHUK_DEF = -DCPU86
-	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static-libgcc
+	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static -static-libgcc
 else ifeq ($(SYSTEM),Windows)
 	X_FLAGS = -D_JNI_IMPLEMENTATION_
 	ifeq ($(ARCH), 64)
@@ -128,7 +128,7 @@ else ifeq ($(SYSTEM),Windows)
 	SEMICOLON = ;
 	CLASS_ROOT_DIR := $(subst $(COLON),$(SEMICOLON),$(CLASS_ROOT_DIR))
 	CLASS_ROOT_DIR := "$(subst /,\,$(CLASS_ROOT_DIR))"
-	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static-libgcc
+	LIB_FLAGS = -shared -Wl,--add-stdcall-alias -static -static-libgcc
 else ifeq ($(SYSTEM),Darwin)
         # XXX assume that all MacOS systems are 64 bit. That's because
         # we only have 64 bit pardiso for MacOS, and Java has a 64 bit

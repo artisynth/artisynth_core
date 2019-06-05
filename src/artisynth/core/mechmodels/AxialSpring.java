@@ -22,15 +22,10 @@ import maspack.render.*;
 import java.util.*;
 
 public class AxialSpring extends PointSpringBase
-   implements ScalableUnits, CopyableComponent {
+   implements ScalableUnits, CopyableComponent, MinimizableForceComponent {
    protected Point myPnt0;
    protected Point myPnt1;
    protected SegmentData mySeg = new SegmentData (null, null);
-
-   protected Vector3d myTmp = new Vector3d();
-   protected Matrix3d myMat = null;
-   protected Vector3d myU = new Vector3d();
-   protected double myLength = 0;
 
    public static PropertyList myProps =
       new PropertyList (AxialSpring.class, PointSpringBase.class);
@@ -118,22 +113,20 @@ public class AxialSpring extends PointSpringBase
     * returns the computed force acting on the first point
     */
    public void computeForce (Vector3d f) {
-      updateU();
-      if (myLength == 0) {
+      mySeg.updateU();
+      if (mySeg.len == 0) {
          f.setZero();
          return;
       }
-      double v =
-         (myU.dot (myPnt1.getVelocity()) - myU.dot (myPnt0.getVelocity()));
-      double F = computeF (myLength, v);
-      // System.out.println (getIndex() + " " + F);
-      f.scale (F, myU);
+      double F = computeF (mySeg.len, mySeg.getLengthDot());
+      f.scale (F, mySeg.uvec);
    }
 
    public void applyForces (double t) {
-      computeForce (myTmp);
-      myPnt0.addForce (myTmp);
-      myPnt1.subForce (myTmp);
+      Vector3d tmp = new Vector3d();
+      computeForce (tmp);
+      myPnt0.addForce (tmp);
+      myPnt1.subForce (tmp);
    }
 
   public void printPointReferences (PrintWriter pw, CompositeComponent ancestor)
@@ -182,14 +175,6 @@ public class AxialSpring extends PointSpringBase
       dowrite (pw, fmt, ref);
    }
 
-//   public float[] getRenderCoords0() {
-//      return myPnt0.myRenderCoords;
-//   }
-//
-//   public float[] getRenderCoords1() {
-//      return myPnt1.myRenderCoords;
-//   }
-//
    public void updateBounds (Vector3d pmin, Vector3d pmax) {
       myPnt0.updateBounds (pmin, pmax);
       myPnt1.updateBounds (pmin, pmax);
@@ -222,13 +207,11 @@ public class AxialSpring extends PointSpringBase
       if (myMaterial != null) {
          myMaterial.scaleMass (s);
       }
-//      myStiffness *= s;
-//      myDamping *= s;
    }
 
    public Vector3d getDir() {
-      updateU();
-      return myU;
+      mySeg.updateU();
+      return mySeg.uvec;
    }
 
    public double getLength() {
@@ -237,73 +220,6 @@ public class AxialSpring extends PointSpringBase
 
    public double getLengthDot() {
       return mySeg.getLengthDot();
-   }
-
-   protected void updateU() {
-      myU.sub (myPnt1.getPosition(), myPnt0.getPosition());
-      myLength = myU.norm();
-      if (myLength != 0) {
-         myU.scale (1 / myLength);
-      }
-   }
-
-   private boolean checkForcePositionJacobian (Matrix3x3Block M, double eps) {
-      Matrix3d Mcheck = new Matrix3d();
-
-      Vector3d u = new Vector3d();
-      u.sub (myPnt1.getPosition(), myPnt0.getPosition());
-      double len = u.norm();
-      if (len == 0) {
-         Mcheck.setZero();
-      }
-      else {
-         u.scale (1 / len);
-         Vector3d delVel = new Vector3d();
-         delVel.sub (myPnt1.getVelocity(), myPnt0.getVelocity());
-         double ldot = u.dot (delVel);
-
-         double F = computeF (len, ldot);
-
-         // dFdl is the derivative of force magnitude with respect to length
-         double dFdl = computeDFdl (len, ldot);
-
-         // dFdldot is the derivative of force magnitude with respect
-         // to the time derivative of length
-         double dFdldot = computeDFdldot (len, ldot);
-
-         double a = (dFdldot * ldot + F) / len;
-         Mcheck.outerProduct (u, u);
-         Mcheck.scale (a - dFdl);
-         Mcheck.m00 -= a;
-         Mcheck.m11 -= a;
-         Mcheck.m22 -= a;
-      }
-      return Mcheck.epsilonEquals (M, eps);
-   }
-
-   private boolean checkForceVelocityJacobian (Matrix3x3Block M, double eps) {
-      Matrix3d Mcheck = new Matrix3d();
-
-      Vector3d u = new Vector3d();
-      u.sub (myPnt1.getPosition(), myPnt0.getPosition());
-      double len = u.norm();
-      if (len == 0) {
-         Mcheck.setZero();
-      }
-      else {
-         u.scale (1 / len);
-         Vector3d delVel = new Vector3d();
-         delVel.sub (myPnt1.getVelocity(), myPnt0.getVelocity());
-         double ldot = u.dot (delVel);
-
-         // dFdldot is the derivative of force magnitude with respect
-         // to the time derivative of length
-         double dFdldot = computeDFdldot (len, ldot);
-
-         Mcheck.outerProduct (u, u);
-         Mcheck.scale (-dFdldot);
-      }
-      return Mcheck.epsilonEquals (M, eps);
    }
 
    /**
@@ -315,94 +231,13 @@ public class AxialSpring extends PointSpringBase
     * matrix in which to return the result
     */
    public void computeForcePositionJacobian (Matrix3d M) {
-      updateU();
-      if (myLength == 0) {
-         M.setZero();
-         return;
-      }
-      myTmp.sub (myPnt1.getVelocity(), myPnt0.getVelocity());
-      double ldot = myU.dot (myTmp);
-
-      // dFdl is the derivative of force magnitude with respect to length
-      double dFdl = computeDFdl (myLength, ldot);
-      // if (myIgnoreCoriolisInJacobian) {
-      //    // easy way. This is the same result for springs as stiffness warping
-      //    M.outerProduct (myU, myU);
-      //    M.scale (-dFdl);
-      //    return;
-      // }
-
-      // components of the open product u * u':
-      double uxx = myU.x * myU.x;
-      double uyy = myU.y * myU.y;
-      double uzz = myU.z * myU.z;
-      double uxy = myU.x * myU.y;
-      double uxz = myU.x * myU.z;
-      double uyz = myU.y * myU.z;
-
-      // dFdldot is the derivative of force magnitude with respect
-      // to the time derivative of length
-      double dFdldot = computeDFdldot (myLength, ldot);
-
-      // F is the force magnitude along u
-
-      double F = computeF (myLength, ldot);
-      // double F = (myStiffness*(myLength-myRestLength) +
-      // myDamping*(myU.dot(myTmp)));
-
-      // Now compute M = (-dFdldot * u * myTmp' - F I) / length
-      if (!myIgnoreCoriolisInJacobian && dFdldot != 0) {
-         myTmp.scale (-dFdldot / myLength);
-         M.outerProduct (myU, myTmp);
-      }
-      else {
-         M.setZero();
-      }
-      M.m00 -= F / myLength;
-      M.m11 -= F / myLength;
-      M.m22 -= F / myLength;
-
-      // form the product M * (I - u u')
-      double m00 = -M.m00 * (uxx - 1) - M.m01 * uxy - M.m02 * uxz;
-      double m11 = -M.m10 * uxy - M.m11 * (uyy - 1) - M.m12 * uyz;
-      double m22 = -M.m20 * uxz - M.m21 * uyz - M.m22 * (uzz - 1);
-
-      double m01 = -M.m00 * uxy - M.m01 * (uyy - 1) - M.m02 * uyz;
-      double m02 = -M.m00 * uxz - M.m01 * uyz - M.m02 * (uzz - 1);
-      double m12 = -M.m10 * uxz - M.m11 * uyz - M.m12 * (uzz - 1);
-
-      double m10 = -M.m10 * (uxx - 1) - M.m11 * uxy - M.m12 * uxz;
-      double m20 = -M.m20 * (uxx - 1) - M.m21 * uxy - M.m22 * uxz;
-      double m21 = -M.m20 * uxy - M.m21 * (uyy - 1) - M.m22 * uyz;
-
-      // finally, add -dFdl* u * u' to final result
-
-      if (dFdl != 0) {
-         M.m00 = m00 - dFdl * uxx;
-         M.m11 = m11 - dFdl * uyy;
-         M.m22 = m22 - dFdl * uzz;
-
-         M.m01 = m01 - dFdl * uxy;
-         M.m02 = m02 - dFdl * uxz;
-         M.m12 = m12 - dFdl * uyz;
-
-         M.m10 = m10 - dFdl * uxy;
-         M.m20 = m20 - dFdl * uxz;
-         M.m21 = m21 - dFdl * uyz;
-      }
-      else {
-         M.m00 = m00;
-         M.m11 = m11;
-         M.m22 = m22;
-
-         M.m01 = m01;
-         M.m02 = m02;
-         M.m12 = m12;
-
-         M.m10 = m10;
-         M.m20 = m20;
-         M.m21 = m21;
-      }
+      double l = getLength();
+      double ldot = getLengthDot();
+      double F = computeF (l, ldot);
+      double dFdl = computeDFdl (l, ldot);
+      double dFdldot = computeDFdldot (l, ldot);
+      mySeg.computeForcePositionJacobian (
+         M, F, dFdl, dFdldot, l, myIgnoreCoriolisInJacobian);
    }
 
    /**
@@ -414,36 +249,10 @@ public class AxialSpring extends PointSpringBase
     * matrix in which to return the result
     */
    public void computeForceVelocityJacobian (Matrix3d M) {
-      updateU();
-      myTmp.sub (myPnt1.getVelocity(), myPnt0.getVelocity());
-      double ldot = myU.dot (myTmp);
-      double dFdldot = computeDFdldot (myLength, ldot);
-      if (myLength == 0 || dFdldot == 0) {
-         M.setZero();
-         return;
-      }
-      M.outerProduct (myU, myU);
-      M.scale (-dFdldot);
-   }
-
-   private MatrixBlock addBlockIfNeeded (
-      SparseBlockMatrix M, int bi, int bj, Class type) {
-      MatrixBlock blk = M.getBlock (bi, bj);
-      if (blk == null) {
-         try {
-            blk = (MatrixBlock)type.newInstance();
-         }
-         catch (Exception e) {
-            throw new InternalErrorException ("Cannot create instance of "
-            + type);
-         }
-         M.addBlock (bi, bj, blk);
-      }
-      else if (!type.isAssignableFrom (blk.getClass())) {
-         throw new InternalErrorException ("bad off-diagonal block type: "
-         + blk.getClass());
-      }
-      return blk;
+      double l = getLength();
+      double ldot = getLengthDot();
+      double dFdldot = computeDFdldot (l, ldot);
+      mySeg.computeForceVelocityJacobian (M, dFdldot);     
    }
 
    public void addSolveBlocks (SparseNumberedBlockMatrix M) {
@@ -451,33 +260,67 @@ public class AxialSpring extends PointSpringBase
    }
 
    public void addPosJacobian (SparseNumberedBlockMatrix M, double s) {
-      if (myMat == null) {
-         myMat = new Matrix3d();
-      }
-      // computeForcePositionJacobian (myMat);
-      // myMat.scale (s);
-      // addToJacobianBlocks (myMat);
+      Matrix3d Tmp = new Matrix3d();
       double l = getLength();
       double ldot = getLengthDot();
       double F = computeF (l, ldot);
       double dFdl = computeDFdl (l, ldot);
       double dFdldot = computeDFdldot (l, ldot);
-      mySeg.addPosJacobian (M, s, F, dFdl, dFdldot, l, myMat);
+      mySeg.addPosJacobian (M, s, F, dFdl, dFdldot, l, Tmp);
    }
 
    public void addVelJacobian (SparseNumberedBlockMatrix M, double s) {
-      if (myMat == null) {
-         myMat = new Matrix3d();
-      }
-      // computeForceVelocityJacobian (myMat);
-      // myMat.scale (s);
-      // addToJacobianBlocks (myMat);
+      Matrix3d Tmp = new Matrix3d();
       double l = getLength();
       double ldot = getLengthDot();
       double dFdldot = computeDFdldot (l, ldot);
-      mySeg.addVelJacobian (M, s, dFdldot, myMat);
+      mySeg.addVelJacobian (M, s, dFdldot, Tmp);
    }
 
+   /* --- Begin MinimizeForceComponent interface (for inverse controller) --- */
+
+   public int getMinForceSize() {
+      return 3;
+   }
+   
+   public void getMinForce (VectorNd minf, boolean staticOnly) {
+      Vector3d tmp = new Vector3d();
+      double l = mySeg.updateU();
+      if (l > 0) {
+         double ldot = staticOnly ? 0.0 : mySeg.getLengthDot();
+         double F = computeF (l, ldot, 0);
+         tmp.scale (F, mySeg.uvec);
+      }
+      minf.setSize (3);
+      minf.set (tmp);
+   }
+
+   public int addMinForcePosJacobian (
+      SparseBlockMatrix J, double h, boolean staticOnly, int bi) {
+      double l = getLength();
+      double ldot = 0;
+      if (!staticOnly) {
+         ldot = mySeg.getLengthDot();
+      }
+      double F = computeF (l, ldot, 0);
+      double dFdl = computeDFdl (l, ldot, 0);
+      double dFdldot = computeDFdldot (l, ldot, 0);
+      mySeg.addMinForcePosJacobian (
+         J, h, F, dFdl, dFdldot, l, staticOnly, bi);
+      return bi++;
+   }
+   
+   public int addMinForceVelJacobian (
+      SparseBlockMatrix J, double h, int bi) {
+      double l = getLength();
+      double ldot = mySeg.getLengthDot();
+      double dFdldot = computeDFdldot (l, ldot, 0);
+      mySeg.addMinForceVelJacobian (J, h, dFdldot, bi);
+      return bi++;
+   }
+   
+   /* --- End MinimizeForceComponent interface --- */
+   
    public int getJacobianType() {
       AxialMaterial mat = getEffectiveMaterial();
       if (myIgnoreCoriolisInJacobian || mat.isDFdldotZero()) {
@@ -529,10 +372,7 @@ public class AxialSpring extends PointSpringBase
       }
       //comp.setStiffness (myStiffness);
       //comp.setDamping (myDamping);
-      comp.myTmp = new Vector3d();
-      comp.myMat = null;
-      comp.myU = new Vector3d();
-      comp.myLength = 0;
+      comp.mySeg = new SegmentData (pnt0, pnt1);
 
       return comp;
    }

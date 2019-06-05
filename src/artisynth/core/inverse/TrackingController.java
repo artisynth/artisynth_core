@@ -114,6 +114,7 @@ public class TrackingController extends ControllerBase
 
    protected MotionTargetTerm myMotionTerm = null;  // contains target information
    protected ForceTargetTerm myForceTerm = null;  // contains target information
+   protected ForceMinimizationTerm myMinForceTerm = null;  // contains target information
 
    protected L2RegularizationTerm myRegularizationTerm = null;
    protected BoundsTerm myBoundsTerm = null;
@@ -347,12 +348,10 @@ public class TrackingController extends ControllerBase
          myCostFunction.setSize (numExcitations());
          myExcitations = new VectorNd (numExcitations());
       }
-
-      prevExcitations.set(myExcitations);
+      double h = t1-t0;
       
-      SparseBlockMatrix Jc = (myForceTerm==null ? null : myForceTerm.getForceJacobian ());
-      SparseBlockMatrix Jm = (myMotionTerm==null ? null : myMotionTerm.getVelocityJacobian ());
-      myMotionForceData.update(t0, t1, Jm, Jc); // update and store inverse data
+      prevExcitations.set(myExcitations);
+      myMotionForceData.update(t0, t1);
    }
    
    /**
@@ -465,6 +464,11 @@ public class TrackingController extends ControllerBase
    
    public void addForceTargetTerm(ForceTargetTerm ft) {
       myForceTerm = ft;
+      addCostTerm (ft);
+   }
+   
+   public void addMinimizeForceTerm(ForceMinimizationTerm ft) {
+      myMinForceTerm = ft;
       addCostTerm (ft);
    }
    
@@ -1007,6 +1011,13 @@ public class TrackingController extends ControllerBase
     */
    public ForceTargetTerm getForceTargetTerm() {
       return myForceTerm;
+   }
+   
+   /**
+    * Returns the force minimization term, responsible for minimizing forces
+    */
+   public ForceMinimizationTerm getMinimizeForceTerm() {
+      return myMinForceTerm;
    }
    
    /**

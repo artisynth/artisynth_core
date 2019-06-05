@@ -13,6 +13,7 @@ import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorBase;
 import maspack.matrix.Matrix6x1;
+import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix1x6;
 import maspack.util.NumberFormat;
 
@@ -678,4 +679,29 @@ public abstract class SpatialVector extends VectorBase
       sv.contravariant = contravariant;
       return sv;
    }      
+
+   /**
+    * Multiplies a spatial vector v1 by a Matrix6d and places the result
+    * in this spetial vector.
+    *
+    * @param M matrix to multiply by
+    * @param v1 vector to multiply
+    */
+   public void mul (Matrix6d M, SpatialVector v1) {
+      double ax = v1.a.x;
+      double ay = v1.a.y;
+      double az = v1.a.z;
+      double bx = v1.b.x;
+      double by = v1.b.y;
+      double bz = v1.b.z;
+
+      a.x = M.m00*ax + M.m01*ay + M.m02*az + M.m03*bx + M.m04*by + M.m05*bz;
+      a.y = M.m10*ax + M.m11*ay + M.m12*az + M.m13*bx + M.m14*by + M.m15*bz;
+      a.z = M.m20*ax + M.m21*ay + M.m22*az + M.m23*bx + M.m24*by + M.m25*bz;
+
+      b.x = M.m30*ax + M.m31*ay + M.m32*az + M.m33*bx + M.m34*by + M.m35*bz;
+      b.y = M.m40*ax + M.m41*ay + M.m42*az + M.m43*bx + M.m44*by + M.m45*bz;
+      b.z = M.m50*ax + M.m51*ay + M.m52*az + M.m53*bx + M.m54*by + M.m55*bz;
+   }
+
 }

@@ -2,7 +2,22 @@ package artisynth.core.materials;
 
 public class PaiAxialMuscle extends AxialMuscleMaterial {
    
+   public PaiAxialMuscle() {
+      super();
+   }
+   
+   public PaiAxialMuscle (
+      double maxF, double optL, double maxL, 
+      double tendonRatio, double passiveFraction, double damping) {
 
+      setMaxForce (maxF);
+      setOptLength (optL);
+      setMaxLength (maxL);
+      setTendonRatio (tendonRatio);
+      setPassiveFraction (passiveFraction);
+      setDamping (damping);      
+   }
+   
    public double computeF(double l, double ldot, double l0, double ex) {
       double passive = 0, active = 0;
 

@@ -144,7 +144,7 @@ public class Muscle extends AxialSpring
    }
    
    public void setPeckMuscleMaterial (double maxF, double optL, double maxL, 
-	 double tendonRatio, double passiveFraction, double damping) {
+      double tendonRatio, double passiveFraction, double damping) {
       PeckAxialMuscle mat = new PeckAxialMuscle();
       mat.setAxialMuscleMaterialProps(maxF, optL, maxL, passiveFraction, 
 	    tendonRatio, damping, AxialMuscleMaterial.DEFAULT_SCALING);
@@ -375,69 +375,54 @@ public class Muscle extends AxialSpring
    }
 
    /**
-    * Computes the force magnitude acting along the unit vector from the first
-    * to the second particle.
+    * {@inheritDoc}
     * 
-    * @return force magnitude
+    * <p> The computation includes the effect of the net excitation acting on
+    * this Muscle.
+    *
+    * @param l {@inheritDoc}
+    * @param ldot {@inheritDoc}
+    * @return {@inheritDoc} 
     */
    public double computeF (double l, double ldot) {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (enabled && mat != null) {
-         return mat.computeF (l, ldot, myRestLength, getNetExcitation());
-      }
-      else {
-         return 0;
-      }
+      return computeF (l, ldot, getNetExcitation());
    }
    
    /**
-    * Computes the force magnitude acting along the unit vector from the first
-    * to the second particle with zero excitation.
+    * Computes the passive tension F acting along the unit vector from the
+    * first to the second particle.
     * 
-    * @return force magnitude
+    * @param l spring length
+    * @param ldot spring length derivative
+    * @return force tension
     */
    public double computePassiveF (double l, double ldot) {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (enabled && mat != null) {
-	 return mat.computeF(l, ldot, myRestLength, 0);
-      }
-      else {
-	 return 0;
-      }
+      return computeF (l, ldot, 0);
    }
 
    /**
-    * Computes the derivative of spring force magnitude (acting along the unit
-    * vector from the first to the second particle) with respect to spring
-    * length.
+    * {@inheritDoc}
     * 
-    * @return force magnitude derivative with respect to length
+    * @param l {@inheritDoc}
+    * @param ldot {@inheritDoc}
+    * @return {@inheritDoc} 
     */
    public double computeDFdl (double l, double ldot) {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (enabled && mat != null) {
-         return mat.computeDFdl (l, ldot, myRestLength, getNetExcitation());
-      }
-      else {
-         return 0;
-      }
+      return computeDFdl (l, ldot, getNetExcitation());
    }
 
    /**
-    * Computes the derivative of spring force magnitude (acting along the unit
-    * vector from the first to the second particle)with respect to the time
-    * derivative of spring length.
+    * {@inheritDoc}
+    *
+    * <p> The computation includes the effect of the net excitation acting on
+    * this Muscle.
     * 
-    * @return force magnitude derivative with respect to length time derivative
+    * @param l {@inheritDoc}
+    * @param ldot {@inheritDoc}
+    * @return {@inheritDoc} 
     */
    public double computeDFdldot (double l, double ldot) {
-      AxialMaterial mat = getEffectiveMaterial();
-      if (enabled && mat != null) {
-         return mat.computeDFdldot (l, ldot, myRestLength, getNetExcitation());
-      }
-      else {
-         return 0;
-      }
+      return computeDFdldot (l, ldot, getNetExcitation());
    }
 
 
@@ -464,14 +449,16 @@ public class Muscle extends AxialSpring
    }
 
    public double getForceNorm() {
-      computeForce (myTmp);
-      return myTmp.norm() / getForceScaling();
+      Vector3d tmp = new Vector3d();
+      computeForce (tmp);
+      return tmp.norm() / getForceScaling();
    }
 
    public Vector3d getForce() {
-      computeForce (myTmp);
-      myTmp.scale (1 / getForceScaling());
-      return new Vector3d(myTmp);
+      Vector3d tmp = new Vector3d();
+      computeForce (tmp);
+      tmp.scale (1 / getForceScaling());
+      return new Vector3d(tmp);
    }
 
    public void computePassiveForce (Vector3d f) {
@@ -487,14 +474,16 @@ public class Muscle extends AxialSpring
    }
    
    public double getPassiveForceNorm() {
-      computePassiveForce (myTmp);
-      return myTmp.norm() / getForceScaling();
+      Vector3d tmp = new Vector3d();
+      computePassiveForce (tmp);
+      return tmp.norm() / getForceScaling();
    }
 
    public Vector3d getPassiveForce() {
-      computePassiveForce (myTmp);
-      myTmp.scale (1 / getForceScaling());
-      return new Vector3d(myTmp);
+      Vector3d tmp = new Vector3d();
+      computePassiveForce (tmp);
+      tmp.scale (1 / getForceScaling());
+      return new Vector3d(tmp);
    }
 
    public void scaleDistance (double s) {
@@ -513,8 +502,8 @@ public class Muscle extends AxialSpring
       System.out.println (myName + ": " + "org = ("
       + myPnt0.getPosition().toString ("%6.2f") + ")   ins = ("
       + myPnt1.getPosition().toString ("%6.2f") + ")");
-      this.updateU();
-      Vector3d dir = new Vector3d (myU);
+      mySeg.updateU();
+      Vector3d dir = new Vector3d (mySeg.uvec);
       dir.negate();
       System.out.println (myName + " unit vector = (" + dir.toString ("%8.4f")
       + " )");
@@ -563,6 +552,10 @@ public class Muscle extends AxialSpring
       }
    }
 
+   public boolean hasState() {
+      return (myStateMat != null);
+   }
+   
    // end HasNumericState interface
    
    // PropertyChangeListener interface:

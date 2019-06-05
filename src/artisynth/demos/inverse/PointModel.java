@@ -89,9 +89,9 @@ public class PointModel extends RootModel
    protected MechModel model;
    protected FrameMarker center;
    
-// String[] labels = new String[]{
-//       "n","e","s","w"
-//};
+//  String[] labels = new String[]{
+//        "n","e","s","w"
+// };
 
  protected String[] labels = new String[]{
          "n","nne", "ne", "ene",
@@ -106,13 +106,13 @@ public class PointModel extends RootModel
    double springD = 0.1;
    double springRestLen = len*0.5;
 
-   double muscleF = 1.0;
-   double passiveFraction = 0.1;//1e-9;
-   double muscleOptLen = len*0.5; //len*1.5); 
-   double muscleMaxLen = labels.length;//len*2;
-   double muscleD = 0.001;
-   double muscleScaleFactor = 1000;
-   double pointDamping = 0.1;
+   protected double muscleF = 1.0;
+   protected double passiveFraction = 0.1;//1e-9;
+   protected double muscleOptLen = len*0.5; //len*1.5); 
+   protected double muscleMaxLen = labels.length;//len*2;
+   protected double muscleD = 0.001;
+   protected double muscleScaleFactor = 1000;
+   protected double pointDamping = 0.1;
 
    
 //   labelslong = {

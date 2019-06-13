@@ -1,43 +1,48 @@
 package artisynth.core.materials;
 
 import maspack.util.DataBuffer;
+import maspack.util.NumberFormat;
 import maspack.matrix.SymmetricMatrix3d;
 
 /**
  * Stores state information for QLV (Quasi-Linear Viscoelastic Behavior)
  */
-public class QLVState extends ViscoelasticState {
+public class QLVState extends ViscoelasticState implements MaterialStateObject {
 
-   protected SymmetricMatrix3d mySigmaPrev;
-   protected SymmetricMatrix3d mySigmaSave;
-   protected double[] myGHPrev;
-   protected double[] myS;
+   protected SymmetricMatrix3d mySPrev;
+   protected SymmetricMatrix3d mySSave;
+   protected double[] myAHPrev;
+   protected double[] myB;
    
    protected double myH = 0;
 
    public QLVState () {
-      mySigmaPrev = new SymmetricMatrix3d();
-      mySigmaSave = new SymmetricMatrix3d();
-      myGHPrev = new double[QLVBehavior.N_MAX*6];
-      myS = new double[QLVBehavior.N_MAX];
+      this (QLVBehavior.N_MAX);
+   }
+
+   public QLVState (int n) {
+      mySPrev = new SymmetricMatrix3d();
+      mySSave = new SymmetricMatrix3d();
+      myAHPrev = new double[6*n];
+      myB = new double[n];
    }
 
    public int getStateSize() {
       // need to save sigma, deltaSigma, gH, and s
-      return 12 + 6*QLVBehavior.N_MAX + QLVBehavior.N_MAX;
+      return 12 + (6 + 1)*myAHPrev.length;
    }
 
    /** 
     * Stores the state data in a DataBuffer
     */
    public void getState (DataBuffer data) {
-      data.dput (mySigmaSave);
-      data.dput (mySigmaPrev);
-      for (int k=0; k<myGHPrev.length; k++) {
-         data.dput (myGHPrev[k]);             
+      data.dput (mySSave);
+      data.dput (mySPrev);
+      for (int k=0; k<myAHPrev.length; k++) {
+         data.dput (myAHPrev[k]);             
       }
-      for (int k=0; k<myS.length; k++) {
-         data.dput (myS[k]);
+      for (int k=0; k<myB.length; k++) {
+         data.dput (myB[k]);
       }
    }   
 
@@ -45,15 +50,41 @@ public class QLVState extends ViscoelasticState {
     * Sets the state data from a buffer of doubles.
     */
    public void setState (DataBuffer data) {
-      data.dget (mySigmaSave);
-      data.dget (mySigmaPrev);
+      data.dget (mySSave);
+      data.dget (mySPrev);
 
-      for (int k=0; k<myGHPrev.length; k++) {
-         myGHPrev[k] = data.dget();
+      for (int k=0; k<myAHPrev.length; k++) {
+         myAHPrev[k] = data.dget();
       }
-      for (int k=0; k<myS.length; k++) {
-         myS[k] = data.dget();
+      for (int k=0; k<myB.length; k++) {
+         myB[k] = data.dget();
       }
+   }
+   
+   public String toString (String fmtStr) {
+      NumberFormat fmt = new NumberFormat(fmtStr);
+      StringBuilder sb = new StringBuilder();
+      sb.append ("sigmaSave=\n");
+      sb.append (mySSave.toString(fmt));
+      sb.append ("sigmaPrev=\n");
+      sb.append (mySPrev.toString(fmt));
+      sb.append ("AHprev=\n");
+      for (int k=0; k<myAHPrev.length; k+=6) {
+         sb.append (
+            (k/6) + " " + 
+            fmt.format(myAHPrev[k+0]) + " " + fmt.format(myAHPrev[k+1]) + " " +
+            fmt.format(myAHPrev[k+2]) + " " + fmt.format(myAHPrev[k+3]) + " " +
+            fmt.format(myAHPrev[k+4]) + " " + fmt.format(myAHPrev[k+5]) + "\n");
+      }
+      sb.append ("S=\n");
+      for (int k=0; k<myB.length; k++) {
+         sb.append (k + " " + fmt.format(myB[k]) + "\n");
+      }
+      return sb.toString();
+   }
+
+   public boolean hasState() {
+      return true;
    }
 
 }

@@ -189,8 +189,7 @@ public class CompositePropertyPanel extends LabeledPanel
       PropertyInfo info = prop.getInfo();
       // try to determine the selectable classes by querying the property's
       // main value class
-      Class<?>[] classes =
-         PropertyUtils.findCompositePropertySubclasses(info.getValueClass());
+      Class<?>[] classes = PropertyUtils.findCompositePropertySubclasses(info);
       if (classes == null) {
          classes = new Class[] { info.getValueClass() };
       }
@@ -401,34 +400,6 @@ public class CompositePropertyPanel extends LabeledPanel
       }
    }
 
-//   /** 
-//    * Sets the property handle for the composite property.
-//    */
-//   public void setProperty (Property prop) {
-//      myCpropProperty = prop;      
-//      boolean nullAllowed;
-//      if (myCpropProperty instanceof EditingProperty) {
-//         // then null values are allowed only if they are permitted
-//         // on all the hosts
-//         EditingProperty eprop = (EditingProperty)prop;
-//         HostList hostList = eprop.getHostList();
-//         PropTreeCell cell = eprop.getCell();         
-//         PropertyInfo[] infos = hostList.getAllInfos (cell);
-//         nullAllowed = true;
-//         for (PropertyInfo info : infos) {
-//            if (!info.getNullValueOK()) {
-//               nullAllowed = false;
-//            }
-//         }
-//      }
-//      else {
-//         nullAllowed = prop.getInfo().getNullValueOK();
-//      }
-//      myCpropType = getCpropTypeFromProperty(myCpropProperty);
-//      setNullAllowed (nullAllowed);
-//      rebuildPanel (/*setValuesFromWidgets=*/false);
-//   }
-
    /** 
     * Returns the property handle for thecomposite property.
     */
@@ -450,19 +421,6 @@ public class CompositePropertyPanel extends LabeledPanel
       }
       return matNames.toArray(new String[0]);    
    }
-
-   //   /** 
-   //    * Creates the composite property type selector widget.
-   //    */
-   //   private StringSelector createCpropSelector (
-   //      String labelText, boolean nullAllowed) {
-   //      StringSelector selector = null;
-   //
-   //      String[] matNames = createCpropSelections (nullAllowed);
-   //      selector = new StringSelector (labelText, matNames);
-   //      selector.setVoidValueEnabled (true);
-   //      return selector;
-   //   }
 
    /** 
     * Creates an instance of a composite property type.
@@ -501,7 +459,7 @@ public class CompositePropertyPanel extends LabeledPanel
    }
 
    /** 
-    * Sets the composite property selector so as to not create a
+    * Sets the composite property selector in a way that does not create a
     * <code>valueChange</code> event.
     */
    private void setSelectorValue (Object value) {
@@ -558,10 +516,23 @@ public class CompositePropertyPanel extends LabeledPanel
          }
          if (protoCprop == null) {
             protoCprop = createCprop (newCpropType);
-         }
+         }         
+         CompositeProperty prevCprop = (CompositeProperty)getCurrentCprop();
+         //CompositeProperty prevCprop = (CompositeProperty)myCpropProperty.get();
          myCpropProperty.set (protoCprop);
          myCpropType = newCpropType;
-         rebuildPanel (/*setValuesFromWidgets=*/true);
+         String[] initializedValues = null;
+
+         // if the new CompositeProperty class contains an
+         // initializePropertyValues() method, this may be used to set selected
+         // property values based on the previous CompositeProperty
+         if (prevCprop != null) {
+            initializedValues = PropertyUtils.maybeInitializeValues (
+               myCpropProperty, prevCprop);
+         }
+         // rebuild the panel, setting values from previous widget values,
+         // except for previously initialized values
+         rebuildPanel (/*setValuesFromWidgets=*/true, initializedValues);
          GuiUtils.repackComponentWindow (this);
          fireGlobalValueChangeListeners(new ValueChangeEvent(this, e));
       }
@@ -578,26 +549,6 @@ public class CompositePropertyPanel extends LabeledPanel
          //fireGlobalValueChangeListeners(new ValueChangeEvent(this, e));
       }
    }
-
-   //   /** 
-   //    * Gets all the property widgets used by this widget.
-   //    */
-   //   private LabeledComponentBase[] collectWidgets() {
-   //      LabeledComponentBase[] widgets;
-   //      Component[] allWidgets = myPanel.getWidgets();
-   //      if (allWidgets.length > 1) {
-   //         // return all widgets except for the first, which is
-   //         // the composite property type selector
-   //         widgets = new LabeledComponentBase[allWidgets.length-1];
-   //         for (int i=0; i<widgets.length; i++) {
-   //            widgets[i] = (LabeledComponentBase)allWidgets[i+1];
-   //         }
-   //      }
-   //      else {
-   //         widgets = new LabeledComponentBase[0];
-   //      }
-   //      return widgets;
-   //   }
 
    /** 
     * Sets the current composite property for a CompositePropertyPanel to the
@@ -694,6 +645,17 @@ public class CompositePropertyPanel extends LabeledPanel
       cell.setValue (null);
    }
 
+   private boolean valueCanBeSet (String name, String[] valuesToNotSet) {
+      if (valuesToNotSet != null) {
+         for (String dontSet : valuesToNotSet) {
+            if (name.equals (dontSet)) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+
    /** 
     * Attaches a newly created set of properties to their associated
     * widgets.
@@ -702,10 +664,14 @@ public class CompositePropertyPanel extends LabeledPanel
     * @param props newly created properties
     * @param setValuesFromWidgets if <code>true</code>, then the properties
     * should be set to assume the values currently stored in the widgets.
+    * @param valuesToNotSet if not {@code null}, contains a list of
+    * property names whose values should <i>not</i> be set from widgets
+    * if {@code setValuesFromWidgets} is {@code true}.
+    * 
     */
    private void attachPropsToWidgets (
       LabeledComponentBase[] widgets, LinkedList<Property> props,
-      boolean setValuesFromWidgets) {
+      boolean setValuesFromWidgets, String[] valuesToNotSet) {
 
       if (widgets.length != props.size()) {
          throw new InternalErrorException (
@@ -715,12 +681,17 @@ public class CompositePropertyPanel extends LabeledPanel
       int i = 0;
       for (Property prop : props) {
          LabeledComponentBase widget = widgets[i++];
-         if (!setValuesFromWidgets||!(widget instanceof CompositePropertyPanel)) {
+         boolean setFromWidget =
+            (setValuesFromWidgets &&
+             valueCanBeSet (prop.getName(), valuesToNotSet));
+
+         if (!setFromWidget || !(widget instanceof CompositePropertyPanel)) {
             PropertyWidget.initializeWidget (
                widget, prop);               
          }
-
-         if (setValuesFromWidgets) {
+         if (setFromWidget &&
+             valueCanBeSet (prop.getName(), valuesToNotSet)) {
+                
             if (widget instanceof CompositePropertyPanel) {
                CompositePropertyPanel cpanel = (CompositePropertyPanel)widget;
                if (cpanel.myCpropType != Property.VoidValue) {
@@ -776,12 +747,17 @@ public class CompositePropertyPanel extends LabeledPanel
       }
    }
 
+   private void rebuildPanel (boolean setValuesFromWidgets) {
+      rebuildPanel (setValuesFromWidgets, /*valuesToNotSet=*/null);
+   }
+
    /** 
     * Rebuilds the panel. This is called when the panel is first created,
     * or when the set of widgets changes (due to a change in the composite
     * property type).
     */
-   private void rebuildPanel (boolean setValuesFromWidgets) {
+   private void rebuildPanel (
+      boolean setValuesFromWidgets, String[] valuesToNotSet) {
 
       myPanel.removeAllWidgets();
       myPanel.addWidget (getMainWidget());
@@ -830,7 +806,8 @@ public class CompositePropertyPanel extends LabeledPanel
             else {
                myWidgetProps = createWidgetProps ();
                attachPropsToWidgets (
-                  myWidgets, myWidgetProps, setValuesFromWidgets);
+                  myWidgets, myWidgetProps,
+                  setValuesFromWidgets, valuesToNotSet);
             }
             for (LabeledComponentBase widget : myWidgets) {
                if (myExpandState != ExpandState.Contracted) {
@@ -903,7 +880,8 @@ public class CompositePropertyPanel extends LabeledPanel
                if (myCprop != getCurrentCprop()) {
                   myWidgetProps = createWidgetProps ();
                   attachPropsToWidgets (
-                     myWidgets, myWidgetProps, /*setValuesFromWidgets=*/false);
+                     myWidgets, myWidgetProps,
+                     /*setValuesFromWidgets=*/false, /*valuesToNotSet=*/null);
                   // widgets will be updated in the above code
                }
                else {

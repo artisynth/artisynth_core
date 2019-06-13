@@ -56,6 +56,16 @@ public class UnitTest {
       }
    }
 
+   public void checkNormedEquals (
+      String msg, Vector result, Vector check, double tol) {
+      double eps = tol*(result.norm()+check.norm())/2;
+      if (!result.epsilonEquals(check, eps)) {
+         throw new TestException (
+            msg + " =\n" + result.toString() +
+            ", expected\n" + check.toString() + ", eps=" + eps);
+      }
+   }
+
    public void checkEquals (String msg, Matrix result, Matrix check) {
       if (!result.equals(check)) {
          throw new TestException (
@@ -71,6 +81,16 @@ public class UnitTest {
             ", expected\n" + check.toString() + "\neps=" + eps);
       }
    }
+
+   public void checkNormedEquals (
+      String msg, Matrix result, Matrix check, double tol) {
+      double eps = tol*(result.frobeniusNorm()+check.frobeniusNorm())/2;
+      if (!result.epsilonEquals(check, eps)) {
+         throw new TestException (
+            msg + " =\n" + result.toString() +
+            ", expected\n" + check.toString() + "\neps=" + eps);
+      }
+   }         
 
    public void checkEquals (String msg, double result, double check, double eps) {
       if (Math.abs(result-check) > eps) {

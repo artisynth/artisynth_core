@@ -32,7 +32,11 @@ public abstract class ViscoelasticBehavior extends MaterialBase {
    public abstract void computeTangent (Matrix6d D, ViscoelasticState state);
   
    public abstract void computeStress (
-      SymmetricMatrix3d sigma, ViscoelasticState state);
+      SymmetricMatrix3d sigma, DeformedPoint def, ViscoelasticState state);
+
+   public abstract void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      ViscoelasticState state);
    
    public abstract double getTangentScale();
 
@@ -56,6 +60,8 @@ public abstract class ViscoelasticBehavior extends MaterialBase {
       ViscoelasticBehavior veb = (ViscoelasticBehavior)super.clone();
       return veb;
    }
+
+   public abstract MaterialStateObject createStateObject();
 }
    
    

@@ -328,7 +328,7 @@ public abstract class MechSystemBase extends RenderableModelBase
             NT, dn, idx);
       }
       for (DynamicAttachment a : getAttachments()) {
-         myAttachmentWorker.reduceConstraints (a, NT, dn);
+         myAttachmentWorker.reduceConstraints (a, NT, dn, false);
       }
       // need this for now - would be good to get rid of it:
       NT.setVerticallyLinked (true);
@@ -378,7 +378,7 @@ public abstract class MechSystemBase extends RenderableModelBase
             GT, dg, idx);
       }      
       for (DynamicAttachment a : getAttachments()) {
-         myAttachmentWorker.reduceConstraints (a, GT, dg);
+         myAttachmentWorker.reduceConstraints (a, GT, dg, false);
       }
       // need this for now - would be good to get rid of it:
       GT.setVerticallyLinked (true);
@@ -473,7 +473,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       }      
       //idxh.value = addFrictionConstraints (DT, finfo, idxh.value);
       for (DynamicAttachment a : getAttachments()) {
-         myAttachmentWorker.reduceConstraints (a, DT, null);
+         myAttachmentWorker.reduceConstraints (a, DT, null, false);
       }
    }
    

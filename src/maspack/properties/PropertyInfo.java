@@ -7,6 +7,7 @@
 package maspack.properties;
 
 import java.io.*;
+import java.util.List;
 
 import maspack.util.*;
 
@@ -312,4 +313,15 @@ public interface PropertyInfo {
     * @return true if the property value can be shared by several hosts
     */
    public boolean isSharable();
+
+   /**
+    * Returns a list of allowed classes that should be used for creating
+    * instances of this property. All classes should be subclasses of the calss
+    * returned by {@link #getValueClass()}. If there are no restrictions, this
+    * method should return {@code null}. At present, this method is intended as
+    * a hint for use in widgets that manipulate the property value.
+    *
+    * @return list of allowed classes
+    */
+   public List<Class<?>> getAllowedTypes();
 }

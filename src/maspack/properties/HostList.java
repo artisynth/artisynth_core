@@ -283,7 +283,7 @@ public class HostList {
          PropTreeData childData = new PropTreeData();
          childData.setInfo (info);
          Object value = PropertyUtils.getValue (info, host);
-         if (!usesCompositePropertyWidget (info.getValueClass())) {
+         if (!usesCompositePropertyWidget (info)) {
             // If not a composite property, set the backup value as a single
             // atomic entity. 
             if (value instanceof Clonable) {
@@ -325,9 +325,10 @@ public class HostList {
     * These widgets require that the HostList structures be updated
     * as the widget is expanded.
     */
-   private boolean usesCompositePropertyWidget (Class<?> type) {
+   private boolean usesCompositePropertyWidget (PropertyInfo info) {
+      Class<?> type = info.getValueClass();
       return (CompositeProperty.class.isAssignableFrom (type) &&
-              PropertyUtils.findCompositePropertySubclasses(type) == null);
+              PropertyUtils.findCompositePropertySubclasses(info) == null);
    }
 
    public void restoreBackupForHost (PropTreeData parentData) {
@@ -338,7 +339,7 @@ public class HostList {
       for (int j = 0; j < childData.length; j++) {
          PropTreeData data = childData[j];
          PropertyInfo info = data.myInfo;
-         if (usesCompositePropertyWidget (info.getValueClass())) {
+         if (usesCompositePropertyWidget (info)) {
             
             if (PropertyUtils.getValue (info, host) != data.myValue) {
                PropertyUtils.setValue (info, host, data.myValue);
@@ -522,7 +523,7 @@ public class HostList {
             + "' not found in " + host.getClass());
          }
          Object value = PropertyUtils.getValue (info, host);
-         if (usesCompositePropertyWidget (info.getValueClass())) {
+         if (usesCompositePropertyWidget (info)) {
             child.setValue (value == null ? null : CompositeProperty.class);
             // XXSystem.out.println ("17");
          }
@@ -555,7 +556,7 @@ public class HostList {
             + "' not found in " + host.getClass());
          }
          Object value = PropertyUtils.getValue (info, host);
-         if (usesCompositePropertyWidget (info.getValueClass())) {
+         if (usesCompositePropertyWidget (info)) {
             if (child.getValue() != value) {
                child.setValue (Property.VoidValue);
                // XXSystem.out.println ("20");

@@ -51,11 +51,14 @@ public class RigidBodyEditor extends EditorBase {
          boolean oneDistanceGridInvisible = false;
          for (ModelComponent c : selection) {
             DistanceGridComp gcomp = ((RigidBody)c).getDistanceGridComp();
-            if (RenderableComponentBase.isVisible (gcomp) && gcomp.getRenderGrid()) {
-               oneDistanceGridVisible = true;
-            }
-            else {
-               oneDistanceGridInvisible = true;
+            if (gcomp != null) {
+               if (RenderableComponentBase.isVisible (gcomp) &&
+                   gcomp.getRenderGrid()) {
+                  oneDistanceGridVisible = true;
+               }
+               else {
+                  oneDistanceGridInvisible = true;
+               }
             }
          }
          if (oneDistanceGridVisible) {

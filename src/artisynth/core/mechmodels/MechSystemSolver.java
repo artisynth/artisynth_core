@@ -1375,6 +1375,9 @@ public class MechSystemSolver {
       VectorNd vel, VectorNd fpar, VectorNd bf, VectorNd btmp, VectorNd vel0,
       double h, double a0, double a1, double a2, double a3) {
 
+      if (profileKKTSolveTime) {
+         timerStart();
+      }
       //FunctionTimer timer = new FunctionTimer();
       // assumes that updateMassMatrix() has been called
       updateStateSizes();
@@ -1394,6 +1397,7 @@ public class MechSystemSolver {
       S.setZero();
       myC.setSize (S.rowSize());
       myC.setZero();
+
       mySys.addVelJacobian (S, myC, a0);
       //System.out.println ("myC=" + myC);
       if (useFictitousJacobianForces) {
@@ -1432,6 +1436,10 @@ public class MechSystemSolver {
       if (myKKTSolver == null) {
          myKKTSolver = new KKTSolver();
       }
+      if (profileKKTSolveTime) {
+         timerStop("    KKT solve: build matrix");
+         timerStart();
+      }     
 
       updateBilateralConstraints ();
 
@@ -1473,6 +1481,11 @@ public class MechSystemSolver {
       myLam.scale (h);
       myThe.scale (h);
 
+      if (profileKKTSolveTime) {
+         timerStop("    KKT solve: update constraints");
+         timerStart();
+      }     
+
       if (!solveModePrinted) {
          String msg = (myHybridSolveP ? "hybrid solves" : "direct solves");
          if (mySys.getSolveMatrixType() == Matrix.INDEFINITE) {
@@ -1503,24 +1516,24 @@ public class MechSystemSolver {
             myKKTSolver.analyze (
                S, velSize, myGT, myRg, mySys.getSolveMatrixType());
          }
+         if (analyze && profileKKTSolveTime) {
+            timerStop("    KKT solve: analyze");
+            timerStart();            
+         }
          if (myHybridSolveP && !analyze && myNT.colSize() == 0) {
-            if (profileKKTSolveTime) {
-               timerStart();
-            }
             myKKTSolver.factorAndSolve (
                S, velSize, myGT, myRg, vel, myLam, bf, myBg, myHybridSolveTol);
             if (profileKKTSolveTime) {
-               timerStop ("KKTsolve(hybrid)");
+               timerStop ("    KKTsolve(hybrid)");
+               timerStart();
             }
          }
          else {
-            if (profileKKTSolveTime) {
-               timerStart();
-            }
             myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn);
             myKKTSolver.solve (vel, myLam, myThe, bf, myBg, myBn);
             if (profileKKTSolveTime) {
-               timerStop ("KKTsolve");
+               timerStop ("    KKTsolve");
+               timerStart();
             }
          }
          if (computeKKTResidual) {
@@ -1602,6 +1615,10 @@ public class MechSystemSolver {
          if (myNsize > 0) {
             myNT.mulAdd (myFcon, myThe, velSize, myNsize);
          }
+      }
+
+      if (profileKKTSolveTime) {
+         timerStop("    KKT solve: end stuff");
       }
    }
    
@@ -2740,13 +2757,13 @@ public class MechSystemSolver {
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
       if (profileConstrainedBE) {
          timer.stop();
-         System.out.println ("    updateConstraints=" + timer.result(1));
+         System.out.println ("  updateConstraints=" + timer.result(1));
          timer.start();
       }
       mySys.updateForces (t1);
       if (profileConstrainedBE) {
          timer.stop();
-         System.out.println ("    updateForces=" + timer.result(1));
+         System.out.println ("  updateForces=" + timer.result(1));
          timer.start();
       }
 
@@ -2757,12 +2774,12 @@ public class MechSystemSolver {
       mySys.getActiveForces (myF);
       myF.add (myMassForces);
       myB.scaledAdd (h, myF, myB);
-      
+
       // solve constrained system for velocities at t1; store in uTmp
       KKTFactorAndSolve (myUtmp, myFparC, myB, /*tmp=*/myF, myU, h);
       if (profileConstrainedBE) {
          timer.stop();
-         System.out.println ("    KKT solve " + timer.result(1));
+         System.out.println ("  KKT solve " + timer.result(1));
          timer.start();
       }
       
@@ -2770,7 +2787,7 @@ public class MechSystemSolver {
       mySys.setActiveVelState (myUtmp);
       if (profileConstrainedBE) {
          timer.stop();
-         System.out.println ("    setActiveVel " + timer.result(1));
+         System.out.println ("  setActiveVel " + timer.result(1));
       }
 
       if (useGlobalFriction) {
@@ -2783,7 +2800,7 @@ public class MechSystemSolver {
          }
          if (profileConstrainedBE) {
             timer.stop();
-            System.out.println ("    friction " + timer.result(1));
+            System.out.println ("  friction " + timer.result(1));
          }
       }
 
@@ -2798,14 +2815,14 @@ public class MechSystemSolver {
 
       if (profileConstrainedBE) {
          timer.stop();
-         System.out.println ("    setActivePos " + timer.result(1));
+         System.out.println ("  setActivePos " + timer.result(1));
          timer.start();
       }
       // apply position correction using updated constraints and contact
       applyPosCorrection (myQ, myUtmp, t1, stepAdjust);
       if (profileConstrainedBE) {
          timer.stop();
-         System.out.println ("    posCorrection=" + timer.result(1));
+         System.out.println ("  posCorrection=" + timer.result(1));
       }
    }
 

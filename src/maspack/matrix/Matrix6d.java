@@ -11,7 +11,7 @@ import java.util.Random;
 /**
  * A general 4 x 4 matrix with the elements stored as explicit fields.
  */
-public class Matrix6d extends Matrix6dBase {
+public class Matrix6d extends Matrix6dBase implements VectorObject<Matrix6d> {
 
    /**
     * Global zero matrix. Should not be modified.
@@ -478,4 +478,45 @@ public class Matrix6d extends Matrix6dBase {
       return (Matrix6d)super.clone();
    }
 
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
+    */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      super.scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (Matrix6d M1) {
+      super.add (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, Matrix6d M1) {
+      super.scaledAdd (s, M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void set (Matrix6d M1) {
+      super.set (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean epsilonEquals (Matrix6d M1, double tol) {
+      return super.epsilonEquals (M1, tol);
+   }
 }

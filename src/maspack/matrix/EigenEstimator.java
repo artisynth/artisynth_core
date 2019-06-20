@@ -16,7 +16,6 @@ public class EigenEstimator {
 
    private static final double zero = 0.0;
    private static final double one = 1.0;
-   private static final double two = 2.0;
 
    // test for convergence using a tolerance that is computed across all the
    // ritz values
@@ -403,17 +402,14 @@ public class EigenEstimator {
       }
 
       int leny;
-      int lenx;
 
       if (type == 'N' || type == 'n') {
          type = 'N';
          leny = m;
-         lenx = n;
       }
       else if (type == 'T' || type == 't') {
          type = 'T';
          leny = n;
-         lenx = m;
       }
       else {
          throw new IllegalArgumentException (
@@ -1004,7 +1000,7 @@ public class EigenEstimator {
                DoubleHolder rnorm, double[] v, int vw, double[] d, double[] e,
                LinearTransformNd A) {
 
-      VectorNd workVecP = workVec0; // was workd(ipj)
+      //VectorNd workVecP = workVec0; // was workd(ipj)
       VectorNd workVecR = workVec1; // was workd(irj)
       VectorNd workVecV = workVec2; // was workd(ivj)
 
@@ -1130,12 +1126,12 @@ public class EigenEstimator {
 //           | To scale both v_{j} and p_{j} carefully |
 //           | use LAPACK routine SLASCL               |
 //           %-----------------------------------------%
-            int infol;
+            //int infol;
 
-            infol = glascl (rnorm.value, one, n, 1, v, vw, /*off=*/j-1/*ZB*/);
+            //infol = glascl (rnorm.value, one, n, 1, v, vw, /*off=*/j-1/*ZB*/);
             //dlascl ("General", i, i, rnorm, one, n, 1, 
             //        v(1,j), n, infol);
-            infol = glascl (rnorm.value, one, n, 1, workp, 1, /*off=*/0);
+            //infol = glascl (rnorm.value, one, n, 1, workp, 1, /*off=*/0);
             //dlascl ("General", i, i, rnorm, one, n, 1, 
             //        workd(ipj), n, infol);
          }
@@ -1454,7 +1450,6 @@ public class EigenEstimator {
       // %--------------------------------------------%
 
       boolean getv0    = true;
-      boolean update   = false;
 
       boolean initv;
 
@@ -2242,7 +2237,6 @@ public class EigenEstimator {
 //    %---------------------------------------%
 
       double rnorm = rnormSave;
-      double bnorm2 = rnorm;
 
       boolean[] select = new boolean[ncv];
 

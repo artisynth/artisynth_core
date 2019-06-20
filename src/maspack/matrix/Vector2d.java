@@ -17,7 +17,9 @@ import maspack.util.Clonable;
  * <p>
  * The size of these vectors is fixed.
  */
-public class Vector2d extends VectorBase implements Clonable {
+public class Vector2d extends VectorBase
+   implements Clonable, VectorObject<Vector2d> {
+
    private static double DOUBLE_PREC = 2.220446049250313e-16;
 
    /**
@@ -1014,6 +1016,34 @@ public class Vector2d extends VectorBase implements Clonable {
 
    public Vector2d clone() {
       return (Vector2d)super.clone();
+   }
+
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
+    */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (Vector2d v1) {
+      add (v1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, Vector2d v1) {
+      scaledAdd (s, v1);
    }
 
 }

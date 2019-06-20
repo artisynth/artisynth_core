@@ -8,15 +8,13 @@ package maspack.matrix;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-
-import maspack.util.*;
-
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Random;
 
+import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
-import maspack.util.Clonable;
+import maspack.util.RandomGenerator;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Base implementation of {@link maspack.matrix.Vectori Vectori}.

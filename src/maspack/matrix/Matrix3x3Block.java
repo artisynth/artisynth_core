@@ -6,13 +6,13 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
-
 /**
  * Implements a 3 x 3 matrix block using a single Matrix3d object.
  */
 public class Matrix3x3Block extends Matrix3d implements MatrixBlock {
+   
+   private static final long serialVersionUID = 1L;
+   
    protected MatrixBlock myNext;
    protected MatrixBlock myDown;
 

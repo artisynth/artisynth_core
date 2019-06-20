@@ -16,7 +16,6 @@ import maspack.util.*;
  */
 public class Quaternion extends VectorBase {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
-   private static double ANGLE_EPSILON = 1000 * DOUBLE_PREC;
 
    public static final Quaternion IDENTITY = new Quaternion(1, 0, 0, 0);
    public static final Quaternion ZERO = new Quaternion();
@@ -945,7 +944,7 @@ public class Quaternion extends VectorBase {
     * @param s interpolation location on the interval (in the range [0,1])
     * @param h interval time duration
     */   
-   private static void normalizedHermiteGlobal (
+   protected static void normalizedHermiteGlobal (
       Quaternion qr, Vector3d vr,
       Quaternion q0, Vector3d w0, Quaternion q1, Vector3d w1,
       double s, double h) {
@@ -969,7 +968,7 @@ public class Quaternion extends VectorBase {
     * @param s interpolation location on the interval (in the range [0,1])
     * @param h interval time duration
     */   
-   public static void normalizedHermiteLocal (
+   protected static void normalizedHermiteLocal (
       Quaternion qr, Vector3d vr,
       Quaternion q0, Vector3d w0, Quaternion q1, Vector3d w1,
       double s, double h) {

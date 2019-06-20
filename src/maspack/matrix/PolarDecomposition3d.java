@@ -6,10 +6,6 @@
  */
 package maspack.matrix;
 
-import java.util.Random;
-
-import maspack.util.*;
-
 /**
  * Class to produce the polar decompositions of a 3x3 matrix. The
  * <i>right</i> polar decomposition of a matrix M is produced by the

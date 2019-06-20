@@ -1409,11 +1409,9 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       for (int bi=0; bi<numBlkRows; bi++) {
          MatrixBlock blkM = M.myRows[bi].myHead;
          MatrixBlock blkR = myRows[bi].myHead;
-         MatrixBlock prevR = null;
          while (blkM != null && blkM.getBlockCol() < numBlkCols) {
             int bj = blkM.getBlockCol();
             while (blkR != null && blkR.getBlockCol() < bj) {
-               prevR = blkR;
                blkR = blkR.next();
             }
             if (blkR == null || blkR.getBlockCol() > bj) {
@@ -2336,7 +2334,7 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
    
    private int[] getIdxMap(int[] idxs, int size) {
       int[] idxMap = new int[size];
-      for (int i = 0, j = 0, k = 0; i < size; i++) {
+      for (int i = 0, k = 0; i < size; i++) {
 	 if (k < idxs.length && i == idxs[k]) {
 	    idxMap[i] = k++;
 	 } else {

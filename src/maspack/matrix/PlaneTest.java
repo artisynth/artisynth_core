@@ -6,10 +6,10 @@
  */
 package maspack.matrix;
 
-import maspack.util.*;
-import maspack.matrix.*;
-
 import java.util.Random;
+
+import maspack.util.RandomGenerator;
+import maspack.util.TestException;
 
 class PlaneTest {
    Random myRandGen;

@@ -6,14 +6,14 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
 import maspack.util.InternalErrorException;
 
 /**
  * Implements a 6 x 3 matrix
  */
-public class Matrix6x3 extends DenseMatrixBase {
+public class Matrix6x3 extends DenseMatrixBase
+   implements VectorObject<Matrix6x3> {
+
    public double m00;
    public double m01;
    public double m02;
@@ -1201,5 +1201,40 @@ public class Matrix6x3 extends DenseMatrixBase {
       catch (CloneNotSupportedException e) { // shouldn't happen
          throw new InternalErrorException ("clone failed for " + getClass());
       }
+   }
+
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
+    */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (Matrix6x3 M1) {
+      add (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, Matrix6x3 M1) {
+      scaledAdd (s, M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean epsilonEquals (Matrix6x3 M1, double tol) {
+      return epsilonEquals (M1, tol);
    }
 }

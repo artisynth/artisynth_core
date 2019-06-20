@@ -525,7 +525,6 @@ class QuaternionTest extends VectorTest {
       qa.extrapolateWorld (q0, w0, h/3);
       qb.extrapolateWorld (q1, w1, -h/3);
 
-      Vector3d wr = new Vector3d();
       Quaternion qr = new Quaternion();
 
       double b1 = (2*s-3)*s*s;

@@ -6,9 +6,9 @@
  */
 package maspack.matrix;
 
+import maspack.util.FunctionTimer;
 import maspack.util.RandomGenerator;
 import maspack.util.TestException;
-import maspack.util.FunctionTimer;
 
 class Matrix3dTest extends MatrixTest {
    void add (Matrix MR, Matrix M1) {
@@ -324,7 +324,6 @@ class Matrix3dTest extends MatrixTest {
    }
 
    public static void main (String[] args) {
-      Matrix3dTest test = new Matrix3dTest();
       boolean dotiming = false;
       for (int i = 0; i < args.length; i++) {
          if (args[i].equals ("-timing")) {

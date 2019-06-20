@@ -6,8 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
 import maspack.util.Clonable;
 
 /**

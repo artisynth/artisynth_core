@@ -9,14 +9,9 @@ package maspack.matrix;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import maspack.util.ReaderTokenizer;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Random;
-
-import maspack.util.NumberFormat;
 import maspack.util.Clonable;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * General interface for vectors of integers. The functionality is a subset of

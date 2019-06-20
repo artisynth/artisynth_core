@@ -1092,9 +1092,8 @@ public class SymmetricMatrix3d extends Matrix3dBase {
       double d, mu;
       double CS, CC, SS;
 
-      double T_m00, T_m01, T_m02;
+      double T_m01, T_m02;
       double T_m11, T_m12;
-      double T_m22;
 
       d = (T.m11 - T.m22) / 2;
       if (d >= 0) {

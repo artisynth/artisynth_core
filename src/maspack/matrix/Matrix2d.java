@@ -11,7 +11,7 @@ import java.util.Random;
 /**
  * A general 3 x 3 matrix with the elements stored as explicit fields.
  */
-public class Matrix2d extends Matrix2dBase {
+public class Matrix2d extends Matrix2dBase implements VectorObject<Matrix2d> {
    
    /**
     * Global identity matrix. Should not be modified.
@@ -446,4 +446,45 @@ public class Matrix2d extends Matrix2dBase {
       return (Matrix2d)super.clone();
    }
 
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
+    */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      super.scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (Matrix2d M1) {
+      super.add (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, Matrix2d M1) {
+      super.scaledAdd (s, M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void set (Matrix2d M1) {
+      super.set (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean epsilonEquals (Matrix2d M1, double tol) {
+      return super.epsilonEquals (M1, tol);
+   }
 }

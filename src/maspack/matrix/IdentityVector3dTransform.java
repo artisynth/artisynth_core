@@ -79,4 +79,11 @@ public class IdentityVector3dTransform implements VectorTransformer3d {
    public IdentityVector3dTransform copy() {
       return new IdentityVector3dTransform ();
    } 
+
+   /**
+    * {@inheritDoc}
+    */
+   public String toString (String fmtStr) {
+      return "IdentityTransform";
+   }
 }

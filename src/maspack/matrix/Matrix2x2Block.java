@@ -6,9 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
-
 /**
  * Implements a 3 x 3 matrix block using a single Matrix3d object.
  */

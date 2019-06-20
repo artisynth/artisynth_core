@@ -187,7 +187,6 @@ class SVDecomposition3dTest {
 
       // check inverse
       if (nrows == ncols) {
-         int n = nrows;
          Matrix3d MI = new Matrix3d();
          Matrix3d IMI = new Matrix3d();
          svd.inverse (MI);
@@ -291,10 +290,6 @@ class SVDecomposition3dTest {
    public void checkTiming (int nrand) {
       Matrix3d M1 = new Matrix3d();
       M1.setRandom();
-
-      Matrix3d U = new Matrix3d();
-      Matrix3d V = new Matrix3d();
-      Vector3d s = new Vector3d();
 
       SVDecomposition3d svd = new SVDecomposition3d();
 

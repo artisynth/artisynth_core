@@ -7,8 +7,6 @@
 package maspack.matrix;
 
 import java.util.ArrayList;
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
 
 /**
  * Implements a matrix based on an array of 3x3 sub matrices. Support is

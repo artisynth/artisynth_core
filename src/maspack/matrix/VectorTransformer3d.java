@@ -91,4 +91,13 @@ public interface VectorTransformer3d {
     */
    public VectorTransformer3d copy();
 
+   /**
+    * Returns a string representation of this transformer.
+    * 
+    * @param fmtStr format string describing how floating point
+    * numbers should be formatted
+    * @return string representation of this transformer.
+    */
+   public String toString (String fmtStr);
+
 }

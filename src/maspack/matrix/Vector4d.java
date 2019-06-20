@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien P��an (ETHZ)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Pean (ETHZ)
  * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
@@ -9,7 +9,6 @@ package maspack.matrix;
 
 import java.util.Random;
 
-import maspack.util.InternalErrorException;
 import maspack.util.Clonable;
 
 /**
@@ -18,7 +17,9 @@ import maspack.util.Clonable;
  * <p>
  * The size of these vectors is fixed.
  */
-public class Vector4d extends VectorBase implements Clonable {
+public class Vector4d extends VectorBase
+   implements Clonable, VectorObject<Vector4d> {
+
    private static double DOUBLE_PREC = 2.220446049250313e-16;
 
    /**
@@ -1223,4 +1224,31 @@ public class Vector4d extends VectorBase implements Clonable {
       return (Vector4d)super.clone();
    }
 
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
+    */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (Vector4d v1) {
+      add (v1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, Vector4d v1) {
+      scaledAdd (s, v1);
+   }
 }

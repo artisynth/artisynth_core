@@ -7,8 +7,6 @@
 package maspack.matrix;
 
 import maspack.util.RandomGenerator;
-import maspack.util.TestException;
-import maspack.util.FunctionTimer;
 
 class Matrix4x3Test extends MatrixTest {
    void add (Matrix MR, Matrix M1) {

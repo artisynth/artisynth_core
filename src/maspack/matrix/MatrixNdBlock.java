@@ -6,14 +6,15 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
 import maspack.util.InternalErrorException;
 
 /**
  * Implements a 3 x 3 matrix block using a single Matrix3d object.
  */
 public class MatrixNdBlock extends MatrixNd implements MatrixBlock {
+   
+   private static final long serialVersionUID = 1L;
+   
    protected MatrixBlock myNext;
    protected MatrixBlock myDown;
 

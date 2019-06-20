@@ -13,7 +13,8 @@ import maspack.util.FunctionTimer;
 /**
  * A general 3 x 3 matrix with the elements stored as explicit fields.
  */
-public class Matrix3d extends Matrix3dBase {
+public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
+   
    private static final long serialVersionUID = 1L;
 
    /**
@@ -33,7 +34,6 @@ public class Matrix3d extends Matrix3dBase {
    public Matrix3d() {
    }
 
-   
    /**
     * Creates a matrix and initializes its elements to those of the matrix M.
     * 
@@ -968,4 +968,47 @@ public class Matrix3d extends Matrix3dBase {
       return (Matrix3d)super.clone ();
    }
 
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
+    */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      super.scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (Matrix3d M1) {
+      super.add (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, Matrix3d M1) {
+      super.scaledAdd (s, M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void set (Matrix3d M1) {
+      super.set (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean epsilonEquals (Matrix3d M1, double tol) {
+      return super.epsilonEquals (M1, tol);
+   }
 }
+
+

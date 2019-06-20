@@ -6,8 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.util.InternalErrorException;
-
 /**
  * Constructs the singular value decomposition (SVD) of a matrix. This takes the
  * form <br>

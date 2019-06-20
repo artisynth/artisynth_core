@@ -6,13 +6,9 @@
  */
 package maspack.matrix;
 
-import java.io.*;
-import java.util.*;
+import java.util.Arrays;
 
-import maspack.matrix.*;
-import maspack.util.*;
-
-import maspack.matrix.Matrix.Partition;
+import maspack.util.TestException;
 
 /**
  * A version of SparseBlockMatrix that allows blocks to be accessed by number
@@ -142,17 +138,6 @@ public class SparseNumberedBlockMatrix extends SparseBlockMatrix {
    public MatrixBlock getBlockByNumber (int num) {
       return myNumberMap[num];
    }
-
-
-   private boolean isFreeNumber (SparseNumberedBlockMatrix M, int num) {
-      for (int i=0; i<M.myNumFreeNumbers; i++) {
-         if (M.myFreeNumbers[i] == num) {
-            return true;
-         }
-      }
-      return false;
-   }
-
 
    public void checkConsistency() {
       super.checkConsistency();

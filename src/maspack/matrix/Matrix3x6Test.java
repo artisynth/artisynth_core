@@ -7,8 +7,6 @@
 package maspack.matrix;
 
 import maspack.util.RandomGenerator;
-import maspack.util.TestException;
-import maspack.util.FunctionTimer;
 
 class Matrix3x6Test extends MatrixTest {
    void add (Matrix MR, Matrix M1) {
@@ -103,44 +101,5 @@ class Matrix3x6Test extends MatrixTest {
       }
 
       System.out.println ("\nPassed\n");
-
-      if (false) {
-         FunctionTimer timer = new FunctionTimer();
-         MatrixNd M1_3x3N = new MatrixNd (3, 3);
-         MatrixNd M2_3x6N = new MatrixNd (3, 6);
-
-         Matrix3d M1_3x3 = new Matrix3d();
-         Matrix3x6 M2_3x6 = new Matrix3x6();
-
-         M1_3x3N.setRandom();
-         M2_3x6N.setRandom();
-         M1_3x3.setRandom();
-         M2_3x6.setRandom();
-         Matrix3x6 MR = new Matrix3x6();
-
-         int cnt = 5000000;
-         for (int i=0; i<cnt; i++) {
-            MR.setZero();
-            MR.mulAdd (M1_3x3, M2_3x6);
-            MR.mulAdd (M1_3x3N, M2_3x6N);
-         }
-
-         timer.start();
-         for (int i=0; i<cnt; i++) {
-            MR.setZero();
-            MR.mulAdd (M1_3x3, M2_3x6);
-         }
-         timer.stop();
-         System.out.println ("fixed matrices: " + timer.result(cnt));
-
-         timer.start();
-         for (int i=0; i<cnt; i++) {
-            MR.setZero();
-            MR.mulAdd (M1_3x3N, M2_3x6N);
-         }
-         timer.stop();
-         System.out.println ("general matrices: " + timer.result(cnt));
-      }
-
    }
 }

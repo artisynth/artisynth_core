@@ -6,9 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
-
 /**
  * Implements a 4 x 4 matrix block using a single Matrix4d object.
  */

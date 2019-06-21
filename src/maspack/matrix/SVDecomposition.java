@@ -6,8 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.util.InternalErrorException;
-
 /**
  * Constructs the singular value decomposition (SVD) of a matrix. This takes the
  * form <br>
@@ -22,6 +20,12 @@ import maspack.util.InternalErrorException;
  * Providing a separate class for the SVD allows an application to perform such
  * decompositions repeatedly without having to reallocate temporary storage
  * space.
+ * 
+ * <p>
+ * Note: by default, this performs a "thin" SVD, where U and V are not necessarily
+ * square matrices if the input is not square.  To enable a full SVD, such as when
+ * necessary for computing null-spaces of non-square matrices, then factor the matrix
+ * using the flag {@link #FULL_UV}.
  */
 public class SVDecomposition {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
@@ -73,6 +77,12 @@ public class SVDecomposition {
     * Specifies that neither matrix U nor matrix V should not be computed.
     */
    public static final int OMIT_UV = OMIT_U | OMIT_V;
+   
+   /**
+    * Specifies to compute the full SVD decomposition, otherwise only a
+    * 'thin' decomposition is computed for non-square matrices
+    */
+   public static final int FULL_UV = 0x04;
 
    /**
     * The default iteration limit for computing the SVD.
@@ -217,8 +227,9 @@ public class SVDecomposition {
          mind = n;
          maxd = m;
       }
-      if (sigIndices.length < mind) {
-         sigIndices = new int[mind];
+      int sigLen = (flags & FULL_UV) == 0 ? mind : maxd;
+      if (sigIndices.length < sigLen) {
+         sigIndices = new int[sigLen];
       }
       sig = new VectorNd(mind);
       double[] sbuf = sig.getBuffer();
@@ -231,14 +242,22 @@ public class SVDecomposition {
       btmp.setSize (m);
       xtmp.setSize (n);
       if ((flags & OMIT_U) == 0) {
-         U_ = new MatrixNd (m, mind);
+         if( (flags & FULL_UV) == 0) {
+            U_ = new MatrixNd (m, mind);
+         } else {
+            U_ = new MatrixNd (m, m);
+         }
          U_.setIdentity();
       }
       else {
          U_ = null;
       }
       if ((flags & OMIT_V) == 0) {
-         V_ = new MatrixNd (n, mind);
+         if ((flags & FULL_UV) == 0) {
+            V_ = new MatrixNd (n, mind);
+         } else {
+            V_ = new MatrixNd (n, n);
+         }
          V_.setIdentity();
       }
       else {
@@ -382,6 +401,9 @@ public class SVDecomposition {
             }
          }
          sbuf[j] = s;
+         sigIndices[j] = j;
+      }
+      for (j = n; j < sigLen; ++j) {
          sigIndices[j] = j;
       }
 
@@ -646,17 +668,18 @@ public class SVDecomposition {
          throw new ImproperStateException (
             "U requested but was not computed in the decomposition");
       }
-      if (U != null && (U.rowSize() != m || U.colSize() != mind)) {
+      
+      if (U != null && (U.rowSize() != m || U.colSize() != U_.colSize ())) {
          if (!U.isFixedSize()) {
-            U.setSize (m, mind);
+            U.setSize (m, U_.colSize ());
          }
          else {
             throw new ImproperSizeException ("Incompatible dimensions");
          }
       }
-      if (V != null && (V.rowSize() != n || V.colSize() != mind)) {
+      if (V != null && (V.rowSize() != n || V.colSize() != V_.colSize ())) {
          if (!V.isFixedSize()) {
-            V.setSize (n, mind);
+            V.setSize (n, V_.colSize ());
          }
          else {
             throw new ImproperSizeException ("Incompatible dimensions");
@@ -1029,7 +1052,7 @@ public class SVDecomposition {
    }
 
    /**
-    * Computes the psuedo inverse of the original matrix M associated this SVD,
+    * Computes the pseudo inverse of the original matrix M associated this SVD,
     * and places the result in R.
     * 
     * @param R
@@ -1038,23 +1061,22 @@ public class SVDecomposition {
     * @throws ImproperStateException
     * if this decomposition is uninitialized, or if U or V were not computed
     * @throws ImproperSizeException
-    * if M is not square, or if R does not have the same size as M and cannot be
-    * resized.
+    * if R does not have the same size as M and cannot be resized.
     */
    public boolean pseudoInverse (MatrixNd R) {
-      if (R.nrows != R.ncols || R.nrows != n) {
+      if (R.nrows != n || R.ncols != m) {
          if (R.isFixedSize()) {
             throw new ImproperSizeException ("Incompatible dimensions");
          }
          else {
-            R.setSize (n, n);
+            R.setSize (n, m);
          }
       }
       return pseudoInverse((DenseMatrix)R);
    }
    
    /**
-    * Computes the psuedo inverse of the original matrix M associated this SVD,
+    * Computes the pseudo inverse of the original matrix M associated this SVD,
     * and places the result in R.
     * 
     * @param R
@@ -1063,28 +1085,39 @@ public class SVDecomposition {
     * @throws ImproperStateException
     * if this decomposition is uninitialized, or if U or V were not computed
     * @throws ImproperSizeException
-    * if M is not square, or if R does not have the same size as M and cannot be
-    * resized.
+    * if R does not have the same size as M and cannot be resized.
     */
    public boolean pseudoInverse (DenseMatrix R) {
       checkForUandV();
-      if (m != n) {
-         throw new ImproperSizeException ("Matrix not square");
+      //      if (m != n) {
+      //         throw new ImproperSizeException ("Matrix not square");
+      //      }
+      if (R.rowSize() != n && R.colSize() != m) {
+         if (R.isFixedSize ()) {
+            throw new ImproperSizeException ("Incompatible dimensions");
+         } else {
+            R.setSize (n, m);
+         }
       }
-      if (R.rowSize() != n && R.colSize() != n) {
-         throw new ImproperSizeException ("Incompatible dimensions");
-      }
-      for (int j = 0; j < n; j++) {
-         U_.getRow (j, vtmp);
-         for (int i = 0; i < vtmp.size; i++) {
-            if (sig.get(i) != 0) {
-               vtmp.buf[i] /= sig.get(i);
+      
+      int vsize = V_.colSize ();
+      VectorNd su = new VectorNd(vsize);
+      VectorNd r = new VectorNd(n);
+      
+      for (int j = 0; j < m; j++) {
+         for (int i = 0; i < mind; i++) {
+            if (sig.get(i) > 0) {
+               su.buf[i] = U_.get (j, i) / sig.get(i);
             } else {
-               vtmp.buf[i] = 0;  // multiply by 0
+               su.buf[i] = 0;  // multiply by 0
             }
          }
-         xtmp.mul (V_, vtmp);
-         R.setColumn (j, xtmp);
+         for (int i = mind; i < vsize; i++) {
+            su.buf[i] = 0;     // additional zeroes
+         }
+         
+         r.mul (V_, su);
+         R.setColumn (j, r);
       }
       return sigmin != 0;
    }

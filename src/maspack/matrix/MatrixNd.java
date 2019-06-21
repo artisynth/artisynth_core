@@ -1423,7 +1423,7 @@ LinearTransformNd, Clonable {
             for (int k = 0; k < nMul; k++) {
                sum += M1.get(i, k)*M2.get(k, j);
             }
-            res[i*width + j] = sum;
+            res[i*nCols + j] = sum;
          }
       }
 

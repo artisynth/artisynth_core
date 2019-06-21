@@ -1010,7 +1010,7 @@ public class RigidBody extends Frame
    @Override
    protected void updatePosState() {
       updateAttachmentPosStates();
-      PolygonalMesh mesh = getMesh();
+      PolygonalMesh mesh = getSurfaceMesh();
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
       }

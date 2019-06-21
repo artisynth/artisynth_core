@@ -788,7 +788,6 @@ public class CholeskyDecomposition {
       }
       if (n > 0) {
          doSolveL (sol, col.getBuffer());
-         VectorNd vec = new VectorNd (sol);
       }
       // note: setSize will set n = n + 1
       setSize (n + 1);

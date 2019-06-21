@@ -6,9 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
-
 /**
  * Implements a 3 x 1 matrix block
  */
@@ -163,8 +160,6 @@ public class Matrix3x1Block extends Matrix3x1 implements MatrixBlock {
     * {@inheritDoc}
     */
    public int getBlockCRSValues (double[] vals, int[] offsets, Partition part) {
-      int off;
-
       if (part == Partition.Full) {
          vals[offsets[0]++] = m00;
          vals[offsets[1]++] = m10;

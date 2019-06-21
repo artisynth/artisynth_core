@@ -782,7 +782,8 @@ public class PropertyWidget {
          return new FontField ();
       }
       else if (CompositeProperty.class.isAssignableFrom (type)) {
-         Class<?>[] subclasses = PropertyUtils.findCompositePropertySubclasses(type);
+         Class<?>[] subclasses = 
+            PropertyUtils.findCompositePropertySubclasses(info);
          if (subclasses != null) {
             return new CompositePropertyPanel();   
          }

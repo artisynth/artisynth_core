@@ -1,8 +1,9 @@
 package maspack.matrix;
 
-import maspack.util.*;
 import maspack.matrix.EigenEstimator.Ordering;
-import java.util.Random;
+import maspack.util.RandomGenerator;
+import maspack.util.TestException;
+import maspack.util.UnitTest;
 
 public class EigenEstimatorTest extends UnitTest {
 
@@ -126,11 +127,6 @@ public class EigenEstimatorTest extends UnitTest {
 
       testMatrix (M, nev, Ordering.LA);
       testMatrix (M, nev, Ordering.SA);
-      //testMatrix (M, nev, Ordering.LM);
-      //testMatrix (M, nev, Ordering.SM);
-      if (false && nev != 1) {
-         testMatrix (M, nev, Ordering.BE);
-      }
    }
    
    public void test (int n, int nev) {

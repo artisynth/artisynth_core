@@ -6,9 +6,10 @@
  */
 package maspack.matrix;
 
-import java.io.*;
-import java.util.*;
-import maspack.util.*;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import maspack.util.IndentingPrintWriter;
 
 /**
  * Code generator to create MatrixMulAdd.java, MatrixMulTransposeRightAdd.java,

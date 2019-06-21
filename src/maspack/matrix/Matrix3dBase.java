@@ -6,9 +6,9 @@
  */
 package maspack.matrix;
 
-import maspack.util.InternalErrorException;
-import maspack.util.FunctionTimer;
 import maspack.util.Clonable;
+import maspack.util.FunctionTimer;
+import maspack.util.InternalErrorException;
 
 /**
  * Base class for 3 x 3 matrices in which the elements are stored as explicit
@@ -16,6 +16,9 @@ import maspack.util.Clonable;
  */
 public abstract class Matrix3dBase extends DenseMatrixBase implements
    java.io.Serializable, Clonable {
+
+   private static final long serialVersionUID = 1L;
+
    /**
     * Matrix element (0,0)
     */
@@ -1624,7 +1627,7 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
       double d22 = M.m22;
 
       double det = (d00*d11*d22 + d10*d21*d02 + d20*d01*d12 -
-                    d20*d11*d02 - d00*d21*d12 - d10*d01*d22); 
+                    d20*d11*d02 - d00*d21*d12 - d10*d01*d22);
 
       if (det != 0) {
          double deti = 1.0 / det;

@@ -6,15 +6,12 @@
  */
 package maspack.matrix;
 
-import java.io.PrintWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Random;
 
-import maspack.util.InternalErrorException;
-import maspack.util.FunctionTimer;
-import maspack.util.Clonable;
-import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Implements a 2 element integer vector, along its most commonly used
@@ -24,7 +21,6 @@ import maspack.util.NumberFormat;
  * The size of these vectors is fixed.
  */
 public class Vector2i extends VectoriBase {
-   private static final long serialVersionUID = 1L;
 
    /**
     * Global zero vector. Should not be modified.

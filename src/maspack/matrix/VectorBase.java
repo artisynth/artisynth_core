@@ -519,7 +519,7 @@ public abstract class VectorBase implements Vector {
             rtok.scanToken (']');
          }
          else {
-            ArrayList valueList = new ArrayList (64);
+            ArrayList<Double> valueList = new ArrayList<>(64);
             while (rtok.nextToken() != ']') {
                rtok.pushBack();
                valueList.add (new Double (rtok.scanNumber()));
@@ -527,9 +527,9 @@ public abstract class VectorBase implements Vector {
             if (valueList.size() != size()) {
                setSize (valueList.size());
             }
-            Iterator it = valueList.iterator();
+            Iterator<Double> it = valueList.iterator();
             for (int i = 0; i < size(); i++) {
-               set (i, ((Double)it.next()).doubleValue());
+               set (i, it.next().doubleValue());
             }
          }
       }
@@ -539,6 +539,20 @@ public abstract class VectorBase implements Vector {
             set (i, rtok.scanNumber());
          }
       }
+   }
+
+   public boolean isWritable() {
+      return true;
+   }
+
+   public void scan (ReaderTokenizer rtok, Object obj)
+      throws IOException {
+      scan (rtok);
+   }
+
+   public void write (PrintWriter pw, NumberFormat fmt, Object obj)
+      throws IOException {
+      write (pw, fmt);
    }
 
    /**

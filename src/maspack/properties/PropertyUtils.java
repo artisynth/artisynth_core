@@ -14,7 +14,64 @@ import maspack.matrix.Vectori;
 
 public class PropertyUtils {
 
-   public static Class<?>[] findCompositePropertySubclasses (Class<?> clazz) {
+   public static String[] maybeInitializeValues (
+      Property prop, CompositeProperty prevValue) {
+
+      Class<?> primaryClass = prop.getInfo().getValueClass();
+      Object value = prop.get();
+      if (!(value instanceof CompositeProperty)) {
+         return new String[0];
+      }
+      CompositeProperty curValue = (CompositeProperty)value;
+      Method m = null;
+      try {
+         m = value.getClass().getMethod (
+            "initializePropertyValues", primaryClass);
+         if (m.getReturnType() != String[].class) {
+            m = null;
+         }
+      }
+      catch (Exception e) {
+         // do nothing, m will remain null
+      }
+      if (m != null) {
+         if (prop instanceof EditingProperty) {
+            EditingProperty eprop = (EditingProperty)prop;
+            HostList hostList = eprop.getHostList();
+            Object[] values = hostList.getAllValues (eprop.getCell());
+            for (Object val : values) {
+               if (val instanceof CompositeProperty) {
+                  try {
+                     return (String[])m.invoke (val, prevValue);
+                  }
+                  catch (Exception e) {
+                     System.out.println (
+                        "Error invoking initializeValues(): " + e);
+                     return null;
+                  }
+               }
+            }
+         }
+         else {
+            try {
+               return (String[])m.invoke (curValue, prevValue);
+            }
+            catch (Exception e) {
+               System.out.println ("Error invoking initializeValues(): " + e);
+               return null;
+            }
+         }
+      }
+      return new String[0];
+   }
+
+   public static Class<?>[] findCompositePropertySubclasses (
+      PropertyInfo info) {
+      List<Class<?>> allowedTypes = info.getAllowedTypes();
+      if (allowedTypes != null) {
+         return allowedTypes.toArray(new Class<?>[0]);
+      }
+      Class<?> clazz = info.getValueClass();
       Method m = null;
       try {
          m = clazz.getMethod ("getSubClasses");

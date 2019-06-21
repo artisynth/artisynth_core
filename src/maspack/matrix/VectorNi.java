@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Péan (ETHZ)
+ * Copyright (c) 2017, by the Authors: John E Lloyd (UBC), Fabien Pean (ETHZ)
  * (method reference returns)
  *
  * This software is freely available under a 2-clause BSD license. Please see
@@ -8,16 +8,10 @@
 package maspack.matrix;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.ArrayList;
 
-import maspack.util.RandomGenerator;
 import maspack.util.ReaderTokenizer;
-import maspack.util.InternalErrorException;
-import maspack.util.Clonable;
-import maspack.util.NumberFormat;
 
 /**
  * Implements a general vector of integers. We have provided integer

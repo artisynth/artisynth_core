@@ -1,7 +1,5 @@
 package maspack.matrix;
 
-import maspack.matrix.Matrix.Partition;
-
 public class Matrix6dDiagBlock extends Matrix6dBlock {
    /**
     * Creates a new Matrix6dDiagBlock.

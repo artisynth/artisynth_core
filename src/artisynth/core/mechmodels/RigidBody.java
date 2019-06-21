@@ -386,8 +386,10 @@ public class RigidBody extends Frame
    /**
     * Adjusts the pose so that it reflects the rigid body's center of mass
     */
-   public void centerPoseOnCenterOfMass() {
-      translateCoordinateFrame (getCenterOfMass());
+   public Vector3d centerPoseOnCenterOfMass() {
+      Point3d com = new Point3d(getCenterOfMass());
+      translateCoordinateFrame (com);
+      return com;
    }
    
    /**

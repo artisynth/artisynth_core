@@ -9,7 +9,6 @@
  * domain.
  */
 package maspack.matrix;
-import maspack.util.RandomGenerator;
 
 /**
  * Forms the eigenvalue decomposition of an n X n matrix M, such that
@@ -48,8 +47,6 @@ public class EigenDecomposition {
    public static final double one = 1.0;
 
    private int mySize; // dimension of the problem
-
-   private boolean computeV = false;
 
    enum State {
       UNSET, SET_SYMMETRIC, SET_UNSYMMETRIC
@@ -803,14 +800,6 @@ public class EigenDecomposition {
       return b >= 0 ? fabs(a) : -fabs(a);
    }
 
-   private double dotArray (double[] v1, double[] v2, int n) {
-      double sum = 0;
-      for (int i = 0; i < n; i++) {
-         sum += v1[i] * v2[i];
-      }
-      return sum;
-   }
-
    /**
     * Overwrites v with its householder vector and returns beta
     */
@@ -999,10 +988,8 @@ public class EigenDecomposition {
       double[] v = vtmp.getBuffer();
       double[] w = xtmp.getBuffer();
 
-      double[] zbuf = null;
       if (Z != null) {
          Z.setIdentity();
-         zbuf = Z.getBuffer();
       }
       MatrixNd B = new MatrixNd();
       B.setBuffer (n, n, buf, n);
@@ -1680,13 +1667,5 @@ public class EigenDecomposition {
 
       return 0;      
    }
-
-   public static void main (String[] args) {
-      EigenDecomposition symeig = new EigenDecomposition();
-
-      RandomGenerator.setSeed (0x1234);
-
-   }
-
 
 }

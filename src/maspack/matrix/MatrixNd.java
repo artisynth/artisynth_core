@@ -23,8 +23,10 @@ import maspack.util.RandomGenerator;
  * submatrix, or is being referenced by a submatrix (see {@link
  * maspack.matrix.SubMatrixNd SubMatrixNd}).
  */
-public class MatrixNd extends DenseMatrixBase implements java.io.Serializable,
-LinearTransformNd, Clonable {
+public class MatrixNd extends DenseMatrixBase
+   implements java.io.Serializable, LinearTransformNd, Clonable,
+              VectorObject<MatrixNd> {
+   
    private static final long serialVersionUID = 1L;
    int nrows;
    int ncols;
@@ -2827,7 +2829,6 @@ LinearTransformNd, Clonable {
 
       System.out.println ("M4x3=\n" + M4x3.toString ("%8.4f"));
       System.out.println ("M3x4=\n" + M3x4.toString ("%8.4f"));
-
    }
 
    public MatrixNd clone() throws CloneNotSupportedException {
@@ -2863,6 +2864,33 @@ LinearTransformNd, Clonable {
          throw new IllegalStateException (
             "buffer size not large enough for matrix");
       }
-      
+   }
+
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
+    */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (MatrixNd M1) {
+      add (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, MatrixNd M1) {
+      scaledAdd (s, M1);
    }
 }

@@ -3041,7 +3041,7 @@ PointAttachable, ConnectableBody {
                state = veb.createState();
                idata[k].setViscoState(state);
             }
-            veb.computeStress(sigma, state);
+            veb.computeStress(sigma, dpnt, state);
             if (D != null) {
                veb.computeTangent(D, state);
             }

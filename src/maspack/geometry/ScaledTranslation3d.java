@@ -125,4 +125,14 @@ public class ScaledTranslation3d implements VectorTransformer3d {
    public ScaledTranslation3d copy() {
       return new ScaledTranslation3d (myScaling, myOrigin);      
    }
+
+   public String toString (String fmtStr) {
+      StringBuilder sb = new StringBuilder();
+      sb.append ("scaling=" + myScaling.toString(fmtStr));
+      sb.append ("\n");
+      sb.append ("origin=" + myOrigin.toString(fmtStr));
+      sb.append ("\n");
+      return sb.toString();
+   }
+
 }

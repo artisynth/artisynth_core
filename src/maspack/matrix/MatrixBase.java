@@ -6,20 +6,18 @@
  */
 package maspack.matrix;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.FileWriter;
-import java.io.BufferedWriter;
-
-import maspack.util.ReaderTokenizer;
-
-import java.util.LinkedList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Random;
 
-import maspack.util.NumberFormat;
 import maspack.util.InternalErrorException;
+import maspack.util.NumberFormat;
 import maspack.util.RandomGenerator;
+import maspack.util.ReaderTokenizer;
 
 /**
  * Base implementation of {@link maspack.matrix.Matrix Matrix}.
@@ -857,14 +855,14 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
             setSize (numRows, numCols);
          }
       }
-      Iterator it = valueList.iterator();
+      Iterator<Double> it = valueList.iterator();
       int nvals = rowSize()*colSize();
       int[] indices = new int[2*nvals];
       double[] values = new double[nvals];
       int k = 0;
       for (int i = 0; i < rowSize(); i++) {
          for (int j = 0; j < colSize(); j++) {
-            values[k] = ((Double)it.next()).doubleValue();
+            values[k] = it.next().doubleValue();
             indices[k*2  ] = i;
             indices[k*2+1] = j;
             k++;
@@ -942,6 +940,20 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
          k++;
       }
       set (values, indices, nvals);
+   }
+
+   public boolean isWritable() {
+      return true;
+   }
+
+   public void scan (ReaderTokenizer rtok, Object obj)
+      throws IOException {
+      scan (rtok);
+   }
+
+   public void write (PrintWriter pw, NumberFormat fmt, Object obj)
+      throws IOException {
+      write (pw, fmt);
    }
 
    /**

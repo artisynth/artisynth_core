@@ -6,10 +6,9 @@
  */
 package maspack.matrix;
 
-import maspack.util.FunctionTimer;
-import maspack.util.UnitTest;
 import maspack.util.RandomGenerator;
 import maspack.util.TestException;
+import maspack.util.UnitTest;
 
 class EigenDecompositionTest extends UnitTest {
    
@@ -239,7 +238,6 @@ class EigenDecompositionTest extends UnitTest {
    protected double getDeterminantTol (
       EigenDecomposition evd, VectorNd er, VectorNd ei) {
       double max = evd.getMaxAbsEig();
-      double min = evd.getMinAbsEig();
       double eps = max*EPS;
       int n = er.size();
       double mag = 1;

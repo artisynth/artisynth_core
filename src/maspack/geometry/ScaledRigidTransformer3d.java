@@ -127,6 +127,7 @@ public class ScaledRigidTransformer3d implements VectorTransformer3d {
    public boolean isRigid() {
       return false;
    }
+
    /**
     * Scale the distance units associated with this transformer. This
     * is done by scaling both the scaling factors and the origin by {@code s}.
@@ -138,10 +139,20 @@ public class ScaledRigidTransformer3d implements VectorTransformer3d {
       myScaling.scale (s);
       myInvScaling.scale (1/s);
    }  
+
    /**
     * {@inheritDoc}
     */   
    public ScaledRigidTransformer3d copy() {
       return new ScaledRigidTransformer3d (myScaling, myRigidTrans);      
    }  
+
+   public String toString (String fmtStr) {
+      StringBuilder sb = new StringBuilder();
+      sb.append ("scaling=" + myScaling.toString(fmtStr));
+      sb.append ("\n");
+      sb.append ("trans=\n" + myRigidTrans.toString(fmtStr));
+      sb.append ("\n");
+      return sb.toString();
+   }
 }

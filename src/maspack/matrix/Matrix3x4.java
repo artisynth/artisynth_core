@@ -6,14 +6,14 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
 import maspack.util.InternalErrorException;
 
 /**
  * Implements a 3 x 4 matrix
  */
-public class Matrix3x4 extends DenseMatrixBase {
+public class Matrix3x4 extends DenseMatrixBase
+   implements VectorObject<Matrix3x4> {
+
    public double m00;
    public double m01;
    public double m02;
@@ -894,6 +894,17 @@ public class Matrix3x4 extends DenseMatrixBase {
       m23 = M.m32;
    }
 
+/**
+    * Multiples this matrix by the vector v1 and places the result in vr
+    * @param vr result of multiplication
+    * @param v1 vector to transform
+    */
+   public void mul (Point3d vr, Vector4d v1) {
+      vr.x = m00*v1.x + m01*v1.y + m02*v1.z + m03*v1.w;
+      vr.y = m10*v1.x + m11*v1.y + m12*v1.z + m13*v1.w;
+      vr.z = m20*v1.x + m21*v1.y + m22*v1.z + m23*v1.w;
+   }
+
    /**
     * Creates a clone of this matrix.
     */
@@ -906,14 +917,38 @@ public class Matrix3x4 extends DenseMatrixBase {
       }
    }
 
-   /**
-    * Multiples this matrix by the vector v1 and places the result in vr
-    * @param vr result of multiplication
-    * @param v1 vector to transform
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
     */
-   public void mul (Point3d vr, Vector4d v1) {
-      vr.x = m00*v1.x + m01*v1.y + m02*v1.z + m03*v1.w;
-      vr.y = m10*v1.x + m11*v1.y + m12*v1.z + m13*v1.w;
-      vr.z = m20*v1.x + m21*v1.y + m22*v1.z + m23*v1.w;
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (Matrix3x4 M1) {
+      add (M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, Matrix3x4 M1) {
+      scaledAdd (s, M1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean epsilonEquals (Matrix3x4 M1, double tol) {
+      return epsilonEquals (M1, tol);
    }
 }

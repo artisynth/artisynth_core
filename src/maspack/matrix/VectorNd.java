@@ -21,8 +21,9 @@ import maspack.util.RandomGenerator;
  * #setSize setSize}, or implicitly through operations that require the vector
  * size to be modified.
  */
-public class VectorNd extends VectorBase implements java.io.Serializable,
-Clonable {
+public class VectorNd extends VectorBase
+   implements java.io.Serializable, Clonable, VectorObject<VectorNd> {
+   
    private static final long serialVersionUID = 1L;
    private boolean rowVectorP = false;
    double[] buf = new double[0];
@@ -1560,5 +1561,33 @@ Clonable {
       for (int i=0; i<size; i++) {
          prb[i] = b1*(p0b[i]-p1b[i]) + b2*v0b[i] + b3*v1b[i] + p0b[i];
       }
+   }
+
+   /* VectorObject implementation. It is currently necessary to define the
+    * scale and add methods as scaleObj(), addObj(), and scaledAddObj(), since
+    * the corresponding scale(), add() and scaledAdd() methods have
+    * incompatible return types across different classes (some return a
+    * reference to their object, while others return {@code void}).
+    */
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaleObj (double s) {
+      scale (s, this);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void addObj (VectorNd v1) {
+      add (v1);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void scaledAddObj (double s, VectorNd v1) {
+      scaledAdd (s, v1);
    }
 }

@@ -6,10 +6,6 @@
  */
 package maspack.matrix;
 
-import java.util.Random;
-
-import maspack.util.*;
-
 public class QRDecomposition3d {
    private Matrix3d Q;
    private Matrix3d R;

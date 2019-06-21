@@ -7,7 +7,6 @@
 package maspack.matrix;
 
 import maspack.util.RandomGenerator;
-import maspack.util.TestException;
 
 class Matrix6x3Test extends MatrixTest {
    void add (Matrix MR, Matrix M1) {

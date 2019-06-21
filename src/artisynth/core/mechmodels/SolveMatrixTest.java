@@ -19,11 +19,16 @@ public class SolveMatrixTest {
    MatrixNd myKnumeric;
 
    public double testStiffness (MechSystemBase sys, double h) {
-      return testStiffness (sys, h, /*printMatrices=*/false);
+      return testStiffness (sys, h, null);
    }         
 
    public double testStiffness (
       MechSystemBase sys, double h, boolean printMatrices) {
+      return testStiffness (sys, h, printMatrices ? "%8.3f" : null);
+   }
+
+   public double testStiffness (
+      MechSystemBase sys, double h, String fmtStr) {
 
       myS = new SparseNumberedBlockMatrix();
       myVsize = sys.getActiveVelStateSize();
@@ -86,12 +91,17 @@ public class SolveMatrixTest {
       MatrixNd Sdense = new MatrixNd (myS);
       Sdense.getSubMatrix (0, 0, myK);
 
-      if (printMatrices) {
-         System.out.println ("K=\n" + myK.toString ("%8.3f"));
-         System.out.println ("Knumeric=\n" + myKnumeric.toString ("%8.3f"));
-         MatrixNd ERR = new MatrixNd (myK);
-         ERR.sub (myKnumeric);
-         System.out.println ("Err=\n" + ERR.toString ("%8.3f"));
+      if (fmtStr != null) {
+         NumberFormat fmt = new NumberFormat (fmtStr);
+         System.out.println ("K=\n" + myK.toString (fmt));
+         System.out.println ("Knumeric=\n" + myKnumeric.toString (fmt));
+         MatrixNd E = new MatrixNd (myK);
+         E.sub (myKnumeric);
+         System.out.println ("Err=\n" + E.toString (fmt));
+         MatrixNd ET = new MatrixNd ();
+         ET.transpose (E);
+         E.sub (ET);
+         System.out.println ("SymErr=\n" + E.toString (fmt));
       }
 
       double norm = Math.max (myK.infinityNorm(), myKnumeric.infinityNorm());

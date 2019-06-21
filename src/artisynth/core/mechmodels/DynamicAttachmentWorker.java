@@ -24,7 +24,7 @@ public class DynamicAttachmentWorker {
 
    /** 
     * Reduces a sparse column matrix (such as the transpose of a constraint
-    * matrix) to account for this attachment. This is done by applying
+    * matrix) to account for an attachment. This is done by applying
     * the transform
     * <pre>
     * GT = P GT
@@ -37,9 +37,19 @@ public class DynamicAttachmentWorker {
     *     [ 0   0   ]
     * </pre>
     * and Gka is the constraint matrix for this attachment.
+    * 
+    * @param at attachment engendering the reduction
+    * @param GT matrix to be reduced
+    * @param derivative information to be reduced
+    * @param zeroReducedBlocks if {@code false}, does not zero the blocks
+    * in {@code GT} associated with the attachment. Although this is
+    * not the correct behavior, it can be used in situations where it does not
+    * interfere with the final solution and the block contents are used
+    * by the attachment for other computations.
     */
    public void reduceConstraints (
-      DynamicAttachment at, SparseBlockMatrix GT, VectorNd dg) {
+      DynamicAttachment at, SparseBlockMatrix GT, VectorNd dg, 
+      boolean zeroReducedBlocks) {
       DynamicComponent[] masters = at.getMasters();
       if (masters.length == 0 || GT.colSize() == 0) {
          return;
@@ -78,7 +88,9 @@ public class DynamicAttachmentWorker {
                }
             }
          }
-         //srowBlk.setZero();         
+         if (zeroReducedBlocks) {
+            srowBlk.setZero();
+         }
          srowBlk = srowBlk.next();
       }
    }

@@ -6,12 +6,17 @@
  */
 package maspack.matrix;
 
-import java.util.*;
-import java.io.*;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Random;
 
-import maspack.matrix.*;
 import maspack.matrix.Matrix.Partition;
-import maspack.util.*;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.RandomGenerator;
+import maspack.util.ReaderTokenizer;
+import maspack.util.TestException;
 
 
 public class SparseBlockMatrixTest extends MatrixTest {
@@ -399,7 +404,6 @@ public class SparseBlockMatrixTest extends MatrixTest {
 
       VectorNd y = new VectorNd (nr);
       VectorNd ycheck = new VectorNd (nr);
-      VectorNd ysave = new VectorNd (nr);
       VectorNd x = new VectorNd (nc);
       x.setRandom();
 

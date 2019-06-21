@@ -6,13 +6,12 @@
  */
 package maspack.matrix;
 
-import maspack.matrix.*;
-import maspack.matrix.Matrix.Partition;
-
 /**
  * Implements a 3 x 3 matrix block using a single Matrix3d object.
  */
 public class Matrix3x3DiagBlock extends Matrix3x3Block {
+
+   private static final long serialVersionUID = 1L;
 
    /**
     * Creates a new Matrix3x3DiagBlock.
@@ -158,8 +157,6 @@ public class Matrix3x3DiagBlock extends Matrix3x3Block {
     * {@inheritDoc}
     */
    public int getBlockCCSValues (double[] vals, int[] offsets, Partition part) {
-      int off;
-
       vals[offsets[0]++] = m00;
       vals[offsets[1]++] = m11;
       vals[offsets[2]++] = m22;

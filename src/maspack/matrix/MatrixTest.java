@@ -1088,7 +1088,6 @@ class MatrixTest extends UnitTest {
       int[] indices;
       double[] values;
       
-      int nnz, nnv;
       int nr = MR.rowSize();
       int nc = MR.colSize();
 
@@ -1758,7 +1757,6 @@ class MatrixTest extends UnitTest {
 
       int nr = MR.rowSize();
       int nc = MR.colSize();
-      int[] sizes = MatrixBlockBase.getMulDimensions (nr, nc);
 
       for (int nk=1; nk<=8; nk++) {
          MatrixBlock M1 = MatrixBlockBase.alloc (nr, nk);

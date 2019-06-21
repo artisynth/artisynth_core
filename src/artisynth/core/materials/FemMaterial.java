@@ -39,22 +39,8 @@ public abstract class FemMaterial extends MaterialBase {
 
    ViscoelasticBehavior myViscoBehavior;
 
-   // protected void notifyHostOfPropertyChange (String name) {
-   //    if (myPropHost instanceof PropertyChangeListener) {
-   //       ((PropertyChangeListener)myPropHost).propertyChanged (
-   //          new PropertyChangeEvent (this, name));
-   //    }
-   // }
-
    protected void notifyHostOfPropertyChange () {
       notifyHostOfPropertyChange ("???");
-      // if (myPropHost instanceof FemModel) {
-      //    ((FemModel)myPropHost).invalidateStressAndStiffness();
-      //    ((FemModel)myPropHost).invalidateRestData();
-      // }
-      // else if (myPropHost instanceof FemElement) {
-      //    ((FemElement)myPropHost).invalidateRestData();
-      // }
    }
 
    public static PropertyList myProps =
@@ -104,11 +90,12 @@ public abstract class FemMaterial extends MaterialBase {
    public abstract void computeTangent (
       Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
       Matrix3d Q, FemMaterial baseMat);
-   
+
+
    /**
     * Computes the strain tensor given the supplied deformation
     * @param sigma strain tensor, populated
-    * @param def deformation information, includes deformation gradient and pressure
+    * @param def deformation information, includes deformation gradient and pressue
     * @param Q coordinate frame specifying directions of anisotropy
     * @param baseMat underlying base material (if any)
     */
@@ -116,6 +103,16 @@ public abstract class FemMaterial extends MaterialBase {
       SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
       FemMaterial baseMat);
 
+   /**
+    * Computes the current Cauchy stress and tangent stiffness matrix.
+    * 
+    * @param sigma returns the Cauchy stress
+    * @param D optional; if non-{@code null}, returns the tangent matrix
+    * @param def deformation information, including deformation gradient and 
+    * pressure
+    * @param Q coordinate frame specifying directions of anisotropy
+    * @param excitation current excitation value
+    */
    public void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       Matrix3d Q, double excitation) {
@@ -217,6 +214,42 @@ public abstract class FemMaterial extends MaterialBase {
       BD.scale (Math.pow(def.getDetF(), -2.0/3.0));
    }
 
+   /**
+    * Computes the second Piola-Kirchoff stress tensor from the Cauchy stress,
+    * according to the formula
+    *
+    * S = J F^{-1} sigma F^{-T}
+    */
+   public static void cauchyToSecondPKStress (
+      SymmetricMatrix3d S, SymmetricMatrix3d sigma, DeformedPoint def) {
+
+      Matrix3d Finv = new Matrix3d();
+      Finv.fastInvert (def.getF());
+      S.set (sigma);
+      S.mulLeftAndTransposeRight (Finv);
+      S.scale (def.getDetF());
+   }
+
+   /**
+    * Computes the Cauchy stress from the second Piola-Kirchoff stress tensor,
+    * according to the formula
+    *
+    * sigma = 1/J F sigma F^T
+    */
+   public static void secondPKToCauchyStress (
+      SymmetricMatrix3d sigma, SymmetricMatrix3d S, DeformedPoint def) {
+
+      sigma.set (S);
+      sigma.mulLeftAndTransposeRight (def.getF());
+      sigma.scale (1/def.getDetF());
+   }
+
+   public boolean hasState() {
+      return myViscoBehavior != null && !isLinear();
+   }
+
+   public MaterialStateObject createStateObject() {
+      return null;
+   }
+
 }
-   
-   

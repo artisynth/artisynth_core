@@ -11,6 +11,8 @@ import java.awt.Font;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.ArrayList;
 
 import maspack.matrix.AxisAngle;
 import maspack.matrix.DenseMatrix;
@@ -62,6 +64,8 @@ public class PropertyDesc implements PropertyInfo {
    NumericInterval myNumericRange = null;
    protected int myDimension;
    protected boolean mySharableP = false;
+
+   protected ArrayList<Class<?>> myAllowedTypes = null;
 
    public static final int REGULAR = 0;
    public static final int READ_ONLY = 1;
@@ -1888,5 +1892,28 @@ public class PropertyDesc implements PropertyInfo {
    void setInheritable (boolean enable) {
       myInheritableP = enable;
    }
+   
+   public void setAllowedTypes (List<Class<?>> types) {
+      if (types == null) {
+         myAllowedTypes = null;
+      }
+      else {
+         myAllowedTypes = new ArrayList<Class<?>>(types.size());
+         for (Class<?> clazz : types) {
+            if (clazz == null || !myValueClass.isAssignableFrom (clazz)) {
+               throw new IllegalArgumentException (
+                  "Type "+clazz+" is not a subclass of the valueClass "+
+                  myValueClass+" for property '"+myName+"'");
+            }
+            myAllowedTypes.add (clazz);
+         }
+      }
+   }
 
+   /**
+    * {@inheritDoc}
+    */   
+   public List<Class<?>> getAllowedTypes() {
+      return myAllowedTypes;
+   }
 }

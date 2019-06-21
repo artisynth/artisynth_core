@@ -6,8 +6,6 @@
  */
 package maspack.matrix;
 
-import maspack.util.*;
-
 /**
  * Constructs the QR decomposition of a matrix. This takes the form <br> M = Q
  * R <br> where M is the original matrix, Q is orthogonal, and R is
@@ -167,7 +165,6 @@ public class QRDecomposition {
    
    private void doFactor() {
       int maxd = Math.max (nrows, ncols);
-      int qw = QR.width;
       if (vec.length < maxd) {
          vec = new double[maxd];
          wec = new double[maxd];
@@ -177,14 +174,6 @@ public class QRDecomposition {
       beta = new double[columnLimit];
       for (int j = 0; j < columnLimit; j++) {
          beta[j] = rowHouseReduce (QR, j, j, vec, wec);
-         // for (int i=j; i<nrows; i++) {
-         //    vec[i] = QR.buf[i*qw+j];
-         // }
-         // beta[j] = houseVector (vec, j, nrows);
-         // housePreMul (QR.buf, qw, nrows, ncols, j, j, beta[j], vec, wec);
-         // for (int i=j+1; i<nrows; i++) {
-         //    QR.buf[i*qw+j] = vec[i];
-         // }
       }
       state = State.SET;
    }
@@ -210,7 +199,6 @@ public class QRDecomposition {
     */
    public void factorWithPivoting (Matrix M) {
       QR.set (M);
-      int qw = QR.width;
 
       nrows = M.rowSize();
       ncols = M.colSize();

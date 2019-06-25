@@ -53,26 +53,87 @@ class SVDecompositionTest {
    }
 
    public void testDecomposition (int nrows, int ncols) {
+      testDecomposition (nrows, ncols, 0);
+   }
+   
+   public void testDecomposition (int nrows, int ncols, int flags) {
       MatrixNd M1 = new MatrixNd (nrows, ncols);
       M1.setRandom();
       testDecomposition (M1, null);
    }
 
    public void testDecomposition (int nrows, int ncols, double[] svals) {
+      testDecomposition (nrows, ncols, svals, 0);
+   }
+   
+   public void testDecomposition (MatrixNd M1, double[] svals) {
+      testDecomposition (M1, svals, 0);
+   }
+   
+   public void testDecomposition (int nrows, int ncols, double[] svals, int flags) {
       MatrixNd M1 = new MatrixNd (nrows, ncols);
       M1.setRandomSvd (svals);
-      testDecomposition (M1, null);
+      testDecomposition (M1, svals, flags);
    }
+   
+   public void testInversion(int nrows, int ncols, int flags) {
+      MatrixNd M1 = new MatrixNd (nrows, ncols);
+      M1.setRandom();
+      testInversion(M1, flags);
+   }
+   
+   public void testInversion(MatrixNd M1, int flags) {
+      svd.factor (M1, flags);
 
-   public void testDecomposition (MatrixNd M1, double[] svals) {
-      svd.factor (M1);
+      int nrows = M1.nrows;
+      int ncols = M1.ncols;
+      
+      MatrixNd R = new MatrixNd(ncols, nrows);
+      svd.pseudoInverse (R);
+      
+      // properties of pseudo-inverse
+      MatrixNd A = new MatrixNd();
+      A.mul (M1, R);
+      A.mul (M1);
+      if (!M1.epsilonEquals (A, EPSILON * svd.norm()*10)) {
+         throw new TestException ("Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
+      }
+      
+      A.mul (R, M1);
+      A.mul (R);
+      if (!R.epsilonEquals (A, EPSILON * svd.norm()*10)) {
+         throw new TestException ("Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
+      }
+      
+      A.mul (M1, R);
+      if (!A.isSymmetric (EPSILON * svd.norm()*10)) {
+         throw new TestException ("Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
+      }
+      
+      A.mul (R, M1);
+      if (!A.isSymmetric(EPSILON * svd.norm()*10)) {
+         throw new TestException ("Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
+      }
+      
+      // all passed
+   }
+   
+   public void testDecomposition (MatrixNd M1, double[] svals, int flags) {
+      svd.factor (M1, flags);
 
       int nrows = M1.nrows;
       int ncols = M1.ncols;
       int mind = Math.min (nrows, ncols);
+      
+      int ucols = mind;
+      int vcols = mind;
+      if ( (flags & SVDecomposition.FULL_UV) != 0) {
+         ucols = nrows;
+         vcols = ncols;
+      }
 
-      MatrixNd U = new MatrixNd (nrows, mind);
-      MatrixNd V = new MatrixNd (ncols, mind);
+      MatrixNd U = new MatrixNd (nrows, ucols);
+      MatrixNd V = new MatrixNd (ncols, vcols);
       VectorNd sig = new VectorNd (mind);
 
       svd.get (U, sig, V);
@@ -87,10 +148,10 @@ class SVDecompositionTest {
       // verify product
 
       double cond = svd.condition();
-
-      MatrixNd US = new MatrixNd (nrows, mind);
-      US.set (U);
-      US.mulDiagonalRight (sig);
+      MatrixNd S = new MatrixNd(ucols, vcols);
+      S.setDiagonal (sig);
+      MatrixNd US = new MatrixNd (U);
+      US.mul (S);
       MatrixNd MP = new MatrixNd (nrows, ncols);
       MP.mulTransposeRight (US, V);
 
@@ -107,7 +168,8 @@ class SVDecompositionTest {
             int j;
             for (j = 0; j < mind; j++) {
                if (!taken[j] &&
-                   Math.abs (sig.get (j) - svals[i]) > svals[i] * EPSILON) {
+                     // equality for case of 0 singular value
+                     Math.abs (sig.get (j) - svals[i]) >= svals[i] * EPSILON) {
                   taken[j] = true;
                   break;
                }
@@ -278,6 +340,29 @@ class SVDecompositionTest {
          testDecomposition (3, 3);
          testDecomposition (2, 2);
          testDecomposition (1, 1);
+      }
+      
+      // full matrices
+      testDecomposition (6, 5, new double[] { 1.1, 2.2, 4.4, 0.0003, 0 }, SVDecomposition.FULL_UV);
+      testDecomposition (4, 3, SVDecomposition.FULL_UV);
+      testDecomposition (3, 4, SVDecomposition.FULL_UV);
+      testDecomposition (3, 4, new double[] { 1, 2, 0 }, SVDecomposition.FULL_UV);
+      testDecomposition (4, 5, new double[] { 1, 1, 0, 0 }, SVDecomposition.FULL_UV);
+      testDecomposition (6, 5, new double[] { 1.1, 2.2, 4.4, 0.0003, 0 }, SVDecomposition.FULL_UV);
+      testDecomposition (5, 6, new double[] { 12, 13, 14, 0.0003, 0 }, SVDecomposition.FULL_UV);
+      
+      for (int i = 1; i < 10; i++) {
+         for (int j=1; j < 10; j++) {
+            testDecomposition (i, j, SVDecomposition.FULL_UV);
+         }
+      }
+      
+      // pseudo-inverse
+      for (int i = 1; i < 10; i++) {
+         for (int j=1; j < 10; j++) {
+            testInversion (i, j, 0);
+            testInversion (i, j, SVDecomposition.FULL_UV);
+         }
       }
    }
 

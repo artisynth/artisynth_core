@@ -894,6 +894,17 @@ public class Matrix3x4 extends DenseMatrixBase
       m23 = M.m32;
    }
 
+/**
+    * Multiples this matrix by the vector v1 and places the result in vr
+    * @param vr result of multiplication
+    * @param v1 vector to transform
+    */
+   public void mul (Point3d vr, Vector4d v1) {
+      vr.x = m00*v1.x + m01*v1.y + m02*v1.z + m03*v1.w;
+      vr.y = m10*v1.x + m11*v1.y + m12*v1.z + m13*v1.w;
+      vr.z = m20*v1.x + m21*v1.y + m22*v1.z + m23*v1.w;
+   }
+
    /**
     * Creates a clone of this matrix.
     */

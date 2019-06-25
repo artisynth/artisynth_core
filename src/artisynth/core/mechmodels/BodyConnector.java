@@ -1766,6 +1766,19 @@ public abstract class BodyConnector extends RenderableComponentBase
       }
    }
 
+   private void transformPoseAndUpdateConnectorAttachments (
+      ConnectableBody body,  RigidTransform3d T) {
+      body.transformPose (T);
+      for (BodyConnector c : body.getConnectors()) {
+         if (c.myAttachmentA != null) {
+            c.myAttachmentA.updatePosStates();
+         }
+         if (c.myAttachmentB != null) {
+            c.myAttachmentB.updatePosStates();
+         }
+      }
+   }
+   
    private void adjustBodyPoses (
       ConnectableBody body, ArrayList<ConnectableBody> freeBodies,
       RigidTransform3d Tnew, RigidTransform3d Told) {
@@ -1774,9 +1787,9 @@ public abstract class BodyConnector extends RenderableComponentBase
       T.mulInverseRight (Tnew, Told);     
       freeBodies.remove (body);
       for (ConnectableBody bod : freeBodies) {
-         bod.transformPose (T);
+         transformPoseAndUpdateConnectorAttachments (bod, T);
       }
-      body.transformPose (T);
+      transformPoseAndUpdateConnectorAttachments (body, T);
    }
    
    /**

@@ -20,7 +20,6 @@ import maspack.render.MouseRayEvent;
 import maspack.render.RenderObject;
 import maspack.render.Renderer;
 import maspack.render.Renderer.Shading;
-import maspack.render.GL.GLViewer;
 
 /**
  * A translational dragger that keeps its origin attached to the surface
@@ -37,7 +36,6 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
    Point3d firstLocation = new Point3d();
    Face face;
    Vector3d duv = new Vector3d();
-   TriangleIntersector intersector = new TriangleIntersector();
    BVFeatureQuery query = new BVFeatureQuery();
 
    boolean selected = false;
@@ -202,6 +200,7 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
          null, duv, mesh, origin, direction);
 
       if (face != null) {
+         // myXDraggerToWorld.p now on surface
          myXDraggerToWorld.p.scaledAdd (duv.x, direction, origin);
       }
       else {
@@ -211,13 +210,12 @@ public class ConstrainedTranslator3d extends Dragger3dBase {
          RigidTransform3d EyeToWorld = renderer.getViewMatrix();
          EyeToWorld.invert();
 
-         EyeToWorld.R.getColumn (2, planeNormal);
-         plane.set (planeNormal, location);
-         plane.intersectRay (planeLocation, direction, origin);
+         EyeToWorld.R.getColumn (2, planeNormal);  // normal to eye
+         plane.set (planeNormal, location);        // plane through current dragger
+         plane.intersectRay (planeLocation, direction, origin); // intersect plane with current click
 
-         face =
-            query.nearestFaceToPoint (
-               location, coords, mesh, planeLocation);
+         face = query.nearestFaceToPoint (
+               location, coords, mesh, planeLocation); // find nearest point on constraint surface
 
          duv.x = myXDraggerToWorld.p.distance (EyeToWorld.p);
          duv.y = coords.x;

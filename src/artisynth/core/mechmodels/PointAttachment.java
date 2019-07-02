@@ -21,6 +21,14 @@ public abstract class PointAttachment extends DynamicAttachmentBase
    protected Point myPoint;
    protected DynamicComponent[] myMasters;
 
+   protected PointAttachment() {
+      myPoint = null;
+   }
+   
+   protected PointAttachment(Point pnt) {
+      myPoint = pnt;
+   }
+   
    public Point getSlave() {
       return myPoint;
    }

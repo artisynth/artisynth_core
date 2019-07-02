@@ -209,7 +209,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       if (ncols < 2) {
          setColumn(0);
       } else {
-         setColumn ((int)Math.round (x*(ncols-1)));
+         setColumn ((int)Math.min(Math.floor(x*ncols), ncols-1));
       }
    }
    
@@ -222,7 +222,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       if (ncols < 2) {
          return 0;
       }
-      return (double)getColumn ()/(ncols-1);
+      return (getColumn ()+0.5)/ncols;
    }
    
    /**
@@ -234,7 +234,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       if (nrows < 2) {
          setRow(0);
       } else {
-         setRow ((int)Math.round (y*(nrows-1)));
+         setRow ((int)Math.min(Math.floor(y*nrows), nrows-1));
       }
    }
    
@@ -247,7 +247,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       if (nrows < 2) {
          return 0;
       }
-      return (double)getRow ()/(nrows-1);
+      return (getRow () + 0.5)/nrows;
    }
    
    /**
@@ -259,7 +259,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       if (nslices < 2) {
          setSlice(0);       
       } else {
-         setSlice ((int)Math.round (z*(image.getNumSlices ()-1)));
+         setSlice ((int)Math.min(Math.floor(z*nslices), nslices-1));
       }
    }
    
@@ -272,7 +272,7 @@ public class DicomTextureContent extends ReferenceCountedBase implements Texture
       if (nslices < 2) {
          return 0;
       }
-      return (double)getSlice ()/(nslices-1);
+      return (getSlice () + 0.5)/nslices;
    }
    
    /**

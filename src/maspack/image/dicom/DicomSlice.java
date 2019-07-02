@@ -30,12 +30,12 @@ public class DicomSlice {
    public static class SliceInfo {
       
       String title;
-      RigidTransform3d imagePosition;
+      RigidTransform3d imagePose;
       int rows;
       int cols;
       double pixelSpacingRows;
       double pixelSpacingCols;
-      double pixelSpacingSlice;
+      double sliceThickness;
       
       int seriesNumber;
       DicomDateTime seriesTime;
@@ -48,6 +48,14 @@ public class DicomSlice {
       
       public SliceInfo(String title) {
          this.title = title;
+      }
+      
+      public int getNumCols() {
+         return cols;
+      }
+      
+      public int getNumRows() {
+         return rows;
       }
       
    }
@@ -122,18 +130,18 @@ public class DicomSlice {
          }
       }
       
-      this.info.imagePosition = new RigidTransform3d();
+      this.info.imagePose = new RigidTransform3d();
       if (imagePosition != null) {
-         this.info.imagePosition.p.set(imagePosition);
+         this.info.imagePose.p.set(imagePosition);
       }
       if (imageOrientation != null) {
          Vector3d x = new Vector3d(imageOrientation.get(0), imageOrientation.get(1), imageOrientation.get(2));
          Vector3d y = new Vector3d(imageOrientation.get(3), imageOrientation.get(4), imageOrientation.get(5));
          Vector3d z = new Vector3d();
          z.cross(x, y);
-         this.info.imagePosition.R.setColumn(0, x);
-         this.info.imagePosition.R.setColumn(1, y);
-         this.info.imagePosition.R.setColumn(2, z);
+         this.info.imagePose.R.setColumn(0, x);
+         this.info.imagePose.R.setColumn(1, y);
+         this.info.imagePose.R.setColumn(2, z);
       }
       VectorNd pixelSpacing = header.getVectorValue(DicomTag.PIXEL_SPACING);
       if (pixelSpacing == null) {
@@ -146,17 +154,17 @@ public class DicomSlice {
       }
       this.info.pixelSpacingRows = pixelSpacing.get(0);
       this.info.pixelSpacingCols = pixelSpacing.get(1);
-      double pixelSpacingSlice = header.getDecimalValue(DicomTag.SLICE_THICKNESS, -1);
-      if (pixelSpacingSlice <= 0) {
+      double sliceThickness = header.getDecimalValue(DicomTag.SLICE_THICKNESS, -1);
+      if (sliceThickness <= 0) {
          // try to find
          DicomElement e = findElement(header, DicomTag.SLICE_THICKNESS);
          if (e != null) {
-            pixelSpacingSlice = e.getDecimalValue();
+            sliceThickness = e.getDecimalValue();
          } else {
-            pixelSpacingSlice = 1.0;
+            sliceThickness = 1.0;
          }
       }
-      this.info.pixelSpacingSlice = pixelSpacingSlice;
+      this.info.sliceThickness = sliceThickness;
       
       this.info.seriesNumber = header.getIntValue(DicomTag.SERIES_NUMBER, 1);
       this.info.seriesTime = header.getDateTime(DicomTag.SERIES_TIME);
@@ -282,6 +290,40 @@ public class DicomSlice {
     */
    public DicomHeader getHeader() {
       return header;
+   }
+   
+   /**
+    * @return position of first voxel in the slice image (top-left)
+    */
+   public RigidTransform3d getImagePose() {
+      return info.imagePose;
+   }
+   
+   /**
+    * @return information extracted from the slice
+    */
+   public SliceInfo getInfo() {
+      return info;
+   }
+
+   public double getThickness () {
+      return info.sliceThickness;
+   }
+   
+   public double getRowSpacing() {
+      return info.pixelSpacingRows;
+   }
+   
+   public double getColSpacing() {
+      return info.pixelSpacingCols;
+   }
+   
+   public int getNumRows() {
+      return info.rows;
+   }
+   
+   public int getNumCols() {
+      return info.cols;
    }
    
 }

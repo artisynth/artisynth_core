@@ -50,7 +50,7 @@ public class DicomImage implements VolumeImage {
       this.pixelSpacingRows = firstSlice.info.pixelSpacingRows;
       this.pixelSpacingCols = firstSlice.info.pixelSpacingCols;
       this.pixelSpacingSlice = firstSlice.getHeader().getDecimalValue(DicomTag.SPACING_BETWEEN_SLICES, 
-         (float)firstSlice.info.pixelSpacingSlice);
+         (float)firstSlice.info.sliceThickness);
       this.pixelType = firstSlice.pixelBuff.getPixelType();
       
       slices = new DicomSlice[16];
@@ -58,7 +58,7 @@ public class DicomImage implements VolumeImage {
       timeOffsets[0] = 0;
       size = 0;
       
-      this.trans = new RigidTransform3d(firstSlice.info.imagePosition);
+      this.trans = new RigidTransform3d(firstSlice.info.imagePose);
       addSlice(firstSlice);
    }
    
@@ -114,11 +114,11 @@ public class DicomImage implements VolumeImage {
       trans.R.getColumn(2, zdir);
       Vector3d tmp = new Vector3d();
    
-      tmp.sub(slice.info.imagePosition.p, orig);
+      tmp.sub(slice.info.imagePose.p, orig);
       double zadd = tmp.dot(zdir);
       
       // check if it's the last slice
-      tmp.sub(slices[size-1].info.imagePosition.p, orig);
+      tmp.sub(slices[size-1].info.imagePose.p, orig);
       double z = tmp.dot(zdir);
       if (tadd > t) {
          timeOffsets = Arrays.copyOf(timeOffsets, timeOffsets.length+1);
@@ -156,7 +156,7 @@ public class DicomImage implements VolumeImage {
             
             boolean found = false;
             for (int j=timeOffsets[i]; j<size; j++) {
-               tmp.sub(slices[j].info.imagePosition.p, orig);
+               tmp.sub(slices[j].info.imagePose.p, orig);
                t = slices[j].info.temporalPosition;
                z = tmp.dot(zdir);
                if (t > tadd || zadd < z) {
@@ -186,7 +186,7 @@ public class DicomImage implements VolumeImage {
       slices[pos] = slice;
             
       if (pos == 0) {
-         trans.set(slice.info.imagePosition);
+         trans.set(slice.info.imagePose);
       }
       size++;
    }
@@ -447,7 +447,7 @@ public class DicomImage implements VolumeImage {
    }
 
    /**
-    * Spacing between slices
+    * Spacing between slices, assuming constant fixed spacing
     * @return slice spacing
     */
    public double getSliceSpacing() {
@@ -457,11 +457,12 @@ public class DicomImage implements VolumeImage {
       // compute slice thickness directly from slice separation
       // (slice thickness is sometimes different)
       if (nSlices > 1) {
-         double zsize = slices[nSlices-1].info.imagePosition.p.distance(slices[0].info.imagePosition.p);
+         double zsize = slices[nSlices-1].info.imagePose.p.distance(slices[0].info.imagePose.p);
          pixelSpacingSlice = zsize/(nSlices-1);
       } 
       if (pixelSpacingSlice == 0) {
-         pixelSpacingSlice = slices[0].info.pixelSpacingSlice;
+         // assume slice thickness
+         pixelSpacingSlice = slices[0].info.sliceThickness;
       }
       
       return pixelSpacingSlice;
@@ -527,6 +528,9 @@ public class DicomImage implements VolumeImage {
    
    /**
     * Transform for converting integer voxel locations into spatial locations
+    * 
+    * Assumes regular fixed slice spacing
+    * 
     * @return the 3D affine transform for converting voxels to spatial locations
     */
    public AffineTransform3d getVoxelTransform() {

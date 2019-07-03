@@ -945,10 +945,12 @@ public class Matrix3x4 extends DenseMatrixBase
       scaledAdd (s, M1);
    }
 
+   @Override
    /**
     * {@inheritDoc}
     */
    public boolean epsilonEquals (Matrix3x4 M1, double tol) {
-      return epsilonEquals (M1, tol);
+      return super.epsilonEquals (M1, tol);
    }
+
 }

@@ -12,6 +12,7 @@ import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.util.Collection;
 
 import javax.swing.*;
 
@@ -98,6 +99,31 @@ public class EditorUtils {
             }
             ComponentUtils.saveComponent (
                file, comp, new NumberFormat ("%.8g"), ancestor);
+         }
+         catch (Exception ex) {
+            ex.printStackTrace(); 
+            showError (frame, "Error saving file: " + ex.getMessage());
+         }
+         main.setModelDirectory (chooser.getCurrentDirectory());
+      }
+   }
+
+   public static void saveComponentNames (
+      Collection<? extends ModelComponent> comps) {
+
+      Main main = Main.getMain();
+      JFrame frame = main.getMainFrame();
+      JFileChooser chooser = new JFileChooser();
+      chooser.setCurrentDirectory (main.getModelDirectory());
+      int retVal = chooser.showSaveDialog (frame);
+      if (retVal == JFileChooser.APPROVE_OPTION) {
+         try {
+            PrintWriter pw = new PrintWriter (
+               new BufferedWriter (new FileWriter (chooser.getSelectedFile())));
+            for (ModelComponent c : comps) {
+               pw.println (ComponentUtils.getPathName(c));
+            }
+            pw.close();
          }
          catch (Exception ex) {
             ex.printStackTrace(); 

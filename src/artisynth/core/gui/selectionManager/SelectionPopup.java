@@ -233,6 +233,8 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          menuItem.addActionListener (this);
          add (menuItem);
       }
+
+      addMenuItem ("Save component names ...");
    }
 
    public SelectionPopup (
@@ -671,7 +673,9 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       else if (command == "Duplicate") {
          duplicateSelection();
       }
-
+      else if (command.equals ("Save component names ...")) {
+         EditorUtils.saveComponentNames (selectedItems);
+      }
       else {
          // EditorBase editor = myEditActionMap.get (command);
          // if (editor != null) {

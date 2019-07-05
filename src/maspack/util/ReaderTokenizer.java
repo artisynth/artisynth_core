@@ -336,12 +336,12 @@ public class ReaderTokenizer {
       cbufIdx--;
    }
 
-   private void storeCharacter (int c) {
-      if (cbufIdx == cbuf.length) {
-         growCharacterStorage();
-      }
-      cbuf[cbufIdx++] = (char)c;
-   }
+//   private void storeCharacter (int c) {
+//      if (cbufIdx == cbuf.length) {
+//         growCharacterStorage();
+//      }
+//      cbuf[cbufIdx++] = (char)c;
+//   }
 
    private String getStoredCharacters() {
       return new String (cbuf, 0, cbufIdx);
@@ -816,15 +816,15 @@ public class ReaderTokenizer {
       }
    }
 
-   private void countNumericExtensions() {
-      int cnt = 0;
-      for (int ch = 0; ch < ctype.length; ch++) {
-         if ((ctype[ch] & C_NUMERIC_EXTENSION) != 0) {
-            cnt++;
-         }
-      }
-      myNumNumericExtensions = cnt;
-   }
+//   private void countNumericExtensions() {
+//      int cnt = 0;
+//      for (int ch = 0; ch < ctype.length; ch++) {
+//         if ((ctype[ch] & C_NUMERIC_EXTENSION) != 0) {
+//            cnt++;
+//         }
+//      }
+//      myNumNumericExtensions = cnt;
+//   }
 
    /**
     * Sets the specified character to be a numeric extension character. Other
@@ -1402,16 +1402,16 @@ public class ReaderTokenizer {
       return c;
    }
 
-   private static double[] smallExpTab =
-      { 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12,
-       1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22, 1e23, 1e24,
-       1e25, 1e26, 1e27, 1e28, 1e29, 1e30, 1e31, 1e32, 1e33, 1e34, 1e35, 1e36,
-       1e37, 1e38, 1e39, 1e40, 1e41, 1e42, 1e43, 1e44, 1e45, 1e46, 1e47, 1e48,
-       1e49, 1e50, 1e51, 1e52, 1e53, 1e54, 1e55, 1e56, 1e57, 1e58, 1e59, 1e60,
-       1e61, 1e62, 1e63, 1e64, 1e65, 1e66, 1e67, 1e68, 1e69, 1e70, 1e71, 1e72,
-       1e73, 1e74, 1e75, 1e76, 1e77, 1e78, 1e79, 1e80, 1e81, 1e82, 1e83, 1e84,
-       1e85, 1e86, 1e87, 1e88, 1e89, 1e90, 1e91, 1e92, 1e93, 1e94, 1e95, 1e96,
-       1e97, 1e98, 1e99, };
+//   private static double[] smallExpTab =
+//      { 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12,
+//       1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22, 1e23, 1e24,
+//       1e25, 1e26, 1e27, 1e28, 1e29, 1e30, 1e31, 1e32, 1e33, 1e34, 1e35, 1e36,
+//       1e37, 1e38, 1e39, 1e40, 1e41, 1e42, 1e43, 1e44, 1e45, 1e46, 1e47, 1e48,
+//       1e49, 1e50, 1e51, 1e52, 1e53, 1e54, 1e55, 1e56, 1e57, 1e58, 1e59, 1e60,
+//       1e61, 1e62, 1e63, 1e64, 1e65, 1e66, 1e67, 1e68, 1e69, 1e70, 1e71, 1e72,
+//       1e73, 1e74, 1e75, 1e76, 1e77, 1e78, 1e79, 1e80, 1e81, 1e82, 1e83, 1e84,
+//       1e85, 1e86, 1e87, 1e88, 1e89, 1e90, 1e91, 1e92, 1e93, 1e94, 1e95, 1e96,
+//       1e97, 1e98, 1e99, };
 
    private void parseNumericExtension() throws IOException {
       int c = getc();
@@ -1600,7 +1600,6 @@ public class ReaderTokenizer {
 
    private boolean parseNumber (int c) throws IOException {
       boolean negate = false;
-      int type;
 
       int signChar = 0;
       if (c == '-') {
@@ -1687,11 +1686,9 @@ public class ReaderTokenizer {
                ungetc (signChar);
             }
             c = getc();
-            type = (c < ctype.length ? ctype[c] : C_WORD);
             return false;
          }
          else {
-            int totalExp = -fracDigitCnt;
             boolean hasExponent = false;
             if (c == 'e' || c == 'E') {
                int expSignChar = 0;
@@ -1717,9 +1714,6 @@ public class ReaderTokenizer {
                   }
                   ungetc (echar);
                   trimCharacterStorage();
-               }
-               else {
-                  totalExp += (expSignChar == '-' ? -exp : exp);
                }
             }
             else {

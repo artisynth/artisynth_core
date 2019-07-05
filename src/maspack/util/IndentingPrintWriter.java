@@ -6,7 +6,12 @@
  */
 package maspack.util;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 
 public class IndentingPrintWriter extends PrintWriter {
    private int myIndent = 0;
@@ -363,7 +368,7 @@ public class IndentingPrintWriter extends PrintWriter {
       pw.println ("xxx xxx\nxxx xxx");
       pw.setIndentation (2);
       pw.println ("blah blah");
-      pw.flush();
+      pw.close();
    }
 
    /**

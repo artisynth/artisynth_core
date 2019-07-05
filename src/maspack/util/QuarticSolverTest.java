@@ -62,8 +62,6 @@ public class QuarticSolverTest {
       double r0, double r1, double r2, double r3,
       int numReal, double x0, double x1) {
       
-      double[] roots = new double[4];
-
       ArrayList<Double> checkList = new ArrayList<Double>();
 
       if (numReal >= 2) {
@@ -104,20 +102,6 @@ public class QuarticSolverTest {
       double maxerr = 0;
       int nroots;
       nroots = QuarticSolver.getRoots (roots, a, b, c, d, e, x0, x1);
-      
-      NumberFormat fmt = new NumberFormat ("%12.8f");
-
-      // System.out.print ("Got: ");
-      // for (int i=0; i<nroots; i++) {
-      //    System.out.print (fmt.format(roots[i]));
-      // }
-      // System.out.println ("");
-      // System.out.print ("Chk: ");
-      // for (int i=0; i<nroots; i++) {
-      //    System.out.print (fmt.format(check[i]));
-      // }
-      // System.out.println ("");
-      
 
       if (nroots != check.length) {
          ex = new TestException ("got "+nroots+", expecting "+check.length);
@@ -221,7 +205,7 @@ public class QuarticSolverTest {
 
             double[] coefs = myRandomCoefs[j];
 
-            int nr = QuarticSolver.getRoots (
+            QuarticSolver.getRoots (
                roots, coefs[0], coefs[1], coefs[2], coefs[3], coefs[4], min, max);
          }
       }
@@ -232,8 +216,6 @@ public class QuarticSolverTest {
    public void test() {
 
       int FOUR = 4;
-      int TWO = 2;
-      int ZERO = 0;
 
       dotest (1.1746205619679573, -6.060230980489098, -1.0343527114689612,
               -4.504641407043793, -0.8298363248116367, -1, 1,
@@ -257,20 +239,6 @@ public class QuarticSolverTest {
 
       roottest (0.00001, 0.00001, 0.00001, 0.0002, FOUR, -1, 1);
 
-      if (false) {
-
-
-      roottest (0, 1, 1, 1, FOUR, -1, 2);
-      roottest (0, 1, 1.00001, 1.0003, FOUR, -1, 2);
-      roottest (0, 1.00001, 1.00002, 1.0003, FOUR, -1, 2);
-      roottest (-1, -1, 1, 1, FOUR, -2, 2);
-      roottest (-1.00001, -1, 1, 1, FOUR, -2, 2);
-      roottest (-1, 0, 1, 1, FOUR, -2, 2);
-      roottest (-10000, 0, 1, 1, FOUR, -2, 2);
-      roottest (-1, -0.4, 1000, 2000, FOUR, -2, 2);
-
-      }
-      
       double min = -10;
       double max =  10;
       double err;
@@ -282,7 +250,6 @@ public class QuarticSolverTest {
          System.out.println ("max Bridson err=" + err);
       }
 
-      if (false) {
       if (verbose) {
          
          int nroots = 0;
@@ -303,9 +270,7 @@ public class QuarticSolverTest {
             " average per root: " +
             QuarticSolver.iterationCount/(double)nroots);
       }  
-      }
-      
-      
+
    }
 
 

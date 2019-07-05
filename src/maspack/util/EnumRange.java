@@ -11,7 +11,7 @@ import java.io.*;
 import java.util.*;
 import java.lang.reflect.Array;
 
-public class EnumRange<E extends Enum> extends RangeBase {
+public class EnumRange<E extends Enum<E>> extends RangeBase {
 
    private E[] myValidEnums;
    private Class<E> myClass;
@@ -22,7 +22,7 @@ public class EnumRange<E extends Enum> extends RangeBase {
    }
 
    private E[] copyArray (E[] array) {
-      E[] newArray = (E[])Array.newInstance (myClass, array.length);
+      E[] newArray = createArray (array.length);
       for (int i=0; i<array.length; i++) {
          newArray[i] = array[i];
       }
@@ -77,9 +77,15 @@ public class EnumRange<E extends Enum> extends RangeBase {
       }
    }
 
+   @SuppressWarnings("unchecked")
+   private E[] createArray (int size) {
+      return (E[])Array.newInstance(myClass, size);
+   }
+   
    /**
     * {@inheritDoc}
     */
+   @SuppressWarnings("unchecked")
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
       myValidEnums = null;
 
@@ -114,7 +120,7 @@ public class EnumRange<E extends Enum> extends RangeBase {
       }
       if (validList.size() > 0) {
          myValidEnums =
-            (E[])validList.toArray((E[])Array.newInstance(myClass, 0));
+            (E[])validList.toArray(createArray(0));
       }
 
       rtok.setCharSettings (".$", charSaves);

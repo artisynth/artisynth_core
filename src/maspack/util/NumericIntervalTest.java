@@ -6,8 +6,6 @@
  */
 package maspack.util;
 
-import maspack.util.*;
-
 class NumericIntervalTest {
    private static boolean C = true;
    private static boolean O = false;

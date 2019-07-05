@@ -11,6 +11,9 @@ package maspack.util;
  * Object references through arguments.
  */
 public class ObjectHolder implements java.io.Serializable {
+   
+   private static final long serialVersionUID = 1L;
+   
    /**
     * Value of the Object reference, set and examined by the application as
     * needed.

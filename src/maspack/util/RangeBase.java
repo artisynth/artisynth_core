@@ -8,7 +8,6 @@ package maspack.util;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.*;
 
 /**
  * A base class for creating Range objects.

@@ -6,9 +6,8 @@
  */
 package maspack.util;
 
-import java.io.*;
-import java.util.*;
-import maspack.util.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * A Range object which inspects a number to make sure it lies within a

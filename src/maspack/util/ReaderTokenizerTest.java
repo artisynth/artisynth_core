@@ -20,7 +20,6 @@ public class ReaderTokenizerTest {
       String sval;
       int ttype;
       int lineno;
-      double nval;
 
       Record (String str, int type, int line) {
          sval = str;
@@ -158,14 +157,14 @@ public class ReaderTokenizerTest {
                      //new Record ("", EOL, 5),
                     new Record ("", EOF, 5), };
 
-   private String testString4 = "777E 0xdeadL 1e-8msec 0.8H 0.8 ";
-
-   private Record[] testResults4 =
-      new Record[] { new Record ("777E", NUMBER, 1),
-                    new Record ("0xdeadL", NUMBER, 1),
-                    new Record ("1.0E-8msec", NUMBER, 1),
-                    new Record ("0.8H", NUMBER, 1),
-                    new Record ("0.8", NUMBER, 1) };
+//   private String testString4 = "777E 0xdeadL 1e-8msec 0.8H 0.8 ";
+//
+//   private Record[] testResults4 =
+//      new Record[] { new Record ("777E", NUMBER, 1),
+//                    new Record ("0xdeadL", NUMBER, 1),
+//                    new Record ("1.0E-8msec", NUMBER, 1),
+//                    new Record ("0.8H", NUMBER, 1),
+//                    new Record ("0.8", NUMBER, 1) };
 
    private String testString5 = "axialSprings/x-1y-1z-1";
 

@@ -19,7 +19,7 @@ import java.security.PrivilegedAction;
  * String port = AccessController.doPrivileged(action);
  * </code>
  */
-public class GetPropertyAction implements PrivilegedAction {
+public class GetPropertyAction implements PrivilegedAction<Object> {
    String name;
    String value = null;
 

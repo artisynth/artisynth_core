@@ -7,9 +7,7 @@
 package maspack.util;
 
 import java.io.IOException;
-
-import java.io.*;
-import java.util.*;
+import java.io.PrintWriter;
 
 public interface Scannable {
    /**

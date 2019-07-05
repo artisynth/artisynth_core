@@ -11,6 +11,8 @@ package maspack.util;
  * values through arguments.
  */
 public class FloatHolder implements java.io.Serializable {
+   
+   private static final long serialVersionUID = 1L;
    /**
     * Value of the float, set and examined by the application as needed.
     */

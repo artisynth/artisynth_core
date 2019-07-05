@@ -42,7 +42,7 @@ public class ListRemoveTest extends UnitTest {
       return list;
    }
 
-   private ArrayList randomCull (int num) {
+   private ArrayList<Integer> randomCull (int num) {
 
       ArrayList<Integer> list = new ArrayList<Integer>();
       for (int i=0; i<num; i++) {
@@ -57,7 +57,7 @@ public class ListRemoveTest extends UnitTest {
 
       ArrayList<Integer> savedList = new ArrayList<Integer>();
       savedList.addAll (list);
-      ListRemove remove = new ListRemove<Integer> (list);
+      ListRemove<Integer> remove = new ListRemove<Integer> (list);
       int k = 0;
       for (int i=0; i<list.size(); i++) {
          if (k < culledList.size() && culledList.get(k) == i) {

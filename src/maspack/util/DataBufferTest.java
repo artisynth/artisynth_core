@@ -6,8 +6,6 @@
  */
 package maspack.util;
 
-import maspack.matrix.*;
-
 public class DataBufferTest {
 
    public void storeUsingRaw (DataBuffer buf, double[] data) {

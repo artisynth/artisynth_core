@@ -6,7 +6,6 @@
  */
 package maspack.util;
 
-import java.awt.Color;
 import java.io.PrintStream;
 import java.util.Arrays;
 

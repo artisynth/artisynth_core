@@ -6,9 +6,6 @@
  */
 package maspack.util;
 
-import java.io.*;
-import maspack.util.FunctionTimer;
-
 public class Test {
 
    public static void main (String[] args) {

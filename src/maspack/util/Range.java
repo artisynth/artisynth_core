@@ -6,8 +6,6 @@
  */
 package maspack.util;
 
-import maspack.util.*;
-
 /**
  * An object representing the set of valid values that an object can have.
  */
@@ -25,7 +23,7 @@ public interface Range extends Scannable, Clonable {
    /**
     * Special object to indicate an illegal value,
     */
-   public static final Class IllegalValue = IllegalValue.class;
+   public static final Class<?> IllegalValue = IllegalValue.class;
    
    /**
     * Returns true if the specified object is valid for this Range,

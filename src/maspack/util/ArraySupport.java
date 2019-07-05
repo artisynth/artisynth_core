@@ -6,11 +6,7 @@
  */
 package maspack.util;
 
-import maspack.util.*;
-import java.awt.Color;
-
-import java.io.*;
-import java.util.*;
+import java.util.Collection;
 
 /**
  * A set of static methods to test for equality of arrays

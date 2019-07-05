@@ -204,7 +204,7 @@ public class TestSupport {
     * second collection
     * @return true if both collections are equal
     */
-   public static boolean equals (Collection c1, Collection c2) {
+   public static boolean equals (Collection<?> c1, Collection<?> c2) {
       if (c1 == null && c2 == null) {
          return true;
       }
@@ -213,8 +213,8 @@ public class TestSupport {
             return false;
          }
          else {
-            Iterator it1 = c1.iterator();
-            Iterator it2 = c2.iterator();
+            Iterator<?> it1 = c1.iterator();
+            Iterator<?> it2 = c2.iterator();
             while (it1.hasNext()) {
                Object obj1 = it1.next();
                Object obj2 = it2.next();

@@ -7,12 +7,12 @@
 package maspack.util;
 
 public class EnumHolder {
-   public Enum value;
+   public Enum<?> value;
 
    public EnumHolder() {
    }
 
-   public EnumHolder (Enum v) {
+   public EnumHolder (Enum<?> v) {
       value = v;
    }
 }

@@ -220,8 +220,6 @@ public class BinaryOutputStream extends FilterOutputStream {
       myWriteCount += 4;
    }
 
-   private byte writeBuffer[] = new byte[8];
-
    /**
     * Writes a long value to this stream. If {@link #isLittleEndian} returns
     * <code>true</code>, then the byte order is switched from

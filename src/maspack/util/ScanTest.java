@@ -6,8 +6,9 @@
  */
 package maspack.util;
 
-import java.io.*;
-import java.util.*;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
 
 /**
  * Provides a method to test the scan/write methods of a Scannable object

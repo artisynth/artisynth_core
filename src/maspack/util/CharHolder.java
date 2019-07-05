@@ -11,6 +11,9 @@ package maspack.util;
  * character values through arguments.
  */
 public class CharHolder implements java.io.Serializable {
+
+   private static final long serialVersionUID = 1L;
+   
    /**
     * Value of the character, set and examined by the application as needed.
     */

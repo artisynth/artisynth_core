@@ -209,7 +209,6 @@ public class ArraySort {
       int[] keys, int left, int right, int pivot) {
 
       int tmpk;
-      double tmpv;
 
       int pivotKey = keys[pivot];
       // swap pivot and right to move pivot to the end

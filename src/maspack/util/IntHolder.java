@@ -11,6 +11,9 @@ package maspack.util;
  * integer values through arguments.
  */
 public class IntHolder implements java.io.Serializable {
+   
+   private static final long serialVersionUID = 1L;
+   
    /**
     * Value of the integer, set and examined by the application as needed.
     */

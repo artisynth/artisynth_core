@@ -11,6 +11,9 @@ package maspack.util;
  * String references through arguments.
  */
 public class StringHolder implements java.io.Serializable {
+   
+   private static final long serialVersionUID = 1L;
+   
    /**
     * Value of the String reference, set and examined by the application as
     * needed.

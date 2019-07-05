@@ -48,8 +48,6 @@ public class CubicSolverTest {
       double r0, double r1, double r2,
       boolean oneRealRoot, double x0, double x1) {
       
-      double[] roots = new double[3];
-
       ArrayList<Double> checkList = new ArrayList<Double>();
 
       if (r0 >= x0 && r0 <= x1) {
@@ -253,7 +251,7 @@ public class CubicSolverTest {
                   roots, coefs[0], coefs[1], coefs[2], coefs[3], min, max);
             }
             else {
-               int nr = CubicSolver.getRoots (
+               CubicSolver.getRoots (
                   roots, coefs[0], coefs[1], coefs[2], coefs[3], min, max);
             }
          }

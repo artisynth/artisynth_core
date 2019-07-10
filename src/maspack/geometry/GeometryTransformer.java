@@ -869,9 +869,9 @@ public abstract class GeometryTransformer {
 
    /**
     * Return an array of points, one for each normal, that can be used to
-    * provide a reference position for transforming that normal. If reason a
-    * normal cannot be associated with a vertex, the corresponding point will
-    * be set to the origin.
+    * provide a reference position for transforming that normal. If for some
+    * reason a normal cannot be associated with a vertex, the corresponding
+    * point will be set to the origin.
     *
     * <p>Each reference point is computed as the weighted sum of the vertex
     * points associated with each normal.
@@ -893,7 +893,9 @@ public abstract class GeometryTransformer {
          }
       }
       for (int ni=0; ni<refs.length; ni++) {
-         refs[ni].scale (1.0/cnts[ni]);
+         if (cnts[ni] != 0) {
+            refs[ni].scale (1.0/cnts[ni]);
+         }
       }
       return refs;
    }

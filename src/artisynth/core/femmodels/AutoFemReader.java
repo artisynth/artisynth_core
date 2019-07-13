@@ -65,7 +65,7 @@ public class AutoFemReader implements FemReader {
       String elemFileName = null;
       switch(type) {
          case ABAQUS:
-            AbaqusReader.read(model, fileName, 1);
+            AbaqusReader.read(model, fileName, 1, /*options=*/0);
             break;
          case ANSYS:
             nodeFileName = fileNameNoExtension + ".node";

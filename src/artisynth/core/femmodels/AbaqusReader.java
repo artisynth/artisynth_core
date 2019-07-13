@@ -25,6 +25,11 @@ import maspack.util.ReaderTokenizer;
  */
 public class AbaqusReader implements FemReader {
 
+   /** 
+    * Tells the reader to number the nodes and elements starting from zero.
+    */   
+   public static int ZERO_BASED_NUMBERING = 0x2;
+
    File myFile = null;
    
    public AbaqusReader(File file) {
@@ -96,7 +101,7 @@ public class AbaqusReader implements FemReader {
    public static FemModel3d read (
       FemModel3d model, String fileName)
       throws IOException {
-      return read(model, new File(fileName), 1);
+      return read(model, new File(fileName), 1, /*options=*/0);
    }
    
    /**
@@ -110,13 +115,16 @@ public class AbaqusReader implements FemReader {
     * path name of the ABAQUS file
     * @param density
     * density of the model
+    * @param options
+    * option flags. Options include {@link #ZERO_BASED_NUMBERING}.
+    * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */
-   public static void read (
-      FemModel3d model, String fileName, double density)
+   public static FemModel3d read (
+      FemModel3d model, String fileName, double density, int options)
       throws IOException {
-      read(model, new File(fileName), density);
+      return read(model, new File(fileName), density, options);
    }
    
    /**
@@ -130,19 +138,22 @@ public class AbaqusReader implements FemReader {
     * the ABAQUS file
     * @param density
     * density of the model
+    * @param options
+    * option flags. Options include {@link #ZERO_BASED_NUMBERING}.
     * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */
    public static FemModel3d read (
-      FemModel3d model, File file, double density)
+      FemModel3d model, File file, double density, int options)
       throws IOException {
 
       Reader fileReader = null;
 
       try {
          fileReader = new BufferedReader(new FileReader (file));
-         model = read (model, fileReader, density, new File[] {file.getParentFile()});
+         model = read (model, fileReader, density, options,
+                       new File[] {file.getParentFile()});
       }
       catch (IOException e) {
          throw e;
@@ -166,16 +177,17 @@ public class AbaqusReader implements FemReader {
     * format. If <code>null</code>, a new model is created
     * @param density
     * density of the model
+    * @param options
+    * option flags. Options include {@link #ZERO_BASED_NUMBERING}.
     * @param includeDirs list of directories to search for include files
     * @return created model
     * @throws IOException
     * if this is a problem reading the file
     */
    public static FemModel3d read (
-      FemModel3d model, Reader fileReader, double density,
+      FemModel3d model, Reader fileReader, double density, int options,
       File[] includeDirs) throws IOException {
 
-      // boolean useOneBasedNum = (options & ONE_BASED_NUMBERING) != 0;
       if (model == null) {
          model = new FemModel3d();
       } else {
@@ -195,7 +207,7 @@ public class AbaqusReader implements FemReader {
       LinkedHashMap<Integer, ArrayList<Integer>> elemMap = 
          new LinkedHashMap<Integer, ArrayList<Integer>>();
       
-      readFile (fileReader, nodeMap, elemMap, includeDirs);
+      readFile (fileReader, nodeMap, elemMap, includeDirs, options);
       
       for (int nodeId : nodeMap.keySet ()) {
          Point3d pos = nodeMap.get (nodeId);
@@ -416,8 +428,12 @@ public class AbaqusReader implements FemReader {
    }
    
    
-   private static void readFile(Reader reader, LinkedHashMap<Integer, Point3d> nodeMap,
-      LinkedHashMap<Integer, ArrayList<Integer>> elemMap, File [] includeDirs) throws IOException {
+   private static void readFile (
+      Reader reader, LinkedHashMap<Integer, Point3d> nodeMap,
+      LinkedHashMap<Integer, ArrayList<Integer>> elemMap,
+      File [] includeDirs, int options) throws IOException {
+
+      boolean zeroBasedNumbering = ((options & ZERO_BASED_NUMBERING) != 0);
       
       ReaderTokenizer rtok =
          new ReaderTokenizer (new BufferedReader (reader));
@@ -475,7 +491,8 @@ public class AbaqusReader implements FemReader {
                   FileReader inputReader = null;
                   try {
                      inputReader = new FileReader(input);
-                     readFile(inputReader, nodeMap, elemMap, includeDirs);
+                     readFile (
+                        inputReader, nodeMap, elemMap, includeDirs, options);
                   } catch (IOException e) {
                      throw e;
                   } finally {
@@ -495,17 +512,27 @@ public class AbaqusReader implements FemReader {
             // action depends on mode
             switch (mySection) {
                case ELEM:
-                  elemId = rtok.scanInteger();
-                  
                   ArrayList<Integer> nodes = new ArrayList<Integer>();
-                  while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
-                     nodes.add((int)rtok.nval);
+                  if (zeroBasedNumbering) {
+                     elemId = rtok.scanInteger()-1;
+                     while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
+                        nodes.add((int)rtok.nval-1);
+                     }
+                  }
+                  else {
+                     elemId = rtok.scanInteger();
+                     while (rtok.nextToken() == ReaderTokenizer.TT_NUMBER) {
+                        nodes.add((int)rtok.nval);
+                     }
                   }
                   elemMap.put(elemId, nodes);
                   toEOL(rtok);
                   break;
                case NODE:
                   nodeId = rtok.scanInteger();
+                  if (zeroBasedNumbering) {
+                     nodeId--;
+                  }
                   double x = rtok.scanNumber();
                   double y = rtok.scanNumber();
                   double z = rtok.scanNumber();

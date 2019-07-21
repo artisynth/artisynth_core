@@ -212,13 +212,13 @@ public class MaterialBundle extends RenderableComponentBase
       return newMat;
    }
    
-   public void checkElementDesc (FemModel femMod, MaterialElementDesc desc) {
-      if (!ModelComponentBase.recursivelyContains (
-             femMod, desc.getElement())) {
-         throw new IllegalArgumentException (
-            "desc element not contained within FEM model");
-      }
-   }
+   // public void checkElementDesc (FemModel femMod, MaterialElementDesc desc) {
+   //    if (!ModelComponentBase.recursivelyContains (
+   //           femMod, desc.getElement())) {
+   //       throw new IllegalArgumentException (
+   //          "desc element not contained within FEM model");
+   //    }
+   // }
 
    public ArrayList<FemElement3dBase> getElements() {
       return myElements;

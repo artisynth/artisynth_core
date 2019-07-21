@@ -1097,7 +1097,7 @@ public class MechSystemSolver {
          myB.scaledAdd (h, myC);
       }
 
-      //mySolveMatrix.getSubMatrix (248*3, 248*3, S);
+      //mySolveMatrix.getSubMatrix (0, 0, S);
       //System.out.println ("SP=\n" + S.toString("%g"));
 
       addActiveMassMatrix (mySys, mySolveMatrix);

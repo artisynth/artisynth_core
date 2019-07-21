@@ -10,10 +10,11 @@ import java.util.*;
 import java.io.*;
 import maspack.util.*;
 import artisynth.core.util.*;
+import artisynth.core.modelbase.ScanWriteUtils.ClassInfo;
 import java.lang.reflect.*;
 
 public class ScannableList<C extends Scannable> // extends AbstractList<C>
-   implements Scannable, Collection<C>, ParameterizedClass<C> {
+   implements Scannable, Collection<C> {
 
    protected Class<C> myComponentType;
    protected C[] myArray;
@@ -302,7 +303,7 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
     * and returns <code>null</code>.
     */
    protected C newComponent (
-      ReaderTokenizer rtok, ClassInfo classInfo, boolean warnOnly) 
+      ReaderTokenizer rtok, ClassInfo<C> classInfo, boolean warnOnly) 
       throws IOException {
       C comp = null;
       try {
@@ -331,88 +332,27 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
       return comp;
    }
 
-   protected class ClassInfo {
-      Class<?> compClass;
-      Class<?> typeParam;
-
-      ClassInfo (Class<?> compClass, Class<?> typeParam) {
-         this.compClass = compClass;
-         this.typeParam = typeParam;
-      }
-
-      public String toString() {
-         String str = ClassAliases.getAliasOrName (compClass);
-         if (typeParam != null) {
-            str += "<" + ClassAliases.getAliasOrName (typeParam) + ">";
-         }
-         return str;
-      }
-   };
-   
    /**
     * Looks for and scans a class tag that either consists of a simple class
     * name or alias, such as <code>ModelComponent</code>, or a parameterized
-    * class name, such as <code>ModelList&lt;FemModel3d&gt;</code>, and returns
+    * class name, such as {@code ModelList<FemModel3d>}, and returns
     * either the associated class information, or <code>null</code> if no class
     * tag is found.
     */
-   protected ClassInfo scanClassTagIfPresent (ReaderTokenizer rtok)
+   protected ClassInfo<C> scanClassTagIfPresent (ReaderTokenizer rtok)
       throws IOException {
-      Class<?> compClass = null;
-      Class<?> typeParam = null;
       if (rtok.ttype == ReaderTokenizer.TT_WORD) {
-         String className = rtok.sval;
-         compClass = ClassAliases.resolveClass (className);
-         if (compClass == null) {
-            throw new IOException (
-               "Class name or alias '"+className+"' can't be resolved, "+rtok);
-         }
-         Class<?> baseClass = getTypeParameter();
-         if (!baseClass.isAssignableFrom (compClass)) {
-            throw new IOException (
-               "Class corresponding to '"+ className+
-               "' not a subclass of '"+baseClass.getName()+"', " + rtok);
-         }
-         if (rtok.nextToken() == '<') {
-            if (!ParameterizedClass.class.isAssignableFrom (compClass)) {
-               throw new IOException (
-                  "Class corresponding to '"+ className+
-                  "' not an instance of ParameterizedClass, "+rtok);
-            }
-            // class names can have '.' and '$'
-            int savedDot = rtok.getCharSetting ('.');
-            int savedDollar = rtok.getCharSetting ('$');
-            rtok.wordChar ('.');
-            rtok.wordChar ('$');
-            String paramName = rtok.scanWord();
-            rtok.setCharSetting ('.',savedDot);
-            rtok.setCharSetting ('$',savedDollar);
-            
-            typeParam = ClassAliases.resolveClass (paramName);
-            if (typeParam == null) {
-               throw new IOException (
-                  "Parameterized class name or alias '"+paramName+
-                  "' can't be resolved, " + rtok);
-            }
-            rtok.scanToken ('>');
-         }
-         else {
-            rtok.pushBack();
-         }
+         rtok.pushBack();
+         return ScanWriteUtils.scanClassInfo (rtok, getTypeParameter());
       }
       else {
          rtok.pushBack();
-      }
-      if (compClass != null) {
-         return new ClassInfo (compClass, typeParam);
-      }
-      else {
          return null;
       }
    }
 
    protected C scanComponent (
-      ReaderTokenizer rtok, ClassInfo classInfo, Object ref)
+      ReaderTokenizer rtok, ClassInfo<C> classInfo, Object ref)
       throws IOException {
       C comp = newComponent(rtok, classInfo, /*warnOnly=*/false);
       comp.scan (rtok, ref);
@@ -424,13 +364,13 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
       // scanHeader (rtok);
       rtok.scanToken ('[');
       while (rtok.nextToken() != ']') {
-         ClassInfo classInfo = scanClassTagIfPresent(rtok);
+         ClassInfo<C> classInfo = scanClassTagIfPresent(rtok);
          C comp = scanComponent (rtok, classInfo, ref);
          add (comp);
       }
    }
 
-   public C createComponent (ClassInfo classInfo)
+   public C createComponent (ClassInfo<C> classInfo)
       throws InstantiationException, IllegalAccessException,
       InvocationTargetException {
       Class<?> baseClass =

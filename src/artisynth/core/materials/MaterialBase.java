@@ -10,7 +10,8 @@ import maspack.properties.*;
 import maspack.util.*;
 
 public abstract class MaterialBase
-   implements CompositeProperty, PostScannable, ScalableUnits, Clonable {
+   implements CompositeProperty, PostScannable, ScalableUnits, Clonable,
+              HasMaterialState {
 
    protected PropertyInfo myPropInfo;
    protected HasProperties myPropHost;
@@ -132,16 +133,16 @@ public abstract class MaterialBase
       tokens.poll(); // eat END token      
    }
 
-   public static MaterialBase updateMaterial (
+   public static <T extends MaterialBase> T updateMaterial (
       HasProperties comp, String matName, 
-      MaterialBase oldMat, MaterialBase newMat) {
+      MaterialBase oldMat, T newMat) {
       
       if (comp.getAllPropertyInfo().get(matName) == null) {
          throw new IllegalArgumentException (
             "component does not contain a '"+matName+"' property");
       }
       if (newMat != null) {
-         newMat = newMat.clone();
+         newMat = (T)newMat.clone();
          PropertyUtils.updateCompositeProperty (comp, matName, null, newMat);
       }
       else if (oldMat != null) {
@@ -170,20 +171,18 @@ public abstract class MaterialBase
       // TODO material specific scaling in sub-classes
    }
 
-   public static boolean tangentSymmetryChanged (
+   protected static boolean tangentSymmetryChanged (
       MaterialBase mat1, MaterialBase mat2) {
       boolean sym1 = (mat1 == null || mat1.hasSymmetricTangent());
       boolean sym2 = (mat2 == null || mat2.hasSymmetricTangent());
       return sym1 != sym2;
    }
 
-   public static boolean symmetryOrStateChanged (
+   protected static boolean stateChanged (
       MaterialBase mat1, MaterialBase mat2) {
-      if (tangentSymmetryChanged (mat1, mat2)) {
-         return true;
-      }
-      boolean hasState1 = (mat1 != null && mat1 instanceof HasNumericState);
-      boolean hasState2 = (mat2 != null && mat2 instanceof HasNumericState);
+      
+      boolean hasState1 = (mat1 != null && mat1.hasState());
+      boolean hasState2 = (mat2 != null && mat2.hasState());
       if (hasState1 || hasState2) {
          if (hasState1 && hasState2) {
             // if both materials have state, then state will be assumed to be
@@ -198,17 +197,56 @@ public abstract class MaterialBase
       else {
          return false;
       }
-   }      
+   }
+
+   public static MaterialChangeEvent symmetryOrStateChanged (
+      String name, MaterialBase mat1, MaterialBase mat2) {
+      
+      boolean stateChanged = stateChanged (mat1, mat2);
+      boolean tangentSymmetryChanged = tangentSymmetryChanged (mat1, mat2);
+      
+      if (stateChanged || tangentSymmetryChanged) {
+         return new MaterialChangeEvent (
+            null, name, stateChanged, tangentSymmetryChanged);
+      }
+      else {
+         return null;
+      }
+   }
+
+   protected void notifyHostOfPropertyChange (
+      String name, MaterialBase mat1, MaterialBase mat2) {
+      
+      if (myPropHost instanceof PropertyChangeListener) {
+         boolean stateChanged = stateChanged (mat1, mat2);
+         boolean tangentSymmetryChanged = tangentSymmetryChanged (mat1, mat2);
+         MaterialChangeEvent e = 
+            new MaterialChangeEvent (
+               this, name, stateChanged, tangentSymmetryChanged);
+         ((PropertyChangeListener)myPropHost).propertyChanged (e);
+      }
+   }
 
    protected void notifyHostOfPropertyChange (String name) {
+
       if (myPropHost instanceof PropertyChangeListener) {
          ((PropertyChangeListener)myPropHost).propertyChanged (
             new PropertyChangeEvent (this, name));
       }
    }
 
-   
+   public boolean hasState() {
+      return false;
+   }
 
+   public MaterialStateObject createStateObject() {
+      return null;
+   }
+
+   public void advanceState (MaterialStateObject state, double t0, double t1) {
+   }
 }
    
    
+
+

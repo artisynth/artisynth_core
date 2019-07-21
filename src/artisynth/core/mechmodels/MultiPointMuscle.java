@@ -292,14 +292,6 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
     * {@inheritDoc}
     */
    @Override
-   public void addExcitationSource (ExcitationComponent ex) {
-      addExcitationSource (ex, 1);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
    public void addExcitationSource (ExcitationComponent ex, double gain) {
       if (myExcitationSources == null) {
          myExcitationSources = new ExcitationSourceList();
@@ -676,11 +668,6 @@ public class MultiPointMuscle extends MultiPointSpring implements ExcitationComp
       super.updateReferences (undo, undoInfo);
       myExcitationSources = ExcitationUtils.updateReferences (
          this, myExcitationSources, undo, undoInfo);
-   }
-
-
-   public double getDefaultActivationWeight () {
-      return 1.0/Muscle.getMaxForce(this);
    }
 
    /**

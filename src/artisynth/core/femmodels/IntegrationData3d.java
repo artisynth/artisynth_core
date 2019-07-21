@@ -9,6 +9,9 @@ package artisynth.core.femmodels;
 import maspack.matrix.*;
 import maspack.util.DataBuffer;
 import artisynth.core.materials.ViscoelasticState;
+import artisynth.core.materials.MaterialStateObject;
+import artisynth.core.femmodels.FemNode3d.CoordType;
+import artisynth.core.materials.FemMaterial;
 
 /**
  * This class stores element-specific information related to each integration
@@ -19,15 +22,15 @@ public class IntegrationData3d {
    protected Matrix3d myInvJ0;
    protected double myDetJ0;
    double myDv; // current partial volume at the quadrature point
-   double myScaling; // scales stiffness at the quadrature point
    // optional coordinate frame information (for anisotropic materials) 
    protected Matrix3d myFrame = null;
    protected ViscoelasticState myViscoState;
+   protected MaterialStateObject myStateObject;
+   protected MaterialStateObject[] myStateObjects;
    
    private void init() {
       myInvJ0 = new Matrix3d(Matrix3d.IDENTITY);
       myDetJ0 = 1;
-      myScaling = 1;
    }
 
    public ViscoelasticState getViscoState() {
@@ -36,6 +39,37 @@ public class IntegrationData3d {
    
    public void setViscoState (ViscoelasticState state) {
       myViscoState = state;
+   }
+   
+   public MaterialStateObject getStateObject() {
+      return myStateObject;
+   }
+
+   public MaterialStateObject getOrCreateStateObject (FemMaterial mat) {
+      if (myStateObject == null) {
+         myStateObject = mat.createStateObject();
+      }
+      return myStateObject;
+   }
+   
+   public void setStateObject (MaterialStateObject stateObject) {
+      myStateObject = stateObject;
+   }
+   
+   public void clearStateObject () {
+      myStateObject = null;
+   }
+   
+   public void clearStateObjects () {
+      myStateObjects = null;
+   }
+   
+   public void setStateObjects (MaterialStateObject[] stateObjs) {
+      myStateObjects = stateObjs;
+   }
+   
+   public MaterialStateObject[] getStateObjects () {
+      return myStateObjects;
    }
    
    public IntegrationData3d () {
@@ -61,14 +95,6 @@ public class IntegrationData3d {
    
    public void setDv(double dv) {
       myDv = dv;
-   }
-
-   public double getScaling() {
-      return myScaling;
-   }
-   
-   public void setScaling (double scaling) {
-      myScaling = scaling;
    }
 
    public Matrix3d getFrame() {
@@ -132,18 +158,6 @@ public class IntegrationData3d {
       return 1;
    }
     
-   /** 
-    * Gets the number of doubles required to store state data.
-    */
-   public int getStateSize() {
-      if (myViscoState != null) {
-         return myViscoState.getStateSize();
-      }
-      else {
-         return 0;
-      }
-   }
-
    /** 
     * Stores the information corresponding to zero state
     */

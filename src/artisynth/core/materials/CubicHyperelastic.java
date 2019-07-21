@@ -1,16 +1,16 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-public class CubicHyperelastic extends IncompressibleMaterial {
-   protected static PropertyList myProps =
-      new PropertyList (CubicHyperelastic.class, IncompressibleMaterial.class);
+public class CubicHyperelastic extends IncompressibleMaterialBase {
+   protected static FunctionPropertyList myProps =
+      new FunctionPropertyList (CubicHyperelastic.class,IncompressibleMaterialBase.class);
    
    protected static double DEFAULT_G10 = 150000;
    protected static double DEFAULT_G20 = 0;
@@ -19,24 +19,26 @@ public class CubicHyperelastic extends IncompressibleMaterial {
    private double myG10 = DEFAULT_G10;
    private double myG20 = DEFAULT_G20;
    private double myG30 = DEFAULT_G30;
-
    PropertyMode myG10Mode = PropertyMode.Inherited;
    PropertyMode myG30Mode = PropertyMode.Inherited;
    PropertyMode myG20Mode = PropertyMode.Inherited;
+   ScalarFieldPointFunction myG10Function = null;
+   ScalarFieldPointFunction myG30Function = null;
+   ScalarFieldPointFunction myG20Function = null;
 
    private SymmetricMatrix3d myB;
    private SymmetricMatrix3d myTmp;
 
    static {
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "G10:Inherited", "G10 parameter", DEFAULT_G10);
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "G20:Inherited", "G20 parameter", DEFAULT_G20);
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
 	 "G30:Inherited", "G30 parameter", DEFAULT_G30);
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -61,6 +63,10 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       notifyHostOfPropertyChange();
    }
 
+   // begin G accessors
+
+   // G10
+
    public double getG10() {
       return myG10;
    }
@@ -74,6 +80,35 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       return myG10Mode;
    }
 
+   public double getG10 (FieldPoint dp) {
+      if (myG10Function == null) {
+         return getG10();
+      }
+      else {
+         return myG10Function.eval (dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getG10Function() {
+      return myG10Function;
+   }
+      
+   public void setG10Function (ScalarFieldPointFunction func) {
+      myG10Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setG10Field (
+      ScalarField field, boolean useRestPos) {
+      myG10Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getG10Field () {
+      return FieldUtils.getFieldFromFunction (myG10Function);
+   }
+
+   // G20
 
    public synchronized void setG20 (double nu) {
       myG20 = nu;
@@ -95,6 +130,35 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       return myG20Mode;
    }
 
+   public double getG20 (FieldPoint dp) {
+      if (myG20Function == null) {
+         return getG20();
+      }
+      else {
+         return myG20Function.eval (dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getG20Function() {
+      return myG20Function;
+   }
+      
+   public void setG20Function (ScalarFieldPointFunction func) {
+      myG20Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setG20Field (
+      ScalarField field, boolean useRestPos) {
+      myG20Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getG20Field () {
+      return FieldUtils.getFieldFromFunction (myG20Function);
+   }
+
+   // G30
    
    public synchronized void setG30 (double nu) {
       myG30 = nu;
@@ -116,6 +180,35 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       return myG30Mode;
    }
 
+   public double getG30 (FieldPoint dp) {
+      if (myG30Function == null) {
+         return getG30();
+      }
+      else {
+         return myG30Function.eval (dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getG30Function() {
+      return myG30Function;
+   }
+      
+   public void setG30Function (ScalarFieldPointFunction func) {
+      myG30Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setG30Field (
+      ScalarField field, boolean useRestPos) {
+      myG30Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getG30Field () {
+      return FieldUtils.getFieldFromFunction (myG30Function);
+   }
+
+   // end G accessors
 
    public double computeDeviatoricEnergy (Matrix3dBase Cdev) {
       double I1 = Cdev.trace();
@@ -126,12 +219,11 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       return W;
    }
       
-   public void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
+   public void computeDevStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation, MaterialStateObject state) { 
 
       double J = def.getDetF();
-      double avgp = def.getAveragePressure();
 
       // calculate deviatoric left Cauchy-Green tensor
       computeDevLeftCauchyGreen(myB,def);
@@ -144,7 +236,11 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       // W = G10*(I1-3) + G20*(I1-3)^2 + G30*(I1-3)^3
       //
       // Wi = dW/dIi
-      double W1 = myG10 + myG20*2*(I1-3) + myG30*3*(I1-3)*(I1-3);
+      double G10 = getG10(def);
+      double G20 = getG20(def);
+      double G30 = getG30(def);
+      
+      double W1 = G10 + G20*2*(I1-3) + G30*3*(I1-3)*(I1-3);
       // ---
 
       // calculate T = F*dW/dC*Ft
@@ -160,71 +256,46 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       sigma.deviator();
       sigma.scale (2.0/J);
 
-      sigma.m00 += avgp;
-      sigma.m11 += avgp;
-      sigma.m22 += avgp;
-   }
+      if (D != null) {
+         double Ji = 1.0/J;
 
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
-      Matrix3d Q, FemMaterial baseMat) {
+         // Wij = d2W/dIidIj
+         double W11 = 2*G20 + + G30*6*(I1-3);
 
-      double J = def.getDetF();
-      double Ji = 1.0/J;
+         // parameters as defined in John Lloyd's "FEM notes" paper:
 
-      // calculate deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);
+         double w2 = W11;
 
-      // Invariants of B (= invariants of C)
-      double I1 = myB.trace();
-
-      // --- TODO: put strain energy derivatives here ---
-      //
-      // W = G10*(I1-3) + G20*(I1-3)^2 + G30*(I1-3)^3
-      //
-      // Wi = dW/dIi
-      // Wij = d2W/dIidIj
-      double W1;
-      double W11;
-
-      W1 = myG10 + myG20*2*(I1-3) + myG30*3*(I1-3)*(I1-3);
-      W11 = 2*myG20 + + myG30*6*(I1-3);
-
-      // parameters as defined in John Lloyd's "FEM notes" paper:
-
-      double w2 = W11;
-
-      double wc1 = (w2)*I1;
+         double wc1 = (w2)*I1;
       
-      double wcc = wc1*I1;
-      double w0 = W1*I1;
+         double wcc = wc1*I1;
+         double w0 = W1*I1;
 
-      // ---
+         // ---
 
-      // calculate dWdC:C
-      // double WC = W1*I1;;
+         // calculate dWdC:C
+         // double WC = W1*I1;;
 
-      // mean pressure
-      double p = def.getAveragePressure();      
+         // mean pressure
+         double p = def.getAveragePressure();      
 
+         D.setZero();
 
-      D.setZero();
+         TensorUtils.addScaledIdentityProduct (D, 4.0/9.0*Ji*(wcc-w0));
+         TensorUtils.addScaledIdentity (D, 4.0/3.0*Ji*w0);
 
-      TensorUtils.addScaledIdentityProduct (D, p + 4.0/9.0*Ji*(wcc-w0));
-      TensorUtils.addScaledIdentity (D, -2*p + 4.0/3.0*Ji*w0);
+         myTmp.deviator (sigma); // need to call this???
+         TensorUtils.addSymmetricTensorProduct (
+            D, -2.0/3.0, myTmp, SymmetricMatrix3d.IDENTITY);
 
-      myTmp.deviator (stress);
-      TensorUtils.addSymmetricTensorProduct (
-         D, -2.0/3.0, myTmp, SymmetricMatrix3d.IDENTITY);
+         TensorUtils.addTensorProduct (D, w2*4.0*Ji, myB);
 
-      TensorUtils.addTensorProduct (D, w2*4.0*Ji, myB);
+         myTmp.scale (wc1, myB);  
+         TensorUtils.addSymmetricTensorProduct (
+            D, -4.0/3.0*Ji,myTmp,SymmetricMatrix3d.IDENTITY);
 
-      myTmp.scale (wc1, myB);  
-      TensorUtils.addSymmetricTensorProduct (
-         D, -4.0/3.0*Ji,myTmp,SymmetricMatrix3d.IDENTITY);
-
-      D.setLowerToUpper();
-      
+         D.setLowerToUpper();
+      }
    }
 
    public boolean equals (FemMaterial mat) {
@@ -264,15 +335,11 @@ public class CubicHyperelastic extends IncompressibleMaterial {
       mat.setG30 (3.5);
       mat.setG20 (1.9);
       mat.setBulkModulus (0.0);
-      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0, null);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));
 
-   }
-
-   public boolean isIncompressible() {
-      return true;
    }
 
    @Override

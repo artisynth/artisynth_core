@@ -2180,7 +2180,7 @@ at every render step).
 \item[colorMapInterpolation]\mbox{}
 
 An enum of type
-\javaclass[maspack.render]{Renderer.ColorInterpolation} that explicity
+\javaclass[maspack.render]{Renderer\$ColorInterpolation} that explicity
 specifies how colors in any rendered color map should be interpolated.
 {\tt RGB} and {\tt HSV} (the default) specify interpolation in RGB and
 HSV space, respectively. HSV interpolation is the default as it is
@@ -2419,7 +2419,7 @@ A distance grid maintains its own local coordinate system, which is
 related to world coordinates by a {\it local-to-world} transform that
 can be queried and set via the component methods
 \javamethod*[\mech.DistanceGridComp]{setLocalToWorld()} and
-\javamethod*[\mech.DistanceGridComp]{getLocalToWorld()}.
+\javamethod*[artisynth.core.modelbase.GridCompBase]{getLocalToWorld()}.
 For grids associated with a rigid body, the local coordinate system is
 synchronized with the rigid body's coordinate system (which
 is queried and set via

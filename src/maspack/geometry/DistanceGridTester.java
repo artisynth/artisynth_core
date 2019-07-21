@@ -144,7 +144,7 @@ public class DistanceGridTester {
     * vertices are blue, outside are red.
     */
    private void visualInsideOutsideTest() {
-      double phi[] = g.getDistances ();
+      double phi[] = g.getVertexDistances ();
       for (int i = 0; i < phi.length; i++) {
          if (phi[i] < 0) {
             g.setVertexColor (i, Color.BLUE);
@@ -179,7 +179,7 @@ public class DistanceGridTester {
     * Warning: this method only works for rectangular prisms.
     */
    private void checkSignOfPhi() {
-      double myPhi[] = g.getDistances ();
+      double myPhi[] = g.getVertexDistances ();
       Vector3d min = new Vector3d();
       Vector3d max = new Vector3d();
       m.getLocalBounds (min, max);
@@ -221,7 +221,7 @@ public class DistanceGridTester {
     */
    private void normalCalcTest() {
       Vector3d normal = new Vector3d();
-      double myPhi[] = g.getDistances ();
+      double myPhi[] = g.getVertexDistances ();
       double epsilon = 1e-8;
       Point3d closestPoint = new Point3d();
       Point3d meshpnt = new Point3d();
@@ -291,7 +291,7 @@ public class DistanceGridTester {
     */
    private void bruteForcePhiTest () {
       
-      double myPhi[] = g.getDistances ();
+      double myPhi[] = g.getVertexDistances ();
       
       Point3d closestPoint = new Point3d();
       Point3d myPoint = new Point3d ();
@@ -384,7 +384,7 @@ public class DistanceGridTester {
     * 
     */
    private void checkPhiIsSet () {
-      double myPhi[] = g.getDistances ();
+      double myPhi[] = g.getVertexDistances ();
       
       Vector3i resolution = g.getResolution();
       Vector3d cellSize = g.getCellWidths ();
@@ -413,7 +413,7 @@ public class DistanceGridTester {
     **/
    private void colourTest () {
       
-      double myPhi[] = g.getDistances ();
+      double myPhi[] = g.getVertexDistances ();
       Vector3i resolution = g.getResolution();
       Vector3d cellSize = g.getCellWidths ();
       

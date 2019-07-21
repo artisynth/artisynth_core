@@ -207,7 +207,7 @@ public class ForceMinimizationTerm extends LeastSquaresTermBase {
    
    /**
     * Adds a force component whose force should be minimized
-    * @param force component 
+    * @param fcomp force component 
     * @param weight used in the minimization
     * @param staticOnly {@code true} if only static forces should be minimized
     */
@@ -220,7 +220,7 @@ public class ForceMinimizationTerm extends LeastSquaresTermBase {
    
    /**
     * Adds a force component whose force should be minimized
-    * @param force component 
+    * @param fcomp force component 
     * @param weight used in the minimization
     */
    public void addForce (MinimizableForceComponent fcomp, double weight) {
@@ -229,7 +229,7 @@ public class ForceMinimizationTerm extends LeastSquaresTermBase {
    
    /**
     * Adds a force component whose force should be minimized
-    * @param force component
+    * @param fcomp force component
     */
    public void addForce (MinimizableForceComponent fcomp) {
       addForce (fcomp, /*weight=*/1.0, /*staticOnly=*/true);
@@ -237,7 +237,7 @@ public class ForceMinimizationTerm extends LeastSquaresTermBase {
    
    /**
     * Adds a force component whose force should be minimized
-    * @param force component 
+    * @param fcomp force component 
     * @param weights used in the minimization
     * @param staticOnly {@code true} if only static forces should be minimized
     */
@@ -423,10 +423,11 @@ public class ForceMinimizationTerm extends LeastSquaresTermBase {
    }
 
    /**
-    * Sets weights for forces.  This allows you to weight more heavily the
-    * forces you deem to be more important.
-    * 
-    * @param wgts weights vector
+    * Sets weights for a force component.  This allows you to weight more
+    * heavily the forces you deem to be more important.
+    *
+    * @param idx force component index
+    * @param weights vector of weights
     */
    public void setTargetWeights(int idx, VectorNd weights) {
       if (idx < 0 || idx >= myForceComps.size()) {
@@ -439,10 +440,11 @@ public class ForceMinimizationTerm extends LeastSquaresTermBase {
    }
    
    /**
-    * Sets weights for forces.  This allows you to weight more heavily the
-    * forces you deem to be more important.
-    * 
-    * @param wgts weights vector
+    * Sets overall weight for a force component.  This allows you to weight
+    * more heavily the forces you deem to be more important.
+    *
+    * @param idx force component index
+    * @param weight weight factor
     */
    public void setTargetWeights(int idx, double weight) {
       if (idx < 0 || idx >= myForceComps.size()) {

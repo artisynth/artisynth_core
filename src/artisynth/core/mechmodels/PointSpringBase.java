@@ -20,12 +20,14 @@ import maspack.properties.PropertyList;
 import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
+import maspack.util.DataBuffer;
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.materials.AxialMuscleMaterial;
 import artisynth.core.materials.LinearAxialMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
@@ -35,7 +37,7 @@ import artisynth.core.util.ScalableUnits;
  * Base class for springs based on two or more points
  */
 public abstract class PointSpringBase extends Spring
-   implements RenderableComponent, ScalableUnits {
+   implements RenderableComponent, ScalableUnits, HasNumericState {
 
    public static boolean myIgnoreCoriolisInJacobian = true;
    public static boolean useMaterial = true;
@@ -44,6 +46,9 @@ public abstract class PointSpringBase extends Spring
       new PropertyList (PointSpringBase.class, Spring.class);
 
    protected AxialMaterial myMaterial;
+   // if myMaterial implements HasNumericState, myStateMat is set to its value
+   // as a cached reference for use in implementing HasNumericState
+   protected HasNumericState myStateMat;
    
    private static double DEFAULT_REST_LENGTH = 0;
    
@@ -88,14 +93,25 @@ public abstract class PointSpringBase extends Spring
       setMaterial (new LinearAxialMaterial (k, d));
    }
    
-   public void setMaterial (AxialMaterial mat) {
-      AxialMaterial old = myMaterial;
-      myMaterial = (AxialMaterial)MaterialBase.updateMaterial (
+   public <T extends AxialMaterial> T setMaterial (T mat) {
+      AxialMaterial oldMat = myMaterial;
+      T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
-      // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      myMaterial = newMat;
+      if (mat instanceof HasNumericState) {
+         // use getMaterial() since mat may have been copied
+         myStateMat = (HasNumericState)getMaterial();
       }
+      else {
+         myStateMat = null;
+      }     
+      // issue change event in case solve matrix symmetry or state has changed:
+      MaterialChangeEvent mce = 
+         MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
+      if (mce != null) {
+         notifyParentOfChange (mce);
+      }
+      return newMat;
    }
 
    public AxialMaterial getEffectiveMaterial() {
@@ -129,41 +145,6 @@ public abstract class PointSpringBase extends Spring
       myRestLength = l;
    }
 
-//   public double getStiffness() {
-//      if (myMaterial instanceof LinearAxialMaterial) {
-//         return ((LinearAxialMaterial)myMaterial).getStiffness();
-//      }
-//      else {
-//         return 0;
-//      }
-//   }
-//
-//   public void setStiffness (double k) {
-//      if (myMaterial instanceof LinearAxialMaterial) {
-//         ((LinearAxialMaterial)myMaterial).setStiffness(k);
-//      }
-//      else {
-//         setMaterial (new LinearAxialMaterial (k, 0));
-//      }
-//   }
-
-//   public double getDamping() {
-//      if (myMaterial instanceof LinearAxialMaterial) {
-//         return ((LinearAxialMaterial)myMaterial).getDamping();
-//      }
-//      else {
-//         return 0;
-//      }
-//   }
-//
-//   public void setDamping (double d) {
-//      if (myMaterial instanceof LinearAxialMaterial) {
-//         ((LinearAxialMaterial)myMaterial).setDamping(d);
-//      }
-//      else {
-//         setMaterial (new LinearAxialMaterial (0, d));
-//      }
-//   }
    /* ======== Renderable implementation ======= */
 
    protected RenderProps myRenderProps = createRenderProps();
@@ -662,6 +643,32 @@ public abstract class PointSpringBase extends Spring
       }
    }   
 
+   /* --- Begin HasNumericState interface --- */
+
+   public void advanceState (double t0, double t1) {
+      if (myStateMat != null) {
+         myStateMat.advanceState (t0, t1);
+      }
+   }
+   
+   public void getState (DataBuffer data) {
+      if (myStateMat != null) {
+         myStateMat.getState (data);
+      }
+   }
+
+   public void setState (DataBuffer data) {
+      if (myStateMat != null) {
+         myStateMat.setState (data);
+      }
+   }
+
+   public boolean hasState() {
+      return (myStateMat != null);
+   }
+   
+   /* --- End HasNumericState interface --- */
+  
    public ModelComponent copy (
       int flags, Map<ModelComponent,ModelComponent> copyMap) {
       PointSpringBase comp = (PointSpringBase)super.copy (flags, copyMap);

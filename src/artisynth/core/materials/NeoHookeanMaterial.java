@@ -1,30 +1,23 @@
 package artisynth.core.materials;
 
-import java.io.PrintWriter;
-import java.io.IOException;
-import java.util.Deque;
 import artisynth.core.modelbase.*;
-import artisynth.core.util.ScanToken;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
-import maspack.util.ReaderTokenizer;
-import maspack.util.NumberFormat;
 
 public class NeoHookeanMaterial extends FemMaterial {
 
-   public static PropertyList myProps =
-      new PropertyList (NeoHookeanMaterial.class, FemMaterial.class);
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (NeoHookeanMaterial.class, FemMaterial.class);
 
    protected static double DEFAULT_NU = 0.33;
    protected static double DEFAULT_E = 500000;
 
    private double myNu = DEFAULT_NU;
    private double myE = DEFAULT_E;
-   private FieldPointFunction<Double> myEFxn;
+   private ScalarFieldPointFunction myEFunc;
 
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
@@ -33,13 +26,13 @@ public class NeoHookeanMaterial extends FemMaterial {
    //private SymmetricMatrix3d myB2;
 
    static {
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "YoungsModulus:Inherited", "Youngs modulus", DEFAULT_E);
       myProps.addInheritable (
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU, "[-1,0.5]");
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -95,36 +88,31 @@ public class NeoHookeanMaterial extends FemMaterial {
    }
 
    public double getYoungsModulus (FieldPoint dp) {
-      if (myEFxn == null) {
-         return getYoungsModulus();
-      }
-      else {
-         return myEFxn.eval (dp);
-      }
+      return (myEFunc == null ? getYoungsModulus() : myEFunc.eval (dp));
    }
 
-   public FieldPointFunction<Double> getYoungsModulusFunction() {
-      return myEFxn;
+   public ScalarFieldPointFunction getYoungsModulusFunction() {
+      return myEFunc;
    }
       
-   public void setYoungsModulusFunction (FieldPointFunction<Double> func) {
-      myEFxn = func;
+   public void setYoungsModulusFunction (ScalarFieldPointFunction func) {
+      myEFunc = func;
       notifyHostOfPropertyChange();
    }
    
    public void setYoungsModulusField (
-      Field<Double> field, boolean useRestPos) {
-      myEFxn = FieldUtils.createFieldFunction (field, useRestPos);
+      ScalarField field, boolean useRestPos) {
+      myEFunc = FieldUtils.setFunctionFromField (field, useRestPos);
       notifyHostOfPropertyChange();
    }
 
-   public Field<Double> getYoungsModulusField () {
-      return FieldUtils.getFieldFromFunction (myEFxn);
+   public ScalarField getYoungsModulusField () {
+      return FieldUtils.getFieldFromFunction (myEFunc);
    }
 
-   public void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation, MaterialStateObject state) {
 
       double J = def.getDetF();
 
@@ -133,7 +121,7 @@ public class NeoHookeanMaterial extends FemMaterial {
       double G = E/(2*(1+myNu)); // bulk modulus
       double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
       double mu = G;
-
+      
       computeLeftCauchyGreen (myB,def);
 
       sigma.scale (mu/J, myB);
@@ -141,26 +129,13 @@ public class NeoHookeanMaterial extends FemMaterial {
       sigma.m00 += diagTerm;
       sigma.m11 += diagTerm;
       sigma.m22 += diagTerm;
-   }
 
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
-      Matrix3d Q, FemMaterial baseMat) {
-
-      double J = def.getDetF();
-
-      computeLeftCauchyGreen (myB,def);
-
-      // express constitutive law in terms of Lama parameters
-      double E = getYoungsModulus(def);
-      double G = E/(2*(1+myNu)); // bulk modulus
-      double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
-      double mu = G;
-
-      D.setZero();
-      TensorUtils.addScaledIdentityProduct (D, lam/J);
-      TensorUtils.addScaledIdentity (D, 2*(mu-lam*Math.log(J))/J);
-      D.setLowerToUpper();
+      if (D != null) {
+         D.setZero();
+         TensorUtils.addScaledIdentityProduct (D, lam/J);
+         TensorUtils.addScaledIdentity (D, 2*(mu-lam*Math.log(J))/J);
+         D.setLowerToUpper();
+      }
    }
 
    public boolean equals (FemMaterial mat) {
@@ -183,26 +158,7 @@ public class NeoHookeanMaterial extends FemMaterial {
       //mat.myB2 = new SymmetricMatrix3d();
       return mat;
    }
-
-   public static void main (String[] args) {
-      NeoHookeanMaterial mat = new NeoHookeanMaterial();
-
-      Matrix3d Q = new Matrix3d();
-
-      DeformedPointBase dpnt = new DeformedPointBase();
-      dpnt.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
-
-      Matrix6d D = new Matrix6d();
-      SymmetricMatrix3d sig = new SymmetricMatrix3d();
-
-      mat.setYoungsModulus (10);      
-      mat.computeStressAndTangent (sig, D, dpnt, Q, 0.0);
-
-      System.out.println ("sig=\n" + sig.toString ("%12.6f"));
-      System.out.println ("D=\n" + D.toString ("%12.6f"));
-
-   }
-
+   
    @Override
    public void scaleDistance (double s) {
       if (s != 1) {
@@ -219,35 +175,22 @@ public class NeoHookeanMaterial extends FemMaterial {
       }
    }
 
-   public void writeItems (
-      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
-      throws IOException {
-      super.writeItems (pw, fmt, ancestor);
-      FieldUtils.writeFunctionInfo (
-         pw, "YoungsModulusFunc", myEFxn, fmt, ancestor);
+   public static void main (String[] args) {
+      NeoHookeanMaterial mat = new NeoHookeanMaterial();
+
+      Matrix3d Q = new Matrix3d();
+
+      DeformedPointBase dpnt = new DeformedPointBase();
+      dpnt.setF (new Matrix3d (1, 3, 5, 2, 1, 4, 6, 1, 2));
+
+      Matrix6d D = new Matrix6d();
+      SymmetricMatrix3d sig = new SymmetricMatrix3d();
+
+      mat.setYoungsModulus (10);      
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 0.0, null);
+
+      System.out.println ("sig=\n" + sig.toString ("%12.6f"));
+      System.out.println ("D=\n" + D.toString ("%12.6f"));
    }
-
-   protected boolean scanItem (
-      ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
-      rtok.nextToken();
-      if (ScanWriteUtils.scanAttributeName (rtok, "YoungsModulusFunc")) {
-         myEFxn = FieldUtils.scanFunctionInfo (
-            rtok, "YoungsModulusFunc", tokens);
-         return true;
-      }
-      rtok.pushBack();
-      return super.scanItem (rtok, tokens);
-   }
-
-   protected boolean postscanItem (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-       if (ScanWriteUtils.postscanAttributeName (
-          tokens, "YoungsModulusFunc")) {
-          myEFxn = FieldUtils.postscanFunctionInfo (tokens, ancestor);
-          return true;
-       }
-       return super.postscanItem (tokens, ancestor);
-   }       
 
 }

@@ -1,0 +1,29 @@
+package artisynth.demos.test;
+
+import java.awt.Color;
+import java.io.*;
+import java.util.*;
+
+import artisynth.core.workspace.*;
+import artisynth.core.mechmodels.*;
+import artisynth.core.femmodels.*;
+
+import maspack.util.*;
+import maspack.matrix.*;
+import maspack.geometry.*;
+import maspack.render.*;
+import maspack.properties.*;
+
+public class Template extends RootModel {
+
+   public void build (String[] args) {
+      MechModel mech = new MechModel ("mech");
+      addModel (mech);
+
+      String dataDir = PathFinder.getSourceRelativePath (this, "elahehMesh/");
+      
+      PolygonalMesh mesh = MeshFactory.createSphere (1.0, 12);
+      mech.addMeshBody (new FixedMeshBody (mesh));
+   }
+
+}

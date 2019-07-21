@@ -3,17 +3,17 @@
 % Scale latexml image sizes 2x
 \newlength{\imglength}
 \newcommand{\setlengthLaTeXML}[3]{ %
-	\iflatexml %
-	\setlength{#1}{#2} %
-	\else %
-	\setlength{#1}{#3} %
-	\fi %
+ \iflatexml %
+ \setlength{#1}{#2} %
+ \else %
+ \setlength{#1}{#3} %
+ \fi %
 }
 
 \chapter{Finite Element Models}
 \label{FEMModels:sec}
 
-This section details how to construct three-dimensional finite element models,
+This chapter details how to construct three-dimensional finite element models,
 and how to couple them with the other simulation components described in
 previous sections (e.g.~particles and rigid bodies).  Finite element
 \emph{muscles}, which have additional properties that allow them to contract
@@ -22,11 +22,11 @@ example FEM model of the masseter, coupled to a rigid jaw and maxilla, is shown
 in Figure \ref{fig:fem:masseter}.
 
 \begin{figure}[ht]
-	\centering
-	\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
-	\includegraphics[width=\imglength]{images/fem_masseter}
-	\caption{Finite element model of the masseter, coupled to the jaw and 
-	         maxilla. \label{fig:fem:masseter}} 
+\centering
+\setlengthLaTeXML{\imglength}{0.8\textwidth}{0.6\textwidth}
+\includegraphics[width=\imglength]{images/fem_masseter}
+\caption{Finite element model of the masseter, coupled to the jaw and 
+maxilla. \label{fig:fem:masseter}} 
 \end{figure}
 
 \section{Overview}
@@ -53,7 +53,7 @@ accurately represent the geometry. Within each element, the PDEs are
 sampled at a set of points, referred to as \emph{integration points}, and 
 terms are numerically integrated to form an algebraic system to solve.
 
-The purpose of the rest of this section is to describe the construction and
+The purpose of the rest of this chapter is to describe the construction and
 use of finite elements models within ArtiSynth.  It does not further discuss 
 the mathematical framework or theory.
 For an in-depth coverage of the nonlinear finite element method, as applied
@@ -68,48 +68,54 @@ The basic type of finite element model is implemented in the class
 properties that are used by the model as a whole.  The key ones that affect
 simulation dynamics are:
 \begin{center}
-	\begin{tabular}{|ll|}
-		\hline
-		Property & Description\\
-		\hline
-		{\tt density} & The density of the model\\
-		{\tt material} & An object that describes the material's 
-		    \emph{constitutive law} (i.e.~its stress-strain relationship).\\
-		{\tt particleDamping} & Proportional damping associated with the 
-		    particle-like motion of the FEM nodes.\\
-		{\tt stiffnessDamping} & Proportional damping associated with the 
-		    system's stiffness term.\\
-		\hline
-	\end{tabular}
+\begin{tabular}{|ll|}
+\hline
+Property & Description\\
+\hline
+{\tt density} & The density of the model\\
+{\tt material} & An object that describes the material's 
+\emph{constitutive law} (i.e.~its stress-strain relationship).\\
+{\tt particleDamping} & Proportional damping associated with the 
+particle-like motion of the FEM nodes.\\
+{\tt stiffnessDamping} & Proportional damping associated with the 
+system's stiffness term.\\
+\hline
+\end{tabular}
 \end{center}
 These properties can be set and retrieved using the methods
 \begin{lstlisting}[]
-	setDensity ( double density );    // sets the density
-	double getDensity ();             // gets the density
+    setDensity (double density);    // sets the density
+    double getDensity ();           // gets the density
 
-	setMaterial ( FemMaterial mat );  // sets the FEM's material
-	FemMaterial getMaterial ();       // gets the FEM's material
+    setMaterial (FemMaterial mat);  // sets the FEM's material
+    FemMaterial getMaterial ();     // gets the FEM's material
 
-	setParticleDamping ( double d );  // sets the particle (mass) damping coefficient
-	double getParticleDamping ();     // gets the particle (mass) damping coefficient
+    setParticleDamping (double d);  // sets the particle (mass) damping coefficient
+    double getParticleDamping ();   // gets the particle (mass) damping coefficient
 
-	setStiffnessDamping ( double d ); // sets the stiffness damping coefficient
-	double getStiffnessDamping ( );   // gets the stiffness damping coefficient
+    setStiffnessDamping (double d); // sets the stiffness damping coefficient
+    double getStiffnessDamping ();  // gets the stiffness damping coefficient
 \end{lstlisting}
 Keep in mind that ArtiSynth is essentially ``unitless'' (Section 
 \ref{sec:mechii:units}), so it is the responsibility of the developer to
 ensure that all properties are specified in a compatible way.  
 
-The density of the model is used to compute the mass distribution throughout
-the volume.  Note that we use a \emph{diagonally lumped mass matrix} (DLMM)
-formulation, so the mass is assumed to be concentrated at the location of
-the discretized FEM nodes.  To allow for a spatially-varying density,
-a mass can later be specified for each node individually.
+The density of the model is used to compute the mass distribution
+throughout the volume.  Note that we use a \emph{diagonally lumped
+mass matrix} (DLMM) formulation, so the mass is assumed to be
+concentrated at the location of the discretized FEM nodes.  To allow
+for a spatially-varying density, densities can be explicitly set for
+individual elements, or masses can be explicitly set for indiviual
+nodes.
 
-The FEM's {\tt material} is a delegate object used to compute stress and 
-stiffness within individual elements.  It handles the \emph{constitutive}
-component of the model.  Materials will be discussed in more detail in
-Section \ref{sec:fem:materials}.
+The FEM's {\sf material} property is a delegate object used to compute
+stress and stiffness within individual elements.  It handles
+the \emph{constitutive} component of the model, as described in more
+detail in Section \ref{sec:fem:materials}.
+In addition to the main material defined
+for the model, it is also possible set a material on a per-element
+basis, and to define additional materials which augment the behavior
+of the main materials (Section \ref{sec:augmentingMaterials}).
 
 The two damping parameters are related to \emph{Rayleigh damping}, which
 is used to dissipate energy within finite element models.  There are two 
@@ -127,8 +133,9 @@ mass component reduces to the same system as Equation \eqref{eqn:pointdamping},
 which is why it is referred to as ``particle damping''.
 
 \subsection{Component Structure}
+\label{sec:componentStructure}
 
-Each \javaclass[artisynth.core.femmodels]{FemModel3d} contains three 
+Each \javaclass[artisynth.core.femmodels]{FemModel3d} contains several 
 lists of sub-components:
 
 \begin{description}
@@ -139,35 +146,53 @@ of the elements and carry all the mass (due to DLMM formulation).
 
 \item[{\tt elements}]\mbox{}
 
-The spatial building blocks of the model.  These define the sub-units over 
-which the system is numerically integrated.
+The volumetric model elements. These define the 3D 
+sub-units over which the system is numerically integrated.
+
+\item[{\tt shellElements}]\mbox{}
+
+The shell elements. These define additional 2D sub-units
+over which the system is numerically integrated.
 
 \item[{\tt meshes}]\mbox{}
 
 The geometry in the model.  This includes the surface mesh, and any other
 embedded geometries.
+
+\item[{\tt materials}]\mbox{}
+
+Optional additional materials which can be added to the
+model to augment the behavior of the 
+model's {\sf material} property. This is described in more detail
+in Section \ref{sec:augmentingMaterials}.
+
+\item[{\tt fields}]\mbox{}
+
+Optional {\it field} components which can be used to interpolate
+application-defined quantities over the FEM model's domain. Fields are
+described in detail in Section \ref{sec:fields}.
+
 \end{description}
 
-An example showing each of these components is shown in Figure \ref{fig:fem}.
+The {\tt nodes}, {\tt elements} and {\tt meshes} components are
+illustrated in Figure \ref{fig:fem}.
 
 \begin{figure}[ht]
-	\centering
-	%\subfigure[][FEM model \label{fig:fem:model}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded.png}}
-	%\subfigure[][Nodes \label{fig:fem:nodes}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded_nodes.png}}
-	%\subfigure[][Elements \label{fig:fem:elements}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded_elements.png}}
-	%\subfigure[][Geometry \label{fig:fem:geometry}] {\includegraphics[width=0.2\textwidth]{images/fem_embedded_geometry.png}}
-	\setlengthLaTeXML{\imglength}{1.5in}{1.2in}
-	\begin{tabular}{cccc}
-	\includegraphics[width=\imglength]{images/fem_embedded} & 
-	\includegraphics[width=\imglength]{images/fem_embedded_nodes} &
-	\includegraphics[width=\imglength]{images/fem_embedded_elements} &
-	\includegraphics[width=\imglength]{images/fem_embedded_geometry}\\
-	(a) FEM model & (b) Nodes & (c) Elements & (d) Geometry
-	\end{tabular}
-	\caption{Sub-components of \javaclass[artisynth.core.femmodels]{FemModel3d}. \label{fig:fem}}
+\centering
+\setlengthLaTeXML{\imglength}{1.5in}{1.2in}
+\begin{tabular}{cccc}
+\includegraphics[width=\imglength]{images/fem_embedded} & 
+\includegraphics[width=\imglength]{images/fem_embedded_nodes} &
+\includegraphics[width=\imglength]{images/fem_embedded_elements} &
+\includegraphics[width=\imglength]{images/fem_embedded_geometry}\\
+(a) FEM model & (b) Nodes & (c) Elements & (d) Geometry
+\end{tabular}
+\caption{
+Sub-components of \javaclass[artisynth.core.femmodels]{FemModel3d}. 
+\label{fig:fem}}
 \end{figure}
 
-\paragraph{Nodes}
+\subsubsection{Nodes}
 \ifLaTeXML{\newline}
 
 The set of nodes belong to a finite element model can be obtained by the method
@@ -181,18 +206,18 @@ Nodes are implemented in the class
 the finite element model.  The key properties affecting simulation dynamics
 are:
 \begin{center}
-	\begin{tabular}{|ll|}
-		\hline
-		Property & Description\\
-		\hline
-		{\tt restPosition} & The initial position of the node.\\
-		{\tt position} & The current position of the node.\\
-		{\tt velocity} & The current velocity of the node.\\
-		{\tt mass} & The mass of the node.\\
-		{\tt dynamic} & Whether the node is considered dynamic or parametric 
-		                (e.g.~boundary condition).\\
-		\hline
-	\end{tabular}
+\begin{tabular}{|ll|}
+  \hline
+  Property & Description\\
+  \hline
+  {\tt restPosition} & The initial position of the node.\\
+  {\tt position} & The current position of the node.\\
+  {\tt velocity} & The current velocity of the node.\\
+  {\tt mass} & The mass of the node.\\
+  {\tt dynamic} & Whether the node is considered dynamic or parametric 
+                  (e.g.~boundary condition).\\
+  \hline
+\end{tabular}
 \end{center}
 Each of these properties has corresponding {\tt getXxx()} and 
 {\tt setXxx(...)} functions to access and modify them.
@@ -225,11 +250,12 @@ node is considered when computing the dynamics of the system.  If not,
 it is treated as being parametrically controlled.  This has implications
 when setting boundary conditions (Section \ref{sec:fem:boundary}).
 
-\paragraph{Elements}
+\subsubsection{Elements}
 \ifLaTeXML{\newline}
 
-Elements are the spatial building blocks of the domain.  Within each element,
-the displacement (or strain) field is interpolated from displacements at nodes:
+Elements are the 3D volumetric spatial building blocks of the domain.
+Within each element, the displacement (or strain) field is
+interpolated from displacements at nodes:
 \begin{align}
 	\u(\x) & = \sum_{i=1}^N \phi_i(\x)\u_i, \label{eqn:fem:interp}
 \end{align}
@@ -239,38 +265,38 @@ element, and $\phi_i(\cdot)$ is referred to as the \emph{shape function} (or
 their shape, number of nodes, and shape function order (Table 
 \ref{tbl:fem:elements}).  ArtiSynth supports the following element types:
 \begin{center}
-	\setlengthLaTeXML{\imglength}{1.5in}{1in}
-	\begin{tabular}{c@{\hspace{5ex}}c@{\hspace{5ex}}c@{\hspace{5ex}}c}
-		\includegraphics[height=\imglength]{images/fem_element_tet} &
-		\includegraphics[height=\imglength]{images/fem_element_pyramid} &
-		\includegraphics[height=\imglength]{images/fem_element_wedge} &
-		\includegraphics[height=\imglength]{images/fem_element_hex} \\
-		\javaclass[artisynth.core.femmodels]{TetElement}, &
-		\javaclass[artisynth.core.femmodels]{PyramidElement}, & 
-		\javaclass[artisynth.core.femmodels]{WedgeElement}, &
-		\javaclass[artisynth.core.femmodels]{HexElement},\\
-		\javaclass[artisynth.core.femmodels]{QuadtetElement} &
-		\javaclass[artisynth.core.femmodels]{QuadpyramidElement} & 
-		\javaclass[artisynth.core.femmodels]{QuadwedgeElement} &
-		\javaclass[artisynth.core.femmodels]{QuadhexElement}
-	\end{tabular}
+\setlengthLaTeXML{\imglength}{1.5in}{1in}
+\begin{tabular}{c@{\hspace{5ex}}c@{\hspace{5ex}}c@{\hspace{5ex}}c}
+  \includegraphics[height=\imglength]{images/fem_element_tet} &
+  \includegraphics[height=\imglength]{images/fem_element_pyramid} &
+  \includegraphics[height=\imglength]{images/fem_element_wedge} &
+  \includegraphics[height=\imglength]{images/fem_element_hex} \\
+  \javaclass[artisynth.core.femmodels]{TetElement}, &
+  \javaclass[artisynth.core.femmodels]{PyramidElement}, & 
+  \javaclass[artisynth.core.femmodels]{WedgeElement}, &
+  \javaclass[artisynth.core.femmodels]{HexElement},\\
+  \javaclass[artisynth.core.femmodels]{QuadtetElement} &
+  \javaclass[artisynth.core.femmodels]{QuadpyramidElement} & 
+  \javaclass[artisynth.core.femmodels]{QuadwedgeElement} &
+  \javaclass[artisynth.core.femmodels]{QuadhexElement}
+\end{tabular}
 \end{center}
 \begin{table}[ht]
 \centering
 \caption{Supported element types \label{tbl:fem:elements}}
 \begin{tabular}{lccc}
-	\hline\hline
-	Element Type & \# Nodes & Order &  \# Integration Points \\
-	\hline
-	\javaclass[artisynth.core.femmodels]{TetElement} & 4 & linear & 1\\
-	\javaclass[artisynth.core.femmodels]{PyramidElement} & 5 & linear & 5\\
-	\javaclass[artisynth.core.femmodels]{WedgeElement} & 6 & linear & 6\\
-	\javaclass[artisynth.core.femmodels]{HexElement} & 8 & linear & 8\\
-	\javaclass[artisynth.core.femmodels]{QuadtetElement} & 10 & quadratic & 4\\
-	\javaclass[artisynth.core.femmodels]{QuadpyramidElement} & 13 & quadratic & 5\\
-	\javaclass[artisynth.core.femmodels]{QuadwedgeElement} & 15 & quadratic & 9\\
-	\javaclass[artisynth.core.femmodels]{QuadhexElement} & 20 & quadratic & 14\\
-	\hline
+  \hline\hline
+  Element Type & \# Nodes & Order &  \# Integration Points \\
+  \hline
+  \javaclass[artisynth.core.femmodels]{TetElement} & 4 & linear & 1\\
+  \javaclass[artisynth.core.femmodels]{PyramidElement} & 5 & linear & 5\\
+  \javaclass[artisynth.core.femmodels]{WedgeElement} & 6 & linear & 6\\
+  \javaclass[artisynth.core.femmodels]{HexElement} & 8 & linear & 8\\
+  \javaclass[artisynth.core.femmodels]{QuadtetElement} & 10 & quadratic & 4\\
+  \javaclass[artisynth.core.femmodels]{QuadpyramidElement} & 13 & quadratic & 5\\
+  \javaclass[artisynth.core.femmodels]{QuadwedgeElement} & 15 & quadratic & 9\\
+  \javaclass[artisynth.core.femmodels]{QuadhexElement} & 20 & quadratic & 14\\
+  \hline
 \end{tabular}
 \end{table}
 The base class for all of these is \javaclass[artisynth.core.femmodels]%
@@ -280,22 +306,22 @@ by evaluating the stress and stiffness at a set of \emph{integration points}
 within each element, and applying numerical quadrature.  The list of elements
 in a model can be obtained with the method
 \begin{lstlisting}[]
-RenderableComponentList<FemElement3d> getElements();  // return the list of elements
+  RenderableComponentList<FemElement3d> getElements();
 \end{lstlisting}
 
-All objects of type \javaclass[artisynth.core.femmodels]{FemModel3d} have the 
+All objects of type \javaclass[artisynth.core.femmodels]{FemElement3d} have the 
 following properties:
 \begin{center}
-	\begin{tabular}{|ll|}
-		\hline
-		Property & Description\\
-		\hline
-		{\tt density} & Density of the element\\
-		{\tt material} & An object that describes the \emph{constitutive law} 
-		                 within the element (i.e.~its stress-strain 
-		                 relationship).\\
-		\hline
-	\end{tabular}
+\begin{tabular}{|ll|}
+  \hline
+  Property & Description\\
+  \hline
+  {\tt density} & Density of the element\\
+  {\tt material} & An object that describes the \emph{constitutive law} 
+                   within the element (i.e.~its stress-strain 
+                   relationship).\\
+  \hline
+\end{tabular}
 \end{center}
 
 If left unspecified, the element's {\tt density} is inherited from the 
@@ -308,7 +334,180 @@ containing {\tt FemModel3d}. Specifying a material here allows for spatially-%
 varying material properties across the model.  Materials will be discussed
 further in Section \ref{sec:fem:materials}.
 
-\paragraph{Meshes}
+\subsubsection{Shell elements}
+
+Shell elements are additional 2D spatial building blocks which can be
+added to a model. They are typically used to model structures which
+are too thin to be easily represented by 3D volumetric elements, or to
+provide additional internal stiffness within a set of volumetric
+elements.
+
+ArtiSynth presently supports the following shell element types, with
+the number of nodes, shape function order, and integration point count
+described in Table \ref{tbl:fem:shellElements}:
+
+\begin{center}
+\setlengthLaTeXML{\imglength}{1.5in}{1in}
+\begin{tabular}{c@{\hspace{5ex}}c@{\hspace{5ex}}c@{\hspace{5ex}}c}
+  \includegraphics[height=\imglength]{images/fem_shellElement_tri} &
+  \includegraphics[height=\imglength]{images/fem_shellElement_quad}\\
+  \javaclass[artisynth.core.femmodels]{ShellTriElement} &
+  \javaclass[artisynth.core.femmodels]{ShellQuadElement}
+\end{tabular}
+\end{center}
+\begin{table}[ht]
+\centering
+\caption{Supported shell element types \label{tbl:fem:shellElements}}
+\begin{tabular}{lccc}
+  \hline\hline
+  Element Type & \# Nodes & Order & \# Integration Points \\
+  \hline
+  \javaclass[artisynth.core.femmodels]{ShellTriElement} & 
+  3 & linear & 9 (3 if membrane)\\
+  \javaclass[artisynth.core.femmodels]{ShellQuadElement} & 
+  4 & linear & 8 (4 if membrane)\\
+  \hline
+\end{tabular}
+\end{table}
+
+The base class for all shell elements is
+\javaclass[artisynth.core.femmodels]{ShellElement3d}, which contains
+the same {\sf density} and {\sf material} properties as
+\javaclass[artisynth.core.femmodels]{FemElement3d}, as well as the
+additional property {\sf defaultThickness}, whose use will be
+described below.
+
+The list of shell elements in a model can be obtained with the method
+\begin{lstlisting}[]
+  RenderableComponentList<ShellElement3d> getShellElements();
+\end{lstlisting}
+
+Both the volumetric elements ({\tt FemElement3d}) and the shell
+elements ({\tt ShellElement3d}) derive from the base class
+\javaclass[artisynth.core.femmodels]{FemElement3dBase}.
+To obtain {\it all} the elements in an FEM model, both shell and
+volumetric, one may use the method
+\begin{lstlisting}[]
+  ArrayList<FemElement3dBase> getAllElements();
+\end{lstlisting}
+
+Each shell element can actually be instantiated in two forms:
+
+\begin{itemize}
+
+\item As a {\it regular} shell element, which has a bending stiffness;
+
+\item As a {\it membrane} element, which does not have bending
+stiffness.
+
+\end{itemize}
+
+Regular shell elements are implemented using the same {\it
+extensible director} formulation used by FEBio \cite{MaasFEBio2012},
+and more specifically the front/back node formulation
+\cite{FEBioTheory2018}.  Each node associated with a (regular)
+shell element is assigned a {\it director}, which is a 3D vector
+providing a normal direction and virtual thickness at that node
+(Figure \ref{ShellElementDirectors:fig}). This virtual thickness
+allows us to continue to use 3D materials to provide
+the constitutive laws that determine the
+shell's stress/strain response, including its bending behavior. It
+also allows us to continue to use the element's {\sf density} to
+determine its mass.
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/ShellElementDirectors}
+\else
+ \includegraphics[width=3.75in]{images/ShellElementDirectors}
+\fi
+\end{center}
+\caption{{\tt ShellQuadElement} with the directors (dark blue lines)
+visible at the nodes.}
+\label{ShellElementDirectors:fig}
+\end{figure}
+
+Director information is automatically assigned to a
+\javaclass[artisynth.core.femmodels]{FemNode3d} whenever one or more
+regular shell elements is connected to it. This information includes both the
+current value of the director, its {\it rest} value, and its velocity,
+with the difference between the first two determining the element's
+bending strain.  These quantities can be queried using the methods
+%
+\begin{lstlisting}[]
+  Vector3d getDirector ();        // return the current director value
+  void getDirector (Vector3d dir);
+
+  Vector3d getRestDirector ();    // return the rest director value
+  void getRestDirector (Vector3d dir);
+
+  Vector3d getDirectorVel ();     // return the director velocity
+
+  boolean hasDirector();          // does this node have a director?
+\end{lstlisting}
+%
+For nodes which are not connected to regular shell elements, and
+therefore do not have director information assigned, these methods all
+return a zero-valued vector.
+
+If not otherwise specified, the current and rest director values are
+computed automatically from the surrounding (regular) shell elements,
+with their value $\d$ being computed from
+%
+\begin{equation*}
+\d = \sum t_i \, \n_i
+\end{equation*}
+%
+where $t_i$ is the value of the {\sf defaultThickness} property and
+$\n_i$ is the surface normal of the $i$-th surrounding regular shell
+element.
+However, if necessary, it is also possible to explicitly assign
+these values, using the methods
+%
+\begin{lstlisting}[]
+  setDirector (Vector3d dir);     // set the current director
+
+  setRestDirector (Vector3d dir); // set the rest director
+\end{lstlisting}
+%
+
+\begin{sideblock}
+ArtiSynth FEM nodes can currently support only one director, which
+is shared by all regular shell elements associated with that
+node. This effectively means that all such elements must belong to the
+same ``surface'', and that two intersecting surfaces cannot share the
+same nodes.
+\end{sideblock}
+
+As indicated above, shell elements can also be instantiated as
+membrane elements, which do not exhibit bending stiffness and
+therefore do not require director information. The regular/membrane
+distinction is specified in the element's constructor.  For example,
+{\tt ShellTriElement} and {\tt ShellQuadElement} each have
+constructors with the signatures:
+%
+\begin{lstlisting}[]
+  ShellTriElement (FemNode3d n0, FemNode3d n1, FemNode3d n2,
+    double thickness, boolean membrane);
+
+  ShellQuadElement (FemNode3d n0, FemNode3d n1, FemNode3d n2, FemNode3d n3,
+    double thickness, boolean membrane);
+\end{lstlisting}
+%
+The {\tt thickness} argument specifies the {\sf defaultThickness}
+property, while {\tt membrane} determines whether or not the
+element is a membrane element.
+
+While membrane elements do not require explicit director information
+stored at the nodes, they do make use of an {\it inferred} director
+that is parallel to the element's surface normal, and has a constant
+length equal to the element's {\sf defaultThickness} property. This
+gives the element a virtual volume, which (as with regular elements)
+is used to determine 3D strains and to compute the element's mass from
+it's density.
+
+\subsubsection{Meshes}
 \ifLaTeXML{\newline}
 
 The geometry associated with a finite element model consists of a collection
@@ -322,7 +521,7 @@ properties themselves. FEM geometries will be discussed in more detail in
 Section \ref{sec:fem:geometry}.  The list of meshes can be obtained with the 
 method
 \begin{lstlisting}[]
-MeshComponentList<FemMeshComp> getMeshComps();   // return the list of meshes in a FEM
+  MeshComponentList<FemMeshComp> getMeshComps();
 \end{lstlisting}
 
 \subsection{Materials}
@@ -331,17 +530,19 @@ MeshComponentList<FemMeshComp> getMeshComps();   // return the list of meshes in
 The stress-strain relationship within each element is defined by a ``material''
 delegate object, implemented by a subclass of 
 \javaclass[artisynth.core.materials]{FemMaterial}.  This material object is 
-responsible for implementing the functions:
+responsible for implementing the functions
 %
 \begin{lstlisting}[]
-   public void computeStress (...)  // computes the symmetric stress tensor
-   public void computeTangent (...) // computes the local tangent stiffness matrix
+   void computeStressAndTangent (...)
 \end{lstlisting}
 %
-Inputs include a deformation gradient, pressure, and a coordinate frame that
-specifies potential directions of anisotropy. The default material type is 
-\javaclass[artisynth.core.materials]{LinearMaterial}, where stress is related 
-to strain through:
+which computes the stress tensor and (optionally) the tangent stiffness
+matrix at each integration point, based on the current local
+deformation at that point.
+
+The default material type is
+\javaclass[artisynth.core.materials]{LinearMaterial}, where stress is
+related to strain through:
 \begin{gather}
   \sigma(\x) = D\,\epsilon(\x), \label{eqn:fem:mat:linear}\\
   \text{where }\quad D = \begin{bmatrix}
@@ -370,36 +571,41 @@ Table \ref{tbl:fem:materials}.  Those that are subclasses of
 incompressibility.
 
 \begin{table}[ht]
-	\centering
- 	\caption{Commonly used FEM materials \label{tbl:fem:materials}}
- 	\begin{tabular}{|lll|}
- 		\hline
- 		\hline
- 		Material & Parameters & \\
- 		\hline
- 		\javaclass[artisynth.core.materials]{LinearMaterial} & $E$ & Young's modulus \\
- 		& $\nu$ & Poisson's ratio\\
- 		& corotated & corotational formulation\\
- 		\hline
- 		\javaclass[artisynth.core.materials]{StVenantKirchoffMaterial} & $E$ & Young's modulus\\
- 		& $\nu$ & Poisson's ratio\\
- 		\hline
- 		\javaclass[artisynth.core.materials]{NeoHookeanMaterial} & $E$ & Young's modulus\\
- 		& $\nu$ & Poisson's ratio\\
- 		\hline
- 		\javaclass[artisynth.core.materials]{IncompNeoHookeanMaterial} & $G$ & shear modulus\\
- 		& $\kappa$ & bulk modulus\\
- 		\hline
- 		\javaclass[artisynth.core.materials]{MooneyRivlinMaterial} & $C_{10},C_{01},C_{20},C_{02}$ & distortional parameters\\
- 		& $\kappa$ & bulk modulus\\
- 		\hline
- 		\javaclass[artisynth.core.materials]{OgdenMaterial} & $\mu_1,\ldots,\mu_6$ & material parameters\\
- 		& $\alpha_1,\ldots,\alpha_6$ &\\
- 		& $\kappa$ & bulk modulus\\
-		\hline
-	\end{tabular}
+\centering
+\caption{Commonly used FEM materials \label{tbl:fem:materials}}
+\begin{tabular}{|lll|}
+   \hline
+   \hline
+   Material & Parameters & \\
+   \hline
+   \javaclass[artisynth.core.materials]{LinearMaterial} & 
+   $E$ & Young's modulus \\
+   & $\nu$ & Poisson's ratio\\
+   & corotated & corotational formulation\\
+   \hline
+   \javaclass[artisynth.core.materials]{StVenantKirchoffMaterial} & 
+   $E$ & Young's modulus\\
+   & $\nu$ & Poisson's ratio\\
+   \hline
+   \javaclass[artisynth.core.materials]{NeoHookeanMaterial} & 
+   $E$ & Young's modulus\\
+   & $\nu$ & Poisson's ratio\\
+   \hline
+   \javaclass[artisynth.core.materials]{IncompNeoHookeanMaterial} & 
+   $G$ & shear modulus\\
+   & $\kappa$ & bulk modulus\\
+   \hline
+   \javaclass[artisynth.core.materials]{MooneyRivlinMaterial} & 
+   $C_{10},C_{01},C_{20},C_{02}$ & distortional parameters\\
+   & $\kappa$ & bulk modulus\\
+   \hline
+   \javaclass[artisynth.core.materials]{OgdenMaterial} & 
+   $\mu_1,\ldots,\mu_6$ & material parameters\\
+   & $\alpha_1,\ldots,\alpha_6$ &\\
+   & $\kappa$ & bulk modulus\\
+  \hline
+\end{tabular}
 \end{table}
-
 
 \subsection{Boundary conditions}
 \label{sec:fem:boundary}
@@ -429,7 +635,7 @@ motion is coupled to that of the attached component through a constraint
 mechanism. Attachments will be discussed further in Section 
 \ref{sec:fem:nodeattachments}.
 
-Finally, the boundary of a FEM can be constrained by enabling collisions
+Finally, the boundary of an FEM can be constrained by enabling collisions
 with other components.  This will be covered in Section
 \ref{sec:fem:collision}.
 
@@ -566,7 +772,7 @@ readers throw an {\tt IOException} if the read fails.
 
 \subsection{Generating from surfaces}
 
-There are two ways a FEM model can be generated from a surface: by using a
+There are two ways an FEM model can be generated from a surface: by using a
 FEM mesh generator, and by extruding a surface along its normal direction.
 
 ArtiSynth has the ability to interface directly with the TetGen library 
@@ -575,11 +781,11 @@ volumetric mesh given a closed and manifold surface.  The main Java class for
 calling TetGen directly is \javaclass[maspack.geometry]{TetgenTessellator}.
 The tessellator has several advanced options, allowing for the computation of 
 convex hulls, and for adding points to a volumetric mesh.  For simply creating
-a FEM from a surface, there is a convenience routine within 
+an FEM from a surface, there is a convenience routine within 
 \javaclass[artisynth.core.femmodels]{FemFactory} that handles both mesh 
 generation and constructing a {\tt FemModel3d}:
 \begin{lstlisting}[]
-// Create a FEM from a manifold mesh with a given quality
+// Create an FEM from a manifold mesh with a given quality
 FemFactory.createFromMesh( PolygonalMesh mesh, double quality );
 \end{lstlisting}
 If {\tt quality} $>0$, then points will be added in an attempt to bound the
@@ -590,7 +796,7 @@ quality ratio of 1.2.
 It's also possible to create thin layer of elements by extruding a surface
 along its normal direction. 
 \begin{lstlisting}[]
-// Create a FEM by extruding a surface
+// Create an FEM by extruding a surface
 FemFactory.createExtrusion(
       FemModel3d model, int nLayers, double layerThickness, double zOffset, 
       PolygonalMesh surface);
@@ -840,7 +1046,7 @@ which attaches {\tt node2} to {\tt node1}.
 	\label{fig:fem:beamwithblock}
 \end{figure}
 
-The following model demonstrates attaching a FEM beam to a rigid block.
+The following model demonstrates attaching an FEM beam to a rigid block.
 \lstset{numbers=left}
 \lstinputlisting{../../src/artisynth/demos/tutorial/FemBeamWithBlock.java}
 \lstset{numbers=none}
@@ -861,7 +1067,7 @@ Typically, nodes do not align in a way that makes it
 possible to connect them to other FEM models and/or points based on
 simple point-to-node attachments.  Instead, we use a different
 mechanism that allows us to attach a point to an arbitrary location
-within a FEM model. This is done using an attachment component of
+within an FEM model. This is done using an attachment component of
 type
 \javaclass[artisynth.core.femmodels]{PointFem3dAttachment}, which
 implements an attachment where the position $\p$ and velocity $\u$ of the
@@ -1087,7 +1293,7 @@ can be found in the actual source file.
       }
    }
 
-   // Collect and return all the nodes of a FEM model associated with a
+   // Collect and return all the nodes of an FEM model associated with a
    // set of elements specified by an array of element numbers
    private HashSet<FemNode3d> collectNodes (FemModel3d fem, int[] elemNums) {
       HashSet<FemNode3d> nodes = new HashSet<FemNode3d>();
@@ -1285,7 +1491,7 @@ modified. Alternatively, when a 3D force $\f$ is applied to the
 marker, it is distributed to the attached nodes according to the nodal
 weights, as described in Equation \eqref{pointFemForces:eqn}.
 
-\subsection{Example: attaching a FEM beam to a muscle}
+\subsection{Example: attaching an FEM beam to a muscle}
 
 \begin{figure}[ht]
 	\centering
@@ -1391,7 +1597,7 @@ methods also require the current desired pose of the frame {\tt TFW}
 unambiguously specify the frame's origin, they do not specify the
 desired orientation.
 
-\subsection{Example: attaching frames to a FEM beam}
+\subsection{Example: attaching frames to an FEM beam}
 
 \begin{figure}[ht]
 	\centering
@@ -1401,14 +1607,14 @@ desired orientation.
 	\label{fig:fem:frameFemAttachment}
 \end{figure}
 
-A model illustrating how to connect frames to a FEM model 
+A model illustrating how to connect frames to an FEM model 
 is defined in
 %
 \begin{verbatim}
   artisynth.demos.tutorial.FrameFemAttachment
 \end{verbatim}
 %
-It creates a FEM beam, along with a rigid body block and a 
+It creates an FEM beam, along with a rigid body block and a 
 massless coordinate frame, that are then attached to the beam
 using nodal and element-based attachments. The build method is shown below:
 \lstset{numbers=left}
@@ -1583,7 +1789,7 @@ pull manipulator
 \section{Incompressibility}
 
 FEM incompressibility within ArtiSynth is enforced by trying to ensure
-that the volume of a FEM remains locally constant. This, in turn, is
+that the volume of an FEM remains locally constant. This, in turn, is
 accomplished by constraining nodal velocities so that the local volume change,
 or \emph{divergence}, is zero (or close to zero). There are generally two
 ways to do this:
@@ -1606,6 +1812,15 @@ the bulk modulus is increased, soft incompressibility starts to act
 more like `hard' incompressibility, with an infinite bulk modulus
 corresponding to perfect incompressibility. However, very large bulk
 modulus values will generally produce stability problems.
+
+\begin{sideblock}
+Incompressibility is not currently implemented for shell
+elements. Applying hard incompressibilty to a shell element will have
+no effect on its behavior. If soft incompressibility is applied,
+by supplying the  element with an incompressible material, then only
+the deviatoric component of that material will have any effect; the
+dilational component will generate no stress.
+\end{sideblock}
 
 \subsection{Volume regions and locking}
 \label{VolumeRegions:sec}
@@ -1737,7 +1952,7 @@ The default potential is {\tt QUADRATIC}, which may provide slightly
 improved stability characteristics.  However, we have not noticed
 significant differences between the two potentials in practice.
 
-How soft incompressibility is applied within a FEM model is controlled
+How soft incompressibility is applied within an FEM model is controlled
 by the FEM's {\sf softIncompMethod} property, which can be set to one
 of the following values of the enumerated type {\tt
 FemModel.IncompMethod}:
@@ -1799,6 +2014,245 @@ incompressibility often results in less stable behavior, this is not
 always the case: in some situations the stronger enforcement afforded
 by hard incompressibility actually improves stability.
 
+\section{Varying and augmenting material behaviors}
+\label{sec:augmentingMaterials}
+
+The default material used by all elements of an FEM model is supplied
+by the model's {\sf material} property.  However, it is often the case
+that one wishes to specify different material behaviors for
+different sets of elements within an FEM model. This may be
+particularly true when combining volumetric and shell elements.
+
+There are several ways to vary material behavior within a model.
+These include:
+
+\begin{itemize}
+
+\item {\bf Setting an explicit material for specific elements}, using
+their {\sf material} property.  An element's material is {\tt null} by
+default, but if set to a material, it will override the
+default material supplied by the FEM model. While this method is quite
+straightforward, it does have one disadvantage: because material
+settings are {\it copied} by each element, subsequent interactive or
+online changes to the material require resetting the material in {\it all}
+the affected elements.
+
+\item {\bf Binding one or more material parameters to a field}.
+Sometimes certain material parameters, such as stiffness quantities or
+direction information, may need to vary across the FEM domain.  While
+sometimes this can be handled by setting material properties for
+specific elements, it may be more convienient to bind the varying
+properties to a {\it field}, which can specify varying values over a
+domain composed of either a regular grid or an FEM mesh.  Only one
+material needs to be used, and any properties which are not bound can
+be adjusted interactively or online. Fields and their bindings are
+described in detail in the Section \ref{sec:fields}.
+
+\item {\bf Adding augmenting material behaviors using 
+\javaclass[artisynth.core.femmodels]{MaterialBundle}s}.  A material
+bundle may be specified either for all elements, or for a subset of
+them, and each provides one material (via its own {\sf material}
+property) whose behavior is {\it added} to that of the indicated
+elements. This also provides an easy way to {\it combine} the
+behaviors of two of more materials in the same element.  One also has
+the option of setting the {\sf material} property of the certain
+elements to \javaclass[artisynth.core.materials]{NullMaterial}, so
+that {\it only} the augmenting material(s) are applied.
+
+\item {\bf Adding muscle behaviors using 
+\javaclass[artisynth.core.femmodels]{MuscleBundle}s}. This
+is analagous to using {\tt MaterialBundles}, except that {\tt
+MuscleBundles} are restricted to using an instance of
+a \javaclass[artisynth.core.materials]{MuscleMaterial}, and include
+support for handling the excitation value, as well as the activation
+directions (which usually vary across the FEM domain). {\tt
+MuscleBundles} are only present in the {\tt FemMuscleModels} subclass
+of {\tt FemModel3d}, and are described in detail in
+Section \ref{sec:fem:muscle}.
+
+\end{itemize}
+
+The remainder of this section will discuss {\tt MaterialBundles}.
+
+Adding a \javaclass[artisynth.core.femmodels]{MaterialBundle} to
+an FEM model is illustrated by the following code fragment:
+%
+\begin{lstlisting}[]
+  FemMaterial extraMat;   // material to be added
+  FemModel3d fem;         // FEM model
+  ...
+  
+  MaterialBundle bun = new MaterialBundle ("mybundle", extraMat);
+  // add volumetric elements to the bundle
+  for (FemElement3d e : fem.getElements()) {
+     if (/* e should be added to the bundle */) {
+        bun.addElement (e);
+     }
+  }
+  fem.addMaterialBundle (bun);  
+\end{lstlisting}
+%
+Once added, the stress computed by the bundle's material will be {\it
+added} to the stress computed by any other materials which are active
+for the bundle's elements.
+
+When deciding what elements to add to a bundle, one is free to choose
+any means necessary. The example above inspects all the volumetric
+elements in the FEM. To instead inspect all the shell elements, or all
+volumetric and shell elements, one could use the code
+fragments such as the following:
+%
+\begin{lstlisting}[]
+  // add shell elements to the bundle
+  for (ShellElement3d e : fem.getShellElements()) {
+     if (/* e should be added to the bundle */) {
+        bun.addElement (e);
+     }
+  }
+
+  // add volumetric or shell elements to the bundle
+  for (FemElement3dBase e : fem.getAllElements()) {
+     if (/* e should be added to the bundle */) {
+        bun.addElement (e);
+     }
+  }
+\end{lstlisting}
+%
+Of course, if the elements are known through other means, then they
+can be added directly.
+
+The element composition of a bundle can be controlled by the methods
+%
+\begin{lstlisting}[]
+  void addElement (FemElement3dBase e)        // adds an element
+  boolean removeElement (FemElement3dBase e)  // removes an element
+  void clearElements()                        // removes all elements
+
+  int numElements()                           // gets the number of elements
+  FemElment3dBase getElement (int idx)        // gets the idx-th element 
+\end{lstlisting}
+%
+
+It is also possible to create a {\tt MaterialBundle} whose material is
+added to {\it all} the FEM elements. This can done either by using one
+of the following constructors
+%
+\begin{lstlisting}[]
+  MaterialBundle (String name, boolean useAllElements)
+  MaterialBundle (String name, FemMaterial mat, boolean useAllElements)
+\end{lstlisting}
+%
+with {\tt useAllElements} set to {\tt true}, or
+by calling the method
+%
+\begin{lstlisting}[]
+  void setUseAllElements (boolean enable)
+\end{lstlisting}
+%
+When a bundle is set to use all the FEM elements, it clears its own
+element list, and one is not permitted to add elements using {\tt
+addElement(elem)}.
+
+After a bundle has been created, it is possible to get or set
+its {\sf material} property using the methods
+%
+\begin{lstlisting}[]
+  FemMateral getMaterial()                  // get the material
+  FemMateral setMaterial (FemMaterial mat)  // set the material
+\end{lstlisting}
+%
+Again, because materials are copied internally, any modification to a
+material {\it after} it has been used as an input to {\tt
+setMaterial()} will {\it not} be noticed by the bundle. Instead, one
+should modify the material {\it before} calling {\tt setMaterial()},
+or modfiy the {\it copied} material which can be obtained by calling
+{\tt getMaterial()} or by storing the value returned by {\tt
+setMaterial()}.
+
+Finally, a {\tt MuscleBundle} is a renderable component. Setting its
+{\sf elementWidgetSize} property to a value greater than zero will
+cause the renderering of all its elements, using a solid widget
+representation of each at a scale controlled by {\sf elementWidgetSize}:
+0.5 for half size, 1.0 for full size, etc. The color of the
+widgets is controlled by the {\sf faceColor} property of the bundle's
+{\sf renderProps}. Being able to render the elements makes it easy to
+select the bundle and visualize which elements it contains.
+
+\subsection{Example: FEM sheet with a stiff spine}
+\label{MaterialBundleDemo:sec}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/MaterialBundleDemo}
+\else
+ \includegraphics[width=3.75in]{images/MaterialBundleDemo}
+\fi
+\end{center}
+\caption{MaterialBundleDemo model after being run in ArtiSynth.}
+\label{MaterialBundleDemo:fig}
+\end{figure}
+
+A simple model demonstrating the use of material bundles
+is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.MaterialBundleDemo
+\end{verbatim}
+%
+It consists of a simple thin hexahedral sheet in which a material
+bundle is used to stiffen elements close to the x-axis,
+creating a stiff ``spine''. While the same effect could be achieved by
+simply setting a different material property for the ``spine''
+elements, it does provide a good example of muscle bundle usage.
+%
+The model's {\tt build} method is given below:
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-18}}
+\lstinputlisting[firstline=1,lastline=43]{../../src/artisynth/demos/tutorial/MaterialBundleDemo.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=20,lastline=64]{../../src/artisynth/demos/tutorial/MaterialBundleDemo.java}
+\fi
+\lstset{numbers=none}
+
+Lines 6-9 create a thin FEM hex sheet, centered on the origin, with
+size $1 \times 1 \times 0.1$ and $10 \times 10 \times 1$ elements
+along each axis. Its material is set to a linear material with a
+Youngs modulus of $10000$. The leftmost nodes are then fixed (lines
+11-16).
+
+Next, a {\tt MuscleBundle} is added and used to apply an additional
+material to the elements near the x axis (lines 19-29). It is given a
+neo-hookean material with a much higher stiffness, and the ``spine''
+elements for it are selected by finding those whose centroids 
+have a $y$ value ithin 0.1 of the x axis.
+
+After the bundle is added, a control panel is created allowing
+interactive control of the materials for both the FEM model and the
+bundle, along with their {\sf elementWidgetSize} properties.
+
+Finally, some render properties are set (lines 41-44). The idea is to
+render the elements of both the FEM model and the bundle using element
+widgets (both of which will be visible since there is no surface
+rendering and the element widget sizes for both are greater than 0).
+The widget size for the bundle is made larger than that of the FEM
+model to ensure its widgets will cover those of the latter. Widget
+colors are controlled by the FEM and bundle face colors, set in lines
+41-42.
+
+The example can be run in ArtiSynth by selecting {\sf All demos >
+tutorial > MaterialBundleDemo} from the {\sf Models} menu.  When it is
+run, the sheet will fall under gravity but be much stiffer along the
+spine (Figure \ref{MaterialBundleDemo:fig}). The control panel can be
+used to interactively adjust the material parameters for both the FEM
+and the bundle. This is one advantage of using bundles: the same
+material can be used to control multiple elements. The panel also
+allows interactive adjustment of the widget sizes, to illustrate what
+they look like and how they are rendered.
+
 \section{Muscle activated FEM models}
 \label{sec:fem:muscle}
 
@@ -1841,7 +2295,7 @@ dependent stress and stiffness in the muscle. In addition to this property,
    Components that control the activation of a set of bundles or other exciters.
 \end{description}
 
-\paragraph{Bundles}
+\subsubsection{Bundles}
 \ifLaTeXML{\newline}
 
 Muscle bundles allow for a muscle to be partitioned into separate groupings
@@ -1873,7 +2327,7 @@ are either point-to-point fibres, or material-based muscle element descriptors.
 The two types will be covered in Sections \ref{sec:fem:fibremuscle} and
 \ref{sec:fem:materialmuscle}, respectively.
 
-\paragraph{Exciters}
+\subsubsection{Exciters}
 \ifLaTeXML{\newline}
 
 Muscle exciters enable you to simultaneously activate a group of ``excitation 
@@ -1911,7 +2365,7 @@ Muscle addFibre( Point p0, Point p1,    // creates and adds a fibre
 \end{lstlisting}
 The latter returns the newly created {\tt Muscle} fibre.  
 The following code snippet demonstrates how to create a fibre-based 
-{\tt MuscleBundle} and add it to a FEM muscle.
+{\tt MuscleBundle} and add it to an FEM muscle.
 \lstset{numbers=left}
 \begin{lstlisting}[]
 // Create a muscle bundle
@@ -1919,7 +2373,7 @@ MuscleBundle bundle = new MuscleBundle("fibres");
 Point3d[] fibrePoints = ...   //create a sequential list of points
 
 // Add fibres
-Point pPrev = fem.addMarker(fibrePoints[0]);    // create a FEM marker
+Point pPrev = fem.addMarker(fibrePoints[0]);    // create an FEM marker
 for (int i=1; i<=fibrePoints.length; i++) {
    Point pNext = fem.addMarker(fibrePoint[i]);
 
@@ -2044,6 +2498,563 @@ highly deformed.  Fibre-based muscles are, in general, more stable.  However,
 they can lead to bulging and other deformation artifacts due to their discrete
 nature.
 
+\section{Fields}
+\label{sec:fields}
+
+In modeling applications, particularly those employing FEM methods,
+situations often arise where it is necessary to describe numeric
+quantities that vary over some spatial domain. For example, the
+stiffness parameters of an FEM material may vary at different points
+within the volumetric mesh.  When modeling muscles, the activation
+direction vector will also typically vary over the mesh.
+
+ArtiSynth provides {\it field} objects which can be used to represent
+such spatialy varying quantities, together with mechanisms to attach
+these to properties within FEM materials.  Field objects can provide
+either {\it scalar} or {\it vector} fields. Scalar fields
+implement the interface 
+\javaclass[artisynth.core.modelbase]{ScalarField}
+and supply the method
+%
+\begin{lstlisting}[]
+   double getValue (Point3d pos)
+\end{lstlisting}
+%
+while vector fields implement
+\javaclass[artisynth.core.modelbase]{VectorField}
+and supply the method
+%
+\begin{lstlisting}[]
+   T getValue (Point3d pos)
+\end{lstlisting}
+%
+where {\tt T} is any class implementing
+\javaclass{maspack.matrix.VectorObject}. (Most of the fixed-size
+matrix objects in {\tt maspack.matrix}, along with {\tt MatrixNd} and
+{\tt VectorNd}), implement {\tt VectorObject}.)  In both cases, the
+idea is to provide values at arbitrary points over some spatial
+domain.
+
+\begin{sideblock}
+Both {\tt ScalarField} and {\tt VectorField} are subclassed from {\tt
+Field}. The reason for separating scalar and vector fields is simply
+efficency: having scalar fields work with the primitive type {\tt
+double}, instead of the object {\tt Double}, requires considerably
+less storage and somewhat less computational effort.
+\end{sideblock}
+
+\subsection{Field types}
+
+A field is typically implemented by specifying a finite set of values
+at discrete locations on an underlying spatial grid and then using
+different methods to determine values at arbitrary points.
+
+At present, ArtiSynth provides the following different field types:
+
+\begin{description}
+
+\item[Grid fields] Implemented by classes that extend either
+\javaclass[artisynth.core.modelbase]{ScalarGridField} or
+\javaclass[artisynth.core.modelbase]{VectorGridField}, grid fields
+specify their values at the vertices of a regular 3D grid.
+Values at an
+arbitrary position $\p$ are determined by finding the grid
+cell containing $\p$, and then using 
+trilinear interpolation of the surrounding nodal values.
+
+\item[Nodal fields] Implemented by classes that extend either
+\javaclass[artisynth.core.femmodels]{ScalarNodalField} or
+\javaclass[artisynth.core.femmodels]{VectorNodalField}, nodal fields
+specify their values at the nodes of an FEM mesh.  Values at an
+arbitrary position $\p$ are determined by finding the element
+containing $\p$, and then finding the nodal coordinates (i.e., weights) of
+$\p$ within that element and interpolating the value
+accordingly. Values within a nodal field can also be queried directly
+either by node, or a set of node numbers and weights:
+\begin{verbatim}
+   T getValue (FemNode3d node)
+
+   T getValue (int[] nodeNums, double[] weights)
+\end{verbatim}
+
+\item[Element fields] Implemented by classes that extend either
+\javaclass[artisynth.core.femmodels]{ScalarElementField} or
+\javaclass[artisynth.core.femmodels]{VectorElementField}, element
+fields specify their values at the elements of an FEM mesh, with the
+value assumed to be constant over the element. Values at an arbitrary
+position $\p$ are determined by finding the element containing $\p$
+and then returning the value for that element. Values within a nodal
+field can also be queried directly by element:
+\begin{verbatim}
+   T getValue (FemElement3dBase elem)
+\end{verbatim}
+
+\item[Sub-element fields] Implemented by classes that extend either
+\javaclass[artisynth.core.femmodels]{ScalarSubElemField} or
+\javaclass[artisynth.core.femmodels]{VectorSubElemField}, sub-element
+fields specify their values at specific points within each element of
+an FEM mesh, with the points corresponding to the
+element's integration points. Values at an arbitrary position $\p$ are
+determined by finding the element containing $\p$, extrapolating the
+point values back to the nodes, and then using nodal interpolation.
+While this is computationally expensive (and it is also possible to
+create a nodal field that gives the same result), the purpose of
+sub-element fields is to provide precise values at element integration
+points, which can be queried directly using the element and
+point sub-index:
+\begin{verbatim}
+   T getValue (FemElement3dBase elem, int subIdx)
+\end{verbatim}
+
+\end{description}
+
+Internally, field features, such as nodes or elements, are generally
+referred to by their {\it number}. This is because node and element
+numbers are guaranteed to be {\it persistent}, in the sense that the
+number will remain unchanged as long as the node or element is not
+removed from the FEM model. Element field implementations also need to
+distingish between volumetric and shell elements, since these are each
+numbered independently.
+
+Table \ref{Fields:tab} gives a list of all the currently implemented
+fields. Some of them, such as those prefaced with {\tt Vector3d}, {\tt
+VectorNd}, and {\tt MatrixNd}, are specialized because they
+implement special features for their value type, or require
+specialized construction because the value type does not have a fixed
+size.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|lll|}
+\hline
+Field component & value & field type \\
+\hline
+{\tt modelbase.ScalarGridField} & {\tt double} & scalar grid \\
+{\tt modelbase.VectorGridField} & {\tt VectorObject} & vector grid \\
+{\tt femmodels.ScalarNodalField} & {\tt double} & scalar nodal \\
+{\tt femmodels.VectorNodalField} & {\tt VectorObject} & vector nodal \\
+{\tt femmodels.Vector3dNodalField} & {\tt Vector3d} & vector nodal \\
+{\tt femmodels.VectorNdNodalField} & {\tt VectorNd} & vector nodal \\
+{\tt femmodels.MatrixNdNodalField} & {\tt MatrixNd} & vector nodal \\
+{\tt femmodels.ScalarElementField} & {\tt double} & scalar element \\
+{\tt femmodels.VectorElementField} & {\tt VectorObject} & vector element \\
+{\tt femmodels.Vector3dElementField} & {\tt Vector3d} & vector element \\
+{\tt femmodels.VectorNdElementField} & {\tt VectorNd} & vector element \\
+{\tt femmodels.MatrixNdElementField} & {\tt MatrixNd} & vector element \\
+{\tt femmodels.ScalarSubElemField} & {\tt double} & scalar sub-element \\
+{\tt femmodels.VectorSubElemField} & {\tt VectorObject} & vector sub-element \\
+{\tt femmodels.Vector3dSubElemField} & {\tt Vector3d} & vector sub-element \\
+{\tt femmodels.VectorNdSubElemField} & {\tt VectorNd} & vector sub-element \\
+{\tt femmodels.MatrixNdSubElemField} & {\tt MatrixNd} & vector sub-element \\
+\hline
+\end{tabular}
+\end{center}
+\caption{List of all the field components available in ArtiSynth, with
+their value and field types.}
+\label{Fields:tab}
+\end{table}
+
+Each field component also has a {\it default value}, which is returned
+for any query for which the specified position lies outside the field's
+domain. For a grid field, this means lying outside the bounds of the
+grid. For an FEM-based field, this means lying outside the FEM mesh.
+The default value can be specified in the field's constructor. If not
+specified, it is usually set to 0.
+
+\begin{sideblock}
+Having a default value also means that explicit values do not have to
+specified at all of the features (e.g., nodes or elements) used to
+define the field. If an explcit value is missing, the default value is
+used instead.
+\end{sideblock}
+
+\subsection{Adding fields to a model}
+
+Fields are added to an ArtiSynth model by first creating an instance
+of the desired field class, populating it with values (at vertices,
+nodes, or elements, as required by the field), and then adding it to
+the model. Grid fields can generally be added anywhere, whereas
+FEM-based fields should be added to the {\sf fields} sublist of their
+associated FEM model (grid fields can be added there as well).
+
+As a simple example, one can construct a scalar nodal field, associated
+with an FEM model named {\tt fem}, like this:
+%
+\begin{lstlisting}[]
+   FemModel3d fem; 
+   // ... build the fem ...
+   ScalarNodalField field = new ScalarNodalField ("stiffness", fem, 0);
+   for (FemNode3d n : fem.getNodes()) {
+      double value = ... // compute value for the node
+      field.setValue (n, value);
+   }
+   fem.addField (field); // add the field to the fem
+\end{lstlisting}
+%
+Each field type has several constructors available. The one used above
+takes a component name ({\tt "stiffness"}), the FEM modal associated with
+the field, and a default value (0 in this case). When setting field
+values, it is often easiest to simple specify the node (although the
+node's number (i.e., {\tt node.getNumber()}) can be specified as well.
+After being created and initialized, the field is added to the FEM
+model using its {\tt addField()} method.
+
+\begin{sideblock}
+As noted in the previous section, it is not necessary to specify
+values for all the features of a field (e.g., nodes for a nodal field,
+or elements for an element field). For features with undefined values,
+the default value will be used instead.
+\end{sideblock}
+
+As another example, consider constructing a vector element field, with
+two-dimensional values characterized by {\tt Vector2d}. An example
+of this is as follows:
+%
+\begin{lstlisting}[]
+   VectorElementField<Vector2d> field = 
+      new VectorElementField<> ("uv", Vector2d.class, fem);
+   for (FemElement3d e : fem.getElements()) {
+      Vector2d value = ... // compute value for the element
+      field.setValue (e, value);
+   }
+   fem.addField (field); // add the field to the fem
+\end{lstlisting}
+%
+General vector fields are declared using type parameterization, in
+which the class type of the vector must be appended to the declaration
+between angle brackets ({\tt < >}). Also, the constructor also
+requires the class type to be specified as an argument. In the example
+above, the field is constructed with a name ({\tt "uv"}), value class
+type ({\tt Vector2d.class}), and the FEM model. Since no default value is
+specified, a value of 0 will be assumed.
+
+Since it is widely used, the vector type {\tt Vector3d} has its own
+predefined field classes, which don't require parameterization and may
+also contain special methods and features relavant for 3D vectors.  A
+{\tt Vector3d} nodal field can be declared and created as follows:
+%
+\begin{lstlisting}[]
+    Vector3dNodalField field = new Vector3dNormalField ("normals", fem);  
+\end{lstlisting}
+%
+Since the vector type is explicitly ``wired in'', no type
+parameterization is required, and {\tt Vector3d.class} does not need
+to be specified to the constructor.
+
+The vector types {\tt VectorNd} and {\tt MatrixNd} also have special
+predefined classes, because these components do not have a
+predetermined size and so it is necessary to specify this size
+information when constructing the field. Some constructors for fields
+with these types look like:
+%
+\begin{lstlisting}[]
+   MatrixNdElementField field = 
+      new MatrixNdElementField ("matrixField", 3, 6, fem);
+   VectorNdNodalField field = 
+      new VectorNdNodalField ("params", 7, fem);
+\end{lstlisting}
+%
+Both of these contain size information after the name
+argument: $3 \times 6$ for the matrix field, and 7 for the vector
+field. Again, no default value is specified, so 0 will be assumed.
+
+Lastly, we consider constucting a sub-element field. This is normally
+done when we need precisely computed information at each of the
+element's integration points, and we can't assume that nodal
+interpolation will give an accurate enough approximation. A general
+template for constructing a sub-element field might look like this:
+%
+\begin{lstlisting}[]
+   ScalarSubElemField field = new ScalarSubElemField ("precise", fem, -1);
+   for (FemElement3d e : fem.getElements()) {
+      IntegrationPoint3d[] ipnts = e.getAllIntegrationPoints();
+      for (int k=0; k<ipnts.length; k++) {
+         double value = ... // compute value at integration point k
+         field.setValue (e, k, value);
+      }
+   }
+   fem.addField (field); // add the field to the fem
+\end{lstlisting}
+%
+Here, we create a scalar sub-element field named {\tt "precise"} with
+a default value of -1. Then we iterate first through the FEM elements,
+and then through each element's integration points, computing values
+appropriate to each one. Since we are likely to need information from
+the integration points themselves to compute the value, we use {\tt
+e.getAllIntegrationPoints()} to obtain a list of them. 
+
+\begin{sideblock}
+Assigning values to a sub-element field, it is important to use the
+element's {\tt getAllIntegrationPoints()} method instead of {\tt
+getIntegrationPoints()}, since the former returns a list of {\it all}
+integration points, including the special {\it warping} point which is
+contained in the element's center and is used by the solver under some
+circumstances. Likewise, the number of sub-element values
+required is given by {\tt numAllIntegrationPoints()}.
+\end{sideblock}
+
+When computing sub-element field values, if it is necessary to obtain
+either the rest or current (spatial) position for an integration
+point, these can be obtained as follows:
+%
+\begin{lstlisting}[]
+      IntegrationPoint3d ipnt;
+      Point3d pos = new Point3d();
+      FemElement3d elem;
+
+      ...
+
+      // compute spatial position:
+      ipnt.computePosition (pos, elem.getNodes());
+
+      // compute rest position:
+      ipnt.computeRestPosition (pos, elem.getNodes());
+\end{lstlisting}
+%
+
+\subsection{Binding to material propertues}
+
+Once a field has been created and added to the model, one may {\it
+bind} it to certain properties of a {\tt FemMaterial}. When this is
+done, then whenever those properties are queried internally by the
+solver at the integration points for each FEM element, the field value
+at that integration point is used instead of the regular property
+value.
+
+\begin{sideblock}
+As long as a property {\sf XXX} is bound to a field, its regular value will
+still appear (and can be set) through widgets in control or property
+panels, or via the {\tt getXXX()} and {\tt setXXX()} accessors.
+However, the regular value won't be used internally by the FEM
+simulation.
+\end{sideblock}
+
+To bind a property to a field, it is necessary that 
+
+\begin{enumerate}
+
+\item The type of the field matches the value of the property;
+
+\item The property is itself {\it bindable}.
+
+\end{enumerate}
+
+If the property has a {\tt double} value, then it can be bound to any
+{\tt ScalarField}. Otherwise, if the property has a value {\tt T},
+where {\tt T} is an instance of {\tt maspack.matrix.VectorObject},
+then it can be bound to any {\tt VectorField<T>}.
+
+Bindable properties export two methods with the signature
+%
+\begin{lstlisting}[]
+   setXXXField (T field, boolean useRestPos)
+
+   T getXXXField ()
+\end{lstlisting}
+%
+where {\tt XXX} is the property name and {\tt T} is an appropriate
+field type. The second arugment, {\tt useRestPos}, is relevant only
+for grid fields, and indicates whether the grid should be queried
+using the integration point's {\it rest} position, or current {\it
+spatial} position. For FEM-based fields, this distinction is
+irrelevant, since the field is assumed to always move with the FEM.
+
+For example, consider the {\sf YoungsModulus} property of a
+\javaclass[artisynth.core.materials]{NeoHookeanMaterial} material. This
+has a {\tt double} value, and is bindable, and so can be
+bound to a {\tt ScalarField} as follows:
+%
+\begin{lstlisting}[]
+   FemModel3d fem;
+   ScalarNodalField field;
+   NeoHookeanMaterial mat;
+  
+   ... other initialization ...
+
+   mat.setYoungsModulusField (field, false);  // bind to the field
+   fem.setMaterial (mat);   // set the material in the FEM model
+\end{lstlisting}
+%
+\begin{sideblock}
+It is important to perform field bindings on materials {\bf before} 
+they are set in an FEM model (or one of its subcomponents, such
+as {\tt MuscleBundles}). That's because the {\tt setMaterial()} method
+{\it copies} the input material, and so any settings made on it
+afterwards won't be seen by the FEM:
+\begin{verbatim}
+   // works: field will be seen by the copied version of 'mat'
+   mat.setYoungsModulusField (field, false); 
+   fem.setMaterial (mat);
+
+   // does NOT work: field not seen by the copied version of 'mat'
+   fem.setMaterial (mat);
+   mat.setYoungsModulusField (field, false); 
+\end{verbatim}
+\end{sideblock}
+
+To unbind {\sf YoungsModulus}, one can do
+%
+\begin{lstlisting}[]
+   mat.setYoungsModulusField (null, false);
+\end{lstlisting}
+%
+where the value of the {\tt useRestPos} argument is ignored.
+
+\subsection{Example: FEM with variable stiffness}
+\label{VariableStiffness:sec}
+
+\begin{figure}[ht]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/VariableStiffness}
+\else
+ \includegraphics[width=3.75in]{images/VariableStiffness}
+\fi
+\end{center}
+\caption{VariableStiffness model after being run in ArtiSynth.}
+\label{VariableStiffness:fig}
+\end{figure}
+
+A simple model demonstrating a stiffness that varies over
+an FEM mesh is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.VariableStiffness
+\end{verbatim}
+%
+It consists of a simple thin hexahedral beam with a linear material
+for which the Youngs modulus $E$ is made to vary nonlinearly along the
+x axis of the rest position according to the formula
+%
+\begin{equation}
+E = \frac{10^8}{1 + 1000 \, x^3}
+\label{EFunction:eqn}
+\end{equation}
+%
+The model's {\tt build} method is given below:
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-16}}
+\lstinputlisting[firstline=1,lastline=37]{../../src/artisynth/demos/tutorial/VariableStiffness.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=18,lastline=54]{../../src/artisynth/demos/tutorial/VariableStiffness.java}
+\fi
+\lstset{numbers=none}
+
+Lines 6-10 create the hex FEM model and shift it so that the left side
+is aligned with the orihin, while lines 12-17 fix the leftmost
+nodes. Lines 21-27 create a scalar nodal field for the Youngs modulus,
+with lines 23-24 computing $E$ according to (\ref{EFunction:eqn}).
+The field is then bound to a linear material which is then set in the
+model (lined 30-32).
+
+The example can be run in ArtiSynth by selecting {\sf All demos >
+tutorial > VariableStiffness} from the {\sf Models} menu.  When it is
+run, the beam will bend under gravity, but mostly on the right side,
+due to the much higher stiffness on the left (Figure
+\ref{VariableStiffness:fig}).
+
+% TODO: ScaledFemMaterial
+
+\subsection{Example: specifying FEM muscle directions}
+
+\begin{figure}[ht]
+\begin{center}
+  \begin{tabular}{c}
+    \iflatexml
+       \includegraphics[]{images/RadialMuscleInitial}\\
+       \includegraphics[]{images/RadialMuscleExcited}
+    \else
+       \includegraphics[width=3.75in]{images/RadialMuscleInitial}\\
+       \includegraphics[width=3.75in]{images/RadialMuscleExcited}
+    \fi
+  \end{tabular}
+\end{center}
+\caption{(Top) RadialMuscle model after being loaded into ArtiSynth
+and run with its excitation set to 0.
+(Bottom) RadialMuscle with its excitation set to around .375.}
+\label{RadialMuscle:fig}
+\end{figure}
+
+Another example involves using a Vector3d field to specify the muscle
+activation directions over an FEM model and is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.RadialMuscle
+\end{verbatim}
+%
+When muscles are added using
+\javaclass[artisynth.core.femmodels]{MuscleBundle}s (
+Section \ref{sec:fem:muscle}), the muscle
+directions are stored and handled internally by the muscle bundle
+itself. However, it is possible to add a
+\javaclass[artisynth.core.materials]{MuscleMaterial} directly to the
+elements of an FEM model, using a
+\javaclass[artisynth.core.femmodels]{MaterialBundle} 
+(Section \ref{sec:augmentingMaterials}), in
+which case the directions need to be set explicitly using a field.
+
+The model's {\tt build} method is given below:
+\lstset{numbers=left}
+\iflatexml
+%% Hack: latexml lstinputlisting doesn't handle firstline correctly
+\lstset{firstnumber={-21}}
+\lstinputlisting[firstline=1,lastline=49]{../../src/artisynth/demos/tutorial/RadialMuscle.java}
+\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=23,lastline=71]{../../src/artisynth/demos/tutorial/RadialMuscle.java}
+\fi
+\lstset{numbers=none}
+
+Lines 5-19 create a thin cylindrical FEM model, centered on the
+origin, with radius $r$ and height $r/8$, consisting of hexes with
+wedges at the center, with two layers of elements along the $z$ axis
+(which is parallel to the cylinder axis). Its base material is set to
+a neo-hookean material. To keep the model from falling under gravity,
+all nodes whose distance to the $z$ axis is less than $r/2$ are fixed.
+
+Next, a Vector3d field is created to specify the directions, on a
+per-element basis, for the muscle material which will be added subsequently
+(lines 21-32). While we could create an instance of {\tt
+VectorElementField<Vector3d>}, we use
+\javaclass[artisynth.core.femmodels]{Vector3dElementField}, since this
+is available and may provide additional functionality (such as the
+ability to render the directions). Directions are set to lie outward
+in a radial direction perpendicular to the $z$ axis, and since the
+model is centered on the origin, they can be computed easily by first
+computing the element centroids, removing the $z$ component, and then
+normalizing. In order to give the muscle action an upward bias, we
+only set directions for elements in the upper layer. Direction values
+for elements in the lower layer will then automatically have a default
+value of 0, which will cause the muscle material to not apply any
+stress.
+
+We next add to the model a muscle material whose directions will be
+determined by the field. To hold the material, we first create and add
+a {\tt MaterialBundle} which is set to act on all elements (line
+35-36). Then we set this bundle's material to {\tt SimpleForceMuscle},
+which simply adds a stress along the muscle direction that equals
+the excitation value times the value of its {\sf maxStress} property,
+and bind the material's {\sf restDir}
+property to the direction field (lines 37-39).
+
+Finally, we create and add a control panel to allow interactive
+control over the muscle material's excitation property (lines 42-44),
+and set some rendering properties for the FEM model.
+
+% TODO: show field being rendered
+
+The example can be run in ArtiSynth by selecting {\sf All demos >
+tutorial > RadialMuscle} from the {\sf Models} menu.  When it is first
+runs, it falls around the edges under gravity (Figure
+\ref{RadialMuscle:fig}, top). Applying an excitation causes a radial
+contraction which pulls the edges upward and, if high enough, causes
+then to buckle (Figure \ref{RadialMuscle:fig}, bottom).
+
+% TODO: show how to compute nodal and sub-element fields
+
 \section{Collisions}
 \label{sec:fem:collision}
 
@@ -2058,9 +3069,28 @@ its underlying mesh structure.  At present, only meshes of type
 \javaclass[maspack.geometry]{PolygonalMesh} are supported.
 
 Since {\tt FemMeshComp} is also a {\tt Collidable}, this means we can enable 
-collisions with any embedded mesh inside a FEM.  Any forces resulting from
+collisions with any embedded mesh inside an FEM.  Any forces resulting from
 the collision are then automatically transferred back to the underlying nodes 
 of the model using Equation \eqref{pointFemForces:eqn}.
+
+\begin{sideblock}
+{\bf Note:} Collisions involving shell elements are not yet fully
+supported.  This relates to the fact that shells are thin and can
+therefore pass through each other easily in a single time step.
+However, collisions {\it should} work properly if
+
+\begin{enumerate}
+
+\item The collider type is set to {\tt AJL\_CONTOUR} (Sections
+\ref{collisionBehavior:sec} and \ref{CollisionImplemenetation:sec});
+
+\item Collisions result in closed intersection contours between
+the colliding surfaces. This is more likely to occur if one of the
+surfaces encloses a volume.
+
+\end{enumerate}
+
+\end{sideblock}
 
 \subsection{Example: FEM collisions}
 

@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 2017, by the Authors: Bruce Haines (UBC), Antonio Sanchez
  * (UBC), John E Lloyd (UBC)
  *
@@ -7,36 +7,20 @@
  */
 package maspack.geometry;
 
-import java.awt.Color;
-import java.io.BufferedReader;
-import java.io.PrintWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
-import maspack.matrix.*;
+import maspack.matrix.Matrix3d;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
-import maspack.matrix.Matrix3d;
-import maspack.render.PointLineRenderProps;
-import maspack.render.RenderList;
-import maspack.render.RenderObject;
-import maspack.render.RenderProps;
-import maspack.render.Renderable;
-import maspack.render.Renderer;
-import maspack.render.Renderer.LineStyle;
-import maspack.render.Renderer.PointStyle;
-import maspack.util.StringHolder;
+import maspack.matrix.VectorTransformer3d;
 import maspack.util.InternalErrorException;
-import maspack.util.ReaderTokenizer;
-import maspack.util.Scannable;
-import maspack.util.NumberFormat;
-import maspack.util.IndentingPrintWriter;
+import maspack.util.*;
 
 /**
  * Implements a distance field on a regular 3D grid. Distances, normals and
@@ -55,27 +39,13 @@ import maspack.util.IndentingPrintWriter;
  * these directions, and <i>cell widths</i> given by <code>wx/rx</code>,
  * <code>wy/ry</code>, and <code>wz/rz</code>.
  *
- * <p>Several coordinate frames are associated with the grid:
+ * <p>Several coordinate frames are associated with the grid: the <i>local</i>
+ * frame L, the <i>world</i> frame W, and the <i>grid</i> frame G. Details on
+ * these are given in the documentation for {@link InterpolatingGridBase}.
  *
- * <ul>
- *
- * <li>The <i>local</i> frame L which is associated with whatever
- * underlying features (such as mesh faces or vertices) might be associated
- * with the grid. With respect to this local frame, the grid has a
- * <i>center</i> c and an <i>orientation</i> defined by a rotation matrix R.
- *
- * <li>The <i>grid</i> frame G is defined with respect to the grid itself,
- * aligned with its orientation, and translated and scaled so that the
- * coordinates of each vertex corresponds to (i, j, k), where i, j, and k are
- * the vertex indices. The origin (0, 0, 0) hence corresponds to the minimum
- * grid vertex. Conversion from grid to local coordinates is done using a
- * scaling plus rigid transform TGL.
- *
- * <li>Finally, the local frame L can itself by described with respect to a
- * world frame W, using a rigid transform TLW that maps from local to world
- * coordinates.
- *
- * </ul>
+ * <p>Support is provided to compute the distance field from sets of underlying
+ * mesh features (such as faces or vertices). These computations are done in
+ * the local frame.
  *
  * <p>Distances for any point within the grid can be obtained by interpolation
  * of the distances at surrounding vertices.  Interpolation can be either
@@ -126,7 +96,7 @@ import maspack.util.IndentingPrintWriter;
  * in world coordinates.
  *
  * <p>Distances at the grid vertices can either be assigned directly, using
- * {@link #setDistances}, or can be computed based on nearest distance
+ * {@link #setVertexDistances}, or can be computed based on nearest distance
  * calculations to a set of point-based geometric features such as vertices,
  * edges, or faces, using {@link #computeDistances}. The convenience methods
  * {@link #computeFromFeatures} and {@link #computeFromFeaturesOBB} will both
@@ -148,43 +118,13 @@ import maspack.util.IndentingPrintWriter;
  * href="http://www.cs.ubc.ca/~rbridson/download/common_2008_nov_12.tar.gz">
  * common code set</a>.
  */
-public class DistanceGrid implements Renderable, Scannable {
+public class DistanceGrid extends ScalarGridBase {
 
-   protected Vector3d myWidths;         // widths along x, y, z
-   protected double[] myPhi;            // distance values at each vertex
    protected Vector3d[] myNormals;      // normal values at each vertex
    protected double[][] myQuadCoefs;    // quad tet interpolation coefficients 
    protected TetDesc[] myTets;          // quad tet interpolation coefficients 
 
-   protected int myDebug = 0;
-
    protected static boolean storeQuadCoefs = true;
-   private static int MAX_INT = Integer.MAX_VALUE;
-
-   /**
-    * Special distance value indicating that a query point is outside the grid.
-    */
-   public static double OUTSIDE_GRID = Double.MAX_VALUE;
-
-   // colors, colorMap and color indices which can be used to assign colors to
-   // the different vertices for rendering purposes
-   protected LinkedHashMap<Color,Integer> myColorMap;
-   protected ArrayList<Color> myColors;
-   protected int[] myColorIndices;
-   protected RenderProps myRenderProps = null;
-   protected int[] myRenderRanges = null;
-   //protected String myRenderProps = null;
-
-   protected RenderObject myRob;      // render object used for rendering
-   protected boolean myDrawEdges = false;
-   protected boolean myRobValid = false;
-   private static final int NORMAL_GROUP = 0; // line group for normals
-   private static final int EDGE_GROUP = 1; // line group for edges
-
-   /**
-    * Transform from grid to local coordinates.
-    */
-   protected VectorTransformer3d myGridToLocal;
 
    /**
     * Transform from quadratic grid to local coordinates.
@@ -197,92 +137,35 @@ public class DistanceGrid implements Renderable, Scannable {
    protected VectorTransformer3d myQuadGridToWorld;
    
    /**
-    * Transform from local to world coordinates.
-    */
-   protected VectorTransformer3d myLocalToWorld;
-
-   /**
-    * Radius of this grid (half the distance across its diagonal)
-    */
-   protected double myRadius;
-
-   /**
     * True if the distances are signed
     */
    protected boolean mySignedP = false;
 
-   protected int myNx = 0;  // number of vertices along X
-   protected int myNy = 0;  // number of vertices along Y
-   protected int myNz = 0;  // number of vertices along Z
-   protected int myNxNy = 0; // nx*ny
-
-   protected int myQx = 0;  // number of quad cells along X
-   protected int myQy = 0;  // number of quad cells along Y
-   protected int myQz = 0;  // number of quad cells along Z
-   protected int myQxQy = 0; // qx*qy
-
-   protected static final double INF = Double.POSITIVE_INFINITY;
+   protected int myQx;  // number of quad cells along X
+   protected int myQy;  // number of quad cells along Y
+   protected int myQz;  // number of quad cells along Z
+   protected int myQxQy;// qx*qy
 
    /**
     * An array giving the index of the nearest Feature to each vertex.
     */
    protected int[] myClosestFeatureIdxs;
-   
    protected Feature[] myFeatures;
-   protected RigidTransform3d myTLocalToWorld;
 
+   /**
+    * Default constructor. Should not be called by applications, unless
+    * {@link #scan} is called immediately after.
+    */   
    public DistanceGrid () {
-      myRenderProps = createRenderProps();
-      myWidths = new Vector3d();
-      myLocalToWorld = new IdentityVector3dTransform();
+      super();
    }
    
    /**
-    * Sets a transform that maps from local to world coordinates
-    * 
-    * @param TLW transform from local to world coordinates
+    * {@inheritDoc}
     */
    public void setLocalToWorld (RigidTransform3d TLW) {
-      if (TLW != null && !TLW.isIdentity()) {
-         myTLocalToWorld = TLW.copy();
-         myLocalToWorld = myTLocalToWorld;
-      }
-      else {
-         myTLocalToWorld = null;
-         myLocalToWorld = new IdentityVector3dTransform();
-      }
+      super.setLocalToWorld (TLW);
       updateQuadGridToWorld (myQuadGridToLocal);
-   }
-   
-   /**
-    * Returns the transform that maps from local to world coordinates.
-    * or <code>null</code> if no such transform is set.
-    * 
-    * @return transform from local to world coordinates. Should
-    * not be modified.
-    */
-   public RigidTransform3d getLocalToWorld() {
-      return myTLocalToWorld;
-   }
-   
-   /**
-    * Returns the transformer that maps from local to world coordinates.  If no
-    * local-to-world transform is set, then this will be an identity
-    * transformer.
-    * 
-    * @return transformer that maps from local to world coordinates
-    */
-   public VectorTransformer3d getLocalToWorldTransformer() {
-      return myLocalToWorld;
-   }
-
-   /**
-    * Returns the transformer that maps from grid to local coordinates.
-    *         
-    * @return transformer from grid to local coordinates
-    */
-   public VectorTransformer3d getGridToLocalTransformer() {
-      return myGridToLocal;
    }
 
    private void fitAABB (
@@ -441,15 +324,7 @@ public class DistanceGrid implements Renderable, Scannable {
     */
    public DistanceGrid (
       Vector3d widths, Vector3i resolution, RigidTransform3d TCL) {
-
-      this();
-
-      setResolution (resolution);
-      setWidths (widths);
-
-      setCenterAndOrientation (TCL);
-
-      clearColors();
+      initGrid (widths, resolution, TCL);
    }
 
    /**
@@ -460,14 +335,7 @@ public class DistanceGrid implements Renderable, Scannable {
     * @param resolution cell resolution along the x, y, and z axes
     */
    public DistanceGrid (Vector3i resolution) {
-
-      this();
-
-      setResolution (resolution);
-      Vector3d widths = new Vector3d (1, 1, 1);
-      setWidths (widths);
-      setCenterAndOrientation (null);
-      clearColors();
+      initGrid (null, resolution, null);
    }
 
    /**
@@ -476,20 +344,20 @@ public class DistanceGrid implements Renderable, Scannable {
     * @param grid distance grid to copy
     */
    public DistanceGrid (DistanceGrid grid) {
-
-      this();
       set (grid);
    }
 
    /**
     * Sets the resolution for this grid along the x, y, and z axes.
     * Resolutions are rounded up to be an even number, to allow quadratic
-    * interpolation. If features are present for this grid, as described for
+    * interpolation (and the {@code resolution} argument is adjusted
+    * accordingly). If features are present for this grid, as described for
     * {@link #getFeatures}, then these are used to recompute the
     * distances. Otherwise, the distances are set to zero. If a color map is
     * present, it is cleared.
     *
-    * @param resolution cell resolution along the x, y and z axes
+    * @param resolution cell resolution along the x, y and z axes.  Must be at
+    * least 1 along each axis.
     */
    public void setResolution (Vector3i resolution) {
       // round resolutions up to the nearest even number
@@ -505,96 +373,54 @@ public class DistanceGrid implements Renderable, Scannable {
       int nvx = resolution.x+1;
       int nvy = resolution.y+1;
       int nvz = resolution.z+1;
-
-
       if (nvx != myNx || nvy != myNy || nvz != myNz) {
 
-         // for updating render ranges:
-         int oldNx = myNx;
-         int oldNy = myNy;
-         int oldNz = myNz;
-
-         // update vertex counts
-         myNx = nvx;
-         myNy = nvy;
-         myNz = nvz;
-         myNxNy = myNx*myNy;  
-
+         super.setResolution (resolution);
          // update quad cell counts
          myQx = (nvx-1)/2;
          myQy = (nvy-1)/2;
          myQz = (nvz-1)/2;
          myQxQy = myQx*myQy;  
 
-         // clear or recompute distances
-         int numV = myNx*myNy*myNz;
-         myPhi = new double[numV];
-         myNormals = new Vector3d[numV];
-         myColorIndices = new int[numV];
          myQuadCoefs = null;
          if (myFeatures != null) {
-            int[] closestFeatureIdxs = new int[numV];
-            calculatePhi (myPhi, closestFeatureIdxs, myFeatures, mySignedP);
+            int[] closestFeatureIdxs = new int[numVertices()];
+            calculatePhi (myValues, closestFeatureIdxs, myFeatures, mySignedP);
             myClosestFeatureIdxs = closestFeatureIdxs;
          }
-         // adjust render ranges
-         if (myRenderRanges == null) {
-            myRenderRanges = new int[] {0, MAX_INT, 0, MAX_INT, 0, MAX_INT};
-         }
-         else {
-            adjustRenderRanges (myRenderRanges);
-         }
-         clearColors();
       }
    }
 
-   private boolean adjustRenderRanges (int[] ranges) {
-      boolean changed = false;
-      if (ranges[0] >= myNx) {
-         ranges[0] = 0;
-         ranges[1] = MAX_INT;
-         changed = true;
-      }
-      if (ranges[2] >= myNy) {
-         ranges[2] = 0;
-         ranges[3] = MAX_INT;
-         changed = true;
-      }
-      if (ranges[4] >= myNz) {
-         ranges[4] = 0;
-         ranges[5] = MAX_INT;
-         changed = true;
-      }      
-      return changed;
+   protected void initVertexValues (int numv) {
+      super.initVertexValues (numv);
+      myNormals = new Vector3d[numv];
    }
-   
-   /**
-    * Sets the widths of this grid along the x, y, and z axes. The grid
-    * resolution, center, orientation, features and distances remain unchanged.
-    *
-    * @param widths for this grid
-    */
-   void setWidths (Vector3d widths) {
-      if (!widths.equals (myWidths)) {
-         myWidths.set (widths);
-         myRadius = widths.norm()/2;
+
+   protected void updateGridToLocal () {
+      super.updateGridToLocal();
+      Vector3d cwidths = getCellWidths();
+      cwidths.scale (2.0);
+      Vector3d origin = new Vector3d();
+      if (myGridToLocal instanceof ScaledTranslation3d) {
+         ((ScaledTranslation3d)myGridToLocal).getOrigin(origin);
+         myQuadGridToLocal = new ScaledTranslation3d (cwidths, origin);
       }
+      else {
+         ((ScaledRigidTransformer3d)myGridToLocal).getOrigin(origin);
+         myQuadGridToLocal =
+            new ScaledRigidTransformer3d (cwidths, myTCL.R, origin);
+      }
+      updateQuadGridToWorld (myQuadGridToLocal);
    }
 
    /**
-    * Sets this grid to be a copy of an existing grid.
+    * Sets this distance grid to be a copy of an existing grid.
     *
     * @param grid distance grid to copy
     */
    public void set (DistanceGrid grid) {
 
-      myWidths.set (grid.myWidths);
-      if (grid.myPhi != null) {
-         myPhi = Arrays.copyOf (grid.myPhi, grid.myPhi.length);
-      }
-      else {
-         myPhi = null;
-      }
+      super.set (grid);
       if (grid.myNormals != null) {
          myNormals = new Vector3d[grid.myNormals.length];
          for (int i=0; i<myNormals.length; i++) {
@@ -608,49 +434,6 @@ public class DistanceGrid implements Renderable, Scannable {
       myQuadCoefs = null; // will be recomputed on demand
       myTets = null;      // will be recomputed on demand
       
-      if (grid.myColorMap != null) {
-         myColorMap = new LinkedHashMap<Color,Integer>();
-         for (Map.Entry<Color,Integer> e : grid.myColorMap.entrySet()) {
-            myColorMap.put (e.getKey(), e.getValue());
-         }
-      }
-      else {
-         myColorMap = null;
-      }
-      
-      if (grid.myColors != null) {
-         myColors = new ArrayList<Color>();
-         myColors.addAll (grid.myColors);
-      }
-      else {
-         myColors = null;
-      }
-      if (grid.myColorIndices != null) {
-         myColorIndices = Arrays.copyOf (
-            grid.myColorIndices, grid.myColorIndices.length);
-      }
-      else {
-         myColorIndices = null;
-      }
-      myRenderProps = new RenderProps (grid.myRenderProps);
-      if (grid.myRenderRanges != null) {
-         myRenderRanges = Arrays.copyOf (
-            grid.myRenderRanges, grid.myRenderRanges.length);
-      }
-      else {
-         myRenderRanges = null;
-      }
-
-      myDrawEdges = grid.myDrawEdges;
-      myRobValid = false;
-      
-      if (grid.myGridToLocal != null) {
-         myGridToLocal = grid.myGridToLocal.copy();
-      }
-      else {
-         myGridToLocal = null;
-      }
-
       if (grid.myQuadGridToLocal != null) {
          myQuadGridToLocal = grid.myQuadGridToLocal.copy();
       }
@@ -665,13 +448,7 @@ public class DistanceGrid implements Renderable, Scannable {
          myQuadGridToWorld = null;
       }
 
-      myRadius = grid.myRadius;
       mySignedP = grid.mySignedP;
-
-      myNx = grid.myNx;
-      myNy = grid.myNy;
-      myNz = grid.myNz;
-      myNxNy = grid.myNxNy;
 
       myQx = grid.myQx;
       myQy = grid.myQy;
@@ -692,18 +469,6 @@ public class DistanceGrid implements Renderable, Scannable {
       else {
          myFeatures = null;
       }
-
-      setLocalToWorld (grid.myTLocalToWorld);
-   }
-
-   /**
-    * Clears the color map used to specify vertex colors. When no color map is
-    * present, vertices are rendered using the point color of the render
-    * properties passed to the render method.
-    */
-   public void clearColors() {
-      myColorMap = null;
-      myRobValid = false;
    }
 
    private void clearNormals() {
@@ -712,86 +477,10 @@ public class DistanceGrid implements Renderable, Scannable {
       }
    }
 
-   private void initColorMap() {
-      myColorMap = new LinkedHashMap<Color,Integer>();
-      myColors = new ArrayList<Color>();
-      myColors.add (Color.GREEN);
-      for (int i=0; i<myColorIndices.length; i++) {
-         myColorIndices[i] = 0;
-      }
-   }
-   
    private final double sqr (double x) {
       return x*x;
    }
 
-   /**
-    * Sets the color used to render a specific vertex. If no color map
-    * is currently present, one is created.
-    * 
-    * @param idx vertex index
-    * @param color rendering color for the vertex
-    */
-   public void setVertexColor (int idx, Color color) {
-      if (myColorMap == null) {
-         initColorMap();
-      }
-      Integer cidx = myColorMap.get(color);
-      if (cidx == null) {
-         cidx = myColors.size();
-         myColorMap.put (color, cidx);
-         myColors.add (color);
-      }
-      myColorIndices[idx] = cidx;
-      myRobValid = false;
-   }
-   
-   /**
-    * Returns the color used for rendering a specific vertex when using a color
-    * map. If no color map is currently present, <code>null</code> is returned.
-    * 
-    * @param idx vertex index
-    * @return rendering color for the vertex
-    */
-   public Color getVertexColor (int idx) {
-      if (myColorMap == null) {
-         return null;
-      }
-      else {
-         return myColors.get(myColorIndices[idx]);
-      }
-   }
-
-   /**
-    * Sets the default color used for rendering vertices. If no color map
-    * is currently present, one is initialized.
-    *
-    * @param color default vertex color when using a color map.
-    */
-   public void setDefaultVertexColor (Color color) {
-      if (myColorMap == null) {
-         initColorMap();
-      }
-      myColors.set (0, color);
-      myRobValid = false;
-   }
-
-  /**
-    * Returns the default color used for rendering vertices when a color map is
-    * specified. If no color map is currently present, then <code>null</code>
-    * is returned.
-    *
-    * @return default vertex color when using a color map.
-    */
-   public Color getDefaultVertexColor() {
-      if (myColorMap == null) {
-         return null;
-      }
-      else {
-         return myColors.get(0);
-      }
-   }
-   
    /**
     * Computes the distance field for this grid, based on the nearest distances
     * to a supplied set of features. These features are stored internally and
@@ -810,51 +499,91 @@ public class DistanceGrid implements Renderable, Scannable {
    }
    
    /**
-    * Explicitly sets the distance field for this grid. The internal feature
-    * cache and nearest feature setting for each vertex are cleared.
+    * Explicitly sets the distance field for this grid, by setting the distance
+    * values at each vertex. The internal feature cache and nearest feature
+    * setting for each vertex are cleared.
+    *
+    * <p>The input array is indexed such that for vertex indices xi, yj, zk,
+    * the corresponding index into this array is
+    * <pre>
+    * idx = xi + nx*yj + (nx*ny)*zk
+    * </pre>
+    * where <code>nx</code> and <code>ny</code> are the number
+    * of vertices along x and y axes.
     *
     * @param distances distance for each vertex. Must have a length
     * {@code >=} {@link #numVertices}.
     * @param signed if <code>true</code>, indicates that the field should be
     * considered signed.
     */
-   public void setDistances (
+   public void setVertexDistances (
       double[] distances, boolean signed) {
-
-      int numv = numVertices();
-
-      if (distances.length < numv) {
-         throw new IllegalArgumentException (
-            "distances.length=" + distances.length +
-            "; must be >= num vertices ("+numv+")");
-      }
-      
-      for (int i=0; i<numv; i++) {
-         myPhi[i] = distances[i];
-      }
+      super.setVertexValues (distances);
       myQuadCoefs = null;
       clearNormals();
       clearFeatures();
       mySignedP = signed;
-      myRobValid = false;
+   }
+
+   /**
+    * Returns the full array of distances at each vertex. See {@link
+    * #setVertexDistances} for a description of how vertices are indexed with
+    * respect to this array.
+    * 
+    * @return array of distances, or <code>null</code> if distances have
+    * not yet been set.
+    */
+   public double[] getVertexDistances() {
+      return super.getVertexValues();
    }
    
+   /**
+    * Queries the distance value at the vertex indexed by {@code vi}. See
+    * {@link #setVertexDistances} for a description of how vertices are
+    * indexed.
+    * 
+    * @param vi vertex index
+    * @return distance value at the vertex
+    */
+   protected double getVertexDistance (int vi) {
+      return super.getVertexValue (vi);
+   }
+
+   /**
+    * Queries the distance value at a specified vertex, as specified by x, y, z
+    * indices.
+    * 
+    * @param vxyz x, y, z vertex indices
+    * @return distance value at the vertex
+    */
+   public double getVertexDistance (Vector3i vxyz) {
+      return super.getVertexValue (vxyz);
+   }
+   
+   /**
+    * Queries the distance value at a specified vertex, as specified by x, y, z
+    * indices.
+    * 
+    * @param xi x vertex index
+    * @param yj y vertex index
+    * @param zk z vertex index
+    * @return distance value at the vertex
+    */   
+   protected double getVertexDistance (int xi, int yj, int zk) {
+      return super.getVertexValue (xi, yj, zk);
+   }
+
    /**
     * Explicitly zeros the distance field for this grid. The internal feature
     * cache and nearest feature setting for each vertex are cleared.  The
     * <i>signed</i> property is set to <code>false</code>.
     */
-   public void zeroDistances () {
-
-      int numv = numVertices();
-      for (int i=0; i<numv; i++) {
-         myPhi[i] = 0;
-      }
+   public void zeroVertexDistances () {
+      super.zeroVertexValues();
       myQuadCoefs = null;
       clearNormals();
       clearFeatures();
       mySignedP = false;
-      myRobValid = false;
    }
    
    /**
@@ -889,7 +618,7 @@ public class DistanceGrid implements Renderable, Scannable {
       myFeatures = features.toArray(new Feature[0]);
       myClosestFeatureIdxs = new int[numv];
       for (int i=0; i<numv; i++) {
-         myPhi[i] = distances[i];
+         myValues[i] = distances[i];
          int idx = closestFeatures[i];
          if (idx < 0 || idx >= myFeatures.length) {
             throw new IllegalArgumentException (
@@ -928,41 +657,6 @@ public class DistanceGrid implements Renderable, Scannable {
          myQuadGridToWorld = new ScaledRigidTransformer3d (scaling, TGW);
       }
    }      
-
-   /**
-    * Sets the center and orientation of this grid with respect to local
-    * coordinates, by means of the transform <code>TCL</code> whose rotation
-    * matrix <code>R</code> gives the orientation and offset vector
-    * <code>p</code> gives the center. All other aspects of the grid remain
-    * unchanged. <code>TCL</code> may also be specified as <code>null</code>,
-    * in which case the center and orientation will be set to 0 and the
-    * identity.
-    *
-    * @param TCL transform giving the center and orientation
-    */
-   public void setCenterAndOrientation (RigidTransform3d TCL) {
-      Vector3d origin = new Vector3d();
-      Vector3d cwidths = getCellWidths();
-      origin.scale (-0.5, myWidths);
-      if (TCL == null || TCL.R.isIdentity()) {
-         if (TCL != null) {
-            origin.add (TCL.p);
-         }
-         myGridToLocal = new ScaledTranslation3d (cwidths, origin);
-         cwidths.scale (2.0);
-         myQuadGridToLocal = new ScaledTranslation3d (cwidths, origin);
-      }
-      else {
-         origin.transform (TCL.R);
-         origin.add (TCL.p);
-         myGridToLocal =
-            new ScaledRigidTransformer3d (cwidths, TCL.R, origin);
-         cwidths.scale (2.0);
-         myQuadGridToLocal =
-            new ScaledRigidTransformer3d (cwidths, TCL.R, origin);
-      }
-      updateQuadGridToWorld (myQuadGridToLocal);
-   }     
    
    /**
     * Fits this grid to a set of features and computes the corresponding
@@ -1190,7 +884,7 @@ public class DistanceGrid implements Renderable, Scannable {
       Feature[] featArray = features.toArray(new Feature[0]);
       int numv = numVertices();
       int[] closestFeatureIdxs = new int[numv];
-      calculatePhi (myPhi, closestFeatureIdxs, featArray, signed);
+      calculatePhi (myValues, closestFeatureIdxs, featArray, signed);
       myQuadCoefs = null;
       clearNormals();
       myClosestFeatureIdxs = closestFeatureIdxs;
@@ -1205,7 +899,7 @@ public class DistanceGrid implements Renderable, Scannable {
       int[] closestFeatureIdxs = new int[numv];
       calculatePhi (phiNew, closestFeatureIdxs, featArray, /*signed=*/true);
       for (int i=0; i<numv; i++) {
-         myPhi[i] = Math.min (myPhi[i], phiNew[i]);
+         myValues[i] = Math.min (myValues[i], phiNew[i]);
       }
       myQuadCoefs = null;
       clearNormals();
@@ -1220,7 +914,7 @@ public class DistanceGrid implements Renderable, Scannable {
       int[] closestFeatureIdxs = new int[numv];
       calculatePhi (phiNew, closestFeatureIdxs, featArray, /*signed=*/true);
       for (int i=0; i<numv; i++) {
-         myPhi[i] = Math.max (myPhi[i], phiNew[i]);
+         myValues[i] = Math.max (myValues[i], phiNew[i]);
       }
       myQuadCoefs = null;
       clearNormals();
@@ -1235,7 +929,7 @@ public class DistanceGrid implements Renderable, Scannable {
       int[] closestFeatureIdxs = new int[numv];
       calculatePhi (phiNew, closestFeatureIdxs, featArray, /*signed=*/true);
       for (int i=0; i<numv; i++) {
-         myPhi[i] = Math.max (myPhi[i], -phiNew[i]);
+         myValues[i] = Math.max (myValues[i], -phiNew[i]);
       }
       myQuadCoefs = null;
       clearNormals();
@@ -1250,7 +944,7 @@ public class DistanceGrid implements Renderable, Scannable {
       int[] closestFeatureIdxs = new int[numv];
       calculatePhi (phiNew, closestFeatureIdxs, featArray, /*signed=*/true);
       for (int i=0; i<numv; i++) {
-         myPhi[i] = Math.max (-myPhi[i], phiNew[i]);
+         myValues[i] = Math.max (-myValues[i], phiNew[i]);
       }
       myQuadCoefs = null;
       clearNormals();
@@ -1299,12 +993,8 @@ public class DistanceGrid implements Renderable, Scannable {
       }
       Point3d featPnt    = new Point3d();
       Point3d gridPnt    = new Point3d();
-      Vector3i gridMinOld   = new Vector3i();
-      Vector3i gridMaxOld   = new Vector3i();
       Vector3i gridMin   = new Vector3i();
       Vector3i gridMax   = new Vector3i();
-      Point3d featMin   = new Point3d();
-      Point3d featMax   = new Point3d();
       Point3d nearPntLoc = new Point3d();
       Point3d featPntLoc = new Point3d();
       Vector3i hi = new Vector3i();
@@ -1450,35 +1140,35 @@ public class DistanceGrid implements Renderable, Scannable {
       Vector3d nrm = new Vector3d();
       //********************************************************************
       if (x == myNx - 1) {
-         nrm.x = getVertexDistance (x, y, z) - getVertexDistance (x-1, y, z);
+         nrm.x = getVertexValue (x, y, z) - getVertexValue (x-1, y, z);
       }
       else if (x == 0) {
-         nrm.x = getVertexDistance (x+1, y, z) - getVertexDistance (x, y, z);
+         nrm.x = getVertexValue (x+1, y, z) - getVertexValue (x, y, z);
       }
       else {
-         nrm.x = getVertexDistance (x+1, y, z) - getVertexDistance (x-1, y, z);
+         nrm.x = getVertexValue (x+1, y, z) - getVertexValue (x-1, y, z);
          nrm.x *= 0.5;
       }
       //********************************************************************
       if (y == myNy - 1) {
-         nrm.y = getVertexDistance (x, y, z) - getVertexDistance (x, y-1, z) ;
+         nrm.y = getVertexValue (x, y, z) - getVertexValue (x, y-1, z) ;
       }
       else if (y == 0) {
-         nrm.y = getVertexDistance (x, y+1, z) - getVertexDistance (x, y, z);
+         nrm.y = getVertexValue (x, y+1, z) - getVertexValue (x, y, z);
       }
       else {
-         nrm.y = getVertexDistance (x, y+1, z) - getVertexDistance (x, y-1, z);
+         nrm.y = getVertexValue (x, y+1, z) - getVertexValue (x, y-1, z);
          nrm.y *= 0.5;            
       }
       //********************************************************************
       if (z == myNz - 1) {
-         nrm.z = getVertexDistance (x, y, z) - getVertexDistance (x, y, z-1);
+         nrm.z = getVertexValue (x, y, z) - getVertexValue (x, y, z-1);
       }
       else if (z == 0) {
-         nrm.z = getVertexDistance (x, y, z+1) - getVertexDistance (x, y, z);
+         nrm.z = getVertexValue (x, y, z+1) - getVertexValue (x, y, z);
       }
       else {
-         nrm.z = getVertexDistance (x, y, z+1) - getVertexDistance (x, y, z-1);
+         nrm.z = getVertexValue (x, y, z+1) - getVertexValue (x, y, z-1);
          nrm.z *= 0.5;
       }
       //********************************************************************
@@ -1499,9 +1189,9 @@ public class DistanceGrid implements Renderable, Scannable {
     * @return interpolated distance, or <code>OUTSIDE_GRID</code>.
     */
    public double getLocalDistance (Point3d point) {
-      return getLocalDistanceAndNormal (null, null, point);
+      return super.getLocalValue (point);
    }
-   
+
    /** 
     * Calculates the distance at an arbitrary point in world coordinates using
     * multilinear interpolation of the vertex values for the grid cell
@@ -1513,9 +1203,7 @@ public class DistanceGrid implements Renderable, Scannable {
     * @return interpolated distance, or <code>OUTSIDE_GRID</code>.
     */
    public double getWorldDistance (Point3d point) {
-      Point3d lpnt = new Point3d();
-      myLocalToWorld.inverseTransformPnt (lpnt, point);
-      return getLocalDistance(lpnt);
+      return super.getWorldValue (point);
    }
 
    /** 
@@ -1688,14 +1376,14 @@ public class DistanceGrid implements Renderable, Scannable {
       double w110  = w111z*(1-dz);
       double w111  = w111z*dz;
 
-      double d000  = getVertexDistance (vidx.x  , vidx.y  , vidx.z  );
-      double d001  = getVertexDistance (vidx.x  , vidx.y  , vidx.z+1);
-      double d010  = getVertexDistance (vidx.x  , vidx.y+1, vidx.z  );
-      double d011  = getVertexDistance (vidx.x  , vidx.y+1, vidx.z+1);
-      double d100  = getVertexDistance (vidx.x+1, vidx.y  , vidx.z  );
-      double d101  = getVertexDistance (vidx.x+1, vidx.y  , vidx.z+1);
-      double d110  = getVertexDistance (vidx.x+1, vidx.y+1, vidx.z  );
-      double d111  = getVertexDistance (vidx.x+1, vidx.y+1, vidx.z+1);
+      double d000  = getVertexValue (vidx.x  , vidx.y  , vidx.z  );
+      double d001  = getVertexValue (vidx.x  , vidx.y  , vidx.z+1);
+      double d010  = getVertexValue (vidx.x  , vidx.y+1, vidx.z  );
+      double d011  = getVertexValue (vidx.x  , vidx.y+1, vidx.z+1);
+      double d100  = getVertexValue (vidx.x+1, vidx.y  , vidx.z  );
+      double d101  = getVertexValue (vidx.x+1, vidx.y  , vidx.z+1);
+      double d110  = getVertexValue (vidx.x+1, vidx.y+1, vidx.z  );
+      double d111  = getVertexValue (vidx.x+1, vidx.y+1, vidx.z+1);
 
       double d =
          w000*d000 + w001*d001 + w010*d010 + w011*d011 +
@@ -1740,70 +1428,65 @@ public class DistanceGrid implements Renderable, Scannable {
             double w110y = dx*(1-dz);
             double w111y = dx*dz;           
 
-            if (true) {
-               Vector3d row = new Vector3d();
+            Vector3d row = new Vector3d();
 
-               // top row of Dnrm 
-               row.x = 
-                  (-w100x*n000.x - w101x*n001.x - w110x*n010.x - w111x*n011.x
-                   +w100x*n100.x + w101x*n101.x + w110x*n110.x + w111x*n111.x);
-               row.y = 
-                  (-w010y*n000.x - w011y*n001.x + w010y*n010.x + w011y*n011.x
-                   -w110y*n100.x - w111y*n101.x + w110y*n110.x + w111y*n111.x);
-               row.z =
-                  (-w001z*n000.x + w001z*n001.x - w011z*n010.x + w011z*n011.x
-                   -w101z*n100.x + w101z*n101.x - w111z*n110.x + w111z*n111.x);
+            // top row of Dnrm 
+            row.x = 
+               (-w100x*n000.x - w101x*n001.x - w110x*n010.x - w111x*n011.x
+                +w100x*n100.x + w101x*n101.x + w110x*n110.x + w111x*n111.x);
+            row.y = 
+               (-w010y*n000.x - w011y*n001.x + w010y*n010.x + w011y*n011.x
+                -w110y*n100.x - w111y*n101.x + w110y*n110.x + w111y*n111.x);
+            row.z =
+               (-w001z*n000.x + w001z*n001.x - w011z*n010.x + w011z*n011.x
+                -w101z*n100.x + w101z*n101.x - w111z*n110.x + w111z*n111.x);
 
-               myGridToLocal.transformCovec (row, row);
-               row.scale (d);
+            myGridToLocal.transformCovec (row, row);
+            row.scale (d);
 
-               Dnrm.m00 = row.x;
-               Dnrm.m01 = row.y;
-               Dnrm.m02 = row.z;
+            Dnrm.m00 = row.x;
+            Dnrm.m01 = row.y;
+            Dnrm.m02 = row.z;
 
-               // middle row of Dnrm
+            // middle row of Dnrm
 
-               row.x =
-                  (-w100x*n000.y - w101x*n001.y - w110x*n010.y - w111x*n011.y
-                   +w100x*n100.y + w101x*n101.y + w110x*n110.y + w111x*n111.y);
-               row.y = 
-                  (-w010y*n000.y - w011y*n001.y + w010y*n010.y + w011y*n011.y
-                   -w110y*n100.y - w111y*n101.y + w110y*n110.y + w111y*n111.y);
-               row.z = 
-                  (-w001z*n000.y + w001z*n001.y - w011z*n010.y + w011z*n011.y
-                   -w101z*n100.y + w101z*n101.y - w111z*n110.y + w111z*n111.y);
+            row.x =
+               (-w100x*n000.y - w101x*n001.y - w110x*n010.y - w111x*n011.y
+                +w100x*n100.y + w101x*n101.y + w110x*n110.y + w111x*n111.y);
+            row.y = 
+               (-w010y*n000.y - w011y*n001.y + w010y*n010.y + w011y*n011.y
+                -w110y*n100.y - w111y*n101.y + w110y*n110.y + w111y*n111.y);
+            row.z = 
+               (-w001z*n000.y + w001z*n001.y - w011z*n010.y + w011z*n011.y
+                -w101z*n100.y + w101z*n101.y - w111z*n110.y + w111z*n111.y);
 
-               myGridToLocal.transformCovec (row, row);
-               row.scale (d);
+            myGridToLocal.transformCovec (row, row);
+            row.scale (d);
 
-               Dnrm.m10 = row.x;
-               Dnrm.m11 = row.y;
-               Dnrm.m12 = row.z;
+            Dnrm.m10 = row.x;
+            Dnrm.m11 = row.y;
+            Dnrm.m12 = row.z;
 
-               // bottom row of Dnrm
+            // bottom row of Dnrm
 
-               row.x = 
-                  (-w100x*n000.z - w101x*n001.z - w110x*n010.z - w111x*n011.z
-                   +w100x*n100.z + w101x*n101.z + w110x*n110.z + w111x*n111.z);
+            row.x = 
+               (-w100x*n000.z - w101x*n001.z - w110x*n010.z - w111x*n011.z
+                +w100x*n100.z + w101x*n101.z + w110x*n110.z + w111x*n111.z);
 
-               row.y = 
-                  (-w010y*n000.z - w011y*n001.z + w010y*n010.z + w011y*n011.z
-                   -w110y*n100.z - w111y*n101.z + w110y*n110.z + w111y*n111.z);
+            row.y = 
+               (-w010y*n000.z - w011y*n001.z + w010y*n010.z + w011y*n011.z
+                -w110y*n100.z - w111y*n101.z + w110y*n110.z + w111y*n111.z);
 
-               row.z = 
-                  (-w001z*n000.z + w001z*n001.z - w011z*n010.z + w011z*n011.z
-                   -w101z*n100.z + w101z*n101.z - w111z*n110.z + w111z*n111.z);
+            row.z = 
+               (-w001z*n000.z + w001z*n001.z - w011z*n010.z + w011z*n011.z
+                -w101z*n100.z + w101z*n101.z - w111z*n110.z + w111z*n111.z);
 
-               myGridToLocal.transformCovec (row, row);
-               row.scale (d);
+            myGridToLocal.transformCovec (row, row);
+            row.scale (d);
 
-               Dnrm.m20 = row.x;
-               Dnrm.m21 = row.y;
-               Dnrm.m22 = row.z;
-            }
-            else {
-               Dnrm.setZero();
-            }
+            Dnrm.m20 = row.x;
+            Dnrm.m21 = row.y;
+            Dnrm.m22 = row.z;
                
             Vector3d grad = new Vector3d();
 
@@ -1870,14 +1553,14 @@ public class DistanceGrid implements Renderable, Scannable {
       double w110  = w111z*(1-dz);
       double w111  = w111z*dz;
       
-      double d000  = getVertexDistance (vidx.x  , vidx.y  , vidx.z  );
-      double d001  = getVertexDistance (vidx.x  , vidx.y  , vidx.z+1);
-      double d010  = getVertexDistance (vidx.x  , vidx.y+1, vidx.z  );
-      double d011  = getVertexDistance (vidx.x  , vidx.y+1, vidx.z+1);
-      double d100  = getVertexDistance (vidx.x+1, vidx.y  , vidx.z  );
-      double d101  = getVertexDistance (vidx.x+1, vidx.y  , vidx.z+1);
-      double d110  = getVertexDistance (vidx.x+1, vidx.y+1, vidx.z  );
-      double d111  = getVertexDistance (vidx.x+1, vidx.y+1, vidx.z+1);
+      double d000  = getVertexValue (vidx.x  , vidx.y  , vidx.z  );
+      double d001  = getVertexValue (vidx.x  , vidx.y  , vidx.z+1);
+      double d010  = getVertexValue (vidx.x  , vidx.y+1, vidx.z  );
+      double d011  = getVertexValue (vidx.x  , vidx.y+1, vidx.z+1);
+      double d100  = getVertexValue (vidx.x+1, vidx.y  , vidx.z  );
+      double d101  = getVertexValue (vidx.x+1, vidx.y  , vidx.z+1);
+      double d110  = getVertexValue (vidx.x+1, vidx.y+1, vidx.z  );
+      double d111  = getVertexValue (vidx.x+1, vidx.y+1, vidx.z+1);
 
       if (grad != null) {
          grad.x = (-w100x*d000 - w101x*d001 - w110x*d010 - w111x*d011
@@ -1985,62 +1668,6 @@ public class DistanceGrid implements Renderable, Scannable {
       return out;
    }
 
-   protected boolean transformToGrid (Vector3d pgrid, Point3d ploc) {
-      boolean inside = true;
-
-      myGridToLocal.inverseTransformPnt (pgrid, ploc);
-      if (pgrid.x < 0) {
-         pgrid.x = 0;
-         inside = false;
-      }
-      else if (pgrid.x > myNx-1) {
-         pgrid.x = myNx-1;
-         inside = false;
-      }
-      if (pgrid.y < 0) {
-         pgrid.y = 0;
-         inside = false;
-      }
-      else if (pgrid.y > myNy-1) {
-         pgrid.y = myNy-1;
-         inside = false;
-      }
-      if (pgrid.z < 0) {
-         pgrid.z = 0;
-         inside = false;
-      }
-      else if (pgrid.z > myNz-1) {
-         pgrid.z = myNz-1;
-         inside = false;
-      }
-      return inside;
-   }
-
-   protected boolean getCellCoords (
-      Vector3i xyzi, Vector3d coords, Point3d point) {
-
-      Vector3d pgrid = new Vector3d();
-      boolean inside = transformToGrid (pgrid, point);
-
-      xyzi.set (pgrid);
-
-      if (xyzi.x == myNx - 1) {
-         xyzi.x -= 1;
-      }
-      if (xyzi.y == myNy - 1) {
-         xyzi.y -= 1;
-      }
-      if (xyzi.z == myNz - 1) {
-         xyzi.z -= 1;
-      }
-      if (coords != null) {
-         coords.x = pgrid.x - xyzi.x;
-         coords.y = pgrid.y - xyzi.y;
-         coords.z = pgrid.z - xyzi.z;
-      }
-      return inside;
-   }
-
    protected int getQuadCellCoords (
       Vector3d coords, Vector3i vidx, Point3d ploc, 
       VectorTransformer3d quadGridToX) {
@@ -2089,182 +1716,6 @@ public class DistanceGrid implements Renderable, Scannable {
    }
 
    /**
-    * Returns the x, y, z indices of the minimum vertex of the cell containing
-    * <code>point</code>. If <code>point</code> is outside the grid,
-    * <code>null</code> is returned.
-    *
-    * @param xyzi returns the x, y, z indices. If specified as
-    * <code>null</code>, then the containing vector is allocated internally.
-    * @param point point for which the cell vertex is desired
-    * @return vector containing the cell vertex indices, or
-    * <code>null</code> if <code>point</code> is outside the grid.
-    */
-   public Vector3i getCellVertex (Vector3i xyzi, Point3d point) {
-      if (xyzi == null) {
-         xyzi = new Vector3i();
-      }
-      if (getCellCoords (xyzi, null, point)) {
-         return xyzi;
-      }
-      else {
-         return null;
-      }
-   }      
-   
-   /**
-    * Given a vertex index <code>vi</code>, compute the corresponding
-    * x, y, z indices.
-    * 
-    * @param vxyz returns the x, y, z indices. 
-    * @param vi global index
-    * @return reference to <code>vxyz</code> 
-    */
-   public Vector3i vertexToXyzIndices (Vector3i vxyz, int vi) {
-      vxyz.z = vi / (myNxNy);
-      vxyz.y = (vi - vxyz.z * myNxNy) / myNx;
-      vxyz.x = vi % myNx;
-      return vxyz;
-   }
-   
-   /**
-    * Given the x, y, z indices for a vertex, compute the corresponding
-    * vertex index.
-    * 
-    * @param vxyz x, y, z indices
-    * @return vertex index
-    */
-   private int xyzIndicesToVertex (Vector3i vxyz) {
-      return vxyz.x + vxyz.y*myNx + vxyz.z*myNxNy;
-   }
-   
-   /**
-    * Given the x, y, z indices for a vertex, compute the corresponding
-    * vertex index.
-    * 
-    * @param xi x vertex index
-    * @param yj y vertex index
-    * @param zk z vertex index
-    * @return vertex index
-    */
-   protected int xyzIndicesToVertex (int xi, int yj, int zk) {
-      return xi + yj*myNx + zk*myNxNy;
-   }
-   
-   /**
-    * Returns the resolution of this grid along each axis. This
-    * equals the number of cells along each axis.
-    * 
-    * @return number of cells along each axis
-    */
-   public Vector3i getResolution() {
-      return new Vector3i (myNx-1, myNy-1, myNz-1);
-   }
-   
-   /**
-    * Returns the grid cell widths along each axis. For each axis 
-    * <code>i</code>, this equals {@code w_i/res_i}, where {@code w_i}
-    * and {@code res_i} are the overall width and resolution associated
-    * with that axis.
-    * 
-    * @return grid cell widths in each direction
-    */
-   public Vector3d getCellWidths() {
-      Vector3d cwidths = new Vector3d(myWidths);
-      cwidths.x /= (myNx-1);
-      cwidths.y /= (myNy-1);
-      cwidths.z /= (myNz-1);
-      return cwidths;
-   }
-
-   /**
-    * Returns the widths of this grid along the x, y, and z axes.
-    * 
-    * @return grid widths
-    */
-   public Vector3d getWidths() {
-      return new Vector3d (myWidths);
-   }
-   
-   /**
-    * Returns the widths of this grid along the x, y, and z axes.
-    * 
-    * @param widths returns the grid widths
-    */
-   public void getWidths(Vector3d widths) {
-      widths.set (myWidths);
-   }
-   
-   /**
-    * Returns the center of this grid with respect to its
-    * local coordinates.
-    * 
-    * @param center returns the grid center
-    */  
-   public void getCenter (Vector3d center) {
-      myGridToLocal.transformPnt (
-         center, new Vector3d ((myNx-1)/2, (myNy-1)/2, (myNz-1)/2));
-   }
-   
-   /**
-    * Returns the orientation of this grid with respect to its
-    * local coordinates.
-    * 
-    * @param R grid orientation in local coordinates
-    */
-   public void getOrientation (RotationMatrix3d R) {
-      if (myGridToLocal instanceof ScaledTranslation3d) {
-         R.setIdentity();
-      }
-      else if (myGridToLocal instanceof ScaledRigidTransformer3d) {
-         ((ScaledRigidTransformer3d)myGridToLocal).getRotation (R);
-      }
-      else {
-         throw new InternalErrorException (
-            "Unknown gridToLocal transformer: " + myGridToLocal);
-      }
-   }
-
-   /**
-    * Sets the orientation of this grid with respect to its local
-    * coordinates. All other aspects of the grid remain unchanged.
-    * 
-    * @param R grid orientation in local coordinates
-    */
-   public void setOrientation (RotationMatrix3d R) {
-      if (myGridToLocal instanceof ScaledTranslation3d) {
-         R.setIdentity();
-      }
-      else if (myGridToLocal instanceof ScaledRigidTransformer3d) {
-         ((ScaledRigidTransformer3d)myGridToLocal).getRotation (R);
-      }
-      else {
-         throw new InternalErrorException (
-            "Unknown gridToLocal transformer: " + myGridToLocal);
-      }
-   }
-   
-   /**
-    * Returns the orientation of this grid with respect to world
-    * coordinates.
-    * 
-    * @param R grid orientation in world coordinates
-    */
-   public void getWorldOrientation (RotationMatrix3d R) {
-      getOrientation (R);
-      R.mul (myTLocalToWorld.R, R);
-   }
-   
-   /**
-    * Returns the center of this grid, in world coordinates.
-    * 
-    * @param center returns the grid center
-    */
-   public void getWorldCenter (Point3d center) {
-      getCenter (center);
-      myLocalToWorld.transformPnt (center, center);
-   }
-
-   /**
     * Queries whether or not this grid is signed.
     *
     * @return <code>true</code> if this grid is signed.
@@ -2292,56 +1743,6 @@ public class DistanceGrid implements Renderable, Scannable {
       return nrm;
    }
     
-   /**
-    * Returns the total number of vertices in this grid.
-    *
-    * @return number of grid vertices
-    */
-   public int numVertices() {
-      return myNx*myNy*myNz;
-   }
-
-   /**
-    * Returns the full array of distances at each vertex.
-    * The array is indexed such that for vertex indices xi, yj, zk,
-    * the corresponding index into this array is
-    * <pre>
-    * idx = xi + nx*yj + (nx*ny)*zk
-    * </pre>
-    * where <code>nx</code> and <code>ny</code> are the number
-    * of vertices along x and y axes.
-    * 
-    * @return array of distances, or <code>null</code> if distances have
-    * not yet been set.
-    */
-   public double[] getDistances() {
-      return myPhi;
-   }
-   
-   /**
-    * Returns the distance at a specified vertex, as specified by x, y, z
-    * indices.
-    * 
-    * @param vxyz x, y, z vertex indices
-    * @return mesh distance at the vertex
-    */
-   public double getVertexDistance (Vector3i vxyz) {
-      return myPhi[xyzIndicesToVertex(vxyz)];
-   }
-   
-   /**
-    * Returns the distance to the features at a specified vertex, as specified
-    * by x, y, z indices.
-    * 
-    * @param xi x vertex index
-    * @param yj y vertex index
-    * @param zk z vertex index
-    * @return nearest feature distance at the vertex
-    */   
-   protected double getVertexDistance (int xi, int yj, int zk) {
-      return myPhi[xyzIndicesToVertex(xi, yj, zk)];
-   }
-
    /**
     * Utility method for the {@link #sweep sweep} method. Compares a given 
     * vertex with one of its neighbours.
@@ -2448,262 +1849,6 @@ public class DistanceGrid implements Renderable, Scannable {
    }
 
    /**
-    * Creates a new render object for rendering the points and normals
-    * of this grid.
-    * 
-    * @return new render object
-    */
-   RenderObject buildRenderObject (RenderProps props) {
-      RenderObject rob = new RenderObject();
-
-      if (myDrawEdges) {
-         // create line groups for both normals and edges
-         rob.createLineGroup();
-         rob.createLineGroup();
-      }
-      else {
-         // just one line group for normals
-         rob.createLineGroup();
-      }
-
-      Vector3d widths = getCellWidths();
-      double len = 0.66*widths.minElement();
-
-      if (myColorMap != null) {
-         for (Color color : myColors) {
-            rob.addColor (color);
-         }
-      }
-      int vidx=0;
-      Vector3d coords = new Vector3d();
-      int xlo = myRenderRanges[0];
-      int xhi = Math.min(myNx,myRenderRanges[1]);
-      int ylo = myRenderRanges[2];
-      int yhi = Math.min(myNy,myRenderRanges[3]);
-      int zlo = myRenderRanges[4];
-      int zhi = Math.min(myNz,myRenderRanges[5]);
-
-      rob.lineGroup (NORMAL_GROUP);
-      for (int xi=xlo; xi<xhi; xi++) {
-         for (int yj=ylo; yj<yhi; yj++) {
-            for (int zk=zlo; zk<zhi; zk++) {
-               coords.set (xi, yj, zk);
-               myGridToLocal.transformPnt (coords, coords);
-               int vi = xyzIndicesToVertex (xi, yj, zk);
-               int cidx = myColorMap != null ? myColorIndices[vi] : -1;
-               rob.addPosition (coords);
-               rob.addVertex (vidx, -1, cidx, -1);
-               coords.scaledAdd (len, getLocalVertexNormal (xi, yj, zk));
-               rob.addPosition (coords);
-               rob.addVertex (vidx+1, -1, cidx, -1);
-               rob.addPoint (vidx);
-               rob.addLine (vidx, vidx+1);
-               vidx += 2;
-            }
-         }
-      }
-      if (myDrawEdges) {
-         rob.lineGroup (EDGE_GROUP);
-         int nvx = xhi-xlo;
-         int nvy = yhi-ylo;
-         int nvz = zhi-zlo;
-         // lines parallel to x
-         if (nvx > 1) {
-            for (int j=0; j<nvy; j++) {
-               for (int k=0; k<nvz; k++) {
-                  int vidx0 = 2*(j*nvz + k);
-                  int vidx1 = 2*((nvx-1)*nvy*nvz + j*nvz + k);
-                  rob.addLine (vidx0, vidx1);
-               }
-            }
-         }
-         // lines parallel to y
-         if (nvy > 1) {
-            for (int i=0; i<nvx; i++) {
-               for (int k=0; k<nvz; k++) {
-                  int vidx0 = 2*(i*nvy*nvz + k);
-                  int vidx1 = 2*(i*nvy*nvz + (nvy-1)*nvz + k);
-                  rob.addLine (vidx0, vidx1);
-               }
-            }
-         }
-         // lines parallel to z
-         if (nvz > 1) {
-            for (int i=0; i<nvx; i++) {
-               for (int j=0; j<nvy; j++) {
-                  int vidx0 = 2*(i*nvy*nvz + j*nvz);
-                  int vidx1 = 2*(i*nvy*nvz + j*nvz + (nvz-1));
-                  rob.addLine (vidx0, vidx1);
-               }
-            }
-         }
-      }
-      return rob;
-   }
-
-   // renderable implementation ...
-
-   public boolean getDrawEdges() {
-      return myDrawEdges;
-   }
-
-   public void setDrawEdges (boolean enable) {
-      myDrawEdges = enable;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public RenderProps getRenderProps() {
-      return myRenderProps;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public RenderProps createRenderProps() {
-      return new PointLineRenderProps();
-   }  
-
-   /**
-    * {@inheritDoc}
-    */
-   public void setRenderProps (RenderProps props) {
-      if (props == null) {
-         throw new IllegalArgumentException ("Render props cannot be null");
-      }
-      myRenderProps = createRenderProps();
-      myRenderProps.set (props);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void getSelection (LinkedList<Object> list, int qid) {
-   }
-   
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isSelectable() {
-      return false;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public int numSelectionQueriesNeeded() {
-      return -1;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void prerender (RenderList list) {
-      prerender (myRenderProps);
-   }
-
-   public void prerender (RenderProps props) {
-      if (myRob != null &&
-          myDrawEdges != (myRob.numLineGroups()==2)) {
-         myRobValid = false;
-      }
-      if (myRob == null || !myRobValid) {
-         myRob = buildRenderObject(props);
-         myRobValid = true;
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void render (Renderer renderer, int flags) {
-      render (renderer, myRenderProps, flags);
-   }
-   
-   public void render (Renderer renderer, RenderProps props, int flags) {
-
-      boolean highlight = ((flags & Renderer.HIGHLIGHT) != 0);
-
-      if (myTLocalToWorld != null) {
-         renderer.pushModelMatrix();
-         renderer.mulModelMatrix (myTLocalToWorld);
-      }
-
-      Vector3d widths = getCellWidths();
-      double r = 0.05*widths.minElement();
-
-      RenderObject rob = myRob;
-
-      if (rob != null) {
-         if (props.getPointStyle() == PointStyle.POINT) {
-            if (props.getPointSize() != 0) {
-               renderer.setPointColoring (props, highlight);
-               renderer.drawPoints (rob, PointStyle.POINT, props.getPointSize());
-            }
-         }
-         else {
-            if (props.getPointRadius() > 0) {
-               renderer.setPointColoring (props, highlight);
-               renderer.drawPoints (
-                  rob, props.getPointStyle(), props.getPointRadius());
-            }
-         }
-         if (props.getLineStyle() == LineStyle.LINE) {
-            if (props.getLineWidth() != 0) {
-               rob.lineGroup (NORMAL_GROUP);
-               renderer.setLineColoring (props, highlight);
-               renderer.drawLines (rob, LineStyle.LINE, props.getLineWidth());
-            }
-         }
-         else {
-            if (props.getLineRadius() > 0) {
-               rob.lineGroup (NORMAL_GROUP);
-               renderer.setLineColoring (props, highlight);
-               renderer.drawLines (
-                  rob, props.getLineStyle(), props.getLineRadius());
-            }
-         }
-
-         if (myDrawEdges && rob.numLineGroups() == 2) {
-            if (props.getEdgeWidth() > 0) {
-               rob.lineGroup (EDGE_GROUP);
-               renderer.setEdgeColoring (props, highlight);
-               renderer.drawLines (rob, LineStyle.LINE, props.getEdgeWidth());
-            }
-         }
-      }
-      if (myTLocalToWorld != null) {
-         renderer.popModelMatrix();
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void updateBounds (Vector3d pmin, Vector3d pmax) {
-      Point3d w = new Point3d();
-      for (int i=0; i<8; i++) {
-         // update bounds using the eight corners of the grid, defined
-         // in grid coords and then transformed into world coordinates
-         double gx = (i < 4 ? 0 : myNx-1);
-         double gy = (((i/2)%2) == 0 ? 0 : myNy-1);
-         double gz = ((i%2) == 0 ? 0 : myNz-1);
-         w.set (gx, gy, gz);
-         myGridToLocal.transformPnt (w, w);
-         myLocalToWorld.transformPnt (w, w);
-         w.updateBounds(pmin, pmax);
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public int getRenderHints() {
-      return 0;
-   }
-
-   /**
     * Returns the features, if any, associated with this distance
     * grid Features will be associated with the field if they were used to
     * compute it, via {@link #computeFromFeatures}, {@link
@@ -2748,247 +1893,6 @@ public class DistanceGrid implements Renderable, Scannable {
       }
    }
 
-   /** 
-    * Returns the index of the closest vertex to a point.
-    *
-    * @param point point for which to calculate closest vertex
-    * @return index of closest vertex to <code>point</code>
-    */
-   public int getClosestVertex (Point3d point) {
-
-      // Change to grid coordinates
-      Point3d pgrid = new Point3d();
-      myGridToLocal.inverseTransformPnt (pgrid, point);
-      int xi = (int)Math.rint(pgrid.x);
-      int yi = (int)Math.rint(pgrid.x);
-      int zi = (int)Math.rint(pgrid.x);
-      if (xi < 0) {
-         xi = 0;
-      }
-      else if (xi > myNx-1) {
-         xi = myNx-1;
-      }
-      if (yi < 0) {
-         yi = 0;
-      }
-      else if (yi > myNy-1) {
-         yi = myNy-1;
-      }
-      if (zi < 0) {
-         zi = 0;
-      }
-      else if (zi > myNz-1) {
-         zi = myNz-1;
-      }
-      return xyzIndicesToVertex (xi, yi, zi);
-   }
-
-   /**
-    * Find the local coordinates at a vertex, as specified by
-    * its x, y, z indices.
-    * 
-    * @param coords returns the coordinates
-    * @param vxyz x, y, z vertex indices
-    * @return coords
-    */
-   public Vector3d getLocalVertexCoords (Vector3d coords, Vector3i vxyz) {
-      if (coords == null) {
-         coords = new Point3d();
-      }
-      coords.set (vxyz);
-      myGridToLocal.transformPnt (coords, coords);
-      return coords;
-   }
-
-   /**
-    * Find the world coordinates at a vertex, as specified by
-    * its x, y, z indices.
-    * 
-    * @param coords returns the coordinates
-    * @param vxyz x, y, z vertex indices
-    * @return coords
-    */
-   public Vector3d getWorldVertexCoords (Vector3d coords, Vector3i vxyz) {
-      Point3d pnt = new Point3d(vxyz.x, vxyz.y, vxyz.z);
-      myGridToLocal.transformPnt (pnt, pnt);
-      myLocalToWorld.transformPnt (pnt, pnt);
-      coords.set(pnt);
-      return coords;
-   }
-
-   static int parsePositiveInt (String str) {
-      int value = -1;
-      try {
-         value = Integer.parseInt (str);
-      }
-      catch (NumberFormatException e) {
-         // ignore
-      }
-      return value;
-   }
-
-   /**
-    * Returns a string describing the render ranges for this grid,
-    * as described for {@link #setRenderRanges}.
-    *
-    * @return render range string 
-    */
-   public String getRenderRanges() {
-      StringBuilder sbuild = new StringBuilder();
-      for (int i=0; i<3; i++) {
-         int lo = myRenderRanges[2*i];
-         int hi = myRenderRanges[2*i+1];
-         if (lo == 0 && hi == MAX_INT) {
-            sbuild.append ("*");
-         }
-         else if (lo == (hi-1)) {
-            sbuild.append (lo);
-         }
-         else {
-            sbuild.append (lo + ":" + (hi-1));
-         }
-         if (i < 2) {
-            sbuild.append (" ");
-         }
-      }
-      return sbuild.toString();
-   }
-
-   /**
-    * Sets the render ranges for this grid. The render ranges control the range
-    * of vertices that are rendering along each axis when the grid
-    * is being rendered.
-    *
-    * <p>The format
-    * consists of three separate range descriptors, one for each axis.
-    * A range descriptor may be '*' (all vertices), 'n:m' (vertices
-    * in the index range n to m, inclusive), or 'n' (vertices only at index n).
-    * For example:
-    * <pre>
-    *   "* * *"     - all vertices      
-    *   "* 7 *"     - all vertices along x and z, and those at index 7 along y
-    *   "0 2 3"     - a single vertex at indices (0, 2, 3)
-    *   "0:3 4:5 *" - all vertices between indices 0-3 along x, and 4-5 along y
-    * </pre>
-    * In addition, the single charater "*" also indicates all vertices.
-    * @param str render range specification
-    * @throws IllegalArgumentException if the range specification is not valid.
-    */
-   public void setRenderRanges (String str) {
-      StringHolder errMsg = new StringHolder();
-      int[] ranges = parseRenderRanges (str, errMsg);
-      if (ranges != null) {
-         adjustRenderRanges (ranges);
-         myRenderRanges = ranges;
-         myRobValid = false;
-      }
-      else {
-         throw new IllegalArgumentException (
-            "Error parsing string: " + errMsg.value);
-      }
-   }
-
-   /**
-    * Parses a render range specification for this grid. The specification must
-    * have the format described for {@link #setRenderRanges}. This method does
-    * not set anything; it simply parses the ranges and converts then into an
-    * integer array of length 6, giving the upper and lower bounds along each
-    * of the x, y, and z axes. For the ``all'' specifier ({@code '*'}), the
-    * values {@code 0} and {@code Integer.MAX_VALUE} are used. Applications can
-    * use this method to test if a range specification is valid prior to
-    * calling {@link #setRenderRanges}.  If the specification is invalid, then
-    * an error message is placed in <code>errorMsg</code> and the method
-    * returns <code>null</code>.
-    * 
-    * @param str range specification
-    * @param errorMsg returns an error message in case of an error
-    * @return array giving the ranges, or <code>null</code> if there
-    * is an error
-    */
-   public static int[] parseRenderRanges (String str, StringHolder errorMsg) {
-
-      String[] strs = str.split ("\\s+");
-      if (strs.length > 0 && strs[0].equals ("")) {
-         strs = Arrays.copyOfRange (strs, 1, strs.length);
-      }
-      int[] ranges = new int[6];
-      String error = null;
-      if (strs.length == 1 && strs[0].equals ("*")) {
-         ranges[0] = 0;
-         ranges[1] = MAX_INT;
-         ranges[2] = 0;
-         ranges[3] = MAX_INT;
-         ranges[4] = 0;
-         ranges[5] = MAX_INT;
-      }
-      else if (strs.length > 3) {
-         error = "More than three subranges specified";
-      }
-      else {
-         int i = 0;
-         for (String s : strs) {
-            int lo = -1;
-            int hi = 0;
-            if (s.equals ("*")) {
-               lo = 0;
-               hi = MAX_INT;
-            }
-            else if (s.indexOf(':') != -1) {
-               String[] substrs = s.split (":");
-               if (substrs.length > 2) {
-                  error = "More than one ':' in subrange";
-                  break;
-               }
-               if (substrs.length < 2 || substrs[0].equals ("")) {
-                  error = "Missing low or high value in subrange";
-                  break;
-               }
-               lo = parsePositiveInt (substrs[0]);
-               hi = parsePositiveInt (substrs[1])+1;
-               if (lo >= hi) {
-                  error = "Low > high in subrange";
-                  break;
-               }
-               if (lo < 0 || hi <= 0) {
-                  error = "Malformed or negative integer";
-                  break;
-               }
-            }
-            else {
-               lo = parsePositiveInt (s);
-               if (lo < 0) {
-                  error = "Malformed or negative integer";
-                  break;
-               }
-               hi = lo+1;
-            }
-            ranges[2*i] = lo;
-            ranges[2*i+1] = hi;
-            i++;
-         }
-         if (i < 3 && error == null) {
-            error = "Less than three subranges specified";
-         }
-      }
-      if (error != null) {
-         ranges = null;
-      }
-      if (errorMsg != null) {
-         errorMsg.value = error;
-      }
-      return ranges;
-   }
-
-   static String readLine (BufferedReader reader) {
-      try {
-         return reader.readLine();
-      }
-      catch (Exception e) {
-         return null;
-      }
-   }
-
-
    /**
     * Apply the smoothing operation n times
     * @param n number of times to apply the smoothing operation
@@ -3006,7 +1910,7 @@ public class DistanceGrid implements Renderable, Scannable {
     * @param alpha scale factor for added gradient, positive for contraction, negative for expansion
     */
    private void smoothIter(double alpha) {
-      double[] sphi = new double[myPhi.length];
+      double[] sphi = new double[myValues.length];
       Vector3d cellWidths = getCellWidths();
       for (int i=0; i<myNx; ++i) {
          for (int j=0; j<myNy; ++j) {
@@ -3027,7 +1931,7 @@ public class DistanceGrid implements Renderable, Scannable {
                               sqr((jj-j)*cellWidths.y) +
                               sqr((kk-k)*cellWidths.z);
                            double w = 1.0/Math.sqrt(d2);
-                           p += w*myPhi[idx];  // weighted by inverse distance
+                           p += w*myValues[idx];  // weighted by inverse distance
                            wtotal += w;
                         }
                      }
@@ -3035,12 +1939,12 @@ public class DistanceGrid implements Renderable, Scannable {
                }
                
                int idx = xyzIndicesToVertex(i, j, k);
-               sphi[idx] = myPhi[idx] + alpha*p/wtotal;
+               sphi[idx] = myValues[idx] + alpha*p/wtotal;
             }
          }
       }
       
-      myPhi = sphi;
+      myValues = sphi;
       myQuadCoefs = null;
       clearNormals();
 
@@ -3075,7 +1979,7 @@ public class DistanceGrid implements Renderable, Scannable {
     */
    public void smooth() {
       
-      double[] sphi = new double[myPhi.length];
+      double[] sphi = new double[myValues.length];
       for (int i=0; i<myNx; ++i) {
          for (int j=0; j<myNy; ++j) {
             for (int k=0; k<myNz; ++k) {
@@ -3087,7 +1991,7 @@ public class DistanceGrid implements Renderable, Scannable {
                   for (int jj=Math.max(j-1, 0); jj<Math.min(j+2, myNy); ++jj) {
                      for (int kk=Math.max(k-1, 0); kk<Math.min(k+2, myNz); ++kk) {
                         int idx = xyzIndicesToVertex(ii,jj,kk);
-                        p += myPhi[idx];
+                        p += myValues[idx];
                         ++N;
                      }
                   }
@@ -3099,107 +2003,9 @@ public class DistanceGrid implements Renderable, Scannable {
          }
       }
       
-      myPhi = sphi;
+      myValues = sphi;
       myQuadCoefs = null;      
       clearNormals();
-   }
-
-   /**
-    * Creates a triangular mesh approximating the surface on which the linearly
-    * interpolated distance function equals 0.
-    *
-    * @return iso surface for linear interpolation
-    */
-   public PolygonalMesh createDistanceSurface() {
-      MarchingTetrahedra marcher = new MarchingTetrahedra();
-      return createDistanceSurface(/*iso=*/0);
-   }
-    
-   /**
-    * Creates a triangular mesh approximating the surface on which the linearly
-    * interpolated distance function equals <code>val</code>.
-    *
-    * @param val iso surface value
-    * @return iso surface for linear interpolation
-    */
-   public PolygonalMesh createDistanceSurface(double val) {
-      MarchingTetrahedra marcher = new MarchingTetrahedra();
-
-      PolygonalMesh mesh = marcher.createMesh (
-         myPhi, Vector3d.ZERO, new Vector3d(1,1,1), getResolution(), val);
-      mesh.transform (myGridToLocal);
-      return mesh;
-   }
-
-   /**
-    * Creates a triangular mesh approximating the surface on which the linearly
-    * interpolated distance function equals <code>val</code>.
-    *
-    * @param val iso surface value
-    * @return iso surface for linear interpolation
-    */
-   public PolygonalMesh createDistanceSurface (double val, int res) {
-      MarchingTetrahedra marcher = new MarchingTetrahedra();
-
-      Vector3i cellRes = new Vector3i(getResolution());
-      cellRes.scale (res);
-
-      int nvx = cellRes.x+1;
-      int nvy = cellRes.y+1;
-      int nvz = cellRes.z+1;
-      double[] dists = new double[nvx*nvy*nvz];
-      double invRes = 1.0/res;
-
-      Point3d q = new Point3d();
-      for (int i=0; i<myNx-1; i++) {
-         for (int j=0; j<myNy-1; j++) {
-            for (int k=0; k<myNz-1; k++) {
-               double d000  = getVertexDistance (i  , j  , k  );
-               double d001  = getVertexDistance (i  , j  , k+1);
-               double d010  = getVertexDistance (i  , j+1, k  );
-               double d011  = getVertexDistance (i  , j+1, k+1);
-               double d100  = getVertexDistance (i+1, j  , k  );
-               double d101  = getVertexDistance (i+1, j  , k+1);
-               double d110  = getVertexDistance (i+1, j+1, k  );
-               double d111  = getVertexDistance (i+1, j+1, k+1);
-
-               int maxci = (i < myNx-2 ? res-1 : res);
-               int maxcj = (j < myNy-2 ? res-1 : res);
-               int maxck = (k < myNz-2 ? res-1 : res);
-               double cx, cy, cz;
-               for (int ci=0; ci<=maxci; ci++) {
-                  cx = ci*invRes;
-                  for (int cj=0; cj<=maxcj; cj++) {
-                     cy = cj*invRes;
-                     for (int ck=0; ck<=maxck; ck++) {
-                        cz = ck*invRes;
-                        double w001z = (1-cx)*(1-cy);
-                        double w011z = (1-cx)*cy;
-                        double w101z = cx*(1-cy);
-                        double w111z = cx*cy;
-                        
-                        double w000  = w001z*(1-cz);
-                        double w001  = w001z*cz;
-                        double w010  = w011z*(1-cz);
-                        double w011  = w011z*cz;
-                        double w100  = w101z*(1-cz);
-                        double w101  = w101z*cz;
-                        double w110  = w111z*(1-cz);
-                        double w111  = w111z*cz;                         
-                        
-                        dists[(i*res+ci)+(j*res+cj)*nvx+(k*res+ck)*nvx*nvy] =
-                           w000*d000 + w001*d001 + w010*d010 + w011*d011 +
-                           w100*d100 + w101*d101 + w110*d110 + w111*d111;
-                     }
-                  }
-               }
-            }
-         }
-      }
-      PolygonalMesh mesh = marcher.createMesh (
-         dists, Vector3d.ZERO, new Vector3d(invRes,invRes,invRes), cellRes, val);
-      mesh.transform (myGridToLocal);
-      return mesh;      
    }
 
   /**
@@ -3225,7 +2031,6 @@ public class DistanceGrid implements Renderable, Scannable {
       double[] dists = new double[nvx*nvy*nvz];
       double invRes = 1.0/res;
 
-      Point3d q = new Point3d();
       // build a high res distance map by iterating through all the quad grid
       // cells:
       double[] a = new double[10];
@@ -3264,16 +2069,15 @@ public class DistanceGrid implements Renderable, Scannable {
       return mesh;      
    }
 
-   /**
-    * Returns the radius of this grid, defined as half the
-    * distance across its maximal diagonal.
-    * 
-    * @return radius of this grid
-    */
-   public double getRadius() {
-      return myRadius;
+   /* --- rendering --- */
+
+   public Vector3d getRenderVector (int xi, int yj, int zk) {
+      return getLocalVertexNormal (xi, yj, zk);
    }
 
+   public double getRenderVectorScale() {
+      return 0.66*getCellWidths().minElement();
+   }
 
    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
    // 
@@ -3289,6 +2093,14 @@ public class DistanceGrid implements Renderable, Scannable {
    protected int[] myTetOffsets0126;
    protected int[] myTetOffsets0326;
    protected int[] myTetOffsets0376;
+
+   protected Vector3i createEdgeNode (Vector3i v0, Vector3i v1) {
+      Vector3i en = new Vector3i();
+      en.x = (v0.x+v1.x)/2;
+      en.y = (v0.y+v1.y)/2;
+      en.z = (v0.z+v1.z)/2;
+      return en;
+   }
 
    /*
     * Index offset for the eight corner nodes of a quad cell.
@@ -3727,14 +2539,6 @@ public class DistanceGrid implements Renderable, Scannable {
       return xyzi;
    }
 
-   protected Vector3i createEdgeNode (Vector3i v0, Vector3i v1) {
-      Vector3i en = new Vector3i();
-      en.x = (v0.x+v1.x)/2;
-      en.y = (v0.y+v1.y)/2;
-      en.z = (v0.z+v1.z)/2;
-      return en;
-   }
-
    protected void updateQuadCoefsIfNecessary() {
       if (myQuadCoefs == null) {
          // calculate number of quad cells in x, y, and z
@@ -3948,16 +2752,16 @@ public class DistanceGrid implements Renderable, Scannable {
    private void computeQuadCoefs (
       double[] a, int voff, int[] nodeOffs, int xi, int yi, int zi) {
       
-      double v0  = myPhi[voff+nodeOffs[0]];
-      double v1  = myPhi[voff+nodeOffs[1]];
-      double v2  = myPhi[voff+nodeOffs[2]];
-      double v3  = myPhi[voff+nodeOffs[3]];
-      double v4  = myPhi[voff+nodeOffs[4]];
-      double v5  = myPhi[voff+nodeOffs[5]];
-      double v6  = myPhi[voff+nodeOffs[6]];
-      double v7  = myPhi[voff+nodeOffs[7]];
-      double v8  = myPhi[voff+nodeOffs[8]];
-      double v9  = myPhi[voff+nodeOffs[9]];
+      double v0  = myValues[voff+nodeOffs[0]];
+      double v1  = myValues[voff+nodeOffs[1]];
+      double v2  = myValues[voff+nodeOffs[2]];
+      double v3  = myValues[voff+nodeOffs[3]];
+      double v4  = myValues[voff+nodeOffs[4]];
+      double v5  = myValues[voff+nodeOffs[5]];
+      double v6  = myValues[voff+nodeOffs[6]];
+      double v7  = myValues[voff+nodeOffs[7]];
+      double v8  = myValues[voff+nodeOffs[8]];
+      double v9  = myValues[voff+nodeOffs[9]];
 
       a[xi] =  2*v0 + 2*v1 - 4*v4;
       a[yi] =  2*v1 + 2*v2 - 4*v5;
@@ -4159,176 +2963,59 @@ public class DistanceGrid implements Renderable, Scannable {
       return calc.findQuadSurfaceIntersection (pi, p0, pa, nrm);
    }
 
-   public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
-      rtok.scanToken ('[');
-      RigidTransform3d TCL = new RigidTransform3d();
-      RigidTransform3d TLW = null;
-      Vector3d widths = new Vector3d();
-      Vector3i resolution = null;
-      myTLocalToWorld = null;
-      while (rtok.nextToken() != ']') {
-         if (rtok.ttype != ReaderTokenizer.TT_WORD) {
-            throw new IOException ("Expected attribute name, "+rtok);
-         }
-         if (rtok.sval.equals ("resolution")) {
-            rtok.scanToken ('=');
-            resolution = new Vector3i();
-            resolution.scan (rtok);
-            setResolution (resolution);
-         }
-         else if (rtok.sval.equals ("widths")) {
-            rtok.scanToken ('=');
-            widths.scan (rtok);
-            setWidths (widths);
-         }
-         else if (rtok.sval.equals ("center")) {
-            rtok.scanToken ('=');
-            TCL.p.scan (rtok);
-         }
-         else if (rtok.sval.equals ("orientation")) {
-            rtok.scanToken ('=');
-            TCL.R.scan (rtok);
-         }
-         else if (rtok.sval.equals ("LocalToWorld")) {
-            rtok.scanToken ('=');
-            TLW = new RigidTransform3d();
-            TLW.scan (rtok);
-         }
-         else if (rtok.sval.equals ("distances")) {
-            if (resolution == null) {
-               throw new IOException (
-                  "distances must be specified after resolution, line "+
-                  rtok.lineno());
-            }
-            rtok.scanToken ('=');
-            rtok.scanToken ('[');
-            int k = 0;
-            while (rtok.nextToken() != ']') {
-               rtok.pushBack();
-               myPhi[k++] = rtok.scanNumber();
-            }
-         }
-         else {
-            throw new IOException ("Unexpected attribute name: " + rtok);
-         }
+   protected boolean scanItem (
+      ReaderTokenizer rtok, Object ref) throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "signed")) {
+         mySignedP = rtok.scanBoolean();
+         return true;
       }
-      setCenterAndOrientation (TCL);
-      if (TLW != null) {
-         setLocalToWorld (TLW);
-      }
-      // clear normals and quad coefs; shouldn't be necessary if resolution
-      // was set
-      myQuadCoefs = null;
-      clearNormals();
+      rtok.pushBack();
+      return super.scanItem (rtok, ref);      
    }
    
-   public void write (PrintWriter pw, NumberFormat fmt, Object ref)
+   protected void writeItems (PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException {
 
-      pw.println ("[ ");
-      Vector3d widths = getWidths();
-      Vector3d center = new Vector3d();
-      getCenter (center);
-      RotationMatrix3d R = new RotationMatrix3d();
-      getOrientation (R);
-      IndentingPrintWriter.addIndentation (pw, 2);
-      pw.println ("resolution=[" + getResolution() +"]");
-      pw.println ("widths=[" + widths.toString(fmt) +"]");
-      pw.println ("center=[" + center.toString(fmt) +"]");
-      if (!R.isIdentity()) {
-         pw.println (
-            "orientation=" + R.toString(fmt, RotationMatrix3d.AXIS_ANGLE_STRING));
-      }
-      if (myTLocalToWorld != null) {
-         pw.println ("LocalToWorld=\n" + myTLocalToWorld);
-      }
-      pw.println ("distances=[");
-      IndentingPrintWriter.addIndentation (pw, 2);
-      int numv = numVertices();
-      for (int i=0; i<numv; i++) {
-         pw.println (fmt.format(myPhi[i]));
-      }
-      IndentingPrintWriter.addIndentation (pw, -2);
-      pw.println ("]");
-      IndentingPrintWriter.addIndentation (pw, -2);
-      pw.println ("]");
-   }
-
-   public boolean isWritable () {
-      return true;
+      super.writeItems (pw, fmt, ref);
+      pw.println ("signed=" + mySignedP);
    }
 
    /**
-    * Returns <code>true</code> if this distance grid equals another within a
-    * prescribed tolerance. The grids are equal if the resolution, widths,
-    * center, orientation and distances are equal. Feature settings are
-    * ignored.
+    * Returns <code>true</code> if this grid equals another within a prescribed
+    * tolerance. The grids are equal if the resolution, widths, center,
+    * orientation, distances and signed property are equal. Specifying {@code
+    * tol = 0} requires exact equality.
     *
     * @param grid grid to compare against
     * @param tol floating point tolerance (absolute)
     */
    public boolean epsilonEquals (DistanceGrid grid, double tol) {
-      Vector3i resolution = getResolution();
-      if (!resolution.equals (grid.getResolution())) {
+      if (!super.epsilonEquals (grid, tol)) {
          return false;
       }
-      if (!myWidths.epsilonEquals (grid.myWidths, tol)) {
+      if (mySignedP != grid.mySignedP) {
          return false;
-      }
-      RigidTransform3d TCL = new RigidTransform3d();
-      RigidTransform3d gridTCL = new RigidTransform3d();
-      getOrientation (TCL.R);
-      getCenter (TCL.p);
-      getOrientation (gridTCL.R);
-      getCenter (gridTCL.p);
-      if (!TCL.epsilonEquals (gridTCL, tol)) {
-         return false;
-      }
-      int numv = numVertices();
-      for (int i=0; i<numv; i++) {
-         if (Math.abs(myPhi[i]-grid.myPhi[i]) > tol) {
-            return false;
-         }
       }
       return true;
    }
 
-   public int getDebug () {
-      return myDebug;
-   }
-
-   public void setDebug (int level) {
-      myDebug = level;
-   }
-
-   private void scaleTransformer (VectorTransformer3d transformer, double s) {
-      Vector3d origin = new Vector3d();
-      Vector3d scaling = new Vector3d();
-      if (transformer instanceof ScaledTranslation3d) {
-         ScaledTranslation3d xform = (ScaledTranslation3d)transformer;
-         xform.scaleDistance (s);
-      }
-      else if (transformer instanceof ScaledRigidTransformer3d) {
-         ScaledRigidTransformer3d xform = (ScaledRigidTransformer3d)transformer;
-         xform.scaleDistance (s);
-      }
-   }
-
+   /**
+    * Scales the distance units of the grid, which entails scaling the widths,
+    * distances and coordinate transform information.
+    *
+    * @param s scaling factor
+    */
    public void scaleDistance (double s) {
-      myWidths.scale (s);
-      for (int i=0; i<myPhi.length; i++) {
-         myPhi[i] *= s;
-      }
-      myRadius *= s;
-      if (myTLocalToWorld != null) {
-         myTLocalToWorld.p.scale (s);
+      super.scaleDistance (s);
+      for (int i=0; i<myValues.length; i++) {
+         myValues[i] *= s;
       }
       if (myGridToLocal != null) {
-         scaleTransformer (myGridToLocal, s);
          scaleTransformer (myQuadGridToLocal, s);
          updateQuadGridToWorld (myQuadGridToLocal);
       }
-      myRobValid = false;
    }
  
 }

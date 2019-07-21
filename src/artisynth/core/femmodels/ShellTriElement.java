@@ -101,6 +101,7 @@ public class ShellTriElement extends ShellElement3d {
 
    public ShellTriElement () {
       myNodes = new FemNode3d[myNodeCoords.length/3];
+      myElementClass = ElementClass.SHELL; // assume this by default
    }
 
    /**
@@ -248,6 +249,7 @@ public class ShellTriElement extends ShellElement3d {
       if (myWarpingPoint == null) {
          myWarpingPoint = IntegrationPoint3d.create (
             this, 1/3.0, 1/3.0, 0, 1);
+         myWarpingPoint.setNumber(numIntegrationPoints());
       }
       return myWarpingPoint;
    }  

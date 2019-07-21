@@ -1,19 +1,19 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-public class FungMaterial extends IncompressibleMaterial {
+public class FungMaterial extends IncompressibleMaterialBase {
 
-   public static PropertyList myProps =
-      new PropertyList (FungMaterial.class, IncompressibleMaterial.class);
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (FungMaterial.class, IncompressibleMaterialBase.class);
 
    protected static double DEFAULT_MU1 = 1000.0;
    protected static double DEFAULT_MU2 = 2000.0;
@@ -51,34 +51,45 @@ public class FungMaterial extends IncompressibleMaterial {
    PropertyMode myL31Mode = PropertyMode.Inherited;
    PropertyMode myCCMode  = PropertyMode.Inherited;
 
+   ScalarFieldPointFunction myMU1Function = null;
+   ScalarFieldPointFunction myMU2Function = null;
+   ScalarFieldPointFunction myMU3Function = null;
+   ScalarFieldPointFunction myL11Function = null;
+   ScalarFieldPointFunction myL22Function = null;
+   ScalarFieldPointFunction myL33Function = null;
+   ScalarFieldPointFunction myL12Function = null;
+   ScalarFieldPointFunction myL23Function = null;
+   ScalarFieldPointFunction myL31Function = null;
+   ScalarFieldPointFunction myCCFunction  = null;
+
    private SymmetricMatrix3d myB;
    private SymmetricMatrix3d myC;
    private SymmetricMatrix3d myC2;
 
    static {
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "MU1:Inherited", "MU1", DEFAULT_MU1, "[0,inf]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "MU2:Inherited", "MU2", DEFAULT_MU2, "[0,inf]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "MU3:Inherited", "MU3", DEFAULT_MU3, "[0,inf]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "L11:Inherited", "L11", DEFAULT_L11, "[0,inf]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "L22:Inherited", "L22", DEFAULT_L22, "[0,inf]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "L33:Inherited", "L33", DEFAULT_L33, "[0,inf]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "L12:Inherited", "L12", DEFAULT_L12, "[0,1]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "L23:Inherited", "L23", DEFAULT_L23, "[0,1]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "L31:Inherited", "L31", DEFAULT_L31, "[0,1]");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "CC:Inherited", "CC", DEFAULT_CC, "[0,inf]");
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -303,9 +314,289 @@ public class FungMaterial extends IncompressibleMaterial {
       return myCCMode;
    }
 
-   public void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
+   public double getMU1 (FieldPoint dp) {
+      if (myMU1Function == null) {
+         return getMU1();
+      }
+      else {
+         return myMU1Function.eval (dp);
+      }
+   }
+
+   public double getMU2 (FieldPoint dp) {
+      if (myMU2Function == null) {
+         return getMU2();
+      }
+      else {
+         return myMU2Function.eval (dp);
+      }
+   }
+
+   public double getMU3 (FieldPoint dp) {
+      if (myMU3Function == null) {
+         return getMU3();
+      }
+      else {
+         return myMU3Function.eval (dp);
+      }
+   }
+
+   public double getL11 (FieldPoint dp) {
+      if (myL11Function == null) {
+         return getL11();
+      }
+      else {
+         return myL11Function.eval (dp);
+      }
+   }
+
+   public double getL22 (FieldPoint dp) {
+      if (myL22Function == null) {
+         return getL22();
+      }
+      else {
+         return myL22Function.eval (dp);
+      }
+   }
+
+   public double getL33 (FieldPoint dp) {
+      if (myL33Function == null) {
+         return getL33();
+      }
+      else {
+         return myL33Function.eval (dp);
+      }
+   }
+
+   public double getL12 (FieldPoint dp) {
+      if (myL12Function == null) {
+         return getL12();
+      }
+      else {
+         return myL12Function.eval (dp);
+      }
+   }
+
+   public double getL23 (FieldPoint dp) {
+      if (myL23Function == null) {
+         return getL23();
+      }
+      else {
+         return myL23Function.eval (dp);
+      }
+   }
+
+   public double getL31 (FieldPoint dp) {
+      if (myL31Function == null) {
+         return getL31();
+      }
+      else {
+         return myL31Function.eval (dp);
+      }
+   }
+
+   public double getCC (FieldPoint dp) {
+      if (myCCFunction == null) {
+         return getCC();
+      }
+      else {
+         return myCCFunction.eval (dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getMU1Function() {
+      return myMU1Function;
+   }
+      
+   public ScalarFieldPointFunction getMU2Function() {
+      return myMU2Function;
+   }
+      
+   public ScalarFieldPointFunction getMU3Function() {
+      return myMU3Function;
+   }
+      
+   public ScalarFieldPointFunction getL11Function() {
+      return myL11Function;
+   }
+      
+   public ScalarFieldPointFunction getL22Function() {
+      return myL22Function;
+   }
+      
+   public ScalarFieldPointFunction getL33Function() {
+      return myL33Function;
+   }
+      
+   public ScalarFieldPointFunction getL12Function() {
+      return myL12Function;
+   }
+      
+   public ScalarFieldPointFunction getL23Function() {
+      return myL23Function;
+   }
+      
+   public ScalarFieldPointFunction getL31Function() {
+      return myL31Function;
+   }
+      
+   public ScalarFieldPointFunction getCCFunction() {
+      return myCCFunction;
+   }
+      
+   public void setMU1Function (ScalarFieldPointFunction func) {
+      myMU1Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setMU2Function (ScalarFieldPointFunction func) {
+      myMU2Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setMU3Function (ScalarFieldPointFunction func) {
+      myMU3Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setL11Function (ScalarFieldPointFunction func) {
+      myL11Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setL22Function (ScalarFieldPointFunction func) {
+      myL22Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setL33Function (ScalarFieldPointFunction func) {
+      myL33Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setL12Function (ScalarFieldPointFunction func) {
+      myL12Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setL23Function (ScalarFieldPointFunction func) {
+      myL23Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setL31Function (ScalarFieldPointFunction func) {
+      myL31Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setCCFunction (ScalarFieldPointFunction func) {
+      myCCFunction = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setMU1Field (
+      ScalarField field, boolean useRestPos) {
+      myMU1Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setMU2Field (
+      ScalarField field, boolean useRestPos) {
+      myMU2Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setMU3Field (
+      ScalarField field, boolean useRestPos) {
+      myMU3Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setL11Field (
+      ScalarField field, boolean useRestPos) {
+      myL11Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setL22Field (
+      ScalarField field, boolean useRestPos) {
+      myL22Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setL33Field (
+      ScalarField field, boolean useRestPos) {
+      myL33Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setL12Field (
+      ScalarField field, boolean useRestPos) {
+      myL12Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setL23Field (
+      ScalarField field, boolean useRestPos) {
+      myL23Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setL31Field (
+      ScalarField field, boolean useRestPos) {
+      myL31Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public void setCCField (
+      ScalarField field, boolean useRestPos) {
+      myCCFunction = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getMU1Field () {
+      return FieldUtils.getFieldFromFunction (myMU1Function);
+   }
+
+   public ScalarField getMU2Field () {
+      return FieldUtils.getFieldFromFunction (myMU2Function);
+   }
+
+   public ScalarField getMU3Field () {
+      return FieldUtils.getFieldFromFunction (myMU3Function);
+   }
+
+   public ScalarField getL11Field () {
+      return FieldUtils.getFieldFromFunction (myL11Function);
+   }
+
+   public ScalarField getL22Field () {
+      return FieldUtils.getFieldFromFunction (myL22Function);
+   }
+
+   public ScalarField getL33Field () {
+      return FieldUtils.getFieldFromFunction (myL33Function);
+   }
+
+   public ScalarField getL12Field () {
+      return FieldUtils.getFieldFromFunction (myL12Function);
+   }
+
+   public ScalarField getL23Field () {
+      return FieldUtils.getFieldFromFunction (myL23Function);
+   }
+
+   public ScalarField getL31Field () {
+      return FieldUtils.getFieldFromFunction (myL31Function);
+   }
+
+   public ScalarField getCCField () {
+      return FieldUtils.getFieldFromFunction (myCCFunction);
+   }
+
+   public void computeDevStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation, MaterialStateObject state) {   
 
       sigma.setZero();
 
@@ -321,31 +612,36 @@ public class FungMaterial extends IncompressibleMaterial {
       // if (dt.getFrame() != null) {
       //   Q = dt.getFrame(); 
       // }
-      SymmetricMatrix3d[] A  = {new SymmetricMatrix3d(), new SymmetricMatrix3d(), new SymmetricMatrix3d()};
+      SymmetricMatrix3d[] A  = {
+         new SymmetricMatrix3d(),
+         new SymmetricMatrix3d(),
+         new SymmetricMatrix3d()};
       
       Matrix3d tmpMatrix  = new Matrix3d();
       Matrix3d tmpMatrix2 = new Matrix3d();
       SymmetricMatrix3d tmpSymmMatrix  = new SymmetricMatrix3d();
-      
-      SymmetricMatrix3d sigmaFung = new SymmetricMatrix3d();
+
+      // sigma value before applying deviator; used to compute D
+      SymmetricMatrix3d sigtmp = null;
 
       // Evaluate Lame coefficients
-      mu[0] = myMU1;
-      mu[1] = myMU2;
-      mu[2] = myMU3;
+      mu[0] = getMU1(def);
+      mu[1] = getMU2(def);
+      mu[2] = getMU3(def);
       
-      lam[0][0] = myL11; 
-      lam[0][1] = myL12; 
-      lam[0][2] = myL31;
-      lam[1][0] = myL12; 
-      lam[1][1] = myL22; 
-      lam[1][2] = myL23;
-      lam[2][0] = myL31; 
-      lam[2][1] = myL23; 
-      lam[2][2] = myL33;
+      lam[0][0] = getL11(def);
+      lam[0][1] = getL12(def);
+      lam[0][2] = getL31(def);
+      lam[1][0] = lam[0][1];
+      lam[1][1] = getL22(def); 
+      lam[1][2] = getL23(def);
+      lam[2][0] = lam[0][2];
+      lam[2][1] = lam[1][2];
+      lam[2][2] = getL33(def);
 
+      double CC = getCC(def);
+      
       double J = def.getDetF();
-      double avgp = def.getAveragePressure();
 
       // Calculate deviatoric left Cauchy-Green tensor
       computeDevLeftCauchyGreen(myB,def);
@@ -386,7 +682,7 @@ public class FungMaterial extends IncompressibleMaterial {
          for (int j=0; j<3; j++)
             eQ += lam[i][j]*(K[i]-1.0)*(K[j]-1.0);
       }
-      eQ = Math.exp(eQ/(4.*myCC));
+      eQ = Math.exp(eQ/(4.*CC));
 
       // Evaluate the stress
       SymmetricMatrix3d bmi = new SymmetricMatrix3d(); 
@@ -399,198 +695,75 @@ public class FungMaterial extends IncompressibleMaterial {
          tmpMatrix.scale(mu[i]*K[i]);
          tmpSymmMatrix.setSymmetric(tmpMatrix);
 
-         sigmaFung.add(tmpSymmMatrix);
+         sigma.add(tmpSymmMatrix);
 
          for (int j=0; j<3; j++) {
             // s += lam[i][j]*((K[i]-1)*K[j]*A[j]+(K[j]-1)*K[i]*A[i])/2.;
-            sigmaFung.scaledAdd(lam[i][j]/2.0*(K[i]-1.0)*K[j], A[j]);
-            sigmaFung.scaledAdd(lam[i][j]/2.0*(K[j]-1.0)*K[i], A[i]);
+            sigma.scaledAdd(lam[i][j]/2.0*(K[i]-1.0)*K[j], A[j]);
+            sigma.scaledAdd(lam[i][j]/2.0*(K[j]-1.0)*K[i], A[i]);
          }
       }
-      sigmaFung.scale(eQ / (2.0 * J));
+      sigma.scale(eQ / (2.0 * J));
 
-      sigmaFung.deviator();
+      if (D != null) {
+         // save sigma before deviator is applied
+         sigtmp = new SymmetricMatrix3d (sigma);
+      }
+      sigma.deviator();
 
-      sigmaFung.m10 = sigmaFung.m01;
-      sigmaFung.m20 = sigmaFung.m02;
-      sigmaFung.m21 = sigmaFung.m12;
+      sigma.m10 = sigma.m01;
+      sigma.m20 = sigma.m02;
+      sigma.m21 = sigma.m12;
 
-      sigma.add(sigmaFung);
+      if (D != null) {
+
+         D.setZero();
+         Matrix6d tmpMatrix6d  = new Matrix6d();
       
-      sigma.m00 += avgp;
-      sigma.m11 += avgp;
-      sigma.m22 += avgp;
-
-   }
-
-   public void computeTangent (
-      Matrix6d c, SymmetricMatrix3d stress, DeformedPoint def, 
-      Matrix3d Q, FemMaterial baseMat) {
-      
-      c.setZero();
-
-      double[] K = new double[3];
-      double[] L = new double[3];
-      
-      Vector3d[] a0 = {new Vector3d(), new Vector3d(), new Vector3d()};
-      Vector3d[] a  = {new Vector3d(), new Vector3d(), new Vector3d()};
-      Vector3d vtmp = new Vector3d();
-      
-      // Matrix3d Q = Matrix3d.IDENTITY;
-      // if (dt.getFrame() != null) {
-      //    Q = dt.getFrame(); 
-      //  }
-      SymmetricMatrix3d[] A  = {new SymmetricMatrix3d(), 
-         new SymmetricMatrix3d(), new SymmetricMatrix3d()};
-      
-      Matrix3d tmpMatrix  = new Matrix3d();
-      Matrix3d tmpMatrix2 = new Matrix3d();
-      
-      SymmetricMatrix3d tmpSymmMatrix  = new SymmetricMatrix3d();
-      Matrix6d tmpMatrix6d  = new Matrix6d();
-
-      Matrix6d cFung = new Matrix6d();
-      
-      // Evaluate Lame coefficients
-      mu[0] = myMU1;
-      mu[1] = myMU2;
-      mu[2] = myMU3;
-      
-      lam[0][0] = myL11; 
-      lam[0][1] = myL12; 
-      lam[0][2] = myL31;
-      lam[1][0] = myL12; 
-      lam[1][1] = myL22; 
-      lam[1][2] = myL23;
-      lam[2][0] = myL31; 
-      lam[2][1] = myL23; 
-      lam[2][2] = myL33;
-
-      double J = def.getDetF();
-      double avgp = def.getAveragePressure();
-
-      // Calculate deviatoric left Cauchy-Green tensor
-      computeDevLeftCauchyGreen(myB,def);
-
-      // Calculate deviatoric right Cauchy-Green tensor
-      computeDevRightCauchyGreen(myC,def);
-
-      // calculate square of C
-      myC2.mulTransposeLeft (myC);
-
-      Matrix3d mydevF = new Matrix3d(def.getF());
-      mydevF.scale(Math.pow(J,-1.0 / 3.0));
-
-      for (int i=0; i<3; i++) {
-         // Copy the texture direction in the reference configuration to a0
-         a0[i].x = Q.get(0,i);
-         a0[i].y = Q.get(1,i);
-         a0[i].z = Q.get(2,i);
-
-         vtmp.mul(myC,a0[i]);
-         K[i] = a0[i].dot(vtmp);
+         for (int i=0; i<3; i++) {
+            addTensorProduct4(D, mu[i]*K[i], A[i], myB);
          
-         vtmp.mul(myC2,a0[i]);
-         L[i] = a0[i].dot(vtmp);
-
-         a[i].mul(mydevF,a0[i]);
-         a[i].scale(Math.pow(K[i], -0.5));
-
-         A[i].set(a[i].x*a[i].x, a[i].y*a[i].y, a[i].z*a[i].z, 
-            a[i].x*a[i].y, a[i].x*a[i].z, a[i].y*a[i].z);
-
-      }
-
-      // Evaluate exp(Q)
-      double eQ = 0.0;
-      for (int i=0; i<3; i++) {
-         eQ += 2.0*mu[i]*(L[i]-2.0*K[i]+1.0);
-         for (int j=0; j<3; j++)
-            eQ += lam[i][j]*(K[i]-1.0)*(K[j]-1.0);
-      }
-      eQ = Math.exp(eQ/(4.*myCC));
-      
-      // Evaluate the distortional part of the Cauchy stress
-      SymmetricMatrix3d sd = new SymmetricMatrix3d();
-
-      SymmetricMatrix3d bmi = new SymmetricMatrix3d(); 
-      bmi.sub(myB,SymmetricMatrix3d.IDENTITY);
-      
-      for (int i=0; i<3; i++) {
-
-         //       sd += mu[i]*K[i]*(A[i]*bmi + bmi*A[i]);
-         tmpMatrix.mul(A[i], bmi);
-         tmpMatrix2.mul(bmi,A[i]);
-         tmpMatrix.add(tmpMatrix2);
-         tmpMatrix.scale(mu[i]*K[i]);
-         tmpSymmMatrix.setSymmetric(tmpMatrix);
-
-         sd.add(tmpSymmMatrix);
-
-         for (int j=0; j<3; j++) {
-            // s += lam[i][j]*((K[i]-1)*K[j]*A[j]+(K[j]-1)*K[i]*A[i])/2.;
-            sd.scaledAdd(lam[i][j]/2.0*(K[i]-1.0)*K[j], A[j]);
-            sd.scaledAdd(lam[i][j]/2.0*(K[j]-1.0)*K[i], A[i]);
+            // C += mu[i]*K[i]*dyad4s(A[i],b);
+            for (int j=0; j<3; j++) {
+               TensorUtils.addSymmetricTensorProduct (D, lam[i][j]*K[i]*K[j]/2.0, 
+                                                      A[i], A[j]);
+               // C += lam[i][j]*K[i]*K[j]*dyad1s(A[i],A[j])/2.;
+            }
          }
-         addTensorProduct4(cFung, mu[i]*K[i], A[i], myB);
-         
-         // C += mu[i]*K[i]*dyad4s(A[i],b);
-         for (int j=0; j<3; j++) {
-            TensorUtils.addSymmetricTensorProduct (cFung, lam[i][j]*K[i]*K[j]/2.0, 
-               A[i], A[j]);
-            // C += lam[i][j]*K[i]*K[j]*dyad1s(A[i],A[j])/2.;
-         }
-      }
-      sd.scale(eQ / (2.0 * J));
 
-      // This is the distortional part of the elasticity tensor
-      //      C = (eQ / J)*C + (2.0*J/myc/eQ)*dyad1s(sd);
-      cFung.scale(eQ / J);
-      TensorUtils.addSymmetricTensorProduct (cFung, J/myCC/eQ, sd, sd); // Factor of two diff between FEBio and Artisynth tensor utility Taken into account with scalefactor
+         // This is the distortional part of the elasticity tensor
+         //      C = (eQ / J)*C + (2.0*J/myc/eQ)*dyad1s(sigtmp);
+         D.scale(eQ / J);
+         TensorUtils.addSymmetricTensorProduct (D, J/CC/eQ, sigtmp, sigtmp);
+         // Factor of two diff between FEBio and Artisynth tensor utility Taken
+         // into account with scalefactor
 
-      // This is the final value of the elasticity tensor
-      //tens4ds IxI = dyad1s(I);
-      //tens4ds I4  = dyad4s(I);
+         // This is the final value of the elasticity tensor
+         //tens4ds IxI = dyad1s(I);
+         //tens4ds I4  = dyad4s(I);
 
-      double cTrace = cFung.m00 + cFung.m11 + cFung.m22 + cFung.m33 + cFung.m44 + cFung.m55;
+         double cTrace = D.m00 + D.m11 + D.m22 + D.m33 + D.m44 + D.m55;
 
-      //      C += - 1./3.*(ddots(C,IxI) - IxI*(C.tr()/3.))
-      //      + 2./3.*((I4-IxI/3.)*sd.tr()-dyad1s(sd.dev(),I));
+         //      C += - 1./3.*(ddots(C,IxI) - IxI*(C.tr()/3.))
+         //        + 2./3.*((I4-IxI/3.)*sigtmp.tr()-dyad1s(sigtmp.dev(),I));
 
-      TensorUtils.addScaledIdentityProduct (tmpMatrix6d, -1.0 / 3.0);
-      cFung.add(ddots(cFung,tmpMatrix6d));
+         TensorUtils.addScaledIdentityProduct (tmpMatrix6d, -1.0 / 3.0);
+         D.add(ddots(D,tmpMatrix6d));
 
-      TensorUtils.addScaledIdentityProduct (cFung, 1.0/9.0*cTrace);
+         TensorUtils.addScaledIdentityProduct (D, 1.0/9.0*cTrace);
 
-      TensorUtils.addTensorProduct4 (cFung, 2.0/3.0*sd.trace(), 
-         Matrix3d.IDENTITY); // check
-      TensorUtils.addScaledIdentityProduct (cFung, -2.0/9.0*sd.trace());
+         TensorUtils.addTensorProduct4 (D, 2.0/3.0*sigtmp.trace(), 
+                                        Matrix3d.IDENTITY); // check
+         TensorUtils.addScaledIdentityProduct (D, -2.0/9.0*sigtmp.trace());
 
-      sd.deviator();
-      tmpMatrix6d.setZero();
-      TensorUtils.addSymmetricIdentityProduct (tmpMatrix6d, sd);
-      tmpMatrix6d.scale(-2.0 / 3.0);
+         tmpMatrix6d.setZero();
+         TensorUtils.addSymmetricIdentityProduct (tmpMatrix6d, sigma);
+         tmpMatrix6d.scale(-2.0 / 3.0);
 
-      cFung.add(tmpMatrix6d);
-      tmpMatrix6d.setZero();
+         D.add(tmpMatrix6d);
       
-      cFung.setLowerToUpper();
-
-      c.add(cFung);
-
-      c.m00 += - avgp;
-      c.m11 += - avgp;
-      c.m22 += - avgp;
-
-      c.m01 += avgp;
-      c.m02 += avgp;
-      c.m12 += avgp;
-
-      c.m33 += - avgp;
-      c.m44 += - avgp;
-      c.m55 += - avgp;
-
-      c.setLowerToUpper();
+         D.setLowerToUpper();
+      }
    }
 
    public boolean equals (FemMaterial mat) {
@@ -640,7 +813,7 @@ public class FungMaterial extends IncompressibleMaterial {
       // mat.computeTangent (D, sig, pt, dt, null);
       // System.out.println ("D=\n" + D.toString ("%12.6f"));
 
-      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0, null);
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));
    }
@@ -675,9 +848,6 @@ public class FungMaterial extends IncompressibleMaterial {
       myCC  *= s;
    }
 
-   public boolean isIncompressible() {
-      return true;
-   }
    public static Matrix6d ddots (Matrix6d a, Matrix6d b) {
       Matrix6d c = new Matrix6d();
 

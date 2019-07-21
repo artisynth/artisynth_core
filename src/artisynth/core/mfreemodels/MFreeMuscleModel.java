@@ -238,14 +238,6 @@ public class MFreeMuscleModel extends MFreeModel3d
     * {@inheritDoc}
     */
    @Override
-   public void addExcitationSource (ExcitationComponent ex) {
-      addExcitationSource (ex, 1);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
    public void addExcitationSource (ExcitationComponent ex, double gain) {
       if (myExcitationSources == null) {
          myExcitationSources = new ExcitationSourceList();
@@ -312,13 +304,6 @@ public class MFreeMuscleModel extends MFreeModel3d
       super.updateReferences (undo, undoInfo);
       myExcitationSources = ExcitationUtils.updateReferences (
          this, myExcitationSources, undo, undoInfo);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public double getDefaultActivationWeight() {
-      return 0;
    }
 
    public void setDefaultValues() {
@@ -417,9 +402,14 @@ public class MFreeMuscleModel extends MFreeModel3d
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial(
          this, "muscleMaterial", myMuscleMat, mat);
       // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         componentChanged (MaterialChangeEvent.defaultEvent);
-      }
+      MaterialChangeEvent mce = 
+         MaterialBase.symmetryOrStateChanged ("muscleMaterial", mat, old);
+      if (mce != null) {
+         if (mce.stateChanged()) {
+            // TODO: HANDLE ELEMENT STATE CHNAGE
+         }
+         componentChanged (mce);
+      }     
    }
 
    public void addMuscleBundle(MuscleBundle bundle) {
@@ -547,9 +537,9 @@ public class MFreeMuscleModel extends MFreeModel3d
          // so we're just being extra careful here.
          for (MuscleBundle mus : myMuscleList) {
             mus.setExcitation(0);
-            for (MuscleElementDesc desc : mus.getElements()) {
-               desc.setExcitation(0);
-            }
+//            for (MuscleElementDesc desc : mus.getElements()) {
+//               desc.setExcitation(0);
+//            }
          }
          for (MuscleExciter ex : myExciterList) {
             ex.setExcitation(0);

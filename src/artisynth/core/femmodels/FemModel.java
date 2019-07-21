@@ -35,13 +35,14 @@ import maspack.util.FunctionTimer;
 import maspack.util.StringHolder;
 import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.ScanWriteUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.util.ScanToken;
 import artisynth.core.util.ScalableUnits;
-import artisynth.core.materials.FemMaterial;
+import artisynth.core.materials.*;
 import artisynth.core.materials.LinearMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
@@ -286,20 +287,36 @@ public abstract class FemModel extends MechSystemBase
       return myMaterial;
    }
 
-   public void setMaterial (FemMaterial mat) {
+   protected void notifyElementsOfMaterialStateChange () {
+      // clear states for any elements that use the model material
+      for (FemElement e : getAllElements()) {
+         if (e.getMaterial() == null) {
+            e.notifyStateVersionChanged();
+         }
+      }
+   }
+
+   public <T extends FemMaterial> T setMaterial (T mat) {
       if (mat == null) {
          throw new IllegalArgumentException (
             "Material not allowed to be null");
       }
-      FemMaterial old = myMaterial;
-      myMaterial = (FemMaterial)MaterialBase.updateMaterial (
+      FemMaterial oldMat = myMaterial;
+      T newMat = MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
+      myMaterial = newMat;
       // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         componentChanged (MaterialChangeEvent.defaultEvent);
-      }
+      MaterialChangeEvent mce = 
+         MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
+      if (mce != null) {
+         if (mce.stateChanged()) {
+            notifyElementsOfMaterialStateChange(); 
+         }
+         componentChanged (mce);
+      }      
       invalidateStressAndStiffness();
       invalidateRestData();  // added to invalidate cached linear data (mirrors property change event)
+      return newMat;
    }
    
    public synchronized void setLinearMaterial (
@@ -739,15 +756,15 @@ public abstract class FemModel extends MechSystemBase
    }
 
    protected void handleComponentChanged (ComponentChangeEvent e) {
-      if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
+      if (e.getCode() == Code.STRUCTURE_CHANGED) {
          clearCachedData (e);
       }
-      else if (
-         e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED) { 
+      else if (e.getCode() == Code.DYNAMIC_ACTIVITY_CHANGED) { 
          clearCachedData (e);
-         if (e instanceof MaterialChangeEvent) {
-            invalidateRestData();
-         }
+      }
+      else if (e instanceof MaterialChangeEvent) {
+         clearCachedData (e);
+         invalidateRestData();
       }
    }
 
@@ -1255,12 +1272,15 @@ public abstract class FemModel extends MechSystemBase
    }
 
    public void propertyChanged (PropertyChangeEvent e) {
-      if (e.getHost() instanceof FemMaterial) {
+      if (e instanceof MaterialChangeEvent) {
          invalidateStressAndStiffness();
          invalidateRestData();
-         if (e.getPropertyName().equals ("viscoBehavior")) {
-            // issue a structure change event in order to invalidate WayPoints
-            notifyStructureChanged (this);            
+         MaterialChangeEvent mce = (MaterialChangeEvent)e;
+         if (mce.stateChanged() && e.getHost() == getMaterial()) {
+            notifyElementsOfMaterialStateChange();
+         }
+         if (mce.stateOrSymmetryChanged()) {
+            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
          }
       }
    }
@@ -1295,17 +1315,6 @@ public abstract class FemModel extends MechSystemBase
       return myNumIntegrationIndices;
    }
    
-   protected int assignIntegrationIndices() {
-      int idx = 0;
-      for (FemElement e : getAllElements()) {
-         e.setIntegrationIndex (idx);
-         int numi = e.numIntegrationPoints();
-         // increase the index to accommodate the warping point, if any
-         // if there is only one integration point, then it is assumed
-         // to be the same as the warping point.
-         idx += (numi == 1 ? 1 : numi + 1);
-      }
-      return idx;
-   }
+   protected abstract int assignIntegrationIndices();
 
 }

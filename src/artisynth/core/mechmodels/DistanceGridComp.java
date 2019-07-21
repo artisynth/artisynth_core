@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
 import artisynth.core.modelbase.*;
+import artisynth.core.modelbase.FieldUtils.ScalarFieldFunction;
 import artisynth.core.util.*;
 
 import maspack.util.*;
@@ -18,8 +19,7 @@ import maspack.properties.*;
 /**
  * Component that encapsulates a DistanceGrid.
  */
-public class DistanceGridComp extends RenderableComponentBase
-   implements ScalableUnits, TransformableGeometry {
+public class DistanceGridComp extends GridCompBase {
 
    /**
     * Specfies the type of interpolation that should be used when constructing
@@ -40,11 +40,9 @@ public class DistanceGridComp extends RenderableComponentBase
    DistanceGrid myGrid = null;
    boolean myGridValidP = false;
    boolean myGridExplicitP = false;
-   DistanceGrid myRenderGrid = null;
    PolygonalMesh mySurface = null;
    PolygonalMesh myRenderSurface = null;
    boolean mySurfaceValidP = false;
-   RigidTransform3d myLocalToWorld = new RigidTransform3d();
    ArrayList<MeshComponent> myGeneratingMeshes = new ArrayList<>();
    // lists of faces from the generating meshes
    ArrayList<List<? extends Feature>> myGeneratingFaces =
@@ -71,21 +69,14 @@ public class DistanceGridComp extends RenderableComponentBase
    protected static boolean DEFAULT_RENDER_SURFACE = false;
    private boolean myRenderSurfaceP = DEFAULT_RENDER_SURFACE;
 
-   protected static boolean DEFAULT_RENDER_GRID = true;
-   private boolean myRenderGridP = DEFAULT_RENDER_GRID;
-
-   static String DEFAULT_RENDER_RANGES = "* * *";
-   String myRenderRanges = DEFAULT_RENDER_RANGES;
-
    // for debugging problems with surface tangent computation
    boolean writeTanProblem = false;
    String myTangentProblemFile = "tanProb.txt";
 
    public static PropertyList myProps =
-      new PropertyList (DistanceGridComp.class, RenderableComponentBase.class);
+      new PropertyList (DistanceGridComp.class, GridCompBase.class);
 
    static {
-      myProps.add ("renderProps * *", "render properties", null);
       myProps.add (
          "resolution", "divisions for grid along x, y, and z",
          DEFAULT_RESOLUTION);
@@ -111,14 +102,6 @@ public class DistanceGridComp extends RenderableComponentBase
          "renderSurface", 
          "render the iso-surface of the grid in the viewer",
          DEFAULT_RENDER_SURFACE);
-      myProps.add (
-         "renderGrid", 
-         "render the grid in the viewer",
-         DEFAULT_RENDER_GRID);
-      myProps.add (
-         "renderRanges",
-         "controls which part of the grid to render", 
-         DEFAULT_RENDER_RANGES);      
    }
   
    public PropertyList getAllPropertyInfo() {
@@ -130,8 +113,7 @@ public class DistanceGridComp extends RenderableComponentBase
    }
 
    public DistanceGridComp (String name) {
-      this();
-      setName (name);
+      super (name);
    }
 
    protected void invalidateGrid() {
@@ -252,8 +234,9 @@ public class DistanceGridComp extends RenderableComponentBase
       if (myMaxResolution != max) {
          if (myResolution.equals (Vector3i.ZERO)) {
             // will need to rebuild grid
-            myGridValidP = false;
-            mySurfaceValidP = false;
+            if (!myGridExplicitP) {
+               invalidateGrid();
+            }
          }
          if (max < 0) {
             // MaxDivs == 0 and Divs == (0,0,0) disables grid
@@ -286,8 +269,9 @@ public class DistanceGridComp extends RenderableComponentBase
    public void setFitWithOBB (boolean enable) {
       if (myFitWithOBB != enable) {
          myFitWithOBB = enable;
-         myGridValidP = false; // will need to rebuild grid
-         mySurfaceValidP = false;
+         if (!myGridExplicitP) {
+            invalidateGrid();
+         }
       }
    }
 
@@ -375,118 +359,11 @@ public class DistanceGridComp extends RenderableComponentBase
       myRenderSurfaceP = enable;
    }
 
-   /**
-    * Queries whether or not grid rendering is enabled.
-    *
-    * @return {@code true} if grid rendering is enabled 
-    */
-   public boolean getRenderGrid() {
-      return myRenderGridP;
-   }
-
-   /**
-    * Sets whether or not rendering is enabled for this grid.  If enabled, the
-    * grid is rendered in the viewer.
-    *
-    * @param enable if {@code true}, enables grid rendering
-    */
-   public void setRenderGrid (boolean enable) {
-      myRenderGridP = enable;
-   }
-
-   /**
-    * Returns a string describing the x, y, z vertex ranges used when rendering
-    * this grid. See {@link #setRenderRanges} for a more detailed description.
-    * 
-    * @return string describing the render ranges
-    * @see #setRenderRanges
-    */  
-   public String getRenderRanges() {
-      return myRenderRanges;
-   }
-
-   /**
-    * Specifies the x, y, z vertex ranges used when rendering this grid.
-    * The signed distance grid will have
-    * <code>numVX</code> X <code>numVY</code> X <code>numVZ</code> vertices in
-    * the x, y, z directions, where <code>numVX</code>, <code>numVY</code>, and
-    * <code>numVZ</code> are each one greater than the x, y, z cell resolution
-    * values returned by the {@link DistanceGrid#getResolution}
-    * method of the distance grid itself. In general, the range string should
-    * contain three range specifications, one for each axis, where each
-    * specification is either <code>*</code> (all vertices), <code>n:m</code>
-    * (vertices in the index range <code>n</code> to <code>m</code>, inclusive),
-    * or <code>n</code> (vertices only at index <code>n</code>). A
-    * range specification of <code>"* * *"</code> (or <code>"*"</code>)
-    * means draw all vertices, which is the default behavior. Other
-    * examples include:
-    * <pre>
-    *  "* 7 *"      - all vertices along x and z, and those at index 7 along y
-    *  "0 2 3"      - a single vertex at indices (0, 2, 3)
-    *  "0:3 4:5 *"  - all vertices between indices 0 and 3 along x, and 4 and 5
-    *                 along y
-    * </pre>
-    * 
-    * @param ranges describing the render ranges
-    * @see #getRenderRanges
-    * @throws IllegalArgumentException if the range syntax is invalid
-    * or out of range
-    */
-   public void setRenderRanges (String ranges) {
-      if (ranges.matches ("\\s*\\*\\s*") ||
-          ranges.matches ("\\s*\\*\\s+\\*\\s+\\*\\s*")) {
-         myRenderRanges = "* * *";
-      }
-      else {
-         StringHolder errMsg = new StringHolder();
-         if (DistanceGrid.parseRenderRanges (ranges, errMsg) == null) {
-            throw new IllegalArgumentException (
-               "Illegal range spec: " + errMsg.value);
-         }
-         myRenderRanges = ranges;
-      }
-      if (myGrid != null) {
-         myGrid.setRenderRanges (ranges);
-         myRenderRanges = myGrid.getRenderRanges();
-      }
-   }
-   
-   public Range getRenderRangesRange() {
-      return new RenderRangesRange();
-   }  
-   
-   protected class RenderRangesRange extends RangeBase {
-
-      @Override
-      public boolean isValid (Object obj, StringHolder errMsg) {
-         if (!(obj instanceof String)) {
-            errMsg.value = "Object is not a string";
-            return false;
-         }
-         else {
-            String ranges = (String)obj;
-            DistanceGrid.parseRenderRanges (ranges, errMsg);
-            return errMsg.value == null;
-         }
-      }
-   }
-   
    public void setLocalToWorld (RigidTransform3d TGW) {
-      myLocalToWorld.set (TGW);
-      if (myGrid != null) {
-         myGrid.setLocalToWorld (TGW);
-      }
+      super.setLocalToWorld (TGW);
       if (mySurface != null) {
          mySurface.setMeshToWorld (TGW);
       }
-   }
-
-   public void getLocalToWorld (RigidTransform3d TGW) {
-      TGW.set (myLocalToWorld);
-   }
-
-   public RigidTransform3d getLocalToWorld() {
-      return myLocalToWorld;
    }
 
    public void scaleDistance (double s) {
@@ -494,57 +371,14 @@ public class DistanceGridComp extends RenderableComponentBase
          if (myGrid != null) {
             myGrid.scaleDistance (s);
          }
-      }
-      else {
-         myGridValidP = false;
-      }
-      myLocalToWorld.p.scale (s);
-   }
-
-   public void scaleMass (double s) {
-      // nothing to do
-   }
-
-   public void addTransformableDependencies (
-      TransformGeometryContext context, int flags) {
-      // no dependencies to add
-   }
-
-   public void transformGeometry (AffineTransform3dBase X) {
-      TransformGeometryContext.transform (this, X, 0);
-   }
-
-   public void transformGeometry (
-      GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-
-      // transform the pose
-      RigidTransform3d Xpose = new RigidTransform3d();
-      Xpose.set (myLocalToWorld);
-      gtr.transform (Xpose);
-      myLocalToWorld.set (Xpose);     
-      
-      if (myGridExplicitP) {
-         if (myGrid != null) {
-            myGrid.setLocalToWorld (myLocalToWorld);
-            // extract scaling factor from transform
-            if (gtr.isRestoring()) {
-               double scale = gtr.restoreObject (new Double(1));
-               myGrid.scaleDistance (1/scale);
-            }
-            else {
-               AffineTransform3d XL = gtr.computeLocalAffineTransform (
-                  Xpose, new GeometryTransformer.UniformScalingConstrainer());
-               double scale = Math.abs(XL.A.m00);
-               if (gtr.isSaving()) {
-                  gtr.saveObject (scale);
-               }
-               myGrid.scaleDistance (scale);
-            }
+         if (mySurface != null) {
+            mySurface.scale (s);
          }
       }
       else {
-         myGridValidP = false;
+         invalidateGrid();
       }
+      myLocalToWorld.p.scale (s);
    }
 
    protected boolean canGenerateGrid() {
@@ -584,8 +418,7 @@ public class DistanceGridComp extends RenderableComponentBase
             // resolution will be recomputed in computeFromFeatures
             grid = new DistanceGrid (new Vector3i (1,1,1));
          }
-         grid.setDrawEdges (true);
-         
+                  
          // fit the grid to the faces
          if (myFitWithOBB) {
             grid.fitToFeaturesOBB (
@@ -607,6 +440,7 @@ public class DistanceGridComp extends RenderableComponentBase
          }
          setRenderRanges (myRenderRanges);
       }
+      super.setGrid (grid); // set myBaseGrid in the super class
       myGrid = grid;
       mySurfaceValidP = false;
       myGridValidP = true;
@@ -617,24 +451,28 @@ public class DistanceGridComp extends RenderableComponentBase
     * reference (i.e., it is not copied). The grid's {@code renderRanges} and
     * {@code localToWorld} transform are updated from the current {@code
     * renderRanges} and {@code gridtoWorld} transform values for this
-    * component.
+    * component. If the grid is set to be {@code null}, then any explicit grid
+    * is cleared and automatic generation is reenabled.
     *
     * @param grid grid to set
     */
    public void setGrid (DistanceGrid grid) {
+      super.setGrid (grid);  // set myBaseGrid in the super class
       if (grid == null) {
-         throw new IllegalArgumentException ("Grid cannot be null");
+         invalidateGrid();
       }
-      myGrid = grid;
-      myGridValidP = true;
-      myGridExplicitP = true;
-      mySurfaceValidP = false;
-      myGeneratingMeshes.clear();
-      myGeneratingFaces.clear();
-      myResolution.set (grid.getResolution());
+      else {
+         myGrid = grid;
+         myGridValidP = true;
+         myGridExplicitP = true;
+         mySurfaceValidP = false;
+         myGeneratingMeshes.clear();
+         myGeneratingFaces.clear();
+         myResolution.set (grid.getResolution());
 
-      grid.setLocalToWorld (myLocalToWorld);
-      grid.setRenderRanges (myRenderRanges);
+         grid.setLocalToWorld (myLocalToWorld);
+         grid.setRenderRanges (myRenderRanges);
+      }      
    }
 
    public PolygonalMesh getSurface() {
@@ -725,29 +563,8 @@ public class DistanceGridComp extends RenderableComponentBase
 
    /* --- Renderable --- */
 
-   public RenderProps createRenderProps() {
-      return RenderProps.createRenderProps (this);
-   }
-
-   public void updateBounds (Vector3d pmin, Vector3d pmax) {
-      DistanceGrid grid = getGrid();
-      if (grid != null) {
-         grid.updateBounds (pmin, pmax);
-      }
-   }
-
    public void prerender (RenderList list) {
-
-      if (myRenderGridP) {
-         DistanceGrid grid = getGrid();
-         if (grid !=null) {
-            grid.prerender (myRenderProps);
-         }
-         myRenderGrid = grid;
-      }
-      else {
-         myRenderGrid = null;
-      }
+      super.prerender (list);
       if (myRenderSurfaceP) {
          PolygonalMesh surf = getSurface();
          if (surf != null) {
@@ -761,19 +578,17 @@ public class DistanceGridComp extends RenderableComponentBase
    }
 
    public void render (Renderer renderer, int flags) {
-      if (isSelected()) {
-         flags |= Renderer.HIGHLIGHT;
-      }
-      DistanceGrid grid = myRenderGrid;
-      if (grid != null) {
-         grid.render (renderer, myRenderProps, flags);
-      }
+      super.render (renderer, flags);
       PolygonalMesh surf = myRenderSurface;
       if (surf != null) {
          surf.render (renderer, myRenderProps, flags);
       }
    }
 
+   public void getSoftReferences (List<ModelComponent> refs) {
+      refs.addAll (myGeneratingMeshes);
+   }
+   
    /**
     * {@inheritDoc}
     */
@@ -792,29 +607,31 @@ public class DistanceGridComp extends RenderableComponentBase
       pw.print ("generatingMeshes=");
       ScanWriteUtils.writeBracketedReferences (
          pw, myGeneratingMeshes, ancestor);
+   } 
+
+   protected void writeGrid (PrintWriter pw, NumberFormat fmt)
+      throws IOException {
       if (myGridExplicitP) {
          pw.print ("grid=");
          IndentingPrintWriter.addIndentation (pw, 2);
          myGrid.write (pw, fmt, null);
          IndentingPrintWriter.addIndentation (pw, -2);
       }
-   }  
+   } 
+
+   protected InterpolatingGridBase scanGrid (
+      ReaderTokenizer rtok) throws IOException {
+      myGrid = new DistanceGrid();
+      myGrid.scan (rtok, null);
+      myResolution.set (myGrid.getResolution());
+      return myGrid;
+   }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
       throws IOException {
 
       rtok.nextToken();
       if (scanAndStoreReferences (rtok, "generatingMeshes", tokens) >= 0) {
-         return true;
-      }
-      else if (scanAttributeName (rtok, "grid")) {
-         rtok.scanToken ('=');
-         myGrid = new DistanceGrid();
-         myGrid.scan (rtok, null);
-         myGridExplicitP = true;
-         setRenderRanges (myRenderRanges);
-         myResolution.set (myGrid.getResolution());
-          // TODO finish
          return true;
       }
       rtok.pushBack();
@@ -833,6 +650,5 @@ public class DistanceGridComp extends RenderableComponentBase
       }
       return super.postscanItem (tokens, ancestor);
    }
-}      
-
    
+}      

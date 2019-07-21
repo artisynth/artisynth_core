@@ -11,20 +11,20 @@ package artisynth.core.modelbase;
  * example of this is a container whose contents must be instances of the type
  * parameter.
  */
-public interface ParameterizedClass<C> {
+public interface ParameterizedClass {
 
    /**
     * Returns the base type for the class parameterization.
     *
     * @return parameterization class
     */
-   Class<C> getTypeParameter();
+   Class<?> getTypeParameter();
 
    /**
     * Queries whether this class explicitly utilizes a parameterized type.
     *
     * @return <code>true</code> if this class utilizes a parameterized type.
-    */
+   */
    boolean hasParameterizedType();
 
 }

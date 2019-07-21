@@ -44,7 +44,7 @@ public class LinearAuxiliaryTest extends RootModel {
       for (FemElement3d elem : fem1.getElements()) {
          bundle.addElement(new AuxMaterialElementDesc(elem));
       }
-      fem1.addMaterialBundle(bundle);
+      fem1.addAuxMaterialBundle(bundle);
       bundle.setMaterial(lmat);
 
 

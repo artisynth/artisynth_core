@@ -115,6 +115,9 @@ testSaveLoad ("artisynth.demos.tutorial.RigidBodyJoint")
 testSaveLoad ("artisynth.demos.tutorial.RigidBodySpring")
 testSaveLoad ("artisynth.demos.tutorial.RigidCompositeBody")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscle")
+testSaveLoad ("artisynth.demos.tutorial.RadialMuscle")
+testSaveLoad ("artisynth.demos.tutorial.VariableStiffness")
+testSaveLoad ("artisynth.demos.tutorial.MaterialBundleDemo")
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithController") # scan not implemented
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithPanel")
 testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProbes")
@@ -127,6 +130,7 @@ testSaveLoad ("artisynth.demos.test.OneBasedNumbering");
 testSaveLoad ("artisynth.demos.test.ReflectedBodies");
 testSaveLoad ("artisynth.demos.test.TorusWrapTest")
 testSaveLoad ("artisynth.demos.test.LinearPointConstraintTest")
+testSaveLoad ("artisynth.demos.test.FemFieldTest")
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 
 #testSaveLoad ("artisynth.demos.mech.PointForceDemo")

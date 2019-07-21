@@ -81,6 +81,7 @@ public class SolveMatrixTest {
       sys.setActivePosState (q0);
       sys.updateForces (0);
 
+      boolean saveIgnoreCoriolis = PointSpringBase.myIgnoreCoriolisInJacobian;
       PointSpringBase.myIgnoreCoriolisInJacobian = false;
 
       sys.addPosJacobian (myS, null, 1);
@@ -103,6 +104,8 @@ public class SolveMatrixTest {
          E.sub (ET);
          System.out.println ("SymErr=\n" + E.toString (fmt));
       }
+
+      PointSpringBase.myIgnoreCoriolisInJacobian = saveIgnoreCoriolis;
 
       double norm = Math.max (myK.infinityNorm(), myKnumeric.infinityNorm());
       return getKerror().infinityNorm()/norm;

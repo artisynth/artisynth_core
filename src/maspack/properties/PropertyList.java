@@ -86,18 +86,23 @@ public class PropertyList implements PropertyInfoList {
                 "PropertyInfoList for super class "+superClass+" not an \n"+
                 "instance of PropertyList");
       }
-      list = (PropertyList)infoList;
+      copy ((PropertyList)infoList, hostClass);
+   }
+   
+   protected void copy (PropertyList list, Class<?> hostClass) {
       for (int i = 0; i < list.size(); i++) {
-         add (new PropertyDesc (list.get(i), hostClass));
+         PropertyDesc desc = new PropertyDesc();
+         desc.set (list.get(i), hostClass);
+         add (desc);
       }
    }
 
-   public PropertyList (Class<?> hostClass, PropertyList list) {
-      this (hostClass);
-      for (int i = 0; i < list.size(); i++) {
-         add (new PropertyDesc (list.get(i), hostClass));
-      }
-   }
+//   public PropertyList (Class<?> hostClass, PropertyList list) {
+//      this (hostClass);
+//      for (int i = 0; i < list.size(); i++) {
+//         add (new PropertyDesc (list.get(i), hostClass));
+//      }
+//   }
 
    protected void fatal (Class<?> hostClass, String msg) {
       throw new InternalErrorException (
@@ -258,14 +263,16 @@ public class PropertyList implements PropertyInfoList {
    public PropertyDesc add (
       String nameAndMethods, String description, Object defaultValue,
       String options) {
-      PropertyDesc desc =
-         PropertyDesc.create (
-            nameAndMethods, myHostClass, description, defaultValue, options,
-            PropertyDesc.REGULAR);
-      if (desc != null) {
+      PropertyDesc desc = new PropertyDesc();
+      if (PropertyDesc.initialize (
+            desc, nameAndMethods, myHostClass, description, defaultValue,
+            options, PropertyDesc.REGULAR)) {
          add (desc);
+         return desc;
       }
-      return desc;
+      else {
+         return null;
+      }
    }
 
    /**
@@ -401,14 +408,16 @@ public class PropertyList implements PropertyInfoList {
    public PropertyDesc addInheritable (
       String nameAndMethods, String description, Object defaultValue,
       String options) {
-      PropertyDesc desc =
-         PropertyDesc.create (
-            nameAndMethods, myHostClass, description, defaultValue, options,
-            PropertyDesc.INHERITABLE);
-      if (desc != null) {
+      PropertyDesc desc = new PropertyDesc();
+      if (PropertyDesc.initialize (
+            desc, nameAndMethods, myHostClass, description, defaultValue,
+            options, PropertyDesc.INHERITABLE)) {
          add (desc);
+         return desc;
       }
-      return desc;
+      else {
+         return null;
+      }
    }
 
    /**
@@ -458,14 +467,16 @@ public class PropertyList implements PropertyInfoList {
     */
    public PropertyDesc addReadOnly (
       String nameAndMethods, String description, String options) {
-      PropertyDesc desc =
-         PropertyDesc.create (
-            nameAndMethods, myHostClass, description, Property.VoidValue,
-            options, PropertyDesc.READ_ONLY);
-      if (desc != null) {
+      PropertyDesc desc = new PropertyDesc();
+      if (PropertyDesc.initialize (
+            desc, nameAndMethods, myHostClass, description,
+            Property.VoidValue, options, PropertyDesc.READ_ONLY)) {
          add (desc);
+         return desc;
       }
-      return desc;
+      else {
+         return null;
+      }
    }
 
    /**

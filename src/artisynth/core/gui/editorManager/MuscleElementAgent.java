@@ -49,8 +49,8 @@ public class MuscleElementAgent extends AddComponentAgent<MuscleElementDesc> {
    private PropertyMode mySavedBundleWidgetMode;
 
    private RerenderListener myRerenderListener;
-   private HashSet<FemElement3d> myEligibleElements;
-   private HashMap<FemElement3d,MuscleElementDesc> myElementMap;
+   private HashSet<FemElement3dBase> myEligibleElements;
+   private HashMap<FemElement3dBase,MuscleElementDesc> myElementMap;
    private DelaunayInterpolator myInterpolator;
    private Vector3d[] myFibreRestDirections;
 
@@ -96,8 +96,8 @@ public class MuscleElementAgent extends AddComponentAgent<MuscleElementDesc> {
       myBundle = bundle;
       myFemModel = model;
 
-      myElementMap = new HashMap<FemElement3d,MuscleElementDesc>();
-      myEligibleElements = new LinkedHashSet<FemElement3d>();
+      myElementMap = new HashMap<FemElement3dBase,MuscleElementDesc>();
+      myEligibleElements = new LinkedHashSet<>();
       initializeEligibleElements();
       myInterpolator = myBundle.getFibreRestDistanceInterpolator();
       myFibreRestDirections = myBundle.getFibreRestDirections();
@@ -251,11 +251,11 @@ public class MuscleElementAgent extends AddComponentAgent<MuscleElementDesc> {
       super.dispose();
    }
 
-   private void addElements (HashSet<FemElement3d> set) {
+   private void addElements (HashSet<FemElement3dBase> set) {
       LinkedList<ModelComponent> descList =
          new LinkedList<ModelComponent>();
 
-      for (FemElement3d e : set) {
+      for (FemElement3dBase e : set) {
          MuscleElementDesc desc = new MuscleElementDesc();
          desc.setElement (e);
          if (myInterpolator != null) {

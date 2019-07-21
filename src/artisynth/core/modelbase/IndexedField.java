@@ -1,6 +1,8 @@
 package artisynth.core.modelbase;
 
-public interface IndexedField<T> extends Field<T> {
+import maspack.matrix.VectorObject;
+
+public interface IndexedField<T extends VectorObject<T>> extends VectorField<T> {
 
    public T getValueByIndex (int idx);
 

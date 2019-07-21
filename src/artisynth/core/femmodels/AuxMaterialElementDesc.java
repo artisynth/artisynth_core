@@ -28,6 +28,7 @@ import artisynth.core.femmodels.AuxMaterialBundle.FractionRenderType;
 import artisynth.core.materials.DeformedPoint;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.MaterialBase;
+import artisynth.core.materials.MaterialStateObject;
 import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
@@ -65,15 +66,15 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       this();
       setElement(elem);
       setFraction(1);
-      setMaterial(null);
+//      setMaterial(null);
    }
 
-   public AuxMaterialElementDesc(FemElement3d elem, FemMaterial mat) {
-      this();
-      setElement(elem);
-      setFraction(1);
-      setMaterial(mat);
-   }
+//   public AuxMaterialElementDesc(FemElement3d elem, FemMaterial mat) {
+//      this();
+//      setElement(elem);
+//      setFraction(1);
+//      setMaterial(mat);
+//   }
 
    public AuxMaterialElementDesc (FemElement3d elem, FemMaterial mat, double frac) {
       this();
@@ -87,8 +88,8 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
    static {
       myProps.add ("renderProps", "render properties", null);
       myProps.add ("fraction", "material fraction", 1);
-      myProps.add (
-         "material", "fem material parameters", null);
+//      myProps.add (
+//         "material", "fem material parameters", null);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -119,19 +120,24 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       return myFracs;
    }
 
-   public FemMaterial getMaterial() {
-      return myMat;
-   }
-
-   public void setMaterial (FemMaterial mat) {
-      FemMaterial old = myMat;
-      myMat = (FemMaterial)MaterialBase.updateMaterial (
-         this, "material", myMat, mat);
-      // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
-      }
-   }
+//   public FemMaterial getMaterial() {
+//      return myMat;
+//   }
+//
+//   public void setMaterial (FemMaterial mat) {
+//      FemMaterial old = myMat;
+//      myMat = (FemMaterial)MaterialBase.updateMaterial (
+//         this, "material", myMat, mat);
+//      // issue change event in case solve matrix symmetry or state has changed:
+//      MaterialChangeEvent mce = 
+//         MaterialBase.symmetryOrStateChanged ("material", mat, old);
+//      if (mce != null) {
+//         if (myElement != null && mce.stateHasChanged()) {
+//            myElement.notifyStateVersionChanged();
+//         }
+//         notifyParentOfChange (mce);
+//      }     
+//   }
 
    @Override
    public boolean isInvertible() {
@@ -152,9 +158,9 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
    }
 
    protected FemMaterial getEffectiveMaterial() {
-      if (myMat != null) {
-         return myMat;
-      }
+//      if (myMat != null) {
+//         return myMat;
+//      }
       CompositeComponent grandParent = getGrandParent();
       if (grandParent instanceof AuxMaterialBundle) {
          return ((AuxMaterialBundle)grandParent).getMaterial();
@@ -222,7 +228,7 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
 
    public void computeStressAndTangent ( 
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def,
-      IntegrationPoint3d pt, IntegrationData3d dt) {
+      IntegrationPoint3d pt, IntegrationData3d dt, MaterialStateObject state) {
 
       FemMaterial mat = getEffectiveMaterial();
       if (mat != null) {
@@ -232,7 +238,7 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
          }
          if (frac > 0) {
             Matrix3d Q = (dt.myFrame != null ? dt.myFrame : Matrix3d.IDENTITY);
-            mat.computeStressAndTangent (sigma, D, def, Q, 0.0);
+            mat.computeStressAndTangent (sigma, D, def, Q, 0.0, state);
             sigma.scale(frac);
             if (D != null) {
                D.scale(frac);
@@ -279,18 +285,18 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
    }
 
    public void scaleDistance (double s) {
-      if (myMat != null) {
-         myMat.scaleDistance (s);
-      }
+//      if (myMat != null) {
+//         myMat.scaleDistance (s);
+//      }
       if (myRenderProps != null) {
          myRenderProps.scaleDistance (s);
       }
    }
 
    public void scaleMass (double s) {
-      if (myMat != null) {
-         myMat.scaleMass (s);
-      }
+//      if (myMat != null) {
+//         myMat.scaleMass (s);
+//      }
    }
 
    void referenceElement() {
@@ -456,4 +462,22 @@ public class AuxMaterialElementDesc extends RenderableComponentBase
       
    }
 
+   public boolean hasState() {
+      FemMaterial mat = getEffectiveMaterial();
+      return (mat != null ? mat.hasState() : false);
+   }
+
+   public MaterialStateObject createStateObject() {
+      FemMaterial mat = getEffectiveMaterial();
+      return (mat != null ? mat.createStateObject() : null);
+   }
+
+   public void advanceState (MaterialStateObject state, double t0, double t1) {
+      FemMaterial mat = getEffectiveMaterial();
+      if (mat != null) {
+         mat.advanceState (state, t0, t1);
+      }
+   }
+
+  
 }

@@ -10,6 +10,7 @@ import java.util.*;
 import java.io.*;
 
 import artisynth.core.util.*;
+import artisynth.core.modelbase.ScanWriteUtils.ClassInfo;
 import maspack.properties.*;
 import maspack.util.*;
 
@@ -474,10 +475,10 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
 
    protected void printClassTagIfNecessary (PrintWriter pw, C comp) {
       Class<?> typeParam = null;
-      if (comp instanceof ComponentList) {
-         ComponentList clist = (ComponentList)comp;
-         if (clist.hasParameterizedType()) {
-            typeParam = clist.getTypeParameter();
+      if (comp instanceof ParameterizedClass) {
+         ParameterizedClass pclass = (ParameterizedClass)comp;
+         if (pclass.hasParameterizedType()) {
+            typeParam = pclass.getTypeParameter();
          }
       }
       //if (!comp.getClass().isAssignableFrom (myComponentType) ||
@@ -548,7 +549,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    }
 
    protected boolean scannedCompMatches (
-      C comp, ClassInfo classInfo, int number)
+      C comp, ClassInfo<C> classInfo, int number)
       throws IOException {
 
       Class<?> cls =
@@ -616,7 +617,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       throws IOException {
 
       int compNumber = -1;
-      ClassInfo classInfo = null;
+      ClassInfo<C> classInfo = null;
       if (rtok.tokenIsInteger()) {
          compNumber = (int)rtok.lval;
          if (compNumber < 0) {

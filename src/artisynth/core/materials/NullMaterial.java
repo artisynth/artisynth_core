@@ -6,18 +6,17 @@ import maspack.matrix.SymmetricMatrix3d;
 
 public class NullMaterial extends FemMaterial {
 
-   @Override
-   public void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
-      sigma.setZero();      
-   }
+   /**
+    * {@inheritDoc}
+    */
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation, MaterialStateObject state) {
 
-   @Override
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
-      Matrix3d Q, FemMaterial baseMat) {
-      D.setZero();
+      sigma.setZero();
+      if (D != null) {
+         D.setZero();
+      }
    }
    
    @Override

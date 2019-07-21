@@ -33,8 +33,10 @@ import artisynth.core.materials.DeformedPoint;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
+import artisynth.core.materials.MaterialStateObject;
 import artisynth.core.materials.MuscleMaterial;
 import artisynth.core.mechmodels.ExcitationComponent;
+import artisynth.core.mechmodels.ExcitationComponent.CombinationRule;
 import artisynth.core.mechmodels.ExcitationSourceList;
 import artisynth.core.mechmodels.ExcitationUtils;
 import artisynth.core.modelbase.ComponentUtils;
@@ -56,15 +58,15 @@ import artisynth.core.util.*;
 */
 public class MuscleElementDesc
    extends RenderableComponentBase
-   implements AuxiliaryMaterial, ExcitationComponent, ScalableUnits, TransformableGeometry {
+   implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
 
-   FemElement3d myElement;
-   private MuscleMaterial myMuscleMat;
+   FemElement3dBase myElement;
+//   private MuscleMaterial myMuscleMat;
    Vector3d myDir = new Vector3d();
    Vector3d[] myDirs = null;
-   private double myExcitation = 0;
-   protected ExcitationSourceList myExcitationSources;
-   protected CombinationRule myComboRule = CombinationRule.Sum;
+   //private double myExcitation = 0;
+   //protected ExcitationSourceList myExcitationSources;
+   //protected CombinationRule myComboRule = CombinationRule.Sum;
 
    // the following are set if an activation color is specified:
    protected float[] myDirectionColor; // render color for directions
@@ -79,7 +81,7 @@ public class MuscleElementDesc
       super();
    }
    
-   public MuscleElementDesc (FemElement3d elem, Vector3d dir) {
+   public MuscleElementDesc (FemElement3dBase elem, Vector3d dir) {
       this();
       setElement (elem);
       if (dir != null) {
@@ -87,7 +89,7 @@ public class MuscleElementDesc
       }
    }
    
-   public MuscleElementDesc (FemElement3d elem) {
+   public MuscleElementDesc (FemElement3dBase elem) {
       this(elem, null);
    }
 
@@ -99,9 +101,9 @@ public class MuscleElementDesc
       myProps.add ("direction", "fibre direction", Vector3d.ZERO);
       myProps.addReadOnly (
          "netExcitation", "total excitation including excitation sources");
-      myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1] NW");
-      myProps.add (
-         "muscleMaterial", "muscle material parameters", null);
+//      myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1] NW");
+//      myProps.add (
+//         "muscleMaterial", "muscle material parameters", null);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -149,19 +151,24 @@ public class MuscleElementDesc
       return myDirs;
    }
 
-   public MuscleMaterial getMuscleMaterial() {
-      return myMuscleMat;
-   }
-
-   public void setMuscleMaterial (MuscleMaterial mat) {
-      MuscleMaterial old = myMuscleMat;
-      myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial (
-         this, "muscleMaterial", myMuscleMat, mat);
-      // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
-      }
-   }
+//   public MuscleMaterial getMuscleMaterial() {
+//      return myMuscleMat;
+//   }
+//
+//   public void setMuscleMaterial (MuscleMaterial mat) {
+//      MuscleMaterial old = myMuscleMat;
+//      myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial (
+//         this, "muscleMaterial", myMuscleMat, mat);
+//      // issue change event in case solve matrix symmetry or state has changed:
+//      MaterialChangeEvent mce = 
+//         MaterialBase.symmetryOrStateChanged ("muscleMaterial", mat, old);
+//      if (mce != null) {
+//         if (mce.stateHasChanged() && myElement != null) {
+//            myElement.notifyStateVersionChanged();
+//         }
+//         notifyParentOfChange (mce);
+//      }      
+//   }
 
    @Override
    public boolean isInvertible() {
@@ -181,135 +188,125 @@ public class MuscleElementDesc
       return mat == null;
    }
    
-   /**
-    * {@inheritDoc}
-    */
-   public double getExcitation() {
-      return myExcitation;
-   }
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public double getExcitation() {
+//      return myExcitation;
+//   }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public void initialize (double t) {
+//      if (t == 0) {
+//         setExcitation (0);
+//      }
+//   }
+
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public void setExcitation (double a) {
+//      // set activation within valid range
+//      double valid_a = a;
+//      valid_a = (valid_a > maxActivation) ? maxActivation : valid_a;
+//      valid_a = (valid_a < minActivation) ? minActivation : valid_a;
+//      myExcitation = valid_a;
+//   }
+
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public void setCombinationRule (CombinationRule rule) {
+//      myComboRule = rule;
+//   }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//   public CombinationRule getCombinationRule() {
+//      return myComboRule;
+//   }
+
+//   /**
+//    * {@inheritDoc}
+//    */
+//   //@Override
+//   public void addExcitationSource (ExcitationComponent ex, double gain) {
+//      if (myExcitationSources == null) {
+//         myExcitationSources = new ExcitationSourceList();
+//      }
+//      myExcitationSources.add (ex, gain);
+//   }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//   //@Override
+//   public boolean removeExcitationSource (ExcitationComponent ex) {
+//      boolean removed = false;
+//      if (myExcitationSources != null) {
+//         removed = myExcitationSources.remove (ex);
+//         if (myExcitationSources.size() == 0) {
+//            myExcitationSources = null;
+//         }
+//      }
+//      return removed;
+//   }
+
+//   /**
+//    * {@inheritDoc}
+//    */
+//   //@Override
+//   public double getExcitationGain (ExcitationComponent ex) {
+//      return ExcitationUtils.getGain (myExcitationSources, ex);
+//   }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//   //@Override
+//   public boolean setExcitationGain (ExcitationComponent ex, double gain) {
+//      return ExcitationUtils.setGain (myExcitationSources, ex, gain);
+//   }
 
    /**
     * {@inheritDoc}
     */
-   public void initialize (double t) {
-      if (t == 0) {
-         setExcitation (0);
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void setExcitation (double a) {
-      // set activation within valid range
-      double valid_a = a;
-      valid_a = (valid_a > maxActivation) ? maxActivation : valid_a;
-      valid_a = (valid_a < minActivation) ? minActivation : valid_a;
-      myExcitation = valid_a;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void setCombinationRule (CombinationRule rule) {
-      myComboRule = rule;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public CombinationRule getCombinationRule() {
-      return myComboRule;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public void addExcitationSource (ExcitationComponent ex) {
-      addExcitationSource (ex, 1);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public void addExcitationSource (ExcitationComponent ex, double gain) {
-      if (myExcitationSources == null) {
-         myExcitationSources = new ExcitationSourceList();
-      }
-      myExcitationSources.add (ex, gain);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public boolean removeExcitationSource (ExcitationComponent ex) {
-      boolean removed = false;
-      if (myExcitationSources != null) {
-         removed = myExcitationSources.remove (ex);
-         if (myExcitationSources.size() == 0) {
-            myExcitationSources = null;
-         }
-      }
-      return removed;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public double getExcitationGain (ExcitationComponent ex) {
-      return ExcitationUtils.getGain (myExcitationSources, ex);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public boolean setExcitationGain (ExcitationComponent ex, double gain) {
-      return ExcitationUtils.setGain (myExcitationSources, ex, gain);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public double getNetExcitation() {
-      double net = ExcitationUtils.combineWithAncestor (
-         this, myExcitationSources, /*up to grandparent=*/2, myComboRule);
-      return net;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public void getSoftReferences (List<ModelComponent> refs) {
-      super.getSoftReferences (refs);
-      if (myExcitationSources != null) {
-         myExcitationSources.getSoftReferences (refs);
-      }
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
-   public void updateReferences (boolean undo, Deque<Object> undoInfo) {
-      super.updateReferences (undo, undoInfo);
-      myExcitationSources = ExcitationUtils.updateReferences (
-         this, myExcitationSources, undo, undoInfo);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public double getDefaultActivationWeight() {
-      return 0;
-   }
+   //@Override
+//   public double getNetExcitation() {
+//      double net = ExcitationUtils.combineWithAncestor (
+//         this, myExcitationSources, /*up to grandparent=*/2, myComboRule);
+//      return net;
+//   }
    
+   public double getNetExcitation() {
+      return ExcitationUtils.getAncestorNetExcitation (
+         this, /*up to grandparent=*/2);
+   }
+
+//   /**
+//    * {@inheritDoc}
+//    */
+//   @Override
+//   public void getSoftReferences (List<ModelComponent> refs) {
+//      super.getSoftReferences (refs);
+//      if (myExcitationSources != null) {
+//         myExcitationSources.getSoftReferences (refs);
+//      }
+//   }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//   @Override
+//   public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+//      super.updateReferences (undo, undoInfo);
+//      myExcitationSources = ExcitationUtils.updateReferences (
+//         this, myExcitationSources, undo, undoInfo);
+//   }
+
    public void updateBounds(Vector3d pmin, Vector3d pmax) {
       super.updateBounds(pmin, pmax);
       if (myElement != null)
@@ -489,15 +486,15 @@ public class MuscleElementDesc
    }
 
    private MuscleMaterial getEffectiveMuscleMaterial () {
-      if (myMuscleMat != null) {
-         return myMuscleMat;
-      }
-      else {
+//      if (myMuscleMat != null) {
+//         return myMuscleMat;
+//      }
+//      else {
          ModelComponent gparent = getGrandParent();
          if (gparent instanceof MuscleBundle) {
             return ((MuscleBundle)gparent).getEffectiveMuscleMaterial();
          }
-      }
+//      }
       return null;      
    }
 
@@ -541,7 +538,7 @@ public class MuscleElementDesc
 
    public void computeStressAndTangent( 
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def,
-      IntegrationPoint3d pt, IntegrationData3d dt) {
+      IntegrationPoint3d pt, IntegrationData3d dt, MaterialStateObject state) {
 
       MuscleMaterial mat = getEffectiveMuscleMaterial();
       Vector3d dir = null;
@@ -549,7 +546,8 @@ public class MuscleElementDesc
          dir = getMuscleDirection(pt.getNumber());
       }
       if (dir != null) {
-         mat.computeStressAndTangent (sigma, D, def, dir, getNetExcitation());
+         mat.computeStressAndTangent (
+            sigma, D, def, dir, getNetExcitation(), state);
       }
       else {
          sigma.setZero();
@@ -588,7 +586,7 @@ public class MuscleElementDesc
       Vector3d dir = new Vector3d();
       Point3d loc = new Point3d();
 
-      FemElement3d e = getElement();
+      FemElement3dBase e = getElement();
       IntegrationPoint3d warpingPnt = e.getWarpingPoint();
       warpingPnt.computeRestPosition (loc, e.getNodes());
       interp.getInterpolation (wghts, idxs, loc);
@@ -622,7 +620,7 @@ public class MuscleElementDesc
       setDirection (dir);
    }
 
-public void interpolateIpntDirection (
+   public void interpolateIpntDirection (
       DelaunayInterpolator interp, Vector3d[] restDirs) {
 
       int[] idxs = new int[4];
@@ -630,7 +628,7 @@ public void interpolateIpntDirection (
       Vector3d dir = new Vector3d();
       Point3d loc = new Point3d();
 
-      FemElement3d e = getElement();
+      FemElement3dBase e = getElement();
       
       Vector3d[] dirs = myDirs;
       if (dirs == null) {
@@ -666,11 +664,11 @@ public void interpolateIpntDirection (
       myDirs = dirs;
    }
 
-   public FemElement3d getElement() {
+   public FemElement3dBase getElement() {
       return myElement;
    }
 
-   public void setElement (FemElement3d elem) {
+   public void setElement (FemElement3dBase elem) {
       myElement = elem;
    }
    
@@ -723,18 +721,18 @@ public void interpolateIpntDirection (
    }
 
    public void scaleDistance (double s) {
-      if (myMuscleMat != null) {
-         myMuscleMat.scaleDistance (s);
-      }
+//      if (myMuscleMat != null) {
+//         myMuscleMat.scaleDistance (s);
+//      }
       if (myRenderProps != null) {
          myRenderProps.scaleDistance (s);
       }
    }
 
    public void scaleMass (double s) {
-      if (myMuscleMat != null) {
-         myMuscleMat.scaleMass (s);
-      }
+//      if (myMuscleMat != null) {
+//         myMuscleMat.scaleMass (s);
+//      }
    }
 
    void referenceElement() {
@@ -818,11 +816,11 @@ public void interpolateIpntDirection (
          scanDirections (rtok);
          return true;
       }
-      else if (scanAttributeName (rtok, "excitationSources")) {
-         myExcitationSources =
-            ExcitationUtils.scan (rtok, "excitationSources", tokens);
-         return true;
-      }      
+//      else if (scanAttributeName (rtok, "excitationSources")) {
+//         myExcitationSources =
+//            ExcitationUtils.scan (rtok, "excitationSources", tokens);
+//         return true;
+//      }      
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }   
@@ -834,10 +832,10 @@ public void interpolateIpntDirection (
          setElement (postscanReference (tokens, FemElement3d.class, ancestor));
          return true;
       }
-      else if (postscanAttributeName (tokens, "excitationSources")) {
-         myExcitationSources.postscan (tokens, ancestor);
-         return true;
-      }  
+//      else if (postscanAttributeName (tokens, "excitationSources")) {
+//         myExcitationSources.postscan (tokens, ancestor);
+//         return true;
+//      }  
       return super.postscanItem (tokens, ancestor);
    }
 
@@ -851,9 +849,33 @@ public void interpolateIpntDirection (
       if (myDirs != null && myDirs.length > 0) {
          printDirections (pw, fmt);
       }
-      if (myExcitationSources != null) {
-         myExcitationSources.write (pw, "excitationSources", fmt, ancestor);
-      }      
+//      if (myExcitationSources != null) {
+//         myExcitationSources.write (pw, "excitationSources", fmt, ancestor);
+//      }      
    }
 
+   public boolean hasState() {
+      MuscleMaterial mat = getEffectiveMuscleMaterial();
+      return (mat != null ? mat.hasState() : false);
+   }
+
+   public MaterialStateObject createStateObject() {
+      MuscleMaterial mat = getEffectiveMuscleMaterial();
+      return (mat != null ? mat.createStateObject() : null);
+   }
+
+   public void advanceState (MaterialStateObject state, double t0, double t1) {
+      MuscleMaterial mat = getEffectiveMuscleMaterial();
+      if (mat != null) {
+         mat.advanceState (state, t0, t1);
+      }
+   }
+
+   @Override
+   public void getHardReferences (List<ModelComponent> refs) {
+      super.getHardReferences (refs);
+      if (myElement != null) {
+         refs.add (myElement);
+      }
+   }  
 }

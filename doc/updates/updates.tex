@@ -35,8 +35,180 @@
 
 % \subsection*{MAPStress and MAPStrain added to FemModel.SurfaceRender}
 
-Also added getMaxAbsPrincipalStress() and getMaxAbsPrincipalStrain()
-methods added to FemNode3d.
+\section*{Jul 21, 2019}
+
+\subsection*{Field components added}
+
+Field components have been added to allow the interpolation of both
+scalar and vector quantities over regular and FEM-based grids.  Once
+created, a field can be ``bound'' to properties of various FEM
+materials, allowing the values of these properties to vary over the
+FEM domain. For example, the stiffness parameters of an FEM material
+may vary at different points within the volumetric mesh.
+
+Full documentation on creating fields and binding them to materials is
+given in the new section ``Fields'', in the ``Finite Element Models''
+chapter of the the
+\href{http://www.artisynth.org/doc/info/modelguide/modelguide.html}
+{Modeling Guide}.
+
+\subsection*{MaterialBundles added to FemModel3d}
+
+FemModel3d now supports the ability to add ``material bundles'', which
+allow supplemental materials to be added to the elements of an FEM
+model.  A material bundle can be specified for either all elements or
+selected elements within the model. 
+
+Material bundles are implemented using the class
+\javaclass[artisynth.core.femmodels]{MaterialBundle}, and are
+analagous to {\tt MuscleBundle}, except that they can be used for any
+type of FEM material and don't specify excitation or excitation
+directions.  It is possible to use a {\tt MaterialBundle} to implement a
+muscle behavior, by specifying a {\tt MuscleMaterial} whose {\sf
+excitation} and {\sf restDir} properties are set directly by the
+application (with the latter possibly attached to a {\tt Vector3d} field).
+
+Full documentation is given in the new section ``Varying and
+augmenting materials'', in the ``Finite Element Models'' chapter of
+the the
+\href{http://www.artisynth.org/doc/info/modelguide/modelguide.html}
+{Modeling Guide}.
+
+\subsection*{Refactoring of FEM materials}
+
+FEM materials have been refactored in several ways:
+
+\begin{itemize}
+
+\item The {\tt computeStress()} and {\tt computeTangent()} methods are
+now consolidated into a single method \\ {\tt
+computeStressAndTangent()} (in which the argument to return the
+tangent matrix is optional). The main reason for this is efficiency:
+tangent calculations often require some of the same calculations
+required for stress, and so computing these quantities in the same
+method avoids repeated computation.
+
+\item The property {\sf viscoBehavior} has been removed from {\tt
+FemMaterial}. Instead, viscoelasticity is now effected by creating an
+instance of
+\javaclass[artisynth.core.materials]{ViscoelasticMaterial}, which
+takes both a base material and a viscoelastic behavior.
+
+\item FEM materials can now maintain their own
+custom state. This is done via the interface 
+\javaclass[artisynth.core.materials]{HasMaterialState},
+which supplies the methods
+%
+\begin{lstlisting}[]
+  // material currently has state
+  boolean hasState(); 
+
+  // creates an object for storing the stae
+  MaterialStateObject createStateObject();
+
+  // advances the state from time t0 to t1
+  advanceState (MaterialStateObject state, double t0, double t1);
+\end{lstlisting}
+%
+For materials which have state, the system creates state instances
+which are stored at each element integration point and supplied as an
+additional argument to the {\tt computeStressAndTangent()} method.
+
+\item A new FEM material,
+\javaclass[artisynth.core.materials]{ScaledFemMaterial}, has been added
+which takes a base material and a scaling factor. The latter can then be
+attached to a scalar field to ``scale'' the effect of the material
+over an entire FEM. The old way of doing this, which involved a
+scaling factor in the integration data (class {\tt
+IntegrationData3d}), has been removed.
+
+\end{itemize}
+
+\subsection*{MuscleBundle can now accept shell elements}
+
+\javaclass[artisynth.core.femmodels]{MuscleBundle} and
+\javaclass[artisynth.core.femmodels]{MuscleElementDesc} have been
+extended to allow shell as well as volumetric elements. This means
+that elements for these objects are now referenced by {\tt
+FemElement3dBase} instead of {\tt FemElement3d}.
+
+\subsection*{AuxiliaryMaterials now deprecated}
+
+With the addition of {\tt MaterialBundles}, the existing means for
+added ``extra'' materials to an FEM, using \\
+{\tt AuxiliaryMaterial}, is
+now deprecated. {\tt AuxiliaryMaterials} are still used ``under the
+hood'' to implement {\tt MuscleBundles}, but it is expected that they
+will eventually be removed.
+
+An undocumented feature known as {\tt AuxMaterialBundle} currently
+exists within ArtiSynth, which allows \\ 
+{\tt AuxiliaryMaterials} to be
+added to an FEM model in a manner analagous to {\tt MaterialBundle}.
+To accommodate {\tt MaterialBundle}, the methods for adding, removing
+and accessing {\tt AuxMaterialBundles} have been renamed as follows:
+
+\begin{tabular}{ll}
+\hline
+Old method & New method \\
+\hline
+{\tt getMaterialBundles()} & {\tt getAuxMaterialBundles()} \\
+{\tt addMaterialBundle(bundle)} & {\tt addAuxMaterialBundle(bundle)} \\
+{\tt removeMaterialBundle(bundle)} & {\tt removeAuxMaterialBundle(bundle)} \\
+{\tt clearMaterialBundles()} & {\tt clearAuxMaterialBundles()}\\
+\hline
+\end{tabular}
+
+\subsection*{MuscleElementDesc not longer extends ExcitationComponent}
+
+To quickly review: A
+\javaclass[artisynth.core.femmodels]{MuscleBundle} is the basic
+grouping of elements within an
+\javaclass[artisynth.core.femmodels]{FemMuscleModel} that share a
+single excitation value.  Each element within a {\tt MuscleBundle} is
+described by a single
+\javaclass[artisynth.core.femmodels]{MuscleElementDesc}. Removing the
+\javaclass[artisynth.core.mechmodels]{ExcitationComponent} interface
+from {\tt MuscleElementDesc} means that it is no longer be possible to
+control the excitation for one or more {\tt MuscleElementDescs} {\it
+separately} from the excitation of the {\tt MuscleBundle}. In other
+words, a {\tt MuscleBundle} now represents the smallest possible
+grouping of FEM elements for which you can provide a single
+excitation.
+
+Note that as before, one is still able to combine the excitations of
+several MuscleBundles using MuscleExciter components.
+
+\subsection*{Other changes}
+
+\begin{itemize}
+
+\item Excitation component has been simplified by removing the methods
+%
+\begin{lstlisting}[]
+  void addExcitationSource(ExcitationComponent ex)
+
+  double getDefaultActivationWeight()
+\end{lstlisting}
+%
+
+\item In the {\tt maspack.properties} package, added {\tt
+setAllowedTypes()} to {\tt PropertyDesc}, to specify which subclasses
+of {\tt getValueClass()} may be used for creating instances of a
+property within a {\tt CompositePropertyPanel}.
+
+\item In {\tt maspack.widgets}, modified {\tt CompositePropertyPanel}
+to use reflection to look for the method \\ {\tt
+initializePropertyValues()} in the declaration of a {\tt
+CompositeProperty}, and use this to help initialize the sub-properties
+of a {\tt CompositeProperty} based on the value of a previous
+object with the same base class.
+
+\item Added the methods {\tt getMaxAbsPrincipalStress()} and {\tt
+getMaxAbsPrincipalStrain()} to
+\javaclass[artisynth.core.femmodels]{FemNode3d}.
+
+\end{itemize}
 
 \section*{May 6, 2019}
 
@@ -2570,7 +2742,7 @@ its {\tt allowSelfCollision()} method returns {\tt true}.
 
 As a particular example, {\tt FemModel3d} is a collidable, while the
 mesh components located in its {\tt meshes} sublist are
-sub-collidables. If self-collision is enabled for a FEM model,
+sub-collidables. If self-collision is enabled for an FEM model,
 collisions will be enabled between any of these mesh components which
 (a) contain a polygonal mesh and (b) are marked as collidable. The
 surface mesh is excluded, since {\tt
@@ -2608,7 +2780,7 @@ now create and return a {\tt FemMesh} object instead of a {\tt
 PolygonalMesh}. The {\tt PolygonalMesh} itself can be obtained using {\tt
 getMesh()} on the returned {\tt FemMesh}.
 
-Meshes can still be scanned and added to a FEM model using
+Meshes can still be scanned and added to an FEM model using
 code snippets of the form
 %
 \begin{lstlisting}[]
@@ -2722,7 +2894,7 @@ A new static method in {\tt FemMesh},
    FemMesh createSurface (String name, FemModel3d fem, Collection elements);
 \end{lstlisting}
 %
-allows the creation of a FEM surface mesh which encloses a specified
+allows the creation of an FEM surface mesh which encloses a specified
 collection of elements. This should make it easier to create
 sub-surfaces.
 
@@ -3074,11 +3246,11 @@ The infrastructure by which components save and restore their state
 has been simplified. Components which have state include dynamic
 components, for which the state consists of positions and velocities,
 plus any component which with additional auxiliary state that
-implements \javaclass[artisynth.core.mechmodels]{HasAuxState}.
+implements {\tt HasAuxState}.
 
 As before, {\tt HasAuxState} components use
-\javamethod[artisynth.core.mechmodels.HasAuxState]{getAuxState()} and
-\javamethod[artisynth.core.mechmodels.HasAuxState]{setAuxState()} to save
+{\tt getAuxState()} and
+{\tt setAuxState()} to save
 and restore their state from a
 \javaclass[maspack.util]{DataBuffer}. However, the {\tt DataBuffer}
 has been modified to use {\tt put()} and {\tt get()} type operations
@@ -3088,7 +3260,7 @@ offsets, so the application no longer has to do this. Also, buffers
 are autosized automatically, so there is no need for an initial
 presizing step; this also means that the {\tt HasAuxState} method {\tt
 increaseAusStateOffsets()} has been replaced by the simpler method
-\javamethod[artisynth.core.mechmodels.HasAuxState]{skipAuxState()}.
+{\tt skipAuxState()}.
 
 As a simple example, {\tt getState()} and {\tt setState()} methods to
 save and restore auxiliary state consisting of a vector might be
@@ -5762,7 +5934,7 @@ In code, one can do
 \subsection*{Ability to merge FEM models}
 
 A method has been added to {\tt FemFactory} which allows you to add a copy
-of a FEM model to an existing FEM model:
+of an FEM model to an existing FEM model:
 
 \begin{verbatim}
    addFem (fem0, fem1, nodeMergeDist)

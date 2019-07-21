@@ -118,10 +118,6 @@ public class LinearMaterialCache {
       FemDeformedPoint dpnt = createDeformedPoint();
       FemNode3d[] nodes = e.getNodes();
 
-//      for (int i = 0; i < nodes.length; i++) {
-//         f0[i].setZero();
-//      }
-      
       // compute stiffness matrix
       Matrix6d D = new Matrix6d();
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
@@ -132,20 +128,16 @@ public class LinearMaterialCache {
          IntegrationData3d dt = idata[k];
          RotationMatrix3d R = null; // used if element has prestrain
          
-         dpnt.setFromRestPoint (
-            pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
+         dpnt.setFromRestPoint (pt, dt, RotationMatrix3d.IDENTITY, e, k);
 
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
-         if (dt.myScaling != 1) {
-            dv0 *= dt.myScaling;
-         }
 
          Matrix3d Q = dt.myFrame == null ? Matrix3d.IDENTITY : dt.myFrame;
          Vector3d[] GNx0 = pt.updateShapeGradient(dt.myInvJ0);
 
          // compute tangent matrix under zero stress
          SymmetricMatrix3d stress = new SymmetricMatrix3d();
-         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0);
+         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0, null);
          for (int i = 0; i < nodes.length; i++) {
             // normally stress will be zero, unless there is prestrain ...
             FemUtilities.addStressForce(f0[i], GNx0[i], stress, dv0);
@@ -206,19 +198,14 @@ public class LinearMaterialCache {
          IntegrationData3d dt = idata[k];
          RotationMatrix3d R = null; // used if element has prestrain
          
-         dpnt.setFromRestPoint (
-            pt, dt, RotationMatrix3d.IDENTITY, e,
-            e.getIntegrationIndex()+(k%nump));
+         dpnt.setFromRestPoint (pt, dt, RotationMatrix3d.IDENTITY, e, k%nump);
 
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
          double t = pt.getCoords().z;
-         if (dt.myScaling != 1) {
-            dv0 *= dt.myScaling;
-         }
 
          Matrix3d Q = dt.myFrame == null ? Matrix3d.IDENTITY : dt.myFrame;
 
-         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0);
+         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0, null);
          VectorNd Ns = pt.getShapeWeights ();
          Vector3d[] dNs = pt.getGNs();
          for (int i = 0; i < nodes.length; i++) {
@@ -268,25 +255,21 @@ public class LinearMaterialCache {
       SymmetricMatrix3d stress = new SymmetricMatrix3d();
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
       IntegrationData3d[] idata = e.getIntegrationData();
+      int nump = e.numPlanarIntegrationPoints();
 
-      for (int k=0; k<ipnts.length; k++) {
+      for (int k=0; k<nump; k++) {
 
          IntegrationPoint3d pt = ipnts[k];
          IntegrationData3d dt = idata[k];
          RotationMatrix3d R = null; // used if element has prestrain
          
-         dpnt.setFromRestPoint (
-            pt, dt, RotationMatrix3d.IDENTITY, e,
-            e.getIntegrationIndex()+k);
+         dpnt.setFromRestPoint (pt, dt, RotationMatrix3d.IDENTITY, e, k);
 
          double dv0 = e.getDefaultThickness()*dt.myDetJ0*weight*pt.getWeight();
-         if (dt.myScaling != 1) {
-            dv0 *= dt.myScaling;
-         }
 
          Matrix3d Q = dt.myFrame == null ? Matrix3d.IDENTITY : dt.myFrame;
 
-         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0);
+         mat.computeStressAndTangent (stress, D, dpnt, Q, 0.0, null);
          Vector3d[] dNs = pt.getGNs();
          for (int i = 0; i < nodes.length; i++) {
             // normally stress will be zero, unless there is prestrain ...
@@ -326,10 +309,6 @@ public class LinearMaterialCache {
 
       FemDeformedPoint dpnt = createDeformedPoint();
       FemNode3d[] nodes = e.getNodes();
-      
-//      for (int i = 0; i < nodes.length; i++) {
-//         f0[i].setZero();
-//      }
 
       // compute stiffness matrix
       Matrix6d D = new Matrix6d();
@@ -341,19 +320,15 @@ public class LinearMaterialCache {
          IntegrationData3d dt = idata[k];
          RotationMatrix3d R = null; // used if element has prestrain
                   
-         dpnt.setFromRestPoint (
-            pt, dt, RotationMatrix3d.IDENTITY, e, e.getIntegrationIndex()+k);
+         dpnt.setFromRestPoint (pt, dt, RotationMatrix3d.IDENTITY, e, k);
          
          double dv0 = dt.myDetJ0*weight*pt.getWeight();
-         if (dt.myScaling != 1) {
-            dv0 *= dt.myScaling;
-         }
 
          Vector3d[] GNx0 = pt.updateShapeGradient(dt.myInvJ0);
 
          // compute tangent matrix under zero stress
          SymmetricMatrix3d stress = new SymmetricMatrix3d();
-         mat.computeStressAndTangent(stress, D, dpnt, pt, dt);
+         mat.computeStressAndTangent(stress, D, dpnt, pt, dt, null);
          for (int i = 0; i < nodes.length; i++) {
             // normally stress will be zero, unless there is prestrain ...
             FemUtilities.addStressForce(f0[i], GNx0[i], stress, dv0);
@@ -378,6 +353,138 @@ public class LinearMaterialCache {
       }
    }
   
+   /**
+    * Computes and stores the initial stiffness K00 and force f0 terms
+    * @param e   element
+    * @param mat linear material
+    * @param weight weight to combine with integration point weights
+    */
+   public void addInitialStiffness (
+      ShellElement3d e, AuxiliaryMaterial mat, double weight) {
+
+      if (e.getElementClass() == ElementClass.SHELL) {
+         addInitialShellStiffness (e, mat, weight);
+      }
+      else {
+         addInitialMembraneStiffness (e, mat, weight);
+      }
+   }
+
+   public void addInitialShellStiffness (
+      ShellElement3d e, AuxiliaryMaterial mat, double weight) {
+      
+      FemDeformedPoint dpnt = createDeformedPoint();
+      FemNode3d[] nodes = e.getNodes();
+      
+      // compute stiffness matrix
+      Matrix6d D = new Matrix6d();
+      SymmetricMatrix3d stress = new SymmetricMatrix3d();
+      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+      IntegrationData3d[] idata = e.getIntegrationData();
+
+      int nump = e.numPlanarIntegrationPoints();
+      for (int k=0; k<ipnts.length; k++) {
+
+         IntegrationPoint3d pt = ipnts[k];
+         IntegrationData3d dt = idata[k];
+         RotationMatrix3d R = null; // used if element has prestrain
+         
+         dpnt.setFromRestPoint (pt, dt, RotationMatrix3d.IDENTITY, e, k%nump);
+
+         double dv0 = dt.myDetJ0*weight*pt.getWeight();
+         double t = pt.getCoords().z;
+
+         mat.computeStressAndTangent (stress, D, dpnt, pt, dt, null);
+         VectorNd Ns = pt.getShapeWeights ();
+         Vector3d[] dNs = pt.getGNs();
+         for (int i = 0; i < nodes.length; i++) {
+            // normally stress will be zero, unless there is prestrain ...
+            double iN = Ns.get(i);
+            Vector3d idN = dNs[i];
+            FemUtilities.addShellStressForce(
+               f0[i], f1[i], stress, t, dv0, iN, idN.x, idN.y, dt.getInvJ0());
+            for (int j = 0; j < nodes.length; j++) {
+               double jN = Ns.get(j);
+               Vector3d jdN = dNs[j];
+               // XXX should presumably use stress instead of
+               // SymmetricMatrix3d.ZERO, but results are unstable
+               FemUtilities.addShellMaterialStiffness (
+                  K00[i*nnodes+j], K01[i*nnodes+j],
+                  K10[i*nnodes+j], K11[i*nnodes+j],
+                  iN, jN, idN, jdN, dv0, t,
+                  dt.getInvJ0(), SymmetricMatrix3d.ZERO, D);
+            }
+         }
+      }      
+      
+      // initial RHS
+      Vector3d tmp0 = new Vector3d();
+      Vector3d tmp1 = new Vector3d();
+      for (int i = 0; i < nodes.length; i++) {
+         tmp0.setZero();
+         tmp1.setZero();
+         for (int j=0; j<nodes.length; j++) {
+            Vector3d pos = nodes[j].getRestPosition();
+            Vector3d backPos = nodes[j].getBackRestPosition();
+            mulAddK (i, j, tmp0, tmp1, pos, backPos);
+         }
+         f0[i].sub (tmp0, f0[i]);
+         f1[i].sub (tmp1, f1[i]);
+      }
+   }
+
+   public void addInitialMembraneStiffness (
+      ShellElement3d e, AuxiliaryMaterial mat, double weight) {
+      
+      FemDeformedPoint dpnt = createDeformedPoint();
+      FemNode3d[] nodes = e.getNodes();
+      
+      // compute stiffness matrix
+      Matrix6d D = new Matrix6d();
+      SymmetricMatrix3d stress = new SymmetricMatrix3d();
+      IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
+      IntegrationData3d[] idata = e.getIntegrationData();
+      int nump = e.numPlanarIntegrationPoints();
+
+      for (int k=0; k<nump; k++) {
+
+         IntegrationPoint3d pt = ipnts[k];
+         IntegrationData3d dt = idata[k];
+         RotationMatrix3d R = null; // used if element has prestrain
+         
+         dpnt.setFromRestPoint (pt, dt, RotationMatrix3d.IDENTITY, e, k);
+
+         double dv0 = e.getDefaultThickness()*dt.myDetJ0*weight*pt.getWeight();
+
+         mat.computeStressAndTangent (stress, D, dpnt, pt, dt, null);
+         Vector3d[] dNs = pt.getGNs();
+         for (int i = 0; i < nodes.length; i++) {
+            // normally stress will be zero, unless there is prestrain ...
+            Vector3d idN = dNs[i];
+            FemUtilities.addMembraneStressForce(
+               f0[i], stress, dv0, idN.x, idN.y, dt.getInvJ0());
+            for (int j = 0; j < nodes.length; j++) {
+               Vector3d jdN = dNs[j];
+               // XXX should presumably use stress instead of
+               // SymmetricMatrix3d.ZERO, but results are unstable
+               FemUtilities.addMembraneMaterialStiffness (
+                  K00[i*nnodes+j], idN, jdN, dv0,
+                  dt.getInvJ0(), SymmetricMatrix3d.ZERO, D);
+            }
+         }
+      }      
+      
+      // initial RHS
+      Vector3d tmp = new Vector3d();
+      for (int i = 0; i < nodes.length; i++) {
+         tmp.setZero();
+         for (int j=0; j<nodes.length; j++) {
+            K00[i*nnodes+j].mulAdd (tmp, nodes[j].getLocalRestPosition(), tmp);
+         }
+         f0[i].sub (tmp, f0[i]);
+      }
+   }
+   
    /**
     * Retrieves the K00 contribution between nodes i and j
     * @param i first node index

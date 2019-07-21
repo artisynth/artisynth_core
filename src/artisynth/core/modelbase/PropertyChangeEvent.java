@@ -19,6 +19,7 @@ public class PropertyChangeEvent extends ComponentChangeEvent {
    //();
 
    private String myPropName;
+   
    // use a separate host field in case the host is not a model component
    private HasProperties myHost;
 
@@ -40,11 +41,6 @@ public class PropertyChangeEvent extends ComponentChangeEvent {
       myHost = host;
    };
 
-   // public PropertyChangeEvent()
-   // {
-   // super (Code.PROPERTY_CHANGED);
-   // }
-
    public String getPropertyName() {
       return myPropName;
    }
@@ -52,4 +48,5 @@ public class PropertyChangeEvent extends ComponentChangeEvent {
    public HasProperties getHost() {
       return myHost;
    }
+ 
 }

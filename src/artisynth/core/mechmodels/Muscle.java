@@ -34,17 +34,16 @@ import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.materials.LinearAxialMuscle;
 import artisynth.core.materials.PeckAxialMuscle;
 import artisynth.core.materials.SimpleAxialMuscle;
+import artisynth.core.materials.MaterialChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.CompositeComponent;
-import artisynth.core.modelbase.ComponentUtils;
-import artisynth.core.modelbase.DynamicActivityChangeEvent;
-import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.util.ScanToken;
 
 public class Muscle extends AxialSpring
-   implements ExcitationComponent, HasNumericState, PropertyChangeListener {
+   implements ExcitationComponent, PropertyChangeListener {
 
    protected ExcitationSourceList myExcitationSources;
    protected CombinationRule myComboRule = CombinationRule.Sum;
@@ -71,10 +70,6 @@ public class Muscle extends AxialSpring
    protected double myMaxColoredExcitation = 1.0;
    protected PropertyMode myMaxColoredExcitationMode = PropertyMode.Inherited;
    
-   // if myMaterial implements HasNumericState, myStateMat is set to its value
-   // as a cached reference for use in implementing HasNumericState
-   protected HasNumericState myStateMat;
-
    protected float[] myRenderColor = null;
 
    public static PropertyList myProps =
@@ -98,17 +93,6 @@ public class Muscle extends AxialSpring
       this(null);
       setFirstPoint (p1);
       setSecondPoint (p2);
-   }
-
-   public void setMaterial (AxialMaterial mat) {
-      super.setMaterial (mat);
-      if (mat instanceof HasNumericState) {
-         // use getMaterial() since mat may have been copied
-         myStateMat = (HasNumericState)getMaterial();
-      }
-      else {
-         myStateMat = null;
-      }      
    }
   
    public void setConstantMuscleMaterial (double maxF) {
@@ -271,13 +255,6 @@ public class Muscle extends AxialSpring
       valid_a = (valid_a > maxActivation) ? maxActivation : valid_a;
       valid_a = (valid_a < minActivation) ? minActivation : valid_a;
       myExcitation = valid_a;
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public void addExcitationSource (ExcitationComponent ex) {
-      addExcitationSource (ex, 1);
    }
 
    /**
@@ -532,43 +509,16 @@ public class Muscle extends AxialSpring
       }
    }
 
-   // begin HasNumericState interface
-
-   public void advanceState (double t0, double t1) {
-      if (myStateMat != null) {
-         myStateMat.advanceState (t0, t1);
-      }
-   }
-   
-   public void getState (DataBuffer data) {
-      if (myStateMat != null) {
-         myStateMat.getState (data);
-      }
-   }
-
-   public void setState (DataBuffer data) {
-      if (myStateMat != null) {
-         myStateMat.setState (data);
-      }
-   }
-
-   public boolean hasState() {
-      return (myStateMat != null);
-   }
-   
-   // end HasNumericState interface
-   
-   // PropertyChangeListener interface:
+  // PropertyChangeListener interface:
 
    public void propertyChanged (PropertyChangeEvent e) {
-      if (e.getHost() instanceof AxialMaterial) {
-         if (e.getPropertyName().equals ("material")) {
-            // issue a dynamic change event in order to invalidate WayPoints
-            notifyParentOfChange (new DynamicActivityChangeEvent(this));
+      if (e instanceof MaterialChangeEvent) {
+         MaterialChangeEvent mce = (MaterialChangeEvent)e;
+         if (mce.stateOrSymmetryChanged()) {
+            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
          }
-      }
+      }     
    }
-
 
    private void updateLineRenderProps(boolean enabled) {
       if (enabled) {
@@ -606,15 +556,21 @@ public class Muscle extends AxialSpring
       }   
    }
 
-   public double getDefaultActivationWeight () {
-      return 1.0/Muscle.getMaxForce(this);
-   }
-
    public void getSoftReferences (List<ModelComponent> refs) {
       super.getSoftReferences (refs);
       if (myExcitationSources != null) {
          myExcitationSources.getSoftReferences (refs);
       }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   @Override
+   public void updateReferences (boolean undo, Deque<Object> undoInfo) {
+      super.updateReferences (undo, undoInfo);
+      myExcitationSources = ExcitationUtils.updateReferences (
+         this, myExcitationSources, undo, undoInfo);
    }
 
    protected void writeItems (

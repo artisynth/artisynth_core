@@ -1,11 +1,11 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
@@ -42,6 +42,11 @@ public class GenericMuscle extends MuscleMaterial {
    protected PropertyMode myExpStressCoeffMode = PropertyMode.Inherited;
    protected PropertyMode myUncrimpingFactorMode = PropertyMode.Inherited;
 
+   protected ScalarFieldPointFunction myMaxLambdaFunction = null;
+   protected ScalarFieldPointFunction myMaxStressFunction = null;
+   protected ScalarFieldPointFunction myExpStressCoeffFunction = null;
+   protected ScalarFieldPointFunction myUncrimpingFactorFunction = null;
+
    protected Vector3d myTmp = new Vector3d();
    protected Matrix3d myMat = new Matrix3d();
 
@@ -63,59 +68,51 @@ public class GenericMuscle extends MuscleMaterial {
       setUncrimpingFactor (uncrimpingFactor);
    }
 
-   public static PropertyList myProps =
-      new PropertyList (GenericMuscle.class, MuscleMaterial.class);   
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (GenericMuscle.class, MuscleMaterial.class);   
 
    static {
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "maxLambda", "maximum stress for straightened fibres",
          DEFAULT_MAX_LAMBDA, "%.8g");
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "maxStress", "maximum isometric stress", DEFAULT_MAX_STRESS);
-      myProps.addInheritable ("expStressCoeff", "exponential stress coefficient",
-                   DEFAULT_EXP_STRESS_COEFF);
-      myProps.addInheritable ("uncrimpingFactor", "fibre uncrimping factor",
-                   DEFAULT_UNCRIMPING_FACTOR);
+      myProps.addInheritableWithFunction (
+         "expStressCoeff", "exponential stress coefficient",
+         DEFAULT_EXP_STRESS_COEFF);
+      myProps.addInheritableWithFunction (
+         "uncrimpingFactor", "fibre uncrimping factor",
+         DEFAULT_UNCRIMPING_FACTOR);
       myProps.addReadOnly (
          "fibreModulus", "modulus of straightened fibres");
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
-   // public synchronized void setFibreModulus (double optLam) {
-   //    myFibreModulus = optLam;
-   //    myFibreModulusMode =
-   //       PropertyUtils.propagateValue (
-   //          this, "fibreModulus", myFibreModulus, myFibreModulusMode);
-   //    notifyHostOfPropertyChange();
-   // }
+   // BEGIN parameter accessors
 
+   // fibreModulus
+
+   protected double computeFibreModulus (
+      double expStressCoeff, double uncrimpingFactor, 
+      double maxLambda) {
+      return (expStressCoeff*uncrimpingFactor*
+              Math.exp (uncrimpingFactor*(maxLambda-1)));
+   }
+   
    public double getFibreModulus () {
       if (!myFibreModulusValidP) {
-         myFibreModulus =
-            myExpStressCoeff*myUncrimpingFactor*Math.exp (
-               myUncrimpingFactor*(myMaxLambda-1));      
+         myFibreModulus = computeFibreModulus (
+            myExpStressCoeff, myUncrimpingFactor, myMaxLambda);
          myFibreModulusValidP = true; 
       }
       return myFibreModulus;
    }
 
-   // public double getFibreModulus() {
-   //    return myFibreModulus;
-   // }
-
-   // public void setFibreModulusMode (PropertyMode mode) {
-   //    myFibreModulusMode =
-   //       PropertyUtils.setModeAndUpdate (
-   //          this, "fibreModulus", myFibreModulusMode, mode);
-   // }
-
-   // public PropertyMode getFibreModulusMode() {
-   //    return myFibreModulusMode;
-   // }
-
+   // maxLambda
+   
    public synchronized void setMaxLambda (double maxLambda) {
       myMaxLambda = maxLambda;
       myMaxLambdaMode =
@@ -139,6 +136,36 @@ public class GenericMuscle extends MuscleMaterial {
       return myMaxLambdaMode;
    }
 
+   public double getMaxLambda (FieldPoint dp) {
+      if (myMaxLambdaFunction == null) {
+         return getMaxLambda();
+      }
+      else {
+         return myMaxLambdaFunction.eval (dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getMaxLambdaFunction() {
+      return myMaxLambdaFunction;
+   }
+      
+   public void setMaxLambdaFunction (ScalarFieldPointFunction func) {
+      myMaxLambdaFunction = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setMaxLambdaField (
+      ScalarField field, boolean useRestPos) {
+      myMaxLambdaFunction = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getMaxLambdaField () {
+      return FieldUtils.getFieldFromFunction (myMaxLambdaFunction);
+   }
+
+   // maxStress
+
    public synchronized void setMaxStress (double maxStress) {
       myMaxStress = maxStress;
       myMaxStressMode =
@@ -160,6 +187,36 @@ public class GenericMuscle extends MuscleMaterial {
    public PropertyMode getMaxStressMode() {
       return myMaxStressMode;
    }
+
+   public double getMaxStress (FieldPoint dp) {
+      if (myMaxStressFunction == null) {
+         return getMaxStress();
+      }
+      else {
+         return myMaxStressFunction.eval (dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getMaxStressFunction() {
+      return myMaxStressFunction;
+   }
+      
+   public void setMaxStressFunction (ScalarFieldPointFunction func) {
+      myMaxStressFunction = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setMaxStressField (
+      ScalarField field, boolean useRestPos) {
+      myMaxStressFunction = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getMaxStressField () {
+      return FieldUtils.getFieldFromFunction (myMaxStressFunction);
+   }
+
+   // expStressCoeff
 
    public synchronized void setExpStressCoeff (double coeff) {
       myExpStressCoeff = coeff;
@@ -184,6 +241,36 @@ public class GenericMuscle extends MuscleMaterial {
       return myExpStressCoeffMode;
    }
 
+   public double getExpStressCoeff (FieldPoint dp) {
+      if (myExpStressCoeffFunction == null) {
+         return getExpStressCoeff();
+      }
+      else {
+         return myExpStressCoeffFunction.eval (dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getExpStressCoeffFunction() {
+      return myExpStressCoeffFunction;
+   }
+      
+   public void setExpStressCoeffFunction (ScalarFieldPointFunction func) {
+      myExpStressCoeffFunction = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setExpStressCoeffField (
+      ScalarField field, boolean useRestPos) {
+      myExpStressCoeffFunction = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getExpStressCoeffField () {
+      return FieldUtils.getFieldFromFunction (myExpStressCoeffFunction);
+   }
+
+   // uncrimpingFactor
+
    public synchronized void setUncrimpingFactor (double factor) {
       myUncrimpingFactor = factor;
       myUncrimpingFactorMode =
@@ -206,6 +293,36 @@ public class GenericMuscle extends MuscleMaterial {
    public PropertyMode getUncrimpingFactorMode() {
       return myUncrimpingFactorMode;
    }
+
+   public double getUncrimpingFactor (FieldPoint dp) {
+      if (myUncrimpingFactorFunction == null) {
+         return getUncrimpingFactor();
+      }
+      else {
+         return myUncrimpingFactorFunction.eval (dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getUncrimpingFactorFunction() {
+      return myUncrimpingFactorFunction;
+   }
+      
+   public void setUncrimpingFactorFunction (ScalarFieldPointFunction func) {
+      myUncrimpingFactorFunction = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setUncrimpingFactorField (
+      ScalarField field, boolean useRestPos) {
+      myUncrimpingFactorFunction = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getUncrimpingFactorField () {
+      return FieldUtils.getFieldFromFunction (myUncrimpingFactorFunction);
+   }
+
+   // END parameter accessors
 
    /** 
     * Stress is computed from
@@ -283,19 +400,29 @@ public class GenericMuscle extends MuscleMaterial {
       sig.m21 = sig.m12;
    }
 
-   public void computeStress (
-      SymmetricMatrix3d sigma, double excitation, Vector3d dir0,
-      DeformedPoint def, FemMaterial baseMat) {
-      
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Vector3d dir0, double excitation, MaterialStateObject state) {
+
       // Methods and naming conventions follow the paper "Finite element
       // implementation of incompressible, isotropic hyperelasticity", by
       // Weiss, Makerc, and Govindjeed, Computer Methods in Applied Mechanical
       // Engineering, 1996.
 
-      Vector3d dir = myTmp;
-      def.getF().mul (dir, dir0);
-      double mag = dir.norm();
-      dir.scale (1/mag);
+      double maxLambda = getMaxLambda(def);
+      double maxStress = getMaxStress(def);
+      
+      Vector3d a = myTmp;
+      def.getF().mul (a, dir0);
+      double mag = a.norm();
+      if (mag == 0.0) {
+         sigma.setZero();
+         if (D != null) {
+            D.setZero();
+         }
+         return;
+      }
+      a.scale (1/mag);
       double J = def.getDetF();
       double lamd = mag*Math.pow(J, -1.0/3.0);
       double I4 = lamd*lamd;
@@ -303,84 +430,72 @@ public class GenericMuscle extends MuscleMaterial {
       double W4 = 0;
       double Fp = 0;
 
-      double P1 = myExpStressCoeff;
-      double P2 = myUncrimpingFactor;
-      double c5 = getFibreModulus();
+      double P1 = getExpStressCoeff(def);
+      double P2 = getUncrimpingFactor(def);
+      double c5;
+      if (myMaxLambdaFunction != null || 
+          myExpStressCoeffFunction != null ||
+          myUncrimpingFactorFunction != null) {
+         // need to compute fibre modulus directly, since it may vary from 
+         // point to point
+         c5 = computeFibreModulus (P1, P2, maxLambda);
+      }
+      else {
+         c5 = getFibreModulus();
+      }
+      
+      double expTerm = 0;
+      double c6 = 0;
 
       if (myZeroForceBelowLamOptP && lamd < 1) {
-          Fp = 0;
+         Fp = 0;
       }
-      else if (lamd < myMaxLambda) {
-         double expTerm = Math.exp(P2*(lamd-1)); 
+      else if (lamd < maxLambda) {
+         expTerm = Math.exp(P2*(lamd-1)); 
          Fp = P1*(expTerm-1)/lamd;
       } 
       else {
-         double maxExpTerm = Math.exp(P2*(myMaxLambda-1)); 
-         double c6 = P1*(maxExpTerm-1) - c5*myMaxLambda;
+         double maxExpTerm = Math.exp(P2*(maxLambda-1));
+         c6 = P1*(maxExpTerm-1) - c5*maxLambda;
          Fp = (c5*lamd + c6)/lamd;
       }
 
-      W4 = 0.5*(Fp+excitation*myMaxStress)/lamd;
+      W4 = 0.5*(Fp+excitation*maxStress)/lamd;
       
-      setStress (sigma, J, I4, W4, dir);
-   }
+      setStress (sigma, J, I4, W4, a);
 
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
-      DeformedPoint def, FemMaterial baseMat) {
+      if (D != null) {
+         double FpDl = 0;
 
-      Vector3d a = myTmp;
-      def.getF().mul (a, dir0);
-      double lam = a.norm();
-      a.scale (1/lam);
-      double J = def.getDetF();
-      double lamd = lam*Math.pow(J, -1.0/3.0);
-      double I4 = lamd*lamd;
+         if (myZeroForceBelowLamOptP && lamd < 1) {
+            FpDl = 0;
+         }
+         else if (lamd < maxLambda) {
+            FpDl = P1/lamd*(P2*expTerm - (expTerm-1)/lamd);
+         }
+         else {
+            FpDl = -c6/(lamd*lamd);
+         }
 
-      double W4 = 0;
-      double W44 = 0;
-      double Fp = 0;
-      double FpDl = 0;
+         double W44 = 0.5*(0.5*FpDl - W4)/(lamd*lamd);
 
-      double P1 = myExpStressCoeff;
-      double P2 = myUncrimpingFactor;
-      double c5 = getFibreModulus();
-      
-      if (myZeroForceBelowLamOptP && lamd < 1) {
-         Fp = 0;
-         FpDl = 0;
+         double w0 = W4*I4;
+         double wa = W44*I4*I4;
+
+         D.setZero();
+         //
+         // compute -2/3 (dev sigma (X) I)' - 4 wa/(3J) (a (X) a (X) I)'
+         //
+         myMat.outerProduct (a, a);
+         myMat.scale (2*wa/J); // will be scaled again by -2/3 below
+         addStress (myMat, J, I4, W4, a);
+         myMat.scale (-2/3.0);
+         TensorUtils.addSymmetricIdentityProduct (D, myMat);
+         TensorUtils.addScaledIdentity (D, 4/3.0*w0/J);
+         TensorUtils.addScaledIdentityProduct (D, 4/9.0*(wa-w0)/J);
+
+         TensorUtils.addScaled4thPowerProduct (D, 4*wa/J, a);         
       }
-      else if (lamd < myMaxLambda) {
-         double expTerm = Math.exp(P2*(lamd - 1));
-         Fp  = P1*(expTerm-1)/lamd;
-         FpDl = P1/lamd*(P2*expTerm - (expTerm-1)/lamd);
-      }
-      else {
-         double maxExpTerm = Math.exp(P2*(myMaxLambda-1)); 
-         double c6 = P1*(maxExpTerm-1) - c5*myMaxLambda;
-         Fp = (c5*lamd + c6)/lamd;
-         FpDl = -c6/(lamd*lamd);
-      }
-
-      W4  = 0.5*(Fp+myMaxStress*excitation)/lamd;
-      W44 = 0.5*(0.5*FpDl - W4)/(lamd*lamd);
-
-      double w0 = W4*I4;
-      double wa = W44*I4*I4;
-
-      D.setZero();
-      //
-      // compute -2/3 (dev sigma (X) I)' - 4 wa/(3J) (a (X) a (X) I)'
-      //
-      myMat.outerProduct (a, a);
-      myMat.scale (2*wa/J); // will be scaled again by -2/3 below
-      addStress (myMat, J, I4, W4, a);
-      myMat.scale (-2/3.0);
-      TensorUtils.addSymmetricIdentityProduct (D, myMat);
-      TensorUtils.addScaledIdentity (D, 4/3.0*w0/J);
-      TensorUtils.addScaledIdentityProduct (D, 4/9.0*(wa-w0)/J);
-
-      TensorUtils.addScaled4thPowerProduct (D, 4*wa/J, a);
    }
 
    @Override

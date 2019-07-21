@@ -71,11 +71,10 @@ public class SingleTet extends RootModel {
       QLVBehavior qlv = new QLVBehavior();
       qlv.setTau (0.1, 0.0, 0, 0, 0, 0);
       qlv.setGamma (4.0, 0, 0, 0, 0, 0);
-      monMat.setViscoBehavior (qlv);
 
       LinearMaterial linMat = new LinearMaterial (500000, 0.4);
 
-      mod.setMaterial (monMat);
+      mod.setMaterial (new ViscoelasticMaterial (monMat, qlv));
       //mod.setMaterial (linMat);
 
       mechMod = new MechModel ("mech");

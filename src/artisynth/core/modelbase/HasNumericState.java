@@ -43,8 +43,7 @@ public interface HasNumericState {
    public void setState (DataBuffer data);
 
    /**
-    * Specifies whether this component currently hold state. The
-    * default implementation of this method returns {@code true}.
+    * Specifies whether this component currently hold state.
     */
    public boolean hasState();
 
@@ -52,7 +51,7 @@ public interface HasNumericState {
     * Returns a version number for this component's state. When the version
     * number changes, any previously saved state should be considered no longer
     * compatible. The default implementation of this method always returns 0,
-    * indicating that the state never changes.
+    * indicating that state compatibility never changes.
     */
    default public int getStateVersion() {
       return 0;

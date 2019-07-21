@@ -1,5 +1,6 @@
 package artisynth.core.materials;
 
+import java.util.*;
 import maspack.matrix.*;
 import maspack.util.*;
 
@@ -16,6 +17,7 @@ public class FemMaterialTest extends UnitTest {
    double myExcitation;
    Matrix3d myF0;
    Matrix3d myQ;
+   ArrayList<Matrix3d> myFVals;
 
    /**
     * Computes stress and tangent for either a FemMaterial or a MuscleMaterial,
@@ -29,15 +31,15 @@ public class FemMaterialTest extends UnitTest {
       defp.setF (F);
       defp.setAveragePressure (myPressure);
       
-      if (mat instanceof FemMaterial) {
-         ((FemMaterial)mat).computeStressAndTangent (
-            sig, D, defp, myQ, 1.0);
-      }
-      else if (mat instanceof MuscleMaterial) {
+      if (mat instanceof MuscleMaterial) {
          Vector3d dir = new Vector3d();
          myQ.getColumn (2, dir);
          ((MuscleMaterial)mat).computeStressAndTangent (
-            sig, D, defp, dir, myExcitation);
+            sig, D, defp, dir, myExcitation, null);
+      }
+      else if (mat instanceof FemMaterial) {
+         ((FemMaterial)mat).computeStressAndTangent (
+            sig, D, defp, myQ, 1.0, null);
       }
       else {
          throw new InternalErrorException (
@@ -60,6 +62,25 @@ public class FemMaterialTest extends UnitTest {
       RotationMatrix3d R = new RotationMatrix3d();
       R.setRandom();
       myQ.set (R);
+      myFVals = new ArrayList<Matrix3d>();
+      myFVals.add (randomF (1.0, 0.5, 0.4));
+      //myFVals.add (randomF (1.0, 1.0, 1.0));
+      myFVals.add (randomF (2.4, 1.0, 1.0));
+      myFVals.add (randomF (2.4, 5.8, 0.9));
+      myFVals.add (randomF (2.4, 2.4, 0.3));
+      myFVals.add (randomF (0.8, 0.9, 0.8));
+      myFVals.add (randomF (1.0, 0.5, 0.3));
+      myFVals.add (myF0);
+   }
+
+   protected Matrix3d randomF (double eig0, double eig1, double eig2) {
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.setRandom();
+      Matrix3d F = new Matrix3d();
+      F.setDiagonal (eig0, eig1, eig2);
+      F.mul (R);
+      F.mulTransposeLeft (R, F);
+      return F;
    }
 
    // Compute a deformation increment appropriate to column j of the tangent
@@ -98,7 +119,14 @@ public class FemMaterialTest extends UnitTest {
     * @param tol tolerance by which the computed and numeric tangents
     * should match. Typically, this should be around 1e-8.
     */
-   public void testMaterial (MaterialBase mat, double tol) {
+   public void testTangent (MaterialBase mat, double tol) {
+      for (Matrix3d F0 : myFVals) {
+         testTangent (mat, F0, tol);
+      }
+      //testTangent (mat, myF0, tol);
+   }   
+
+   public void testTangent (MaterialBase mat, Matrix3d F0, double tol) {
 
       double h = 1e-8; // increment for computing numeric derivative
 
@@ -108,8 +136,8 @@ public class FemMaterialTest extends UnitTest {
       Matrix3d F = new Matrix3d();
 
       // Start by computing the initial stress (stored as stress0) and tangent
-      // for the base deformation gradient myF0.
-      computeStressAndTangent (stress0, D, myF0, mat);
+      // for the base deformation gradient F0.
+      computeStressAndTangent (stress0, D, F0, mat);
 
       // Compute the tangent numerically by applying deformation increments to
       // the existing gradient F and examining how the stress varies from the
@@ -139,8 +167,8 @@ public class FemMaterialTest extends UnitTest {
          Matrix3d sigo = new Matrix3d();
 
          computeD (d, j, h); // deformation increment appropriate to the column
-         dF.mul (d, myF0); // compute resulting change in F 
-         F.add (myF0, dF);
+         dF.mul (d, F0); // compute resulting change in F 
+         F.add (F0, dF);
 
          // compute resulting stress from upated F
          computeStressAndTangent (stress, null, F, mat);
@@ -187,6 +215,46 @@ public class FemMaterialTest extends UnitTest {
       }
    }
 
+   // public void testStressTangent (MaterialBase mat) {
+   //    for (Matrix3d F : myFVals) {
+   //       testStressTangent (mat, F);
+   //    }
+   // }
+
+   // public void testStressTangent (MaterialBase mat, Matrix3d F) {
+
+   //    SymmetricMatrix3d sig = new SymmetricMatrix3d();
+   //    SymmetricMatrix3d sigchk = new SymmetricMatrix3d();
+   //    Matrix6d D = new Matrix6d();
+   //    Matrix6d Dchk = new Matrix6d();
+
+   //    DeformedPointBase defp = new DeformedPointBase();
+   //    defp.setF (F);
+   //    defp.setAveragePressure (myPressure);
+
+   //    if (mat instanceof MuscleMaterial) {
+   //       MuscleMaterial mmat = (MuscleMaterial)mat;
+   //       Vector3d dir0 = new Vector3d();
+   //       myQ.getColumn (2, dir0);
+   //       mmat.computeStressAndTangent (sig, D, defp, dir0, myExcitation, null);
+   //       mmat.computeStress (sigchk, myExcitation, dir0, defp);
+   //       mmat.computeTangent (Dchk, sigchk, myExcitation, dir0, defp);
+   //    }
+   //    else if (mat instanceof FemMaterial) {
+   //       FemMaterial fmat = (FemMaterial)mat;
+   //       fmat.computeStressAndTangent (sig, D, defp, myQ, myExcitation, null);
+   //       fmat.computeStress (sigchk, defp, myQ, null);
+   //       fmat.computeTangent (Dchk, sigchk, defp, myQ, null);
+   //    }
+   //    else {
+   //       throw new InternalErrorException ("Unimplemented material " + mat);
+   //    }
+      
+   //    checkNormedEquals ("sigma", sig, sigchk, 1e-12);
+   //    checkNormedEquals ("D", D, Dchk, 1e-14);
+   //  }
+
+
    /**
     * Test method executed by runtest().
     */
@@ -195,24 +263,75 @@ public class FemMaterialTest extends UnitTest {
       // numeric and analytical tangents should match within this tolerance
       double tol = 1e-6;
 
-      testMaterial (new NeoHookeanMaterial(10000.0, 0.49), tol);   
-      testMaterial (
-         new MooneyRivlinMaterial (1.2, 3.4, 0, 0, 0, 0), tol);
-      testMaterial (new StVenantKirchoffMaterial (1234, 0.3), tol);
-      testMaterial (new IncompNeoHookeanMaterial (123.0, 666.0), tol);
+      NeoHookeanMaterial neohook =
+         new NeoHookeanMaterial(10000.0, 0.49);
+      MooneyRivlinMaterial mooney =
+         new MooneyRivlinMaterial (1.2, 3.4, 0, 0, 0, 0);
+      StVenantKirchoffMaterial stvk =
+         new StVenantKirchoffMaterial (1234, 0.3);
+      IncompNeoHookeanMaterial incompNeohook =
+         new IncompNeoHookeanMaterial (123.0, 666.0);
+      OgdenMaterial ogden = new OgdenMaterial (
+         new double[] {3e5, 1e4, 2e3, 3e3, 4e3, 1.5e2},
+         new double[] {1, 2, 3, 4, 5, 6}, 1e5);
+      FungMaterial fung = new FungMaterial();
+      CubicHyperelastic cubicHyper =
+         new CubicHyperelastic(1000.0, 2000.0, 3000.0, 10000.0);
+      IncompressibleMaterial rawIncomp = new IncompressibleMaterial (1234.0);
 
-      testMaterial (
-          new OgdenMaterial (
-           new double[] {3e5, 1e4, 2e3, 3e3, 4e3, 1.5e2},
-           new double[] {1, 2, 3, 4, 5, 6}, 1e5), tol);
+      SimpleMuscle simpMuscle = new SimpleMuscle (123.0);
+      Vector3d restDir = new Vector3d();
+      restDir.setRandom();
+      restDir.normalize();
+      simpMuscle.setRestDir (restDir);
+      simpMuscle.setExcitation (myExcitation);
 
-      //testMaterial (new FungMaterial(), tol);
+      LinearMaterial linMat = new LinearMaterial (10000.0, 0.49);
+      linMat.setCorotated (false);
+      LinearMaterial linMatCorotated = new LinearMaterial (40000.0, 0.33);
 
-      testMaterial (new CubicHyperelastic(1000.0, 2000.0, 3000.0, 10000.0), tol);
+      GenericMuscle genericMuscle =
+         new GenericMuscle (1.4, 3e5, 0.05, 6.6);
+      FullBlemkerMuscle fullBlemkerMuscle =
+         new FullBlemkerMuscle (1.4, 1.0, 3e5, 0.05, 6.6, 1e6, 1e5);
+      BlemkerMuscle blemkerMuscle =
+         new BlemkerMuscle (1.4, 1.0, 3e5, 0.05, 6.6);
+      SimpleForceMuscle simpleMuscle =
+         new SimpleForceMuscle (123.0);
 
-      testMaterial (new GenericMuscle (1.4, 3e5, 0.05, 6.6), tol);
-      testMaterial (new FullBlemkerMuscle (1.4, 1.0, 3e5, 0.05, 6.6, 0, 0), tol);
-      testMaterial (new BlemkerMuscle (1.4, 1.0, 3e5, 0.05, 6.6), tol);
+      // testStressTangent (neohook);
+      // testStressTangent (mooney);
+      // testStressTangent (stvk);
+      // testStressTangent (incompNeohook);
+      // testStressTangent (ogden);
+      // testStressTangent (fung);
+      // testStressTangent (cubicHyper);
+      // testStressTangent (rawIncomp);
+      // testStressTangent (simpMuscle);
+      // testStressTangent (linMat);
+      // testStressTangent (linMatCorotated);
+
+      // testStressTangent (genericMuscle);
+      // testStressTangent (blemkerMuscle);
+      // testStressTangent (fullBlemkerMuscle);
+      // testStressTangent (simpleMuscle);
+      
+      testTangent (neohook, tol);
+      testTangent (mooney, tol);
+      testTangent (stvk, tol);
+      testTangent (incompNeohook, tol);
+      //testTangent (ogden, tol);
+      testTangent (rawIncomp, tol);
+      //testTangent (fung, tol);
+      testTangent (simpMuscle, tol);
+      //testTangent (linMat, tol);
+      //testTangent (linMatCorotated, tol);
+
+      testTangent (cubicHyper, tol);
+      testTangent (genericMuscle, tol);
+      testTangent (fullBlemkerMuscle, tol);
+      testTangent (simpleMuscle, tol);
+      testTangent (blemkerMuscle, tol);
    }
 
    public static void main (String[] args) {

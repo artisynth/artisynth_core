@@ -1,16 +1,17 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-public class MooneyRivlinMaterial extends IncompressibleMaterial {
-   protected static PropertyList myProps =
-      new PropertyList (MooneyRivlinMaterial.class, IncompressibleMaterial.class);
+public class MooneyRivlinMaterial extends IncompressibleMaterialBase {
+   protected static FunctionPropertyList myProps =
+      new FunctionPropertyList (
+         MooneyRivlinMaterial.class, IncompressibleMaterialBase.class);
    
    /**
     * With regard to the typical two-parameter (c1, c2) Mooney-Rivlin material,
@@ -40,6 +41,12 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
    PropertyMode myC02Mode = PropertyMode.Inherited;
    PropertyMode myJLimitMode = PropertyMode.Inherited;
 
+   ScalarFieldPointFunction myC10Function = null;
+   ScalarFieldPointFunction myC01Function = null;
+   ScalarFieldPointFunction myC11Function = null;
+   ScalarFieldPointFunction myC20Function = null;
+   ScalarFieldPointFunction myC02Function = null;
+
    private SymmetricMatrix3d myB;
    private SymmetricMatrix3d myB2;
    private SymmetricMatrix3d myTmp;
@@ -48,15 +55,15 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
    private double[] myPhiVals = new double[3];
 
    static {
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "C10:Inherited", "C10 parameter", DEFAULT_C10);
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "C01:Inherited", "C01 parameter", DEFAULT_C01);
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "C11:Inherited", "C11 parameter", DEFAULT_C11);
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "C20:Inherited", "C20 parameter", DEFAULT_C20);
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "C02:Inherited", "C02 parameter", DEFAULT_C02);
       myProps.addInheritable (
          "JLimit:Inherited",
@@ -64,7 +71,7 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
          DEFAULT_JLIMIT);
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -86,6 +93,10 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       setBulkModulus (kappa);
    }
 
+   // BEGIN parameter accessors
+
+   // C10 
+
    public synchronized void setC10 (double c10) {
       myC10 = c10;
       myC10Mode =
@@ -105,6 +116,31 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
    public PropertyMode getC10Mode() {
       return myC10Mode;
    }
+
+   public double getC10 (FieldPoint dp) {
+      return (myC10Function == null ? getC10() : myC10Function.eval (dp));
+   }
+
+   public ScalarFieldPointFunction getC10Function() {
+      return myC10Function;
+   }
+      
+   public void setC10Function (ScalarFieldPointFunction func) {
+      myC10Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setC10Field (
+      ScalarField field, boolean useRestPos) {
+      myC10Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getC10Field () {
+      return FieldUtils.getFieldFromFunction (myC10Function);
+   }
+
+   // C01
 
    public synchronized void setC01 (double c01) {
       myC01 = c01;
@@ -126,6 +162,31 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       return myC01Mode;
    }
 
+   public double getC01 (FieldPoint dp) {
+      return (myC01Function == null ? getC01() : myC01Function.eval (dp));
+   }
+
+   public ScalarFieldPointFunction getC01Function() {
+      return myC01Function;
+   }
+      
+   public void setC01Function (ScalarFieldPointFunction func) {
+      myC01Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setC01Field (
+      ScalarField field, boolean useRestPos) {
+      myC01Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getC01Field () {
+      return FieldUtils.getFieldFromFunction (myC01Function);
+   }
+
+   // C11
+
    public synchronized void setC11 (double c11) {
       myC11 = c11;
       myC11Mode =
@@ -145,6 +206,31 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
    public PropertyMode getC11Mode() {
       return myC11Mode;
    }
+
+   public double getC11 (FieldPoint dp) {
+      return (myC11Function == null ? getC11() : myC11Function.eval (dp));
+   }
+
+   public ScalarFieldPointFunction getC11Function() {
+      return myC11Function;
+   }
+      
+   public void setC11Function (ScalarFieldPointFunction func) {
+      myC11Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setC11Field (
+      ScalarField field, boolean useRestPos) {
+      myC11Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getC11Field () {
+      return FieldUtils.getFieldFromFunction (myC11Function);
+   }
+
+   // C20
 
    public synchronized void setC20 (double c20) {
       myC20 = c20;
@@ -166,6 +252,31 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       return myC20Mode;
    }
 
+   public double getC20 (FieldPoint dp) {
+      return (myC20Function == null ? getC20() : myC20Function.eval (dp));
+   }
+
+   public ScalarFieldPointFunction getC20Function() {
+      return myC20Function;
+   }
+      
+   public void setC20Function (ScalarFieldPointFunction func) {
+      myC20Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setC20Field (
+      ScalarField field, boolean useRestPos) {
+      myC20Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getC20Field () {
+      return FieldUtils.getFieldFromFunction (myC20Function);
+   }
+
+   // C02
+
    public synchronized void setC02 (double c02) {
       myC02 = c02;
       myC02Mode =
@@ -185,6 +296,31 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
    public PropertyMode getC02Mode() {
       return myC02Mode;
    }
+
+   public double getC02 (FieldPoint dp) {
+      return (myC02Function == null ? getC02() : myC02Function.eval (dp));
+   }
+
+   public ScalarFieldPointFunction getC02Function() {
+      return myC02Function;
+   }
+      
+   public void setC02Function (ScalarFieldPointFunction func) {
+      myC02Function = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setC02Field (
+      ScalarField field, boolean useRestPos) {
+      myC02Function = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getC02Field () {
+      return FieldUtils.getFieldFromFunction (myC02Function);
+   }
+
+   // JLimit
 
    public synchronized void setJLimit (double JLimit) {
       if (myJLimit != JLimit) {
@@ -208,6 +344,8 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
    public PropertyMode getJLimitMode() {
       return myJLimitMode;
    }
+
+   // END parameter accessors
 
    public void computePhiVals (double[] vals, double J) {
       if (myJLimit > 0 && J < myJLimit) {
@@ -238,11 +376,10 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
                   myC20*I1_3*I1_3 + myC02*I2_3*I2_3);
       return W;
    }
-      
 
-   public void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
+   public void computeDevStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation, MaterialStateObject state) {   
 
       // Methods and naming conventions follow the paper "Finite element
       // implementation of incompressible, isotropic hyperelasticity", by
@@ -250,7 +387,6 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       // Engineering, 1996.
 
       double J = def.getDetF();
-      double avgp = def.getAveragePressure();
 
       computePhiVals (myPhiVals, J);
       double phi = myPhiVals[0];
@@ -259,96 +395,62 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       computeLeftCauchyGreen(myB,def);
       // scale to compute deviatoric part; use phi in place of pow(J,-2/3);
       myB.scale (phi);
-
       myB2.mulTransposeLeft (myB); // compute B*B
 
+      double c10 = getC10(def);
+      double c01 = getC01(def);
+      double c11 = getC11(def);
+      double c20 = getC20(def);
+      double c02 = getC02(def);
+      
       double I1 = myB.trace();
       double I2 = 0.5*(I1*I1 - myB2.trace());
 
-      double W1 = myC10 + myC11*(I2-3) + myC20*2*(I1-3);
-      double W2 = myC01 + myC11*(I1-3) + myC02*2*(I2-3);
+      double W1 = c10 + c11*(I2-3) + c20*2*(I1-3);
+      double W2 = c01 + c11*(I1-3) + c02*2*(I2-3);
 
       sigma.scale (W1 + W2*I1, myB);
       sigma.scaledAdd (-W2, myB2, sigma);
 
-      if (usePhi) {
-         double dev = (dphi/phi)*sigma.trace();
-         sigma.scale (2.0/J);
-         sigma.m00 += dev;
-         sigma.m11 += dev;
-         sigma.m22 += dev;
-      }
-      else {
-         sigma.deviator();
-         sigma.scale (2.0/J);
-      }
+      double dev = (dphi/phi)*sigma.trace();
+      sigma.scale (2.0/J);
+      sigma.m00 += dev;
+      sigma.m11 += dev;
+      sigma.m22 += dev;
 
-      sigma.m00 += avgp;
-      sigma.m11 += avgp;
-      sigma.m22 += avgp;
-   }
+      if (D != null) {
 
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
-      Matrix3d Q, FemMaterial baseMat) {
+         double Ji = 1.0/J;
+         double ddphi = myPhiVals[2];
 
-      double J = def.getDetF();
-      double Ji = 1.0/J;
+         double W11 = 2*c20;
+         double W12 = c11;
+         double W22 = 2*c02;
 
-      computePhiVals (myPhiVals, J);
-      double phi = myPhiVals[0];
-      double dphi = myPhiVals[1];
-      double ddphi = myPhiVals[2];
+         // parameters as defined in John Lloyd's "FEM notes" paper:
 
-      computeLeftCauchyGreen(myB,def);
-      // scale to compute deviatoric part; use phi in place of pow(J,-2/3);
-      myB.scale (phi);
-      myB2.mulTransposeLeft (myB);
+         double w1 = -W2;
+         double w2 = W11 + 2*W12*I1 + W2 + W22*I2*I2;
+         double w3 = W12 + W22*I1;
+         double w4 = W22;
 
-      double I1 = myB.trace();
-      double I2 = 0.5*(I1*I1 - myB2.trace());
-
-      double W1, W2;
-      double W11, W12, W22;
-
-      W1 = myC10 + myC11*(I2-3) + myC20*2*(I1-3);
-      W2 = myC01 + myC11*(I1-3) + myC02*2*(I2-3);
-
-      W11 = 2*myC20;
-      W12 = myC11;
-      W22 = 2*myC02;
-
-      // parameters as defined in John Lloyd's "FEM notes" paper:
-
-      double w1 = -W2;
-      double w2 = W11 + 2*W12*I1 + W2 + W22*I2*I2;
-      double w3 = W12 + W22*I1;
-      double w4 = W22;
-
-      double wc1 = (w2 - W12 + W22*I1)*I1;
-      double wc2 = -(W12 + W22*I1 - W22*I1*I1 + 2*W22*I2 + W2);
+         double wc1 = (w2 - W12 + W22*I1)*I1;
+         double wc2 = -(W12 + W22*I1 - W22*I1*I1 + 2*W22*I2 + W2);
       
-      double wcc = wc1*I1 + wc2*(I1*I1-2*I2);
-      double w0 = W1*I1 + 2*W2*I2;
+         double wcc = wc1*I1 + wc2*(I1*I1-2*I2);
+         double w0 = W1*I1 + 2*W2*I2;
 
-      double p = def.getAveragePressure();      
+         double p = def.getAveragePressure();      
 
-      D.setZero();
+         D.setZero();
 
-      if (usePhi) {
          double zeta = ((dphi+J*ddphi)*w0 + J*dphi*dphi/phi*(wcc-2*w0))/phi;
          double r = dphi/phi;
-         TensorUtils.addScaledIdentityProduct (D, p + zeta);
-         TensorUtils.addScaledIdentity (D, -2*p - 2*r*w0);
-
-         myTmp.set (stress);
-         // remove pressure from diagonal to obtain the deviatoric stress
-         myTmp.m00 -= p;
-         myTmp.m11 -= p;       
-         myTmp.m22 -= p;
+         TensorUtils.addScaledIdentityProduct (D, zeta);
+         TensorUtils.addScaledIdentity (D, -2*r*w0);
       
          TensorUtils.addSymmetricTensorProduct (
-            D, J*r, myTmp, SymmetricMatrix3d.IDENTITY);
+            D, J*r, sigma, SymmetricMatrix3d.IDENTITY);
 
          TensorUtils.addTensorProduct4 (D, w1*4.0*Ji, myB);
          TensorUtils.addTensorProduct (D, w2*4.0*Ji, myB);
@@ -359,28 +461,9 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
          myTmp.scaledAdd (wc2, myB2);
          TensorUtils.addSymmetricTensorProduct (
             D, 2*r,myTmp,SymmetricMatrix3d.IDENTITY);
+
+         D.setLowerToUpper();
       }
-      else {
-         TensorUtils.addScaledIdentityProduct (D, p + 4.0/9.0*Ji*(wcc-w0));
-         TensorUtils.addScaledIdentity (D, -2*p + 4.0/3.0*Ji*w0);
-
-         myTmp.deviator (stress);
-         TensorUtils.addSymmetricTensorProduct (
-            D, -2.0/3.0, myTmp, SymmetricMatrix3d.IDENTITY);
-
-         TensorUtils.addTensorProduct4 (D, w1*4.0*Ji, myB);
-         TensorUtils.addTensorProduct (D, w2*4.0*Ji, myB);
-         TensorUtils.addSymmetricTensorProduct (D, w3*4.0*Ji, myB, myB2);
-         TensorUtils.addTensorProduct (D, w4*4.0*Ji, myB2);
-
-         myTmp.scale (wc1, myB);  
-         myTmp.scaledAdd (wc2, myB2);
-         TensorUtils.addSymmetricTensorProduct (
-            D, -4.0/3.0*Ji,myTmp,SymmetricMatrix3d.IDENTITY);
-      }
-
-      D.setLowerToUpper();
-      
    }
 
    public boolean equals (FemMaterial mat) {
@@ -425,15 +508,11 @@ public class MooneyRivlinMaterial extends IncompressibleMaterial {
       mat.setC02 (2.6);
       mat.setC20 (1.9);
       mat.setBulkModulus (0.0);
-      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0, null);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));
 
-   }
-
-   public boolean isIncompressible() {
-      return true;
    }
 
    @Override

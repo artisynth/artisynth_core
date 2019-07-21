@@ -25,17 +25,23 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
+import maspack.util.DataBuffer;
 import maspack.util.IndentingPrintWriter;
+import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.geometry.Boundable;
 import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
+import artisynth.core.materials.HasMaterialState;
+import artisynth.core.materials.MaterialStateObject;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.PropertyChangeListener;
@@ -47,7 +53,7 @@ import artisynth.core.util.ScanToken;
 
 public abstract class FemElement extends RenderableComponentBase
    implements Boundable, ScalableUnits, CopyableComponent,
-              PropertyChangeListener {
+              PropertyChangeListener, HasNumericState {
    
    /**
     * Describes the different element types.
@@ -77,6 +83,11 @@ public abstract class FemElement extends RenderableComponentBase
    FemMaterial myMaterial = null;
    // Augmenting materials, used to add to behavior
    protected ArrayList<FemMaterial> myAugMaterials = null;
+   // Auxiliary Materials are mainly used for implementing muscle fibres
+   protected ArrayList<AuxiliaryMaterial> myAuxMaterials = null;
+
+   protected int myStateVersion = 0;
+   protected int myNumMaterialsWithState = -1;
 
    public static PropertyList myProps =
       new PropertyList (FemElement.class, RenderableComponentBase.class);
@@ -97,14 +108,21 @@ public abstract class FemElement extends RenderableComponentBase
       return myMaterial;
    }
 
-   public void setMaterial (FemMaterial mat) {
-      FemMaterial old = myMaterial;
-      myMaterial = (FemMaterial)MaterialBase.updateMaterial (
+   public <T extends FemMaterial> T setMaterial (T mat) {
+      FemMaterial oldMat = getEffectiveMaterial();
+      T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
+      myMaterial = newMat;
       // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      MaterialChangeEvent mce = 
+      MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
+      if (mce != null) {
+         if (mce.stateChanged()) {
+            notifyStateVersionChanged();
+         }
+         notifyParentOfChange (mce);
       }
+      return newMat;
    }
 
    public FemMaterial getEffectiveMaterial () {
@@ -120,10 +138,10 @@ public abstract class FemElement extends RenderableComponentBase
       }
    }
 
-   public FemModel getFemModel() {
+   public FemModel3d getFemModel() {
       ModelComponent gparent = getGrandParent();
-      if (gparent instanceof FemModel) {
-         return (FemModel)gparent;
+      if (gparent instanceof FemModel3d) {
+         return (FemModel3d)gparent;
       }
       else {
          return null;
@@ -172,6 +190,13 @@ public abstract class FemElement extends RenderableComponentBase
       if (myAugMaterials != null) {
          for (FemMaterial amat : myAugMaterials) {
             if (!amat.isInvertible()) {
+               return false;
+            }
+         }
+      }
+      if (myAuxMaterials != null) {
+         for (AuxiliaryMaterial amat : myAuxMaterials) {
+            if (!mat.isInvertible()) {
                return false;
             }
          }
@@ -307,13 +332,6 @@ public abstract class FemElement extends RenderableComponentBase
    public int numNodes() {
       return getNodes().length;
    }
-
-   /**
-    * Returns the number of integration points used by this element
-    * (not including the stiffness warping point, if any).
-    * @return number of integration points
-    */
-   public abstract int numIntegrationPoints();
 
    /** 
     * Queries whether there is a one-to-one mapping between integration points
@@ -700,16 +718,32 @@ public abstract class FemElement extends RenderableComponentBase
          e.myAugMaterials = new ArrayList<FemMaterial>(myAugMaterials.size());
          e.myAugMaterials.addAll (myAugMaterials);
       }
+      e.myAuxMaterials = null;
+      if (myAuxMaterials != null) {
+         for (AuxiliaryMaterial a : myAuxMaterials) {
+            try {
+               e.addAuxiliaryMaterial ((AuxiliaryMaterial)a.clone());
+            }
+            catch (Exception ex) {
+               throw new InternalErrorException (
+                  "Can't clone " + a.getClass());
+            }
+            
+         }
+      }
 
       return e;
    }
 
    public void propertyChanged (PropertyChangeEvent e) {
-      if (e.getHost() instanceof FemMaterial) {
+      if (e instanceof MaterialChangeEvent) {
+         MaterialChangeEvent mce = (MaterialChangeEvent)e;
          invalidateRestData();
-         if (e.getPropertyName().equals ("viscoBehavior")) {
-            // issue a structure change event in order to invalidate WayPoints
-            notifyParentOfChange (new StructureChangeEvent (this));
+         if (mce.stateChanged() && e.getHost() == getMaterial()) {
+            notifyStateVersionChanged(); // clear element material state 
+         }
+         if (mce.stateOrSymmetryChanged()) {
+            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
          }
       }
    }
@@ -736,6 +770,85 @@ public abstract class FemElement extends RenderableComponentBase
 
    public Point3d getPoint (int idx) {
       return getNodes()[idx].getPosition();
+   }
+
+
+   /* --- Auxiliary materials, used for implementing muscle fibres --- */
+   
+   public void addAuxiliaryMaterial (AuxiliaryMaterial mat) {
+      if (myAuxMaterials == null) {
+         myAuxMaterials = new ArrayList<AuxiliaryMaterial>(4);
+      }
+      myAuxMaterials.add (mat);
+   }
+
+   public boolean removeAuxiliaryMaterial (AuxiliaryMaterial mat) {
+      if (myAuxMaterials != null) {
+         return myAuxMaterials.remove (mat);
+      }
+      else {
+         return false;
+      }
+   }
+
+   public int numAuxiliaryMaterials() {
+      return myAuxMaterials == null ? 0 : myAuxMaterials.size();
+   }
+
+   public AuxiliaryMaterial[] getAuxiliaryMaterials() {
+      if (myAuxMaterials == null) {
+         return new AuxiliaryMaterial[0];
+      }
+      return myAuxMaterials.toArray (new AuxiliaryMaterial[0]);
+   }
+
+   /* --- partial implementation of HasNumericState --- */
+   
+   public boolean hasState() {
+      if (myNumMaterialsWithState == -1) {
+         updateStateObjects();
+      }
+      return myNumMaterialsWithState != 0;
+   }
+  
+   protected void collectMaterialsWithState (
+      ArrayList<HasMaterialState> mats) {
+      if (getEffectiveMaterial().hasState()) {
+         mats.add (getEffectiveMaterial());
+      }
+      FemModel3d fem = getFemModel();
+      if (fem != null) {
+         ArrayList<FemMaterial> amats = fem.getAugmentingMaterials();
+         if (amats != null) {
+            for (FemMaterial mat : amats) {
+               if (mat.hasState()) {
+                  mats.add (mat);
+               }
+            }
+         }
+      }
+      if (myAugMaterials != null) {
+         for (FemMaterial mat : myAugMaterials) {
+            if (mat.hasState()) {
+               mats.add (mat);
+            }
+         }
+      }
+      if (myAuxMaterials != null) {
+         for (AuxiliaryMaterial aux: myAuxMaterials) {
+            if (aux.hasState()) {
+               mats.add (aux);
+            }
+         }
+      }
+   }
+
+   public abstract void notifyStateVersionChanged();
+
+   protected abstract void updateStateObjects();
+
+   public int getStateVersion() {
+      return myStateVersion;
    }
 
 }

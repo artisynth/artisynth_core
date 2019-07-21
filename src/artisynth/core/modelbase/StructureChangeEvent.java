@@ -13,12 +13,6 @@ import maspack.matrix.*;
  */
 public class StructureChangeEvent extends ComponentChangeEvent {
  
-   private boolean myStateIsChangedP = true;
-
-   public boolean stateIsChanged() {
-      return myStateIsChangedP;
-   }
-
    public static StructureChangeEvent defaultEvent =
       new StructureChangeEvent();
 
@@ -26,8 +20,7 @@ public class StructureChangeEvent extends ComponentChangeEvent {
       new StructureChangeEvent(false);
 
    public StructureChangeEvent (ModelComponent comp, boolean stateIsChanged) {
-      super (Code.STRUCTURE_CHANGED, comp);
-      myStateIsChangedP = stateIsChanged;
+      super (Code.STRUCTURE_CHANGED, comp, stateIsChanged);
    }
 
    public StructureChangeEvent (ModelComponent comp) {
@@ -35,11 +28,10 @@ public class StructureChangeEvent extends ComponentChangeEvent {
    }
 
    public StructureChangeEvent (boolean stateIsChanged) {
-      super (Code.STRUCTURE_CHANGED);
-      myStateIsChangedP = stateIsChanged;      
+      this (null, stateIsChanged);
    }
 
    public StructureChangeEvent() {
-      this (true);
+      this (null, /*stateIsChanged=*/true);
    }
 }

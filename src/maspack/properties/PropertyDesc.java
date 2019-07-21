@@ -137,53 +137,54 @@ public class PropertyDesc implements PropertyInfo {
    }
 
    /**
-    * Creates a new PropertyDesc by copying an existing one and updating it for
+    * Sets this PropertyDesc from an existing one and a 
     * a specified host class.
     */
-   public PropertyDesc (PropertyDesc prop, Class<?> hostClass) {
-      this (prop.myName, hostClass);
-      myDescription = prop.myDescription;
-      myValueClass = prop.myValueClass;
-      myValueType = prop.myValueType;
-      myFmt = prop.myFmt;
-      if (prop.myGetMethod != null) {
-         initGetMethod (prop.myGetMethod.getName());
+   public void set (PropertyDesc desc, Class<?> hostClass) {
+      setName (desc.myName);
+      setHostClass (hostClass);
+      myDescription = desc.myDescription;
+      myValueClass = desc.myValueClass;
+      myValueType = desc.myValueType;
+      myFmt = desc.myFmt;
+      if (desc.myGetMethod != null) {
+         initGetMethod (desc.myGetMethod.getName());
       }
-      if (prop.mySetMethod != null) {
-         initSetMethod (prop.mySetMethod.getName());
+      if (desc.mySetMethod != null) {
+         initSetMethod (desc.mySetMethod.getName());
       }
-      if (prop.myGetRangeMethod != null) {
-         initGetRangeMethod (prop.myGetRangeMethod.getName());
+      if (desc.myGetRangeMethod != null) {
+         initGetRangeMethod (desc.myGetRangeMethod.getName());
       }
-      if (prop.myGetDefaultMethod != null) {
-         initGetDefaultMethod (prop.myGetDefaultMethod.getName());
+      if (desc.myGetDefaultMethod != null) {
+         initGetDefaultMethod (desc.myGetDefaultMethod.getName());
       }
-      if (prop.myGetModeMethod != null) {
-         initGetModeMethod (prop.myGetModeMethod.getName());
+      if (desc.myGetModeMethod != null) {
+         initGetModeMethod (desc.myGetModeMethod.getName());
       }
-      if (prop.mySetModeMethod != null) {
-         initSetModeMethod (prop.mySetModeMethod.getName());
+      if (desc.mySetModeMethod != null) {
+         initSetModeMethod (desc.mySetModeMethod.getName());
       }
-      if (prop.myCreateMethod != null) {
-         tryToInitCreateMethod (prop.myCreateMethod.getName());
+      if (desc.myCreateMethod != null) {
+         tryToInitCreateMethod (desc.myCreateMethod.getName());
       }
       if (myDefaultIsAuto) {
          myDefaultValue = createDefaultValue();
       }
       else {
-         myDefaultValue = prop.myDefaultValue;
+         myDefaultValue = desc.myDefaultValue;
       }
-      myAutoWriteP = prop.myAutoWriteP;
-      myEdit = prop.myEdit;
-      myWidgetExpandState = prop.myWidgetExpandState;
-      myDimension = prop.myDimension;
-      myReadOnlyP = prop.myReadOnlyP;
-      myInheritableP = prop.myInheritableP;
-      myDefaultMode = prop.myDefaultMode;
-      mySharableP = prop.mySharableP;
-      myNullValueOK = prop.myNullValueOK;
-      if (prop.myNumericRange != null) {
-         myNumericRange = prop.myNumericRange.clone();
+      myAutoWriteP = desc.myAutoWriteP;
+      myEdit = desc.myEdit;
+      myWidgetExpandState = desc.myWidgetExpandState;
+      myDimension = desc.myDimension;
+      myReadOnlyP = desc.myReadOnlyP;
+      myInheritableP = desc.myInheritableP;
+      myDefaultMode = desc.myDefaultMode;
+      mySharableP = desc.mySharableP;
+      myNullValueOK = desc.myNullValueOK;
+      if (desc.myNumericRange != null) {
+         myNumericRange = desc.myNumericRange.clone();
       }
       else {
          myNumericRange = null;
@@ -661,7 +662,7 @@ public class PropertyDesc implements PropertyInfo {
       mySharableP = sharable;
    }
 
-   private Method locateMethod (String methodName, Class<?>... parameterTypes) {
+   protected Method locateMethod (String methodName, Class<?>... parameterTypes) {
       try {
          return myHostClass.getMethod (methodName, parameterTypes);
       }
@@ -673,7 +674,7 @@ public class PropertyDesc implements PropertyInfo {
       }
    }
 
-   private void checkReturnType (Method method, Class<?> requiredType) {
+   protected void checkReturnType (Method method, Class<?> requiredType) {
       Class<?> retType = method.getReturnType();
       if ((requiredType == Void.TYPE && retType != Void.TYPE) ||
           (requiredType != Void.TYPE &&
@@ -1069,7 +1070,7 @@ public class PropertyDesc implements PropertyInfo {
       }
    }
 
-   static String capitalize (String str) {
+   protected static String capitalize (String str) {
       return Character.toUpperCase (str.charAt (0)) + str.substring (1);
    }
 
@@ -1158,18 +1159,19 @@ public class PropertyDesc implements PropertyInfo {
    static String[] defaultNames =
      { "getXXX", "setXXX", "getXXXRange", "getXXXMode", "setXXXMode" };
 
-   static public PropertyDesc create (
-      String nameAndMethods, Class<?> hostClass, String descriptor,
-      Object defaultValue, String options, int propType) {
+   static public boolean initialize (
+      PropertyDesc desc, String nameAndMethods, Class<?> hostClass,
+      String descriptor, Object defaultValue, String options, int propType) {
       String[] strs;
       strs = parseMethodNames (nameAndMethods, defaultNames, propType);
       if (strs == null) {
-         return null;
+         return false;
       }
       String propName = strs[0];
       String qualifier = strs[strs.length - 1];
 
-      PropertyDesc desc = new PropertyDesc (propName, hostClass);
+      desc.setName (propName);
+      desc.setHostClass (hostClass);
       desc.setGetMethod (strs[1]);
       if (propType == REGULAR || propType == INHERITABLE) {
          desc.setSetMethod (strs[2]);
@@ -1214,7 +1216,7 @@ public class PropertyDesc implements PropertyInfo {
          desc.tryToInitCreateMethod ("create" + capitalize (propName));
       }
 
-      return desc;
+      return true;
    }
 
    public boolean valueEqualsDefault (Object value) {

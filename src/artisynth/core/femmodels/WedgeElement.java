@@ -38,6 +38,7 @@ public class WedgeElement extends FemElement3d {
    public IntegrationPoint3d getWarpingPoint() {
       if (myWarpingPoint == null) {
          myWarpingPoint = IntegrationPoint3d.create (this, 1/3.0, 1/3.0, 0, 1);
+         myWarpingPoint.setNumber(numIntegrationPoints());
       }
       return myWarpingPoint;
    }  

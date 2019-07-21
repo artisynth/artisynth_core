@@ -759,6 +759,14 @@ public class FemNode3d extends FemNode implements Boundable {
       
    }
 
+   public void addTransformableDependencies (
+      TransformGeometryContext context, int flags) {
+      super.addTransformableDependencies (context, flags);
+      if (hasDirector()) {
+         context.add (myBackNode);
+      }
+   }
+
    public void transformGeometry (
       GeometryTransformer gt, TransformGeometryContext context, int flags) {
       super.transformGeometry (gt, context, flags);
@@ -1490,7 +1498,7 @@ public class FemNode3d extends FemNode implements Boundable {
       int ecnt = 0;
 
       for (FemElement e : myElementDeps) {
-         if (e instanceof ShellElement3d) {
+         if (e.getElementClass() == ElementClass.SHELL) {
             ShellElement3d se = (ShellElement3d)e;
 
             Vector3d d = new Vector3d();
@@ -1517,7 +1525,7 @@ public class FemNode3d extends FemNode implements Boundable {
           myBackNode.isRestPositionValid()) {
          double thicknessSum = 0;
          for (FemElement e : myElementDeps) {
-            if (e instanceof ShellElement3d && e != elem) {
+            if (e.getElementClass() == ElementClass.SHELL && e != elem) {
                ShellElement3d se = (ShellElement3d)e;
                thicknessSum += se.getDefaultThickness();
             }

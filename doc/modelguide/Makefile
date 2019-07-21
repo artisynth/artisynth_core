@@ -41,6 +41,10 @@ multipoint.pdf: multipoint.tex $(EPS_FILES)
 	$(BUILD_PDF)
 	rm -rf $(LATEX_JUNK_FILES) multipoint.ps
 
+fields.pdf: fields.tex $(EPS_FILES)
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) fields.ps
+
 modelguide.pdf: $(SOURCES) $(EPS_FILES)
 	latex modelguide.tex #extra call because of bibtex
 	bibtex modelguide

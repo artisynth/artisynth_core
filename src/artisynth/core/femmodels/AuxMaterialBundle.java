@@ -29,13 +29,16 @@ import artisynth.core.modelbase.CompositeComponentBase;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.TransformGeometryContext;
 import artisynth.core.modelbase.TransformableGeometry;
 
 public class AuxMaterialBundle extends CompositeComponentBase 
-   implements RenderableComponent, TransformableGeometry {
+   implements RenderableComponent, TransformableGeometry, 
+   PropertyChangeListener {
 
    public enum FractionRenderType {
       ELEMENT, ELEMENT_SCALED, INTEGRATION_POINT, INTEGRATION_POINT_SCALED
@@ -200,14 +203,31 @@ public class AuxMaterialBundle extends CompositeComponentBase
       return myMat;      
    }
 
-   public void setMaterial (FemMaterial mat) {
-      FemMaterial old = myMat;
-      myMat = (FemMaterial)MaterialBase.updateMaterial (
-         this, "material", myMat, mat);
-      // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+   protected void notifyElementsOfMaterialStateChange () {
+      // clear states for any elements that use the model material
+      for (AuxMaterialElementDesc desc : myElementDescs) {
+         desc.myElement.notifyStateVersionChanged();
       }
+   }
+   
+   public <T extends FemMaterial> T setMaterial (T mat) {
+      if (mat == null) {
+         throw new IllegalArgumentException ("material 'mat' cannot be null");
+      }
+      FemMaterial oldMat = myMat;
+      T newMat = (T)MaterialBase.updateMaterial (
+         this, "material", myMat, mat);
+      myMat = newMat;
+      // issue change event in case solve matrix symmetry or state has changed:
+      MaterialChangeEvent mce = 
+         MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
+      if (mce != null) {
+         if (mce.stateChanged()) {
+            notifyElementsOfMaterialStateChange();
+         }
+         notifyParentOfChange (mce);
+      }
+      return newMat;
    }
    
    public void checkElementDesc (FemModel femMod, AuxMaterialElementDesc desc) {
@@ -362,6 +382,16 @@ public class AuxMaterialBundle extends CompositeComponentBase
       context.addAll (myElementDescs);
    }   
 
-
+   public void propertyChanged (PropertyChangeEvent e) {
+      if (e instanceof MaterialChangeEvent) {
+         MaterialChangeEvent mce = (MaterialChangeEvent)e;
+         if (mce.stateChanged() && e.getHost() == getMaterial()) {
+            notifyElementsOfMaterialStateChange();
+         }
+         if (mce.stateOrSymmetryChanged()) {
+            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
+         }
+      }
+   }
 
 }

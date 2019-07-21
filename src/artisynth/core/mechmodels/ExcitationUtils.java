@@ -89,65 +89,65 @@ public class ExcitationUtils {
       return net;
    }
    
-   /**
-    * Look for the first ancestor of an ExcitationComponent, up to
-    * a prescribed height, that happens to also be an ExcitationComponent.
-    * If one is found, add it to the component as a source.
-    * 
-    * @param ecomp Component for which ancestors should be checked
-    * @param height Maximum ancestor height (1 = parent, 2 = grandparent, etc.)
-    */
-   public static void addAncestorAsSource (
-      ExcitationComponent ecomp, int height) {
-      
-      CompositeComponent ancestor = ecomp.getParent();
-      for (int i=0; i<height && ancestor != null; i++) {
-         if (ancestor instanceof ExcitationComponent) {
-            ecomp.addExcitationSource ((ExcitationComponent)ancestor);
-         }
-         ancestor = ancestor.getParent();
-      }
-   }
+//   /**
+//    * Look for the first ancestor of an ExcitationComponent, up to
+//    * a prescribed height, that happens to also be an ExcitationComponent.
+//    * If one is found, add it to the component as a source.
+//    * 
+//    * @param ecomp Component for which ancestors should be checked
+//    * @param height Maximum ancestor height (1 = parent, 2 = grandparent, etc.)
+//    */
+//   public static void addAncestorAsSource (
+//      ExcitationComponent ecomp, int height) {
+//      
+//      CompositeComponent ancestor = ecomp.getParent();
+//      for (int i=0; i<height && ancestor != null; i++) {
+//         if (ancestor instanceof ExcitationComponent) {
+//            ecomp.addExcitationSource ((ExcitationComponent)ancestor);
+//         }
+//         ancestor = ancestor.getParent();
+//      }
+//   }
    
-   /**
-    * Look for the first ancestor of an ExcitationComponent, up to
-    * a prescribed height, that happens to also be an ExcitationComponent.
-    * If one is found, remove it from the component as a source.
-    * 
-    * @param ecomp Component for which ancestors should be checked
-    * @param height Maximum ancestor height (1 = parent, 2 = grandparent, etc.)
-    */
-   public static void removeAncestorAsSource (
-      ExcitationComponent ecomp, int height) {
-      
-      CompositeComponent ancestor = ecomp.getParent();
-      for (int i=0; i<height && ancestor != null; i++) {
-         if (ancestor instanceof ExcitationComponent) {
-            ecomp.removeExcitationSource ((ExcitationComponent)ancestor);
-         }
-         ancestor = ancestor.getParent();
-      }
-   }
+//   /**
+//    * Look for the first ancestor of an ExcitationComponent, up to
+//    * a prescribed height, that happens to also be an ExcitationComponent.
+//    * If one is found, remove it from the component as a source.
+//    * 
+//    * @param ecomp Component for which ancestors should be checked
+//    * @param height Maximum ancestor height (1 = parent, 2 = grandparent, etc.)
+//    */
+//   public static void removeAncestorAsSource (
+//      ExcitationComponent ecomp, int height) {
+//      
+//      CompositeComponent ancestor = ecomp.getParent();
+//      for (int i=0; i<height && ancestor != null; i++) {
+//         if (ancestor instanceof ExcitationComponent) {
+//            ecomp.removeExcitationSource ((ExcitationComponent)ancestor);
+//         }
+//         ancestor = ancestor.getParent();
+//      }
+//   }
 
-   public static void writeSources (
-      PrintWriter pw, String name, Collection<ExcitationComponent> sources,
-      CompositeComponent ancestor) throws IOException {
-      
-      if (sources != null && sources.size() > 0) {
-         pw.print (name + "=");
-         ScanWriteUtils.writeBracketedReferences (pw, sources, ancestor);
-      }
-   }
-
-   public static ArrayList<ExcitationComponent> postscanSources (
-      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
-
-      ArrayList<ExcitationComponent> sources =
-         new ArrayList<ExcitationComponent>();
-      ScanWriteUtils.postscanReferences (
-         tokens, sources, ExcitationComponent.class, ancestor);
-      return sources;
-   }
+//   public static void writeSources (
+//      PrintWriter pw, String name, Collection<ExcitationComponent> sources,
+//      CompositeComponent ancestor) throws IOException {
+//      
+//      if (sources != null && sources.size() > 0) {
+//         pw.print (name + "=");
+//         ScanWriteUtils.writeBracketedReferences (pw, sources, ancestor);
+//      }
+//   }
+//
+//   public static ArrayList<ExcitationComponent> postscanSources (
+//      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+//
+//      ArrayList<ExcitationComponent> sources =
+//         new ArrayList<ExcitationComponent>();
+//      ScanWriteUtils.postscanReferences (
+//         tokens, sources, ExcitationComponent.class, ancestor);
+//      return sources;
+//   }
 
    public static double getGain (
       ExcitationSourceList sources, ExcitationComponent ex) {

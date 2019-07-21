@@ -39,6 +39,7 @@ public class PyramidElement extends FemElement3d {
       if (myWarpingPoint == null) {
          myWarpingPoint = IntegrationPoint3d.create (
             this, 0, 0, -0.5, 128/27.0);
+         myWarpingPoint.setNumber (numIntegrationPoints());
       }
       return myWarpingPoint;
    }  

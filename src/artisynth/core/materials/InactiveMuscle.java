@@ -9,16 +9,13 @@ import maspack.matrix.Vector3d;
  */
 public class InactiveMuscle extends MuscleMaterial {
 
-   public void computeStress (
-      SymmetricMatrix3d sigma, double excitation, Vector3d dir0,
-      DeformedPoint def, FemMaterial baseMat) {
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Vector3d dir0, double excitation, MaterialStateObject state) {
       sigma.setZero();
-   }
-
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
-      DeformedPoint def, FemMaterial baseMat) {
-      D.setZero();
+      if (D != null) {
+         D.setZero();
+      }
    }
 
    public boolean equals (MuscleMaterial mat) {

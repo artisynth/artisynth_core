@@ -54,7 +54,10 @@ public class ClassAliases {
       "artisynth.core.mechmodels.PointParticleAttachment",
 
       "PointFrameAttachment",
-      "artisynth.core.mechmodels.PointFrameAttachment", };
+      "artisynth.core.mechmodels.PointFrameAttachment", 
+
+      "VectorGrid", "maspack.geometry.VectorGrid",
+   };
 
    /**
     * Searches for subclasses of T within a specified package and adds

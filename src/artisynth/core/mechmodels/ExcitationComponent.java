@@ -38,7 +38,7 @@ public interface ExcitationComponent extends ModelComponent, RequiresInitialize 
    public CombinationRule getCombinationRule();
 
    /**
-    * Sets the primary excitation for this component.
+    * SetsJust reiterating  the primary excitation for this component.
     * 
     * @param e
     * excitation value
@@ -51,15 +51,6 @@ public interface ExcitationComponent extends ModelComponent, RequiresInitialize 
     * @return primary excitation value
     */
    public double getExcitation();
-
-   /**
-    * Adds a new excitation source to this Excitable, with an assumed gain of
-    * 1.
-    * 
-    * @param ex
-    * excitatation source to be added
-    */
-   public void addExcitationSource (ExcitationComponent ex);
 
    /**
     * Adds a new excitation source to this Excitable with a specified gain.
@@ -111,11 +102,11 @@ public interface ExcitationComponent extends ModelComponent, RequiresInitialize 
     */
    public double getNetExcitation();
 
-   /**
-    * Returns the default weight that should be used when this excitation
-    * component is being used for inverse actuation control.
-    *
-    * @return default weight for inverse actuation control
-    */
-   public double getDefaultActivationWeight();
+//   /**
+//    * Returns the default weight that should be used when this excitation
+//    * component is being used for inverse actuation control.
+//    *
+//    * @return default weight for inverse actuation control
+//    */
+//   public double getDefaultActivationWeight();
 }

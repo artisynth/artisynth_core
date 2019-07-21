@@ -97,7 +97,7 @@ public class MuscleElementDescList
    }
 
    private int renderObjectsNeedUpdating () {
-      if (myRobFlags == null) {
+      if (myRobFlags == null || myRobFlags.length != size()) {
          return BUILD;
       }
       if ((getWidgetSize() != 0) != (myWidgetRob != null)) {
@@ -116,6 +116,7 @@ public class MuscleElementDescList
 
       // allocate per-element flag storage that will be used to determine when
       // the render object needs to be rebuilt
+      System.out.println ("allocating robFlags " + size());
       myRobFlags = new byte[size()];      
       for (int i=0; i<size(); i++) {
          MuscleElementDesc desc = get (i);
@@ -309,6 +310,7 @@ public class MuscleElementDescList
       }
       super.notifyParentOfChange (e);
    }
+
 }
 
 

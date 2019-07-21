@@ -39,7 +39,7 @@ public class QuadhexElement extends FemElement3d {
          
          IntegrationPoint3d pnt = new IntegrationPoint3d(nnodes, npvals);
          pnt.setWeight(1);
-         pnt.setNumber(-1);
+         pnt.setNumber(numIntegrationPoints());
          
          VectorNd shapeWeights = new VectorNd(nnodes);
          VectorNd pressureWeights = new VectorNd(npvals);

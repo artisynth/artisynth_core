@@ -143,7 +143,62 @@ public abstract class FemElement3dBase extends FemElement
     */
    public abstract double[] getIntegrationCoords();
 
+   /**
+    * Returns the number of integration points actually used by this element
+    * (not including the <i>warping</i> point, if any). Typically this number
+    * will equal the length of the integration point array returned by {@link
+    * #getIntegrationPoints}, but in some cases (such as shell elements being
+    * used as membrane elements), it will be less.
+    * 
+    * @return number of integration points used by this element
+    */
+   public abstract int numIntegrationPoints();
+
+   /**
+    * Returns the integration points associated with this element, not
+    * including the <i>warping</i> point (see {@link #getWarpingPoint}).  In
+    * some cases, such as with membrane elements, only the first <i>n</i>
+    * points of these points are actaully used, where <i>n</i> is the number
+    * returned by {@link #numIntegrationPoints}.
+    */
    public abstract IntegrationPoint3d[] getIntegrationPoints();
+
+   /**
+    * Returns the number of integration points actually used by this element,
+    * including the warping point. Usually, this is 1+<i>n</i>, where <i>n</i>
+    * is the number returned by {@link #numIntegrationPoints}. In cases where
+    * <i>n</i> = 1, the (one) integration point is also the warping
+    * point, and so this method returns 1.
+    *
+    * @return number of all integration points used by this element
+    */
+   public int numAllIntegrationPoints() {
+      int n = numIntegrationPoints();
+      if (n > 1) {
+         n++;
+      }
+      return n;
+   }
+
+   /**
+    * Returns all integration points actually used by this element, including
+    * the <i>warping</i> point (see {@link #getWarpingPoint}).  The number of
+    * points equals {@link #numAllIntegrationPoints}. The first <i>n</i> points
+    * correspond to the first <i>n</i> points returned by {@link
+    * #getIntegrationPoints}, where <i>n</i> is the number returned by {@link
+    * #numIntegrationPoints}, and the last point is the warping point.  In
+    * cases where <i>n</i> = 1, there is only one integration point which is
+    * also the warping point.
+    */
+   public IntegrationPoint3d[] getAllIntegrationPoints() {
+      int numAll = numAllIntegrationPoints();
+      IntegrationPoint3d[] pnts = Arrays.copyOf (getIntegrationPoints(), numAll);
+      if (numAll > 1) {
+         // set the last point to be the warping point.
+         pnts[numAll-1] = getWarpingPoint();
+      }
+      return pnts;
+   }
 
    /**
     * Create a set of integration points for a given element, using
@@ -225,6 +280,11 @@ public abstract class FemElement3dBase extends FemElement
 
    /* --- Stiffness warping --- */
 
+   /**
+    * Returns the special <i>warping</i> integration point which is located at
+    * the center of the element and is used for computing stiffness warping and
+    * other specialized applications.
+    */
    public abstract IntegrationPoint3d getWarpingPoint();
 
    public IntegrationData3d getWarpingData() {
@@ -289,7 +349,14 @@ public abstract class FemElement3dBase extends FemElement
                myWarper.addInitialStiffness(this, amat, weight);
             }
          }
-      }      
+      }  
+      if (myAuxMaterials != null) {
+         for (AuxiliaryMaterial amat : myAuxMaterials) {
+            if (amat.isLinear()) {
+               myWarper.addInitialStiffness(this, amat, weight);
+            }
+         }
+      }
       myWarpingStiffnessValidP = true;
    }
 
@@ -736,7 +803,7 @@ public abstract class FemElement3dBase extends FemElement
     * getNodalExtroplationMatrix() method. Extrapolation from integration
     * points to nodes is used to compute things such as nodal stresses.
     *
-    *In general, the extrapolants are determined by mapping the integration
+    * In general, the extrapolants are determined by mapping the integration
     * points (or a suitable subset thereof) onto a special finite element of
     * their own, and computing the shape function values for the nodes in the
     * new coordinate system.
@@ -1296,5 +1363,90 @@ public abstract class FemElement3dBase extends FemElement
       return flags;      
    }
 
-   
+   /* --- remaining implementation of HasNumericState --- */
+
+   public void advanceState (double t0, double t1) {
+      if (myNumMaterialsWithState == -1) {
+         updateStateObjects();
+      }
+      if (myNumMaterialsWithState > 0) {
+         ArrayList<HasMaterialState> mats = new ArrayList<>();
+         collectMaterialsWithState (mats);
+         IntegrationData3d[] idata = doGetIntegrationData();
+         for (int k = 0; k < idata.length; k++) {
+            MaterialStateObject[] sobjs = idata[k].getStateObjects();
+            if (mats.size() != sobjs.length) {
+               throw new InternalErrorException (
+                  "Number of materials with state "+mats.size()+
+                  " != number of state objects "+ sobjs.length);
+            }
+            for (int j=0; j<sobjs.length; j++) {
+               mats.get(j).advanceState (sobjs[j], t0, t1);
+            }
+         }
+      }
+   }
+
+   public void getState (DataBuffer data) {
+      if (myNumMaterialsWithState == -1) {
+         updateStateObjects();
+      }
+      if (myNumMaterialsWithState > 0) {
+         IntegrationData3d[] idata = doGetIntegrationData();
+         for (int k = 0; k < idata.length; k++) {
+            MaterialStateObject[] sobjs = idata[k].getStateObjects();
+            for (int j=0; j<sobjs.length; j++) {
+               sobjs[j].getState (data);
+            }
+         }
+      }
+   }
+
+   public void setState (DataBuffer data) {
+      if (myNumMaterialsWithState == -1) {
+         updateStateObjects();
+      }
+      if (myNumMaterialsWithState > 0) {
+         IntegrationData3d[] idata = doGetIntegrationData();
+         for (int k = 0; k < idata.length; k++) {
+            MaterialStateObject[] sobjs = idata[k].getStateObjects();
+            for (int j=0; j<sobjs.length; j++) {
+               sobjs[j].setState (data);
+            }
+         }
+      }
+   }
+
+   protected void updateStateObjects() {
+      ArrayList<HasMaterialState> mats = new ArrayList<>();
+      collectMaterialsWithState (mats);
+      // use doGetIntegrationData() because data does not need to "valid"
+      // at this point
+      IntegrationData3d[] idata = doGetIntegrationData();
+      if (mats.size() > 0) {
+         for (int k = 0; k < idata.length; k++) {
+            MaterialStateObject[] sobjs = new MaterialStateObject[mats.size()];
+            for (int j=0; j<sobjs.length; j++) {
+               sobjs[j] = mats.get(j).createStateObject();
+            }
+            idata[k].setStateObjects(sobjs);
+         }         
+      }
+      else {
+         for (int k = 0; k < idata.length; k++) {
+            idata[k].setStateObjects(null);
+         }         
+      }
+      myNumMaterialsWithState = mats.size();
+   }
+
+   public void notifyStateVersionChanged() {
+      myStateVersion++;
+      myNumMaterialsWithState = -1;
+      IntegrationData3d[] idata = doGetIntegrationData();
+      for (int k = 0; k < idata.length; k++) {
+         idata[k].clearStateObject();
+         idata[k].clearStateObjects();
+      } 
+   }
 }

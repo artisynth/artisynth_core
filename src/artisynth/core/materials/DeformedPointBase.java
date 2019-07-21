@@ -3,7 +3,7 @@ package artisynth.core.materials;
 import maspack.matrix.*;
 
 /**
- * Base class for deformed point structure. Alows quantities
+ * Base class for deformed point structure.
  */
 public class DeformedPointBase implements DeformedPoint {
 
@@ -17,9 +17,15 @@ public class DeformedPointBase implements DeformedPoint {
 
    protected int[] myNodeNumbers;
    protected double[] myNodeWeights;
+   protected int myElemType;
    protected int myElemNum;
+   protected int myElemSubIndex;
    protected int myPointIdx = -1;
 
+   public int availableInfo() {
+      return ALL_INFO;
+   }
+   
    public DeformedPointBase() {
       myF = new Matrix3d();
       myDetF = 0;
@@ -29,7 +35,9 @@ public class DeformedPointBase implements DeformedPoint {
       myPointIdx = -1;
       myNodeNumbers = null;
       myNodeWeights = null;
-      myElemNum = -1;  
+      myElemType = -1;
+      myElemNum = -1;
+      myElemSubIndex = -1;
 
       myRestPos = new Point3d();
       mySpatialPos = new Point3d();
@@ -79,8 +87,16 @@ public class DeformedPointBase implements DeformedPoint {
       return myRestPos;
    }
 
+   public int getElementType() {
+      return myElemType;
+   }
+
    public int getElementNumber() {
       return myElemNum;
+   }
+
+   public int getElementSubIndex() {
+      return myElemSubIndex;
    }
 
    public int getPointIndex() {

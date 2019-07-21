@@ -1,9 +1,9 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
@@ -15,14 +15,15 @@ import maspack.properties.PropertyUtils;
  */
 public class StVenantKirchoffMaterial extends FemMaterial {
 
-   public static PropertyList myProps =
-      new PropertyList (StVenantKirchoffMaterial.class, FemMaterial.class);
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (StVenantKirchoffMaterial.class, FemMaterial.class);
 
    protected static double DEFAULT_NU = 0.33;
    protected static double DEFAULT_E = 500000;
 
    private double myNu = DEFAULT_NU;
    private double myE = DEFAULT_E;
+   private ScalarFieldPointFunction myEFunc;
 
    PropertyMode myNuMode = PropertyMode.Inherited;
    PropertyMode myEMode = PropertyMode.Inherited;
@@ -31,13 +32,13 @@ public class StVenantKirchoffMaterial extends FemMaterial {
    private SymmetricMatrix3d myB2;
 
    static {
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "YoungsModulus:Inherited", "Youngs modulus", DEFAULT_E);
       myProps.addInheritable (
          "PoissonsRatio:Inherited", "Poissons ratio", DEFAULT_NU);
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -92,15 +93,43 @@ public class StVenantKirchoffMaterial extends FemMaterial {
       return myEMode;
    }
 
-   public void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
+   public double getYoungsModulus (FieldPoint dp) {
+      return (myEFunc == null ? getYoungsModulus() : myEFunc.eval (dp));
+   }
+
+   public ScalarFieldPointFunction getYoungsModulusFunction() {
+      return myEFunc;
+   }
+      
+   public void setYoungsModulusFunction (ScalarFieldPointFunction func) {
+      myEFunc = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setYoungsModulusField (
+      ScalarField field, boolean useRestPos) {
+      myEFunc = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getYoungsModulusField () {
+      return FieldUtils.getFieldFromFunction (myEFunc);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation, MaterialStateObject state) {
 
       double J = def.getDetF();
 
       // express constitutive law in terms of Lama parameters
-      double G = myE/(2*(1+myNu)); // bulk modulus
-      double lam = (myE*myNu)/((1-2*myNu)*(1+myNu));
+      double E = getYoungsModulus(def);
+      
+      double G = E/(2*(1+myNu)); // bulk modulus
+      double lam = (E*myNu)/((1-2*myNu)*(1+myNu));
       double mu = G;
 
       computeLeftCauchyGreen (myB,def);
@@ -111,25 +140,13 @@ public class StVenantKirchoffMaterial extends FemMaterial {
 
       sigma.scale ((lam*tr-mu)/J, myB);
       sigma.scaledAdd (mu/J, myB2);
-   }
 
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
-      Matrix3d Q, FemMaterial baseMat) {
-
-      double J = def.getDetF();
-
-      computeLeftCauchyGreen (myB,def);
-
-      // express constitutive law in terms of Lama parameters
-      double G = myE/(2*(1+myNu)); // bulk modulus
-      double lam = (myE*myNu)/((1-2*myNu)*(1+myNu));
-      double mu = G;
-
-      D.setZero();
-      TensorUtils.addTensorProduct (D, lam/J, myB, myB);
-      TensorUtils.addSymmetricTensorProduct4 (D, mu/J, myB, myB);
-      D.setLowerToUpper();
+      if (D != null) {
+         D.setZero();
+         TensorUtils.addTensorProduct (D, lam/J, myB, myB);
+         TensorUtils.addSymmetricTensorProduct4 (D, mu/J, myB, myB);
+         D.setLowerToUpper();         
+      }
    }
 
    public boolean equals (FemMaterial mat) {
@@ -165,7 +182,7 @@ public class StVenantKirchoffMaterial extends FemMaterial {
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
 
       mat.setYoungsModulus (10);      
-      mat.computeStressAndTangent (sig, D, dpnt, Q, 0.0);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 0.0, null);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));

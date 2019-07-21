@@ -109,14 +109,6 @@ ExcitationComponent, ForceComponent {
     * {@inheritDoc}
     */
    @Override
-   public void addExcitationSource (ExcitationComponent ex) {
-      addExcitationSource (ex, 1);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
    public void addExcitationSource (ExcitationComponent ex, double gain) {
       if (myExcitationSources == null) {
          myExcitationSources = new ExcitationSourceList();
@@ -183,11 +175,6 @@ ExcitationComponent, ForceComponent {
       super.updateReferences (undo, undoInfo);
       myExcitationSources = ExcitationUtils.updateReferences (
          this, myExcitationSources, undo, undoInfo);
-   }
-
-   @Override
-   public double getDefaultActivationWeight () {
-      return 0;
    }
 
    public double getMaxForce () {

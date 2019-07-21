@@ -52,6 +52,10 @@ public class ListRemove<C> {
       return myList;
    }
 
+   public ArrayList<C> getRemoved() {
+      return myRemoved;
+   }
+
    public void requestRemove (int idx) {
       if (myState != State.OPEN) {
          throw new IllegalStateException (

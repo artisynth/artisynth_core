@@ -1090,10 +1090,11 @@ public class RigidBody extends Frame
       DistanceGridComp comp = new DistanceGridComp ("distanceGrid");
       //RenderProps.setVisible (comp, false);
       comp.setRenderGrid (false);
-      RenderProps.setPointRadius (comp, 0.0);
-      RenderProps.setPointSize (comp, 0);
-      RenderProps.setLineStyle (comp, LineStyle.LINE);
-      RenderProps.setLineColor (comp, Color.BLUE);
+      RenderProps.setVisible (comp, true);
+      // RenderProps.setPointRadius (comp, 0.0);
+      // RenderProps.setPointSize (comp, 0);
+      // RenderProps.setLineStyle (comp, LineStyle.LINE);
+      // RenderProps.setLineColor (comp, Color.BLUE);      
       return comp;
    }
 

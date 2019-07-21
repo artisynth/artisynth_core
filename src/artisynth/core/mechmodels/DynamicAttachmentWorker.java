@@ -40,7 +40,7 @@ public class DynamicAttachmentWorker {
     * 
     * @param at attachment engendering the reduction
     * @param GT matrix to be reduced
-    * @param derivative information to be reduced
+    * @param dg derivative information to be reduced
     * @param zeroReducedBlocks if {@code false}, does not zero the blocks
     * in {@code GT} associated with the attachment. Although this is
     * not the correct behavior, it can be used in situations where it does not

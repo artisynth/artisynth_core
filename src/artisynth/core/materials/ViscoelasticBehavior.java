@@ -38,8 +38,6 @@ public abstract class ViscoelasticBehavior extends MaterialBase {
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
       ViscoelasticState state);
    
-   public abstract double getTangentScale();
-
    public abstract void advanceState (
       ViscoelasticState state, double t0, double t1);
 

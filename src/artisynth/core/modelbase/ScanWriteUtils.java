@@ -7,7 +7,7 @@
 package artisynth.core.modelbase;
 
 import java.util.*;
-import java.lang.reflect.Array;
+import java.lang.reflect.*;
 import java.net.*;
 
 import maspack.util.*;
@@ -26,6 +26,20 @@ public class ScanWriteUtils {
    private static final int TT_WORD = ReaderTokenizer.TT_WORD;
 
    public static boolean connectAfterScanning = true;
+
+   public static class ClassInfo<C> {
+      Class<C> compClass;
+      Class<?> typeParam;
+
+      ClassInfo (Class<C> compClass, Class<?> typeParam) {
+         this.compClass = compClass;
+         this.typeParam = typeParam;
+      }
+
+      public String toString() {
+         return getClassName (compClass, typeParam);
+      }
+   };
 
    /**
     * Debugging hook to enable printing of the token queue produced
@@ -1227,8 +1241,121 @@ public class ScanWriteUtils {
       pw.println ("]");
    }
 
+   /**
+    * Scans a class tag that either consists of a simple class
+    * name or alias, such as <code>ModelComponent</code>, or a parameterized
+    * class name, such as {@code ModelList<FemModel3d>}, and returns
+    * the associated class information. The scanned class must be
+    * an instance of the specified baseClass.
+    */
+   protected static <C> ClassInfo<C> scanClassInfo (
+      ReaderTokenizer rtok, Class<C> baseClass) throws IOException {
+      
+      Class<?> compClass = null;
+      Class<?> typeParam = null;
 
+      String className = rtok.scanWord();
+      compClass = ClassAliases.resolveClass (className);
+      if (compClass == null) {
+         throw new IOException (
+            "Class name or alias '"+className+"' can't be resolved, "+rtok);
+      }
+      if (!baseClass.isAssignableFrom (compClass)) {
+         throw new IOException (
+            "Class corresponding to '"+ className+
+            "' not a subclass of '"+baseClass.getName()+"', " + rtok);
+      }
+      if (rtok.nextToken() == '<') {
+         // if (!ParameterizedClass.class.isAssignableFrom (compClass)) {
+         //    throw new IOException (
+         //       "Class corresponding to '"+ className+
+         //       "' not an instance of ParameterizedClass, "+rtok);
+         // }
+         // class names can have '.' and '$'
+         int savedDot = rtok.getCharSetting ('.');
+         int savedDollar = rtok.getCharSetting ('$');
+         rtok.wordChar ('.');
+         rtok.wordChar ('$');
+         String paramName = rtok.scanWord();
+         rtok.setCharSetting ('.',savedDot);
+         rtok.setCharSetting ('$',savedDollar);
 
+         typeParam = ClassAliases.resolveClass (paramName);
+         if (typeParam == null) {
+            throw new IOException (
+               "Parameterized class name or alias '"+paramName+
+               "' can't be resolved, " + rtok);
+         }
+         rtok.scanToken ('>');
+      }
+      else {
+         rtok.pushBack();
+      }
+      return new ClassInfo (compClass, typeParam);
+   }
+   
+   private static <C> C createComponent (ClassInfo<C> cinfo)
+      throws InstantiationException, IllegalAccessException,
+      InvocationTargetException {
+      if (cinfo.typeParam != null) {
+         Constructor ctor = null;
+         try {
+            ctor = cinfo.compClass.getDeclaredConstructor(Class.class);
+         }
+         catch (Exception e) {
+            // handled below
+         }
+         if (ctor == null || !Modifier.isPublic(ctor.getModifiers())) {
+            throw new UnsupportedOperationException (
+               "Class "+cinfo.compClass+" does not have a public constructor "+
+               "that takes the type parameter as an argument");
+         }
+         return (C)ctor.newInstance (cinfo.typeParam);
+      }
+      else {
+         return (C)cinfo.compClass.newInstance();
+      }
+   }
+
+   public static <C,S> String getClassName (
+      Class<C> compClass, Class<S> typeParam) {
+      String str = ClassAliases.getAliasOrName (compClass);
+      if (typeParam != null) {
+         str += "<" + ClassAliases.getAliasOrName (typeParam) + ">";
+      }
+      return str;
+   }
+
+   public static <C> String getClassName (Class<C> compClass) {
+      return ClassAliases.getAliasOrName (compClass);
+   }
+
+   /**
+    * Used for scanning: calls createComponent() and throws an appropriate
+    * IOException if anything goes wrong. If <code>warnOnly</code> is
+    * <code>true</code> and <code>classInfo</code> is non-<code>null</code>,
+    * then if the class can't be instantiated, the method prints a warning
+    * and returns <code>null</code>.
+    */
+   public static <C> C newComponent (
+      ReaderTokenizer rtok, ClassInfo<C> cinfo, boolean warnOnly) 
+         throws IOException {
+
+      try {
+         return createComponent (cinfo);
+      }
+      catch (Exception e) {
+         String errMsg = 
+            "Could not instantiate type " + cinfo.compClass.toString();
+         if (warnOnly) {
+            System.out.println (
+               "WARNING: " + errMsg + ": " + e.getMessage());
+            return null;
+         }
+         throw new IOException (
+            errMsg + ", line " + rtok.lineno(), e);
+      }
+   }
 }
 
  

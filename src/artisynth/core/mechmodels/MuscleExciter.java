@@ -152,14 +152,6 @@ ExcitationComponent {
       return myComboRule;
    }
 
-    /**
-    * {@inheritDoc}
-    */
-   @Override
-   public void addExcitationSource (ExcitationComponent ex) {
-      addExcitationSource (ex, 1);
-   }
-
    /**
     * {@inheritDoc}
     */
@@ -284,13 +276,13 @@ ExcitationComponent {
       myTargets.get (idx).setExcitationGain (this, gain);
    }
 
-   public double getDefaultActivationWeight() {
-      double w = 0;
-      for (ExcitationComponent tinfo : myTargets) {
-         w += tinfo.getDefaultActivationWeight();
-      }
-      return w;
-   }
+//   public double getDefaultActivationWeight() {
+//      double w = 0;
+//      for (ExcitationComponent tinfo : myTargets) {
+//         w += tinfo.getDefaultActivationWeight();
+//      }
+//      return w;
+//   }
 
    // @Override
    // public void getDependencies (

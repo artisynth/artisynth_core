@@ -30,8 +30,10 @@ JAVA_TEST_PROGRAMS = \
 	QuadraticUtilsTest \
 	RigidTransformerTest \
 	RobustPredsTest \
+	ScalarGridTest \
 	TetgenConvexHullTest \
 	TetgenTessellatorTest \
+	VectorGridTest \
 	Vertex3dListTest \
 	WindingCalculatorTest
 

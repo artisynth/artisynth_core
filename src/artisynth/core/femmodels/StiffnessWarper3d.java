@@ -118,7 +118,7 @@ public class StiffnessWarper3d {
     * @param weight weight to combine with integration point weights
     */
    public void addInitialStiffness (
-      FemElement3d e, AuxiliaryMaterial mat, double weight) {
+      FemElement3dBase e, AuxiliaryMaterial mat, double weight) {
 
       LinearMaterialCache cache = null;
       if (mat.isCorotated()) {
@@ -126,7 +126,16 @@ public class StiffnessWarper3d {
       } else {
          cache = getOrCreateLinearCache(e);
       }
-      cache.addInitialStiffness(e, mat, weight);
+      if (e instanceof FemElement3d) {
+         cache.addInitialStiffness((FemElement3d)e, mat, weight);
+      }
+      else if (e instanceof ShellElement3d) {
+         cache.addInitialStiffness((ShellElement3d)e, mat, weight);
+      }
+      else {
+         throw new UnsupportedOperationException (
+            "FemElement type "+e.getClass()+" not supported");
+      }
    }
 
    

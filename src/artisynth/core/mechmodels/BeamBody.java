@@ -57,9 +57,10 @@ public class BeamBody extends DeformableBody {
       invalidateStiffness();
    }
 
-   @Override public void setMaterial (FemMaterial mat) {
-      super.setMaterial (mat);
+   @Override public <T extends FemMaterial> T setMaterial (T mat) {
+      T newMat = super.setMaterial (mat);
       invalidateStiffness();
+      return newMat;
    }
 
    public BeamBody () {
@@ -128,7 +129,7 @@ public class BeamBody extends DeformableBody {
          //myMaterial.computeTangent (D, pt.getStress(), pt, dt, null);
          //myMaterial.computeTangent (D, SymmetricMatrix3d.ZERO, def, Q, null);
          SymmetricMatrix3d sigma = new SymmetricMatrix3d();
-         myMaterial.computeStressAndTangent (sigma, D, def, Q, 0.0);
+         myMaterial.computeStressAndTangent (sigma, D, def, Q, 0.0, null);
          double dl = (myLen/2)*pt.getWeight();
 
          for (int i=0; i<numc; i++) {

@@ -84,6 +84,7 @@ public class HexElement extends FemElement3d {
    public IntegrationPoint3d getWarpingPoint() {
       if (myWarpingPoint == null) {
          myWarpingPoint = IntegrationPoint3d.create (this, 0, 0, 0, 8);
+         myWarpingPoint.setNumber (numIntegrationPoints());
       }
       return myWarpingPoint;
    }  

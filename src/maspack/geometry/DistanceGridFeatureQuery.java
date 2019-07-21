@@ -9,7 +9,6 @@ package maspack.geometry;
 import java.util.Iterator;
 
 import maspack.matrix.Point3d;
-import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
@@ -20,7 +19,6 @@ import maspack.util.DoubleHolder;
  */
 public class DistanceGridFeatureQuery {
 
-   private static final double INF = Double.POSITIVE_INFINITY;
    TriangleIntersector myIntersector;
    Vector3d myTmp1;
    Vector3d myTmp2;
@@ -119,7 +117,7 @@ public class DistanceGridFeatureQuery {
          if (uv != null) {
             // local point
             Point3d lnear = nearPnt;
-            if (sdgrid.getLocalToWorld() != null) {
+            if (sdgrid.hasLocalToWorld()) {
                lnear = new Point3d(nearPnt);
                lnear.inverseTransform(sdgrid.getLocalToWorld());
             }
@@ -255,7 +253,7 @@ public class DistanceGridFeatureQuery {
    public boolean isInsideOrientedMesh (
       DistanceGrid grid, Point3d pnt, double tol) {
       Point3d lpnt;
-      if (grid.getLocalToWorld() != null && grid.getLocalToWorld() != RigidTransform3d.IDENTITY) {
+      if (grid.hasLocalToWorld()) {
          lpnt = new Point3d (pnt);
          lpnt.inverseTransform (grid.getLocalToWorld());
       }
@@ -507,12 +505,11 @@ public class DistanceGridFeatureQuery {
          myIntersector = new TriangleIntersector();
       }
       Point3d lpnt;
-      Vector3d ldir = new Vector3d();
       if (tol < 0) {
          tol = 1e-12*sdgrid.getRadius();
       }
 
-      if (sdgrid.getLocalToWorld() != null) {
+      if (sdgrid.hasLocalToWorld()) {
          lpnt = new Point3d (pnt);
          lpnt.inverseTransform (sdgrid.getLocalToWorld());
       }

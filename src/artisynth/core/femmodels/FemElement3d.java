@@ -9,8 +9,8 @@ package artisynth.core.femmodels;
 import java.util.ArrayList;
 import java.util.Map;
 
-import artisynth.core.materials.IncompressibleMaterial;
-import artisynth.core.materials.FemMaterial;
+import artisynth.core.materials.HasMaterialState;
+import artisynth.core.materials.IncompressibleMaterialBase;
 import artisynth.core.modelbase.ModelComponent;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix1x1;
@@ -38,9 +38,6 @@ public abstract class FemElement3d extends FemElement3dBase {
 
    private static Matrix1x1 myPressureWeightMatrix = null;
 
-   // Auxiliary Materials are mainly used for implementing muscle fibres
-   protected ArrayList<AuxiliaryMaterial> myAuxMaterials = null;
-
    public FemElement3d() {
       int npvals = numPressureVals();
       myLagrangePressures = new double[npvals];
@@ -51,16 +48,9 @@ public abstract class FemElement3d extends FemElement3dBase {
    
    /* --- Stiffness warping --- */
 
-   protected void updateWarpingStiffness(double weight) {
-      super.updateWarpingStiffness (weight);
-      if (myAuxMaterials != null) {
-         for (AuxiliaryMaterial amat : myAuxMaterials) {
-            if (amat.isLinear()) {
-               myWarper.addInitialStiffness(this, amat, weight);
-            }
-         }
-      }
-   }
+   // protected void updateWarpingStiffness(double weight) {
+   //    super.updateWarpingStiffness (weight);
+   // }
 
    /* --- Volume --- */
 
@@ -309,25 +299,25 @@ public abstract class FemElement3d extends FemElement3dBase {
       }      
    }
 
-   public void computePressures (
-      double[] pressures, IncompressibleMaterial imat) {
-
-      int npvals = numPressureVals();
-      IntegrationPoint3d[] ipnts = getIntegrationPoints();
-      IntegrationData3d[] idata = getIntegrationData();
-      for (int k=0; k<npvals; k++) {
-         pressures[k] = 0;
-      }
-      for (int i=0; i<ipnts.length; i++) {
-         double dV = idata[i].getDetJ0()*ipnts[i].getWeight();
-         IntegrationPoint3d pt = ipnts[i];
-         double detJ = pt.computeJacobianDeterminant (myNodes);
-         double[] H = pt.getPressureWeights().getBuffer();
-         for (int k=0; k<npvals; k++) {
-            pressures[k] += H[k]*dV*imat.getEffectivePressure (detJ);
-         }            
-      }
-   }
+//   public void computePressures (
+//      double[] pressures, IncompressibleMaterialBase imat) {
+//
+//      int npvals = numPressureVals();
+//      IntegrationPoint3d[] ipnts = getIntegrationPoints();
+//      IntegrationData3d[] idata = getIntegrationData();
+//      for (int k=0; k<npvals; k++) {
+//         pressures[k] = 0;
+//      }
+//      for (int i=0; i<ipnts.length; i++) {
+//         double dV = idata[i].getDetJ0()*ipnts[i].getWeight();
+//         IntegrationPoint3d pt = ipnts[i];
+//         double detJ = pt.computeJacobianDeterminant (myNodes);
+//         double[] H = pt.getPressureWeights().getBuffer();
+//         for (int k=0; k<npvals; k++) {
+//            pressures[k] += H[k]*dV*imat.getEffectivePressure (detJ);
+//         }            
+//      }
+//   }
 
    /**
     * Lagrange pressures array for use with incompressibility 
@@ -337,57 +327,27 @@ public abstract class FemElement3d extends FemElement3dBase {
       return myLagrangePressures;
    }
    
-   /**
-    * {@inheritDoc}
-    */
-   public boolean materialsAreInvertible() {
-      if (!super.materialsAreInvertible()) {
-         return false;
-      }
-      if (myAuxMaterials != null) {
-         for (AuxiliaryMaterial mat : myAuxMaterials) {
-            if (!mat.isInvertible()) {
-               return false;
-            }
-         }
-      }
-      return true;
-   }
+   // /**
+   //  * {@inheritDoc}
+   //  */
+   // public boolean materialsAreInvertible() {
+   //    if (!super.materialsAreInvertible()) {
+   //       return false;
+   //    }
+   //    if (myAuxMaterials != null) {
+   //       for (AuxiliaryMaterial mat : myAuxMaterials) {
+   //          if (!mat.isInvertible()) {
+   //             return false;
+   //          }
+   //       }
+   //    }
+   //    return true;
+   // }
 
 //   public double computeDirectedRenderSize (Vector3d dir) {
 //      IntegrationPoint3d ipnt = getWarpingPoint();
 //      return ipnt.computeDirectedSizeForRender (dir, getNodes());
 //   }
-
-
-   /* --- Auxiliary materials, used for implementing muscle fibres --- */
-   
-   public void addAuxiliaryMaterial (AuxiliaryMaterial mat) {
-      if (myAuxMaterials == null) {
-         myAuxMaterials = new ArrayList<AuxiliaryMaterial>(4);
-      }
-      myAuxMaterials.add (mat);
-   }
-
-   public boolean removeAuxiliaryMaterial (AuxiliaryMaterial mat) {
-      if (myAuxMaterials != null) {
-         return myAuxMaterials.remove (mat);
-      }
-      else {
-         return false;
-      }
-   }
-
-   public int numAuxiliaryMaterials() {
-      return myAuxMaterials == null ? 0 : myAuxMaterials.size();
-   }
-
-   public AuxiliaryMaterial[] getAuxiliaryMaterials() {
-      if (myAuxMaterials == null) {
-         return new AuxiliaryMaterial[0];
-      }
-      return myAuxMaterials.toArray (new AuxiliaryMaterial[0]);
-   }
 
    static int numEdgeSegs = 10;
 
@@ -402,6 +362,18 @@ public abstract class FemElement3d extends FemElement3dBase {
       }
    }
 
+   // protected void collectMaterialsWithState (
+   //    ArrayList<HasMaterialState> mats) {
+   //    super.collectMaterialsWithState (mats);
+   //    if (myAuxMaterials != null) {
+   //       for (AuxiliaryMaterial aux: myAuxMaterials) {
+   //          if (aux.hasState()) {
+   //             mats.add (aux);
+   //          }
+   //       }
+   //    }
+   // }
+
    /* --- Scanning, writing and copying --- */
 
    @Override
@@ -412,19 +384,19 @@ public abstract class FemElement3d extends FemElement3dBase {
       e.myIncompressConstraints = null;
       e.myLagrangePressures = new double[numPressureVals()];
       e.myIncompressIdx = -1;
-      e.myAuxMaterials = null;
-      if (myAuxMaterials != null) {
-         for (AuxiliaryMaterial a : myAuxMaterials) {
-            try {
-               e.addAuxiliaryMaterial ((AuxiliaryMaterial)a.clone());
-            }
-            catch (Exception ex) {
-               throw new InternalErrorException (
-                  "Can't clone " + a.getClass());
-            }
+      // e.myAuxMaterials = null;
+      // if (myAuxMaterials != null) {
+      //    for (AuxiliaryMaterial a : myAuxMaterials) {
+      //       try {
+      //          e.addAuxiliaryMaterial ((AuxiliaryMaterial)a.clone());
+      //       }
+      //       catch (Exception ex) {
+      //          throw new InternalErrorException (
+      //             "Can't clone " + a.getClass());
+      //       }
             
-         }
-      }
+      //    }
+      // }
       return e;
    }
 

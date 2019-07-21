@@ -490,11 +490,11 @@ public class IntegrationPoint3d {
       }     
    }
    
-   public void computePosition (Point3d pos, FemElement3d elem) {
+   public void computePosition (Point3d pos, FemElement3dBase elem) {
       computePosition(pos, elem.getNodes());
    }
 
-   public void computeRestPosition (Point3d pos, FemElement3d elem) {
+   public void computeRestPosition (Point3d pos, FemElement3dBase elem) {
       computeRestPosition(pos, elem.getNodes());
    }
    

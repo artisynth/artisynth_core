@@ -1,11 +1,12 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.util.DataBuffer;
 
 /**
  * Stores state information for viscoelastic behavior
  */
-public abstract class ViscoelasticState {
+public abstract class ViscoelasticState implements MaterialStateObject {
 
    public abstract int getStateSize();
 

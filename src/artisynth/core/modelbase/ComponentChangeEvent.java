@@ -11,8 +11,10 @@ package artisynth.core.modelbase;
  * hierarchy.
  */
 public class ComponentChangeEvent {
+   
    protected Code myCode;
    protected ModelComponent myComp;
+   protected boolean myStateChanged;
 
    public enum Code {
       /**
@@ -44,11 +46,20 @@ public class ComponentChangeEvent {
    public ComponentChangeEvent (Code code) {
       myCode = code;
       myComp = null;
+      myStateChanged = false;
    }
 
    public ComponentChangeEvent (Code code, ModelComponent comp) {
       myCode = code;
       myComp = comp;
+      myStateChanged = false;
+   }
+
+   public ComponentChangeEvent (
+      Code code, ModelComponent comp, boolean stateChanged) {
+      myCode = code;
+      myComp = comp;
+      myStateChanged = stateChanged;
    }
 
    public Code getCode() {
@@ -65,5 +76,13 @@ public class ComponentChangeEvent {
          str += " " + myComp.getClass();
       }
       return str;
+   }
+   
+   public boolean stateChanged() {
+      return myStateChanged;
+   }
+   
+   public void setStateChanged (boolean changed) {
+      myStateChanged = changed;
    }
 }

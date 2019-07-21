@@ -177,26 +177,6 @@ public class QuadGridTangent extends RootModel {
       }
    }
 
-   private void updateIntersectionPoint() {
-
-      Point3d pa = new Point3d(myPa.getPosition());
-      Point3d p0 = new Point3d(myP0.getPosition());
-      Vector3d nrm = new Point3d(myP0.getPosition());
-      Vector3d da0 = new Vector3d();
-      da0.sub (p0, pa);
-      nrm.cross (da0, Vector3d.Z_UNIT);
-
-      Point3d pi = new Point3d();
-      if (myGrid.findQuadSurfaceIntersection (pi, p0, pa, nrm)) {
-         myPt.setPosition (pi);
-         System.out.println ("found at " + pi);
-      }
-      else {
-         System.out.println ("not found");
-         myPt.setPosition (Point3d.ZERO);
-      }
-   }
-
    ArrayList<Point3d> gridPlaneIntersectionPnts = null;
    ArrayList<Point3d> gridPlaneSurfacePnts = null;
 
@@ -240,7 +220,6 @@ public class QuadGridTangent extends RootModel {
       //grid.getLocalNormal (nrmCell, nrm);
       grid.getGridToLocalTransformer().inverseTransformCovec (nrmCell, nrm);
       nrmCell.normalize();
-      double offCell = nrmCell.dot (pgcell);
 
       Vector3d r = new Vector3d();
       double[] c = new double[10];
@@ -260,8 +239,6 @@ public class QuadGridTangent extends RootModel {
 
       double[] svals = new double[2];
 
-      int nedges = 0;
-      int npnts0 = spnts.size();
       for (int i=1; i<=isect.myNumSides; i++) {
          pl1 = i < isect.myNumSides ? ip[i] : ip[0];
          //grid.getLocalCoordinates (pc1, pl1);
@@ -290,9 +267,6 @@ public class QuadGridTangent extends RootModel {
             Point3d pw = new Point3d();
             for (int j=0; j<nr; j++) {
                pi.combine (1-svals[j], pl0, svals[j], pl1);
-               if (Math.abs(svals[j]) < 1e-8 || Math.abs(svals[j]-1) < 1e-8) {
-                  nedges++;
-               }
                grid.getLocalToWorldTransformer().transformPnt (pw, pi);
                spnts.add (pw);
             }
@@ -312,7 +286,6 @@ public class QuadGridTangent extends RootModel {
       for (int i=0; i<vpnts.length; i++) {
          vpnts[i] = new Point3d();
       }
-      Vector3i vxyz = new Vector3i();
       RigidTransform3d XPW = myPlane.getPose();
       ArrayList<Point3d> ipnts = new ArrayList<Point3d>();
       ArrayList<Point3d> spnts = new ArrayList<Point3d>();
@@ -321,7 +294,7 @@ public class QuadGridTangent extends RootModel {
       XPW.R.getColumn (2, nrm);
       Plane plane = new Plane (nrm, XPW.p);
       // convert plane to grid local coords
-      if (myGrid.getLocalToWorld() != null) {
+      if (myGrid.hasLocalToWorld()) {
          plane.inverseTransform (myGrid.getLocalToWorld());
       }
 

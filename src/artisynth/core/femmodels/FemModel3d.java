@@ -18,10 +18,9 @@ import java.util.List;
 import java.util.Map;
 
 import artisynth.core.materials.FemMaterial;
-import artisynth.core.materials.IncompressibleMaterial;
-import artisynth.core.materials.IncompressibleMaterial.BulkPotential;
-import artisynth.core.materials.ViscoelasticBehavior;
-import artisynth.core.materials.ViscoelasticState;
+import artisynth.core.materials.IncompressibleMaterialBase;
+import artisynth.core.materials.IncompressibleMaterialBase.BulkPotential;
+import artisynth.core.materials.MaterialStateObject;
 import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.Collidable;
 import artisynth.core.mechmodels.ConnectableBody;
@@ -48,10 +47,13 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
+import artisynth.core.modelbase.FieldComponent;
 import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
+import artisynth.core.modelbase.ScalarField;
+import artisynth.core.modelbase.ScalarFieldPointFunction;
 import artisynth.core.modelbase.StepAdjustment;
 import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformGeometryContext;
@@ -125,7 +127,7 @@ CopyableComponent, HasNumericState, HasSurfaceMesh,
 PointAttachable, ConnectableBody {
 
    boolean debug = false;
-   
+
    private static int NEEDS_STRESS = FemNode3d.NEEDS_STRESS;
    private static int NEEDS_STRAIN = FemNode3d.NEEDS_STRAIN;
    
@@ -133,6 +135,7 @@ PointAttachable, ConnectableBody {
    protected FrameFem3dConstraint myFrameConstraint;
    protected boolean myFrameRelativeP;
    public static boolean useFrameRelativeCouplingMasses = false;
+   protected boolean profileStressAndStiffness = false;
 
    protected PointList<FemNode3d> myNodes;
    protected ArrayList<BodyConnector> myConnectors;
@@ -175,6 +178,7 @@ PointAttachable, ConnectableBody {
    // // iterate through all elements.
    // protected ArrayList<FemElement3dList<? extends FemElement3dBase>> myElemLists;
    protected AuxMaterialBundleList myAuxiliaryMaterialList;
+   protected MaterialBundleList myMaterialBundles;
 
    //protected boolean myNodeNeighborsValidP = false;
 
@@ -246,7 +250,7 @@ PointAttachable, ConnectableBody {
 
    // protected ArrayList<FemSurface> myEmbeddedSurfaces;
    protected MeshComponentList<FemMeshComp> myMeshList;
-   protected ComponentList<FemField> myFieldList;
+   protected ComponentList<FieldComponent> myFieldList;
 
    HashMap<FemElement3d,int[]> ansysElemProps = new HashMap<FemElement3d,int[]>();
 
@@ -562,10 +566,11 @@ PointAttachable, ConnectableBody {
 
    /* --- Material Methods --- */
    
-   public void setMaterial(FemMaterial mat) {
+   public <T extends FemMaterial> T setMaterial (T mat) {
       mySoftIncompMethodValidP = false;
-      super.setMaterial(mat);
+      T newMat = super.setMaterial(mat);
       updateSoftIncompMethod();
+      return newMat;
    }
 
    public FemMaterial getElementMaterial (FemElement3dBase e) {
@@ -665,17 +670,19 @@ PointAttachable, ConnectableBody {
          FemElement3d.class, "elements", "e");
       myShellElements = new FemElement3dList<ShellElement3d> (
          ShellElement3d.class, "shellElements", "s");
-      myAuxiliaryMaterialList = new AuxMaterialBundleList("materials", "mat");
+      myAuxiliaryMaterialList = new AuxMaterialBundleList("auxMaterials", "amat");
+      myMaterialBundles = new MaterialBundleList("materials", "mat");
       myMeshList =  new MeshComponentList<FemMeshComp>(
          FemMeshComp.class, "meshes", "msh");
-      myFieldList =  new ComponentList<FemField>(
-         FemField.class, "fields", "fld");
+      myFieldList =  new ComponentList<FieldComponent>(
+         FieldComponent.class, "fields", "fld");
 
       addFixed(myFrame);
       addFixed(myNodes);
       addFixed(myElements);
       addFixed(myShellElements);
       addFixed(myAuxiliaryMaterialList);
+      addFixed(myMaterialBundles);
       addFixed(myMeshList);
       addFixed(myFieldList);
       super.initializeChildComponents();
@@ -686,7 +693,7 @@ PointAttachable, ConnectableBody {
       // myElemLists.add (myShellElements);
    }
 
-   public void addMaterialBundle(AuxMaterialBundle bundle) {
+   public void addAuxMaterialBundle(AuxMaterialBundle bundle) {
       if (!myAuxiliaryMaterialList.contains(bundle)) {
          for (AuxMaterialElementDesc d : bundle.getElements()) {
             bundle.checkElementDesc(this, d);
@@ -695,16 +702,37 @@ PointAttachable, ConnectableBody {
       }
    }
 
-   public boolean removeMaterialBundle(AuxMaterialBundle bundle) {
+   public boolean removeAuxMaterialBundle(AuxMaterialBundle bundle) {
       return myAuxiliaryMaterialList.remove(bundle);
    }
 
-   public void clearMaterialBundles() {
+   public void clearAuxMaterialBundles() {
       myAuxiliaryMaterialList.removeAll();
    }
 
-   public RenderableComponentList<AuxMaterialBundle> getMaterialBundles() {
+   public RenderableComponentList<AuxMaterialBundle> getAuxMaterialBundles() {
       return myAuxiliaryMaterialList;
+   }
+
+   public void addMaterialBundle(MaterialBundle bundle) {
+      if (!myMaterialBundles.contains(bundle)) {
+         // for (MaterialElementDesc d : bundle.getElements()) {
+         //    bundle.checkElementDesc(this, d);
+         // }
+         myMaterialBundles.add(bundle);
+      }
+   }
+
+   public boolean removeMaterialBundle(MaterialBundle bundle) {
+      return myMaterialBundles.remove(bundle);
+   }
+
+   public void clearMaterialBundles() {
+      myMaterialBundles.removeAll();
+   }
+
+   public RenderableComponentList<MaterialBundle> getMaterialBundles() {
+      return myMaterialBundles;
    }
 
    /* --- Node Methods --- */
@@ -1338,11 +1366,11 @@ PointAttachable, ConnectableBody {
 
    /* --- Field Component Methods --- */
 
-   public FemField getField (String name) {
+   public FieldComponent getField (String name) {
       return myFieldList.get(name);
    }
 
-   public ComponentList<FemField> getFields() {
+   public ComponentList<FieldComponent> getFields() {
       return myFieldList;
    }
 
@@ -1350,7 +1378,7 @@ PointAttachable, ConnectableBody {
       return myFieldList.size();
    }
 
-   public void addField (FemField<?> field) {
+   public void addField (FieldComponent field) {
       if (field.getParent() == myFieldList) {
          throw new IllegalArgumentException (
             "FemModel3d already contains specified field component");
@@ -1358,7 +1386,7 @@ PointAttachable, ConnectableBody {
       myFieldList.add (field);
    }
 
-   public boolean removeField (FemField<?> field) {
+   public boolean removeField (FieldComponent field) {
       return myFieldList.remove(field);
    }
 
@@ -1631,16 +1659,22 @@ PointAttachable, ConnectableBody {
 
    public void addTransformableDependencies (
       TransformGeometryContext context, int flags) {
+      for (FemNode3d n : myNodes) {
+         context.add (n);
+         n.addTransformableDependencies (context, flags);
+      }
       context.addAll (myNodes);
       context.addAll (myMarkers);
-      context.addAll(myMeshList);
-      context.addAll(myAuxiliaryMaterialList);
+      context.addAll (myMeshList);
+      context.addAll (myAuxiliaryMaterialList);
+      context.addAll (myMaterialBundles);
    }
 
    @Override
    public void scaleDistance(double s) {
       super.scaleDistance(s);
       myAuxiliaryMaterialList.scaleDistance(s);
+      myMaterialBundles.scaleDistance(s);
       myVolume *= (s * s * s);
       updateSlavePos();
    }
@@ -1649,6 +1683,7 @@ PointAttachable, ConnectableBody {
    public void scaleMass(double s) {
       super.scaleMass(s);
       myAuxiliaryMaterialList.scaleMass(s);
+      myMaterialBundles.scaleMass(s);
    }
 
    /* --- Connectable Body Methods --- */
@@ -1704,6 +1739,7 @@ PointAttachable, ConnectableBody {
       myShellElements.clear();
       myNodes.clear();
       myAuxiliaryMaterialList.removeAll();
+      myMaterialBundles.removeAll();
       clearMeshComps();
    }
 
@@ -1761,6 +1797,9 @@ PointAttachable, ConnectableBody {
             // myComonents.scanEnd(). 
             if (myAutoGenerateSurface) {
                invalidateSurfaceMesh();               
+            }
+            for (FieldComponent field : myFieldList) {
+               field.clearCacheIfNecessary();
             }
          }
          else if (e.getComponent() == myMeshList) {
@@ -1870,11 +1909,13 @@ PointAttachable, ConnectableBody {
       // Jacobians
       double volume = 0;
       clearElementConditionInfo();
+      boolean amatsInvertible = areInvertible (getAugmentingMaterials());
       for (FemElement3dBase e : getAllElements()) {
          FemMaterial mat = getElementMaterial(e);
          double detJ = e.computeVolumes();
          e.setInverted(false);
-         if (!mat.isLinear() && !e.materialsAreInvertible()) {
+         boolean invertible = (e.materialsAreInvertible() && amatsInvertible);
+         if (!mat.isLinear() && !invertible) {
             checkElementCondition (e, detJ, myCheckForInvertedElems);
          }
          volume += e.getVolume();
@@ -2199,7 +2240,60 @@ PointAttachable, ConnectableBody {
 
    /* --- Soft Incompressibility Methods --- */
    
-   private void updateNodalPressures(IncompressibleMaterial imat) {
+   private boolean myWarnedOnNodalIncompBulkModulus = false;
+   private String myNodalIncompBulkModulusWarning = 
+      "WARNING: bulkModulus can only be attached to a ScalarFemNodalField "+
+      "when softIncompMethod==NODAL; ignoring the field";
+   
+   /**
+    * Helper class to determine the bulk modulus at a node when
+    * it is attached to a ScalarFieldFunction. The problem is that
+    * FieldPointFunctions are intended for integration points but not
+    * nodes, and so we need to hack things a bit.
+    */
+   private class BulkModulusExtractor {
+      double myK;
+      ScalarNodalField myField;
+      ScalarFieldPointFunction myFunction;
+      NodalFieldPoint myFpnt;
+      
+      BulkModulusExtractor (IncompressibleMaterialBase imat) {
+         myK = imat.getBulkModulus();
+         myFunction = imat.getBulkModulusFunction();
+         if (myFunction != null) {
+            ScalarField field = imat.getBulkModulusField();
+            if (field != null) {
+               if (field instanceof ScalarNodalField) {
+                  myField = (ScalarNodalField)field;
+               }
+               else if (!myWarnedOnNodalIncompBulkModulus) {
+                  System.out.println (myNodalIncompBulkModulusWarning);
+                  myFunction = null;
+                  myWarnedOnNodalIncompBulkModulus = true;
+               }
+            }
+            else {
+               myFpnt = new NodalFieldPoint();
+            }
+         } 
+      }
+      
+      double getBulkModulus (FemNode3d node) {
+         if (myFunction == null) {
+            return myK;
+         }
+         else if (myField != null) {
+            return myField.getValue (node.getNumber());
+         }
+         else {
+            myFpnt.setNode (node);
+            return myFunction.eval (myFpnt);
+         }
+         
+      }
+   }
+
+   private void updateNodalPressures(IncompressibleMaterialBase imat) {
 
       for (FemNode3d n : myNodes) {
          n.myVolume = 0;
@@ -2232,11 +2326,12 @@ PointAttachable, ConnectableBody {
             }
          }
       }
-      
+      BulkModulusExtractor bulkEx = new BulkModulusExtractor(imat);
       for (FemNode3d n : myNodes) {
          if (volumeIsControllable(n)) {
+            double K = bulkEx.getBulkModulus(n);
             n.myPressure =
-               imat.getEffectivePressure(n.myVolume / n.myRestVolume);
+               imat.getEffectivePressure(K, n.myVolume / n.myRestVolume);
          }
          else {
             n.myPressure = 0;
@@ -2245,7 +2340,7 @@ PointAttachable, ConnectableBody {
    }
    
    protected void computePressuresAndRinv(
-      FemElement3d e, IncompressibleMaterial imat, double scale) {
+      FemElement3d e, IncompressibleMaterialBase imat, FemDeformedPoint dpnt) {
 
       int npvals = e.numPressureVals();
 
@@ -2254,7 +2349,16 @@ PointAttachable, ConnectableBody {
 
       double[] pbuf = myPressures.getBuffer();
       double restVol = e.getRestVolume();
-
+      double K;
+      if (imat.getBulkModulusField() != null) {
+         int widx = e.numAllIntegrationPoints()-1; // warping point index
+         dpnt.setCoordsOnly (e.getWarpingPoint(), e.getWarpingData(), e, widx); 
+         K = imat.getBulkModulus(dpnt);
+      }
+      else {
+         K = imat.getBulkModulus();
+      }
+      
       if (npvals > 1) {
          myPressures.setZero();
          IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
@@ -2271,10 +2375,10 @@ PointAttachable, ConnectableBody {
             double dV = detJ0 * pt.getWeight();
             double[] H = pt.getPressureWeights().getBuffer();
             for (int i = 0; i < npvals; i++) {
-               pbuf[i] += H[i] * imat.getEffectivePressure(detJ) * dV;
+               pbuf[i] += H[i] * imat.getEffectivePressure(K, detJ) * dV;
             }
             if (imat.getBulkPotential() != BulkPotential.QUADRATIC) {
-               double mod = imat.getEffectiveModulus(detJ);
+               double mod = imat.getEffectiveModulus(K, detJ);
                for (int i = 0; i < npvals; i++) {
                   for (int j = 0; j < npvals; j++) {
                      myRinv.add(i, j, H[i] * H[j] * mod * dV);
@@ -2287,21 +2391,21 @@ PointAttachable, ConnectableBody {
          myPressures.scale(1 / restVol);
          if (imat.getBulkPotential() == BulkPotential.QUADRATIC) {
             myRinv.set(W);
-            myRinv.scale(scale*imat.getBulkModulus() / restVol);
+            myRinv.scale(K/restVol);
          }
          else {
             // optimize later
             MatrixNd Wtmp = new MatrixNd(W);
-            Wtmp.scale(scale / restVol);
+            Wtmp.scale(1.0 / restVol);
             myRinv.mul(Wtmp);
             myRinv.mul(Wtmp, myRinv);
          }
       }
       else {
          double Jpartial = e.myVolumes[0] / e.myRestVolumes[0];
-         pbuf[0] = (imat.getEffectivePressure(Jpartial) +
+         pbuf[0] = (imat.getEffectivePressure(K, Jpartial) +
             0 * e.myLagrangePressures[0]);
-         myRinv.set(0, 0, scale*imat.getEffectiveModulus(Jpartial) / restVol);
+         myRinv.set(0, 0, imat.getEffectiveModulus(K, Jpartial) / restVol);
       }
    }
    
@@ -2344,13 +2448,15 @@ PointAttachable, ConnectableBody {
    }
 
    private void computeNodalIncompressibility(
-      IncompressibleMaterial imat, Matrix6d D) {
+      IncompressibleMaterialBase imat, Matrix6d D) {
 
+      BulkModulusExtractor bulkEx = new BulkModulusExtractor(imat);
       for (FemNode3d n : myNodes) {
          if (volumeIsControllable(n)) {
             double restVol = n.myRestVolume;
+            double K = bulkEx.getBulkModulus(n);
             double kp = 
-               imat.getEffectiveModulus(n.myVolume / restVol) / restVol;
+               imat.getEffectiveModulus(K, n.myVolume / restVol) / restVol;
             // myKp[0] = 1;
             if (kp != 0) {
                for (FemNodeNeighbor nbr_i : getNodeNeighbors(n)) {
@@ -2520,25 +2626,35 @@ PointAttachable, ConnectableBody {
       IncompMethod softIncomp = getSoftIncompMethod();
 
       if (myMaterial.isIncompressible() && softIncomp == IncompMethod.NODAL) {
-         updateNodalPressures((IncompressibleMaterial)myMaterial);
+         updateNodalPressures((IncompressibleMaterialBase)myMaterial);
       }
+
+      ArrayList<FemMaterial> amats = getAugmentingMaterials();
 
       // compute new forces as well as stiffness matrix if warping is enabled
       // myMinDetJ = Double.MAX_VALUE;
       for (FemElement3d e : myElements) {
          FemMaterial mat = getElementMaterial(e);
          computeStressAndStiffness(
-            e, mat, /* D= */null, softIncomp);
+            e, mat, amats,/* D= */null, softIncomp);
       }
       for (ShellElement3d e : myShellElements) {
          FemMaterial mat = getElementMaterial(e);
-         computeShellStressAndStiffness(e, mat, /* D= */null);
+         if (e.getElementClass() == ElementClass.SHELL) {
+            computeShellStressAndStiffness(e, mat, amats, /*D=*/null);
+         }
+         else {
+            computeMembraneStressAndStiffness(e, mat, amats, /*D=*/null);
+         }
       }
       myStressesValidP = true;
    }
 
    // DIVBLK
    public void updateStressAndStiffness() {
+      if (profileStressAndStiffness) {
+         timerStart();
+      }
       updateIntegrationIndices();
       // allocate or deallocate nodal incompressibility blocks
       setNodalIncompBlocksAllocated (getSoftIncompMethod()==IncompMethod.NODAL);
@@ -2571,7 +2687,7 @@ PointAttachable, ConnectableBody {
             updateNodalRestVolumes();
          }
          setNodalIncompConstraintsAllocated(true);
-         updateNodalPressures((IncompressibleMaterial)myMaterial);
+         updateNodalPressures((IncompressibleMaterialBase)myMaterial);
          for (FemNode3d n : myNodes) {
             for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
                nbr.myDivBlk.setZero();
@@ -2587,9 +2703,11 @@ PointAttachable, ConnectableBody {
       double mins = Double.MAX_VALUE;
       FemElement3dBase minE = null;
 
+      ArrayList<FemMaterial> amats = getAugmentingMaterials();
+
       for (FemElement3d e : myElements) {
          FemMaterial mat = getElementMaterial(e);
-         computeStressAndStiffness(e, mat, D, softIncomp);
+         computeStressAndStiffness(e, mat, amats, D, softIncomp);
          if (checkTangentStability) {
             double s = checkMatrixStability(D);
             if (s < mins) {
@@ -2601,10 +2719,10 @@ PointAttachable, ConnectableBody {
       for (ShellElement3d e : myShellElements) {
          FemMaterial mat = getElementMaterial(e);
          if (e.getElementClass() == ElementClass.SHELL) {
-            computeShellStressAndStiffness(e, mat, D);
+            computeShellStressAndStiffness(e, mat, amats, D);
          }
          else {
-            computeMembraneStressAndStiffness(e, mat, D);
+            computeMembraneStressAndStiffness(e, mat, amats, D);
          }
          if (checkTangentStability) {
             double s = checkMatrixStability(D);
@@ -2616,8 +2734,10 @@ PointAttachable, ConnectableBody {
       }     
 
       // incompressibility
-      if ( (softIncomp == IncompMethod.NODAL) && myMaterial != null && myMaterial.isIncompressible()) {
-         computeNodalIncompressibility((IncompressibleMaterial)myMaterial, D);
+      if ((softIncomp == IncompMethod.NODAL) && 
+          myMaterial != null && myMaterial.isIncompressible()) {
+         computeNodalIncompressibility(
+            (IncompressibleMaterialBase)myMaterial, D);
       }
 
       if (checkTangentStability && minE != null) {
@@ -2663,28 +2783,28 @@ PointAttachable, ConnectableBody {
 
       myStiffnessesValidP = true;
       myStressesValidP = true;
-      // timerStop("stressAndStiffness");
+      if (profileStressAndStiffness) {
+         timerStop("stressAndStiffness");
+      }
    }
 
    /**
     * Accumulates nodal stress and strain values for linear materials.
     */
    protected void accumulateLinearNodalStressStrain (
-      FemElement3dBase e, StiffnessWarper3d warper,
-      FemMaterial mat, FemDeformedPoint dpnt, int needsStressStrain) {
+      FemElement3dBase e, ArrayList<FemMaterial> amats,
+      StiffnessWarper3d warper, FemDeformedPoint dpnt, int needsStressStrain) {
       
       SymmetricMatrix3d sigma = new SymmetricMatrix3d();
       FemNode3d[] nodes = e.getNodes();
+      FemMaterial mat = getElementMaterial (e);
 
       // estimate at warping point
       RotationMatrix3d R = warper.getRotation();
       IntegrationPoint3d wpnt = e.getWarpingPoint();
       IntegrationData3d wdata = e.getWarpingData();
             
-      int widx = e.getIntegrationIndex();
-      if (e.numIntegrationPoints() > 1) {
-         widx += e.numIntegrationPoints();
-      }
+      int widx = e.numAllIntegrationPoints()-1;
       dpnt.setFromIntegrationPoint (wpnt, wdata, R, e, widx);
 
       SymmetricMatrix3d tmp = new SymmetricMatrix3d();
@@ -2692,24 +2812,37 @@ PointAttachable, ConnectableBody {
       // compute nodal stress at wpnt
       if ((needsStressStrain & NEEDS_STRESS) != 0) {
          // compute linear stress
-         mat.computeStressAndTangent (tmp, /*D=*/null, dpnt, null, 0.0);
-         sigma.add(tmp);
-         if (e instanceof FemElement3d) {
-            for (AuxiliaryMaterial amat :
-                    ((FemElement3d)e).getAuxiliaryMaterials()) {
-               amat.computeStressAndTangent (
-                  tmp, /*D=*/null, dpnt, wpnt, wdata);
-               sigma.add(tmp);
+         if (mat.isLinear()) {
+            mat.computeStressAndTangent (tmp, /*D=*/null, dpnt, null, 0.0, null);
+            sigma.add(tmp);
+         }
+         if (amats != null) {
+            for (FemMaterial amat : amats) {
+               if (amat.isLinear()) {
+                  amat.computeStressAndTangent (
+                     tmp, /*D=*/null, dpnt, null, 0.0, null);
+                  sigma.add(tmp);
+               }
             }
          }
-         if (e.getAugmentingMaterials() != null) {
+         if (e.numAugmentingMaterials() > 0) {
             for (FemMaterial amat : e.getAugmentingMaterials()) {
-               amat.computeStressAndTangent (tmp, /*D=*/null, dpnt, null, 0.0);
-               sigma.add(tmp);
+               if (amat.isLinear()) {
+                  amat.computeStressAndTangent (
+                     tmp, /*D=*/null, dpnt, null, 0.0, null);
+                  sigma.add(tmp);
+               }
             }
          }
-         
-         
+         if (e.numAuxiliaryMaterials() > 0) {
+            for (AuxiliaryMaterial amat : e.getAuxiliaryMaterials()) {
+               if (amat.isLinear()) {
+                  amat.computeStressAndTangent (
+                     tmp, /*D=*/null, dpnt, wpnt, wdata, null);
+                  sigma.add(tmp);
+               }
+            }
+         }
          // distribute stress to nodes that need it
          for (int i = 0; i < nodes.length; i++) {
             if (nodes[i].myAvgStress != null) {
@@ -2767,8 +2900,96 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   protected boolean areLinear (ArrayList<FemMaterial> mats) {
+      if (mats != null) {
+         for (FemMaterial amat : mats) {
+            if (!amat.isLinear()) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+
+   protected boolean areInvertible (ArrayList<FemMaterial> mats) {
+      if (mats != null) {
+         for (FemMaterial amat : mats) {
+            if (!amat.isInvertible()) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+
+   protected boolean areLinear (AuxiliaryMaterial[] mats) {
+      if (mats != null) {
+         for (AuxiliaryMaterial amat : mats) {
+            if (!amat.isLinear()) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }
+
+   private int addStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, ArrayList<FemMaterial> mats,
+      FemDeformedPoint dpnt, IntegrationData3d dt, int ks) {
+
+      for (FemMaterial amat : mats) {
+         SymmetricMatrix3d sigmaTmp = new SymmetricMatrix3d();
+         // skip linear materials
+         if (!amat.isLinear()) {
+            MaterialStateObject state =
+               (amat.hasState() ? dt.getStateObjects()[ks++] : null); 
+            if (D != null) {
+               Matrix6d Dtmp = new Matrix6d();
+               amat.computeStressAndTangent (
+                  sigmaTmp, Dtmp, dpnt, null, 0.0, state);
+               D.add (Dtmp);
+            }
+            else {
+               amat.computeStressAndTangent (
+                  sigmaTmp, null, dpnt, null, 0.0, state);
+            }
+            sigma.add(sigmaTmp);
+         }
+      }
+      
+      return ks;
+   }
+
+   private int addAuxStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, AuxiliaryMaterial[] mats,
+      FemDeformedPoint dpnt, IntegrationPoint3d pt,
+      IntegrationData3d dt, int ks) {
+
+      for (AuxiliaryMaterial amat : mats) {
+         SymmetricMatrix3d sigmaTmp = new SymmetricMatrix3d();
+         // skip linear materials
+         if (!amat.isLinear()) {
+            MaterialStateObject state =
+               (amat.hasState() ? dt.getStateObjects()[ks++] : null);
+            if (D != null) {
+               Matrix6d Dtmp = new Matrix6d();
+               amat.computeStressAndTangent (
+                  sigmaTmp, Dtmp, dpnt, pt, dt, state);
+               D.add (Dtmp);
+            }
+            else {
+               amat.computeStressAndTangent (
+                  sigmaTmp, null, dpnt, pt, dt, state);
+            }
+            sigma.add(sigmaTmp);
+         }
+      }
+      return ks;
+   }
+
    // DIVBLK
-   public void computeStressAndStiffness(FemElement3d e, FemMaterial mat, 
+   public void computeStressAndStiffness (
+      FemElement3d e, FemMaterial mat, ArrayList<FemMaterial> amats, 
       Matrix6d D, IncompMethod softIncomp) {
 
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
@@ -2830,29 +3051,15 @@ PointAttachable, ConnectableBody {
          }        
          if (needsStressStrain != 0) {
             accumulateLinearNodalStressStrain (
-               e, warper, mat, dpnt, needsStressStrain);
+               e, amats, warper, dpnt, needsStressStrain);
          }
       }
 
       // exit early if no non-linear materials
-      boolean linearOnly = mat.isLinear();
-      if (linearOnly) {
-         for (AuxiliaryMaterial amat : e.getAuxiliaryMaterials()) {
-            if (!amat.isLinear()) {
-               linearOnly = false;
-               break;
-            }
-         }
-         if (e.getAugmentingMaterials() != null) {
-            for (FemMaterial amat : e.getAugmentingMaterials()) {
-               if (!amat.isLinear()) {
-                  linearOnly = false;
-                  break;
-               }
-            }
-         }
-      }
-      if (linearOnly) {
+      if (mat.isLinear() &&
+          areLinear(amats) &&
+          areLinear(e.getAugmentingMaterials()) &&
+          areLinear(e.getAuxiliaryMaterials())) {
          return;
       }
 
@@ -2870,25 +3077,16 @@ PointAttachable, ConnectableBody {
          Dtmp = new Matrix6d();
       }
 
-      // viscoelastic behaviour
-      ViscoelasticBehavior veb = mat.getViscoBehavior();
-      double vebTangentScale = 1;
-      if (veb != null) {
-         vebTangentScale = veb.getTangentScale();
-      }
-
       // incompressibility
-      IncompressibleMaterial imat = null;
-      if (mat.isIncompressible()) {
-         imat = (IncompressibleMaterial)mat;
-      }
+      IncompressibleMaterialBase imat = mat.getIncompressibleComponent();
+
       MatrixBlock[] constraints = null;
       SymmetricMatrix3d C = new SymmetricMatrix3d();
 
       // initialize incompressible pressure
       double[] pbuf = myPressures.getBuffer();
       if (softIncomp == IncompMethod.ELEMENT) {
-         computePressuresAndRinv (e, imat, vebTangentScale);
+         computePressuresAndRinv (e, imat, dpnt);
          if (D != null) {
             constraints = e.getIncompressConstraints();
             for (int i = 0; i < e.myNodes.length; i++) {
@@ -2907,19 +3105,19 @@ PointAttachable, ConnectableBody {
       }    
 
       // cache invertible flag
-      boolean invertibleMaterials = e.materialsAreInvertible();
+      boolean invertible = (e.materialsAreInvertible() && areInvertible(amats));
 
       // loop through each integration point
       for (int k = 0; k < ipnts.length; k++) {
          IntegrationPoint3d pt = ipnts[k];
          IntegrationData3d dt = idata[k];
-         double scaling = dt.getScaling();
+         MaterialStateObject state = null; // state info for materials that have state
+         int ks = 0; // index to get state info from IntegrationData3d 
 
-         dpnt.setFromIntegrationPoint (
-            pt, dt, null, e, e.getIntegrationIndex()+k);
+         dpnt.setFromIntegrationPoint (pt, dt, null, e, k);
 
          double detJ = invJ.fastInvert(dpnt.getJ()); // pt.computeInverseJacobian();
-         checkElementCondition (e, detJ, !invertibleMaterials);
+         checkElementCondition (e, detJ, !invertible);
 
          // compute shape function gradient and volume fraction
          double dv = detJ * pt.getWeight();
@@ -2928,6 +3126,7 @@ PointAttachable, ConnectableBody {
          // compute pressure
          double pressure = 0;
          double[] H = null;
+         double K = 0; // bulk modulus, used when softIncomp == FULL
 
          switch (softIncomp) {
             case ELEMENT: {
@@ -2960,7 +3159,8 @@ PointAttachable, ConnectableBody {
                break;
             }
             case FULL: {
-               pressure = imat.getEffectivePressure(detJ / dt.getDetJ0());
+               K = imat.getBulkModulus(dpnt);
+               pressure = imat.getEffectivePressure(K, detJ / dt.getDetJ0());
                break;
             }
             default: {
@@ -2982,73 +3182,29 @@ PointAttachable, ConnectableBody {
 
          // base material
          if (!mat.isLinear()) {
-            mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0);
-            if (scaling != 1) {
-               sigma.scale(scaling);
-               if (D != null) {
-                  D.scale(scaling);
-               }
-            }
+            state = (mat.hasState() ? dt.getStateObjects()[ks++] : null);
+            mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0, state);
          }
 
-         // reset pressure to zero for auxiliary materials
+
+         // other materials. 
+         ArrayList<FemMaterial> augmats;
+         AuxiliaryMaterial[] auxmats;
+         // reset pressure to zero
          dpnt.setAveragePressure(0);
-
-         if (e.numAuxiliaryMaterials() > 0) {
-            for (AuxiliaryMaterial amat : e.getAuxiliaryMaterials()) {
-               // skip linear materials
-               if (!amat.isLinear()) {
-                  amat.computeStressAndTangent (
-                     sigmaTmp, D != null ? Dtmp : null, dpnt, pt, dt);
-                  if (scaling != 1) {
-                     sigmaTmp.scale(scaling);
-                     if (D != null) {
-                        Dtmp.scale (scaling);
-                     }
-                  }
-                  sigma.add(sigmaTmp);
-                  if (D != null) {
-                     D.add(Dtmp);
-                  }
-               }
-            }
+         if (amats != null) {
+            ks = addStressAndTangent (sigma, D, amats, dpnt, dt, ks);
          }
-         if (e.numAugmentingMaterials() > 0) {
-            for (FemMaterial amat : e.getAugmentingMaterials()) {
-               // skip linear materials
-               if (!amat.isLinear()) {
-                  amat.computeStressAndTangent (
-                     sigmaTmp, D != null ? Dtmp : null, dpnt, null, 0.0);
-                  if (scaling != 1) {
-                     sigmaTmp.scale(scaling);
-                     if (D != null) {
-                        Dtmp.scale (scaling);
-                     }
-                  }
-                  sigma.add(sigmaTmp);
-                  if (D != null) {
-                     D.add(Dtmp);
-                  }
-               }
-            }
+         if ((augmats=e.getAugmentingMaterials()) != null) {
+            ks = addStressAndTangent (sigma, D, augmats, dpnt, dt, ks);
+         }
+         if ((auxmats=e.getAuxiliaryMaterials()) != null) {
+            ks = addAuxStressAndTangent (sigma, D, auxmats, dpnt, pt, dt, ks);
          }
 
          // XXX only uses non-linear stress
          dpnt.setAveragePressure(pressure);
-         if (veb != null) {
-            ViscoelasticState state = idata[k].getViscoState();
-            if (state == null) {
-               state = veb.createState();
-               idata[k].setViscoState(state);
-            }
-            veb.computeStress(sigma, dpnt, state);
-            if (D != null) {
-               veb.computeTangent(D, state);
-            }
-         }
-         else {
-            dt.clearState();
-         }
+         dt.clearState();
 
          // sum stress/stiffness contributions to each node
          for (int i = 0; i < e.myNodes.length; i++) {
@@ -3068,7 +3224,7 @@ PointAttachable, ConnectableBody {
                }
                else if (softIncomp == IncompMethod.FULL) {
                   double dV = dt.getDetJ0() * pt.getWeight();
-                  kp = imat.getEffectiveModulus(detJ / dt.getDetJ0()) * dV;
+                  kp = imat.getEffectiveModulus(K, detJ / dt.getDetJ0()) * dV;
                   p = pressure;
                }
 
@@ -3081,10 +3237,8 @@ PointAttachable, ConnectableBody {
                         nbr.addMaterialStiffness (GNx[i], D, GNx[j], dv);
                         nbr.addGeometricStiffness (GNx[i], sigma, GNx[j], dv);
                         nbr.addPressureStiffness (GNx[i], p, GNx[j], dv);   
-
                         if (kp != 0) {
-                           nbr.addDilationalStiffness (
-                              vebTangentScale*kp, GNx[i], GNx[j]);
+                           nbr.addDilationalStiffness (kp, GNx[i], GNx[j]);
                         }
                      }
                   }
@@ -3167,7 +3321,8 @@ PointAttachable, ConnectableBody {
    }
 
    protected void computeShellStressAndStiffness(
-      ShellElement3d e, FemMaterial mat, Matrix6d D) {
+      ShellElement3d e, FemMaterial mat,
+      ArrayList<FemMaterial> amats, Matrix6d D) {
 
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
       IntegrationData3d[] idata = e.getIntegrationData();
@@ -3175,9 +3330,6 @@ PointAttachable, ConnectableBody {
       if (D != null) {
          D.setZero();
       }
-
-      // see if material is linear
-      boolean linearOnly = mat.isLinear();
 
       // potentially update cached linear material
 
@@ -3216,16 +3368,28 @@ PointAttachable, ConnectableBody {
          }        
          if (needsStressStrain != 0) {
             accumulateLinearNodalStressStrain (
-               e, warper, mat, dpnt, needsStressStrain);
+               e, amats, warper, dpnt, needsStressStrain);
          }
       }
 
-      if (linearOnly) {
+      // exit early if no non-linear materials
+      // exit early if no non-linear materials
+      if (mat.isLinear() &&
+          areLinear(amats) &&
+          areLinear(e.getAugmentingMaterials()) &&
+          areLinear(e.getAuxiliaryMaterials())) {
          return;
       }
       
       SymmetricMatrix3d sigma = new SymmetricMatrix3d();
       Matrix3d invJ = new Matrix3d();
+
+      // temporary stress and tangent
+      SymmetricMatrix3d sigmaTmp = new SymmetricMatrix3d();
+      Matrix6d Dtmp = null;
+      if (D != null) {
+         Dtmp = new Matrix6d();
+      }
          
       int nump = e.numPlanarIntegrationPoints();
       int needsStressStrain = e.needsStressStrain();
@@ -3236,20 +3400,23 @@ PointAttachable, ConnectableBody {
       if (needsStressStrain != 0) {
          nodalExtrapMat = e.getNodalExtrapolationMatrix().getBuffer();
       }
-
+      
+      boolean invertible = (e.materialsAreInvertible() && areInvertible(amats));
+      
       for (int k = 0; k < ipnts.length; k++) {
          IntegrationPoint3d pt = ipnts[k];
          IntegrationData3d dt = idata[k];
+         MaterialStateObject state; // state info for materials that have state
+         int ks = 0; // index to get state info from IntegrationData3d 
             
-         dpnt.setFromIntegrationPoint (
-            pt, dt, null, e, e.getIntegrationIndex()+(k%nump));
+         dpnt.setFromIntegrationPoint (pt, dt, null, e, k%nump);
          double detJ = invJ.fastInvert (dpnt.getJ());
          if (detJ < myMinDetJ) {
             myMinDetJ = detJ;
             myMinDetJElement = e;
          }
          // SKIPPED
-         if (detJ <= 0 && !e.materialsAreInvertible()) {
+         if (detJ <= 0 && !invertible) {
             e.setInverted(true);
             myNumInverted++;
          }
@@ -3261,23 +3428,31 @@ PointAttachable, ConnectableBody {
 
          Matrix3d Q = (dt.getFrame() != null ? dt.getFrame() : Matrix3d.IDENTITY);
 
-         double scaling = dt.getScaling();
-
-
          // clear stress/tangents
          sigma.setZero();
          if (D != null) {
             D.setZero();
          }
+
+         // base material
          if (!mat.isLinear()) {
-            mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0);
-            // SKIPPED
-            if (scaling != 1) {
-               sigma.scale (scaling);
-               if (D != null) {
-                  D.scale (scaling);
-               }
-            }
+            state = (mat.hasState() ? dt.getStateObjects()[ks++] : null); 
+            mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0, state);
+         }
+
+         // other materials. 
+         ArrayList<FemMaterial> augmats;
+         AuxiliaryMaterial[] auxmats;
+         // reset pressure to zero
+         dpnt.setAveragePressure(0);
+         if (amats != null) {
+            ks = addStressAndTangent (sigma, D, amats, dpnt, dt, ks);
+         }
+         if ((augmats=e.getAugmentingMaterials()) != null) {
+            ks = addStressAndTangent (sigma, D, augmats, dpnt, dt, ks);
+         }
+         if ((auxmats=e.getAuxiliaryMaterials()) != null) {
+            ks = addAuxStressAndTangent (sigma, D, auxmats, dpnt, pt, dt, ks);
          }
 
          dt.clearState();
@@ -3327,7 +3502,8 @@ PointAttachable, ConnectableBody {
    }
 
    protected void computeMembraneStressAndStiffness(
-      ShellElement3d e, FemMaterial mat, Matrix6d D) {
+      ShellElement3d e, FemMaterial mat,
+      ArrayList<FemMaterial> amats, Matrix6d D) {
 
       IntegrationPoint3d[] ipnts = e.getIntegrationPoints();
       IntegrationData3d[] idata = e.getIntegrationData();
@@ -3335,9 +3511,6 @@ PointAttachable, ConnectableBody {
       if (D != null) {
          D.setZero();
       }
-
-      // see if material is linear
-      boolean linearOnly = mat.isLinear();
 
       // potentially update cached linear material
 
@@ -3376,16 +3549,27 @@ PointAttachable, ConnectableBody {
          }        
          if (needsStressStrain != 0) {
             accumulateLinearNodalStressStrain (
-               e, warper, mat, dpnt, needsStressStrain);
+               e, amats, warper, dpnt, needsStressStrain);
          }
       }
 
-      if (linearOnly) {
+      // exit early if no non-linear materials
+      if (mat.isLinear() &&
+          areLinear(amats) &&
+          areLinear(e.getAugmentingMaterials()) &&
+          areLinear(e.getAuxiliaryMaterials())) {
          return;
       }
       
       SymmetricMatrix3d sigma = new SymmetricMatrix3d();
       Matrix3d invJ = new Matrix3d();
+
+      // temporary stress and tangent
+      SymmetricMatrix3d sigmaTmp = new SymmetricMatrix3d();
+      Matrix6d Dtmp = null;
+      if (D != null) {
+         Dtmp = new Matrix6d();
+      }
          
       int nump = e.numPlanarIntegrationPoints();
       int needsStressStrain = e.needsStressStrain();
@@ -3396,20 +3580,23 @@ PointAttachable, ConnectableBody {
       if (needsStressStrain != 0) {
          nodalExtrapMat = e.getNodalExtrapolationMatrix().getBuffer();
       }
+      
+      boolean invertible = (e.materialsAreInvertible() && areInvertible(amats));
 
       for (int k = 0; k < nump; k++) {
          IntegrationPoint3d pt = ipnts[k];
          IntegrationData3d dt = idata[k];
+         MaterialStateObject state; // state info for materials that have state
+         int ks = 0; // index to get state info from IntegrationData3d 
             
-         dpnt.setFromIntegrationPoint (
-            pt, dt, null, e, e.getIntegrationIndex()+k);
+         dpnt.setFromIntegrationPoint (pt, dt, null, e, k);
          double detJ = invJ.fastInvert (dpnt.getJ());
          if (detJ < myMinDetJ) {
             myMinDetJ = detJ;
             myMinDetJElement = e;
          }
          // SKIPPED
-         if (detJ <= 0 && !e.materialsAreInvertible()) {
+         if (detJ <= 0 && !invertible) {
             e.setInverted(true);
             myNumInverted++;
          }
@@ -3419,22 +3606,31 @@ PointAttachable, ConnectableBody {
 
          Matrix3d Q = (dt.getFrame() != null ? dt.getFrame() : Matrix3d.IDENTITY);
 
-         double scaling = dt.getScaling();
-
          // clear stress/tangents
          sigma.setZero();
          if (D != null) {
             D.setZero();
          }
+
+         // base material
          if (!mat.isLinear()) {
-            mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0);
-            // SKIPPED
-            if (scaling != 1) {
-               sigma.scale (scaling);
-               if (D != null) {
-                  D.scale (scaling);
-               }
-            }
+            state = (mat.hasState() ? dt.getStateObjects()[ks++] : null); 
+            mat.computeStressAndTangent (sigma, D, dpnt, Q, 0.0, state);
+         }
+
+         // other materials. 
+         ArrayList<FemMaterial> augmats;
+         AuxiliaryMaterial[] auxmats;
+         // reset pressure to zero
+         dpnt.setAveragePressure(0);
+         if (amats != null) {
+            ks = addStressAndTangent (sigma, D, amats, dpnt, dt, ks);
+         }
+         if ((augmats=e.getAugmentingMaterials()) != null) {
+            ks = addStressAndTangent (sigma, D, augmats, dpnt, dt, ks);
+         }
+         if ((auxmats=e.getAuxiliaryMaterials()) != null) {
+            ks = addAuxStressAndTangent (sigma, D, auxmats, dpnt, pt, dt, ks);
          }
 
          dt.clearState();
@@ -3486,9 +3682,36 @@ PointAttachable, ConnectableBody {
       }
    }
 
+   /**
+    * Returns a list of augmenting materials which are applied to all
+    * elements, or {@code null} if there are none.
+    */
+   public ArrayList<FemMaterial> getAugmentingMaterials() {
+      if (myMaterialBundles.size() > 0) {
+         ArrayList<FemMaterial> mats = new ArrayList<FemMaterial>();
+         for (MaterialBundle bun : myMaterialBundles) {
+            if (bun.useAllElements()) {
+               mats.add (bun.getMaterial());
+            }
+         }
+         return mats.size() > 0 ? mats: null;
+      }
+      else {
+         return null;
+      }
+   }
+
    protected boolean checkSolveMatrixIsSymmetric() {
       if (!myMaterial.hasSymmetricTangent()) {
          return false;
+      }
+      ArrayList<FemMaterial> amats = getAugmentingMaterials();
+      if (amats != null) {
+         for (FemMaterial aug : amats) {
+            if (!aug.hasSymmetricTangent()) {
+               return false;
+            }
+         }
       }
       for (int i = 0; i < myElements.size(); i++) {
          FemElement3d e = myElements.get(i);
@@ -3496,16 +3719,16 @@ PointAttachable, ConnectableBody {
          if (m != null && !m.hasSymmetricTangent()) {
             return false;
          }
-         if (e.numAuxiliaryMaterials() > 0) {
-            for (AuxiliaryMaterial aux : e.myAuxMaterials) {
-               if (!aux.hasSymmetricTangent()) {
+         if (e.numAugmentingMaterials() > 0) {
+            for (FemMaterial aug : e.getAugmentingMaterials()) {
+               if (!aug.hasSymmetricTangent()) {
                   return false;
                }
             }
          }
-         if (e.numAugmentingMaterials() > 0) {
-            for (FemMaterial aug : e.getAugmentingMaterials()) {
-               if (!aug.hasSymmetricTangent()) {
+         if (e.numAuxiliaryMaterials() > 0) {
+            for (AuxiliaryMaterial aux : e.getAuxiliaryMaterials()) {
+               if (!aux.hasSymmetricTangent()) {
                   return false;
                }
             }
@@ -4591,36 +4814,17 @@ PointAttachable, ConnectableBody {
    
    public void getAuxStateComponents(List<HasNumericState> comps, int level) {
       comps.add(this);
+      for (FemElement3dBase e : getAllElements()) {
+         if (e.hasState()) {
+            comps.add (e);
+         }
+      }
    }
 
-   public void advanceState(double t0, double t1) {
-
-      ArrayList<FemElement3dBase> elist = getAllElements();
-      for (int i = 0; i < elist.size(); i++) {
-         FemElement3dBase e = elist.get(i);
-         FemMaterial mat = getElementMaterial(e);
-         if (mat.getViscoBehavior() != null) {
-            ViscoelasticBehavior veb = mat.getViscoBehavior();
-            IntegrationData3d[] idata = e.getIntegrationData();
-            for (int k = 0; k < idata.length; k++) {
-               ViscoelasticState state = idata[k].getViscoState();
-               if (state == null) {
-                  state = veb.createState();
-                  idata[k].setViscoState(state);
-               }
-               veb.advanceState(state, t0, t1);
-            }
-         }
-      }      
+   public void advanceState (double t0, double t1) {
    }
 
    public void getState(DataBuffer data) {
-
-      int didx0 = data.dsize();
-      int zidx0 = data.zsize();
-      data.zput (0);    // reserve space for storing dsize and zsize
-      data.zput (0);
-
       ArrayList<FemElement3dBase> elist = getAllElements();
       for (int i = 0; i < elist.size(); i++) {
          IntegrationData3d[] idata = elist.get(i).getIntegrationData();
@@ -4628,17 +4832,9 @@ PointAttachable, ConnectableBody {
             idata[k].getState(data);
          }          
       }
-
-      // store the amount of space used, for use by increaseAuxStateOffsets
-      data.zset (zidx0, data.dsize()-didx0);
-      data.zset (zidx0+1, data.zsize()-zidx0-2);
    }
    
    public void setState(DataBuffer data) {
-
-      int dsize = data.zget(); // should use this for sanity checking?
-      int zsize = data.zget();
-
       ArrayList<FemElement3dBase> elist = getAllElements();
       for (int i = 0; i < elist.size(); i++) {
          IntegrationData3d[] idata = elist.get(i).getIntegrationData();
@@ -4672,6 +4868,7 @@ PointAttachable, ConnectableBody {
       list.addIfVisible(myMeshList);
 
       myAuxiliaryMaterialList.prerender(list);
+      myMaterialBundles.prerender(list);
    }
 
    public void render(Renderer renderer, int flags) {
@@ -5437,8 +5634,8 @@ PointAttachable, ConnectableBody {
    }
 
    protected int assignIntegrationIndices() {
-      int idx = super.assignIntegrationIndices();
-      for (ShellElement3d e : myShellElements) {
+      int idx = 0;
+      for (FemElement3dBase e : getAllElements()) {
          e.setIntegrationIndex (idx);
          int numi = e.numIntegrationPoints();
          // increase the index to accommodate the warping point, if any
@@ -5447,7 +5644,7 @@ PointAttachable, ConnectableBody {
          idx += (numi == 1 ? 1 : numi + 1);
       }
       return idx;
-   }  
+   }
 
 }
 

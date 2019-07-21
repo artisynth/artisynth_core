@@ -206,7 +206,7 @@ public class SDGridTest extends RootModel {
          renderer.endDraw();
          
          
-         double[] phi = sdgrid.getDistances();
+         double[] phi = sdgrid.getVertexDistances();
          
          // Draw the vertices on the grid.
          Vector3d coords = new Vector3d();

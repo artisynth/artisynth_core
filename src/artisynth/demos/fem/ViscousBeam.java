@@ -17,8 +17,11 @@ public class ViscousBeam extends FemBeam3d {
       // NORMAL:
       //super (name, "hex", 1.0, 0.2, 4, 2, /*options=*/0);
       build ("hex", 1.0, 0.2, 4, 2, /*options=*/0);
-      
+
       FemMaterial mat = new MooneyRivlinMaterial (50000.0, 0, 0, 0, 0, 2000000.0);
+      //mat = new NeoHookeanMaterial (50000.0, 0.49);
+
+      //myMechMod.setGravity (0, 0, 0);
 
       QLVBehavior qlv = new QLVBehavior();
       qlv.setTau (0.1, 0.0, 0, 0, 0, 0);
@@ -26,11 +29,14 @@ public class ViscousBeam extends FemBeam3d {
       //qlv.setTau (0.1, 0.01, 0, 0, 0, 0);
       //qlv.setGamma (0.9, 0.2, 0, 0, 0, 0);
 
-      mat.setViscoBehavior (qlv);
-      myFemMod.setMaterial (mat);
+      ViscoelasticMaterial vmat = new ViscoelasticMaterial(mat, qlv);
+
+      myFemMod.setMaterial (vmat);
+
       myFemMod.setStiffnessDamping (0);
       myFemMod.setParticleDamping (0);
       myMechMod.setIntegrator (Integrator.BackwardEuler);
+      addWayPoint (1.0);
    }
 
    // public void build (String string, double d, double e, int i,
@@ -43,8 +49,10 @@ public class ViscousBeam extends FemBeam3d {
 
    public StepAdjustment advance (double t0, double t1, int flags) {
       SolveMatrixTest tester = new SolveMatrixTest();
-      //System.out.println ("error=" + tester.testStiffness (myMechMod, 1e-8));
-
+      if (t0 > 0) {
+         // System.out.println (
+            //   "error=" + tester.testStiffness (myMechMod, 1e-8));
+      }
       return super.advance (t0, t1, flags);
    }
 

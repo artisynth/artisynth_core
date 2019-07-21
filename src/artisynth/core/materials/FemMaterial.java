@@ -1,13 +1,24 @@
 package artisynth.core.materials;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Deque;
+
+import artisynth.core.modelbase.CompositeComponent;
+import artisynth.core.modelbase.FunctionPropertyList;
+import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.util.ScanToken;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyUtils;
 import maspack.util.DynamicArray;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 
-public abstract class FemMaterial extends MaterialBase {
+public abstract class FemMaterial extends MaterialBase 
+   implements PropertyChangeListener {
 
    static DynamicArray<Class<?>> mySubclasses = new DynamicArray<>(
       new Class<?>[] {
@@ -20,6 +31,9 @@ public abstract class FemMaterial extends MaterialBase {
       NeoHookeanMaterial.class,
       IncompNeoHookeanMaterial.class,
       IncompressibleMaterial.class,
+      ViscoelasticMaterial.class,
+      ScaledFemMaterial.class,
+      FullBlemkerMuscle.class,
       NullMaterial.class,
    });
 
@@ -37,71 +51,47 @@ public abstract class FemMaterial extends MaterialBase {
       return mySubclasses.getArray();
    }
 
-   ViscoelasticBehavior myViscoBehavior;
-
    protected void notifyHostOfPropertyChange () {
       notifyHostOfPropertyChange ("???");
    }
 
-   public static PropertyList myProps =
-      new PropertyList(FemMaterial.class, MaterialBase.class);
-
-   static {
-      myProps.add (
-         "viscoBehavior", "visco elastic material behavior", null);
+   public void propertyChanged (PropertyChangeEvent e) {
+      // pass on property change events from subcomponents
+      if (myPropHost instanceof PropertyChangeListener) {
+         ((PropertyChangeListener)myPropHost).propertyChanged (e);
+      }
    }
+   
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList(FemMaterial.class, MaterialBase.class);
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
-   public ViscoelasticBehavior getViscoBehavior () {
-      return myViscoBehavior;
-   }
+   // public ViscoelasticBehavior getViscoBehavior () {
+   //    return myViscoBehavior;
+   // }
 
-   /**
-    * Allows setting of viscoelastic behaviour
-    * @param veb visco-elastic behaviour
-    */
-   public void setViscoBehavior (ViscoelasticBehavior veb) {
-      if (veb != null) {
-         ViscoelasticBehavior newVeb = veb.clone();
-         PropertyUtils.updateCompositeProperty (
-            this, "viscoBehavior", null, newVeb);
-         myViscoBehavior = newVeb;
-         notifyHostOfPropertyChange ("viscoBehavior");
-      }
-      else if (myViscoBehavior != null) {
-         PropertyUtils.updateCompositeProperty (
-            this, "viscoBehavior", myViscoBehavior, null);
-         myViscoBehavior = null;
-         notifyHostOfPropertyChange ("viscoBehavior");
-      }
-   } 
-
-   /**
-    * Computes the tangent stiffness matrix
-    * @param D tangent stiffness, populated
-    * @param stress the current stress tensor
-    * @param def deformation information, includes deformation gradient and pressure
-    * @param Q coordinate frame specifying directions of anisotropy
-    * @param baseMat underlying base material (if any)
-    */
-   public abstract void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
-      Matrix3d Q, FemMaterial baseMat);
-
-
-   /**
-    * Computes the strain tensor given the supplied deformation
-    * @param sigma strain tensor, populated
-    * @param def deformation information, includes deformation gradient and pressue
-    * @param Q coordinate frame specifying directions of anisotropy
-    * @param baseMat underlying base material (if any)
-    */
-   public abstract void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat);
+   // /**
+   //  * Allows setting of viscoelastic behaviour
+   //  * @param veb visco-elastic behaviour
+   //  */
+   // public void setViscoBehavior (ViscoelasticBehavior veb) {
+   //    if (veb != null) {
+   //       ViscoelasticBehavior newVeb = veb.clone();
+   //       PropertyUtils.updateCompositeProperty (
+   //          this, "viscoBehavior", null, newVeb);
+   //       myViscoBehavior = newVeb;
+   //       notifyHostOfPropertyChange ("viscoBehavior");
+   //    }
+   //    else if (myViscoBehavior != null) {
+   //       PropertyUtils.updateCompositeProperty (
+   //          this, "viscoBehavior", myViscoBehavior, null);
+   //       myViscoBehavior = null;
+   //       notifyHostOfPropertyChange ("viscoBehavior");
+   //    }
+   // } 
 
    /**
     * Computes the current Cauchy stress and tangent stiffness matrix.
@@ -112,15 +102,12 @@ public abstract class FemMaterial extends MaterialBase {
     * pressure
     * @param Q coordinate frame specifying directions of anisotropy
     * @param excitation current excitation value
+    * @param state material state information, or {@code null} if the
+    * material does not have state.
     */
-   public void computeStressAndTangent (
+   public abstract void computeStressAndTangent (
       SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
-      Matrix3d Q, double excitation) {
-      computeStress (sigma, def, Q, /*baseMat=*/null);
-      if (D != null) {
-         computeTangent (D, sigma, def, Q, /*baseMat=*/null);
-      }
-   }
+      Matrix3d Q, double excitation, MaterialStateObject state);
    
    /**
     * Returns true if this material is defined for a deformation gradient
@@ -133,9 +120,9 @@ public abstract class FemMaterial extends MaterialBase {
    public boolean isIncompressible() {
       return false;
    }
-
-   public boolean isViscoelastic() {
-      return false;
+   
+   public IncompressibleMaterialBase getIncompressibleComponent() {
+      return null;
    }
    
    /**
@@ -162,21 +149,21 @@ public abstract class FemMaterial extends MaterialBase {
       return true;
    }
 
-   public boolean equals (Object obj) {
-      if (obj instanceof FemMaterial) {
-         FemMaterial mat = (FemMaterial)obj;
-         if (PropertyUtils.equalValues (myViscoBehavior, mat.myViscoBehavior)) {
-            return equals (mat);
-         }
-      }
-      return false;
-   }
+   // public boolean equals (Object obj) {
+   //    if (obj instanceof FemMaterial) {
+   //       FemMaterial mat = (FemMaterial)obj;
+   //       if (PropertyUtils.equalValues (myViscoBehavior, mat.myViscoBehavior)) {
+   //          return equals (mat);
+   //       }
+   //    }
+   //    return false;
+   // }
 
-   public FemMaterial clone() {
-      FemMaterial mat = (FemMaterial)super.clone();
-      mat.setViscoBehavior (myViscoBehavior);
-      return mat;
-   }
+   // public FemMaterial clone() {
+   //    FemMaterial mat = (FemMaterial)super.clone();
+   //    mat.setViscoBehavior (myViscoBehavior);
+   //    return mat;
+   // }
 
    /**
     * Computes the right Cauchy-Green tensor from the deformation gradient.
@@ -245,11 +232,42 @@ public abstract class FemMaterial extends MaterialBase {
    }
 
    public boolean hasState() {
-      return myViscoBehavior != null && !isLinear();
+      return false;
    }
 
    public MaterialStateObject createStateObject() {
       return null;
    }
+   
+   public void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+      super.writeItems (pw, fmt, ancestor);
+      getAllPropertyInfo().writePropertyFunctions (pw, this, fmt, ancestor);
+   }
 
+   protected boolean scanItem (
+      ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
+      rtok.nextToken();
+      if (getAllPropertyInfo().scanPropertyFunction (rtok, this, tokens)) {
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+
+      if (getAllPropertyInfo().postscanPropertyFunction (
+             tokens, this, ancestor)) {
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }       
+
+   public FemMaterial clone() {
+      FemMaterial mat = (FemMaterial)super.clone();
+      return mat;
+   }
 }

@@ -51,6 +51,8 @@ import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
+import artisynth.core.modelbase.PropertyChangeEvent;
+import artisynth.core.modelbase.PropertyChangeListener;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.RenderableComponentList;
@@ -59,7 +61,8 @@ import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.util.ScanToken;
 
 public class MuscleBundle extends CompositeComponentBase 
-   implements ExcitationComponent, RenderableComponent, TransformableGeometry {
+   implements ExcitationComponent, RenderableComponent, TransformableGeometry,
+   PropertyChangeListener {
 
    private static DirectionRenderType DEFAULT_FIBER_RENDER_TYPE = DirectionRenderType.ELEMENT; 
    private DirectionRenderType myDirectionRenderType = DEFAULT_FIBER_RENDER_TYPE;
@@ -333,14 +336,6 @@ public class MuscleBundle extends CompositeComponentBase
     * {@inheritDoc}
     */
    @Override
-   public void addExcitationSource (ExcitationComponent ex) {
-      addExcitationSource (ex, 1);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   @Override
    public void addExcitationSource (ExcitationComponent ex, double gain) {
       if (myExcitationSources == null) {
          myExcitationSources = new ExcitationSourceList();
@@ -411,23 +406,6 @@ public class MuscleBundle extends CompositeComponentBase
          this, myExcitationSources, undo, undoInfo);
    }
 
-   /**
-    * {@inheritDoc}
-    * 
-    * For muscle tissue we are using the average max force (proportional to
-    * physiological cross-sectional area) for all fibers within the bundle.
-    * Note: we could also use spatial distribution of fibres to determine CSA
-    * instead.
-    */
-   public double getDefaultActivationWeight() {
-      AxialSpringList<Muscle> fibres = getFibres();
-      double averageMaxForce = 0;
-      for (int j = 0; j < fibres.size (); j++) {
-         averageMaxForce += Muscle.getMaxForce (fibres.get(j));
-      }
-      return averageMaxForce / fibres.size ();
-   }
-
    public MuscleMaterial getMuscleMaterial() {
       return myMuscleMat;
    }
@@ -448,15 +426,27 @@ public class MuscleBundle extends CompositeComponentBase
       }
       return null;      
    }
+   
+   protected void notifyElementsOfMuscleMatStateChange () {
+      // clear states for any elements that use the model material
+      for (MuscleElementDesc desc : myElementDescs) {
+         desc.myElement.notifyStateVersionChanged();
+      }
+   }
 
    public void setMuscleMaterial (MuscleMaterial mat) {
-      MuscleMaterial old = myMuscleMat;
+      MuscleMaterial old = getEffectiveMuscleMaterial();
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial (
          this, "muscleMaterial", myMuscleMat, mat);
       // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
-      }
+      MaterialChangeEvent mce = 
+         MaterialBase.symmetryOrStateChanged ("muscleMaterial", mat, old);
+      if (mce != null) {
+         if (mce.stateChanged()) {
+            notifyElementsOfMuscleMatStateChange();
+         }
+         notifyParentOfChange (mce);
+      }      
    }
 
    public void applyForce (double t) {
@@ -593,13 +583,13 @@ public class MuscleBundle extends CompositeComponentBase
       myElementDescs.add (desc);
    }
 
-   public MuscleElementDesc addElement(FemElement3d elem, Vector3d dir) {
+   public MuscleElementDesc addElement (FemElement3dBase elem, Vector3d dir) {
       MuscleElementDesc desc = new MuscleElementDesc(elem, dir);
       addElement(desc);
       return desc;
    }
    
-   public MuscleElementDesc addElement(FemElement3d elem, Vector3d[] dirs) {
+   public MuscleElementDesc addElement(FemElement3dBase elem, Vector3d[] dirs) {
       MuscleElementDesc desc = new MuscleElementDesc();
       desc.setElement(elem);
       desc.setDirections(dirs);
@@ -674,7 +664,7 @@ public class MuscleBundle extends CompositeComponentBase
       }
 
       FemModel3d femMod = getAncestorFem(this);
-      RenderableComponentList<FemElement3d> elems = femMod.getElements();
+      ArrayList<FemElement3dBase> elems = femMod.getAllElements();
       Point3d[] elemLocs = new Point3d[elems.size()];
       Point3d[] muscleLocs = new Point3d[myFibres.size()];
       Vector3d[] muscleDirs = new Vector3d[myFibres.size()];
@@ -684,7 +674,7 @@ public class MuscleBundle extends CompositeComponentBase
       Vector3d dir = new Vector3d();
 
       for (int j=0; j<elems.size(); j++) {
-         FemElement3d e = elems.get(j);
+         FemElement3dBase e = elems.get(j);
          elemLocs[j] = new Point3d();
          IntegrationPoint3d warpingPnt = e.getWarpingPoint();
          warpingPnt.computeRestPosition (elemLocs[j], e.getNodes());
@@ -711,7 +701,7 @@ public class MuscleBundle extends CompositeComponentBase
          nearestFibreDistance[j] = Double.MAX_VALUE;
       }
       for (int k=0; k<myElementDescs.size(); k++) {
-         FemElement3d e = myElementDescs.get(k).getElement();
+         FemElement3dBase e = myElementDescs.get(k).getElement();
          bundleHasElement[elems.indexOf(e)] = true;
       }
 
@@ -756,7 +746,7 @@ public class MuscleBundle extends CompositeComponentBase
       FemModel3d femMod = getAncestorFem(this);
 
       PolylineInterpolator interp = new PolylineInterpolator(mesh);
-      for (FemElement3d e : femMod.getElements()) {
+      for (FemElement3dBase e : femMod.getAllElements()) {
          IntegrationPoint3d[] pnts = e.getIntegrationPoints();
          boolean elemIsActive = false;
          Vector3d[] dirs = new Vector3d[pnts.length];
@@ -1003,6 +993,18 @@ public class MuscleBundle extends CompositeComponentBase
          return true;
       }   
       return super.postscanItem (tokens, ancestor);
+   }
+   
+   public void propertyChanged (PropertyChangeEvent e) {
+      if (e instanceof MaterialChangeEvent) {
+         MaterialChangeEvent mce = (MaterialChangeEvent)e;
+         if (mce.stateChanged() && e.getHost() == getMuscleMaterial()) {
+            notifyElementsOfMuscleMatStateChange();
+         }
+         if (mce.stateOrSymmetryChanged()) {
+            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
+         }
+      }      
    }
 
 }

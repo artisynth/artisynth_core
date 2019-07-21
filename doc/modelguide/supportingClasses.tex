@@ -964,15 +964,57 @@ data in a subdirectory {\tt "geometry"} located beneath the source
 directory. In order to access such files in a robust way, and ensure
 that the code does not break when the source tree is moved, it is
 useful to determine the application's source (or class) directory at
-run time. This can be accomplished using
-\javaclass{maspack.util.PathFinder}, which provides several methods
-for locating source and class directories:
+run time. ArtiSynth supplies several ways to conveniently handle this
+situation. First, the {\tt RootModel} itself supplies the following
+methods:
+\begin{lstlisting}[]
+  // find path to the root model's source directory
+  String findSourceDir ();
+
+  // get path to a file specified relative to the root model's source directory
+  String getSourceRelativePath (String relpath);
+\end{lstlisting}
+%
+The first method returns the path to the source directory of the
+root model, while the second returns the path to a file specified
+relative to the root model source directory. If the root model source
+directory cannot be found (see discussion at the end of this section)
+both methods return {\tt null}.
+%
+As a specific usage example, assume that we have an application model
+whose {\tt build()} method needs to load in a mesh {\tt torus.obj}
+from a subdirectory {\tt meshes} located beneath the source
+directory. This could be done as follows:
 %
 \begin{lstlisting}[]
+  String pathToMesh = getSourceRelativePath ("meshes/torus.obj");
+  // read the mesh from a .obj file :
+  WavefrontReader reader = new WavefrontReader (pathToMesh);
+  PolygonalMesh mesh = null;
+  try {
+     mesh = reader.readMesh () ;
+  }
+  catch (IOException e) {
+     System.err.println ("Can't read mesh:");
+     e.printStackTrace () ;
+  }
+\end{lstlisting}
+
+A more general path finding utility is provided by
+\javaclass{maspack.util.PathFinder}, which provides several static
+methods for locating source and class directories:
+%
+\begin{lstlisting}[]
+  // find path to the source directory associated with classObj
   String findSourceDir (Object classObj);
+
+  // get path to a file specified relative to classObj source directory
   String getSourceRelativePath (Object classObj, String relpath);
 
+  // find path to the class directory associated with classObj
   String findClassDir (Object classObj);
+
+  // get path to a file specified relative to classObj class directory
   String getClassRelativePath (Object classObj, String relpath);
 \end{lstlisting}
 %
@@ -992,17 +1034,17 @@ following calls should all return the same result:
 \begin{lstlisting}[]
    Foo foo = new Foo();
 
-   findSourceDir (foo);
-   findSourceDir (Foo.class);
-   findSourceDir ("artisynth.models.test.Foo");
-   findSourceDir ("Foo");
+   PathFinder.findSourceDir (foo);
+   PathFinder.findSourceDir (Foo.class);
+   PathFinder.findSourceDir ("artisynth.models.test.Foo");
+   PathFinder.findSourceDir ("Foo");
 \end{lstlisting}
 %
 If the source directory for {\tt Foo} happens to be {\tt
 /home/projects/src/artisynth/models/test}, then
 %
 \begin{lstlisting}[]
-   getSourceRelativePath (foo, "geometry/mesh.obj");
+   PathFinder.getSourceRelativePath (foo, "geometry/mesh.obj");
 \end{lstlisting}
 %
 will return
@@ -1013,26 +1055,16 @@ When calling {\tt PathFinder} methods from {\it within} the relevant
 class, one can specify {\tt this} as the {\tt classObj} argument.
 \end{sideblock}
 
-As a specific example, assume that we have an application model whose
-{\tt build()} method needs to load in a mesh {\tt torus.obj} from a
-subdirectory {\tt meshes} located beneath the source directory. This
-could be done as follows:
+With respect to the abone example locating the file {\tt
+"meshes/torus.obj"}, the call to the root model method 
+{\tt getSourceRelativePath()} could be replaced with
 %
 \begin{lstlisting}[]
   String pathToMesh = PathFinder.getSourceRelativePath (
      this, "meshes/torus.obj");
-  // read the mesh from a .obj file :
-  WavefrontReader reader = new WavefrontReader (pathToMesh);
-  PolygonalMesh mesh = null;
-  try {
-     mesh = reader.readMesh () ;
-  }
-  catch (IOException e) {
-     System.err.println ("Can't read mesh:");
-     e.printStackTrace () ;
-  }
 \end{lstlisting}
-Note that the class was indicated by simply passing {\tt this} to {\tt
+Since this is assumed to be called from the root model's build method,
+the ``class'' can be indicated by simply passing {\tt this} to {\tt
 getSourceRelativePath()}.
 
 \begin{sideblock}
@@ -1055,3 +1087,75 @@ paths can be added using
 or the entire list can be set using
 \javamethodAlt{maspack.util.PathFinder.setSourceRootPaths()}%
 {setSourceRootPaths(paths)}.
+
+At preset, source directories will not be found if the reference class
+is contained in a jar file.
+
+\section{Reading and caching remote files}
+\label{FileManager:sec}
+
+ArtiSynth applications often require the use of large data files to
+specify items such as FEM mesh geometry, surface mesh geometry, or
+medical imaging data. The size of these files may make it inconvenient
+to store them in any version control system that is used to
+store the application source code. As an alternative, ArtiSynth
+provides a {\it file manager} utility that allows such files to be
+stored on a separate server, and then downloaded on-demand and cached
+locally. To use this, one starts by creating an instance of a
+\javaclass[maspack.fileutil]{FileManager}, using the constructor
+%
+\begin{lstlisting}[]
+  FileManager (String downloadPath, String remoteSourceName)
+\end{lstlisting}
+%
+where {\tt downloadPath} is a path to the local directory where the
+downloaded file should be placed, and {\tt remoteSourceName} is a URI
+indicating the remote server location of the files.  After the file
+manager has been created, it can be used to fetch remote files and
+cache them locally, using various {\it get} methods:
+%
+\begin{lstlisting}[]
+  File get (String destName);
+
+  File get (String destName, String sourceName);
+\end{lstlisting}
+%
+Both of these look for the file {\tt destName} specified relative to
+the local directory, and return a {\tt File} handle for it if it is
+present. Otherwise, they attempt to download the file from the remote
+source location, place it in the local directory, and return a {\tt
+File} handle for it.
+The location of the remote file is given relative to
+the remote source URI by {\tt destName} for the first method and {\tt
+sourceName} for the second.
+
+A simple example of using a file manager within a {\tt RootModel} {\tt
+build()} method is given by the following fragment:
+%
+\begin{lstlisting}[]
+  // create the file manager ...
+  FileManager fm = new FileManager (
+    getSourceRelativePath("geometry"), 
+    "http://myserver.org/artisynth/data/geometry");
+  // ... and use it to get a bone mesh file
+  File meshFile = fm.get ("tibia.obj");
+\end{lstlisting}
+%
+Here, a file manager is created that uses a local directory {\tt "geometry"},
+located relative to the {\tt RootModel} source directory (see Section
+\ref{PathFinder:sec}), and looks for missing files relative to the URI
+%
+\begin{verbatim}
+  http://myserver.org/artisynth/data/geometry
+\end{verbatim}
+%
+The {\tt get()} method is then used to obtain the file {\tt
+"tibia.obj"} from the local directory. If it is not already present,
+it is downloaded from the remote location.
+
+The \javaclass[maspack.fileutil]{FileManager} contains other features
+and functionality, and one should consult its API documentation for
+more information.
+
+
+

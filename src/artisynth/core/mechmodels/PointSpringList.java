@@ -62,14 +62,18 @@ RenderableComponentList<S> implements ScalableUnits {
       return myMaterial;
    }
 
-   public void setMaterial (AxialMaterial mat) {
-      AxialMaterial old = myMaterial;
-      myMaterial = (AxialMaterial)MaterialBase.updateMaterial (
+   public <T extends AxialMaterial> T setMaterial (T mat) {
+      AxialMaterial oldMat = myMaterial;
+      T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
+      myMaterial = newMat;
       // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      MaterialChangeEvent mce = 
+         MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
+      if (mce != null) {
+         notifyParentOfChange (mce);
       }
+      return newMat;
    }
 
    /* ======== Renderable implementation ======= */

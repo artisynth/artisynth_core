@@ -195,7 +195,9 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
       while (rtok.nextToken() != ']') {
          rtok.pushBack();
          if (!scanItem (rtok, tokens)) {
-            throw new IOException ("Unexpected token: " + rtok);
+            throw new IOException (
+               "Error scanning " + getClass().getName() +
+               ": unexpected token: " + rtok);
          }
       }
       tokens.offer (ScanToken.END); // terminator token

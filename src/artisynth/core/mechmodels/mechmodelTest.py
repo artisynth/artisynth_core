@@ -366,6 +366,21 @@ run()
 waitForStop()
 reset()
 
+loadModel ("artisynth.demos.test.LinearPointConstraintTest")
+mech = setModelOpts (0.4, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.setIntegrator (MechSystemSolver.Integrator.ConstrainedBackwardEuler)
+mech.writePrintStateHeader ("LinearPointConstraintTest ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+mech.setMaxStepSize (0.001)
+mech.setIntegrator (MechSystemSolver.Integrator.SymplecticEuler)
+mech.writePrintStateHeader ("LinearPointConstraintTest SymplecticEuler");
+run()
+waitForStop()
+reset()
+
 loadModel ("artisynth.demos.mech.BeamBodyCollide")
 mech = setModelOpts (1.5, dataFileName)
 pw = mech.reopenPrintStateFile (dataFileName)
@@ -533,6 +548,38 @@ waitForStop()
 reset()
 mech.setIntegrator (MechSystemSolver.Integrator.Trapezoidal)
 mech.writePrintStateHeader ("JawLarynxDemo Trapezoidal");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.tutorial.VariableStiffness")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("VariableStiffness ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.tutorial.RadialMuscle")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("RadialMuscle ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.tutorial.MaterialBundleDemo")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("MaterialBundleDemo ConstrainedBackwardEuler");
+run()
+waitForStop()
+reset()
+
+loadModel ("artisynth.demos.tutorial.VariableStiffness")
+mech = setModelOpts (0.5, dataFileName)
+pw = mech.reopenPrintStateFile (dataFileName)
+mech.writePrintStateHeader ("VariableStiffness ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()

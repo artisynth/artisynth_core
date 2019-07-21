@@ -1,11 +1,11 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SVDecomposition3d;
 import maspack.matrix.SymmetricMatrix3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
@@ -16,8 +16,8 @@ import maspack.properties.PropertyUtils;
  */
 public abstract class LinearMaterialBase extends FemMaterial {
 
-   public static PropertyList myProps =
-      new PropertyList (LinearMaterialBase.class, FemMaterial.class);
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (LinearMaterialBase.class, FemMaterial.class);
 
    protected static boolean DEFAULT_COROTATED = true;
 
@@ -30,7 +30,7 @@ public abstract class LinearMaterialBase extends FemMaterial {
          "apply corotation", DEFAULT_COROTATED);
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -101,9 +101,12 @@ public abstract class LinearMaterialBase extends FemMaterial {
     */
    protected abstract void getC(Matrix6d C, DeformedPoint defp);
    
-   public void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
+   /**
+    * {@inheritDoc}
+    */
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation, MaterialStateObject state) {
 
       RotationMatrix3d R = def.getR();
       Matrix3d F = def.getF();
@@ -112,11 +115,13 @@ public abstract class LinearMaterialBase extends FemMaterial {
       if (myCorotated) {
          if (R == null) {
             R = computeRotation(F, sigma);
-         } else {
+         }
+         else {
             // remove rotation from F
             sigma.mulTransposeLeftSymmetric(R, F);
          }
-      } else {
+      }
+      else {
          sigma.setSymmetric (F);
       }
       sigma.m00 -= 1;
@@ -129,31 +134,18 @@ public abstract class LinearMaterialBase extends FemMaterial {
       if (isCorotated()) {
          sigma.mulLeftAndTransposeRight (R);
       }
-   }
-   
-   @Override
-   public void computeTangent(
-      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
 
-      // get spatial stiffness tensor
-      getC(D, def);
+      if (D != null) {
+         // get spatial stiffness tensor
+         getC(D, def);
       
-      // rotate if corotated
-      if (isCorotated()) {
-
-         // need to rotate this tensor from linear frame into material one
-         RotationMatrix3d R = def.getR();
-         if (R == null) {
-            Matrix3d F = def.getF();
-            R = computeRotation(F, null);
+         // rotate if corotated
+         if (isCorotated()) {
+            // R rotates from material frame to the spatial one. Transpose
+            // of R rotates from spatial frame to material one.
+            TensorUtils.unrotateTangent (D, D, R);
          }
-
-         // R rotates from material frame to the spatial one. Transpose
-         // of R rotates from spatial frame to material one.
-         TensorUtils.unrotateTangent (D, D, R);
       }
-      
    }
 
    public boolean equals (FemMaterial mat) {

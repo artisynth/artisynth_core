@@ -55,6 +55,7 @@ import artisynth.core.mechmodels.MuscleExciter;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.DynamicActivityChangeEvent;
 import artisynth.core.modelbase.ModelComponent;
+import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.TransformGeometryContext;
@@ -222,8 +223,8 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
    /**
     * {@inheritDoc}
     */
-   public void addExcitationSource (ExcitationComponent ex) {
-      addExcitationSource (ex, 1);
+   public ExcitationSourceList getExcitationSources() {
+      return myExcitationSources;
    }
 
    /**
@@ -304,13 +305,6 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
       super.updateReferences (undo, undoInfo);
       myExcitationSources = ExcitationUtils.updateReferences (
          this, myExcitationSources, undo, undoInfo);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public double getDefaultActivationWeight() {
-      return 0;
    }
 
    public void setDefaultValues() {
@@ -399,32 +393,46 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
       return new GenericMuscle();
    }
 
-   //@Override
-   public boolean isInvertible() {
-      return myMuscleMat == null || myMuscleMat.isInvertible();
-   }
+//   //@Override
+//   public boolean isInvertible() {
+//      return myMuscleMat == null || myMuscleMat.isInvertible();
+//   }
+//   
+//   //@Override
+//   public boolean isLinear() {
+//      return myMuscleMat == null;
+//   }
+//   
+//   //@Override
+//   public boolean isCorotated() {
+//      return myMuscleMat == null;
+//   }
    
-   //@Override
-   public boolean isLinear() {
-      return myMuscleMat == null;
+   protected void notifyElementsOfMuscleMatStateChange () {
+      // clear states for any elements that use the model material
+      for (MuscleBundle mus : myMuscleList) {
+         if (mus.getMuscleMaterial() == null) {
+            mus.notifyElementsOfMuscleMatStateChange();
+         }
+      }
    }
-   
-   //@Override
-   public boolean isCorotated() {
-      return myMuscleMat == null;
-   }
-
+ 
    public void setMuscleMaterial(MuscleMaterial mat) {
       if (mat == null) {
          throw new IllegalArgumentException(
-         "MuscleMaterial not allowed to be null for MuscleBundle");
+         "MuscleMaterial not allowed to be null for FemMuscleModel");
       }
       MuscleMaterial old = myMuscleMat;
       myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial(
          this, "muscleMaterial", myMuscleMat, mat);
       // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         componentChanged (MaterialChangeEvent.defaultEvent);
+      MaterialChangeEvent mce = 
+         MaterialBase.symmetryOrStateChanged ("muscleMaterial", mat, old);
+      if (mce != null) {
+         if (mce.stateChanged()) {
+            notifyElementsOfMuscleMatStateChange();
+         }
+         componentChanged (mce);
       }
    }
 
@@ -472,13 +480,17 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
    public void scaleDistance(double s) {
       super.scaleDistance(s);
       myMuscleList.scaleDistance(s);
-      myMuscleMat.scaleDistance(s);
+      if (myMuscleMat != null) {
+         myMuscleMat.scaleDistance(s);
+      }
    }
 
    public void scaleMass(double s) {
       super.scaleMass(s);
       myMuscleList.scaleMass(s);
-      myMuscleMat.scaleMass(s);
+      if (myMuscleMat != null) {
+         myMuscleMat.scaleMass(s);
+      }
    }
 
    @Override
@@ -527,9 +539,9 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
          // so we're just being extra careful here.
          for (MuscleBundle mus : myMuscleList) {
             mus.setExcitation(0);
-            for (MuscleElementDesc desc : mus.getElements()) {
-               desc.setExcitation(0);
-            }
+//            for (MuscleElementDesc desc : mus.getElements()) {
+//               desc.setExcitation(0);
+//            }
          }
          for (MuscleExciter ex : myExciterList) {
             ex.setExcitation(0);
@@ -587,15 +599,15 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
    //      return myFiberMesh;
    //   }
 
-   public boolean hasSymmetricTangent() {
-      MuscleMaterial mat = getMuscleMaterial();
-      if (mat != null) {
-         return mat.hasSymmetricTangent();
-      }
-      else {
-         return true;
-      }
-   }
+//   public boolean hasSymmetricTangent() {
+//      MuscleMaterial mat = getMuscleMaterial();
+//      if (mat != null) {
+//         return mat.hasSymmetricTangent();
+//      }
+//      else {
+//         return true;
+//      }
+//   }
 
    //   public void addTangent(
    //      Matrix6d D, SymmetricMatrix3d stress, IntegrationPoint3d pt,
@@ -954,6 +966,17 @@ public class FemMuscleModel extends FemModel3d implements ExcitationComponent {
          return true;
       }   
       return super.postscanItem (tokens, ancestor);
+   }
+   
+   public void propertyChanged (PropertyChangeEvent e) {
+      if (e instanceof MaterialChangeEvent) {
+         MaterialChangeEvent mce = (MaterialChangeEvent)e;
+         if (mce.stateChanged() && e.getHost() == getMuscleMaterial()) {
+            notifyElementsOfMuscleMatStateChange();
+         }
+         // no need to notify parent - superclass code will do this
+      }
+      super.propertyChanged (e);
    }
 
 }

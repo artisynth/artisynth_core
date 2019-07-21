@@ -14,6 +14,7 @@ import maspack.spatialmotion.*;
 import maspack.util.*;
 import artisynth.core.modelbase.*;
 import artisynth.core.materials.*;
+import artisynth.core.modelbase.ComponentChangeEvent.Code;      
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.PropertyChangeListener;
 import java.io.*;
@@ -117,18 +118,25 @@ public abstract class DeformableBody extends RigidBody
       return myMaterial;
    }
 
-   public void setMaterial (FemMaterial mat) {
+   public <T extends FemMaterial> T setMaterial (T mat) {
       if (mat == null) {
          throw new IllegalArgumentException (
             "Material not allowed to be null");
       }
-      FemMaterial old = myMaterial;
-      myMaterial = (FemMaterial)MaterialBase.updateMaterial (
+      FemMaterial oldMat = myMaterial;
+      T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
+      myMaterial = newMat;
       // issue change event in case solve matrix symmetry or state has changed:
-      if (MaterialBase.symmetryOrStateChanged (mat, old)) {
-         notifyParentOfChange (MaterialChangeEvent.defaultEvent);
+      MaterialChangeEvent mce = 
+         MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
+      if (mce != null) {
+         if (mce.stateChanged()) {
+            // TODO: handle state change when state is supported
+         }
+         notifyParentOfChange (mce);
       }
+      return newMat;
    }
 
    public boolean getFreezeFrame() {
@@ -141,12 +149,12 @@ public abstract class DeformableBody extends RigidBody
 
    public void propertyChanged (PropertyChangeEvent e) {
       myStiffnessValidP = false;
-      // used to issue DynamicActivityChange in case solve matrix symmetry has
-      // changed. However, this is unlikely and needs to be handled more
-      // broadly in any case
-      // if (e.getHost() instanceof FemMaterial) {
-      //     notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
-      // }
+      if (e instanceof MaterialChangeEvent) {
+         MaterialChangeEvent mce = (MaterialChangeEvent)e;
+         if (mce.stateOrSymmetryChanged()) {
+            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
+         }
+      }      
    }
 
    public VectorNd getElasticPos() {

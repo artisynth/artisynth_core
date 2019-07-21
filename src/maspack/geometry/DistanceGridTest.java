@@ -183,7 +183,7 @@ public class DistanceGridTest extends UnitTest {
       }
       int numVX = res.x+1;
       int numVY = res.y+1;
-      double[] phi = grid.getDistances();
+      double[] phi = grid.getVertexDistances();
       int base = grid.xyzIndicesToVertex(xi, yj, zk);
       double d000 = phi[base];
       double d100 = phi[base + 1];
@@ -540,7 +540,7 @@ public class DistanceGridTest extends UnitTest {
       // For now, just set the distances, since precision issues can result in
       // differing distances computed during the sweep process
       DistanceGrid gridT = new DistanceGrid (widths, resolution, TGL);
-      gridT.setDistances (grid.getDistances(), /*signed=*/true);
+      gridT.setVertexDistances (grid.getVertexDistances(), /*signed=*/true);
       gridT.setLocalToWorld (TLW);
 
       int numtests = 1000;

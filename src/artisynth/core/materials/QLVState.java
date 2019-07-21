@@ -14,7 +14,7 @@ public class QLVState extends ViscoelasticState implements MaterialStateObject {
    protected double[] myAHPrev;
    protected double[] myB;
    
-   protected double myH = 0;
+   public double myH = 0;
 
    public QLVState () {
       this (QLVBehavior.N_MAX);
@@ -36,6 +36,7 @@ public class QLVState extends ViscoelasticState implements MaterialStateObject {
     * Stores the state data in a DataBuffer
     */
    public void getState (DataBuffer data) {
+      data.dput (myH);
       data.dput (mySSave);
       data.dput (mySPrev);
       for (int k=0; k<myAHPrev.length; k++) {
@@ -50,6 +51,7 @@ public class QLVState extends ViscoelasticState implements MaterialStateObject {
     * Sets the state data from a buffer of doubles.
     */
    public void setState (DataBuffer data) {
+      myH = data.dget();
       data.dget (mySSave);
       data.dget (mySPrev);
 
@@ -64,9 +66,10 @@ public class QLVState extends ViscoelasticState implements MaterialStateObject {
    public String toString (String fmtStr) {
       NumberFormat fmt = new NumberFormat(fmtStr);
       StringBuilder sb = new StringBuilder();
-      sb.append ("sigmaSave=\n");
+      sb.append ("h=" + myH);
+      sb.append ("SSave=\n");
       sb.append (mySSave.toString(fmt));
-      sb.append ("sigmaPrev=\n");
+      sb.append ("SPrev=\n");
       sb.append (mySPrev.toString(fmt));
       sb.append ("AHprev=\n");
       for (int k=0; k<myAHPrev.length; k+=6) {
@@ -76,7 +79,7 @@ public class QLVState extends ViscoelasticState implements MaterialStateObject {
             fmt.format(myAHPrev[k+2]) + " " + fmt.format(myAHPrev[k+3]) + " " +
             fmt.format(myAHPrev[k+4]) + " " + fmt.format(myAHPrev[k+5]) + "\n");
       }
-      sb.append ("S=\n");
+      sb.append ("b=\n");
       for (int k=0; k<myB.length; k++) {
          sb.append (k + " " + fmt.format(myB[k]) + "\n");
       }

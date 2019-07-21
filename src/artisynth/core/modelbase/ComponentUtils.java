@@ -699,15 +699,20 @@ public class ComponentUtils {
       if (obj == null) {
          return "null";
       }
-      String name = obj.getClass().getSimpleName();
-      if (obj instanceof ModelComponent) {
-         ModelComponent comp = (ModelComponent)obj;
-         String path = getPathName (comp);
-         if (!path.equals ("-1")) {
-            name += " " + path;
-         }
+      else if (obj instanceof String) {
+         return (String)obj;
       }
-      return name;
+      else {
+         String name = obj.getClass().getSimpleName();
+         if (obj instanceof ModelComponent) {
+            ModelComponent comp = (ModelComponent)obj;
+            String path = getPathName (comp);
+            if (!path.equals ("-1")) {
+               name += " " + path;
+            }
+         }
+         return name;
+      }
    }
 
    protected static void recursivelyCheckReferenceContainment (
@@ -738,7 +743,8 @@ public class ComponentUtils {
    }
          
    public static void checkReferenceContainment (ModelComponent comp) {
-      CompositeComponent ancestor = nearestEncapsulatingAncestor(comp);
+      CompositeComponent ancestor = farthestEncapsulatingAncestor(comp);
+//      /CompositeComponent ancestor = nearestEncapsulatingAncestor(comp);
       if (ancestor != null) {
          recursivelyCheckReferenceContainment (comp, ancestor);
       }

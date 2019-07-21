@@ -1,11 +1,11 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
@@ -26,8 +26,8 @@ public class SimpleForceMuscle extends MuscleMaterial {
    protected static double DEFAULT_MAX_LAMBDA = 1.4; // \lambda^* 
 
    protected double myMaxStress = DEFAULT_MAX_STRESS;
-
    protected PropertyMode myMaxStressMode = PropertyMode.Inherited;
+   protected ScalarFieldPointFunction myMaxStressFunction = null;
 
    protected Vector3d myTmp = new Vector3d();
    protected Matrix3d myMat = new Matrix3d();
@@ -46,15 +46,15 @@ public class SimpleForceMuscle extends MuscleMaterial {
       setMaxStress (maxStress);
    }
 
-   public static PropertyList myProps =
-      new PropertyList (SimpleForceMuscle.class, MuscleMaterial.class);   
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (SimpleForceMuscle.class, MuscleMaterial.class);   
 
    static {
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "maxStress", "maximum isometric stress", DEFAULT_MAX_STRESS);
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -78,6 +78,34 @@ public class SimpleForceMuscle extends MuscleMaterial {
 
    public PropertyMode getMaxStressMode() {
       return myMaxStressMode;
+   }
+
+   public double getMaxStress (FieldPoint dp) {
+      if (myMaxStressFunction == null) {
+         return getMaxStress();
+      }
+      else {
+         return myMaxStressFunction.eval(dp);
+      }
+   }
+
+   public ScalarFieldPointFunction getMaxStressFunction() {
+      return myMaxStressFunction;
+   }
+      
+   public void setMaxStressFunction (ScalarFieldPointFunction func) {
+      myMaxStressFunction = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setMaxStressField (
+      ScalarField field, boolean useRestPos) {
+      myMaxStressFunction = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getMaxStressField () {
+      return FieldUtils.getFieldFromFunction (myMaxStressFunction);
    }
 
    /** 
@@ -164,67 +192,63 @@ public class SimpleForceMuscle extends MuscleMaterial {
       sig.m21 = sig.m12;
    }
 
-   public void computeStress (
-      SymmetricMatrix3d sigma, double excitation, Vector3d dir0,
-      DeformedPoint def, FemMaterial baseMat) {
-      
+   public void computeStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Vector3d dir0, double excitation, MaterialStateObject state) {
+
       // Methods and naming conventions follow the paper "Finite element
       // implementation of incompressible, isotropic hyperelasticity", by
       // Weiss, Makerc, and Govindjeed, Computer Methods in Applied Mechanical
       // Engineering, 1996.
-
+      double maxStress = getMaxStress (def);
       double J = def.getDetF();
       if (myZeroForceBelowNegativeJ && J <= 0) {
-         return;
-      }
-      
-      Vector3d dir = myTmp;
-      def.getF().mul (dir, dir0);
-      double mag = dir.norm();
-      dir.scale (1/mag);
-      double lamd = mag*Math.pow(J, -1.0/3.0);
-      double I4 = lamd*lamd;
-
-      double W4 = 0.5*(excitation*myMaxStress)/lamd;
-      
-      setStress (sigma, J, I4, W4, dir);
-   }
-
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, double excitation, Vector3d dir0, 
-      DeformedPoint def, FemMaterial baseMat) {
-
-      double J = def.getDetF();
-      if (myZeroForceBelowNegativeJ && J <= 0) {
+         sigma.setZero();
+         if (D != null) {
+            D.setZero();
+         }
          return;
       }
       
       Vector3d a = myTmp;
       def.getF().mul (a, dir0);
       double lam = a.norm();
+      if (lam == 0.0) {
+         sigma.setZero();
+         if (D != null) {
+            D.setZero();
+         }
+         return;
+      }
       a.scale (1/lam);
       double lamd = lam*Math.pow(J, -1.0/3.0);
       double I4 = lamd*lamd;
 
-      double W4  = 0.5*(myMaxStress*excitation)/lamd;
-      double W44 = 0.5*(-W4)/(lamd*lamd);
+      double W4 = 0.5*(excitation*maxStress)/lamd;
+      
+      setStress (sigma, J, I4, W4, a);
 
-      double w0 = W4*I4;
-      double wa = W44*I4*I4;
+      if (D != null) {
+         D.setZero();
 
-      D.setZero();
-      //
-      // compute -2/3 (dev sigma (X) I)' - 4 wa/(3J) (a (X) a (X) I)'
-      //
-      myMat.outerProduct (a, a);
-      myMat.scale (2*wa/J); // will be scaled again by -2/3 below
-      addStress (myMat, J, I4, W4, a);
-      myMat.scale (-2/3.0);
-      TensorUtils.addSymmetricIdentityProduct (D, myMat);
-      TensorUtils.addScaledIdentity (D, 4/3.0*w0/J);
-      TensorUtils.addScaledIdentityProduct (D, 4/9.0*(wa-w0)/J);
-
-      TensorUtils.addScaled4thPowerProduct (D, 4*wa/J, a);
+         double W44 = 0.5*(-W4)/(lamd*lamd);
+         
+         double w0 = W4*I4;
+         double wa = W44*I4*I4;
+         
+         //
+         // compute -2/3 (dev sigma (X) I)' - 4 wa/(3J) (a (X) a (X) I)'
+         //
+         myMat.outerProduct (a, a);
+         myMat.scale (2*wa/J); // will be scaled again by -2/3 below
+         addStress (myMat, J, I4, W4, a);
+         myMat.scale (-2/3.0);
+         TensorUtils.addSymmetricIdentityProduct (D, myMat);
+         TensorUtils.addScaledIdentity (D, 4/3.0*w0/J);
+         TensorUtils.addScaledIdentityProduct (D, 4/9.0*(wa-w0)/J);
+         
+         TensorUtils.addScaled4thPowerProduct (D, 4*wa/J, a);
+      }
    }
 
    @Override

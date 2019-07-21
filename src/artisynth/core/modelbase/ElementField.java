@@ -1,6 +1,8 @@
 package artisynth.core.modelbase;
 
-public interface ElementField<T> extends Field<T> {
+import maspack.matrix.VectorObject;
+
+public interface ElementField<T extends VectorObject<T>> extends VectorField<T> {
 
    public T getValue (int elemNum);
 

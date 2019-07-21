@@ -117,32 +117,32 @@ public class ExcitationSourceList extends ArrayList<ExcitationSource> {
       }        
    }
 
-   public ListRemove<ExcitationSource> updateReferences (
-      ModelComponent host, Object undoInfo) {
-      if (undoInfo != null) {
-         if (!(undoInfo instanceof ListRemove<?>)) {
-            throw new IllegalStateException (
-               "undoInfo: expecting ListRemove<ExcitationSource>, got " +
-               undoInfo.getClass());
-         }
-         ((ListRemove<ExcitationSource>)undoInfo).undo();
-         return null;
-      }
-      else {
-         ListRemove<ExcitationSource> remove = null;
-         for (int i=0; i<size(); i++) {
-            if (!ComponentUtils.areConnected (
-                   host, get(i).myComp)) {
-               if (remove == null) {
-                  remove = new ListRemove<ExcitationSource>(this);
-               }
-               remove.requestRemove(i);
-            }
-         }
-         if (remove != null) {
-            remove.remove();
-         }
-         return remove;
-      }
-   }
+//   public ListRemove<ExcitationSource> updateReferences (
+//      ModelComponent host, Object undoInfo) {
+//      if (undoInfo != null) {
+//         if (!(undoInfo instanceof ListRemove<?>)) {
+//            throw new IllegalStateException (
+//               "undoInfo: expecting ListRemove<ExcitationSource>, got " +
+//               undoInfo.getClass());
+//         }
+//         ((ListRemove<ExcitationSource>)undoInfo).undo();
+//         return null;
+//      }
+//      else {
+//         ListRemove<ExcitationSource> remove = null;
+//         for (int i=0; i<size(); i++) {
+//            if (!ComponentUtils.areConnected (
+//                   host, get(i).myComp)) {
+//               if (remove == null) {
+//                  remove = new ListRemove<ExcitationSource>(this);
+//               }
+//               remove.requestRemove(i);
+//            }
+//         }
+//         if (remove != null) {
+//            remove.remove();
+//         }
+//         return remove;
+//      }
+//   }
 }

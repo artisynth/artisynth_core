@@ -40,6 +40,7 @@ import maspack.util.ReaderTokenizer;
 import maspack.util.Round;
 import maspack.util.Write;
 import maspack.util.DataBuffer;
+import maspack.util.PathFinder;
 import artisynth.core.util.TimeBase;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.ControlPanel;
@@ -2055,5 +2056,27 @@ public class RootModel extends RenderableModelBase
       return getRoot (comp) != null;
    }
 
+   /**
+    * Finds and returns the path name of the source directory for this RootModel.
+    *
+    * @return path name for the root model source directory
+    */
+   public String findSourceDir() {
+      return PathFinder.findSourceDir (this);
+   }
+
+   /**
+    * Finds and returns the path name of a file whose location is specified
+    * relative to the source directory for this RootModel. This is created by
+    * appending {\tt relpath} to the path name returned by {@link
+    * #findSourceDir}.
+    *
+    * @param relpath path giving the location of the file relative to
+    * the root model source directory 
+    * @return path name for the specified file
+    */
+   public String getSourceRelativePath (String relpath) {
+      return PathFinder.getSourceRelativePath (this, relpath);
+   }
    
 }

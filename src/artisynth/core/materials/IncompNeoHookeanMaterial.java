@@ -1,32 +1,32 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.SymmetricMatrix3d;
-import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
 
-public class IncompNeoHookeanMaterial extends IncompressibleMaterial {
+public class IncompNeoHookeanMaterial extends IncompressibleMaterialBase {
 
-   public static PropertyList myProps =
-      new PropertyList (IncompNeoHookeanMaterial.class,
-                        IncompressibleMaterial.class);
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (IncompNeoHookeanMaterial.class,
+                        IncompressibleMaterialBase.class);
 
    protected static double DEFAULT_G = 150000;
 
    private double myG = DEFAULT_G;
-
    PropertyMode myGMode = PropertyMode.Inherited;
+   ScalarFieldPointFunction myGFunction = null;
 
    private SymmetricMatrix3d myB;
 
    static {
-      myProps.addInheritable (
+      myProps.addInheritableWithFunction (
          "shearModulus:Inherited", "shear modulus", DEFAULT_G);
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 
@@ -60,43 +60,60 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterial {
       return myGMode;
    }
 
-   public void computeStress (
-      SymmetricMatrix3d sigma, DeformedPoint def, Matrix3d Q,
-      FemMaterial baseMat) {
+   public double getShearModulus (FieldPoint dp) {
+      if (myGFunction == null) {
+         return getShearModulus();
+      }
+      else {
+         return myGFunction.eval (dp);
+      }
+   }
 
+   public ScalarFieldPointFunction getShearModulusFunction() {
+      return myGFunction;
+   }
+      
+   public void setShearModulusFunction (ScalarFieldPointFunction func) {
+      myGFunction = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setShearModulusField (
+      ScalarField field, boolean useRestPos) {
+      myGFunction = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public ScalarField getShearModulusField () {
+      return FieldUtils.getFieldFromFunction (myGFunction);
+   }
+
+   public void computeDevStressAndTangent (
+      SymmetricMatrix3d sigma, Matrix6d D, DeformedPoint def, 
+      Matrix3d Q, double excitation, MaterialStateObject state) {
+      
       double J = def.getDetF();
-      double p = def.getAveragePressure();
 
       computeLeftCauchyGreen (myB,def);
 
-      double muJ = myG/Math.pow(J, 5.0/3.0);
-      double diagTerm = -muJ*(myB.m00 + myB.m11 + myB.m22)/3.0 + p;
+      double G = getShearModulus (def);
+      double muJ = G/Math.pow(J, 5.0/3.0);
+      double diagTerm = -muJ*(myB.m00 + myB.m11 + myB.m22)/3.0;
 
       sigma.scale (muJ, myB);
       sigma.m00 += diagTerm;
       sigma.m11 += diagTerm;
       sigma.m22 += diagTerm;
-   }
 
-   public void computeTangent (
-      Matrix6d D, SymmetricMatrix3d stress, DeformedPoint def, 
-      Matrix3d Q, FemMaterial baseMat) {
-
-      double J = def.getDetF();
-
-      computeLeftCauchyGreen (myB,def);
-
-      double Ib = myB.m00+myB.m11+myB.m22;
-      double muJ = myG/Math.pow(J, 5.0/3.0);
-      double p = def.getAveragePressure();
-
-      D.setZero();
-
-      TensorUtils.addScaledIdentityProduct (D, p+ 2/9.0*muJ*Ib);
-      TensorUtils.addScaledIdentity (D, -2*p + 2/3.0*muJ*Ib);
-      TensorUtils.addSymmetricTensorProduct (
-         D, -2/3.0*muJ, myB, SymmetricMatrix3d.IDENTITY);
-      D.setLowerToUpper();
+      if (D != null) {
+         double Ib = myB.m00+myB.m11+myB.m22;
+         D.setZero();
+         TensorUtils.addScaledIdentityProduct (D, 2/9.0*muJ*Ib);
+         TensorUtils.addScaledIdentity (D, 2/3.0*muJ*Ib);
+         TensorUtils.addSymmetricTensorProduct (
+            D, -2/3.0*muJ, myB, SymmetricMatrix3d.IDENTITY);
+         D.setLowerToUpper();         
+      }
    }
 
    public boolean equals (FemMaterial mat) {
@@ -130,7 +147,7 @@ public class IncompNeoHookeanMaterial extends IncompressibleMaterial {
       SymmetricMatrix3d sig = new SymmetricMatrix3d();
 
       mat.setShearModulus (10);      
-      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0);
+      mat.computeStressAndTangent (sig, D, dpnt, Q, 1.0, null);
 
       System.out.println ("sig=\n" + sig.toString ("%12.6f"));
       System.out.println ("D=\n" + D.toString ("%12.6f"));

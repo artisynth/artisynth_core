@@ -2768,38 +2768,49 @@ public class Main implements DriverInterface, ComponentChangeListener {
       mySelectionManager.removeSelected (items);
    }
 
-   private boolean changeAffectsWaypoints (
+//   private boolean changeAffectsWaypoints (
+//      RootModel root, ComponentChangeEvent e) {
+//
+//      // XXX there ought to be a cleaner way to do this ...
+//      ModelComponent comp = e.getComponent();
+//      if (comp == root.getWayPoints() ||
+//          (e instanceof StructureChangeEvent &&
+//           !((StructureChangeEvent)e).stateIsChanged())) {
+//         return false;
+//      }
+//      else {
+//         return true;
+//      }
+//   }         
+
+   private boolean stateInvalidated (
       RootModel root, ComponentChangeEvent e) {
 
-      // XXX there ought to be a cleaner way to do this ...
-      ModelComponent comp = e.getComponent();
-      if (comp == root.getWayPoints() ||
-          (e instanceof StructureChangeEvent &&
-           !((StructureChangeEvent)e).stateIsChanged())) {
+      if (e.getComponent() == root.getWayPoints()) {
          return false;
       }
       else {
-         return true;
+         return e.stateChanged();
       }
    }         
 
    public void componentChanged (ComponentChangeEvent e) {
+      RootModel root = getRootModel();
+      
+      boolean stateInvalidated = false;
+      if (root != null) {
+         stateInvalidated = stateInvalidated (root, e);
+         if (stateInvalidated) {
+            root.getWayPoints().invalidateAfterTime(0);
+         }
+      }
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED ||
          e.getCode() == ComponentChangeEvent.Code.DYNAMIC_ACTIVITY_CHANGED) {
-         boolean invalidateWaypoints = false;
-         RootModel root = getRootModel();
          ModelComponent c = e.getComponent();
          if (myFrame != null && c != null &&
              (c == root || c.getParent() == root)) {
             updateApplicationMenuPresent (root);
          }
-         if (root != null) {
-            invalidateWaypoints = changeAffectsWaypoints(root, e);
-            if (invalidateWaypoints) {
-               root.getWayPoints().invalidateAfterTime(0);
-            }
-         }
-
          if (myTimeline != null) {
             if (root != null && c == root.getWayPoints()) {
                myTimeline.requestUpdateWidgets();
@@ -2821,14 +2832,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
                rerender();
             }
          }
-         // John Lloyd, May 2017: We used to invalidate the initial state only
-         // if we were not simulating. However, it seems to make sense to do
-         // this even if we are simulating.
-         // 
-         // if (invalidateWaypoints)  && !myScheduler.isPlaying()) {
-         if (invalidateWaypoints) {
-            myScheduler.invalidateInitialState();
-         }
+
       }
       else if (e.getCode() == ComponentChangeEvent.Code.NAME_CHANGED) {
          ModelComponent c = e.getComponent();
@@ -2865,6 +2869,14 @@ public class Main implements DriverInterface, ComponentChangeListener {
          if (!getScheduler().isPlaying()) {
             rerender();
          }
+      }
+      // John Lloyd, May 2017: We used to invalidate the initial state only
+      // if we were not simulating. However, it seems to make sense to do
+      // this even if we are simulating.
+      // 
+      // if (invalidateWaypoints)  && !myScheduler.isPlaying()) {
+      if (stateInvalidated) {
+         myScheduler.invalidateInitialState();
       }
    }
 

@@ -1,11 +1,11 @@
 package artisynth.core.materials;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.DenseMatrix;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix6dBase;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.VectorNd;
-import maspack.properties.PropertyList;
 
 public class AnisotropicLinearMaterial extends LinearMaterialBase {
 
@@ -15,15 +15,17 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
 
    private Matrix6d myC;  // anisotropic stiffness matrix
 
-   public static PropertyList myProps =
-      new PropertyList (AnisotropicLinearMaterial.class, LinearMaterialBase.class);
+   public static FunctionPropertyList myProps =
+      new FunctionPropertyList (AnisotropicLinearMaterial.class, LinearMaterialBase.class);
 
    static {
-      myProps.add ("stiffnessTensor getRasterizedStiffnessTensor setRasterizedStiffnessTensor", "6x6 anisotropic stiffness tensor,"
+      myProps.add (
+         "stiffnessTensor getRasterizedStiffnessTensor setRasterizedStiffnessTensor", 
+         "6x6 anisotropic stiffness tensor,"
          + " in row-major form", DEFAULT_STIFFNESS_TENSOR_VEC, "D36");
    }
 
-   public PropertyList getAllPropertyInfo() {
+   public FunctionPropertyList getAllPropertyInfo() {
       return myProps;
    }
 

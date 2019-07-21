@@ -1182,12 +1182,12 @@ public class MeshFactory {
       }
       
       DistanceGrid dg = new DistanceGrid (features, margin, res, false);
-      double[] phi = dg.getDistances ();
+      double[] phi = dg.getVertexDistances ();
       
       if (mesh instanceof PolygonalMesh) {
          PolygonalMesh pmesh = (PolygonalMesh)mesh;
          DistanceGrid sdg = new DistanceGrid (pmesh.getFaces (), margin, res, true);
-         double[] phi2 = sdg.getDistances ();
+         double[] phi2 = sdg.getVertexDistances ();
          
          // take lower of distances
          for (int i=0; i<phi2.length; ++i) {

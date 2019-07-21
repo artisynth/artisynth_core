@@ -106,9 +106,10 @@ public class EBBeamBody extends DeformableBody {
       mySigxx = len*len/3.0;
    }
 
-   @Override public void setMaterial (FemMaterial mat) {
-      super.setMaterial (mat);
+   @Override public <T extends FemMaterial> T setMaterial (T mat) {
+      T newMat = super.setMaterial (mat);
       invalidateStiffness();
+      return newMat;
    }
 
    public EBBeamBody () {

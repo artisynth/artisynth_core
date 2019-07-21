@@ -19,10 +19,10 @@ public class DynamicActivityChangeEvent extends ComponentChangeEvent {
       new DynamicActivityChangeEvent();
 
    public DynamicActivityChangeEvent (ModelComponent comp) {
-      super (Code.DYNAMIC_ACTIVITY_CHANGED, comp);
+      super (Code.DYNAMIC_ACTIVITY_CHANGED, comp, /*stateChanged=*/true);
    }
 
    public DynamicActivityChangeEvent() {
-      super (Code.DYNAMIC_ACTIVITY_CHANGED);
+      super (Code.DYNAMIC_ACTIVITY_CHANGED, null, /*stateChanged=*/true);
    }
 }

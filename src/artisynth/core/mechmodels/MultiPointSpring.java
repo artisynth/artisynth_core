@@ -67,6 +67,7 @@ public class MultiPointSpring extends PointSpringBase
    protected boolean mySegsValidP = true;
    protected int myNumBlks; // set to numPoints()
    protected int[] mySolveBlkNums;
+   protected int myHasWrappableSegs = -1; // -1 means we don't know
 
    public double mySor = 1.0;
    public double myDnrmGain = 0.0;
@@ -127,6 +128,19 @@ public class MultiPointSpring extends PointSpringBase
    protected int myUpdateContactsCnt = 0;
    protected int myIterationCnt = 0;
    
+   public boolean hasWrappableSegments() {
+      if (myHasWrappableSegs == -1) {
+         myHasWrappableSegs = 0;
+         for (Segment seg : mySegments) {
+            if (seg instanceof WrapSegment) {
+               myHasWrappableSegs = 1;
+               break;
+            }
+         }
+      }
+      return myHasWrappableSegs == 1;
+   }
+
    public double getSor() {
       return mySor;
    }
@@ -2657,6 +2671,7 @@ public class MultiPointSpring extends PointSpringBase
       public boolean hasState() {
          return true;
       }
+
       // End methods to save and restore auxiliary state.
 
       /**
@@ -3185,6 +3200,7 @@ public class MultiPointSpring extends PointSpringBase
    protected void invalidateSegments() {
       mySegsValidP = false;
       myRenderObjValidP = false;
+      myHasWrappableSegs = -1; // set to "don't know"
    }
 
    protected void updateSegsIfNecessary() {
@@ -4233,6 +4249,9 @@ public class MultiPointSpring extends PointSpringBase
 
    @Override
    public void getNumericStateComponents (List<HasNumericState> list) {
+      if (hasState()) {
+         list.add (this); // might have state if material does
+      }
       for (int i=0; i<numSegments(); i++) {
          Segment seg = mySegments.get(i);
          if (seg instanceof WrapSegment) {

@@ -144,9 +144,6 @@ public class IntegrationData3d {
    public double computeInverseRestJacobian (
       IntegrationPoint3d ipnt, FemNode3d[] nodes) {
       myDetJ0 = ipnt.computeInverseRestJacobian (myInvJ0, nodes);
-      if (myDetJ0 <= 0) {
-         System.out.println ("Warning: inverted rest element, det="+myDetJ0);
-      }
       return myDetJ0;
    }
 

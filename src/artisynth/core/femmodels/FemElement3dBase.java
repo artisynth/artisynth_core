@@ -243,8 +243,18 @@ public abstract class FemElement3dBase extends FemElement
       if (!myIntegrationDataValid) {
          // compute rest Jacobians and such
          IntegrationPoint3d[] ipnts = getIntegrationPoints();
+         double minDetJ = Double.MAX_VALUE;
          for (int i=0; i<idata.length; i++) {
-            idata[i].computeInverseRestJacobian (ipnts[i], getNodes());
+            double detJ = 
+               idata[i].computeInverseRestJacobian (ipnts[i], getNodes());
+            if (detJ < minDetJ) {
+               minDetJ = detJ;
+            }
+         }
+         if (minDetJ <= 0) {
+            System.out.println (
+               "Warning: element "+ComponentUtils.getPathName(this)+
+               " is inverted at rest, minDetJ=" + minDetJ);
          }
          myIntegrationDataValid = true;
       }

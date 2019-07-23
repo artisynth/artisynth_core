@@ -62,7 +62,7 @@ RenderableComponentList<S> implements ScalableUnits {
       return myMaterial;
    }
 
-   public <T extends AxialMaterial> T setMaterial (T mat) {
+   public <T extends AxialMaterial> void setMaterial (T mat) {
       AxialMaterial oldMat = myMaterial;
       T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
@@ -73,7 +73,7 @@ RenderableComponentList<S> implements ScalableUnits {
       if (mce != null) {
          notifyParentOfChange (mce);
       }
-      return newMat;
+      //return newMat;
    }
 
    /* ======== Renderable implementation ======= */

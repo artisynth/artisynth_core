@@ -108,7 +108,7 @@ public abstract class FemElement extends RenderableComponentBase
       return myMaterial;
    }
 
-   public <T extends FemMaterial> T setMaterial (T mat) {
+   public <T extends FemMaterial> void setMaterial (T mat) {
       FemMaterial oldMat = getEffectiveMaterial();
       T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
@@ -122,7 +122,7 @@ public abstract class FemElement extends RenderableComponentBase
          }
          notifyParentOfChange (mce);
       }
-      return newMat;
+      //return newMat;
    }
 
    public FemMaterial getEffectiveMaterial () {

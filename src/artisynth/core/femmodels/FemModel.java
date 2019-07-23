@@ -296,7 +296,7 @@ public abstract class FemModel extends MechSystemBase
       }
    }
 
-   public <T extends FemMaterial> T setMaterial (T mat) {
+   public <T extends FemMaterial> void setMaterial (T mat) {
       if (mat == null) {
          throw new IllegalArgumentException (
             "Material not allowed to be null");
@@ -316,7 +316,7 @@ public abstract class FemModel extends MechSystemBase
       }      
       invalidateStressAndStiffness();
       invalidateRestData();  // added to invalidate cached linear data (mirrors property change event)
-      return newMat;
+      //return newMat;
    }
    
    public synchronized void setLinearMaterial (

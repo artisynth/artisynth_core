@@ -93,7 +93,7 @@ public abstract class PointSpringBase extends Spring
       setMaterial (new LinearAxialMaterial (k, d));
    }
    
-   public <T extends AxialMaterial> T setMaterial (T mat) {
+   public <T extends AxialMaterial> void setMaterial (T mat) {
       AxialMaterial oldMat = myMaterial;
       T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
@@ -111,7 +111,7 @@ public abstract class PointSpringBase extends Spring
       if (mce != null) {
          notifyParentOfChange (mce);
       }
-      return newMat;
+      //return newMat;
    }
 
    public AxialMaterial getEffectiveMaterial() {

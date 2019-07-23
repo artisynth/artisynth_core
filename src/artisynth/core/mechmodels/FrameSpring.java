@@ -310,7 +310,7 @@ public class FrameSpring extends Spring
       return myMaterial;
    }
    
-   public <T extends FrameMaterial> T setMaterial (T mat) {
+   public <T extends FrameMaterial> void setMaterial (T mat) {
       FrameMaterial oldMat = myMaterial;
       T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMaterial, mat);
@@ -321,7 +321,7 @@ public class FrameSpring extends Spring
       if (mce != null) {
          notifyParentOfChange (mce);
       }  
-      return newMat;
+      //return newMat;
    }
 
    public void setRotaryStiffness (double k) {

@@ -566,11 +566,11 @@ PointAttachable, ConnectableBody {
 
    /* --- Material Methods --- */
    
-   public <T extends FemMaterial> T setMaterial (T mat) {
+   public <T extends FemMaterial> void setMaterial (T mat) {
       mySoftIncompMethodValidP = false;
-      T newMat = super.setMaterial(mat);
+      /*T newMat=*/super.setMaterial(mat);
       updateSoftIncompMethod();
-      return newMat;
+      //return newMat;
    }
 
    public FemMaterial getElementMaterial (FemElement3dBase e) {

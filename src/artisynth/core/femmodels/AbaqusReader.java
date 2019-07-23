@@ -95,7 +95,7 @@ public class AbaqusReader implements FemReader {
          return strId;
       }
       private ElemType(int nNodes, String str) {
-         numNodes = 4;
+         numNodes = nNodes;
          strId = str;
       }
    }
@@ -246,12 +246,7 @@ public class AbaqusReader implements FemReader {
          Point3d pos = nodeMap.get (nodeId);
          
          FemNode3d node = new FemNode3d (pos);
-         if ((options & ZERO_BASED_NUMBERING) != 0) {
-            model.addNode (node);
-         }
-         else {
-            model.addNumberedNode (node, nodeId);
-         }
+         model.addNumberedNode (node, nodeId);
          
          // Store new node ID to match with element node IDs
          nodeIdMap.put (nodeId, node.getNumber ());
@@ -311,6 +306,7 @@ public class AbaqusReader implements FemReader {
       }
       else if (elem instanceof ShellElement3d) {
          if ((options & ZERO_BASED_NUMBERING) != 0) {
+            FemNode3d[] nodes = elem.getNodes();
             model.addShellElement ((ShellElement3d)elem);
          }
          else {
@@ -560,10 +556,10 @@ public class AbaqusReader implements FemReader {
                   
                   // determine type
                   String line = readLine(rtok);
-                  String type = parseKey("TYPE=", line);
+                  String type = parseKey("TYPE=", line).toUpperCase();
                   myElemType = ElemType.UNKNOWN;
                   for (ElemType et : ElemType.values()) {
-                     if (et.getString().equalsIgnoreCase(type)) {
+                     if (type.startsWith (et.getString())) {
                         myElemType = et;
                         break;
                      }

@@ -41,13 +41,15 @@ public class AbaqusWriter extends FemWriterBase {
       C3D8(8, "C3D8", HexElement.class),
       C3D10(10, "C3D10", QuadtetElement.class),
       C3D20(20, "C3D20", QuadhexElement.class),
+      S3(3, "S3", ShellTriElement.class),
+      S4(4, "S4", ShellQuadElement.class),
       UNKNOWN(0, "UNKNOWN");
       
       private int numNodes;
       private String strId;
-      private Class<? extends FemElement3d> myClass;
+      private Class<? extends FemElement3dBase> myClass;
       
-      public int getNumNodes() {
+      public int numNodes() {
          return numNodes;
       }
       public String getString() {
@@ -56,15 +58,17 @@ public class AbaqusWriter extends FemWriterBase {
       private ElemType(int nNodes, String str) {
          numNodes = 4;
          strId = str;
-         myClass = FemElement3d.class;
+         myClass = FemElement3dBase.class;
       }
-      private ElemType(int nNodes, String str, Class<? extends FemElement3d> cls) {
+
+      private ElemType(
+         int nNodes, String str, Class<? extends FemElement3dBase> cls) {
          numNodes = 4;
          strId = str;
          myClass = cls;
       }
       
-      public Class<? extends FemElement3d> getElemClass() {
+      public Class<? extends FemElement3dBase> getElemClass() {
          return myClass; 
       }
       

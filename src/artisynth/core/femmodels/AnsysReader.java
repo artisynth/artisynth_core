@@ -22,7 +22,7 @@ import maspack.util.ReaderTokenizer;
 import maspack.widgets.WidgetDialog;
 
 /**
- * A class to read an FEM described in the ANSYS file format.
+ * A class to read an FEM described in the Abaqus file format.
  */
 public class AnsysReader implements FemReader {
 

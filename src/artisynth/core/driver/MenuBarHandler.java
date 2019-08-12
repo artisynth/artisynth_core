@@ -104,11 +104,11 @@ import maspack.widgets.WidgetDialog;
  */
 
 public class MenuBarHandler implements 
-   ActionListener, ValueChangeListener, SchedulerListener, RenderListener,
-   ModelActionListener {
+ActionListener, ValueChangeListener, SchedulerListener, RenderListener,
+ModelActionListener {
    private Main myMain;
    private MainFrame myFrame;
-   
+
    protected ArtisynthModelMenu myModelsMenuGenerator;  // generates models menu
 
    public static final int MAX_MENU_ROWS = 20; // change to grid layout if larger
@@ -387,9 +387,9 @@ public class MenuBarHandler implements
       myFrame.setJMenuBar(myMenuBar);
       myFrame.add(myToolBar, BorderLayout.NORTH);
    }
-   
+
    private JMenu createScriptsMenu(String title) {
-      
+
       String[] scriptNames = myMain.getScriptNames();
       scriptMenuItems = new JMenuItem[scriptNames.length];
       JMenu menu = null;
@@ -397,28 +397,28 @@ public class MenuBarHandler implements
          menu = new JMenu(title);
          VerticalGridLayout scriptGrid = new VerticalGridLayout(20, 0);
          menu.getPopupMenu().setLayout(scriptGrid);
-   
+
          for (int i = 0; i < scriptNames.length; i++) {
             JMenuItem item = makeMenuItem(scriptNames[i], scriptNames[i]);
             item.setToolTipText(myMain.getScriptName(scriptNames[i]));
             menu.add(item);
             scriptMenuItems[i] = item;
          }
-         
+
          // separator before load
          menu.add(new JSeparator());
-        
+
       } else {
          menu = new JMenu(title); // empty
       }
-      
+
       // load from file dialog
       JMenuItem loadItem = makeMenuItem("Load script...", "load script from file");
       menu.add(loadItem);
-      
+
       return menu;
    }
-   
+
    /**
     * Reads the demo menu stuff
     */
@@ -439,14 +439,14 @@ public class MenuBarHandler implements
             return modelsMenu;
          } catch (Exception e) {
             System.out.println ("Warning: error reading demosMenuFile: "
-               + filename);
+            + filename);
             System.out.println (e.getMessage());
             modelsMenu = null;
          }
       }
       return modelsMenu;
    }
-   
+
    private void populateModelMenu(ArtisynthModelMenu generator, JMenu menu) {
       // clear
       menu.removeAll();
@@ -459,23 +459,23 @@ public class MenuBarHandler implements
          demoTable.addEntry(entry.getKey(), entry.getValue());
       }
    }
-   
+
    private class BackgroundModelMenuThread extends Thread {
-      
+
       JMenu menu;
       File menuFile;
-      
+
       public BackgroundModelMenuThread(File menuFile, JMenu menu) {
          super("ModelMenu Loader");
          this.menuFile = menuFile;
          this.menu = menu;
       }
-      
+
       @Override
       public void run() {
          if (menuFile != null && menuFile.exists()) {
             ArtisynthModelMenu generator = readDemoMenu(menuFile.getAbsolutePath());
-            
+
             // XXX only replace menu if it differs from current menu
             if (myModelsMenuGenerator == null || !generator.getMenuTree().equalsTree(myModelsMenuGenerator.getMenuTree())) {
                populateModelMenu(generator, menu);
@@ -486,9 +486,9 @@ public class MenuBarHandler implements
             }
          }
       }
-      
+
    }
-   
+
    private File getMenuCacheFile(String menuFilename) {
       File cachedMenu = new File(ArtisynthPath.getCacheDir(), "/menu/" + menuFilename);
       return cachedMenu;
@@ -498,35 +498,42 @@ public class MenuBarHandler implements
 
       myModelsMenuGenerator = null;
       String menuFilename = myMain.getDemosMenuFilename();
-      
+
       File menuFile = ArtisynthPath.findFile(menuFilename);
-      
+
       // look for cached menu
-      File cachedMenu = getMenuCacheFile(menuFile.getName());
-      if (cachedMenu.exists()) {
-         // read and display cached version, real menu to be created in background
-         // file exists, so should be read correctly
-         myModelsMenuGenerator = readDemoMenu(cachedMenu.getAbsolutePath());
-         populateModelMenu(myModelsMenuGenerator, menu);
-         
-         // background thread to update menu later
-         if (menuFile != null && menuFile.exists()) {
-            BackgroundModelMenuThread thread = new BackgroundModelMenuThread(menuFile, menu);
-            thread.start();
+      if (menuFile != null) {
+         File cachedMenu = getMenuCacheFile(menuFile.getName());
+         if (cachedMenu.exists()) {
+            // read and display cached version, real menu to be created in background
+            // file exists, so should be read correctly
+            myModelsMenuGenerator = readDemoMenu(cachedMenu.getAbsolutePath());
+
+            if (myModelsMenuGenerator != null) {
+               populateModelMenu(myModelsMenuGenerator, menu);
+
+               // background thread to update menu later
+               if (menuFile != null && menuFile.exists()) {
+                  BackgroundModelMenuThread thread = new BackgroundModelMenuThread(menuFile, menu);
+                  thread.start();
+               }
+            }
+
+         } else {
+            // read and create menu now
+            if (menuFile != null && menuFile.exists()) {
+               myModelsMenuGenerator = readDemoMenu(menuFile.getAbsolutePath());
+            }
+
+            if (myModelsMenuGenerator != null) {
+               populateModelMenu(myModelsMenuGenerator, menu);
+               // save as cache
+               myModelsMenuGenerator.write(cachedMenu);
+            }
          }
-         
-      } else {
-         // read and create menu now
-         if (menuFile != null && menuFile.exists()) {
-            myModelsMenuGenerator = readDemoMenu(menuFile.getAbsolutePath());
-         }
-         populateModelMenu(myModelsMenuGenerator, menu);
-         // save as cache
-         myModelsMenuGenerator.write(cachedMenu);
-         
       }
    }
-   
+
    public void updateHistoryMenu() {
       ModelHistory hist = myMain.getModelHistory();
       myModelsMenuGenerator.updateHistoryNodes(hist, this);
@@ -670,7 +677,7 @@ public class MenuBarHandler implements
       RootModel root = myMain.getRootModel();
       int number = root.getControlPanels().nextComponentNumber();
       ControlPanel panel =
-         new ControlPanel("panel " + number, "LiveUpdate Close");
+      new ControlPanel("panel " + number, "LiveUpdate Close");
 
       GuiUtils.locateVertically(
          panel.getFrame(), myMain.getFrame(), GuiUtils.CENTER);
@@ -692,8 +699,8 @@ public class MenuBarHandler implements
          ControlPanel panel = null;
          try {
             panel =
-               (ControlPanel)ComponentUtils.loadComponent(
-                  file, root, ControlPanel.class);
+            (ControlPanel)ComponentUtils.loadComponent(
+               file, root, ControlPanel.class);
          } catch (Exception e) {
             showError("Error reading file: " + e.getMessage());
          }
@@ -750,7 +757,7 @@ public class MenuBarHandler implements
 
    private void doLoadProbes() {
       File probeFile =
-         selectFile("Load", null/* always select from working dir */);
+      selectFile("Load", null/* always select from working dir */);
       if (probeFile != null) {
          try {
             myMain.loadProbesFile(probeFile);
@@ -763,7 +770,7 @@ public class MenuBarHandler implements
 
    private File selectProbeDir(String approveMsg, File existingFile) {
       JFileChooser chooser =
-         new JFileChooser(myMain.getProbeDirectory());
+      new JFileChooser(myMain.getProbeDirectory());
       chooser.setApproveButtonText(approveMsg);
       chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
       int retval;
@@ -781,7 +788,7 @@ public class MenuBarHandler implements
          File probesFile = new File(dir, "probeInfo.art");
          if (!probesFile.isFile() || !probesFile.canRead()) {
             showError("File 'probeInfo.art' does not exist or " +
-               "cannot be read in chosen directory");
+            "cannot be read in chosen directory");
             dir = null;
          }
       }
@@ -902,7 +909,7 @@ public class MenuBarHandler implements
          String[] fmts = ImageIO.getWriterFormatNames();
          for (String fmt : fmts) {
             ExtensionFileFilter filter = 
-               new ExtensionFileFilter("." + fmt + " files", fmt);
+            new ExtensionFileFilter("." + fmt + " files", fmt);
             chooser.addChoosableFileFilter(filter);
          }
 
@@ -912,7 +919,7 @@ public class MenuBarHandler implements
       int returnVal = chooser.showSaveDialog(myFrame);
       if (returnVal == JFileChooser.APPROVE_OPTION) {
          ExtensionFileFilter filter =
-            (ExtensionFileFilter)chooser.getFileFilter();
+         (ExtensionFileFilter)chooser.getFileFilter();
          String ext = filter.getExtensions()[0];
          File file = chooser.getSelectedFile();
 
@@ -923,11 +930,11 @@ public class MenuBarHandler implements
          int confirmation = JOptionPane.YES_OPTION;
          if (file.exists()) {
             confirmation =
-               JOptionPane.showConfirmDialog(
-                  myFrame, "File " + file.getName()
-                  + " aleady exists. Proceed?",
-                  "Confirm", JOptionPane.YES_NO_OPTION,
-                  JOptionPane.QUESTION_MESSAGE);
+            JOptionPane.showConfirmDialog(
+               myFrame, "File " + file.getName()
+               + " aleady exists. Proceed?",
+               "Confirm", JOptionPane.YES_NO_OPTION,
+               JOptionPane.QUESTION_MESSAGE);
          }
          if (confirmation == JOptionPane.YES_OPTION) {
             GLViewer viewer = myMain.getViewer();
@@ -1020,15 +1027,15 @@ public class MenuBarHandler implements
       // ClassDialog.createDialog (
       // myFrame, "Choose model class", "Load", "class", existingClassName);
       WidgetDialog dialog =
-         WidgetDialog.createDialog(
-            myFrame, "Choose model class", "Load");
+      WidgetDialog.createDialog(
+         myFrame, "Choose model class", "Load");
 
       // find all instances of 'RootModel' and create an AutoComplete test field
       ArrayList<String> demoClassNames =
-         ClassFinder.findClassNames("artisynth.models", RootModel.class);
+      ClassFinder.findClassNames("artisynth.models", RootModel.class);
       AutoCompleteStringField widget =
-         new AutoCompleteStringField(
-            "class:", lastSelectedClassName, 30, demoClassNames);
+      new AutoCompleteStringField(
+         "class:", lastSelectedClassName, 30, demoClassNames);
 
       // widget.addValueCheckListener (
       // new ValueCheckListener() {
@@ -1181,11 +1188,11 @@ public class MenuBarHandler implements
 
    private void openMouseSettingsDialog() {
       MouseSettingsDialog dialog =
-         new MouseSettingsDialog (
-            "Mouse settings", 
-            myMain.getMouseBindings(),
-            myMain.getAllMouseBindings(),
-            myMain.getMouseWheelZoomScale());
+      new MouseSettingsDialog (
+         "Mouse settings", 
+         myMain.getMouseBindings(),
+         myMain.getAllMouseBindings(),
+         myMain.getMouseWheelZoomScale());
       GuiUtils.locateRight(dialog, myFrame);
       myMain.registerWindow (dialog);
       dialog.addValueChangeListener (this);
@@ -1197,7 +1204,7 @@ public class MenuBarHandler implements
          PullController pc = myMain.getPullController();
          PropertyPanel panel = new PropertyPanel();
          PropertyDialog dialog =
-            new PropertyDialog("PullController properties", panel, "OK");
+         new PropertyDialog("PullController properties", panel, "OK");
          dialog.addWidget(pc, "stiffness");
          dialog.locateRight(myMain.getFrame());
          //dialog.setSynchronizeObject(myMain.getRootModel());
@@ -1219,7 +1226,7 @@ public class MenuBarHandler implements
          LinkedList<HasProperties> list = new LinkedList<HasProperties>();
          list.add(pc);
          RenderPropsDialog dialog =
-            new RenderPropsDialog("Edit render properties", list);
+         new RenderPropsDialog("Edit render properties", list);
          dialog.locateRight(myMain.getFrame());
          //dialog.setSynchronizeObject(myMain.getRootModel());
          dialog.setTitle("RenderProps for PullController");
@@ -1261,8 +1268,8 @@ public class MenuBarHandler implements
          myFrame.setBaseTitle("Artisynth " + mi.getShortName());
       }
    }
-   
- 
+
+
    /**
     * action performed to process all the menu and button actions in this class
     */
@@ -1280,7 +1287,7 @@ public class MenuBarHandler implements
     */
    public void actionPerformed(ActionEvent event) {
       String cmd = event.getActionCommand();
-      
+
       //
       // Scripts menu
       if (isScriptMenuItem(event.getSource())) {
@@ -1289,7 +1296,7 @@ public class MenuBarHandler implements
       } else if (cmd.equals("load script from file")) {
          JFileChooser fileChooser = new JFileChooser();
          fileChooser.setCurrentDirectory(ArtisynthPath.getWorkingDir());
-         
+
          FileFilter jythonFilter = new GenericFileFilter(new String[]{"py", "jy"}, "Jython files") ;
          fileChooser.addChoosableFileFilter(jythonFilter);
          fileChooser.setFileFilter(jythonFilter);
@@ -1297,7 +1304,7 @@ public class MenuBarHandler implements
          if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
             runScript(selectedFile.getAbsolutePath());
-        }
+         }
       }
       //
       // Models menu
@@ -1432,12 +1439,12 @@ public class MenuBarHandler implements
       else if (cmd.equals("Disable articulated transforms")) {
          myMain.setArticulatedTransformsEnabled(false);
       }
-//      else if (cmd.equals("Enable GL_SELECT selection")) {
-//         GL2Viewer.enableGLSelectSelection (true);
-//      }
-//      else if (cmd.equals("Disable GL_SELECT selection")) {
-//         GL2Viewer.enableGLSelectSelection (false);
-//      }
+      //      else if (cmd.equals("Enable GL_SELECT selection")) {
+      //         GL2Viewer.enableGLSelectSelection (true);
+      //      }
+      //      else if (cmd.equals("Disable GL_SELECT selection")) {
+      //         GL2Viewer.enableGLSelectSelection (false);
+      //      }
       else if (cmd.equals("PullController properties ...")) {
          showPullControllerPropertyDialog();
       }
@@ -1476,7 +1483,7 @@ public class MenuBarHandler implements
          setJythonConsoleVisible(true);
       }
       else if (cmd.equals("Show Inverse panel")) {
-          myMain.getInverseManager().showInversePanel(myMain.getRootModel (), InverseManager.findInverseController ());
+         myMain.getInverseManager().showInversePanel(myMain.getRootModel (), InverseManager.findInverseController ());
       }
       else if (cmd.equals("Hide Inverse panel")) {
          myMain.getInverseManager().hideInversePanel();
@@ -1507,8 +1514,8 @@ public class MenuBarHandler implements
       }
       else if (cmd.equals("Remove traces")) {
          RemoveComponentsCommand rmCmd =
-            new RemoveComponentsCommand(
-               "remove traces", myMain.getRootModel().getTracingProbes());
+         new RemoveComponentsCommand(
+            "remove traces", myMain.getRootModel().getTracingProbes());
          myMain.getUndoManager().saveStateAndExecute(rmCmd);
          myMain.rerender();
       }
@@ -1609,7 +1616,7 @@ public class MenuBarHandler implements
    private static String protectWindowsSlashes(String filename) {
       StringBuilder out = new StringBuilder();
       char[] chars = filename.toCharArray();
-      
+
       for (int idx=0; idx <chars.length; idx++) {
          if (chars[idx] == '\\' ) {
             out.append("\\\\");  // double it up
@@ -1627,7 +1634,7 @@ public class MenuBarHandler implements
    public void runScript(String scriptName) {
       runScript(scriptName, null);
    }
-   
+
    public void runScript(String scriptName, String[] args) {
       setJythonConsoleVisible(true);
       File[] files = ArtisynthPath.findFiles(scriptName);
@@ -1704,7 +1711,7 @@ public class MenuBarHandler implements
    public void attachViewerToolbar(JPanel panel) {
       if (myViewerToolBar == null) {
          myViewerToolBar = 
-            new ViewerToolBar (getMainViewer(), /*allowGridDisplay=*/false);
+         new ViewerToolBar (getMainViewer(), /*allowGridDisplay=*/false);
       }
       myViewerToolBar.setOrientation(JToolBar.VERTICAL);
       panel.add(myViewerToolBar, BorderLayout.SOUTH);
@@ -1712,7 +1719,7 @@ public class MenuBarHandler implements
       panel.repaint();
       myViewerToolBar.setVisible(true);
    }
-   
+
    public void clearClipPlaneControls() {
       myViewerToolBar.clearClipPlanes ();
    }
@@ -1752,9 +1759,9 @@ public class MenuBarHandler implements
          }
       };
       JDialog dialog =
-         JColorChooser.createDialog(
-            myFrame, "color chooser", /* modal= */true, colorChooser,
-            setBColor, setBColor);
+      JColorChooser.createDialog(
+         myFrame, "color chooser", /* modal= */true, colorChooser,
+         setBColor, setBColor);
       GuiUtils.locateRight(dialog, myFrame);
       dialog.setVisible(true);
    }
@@ -1777,9 +1784,9 @@ public class MenuBarHandler implements
          }
       };
       JDialog dialog =
-         JColorChooser.createDialog(
-            myFrame, "color chooser", /* modal= */true, colorChooser,
-            setSColor, setSColor);
+      JColorChooser.createDialog(
+         myFrame, "color chooser", /* modal= */true, colorChooser,
+         setSColor, setSColor);
       GuiUtils.locateRight(dialog, myFrame);
       dialog.setVisible(true);
    }
@@ -1837,7 +1844,7 @@ public class MenuBarHandler implements
       if ((myGridDisplay != null) != gridOn) {
          if (gridOn) {
             myGridDisplay =
-               GridDisplay.createAndAdd (grid, myToolBar, myGridDisplayIndex);
+            GridDisplay.createAndAdd (grid, myToolBar, myGridDisplayIndex);
          }
          else {
             GridDisplay.removeAndDispose (
@@ -1984,7 +1991,7 @@ public class MenuBarHandler implements
       else {
          addMenuItem(menu, "Enable selection highlighting");
       }
-      
+
       addMenuItem(menu, "Visual display rate");
       addMenuItem(menu, "Real-time scaling");
 
@@ -2002,12 +2009,12 @@ public class MenuBarHandler implements
          addMenuItem(menu, "Enable articulated transforms");
       }
 
-//      if (GL2Viewer.isGLSelectSelectionEnabled()) {
-//         addMenuItem(menu, "Disable GL_SELECT selection");
-//      }
-//      else {
-//         addMenuItem(menu, "Enable GL_SELECT selection");
-//      }
+      //      if (GL2Viewer.isGLSelectSelectionEnabled()) {
+      //         addMenuItem(menu, "Disable GL_SELECT selection");
+      //      }
+      //      else {
+      //         addMenuItem(menu, "Enable GL_SELECT selection");
+      //      }
 
       addMenuItem(menu, "Mouse Preferences ...");
 

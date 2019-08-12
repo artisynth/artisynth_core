@@ -464,8 +464,8 @@ public class CVReconstruction3dTest {
          Vector4d W = new Vector4d(Y.x, Y.y, Y.z, 1);
          
          X = CVReconstruction3d.homogeneousReconstruction (P1, P2, y1, y2);
-         if (X.get (3) != 0) {
-            X.scale(1.0/X.get (3));
+         if (X.w != 0) {
+            X.scale(1.0/X.w);
             if (!X.epsilonEquals (W, 1e-10)) {
                throw new TestException ("Invalid point reconstruction");
             }

@@ -16,9 +16,11 @@ public class URIxScheme {
    
    public static final URIxScheme GZ = createScheme("gz", ZIP_TYPE);
    public static final URIxScheme BZ2 = createScheme("bz2", ZIP_TYPE);
+   public static final URIxScheme TAR = createScheme("tar", ZIP_TYPE);
    public static final URIxScheme TGZ = createScheme("tgz", ZIP_TYPE);
    public static final URIxScheme TBZ2 = createScheme("tbz2", ZIP_TYPE);
    public static final URIxScheme ZIP = createScheme("zip", ZIP_TYPE);
+   public static final URIxScheme JAR = createScheme("jar", ZIP_TYPE);
    public static final URIxScheme FILE = createScheme("file", 0);
    public static final URIxScheme HTTP = createScheme("http", 0);
    public static final URIxScheme HTTPS = createScheme("https", 0);
@@ -70,9 +72,10 @@ public class URIxScheme {
       URIxScheme scheme = null;
       synchronized(schemeMap) {
          scheme = schemeMap.get(str);
-         if (scheme == null) {
-            scheme = createScheme(str, 0, new String[]{str});
-         }
+         //  XXX do not create scheme by default
+         //         if (scheme == null) {
+         //            scheme = createScheme(str, 0, new String[]{str});
+         //         }
       }
       return scheme;
    }

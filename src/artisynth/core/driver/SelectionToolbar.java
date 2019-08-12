@@ -39,7 +39,7 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
    // private JButton articulatedTransformButton;
    // private ImageIcon articulatedTransformsEnabledIcon;
    // private ImageIcon articulatedTransformsDisabledIcon;
-   // private JButton addMarkerButton;
+   private JButton addMarkerButton;
    private Main main;
    private ThinBevelBorder thinBevelBorder;
    private BevelBorder bevelBorder;
@@ -90,6 +90,9 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
       scaleButton = createButton (
          "scale", "ToolScaleLarge.png",
          "select and scale components");
+      addMarkerButton = createButton(
+         "addMarker", "ToolAddMarkerLarge.png", 
+         "add marker to component");
       pullButton = createButton (
          "pull", "ToolPullLarge.png",
          "select and pull components");
@@ -100,7 +103,6 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
       //    GuiUtils.loadIcon (iconPath + "ArticulatedTransformsEnabled.png");
       // articulatedTransformsDisabledIcon =
       //    GuiUtils.loadIcon (iconPath + "ArticulatedTransformsDisabled.png");
-      // addMarkerButton = createButton("addMarker", "Circle.gif");
       thinBevelBorder = new ThinBevelBorder (BevelBorder.LOWERED);
       bevelBorder = new BevelBorder (BevelBorder.LOWERED);
       border = selectButton.getBorder();
@@ -150,6 +152,8 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
          main.setSelectionMode (Main.SelectionMode.Rotate);
       else if (e.getSource() == constrainedTranslateButton)
          main.setSelectionMode (Main.SelectionMode.ConstrainedTranslate);
+      else if (e.getSource () == addMarkerButton)
+         main.setSelectionMode (Main.SelectionMode.AddMarker);
       else if (e.getSource() == pullButton)
          main.setSelectionMode (Main.SelectionMode.Pull);
    }
@@ -165,9 +169,9 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
       selectionButtons.add (translateButton);
       selectionButtons.add (rotateButton);
       selectionButtons.add (constrainedTranslateButton);
+      selectionButtons.add (addMarkerButton);
       selectionButtons.add (pullButton);
       //selectionButtons.add (articulatedTransformButton);
-      // selectionButtons.add(addMarkerButton);
 
       // get the button that is currently selected
       SelectionMode mode = main.getSelectionMode();
@@ -200,6 +204,10 @@ public class SelectionToolbar extends JToolBar implements ActionListener {
          }
          case ConstrainedTranslate: {
             selectedButton = constrainedTranslateButton;
+            break;
+         }
+         case AddMarker: {
+            selectedButton = addMarkerButton;
             break;
          }
          case Pull: {

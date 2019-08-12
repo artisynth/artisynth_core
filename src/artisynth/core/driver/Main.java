@@ -24,8 +24,8 @@ import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URLClassLoader;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -63,10 +63,12 @@ import artisynth.core.mechmodels.CollisionManager;
 import artisynth.core.mechmodels.CollisionManager.ColliderType;
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.HasSurfaceMesh;
 import artisynth.core.mechmodels.MechSystem;
 import artisynth.core.mechmodels.MechSystemBase;
 import artisynth.core.mechmodels.MechSystemSolver;
 import artisynth.core.mechmodels.MechSystemSolver.PosStabilization;
+import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentChangeListener;
@@ -79,7 +81,6 @@ import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.OrientedTransformableGeometry;
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.ScanWriteUtils;
-import artisynth.core.modelbase.StructureChangeEvent;
 import artisynth.core.modelbase.TransformableGeometry;
 import artisynth.core.moviemaker.MovieMaker;
 import artisynth.core.probes.NumericProbeBase;
@@ -90,6 +91,7 @@ import artisynth.core.util.ArtisynthIO;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ClassAliases;
 import artisynth.core.util.MatlabInterface;
+import artisynth.core.workspace.AddMarkerTool;
 import artisynth.core.workspace.DriverInterface;
 import artisynth.core.workspace.PullController;
 import artisynth.core.workspace.RenderProbe;
@@ -116,7 +118,6 @@ import maspack.render.RotatableScaler3d;
 import maspack.render.Rotator3d;
 import maspack.render.Translator3d;
 import maspack.render.Transrotator3d;
-import maspack.render.GL.GLMouseAdapter;
 import maspack.render.GL.GLSupport;
 import maspack.render.GL.GLSupport.GLVersionInfo;
 import maspack.render.GL.GLViewer;
@@ -134,8 +135,6 @@ import maspack.widgets.PropertyWindow;
 import maspack.widgets.RenderPropsDialog;
 import maspack.widgets.ViewerKeyListener;
 import maspack.widgets.ViewerToolBar;
-import maspack.widgets.MouseBindings;
-import maspack.widgets.MouseBindings.MouseAction;
 
 /**
  * the main class for artisynth
@@ -215,7 +214,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
       ConstrainedTranslate,
       Transrotate,
       Pull,
-      AddComponent
+      AddComponent, 
+      AddMarker
    }
 
    /** 
@@ -702,6 +702,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          myFrame.getGLPanel().setSize (width, height);
 
          myPullController = new PullController (mySelectionManager);
+         myAddMarkerHandler = new AddMarkerTool (mySelectionManager);
       }
       createWorkspace();
    }
@@ -1222,6 +1223,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
          rootModel.removeController (myPullController); // 
          rootModel.dispose();
       }
+      myAddMarkerHandler.setDefaultHandler ();  // reset handler to default
       mySelectionManager.clearSelections();
       myUndoManager.clearCommands();
       myWorkspace.removeDisposables();
@@ -2906,6 +2908,12 @@ public class Main implements DriverInterface, ComponentChangeListener {
       return myPullController;
    }
 
+   private AddMarkerTool myAddMarkerHandler;
+   
+   AddMarkerTool getAddMarkerHandler() {
+      return myAddMarkerHandler;
+   }
+
    Cursor getDefaultCursor() {
       return Cursor.getDefaultCursor();
    }
@@ -2956,6 +2964,19 @@ public class Main implements DriverInterface, ComponentChangeListener {
             mySelectionManager.removeSelectionListener (myPullController);
             //myViewerManager.removeRenderable (myPullController);
             myViewerManager.removeMouseListener (myPullController);
+         }
+         if (selectionMode == SelectionMode.AddMarker) {
+            // switching into a marker selection ...
+            myViewerManager.setSelectOnPress (true);
+            myViewerManager.addMouseListener (myAddMarkerHandler);
+            mySelectionManager.clearSelections();
+            mySelectionManager.addSelectionListener (myAddMarkerHandler);
+         }
+         else if (mySelectionMode == SelectionMode.AddMarker) {
+            // switching out of a marker selection ...
+            myViewerManager.setSelectOnPress (false);
+            mySelectionManager.removeSelectionListener (myAddMarkerHandler);
+            myViewerManager.removeMouseListener (myAddMarkerHandler);
          }
          if (selectionMode == SelectionMode.EllipticSelect) {
             myViewerManager.setEllipticSelection (true);
@@ -3233,6 +3254,7 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
       if (mySelectionMode != SelectionMode.Select &&
           mySelectionMode != SelectionMode.EllipticSelect &&
+          mySelectionMode != SelectionMode.AddMarker &&
           mySelectionMode != SelectionMode.Pull) {
          Point3d pmin = new Point3d (inf, inf, inf);
          Point3d pmax = new Point3d (-inf, -inf, -inf);
@@ -3295,9 +3317,30 @@ public class Main implements DriverInterface, ComponentChangeListener {
                      Frame frame = frameMarker.getFrame();
 
                      if (frame instanceof RigidBody) {
-                        mesh = ((RigidBody)frame).getMesh();
+                        mesh = ((RigidBody)frame).getSurfaceMesh();
                      }
                      break;
+                  }
+               }
+               
+               if (mesh == null) {
+                  // no framemarkers, look for anything else attached to a mesh
+                  for (ModelComponent sel : mySelectionManager.getCurrentSelection()) {
+                     
+                     // look for a HasSurfaceMesh parent
+                     ModelComponent parent = sel.getParent ();
+                     while (parent != null && !(parent instanceof HasSurfaceMesh)) {
+                        parent = parent.getParent ();
+                     }
+                     
+                     if (parent != null) {
+                        HasSurfaceMesh sm = (HasSurfaceMesh)parent;
+                        mesh = sm.getSurfaceMesh ();
+                        
+                        if (sel instanceof Point) {
+                           constrainedTranslator3d.setLocation (((Point)sel).getPosition ());
+                        }                  
+                     }
                   }
                }
 

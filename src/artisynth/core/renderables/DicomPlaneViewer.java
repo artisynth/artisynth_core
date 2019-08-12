@@ -8,17 +8,16 @@
 package artisynth.core.renderables;
 
 import java.awt.Color;
+import java.util.ArrayList;
 
+import artisynth.core.mechmodels.MeshInfo;
 import artisynth.core.modelbase.ModelComponentBase;
-import artisynth.core.modelbase.RenderableComponentBase;
 import artisynth.core.modelbase.TransformGeometryContext;
-import artisynth.core.modelbase.TransformableGeometry;
 import maspack.geometry.GeometryTransformer;
+import maspack.geometry.PolygonalMesh;
 import maspack.image.dicom.DicomImage;
 import maspack.image.dicom.DicomPixelInterpolator;
 import maspack.image.dicom.DicomPlaneTextureContent;
-import maspack.matrix.AffineTransform3d;
-import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Point2d;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
@@ -28,29 +27,25 @@ import maspack.properties.PropertyList;
 import maspack.render.ColorMapProps;
 import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
-import maspack.render.RenderObject;
 import maspack.render.RenderProps;
-import maspack.render.Renderer;
 import maspack.render.Renderer.ColorMixing;
-import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.Shading;
 import maspack.util.IntegerInterval;
 import maspack.util.StringRange;
 
-public class DicomPlaneViewer extends RenderableComponentBase implements TransformableGeometry {
+public class DicomPlaneViewer extends TexturePlaneBase {
 
    DicomImage myImage;
    DicomPlaneTextureContent texture;
+   PolygonalMesh imageMesh;
+   MeshInfo imageMeshInfo;
+   
+   Vector2d widths;
 
    public static PropertyList myProps = new PropertyList(
-      DicomPlaneViewer.class, RenderableComponentBase.class);
+      DicomPlaneViewer.class, TexturePlaneBase.class);
    
    static {
-      myProps.add(
-         "renderProps * *", "render properties for this component",
-         createDefaultRenderProps());
-      myProps.add("location * *", "coordinate transform for centre of plane", 
-         new RigidTransform3d(RigidTransform3d.IDENTITY));
       myProps.add("size * *", "plane size", null);
       // myProps.add("resolution * *", "x and y resolution of image texture", null);
       myProps.add("timeIndex * *", "time coordinate", 0);
@@ -65,11 +60,6 @@ public class DicomPlaneViewer extends RenderableComponentBase implements Transfo
    public static RenderProps createDefaultRenderProps() {
       return new LineRenderProps();
    }
-   
-   RenderObject robj;
-   boolean robjValid;
-   RigidTransform3d location;
-   Vector2d widths;
    
    /**
     * Creates a new image-plane viewer widget, with supplied name and DICOM image
@@ -99,15 +89,20 @@ public class DicomPlaneViewer extends RenderableComponentBase implements Transfo
    private void init(String name, DicomImage image, RigidTransform3d loc, Vector2d widths) {
       setName(ModelComponentBase.makeValidName(name));
       myRenderProps = createRenderProps();
-      robj = null;
-      robjValid = false;
       
-      location = loc.copy();
       this.widths = widths.clone();
       
       myImage = image;
       texture = new DicomPlaneTextureContent (image, loc, widths);
       myRenderProps.getColorMap ().setContent (texture);
+      
+      imageMesh = buildImageMesh ();
+      updateImageWidths (widths);
+      imageMeshInfo = new MeshInfo();
+      imageMeshInfo.set (imageMesh);
+      imageMesh.setMeshToWorld (getPose());
+      
+      setPose(loc);
       
    }
    
@@ -128,6 +123,16 @@ public class DicomPlaneViewer extends RenderableComponentBase implements Transfo
     */
    public DicomImage getImage() {
       return myImage;
+   }
+   
+   @Override
+   protected PolygonalMesh getImageMesh () {
+      return imageMesh;
+   }
+   
+   @Override
+   protected MeshInfo getImageMeshInfo () {
+      return imageMeshInfo;
    }
  
    /**
@@ -156,71 +161,73 @@ public class DicomPlaneViewer extends RenderableComponentBase implements Transfo
    public void prerender(RenderList list) {
       super.prerender(list);
       texture.prerender ();
-      maybeUpdateRenderObject();
    }
    
-   protected RenderObject buildRenderObject() {
-      RenderObject robj = new RenderObject();
+   protected PolygonalMesh buildImageMesh() {
+      
+      PolygonalMesh mesh = new PolygonalMesh();
       
       float[][] coords = {{-0.5f, -0.5f}, {-0.5f, 0.5f}, {0.5f, 0.5f}, {0.5f, -0.5f}};
       
       // xy-slice
       Point2d[] texcoords = texture.getTextureCoordinates ();
-      robj.addNormal (0, 0, 1);
+       
       for (int i=0; i<4; ++i) {
-         robj.addPosition (coords[i][0], coords[i][1], 0);
-         robj.addTextureCoord (texcoords[i]);
-         robj.addVertex ();
+         mesh.addVertex (coords[i][0], coords[i][1], 0);
       }
-      robj.createTriangleGroup ();
-      robj.addTriangle (0, 1, 2);
-      robj.addTriangle (0, 2, 3);
+      mesh.addFace (new int[]{0,1,2});
+      mesh.addFace (new int[]{0,2,3});
       
-      return robj;
-   }
-   
-   private boolean maybeUpdateRenderObject() {
-      
-      boolean modified = false;
-      if (robj == null) {
-         robj = buildRenderObject ();
-         modified = true;
+      // add normals
+      int[] idx = mesh.createFeatureIndices ();
+      for (int i=0; i<idx.length; ++i) {
+         idx[i] = 0;
       }
-      robjValid = true;
-      return modified;
-   }
+      ArrayList<Vector3d> normals = new ArrayList<>(1);
+      normals.add (new Vector3d(0,0,1));
+      mesh.setNormals (normals, idx);
+      
+      // add texture coordinates
+      idx = mesh.createVertexIndices ();
+      ArrayList<Vector3d> tcoords = new ArrayList<>();
+      for (int i=0; i<4; ++i) {
+         tcoords.add (new Vector3d(texcoords[i].x, texcoords[i].y, 0));
+      }
+      mesh.setTextureCoords (tcoords, idx);
+      
+      return mesh;
+   }   
    
-   
-   @Override
-   public synchronized void render(Renderer renderer, int flags) {
-      
-      RenderProps rprops = getRenderProps();
-      
-      renderer.pushModelMatrix ();
-      
-      // adjust for widths and location
-      renderer.mulModelMatrix(location);
-      AffineTransform3d scaling = new AffineTransform3d();
-      scaling.applyScaling(widths.x, widths.y, 1);
-      renderer.mulModelMatrix(scaling);
-     
-      ColorMapProps oldColorMap = renderer.setColorMap (rprops.getColorMap ());
-      FaceStyle oldFaceStyle = renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
-      Shading oldShading = renderer.setShading (rprops.getShading ());
-      
-      if (!renderer.isSelecting()) {
-         renderer.setFaceColoring (rprops, isSelected());
-      }      
-      
-      
-      renderer.drawTriangles (robj, 0);
-      
-      renderer.setShading (oldShading);
-      renderer.setFaceStyle (oldFaceStyle);
-      renderer.setColorMap (oldColorMap);
-      
-      renderer.popModelMatrix ();
-   }
+//   @Override
+//   public synchronized void render(Renderer renderer, int flags) {
+//      
+//      RenderProps rprops = getRenderProps();
+//      
+//      renderer.pushModelMatrix ();
+//      
+//      // adjust for widths and location
+//      renderer.mulModelMatrix(getPose());
+//      AffineTransform3d scaling = new AffineTransform3d();
+//      scaling.applyScaling(widths.x, widths.y, 1);
+//      renderer.mulModelMatrix(scaling);
+//     
+//      ColorMapProps oldColorMap = renderer.setColorMap (rprops.getColorMap ());
+//      FaceStyle oldFaceStyle = renderer.setFaceStyle (FaceStyle.FRONT_AND_BACK);
+//      Shading oldShading = renderer.setShading (rprops.getShading ());
+//      
+//      if (!renderer.isSelecting()) {
+//         renderer.setFaceColoring (rprops, isSelected());
+//      }      
+//      
+//      
+//      renderer.drawTriangles (robj, 0);
+//      
+//      renderer.setShading (oldShading);
+//      renderer.setFaceStyle (oldFaceStyle);
+//      renderer.setColorMap (oldColorMap);
+//      
+//      renderer.popModelMatrix ();
+//   }
    
    /**
     * @return the current pixel interpolator
@@ -237,39 +244,16 @@ public class DicomPlaneViewer extends RenderableComponentBase implements Transfo
    }
    
    @Override
-   public void updateBounds(Vector3d pmin, Vector3d pmax) {
-      super.updateBounds(pmin, pmax);
-      
-      // update from corners
-      float[][] coords = {{-0.5f, -0.5f}, {-0.5f, 0.5f}, {0.5f, 0.5f}, {0.5f, -0.5f}};
-      for (int i=0; i<coords.length; ++i) {
-         Point3d p = new Point3d(widths.x*coords[i][0], widths.y*coords[i][1],0);
-         p.transform(location);
-         p.updateBounds(pmin, pmax);
-      }
-      
-   }
-   
-   @Override
    public boolean isSelectable() {
       return true;
    }
    
-   /**
-    * @return a copy of the plane's current centre location/orientation
-    */
-   public RigidTransform3d getLocation() {
-      return location.copy();
-   }
-   
-   /**
-    * Sets the current location of the center of the plane
-    *
-    * @param trans plane location transform
-    */
-   public void setLocation(RigidTransform3d trans) {
-      texture.setLocation(trans);
-      location.set(trans);
+   protected void updateImageWidths(Vector2d width) {
+      float[][] coords = {{-0.5f, -0.5f}, {-0.5f, 0.5f}, {0.5f, 0.5f}, {0.5f, -0.5f}};
+      for (int i=0; i<4; ++i) {
+         imageMesh.getVertex (i).setPosition (new Point3d(coords[i][0]*width.x, coords[i][1]*width.y, 0));
+      }
+      imageMesh.notifyVertexPositionsModified ();
    }
    
    /**
@@ -278,7 +262,9 @@ public class DicomPlaneViewer extends RenderableComponentBase implements Transfo
     */
    public void setSize(Vector2d widths) {
       texture.setWidths(widths);
+      // update surface widths
       this.widths.set(widths);
+      updateImageWidths(widths);
    }
    
    /**
@@ -337,22 +323,10 @@ public class DicomPlaneViewer extends RenderableComponentBase implements Transfo
    }
 
    @Override
-   public void transformGeometry(AffineTransform3dBase X) {
-      TransformGeometryContext.transform (this, X, 0);
-   }
-
-   @Override
    public void transformGeometry(
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-      gtr.transform(location);
-      texture.setLocation(location);
+      super.transformGeometry (gtr, context, flags);
+      texture.setLocation(getPose());
    }
-
-   @Override
-   public void addTransformableDependencies(
-      TransformGeometryContext context, int flags) {
-      // nothing
-   }
-   
    
 }

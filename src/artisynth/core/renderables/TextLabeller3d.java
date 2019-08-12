@@ -48,7 +48,6 @@ public class TextLabeller3d extends TextComponentBase {
    }
    private int nextLabelId = 0;
    
-   public static int defaultFontSize = 64;
    public static double defaultTextSize = 12.0;
    public static Point2d defaultTextOffset = new Point2d(0, 0);
    public static boolean defaultByReference = true;
@@ -61,9 +60,6 @@ public class TextLabeller3d extends TextComponentBase {
    ArrayList<LabelItem> myItems;
    
    static {
-      // change default font size
-      // PropertyDesc info = myProps.get("fontSize");
-      // info.setDefaultValue(defaultFontSize);
       PropertyDesc info = myProps.get("textSize");
       info.setDefaultValue(defaultTextSize);
       myProps.add("textOffset", "space to offset text", Point2d.ZERO);

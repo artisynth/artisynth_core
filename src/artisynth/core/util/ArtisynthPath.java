@@ -569,7 +569,7 @@ public class ArtisynthPath {
     *
     * 
     * @param classObj
-    * object used to deterine the class
+    * object used to determine the class
     * @param relpath
     * path relative to class's source directory
     * @return file path specified relative to the source directory

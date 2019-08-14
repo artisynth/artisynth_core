@@ -152,6 +152,22 @@ public class FileCacher {
       return cache(uri, cacheFile, null);
    }
 
+   public boolean exists(URIx uri) throws FileSystemException {
+      FileObject remoteFile = null; // will resolve next
+
+      // loop through authenticators until we either succeed or cancel
+      boolean cancel = false;
+      while (remoteFile == null && cancel == false) {
+         remoteFile = resolveRemote(uri);
+      }
+
+      if (remoteFile == null || !remoteFile.exists()) {
+         return false;
+      }
+      
+      return true;
+   }
+
    public File cache(URIx uri, File cacheFile, FileTransferMonitor monitor)
       throws FileSystemException {
 
@@ -159,10 +175,8 @@ public class FileCacher {
       File tmpCacheFile = new File(cacheFile.getAbsolutePath() + TMP_EXTENSION);
       URIx cacheURI = new URIx(cacheFile.getAbsoluteFile());
       URIx tmpCacheURI = new URIx(tmpCacheFile.getAbsoluteFile());
-      FileObject localTempFile =
-      manager.resolveFile(tmpCacheURI.toString(true));
-      FileObject localCacheFile =
-      manager.resolveFile(cacheURI.toString(true));
+      FileObject localTempFile = manager.resolveFile(tmpCacheURI.toString());
+      FileObject localCacheFile = manager.resolveFile(cacheURI.toString());
 
       FileObject remoteFile = null; // will resolve next
 

@@ -43,6 +43,7 @@ public class ArtisynthModelMenu {
       try {
          menuTree = DemoMenuParser.parseXML(menuFile.getAbsolutePath());
       } catch (IOException | ParserConfigurationException | SAXException e) {
+         System.err.println (e);
          return;
       }
       

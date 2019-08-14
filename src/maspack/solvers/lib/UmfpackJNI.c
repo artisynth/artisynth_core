@@ -1,6 +1,6 @@
 #include <jni.h>
 #include <umfpack.h>
-#include <maspack_solvers_UmfpackSolver.h>
+#include "maspack_solvers_UmfpackSolver.h"
 
 #include <iostream>
 

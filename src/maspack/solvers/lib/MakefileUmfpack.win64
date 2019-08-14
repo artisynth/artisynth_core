@@ -1,0 +1,65 @@
+# Makefile for creating native Umfpack library
+
+ROOT_DIR = ../../../..
+CLASS_ROOT_DIR = $(ROOT_DIR)/classes
+
+ifeq ($(UMFPACK_ROOT),)
+UMFPACK_ROOT := C:/Users/antonio/school/dev/artisynth/umfpack/suitesparse-metis-for-windows/build/install
+endif
+
+default: libs
+
+CC_COMP = g++
+C_COMP = gcc
+CC_INCS = -I"$(JAVA_HOME)/include/" -I"$(JAVA_HOME)/include/win32" -I"$(UMFPACK_ROOT)/include/suitesparse"
+
+CC_FLAGS += -static
+
+LIB_FLAGS += -shared -static -Wl,--add-stdcall-alias
+LIB_FLAGS += -L"$(UMFPACK_ROOT)/lib"
+
+
+JAVAH = javah
+JAVAHFLAGS += -classpath $(CLASS_ROOT_DIR)
+
+UMFPACK_VERSION = 5.7.6
+# UMFPACK_TARGET = UmfpackJNI.$(UMFPACK_VERSION).dll
+UMFPACK_TARGET = SolversUmfpack.dll
+
+# 64 bit architecture
+NATIVE_DIR = Windows64
+LIB_TARGET_DIR = $(ROOT_DIR)/lib/Windows64
+
+LIB_TARGETS = $(LIB_TARGET_DIR)/$(UMFPACK_TARGET)
+
+JNI_H_FILES = maspack_solvers_UmfpackSolver.h
+UMFPACK_OBJS = UmfpackJNI.o
+LDS_UMFPACK = -lumfpack -lsuitesparseconfig -lcholmod -lcolamd -lccolamd -lmetis -lamd -lcamd -lblas -llapack -lgfortran -lquadmath
+
+# Umfpack JNI and test programs
+
+maspack_solvers_UmfpackSolver.h: ../UmfpackSolver.java
+	$(JAVAH) $(JAVAHFLAGS) -classpath $(CLASS_ROOT_DIR) maspack.solvers.UmfpackSolver
+
+UmfpackJNI.o: maspack_solvers_UmfpackSolver.h UmfpackJNI.c
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) -c UmfpackJNI.c -o UmfpackJNI.o
+
+$(LIB_TARGET_DIR)/$(UMFPACK_TARGET): $(UMFPACK_OBJS) 
+	$(CC_COMP)  $(LIB_FLAGS) $(CC_FLAGS) -o $@ \
+	$(UMFPACK_OBJS) $(LDS_UMFPACK) 
+	
+.PHONY: umfpack
+umfpack:	$(LIB_TARGET_DIR)/$(UMFPACK_TARGET)
+
+depend:	$(JNI_H_FILES)
+
+clean::
+	rm -rf *.o
+
+libs:	$(LIB_TARGET_DIR)/$(UMFPACK_TARGET)
+
+install: $(LIB_TARGETS)
+	rsync -Ctrlgo $(LIB_TARGETS) $(WEB_LIB_URL)/$(NATIVE_DIR)
+	$(MAKE_HASHES_AND_FIX_PERMISSIONS)
+
+-include $(ROOT_DIR)/Makefile.base

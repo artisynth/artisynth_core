@@ -174,12 +174,12 @@ public class FileManager {
    /**
     * Sets default download directory, leaves source as null
     * 
-    * @param downloadPath
+    * @param downloadDir
     * the local path to save files to
     */
-   public FileManager (String downloadPath) {
+   public FileManager (File downloadDir) {
       init();
-      setDownloadDir(downloadPath);
+      setDownloadDir(downloadDir);
       setRemoteSource((URIx)null);
    }
 
@@ -242,7 +242,7 @@ public class FileManager {
       } else if (uri.isRelative()) {
          // assume File with current location as root
          String currPath = (new File("")).getAbsolutePath();
-         remoteSource = URIx.merge(new URIx(URIxScheme.FILE, null, currPath), uri);
+         remoteSource = URIx.resolve(new URIx(URIxScheme.FILE, null, currPath), uri);
       } else {
          remoteSource = new URIx(uri);
       }
@@ -322,7 +322,7 @@ public class FileManager {
 
       URIx uri = relURI;
       if (uri.isRelative()) {
-         uri = URIx.merge(remoteSource, uri);
+         uri = URIx.resolve(remoteSource, uri);
       }
       return uri;
 
@@ -361,11 +361,11 @@ public class FileManager {
 
       URIx merged = new URIx(base);
 
-      if (merged.isZip()) {
+      if (merged.isZipType()) {
          String fn = base.getFragment() + extension;
          merged.setFragment(fn);
       } else {
-         String fn = base.getPath(false) + extension;
+         String fn = base.getRawPath() + extension;
          merged.setPath(fn);
       }
 
@@ -544,7 +544,7 @@ public class FileManager {
       String fileName = null;
       if (uri == null) {
          return null;
-      } else if (uri.isZip()) {
+      } else if (uri.isZipType()) {
          fileName = uri.getFragment();
       } else {
          fileName =  uri.getRawPath();
@@ -623,7 +623,7 @@ public class FileManager {
       if (dest == null) {    
          // if source is relative, take that
          if (source.isRelative()) {
-            dest = new File(source.getPath(false));
+            dest = new File(source.getRawPath());
          } else {
             // otherwise, simply extract the file name from source
             dest = new File(extractFileName(source));
@@ -631,7 +631,7 @@ public class FileManager {
       } else if (dest.isDirectory()) {
          String srcFile = extractFileName(source);
          if (source.isRelative()) {            
-            srcFile = source.getPath(false);
+            srcFile = source.getRawPath();
          }
          dest = new File(dest,srcFile);
 
@@ -698,9 +698,9 @@ public class FileManager {
          }
       } else if (isDirectory(dest)) {
          if (source.isAbsolute()) {
-            dest = new URIx(dest, source.getName());
+            dest = dest.resolve(source.getName());
          } else {
-            dest = new URIx(dest, source.getPath());
+            dest = dest.resolve (source.getPath());
          }
       }
 
@@ -805,7 +805,7 @@ public class FileManager {
       // default destination if none provided
       if (dest == null) {
          if (source.isRelative()) {
-            dest = new File(source.getPath(false));
+            dest = new File(source.getRawPath());
          } else {
             dest = new File(extractFileName(source));
          }
@@ -822,7 +822,7 @@ public class FileManager {
       source = getAbsoluteURI(source);
 
       // download zip file first if requested
-      if ( source.isZip() && (options & DOWNLOAD_ZIP) != 0) {
+      if ( source.isZipType() && (options & DOWNLOAD_ZIP) != 0) {
 
          // get zip file
          URIx zipSource = source.getBaseURI();
@@ -933,6 +933,39 @@ public class FileManager {
    public File get(String sourceName) throws FileTransferException {
       return get(null, sourceName, myOptions);
    }
+   
+   /**
+    * Downloads a file from an absolute or relative URI, with default options
+    * @see #get(File, URIx, int)
+    **/
+   public File get(URIx source) throws FileTransferException {
+      return get(null, source, myOptions);
+   }
+   
+   /**
+    * Checks for existence of file
+    * @param source URI to check for existence
+    * @return true if the resource exists, false otherwise
+    */
+   public boolean fileExists(URIx source) {
+      source = getAbsoluteURI(source);  // convert to absolute
+      boolean exists = true;
+      try {
+         cacher.initialize();
+         logger.debug("checking for file " + source.toString());
+         // download file
+         exists = cacher.exists (source);
+      } catch (FileSystemException e) {
+
+         String msg = decodeVFSMessage(e);
+         logger.debug ("failed to check for file: " + msg);
+         exists = false;
+      } finally {
+         cacher.release();
+      }
+      
+      return exists;
+   }
 
    /**
     * Converts the supplied destination path and source URI to a File and URI
@@ -1006,9 +1039,9 @@ public class FileManager {
          }
       } else if (isDirectory(dest)) {
          if (!source.isAbsolute()) {
-            dest = new URIx(dest, source.getPath());
+            dest = dest.resolve (source.getPath());
          } else {
-            dest = new URIx(dest, source.getName());
+            dest = dest.resolve (source.getName());
          }
       }
 
@@ -1497,7 +1530,7 @@ public class FileManager {
       // default local copy if none provided
       if (localCopy == null) {
          if (source.isRelative()) {
-            localCopy = new File(source.getPath(false));
+            localCopy = new File(source.getRawPath());
          } else {
             localCopy = new File(extractFileName(source));
          }
@@ -1514,7 +1547,7 @@ public class FileManager {
       source = getAbsoluteURI(source);
 
       // download zip file first if requested
-      if ( source.isZip() && (options & DOWNLOAD_ZIP) != 0) {
+      if ( source.isZipType() && (options & DOWNLOAD_ZIP) != 0) {
 
          // get zip file
          URIx zipSource = source.getBaseURI();

@@ -446,7 +446,7 @@ public class CVReconstruction3d {
       VectorNd e = new VectorNd(9);
       SVDecomposition svd = new SVDecomposition (B);
       VectorNd s = svd.getS ();
-      MatrixNd V = svd.getV ();
+      MatrixNd V = svd.getU ();
       V.getColumn (8, e);
       
       // extract essential matrix
@@ -476,8 +476,9 @@ public class CVReconstruction3d {
       
       // try all four solutions:
       RigidTransform3d solution = null;
+      int maxv = 0;  // number of in-view points
       
-      // homogeneous reconstruction for a single point
+      // homogeneous reconstruction, count number of in-view points
       Matrix3x4 P1 = computeCameraMatrix (K1, null);
       for (int i=0; i<solutions.length; ++i) {
          Matrix3x4 P2 = computeCameraMatrix (K2, solutions[i]);
@@ -486,28 +487,31 @@ public class CVReconstruction3d {
          p1it = p1.iterator ();
          p2it = p2.iterator ();
          
-         // iterate through points in case fall on line between cameras
-         boolean success = false;
-         while (!success && p1it.hasNext ()) {
+         // iterate through points
+         int v = 0;
+         while (p1it.hasNext ()) {
             Point2d y1 = p1it.next ();
             Point2d y2 = p2it.next ();
             
             Vector4d X = homogeneousReconstruction (P1, P2, y1, y2);
             
             // rescale to determine coordinate
-            if (X.get (3) != 0) {
-               success = true;
-            }
-         }
-         
-         // determine which side X is on, we want +z for both images
-         if (success) {
-            if (x.z >= 0) {
+            if (X.w != 0) {
+               x.set(X.x/X.w, X.y/X.w, X.z/X.w);
+               
+               // determine which side X is on, we want +z for both images
+               if (x.z >= 0) {
+                  ++v;
+               }
                x.transform (solutions[i]);
                if (x.z >= 0) {
-                  // we found a valid solution
+                  ++v;
+               }
+               
+               // current best solution
+               if (v > maxv) {
                   solution = solutions[i];
-                  break;
+                  maxv = v;
                }
             }
          }

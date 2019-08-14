@@ -291,13 +291,16 @@ public class DemoMenuParser {
          SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
       String schemaLoc =
          ArtisynthPath.getSrcRelativePath(DemoMenuParser.class, "modelmenu.xsd");
-      File schemaLocation = new File(schemaLoc);
-      Schema schema = schemaFactory.newSchema(schemaLocation);
 
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setValidating(false);
       factory.setNamespaceAware(true);
-      factory.setSchema(schema);
+      
+      if (schemaLoc != null) {
+         File schemaLocation = new File(schemaLoc);
+         Schema schema = schemaFactory.newSchema(schemaLocation);
+         factory.setSchema(schema);
+      }
 
       DocumentBuilder builder = factory.newDocumentBuilder();
       builder.setErrorHandler(new SimpleErrorHandler());
@@ -954,6 +957,7 @@ public class DemoMenuParser {
             }            
          } catch (Exception e) {
             // shouldn't happen - remove class if it does
+            e.printStackTrace ();
             li.remove();
          }
       }

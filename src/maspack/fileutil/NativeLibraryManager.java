@@ -530,7 +530,7 @@ public class NativeLibraryManager {
    void setLibDir (File libBaseDir) {
       myLibDir = new File (libBaseDir, getNativeDirectoryName());
       if (!myLibDir.exists()) {
-         if (!myLibDir.mkdir()) {
+         if (!myLibDir.mkdirs()) {
             throw new NativeLibraryException (
                "NativeLibraryManager: can't create directory "+myLibDir);
          }

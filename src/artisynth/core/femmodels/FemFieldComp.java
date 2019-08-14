@@ -3,6 +3,7 @@ package artisynth.core.femmodels;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedList;
 
 import java.util.ArrayList;
 import artisynth.core.modelbase.*;
@@ -11,6 +12,7 @@ import artisynth.core.util.*;
 
 import maspack.matrix.*;
 import maspack.util.*;
+import maspack.render.*;
 import maspack.properties.PropertyDesc.TypeCode;
 import maspack.properties.PropertyDesc;
 
@@ -19,6 +21,7 @@ public abstract class FemFieldComp
    
    protected int myShellIndexOffset;
    protected FemModel3d myFem;
+   protected RenderProps myRenderProps;
 
    protected void setFem (FemModel3d fem) {
       myFem = fem;
@@ -343,5 +346,47 @@ public abstract class FemFieldComp
          list.remove (list.size()-1);
       }
    }
+
+   /* --- Begin partial implemetation of Renderable --- */
+
+   public RenderProps getRenderProps() {
+      return myRenderProps;
+   }
+
+   public void setRenderProps (RenderProps props) {
+      myRenderProps = RenderableComponentBase.updateRenderProps (
+         this, myRenderProps, props);
+   }
+
+   public int getRenderHints() {
+      int code = 0;
+      if (myRenderProps != null && myRenderProps.isTransparent()) {
+         code |= IsRenderable.TRANSPARENT;
+      }
+      return code;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isSelectable() {
+      return true;
+   }
+
+   public void getSelection (LinkedList<Object> list, int qid) {
+   }
+   
+   public int numSelectionQueriesNeeded() {
+      return -1;
+   }
+
+   public void updateBounds (Vector3d pmin, Vector3d pmax) {
+   }
+
+   public RenderProps createRenderProps() {
+      return RenderProps.createRenderProps (this);
+   }
+
+   /* --- End partial implemetation of Renderable --- */
 
 }

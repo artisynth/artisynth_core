@@ -12,14 +12,42 @@ import artisynth.core.util.*;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.properties.PropertyDesc.TypeCode;
-import maspack.properties.PropertyDesc;
+import maspack.properties.*;
+import maspack.render.*;
+import maspack.render.Renderer.*;
 
 public abstract class VectorFemField<T extends VectorObject<T>>
-   extends FemFieldComp implements VectorField<T>, ParameterizedClass {
+   extends FemFieldComp
+   implements VectorField<T>, ParameterizedClass, RenderableComponent {
    
    protected T myDefaultValue = null;
    protected Class<T> myTypeParameter = null;
    protected TypeCode myValueType = TypeCode.OTHER;
+
+   protected static double DEFAULT_RENDER_SCALE = 0;
+   protected double myRenderScale = DEFAULT_RENDER_SCALE;
+   protected RenderObject myRenderObj = null;
+
+   static PropertyList myProps =
+      new PropertyList (VectorFemField.class, FemFieldComp.class);
+
+   static {
+      myProps.add ("renderProps", "renderer properties", null);
+      myProps.add (
+         "renderScale", "scale factor for rendered values", DEFAULT_RENDER_SCALE);
+   }
+
+   public PropertyList getAllPropertyInfo() {
+      return myProps;
+   }   
+
+   public double getRenderScale() {
+      return myRenderScale;
+   }
+
+   public void setRenderScale (double scale) {
+      myRenderScale = scale;
+   }
 
    protected void initType (Class<T> type) {
       myTypeParameter = type;
@@ -225,4 +253,61 @@ public abstract class VectorFemField<T extends VectorObject<T>>
 
 
    public abstract T getValue (Point3d pos);
+
+   /* --- Begin partial implementation of Renderable --- */
+
+   // This default implementation of renderable provides for the rendering of
+   // 3D vectors as lines
+
+   public void prerender (RenderList list) {
+      myRenderObj = buildRenderObject();
+   }
+
+   protected boolean hasThreeVectorValue() {
+      return myTypeParameter.isAssignableFrom (Vector3d.class);
+   }
+
+   // Converts, if possible, a VectorObject value to a three-vector.
+   protected boolean getThreeVectorValue (Vector3d vec, VectorObject<T> vobj) {
+      if (vobj instanceof Vector3d) {
+         vec.set ((Vector3d)vobj);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   void addLineSegment (RenderObject robj, Point3d pos, Vector3d vec) {
+      Point3d vpos = new Point3d(pos);
+      robj.vertex (vpos);
+      vpos.scaledAdd (myRenderScale, vec);
+      int vidx = robj.vertex (vpos);      
+      robj.addLine (vidx-1, vidx);
+   }
+
+   protected RenderObject buildRenderObject() {
+      // by default, don't render anything
+      return null;
+   }
+
+   public void render (Renderer renderer, int flags) {
+      RenderObject robj = myRenderObj;
+      
+      if (robj != null) {
+         double size;
+         // draw the directions
+         LineStyle lineStyle = myRenderProps.getLineStyle();
+         if (lineStyle == LineStyle.LINE) {
+            size = myRenderProps.getLineWidth();
+         }
+         else {
+            size = myRenderProps.getLineRadius();
+         }
+         renderer.setLineColoring (myRenderProps, isSelected());
+         renderer.drawLines (robj, lineStyle, size);
+      }
+   }
+
+   /* --- End partial implementation of Renderable --- */   
 }

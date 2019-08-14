@@ -12,6 +12,7 @@ import artisynth.core.modelbase.FieldUtils.VectorFieldFunction;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.properties.*;
+import maspack.render.*;
 
 public class VectorNodalField<T extends VectorObject<T>> 
    extends VectorFemField<T> {
@@ -42,6 +43,7 @@ public class VectorNodalField<T extends VectorObject<T>>
    protected void initValues() {
       myValues = new ArrayList<>();
       updateValueLists();
+      setRenderProps (createRenderProps());
    }
 
    protected void updateValueLists() {
@@ -226,4 +228,25 @@ public class VectorNodalField<T extends VectorObject<T>>
       myValueArrays = null;
    }
    
+   // build render object for rendering Vector3d values
+
+   protected RenderObject buildRenderObject() {
+      if (myRenderScale != 0 && hasThreeVectorValue()) {
+         RenderObject robj = new RenderObject();
+         robj.createLineGroup();
+         Point3d pos = new Point3d();
+         Vector3d vec = new Vector3d();
+         for (int num=0; num<myValues.size(); num++) {
+            if (getThreeVectorValue (vec, myValues.get(num))) {
+               FemNode3d n = myFem.getNodes().getByNumber(num);
+               addLineSegment (robj, n.getPosition(), vec);
+            }
+         }
+         return robj;
+      }
+      else {
+         return null;
+      }
+   }
+
 }

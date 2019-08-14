@@ -485,6 +485,50 @@ public class FemFactory {
    }
 
    /**
+    * Creates a shell model from an input mesh. The mesh must contain
+    * either triangle or quad elements.
+    */
+   public static FemModel3d createShellModel (
+      FemModel3d model, PolygonalMesh mesh,
+      double thickness, boolean membrane) {
+
+      if (model != null) {
+         model.clear();
+      }
+      else {
+         model = new FemModel3d();
+      }
+      for (Vertex3d vtx : mesh.getVertices()) {
+         model.addNode (new FemNode3d (vtx.getPosition()));
+      }
+      ComponentList<FemNode3d> nodes = model.getNodes();
+      for (Face face : mesh.getFaces()) {
+         int numv = face.numVertices();
+         if (numv == 3) {
+            FemNode3d n0 = nodes.get (face.getVertex(0).getIndex());
+            FemNode3d n1 = nodes.get (face.getVertex(1).getIndex());
+            FemNode3d n2 = nodes.get (face.getVertex(2).getIndex());
+            model.addShellElement (
+               new ShellTriElement (n0, n1, n2, thickness, membrane));
+         }
+         else if (numv == 4) {
+            FemNode3d n0 = nodes.get (face.getVertex(0).getIndex());
+            FemNode3d n1 = nodes.get (face.getVertex(1).getIndex());
+            FemNode3d n2 = nodes.get (face.getVertex(2).getIndex());
+            FemNode3d n3 = nodes.get (face.getVertex(3).getIndex());
+            model.addShellElement (
+               new ShellQuadElement (n0, n1, n2, n3, thickness, membrane));
+         }
+         else {
+            throw new IllegalArgumentException (
+               "Input mesh must contain triangle or quad elements");
+         }
+      }
+      model.invalidateStressAndStiffness();
+      return model;
+   }   
+
+   /**
     * Creates a regular grid composed of shell quad elements. Identical to
     * {@link
     * #createShellGrid(FemModel3d,FemElementType,double,double,int,int,double,

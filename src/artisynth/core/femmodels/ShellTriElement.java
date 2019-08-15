@@ -294,6 +294,14 @@ public class ShellTriElement extends ShellElement3d {
          myNodes[2].getRestPosition());
    }
 
+   public double computeNodeNormal (Vector3d nrm, FemNode3d node) {
+      return computeNormal (
+         nrm,
+         myNodes[0].getPosition(),
+         myNodes[1].getPosition(),
+         myNodes[2].getPosition());
+   }
+
    /* --- Renderer --- */
    
    @Override

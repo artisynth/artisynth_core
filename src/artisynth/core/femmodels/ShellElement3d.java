@@ -191,6 +191,13 @@ public abstract class ShellElement3d extends FemElement3dBase
     * normal. This is used for automatically initializing directors.
     */
    public abstract double computeRestNodeNormal (Vector3d nrm, FemNode3d node);
+
+   /**
+    * Computes the shell element normal, with respect to current coordinates,
+    * at a specific node, and returns the (cross product) area associated with
+    * that normal. This can be used for automatically initializing directors.
+    */
+   public abstract double computeNodeNormal (Vector3d nrm, FemNode3d node);
    
    /**
     * Computes a normal for three points oriented counter-clockwise

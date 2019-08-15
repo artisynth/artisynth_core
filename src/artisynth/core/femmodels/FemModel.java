@@ -764,6 +764,8 @@ public abstract class FemModel extends MechSystemBase
       }
       else if (e instanceof MaterialChangeEvent) {
          clearCachedData (e);
+         // presumable only need to invalidate rest data if event is 
+         // associated with a linear material, but we do this anyway
          invalidateRestData();
       }
    }
@@ -1274,7 +1276,12 @@ public abstract class FemModel extends MechSystemBase
    public void propertyChanged (PropertyChangeEvent e) {
       if (e instanceof MaterialChangeEvent) {
          invalidateStressAndStiffness();
-         invalidateRestData();
+         if (e.getHost() instanceof FemMaterial && 
+             ((FemMaterial)e.getHost()).isLinear()) {
+            // invalidate rest data for linear materials, to rebuild
+            // the initial warping stiffness matrices
+            invalidateRestData();
+         }
          MaterialChangeEvent mce = (MaterialChangeEvent)e;
          if (mce.stateChanged() && e.getHost() == getMaterial()) {
             notifyElementsOfMaterialStateChange();

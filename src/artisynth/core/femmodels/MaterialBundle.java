@@ -193,8 +193,8 @@ public class MaterialBundle extends RenderableComponentBase
          if (oldMat != null) {
             removeMaterialFromElements (oldMat, myElements);
          }
-         if (mat != null){
-            addMaterialToElements (mat, myElements);
+         if (newMat != null){
+            addMaterialToElements (newMat, myElements);
          }
       }
       FemModel3d fem = getAncestorFem(this);
@@ -208,6 +208,8 @@ public class MaterialBundle extends RenderableComponentBase
             }
             notifyParentOfChange (mce);
          }
+         fem.invalidateStressAndStiffness();
+         fem.invalidateRestData();
       }
       return newMat;
    }
@@ -442,6 +444,13 @@ public class MaterialBundle extends RenderableComponentBase
       if (e instanceof MaterialChangeEvent) {
          FemModel3d fem = getAncestorFem(this);
          if (fem != null) {
+            fem.invalidateStressAndStiffness();
+            if (e.getHost() instanceof FemMaterial && 
+                ((FemMaterial)e.getHost()).isLinear()) {
+               // invalidate rest data for linear materials, to rebuild
+               // the initial warping stiffness matrices
+               fem.invalidateRestData();
+            }
             MaterialChangeEvent mce = (MaterialChangeEvent)e;
             if (mce.stateChanged() && e.getHost() == getMaterial()) {
                notifyElementsOfMaterialStateChange();

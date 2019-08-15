@@ -315,8 +315,7 @@ public abstract class FemModel extends MechSystemBase
          componentChanged (mce);
       }      
       invalidateStressAndStiffness();
-      invalidateRestData();  // added to invalidate cached linear data (mirrors property change event)
-      //return newMat;
+      invalidateRestData();  // invalidate cached warping data
    }
    
    public synchronized void setLinearMaterial (

@@ -337,6 +337,24 @@ public class ShellQuadElement extends ShellElement3d {
       }
    }
 
+   public double computeNodeNormal (Vector3d nrm, FemNode3d node) {
+      int idx = getNodeIndex (node);
+      Point3d p0 = myNodes[0].getPosition();
+      Point3d p1 = myNodes[1].getPosition();
+      Point3d p2 = myNodes[2].getPosition();
+      Point3d p3 = myNodes[3].getPosition();
+      switch (idx) {
+         case 0: return computeNormal (nrm, p3, p0, p1);
+         case 1: return computeNormal (nrm, p0, p1, p2);
+         case 2: return computeNormal (nrm, p1, p2, p3);
+         case 3: return computeNormal (nrm, p2, p3, p0);
+         default: {
+            nrm.setZero();
+            return 0;
+         }
+      }
+   }
+
    /* --- Renderer --- */
    
    @Override

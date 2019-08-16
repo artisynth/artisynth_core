@@ -7,6 +7,7 @@
 package artisynth.core.femmodels;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -483,6 +484,50 @@ public class FemFactory {
       model.invalidateStressAndStiffness();
       return model;
    }
+
+   /**
+    * Creates a shell model from an input mesh. The mesh must contain
+    * either triangle or quad elements.
+    */
+   public static FemModel3d createShellModel (
+      FemModel3d model, PolygonalMesh mesh,
+      double thickness, boolean membrane) {
+
+      if (model != null) {
+         model.clear();
+      }
+      else {
+         model = new FemModel3d();
+      }
+      for (Vertex3d vtx : mesh.getVertices()) {
+         model.addNode (new FemNode3d (vtx.getPosition()));
+      }
+      ComponentList<FemNode3d> nodes = model.getNodes();
+      for (Face face : mesh.getFaces()) {
+         int numv = face.numVertices();
+         if (numv == 3) {
+            FemNode3d n0 = nodes.get (face.getVertex(0).getIndex());
+            FemNode3d n1 = nodes.get (face.getVertex(1).getIndex());
+            FemNode3d n2 = nodes.get (face.getVertex(2).getIndex());
+            model.addShellElement (
+               new ShellTriElement (n0, n1, n2, thickness, membrane));
+         }
+         else if (numv == 4) {
+            FemNode3d n0 = nodes.get (face.getVertex(0).getIndex());
+            FemNode3d n1 = nodes.get (face.getVertex(1).getIndex());
+            FemNode3d n2 = nodes.get (face.getVertex(2).getIndex());
+            FemNode3d n3 = nodes.get (face.getVertex(3).getIndex());
+            model.addShellElement (
+               new ShellQuadElement (n0, n1, n2, n3, thickness, membrane));
+         }
+         else {
+            throw new IllegalArgumentException (
+               "Input mesh must contain triangle or quad elements");
+         }
+      }
+      model.invalidateStressAndStiffness();
+      return model;
+   }   
 
    /**
     * Creates a regular grid composed of shell quad elements. Identical to
@@ -5124,7 +5169,7 @@ public class FemFactory {
    }
 
    /**
-    * Creates a shell-based FEM model by extruding a surface mesh along the
+    * Creates a shell-type FEM model by extruding a surface mesh along the
     * normal direction of its faces. The element types used depend on the
     * underlying faces: triangular faces generate wedge elements, while quad
     * faces generate hex elements. The shell can have multiple layers; the
@@ -5155,22 +5200,25 @@ public class FemFactory {
          throw new IllegalArgumentException ("n must be >= 1");
       }
 
-      // compute normals
+      // compute normals and add base nodes
       Vector3d[] normals = new Vector3d[surface.numVertices()];
+      Point3d newpnt = new Point3d();
       for (int i=0; i<surface.numVertices(); i++) {
          normals[i] = new Vector3d();
          Vertex3d vtx = surface.getVertex(i);
          vtx.computeNormal(normals[i]);
-      }
-      
-      // add vertices as nodes
-      Point3d newpnt = new Point3d();
-      for (int i=0; i<surface.numVertices(); i++) {
-         Vertex3d v = surface.getVertex(i);
-         FemNode3d newnode = new FemNode3d(v.pnt);
+         newpnt.scaledAdd (zOffset, normals[i], vtx.pnt);
+         FemNode3d newnode = new FemNode3d(newpnt);
          model.addNode(newnode);
       }
-
+      
+      // // add vertices as nodes
+      // Point3d newpnt = new Point3d();
+      // for (int i=0; i<surface.numVertices(); i++) {
+      //    Vertex3d v = surface.getVertex(i);
+      //    FemNode3d newnode = new FemNode3d(v.pnt);
+      //    model.addNode(newnode);
+      // }
       
       for (int i = 0; i < n; i++) {
          for (int j=0; j < surface.numVertices(); j++) {
@@ -5197,9 +5245,13 @@ public class FemFactory {
             for (Integer idx : f.getVertexIndices()) {
                nodes[cnt++] = model.getNode(idx + i * surface.numVertices());
             }
-
             // hex and wedge have different winding order, swap around
-            if (numv != 4) {
+            boolean flipNodeOrder = (numv != 4);
+            // also need to flip if d < 0
+            if (d < 0) {
+               flipNodeOrder = !flipNodeOrder;
+            }
+            if (flipNodeOrder) {
                FemNode3d tmp;
                for (int k=0; k<numv; ++k) {
                   tmp = nodes[k];
@@ -5209,11 +5261,112 @@ public class FemFactory {
             }
             FemElement3d e = FemElement3d.createElement(nodes);
             model.addElement(e);
+         }
+      }
+      return model;
+   }
 
-            // System.out.println("node idxs");
-            // for (int c = 0; c < e.getNodes().length; c++)
-            //    System.out.print(e.getNodes()[c].getNumber() + ", ");
-            // System.out.println("");
+   /**
+    * Creates a shell-type FEM model by extruding the shell elements of an
+    * existing surface mesh along the direction of the associated vertex
+    * normals. The element types used depend on the underlying shell elements:
+    * triangular elements generate wedge elements, while quad elements generate
+    * hex elements. The shell can have multiple layers; the number of layers is
+    * <code>n</code>.
+    *
+    * @param model model to which the elements should be added, or
+    * <code>null</code> if the model is to be created from scratch.
+    * @param n number of layers
+    * @param d layer thickness
+    * @param zOffset offset from the surface
+    * @param shellFem FEM model suppling the shell elements
+    * @return extruded FEM model, which will be <code>model</code> if that
+    * argument is not <code>null</code>
+    * @throws IllegalArgumentException if the specified element type is not
+    * supported, or if the surface faces are not triangles or quads.
+    */
+   public static FemModel3d createExtrusion(
+      FemModel3d model, int n, double d, double zOffset, 
+      FemModel3d shellFem) {
+      
+      // create model
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
+      if (n < 1) {
+         throw new IllegalArgumentException ("n must be >= 1");
+      }
+
+      HashMap<FemNode3d,Vector3d> nodeNormals = new HashMap<>();
+      int[] newBaseNodeIndices = new int[shellFem.numNodes()];
+      for (int i=0; i<newBaseNodeIndices.length; i++) {
+         newBaseNodeIndices[i] = -1;
+      }
+      ComponentList<FemNode3d> shellNodes = shellFem.getNodes();
+      for (FemNode3d node : shellNodes) {
+         List<ShellElement3d> shellElemDeps = node.getAdjacentShellElements();
+         if (shellElemDeps.size() > 0) {
+            Vector3d nrm = new Vector3d();
+            for (ShellElement3d se : shellElemDeps) {
+               Vector3d snrm = new Vector3d();
+               double area = se.computeNodeNormal (snrm, node);
+               nrm.scaledAdd (area, snrm);
+            }
+            nrm.normalize();
+            Point3d newpnt = new Point3d (node.getPosition());
+            newpnt.scaledAdd(zOffset, nrm);
+            FemNode3d newnode = new FemNode3d(newpnt);
+            nodeNormals.put (node, nrm);
+            newBaseNodeIndices[shellNodes.indexOf(node)] = model.numNodes();
+            model.addNode(newnode);
+         }
+      }
+
+      int numBaseNodes = model.numNodes();
+      
+      for (int i = 0; i < n; i++) {
+         for (int j=0; j < numBaseNodes; j++) {
+            FemNode3d node = shellFem.getNode(j);
+            Vector3d nrm = nodeNormals.get (node);
+            Point3d newpnt = new Point3d (node.getPosition());
+            newpnt.scaledAdd((i + 1) * d + zOffset, nrm);
+            FemNode3d newnode = new FemNode3d(newpnt);
+            model.addNode(newnode);
+         }
+
+         for (ShellElement3d shellElem : shellFem.getShellElements()) {
+            FemNode3d[] snodes = shellElem.getNodes();
+            FemNode3d[] enodes = new FemNode3d[2*snodes.length];
+            int cnt = 0;
+
+            for (FemNode3d node : snodes) {
+               int idx = shellNodes.indexOf(node);
+               enodes[cnt++] = model.getNode (
+                  newBaseNodeIndices[idx] + (i+1)*numBaseNodes);
+            }
+            for (FemNode3d node : snodes) {
+               int idx = shellNodes.indexOf(node);
+               enodes[cnt++] = model.getNode (
+                  newBaseNodeIndices[idx] + i*numBaseNodes);
+            }
+            // hex and wedge have different winding order, swap around
+            boolean flipNodeOrder = (snodes.length != 4);
+            // also need to flip if d < 0
+            if (d < 0) {
+               flipNodeOrder = !flipNodeOrder;
+            }
+            if (flipNodeOrder) {
+               FemNode3d tmp;
+               for (int k=0; k<snodes.length; ++k) {
+                  tmp = enodes[k];
+                  enodes[k] = enodes[k+snodes.length];
+                  enodes[k+snodes.length] = tmp;
+               }
+            }
+            FemElement3d e = FemElement3d.createElement(enodes);
+            model.addElement(e);
          }
       }
       return model;

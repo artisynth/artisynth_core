@@ -13,6 +13,7 @@ import artisynth.core.modelbase.FieldUtils.VectorFieldFunction;
 import maspack.matrix.*;
 import maspack.util.*;
 import maspack.properties.*;
+import maspack.render.*;
 
 public class VectorElementField<T extends VectorObject<T>> 
    extends VectorFemField<T> {
@@ -48,6 +49,7 @@ public class VectorElementField<T extends VectorObject<T>>
       myValues = new ArrayList<T>();
       myShellValues = new ArrayList<T>();
       updateValueLists();
+      setRenderProps (createRenderProps());
    }
 
    protected void updateValueLists() {
@@ -206,5 +208,34 @@ public class VectorElementField<T extends VectorObject<T>>
          return myDefaultValue;
       }
       return getValue (elem);
+   }
+
+   // build render object for rendering Vector3d values
+
+   protected RenderObject buildRenderObject() {
+      if (myRenderScale != 0 && hasThreeVectorValue()) {
+         RenderObject robj = new RenderObject();
+         robj.createLineGroup();
+         Point3d pos = new Point3d();
+         Vector3d vec = new Vector3d();
+         for (int num=0; num<myValues.size(); num++) {
+            if (getThreeVectorValue (vec, myValues.get(num))) {
+               FemElement3d e = myFem.getElements().getByNumber(num);
+               e.computeCentroid (pos);
+               addLineSegment (robj, pos, vec);
+            }
+         }
+         for (int num=0; num<myShellValues.size(); num++) {
+            if (getThreeVectorValue (vec, myShellValues.get(num))) {
+               ShellElement3d e = myFem.getShellElements().getByNumber(num);
+               e.computeCentroid (pos);
+               addLineSegment (robj, pos, vec);
+            }
+         }
+         return robj;
+      }
+      else {
+         return null;
+      }
    }
 }

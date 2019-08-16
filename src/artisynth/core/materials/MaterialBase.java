@@ -231,7 +231,7 @@ public abstract class MaterialBase
 
       if (myPropHost instanceof PropertyChangeListener) {
          ((PropertyChangeListener)myPropHost).propertyChanged (
-            new PropertyChangeEvent (this, name));
+            new MaterialChangeEvent (this, name, false, false));
       }
    }
 

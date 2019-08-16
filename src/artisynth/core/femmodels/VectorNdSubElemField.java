@@ -99,4 +99,21 @@ public class VectorNdSubElemField extends VectorSubElemField<VectorNd> {
       rtok.pushBack();
       return super.scanItem (rtok, tokens);      
    }
+
+   protected boolean hasThreeVectorValue() {
+      return myVecSize == 3;
+   }
+
+   // Converts, if possible, a VectorObject value to a three-vector.
+   protected boolean getThreeVectorValue (Vector3d vec, VectorObject vobj) {
+      if (myVecSize == 3) {
+         double[] vbuf = ((VectorNd)vobj).getBuffer();
+         vec.set (vbuf[0], vbuf[1], vbuf[2]);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
 }

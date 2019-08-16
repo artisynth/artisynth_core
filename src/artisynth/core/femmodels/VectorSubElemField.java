@@ -13,6 +13,7 @@ import maspack.matrix.*;
 import maspack.util.*;
 import maspack.properties.PropertyDesc.TypeCode;
 import maspack.properties.PropertyDesc;
+import maspack.render.*;
 
 public class VectorSubElemField<T extends VectorObject<T>> 
    extends VectorFemField<T> {
@@ -50,6 +51,7 @@ public class VectorSubElemField<T extends VectorObject<T>>
       myValueArrays = new ArrayList<T[]>();
       myShellValueArrays = new ArrayList<T[]>();
       updateValueLists();
+      setRenderProps (createRenderProps());
    }
 
    protected void updateValueLists() {
@@ -265,5 +267,47 @@ public class VectorSubElemField<T extends VectorObject<T>>
             myShellValueArrays, (int i) -> shellElementIsReferenced(i), undoInfo);
       }
    }
+
+   // build render object for rendering Vector3d values
+
+   protected RenderObject buildRenderObject() {
+      if (myRenderScale != 0 && hasThreeVectorValue()) {
+         RenderObject robj = new RenderObject();
+         robj.createLineGroup();
+         Point3d pos = new Point3d();
+         Vector3d vec = new Vector3d();
+         for (int num=0; num<myValueArrays.size(); num++) {
+            T[] vecs = (T[])myValueArrays.get(num);
+            if (vecs != null) {
+               FemElement3d e = myFem.getElements().getByNumber(num);
+               IntegrationPoint3d[] ipnts = e.getAllIntegrationPoints();
+               for (int k=0; k<vecs.length; k++) {
+                  if (getThreeVectorValue (vec, vecs[k])) {
+                     ipnts[k].computePosition (pos, e.getNodes());
+                     addLineSegment (robj, pos, vec);
+                  }
+               }
+            }
+         }
+         for (int num=0; num<myShellValueArrays.size(); num++) {
+            T[] vecs = (T[])myShellValueArrays.get(num);
+            if (vecs != null) {
+               ShellElement3d e = myFem.getShellElements().getByNumber(num);
+               IntegrationPoint3d[] ipnts = e.getAllIntegrationPoints();
+               for (int k=0; k<vecs.length; k++) {
+                  if (getThreeVectorValue (vec, vecs[k])) {
+                     ipnts[k].computePosition (pos, e.getNodes());
+                     addLineSegment (robj, pos, vec);
+                  }
+               }
+            }
+         }
+         return robj;
+      }
+      else {
+         return null;
+      }
+   }
+
 
 }

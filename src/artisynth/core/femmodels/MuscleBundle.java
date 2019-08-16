@@ -35,6 +35,7 @@ import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import artisynth.core.materials.AxialMuscleMaterial;
+import artisynth.core.materials.FemMaterial;
 import artisynth.core.materials.GenericMuscle;
 import artisynth.core.materials.MaterialBase;
 import artisynth.core.materials.MaterialChangeEvent;
@@ -434,19 +435,27 @@ public class MuscleBundle extends CompositeComponentBase
       }
    }
 
-   public void setMuscleMaterial (MuscleMaterial mat) {
-      MuscleMaterial old = getEffectiveMuscleMaterial();
-      myMuscleMat = (MuscleMaterial)MaterialBase.updateMaterial (
+   public <T extends MuscleMaterial> void setMuscleMaterial (T mat) {
+      MuscleMaterial oldMat = getEffectiveMuscleMaterial();
+      T newMat = (T)MaterialBase.updateMaterial (
          this, "muscleMaterial", myMuscleMat, mat);
-      // issue change event in case solve matrix symmetry or state has changed:
-      MaterialChangeEvent mce = 
-         MaterialBase.symmetryOrStateChanged ("muscleMaterial", mat, old);
-      if (mce != null) {
-         if (mce.stateChanged()) {
-            notifyElementsOfMuscleMatStateChange();
-         }
-         notifyParentOfChange (mce);
-      }      
+      myMuscleMat = newMat;
+      FemModel3d fem = getAncestorFem(this);
+      if (fem != null) {
+         // issue change event in case solve matrix symmetry or state has changed:
+         MaterialChangeEvent mce = 
+            MaterialBase.symmetryOrStateChanged (
+               "muscleMaterial", newMat, oldMat);
+         if (mce != null) {
+            if (mce.stateChanged()) {
+               notifyElementsOfMuscleMatStateChange();
+            }
+            notifyParentOfChange (mce);
+         }      
+         fem.invalidateStressAndStiffness();
+         fem.invalidateRestData();
+      }
+      // return newMat
    }
 
    public void applyForce (double t) {
@@ -997,12 +1006,22 @@ public class MuscleBundle extends CompositeComponentBase
    
    public void propertyChanged (PropertyChangeEvent e) {
       if (e instanceof MaterialChangeEvent) {
-         MaterialChangeEvent mce = (MaterialChangeEvent)e;
-         if (mce.stateChanged() && e.getHost() == getMuscleMaterial()) {
-            notifyElementsOfMuscleMatStateChange();
-         }
-         if (mce.stateOrSymmetryChanged()) {
-            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
+         FemModel fem = getAncestorFem(this);
+         if (fem != null) {
+            fem.invalidateStressAndStiffness();
+            if (e.getHost() instanceof FemMaterial && 
+                ((FemMaterial)e.getHost()).isLinear()) {
+               // invalidate rest data for linear materials, to rebuild
+               // the initial warping stiffness matrices
+               fem.invalidateRestData();
+            }
+            MaterialChangeEvent mce = (MaterialChangeEvent)e;
+            if (mce.stateChanged() && e.getHost() == getMuscleMaterial()) {
+               notifyElementsOfMuscleMatStateChange();
+            }
+            if (mce.stateOrSymmetryChanged()) {
+               notifyParentOfChange (new MaterialChangeEvent (this, mce));  
+            }
          }
       }      
    }

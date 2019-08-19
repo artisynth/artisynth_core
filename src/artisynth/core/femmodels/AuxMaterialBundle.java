@@ -218,14 +218,19 @@ public class AuxMaterialBundle extends CompositeComponentBase
       T newMat = (T)MaterialBase.updateMaterial (
          this, "material", myMat, mat);
       myMat = newMat;
-      // issue change event in case solve matrix symmetry or state has changed:
-      MaterialChangeEvent mce = 
-         MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
-      if (mce != null) {
-         if (mce.stateChanged()) {
-            notifyElementsOfMaterialStateChange();
-         }
-         notifyParentOfChange (mce);
+      FemModel3d fem = getAncestorFem(this);
+      if (fem != null) {
+         // issue change event in case solve matrix symmetry or state has changed:
+         MaterialChangeEvent mce = 
+            MaterialBase.symmetryOrStateChanged ("material", newMat, oldMat);
+         if (mce != null) {
+            if (mce.stateChanged()) {
+               notifyElementsOfMaterialStateChange();
+            }
+            notifyParentOfChange (mce);
+         }      
+         fem.invalidateStressAndStiffness();
+         fem.invalidateRestData();
       }
       return newMat;
    }
@@ -384,12 +389,22 @@ public class AuxMaterialBundle extends CompositeComponentBase
 
    public void propertyChanged (PropertyChangeEvent e) {
       if (e instanceof MaterialChangeEvent) {
-         MaterialChangeEvent mce = (MaterialChangeEvent)e;
-         if (mce.stateChanged() && e.getHost() == getMaterial()) {
-            notifyElementsOfMaterialStateChange();
-         }
-         if (mce.stateOrSymmetryChanged()) {
-            notifyParentOfChange (new MaterialChangeEvent (this, mce));  
+         FemModel fem = getAncestorFem(this);
+         if (fem != null) {
+            fem.invalidateStressAndStiffness();
+            if (e.getHost() instanceof FemMaterial && 
+                ((FemMaterial)e.getHost()).isLinear()) {
+               // invalidate rest data for linear materials, to rebuild
+               // the initial warping stiffness matrices
+               fem.invalidateRestData();
+            }
+            MaterialChangeEvent mce = (MaterialChangeEvent)e;
+            if (mce.stateChanged() && e.getHost() == getMaterial()) {
+               notifyElementsOfMaterialStateChange();
+            }
+            if (mce.stateOrSymmetryChanged()) {
+               notifyParentOfChange (new MaterialChangeEvent (this, mce));  
+            }
          }
       }
    }

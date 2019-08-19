@@ -770,7 +770,7 @@ public class FemNode3d extends FemNode implements Boundable {
    public void transformGeometry (
       GeometryTransformer gt, TransformGeometryContext context, int flags) {
       super.transformGeometry (gt, context, flags);
-      // transform the rest position if we are not simulating. The
+      // transform the rest position if we are not simulating.
       if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
          gt.transformPnt (myRest);
          // invalidate rest data for adjacent elements

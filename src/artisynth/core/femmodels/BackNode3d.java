@@ -448,6 +448,9 @@ public class BackNode3d extends DynamicComponentBase
          setPositionToRest();
       }
       gtr.transformPnt (myPos);
+      if ((flags & TransformableGeometry.TG_SIMULATING) == 0) {
+         gtr.transformPnt (myRest);
+      }
    }
 
    public void addTransformableDependencies (

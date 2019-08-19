@@ -395,12 +395,14 @@ public abstract class FemElement3dBase extends FemElement
    }
 
    public boolean getMarkerCoordinates (
-      VectorNd coords, Point3d pnt, boolean checkInside) {
+      VectorNd coords, Vector3d ncoords, Point3d pnt, boolean checkInside) {
       if (coords.size() < numNodes()) {
          throw new IllegalArgumentException (
             "coords size "+coords.size()+" != number of nodes "+numNodes());
       }
-      Vector3d ncoords = new Vector3d();
+      if (ncoords == null) {
+         ncoords = new Vector3d();
+      }
       boolean converged = getNaturalCoordinates (ncoords, pnt);
       for (int i=0; i<numNodes(); i++) {
          coords.set (i, getN (i, ncoords));

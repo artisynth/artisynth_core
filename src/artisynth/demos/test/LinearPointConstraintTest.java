@@ -48,7 +48,7 @@ public class LinearPointConstraintTest extends RootModel {
       FemElement3d elem = fem.getElement (3);
       
       VectorNd coords = new VectorNd (elem.numNodes());
-      elem.getMarkerCoordinates (coords, mkr.getPosition(), false);
+      elem.getMarkerCoordinates (coords, null, mkr.getPosition(), false);
 
       double[] wgts = new double[elem.numNodes()+1];
       Point[] pnts = new Point[elem.numNodes()+1];

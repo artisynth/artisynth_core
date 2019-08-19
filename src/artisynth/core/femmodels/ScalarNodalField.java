@@ -158,7 +158,7 @@ public class ScalarNodalField extends ScalarFemField {
       // TODO: if loc != pnt, then we are outside the element and we may want
       // to handle this differently - like by returning the default value.
       VectorNd weights = new VectorNd(elem.numNodes());
-      elem.getMarkerCoordinates (weights, loc, /*checkInside=*/false);
+      elem.getMarkerCoordinates (weights, null, loc, /*checkInside=*/false);
       FemNode3d[] nodes = elem.getNodes();
       int[] nodeNums = new int[nodes.length];
       for (int i=0; i<nodeNums.length; i++) {

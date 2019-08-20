@@ -20,7 +20,6 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
 import maspack.util.InternalErrorException;
-
 import quickhull3d.QuickHull3D;
 
 /**
@@ -1848,7 +1847,6 @@ public class MeshFactory {
       PolygonalMesh mesh = createIcosahedron(r);
       for (int i = 0; i < divisions; i++) {
          mesh = subdivide(mesh);
-         // XXX important to project each time!
          projectToSphere(r, null, mesh);  
       }
       return mesh;
@@ -3907,5 +3905,50 @@ public class MeshFactory {
    public static ArrayList<PolygonalMesh> splitMesh(PolygonalMesh splitme) {
       return splitMesh(splitme, -2, -1);
    }
+   
+   /**
+    * Builds a convex hull around a set of mesh vertices
+    * 
+    * Internally relies on tetgen to generate a Delaunay tetrahedral mesh around the points
+    * @param mesh mesh with vertices
+    * @return convex hull surface
+    */
+   public static PolygonalMesh computeConvexHull(MeshBase mesh) {
+      
+      TetgenTessellator tt = new TetgenTessellator ();
+      double[] coords = new double[mesh.numVertices ()*3];
+      
+      // build tet mesh from vertex locations
+      int cidx = 0;
+      for (Vertex3d vtx : mesh.getVertices ()) {
+         Point3d pnt = vtx.pnt;
+         coords[cidx++] = pnt.x;
+         coords[cidx++] = pnt.y;
+         coords[cidx++] = pnt.z;
+      }
+      tt.buildFromPoints (coords);
+      
+      // get node locations and hull faces
+      Point3d[] pnts = tt.getPoints();
+      int[] hullFaces = tt.getHullFaces ();
+      
+      // build hull
+      PolygonalMesh hull = new PolygonalMesh ();
+      for (int i=0; i<pnts.length; i++) {
+         hull.addVertex (pnts[i]);
+      }
+      int[] idxs = new int[3];
+      for (int k=0; k<hullFaces.length; k += 3) {
+         idxs[0] = hullFaces[k];
+         idxs[1] = hullFaces[k+1];
+         idxs[2] = hullFaces[k+2];
+         hull.addFace (idxs);
+      }
+      
+      hull.setMeshToWorld (mesh.getMeshToWorld ());
+      
+      return hull;
+   }
+
    
 }

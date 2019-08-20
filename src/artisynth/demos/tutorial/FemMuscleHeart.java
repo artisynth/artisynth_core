@@ -63,6 +63,7 @@ public class FemMuscleHeart extends RootModel {
       WavefrontReader wfr = new WavefrontReader(new File(heartFile));
       PolygonalMesh heartMesh = new PolygonalMesh();
       wfr.readMesh(heartMesh);
+      heartMesh.setRenderProps (wfr.getGroupRenderProps ("(null)"));
       heartMesh.triangulate();          // triangulate for interaction
       
       // FEM heart:
@@ -144,7 +145,7 @@ public class FemMuscleHeart extends RootModel {
       //-------------------------------------------------------------
       
       // Create a rigid box for the heart to fall on
-      RigidBody box = RigidBody.createBox("box", 0.2, 0.2, 0.02, 0, /*addnormals*/ true);
+      RigidBody box = RigidBody.createBox("box", 0.25, 0.25, 0.02, 0, /*addnormals*/ true);
       box.setPose(new RigidTransform3d(new Vector3d(0,0,-0.2), AxisAngle.IDENTITY));
       box.setDynamic(false);
       mech.addRigidBody(box);
@@ -168,10 +169,6 @@ public class FemMuscleHeart extends RootModel {
       RenderProps.setVisible(longBundle, false);
       RenderProps.setVisible(heart.getSurfaceMeshComp(), false);
       
-      // adjust table render properties
-      RenderProps.setShading(box, Shading.METAL);
-      RenderProps.setSpecular(box, new Color(0.8f,0.8f,0.8f));
-      
       // adjust heart mesh render properties
       RenderProps rprops = embeddedHeart.getRenderProps();
       rprops.getBumpMap().setScaling(0.01f);
@@ -181,6 +178,10 @@ public class FemMuscleHeart extends RootModel {
       rprops.getColorMap ().setColorMixing (ColorMixing.MODULATE);
       rprops.setSpecular (new Color(0.4f, 0.4f, 0.4f));
       rprops.setShininess (128);
+      
+      // adjust table render properties
+      RenderProps.setShading(box, Shading.METAL);
+      RenderProps.setSpecular(box, new Color(0.8f,0.8f,0.8f));
 
       //-------------------------------------------------------------
       // INPUT PROBES

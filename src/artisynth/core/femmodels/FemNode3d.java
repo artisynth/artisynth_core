@@ -17,6 +17,7 @@ import java.util.Map;
 
 import artisynth.core.mechmodels.Frame;
 import artisynth.core.mechmodels.PointTarget;
+import artisynth.core.mechmodels.SoftPlaneCollider;
 import artisynth.core.mechmodels.Point;
 import artisynth.core.mechmodels.DynamicAttachment;
 import artisynth.core.mechmodels.DynamicAttachmentBase;

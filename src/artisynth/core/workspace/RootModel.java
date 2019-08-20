@@ -2078,5 +2078,4 @@ public class RootModel extends RenderableModelBase
    public String getSourceRelativePath (String relpath) {
       return PathFinder.getSourceRelativePath (this, relpath);
    }
-   
 }

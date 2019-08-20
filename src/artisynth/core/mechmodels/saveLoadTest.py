@@ -131,6 +131,13 @@ testSaveLoad ("artisynth.demos.test.ReflectedBodies");
 testSaveLoad ("artisynth.demos.test.TorusWrapTest")
 testSaveLoad ("artisynth.demos.test.LinearPointConstraintTest")
 testSaveLoad ("artisynth.demos.test.FemFieldTest")
+testSaveLoad ("artisynth.demos.test.ShellVolumeAttach")
+testSaveLoad ("artisynth.demos.test.ShellVolumeAttach", "-membrane");
+testSaveLoad ("artisynth.demos.test.ShellShellAttach")
+testSaveLoad ("artisynth.demos.test.ShellShellAttach", "-membrane1");
+testSaveLoad ("artisynth.demos.test.ShellShellAttach", "-membrane1", "-membrane2");
+testSaveLoad ("artisynth.demos.test.ShellShellAttach", "-membrane2");
+
 #testSaveLoad ("artisynth.demos.tutorial.SimpleMuscleWithProperties") # member variables
 
 #testSaveLoad ("artisynth.demos.mech.PointForceDemo")

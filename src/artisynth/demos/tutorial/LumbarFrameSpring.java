@@ -62,5 +62,6 @@ public class LumbarFrameSpring extends RootModel {
       RenderProps.setLineColor (spring, Color.RED);
       RenderProps.setLineWidth (spring, 3);
       spring.setAxisLength (0.02);
+      RenderProps.setFaceColor (mech, new Color (238, 232, 170)); // bone color
    }
 }

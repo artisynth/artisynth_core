@@ -71,7 +71,7 @@ public class ShellNodeFem3dAttachment
 
    public boolean setFromElement (
       Point3d pos, FemElement elem, double reduceTol) {
-      boolean converged = super.setFromElement (pos, elem, -1);
+      boolean converged = super.setFromElement (pos, elem, /*reduceTol=*/-1);
       updateDirectorAttachment();
       return converged;
    }

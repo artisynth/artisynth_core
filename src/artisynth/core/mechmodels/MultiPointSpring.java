@@ -420,6 +420,15 @@ public class MultiPointSpring extends PointSpringBase
       }
 
       /**
+       * Returns the current length of this segment.
+       *
+       * @return current segment length
+       */
+      public double getLength() {
+         return myLength;
+      }
+
+      /**
        * Scan attributes of this segment from a ReaderTokenizer. Used to
        * implement scanning for the MultiPointSpring.
        */
@@ -3376,11 +3385,17 @@ public class MultiPointSpring extends PointSpringBase
          }
          if (seg instanceof WrapSegment) {
             WrapSegment wrapSeg = (WrapSegment)seg;
-            if (wrapSeg.isContacting()) {
-               wrapSeg.updateContacts (wrapSeg.myContactCnts, true);
+            if (wrapSeg.myPntA == null) {
+               // then this is just a terminating wrap segment
+               wrapSeg.myLength = 0;
             }
-            wrapSeg.updateSubSegments();
-            wrapSeg.myLength = wrapSeg.computeLength();
+            else {
+               if (wrapSeg.isContacting()) {
+                  wrapSeg.updateContacts (wrapSeg.myContactCnts, true);
+               }
+               wrapSeg.updateSubSegments();
+               wrapSeg.myLength = wrapSeg.computeLength();
+            }
          }
          tokens.poll(); // eat END token      
       }

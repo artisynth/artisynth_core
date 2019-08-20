@@ -189,47 +189,44 @@ public class PointFem3dAttachment extends PointAttachment {
       Point3d pos, FemElement elem, double reduceTol) {
       removeBackRefsIfConnected();
       FemNode[] nodes = elem.getNodes();
-      myCoords = new VectorNd (nodes.length);  
+      VectorNd coords = new VectorNd (nodes.length);  
       myNatCoords = new Vector3d();
       boolean converged =
-         elem.getMarkerCoordinates (myCoords, myNatCoords, pos, false);
+         elem.getMarkerCoordinates (coords, myNatCoords, pos, false);
       int numNodes = 0;
-      // if reduceTol >= 0, then node reduction is enabled, and so
-      // reduce any weights below reduceTol to 0 ...
-      if (reduceTol >= 0) {
-         for (int i=0; i<myCoords.size(); i++) {
-            double w = myCoords.get(i);
-            if (Math.abs(w) <= reduceTol) {
-               myCoords.set (i, 0);
-               w = 0;
-            }
-            if (w != 0) {
-               numNodes++;
-            }
+
+      // Set weights whose absolute value is below reduceTol to w.
+      // Only use weights > 0 for the nodes, *unless* reduceTol < 0,
+      // in which we will use all the nodes
+      for (int i=0; i<coords.size(); i++) {
+         double w = coords.get(i);
+         if (Math.abs(w) <= reduceTol) {
+            coords.set (i, 0);
+            w = 0;
+         }
+         if (reduceTol < 0 || w != 0) {
+            numNodes++;
          }
       }
-      else {
-         numNodes = nodes.length;
-      }
-      // only create nodes for these whose weights are non zero. 
       myNodes = new FemNode[numNodes];
+      myCoords = new VectorNd (numNodes); 
+      // set the final nodes
       int k = 0;
       for (int i=0; i<nodes.length; i++) {
-         double w = myCoords.get(i);
+         double w = coords.get(i);
          if (reduceTol < 0 || w != 0) {
             myNodes[k] = nodes[i];
             myCoords.set (k, w);
             k++;
          }
-      }      
-      myCoords.setSize (numNodes);
+      }
       myElement = elem;
       invalidateMasters();
       addBackRefsIfConnected();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
       return converged;
    }
-   
+
    public void setFromFem (Point3d pos, FemModel3d fem) {
       setFromFem (pos, fem, /*project=*/true);
    }
@@ -612,8 +609,6 @@ public class PointFem3dAttachment extends PointAttachment {
          coords, null, loc!=null ? loc : pnt.getPosition(), false);
       ax = new PointFem3dAttachment (pnt);
       ax.setFromElement (pnt.getPosition(), elem, reduceTol);
-
-
       //ax.myCoords.set (coords);
       return ax;
    }

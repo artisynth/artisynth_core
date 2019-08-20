@@ -77,12 +77,9 @@ public class DirectorFem3dAttachment extends DynamicAttachmentBase {
          elem, ncoords.x, ncoords.y, ncoords.z, 1.0);
       myData = new IntegrationData3d();
       myData.computeInverseRestJacobian (myIpnt, elem.getNodes());     
-      
-      System.out.println ("numNodes=" + nodes.length);
+
       initializeGNX (myData.myInvJ0);
-
       myCoords = new Vector3d (ncoords);
-
       myNodes = Arrays.copyOf (nodes, nodes.length);
       myWeights = Arrays.copyOf (coords.getBuffer(), coords.size());
 

@@ -156,7 +156,7 @@ public class BVFeatureQuery {
     * point on the mesh in world coordinates.
     * @param mesh mesh to which distance should be computed.
     * @param pnt point for which distance should be computed (world coords)
-    * @param distance to the mesh, or -1 if the point is too far away
+    * @return distance to the mesh, or -1 if the point is too far away
     */
    public static double distanceToMesh (
       Point3d nearPnt, PolygonalMesh mesh, Point3d pnt) {

@@ -243,65 +243,65 @@ public class DirectorFrameAttachment extends DynamicAttachmentBase {
       D.mulAdd (myMasterBlocks[idx], M); 
    }
 
-   @Override
-   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
-      throws IOException {
+   // @Override
+   // protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+   //    throws IOException {
 
-      rtok.nextToken();
-      if (scanAndStoreReference (rtok, "frame", tokens)) {
-         return true;
-      }
-      else if (scanAndStoreReference (rtok, "node", tokens)) {
-         return true;
-      }
-      else if (scanAttributeName (rtok, "loc")) {
-         myLoc.scan (rtok);
-         return true;
-      }
-      else if (scanAttributeName (rtok, "locDir")) {
-         myLocDir.scan (rtok);
-         return true;
-      }
-      rtok.pushBack();
-      return super.scanItem (rtok, tokens);
-   }
+   //    rtok.nextToken();
+   //    if (scanAndStoreReference (rtok, "frame", tokens)) {
+   //       return true;
+   //    }
+   //    else if (scanAndStoreReference (rtok, "node", tokens)) {
+   //       return true;
+   //    }
+   //    else if (scanAttributeName (rtok, "loc")) {
+   //       myLoc.scan (rtok);
+   //       return true;
+   //    }
+   //    else if (scanAttributeName (rtok, "locDir")) {
+   //       myLocDir.scan (rtok);
+   //       return true;
+   //    }
+   //    rtok.pushBack();
+   //    return super.scanItem (rtok, tokens);
+   // }
 
-   @Override
-   protected boolean postscanItem (
-   Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+   // @Override
+   // protected boolean postscanItem (
+   // Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
 
-      if (postscanAttributeName (tokens, "node")) {
-         myNode = postscanReference (tokens, FemNode3d.class, ancestor);
-         return true;
-      }
-      else if (postscanAttributeName (tokens, "frame")) {
-         setFrame (postscanReference (tokens, Frame.class, ancestor));
-         return true;
-      }
-      return super.postscanItem (tokens, ancestor);
-   }
+   //    if (postscanAttributeName (tokens, "node")) {
+   //       myNode = postscanReference (tokens, FemNode3d.class, ancestor);
+   //       return true;
+   //    }
+   //    else if (postscanAttributeName (tokens, "frame")) {
+   //       setFrame (postscanReference (tokens, Frame.class, ancestor));
+   //       return true;
+   //    }
+   //    return super.postscanItem (tokens, ancestor);
+   // }
    
-   @Override
-   public void writeItems (
-      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
-      throws IOException {
+   // @Override
+   // public void writeItems (
+   //    PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+   //    throws IOException {
 
-      super.writeItems (pw, fmt, ancestor);
+   //    super.writeItems (pw, fmt, ancestor);
 
-      pw.print ("node=");
-      pw.println (ComponentUtils.getWritePathName (ancestor, myNode));
+   //    pw.print ("node=");
+   //    pw.println (ComponentUtils.getWritePathName (ancestor, myNode));
 
-      pw.print ("frame=");
-      pw.println (ComponentUtils.getWritePathName (ancestor, myFrame));
+   //    pw.print ("frame=");
+   //    pw.println (ComponentUtils.getWritePathName (ancestor, myFrame));
 
-      pw.print ("loc=");
-      myLoc.write (pw, fmt, /*withBrackets=*/true);
-      pw.println ("");
+   //    pw.print ("loc=");
+   //    myLoc.write (pw, fmt, /*withBrackets=*/true);
+   //    pw.println ("");
 
-      pw.print ("locDir=");
-      myLocDir.write (pw, fmt, /*withBrackets=*/true);
-      pw.println ("");
-   }
+   //    pw.print ("locDir=");
+   //    myLocDir.write (pw, fmt, /*withBrackets=*/true);
+   //    pw.println ("");
+   // }
 
    /**
     * Redefine to use the node instead of the backNode as hard

@@ -48,9 +48,12 @@ import artisynth.core.util.ScanToken;
 import artisynth.core.util.StringToken;
 
 public class PointFem3dAttachment extends PointAttachment {
-   private FemElement myElement;
-   private FemNode[] myNodes;
-   private VectorNd myCoords;
+   protected FemElement myElement;
+   protected FemNode[] myNodes;
+   protected VectorNd myCoords;
+   // store natural coordinates also since they are needed b the
+   // ShellNodeFem3dAttachment subclass
+   protected Vector3d myNatCoords;
 
    public PointFem3dAttachment() {
    }
@@ -137,6 +140,7 @@ public class PointFem3dAttachment extends PointAttachment {
    public void setFromNodes (FemNode[] nodes, double[] weights) {
       dosetNodes (nodes, weights);
       myElement = null;
+      myNatCoords = null;
    }
 
    public boolean setFromNodes (Point3d pos, FemNode[] nodes) {
@@ -150,10 +154,11 @@ public class PointFem3dAttachment extends PointAttachment {
       boolean status = idweights.compute (weights, pos, support);      
       dosetNodes (nodes, weights.getBuffer());
       myElement = null;
+      myNatCoords = null;
       return status;
    }
 
-   private void dosetNodes (FemNode[] nodes, double[] weights) {
+   protected void dosetNodes (FemNode[] nodes, double[] weights) {
       if (nodes.length == 0) {
          throw new IllegalArgumentException (
             "Must have at least one node");
@@ -184,39 +189,44 @@ public class PointFem3dAttachment extends PointAttachment {
       Point3d pos, FemElement elem, double reduceTol) {
       removeBackRefsIfConnected();
       FemNode[] nodes = elem.getNodes();
-      myCoords = new VectorNd (nodes.length);  
-      boolean converged = elem.getMarkerCoordinates (myCoords, pos, false);
+      VectorNd coords = new VectorNd (nodes.length);  
+      myNatCoords = new Vector3d();
+      boolean converged =
+         elem.getMarkerCoordinates (coords, myNatCoords, pos, false);
       int numNodes = 0;
-      // reduce any weights below reduceTol to 0 ...
-      for (int i=0; i<myCoords.size(); i++) {
-         double w = myCoords.get(i);
+
+      // Set weights whose absolute value is below reduceTol to w.
+      // Only use weights > 0 for the nodes, *unless* reduceTol < 0,
+      // in which we will use all the nodes
+      for (int i=0; i<coords.size(); i++) {
+         double w = coords.get(i);
          if (Math.abs(w) <= reduceTol) {
-            myCoords.set (i, 0);
+            coords.set (i, 0);
             w = 0;
          }
-         if (w != 0) {
+         if (reduceTol < 0 || w != 0) {
             numNodes++;
          }
       }
-      // only create nodes for these whose weights are non zero. 
       myNodes = new FemNode[numNodes];
+      myCoords = new VectorNd (numNodes); 
+      // set the final nodes
       int k = 0;
       for (int i=0; i<nodes.length; i++) {
-         double w = myCoords.get(i);
-         if (w != 0) {
+         double w = coords.get(i);
+         if (reduceTol < 0 || w != 0) {
             myNodes[k] = nodes[i];
             myCoords.set (k, w);
             k++;
          }
-      }      
-      myCoords.setSize (numNodes);
+      }
       myElement = elem;
       invalidateMasters();
       addBackRefsIfConnected();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
       return converged;
    }
-   
+
    public void setFromFem (Point3d pos, FemModel3d fem) {
       setFromFem (pos, fem, /*project=*/true);
    }
@@ -292,7 +302,7 @@ public class PointFem3dAttachment extends PointAttachment {
             resetElement = true;
          }
          else if (!myElement.getMarkerCoordinates (
-            myCoords, myPoint.getPosition(), /*checkInside=*/true)) {
+            myCoords, myNatCoords, myPoint.getPosition(), /*checkInside=*/true)) {
             resetElement = true;
          }
          if (resetElement) {
@@ -361,6 +371,11 @@ public class PointFem3dAttachment extends PointAttachment {
       if (scanAndStoreReference (rtok, "element", tokens)) {
          return true;
       }
+      else if (scanAttributeName (rtok, "ncoords")) {
+         myNatCoords = new Vector3d();
+         myNatCoords.scan (rtok);
+         return true;
+      }
       else if (scanAttributeName (rtok, "nodes")) {
          tokens.offer (new StringToken ("nodes", rtok.lineno()));
          ScanWriteUtils.scanComponentsAndWeights (rtok, tokens);
@@ -396,6 +411,10 @@ public class PointFem3dAttachment extends PointAttachment {
       if (myElement != null) {
          pw.println (
             "element="+ComponentUtils.getWritePathName (ancestor, myElement));
+      }
+      if (myNatCoords != null) {
+         pw.println (
+            "ncoords=[ "+myNatCoords.toString (fmt) + "]");
       }
       pw.print ("nodes=");
       ScanWriteUtils.writeComponentsAndWeights (
@@ -587,39 +606,9 @@ public class PointFem3dAttachment extends PointAttachment {
       // Figure out the coordinates for the attachment point
       VectorNd coords = new VectorNd (elem.numNodes());
       elem.getMarkerCoordinates (
-         coords, loc!=null ? loc : pnt.getPosition(), false);
-//      if (reduceTol > 0) {
-//         FemNode3d[] nodes = elem.getNodes();
-//         // Find number of coordinates which are close to zero
-//         int numZero = 0;
-//         for (int i=0; i<elem.numNodes(); i++) {
-//            if (Math.abs(coords.get(i)) < reduceTol) {
-//               numZero++;
-//            }
-//         }
-//         // If we have coordinates close to zero, and the number of remaining
-//         // coords is <= 4, then specify the nodes and coords explicitly
-//         if (numZero > 0 && elem.numNodes()-numZero <= 4) {
-//            int numc = elem.numNodes()-numZero;
-//            double[] reducedCoords = new double[numc];
-//            FemNode3d[] reducedNodes = new FemNode3d[numc];
-//            int k = 0;
-//            for (int i=0; i<elem.numNodes(); i++) {
-//               if (Math.abs(coords.get(i)) >= reduceTol) {
-//                  reducedCoords[k] = coords.get(i);
-//                  reducedNodes[k] = nodes[i];
-//                  k++;
-//               }
-//            }
-//            ax = new PointFem3dAttachment (pnt);
-//            ax.setFromNodes (reducedNodes, reducedCoords);
-//            return ax;
-//         }
-//      }
+         coords, null, loc!=null ? loc : pnt.getPosition(), false);
       ax = new PointFem3dAttachment (pnt);
       ax.setFromElement (pnt.getPosition(), elem, reduceTol);
-
-
       //ax.myCoords.set (coords);
       return ax;
    }

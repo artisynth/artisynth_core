@@ -150,6 +150,30 @@ public class BVFeatureQuery {
    }
 
    /**
+    * Returns the nearest distance from a point to a mesh.
+    *
+    * @param nearPnt if not <code>null</code>, returns the nearest
+    * point on the mesh in world coordinates.
+    * @param mesh mesh to which distance should be computed.
+    * @param pnt point for which distance should be computed (world coords)
+    * @param distance to the mesh, or -1 if the point is too far away
+    */
+   public static double distanceToMesh (
+      Point3d nearPnt, PolygonalMesh mesh, Point3d pnt) {
+      BVFeatureQuery query = new BVFeatureQuery();
+      if (nearPnt == null) {
+         nearPnt = new Point3d();
+      }
+      if (query.nearestFaceToPoint (
+             nearPnt, null, mesh.getBVTree(), pnt) == null) {
+         return -1;
+      }
+      else {
+         return nearPnt.distance (pnt);
+      }
+   }
+
+   /**
     * Returns the nearest triangular mesh face along a directed ray.
     * This method uses the default bounding volume hierarchy produced by the
     * mesh.  Faces in the negative ray direction are ignored. If no face is

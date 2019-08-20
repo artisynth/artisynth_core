@@ -444,10 +444,12 @@ public class BackNode3d extends DynamicComponentBase
 
    public void transformGeometry (
       GeometryTransformer gtr, TransformGeometryContext context, int flags) {
-      if (!myPosValidP) {
-         setPositionToRest();
+      if (myPosValidP) {
+         gtr.transformPnt (myPos);
       }
-      gtr.transformPnt (myPos);
+      if (myRestValidP && (flags & TransformableGeometry.TG_SIMULATING) == 0) {
+         gtr.transformPnt (myRest);
+      }
    }
 
    public void addTransformableDependencies (
@@ -559,6 +561,7 @@ public class BackNode3d extends DynamicComponentBase
       }
       else if (scanAttributeName (rtok, "rest")) {
          myRest.scan (rtok);
+         myRestValidP = true;
          return true;
       }
       else if (scanAttributeName (rtok, "restExplicit")) {

@@ -114,7 +114,7 @@ public class ShellBlock extends RootModel {
       RenderProps.setLineColor (elements, Color.BLUE);
       Renderable nodes = femMod.getNodes();
       RenderProps.setPointStyle (nodes, Renderer.PointStyle.SPHERE);
-      RenderProps.setPointRadius (mechMod, 0.01);
+      RenderProps.setPointRadius (mechMod, 0.005);
       RenderProps.setPointColor (nodes, new Color (153, 0, 204));
       RenderProps.setFaceColor (femMod, new Color (0, 255, 200));
       RenderProps.setFaceStyle (femMod, FaceStyle.FRONT_AND_BACK);
@@ -171,6 +171,11 @@ public class ShellBlock extends RootModel {
       RenderProps.setLineWidth (frame, 3);
       mechMod.add (frame);
       mechMod.attachFrame (frame, femMod);
+
+      // RigidBody block = RigidBody.createBox (
+      //    "block", 0.04, 0.04, 0.2, 1000.0);
+      // mechMod.add (block);
+      // mechMod.attachFrame (block, femMod);
 
       Particle p = new Particle ("marker", 0,  myWidthX/4, 0, 0);
       RenderProps.setPointColor (p, Color.RED);

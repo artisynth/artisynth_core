@@ -599,7 +599,7 @@ public abstract class FemElement extends RenderableComponentBase
    }
 
    public boolean getMarkerCoordinates (
-      VectorNd coords, Point3d pnt, boolean checkInside) {
+      VectorNd coords, Vector3d ncoords, Point3d pnt, boolean checkInside) {
       return false;
    }
 

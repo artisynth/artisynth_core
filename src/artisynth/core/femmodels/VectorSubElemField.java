@@ -152,7 +152,7 @@ public class VectorSubElemField<T extends VectorObject<T>>
             ", but number of integration points is "+npnts);
       }
       VectorNd weights = new VectorNd(elem.numNodes());
-      elem.getMarkerCoordinates (weights, loc, /*checkInside=*/false);
+      elem.getMarkerCoordinates (weights, null, loc, /*checkInside=*/false);
       // nodal extrapolation matrix maps integration point values to nodes
       double[] Mex = elem.getNodalExtrapolationMatrix().getBuffer();
       T value = createInstance();

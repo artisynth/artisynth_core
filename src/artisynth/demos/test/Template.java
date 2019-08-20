@@ -7,11 +7,14 @@ import java.util.*;
 import artisynth.core.workspace.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.femmodels.*;
+import artisynth.core.materials.*;
+import artisynth.core.probes.*;
 
 import maspack.util.*;
 import maspack.matrix.*;
 import maspack.geometry.*;
 import maspack.render.*;
+import maspack.render.Renderer.*;
 import maspack.properties.*;
 
 public class Template extends RootModel {

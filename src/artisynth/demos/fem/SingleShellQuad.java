@@ -10,6 +10,7 @@ import artisynth.core.femmodels.*;
 import artisynth.core.workspace.RootModel;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
+import maspack.matrix.RigidTransform3d;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 

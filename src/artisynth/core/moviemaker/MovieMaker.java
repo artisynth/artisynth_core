@@ -39,7 +39,8 @@ public class MovieMaker {
    private String dataPath; // where data is written
    private int frameCounter; // counts frames rendered
    private int lastFrameCount; // last number of frames recorded
-   private double frameRate = 31.25; // frame rate in 1/s (31.25 would be better)
+   //private double frameRate = 31.25; // frame rate in 1/s (31.25 would be better)
+   private double frameRate = 50; // frame rate in 1/s (31.25 would be better)
    private Rectangle movieArea;
    private Dimension viewerResize;
    private int aasamples = FrameBufferObject.defaultMultiSamples;
@@ -81,7 +82,7 @@ public class MovieMaker {
    // ffmpeg -i frame%05d.$FMT -r $FPS -aq 100 -ar 22050 foo.mov
 
    private static String myAvconvCmd = 
-      "avconv -r $FPS -i frame%05d.$FMT -c:v libx264 $OUT.mov";
+      "avconv -r $FPS -i frame%05d.$FMT -c:v libx264 $OUT.mp4";
 
    private static String myGifOptions = "-loop 0 -fps $FPS";
 

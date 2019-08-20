@@ -98,7 +98,7 @@ public class ScalarNodalField extends ScalarFemField {
    }
 
    public double getValue (int[] nodeNums, double[] weights) {
-      int value = 0;
+      double value = 0;
       for (int i=0; i<nodeNums.length; i++) {
          value += weights[i]*getValue (nodeNums[i]);
       }

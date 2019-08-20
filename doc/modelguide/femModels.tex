@@ -2531,7 +2531,7 @@ and supply the method
 where {\tt T} is any class implementing
 \javaclass{maspack.matrix.VectorObject}. (Most of the fixed-size
 matrix objects in {\tt maspack.matrix}, along with {\tt MatrixNd} and
-{\tt VectorNd}), implement {\tt VectorObject}.)  In both cases, the
+{\tt VectorNd}, implement {\tt VectorObject}.)  In both cases, the
 idea is to provide values at arbitrary points over some spatial
 domain.
 
@@ -2694,7 +2694,7 @@ with an FEM model named {\tt fem}, like this:
 Each field type has several constructors available. The one used above
 takes a component name ({\tt "stiffness"}), the FEM modal associated with
 the field, and a default value (0 in this case). When setting field
-values, it is often easiest to simple specify the node (although the
+values, it is often easiest to simply specify the node (although the
 node's number (i.e., {\tt node.getNumber()}) can be specified as well.
 After being created and initialized, the field is added to the FEM
 model using its {\tt addField()} method.

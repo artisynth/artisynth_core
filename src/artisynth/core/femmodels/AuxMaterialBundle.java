@@ -351,11 +351,12 @@ public class AuxMaterialBundle extends CompositeComponentBase
    @Override
    public void connectToHierarchy (CompositeComponent hcomp) {
       super.connectToHierarchy (hcomp);
-      if (hcomp == getParent() && getAncestorFem (this) != null) {
-         for (int i=0; i<myElementDescs.size(); i++) {
-            myElementDescs.get(i).referenceElement();
-         }
-      }
+      // XXX reference elements already connected recursively
+      //      if (hcomp == getParent() && getAncestorFem (this) != null) {
+      //         for (int i=0; i<myElementDescs.size(); i++) {
+      //            myElementDescs.get(i).referenceElement();
+      //         }
+      //      }
    }
 
    @Override

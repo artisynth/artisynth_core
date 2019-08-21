@@ -241,7 +241,24 @@ public class ContactInfo {
          myContours.add (c.copy());
       }
    }
-   
+
+   /**
+    * Directly set the penetrating points for the indicated mesh.  The value is
+    * set by reference, so the specified array {@code points} is not
+    * copied. For internal use only.
+    */
+   public void setPenetratingPoints (
+      ArrayList<PenetratingPoint> points, int meshNum) {
+      if (meshNum == 0) {
+         myPoints0 = points;
+      }
+      else if (meshNum == 1) {
+         myPoints1 = points;
+      }
+      else {
+         throw new IndexOutOfBoundsException ("meshNum must be 0 or 1");
+      }
+   }   
    /**
     * Returns the penetrating points of the mesh indicated by
     * <code>meshNum</code> (which should be 0 or 1). These represent all the
@@ -409,6 +426,16 @@ public class ContactInfo {
          return null;
       }
    }      
+
+
+   /**
+    * Directly set edge-edge contacts for the contact. The values are * set by
+    * reference, so the specified array {@code contacts} is not copied. For
+    * internal use only.
+    */
+   public void setEdgeEdgeContacts (ArrayList<EdgeEdgeContact> contacts) {
+      myEdgeEdgeContacts = contacts;
+   }
 
    /**
     * Returns the edge-edge contacts for this contact. If the collider that

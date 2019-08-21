@@ -195,7 +195,12 @@ public class CollisionManager extends RenderableCompositeBase
        * only contacts based on vertex penetration, and at least
        * one of the colliding bodies must be non-deformable.
        */
-      SIGNED_DISTANCE
+      SIGNED_DISTANCE,
+
+      /**
+       * Experimental collider for continuous collision detection.
+       */
+      CONTINUOUS
    };
 
    static ColliderType myDefaultColliderType = ColliderType.TRI_INTERSECTION;

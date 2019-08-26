@@ -3834,6 +3834,12 @@ public class FemFactory {
       int nl, int nr, int ntheta) {
       FemNode3d nodes[][][] = new FemNode3d[ntheta][nl][nr];
 
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
+      
       double dl = l / (nl - 1);
       double dt = theta / (ntheta-1);
       double dr = (rout - rin) / (nr - 1);

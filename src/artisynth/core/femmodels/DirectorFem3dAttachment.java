@@ -191,11 +191,10 @@ public class DirectorFem3dAttachment extends DynamicAttachmentBase {
    public void addMassToMasters() {
       double m = myNode.getBackNode().getEffectiveMass();
       if (m != 0) {
-         for (int i=0; i<myNodes.length; i++) {
-            myNodes[i].addEffectiveMass (m*myWeights[i]);
-         }
+         PointFem3dAttachment.addMassToNodeMasters (
+            myNodes, myWeights, m);
+         myNode.getBackNode().addEffectiveMass(-m);
       }
-      myNode.getBackNode().addEffectiveMass(-m);
    }
 
    protected void updateMasterBlocks() {

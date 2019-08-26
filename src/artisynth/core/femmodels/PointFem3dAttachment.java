@@ -613,14 +613,50 @@ public class PointFem3dAttachment extends PointAttachment {
       return ax;
    }
 
+   /***
+    * Distribute a mass {@code m} amongst the master nodes on the basis of
+    * their coordinate weights. To guard against negative weights, we use their
+    * absolute value and then renormalize so that they sum to unity. Negative
+    * weights will occur when the attached point lies outside of an element
+    * associated with the nodes.
+    *
+    * <p>Using absolute values is necessary because we are using a lumped mass
+    * formulation; if we instead used a consistent mass formulation, the
+    * resulting distributed normal mass would be
+    * <pre>
+    *   m weights weights^T
+    * </pre>
+    * which is symmetric positive definite and so there would be no need to
+    * guard against negative weights.
+    * 
+    * @param nodes nodes to which mass should be added
+    * @param coords coordinate weights of each node
+    * @param m mass to be distributed
+    */
+   public static void addMassToNodeMasters (
+      FemNode[] nodes, double[] weights, double m) {
+      double[] absWeights = new double[nodes.length];
+      double sum = 0;
+      for (int i=0; i<nodes.length; i++) {
+         double w = weights[i];
+         if (w < 0) {
+            w = -w;
+         }
+         absWeights[i] = w;
+         sum += w;
+      }
+      double scale = m/sum; // mass times normalization scale factor
+      for (int i=0; i<nodes.length; i++) {
+         nodes[i].addEffectiveMass (scale*absWeights[i]);
+      }
+   }
+   
    public void addMassToMasters() {
       double m = myPoint.getEffectiveMass();
       if (m != 0) {
-         for (int i=0; i<myNodes.length; i++) {
-            myNodes[i].addEffectiveMass (m*myCoords.get(i));
-         }
+         addMassToNodeMasters (myNodes, myCoords.getBuffer(), m);
+         myPoint.addEffectiveMass(-m);
       }
-      myPoint.addEffectiveMass(-m);
    }
    
    public boolean getDerivative (double[] buf, int idx) {

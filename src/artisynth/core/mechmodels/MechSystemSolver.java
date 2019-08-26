@@ -16,6 +16,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.StepAdjustment;
 import artisynth.core.util.ArtisynthIO;
 import maspack.function.Function1x1;
+import maspack.matrix.EigenDecomposition;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix3x1;
@@ -1336,6 +1337,17 @@ public class MechSystemSolver {
       }
    }
 
+   protected void printEigenValues (Matrix S, int size, String msg, String fmt) {
+      MatrixNd SD = new MatrixNd (size, size);
+      S.getSubMatrix (0, 0, SD);
+      EigenDecomposition ED =
+         new EigenDecomposition (
+            SD, EigenDecomposition.OMIT_V | EigenDecomposition.SYMMETRIC);
+      VectorNd eig = new VectorNd (size);
+      ED.get (eig, null, null);
+      System.out.println (msg + eig.toString (fmt));
+   }
+
    /** 
     * Solves a KKT system in which the Jacobian augmented M matrix and
     * and force vectors are given by
@@ -1400,6 +1412,7 @@ public class MechSystemSolver {
 
       mySys.addVelJacobian (S, myC, a0);
       //System.out.println ("myC=" + myC);
+      //printEigenValues (S, velSize, "VEL:\n", "%8.2e");
       if (useFictitousJacobianForces) {
          bf.scaledAdd (-a0, myC);
          if (fpar != null && myParametricVelSize > 0) {
@@ -1544,6 +1557,7 @@ public class MechSystemSolver {
                "vel residual ("+velSize+","+myGT.colSize()+","+
                   myNT.colSize()+"): " + res);
          }
+    
          //System.out.println ("bg=" + myBg);
          if (crsWriter != null) {
             String msg = 

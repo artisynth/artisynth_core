@@ -818,8 +818,8 @@ public class ComponentUtils {
       pw.close();
    }
 
-   public static ModelComponent loadComponent (
-      File file, CompositeComponent ancestor, Class<?> expectedType)
+   public static <T extends ModelComponent> T loadComponent (
+      File file, CompositeComponent ancestor, Class<T> expectedType)
       throws IOException {
       ReaderTokenizer rtok = ArtisynthIO.newReaderTokenizer (file);
       rtok.nextToken();
@@ -835,23 +835,39 @@ public class ComponentUtils {
          throw new IOException ("file contains an instance of " + cls
          + " instead of " + expectedType);
       }
-      ModelComponent comp;
+      T comp;
       try {
-         comp = (ModelComponent)cls.newInstance();
+         comp = (T)cls.newInstance();
       }
       catch (Exception e) {
          throw new IOException ("cannot create instance of " + cls);
       }
+      if (ancestor == null && comp instanceof CompositeComponent) {
+         ancestor = (CompositeComponent)comp;
+      }
       ScanWriteUtils.scanfull (rtok, comp, ancestor);
-//      if (ModelComponentBase.useNewScan) {
-//         ArrayDeque<ScanToken> tokens = new ArrayDeque<ScanToken>();
-//         comp.scan (rtok, tokens);
-//         comp.postscan (tokens, ancestor);         
-//      }
-//      else {
-//         comp.scan (rtok, ancestor);
-//      }
       return comp;
+   }
+
+   public static <T extends ModelComponent> T loadComponent (
+      String fileName, CompositeComponent ancestor, Class<T> expectedType)
+      throws IOException {
+      return loadComponent (new File(fileName), ancestor, expectedType);
+   }
+
+   public static <T extends ModelComponent> T loadComponent (
+      String fileName, Class<T> expectedType) throws IOException {
+      return loadComponent (new File(fileName), null, expectedType);
+   }
+
+   public static ModelComponent loadComponent (
+      String fileName, CompositeComponent ancestor) throws IOException {
+      return loadComponent (new File(fileName), ancestor, ModelComponent.class);
+   }
+
+   public static ModelComponent loadComponent (String fileName)
+      throws IOException {
+      return loadComponent (new File(fileName), null, ModelComponent.class);
    }
 
    /**

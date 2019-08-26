@@ -688,9 +688,8 @@ public class FrameFem3dAttachment extends FrameAttachment {
             RigidBody body = (RigidBody)myFrame;
             SpatialInertia MB = new SpatialInertia(body.getEffectiveInertia());
             double mass = MB.getMass();
-            for (int i=0; i<myNodes.length; i++) {
-               myNodes[i].addEffectiveMass (myWeights[i]*mass);
-            }
+            PointFem3dAttachment.addMassToNodeMasters (
+               myNodes, myWeights, mass);
             body.subEffectiveInertia (MB);
          }
          else {

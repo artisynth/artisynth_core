@@ -8,6 +8,9 @@
 
 import java.awt.Rectangle;
 import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.LinkedList;
 
 import maspack.render.GL.GLClipPlane;
 import maspack.render.GL.GLViewer;
@@ -16,10 +19,12 @@ import artisynth.core.femmodels.FemElement;
 import artisynth.core.femmodels.FemModel.ElementFilter;
 import artisynth.core.femmodels.FemModel.SurfaceRender;
 import artisynth.core.femmodels.FemElement3d;
+import artisynth.core.femmodels.FemElement3dBase;
 import artisynth.core.femmodels.FemModel;
 import artisynth.core.femmodels.FemMeshComp;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.femmodels.FemNode;
+import artisynth.core.femmodels.FemNode3d;
 import artisynth.core.femmodels.HexElement;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.mechmodels.MechModel;
@@ -43,6 +48,7 @@ public class FemModel3dEditor extends EditorBase {
          actions.add (this, "Add new surface mesh");
          actions.add (this, "Save surface mesh ...");
          actions.add (this, "Save mesh as Ansys file...");
+         actions.add (this, "Select isolated nodes");
          if (model.getGrandParent() instanceof MechModel) {
             actions.add (this, "Attach particles ...", EXCLUSIVE);
          }
@@ -79,6 +85,9 @@ public class FemModel3dEditor extends EditorBase {
          }
          else if (actionCommand == "Save mesh as Ansys file...") {
             EditorUtils.saveMeshAsAnsysFile (model);
+         }
+         else if (actionCommand == "Select isolated nodes") {
+            selectIsolatedNodes (model);
          }
          else if (actionCommand == "Attach particles ...") {
             if (myEditManager.acquireEditLock()) {
@@ -149,6 +158,18 @@ public class FemModel3dEditor extends EditorBase {
       FemMeshComp mcomp = FemMeshComp.createSurface (null, model, efilter);
       mcomp.setSurfaceRendering (SurfaceRender.Shaded);
       model.addMeshComp (mcomp);
+   }
+
+   private void selectIsolatedNodes (FemModel3d model) {
+      ArrayList<ModelComponent> isolated = new ArrayList<>();
+      for (FemNode3d n : model.getNodes()) {
+         List<FemElement3dBase> elems = n.getAdjacentElements();
+         if (elems == null || elems.size() == 0) {
+            isolated.add (n);
+         }
+      }
+      myMain.getSelectionManager().clearSelections();
+      myMain.getSelectionManager().addSelected (isolated);
    }
 
    private class SelectedElementFilter implements FemModel.ElementFilter {

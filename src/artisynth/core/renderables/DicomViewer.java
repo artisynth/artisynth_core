@@ -1200,7 +1200,7 @@ public class DicomViewer extends Frame
 
    @Override
    public void updateBounds(Vector3d pmin, Vector3d pmax) {
-      super.updateBounds(pmin, pmax);
+      // super.updateBounds(pmin, pmax); ignore frame coordinates
       maybeUpdateRenderObject();
       updateNetTransform();
 

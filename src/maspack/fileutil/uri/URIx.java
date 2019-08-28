@@ -1376,7 +1376,7 @@ public class URIx {
       
       URIx merged = new URIx(base);
       // empty relative path, return base
-      if (relPath == null || "".equals(relPath)) {
+      if ( relPath == null ) {
          return merged;
       }
       

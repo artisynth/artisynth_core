@@ -955,7 +955,7 @@ public class DemoMenuParser {
             if (Modifier.isAbstract (clazz.getModifiers())) {
                li.remove();
             }            
-         } catch (Exception e) {
+         } catch (Error | Exception e) {
             // shouldn't happen - remove class if it does
             e.printStackTrace ();
             li.remove();

@@ -6,6 +6,7 @@
  */
 package maspack.matrix;
 
+import maspack.util.Clonable;
 import maspack.util.NumberFormat;
 
 /**
@@ -18,7 +19,7 @@ import maspack.util.NumberFormat;
  * In order to keep the representation unique, the axis is normalized and the
  * angle is kept in the range 0 {@code <=} angle {@code <} Math.PI.
  */
-public class AxisAngle {
+public class AxisAngle implements Clonable {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double ANGLE_EPSILON = 10 * DOUBLE_PREC;
 
@@ -373,4 +374,16 @@ public class AxisAngle {
       }
    }
 
+   @Override
+   public AxisAngle clone ()  {
+      AxisAngle aa = null;
+      
+      try {
+         aa = (AxisAngle)super.clone ();
+         aa.axis = axis.clone ();  // separate copy of axis
+         aa.angle = angle;
+      } catch (CloneNotSupportedException e) {}
+      
+      return aa;
+   }
 }

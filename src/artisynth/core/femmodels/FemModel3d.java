@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1291,6 +1293,77 @@ PointAttachable, ConnectableBody {
          }
       }
       return nearest;
+   }
+
+   private static class NodePointDistance implements Comparator<FemNode3d> {
+
+      Point3d myPoint;
+
+      NodePointDistance (Point3d pnt) {
+         myPoint = pnt;
+      }
+
+      public int compare (FemNode3d n0, FemNode3d n1) {
+         double d0 = n0.distance (myPoint);
+         double d1 = n1.distance (myPoint);
+         if (d0 < d1) {
+            return -1;
+         }
+         else if (d0 == d1) {
+            return 0;
+         }
+         else {
+            return 1;
+         }
+      }
+   }
+
+   /**
+    * Finds and returns a list of all the nodes of an FEM that are within a
+    * specified maximum distance of a specified point. The nodes are sorted
+    * from neartest to farthest. If no node is within the maximum distance, the
+    * returned list is empty.
+    * 
+    * @param pnt Point for which the nearest nodes should be located
+    * @param maxDist Maximum distance that the nodes must be from the
+    * point
+    * @return List of the nearest points
+    */
+   public ArrayList<FemNode3d> findNearestNodes (Point3d pnt, double maxDist) {
+      ArrayList<FemNode3d> nodes = new ArrayList<>();
+
+      BVTree bvtree = getBVTree();
+      ArrayList<BVNode> bvnodes = new ArrayList<BVNode>();
+      bvtree.intersectSphere(bvnodes, pnt, maxDist);
+      HashSet<FemNode3d> checked = new HashSet<>();
+      for (BVNode n : bvnodes) {
+         Boundable[] elements = n.getElements();
+         for (int i = 0; i < elements.length; i++) {
+            if (elements[i] instanceof FemElement3dBase) {
+               FemElement3dBase e = (FemElement3dBase)elements[i];
+               for (int k = 0; k < e.numNodes(); k++) {
+                  FemNode3d node = e.myNodes[k];
+                  if (!checked.contains(node)) {
+                     if (node.distance (pnt) <= maxDist) {
+                        nodes.add (node);
+                     }
+                     checked.add (node);
+                  }
+               }
+            }
+            else if (elements[i] instanceof FemNode3d) {
+               FemNode3d node = (FemNode3d)elements[i];
+               if (!checked.contains(node)) {
+                  if (node.distance (pnt) <= maxDist) {
+                     nodes.add (node);
+                  }
+                  checked.add (node);
+               }
+            }
+         }
+      }
+      Collections.sort (nodes, new NodePointDistance (pnt));
+      return nodes;
    }
 
    /* --- Mesh Component Methods --- */

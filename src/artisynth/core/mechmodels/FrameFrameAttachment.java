@@ -47,6 +47,11 @@ public class FrameFrameAttachment extends FrameAttachment {
       this (frame);
       set (master, frame.getPose());
    }
+   
+   public FrameFrameAttachment(Frame frame, Frame master, RigidTransform3d TFM) {
+      this(frame);
+      set(frame, master, TFM);
+   }
 
    @Override
    public boolean isFlexible() {
@@ -67,6 +72,18 @@ public class FrameFrameAttachment extends FrameAttachment {
       invalidateMasters();
       addBackRefsIfConnected();
       notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+   }
+   
+   protected void set (Frame frame, Frame master, RigidTransform3d TFM) {
+      myFrame = frame;
+      setMaster (master);
+      myTFM.set (TFM);
+      if (master != null) {
+         myTFW.mul (master.getPose (), TFM);
+      }
+      else {
+         myTFW.set (TFM);
+      }
    }
 
    public void set (Frame master, RigidTransform3d TFW) {

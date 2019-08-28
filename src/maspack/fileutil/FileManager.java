@@ -304,10 +304,10 @@ public class FileManager {
     * if URI string is malformed
     * @return converted URI
     */
-   public URIx getAbsoluteURI(String relURIstr) throws URIxSyntaxException {
+   public URIx getAbsoluteSourceURI(String relURIstr) throws URIxSyntaxException {
 
       URIx uri = new URIx(relURIstr);
-      return getAbsoluteURI(uri);
+      return getAbsoluteSourceURI(uri);
 
    }
 
@@ -318,7 +318,7 @@ public class FileManager {
     * @param relURI relative URI
     * @return converted URI
     */
-   public URIx getAbsoluteURI(URIx relURI) {
+   public URIx getAbsoluteSourceURI(URIx relURI) {
 
       URIx uri = relURI;
       if (uri.isRelative()) {
@@ -336,7 +336,7 @@ public class FileManager {
     * the relative file
     * @return absolute file
     */
-   public File getAbsoluteFile(File relFile) {
+   public File getAbsoluteDestFile(File relFile) {
       File file = relFile;
       if (!file.isAbsolute()) {
          file = new File(downloadDir.getAbsoluteFile(), relFile.getPath());
@@ -351,8 +351,8 @@ public class FileManager {
     * @param relPath relative file
     * @return absolute file
     */
-   public File getAbsoluteFile(String relPath) {
-      return getAbsoluteFile(new File(relPath));
+   public File getAbsoluteDestFile(String relPath) {
+      return getAbsoluteDestFile(new File(relPath));
    }
 
 
@@ -392,7 +392,7 @@ public class FileManager {
     */
    public String getRemoteHash(String uriStr) throws FileTransferException, URIxSyntaxException {
 
-      URIx uri = getAbsoluteURI(uriStr);
+      URIx uri = getAbsoluteSourceURI(uriStr);
       return getRemoteHash(uri);
 
    }
@@ -408,7 +408,7 @@ public class FileManager {
     */
    public String getRemoteHash(URIx uri) throws FileTransferException {
 
-      uri = getAbsoluteURI(uri);
+      uri = getAbsoluteSourceURI(uri);
 
       // construct a uri for the remote sha1 hash
       URIx hashURI = mergeExtension(uri, ".sha1");
@@ -476,7 +476,7 @@ public class FileManager {
     */
    public String getLocalHash(File file) {
 
-      file = getAbsoluteFile(file);
+      file = getAbsoluteDestFile(file);
 
       if (!file.canRead()) {
          throw new FileTransferException("Cannot compute hash of local file: " 
@@ -523,8 +523,8 @@ public class FileManager {
 
    public boolean equalsHash(String relPath) throws FileTransferException {
 
-      File localFile = getAbsoluteFile(relPath);
-      URIx localURI = getAbsoluteURI(relPath);
+      File localFile = getAbsoluteDestFile(relPath);
+      URIx localURI = getAbsoluteSourceURI(relPath);
 
       return equalsHash(localFile, localURI);
 
@@ -532,8 +532,8 @@ public class FileManager {
    
    public boolean equalsHash(String local, String remote) throws FileTransferException {
 
-      File localFile = getAbsoluteFile(local);
-      URIx localURI = getAbsoluteURI(remote);
+      File localFile = getAbsoluteDestFile(local);
+      URIx localURI = getAbsoluteSourceURI(remote);
 
       return equalsHash(localFile, localURI);
 
@@ -545,7 +545,7 @@ public class FileManager {
       if (uri == null) {
          return null;
       } else if (uri.isZipType()) {
-         fileName = uri.getFragment();
+         fileName = uri.getRawFragment();
       } else {
          fileName =  uri.getRawPath();
       }
@@ -615,11 +615,6 @@ public class FileManager {
     */
    public File getRemote(File dest, URIx source) throws FileTransferException {
 
-      // ensure that source is a file, and not a path
-      if (isDirectory(source) ) { //|| srcFile.endsWith("/")) {
-         throw new IllegalArgumentException("Source URI must refer to a file: <" + source + ">"); 
-      }
-
       if (dest == null) {    
          // if source is relative, take that
          if (source.isRelative()) {
@@ -638,8 +633,8 @@ public class FileManager {
       }
 
       // make absolute
-      dest = getAbsoluteFile(dest);
-      source = getAbsoluteURI(source);
+      dest = getAbsoluteDestFile(dest);
+      source = getAbsoluteSourceURI(source);
 
       try {
          cacher.initialize();
@@ -660,14 +655,6 @@ public class FileManager {
       lastWasRemote = true;
       return dest;
 
-   }
-
-   private boolean isDirectory(URIx uri) {
-      String filename = extractFileName(uri);
-      if ("".equals(filename) ) {
-         return true;
-      }
-      return false;
    }
 
    /**
@@ -696,17 +683,11 @@ public class FileManager {
             // otherwise, simply extract the file name from source
             dest = new URIx(source.getName());
          }
-      } else if (isDirectory(dest)) {
-         if (source.isAbsolute()) {
-            dest = dest.resolve(source.getName());
-         } else {
-            dest = dest.resolve (source.getPath());
-         }
       }
 
       // make absolute
-      dest = getAbsoluteURI(dest);
-      source = getAbsoluteFile(source);
+      dest = getAbsoluteSourceURI(dest);
+      source = getAbsoluteDestFile(source);
 
       try {
          cacher.initialize();
@@ -777,6 +758,45 @@ public class FileManager {
    public File getRemote(URIx source) throws FileTransferException {
       return getRemote(null, source);
    }
+   
+   public String determineDefaultDestination(URIx uri) {
+      String path;
+      
+      if (!uri.isZipType ()) {
+         // get path directly
+         path = uri.getRawPath ();
+      } else {
+         // get zip fragment path
+         path = uri.getRawFragment ();
+         if (path.startsWith ("/")) {
+            path = path.substring (1);
+         }
+         if (path.isEmpty ()) {
+            path = "./";
+         }
+         
+         // check if we need to prepend with base
+         URIx base = uri.getNestedURI ();
+         if (base != null) {
+            // append to base
+            URIx tailURI = new URIx();
+            tailURI.setRawPath (path);
+            
+            // get head path
+            String head = determineDefaultDestination(base);
+            URIx headURI = new URIx(head);
+            
+            // merge two, in same path as underlying zip file
+            URIx merged = headURI.resolve (tailURI);
+            
+            // extract path
+            path = merged.getRawPath ();
+         }
+         
+      }
+      
+      return path;
+   }
 
    /**
     * Returns a file handle to a local version of the requested file. Downloads
@@ -802,31 +822,46 @@ public class FileManager {
    public File get(File dest, URIx source, int options)
       throws FileTransferException {
 
+      File olddest = dest;
+      
       // default destination if none provided
       if (dest == null) {
          if (source.isRelative()) {
-            dest = new File(source.getRawPath());
+            dest = new File(determineDefaultDestination (source));
          } else {
             dest = new File(extractFileName(source));
          }
       } else if (dest.isDirectory()) {
          if (source.isRelative()) {
-            dest = new File(dest, source.getRawPath());
+            // XXX should I just use filename?
+            dest = new File(dest, determineDefaultDestination (source));
          } else {
             dest = new File(dest, extractFileName(source));
          }
       }
-
-      // convert to absolute
-      dest = getAbsoluteFile(dest);
-      source = getAbsoluteURI(source);
 
       // download zip file first if requested
       if ( source.isZipType() && (options & DOWNLOAD_ZIP) != 0) {
 
          // get zip file
          URIx zipSource = source.getBaseURI();
-         File zipDest = getAbsoluteFile(extractFileName(zipSource));
+         
+         File zipDest;
+         if (olddest == null) {
+            if (zipSource.isRelative()) {
+               zipDest = new File(determineDefaultDestination (zipSource));
+            } else {
+               zipDest = new File(extractFileName(zipSource));
+            }
+         } else {
+            if (olddest.isDirectory ()) {
+               // XXX should I just use the filename?
+               zipDest = new File(extractFileName(zipSource));
+            } else {
+               zipDest = new File(olddest.getParentFile (), extractFileName(zipSource));
+            }
+         }
+         
          File zipFile = get(zipDest, zipSource, options);
 
          // replace source URI
@@ -836,6 +871,10 @@ public class FileManager {
          // have changed, although we do need to replace if re-downloaded zip
          // options = options & (~CHECK_HASH);
       }
+      
+      // convert to absolute
+      dest = getAbsoluteDestFile(dest);
+      source = getAbsoluteSourceURI(source);
 
       // check if we need to actually fetch file
       boolean fetch = true;
@@ -948,7 +987,7 @@ public class FileManager {
     * @return true if the resource exists, false otherwise
     */
    public boolean fileExists(URIx source) {
-      source = getAbsoluteURI(source);  // convert to absolute
+      source = getAbsoluteSourceURI(source);  // convert to absolute
       boolean exists = true;
       try {
          cacher.initialize();
@@ -1037,17 +1076,11 @@ public class FileManager {
          } else {
             dest = new URIx(source.getName());
          }
-      } else if (isDirectory(dest)) {
-         if (!source.isAbsolute()) {
-            dest = dest.resolve (source.getPath());
-         } else {
-            dest = dest.resolve (source.getName());
-         }
       }
 
       // convert to absolute
-      dest = getAbsoluteURI(dest);
-      source = getAbsoluteFile(source);
+      dest = getAbsoluteSourceURI(dest);
+      source = getAbsoluteDestFile(source);
 
       // XXX TODO: check if we need to actually upload file
       boolean push = true;
@@ -1543,15 +1576,15 @@ public class FileManager {
       }
 
       // convert to absolute
-      localCopy = getAbsoluteFile(localCopy);
-      source = getAbsoluteURI(source);
+      localCopy = getAbsoluteDestFile(localCopy);
+      source = getAbsoluteSourceURI(source);
 
       // download zip file first if requested
       if ( source.isZipType() && (options & DOWNLOAD_ZIP) != 0) {
 
          // get zip file
          URIx zipSource = source.getBaseURI();
-         File zipDest = getAbsoluteFile(extractFileName(zipSource));
+         File zipDest = getAbsoluteDestFile(extractFileName(zipSource));
          File zipFile = get(zipDest, zipSource, options);
 
          // replace source URI

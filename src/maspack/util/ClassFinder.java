@@ -148,6 +148,10 @@ public class ClassFinder {
       }
       return classList;
    }
+   
+   public static ArrayList<Class<?>> findClasses(Package pkg, Class<?> T) {
+      return findClasses(pkg.getName (), ".*", T);
+   }
 
    public static ArrayList<Class<?>> findClasses(String pkg, Class<?> T) {
       return findClasses(pkg, ".*", T);

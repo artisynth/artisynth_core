@@ -700,6 +700,7 @@ public class DicomViewer extends Frame
    }
 
    protected void updateSurfaces() {
+      
       float x = (float)getX();
       float y = (float)getY();
       float z = (float)getZ();
@@ -844,7 +845,43 @@ public class DicomViewer extends Frame
 
    // updates positions of vertices
    protected void updateRenderObject() {
-      // nothing
+
+      Point3d pos = new Point3d();
+      int nslices = myImage.getNumSlices ();
+      double dz = 1.0/nslices;
+
+      // box coordinates
+      int pidx = 0;
+      getPosition(0,0,0, pos);
+      robj.setPosition( pidx++, pos);
+      getPosition(0,1,0, pos);
+      robj.setPosition( pidx++, pos);
+      getPosition(1,1,0, pos);
+      robj.setPosition( pidx++, pos);
+      getPosition(1,0,0, pos);
+      robj.setPosition( pidx++, pos);
+      // sides
+      for (int i=0; i<nslices; ++i) {
+         float w = (float)((i+0.5)*dz);
+         getPosition(0,0,w, pos);
+         robj.setPosition( pidx++, pos);
+         getPosition(0,1,w, pos);
+         robj.setPosition( pidx++, pos);
+         getPosition(1,1,w, pos);
+         robj.setPosition( pidx++, pos);
+         getPosition(1,0,w, pos);
+         robj.setPosition( pidx++, pos);
+      }      
+      // top
+      getPosition(0,0,1, pos);
+      robj.setPosition( pidx++, pos);
+      getPosition(0,1,1,pos);
+      robj.setPosition( pidx++, pos);
+      getPosition(1,1,1,pos);
+      robj.setPosition( pidx++, pos);
+      getPosition(1,0,1,pos);
+      robj.setPosition( pidx++, pos);
+      
    }
 
    protected RenderObject buildRenderObjectOld() {

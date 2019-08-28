@@ -6,7 +6,6 @@
  */
 package artisynth.core.mechmodels;
 
-import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -52,7 +51,6 @@ import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.RenderableUtils;
 import maspack.render.Renderer;
-import maspack.render.Renderer.LineStyle;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.spatialmotion.Twist;
 import maspack.spatialmotion.Wrench;
@@ -1945,11 +1943,11 @@ public class RigidBody extends Frame
       return ComponentUtils.findComponent (this, path);
    }
 
-   protected void add (ModelComponent comp) {
+   public void add (ModelComponent comp) {
       myComponents.add (comp);
    }
 
-   protected boolean remove (ModelComponent comp) {
+   public boolean remove (ModelComponent comp) {
       return myComponents.remove (comp);
    }
 

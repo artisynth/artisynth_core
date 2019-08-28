@@ -147,4 +147,9 @@ public class Point3d extends Vector3d {
       sub (p1, X.b);
       X.M.mulInverse (this);
    }
+   
+   @Override
+   public Point3d clone () {
+      return (Point3d)super.clone ();
+   }
 }

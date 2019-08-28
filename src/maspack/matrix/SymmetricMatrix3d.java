@@ -1352,5 +1352,10 @@ public class SymmetricMatrix3d extends Matrix3dBase {
          rtok.scanToken (']');
       }
    }
+   
+   @Override
+   public SymmetricMatrix3d clone () {
+      return (SymmetricMatrix3d)super.clone ();
+   }
 
 }

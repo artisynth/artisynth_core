@@ -43,7 +43,7 @@ public class VtkMeshToWavefrontConverter {
 
       PolygonalMesh mesh;
       try {
-         mesh = VtkXmlReader.read(input);
+         mesh = (PolygonalMesh)VtkXmlReader.read(input);
       } catch (IOException e1) {
          e1.printStackTrace();
          return;

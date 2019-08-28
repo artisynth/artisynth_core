@@ -355,11 +355,30 @@ public class VtkXmlReader extends MeshReaderBase {
    }
 
    @Override
-   public PolygonalMesh readMesh() throws IOException {
-      return (PolygonalMesh)readMesh (new PolygonalMesh());
+   public MeshBase readMesh() throws IOException {
+      parse();
+      
+      // try polygonal mesh
+      PolygonalMesh pmesh = getPolygonalMesh ();
+      if (pmesh != null && pmesh.numFaces () > 0) {
+         return pmesh;
+      }
+      
+      // try polyline mesh
+      PolylineMesh lmesh = getPolylineMesh ();
+      if (lmesh != null && lmesh.numLines () > 0) {
+         return lmesh;
+      }
+      
+      return null;
    }
 
    public MeshBase readMesh (MeshBase mesh) throws IOException {
+      if (mesh == null) {
+         // generic mesh
+         return readMesh();
+      }
+      // detect from type
       if (mesh instanceof PolygonalMesh) {
          return readMesh((PolygonalMesh)mesh);
       } else if (mesh instanceof PolylineMesh) {
@@ -433,7 +452,7 @@ public class VtkXmlReader extends MeshReaderBase {
 
    }
 
-   public PolygonalMesh readMesh (PolylineMesh mesh) throws IOException {
+   public PolylineMesh readMesh (PolylineMesh mesh) throws IOException {
 
       // create a SAX handler
       SAXParserFactory spf = SAXParserFactory.newInstance();
@@ -448,7 +467,7 @@ public class VtkXmlReader extends MeshReaderBase {
          InputSource isource = new InputSource(myIstream);
          xmlReader.parse(isource);
 
-         return sax.getMesh();
+         return sax.getPolylineMesh();
 
       } catch (SAXException e) {
          throw new IOException(e.getMessage(), e);
@@ -458,12 +477,12 @@ public class VtkXmlReader extends MeshReaderBase {
 
    }
 
-   public static PolygonalMesh read (File file) throws IOException {
+   public static MeshBase read (File file) throws IOException {
       VtkXmlReader reader = new VtkXmlReader (file);
-      return (PolygonalMesh)reader.readMesh (new PolygonalMesh());
+      return reader.readMesh ();
    }
 
-   public static PolygonalMesh read (String fileName) throws IOException {
+   public static MeshBase read (String fileName) throws IOException {
       return read (new File(fileName));
    }
 

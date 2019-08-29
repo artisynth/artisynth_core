@@ -487,7 +487,7 @@ public class AjlCollisionTest extends RootModel {
       if (true) {
          String dataDir = 
             PathFinder.expand (
-               "$ARTISYNTH_HOME/src/maspack/geometry/sampleData/");
+               "${srcdir PolygonalMesh}/sampleData/");
          
          try {
             mesh0 = new PolygonalMesh (dataDir+"molar1.2.obj");
@@ -502,7 +502,7 @@ public class AjlCollisionTest extends RootModel {
       if (false) {
          String dataDir = 
             PathFinder.expand (
-               "$ARTISYNTH_HOME/src/maspack/geometry/sampleData/");
+               "${srcdir PolygonalMesh}/sampleData/");
          
          try {
             mesh0 = new PolygonalMesh (dataDir+"molar1.2.obj");

@@ -151,7 +151,7 @@ public class PointFem3dAttachment extends PointAttachment {
       InverseDistanceWeights idweights = 
          new InverseDistanceWeights (1, 1, /*normalize=*/true);
       VectorNd weights = new VectorNd();
-      boolean status = idweights.compute (weights, pos, support);      
+      boolean status = idweights.compute (weights, pos, support);
       dosetNodes (nodes, weights.getBuffer());
       myElement = null;
       myNatCoords = null;

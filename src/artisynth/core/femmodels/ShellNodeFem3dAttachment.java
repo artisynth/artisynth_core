@@ -61,7 +61,7 @@ public class ShellNodeFem3dAttachment
       }
    }
 
-   protected void dosetNodes (FemNode3d[] nodes, double[] weights) {
+   protected void dosetNodes (FemNode[] nodes, double[] weights) {
       super.dosetNodes (nodes, weights);
       if (!isScanning()) {
          // if scanning, update will be handled after postscan
@@ -110,7 +110,7 @@ public class ShellNodeFem3dAttachment
             myDirectorAttachment.setFromElement (
                myNodes, myCoords, myNatCoords, (FemElement3dBase)myElement);
          }
-         else {
+         else if (myNodes != null) {
             myDirectorAttachment.setFromNodes (myNodes, myCoords);
          }
          myDirectorAttachment.setLocDir (node.getDirector());

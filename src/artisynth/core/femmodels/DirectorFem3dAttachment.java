@@ -102,7 +102,7 @@ public class DirectorFem3dAttachment extends DynamicAttachmentBase {
       boolean status = initializeGNX (myNodes, myWeights);
 
       invalidateMasters();
-      addBackRefsIfConnected();      
+      addBackRefsIfConnected(); 
       return status;
    }
 

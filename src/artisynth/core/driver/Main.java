@@ -1223,7 +1223,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
          rootModel.removeController (myPullController); // 
          rootModel.dispose();
       }
-      myAddMarkerHandler.setDefaultHandler ();  // reset handler to default
+      if (myAddMarkerHandler != null) {
+         myAddMarkerHandler.setDefaultHandler ();  // reset handler to default
+      }
       mySelectionManager.clearSelections();
       myUndoManager.clearCommands();
       myWorkspace.removeDisposables();

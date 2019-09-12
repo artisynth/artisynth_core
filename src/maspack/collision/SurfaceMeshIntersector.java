@@ -1,5 +1,8 @@
 package maspack.collision;
 
+import java.util.*;
+import java.io.*;
+
 import maspack.util.BooleanHolder;
 import maspack.matrix.*;
 import maspack.collision.IntersectionPoint;
@@ -7,14 +10,14 @@ import maspack.geometry.*;
 import maspack.render.RenderableUtils;
 import maspack.util.*;
 
-import java.util.*;
-
 /**
  * A collider that determines the intersection between two meshes by first
  * identifying and tracing the intersection contours between the meshes, and
  * then using these to determine the interpenetration regions.
  */
 public class SurfaceMeshIntersector {
+
+   public static boolean writeErrorFiles = true;
 
    /**
     * Describes which penetration regions should be computed for
@@ -2726,11 +2729,13 @@ public class SurfaceMeshIntersector {
    void removeIntersectionFromEdge (IntersectionPoint mip) {
       EdgeInfo einfo = myEdgeInfos.get (mip.edge);
       if (einfo == null) {
+         writeErrorFile (/*csg=*/null);
          throw new InternalErrorException (
             "No edge intersections found for edge + " + mip.edge.vertexStr());
       }
       int i = einfo.indexOfMip (mip);
       if (i == -1) {
+         writeErrorFile (/*csg=*/null);
          throw new InternalErrorException (
             "Intersection point not found on edge + " + mip.edge.vertexStr());
       }         
@@ -2763,6 +2768,7 @@ public class SurfaceMeshIntersector {
             return pa.edge.opposite;
          }
          else {
+            writeErrorFile (/*csg=*/null);
             throw new InternalErrorException (
                "Face edge not found for point " + pa);
          }
@@ -2862,6 +2868,7 @@ public class SurfaceMeshIntersector {
             }
          }
          else {
+            writeErrorFile (/*csg=*/null);
             throw new InternalErrorException (
                "intersection point not recorded by its edge");
          }
@@ -2926,6 +2933,26 @@ public class SurfaceMeshIntersector {
 
    static int fcalcDebugIdx = -1; //3; // 10; //69;
    static boolean fcalcDebugMesh0 = true;
+
+   private void writeErrorFile (CSG csg) {
+      if (writeErrorFiles) {                    
+         File tempFile;
+         try {
+            tempFile = File.createTempFile ("smi_error_", ".txt");
+            PrintWriter pw = new IndentingPrintWriter (
+               new PrintWriter (new BufferedWriter (new FileWriter (tempFile))));
+            SurfaceMeshIntersectorTest.writeProblem (
+               pw, myMesh0, myMesh1, null, csg);
+            pw.close();
+         }
+         catch (IOException e) {
+            System.out.println ("Error trying to write error file");
+            e.printStackTrace();
+            return;
+         }
+         System.err.println ("Error file written to "+tempFile);
+      }
+   }
 
    /**
     * Computes intersecting area information for a particular face. For
@@ -3022,6 +3049,7 @@ public class SurfaceMeshIntersector {
                   System.out.println ("face "+myFace.getIndex()+":");
                   printFace(myFace);
                   printFaceMips(myFace);
+                  writeErrorFile (/*csg=*/null);
                   throw new InternalErrorException (
                      "Starting point "+pstart.contourIndex+
                      " not located on initial edge " + edge.vertexStr() +
@@ -3093,6 +3121,7 @@ public class SurfaceMeshIntersector {
             System.out.println ("face "+myFace.getIndex()+":");
             printFace(myFace);
             printFaceMips(myFace);
+            writeErrorFile (/*csg=*/null);
             throw new InternalErrorException (
                "Next contour boundary point " + penter.contourIndex +
                " not entering face "+myFace.getIndex()+
@@ -3772,6 +3801,7 @@ public class SurfaceMeshIntersector {
             if (!c.isClosed()) {
                // Contour should be closed - check so that calling
                // getWrapped(k) will work OK.
+               writeErrorFile (/*csg=*/null);
                throw new InternalErrorException (
                   "Contour entirely within face but contour is not closed");
             }
@@ -3838,6 +3868,7 @@ public class SurfaceMeshIntersector {
          NearestPolygon3dFeature nfeat = nearestFeats[i];
          boolean isContained;
          if (nfeat.numVertices() == 1) {
+            writeErrorFile (/*csg=*/null);
             throw new InternalErrorException (
                "region's contours intersect face "+face.getIndex()+
                " at only one point.");
@@ -4036,6 +4067,7 @@ public class SurfaceMeshIntersector {
             getFaceContainingRegions (regions, face);
          if (faceContainingRegions.size() == 0) {
             if (initialRegionsSize > 0) {
+               writeErrorFile (/*csg=*/null);
                throw new InternalErrorException (
                   "No regions reference a face with nested contours");
             }
@@ -4075,6 +4107,7 @@ public class SurfaceMeshIntersector {
                addContainedRegions (r, face, nested, clockwise);
             }
             if (nested.size() > 0) {
+               writeErrorFile (/*csg=*/null);
                throw new InternalErrorException (
                   "Cannot find parent regions for some nested regions");
             }
@@ -4140,6 +4173,7 @@ public class SurfaceMeshIntersector {
             if (region.myContours.size() != 1) {
                // verify that findPenetrationRegion() did not find additional
                // contours for the region
+               writeErrorFile (/*csg=*/null);
                throw new InternalErrorException (
                   "single-face region has "+region.myContours.size()+
                   " contours instead of 1");
@@ -4416,6 +4450,7 @@ public class SurfaceMeshIntersector {
       Vertex3d newVtx = vertexMap.get(vtx);
       if (newVtx == null) {
          Face face = edge.getFace();
+         writeErrorFile (/*csg=*/null);
          throw new InternalErrorException (
             "No new vertex found for "+vtx.getIndex()+
             " face=" + face.getIndex() +
@@ -4463,6 +4498,7 @@ public class SurfaceMeshIntersector {
             return pa.edge.opposite;
          }
          else {
+            writeErrorFile (/*csg=*/null);
             throw new InternalErrorException (
                "Face edge not found for point " + pa +
                ", face=" + face.getIndex() + " mesh0=" + (mesh==myMesh0));
@@ -4517,6 +4553,7 @@ public class SurfaceMeshIntersector {
                      System.out.println (toString (p));
                   }
                }
+            writeErrorFile (/*csg=*/null);  
             throw new InternalErrorException (
                "Mip "+mip.contourIndex+
                " already visited on face " + face.getIndex() +
@@ -4877,22 +4914,6 @@ public class SurfaceMeshIntersector {
             face, region, vertexMap, clockwise, debug);
          outerPolys = new ArrayList<Vertex3dList>();
          outerPolys.add (poly);
-         // Vertex3dList poly = new Vertex3dList(/*closed=*/true);
-         // do {
-         //    Vertex3d vtx = vertexMap.get(he.getHead());
-         //    if (vtx == null) {
-         //       throw new InternalErrorException ("vtx is null");
-         //    }
-         //    poly.add (vtx);
-         //    he = he.getNext();
-         // }
-         // while (he != he0);
-         // outerPolys = new ArrayList<Vertex3dList>();
-         // // if (!inside) {
-         // //    poly.reverse();
-         // // }
-         // outerPolys.add (poly);
-         // throw new InternalErrorException ("shouldn't be here");
       }
 
       if (innerHoles != null && outerPolys.size() > 1) {
@@ -4947,6 +4968,7 @@ public class SurfaceMeshIntersector {
                }
             }
             if (outer.size() == 0) {
+               writeErrorFile (/*csg=*/null);
                throw new InternalErrorException (
                   "outer polygon has size 0, face "+face.getIndex());
             }

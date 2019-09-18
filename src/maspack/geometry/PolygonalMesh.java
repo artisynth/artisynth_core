@@ -32,6 +32,7 @@ import java.util.List;
 
 import maspack.geometry.io.WavefrontReader;
 import maspack.geometry.io.WavefrontWriter;
+import maspack.geometry.io.GenericMeshReader;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.NumericalException;
@@ -627,28 +628,28 @@ public class PolygonalMesh extends MeshBase {
    }
 
    /**
-    * Creates a polygonal mesh and initializes it from an file in Alias
-    * Wavefront obj format, as decribed for the method
-    * {@link #write(PrintWriter,NumberFormat,boolean)}.
+    * Creates a polygonal mesh and initializes it from a file,
+    * with the file format being inferred from the file name extension. 
     * 
     * @param file
     * file containing the mesh description
     */
    public PolygonalMesh (File file) throws IOException {
       this();
-      BufferedReader reader = null;
-      try {
-         reader = new BufferedReader(new FileReader (file));
-         read (reader);
-      }
-      catch (IOException e) {
-         throw e;
-      }
-      finally {
-         if (reader != null) {
-            reader.close();
-         }
-      }
+      GenericMeshReader.readMesh (file, this);
+//      BufferedReader reader = null;
+//      try {
+//         reader = new BufferedReader(new FileReader (file));
+//         read (reader);
+//      }
+//      catch (IOException e) {
+//         throw e;
+//      }
+//      finally {
+//         if (reader != null) {
+//            reader.close();
+//         }
+//      }
    }
 
    public PolygonalMesh (PolygonalMesh old) {

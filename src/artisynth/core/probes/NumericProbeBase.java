@@ -18,6 +18,7 @@ import maspack.interpolation.Interpolation.Order;
 import maspack.interpolation.NumericList;
 import maspack.interpolation.NumericListKnot;
 import maspack.matrix.VectorNd;
+import maspack.properties.GenericPropertyHandle;
 import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
@@ -32,6 +33,7 @@ import artisynth.core.gui.LegendDisplay;
 import artisynth.core.gui.NumericProbePanel;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
+import artisynth.core.workspace.RootModel;
 
 //import sun.security.action.GetLongAction;
 
@@ -827,4 +829,21 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       return newFunctions;
    } 
    
+   public boolean isWritable() {
+      if (myPropList != null) {
+         for (Property prop : myPropList) {
+            if (prop instanceof GenericPropertyHandle) {
+               ModelComponent comp = ComponentUtils.getPropertyComponent(prop);
+               if (comp != null && !comp.isWritable()) {
+                  if (!(comp instanceof RootModel) || 
+                      !RootModel.isBaseProperty (prop.getName())) {
+                     return false;
+                  }
+               }
+            }
+         }
+      }
+      return true;
+   }
+
 }

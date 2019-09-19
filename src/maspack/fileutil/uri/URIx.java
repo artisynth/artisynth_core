@@ -197,7 +197,6 @@ public class URIx {
     * @param scheme scheme string
     * @param host encoded host string
     * @param path encoded path string
-    * @throws URIxSyntaxException
     */
    public URIx (String scheme, String host, String path)
       throws URIxSyntaxException {
@@ -611,7 +610,6 @@ public class URIx {
 
    /**
     * Returns the encoded user info string
-    * @return
     */
    public String getUserInfo() {
       String ui = null;
@@ -1082,7 +1080,6 @@ public class URIx {
    /**
     * Extracts the scheme string from a URI
     * @param uri URI string
-    * @return
     */
    public static String getSchemeStr(String uri) {
 
@@ -1228,7 +1225,6 @@ public class URIx {
 
    /**
     * Returns a stack-representation of nested URIs with the base at the end of the stack
-    * @return
     */
    public ArrayList<URIx> getURIStack() {
       return getURIStack(this);
@@ -1257,7 +1253,6 @@ public class URIx {
 
    /**
     * Checks if the URI is relative (i.e. the base URI has no scheme)
-    * @return
     */
    public boolean isRelative() {
       URIx base = getBaseURI ();

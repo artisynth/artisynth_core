@@ -10,6 +10,7 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import maspack.util.FunctionTimer;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.ListRemove;
 import maspack.util.NumberFormat;
+import maspack.util.ClassAliases;
 import maspack.util.*;
 import maspack.function.Function1x1;
 import artisynth.core.materials.AxialMaterial;
@@ -160,7 +162,8 @@ public class MultiPointSpring extends PointSpringBase
    /**
     * Stores information for a single knot point in a wrappable segment.
     */
-   public class WrapKnot {
+   public class WrapKnot implements Clonable {
+      
       public Point3d myPos;      // knot position 
       public Point3d myPrevPos;  // knot position in previous iteration
       public Point3d myLocPos;   // local position wrt wrappble if in contact 
@@ -291,6 +294,30 @@ public class MultiPointSpring extends PointSpringBase
             }
          }
       }
+
+      public WrapKnot clone() {
+         WrapKnot knot;
+         try {
+            knot = (WrapKnot)super.clone();
+         }
+         catch (Exception e) {
+            throw new InternalErrorException ("Can't clone WrapKnot");
+         }
+         knot.myPos = new Point3d(myPos);
+         knot.myPrevPos = new Point3d(myPrevPos);
+         knot.myLocPos = new Point3d(myLocPos);
+         knot.myForce = new Vector3d(myForce);
+
+         knot.myNrml = new Vector3d(myNrml);
+         knot.myDnrm = new Matrix3d(myDnrm);
+         knot.myBmat = new Matrix3d(myBmat);
+         knot.myBinv = new Matrix3d(myBinv);
+         knot.myCinv = new Matrix3d(myCinv);
+         knot.myDvec = new Vector3d(myDvec);
+         knot.myRenderPos = new float[3];
+         return knot;
+      }
+
    }
 
    /**
@@ -298,7 +325,7 @@ public class MultiPointSpring extends PointSpringBase
     * includes both segments between fixed via-points, and subsegments within
     * a wrappable segments.
     */
-   public class Segment {
+   public class Segment implements Clonable {
 
       // myPntB and myPntA are the first and last segment end points
       // as we traverse the segments in point order
@@ -496,6 +523,22 @@ public class MultiPointSpring extends PointSpringBase
        */
       public void transformGeometry (GeometryTransformer gtr) {
       }
+
+      public Segment clone() {
+         Segment seg;
+         try {
+            seg = (Segment)super.clone();
+         }
+         catch (Exception e) {
+            throw new InternalErrorException (
+               "cannot clone MultiPointSpring.Segment");
+         }
+         seg.mydFdxB = new Vector3d(mydFdxB);
+         seg.mydFdxA = new Vector3d(mydFdxA);
+         seg.myUvec = new Vector3d(myUvec);
+         seg.myP = new Matrix3d(myP);
+         return seg;
+      }
    }
 
    /**
@@ -564,6 +607,20 @@ public class MultiPointSpring extends PointSpringBase
          double dvz = velA.z-velB.z;
          return myUvec.x*dvx + myUvec.y*dvy + myUvec.z*dvz;
       } 
+
+      public SubSegment clone() {
+         SubSegment seg = (SubSegment)super.clone();
+         if (myWrappableB != null && myAttachmentB != null) {
+            seg.myPntB = new Point (myPntB.getPosition());
+            seg.myAttachmentB = myWrappableB.createPointAttachment (myPntB);
+         }
+         if (myWrappableA != null && myAttachmentA != null) {
+            seg.myPntA = new Point (myPntA.getPosition());
+            seg.myAttachmentA = myWrappableA.createPointAttachment (myPntA);
+         }
+         return seg;
+      }
+
    }
 
    private interface DifferentiableFunction1x1 {
@@ -2816,6 +2873,50 @@ public class MultiPointSpring extends PointSpringBase
             p.z = buf[idx++];
          }
       }
+
+      public WrapSegment clone() {
+         WrapSegment seg = (WrapSegment)super.clone();
+
+         seg.myLastPntA = new Point3d(myLastPntA);
+         seg.myLastPntB = new Point3d(myLastPntB);
+
+         if (myInitialPnts != null) {
+            seg.myInitialPnts = new Point3d[myInitialPnts.length];
+            for (int i=0; i<myInitialPnts.length; i++) {
+               seg.myInitialPnts[i] = new Point3d(myInitialPnts[i]);
+            }
+         }
+
+         if (myKnots != null) {
+            seg.myKnots = new WrapKnot[myKnots.length];
+            for (int i=0; i<myKnots.length; i++) {
+               seg.myKnots[i] = myKnots[i].clone();
+            }
+         }
+
+         seg.myRenderABPoints = null;
+         
+         if (myContactCnts != null) {
+            seg.myContactCnts =
+               Arrays.copyOf (myContactCnts, myContactCnts.length);
+         }
+
+         seg.mySubSegHead = null;
+         seg.mySubSegTail = null;
+         for (SubSegment sub=mySubSegHead; sub!=null; sub=sub.myNext) {
+            SubSegment newSeg = sub.clone();
+            newSeg.myNext = null;
+            if (seg.mySubSegHead == null) {
+               seg.mySubSegHead = newSeg;
+            }
+            else {
+               seg.mySubSegTail.myNext = newSeg;
+            }
+            seg.mySubSegTail = newSeg;
+         }
+
+         return seg;
+      }
    }
 
    private void updateABRenderProps() {
@@ -3223,10 +3324,16 @@ public class MultiPointSpring extends PointSpringBase
       myNumBlks = nump;
       mySolveBlkNums = new int[myNumBlks*myNumBlks];
       mySegsValidP = true;
+      updateSegs (mySegments, updateWrapSegs);
+   }
+   
+   protected void updateSegs (
+      ArrayList<Segment> segments, boolean updateWrapSegs) {
+      int nump = numPoints();
       // make sure segment pointers are correct
       for (int i=0; i<nump-1; i++) {
-         Segment seg = mySegments.get(i);
-         Segment segNext = mySegments.get(i+1);
+         Segment seg = segments.get(i);
+         Segment segNext = segments.get(i+1);
          if (seg.myPntA != segNext.myPntB) {
             // then this segment was changed
             seg.myPntA = segNext.myPntB;
@@ -3239,7 +3346,8 @@ public class MultiPointSpring extends PointSpringBase
             }
          }
       }
-      mySegments.get(nump-1).myPntA = null;
+      segments.get(nump-1).myPntA = null;     
+      
    }
 
    protected void updateWrapSegments (int maxIter) {
@@ -3310,13 +3418,14 @@ public class MultiPointSpring extends PointSpringBase
    }
 
    protected void writeSegments (
-      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor) 
+      PrintWriter pw, ArrayList<Segment> segments, 
+      NumberFormat fmt, CompositeComponent ancestor) 
       throws IOException {
       
       pw.println ("segments=[");
       IndentingPrintWriter.addIndentation (pw, 2);
-      for (int i=0; i<mySegments.size(); i++) {
-         Segment seg = mySegments.get(i);
+      for (int i=0; i<segments.size(); i++) {
+         Segment seg = segments.get(i);
          if (seg instanceof WrapSegment) {
             pw.println ("WrapSegment [");
          }
@@ -3446,13 +3555,39 @@ public class MultiPointSpring extends PointSpringBase
       return super.postscanItem (tokens, ancestor);
    }
 
+   private boolean allSegmentsWritable() {
+      for (int i=1; i<mySegments.size(); i++) {
+         if (!mySegments.get(i).myPntB.isWritable()) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   private ArrayList<Segment> cloneWritableSegments() {
+      ArrayList<Segment> segments = new ArrayList<>();
+
+      for (int i=0; i<mySegments.size(); i++) {
+         if (i==0 || mySegments.get(i).myPntB.isWritable()) {
+            segments.add (mySegments.get(i).clone());
+         }
+      }
+      updateSegs (segments, /*updateWrapSegs=*/true);
+      return segments;
+   }
+      
    protected void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
       pw.print ("wrappables=");
       ScanWriteUtils.writeBracketedReferences (pw, myWrappables, ancestor);
-      writeSegments (pw, fmt, ancestor);
+      if (allSegmentsWritable()) {
+         writeSegments (pw, mySegments, fmt, ancestor);
+      }
+      else {
+         writeSegments (pw, cloneWritableSegments(), fmt, ancestor);
+      }
       super.writeItems (pw, fmt, ancestor);
    }
 

@@ -10,6 +10,7 @@ import maspack.geometry.GeometryTransformer;
 import maspack.properties.*;
 import maspack.render.*;
 import maspack.util.*;
+import maspack.util.ClassAliases;
 import maspack.matrix.*;
 import artisynth.core.util.*;
 import artisynth.core.modelbase.*;

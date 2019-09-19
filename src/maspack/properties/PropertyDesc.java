@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.util.List;
+
 import java.util.ArrayList;
 
 import maspack.matrix.AxisAngle;
@@ -19,6 +20,7 @@ import maspack.matrix.DenseMatrix;
 import maspack.matrix.Matrix;
 import maspack.matrix.Vector;
 import maspack.matrix.Vectori;
+import maspack.util.ClassAliases;
 import maspack.util.DoubleInterval;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
@@ -1413,9 +1415,10 @@ public class PropertyDesc implements PropertyInfo {
       }
       if (mode == PropertyMode.Explicit &&
           (getDefaultMode() == PropertyMode.Inherited ||
-           !valueEqualsDefault (value))) {
+           !valueEqualsDefault (value)) &&
+          (value == null || ClassAliases.isClassValid(value.getClass()))) {
          pw.print (myName + "=");
-         writeValue (getValue (host), pw, fmt, ref);
+         writeValue (value, pw, fmt, ref);
          return true;
       }
       else if (mode != getDefaultMode()) {
@@ -1562,7 +1565,7 @@ public class PropertyDesc implements PropertyInfo {
          case SCANABLE: {
             if (value != null && valueClass != value.getClass()) {
                if (valueClass.isAssignableFrom (value.getClass())) {
-                  pw.print (classToName (value.getClass()) + " ");
+                  pw.print (value.getClass().getName() + " ");
                }
                else {
                   throw new IOException ("Value class " + value.getClass()

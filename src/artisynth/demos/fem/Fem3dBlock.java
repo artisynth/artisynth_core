@@ -45,32 +45,30 @@ import java.util.*;
 public class Fem3dBlock extends RootModel {
    double EPS = 1e-9;
 
-   static double myDensity = 1000;
+   double myDensity = 1000;
 
-   static boolean myConnectedP = false;
-
-   static FemNode3d[] myAttachNodes = null;
+   boolean myConnectedP = false;
 
    public static PropertyList myProps =
       new PropertyList (Fem3dBlock.class, RootModel.class);
 
    static {
       myProps.add (
-         "connected * *", "rigid bodies connected to FEM", false, "NW");
+         "connected * *", "rigid bodies connected to FEM", false);
    }
 
    public synchronized boolean getConnected() {
+      System.out.println ("getConnected " + myConnectedP);
       return myConnectedP;
    }
 
    public synchronized void setConnected (boolean connect) {
+      System.out.println ("setConnected " + connect);
       MechModel mechMod = (MechModel)findComponent ("models/mech");
       if (mechMod != null) {
          FemModel3d femMod = (FemModel3d)mechMod.findComponent ("models/fem");
          LinkedList<FemNode3d> rightNodes = new LinkedList<FemNode3d>();
-         for (int i = 0; i < myAttachNodes.length; i++) {
-            rightNodes.add (myAttachNodes[i]);
-         }
+         rightNodes.addAll (getRightNodes(femMod));
          if (connect && !rightNodes.get (0).isAttached()) {
             RigidBody rightBody =
                (RigidBody)mechMod.findComponent ("rigidBodies/rightBody");
@@ -132,7 +130,7 @@ public class Fem3dBlock extends RootModel {
    LinkedList<FemNode3d> getLeftNodes (FemModel3d femMod) {
       LinkedList<FemNode3d> nodes = new LinkedList<FemNode3d>();
       for (FemNode3d n : femMod.getNodes()) {
-         if (n.getPosition().x < -0.3 + EPS) {
+         if (n.getRestPosition().x < -0.3 + EPS) {
             nodes.add (n);
          }
       }
@@ -142,7 +140,7 @@ public class Fem3dBlock extends RootModel {
    LinkedList<FemNode3d> getRightNodes (FemModel3d femMod) {
       LinkedList<FemNode3d> nodes = new LinkedList<FemNode3d>();
       for (FemNode3d n : femMod.getNodes()) {
-         if (n.getPosition().x > 0.3 - EPS) {
+         if (n.getRestPosition().x > 0.3 - EPS) {
             nodes.add (n);
          }
       }
@@ -194,11 +192,6 @@ public class Fem3dBlock extends RootModel {
 
       // fix the leftmost nodes
 
-      LinkedList<FemNode3d> leftNodes = getLeftNodes (femMod);
-      LinkedList<FemNode3d> rightNodes = getRightNodes (femMod);
-
-      myAttachNodes = rightNodes.toArray (new FemNode3d[0]);
-
       double wx, wy, wz;
       double mass;
       RigidTransform3d X = new RigidTransform3d();
@@ -248,7 +241,7 @@ public class Fem3dBlock extends RootModel {
 
       mechMod.addModel (femMod);
 
-      for (FemNode3d n : leftNodes) {
+      for (FemNode3d n : getLeftNodes(femMod)) {
          mechMod.attachPoint (n, leftBody);
       }
 
@@ -271,6 +264,10 @@ public class Fem3dBlock extends RootModel {
       // setupOutputProbes();
       addControlPanel (mechMod, femMod);
 
+      for (int i=1; i<=4; i++) {
+         addWayPoint (0.5*i);
+      }
+      
    }
 
    ControlPanel myControlPanel;

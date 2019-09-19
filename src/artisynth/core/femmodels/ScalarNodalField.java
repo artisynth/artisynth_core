@@ -173,7 +173,9 @@ public class ScalarNodalField extends ScalarFemField {
 
       super.writeItems (pw, fmt, ancestor);
       pw.println ("values=");
-      writeValues (pw, fmt, myValues, myValuesSet);
+      writeValues (
+         pw, fmt, myValues, myValuesSet, 
+         new NodeWritableTest(myFem.getNodes()));
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -204,17 +206,14 @@ public class ScalarNodalField extends ScalarFemField {
       }
    }
 
-   private boolean nodeIsReferenced (int num) {
-      return myFem.getNodes().getByNumber(num) != null;
-   }
-
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
       if (undo) {
          restoreReferencedValues (myValues, myValuesSet, undoInfo);
       }
       else {
          removeUnreferencedValues (
-            myValues, myValuesSet, (int i) -> nodeIsReferenced(i), undoInfo);
+            myValues, myValuesSet, 
+            new NodeReferencedTest (myFem.getNodes()), undoInfo);
       }
    }
 

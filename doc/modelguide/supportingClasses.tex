@@ -321,9 +321,11 @@ made triangular using
 
 \subsection{Mesh creation}
 
-It is possible to create a mesh by direct construction. For example,
-the following code fragment creates a simple closed tetrahedral
-surface:
+Meshes are most commonly created using either one of the factory
+methods supplied by \javaclass[\mgeo]{MeshFactory}, or by reading a
+definition from a file (Section \ref{MeshFileIO:sec}).  However, it is
+possible to create a mesh by direct construction. For example, the
+following code fragment creates a simple closed tetrahedral surface:
 %
 \begin{lstlisting}[]
    // a simple four-faced tetrahedral mesh 
@@ -338,10 +340,6 @@ surface:
    mesh.addFace (new int[] { 1, 2, 3 });      
 \end{lstlisting}
 %
-
-However, meshes are more commonly created using either one of the
-factory methods supplied by \javaclass[\mgeo]{MeshFactory},
-or by reading a definition from a file (Section \ref{MeshFileIO:sec}).
 
 Some of the more commonly used factory methods for creating polyhedral
 meshes include:
@@ -768,23 +766,136 @@ is enabled can be queried using
 \subsection{Reading and writing mesh files}
 \label{MeshFileIO:sec}
 
-The package {\tt \mgeo.io} supplies a number of classes for
-writing and reading meshes to and from files of different formats.
+{\tt PolygonalMesh}, {\tt PolylineMesh}, and {\tt PointMesh} all
+provide constructors that allow them to be created from a definition
+file, with the file format being inferred from the file name
+suffix:
+%
+\begin{lstlisting}[]
+   PolygonalMesh (String fileName) throws IOException
+   PolygonalMesh (File file) throws IOException
 
-Some of the supported formats and their associated readers and writers
-include:
+   PolylineMesh (String fileName) throws IOException
+   PolylineMesh (File file) throws IOException
 
-\begin{tabular}{|lll|}
+   PointMesh (String fileName) throws IOException
+   PointMesh (File file) throws IOException
+\end{lstlisting}
+%
+\begin{table}[h]
+\centering
+\begin{tabular}{|ll|ccc|}
 \hline
-Extension & Format & Reader/writer classes \\
+Suffix & Format & {\tt PolygonalMesh} & {\tt PolylineMesh} & {\tt PointMesh} \\
 \hline
-.obj & Alias Wavefront & \tt WavefrontReader, WavefrontWriter \\
-.ply & Polygon file format & \tt PlyReader, PlyWriter \\
-.stl & STereoLithography & \tt StlReader, StlWriter \\
-.gts & GNU triangulated surface & \tt GtsReader, GtsWriter \\
-.off & Object file format & \tt OffReader, OffWriter \\
+.obj & Alias Wavefront &X&X&X\\
+.ply & Polygon file format &X&&X\\
+.stl & STereoLithography &X&&\\
+.gts & GNU triangulated surface &X&&\\
+.off & Object file format &X&&\\
+.vtk & VTK ascii format &X&&\\
+.vtp & VTK XML format &X&X&\\
 \hline
 \end{tabular}
+\caption{Mesh file formats which are supported for different mesh types}
+\label{meshFormatSupport:tbl}
+\end{table}
+
+The currently supported file formats, and their applicability to the
+different mesh types, are given in Table
+\ref{meshFormatSupport:tbl}.
+For example, a {\tt PolygonalMesh} can be read from either an Alias
+Wavefront {\tt .obj} file or an {\tt .stl} file, as show in the
+following example:
+%
+\begin{lstlisting}[]
+   PolygonalMesh mesh0 = null;
+   PolygonalMesh mesh1 = null;
+   try {
+      mesh0 = new PolygonalMesh ("meshes/torus.obj");
+   }
+   catch (IOException e) {
+      System.err.println ("Can't read mesh:");
+      e.printStackTrace();
+   }
+   try {
+      mesh1 = new PolygonalMesh ("meshes/cylinder.stl");
+   }
+   catch (IOException e) {
+      System.err.println ("Can't read mesh:");
+      e.printStackTrace();
+   }
+\end{lstlisting}
+%
+The file-based mesh constructors may throw an I/O exception if an I/O
+error occurs or if the indicated format does not support the mesh
+type. This exception must either be caught, as in the example above,
+or thrown out of the calling routine.
+
+In addition to file-based constructors, all mesh types implement read
+and write methods that allow a mesh to be read from or written to a
+file, with the file format again inferred from the file name suffix:
+%
+\begin{lstlisting}[]
+   read (File file) throws IOException
+   write (File file) throws IOException
+
+   read (File file, boolean zeroIndexed) throws IOException
+   write (File file, String fmtStr, boolean zeroIndexed) throws IOException
+\end{lstlisting}
+%
+For the latter methods, the argument {\tt zeroIndexed} specifies
+zero-based vertex indexing in the case of Alias Wavefront {\tt .obj}
+files, while {\tt fmtStr} is a C-style format string specifying the
+precision and style with which the vertex coordinates should be
+written. (In the former methods, zero-based indexing is false and
+vertices are written using full precision.)
+
+As an example, the following code fragment writes a mesh as an {\tt
+.stl} file:
+%
+\begin{lstlisting}[]
+   PolygonalMesh mesh;
+
+   ... initialize ...
+
+   try {
+      mesh.write (new File ("data/mymesh.obj"));
+   }
+   catch (IOException e) {
+      System.err.println ("Can't write mesh:");
+      e.printStackTrace();
+   }
+\end{lstlisting}
+%
+
+Sometimes, more explicit control is needed when reading or writing a
+mesh from/to a given file format.  The constructors and read/write
+methods described above make use of a specific set of reader and
+writer classes located in the package {\tt \mgeo.io}. These can be
+used directly to provide more explicit read/write control.  The
+readers and writers (if implemented) associated with the different
+formats are given in Table \ref{meshReadersWriters:tbl}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|llll|}
+\hline
+Suffix & Format & Reader class & Writer class \\
+\hline
+.obj & Alias Wavefront & \tt WavefrontReader & \tt WavefrontWriter \\
+.ply & Polygon file format & \tt PlyReader & \tt PlyWriter \\
+.stl & STereoLithography & \tt StlReader & \tt StlWriter \\
+.gts & GNU triangulated surface & \tt GtsReader & \tt GtsWriter \\
+.off & Object file format & \tt OffReader & \tt OffWriter\\
+.vtk & VTK ascii format & \tt VtkAsciiReader & \\
+.vtp & VTK XML format & \tt VtkXmlReader & \\
+\hline
+\end{tabular}
+\caption{Reader and writer classes associated with the different
+mesh file formats}
+\label{meshReadersWriters:tbl}
+\end{table}
 
 The general usage pattern for these classes is to construct the
 desired reader or writer with a path to the desired file, and then
@@ -1055,7 +1166,7 @@ When calling {\tt PathFinder} methods from {\it within} the relevant
 class, one can specify {\tt this} as the {\tt classObj} argument.
 \end{sideblock}
 
-With respect to the abone example locating the file {\tt
+With respect to the above example locating the file {\tt
 "meshes/torus.obj"}, the call to the root model method 
 {\tt getSourceRelativePath()} could be replaced with
 %

@@ -15,6 +15,7 @@ import artisynth.core.driver.Main;
 import artisynth.core.probes.*;
 import artisynth.core.util.MatlabInterface;
 import artisynth.core.util.MatlabInterfaceException;
+import maspack.widgets.GuiUtils;
 import artisynth.core.gui.selectionManager.SelectionManager;
 
 import java.util.*;
@@ -66,7 +67,7 @@ public class ProbeEditor extends EditorBase {
          errMsg = "Error saving to MATLAB: "+e.getMessage();
       }
       if (errMsg != null) {
-         EditorUtils.showError (win, errMsg);
+         GuiUtils.showError (win, errMsg);
          return false;
       }
       else {
@@ -88,7 +89,7 @@ public class ProbeEditor extends EditorBase {
          errMsg = "Error loading from to MATLAB: "+e.getMessage();
       }  
       if (errMsg != null) {
-         EditorUtils.showError (win, errMsg);
+         GuiUtils.showError (win, errMsg);
          return false;
       }
       else {

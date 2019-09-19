@@ -72,6 +72,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.widgets.DraggerToolBar;
 import maspack.widgets.DraggerToolBar.ButtonType;
+import maspack.widgets.GuiUtils;
 import maspack.widgets.MenuAdapter;
 import maspack.widgets.PropertyDialog;
 import maspack.widgets.RenderPropsPanel;
@@ -941,12 +942,7 @@ public class MeshThicken extends ViewerFrame
       myMesh.notifyVertexPositionsModified();
       viewer.rerender();
    }
-
-   protected void showError (String msg, Exception e) {
-      JOptionPane.showMessageDialog(
-         this, msg + ": " + e, "Error", JOptionPane.ERROR_MESSAGE);
-   }   
-
+   
    protected boolean confirmOverwrite (File file) {
       int result = JOptionPane.showConfirmDialog (
          this, "File " + file.getName() + " exists, overwrite?",
@@ -982,7 +978,7 @@ public class MeshThicken extends ViewerFrame
                loadMesh (file, /*vertexSkip=*/1);
             }
             catch (Exception e) {
-               showError ("Can't load mesh", e);
+               GuiUtils.showError (this, "Can't load mesh", e);
             }
          }
       }
@@ -1001,7 +997,7 @@ public class MeshThicken extends ViewerFrame
                   saveMesh (file);
                }
                catch (Exception e) {
-                  showError ("Can't save mesh", e);
+                  GuiUtils.showError (this, "Can't save mesh", e);
                }
             }
          }
@@ -1020,7 +1016,7 @@ public class MeshThicken extends ViewerFrame
                loadRegions (file);
             }
             catch (Exception e) {
-               showError ("Can't load regions", e);
+               GuiUtils.showError (this, "Can't load regions", e);
             }
          }
       }
@@ -1039,7 +1035,7 @@ public class MeshThicken extends ViewerFrame
                   saveRegions (file);
                }
                catch (Exception e) {
-                  showError ("Can't save regions", e);
+                  GuiUtils.showError (this, "Can't save regions", e);
                }
             }
          }

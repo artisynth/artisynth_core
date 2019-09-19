@@ -13,6 +13,7 @@ import artisynth.core.modelbase.CompositeComponent.NavpanelDisplay;
 import artisynth.core.util.*;
 import maspack.properties.*;
 import maspack.util.*;
+import maspack.util.ParameterizedClass;
 
 public class ComponentList<C extends ModelComponent> extends ModelComponentBase
    implements ComponentListView<C>, MutableCompositeComponent<C>, Iterable<C>,
@@ -180,7 +181,7 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       return myComponents.isEmpty();
    }
 
-   public Class<C> getTypeParameter() {
+   public Class<C> getParameterType() {
       return myComponents.getTypeParameter();
    }
    
@@ -376,22 +377,6 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       }
       myComponents.writeComponents (pw, fmt, ancestor);
    }
-
-   // private void scanProperty (ReaderTokenizer rtok, String name)
-   //    throws IOException {
-   //    PropertyDesc prop = null;
-   //    if (getAllPropertyInfo() != null) {
-   //       prop = getAllPropertyInfo().get (name);
-   //    }
-   //    if (prop == null) {
-   //       throw new IOException ("Unknown property '" + name + "', line "
-   //       + rtok.lineno());
-   //    }
-   //    else {
-   //       getAllPropertyInfo().scanNamedProp (this, name, rtok);
-   //    }
-   // }
-
 
    protected boolean scanAttributeName (
       ReaderTokenizer rtok, String name) throws IOException {

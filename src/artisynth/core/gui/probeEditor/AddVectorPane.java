@@ -216,7 +216,8 @@ ValueChangeListener, MouseListener {
          else {
             // System.out.println("from dim field");
             if (getDim() == 0) {
-               myParent.showErrorWindow ("Please enter non-zero integer value!");
+               GuiUtils.showError (
+                  myParent, "Please enter non-zero integer value!");
                setDim (oldDim);
                // System.out.println("invalid! setting back to "+oldDim);
             }

@@ -4,19 +4,14 @@
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
-package artisynth.core.util;
+package maspack.util;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 
 import maspack.util.ClassFinder;
-import maspack.util.ReaderTokenizer;
-import artisynth.core.modelbase.ModelComponent;
 
 public class ClassAliases {
    private static LinkedHashMap<String,String> aliasesToClasses =
@@ -24,105 +19,114 @@ public class ClassAliases {
    private static LinkedHashMap<String,String> classesToAliases =
       new LinkedHashMap<String,String>();
 
-   // private static boolean initFromFileP = false;
-   private static boolean initialized = false;
+   private static HashSet<Class<?>> myValidClasses = new HashSet<>();
+   
+   public interface ClassFilter {
+      public boolean isValid (Class<?> cls);
+   }
+   
+   private static ClassFilter myClassFilter = null;
+   
+   public static void setClassFilter (ClassFilter filter) {
+      myClassFilter = filter;
+      myValidClasses.clear();
+   }
+   
+   public static ClassFilter getClassFilter () {
+      return myClassFilter;
+   }
 
-   protected static String[] packageList =
-      new String[] {
-      "artisynth.core.modelbase.",
-      "artisynth.core.mechmodels.",
-      "artisynth.core.femmodels.",
-      "artisynth.core.mfreemodels.",
-      "artisynth.core.renderables.",};
+   public static boolean isClassValid (Class<?> cls) {
 
-   protected static String[] aliasTable =
-      new String[] {
-      "Tet", "artisynth.core.femmodels.TetElement",
-      "Hex", "artisynth.core.femmodels.HexElement",
-      "Wedge", "artisynth.core.femmodels.WedgeElement",
-      "Pyramid", "artisynth.core.femmodels.PyramidElement",
-      "Quadtet", "artisynth.core.femmodels.QuadtetElement",
-      "Quadhex", "artisynth.core.femmodels.QuadhexElement",
-      "Quadwedge", "artisynth.core.femmodels.QuadwedgeElement",
-      "Quadpyramid", "artisynth.core.femmodels.QuadpyramidElement",
-
-      "NumericInputProbe", "artisynth.core.probes.NumericInputProbe",
-
-      "NumericOutputProbe", "artisynth.core.probes.NumericOutputProbe",
-
-      "PointParticleAttachment",
-      "artisynth.core.mechmodels.PointParticleAttachment",
-
-      "PointFrameAttachment",
-      "artisynth.core.mechmodels.PointFrameAttachment", 
-
-      "VectorGrid", "maspack.geometry.VectorGrid",
-   };
+      if (myClassFilter != null) {
+         if (myValidClasses.contains(cls)) {
+            return true;
+         }
+         if (myClassFilter.isValid (cls)) {
+            myValidClasses.add (cls);
+            return true;
+         }
+         else {
+            return false;
+         }
+      }
+      else {
+         return true;
+      }
+   }
+   
+   /**
+    * Checks a component to see if its class is valid according to any class
+    * filter which has been set. If the component is a ParameterizedClass, 
+    * then its parameter type is checked as well.
+    */
+   public static <C> boolean isClassValid (Object comp) {
+      
+      if (!isClassValid (comp.getClass())) {
+         return false;
+      }
+      if (comp instanceof ParameterizedClass) {
+         ParameterizedClass pcomp = (ParameterizedClass)comp;
+         if (pcomp.hasParameterizedType()) {
+            Class<?> paramType = pcomp.getParameterType();
+            if (!isClassValid (paramType)) {
+               return false;
+            }
+         }
+      }
+      return true;
+   }   
 
    /**
-    * Searches for subclasses of T within a specified package and adds
-    * them to this table, using their simple names as aliases.
+    * Searches for the subclasses of T within a specified package whose full
+    * name match the specified regular expression, and adds them to the alias
+    * table, using their simple names as a key.
     */
-   static public void addClasses (String pkgName, String regex, Class<?> T) {
+   static public void addPackageAliases (
+      String pkgName, String regex, Class<?> T) {
       try {
          ArrayList<Class<?>> list = ClassFinder.findClasses (pkgName, regex, T);
          for (int i=0; i<list.size(); i++) {
             Class<?> cls = list.get(i);
             if (!cls.isInterface()) {
-               String alias = cls.getSimpleName();
-               if (classesToAliases.get (cls.getName()) == null &&
-                   aliasesToClasses.get (alias) == null) {
-                  doAddEntry (alias, cls);
-               }
+               addAlias (cls.getSimpleName(), cls);
             }
          }
       }
       catch (Exception e) {
-         // just carry on 
+         // keep calm and carry on
+     }
+   }   
+
+   public static boolean addAlias (String alias, Class<?> cls) {
+      String currentClass = aliasesToClasses.get (alias);
+      if (currentClass == null) {
+         aliasesToClasses.put (alias, cls.getName());
+         classesToAliases.put (cls.getName(), alias);
+         return true;
+      }
+      else {
+         System.err.println (
+            "Warning: class alias \""+alias+"\" already assigned to "+
+            currentClass);
+         return false;
       }
    }
-
-   protected static void initializeFromTable (String[] table) {
-      for (int i = 0; i < table.length; i += 2) {
-         String alias = table[i];
-         String className = table[i + 1];
-         Class<?> cls;
-         try {
-            cls = Class.forName (className);
-         }
-         catch (Exception e) {
-            System.err.println ("Error: class \"" + className
-            + "\" in aliasTable cannot be located");
-            cls = null;
-         }
-         if (cls != null) {
-            doAddEntry (alias, cls);
-         }
+   
+   public static boolean addAlias (String alias, String className) {
+      Class<?> cls;
+      try {
+         cls = Class.forName (className);
       }
+      catch (Exception e) {
+         System.err.println (
+            "Error: class \"" + className + "\" cannot be located");
+         return false;
+      }      
+      return addAlias (alias, cls);
    }
-
-   private static void initialize() {
-      initializeFromTable (aliasTable);
-      addClasses ("artisynth.core", ".*", ModelComponent.class);
-      initialized = true;
-   }
-
-   private static void doAddEntry (String alias, Class<?> cls) {
-      aliasesToClasses.put (alias, cls.getName());
-      classesToAliases.put (cls.getName(), alias);
-   }
-
-   public static void addEntry (String alias, Class<?> cls) {
-      if (!initialized) {
-         initialize();
-      }
-      doAddEntry (alias, cls);
-   }
-
-   public static Class<?> getClass (String alias) {
-      if (!initialized) {
-         initialize();
-      }
+   
+   private static Class<?> getClass (String alias) {
       Class<?> clazz = null;
       try {
          String classname = aliasesToClasses.get (alias);
@@ -135,16 +139,10 @@ public class ClassAliases {
    }
 
    public static String getAlias (Class<?> cls) {
-      if (!initialized) {
-         initialize();
-      }
       return classesToAliases.get (cls.getName());
    }
 
    public static String getAliasOrName (Class<?> cls) {
-      if (!initialized) {
-         initialize();
-      }
       String alias = classesToAliases.get (cls.getName());
       if (alias == null) {
          return cls.getName();
@@ -167,9 +165,6 @@ public class ClassAliases {
     * @return valid class, or null if no class was found
     */
    public static Class<?> resolveClass (String nameOrAlias) {
-      if (!initialized) {
-         initialize();
-      }
       Class<?> cls;
       if ((cls = getClass (nameOrAlias)) != null) {
          return cls;
@@ -179,13 +174,6 @@ public class ClassAliases {
             return Class.forName (nameOrAlias);
          }
          catch (Exception e) { // just continue
-         }
-         for (int i = 0; i < packageList.length; i++) {
-            try {
-               return Class.forName (packageList[i] + nameOrAlias);
-            }
-            catch (Exception e) { // just continue
-            }
          }
          return null;
       }
@@ -211,7 +199,8 @@ public class ClassAliases {
       return cls.newInstance();
    }
    
-   public static Object newInstance (String classId, Class<?> superclass, Object... args)
+   public static Object newInstance (
+      String classId, Class<?> superclass, Object... args)
       throws InstantiationException, IllegalAccessException {
       
       Class<?>[] classTypes = new Class<?>[args.length];
@@ -221,7 +210,8 @@ public class ClassAliases {
       return newInstance(classId, superclass, classTypes, args);
    }
    
-   public static Object newInstance (String classId, Class<?> superclass, Class<?>[] argTypes, Object[] args)
+   public static Object newInstance (
+      String classId, Class<?> superclass, Class<?>[] argTypes, Object[] args)
       throws InstantiationException, IllegalAccessException {
       Class<?> cls;
       if (classId == null) {
@@ -244,14 +234,14 @@ public class ClassAliases {
          Constructor<?> construct = cls.getDeclaredConstructor(argTypes);
          inst = construct.newInstance(args);
       } catch (Exception e) {
-         throw new IllegalArgumentException ("Failed to find constructor: " + e.getMessage(), e);
+         throw new IllegalArgumentException (
+            "Failed to find constructor: " + e.getMessage(), e);
       }
       
       return inst;
    }
 
    public static void main (String[] args) {
-      initialize();
    }
 
 }

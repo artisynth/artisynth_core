@@ -175,7 +175,6 @@ public class PlyWriter extends MeshWriterBase {
          if (myDataFormat == DataFormat.BINARY_LITTLE_ENDIAN) {
             bos.setLittleEndian (true);
          }
-
          writeVertexInfo (bos, vertices, normals);
       
          for (Face face : mesh.getFaces()) {
@@ -251,7 +250,7 @@ public class PlyWriter extends MeshWriterBase {
       }
       else {
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported by this writer");
+            "Mesh type "+mesh.getClass()+" not supported for '.ply' files");
       }     
    }
 

@@ -156,8 +156,8 @@ public class MatrixNdGrid extends VectorGrid<MatrixNd> {
    /**
     * {@inheritDoc}
     */
-   public Class<MatrixNd> getTypeParameter() {
-      return null;
+   public boolean hasParameterizedType() {
+      return false;
    }
    
    /**

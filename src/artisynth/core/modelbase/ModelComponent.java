@@ -162,6 +162,19 @@ public interface ModelComponent
    public void setMarked (boolean marked);
 
    /**
+    * Sets this component to be writable or non-writable. Non-writable
+    * components (and any of their descendants) are not written out to
+    * secondary stoarge.
+    *
+    * <p>Some components may be intrinsicly non-writable, in which case calling
+    * this method will have no effect.
+    * 
+    * @param writable
+    * if true, component is made writable
+    */
+   public void setWritable (boolean writable);
+
+   /**
     * Returns true if this model component is fixed. Fixed is used to indicate
     * that the component should not be removed from its parent.
     * 

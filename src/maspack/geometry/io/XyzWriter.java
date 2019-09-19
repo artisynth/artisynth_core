@@ -36,10 +36,12 @@ public class XyzWriter extends MeshWriterBase {
 
       if (mesh instanceof PointMesh) {
          writeMesh (pw, (PointMesh)mesh);
+         pw.close();
       }
       else {
+         pw.close();
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported");
+            "Mesh type "+mesh.getClass()+" not supported for '.xyz' files");
       }
    }
 

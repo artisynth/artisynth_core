@@ -143,7 +143,7 @@ public class TestCommands {
          File checkFile = new File (checkFileName);
          
          System.out.println ("saving model to "+saveFileName+" ...");
-         myMain.saveModelFile (saveFile, fmtStr);
+         myMain.saveModelFile (saveFile, fmtStr, false, false);
 
          if (tsim > 0) {
             MechModel mech = findMechModel (rootModel);
@@ -161,7 +161,7 @@ public class TestCommands {
          myMain.loadModelFile (saveFile);
          rootModel = myMain.getRootModel();
          System.out.println ("saving model to "+checkFileName+" ...");
-         myMain.saveModelFile (checkFile, fmtStr);
+         myMain.saveModelFile (checkFile, fmtStr, false, false);
 
          System.out.println (
             "comparing files "+saveFileName+ " and " +checkFileName+" ...");
@@ -262,6 +262,7 @@ public class TestCommands {
          file.delete();
       }
       catch (Exception e) {
+         e.printStackTrace(); 
          throw new TestException (
             "I/O error occurred in binary save/load: " + e);
       }

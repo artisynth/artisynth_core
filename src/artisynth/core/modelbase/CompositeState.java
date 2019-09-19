@@ -147,8 +147,13 @@ public class CompositeState implements ComponentState {
    
    public void readBinary (DataInputStream dis) throws IOException {
       int numsub = dis.readInt();
-      myStates.clear();
-      setAnnotated (false);
+      while (myStates.size() < numsub) {
+         myStates.add (null);
+      }
+      while (myStates.size() > numsub) {
+         myStates.remove (myStates.size()-1);
+      }
+      //setAnnotated (false);
       for (int i=0; i<numsub; i++) {
          String className = readString (dis);
          Class<?> clazz = null;
@@ -159,9 +164,12 @@ public class CompositeState implements ComponentState {
             throw new IllegalStateException (
                "Class "+className+" not found");
          }
-         ComponentState substate = createSubState (clazz);
+         ComponentState substate = myStates.get(i);
+         if (substate == null || substate.getClass() != clazz) {
+            substate = createSubState (clazz);
+            myStates.set (i, substate);
+         }
          substate.readBinary (dis);
-         myStates.add (substate);
       }
    }
 
@@ -231,7 +239,7 @@ public class CompositeState implements ComponentState {
          for (int i=0; i<indent; i++) {
             System.out.print (" ");
          }
-         System.out.println (substate.getClass());
+         System.out.println (substate);
          if (substate instanceof CompositeState) {
             ((CompositeState)substate).printState (indent + 2);
          }

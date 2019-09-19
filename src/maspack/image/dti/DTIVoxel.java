@@ -238,7 +238,7 @@ public class DTIVoxel implements Clonable {
     * D. C. Alexander, C. Pierpaoli, P. J. Basser and J. C. Gee, 
     * "Spatial transformations of diffusion tensor magnetic resonance images," 
     * in IEEE Transactions on Medical Imaging, vol. 20, no. 11, pp. 1131-1139, Nov. 2001.
-    * http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.160.9369&rep=rep1&type=pdf
+    * {@code http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.160.9369&rep=rep1&type=pdf}
     * </p>
     * 
     * <p>

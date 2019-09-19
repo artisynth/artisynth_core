@@ -17,6 +17,7 @@ import java.util.Collection;
 import javax.swing.*;
 
 import artisynth.core.driver.Main;
+import artisynth.core.driver.ModelFileChooser;
 import artisynth.core.femmodels.AnsysWriter;
 import artisynth.core.femmodels.FemModel3d;
 import artisynth.core.modelbase.*;
@@ -86,23 +87,34 @@ public class EditorUtils {
    public static void saveComponent (ModelComponent comp) {
       Main main = Main.getMain();
       JFrame frame = main.getMainFrame();
-      JFileChooser chooser = new JFileChooser();
+      ModelFileChooser chooser = 
+         new ModelFileChooser(null, /*coreCompsOnly=*/false);
       chooser.setCurrentDirectory (main.getModelDirectory());
       int retVal = chooser.showSaveDialog (frame);
       if (retVal == JFileChooser.APPROVE_OPTION) {
          File file = chooser.getSelectedFile();
+         int status = 0;
          try {
             ModelComponent ancestor =
                ComponentUtils.nearestEncapsulatingAncestor (comp);
             if (ancestor == null) {
                ancestor = comp;
             }
-            ComponentUtils.saveComponent (
-               file, comp, new NumberFormat ("%.8g"), ancestor);
+            status = main.saveComponent (
+               file, /*fmtStr=*/null, comp, 
+               chooser.getCoreCompsOnly(), ancestor);
          }
          catch (Exception ex) {
             ex.printStackTrace(); 
-            showError (frame, "Error saving file: " + ex.getMessage());
+            GuiUtils.showError (frame, "Error saving file: "+ex.getMessage());
+         }
+         if (status == -1) {
+            GuiUtils.showError (
+               frame, "Not a core component");
+         }
+         else if (status > 0) {
+            GuiUtils.showNotice (
+               frame, "Removed "+status+" non-core components");
          }
          main.setModelDirectory (chooser.getCurrentDirectory());
       }
@@ -127,7 +139,7 @@ public class EditorUtils {
          }
          catch (Exception ex) {
             ex.printStackTrace(); 
-            showError (frame, "Error saving file: " + ex.getMessage());
+            GuiUtils.showError (frame, "Error saving file: "+ex.getMessage());
          }
          main.setModelDirectory (chooser.getCurrentDirectory());
       }
@@ -137,7 +149,7 @@ public class EditorUtils {
       Main main = Main.getMain();
       JFrame frame = main.getMainFrame();
       if (mesh == null) {
-         showError (frame, "Component does not have a mesh");
+         GuiUtils.showError (frame, "Component does not have a mesh");
          return;
       }
       if (X != null) {
@@ -165,15 +177,10 @@ public class EditorUtils {
          }
          catch (Exception ex) {
             ex.printStackTrace(); 
-            showError (frame, "Error saving file: " + ex.getMessage());
+            GuiUtils.showError (frame, "Error saving file: "+ex.getMessage());
          }
          main.setModelDirectory (chooser.getCurrentDirectory());
       }
-   }
-
-   public static void showError (Window window, String msg) {
-      JOptionPane.showMessageDialog (
-         window, msg, "Error", JOptionPane.ERROR_MESSAGE);
    }
 
    public static void saveMeshAsAnsysFile (final FemModel3d model) {

@@ -73,7 +73,7 @@ public class WavefrontWriter extends MeshWriterBase {
       }
       else {
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported");
+            "Mesh type "+mesh.getClass()+" not supported for '.obj' files");
       }
    }
 

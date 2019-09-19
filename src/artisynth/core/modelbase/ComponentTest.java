@@ -486,6 +486,18 @@ public class ComponentTest extends UnitTest {
    }
 
    public void test() {
+
+      ModelComponent comp = new TestComp("foo");
+      Package pack = comp.getClass().getPackage();
+      System.out.println ("pack=" + pack);
+      System.out.println ("impl title=" + pack.getImplementationTitle());
+      System.out.println ("impl vendor=" + pack.getImplementationVendor());
+      System.out.println ("impl version=" + pack.getImplementationVersion());
+      System.out.println ("spec title=" + pack.getSpecificationTitle());
+      System.out.println ("spec vendor=" + pack.getSpecificationVendor());
+      System.out.println ("spec version=" + pack.getSpecificationVersion());
+      System.out.println ("name=" + pack.getName());
+
       testComponentLists();
       testAreConnectedVia();
    }

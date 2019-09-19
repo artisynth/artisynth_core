@@ -13,7 +13,7 @@ import artisynth.core.modelbase.ComponentChangeEvent;
 import artisynth.core.modelbase.ComponentList;
 import artisynth.core.modelbase.RenderableComponentList;
 import artisynth.core.modelbase.StructureChangeEvent;
-import artisynth.core.util.ClassAliases;
+import maspack.util.ClassAliases;
 import maspack.properties.PropertyList;
 import maspack.properties.PropertyMode;
 import maspack.properties.PropertyUtils;
@@ -156,10 +156,6 @@ public class FemElement3dList<C extends FemElement3dBase> extends
       setRenderProps (createRenderProps());
    }
    
-   public boolean hasParameterizedType() {
-      return true;
-   }   
-
    /* ======== Renderable implementation ======= */
 
    public RenderProps createRenderProps() {

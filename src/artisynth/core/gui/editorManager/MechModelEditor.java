@@ -335,7 +335,7 @@ public class MechModelEditor extends EditorBase {
       Frame frame = myMain.getMainFrame();
       MechModel mech = lowestCommonModel (selection);
       if (mech == null) {
-         EditorUtils.showError (
+         GuiUtils.showError (
             frame, "Internal error: no common model for components");
          return null;
       }
@@ -344,7 +344,7 @@ public class MechModelEditor extends EditorBase {
       // if (myEditCollisionsAgent != null && myEditCollisionsAgent.isVisible()) {
       //    if (mech != myEditCollisionsModel &&
       //        !ComponentUtils.isAncestorOf (myEditCollisionsModel, mech)) {
-      //       EditorUtils.showError (
+      //       GuiUtils.showError (
       //          frame, 
       //          "Components not descendents of current Edit Collisons model");
       //       return null;
@@ -377,7 +377,7 @@ public class MechModelEditor extends EditorBase {
                Collidable cj = collidables.get(j);
                if (ModelComponentBase.recursivelyContains (ci, cj) ||
                    ModelComponentBase.recursivelyContains (cj, ci)) {
-                  EditorUtils.showError (
+                  GuiUtils.showError (
                      frame, "One or more collidables is a descendant of another");
                   return;
                }
@@ -393,46 +393,4 @@ public class MechModelEditor extends EditorBase {
          myMain.getUndoManager().saveStateAndExecute (cmd);               
       }
    }
-
-   // private void unsetCollisions (LinkedList<ModelComponent> selection) {
-   //    ArrayList<Collidable> collidables =
-   //       new ArrayList<Collidable>(selection.size());
-   //    for (ModelComponent c : selection) {
-   //       collidables.add ((Collidable)c);
-   //    }
-   //    Frame frame = myMain.getMainFrame();
-   //    MechModel mech = getCollisionsModel (selection);
-   //    if (mech == null) {
-   //       return;
-   //    }
-   //    LinkedList<CollidablePair> pairs =
-   //       SetCollisionsDialog.createCollidablePairs(collidables);
-
-   //    LinkedHashMap<CollidablePair,CollisionComponent> compMap =
-   //       new LinkedHashMap<CollidablePair,CollisionComponent>();
-
-   //    for (CollidablePair p : pairs) {
-   //       CollisionComponent c = mech.getCollisionOverride (p);
-   //       if (c != null) {
-   //          compMap.put (p, c);
-   //       }
-   //    }
-
-   //    if (compMap.size() == 0) {
-   //       JOptionPane.showMessageDialog (
-   //             frame,
-   //             "No collisions set between indicated components in this model",
-   //             "No collisions set",
-   //             JOptionPane.INFORMATION_MESSAGE);
-   //       return;
-   //    }
-   //    else {
-   //       LinkedList<CollisionComponent> compList =
-   //          new LinkedList<CollisionComponent>();
-   //       compList.addAll (compMap.values());  
-   //       RemoveComponentsCommand cmd = new RemoveComponentsCommand (
-   //          "Unset collisions", compList);
-   //       myMain.getUndoManager().saveStateAndExecute (cmd);
-   //    }
-   // }
 }

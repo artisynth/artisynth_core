@@ -19,6 +19,7 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
    protected RootModel myRootModel; // root model associated with the waypoints
    protected WayPoint myWay0; // hard wired way point at time = 0
    protected boolean myCheckStateP = false; // for testing only
+   private boolean myInitialStateValidP = true;
 
    public static final int WRITE_FIRST_STATE = 0x01;
    public static final int WRITE_ALL_STATES = 0x02;
@@ -134,6 +135,24 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
       return myCheckStateP;
    }
 
+   public void invalidateInitialState() {
+      myInitialStateValidP = false;
+   }
+
+   public void updateInitialStateIfNecessary() {
+      if (!myInitialStateValidP) {
+         RootModel root = getRootModel();
+         WayPoint way0 = get (0);
+         if (root != null && way0 != null) {
+            CompositeState state = 
+               (CompositeState)root.createState(null);
+            root.getInitialState (state, way0.getState());
+            way0.setState (state);
+         }
+         myInitialStateValidP = true;
+      }
+   }
+   
    /**
     * Adds a waypoint to this probe, and returns any waypoint that previously
     * occupied the same time slot.
@@ -551,17 +570,18 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
     * Writes all waypoints and their state as binary data to the attached 
     * file if it exists.
     */
-   public void save () {
+   public void save () throws IOException {
+      updateInitialStateIfNecessary();
       File file = getAttachedFile ();
       if (file != null) {
+         if (isAttachedFileRelative ()) {
+            file.getParentFile ().mkdirs ();
+         }
+         System.out.println ("saving waypoint data to " + file.getName ());
+         DataOutputStream dos =
+            new DataOutputStream (
+               new BufferedOutputStream(new FileOutputStream (file)));
          try {
-            if (isAttachedFileRelative ()) {
-               file.getParentFile ().mkdirs ();
-            }
-            System.out.println ("saving waypoint data to " + file.getName ());
-            DataOutputStream dos =
-               new DataOutputStream (
-                  new BufferedOutputStream(new FileOutputStream (file)));
             dos.writeInt (myWayPoints.size());
             for (WayPoint way : myWayPoints.values()) {
                dos.writeDouble (way.getTime());
@@ -574,38 +594,47 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
                   dos.writeBoolean (false);
                }
             }
-            dos.close ();
          }
-         catch (Exception e) {
-            System.out.println ("Error writing file " + file.getName ());
-            e.printStackTrace ();
+         catch (IOException e) {
+            throw e;
+         }
+         finally {
+            dos.close ();
          }
       }
    }
 
+
    public void saveas(String fileName) {
       setAttachedFileName(fileName);
-      save ();
+      try {
+         save ();
+      }
+      catch (IOException e){
+         e.printStackTrace();
+      }
    }
 
    /**
     * Loads waypoints and state from binary data in the attached file.
     */
-   public void load () {
-      invalidateAll();
+   public void load () throws IOException {
+      updateInitialStateIfNecessary();
+      //invalidateAll();
       File file = getAttachedFile ();
       if (file != null) {
          if (!file.exists ()) {
-            System.out.println ("Input probe file " + file.getName ()
-            + " does not exist");
+            throw new IOException ("File does not exist");
+         }
+         else if (!file.canRead ()) {
+            throw new IOException ("File is not readable");
          }
          else {
             // read data from binary file
+            DataInputStream dis =
+               new DataInputStream (
+                  new BufferedInputStream(new FileInputStream (file)));
             try {
-               DataInputStream dis =
-                  new DataInputStream (
-                     new BufferedInputStream(new FileInputStream (file)));
-
                int numways = dis.readInt();
                for (int i = 0; i < numways; i++) {
                   double t = dis.readDouble();
@@ -617,18 +646,20 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
                   way.setBreakPoint (dis.readBoolean());
                   boolean hasState = dis.readBoolean();
                   if (hasState) {
-                     CompositeState cs =
-                        (CompositeState)myRootModel.createState (
-                           null);
+                     CompositeState cs = way.getState();
+                     if (cs == null) {
+                        cs = (CompositeState)myRootModel.createState (null);
+                     }
                      cs.readBinary (dis);
-                     way.setState (cs);
+                     way.setState (cs); // note: cs is set by reference
                   }
                }
-               dis.close ();
             }
             catch (IOException e) {
-               System.err.println (
-                  "Could not load waypoint data: \n   " + e.getMessage ());
+               throw e;
+            }
+            finally {
+               dis.close ();
             }
          }
       }
@@ -641,7 +672,12 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
     */
    public void loadfrom (String fileName) {
       setAttachedFileName(fileName);
-      load ();
+      try {
+         load ();
+      }
+      catch (IOException e) {
+         e.printStackTrace();
+      }
    }
    
    @Override
@@ -652,9 +688,6 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
    public void postscan (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       super.postscan (tokens, ancestor);
-      if (getAttachedFileName() != null) {
-         load();
-      }
    }
    
    private void scanWayPoints (ReaderTokenizer rtok) throws IOException {
@@ -676,9 +709,19 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
                way.setBreakPoint (rtok.scanBoolean());
             }
             else if (scanAttributeName (rtok, "state")) {
-               CompositeState state = new CompositeState();
-               state.scan (rtok, null);
-               way.setState (state);
+               CompositeState state;
+//               if (way.getTime() == 0) {
+//                  // Create an initial state from root model, to get the 
+//                  // annotations, and then override it's numeric contents 
+//                  // with the saved state                  
+//                  way.setState (myRootModel);
+//                  way.getState().scan (rtok, null);
+//               }
+//               else {
+                  state = new CompositeState();
+                  state.scan (rtok, null);
+                  way.setState (state);
+               //}
             }
             else {
                throw new IOException ("Unexpected input: " + rtok);
@@ -734,6 +777,14 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
       return super.scanItem (rtok, tokens);
    }
 
+   public int getWriteFlags() {
+      return myWriteFlags;
+   }
+   
+   public void setWriteFlags (int flags) {
+      myWriteFlags = flags;
+   }
+   
    public void writeItems (
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
@@ -771,14 +822,6 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
       }
-   }
-
-   public void write (
-      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor, int flags)
-      throws IOException {
-      myWriteFlags = flags;
-      super.write (pw, fmt, ancestor);
-      myWriteFlags = 0;
    }
 
    /**

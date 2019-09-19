@@ -11,8 +11,10 @@ import java.io.*;
 
 import artisynth.core.util.*;
 import artisynth.core.modelbase.ScanWriteUtils.ClassInfo;
+import maspack.matrix.VectorObject;
 import maspack.properties.*;
 import maspack.util.*;
+import maspack.util.ParameterizedClass;
 
 public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C>
    implements Iterable<C>, IndexedComponentList {
@@ -474,19 +476,22 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
    }
 
    protected void printClassTagIfNecessary (PrintWriter pw, C comp) {
-      Class<?> typeParam = null;
+      Class<?> paramType = null;
       if (comp instanceof ParameterizedClass) {
-         ParameterizedClass pclass = (ParameterizedClass)comp;
-         if (pclass.hasParameterizedType()) {
-            typeParam = pclass.getTypeParameter();
+         ParameterizedClass pcomp = (ParameterizedClass)comp;
+         if (pcomp.hasParameterizedType()) {
+            paramType = pcomp.getParameterType();
          }
       }
       //if (!comp.getClass().isAssignableFrom (myComponentType) ||
-      if (comp.getClass() != myComponentType ||
-          typeParam != null) {
-         String classTag = ClassAliases.getAliasOrName (comp.getClass());
-         if (typeParam != null) {
-            classTag += "<"+ClassAliases.getAliasOrName(typeParam)+">";
+      if (comp.getClass() != myComponentType || paramType != null) {
+         String classTag;
+         if (paramType == null) {
+            classTag = ScanWriteUtils.getClassTag(comp);
+         }
+         else {
+            classTag = ScanWriteUtils.getParameterizedClassTag(
+               comp, paramType);
          }
          pw.print (classTag + " ");
       }
@@ -496,8 +501,8 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      for (int i = 0; i < size(); i++) {
-         C comp = get (i);
+      int i = 0;
+      for (C comp : this) {
          if (comp.isWritable()) {
             int num = comp.getNumber();
             if (num != i) {
@@ -510,22 +515,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
             else {
                comp.write (pw, fmt, ancestor);
             }
-         }
-      }
-   }
-
-   public void writeComponentByName (
-      PrintWriter pw, ModelComponent comp, NumberFormat fmt,
-      CompositeComponent ancestor)
-      throws IOException {
-
-      if (comp.isWritable()) {
-         pw.print (comp.getName() + "=");
-         if (myComp.hierarchyContainsReferences()) {
-            comp.write (pw, fmt, myComp);
-         }
-         else {
-            comp.write (pw, fmt, ancestor);
+            i++;
          }
       }
    }
@@ -534,17 +524,16 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      for (int i = 0; i < size(); i++) {
-         writeComponentByName (pw, get(i), fmt, ancestor);
-      }
-   }
-
-   private boolean stringsEqual (String str1, String str2) {
-      if ((str1 == null) != (str2 == null)) {
-         return false;
-      }
-      else {
-         return (str1 != null ? str1.equals (str2) : true);
+      for (ModelComponent comp : this) {
+         if (comp.isWritable()) {
+            pw.print (comp.getName() + "=");
+            if (myComp.hierarchyContainsReferences()) {
+               comp.write (pw, fmt, myComp);
+            }
+            else {
+               comp.write (pw, fmt, ancestor);
+            }
+         }
       }
    }
 
@@ -561,7 +550,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       else if (comp instanceof ComponentList) {
          ComponentList clist = (ComponentList)comp;
          if (clist.hasParameterizedType() &&
-             clist.getTypeParameter() != classInfo.typeParam) {
+             clist.getParameterType() != classInfo.typeParam) {
             return false;
          }
       }

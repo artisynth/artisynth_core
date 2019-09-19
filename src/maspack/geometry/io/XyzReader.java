@@ -35,21 +35,16 @@ public class XyzReader extends MeshReaderBase {
       mesh.clear();
       ArrayList<Point3d> vtxs = new ArrayList<Point3d>();
       ArrayList<Vector3d> nrms = new ArrayList<Vector3d>();
-      boolean done = false;
-      while (!done) {
-         try {
-            double vx = rtok.scanNumber();
-            double vy = rtok.scanNumber();
-            double vz = rtok.scanNumber();
-            double nx = rtok.scanNumber();
-            double ny = rtok.scanNumber();
-            double nz = rtok.scanNumber();
-            vtxs.add (new Point3d (vx, vy, vz));
-            nrms.add (new Vector3d (nx, ny, nz));
-         }
-         catch (EOFException e) {
-            done = true;
-         }
+      while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+         rtok.pushBack();
+         double vx = rtok.scanNumber();
+         double vy = rtok.scanNumber();
+         double vz = rtok.scanNumber();
+         double nx = rtok.scanNumber();
+         double ny = rtok.scanNumber();
+         double nz = rtok.scanNumber();
+         vtxs.add (new Point3d (vx, vy, vz));
+         nrms.add (new Vector3d (nx, ny, nz));
       }
 
       mesh.set (vtxs.toArray(new Point3d[0]), nrms.toArray(new Vector3d[0]));
@@ -96,7 +91,7 @@ public class XyzReader extends MeshReaderBase {
       }
       else {
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported by this reader");
+            "Mesh type "+mesh.getClass()+" not supported for '.xyz' files");
       }
    }
 

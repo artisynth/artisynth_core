@@ -104,8 +104,7 @@ public class WidgetDialog extends JDialog
       if (myValidator != null) {
          String errMsg = myValidator.validateSettings (myPanel);
          if (errMsg != null) {
-            JOptionPane.showMessageDialog (
-               this, errMsg, "Error", JOptionPane.ERROR_MESSAGE);
+            GuiUtils.showError (this, errMsg);
             return;
          }
       }

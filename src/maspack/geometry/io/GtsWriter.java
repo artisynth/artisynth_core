@@ -90,7 +90,7 @@ public class GtsWriter extends MeshWriterBase {
          vtx.setIndex(oldIdxs[vidx]);
          vidx++;
       }
-      
+      pw.close();
    }
    
    @Override
@@ -102,7 +102,7 @@ public class GtsWriter extends MeshWriterBase {
       }
       else {
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported by this writer");
+            "Mesh type "+mesh.getClass()+" not supported for '.gts' files");
       }     
    }
 

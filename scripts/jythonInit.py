@@ -17,11 +17,15 @@ def loadModel (name, *args) :
 #    print "args=",  args;
 
 def loadModelFile (name) :
-    file = File (name)
-    if not file.canRead():
+    fp = File (name)
+    if not fp.canRead():
         print "File '" + name + "' not found or not readable"
         return False
-    getMain().loadModelFile (file)
+    getMain().loadModelFile (fp)
+
+def saveModelFile (name, saveWayPoints=False, coreCompsOnly=False) :
+    fp = File (name)
+    getMain().saveModelFile (fp, None, saveWayPoints, coreCompsOnly)
 
 #def setRoot (name, root) :
 #    main.clearRootModel ()
@@ -88,6 +92,16 @@ def removeWayPoint (time) :
 
 def clearWayPoints () :
     getMain().clearWayPoints ()
+
+def loadWayPoints (filename) :
+    fp = File (filename)
+    if not fp.canRead():
+        print "File '" + name + "' not found or not readable"
+        return False
+    getMain().loadWayPoints (File (filename))
+
+def saveWayPoints (filename) :
+    getMain().saveWayPoints (File (filename))
 
 def root () :
     return getMain().getRootModel ()

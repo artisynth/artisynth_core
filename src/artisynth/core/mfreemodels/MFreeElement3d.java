@@ -124,11 +124,11 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
       return pnt.getNumber();
    }
       
-   public void clearState() {
-      for (IntegrationData3d idat : myIntegrationData) {
-         idat.clearState();
-      }
-   }
+//   public void clearState() {
+//      for (IntegrationData3d idat : myIntegrationData) {
+//         idat.clearState();
+//      }
+//   }
 
    public void updateAllVolumes() {
       computeRestVolumes();

@@ -331,7 +331,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
                   SPHERE_196_MESH_PATH, ".");
             }
             else {
-               EditorUtils.showError (
+               GuiUtils.showError (
                   myDisplay, "Invalid number of nodes for sphere");
                return;
             }
@@ -341,7 +341,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
                   meshPath + ".ele", new Vector3d (1, 1, 1));
             }
             catch (Exception e) {
-               EditorUtils.showError (
+               GuiUtils.showError (
                   myDisplay, "Error reading file: " + e.getMessage());
                return;
             }
@@ -358,7 +358,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
                FemFactory.createExtrusion (fem, elemType, n, d, 0, mesh);
             }
             catch (Exception e) {
-               EditorUtils.showError (
+               GuiUtils.showError (
                   myDisplay, "Error reading file: " + e.getMessage());
                return;
             }
@@ -374,7 +374,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
                   1000, null, /*options=*/0);
             }
             catch (Exception e) {
-               EditorUtils.showError (
+               GuiUtils.showError (
                   myDisplay, "Error reading file: " + e.getMessage());
                return;
             }
@@ -390,7 +390,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
                   new Vector3d (1, 1, 1));
             }
             catch (Exception e) {
-               EditorUtils.showError (
+               GuiUtils.showError (
                   myDisplay, "Error reading file: " + e.getMessage());
                return;
             }
@@ -404,7 +404,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
                UCDReader.read (fem, ucdFileName, 1000);
             }
             catch (Exception e) {
-               EditorUtils.showError (
+               GuiUtils.showError (
                   myDisplay, "Error reading file: " + e.getMessage());
                return;
             }
@@ -420,7 +420,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
                surfaceMesh = new PolygonalMesh (new File(objFileName));
             }
             catch (Exception e) {
-               EditorUtils.showError (
+               GuiUtils.showError (
                   myDisplay, "Error reading file: " + e.getMessage());
                return;
             }
@@ -429,7 +429,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
             }
             catch (Exception e) {
                e.printStackTrace(); 
-               EditorUtils.showError (
+               GuiUtils.showError (
                   myDisplay, "Error tessellating mesh: " + e.getMessage());
                return;
             }
@@ -1036,7 +1036,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          else {
             fileCheck = false;
             
-            EditorUtils.showError (
+            GuiUtils.showError (
                myDisplay, "File does not exist:" + file.getAbsolutePath());            
          }
       }
@@ -1061,7 +1061,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          else {
             fileCheck = false;
             
-            EditorUtils.showError (
+            GuiUtils.showError (
                myDisplay, "Invalid file: " + file.getAbsolutePath());            
          }
          
@@ -1095,7 +1095,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          else {
             fileCheck = false;
             
-            EditorUtils.showError (
+            GuiUtils.showError (
                myDisplay, "Invalid file: " + file.getAbsolutePath());            
          }
          
@@ -1124,7 +1124,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          else {
             fileCheck = false;
             
-            EditorUtils.showError (
+            GuiUtils.showError (
                myDisplay, "File does not exist:" + file.getAbsolutePath()); 
          }
       }
@@ -1144,7 +1144,7 @@ public class FemModel3dAgent extends AddComponentAgent<FemModel3d> {
          else {
             fileCheck = false;
             
-            EditorUtils.showError (
+            GuiUtils.showError (
                myDisplay, "File does not exist:" + file.getAbsolutePath()); 
          }
       }

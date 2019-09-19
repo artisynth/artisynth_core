@@ -245,7 +245,7 @@ public class IsRenderableHolder extends RenderableComponentBase {
    }
    
    @Override
-   public void write(PrintWriter writer, NumberFormat fmt, Object ref)
+   public void write (PrintWriter writer, NumberFormat fmt, Object ref)
       throws IOException {
       dowrite(writer, fmt, ref);
    }

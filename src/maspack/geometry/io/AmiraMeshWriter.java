@@ -91,7 +91,7 @@ public class AmiraMeshWriter extends MeshWriterBase {
          writeMesh( (PolygonalMesh)mesh );
       } else {
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported by this writer");
+            "Mesh type "+mesh.getClass()+" not supported by AmiraMeshWriter");
       }
    }
    

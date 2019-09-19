@@ -348,8 +348,18 @@ public class Scheduler {
       myTime = TimeBase.round(time);
       if (setStateBeforeInit) {
          WayPoint way0 = getWayPoint (0);
-         if (way0 != null && !way0.isValid()) {
-            way0.setState (getRootModel());
+         if (way0 != null) { 
+            if (!way0.isValid()) {
+               way0.setState (getRootModel());
+            }
+            else if (!way0.getState().isAnnotated()) {
+             // waypoint contains state information which was loaded 
+             // from an external file. Need to add augmentation information 
+             // to this state.
+             CompositeState scannedState = way0.getState();
+             way0.setState (getRootModel());
+             way0.getState().set (scannedState);              
+            }
          }         
          getWorkspace().initialize (time);
       }
@@ -576,21 +586,29 @@ public class Scheduler {
    }      
 
    public void invalidateInitialState() {
+      RootModel root = getRootModel();
+      if (root != null) {
+         root.getWayPoints().invalidateInitialState();
+      }
       myInitialStateValidP = false;
    }
 
    private void updateInitialStateIfNecessary() {
-      if (!myInitialStateValidP) {
-         RootModel root = getRootModel();
-         WayPoint way0 = getWayPoint (0);
-         if (root != null && way0 != null) {
-            CompositeState state = 
-               (CompositeState)root.createState(null);
-            root.getInitialState (state, way0.getState());
-            way0.setState (state);
-         }
-         myInitialStateValidP = true;
+      RootModel root = getRootModel();
+      if (root != null) {
+         root.getWayPoints().updateInitialStateIfNecessary();
       }
+//      if (!myInitialStateValidP) {
+//         RootModel root = getRootModel();
+//         WayPoint way0 = getWayPoint (0);
+//         if (root != null && way0 != null) {
+//            CompositeState state = 
+//               (CompositeState)root.createState(null);
+//            root.getInitialState (state, way0.getState());
+//            way0.setState (state);
+//         }
+//         myInitialStateValidP = true;
+//      }
    }
 
    /** 

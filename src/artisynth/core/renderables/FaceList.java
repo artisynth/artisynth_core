@@ -166,5 +166,5 @@ public class FaceList<P extends FaceComponent> extends RenderableComponentList<P
          list.addLast (get (qid));
       }
    }
-   
+
 }

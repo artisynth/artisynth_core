@@ -24,8 +24,8 @@ public class IntegrationData3d {
    double myDv; // current partial volume at the quadrature point
    // optional coordinate frame information (for anisotropic materials) 
    protected Matrix3d myFrame = null;
-   protected ViscoelasticState myViscoState;
-   protected MaterialStateObject myStateObject;
+   //protected ViscoelasticState myViscoState;
+   // protected MaterialStateObject myStateObject;
    protected MaterialStateObject[] myStateObjects;
    
    private void init() {
@@ -33,32 +33,32 @@ public class IntegrationData3d {
       myDetJ0 = 1;
    }
 
-   public ViscoelasticState getViscoState() {
-      return myViscoState;
-   }
+//   public ViscoelasticState getViscoState() {
+//      return myViscoState;
+//   }
    
-   public void setViscoState (ViscoelasticState state) {
-      myViscoState = state;
-   }
+//   public void setViscoState (ViscoelasticState state) {
+//      myViscoState = state;
+//   }
    
-   public MaterialStateObject getStateObject() {
-      return myStateObject;
-   }
-
-   public MaterialStateObject getOrCreateStateObject (FemMaterial mat) {
-      if (myStateObject == null) {
-         myStateObject = mat.createStateObject();
-      }
-      return myStateObject;
-   }
+//   public MaterialStateObject getStateObject() {
+//      return myStateObject;
+//   }
+//
+//   public MaterialStateObject getOrCreateStateObject (FemMaterial mat) {
+//      if (myStateObject == null) {
+//         myStateObject = mat.createStateObject();
+//      }
+//      return myStateObject;
+//   }
+//   
+//   public void setStateObject (MaterialStateObject stateObject) {
+//      myStateObject = stateObject;
+//   }
    
-   public void setStateObject (MaterialStateObject stateObject) {
-      myStateObject = stateObject;
-   }
-   
-   public void clearStateObject () {
-      myStateObject = null;
-   }
+//   public void clearStateObject () {
+//      myStateObject = null;
+//   }
    
    public void clearStateObjects () {
       myStateObjects = null;
@@ -147,65 +147,65 @@ public class IntegrationData3d {
       return myDetJ0;
    }
 
-   /** 
-    * Gets the number of integers required to store structure data.
-    */
-   public int getStateStructureSize () {
-      //return 2;
-      return 1;
-   }
+//   /** 
+//    * Gets the number of integers required to store structure data.
+//    */
+//   public int getStateStructureSize () {
+//      //return 2;
+//      return 1;
+//   }
     
-   /** 
-    * Stores the information corresponding to zero state
-    */
-   public void getZeroState (DataBuffer data) {
-      data.zput (0);
-   }
+//   /** 
+//    * Stores the information corresponding to zero state
+//    */
+//   public void getZeroState (DataBuffer data) {
+//      data.zput (0);
+//   }
    
-   /** 
-    * Stores the state structure in a DataBuffer.
-    */  
-   public void getState (DataBuffer data) {
-      int size;
-      if (myViscoState != null) {
-         size = myViscoState.getStateSize();
-      }
-      else {
-         size = 0;
-      }
-      data.zput (size);
-      if (size > 0) {
-         myViscoState.getState (data);
-      }
-   }
-
-   /** 
-    * Sets the state data from a DataBuffer.
-    */
-   public void setState (DataBuffer data) {
-      int size = data.zget();
-      if (size == 0) {
-         if (myViscoState != null) {
-            myViscoState = null;
-         }
-      }
-      else {
-         if (myViscoState == null ||
-             (myViscoState != null && myViscoState.getStateSize() != size)) {
-            // Hmmm - incompatible for some reason. Just clear the
-            // state and ignore the remaining state input 
-            myViscoState = null;
-            data.dskip (size);
-         }
-         else {
-            myViscoState.setState (data);
-         }
-      }
-   }
-
-   public void clearState() {
-      myViscoState = null;
-   }
+//   /** 
+//    * Stores the state structure in a DataBuffer.
+//    */  
+//   public void getState (DataBuffer data) {
+//      int size;
+//      if (myViscoState != null) {
+//         size = myViscoState.getStateSize();
+//      }
+//      else {
+//         size = 0;
+//      }
+//      data.zput (size);
+//      if (size > 0) {
+//         myViscoState.getState (data);
+//      }
+//   }
+//
+//   /** 
+//    * Sets the state data from a DataBuffer.
+//    */
+//   public void setState (DataBuffer data) {
+//      int size = data.zget();
+//      if (size == 0) {
+//         if (myViscoState != null) {
+//            myViscoState = null;
+//         }
+//      }
+//      else {
+//         if (myViscoState == null ||
+//             (myViscoState != null && myViscoState.getStateSize() != size)) {
+//            // Hmmm - incompatible for some reason. Just clear the
+//            // state and ignore the remaining state input 
+//            myViscoState = null;
+//            data.dskip (size);
+//         }
+//         else {
+//            myViscoState.setState (data);
+//         }
+//      }
+//   }
+//
+//   public void clearState() {
+//      myViscoState = null;
+//   }
 
    public void setFrame(Matrix3d myFrame) {
       this.myFrame = myFrame;

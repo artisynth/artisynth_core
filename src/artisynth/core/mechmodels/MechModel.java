@@ -1488,6 +1488,11 @@ TransformableGeometry, ScalableUnits {
    }
 
    public void addAttachment (DynamicAttachmentComp ax) {
+      if (ax.getSlave().isAttached()) {
+         throw new IllegalStateException (
+            "slave component "+ComponentUtils.getPathName(ax.getSlave())+
+            " already attached via "+ ax.getSlave().getAttachment());
+      }
       ax.updatePosStates();
       myAttachments.add (ax);
    }

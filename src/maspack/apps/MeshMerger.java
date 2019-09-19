@@ -98,7 +98,7 @@ public class MeshMerger {
          }
          else {
             ((PolygonalMesh)mesh).write (
-               new File(outFileName.value), formatStr.value);
+               new File(outFileName.value), formatStr.value, false);
          }
 
       }

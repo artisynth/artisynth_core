@@ -14,7 +14,7 @@ import maspack.util.*;
 import maspack.spatialmotion.SpatialInertia;
 import maspack.geometry.Vertex3d;
 
-public class PolygonalMeshTest extends UnitTest {
+public class PolygonalMeshTest extends MeshTestBase {
 
    private ArrayList<Vector3d> createNormals (double[] coords) {
       ArrayList<Vector3d> normals = new ArrayList<Vector3d>();
@@ -895,6 +895,22 @@ public class PolygonalMeshTest extends UnitTest {
       checkUniqueness (mesh, copy);
    }
 
+   protected PolygonalMesh createNewMesh() {
+      return new PolygonalMesh();
+   }
+
+   private void testWriteRead() {
+      PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (1.2, 2);
+
+      testWriteRead (mesh, ".obj", true);
+      testWriteRead (mesh, ".obj");
+      testWriteRead (mesh, ".ply");
+      testWriteRead (mesh, ".gts");
+      // STL check fails right now because STL files are written with
+      // lower precision
+      //testWriteRead (mesh, ".stl");
+   }
+
    public void test() throws TestException, IOException {
       squareTest();
       mergeTest();      
@@ -903,6 +919,7 @@ public class PolygonalMeshTest extends UnitTest {
       setColorsTest();
       testIncidentHedgeSorting();
       testCopy();
+      testWriteRead();
    }
 
    public static void main (String[] args) {

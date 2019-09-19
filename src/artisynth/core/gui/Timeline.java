@@ -48,9 +48,11 @@ public abstract class Timeline extends JFrame {
 	      boolean muted, boolean isInput, int modelIdx, int trackIdx);
    //public abstract void updateToolbar ();
 
-   public abstract void setAttachedFileFromUser(
-      WayPointProbe wayPoints, String text);
+   public abstract boolean setWayPointsFileFromUser(JFrame frame, String text);
+   public abstract boolean loadWayPointsFromAttachedFile(JFrame frame);
+   public abstract boolean saveWayPointsToAttachedFile(JFrame frame);
    public abstract boolean refreshWayPoints(RootModel root);
+   public abstract void clearWayPoints();
    
    public static void setMultipleProbeSelecting (boolean selecting) {
       multipleSelecting = selecting;

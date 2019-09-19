@@ -136,10 +136,10 @@ public class VectorGridField<T extends VectorObject<T>>
    protected void writeGrid (PrintWriter pw, NumberFormat fmt)
       throws IOException {
       if (myGrid != null) {
-         String paremeterizedClassName =
-            ScanWriteUtils.getClassName (
-               myGrid.getClass(), myGrid.getTypeParameter());
-         pw.print ("grid="+paremeterizedClassName+" ");
+         String classTag = 
+            ScanWriteUtils.getParameterizedClassTag (
+               myGrid, myGrid.getParameterType());
+         pw.print ("grid="+classTag+" ");
          IndentingPrintWriter.addIndentation (pw, 2);
          getGrid().write (pw, fmt, null);
          IndentingPrintWriter.addIndentation (pw, -2);

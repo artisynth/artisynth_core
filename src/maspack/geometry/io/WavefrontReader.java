@@ -1859,7 +1859,7 @@ public class WavefrontReader extends MeshReaderBase {
       }
       else {
          throw new IllegalArgumentException (
-            "Mesh type "+mesh.getClass()+" not handled by this reader");
+            "Mesh type "+mesh.getClass()+" not supported for '.obj' files");
       }
       return mesh;
    }

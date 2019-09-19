@@ -738,9 +738,7 @@ public class MovieMakerDialog extends JDialog
       myMovieMaker.setAudioNormalized (normalizeAudio.isSelected());
 
       if (movieFileName.equals ("")) {
-         JOptionPane.showMessageDialog(
-            this, "Please enter a movie name",
-            "File name error", JOptionPane.ERROR_MESSAGE);
+         GuiUtils.showError (this, "Please enter a movie name");
          filename.requestFocusInWindow();
       }
       else {
@@ -1126,9 +1124,7 @@ public class MovieMakerDialog extends JDialog
       String movieFileName = filename.getText();
 
       if (movieFileName.equals ("")) {
-         JOptionPane.showMessageDialog(
-            this, "Please enter a movie name",
-            "File name error", JOptionPane.ERROR_MESSAGE);
+         GuiUtils.showError (this, "Please enter a movie name");
          filename.requestFocusInWindow();
       }
       else {

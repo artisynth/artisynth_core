@@ -137,9 +137,13 @@ public class VectorElementField<T extends VectorObject<T>>
 
       super.writeItems (pw, fmt, ancestor);
       pw.print ("values=");
-      writeValues (pw, fmt, myValues);
+      writeValues (
+         pw, fmt, myValues, 
+         new ElementWritableTest(myFem.getElements()));
       pw.print ("shellValues=");
-      writeValues (pw, fmt, myShellValues);
+      writeValues (
+         pw, fmt, myShellValues, 
+         new ElementWritableTest(myFem.getShellElements()));
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -179,14 +183,6 @@ public class VectorElementField<T extends VectorObject<T>>
       }
    }
 
-   private boolean elementIsReferenced (int num) {
-      return myFem.getElements().getByNumber(num) != null;
-   }
-
-   private boolean shellElementIsReferenced (int num) {
-      return myFem.getShellElements().getByNumber(num) != null;
-   }
-
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
       if (undo) {
          restoreReferencedValues (myValues, undoInfo);
@@ -194,9 +190,11 @@ public class VectorElementField<T extends VectorObject<T>>
       }
       else {
          removeUnreferencedValues (
-            myValues, (int i) -> elementIsReferenced(i), undoInfo);
+            myValues, new ElementReferencedTest (myFem.getElements()), 
+            undoInfo);
          removeUnreferencedValues (
-            myShellValues, (int i) -> shellElementIsReferenced(i), undoInfo);
+            myShellValues, new ElementReferencedTest (myFem.getShellElements()), 
+            undoInfo);
       }
    }
 

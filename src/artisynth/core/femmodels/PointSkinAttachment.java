@@ -25,6 +25,7 @@ import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNdBlock;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.spatialmotion.Wrench;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
@@ -705,7 +706,7 @@ public class PointSkinAttachment extends PointAttachment
    }
 
    protected boolean writeConnection(
-      Connection c, PrintWriter pw, NumberFormat fmt,
+      Connection c, double weight, PrintWriter pw, NumberFormat fmt,
       CompositeComponent ancestor)
       throws IOException {
 
@@ -713,29 +714,94 @@ public class PointSkinAttachment extends PointAttachment
          String framePath =
             ComponentUtils.getWritePathName(
                ancestor, c.getMaster());
-         pw.println("F " + framePath + " " + fmt.format(c.getWeight()));
+         pw.println("F " + framePath + " " + fmt.format(weight));
          return true;
       }
       else if (c instanceof ParticleConnection) {
          String particlePath =
             ComponentUtils.getWritePathName(
                ancestor, c.getMaster());
-         pw.println("P " + particlePath + " " + fmt.format(c.getWeight()));
+         pw.println("P " + particlePath + " " + fmt.format(weight));
          return true;
       }
       else if (c instanceof FemDisplacementConnection) {
          String nodePath =
             ComponentUtils.getWritePathName(
                ancestor, c.getMaster());
-         pw.println("D " + nodePath + " " + fmt.format(c.getWeight()));
+         pw.println("D " + nodePath + " " + fmt.format(weight));
          return true;
       }
       else if (c instanceof BaseConnection) {
-         pw.println("B " + fmt.format(c.getWeight()));
+         pw.println("B " + fmt.format(weight));
          return true;
       }
       else {
          return false;
+      }
+   }
+
+   protected void writeConnections (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      // find the total number of connections to write. Don't write
+      // connections with a non-writable master. Determine wbaseOld
+      // and wbaseDe; to be used for renormalizing the weights
+      double wbaseOld = 0;
+      double wdispDel = 0;
+      ArrayList<Connection> writableConnections =
+         new ArrayList<>(myNumConnections);
+      for (int i=0; i<myNumConnections; i++) {
+         Connection c = myConnections[i];
+         ModelComponent m = c.getMaster();
+         if (m == null || m.isWritable()) {
+            if (c instanceof BaseConnection) {
+               wbaseOld += c.getWeight();
+            }
+            writableConnections.add (c);
+         }
+         else {
+            if (c instanceof FemDisplacementConnection) {
+               wdispDel += c.getWeight();
+            }
+         }
+      }
+      if (writableConnections.size() < myNumConnections) {
+         // we are not writing all the connections, so the weights must be
+         // renormalized. See the description of this in updateReferences().
+         int numw = writableConnections.size();
+         VectorNd weights = new VectorNd (numw);
+
+         double wbaseScale =
+            (wbaseOld != 0 ? (wbaseOld-wdispDel)/wbaseOld : 1.0);
+         double wtotal = 0;
+         for (int i=0; i<numw; i++) {
+            Connection c = writableConnections.get(i);
+            double w = c.getWeight();
+            if (c instanceof BaseConnection) {
+               w *= wbaseScale;
+            }
+            if (!(c instanceof FemDisplacementConnection)) {
+               wtotal += w;
+            }
+            weights.set (i, w);
+         }
+         for (int i=0; i<numw; i++) {
+            Connection c = writableConnections.get(i);
+            if (!writeConnection(c, weights.get(i)/wtotal, pw, fmt, ancestor)) {
+               throw new UnsupportedOperationException(
+                  "Write not implemented for connection type " + c.getClass());
+            }           
+         }
+      }
+      else {
+         for (int i=0; i<myNumConnections; i++) {
+            Connection c = myConnections[i];
+            if (!writeConnection(c, c.getWeight(), pw, fmt, ancestor)) {
+               throw new UnsupportedOperationException(
+                  "Write not implemented for connection type " + c.getClass());
+            }           
+         }
       }
    }
 
@@ -807,13 +873,7 @@ public class PointSkinAttachment extends PointAttachment
       pw.println("");
       pw.println("connections=[");
       IndentingPrintWriter.addIndentation(pw, 2);
-      for (int i = 0; i < myNumConnections; i++) {
-         Connection c = myConnections[i];
-         if (!writeConnection(c, pw, fmt, ancestor)) {
-            throw new UnsupportedOperationException(
-               "Write not implemented for connection type " + c.getClass());
-         }
-      }
+      writeConnections (pw, fmt, ancestor);
       IndentingPrintWriter.addIndentation(pw, -2);
       pw.println("]");
    }

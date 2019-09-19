@@ -40,7 +40,7 @@ public class AddMarkerTool implements SelectionListener, MouseInputListener {
    
    /**
     * Set custom handler for adding markers
-    * @param handler
+    * @param handler handler to be added
     */
    public void setHandler(AddMarkerHandler handler) {
       myHandler = handler;

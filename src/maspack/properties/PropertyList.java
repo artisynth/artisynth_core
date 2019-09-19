@@ -548,7 +548,7 @@ public class PropertyList implements PropertyInfoList {
    }
 
    /**
-    * Gets a descriptor for a specific named property. If the named property is
+    * Gets a descriptor for a specific named propertreturn myProps;y. If the named property is
     * not defined in this list, <code>null</code> is returned.
     * 
     * @param name

@@ -1073,7 +1073,14 @@ public class SkinMeshBody extends SkinMeshBase
    protected void writeFrameInfo (
       PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException {
-      if (myFrameInfo.size() == 0) {
+      
+      int numw = 0;
+      for (FrameInfo finfo : myFrameInfo) {
+         if (finfo.myFrame.isWritable()) {
+            numw++;
+         }
+      }
+      if (numw == 0) {
          pw.println ("[ ]");
       }
       else {
@@ -1081,15 +1088,16 @@ public class SkinMeshBody extends SkinMeshBase
             ComponentUtils.castRefToAncestor (ref);
          pw.println ("[");
          IndentingPrintWriter.addIndentation (pw, 2);
-         for (int i=0; i<myFrameInfo.size(); i++) {
-            FrameInfo finfo = myFrameInfo.get(i);
-            pw.println (ComponentUtils.getWritePathName (
-                           ancestor, finfo.myFrame));
-            pw.print ("[ ");
-            IndentingPrintWriter.addIndentation (pw, 2);
-            finfo.myBasePose.write (pw, fmt);
-            IndentingPrintWriter.addIndentation (pw, -2);
-            pw.println ("]");
+         for (FrameInfo finfo : myFrameInfo) {
+            if (finfo.myFrame.isWritable()) {
+               pw.println (ComponentUtils.getWritePathName (
+                              ancestor, finfo.myFrame));
+               pw.print ("[ ");
+               IndentingPrintWriter.addIndentation (pw, 2);
+               finfo.myBasePose.write (pw, fmt);
+               IndentingPrintWriter.addIndentation (pw, -2);
+               pw.println ("]");
+            }
          }
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
@@ -1113,7 +1121,14 @@ public class SkinMeshBody extends SkinMeshBase
    protected void writeFemModelInfo (
       PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException {
-      if (myFemModelInfo.size() == 0) {
+
+      int numw = 0;
+      for (FemModelInfo finfo : myFemModelInfo) {
+         if (finfo.myFemModel.isWritable()) {
+            numw++;
+         }
+      }
+      if (numw == 0) {
          pw.println ("[ ]");
       }
       else {
@@ -1121,10 +1136,11 @@ public class SkinMeshBody extends SkinMeshBase
             ComponentUtils.castRefToAncestor (ref);
          pw.println ("[");
          IndentingPrintWriter.addIndentation (pw, 2);
-         for (int i=0; i<myFemModelInfo.size(); i++) {
-            FemModelInfo finfo = myFemModelInfo.get(i);
-            pw.println (ComponentUtils.getWritePathName (
-                           ancestor, finfo.myFemModel));
+         for (FemModelInfo finfo : myFemModelInfo) {
+            if (finfo.myFemModel.isWritable()) {
+               pw.println (ComponentUtils.getWritePathName (
+                              ancestor, finfo.myFemModel));
+            }
          }
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");

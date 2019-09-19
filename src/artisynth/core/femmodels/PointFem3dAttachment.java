@@ -630,7 +630,7 @@ public class PointFem3dAttachment extends PointAttachment {
     * guard against negative weights.
     * 
     * @param nodes nodes to which mass should be added
-    * @param coords coordinate weights of each node
+    * @param weights coordinate weights of each node
     * @param m mass to be distributed
     */
    public static void addMassToNodeMasters (

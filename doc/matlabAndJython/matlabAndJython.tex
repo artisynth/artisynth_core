@@ -1103,6 +1103,16 @@ created and so it is necessary to use the fully qualified classname.
 Loads a model from an ArtiSynth file. {\tt filename} is a string
 giving the file's path.
 
+\item[{\tt saveModelFile (filename)}] \mbox{}
+
+Save a model to an ArtiSynth file.
+
+\item[{\tt saveModelFile (filename, saveWayPointData, coreCompsOnly)}] \mbox{}
+
+Save a model to an ArtiSynth file. The options {\tt saveWayPointData}
+and {\tt coreCompsOnly} specify whether to (a) save waypoint data, and
+(b) save only components from artisynth_core.
+
 \item[{\tt play()}] \mbox{}
 
 Starts the simulation running.
@@ -1169,6 +1179,14 @@ Removes any waypoint or breakpoint at time {\tt t}.
 \item[{\tt clearWayPoints()}] \mbox{}
 
 Removes all waypoints and breakpoints.
+
+\item[{\tt saveWayPoints (filename)}] \mbox{}
+
+Save waypoints and their data to a specified file
+
+\item[{\tt loadWayPoints (fileName)}] \mbox{}
+
+Load waypoints and their data from a specified file
 
 \item[{\tt root()}] \mbox{}
 

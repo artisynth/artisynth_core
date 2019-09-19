@@ -11,6 +11,7 @@ import artisynth.core.util.*;
 
 import maspack.matrix.*;
 import maspack.util.*;
+import maspack.util.ParameterizedClass;
 import maspack.properties.PropertyDesc.TypeCode;
 import maspack.properties.*;
 import maspack.render.*;
@@ -54,10 +55,10 @@ public abstract class VectorFemField<T extends VectorObject<T>>
       myValueType = PropertyDesc.getTypeCode(type);
    }
    
-   public Class<T> getTypeParameter() {
+   public Class<T> getParameterType() {
       return myTypeParameter;
    }   
-
+   
    public boolean hasParameterizedType() {
       return true;
    }   
@@ -125,12 +126,14 @@ public abstract class VectorFemField<T extends VectorObject<T>>
    }
 
    protected <S> void writeValues (
-      PrintWriter pw, NumberFormat fmt, ArrayList<S> values) throws IOException {
+      PrintWriter pw, NumberFormat fmt, ArrayList<S> values, 
+      WritableTest writableTest) throws IOException {
 
       pw.println ("[");
       IndentingPrintWriter.addIndentation (pw, 2);
-      for (S val : values) {
-         if (val == null) {
+      for (int num=0; num<values.size(); num++) {
+         S val = values.get(num);
+         if (val == null || !writableTest.isWritable(num)) {
             pw.println ("null");
          }
          else {
@@ -144,12 +147,13 @@ public abstract class VectorFemField<T extends VectorObject<T>>
  
    protected <S> void writeValueArrays (
       PrintWriter pw, NumberFormat fmt,
-      ArrayList<S[]> valueArrays) throws IOException {
+      ArrayList<S[]> valueArrays, WritableTest writableTest) throws IOException {
 
       pw.println ("[");
       IndentingPrintWriter.addIndentation (pw, 2);
-      for (S[] varray : valueArrays) {
-         if (varray == null) {
+      for (int num=0; num<valueArrays.size(); num++) {
+         S[] varray = valueArrays.get(num);
+         if (varray == null || !writableTest.isWritable(num)) {
             pw.println ("null");
          }
          else {

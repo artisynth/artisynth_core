@@ -30,6 +30,7 @@ import artisynth.core.probes.NumericProbeVariable;
 import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.util.StringHolder;
+import maspack.widgets.GuiUtils;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueCheckListener;
 
@@ -361,7 +362,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
       }
       catch (Exception exception) {
          System.out.println (exception.getMessage());
-         showErrorWindow (exception.getMessage());
+         GuiUtils.showError (this, exception.getMessage());
          invalidateDriverAndGUI (id);
          return;
       }
@@ -381,7 +382,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
       if (getPropDim (myProperties.get (id)) !=
           myDrivers.get(id).getOutputSize()) {
          invalidateDriverAndGUI (id);
-         showErrorWindow ("Driver and Property size mismatch!");
+         GuiUtils.showError (this, "Driver and Property size mismatch!");
       }
    }
 
@@ -518,9 +519,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
                if (newName.compareTo (pane.getChannelName()) == 0) {
                   // check to make sure there are no duplicates
 
-                  JOptionPane.showMessageDialog (
-                     this, "Name already exists!", "Error!",
-                     JOptionPane.ERROR_MESSAGE);
+                  GuiUtils.showError (this, "Name already exists!");
                   newName = vecPane.getOldName();
                   // so in this case, the 'new' name is the same as old, so
                   // effectively we don't make any changes

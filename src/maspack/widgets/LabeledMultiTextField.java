@@ -150,9 +150,7 @@ public abstract class LabeledMultiTextField extends LabeledControl {
          }
          if (value == Property.IllegalValue) {
             myFocusListenersMasked = true;
-            JOptionPane.showMessageDialog (
-               LabeledMultiTextField.this, errMsg.value, "Error",
-               JOptionPane.ERROR_MESSAGE);
+            GuiUtils.showError (LabeledMultiTextField.this, errMsg.value);
             myFocusListenersMasked = false;
             restoreAllText();
             updateDisplay();

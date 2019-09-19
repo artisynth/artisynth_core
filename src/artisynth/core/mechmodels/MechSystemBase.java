@@ -271,10 +271,6 @@ public abstract class MechSystemBase extends RenderableModelBase
       return mech;
    }
    
-   public boolean hasParameterizedType() {
-      return false;
-   }
-
    public MechSystemSolver getSolver() {
       return mySolver;
    }
@@ -504,7 +500,6 @@ public abstract class MechSystemBase extends RenderableModelBase
    public int getStructureVersion() {
       return myStructureVersion;
    }
-
 
    /**
     * Returns in <code>sizes</code> the number of (velocity) degrees of freedom

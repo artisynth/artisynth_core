@@ -5,9 +5,9 @@ import maspack.util.*;
 import maspack.spatialmotion.*;
 
 /**
- * Implements a mesh consisting of a set of polylines.
+ * Test class for PolylineMesh
  */
-public class PolylineMeshTest extends UnitTest {
+public class PolylineMeshTest extends MeshTestBase {
    
    public void testTiming() {
       PolylineMesh mesh = new PolylineMesh();
@@ -68,8 +68,20 @@ public class PolylineMeshTest extends UnitTest {
       checkEquals ("createdInertia", M, Mcheck, 1e-10);
    }
 
+   protected PolylineMesh createNewMesh() {
+      return new PolylineMesh();
+   }
+
    public void test() {
       testCreateInertia();
+      testWriteRead();
+   }
+
+   private void testWriteRead() {
+      PolylineMesh mesh = MeshFactory.createSphericalPolyline(1.2, 10, 7);
+
+      testWriteRead (mesh, ".obj", true);
+      testWriteRead (mesh, ".obj");
    }
 
    public static void main (String[] args) {

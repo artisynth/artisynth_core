@@ -140,8 +140,8 @@ public class VectorNdGrid extends VectorGrid<VectorNd> {
    /**
     * {@inheritDoc}
     */
-   public Class<VectorNd> getTypeParameter() {
-      return null;
+   public boolean hasParameterizedType() {
+      return false;
    }
    
    /**

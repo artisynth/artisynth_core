@@ -20,6 +20,7 @@ import artisynth.core.gui.widgets.*;
 import maspack.util.InternalErrorException;
 import maspack.widgets.BooleanSelector;
 import maspack.widgets.DoubleField;
+import maspack.widgets.GuiUtils;
 import maspack.widgets.LabeledComponentPanel;
 import maspack.widgets.OptionPanel;
 import maspack.widgets.ValueChangeEvent;
@@ -65,9 +66,7 @@ ActionListener, ValueChangeListener {
             minYField.addValueChangeListener (this);
             maxYField.addValueChangeListener (this);
             
-            JOptionPane.showMessageDialog (this, 
-               "Minimum Y must be lower than maximum Y.", 
-               "Set Display Range Error!", JOptionPane.ERROR_MESSAGE);
+            GuiUtils.showError (this, "Minimum Y must be lower than maximum Y");
          }
          else {
             display.setDisplayRange (

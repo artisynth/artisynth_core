@@ -7,13 +7,8 @@
 package maspack.geometry;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -32,7 +27,6 @@ import java.util.List;
 
 import maspack.geometry.io.WavefrontReader;
 import maspack.geometry.io.WavefrontWriter;
-import maspack.geometry.io.GenericMeshReader;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix3d;
 import maspack.matrix.NumericalException;
@@ -73,11 +67,6 @@ public class PolygonalMesh extends MeshBase {
    //private boolean bvHierarchyValid = false;
    private BVTree myBVTree = null;
    private boolean myBVTreeUpdated = false;
-
-   private boolean cachedClosed = false;
-   private boolean cachedClosedValid = false;
-   private boolean cachedManifold = false;
-   private boolean cachedManifoldValid = false;
    
    // topological properties
    private boolean myTopologyPredicatesValid = false;
@@ -168,8 +157,6 @@ public class PolygonalMesh extends MeshBase {
    protected void notifyStructureChanged() {
       super.notifyStructureChanged();
       myNumHardEdges = -1;
-      cachedClosedValid = false;
-      cachedManifoldValid = false;
       myTopologyPredicatesValid = false;
    }
 
@@ -234,17 +221,6 @@ public class PolygonalMesh extends MeshBase {
    public boolean isQuad() {
       updateTriQuadCounts();
       return myNumQuads == numFaces();
-   }
-
-   /**
-    * Prints out the vertices surrounding this vertex.
-    */
-   private void printIncidentVertices (Vertex3d vtx) {
-      Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
-      while (it.hasNext()) {
-         HalfEdge he = it.next();
-         System.out.println (" "+he.tail.getIndex());
-      }
    }
 
    /**
@@ -616,12 +592,13 @@ public class PolygonalMesh extends MeshBase {
    }
 
    /**
-    * Creates a polygonal mesh and initializes it from an file in Alias
-    * Wavefront obj format, as decribed for the method
-    * {@link #write(PrintWriter,NumberFormat,boolean)}.
+    * Creates a polygonal mesh and initializes it from a file,
+    * with the file format being inferred from the file name suffix. 
     * 
     * @param fileName
     * name of the file containing the mesh description
+    * @throws IOException if an I/O error occurred or if the file
+    * type is not compatible with polygonal meshes
     */
    public PolygonalMesh (String fileName) throws IOException {
       this (new File (fileName));
@@ -629,27 +606,16 @@ public class PolygonalMesh extends MeshBase {
 
    /**
     * Creates a polygonal mesh and initializes it from a file,
-    * with the file format being inferred from the file name extension. 
+    * with the file format being inferred from the file name suffix. 
     * 
     * @param file
     * file containing the mesh description
+    * @throws IOException if an I/O error occurred or if the file
+    * type is not compatible with polygonal meshes
     */
    public PolygonalMesh (File file) throws IOException {
       this();
-      GenericMeshReader.readMesh (file, this);
-//      BufferedReader reader = null;
-//      try {
-//         reader = new BufferedReader(new FileReader (file));
-//         read (reader);
-//      }
-//      catch (IOException e) {
-//         throw e;
-//      }
-//      finally {
-//         if (reader != null) {
-//            reader.close();
-//         }
-//      }
+      read (file);
    }
 
    public PolygonalMesh (PolygonalMesh old) {
@@ -1838,75 +1804,75 @@ public class PolygonalMesh extends MeshBase {
       }
    }
 
-   /**
-    * Writes this mesh to a File, using an Alias Wavefront "obj" file
-    * format. Behaves the same as {@link
-    * #write(java.io.PrintWriter,maspack.util.NumberFormat,boolean,boolean)}
-    * with <code>zeroIndexed</code> and <code>facesClockwise</code> set to
-    * false.
-    * 
-    * @param file
-    * File to write this mesh to
-    * @param fmtStr
-    * format string for writing the vertex coordinates. If <code>null</code>,
-    * a format of <code>"%.8g"</code> is assumed.
-    */
-   public void write (File file, String fmtStr) throws IOException {
-      if (fmtStr == null) {
-         fmtStr = "%.8g";
-      }
-      NumberFormat fmt = new NumberFormat (fmtStr);
-      PrintWriter pw = null;
-      try {
-         pw = new PrintWriter (new BufferedWriter (new FileWriter (file)));
-         write (pw, fmt, /*zeroIndexed=*/false, /*facesClockwise=*/false);
-      }
-      catch (IOException e) {
-         throw e;
-      }
-      finally {
-         if (pw != null) {
-            pw.close();
-         }
-      }
-   }
+//   /**
+//    * Writes this mesh to a File, using an Alias Wavefront "obj" file
+//    * format. Behaves the same as {@link
+//    * #write(java.io.PrintWriter,maspack.util.NumberFormat,boolean,boolean)}
+//    * with <code>zeroIndexed</code> and <code>facesClockwise</code> set to
+//    * false.
+//    * 
+//    * @param file
+//    * File to write this mesh to
+//    * @param fmtStr
+//    * format string for writing the vertex coordinates. If <code>null</code>,
+//    * a format of <code>"%.8g"</code> is assumed.
+//    */
+//   public void write (File file, String fmtStr) throws IOException {
+//      if (fmtStr == null) {
+//         fmtStr = "%.8g";
+//      }
+//      NumberFormat fmt = new NumberFormat (fmtStr);
+//      PrintWriter pw = null;
+//      try {
+//         pw = new PrintWriter (new BufferedWriter (new FileWriter (file)));
+//         write (pw, fmt, /*zeroIndexed=*/false, /*facesClockwise=*/false);
+//      }
+//      catch (IOException e) {
+//         throw e;
+//      }
+//      finally {
+//         if (pw != null) {
+//            pw.close();
+//         }
+//      }
+//   }
 
-   /**
-    * Writes this mesh to a File, using an Alias Wavefront "obj" file
-    * format. Behaves the same as {@link
-    * #write(java.io.PrintWriter,maspack.util.NumberFormat,boolean,boolean)}
-    * with <code>zeroIndexed</code> and <code>facesClockwise</code> set to
-    * false.
-    * 
-    * @param file
-    * File to write this mesh to
-    * @param fmtStr
-    * format string for writing the vertex coordinates. If <code>null</code>,
-    * a format of <code>"%.8g"</code> is assumed.
-    * @param zeroIndexed
-    * if true, index numbering for mesh vertices starts at 0. Otherwise,
-    * numbering starts at 1.
-    */
-   public void write (File file, String fmtStr, boolean zeroIndexed)
-      throws IOException {
-      if (fmtStr == null) {
-         fmtStr = "%.8g";
-      }
-      NumberFormat fmt = new NumberFormat (fmtStr);
-      PrintWriter pw = null;
-      try {
-         pw = new PrintWriter (new BufferedWriter (new FileWriter (file)));
-         write (pw, fmt, zeroIndexed, /*facesClockwise=*/false);
-      }
-      catch (IOException e) {
-         throw e;
-      }
-      finally {
-         if (pw != null) {
-            pw.close();
-         }
-      }      
-   }
+//   /**
+//    * Writes this mesh to a File, using an Alias Wavefront "obj" file
+//    * format. Behaves the same as {@link
+//    * #write(java.io.PrintWriter,maspack.util.NumberFormat,boolean,boolean)}
+//    * with <code>zeroIndexed</code> and <code>facesClockwise</code> set to
+//    * false.
+//    * 
+//    * @param file
+//    * File to write this mesh to
+//    * @param fmtStr
+//    * format string for writing the vertex coordinates. If <code>null</code>,
+//    * a format of <code>"%.8g"</code> is assumed.
+//    * @param zeroIndexed
+//    * if true, index numbering for mesh vertices starts at 0. Otherwise,
+//    * numbering starts at 1.
+//    */
+//   public void write (File file, String fmtStr, boolean zeroIndexed)
+//      throws IOException {
+//      if (fmtStr == null) {
+//         fmtStr = "%.8g";
+//      }
+//      NumberFormat fmt = new NumberFormat (fmtStr);
+//      PrintWriter pw = null;
+//      try {
+//         pw = new PrintWriter (new BufferedWriter (new FileWriter (file)));
+//         write (pw, fmt, zeroIndexed, /*facesClockwise=*/false);
+//      }
+//      catch (IOException e) {
+//         throw e;
+//      }
+//      finally {
+//         if (pw != null) {
+//            pw.close();
+//         }
+//      }      
+//   }
 
    /**
     * Writes this mesh to a PrintWriter, using an Alias Wavefront "obj" file
@@ -2528,15 +2494,6 @@ public class PolygonalMesh extends MeshBase {
       return packed;
    }
 
-   // used for debugging only
-   private String toStr (int[] idxs) {
-      String str = " " + idxs[0];
-      for (int i=1; i<idxs.length; i++) {
-         str += " " + idxs[i]; 
-      }
-      return str;
-   }
-   
    /**
     * Modifies this mesh to ensure that all faces are triangles.
     */
@@ -2781,108 +2738,6 @@ public class PolygonalMesh extends MeshBase {
       notifyStructureChanged();
       checkIndexConsistency();
    }
-
-   private int[] getQuadChord (int code, int[] idxs) {
-      switch (code) {
-         case 0: return new int[] { idxs[0], idxs[1], idxs[2] };
-         case 1: return new int[] { idxs[0], idxs[2], idxs[3] };
-         case 2: return new int[] { idxs[0], idxs[1], idxs[3] };
-         case 3: return new int[] { idxs[1], idxs[2], idxs[3] };
-         default: {
-            throw new InternalErrorException ("unknown code:" + code);
-         }
-      }
-   }      
-
-//   /**
-//    * Modifies this mesh to ensure that all faces are triangles.
-//    */
-//   public void triangulateQuadBoxMesh() {
-//
-//      int numNewFaces = 2*numFaces();
-//
-//      ArrayList<int[]> newFaceIndices = new ArrayList<int[]>(numNewFaces);
-//      ArrayList<int[]> newNormalIndices = null;
-//      ArrayList<int[]> newTextureIndices = null;
-//      ArrayList<int[]> newColorIndices = null;
-//
-//      int[] indexOffs = getFeatureIndexOffsets();
-//
-//      if (hasExplicitNormals()) {
-//         newNormalIndices = new ArrayList<int[]>(numNewFaces);
-//      }
-//      else {
-//         clearNormals();
-//      }
-//      if (hasTextureCoords()) {
-//         newTextureIndices = new ArrayList<int[]>(numNewFaces);
-//      }
-//      if (hasExplicitColors()) {
-//         newColorIndices = new ArrayList<int[]>(numNewFaces);
-//      }
-//
-//      for (int i=0; i<numFaces(); i++) {
-//         Face face = getFace(i);
-//
-//         face.disconnect();
-//         int tidxs[] = null;
-//         int nidxs[] = null;
-//         int cidxs[] = null;
-//         int idxs[] = face.getVertexIndices();
-//         if (hasExplicitNormals()) {
-//            nidxs = unpackIndices(getNormalIndices(), indexOffs, i);
-//         }
-//         if (hasTextureCoords()) {
-//            tidxs = unpackIndices(getTextureIndices(), indexOffs, i);
-//         }
-//         if (hasExplicitColors()) {
-//            cidxs = unpackIndices(getColorIndices(), indexOffs, i);
-//         }
-//            
-//         // find the indices of the best chord triangle, add the
-//         // corresponding face to the new face list, and remove
-//         // the chord from the index set
-//         newFaceIndices.add (getQuadChord (0, idxs));
-//         newFaceIndices.add (getQuadChord (1, idxs));
-//
-//         // add the corresponding chord triangle for the texture and
-//         // normal coordinates, if present, and remove the chord from
-//         // these indices too
-//         if (hasExplicitNormals()) {
-//            newNormalIndices.add (getQuadChord (0, nidxs));
-//            newNormalIndices.add (getQuadChord (1, nidxs));
-//         }
-//         if (hasTextureCoords()) {
-//            newTextureIndices.add (getQuadChord (0, tidxs));
-//            newTextureIndices.add (getQuadChord (1, tidxs));
-//         }
-//         if (hasExplicitColors()) {
-//            newColorIndices.add (getQuadChord (0, cidxs));
-//            newColorIndices.add (getQuadChord (1, cidxs));
-//         }
-//      }
-//
-//      clearFaces();
-//      for (int[] idxs : newFaceIndices) {
-//         addFace (idxs, /*adjustAttributes=*/false);
-//      }
-//
-//      if (hasExplicitNormals()) {
-//         setNormals (getNormals(), packIndices (newNormalIndices));
-//      }
-//      if (hasTextureCoords()) {
-//         setTextureCoords (getTextureCoords(), packIndices (newTextureIndices));
-//      }
-//      if (hasExplicitColors()) {
-//         setColors (getColors(), packIndices (newColorIndices));
-//      }
-//
-//      //myNumTriangles = myFaces.size();
-//      //myNumQuads = 0;
-//      //myTriQuadCountsValid = true;
-//      //notifyStructureChanged();
-//      //checkIndexConsistency();
-//   }
 
    /**
     * Returns a half edge (if any) connecting vertices v0 and v1.
@@ -3669,65 +3524,6 @@ public class PolygonalMesh extends MeshBase {
       ps.flush();
    }
 
-   // // Debug methods used by Andrew Larkin's collison code
-   // public void dumpToFile(String str) throws IOException {
-   //    FileOutputStream fos = null;
-   //    try {
-   //       fos = new FileOutputStream (str);
-   //       writeWorld(new PrintStream(new BufferedOutputStream (fos)));
-   //    } catch (FileNotFoundException e) {
-   //       e.printStackTrace();
-   //    } catch (IOException e) {
-   //       e.printStackTrace();
-   //    }
-   //    finally {
-   //       if (fos != null) {
-   //          fos.close();
-   //       }
-   //    }
-      
-   // }
-
-   private boolean vectorListsEqual (
-      ArrayList<Vector3d> list0, ArrayList<Vector3d> list1, double eps) {
-
-      if (list0.size() != list1.size()) {
-         return false;
-      }
-      for (int i=0; i<list0.size(); i++) {
-         if (!list0.get(i).epsilonEquals (list1.get(i), eps)) {
-            return false;
-         }
-      }
-      return true;
-   }
-
-   private boolean indexListsEqual (
-      ArrayList<int[]> list0, ArrayList<int[]> list1) {
-
-      if ((list0 != null) != (list1 != null)) {
-         return false;
-      }
-      if (list0 != null) {
-         if (list0.size() != list1.size()) {
-            return false;
-         }
-         for (int i=0; i<list0.size(); i++) {
-            int[] idxs0 = list0.get(i);
-            int[] idxs1 = list1.get(i);
-            if ((idxs0 != null) != (idxs1 != null)) {
-               return false;
-            }
-            if (idxs0 != null) {
-               if (!ArraySupport.equals (idxs0, idxs1)) {
-                  return false;
-               }
-            }
-         }
-      }
-      return true;
-   }
-
    /**
     * Tests to see if a mesh equals this one. The meshes are equal if they are
     * both PolygonalMeshes, and their transforms, vertices, faces, normals
@@ -4120,7 +3916,6 @@ public class PolygonalMesh extends MeshBase {
       for (Face f : myFaces) {
          f.flip(true);
       }
-      int[] indexOffs;
       // take care of normals:
       if (hasNormals()) {
          if (hasExplicitNormals()) {

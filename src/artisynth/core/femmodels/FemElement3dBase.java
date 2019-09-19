@@ -280,13 +280,13 @@ public abstract class FemElement3dBase extends FemElement
       myIntegrationDataValid = false;
       myWarpingData = null;
    }
-
-   public void clearState() {
-      IntegrationData3d[] idata = doGetIntegrationData();
-      for (int i=0; i<idata.length; i++) {
-         idata[i].clearState();
-      }
-   }
+//
+//   public void clearState() {
+//      IntegrationData3d[] idata = doGetIntegrationData();
+//      for (int i=0; i<idata.length; i++) {
+//         idata[i].clearState();
+//      }
+//   }
 
    /* --- Stiffness warping --- */
 
@@ -1457,7 +1457,6 @@ public abstract class FemElement3dBase extends FemElement
       myNumMaterialsWithState = -1;
       IntegrationData3d[] idata = doGetIntegrationData();
       for (int k = 0; k < idata.length; k++) {
-         idata[k].clearStateObject();
          idata[k].clearStateObjects();
       } 
    }

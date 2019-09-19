@@ -33,13 +33,28 @@ classdef ArtisynthHandle
          main.loadModel (classname, name, args);
       end
 
-      function [status] = loadModelFile (obj, name)
+      function [status] = loadModelFile (obj, filename)
 	 main = obj.getMain();
-	 file = java.io.File (name);
+	 file = java.io.File (filename);
          if (file.canRead() == 0) 
-            error (['File ', name, ' not found or not readable']);
+            error (['File ', filename, ' not found or not readable']);
          end
          main.loadModelFile (file);
+      end
+
+      function [status] = saveModelFile (obj, filename, varargin) 
+	 main = obj.getMain();
+	 file = java.io.File (filename);
+         if (isempty(varargin) == 0)
+            nargs = length(varargin);
+            if (nargs == 1)
+               main.saveModelFile (file,[],varargin{1},false);
+            else
+               main.saveModelFile (file,[],varargin{1},varargin{2});
+            end
+         else
+            main.saveModelFile (file);
+         end
       end
 
       function play (obj, time)
@@ -108,6 +123,21 @@ classdef ArtisynthHandle
 
       function clearWayPoints (obj)
          obj.getMain().clearWayPoints ();
+      end
+
+      function loadWayPoints (obj, filename)
+	 main = obj.getMain();
+	 file = java.io.File (filename);
+         if (file.canRead() == 0) 
+            error (['File ', filename, ' not found or not readable']);
+         end
+         main.loadWayPoints (file);
+      end
+
+      function saveWayPoints (obj, filename)
+	 main = obj.getMain();
+	 file = java.io.File (filename);
+         main.saveWayPoints (file);
       end
 
       function [r] = root(obj)

@@ -33,6 +33,7 @@ import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.GL.GLViewer;
 import maspack.util.Disposable;
+import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.IntHolder;
 import maspack.util.NumberFormat;
@@ -585,6 +586,16 @@ public class RootModel extends RenderableModelBase
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
+   }
+   
+   /**
+    * Returns true if a given property name is a property of the
+    * RootModel class proper. This allows us to determine if it
+    * is safe to use a given RootModel property when saving a model
+    * using only core components.
+    */
+   public static boolean isBaseProperty (String name) {
+      return myProps.get(name) != null;
    }
 
    /**
@@ -1758,31 +1769,84 @@ public class RootModel extends RenderableModelBase
       // should be changed to "probe directory"
       pw.println ("workingDir="
                   + Write.getQuotedString (ArtisynthPath.getWorkingDirPath()));
+      
       super.writeItems (pw, fmt, ancestor);
       // XXX - write way points, may want to have special purpose routine to
       // write
       // probes and waypoints. Probe file should have same format as model file
       // see Workspace.writeProbes()
+      int savedWayPointFlags = myWayPoints.getWriteFlags();
+      if (getTime() != 0 && savedWayPointFlags == 0) {
+         myWayPoints.setWriteFlags (WayPointProbe.WRITE_FIRST_STATE);
+      }
       pw.println ("waypoints=");
+      myWayPoints.write (pw, fmt, this);
       if (getTime() != 0) {
-         myWayPoints.write (pw, fmt, this, WayPointProbe.WRITE_FIRST_STATE);
          pw.println ("time=" + fmt.format(getTime()));
       }
-      else {
-         myWayPoints.write (pw, fmt, this);
+      myWayPoints.setWriteFlags (savedWayPointFlags);
+   }
+   
+   protected static void writeItems (
+      RootModel root, PrintWriter pw, NumberFormat fmt)
+      throws IOException {
+      
+      // XXX - may not want to write the working directory to the model file
+      // should be changed to "probe directory"
+      pw.println ("workingDir="
+                  + Write.getQuotedString (ArtisynthPath.getWorkingDirPath()));
+      
+      myProps.writeNonDefaultProps (root, pw, fmt, root);
+      if (!root.myComponents.getZeroBasedNumbering()) {
+         pw.println ("zeroBasedNumbering=false");
       }
+      root.myComponents.writeComponents (pw, fmt, root);     
+ 
+      // XXX - write way points, may want to have special purpose routine to
+      // write
+      // probes and waypoints. Probe file should have same format as model file
+      // see Workspace.writeProbes()
+      int savedWayPointFlags = root.myWayPoints.getWriteFlags();
+      if (root.getTime() != 0 && savedWayPointFlags == 0) {
+         root.myWayPoints.setWriteFlags (WayPointProbe.WRITE_FIRST_STATE);
+      }
+      pw.println ("waypoints=");
+      root.myWayPoints.write (pw, fmt, root);
+      if (root.getTime() != 0) {
+         pw.println ("time=" + fmt.format(root.getTime()));
+      }
+      root.myWayPoints.setWriteFlags (savedWayPointFlags);
+   }
+   
+   /**
+    * Special write method which allows us to write a root model using
+    * only the information known to the RootModel class. This is 
+    * used when writing components using core compatibility.
+    * 
+    * @param root model to write
+    * @param pw print writer to write the model to
+    * @param fmt format for floating point values
+    */
+   public static void write (RootModel root, PrintWriter pw, NumberFormat fmt) 
+      throws IOException {
+
+      IndentingPrintWriter.printOpening (pw, "[ ");
+      IndentingPrintWriter.addIndentation (pw, 2);
+      writeItems (root, pw, fmt);
+      IndentingPrintWriter.addIndentation (pw, -2);
+      pw.println ("]");     
    }
 
    public void scanProbes (ReaderTokenizer rtok) throws IOException {
       Workspace.scanProbes (rtok, this);
    }
 
-   // WS
-   public void writeProbes (PrintWriter pw, NumberFormat fmt)
-      throws IOException {
-      Workspace.writeProbes (pw, fmt, this);
-   }
-
+//   // WS
+//   public void writeProbes (PrintWriter pw, NumberFormat fmt)
+//      throws IOException {
+//      Workspace.writeProbes (pw, fmt, this);
+//   }
+//
    /**
     * {@inheritDoc}
     */
@@ -1860,11 +1924,11 @@ public class RootModel extends RenderableModelBase
       }
    }
 
-   public void setWaypointChecking (boolean enable) {
+   public void setWayPointChecking (boolean enable) {
       myWayPoints.setCheckState (enable);
    }
    
-   public boolean getWaypointChecking () {
+   public boolean getWayPointChecking () {
       return myWayPoints.getCheckState();
    }
    

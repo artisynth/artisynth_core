@@ -511,10 +511,8 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          hostList.commonProperties (null, /* allowReadonly= */true);
       tree.removeDescendant ("renderProps");
       if (tree.numChildren() == 0) {
-         JOptionPane.showMessageDialog (
-            myParentGUIComponent,
-            "No common properties for selected components",
-            "no common properties", JOptionPane.INFORMATION_MESSAGE);
+         GuiUtils.showNotice (
+            myParentGUIComponent, "No common properties for selected components");
       }
       else {
          PropertyDialog propDialog =
@@ -579,10 +577,9 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
             new RenderPropsDialog ("Edit render properties", renderables);
 
          if (dialog.numProperties() == 0) {
-            JOptionPane.showMessageDialog (
+            GuiUtils.showNotice (
                myParentGUIComponent,
-               "No common render properties for selected components",
-               "no common render properties", JOptionPane.INFORMATION_MESSAGE);
+               "No common render properties for selected components");
          }
          else {
             if (myLocateRenderPropEditClose) {
@@ -746,12 +743,10 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
 
       if (delete.size() > selection.size()) {
          // first, see if we can actually delete:
-         System.out.println ("delete size=" + delete.size());
          if (!componentsAreDeletable (delete)) {
-            JOptionPane.showMessageDialog (
+            GuiUtils.showNotice (
                myParentGUIComponent,
-               "Selection refers to additional components that can't be deleted", 
-               "selection not deletable", JOptionPane.INFORMATION_MESSAGE);
+               "Selection refers to additional components that can't be deleted");
          }
          else {
             boolean needConfirmation = false;

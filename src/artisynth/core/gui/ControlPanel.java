@@ -62,8 +62,10 @@ import artisynth.core.modelbase.MutableCompositeComponent;
 import artisynth.core.modelbase.ModelComponentBase;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ScanWriteUtils;
-import artisynth.core.util.*;
 import artisynth.core.workspace.RootModel;
+import artisynth.core.util.ScanToken;
+import artisynth.core.util.StringToken;
+import artisynth.core.util.ObjectToken;
 
 public class ControlPanel extends ModelComponentBase
    implements PropertyWindow, ActionListener {
@@ -476,6 +478,25 @@ public class ControlPanel extends ModelComponentBase
          pw.println ("]");
       }
    }
+   
+   private boolean widgetIsWritable (Component widget) {
+      if (!ClassAliases.isClassValid (widget.getClass())) {
+         return false;
+      }
+      Property prop = getWidgetProperty (widget);
+      ModelComponent comp = null;
+      if (prop instanceof GenericPropertyHandle) {
+         comp = ComponentUtils.getPropertyComponent (prop);
+      }
+      if (comp == null || comp.isWritable()) {
+         return true;
+      }
+      if (comp instanceof RootModel && 
+          RootModel.isBaseProperty(prop.getName())) {
+         return true;         
+      }
+      return false;
+   }
 
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException {
@@ -500,8 +521,10 @@ public class ControlPanel extends ModelComponentBase
       else {
          pw.println ("options=null");
       }
-      for (Component comp : myPanel.getWidgets()) {
-         writeWidget (pw, comp, fmt, ancestor);
+      for (Component widget : myPanel.getWidgets()) {
+         if (widgetIsWritable (widget)) {
+            writeWidget (pw, widget, fmt, ancestor);
+         }
       }
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
@@ -824,12 +847,11 @@ public class ControlPanel extends ModelComponentBase
          if (retVal == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
             try {
-               ComponentUtils.saveComponent (file, this, new NumberFormat (
-                  "%.6g"), root);
+               main.saveComponent (file, "%g", this, false, root);
             }
             catch (Exception ex) {
-               JOptionPane.showMessageDialog (myFrame, "Error saving file: "
-               + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+               GuiUtils.showError (
+                  myFrame, "Error saving file: " + ex.getMessage());
             }
             main.setModelDirectory (chooser.getCurrentDirectory());
          }
@@ -883,6 +905,14 @@ public class ControlPanel extends ModelComponentBase
       }
    }         
 
+   private Property getWidgetProperty (Component widget) {
+      if (widget instanceof LabeledComponentBase) {
+         LabeledComponentBase lwidget = (LabeledComponentBase)widget;
+         return myPanel.getWidgetProperty (lwidget);
+      }
+      return null;
+   }
+
    @Override
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
       super.updateReferences (undo, undoInfo);
@@ -901,22 +931,18 @@ public class ControlPanel extends ModelComponentBase
          ArrayList<WidgetRemoveInfo> removeList =
             new ArrayList<WidgetRemoveInfo>();
          for (int i=0; i<myPanel.numWidgets(); i++) {
-            if (myPanel.getWidget(i) instanceof LabeledComponentBase) {
-               LabeledComponentBase widget =
-                  (LabeledComponentBase)myPanel.getWidget(i);
-               Property prop = myPanel.getWidgetProperty (widget);
-               if (prop instanceof GenericPropertyHandle) {
-                  ModelComponent comp =
-                     ComponentUtils.getPropertyComponent (prop);
-                  if (comp != null && !ComponentUtils.areConnected (this, comp)) {
-                     removeList.add (new WidgetRemoveInfo (prop, widget, i));
-                     changed = true;
-                  }
-               }
-               else {
-                  // TODO - handle other cases
-               }
+            Component widget = myPanel.getWidget(i);
+            Property prop = getWidgetProperty (widget);
+            ModelComponent comp = null;
+            if (prop instanceof GenericPropertyHandle) {
+               comp = ComponentUtils.getPropertyComponent (prop);
             }
+            if (comp != null && !ComponentUtils.areConnected (this, comp)) {
+               LabeledComponentBase lwidget = (LabeledComponentBase)widget;
+               removeList.add (new WidgetRemoveInfo (prop, lwidget, i));
+               changed = true;
+            }
+            // TODO - handle other cases
          }
          for (WidgetRemoveInfo info : removeList) {
             myPanel.removeWidget (info.myComp);

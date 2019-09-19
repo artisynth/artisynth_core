@@ -9,17 +9,16 @@ package artisynth.core.workspace;
 
 import java.util.*;
 
-import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-import maspack.render.GL.GLViewer;
 import maspack.util.*;
+import maspack.util.ClassAliases;
 import maspack.widgets.PropertyWindow;
 import artisynth.core.modelbase.*;
 import artisynth.core.probes.Probe;
-import artisynth.core.probes.WayPoint;
+import artisynth.core.probes.InputProbe;
+import artisynth.core.probes.OutputProbe;
 import artisynth.core.probes.WayPointProbe;
-import artisynth.core.util.*;
 import artisynth.core.driver.Main;
 import artisynth.core.driver.Scheduler;
 import artisynth.core.driver.ViewerManager;
@@ -392,20 +391,23 @@ public class Workspace {
 
          // write out the input probes
          for (Probe iprobe : rootModel.getInputProbes()) {
-            pw.println (ClassAliases.getAliasOrName (iprobe.getClass()));
-            iprobe.write (pw, fmt, rootModel);
+            ScanWriteUtils.writeComponent (pw, fmt, iprobe, rootModel);
+//            pw.println (ScanWriteUtils.getClassTag(iprobe));
+//            iprobe.write (pw, fmt, rootModel);
          }
 
          // write out the output probes
          for (Probe oprobe : rootModel.getOutputProbes()) {
-            pw.println (ClassAliases.getAliasOrName (oprobe.getClass()));
-            oprobe.write (pw, fmt, rootModel);
+            ScanWriteUtils.writeComponent (pw, fmt, oprobe, rootModel);
+//            pw.println (ScanWriteUtils.getClassTag(oprobe));
+//            oprobe.write (pw, fmt, rootModel);
          }
 
          // write way points
-         pw.println (ClassAliases.getAliasOrName (
-                      rootModel.getWayPoints().getClass()));
-         rootModel.getWayPoints().write (pw, fmt, rootModel);
+         ScanWriteUtils.writeComponent (
+            pw, fmt, rootModel.getWayPoints(), rootModel);
+//         pw.println (ScanWriteUtils.getClassTag(rootModel.getWayPoints()));
+//         rootModel.getWayPoints().write (pw, fmt, rootModel);
          IndentingPrintWriter.removeIndentation (pw, 2);
          pw.println ("]");
       }

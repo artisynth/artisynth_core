@@ -23,7 +23,7 @@ public class NumericState extends DataBuffer implements ComponentState {
    private static final int doublesPerLine = 4;
 
    /**
-    * Used to delimit the state associated with a particular compoment, for
+    * Used to delimit the state associated with a particular component, for
     * both diagnostic purposes and for properly restoring component states
     * within {@link HasState#getInitialState}.
     */
@@ -64,7 +64,7 @@ public class NumericState extends DataBuffer implements ComponentState {
          }
       }
 
-      Offsets getOffsets() {
+      public Offsets getOffsets() {
          if (myPrev == null) {
             return new Offsets (0, 0, 0);
          }
@@ -196,38 +196,83 @@ public class NumericState extends DataBuffer implements ComponentState {
             prev = newFrame;
          }
       }
-      else {
-         myFrames = null;
-      }
+//      else {
+//         myFrames = null;
+//      }
    }
 
    public void writeBinary (DataOutputStream dos) throws IOException {
-
+      if (myFrames != null) {
+         // write out frame data
+         dos.writeInt (myFrames.size());
+         for (DataFrame frame : myFrames) {
+            dos.writeInt (frame.myZoff);
+            dos.writeInt (frame.myDoff);
+         }
+      }
+      else {
+         // write out -1 to indicate no frame data
+         dos.writeInt (-1);
+      }
       int zsize = zsize();
-      int[] zbuf = zbuffer();
+      int dsize = dsize();
       dos.writeInt (zsize);
+      dos.writeInt (dsize);
+      int[] zbuf = zbuffer();
       for (int i=0; i<zsize; i++) {
          dos.writeInt (zbuf[i]);
       }
-      int dsize = dsize();
       double[] dbuf = dbuffer();
-      dos.writeInt (dsize);
       for (int i=0; i<dsize; i++) {
          dos.writeDouble (dbuf[i]);
       }  
    }
 
    public void readBinary (DataInputStream dis) throws IOException {
-      setHasDataFrames (false);
-
+      int nframes = dis.readInt();
+      if (nframes > 0) {
+         if (myFrames != null) {
+            if (nframes != myFrames.size()) {
+               throw new IOException (
+                  "State data incompatible with system structure "+
+                  "(incompatible frame count)");
+            }
+            for (int i=0; i<nframes; i++) {
+               DataFrame frame = myFrames.get(i);                          
+               if (frame.myZoff != dis.readInt() ||
+                   frame.myDoff != dis.readInt()) {
+                  throw new IOException (
+                  "State data incompatible with existing structure "+
+                  "(frame "+i+")");
+               }
+            }
+         }
+         else {
+            // simply read and discard the frame data
+            for (int i=0; i<nframes; i++) {
+               dis.readInt();
+               dis.readInt();
+            }
+         }
+      }
       int zsize = dis.readInt();
-      zEnsureCapacity (zsize()+zsize);
+      int dsize = dis.readInt();
+      if (myFrames != null && myFrames.size() > 0) {
+         // make sure zoff and doff of last frame match zsize and dsize
+         DataFrame lastf = myFrames.get(myFrames.size()-1);
+         if (lastf.myZoff != zsize || lastf.myDoff != dsize) {
+            throw new IOException (
+               "State data incompatible with existing structure "+
+               "(incompatible data sizes)");
+         }
+      }
+      zsetSize(0);
+      zEnsureCapacity (zsize);
       for (int i=0; i<zsize; i++) {
          zput (dis.readInt());
       }
-
-      int dsize = dis.readInt();
-      dEnsureCapacity (dsize()+dsize);
+      dsetSize(0);
+      dEnsureCapacity (dsize);
       for (int i=0; i<dsize; i++) {
          dput (dis.readDouble());
       }
@@ -243,6 +288,25 @@ public class NumericState extends DataBuffer implements ComponentState {
       IndentingPrintWriter.addIndentation (pw, 2);
       pw.println ("[");
       
+      if (myFrames != null) {
+         if (myFrames.size() == 0) {
+            pw.println ("frameOffsets=[ ]");
+         }
+         else {
+            pw.print ("frameOffsets=[");
+            IndentingPrintWriter.addIndentation (pw, 2);
+            for (int i=0; i<myFrames.size(); i++) {
+               DataFrame frame = myFrames.get(i);
+               if ((i%(intsPerLine/2)) == 0) {
+                  pw.println ("");
+               }
+               pw.print (" " + frame.myZoff);
+               pw.print (" " + frame.myDoff);
+            }
+            IndentingPrintWriter.addIndentation (pw, -2);
+            pw.println ("]");            
+         }
+      }
       if (zsize() == 0) {
          pw.println ("zbuf=[ ]");
       }
@@ -259,7 +323,7 @@ public class NumericState extends DataBuffer implements ComponentState {
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
       }
-      pw.println ("zoff=" + zoffset());
+      //pw.println ("zoff=" + zoffset());
 
       if (dsize() == 0) {
          pw.println ("dbuf=[ ]");
@@ -277,7 +341,7 @@ public class NumericState extends DataBuffer implements ComponentState {
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
       }
-      pw.println ("doff=" + doffset());
+      //pw.println ("doff=" + doffset());
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
    }
@@ -286,13 +350,42 @@ public class NumericState extends DataBuffer implements ComponentState {
       setHasDataFrames (false);
       rtok.scanToken ('[');
       while (rtok.nextToken() != ']') {
-         if (ScanWriteUtils.scanAttributeName (rtok, "zbuf")) {
+         if (ScanWriteUtils.scanAttributeName (rtok, "frameOffsets")) {
+            rtok.scanToken ('[');
+            int nframes = 0;
+            while (rtok.nextToken() != ']') {
+               rtok.pushBack();
+               int zoff = rtok.scanInteger();
+               int doff = rtok.scanInteger();
+               if (myFrames != null && nframes < myFrames.size()) {
+                  DataFrame frame = myFrames.get(nframes);
+                  if (frame.myZoff != zoff || frame.myDoff != doff) {
+                     throw new IOException (
+                        "State data incompatible with existing structure "+
+                        "(frame "+nframes+")");
+                  }                 
+               }
+               nframes++;
+            }          
+            if (myFrames != null && nframes != myFrames.size()) {
+               throw new IOException (
+                  "State data incompatible with system structure "+
+                  "(incompatible frame count)");
+            }
+         }
+         else if (ScanWriteUtils.scanAttributeName (rtok, "zbuf")) {
             rtok.scanToken ('[');
             zsetSize (0);
             while (rtok.nextToken() != ']') {
                rtok.pushBack();
                zput (rtok.scanInteger());
             }
+            if (myFrames != null &&
+                myFrames.get(myFrames.size()-1).myZoff != zsize()) {
+               throw new IOException (
+                  "State data incompatible with existing structure "+
+                  "(incompatible data sizes)");
+            } 
          }
          else if (ScanWriteUtils.scanAttributeName (rtok, "dbuf")) {
             rtok.scanToken ('[');
@@ -301,13 +394,19 @@ public class NumericState extends DataBuffer implements ComponentState {
                rtok.pushBack();
                dput (rtok.scanNumber());
             }
+            if (myFrames != null &&
+                myFrames.get(myFrames.size()-1).myDoff != dsize()) {
+               throw new IOException (
+                  "State data incompatible with existing structure "+
+                  "(incompatible data sizes)");
+            } 
          }
-         else if (ScanWriteUtils.scanAttributeName (rtok, "zoff")) {
-            zoff = rtok.scanInteger();
-         }
-         else if (ScanWriteUtils.scanAttributeName (rtok, "doff")) {
-            doff = rtok.scanInteger();
-         }
+//         else if (ScanWriteUtils.scanAttributeName (rtok, "zoff")) {
+//            zoff = rtok.scanInteger();
+//         }
+//         else if (ScanWriteUtils.scanAttributeName (rtok, "doff")) {
+//            doff = rtok.scanInteger();
+//         }
          else {
             throw new IOException ("Unrecognized input: " + rtok);
          }
@@ -664,6 +763,12 @@ public class NumericState extends DataBuffer implements ComponentState {
          setHasDataFrames (true);
       }
    }  
-   
+
+   public void print() {
+      System.out.println (this);
+      for (int i=0; i<numDataFrames(); i++) {
+         System.out.println ("  "+i+" "+getDataFrame(i));
+      }
+   }
 
 }

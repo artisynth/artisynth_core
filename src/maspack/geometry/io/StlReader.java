@@ -516,7 +516,7 @@ public class StlReader extends MeshReaderBase {
       }
       else {
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported by this reader");
+            "Mesh type "+mesh.getClass()+" not supported for '.stl' files");
       }
    }
    

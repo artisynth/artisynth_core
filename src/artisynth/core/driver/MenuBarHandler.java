@@ -8,9 +8,13 @@ package artisynth.core.driver;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Container;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -25,10 +29,13 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JColorChooser;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JMenu;
+import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -40,6 +47,7 @@ import javax.swing.JToolBar;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.border.EtchedBorder;
 
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.editorManager.Command;
@@ -81,6 +89,7 @@ import maspack.util.GenericFileFilter;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
 import maspack.widgets.AutoCompleteStringField;
+import maspack.widgets.*;
 import maspack.widgets.ButtonCreator;
 import maspack.widgets.DoubleField;
 import maspack.widgets.GridDisplay;
@@ -142,11 +151,6 @@ ModelActionListener {
    public MenuBarHandler (Main parent, MainFrame theFrame) {
       myMain = parent;
       myFrame = theFrame;
-   }
-
-   private void showError(String msg) {
-      JOptionPane.showMessageDialog(
-         myFrame, msg, "Error", JOptionPane.ERROR_MESSAGE);
    }
 
    public void initToolbar() {
@@ -595,22 +599,40 @@ ModelActionListener {
       if (modelFile != null) {
          try {
             myMain.saveModelFile(modelFile);
-         } catch (Exception e) {
+         }
+         catch (Exception e) {
             e.printStackTrace();
-            showError("Error writing " + modelFile.getPath());
+            GuiUtils.showError (myFrame, "Error writing "+modelFile.getPath());
          }
          updateModelButtons();
       }
    }
 
    private void doSaveModelAs() {
-      File modelFile = selectFile("Save", myMain.getModelFile());
-      if (modelFile != null) {
+      ModelFileChooser chooser =
+         new ModelFileChooser (
+            myMain.getModelFile(),
+            myMain.getSaveCoreOnly(),
+            myMain.getSaveWayPointData());
+      
+      if (chooser.showDialog(myFrame, "Save As") ==
+          JFileChooser.APPROVE_OPTION) {
+         File modelFile = chooser.getSelectedFile();
+         int status = 0;
          try {
-            myMain.saveModelFile(modelFile);
-         } catch (Exception e) {
+            status = myMain.saveModelFile (
+               modelFile, null,
+               chooser.getSaveWayPointData(),
+               chooser.getCoreCompsOnly());
+         }
+         catch (Exception e) {
             e.printStackTrace();
-            showError("Error writing " + modelFile.getPath());
+            GuiUtils.showError (
+               myFrame, "Error writing " + modelFile.getPath());
+         }
+         if (status > 0) {
+            GuiUtils.showNotice (
+               myFrame, "Removed "+status+" non-core components");
          }
          updateModelButtons();
       }
@@ -621,7 +643,7 @@ ModelActionListener {
          myMain.reloadModel();
       } catch (Exception e) {
          e.printStackTrace();
-         showError("Error reloading model:\n" + e);
+         GuiUtils.showError (myFrame, "Error reloading model:\n" + e);
       }
       updateModelButtons();
 
@@ -634,7 +656,8 @@ ModelActionListener {
             myMain.loadModelFile(modelFile);
          } catch (Exception e) {
             e.printStackTrace();
-            showError("Error reading " + modelFile.getPath() + ":\n" + e);
+            GuiUtils.showError(
+               myFrame, "Error reading " + modelFile.getPath() + ":\n" + e);
          }
          updateModelButtons();
       }
@@ -644,13 +667,14 @@ ModelActionListener {
       Class<?> rootModelClass = selectClass("");
       if (rootModelClass != null) {
          if (!RootModel.class.isAssignableFrom(rootModelClass)) {
-            showError("Class is not an instanceof RootModel");
+            GuiUtils.showError (
+               myFrame, "Class is not an instanceof RootModel");
             return;
          }
          String className = rootModelClass.getName();
          ModelInfo mi = new ModelInfo(className, rootModelClass.getSimpleName(), null);
          if (!myMain.loadModel(mi)) {
-            showError(myMain.getErrorMessage());
+            GuiUtils.showError (myFrame, myMain.getErrorMessage());
          }
          updateModelButtons();
       }
@@ -693,7 +717,7 @@ ModelActionListener {
       RootModel root = myMain.getRootModel();
       JFileChooser chooser = new JFileChooser();
       chooser.setCurrentDirectory(myMain.getModelDirectory());
-      int retVal = chooser.showOpenDialog(myFrame);
+      int retVal = chooser.showDialog(myFrame, "Load");
       if (retVal == JFileChooser.APPROVE_OPTION) {
          File file = chooser.getSelectedFile();
          ControlPanel panel = null;
@@ -702,7 +726,8 @@ ModelActionListener {
             (ControlPanel)ComponentUtils.loadComponent(
                file, root, ControlPanel.class);
          } catch (Exception e) {
-            showError("Error reading file: " + e.getMessage());
+            GuiUtils.showError(
+               myFrame,"Error reading file: " + e.getMessage());
          }
          if (panel != null) {
             // panel.pack();
@@ -728,12 +753,11 @@ ModelActionListener {
             myMain.saveProbesFile(probeFile);
          } catch (IOException e) {
             e.printStackTrace();
-            showError("Error writing " + probeFile.getPath());
+            GuiUtils.showError (myFrame, "Error writing "+probeFile.getPath());
          }
+         // also save all probe data files
+         myMain.getTimeline().saveAllProbes();        
       }
-
-      // also save all probe data files
-      myMain.getTimeline().saveAllProbes();
    }
 
    private void doSaveProbesAs() {
@@ -743,12 +767,11 @@ ModelActionListener {
             myMain.saveProbesFile(probeFile);
          } catch (IOException e) {
             e.printStackTrace();
-            showError("Error writing " + probeFile.getPath());
+            GuiUtils.showError (myFrame, "Error writing "+probeFile.getPath());
          }
+         // also save all probe data files
+         myMain.getTimeline().saveAllProbes();
       }
-
-      // also save all probe data files
-      myMain.getTimeline().saveAllProbes();
    }
 
    /**
@@ -763,7 +786,7 @@ ModelActionListener {
             myMain.loadProbesFile(probeFile);
          } catch (IOException e) {
             e.printStackTrace();
-            showError("Error reading " + probeFile.getPath());
+            GuiUtils.showError (myFrame, "Error reading "+probeFile.getPath());
          }
       }
    }
@@ -787,8 +810,9 @@ ModelActionListener {
       if (dir != null && approveMsg == "Load") {
          File probesFile = new File(dir, "probeInfo.art");
          if (!probesFile.isFile() || !probesFile.canRead()) {
-            showError("File 'probeInfo.art' does not exist or " +
-            "cannot be read in chosen directory");
+            GuiUtils.showError (
+               myFrame, "File 'probeInfo.art' does not exist or " +
+               "cannot be read in chosen directory");
             dir = null;
          }
       }
@@ -803,7 +827,7 @@ ModelActionListener {
          }
       } catch (IOException e) {
          e.printStackTrace();
-         showError("Error writing " + probesFile.getPath());
+         GuiUtils.showError( myFrame, "Error writing " + probesFile.getPath());
          return false;
       }
       return true;
@@ -817,7 +841,7 @@ ModelActionListener {
          }
       } catch (IOException e) {
          e.printStackTrace();
-         showError("Error loading " + probesFile.getPath());
+         GuiUtils.showError (myFrame, "Error loading " + probesFile.getPath());
          return false;
       }
       return true;
@@ -864,8 +888,7 @@ ModelActionListener {
       if (root == null) {
          return;
       }
-      WayPointProbe wayPoints = root.getWayPoints();
-      wayPoints.save();
+      myMain.getTimeline().saveWayPointsToAttachedFile (myFrame);
    }
 
    private void doSaveWayPointsAs() {
@@ -874,8 +897,12 @@ ModelActionListener {
          return;
       }
       WayPointProbe wayPoints = root.getWayPoints();
-      myMain.getTimeline().setAttachedFileFromUser (wayPoints, "Save As");
-      wayPoints.save();
+      String oldFileName = wayPoints.getAttachedFileName();
+      if (myMain.getTimeline().setWayPointsFileFromUser (myFrame, "Save As")) {
+         if (!myMain.getTimeline().saveWayPointsToAttachedFile (myFrame)) {
+            wayPoints.setAttachedFileName(oldFileName);
+         }
+      }
    }
 
    /**
@@ -887,11 +914,48 @@ ModelActionListener {
          return;
       }
       WayPointProbe wayPoints = root.getWayPoints();
-      myMain.getTimeline().setAttachedFileFromUser (wayPoints, "Load From");
-      wayPoints.load();
-      myMain.getTimeline().refreshWayPoints(root);
+      String oldFileName = wayPoints.getAttachedFileName();
+      if (myMain.getTimeline().setWayPointsFileFromUser (myFrame, "Load")) {
+         if (!myMain.getTimeline().loadWayPointsFromAttachedFile (myFrame)) {
+            wayPoints.setAttachedFileName(oldFileName);
+         }
+      }
       // not sure why we need to rerender here but *not* if called from timeline
       myMain.rerender();
+   }
+
+   /**
+    * reload the wayPoints into the model
+    */
+   private void doReloadWayPoints() {
+      RootModel root = myMain.getRootModel();
+      if (root == null) {
+         return;
+      }
+      WayPointProbe wayPoints = root.getWayPoints();
+      String fileName = wayPoints.getAttachedFileName();
+      if (fileName != null) {
+         if (!myMain.getTimeline().loadWayPointsFromAttachedFile (myFrame)) {
+            wayPoints.setAttachedFileName(null);
+         }
+      }
+      // not sure why we need to rerender here but *not* if called from timeline
+      myMain.rerender();
+   }
+
+   /**
+    * delete the wayPoints from the model
+    */
+   private void doDeleteWayPoints() {
+      RootModel root = myMain.getRootModel();
+      if (root == null) {
+         return;
+      }
+      if (GuiUtils.confirmAction (myFrame, "Delete waypoints?")) {
+         myMain.getTimeline().clearWayPoints();
+         // not sure why rerender needed here but *not* if called from timeline
+         myMain.rerender();
+      }
    }
 
    private void saveViewerImage() {
@@ -969,7 +1033,7 @@ ModelActionListener {
 
    private void doOpenMatlab() {
       if (myMain.openMatlabConnection() == null) {
-         showError ("Unable to open connection");
+         GuiUtils.showError (myFrame, "Unable to open connection");
       }
    }
 
@@ -999,14 +1063,13 @@ ModelActionListener {
       File dir = ArtisynthPath.getWorkingDir(); // is always non-null
 
       JFileChooser chooser = new JFileChooser(dir);
-      chooser.setApproveButtonText(approveMsg);
-      int retval;
-      if (approveMsg == "Save") {
-         retval = chooser.showSaveDialog(myFrame);
+      if (existingFile != null) {
+         chooser.setSelectedFile (existingFile);
       }
       else {
-         retval = chooser.showOpenDialog(myFrame);
+         chooser.setCurrentDirectory(myMain.getModelDirectory());
       }
+      int retval = chooser.showDialog(myFrame, approveMsg);
       return ((retval == JFileChooser.APPROVE_OPTION) ?
          chooser.getSelectedFile() : null);
    }
@@ -1143,7 +1206,7 @@ ModelActionListener {
       }
 
       if (errorMessage != null) {
-         showError(errorMessage);
+         GuiUtils.showError (myFrame, errorMessage);
       }
       else {
          if (scaling <= 0) {
@@ -1179,7 +1242,7 @@ ModelActionListener {
       }
 
       if (errorMessage != null) {
-         showError(errorMessage);
+         GuiUtils.showError (myFrame, errorMessage);
       }
       else {
          myMain.setFrameRate(rate);
@@ -1263,7 +1326,7 @@ ModelActionListener {
 
       // load the model with name cmd
       if (!myMain.loadModel(mi)) {
-         showError(myMain.getErrorMessage());
+         GuiUtils.showError (myFrame, myMain.getErrorMessage());
       } else {
          myFrame.setBaseTitle("Artisynth " + mi.getShortName());
       }
@@ -1355,15 +1418,6 @@ ModelActionListener {
       else if (cmd.equals("Save probes as ...")) {
          doSaveProbesAs();
       }
-      else if (cmd.equals("Load wayPoints ...")) {
-         doLoadWayPoints();
-      }
-      else if (cmd.equals("Save wayPoints")) {
-         doSaveWayPoints();
-      }
-      else if (cmd.equals("Save wayPoints as ...")) {
-         doSaveWayPointsAs();
-      }
       else if (cmd.equals("Load probes from ...")) {
          newLoadProbesFrom();
       }
@@ -1372,6 +1426,21 @@ ModelActionListener {
       }
       else if (cmd.equals("Save probes in ...")) {
          newSaveProbesIn();
+      }
+      else if (cmd.equals("Save waypoints")) {
+         doSaveWayPoints();
+      }
+      else if (cmd.equals("Save waypoints as ...")) {
+         doSaveWayPointsAs();
+      } 
+      else if (cmd.equals("Load waypoints ...")) {
+         doLoadWayPoints();
+      }
+      else if (cmd.equals("Reload waypoints")) {
+         doReloadWayPoints();
+      }
+      else if (cmd.equals("Delete waypoints")) {
+         doDeleteWayPoints();
       }
       else if (cmd.equals("Save viewer image ...")) {
          saveViewerImage();
@@ -1649,7 +1718,8 @@ ModelActionListener {
          }
       }
       else {
-         showError("Script " + scriptName + " not found in ARTISYNTH_PATH");
+         GuiUtils.showError (myFrame, 
+            "Script " + scriptName + " not found in ARTISYNTH_PATH");
       }
    }
 
@@ -1891,9 +1961,9 @@ ModelActionListener {
       item.setEnabled(rootModelExists);
       menu.add(new JSeparator());
 
-      if (rootModelExists) {
-         addMenuItem(menu, "Reload model");
-      }
+      item = addMenuItem(menu, "Reload model");
+      item.setEnabled(myMain.modelIsLoaded());
+
       addMenuItem(menu, "Load model ...");
       addMenuItem(menu, "Load from class ...");
 
@@ -1917,14 +1987,19 @@ ModelActionListener {
 
       menu.add(new JSeparator());
 
-      JMenuItem loadWayPointsItem = addMenuItem(menu, "Load wayPoints ...");
-      JMenuItem saveWayPointsItem = addMenuItem(menu, "Save wayPoints");
-      JMenuItem saveWayPointsAsItem = addMenuItem(menu, "Save wayPoints as ...");
+      JMenuItem saveWayPointsItem = addMenuItem(menu, "Save waypoints");
+      JMenuItem saveWayPointsAsItem = addMenuItem(menu, "Save waypoints as ...");
+      JMenuItem loadWayPointsItem = addMenuItem(menu, "Load waypoints ...");
+      JMenuItem reloadWayPointsItem = addMenuItem(menu, "Reload waypoints");
+      JMenuItem deleteWayPointsItem = addMenuItem(menu, "Delete waypoints");
 
-      loadWayPointsItem.setEnabled(rootModelExists);
-      saveWayPointsItem.setEnabled(
-         rootModelExists & myMain.getWayPointsFile() != null);
+      boolean hasWayPointFile = (myMain.getWayPointsFile() != null);
+
+      saveWayPointsItem.setEnabled(rootModelExists && hasWayPointFile);
       saveWayPointsAsItem.setEnabled(rootModelExists);      
+      loadWayPointsItem.setEnabled(rootModelExists);
+      reloadWayPointsItem.setEnabled(rootModelExists && hasWayPointFile);
+      deleteWayPointsItem.setEnabled(rootModelExists);         
 
       menu.add(new JSeparator());
       addMenuItem(menu, "Save viewer image ...");

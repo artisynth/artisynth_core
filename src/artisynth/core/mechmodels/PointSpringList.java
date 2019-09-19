@@ -124,4 +124,5 @@ RenderableComponentList<S> implements ScalableUnits {
          myMaterial.scaleMass (s);
       }
    }
+
 }

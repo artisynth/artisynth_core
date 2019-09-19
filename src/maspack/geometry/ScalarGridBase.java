@@ -42,7 +42,7 @@ public class ScalarGridBase extends InterpolatingGridBase {
    /**
     * {@inheritDoc}
     */
-   public Class<?> getTypeParameter() {
+   public Class<?> getParameterType() {
       return null;
    }
 

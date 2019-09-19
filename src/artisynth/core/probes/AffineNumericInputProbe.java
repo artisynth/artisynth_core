@@ -189,5 +189,4 @@ public class AffineNumericInputProbe extends NumericInputProbe {
          myPropList.get(i).set(valObj);
       }
    }
-
 }

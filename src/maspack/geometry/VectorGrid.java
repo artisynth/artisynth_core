@@ -23,6 +23,8 @@ import maspack.util.IndentingPrintWriter;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.ParameterizedClass;
+
 
 /**
  * Implements a regular 3D grid that interpolates {@link VectorObject} values
@@ -55,7 +57,7 @@ import maspack.util.ReaderTokenizer;
  * vertices can be queried using {@link #getVertexValue}.
  */
 public class VectorGrid<T extends VectorObject<T>> 
-   extends InterpolatingGridBase {
+   extends InterpolatingGridBase implements ParameterizedClass {
    
    protected Class<T> myTypeParameter;
    protected ArrayList<T> myValues;  // values at each vertex
@@ -156,8 +158,15 @@ public class VectorGrid<T extends VectorObject<T>>
    /**
     * {@inheritDoc}
     */
-   public Class<T> getTypeParameter() {
+   public Class<T> getParameterType() {
       return myTypeParameter;
+   }
+   
+   /**
+    * {@inheritDoc}
+    */
+   public boolean hasParameterizedType() {
+      return true;
    }
 
    protected void initVertexValues (int numv) {

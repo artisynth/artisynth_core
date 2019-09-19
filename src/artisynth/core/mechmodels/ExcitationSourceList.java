@@ -83,7 +83,13 @@ public class ExcitationSourceList extends ArrayList<ExcitationSource> {
       PrintWriter pw, String name, NumberFormat fmt, CompositeComponent ancestor) 
       throws IOException {
 
-      if (size() == 0) {
+      int numw = 0;
+      for (ExcitationSource src : this) {
+         if (src.myComp.isWritable()) {
+            numw++;
+         }
+      }
+      if (numw == 0) {
          pw.println (name + "=[]");
       }
       else {
@@ -91,9 +97,11 @@ public class ExcitationSourceList extends ArrayList<ExcitationSource> {
          IndentingPrintWriter.addIndentation (pw, 2);
          for (int i = 0; i < size(); i++) {
             ExcitationSource src = get (i);
-            String pathName =
-               ComponentUtils.getWritePathName (ancestor, src.myComp);
-            pw.println (pathName + " " + fmt.format (src.myGain));
+            if (src.myComp.isWritable()) {
+               String pathName =
+                  ComponentUtils.getWritePathName (ancestor, src.myComp);
+               pw.println (pathName + " " + fmt.format (src.myGain));
+            }
          }
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");

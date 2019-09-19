@@ -60,7 +60,7 @@ public class HexElement extends FemElement3d {
       myIPointsMapToNodes = mapToNodes;
       myNodalExtrapolationMatrix = new MatrixNd (nodalExtrapMat);
       myIntegrationData = null;
-      clearState();  // trigger re-creating integration data
+      //clearState();  // trigger re-creating integration data
    }
    
    public IntegrationPoint3d[] getIntegrationPoints() {

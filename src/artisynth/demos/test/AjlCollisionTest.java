@@ -151,17 +151,6 @@ public class AjlCollisionTest extends RootModel {
       mech.removeRenderable (editMesh);
    }   
  
-   PolygonalMesh readMesh (String fileName) {
-      PolygonalMesh mesh = null;
-      try {
-         mesh = new PolygonalMesh (fileName);
-      }
-      catch (Exception e) {
-         e.printStackTrace(); 
-      }
-      return mesh;
-   } 
-
    private void setupBodies (
       MechModel mech, PolygonalMesh mesh0, PolygonalMesh mesh1) {
 

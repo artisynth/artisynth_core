@@ -932,11 +932,6 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
       return compPath;
    }
 
-   public void showErrorWindow (String errmsg) {
-      JOptionPane.showMessageDialog (
-         this, errmsg, "ERROR!", JOptionPane.ERROR_MESSAGE);
-   }
-
    @Override
    public void dispose() {
       for (AddPropertyPane pane : propList) {

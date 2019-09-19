@@ -550,7 +550,7 @@ public class RigidBodyAgent extends AddComponentAgent<RigidBody> {
          else {
             fileCheck = false;
             
-            EditorUtils.showError (
+            GuiUtils.showError (
                myDisplay, "File does not exist:" + file.getAbsolutePath()); 
          }
       }

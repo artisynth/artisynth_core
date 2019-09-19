@@ -11,6 +11,8 @@ import java.lang.reflect.*;
 import java.net.*;
 
 import maspack.util.*;
+import maspack.util.ClassAliases;
+import maspack.util.ParameterizedClass;
 import maspack.matrix.*;
 import maspack.properties.*;
 import artisynth.core.materials.*;
@@ -37,7 +39,11 @@ public class ScanWriteUtils {
       }
 
       public String toString() {
-         return getClassName (compClass, typeParam);
+         String str = ClassAliases.getAliasOrName (compClass);
+         if (typeParam != null) {
+            str += "<" + ClassAliases.getAliasOrName (typeParam) + ">";
+         }
+         return str;        
       }
    };
 
@@ -1040,14 +1046,22 @@ public class ScanWriteUtils {
       PrintWriter pw, Collection<? extends ModelComponent> comps,
       CompositeComponent ancestor) throws IOException {
    
-      if (comps.size() == 0) {
+      int numw = 0;
+      for (ModelComponent c : comps) {
+         if (c.isWritable()) {
+            numw++;
+         }
+      }
+      if (numw == 0) {
          pw.println ("[ ]");
       }
       else {
          IndentingPrintWriter.printOpening (pw, "[ ");
          IndentingPrintWriter.addIndentation (pw, 2);
          for (ModelComponent c : comps) {
-            pw.println (ComponentUtils.getWritePathName (ancestor, c));
+            if (c.isWritable()) {
+               pw.println (ComponentUtils.getWritePathName (ancestor, c));
+            }
          }
          IndentingPrintWriter.addIndentation (pw, -2);
          pw.println ("]");
@@ -1169,7 +1183,7 @@ public class ScanWriteUtils {
       PrintWriter pw, NumberFormat fmt, Scannable obj, Object ref)
       throws IOException {
 
-      pw.print (ClassAliases.getAliasOrName (obj.getClass()));
+      pw.print (getClassTag(obj));
       pw.print (" ");
       obj.write (pw, fmt, ref);
    }
@@ -1317,17 +1331,22 @@ public class ScanWriteUtils {
       }
    }
 
-   public static <C,S> String getClassName (
-      Class<C> compClass, Class<S> typeParam) {
-      String str = ClassAliases.getAliasOrName (compClass);
-      if (typeParam != null) {
-         str += "<" + ClassAliases.getAliasOrName (typeParam) + ">";
-      }
-      return str;
+   public static String getClassTag (Scannable comp) {
+      return ClassAliases.getAliasOrName (comp.getClass());
    }
 
-   public static <C> String getClassName (Class<C> compClass) {
-      return ClassAliases.getAliasOrName (compClass);
+   public static String getParameterizedClassTag (
+      Scannable comp, Class<?> typeParam) {
+      String className = 
+         ClassAliases.getAliasOrName (comp.getClass());
+      String typeName = 
+      ClassAliases.getAliasOrName (typeParam);
+      if (className == null || typeName == null) {
+         return null;
+      }
+      else {
+         return className + "<" + typeName + ">";
+      }
    }
 
    /**

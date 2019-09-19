@@ -714,7 +714,7 @@ public class TetgenTessellator {
          mesh.addFace (new int[] {faces[k], faces[k+1], faces[k+2]});
       }
       try {
-         mesh.write (new File(fileName), "%g");
+         mesh.write (new File(fileName));
       }
       catch (Exception e) {
          System.out.println ("Can't write mesh " + fileName);

@@ -27,6 +27,7 @@ JAVA_TEST_PROGRAMS = \
 	Polygon3dCalcTest \
 	PolygonalMeshTest \
 	PolylineMeshTest \
+	PointMeshTest \
 	QuadraticUtilsTest \
 	RigidTransformerTest \
 	RobustPredsTest \

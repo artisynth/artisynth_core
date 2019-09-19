@@ -168,9 +168,7 @@ public abstract class ComponentPropertyField extends LabeledTextField implements
          }
          if (value == Property.IllegalValue) {
             focusListenerMasked = true;
-            JOptionPane.showMessageDialog (
-               this, errMsg.value, "Error",
-               JOptionPane.ERROR_MESSAGE);
+            GuiUtils.showError (this, errMsg.value);
             focusListenerMasked = false;
             myTextField.setText (myLastText);
             updateDisplay();

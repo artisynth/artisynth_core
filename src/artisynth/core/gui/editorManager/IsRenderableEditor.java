@@ -61,10 +61,7 @@ public class IsRenderableEditor extends EditorBase {
          if (contained.size() > 0) {
             createPropertyDialog(contained, true, popupBounds);
          } else {
-            JOptionPane.showMessageDialog (
-               null,
-               "No properties for selected components",
-               "No properties", JOptionPane.INFORMATION_MESSAGE);
+            GuiUtils.showNotice (null, "No properties for selected components");
          }
       }
    }
@@ -77,10 +74,8 @@ public class IsRenderableEditor extends EditorBase {
       PropTreeCell tree =
          hostList.commonProperties (null, /* allowReadonly= */true);
       if (tree.numChildren() == 0) {
-         JOptionPane.showMessageDialog (
-            null,
-            "No common properties for selected components",
-            "no common properties", JOptionPane.INFORMATION_MESSAGE);
+         GuiUtils.showNotice (
+            null, "No common properties for selected components");
       }
       else {
          PropertyDialog propDialog =

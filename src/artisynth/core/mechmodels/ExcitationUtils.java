@@ -185,7 +185,7 @@ public class ExcitationUtils {
          throw new IOException ("Expected ']', got " + rtok);
       }
       tokens.offer (ScanToken.END);
-      return list;
+      return list.size() > 0 ? list : null;
    }
 
 //   public static ExcitationSourceList updateReferences (

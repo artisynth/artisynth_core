@@ -6,9 +6,7 @@
  */
 package maspack.geometry;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -52,28 +50,30 @@ public class PointMesh extends MeshBase {
    }
 
    /**
-    * Creates a point mesh and initializes it from an file in Alias
-    * Wavefront obj format, as decribed for the method
-    * {@link #write(PrintWriter,NumberFormat,boolean)}.
+    * Creates a point mesh and initializes it from a file, with the file format
+    * being inferred from the file name suffix.
+    * 
+    * @param fileName
+    * name of the file containing the mesh description
+    * @throws IOException if an I/O error occurred or if the file
+    * format is not compatible with point meshes
+    */
+   public PointMesh (String fileName) throws IOException {
+      this (new File (fileName));
+   }
+
+   /**
+    * Creates a point mesh and initializes it from a file, with the file format
+    * being inferred from the file name suffix
     * 
     * @param file
     * file containing the mesh description
+    * @throws IOException if an I/O error occurred or if the file
+    * format is not compatible with point meshes
     */
    public PointMesh (File file) throws IOException {
       this();
-      BufferedReader reader = null;
-      try {
-         reader = new BufferedReader(new FileReader (file));
-         read (reader);
-      }
-      catch (IOException e) {
-         throw e;
-      }
-      finally {
-         if (reader != null) {
-            reader.close();
-         }
-      }
+      read (file);
    }
 
    public double getNormalRenderLen() {

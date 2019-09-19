@@ -285,7 +285,7 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
          for (int i = 0; i < size(); i++) {
             C comp = get (i);
             if (!comp.getClass().isAssignableFrom (myComponentType)) {
-               pw.println (ClassAliases.getAliasOrName (comp.getClass()));
+               pw.println (ScanWriteUtils.getClassTag(comp));
             }
             comp.write (pw, fmt, ref);
          }        
@@ -396,10 +396,6 @@ public class ScannableList<C extends Scannable> // extends AbstractList<C>
       return myComponentType;
    }
 
-   public boolean hasParameterizedType() {
-      return true;
-   }
-   
    public ScannableList<C> copy(int flags) {
       ScannableList<C> list = null;
       try {

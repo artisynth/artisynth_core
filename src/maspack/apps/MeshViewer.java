@@ -678,9 +678,7 @@ public class MeshViewer extends GLViewerFrame
       }
       catch (Exception ex) {
          ex.printStackTrace(); 
-         JOptionPane.showMessageDialog(
-            this, "Can't open or read file: " + ex, "Error",
-            JOptionPane.ERROR_MESSAGE);
+         GuiUtils.showError (this, "Can't open or read file: " + ex);
          mesh = null;
       }         
       if (mesh != null) {
@@ -716,9 +714,7 @@ public class MeshViewer extends GLViewerFrame
       }
       catch (Exception ex) {
          ex.printStackTrace(); 
-         JOptionPane.showMessageDialog(
-            this, "Can't write file: " + ex, "Error",
-            JOptionPane.ERROR_MESSAGE);
+         GuiUtils.showError (this, "Can't write file: " + ex);
          mesh = null;
       }         
       return false;

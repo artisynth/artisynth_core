@@ -102,7 +102,7 @@ public class MeshSeparator {
             NumberFormat fmt = new NumberFormat ("%03d");
             File outFile = new File (
                outFileName.value + "_" + fmt.format(meshes.length-1-i) + ".obj");
-            meshes[idxs[i]].write (outFile, formatStr.value);
+            meshes[idxs[i]].write (outFile, formatStr.value, false);
          }
       }
       catch (Exception e) {

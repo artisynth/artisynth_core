@@ -35,6 +35,138 @@
 
 % \subsection*{MAPStress and MAPStrain added to FemModel.SurfaceRender}
 
+\section*{Sep 19, 2019}
+
+\subsection*{Enhancements to saving models}
+
+When saving a model to a file using the {\sf Save model as ...} menu
+item, users can now choose the following options:
+
+\begin{description}
+
+\item[Save waypoint data:] \mbox{}
+
+Causes the state data for any valid waypoints to be saved in addition
+to the waypoint locations.  This is optional because a large number of
+waypoints may significantly increase the file size for models with
+large state sizes.
+
+\item[Core components only:] \mbox{}
+
+Save only those components which are present in the main {\tt
+artisynth\_core} package. Any non-core components, and any other
+components which have a hard dependency on them, will not be written,
+and the user will be advised of this via a message dialog.  The root
+model is saved as a pure instance of {\tt RootModel}, instead of the
+application-specific class that was used to build it. This means that
+any properties or class overrides specific to the application root
+model class will not be present in the saved model. The advantage to
+storing a model using only core components is that it can be loaded by
+any other user running that same ArtiSynth version, without needing
+access to any application-specific classes.
+
+\end{description}
+
+\subsection*{Enhancements to waypoint data}
+
+Waypoint data files (such as those written using the menu items {\sf
+Save waypoints as ...}  and {\sf Save waypoints}) now contain
+annotations so that when they are later loaded into a model, checks
+are performed to help ensure that the state is consistent with that
+model.
+
+\subsection*{Easier reading and writing of meshes}
+
+It is now possible to construct, read, or write any of the mesh
+components (\javaclass[maspack.geometry]{PolygonalMesh},
+\javaclass[maspack.geometry]{PolylineMesh},
+\javaclass[maspack.geometry]{PointMesh}) by simply specifying a file
+and then have the file format inferred directly from the file suffix.
+The currently supported file formats, and their applicability to the
+different mesh types, are given in the table below:
+
+\begin{center}
+\begin{tabular}{|ll|ccc|}
+\hline
+Suffix & Format & {\tt PolygonalMesh} & {\tt PolylineMesh} & {\tt PointMesh} \\
+\hline
+.obj & Alias Wavefront &X&X&X\\
+.ply & Polygon file format &X&&X\\
+.stl & STereoLithography &X&&\\
+.gts & GNU triangulated surface &X&&\\
+.off & Object file format &X&&\\
+.vtk & VTK ascii format &X&&\\
+.vtp & VTK XML format &X&X&\\
+\hline
+\end{tabular}
+\end{center}
+
+The new constructors are
+%
+\begin{lstlisting}[]
+   PolygonalMesh (String fileName) throws IOException
+   PolygonalMesh (File file) throws IOException
+
+   PolylineMesh (String fileName) throws IOException
+   PolylineMesh (File file) throws IOException
+
+   PointMesh (String fileName) throws IOException
+   PointMesh (File file) throws IOException
+\end{lstlisting}
+%
+and the new read/write methods are:
+\begin{lstlisting}[]
+   read (File file) throws IOException
+   write (File file) throws IOException
+
+   read (File file, boolean zeroIndexed) throws IOException
+   write (File file, String fmtStr, boolean zeroIndexed) throws IOException
+\end{lstlisting}
+%
+For the latter methods, the argument {\tt zeroIndexed} specifies
+zero-based vertex indexing (in the case of Alias Wavefront {\tt .obj}
+files), while {\tt fmtStr} is a C-style format string specifying the
+precision and style with which the vertex coordinates should be
+written. (In the former methods, zero-based indexing is false and
+vertices are written using full precision.)
+
+\begin{sideblock}
+Note: the method
+\begin{verbatim}
+   read (File file, String fmtStr)
+\end{verbatim}
+which was specific to {\tt PolygonalMesh}, has been removed.
+In its place, one can use
+\begin{verbatim}
+   read (File file, String fmtStr, boolean zeroIndexed)
+\end{verbatim}
+with {\tt zeroIndexed} set to false.
+\end{sideblock}
+
+\subsection*{New scripting commands}
+
+New commands have been added to the Matlab and Jython scripting
+interfaces for saving and loading models and waypoints,
+%
+\begin{lstlisting}[]
+   saveModelFile (filename)
+   saveModelFile (filename, saveWayPoints, coreCompsOnly)
+
+   saveWayPoints (filename)
+   loadWayPoints (filename)
+\end{lstlisting}
+%
+where {\tt saveWayPoints} specifies whether to save waypoint data and
+{\tt coreCompsOnly} specifies whether to save only core components, as
+described above.
+
+\subsection*{ClassAliases moved to maspack.util}
+
+The ClassAliases package, which maps class names onto (shorter)
+aliases, and now also provides support for checking to see if a class
+is contained in {\tt artisynth\_core}, has been moved to {\tt
+maspack.util}.
+
 \section*{Jul 21, 2019}
 
 \subsection*{Field components added}
@@ -61,7 +193,7 @@ selected elements within the model.
 
 Material bundles are implemented using the class
 \javaclass[artisynth.core.femmodels]{MaterialBundle}, and are
-analagous to {\tt MuscleBundle}, except that they can be used for any
+analogous to {\tt MuscleBundle}, except that they can be used for any
 type of FEM material and don't specify excitation or excitation
 directions.  It is possible to use a {\tt MaterialBundle} to implement a
 muscle behavior, by specifying a {\tt MuscleMaterial} whose {\sf
@@ -103,7 +235,7 @@ which supplies the methods
   // material currently has state
   boolean hasState(); 
 
-  // creates an object for storing the stae
+  // creates an object for storing the state
   MaterialStateObject createStateObject();
 
   // advances the state from time t0 to t1
@@ -144,7 +276,7 @@ will eventually be removed.
 An undocumented feature known as {\tt AuxMaterialBundle} currently
 exists within ArtiSynth, which allows \\ 
 {\tt AuxiliaryMaterials} to be
-added to an FEM model in a manner analagous to {\tt MaterialBundle}.
+added to an FEM model in a manner analogous to {\tt MaterialBundle}.
 To accommodate {\tt MaterialBundle}, the methods for adding, removing
 and accessing {\tt AuxMaterialBundles} have been renamed as follows:
 

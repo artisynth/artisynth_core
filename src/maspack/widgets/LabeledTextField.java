@@ -198,9 +198,7 @@ public abstract class LabeledTextField extends LabeledControl {
          }
          if (value == Property.IllegalValue) {
             focusListenerMasked = true;
-            JOptionPane.showMessageDialog (
-               LabeledTextField.this, errMsg.value, "Error",
-               JOptionPane.ERROR_MESSAGE);
+            GuiUtils.showError (LabeledTextField.this, errMsg.value);
             focusListenerMasked = false;
             myTextField.setText (myLastText);
             updateDisplay();

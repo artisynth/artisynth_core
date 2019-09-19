@@ -592,7 +592,7 @@ public class ProbeInfo implements Clonable, ActionListener {
          setName (name);
       }
    }
-
+   
    // edit the probe
    private void editProbe() {
       NumericProbeEditor dialog;
@@ -1307,7 +1307,7 @@ public class ProbeInfo implements Clonable, ActionListener {
          // if there is no other active components, then activate the
          // highlighting of the probe when the mouse enters the probe region
          if (!myController.isActiveProbeExist() && 
-             !myController.isActiveWaypointExist() && 
+             !myController.isActiveWayPointExist() && 
              myTrack.isEnabled()) {
    
             isHighlighted = true;
@@ -1347,7 +1347,7 @@ public class ProbeInfo implements Clonable, ActionListener {
       public void mouseMoved (MouseEvent e) {
          // if no active component exists, then enable cursor update
          if (!myController.isActiveProbeExist() && 
-             !myController.isActiveWaypointExist()) {
+             !myController.isActiveWayPointExist()) {
             // set appropriate cursor
             if (e.getX() <= STRETCH_MARGIN) {
                setAppropriateCursor (e.isShiftDown() ? 

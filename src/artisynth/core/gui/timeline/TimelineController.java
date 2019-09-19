@@ -28,6 +28,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -104,7 +105,7 @@ public class TimelineController extends Timeline
    
    private int timelineDuration;
    private int zoomLevel;
-   private boolean activeWaypointExists;
+   private boolean activeWayPointExists;
    private boolean activeProbeExists;
    
    private Cursor currentCursor;
@@ -135,6 +136,8 @@ public class TimelineController extends Timeline
    private Line2D myWayShadow;
    private JSplitPane mainSplitPane;
    private JPopupMenu myPopup;
+   private JMenuItem mySaveWayPointsItem;
+   private JMenuItem myReloadWayPointsItem;
    private WayPointTrackListener wayTrackListener;
 
    // these are the different levels of GUI update that can be requested:
@@ -181,72 +184,78 @@ public class TimelineController extends Timeline
    }
    
    private void popupInitialization() {
-      JMenuItem addInTrack = new JMenuItem ("Add Input Track");
+      JMenuItem addInTrack = new JMenuItem ("Add input track");
       addInTrack.addActionListener (wayTrackListener);
-      addInTrack.setActionCommand ("Add Input Track");
+      addInTrack.setActionCommand ("Add input track");
 
-      JMenuItem addOutTrack = new JMenuItem ("Add Output Track");
+      JMenuItem addOutTrack = new JMenuItem ("Add output track");
       addOutTrack.addActionListener (wayTrackListener);
-      addOutTrack.setActionCommand ("Add Output Track");
+      addOutTrack.setActionCommand ("Add output track");
 
-      JMenuItem addWayHere = new JMenuItem ("Add WayPoint Here");
+      JMenuItem addWayHere = new JMenuItem ("Add waypoint here");
       addWayHere.addActionListener (wayTrackListener);
-      addWayHere.setActionCommand ("Add WayPoint Here");
+      addWayHere.setActionCommand ("Add waypoint here");
 
-      JMenuItem addBreakHere = new JMenuItem ("Add BreakPoint Here");
+      JMenuItem addBreakHere = new JMenuItem ("Add breakpoint here");
       addBreakHere.addActionListener (wayTrackListener);
-      addBreakHere.setActionCommand ("Add BreakPoint Here");
+      addBreakHere.setActionCommand ("Add breakpoint here");
 
-      JMenuItem addWay = new JMenuItem ("Add WayPoint(s) ...");
+      JMenuItem addWay = new JMenuItem ("Add waypoint(s) ...");
       addWay.addActionListener (wayTrackListener);
-      addWay.setActionCommand ("Add WayPoint(s) ...");
+      addWay.setActionCommand ("Add waypoint(s) ...");
 
-      JMenuItem disableAllBreakpoints =
-         new JMenuItem ("Disable all BreakPoints");
-      disableAllBreakpoints.addActionListener (wayTrackListener);
-      disableAllBreakpoints.setActionCommand ("Disable all BreakPoints");
+      JMenuItem disableAllBreakPoints =
+         new JMenuItem ("Disable all breakpoints");
+      disableAllBreakPoints.addActionListener (wayTrackListener);
+      disableAllBreakPoints.setActionCommand ("Disable all breakpoints");
 
       JMenuItem deleteWayPoints =
-         new JMenuItem ("Delete WayPoints");
+         new JMenuItem ("Delete waypoints");
       deleteWayPoints.addActionListener (wayTrackListener);
-      deleteWayPoints.setActionCommand ("Delete WayPoints");
+      deleteWayPoints.setActionCommand ("Delete waypoints");
       
-      JMenuItem saveWaypoints =
-         new JMenuItem ("Save WayPoint Data");
-      saveWaypoints.addActionListener (wayTrackListener);
-      saveWaypoints.setActionCommand ("Save WayPoint Data");
+      mySaveWayPointsItem =
+         new JMenuItem ("Save waypoints");
+      mySaveWayPointsItem.addActionListener (wayTrackListener);
+      mySaveWayPointsItem.setActionCommand ("Save waypoints");
       
-      JMenuItem saveWaypointsAs =
-         new JMenuItem ("Save WayPoint Data As...");
-      saveWaypointsAs.addActionListener (wayTrackListener);
-      saveWaypointsAs.setActionCommand ("Save WayPoint Data As");
+      JMenuItem saveWayPointsAs =
+         new JMenuItem ("Save waypoints as ...");
+      saveWayPointsAs.addActionListener (wayTrackListener);
+      saveWayPointsAs.setActionCommand ("Save waypoints as");
 
-      JMenuItem loadWaypoints =
-         new JMenuItem ("Load WayPoint Data");
-      loadWaypoints.addActionListener (wayTrackListener);
-      loadWaypoints.setActionCommand ("Load WayPoint Data");
+      myReloadWayPointsItem =
+         new JMenuItem ("Reload waypoints");
+      myReloadWayPointsItem.addActionListener (wayTrackListener);
+      myReloadWayPointsItem.setActionCommand ("Reload waypoints");
       
-      JMenuItem loadWaypointsFrom =
-         new JMenuItem ("Load WayPoint Data From...");
-      loadWaypointsFrom.addActionListener (wayTrackListener);
-      loadWaypointsFrom.setActionCommand ("Load WayPoint Data From");
+      JMenuItem loadWayPointsFrom =
+         new JMenuItem ("Load waypoints ...");
+      loadWayPointsFrom.addActionListener (wayTrackListener);
+      loadWayPointsFrom.setActionCommand ("Load waypoints");
 
       myPopup.add (addWayHere);
       myPopup.add (addBreakHere);
       myPopup.add (addWay);
       //      myPopup.add (addBreak);
-      myPopup.add (disableAllBreakpoints);
+      myPopup.add (disableAllBreakPoints);
+      myPopup.addSeparator ();
+      myPopup.add (mySaveWayPointsItem);
+      myPopup.add (saveWayPointsAs);
+      myPopup.add (loadWayPointsFrom);
+      myPopup.add (myReloadWayPointsItem);
       myPopup.add (deleteWayPoints);
-      myPopup.addSeparator ();
-      myPopup.add (saveWaypointsAs);
-      myPopup.add (saveWaypoints);
-      myPopup.addSeparator ();
-      myPopup.add (loadWaypointsFrom);
-      myPopup.add (loadWaypoints);
       myPopup.addSeparator ();
       myPopup.add (addInTrack);
       myPopup.add (addOutTrack);
    }
+   
+   private void popupUpdate() {
+      boolean hasWayPointFile = 
+         myMain.getRootModel().getWayPoints().hasAttachedFile();
+      mySaveWayPointsItem.setEnabled (hasWayPointFile);
+      myReloadWayPointsItem.setEnabled (hasWayPointFile);
+   }   
 
    private void displaySetup () {
       timescale.addChangeListener (new ChangeListener() {
@@ -334,7 +343,7 @@ public class TimelineController extends Timeline
       timelineDuration = TimelineConstants.DEFAULT_DURATION;
 
       //isExecutingStep = false;
-      activeWaypointExists = false;
+      activeWayPointExists = false;
       activeProbeExists = false;
 
       currentCursor = Cursor.getDefaultCursor();
@@ -513,10 +522,10 @@ public class TimelineController extends Timeline
 
    private void updateWidgets (RootModel rootModel, boolean refreshCursor) {
       double t = getCurrentTime();
-      updateProbesAndWaypoints(rootModel);
+      updateProbesAndWayPoints(rootModel);
       
       myToolBar.updateToolbarState(rootModel);
-      setAllWaypointDisplay();
+      setAllWayPointDisplay();
       updateAllProbeDisplays();
       updateTimeDisplay (t);
       if (refreshCursor || myScheduler.isPlaying()) {
@@ -742,7 +751,7 @@ public class TimelineController extends Timeline
       }
    }
    
-   protected void setAllWaypointDisplay() {
+   protected void setAllWayPointDisplay() {
       for (WayPointInfo wayPoint : wayInfos) {
          wayPoint.setValidityDisplay (false);
       }
@@ -796,8 +805,6 @@ public class TimelineController extends Timeline
 //          addWayPointFromRoot (wayPoint);
 //       }
 
-      //setAppropriateVirtualWaypoint (false);
-      //timescale.updateTimeCursor (0);
       myToolBar.updateToolbarState (rootModel);
       
       closeProbeEditors();
@@ -814,10 +821,10 @@ public class TimelineController extends Timeline
    
    /**
     * Called when clearTimeline is requested on the timeline, or an action 
-    * is performed requesting "Delete Waypoint".
+    * is performed requesting "Delete waypoint".
     */
-   public void deleteWaypoint (int idx, boolean isTimelineReset) {
-      // Waypoint is to be deleted if this is a timeline reset, or if
+   public void deleteWayPoint (int idx, boolean isTimelineReset) {
+      // waypoint is to be deleted if this is a timeline reset, or if
       // the user had confirmed deletion of the selected waypoint.
       if ((isTimelineReset) || (confirmAction ("Delete this waypoint?"))) {
          if (!isTimelineReset) {
@@ -866,7 +873,7 @@ public class TimelineController extends Timeline
    public void removeWayPointFromRoot (WayPoint way) {
       int idx = -1;
       for (int i = 0; i < wayInfos.size(); i++) {
-         if (wayInfos.get (i).myWaypoint == way) {
+         if (wayInfos.get (i).myWayPoint == way) {
             idx = i;
             break;
          }
@@ -918,7 +925,7 @@ public class TimelineController extends Timeline
             return;
          }
          
-         largestTime = getLargestWaypointTime();
+         largestTime = getLargestWayPointTime();
       }
 
       // Try zooming in on the probes if they exist
@@ -978,7 +985,7 @@ public class TimelineController extends Timeline
     * 
     * @return true if probes needed updating, false otherwise.
     */   
-   public boolean updateProbesAndWaypoints (RootModel rootModel) {
+   public boolean updateProbesAndWayPoints (RootModel rootModel) {
       boolean updateWasNeeded = false;
       for (ProbeInfo info : myProbeMap.values()) {
          info.myMark = true;
@@ -1085,16 +1092,16 @@ public class TimelineController extends Timeline
       myProbeEditors.add (editor);
    }
    
-   public void setActiveWaypointExist (boolean exist) {
-      activeWaypointExists = exist;
+   public void setActiveWayPointExist (boolean exist) {
+      activeWayPointExists = exist;
    }
    
    public void setActiveProbeExist (boolean exist) {
       activeProbeExists = exist;
    }
    
-   public void updateWayPointListOrder (int modifiedWaypointIndex) {
-      WayPointInfo modifiedWay = wayInfos.get (modifiedWaypointIndex);
+   public void updateWayPointListOrder (int modifiedWayPointIndex) {
+      WayPointInfo modifiedWay = wayInfos.get (modifiedWayPointIndex);
       wayInfos.remove (modifiedWay);
 
       int insertionIndex = 0;
@@ -1102,17 +1109,17 @@ public class TimelineController extends Timeline
          if (modifiedWay.getTime() > wayInfo.getTime()) {
             insertionIndex++;
          }
-      }System.out.println(modifiedWaypointIndex + "::"+insertionIndex);
+      }System.out.println(modifiedWayPointIndex + "::"+insertionIndex);
 
       wayInfos.add (insertionIndex, modifiedWay);
       
       for (WayPointInfo wayInfo : wayInfos) {
-         wayInfo.updateWaypointIndex();
+         wayInfo.updateWayPointIndex();
       }
       
       WayPointProbe wayProbe = myMain.getRootModel().getWayPoints();
-      wayProbe.remove (modifiedWay.myWaypoint);
-      wayProbe.add (modifiedWay.myWaypoint);
+      wayProbe.remove (modifiedWay.myWayPoint);
+      wayProbe.add (modifiedWay.myWayPoint);
    }
    
    public void setCurrentCursor (Cursor cur) {
@@ -1150,14 +1157,14 @@ public class TimelineController extends Timeline
          // Create the new waypoint object
          WayPointInfo newWay = new WayPointInfo (this, wayTime);
          if (isBreakPoint) {
-            newWay.myWaypoint.setBreakPoint (true);
+            newWay.myWayPoint.setBreakPoint (true);
          }
 
          wayInfos.add (insertIndex, newWay);
 
          // Update the waypoint index after insertion
          for (WayPointInfo info : wayInfos) {
-            info.updateWaypointIndex();
+            info.updateWayPointIndex();
          }
          
          wayTrack.add (newWay);
@@ -1177,7 +1184,7 @@ public class TimelineController extends Timeline
       }
       int idx = 0;
       for (WayPoint wayPoint : root.getWayPoints()) {
-         if (wayInfos.get(idx++).myWaypoint != wayPoint) {
+         if (wayInfos.get(idx++).myWayPoint != wayPoint) {
             return true;
          }
       }
@@ -1211,49 +1218,87 @@ public class TimelineController extends Timeline
    }
 
    public void deleteWayPoints() {
-      if (confirmAction ("Delete WayPoints?")) {
-         int count = wayInfos.size();
-         
-         // Delete all but the 0 waypoint.
-         for (int j = 1; j < count; j++) {
-            WayPointInfo info = wayInfos.get (1);
-            
-            if (info.getTime() != 0) {
-               info.removeWayPointFromRoot();
-               deleteWaypoint (1, true);
-               info.finalize();
-            }
+      if (GuiUtils.confirmAction (this, "Delete waypoints?")) {
+         clearWayPoints();
+      }
+   }
+
+   public void clearWayPoints() {
+      int count = wayInfos.size();
+      // Delete all but the 0 waypoint.
+      for (int j = 1; j < count; j++) {
+         WayPointInfo info = wayInfos.get (1);
+         if (info.getTime() != 0) {
+            info.removeWayPointFromRoot();
+            deleteWayPoint (1, true);
+            info.finalize();
          }
       }
    }
 
    public void saveWayPoints() {
-      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
-      wayPoints.save();
+      saveWayPointsToAttachedFile (this);
    }
 
    public void saveWayPointsAs() {
       WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
-      setAttachedFileFromUser (wayPoints, "Save As");
-      wayPoints.save();
+      String oldFileName = wayPoints.getAttachedFileName();
+      if (setWayPointsFileFromUser (this, "Save As")) {
+         if (!saveWayPointsToAttachedFile (this)) {
+            wayPoints.setAttachedFileName (oldFileName);
+         }
+      }
+   }
+   
+   public boolean saveWayPointsToAttachedFile (JFrame frame) {
+      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
+      try {
+         wayPoints.save();
+      }
+      catch (IOException e) {
+         GuiUtils.showError (
+            frame,
+            "Error saving waypoints to \"" + wayPoints.getAttachedFile() +
+            "\":\n" + e.getMessage());
+         return false;
+      }
+      return true;
    }
 
    public void loadWayPoints() {
-      RootModel root = myMain.getRootModel();
-      WayPointProbe wayPoints = root.getWayPoints();
-      wayPoints.load();
-      refreshWayPoints(root);
+      loadWayPointsFromAttachedFile (this);
    }
 
    public void loadWayPointsFrom() {
-      RootModel root = myMain.getRootModel();
-      WayPointProbe wayPoints = root.getWayPoints();
-      setAttachedFileFromUser (wayPoints, "Load From");
-      wayPoints.load();
-      refreshWayPoints(root);
+      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
+      String oldFileName = wayPoints.getAttachedFileName();
+      if (setWayPointsFileFromUser (this, "Load")) {
+         if (!loadWayPointsFromAttachedFile (this)) {
+            wayPoints.setAttachedFileName (oldFileName);
+         }
+      }
    }
 
-   public void setAttachedFileFromUser (WayPointProbe wayPoints, String text) {
+   public boolean loadWayPointsFromAttachedFile (JFrame frame) {
+      RootModel root = myMain.getRootModel();
+      WayPointProbe wayPoints = root.getWayPoints();
+      boolean status = true;
+      try {
+         wayPoints.load();
+      }
+      catch (IOException e) {
+         GuiUtils.showError (
+            frame,
+            "Error loading waypoints from \"" + wayPoints.getAttachedFile() +
+            "\":\n" + e.getMessage());
+         status = false;
+      }
+      refreshWayPoints(root);
+      return status;
+   }
+
+  public boolean setWayPointsFileFromUser (JFrame frame, String text) {
+      WayPointProbe wayPoints = myMain.getRootModel().getWayPoints();
       String workspace = new String (ArtisynthPath.getWorkingDirPath());
       File current = wayPoints.getAttachedFile();
 
@@ -1261,25 +1306,24 @@ public class TimelineController extends Timeline
          current = new File (workspace);
       }
 
-      String absfile = null;
       if (myWayPointFileChooser == null) {
          myWayPointFileChooser = new JFileChooser();
       }
-      myWayPointFileChooser.setCurrentDirectory (current);
-      myWayPointFileChooser.setFileSelectionMode (JFileChooser.FILES_ONLY);
-      myWayPointFileChooser.setApproveButtonText (text);
-      int returnVal;
-      if (text == "Save As") {
-         returnVal = myWayPointFileChooser.showSaveDialog (myMain.getTimeline ());
-      }
-      else if (text == "Load From"){
-         returnVal = myWayPointFileChooser.showOpenDialog (myMain.getTimeline ());
+      if (myMain.getWayPointsFile() != null) {         
+         File wayFile = myMain.getWayPointsFile();
+         myWayPointFileChooser.setSelectedFile (wayFile);
+         if (!wayFile.isAbsolute()) {
+            myWayPointFileChooser.setCurrentDirectory (current);
+         }
       }
       else {
-         System.out.println("warning unknown filechooser type " + text);
-         returnVal = myWayPointFileChooser.showSaveDialog (myMain.getTimeline ());
+         myWayPointFileChooser.setCurrentDirectory (current);
       }
+      myWayPointFileChooser.setFileSelectionMode (JFileChooser.FILES_ONLY);
+      myWayPointFileChooser.setApproveButtonText (text);
+      int returnVal = myWayPointFileChooser.showDialog (frame, text);
          
+      String absfile = null;      
       if (returnVal == JFileChooser.APPROVE_OPTION) {
          try {
             absfile = myWayPointFileChooser.getSelectedFile().getCanonicalPath();
@@ -1298,6 +1342,10 @@ public class TimelineController extends Timeline
          System.out.println ("Selected file address: " + absfile);
          
          wayPoints.setAttachedFileName (absfile);
+         return true;
+      }
+      else {
+         return false;
       }
    }
    
@@ -1329,16 +1377,16 @@ public class TimelineController extends Timeline
       
       IntegerField myRepeatField = new IntegerField("Repeat", 1);
       myRepeatField.setRange (1, Integer.MAX_VALUE);
-      BooleanSelector myBreakpointSelector = 
+      BooleanSelector myBreakPointSelector = 
          new BooleanSelector ("Breakpoint", false);
       
       PropertyPanel addPanel = new PropertyPanel();
       addPanel.addWidget (myTimeField);
       addPanel.addWidget (myRepeatField);
-      addPanel.addWidget (myBreakpointSelector);
+      addPanel.addWidget (myBreakPointSelector);
       
       PropertyDialog addDialog = 
-         new PropertyDialog (this, "Add Waypoints", addPanel, "OK Cancel");
+         new PropertyDialog (this, "Add waypoints", addPanel, "OK Cancel");
       addDialog.setModal (true);
       GuiUtils.locateCenter (addDialog, this);
       addDialog.setVisible (true);
@@ -1347,17 +1395,17 @@ public class TimelineController extends Timeline
          
          double t = myTimeField.getDoubleValue();
          for (int i = 1; i <= myRepeatField.getIntValue(); i++) {
-            addWayPoint (t*i, myBreakpointSelector.getBooleanValue());
+            addWayPoint (t*i, myBreakPointSelector.getBooleanValue());
          }
          
          myToolBar.validateFastForward(myMain.getRootModel());
       }         
    }
    
-   public void disableAllBreakpoints() {
+   public void disableAllBreakPoints() {
       for (WayPointInfo info : wayInfos) {
-         if (info.myWaypoint.isBreakPoint()) {
-            info.myWaypoint.setBreakPoint (false);
+         if (info.myWayPoint.isBreakPoint()) {
+            info.myWayPoint.setBreakPoint (false);
          }
       }
       
@@ -1427,8 +1475,8 @@ public class TimelineController extends Timeline
       return (myMain.getWorkspace().getRootModel() == null ? false : true);
    }
    
-   public boolean isActiveWaypointExist() {
-      return activeWaypointExists;
+   public boolean isActiveWayPointExist() {
+      return activeWayPointExists;
    }
    
    public boolean isActiveProbeExist() {
@@ -2143,7 +2191,7 @@ public class TimelineController extends Timeline
       requestUpdateDisplay();
    }
    
-   public void updateCurrentWaypointShadow (int x) {
+   public void updateCurrentWayPointShadow (int x) {
       myWayShadow.setLine (x, 1, x, GuiStorage.WAY_MARKER_SIZE.height);
    }
    
@@ -2262,7 +2310,7 @@ public class TimelineController extends Timeline
       return myMain.getRootModel().getWayPoints().size();
    }
 
-   public double getLargestWaypointTime() {
+   public double getLargestWayPointTime() {
       return myMain.getRootModel().getWayPoints().maxEventTime();
    }
 
@@ -2297,7 +2345,7 @@ public class TimelineController extends Timeline
       }
 
       // Save waypoint datafile
-      myMain.getRootModel ().getWayPoints ().save ();
+      saveWayPoints();
    }
 
    public void zoom (int mode) {
@@ -2504,7 +2552,7 @@ public class TimelineController extends Timeline
          Graphics2D g2D = (Graphics2D)g;
          g2D.setColor (Color.BLACK);
          
-         if (isActiveWaypointExist()) {
+         if (isActiveWayPointExist()) {
             g2D.draw (myWayShadow);
          }
       }
@@ -2518,40 +2566,40 @@ public class TimelineController extends Timeline
       public void actionPerformed (ActionEvent e) {
          String nameOfAction = e.getActionCommand();
 
-         if (nameOfAction == "Add Input Track") {
+         if (nameOfAction == "Add input track") {
             createAndAddTrack (Track.TYPE_INPUT);
          }
-         else if (nameOfAction == "Add Output Track") {
+         else if (nameOfAction == "Add output track") {
             createAndAddTrack (Track.TYPE_OUTPUT);
          }
-         else if (nameOfAction == "Add WayPoint Here") {
+         else if (nameOfAction == "Add waypoint here") {
             addWayPointFromUser (/* breakpoint= */false);
          }
-         else if (nameOfAction == "Add WayPoint(s) ...") {
+         else if (nameOfAction == "Add waypoint(s) ...") {
             getWayPointFromUser ();
          }
-         else if (nameOfAction == "Add BreakPoint Here") {
+         else if (nameOfAction == "Add breakpoint here") {
             addWayPointFromUser (/* breakpoint= */true);
          }
 //          else if (nameOfAction == "Add BreakPoint ...") {
 //             getWayPointFromUser (/* breakpoint= */true);
 //          }
-         else if (nameOfAction == "Disable all BreakPoints") {
-            disableAllBreakpoints();
+         else if (nameOfAction == "Disable all breakpoints") {
+            disableAllBreakPoints();
          }
-         else if (nameOfAction == "Delete WayPoints") {
+         else if (nameOfAction == "Delete waypoints") {
             deleteWayPoints();
          }
-         else if (nameOfAction == "Save WayPoint Data As") {
+         else if (nameOfAction == "Save waypoints as") {
             saveWayPointsAs();
          }
-         else if (nameOfAction == "Save WayPoint Data") {
+         else if (nameOfAction == "Save waypoints") {
             saveWayPoints();
          }
-         else if (nameOfAction == "Load WayPoint Data From") {
+         else if (nameOfAction == "Load waypoints") {
             loadWayPointsFrom();
          }
-         else if (nameOfAction == "Load WayPoint Data") {
+         else if (nameOfAction == "Reload waypoints") {
             loadWayPoints();
          }
          
@@ -2560,12 +2608,14 @@ public class TimelineController extends Timeline
 
       public void mouseReleased (MouseEvent e) {
          if (e.isPopupTrigger()) {
+            popupUpdate();
             myPopup.show (e.getComponent(), e.getX(), e.getY());
          }
       }
 
       public void mousePressed (MouseEvent e) {
          if (e.isPopupTrigger()) {
+            popupUpdate();
             myPopup.show (e.getComponent(), e.getX(), e.getY());
          }
       }
@@ -2591,7 +2641,6 @@ public class TimelineController extends Timeline
             selectedProbes.remove (info);
          }
       }
-      
    }
 
    public ArrayList<ProbeInfo> getSelectedProbes() {
@@ -2623,11 +2672,6 @@ public class TimelineController extends Timeline
       else {
          return null;
       }
-   }
-
-   void showError(String msg) {
-      JOptionPane.showMessageDialog (
-         this, msg, "Error", JOptionPane.ERROR_MESSAGE);
    }
 
    public void dispose() {

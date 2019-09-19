@@ -42,9 +42,10 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    protected static final int NAVPANEL_HIDDEN = 0x10;
    protected static final int NAVPANEL_ALWAYS = 0x20;
    protected static final int SCANNING = 0x40;
+   protected static final int NON_WRITABLE = 0x80;
    
    // Allow for creation of custom flags
-   protected static int FREE_FLAG_MASK = 0xFF80;
+   protected static int FREE_FLAG_MASK = 0xFF00;
    protected static int freeFlags = FREE_FLAG_MASK;
    
    public static int createTempFlag() {
@@ -156,7 +157,8 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
    }
 
    protected void dowrite (PrintWriter pw, NumberFormat fmt, Object ref)
-   throws IOException {
+      throws IOException {
+
       CompositeComponent ancestor = ComponentUtils.castRefToAncestor(ref);
       IndentingPrintWriter.printOpening (pw, "[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
@@ -169,15 +171,8 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
     * {@inheritDoc}
     */
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)
-      throws IOException {
+   throws IOException {
       dowrite (pw, fmt, ref);
-   }
-
-   /**
-    * {@inheritDoc}
-    */
-   public boolean isWritable() {
-      return true;
    }
 
    /**
@@ -345,6 +340,25 @@ public abstract class ModelComponentBase implements ModelComponent, Cloneable {
       }
       else {
          myFlags &= ~MARKED;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean isWritable() {
+      return (myFlags & NON_WRITABLE) == 0;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void setWritable (boolean writable) {
+      if (writable) {
+         myFlags &= ~NON_WRITABLE;
+      }
+      else {
+         myFlags |= NON_WRITABLE;
       }
    }
 

@@ -21,6 +21,7 @@ import maspack.render.*;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.util.*;
+import maspack.widgets.GuiUtils;
 import maspack.properties.*;
 
 import artisynth.core.driver.*;
@@ -188,11 +189,11 @@ public class AttachParticleAgent
          new PointParticleAttachment (myTarget, myParticle);
       uninstallSelectionFilter();
       if (myParticle.isAttached()) {
-         EditorUtils.showError (myDisplay, "Particle already attached");         
+         GuiUtils.showError (myDisplay, "Particle already attached");         
          mySelectionManager.clearSelections();
       }
       else if (DynamicAttachmentWorker.containsLoop (ac, myParticle, null)) {
-         EditorUtils.showError (myDisplay, "Attachment contains a loop");
+         GuiUtils.showError (myDisplay, "Attachment contains a loop");
          mySelectionManager.clearSelections();
       }
       else {

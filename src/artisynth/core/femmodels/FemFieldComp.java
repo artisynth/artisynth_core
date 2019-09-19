@@ -7,6 +7,7 @@ import java.util.LinkedList;
 
 import java.util.ArrayList;
 import artisynth.core.modelbase.*;
+import artisynth.core.mechmodels.PointList;
 import artisynth.core.femmodels.FemElement.ElementClass;
 import artisynth.core.util.*;
 
@@ -55,18 +56,18 @@ public abstract class FemFieldComp
    }
 
    protected void writeValues (
-      PrintWriter pw, NumberFormat fmt,
-      DynamicDoubleArray values, DynamicBooleanArray valuesSet)
+      PrintWriter pw, NumberFormat fmt, DynamicDoubleArray values, 
+      DynamicBooleanArray valuesSet, WritableTest writableTest)
       throws IOException {
 
       pw.println ("[");
       IndentingPrintWriter.addIndentation (pw, 2);
-      for (int i=0; i<values.size(); i++) {
-         if (!valuesSet.get(i)) {
+      for (int num=0; num<values.size(); num++) {
+         if (!valuesSet.get(num) || !writableTest.isWritable(num)) {
             pw.println ("null");
          }
          else {
-            pw.println (fmt.format (values.get(i)));
+            pw.println (fmt.format (values.get(num)));
          }
       }
       IndentingPrintWriter.addIndentation (pw, -2);
@@ -75,13 +76,14 @@ public abstract class FemFieldComp
  
    protected void writeScalarValueArrays (
       PrintWriter pw, NumberFormat fmt,
-      ArrayList<double[]> valueArrays)
+      ArrayList<double[]> valueArrays, WritableTest writableTest)
       throws IOException {
 
       pw.println ("[");
       IndentingPrintWriter.addIndentation (pw, 2);
-      for (double[] varray : valueArrays) {
-         if (varray == null) {
+      for (int num=0; num<valueArrays.size(); num++) {
+         double[] varray = valueArrays.get(num);
+         if (varray == null || !writableTest.isWritable(num)) {
             pw.println ("null");
          }
          else {
@@ -240,6 +242,60 @@ public abstract class FemFieldComp
 
    protected interface ReferenceTest {
       boolean isReferenced (int num);
+   }
+
+   protected interface WritableTest {
+      boolean isWritable (int num);
+   }
+
+   protected class ElementReferencedTest implements ReferenceTest {
+      FemElement3dList<? extends FemElement3dBase> myList;
+
+      ElementReferencedTest (FemElement3dList<? extends FemElement3dBase> list) {
+         myList = list;
+      }
+
+      public boolean isReferenced (int num) {
+         return myList.getByNumber (num) != null;
+      }      
+   }
+
+   protected class NodeReferencedTest implements ReferenceTest {
+      PointList<FemNode3d> myList;
+
+      NodeReferencedTest (PointList<FemNode3d> list) {
+         myList = list;
+      }
+
+      public boolean isReferenced (int num) {
+         return myList.getByNumber (num) != null;
+      }      
+   }
+
+   protected class ElementWritableTest implements WritableTest {
+      FemElement3dList<? extends FemElement3dBase> myList;
+
+      ElementWritableTest (FemElement3dList<? extends FemElement3dBase> list) {
+         myList = list;
+      }
+
+      public boolean isWritable (int num) {
+         FemElement3dBase e = myList.getByNumber(num);
+         return e != null && e.isWritable();
+      }      
+   }
+
+   protected class NodeWritableTest implements WritableTest {
+      PointList<FemNode3d> myList;
+
+      NodeWritableTest (PointList<FemNode3d> list) {
+         myList = list;
+      }
+
+      public boolean isWritable (int num) {
+         FemNode3d n = myList.getByNumber(num);
+         return n != null && n.isWritable();
+      }      
    }
 
    protected static class NumDoublePair {

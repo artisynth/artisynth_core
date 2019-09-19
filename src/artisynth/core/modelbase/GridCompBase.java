@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
 import artisynth.core.modelbase.*;
-import artisynth.core.modelbase.ScanWriteUtils.ClassInfo;
 import artisynth.core.util.*;
 
 import maspack.util.*;

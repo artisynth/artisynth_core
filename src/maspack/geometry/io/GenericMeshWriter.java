@@ -80,6 +80,12 @@ public class GenericMeshWriter implements MeshWriter {
       else if (lfileName.endsWith (".stl")) {
          return new StlWriter(file);
       }
+      else if (lfileName.endsWith (".gts")) {
+         return new GtsWriter(file);
+      }
+      else if (lfileName.endsWith (".xyz")) {
+         return new XyzWriter(file);
+      }
       else if (lfileName.endsWith (".xyzb")) {
          return new XyzbWriter(file);
       }
@@ -137,6 +143,21 @@ public class GenericMeshWriter implements MeshWriter {
 
    public void close() {
       myWriter.close();
+   }
+
+   public boolean getZeroIndexed () {
+      if (myWriter instanceof WavefrontWriter) {
+         return ((WavefrontWriter)myWriter).getZeroIndexed();
+      }
+      else {
+         return false;
+      }
+   }
+
+   public void setZeroIndexed (boolean enable) { 
+      if (myWriter instanceof WavefrontWriter) {
+         ((WavefrontWriter)myWriter).setZeroIndexed(enable);
+      }
    }
 
    @Override

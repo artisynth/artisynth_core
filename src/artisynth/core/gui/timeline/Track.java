@@ -26,6 +26,8 @@ import artisynth.core.probes.WayPoint;
 import artisynth.core.probes.WayPointProbe;
 import artisynth.core.util.TimeBase;
 
+import maspack.widgets.GuiUtils;
+
 public class Track extends JPanel {
    private static final long serialVersionUID = 1L;
    private final Color highlight = new Color (215, 215, 215);
@@ -524,7 +526,6 @@ public class Track extends JPanel {
 
    public void muteTrack (boolean mute) {
       WayPointProbe wayProbe = myController.myMain.getRootModel().getWayPoints();
-
       double earliestTime;
 
       ArrayList<ProbeInfo> pinfos = getProbeInfos();
@@ -629,9 +630,9 @@ public class Track extends JPanel {
             : Track.TYPE_OUTPUT, myIndex, !isParentModelDeleted);
       }
       else {
-         JOptionPane.showMessageDialog (myController, 
-            "All probes must be removed from track before deleting.", "Error!", 
-            JOptionPane.ERROR_MESSAGE);
+         GuiUtils.showError (
+            myController,
+            "All probes must be removed from track before deleting.");
       }
    }
 
@@ -747,17 +748,20 @@ public class Track extends JPanel {
     */
 
    private void validateTrackStatus() {
-      boolean trackStatus = false;
+      if (probeInfos.size() > 0) {
+         boolean trackStatus = false;
 
-      for (ProbeInfo probeInfo : probeInfos) {
-         if (probeInfo.isActive()) {
-            trackStatus = true;
-            break;
+         for (ProbeInfo probeInfo : probeInfos) {
+            if (probeInfo.isActive()) {
+               trackStatus = true;
+               break;
+            }
          }
+         
+         updateToggleStatus (
+            trackStatus ? Track.TRACK_UNMUTED : Track.TRACK_MUTED);
+         toggleButtons[1].setSelected (!trackStatus);
       }
-
-      updateToggleStatus (trackStatus ? Track.TRACK_UNMUTED : Track.TRACK_MUTED);
-      toggleButtons[1].setSelected (!trackStatus);
    }
 
    /**
@@ -841,21 +845,21 @@ public class Track extends JPanel {
       boolean showOtherItems = !showGroupItem && isEnabled;
       
       if (showOtherItems) {   
-         JMenuItem changeTrackNameItem = new JMenuItem ("Change Track Name");
+         JMenuItem changeTrackNameItem = new JMenuItem ("Change track name");
          changeTrackNameItem.addActionListener (myListener);
-         changeTrackNameItem.setActionCommand ("Change Track Name");
+         changeTrackNameItem.setActionCommand ("Change track name");
          popupMenu.add (changeTrackNameItem);
    
-         JMenuItem deleteTrackItem = new JMenuItem ("Delete Track");
+         JMenuItem deleteTrackItem = new JMenuItem ("Delete track");
          deleteTrackItem.addActionListener (myListener);
-         deleteTrackItem.setActionCommand ("Delete Track");
+         deleteTrackItem.setActionCommand ("Delete track");
          popupMenu.add (deleteTrackItem);
-         
-         popupMenu.addSeparator ();
-   
-         JMenuItem viewPropertyItem = new JMenuItem ("View Track Property");
-         viewPropertyItem.addActionListener (myListener);
-         viewPropertyItem.setActionCommand ("View Track Property");
+
+         // TODO not implemented
+         //popupMenu.addSeparator ();
+         //JMenuItem viewPropertyItem = new JMenuItem ("View track property");
+         //viewPropertyItem.addActionListener (myListener);
+         //viewPropertyItem.setActionCommand ("View track property");
          // popupMenu.add (viewPropertyItem); TODO not implemented
       }
       
@@ -864,24 +868,24 @@ public class Track extends JPanel {
             popupMenu.addSeparator ();
          }
          
-         JMenuItem groupTracks = new JMenuItem ("Group Tracks");
+         JMenuItem groupTracks = new JMenuItem ("Group tracks");
          groupTracks.addActionListener (myListener);
-         groupTracks.setActionCommand ("Group Tracks");
+         groupTracks.setActionCommand ("Group tracks");
          popupMenu.add (groupTracks);
    
-         JMenuItem ungroupTracks = new JMenuItem ("Ungroup Tracks");
+         JMenuItem ungroupTracks = new JMenuItem ("Ungroup tracks");
          ungroupTracks.addActionListener (myListener);
-         ungroupTracks.setActionCommand ("Ungroup Tracks");         
+         ungroupTracks.setActionCommand ("Ungroup tracks");         
          popupMenu.add (ungroupTracks);
          
-         JMenuItem muteAllTracks = new JMenuItem ("Mute Selected Tracks");
+         JMenuItem muteAllTracks = new JMenuItem ("Mute selected tracks");
          muteAllTracks.addActionListener (myListener);
-         muteAllTracks.setActionCommand ("Mute Selected Tracks");
+         muteAllTracks.setActionCommand ("Mute selected tracks");
          popupMenu.add (muteAllTracks);
          
-         JMenuItem unmuteAllTracks = new JMenuItem ("Unmute Selected Tracks");
+         JMenuItem unmuteAllTracks = new JMenuItem ("Unmute selected tracks");
          unmuteAllTracks.addActionListener (myListener);
-         unmuteAllTracks.setActionCommand ("Unmute Selected Tracks");
+         unmuteAllTracks.setActionCommand ("Unmute selected tracks");
          popupMenu.add (unmuteAllTracks);
       }
       
@@ -937,13 +941,13 @@ public class Track extends JPanel {
          else if (nameOfAction == "Un-mute Track") {
             muteTrack (false);
          }
-         else if (nameOfAction == "Change Track Name") {
+         else if (nameOfAction == "Change track name") {
             changeTrackName();
          }
-         else if (nameOfAction == "Delete Track") {
+         else if (nameOfAction == "Delete track") {
             deleteThisTrack (false);
          }
-         else if (nameOfAction == "View Track Property") {
+         else if (nameOfAction == "View track property") {
             viewTrackProperty();
          }
          else if (nameOfAction == "Hide Tracks") {
@@ -956,13 +960,13 @@ public class Track extends JPanel {
             setEnabled (true);
             addShowHideButton (false);
          }
-         else if (nameOfAction == "Group Tracks") {
+         else if (nameOfAction == "Group tracks") {
             myController.groupTracks();
          }
-         else if (nameOfAction == "Ungroup Tracks" && groupParent != null) {
+         else if (nameOfAction == "Ungroup tracks" && groupParent != null) {
             myController.ungroupTracks (groupParent);
          }
-         else if (nameOfAction == "Mute Selected Tracks") {
+         else if (nameOfAction == "Mute selected tracks") {
             if (groupParent == null) {
                myController.muteTracks (true, myController.selectedTracks);
             }
@@ -971,7 +975,7 @@ public class Track extends JPanel {
                   true, myController.getTrackGroup (groupParent));
             }
          }
-         else if (nameOfAction == "Unmute Selected Tracks") {
+         else if (nameOfAction == "Unmute selected tracks") {
             if (groupParent == null) {
                myController.muteTracks (false, myController.selectedTracks);
             }
@@ -1015,6 +1019,9 @@ public class Track extends JPanel {
                myController.addContiguousTrack (myTrack);
             }
          }
+         else if (e.isPopupTrigger()) {
+            showPopupMenu (e.getComponent (), e.getX (), e.getY ());
+         }
       }
 
       public void mouseReleased (MouseEvent e) {
@@ -1027,10 +1034,8 @@ public class Track extends JPanel {
                myController.removeAllContiguousTracks();
 
                if (!tracksMoved) {
-                  JOptionPane.showMessageDialog (
-                     myController,
-                     "Input and output tracks can not be mixed.",
-                     "Error", JOptionPane.ERROR_MESSAGE);
+                  GuiUtils.showError (
+                     myController, "Input and output tracks can not be mixed.");
                }
             }
          }

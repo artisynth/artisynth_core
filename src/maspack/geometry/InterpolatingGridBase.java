@@ -129,7 +129,7 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
     *
     * @return type parameter, or {@code null}
     */
-   public abstract Class<?> getTypeParameter();
+   public abstract Class<?> getParameterType();
 
    protected InterpolatingGridBase () {
       myRenderProps = createRenderProps();

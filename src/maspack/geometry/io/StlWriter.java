@@ -83,10 +83,9 @@ public class StlWriter extends MeshWriterBase {
       }
       else {
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported by this writer");
-      }     
+            "Mesh type "+mesh.getClass()+" not supported for '.stl' files");
+      }
    }
-   
 //   @Override
 //   public void write(OutputStream ostream, PolygonalMesh mesh)
 //      throws IOException {

@@ -67,6 +67,12 @@ public class GenericMeshReader implements MeshReader {
       else if (lfileName.endsWith (".stl")) {
          return new StlReader(file);
       }
+      else if (lfileName.endsWith (".gts")) {
+         return new GtsReader(file);
+      }
+      else if (lfileName.endsWith (".xyz")) {
+         return new XyzReader(file);
+      }
       else if (lfileName.endsWith (".xyzb")) {
          return new XyzbReader(file);
       }
@@ -143,6 +149,21 @@ public class GenericMeshReader implements MeshReader {
    protected void finalize() throws Throwable {
       super.finalize();
       close();
+   }
+
+   public boolean getZeroIndexed () {
+      if (myReader instanceof WavefrontReader) {
+         return ((WavefrontReader)myReader).getZeroIndexed();
+      }
+      else {
+         return false;
+      }
+   }
+
+   public void setZeroIndexed (boolean enable) { 
+      if (myReader instanceof WavefrontReader) {
+         ((WavefrontReader)myReader).setZeroIndexed(enable);
+      }
    }
 
    public static MeshBase readMesh (String fileName) throws IOException {

@@ -180,7 +180,7 @@ public class VectorNodalField<T extends VectorObject<T>>
 
       super.writeItems (pw, fmt, ancestor);
       pw.println ("values=");
-      writeValues (pw, fmt, myValues);
+      writeValues (pw, fmt, myValues, new NodeWritableTest(myFem.getNodes()));
    }
 
    protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
@@ -210,17 +210,13 @@ public class VectorNodalField<T extends VectorObject<T>>
       }
    }
 
-   private boolean nodeIsReferenced (int num) {
-      return myFem.getNodes().getByNumber(num) != null;
-   }
-
    public void updateReferences (boolean undo, Deque<Object> undoInfo) {
       if (undo) {
          restoreReferencedValues (myValues, undoInfo);
       }
       else {
          removeUnreferencedValues (
-            myValues, (int i) -> nodeIsReferenced(i), undoInfo);
+            myValues, new NodeReferencedTest (myFem.getNodes()), undoInfo);
       }
    }
 

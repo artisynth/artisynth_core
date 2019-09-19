@@ -528,10 +528,8 @@ public class PropertyDialog extends JDialog implements ActionListener,
          hostList.commonProperties (null, /* allowReadonly= */true);
       tree.removeDescendant ("renderProps");
       if (tree.numChildren() == 0) {
-         JOptionPane.showMessageDialog (
-            parentComp,
-            "No common properties for selected components",
-            "no common properties", JOptionPane.INFORMATION_MESSAGE);
+         GuiUtils.showNotice (
+            parentComp, "No common properties for selected components");
          return null;
       }
       else {

@@ -36,8 +36,9 @@ public class XyzbWriter extends MeshWriterBase {
          writeMesh (bout, (PointMesh)mesh);
       }
       else {
+         bout.close();
          throw new UnsupportedOperationException (
-            "Mesh type "+mesh.getClass()+" not supported by this writer");
+            "Mesh type "+mesh.getClass()+" not supported for '.xyzb' files");
       }
    }
 

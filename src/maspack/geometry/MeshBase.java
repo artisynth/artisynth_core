@@ -10,6 +10,7 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,6 +41,8 @@ import maspack.spatialmotion.SpatialInertia;
 import maspack.util.InternalErrorException;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.geometry.io.GenericMeshWriter;
+import maspack.geometry.io.GenericMeshReader;
 
 /**
  * A "mesh" is a geometric object defined by a set of vertices, which are then
@@ -831,6 +834,94 @@ public abstract class MeshBase implements Renderable, Cloneable {
       }
       addVertex (vtx);
       return vtx;
+   }
+
+   /**
+    * Reads this mesh from a file, with the file format being inferred from the
+    * file name suffix.
+    * 
+    * @param file
+    * file containing the mesh description
+    * @throws IOException if an I/O error occurred or if the file
+    * type is not compatible with polygonal meshes
+    */
+   public void read (File file) throws IOException {
+      clear();      
+      GenericMeshReader.readMesh (file, this);
+   }
+
+   /**
+    * Reads this mesh from a file, with the file format being inferred from the
+    * file name suffix.
+    * 
+    * <p>For Alias Wavefront obj files (with extension {@code .obj}), {@code
+    * zeroIndexed} can be used to indicate that the numbering of vertex indices
+    * starts at 0. Otherwise, numbering starts at 1.
+    * 
+    * @param file
+    * file containing the mesh description
+    * @param zeroIndexed
+    * if true, index numbering for mesh vertices starts at 0. Otherwise,
+    * numbering starts at 1.
+    * @throws IOException if an I/O error occurred or if the file
+    * type is not compatible with polygonal meshes
+    */
+   public void read (File file, boolean zeroIndexed) throws IOException {
+      clear();      
+      GenericMeshReader reader = new GenericMeshReader (file);
+      reader.setZeroIndexed (true);
+      reader.readMesh (this);
+   }
+
+   /**
+    * Writes this mesh to a File, with the file format being inferred from the
+    * file name suffix.
+    * 
+    * @param file
+    * File to write this mesh to
+    * @throws IOException if an I/O error occurred or if the file format is not
+    * compatible with the mesh type
+    */
+   public void write (File file) throws IOException {
+      GenericMeshWriter writer = new GenericMeshWriter (file);
+      writer.setFormat ("%g");
+      writer.writeMesh (this);
+   }
+
+   /**
+    * Writes this mesh to a File, with the file format being inferred from the
+    * file name suffix.
+    *
+    * <p>For text file formats, the optional argument {@code
+    * fmtStr} supplies a C <code>printf</code> style format string used for
+    * printing the vertex coordinates. For a description of the format string
+    * syntax, see {@link maspack.util.NumberFormat NumberFormat}. Good default
+    * choices for <code>fmtStr</code> are either <code>"%g"</code> (full
+    * precision), or <code>"%.Ng"</code>, where <i>N</i> is the number of
+    * desired significant figures. If {@code fmtStr} is {@code null}, full
+    * precision is assumed.
+    *
+    * <p>For Alias Wavefront obj files (with extension {@code .obj}), {@code
+    * zeroIndexed} can be used to request that the numbering of vertex indices
+    * starts at 0. Otherwise, numbering starts at 1.
+    * 
+    * @param file
+    * File to write this mesh to
+    * @param fmtStr optional format string for mesh vertices
+    * @param zeroIndexed
+    * if true, index numbering for mesh vertices starts at 0. Otherwise,
+    * numbering starts at 1.
+    * @throws IOException if an I/O error occurred or if the file format is not
+    * compatible with the mesh type
+    */
+   public void write (File file, String fmtStr, boolean zeroIndexed)
+      throws IOException {
+      GenericMeshWriter writer = new GenericMeshWriter (file);
+      if (fmtStr != null) {
+         writer.setFormat (fmtStr);
+      }
+      writer.setZeroIndexed (true);
+      writer.writeMesh (this);
    }
 
    /**

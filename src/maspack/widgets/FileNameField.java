@@ -64,9 +64,7 @@ public class FileNameField extends StringField {
                   setValue (path);
                }
                catch (IllegalValueException exc) {
-                  JOptionPane.showMessageDialog (
-                     FileNameField.this, exc.getMessage(),
-                     "Error:", JOptionPane.ERROR_MESSAGE);
+                  GuiUtils.showError (FileNameField.this, exc.getMessage());
                }
             }
          }

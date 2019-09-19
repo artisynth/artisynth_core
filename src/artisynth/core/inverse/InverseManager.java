@@ -124,7 +124,7 @@ public class InverseManager {
          findOrCreateOutputProbe(root, "computed excitations");
       excitationInput = findOrCreateInputProbe(root, "input excitations");
 
-      setLoneBreakpoint(root, controller.getProbeDuration());
+      setLoneBreakPoint(root, controller.getProbeDuration());
       setProbeDuration(controller.getProbeDuration());
       setProbeUpdateInterval(controller.getProbeUpdateInterval());
       
@@ -407,7 +407,7 @@ public class InverseManager {
       excitationOutProbe.setUpdateInterval (h);
    }
    
-   public static void replaceBreakpoint(RootModel root, double oldt, double newt) {
+   public static void replaceBreakPoint(RootModel root, double oldt, double newt) {
       WayPoint waypoint = root.getWayPoint(oldt);
       if (waypoint != null && waypoint.isBreakPoint()) {
          root.removeWayPoint(waypoint);
@@ -415,7 +415,7 @@ public class InverseManager {
       root.addBreakPoint (newt);
    }
    
-   public static void setLoneBreakpoint(RootModel root, double t) {
+   public static void setLoneBreakPoint(RootModel root, double t) {
       for (WayPoint wp : root.getWayPoints ()) {
          if (wp.isBreakPoint ())
             wp.setBreakPoint (false);

@@ -22,6 +22,7 @@ import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.util.DoubleInterval;
 import maspack.util.StringHolder;
+import maspack.widgets.GuiUtils;
 import maspack.widgets.ValueChangeEvent;
 import maspack.widgets.ValueChangeListener;
 import maspack.widgets.ValueCheckListener;
@@ -433,7 +434,7 @@ ValueChangeListener {
             if (!propPane.equals (pane)) {
                if (newName.compareTo (pane.getPropNameFieldText()) == 0) {
                   // check to make sure there are no duplicates
-                  showErrorWindow ("Name already exists!");
+                  GuiUtils.showError (this, "Name already exists!");
                   newName = oldName;
                   // so in this case, the 'new' name is the same as old, so
                   // effectively we don't make any changes
@@ -573,7 +574,7 @@ ValueChangeListener {
                }
                catch (Exception exception) {
                   System.out.println (exception.getMessage());
-                  showErrorWindow (exception.getMessage());
+                  GuiUtils.showError (this, exception.getMessage());
                   invalidateDriverAndGUI (index);
                   eqPane.setEqText (""); // invalidate current driver.
                   eqPane.clearDimensionLabel();
@@ -676,7 +677,7 @@ ValueChangeListener {
       }
       catch (Exception exception) {
          System.out.println (exception.getMessage());
-         showErrorWindow (exception.getMessage());
+         GuiUtils.showError (this, exception.getMessage());
          eqPane.clearDimensionLabel();
          invalidateDriverAndGUI (id);
 

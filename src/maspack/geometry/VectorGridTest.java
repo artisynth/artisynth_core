@@ -146,7 +146,7 @@ public class VectorGridTest extends InterpolatingGridTestBase {
                    copy.epsilonEquals ((MatrixNdGrid)grid, 0));
          }
          else {
-            VectorGrid<T> copy = new VectorGrid<T> (grid.getTypeParameter());
+            VectorGrid<T> copy = new VectorGrid<T> (grid.getParameterType());
             copy.scan (rtok, null);
             check ("write/scan copy != grid", copy.epsilonEquals (grid, 0));
          }

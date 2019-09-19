@@ -25,6 +25,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JSlider;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -144,8 +145,11 @@ public class GuiUtils {
       if (comp instanceof Window) {
          return (Window)comp;
       }
-      else {
+      else if (comp != null) {
          return SwingUtilities.windowForComponent (comp);
+      }
+      else {
+         return null;
       }
    }
 
@@ -622,6 +626,40 @@ public class GuiUtils {
       item.addActionListener (listener);
       item.setToolTipText (toolTip);
       return item;
+   }
+
+   public static void showError (Component comp, String msg) {
+      JOptionPane.showMessageDialog (
+         windowForComponent (comp), msg, "Error", JOptionPane.ERROR_MESSAGE);
+   }
+
+   public static void showError (Component comp, String msg, Exception e) {
+      if (e.getMessage() == null) {
+         msg += ": " + e.toString();
+      }
+      else {
+         msg += ": " + e.getMessage();
+      }
+      showError (comp, msg);
+   }
+
+   public static void showWarning (Component comp, String msg) {
+      JOptionPane.showMessageDialog (
+         windowForComponent (comp), msg,
+         "Warning", JOptionPane.WARNING_MESSAGE);
+   }
+
+   public static void showNotice (Component comp, String msg) {
+      JOptionPane.showMessageDialog (
+         windowForComponent (comp), msg,
+         "Notice", JOptionPane.INFORMATION_MESSAGE);
+   }
+
+   public static boolean confirmAction (Component comp, String msg) {
+      int confirmation = JOptionPane.showConfirmDialog (
+         windowForComponent (comp), msg,
+         "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+      return (confirmation == JOptionPane.YES_OPTION);
    }
 
 //   public static void setSliderLength (JSlider slider, int pixels) {

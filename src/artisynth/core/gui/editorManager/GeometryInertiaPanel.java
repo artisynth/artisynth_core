@@ -760,7 +760,7 @@ ActionListener, ValueChangeListener {
          mesh = new PolygonalMesh (new File (fileName));
       }
       catch (Exception exc) {
-         EditorUtils.showError (
+         GuiUtils.showError (
             SwingUtilities.windowForComponent (this),
             "Cannot read mesh: "+exc.getMessage());
       }

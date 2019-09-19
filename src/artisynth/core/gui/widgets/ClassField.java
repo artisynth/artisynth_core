@@ -6,7 +6,7 @@
  */
 package artisynth.core.gui.widgets;
 
-import artisynth.core.util.ClassAliases;
+import maspack.util.ClassAliases;
 import maspack.util.StringHolder;
 import maspack.util.BooleanHolder;
 import maspack.widgets.LabeledTextField;

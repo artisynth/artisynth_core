@@ -1874,6 +1874,12 @@ PointAttachable, ConnectableBody {
             for (FieldComponent field : myFieldList) {
                field.clearCacheIfNecessary();
             }
+            if (e.getComponent() == myElements &&
+                getIncompressible() == IncompMethod.ELEMENT) {
+               // state changes because this changes the incompressibility 
+               // constraint
+               e.setStateChanged (true);
+            }
          }
          else if (e.getComponent() == myMeshList) {
             // adding a mesh may change if stress/strain values have
@@ -2042,13 +2048,13 @@ PointAttachable, ConnectableBody {
             for (int k = 0; k < e.numPressureVals(); k++) {
                e.myLagrangePressures[k] = 0;
             }
-            e.clearState();
+            //e.clearState();
          }
          for (ShellElement3d e : myShellElements) {
             e.invalidateRestData();
             // e.getRestVolume();
             e.setInverted(false);
-            e.clearState();
+            //e.clearState();
          }         
          for (FemNode3d n : myNodes) {
             n.zeroStressStrain();
@@ -3277,7 +3283,6 @@ PointAttachable, ConnectableBody {
 
          // XXX only uses non-linear stress
          dpnt.setAveragePressure(pressure);
-         dt.clearState();
 
          // sum stress/stiffness contributions to each node
          for (int i = 0; i < e.myNodes.length; i++) {
@@ -3528,8 +3533,6 @@ PointAttachable, ConnectableBody {
             ks = addAuxStressAndTangent (sigma, D, auxmats, dpnt, pt, dt, ks);
          }
 
-         dt.clearState();
-            
          for (int i = 0; i < e.myNodes.length; i++) {
             FemNode3d nodei = (FemNode3d) e.myNodes[i];
             int bi = nodei.getSolveIndex();
@@ -3706,8 +3709,6 @@ PointAttachable, ConnectableBody {
             ks = addAuxStressAndTangent (sigma, D, auxmats, dpnt, pt, dt, ks);
          }
 
-         dt.clearState();
-            
          for (int i = 0; i < e.myNodes.length; i++) {
             FemNode3d nodei = (FemNode3d) e.myNodes[i];
             int bi = nodei.getSolveIndex();
@@ -4898,23 +4899,23 @@ PointAttachable, ConnectableBody {
    }
 
    public void getState(DataBuffer data) {
-      ArrayList<FemElement3dBase> elist = getAllElements();
-      for (int i = 0; i < elist.size(); i++) {
-         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
-         for (int k = 0; k < idata.length; k++) {
-            idata[k].getState(data);
-         }          
-      }
+//      ArrayList<FemElement3dBase> elist = getAllElements();
+//      for (int i = 0; i < elist.size(); i++) {
+//         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
+//         for (int k = 0; k < idata.length; k++) {
+//            idata[k].getState(data);
+//         }          
+//      }
    }
    
    public void setState(DataBuffer data) {
-      ArrayList<FemElement3dBase> elist = getAllElements();
-      for (int i = 0; i < elist.size(); i++) {
-         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
-         for (int k = 0; k < idata.length; k++) {
-            idata[k].setState (data);
-         }
-      }
+//      ArrayList<FemElement3dBase> elist = getAllElements();
+//      for (int i = 0; i < elist.size(); i++) {
+//         IntegrationData3d[] idata = elist.get(i).getIntegrationData();
+//         for (int k = 0; k < idata.length; k++) {
+//            idata[k].setState (data);
+//         }
+//      }
    }
 
    /* --- Render Methods --- */

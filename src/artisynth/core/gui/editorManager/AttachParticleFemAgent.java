@@ -21,6 +21,7 @@ import maspack.render.*;
 import maspack.geometry.*;
 import maspack.matrix.*;
 import maspack.util.*;
+import maspack.widgets.GuiUtils;
 import maspack.properties.*;
 
 import artisynth.core.driver.*;
@@ -231,13 +232,13 @@ public class AttachParticleFemAgent
          DynamicAttachment a = (DynamicAttachment)c;
          if (a.getSlave().isAttached()) {
             String path = ComponentUtils.getPathName(a.getSlave());
-            EditorUtils.showError (myDisplay, "point "+path+" is attached");
+            GuiUtils.showError (myDisplay, "point "+path+" is attached");
             return true;
          }
          list.add (a);
       }
       if (DynamicAttachmentWorker.containsLoops (list)) {
-         EditorUtils.showError (myDisplay, "attachments contain loops");
+         GuiUtils.showError (myDisplay, "attachments contain loops");
          return true;
       }
       return false;      

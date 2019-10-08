@@ -1055,9 +1055,12 @@ public class RootModel extends RenderableModelBase
    public void addWayPoint (WayPoint way) {
       if (way.getTime() != 0) {
          myWayPoints.add (way);
-         // set the state if we can. Don't bother if myRootInfo not set up yet
-         if (way.getTime() == getTime() && myRootInfo != null) {
-            way.setState (this);
+         // set the state if we can. Don't bother if main or myRootInfo not set
+         // up yet
+         if (Main.getMain() != null && myRootInfo != null) {
+            if (way.getTime() == getTime()) {
+               way.setState (this);
+            }
          }
          componentChanged (new StructureChangeEvent(myWayPoints));
       }

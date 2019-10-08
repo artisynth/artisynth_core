@@ -18,6 +18,8 @@ public interface HasNumericStateComponents {
     * Returns the HasNumericState components contained by this component. This will
     * be called by MechModelBase when creating a complete list of all the
     * HasNumericState components in the model.
+    * 
+    * @param list list to which HasNumericState components should be appended
     */
    public void getNumericStateComponents (List<HasNumericState> list);
 }

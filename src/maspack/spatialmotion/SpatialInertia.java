@@ -847,9 +847,21 @@ public class SpatialInertia extends Matrix6dBlock
     * @param M
     * spatial inertia to be copied
     */
+   public void set (Matrix6d M) {
+      set ((Matrix6dBase)M);
+   }
+
+   /**
+    * Sets this spatial inertia to be identical to be identical to another one.
+    * 
+    * @param M
+    * spatial inertia to be copied
+    */
    public void set (Matrix6dBase M) {
       super.set (M);
       updateComponents();
+      Vector3d massCom = new Vector3d();
+      massCom.scale (mass, com);
    }
 
    /**

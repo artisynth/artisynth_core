@@ -211,14 +211,14 @@ public class MeshBodyTest extends RootModel {
          mesh = WavefrontReader.readFromString (outerDense, /*zeroIndexed=*/true);
       }
       
-      if (false) {
+      if (true) {
          mesh = MeshFactory.createBox (
             3.0, 2.0, 1.0, Point3d.ZERO, 5, 4, 3, false,
             MeshFactory.FaceType.ALT_TRI);
       }
       
 
-      if (true) {
+      if (false) {
          try {
             mesh = new PolygonalMesh (
                "/home/lloyd/Shared2/phuman/boneData/skeletonJ-19/ScapulaLeft_Red1.obj");

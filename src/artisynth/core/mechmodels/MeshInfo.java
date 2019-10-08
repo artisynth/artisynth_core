@@ -173,7 +173,7 @@ public class MeshInfo {
       saveOrRestoreModBitsIfNecessary (gtr, oldRigidP, oldModifiedP);
    }
    
-   public void transformGeometry (GeometryTransformer gtr) {
+   void transformGeometry (GeometryTransformer gtr) {
       transformGeometry (gtr, /*constrainer=*/null);
    }
    

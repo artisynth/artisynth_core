@@ -10,7 +10,7 @@ SUBDIRS = \
         matlabAndJython \
 	modelguide \
         artisynth \
-	uiguide \
+	Uiguide \
 	updates
 
 .PHONY: javadocs

@@ -25,12 +25,42 @@ public abstract class AxialMaterial extends MaterialBase {
       // stub for future use
    }
 
+   /**
+    * Computes and returns the axial spring tension, as a function of
+    * length, length time derivative, rest length, and excitation.
+    * 
+    * @param l spring length
+    * @param ldot spring length time derivative
+    * @param l0 spring rest length
+    * @param excitation excitation value (varying from 0 to 1)
+    * @return spring tension
+    */
    public abstract double computeF (
       double l, double ldot, double l0, double excitation);
-
+   
+   /**
+    * Computes and returns the derivative of the axial spring tension
+    * with respect to the length.
+    * 
+    * @param l spring length
+    * @param ldot spring length time derivative
+    * @param l0 spring rest length
+    * @param excitation excitation value (varying from 0 to 1)
+    * @return tension derivative with respect to length
+    */
    public abstract double computeDFdl (
       double l, double ldot, double l0, double excitation);
-
+   
+   /**
+    * Computes and returns the derivative of the axial spring tension
+    * with respect to the length time derivative.
+    * 
+    * @param l spring length
+    * @param ldot spring length time derivative
+    * @param l0 spring rest length
+    * @param excitation excitation value (varying from 0 to 1)
+    * @return tension derivative with respect to length time derivative
+    */
    public abstract double computeDFdldot (
       double l, double ldot, double l0, double excitation);
 

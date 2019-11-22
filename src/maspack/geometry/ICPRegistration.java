@@ -12,6 +12,10 @@ import maspack.matrix.*;
 import maspack.util.*;
 import maspack.geometry.ICPRegistration.Prealign;
 
+/**
+ * Class to perform interative closest point (ICP) registration of one mesh
+ * onto another.
+ */
 public class ICPRegistration {
 
    protected static double EPSILON = 1e-10;
@@ -21,13 +25,17 @@ public class ICPRegistration {
    static public double myAdjustTime;
    static public double myPCATime;
 
+   /**
+    * Specifies whether to prealign the mesh using principal component analysis
+    * (PCA), and if so, which of the resulting PCA axes to try.
+    */
    public enum Prealign {
-      NONE,
-      PCA_ALL,
-      PCA_0,
-      PCA_1,
-      PCA_2,
-      PCA_3
+      NONE,     // do not prealign with PCA
+      PCA_ALL,  // try all PCA axis combinations
+      PCA_0,    // try the first PCA axis (for testing only)
+      PCA_1,    // try the second PCA axis (for testing only)
+      PCA_2,    // try the third PCA axis (for testing only)
+      PCA_3     // try the fourth PCA axis (for testing only)
    };
 
    static boolean myDualDistancingEnabled = false;
@@ -786,6 +794,20 @@ public class ICPRegistration {
       return dist;
    }
 
+   /**
+    * Computes an affine transform that tries to register mesh2 onto mesh1,
+    * using an interative closest point (ICP) approach. This method has the
+    * same functionality as {@link
+    * #registerICP(AffineTransform3d,PolygonalMesh,PolygonalMesh,Prealign,int[])},
+    * only with {@code align} set to {@link Prealign#PCA_ALL} and {@code npar}
+    * specified as a variable argument list.
+    * 
+    * @param X returns the resulting transform
+    * @param mesh1 target mesh
+    * @param mesh2 mesh to register
+    * @param npar DOFs to use in the final registration, as well as
+    * any preliminary registrations
+    */
    public void registerICP (
       AffineTransform3d X, PolygonalMesh mesh1,
       PolygonalMesh mesh2, int... npar) {
@@ -793,6 +815,61 @@ public class ICPRegistration {
       registerICP (X, mesh1, mesh2, Prealign.PCA_ALL, npar);
    }
 
+   /**
+    * Computes an affine transform that tries to register {@code mesh2} onto
+    * {@code mesh1}, using an interative closest point (ICP) approach.  The
+    * resulting transform is returned in {@code X}. The {@code npar} argument
+    * can be used to constrain the transform to rigid, rigid + scaling, or full
+    * affine (rigid + scaling + shearing), as described below.
+    *
+    * <p>The {@code align} argument can be used to specify whether or not to
+    * try prealigning the orientation using principal component analysis:
+    * {@link Prealign#NONE} specifies no prealignment, while {@link
+    * Prealign#PCA_ALL} specifies trying all possible PCA axis combinations for
+    * the best fit.
+    *
+    * <p>The argument {@code npar} contains integers specifying the number of
+    * DOFs to be used in both the final registration transform, as well as any
+    * preliminary registrations that should be applied first. The last integer
+    * specifies the DOFs in the final transformation, while any previous
+    * integers specify the preliminary registrations (in order). The integers
+    * are restricted to the following values:
+    * 
+    * <ul>
+    * <li> 3: translation only
+    * <li> 6: rigid transform
+    * <li> 7: rigid transform + scaling
+    * <li> 12: full affine transform (rigid + scaling + shearing)
+    * </ul>
+    *
+    * Preliminary registrations (usually with lower DOFs) can sometimes help
+    * improve the final result. For example, an {@code npar} containing the
+    * sequence
+    * 
+    * <pre>
+    * 3, 7
+    * </pre>
+    * 
+    * would instruct the method to first perform a translational registration,
+    * and then finish with a final registration consisting of a rigid transform
+    * plus scaling. Likewise, an {@code npar} containing the sequence
+    * 
+    * <pre>
+    * 6, 12
+    * </pre>
+    * 
+    * would instruct the method to first perform a rigid registration, and then
+    * finish with a final full affine registration. Repeating numbers in
+    * {@code npar} simply requests that the same registration be performed
+    * again.
+    * 
+    * @param X returns the resulting transform
+    * @param mesh1 target mesh
+    * @param mesh2 mesh to register
+    * @param align specifies whether or not to use PCA for prealignment
+    * @param npar DOFs to use in the final registration, as well as
+    * any preliminary registrations
+    */
    public void registerICP (
       AffineTransform3d X, PolygonalMesh mesh1, PolygonalMesh mesh2,
       Prealign align, int[] npar) {

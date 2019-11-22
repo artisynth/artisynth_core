@@ -1188,7 +1188,8 @@ public class CollisionHandler extends ConstrainerBase
          myUnilaterals.get(i).getState (data);
       }
       if (myStateNeedsContactInfo && myLastContactInfo != null) {
-         data.oput (myLastContactInfo);
+         // don't save by reference - not portable with saved waypoint data
+         //data.oput (myLastContactInfo);
          data.zputBool (true);
          myLastContactInfo.getState (data);
       }
@@ -1222,7 +1223,8 @@ public class CollisionHandler extends ConstrainerBase
          c.setState (data, myCollidable0, myCollidable1);
          myUnilaterals.add (c);
       }        
-      myLastContactInfo = (ContactInfo)data.oget();
+      // not portable with saved waypoint data
+      //myLastContactInfo = (ContactInfo)data.oget();
       boolean hasContactInfo = data.zgetBool();
       if (hasContactInfo) {
          ContactInfo cinfo = new ContactInfo (

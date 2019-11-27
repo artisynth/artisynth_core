@@ -19,6 +19,8 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
    protected RootModel myRootModel; // root model associated with the waypoints
    protected WayPoint myWay0; // hard wired way point at time = 0
    protected boolean myCheckStateP = false; // for testing only
+   
+   private boolean myResetInitialState = false;
    private boolean myInitialStateValidP = true;
 
    public static final int WRITE_FIRST_STATE = 0x01;
@@ -135,6 +137,18 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
       return myCheckStateP;
    }
 
+   public void resetInitialState() {
+      RootModel root = getRootModel();
+      WayPoint way0 = get (0);
+      if (root != null && way0 != null) {
+         CompositeState state = (CompositeState)root.createState(null);
+         root.getInitialState (state, null);
+         way0.setState (state);
+         myInitialStateValidP = true;
+      }
+      invalidateAfterTime (0.0);
+   }
+   
    public void invalidateInitialState() {
       myInitialStateValidP = false;
    }
@@ -146,7 +160,13 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
          if (root != null && way0 != null) {
             CompositeState state = 
                (CompositeState)root.createState(null);
-            root.getInitialState (state, way0.getState());
+            if (myResetInitialState) {
+               root.getInitialState (state, null);
+               myResetInitialState = false;
+            }
+            else {
+               root.getInitialState (state, way0.getState());
+            }
             way0.setState (state);
          }
          myInitialStateValidP = true;
@@ -557,14 +577,14 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
       }
    }
 
-   /**
-    * Invalidates all waypoints in this probe
-    */
-   public void invalidateAll() {
-      for (WayPoint way : myWayPoints.values()) {
-         way.setValid (false);
-      }
-   }
+//   /**
+//    * Invalidates all waypoints in this probe
+//    */
+//   public void invalidateAll() {
+//      for (WayPoint way : myWayPoints.values()) {
+//         way.setValid (false);
+//      }
+//   }
    
    /**
     * Writes all waypoints and their state as binary data to the attached 

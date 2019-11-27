@@ -660,7 +660,7 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
     * @param vxyz x, y, z indices
     * @return vertex index
     */
-   protected int xyzIndicesToVertex (Vector3i vxyz) {
+   public int xyzIndicesToVertex (Vector3i vxyz) {
       return vxyz.x + vxyz.y*myNx + vxyz.z*myNxNy;
    }
    
@@ -706,7 +706,7 @@ public abstract class InterpolatingGridBase implements Renderable, Scannable {
    /**
     * Returns the widths of this grid along the x, y, and z axes.
     * 
-    * @return grid widths
+    * @return grid widths (passed by value, can be modified)
     */
    public Vector3d getWidths() {
       return new Vector3d (myWidths);

@@ -367,7 +367,7 @@ public class DistanceGridSurfCalc {
     * Find the index number (in the range [0-7]) for a corner
     * node of a hex cell, as specified in terms of x,y,z index offsets.
     */
-   int findRefVertex (Vector3i xyzi) {
+   static int findRefVertex (Vector3i xyzi) {
       for (int i=0; i<DistanceGrid.myBaseQuadCellXyzi.length; i++) {
          if (xyzi.equals(DistanceGrid.myBaseQuadCellXyzi[i])) {
             return i;
@@ -384,7 +384,7 @@ public class DistanceGridSurfCalc {
       return en;
    }
 
-   void maybeAddFace (
+   static void maybeAddFace (
       HashMap<TetFace,TetDesc> faceTets,
       Vector3i vi0, Vector3i vi1, Vector3i vi2, TetDesc tdesc) {
       
@@ -402,7 +402,7 @@ public class DistanceGridSurfCalc {
       }
    }
 
-   void maybeAddEdge (
+   static void maybeAddEdge (
       HashMap<TetEdge,HashSet<TetDesc>> edgeTets,
       Vector3i vi0, Vector3i vi1, TetDesc tdesc) {
       
@@ -423,7 +423,7 @@ public class DistanceGridSurfCalc {
       }
    }
 
-   private void createConnectivity () {
+   private static void createConnectivity () {
       myFaceTets = new HashMap<TetFace,TetDesc>();
 
       ArrayList<HashSet<TetDesc>> nodeTets = new ArrayList<HashSet<TetDesc>>();
@@ -438,7 +438,7 @@ public class DistanceGridSurfCalc {
             for (int k=-1; k<=1; k++) {
                for (TetID tetId : TetID.values()) {
                   TetDesc tdesc =
-                     new TetDesc (new Vector3i (i, j, k), tetId);
+                     new TetDesc (new Vector3i (2*i, 2*j, 2*k), tetId);
                   Vector3i[] verts = tdesc.getVertices ();
                   for (int vi=0; vi<verts.length; vi++) {
                      int refVtx = findRefVertex (verts[vi]);
@@ -473,10 +473,15 @@ public class DistanceGridSurfCalc {
       }
    }
 
-   private void createConnectivityIfNecessary() {
+   private static void createConnectivityIfNecessary() {
       if (myFaceTets == null) {
          createConnectivity();
       }
+   }
+
+   public static ArrayList<TetDesc[]> getNodeTets() {
+      createConnectivityIfNecessary();
+      return myNodeTets;
    }
 
    void printConnectivity() {
@@ -990,7 +995,8 @@ public class DistanceGridSurfCalc {
 
       while (code != NONE) {
          int ntets = getFeatureAdjacentTets (
-            tdesc, sinfo.lastFeat, planeLoc, myVisitedTets);
+            tdesc.getBaseVertex(null), tdesc, sinfo.lastFeat,
+            planeLoc, myVisitedTets);
          TetPlaneIntersection ibest = null;
          if (myDebug > 0) {
             System.out.println (
@@ -1127,7 +1133,7 @@ public class DistanceGridSurfCalc {
             // If p0 is in fact near a tet boundary feature, find all the tets
             // adjacent to that feature which also intersect the plane.
             int ntets = getFeatureAdjacentTets (
-               tdesc, feat, plane, null);
+               tdesc.getBaseVertex(null), tdesc, feat, plane, null);
             double bestArea = 0;
             // if there is more than one adjacent tet, choose the one whose
             // plane intersection has the largest area            
@@ -1230,7 +1236,8 @@ public class DistanceGridSurfCalc {
          // intersection in adjacent tets.
          ArrayList<TetDesc> adescs = new ArrayList<TetDesc>();
          int ntets = getFeatureAdjacentTets (
-            adescs, tdesc, lastFeat, myVisitedTets);
+            adescs, tdesc.getBaseVertex(null), 
+            tdesc, lastFeat, myGrid, myVisitedTets);
          TetDesc tbest = null;
          double bestLen = 0;
          if (myDebug > 0) {
@@ -1353,9 +1360,9 @@ public class DistanceGridSurfCalc {
       double[] a = new double[10];
       myGrid.computeQuadCoefs (a, tdesc);         
 
-      double px = p0.x-tdesc.myCXi;
-      double py = p0.y-tdesc.myCYj;
-      double pz = p0.z-tdesc.myCZk;
+      double px = p0.x-tdesc.myCXi/2;
+      double py = p0.y-tdesc.myCYj/2;
+      double pz = p0.z-tdesc.myCZk/2;
       
       double dx = dir.x;
       double dy = dir.y;
@@ -1376,9 +1383,9 @@ public class DistanceGridSurfCalc {
          pi.scaledAdd (roots[0], dir, p0);
 
          if (myDebug > 0) {
-            px = pi.x-tdesc.myCXi;
-            py = pi.y-tdesc.myCYj;
-            pz = pi.z-tdesc.myCZk;
+            px = pi.x-tdesc.myCXi/2;
+            py = pi.y-tdesc.myCYj/2;
+            pz = pi.z-tdesc.myCZk/2;
             double phi = (
                a[0]*px*px + a[1]*py*py + a[2]*pz*pz +
                a[3]*py*pz + a[4]*pz*px + a[5]*px*py +
@@ -1555,8 +1562,8 @@ public class DistanceGridSurfCalc {
    }
 
    protected int getFeatureAdjacentTets (
-      TetDesc tdesc, TetFeature feat, Plane plane,
-      HashSet<TetDesc> visited) {
+      Vector3i vidx0, TetDesc tdesc, TetFeature feat,
+      Plane plane, HashSet<TetDesc> visited) {
 
       createConnectivityIfNecessary();
 
@@ -1566,7 +1573,7 @@ public class DistanceGridSurfCalc {
       if (feat instanceof TetFace) {
          TetDesc adjDesc = myFaceTets.get((TetFace)feat);
          TetDesc adesc = new TetDesc(adjDesc);
-         adesc.addOffset (tdesc);
+         adesc.addVertexOffset (vidx0);
          if (myGrid.inRange(adesc) &&
              (visited == null || !visited.contains(adesc))) {
             getVertexCoords (vpnts, adesc);
@@ -1588,36 +1595,54 @@ public class DistanceGridSurfCalc {
          int numi = 0;
          for (int i=0; i<adjDescs.length; i++) {
             TetDesc adesc = new TetDesc(adjDescs[i]);
-            adesc.addOffset (tdesc);
+            adesc.addVertexOffset (vidx0);
             if (myGrid.inRange(adesc) &&
                 (visited == null || !visited.contains(adesc))) {
-               // for node-adjacent tets, only allow those whose quad hex is
-               // different from that of tdesc
-               if ((feat instanceof TetNode && !adesc.cellEquals(tdesc)) ||
-                   (feat instanceof TetEdge && !adesc.equals(tdesc))) {
-                  getVertexCoords (vpnts, adesc);
-                  TetPlaneIntersection isect = getIsect(numi);
-                  if (intersectTetAndPlane (isect, adesc, vpnts, plane)) {
-                     numi++;
+               // if tdesc != null, filter out the tet if:
+               // a) feature is edge and tdesc == adesc;
+               // b) feature is node and vidx0 is in the same quad hex
+               if (tdesc != null) {
+                  if (feat instanceof TetEdge) {
+                     if (adesc.equals(tdesc)) {
+                        continue;
+                     }
+                  }
+                  else if (feat instanceof TetNode) {
+                     if (adesc.baseVertexEquals(vidx0)) {
+                        continue;
+                     }
                   }
                }
+               getVertexCoords (vpnts, adesc);
+               TetPlaneIntersection isect = getIsect(numi);
+               if (intersectTetAndPlane (isect, adesc, vpnts, plane)) {
+                  numi++;
+               }
+//               if ((feat instanceof TetNode && !adesc.baseVertexEquals(vidx0)) ||
+//                   (feat instanceof TetEdge && !adesc.equals(tdesc))) {
+//                  getVertexCoords (vpnts, adesc);
+//                  TetPlaneIntersection isect = getIsect(numi);
+//                  if (intersectTetAndPlane (isect, adesc, vpnts, plane)) {
+//                     numi++;
+//                  }
+//               }
             }
          }
          return numi;
       }
    }
 
-   protected int getFeatureAdjacentTets (
-      ArrayList<TetDesc> adescs, TetDesc tdesc, TetFeature feat,
-      HashSet<TetDesc> visited) {
+   protected static int getFeatureAdjacentTets (
+      ArrayList<TetDesc> adescs, Vector3i vidx0, TetDesc tdesc,
+      TetFeature feat, DistanceGrid grid, HashSet<TetDesc> visited) {
       
       createConnectivityIfNecessary();
 
       if (feat instanceof TetFace) {
          TetDesc adjDesc = myFaceTets.get((TetFace)feat);
          TetDesc adesc = new TetDesc(adjDesc);
-         adesc.addOffset (tdesc);
-         if (myGrid.inRange(adesc) && 
+         adesc.addVertexOffset (vidx0);
+         if (grid.inRange(adesc) && 
              (visited == null || !visited.contains(adesc))) {
             adescs.add (adesc);
             return 1;
@@ -1637,16 +1662,31 @@ public class DistanceGridSurfCalc {
          int numi = 0;
          for (int i=0; i<adjDescs.length; i++) {
             TetDesc adesc = new TetDesc(adjDescs[i]);
-            adesc.addOffset (tdesc);
-            if (myGrid.inRange(adesc) && 
+            adesc.addVertexOffset (vidx0);
+            if (grid.inRange(adesc) && 
                 (visited == null || !visited.contains(adesc))) {
-               // for node-adjacent tets, only allow those whose quad hex is
-               // different from that of tdesc
-               if ((feat instanceof TetNode && !adesc.cellEquals(tdesc)) ||
-                   (feat instanceof TetEdge && !adesc.equals(tdesc))) {
-                  adescs.add (adesc);
-                  numi++;
+               // if tdesc != null, filter out the tet if:
+               // a) feature is edge and tdesc == adesc;
+               // b) feature is node and vidx0 is in the same quad hex
+               if (tdesc != null) {
+                  if (feat instanceof TetEdge) {
+                     if (adesc.equals(tdesc)) {
+                        continue;
+                     }
+                  }
+                  else if (feat instanceof TetNode) {
+                     if (adesc.baseVertexEquals(vidx0)) {
+                        continue;
+                     }
+                  }
                }
+               adescs.add (adesc);
+               numi++;
+               //  if ((tdesc == null) ||
+               //     (feat instanceof TetNode && !adesc.baseVertexEquals(vidx0)) ||
+               //     (feat instanceof TetEdge && !adesc.equals(tdesc))) {
+               //       adescs.add (adesc);
+               //       numi++;
             }
          }
          return numi;
@@ -1877,9 +1917,9 @@ public class DistanceGridSurfCalc {
    public void transformToQuadCell (Point3d pc, Point3d pl, TetDesc tdesc) {
       // transform from local to regular grid coords, then to quad cell
       myGrid.myQuadGridToLocal.inverseTransformPnt (pc, pl); 
-      pc.x = pc.x-tdesc.myCXi;
-      pc.y = pc.y-tdesc.myCYj;
-      pc.z = pc.z-tdesc.myCZk;     
+      pc.x = pc.x-tdesc.myCXi/2;
+      pc.y = pc.y-tdesc.myCYj/2;
+      pc.z = pc.z-tdesc.myCZk/2;     
    }
 
    public void transformToQuadCell (Vector3d vc, Vector3d v1, TetDesc tdesc) {
@@ -1891,7 +1931,7 @@ public class DistanceGridSurfCalc {
       Point3d pl, double x, double y, double z, TetDesc tdesc) {
 
       // transform to regular grid coords, then transform to local coords
-      pl.set (tdesc.myCXi+x, tdesc.myCYj+y, tdesc.myCZk+z);
+      pl.set (tdesc.myCXi/2+x, tdesc.myCYj/2+y, tdesc.myCZk/2+z);
       myGrid.myQuadGridToLocal.transformPnt (pl, pl);
    }
 
@@ -1921,9 +1961,9 @@ public class DistanceGridSurfCalc {
     * indicated tet.
     */
    public void getVertexCoords (Point3d[] v, TetDesc tdesc) {
-      double xi = 2*tdesc.myCXi;
-      double yj = 2*tdesc.myCYj;
-      double zk = 2*tdesc.myCZk;
+      double xi = tdesc.myCXi;
+      double yj = tdesc.myCYj;
+      double zk = tdesc.myCZk;
 
       transformFromGrid (v[0], xi, yj, zk);
       

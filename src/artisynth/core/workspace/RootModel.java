@@ -1452,6 +1452,15 @@ public class RootModel extends RenderableModelBase
       myRootInfo.setFullState ((CompositeState)newState.getState(k++));      
    }
    
+   public void resetInitialState() {
+      myWayPoints.resetInitialState();
+      rerender();
+   }
+   
+   public void invalidateInitialState() {
+      myWayPoints.invalidateInitialState();
+   }
+   
    /**
     * {@inheritDoc}
     */

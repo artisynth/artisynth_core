@@ -101,6 +101,16 @@ public class Vector3d extends VectorBase
    }
 
    /**
+    * Creates a 3-vector for an integer 3 vector.
+    * 
+    * @param v
+    * vector to be copied
+    */
+   public Vector3d (Vector3i v) {
+      set (v);
+   }
+
+   /**
     * Creates a 3-vector by copying an existing Vector. The
     * size of the copied vector must be at least 3.
     * 

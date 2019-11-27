@@ -44,6 +44,8 @@ public class DistanceGridComp extends GridCompBase {
    PolygonalMesh myRenderSurface = null;
    boolean mySurfaceValidP = false;
    ArrayList<MeshComponent> myGeneratingMeshes = new ArrayList<>();
+   // list of generating meshes that are polygonal and have faces
+   ArrayList<PolygonalMesh> myPolygonalMeshes = new ArrayList<>();
    // lists of faces from the generating meshes
    ArrayList<List<? extends Feature>> myGeneratingFaces =
       new ArrayList<List<? extends Feature>>();
@@ -127,14 +129,15 @@ public class DistanceGridComp extends GridCompBase {
       if (!myGridExplicitP) {
          invalidateGrid();
       }
-      // rebuild the list of faces. Do this so we know in advance if we can
-      // actually build a grid from the meshes (if the list is empty, we can't)
-      myGeneratingFaces.clear();
+      // rebuild the list of polygonal meshes. Do this so we know in advance 
+      // if we can actually build a grid from the meshes 
+      // (if the list is empty, we can't)
+      myPolygonalMeshes.clear();
       for (MeshComponent mcomp : myGeneratingMeshes) {
          if (mcomp.getMesh() instanceof PolygonalMesh) {
             PolygonalMesh mesh = (PolygonalMesh)mcomp.getMesh();
             if (mesh.numFaces() > 0) {
-               myGeneratingFaces.add (mesh.getFaces());
+               myPolygonalMeshes.add (mesh);
             }
          }
       }
@@ -382,7 +385,7 @@ public class DistanceGridComp extends GridCompBase {
    }
 
    protected boolean canGenerateGrid() {
-      return (myGeneratingFaces.size() > 0 &&
+      return (myPolygonalMeshes.size() > 0 &&
               (!myResolution.equals (Vector3i.ZERO) || myMaxResolution > 0));
    }
 
@@ -420,25 +423,35 @@ public class DistanceGridComp extends GridCompBase {
          }
                   
          // fit the grid to the faces
+         ArrayList<List<? extends Feature>> faceLists = new ArrayList<>();
+         for (PolygonalMesh mesh : myPolygonalMeshes) {
+            faceLists.add (mesh.getFaces());
+         }
          if (myFitWithOBB) {
             grid.fitToFeaturesOBB (
-               myGeneratingFaces, myMarginFraction, maxRes);
+               faceLists, myMarginFraction, maxRes);
          }
          else {
             grid.fitToFeatures (
-               myGeneratingFaces, myMarginFraction, /*TCL=*/null, maxRes);
+               faceLists, myMarginFraction, /*TCL=*/null, maxRes);
          }
          grid.setLocalToWorld (getLocalToWorld());
 
-         grid.computeDistances (myGeneratingFaces.get(0), /*signed=*/true);
-         if (myGeneratingFaces.size() > 1) {
-            for (List<? extends Feature> faces : myGeneratingFaces) {
-               grid.computeUnion (faces);
+         grid.computeDistances (myPolygonalMeshes.get(0), /*signed=*/true);
+         if (myPolygonalMeshes.size() > 1) {
+            for (PolygonalMesh mesh : myPolygonalMeshes) {
+               grid.computeUnion (mesh);
             }
             grid.computeDistances (
-               grid.createDistanceSurface().getFaces(), /*signed=*/true);
+               grid.createDistanceSurface(), /*signed=*/true);
          }
          setRenderRanges (myRenderRanges);
+         // estimate the minimum distance from the surface to the grid
+         // boundary, and then mark any quad tets whose nodes have a greater
+         // distance as being "outside"
+         Vector3d margins = new Vector3d(grid.getWidths());
+         margins.scale (myMarginFraction);
+         //grid.markOutsideQuadtets (margins.minElement());         
       }
       super.setGrid (grid); // set myBaseGrid in the super class
       myGrid = grid;
@@ -467,7 +480,7 @@ public class DistanceGridComp extends GridCompBase {
          myGridExplicitP = true;
          mySurfaceValidP = false;
          myGeneratingMeshes.clear();
-         myGeneratingFaces.clear();
+         myPolygonalMeshes.clear();
          myResolution.set (grid.getResolution());
 
          grid.setLocalToWorld (myLocalToWorld);
@@ -545,7 +558,9 @@ public class DistanceGridComp extends GridCompBase {
       Point3d p0loc = new Point3d();
       p0loc.inverseTransform (myLocalToWorld, p0);
       //double d = grid.getLocalDistanceAndNormal (nrm, Dnrm, p0loc);
+      grid.useNormalsForQuadGrad = false;
       double d = grid.getQuadDistanceAndGradient (nrm, Dnrm, p0loc);
+      grid.useNormalsForQuadGrad = false;
       RotationMatrix3d R = myLocalToWorld.R;
       if (Dnrm != null) {
          Dnrm.transform (R);

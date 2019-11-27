@@ -18,7 +18,13 @@ public interface CopyableComponent extends ModelComponent {
     * be copied.
     */
    public static final int COPY_REFERENCES = 0x1;
-
+   
+   /**
+    * For deformable components (such as FEM models), indicates that the 
+    * copy should be made in the component's rest position. 
+    */
+   public static final int REST_POSITION = 0x2;
+   
    /**
     * Create a copy of this component. If <code>COPY_REFERENCES</code>
     * is set in <code>flags</code>, then any component referenced

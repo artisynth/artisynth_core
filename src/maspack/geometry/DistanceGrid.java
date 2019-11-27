@@ -1,4 +1,4 @@
- /*
+/**
  * Copyright (c) 2017, by the Authors: Bruce Haines (UBC), Antonio Sanchez
  * (UBC), John E Lloyd (UBC)
  *
@@ -9,6 +9,8 @@ package maspack.geometry;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -19,6 +21,8 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
 import maspack.matrix.Vector3i;
 import maspack.matrix.VectorTransformer3d;
+import maspack.geometry.DistanceGridSurfCalc.*;
+import maspack.geometry.BVFeatureQuery.*;
 import maspack.util.InternalErrorException;
 import maspack.util.*;
 
@@ -123,6 +127,27 @@ public class DistanceGrid extends ScalarGridBase {
    protected Vector3d[] myNormals;      // normal values at each vertex
    protected double[][] myQuadCoefs;    // quad tet interpolation coefficients 
    protected TetDesc[] myTets;          // quad tet interpolation coefficients 
+   protected boolean[] myTetIsOutside;  // indicates "outside" tets
+
+   /**
+    * Describes what method to use when generating distance values from
+    * polygonal meshes. (Distance values generated from feature sets
+    * presently used BRIDSON.)
+    */
+   public enum DistanceMethod {
+      /**
+       * Use distance and inclusion queries based on bounding volume
+       * hierarchies. This is much more accurate but takes about twice as long
+       * as the BRIDSON method.
+       */
+      BVH,
+
+      /**
+       * Use the sweep method devised by Robert Bridson (described in the class
+       * API header).
+       */
+      BRIDSON
+   }
 
    protected static boolean storeQuadCoefs = true;
 
@@ -152,6 +177,33 @@ public class DistanceGrid extends ScalarGridBase {
    protected int[] myClosestFeatureIdxs;
    protected Feature[] myFeatures;
 
+   public static DistanceMethod DEFAULT_DISTANCE_METHOD = 
+      DistanceMethod.BRIDSON;
+   protected DistanceMethod myDistanceMethod = DEFAULT_DISTANCE_METHOD;
+
+   /**
+    * Sets the method used to compute distance values from polygonal meshes.
+    * Specifying {@code null} sets the method to the default value,
+    * which is {@link DistanceMethod#BRIDSON}.
+    *
+    * @param method distance method for polygonal meshes
+    */
+   public void setDistanceMethod (DistanceMethod method) {
+      if (method == null) {
+         method = DEFAULT_DISTANCE_METHOD;
+      }
+      myDistanceMethod = method;
+   }
+
+   /**
+    * Returns the method used to compute distance values from polygonal meshes.
+    *
+    * @return distance method for polygonal meshes
+    */
+   public DistanceMethod getDistanceMethod() {
+      return myDistanceMethod;
+   }
+
    /**
     * Default constructor. Should not be called by applications, unless
     * {@link #scan} is called immediately after.
@@ -165,7 +217,10 @@ public class DistanceGrid extends ScalarGridBase {
     */
    public void setLocalToWorld (RigidTransform3d TLW) {
       super.setLocalToWorld (TLW);
-      updateQuadGridToWorld (myQuadGridToLocal);
+      if (myQuadGridToLocal != null) {
+         // might be null if grid is still being constructed
+         updateQuadGridToWorld (myQuadGridToLocal);
+      }
    }
 
    private void fitAABB (
@@ -383,6 +438,7 @@ public class DistanceGrid extends ScalarGridBase {
          myQxQy = myQx*myQy;  
 
          myQuadCoefs = null;
+         myTetIsOutside = null;
          if (myFeatures != null) {
             int[] closestFeatureIdxs = new int[numVertices()];
             calculatePhi (myValues, closestFeatureIdxs, myFeatures, mySignedP);
@@ -424,15 +480,18 @@ public class DistanceGrid extends ScalarGridBase {
       if (grid.myNormals != null) {
          myNormals = new Vector3d[grid.myNormals.length];
          for (int i=0; i<myNormals.length; i++) {
-            myNormals[i] = new Vector3d (grid.myNormals[i]);
+            if (grid.myNormals[i] != null) {
+               myNormals[i] = new Vector3d (grid.myNormals[i]);
+            }
          }
       }
       else {
          myNormals = null;
       }
       
-      myQuadCoefs = null; // will be recomputed on demand
-      myTets = null;      // will be recomputed on demand
+      myQuadCoefs = null;    // will be recomputed on demand
+      myTetIsOutside = null; // will be recomputed on demand
+      myTets = null;         // will be recomputed on demand
       
       if (grid.myQuadGridToLocal != null) {
          myQuadGridToLocal = grid.myQuadGridToLocal.copy();
@@ -485,7 +544,7 @@ public class DistanceGrid extends ScalarGridBase {
     * Computes the distance field for this grid, based on the nearest distances
     * to a supplied set of features. These features are stored internally and
     * can be later retrieved using {@link #getFeatures}. The grid resolution,
-    * widths, center and orientaion remain unchanged.
+    * widths, center and orientation remain unchanged.
     *
     * @param features features used to compute the distance field
     * @param signed if <code>true</code>, indicates that the field should be
@@ -496,6 +555,12 @@ public class DistanceGrid extends ScalarGridBase {
       List<? extends Feature> features, boolean signed) {
       
       calculatePhi (features, signed);
+   }
+   
+   public void computeDistances (
+      PolygonalMesh mesh, boolean signed) {
+      
+      calculatePhi (mesh, signed);
    }
    
    /**
@@ -520,6 +585,7 @@ public class DistanceGrid extends ScalarGridBase {
       double[] distances, boolean signed) {
       super.setVertexValues (distances);
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
       clearFeatures();
       mySignedP = signed;
@@ -581,6 +647,7 @@ public class DistanceGrid extends ScalarGridBase {
    public void zeroVertexDistances () {
       super.zeroVertexValues();
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
       clearFeatures();
       mySignedP = false;
@@ -628,6 +695,7 @@ public class DistanceGrid extends ScalarGridBase {
          myClosestFeatureIdxs[i] = idx;
       }
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
       mySignedP = signed;
       myRobValid = false;
@@ -707,6 +775,14 @@ public class DistanceGrid extends ScalarGridBase {
       fitToFeatures (features, marginFrac, TCL, maxRes);
       calculatePhi (features, signed);      
    }
+   
+   public void computeFromMesh (
+      PolygonalMesh mesh, 
+      double marginFrac, RigidTransform3d TCL, int maxRes, boolean signed) {
+      
+      fitToFeatures (mesh.getFaces(), marginFrac, TCL, maxRes);
+      calculatePhi (mesh, signed);      
+   }    
 
    /**
     * Fits the widths and center of this grid to a set of features. The way in
@@ -886,67 +962,95 @@ public class DistanceGrid extends ScalarGridBase {
       int[] closestFeatureIdxs = new int[numv];
       calculatePhi (myValues, closestFeatureIdxs, featArray, signed);
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
       myClosestFeatureIdxs = closestFeatureIdxs;
       myFeatures = featArray;
       mySignedP = signed;
    }
 
-   public void computeUnion (List<? extends Feature> features) {
-      Feature[] featArray = features.toArray(new Feature[0]);
+   void calculatePhi (
+      PolygonalMesh mesh, boolean signed) {
+      
+      Feature[] featArray = mesh.getFaces().toArray(new Feature[0]);
+      int numv = numVertices();
+      int[] closestFeatureIdxs = new int[numv];
+      if (myDistanceMethod == DistanceMethod.BRIDSON) {
+         calculatePhi (myValues, closestFeatureIdxs, featArray, signed);
+      }
+      else {
+         calculatePhi (myValues, closestFeatureIdxs, mesh, signed);
+      }
+      myQuadCoefs = null;
+      myTetIsOutside = null;
+      clearNormals();
+      myClosestFeatureIdxs = closestFeatureIdxs;
+      myFeatures = featArray;
+      mySignedP = signed;
+   }
+
+   protected void calculateDistances (
+      double[] values, PolygonalMesh mesh, boolean signed) {
+      if (myDistanceMethod == DistanceMethod.BRIDSON) {
+         Feature[] featArray = mesh.getFaces().toArray(new Feature[0]);
+         calculatePhi (values, null, featArray, signed);
+      }
+      else {
+         calculatePhi (values, null, mesh, signed);
+      }
+   }
+
+   public void computeUnion (PolygonalMesh mesh) {
       int numv = numVertices();
       double[] phiNew = new double[numv];
-      int[] closestFeatureIdxs = new int[numv];
-      calculatePhi (phiNew, closestFeatureIdxs, featArray, /*signed=*/true);
+      calculateDistances (phiNew, mesh, /*signed=*/true);
       for (int i=0; i<numv; i++) {
          myValues[i] = Math.min (myValues[i], phiNew[i]);
       }
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
       myFeatures = null;
       mySignedP = true;
    }
    
-   public void computeIntersection (List<? extends Feature> features) {
-      Feature[] featArray = features.toArray(new Feature[0]);
+   public void computeIntersection (PolygonalMesh mesh) {
       int numv = numVertices();
       double[] phiNew = new double[numv];
-      int[] closestFeatureIdxs = new int[numv];
-      calculatePhi (phiNew, closestFeatureIdxs, featArray, /*signed=*/true);
+      calculateDistances (phiNew, mesh, /*signed=*/true);
       for (int i=0; i<numv; i++) {
          myValues[i] = Math.max (myValues[i], phiNew[i]);
       }
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
       myFeatures = null;
       mySignedP = true;
    }
    
-   public void computeDifference01 (List<? extends Feature> features) {
-      Feature[] featArray = features.toArray(new Feature[0]);
+   public void computeDifference01 (PolygonalMesh mesh) {
       int numv = numVertices();
       double[] phiNew = new double[numv];
-      int[] closestFeatureIdxs = new int[numv];
-      calculatePhi (phiNew, closestFeatureIdxs, featArray, /*signed=*/true);
+      calculateDistances (phiNew, mesh, /*signed=*/true);
       for (int i=0; i<numv; i++) {
          myValues[i] = Math.max (myValues[i], -phiNew[i]);
       }
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
       myFeatures = null;
       mySignedP = true;
    }
    
-   public void computeDifference10 (List<? extends Feature> features) {
-      Feature[] featArray = features.toArray(new Feature[0]);
+   public void computeDifference10 (PolygonalMesh mesh) {
       int numv = numVertices();
       double[] phiNew = new double[numv];
-      int[] closestFeatureIdxs = new int[numv];
-      calculatePhi (phiNew, closestFeatureIdxs, featArray, /*signed=*/true);
+      calculateDistances (phiNew, mesh, /*signed=*/true);
       for (int i=0; i<numv; i++) {
          myValues[i] = Math.max (-myValues[i], phiNew[i]);
       }
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
       myFeatures = null;
       mySignedP = true;
@@ -957,10 +1061,85 @@ public class DistanceGrid extends ScalarGridBase {
     */
    void calculatePhi (
       double[] phi, int[] closestFeatureIdxs,
+      PolygonalMesh mesh, boolean signed) {
+      
+      FunctionTimer timer = new FunctionTimer();
+      timer.start();
+      double maxDist = 2*getRadius();
+      int numv = myNx*myNy*myNz;
+
+      if (phi.length != numv ||
+          (closestFeatureIdxs != null && closestFeatureIdxs.length != numv)) {
+         throw new InternalErrorException (
+            "length of phi and/or closestFeatureIdxs != numVertices()");
+      }
+      
+      for (int k = 0; k < numv; k++) {
+         phi[k] = maxDist;
+      }
+
+      // The index of closestFeature matches with phi.
+      // Each entry in closestFeature is the index of the closest 
+      // Feature to the grid vertex.
+      if (closestFeatureIdxs == null) {
+         closestFeatureIdxs = new int[numv];
+      }
+      for (int i = 0; i < numv; i++) {
+         closestFeatureIdxs[i] = -1;
+      }
+
+      BVFeatureQuery query = new BVFeatureQuery();
+      Point3d pnt = new Point3d();
+      Point3d near = new Point3d();
+      for (int xi = 0; xi < myNx; xi++) {
+         for (int yj = 0; yj < myNy; yj++) {
+            for (int zk = 0; zk < myNz; zk++) {
+               int vi = xyzIndicesToVertex (xi, yj, zk);
+               myGridToLocal.transformPnt (pnt, new Vector3d (xi, yj, zk));
+               myLocalToWorld.transformPnt (pnt, pnt);
+
+               boolean inside = false;
+               Face face = null;
+               if (signed) {
+                  // inside = query.isInsideOrientedMesh (mesh, pnt, -1);
+                  // face = query.getFaceForInsideOrientedTest (near, null);
+                  // if (face == null) {
+                  //    // face wasn't computed because isInsideOrientedMesh() was
+                  //    // able to determine the point was outside without it
+                  //    face = query.nearestFaceToPoint (near, null, mesh, pnt);
+                  // }
+                  InsideQuery res = query.isInsideMesh (mesh, pnt);
+                  if (res == InsideQuery.UNSURE) {
+                     System.out.println ("UNSURE");
+                  }
+                  inside = (res == InsideQuery.INSIDE);
+                  face = query.nearestFaceToPoint (near, null, mesh, pnt);
+               }
+               else {
+                  face = query.nearestFaceToPoint (near, null, mesh, pnt);
+               }
+               if (face != null) {
+                  closestFeatureIdxs[vi] = face.getIndex();
+                  double d = near.distance (pnt);
+                  phi[vi] = (inside ? -d : d);
+
+               }
+            }
+         }
+      }   
+      timer.stop();
+      System.out.println ("BVH: " + timer.result(1));
+   }
+
+   /** 
+    * Calculates the distance field.
+    */
+   void calculatePhi (
+      double[] phi, int[] closestFeatureIdxs,
       Feature[] features, boolean signed) {
       
-      // Logger logger = Logger.getSystemLogger();
-      //logger.info ("Calculating Distance Field...");
+      FunctionTimer timer = new FunctionTimer();
+      timer.start();
       
       double maxDist = 2*getRadius();
       int numv = myNx*myNy*myNz;
@@ -970,7 +1149,7 @@ public class DistanceGrid extends ScalarGridBase {
          throw new InternalErrorException (
             "length of phi and/or closestFeatureIdxs != numVertices()");
       }
-
+      
       for (int k = 0; k < numv; k++) {
          phi[k] = maxDist;
       }
@@ -978,10 +1157,11 @@ public class DistanceGrid extends ScalarGridBase {
       // The index of closestFeature matches with phi.
       // Each entry in closestFeature is the index of the closest 
       // Feature to the grid vertex.
-      if (closestFeatureIdxs != null) {
-         for (int i = 0; i < numv; i++) {
-            closestFeatureIdxs[i] = -1;
-         }
+      if (closestFeatureIdxs == null) {
+         closestFeatureIdxs = new int[numv];
+      }
+      for (int i = 0; i < numv; i++) {
+         closestFeatureIdxs[i] = -1;
       }
       
       int zIntersectCount[] = null;
@@ -1124,6 +1304,8 @@ public class DistanceGrid extends ScalarGridBase {
             }
          }         
       }
+      timer.stop();
+      System.out.println ("BRIDSON: " + timer.result(1));
    }
 
    /** 
@@ -1708,9 +1890,9 @@ public class DistanceGrid extends ScalarGridBase {
       coords.y = pgrid.y - yj;
       coords.z = pgrid.z - zk;
       if (vidx != null) {
-         vidx.x = xi;
-         vidx.y = yj;
-         vidx.z = zk;
+         vidx.x = 2*xi;
+         vidx.y = 2*yj;
+         vidx.z = 2*zk;
       }
       return xi + myQx*yj + myQxQy*zk;
    }
@@ -1910,6 +2092,7 @@ public class DistanceGrid extends ScalarGridBase {
     * @param alpha scale factor for added gradient, positive for contraction, negative for expansion
     */
    private void smoothIter(double alpha) {
+
       double[] sphi = new double[myValues.length];
       Vector3d cellWidths = getCellWidths();
       for (int i=0; i<myNx; ++i) {
@@ -1946,6 +2129,7 @@ public class DistanceGrid extends ScalarGridBase {
       
       myValues = sphi;
       myQuadCoefs = null;
+      myTetIsOutside = null;
       clearNormals();
 
    }
@@ -2005,6 +2189,7 @@ public class DistanceGrid extends ScalarGridBase {
       
       myValues = sphi;
       myQuadCoefs = null;      
+      myTetIsOutside = null;
       clearNormals();
    }
 
@@ -2037,7 +2222,7 @@ public class DistanceGrid extends ScalarGridBase {
       for (int i=0; i<myQx; i++) {
          for (int j=0; j<myQy; j++) {
             for (int k=0; k<myQz; k++) {
-               Vector3i vidx = new Vector3i(i, j, k);
+               Vector3i vidx = new Vector3i(2*i, 2*j, 2*k);
                double cx, cy, cz;
 
                int maxci = ((i < myQx-1) ? 2*res-1 : 2*res);
@@ -2087,6 +2272,8 @@ public class DistanceGrid extends ScalarGridBase {
    //
    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+   public boolean useNormalsForQuadGrad = false;
+   
    protected int[] myTetOffsets0156;
    protected int[] myTetOffsets0456;
    protected int[] myTetOffsets0476;
@@ -2311,11 +2498,11 @@ public class DistanceGrid extends ScalarGridBase {
    };
    
    public static class TetDesc {
-      // Indices of the hex cell containing this tet. Doubling their
-      // value gives the indices of the associated base node.
+      // Indices of the base vertex of quad hex cell containing this tet.
       int myCXi;
       int myCYj;
       int myCZk;
+      
       TetID myTetId;
       
       public TetDesc (Vector3i vxyz, TetID tetId) {
@@ -2342,20 +2529,43 @@ public class DistanceGrid extends ScalarGridBase {
          myCZk += tdesc.myCZk;
       }
 
+      public void addVertexOffset (Vector3i vidx) {
+         myCXi += vidx.x;
+         myCYj += vidx.y;
+         myCZk += vidx.z;
+      }
+
       public boolean equals (Object obj) {
          if (obj instanceof TetDesc) {
             TetDesc tdesc = (TetDesc)obj;
-            return (cellEquals (tdesc) && myTetId == tdesc.myTetId);
+            return (myCXi == tdesc.myCXi &&
+                    myCYj == tdesc.myCYj &&
+                    myCZk == tdesc.myCZk &&          
+                    myTetId == tdesc.myTetId);
          }
          else {
             return false;
          }
       }
       
-      public boolean cellEquals (TetDesc tdesc) {
-         return (myCXi == tdesc.myCXi &&
-                 myCYj == tdesc.myCYj &&
-                 myCZk == tdesc.myCZk);
+      /**
+       * Returns the indices of the base vertex for this tet.
+       * 
+       * @param vidx0 if not null, used to return the base vertex indices
+       * @return base vertex indices
+       */
+      public Vector3i getBaseVertex (Vector3i vidx0) {
+         if (vidx0 == null) {
+            vidx0 = new Vector3i();
+         }
+         vidx0.x = myCXi;
+         vidx0.y = myCYj;
+         vidx0.z = myCZk;
+         return vidx0;
+      }
+      
+      public boolean baseVertexEquals (Vector3i vidx0) {
+         return (myCXi == vidx0.x && myCYj == vidx0.y && myCZk == vidx0.z); 
       }
 
       public int hashCode() {
@@ -2368,14 +2578,19 @@ public class DistanceGrid extends ScalarGridBase {
        * Get the coordinates of the base vertex in grid coordinates.
        */
       public void getBaseCoords (Vector3d coords) {
-         coords.set (2*myCXi, 2*myCYj, 2*myCZk);
+         coords.set (myCXi, myCYj, myCZk);
+      }
+
+      public void getNodalVertexIndices (Vector3i vidx, int nodeIdx) {
+         vidx.set (myCXi, myCYj, myCZk);
+         vidx.add(myBaseQuadCellXyzi[myTetId.getNodes()[nodeIdx]]);
       }
 
       public Vector3i[] getVertices () {
          Vector3i[] vertices = new Vector3i[4];
          int[] nodes = myTetId.getNodes();
          for (int i=0; i<nodes.length; i++) {
-            Vector3i vtx = new Vector3i (2*myCXi, 2*myCYj, 2*myCZk);
+            Vector3i vtx = new Vector3i (myCXi, myCYj, myCZk);
             vtx.add(myBaseQuadCellXyzi[nodes[i]]);
             vertices[i] = vtx;
          }
@@ -2383,7 +2598,7 @@ public class DistanceGrid extends ScalarGridBase {
       }
 
       public String toString() {
-         return myTetId + "("+(2*myCXi)+","+(2*myCYj)+","+(2*myCZk)+")";
+         return myTetId + "("+(myCXi)+","+(myCYj)+","+(myCZk)+")";
       }
 
       /**
@@ -2415,9 +2630,9 @@ public class DistanceGrid extends ScalarGridBase {
          double[] srng, Point3d p0, Vector3d del) {
 
          // convert to cell coordinates
-         double px = p0.x - myCXi;
-         double py = p0.y - myCYj;
-         double pz = p0.z - myCZk;
+         double px = p0.x - myCXi/2;
+         double py = p0.y - myCYj/2;
+         double pz = p0.z - myCZk/2;
 
          switch (myTetId) {
             case TET0516: {
@@ -2551,7 +2766,7 @@ public class DistanceGrid extends ScalarGridBase {
             for (int yj=0; yj<ncy; yj++) {
                for (int zk=0; zk<ncz; zk++) {
                   for (TetID tetId : TetID.values()) {
-                     TetDesc tdesc = new TetDesc (xi, yj, zk, tetId);
+                     TetDesc tdesc = new TetDesc (2*xi, 2*yj, 2*zk, tetId);
                      double[] a = new double[10];
                      computeQuadCoefs (a, tdesc);
                      int cidx = 6*(xi + ncx*yj + ncx*ncy*zk) + tetId.intValue();
@@ -2579,6 +2794,9 @@ public class DistanceGrid extends ScalarGridBase {
       return doGetQuadDistance (point, myQuadGridToLocal);      
    }
    
+   public static int totalQueries = 0;
+   public static int culledQueries = 0;
+
    protected double doGetQuadDistance (
       Point3d point, VectorTransformer3d quadGridToX) {
 
@@ -2594,7 +2812,13 @@ public class DistanceGrid extends ScalarGridBase {
          dx = coords.x;
          dy = coords.y;
          dz = coords.z;
-         a = myQuadCoefs[6*voff + TetID.findSubTetIdx (dx, dy, dz)];
+         totalQueries++;
+         int tidx = 6*voff + TetID.findSubTetIdx (dx, dy, dz);
+         if (myTetIsOutside != null && myTetIsOutside[tidx]) {
+            culledQueries++;
+            return OUTSIDE_GRID;
+         }
+         a = myQuadCoefs[tidx];
       }
       else {
          // Change to grid coordinates
@@ -2610,6 +2834,15 @@ public class DistanceGrid extends ScalarGridBase {
          computeQuadCoefs (a, tdesc);
       }
       return computeQuadDistance (a, dx, dy, dz);
+   }
+
+   public String getQuadCellInfo (Point3d point) {
+      Vector3d coords = new Vector3d();
+      Vector3i vidx = new Vector3i();
+      if (getQuadCellCoords (coords, vidx, point, myQuadGridToLocal) == -1) {
+         return "outside";
+      }
+      return vidx + " " + TetID.findSubTet (coords.x, coords.y, coords.z);
    }
 
    /**
@@ -2687,20 +2920,30 @@ public class DistanceGrid extends ScalarGridBase {
       Vector3d coords = new Vector3d();
       double[] a;
       double dx, dy, dz;
+      Vector3i vidx = null;
       if (storeQuadCoefs) {
          updateQuadCoefsIfNecessary();
-         int voff = getQuadCellCoords (coords, null, point, quadGridToX);
+         if (useNormalsForQuadGrad) {
+            vidx = new Vector3i();
+         }
+         int voff = getQuadCellCoords (coords, vidx, point, quadGridToX);
          if (voff == -1) {
             return OUTSIDE_GRID;
          }
          dx = coords.x;
          dy = coords.y;
          dz = coords.z;
-         a = myQuadCoefs[6*voff + TetID.findSubTetIdx (dx, dy, dz)];
+         int tidx = 6*voff + TetID.findSubTetIdx (dx, dy, dz);
+         totalQueries++;
+         if (myTetIsOutside != null && myTetIsOutside[tidx]) {
+            culledQueries++;
+            return OUTSIDE_GRID;
+         }
+         a = myQuadCoefs[tidx];
       }
       else {
          // Change to grid coordinates
-         Vector3i vidx = new Vector3i();
+         vidx = new Vector3i();
          if (getQuadCellCoords (coords, vidx, point, quadGridToX) == -1) {
             return OUTSIDE_GRID;
          }
@@ -2711,11 +2954,18 @@ public class DistanceGrid extends ScalarGridBase {
          TetDesc tdesc = new TetDesc (vidx, TetID.findSubTet (dx, dy, dz));
          computeQuadCoefs (a, tdesc);
       }
-      if (grad != null) {
-         computeQuadGradient (grad, a, dx, dy, dz, quadGridToX);
+      if (useNormalsForQuadGrad && grad != null) {
+         TetDesc tdesc = new TetDesc (vidx, TetID.findSubTet (dx, dy, dz));
+         computeGradientFromNormals (
+            grad, dgrad, tdesc, dx, dy, dz, quadGridToX);
       }
-      if (dgrad != null) {
-         computeQuadHessian (dgrad, a, quadGridToX);
+      else {
+         if (grad != null) {
+            computeQuadGradient (grad, a, dx, dy, dz, quadGridToX);
+         }
+         if (dgrad != null) {
+            computeQuadHessian (dgrad, a, quadGridToX);
+         }
       }
       return computeQuadDistance (a, dx, dy, dz);
    }
@@ -2785,7 +3035,7 @@ public class DistanceGrid extends ScalarGridBase {
    public void computeQuadCoefs (double[] a, TetDesc tdesc) {
 
       createTetOffsetsIfNecessary();
-      int voff = xyzIndicesToVertex (2*tdesc.myCXi, 2*tdesc.myCYj, 2*tdesc.myCZk);
+      int voff = xyzIndicesToVertex (tdesc.myCXi, tdesc.myCYj, tdesc.myCZk);
       for (int i=0; i<10; i++) a[i] = 0;
       switch (tdesc.myTetId) {
          case TET0516: {
@@ -2830,9 +3080,9 @@ public class DistanceGrid extends ScalarGridBase {
    }
 
    void computeQuadGradient (
-      Vector3d grad, double[] a, double dx, double dy, double dz,
+     Vector3d grad, double[] a, double dx, double dy, double dz,
       VectorTransformer3d quadGridToX) {
-
+ 
       grad.x = 2*a[0]*dx + a[5]*dy + a[4]*dz + a[6];
       grad.y = 2*a[1]*dy + a[5]*dx + a[3]*dz + a[7];
       grad.z = 2*a[2]*dz + a[4]*dx + a[3]*dy + a[8];
@@ -2842,7 +3092,90 @@ public class DistanceGrid extends ScalarGridBase {
       //myGridToLocal.transformCovec (grad, grad); // then to local coords
    }
 
+   void computeGradientFromNormals (
+      Vector3d grad, Matrix3d dgrad, TetDesc tdesc, 
+      double dx, double dy, double dz, VectorTransformer3d quadGridToX) {  
+      
+      Vector3i vidx = new Vector3i();
+      tdesc.getNodalVertexIndices (vidx, 0);
+      Vector3d n0 = getLocalVertexNormal (vidx.x, vidx.y, vidx.z);
+      tdesc.getNodalVertexIndices (vidx, 1);
+      Vector3d n1 = getLocalVertexNormal (vidx.x, vidx.y, vidx.z);
+      tdesc.getNodalVertexIndices (vidx, 2);
+      Vector3d n2 = getLocalVertexNormal (vidx.x, vidx.y, vidx.z);
+      tdesc.getNodalVertexIndices (vidx, 3);
+      Vector3d n3 = getLocalVertexNormal (vidx.x, vidx.y, vidx.z);
 
+      Vector3d n10 = new Vector3d();
+      Vector3d n21 = new Vector3d();
+      Vector3d n32 = new Vector3d();
+      
+      n10.sub (n1, n0);
+      n21.sub (n2, n1);
+      n32.sub (n3, n2);
+
+      Vector3d nx, ny, nz;
+
+      switch (tdesc.myTetId) {
+         case TET0516: nx = n10; ny = n21; nz = n32; break;
+         case TET0126: nx = n10; ny = n32; nz = n21; break;
+         case TET0456: nx = n21; ny = n10; nz = n32; break;
+         case TET0746: nx = n32; ny = n10; nz = n21; break;
+         case TET0236: nx = n21; ny = n32; nz = n10; break;
+         case TET0376: nx = n32; ny = n21; nz = n10; break;
+         default: {
+            throw new InternalErrorException (
+               "Unknown tet type " + tdesc.myTetId);
+         }      
+      }
+      grad.scaledAdd (dx, nx, n0);
+      grad.scaledAdd (dy, ny);
+      grad.scaledAdd (dz, nz);
+      quadGridToX.transformCovec (grad, grad);
+
+      if (dgrad != null) {
+
+         // compute from right to left:
+
+         // derivative of grad x
+         Vector3d tmp = new Vector3d();
+         quadGridToX.transformCovec (tmp, nx);
+         dgrad.m00 = tmp.x;
+         dgrad.m01 = tmp.y;
+         dgrad.m02 = tmp.z;
+
+         // derivative of grad y
+         quadGridToX.transformCovec (tmp, ny);
+         dgrad.m10 = tmp.x;
+         dgrad.m11 = tmp.y;
+         dgrad.m12 = tmp.z;
+
+         // derivative of grad z
+         quadGridToX.transformCovec (tmp, nz);
+         dgrad.m20 = tmp.x;
+         dgrad.m21 = tmp.y;
+         dgrad.m22 = tmp.z;
+
+         tmp.set (dgrad.m00, dgrad.m10, dgrad.m20);
+         quadGridToX.transformCovec (tmp, tmp);
+         dgrad.m00 = tmp.x;
+         dgrad.m10 = tmp.y;
+         dgrad.m20 = tmp.z;
+
+         tmp.set (dgrad.m01, dgrad.m11, dgrad.m21);
+         quadGridToX.transformCovec (tmp, tmp);
+         dgrad.m01 = tmp.x;
+         dgrad.m11 = tmp.y;
+         dgrad.m21 = tmp.z;
+
+         tmp.set (dgrad.m02, dgrad.m12, dgrad.m22);
+         quadGridToX.transformCovec (tmp, tmp);
+         dgrad.m02 = tmp.x;
+         dgrad.m12 = tmp.y;
+         dgrad.m22 = tmp.z;
+      }
+   }
+   
    void computeQuadHessian (
       Matrix3d dgrad, double[] a, VectorTransformer3d quadGridToX) {
 
@@ -2916,9 +3249,9 @@ public class DistanceGrid extends ScalarGridBase {
 //   }
    
    boolean inRange (TetDesc tdesc) {
-      return (tdesc.myCXi >= 0 && tdesc.myCXi < myQx &&
-              tdesc.myCYj >= 0 && tdesc.myCYj < myQy &&
-              tdesc.myCZk >= 0 && tdesc.myCZk < myQz);
+      return (tdesc.myCXi >= 0 && tdesc.myCXi < 2*myQx &&
+              tdesc.myCYj >= 0 && tdesc.myCYj < 2*myQy &&
+              tdesc.myCZk >= 0 && tdesc.myCZk < 2*myQz);
    }
       
    /**
@@ -3017,5 +3350,281 @@ public class DistanceGrid extends ScalarGridBase {
          updateQuadGridToWorld (myQuadGridToLocal);
       }
    }
+
+   private boolean tetIsOutside (TetDesc tdesc, double mindist) {
+      Vector3i[] vertices = tdesc.getVertices();
+      for (int k=0; k<vertices.length; k++) {
+         int vi = xyzIndicesToVertex (vertices[k]);
+         if (myValues[vi] <= mindist) {
+            return false;
+         }
+      }
+      return true;
+   }
+
+   /**
+    * Marks all tets whose nodes all have distance values {@code > mindist} as
+    * being "outside".
+    */
+   public void markOutsideQuadtets (double mindist) {
+      int ncx = (myNx-1)/2;
+      int ncy = (myNy-1)/2;
+      int ncz = (myNz-1)/2;
+      myTetIsOutside = new boolean[6*ncx*ncy*ncz];
+      int nout = 0;
+      for (int xi=0; xi<ncx; xi++) {
+         for (int yj=0; yj<ncy; yj++) {
+            for (int zk=0; zk<ncz; zk++) {
+               for (TetID tetId : TetID.values()) {
+                  TetDesc tdesc = new TetDesc (2*xi, 2*yj, 2*zk, tetId);
+                  int cidx = 6*(xi + ncx*yj + ncx*ncy*zk) + tetId.intValue();
+                  boolean outside = tetIsOutside (tdesc, mindist);
+                  myTetIsOutside[cidx] = outside;
+                  if (outside) {
+                     nout++;
+                  }
+               }
+            }
+         }
+      }
+      System.out.println ("number outside: "+nout+"/"+(6*ncx*ncy*ncz));
+   }
+
+   // --- extra experimental stuff ----
+
+   private boolean quadCellContainsBoundary (int xi, int yj, int zk) {
+      boolean hasPositive = false;
+      boolean hasNegative = false;
+      for (int i=0; i<3; i++) {
+         for (int j=0; j<3; j++) {
+            for (int k=0; k<3; k++) {
+               int vi = xyzIndicesToVertex (xi+i, yj+j, zk+k);
+               if (myValues[vi] >= 0) {
+                  hasPositive = true;
+               }
+               else {
+                  hasNegative = true;
+               }
+            }
+         }
+      }
+      return hasPositive && hasNegative;
+   }
+
+   public void checkGradient() {
+      for (int xi=0; xi<myQx; xi++) {
+         for (int yj=0; yj<myQy; yj++) {
+            for (int zk=0; zk<myQz; zk++) {
+               if (quadCellContainsBoundary (2*xi, 2*yj, 2*zk)) {
+                  boolean show = (zk == 4 && xi == 0 && yj == 0);
+                  TetDesc[] adjDescs = DistanceGridSurfCalc.getNodeTets().get(0);
+                  for (int i=0; i<adjDescs.length; i++) {
+                     TetDesc adesc = new TetDesc(adjDescs[i]);
+                     adesc.addVertexOffset (new Vector3i(2*xi, 2*yj, 2*zk));
+                     if (inRange (adesc)) {
+                        double dx = adesc.myCXi/2 < xi ? 1.0 : 0;
+                        double dy = adesc.myCYj/2 < yj ? 1.0 : 0;
+                        double dz = adesc.myCZk/2 < zk ? 1.0 : 0;
+                        if (show) {
+                           System.out.println (
+                              "  tet " + adesc +"  dx="+dx+" dy="+dy + " dz="+dz);
+                        }
+                        double a[] = new double[10];
+                        computeQuadCoefs (a, adesc);
+                        Vector3d grad = new Vector3d();
+                        computeQuadGradient (
+                           grad, a, dx, dy, dz, myQuadGridToLocal);
+                        if (show) {
+                           System.out.println (
+                              "    grad=" + grad.toString ("%10.6f"));
+                           System.out.println (
+                              "    dist=" + computeQuadDistance (a, dx, dy, dz));
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   public class GridEdge {
+
+      int myVi0;
+      int myVi1;
+
+      GridEdge (int vi0, int vi1) {
+         Vector3i vxyz0 = new Vector3i();
+         Vector3i vxyz1 = new Vector3i();
+         vertexToXyzIndices (vxyz0, vi0);
+         vertexToXyzIndices (vxyz1, vi1);
+         if (vxyz0.x > vxyz1.x || vxyz0.y > vxyz1.y || vxyz0.z > vxyz1.z) {
+            myVi0 = vi1;
+            myVi1 = vi0;
+         }
+         else {
+            myVi0 = vi0;
+            myVi1 = vi1;
+         }
+      }
+
+      public boolean equals (Object obj) {
+         if (obj instanceof GridEdge) {
+            GridEdge edge = (GridEdge)obj;
+            return edge.myVi0 == myVi0 && edge.myVi1 == myVi1;
+         }
+         else {
+            return false;
+         }
+      }
+
+      public int hashCode() {
+         return myVi0 + 131071*myVi1;
+      }
+
+      public String toString() {
+         return "" + myVi0 + "-" + myVi1;
+      }
+
+      public Vector3i getBaseVertex (Vector3i vidx0) {
+         if (vidx0 == null) {
+            vidx0 = new Vector3i();
+         }
+         vertexToXyzIndices (vidx0, myVi0);
+         return vidx0;
+      }
+
+      public TetEdge getEdgeFeature() {
+         Vector3i vxyz0 = new Vector3i();
+         Vector3i vxyz1 = new Vector3i();
+         vertexToXyzIndices (vxyz0, myVi0);
+         vertexToXyzIndices (vxyz1, myVi1);
+         Vector3i vidx0 = getBaseVertex (null);
+         vxyz0.sub (vidx0);
+         vxyz1.sub (vidx0);
+         return new TetEdge (
+            DistanceGridSurfCalc.findRefVertex (vxyz0),
+            DistanceGridSurfCalc.findRefVertex (vxyz1));
+      }
+
+   }
+
+   boolean first = true;
+
+   void maybeAddEdge (HashSet<GridEdge> edges, int v0, int v1) {
+      double d0 = myValues[v0];
+      double d1 = myValues[v1];
+      if (d0*d1 < 0) {
+         GridEdge edge = new GridEdge (v0, v1);
+         if (!edges.contains (edge)) {
+            Vector3i xyzi0 = new Vector3i();
+            Vector3i xyzi1 = new Vector3i();
+            vertexToXyzIndices (xyzi0, v0);
+            vertexToXyzIndices (xyzi1, v1);
+            double lam = Math.abs(d0)/(Math.abs(d0)+Math.abs(d1));
+            Vector3d isect = new Vector3d();
+            isect.sub (new Vector3d(xyzi1), new Vector3d(xyzi0));
+            isect.scale (lam);
+            isect.add (new Vector3d(xyzi0));
+            TetEdge featEdge = edge.getEdgeFeature();
+            Vector3i vidx0 = edge.getBaseVertex(null);
+            ArrayList<TetDesc> tets = new ArrayList<>();
+            DistanceGridSurfCalc.getFeatureAdjacentTets (
+               tets, vidx0, null, featEdge, this, null);
+            edges.add (edge);
+            if (first) {
+               System.out.println ("edge at " + xyzi0 + "   " + xyzi1);
+            }
+            for (TetDesc adesc : tets) {
+               vidx0 = adesc.getBaseVertex(null);
+               double dx = (isect.x - vidx0.x)/2;
+               double dy = (isect.y - vidx0.y)/2;
+               double dz = (isect.z - vidx0.z)/2;
+               double a[] = new double[10];
+               computeQuadCoefs (a, adesc);
+               Vector3d grad = new Vector3d();
+               computeQuadGradient (
+                  grad, a, dx, dy, dz, myQuadGridToLocal);
+               if (first) {
+                  System.out.println (
+                     "    grad=" + grad.toString ("%10.6f"));
+                  System.out.println (
+                     "    dist=" + computeQuadDistance (a, dx, dy, dz));
+               }               
+            }
+            first = false;
+         }
+      }
+   }
+
+   private void addSurfaceIntersectingEdges (
+      HashSet<GridEdge> edges, Vector3i vidx0) {
+
+      int v0 = xyzIndicesToVertex (vidx0.x,   vidx0.y,   vidx0.z);
+      int v1 = xyzIndicesToVertex (vidx0.x+2, vidx0.y,   vidx0.z);
+      int v2 = xyzIndicesToVertex (vidx0.x+2, vidx0.y,   vidx0.z+2);
+      int v3 = xyzIndicesToVertex (vidx0.x,   vidx0.y,   vidx0.z+2);
+      int v4 = xyzIndicesToVertex (vidx0.x,   vidx0.y+2, vidx0.z);
+      int v5 = xyzIndicesToVertex (vidx0.x+2, vidx0.y+2, vidx0.z);
+      int v6 = xyzIndicesToVertex (vidx0.x+2, vidx0.y+2, vidx0.z+2);
+      int v7 = xyzIndicesToVertex (vidx0.x,   vidx0.y+2, vidx0.z+2);
+      
+      maybeAddEdge (edges, v0, v1);
+      maybeAddEdge (edges, v1, v2);
+      maybeAddEdge (edges, v2, v3);
+      maybeAddEdge (edges, v3, v0);
+
+      maybeAddEdge (edges, v4, v5);
+      maybeAddEdge (edges, v5, v6);
+      maybeAddEdge (edges, v6, v7);
+      maybeAddEdge (edges, v7, v4);
+
+      maybeAddEdge (edges, v0, v4);
+      maybeAddEdge (edges, v1, v5);
+      maybeAddEdge (edges, v2, v6);
+      maybeAddEdge (edges, v3, v7);
+
+      maybeAddEdge (edges, v0, v2);
+      maybeAddEdge (edges, v4, v6);
+      maybeAddEdge (edges, v0, v7);
+      maybeAddEdge (edges, v1, v6);
+      maybeAddEdge (edges, v0, v5);
+      maybeAddEdge (edges, v3, v6);
+
+      maybeAddEdge (edges, v0, v6);
+   }
+
+   public ArrayList<GridEdge> findSurfaceIntersectingEdges() {
+      LinkedHashSet<GridEdge> edges = new LinkedHashSet<>();
+      for (int xi=0; xi<myQx; xi++) {
+         for (int yj=0; yj<myQy; yj++) {
+            for (int zk=0; zk<myQz; zk++) {
+               addSurfaceIntersectingEdges (
+                  edges, new Vector3i (2*xi, 2*yj, 2*zk));
+            }
+         }
+      }
+      ArrayList<GridEdge> list = new ArrayList<GridEdge>();
+      list.addAll (edges);
+      return list;
+   }
+
+   public ArrayList<TetDesc> findSurfaceEdgeTets (ArrayList<GridEdge> edges) {
+      ArrayList<TetDesc> tets = new ArrayList<>();
+      HashSet<TetDesc> found = new HashSet<>();
+      for (GridEdge edge : edges) {
+         TetEdge featEdge = edge.getEdgeFeature();
+         Vector3i vidx0 = edge.getBaseVertex(null);
+         int k0 = tets.size();
+         DistanceGridSurfCalc.getFeatureAdjacentTets (
+            tets, vidx0, null, featEdge, this, found);
+         int k1 = tets.size();
+         for (int k=k0; k<k1; k++) {
+            found.add (tets.get(k));
+         }
+      }
+      return tets;
+   }
  
 }
+

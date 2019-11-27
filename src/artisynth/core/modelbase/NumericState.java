@@ -190,6 +190,7 @@ public class NumericState extends DataBuffer implements ComponentState {
       if (state.hasDataFrames()) {
          myFrames = new ArrayList<DataFrame>(state.myFrames.size());
          DataFrame prev = null;
+         //System.out.println ("setting "+myFrames.size()+" frames");
          for (DataFrame frame : state.myFrames) {
             DataFrame newFrame = new DataFrame(frame, prev);
             myFrames.add (newFrame);
@@ -204,6 +205,8 @@ public class NumericState extends DataBuffer implements ComponentState {
    public void writeBinary (DataOutputStream dos) throws IOException {
       if (myFrames != null) {
          // write out frame data
+         // System.out.println (
+         //   "writing num frames: " + myFrames.size() + ", state=" + hashCode());
          dos.writeInt (myFrames.size());
          for (DataFrame frame : myFrames) {
             dos.writeInt (frame.myZoff);
@@ -230,12 +233,14 @@ public class NumericState extends DataBuffer implements ComponentState {
 
    public void readBinary (DataInputStream dis) throws IOException {
       int nframes = dis.readInt();
+      //System.out.println ("reading num frames: " + nframes);
       if (nframes > 0) {
          if (myFrames != null) {
             if (nframes != myFrames.size()) {
                throw new IOException (
                   "State data incompatible with system structure "+
-                  "(incompatible frame count)");
+                  "(incompatible frame count "+nframes+
+                  ", expected "+myFrames.size()+")");
             }
             for (int i=0; i<nframes; i++) {
                DataFrame frame = myFrames.get(i);                          
@@ -370,7 +375,8 @@ public class NumericState extends DataBuffer implements ComponentState {
             if (myFrames != null && nframes != myFrames.size()) {
                throw new IOException (
                   "State data incompatible with system structure "+
-                  "(incompatible frame count)");
+                  "(incompatible frame count "+nframes+
+                  ", expected "+myFrames.size()+")");
             }
          }
          else if (ScanWriteUtils.scanAttributeName (rtok, "zbuf")) {

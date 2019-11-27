@@ -1,5 +1,6 @@
 package artisynth.core.femmodels;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.*;
 import maspack.geometry.*;
 
@@ -19,7 +20,7 @@ public class FemGeometryTransformer extends DeformationTransformer {
     */
    public FemGeometryTransformer (FemModel3d fem) {
       myFem = fem;
-      myRestFem = fem.copy (0, null);
+      myRestFem = fem.copy (CopyableComponent.REST_POSITION, null);
    }
 
    /**

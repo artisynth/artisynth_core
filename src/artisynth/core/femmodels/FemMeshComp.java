@@ -1630,7 +1630,8 @@ implements CollidableBody, PointAttachable {
    }
 
    @Override
-   public FemMeshComp copy(int flags, Map<ModelComponent,ModelComponent> copyMap) {
+   public FemMeshComp copy (
+      int flags, Map<ModelComponent,ModelComponent> copyMap) {
       FemMeshComp fm = (FemMeshComp)super.copy(flags, copyMap);
 
       FemModel3d newFem = (FemModel3d)copyMap.get(myFem);

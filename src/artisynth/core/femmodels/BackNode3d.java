@@ -576,13 +576,11 @@ public class BackNode3d extends DynamicComponentBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
-      if (myPosValidP) {
-         pw.println ("position=[ " + getPosition().toString (fmt) + " ]");
-      }
+      pw.println ("position=[ " + getPosition().toString (fmt) + " ]");
       if (!myVel.equals(Vector3d.ZERO)) {
          pw.println ("velocity=[ " + myVel.toString (fmt) + " ]");
       }
-      pw.println ("rest=[ " + myRest.toString (fmt) + " ]");
+      pw.println ("rest=[ " + getRestPosition().toString (fmt) + " ]");
       if (myRestExplicitP) {
          pw.println ("restExplicit=true");
       }
@@ -597,6 +595,30 @@ public class BackNode3d extends DynamicComponentBase
 
    public float[] getRenderCoords() {
       return myRenderCoords;
+   }
+   
+   @Override
+   public BackNode3d copy (
+      int flags, Map<ModelComponent,ModelComponent> copyMap) {
+      BackNode3d back = (BackNode3d)super.copy (flags, copyMap);
+      
+      if ((flags & CopyableComponent.REST_POSITION) != 0) {
+         back.myPos = new Point3d(myRest);
+         back.myVel = new Vector3d();
+         back.myRest = new Point3d(myRest);
+         back.myForce = new Vector3d();
+      }
+      else {
+         back.myPos = new Point3d(myPos);
+         back.myVel = new Vector3d(myVel);
+         back.myRest = new Point3d(myRest);
+         back.myForce = new Vector3d(myForce);
+      }
+
+      back.myInternalForce = new Vector3d();
+      back.myRenderCoords = new float[3];      
+      
+      return back;
    }
 
 }

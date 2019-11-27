@@ -5120,10 +5120,11 @@ PointAttachable, ConnectableBody {
 
       if (copyMap == null) {
          copyMap = new HashMap<ModelComponent,ModelComponent>();
-         flags = CopyableComponent.COPY_REFERENCES;
+         flags |= CopyableComponent.COPY_REFERENCES;
       }
 
       FemModel3d fem = (FemModel3d)super.copy(flags, copyMap);
+      copyMap.put (this, fem);
 
       // fem.myFrame was created in super.copy(), but we redo this
       // so as to create an exact copy of the orginal frame
@@ -5153,6 +5154,13 @@ PointAttachable, ConnectableBody {
          fem.myElements.addNumbered(newe, e.getNumber());
          fem.myElements.setRenderProps(myElements.getRenderProps());
       }
+      for (ShellElement3d e : myShellElements) {
+         ShellElement3d newe = e.copy(flags, copyMap);
+         newe.setName(e.getName());
+         copyMap.put(e, newe);
+         fem.myShellElements.addNumbered(newe, e.getNumber());
+         fem.myShellElements.setRenderProps(myShellElements.getRenderProps());
+      }
       for (FemMarker m : myMarkers) {
          FemMarker newm = m.copy(flags, copyMap);
          newm.setName(m.getName());
@@ -5171,10 +5179,10 @@ PointAttachable, ConnectableBody {
          int[] props = ArraySupport.copy(ent.getValue());
          fem.ansysElemProps.put(newe, props);
       }
-
       for (int i=0; i<myMeshList.size(); i++) {
          FemMeshComp mc = myMeshList.get(i);
          FemMeshComp newFmc = mc.copy(flags, copyMap);
+         newFmc.setName (mc.getName());
          if (i == 0) {
             fem.myMeshList.addFixed (newFmc);
          }
@@ -5223,7 +5231,9 @@ PointAttachable, ConnectableBody {
       for (int i = 0; i < MAX_NODAL_INCOMP_NODES; i++) {
          fem.myNodalConstraints[i] = new Vector3d();
       }
-
+      if ((flags & CopyableComponent.REST_POSITION) != 0) {
+         fem.updateSlavePos();
+      }
       return fem;
    }
 

@@ -7,6 +7,7 @@
 package artisynth.core.femmodels;
 
 import java.io.*;
+import java.util.*;
 
 import maspack.util.*;
 import maspack.matrix.*;
@@ -14,6 +15,7 @@ import maspack.geometry.*;
 import maspack.spatialmotion.*;
 
 import artisynth.core.mechmodels.*;
+import artisynth.core.modelbase.*;
 import artisynth.core.materials.*;
 
 public class FemModel3dTest extends UnitTest {
@@ -307,6 +309,9 @@ public class FemModel3dTest extends UnitTest {
       return n;
    }
    
+   private boolean near (double x, double y) {
+      return Math.abs(x-y) <= EPS;
+   }
 
    /**
     * For testing purposes, create a FemModel consisting of a 2 x 2 x 2 grid of
@@ -338,6 +343,15 @@ public class FemModel3dTest extends UnitTest {
             FemNode3d n3 = getOrCreateNode (fem, x0, y1, z);
             ShellQuadElement e = new ShellQuadElement (n0, n1, n2, n3, 0.01);
             fem.addShellElement (e);
+         }
+      }
+      double xmax = numX*widthX/2;
+      double ymax = numY*widthY/2;
+      for (FemNode3d n : fem.getNodes()) {
+         Point3d p = n.getPosition();
+         if (near (Math.abs(p.x), xmax) && near (Math.abs(p.y), ymax)) {
+            // corner node
+            n.setDynamic (false);
          }
       }
       return fem;
@@ -401,6 +415,103 @@ public class FemModel3dTest extends UnitTest {
       }
    }
 
+   // private boolean isCornerNode (FemNode3d n, double xmax, double ymax) {
+   //    Point3d p = n.getPosition();
+   //    if ((near(p.x,xmax) && near(p.y,ymax)) ||
+   //        (near(p.x,-xmax) && near(p.y,ymax)) ||
+   //        (near(p.x,-xmax) && near(p.y,-ymax)) ||
+   //        (near(p.x,xmax) && near(p.y,-ymax))) {
+   //       return true;
+   //    }
+   //    else {
+   //       return false;
+   //    }
+   // }
+
+   // /**
+   //  * Create a Fem model with shell and volumetric elements so we can test fem
+   //  * copy.
+   //  */
+   // private FemModel3d createCombinedShellFem () {
+      
+   //    FemModel3d fem = new FemModel3d();
+   //    // Dimensions of volume model
+   //    double volX = 5;       
+   //    double volY = 5;
+   //    double volZ = 10;    
+ 
+   //    // Number of volume elements per X, Y and Z
+   //    int numX = 3;
+   //    int numY = 3;
+   //    int numZ = 5;
+
+   //    // number of shell elements (in X,Y) to build on either side of the volume
+   //    int shellMargin = 3;
+
+   //    FemFactory.createHexGrid (
+   //       fem, volX, volY, volZ, numX, numY, numZ);
+
+   //    // number and width of shell elements in X and Y
+   //    int numShellX = numX+2*(shellMargin);
+   //    double widthX = (volX/numX);
+   //    int numShellY = numY+2*(shellMargin);
+   //    double widthY = (volY/numY);
+      
+   //    for (int i=0; i<numShellX; i++) {
+   //       for (int j=0; j<numShellY; j++) {
+   //          double x0 = i*widthX - (numShellX*widthX)/2;
+   //          double x1 = x0 + widthX;
+   //          double y0 = j*widthY - (numShellY*widthY)/2;
+   //          double y1 = y0 + widthY;
+   //          double z = volZ/2;
+            
+   //          FemNode3d n0 = getOrCreateNode (fem, x0, y0, z);
+   //          FemNode3d n1 = getOrCreateNode (fem, x1, y0, z);
+   //          FemNode3d n2 = getOrCreateNode (fem, x1, y1, z);
+   //          FemNode3d n3 = getOrCreateNode (fem, x0, y1, z);
+   //          ShellQuadElement e = new ShellQuadElement (n0, n1, n2, n3, 0.01);
+   //          fem.addShellElement (e);
+   //       }
+   //    }
+   //    // make the corner nodes non-dynamic 
+   //    double xmax = numShellX*widthX/2.0;
+   //    double ymax = numShellY*widthY/2.0;
+   //    for (FemNode3d n : fem.getNodes()) {
+   //       if (isCornerNode (n, xmax, ymax)) {
+   //          n.setDynamic (false);
+   //       }
+   //    }
+   //    FemMeshComp shellSurfComp = FemMeshComp.createShellSurface ("shell", fem);
+   //    fem.addMeshComp (shellSurfComp);
+   //    return fem;
+   // }
+
+   private void checkModelsEqual (String msg, FemModel3d fem0, FemModel3d fem1) {
+      if (!ComponentTestUtils.savedFilesAreEqual (fem0, fem1, true)) {
+         throw new TestException (msg+" are not equal");
+      }
+   }
+
+   private void testFemCopy() {
+      FemModel3d fem = createCombinedShellVolumeModel();
+      
+      FemModel3d restFem = fem.copy (0, null);
+      checkModelsEqual ("fem and restFem", fem, restFem);
+
+      // advance the fem forward in time ...
+      MechModel mech = new MechModel ();
+      mech.addModel (fem);
+      double t0 = 0;
+      for (int i=1; i<=100; i++) {
+         double t1 = 0.01*i;
+         mech.preadvance (t0, t1, /*flags=*/0);
+         mech.advance (t0, t1, /*flags=*/0);
+         t0 = t1;
+      }
+      FemModel3d restFem2 = fem.copy (CopyableComponent.REST_POSITION, null);
+      checkModelsEqual ("restFem and restFem2", restFem, restFem2);
+   }
+
    private void testFindNearestElement() {
       FemModel3d fem = createCombinedShellVolumeModel();
 
@@ -428,12 +539,12 @@ public class FemModel3dTest extends UnitTest {
       testFindElem (fem, VOLUME, 9.0, 0.5, 0.5,   1.0, 0.5, 0.5, VOLUME, 7);
       testFindElem (fem, VOLUME, 9.0, 0.0, 9.0,   1.0, 0.0, 1.0, VOLUME, -1);
       testFindElem (fem, VOLUME, 9.0,-0.5, 9.0,   1.0,-0.5, 1.0, VOLUME, 5);
-
    }
 
    public void test() {
       //testFrameRelativeMass();
       testFindNearestElement();
+      testFemCopy();
    }
 
    public static void main (String[] args) {

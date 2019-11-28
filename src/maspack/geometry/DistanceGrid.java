@@ -1138,8 +1138,8 @@ public class DistanceGrid extends ScalarGridBase {
       double[] phi, int[] closestFeatureIdxs,
       Feature[] features, boolean signed) {
       
-      FunctionTimer timer = new FunctionTimer();
-      timer.start();
+      //FunctionTimer timer = new FunctionTimer();
+      //timer.start();
       
       double maxDist = 2*getRadius();
       int numv = myNx*myNy*myNz;
@@ -1304,8 +1304,8 @@ public class DistanceGrid extends ScalarGridBase {
             }
          }         
       }
-      timer.stop();
-      System.out.println ("BRIDSON: " + timer.result(1));
+      //timer.stop();
+      //System.out.println ("BRIDSON: " + timer.result(1));
    }
 
    /** 

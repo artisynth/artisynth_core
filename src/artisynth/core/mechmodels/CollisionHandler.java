@@ -1342,11 +1342,11 @@ public class CollisionHandler extends ConstrainerBase
       for (ContactConstraint c : myUnilaterals) {
          if (colA == myCollidable0) {
             accumulateForcesUnilateral (
-               map, c.myCpnt1, c.getNormal(), -c.getDistance()/myCompliance);
+               map, c.myCpnt1, c.getNormal(), -c.getForce()); //getDistance()/myCompliance);
          }
          else {
             accumulateForcesUnilateral (
-               map, c.myCpnt0, c.getNormal(), c.getDistance()/myCompliance);
+               map, c.myCpnt0, c.getNormal(), c.getForce()); // Distance()/myCompliance);
          }
       }
    }

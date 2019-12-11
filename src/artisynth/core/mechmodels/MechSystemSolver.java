@@ -3623,16 +3623,21 @@ public class MechSystemSolver {
    public SparseBlockMatrix createActiveStiffnessMatrix (double h) {
       updateStateSizes();
       mySys.updateForces (0);
-      if (mySolveMatrixVersion != mySys.getStructureVersion()) {
-         mySolveMatrixVersion = mySys.getStructureVersion();
-         mySolveMatrix =
-            new SparseNumberedBlockMatrix();
-         mySys.buildSolveMatrix (mySolveMatrix);
-      }
-      mySolveMatrix.setZero();
-      mySys.addPosJacobian (mySolveMatrix, null, h);
+      SparseNumberedBlockMatrix S = new SparseNumberedBlockMatrix();
+      mySys.buildSolveMatrix (S);
+      mySys.addPosJacobian (S, null, h);
       int nactive = mySys.numActiveComponents();
-      return mySolveMatrix.createSubMatrix (nactive, nactive);
+      return S.createSubMatrix (nactive, nactive);
+//    if (mySolveMatrixVersion != mySys.getStructureVersion()) {
+//         mySolveMatrixVersion = mySys.getStructureVersion();
+//         mySolveMatrix =
+//            new SparseNumberedBlockMatrix();
+//         mySys.buildSolveMatrix (mySolveMatrix);
+//      }
+//      mySolveMatrix.setZero();
+//      mySys.addPosJacobian (mySolveMatrix, null, h);
+//      int nactive = mySys.numActiveComponents();
+//      return mySolveMatrix.createSubMatrix (nactive, nactive);
    }
 
    public SparseBlockMatrix createActiveBilateralMatrix (double t) {

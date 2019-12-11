@@ -74,11 +74,6 @@ public class FrameSpring extends Spring
    private Twist myVel2 = new Twist();
    private Twist myVel21 = new Twist();
 
-   protected Matrix6d myTmp00 = new Matrix6d();
-   protected Matrix6d myTmp01 = new Matrix6d();
-   protected Matrix6d myTmp10 = new Matrix6d();
-   protected Matrix6d myTmp11 = new Matrix6d();
-   
    protected int myBlk00Num;
    protected int myBlk01Num;
    protected int myBlk10Num;
@@ -676,7 +671,7 @@ public class FrameSpring extends Spring
       Matrix6dBlock blk00, Matrix6dBlock blk01, 
       Matrix6dBlock blk10, Matrix6dBlock blk11,
       boolean symmetric) {
-
+      
       if (symmetric) {
          sd = 0;
       }
@@ -703,7 +698,7 @@ public class FrameSpring extends Spring
       p2.transform (XBW.R, myX2B.p);
 
       Matrix3d T = myTmpM;
-
+      
       computeRelativeDisplacements();
 
       Twist vel21 = (sd != 0.0 ? myVel21 : Twist.ZERO);
@@ -718,7 +713,6 @@ public class FrameSpring extends Spring
       else {
          myVel2.setZero();
       }
-
       if (!symmetric) {
          // compute forces for assymetric force component
          mat.computeF (myF, myX21, vel21, myInitialX21);
@@ -732,70 +726,75 @@ public class FrameSpring extends Spring
             JD.transform (R1W);
          }
       }
-
       mat.computeDFdq (JK, myX21, vel21, myInitialX21, symmetric);
       JK.transform (R1W);
       JK.scale (-sk);
       vel21.transform (R1W);
 
+      Matrix6d tmp00 = new Matrix6d();
+      Matrix6d tmp11 = new Matrix6d();
+      Matrix6d tmp01 = new Matrix6d();
+      Matrix6d tmp10 = new Matrix6d();     
+      
       if (blk00 != null) {
-         myTmp00.set (JK);
-         postMulMoment (myTmp00, p1);
+         tmp00.set (JK);
+         postMulMoment (tmp00, p1);
       }
       if (blk11 != null) {
-         myTmp11.set (JK);
-         postMulMoment (myTmp11, p2);
+         tmp11.set (JK);
+         postMulMoment (tmp11, p2);
       }    
       if (blk01 != null && blk10 != null) {
          JK.negate();
-         myTmp01.set (JK);
-         postMulMoment (myTmp01, p2);
-         myTmp10.set (JK);
-         postMulMoment (myTmp10, p1);
-      }      
+         tmp01.set (JK);
+         postMulMoment (tmp01, p2);
+         tmp10.set (JK);
+         postMulMoment (tmp10, p1);
+      }
+    
       if (blk00 != null) {
          if (!symmetric) {
             
             // QK term
-            postMulMoment (myTmp00, x21);          
+            postMulMoment (tmp00, x21);          
 
             // QF(0,0) term
             setScaledCrossProd (T, -sk, myF.f);
-            myTmp00.addSubMatrix03 (T);
+            tmp00.addSubMatrix03 (T);
             setScaledCrossProd (T, -sk, myF.m);
-            myTmp00.addSubMatrix33 (T);
+            tmp00.addSubMatrix33 (T);
             setScaledCrossProd (T, sk, p1);
             T.crossProduct (myF.f, T);
-            myTmp00.addSubMatrix33 (T);
+            tmp00.addSubMatrix33 (T);
 
             // QD term
             if (sd != 0) {
-               postMulWrenchCross (myTmp00, JD, sd, vel21);
+               postMulWrenchCross (tmp00, JD, sd, vel21);
                setScaledCrossProd (T, sd, p1);
                T.crossProduct (myVel1.w, T);
-               postMul03Block (myTmp00, JD, T);
+               postMul03Block (tmp00, JD, T);
             }
          }
-         preMulMoment (myTmp00, p1);
-         blk00.add (myTmp00);
+         preMulMoment (tmp00, p1);
+         blk00.add (tmp00);
       }
       if (blk11 != null) {
          if (!symmetric) {
             // QF(1,1) term
             setScaledCrossProd (T, -sk, p2);
             T.crossProduct (myF.f, T);
-            myTmp11.addSubMatrix33 (T);
+            tmp11.addSubMatrix33 (T);
 
             // QD term
             if (sd != 0) {
                setScaledCrossProd (T, sd, p2);
                T.crossProduct (myVel2.w, T);
-               postMul03Block (myTmp11, JD, T);
+               postMul03Block (tmp11, JD, T);
             }
             
          }
-         preMulMoment (myTmp11, p2);
-         blk11.add (myTmp11);
+         preMulMoment (tmp11, p2);
+         blk11.add (tmp11);
       }
       if (blk01 != null) {
          if (!symmetric) {
@@ -803,34 +802,34 @@ public class FrameSpring extends Spring
             if (sd != 0) {
                setScaledCrossProd (T, -sd, p2);
                T.crossProduct (myVel2.w, T);
-               postMul03Block (myTmp01, JD, T);
+               postMul03Block (tmp01, JD, T);
             }
             
          }
-         preMulMoment (myTmp01, p1);
-         blk01.add (myTmp01);
+         preMulMoment (tmp01, p1);
+         blk01.add (tmp01);
       }
       if (blk10 != null) {
          if (!symmetric) {
             // QK term
-            postMulMoment (myTmp10, x21);
+            postMulMoment (tmp10, x21);
 
             // QF(1,0) term
             setScaledCrossProd (T, sk, myF.f);
-            myTmp10.addSubMatrix03 (T);
+            tmp10.addSubMatrix03 (T);
             setScaledCrossProd (T, sk, myF.m);
-            myTmp10.addSubMatrix33 (T);
+            tmp10.addSubMatrix33 (T);
 
             // QD term
             if (sd != 0) {
-               postMulWrenchCross (myTmp10, JD, -sd, vel21);
+               postMulWrenchCross (tmp10, JD, -sd, vel21);
                setScaledCrossProd (T, -sd, p1);
                T.crossProduct (myVel1.w, T);
-               postMul03Block (myTmp10, JD, T);
+               postMul03Block (tmp10, JD, T);
             }
          }
-         preMulMoment (myTmp10, p2);
-         blk10.add (myTmp10);
+         preMulMoment (tmp10, p2);
+         blk10.add (tmp10);
       }      
    }
 
@@ -882,36 +881,41 @@ public class FrameSpring extends Spring
 
       // Matrix3d T = myTmpM;
 
+      Matrix6d tmp00 = new Matrix6d();
+      Matrix6d tmp11 = new Matrix6d();
+      Matrix6d tmp01 = new Matrix6d();
+      Matrix6d tmp10 = new Matrix6d();     
+      
       computeRelativeDisplacements();
       mat.computeDFdu (D, myX21, myVel21, myInitialX21, mySymmetricJacobian);
       D.transform (R1W);
       D.scale (-sd);
       if (blk00 != null) {
-         myTmp00.set (D);
-         postMulMoment (myTmp00, p1);
-         preMulMoment (myTmp00, p1);
-         blk00.add (myTmp00);
+         tmp00.set (D);
+         postMulMoment (tmp00, p1);
+         preMulMoment (tmp00, p1);
+         blk00.add (tmp00);
       }
       if (blk11 != null) {
-         myTmp11.set (D);
-         postMulMoment (myTmp11, p2);
-         preMulMoment (myTmp11, p2);
-         blk11.add (myTmp11);
+         tmp11.set (D);
+         postMulMoment (tmp11, p2);
+         preMulMoment (tmp11, p2);
+         blk11.add (tmp11);
       }
       if (blk01 != null && blk10 != null) {
          D.negate();
 
          if (blk01 != null) {
-            myTmp01.set (D);
-            postMulMoment (myTmp01, p2);
-            preMulMoment (myTmp01, p1);
-            blk01.add (myTmp01);
+            tmp01.set (D);
+            postMulMoment (tmp01, p2);
+            preMulMoment (tmp01, p1);
+            blk01.add (tmp01);
          }
          if (blk10 != null) {
-            myTmp10.set (D);
-            postMulMoment (myTmp10, p1);
-            preMulMoment (myTmp10, p2);
-            blk10.add (myTmp10);
+            tmp10.set (D);
+            postMulMoment (tmp10, p1);
+            preMulMoment (tmp10, p2);
+            blk10.add (tmp10);
          }
       }      
    }
@@ -1156,11 +1160,6 @@ public class FrameSpring extends Spring
       comp.myVel1 = new Twist();
       comp.myVel2 = new Twist();
       comp.myVel21 = new Twist();
-
-      comp.myTmp00 = new Matrix6d();
-      comp.myTmp01 = new Matrix6d();
-      comp.myTmp10 = new Matrix6d();
-      comp.myTmp11 = new Matrix6d();
 
       comp.myRenderFrame = new RigidTransform3d();
       comp.myRenderPnt1 = new float[3];

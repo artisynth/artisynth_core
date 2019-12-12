@@ -55,6 +55,7 @@ public class FrameSpring extends Spring
 
    protected Frame myFrameA;
    protected Frame myFrameB;
+   protected boolean debug = false;
 
    /**
     * 1 is the attachment frame for A, and 2 is the attachment frame for B
@@ -744,7 +745,7 @@ public class FrameSpring extends Spring
          tmp11.set (JK);
          postMulMoment (tmp11, p2);
       }    
-      if (blk01 != null && blk10 != null) {
+      if (blk01 != null || blk10 != null) {
          JK.negate();
          tmp01.set (JK);
          postMulMoment (tmp01, p2);

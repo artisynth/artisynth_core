@@ -54,10 +54,7 @@ CVS
 ######################
 # Eclipse files
 ######################
-.classpath
-.project
 .cproject
-.settings
 *.launch
 
 ######################

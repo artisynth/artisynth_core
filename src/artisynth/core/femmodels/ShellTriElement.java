@@ -195,6 +195,16 @@ public class ShellTriElement extends ShellElement3d {
       return myNodeCoords;
    }
    
+   private static double[] myNodeMassWeights = new double[] {
+      1.0/3,
+      1.0/3,
+      1.0/3
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
    public int[] getEdgeIndices () {
       return myEdgeIdxs;
    }

@@ -59,6 +59,7 @@ import artisynth.core.driver.MainFrame;
 import artisynth.core.driver.SchedulerListener;
 import artisynth.core.driver.Scheduler;
 import artisynth.core.gui.Timeline;
+import artisynth.core.gui.editorManager.ProbeEditor;
 import artisynth.core.gui.probeEditor.NumericProbeEditor;
 import artisynth.core.gui.selectionManager.SelectionListener;
 import artisynth.core.gui.selectionManager.SelectionEvent;
@@ -1322,26 +1323,14 @@ public class TimelineController extends Timeline
       myWayPointFileChooser.setFileSelectionMode (JFileChooser.FILES_ONLY);
       myWayPointFileChooser.setApproveButtonText (text);
       int returnVal = myWayPointFileChooser.showDialog (frame, text);
-         
-      String absfile = null;      
+
       if (returnVal == JFileChooser.APPROVE_OPTION) {
-         try {
-            absfile = myWayPointFileChooser.getSelectedFile().getCanonicalPath();
-         }
-         catch (Exception e) {
-            System.err.println ("File chooser: unable to get canonical path");
-            e.printStackTrace();
-         }
-      }
-
-      if (absfile != null) {
-         if (absfile.startsWith (workspace))
-            absfile = new String (absfile.substring (workspace.length() + 1));
-
-         System.out.println ("Workspace: " + workspace);
-         System.out.println ("Selected file address: " + absfile);
-         
-         wayPoints.setAttachedFileName (absfile);
+         String relOrAbsPath = ArtisynthPath.getRelativeOrAbsolutePath (
+            ArtisynthPath.getWorkingDir(), 
+            myWayPointFileChooser.getSelectedFile());
+         System.out.println ("Workspace: " + ArtisynthPath.getWorkingDir());
+         System.out.println ("waypoints file path=" + relOrAbsPath);
+         wayPoints.setAttachedFileName (relOrAbsPath);        
          return true;
       }
       else {
@@ -2334,13 +2323,17 @@ public class TimelineController extends Timeline
    public void saveAllProbes() {
       for (Track inTrack : myInTracks) {
          for (ProbeInfo probeInfo : inTrack.getProbeInfos()) {
-            probeInfo.saveProbe();
+            if (!ProbeEditor.saveData (probeInfo.getProbe(), this)) {
+               break;
+            }
          }
       }
 
       for (Track outTrack : myOutTracks) {
          for (ProbeInfo probeInfo : outTrack.getProbeInfos()) {
-            probeInfo.saveProbe();
+            if (!ProbeEditor.saveData (probeInfo.getProbe(), this)) {
+               break;
+            }
          }
       }
 

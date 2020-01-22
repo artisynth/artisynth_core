@@ -212,6 +212,10 @@ public class FemCollision extends RootModel {
          }
 
          addModel (mechmod);
+         for (int i=1; i<=10; i++) {
+            addWayPoint (i*0.5);
+         }
+         addBreakPoint (2.33);
       }
       catch (IOException e) {
          throw e;

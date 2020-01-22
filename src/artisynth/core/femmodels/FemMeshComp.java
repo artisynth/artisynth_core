@@ -72,7 +72,7 @@ import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 
 /**
- * Describes a surface mesh that is "skinned" onto an FEM, such that its vertex
+ * Describes a mesh that is "skinned" onto an FEM, such that its vertex
  * positions are determined by weighted combinations of FEM node positions.
  **/
 public class FemMeshComp extends FemMeshBase
@@ -712,6 +712,20 @@ implements CollidableBody, PointAttachable {
    }
 
    public static FemMeshComp createSurface (
+      String name, FemModel3d fem, ElementFilter efilter) {
+      if (fem.numElements() > 0) {
+         return createVolumetricSurface (name, fem, efilter);
+      }
+      else{
+         return createShellSurface (name, fem, efilter);
+      }
+   }
+
+   public static FemMeshComp createSurface (String name, FemModel3d fem) {
+      return createSurface (name, fem, e -> true);
+   }
+
+   public static FemMeshComp createVolumetricSurface (
       String name, FemModel3d fem, Collection<FemElement3d> elems) {
       FemMeshComp femMesh = new FemMeshComp(fem);
       femMesh.setName (name);
@@ -719,14 +733,15 @@ implements CollidableBody, PointAttachable {
       return femMesh; 
    }
 
-   public static FemMeshComp createSurface (
+   public static FemMeshComp createVolumetricSurface (
       String name, FemModel3d fem, ElementFilter efilter) {
-      return createSurface (
+      return createVolumetricSurface (
          name, fem, getFilteredElements (fem.getElements(), efilter));
    }
 
-   public static FemMeshComp createSurface (String name, FemModel3d fem) {
-      return createSurface (name, fem, fem.getElements());
+   public static FemMeshComp createVolumetricSurface (
+      String name, FemModel3d fem) {
+      return createVolumetricSurface (name, fem, fem.getElements());
    }
 
    public static FemMeshComp createShellSurface (

@@ -19,6 +19,8 @@ public class FemNodeNeighbor {
 
    // Extra K matrix components for which we don't want to apply stiffness damping
    protected Matrix3d myKX; 
+
+   protected double myMass00; // mass term for consistent mass matrix
    
    //protected Matrix3x3Block myBlk;
    protected int myBlkNum;
@@ -188,13 +190,17 @@ public class FemNodeNeighbor {
    }
 
    public void addVelJacobian (
-      SparseNumberedBlockMatrix S, FemNode3d node, double sm, double sk) {
+      SparseNumberedBlockMatrix S, FemNode3d node, double sm, double sk, 
+      boolean useConsistentMass) {
     
       Matrix3x3Block blk;
       if (myBlkNum != -1) {
          blk = (Matrix3x3Block)S.getBlockByNumber(myBlkNum);
          blk.scaledAdd (sk, myK00, blk);
-         if (node == myNode && node.isActiveLocal()) {
+         if (useConsistentMass && myNode.isActiveLocal()) {
+            addMassDamping (blk, sm*myMass00);
+         }
+         else if (node == myNode && myNode.isActiveLocal()) {
             addMassDamping (blk, sm*myNode.getMass());
          }
       }

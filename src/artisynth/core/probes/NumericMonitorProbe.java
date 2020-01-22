@@ -161,26 +161,24 @@ public class NumericMonitorProbe extends NumericDataFunctionProbe {
    public void save() throws IOException {
       File file = getAttachedFile();
       if (file != null && !file.isDirectory ()) {
+         if (isAttachedFileRelative()) {
+            file.getParentFile().mkdirs();
+         }
+         PrintWriter pw =
+            new PrintWriter (new BufferedWriter (new FileWriter (file)));
          try {
-            if (isAttachedFileRelative()) {
-               file.getParentFile().mkdirs();
-            }
-            PrintWriter pw =
-               new PrintWriter (new BufferedWriter (new FileWriter (file)));
-            System.out.println (
-               "saving output probe to " + file.getCanonicalPath());
             if (myShowHeader) {
                write (pw, myFormatStr, myShowTime);
             }
             else {
                writeData (pw, myFormatStr, myShowTime);
             }
-            pw.close();
          }
-         catch (Exception e) {
-            System.out.println (
-               "Error writing file " + file.getCanonicalPath());
-            e.printStackTrace();
+         catch (IOException e) {
+            throw e;
+         }
+         finally {
+            pw.close();
          }
       }
    }

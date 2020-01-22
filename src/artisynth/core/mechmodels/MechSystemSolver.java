@@ -20,6 +20,7 @@ import maspack.matrix.EigenDecomposition;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix3dBase;
 import maspack.matrix.Matrix3x1;
+import maspack.matrix.Matrix3x2;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.MatrixBlock;
 import maspack.matrix.MatrixNd;
@@ -50,7 +51,8 @@ public class MechSystemSolver {
    public boolean profileWholeSolve = false;
    public boolean profileConstrainedBE = false;
    // always updating friction causes inverseMassMatrix updates
-   public boolean alwaysUpdateFriction = true;
+   public boolean alwaysProjectFriction = true;
+   public boolean implicitFriction = false;
    
    //public static boolean useStiffnessPosProjection = true;
    public static boolean useVelProjection = true;
@@ -854,7 +856,7 @@ public class MechSystemSolver {
       constrainedVelSolve (myU, myF, t0, t1);
       mySys.setActiveVelState (myU);         
 
-      if (projectFrictionConstraints (myU, t0)) {
+      if (updateAndProjectFrictionConstraints (myU, t0)) {
          mySys.setActiveVelState (myU);
       }
 
@@ -1237,7 +1239,7 @@ public class MechSystemSolver {
       else {
          myBd.setZero();
       }
-      return alwaysUpdateFriction ? true : sizeD > 0;
+      return alwaysProjectFriction ? true : sizeD > 0;
    }
 
    /** 
@@ -1976,9 +1978,117 @@ public class MechSystemSolver {
       }
    }
 
-   private double projectSingleFrictionConstraint (
-      VectorNd vel, SparseBlockMatrix DT, int bj, double phiMax, double doff,
-      boolean ignoreRigidBodies) {
+   protected void projectFrictionConstraintsImplicitly (
+      VectorNd vel, VectorNd bf, double t0) {
+
+      System.out.println ("implicit Nsize=" + myNT.colSize() + " Dsize=" +myDT.colSize());
+      if (myDT.colSize() == 0) {
+         return;
+      }
+      
+      int velSize = myActiveVelSize;
+      SparseNumberedBlockMatrix S = mySolveMatrix;
+      
+      int k = 0;
+      VectorNd flim = new VectorNd (myDT.colSize());
+      for (int bk=0; bk<myDT.numBlockCols(); bk++) {
+         FrictionInfo info = myFrictionInfo[bk];
+         double phiMax;
+         if ((info.flags & FrictionInfo.BILATERAL) != 0) {
+            phiMax = info.getMaxFriction (myLam);
+         }
+         else {
+            phiMax = info.getMaxFriction (myThe);
+         }         
+         //System.out.println ("fm"+bk+" "+phiMax);
+         for (int i=0; i<myDT.getBlockColSize(bk); i++) {
+            flim.set (k++, phiMax);
+         }
+      }
+      
+      myKKTSolver.factor (S, velSize, myGT, myRg, myNT, myRn, myDT);
+      myKKTSolver.solve (vel, myLam, myThe, myPhi, bf, myBg, myBn, myBd, flim);
+
+      //mySys.setBilateralForces (myLam, 1/h);
+      //mySys.setUnilateralForces (myThe, 1/h);
+
+      if (myUpdateForcesAtStepEnd) {
+         if (myDsize > 0) {
+            myDT.mulAdd (myFcon, myPhi, velSize, myDsize);
+         }
+      }
+      
+   }
+
+   protected boolean updateAndProjectFrictionConstraints (
+      VectorNd vel, double t0) {
+      // BEGIN project friction constraints
+      if (updateFrictionConstraints()) {
+         projectFrictionConstraints (vel, t0);
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   protected void projectFrictionConstraints (VectorNd vel, double t0) {
+      
+      // assumes that updateMassMatrix() has been called
+      int version = (myAlwaysAnalyze ? -1 : myGTVersion);
+      myRBSolver.updateStructure (myMass, myGT, version);
+
+      myRBSolver.projectFriction (
+         myMass, myGT, myNT, myDT,
+         myRg, myBg, myRn, myBn, myBd, myFrictionInfo, vel, myLam, myThe, myPhi);
+
+      // do a Gauss-Siedel project on remaining friction constraints:
+
+      int[] RBDTmap = myRBSolver.getDTMap();
+      if (RBDTmap != null) {
+         int[] DTmap = new int[myDT.numBlockCols()-RBDTmap.length];
+         int i = 0;
+         int k = 0;
+         for (int bj=0; bj<myDT.numBlockCols(); bj++) {
+            if (k < RBDTmap.length && RBDTmap[k] == bj) {
+               k++;
+            }
+            else {
+               DTmap[i++] = bj;
+            }
+         }
+         if (i != DTmap.length) {
+            throw new InternalErrorException ("inconsistent DTmap");
+         }
+         updateInverseMassMatrix (t0);
+         for (i=0; i<DTmap.length; i++) {
+            FrictionInfo info = myFrictionInfo[DTmap[i]];
+            double phiMax;
+            if ((info.flags & FrictionInfo.BILATERAL) != 0) {
+               phiMax = info.getMaxFriction (myLam);
+            }
+            else {
+               phiMax = info.getMaxFriction (myThe);
+            }
+            int bj = DTmap[i];
+            int j = myDT.getBlockColOffset(bj);
+            //double doff = myBd.get(j);
+            projectSingleFrictionConstraint (
+               myPhi, vel, myDT, myBd, bj, phiMax, /*ignore rigid bodies=*/true);
+         }
+      }
+
+      if (myUpdateForcesAtStepEnd) {
+         int velSize = myActiveVelSize;
+         if (myDsize > 0) {
+            myDT.mulAdd (myFcon, myPhi, velSize, myDsize);
+         }
+      }
+   }
+
+   private void projectSingleFrictionConstraint (
+      VectorNd phiVec, VectorNd vel, SparseBlockMatrix DT, VectorNd bd, int bj,
+      double phiMax, boolean ignoreRigidBodies) {
 
       int nactive = mySys.numActiveComponents();
       int nparam = mySys.numParametricComponents();
@@ -1993,20 +2103,32 @@ public class MechSystemSolver {
 
       double[] vbuf = vel.getBuffer();
       double[] pbuf = myUpar.getBuffer();
-      double[] vtbuf = new double[1];
-      double phi;
 
-      double dmd = 0;
+      int ndirs = DT.getBlockColSize(bj);
+      int joff = DT.getBlockColOffset(bj);
+
+      double[] vtbuf = new double[ndirs];
+      double[] dmd = new double[ndirs];
+      double[] phi = new double[ndirs];
+
       for (MatrixBlock blk=DT.firstBlockInCol(bj); blk != null; blk=blk.down()) {
          int bi = blk.getBlockRow();
          if (bi < nactive) {
             blk.mulTransposeAdd (vtbuf, 0, vbuf, DT.getBlockRowOffset(bi));
             if (blk instanceof Matrix3x1) {
-               ((Matrix3x1)blk).get (d);
-               // XXX assumes that corresponding block is Matrix3d
                Matrix3dBase Minv = (Matrix3dBase)myInverseMass.getBlock(bi,bi);
-               Minv.mul (r, d);
-               dmd += r.dot(d);
+               // assume inverse mass matrix in uniformly diadgonal
+               double minv = Minv.m00;
+               Matrix3x1 D = (Matrix3x1)blk;
+               dmd[0] += (minv*D.m00*D.m00 + minv*D.m10*D.m10 + minv*D.m20*D.m20);
+            }
+            else if (blk instanceof Matrix3x2) {
+               Matrix3dBase Minv = (Matrix3dBase)myInverseMass.getBlock(bi,bi);
+               // assume inverse mass matrix in uniformly diadgonal
+               double minv = Minv.m00;
+               Matrix3x2 D = (Matrix3x2)blk;
+               dmd[0] += minv*(D.m00*D.m00 + D.m10*D.m10 + D.m20*D.m20);
+               dmd[1] += minv*(D.m01*D.m01 + D.m11*D.m11 + D.m21*D.m21);
             }
             else if (!ignoreRigidBodies) {
                // XXX implement
@@ -2018,99 +2140,50 @@ public class MechSystemSolver {
             blk.mulTransposeAdd (vtbuf, 0, pbuf, poff);
          }
       }
-      double vt = vtbuf[0] - doff;
-      // prevent division by zero
-      if (dmd == 0) {
-         dmd = 1e-16;
+      for (int k=0; k<ndirs; k++) {
+         double vt = vtbuf[k] - bd.get(joff+k);
+         // prevent division by zero
+         if (dmd[k] == 0) {
+            dmd[k] = 1e-16;
+         }
+         if (vt > dmd[k]*phiMax) {
+            phi[k] = -phiMax;
+         }
+         else if (vt < -dmd[k]*phiMax) {
+            phi[k] = phiMax;
+         }
+         else {
+            phi[k] = -vt/dmd[k];
+         }
+         phiVec.set (joff+k, phi[k]);
       }
-      //System.out.println (" vtMag=" + vt + " dmd=" + dmd + " phiMax="+phiMax);
-      if (vt > dmd*phiMax) {
-         phi = -phiMax;
-      }
-      else if (vt < -dmd*phiMax) {
-         phi = phiMax;
-      }
-      else {
-         phi = -vt/dmd;
-      }
-      VectorNd dvec = new VectorNd();
       for (MatrixBlock blk=DT.firstBlockInCol(bj); blk != null; blk=blk.down()) {
          int bi = blk.getBlockRow();
          if (bi >= nactive) {
             break;
          }
-         if (blk.rowSize() == 3) {
-            dvec.setSize (3);
-            blk.getColumn (0, dvec);
-            MatrixBlock Minv = myInverseMass.getBlock(bi,bi);
-            dvec.scale (phi);
-            Minv.mulAdd (vbuf, DT.getBlockRowOffset(bi), dvec.getBuffer(), 0);
+         int ioff = DT.getBlockRowOffset(bi);
+         if (blk instanceof Matrix3x1) {
+            Matrix3dBase Minv = (Matrix3dBase)myInverseMass.getBlock(bi,bi);
+            // assume inverse mass matrix in uniformly diadgonal
+            double minv = Minv.m00;
+            Matrix3x1 D = (Matrix3x1)blk;
+            vbuf[ioff  ] += minv*(D.m00*phi[0]);
+            vbuf[ioff+1] += minv*(D.m10*phi[0]);
+            vbuf[ioff+2] += minv*(D.m20*phi[0]);
+         }
+         else if (blk instanceof Matrix3x2) {
+            Matrix3dBase Minv = (Matrix3dBase)myInverseMass.getBlock(bi,bi);
+            // assume inverse mass matrix in uniformly diadgonal
+            double minv = Minv.m00;
+            Matrix3x2 D = (Matrix3x2)blk;
+            vbuf[ioff  ] += minv*(D.m00*phi[0]+D.m01*phi[1]);
+            vbuf[ioff+1] += minv*(D.m10*phi[0]+D.m11*phi[1]);
+            vbuf[ioff+2] += minv*(D.m20*phi[0]+D.m21*phi[1]);
          }
          else if (!ignoreRigidBodies) {
             // XXX implement
          }
-      }
-      return phi;
-   }
-
-   protected boolean projectFrictionConstraints (VectorNd vel, double t0) {
-      // BEGIN project friction constraints
-      if (updateFrictionConstraints()) {
-         // assumes that updateMassMatrix() has been called
-         int version = (myAlwaysAnalyze ? -1 : myGTVersion);
-         myRBSolver.updateStructure (myMass, myGT, version);
-
-         myRBSolver.projectFriction (
-            myMass, myGT, myNT, myDT,
-            myRg, myBg, myRn, myBn, myBd, myFrictionInfo, vel, myLam, myThe, myPhi);
-
-         // do a Gauss-Siedel project on remaining friction constraints:
-
-         int[] RBDTmap = myRBSolver.getDTMap();
-         if (RBDTmap != null) {
-            int[] DTmap = new int[myDT.numBlockCols()-RBDTmap.length];
-            int i = 0;
-            int k = 0;
-            for (int bj=0; bj<myDT.numBlockCols(); bj++) {
-               if (k < RBDTmap.length && RBDTmap[k] == bj) {
-                  k++;
-               }
-               else {
-                  DTmap[i++] = bj;
-               }
-            }
-            if (i != DTmap.length) {
-               throw new InternalErrorException ("inconsistent DTmap");
-            }
-            updateInverseMassMatrix (t0);
-            for (i=0; i<DTmap.length; i++) {
-               FrictionInfo info = myFrictionInfo[DTmap[i]];
-               double phiMax;
-               if ((info.flags & FrictionInfo.BILATERAL) != 0) {
-                  phiMax = info.getMaxFriction (myLam);
-               }
-               else {
-                  phiMax = info.getMaxFriction (myThe);
-               }
-               int bj = DTmap[i];
-               int j = myDT.getBlockColOffset(bj);
-               double doff = myBd.get(j);
-               double phi = projectSingleFrictionConstraint (
-                  vel, myDT, bj, phiMax, doff, /*ignore rigid bodies=*/true);
-               myPhi.set (j, phi);
-            }
-         }
-
-         if (myUpdateForcesAtStepEnd) {
-            int velSize = myActiveVelSize;
-            if (myDsize > 0) {
-               myDT.mulAdd (myFcon, myPhi, velSize, myDsize);
-            }
-         }
-         return true;
-      }
-      else {
-         return false;
       }
    }
 
@@ -2448,7 +2521,7 @@ public class MechSystemSolver {
       computeVelCorrections (vel, t0, t1);
       mySys.setActiveVelState (vel);
 
-      if (projectFrictionConstraints (vel, t0)) {
+      if (updateAndProjectFrictionConstraints (vel, t0)) {
          mySys.setActiveVelState (vel);
       }
    }
@@ -2809,7 +2882,23 @@ public class MechSystemSolver {
          if (profileConstrainedBE) {
             timer.start();
          }
-         if (projectFrictionConstraints (myUtmp, t0)) {
+         //         if (updateAndProjectFrictionConstraints (myUtmp, t0)) {
+         //   mySys.setActiveVelState (myUtmp);
+         // }
+         if (updateFrictionConstraints()) { // && myDT.numBlockCols() > 0) {
+            boolean unilateralOnly = true;
+            for (int k=0; k<myDT.numBlockCols(); k++) {
+               if ((myFrictionInfo[k].flags & FrictionInfo.BILATERAL) != 0) {
+                  unilateralOnly = false;
+                  break;
+               }
+            }
+            if (unilateralOnly && implicitFriction) {
+               projectFrictionConstraintsImplicitly (myUtmp, myB, t0);
+            }
+            else {
+               projectFrictionConstraints (myUtmp, t0);
+            }
             mySys.setActiveVelState (myUtmp);
          }
          if (profileConstrainedBE) {
@@ -2966,7 +3055,7 @@ public class MechSystemSolver {
 
       //computeImplicitParametricForces (myUtmp, myFparC);
       mySys.updateConstraints (t1, null, MechSystem.UPDATE_CONTACTS);
-      if (projectFrictionConstraints (myUtmp, -1)) {
+      if (updateAndProjectFrictionConstraints (myUtmp, -1)) {
          mySys.setActiveVelState (myUtmp);
       }
       
@@ -3011,7 +3100,7 @@ public class MechSystemSolver {
 
       mySys.setActiveVelState (myUtmp);
       if (useGlobalFriction) {
-         if (projectFrictionConstraints (myUtmp, t0)) {
+         if (updateAndProjectFrictionConstraints (myUtmp, t0)) {
             mySys.setActiveVelState (myUtmp);
          }
       }
@@ -3606,7 +3695,7 @@ public class MechSystemSolver {
 
       mySys.setActiveVelState (myUtmp);
       if (useGlobalFriction) {
-         if (projectFrictionConstraints (myUtmp, t0)) {
+         if (updateAndProjectFrictionConstraints (myUtmp, t0)) {
             mySys.setActiveVelState (myUtmp);
          }
       }

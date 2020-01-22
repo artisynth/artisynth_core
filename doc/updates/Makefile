@@ -29,7 +29,7 @@ $(HTML_DIR)/updates.html: updates.tex
 install: install_html install_pdf
 
 install_html: html infocenter
-	rsync $(HTML_DIR)/updates.html $(WEB_DOC_URL)/html/updates
+	rsync -rCtO $(HTML_DIR)/ $(WEB_DOC_URL)/html/updates
 	$(FIX_PERMISSIONS) $(WEB_DOC_DIR)/html/updates
 
 install_pdf: $(PDF_TARG)

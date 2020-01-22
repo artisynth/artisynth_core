@@ -662,6 +662,10 @@ public class GuiUtils {
       return (confirmation == JOptionPane.YES_OPTION);
    }
 
+   public static boolean confirmOverwrite (Component comp, File file) {
+      return confirmAction (comp, "Overwrite existing file "+file+"?");
+   }
+
 //   public static void setSliderLength (JSlider slider, int pixels) {
 //      BasicSliderUI savedUI = (BasicSliderUI)slider.getUI();
 //      SliderUIX testUI = new SliderUIX(slider);

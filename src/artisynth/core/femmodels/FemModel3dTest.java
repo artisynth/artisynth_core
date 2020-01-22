@@ -149,7 +149,8 @@ public class FemModel3dTest extends UnitTest {
       mech.getActivePosState (posState0);
       mech.getActiveVelState (velState0);
 
-      SparseBlockMatrix Mdot = M.clone();
+      SparseNumberedBlockMatrix Mdot = new SparseNumberedBlockMatrix();
+      mech.buildMassMatrix (Mdot);
 
       // advance mech by a small time
       double h = 1e-9;
@@ -258,7 +259,7 @@ public class FemModel3dTest extends UnitTest {
       mech.addModel (fem);
       //mech.addRigidBody (beam);
 
-      SparseBlockMatrix M = new SparseBlockMatrix();
+      SparseNumberedBlockMatrix M = new SparseNumberedBlockMatrix();
       VectorNd f = new VectorNd();
       mech.buildMassMatrix (M);
 

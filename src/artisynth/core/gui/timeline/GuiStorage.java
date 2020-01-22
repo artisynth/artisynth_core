@@ -158,8 +158,16 @@ public class GuiStorage {
       return RESET_ICON;
    }
 
+   public static ImageIcon getRewindIcon() {
+      return REWIND_ICON;
+   }
+
    public static ImageIcon getStepForwardIcon() {
       return STEP_FORWARD_ICON;
+   }
+
+   public static ImageIcon getFastForwardIcon() {
+      return FAST_FORWARD_ICON;
    }
 
    public static ImageIcon getStaticSolveIcon() {

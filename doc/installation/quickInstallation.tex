@@ -1,0 +1,265 @@
+\documentclass{article}
+\input{artisynthDoc}
+\usepackage{enumitem}
+
+\iflatexml
+\else
+% reset fancyhr settings set by artisynthDoc
+\fancyhead[L,C,R]{}
+\fancyfoot[L,R]{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fi
+
+\def\ArtHome[#1]{{\tt <ARTISYNTH\_HOME>#1}}
+
+\title{ArtiSynth Quick Installation Guide}
+\author{John Lloyd}
+\setpubdate{Last updated: January, 2020}
+\iflatexml
+\date{}
+\fi
+
+\newif\ifNeedLibraryPath
+\NeedLibraryPathfalse
+
+\begin{document}
+
+%\maketitle
+
+\iflatexml{\large\pubdate}\fi
+
+%\tableofcontents
+
+% add title in PDF version
+\iflatexml\else
+\begin{center}
+\sffamily\Large\bfseries ArtiSynth Quick Installation Guide
+\end{center}
+\bigskip
+\fi
+
+This describes how to quickly install one of the precompiled versions
+of ArtiSynth, which can be useful for users wanting to test the system
+and run the demonstration programs. More complete instructions,
+including how to obtain the latest development version from Github,
+compile and run using the Eclipse IDE, and install external model
+packages, are provided in the general installation guides for
+\artisynthManual[installation/linuxInstallation]{linuxInstallation}{Windows}, 
+\artisynthManual[installation/windowsInstallation]{windowsInstallation}{MacOS},
+and 
+\artisynthManual[installation/macosInstallation]{macosInstallation}{Linux}.
+
+\section{Instructions}
+
+\subsection{To install ArtiSynth:}
+
+\begin{enumerate}
+
+\item You need a 64 bit Windows, MacOS, or Linux system, with Java 8
+installed. You need a full Java Development Kit (JDK), not simply a
+runtime environment (JRE). We recommend the Java SE Development Kit
+8u{\it XXX} ({\it XXX} being the latest update) which can be obtained
+from Oracle (registration required) at\\
+\href{https://www.oracle.com/technetwork/java/javase/downloads/index.html}%
+{www.oracle.com/technetwork/java/javase/downloads/index.htm}.
+ 
+\item To verify that the Java 8 JDK is visible to your system, open a
+terminal window (e.g., {\tt CMD} on Windows), run the command {\tt
+javac -version}, and check that the version matches the JDK.  If it
+does not, follow the instructions in Section
+\ref{MakingJDKVisible}.
+
+\item Download the latest precompiled ArtiSynth release 
+(e.g., {\tt artisynth\_core\_3.6.zip}) from
+\iflatexml\else\\\fi % need a newline in PDF version
+\href{https://www.artisynth.org/downloads}{www.artisynth.org/downloads}.
+ 
+\item Unzip the file into a folder, preferably one without spaces in the
+name.
+
+\end{enumerate}
+ 
+\subsection{To run ArtiSynth:}
+
+\begin{itemize}[leftmargin=26pt]
+ 
+\item On Windows: click {\tt bin\BKS artisynth.bat} under the install folder. 
+ 
+\item On MacOS or Linux: use a terminal to run {\tt bin/artisynth} 
+under the install folder.
+
+\item[\ ] To run demos, open the {\tt Models} menu at the top and
+choose the model you would like. It will be loaded and displayed in
+the viewer. To start/stop simulation, use the play button
+\includegraphics[width=0.15in]{images/playButton} at the top right.
+
+\end{itemize}
+
+\subsection{To make changes to a demo:}
+
+\begin{enumerate}
+
+\item If {\tt <AT>} denotes the top-level folder of your ArtiSynth
+installation, then add {\tt <AT>\BKS bin} (Windows) or {\tt <AT>/bin}
+(MacOS and Linux) to your system Path
+as described in Section \ref{SettingPath}.
+
+\item Edit the {\tt .java} file for the demo, which will be located
+in a folder under {\tt <AT>\BKS src \BKS artisynth \BKS demos},
+using a plain text editor (e.g., {\tt notepad} on Windows).
+
+\item From within a terminal window (e.g., {\tt CMD} on Windows), go to the
+demo folder and enter the command {\tt compile}.
+
+\end{enumerate}
+
+\section{Making the JDK visible to your system}
+\label{MakingJDKVisible}
+
+It is important to ensure that the JDK is visible to your system and
+supersedes any other Java installations.
+
+\subsection*{Windows and Linux}
+
+If {\tt <JDK>} denotes the top-level folder of your installed JDK,
+then add the folder {\tt <JDK>\BKS bin} (Windows) or {\tt <JDK>/bin}
+(Linux) to your system Path, using the instructions given in Section
+\ref{SettingPath}. The folder should be added {\it ahead} of any other
+Java installations that might be specified on the Path.
+
+On Windows, {\tt <JDK\_DIR>} is likely to be located under {\tt
+Program Files\BKS Java}.
+
+\subsection*{Mac OS X}
+
+On Mac OS X, you can set the ``default'' JDK by setting the {\tt
+JAVA\_HOME} environment variable.  This can be done inside the
+initialization file for whichever command line shell you are using.
+
+Assume that the desired JDK has version number {\tt 1.8.0\_221} and
+that your home folder is {\tt <HOMEDIR>}.  Then for the {\tt bash}
+shell, one can use a plain text editor to edit {\tt <HOMEDIR>/.bashrc}
+and insert a line of the form
+\begin{verbatim}
+  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_221`
+\end{verbatim}
+while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
+<HOMEDIR>/.cshrc} and insert a line of the form
+\begin{verbatim}
+  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_221`
+\end{verbatim}
+
+Setting {\tt JAVA\_HOME} can also be done directly within the shell;
+doing it within the initialization file simply avoids the need to do
+so each time a new terminal window is openned.
+
+\section{Adding Directories to the System Path}
+\label{SettingPath}
+
+The system ``Path'' is a list of directories which the system searches
+in order to find executables. Adding a directory to the path allows
+executables contained in that directory to be called directly from a
+command window (such as {\tt CMD} on Windows).
+
+\subsection*{Windows 10}
+
+\begin{enumerate}
+
+\item Open the {\sf Start} search, enter ``{\tt env}'', and choose
+{\sf ``Edit the system environment variables''}.
+
+\item Click on {\sf Environment Variables}.
+
+\item Under {\sf User variables} (the top window), click on {\sf Path}
+and click {\sf Edit}. If {\sf Path} does not exist, click {\sf New}.
+
+\item In the {\sf Edit environment variable} dialog, click {\sf New}
+and enter the full path name for each directory you wish to add.
+
+\item Close each dialog by clicking {\sf OK}.
+
+\end{enumerate}
+
+\subsection*{Windows 8 and earlier}
+
+\begin{enumerate}
+
+\item Right-click {\sf My Computer}, and then click {\sf Properties}.
+
+\item Click the {\sf Advanced} tab.
+
+\item Click {\sf Environment variables}.
+
+\item In the top {\sf User variables} window, click on {\sf Path} and 
+then {\sf Edit}. If {\sf Path} does not exist, click {\sf New}.
+
+\item In the edit window, add the full path name for each new directory,
+separated by semi-colons '{\tt ;}'.
+
+\item Close each dialog by clicking {\sf OK}.
+
+\end{enumerate}
+
+For example, if ArtiSynth is installed at {\tt C:\BKS artisynth\BKS
+artisynth\_core} and the desired {\tt JDK} is at {\tt C:\BKS Program
+Files\BKS Java\BKS jdk1.8.0\_221}, then we can add the {\tt bin}
+directories for both by setting the User path to
+\begin{verbatim}
+  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk1.8.0_221\bin
+\end{verbatim}
+
+\subsection*{Mac OS X}
+
+Since Mac OS X is a Unix-based system, directories can be added to the
+path by editing the {\tt PATH} environment variable directly in the
+initialization files for whichever command line shell you are using,
+as described in Section \ref{Linux}.
+
+On Mac OS X 10.8 and greater, directories can also be added to the
+path by adding a text file containing the directories to {\tt
+/etc/paths.d}.  In particular, we can create a file called {\tt
+ArtiSynth} in {\tt /etc/paths.d} that contains the full path names of
+the desired directories.
+
+\begin{enumerate}
+
+\item Open a terminal window
+
+\item Use {\tt sudo} to create {\tt /etc/paths.d/ArtiSynth} with a plain
+text editor. For example:
+\begin{verbatim}
+  sudo nano /etc/paths.d/ArtiSynth
+\end{verbatim}
+
+\item Add the full path name of each desired directory, one per line,
+and save the file.
+
+\item To test the revised {\tt PATH}, open a new terminal
+window and enter the command: {\tt echo \$PATH}.
+
+\end{enumerate}
+
+\subsection*{Linux}
+\label{Linux}
+
+On Linux, directories can be added to the path by appending them to
+the {\tt PATH} environment variable, which is a list of directories
+separated by colons `{\tt :}'. The most direct way to do this is to
+redefine {\tt PATH} inside one of the initialization files for
+whichever command line shell you are using.
+
+Assume that your home folder is {\tt <HOMEDIR>}. Then for the {\tt
+bash} shell, one can edit {\tt <HOMEDIR>/.bashrc} and insert a line of
+the form
+\begin{verbatim}
+   export PATH=<DIR>:$PATH
+\end{verbatim}
+while for the {\tt csh} out {\tt tcsh} shells, one can edit {\tt
+<HOMEDIR>/.cshrc} and insert a line of the form
+\begin{verbatim}
+   setenv PATH <DIR>":"$PATH
+\end{verbatim}
+
+\end{document}

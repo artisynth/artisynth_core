@@ -465,7 +465,7 @@ public class BVFeatureQuery {
       myPointFaceCalc.myFace = null;
 
       if (!bvh.getRoot().intersectsSphere (lpnt, tol)) {
-         lastCase = "Culled";
+         lastCase = "Culled " + tol;
          return false;
       }
       // start by finding the nearest face to the point
@@ -734,8 +734,9 @@ public class BVFeatureQuery {
       }
       Point3d lpnt;
       Vector3d ldir = new Vector3d();
+      double eps = 1e-12;
       if (tol < 0) {
-         tol = 1e-12*bvh.getRadius();
+         tol = eps*bvh.getRadius();
       }
 
       if (bvh.getBvhToWorld() != RigidTransform3d.IDENTITY) {
@@ -762,7 +763,6 @@ public class BVFeatureQuery {
       dir.normalize();
 
       ArrayList<BVNode> nodes = new ArrayList<BVNode>();
-      double eps = 1e-12;
 
       Point3d centroid = new Point3d();
       Random rand = RandomGenerator.get();
@@ -847,7 +847,6 @@ public class BVFeatureQuery {
                return InsideQuery.INSIDE;
             }
          }
-
          // queue up next direction
          int iface = rand.nextInt(rootFaces.size());
          rootFaces.get(iface).computeCentroid (centroid);
@@ -857,7 +856,7 @@ public class BVFeatureQuery {
             return InsideQuery.ON;
          }
          dir.normalize();
-
+         
          iters++;
       } while (iters < myMaxRayCasts);
 
@@ -1731,7 +1730,7 @@ public class BVFeatureQuery {
       double nearestDistance = INF;
       Boundable nearestFeature = null;
       dcalc.reset();
-
+      
       PriorityQueue<BVCheckRequest> queue =
       new PriorityQueue<BVCheckRequest> (11, new BVCheckComparator());
 

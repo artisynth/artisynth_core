@@ -126,7 +126,18 @@ public class HexElement extends FemElement3d {
          +1, -1, -1,
          +1,  1, -1,
          -1,  1, -1,
-         };         
+         };  
+   
+   private static double[] myNodeMassWeights = new double[] {
+      0.125,
+      0.125,
+      0.125,
+      0.125,
+      0.125,
+      0.125,
+      0.125,
+      0.125
+   };
 
    static {
       double q = 1/Math.sqrt(3); // quadrature point
@@ -202,6 +213,10 @@ public class HexElement extends FemElement3d {
 
    public double[] getNodeCoords () {
       return myNodeCoords;
+   }
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
    }
 
    private static MatrixNd myNodalExtrapolationMatrix = null;

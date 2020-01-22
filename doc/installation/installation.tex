@@ -68,13 +68,13 @@ To install ArtiSynth on \SYSTEM{}, you will need:
 
 \item A 64 bit version of \SYSTEM{}
 
-\item Java 8 (later versions may work but this is not guaranteed)
+\item Java 8 (see Section \ref{InstallingJava})
 
 \ifLinux
 \item Linux systems require GNU libc version 2.17 or higher
 \fi
 
-\item A three button mouse is recommended for GUI interaction
+\item A three-button mouse is recommended for GUI interaction
 
 \end{itemize}
 
@@ -84,25 +84,6 @@ because ArtiSynth applications often require more memory than 32 bit
 systems can provide.
 \end{sideblock}
 
-\begin{sideblock}
-By default, ArtiSynth is compiled to be compliant with Java 8. While
-it may be possible to run ArtiSynth under later Java versions, there
-have been reports of compatibility problems and warnings involving the
-Java OpenGL (JOGL) interface. Therefore we recommend using Java 8
-until these issues are resolved.
-\end{sideblock}
-
-For Java, it is necessary to install a full software development kit,
-which comes with a Java compiler. A simple run time
-environment (JRE) will not be sufficient. We recommend Java SE
-Development Kit 8u241, which can be obtained from Oracle at
-\begin{quote}
-\href{http://www.oracle.com/technetwork/java/javase/downloads/index.html}%
-{http://www.oracle.com/technetwork/java/javase/downloads/index.html}.
-\end{quote}
-It is necessary to register with Oracle in order to perform the
-download.
- 
 In this document, the location of the ArtiSynth installation \directory{}
 will be denoted by \ArtHome[]. For example
 if ArtiSynth is installed in
@@ -115,7 +96,7 @@ and \ArtHome[\SEP lib] denotes the sub-\directory{}
 \begin{verbatim}
   C:\people\roger\artisynth_core\lib
 \end{verbatim}
-\else
+\else % not Windows
 \begin{verbatim}
   /home/roger/artisynth_core
 \end{verbatim}
@@ -124,7 +105,105 @@ and \ArtHome[\SEP lib] denotes the sub-\directory{}
 \begin{verbatim}
   /home/roger/artisynth_core/lib
 \end{verbatim}
+\fi % end not Windows
+
+\section{Installing Java}
+\label{InstallingJava}
+
+By default, ArtiSynth is compiled to be compliant with Java 8. While
+it may be possible to run ArtiSynth under later Java versions, there
+have been reports of compatibility problems and warnings involving the
+Java OpenGL (JOGL) interface. Therefore we recommend using Java 8
+until these issues are resolved.
+
+ArtiSynth requires that you have a full Java development kit (JDK)
+installed, which comes with a Java compiler. A simple run time
+environment (JRE) will not be sufficient. We recommend Java SE
+Development Kit 8u{\it XXX} (where {\it XXX} is the latest revision
+number), which can be obtained from Oracle (registration required) at
+\begin{quote}
+\href{http://www.oracle.com/technetwork/java/javase/downloads/index.html}%
+{http://www.oracle.com/technetwork/java/javase/downloads/index.html}.
+\end{quote}
+
+\subsection{Making the JDK visible to your system}
+\label{MakingJDKVisible}
+
+After the JDK has been installed, it is important to ensure that it is
+visible to your system and that it supersedes any other Java
+installations. One test for this is to open a
+\ifWindows
+{\tt CMD} window
+\else
+terminal window
 \fi
+and run the command 
+\begin{verbatim}
+ > javac -version
+\end{verbatim}
+The output should match the version of the installed JDK. If it does
+not, or if the command {\tt javac} is not found,
+\ifMacOS
+then you can set the ``default'' JDK by setting the {\tt JAVA\_HOME}
+environment variable.  This can be done inside the
+initialization file for whichever command line shell you are using.
+
+Assume that the desired JDK has version number {\tt 1.8.0\_221} and
+that your home \directory{} is {\tt <HOMEDIR>}.  Then for the {\tt
+bash} shell, one can use a plain text editor to edit {\tt
+<HOMEDIR>/.bashrc} and insert a line of the form
+\begin{verbatim}
+  export JAVA_HOME=`/usr/libexec/java_home -v 1.8.0_221`
+\end{verbatim}
+while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
+<HOMEDIR>/.cshrc} and insert a line of the form
+\begin{verbatim}
+  setenv JAVA_HOME `/usr/libexec/java_home -v 1.8.0_221`
+\end{verbatim}
+
+Setting {\tt JAVA\_HOME} can also be done directly within the shell;
+doing it within the initialization file simply avoids the need to do
+so each time a new terminal window is opened.
+\else % not MacOS
+then one fix is to add the \directory{} {\tt <JDK\_DIR>\SEP bin} to
+your system Path, as described in Section \ref{SettingPath}, where
+{\tt <JDK\_DIR>} is the JDK installation \directory{}. 
+\ifWindows
+On \SYSTEM{}, {\tt <JDK\_DIR>} is likely to be located under {\tt
+Program Files\SEP Java}.
+\fi
+In particular, {\tt <JDK\_DIR>\SEP bin} should be added {\it ahead} of
+any other Java installations that might be specified on the Path. To
+see the current contents of the Path, open a
+\ifWindows
+{\tt CMD} window
+\else
+terminal window
+\fi
+and run the command
+\ifWindows
+\begin{verbatim}
+ > echo %PATH%
+\end{verbatim}
+\else
+\begin{verbatim}
+ > echo $PATH
+\end{verbatim}
+\fi
+\fi % end not MacOS
+
+\begin{sideblock}
+It may not be necessary to 
+\ifMacOS
+set {\tt JAVA\_HOME}
+\else
+add {\tt <JDK\_DIR>\SEP bin} to your system Path
+\fi
+if you are intending to compile and run ArtiSynth exclusively
+within an integrated development environment (IDE), such as Eclipse,
+since you should be able to specify the JDK directly within the IDE
+(as described in Section \ref{ConfiguringEclipse}).
+\end{sideblock}
 
 \section{Installing a Precompiled Release}
 \label{PrecompiledRelease}
@@ -142,7 +221,7 @@ installed in a location for which none of the \directory{} names
 contain spaces (i.e., {\tt Program Files}).  This can be important for
 some legacy ArtiSynth programs to run correctly.
 \end{sideblock}
-\else\fi
+\else\fi % end Windows
 
 Once ArtiSynth is downloaded and unzipped, it should be possible to
 run it immediately by executing the
@@ -235,7 +314,7 @@ If you have Cygwin (Section \ref{Cygwin}) installed, along with the
 shell window using the same {\tt git clone} command described
 in Section \ref{CloningUsingGitForWindows}.
 
-\else
+\else % not Windows
 \subsubsection{Cloning using the command line}
 
 Assuming your \SYSTEM{} distribution has Git installed, then you can
@@ -249,7 +328,7 @@ The argument {\tt <dir>} is optional and gives the name of the
 \directory{} into which the repository and working copy should be
 extracted; if omitted, the \directory{} will be named {\tt
 artisynth\_core}.
-\fi
+\fi % end not Windows
 
 \subsubsection{Cloning using Eclipse}
 \label{ArtiSynthEclipseCheckout}
@@ -276,19 +355,19 @@ to \ArtHome[], and entering the command
 \begin{verbatim}
  % bin\updateArtisynthLibs
 \end{verbatim}
-\else
+\else % not Windows
 You can execute it from the command line like this:
 \begin{verbatim}
  > cd <ARTISYNTH_HOME>
  > bin/updateArtisynthLibs
 \end{verbatim}
-\fi
+\fi % end not Windows
 
 \ifWindows
 If you have Cygwin (Section \ref{Cygwin}) installed, 
 the same command is available as {\tt
 updateArtisynthLibs}, also located in \ArtHome[\SEP bin].
-\else\fi
+\else\fi % end Windows
 
 \section{Compiling ArtiSynth}
 \label{Compilation}
@@ -350,7 +429,7 @@ ArtiSynth can then be built by executing
  > cd <ARTISYNTH_HOME>
  > make
 \end{verbatim}
-\else
+\else % not Windows
 \subsection{Compiling from the command line}
 \label{CompilingWithCygwin}
 
@@ -364,7 +443,7 @@ executing
  > cd <ARTISYNTH_HOME>
  > make
 \end{verbatim}
-\fi
+\fi % end not Windows
 
 \section{Running ArtiSynth}
 \label{Running}
@@ -398,13 +477,10 @@ so that the console command simplifies to
 regardless of the current \directory{}.
 
 \begin{sideblock}
-{\bf Note:}\\
-If Java is installed in a non-conventional location, the system may
-not be able to find it and this will cause {\tt artisynth.bat} to fail.
-To fix this, locate the \directory{} in which {\tt java.exe} resides, and let
-the location of this \directory{} be called JAVA\_DIR. You should then add
-JAVA\_DIR to your system's {\tt PATH} environment variable (see
-Section \ref{settingWindowsPath}).  
+{\bf Note:}\\ If the {\tt bin} directory for your {\tt JDK}
+installation is not in your systems's Path, the {\tt java} command may
+not be visible and this will cause {\tt artisynth.bat} to fail.
+See \ref{MakingJDKVisible} for a description of how to fix this.
 \end{sideblock}
 
 \subsection{Running using Cygwin}
@@ -427,7 +503,7 @@ is sufficient to do
  > artisynth -help
 \end{verbatim}
 
-\else
+\else % not Windows
 \subsection{Running from the command line}
 \label{artisynthCommandLine}
 
@@ -446,6 +522,13 @@ that the command simplifies to
 \end{verbatim}
 regardless of the current \directory{}.
 
+\begin{sideblock}
+{\bf Note:}\\ If the {\tt bin} directory for your {\tt JDK}
+installation is not in your systems's Path, the {\tt java} command may
+not be visible and this will cause the {\tt artisynth} command to fail.
+See \ref{MakingJDKVisible} for a description of how to fix this.
+\end{sideblock}
+
 \ifMacOS
 \subsection{Running from the file browser}
 
@@ -456,7 +539,8 @@ You can also run ArtiSynth from a file browser by double clicking on
 Note that {\tt artisynth.command} is just a copy of {\tt artisynth};
 the {\tt .command} suffix makes it recognizable to the MacOS GUI as a
 command.
-\fi\fi
+\fi % end MacOS
+\fi % end not Windows
 
 \subsection{Running using Eclipse}
 
@@ -480,11 +564,11 @@ list of which can be seen by running {\tt artisynth} with the {\tt
 \begin{verbatim}
  % artisynth -help
 \end{verbatim}
-\else
+\else % not Windows
 \begin{verbatim}
  > artisynth -help
 \end{verbatim}
-\fi
+\fi % end not Windows
 Descriptions of these options appear in various places within the
 ArtiSynth documentation. For example, one commonly used option is
 {\tt -model <modelClassName>}, which instructs ArtiSynth to preload a
@@ -493,11 +577,11 @@ model associated with a given class name:
 \begin{verbatim}
  % artisynth -model artisynth.demos.mech.SpringMeshDemo
 \end{verbatim}
-\else
+\else % not Windows
 \begin{verbatim}
  > artisynth -model artisynth.demos.mech.SpringMeshDemo
 \end{verbatim}
-\fi
+\fi % end not Windows
 
 When running under Eclipse, command line arguments can be set in the
 launch configuration, as described in
@@ -527,14 +611,14 @@ given in the
 \begin{figure}[h]
 \begin{center}
 \iflatexml
-\includegraphics[]{images/playControls}
+\includegraphics[]{../uiguide/images/playControls}
 \else
-\includegraphics[width=2.5in]{images/playControls}
+\includegraphics[width=2.5in]{../uiguide/images/playControls}
 \fi
 \end{center}
 \caption{The ArtiSynth play controls. From left to right: step size
-control, current simulation time, and the reset, skip back,
-play/pause, single-step and skip forward buttons.}%
+control, current simulation time, and the reset, skip-back,
+play/pause, single-step and skip-forward buttons.}%
 \label{PlayControlsFig}
 \end{figure}
 
@@ -688,11 +772,11 @@ should be placed in the {\tt EXTCLASSPATH} file:
 \begin{verbatim}
 C:\projects\artisynth_models\classes
 \end{verbatim}
-\else
+\else % not Windows
 \begin{verbatim}
 /projects/artisynth_models/classes
 \end{verbatim}
-\fi
+\fi % end not Windows
 
 \subsubsection{Using CLASSPATH environment variable}
 
@@ -701,12 +785,12 @@ Finally, if you are running using {\tt artisynth.bat} (or {\tt
 artisynth} in Cygwin), then you can make external classes visible by
 adding them to your {\tt CLASSPATH} environment variable (see Sections
 \ref{EnvironmentVariables} and \ref{CygwinEnvironmentSettings}).
-\else
+\else % not Windows
 Finally, if you are running from the command line using the {\tt
 artisynth} command, then you can make external classes visible by adding
 them to your {\tt CLASSPATH} environment variable (see Section
 \ref{EnvironmentVariables}).
-\fi
+\fi % end not Windows
 
 \section{Updating ArtiSynth and Other Packages}
 \label{UpdatingArtiSynth}
@@ -730,13 +814,13 @@ Updating may also be done by issuing the
 command from within \ArtHome[], 
 using either Git for Windows (Section \ref{GitForWindows}),
 the Cygwin shell (Section \ref{Cygwin}), or another Git application.
-\else
+\else % not Windows 
 Updating may also be done from the command line by issuing the 
 \begin{verbatim}
    > git pull
 \end{verbatim}
 command from within the ArtiSynth installation \directory{}.
-\fi
+\fi % end not Windows
 
 Other Git-based packages may be updated similarly. 
 
@@ -744,14 +828,15 @@ For Subversion-based packages, updating is done by issuing an {\tt
 update} request (Section \ref{SubversionSummary}). This can be done
 from within Eclipse (if a Subversion plugin has been installed;
 Section \ref{SubversionPlugIn}) by selecting the project in the {\sf
-Package Explorer} and selecting {\sf Team > Update} from the context
-menu. Subversion updates can also be done 
+Package Explorer} and selecting {\sf Team > Update} (or {\sf Team >
+Update to Head}) from the context menu. Subversion updates can also be
+done
 \ifWindows
 using either TortoiseSVN (Section \ref{TortoiseSVN}), or from the
 Cygwin command line by calling
-\else
+\else % not Windows 
 from the command line by calling
-\fi
+\fi % end not Windows
 \begin{verbatim}
    > svn update
 \end{verbatim}
@@ -851,8 +936,9 @@ First check the following:
 \item {\tt <PROJECT\_DIR>} should contain the
 Eclipse project files (including {\tt .project}). If it does not, it
 should contain a file {\tt eclipseSettings.zip}, which should be
-unzipped directly into {\tt <PROJECT\_DIR>} (as described in
-Section \ref{installingProjectFiles}), so that {\tt .project} and {\tt
+unzipped directly into {\tt <PROJECT\_DIR>} (not into a
+sub-\directory{}), as described in
+Section \ref{installingProjectFiles}, so that {\tt .project} and {\tt
 .classpath} then appear there.
 
 \item If the project is the ArtiSynth core distribution (i.e., 
@@ -1018,16 +1104,17 @@ the path of the local \directory{}, which will contain both the cloned
 repository and the working copy. After entering the \directory{}
 information, click {\sf Finish}.
 
-\item Finally, from {\bf outside} Eclipse, locate the file
+\item Finally, from {\it outside} Eclipse, locate the file
 {\tt eclipseSettings.zip} in the project's top \directory{}, and then
-unzip this file directly into that \directory{}, so that {\tt .project}
-and {\tt .classpath} appear in the top \directory{}.
+unzip this file directly into that \directory{} (not into a
+sub-\directory{}), so that {\tt .project} and {\tt .classpath} appear
+in the top \directory{}.
 \ifMacOS
 MacOS users are strongly encouraged to read  
 Section \ref{installingProjectFiles} for details on how to do this.
 \else
 For details, see Section \ref{installingProjectFiles}.
-\fi
+\fi % end MacOS
 
 \end{enumerate}
 
@@ -1075,8 +1162,9 @@ you should omit the final {\tt /trunk} since this is selectable in Step 4.
 \item If you are checking out a repository that is not available for
 anonymous access, or if you need write access to the repository, enter
 the appropriate user name and password in the {\sf Authentication}
-section of the dialog.  You will probably want to check {\sf Save
-authentication} as well.
+section of the dialog. (If the SVN repository is hosted by us, we will
+have given you this name and password.) You will probably want to
+check {\sf Save authentication} as well.
 
 %\item If you are just checking out the trunk of the repository (i.e.,
 %if your Subversion URL ends in {\tt /trunk}, as most examples in this
@@ -1114,16 +1202,17 @@ become the ArtiSynth install \directory{} \ArtHome[].
 Open Perspective > Java}. The project should appear in the {\sf
 Package Explorer} window.
 
-\item From {\bf outside} Eclipse, check to see if the file
+\item From {\it outside} Eclipse, check to see if the file
 {\tt eclipseSettings.zip} exists in the project's top \directory{}.
-If it does, unzip this file directly into the top \directory{}, so that
-{\tt .project} and {\tt .classpath} appear there.
+If it does, unzip this file directly into the top \directory{} (not
+into a sub-\directory{}), so that {\tt .project} and {\tt .classpath}
+appear there.
 \ifMacOS
 MacOS users are strongly encouraged to read  
 Section \ref{installingProjectFiles} for details on how to do this.
 \else
 For details, see Section \ref{installingProjectFiles}.
-\fi
+\fi % end MacOS
 
 \item Finally, load the new settings into the project by selecting the
 project in the {\sf Package Explorer} window and selecting {\sf
@@ -1138,8 +1227,9 @@ Some project repositories contain their eclipse project files bundled
 in the zip file {\tt eclipseSettings.zip}, instead of keeping them
 under direct repository control. This is to prevent unwanted local
 configuration changes from being propagated back into the repository.
-The project files need to be unzipped into the project directory to
-enable the project to be loaded into Eclipse.
+The project files need to be unzipped directly into the project
+\directory{} (not into a sub-\directory{}) to enable the project to be
+loaded into Eclipse.
 
 Let {\tt <PROJECT\_DIR>} denote the top-level project \directory{}.
 %
@@ -1147,7 +1237,7 @@ Let {\tt <PROJECT\_DIR>} denote the top-level project \directory{}.
 On Windows, project files can be extracted from within the 
 file browser. Double click on {\tt eclipseSettings.zip}
 and extract the files into {\tt <PROJECT\_DIR>}.
-\else
+\else % not Windows 
 Project files can be extracted using the command line.
 Open a command shell, 
 switch to the {\tt <PROJECT\_DIR>} \directory{}, and run {\tt unzip}:
@@ -1155,7 +1245,7 @@ switch to the {\tt <PROJECT\_DIR>} \directory{}, and run {\tt unzip}:
   > cd <PROJECT_ROOT>
   > unzip eclipseSettings.zip
 \end{verbatim}
-\fi
+\fi % end not Windows
 This will create the files {\tt .project} and {\tt .classpath}, along
 with the \directory{} {\tt .settings}, in {\tt <PROJECT\_DIR>}.  In
 the case of {\tt artisynth\_core}, it will also create the file {\tt
@@ -1178,12 +1268,12 @@ prevent you from moving them to the correct place manually.
 Either extract the files using the command line as described
 above, or use a more standard application like {\sf 7-Zip} ({\sf 7zX} for OSX).
 \end{sideblock}
-\fi
+\fi % end MacOS
 
 \subsection{Configuring environment variables}
 \label{EclipseEnvironmentVariables}
 
-While it is generally {\it not} necessary to set environment variable
+While it is generally {\it not} necessary to set environment variables
 in Eclipse, it may be useful to do this on occasion to control certain
 aspects of ArtiSynth's operation.  Directions on setting the
 environment variables are given in
@@ -1242,7 +1332,7 @@ the system's native {\tt \%PATH\%} variable rather than appending to it.
 To correct this behavior, define {\tt PATH} as 
 {\tt \$\{env\_var:path\};\$ARTISYNTH\_HOME\SEP lib\SEP \ARCH{}} 
 \end{sideblock}
-\fi
+\fi % end Windows
 \fi
 
 \subsubsection {Setting environment variables}
@@ -1385,7 +1475,7 @@ ArtiSynth}). This may already be selected when you open the panel.
 
 \item In the right panel, select the {\sf Classpath} tab.
 
-\item In the {\sf Classpath:} window, select {\sf User Entries},
+\item In the {\sf Classpath} window, select {\sf User Entries},
 and then click the {\sf Add Projects} button.
 
 \item In the {\sf Project Selection} dialog, select the external
@@ -1496,6 +1586,128 @@ It is possible to inhibit most of this copying:
 
 \section{Additional Information}
 
+\subsection{Adding Directories to the System Path}
+\label{SettingPath}
+
+The system ``Path'' is a list of directories which the system searches
+in order to find executables. Adding a directory to the path allows
+executables contained in that directory to be called directly from a
+\ifWindows
+command window such as {\tt CMD}.
+\else
+terminal window.
+\fi
+
+\ifWindows
+
+\subsubsection{Windows 10}
+
+\begin{enumerate}
+
+\item Open the {\sf Start} search, enter ``{\tt env}'', and choose
+{\sf ``Edit the system environment variables''}.
+
+\item Click on {\sf Environment Variables}.
+
+\item Under {\sf User variables} (the top window), click on {\sf Path}
+and click {\sf Edit}. If {\sf Path} does not exist, click {\sf New}.
+
+\item In the {\sf Edit environment variable} dialog, click {\sf New}
+and enter the full path name for each directory you wish to add.
+
+\item Close each dialog by clicking {\sf OK}.
+
+\end{enumerate}
+
+\subsubsection{Windows 8 and earlier}
+
+\begin{enumerate}
+
+\item Right-click {\sf My Computer}, and then click {\sf Properties}.
+
+\item Click the {\sf Advanced} tab.
+
+\item Click {\sf Environment variables}.
+
+\item In the top {\sf User variables} window, click on {\sf Path} and 
+then {\sf Edit}. If {\sf Path} does not exist, click {\sf New}.
+
+\item In the edit window, add the full path name for each new directory,
+separated by semi-colons '{\tt ;}'.
+
+\item Close each dialog by clicking {\sf OK}.
+
+\end{enumerate}
+
+For example, if ArtiSynth is installed at {\tt C:\BKS artisynth\BKS
+artisynth\_core} and the desired {\tt JDK} is at {\tt C:\BKS Program
+Files\BKS Java\BKS jdk1.8.0\_221}, then we can add the {\tt bin}
+directories for both by setting the User path to
+\begin{verbatim}
+  C:\artisynth\artisynth_core\bin;C:\Program Files\Java\jdk1.8.0_221\bin
+\end{verbatim}
+
+\fi % end Windows
+
+\ifWindows\else % not Windows
+
+\ifMacOS
+Since \SYSTEM{} is a Unix-based system, 
+\else\ifLinux
+On Linux,
+\fi % end Linux
+\fi % end not Windows
+directories can be added to the path by appending them to the {\tt
+PATH} environment variable, which is a list of directories separated
+by colons `{\tt :}'. The most direct way to do this is to redefine
+{\tt PATH} inside one of the initialization files for whichever
+command line shell you are using.
+
+Assume that your home folder is {\tt <HOMEDIR>}. Then for the {\tt
+bash} shell, one can edit {\tt <HOMEDIR>/.bashrc} and insert a line of
+the form
+\begin{verbatim}
+   export PATH=<DIR>:$PATH
+\end{verbatim}
+while for the {\tt csh} or {\tt tcsh} shells, one can edit {\tt
+<HOMEDIR>/.cshrc} and insert a line of the form
+\begin{verbatim}
+   setenv PATH <DIR>":"$PATH
+\end{verbatim}
+
+\ifMacOS
+On Mac OS X 10.8 and greater, directories can also be added to the
+path by adding a text file containing the directories to {\tt
+/etc/paths.d}.  In particular, we can create a file called {\tt
+ArtiSynth} in {\tt /etc/paths.d} that contains the full path names of
+the desired directories.
+
+\begin{enumerate}
+
+\item Open a terminal window
+
+\item Use {\tt sudo} to create {\tt /etc/paths.d/ArtiSynth} with a plain
+text editor. For example:
+\begin{verbatim}
+  sudo nano /etc/paths.d/ArtiSynth
+\end{verbatim}
+
+\item Add the full path name of each desired directory, one per line,
+and save the file.
+
+\item To test the revised {\tt PATH}, open a new terminal
+window and enter the command: {\tt echo \$PATH}.
+
+\end{enumerate}
+
+\fi % end MacOS
+\fi % end not Windows
+
+\begin{sideblock}
+Most most command windows and applications need to be restarted in
+order to get them to notice changes to the {\tt PATH}.
+\end{sideblock}
+
 \ifWindows
 
 \subsection{Git for Windows}
@@ -1537,7 +1749,7 @@ Once downloaded, run the MSI installer and follow the instructions in
 the installer. When the download completes, right-clicking in any file
 browser in Windows should now present you with SVN version control
 options, analogous to the command line instructions discussed in other
-parts of the documentation. We will briefly discuss here the three
+parts of the documentation. We will briefly discuss the three
 most common operations:
 
 \begin{description}
@@ -1596,7 +1808,7 @@ that you select the following additional packages:
 
 If you are planning to compile C/C++ code, you may also want to
 install the various {\tt gcc} and {\tt gdb} packages (located under {\tt devel}).
-\fi
+\fi % end Windows
 
 \subsection{Environment variables}
 \label{EnvironmentVariables}
@@ -1637,23 +1849,19 @@ wildcard {\tt *} to specify all the {\tt jar} files in
  
 A list of \directories{}, separated by \separatorDesc, which the
 operating system uses to locate executable programs and
-applications. 
-\ifWindows
-This should be set to include \ArtHome[\SEP bin].
-This variable is described in detail in Section \ref{settingWindowsPath}.
-\else
-This should be set to include \ArtHome[\SEP bin]
-\fi
+applications. Placing \ArtHome[\SEP bin] in your {\tt PATH} (as
+described in Section \ref{SettingPath}) will allow you to run {\tt
+artisynth} and related commands directly from a command window.
 
 \ifNeedLibraryPath
-\ifWindows\else
+\ifWindows\else % not Windows 
 \item[\LIBRARYPATH{}]\mbox{}
 
 A list of \directories{}, separated by colons
 ":", which the operating system searches in order to find shared libraries.
 Should be set to include \ArtHome[\SEP lib\SEP \ARCH{}].
-\fi
-\fi
+\fi % end not Windows
+\fi % end NeedLibraryPath
 
 \item[OMP\_NUM\_THREADS]\mbox{}
  
@@ -1677,6 +1885,27 @@ of {\tt ARTISYNTH\_HOME}.
 On Windows, a user can view, set, or change environment variables via
 the following steps:
 
+{\bf Windows 10:}
+
+\begin{enumerate}
+
+\item Open the {\sf Start} search, enter ``{\tt env}'', and choose
+{\sf ``Edit the system environment variables''}.
+\item Click on {\sf Environment Variables}.
+\item Choose one of the following options:
+
+\begin{itemize}
+\item Click {\sf New} to add a new variable name and value.
+\item Click an existing variable, and then {\sf Edit} to change its name or value.
+\item Click an existing variable, and then {\sf Delete} to remove it.
+\end{itemize}
+
+\item Close each dialog by clicking {\sf OK}.
+
+\end{enumerate}
+
+{\bf Windows 8 and earlier:}
+
 \begin{enumerate}
 
 \item Right-click {\sf My Computer}, and then click {\sf Properties}.
@@ -1685,12 +1914,13 @@ the following steps:
 \item Choose one of the following options:
 
 \begin{itemize}
-
 \item Click {\sf New} to add a new variable name and value.
 \item Click an existing variable, and then {\sf Edit} to change its name or value.
 \item Click an existing variable, and then {\sf Delete} to remove it.
-
 \end{itemize}
+
+\item Close each dialog by clicking {\sf OK}.
+
 \end{enumerate}
 
 Variable settings can reference other environment variables, by
@@ -1704,34 +1934,6 @@ specified as
 \begin{verbatim}
   %HOME%\packages\artisynth_core
 \end{verbatim}
-
-\subsubsection{The PATH environment variable}
-\label{settingWindowsPath}
-
-The special environment variable {\tt PATH} tells the system where to find
-applications and programs. It consists of a list of \directory{} names
-separated by semicolons ";". If you have applications or programs that
-reside in non-standard locations, you can enable the system to find
-them by adding their containing \directory{} to the existing {\tt PATH}
-value. For example, the programs associated with ArtiSynth reside in
-\ArtHome[\SEP bin]. If {\tt ARTISYNTH\_HOME} has the value
-{\tt "C:\SEP packages\SEP artisynth\_core"}, then the ArtiSynth programs
-can be made visible to the system by setting {\tt PATH} to
-
-\begin{verbatim}
-  %PATH%;c:\packages\artisynth_core\bin
-\end{verbatim}
-
-Alternatively, if the ArtiSynth home location is described by
-the environment variable {\tt ARTISYNTH\_HOME}, then the
-above can be expressed as
-
-\begin{verbatim}
-  %PATH%;%ARTISYNTH_HOME%\bin
-\end{verbatim}
-
-Note that most programs and applications need to be restarted in order
-to get them to notice changes to the {\tt PATH}.
 
 \subsubsection{Typical environment settings}
 \label{TypicalEnvironment}
@@ -1773,9 +1975,9 @@ Note that even on Cygwin, the environment variables {\tt
 ARTISYNTH\_HOME}, {\tt ARTISYNTH\_PATH}, and {\tt CLASSPATH} should be
 set using Windows path conventions. That is because they may not
 necessarily be invoked in a Unix-like context.
-\fi
+\fi % end Windows
 
-\ifWindows\else
+\ifWindows\else % not Windows 
 \subsubsection{Example environment set up for {\tt bash}}
 \label{BashEnvironmentSetup}
 
@@ -1804,7 +2006,8 @@ setenv PATH $ARTISYNTH_HOME/bin":"$PATH
 # Set to the number of cores on your machine:
 setenv OMP_NUM_THREADS 2 
 \end{lstlisting}
-\fi\fi
+\fi % end Linux
+\fi % end not Windows
 
 Be sure to set {\tt ARTISYNTH\_HOME} to the proper location of your
 ArtiSynth installation \directory{}.
@@ -1856,7 +2059,8 @@ setenv PATH $ARTISYNTH_HOME/bin":"$PATH
 # Set to the number of cores on your machine:
 setenv OMP_NUM_THREADS 2 
 \end{lstlisting}
-\fi\fi
+\fi % end MacOS
+\fi % end not Linux
 
 These environment variables will be passed on to any program which you
 run from the shell (such as {\tt artisynth} or {\tt eclipse}).
@@ -1876,7 +2080,7 @@ This will determine the system type automatically and set the
 environment variables accordingly, with {\tt ARTISYNTH\_HOME} set to the
 current \directory{} from which the script is called (however,
 it {\it won't} set {\tt OMP\_NUM\_THREADS}).
-\fi
+\fi % end not Windows
 
 \subsection{ArtiSynth Libraries}
 
@@ -1907,7 +2111,7 @@ do this is to list these class paths as entries in the text file {\tt
 EXTCLASSPATH}, located in \ArtHome[].
 
 To add class paths to {\tt EXTCLASSPATH}, open it using a
-standard text editor
+plain text editor
 \ifWindows
 (such as {\tt Notepad})
 \else
@@ -1931,7 +2135,7 @@ to the end of line.
 
 \item The {\tt \$} character can be used to expand environment variables.
 
-\item Any spaces present {\bf will} be included in the path name.
+\item Any spaces present {\it will} be included in the path name.
 
 \end{enumerate}
 
@@ -1943,13 +2147,13 @@ C:\research\artisynth_models\classes
 C:\research\models\special.jar
 $HOME\projects\crazy\classes
 \end{verbatim}
-\else
+\else % not Windows 
 \begin{verbatim}
 /research/artisynth_models/classes
 /research/models/special.jar
 $HOME/projects/crazy/classes
 \end{verbatim}
-\fi
+\fi % end not Windows
 
 \subsection{Quick Git Summary}
 \label{GitSummary}

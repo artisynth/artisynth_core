@@ -343,7 +343,7 @@ public interface MechSystem {
     * @param M matrix in which the mass matrix will be built
     * @return true if the mass matrix is constant.
     */
-   public boolean buildMassMatrix (SparseBlockMatrix M);
+   public boolean buildMassMatrix (SparseNumberedBlockMatrix M);
 
    /** 
     * Sets <code>M</code> to the current value of the mass matrix for this
@@ -364,7 +364,8 @@ public interface MechSystem {
     * @param f returns the mass forces
     * @param t current time
     */
-   public void getMassMatrix (SparseBlockMatrix M, VectorNd f, double t);
+   public void getMassMatrix (
+      SparseNumberedBlockMatrix M, VectorNd f, double t);
 
    /** 
     * Sets <code>Minv</code> to the inverse of the mass matrix <code>M</code>.

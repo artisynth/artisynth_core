@@ -22,6 +22,10 @@ public class QuadhexElement extends FemElement3d {
    private static FemElementRenderer myRenderer;
    private static Matrix4d myPressureWeightMatrix;
 
+   public boolean isLinear() {
+      return false;
+   }
+   
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
          myDefaultIntegrationPoints = 
@@ -559,6 +563,62 @@ public class QuadhexElement extends FemElement3d {
    
    public double[] getNodeCoords () {
       return myNodeCoords;
+   }
+
+   private static double[] myNodeMassWeights = new double[] {
+      // masses obtained by scaling the consistent mass matrix diagonal:
+      // // corner nodes
+      // 0.0282258,
+      // 0.0282258,
+      // 0.0282258,
+      // 0.0282258,
+      // 0.0282258,
+      // 0.0282258,
+      // 0.0282258,
+      // 0.0282258,
+
+      // // side nodes
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161,
+      // 0.0645161
+
+      // masses obtained by summing the consistent mass matrix:
+      // corner nodes
+      -0.125,
+      -0.125,
+      -0.125,
+      -0.125,
+      -0.125,
+      -0.125,
+      -0.125,
+      -0.125,
+
+      // side nodes
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666,
+      0.16666666666666666
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
    }
 
    static int[] myEdgeIdxs = new int[] 

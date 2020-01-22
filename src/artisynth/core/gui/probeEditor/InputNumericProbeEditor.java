@@ -27,6 +27,7 @@ import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.probes.NumericInputProbe;
 import artisynth.core.probes.NumericProbeDriver;
 import artisynth.core.probes.NumericProbeVariable;
+import artisynth.core.probes.Probe;
 import maspack.properties.NumericConverter;
 import maspack.properties.Property;
 import maspack.util.StringHolder;
@@ -38,30 +39,9 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
    static final long serialVersionUID = 1L;
    private NumericInputProbe oldProbe;
 
-   private boolean attachedInputFileValid (String path, StringHolder errMsg) {
-      if (path != null && !path.equals ("")) {
-         String fullPath = getFullPath (path);
-         if (!filePathExists (fullPath)) {
-            if (errMsg != null) {
-               errMsg.value = "File does not exist or is not readable";
-            }
-            return false;
-         } else {
-            File file = new File(fullPath);
-            if (file.isDirectory()) {
-               if (errMsg != null) {
-                  errMsg.value = "The provided file cannot be a directory";
-               }
-               return false;
-            }
-         }
-      }
-      return true;
-   }
-
    private class InputFileChecker implements ValueCheckListener {
       public Object validateValue (ValueChangeEvent e, StringHolder errMsg) {
-         if (!attachedInputFileValid ((String)e.getValue(), errMsg)) {
+         if (!attachedFileValid ((String)e.getValue(), errMsg)) {
             return Property.IllegalValue;
          }
          if (errMsg != null) {
@@ -90,7 +70,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
       oldProbe = inProbe;
 
       attachedFile = inProbe.getAttachedFile();
-      attachedFileField.setValue (getAttachedFilePath (attachedFile));
+      attachedFileField.setValue (Probe.getPathFromFile (attachedFile));
       attachedFileField.addValueCheckListener (new InputFileChecker());
 
       setupGUI();
@@ -234,7 +214,7 @@ public class InputNumericProbeEditor extends NumericProbeEditor {
       String attachedFilePath = attachedFileField.getStringValue();
       if (attachedFilePath != null) {
          if (attachedFilePath.equals ("") ||
-             !attachedInputFileValid (attachedFilePath, null)) {
+             !attachedFileValid (attachedFilePath, null)) {
             attachedFilePath = null;
          }
       }

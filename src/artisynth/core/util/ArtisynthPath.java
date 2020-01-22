@@ -929,6 +929,52 @@ public class ArtisynthPath {
       }
    }
 
+   /**
+    * If {@code file} is located beneath the directory {@code dir}, return its
+    * relative path with respect to {@code dir}. Otherwise, return its absolute
+    * path.
+    *
+    * @param dir directory whose path is to be checked against {@code file}
+    * @param file file whose path is sought
+    * @return relative or absolute path for {@code file}
+    */
+   public static String getRelativeOrAbsolutePath (File dir, File file) {
+      String dirPath;
+      String filePath;
+
+      try {
+         dirPath = dir.getCanonicalPath();
+      }
+      catch (Exception e) {
+         System.out.println ("Warning: cannot get canonical path for "+dir);
+         dirPath = dir.getAbsolutePath();
+      }
+      try {
+         filePath = file.getCanonicalPath();
+      }
+      catch (Exception e) {
+         System.out.println ("Warning: cannot get canonical path for "+file);
+         filePath = file.getAbsolutePath();
+      }
+      if (filePath.startsWith (dirPath)) {
+         return filePath.substring (dirPath.length()+1);
+      }
+      else {
+         return filePath;
+      }
+   }
+
+   public static String getFileExtension (File file) {
+      String name = file.getName();
+      int dotIndex = name.lastIndexOf('.');
+      if (dotIndex == -1) {
+         return null;
+      }
+      else {
+         return name.substring (dotIndex+1);
+      }
+   }
+
    public static boolean filesAreTheSame (File f1, File f2) {
       String path1 = null;
       String path2 = null;

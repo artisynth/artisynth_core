@@ -22,6 +22,10 @@ public class QuadwedgeElement extends FemElement3d {
 
    private static Matrix2d myPressureWeightMatrix;
 
+   public boolean isLinear() {
+      return false;
+   }
+   
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
          myDefaultIntegrationPoints = 
@@ -173,6 +177,33 @@ public class QuadwedgeElement extends FemElement3d {
       return myNodeCoords;
    }
 
+   private static double[] myNodeMassWeights = new double[] {
+      // corner nodes
+      0.0294118,
+      0.0294118,
+      0.0294118,
+      0.0294118,
+      0.0294118,
+      0.0294118,
+
+      // side edge nodes
+      0.0784314,
+      0.0784314,
+      0.0784314,
+      0.0784314,
+      0.0784314,
+      0.0784314,
+
+      // middle edge nodes
+      0.117647,
+      0.117647,
+      0.117647
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
    private static MatrixNd myNodalExtrapolationMatrix = null;
 
    public MatrixNd getNodalExtrapolationMatrix() {
@@ -209,6 +240,7 @@ public class QuadwedgeElement extends FemElement3d {
       double r = coords.z;
 
       switch (i) {
+         // corners
          case 0: return -0.5*(1-s1-s2)*(1-r)*(2*s1+2*s2+r);
          case 1: return 0.5*s1*(1-r)*(2*s1-r-2);
          case 2: return 0.5*s2*(1-r)*(2*s2-r-2);
@@ -216,12 +248,15 @@ public class QuadwedgeElement extends FemElement3d {
          case 4: return 0.5*s1*(1+r)*(2*s1+r-2);
          case 5: return 0.5*s2*(1+r)*(2*s2+r-2);
 
+         // side edges
          case 6: return 2*s1*(1-s1-s2)*(1-r);
          case 7: return 2*s1*s2*(1-r);
          case 8: return 2*s2*(1-s1-s2)*(1-r);
          case 9: return 2*s1*(1-s1-s2)*(1+r);
          case 10: return 2*s1*s2*(1+r);
          case 11: return 2*s2*(1-s1-s2)*(1+r);
+
+         // middle edges
          case 12: return (1-s1-s2)*(1-r*r);
          case 13: return s1*(1-r*r);
          case 14: return s2*(1-r*r);

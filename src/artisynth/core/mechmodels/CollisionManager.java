@@ -257,6 +257,10 @@ public class CollisionManager extends RenderableCompositeBase
    double myFriction = defaultFriction;
    PropertyMode myFrictionMode = PropertyMode.Inherited;
 
+   static boolean defaultBilateralVertexContact = true;
+   boolean myBilateralVertexContact = defaultBilateralVertexContact;
+   PropertyMode myBilateralVertexContactMode = PropertyMode.Inherited;
+
    static boolean defaultReduceConstraints = false;
    boolean myReduceConstraints = defaultReduceConstraints;
    PropertyMode myReduceConstraintsMode = PropertyMode.Inherited;
@@ -352,6 +356,11 @@ public class CollisionManager extends RenderableCompositeBase
 
       myProps.addInheritable (
          "friction:Inherited", "friction coefficient", defaultFriction);
+
+      myProps.addInheritable (
+         "bilateralVertexContact:Inherited",
+         "allow bilateral constraints for vertex-based contacts", 
+         defaultBilateralVertexContact);
 
       myProps.addInheritable (
          "reduceConstraints:Inherited",
@@ -509,6 +518,8 @@ public class CollisionManager extends RenderableCompositeBase
       setRenderProps (createRenderProps());
       myFriction = defaultFriction;
       myFrictionMode = PropertyMode.Inherited;
+      myBilateralVertexContact = defaultBilateralVertexContact;
+      myBilateralVertexContactMode = PropertyMode.Inherited;
       myCompliance = defaultCompliance;
       myComplianceMode = PropertyMode.Inherited;
       myDamping = defaultDamping;
@@ -629,6 +640,41 @@ public class CollisionManager extends RenderableCompositeBase
 
    public PropertyMode getFrictionMode() {
       return myFrictionMode;
+   }
+
+   /** 
+    * Returns whether bilateral constraints should be used for vertex-based
+    * contact.
+    * 
+    * @return {@code true} if bilateral constraints should be used
+    */
+   public boolean getBilateralVertexContact() {
+      return myBilateralVertexContact;
+   }
+
+   /** 
+    * Set whether bilateral constraints should be used for vertex-based
+    * contact.
+    * 
+    * @param enable if {@code true}, enables bilateral constraints
+    */
+   public void setBilateralVertexContact (boolean enable) {
+      myBilateralVertexContact = enable;
+      myBilateralVertexContactMode =
+         PropertyUtils.propagateValue (
+            this, "bilateralVertexContact",
+            myBilateralVertexContact, myBilateralVertexContactMode);
+   }
+
+   public void setBilateralVertexContactMode (PropertyMode mode) {
+      myBilateralVertexContactMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "bilateralVertexContact",
+            myBilateralVertexContactMode, mode);
+   }
+
+   public PropertyMode getBilateralVertexContactMode() {
+      return myBilateralVertexContactMode;
    }
 
    /** 

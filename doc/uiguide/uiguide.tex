@@ -13,7 +13,7 @@
 
 \title{ArtiSynth User Interface Guide}
 \author{John Lloyd}
-\setpubdate{Last update: Sep 17, 2019}
+\setpubdate{Last update: Jan 22, 2020}
 \iflatexml
 \date{}
 \fi
@@ -65,6 +65,9 @@ This manual describes the ArtiSynth user interface, and how it can be
 used to edit models and interactively monitor and control their
 simulation.
 
+%Within the manual, the location of the ArtiSynth installation
+%directory will be denoted by {\tt <ARTISYNTH\_HOME>}
+
 \section{Loading, Simulating and Saving Models}
 
 The first thing an ArtiSynth user is likely to want is to load a
@@ -75,14 +78,14 @@ ArtiSynth distribution. These are generally simple models that
 illustrate particular simulation capabilities. More complex
 anatomical models, including those used in various research projects,
 are available in the separate project {\tt artisynth\_models}, which
-must be downloaded separately from ArtiSynth (see
+must be downloaded separately (see
 \href{http://www.artisynth.org/models}{www.artisynth.org/models} 
 for instructions).
 
-An ArtiSynth model is defined by a subclass of the ArtiSynth {\tt
-RootModel} component, which build the model, serves as the root
-container for all its components, and implements the {\tt advance()}
-method which allows the model to be simulated.
+An ArtiSynth model is defined by a Java class which is a subclass of
+the ArtiSynth {\tt RootModel} component. This class builds the model,
+serves as the root container for all its components, and implements
+the {\tt advance()} method which allows the model to be simulated.
 
 There are several ways to load models.
 
@@ -94,14 +97,21 @@ in the ArtiSynth menu bar. By default, this expands to a number of
 submenus:
 
 \begin{tabular}{ll}
-{\sf Demos} & all models listed in the {\tt .demoModels} file\\
-{\sf All Demos} & every model found under the package {\tt artisynth.demos}, 
-arranged hierarchically\\
-{\sf Models} & all models listed in the {\tt .mainModels} file\\
-{\sf All Models} & every model found under the packages 
+{\sf Demos} & - all models listed in the file {\tt .demoModels}\\
+{\sf All Demos} & - every model found under the package {\tt artisynth.demos}, 
+arranged hierarchically
+\end{tabular}
+
+In addition, if {\tt artisynth\_models} has also been installed, or if
+ArtiSynth otherwise detects the presence of Java packages located
+under {\tt artisynth.models}, then the {\sf Models} menu will also
+contain:
+
+\begin{tabular}{ll}
+{\sf Models} & - all models listed in the file {\tt .mainModels}\\
+{\sf All Models} & - every model found under the packages 
 {\tt artisynth.models}, arranged hierarchically
 \end{tabular}
-\medskip
 
 The files {\tt .demoModels} and {\tt .mainModels} are searched for in
 the list of directories specified by the {\tt ARTISYNTH\_PATH}
@@ -109,19 +119,15 @@ environment variable (which if not present defaults to the current
 directory, the user's home directory, and the ArtiSynth install
 directory).
 
-\begin{sideblock}
-Note: the submenus {\sf Models} and {\sf All Models} will not appear
-if the contents associated with them are empty, which may occur if no
-ArtiSynth model packages have been installed.
-\end{sideblock}
-
 Each submenu expands out to identify a set of models. Selecting
 one of the models will cause it to be loaded into ArtiSynth and
 displayed in the viewer. Hovering over one of the entries will
 display the full classname of the associated {\tt RootModel}.
 
+\begin{sideblock}
 It is possible to customize the contents of the {\sf Models} menu; see
 Section \ref{CustomizingModelsMenu}.
+\end{sideblock}
 
 \subsection{Loading by class path}
 
@@ -140,7 +146,7 @@ command, one may specify
   artisynth -model artisynth.models.mystuff.TestModel
 \end{lstlisting}
 Under Eclipse, the {\tt -model} argument may be specified in the {\tt
-Arguments} section of the ArtiSynth run configuration.
+Arguments} section of the run configuration.
 
 \subsection{Loading from a file}
 
@@ -174,9 +180,16 @@ menu.
 Once a model is loaded, simulation of the model can be started,
 paused, single-stepped, or reset using the play controls (Figure
 \ref{PlayControlsFig}) located at the upper right of the ArtiSynth
-window frame.
+window frame. Play controls are discussed in more detail
+in Section \ref{PlayControlsSec}.
 
-\begin{figure}
+Play controls are also available in the ArtiSynth timeline (Section
+\ref{TimelineSec}).  Also, hitting the `{\tt p}', `{\tt s}'
+and `{\tt r}' keys from within the viewer (Section
+\ref{keyShortcutsSec}) can be used to play/pause, single step and
+reset the simulation.
+
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/playControls}
@@ -185,16 +198,53 @@ window frame.
 \fi
 \end{center}
 \caption{The ArtiSynth play controls. From left to right: step size
-control, current simulation time, and the reset, play/pause, and
-single-step buttons.}%
+control, current simulation time, and the reset, skip-back,
+play/pause, single-step and skip-forward buttons.}%
 \label{PlayControlsFig}
 \end{figure}
 
-An extended set of play controls is available in the ArtiSynth
-timeline (Section \ref{TimelinePlayControls}).  Also, hitting the
-`{\tt p}', `{\tt s}' and `{\tt r}' keys from within the viewer (Section
-\ref{keyShortcutsSec}) can be used to play/pause, step and reset the
-simulation.
+\subsection{Other toolbar controls}
+
+The ArtiSynth application contains a toolbar that runs along the top
+of the frame. The right side contains the play controls shown in
+Figure \ref{PlayControlsFig}.
+
+When a grid is enabled in the viewer (Section \ref{ViewerGrid}), a
+text box appears in the center of the toolbar displaying the current
+grid units (Section \ref{GridUnits}).
+
+The left side of the toolbar contains the following buttons:
+
+\begin{tabular}{l l l}
+\iflatexml
+\includegraphics{images/navpanelIcon}
+\else
+\includegraphics[width=.33in]{images/navpanelIcon}
+\fi
+& NavPanel: &
+Shows or hides the naviagtion panel (Section \ref{navPanelSec})\\
+\iflatexml
+\includegraphics{images/resetState}
+\else
+\includegraphics[width=.33in]{images/resetState}
+\fi
+& Reset state: &
+Resets the simulation state at time 0 to the current state.\\
+\iflatexml
+\includegraphics{images/rerender}
+\else
+\includegraphics[width=.33in]{images/rerender}
+\fi
+& Rerender: &
+Rerenders all viewers and displays.\\
+\iflatexml
+\includegraphics{images/realtimeEnable}
+\else
+\includegraphics[width=.33in]{images/realtimeEnable}
+\fi
+& Enable real-time: &
+Toggle which if pressed (the default), forces the simulation to run no faster than real time.
+\end{tabular}
 
 \subsection{Saving a model}
 \label{SavingSec}
@@ -214,9 +264,9 @@ the following options:
 
 \item[Save waypoint data:] \mbox{}
 
-Causes the state data for any valid
-waypoints to be saved in addition to the waypoint locations.  This is
-optional because a large number of waypoints may significantly
+Causes the state data for any valid waypoints (Section
+\ref{waypointsSec}) to be saved in addition to the waypoint locations.
+This is optional because a large number of waypoints may significantly
 increase the file size for models with a large state sizes.
 
 \item[Core components only:] \mbox{}
@@ -253,7 +303,7 @@ for additional viewers appear horizontally at the top.  Each is an
 instance of Java's {\tt JToolBar}, and so can be moved and docked
 accordingly.
 
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/viewerToolbar}
@@ -697,13 +747,13 @@ ray with a 3D surface mesh.
 \subsection{Alternate Mouse Bindings}
 \label{MouseBindingsSec}
 
-The ArtiSynth GUI was designed for a three-button mouse, in which the
-left button is used for selection, the middle button controls the
-viewpoint, and the right button is used to activate the context
-menu. These are used in conjunction with the modifier keys {\tt SHIFT}
-and {\tt CTRL} to effect different actions.  
+The ArtiSynth GUI was originally designed for a three-button mouse, in
+which the left button is used for selection, the middle button
+controls the viewpoint, and the right button is used to activate the
+context menu. These are used in conjunction with the modifier keys
+{\tt SHIFT} and {\tt CTRL} to effect different actions.
 
-For systems that do not have a three button mouse, ArtiSynth by
+For systems that do not have a three-button mouse, ArtiSynth by
 default detects the number of mouse buttons and adjusts the mouse
 bindings so that the {\tt ALT} key emulates the middle button and the
 {\tt META} key emulates the right button.
@@ -787,7 +837,7 @@ Resize paint ellipse &
 Context menu & 
 {\tt RMB} & {\tt RMB} & {\tt LMB}+{\tt META}\\
 \hline
-\multicolumn{4}{|l|}{Manipulator control (Section \ref{ManipulationToolsSec})}\\
+\multicolumn{4}{|l|}{Transformer control (Section \ref{TransformerToolsSec})}\\
 \hline
 Move & 
 {\tt LMB} & {\tt LMB} & {\tt LMB}\\
@@ -831,7 +881,7 @@ Resize paint ellipse &
 Context menu & 
 {\tt RMB} & {\tt LMB}+{\tt CTRL} \\
 \hline
-\multicolumn{3}{|l|}{Manipulator control (Section \ref{ManipulationToolsSec})}\\
+\multicolumn{3}{|l|}{Transformer control (Section \ref{TransformerToolsSec})}\\
 \hline
 Move & 
 {\tt LMB} & {\tt LMB} \\
@@ -874,14 +924,14 @@ Key & Operation \\
 {\tt l} & toggle viewer grid labels\\
 \hline
 \multicolumn{2}{|l|}{%
-Selection and manipulation (Sections \ref{viewerSelectionSec} 
-and \ref{ManipulationToolsSec}):}\\
+Selection and transformer (Sections \ref{viewerSelectionSec} 
+and \ref{TransformerToolsSec}):}\\
 \hline
 {\tt ESC} & select parent of last selection\\
 {\tt c} & clear selection\\
 {\tt d} & reset elliptic cursor size to default\\
-{\tt w} & set current manipulator frame to world coordinates\\
-{\tt b} & set current manipulator frame to body/local coordinates\\
+{\tt w} & set current transformer frame to world coordinates\\
+{\tt b} & set current transformer frame to body/local coordinates\\
 \hline
 \end{tabular}
 \end{center}
@@ -978,7 +1028,7 @@ output.
 
 A navigation panel in the main ArtiSynth frame allows direct
 navigation of the component hierarchy. The panel can be
-open or closed by clicking on the menu bar icon 
+open or closed by clicking on the main toolbar bar icon 
 \iflatexml
 \includegraphics[]{images/navpanelIcon}.
 \else
@@ -1230,15 +1280,24 @@ While this has the potential to be confusing, we have not yet found
 this to be problematic, as the navigation panel and selection display
 provide alternative indicators as to what is currently selected.
 
-\section{Geometric Manipulation}
+\section{Model Manipulation}
+\label{ModelManipulation}
 
-It is possible to modify component locations, orientations, and
-geometry using the transformation tools located at the left side of
-the main ArtiSynth frame.  Tools will only transform those {\it
+Various tools located within the selection toolbar at the left of the
+main ArtiSynth frame allow models to be manipulated in various ways.
+These include modifying component locations, orientations, and
+geometry using the transformer tools (Section
+\ref{TransformerToolsSec}), exerting point forces on selected
+components using the pull controller (Section
+\ref{PullControllerSec}), and adding marker points to certain
+components types (Section \ref{MarkerTool}).
+
+The behavior of these tools is somewhat context dependent.  For
+example, the transformer tools will only transform those {\it
 transformable} components which implement the
-\javaclass[artisynth.core.modelbase]{TransformableGeometry} interface. The
-behavior may also vary depending on whether or not simulation is in
-progress.
+\javaclass[artisynth.core.modelbase]{TransformableGeometry}
+interface. The behavior may also vary depending on whether or not
+simulation is in progress.
 
 \subsection{Dragger Fixtures}
 \label{draggerFixturesSec}
@@ -1287,14 +1346,14 @@ at the beginning of the drag.
 \begin{sideblock}
 Under the default mouse bindings, the basic drag operations involving
 these fixtures are invoked using the left mouse button with no
-modifier keys. Additional modifier keys allow constrained manipulation
+modifier keys. Additional modifier keys allow constrained transformation
 or repositioning of the fixture, as described below.
 \end{sideblock}
 
-\subsection{Manipulation Tools}
-\label{ManipulationToolsSec}
+\subsection{Transformer Tools}
+\label{TransformerToolsSec}
 
-A number of manipulation tools use the dragger fixtures described
+A number of transformer tools use the dragger fixtures described
 above to translate, rotate, and scale components. Once a tool is
 activated, then selecting one or more transformable components will
 cause the corresponding dragger fixture to appear in the viewer at the
@@ -1313,27 +1372,29 @@ aligned with world coordinates, choose {\sf Init draggers in world
 coordinates} in the ArtiSynth {\sf Settings} menu. To restore the
 default behavior, choose {\sf Init draggers in local coordinates}.
 
+%\iflatexml
+%% HACK: we put a '.' before the image to get LaTeXML to set it on the
+%% same line as the following text.
+%.\includegraphics[]{images/selectTool}
+%\else
+%\includegraphics[width=.33in]{images/selectTool}
+%\fi
+%{\sf Selection:}\\
+%Click and box selection mode. Turns off manipulation.
+%
+%\vspace{\parskip}
+%\iflatexml
+%.\includegraphics[]{images/ellipticSelectTool}
+%\else
+%\includegraphics[width=.33in]{images/ellipticSelectTool}
+%\fi
+%{\sf Elliptic Selection:}\\
+%Elliptic selection mode. Turns off manipulation.
+
+\vspace{\parskip}
 \iflatexml
 % HACK: we put a '.' before the image to get LaTeXML to set it on the
 % same line as the following text.
-.\includegraphics[]{images/selectTool}
-\else
-\includegraphics[width=.33in]{images/selectTool}
-\fi
-{\sf Selection:}\\
-Click and box selection mode. Turns off manipulation.
-
-\vspace{\parskip}
-\iflatexml
-.\includegraphics[]{images/ellipticSelectTool}
-\else
-\includegraphics[width=.33in]{images/ellipticSelectTool}
-\fi
-{\sf Elliptic Selection:}\\
-Elliptic selection mode. Turns off manipulation.
-
-\vspace{\parskip}
-\iflatexml
 .\includegraphics[]{images/translateTool}
 \else
 \includegraphics[width=.33in]{images/translateTool}
@@ -1371,7 +1432,7 @@ moves with the tool.
 Translates selected components using the translate dragger while ensuring that
 they are constrained to remain on a surface mesh. Only components with
 an associated surface mesh (such as FrameMarkers attached to a
-RigidBody) can be manipulated this way.
+RigidBody) can be transformed this way.
 
 \vspace{\parskip}
 \iflatexml
@@ -1386,21 +1447,11 @@ scale the component along the x, y, or z axes, or in the
 x-y, y-z, or z-x planes. Rotational operations, if
 used in conjunction with an appropriate modifier key,
 can be used to change the orientation of the scaling axes,
-as described in \ref{ChangingManipulatorPose}.
-
-\vspace{\parskip}
-\iflatexml
-.\includegraphics[]{images/pullTool}
-\else
-\includegraphics[width=.33in]{images/pullTool}
-\fi
-{\sf Pulling:}\\
-Pulls on points and rigid bodies using a spring-like force
-when simulation is running. See Section \ref{PullManipulationSec}.
+as described in \ref{ChangingTransformerPose}.
 
 %\end{description}
 
-\subsubsection{Constrained manipulation}
+\subsubsection{Constrained transformation}
 
 Under the default mouse bindings, pressing the {\tt SHIFT} modifier
 key causes drag operations to be constrained to discrete step sizes.
@@ -1410,8 +1461,8 @@ constrained to either the grid spacing (if a grid is selected, see
 \ref{ViewerGrid}), or to a suitable well-rounded number depending on
 the viewer's zoom level.
 
-\subsubsection{Manipulator repositioning}
-\label{ChangingManipulatorPose}
+\subsubsection{Transformer repositioning}
+\label{ChangingTransformerPose}
 
 Under the default mouse bindings, pressing the {\tt CTRL} modifier key
 causes the dragger fixture to move independently of the selected
@@ -1420,16 +1471,16 @@ relative to the selected objects to be changed. This is particularly
 useful for changing the orientation of the scaling directions in the
 scaling tool.
 
-\subsubsection{Changing the manipulator base frame}
+\subsubsection{Changing the transformer base frame}
 
-By default, a manipulator is assigned a local coordinate frame for the
+By default, a transformer is assigned a local coordinate frame for the
 object(s) that it is positioning, based on either the object's own
 body frame (if it has one), or the objects' bounding box. This frame
-will then move with the manipulator, and may also move relative to the
-object(s) if the manipulator is repositioned (Section
-\ref{ChangingManipulatorPose}).
+will then move with the transformer, and may also move relative to the
+object(s) if the transformer is repositioned (Section
+\ref{ChangingTransformerPose}).
 
-Sometimes, it may be desirable to explicitly reset the manipulator's
+Sometimes, it may be desirable to explicitly reset the transformer's
 frame. This may be done using the following shortcut keys in the
 viewer:
 
@@ -1437,21 +1488,52 @@ viewer:
 
 \item[{\tt w}]\mbox{}
 
-Set the manipulator frame to the world coordinate system, allowing
-subsequent manipulations to be performed in world coordinates;
+Set the transformer frame to the world coordinate system, allowing
+subsequent transformations to be performed in world coordinates;
 
 \item[{\tt b}]\mbox{}
 
-Reset the manipulator frame to the original local frame for the
+Reset the transformer frame to the original local frame for the
 object(s), based on either the object's body frame or the objects'
 bounding box.
 
 \end{description}
 
 \subsection{Pull Manipulation}
-\label{PullManipulationSec}
+\label{PullControllerSec}
 
-\begin{figure}
+\vspace{\parskip}
+\iflatexml
+.\includegraphics[]{images/pullTool}
+\else
+\includegraphics[width=.33in]{images/pullTool}
+\fi
+{\sf Pull tool:} Pulls on certain components using a spring-like force
+when simulation is running.
+
+Selecting the {\it pull} tool allows a user to interactively apply a
+spring-like force to certain component types by clicking on it and
+then dragging (Figure \ref{PullManipulationFig}). Double clicking on
+the component adds a {\it pull point} that persists between mouse
+clicks; to remove the pull point, double click on the viewer
+background.
+
+The pull tool works on points, rigid bodies, FEM models, or any other
+component that implements the
+\javaclass[artisynth.core.mechmodels]{PointAttachable} interface and
+has a surface mesh. Pull manipulation is only effective when
+simulation is running.  It works by adding a special {\tt
+PullController} to the current root model's set of controllers. When
+attached to the root model, the controller attempts to estimate an
+appropriate spring stiffness based on the overall mass and dimensions
+of the first underlying {\tt MechModel}.
+
+If necessary, the pull tool's stiffness setting can also be adjusted
+manually by selecting {\sf PullController > properties} in the {\sf
+Settings} menu.  Render properties for the pull controller can be set
+from this menu also.
+
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/pullManipulation}
@@ -1464,22 +1546,39 @@ attached to a multi-point spring.}%
 \label{PullManipulationFig}
 \end{figure}
 
-A "pull" manipulator allows a user to interactively apply a
-spring-like force to either a point or rigid body by clicking on it
-and then dragging (Figure \ref{PullManipulationFig}). To enable pull
-manipulation, select the {\it pulling} tool (Section
-\ref{ManipulationToolsSec}).
+\subsection{Marker Tool}
+\label{MarkerTool}
 
-Pull manipulation is only effective when simulation is running.  It
-works by adding a special {\tt PullController} to the current root
-model. When attached to the root model, the controller attempts to
-estimate an appropriate spring stiffness based on the overall mass and
-dimensions of the first underlying {\tt MechModel}.
+\vspace{\parskip}
+\iflatexml
+.\includegraphics[]{images/markerTool}
+\else
+\includegraphics[width=.33in]{images/markerTool}
+\fi
+{\sf Marker tool:} Adds point markers to certain components.
 
-If necessary, the stiffness setting can also be adjusted manually by
-selecting {\sf PullController > properties} in the {\sf Settings}
-menu.  Render properties for the pull controller can be set from this
-menu also.
+Selecting the {\it marker} tool allows a user to interactively add
+point markers to various components in the model.
+
+Markers can be added to rigid bodies, FEM models, and other components
+that implement the \javaclass[artisynth.core.mechmodels]{IsMarkable}
+interface. The markers themselves are components that are added to the
+current root model at a location that depends on the component being
+marked:
+
+\begin{itemize}
+\item {\bf Rigid bodies:} marker is added to the {\tt frameMarker}
+list for the body's parent {\tt MechModel};
+
+\item {\bf FEM models:} marker is added to the FEM model's {\tt marker} list;
+
+\item {\bf IsMarkable components:} marker is added to the root model's
+{\tt marker} list (which is created on demand if needed).
+
+\end{itemize}
+
+Once created, markers can be removed by selecting them and choosing
+{\sf Delete} from the context menu.
 
 \section{Editing Properties}
 
@@ -1490,7 +1589,7 @@ damping for AxialSprings, position and velocity for particles and
 rigid bodies, or whether or not a component is dynamic.
 
 The underlying software architecture of the property interface is 
-described in the Properties chapter of the 
+described in the Properties chapter of the\\
 \artisynthManual{maspack}{Maspack Reference Manual}.
 
 \subsection{Property Panels}
@@ -1511,7 +1610,7 @@ Some properties are {\it read only}. In this case, the corresponding
 widget in the property panel will display the value but will be
 disabled.
 
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \iflatexml
 \includegraphics[]{images/propertyPanel}
@@ -1623,6 +1722,18 @@ that all components are invisible.
 \subsubsection{Render property settings}
 \label{renderPropSettingsSec}
 
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+\includegraphics[]{images/renderProps}
+\else
+\includegraphics[width=3in]{images/renderProps}
+\fi
+\end{center}
+\caption{A typical panel for adjusting render properties.}%
+\label{renderpropsFig}
+\end{figure}
+
 There are a large number of render property settings. Loosely
 speaking, they are divided into generic settings, along with those
 related to faces, lines, and points. How these are used depends on
@@ -1727,18 +1838,6 @@ A typical panel for editing render properties is shown in Figure
 normally hidden by default and can be exposed by clicking on the {\sf
 expand...} button.
 
-\begin{figure}[h]
-\begin{center}
-\iflatexml
-\includegraphics[]{images/renderProps}
-\else
-\includegraphics[width=3in]{images/renderProps}
-\fi
-\end{center}
-\caption{A typical panel for adjusting render properties.}%
-\label{renderpropsFig}
-\end{figure}
-
 \section{The Timeline}
 \label{TimelineSec}
 
@@ -1794,7 +1893,7 @@ Shows the length of time associated with a ``single step'' command.
 \end{description}
 
 \subsubsection{Play controls}
-\label{TimelinePlayControls}
+\label{PlayControlsSec}
 
 The play controls are in turn comprised of the following buttons:
 
@@ -1811,9 +1910,9 @@ Resets the simulation to the beginning at time 0.\\
 \else
 \includegraphics[width=.33in]{images/fastBackward}
 \fi
-& Rewind: &
-Moves the simulation time backward to the nearest
-previous waypoint (see Section \ref{waypointsSec}).\\
+& Skip-back: &
+Moves the simulation time backward to the
+previous valid waypoint (see Section \ref{waypointsSec}).\\
 \iflatexml
 \includegraphics{images/play}
 \else
@@ -1833,7 +1932,7 @@ Takes the place of the play button and pauses the simulation.\\
 \else
 \includegraphics[width=.33in]{images/singleStep}
 \fi
-& Single step: &
+& Single-step: &
 Advances the simulation by a single step, specified in the
 time step box.\\
 \iflatexml
@@ -1841,9 +1940,9 @@ time step box.\\
 \else
 \includegraphics[width=.33in]{images/fastForward}
 \fi
-& Fast forward: &
-Moves the simulation time forward to the nearest
-following waypoint (see Section \ref{waypointsSec}).
+& Skip-forward: &
+Moves the simulation time forward to the next
+valid waypoint (see Section \ref{waypointsSec}).
 \end{tabular}
 
 %\end{description}

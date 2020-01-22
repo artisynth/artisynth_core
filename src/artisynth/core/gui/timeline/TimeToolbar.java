@@ -82,35 +82,48 @@ public class TimeToolbar extends JToolBar {
       
       //timestepTextField = new JTextField();
       
-      zoomInButton = makeButton (GuiStorage.ZOOM_IN_ICON, "Zoom In");
+      zoomInButton = makeButton (
+         GuiStorage.ZOOM_IN_ICON,
+         "Zoom in", "Zoom in");
       add (zoomInButton);
 
-      zoomOutButton = makeButton (GuiStorage.ZOOM_OUT_ICON, "Zoom Out");
+      zoomOutButton = makeButton (
+         GuiStorage.ZOOM_OUT_ICON,
+         "Zoom out", "Zoom out");
       add (zoomOutButton);
       addSeparator();
 
-      resetButton = makeButton (GuiStorage.RESET_ICON, "Reset");
+      resetButton = makeButton (
+         GuiStorage.RESET_ICON,
+         "Reset", "Reset time to 0");
       add (resetButton);
 
-      fastBackwardButton = makeButton (GuiStorage.REWIND_ICON, "Rewind");
+      fastBackwardButton = makeButton (
+         GuiStorage.REWIND_ICON,
+         "Skip back", "Skip back to previous valid waypoint");
       add (fastBackwardButton);
 
-      playButton = makeButton (GuiStorage.PLAY_ICON, "Play");
+      playButton = makeButton (
+         GuiStorage.PLAY_ICON,
+         "Play", "Start simulation");
       add (playButton);
 
-      singleStepButton =
-         makeButton (GuiStorage.STEP_FORWARD_ICON, "Step Forward");
+      singleStepButton = makeButton (
+         GuiStorage.STEP_FORWARD_ICON,
+         "Single step", "Advance simulation by a single time step");
       add (singleStepButton);
 
-      fastForwardButton =
-         makeButton (GuiStorage.FAST_FORWARD_ICON, "Fast Forward");
+      fastForwardButton = makeButton (
+         GuiStorage.FAST_FORWARD_ICON,
+         "Skip forward", "Skip forward to next valid waypoint");
       add (fastForwardButton);
       addSeparator();
 
       // add (makeButton(GuiStorage.SET_ICON, "Set"));
       // addSeparator();
 
-      add (makeButton (GuiStorage.SAVE_ALL_PROBES_ICON, "Save All Probes"));
+      add (makeButton (GuiStorage.SAVE_ALL_PROBES_ICON,
+                       "Save probes", "Save all probes"));
 
       //timestepInitialization();
 
@@ -131,7 +144,7 @@ public class TimeToolbar extends JToolBar {
    //    return timestepTextField;
    // }
 
-   public JButton makeButton (ImageIcon icon, String toolTip) {
+   public JButton makeButton (ImageIcon icon, String command, String toolTip) {
       JButton button = new JButton (icon);
       button.setToolTipText (toolTip);
       button.setSize (ButtonCreator.SMALL_BUTTON_SIZE);
@@ -139,7 +152,7 @@ public class TimeToolbar extends JToolBar {
       button.setMaximumSize (ButtonCreator.SMALL_BUTTON_SIZE);
       button.setPreferredSize (ButtonCreator.SMALL_BUTTON_SIZE);
 
-      button.setActionCommand (toolTip);
+      button.setActionCommand (command);
       button.addActionListener (new TimelineButtonListener());
 
       GenericKeyHandler keyHandler = new GenericKeyHandler(parent.myMain);
@@ -183,7 +196,7 @@ public class TimeToolbar extends JToolBar {
          fastBackwardButton.setEnabled (!timeIsZero);
          playButton.setIcon (GuiStorage.PLAY_ICON);
          playButton.setActionCommand ("Play");
-         playButton.setToolTipText ("Play");
+         playButton.setToolTipText ("Start simulation");
          singleStepButton.setEnabled (true);
          fastForwardButton.setEnabled (parent.isNextValidWayAvailable(root));
       }
@@ -192,7 +205,7 @@ public class TimeToolbar extends JToolBar {
          fastBackwardButton.setEnabled (false);
          playButton.setIcon (GuiStorage.PAUSE_ICON);
          playButton.setActionCommand ("Pause");
-         playButton.setToolTipText ("Pause");
+         playButton.setToolTipText ("Pause simulation");
          singleStepButton.setEnabled (false);
          fastForwardButton.setEnabled (false);
       }
@@ -279,7 +292,7 @@ public class TimeToolbar extends JToolBar {
             parent.myScheduler.reset();            
             //parent.myScheduler.rewind();
          }
-         else if (nameOfAction == "Rewind") {       
+         else if (nameOfAction == "Skip back") {       
             parent.myScheduler.rewind();
          }
          else if (nameOfAction == "Play") {
@@ -289,22 +302,22 @@ public class TimeToolbar extends JToolBar {
             parent.myScheduler.pause();
             //parent.pauseTimeline();
          }
-         else if (nameOfAction == "Step Forward") {
+         else if (nameOfAction == "Single step") {
             parent.myScheduler.step();
          }
-         else if (nameOfAction == "Fast Forward") {
+         else if (nameOfAction == "Skip forward") {
             parent.myScheduler.fastForward();
          }
-         else if (nameOfAction == "Zoom In") {
+         else if (nameOfAction == "Zoom in") {
             parent.zoom (TimelineConstants.ZOOM_IN);
          }
-         else if (nameOfAction == "Zoom Out") {
+         else if (nameOfAction == "Zoom out") {
             parent.zoom (TimelineConstants.ZOOM_OUT);
          }
          else if (nameOfAction == "Set") {
             parent.setAllInputProbes();
          }
-         else if (nameOfAction == "Save All Probes") {
+         else if (nameOfAction == "Save probes") {
             parent.saveAllProbes();
          }
          

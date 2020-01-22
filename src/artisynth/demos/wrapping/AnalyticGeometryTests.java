@@ -48,7 +48,16 @@ import maspack.widgets.LabeledComponentBase;
 public class AnalyticGeometryTests extends ParametricTestBase {
 
    boolean specialSphereTest = false;
-   boolean sphereOriginInsertion = false;
+   boolean sphereOriginInsertion = true;
+
+   // settings for sphere animation frames in paper:
+   // sphereOriginInsertion = true;
+   // lineRadius = 0.35
+   // pointRadius = 0.64
+
+   // settings for cylinder animation frames in paper:
+   // lineRadius = 0.45
+   // pointRadius = 0.75
 
    // Model components.
    protected ExactWrappedSpring myExactSolution;
@@ -340,7 +349,8 @@ public class AnalyticGeometryTests extends ParametricTestBase {
 
                public WrappableGeometryPair create () {
                   RigidBody body = myGeometryManager.createActive ();
-                  body.setDynamic (false);
+                  RenderProps.setFaceColor (
+                     body, new Color(238, 232, 170)); // bone color
                   setGridRes (body);
                   setDistanceGridVisible (body, myDistanceGridVisibleP);
                   processNewBody (body);
@@ -371,9 +381,15 @@ public class AnalyticGeometryTests extends ParametricTestBase {
 
       mySpring.setConvergenceTol (1e-8);
       mySpring.setMaxWrapIterations (20);
-      // for (int i=1; i<10; i++) {
-      //    addBreakPoint (i);
-      // }
+
+      for (int i=1; i<=10; i++) {
+         if (sphereOriginInsertion) {
+            addWayPoint (0.8*i);
+         }
+         else {
+            addWayPoint (2*i);
+         }
+      }
       
       if (specialSphereTest) {
          

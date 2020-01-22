@@ -28,6 +28,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JColorChooser;
@@ -48,6 +49,8 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.border.EtchedBorder;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.Border;
 
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.editorManager.Command;
@@ -122,8 +125,20 @@ ModelActionListener {
 
    public static final int MAX_MENU_ROWS = 20; // change to grid layout if larger
 
-   protected JButton navBarButton, rerenderButton, resetButton, playButton,
-   singleStepButton;
+   protected JButton navBarButton;
+   protected JButton rerenderButton;
+   protected ImageIcon realtimeEnabledIcon;
+   protected ImageIcon realtimeDisabledIcon;
+   protected JButton realtimeButton;
+   protected JButton resetStateButton;
+   protected JButton resetButton;
+   protected JButton backButton;
+   protected JButton playButton;
+   protected JButton singleStepButton;
+   protected JButton forwardButton;
+   // initialized in 
+   protected Color defaultButtonBackground;
+   protected Border defaultButtonBorder;
 
    protected JMenuItem[] scriptMenuItems;
 
@@ -196,6 +211,17 @@ ModelActionListener {
          myApplicationMenuAddedP = enable;
       }
    }         
+
+   private void setButtonPressed (JButton button, boolean pressed) {
+      if (pressed) {
+         button.setBorder (new BevelBorder (BevelBorder.LOWERED));
+         button.setBackground (Color.LIGHT_GRAY);
+      }
+      else {
+         button.setBorder (defaultButtonBorder);
+         button.setBackground (defaultButtonBackground);
+      }
+   }
 
    /**
     * creates menu items
@@ -330,23 +356,52 @@ ModelActionListener {
       // Create a space separator
       // height makes space for GridDisplay box
       myMenuBar.add(Box.createRigidArea(new Dimension(20, 28)));
-
       // Create navigation bar button
-      navBarButton = ButtonCreator.createIconicButton(
-         GuiStorage.getNavBarIcon(),
-         myFrame.getNavPanel().getStatus() ? "Hide NavBar" : "Show Navbar",
-            myFrame.getNavPanel().getStatus() ? "Hide NavBar" : "Show Navbar",
-               ButtonCreator.BUTTON_ENABLED, false, this);
+      if (myFrame.getNavPanel().getStatus()) {
+         navBarButton = ButtonCreator.createIconicButton(
+            GuiStorage.getNavBarIcon(),
+            "Hide NavPanel", "Hide navigation panel", 
+            ButtonCreator.BUTTON_ENABLED, false, this);
+      }
+      else {
+         navBarButton = ButtonCreator.createIconicButton(
+            GuiStorage.getNavBarIcon(),
+            "Show NavPanel", "Show navigation panel", 
+            ButtonCreator.BUTTON_ENABLED, false, this);
+      }
+
+      defaultButtonBackground = navBarButton.getBackground();
+      defaultButtonBorder = navBarButton.getBorder();
 
       myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
       myToolBar.add(navBarButton);
-      myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
 
+      myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
+      resetStateButton = ButtonCreator.createIconicButton(
+         GuiUtils.loadIcon(ControlPanel.class, "icon/resetState.png"),
+         "Reset initial state", "Reset the initial state", 
+         ButtonCreator.BUTTON_ENABLED, false, this);
+      myToolBar.add(resetStateButton);
+
+      myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
       rerenderButton = ButtonCreator.createIconicButton(
          GuiUtils.loadIcon(ControlPanel.class, "icon/refresh.png"),
-         "Re-render", "Re-render", ButtonCreator.BUTTON_ENABLED, false, this);
+         "Rerender", "Rerender all displays",
+         ButtonCreator.BUTTON_ENABLED, false, this);
 
       myToolBar.add(rerenderButton);
+
+      myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
+//      realtimeEnabledIcon =
+//         GuiUtils.loadIcon(ControlPanel.class, "icon/checkedClock.png");
+//      realtimeDisabledIcon =
+//         GuiUtils.loadIcon(ControlPanel.class, "icon/uncheckedClock.png");
+      realtimeButton = ButtonCreator.createIconicButton(
+         GuiUtils.loadIcon(ControlPanel.class, "icon/clock.png"),
+         "Disable real-time", "Enables real-time simulation when pressed", 
+         ButtonCreator.BUTTON_ENABLED, false, this);
+      myToolBar.add(realtimeButton);
+      setButtonPressed (realtimeButton, true);
 
       // Charles modification
       // creates a message Box. Currently only used for Units
@@ -367,25 +422,45 @@ ModelActionListener {
 
       // Create reset button
       resetButton = ButtonCreator.createIconicButton(
-         GuiStorage.getResetIcon(), "Reset", "Reset",
+         GuiStorage.getResetIcon(),
+         "Reset", "Reset time to 0",
          ButtonCreator.BUTTON_ENABLED, false, this);
       myToolBar.add(resetButton);
       myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
 
+      // Create back button
+      backButton = ButtonCreator.createIconicButton(
+         GuiStorage.getRewindIcon(),
+         "Skip back", "Skip back to previous valid waypoint",
+         ButtonCreator.BUTTON_ENABLED, false, this);
+      myToolBar.add(backButton);
+      myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
+
       // Create play button
       playButton = ButtonCreator.createIconicButton(
-         GuiStorage.getPlayIcon(), "Play", "Play",
+         GuiStorage.getPlayIcon(),
+         "Play", "Start simulation",
          ButtonCreator.BUTTON_DISABLED, false, this);
       myToolBar.add(playButton);
       myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
 
       // Create step button
       singleStepButton = ButtonCreator.createIconicButton(
-         GuiStorage.getStepForwardIcon(), "Single step", "Single step",
+         GuiStorage.getStepForwardIcon(),
+         "Single step", "Advance simulation by a single time step",
          ButtonCreator.BUTTON_DISABLED, false, this);
 
       myToolBar.add(singleStepButton);
       myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
+
+      // Create back button
+      forwardButton = ButtonCreator.createIconicButton(
+         GuiStorage.getFastForwardIcon(),
+         "Skip forward", "Skip forward to next valid waypoint",
+         ButtonCreator.BUTTON_DISABLED, false, this);
+      myToolBar.add(forwardButton);
+      myToolBar.add(Box.createRigidArea(new Dimension(2, 0)));
+      forwardButton.setEnabled (false);
 
       // Set the menu bar
       myFrame.setJMenuBar(myMenuBar);
@@ -604,7 +679,6 @@ ModelActionListener {
             e.printStackTrace();
             GuiUtils.showError (myFrame, "Error writing "+modelFile.getPath());
          }
-         updateModelButtons();
       }
    }
 
@@ -634,7 +708,6 @@ ModelActionListener {
             GuiUtils.showNotice (
                myFrame, "Removed "+status+" non-core components");
          }
-         updateModelButtons();
       }
    }
 
@@ -645,8 +718,6 @@ ModelActionListener {
          e.printStackTrace();
          GuiUtils.showError (myFrame, "Error reloading model:\n" + e);
       }
-      updateModelButtons();
-
    }
 
    private void doLoadModel() {
@@ -659,7 +730,6 @@ ModelActionListener {
             GuiUtils.showError(
                myFrame, "Error reading " + modelFile.getPath() + ":\n" + e);
          }
-         updateModelButtons();
       }
    }
 
@@ -676,7 +746,6 @@ ModelActionListener {
          if (!myMain.loadModel(mi)) {
             GuiUtils.showError (myFrame, myMain.getErrorMessage());
          }
-         updateModelButtons();
       }
    }
 
@@ -1215,6 +1284,7 @@ ModelActionListener {
             scheduler.setRealTimeAdvance (true);
             scheduler.setRealTimeScaling (scaling);
          }
+         myMain.rerender();
       }
    }
 
@@ -1628,25 +1698,25 @@ ModelActionListener {
       //
       // Tool bar buttons
       //
-      else if (cmd.equals("Hide NavBar")) {
+      else if (cmd.equals("Hide NavPanel")) {
          myFrame.getNavPanel().setStatus(!myFrame.getNavPanel().getStatus());
          myFrame.refreshSplitPane();
-         navBarButton.setToolTipText("Show Navbar");
-         navBarButton.setActionCommand("Show Navbar");
+         navBarButton.setToolTipText("Show navigation panel");
+         navBarButton.setActionCommand("Show NavPanel");
       }
-      else if (cmd.equals("Show Navbar")) {
+      else if (cmd.equals("Show NavPanel")) {
          myFrame.getNavPanel().setStatus(!myFrame.getNavPanel().getStatus());
          myFrame.refreshSplitPane();
-         navBarButton.setToolTipText("Hide NavBar");
-         navBarButton.setActionCommand("Hide NavBar");
+         navBarButton.setToolTipText("Hide navigation panel");
+         navBarButton.setActionCommand("Hide NavPanel");
       }
-      else if (cmd.equals("Re-render")) {
+      else if (cmd.equals("Rerender")) {
          myMain.rerender();
       }
       else if (cmd.equals("Reset")) {
          myMain.getScheduler().reset();
       }
-      else if (cmd.equals("Rewind")) {
+      else if (cmd.equals("Skip back")) {
          myMain.getScheduler().rewind();
       }
       else if (cmd.equals("Play")) {
@@ -1658,9 +1728,26 @@ ModelActionListener {
       else if (cmd.equals("Single step")) {
          myMain.getScheduler().step();
       }
-      else if (cmd.equals("Fast forward")) {
+      else if (cmd.equals("Skip forward")) {
          myMain.getScheduler().fastForward();
       }
+      else if (cmd.equals("Reset initial state")) {
+         RootModel root = myMain.getRootModel();
+         if (root != null) {
+            root.resetInitialState();
+         }
+      }
+      else if (cmd.equals("Disable real-time")) {
+         myMain.getScheduler().setRealTimeAdvance(false);
+         realtimeButton.setActionCommand ("Enable real-time");
+         setButtonPressed (realtimeButton, false);
+      }
+      else if (cmd.equals("Enable real-time")) {
+         myMain.getScheduler().setRealTimeAdvance(true);
+         realtimeButton.setActionCommand ("Disable real-time");
+         setButtonPressed (realtimeButton, true);
+      }
+
       else if (cmd.equals("cancel")) {
          return;
       }
@@ -1725,7 +1812,7 @@ ModelActionListener {
 
    public void enableShowPlay() {
       playButton.setIcon(GuiStorage.getPlayIcon());
-      playButton.setToolTipText("Play");
+      playButton.setToolTipText("Start simulation");
       playButton.setActionCommand("Play");
       playButton.setEnabled(true);
       // setResetButton (true);
@@ -1734,10 +1821,20 @@ ModelActionListener {
 
    public void disableShowPlay() {
       playButton.setIcon(GuiStorage.getPauseIcon());
-      playButton.setToolTipText("Pause");
+      playButton.setToolTipText("Pause simulation");
       playButton.setActionCommand("Pause");
       // setResetButton (true);
       singleStepButton.setEnabled(false);
+   }
+   
+   protected void updateForwardButton () {
+      boolean enabled = false;
+      RootModel root = myMain.getRootModel();
+      if (root != null) {
+         enabled = 
+            (root.getWayPoints().getValidAfter (myMain.getTime()) != null);
+      }
+      forwardButton.setEnabled (enabled);     
    }
 
    public void detachToolbar() {
@@ -1884,24 +1981,6 @@ ModelActionListener {
    // }
    // }
 
-   void updateModelButtons() {
-      // RootModel rootModel = myMain.getRootModel();
-      //
-      // if (rootModel.getAbout() != null && rootModel.getAbout().length() > 0)
-      // {
-      // // then the root model contains an information string; add
-      // // the appropriate menu item
-      // if (!GuiUtils.containsMenuComponent (helpMenu, aboutModelItem)) {
-      // helpMenu.add (aboutModelItem);
-      // }
-      // }
-      // else {
-      // if (GuiUtils.containsMenuComponent (helpMenu, aboutModelItem)) {
-      // helpMenu.remove (aboutModelItem);
-      // }
-      // }
-   }
-
    public void updateWidgets() {
       // return if frame is not visible, since updating widgets while
       // frame is being set visible can cause some problems
@@ -1925,6 +2004,7 @@ ModelActionListener {
       if (myGridDisplay != null) {
          myGridDisplay.updateWidgets();
       }
+      updateForwardButton();
    }
 
    private JMenuItem addMenuItem(JMenu menu, String label, String cmd) {

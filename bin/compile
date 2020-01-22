@@ -1,0 +1,8 @@
+#!/bin/bash
+D=`dirname $0`/..
+AT="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
+CP=$AT/classes:$AT/lib/*
+JAVACFLAGS="-J-Xms500m -J-Xmx500m -source 1.8 -target 1.8 -encoding UTF-8"
+find . -name '*.java' > _sources_.txt
+javac -cp $CP -d $AT/classes -sourcepath $AT/src $JAVACFLAGS @_sources_.txt
+rm -rf _sources_.txt

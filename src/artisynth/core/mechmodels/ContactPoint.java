@@ -313,73 +313,15 @@ public class ContactPoint {
       return false;
    }
 
-
-   protected boolean vertexIsAttached (Vertex3d vtx, Collidable comp) {
-      // TODO 
-      // ArrayList<Point> nodes = new ArrayList<Point>();
-      // VectorNd wgts = new VectorNd();
-      // ArrayList<Frame> frames = new ArrayList<Frame>();
-      // VectorNd frameWgts = new VectorNd();
-      // getVertexDependencies(vtx, nodes, wgts, frames, frameWgts);
-
-      // for (Point node : nodes) {
-      //    if (node.isAttached()) {
-      //       DynamicComponent[] masters = node.getAttachment().getMasters();
-      //       for (int i=0; i<masters.length; i++) {
-
-      //          // check parent and grandparent in case is fem or any other kind
-      //          // of deformable
-      //          if (masters[i] == comp) {
-      //             return true;
-      //          }
-      //          CompositeComponent parent = masters[i].getParent();
-      //          if (masters[i] == parent) {
-      //             return true;
-      //          }
-      //          CompositeComponent grandparent =
-      //             ComponentUtils.getGrandParent(masters[i]);
-      //          if (masters[i] == grandparent) {
-      //             return true;
-      //          }
-
-      //       }
-      //    }
-      // }
-      return false;
-   }
-
-   protected boolean faceAttachedTo (Vertex3d[] vtxs, Collidable comp) {
-      for (int i=0; i<vtxs.length; i++) {
-         if (vertexIsAttached (vtxs[i], comp)) {
-            return true;
-         }
+   public boolean isOnCollidable (CollidableBody cbody) {
+      if (myVtxs != null) {
+         return myVtxs[0].getMesh() == cbody.getCollisionMesh();
       }
-      return false;
-   }
-
-   protected boolean vertexRegionAttachedTo (Vertex3d vtx, Collidable comp) {
-      if (vertexIsAttached (vtx, comp)) {
-         return true;
-      }
-      Iterator<HalfEdge> it = vtx.getIncidentHalfEdges();
-      while (it.hasNext()) {
-         HalfEdge he = it.next();
-         if (vertexIsAttached (he.getTail(), comp)) {
-            return true;
-         }
-      }
-      return false;
-   }
-
-   public boolean isAttachedTo (Collidable comp) {
-      if (myVtxs.length == 1) {
-         return vertexRegionAttachedTo (myVtxs[0], comp);
-      }
-      else{
-         return faceAttachedTo (myVtxs, comp);
+      else {
+         return false;
       }
    }
-
+   
    public String toString (String fmtStr) {
       String str = "[ pos=" + myPoint.toString (fmtStr);
       for (int i=0; i<myVtxs.length; i++) {

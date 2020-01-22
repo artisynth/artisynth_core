@@ -18,6 +18,10 @@ public class QuadpyramidElement extends FemElement3d {
 
    static final int NUM_NODES = 13;
 
+   public boolean isLinear() {
+      return false;
+   }
+   
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
          myDefaultIntegrationPoints = 
@@ -168,6 +172,33 @@ public class QuadpyramidElement extends FemElement3d {
       return myNodeCoords;
    }
 
+   private static double[] myNodeMassWeights = new double[] {
+      // bottom corner nodes
+      0.0352132,
+      0.0352132,
+      0.0352132,
+      0.0352132,
+
+      // tip node
+      0.0250585,
+
+      // bottom edge nodes
+      0.143303,
+      0.143303,
+      0.143303,
+      0.143303,
+
+      // side edge nodes
+      0.0652196,
+      0.0652196,
+      0.0652196,
+      0.0652196,
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
    private static MatrixNd myNodalExtrapolationMatrix = null;
 
    public MatrixNd getNodalExtrapolationMatrix() {
@@ -206,16 +237,22 @@ public class QuadpyramidElement extends FemElement3d {
          // case  2: return 0.125*(1+s)*(1+t)*(1+r)*( s+t+r-2);
          // case  3: return 0.125*(1-s)*(1+t)*(1+r)*(-s+t+r-2);
 
+         // bottom corner
          case  0: return -q*(1-s)*(1-t)*(1+q*(s+t))/4;
          case  1: return -q*(1+s)*(1-t)*(1+q*(t-s))/4;
          case  2: return -q*(1+s)*(1+t)*(1-q*(t+s))/4;
          case  3: return -q*(1-s)*(1+t)*(1-q*(t-s))/4;
+
+         // tip
          case  4: return r*(1+r)/2;
+
+         // bottom edges
          case  5: return q*q*(1-t)*(1-s*s)/2;
          case  6: return q*q*(1+s)*(1-t*t)/2;
          case  7: return q*q*(1+t)*(1-s*s)/2;
          case  8: return q*q*(1-s)*(1-t*t)/2;
 
+         // side edges
          case  9: return q*(1-q)*(1-s-t+s*t);
          case 10: return q*(1-q)*(1+s-t-s*t);
          case 11: return q*(1-q)*(1+s+t+s*t);

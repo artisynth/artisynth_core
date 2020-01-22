@@ -775,7 +775,6 @@ public class EmbeddedFem {
     * @param mesh mesh to surround/voxelize
     * @param trans orientation for voxels (uses OBB of mesh if null)
     * @param res element resolution for original grid
-    * @param margin margin for surrounding mesh
     * @return populated or created FEM
     */
    public static FemModel3d createVoxelizedFem(
@@ -811,9 +810,11 @@ public class EmbeddedFem {
     * Removes elements outside a given mesh plus margin
     * @param fem model to remove elements from
     * @param mesh surface outside which to remove elements
-    * @param margin margin distance outside mesh to consider (if < 0, once is computed based on a half element size)
+    * @param margin margin distance outside mesh to consider (if {@code < 0},
+    * once is computed based on a half element size)
     */
-   public static void removeOutsideElements(FemModel3d fem, PolygonalMesh mesh, double margin) {
+   public static void removeOutsideElements (
+      FemModel3d fem, PolygonalMesh mesh, double margin) {
       removeOutsideElements (fem, mesh, DEFAULT_SAMPLES, margin);
    }
    
@@ -822,7 +823,8 @@ public class EmbeddedFem {
     * @param fem model to remove elements from
     * @param mesh surface outside which to remove elements
     * @param nsamples number of samples to choose from within the element
-    * @param margin margin distance outside mesh to consider (if < 0, once is computed based on a half element size)
+    * @param margin margin distance outside mesh to consider (if {@code < 0},
+    * once is computed based on a half element size)
     */
    public static void removeOutsideElements(FemModel3d fem, PolygonalMesh mesh, int nsamples, double margin) {
       

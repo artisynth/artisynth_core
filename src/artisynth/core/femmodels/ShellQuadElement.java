@@ -211,6 +211,17 @@ public class ShellQuadElement extends ShellElement3d {
       return myNodeCoords;
    }
    
+   private static double[] myNodeMassWeights = new double[] {
+      0.25,
+      0.25,
+      0.25,
+      0.25
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
    public int[] getEdgeIndices () {
       return myEdgeIdxs;
    }

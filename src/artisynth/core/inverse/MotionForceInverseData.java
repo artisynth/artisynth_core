@@ -364,7 +364,6 @@ public class MotionForceInverseData
             Jf.mul (Hf_j, Hu_j, Jf.rowSize (), velSize);
             Hf.setColumn(j,Hf_j.getBuffer()); 
          }
-         
       }
 
       // XXX now done in motion target term

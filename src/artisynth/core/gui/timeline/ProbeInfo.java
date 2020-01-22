@@ -17,6 +17,7 @@ import javax.swing.event.*;
 
 import maspack.util.Clonable;
 import maspack.util.InternalErrorException;
+import maspack.widgets.GuiUtils;
 import artisynth.core.driver.Main;
 import artisynth.core.driver.Scheduler;
 import artisynth.core.gui.Displayable;
@@ -29,6 +30,7 @@ import artisynth.core.gui.probeEditor.NumericProbeEditor;
 import artisynth.core.gui.probeEditor.OutputNumericProbeEditor;
 import artisynth.core.gui.selectionManager.SelectionEvent;
 import artisynth.core.gui.selectionManager.SelectionManager;
+import artisynth.core.gui.widgets.ProbeExportChooser;
 import artisynth.core.modelbase.MutableCompositeComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.CopyableComponent;
@@ -316,30 +318,30 @@ public class ProbeInfo implements Clonable, ActionListener {
       }
    }
 
-   // save a probe
-   public void saveProbe() {
-      try {
-         getProbe().save();
-         myController.requestUpdateDisplay();
-      }
-      catch (IOException e) {
-         System.out.println ("Couldn't save probe ");
-         e.printStackTrace();
-      }
-   }
+   // // save a probe
+   // public void saveProbe() {
+   //    try {
+   //       getProbe().save();
+   //       myController.requestUpdateDisplay();
+   //    }
+   //    catch (IOException e) {
+   //       System.out.println ("Couldn't save probe ");
+   //       e.printStackTrace();
+   //    }
+   // }
 
-   // load a probe
-   public void loadProbe() {
-      try {
-         getProbe().load();
-         updateProbeDisplays();
-         myController.requestUpdateDisplay();
-      }
-      catch (IOException e) {
-         System.out.println ("Couldn't load probe ");
-         e.printStackTrace();
-      }
-   }
+   // // load a probe
+   // public void loadProbe() {
+   //    try {
+   //       getProbe().load();
+   //       updateProbeDisplays();
+   //       myController.requestUpdateDisplay();
+   //    }
+   //    catch (IOException e) {
+   //       System.out.println ("Couldn't load probe ");
+   //       e.printStackTrace();
+   //    }
+   // }
 
    // load a probe from a MATLAB variable
    public void loadFromMatlab (Probe probe) {
@@ -369,7 +371,7 @@ public class ProbeInfo implements Clonable, ActionListener {
          System.out.println ("probe is not numeric, cannot clear");
    }
 
-   private String chooseFileName (
+   private File chooseFile (
       File StartFrom, int SelectionMode, String ApproveButtonText) {
       JFileChooser myFileChooser = new JFileChooser();
       myFileChooser.setCurrentDirectory (StartFrom);
@@ -386,90 +388,104 @@ public class ProbeInfo implements Clonable, ActionListener {
          returnVal = myFileChooser.showOpenDialog (myController);
       }
       if (returnVal == JFileChooser.APPROVE_OPTION) {
-         try {
-            return myFileChooser.getSelectedFile().getCanonicalPath();
-         }
-         catch (Exception e) {
-            System.err.println ("File chooser: unable to get canonical path");
-            e.printStackTrace();
-         }
+         return myFileChooser.getSelectedFile();
       }
-      return null;
-   }
-
-   /**
-    * author: Chad Currently only works with loading files from within the
-    * working directory.
-    */
-
-   private void loadfromProbe() {
-      File current = null;
-      String absfile;
-      String workspace = new String (ArtisynthPath.getWorkingDirPath());
-      // workspace = workspace.substring(0, (workspace.length() - 2));
-
-      current = getProbe().getAttachedFile();
-
-      if (current == null)
-         current = new File (workspace);
-
-      absfile = chooseFileName (current, JFileChooser.FILES_ONLY, "Load from");
-      if (absfile != null) {
-         if (absfile.startsWith (workspace))
-            absfile = new String (absfile.substring (workspace.length() + 1));
-
-         System.out.println ("Workspace: " + workspace);
-         System.out.println ("Selected file address: " + absfile);
-         String oldFileName = getProbe().getAttachedFileName();
-
-         try {
-            getProbe().setAttachedFileName (absfile);
-            getProbe().load();
-            updateProbeDisplays();
-            myController.requestUpdateDisplay();
-         }
-         catch (IOException e) {
-            // Back out
-            System.err.println ("Couldn't load probe ");
-
-            getProbe().setAttachedFileName (oldFileName);
-            e.printStackTrace();
-         }
+      else {
+         return null;
       }
    }
 
-   private void saveasProbe() {
-      File current = null;
-      String absfile;
-      String workspace = new String (ArtisynthPath.getWorkingDirPath());
+   // /**
+   //  * author: Chad Currently only works with loading files from within the
+   //  * working directory.
+   //  */
 
-      current = getProbe().getAttachedFile();
+   // private void loadfromProbe() {
+   //    File current = null;
+   //    String workspace = new String (ArtisynthPath.getWorkingDirPath());
+   //    // workspace = workspace.substring(0, (workspace.length() - 2));
 
-      if (current == null || !current.exists())
-         current = new File (workspace);
+   //    current = getProbe().getAttachedFile();
 
-      absfile = chooseFileName (current, JFileChooser.FILES_ONLY, "Save As");
-      if (absfile != null) {
-         if (absfile.startsWith (workspace))
-            absfile = new String (absfile.substring (workspace.length() + 1));
+   //    if (current == null)
+   //       current = new File (workspace);
 
-         System.out.println ("Selected file address: " + absfile);
+   //    File file = chooseFile (current, JFileChooser.FILES_ONLY, "Load from");
+   //    if (file != null) {
+   //       String probePath = Probe.getPathFromFile (file);
+   //       System.out.println ("Workspace: " + workspace);
+   //       System.out.println ("Selected file address: " + probePath);
+   //       String oldFileName = getProbe().getAttachedFileName();
 
-         String oldFileName = getProbe().getAttachedFileName();
-         try {
-            getProbe().setAttachedFileName (absfile);
-            getProbe().save();
-            myController.requestUpdateDisplay();
+   //       try {
+   //          getProbe().setAttachedFileName (probePath);
+   //          getProbe().load();
+   //          updateProbeDisplays();
+   //          myController.requestUpdateDisplay();
+   //       }
+   //       catch (IOException e) {
+   //          // Back out
+   //          System.err.println ("Couldn't load probe ");
 
-         }
-         catch (IOException e) {
-            System.out.println ("Couldn't save probe ");
-            // Back out
-            getProbe().setAttachedFileName (oldFileName);
-            e.printStackTrace();
-         }
-      }
-   }
+   //          getProbe().setAttachedFileName (oldFileName);
+   //          e.printStackTrace();
+   //       }
+   //    }
+   // }
+
+   // private void saveasProbe() {
+   //    File current = null;
+   //    String workspace = new String (ArtisynthPath.getWorkingDirPath());
+
+   //    current = getProbe().getAttachedFile();
+
+   //    if (current == null || !current.exists())
+   //       current = new File (workspace);
+
+   //    File file = chooseFile (current, JFileChooser.FILES_ONLY, "Save As");
+   //    if (file != null) {
+   //       if (file.exists() && !GuiUtils.confirmOverwrite (myController, file)) {
+   //          return;
+   //       }
+   //       String probePath = Probe.getPathFromFile (file);
+   //       System.out.println ("Selected file path: " + probePath);
+   //       String oldFileName = getProbe().getAttachedFileName();
+   //       try {
+   //          getProbe().setAttachedFileName (probePath);
+   //          getProbe().save();
+   //          myController.requestUpdateDisplay();
+   //       }
+   //       catch (IOException e) {
+   //          System.out.println ("Couldn't save probe ");
+   //          // Back out
+   //          getProbe().setAttachedFileName (oldFileName);
+   //          e.printStackTrace();
+   //       }
+   //    }
+   // }
+
+   // private void exportProbe() {
+   //    File file = myProbe.getExportFile();
+   //    if (file != null) {
+   //       String ext = ArtisynthPath.getFileExtension(file).toLowerCase();
+   //       Probe.ExportProps props = myProbe.getExportProps (ext);
+   //       if (props == null) {
+   //          // shouldn't happen
+   //          System.out.println (
+   //             "Warning: unsupported file extension for " + file);
+   //          myProbe.setExportFileName (null);
+   //       }
+   //       else {
+   //          try {
+   //             myProbe.export (file, props);
+   //          }
+   //          catch (Exception e) {
+   //             e.printStackTrace(); 
+   //             myProbe.setExportFileName (null);
+   //          }
+   //       }
+   //    }
+   // }
 
    private String getMatlabName (Probe probe) {
       if (probe.getName() != null) {
@@ -868,11 +884,11 @@ public class ProbeInfo implements Clonable, ActionListener {
 
       JMenuItem mySaveItem = new JMenuItem ("Save data");
       mySaveItem.addActionListener (this);
-      mySaveItem.setActionCommand ("Save");
+      mySaveItem.setActionCommand ("Save data");
 
-      JMenuItem mySaveasItem = new JMenuItem ("Save data as...");
+      JMenuItem mySaveasItem = new JMenuItem ("Save data as ...");
       mySaveasItem.addActionListener (this);
-      mySaveasItem.setActionCommand ("Save As");
+      mySaveasItem.setActionCommand ("Save data as ...");
 
       JMenuItem mySetItem = new JMenuItem ("Set");
       mySetItem.addActionListener (this);
@@ -882,13 +898,29 @@ public class ProbeInfo implements Clonable, ActionListener {
       myPrintItem.addActionListener (this);
       myPrintItem.setActionCommand ("Print");
 
-      JMenuItem myLoadfromItem = new JMenuItem ("Load From...");
+      JMenuItem myLoadfromItem = new JMenuItem ("Load data from ...");
       myLoadfromItem.addActionListener (this);
-      myLoadfromItem.setActionCommand ("Load From");
+      myLoadfromItem.setActionCommand ("Load data from ...");
 
-      JMenuItem myLoadItem = new JMenuItem ("Load");
+      JMenuItem myLoadItem = new JMenuItem ("Load data");
       myLoadItem.addActionListener (this);
-      myLoadItem.setActionCommand ("Load");
+      myLoadItem.setActionCommand ("Load data");
+
+      JMenuItem myExportItem = new JMenuItem ("Export");
+      myExportItem.addActionListener (this);
+      myExportItem.setActionCommand ("Export");
+
+      JMenuItem myExportAsItem = new JMenuItem ("Export as ...");
+      myExportAsItem.addActionListener (this);
+      myExportAsItem.setActionCommand ("Export as");
+
+      // JMenuItem myImportItem = new JMenuItem ("Import");
+      // myImportItem.addActionListener (this);
+      // myImportItem.setActionCommand ("Import");
+
+      // JMenuItem myImportAsItem = new JMenuItem ("Import as ...");
+      // myImportAsItem.addActionListener (this);
+      // myImportAsItem.setActionCommand ("Import as");
 
       JMenuItem myClearItem = new JMenuItem ("Clear");
       myClearItem.addActionListener (this);
@@ -896,10 +928,10 @@ public class ProbeInfo implements Clonable, ActionListener {
 
       JMenuItem activityItem;
       if (getProbe().isActive()) {
-         activityItem = new JMenuItem ("deactivate");
+         activityItem = new JMenuItem ("Deactivate");
       }
       else {
-         activityItem = new JMenuItem ("activate");
+         activityItem = new JMenuItem ("Activate");
       }
       activityItem.addActionListener (this);
       activityItem.setActionCommand ("ToggleActivation");
@@ -907,40 +939,47 @@ public class ProbeInfo implements Clonable, ActionListener {
       popupMenu.add (myLargeProbeDisplayItem);
       popupMenu.addSeparator();
 
+      popupMenu.add (activityItem);
       if (myDuplicateItem != null) {
          popupMenu.add (myDuplicateItem);
       }
+      if (NumericProbeBase.class.isAssignableFrom (getProbe().getClass())) {
+         popupMenu.add (myClearItem);
+      }
+      popupMenu.add (myDeleteItem);
+
+      popupMenu.addSeparator();
+
       popupMenu.add (mySaveItem);
       popupMenu.add (mySaveasItem);
       if (getProbe() instanceof NumericProbeBase &&
           getMain().hasMatlabConnection()) {
          addMenuItem (popupMenu, "Save to MATLAB");
       }
-      popupMenu.add (mySetItem);
-      popupMenu.add (myPrintItem);
-      popupMenu.addSeparator();
-      popupMenu.add (myLoadfromItem);
       popupMenu.add (myLoadItem);
+      popupMenu.add (myLoadfromItem);
       if (getProbe() instanceof NumericProbeBase &&
           getMain().hasMatlabConnection()) {
          addMenuItem (popupMenu, "Load from MATLAB");
       }
-      
-      if (NumericProbeBase.class.isAssignableFrom (getProbe().getClass())) {
-         popupMenu.addSeparator();
-         popupMenu.add (myClearItem);
-      }
-      
+
       popupMenu.addSeparator();
-      popupMenu.add (activityItem);
-      popupMenu.add (myDeleteItem);
+
+      if (getProbe().getExportFileInfo().length > 0) {
+         popupMenu.add (myExportItem);
+         popupMenu.add (myExportAsItem);
+         popupMenu.addSeparator();
+      }
+
+      popupMenu.add (myChangeNameItem);
       if (myEditProbeItem != null) {
          popupMenu.add (myEditProbeItem);
       }
-      popupMenu.addSeparator();
-      popupMenu.add (myChangeNameItem);
+      popupMenu.add (mySetItem);
+      popupMenu.add (myPrintItem);
       
       mySaveItem.setEnabled (getProbe().getAttachedFile() != null);
+      myExportItem.setEnabled (getProbe().getExportFile() != null);
       myLoadItem.setEnabled (getProbe().getAttachedFile() != null);
       mySetItem.setEnabled (getProbe().isSettable());
       myPrintItem.setEnabled (getProbe().isPrintable());
@@ -1110,14 +1149,20 @@ public class ProbeInfo implements Clonable, ActionListener {
       if (nameOfAction == "Duplicate") {
          duplicateProbe();
       }
-      else if (nameOfAction == "Save") {
-         saveProbe();
+      else if (nameOfAction == "Save data") {
+         ProbeEditor.saveData (myProbe, myController);
       }
-      else if (nameOfAction == "Save As") {
-         saveasProbe();
+      else if (nameOfAction == "Save data as ...") {
+         ProbeEditor.saveDataAs (myProbe, myController);
       }
       else if (nameOfAction == "Save to MATLAB") {
          saveToMatlab(myProbe);
+      }
+      else if (nameOfAction == "Export") {
+         ProbeEditor.export (myProbe, myController);
+      }
+      else if (nameOfAction == "Export as") {
+         ProbeEditor.exportAs (myProbe, myController);
       }
       else if (nameOfAction == "Set") {
          setProbe();
@@ -1125,11 +1170,11 @@ public class ProbeInfo implements Clonable, ActionListener {
       else if (nameOfAction == "Print") {
          printProbe();
       }
-      else if (nameOfAction == "Load From") {
-         loadfromProbe();
+      else if (nameOfAction == "Load data from ...") {
+         ProbeEditor.loadDataFrom (myProbe, myController);
       }
-      else if (nameOfAction == "Load") {
-         loadProbe();
+      else if (nameOfAction == "Load data") {
+         ProbeEditor.loadData (myProbe, myController);
       }
       else if (nameOfAction == "Load from MATLAB") {
          loadFromMatlab(myProbe);

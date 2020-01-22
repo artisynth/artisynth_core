@@ -1,5 +1,7 @@
 package artisynth.demos.wrapping;
 
+import java.awt.Color;
+
 import artisynth.core.materials.LinearAxialMaterial;
 import artisynth.core.mechmodels.RigidCylinder;
 import artisynth.core.modelbase.StepAdjustment;
@@ -54,6 +56,7 @@ public class CylinderBounceTest extends TwoStrandWrapBase {
       myCylinder = new RigidCylinder (
          "cylinder", size/2, size*5, myDensity, 100);
       myCylinder.setPose (new RigidTransform3d (0, 0, 1.5*size, 0, 0, Math.PI/2));
+      RenderProps.setFaceColor (myCylinder, new Color (238, 232, 170));
       myMech.addRigidBody (myCylinder);
       //myCylinder.setDynamic (false);
       RenderProps.setAlpha (myCylinder, 0.5);

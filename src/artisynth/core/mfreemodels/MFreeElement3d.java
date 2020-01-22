@@ -1003,6 +1003,11 @@ public class MFreeElement3d extends FemElement3d implements Boundable { //, Tran
    }
 
    @Override
+   public double[] getNodeMassWeights() {
+      return new double[0];
+   }
+
+   @Override
    public void renderWidget(Renderer renderer, double size, RenderProps props) {
       
    }

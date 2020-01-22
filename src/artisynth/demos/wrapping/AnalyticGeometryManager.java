@@ -176,7 +176,7 @@ public class AnalyticGeometryManager<T> extends Manager<T> {
     * @param geometry
     * the new {@code Geometry} for this {@link AnalyticGeometryManager}
     * @throws IllegalArgumentException
-    * if geometry == Geometry.NONE && !mySupportsNoneP
+    * if geometry == Geometry.NONE {@code &&} !mySupportsNoneP
     */
    public void setGeometry (Geometry geometry) throws IllegalArgumentException {
       if (myGeometry != geometry) {
@@ -200,7 +200,7 @@ public class AnalyticGeometryManager<T> extends Manager<T> {
     * @param wrapMethod
     * the new {@code WrapMethod} for this {@link AnalyticGeometryManager}
     * @throws IllegalArgumentException
-    * if wrapMethod == WrapMethod.NONE && !mySupportsNoneP
+    * if wrapMethod == WrapMethod.NONE {@code &&} !mySupportsNoneP
     */
    public void setWrapMethod (WrapMethod wrapMethod)
       throws IllegalArgumentException {

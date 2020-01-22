@@ -32,6 +32,7 @@ import artisynth.core.gui.editorManager.AddComponentsCommand;
 import artisynth.core.probes.NumericOutputProbe;
 import artisynth.core.probes.NumericProbeDriver;
 import artisynth.core.probes.NumericProbeVariable;
+import artisynth.core.probes.Probe;
 import artisynth.core.util.ArtisynthPath;
 
 public class OutputNumericProbeEditor extends NumericProbeEditor implements
@@ -39,32 +40,9 @@ ValueChangeListener {
    static final long serialVersionUID = 1L;
    private NumericOutputProbe oldProbe;
 
-   private boolean attachedOutputFileValid (String path, StringHolder errMsg) {
-      if (path != null && !path.equals ("")) {
-         String fullPath = getFullPath (path);
-         if (!filePathExists (fullPath)) {
-            File file = new File (fullPath);
-            if (file.isDirectory()) {
-               if (errMsg != null) {
-                  errMsg.value = "Cannot save to a directory";
-               }
-               return false;
-            }
-            File dir = file.getParentFile();
-            if (dir == null || !dir.isDirectory()) {
-               if (errMsg != null) {
-                  errMsg.value = "File does not exist";
-               }
-               return false;
-            }
-         } 
-      }
-      return true;
-   }
-
    private class OutputFileChecker implements ValueCheckListener {
       public Object validateValue (ValueChangeEvent e, StringHolder errMsg) {
-         if (!attachedOutputFileValid ((String)e.getValue(), errMsg)) {
+         if (!attachedFileValid ((String)e.getValue(), errMsg)) {
             return Property.IllegalValue;
          }
          if (errMsg != null) {
@@ -94,7 +72,7 @@ ValueChangeListener {
       oldProbe = inProbe;
 
       attachedFile = inProbe.getAttachedFile();
-      attachedFileField.setValue (getAttachedFilePath (attachedFile));
+      attachedFileField.setValue (Probe.getPathFromFile (attachedFile));
       attachedFileField.addValueCheckListener (new OutputFileChecker());
 
       setupGUI();

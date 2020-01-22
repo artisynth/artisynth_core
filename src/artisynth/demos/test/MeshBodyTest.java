@@ -227,7 +227,6 @@ public class MeshBodyTest extends RootModel {
             e.printStackTrace(); 
          }
       }
-      
 
       RenderProps.setDrawEdges (mesh, true);
       RenderProps.setEdgeColor (mesh, Color.WHITE);

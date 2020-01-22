@@ -8,7 +8,10 @@ package artisynth.core.probes;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.io.File;
 import java.io.PrintWriter;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.*;
 
 import javax.swing.JPanel;
@@ -62,6 +65,15 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
 
    protected int myVsize;
    protected PlotTraceManager myPlotTraceManager;
+
+   protected static ImportExportFileInfo[] myExportFileInfo =
+      new ImportExportFileInfo[] {
+      new ImportExportFileInfo ("CSV format", "csv"),
+      new ImportExportFileInfo ("Text format", "txt")
+   };
+
+   protected TextExportProps myTextExportProps = new TextExportProps();
+   protected String myExportFileName;
 
    public static PropertyList myProps =
       new PropertyList (NumericProbeBase.class, Probe.class);
@@ -846,4 +858,79 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
       return true;
    }
 
+   /* --- file export methods --- */
+
+   public void writeText (
+      File file, String fmtStr, String separator, boolean includeTime)
+      throws IOException  {
+
+      PrintWriter pw =
+         new PrintWriter (new BufferedWriter (new FileWriter (file)));
+
+      try {
+         NumberFormat fmt = new NumberFormat (fmtStr);
+         Iterator<NumericListKnot> it = myNumericList.iterator();
+         while (it.hasNext()) {
+            NumericListKnot knot = it.next();
+            if (includeTime) {
+               pw.print (fmt.format (knot.t));
+            }
+            for (int i=0; i<knot.v.size(); i++) {
+               if (includeTime || i>0) {
+                  pw.print (separator);
+               }
+               pw.print (fmt.format(knot.v.get(i)));
+            }
+            pw.println ("");
+         }     
+      }
+      catch (Exception e) {
+         if (e instanceof IOException) {
+            throw (IOException)e;
+         }
+         else {
+            throw new IOException ("Internal error: ", e);
+         }
+      }
+      finally {
+         pw.close();
+      }
+   }
+
+   public ImportExportFileInfo[] getExportFileInfo() {
+      return myExportFileInfo;
+   }
+
+   public ExportProps getExportProps (String ext) {
+      if (ext != null && (ext.equals ("csv") || ext.equals ("txt"))) {
+         return myTextExportProps;
+      }
+      else {
+         return null;
+      }
+   }
+
+   public void export (File file, ExportProps props)
+      throws IOException {
+      String name = file.getName();
+      if (ArtisynthPath.getFileExtension(file).equals ("csv")) {
+         if (!(props instanceof TextExportProps)) {
+            throw new InternalErrorException (
+               "Expected TextExportProps, got "+props);
+         }
+         TextExportProps tprops = (TextExportProps)props;
+         writeText (file, tprops.getFormatStr(), ", ", tprops.getIncludeTime());
+      }
+      else if (ArtisynthPath.getFileExtension(file).equals ("txt")) {
+         if (!(props instanceof TextExportProps)) {
+            throw new InternalErrorException (
+               "Expected TextExportProps, got "+props);
+         }
+         TextExportProps tprops = (TextExportProps)props;
+         writeText (file, tprops.getFormatStr(), " ", tprops.getIncludeTime());
+      }
+      else {
+         throw new IOException ("Unrecognized type for file "+name);
+      }
+   }
 }

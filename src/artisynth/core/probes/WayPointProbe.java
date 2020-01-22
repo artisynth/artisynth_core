@@ -597,7 +597,6 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
          if (isAttachedFileRelative ()) {
             file.getParentFile ().mkdirs ();
          }
-         System.out.println ("saving waypoint data to " + file.getName ());
          DataOutputStream dos =
             new DataOutputStream (
                new BufferedOutputStream(new FileOutputStream (file)));
@@ -606,7 +605,7 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
             for (WayPoint way : myWayPoints.values()) {
                dos.writeDouble (way.getTime());
                dos.writeBoolean (way.isBreakPoint());
-               if (way.getState () != null) {
+               if (way.isValid() && way.getState () != null) {
                   dos.writeBoolean (true);
                   way.getState ().writeBinary (dos);
                }
@@ -644,10 +643,10 @@ public class WayPointProbe extends OutputProbe implements Iterable<WayPoint> {
       File file = getAttachedFile ();
       if (file != null) {
          if (!file.exists ()) {
-            throw new IOException ("File does not exist");
+            throw new IOException ("File '"+file+"' does not exist");
          }
          else if (!file.canRead ()) {
-            throw new IOException ("File is not readable");
+            throw new IOException ("File '"+file+"' is not readable");
          }
          else {
             // read data from binary file

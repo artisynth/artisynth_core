@@ -92,6 +92,19 @@ public class WedgeElement extends FemElement3d {
       return myNodeCoords;
    }
 
+   private static double[] myNodeMassWeights = new double[] {
+      1.0/6,
+      1.0/6,
+      1.0/6,
+      1.0/6,
+      1.0/6,
+      1.0/6,
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
    private static MatrixNd myNodalExtrapolationMatrix = null;
 
    public MatrixNd getNodalExtrapolationMatrix() {

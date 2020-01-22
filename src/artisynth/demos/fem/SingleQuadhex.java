@@ -12,8 +12,6 @@ import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.FemControlPanel;
 //import artisynth.core.gui.widgets.MaterialPanel;
 
-
-
 import java.awt.Color;
 import java.awt.Point;
 
@@ -84,9 +82,10 @@ public class SingleQuadhex extends RootModel {
       RenderProps.setPointRadius (mod, 0.05);
 
       mod.setGravity (0, 0, -9.8);
-      // mod.setGravity (0, 0, 0);
+      //mod.setGravity (0, 0, 0);
 
       LinearMaterial linMat = new LinearMaterial();
+      linMat.setPoissonsRatio (0.0);
       IncompNeoHookeanMaterial inhMat = new IncompNeoHookeanMaterial();
       inhMat.setBulkModulus (30000);
       inhMat.setShearModulus (3000);
@@ -94,10 +93,11 @@ public class SingleQuadhex extends RootModel {
          new MooneyRivlinMaterial (30000.0, 0, 0, 0, 0, 5000000.0);
       //      mod.setMaterial (new StVenantKirchoffMaterial());
       // mod.setMaterial (new NeoHookeanMaterial());
-      mod.setMaterial (monMat);
-      // mod.setMaterial (linMat);
+      //mod.setMaterial (monMat);
+      mod.setMaterial (linMat);
       mod.setDensity (10000);
 
+      System.out.println ("mat=" + mod.getMaterial());
       //FemMarker mkr = new FemMarker (0, -1, 0);
       //mod.addMarker (mkr, mod.findContainingElement (mkr.getPosition()));
 
@@ -113,6 +113,30 @@ public class SingleQuadhex extends RootModel {
          }
       }
 
+      // for (int i=0; i<nodes.length; i++) {
+      //    Vector3d gforce = new Vector3d (0, 0, -9.8);
+      //    FemNode3d n = nodes[i];
+      //    if (hex.getLocalNodeIndex(n) < 8) {
+      //       gforce.scale (-1.0*hex.getDensity());
+      //    }
+      //    else {
+      //       gforce.scale (1.333333*hex.getDensity());
+      //    }
+      //    n.setExternalForce (gforce);
+      // }
+
+      // FemNode3d n4 = nodes[4];
+      // FemNode3d n16 = nodes[16];
+      // FemNode3d n15 = nodes[15];
+      // FemNode3d n12 = nodes[12];
+      // double base = -10000;
+      // double sc = 0.25;
+      // double se = 1.0;
+      // n4.setExternalForce (new Vector3d (0, 0, sc*base));
+      // n16.setExternalForce (new Vector3d (0, 0, se*base));
+      // n15.setExternalForce (new Vector3d (0, 0, se*base));
+      // n12.setExternalForce (new Vector3d (0, 0, se*base));
+
       createControlPanel (mod);
 
       mod.setSoftIncompMethod (IncompMethod.FULL);
@@ -121,7 +145,8 @@ public class SingleQuadhex extends RootModel {
       System.out.println ("error=" + tester.testStiffness (mod, 1e-8));
       //System.out.println ("K=\n" + tester.getK().toString ("%10.1f"));
       //System.out.println ("N=\n" + tester.getKnumeric().toString ("%10.1f"));
-      System.out.println ("gravity weights=" + hex.computeGravityWeights().toString("%8.3f"));
+      System.out.println ("gravity weights=" + hex.computeGravityWeights().toString("%8.5f"));
+      //System.out.println ("mass matrix=" + hex.computeConsistentMass().toString("%8.3f"));
    }
 
    private void createControlPanel(FemModel3d mod) {

@@ -129,14 +129,20 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
 
       public void getInitialState (NumericState nstate) {
-         int numf = getNumBilateralForces() + getNumUnilateralForces();
-         nstate.zput (numf);
-         int di = nstate.dsize();
-         int dsize = di+numf;
-         nstate.dsetSize (dsize);
-         double[] dbuf = nstate.dbuffer();
-         while (di < dsize) {
-            dbuf[di++] = 0;
+         if (false) {
+            int numf = getNumBilateralForces() + getNumUnilateralForces();
+            nstate.zput (numf);
+            int di = nstate.dsize();
+            int dsize = di+numf;
+            nstate.dsetSize (dsize);
+            double[] dbuf = nstate.dbuffer();
+            while (di < dsize) {
+               dbuf[di++] = 0;
+            }
+         }
+         else {
+            // just set numf to -1, meaning that all forces will be set to 0
+            nstate.zput (-1);
          }
          if (nstate.hasDataFrames()) {
             nstate.addDataFrame (this);
@@ -161,20 +167,30 @@ public abstract class MechSystemBase extends RenderableModelBase
       public void setState (DataBuffer data) {
          int chkf = getNumBilateralForces() + getNumUnilateralForces();
          int numf = data.zget();
-         if (numf != chkf) {
+         if (numf != -1 && numf != chkf) {
             throw new IllegalArgumentException (
                "number of impulse forces is "+numf+", expecting "+chkf);
          }
+         // numf == -1 means all forces should be set to 0
+         
          // create special vector to access the state ...
          VectorNd dvec = new VectorNd();
-         dvec.setBuffer (data.dsize(), data.dbuffer());
-         int di = data.doffset();
+         int di = 0;
+         if (numf != -1) {
+            dvec.setBuffer (data.dsize(), data.dbuffer());
+            di = data.doffset();
+         }
+         else {
+            dvec.setSize (chkf);
+         }
          for (int i=0; i<myConstrainers.size(); i++) {
             Constrainer c = myConstrainers.get(i);
             di = c.setBilateralForces (dvec, 1.0, di);
             di = c.setUnilateralForces (dvec, 1.0, di);
          }
-         data.dsetOffset (di);
+         if (numf != -1) {
+            data.dsetOffset (di);
+         }
       }
    }
 
@@ -1028,6 +1044,7 @@ public abstract class MechSystemBase extends RenderableModelBase
          if (t0 == 0 && myPrintState != null) {
             printState (myPrintState, 0);
          }
+         recursivelyPrepareAdvance (t0, t1, flags, 0);
          // Force solver to perform an analyze step on its bilateral constraint
          // matrices if state is volatile, the bilateral constraint structure
          // is not constant, and t0 != 0. This is to ensure precise numeric
@@ -1270,6 +1287,32 @@ public abstract class MechSystemBase extends RenderableModelBase
          }
       }
       myConstraintForceStateSaver.getInitialState (nstate);
+      
+//      For debugging state frame errors:
+//
+//      System.out.println (
+//         "new initial state, num frames=" + nstate.numDataFrames() +
+//         ", state=" + nstate.hashCode());
+//      try {
+//         PrintWriter pw =
+//            ArtisynthIO.newIndentingPrintWriter ("stateComps.txt");
+//         for (int i=0; i<nstate.numDataFrames(); i++) {
+//            HasNumericState comp = nstate.getDataFrame(i).getComp();
+//            if (comp instanceof ModelComponent) {
+//               pw.println (ComponentUtils.getPathName ((ModelComponent)comp));
+//            }
+//            else if (comp != null) {
+//               pw.println (comp);
+//            }
+//            else {
+//               pw.println ("null");
+//            }
+//         }
+//         pw.close();
+//      }
+//      catch (Exception e) {
+//         e.printStackTrace(); 
+//      }
    }
 
    public void initialize (double t) {
@@ -1297,6 +1340,10 @@ public abstract class MechSystemBase extends RenderableModelBase
          //updateForces (t);
       }
    }
+
+   public void recursivelyPrepareAdvance (
+      double t0, double t1, int flags, int level) {
+   }  
 
    public void recursivelyFinalizeAdvance (
       StepAdjustment stepAdjust, double t0, double t1, int flags, int level) {
@@ -1550,7 +1597,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
-   public boolean buildMassMatrix (SparseBlockMatrix M) {
+   public boolean buildMassMatrix (SparseNumberedBlockMatrix M) {
 
       updateDynamicComponentLists();
       if (M.numBlockRows() != 0 || M.numBlockCols() != 0) {
@@ -1580,7 +1627,7 @@ public abstract class MechSystemBase extends RenderableModelBase
               M.colSize() == mySystemSize);
    }
 
-   public void getMassMatrix (SparseBlockMatrix M, VectorNd f, double t) {
+   public void getMassMatrix (SparseNumberedBlockMatrix M, VectorNd f, double t) {
       updateDynamicComponentLists();
       if (!checkMatrixSize (M)) {
          throw new IllegalArgumentException (
@@ -2005,7 +2052,7 @@ public abstract class MechSystemBase extends RenderableModelBase
       addAttachmentJacobian(S, f);
    }    
 
-   public void addGeneralMassBlocks (SparseBlockMatrix M) {
+   public void addGeneralMassBlocks (SparseNumberedBlockMatrix M) {
       // do nothing if mass matrix is block diagonal
    }
 

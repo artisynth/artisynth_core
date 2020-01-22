@@ -30,6 +30,10 @@ public class QuadtetElement extends FemElement3d {
    private static IntegrationPoint3d myWarpingPoint;
    private static FemElementRenderer myRenderer;
 
+   public boolean isLinear() {
+      return false;
+   }
+   
    public IntegrationPoint3d[] getIntegrationPoints() {
       if (myDefaultIntegrationPoints == null) {
          myDefaultIntegrationPoints = 
@@ -351,6 +355,42 @@ public class QuadtetElement extends FemElement3d {
 
    public double[] getNodeCoords () {
       return myNodeCoords;
+   }
+
+   private static double[] myNodeMassWeights = new double[] {
+      // masses obtained by scaling the consistent mass matrix diagonal:
+      // corner nodes
+      0.0277778,
+      0.0277778,
+      0.0277778,
+      0.0277778,
+
+      // side nodes
+      0.148148,
+      0.148148,
+      0.148148,
+      0.148148,
+      0.148148,
+      0.148148
+
+      // masses obtained by summing the consistent mass matrix:
+      // // corner nodes
+      // -0.035714285714286,
+      // -0.035714285714286,
+      // -0.035714285714286,
+      // -0.035714285714286,
+
+      // // side nodes
+      // 0.142857142857143,
+      // 0.142857142857143,
+      // 0.142857142857143,
+      // 0.142857142857143,
+      // 0.142857142857143,
+      // 0.142857142857143,
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
    }
 
    static int[] myEdgeIdxs = new int[] 

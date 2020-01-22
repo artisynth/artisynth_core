@@ -99,6 +99,8 @@ public abstract class FemElement3dBase extends FemElement
 
    public abstract double[] getNodeCoords ();
 
+   public abstract double[] getNodeMassWeights ();
+
    public void getNodeCoords (Vector3d coords, int nodeIdx) {
       if (nodeIdx < 0 || nodeIdx >= numNodes()) {
          throw new IllegalArgumentException (
@@ -1332,6 +1334,63 @@ public abstract class FemElement3dBase extends FemElement
       }
       weights.scale (1/wtotal);
       return weights;
+   }
+
+   public MatrixNd computeConsistentMass () {
+
+      MatrixNd M = new MatrixNd (numNodes(), numNodes());
+      IntegrationPoint3d[] ipnts = getIntegrationPoints();       
+      for (int k=0; k<ipnts.length; k++) {
+         IntegrationPoint3d pnt = ipnts[k];
+         VectorNd N = pnt.getShapeWeights();
+         double w = pnt.getWeight();
+         for (int i=0; i<numNodes(); i++) {
+            for (int j=0; j<numNodes(); j++) {
+               double dm = w*getDensity()*N.get(i)*N.get(j);
+               M.set (i, j, dm + M.get (i, j));
+            }
+         }
+      }
+      return M;
+   }
+
+   public void addConsistentMass (SparseNumberedBlockMatrix M) {
+      IntegrationPoint3d[] ipnts = getIntegrationPoints();       
+      IntegrationData3d[] idata = getIntegrationData();       
+      for (int k=0; k<ipnts.length; k++) {
+         IntegrationPoint3d pnt = ipnts[k];
+         VectorNd N = pnt.getShapeWeights();
+         double density = pnt.getWeight()*getDensity()*idata[k].getDetJ0();
+         for (int i=0; i<numNodes(); i++) {
+            int bi = myNodes[i].getSolveIndex();
+            for (int j=0; j<numNodes(); j++) {
+               int bj = myNodes[j].getSolveIndex();
+               double dm = density*N.get(i)*N.get(j);
+               myNbrs[i][j].myMass00 += dm;
+               MatrixBlock blk = M.getBlock (bi, bj);
+               if (blk instanceof Matrix3d) {
+                  Matrix3d Mblk = (Matrix3d)blk;
+                  Mblk.m00 += dm;
+                  Mblk.m11 += dm;
+                  Mblk.m22 += dm;
+               }
+            }
+         }
+      }
+   }         
+
+   public void addConsistentGravity (Vector3d gacc) {
+      IntegrationPoint3d[] ipnts = getIntegrationPoints();       
+      IntegrationData3d[] idata = getIntegrationData();       
+      for (int k=0; k<ipnts.length; k++) {
+         IntegrationPoint3d pnt = ipnts[k];
+         VectorNd N = pnt.getShapeWeights();
+         double density = pnt.getWeight()*getDensity()*idata[k].getDetJ0();
+         for (int i=0; i<numNodes(); i++) {
+            FemNode3d node = myNodes[i];
+            node.addScaledForce (density*N.get(i), gacc);
+         }
+      }
    }
 
    /** 

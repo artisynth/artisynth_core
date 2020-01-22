@@ -108,7 +108,7 @@ public abstract class FemNode extends Particle {
    public void invalidateMassIfNecessary () {
       if (!myMassExplicitP) {
          myMassValidP = false;
-      }      
+      } 
    }
    
    protected abstract void invalidateAdjacentNodeMasses();

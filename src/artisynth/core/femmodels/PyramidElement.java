@@ -91,6 +91,18 @@ public class PyramidElement extends FemElement3d {
       return myNodeCoords;
    }
 
+   private static double[] myNodeMassWeights = new double[] {
+      0.20,
+      0.20,
+      0.20,
+      0.20,
+      0.20
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
    private static MatrixNd myNodalExtrapolationMatrix = null;
 
    public MatrixNd getNodalExtrapolationMatrix() {

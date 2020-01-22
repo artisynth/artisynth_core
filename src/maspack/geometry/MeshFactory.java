@@ -551,9 +551,10 @@ public class MeshFactory {
 
    private static double computeSphericalPointTolerance (
       double r, double maxthe, double maxphi, int nthe, int nphi) {
-
       double minsp = Math.sin(maxphi/nphi);
-      minsp = Math.min (minsp, Math.sin(maxphi));
+      if (maxphi != Math.PI) {
+         minsp = Math.min (minsp, Math.sin(maxphi));
+      }
       return Math.min (0.01*r*minsp*Math.sin(maxthe/nthe), 0.01*r*minsp);
    }
 
@@ -3456,18 +3457,6 @@ public class MeshFactory {
       return csg.getSubtraction(mesh1, mesh2);
    }
 
-   public static void main(String[] args) {
-      PolygonalMesh mesh =
-         createQuadPrism(new double[] { 2, 1, 0, 2, -0.5, 0, 0, -2, 2, -1 }, 2);
-      try {
-         PrintWriter pw =
-            new PrintWriter(new FileWriter("fiveSidedPrism.obj"));
-         mesh.write(pw, "%g");
-      } catch (Exception e) {
-         e.printStackTrace();
-      }
-   }
-
    public static ArrayList<HalfEdge> findBorderEdges(PolygonalMesh mesh) {
 
       // collect single half-edges
@@ -3949,6 +3938,4 @@ public class MeshFactory {
       
       return hull;
    }
-
-   
 }

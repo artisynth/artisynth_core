@@ -35,6 +35,74 @@
 
 % \subsection*{MAPStress and MAPStrain added to FemModel.SurfaceRender}
 
+\section*{Jan 22, 2020}
+
+\subsection*{Export for numeric probes}
+
+It is now possible to export numeric probe data as either a {\tt .csv}
+or {\tt .txt} files. To do this, select the probe (in either the
+navigation panel or the timeline), and choose {\sf Export} or {\sf
+Export as ...} from the context menu.
+
+\subsection*{Resetting the initial state}
+
+The RootModel now contains the method {\tt resetInitialState()}, which
+causes the initial state (i.e., the state at time 0) to be reset to
+the current state.
+
+This can also be called interactively using the new {\sf reset state}
+button 
+\iflatexml
+\includegraphics[]{../uiguide/images/resetState} 
+\else
+\includegraphics[width=0.2in]{../uiguide/images/resetState} 
+\fi
+located at the top left.
+
+\subsection*{Disabling realtime simulation}
+
+By default, when running with graphics enabled, the simulation tries
+to run in real time, with the simulation slowed down (if necessary) so
+it does not proceed faster then real time. This can now be disabled,
+using the {\tt Main} method {\tt setRealTimeAdvancement(enable)}, so
+that the simulation runs as fast as possible. Note that real-time
+advancement is disabled by default when running in batch mode, which
+is why batch simulations sometimes run faster.
+
+Real-time advancement can also be controlled with the new {\sf
+real-time enable} button
+\iflatexml
+\includegraphics[]{images/realtimeEnable} 
+\else
+\includegraphics[width=0.2in]{images/realtimeEnable} 
+\fi
+located at the top left.
+
+\subsection*{Full play controls added to the main viewer}
+
+The play controls in the main viewer have been extended to include the
+skip-back and skip-forward buttons that advance the model across
+waypoints.
+
+\subsection*{Embedded FEM support}
+
+A new set of utility methods has been added for creating embedded FEM
+models, and in particular voxelized embedding FEMs. The utilities were
+originally created by Antonio S\'{a}nchez and have now been added to the
+package {\tt core.femmodels}, with the main class being {\tt
+EmbeddedFem}. Two of its principal methods are:
+%
+\begin{lstlisting}[]
+   static FemModel3d createBoundingFem (
+      FemModel3d fem, PolygonalMesh mesh, RigidTransform3d trans, 
+      int minRes, double maxElemWidth, double margin)
+
+   static FemModel3d createVoxelizedFem (
+      FemModel3d fem, PolygonalMesh mesh, RigidTransform3d trans, 
+      int minRes, double maxElemWidth, double margin)
+\end{lstlisting}
+%
+
 \section*{Sep 19, 2019}
 
 \subsection*{Enhancements to saving models}

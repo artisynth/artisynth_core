@@ -147,6 +147,7 @@ PointAttachable, ConnectableBody {
    public static boolean abortOnInvertedElems = false;
    public static boolean checkTangentStability = false;
    public static boolean noIncompressStiffnessDamping = false;
+   public static boolean useNodalMassWeights = false;
    // if the minimum real detJ for all elements is <= this number,
    // then request a step size reduction:
    public static double detJStepReductionLimit = 0.01;
@@ -234,6 +235,9 @@ PointAttachable, ConnectableBody {
       Collidability.ALL;   
    protected Collidability myCollidability = DEFAULT_COLLIDABILITY;
 
+   protected static boolean DEFAULT_USE_CONSISTENT_MASS = false;
+   protected boolean myUseConsistentMass = DEFAULT_USE_CONSISTENT_MASS;
+
    // maximum number of pressure DOFs that can occur in an element
    private static int MAX_PRESSURE_VALS = 8;
    // maximum number of nodes for elements associated with nodal
@@ -297,6 +301,10 @@ PointAttachable, ConnectableBody {
       myProps.add (
          "directorRenderLen", "length of line used to render directors",
          DEFAULT_DIRECTOR_RENDER_LEN);
+      myProps.add (
+         "useConsistentMass",
+         "use consistent mass matrix and gravity loadings", 
+         DEFAULT_USE_CONSISTENT_MASS);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -549,6 +557,17 @@ PointAttachable, ConnectableBody {
       if (myCollidability != c) {
          myCollidability = c;
          notifyParentOfChange (new StructureChangeEvent (this));
+      }
+   }
+
+   public boolean getUseConsistentMass() {
+      return myUseConsistentMass;
+   }
+
+   public void setUseConsistentMass (boolean enable) {
+      if (enable != myUseConsistentMass) {
+         myUseConsistentMass = enable;
+         notifyStructureChanged(this);
       }
    }
 
@@ -1655,7 +1674,6 @@ PointAttachable, ConnectableBody {
       return surfMesh;
    }
    
-   
    public void setSurfaceMeshComp(FemMeshComp mesh) {
       myAutoGenerateSurface = false;
       mySurfaceMeshValid = true;
@@ -2605,10 +2623,16 @@ PointAttachable, ConnectableBody {
       Vector3d fd = new Vector3d(); // damping force
       Vector3d md = new Vector3d(); // mass damping (used with attached frames)
 
+      if (hasGravity && myUseConsistentMass) {
+         for (FemElement3dBase e : myAllElements) {
+            e.addConsistentGravity (myGravity);
+         }
+      }
+
       // gravity, internal and mass damping
       for (FemNode3d n : myNodes) {
          // n.setForce (n.getExternalForce());
-         if (hasGravity) {
+         if (hasGravity && !myUseConsistentMass) {
             n.addScaledForce(n.getMass(), myGravity);
          }
          if (n.hasDirector()) {
@@ -2673,9 +2697,18 @@ PointAttachable, ConnectableBody {
                n.addLocalForce (fk);
             }
             else {
-               fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
+               if (myUseConsistentMass) {
+                  for (FemNodeNeighbor nbr : getNodeNeighbors(n)) {
+                     fd.scaledAdd(
+                        myMassDamping*nbr.myMass00, 
+                        nbr.myNode.getVelocity(), fd);                     
+                  }
+               }
+               else {
+                  fd.scaledAdd(myMassDamping * n.getMass(), n.getVelocity(), fd);
+               }
                n.subForce(fk);
-               n.subForce(fd);
+               n.subForce(fd);             
             }
          }
       }
@@ -3882,12 +3915,12 @@ PointAttachable, ConnectableBody {
          if (node.getLocalSolveIndex() != -1) {
             for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
                //addNeighborVelJacobian(M, node, nbr, s);
-               nbr.addVelJacobian (M, node, sm, sk);
+               nbr.addVelJacobian (M, node, sm, sk, myUseConsistentMass);
             }
             // used for soft nodal-based incompressibilty:
             for (FemNodeNeighbor nbr : getIndirectNeighbors(node)) {
                //addNeighborVelJacobian(M, node, nbr, s);
-               nbr.addVelJacobian (M, node, sm, sk);
+               nbr.addVelJacobian (M, node, sm, sk, false);
             }
          }
       }
@@ -5378,7 +5411,7 @@ PointAttachable, ConnectableBody {
       }
    }
 
-   public void addGeneralMassBlocks (SparseBlockMatrix M) {
+   public void addGeneralMassBlocks (SparseNumberedBlockMatrix M) {
       if (myFrameRelativeP && useFrameRelativeCouplingMasses) {
          int bi = myFrame.getSolveIndex();
          if (bi != -1) {
@@ -5388,6 +5421,14 @@ PointAttachable, ConnectableBody {
                   M.addBlock (bi, bj, new Matrix6x3Block());
                   M.addBlock (bj, bi, new Matrix3x6Block());
                }
+            }
+         }
+      }
+      if (myUseConsistentMass) {
+         for (int i = 0; i < myNodes.size(); i++) {
+            FemNode3d node = myNodes.get(i);
+            for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
+               nbr.addSolveBlocks (M, node);
             }
          }
       }
@@ -5458,25 +5499,53 @@ PointAttachable, ConnectableBody {
    }
 
    @Override
-   public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t) {
+   public void getMassMatrixValues (
+      SparseNumberedBlockMatrix M, VectorNd f, double t) {
 
       int bk;
 
       if (!myFrameRelativeP) {
 
-         for (int k=0; k<myNodes.size(); k++) {
-            FemNode3d n = myNodes.get(k);
-            if ((bk = n.getSolveIndex()) != -1) {
-               n.getEffectiveMass (M.getBlock (bk, bk), t);
-               n.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
-            }
-            if (n.hasDirector()) {
-               BackNode3d b = n.getBackNode();
-               if ((bk = b.getSolveIndex()) != -1) {
-                  b.getEffectiveMass (M.getBlock (bk, bk), t);
-                  b.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+         if (myUseConsistentMass) {
+            // zero mass values for all node neighbours
+            for (FemNode3d node : myNodes) {
+               for (FemNodeNeighbor nbr : getNodeNeighbors(node)) {
+                  nbr.myMass00 = 0;
                }
             }
+            // compute mass value for each node neighbour and add to
+            // mass matrix
+            for (FemElement3dBase e : myAllElements) {
+               e.addConsistentMass (M);
+            }
+         }
+         else {
+            // lumped mass
+            for (int k=0; k<myNodes.size(); k++) {
+               FemNode3d n = myNodes.get(k);
+               if ((bk = n.getSolveIndex()) != -1) {
+                  n.getEffectiveMass (M.getBlock (bk, bk), t);
+                  //n.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+               }
+               if (n.hasDirector()) {
+                  BackNode3d b = n.getBackNode();
+                  if ((bk = b.getSolveIndex()) != -1) {
+                     b.getEffectiveMass (M.getBlock (bk, bk), t);
+                     //b.getEffectiveMassForces (f, t, M.getBlockRowOffset (bk));
+                  }
+               }
+            }
+         }
+         // mass forces for both the consistent and lumped mass formulations
+         // are zero, so just zero the relevant section of f.
+         // assume no solve indices are -1, and all nodes have size 3 
+         int k0 = M.getBlockRowOffset (myNodes.get(0).getSolveIndex());
+         int nk = 0;
+         for (int k=0; k<myNodes.size(); k++) {
+            nk += myNodes.get(k).hasDirector() ? 6 : 3; 
+         }
+         for (int k=k0; k<nk; k++) {
+            f.set (k, 0);
          }
       }
       else {

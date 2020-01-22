@@ -18,8 +18,9 @@ import maspack.util.*;
 public interface RequiresPrePostAdvance {
 
    /** 
-    * Called from within the model's {@link Model#preadvance(double,double,int)
-    * preadvance()} method.
+    * Called from within the model's {{@link Model#advance(double,double,int)
+    * advance()} method, <i>before</i> position and velocity states are
+    * advanced.
     *
     * @param t0 current time (seconds)
     * @param t1 new time to be advanced to (seconds)

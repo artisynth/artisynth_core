@@ -266,6 +266,17 @@ public class TetElement extends FemElement3d {
       return myNodeCoords;
    }
 
+   private static double[] myNodeMassWeights = new double[] {
+      0.250,
+      0.250,
+      0.250,
+      0.250
+   };
+
+   public double[] getNodeMassWeights () {
+      return myNodeMassWeights;
+   }
+
    static int[] myEdgeIdxs = new int[]
       {
          2,   0, 1,

@@ -55,12 +55,12 @@ public class ExactWrappableSphere extends ExactWrappableGeometry
    /**
     * Find a path between the two points that wraps around this object.
     * See documentation for explanation of algorithm.
-    * @param p1         first point
-    * @param p2         second point
+    * @param fm1        first point
+    * @param fm2        second point
     * @return           the path
     */
-   public ExactWrapPath wrap(Point fm1, Point fm2) {      
-      return wrap(fm1, fm2, null);
+   public ExactWrapPath wrap (Point fm1, Point fm2) {      
+      return wrap (fm1, fm2, null);
    }
 
    double angularDistance (double ang1, double ang2) {

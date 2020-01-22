@@ -284,6 +284,19 @@ public class NumericInputProbe extends NumericProbeBase
       // myAttachedFile = null;
       ReaderTokenizer rtok =
          new ReaderTokenizer (new BufferedReader (new FileReader (file)));
+      try {
+         read (rtok, setTimes);
+      }
+      catch (IOException e) {
+         throw e;
+      }
+      finally {
+         rtok.close();
+      }
+   }
+   
+   protected void read (ReaderTokenizer rtok, boolean setTimes) 
+      throws IOException {
       rtok.commentChar ('#');
       rtok.ordinaryChar ('/');
       double time = 0;
@@ -398,19 +411,19 @@ public class NumericInputProbe extends NumericProbeBase
    public void save() throws IOException {
       File file = getAttachedFile();
       if (file != null) {
-         try {
-            if (isAttachedFileRelative()) {
-               file.getParentFile().mkdirs();
-            }
-            PrintWriter pw =
-               new PrintWriter (new BufferedWriter (new FileWriter (file)));
-            System.out.println ("saving input probe to " + file.getName());
-            write (pw, myFormatStr);
-            pw.close();
+         if (isAttachedFileRelative()) {
+            file.getParentFile().mkdirs();
          }
-         catch (Exception e) {
-            System.out.println ("Error writing file " + file.getName());
-            e.printStackTrace();
+         PrintWriter pw = 
+            new PrintWriter (new BufferedWriter (new FileWriter (file)));
+         try {
+            write (pw, myFormatStr);
+         }
+         catch (IOException e) {
+            throw e;
+         }
+         finally {
+            pw.close();
          }
       }
    }
@@ -429,10 +442,12 @@ public class NumericInputProbe extends NumericProbeBase
    protected void load(boolean setTimes) throws IOException {
       File file = getAttachedFile();
       if (file != null) {
-         if (!file.exists()) {
-            System.out.println ("Input probe file " + file.getName()
-            + " does not exist");
+         if (!file.exists ()) {
+            throw new IOException ("File '"+file+"' does not exist");
          }
+         else if (!file.canRead ()) {
+            throw new IOException ("File '"+file+"' is not readable");
+         }         
          else {
             read (file,setTimes);
          }
@@ -845,9 +860,11 @@ public class NumericInputProbe extends NumericProbeBase
       tmpVariableNames = null;
       tmpDriverExpressions = null;
       tmpVariableDimensions = null;
-      if (getAttachedFileName() != null) {
-         load();
-      }      
+      // Not sure why this was here: all the data should be present,
+      // and the presence of a file name odes not imply an actual file
+      // if (getAttachedFileName() != null) {
+      //    load();
+      // }       
    }
 
    public void writeItems (

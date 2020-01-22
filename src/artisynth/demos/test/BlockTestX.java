@@ -32,7 +32,7 @@ public class BlockTestX extends RootModel {
       public void computeResponse (
          double[] fres, double dist, ContactPoint cpnt1, ContactPoint cpnt2, 
          Vector3d nrml, double regionArea) {
-         
+
          double c = 0.001;
 
          fres[0] = dist/c;

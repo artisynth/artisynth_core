@@ -317,7 +317,7 @@ public class QuadGridTangent extends RootModel {
          for (int j=minj; j<maxj; j++) {
             for (int k=mink; k<maxk; k++) {
                for (TetID tetId : TetID.values()) {
-                  TetDesc tdesc = new TetDesc (i, j, k, tetId);
+                  TetDesc tdesc = new TetDesc (2*i, 2*j, 2*k, tetId);
                   calc.getVertexCoords (vpnts, tdesc);
                   if (calc.intersectTetAndPlane (isect, tdesc, vpnts, plane)) {
                      intersectTetAndPlane2 (

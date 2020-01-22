@@ -37,6 +37,7 @@ import maspack.widgets.DoubleIntervalField;
 import maspack.widgets.GuiUtils;
 import maspack.widgets.LabeledComponentPanel;
 import maspack.widgets.StringField;
+import maspack.util.StringHolder;
 import artisynth.core.driver.Main;
 import artisynth.core.gui.timeline.GuiStorage;
 import artisynth.core.modelbase.ComponentUtils;
@@ -506,7 +507,7 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
          int retVal = fileDialog.showOpenDialog (this);
          if (retVal == JFileChooser.APPROVE_OPTION) {
             attachedFile = fileDialog.getSelectedFile();
-            attachedFileField.setValue (getAttachedFilePath (attachedFile));
+            attachedFileField.setValue (Probe.getPathFromFile (attachedFile));
          }
       }
       else if (cmd.equals ("Invalidate")) {
@@ -857,46 +858,6 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
    }
 
    /**
-    * returns the relative path of a file given its full path and a parent
-    * directory
-    * 
-    * @param parent
-    * @param fullpath
-    * @return the relative path; null if parent is not in the full path.
-    */
-   protected String getRelativePath (String parent, String fullpath) {
-      if (parent.charAt (parent.length() - 1) != File.separatorChar) {
-         parent = parent + File.separatorChar;
-      }
-      if (fullpath.contains (parent)) {
-         return fullpath.substring (parent.length());
-      }
-      else {
-         return null;
-      }
-   }
-
-   /**
-    * returns the full path according to a relative path and the working
-    * directory
-    * 
-    * @param relativePath relative path
-    * @return full path
-    */
-   protected String getFullPath (String relativePath) {
-      File f = new File(relativePath);
-      if (f.isAbsolute()) {
-         return f.getAbsolutePath();
-      }
-      return ArtisynthPath.getWorkingDirPath() + File.separator + relativePath;
-   }
-
-   protected boolean filePathExists (String path) {
-      File tmpFile = new File (path);
-      return tmpFile.isFile() && tmpFile.canRead();
-   }
-
-   /**
     * returns the full string path of a property by going up the hierachy and
     * finding all its parent properties (if any) and component path.
     */
@@ -957,20 +918,24 @@ public class NumericProbeEditor extends JFrame implements ActionListener {
       return color;
    }
 
-   String getAttachedFilePath (File file) {
-      if (file == null) {
-         return null;
+   protected boolean attachedFileValid (String path, StringHolder errMsg) {
+      if (path != null && !path.equals ("")) {
+         File file = Probe.getFileFromPath (path); 
+         if (!file.canRead()) {
+            if (errMsg != null) {
+               errMsg.value = "File does not exist or is not readable";
+            }
+            return false;
+         }
+         else if (file.isDirectory()) {
+            if (errMsg != null) {
+               errMsg.value = "The provided file cannot be a directory";
+            }
+            return false;
+         }
       }
-      String path = null;
-      try {
-         path = file.getCanonicalPath();
-         String relPath =
-            getRelativePath (ArtisynthPath.getWorkingDirPath(), path);
-         return (relPath != null ? relPath : path);
-      }
-      catch (Exception e) {
-         System.out.println (e.getMessage());
-         return null;
-      }
+      return true;
    }
+
+  
 }

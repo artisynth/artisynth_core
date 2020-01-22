@@ -72,7 +72,7 @@ public class CollisionManagerTest extends UnitTest {
       for (int n : nums) {
          elems.add (fem.getElements().getByNumber(n));
       }
-      FemMeshComp comp = FemMeshComp.createSurface (name, fem, elems);
+      FemMeshComp comp = FemMeshComp.createVolumetricSurface (name, fem, elems);
       fem.addMeshComp (comp);
    }
 

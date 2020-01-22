@@ -370,6 +370,8 @@ public class SkinMeshBody extends SkinMeshBase
    public class FemModelInfo extends BodyInfo {
 
       protected FemModel3d myFemModel;
+      protected PolygonalMesh myDefaultMesh;
+      protected PolygonalMesh myMesh;
 
       FemModelInfo (FemModel3d fem) {
          super ();
@@ -381,7 +383,17 @@ public class SkinMeshBody extends SkinMeshBase
       }
 
       public PolygonalMesh getMesh() {
-         return myFemModel.getSurfaceMesh();
+         if (myDefaultMesh != myFemModel.getSurfaceMesh()) {
+            myDefaultMesh = myFemModel.getSurfaceMesh();
+            if (myFemModel.numQuadraticElements() > 0) {
+               FemMeshComp mcomp = FemMeshComp.createSurface (null, myFemModel);
+               myMesh = (PolygonalMesh)mcomp.getMesh();
+            }
+            else {
+               myMesh = myDefaultMesh;
+            }
+         }
+         return myMesh;
       }
 
    }
@@ -401,6 +413,7 @@ public class SkinMeshBody extends SkinMeshBase
       double[] wgts;
       Face[] faces;
       double[][] coords;
+      PolygonalMesh[] meshes;
 
       MeshDistCalc() {
          query = new BVFeatureQuery();
@@ -424,6 +437,7 @@ public class SkinMeshBody extends SkinMeshBase
          wgts = new double[nbodies];
          faces = new Face[nbodies];
          coords = new double[nbodies][];        
+         meshes = new PolygonalMesh[nbodies];
       }
 
       int numBodies() {
@@ -446,10 +460,12 @@ public class SkinMeshBody extends SkinMeshBase
          return coords[idx];
       }      
 
-      void computeDistancesAndWeights (Point3d pos, double sigma) {
+      PointSkinAttachment computeDisplacementAttachment (
+         Point3d pos, double sigma) {
 
          double dmin = Double.POSITIVE_INFINITY;
          int nbodies = meshBodies.size();
+
          for (int j=0; j<nbodies; j++) {
             PolygonalMesh bmesh = meshBodies.get(j).getMesh();
             faces[j] = query.nearestFaceToPoint (nearest, uv, bmesh, pos);
@@ -484,9 +500,7 @@ public class SkinMeshBody extends SkinMeshBase
          for (int j=0; j<nbodies; j++) {
             wgts[j] /= sumw;
          }
-      }
 
-      PointSkinAttachment computeDisplacementAttachment () {
          // create an attachment for each body. Assume that
          // that vertexAttachments have already be allocated 
          PointSkinAttachment a = new PointSkinAttachment();
@@ -1008,8 +1022,8 @@ public class SkinMeshBody extends SkinMeshBase
       clearAttachments();
       for (int i=0; i<mesh.numVertices(); i++) {
          Vertex3d vtx = mesh.getVertices().get(i);
-         dcalc.computeDistancesAndWeights (vtx.getPosition(), sigma);
-         PointSkinAttachment a = dcalc.computeDisplacementAttachment();
+         PointSkinAttachment a =
+            dcalc.computeDisplacementAttachment (vtx.getPosition(), sigma);
          addAttachment (a);
       }
       myLastSigma = sigma;
@@ -1429,8 +1443,8 @@ public class SkinMeshBody extends SkinMeshBase
       // Create a new PointSkinAttachment
 
       MeshDistCalc dcalc = new MeshDistCalc();
-      dcalc.computeDistancesAndWeights (pnt.getPosition(), myLastSigma);
-      PointSkinAttachment a = dcalc.computeDisplacementAttachment();
+      PointSkinAttachment a =
+         dcalc.computeDisplacementAttachment(pnt.getPosition(), myLastSigma);
       a.setSkinMesh (this);
 
       // Now estimate the basePosition from the face vertices

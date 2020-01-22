@@ -31,8 +31,7 @@ public class Scheduler {
    private SleepProbe mySleepProbe;
    private Player myPlayer = null;
    private Exception myLastException = null;
-   private boolean myInitialStateValidP = true;
-   private double myRealTimeScaling = 1.0;
+      private double myRealTimeScaling = 1.0;
 
    public static boolean useNewAdvance = true;
 
@@ -181,6 +180,15 @@ public class Scheduler {
          }           
       }
 
+      /**
+       * Reset the real start time to be synchronized with the current
+       * simulation time.
+       */
+      void resetRealStartTime() {
+         long simElapsedMsec = (long)(timeScale*1000*(myTime-startTime));
+         realStartMsec = System.currentTimeMillis() - simElapsedMsec;
+      }
+
       void doadvance (double t0sec, double t1sec, int flags) {
          
          RootModel rootModel = getRootModel();
@@ -193,8 +201,7 @@ public class Scheduler {
 
          long realMsec1 = System.currentTimeMillis();
          long realElapsedMsec = realMsec1 - realStartMsec;
-         long simElapsedMsec =
-            (long)(timeScale*1000*(myTime-startTime));
+         long simElapsedMsec = (long)(timeScale*1000*(myTime-startTime));
 
          if (realMsec1 - lastYieldMsec > 50) {
             // Yield if we haven't done so in the last 50 msec
@@ -202,7 +209,7 @@ public class Scheduler {
             Thread.yield();
          }
          else if (myRealTimeAdvanceP && simElapsedMsec - realElapsedMsec > 10) {
-            // if connect to a viewer, slow down to real time
+            // if connected to a viewer, slow down to real time
             // sleep only if we are more than 10 msec off real time, since
             // sleep usually works in 10 msec increments
             dosleep (simElapsedMsec - realElapsedMsec);
@@ -328,7 +335,12 @@ public class Scheduler {
    }
 
    public void setRealTimeAdvance (boolean enable) {
-      myRealTimeAdvanceP = enable;
+      if (myRealTimeAdvanceP != enable) {
+         if (myPlayer != null) {
+            myPlayer.resetRealStartTime();
+         }
+         myRealTimeAdvanceP = enable;
+      }
    }
    
    public void setRealTimeScaling (double s) {
@@ -584,14 +596,6 @@ public class Scheduler {
    public Thread getThread() {
       return myPlayer;
    }      
-
-   public void invalidateInitialState() {
-      RootModel root = getRootModel();
-      if (root != null) {
-         root.getWayPoints().invalidateInitialState();
-      }
-      myInitialStateValidP = false;
-   }
 
    private void updateInitialStateIfNecessary() {
       RootModel root = getRootModel();

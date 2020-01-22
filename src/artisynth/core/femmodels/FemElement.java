@@ -66,6 +66,15 @@ public abstract class FemElement extends RenderableComponentBase
    
    public abstract ElementClass getElementClass();
    
+   /**
+    * Returns true if the shape functions for this element are linear or 
+    * multilinear. Override to return false for quadratic and higher 
+    * order elements.
+    */
+   public boolean isLinear() {
+      return true;
+   }
+   
    protected double myDensity = 1000;
    protected PropertyMode myDensityMode = PropertyMode.Inherited;
    protected double myMass = 0;

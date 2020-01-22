@@ -10,6 +10,7 @@ import artisynth.core.driver.Main;
 import artisynth.core.modelbase.*;
 import artisynth.core.util.*;
 import maspack.properties.HierarchyNode;
+import maspack.properties.HasProperties;
 import maspack.properties.Property;
 import maspack.properties.PropertyList;
 import maspack.util.*;
@@ -41,6 +42,7 @@ public abstract class Probe extends ModelAgentBase {
    protected boolean myScalableP = false;
    protected String myAttachedFileName;
    protected static String defaultAttachedFileName = null;
+   protected String myExportFileName;
 
    protected int myTrackNum = -1;
 
@@ -48,6 +50,59 @@ public abstract class Probe extends ModelAgentBase {
 
    public static PropertyList myProps =
    new PropertyList (Probe.class, ModelAgentBase.class);
+
+   /**
+    * Contains information about the types of files this probe
+    * can be exported or imported to.
+    */
+   public static class ImportExportFileInfo {
+      String myDescription;  // description of the file type
+      String myExt;          // file extenstion (without the leading '.')
+      
+      public ImportExportFileInfo (String description, String ext) {
+         myDescription = description;
+         myExt = ext;
+      }
+
+      public String getDescription() {
+         return myDescription;
+      }
+
+      public String getExt() {
+         return myExt;
+      }
+   }
+
+   public interface ExportProps extends HasProperties {
+   }
+
+   public String getExportFileName() {
+      return null;
+   }
+
+   public File getExportFile() {
+      return getFileFromPath (myExportFileName);
+   }
+
+   public void setExportFileName (String fileName) {
+      myExportFileName = ArtisynthPath.convertToLocalSeparators (fileName);
+   }
+
+   public ExportProps getExportProps (String ext) {
+      return null;
+   }
+
+   public ImportExportFileInfo[] getExportFileInfo() {
+      return new ImportExportFileInfo[0];
+   }
+
+   public ImportExportFileInfo[] getImportFileInfo() {
+      return new ImportExportFileInfo[0];
+   }
+
+   public void export (File file, ExportProps props)
+      throws IOException {
+   }
 
    static {
       //myProps.add ("name * *", "name for this probe", defaultName);
@@ -379,24 +434,48 @@ public abstract class Probe extends ModelAgentBase {
       return !(new File (myAttachedFileName)).isAbsolute();
    }
 
-   public File getAttachedFile() {
+   public static File getFileFromPath (String fileName) {
       // JWS: should allow resources as well as files
-      if (myAttachedFileName == null) {
+      if (fileName == null) {
          return null;
       }
-      File file = new File (myAttachedFileName);
+      File file = new File (fileName);
       if (file.isAbsolute()) {
          return file;
       }
       else {
          if (useOldSaveMethod) {
-            return new File (ArtisynthPath.getWorkingDir(), myAttachedFileName);
+            return new File (ArtisynthPath.getWorkingDir(), fileName);
          }
          else {
             return new File (
-               Main.getMain().getProbeDirectory(), myAttachedFileName);
+               Main.getMain().getProbeDirectory(), fileName);
          }
       }
+   }
+   
+   /**
+    * Returns the path for a file. If the file is located beneath the default
+    * location for probe files, the path will be relative to that
+    * location. Otherwise, it will be absolute. At present, the 'default'
+    * location is simply the current ArtiSynth working directory.
+    */
+   public static String getPathFromFile (File file) {
+      if (file == null) {
+         return null;
+      }
+      File dir;
+      if (useOldSaveMethod) {
+         dir = ArtisynthPath.getWorkingDir();
+      }
+      else {
+         dir = Main.getMain().getProbeDirectory();
+      }
+      return ArtisynthPath.getRelativeOrAbsolutePath (dir, file);
+   }
+
+   public File getAttachedFile() {
+      return getFileFromPath (myAttachedFileName);
    }
 
    public void setAttachedFileName (String fileName) {

@@ -7,7 +7,8 @@ PDF_DIR = ../pdf
 PDF_TARG = \
    $(PDF_DIR)/windowsInstallation.pdf \
    $(PDF_DIR)/linuxInstallation.pdf \
-   $(PDF_DIR)/macosInstallation.pdf 
+   $(PDF_DIR)/macosInstallation.pdf \
+   $(PDF_DIR)/quickInstallation.pdf 
 
 IMG_FILES = $(wildcard images/*.png images/*.jpg)
 EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
@@ -15,12 +16,14 @@ EPS_FILES = $(addsuffix .eps,$(basename $(IMG_FILES)))
 WIN_SOURCES = windowsInstallation.tex installation.tex
 LINUX_SOURCES = linuxInstallation.tex installation.tex
 MACOS_SOURCES = macosInstallation.tex installation.tex
+QUICK_SOURCES = quickInstallation.tex
 
 .PHONY: html pdf chunked
 
 html: $(HTML_DIR)/windows/windowsInstallation.html \
       $(HTML_DIR)/linux/linuxInstallation.html \
-      $(HTML_DIR)/macos/macosInstallation.html
+      $(HTML_DIR)/macos/macosInstallation.html \
+      $(HTML_DIR)/quickInstallation.html
 
 sectioned: $(HTML_DIR)/windows/windowsInstallationToc.html \
       $(HTML_DIR)/linux/linuxInstallationToc.html \
@@ -97,6 +100,21 @@ $(HTML_DIR)/macos/macosInstallationToc.html: $(MACOS_SOURCES) $(IMG_FILES)
 
 $(HTML_DIR)/macos/macosInstallationToc.xml: $(HTML_DIR)/macos/macosInstallationToc.html
 	$(BUILD_INFOCENTER_TOC)
+
+$(PDF_DIR)/quickInstallation.pdf: quickInstallation.pdf
+	cp quickInstallation.pdf $(PDF_DIR)
+
+quickInstallation.pdf: $(QUICK_SOURCES) $(EPS_FILES)
+	latex $<
+	$(BUILD_PDF)
+	rm -rf $(LATEX_JUNK_FILES) quickInstallation.ps 
+
+quickInstallation.xml: $(QUICK_SOURCES) $(IMG_FILES)
+	latexml $< > quickInstallation.xml
+
+$(HTML_DIR)/quickInstallation.html: $(QUICK_SOURCES) $(IMG_FILES)
+	$(BUILD_HTML)
+	rm -f quickInstallation.xml
 
 install: install_html install_pdf
 

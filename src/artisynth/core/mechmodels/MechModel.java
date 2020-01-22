@@ -1659,7 +1659,7 @@ TransformableGeometry, ScalableUnits {
       list.add (new GravityEffector());
    }
 
-   public void addGeneralMassBlocks (SparseBlockMatrix M) {
+   public void addGeneralMassBlocks (SparseNumberedBlockMatrix M) {
       updateLocalModels();
       for (MechSystemModel m : myLocalModels) {
          m.addGeneralMassBlocks (M);
@@ -1667,7 +1667,7 @@ TransformableGeometry, ScalableUnits {
    }
    
    @Override
-   public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t) {
+   public void getMassMatrixValues (SparseNumberedBlockMatrix M, VectorNd f, double t) {
       updateLocalModels();
       for (MechSystemModel m : myLocalModels) {
          m.getMassMatrixValues (M, f, t);
@@ -1774,10 +1774,10 @@ TransformableGeometry, ScalableUnits {
       if (t0 == 0) {
          mySolver.projectPosConstraints (0);
       }     
-      updateLocalAdvanceComponents();
-      for (RequiresPrePostAdvance c : myLocalPrePostAdvanceComps) {
-         c.preadvance (t0, t1, flags);
-      }
+//      updateLocalAdvanceComponents();
+//      for (RequiresPrePostAdvance c : myLocalPrePostAdvanceComps) {
+//         c.preadvance (t0, t1, flags);
+//      }
       return super.preadvance (t0, t1, flags);
    }
 
@@ -1786,6 +1786,19 @@ TransformableGeometry, ScalableUnits {
       updateLocalDynamicComponents();
       for (int i=0; i<myLocalDynamicComps.size(); i++) {
          myLocalDynamicComps.get(i).zeroExternalForces();
+      }
+   }
+
+   public void recursivelyPrepareAdvance (
+      double t0, double t1, int flags, int level) {
+
+      updateLocalModels();
+      for (MechSystemModel m : myLocalModels) {
+         m.recursivelyPrepareAdvance (t0, t1, flags, level+1);
+      }
+      updateLocalAdvanceComponents();
+      for (RequiresPrePostAdvance c : myLocalPrePostAdvanceComps) {
+         c.preadvance (t0, t1, flags);
       }
    }
 

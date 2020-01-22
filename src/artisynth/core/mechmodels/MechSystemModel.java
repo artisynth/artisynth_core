@@ -9,6 +9,7 @@ package artisynth.core.mechmodels;
 import java.util.List;
 
 import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseNumberedBlockMatrix;
 import maspack.matrix.VectorNd;
 import artisynth.core.modelbase.HasNumericState;
 import artisynth.core.modelbase.Model;
@@ -33,9 +34,10 @@ public interface MechSystemModel extends Model, MechSystem {
    
    public void getSlaveObjectComponents (List<HasSlaveObjects> list, int level);
 
-   public void addGeneralMassBlocks (SparseBlockMatrix M);
+   public void addGeneralMassBlocks (SparseNumberedBlockMatrix M);
 
-   public void getMassMatrixValues (SparseBlockMatrix M, VectorNd f, double t);
+   public void getMassMatrixValues (
+      SparseNumberedBlockMatrix M, VectorNd f, double t);
 
    public void mulInverseMass (SparseBlockMatrix M, VectorNd a, VectorNd f);
 
@@ -56,6 +58,9 @@ public interface MechSystemModel extends Model, MechSystem {
    public void recursivelyInitialize (double t, int level);
 
 //   public boolean recursivelyCheckStructureChanged ();
+
+   public void recursivelyPrepareAdvance (
+      double t0, double t1, int flags, int level);
 
    public void recursivelyFinalizeAdvance (
       StepAdjustment stepAdjust, double t0, double t1, int flags, int level);

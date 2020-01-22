@@ -116,6 +116,10 @@ public class CollisionBehavior extends CollisionComponent
    Method myMethod = defaultMethod;
    PropertyMode myMethodMode = PropertyMode.Inherited;
 
+   static boolean defaultBilateralVertexContact = true;
+   boolean myBilateralVertexContact = defaultBilateralVertexContact;
+   PropertyMode myBilateralVertexContactMode = PropertyMode.Inherited;
+
    ColliderType myColliderType = CollisionManager.myDefaultColliderType;
    PropertyMode myColliderTypeMode = PropertyMode.Inherited;
 
@@ -202,6 +206,8 @@ public class CollisionBehavior extends CollisionComponent
       myFrictionMode = PropertyMode.Inherited;
       myMethod = defaultMethod;
       myMethodMode = PropertyMode.Inherited;
+      myBilateralVertexContact = defaultBilateralVertexContact;
+      myBilateralVertexContactMode = PropertyMode.Inherited;
       myPenetrationTol = defaultPenetrationTol;
       myPenetrationTolMode = PropertyMode.Inherited;
       myCompliance = defaultCompliance;
@@ -251,6 +257,10 @@ public class CollisionBehavior extends CollisionComponent
          "friction:Inherited", "friction coefficient", defaultFriction);
       myProps.addInheritable (
          "method:Inherited", "collision handling method", defaultMethod);
+      myProps.addInheritable (
+         "bilateralVertexContact:Inherited",
+         "allow bilateral constraints for vertex-based contacts", 
+         defaultBilateralVertexContact);
       myProps.addInheritable (
          "colliderType", "type of collider to use for collisions",
          CollisionManager.myDefaultColliderType);
@@ -425,7 +435,7 @@ public class CollisionBehavior extends CollisionComponent
       myMethod = method;
       myMethodMode =
          PropertyUtils.propagateValue (
-            this, "method", myMethod, myFrictionMode);      
+            this, "method", myMethod, myMethodMode);      
    }
 
    public void setMethodMode (PropertyMode mode) {
@@ -435,6 +445,41 @@ public class CollisionBehavior extends CollisionComponent
 
    public PropertyMode getMethodMode() {
       return myMethodMode;
+   }
+
+   /** 
+    * Returns whether bilateral constraints should be used for vertex-based
+    * contact.
+    * 
+    * @return {@code true} if bilateral constraints should be used
+    */
+   public boolean getBilateralVertexContact() {
+      return myBilateralVertexContact;
+   }
+
+   /** 
+    * Set whether bilateral constraints should be used for vertex-based
+    * contact.
+    * 
+    * @param enable if {@code true}, enables bilateral constraints
+    */
+   public void setBilateralVertexContact (boolean enable) {
+      myBilateralVertexContact = enable;
+      myBilateralVertexContactMode =
+         PropertyUtils.propagateValue (
+            this, "bilateralVertexContact",
+            myBilateralVertexContact, myBilateralVertexContactMode);
+   }
+
+   public void setBilateralVertexContactMode (PropertyMode mode) {
+      myBilateralVertexContactMode =
+         PropertyUtils.setModeAndUpdate (
+            this, "bilateralVertexContact",
+            myBilateralVertexContactMode, mode);
+   }
+
+   public PropertyMode getBilateralVertexContactMode() {
+      return myBilateralVertexContactMode;
    }
 
    /** 
@@ -1020,6 +1065,8 @@ public class CollisionBehavior extends CollisionComponent
       myFrictionMode = behav.myFrictionMode;
       myMethod = behav.myMethod;
       myMethodMode = behav.myMethodMode;
+      myBilateralVertexContact = behav.myBilateralVertexContact;
+      myBilateralVertexContactMode = behav.myBilateralVertexContactMode;
       myPenetrationTol = behav.myPenetrationTol;
       myPenetrationTolMode = behav.myPenetrationTolMode;
       myCompliance = behav.myCompliance;
@@ -1077,6 +1124,13 @@ public class CollisionBehavior extends CollisionComponent
       }
       else if (myMethodMode == EXPLICIT &&
                myMethod != behav.myMethod) {
+         return false;
+      }
+      if (myBilateralVertexContactMode != behav.myBilateralVertexContactMode) {
+         return false;
+      }
+      else if (myBilateralVertexContactMode == EXPLICIT &&
+               myBilateralVertexContact != behav.myBilateralVertexContact) {
          return false;
       }
       if (myPenetrationTolMode != behav.myPenetrationTolMode) {

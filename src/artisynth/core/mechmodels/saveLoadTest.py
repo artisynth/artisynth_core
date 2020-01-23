@@ -33,7 +33,6 @@ main.maskFocusStealing (True)
 testSaveLoad ("artisynth.demos.mech.SpringMeshDemo")
 testSaveLoad ("artisynth.demos.mech.RigidBodyDemo")
 testSaveLoad ("artisynth.demos.mech.MechModelDemo")
-testSaveLoad ("artisynth.demos.mech.NetDemo")
 testSaveLoad ("artisynth.demos.mech.MultiSpringDemo")
 testSaveLoad ("artisynth.demos.mech.SegmentedPlaneDemo")
 

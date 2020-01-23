@@ -14,6 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -603,9 +604,21 @@ public class DemoMenuParser {
 
    }
 
+   private static boolean omitFromMenu (Class<?> clazz) {
+      // omit from menu if the class contains a static public field named
+      // omitFromMenu whose value con be converted to 'true'
+      try {
+         Field field = clazz.getField ("omitFromMenu");
+         return field.getBoolean (null);         
+      }
+      catch (Exception e) {
+         return false;
+      }
+   }
+
    private static ArrayList<DemoEntry> parseDemoFile(Element el,
       String localPath) {
-
+      
       ArrayList<DemoEntry> demos = new ArrayList<DemoEntry>();
       String file = el.getAttribute(DEMOFILE_TAG_FILENAME);
       String argsStr = el.getAttribute(DEMOFILE_TAG_ARGS);
@@ -640,7 +653,8 @@ public class DemoMenuParser {
          try {
             Class<?> clazz = Class.forName (entry.getValue());
             if (!RootModel.class.isAssignableFrom(clazz) ||
-                Modifier.isAbstract (clazz.getModifiers())) {
+                Modifier.isAbstract (clazz.getModifiers()) ||
+                omitFromMenu (clazz)) {
                li.remove();
             }
          }
@@ -954,7 +968,10 @@ public class DemoMenuParser {
             Class<?> clazz = Class.forName (li.next());
             if (Modifier.isAbstract (clazz.getModifiers())) {
                li.remove();
-            }            
+            }
+            else if (omitFromMenu (clazz)) {
+               li.remove();
+            }
          } catch (Error | Exception e) {
             // shouldn't happen - remove class if it does
             e.printStackTrace ();

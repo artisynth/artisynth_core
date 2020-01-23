@@ -1,4 +1,4 @@
-personal_ws-1.1 en 92 
+personal_ws-1.1 en 93 
 tcsh
 Makefile
 Cygwin
@@ -14,15 +14,15 @@ Workspace
 workspace
 Stackoverflow
 CMD
-Gitlab
 Github
+Gitlab
 updateArtisynthLibs
 gedit
 VM
 devel
 JRE
-exe
 IDE
+exe
 usr
 dialogs
 ArtiSynth's
@@ -62,8 +62,8 @@ JDK
 startup
 nchez
 OpenGL
-ArtiSynth
 artisynth
+ArtiSynth
 submenu
 JOGL
 executables
@@ -71,6 +71,7 @@ sudo
 codebase
 multicore
 gcc
+runtime
 gdb
 updateLibs
 demoModels

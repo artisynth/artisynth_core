@@ -42,7 +42,7 @@ public class PlanarConnector extends BodyConnector
       new PropertyList (PlanarConnector.class, BodyConnector.class);
 
    protected static RenderProps defaultRenderProps (HasProperties host) {
-      RenderProps props = RenderProps.createFaceProps (null);
+      RenderProps props = RenderProps.createPointFaceProps (null);
       props.setFaceStyle (Renderer.FaceStyle.FRONT_AND_BACK);
       return props;
    }
@@ -192,10 +192,10 @@ public class PlanarConnector extends BodyConnector
    }
 
    public void prerender (RenderList list) {
-      RigidTransform3d TFW = getCurrentTCW();
-      myRenderCoords[0] = (float)TFW.p.x;
-      myRenderCoords[1] = (float)TFW.p.y;
-      myRenderCoords[2] = (float)TFW.p.z;
+      RigidTransform3d TCW = getCurrentTCW();
+      myRenderCoords[0] = (float)TCW.p.x;
+      myRenderCoords[1] = (float)TCW.p.y;
+      myRenderCoords[2] = (float)TCW.p.z;
    }
 
    public void render (Renderer renderer, int flags) {

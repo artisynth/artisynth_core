@@ -70,6 +70,7 @@ public class ModelFileChooser extends JFileChooser {
          setCurrentDirectory (ArtisynthPath.getWorkingDir());
       }
       else {
+         setCurrentDirectory (modelFile);
          setSelectedFile (modelFile);
       }
       setApproveButtonText("Save");

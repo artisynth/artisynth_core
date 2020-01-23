@@ -227,7 +227,7 @@ public class ArticulatedDemo extends RootModel {
          -15, -2, 5), 20, 0.5, 10);
 
       mechMod.setBounds (new Point3d (0, 0, -10), new Point3d (0, 0, 10));
-      mechMod.setProfiling (true);
+      //mechMod.setProfiling (true);
       addModel (mechMod);
       addControlPanel (mechMod);
    }

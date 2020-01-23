@@ -58,7 +58,6 @@ public class Fem3dBlock extends RootModel {
    }
 
    public synchronized boolean getConnected() {
-      System.out.println ("getConnected " + myConnectedP);
       return myConnectedP;
    }
 

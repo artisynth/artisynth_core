@@ -89,6 +89,7 @@ import maspack.render.GL.GLViewer;
 import maspack.solvers.PardisoSolver;
 import maspack.util.ClassFinder;
 import maspack.util.GenericFileFilter;
+import maspack.util.FunctionTimer;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
 import maspack.widgets.AutoCompleteStringField;
@@ -553,7 +554,11 @@ ModelActionListener {
       @Override
       public void run() {
          if (menuFile != null && menuFile.exists()) {
+            FunctionTimer timer = new FunctionTimer();
+            timer.start();
             ArtisynthModelMenu generator = readDemoMenu(menuFile.getAbsolutePath());
+            timer.stop();
+            //System.out.println ("menu parse time=" + timer.result(1));
 
             // XXX only replace menu if it differs from current menu
             if (myModelsMenuGenerator == null || !generator.getMenuTree().equalsTree(myModelsMenuGenerator.getMenuTree())) {

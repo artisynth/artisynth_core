@@ -17,6 +17,7 @@ import artisynth.core.materials.*;
 import artisynth.core.modelbase.ComponentChangeEvent.Code;      
 import artisynth.core.modelbase.PropertyChangeEvent;
 import artisynth.core.modelbase.PropertyChangeListener;
+import artisynth.core.util.ScanToken;
 import java.io.*;
 import java.util.*;
 
@@ -1302,6 +1303,42 @@ public abstract class DeformableBody extends RigidBody
    public void setRandomForce() {
       super.setRandomForce();
       myElasticForce.setRandom();
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAttributeName (rtok, "restVertices")) {
+         ArrayList<Point3d> restVerts = new ArrayList<>();
+         rtok.scanToken ('[');
+         while (rtok.nextToken() != ']') {
+            rtok.pushBack();
+            restVerts.add (
+               new Point3d (
+                  rtok.scanNumber(), rtok.scanNumber(), rtok.scanNumber()));
+         }
+         myRestVertices = restVerts.toArray(new Point3d[0]);
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }   
+
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
+
+      if (myRestVertices != null) {
+         IndentingPrintWriter.addIndentation (pw, 2);
+         pw.println ("restVertices=[");
+         for (int i=0; i<myRestVertices.length; i++) {
+            pw.println (myRestVertices[i].toString (fmt));
+         }
+         IndentingPrintWriter.addIndentation (pw, -2);
+         pw.println ("]");
+      }
+      super.writeItems (pw, fmt, ancestor);
    }
    
 }

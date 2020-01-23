@@ -1,5 +1,5 @@
 "Spring Mesh" artisynth.demos.mech.SpringMeshDemo
-"NetDemo" artisynth.demos.tutorials.NetDemo
+"NetDemo" artisynth.demos.tutorial.NetDemo
 "Rigid Body Spring" artisynth.demos.mech.RigidBodyDemo
 "MechModel Demo" artisynth.demos.mech.MechModelDemo
 "MechModelCollide" artisynth.demos.mech.MechModelCollide
@@ -25,7 +25,6 @@ SimpleCollide artisynth.demos.fem.SimpleCollide
 FishDemo artisynth.demos.fem.FishDemo
 Hydrostat artisynth.demos.fem.HydrostatDemo
 MultiPointSpring artisynth.demos.mech.MultiSpringDemo
-CoupledSolveDemo artisynth.demos.fem.CoupledSolveDemo
 SelfCollision artisynth.demos.fem.SelfCollision
 PlaneConstrainedFem artisynth.demos.fem.PlaneConstrainedFem
 "FemMuscleDemo" artisynth.demos.fem.FemMuscleDemo

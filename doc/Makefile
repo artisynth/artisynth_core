@@ -2,7 +2,9 @@ ROOT_DIR = ..
 DOC_DIR_ROOT = .
 
 # list of subdirectories in which certain global commands should be executed
+# build uiguide first because others reference its image files
 SUBDIRS = \
+	uiguide \
 	installation \
 	documentation \
 	developer \

@@ -9,7 +9,7 @@ import artisynth.core.mechmodels.*;
 import artisynth.core.probes.*;
 import artisynth.core.util.*;
 
-public class SimpleMuscleWithProbes2 extends SimpleMuscleWithProbes {
+public class SimpleMuscleWithInlineProbe extends SimpleMuscleWithProbes {
 
    public void createInputProbe() throws IOException {
 

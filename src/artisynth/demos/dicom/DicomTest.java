@@ -16,7 +16,7 @@ import maspack.fileutil.FileManager;
  */
 public class DicomTest extends RootModel {
 
-   String dicom_url = "http://barre.nom.fr/medical/samples/files/MR-MONO2-8-16x-heart.gz";
+   String dicom_url = "http://www.artisynth.org/files/data/dicom/MR-MONO2-8-16x-heart.gz";
    String dicom_file = "MR-MONO2-8-16x-heart";
    
    public void build(String[] args) throws IOException {
@@ -28,7 +28,6 @@ public class DicomTest extends RootModel {
       fileManager.setOptions(FileManager.DOWNLOAD_ZIP); // download zip file first
       File dicomPath = fileManager.get(dicom_file);     // extract
       
-     
       DicomViewer dcp = new DicomViewer("Heart", dicomPath.getAbsolutePath(), 
          null, /*check subdirectories*/ false);
       

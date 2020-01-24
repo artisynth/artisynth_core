@@ -19,6 +19,8 @@ import maspack.properties.*;
 
 public class Template extends RootModel {
 
+   public static boolean omitFromMenu = true;
+
    public void build (String[] args) {
       MechModel mech = new MechModel ("mech");
       addModel (mech);

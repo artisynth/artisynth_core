@@ -41,7 +41,8 @@ import artisynth.core.workspace.RootModel;
 
 public class PointModel extends RootModel
 {
-   
+   public static boolean omitFromMenu = true;
+
    public String getAbout() {
       return"A point-mass model being controlled by the inverse tracking controller.\n\n"+
 	    "The model and controller were developed by Ian Stavness, please cite: \n" +

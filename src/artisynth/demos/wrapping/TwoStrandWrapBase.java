@@ -30,7 +30,7 @@ import maspack.util.DataBuffer;
  * 
  * @author John E. Lloyd
  */
-public class TwoStrandWrapBase extends RootModel {
+public abstract class TwoStrandWrapBase extends RootModel {
 
    protected boolean pointsAttached = false;
    protected boolean collisionEnabled = false;

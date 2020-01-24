@@ -9,6 +9,8 @@ import artisynth.core.materials.*;
 
 public class PointModel1d extends PointModel {
 
+   public static boolean omitFromMenu = true;
+
    public void build(String[] args) throws IOException {
       build (DemoType.Point1d);
    }

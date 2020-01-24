@@ -44,7 +44,7 @@ import maspack.util.PathFinder;
  * 
  * @author John E. Lloyd
  */
-public class OneStrandWrapBase extends RootModel {
+public abstract class OneStrandWrapBase extends RootModel {
 
    protected boolean pointsAttached = false;
    protected boolean collisionEnabled = false;

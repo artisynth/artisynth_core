@@ -10,6 +10,9 @@ import maspack.render.RenderProps;
 
 public class PointModel2d extends PointModel {
 
+   // need this because PointModel sets omitFromMenu=true
+   public static boolean omitFromMenu = false;
+
    public void build(String[] args) throws IOException {
       build (DemoType.Point2d);
 

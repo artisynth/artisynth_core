@@ -860,11 +860,21 @@ public class NumericInputProbe extends NumericProbeBase
       tmpVariableNames = null;
       tmpDriverExpressions = null;
       tmpVariableDimensions = null;
-      // Not sure why this was here: all the data should be present,
-      // and the presence of a file name odes not imply an actual file
-      // if (getAttachedFileName() != null) {
-      //    load();
-      // }       
+      if (getAttachedFileName() != null) {
+         // Bit of a hack here. If there is an attached file and if no data has
+         // been defined, try tp read the data from the attached file.  This is
+         // for backward compatibility.
+         if (myNumericList == null || myNumericList.isEmpty()) {
+            try {
+               load();
+            }
+            catch (Exception e) {
+               System.out.println (
+                  "Warning: can't read input probe file " +
+                  getAttachedFileName() + ": " + e.getMessage());
+            }
+         }
+      }       
    }
 
    public void writeItems (

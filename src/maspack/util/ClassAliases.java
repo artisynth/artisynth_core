@@ -105,10 +105,13 @@ public class ClassAliases {
          classesToAliases.put (cls.getName(), alias);
          return true;
       }
-      else {
+      else if (!currentClass.equals(cls.getName())) {
          System.err.println (
             "Warning: class alias \""+alias+"\" already assigned to "+
             currentClass);
+         return false;
+      }
+      else {
          return false;
       }
    }

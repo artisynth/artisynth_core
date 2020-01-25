@@ -19,17 +19,14 @@ import artisynth.core.modelbase.*;
 import artisynth.core.mechmodels.*;
 import artisynth.core.mechmodels.MechSystemSolver.Integrator;
 
-public class TorusDemo extends RootModel {
+public class QuadraticTorus extends RootModel {
    
    public void build (String[] args) {
       MechModel mech = new MechModel();
       addModel (mech);
 
       FemModel3d fem = new FemModel3d();
-      //FemFactory.createQuadraticTorusX (fem, 10, 3, 6, 6, 10, 2, false);
-
-      PolygonalMesh mesh = MeshFactory.createIcosahedralSphere (10, 1);
-      FemFactory.createTetExtrusion (fem, 1, 4, 0, mesh);
+      FemFactory.createQuadhexTorus (fem, 10, 3, 6, 6, 10, 2);
 
       mech.addModel (fem);
 

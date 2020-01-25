@@ -43,9 +43,9 @@ public class DicomLoader extends RootModel {
       super.build(args);
       
       viewerPlanes = new ArrayList<>();
-      
-      // everything else done in loader
-      
+
+      createControlPanel();
+      // everything else done in attach and loader
    }
    
    @Override
@@ -53,8 +53,6 @@ public class DicomLoader extends RootModel {
       super.attach(driver);
       driver.getViewer().setBackgroundColor(Color.WHITE);
       driver.getViewer().setBlendDestFactor(BlendFactor.GL_ONE_MINUS_SRC_ALPHA);
-      
-      createControlPanel();
    }
    
    void createControlPanel() {

@@ -320,7 +320,6 @@ public class ViewerManager {
    }
 
    public void resetViewer (GLViewer viewer) {
-
       viewer.clearDraggers();
       for (Dragger3d d : myDraggers) {
          viewer.addDragger (d);

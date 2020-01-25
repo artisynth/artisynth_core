@@ -799,9 +799,9 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
    
    /**
-    * Queries whether realtime model advancement is enabled.
+    * Queries whether real-time model advancement is enabled.
     * 
-    * @return {@code true} if realtime model advancement is enabled
+    * @return {@code true} if real-time model advancement is enabled
     * @see #setRealTimeAdvance
     */
    public boolean getRealTimeAdvance() {
@@ -809,11 +809,11 @@ public class Main implements DriverInterface, ComponentChangeListener {
    }
    
    /**
-    * Enables or disables realtime model advancement. If enabled,
+    * Enables or disables real-time model advancement. If enabled,
     * the model simulation will be slowed down (if necessary) so
-    * that the simulation does proceed faster than realtime.
+    * that the simulation does proceed faster than real time.
     * 
-    * @param enable if {@code true}, enables real time model advancement
+    * @param enable if {@code true}, enables real-time model advancement
     */
    public void setRealTimeAdvance (boolean enable) {
       myScheduler.setRealTimeAdvance (enable);

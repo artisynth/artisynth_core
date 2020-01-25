@@ -14,6 +14,6 @@ public class QuadpyramidBeam3d extends FemBeam3d {
 
       myFemMod.setMaterial (
          new MooneyRivlinMaterial (150000.0, 0, 0, 0, 0, 15000000.0));
-      myFemMod.setIncompressible (FemModel3d.IncompMethod.AUTO);
+      myFemMod.setIncompressible (FemModel3d.IncompMethod.OFF);
    }
 }

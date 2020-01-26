@@ -58,15 +58,18 @@ import artisynth.core.util.*;
 */
 public class MuscleElementDesc
    extends RenderableComponentBase
-   implements AuxiliaryMaterial, ScalableUnits, TransformableGeometry {
+   implements AuxiliaryMaterial, ExcitationComponent, ScalableUnits, TransformableGeometry {
 
    FemElement3dBase myElement;
 //   private MuscleMaterial myMuscleMat;
    Vector3d myDir = new Vector3d();
    Vector3d[] myDirs = null;
-   //private double myExcitation = 0;
-   //protected ExcitationSourceList myExcitationSources;
-   //protected CombinationRule myComboRule = CombinationRule.Sum;
+
+   // XXX want to remove the need to make MuscleElementDesc and Excitation
+   // component. Still need it because of old Tongue model implementations
+   private double myExcitation = 0;
+   protected ExcitationSourceList myExcitationSources;
+   protected CombinationRule myComboRule = CombinationRule.Sum;
 
    // the following are set if an activation color is specified:
    protected float[] myDirectionColor; // render color for directions
@@ -101,7 +104,7 @@ public class MuscleElementDesc
       myProps.add ("direction", "fibre direction", Vector3d.ZERO);
       myProps.addReadOnly (
          "netExcitation", "total excitation including excitation sources");
-//      myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1] NW");
+      myProps.add ("excitation", "internal muscle excitation", 0.0, "[0,1] NW");
 //      myProps.add (
 //         "muscleMaterial", "muscle material parameters", null);
    }
@@ -188,103 +191,107 @@ public class MuscleElementDesc
       return mat == null;
    }
    
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public double getExcitation() {
-//      return myExcitation;
-//   }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public void initialize (double t) {
-//      if (t == 0) {
-//         setExcitation (0);
-//      }
-//   }
+   // BEGIN ExcitationComponent implementation
 
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public void setExcitation (double a) {
-//      // set activation within valid range
-//      double valid_a = a;
-//      valid_a = (valid_a > maxActivation) ? maxActivation : valid_a;
-//      valid_a = (valid_a < minActivation) ? minActivation : valid_a;
-//      myExcitation = valid_a;
-//   }
+  /**
+   * {@inheritDoc}
+   */
+  public double getExcitation() {
+     return myExcitation;
+  }
 
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public void setCombinationRule (CombinationRule rule) {
-//      myComboRule = rule;
-//   }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public CombinationRule getCombinationRule() {
-//      return myComboRule;
-//   }
+  /**
+   * {@inheritDoc}
+   */
+  public void initialize (double t) {
+     if (t == 0) {
+        setExcitation (0);
+     }
+  }
 
-//   /**
-//    * {@inheritDoc}
-//    */
-//   //@Override
-//   public void addExcitationSource (ExcitationComponent ex, double gain) {
-//      if (myExcitationSources == null) {
-//         myExcitationSources = new ExcitationSourceList();
-//      }
-//      myExcitationSources.add (ex, gain);
-//   }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//   //@Override
-//   public boolean removeExcitationSource (ExcitationComponent ex) {
-//      boolean removed = false;
-//      if (myExcitationSources != null) {
-//         removed = myExcitationSources.remove (ex);
-//         if (myExcitationSources.size() == 0) {
-//            myExcitationSources = null;
-//         }
-//      }
-//      return removed;
-//   }
+  /**
+   * {@inheritDoc}
+   */
+  public void setExcitation (double a) {
+     // set activation within valid range
+     double valid_a = a;
+     valid_a = (valid_a > maxActivation) ? maxActivation : valid_a;
+     valid_a = (valid_a < minActivation) ? minActivation : valid_a;
+     myExcitation = valid_a;
+  }
 
-//   /**
-//    * {@inheritDoc}
-//    */
-//   //@Override
-//   public double getExcitationGain (ExcitationComponent ex) {
-//      return ExcitationUtils.getGain (myExcitationSources, ex);
-//   }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//   //@Override
-//   public boolean setExcitationGain (ExcitationComponent ex, double gain) {
-//      return ExcitationUtils.setGain (myExcitationSources, ex, gain);
-//   }
+  /**
+   * {@inheritDoc}
+   */
+  public void setCombinationRule (CombinationRule rule) {
+     myComboRule = rule;
+  }
 
-   /**
-    * {@inheritDoc}
-    */
-   //@Override
-//   public double getNetExcitation() {
-//      double net = ExcitationUtils.combineWithAncestor (
-//         this, myExcitationSources, /*up to grandparent=*/2, myComboRule);
-//      return net;
-//   }
+  /**
+   * {@inheritDoc}
+   */
+  public CombinationRule getCombinationRule() {
+     return myComboRule;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  //@Override
+  public void addExcitationSource (ExcitationComponent ex, double gain) {
+     if (myExcitationSources == null) {
+        myExcitationSources = new ExcitationSourceList();
+     }
+     myExcitationSources.add (ex, gain);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  //@Override
+  public boolean removeExcitationSource (ExcitationComponent ex) {
+     boolean removed = false;
+     if (myExcitationSources != null) {
+        removed = myExcitationSources.remove (ex);
+        if (myExcitationSources.size() == 0) {
+           myExcitationSources = null;
+        }
+     }
+     return removed;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  //@Override
+  public double getExcitationGain (ExcitationComponent ex) {
+     return ExcitationUtils.getGain (myExcitationSources, ex);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean setExcitationGain (ExcitationComponent ex, double gain) {
+     return ExcitationUtils.setGain (myExcitationSources, ex, gain);
+  }
+
+ /**   
+  * {@inheritDoc}
+  */
+  @Override
+  public double getNetExcitation() {
+     double net = ExcitationUtils.combineWithAncestor (
+        this, myExcitationSources, /*up to grandparent=*/2, myComboRule);
+     return net;
+  }
+
+   // END ExcitationComponent implementation
    
-   public double getNetExcitation() {
-      return ExcitationUtils.getAncestorNetExcitation (
-         this, /*up to grandparent=*/2);
-   }
+   // public double getNetExcitation() {
+   //    return ExcitationUtils.getAncestorNetExcitation (
+   //       this, /*up to grandparent=*/2);
+   // }
 
 //   /**
 //    * {@inheritDoc}

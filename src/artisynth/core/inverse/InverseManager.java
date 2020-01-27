@@ -19,6 +19,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 
+import maspack.interpolation.Interpolation;
 import maspack.interpolation.NumericList;
 import maspack.interpolation.NumericListKnot;
 import maspack.properties.Property;
@@ -454,6 +455,15 @@ public class InverseManager {
       return (inversePanel != null);
    }
    
+   
+   public void setTargetPosition(double[] data, double timeStep) {
+      if (refTargetMotionInProbe == null) {
+         System.err.print ("no target probe -- call TrackingController createProbes() first");
+      }
+      refTargetMotionInProbe.addData (data, timeStep);
+      refTargetMotionInProbe.setInterpolationOrder (Interpolation.Order.CubicStep);
+      refTargetMotionInProbe.setActive (true);
+   }
    
    public class InverseControlPanel extends ControlPanel {
       TrackingController myController;

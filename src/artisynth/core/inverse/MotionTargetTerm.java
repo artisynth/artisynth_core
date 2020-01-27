@@ -512,6 +512,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       myTargets.add(tpnt);
 
       myController.targetPoints.add (tpnt);
+      
+      if (source.getRenderProps ()!=null) {
+         RenderProps.setSphericalPoints (tpnt, source.getRenderProps ().getPointRadius (), Color.CYAN);
+      }
 
       return tpnt;
    }

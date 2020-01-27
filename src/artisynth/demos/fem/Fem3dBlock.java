@@ -62,60 +62,61 @@ public class Fem3dBlock extends RootModel {
    }
 
    public synchronized void setConnected (boolean connect) {
-      System.out.println ("setConnected " + connect);
-      MechModel mechMod = (MechModel)findComponent ("models/mech");
-      if (mechMod != null) {
-         FemModel3d femMod = (FemModel3d)mechMod.findComponent ("models/fem");
-         LinkedList<FemNode3d> rightNodes = new LinkedList<FemNode3d>();
-         rightNodes.addAll (getRightNodes(femMod));
-         if (connect && !rightNodes.get (0).isAttached()) {
-            RigidBody rightBody =
-               (RigidBody)mechMod.findComponent ("rigidBodies/rightBody");
-            // position the block so that it lies at the current
-            // end of the beam
-            Plane plane = new Plane();
-            Point3d centroid = new Point3d();
-            int numPnts = rightNodes.size();
-            Point3d[] pnts = new Point3d[numPnts];
-            for (int i = 0; i < numPnts; i++) {
-               pnts[i] = rightNodes.get (i).getPosition();
-               centroid.add (pnts[i]);
-            }
-            centroid.scale (1 / (double)numPnts);
-            plane.fit (pnts, numPnts);
-            Vector3d normal = new Vector3d (plane.getNormal());
-            // use a node that is not part of rightNodes
-            // to determine the appropriate sign of the normal
-            for (FemNode3d node : femMod.getNodes()) {
-               if (!rightNodes.contains (node)) {
-                  Vector3d diff = new Vector3d();
-                  diff.sub (node.getPosition(),
-                            rightNodes.get (0).getPosition());
-                  if (diff.dot (normal) > 0) {
-                     normal.negate();
+      if (myConnectedP != connect) {
+         MechModel mechMod = (MechModel)findComponent ("models/mech");
+         if (mechMod != null) {
+            FemModel3d femMod = (FemModel3d)mechMod.findComponent ("models/fem");
+            LinkedList<FemNode3d> rightNodes = new LinkedList<FemNode3d>();
+            rightNodes.addAll (getRightNodes(femMod));
+            if (connect && !rightNodes.get (0).isAttached()) {
+               RigidBody rightBody =
+                  (RigidBody)mechMod.findComponent ("rigidBodies/rightBody");
+               // position the block so that it lies at the current
+               // end of the beam
+               Plane plane = new Plane();
+               Point3d centroid = new Point3d();
+               int numPnts = rightNodes.size();
+               Point3d[] pnts = new Point3d[numPnts];
+               for (int i = 0; i < numPnts; i++) {
+                  pnts[i] = rightNodes.get (i).getPosition();
+                  centroid.add (pnts[i]);
+               }
+               centroid.scale (1 / (double)numPnts);
+               plane.fit (pnts, numPnts);
+               Vector3d normal = new Vector3d (plane.getNormal());
+               // use a node that is not part of rightNodes
+               // to determine the appropriate sign of the normal
+               for (FemNode3d node : femMod.getNodes()) {
+                  if (!rightNodes.contains (node)) {
+                     Vector3d diff = new Vector3d();
+                     diff.sub (node.getPosition(),
+                               rightNodes.get (0).getPosition());
+                     if (diff.dot (normal) > 0) {
+                        normal.negate();
+                     }
+                     break;
                   }
-                  break;
+               }
+               RigidTransform3d X = new RigidTransform3d();
+
+               X.R.setZDirection (normal);
+               X.R.mulAxisAngle (0, 1, 0, -Math.PI / 2);
+               X.p.set (centroid);
+               X.mulXyz (0.05, 0, 0);
+               rightBody.setPose (X);
+               rightBody.setVelocity (new Twist());
+               for (FemNode3d n : rightNodes) {
+                  mechMod.attachPoint (n, rightBody);
                }
             }
-            RigidTransform3d X = new RigidTransform3d();
-
-            X.R.setZDirection (normal);
-            X.R.mulAxisAngle (0, 1, 0, -Math.PI / 2);
-            X.p.set (centroid);
-            X.mulXyz (0.05, 0, 0);
-            rightBody.setPose (X);
-            rightBody.setVelocity (new Twist());
-            for (FemNode3d n : rightNodes) {
-               mechMod.attachPoint (n, rightBody);
+            else if (!connect && rightNodes.get (0).isAttached()) {
+               for (FemNode3d n : rightNodes) {
+                  mechMod.detachPoint (n);
+               }
             }
          }
-         else if (!connect && rightNodes.get (0).isAttached()) {
-            for (FemNode3d n : rightNodes) {
-               mechMod.detachPoint (n);
-            }
-         }
+         myConnectedP = connect;
       }
-      myConnectedP = connect;
    }
 
    public PropertyList getAllPropertyInfo() {

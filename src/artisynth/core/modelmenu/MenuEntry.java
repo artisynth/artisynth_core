@@ -2,7 +2,7 @@ package artisynth.core.modelmenu;
 
 public class MenuEntry extends MenuNode {
 
-   private static final int DEFAULT_MAX_ROWS = 15;
+   protected static final int DEFAULT_MAX_ROWS = 20;
    
    private int maxRows;
    private boolean scrolling;

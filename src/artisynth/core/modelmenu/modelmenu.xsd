@@ -36,7 +36,7 @@
 		</xs:choice>
 		<xs:attribute name="scrolling" type="xs:boolean" default="false"
 			use="optional" />
-		<xs:attribute name="maxRows" type="positiveIntegerType" default = "15" 
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "20" 
 			use="optional" />
 	</xs:complexType>
 
@@ -77,7 +77,7 @@
 			use="optional" />
 		<xs:attribute name="scrolling" type="xs:boolean" default="false"
 				use="optional" />
-		<xs:attribute name="maxRows" type="positiveIntegerType" default = "15" 
+		<xs:attribute name="maxRows" type="positiveIntegerType" default = "20" 
 			use="optional" />
 		<xs:attributeGroup ref="fontAttr" />
 	</xs:complexType>

@@ -1,35 +1,50 @@
 "Spring Mesh" artisynth.demos.mech.SpringMeshDemo
-"NetDemo" artisynth.demos.tutorial.NetDemo
-"Rigid Body Spring" artisynth.demos.mech.RigidBodyDemo
+"RigidBody Spring" artisynth.demos.mech.RigidBodyDemo
+"Spring Net" artisynth.demos.tutorial.NetDemo
 "MechModel Demo" artisynth.demos.mech.MechModelDemo
-"MechModelCollide" artisynth.demos.mech.MechModelCollide
-TetBeam3d artisynth.demos.fem.TetBeam3d
-HexBeam3d artisynth.demos.fem.HexBeam3d
-RobustCube artisynth.demos.fem.RobustCube
-HexFrame artisynth.demos.fem.HexFrame
-AttachDemo artisynth.demos.fem.AttachDemo
-FemBlock artisynth.demos.fem.Fem3dBlock
-HexBlock artisynth.demos.fem.Hex3dBlock
+"Multi-Point Muscle" artisynth.demos.mech.MultiMuscleDemo
+"Robust FEM Cube" artisynth.demos.fem.RobustCube
+"FEM Locking" artisynth.demos.fem.LockingDemo
+"Point FEM Attachment" artisynth.demos.tutorial.PointFemAttachment
+"Embedded Surface Collide" artisynth.demos.fem.EmbeddedSurfaceCollide
+"Hex Frame" artisynth.demos.fem.HexFrame
+"Spring/FEM Attachment" artisynth.demos.fem.AttachedBeamDemo
+"Articulated FEM" artisynth.demos.fem.ArticulatedFem
+"Leaf Demo" artisynth.demos.fem.LeafDemo
+"Combined Shell-FEM" artisynth.demos.fem.CombinedShellFem
+"Shell Block" artisynth.demos.fem.ShellBlock
+"Material Bundle" artisynth.demos.tutorial.MaterialBundleDemo
+"Contact Pressure Render" artisynth.demos.tutorial.ContactPressureRender
+"Lumbar FrameSpring" artisynth.demos.tutorial.LumbarFrameSpring
+"Lumbar FEM Disk" artisynth.demos.tutorial.LumbarFEMDisk
 "RigidBodyCollision" artisynth.demos.mech.RigidBodyCollision
-"Fem Collision" artisynth.demos.fem.FemCollision
+"FEM Plane Collide" artisynth.demos.fem.FemPlaneCollide
+"FEM Collision" artisynth.demos.fem.FemCollision
+"FEM Muscle Arm" artisynth.demos.fem.FemMuscleArm
+"Simple FEM Muscle" artisynth.demos.fem.SpongeDemo
+"Puppet Demo" artisynth.demos.mech.PuppetDemo
+"FEM Self Collision" artisynth.demos.fem.SelfCollision
+"RigidBody Skinning" artisynth.demos.mech.SkinDemo
+"FEM Skinning" artisynth.demos.fem.FemSkinDemo
+"Phalanx Wrapping" artisynth.demos.tutorial.PhalanxWrapping
+"Torus Wrapping" artisynth.demos.wrapping.TorusWrapTest
+"Inverse Point2d" artisynth.demos.inverse.PointModel2d
+"Inverse Hydrostat" artisynth.demos.inverse.HydrostatInvDemo
+#
+#"Simple Collide" artisynth.demos.fem.SimpleCollide
+#MultiPointSpring artisynth.demos.mech.MultiSpringDemo
+#PointForceDemo artisynth.demos.mech.PointForceDemo
+#InversePoint3d artisynth.demos.inverse.PointModel3d
+#FemBlock artisynth.demos.fem.Fem3dBlock
+#HexBlock artisynth.demos.fem.Hex3dBlock
+#"MechModelCollide" artisynth.demos.mech.MechModelCollide
+#TetBeam3d artisynth.demos.fem.TetBeam3d
+#HexBeam3d artisynth.demos.fem.HexBeam3d
+#FishDemo artisynth.demos.fem.FishDemo
+#Hydrostat artisynth.demos.fem.HydrostatDemo
+#PlaneConstrainedFem artisynth.demos.fem.PlaneConstrainedFem
+#"FemMuscleDemo" artisynth.demos.fem.FemMuscleDemo
 #"Fish Demo" artisynth.demos.fem.FishDemo
-"Segmented Planes" artisynth.demos.mech.SegmentedPlaneDemo
-MuscleArm artisynth.demos.fem.FemMuscleArm
-ArticulatedFemDemo artisynth.demos.fem.ArticulatedFem
-"Simple Muscle" artisynth.demos.fem.SpongeDemo
-LaymanDemo artisynth.demos.mech.LaymanDemo
-PuppetDemo artisynth.demos.mech.PuppetDemo
-FrameSpring artisynth.demos.mech.FrameSpringDemo
-PointForceDemo artisynth.demos.mech.PointForceDemo
-SimpleCollide artisynth.demos.fem.SimpleCollide
-FishDemo artisynth.demos.fem.FishDemo
-Hydrostat artisynth.demos.fem.HydrostatDemo
-MultiPointSpring artisynth.demos.mech.MultiSpringDemo
-SelfCollision artisynth.demos.fem.SelfCollision
-PlaneConstrainedFem artisynth.demos.fem.PlaneConstrainedFem
-"FemMuscleDemo" artisynth.demos.fem.FemMuscleDemo
-"SkinDemo" artisynth.demos.mech.SkinDemo
-"FemSkinDemo" artisynth.demos.fem.FemSkinDemo
-InversePoint2d artisynth.demos.inverse.PointModel2d
-InversePoint3d artisynth.demos.inverse.PointModel3d
-InverseHydrostatDemo artisynth.demos.inverse.HydrostatInvDemo
+#"Segmented Planes" artisynth.demos.mech.SegmentedPlaneDemo
+#LaymanDemo artisynth.demos.mech.LaymanDemo
+#FrameSpring artisynth.demos.mech.FrameSpringDemo

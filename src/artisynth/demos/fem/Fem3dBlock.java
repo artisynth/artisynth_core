@@ -248,8 +248,10 @@ public class Fem3dBlock extends RootModel {
       // femMod.setProfile (true);
 
       mechMod.setIntegrator (Integrator.BackwardEuler);
-      setConnected (true);
+
       addModel (mechMod);
+      setConnected (true);
+
       // mechMod.setProfiling (true);
 
 //       int numWays = 10;

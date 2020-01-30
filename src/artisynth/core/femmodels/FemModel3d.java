@@ -1340,7 +1340,7 @@ PointAttachable, ConnectableBody {
    /**
     * Finds and returns a list of all the nodes of an FEM that are within a
     * specified maximum distance of a specified point. The nodes are sorted
-    * from neartest to farthest. If no node is within the maximum distance, the
+    * from nearest to farthest. If no node is within the maximum distance, the
     * returned list is empty.
     * 
     * @param pnt Point for which the nearest nodes should be located

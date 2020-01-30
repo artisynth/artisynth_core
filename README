@@ -26,12 +26,35 @@ Files in this directory:
 .artisynthInit
     Default ArtiSynth initialization file
 
+.classpath
+    Classpath information used by the Eclipse IDE
+
 .demoModels 
     List of "banner" demo models available when ArtiSynth starts up
+
+.git*
+    If present, contain repository and configuration information used
+    by the Git SCM. 
 
 .mainModels 
     List of "banner" anatomical models in the ArtiSynth Models package
     (which must be installed).
+
+.project
+    Project information used by the Eclipse IDE
+
+ArtiSynth.launch
+    Default "launch" configuration for used by the Eclipse IDE
+
+ArtiSynth_launch
+    Backup copy of the default version of ArtiSynth.launch
+
+.settings/
+    Settings information used by the Eclipse IDE
+
+DISTRO_EXCLUDE
+    Describes any files that should be excluded from the current
+    precompiled distribution.
 
 EXTCLASSPATH.sample
     Example EXTCLASSPATH file. An EXTCLASSPATH files indicates to the
@@ -68,7 +91,8 @@ doc/
     System documenation
 
 eclipseSettings.zip
-    Default project settings for the Eclipse IDE
+    Default project settings for the Eclipse IDE (obsolete since these
+    are now checked directly into the repository)
 
 lib/
     Java libraries, plus architecture-specific libraries for native code

@@ -181,7 +181,6 @@ public class OpenSimCustomCoupling extends RigidBodyCoupling {
        * Update internal coordinate given a desired value, uses gradient descent
        * respecting bounds
        * @param fx f(x), we seek x
-       * @return 
        */
       public void updateCoords(double fx) {
          

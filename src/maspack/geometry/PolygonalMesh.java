@@ -35,6 +35,7 @@ import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Vector2d;
 import maspack.matrix.Vector3i;
 import maspack.matrix.Vector4d;
 import maspack.matrix.VectorTransformer3d;
@@ -3476,6 +3477,111 @@ public class PolygonalMesh extends MeshBase {
 
    public void clearBVTree() {
       myBVTree = null;
+   }
+
+   /**
+    * If this mesh is triangular, returns the nearest distance to a point. This
+    * method uses the default bounding volume hierarchy returned by {@link
+    * #getBVTree}.
+    *
+    * @param pnt point for which distance should be computed (world coords)
+    * @return distance to the mesh, or -1 if the no nearest mesh face is
+    * found.
+    * @throws IllegalArgumentException if this mesh is not triangular
+    */
+   public double distanceToPoint (Point3d pnt) {
+      return distanceToPoint (new Point3d(), pnt);
+   }
+
+   /**
+    * If this mesh is triangular, returns the nearest distance to a point. This
+    * method uses the default bounding volume hierarchy returned by {@link
+    * #getBVTree}.
+    *
+    * @param nearPnt if not <code>null</code>, returns the nearest
+    * point on the mesh in world coordinates.
+    * @param pnt point for which distance should be computed (world coords)
+    * @return distance to the mesh, or -1 if the no nearest mesh face is
+    * found.
+    * @throws IllegalArgumentException if this mesh is not triangular
+    */
+   public double distanceToPoint (Point3d nearPnt, Point3d pnt) {
+      if (!isTriangular()) {
+         throw new IllegalArgumentException ("mesh is not triangular");
+      }
+      BVFeatureQuery query = new BVFeatureQuery();
+      if (query.nearestFaceToPoint (
+             nearPnt, null, getBVTree(), pnt) == null) {
+         return -1;
+      }
+      else {
+         return nearPnt.distance (pnt);
+      }
+   }
+
+   /**
+    * If this mesh is triangular, returns the nearest triangular face to a
+    * point. This method uses the default bounding volume hierarchy
+    * returned by {@link #getBVTree}.
+    *
+    * @param nearPnt if not <code>null</code>, returns the nearest
+    * point on the face in world coordinates.
+    * @param uv if not <code>null</code>, returns the UV coordinates of the
+    * nearest point on the face. These are the barycentric coordinates with
+    * respect to the second and third vertices.
+    * @param pnt point for which the nearest face should be found.
+    * @return the nearest face to the point, or <code>null</code>
+    * if the mesh contains no faces.
+    * @throws IllegalArgumentException if this mesh is not triangular
+    */
+   public Face nearestFaceToPoint (Point3d nearPnt, Vector2d uv, Point3d pnt) {
+      if (!isTriangular()) {
+         throw new IllegalArgumentException ("mesh is not triangular");
+      }
+      BVFeatureQuery query = new BVFeatureQuery();
+      return query.nearestFaceToPoint (nearPnt, uv, getBVTree(), pnt);
+   }
+
+    /**
+    * If this mesh is triangular and closed, determines if a point is inside or
+    * outside the mesh. Being exactly ``on'' the mesh counts as outside. The
+    * mesh normals are assumed to be pointing outwards. This method uses the
+    * default bounding volume hierarchy returned by {@link #getBVTree}.
+    *
+    * The method works by counting the number of times a random ray cast from
+    * the point intersects the mesh. Degeneracies are detected and result in
+    * another ray being cast.  Whether or not the point is on the mesh is
+    * determined using a numerical tolerance computed from the mesh's overall
+    * dimensions. In rare cases, the method may be unable to determine whether
+    * the point is inside or outside, in which case the method returns -1. In
+    * such cases, or if one wishes to distinquish whether the point is outside
+    * vs. ``on'' the mesh, it may be useful to call the underlying {@link
+    * BVFeatureQuery} method {@link
+    * BVFeatureQuery#isInsideMesh(PolygonalMesh,Point3d,double) isInsideMesh()}
+    * directly, which offers more control.
+    *
+    * @param pnt point to check.
+    * @return 1 if <code>pnt</code> is inside, 0 if outside, or -1 if the
+    * method is can't find an answer.
+    * @throws IllegalArgumentException if this mesh is not triangular
+    */  
+   public int pointIsInside (Point3d pnt) {
+      if (!isTriangular()) {
+         throw new IllegalArgumentException ("mesh is not triangular");
+      }
+      BVFeatureQuery query = new BVFeatureQuery();
+      switch (query.isInsideMesh (this, getBVTree(), pnt, -1)) {
+         case INSIDE: {
+            return 1;
+         }
+         case OUTSIDE:
+         case ON: {
+            return 0;
+         }
+         default: {
+            return -1;
+         }
+      }
    }
 
    // Debug methods used by Andrew Larkin's collison code

@@ -72,6 +72,9 @@ public abstract class FemModel extends MechSystemBase
    implements TransformableGeometry, ScalableUnits, Constrainer, 
    ForceEffector, PropertyChangeListener, HasSlaveObjects {
 
+   /**
+    * Interface that determines if an element is valid
+    */
    public interface ElementFilter {
       public boolean elementIsValid (FemElement e);
    }

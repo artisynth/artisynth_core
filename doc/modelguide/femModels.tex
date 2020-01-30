@@ -959,7 +959,7 @@ centered inside the beam, so it does not need to be repositioned.  At Line
 with the name ``sphere''.  The full model is shown in Figure 
 \ref{fig:fem:embedded}.
 
-\section{Node attachments}
+\section{Connecting FEM models to other components}
 \label{sec:fem:nodeattachments}
 
 To couple FEM models to other dynamic components, the ``attachment''
@@ -996,6 +996,11 @@ adding it to the {\tt MechModel} using
 There are also convenience routines inside {\tt MechModel} that will create
 the appropriate attachments automatically (see Section 
 \ref{sec:mech:pointattachments}).
+
+All attachments described in this section are based around FEM {\it
+nodes}. However, it is also possible to attach frame-based components
+(such as rigid bodies) directly to an FEM, as described in
+Section \ref{sec:fem:frameattachments}.
 
 \subsection{Connecting nodes to rigid bodies or particles}
 
@@ -1181,6 +1186,230 @@ search uses a bounding volume hierarchy for efficiency (see
 \javaclass[maspack.geometry]{BVFeatureQuery}).  If the point is contained
 within the beam, then {\tt mech.attachPoint()}
 is used to attach it to the nodes of the element (line 39).
+
+\subsection{Finding which nodes to attach}
+
+While it is straightforward to connect nodes to rigid bodies or other
+FEM nodes or elements, it is often necessary to determine {\it which}
+nodes to attach. This was evident in the example of
+Section \ref{connectingTwoFems:sec}, which attached nodes of an FEM
+sphere that were found to be {\it inside} an FEM beam.
+
+As in that example, finding the nodes to attach can often be done
+using geometric queries. For example, we often select nodes based on
+how close they are to the other body we wish to attach to.
+
+Various promixity queries are available for this task. To find the
+distance of a point to a polygonal mesh, we can use the
+following \javaclass[maspack.geometry]{PolygonalMesh} methods,
+%
+\begin{lstlisting}[]
+   double distanceToPoint (Point3d pnt)
+
+   int isInside (Point3d pnt) // for closed meshes only
+\end{lstlisting}
+%
+where the latter method returns 1 if the point is inside and 0
+otherwise. For checking the distance of an FEM node, {\tt pnt} can be obtained
+from {\tt node.getPosition()} (or possibly {\tt
+node.getRestPosition()}). For example,
+to find all nodes within a distance {\tt tol} of the surface
+of a rigid body, we could use the code fragment:
+%
+\begin{lstlisting}[]
+   RigidBody body;
+   FemModel3d fem;
+   ...
+   double tol = 0.001;
+   PolygonalMesh surface = body.getSurfaceMesh();
+   ArrayList<FemNode3d> nearNodes = new ArrayList<FemNode3d>();
+   for (FemNode3d n : fem.getNodes()) {
+      if (surface.distanceToPoint (n.getPosition()) < tol) {
+         nearNodes.add (n);
+      }
+   }
+\end{lstlisting}
+%
+If we want to check only nodes that lie on the FEM surface, then we
+can filter them using the {\tt FemModel3d}
+method \javamethod[artisynth.core.femmodels.FemModel3d]{isSurfaceNode()}:
+%
+\begin{lstlisting}[]
+   for (FemNode3d n : fem.getNodes()) {
+      if (fem.isSurfaceNode (n) &&
+          surface.distanceToPoint (n.getPosition()) < tol) {
+         nearNodes.add (n);
+      }
+   }
+\end{lstlisting}
+%
+\begin{sideblock}
+Most of the mesh-based query methods work only for {\it triangular}
+meshes. The {\tt PolygonalMesh} method
+\javamethod[maspack.geometry.PolygonalMesh]{isTriangular()}
+can be used to determine if the mesh is triangular. If it
+is not, it can made triangular by calling
+\javamethod[maspack.geometry.PolygonalMesh]{triangulate()},
+although in general this should be done during model construction {\it
+before} the mesh-based component has been added to the model.
+\end{sideblock}
+
+For connecting an FEM model to another FEM model, {\tt FemModel3d}
+provides a number of query methods:
+%
+\begin{lstlisting}[]
+   /* nearest element queries */
+
+   // find the nearest element (shell or volumetric) to pnt:
+   FemElement3dBase findNearestElement (Point3d near, Point3d pnt)
+   FemElement3dBase findNearestElement (
+      Point3d near, Point3d pnt, ElementFilter filter)
+
+   // find the nearest surface element (shell or volumetric) to pnt:
+   FemElement3dBase findNearestSurfaceElement(Point3d near, Point3d pnt)
+
+   // find the nearest volumetric element to pnt:
+   FemElement3d findNearestVolumetricElement (Point3d near, Point3d pnt)
+
+   // find the nearest shell element to pnt:
+   ShellElement3d findNearestShellElement (Point3d near, Point3d pnt)
+
+   // find the volumetric element (if any) containing pnt:
+   FemElement3d findContainingElement(Point3d pnt)
+
+   /* nearest node queries */
+
+   // find the nearest node to pnt that is within maxDist:
+   FemNode3d findNearestNode (Point3d pnt, double maxDist)
+
+   // find all nodes that are within maxDist of pnt:
+   ArrayList<FemNode3d> findNearestNodes (Point3d pnt, double maxDist)
+\end{lstlisting}
+%
+All the above queries are based on the FEM model's {\it current} nodal
+positions.  The method\\
+\javamethodAlt%
+{artisynth.core.femmodels.FemModel3d.findNearestElement(Point3d,Point3d,ElementFilter)}%
+{findNearestElement(near,pnt,filter)} allows the application to
+specify
+a \javaclass[artisynth.core.femmodels]{FemModel\$ElementFilter} to
+restrict the elements that are searched.
+
+The argument {\tt near} that appears in some of the queries is an
+optional argument which, if not {\tt null}, returns the location of
+the corresponding nearest point on the element. The distance from {\tt
+pnt} to the element can then be found using
+%
+\begin{verbatim}
+   near.distance (pnt);
+\end{verbatim}
+%
+If the resulting distance is 0, then the point is on or inside the
+element. Otherwise, the point is outside the element, and if no
+element filters were used in the query, outside the FEM model itself.
+
+\begin{sideblock}
+Typically, it is preferred attach a point to an element only if it
+lies on or inside an element. However, it is possible to attach points
+outside an element as long as the system is able to determine
+appropriate element ``coordinates'' for that point (which it may not
+be able to do if the point is far away). In addition, the motion
+behavior of an exterior attached point may sometimes appear
+counterintuitive.
+\end{sideblock}
+
+The {\tt FemModel3d} element and node queries can be used in a variety
+of ways.
+
+\javamethod[artisynth.core.femmodels.FemModel3d]{findNearestNodes()}
+can be used to find all nodes within a certain distance of a point, as
+part of the process of making nodal-based attachments
+(Section \ref{sec:fem:nodalAttachments}).
+
+\javamethod[artisynth.core.femmodels.FemModel3d]{findNearestNode()}
+is used in the FemMuscleBeam example
+(Section \ref{FemMuscleBeams:sec}) to determine if a desired muscle
+point is near enough to a node to use that node directly, or if a
+marker should be created.
+
+As another example, suppose we wish to connect the surface nodes of an
+FEM model {\tt femA} to the surface elements of another model {\tt
+femB} if they lie within a prescribed distance {\tt tol} of the
+surface of {\tt femB}. Then we could use the following code:
+%
+\begin{lstlisting}[]
+   MechModel mech;
+   FemModel3d femA;
+   FemModel3d femB;
+   ...
+   double tol = 0.001;
+   Point3d near = new Point3d();
+   for (FemNode3d n : femA.getNodes()) {
+      if (femA.isSurfaceNode(n)) {
+         FemElement3dBase elem = 
+            femB.findNearestSurfaceElement (near, n.getPosition());
+         if (elem != null && near.distance(n.getPosition()) <= tol) {
+            // attach if within distance
+            mech.attachPoint (n, elem);
+         }
+      }
+   }
+\end{lstlisting}
+%
+
+\begin{figure}[h]
+\begin{center}
+\iflatexml
+ \includegraphics[]{images/LumbarFEMDisk}
+\else
+ \includegraphics[width=3.75in]{images/LumbarFEMDisk}
+\fi
+\end{center}
+\caption{{\tt LumbarFEMDisk} loaded into ArtiSynth, showing
+a simplified FEM model connecting two vertebrae.}
+\label{LumbarFEMDisk:fig}
+\end{figure}
+
+\subsection{Example: two bodies connected by an FEM ``spring''}
+\label{sec:fem:LumarFEMDisk}
+
+The {\tt LumbarFrameSpring} example in
+Section \ref{LumbarFrameSpring:sec} uses a frame spring to connect two
+simplified lumbar vertebrae. However, it is also possible to use an
+FEM model in place of a frame spring, possibly providing a more
+realistic model of the intervertebral disc. A simple model which does
+this is defined in
+%
+\begin{verbatim}
+  artisynth.demos.tutorial.LumbarFEMDisk
+\end{verbatim}
+%
+The initial source code is similar to that for {\tt
+LumbarFrameSpring}, but differs in the section where the FEM disk
+replaces the {\tt FrameSpring}:
+\lstset{numbers=left}
+\iflatexml
+%\lstset{firstnumber={-54}}
+\lstinputlisting[firstline=56]{../../src/artisynth/demos/tutorial/LumbarFEMDisk.java}
+%\lstset{firstnumber={1}}
+\else
+\lstinputlisting[firstline=56,firstnumber=56]{../../src/artisynth/demos/tutorial/LumbarFEMDisk.java}
+\fi
+\lstset{numbers=none}
+
+The simplified FEM model representing the ``disk'' is created at lines
+57-61, using a torus-shaped model created by {\tt FemFactory}.  It is
+then repositioning using {\tt transformGeometry()} (
+Section \ref{TransformingGeometry:sec}) to place it between the
+vertebrae (line 64-66).  After the FEM model is positioned, we find
+which nodes are within a distance {\tt tol} of each vertebral surface
+and attach them to the appropriate body (lines 69-81).
+
+To run this example in ArtiSynth, select {\sf All demos > tutorial >
+LumbarFEMDisk} from the {\sf Models} menu. The model should load and
+initially appear as in Figure \ref{LumbarFEMDisk:fig}.  The
+behavior is best seem by running the model and using the pull
+controller to exert forces on the upper vertebra.
 
 \subsection{Nodal-based attachments}
 \label{sec:fem:nodalAttachments}
@@ -2470,6 +2699,7 @@ beam.addMuscleBundle(bundle);
 \lstset{numbers=none}
 
 \subsection{Example: comparison with two beam examples}
+\label{FemMuscleBeams:sec}
 
 \begin{figure}[ht]
 	\centering

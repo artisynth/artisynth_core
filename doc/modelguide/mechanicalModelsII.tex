@@ -775,10 +775,67 @@ active terms that depend on the muscle length $l$.  Some of those
 available in ArtiSynth include
 \javaclass[artisynth.core.materials]{ConstantAxialMuscle},
 \javaclass[artisynth.core.materials]{BlemkerAxialMuscle},
-\javaclass[artisynth.core.materials]{PaiAxialMuscle}, and
+\javaclass[artisynth.core.materials]{MasoudMillardLAM}, and
 \javaclass[artisynth.core.materials]{PeckAxialMuscle}.
 
-% LATER: describe muscles in more detail
+\paragraph{\javaclass[artisynth.core.materials]{ConstantAxialMuscle}}
+This is a simple muscle material that has a contractile force proportional to its activation, a constant passive tension, and linear damping, as follows:
+
+\begin{equation}
+f(\dot l) = a f_{max} +  f_{passive} f_{max} + d \dot l 
+\label{ConstantAxialMaterial:eqn}
+\end{equation}
+
+
+The parameters for this material include:\\
+\begin{tabular}{|l|l|l|} \hline
+ & Property & Description \\
+$f_{max}$ & {\tt maxForce} & the maximum contractile force \\
+$f_{passive}$ & {\tt passiveFraction} & the proportion of $f_{max}$ to apply as passive tension \\
+$d$ & {\tt damping} & damping \\ 
+$a$ & {\tt Muscle:excitation} & the {\tt Muscle}'s activation \\ \hline
+\end{tabular}
+
+
+\paragraph{\javaclass[artisynth.core.materials]{LinearAxialMuscle}}
+This is a simple muscle material that has a linear relationship between length and tension, as well as linear damping, as follows:
+
+\begin{equation}
+l' = \frac{l - l_{opt}}{l_{max} - l_{opt}}, \mathrm{with}~ 0 \le l' \le 1~\mathrm{enforced}
+\end{equation}
+
+\begin{equation}
+f(l, \dot l) = a f_{max} l' +  f_{passive} f_{max} l' + d \dot l 
+\label{LinearAxialMaterial:eqn}
+\end{equation}
+
+The parameters for this material include:\\
+\begin{tabular}{|l|l|l|} \hline
+ & Property & Description \\
+$l_{max}$ & {\tt maxLength} & the length at which maximum force is generated \\
+$l_{opt}$ & {\tt optLength} & the length at which zero active force is generate \\
+$f_{max}$ & {\tt maxForce} & the maximum contractile force \\
+$f_{passive}$ & {\tt passiveFraction} & the proportion of $f_{max}$ to apply as passive tension \\
+$d$ & {\tt damping} & damping \\ 
+$a$ & {\tt Muscle:excitation} & the {\tt Muscle}'s activation \\ \hline
+\end{tabular}
+
+
+\paragraph{\javaclass[artisynth.core.materials]{BlemkerAxialMuscle}}
+This muscle material generates a force as described in~\cite{blemker:2005:muscle}. It is the axial muscle
+equivalent to the constitutive equation along the muscle fiber direction specified in the 
+\javaclass[artisynth.core.materials]{BlemkerMuscle} FEM material.
+
+\paragraph{\javaclass[artisynth.core.materials]{PeckAxialMuscle}}
+This muscle material generates a force as described in~\cite{peck2000dynamic}. 
+It has a typical Hill-type active force-length relationship (modelled as a cosine), but 
+the passive force-length properties are linear. This muscle model was empirically
+verified for jaw muscles during wide jaw opening~\cite{peck2000dynamic}.
+
+\paragraph{\javaclass[artisynth.core.materials]{MasoudMillardLAM}}
+This muscle material generates a force as described in~\cite{millard2013flexing} for 
+the rigid tendon case. 
+
 
 \subsection{Example: Muscle attached to a rigid body}
 \label{SimpleMuscleExample:sec}

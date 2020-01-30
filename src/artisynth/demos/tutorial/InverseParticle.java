@@ -22,7 +22,7 @@ public class InverseParticle extends RootModel {
 
    public void build (String[] args) {
       
-      int numMuscles = 16; // number of radial muscles surrounding the dynamic particle
+      int numMuscles = 16; // num radial muscles surrounding the dynamic particle
       double len = 1.0; // length of the radial muscles
 
       // create MechModel and add to RootModel
@@ -33,7 +33,8 @@ public class InverseParticle extends RootModel {
       mech.setGravity (Vector3d.ZERO);
 
       // create central dynamic particle
-      Particle dynamicPart = new Particle ("center", /*mass=*/0.1, /*x,y,z=*/0, 0, 0);
+      Particle dynamicPart =
+         new Particle ("center", /*mass=*/0.1, /*x,y,z=*/0, 0, 0);
       dynamicPart.setPointDamping (0.1); // add damping to point
       
       // set render properties for the component
@@ -48,17 +49,23 @@ public class InverseParticle extends RootModel {
          double a = 2*Math.PI*((double)i/numMuscles);
      
          // create non-dynamic particle as fixed end point for muscle
-         Particle fixedPnt = new Particle(/*mass=*/1d, new Point3d(len*Math.sin(a),0.0,len*Math.cos(a)));
+         Particle fixedPnt =
+            new Particle(/*mass=*/1d,
+                         new Point3d(len*Math.sin(a),0.0,len*Math.cos(a)));
          fixedPnt.setDynamic(false);
          RenderProps.setSphericalPoints (fixedPnt, len/25, Color.LIGHT_GRAY);
          
          // create passive spring to provide resistance
-         AxialSpring spring = new AxialSpring (/*stiffness=*/100d, /*damping=*/1d, /*restlen=*/len/2);
+         AxialSpring spring =
+            new AxialSpring (
+               /*stiffness=*/100d, /*damping=*/1d, /*restlen=*/len/2);
          spring.setPoints (fixedPnt, dynamicPart);
                   
          // create muscle with force = fmax * activation
          Muscle muscle = new Muscle (fixedPnt, dynamicPart);
-         muscle.setName ("muscle_"+Integer.toString (Math.round ((float)Math.toDegrees (a)))+"_deg");
+         muscle.setName (
+            "muscle_"+Integer.toString (
+               Math.round ((float)Math.toDegrees (a)))+"_deg");
          muscle.setMaterial (new ConstantAxialMuscle (/*fmax=*/1d));
 
          // make muscles red when activated
@@ -73,7 +80,8 @@ public class InverseParticle extends RootModel {
       }
       
       // create the tracking controller
-      TrackingController myTrackingController = new TrackingController(mech, "tcon");
+      TrackingController myTrackingController =
+         new TrackingController(mech, "tcon");
       
       // set all muscles to be "exciters" for the controller to control 
       for (AxialSpring s : mech.axialSprings()) {
@@ -83,9 +91,11 @@ public class InverseParticle extends RootModel {
       }
       
       // set the center dynamic particle to be the component that is tracked
-      MotionTargetComponent target = myTrackingController.addMotionTarget(dynamicPart);
+      MotionTargetComponent target =
+         myTrackingController.addMotionTarget(dynamicPart);
     
-      // add an l-2 regularization term, since there are more muscles than target degrees-of-freedom
+      // add an l-2 regularization term, since there are more muscles than
+      // target degrees-of-freedom
       myTrackingController.addL2RegularizationTerm(/*weight=*/0.1);   
 
       // add a default set of probes and the inverse control panel for this demo
@@ -95,6 +105,5 @@ public class InverseParticle extends RootModel {
       
       // add controller component to the root model
       addController(myTrackingController);
-
    }
 }

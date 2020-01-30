@@ -12,6 +12,7 @@ import artisynth.core.mechmodels.MechModel;
 import artisynth.core.mechmodels.MultiPointMuscle;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.gui.ControlPanel;
 
 public class MultiMuscleDemo extends MultiSpringDemo {
 
@@ -52,6 +53,10 @@ public class MultiMuscleDemo extends MultiSpringDemo {
       RenderProps.setLineStyle (muscle, LineStyle.SPINDLE);
       RenderProps.setLineRadius (muscle, 0.1);      
       RenderProps.setLineColor (muscle, Color.RED);
-   }
 
+      ControlPanel panel = getControlPanels().get(0);
+      panel.addWidget (muscle, "excitation");
+      panel.pack();
+
+   }
 }

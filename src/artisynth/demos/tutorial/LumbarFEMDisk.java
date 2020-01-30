@@ -16,7 +16,7 @@ import maspack.geometry.*;
 import maspack.render.*;
 
 /**
- * Demo of two rigid bodies connected by a 6 DOF frame spring
+ * Demo of two rigid bodies connected by a simple FEM disk
  */
 public class LumbarFEMDisk extends RootModel {
 
@@ -49,38 +49,39 @@ public class LumbarFEMDisk extends RootModel {
       lumbar1.setPose (new RigidTransform3d (-0.016, 0.039, 0));
       lumbar2.setDynamic (false);
 
+      // flip entire mech model around
       mech.transformGeometry (
          new RigidTransform3d (0, 0, 0, 0, 0, Math.toRadians (90)));
 
-      double DTOR = Math.PI/180.0;
-      // flip entire mech model around
+      // create a torus shaped FEM model for the disk
       FemModel3d fem = new FemModel3d();
       fem.setDensity (1500);
-      fem.setMaterial (new LinearMaterial (50000, 0.4));
+      fem.setMaterial (new LinearMaterial (20000, 0.4));
       FemFactory.createHexTorus (fem, 0.011, 0.003, 0.008, 16, 30, 2);
-      fem.setSurfaceRendering (SurfaceRender.Shaded);
-      fem.transformGeometry (
-         new RigidTransform3d (-0.012, 0.0, 0.040, 0, -DTOR*25, DTOR*90));
-      RenderProps.setFaceColor (fem, new Color (153/255f, 153/255f, 1f));
-      RenderProps.setFaceColor (mech, new Color (238, 232, 170)); // bone color
-
       mech.addModel (fem);
 
-      // attach nodes to either the top or bottom mesh
+      // position it betweem the disks
+      double DTOR = Math.PI/180.0;
+      fem.transformGeometry (
+         new RigidTransform3d (-0.012, 0.0, 0.040, 0, -DTOR*25, DTOR*90));
 
+      // find and attach nearest nodes to either the top or bottom mesh
       double tol = 0.001;
       for (FemNode3d n : fem.getNodes()) {
-         double d = BVFeatureQuery.distanceToMesh (
-            null, lumbar1.getSurfaceMesh(), n.getPosition());
-         if (d >= 0 && d < tol) {
+         // top vertebra
+         double d = lumbar1.getSurfaceMesh().distanceToPoint(n.getPosition());
+         if (d < tol) {
             mech.attachPoint (n, lumbar1);
          }
-         d = BVFeatureQuery.distanceToMesh (
-            null, lumbar2.getSurfaceMesh(), n.getPosition());
-         if (d >= 0 && d < tol) {
+         // bottom vertebra
+         d = lumbar2.getSurfaceMesh().distanceToPoint(n.getPosition());
+         if (d < tol) {
             mech.attachPoint (n, lumbar2);
          }
       }
-
+      // set render properties ...
+      fem.setSurfaceRendering (SurfaceRender.Shaded);
+      RenderProps.setFaceColor (fem, new Color (153/255f, 153/255f, 1f));
+      RenderProps.setFaceColor (mech, new Color (238, 232, 170)); // bone color
    }
 }

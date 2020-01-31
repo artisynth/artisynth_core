@@ -696,18 +696,21 @@ ModelActionListener {
       
       if (chooser.showDialog(myFrame, "Save As") ==
           JFileChooser.APPROVE_OPTION) {
-         File modelFile = chooser.getSelectedFile();
+         File file = chooser.getSelectedFile();
+         if (file.exists() && !GuiUtils.confirmOverwrite (myFrame, file)) {
+            return;
+         }
          int status = 0;
          try {
             status = myMain.saveModelFile (
-               modelFile, null,
+               file, null,
                chooser.getSaveWayPointData(),
                chooser.getCoreCompsOnly());
          }
          catch (Exception e) {
             e.printStackTrace();
             GuiUtils.showError (
-               myFrame, "Error writing " + modelFile.getPath());
+               myFrame, "Error writing " + file.getPath());
          }
          if (status > 0) {
             GuiUtils.showNotice (

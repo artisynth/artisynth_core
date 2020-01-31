@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.ArrayList;
 
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -741,6 +742,9 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       LinkedList<ModelComponent> delete = 
          ComponentUtils.findDependentComponents (update, selection);
 
+      System.out.println ("delete.size=" + delete.size() + " " +
+                          selection.size());
+         
       if (delete.size() > selection.size()) {
          // first, see if we can actually delete:
          if (!componentsAreDeletable (delete)) {
@@ -750,9 +754,11 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          }
          else {
             boolean needConfirmation = false;
+            ArrayList<ModelComponent> dependents = new ArrayList<>();
             for (ModelComponent c : delete) {
                if (!c.isSelected()) {
                   needConfirmation = true;
+                  dependents.add (c);
                   mySelectionManager.addSelected (c);
                }
             }
@@ -772,6 +778,9 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
                dialog.setVisible (true);
                if ((confirmDialog.getValue() == null) ||
                    (confirmDialog.getValue().equals (JOptionPane.NO_OPTION))) {
+                  for (ModelComponent c : dependents) {
+                     mySelectionManager.removeSelected (c);
+                  }
                   return;
                }
             }

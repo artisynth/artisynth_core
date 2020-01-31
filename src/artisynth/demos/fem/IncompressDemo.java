@@ -44,6 +44,7 @@ public class IncompressDemo extends FemBeam3d {
             0, -0.6, 0, 0,
             5, -1.6, 0, 0
          }, NumericInputProbe.EXPLICIT_TIME);
+      iprobe.setName ("left block x");
       addInputProbe (iprobe);
 
       iprobe = new NumericInputProbe (
@@ -52,8 +53,20 @@ public class IncompressDemo extends FemBeam3d {
             0,  0.6, 0, 0,
             5,  1.6, 0, 0
          }, NumericInputProbe.EXPLICIT_TIME);
+            iprobe.setName ("right block x");
       addInputProbe (iprobe);
 
+      NumericOutputProbe oprobe = new NumericOutputProbe (
+         myFemMod, "volume", 0, 5, -1);
+      oprobe.setName ("volume");
+      oprobe.setAttachedFileName ("femVolume.txt");
+      addOutputProbe (oprobe);
+
+      for (int i=0; i<10; i++) {
+         addWayPoint (0.5*i);
+      }
+      addBreakPoint (5.0);
+      
       myMechMod.setGravity (Vector3d.ZERO);
    }
 }

@@ -105,15 +105,15 @@ public class TetCube extends RootModel {
       myControlPanel = new ControlPanel ("options", "LiveUpdate");
 
       myControlPanel.addWidget (
-         "tetVolume", myTetMod, "volume");
+         "volume", myTetMod, "volume");
       myControlPanel.addWidget (
-         "tetIncompressible", myTetMod, "incompressible");
+         "incompressible", myTetMod, "incompressible");
       myControlPanel.addWidget (
-         "tetIncompCompliance", myTetMod, "incompCompliance");
+         "incompCompliance", myTetMod, "incompCompliance");
       myControlPanel.addWidget (
-         "tetSoftIncomp", myTetMod, "softIncompMethod");
+         "softIncomp", myTetMod, "softIncompMethod");
       myControlPanel.addWidget (
-         "tetMaterial", myTetMod, "material");
+         "material", myTetMod, "material");
 
       addControlPanel (myControlPanel);
       Main.getMain().arrangeControlPanels(this);

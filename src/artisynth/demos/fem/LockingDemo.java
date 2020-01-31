@@ -90,7 +90,7 @@ public class LockingDemo extends RootModel {
 
       addModel (myMechMod);
 
-      myMechMod.getSolver().profileKKTSolveTime = true;
+      //myMechMod.getSolver().profileKKTSolveTime = true;
 
       addControlPanel();
    }

@@ -105,15 +105,15 @@ public class HexCube extends RootModel {
       myControlPanel = new ControlPanel ("options", "LiveUpdate");
 
       myControlPanel.addWidget (
-         "hexVolume", myHexMod, "volume");
+         "volume", myHexMod, "volume");
       myControlPanel.addWidget (
-         "hexIncompressible", myHexMod, "incompressible");
+         "incompressible", myHexMod, "incompressible");
       myControlPanel.addWidget (
-         "hexIncompCompliance", myHexMod, "incompCompliance");
+         "incompCompliance", myHexMod, "incompCompliance");
       myControlPanel.addWidget (
-         "hexSoftIncomp", myHexMod, "softIncompMethod");
+         "softIncomp", myHexMod, "softIncompMethod");
       myControlPanel.addWidget (
-         "hexMaterial", myHexMod, "material");
+         "material", myHexMod, "material");
 
       addControlPanel (myControlPanel);
       Main.getMain().arrangeControlPanels(this);

@@ -1325,11 +1325,14 @@ public class TimelineController extends Timeline
       int returnVal = myWayPointFileChooser.showDialog (frame, text);
 
       if (returnVal == JFileChooser.APPROVE_OPTION) {
+         File file = myWayPointFileChooser.getSelectedFile();
+         if (text.startsWith ("Save") && file.exists() &&
+             !GuiUtils.confirmOverwrite (frame, file)) {
+            return false;
+         }
          String relOrAbsPath = ArtisynthPath.getRelativeOrAbsolutePath (
             ArtisynthPath.getWorkingDir(), 
             myWayPointFileChooser.getSelectedFile());
-         System.out.println ("Workspace: " + ArtisynthPath.getWorkingDir());
-         System.out.println ("waypoints file path=" + relOrAbsPath);
          wayPoints.setAttachedFileName (relOrAbsPath);        
          return true;
       }

@@ -187,7 +187,7 @@ public class Fem3dBlock extends RootModel {
       RenderProps.setLineColor (elements, Color.BLUE);
       Renderable nodes = femMod.getNodes();
       RenderProps.setPointStyle (nodes, Renderer.PointStyle.SPHERE);
-      RenderProps.setPointRadius (nodes, 0.01);
+      RenderProps.setPointRadius (femMod, 0.01);
       RenderProps.setPointColor (nodes, new Color (153, 0, 204));
 
       // fix the leftmost nodes

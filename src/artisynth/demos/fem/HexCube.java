@@ -39,7 +39,7 @@ import artisynth.core.driver.*;
 import java.awt.*;
 import java.util.*;
 
-public class TetBlock extends RootModel {
+public class HexCube extends RootModel {
 
    static double LENGTH = 1.0; // 1.0;
    static double WIDTH = 1.0; // .20;
@@ -50,7 +50,7 @@ public class TetBlock extends RootModel {
    static int NY = 4;
    static int NZ = 4;
 
-   FemModel3d myTetMod;   
+   FemModel3d myHexMod;   
    MechModel myMechMod;   
 
    ControlPanel myControlPanel;
@@ -70,20 +70,20 @@ public class TetBlock extends RootModel {
 
    public void build (String[] args) {
 
-      myTetMod = new FemModel3d ("tet");
-      FemFactory.createTetGrid (
-         myTetMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
+      myHexMod = new FemModel3d ("hex");
+      FemFactory.createHexGrid (
+         myHexMod, WIDTH, WIDTH, LENGTH, NX, NY, NZ);
 
-      setModelProperties (myTetMod);
+      setModelProperties (myHexMod);
 
       myMechMod = new MechModel ("mech");
-      myMechMod.addModel (myTetMod);
+      myMechMod.addModel (myHexMod);
 
       addModel (myMechMod);
 
       addControlPanel();
       // myMechMod.setProfiling (true);
-      // myTetMod.setIncompressible (IncompMethod.NODAL);
+      // myHexMod.setIncompressible (IncompMethod.ELEMENT);
       // addBreakPoint (2.0);
    }
 
@@ -105,15 +105,15 @@ public class TetBlock extends RootModel {
       myControlPanel = new ControlPanel ("options", "LiveUpdate");
 
       myControlPanel.addWidget (
-         "tetVolume", myTetMod, "volume");
+         "hexVolume", myHexMod, "volume");
       myControlPanel.addWidget (
-         "tetIncompressible", myTetMod, "incompressible");
+         "hexIncompressible", myHexMod, "incompressible");
       myControlPanel.addWidget (
-         "tetIncompCompliance", myTetMod, "incompCompliance");
+         "hexIncompCompliance", myHexMod, "incompCompliance");
       myControlPanel.addWidget (
-         "tetSoftIncomp", myTetMod, "softIncompMethod");
+         "hexSoftIncomp", myHexMod, "softIncompMethod");
       myControlPanel.addWidget (
-         "tetMaterial", myTetMod, "material");
+         "hexMaterial", myHexMod, "material");
 
       addControlPanel (myControlPanel);
       Main.getMain().arrangeControlPanels(this);

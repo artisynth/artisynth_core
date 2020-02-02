@@ -1451,6 +1451,14 @@ public class URIx {
          return "";
       }
       
+      // handling of special-case inputs
+      if (path.equals(".")) {
+         path = "./";
+      }
+      if (path.equals("..")) {
+         path = "../";
+      }
+      
       URISegment start = splitPath(path);
 
       // iterate through segments, resolving path

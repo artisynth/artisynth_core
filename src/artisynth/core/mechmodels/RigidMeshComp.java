@@ -110,6 +110,8 @@ public class RigidMeshComp extends DynamicMeshComponent
       super.setMesh (mesh, fileName, X);
       if (mesh instanceof PolygonalMesh) {
          myCollidableP = true;
+      } else {
+         myCollidableP = false;
       }
    }
 

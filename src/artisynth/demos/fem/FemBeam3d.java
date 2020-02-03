@@ -197,7 +197,6 @@ public class FemBeam3d extends RootModel {
       myFemMod.setLinearMaterial (100000.0, 0.0, true);
       //      myFemMod.setMaterial (new MooneyRivlinMaterial());
 
-      setRenderProperties (myFemMod, length);
       computeLeftAndRightNodes ();
 
       if ((options & NO_FIXED_NODES) == 0) {
@@ -207,7 +206,9 @@ public class FemBeam3d extends RootModel {
          }
       }
       myMechMod = addMechModel (myFemMod);
+      setRenderProperties (myFemMod, length);
 
+      
       if ((options & ADD_BLOCKS) != 0) {
          
          double wx, wy, wz;
@@ -296,7 +297,7 @@ public class FemBeam3d extends RootModel {
       RenderProps.setFaceColor (mod, new Color (0.7f, 0.7f, 0.9f));
       RenderProps.setLineWidth (mod.getElements(), 2);
       RenderProps.setLineColor (mod.getElements(), Color.blue);
-      RenderProps.setPointRadius (mod, 0.01*length);
+      RenderProps.setPointRadius (myMechMod, 0.01*length);
       RenderProps.setPointStyle (mod, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (mod.getNodes(), Color.GREEN);
    }

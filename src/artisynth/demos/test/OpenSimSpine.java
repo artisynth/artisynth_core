@@ -25,7 +25,7 @@ import maspack.properties.*;
 
 public class OpenSimSpine extends RootModel {
 
-   public static boolean omitFromMenu = true;
+   public static boolean omitFromMenu = false;
 
    String data_url =
       "https://www.artisynth.org/files/data/Female_Thoracolumbar_Spine_V1.zip";

@@ -35,11 +35,11 @@ public class EmbeddedSurfaceCollide extends FemBeam3d {
          RigidBody.createCylinder ("table", 0.25, 0.05, 1000.0, 64);
       table.setDynamic (false);
       RenderProps.setFaceColor (table, new Color (0.7f, 0.7f, 1f));
-      table.transformGeometry (new RigidTransform3d (0, 0, -1.0, 0, 0.01, 0));
+      table.transformGeometry (new RigidTransform3d (0, 0, -1.0, 0, 0.03, 0));
       myMechMod.addRigidBody (table);
 
       meshComp.setCollidable (Collidability.EXTERNAL);
-      myMechMod.setCollisionBehavior (meshComp, table, true, 0.2);
+      myMechMod.setCollisionBehavior (meshComp, table, true, 0.25);
       CollisionManager cm = myMechMod.getCollisionManager();
       cm.setReduceConstraints (true);
       

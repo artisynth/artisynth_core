@@ -49,6 +49,10 @@ public class SphericalRpyJoint extends SphericalJointBase {
          "yawRange", "range for yaw", DEFAULT_ANGLE_RANGE, "%8.3f 1E");
       myProps.add (
          "applyEuler", "enable/disable Euler filter", true);
+      myProps.add (
+         "compliance", "compliance for each constraint", ZERO_VEC);
+      myProps.add (
+         "damping", "damping for each constraint", ZERO_VEC);
    }
 
    public Vector3d getRpyRad() {

@@ -191,11 +191,11 @@ public class IntegerInterval extends NumericInterval {
     */
    public void write (PrintWriter pw, NumberFormat fmt, Object ref)
       throws IOException {
-      pw.print ('[');
+      pw.print ("[ [");
       pw.print (Integer.toString ((int)myLower));
       pw.print (',');
       pw.print (Integer.toString ((int)myUpper));
-      pw.println (']');
+      pw.println ("] ]");
    }
 
    protected Number getNumber (double num) {

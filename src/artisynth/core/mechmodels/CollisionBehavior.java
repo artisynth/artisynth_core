@@ -710,7 +710,13 @@ public class CollisionBehavior extends CollisionComponent
    }
 
    public void setForceBehavior (ContactForceBehavior behavior) {
-      myForceBehavior = behavior;
+      try {
+         myForceBehavior = (ContactForceBehavior)behavior.clone();
+      }
+      catch (CloneNotSupportedException e) {
+         throw new InternalErrorException (
+            "Behavior " + behavior.getClass() + " does not support clone()");
+      }
    }
    
    public ContactForceBehavior getForceBehavior() {
@@ -1038,7 +1044,8 @@ public class CollisionBehavior extends CollisionComponent
 
       rtok.nextToken();
       if (scanAttributeName (rtok, "forceBehavior")) {
-         // TODO: scan force behavior
+         myForceBehavior =
+            (ContactForceBehavior)Scan.scanClassAndObject (rtok, null);
          return true;
       }
       rtok.pushBack();
@@ -1049,9 +1056,9 @@ public class CollisionBehavior extends CollisionComponent
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
 
-      if (myForceBehavior != null) {
-         pw.println ("forceBehavior=");
-         // TODO: write force behavior
+      if (myForceBehavior instanceof Scannable) {
+         pw.print ("forceBehavior="+myForceBehavior.getClass().getName());
+         ((Scannable)myForceBehavior).write (pw, fmt, ancestor);
       }    
       super.writeItems (pw, fmt, ancestor); 
    }

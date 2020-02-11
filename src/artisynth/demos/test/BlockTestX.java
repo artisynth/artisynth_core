@@ -1,25 +1,23 @@
 package artisynth.demos.test;
 
-import maspack.collision.PenetrationRegion;
-import maspack.geometry.*;
-import maspack.spatialmotion.*;
-import maspack.matrix.*;
-import maspack.render.*;
-import maspack.util.*;
-import artisynth.core.mechmodels.*;
-import artisynth.core.mechmodels.MechSystemSolver.Integrator;
-import artisynth.core.modelbase.*;
-import artisynth.core.probes.*;
-import artisynth.core.util.*;
-import artisynth.core.workspace.RootModel;
-import artisynth.core.gui.*;
-import artisynth.core.driver.*;
-import maspack.render.*;
-
 import java.awt.Color;
-import java.io.*;
 
-import javax.swing.JFrame;
+import artisynth.core.driver.Main;
+import artisynth.core.gui.ControlPanel;
+import artisynth.core.mechmodels.CollisionBehavior;
+import artisynth.core.mechmodels.CollisionManager;
+import artisynth.core.mechmodels.ContactForceBehavior;
+import artisynth.core.mechmodels.ContactPoint;
+import artisynth.core.mechmodels.FrameMarker;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.workspace.RootModel;
+import maspack.matrix.Point3d;
+import maspack.matrix.RigidTransform3d;
+import maspack.matrix.Vector3d;
+import maspack.render.RenderProps;
+import maspack.render.Renderer;
+import maspack.util.InternalErrorException;
 
 public class BlockTestX extends RootModel {
    public static boolean debug = false;
@@ -38,6 +36,10 @@ public class BlockTestX extends RootModel {
          fres[0] = dist/c;
          fres[1] = c;
          fres[2] = 0.01;
+      }
+      
+      public ContactForce clone() throws CloneNotSupportedException {
+         return (ContactForce)super.clone();
       }
    }
 

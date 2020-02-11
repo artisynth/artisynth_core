@@ -40,6 +40,12 @@ public abstract class BodyConnector extends RenderableComponentBase
    protected VectorNd myCompliance = null;
    protected VectorNd myDamping = null;
 
+   // Indicates that the uniformity of linear or rotary compliance values is
+   // unknown and need to be calculated. This will only happen after compliance
+   // and damping values are read from a file and the attachments have not yet
+   // been initialized, making uniformity determination impossible.
+   protected boolean myComplianceUniformityUnknown = false;
+
    protected double myLinearCompliance = 0;
    protected double myRotaryCompliance = 0;
 
@@ -70,9 +76,11 @@ public abstract class BodyConnector extends RenderableComponentBase
 
    static {
       myProps.add (
-         "linearCompliance", "compliance along linear directions", 0, "[0,inf]");
+         "linearCompliance",
+         "compliance along linear directions", 0, "[0,inf] NW");
       myProps.add (
-         "rotaryCompliance", "compliance along rotary directions", 0, "[0,inf]");
+         "rotaryCompliance",
+         "compliance along rotary directions", 0, "[0,inf] NW");
       myProps.add ("enabled isEnabled *", "constraint is enabled", true);
       myProps.addReadOnly (
          "bilateralForceInA", "bilateral constraint force as seen in body A");
@@ -231,38 +239,95 @@ public abstract class BodyConnector extends RenderableComponentBase
       return wr;
    }
 
+   /**
+    * Returns the uniform compliance value, if any, for the linear constraints
+    * of this connector. A uniform compliance value is also associated with a
+    * corresponding critical damping value. A value of {@code -1} indicate that
+    * not uniform value exists.
+    *  
+    * @return linear compliance value, or {@code -1} if no
+    * uniform value exists.
+    */
    public double getLinearCompliance () {
+      if (myComplianceUniformityUnknown) {
+         if (attachmentsInitialized()) {
+            checkComplianceUniformity();
+         }
+         else {
+            return -1;
+         }
+      }
       return myLinearCompliance;
    }
 
+   /**
+    * Sets a uniform compliance for the linear constraints of this connector.
+    * If the specified value {@code c} is {@code > 0}, then an appropriate
+    * critical damping value is also set for each linear constraint. A value of
+    * {@code c < 0} is ignored and leaves all compliance and damping values
+    * unchanged.
+    * 
+    * @param c uniform linear compliance value
+    */
    public void setLinearCompliance (double c) {
+      if (c < 0) {
+         c = -1;
+      }
       myLinearCompliance = c;
       // compute damping to give critical damping
-      double d = (c != 0) ? 2*Math.sqrt(getAverageBodyMass()/c) : 0;
-      VectorNi flags = myCoupling.getConstraintInfo();
-      VectorNd compliance = new VectorNd(myCoupling.getCompliance());
-      VectorNd damping = new VectorNd(myCoupling.getDamping());
-      for (int i=0; i<flags.size(); i++) {
-         if (usesLinearCompliance (flags.get(i))) {
-            compliance.set (i, c);
-            damping.set (i, d);
-         }
-      }      
-      myCoupling.setCompliance (compliance);
-      myCoupling.setDamping (damping);
+      if (c != -1) {
+         double d = (c != 0) ? 2*Math.sqrt(getAverageBodyMass()/c) : 0;
+         VectorNi flags = myCoupling.getConstraintInfo();
+         VectorNd compliance = new VectorNd(myCoupling.getCompliance());
+         VectorNd damping = new VectorNd(myCoupling.getDamping());
+         for (int i=0; i<flags.size(); i++) {
+            if (usesLinearCompliance (flags.get(i))) {
+               compliance.set (i, c);
+               damping.set (i, d);
+            }
+         }      
+         myCoupling.setCompliance (compliance);
+         myCoupling.setDamping (damping);
+      }
    }
 
+   /**
+    * Returns the uniform compliance value, if any, for the rotary constraints
+    * of this connector. A uniform compliance value is also associated with a
+    * corresponding critical damping value. A value of {@code -1} indicate that
+    * not uniform value exists.
+    *  
+    * @return rotary compliance value, or {@code -1} if no
+    * uniform value exists.
+    */
    public double getRotaryCompliance () {
+      if (myComplianceUniformityUnknown) {
+         if (attachmentsInitialized()) {
+            checkComplianceUniformity();
+         }
+         else {
+            return -1;
+         }
+      }
       return myRotaryCompliance;
    }
 
+   /**
+    * Sets a uniform compliance for the rotary constraints of this connector.
+    * If the specified value {@code c} is {@code > 0}, then an appropriate
+    * critical damping value is also set for each rotary constraint. A value of
+    * {@code c < 0} is ignored and leaves all compliance and damping values
+    * unchanged.
+    * 
+    * @param c uniform rotary compliance value
+    */
    public void setRotaryCompliance (double c) {
       if (c < 0) {
-         c = 0;
+         c = -1;
       }
       myRotaryCompliance = c;
       // compute damping to give critical damping
-      double d = (c != 0) ? 2*Math.sqrt(getAverageRevoluteInertia()/c) : 0;
+      double d = (c > 0) ? 2*Math.sqrt(getAverageRevoluteInertia()/c) : 0;
       VectorNi flags = myCoupling.getConstraintInfo();
       VectorNd compliance = new VectorNd(myCoupling.getCompliance());
       VectorNd damping = new VectorNd(myCoupling.getDamping());
@@ -285,11 +350,16 @@ public abstract class BodyConnector extends RenderableComponentBase
    }
 
    /** 
-    * Check whether a specific set of compliance and damping values match those
-    * determined from the linear and rotary compliance values. If not,
-    * then the linear and/or rotary compliance values are set to -1.
+    * Check whether a specific set of compliance and damping values are
+    * consistent with uniform linear and/or rotary complaince values as would
+    * be set by {@link #setLinearCompliance} and {@link setRotaryCompliance}.
+    * If not, then the corresponding linear and/or rotary compliance values are
+    * set to -1.
     */   
-   private void checkConformity (VectorNd compliance, VectorNd damping) {
+   private void checkComplianceUniformity () {
+
+      VectorNd compliance = myCoupling.getCompliance();
+      VectorNd damping = myCoupling.getDamping();
 
       boolean hasLinear = false;
       boolean hasRotary = false;
@@ -330,12 +400,19 @@ public abstract class BodyConnector extends RenderableComponentBase
       if (hasRotary) {
          myRotaryCompliance = rc;
       }
+      myComplianceUniformityUnknown = false;
    }
 
    public void setCompliance (VectorNd compliance) {
       myCoupling.setCompliance(compliance);
       VectorNd damping = new VectorNd(myCoupling.getDamping());
-      checkConformity (compliance, damping);
+      if (attachmentsInitialized()) {
+         checkComplianceUniformity ();
+      }
+      else {
+         // update later when attachments are initialized
+         myComplianceUniformityUnknown = true;
+      }
    }
    
    public VectorNd getDamping() {
@@ -345,7 +422,13 @@ public abstract class BodyConnector extends RenderableComponentBase
    public void setDamping (VectorNd damping) {
       myCoupling.setDamping(damping);
       VectorNd compliance = new VectorNd(myCoupling.getCompliance());
-      checkConformity (compliance, damping);
+      if (attachmentsInitialized()) {
+         checkComplianceUniformity ();
+      }
+      else {
+         // update later when attachments are initialized
+         myComplianceUniformityUnknown = true;
+      }
    }
    
    public void setEnabled (boolean enabled) {

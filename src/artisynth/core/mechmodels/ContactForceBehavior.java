@@ -2,8 +2,9 @@ package artisynth.core.mechmodels;
 
 import maspack.collision.PenetrationRegion;
 import maspack.matrix.*;
+import maspack.util.Clonable;
 
-public interface ContactForceBehavior {
+public interface ContactForceBehavior extends Clonable {
 
    /**
     * Computes the force response for a given contact. The response consists of

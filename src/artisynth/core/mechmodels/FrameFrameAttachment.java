@@ -215,13 +215,10 @@ public class FrameFrameAttachment extends FrameAttachment {
    @Override
    public void applyForces() {
       Wrench forceA = myFrame.getForce();
-      Wrench forceF = new Wrench(forceA);
-      Vector3d pAFw = new Vector3d();
-      // rotate TFM.p into world coords
-      VectorNd oldForce = getMasterForce();
-      pAFw.transform (myMaster.getPose().R, myTFM.p); 
-      forceF.m.crossAdd (pAFw, forceA.f, forceF.m);
       if (myMaster instanceof DeformableBody) {
+
+         VectorNd oldForce = getMasterForce();
+
          myMaster.addFrameForce (myTFM, forceA);
          VectorNd addForce = getMasterForce();
          addForce.sub (oldForce);
@@ -230,27 +227,16 @@ public class FrameFrameAttachment extends FrameAttachment {
          VectorNd forceV = new VectorNd(6);
          forceV.set (forceA);
          myMasterBlocks[0].mul (chkForce, forceV);
-         double tol = addForce.norm()*1e-10;
+         double tol = Math.max(oldForce.norm(), addForce.norm())*1e-10;
          if (!addForce.epsilonEquals(chkForce, tol)) {
             System.out.println (
                "FrameFrameAttachment: force check mismatch");
             System.out.println ("DEF add=" + addForce.toString ("%12.8f"));
             System.out.println ("DEF chk=" + chkForce.toString ("%12.8f"));
          }
-         //setMasterForce (oldForce);
-         //myMaster.addForce (forceF);
       }
       else {
          myMaster.addFrameForce (myTFM, forceA);
-         VectorNd addForce = getMasterForce();
-         addForce.sub (oldForce);
-         double mag = addForce.norm();
-         if (!addForce.epsilonEquals(forceF, mag*1e-12)) {
-            addForce.sub (new VectorNd(forceF));
-            System.out.println (
-               "FrameFrameAttachment: force check mismatch, error=" +
-               (addForce.norm()/mag));
-         }
       }
    }
 

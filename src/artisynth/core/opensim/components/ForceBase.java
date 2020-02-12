@@ -6,18 +6,27 @@ import artisynth.core.modelbase.ModelComponent;
 
 public abstract class ForceBase extends HasVisibleObject implements ModelComponentGenerator<ModelComponent> {
    
-   private boolean isDisabled; // "Flag indicating whether the force is disabled or not. Disabled means"" that the force is not active in subsequent dynamics realizations."
-  
+   // private boolean isDisabled;    // "Flag indicating whether the force is disabled or not. Disabled means that the force is not active in subsequent dynamics realizations."
+   private boolean appliesForce;     // now called appliesForce (OpenSim 4.0)
+   
    protected ForceBase() {
-      isDisabled = false;
+      appliesForce = true;
    }
    
    public boolean isDisabled() {
-      return isDisabled;
+      return !appliesForce;
    }
    
    public void setDisabled(boolean set) {
-      isDisabled = set;
+      appliesForce = !set;
+   }
+   
+   public boolean getAppliesForce() {
+      return appliesForce;
+   }
+   
+   public void setAppliesForce(boolean set) {
+      appliesForce = set;
    }
    
    @Override

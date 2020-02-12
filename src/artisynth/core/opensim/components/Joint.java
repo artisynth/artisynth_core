@@ -2,7 +2,9 @@ package artisynth.core.opensim.components;
 
 import java.io.File;
 
-public class Joint extends OpenSimObject implements ModelComponentGenerator<artisynth.core.mechmodels.JointBase>{
+import artisynth.core.modelbase.ModelComponent;
+
+public class Joint extends OpenSimObject implements ModelComponentGenerator<ModelComponent>{
    
    private JointBase joint;
    
@@ -29,7 +31,7 @@ public class Joint extends OpenSimObject implements ModelComponentGenerator<arti
    }
 
    @Override
-   public artisynth.core.mechmodels.JointBase createComponent (
+   public ModelComponent createComponent (
       File geometryPath, ModelComponentMap componentMap) {
      
       JointBase joint = getJoint ();

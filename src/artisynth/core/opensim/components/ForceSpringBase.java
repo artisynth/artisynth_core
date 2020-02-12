@@ -1,7 +1,6 @@
 package artisynth.core.opensim.components;
 
 import java.io.File;
-import java.util.HashSet;
 
 import artisynth.core.materials.AxialMaterial;
 import artisynth.core.mechmodels.FrameMarker;
@@ -11,13 +10,14 @@ import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.RenderableComponentList;
 import maspack.matrix.Point3d;
+import maspack.render.RenderProps;
 
 public abstract class ForceSpringBase extends ForceBase {
 
    private GeometryPath geometryPath;           // Stores points through which actuator passes
    
    public ForceSpringBase() {
-      setGeometryPath (new GeometryPath ());
+      geometryPath = null;
    }
    
    public GeometryPath getGeometryPath() {
@@ -27,16 +27,6 @@ public abstract class ForceSpringBase extends ForceBase {
    public void setGeometryPath(GeometryPath gp) {
       geometryPath = gp;
       geometryPath.setParent (this);
-   }
-   
-   public HashSet<String> getAttachedBodies() {
-      HashSet<String> out = new HashSet<String>();
-      
-      for (PathPoint c : getGeometryPath ().pathPointSet.objects()) {
-         out.add (c.getBody ());
-      }
-      
-      return out;
    }
 
    @Override
@@ -65,9 +55,12 @@ public abstract class ForceSpringBase extends ForceBase {
      
       GeometryPath path = getGeometryPath ();
       PathPointSet pps = path.getPathPointSet ();
+      
+      RenderProps grprops = path.createRenderProps (); // geometry render props
     
       String mname = getName();
       RenderableComponentList<ModelComponent> ff = new RenderableComponentList<ModelComponent>(ModelComponent.class, mname);
+      componentMap.put (this, ff);
       
       String pathname = "path";
       if (mname != null) {
@@ -77,6 +70,7 @@ public abstract class ForceSpringBase extends ForceBase {
       ff.add (markers);
       
       MultiPointSpring mps = createDefaultSpring();
+      
       if (mname != null) {
          mps.setName (mname);
       } else {
@@ -85,13 +79,18 @@ public abstract class ForceSpringBase extends ForceBase {
       ff.add (mps);
       
       for (PathPoint pp : pps) {
-         String bodyName = pp.getBody ();
+         String bodyOrSocketParentFrame = pp.getBodyOrSocketParentFrame ();
          Point3d loc = pp.getLocation ();
          String name = pp.getName ();
          
          // get rigid body
-         Body body = componentMap.findObjectByName (Body.class, bodyName);
+         Body body = componentMap.findObjectByPathOrName (Body.class, this, bodyOrSocketParentFrame);
          RigidBody rb = (RigidBody)componentMap.get (body);
+         
+         if (rb == null) {
+            System.err.println("Failed to find body " + bodyOrSocketParentFrame);
+            return null;
+         }
          
          // add frame marker
          FrameMarker fm = new FrameMarker (name);
@@ -123,6 +122,7 @@ public abstract class ForceSpringBase extends ForceBase {
             String wrapObject = pw.getWrapObject ();
             WrapObject wo = componentMap.findObjectByName (WrapObject.class, wrapObject);
             RigidBody wrappable = (RigidBody)componentMap.get (wo);
+            wrappable.setRenderProps (grprops);
             
             for (int i=0; i<markers.size ()-1; ++i) {
                // add wrap segment if frame markers are on different bodies
@@ -143,9 +143,9 @@ public abstract class ForceSpringBase extends ForceBase {
       mps.setRestLengthFromPoints ();
       mps.setMaterial (createMaterial ());
       
+      markers.setRenderProps (grprops);
       mps.setRenderProps (createRenderProps());
-      
-      componentMap.put (this, ff);
+     
       
       return ff;
    }

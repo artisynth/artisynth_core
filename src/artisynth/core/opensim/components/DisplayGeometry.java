@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 
 import maspack.geometry.MeshBase;
-import maspack.geometry.PolygonalMesh;
 import maspack.geometry.io.GenericMeshReader;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -76,12 +75,6 @@ public class DisplayGeometry extends VisibleBase {
       if (geometry_file != null) {
          try {
             mesh = GenericMeshReader.readMesh (new File(geometryPath, geometry_file));
-            if (mesh instanceof PolygonalMesh) {
-               PolygonalMesh pmesh = (PolygonalMesh)mesh;
-               if (!pmesh.isTriangular()) {
-                  pmesh.triangulate();
-               }
-            }
             // scale and transform
             Vector3d scale = getScaleFactors ();
             if (scale != null) {

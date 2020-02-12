@@ -2,7 +2,7 @@ package artisynth.core.opensim.components;
 
 import org.w3c.dom.Element;
 
-public class BodyFactory extends OpenSimObjectFactory<Body> {
+public class BodyFactory extends PhysicalFrameFactory<Body> {
    
    public BodyFactory() {
       super(Body.class);
@@ -36,28 +36,11 @@ public class BodyFactory extends OpenSimObjectFactory<Body> {
          body.setInertiaYZ (parseDoubleValue(child));
       } else if ("inertia".equals(cname)) {
          body.setInertia (parseDoubleArrayValue (child));
-      } else if ("VisibleObject".equals(cname)) {
-         OpenSimObjectFactory<? extends VisibleObject> vof = getFactory (VisibleObject.class);
-         if (vof != null) {
-            VisibleObject vo = vof.parse(child);
-            body.setVisibleObject (vo);
-         } else {
-            success = false;
-         }
-         
       } else if ("Joint".equals(cname)) {
          OpenSimObjectFactory<? extends Joint> jf = getFactory (Joint.class);
          if (jf != null) {
             Joint joint = jf.parse(child);
             body.setJoint(joint);
-         } else {
-            success = false;
-         }
-      } else if ("WrapObjectSet".equals(cname)) {
-         OpenSimObjectFactory<? extends WrapObjectSet> factory = getFactory (WrapObjectSet.class);
-         if (factory != null) {
-            WrapObjectSet wos = factory.parse(child);
-            body.setWrapObjectSet (wos);
          } else {
             success = false;
          }

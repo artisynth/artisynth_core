@@ -1,6 +1,6 @@
 package artisynth.core.opensim.components;
 
-public class GeometryPath extends HasVisibleObject {
+public class GeometryPath extends HasVisibleObjectOrAppearance {
 
    PathPointSet pathPointSet;
    PathWrapSet pathWrapSet;

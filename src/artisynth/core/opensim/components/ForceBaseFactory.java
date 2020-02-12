@@ -16,6 +16,8 @@ public abstract class ForceBaseFactory<E extends ForceBase> extends HasVisibleOb
       String name = getNodeName (child);
       if ("isDisabled".equals(name)) {
          comp.setDisabled (parseBooleanValue (child));
+      } else if ("appliesForce".equals(name)) {
+         comp.setAppliesForce (parseBooleanValue (child));
       } else {
          success =  super.parseChild (comp, child);
       }

@@ -21,8 +21,10 @@ public class ObjectGroupFactory extends OpenSimObjectFactory<ObjectGroup> {
       if ("members".equals(name)) {
          // string array
          String[] members = parseTextArrayValue (child);
-         for (String member : members) {
-            comp.addMember (member);
+         if (members != null) {
+            for (String member : members) {
+               comp.addMember (member);
+            }
          }
       } else {
          success = super.parseChild (comp, child);

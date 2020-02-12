@@ -22,6 +22,7 @@ public class Model3 extends ModelBase {
       if (mech == null) {
          mech = new MechModel(getName ());
       }
+      componentMap.put (this, mech);
       
       // bodies
       BodySet bodySet = this.getBodySet ();
@@ -41,9 +42,6 @@ public class Model3 extends ModelBase {
       if (gravity != null) {
          mech.setGravity (gravity);
       }
-      
-      
-      componentMap.put (this, mech);
       
       return mech;
       

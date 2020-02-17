@@ -268,8 +268,8 @@ public abstract class JointBase extends OpenSimObject implements ModelComponentG
       File geometryPath, ModelComponentMap componentMap) {
       
       // holder for joint and frames
-      RenderableComponentList<ModelComponent> jointRoot = new RenderableComponentList<>(ModelComponent.class, getName());
-      componentMap.put (this, jointRoot);
+      // RenderableComponentList<ModelComponent> jointRoot = new RenderableComponentList<>(ModelComponent.class, getName());
+      // componentMap.put (this, jointRoot);
       
       // create frames first in case referred to within joint
       FrameList frames = getFrames ();
@@ -350,9 +350,10 @@ public abstract class JointBase extends OpenSimObject implements ModelComponentG
       
       // create and add joint
       artisynth.core.mechmodels.JointBase joint = createJoint (parentRB, TJP, childRB, TJC);  
-      jointRoot.add (joint);
+      // jointRoot.add (joint);
       
-      return jointRoot;
+      // return jointRoot;
+      return joint;
    }
 
 }

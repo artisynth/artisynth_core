@@ -1,5 +1,6 @@
 package artisynth.core.opensim.components;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import artisynth.core.mechmodels.RigidBody;
@@ -44,22 +45,16 @@ public class CustomJoint extends JointBase {
 
    @Override
    public OpenSimCustomJoint createJoint (
-      RigidBody parent, RigidBody child) {
+      RigidBody parent, RigidTransform3d TJP, RigidBody child, RigidTransform3d TJC) {
       
       // try to use Spherical, SphericalRpy, RollPitch, Revolute
       
       RigidBody childRB = child;
       RigidBody parentRB = parent;
-      RigidTransform3d childTrans = getJointTransformInChild ();
-      RigidTransform3d parentTrans = getJointTransformInParent ();
-      if (getReverse ()) {
-         childRB = parent;
-         parentRB = child;
-         childTrans = parentTrans;
-         parentTrans = getJointTransformInChild ();
-      }
+      RigidTransform3d childTrans = TJC;
+      RigidTransform3d parentTrans = TJP;
       
-      CoordinateSet cs = getCoordinateSet ();
+      ArrayList<Coordinate> cs = getCoordinateArray ();
       HashMap<String,Coordinate> coordMap = new HashMap<> (cs.size ());
       if (cs != null) {
          for (Coordinate coord : cs) {

@@ -38,7 +38,16 @@ public class Model4Factory extends ModelFactoryBase<Model4> {
       
       String name = getNodeName (child);
       
-      if ("JointSet".equals(name)) {
+      if ("Ground".equals(name)) {
+         
+         OpenSimObjectFactory<? extends Ground> factory = getFactory(Ground.class);
+         if (factory != null) {
+            comp.setGround (factory.parse (child));
+         } else {
+            success = false;
+         }
+         
+      } else if ("JointSet".equals(name)) {
          
          OpenSimObjectFactory<? extends JointSet> factory = getFactory (JointSet.class);
          if (factory != null) {
@@ -46,7 +55,21 @@ public class Model4Factory extends ModelFactoryBase<Model4> {
          } else {
             success = false;
          }
-         
+      } else if ("ComponentSet".equals(name)) {
+         OpenSimObjectFactory<? extends ComponentSet> factory = getFactory (ComponentSet.class);
+         if (factory != null) {
+            comp.setComponentSet (factory.parse (child));
+         } else {
+            success = false;
+         }
+      } else if ("ControllerSet".equals(name)) {
+         System.out.println ("Model4Factory: ignoring ControllerSet");
+      } else if ("ConstraintSet".equals(name)) {
+         System.out.println ("Model4Factory: ignoring ConstraintSet");
+      } else if ("ProbeSet".equals(name)) {
+         System.out.println ("Model4Factory: ignoring ProbeSet");
+      } else if ("ContactGeometrySet".equals(name)) {
+         System.out.println ("Model4Factory: ignoring ContactGeometrySet");
       } else {
          success = super.parseChild (comp, child);
       }

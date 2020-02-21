@@ -6,7 +6,7 @@ import artisynth.core.mechmodels.Wrappable;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 
-public abstract class WrapObject extends HasVisibleObject {
+public abstract class WrapObject extends HasVisibleObjectOrAppearance {
 
    private Point3d xyz_body_rotation;
    private Point3d translation;
@@ -30,8 +30,8 @@ public abstract class WrapObject extends HasVisibleObject {
    }
    
    /**
-    * Creates a transform representation of the translation and rotation
-    * components
+    * Creates a transform representation of the translation and rotation components
+    * @return
     */
    public RigidTransform3d getTransform() {
       RigidTransform3d trans = new RigidTransform3d();

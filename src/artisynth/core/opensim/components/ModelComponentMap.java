@@ -1,5 +1,7 @@
 package artisynth.core.opensim.components;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -63,6 +65,25 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
    }
    
    /**
+    * Finds the first instance of an object assignable to baseClass with the provided path
+    * or name
+    * @param baseClass base class for type conversion
+    * @param ref reference object for resolving relative paths
+    * @param pathOrName object path or name
+    * @return object if found, null otherwise
+    */
+   public <O extends OpenSimObject> O findObjectByPathOrName(Class<O> baseClass, OpenSimObject ref, String pathOrName) {
+      
+      OpenSimObject obj = findObjectByPath (ref, pathOrName);
+      if (obj != null && baseClass.isAssignableFrom (obj.getClass ())) {
+         @SuppressWarnings("unchecked")
+         O out = (O)obj;
+         return out;
+      }
+      return findObjectByName (baseClass, pathOrName);
+   }
+   
+   /**
     * Finds the first instance of an object with the provided name
     * @param name object name
     * @return object if found, null otherwise
@@ -93,11 +114,35 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
    
    /**
     * Returns a component by its fully qualified path
-    * @param path path
+    * @param object from which path is requested (for relative path resolution)
+    * @param path absolute or relative path
     * @return component at path if exists
     */
-   public OpenSimObject findObjectByPath(String path) {
+   public OpenSimObject findObjectByPath(OpenSimObject obj, String path) {
+      if (!path.startsWith ("/")) {
+         // relative path
+         String parentPath = obj.getPath ();
+         if (parentPath != null) {
+            if (!parentPath.endsWith ("/")) {
+               path = parentPath + "/" + path;
+            } else {
+               path = parentPath + path;
+            }
+            // normalize url
+            try {
+              URI uri = new URI(path);
+              path = uri.normalize ().toString ();
+            }
+            catch (URISyntaxException e) {
+               e.printStackTrace();
+            }
+         }
+      }
       if (path != null) {
+         // trim trailing slash
+         if (path.length() > 1 && path.endsWith ("/")) {
+            path = path.substring (0, path.length ()-1);
+         }
          return pathMap.get (path);
       }
       return null;
@@ -114,7 +159,7 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
       // add name and path if not already there
       if (old == null) {
          addToNameMap (obj.getName (), obj);
-         addToPathMap (obj.getPath (), obj);
+         addToPathMap (obj.getPath ().toString (), obj);
       }
       
       return old;
@@ -178,7 +223,7 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
          }
          
          // remove path
-         String path = obj.getPath ();
+         String path = obj.getPath ().toString ();
          if (path != null) {
             pathMap.remove (path, obj);
          }

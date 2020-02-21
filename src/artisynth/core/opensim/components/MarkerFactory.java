@@ -2,7 +2,7 @@ package artisynth.core.opensim.components;
 
 import org.w3c.dom.Element;
 
-public class MarkerFactory extends HasVisibleObjectFactory<Marker> {
+public class MarkerFactory extends HasVisibleObjectOrAppearanceFactory<Marker> {
 
    public MarkerFactory() {
       super(Marker.class);
@@ -20,6 +20,8 @@ public class MarkerFactory extends HasVisibleObjectFactory<Marker> {
       
       if ("body".equals(name)) {
          comp.setBody (parseTextValue (child));
+      } else if ("socket_parent_frame".equals(name)) {
+         comp.setSocketParentFrame (parseTextValue(child));
       } else if ("location".equals(name)) {
          comp.setLocation (parsePoint3dValue (child));
       } else if ("fixed".equals(name)) {

@@ -1,6 +1,7 @@
 package artisynth.core.opensim.components;
 
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 public class TransformAxisFactory extends OpenSimObjectFactory<TransformAxis> {
 
@@ -30,7 +31,17 @@ public class TransformAxisFactory extends OpenSimObjectFactory<TransformAxis> {
             success = false;
          }
       } else {
-         success = super.parseChild (comp, child);
+         // OpenSim 4.0 removed "function" tag and puts function
+         // directly in Transform axis
+         
+         // try to parse function, could be empty
+         OpenSimObjectFactory<? extends FunctionBase> factory = findFactory (FunctionBase.class, child);
+         if (factory != null) {
+            FunctionBase function = factory.parse (child);
+            comp.setFunction (function);
+         } else {
+            success = super.parseChild (comp, child);
+         }
       }
       
       return success;

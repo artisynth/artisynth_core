@@ -3,6 +3,7 @@ package artisynth.core.opensim.components;
 import java.io.File;
 
 import artisynth.core.mechmodels.MechModel;
+import maspack.fileutil.uri.URIx;
 import maspack.matrix.Vector3d;
 
 public abstract class ModelBase extends OpenSimObject implements ModelComponentGenerator<MechModel> {

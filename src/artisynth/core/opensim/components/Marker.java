@@ -2,9 +2,10 @@ package artisynth.core.opensim.components;
 
 import maspack.matrix.Point3d;
 
-public class Marker extends HasVisibleObject {
+public class Marker extends HasVisibleObjectOrAppearance {
    
-   private String body;
+   private String body;                 // body name only (OpenSim 3.0)
+   private String socket_parent_frame;  // full body path (OpenSim 4.0)
    private Point3d location;
    private boolean fixed;       //Is Marker Fixed
    
@@ -21,6 +22,14 @@ public class Marker extends HasVisibleObject {
    public String getBody() {
       return body;
    }   
+   
+   public void setSocketParentFrame(String path) {
+      socket_parent_frame = path;
+   }
+   
+   public String getSocketParentFrame() {
+      return socket_parent_frame;
+   }
    
    public void setFixed(boolean state) {
       fixed = state;
@@ -39,7 +48,12 @@ public class Marker extends HasVisibleObject {
    }
    
    public String toString() {
-      String ret = body+":["+location.x+", "+location.y+", "+location.z+"]";
+      String ret = null;
+      if (socket_parent_frame != null) {
+         ret = socket_parent_frame+":["+location.x+", "+location.y+", "+location.z+"]";
+      } else {
+         ret = body+":["+location.x+", "+location.y+", "+location.z+"]";
+      }
       return ret;
    }
   
@@ -47,6 +61,7 @@ public class Marker extends HasVisibleObject {
    public Marker clone () {
       Marker marker = (Marker)super.clone ();
       marker.setBody (body);
+      marker.setSocketParentFrame (socket_parent_frame);
       if (location != null) {
          marker.setLocation (location.clone ());
       }

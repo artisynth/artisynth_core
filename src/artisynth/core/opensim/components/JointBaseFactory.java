@@ -23,6 +23,27 @@ public abstract class JointBaseFactory<E extends JointBase> extends OpenSimObjec
          } else {
             success = false;
          }
+      } else if ("coordinates".equals(name)) {
+         // in OpenSim 4, coordinates became a basic sub-element
+         OpenSimObjectFactory<? extends CoordinateList> factory = getFactory (CoordinateList.class);
+         if (factory != null) {
+            CoordinateList cs = factory.parse (child);
+            comp.setCoordinates (cs);
+         } else {
+            success = false;
+         }
+      } else if ("frames".equals(name)) {
+         OpenSimObjectFactory<? extends FrameList> factory = getFactory (FrameList.class);
+         if (factory != null) {
+            FrameList frms = factory.parse (child);
+            comp.setFrames (frms);
+         } else {
+            success = false;
+         }
+      } else if ("socket_parent_frame".equals(name)) {
+         comp.setSocketParentFrame (parseTextValue (child));
+      } else if ("socket_child_frame".equals(name)) {
+         comp.setSocketChildFrame (parseTextValue(child));
       } else if ("parent_body".equals(name)) {
          comp.setParentBody (parseTextValue (child));
       } else if ("location_in_parent".equals(name)) {

@@ -25,7 +25,11 @@ public class ForceSet extends SetBase<ForceBase> implements ModelComponentGenera
       for (ForceBase force : objects()) {
          
          ModelComponent fc = force.createComponent(geometryPath, componentMap);
-         forces.add (fc);
+         if (fc == null) {
+            System.err.println ("Failed to create force " + force.getName ());
+         } else {
+            forces.add (fc);
+         }
          
       }
       

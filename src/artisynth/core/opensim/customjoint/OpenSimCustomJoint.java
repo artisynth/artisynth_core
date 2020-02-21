@@ -2,7 +2,6 @@ package artisynth.core.opensim.customjoint;
 
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 import artisynth.core.mechmodels.JointBase;
 import artisynth.core.mechmodels.RigidBody;
@@ -11,7 +10,6 @@ import artisynth.core.opensim.components.CoordinateSet;
 import artisynth.core.opensim.components.CustomJoint;
 import artisynth.core.opensim.components.SpatialTransform;
 import artisynth.core.opensim.components.TransformAxis;
-import artisynth.core.opensim.customjoint.OpenSimCustomCoupling.Coord;
 import artisynth.core.opensim.customjoint.OpenSimCustomCoupling.TAxis;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
@@ -53,12 +51,17 @@ public class OpenSimCustomJoint extends JointBase {
    }
    
    public OpenSimCustomJoint(CustomJoint cj) {
-      this(cj.getSpatialTransform (), cj.getCoordinateSet ());
+      this(cj.getSpatialTransform (), cj.getCoordinateArray ());
    }
    
    public OpenSimCustomJoint(SpatialTransform trans, CoordinateSet coords) {
       this(trans.getTransformAxisArray (), 
          coords.objects ().toArray (new Coordinate[coords.size ()]));
+   }
+   
+   public OpenSimCustomJoint(SpatialTransform trans, ArrayList<Coordinate> coords) {
+      this(trans.getTransformAxisArray (), 
+         coords.toArray (new Coordinate[coords.size ()]));
    }
    
    public OpenSimCustomJoint(TransformAxis[] axes, Coordinate[] coords) {

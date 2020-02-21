@@ -58,8 +58,14 @@ public class OpenSimObject implements Clonable {
       if (parent != null) {
          String parentPath = parent.getPath ();
          if (parentPath != null) {
-            path = parentPath + "/" + getName ();
+            if (!parentPath.endsWith ("/")) {
+               parentPath += "/";
+            }
+            path = parentPath + getName ();
          }
+      } 
+      if (path == null){
+         System.err.println ("Cannot determine path for " + getName ());
       }
       return path;
    }

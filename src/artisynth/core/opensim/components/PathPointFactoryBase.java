@@ -2,7 +2,7 @@ package artisynth.core.opensim.components;
 
 import org.w3c.dom.Element;
 
-public abstract class PathPointFactoryBase<F extends PathPoint> extends HasVisibleObjectFactory<F> {
+public abstract class PathPointFactoryBase<F extends PathPoint> extends HasVisibleObjectOrAppearanceFactory<F> {
 
    protected PathPointFactoryBase (Class<? extends F> instanceClass) {
       super (instanceClass);
@@ -18,6 +18,8 @@ public abstract class PathPointFactoryBase<F extends PathPoint> extends HasVisib
          comp.setLocation (parsePoint3dValue (child));
       } else if ("body".equals(name)) {
          comp.setBody (parseTextValue(child));
+      } else if ("socket_parent_frame".equals(name)) {
+         comp.setSocketParentFrame (parseTextValue(child));
       } else {
          success = super.parseChild (comp, child);
       }

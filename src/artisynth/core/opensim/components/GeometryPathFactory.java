@@ -2,7 +2,7 @@ package artisynth.core.opensim.components;
 
 import org.w3c.dom.Element;
 
-public class GeometryPathFactory extends HasVisibleObjectFactory<GeometryPath> {
+public class GeometryPathFactory extends HasVisibleObjectOrAppearanceFactory<GeometryPath> {
 
    public GeometryPathFactory() {
       super(GeometryPath.class);

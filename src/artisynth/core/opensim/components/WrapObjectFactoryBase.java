@@ -2,7 +2,7 @@ package artisynth.core.opensim.components;
 
 import org.w3c.dom.Element;
 
-public abstract class WrapObjectFactoryBase<F extends WrapObject> extends HasVisibleObjectFactory<F> {
+public abstract class WrapObjectFactoryBase<F extends WrapObject> extends HasVisibleObjectOrAppearanceFactory<F> {
 
    protected WrapObjectFactoryBase (Class<? extends F> instanceClass) {
       super (instanceClass);

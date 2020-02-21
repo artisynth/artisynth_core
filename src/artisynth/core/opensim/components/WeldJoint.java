@@ -2,6 +2,7 @@ package artisynth.core.opensim.components;
 
 import artisynth.core.mechmodels.RigidBody;
 import artisynth.core.mechmodels.SolidJoint;
+import maspack.matrix.RigidTransform3d;
 
 public class WeldJoint extends JointBase {
 
@@ -11,15 +12,11 @@ public class WeldJoint extends JointBase {
    }
 
    @Override
-   public artisynth.core.mechmodels.JointBase createJoint (RigidBody parent, RigidBody child) {
+   public artisynth.core.mechmodels.JointBase createJoint (RigidBody parent, RigidTransform3d TJP, 
+      RigidBody child, RigidTransform3d TJC) {
       
-      SolidJoint sj = null;
+      SolidJoint sj = new SolidJoint (parent, TJP, child, TJC);
       
-      if (getReverse ()) {
-         sj = new SolidJoint (child, getJointTransformInChild(), parent, getJointTransformInParent());
-      } else {
-         sj = new SolidJoint (parent, getJointTransformInParent(), child, getJointTransformInChild());
-      }
       sj.setName (getName());
       return sj;
    }

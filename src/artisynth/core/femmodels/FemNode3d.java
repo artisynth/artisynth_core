@@ -143,12 +143,18 @@ public class FemNode3d extends FemNode implements Boundable {
          "stress", "average stress in this node");
       myProps.addReadOnly (
          "vonMisesStress", "average von Mises stress in this node");
+      myProps.addReadOnly (
+         "MAPStress",
+         "maximum absolute principal stress value");
       myProps.add (
          "computeStrain", "compute strain for this node", false);
       myProps.addReadOnly (
          "strain", "average strain in this node");
       myProps.addReadOnly (
          "vonMisesStrain", "average von Mises strain in this node");
+      myProps.addReadOnly (
+         "MAPStrain",
+         "maximum absolute principal strain value");
       myProps.add("index", "Index of node (for external use)", -1);
    }
 
@@ -296,7 +302,7 @@ public class FemNode3d extends FemNode implements Boundable {
     * 
     * @return max abs principal stress, or 0 is stress is not being computed
     */   
-   public double getMaxAbsPrincipalStress () {
+   public double getMAPStress () {
       return (myAvgStress == null) ? 0 : computeMaxAbsEigenvalue(myAvgStress);
    }
 
@@ -340,7 +346,7 @@ public class FemNode3d extends FemNode implements Boundable {
 
     * @return max abs strain, or 0 is strain is not being computed
     */
-   public double getMaxAbsPrincipalStrain () {
+   public double getMAPStrain () {
       return (myAvgStrain == null) ? 0 : computeMaxAbsEigenvalue(myAvgStrain);
    }
 

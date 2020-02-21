@@ -4024,13 +4024,13 @@ PointAttachable, ConnectableBody {
             s = (float)node.getVonMisesStress();
          }
          else if (rendering == SurfaceRender.MAPStress) {
-            s = (float)node.getMaxAbsPrincipalStress();
+            s = (float)node.getMAPStress();
          }
          else if (rendering == SurfaceRender.Strain) {
             s = (float)node.getVonMisesStrain();
          }
          else if (rendering == SurfaceRender.MAPStrain) {
-            s = (float)node.getMaxAbsPrincipalStrain();
+            s = (float)node.getMAPStrain();
          }
          if (s < min) {
             min = s;

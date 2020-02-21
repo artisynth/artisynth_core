@@ -1175,13 +1175,13 @@ implements CollidableBody, PointAttachable {
                      sval += w*node.getVonMisesStress();
                   }
                   else if (mySurfaceRendering == SurfaceRender.MAPStress) {
-                     sval += w*node.getMaxAbsPrincipalStress();
+                     sval += w*node.getMAPStress();
                   }
                   else if (mySurfaceRendering == SurfaceRender.Strain) {
                      sval += w*node.getVonMisesStrain();
                   } 
                   else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
-                     sval += w*node.getMaxAbsPrincipalStrain();
+                     sval += w*node.getMAPStrain();
                   }
                }
             }
@@ -1193,13 +1193,13 @@ implements CollidableBody, PointAttachable {
                sval = node.getVonMisesStress();
             }
             else if (mySurfaceRendering == SurfaceRender.MAPStress) {
-               sval = node.getMaxAbsPrincipalStress();
+               sval = node.getMAPStress();
             }            
             else if (mySurfaceRendering == SurfaceRender.Strain) {
                sval = node.getVonMisesStrain();
             } 
             else if (mySurfaceRendering == SurfaceRender.MAPStrain) {
-               sval = node.getMaxAbsPrincipalStrain();
+               sval = node.getMAPStrain();
             }
          }
          double smin = myStressPlotRange.getLowerBound();

@@ -16,23 +16,24 @@ import artisynth.core.util.*;
  * A simple component that provides a reference to another component. Used as
  * the building block for ReferenceLists.
  */
-public class ReferenceComponent extends ModelComponentBase {
+public class ReferenceComp<C extends ModelComponent> 
+   extends ModelComponentBase {
    
-   ModelComponent myRef;
+   C myRef;
 
-   public ReferenceComponent (ModelComponent ref) {
+   public ReferenceComp (C ref) {
       myRef = ref;
    }
    
-   public ReferenceComponent () {
+   public ReferenceComp () {
       this (null);
    }
    
-   public ModelComponent getReference() {
+   public C getReference() {
       return myRef;
    }
 
-   public void setReference (ModelComponent ref) {
+   public void setReference (C ref) {
       if (ref != myRef) {
          myRef = ref;
       }      
@@ -47,24 +48,6 @@ public class ReferenceComponent extends ModelComponentBase {
       }
    }
 
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public void connectToHierarchy() {
-//      if (myRef != null) {
-//         myRef.addBackReference (this);
-//      }
-//   }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//   public void disconnectFromHierarchy() {
-//      if (myRef != null) {
-//         myRef.addBackReference (this);
-//      }
-//   }
-
    public boolean scanItem (
    ReaderTokenizer rtok, Deque<ScanToken> tokens) throws IOException {
       rtok.nextToken();
@@ -78,7 +61,7 @@ public class ReferenceComponent extends ModelComponentBase {
    protected boolean postscanItem (
    Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
       if (postscanAttributeName (tokens, "ref")) {
-         myRef = postscanReference (tokens, ModelComponent.class, ancestor);
+         myRef = (C)postscanReference (tokens, ModelComponent.class, ancestor);
          return true;
       }
       return super.postscanItem (tokens, ancestor);

@@ -206,25 +206,14 @@ public class IndexedBinaryHeap {
          return -1;
       }
 
-      int lastRowIdx = pow2(log2(size))-1;
-      int idx = lastRowIdx;
-      for (int i=lastRowIdx+1; i<size; i++ ) {
-         int c = comparator.compare(heap[i], heap[idx]);
+      int largestIdx = size/2;
+      for (int leafIdx=largestIdx+1; leafIdx<size; leafIdx++ ) {
+         int c = comparator.compare(heap[leafIdx], heap[largestIdx]);
          if (c > 0) {
-            idx = i;
+            largestIdx = leafIdx;
          }
       }
-      return idx;
-   }
-
-   protected int log2(int n) {
-      return 31 - Integer.numberOfLeadingZeros(n);
-   }
-
-   protected int pow2(int n) {
-      int out = 1;
-      out = out >>> n;
-      return out;
+      return largestIdx;
    }
 
    /**

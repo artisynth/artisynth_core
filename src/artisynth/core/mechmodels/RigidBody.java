@@ -407,15 +407,36 @@ public class RigidBody extends Frame
       }
       for (RigidMeshComp mcomp : myMeshList) {
          mcomp.transformMesh (new RigidTransform3d (del.x, del.y, del.z));
-         // MeshBase mesh = mcomp.getMesh ();
-         // if (mesh != null) { // Paranoid
-         //    mesh.tran
-         //    mesh.translate (del);
-         // }
       }
       setPosition (newPos);
    }
-   
+
+   /**
+    * Transform the body coordinate frame. The transformation from the current
+    * to the new coordinate frame is given by {@code TNB}, such the if the
+    * body's current pose is given by {@code TBW}, then the new pose {@code
+    * TNW} will be given by
+    * <pre>
+    *  TNW = TBW TBN
+    * </pre>
+    * This method also updates the vertex positions of the body's
+    * meshes (using the inverse {@code TNB}), as
+    * well as the inertia tensor.
+    */
+   public void transformCoordinateFrame (RigidTransform3d TNB) {
+      RigidTransform3d TNW = new RigidTransform3d();
+      TNW.mul (getPose(), TNB);
+      if (myInertiaMethod == InertiaMethod.EXPLICIT) {
+         mySpatialInertia.inverseTransform (TNB);
+      }
+      for (RigidMeshComp mcomp : myMeshList) {
+         RigidTransform3d invTNB = new RigidTransform3d();
+         invTNB.invert (TNB);
+         mcomp.transformMesh (invTNB);
+      }
+      setPose (TNW);
+   }
+
    /** 
     * Causes the inertia to be automatically computed from the mesh volume
     * and a given density. If the mesh is currently <code>null</code> then

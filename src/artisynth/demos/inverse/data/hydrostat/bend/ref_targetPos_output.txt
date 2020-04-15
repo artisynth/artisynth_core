@@ -1,2 +1,0 @@
-0 1000000000 1.0
-Linear 48 explicit

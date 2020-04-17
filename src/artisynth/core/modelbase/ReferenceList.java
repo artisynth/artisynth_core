@@ -6,95 +6,22 @@
  */
 package artisynth.core.modelbase;
 
-import java.io.*;
-import java.util.*;
+import java.util.Collection;
 
-import artisynth.core.util.*;
-import maspack.util.*;
-import maspack.properties.*;
+import maspack.properties.PropertyList;
 
-public class ReferenceList extends ComponentList<ReferenceComponent> {
+public class ReferenceList<C extends ModelComponent> 
+   extends ReferenceListBase<C,ReferenceComp<C>> {
 
-   protected static NavpanelVisibility DEFAULT_NAVPANEL_VISIBILITY =
-      NavpanelVisibility.ALWAYS;
-
-   public static PropertyList myProps =
-      new PropertyList (ReferenceList.class, ComponentList.class);
-
-   static {
-      myProps.setDefaultValue ("navpanelVisibility", DEFAULT_NAVPANEL_VISIBILITY);
-   }
-
-   public PropertyList getAllPropertyInfo() {
-      return myProps;
-   }
    public ReferenceList() {
       this (null);
    }
-   
-   public ReferenceList(String name) {
-      super (ReferenceComponent.class, name);
-      setNavpanelVisibility (DEFAULT_NAVPANEL_VISIBILITY);
+
+   public ReferenceList (String name) {
+      super ((Class)ReferenceComp.class, name);
    }
 
    public boolean hasParameterizedType() {
       return false;
    }
-
-   public ReferenceComponent addReference (ModelComponent ref) {
-      ReferenceComponent rc = new ReferenceComponent (ref); 
-      add (rc);
-      return rc;
-   }
-
-   public void addReferences (Collection<ModelComponent> refs) {
-      for (ModelComponent c : refs) {
-         add (new ReferenceComponent (c));
-      }
-   }
-
-   public ModelComponent getReference (int idx) {
-      return get(idx).getReference();
-   }
-
-   public boolean containsReference (ModelComponent ref) {
-      return indexOfReference(ref) != -1;
-   }
-
-   public int indexOfReference (ModelComponent ref) {
-      for (int i=0; i<size(); i++) {
-         if (get(i).getReference() == ref) {
-            return i;
-         }
-      }
-      return -1;
-   }         
-
-   public void getReferences (Collection<ModelComponent> col) {
-      for (int i=0; i<size(); i++) {
-         col.add (getReference(i));
-      }
-   }
-
-   public boolean removeReference (ModelComponent ref) {
-      int idx = indexOfReference (ref);
-      if (idx != -1) {
-         remove (idx);
-         return true;
-      }
-      else {
-         return false;
-      }
-   }
-
-   public boolean removeReferences (Collection<ModelComponent> refs) {
-      boolean removed = false;
-      for (ModelComponent c : refs) {
-         if (remove (c)) {
-            removed = true;
-         }
-      }
-      return removed;
-   }
-
 }

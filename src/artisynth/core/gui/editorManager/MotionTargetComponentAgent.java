@@ -48,7 +48,6 @@ SelectionListener {
    private PropertyPanel myPropertyPanel;
    private PropTreeCell myPropTree;
    protected SelectableComponentPanel myTargetPanel;
-   private ListView<MotionTargetComponent> myTargetView;
    protected JScrollPane myListScroller;
    // protected HashSet<MotionTargetComponent> mySelectedTargets;
    CompositeComponent myAncestor;
@@ -131,7 +130,6 @@ SelectionListener {
    public MotionTargetComponentAgent (Main main, TrackingController controller) {
       super (main);
       myController = controller;
-      myTargetView = myController.getTargetView();
       myAncestor = ComponentUtils.nearestEncapsulatingAncestor (controller);
    }
 

@@ -2,129 +2,108 @@ package artisynth.core.inverse;
 
 import java.util.ArrayList;
 
+import artisynth.core.modelbase.*;
+
 import maspack.matrix.MatrixNd;
 import maspack.matrix.VectorNd;
+import maspack.util.*;
+import maspack.properties.*;
 
 /**
- * Term to create (in)equality constraints:
- * -set lower, upper or both bounds with convenient methods
- * -optionally add constraints using addRows(MatrixNd H, VectorNd f)
+ * Constraint term to bound excitation values, using bounds specified by the
+ * ExciterComps stored in the controller.
+ *
  * @author Teun
  */
-public class BoundsTerm extends LeastSquaresTermBase {
+public class BoundsTerm extends QPConstraintTermBase {
 
-   protected double myLowerBound;
-   protected double myUpperBound; 
-   protected boolean useLowerBound = false;
-   protected boolean useUpperBound = false;
-   protected ArrayList<Double> myUpperBoundsList = null;
-   protected ArrayList<Double> myLowerBoundsList = null;
-   
-   public void setLowerBound(double lowerBound) {
-      myLowerBound = lowerBound;
-      useLowerBound = true;
-      setSize(mySize); //resizes and recomputes cost term
+   public static PropertyList myProps =
+      new PropertyList (BoundsTerm.class, QPTermBase.class);
+
+   static {
+      // remove weight property since it is not used by this term
+      myProps.remove ("weight");
    }
-   
-   public void setUpperBound(double upperBound) {
-      myUpperBound = upperBound;
-      useUpperBound = true;
-      setSize(mySize); //resizes and recomputes cost term
+
+   public BoundsTerm() {
+      super();
    }
-   
-   public void setBounds(double lowerBound, double upperBound) {
-      myLowerBound = lowerBound;
-      useLowerBound = true;
-      myUpperBound = upperBound;
-      useUpperBound = true;
-      setSize(mySize); //resizes and recomputes cost term
+
+   public BoundsTerm (String name) {
+      setName (name);
    }
-   
+  
    /**
-    * Sets upper and lower bounds.
-    * The bounds can be individually set or they can take on a default value otherwise.
-    * Null values in the lists are interpreted as "use default"
-    * @param lowerBound default lower limit
-    * @param upperBound default upper limit
-    * @param lowerBoundsList list of individual lower bounds
-    * @param upperBoundsList list of individual upper bounds
+    * {@inheritDoc}
     */
-   public void setBounds(double lowerBound, double upperBound, 
-      ArrayList<Double> lowerBoundsList, ArrayList<Double> upperBoundsList) {
-
-      myLowerBoundsList = lowerBoundsList;
-      myUpperBoundsList = upperBoundsList;
-      setBounds(lowerBound, upperBound);
-   }
-   
-   public void clearBounds() {
-      useLowerBound = false;
-      useUpperBound = false;
-      myLowerBoundsList = null;
-      myUpperBoundsList = null;
-      setSize(mySize); //resizes and recomputes cost term
-   }
-   
-   private void computeBounds() {
-      int row = myRowSize;
-      try {
-         if (useLowerBound) {
-            for (int i = 0; i < mySize; i++) {
-               double bound;               
-               if (myLowerBoundsList != null && myLowerBoundsList.get (i) != null) {
-                  /* try to grab the individual value from the list */ 
-                  bound = myLowerBoundsList.get (i);
-               } else {
-                  /* if the list is null or the Double at i is null, use default */
-                  bound = myLowerBound;
-               }
-
-               H.set (row, i, 1.0); // x >= lb
-               f.set (row++, bound);
-            }
-         }
-         if (useUpperBound) {
-            for (int i = 0; i < mySize; i++) {
-               double bound;
-               if (myUpperBoundsList != null && myUpperBoundsList.get (i) != null) {
-                  bound = myUpperBoundsList.get (i);
-               } else {
-                  bound = myUpperBound;
-               }
-
-               H.set (row, i, -1.0); // -x >= -ub
-               f.set (row++, -bound);
-            }
-         }
-      } catch (IndexOutOfBoundsException e) {
-         e.printStackTrace ();
-         System.out.println ("Bounds list(s) not valid. Using default bounds instead.");
-         myUpperBoundsList = null; // clear the invalid lists
-         myLowerBoundsList = null;
-         computeBounds(); // try again
-      }
-//      System.out.println (H);
-//      System.out.println (f);
-   }
-   
    @Override
-   protected void compute (double t0, double t1) {
-      // static term, nothing to compute
-   }
-
-   @Override
-   public int getRowSize () {
+   public int numConstraints (int qpsize) {
       //myRowSize specifies the number of rows added manually
       //to this blocks of mySize are added for each bound
-      int result = myRowSize;
-      result += useLowerBound ? mySize : 0;
-      result += useUpperBound ? mySize : 0;
+      int result = 0;
+      TrackingController controller = getController();
+      if (controller != null) {
+         for (ExciterComp ec : controller.myExciters) {
+            DoubleInterval bounds = ec.getExcitationBounds();
+            if (bounds.getLowerBound() > Double.NEGATIVE_INFINITY) {
+               result++;
+            }
+            if (bounds.getUpperBound() < Double.POSITIVE_INFINITY) {
+               result++;
+            }
+         }
+      }
       return result;
    }
   
+   /**
+    * {@inheritDoc}
+    */
    @Override
-   public void setSize(int size) {
-      super.setSize(size);
-      computeBounds();
+   public int getTerm (MatrixNd A, VectorNd b, int rowoff, double t0, double t1) {
+
+      TrackingController controller = getController();
+      if (controller == null) {
+         return rowoff;
+      }
+      
+      int numex = controller.myExciters.size();
+
+      // get lower bounds first, then upper bounds, just to ensure numeric
+      // repeatability with legacy code
+      for (int i=0; i<numex; i++) {
+         DoubleInterval bounds =
+            controller.myExciters.get(i).getExcitationBounds();
+         double lower = bounds.getLowerBound();
+         if (lower > Double.NEGATIVE_INFINITY) {
+            for (int j=0; j<numex; j++) {
+               if (j == i) {
+                  A.set (rowoff, j, 1.0); // x >= lb
+               }
+               else {
+                  A.set (rowoff, j, 0.0);
+               }
+            }
+            b.set (rowoff++, lower);
+         }
+      }
+      for (int i=0; i<numex; i++) {
+         DoubleInterval bounds =
+            controller.myExciters.get(i).getExcitationBounds();
+         double upper = bounds.getUpperBound();
+         if (upper < Double.POSITIVE_INFINITY) {
+            for (int j=0; j<numex; j++) {
+               if (j == i) {
+                  A.set (rowoff, j, -1.0); // -x >= -ub
+               }
+               else {
+                  A.set (rowoff, j, 0.0);
+               }
+            }
+            b.set (rowoff++, -upper);
+         }
+      }
+      return rowoff;
+
    }
 }

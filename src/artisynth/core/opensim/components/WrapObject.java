@@ -31,7 +31,6 @@ public abstract class WrapObject extends HasVisibleObjectOrAppearance {
    
    /**
     * Creates a transform representation of the translation and rotation components
-    * @return
     */
    public RigidTransform3d getTransform() {
       RigidTransform3d trans = new RigidTransform3d();

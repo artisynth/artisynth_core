@@ -2,8 +2,9 @@ package artisynth.demos.tutorial;
 
 import java.awt.Color;
 
-import artisynth.core.driver.Main;
 import artisynth.core.inverse.TrackingController;
+import artisynth.core.inverse.InverseManager;
+import artisynth.core.inverse.InverseManager.ProbeID;
 import artisynth.core.materials.ConstantAxialMuscle;
 import artisynth.core.mechmodels.AxialSpring;
 import artisynth.core.mechmodels.MechModel;
@@ -11,6 +12,7 @@ import artisynth.core.mechmodels.MotionTargetComponent;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.workspace.RootModel;
+import artisynth.core.probes.NumericInputProbe;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
 import maspack.render.RenderProps;
@@ -100,8 +102,11 @@ public class InverseParticle extends RootModel {
 
       // add a default set of probes and the inverse control panel for this demo
       myTrackingController.createProbesAndPanel (this);
-      Main.getMain ().getInverseManager ().setTargetPosition (
-         new double[] {0d, 0d, 0d, 0.5, 0d, 0.5, 0d, 0d, 0d}, /*timestep=*/0.5);
+      InverseManager.setInputProbeData (
+         this,
+         ProbeID.TARGET_POSITIONS,
+         new double[] {0d, 0d, 0d, 0.5, 0d, 0.5, 0d, 0d, 0d}, 
+         /*timestep=*/0.5);
       
       // add controller component to the root model
       addController(myTrackingController);

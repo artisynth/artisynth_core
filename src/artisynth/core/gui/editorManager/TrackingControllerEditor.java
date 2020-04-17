@@ -38,11 +38,11 @@ public class TrackingControllerEditor extends EditorBase {
       if (containsSingleSelection (selection, TrackingController.class)) {
          TrackingController controller = (TrackingController)selection.get (0);
          actions.add (this, "Edit tracking targets ...", EXCLUSIVE);
-         // XXX currently editing muscles through 
-         MechSystemBase mech = controller.getMech ();
-         if (mech.getClass () == MechModel.class) {
-            actions.add (this, "Edit muscles ...", EXCLUSIVE);
-         }
+//         // XXX currently editing muscles through 
+//         MechSystemBase mech = controller.getMech ();
+//         if (mech.getClass () == MechModel.class) {
+//            actions.add (this, "Edit muscles ...", EXCLUSIVE);
+//         }
       }
    }
 
@@ -58,13 +58,13 @@ public class TrackingControllerEditor extends EditorBase {
                agent.show (popupBounds);
             }
          }
-         else if (actionCommand == "Edit muscles ...") {
-            if (myEditManager.acquireEditLock()) {
-               ExcitationTargetAgent agent =
-                  new ExcitationTargetAgent (myMain, controller.getMuscleExciter());
-               agent.show (popupBounds);
-            }
-         }
+//         else if (actionCommand == "Edit muscles ...") {
+//            if (myEditManager.acquireEditLock()) {
+//               ExcitationTargetAgent agent =
+//                  new ExcitationTargetAgent (myMain, controller.getMuscleExciter());
+//               agent.show (popupBounds);
+//            }
+//         }
       }
    }
 }

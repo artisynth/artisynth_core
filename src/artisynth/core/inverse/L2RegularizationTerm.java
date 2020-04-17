@@ -6,76 +6,61 @@
  */
 package artisynth.core.inverse;
 
+import artisynth.core.modelbase.*;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.VectorNd;
+import maspack.util.*;
 
-public class L2RegularizationTerm extends LeastSquaresTermBase {
+/**
+ * Cost term that minimizes the 2-norm of the computed excitations.  Used to
+ * regularize exciter redundancies.
+ */
+public class L2RegularizationTerm extends QPCostTermBase {
    
    /*
     * Weight factors to emphasize or de-emphasize certain elements of the regularization term
     */
-   VectorNd weights = null;
-   MatrixNd W = null;
 
    public static final double defaultWeight = 0.0001;
    
    public L2RegularizationTerm() {
-      this(defaultWeight);
+      super (defaultWeight);
    }
    
-   public L2RegularizationTerm(double weight) {
-      super(weight);
+   public L2RegularizationTerm (String name) {
+      super (defaultWeight);
+      setName (name);
    }
- 
-   /** Old constructor: both arguments are no longer used */
-   public L2RegularizationTerm(TrackingController controller, int size) {
-      this();
-   }
-   
-   /** Old constructor: argument is no longer used */
-   public L2RegularizationTerm(TrackingController controller) {
-      this();
+
+   public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
+      TrackingController controller = getController();
+      if (controller != null) {  
+         int nume = controller.numExciters();
+         for (int i=0; i<nume; i++) {
+            ExciterComp ec = controller.myExciters.get(i);
+            Q.add (i, i, myWeight*ec.getWeight());
+         }      
+      }
    }
    
    /**
-    * Set the regularization weights for each activation value.
-    * @param w weights for activation values
+    * {@inheritDoc}
     */
-   public void setWeights(VectorNd w) {
-      weights = w;
-   }
-   
-   @Override
-   protected void compute (double t0, double t1) {
-      int size = H.rowSize ();
-      H.setIdentity();
-      H.scale(Math.sqrt(myWeight));
-      
-      if (weights != null && weights.size() != size) {
-         // XXX doesn't seem like the best way to go about this
-         System.out.println ("Weights and term size mismatched.");
-         weights = null;
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      if (getParent() == hcomp && getParent() instanceof TrackingController) {
+         TrackingController tcon = (TrackingController)getParent();
+         tcon.myRegularizationTerm = this;
       }
-      // if null weights, do nothing, as though W == Identity
-      if (weights != null) {         
-         if (W == null) {
-            W = new MatrixNd(size, size);
-         }
-         /* make a diagonal matrix from the weights and multiply H by it */
-         W.setZero ();
-         for (int i = 0; i < size; i++) {
-            W.set (i, i, Math.sqrt (weights.get (i)));
-         }
-         H.mul (W);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      if (getParent() == hcomp && getParent() instanceof TrackingController) {
+         TrackingController tcon = (TrackingController)getParent();
+         tcon.myRegularizationTerm = null;
       }
-      
-//      if (TrackingController.isDebugTimestep (t0, t1)) {
-//         System.out.println("dt = " + dt + "    |Hl2| = " + H.frobeniusNorm());
-//      }
    }
-   
-   @Override
-   public int getRowSize () {
-      return mySize; //term is square
-   }
+
 }

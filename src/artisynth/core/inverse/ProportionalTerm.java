@@ -1,12 +1,15 @@
 package artisynth.core.inverse;
 
+import maspack.matrix.*;
+
 /**
- * Adds a cost proportional to the sum of the values
- * of the vector. In combination with a lower bound
- * of zero, this term adds a cost on the L1-norm.
+ * Cost term that is proportional to the sum of the excitation values.  In
+ * combination with a lower bound of zero, this term adds a cost on the
+ * L1-norm.
+ * 
  * @author Teun
  */
-public class ProportionalTerm extends QPTermBase {
+public class ProportionalTerm extends QPCostTermBase {
 
    public static final double defaultWeight = 1e-3;
    
@@ -17,11 +20,12 @@ public class ProportionalTerm extends QPTermBase {
    public ProportionalTerm(double weight) {
       super(weight);
    }
-
+   
    @Override
-   protected void compute (double t0, double t1) {
-      for (int i=0; i<P.size(); i++) {
-         P.set(i,myWeight);
-      }
+   public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
+      for (int i=0; i<p.size(); i++) {
+         p.add (i,myWeight);
+      }     
    }
+
 }

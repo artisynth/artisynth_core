@@ -157,7 +157,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
    protected Scheduler myScheduler;
    protected EditorManager myEditorManager;
    protected UndoManager myUndoManager;
-   protected InverseManager myInverseManager;
    protected MovieMaker myMovieMaker;
    protected Logger myLogger;
 
@@ -668,7 +667,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
       
       myEditorManager = new EditorManager (this);
       myUndoManager = new UndoManager();
-      myInverseManager = new InverseManager(this);
 
       // need to create selection manager before MainFrame, because
       // some things in MainFrame will assume it exists
@@ -1591,6 +1589,8 @@ public class Main implements DriverInterface, ComponentChangeListener {
                demoClass.getConstructor (String.class);
             newRoot = (RootModel)constructor.newInstance (modelName);
          }
+         // make sure all referenced components are part of the hierarchy
+         ComponentUtils.checkReferenceContainment (newRoot, newRoot);
          return newRoot;
       }
       catch (Exception e) {
@@ -2605,10 +2605,6 @@ public class Main implements DriverInterface, ComponentChangeListener {
 
    public UndoManager getUndoManager() {
       return myUndoManager;
-   }
-
-   public InverseManager getInverseManager() {
-      return myInverseManager;
    }
 
    /**

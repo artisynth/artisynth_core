@@ -165,7 +165,7 @@ public class ComponentListImpl<C extends ModelComponent> extends ScannableList<C
       initComponent (comp, number, size());
       super.add (comp);
       try {
-         ComponentUtils.checkReferenceContainment (comp);
+         //ComponentUtils.checkReferenceContainment (comp);
          ComponentUtils.recursivelyConnect (comp, myComp);
       }
       catch (RuntimeException e) {

@@ -592,6 +592,8 @@ mech.writePrintStateHeader ("TongueInvDemo ConstrainedBackwardEuler");
 run()
 waitForStop()
 reset()
+# reset to false since it was set by the TongueInvDemo
+InverseManager.useLegacyNames = False
 
 loadModel ("artisynth.demos.inverse.PointModel2d")
 mech = setModelOpts (1, dataFileName)

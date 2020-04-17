@@ -17,7 +17,6 @@ public class HasAppearance extends OpenSimObject {
    
    /**
     * Sets visibility properties in OpenSim 4.0
-    * @param vo visible object
     */
    public void setAppearance(Appearance a) {
       appearance = a;

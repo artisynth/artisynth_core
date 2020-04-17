@@ -29,7 +29,8 @@ public abstract class ModelAgentBase extends ModelComponentBase
 
    static {
       myProps.add (
-         "active isActive *", "true if this probe is active", defaultActiveP);
+         "active isActive *", 
+         "true if this model agent is active", defaultActiveP);
    }
    
    public PropertyList getAllPropertyInfo() {

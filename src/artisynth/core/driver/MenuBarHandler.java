@@ -7,14 +7,11 @@
 package artisynth.core.driver;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Container;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemListener;
-import java.awt.event.ItemEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -30,13 +27,10 @@ import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JColorChooser;
-import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JMenu;
-import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -45,12 +39,11 @@ import javax.swing.JPopupMenu;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.JToolBar;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.Border;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.BevelBorder;
-import javax.swing.border.Border;
 
 import artisynth.core.gui.ControlPanel;
 import artisynth.core.gui.editorManager.Command;
@@ -61,6 +54,7 @@ import artisynth.core.gui.probeEditor.OutputNumericProbeEditor;
 import artisynth.core.gui.selectionManager.SelectionManager;
 import artisynth.core.gui.timeline.GuiStorage;
 import artisynth.core.inverse.InverseManager;
+import artisynth.core.inverse.TrackingController;
 import artisynth.core.mechmodels.MechModel;
 import artisynth.core.modelbase.ComponentUtils;
 import artisynth.core.modelbase.CompositeComponent;
@@ -70,8 +64,8 @@ import artisynth.core.modelmenu.ArtisynthModelMenu;
 import artisynth.core.modelmenu.ModelActionEvent;
 import artisynth.core.modelmenu.ModelActionListener;
 import artisynth.core.probes.Probe;
-import artisynth.core.probes.WayPointProbe;
 import artisynth.core.probes.TracingProbe;
+import artisynth.core.probes.WayPointProbe;
 import artisynth.core.util.AliasTable;
 import artisynth.core.util.ArtisynthPath;
 import artisynth.core.util.ExtensionFileFilter;
@@ -82,18 +76,17 @@ import maspack.properties.HasProperties;
 import maspack.properties.PropertyUtils;
 import maspack.render.RenderListener;
 import maspack.render.RenderableUtils;
-import maspack.render.RendererEvent;
 import maspack.render.Renderer.HighlightStyle;
+import maspack.render.RendererEvent;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.solvers.PardisoSolver;
 import maspack.util.ClassFinder;
-import maspack.util.GenericFileFilter;
 import maspack.util.FunctionTimer;
+import maspack.util.GenericFileFilter;
 import maspack.util.InternalErrorException;
 import maspack.util.StringHolder;
 import maspack.widgets.AutoCompleteStringField;
-import maspack.widgets.*;
 import maspack.widgets.ButtonCreator;
 import maspack.widgets.DoubleField;
 import maspack.widgets.GridDisplay;
@@ -1428,7 +1421,7 @@ ModelActionListener {
     */
    public void actionPerformed(ActionEvent event) {
       String cmd = event.getActionCommand();
-
+      RootModel root = myMain.getRootModel();
       //
       // Scripts menu
       if (isScriptMenuItem(event.getSource())) {
@@ -1630,10 +1623,21 @@ ModelActionListener {
          setJythonConsoleVisible(true);
       }
       else if (cmd.equals("Show Inverse panel")) {
-         myMain.getInverseManager().showInversePanel(myMain.getRootModel (), InverseManager.findInverseController ());
+         ControlPanel panel = InverseManager.findInversePanel(root);
+         TrackingController controller = 
+            InverseManager.findInverseController(root);
+         if (panel == null && controller != null) {
+            InverseManager.addInversePanel (root, controller);
+//            myMain.getInverseManager().showInversePanel(
+//               myMain.getRootModel(), controller);
+         }
       }
       else if (cmd.equals("Hide Inverse panel")) {
-         myMain.getInverseManager().hideInversePanel();
+         ControlPanel panel = InverseManager.findInversePanel(root);
+         if (panel != null) {
+            root.removeControlPanel(panel);
+         }
+         //myMain.getInverseManager().hideInversePanel();
       }
       else if (cmd.equals("Show movie panel")) {
          myFrame.getMain().getViewer().getCanvas().display();
@@ -1654,24 +1658,24 @@ ModelActionListener {
          myMain.createViewerFrame();
       }
       else if (cmd.equals("Clear traces")) {
-         myMain.getRootModel().clearTraces();
+         root.clearTraces();
       }
       else if (cmd.equals("Disable all tracing")) {
-         myMain.getRootModel().disableAllTracing();
+         root.disableAllTracing();
       }
       else if (cmd.equals("Remove traces")) {
          RemoveComponentsCommand rmCmd =
          new RemoveComponentsCommand(
-            "remove traces", myMain.getRootModel().getTracingProbes());
+            "remove traces", root.getTracingProbes());
          myMain.getUndoManager().saveStateAndExecute(rmCmd);
          myMain.rerender();
       }
       else if (cmd.equals("Set traces visible")) {
-         myMain.getRootModel().setTracingProbesVisible(true);
+         root.setTracingProbesVisible(true);
          myMain.rerender();
       }
       else if (cmd.equals("Set traces invisible")) {
-         myMain.getRootModel().setTracingProbesVisible(false);
+         root.setTracingProbesVisible(false);
          myMain.rerender();
       }
       else if (cmd.equals("Hide viewer toolbar")) {
@@ -1683,10 +1687,10 @@ ModelActionListener {
          attachViewerToolbar(toolbarPanel);
       }
       else if (cmd.equals("Merge control panels")) {
-         myMain.getRootModel().mergeAllControlPanels(true);
+         root.mergeAllControlPanels(true);
       }
       else if (cmd.equals("Separate control panels")) {
-         myMain.getRootModel().mergeAllControlPanels(false);
+         root.mergeAllControlPanels(false);
       }
       else if (cmd.equals("Show progress")) {
          spawnProgressBar ();
@@ -1698,7 +1702,7 @@ ModelActionListener {
          myFrame.displayAboutArtisynth();
       }
       else if (cmd.equals("About the current model")) {
-         myFrame.displayAboutModel(myMain.getRootModel());
+         myFrame.displayAboutModel(root);
       }
       else if (cmd.equals("Keybindings")) {
          myFrame.displayKeybindings();
@@ -1740,7 +1744,6 @@ ModelActionListener {
          myMain.getScheduler().fastForward();
       }
       else if (cmd.equals("Reset initial state")) {
-         RootModel root = myMain.getRootModel();
          if (root != null) {
             root.resetInitialState();
          }
@@ -2231,8 +2234,8 @@ ModelActionListener {
          }
       }
 
-      if (InverseManager.inverseControllerExists()) {
-         if (InverseManager.isInversePanelVisible()) {
+      if (InverseManager.findInverseController(root) != null) {
+         if (InverseManager.findInversePanel(root) != null) {
             addMenuItem(menu, "Hide Inverse panel");
          }
          else {

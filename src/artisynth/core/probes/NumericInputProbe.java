@@ -177,13 +177,14 @@ public class NumericInputProbe extends NumericProbeBase
       int[] variableDimensions = new int[props.length];
 
       for (int i = 0; i < props.length; i++) {
+         if (props[i] == null) {
+            throw new IllegalArgumentException ("prop["+i+"] is null");
+         }
          NumericConverter numInfo = null;
          try {
             numInfo = new NumericConverter (props[i].get());
          }
          catch (Exception e) {
-            throw new IllegalArgumentException ("property '"
-            + props[i].getInfo().getName() + "' is not numeric");
          }
          driverExpressions[i] = "V" + i;
          variableNames[i] = "V" + i;

@@ -43,8 +43,8 @@ public class NavPanelRenderer extends DefaultTreeCellRenderer {
    }
 
    private String getComponentName (ModelComponent c) {
-      if (c instanceof ReferenceComponent) {
-         ReferenceComponent rcomp = (ReferenceComponent)c;
+      if (c instanceof ReferenceComp) {
+         ReferenceComp rcomp = (ReferenceComp)c;
          if (rcomp.getName() != null || rcomp.getReference() == null) {
             return getBaseName (rcomp);
          }

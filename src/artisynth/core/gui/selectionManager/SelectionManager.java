@@ -498,8 +498,8 @@ public class SelectionManager {
                if (c != null) {
                   navpanelSelections.add (c);
                }
-               if (c instanceof ReferenceComponent) {
-                  ModelComponent cref = ((ReferenceComponent)c).getReference();
+               if (c instanceof ReferenceComp) {
+                  ModelComponent cref = ((ReferenceComp)c).getReference();
                   if (cref != null) {
                      navpanelSelections.add (cref);
                   }

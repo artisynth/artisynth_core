@@ -17,7 +17,6 @@ public class HasVisibleObjectOrAppearance extends HasVisibleObject {
    
    /**
     * Sets visibility properties in OpenSim 4.0
-    * @param vo visible object
     */
    public void setAppearance(Appearance a) {
       appearance = a;
@@ -26,7 +25,6 @@ public class HasVisibleObjectOrAppearance extends HasVisibleObject {
    
    /**
     * Returns visibility properties in OpenSim 4.0
-    * @return appearance
     */
    public Appearance getAppearance() {
       return appearance;

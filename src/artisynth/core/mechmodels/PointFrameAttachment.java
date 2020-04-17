@@ -118,7 +118,9 @@ public class PointFrameAttachment extends PointAttachment {
    }
 
    public void updatePosStates() {
-
+      if (myFrame == null) {
+         return;
+      }
       if (myMasterBlocks == null) {
          allocateMasterBlocks();
       } 
@@ -131,6 +133,9 @@ public class PointFrameAttachment extends PointAttachment {
    }
 
    public void updateVelStates() {
+      if (myFrame == null) {
+         return;
+      }
       Vector3d velw = new Vector3d();
       myFrame.computePointVelocity (velw, myLoc);
       myPoint.setVelocity (velw);

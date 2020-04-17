@@ -7,9 +7,18 @@
 package artisynth.core.inverse;
 
 import java.awt.Color;
-import java.nio.file.attribute.UserPrincipalNotFoundException;
 import java.util.ArrayList;
 
+import artisynth.core.femmodels.FemModel3d;
+import artisynth.core.mechmodels.*;
+import artisynth.core.modelbase.*;
+import artisynth.core.mechmodels.MechModel;
+import artisynth.core.mechmodels.MechSystemBase;
+import artisynth.core.mechmodels.MotionTarget.TargetActivity;
+import artisynth.core.mechmodels.MotionTargetComponent;
+import artisynth.core.mechmodels.Point;
+import artisynth.core.mechmodels.RigidBody;
+import artisynth.core.util.TimeBase;
 import maspack.geometry.PolygonalMesh;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
@@ -19,28 +28,15 @@ import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
-import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
 import maspack.render.Renderer.PointStyle;
 import maspack.spatialmotion.Twist;
-import artisynth.core.femmodels.FemModel3d;
-import artisynth.core.mechmodels.Frame;
-import artisynth.core.mechmodels.MechModel;
-import artisynth.core.mechmodels.MechSystemBase;
-import artisynth.core.mechmodels.MeshComponent;
-import artisynth.core.mechmodels.MotionTarget.TargetActivity;
-import artisynth.core.mechmodels.MotionTargetComponent;
-import artisynth.core.mechmodels.Point;
-import artisynth.core.mechmodels.PointList;
-import artisynth.core.mechmodels.RigidBody;
-import artisynth.core.mechmodels.MechSystemSolver.Integrator;
-import artisynth.core.modelbase.RenderableComponentList;
-import artisynth.core.util.TimeBase;
 
 /**
- * Motion tracking error term for the TrackingController
+ * Cost term that minimizes the tracking error for one or more motion targets.
+ * Can also be employed as a constraint term.
  * 
- * @author Ian Stavness, Antonio Sanchez
+ * @author Ian Stavness, Antonio Sanchez, John E Lloyd
  * 
  * TODO Fix the jacobian
  * TODO See if a similar issue exists for frame-based tracking
@@ -48,118 +44,124 @@ import artisynth.core.util.TimeBase;
  */
 public class MotionTargetTerm extends LeastSquaresTermBase {
 
-   public static final double DEFAULT_WEIGHT = 1d;
-   
-   public static final boolean DEFAULT_USE_PD_CONTROL = false;
-   protected boolean usePDControl = DEFAULT_USE_PD_CONTROL;
-
-   public static final boolean DEFAULT_DELTA_ACTIVATIONS = false;
-   protected boolean useDeltaAct = DEFAULT_DELTA_ACTIVATIONS;
-   
-   public static boolean DEFAULT_USE_TIMESTEP_SCALING = false;
-   protected boolean useTimestepScaling = DEFAULT_USE_TIMESTEP_SCALING;
-
-   public static boolean DEFAULT_USE_KKT_FACTORANDSOLVE = false;
-   protected boolean useKKTFactorAndSolve = DEFAULT_USE_KKT_FACTORANDSOLVE;
-
-   public static boolean DEFAULT_USE_TRAPEZOIDAL_SOLVER = false;
-   protected boolean useTrapezoidalSolver = DEFAULT_USE_TRAPEZOIDAL_SOLVER;
-
-   public static boolean DEFAULT_NORMALIZE_H = false;
-   protected boolean normalizeH = DEFAULT_NORMALIZE_H;
-   
    boolean debug = false;
    // Avoids recomputation of the velocity Jacobian. This actually gives
    // incorrect results and is provided for comparison with legacy code only.
    public static boolean keepVelocityJacobianConstant = false;
 
-   protected TrackingController myController;
-   protected MechSystemBase myMech;    // mech system, used to compute forces
-//   protected MotionTerm myMotionTerm;
-   protected ArrayList<MotionTargetComponent> mySources;
-   protected ArrayList<MotionTargetComponent> myTargets;
-   protected ArrayList<Double> myTargetWeights; // one weight per target
-   protected RenderProps targetRenderProps;
-   protected RenderProps sourceRenderProps;
+   // property attributes
 
-   protected SparseBlockMatrix myVelJacobian = null;
-   protected VectorNd myTargetVel = null;
-   protected VectorNd myTargetPos = null;
-   protected int myTargetVelSize;
-   protected int myTargetPosSize;
-   protected VectorNd myTargetWgts = null;   // size of myTargetVelSize, weights for system
+   public static final boolean DEFAULT_USE_PD_CONTROL = false;
+   protected boolean usePDControl = DEFAULT_USE_PD_CONTROL;
 
-   
    public static double DEFAULT_Kd = 1.0;
    protected double Kd = DEFAULT_Kd;
 
    public static double DEFAULT_Kp = 100;
    protected double Kp = DEFAULT_Kp;
-   
-   private static final int POINT_POS_SIZE = 3;
-   private static final int POINT_VEL_SIZE = 3;
-   private static final int FRAME_POS_SIZE = 7;
-   private static final int FRAME_VEL_SIZE = 6;
 
-   protected VectorNd myCurrentVel = null;
+   public static final boolean DEFAULT_USE_DELTA_ACTIVATIONS = false;
+   protected boolean useDeltaAct = DEFAULT_USE_DELTA_ACTIVATIONS;
+
+   // other attributes
    
+   protected RenderProps targetRenderProps;
+   protected RenderProps sourceRenderProps;
+
+   protected PointList<TargetPoint> myTargetPoints;
+   protected ReferenceListBase<Point,SourcePointReference> mySourcePoints;
+   protected RenderableComponentList<TargetFrame> myTargetFrames;
+   protected ReferenceListBase<Frame,SourceFrameReference> mySourceFrames;
+
+   // quantities used in the computation which are allocated on demand
+
+   protected SparseBlockMatrix myVelJacobian = null;
+   protected VectorNd myTargetVel = new VectorNd();
+   protected VectorNd myTargetPos = new VectorNd();
+   protected int myTargetVelSize;
+   protected int myTargetPosSize;
+   
+   protected VectorNd myVbar = new VectorNd();
+   protected MatrixNd myHv = new MatrixNd();
 
    public static PropertyList myProps =
       new PropertyList(MotionTargetTerm.class, LeastSquaresTermBase.class);
 
    static {
-      myProps.add("useTimestepScaling", "flag for scaling motion term H and vbar by 1/h", 
-         DEFAULT_USE_TIMESTEP_SCALING);
-      myProps.add("useKKTFactorAndSolve", "flag for re-factoring at each internal KKT solve", 
-         DEFAULT_USE_KKT_FACTORANDSOLVE);
       myProps.add(
-         "usePDControl * *", "use PD controller for motion term",
-         MotionTargetTerm.DEFAULT_USE_PD_CONTROL);
+         "usePDControl", "use PD controller for motion term",
+         DEFAULT_USE_PD_CONTROL);
       myProps.add(
-         "normalizeH", "normalize contribution by frobenius norm",
-         DEFAULT_NORMALIZE_H);
+         "useDeltaActivations", "solve for excitations incrementally",
+         DEFAULT_USE_DELTA_ACTIVATIONS);
       myProps.add(
          "Kd", "derivative gain", DEFAULT_Kd);
       myProps.add(
          "Kp", "proportional gain", DEFAULT_Kd);
       myProps.addReadOnly (
-         "derr", "derivative error at current timestep");
+         "velocityError", "velocity error at current timestep");
       myProps.addReadOnly (
-         "perr", "proporational error at current timestep");
-      myProps.add("targetWeights", "Weights for each target", null);
-
+         "positionError", "position error at current timestep");
    }
 
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
+
+   public MotionTargetTerm () {
+      this (null);
+   }
    
    public MotionTargetTerm (TrackingController controller) {
-      this(controller, DEFAULT_WEIGHT);
-   }
-   
-   public MotionTargetTerm (TrackingController controller, double weight) {
-      super(weight);
-      myController = controller;
-      myMech = myController.getMech();
-//      if (useDeltaAct)
-//         myMotionTerm = new MotionTermDeltaAct (controller);
-//      else
-//         myMotionTerm = new MotionTerm(myController);
-         
-      mySources = new ArrayList<MotionTargetComponent>();
-      myTargets = new ArrayList<MotionTargetComponent>();
-      myTargetWeights = new ArrayList<Double>();
-      
-      initTargetRenderProps();
+
+      // list of target points that store/show the location of motion targets
+      // for points
+      myTargetPoints =
+         new PointList<TargetPoint> (TargetPoint.class, "targetPoints");
+      add (myTargetPoints);
+
+      // list of source points
+      mySourcePoints = new ReferenceListBase<>(
+         SourcePointReference.class, "sourcePoints");
+      mySourcePoints.setNavpanelVisibility (NavpanelVisibility.VISIBLE);
+      mySourcePoints.setEditable (false);
+      add (mySourcePoints);
+
+      // list of target points that store/show the location of motion targets
+      // for bodies
+      myTargetFrames =
+         new RenderableComponentList<TargetFrame> (
+            TargetFrame.class, "targetFrames");
+      add (myTargetFrames);
+
+      // list of source frames
+      mySourceFrames = new ReferenceListBase<>(
+         SourceFrameReference.class, "sourceFrames");
+      mySourceFrames.setNavpanelVisibility (NavpanelVisibility.VISIBLE);
+      mySourceFrames.setEditable (false);
+      add (mySourceFrames);
+
+      initTargetRenderProps (controller);
       initSourceRenderProps();
    }
-   
 
-   public void updateTarget(double t0, double t1) {
+   protected void setTargetsPointRadius (double rad) {
+      RenderProps.setPointRadius (myTargetPoints, rad);
+   }
+   
+   public PointList<TargetPoint> getTargetPoints() {
+      return myTargetPoints;
+   }
+
+   public RenderableComponentList<TargetFrame> getTargetFrames() {
+      return myTargetFrames;
+   }
+
+   public void updateTarget (double t0, double t1) {
       if (!isEnabled()) {
          return;
       }
+      updateSizes();
       // round because results are very sensitive to h and we want to keep them
       // identical to earlier results when t0, t1 where given as nsec integers
       double h = TimeBase.round(t1 - t0);
@@ -170,52 +172,52 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
          interpolateTargetVelocity(h);
          updatePositionError ();
          updateVelocityError ();
-         if (myTargetVel == null || myTargetVel.size() != myTargetVelSize) {
-            myTargetVel = new VectorNd(myTargetVelSize);
-         }
-         myTargetVel.scale (Kp/h, postionError);
+         myTargetVel.scale (Kp/h, positionError);
          myTargetVel.scaledAdd (Kd, velocityError);
       }
       else {
          setTargetVelocityFromPositionError(h);
          // updateTargetPosAndVel(h);
          updateTargetVelocityVec(); // set myTargetVel
-         
-         /* Teun edit: This seems to be an old line of code from before PD control was implemented
-         myTargetVel.scale (Kd); // Peter edit, IAN -- this should use be Kp
-         */
       }
    }
    
-   public VectorNd postionError = new VectorNd();
-   public VectorNd velocityError = new VectorNd();
+   protected VectorNd positionError = new VectorNd();
+   protected VectorNd velocityError = new VectorNd();
    
-   public void updatePositionError() {
-      assert myTargets.size() == mySources.size(); // paranoid
+   public double getPositionError () {
+      return positionError.norm();
+   }
+   
+   public double getVelocityError () {
+      return velocityError.norm();
+   }
+   
+   private boolean sourceAndTargetSizesConsistent() {
+      return (myTargetPoints.size() == mySourcePoints.size() &&
+              myTargetFrames.size() == mySourceFrames.size());
+   }
 
-      if (postionError == null || postionError.size() != myTargetVelSize) {
-         postionError = new VectorNd(myTargetVelSize);
-      }
+   private void updatePositionError() {
+      assert sourceAndTargetSizesConsistent(); // paranoid
 
+      positionError.setSize (getTargetVelSize());
       int idx = 0;
-      for (int i = 0; i < myTargets.size(); i++) {
-         MotionTargetComponent target = myTargets.get(i);
-         if (target instanceof Point) {
-            idx = calcPosError (postionError, idx, (Point)mySources.get(i), (Point)target);
-         } else if (target instanceof Frame) {
-            idx = calcPosError (postionError, idx, (Frame)mySources.get(i), (Frame)target);
-         }
+      for (int i=0; i<myTargetPoints.size(); i++) {
+         idx = calcPosError (
+            positionError, idx, getSourcePoint(i), myTargetPoints.get(i));
+      }
+      for (int i=0; i<myTargetFrames.size(); i++) {
+         idx = calcPosError (
+            positionError, idx, getSourceFrame(i), myTargetFrames.get(i));
       }
    }
 
-   private int calcPosError(VectorNd posError, int idx, Point source, Point target) {
+   private int calcPosError (
+      VectorNd posError, int idx, Point source, Point target) {
       ptmp.sub(target.getPosition(), source.getPosition());
       
       if (debug) {
-//         System.out.println("source_pos = "
-//            + source.getPosition().toString("%g"));
-//         System.out.println("target_pos = "
-//            + target.getPosition().toString("%g"));
          System.out.println("pos_error = "
             + ptmp.toString("%g"));
       }
@@ -227,11 +229,11 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return idx;
    }
 
-   private int calcPosError(VectorNd posError, int idx, Frame source, Frame target) {
+   private int calcPosError (
+      VectorNd posError, int idx, Frame source, Frame target) {
       Xtmp.mulInverseLeft(source.getPose(), target.getPose());
       veltmp.v.set(Xtmp.p);
       double rad = Xtmp.R.getAxisAngle(veltmp.w);
-//      veltmp.w.scale(rad / h);
   
       double[] buf = posError.getBuffer ();
       buf[idx++] = veltmp.v.x;
@@ -244,31 +246,25 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
    
    public void updateVelocityError() {
-      assert myTargets.size() == mySources.size(); // paranoid
+      assert sourceAndTargetSizesConsistent(); // paranoid
 
-      if (velocityError == null || velocityError.size() != myTargetVelSize) {
-         velocityError = new VectorNd(myTargetVelSize);
-      }
-
+      velocityError.setSize (getTargetVelSize());
       int idx = 0;
-      for (int i = 0; i < myTargets.size(); i++) {
-         MotionTargetComponent target = myTargets.get(i);
-         if (target instanceof Point) {
-            idx = calcVelError (velocityError, idx, (Point)mySources.get(i), (Point)target);
-         } else if (target instanceof Frame) {
-            idx = calcVelError (velocityError, idx, (Frame)mySources.get(i), (Frame)target);
-         }
+      for (int i=0; i<myTargetPoints.size(); i++) {
+         idx = calcVelError (
+            velocityError, idx, getSourcePoint(i), myTargetPoints.get(i));
+      }
+      for (int i=0; i<myTargetFrames.size(); i++) {
+         idx = calcVelError (
+            velocityError, idx, getSourceFrame(i), myTargetFrames.get(i));
       }
    }
 
-   private int calcVelError(VectorNd velError, int idx, Point source, Point target) {
+   private int calcVelError (
+      VectorNd velError, int idx, Point source, Point target) {
       vtmp.sub(target.getVelocity(), source.getVelocity());
       
       if (debug) {
-//         System.out.println("source_vel = "
-//            + source.getVelocity().toString("%g"));
-//         System.out.println("target_vel = "
-//            + target.getVelocity().toString("%g"));
          System.out.println("vel_error = "
             + vtmp.toString("%g"));
       }
@@ -280,7 +276,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return idx;
    }
 
-   private int calcVelError(VectorNd velError, int idx, Frame source, Frame target) {
+   private int calcVelError (
+      VectorNd velError, int idx, Frame source, Frame target) {
       veltmp.sub (target.getVelocity (), source.getVelocity ());
       
       double[] buf = velError.getBuffer ();
@@ -293,8 +290,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return idx;
    }
    
-   VectorNd prevTargetPos = null;
-   VectorNd diffTargetPos = null;
+   VectorNd prevTargetPos = new VectorNd();
+   VectorNd diffTargetPos = new VectorNd();
    Frame tmpFrame = new Frame ();
    Point tmpPoint = new Point ();
    
@@ -302,47 +299,31 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * calculate target velocity by differencing current and last target positions
     */
    private void interpolateTargetVelocity(double h) {
-      assert myTargets.size() == mySources.size(); // paranoid
+      assert sourceAndTargetSizesConsistent(); // paranoid
+
       updateTargetPos (h);
-      if (prevTargetPos == null || prevTargetPos.size () != myTargetPosSize) {
-         prevTargetPos = new VectorNd(myTargetPos);
-      }
+      prevTargetPos.setSize (myTargetPosSize);
       
       double[] prevPosBuf = prevTargetPos.getBuffer ();
       int idx = 0;
 
-      for (int i = 0; i < myTargets.size(); i++) {
-         MotionTargetComponent target = myTargets.get(i);
-         if (target instanceof Point) {
-            idx = tmpPoint.setPosState (prevPosBuf, idx);
-            interpolateTargetVelocityFromPositions(
-               tmpPoint, (Point)target, h);
-         } else if (target instanceof Frame) {
-            idx = tmpFrame.setPosState (prevPosBuf, idx);
-            interpolateTargetVelocityFromPositions(
-               tmpFrame, (Frame)target, h);
-         }
+      for (int i=0; i<myTargetPoints.size(); i++) {
+         idx = tmpPoint.setPosState (prevPosBuf, idx);
+         interpolateTargetVelocityFromPositions(
+            tmpPoint, myTargetPoints.get(i), h);
+      }
+      for (int i=0; i<myTargetFrames.size(); i++) {
+         idx = tmpFrame.setPosState (prevPosBuf, idx);
+         interpolateTargetVelocityFromPositions(
+            tmpFrame, myTargetFrames.get(i), h);
       }
       
       prevTargetPos.set (myTargetPos);
    }
 
-
-   /**
-    * get current velocity projected into target velocity subspace
-    * @return velocity projected into target subspace
-    */
-   public VectorNd getSubspaceVel() {
-      updateModelVelocity ();
-      SparseBlockMatrix Jm = getVelocityJacobian ();
-      VectorNd vel = new VectorNd (myTargetVelSize);
-      Jm.mul(vel, myCurrentVel, Jm.rowSize (), myCurrentVel.size ());
-      return vel;
-   }
-
    double[] tmpBuf = new double[3];
 
-   public void initTargetRenderProps() {
+   public void initTargetRenderProps (TrackingController controller) {
       targetRenderProps = new RenderProps();
       targetRenderProps.setDrawEdges(true);
       targetRenderProps.setFaceStyle(FaceStyle.NONE);
@@ -351,10 +332,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       targetRenderProps.setPointColor(Color.CYAN);
       targetRenderProps.setPointStyle(PointStyle.SPHERE);
       // set target point radius explicitly
-      targetRenderProps.setPointRadius (myController.targetsPointRadius);
+      targetRenderProps.setPointRadius (controller.targetsPointRadius);
       
-      myController.targetPoints.setRenderProps (targetRenderProps);
-      myController.targetFrames.setRenderProps (targetRenderProps);
+      myTargetPoints.setRenderProps (targetRenderProps);
+      myTargetFrames.setRenderProps (targetRenderProps);
    }
    
    public void initSourceRenderProps() {
@@ -365,7 +346,6 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       sourceRenderProps.setLineWidth(2);
       sourceRenderProps.setPointColor(Color.CYAN);
       sourceRenderProps.setPointStyle(PointStyle.SPHERE);
-      // modRenderProps.setAlpha(0.5);
    }
 
    
@@ -375,35 +355,35 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @param weight
     * @return the created target body or point
     */
-   private MotionTargetComponent doAddTarget(MotionTargetComponent source, 
-      double weight) {
+   private MotionTargetComponent doAddTarget (
+      MotionTargetComponent source, double weight) {
       
-      mySources.add(source);
-//      myController.sourcePoints.add (source);
-      
-      source.setTargetActivity(TargetActivity.None);
       MotionTargetComponent target = null;
       
       if (source instanceof Point) {
-         myTargetVelSize += POINT_VEL_SIZE;
-         myTargetPosSize += POINT_POS_SIZE;
-         target = addTargetPoint((Point)source);
+         TargetPoint targetPoint = addTargetPoint((Point)source, myTargetPoints);
+         targetPoint.setWeight (weight);
+         myTargetPoints.add (targetPoint);
+         mySourcePoints.addReference ((Point)source);
+         target = targetPoint;
       }
-      else if (source instanceof Frame) {
-         myTargetVelSize += FRAME_VEL_SIZE;
-         myTargetPosSize += FRAME_POS_SIZE;
-         target = addTargetFrame((RigidBody)source);
+      else if (source instanceof RigidBody) {
+         TargetFrame targetFrame =
+            addTargetFrame((RigidBody)source, myTargetFrames);
+         targetFrame.setWeight (weight);
+         myTargetFrames.add (targetFrame);
+         mySourceFrames.addReference ((RigidBody)source);
+         target = targetFrame;
+      }
+      else {
+         throw new IllegalArgumentException (
+            "target type "+source+" not supported");
       }
       
-      myTargetWeights.add(weight);
-      updateWeightsVector();
-
       // set target matrix null, so that it is recreated on demand
       // XXX should be updated on a change event...
       myVelJacobian = null;
 
-      // Main.getMain().getInverseManager().configureTargetProbes();
-      // mySolver.resetVariables();
       return target;
    }
    
@@ -411,56 +391,71 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * Removes a target to the term for trajectory error
     * @param source
     */
-   protected void removeTarget(MotionTargetComponent source) {
-      int idx = mySources.indexOf (source);
-      if (idx == -1) {
-         return;
-      }
-      
+   protected boolean removeTarget(MotionTargetComponent source) {
       if (source instanceof Point) {
-         myTargetVelSize -= POINT_VEL_SIZE;
-         myTargetPosSize -= POINT_POS_SIZE;
-         removeTargetPoint((Point)myTargets.get (idx)); // remove ref particle created in doAddTarget
+         int idx = mySourcePoints.indexOf ((Point)source);
+         if (idx == -1) {
+            return false;
+         }
+         mySourcePoints.remove (idx);
+         myTargetPoints.remove (idx);
       }
       else if (source instanceof Frame) {
-         myTargetVelSize -= FRAME_VEL_SIZE;
-         myTargetPosSize -= FRAME_POS_SIZE;
-         removeTargetFrame((Frame)myTargets.get (idx)); // remove ref body created in doAddTarget
+         int idx = mySourceFrames.indexOf ((Frame)source);
+         if (idx == -1) {
+            return false;
+         }
+         mySourceFrames.remove (idx);
+         myTargetFrames.remove (idx);
+      }
+      else {
+         throw new IllegalArgumentException (
+            "unsupported target type " + source);
       }
       
-      myTargetWeights.remove (idx);
-      mySources.remove (idx);
-      myTargets.remove (idx);
-      updateWeightsVector();
-
       // set target matrix null, so that it is recreated on demand
       // XXX should be updated on a change event...
       myVelJacobian = null;
 
       // Main.getMain().getInverseManager().configureTargetProbes();
       // mySolver.resetVariables();
+      return true;
    }
 
-   private void updateWeightsVector() {
-      
-      myTargetWgts = new VectorNd(myTargetVelSize);
-      
-      int idx = 0;
-      for (int t = 0; t< mySources.size(); t++) {
-         MotionTargetComponent target = mySources.get(t);
-         double w = myTargetWeights.get(t);
-         
-         if (target instanceof Point) {
-            for (int i=0; i< POINT_VEL_SIZE; i++) {
-               myTargetWgts.set(idx++, w);
-            }
-         } else if (target instanceof Frame) {
-            for (int i=0; i< FRAME_VEL_SIZE; i++) {
-               myTargetWgts.set(idx++, w);
-            }
+   private int numTargets() {
+      return myTargetPoints.size() + myTargetFrames.size();
+   }
+
+   VectorNd collectTargetWeights() {
+      VectorNd weights = new VectorNd (numTargets());
+      int k = 0;
+      for (TargetPoint tp : myTargetPoints) {
+         weights.set (k++, tp.getWeight());
+      }
+      for (TargetFrame tf : myTargetFrames) {
+         weights.set (k++, tf.getWeight());
+      }
+      return weights;
+   }
+
+   VectorNd collectAllWeights() {
+      VectorNd weights = new VectorNd (getTargetVelSize());
+      int k = 0;
+      for (TargetPoint tp : myTargetPoints) {
+         Vector3d subw = tp.getSubWeights();
+         double w = tp.getWeight();
+         weights.set (k++, w*subw.x);
+         weights.set (k++, w*subw.y);
+         weights.set (k++, w*subw.z);
+      }
+      for (TargetFrame tf : myTargetFrames) {
+         VectorNd subw = tf.getSubWeights();
+         double w = tf.getWeight();
+         for (int i=0; i<6; i++) {
+            weights.set (k++, w*subw.get(i));
          }
       }
-      
+      return weights;
    }
    
    /**
@@ -470,7 +465,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @param weight used in error tracking
     * @return the created point or frame that will be used as a target
     */
-   public MotionTargetComponent addTarget(MotionTargetComponent source, double weight) {
+   public MotionTargetComponent addTarget (
+      MotionTargetComponent source, double weight) {
       return doAddTarget(source, weight);
    }
    
@@ -488,13 +484,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * Removes targets
     */
    public void clearTargets() {
-      mySources.clear();
-      myTargets.clear();
-      myTargetWeights.clear();
-      myTargetWgts = null;
-      myTargetVelSize = 0;
-      myController.targetPoints.clear ();
-      myController.targetFrames.clear ();
+      mySourcePoints.removeAll();
+      myTargetPoints.removeAll();
+      mySourceFrames.removeAll();
+      myTargetFrames.removeAll();
    }
 
    /**
@@ -503,33 +496,18 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @param source point source to drive to target
     * @return the created target point
     */
-   private TargetPoint addTargetPoint(Point source) {
+   private TargetPoint addTargetPoint (Point source, ComponentList targetList) {
       TargetPoint tpnt = new TargetPoint();
-      tpnt.setName((source.getName() != null ? source.getName() : String.format(
-         "p%d", source.getNumber())) + "_ref");
+      tpnt.setName(TrackingController.makeTargetName ("p", source, targetList));
       tpnt.setState(source);
-      tpnt.setTargetActivity(TargetActivity.PositionVelocity);
-      myTargets.add(tpnt);
 
-      myController.targetPoints.add (tpnt);
-      
       if (source.getRenderProps ()!=null) {
-         RenderProps.setSphericalPoints (tpnt, source.getRenderProps ().getPointRadius (), Color.CYAN);
+         RenderProps.setSphericalPoints (
+            tpnt, source.getRenderProps ().getPointRadius (), Color.CYAN);
       }
 
       return tpnt;
    }
-
-   private void removeTargetPoint(Point target) {
-      if (target instanceof TargetPoint) {
-         myController.targetPoints.remove (target);
-      }
-      else {
-         System.err.println("Warning target is not TargetPoint");
-      }
-   }
-   
-   
    
    /**
     * Creates and adds a target frame, returning the created frame
@@ -538,54 +516,59 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @param source to drive toward target 
     * @return the created target frame
     */
-   private TargetFrame addTargetFrame(RigidBody source)
-   {
+   private TargetFrame addTargetFrame (
+      RigidBody source, ComponentList<?> targetList) {
+
       TargetFrame tframe = new TargetFrame();
       tframe.setPose (source.getPose ());
-      tframe.setName((source.getName() != null ? source.getName() : String.format(
-         "rb%d", source.getNumber())) + "_ref");
-
+      tframe.setName (
+        TrackingController.makeTargetName ("rb", source, targetList));
       tframe.setState(source);
-      tframe.setTargetActivity(TargetActivity.PositionVelocity);
-//      tframe.setAxisLength(1.0);
-
-      myTargets.add(tframe);
 
       // add mesh to TargetFrame
       PolygonalMesh mesh = null;
       if ((mesh = source.getSurfaceMesh()) != null) {
-         tframe.setSurfaceMesh(mesh.clone (), source.getSurfaceMeshComp().getFileName());
+         tframe.setSurfaceMesh (
+            mesh.clone (), source.getSurfaceMeshComp().getFileName());
          tframe.setRenderProps (source.getRenderProps ());
          RenderProps.setDrawEdges (tframe, true);
          RenderProps.setFaceStyle (tframe, FaceStyle.NONE);
       }
-      
-      myController.targetFrames.add (tframe);
       return tframe;
-   }
-   
-   private void removeTargetFrame(Frame target) {
-      if (target instanceof TargetFrame) {
-         myController.targetFrames.remove (target);
-      }
-      else {
-         System.err.println("Warning target is not TargetFrame");
-      }
+      
    }
 
    /**
     * Returns list of target points/frames
     */
    public ArrayList<MotionTargetComponent> getTargets() {
-      return myTargets;
+      ArrayList<MotionTargetComponent> targets = new ArrayList<>();
+      targets.addAll (myTargetPoints);
+      targets.addAll (myTargetFrames);
+      return targets;
    }
-
+   
    /**
     * Returns list of source points/frames that are part of the model
     * that will move to the targets
     */
    public ArrayList<MotionTargetComponent> getSources() {
-      return mySources;
+      ArrayList<MotionTargetComponent> sources = new ArrayList<>();
+      for (ReferenceComp<Point> pr : mySourcePoints) {
+         sources.add (pr.getReference());
+      }
+      for (ReferenceComp<Frame> fr : mySourceFrames) {
+         sources.add (fr.getReference());
+      }
+      return sources;
+   }
+
+   public Point getSourcePoint (int idx) {
+      return mySourcePoints.get(idx).getReference();
+   }
+
+   public Frame getSourceFrame (int idx) {
+      return mySourceFrames.get(idx).getReference();
    }
 
    /*
@@ -593,17 +576,15 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * the target reference position
     */
    private void setTargetVelocityFromPositionError(double h) {
-      assert myTargets.size() == mySources.size(); // paranoid
+      assert sourceAndTargetSizesConsistent(); // paranoid
 
-      for (int i = 0; i < myTargets.size(); i++) {
-         MotionTargetComponent target = myTargets.get(i);
-         if (target instanceof Point) {
-            interpolateTargetVelocityFromPositions(
-               (Point)mySources.get(i), (Point)target, h);
-         } else if (target instanceof Frame) {
-            interpolateTargetVelocityFromPositions(
-               (Frame)mySources.get(i), (Frame)target, h);
-         }
+      for (int i=0; i<myTargetPoints.size(); i++) {
+         interpolateTargetVelocityFromPositions(
+            getSourcePoint(i), myTargetPoints.get(i), h);
+      }
+      for (int i=0; i<myTargetFrames.size(); i++) {
+         interpolateTargetVelocityFromPositions(
+            getSourceFrame(i), myTargetFrames.get(i), h);
       }
    }
 
@@ -612,8 +593,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    RigidTransform3d Xtmp = new RigidTransform3d();
    Twist veltmp = new Twist();
 
-   private Vector3d
-      interpolateTargetVelocityFromPositions(Point current, Point target, double h) {
+   private Vector3d interpolateTargetVelocityFromPositions (
+      Point current, Point target, double h) {
 
       ptmp.sub(target.getPosition(), current.getPosition());
       ptmp.scale(1d / h);
@@ -626,9 +607,10 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return ptmp;
    }
 
-   private Twist
-      interpolateTargetVelocityFromPositions(Frame current, Frame target, double h) {
-      Xtmp.mulInverseLeft(current.getPose(), target.getPose()); // XXX check that mul order is correct
+   private Twist interpolateTargetVelocityFromPositions (
+      Frame current, Frame target, double h) {
+      // XXX check that mul order is correct
+      Xtmp.mulInverseLeft(current.getPose(), target.getPose()); 
       veltmp.v.scale(1d / h, Xtmp.p);
       double rad = Xtmp.R.getAxisAngle(veltmp.w);
       veltmp.w.scale(rad / h);
@@ -636,91 +618,52 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return veltmp;
    }
 
-//   PointState tmpPointState = new PointState();
-//   FrameState tmpFrameState = new FrameState();
+   private int getTargetVelSize() {
+      return 3*myTargetPoints.size() + 6*myTargetFrames.size();
+   }
 
+   private void updateSizes() {
+      int vsize = 0;
+      int psize = 0;
+      for (TargetPoint pt : myTargetPoints) {
+         vsize += pt.getVelStateSize();
+         psize += pt.getPosStateSize();
+      }
+      for (TargetFrame ft : myTargetFrames) {
+         vsize += ft.getVelStateSize();
+         psize += ft.getPosStateSize();
+      }
+      myTargetVelSize = vsize;
+      myTargetPosSize = psize;
+      myTargetVel.setSize (vsize);
+   }
+   
    private void updateTargetVelocityVec() {
-      if (myTargetVel == null || myTargetVel.size() != myTargetVelSize)
-         myTargetVel = new VectorNd(myTargetVelSize);
       double[] buf = myTargetVel.getBuffer();
       int idx = 0;
-      for (int i = 0; i < myTargets.size(); i++) {
-         MotionTargetComponent target = myTargets.get(i);
-         if (target instanceof Point) {
-            Vector3d vel = ((Point)target).getVelocity();
-            buf[idx++] = vel.x;
-            buf[idx++] = vel.y;
-            buf[idx++] = vel.z;
-         }
-         else if (target instanceof Frame) {
-            Twist vel = ((Frame)target).getVelocity();
-            buf[idx++] = vel.v.x;
-            buf[idx++] = vel.v.y;
-            buf[idx++] = vel.v.z;
-            buf[idx++] = vel.w.x;
-            buf[idx++] = vel.w.y;
-            buf[idx++] = vel.w.z;
-         }
+      for (TargetPoint target : myTargetPoints) {
+         idx = target.getVelState (buf, idx);
+      }
+      for (TargetFrame target : myTargetFrames) {
+         idx = target.getVelState (buf, idx);
       }
    }
 
    private void updateTargetPos(double h) {
-      if (myTargetPos == null || myTargetPos.size() != myTargetPosSize)
-         myTargetPos = new VectorNd(myTargetPosSize);
-
-      double[] posBuf = myTargetPos.getBuffer();
+      myTargetPos.setSize (myTargetPosSize);
+      double[] buf = myTargetPos.getBuffer();
       int idx = 0;
-      for (int i = 0; i < myTargets.size(); i++) {
-         idx = myTargets.get(i).getPosState (posBuf, idx);
+      for (TargetPoint target : myTargetPoints) {
+         idx = target.getPosState (buf, idx);
       }
-   }
-   
-   private void updateTargetVel(double h) {
-      if (myTargetVel == null || myTargetVel.size() != myTargetVelSize)
-         myTargetVel = new VectorNd(myTargetVelSize);
-
-      double[] velBuf = myTargetVel.getBuffer();
-      int idx = 0;
-      for (int i = 0; i < myTargets.size(); i++) {
-         idx = myTargets.get(i).getVelState (velBuf, idx);
+      for (TargetFrame target : myTargetFrames) {
+         idx = target.getPosState (buf, idx);
       }
    }
 
-   private void updateModelVelocity() {
-      int n = myMech.getActiveVelStateSize();
-      if (myCurrentVel == null || myCurrentVel.size() != n)
-         myCurrentVel = new VectorNd(n);
-      myMech.getActiveVelState(myCurrentVel);
-   }
-   
-   public int getModelVelSize() {
-      return myMech.getActiveVelStateSize();
-   }
-
-   public int getTargetVelSize() {
-      return myTargetVelSize;
-   }
-   
    public VectorNd getTargetVel(double t0, double t1) {
       updateTarget (t0, t1);
       return myTargetVel;
-   }
-
-   private void invalidateStressIfFem() {
-      FemModel3d fem = null;
-      if (myMech instanceof MechModel) {
-         if (((MechModel)myMech).models().size() > 0 &&
-            ((MechModel)myMech).models().get(0) instanceof FemModel3d) {
-            fem = (FemModel3d)((MechModel)myMech).models().get(0);
-         }
-      }
-      else if (myMech instanceof FemModel3d) {
-         fem = (FemModel3d)myMech;
-      }
-
-      if (fem != null) {
-         fem.invalidateStressAndStiffness();
-      }
    }
 
    /**
@@ -731,31 +674,34 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * tracking controller can use it properly, since it does not change
     * as the model moves
     */
-   public SparseBlockMatrix getVelocityJacobian() {
+   private SparseBlockMatrix getVelocityJacobian (MechSystemBase mech) {
       // Again, keepVelocityJacobianConstant should be false, unless set true
       // for comparison with legacy code
       if (myVelJacobian == null || !keepVelocityJacobianConstant) {
-         createVelocityJacobian();
+         createVelocityJacobian (mech);
       }
       return myVelJacobian;
    }
 
-   private void createVelocityJacobian() {
-      myVelJacobian = myMech.createVelocityJacobian();
+   private void createVelocityJacobian (MechSystemBase mech) {
+      myVelJacobian = mech.createVelocityJacobian();
 
-      for (int i = 0; i < mySources.size(); i++) {
-         MotionTargetComponent target = mySources.get(i);
-         target.addTargetJacobian(myVelJacobian, i);
+      int i = 0;
+      for (ReferenceComp<Point> pr : mySourcePoints) {
+         pr.getReference().addTargetJacobian(myVelJacobian, i++);
+      }
+      for (ReferenceComp<Frame> pr : mySourceFrames) {
+         pr.getReference().addTargetJacobian(myVelJacobian, i++);
       }
 
       // fold attachments into targets on dynamic components 
       // (same as constraint jacobians)
-      myMech.reduceVelocityJacobian(myVelJacobian);
+      mech.reduceVelocityJacobian(myVelJacobian);
    }
 
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
-    * @param H LHS matrix to fill
+    * @param A LHS matrix to fill
     * @param b RHS vector to fill
     * @param rowoff row offset to start filling term
     * @param t0 starting time of time step
@@ -763,59 +709,82 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     * @return next row offset
     */
    public int getTerm(
-      MatrixNd H, VectorNd b, int rowoff, double t0, double t1) {
+      MatrixNd A, VectorNd b, int rowoff, double t0, double t1) {
+
+      TrackingController controller = getController();
+      if (controller != null) {
+         updateHb (controller, t0, t1);
+         A.setSubMatrix(rowoff, 0, myHv);
+         b.setSubVector(rowoff, myVbar);
+         rowoff += myHv.rowSize();
+      }
+      return rowoff;
+   }      
+
+   public void updateHb (TrackingController controller, double t0, double t1) {
       double h = TimeBase.round(t1 - t0);
 
       updateTarget(t0, t1); // set myTargetVel
-      updateModelVelocity(); // set myCurrentVel
-//      fixTargetPositions();   // XXX not sure why this is needed
       
       VectorNd vbar = new VectorNd (myTargetVelSize);
       // XXX do useTimestepScaling, useNormalizeH on targetVel
+      int numex = controller.numExciters();
+      
+      VectorNd v0 = new VectorNd (myTargetVelSize);
+      myVbar.setSize (myTargetVelSize);
+      myHv.setSize (myTargetVelSize, numex);
+      SparseBlockMatrix Jm = getVelocityJacobian(controller.getMech());
+      
+      VectorNd u0 = controller.getU0();
+      Jm.mul(v0, u0, Jm.rowSize(), u0.size());
+      VectorNd Hv_j = new VectorNd (myTargetVelSize);
+      for (int j=0; j<numex; j++) {
+         Jm.mul(Hv_j, controller.getHuCol(j), Jm.rowSize (), u0.size());
+         myHv.setColumn (j, Hv_j);
+      }
+      
+      myVbar.sub (myTargetVel, v0);
 
-      vbar.sub (myTargetVel, myController.getData ().getV0 ());
-      
-      if (myController.getDebug ()) {
-         System.out.println ("(MotionTargetTerm)");
-         System.out.println ("\tmyTargetVel: " + myTargetVel.toString ("%.3f"));
-         System.out.println ("\tV0: " + myController.getData ().getV0 ().toString ("%.3f"));
-         System.out.println ("\tvbar: " + vbar.toString ("%.3f"));
+      if (controller.getDebug ()) {
+         System.out.println (
+            "(MotionTargetTerm)");
+         System.out.println (
+            "\tmyTargetVel: " + myTargetVel.toString ("%.3f"));
+         System.out.println (
+            "\tV0: " + v0.toString ("%.3f"));
+         System.out.println (
+            "\tvbar: " + myVbar.toString ("%.3f"));
       }
-      
-      MatrixNd Hv = new MatrixNd (myTargetVelSize, myController.numExcitations ());
-      Hv.set (myController.getData ().getHv ());
 
-      if (myController.getData ().normalizeH) {
-         double fn = 1.0 / Hv.frobeniusNorm ();
-         Hv.scale (fn);
-         vbar.scale (fn);
+      if (controller.getNormalizeH()) {
+         double fn = 1.0 / myHv.frobeniusNorm ();
+         myHv.scale (fn);
+         myVbar.scale (fn);
       }
       
-      if (myController.getData ().useTimestepScaling) { // makes it independent of the time step
-         Hv.scale(1/h);      
-         vbar.scale(1/h); 
+      if (controller.getUseTimestepScaling()) {
+         // makes it independent of the time step
+         myHv.scale(1/h);      
+         myVbar.scale(1/h); 
       }
-      
-   // apply weights
-      if (myTargetWgts != null) {
-         MotionForceInverseData.diagMul(myTargetWgts,Hv,Hv);
-         MotionForceInverseData.pointMul(myTargetWgts,vbar,vbar);
-      }
+
+      VectorNd weights = collectAllWeights();
+      myHv.mulDiagonalLeft (weights);
+      mulElements(myVbar,weights,myVbar);
+
       if (myWeight >= 0) {
-          Hv.scale(myWeight);
-          vbar.scale(myWeight);
-       }
-
-      H.setSubMatrix(rowoff, 0, Hv);
-      b.setSubVector(rowoff, vbar);
-      
-      return rowoff + Hv.rowSize();
-
-      
-//      return myMotionTerm.getTerm(H, b, rowoff, t0, t1,
-//         myTargetVel, myCurrentVel, myTargetWgts, getVelocityJacobian());
+          myHv.scale(myWeight);
+          myVbar.scale(myWeight);
+      }
    }
    
+   public MatrixNd getH() {
+      return myHv;
+   }
+
+   public VectorNd getB() {
+      return myVbar;
+   }
 
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
@@ -824,28 +793,13 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
     */
    public void reGetTerm(MatrixNd H, VectorNd b) {
       // XXX do useTimestepScaling, useNormalizeH on targetVel
-      b.sub (myTargetVel, myController.getData ().getV0 ());
-      H.set (myController.getData ().getHv ());
+      b.set (myVbar);
+      H.set (myHv);
    }
-   
-   
-   private void fixTargetPositions() {
-      for (MotionTargetComponent comp : myTargets) {
-         if (comp instanceof Point) {
-            Point p = (Point)comp;
-            p.setPosition(p.getTargetPosition());
-            p.setVelocity(p.getTargetVelocity());
-         } else if (comp instanceof Frame) {
-            Frame f = (Frame)comp;
-            f.setVelocity(f.getTargetVelocity());
-            f.setPose(f.getTargetPose());
-         }
-      }
-   }
-
 
    /**
-    * Weight used to scale the contribution of this term in the quadratic optimization problem
+    * Weight used to scale the contribution of this term in the quadratic
+    * optimization problem
     */
    @Override
    public void setWeight(double w) {
@@ -853,43 +807,72 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
 
    /**
-    * Sets weights for targets.  This allows you to weight more heavily the points
-    * you deem to be more important.  If wgts.size() equals the number of targets, each target
-    * will use a single weight.  If wgts.size() equals the full size of the target velocity
-    * vector, then this directly scales the rows of <code>H</code> (allows you to scale x,y,z
-    * components of velocity separately).
+    * Sets weights for targets.  This allows you to weight more heavily the
+    * points you deem to be more important.  If wgts.size() equals the number
+    * of targets, each target will use a single weight.  If wgts.size() equals
+    * the full size of the target velocity vector, then this directly scales
+    * the rows of <code>H</code> (allows you to scale x,y,z components of
+    * velocity separately).
     * 
-    * @param wgts weights vector
+    * @param weights weights vector
     */
-   public void setTargetWeights(VectorNd wgts) {
+   public void setTargetWeights (VectorNd weights) {
       
-      if (wgts.size() == mySources.size()) {
-         myTargetWeights.clear();
-         for (int i=0; i<mySources.size(); i++) {
-            myTargetWeights.add(wgts.get(i));
+      if (weights.size() == numTargets()) {
+         int k = 0;
+         for (TargetPoint tp : myTargetPoints) {
+            tp.setWeight (weights.get(k++));
          }
-         updateWeightsVector();
-      } else if (wgts.size() == myTargetVelSize) {
-         myTargetWgts.set(wgts);
+         for (TargetFrame tf : myTargetFrames) {
+            tf.setWeight (weights.get(k++));
+         }
       }
-      
+      else if (weights.size() == getTargetVelSize()) {
+         int k = 0;
+         for (TargetPoint tp : myTargetPoints) {
+            Vector3d subw = new Vector3d();
+            subw.x = weights.get(k++);
+            subw.y = weights.get(k++);
+            subw.z = weights.get(k++);
+            tp.setSubWeights (subw);
+            tp.setWeight (1.0);
+         }
+         for (TargetFrame tf : myTargetFrames) {
+            VectorNd subw = new VectorNd(6);
+            for (int i=0; i<6; i++) {
+               subw.set (i, weights.get(k++));
+            }
+            tf.setSubWeights (subw);
+            tf.setWeight (1.0);
+         }
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Weights vector size should equal number of targets or"+
+            "target velocity size");
+      }
    }
    
    /**
-    * Gets weights for targets. If wgts.size() equals the number of targets, returns the
-    * set of single weights used per target.  If wgts.size() equals the full size of the 
-    * target velocity vector, then returns the direct scaling vector.
+    * Gets weights for targets. If weights.size() equals the number of targets,
+    * returns the set of single weights used per target.  If weights.size() equals
+    * the full size of the target velocity vector, then returns the direct
+    * scaling vector.
     * 
-    * @param out weights vector
+    * @param weights weights vector
     */
-   public void getTargetWeights(VectorNd out) {
+   public void getTargetWeights(VectorNd weights) {
       
-      if (out.size() == mySources.size()) {
-         for (int i=0; i<mySources.size(); i++) {
-            out.set(i, myTargetWeights.get(i));
-         }
-      } else if (out.size() == myTargetVelSize) {
-         out.set(myTargetWgts);
+      if (weights.size() == numTargets()) {
+         weights.set (collectTargetWeights());
+      } 
+      else if (weights.size() == getTargetVelSize()) {
+         weights.set(collectAllWeights());
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Weights vector size should equal number of targets or"+
+            "target velocity size");
       }
    }
 
@@ -901,23 +884,13 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    }
 
    /**
-    * Returns target weights, one per target point.  Used by properties so can be get/set
-    * through interface
-    */
-   public VectorNd getTargetWeights() {
-      VectorNd out = new VectorNd(mySources.size());
-      getTargetWeights(out);
-      return out;
-   }
-   
-   /**
     * Sets render props for the target points/frames
     */
    public void setTargetRenderProps(RenderProps rend) {
       targetRenderProps.set (rend);
 
-      myController.targetPoints.setRenderProps (targetRenderProps);
-      myController.targetFrames.setRenderProps (targetRenderProps);
+      myTargetPoints.setRenderProps (targetRenderProps);
+      myTargetFrames.setRenderProps (targetRenderProps);
    }
 
    /**
@@ -933,12 +906,11 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public void setSourceRenderProps(RenderProps rend) {
       sourceRenderProps.set(rend);
 
-      for (MotionTargetComponent p : mySources) {
-         if (p instanceof Point) {
-            ((Point)p).setRenderProps(sourceRenderProps);
-         } else if (p instanceof Frame) {
-            ((Frame)p).setRenderProps(sourceRenderProps);
-         }
+      for (ReferenceComp<Point> pr : mySourcePoints) {
+         pr.getReference().setRenderProps(sourceRenderProps);
+      }
+      for (ReferenceComp<Frame> fr : mySourceFrames) {
+         fr.getReference().setRenderProps(sourceRenderProps);
       }
    }
    
@@ -960,83 +932,42 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    
    /**
     * Proportional gain for PD controller
-    * 
     */
    public void setKp(double k) {
       Kp = k;
    }
    
    /**
-    * Returns the Proportional gain for PD controller.  See {@link #setKp(double)}.
+    * Returns the Proportional gain for PD controller.  See {@link
+    * #setKp(double)}.
     * @return proportional error gain
     */
    public double getKp() {
       return Kp;
    }
-   
-   public double getPerr() {
-      // updated in getTerm()
-//      updatePositionError ();
-      return postionError.norm ();
+
+   public boolean getUseDeltaActivations() {
+      return useDeltaAct;
+   }
+
+   public void setUseDeltaActivations (boolean enable) {
+      useDeltaAct = enable;
    }
    
-   public double getDerr() {
-      // updated in getTerm()
-//      updateVelocityError ();
-      return velocityError.norm ();
-   }
-   
-   /**
-    * Sets whether or not to normalize the contribution to <code>H</code>
-    * and <code>b</code> by the Frobenius norm of this term's <code>H</code> block.
-    * This is for scaling purposes when damping is important.  If set to false,
-    * then the damping term's scale will depend on the time and spatial scales. 
-    * However, if set to true, we will likely scale this term differently every
-    * time step.
-    * 
-    * @param enable if <code>true</code>, enables normalization
-    */
-   public void setNormalizeH(boolean enable) {
-      myController.getData().normalizeH = enable;
-   }
-   
-   /**
-    * Returns whether or not we're normalizing this term's contribution to
-    * <code>H</code> and <code>b</code>.  See {@link #setNormalizeH(boolean)} 
-    * @return true if we're normalizing this term's contribution to
-    * <code>H</code> and <code>b</code>
-    */
-   public boolean getNormalizeH() {
-      return myController.getData().normalizeH;
+   @Override
+   public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
+      TrackingController controller = getController();
+      if (controller != null) {  
+         updateHb (controller, t0, t1);
+         computeAndAddQP (Q, p, myHv, myVbar);
+      }
    }
 
    @Override
-   protected void compute (double t0, double t1) {
-      getTerm (H,f,0,t0,t1);
-   }
-   
-   @Override
-   public int getRowSize() {
+   public int numConstraints(int qpsize) {
       return getTargetVelSize();
    }
    
-   
-   public boolean getUseKKTFactorAndSolve () {
-      return myController.getData().useKKTFactorAndSolve;
-   }
-
-   public void setUseKKTFactorAndSolve (boolean useKKTFactorAndSolve) {
-      myController.getData().useKKTFactorAndSolve = useKKTFactorAndSolve;
-   }
-   
-   public boolean getUseTimestepScaling () {
-      return myController.getData().useTimestepScaling;
-   }
-
-   public void setUseTimestepScaling (boolean useTimestepScaling) {
-      myController.getData().useTimestepScaling = useTimestepScaling;
-   }
-
    public void setUsePDControl(boolean usePD) {
       usePDControl = usePD;
    }
@@ -1044,6 +975,4 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public boolean getUsePDControl() {
       return usePDControl;
    }
-
-
 }

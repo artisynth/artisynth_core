@@ -107,6 +107,12 @@ public class RigidBodyDemo extends RootModel {
       X.R.setAxisAngle (0, 1, 0, -Math.PI / 4);
       lowerBox.setPose (X);
 
+      // transforms to test RigidBody.transformCoordinateFrame()
+      // RigidTransform3d TNB = new RigidTransform3d (7, 11, 13, 1, 2, 3);
+      // RigidTransform3d invTNB = new RigidTransform3d ();
+      // invTNB.invert (TNB);
+      // lowerBox.transformCoordinateFrame (TNB);
+
       FrameMarker at0 = new FrameMarker (1, 0, -1);
       FrameMarker at1 = new FrameMarker (-1, 0, -1);
 
@@ -121,6 +127,9 @@ public class RigidBodyDemo extends RootModel {
 
       FrameMarker at2 = new FrameMarker (2.5, -2, 1);
       FrameMarker at3 = new FrameMarker (2.5, 2, 1);
+
+      //at2.transformLocation (invTNB);
+      //at3.transformLocation (invTNB);
       msmod.addFrameMarker (at2, lowerBox, null);
       msmod.addFrameMarker (at3, lowerBox, null);
 
@@ -147,12 +156,17 @@ public class RigidBodyDemo extends RootModel {
       FrameMarker at4 = new FrameMarker (-2.5, -2, -1);
       FrameMarker at5 = new FrameMarker (-2.5, 2, -1);
 
+
       msmod.addFrameMarker (at4, lowerBox, null);
       msmod.addFrameMarker (at5, lowerBox, null);
+      //at4.transformLocation (invTNB);
+      //at5.transformLocation (invTNB);
 
+      Point3d attachPoint = new Point3d (-2.5, 0, -1);
+      //attachPoint.transform (invTNB);
       msmod.addParticle (part2);
       part2.setMass (10);
-      msmod.attachPoint (part2, lowerBox, new Point3d (-2.5, 0, -1));
+      msmod.attachPoint (part2, lowerBox, attachPoint);
 
       msmod.addParticle (part1);
       msmod.attachAxialSpring (at0, at2, spring1);

@@ -23,7 +23,7 @@ public class MinimizeFrameSpringForce extends RootModel {
 
    TrackingController myController = null; // inverse controller
    double myForceTermWeight = 0.1;         // overall force minimization weight
-   ForceMinimizationTerm myForceTerm;          // force minimization term
+   ForceEffectorTerm myForceTerm;          // force minimization term
    FrameSpring mySpring;
    MechModel myMech;
 
@@ -65,99 +65,171 @@ public class MinimizeFrameSpringForce extends RootModel {
 
    public void setForceTermWeight (double w) {
       myForceTermWeight = w;
-      if (myForceTerm != null) {
+      if (getForceTerm() != null) {
          myForceTerm.setWeight (w);
       }
    }
 
    public VectorNd getSpringForce() {
       VectorNd minf = new VectorNd(6);
-      myForceTerm.getTotalForce (minf);
+      if (getForceTerm() != null) {
+         myForceTerm.getForceError (minf);
+      }
       return minf;
    }
 
    public double getForceTermNorm() {
       VectorNd minf = new VectorNd(6);
-      myForceTerm.getTotalForce (minf);
-      double tw = getTransWeight();
-      double rw = getRotWeight();
-      minf.set (0, tw*minf.get(0));
-      minf.set (1, tw*minf.get(1));
-      minf.set (2, tw*minf.get(2));
-      minf.set (3, rw*minf.get(3));
-      minf.set (4, rw*minf.get(4));
-      minf.set (5, rw*minf.get(5));
+      if (getForceTerm() != null) {
+         myForceTerm.getForceError (minf);
+         double tw = getTransWeight();
+         double rw = getRotWeight();
+         minf.set (0, tw*minf.get(0));
+         minf.set (1, tw*minf.get(1));
+         minf.set (2, tw*minf.get(2));
+         minf.set (3, rw*minf.get(3));
+         minf.set (4, rw*minf.get(4));
+         minf.set (5, rw*minf.get(5));
+      }
       return minf.norm();
    }
 
+   FrameSpring getSpring() {
+      if (mySpring == null) {
+         reinitMembers();
+      }
+      return mySpring;
+   }
+
+   ForceEffectorTerm getForceTerm() {
+      if (myForceTerm == null) {
+         reinitMembers();
+      }
+      return myForceTerm;
+   }
+
    public double getStiffness() {
-      LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
-      return mat.getStiffness().x;
+      if (getSpring() != null) {
+         LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
+         return mat.getStiffness().x;
+      }
+      else {
+         return 0;
+      }
    }
 
    public void setStiffness (double k) {
-      LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
-      mat.setStiffness(new Vector3d (k, k, k));
+      if (getSpring() != null) {
+         LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
+         mat.setStiffness(new Vector3d (k, k, k));
+      }
    }
 
    public double getRotStiffness() {
-      LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
-      return mat.getRotaryStiffness().x;
+      if (getSpring() != null) {
+         LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
+         return mat.getRotaryStiffness().x;
+      }
+      else {
+         return 0;
+      }
    }
 
    public void setRotStiffness (double k) {
-      LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
-      mat.setRotaryStiffness(new Vector3d (k, k, k));
+      if (getSpring() != null) {
+         LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
+         mat.setRotaryStiffness(new Vector3d (k, k, k));
+      }
    }
 
    public double getDamping() {
-      LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
-      return mat.getDamping().x;
+      if (getSpring() != null) {
+         LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
+         return mat.getDamping().x;
+      }
+      else {
+         return 0;
+      }
    }
 
    public void setDamping (double d) {
-      LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
-      mat.setDamping(new Vector3d (d, d, d));
+      if (getSpring() != null) {
+         LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
+         mat.setDamping(new Vector3d (d, d, d));
+      }
    }
 
    public double getRotDamping() {
-      LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
-      return mat.getRotaryDamping().x;
+      if (getSpring() != null) {
+         LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
+         return mat.getRotaryDamping().x;
+      }
+      else {
+         return 0;
+      }
    }
 
    public void setRotDamping (double d) {
-      LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
-      mat.setRotaryDamping(new Vector3d (d, d, d));
+      if (getSpring() != null) {
+         LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
+         mat.setRotaryDamping(new Vector3d (d, d, d));
+      }
    }
 
    public double getTransWeight () {
-      VectorNd weights = myForceTerm.getTargetWeights(0);
-      return weights.get(0);
+      if (getForceTerm() != null) {
+         VectorNd weights = myForceTerm.getTargetWeights(0);
+         return weights.get(0);
+      }
+      else {
+         return 0;
+      }
    }
 
    public void setTransWeight (double w) {
-      VectorNd weights = myForceTerm.getTargetWeights(0);
-      weights.set (0, w);
-      weights.set (1, w);
-      weights.set (2, w);
-      myForceTerm.setTargetWeights(0, weights);
+      if (getForceTerm() != null) {
+         VectorNd weights = myForceTerm.getTargetWeights(0);
+         weights.set (0, w);
+         weights.set (1, w);
+         weights.set (2, w);
+         myForceTerm.setTargetWeights(0, weights);
+      }
    }
 
    public double getRotWeight () {
-      VectorNd weights = myForceTerm.getTargetWeights(0);
-      return weights.get(3);
+      if (getForceTerm() != null) {
+         VectorNd weights = myForceTerm.getTargetWeights(0);
+         return weights.get(3);
+      }
+      else {
+         return 0;
+      }
    }
 
    public void setRotWeight (double w) {
-      VectorNd weights = myForceTerm.getTargetWeights(0);
-      weights.set (3, w);
-      weights.set (4, w);
-      weights.set (5, w);
-      myForceTerm.setTargetWeights(0, weights);
+      if (getForceTerm() != null) {
+         VectorNd weights = myForceTerm.getTargetWeights(0);
+         weights.set (3, w);
+         weights.set (4, w);
+         weights.set (5, w);
+         myForceTerm.setTargetWeights(0, weights);
+      }
    }
 
    public void setTargetWeights (VectorNd wgts) {
-      myForceTerm.setTargetWeights (0, wgts);
+      if (getForceTerm() != null) {
+         myForceTerm.setTargetWeights (0, wgts);
+      }
+   }
+
+   protected void reinitMembers() {
+      if (getControllers().size() > 0) {
+         TrackingController tcon =
+            (TrackingController)getControllers().get(0);
+         myForceTerm = tcon.getForceEffectorTerm();
+         myMech = (MechModel)models().get(0);
+         mySpring = myMech.frameSprings().get(0);
+      }
    }
 
    public void build (String[] args) {
@@ -212,8 +284,7 @@ public class MinimizeFrameSpringForce extends RootModel {
       myController.addL2RegularizationTerm();
       MotionTargetComponent target = myController.addMotionTarget(mkr);
       RenderProps.setSphericalPoints ((Renderable)target, r/20, Color.GREEN);
-      myForceTerm = new ForceMinimizationTerm(myController);
-      myController.addMinimizeForceTerm (myForceTerm);
+      myForceTerm = myController.addForceEffectorTerm ();
       myForceTerm.setWeight (myForceTermWeight);
       myForceTerm.addForce (mySpring, 0.0002, false);
       myForceTerm.debugHf = false;
@@ -256,7 +327,7 @@ public class MinimizeFrameSpringForce extends RootModel {
       panel.addWidget (this, "transWeight");
       panel.addWidget (this, "rotWeight");
       panel.addWidget (this, "springForce");
-      panel.addWidget ("controllerEnabled", myController, "enabled");
+      panel.addWidget ("controllerEnabled", myController, "active");
       panel.addWidget (this, "stiffness");
       panel.addWidget (this, "rotStiffness");
       panel.addWidget (this, "damping");

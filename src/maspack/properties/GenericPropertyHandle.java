@@ -8,6 +8,7 @@ package maspack.properties;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Objects;
 
 import maspack.util.InternalErrorException;
 import maspack.util.Range;
@@ -140,6 +141,11 @@ public class GenericPropertyHandle implements Property {
     */
    public PropertyInfo getInfo() {
       return myDesc;
+   }
+   
+   @Override
+   public int hashCode() {
+      return Objects.hash (getHost(), getName(), getInfo());
    }
    
    @Override

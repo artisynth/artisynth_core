@@ -20,7 +20,9 @@ import maspack.properties.*;
  * values with respect to changes and edits requested by the user.
  */
 public class PlotTraceManager {
-   LinkedHashMap<String,PlotTraceInfo[]> myPlotTraceMap;
+
+   LinkedHashMap<Object,PlotTraceInfo[]> myPlotTraceMap;
+
    ArrayList<PlotTraceInfo> myPlotTraceList;
    int[] myPlotTraceOrdering;
 
@@ -52,7 +54,7 @@ public class PlotTraceManager {
    private String myDefaultPrefix = null;
 
    public PlotTraceManager (String defaultPrefix) {
-      myPlotTraceMap = new LinkedHashMap<String,PlotTraceInfo[]>();
+      myPlotTraceMap = new LinkedHashMap<Object,PlotTraceInfo[]>();
       myPlotTraceList = new ArrayList<PlotTraceInfo>();
       myPlotTraceOrdering = new int[16];
       myDefaultPrefix = defaultPrefix;
@@ -97,7 +99,7 @@ public class PlotTraceManager {
       for (int order=0; order<myPlotTraceList.size(); order++) {
          myPlotTraceList.get(myPlotTraceOrdering[order]).setOrder (order);
       }
-      for (Map.Entry<String,PlotTraceInfo[]> entry : myPlotTraceMap.entrySet()) {
+      for (Map.Entry<Object,PlotTraceInfo[]> entry : myPlotTraceMap.entrySet()) {
          if (entry.getValue() == infos) {
             myPlotTraceMap.remove (entry.getKey());
             break;
@@ -105,8 +107,8 @@ public class PlotTraceManager {
       }
    }
    
-   private void add (String fullname, PlotTraceInfo[] infos) {
-      myPlotTraceMap.put (fullname, infos);
+   private void add (Object propOrDimen, PlotTraceInfo[] infos) {
+      myPlotTraceMap.put (propOrDimen, infos);
       growOrderingListIfNecessary (myPlotTraceList.size() + infos.length);
       for (PlotTraceInfo pti : infos) {
          int idx = myPlotTraceList.size();
@@ -217,7 +219,8 @@ public class PlotTraceManager {
       TraceColor[] palette = PlotTraceInfo.getPaletteColors();
       for (int i=0; i<propsOrDimens.length; i++){
          String fullname = getFullName (propsOrDimens[i], i);         
-         PlotTraceInfo[] infos = myPlotTraceMap.get(fullname);
+         PlotTraceInfo[] infos;
+         infos = myPlotTraceMap.get(propsOrDimens[i]);
          if (infos == null) {
             throw new InternalErrorException (
                "No plot traces for " + fullname);
@@ -240,21 +243,6 @@ public class PlotTraceManager {
 
    public PlotTraceInfo[] getAllTraceInfo (Object[] propsOrDimens) {
       return myPlotTraceList.toArray (new PlotTraceInfo[0]);
-//       int k = 0;
-//       PlotTraceInfo[] allInfo = new PlotTraceInfo[getNumTraces(propsOrDimens)];
-//       TraceColor[] palette = PlotTraceInfo.getPaletteColors();
-//       for (int i=0; i<propsOrDimens.length; i++){
-//          String fullname = getFullName (propsOrDimens[i], i);         
-//          PlotTraceInfo[] infos = myPlotTraceMap.get(fullname);
-//          if (infos == null) {
-//             throw new InternalErrorException (
-//                "No plot traces for " + fullname);
-//          }
-//          for (PlotTraceInfo pti : infos) {
-//             allInfo[k++] = pti;
-//          }
-//       }
-//       return allInfo;
    }
 
    private void checkBounds (int idx) {
@@ -362,44 +350,44 @@ public class PlotTraceManager {
       int k = 0;
       TraceColor[] palette = PlotTraceInfo.getPaletteColors();
       for (int i=0; i<propsOrDimens.length; i++){
-         String fullname = getFullName (propsOrDimens[i], i);         
          int dimen = getDimension (propsOrDimens[i]);
          PlotTraceInfo[] infos = new PlotTraceInfo[dimen];
          for (int j=0; j<dimen; j++) {
             infos[j] = allInfos[k++];
          }
-         myPlotTraceMap.put (fullname, infos);
+         myPlotTraceMap.put (propsOrDimens[i], infos);
       }
    }
 
    public void rebuild (Object[] propsOrDimens) {
 
-      HashMap<String,Object> newSet = new HashMap<String,Object>();
+      HashMap<Object,Object> newSet = new HashMap<>();
       for (int i=0; i<propsOrDimens.length; i++){
-         newSet.put (getFullName (propsOrDimens[i], i), propsOrDimens[i]);
+         newSet.put (propsOrDimens[i], propsOrDimens[i]);
       }
-      for (String fullname : myPlotTraceMap.keySet()) {
-         PlotTraceInfo[] infos = myPlotTraceMap.get (fullname);
-         Object obj = newSet.get (fullname);
-         if (obj != null &&
-             obj instanceof Integer &&
-             ((Integer)obj).intValue() != infos.length) {
-            obj = null;
+      for (Object obj : myPlotTraceMap.keySet()) {
+         PlotTraceInfo[] infos = myPlotTraceMap.get (obj);
+         Object value = newSet.get (obj);
+         if (value != null &&
+         value instanceof Integer &&
+         ((Integer)value).intValue() != infos.length) {
+            value = null;
          }
-         if (obj == null) {
+         if (value == null) {
             freeColors (infos);
             remove (infos);
          }
       }
       for (int i=0; i<propsOrDimens.length; i++){
-         String fullname = getFullName (propsOrDimens[i], i);
-         PlotTraceInfo[] infos = myPlotTraceMap.get (fullname);
+         PlotTraceInfo[] infos = myPlotTraceMap.get (propsOrDimens[i]);
          if (infos == null) {
+            String fullname = getFullName (propsOrDimens[i], i);
             infos = createPlotTraces (fullname, propsOrDimens[i]);
-            add (fullname, infos);
+            add (propsOrDimens[i], infos);
          }
       }
    }
+
 
    // describing the possible changes that can be made to an
    // existing set of variables:

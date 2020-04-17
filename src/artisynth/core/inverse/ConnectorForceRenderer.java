@@ -12,6 +12,10 @@ import maspack.render.Renderer;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 
+/**
+ * Monitor that renders the force for either a spherical joint or a planar
+ * connector.
+ */
 public class ConnectorForceRenderer extends MonitorBase {
 
    public ConnectorForceRenderer () {

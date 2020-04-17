@@ -9,6 +9,7 @@ import maspack.properties.PropertyMode;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
 import maspack.render.Renderer.FaceStyle;
+import maspack.util.PathFinder;
 import artisynth.core.femmodels.MuscleBundle;
 import artisynth.core.gui.FemControlPanel;
 import artisynth.core.inverse.TrackingController;
@@ -44,6 +45,7 @@ public class HydrostatInvDemo extends HydrostatDemo
    public void build(String[] args) throws IOException
    {
       build (Shape.Beam);
+      addWayPoint (0.3);
    }
    
    public void build (Shape shape) throws IOException {
@@ -67,12 +69,6 @@ public class HydrostatInvDemo extends HydrostatDemo
 //      for (MuscleBundle b : hydro.getMuscleBundles()) {
 //	 RenderProps.setLineColor(b, Color.RED);
 //      }
-   }
-   
-   public void attach(DriverInterface driver)
-   {
-//      super.attach(driver);
-//      loadControlPanels (driver.getFrame());
       if (useBundlesForInverse) {
 	 FemControlPanel.createMuscleBundlesPanel(this, hydro);
       }
@@ -80,14 +76,21 @@ public class HydrostatInvDemo extends HydrostatDemo
 	 FemControlPanel.createMuscleExcitersPanel(this, hydro);
       } 
       
-      File workingDir = new File(ArtisynthPath.getSrcRelativePath (this, 
-	         "data/hydrostat/complex"));
+      File workingDir = new File(
+         PathFinder.getSourceRelativePath (
+            HydrostatInvDemo.class, "data/hydrostat/complex"));
       ArtisynthPath.setWorkingDir(workingDir);
 //      loadProbes (probeFilename);
       
       System.out.println("num act = " + hydro.numActivations ());
 
       addInverseController();
+   }
+   
+   public void attach(DriverInterface driver)
+   {
+//      super.attach(driver);
+//      loadControlPanels (driver.getFrame());
    }
    
    protected TrackingController trackingController;

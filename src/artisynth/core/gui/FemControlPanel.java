@@ -113,8 +113,14 @@ public class FemControlPanel {
 
    public static ControlPanel createMusclePanel(RootModel root,
       FemMuscleModel fem, boolean addExciters) {
-      ControlPanel controlPanel = new ControlPanel(fem.getName() + " Muscles",
-         "LiveUpdate");
+      String panelname;
+      if (addExciters) {
+         panelname = fem.getName() + " Muscle exciters";
+      }
+      else {
+         panelname = fem.getName() + " Muscle bundles";
+      }
+      ControlPanel controlPanel = new ControlPanel(panelname, "LiveUpdate");
       controlPanel.setScrollable(true);
       if (addExciters) {
          addExcitersToPanel(controlPanel, fem);

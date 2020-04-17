@@ -241,7 +241,7 @@ public class SpringMeshDemo extends RootModel {
 
       addWayPoint (1.5);
 
-      ReferenceList refs = new ReferenceList ("refs");
+      ReferenceList<ModelComponent> refs = new ReferenceList<> ("refs");
       refs.addReference (p0);
       refs.addReference (p1);
       refs.addReference (p10);

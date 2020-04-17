@@ -752,6 +752,11 @@ public class ComponentUtils {
       }
    }
 
+   public static void checkReferenceContainment (
+      ModelComponent comp, CompositeComponent ancestor) {
+      recursivelyCheckReferenceContainment (comp, ancestor);
+   }
+
    /**
     * Returns the closest ancestor of a component (or the component
     * itself) for which {@link 

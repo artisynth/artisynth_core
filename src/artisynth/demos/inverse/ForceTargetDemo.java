@@ -265,28 +265,31 @@ public class ForceTargetDemo extends RootModel{
       myTrackingController.addMotionTarget(mkr);
       setPointRenderProps((TargetPoint) myTrackingController.getMotionTargets ().get (0));
      
-      ForceTargetTerm mft=new ForceTargetTerm(myTrackingController);
+//      ForceTargetTerm mft=new ForceTargetTerm(myTrackingController);
       
-     // mft.addMotionTarget(mkr);
-    //  setPointRenderProps((TargetPoint) mft.getMotionTargets ().get (0));
+      // mft.addMotionTarget(mkr);
+      //  setPointRenderProps((TargetPoint) mft.getMotionTargets ().get (0));
       double[] lam={-3.5};
       VectorNd tarlam= new VectorNd (lam);
-      if(cons==true)
-      {ForceTarget ft = mft.addForceTarget (con);
-      ft.setTargetLambda (tarlam);}
-      if(two_cons==true)
-      { ForceTarget ft = mft.addForceTarget (con2);
-      ft.setTargetLambda (tarlam);}
-      if(force==true)
-      {myTrackingController.addForceTargetTerm (mft);}
-//      myTrackingController.getSolver().setBounds(0.01, 0.99);
+      if (force) {
+         ForceTargetTerm mft = myTrackingController.addForceTargetTerm();
+         if(cons==true) {
+            ForceTarget ft = mft.addForceTarget (con);
+            ft.setTargetLambda (tarlam);
+         }
+         if(two_cons==true) {
+            ForceTarget ft = mft.addForceTarget (con2);
+            ft.setTargetLambda (tarlam);
+         }
+      }
+      //      myTrackingController.getSolver().setBounds(0.01, 0.99);
       //setWorkingDir();
-      
-//      loadForceInputProbe(mft);
+
+      //      loadForceInputProbe(mft);
       myTrackingController.setProbeDuration (10.0);
       myTrackingController.createProbesAndPanel (this);
       addController(myTrackingController);
-      
+
       reloadTargetProbeData();
    }
    

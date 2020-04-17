@@ -6,52 +6,65 @@
  */
 package artisynth.core.inverse;
 
-public class DampingTerm extends LeastSquaresTermBase {
-   
-   protected TrackingController myController;
+import artisynth.core.modelbase.*;
+import maspack.matrix.*;
+
+/**
+ * Cost term that inhibits how quickly excitation values change
+ */
+public class DampingTerm extends QPCostTermBase {
 
    public static final double defaultWeight = 1e-5;
-   
-   public DampingTerm(TrackingController controller) {
-      this(controller, defaultWeight);
+
+   public DampingTerm () {
+      this(null);
    }
    
-   public DampingTerm(TrackingController controller, double weight) {
-      super(weight);
-      myController = controller;
+   public DampingTerm (String name) {
+      setName (name);
+      setWeight (defaultWeight);
    }
- 
+   
    /**
-    * Old constructor: the size is determined automatically from the
-    * tracking controller, the second parameter is no longer used.
-    * 
-    * @param controller tracking controller
-    * @param size this parameter is no longer used
+    * {@inheritDoc}
     */
-   public DampingTerm(TrackingController controller, int size) {
-      this(controller, defaultWeight);
-   }
-
    @Override
-   protected void compute (double t0, double t1) {
-      double dt = t1 - t0;
-      if (dt>0) {
-         H.setIdentity();
-         H.scale(Math.sqrt(myWeight/dt));
-         
-
-         myController.getExcitations(f, 0);
-         f.scale(Math.sqrt(myWeight/dt));
-
-//         if (TrackingController.isDebugTimestep (t0, t1)) {
-//            System.out.println("dt = " + dt + "    |Hd| = " + H.frobeniusNorm() + "    |f| = " + f.norm ());
-//         }
-
+   public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
+      TrackingController controller = getController();
+      if (controller != null) {
+         double h = t1 - t0;
+         if (h > 0) {
+            VectorNd prevEx = new VectorNd(controller.numExciters());
+            controller.getExcitations (prevEx, 0);
+            double s = myWeight/h;
+            for (int i=0; i<Q.rowSize(); i++) {
+               Q.add (i, i, s);
+               p.add (i, -s*prevEx.get(i));
+            }
+         }
       }
    }
 
+   /**
+    * {@inheritDoc}
+    */
    @Override
-   public int getRowSize () {
-      return mySize;
+   public void connectToHierarchy (CompositeComponent hcomp) {
+      if (getParent() == hcomp && getParent() instanceof TrackingController) {
+         TrackingController tcon = (TrackingController)getParent();
+         tcon.myDampingTerm = this;
+      }
    }
+
+   /**
+    * {@inheritDoc}
+    */
+   @Override
+   public void disconnectFromHierarchy(CompositeComponent hcomp) {
+      if (getParent() == hcomp && getParent() instanceof TrackingController) {
+         TrackingController tcon = (TrackingController)getParent();
+         tcon.myDampingTerm = null;
+      }
+   }
+
 }

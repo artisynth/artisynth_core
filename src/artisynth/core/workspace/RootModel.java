@@ -1353,7 +1353,12 @@ public class RootModel extends RenderableModelBase
 
    private void updateModelInfo() {
 
-      myRootInfo = new ModelInfo (this);
+      if (myRootInfo == null) {
+         // want to only allocate this once, since we use it to reference state
+         // values via a hashmap
+         myRootInfo = new ModelInfo (this);
+      }
+      
       // rebuild modelinfo, removing info for deleted models
       // and adding info for new models.
       LinkedHashMap<Model,ModelInfo> newinfo =

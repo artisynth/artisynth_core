@@ -22,6 +22,7 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
    // fields for CompositeComponent
    protected String myShortName;
    // if not -1, indices at and beyond this value need to revalidated
+   protected boolean myEditableP = true;
 
    public static NavpanelDisplay DEFAULT_NAVPANEL_DISPLAY =
       NavpanelDisplay.NORMAL;
@@ -319,6 +320,14 @@ public class ComponentList<C extends ModelComponent> extends ModelComponentBase
       myComponents.ensureCapacity (cap);
    }         
 
+   public boolean isEditable() {
+      return myEditableP;
+   }
+
+   public void setEditable (boolean editable) {
+      myEditableP = editable;
+   }
+   
    // ========== End MutableCompositeComponent implementation ===== 
 
    /**

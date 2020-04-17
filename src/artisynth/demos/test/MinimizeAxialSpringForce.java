@@ -16,7 +16,7 @@ import maspack.matrix.*;
 
 public class MinimizeAxialSpringForce extends PointModel {
 
-   ForceMinimizationTerm myForceTerm = null;
+   ForceEffectorTerm myForceTerm = null;
 
    static double DEFAULT_STIFFNESS = 1.0;
    static double DEFAULT_DAMPING = 0.001;
@@ -38,6 +38,11 @@ public class MinimizeAxialSpringForce extends PointModel {
       return myProps;
    }
 
+   protected void reinitMembers() {
+      TrackingController tcon =
+         (TrackingController)getControllers().get(0);
+      myForceTerm = tcon.getForceEffectorTerm();
+   }
 
    public void build(String[] args) throws IOException {
       build (DemoType.Point2d);
@@ -49,11 +54,10 @@ public class MinimizeAxialSpringForce extends PointModel {
       addWayPoint (0.2);
       TrackingController controller =
          (TrackingController)getControllers().get(0);
-      myForceTerm = new ForceMinimizationTerm(controller);
-      controller.addMinimizeForceTerm (myForceTerm);
+      myForceTerm = controller.addForceEffectorTerm();
       myForceTerm.addForce (
          model.axialSprings().get("e"), 0.1, /*staticOnly=*/false);
-      myForceTerm.debugHf = true;
+      myForceTerm.debugHf = false;
 
       addControlPanel();
    }
@@ -73,8 +77,13 @@ public class MinimizeAxialSpringForce extends PointModel {
    }
 
    public VectorNd getMinForce() {
+      if (myForceTerm == null) {
+         reinitMembers();
+      }
       VectorNd minf = new VectorNd(6);
-      myForceTerm.getTotalForce (minf);
+      if (myForceTerm != null) {
+         myForceTerm.getForceError (minf);
+      }
       return minf;
    }
 
@@ -110,11 +119,12 @@ public class MinimizeAxialSpringForce extends PointModel {
       ControlPanel panel = new ControlPanel ("options", "");
       panel.addWidget (model, "integrator");
       panel.addWidget (this, "minForce");
-      panel.addWidget ("controllerEnabled", getControllers().get(0), "enabled");
+      panel.addWidget ("controllerEnabled", getControllers().get(0), "active");
       panel.addWidget (this, "stiffness");
       panel.addWidget (this, "damping");
       addControlPanel (panel);
    }
 
+   
 
 }

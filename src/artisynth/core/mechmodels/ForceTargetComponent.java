@@ -6,20 +6,20 @@
  */
 package artisynth.core.mechmodels;
 
+import artisynth.core.modelbase.ModelComponent;
 import maspack.matrix.*;
 
 /** 
- * Indicates a force effector whose force can be minimized by the the inverse
+ * Indicates a force effector whose force can be controlled by the the inverse
  * controller.
  */
-public interface MinimizableForceComponent extends ForceEffector {
+public interface ForceTargetComponent extends ForceEffector, ModelComponent {
+   public int getForceSize();
 
-   public int getMinForceSize();
-
-   public void getMinForce (VectorNd minf, boolean staticOnly);
+   public void getForce (VectorNd minf, boolean staticOnly);
 
    /** 
-    * Add a row to the force Jacobian for this minimum force component.
+    * Add a row to the force Jacobian for this force target component.
     * The Jacobian maps state velocities u into the forces fm that should
     * be minimized 
     * <pre>
@@ -32,9 +32,9 @@ public interface MinimizableForceComponent extends ForceEffector {
     * @param staticOnly use only static forces
     * @return bi + 1
     */   
-   public int addMinForcePosJacobian (
+   public int addForcePosJacobian (
       SparseBlockMatrix J, double h, boolean staticOnly, int bi);
    
-   public int addMinForceVelJacobian (
+   public int addForceVelJacobian (
       SparseBlockMatrix J, double h, int bi);
 }

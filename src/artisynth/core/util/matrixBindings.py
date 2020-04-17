@@ -20,6 +20,7 @@ from artisynth.core.materials import *
 from artisynth.core.modelbase import *
 from artisynth.core.driver import *
 from artisynth.core.workspace import *
+from artisynth.core.inverse import *
 from java.lang import *
 from java.io import *
 

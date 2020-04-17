@@ -249,8 +249,8 @@ public class NavPanelNode {
    public String getName (ModelComponent comp) {
       String name = comp.getName();
       if (name == null) {
-         if (comp instanceof ReferenceComponent) {
-            ModelComponent ref = ((ReferenceComponent)comp).getReference();
+         if (comp instanceof ReferenceComp) {
+            ModelComponent ref = ((ReferenceComp)comp).getReference();
             if (ref != null) {
                name = NavPanelRenderer.getReferenceName (ref);
             }

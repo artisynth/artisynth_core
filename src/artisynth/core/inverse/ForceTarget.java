@@ -1,10 +1,13 @@
 package artisynth.core.inverse;
 
+import java.io.*;
+import java.util.Deque;
+
 import artisynth.core.mechmodels.BodyConnector;
 import artisynth.core.mechmodels.PlanarConnector;
-import artisynth.core.mechmodels.SphericalJoint;
 import artisynth.core.mechmodels.SphericalJointBase;
-import artisynth.core.modelbase.RenderableComponentBase;
+import artisynth.core.modelbase.*;
+import artisynth.core.util.*;
 import maspack.matrix.Matrix1x1Block;
 import maspack.matrix.Matrix3x3DiagBlock;
 import maspack.matrix.MatrixBlock;
@@ -18,69 +21,95 @@ import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer;
+import maspack.util.*;
 
 /**
- * Force Target base class
+ * Contains information about a single body connector whose constraint forces
+ * are to be controlled using the ForceTargetTerm.
  * 
  * @author Ian Stavness, Benedikt Sagl
- *
  */
-public class ForceTarget extends RenderableComponentBase implements HasProperties {
+public class ForceTarget extends RenderableComponentBase {
+   
+   public static final double DEFAULT_WEIGHT = 1.0;
+   protected double myWeight = DEFAULT_WEIGHT;
+   
    protected VectorNd myTargetLambda = null;
    protected BodyConnector myConnector;
-//   public static double[] lam = { 0 };
-//   public static VectorNd DEFAULT_FORCE_TARGET = new VectorNd (lam);
 
    public static final double DEFAULT_ARROW_SIZE = 1d;
    double arrowSize = DEFAULT_ARROW_SIZE;
 
    static private RenderProps defaultRenderProps = new LineRenderProps ();
 
-   public static PropertyList myProps = new PropertyList (ForceTarget.class);
+   public static PropertyList myProps =
+      new PropertyList (ForceTarget.class, RenderableComponentBase.class);
 
    static {
       myProps.add (
          "renderProps * *", "render properties for this component",
          defaultRenderProps);
       myProps.add ("targetLambda", "force targets", null);
-      myProps.add ("arrowSize * *", "arrow size", DEFAULT_ARROW_SIZE);
+      myProps.add ("arrowSize", "arrow size", DEFAULT_ARROW_SIZE);
+      myProps.add(
+         "weight", "weighting used for this target", DEFAULT_WEIGHT);
    }
    
    public PropertyList getAllPropertyInfo () {
       return myProps;
    }
 
+   public double getWeight() {
+      return myWeight;
+   }
+
+   public void setWeight (double w) {
+      myWeight = w;
+   }
+
    public ForceTarget () {
       setRenderProps (createRenderProps ());
    }
 
-   public ForceTarget (BodyConnector con) { 
-      this(con, new VectorNd (con.numBilateralConstraints ()));
-   }
-      
    public ForceTarget (BodyConnector con, VectorNd targetLambda) {
       this();
       if (con.numBilateralConstraints () != targetLambda.size ()) {
-         System.err.println("provided target wrong size, got "+targetLambda.size ()+
-            " expecting "+ con.numBilateralConstraints ());
+         throw new IllegalArgumentException (
+            "Wrong target size ("+targetLambda.size ()+
+            ", expecting "+ con.numBilateralConstraints ());
       }
       myTargetLambda = new VectorNd(targetLambda);
-      myConnector = con;
-      setName (con.getName ()+"_target");
-   }
-
-   public void setTargetLambda (VectorNd lam) {
-      myTargetLambda = lam;
+      setConnector (con);
    }
 
    public VectorNd getTargetLambda () {
       return myTargetLambda;
    }
 
-   public void setConstraint (BodyConnector connector) {
-      myConnector = connector;
+   public void setTargetLambda (VectorNd lam) {
+      myTargetLambda = lam;
    }
 
+   public void setConnector (BodyConnector connector) {
+      if (connector instanceof PlanarConnector ||
+          connector instanceof SphericalJointBase) {
+         myConnector = connector;
+      }
+      else {
+         throw new IllegalArgumentException (
+            "Connector type "+connector.getClass()+" is not supported");
+      }
+   }
+
+   public int numBilateralConstraints() {
+      if (myConnector != null) {
+         return myConnector.numBilateralConstraints();
+      }
+      else {
+         return 0;
+      }
+   }
+   
    public BodyConnector getConnector () {
       return myConnector;
    }
@@ -97,7 +126,8 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
          J.addBlock (bi, solve_index, blk);
       }
       else {
-         System.err.println("ForceTarget.addForceJacobian: unsupported connector type: "+myConnector.getClass ());
+         throw new InternalErrorException (
+            "Unsupported connector type: "+myConnector.getClass());
       }
       return bi++;
    }
@@ -140,6 +170,10 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
          set (start, startvec);
          set (end, endvec);
       }
+      else {
+         throw new InternalErrorException (
+            "Unsupported connector type: "+myConnector.getClass());
+      }
    }
    
    public void setArrowSize (double size) {
@@ -150,5 +184,36 @@ public class ForceTarget extends RenderableComponentBase implements HasPropertie
       return arrowSize;
    }
 
+   protected void writeItems (
+      PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
+      throws IOException {
 
+      if (myConnector != null) {
+         pw.println (
+            "connector="+ComponentUtils.getWritePathName (ancestor,myConnector));
+      }
+      super.writeItems (pw, fmt, ancestor);
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Deque<ScanToken> tokens)
+      throws IOException {
+
+      rtok.nextToken();
+      if (scanAndStoreReference (rtok, "connector", tokens)) {
+         return true;
+      }
+      rtok.pushBack();
+      return super.scanItem (rtok, tokens);
+   }
+
+   protected boolean postscanItem (
+      Deque<ScanToken> tokens, CompositeComponent ancestor) throws IOException {
+      
+      if (postscanAttributeName (tokens, "connector")) {
+         setConnector (
+            postscanReference (tokens, BodyConnector.class, ancestor));
+         return true;
+      }
+      return super.postscanItem (tokens, ancestor);
+   }
 }

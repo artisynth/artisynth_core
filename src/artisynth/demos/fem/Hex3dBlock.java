@@ -16,7 +16,22 @@ public class Hex3dBlock extends Fem3dBlock {
    double startDelay = 0.0;
 
    public void build (String[] args) {
-      build ("hex", 9, 3, 0);
+      boolean reduced = false;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-reduced")) {
+            reduced = true;
+         }
+         else {
+            System.out.println (
+               "WARNING: unrecognized model option '" + args[i] + "'");
+         }
+      }
+      if (reduced) {
+         build ("hex", 3, 1, 0);
+      }
+      else {
+         build ("hex", 9, 3, 0);
+      }
       FemModel3d fem = (FemModel3d)findComponent ("models/mech/models/fem");
       fem.setSurfaceRendering (SurfaceRender.Shaded);
       RenderProps.setFaceColor (fem, new Color (0.8f, 0.8f, 1.0f));

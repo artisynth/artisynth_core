@@ -61,4 +61,13 @@ CompositeComponent {
     * number of components to be removed
     */
    public void removeComponents (ModelComponent[] comps, int[] indices, int num);
+
+   /**
+    * Queries whether or not this component is editable from the ArtiSynth
+    * GUI. In particular, if this method returns {@code false},
+    * it should not be possible to use the GUU to delete child components.
+    *
+    * @return {@code true} if this component can be edited from the GUI.
+    */
+   public boolean isEditable();
 }

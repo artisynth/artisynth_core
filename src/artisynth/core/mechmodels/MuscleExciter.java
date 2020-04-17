@@ -392,6 +392,9 @@ ExcitationComponent {
          myTargets.clear();
          ScanWriteUtils.postscanReferences (
             tokens, myTargets, ExcitationComponent.class, ancestor);
+         // for (ExcitationComponent ex : myTargets) {
+         //    ex.addExcitationSource (this, 1.0);
+         // }
          return true;
       }
       else if (postscanAttributeName (tokens, "excitationSources")) {

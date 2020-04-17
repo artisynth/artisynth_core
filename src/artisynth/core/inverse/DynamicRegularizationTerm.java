@@ -3,7 +3,6 @@ package artisynth.core.inverse;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
-import maspack.util.NumberFormat;
 
 /**
  * Extension of the L2RegularisationTerm that computes different weights
@@ -13,7 +12,7 @@ import maspack.util.NumberFormat;
  * @author Teun Bartelds
  * @since  2014-10-07
  */
-public class DynamicRegularizationTerm extends QPTermBase {
+public class DynamicRegularizationTerm extends QPCostTermBase {
    
    public enum Mapping {
       EXPONENTIAL,
@@ -21,53 +20,54 @@ public class DynamicRegularizationTerm extends QPTermBase {
       SIGMOID
    }
    
-   protected TrackingController myController;
    public static final double defaultWeight = 1e-4;
    
-   MatrixNd Hm = new MatrixNd ();   //Jacobian matrix mapping muscle activations to target velocities
-   VectorNd vbar = new VectorNd (); //velocity
-   VectorNd w = new VectorNd ();    //weights of the individual excitation sources
-   
-   protected boolean isEnabled = true;
+   protected boolean isDynamicP = true;
    protected boolean isNormalized = true;
    protected Mapping mapping = Mapping.EXPONENTIAL;
    protected double param = 5;
    protected double sigmoidMean = 0.5;
    
    public static PropertyList myProps =
-      new PropertyList(DynamicRegularizationTerm.class, QPTermBase.class);
+      new PropertyList(DynamicRegularizationTerm.class, QPCostTermBase.class);
    
    static {
-      myProps.add ("isEnabled * *", "enable/disable dynamic weights, N.B. if disabled the term behaves like a standard L2RegularizationTerm",true);
+      myProps.add ("isDynamic", "enable/disable dynamic weights, N.B. if disabled the term behaves like a standard L2RegularizationTerm",true);
       myProps.add ("isNormalized * *", "enable/disable normalization of the dynamic weights", true); 
       myProps.add ("mapping * *","select mapping function to compute the dynamic weights",Mapping.MONOMIAL);
       myProps.add ("param * *", "parameter to tune the dynamic weights", 1);
       myProps.add ("sigmoidMean * *", "parameter to position the mean of the sigmoid function", 0.5,"[0,1]");
    }
-   
-   public DynamicRegularizationTerm (TrackingController controller) {
-      this (controller,defaultWeight);
+
+   public DynamicRegularizationTerm () {
+      this (defaultWeight);
    }
    
-   public DynamicRegularizationTerm (TrackingController controller, double weight) {
+   public DynamicRegularizationTerm (double weight) {
       super (weight);
-      myController = controller;
    }
      
    public PropertyList getAllPropertyInfo() {
       return myProps;
    }
    
-   public void computeWeights (double dt) {
-      myController.getMotionTerm ().reGetTerm (Hm,vbar);
+   public VectorNd computeWeights (double dt) {
+      TrackingController controller = getController();
+
+      MotionTargetTerm mterm = controller.getMotionTargetTerm();
+      MatrixNd Hm = new MatrixNd (mterm.getH());
+      VectorNd vbar = new VectorNd (mterm.getB());
+      
+      Hm.set (mterm.getH());
+      vbar.set (mterm.getB());
+      
       Hm.scale(1/dt);           // makes results independent of the time step
       vbar.scale(1/dt);         // makes results independent of the time step
       VectorNd alpha = new VectorNd (Hm.colSize ());
       alpha.mulTranspose (Hm,vbar);
-//      System.out.println("\n");
-//      System.out.println(alpha.toString ("%8.2f"));
-      w = applyMapping(alpha); // apply (non-linear) mapping to obtain weights
-//      System.out.println(w.toString ("%8.2f"));
+      //      System.out.println("\n");
+      //      System.out.println(alpha.toString ("%8.2f"));
+      return applyMapping(alpha); // apply (non-linear) mapping to obtain weights
    }
    
    /*
@@ -126,12 +126,12 @@ public class DynamicRegularizationTerm extends QPTermBase {
       return new VectorNd (w);
    }
    
-   public void setIsEnabled (boolean enabled) {
-      isEnabled = enabled;
+   public void setIsDynamic (boolean enabled) {
+      isDynamicP = enabled;
    }
    
-   public boolean getIsEnabled () {
-      return isEnabled;
+   public boolean getIsDynamic () {
+      return isDynamicP;
    }
    
    public void setIsNormalized (boolean normalized) {
@@ -175,18 +175,20 @@ public class DynamicRegularizationTerm extends QPTermBase {
    public Mapping getMapping () {
       return mapping;
    }
-   
+
    @Override
-   protected void compute (double t0, double t1) {
-      Q.setIdentity();
-      if (isEnabled) {
-         computeWeights(t1-t0);
-         Q.mulDiagonalLeft (w);
+   public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
+      if (isDynamicP && getController() != null) {
+         VectorNd w = computeWeights(t1-t0);
+         for (int i=0; i<Q.rowSize(); i++) {
+            Q.add (i, i, myWeight*w.get(i));
+         }
       }
-      Q.scale(myWeight);
-      
-//      if (TrackingController.isDebugTimestep (t0, t1)) { 
-//         System.out.println("dt = " + dt + "    |Qd| = " + Q.frobeniusNorm());
-//      }
+      else {
+         for (int i=0; i<Q.rowSize(); i++) {
+            Q.add (i, i, myWeight);
+         }
+      }
    }
+
 }

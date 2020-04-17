@@ -20,8 +20,11 @@ import maspack.render.LineRenderProps;
 import maspack.render.RenderList;
 import maspack.render.RenderProps;
 
+/**
+ * Monitor that renders the bounds for a spherical joint, as specified by a
+ * SphericalJointForceBound.
+ */
 public class ConnectorBoundsRenderer extends MonitorBase {
-
    
    ArrayList<LineInfo> lines = new ArrayList<LineInfo> ();
    ArrayList<TriInfo> planes = new ArrayList<TriInfo> ();
@@ -107,104 +110,10 @@ public class ConnectorBoundsRenderer extends MonitorBase {
 
    }
 
-//   public void setShoulderStabilityConstraints (
-//      double[] shoulderStabilityRatios, Point3d p0, Vector3d N, double r,
-//      TrackingController con) {
-//      double theta = 0;
-//      double dtheta = Math.PI * 2d / shoulderStabilityRatios.length;
-//      Vector3d tmp = new Vector3d ();
-//
-//      SphericalConstraintForceBound bounds =
-//         new SphericalConstraintForceBound (1d, con);
-//      con.addInequalityTerm (bounds);
-//
-//      ArrayList<Vector3d> fs = new ArrayList<Vector3d> ();
-//      ArrayList<Vector3d> ns = new ArrayList<Vector3d> ();
-//
-//      for (double ratio : shoulderStabilityRatios) {
-//         double phi = Math.atan (ratio / 100d);
-//         Vector3d f =
-//            new Vector3d (
-//               Math.cos (theta) * Math.sin (phi),
-//               Math.sin (theta) * Math.sin (phi), Math.cos (phi));
-//         RotationMatrix3d R = new RotationMatrix3d ();
-//         R.rotateZDirection (N);
-//         f.transform (R);
-//         tmp.cross (f, N);
-//         Vector3d n = new Vector3d ();
-//         n.cross (tmp, f);
-//         n.normalize ();
-//         // if (theta == 0) {
-//         ns.add (n);
-//         fs.add (f);
-//         // }
-//         bounds.addHalfspaceBound (n);
-//         n.scale (0.1);
-//         lines.add (new LineInfo (p0, f, Color.GREEN));
-//         lines.add (new LineInfo (p0, n, Color.WHITE, f));
-//
-//         // System.out.println("theta="+theta/Math.PI*180);
-//         theta += dtheta;
-//      }
-//
-//      // for (int i = 0; i < fs.size (); i++) {
-//      // Vector3d f = fs.get (i);
-//      // Vector3d n = ns.get (i);
-//      // tmp.cross (f, n);
-//      // tmp.normalize ();
-//      // tmp.scale (0.4);
-//      // Point3d p1 = new Point3d();
-//      // p1.add (f, tmp);
-//      // Point3d p2 = new Point3d();
-//      // p2.sub (f, tmp);
-//      // planes.add (new TriInfo (p0, p1, p2, Color.CYAN));
-//      // }
-//
-//      Iterator<Vector3d> viter;
-//      Iterator<Point3d> piter;
-//      Vector3d prev, first;
-//      Point3d prevPt, firstPt;
-//
-//      // viter = fs.iterator ();
-//      // firstPt = new Point3d (viter.next ());
-//      // prevPt = firstPt;
-//      // while (viter.hasNext ()) {
-//      // Point3d curPt = new Point3d (viter.next ());
-//      // planes.add (new TriInfo (p0, prevPt, curPt, Color.CYAN));
-//      // // lines.add (new LineInfo (p0, tmp, Color.ORANGE));
-//      // prevPt = curPt;
-//      // }
-//      // planes.add (new TriInfo (p0, prevPt, firstPt, Color.CYAN));
-//
-//      ArrayList<Point3d> polyPts = new ArrayList<Point3d> ();
-//      viter = bounds.getBoundNormals ().iterator ();
-//      prev = viter.next ();
-//      while (viter.hasNext ()) {
-//         Vector3d cur = viter.next ();
-//         tmp.cross (prev, cur);
-//         tmp.normalize ();
-//         polyPts.add (new Point3d (tmp));
-//         lines.add (new LineInfo (p0, tmp, Color.ORANGE));
-//         prev = cur;
-//      }
-//
-//      piter = polyPts.iterator ();
-//      firstPt = piter.next ();
-//      prevPt = firstPt;
-//      while (piter.hasNext ()) {
-//         Point3d curPt = piter.next ();
-//         planes.add (new TriInfo (p0, prevPt, curPt, Color.MAGENTA));
-//         // lines.add (new LineInfo (p0, tmp, Color.ORANGE));
-//         prevPt = curPt;
-//      }
-//      planes.add (new TriInfo (p0, prevPt, firstPt, Color.MAGENTA));
-//
-//   }
-
    @Override
    public void apply (double t0, double t1) {
       //do nothing, just renderer
-  }
+   }
 
    @Override
    public void prerender (RenderList list) {

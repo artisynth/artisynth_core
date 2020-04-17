@@ -399,7 +399,6 @@ public abstract class PointSpringBase extends Spring
          Matrix3d D = new Matrix3d();
          computeForceVelocityJacobian (D, dFdldot);
          D.scale (s);
-         System.out.println ("s=" + s + " D=\n" + D);
          addToMinForceJacobianBlocks (J, D, bi);
       }
 

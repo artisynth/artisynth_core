@@ -16,6 +16,38 @@
 
 %\renewcommand{\sectionname}{}
 
+% Listings settings
+\definecolor{myblue}{rgb}{0,0,0.6}
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mylightgray}{rgb}{0.95,0.95,0.95}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+\definecolor{myblack}{rgb}{0,0,0}
+\lstset{
+   language=Java,                   % text highlighting for Java
+   breakatwhitespace=false,         % automatic breaks only at whitespace
+   breaklines=true,                 % automatic line breaking
+   commentstyle=\color{mygreen},    % comment style
+   keepspaces=true,                 % keeps spaces in text
+   keywordstyle=\color{myblue},     % keyword style
+   numbers=none,                    % line-numbers; values: (none, left, right)
+   numbersep=5pt,                   % how far the line-numbers are from code
+   numberstyle=\tiny\color{mygray}, % line-numbers style
+   showspaces=false,                % show spaces everywhere
+   showstringspaces=false,          % underline spaces within strings
+   showtabs=false,                  % show tabs
+   stepnumber=1,                    % the step between two line-numbers
+   stringstyle=\color{mymauve},     % string literal style
+   tabsize=3,                       % sets default tabsize to 3 spaces
+   backgroundcolor=\color{mylightgray}, % background color
+   frame=single, 					% adds a frame around the code
+   rulesepcolor=\color{mygray},
+   rulecolor=\color{myblack},
+   framerule=0pt,
+   xleftmargin=2.2ex,               % numbers inside box
+   framexleftmargin=2.2ex,			% indentation of frame
+}
+
 \begin{document}
 
 \iflatexml
@@ -38,6 +70,353 @@
 % NEXT UPDATE
 
 % \subsection*{Query methods added directly to PolygonalMesh}
+
+% Renamed FemNode3d.getMaxAbsPrincipalStress/Strain to getMAPStress/Strain
+
+\section*{Apr 16, 2020}
+
+\subsection*{Refactoring of the TrackingController}
+
+The \javaclass[artisynth.core.inverse]{TrackingController}, which
+provides ArtiSynth's inverse modeling capabilities, has been
+refactored. This includes both internal code reorganization and
+harmonization of the API.
+
+\subsubsection*{Organization of cost and constraint terms}
+
+The basic usage model for the tracking controller remains the same: an
+application creates an instance of 
+{\tt TrackingController}, adds it to the root model's controllers
+using {\tt addController()}, and then populates it with various cost
+and constraint terms for the quadratic program that is used to solve
+for excitations.  However, the class organization for these terms has
+been redesigned.
+
+All terms now implement the interface
+\javaclass[artisynth.core.inverse]{QPTerm}, with a base implementation
+provided by \javaclass[artisynth.core.inverse]{QPTermBase}.  A {\tt
+QPTerm} also uses
+\javamethod[artisynth.core.inverse.QPTerm]{getType()} to specify its
+type, which is defined by the enumerated type
+\javaclass[artisynth.core.inverse]{QPTerm\$Type} and is either {\tt
+COST} (cost term), {\tt INEQUALITY} (inequality constraint), or {\tt
+EQUALITY} (equality constraint). These are implemented by
+subinterfaces of {\tt QPTerm}: cost terms by
+\javaclass[artisynth.core.inverse]{QPCostTerm} (with base
+implementation \javaclass[artisynth.core.inverse]{QPCostTermBase})
+and constraint terms by
+\javaclass[artisynth.core.inverse]{QPConstraintTerm} (with base
+implementation
+\javaclass[artisynth.core.inverse]{QPConstraintTermBase}).  The
+interface \javaclass[artisynth.core.inverse]{LeastSquaresTerm} (with
+base implementation
+\javaclass[artisynth.core.inverse]{LeastSquaresTermBase}) implements
+{\it both} cost and constraint terms.
+
+All cost and constrint terms are added to the controller as
+subcomponents. Before performing each inverse computation, the
+controller checks its subcomponents to find which terms to use.
+
+\subsubsection*{Internal vs. external terms}
+
+Cost and constraint terms are now either {\it internal} or {\it
+external} to the controller. Internal terms include:
+%
+\begin{lstlisting}[]
+  MotionTargetTerm     // cost/constraint term for point and frame tracking
+  ForceTargetTerm      // cost/constraint term for joint force tracking
+  ForceEffectorTerm    // cost/constraint term for force effector force tracking
+  BoundsTerm           // inequality constraint term for excitation bounds
+  L2RegularizationTerm // cost term for regularization excitation values
+  DampingTerm          // cost term that inhibits how quickly excitations change
+\end{lstlisting}
+%
+The {\tt MotionTargetTerm} and {\tt BoundsTerm} are always present in
+the controller and can be accessed using
+\javamethod[artisynth.core.inverse.TrackingController]{getMotionTargetTerm()}
+and
+\javamethod[artisynth.core.inverse.TrackingController]{getBoundsTerm()}.
+Other internal terms can be added, removed or queried using {\it add},
+{\it get} and {\it remove} methods. For example, for the 
+{\tt ForceTargetTerm}, these methods are 
+\javamethod[artisynth.core.inverse.TrackingController]{addForceTargetTerm()},
+\javamethod[artisynth.core.inverse.TrackingController]{getForceTargetTerm()},
+and
+\javamethod[artisynth.core.inverse.TrackingController]{removeForceTargetTerm()}.
+
+External terms include
+\begin{lstlisting}[]
+  NonuniformBoundsTerm // set explicit nonuniform excitation bounds
+  ProportionalTerm     // cost term proportional to the sum of the excitations
+\end{lstlisting}
+%
+as well as any custom terms implemented by an application. External
+terms can be added added, removed and queried using
+%
+\begin{lstlisting}[]
+  addCostTerm (term)
+  removeCostTerm (term)
+  getCostTerms()
+
+  addConstraintTerm (term)
+  removeConstraintTerm (term)
+  getEqualityConstraints()
+  getInequalityConstraints()
+\end{lstlisting}
+%
+
+\begin{sideblock}
+The previous methods {\tt addInequalityTerm} and {\tt
+addEqualityTerm} have been replaced by {\tt addConstraintTerm}.
+\end{sideblock}
+
+\begin{sideblock}
+The {\tt add} and {\tt remove} methods for external
+terms should {\it not} be used for the internal terms. While it is
+possible to create an instance of an internal term, such as {\tt
+MotionTargetTerm}, and add it to the controller using {\tt
+addCostTerm(term)}, this will simply add an {\it additional} motion
+term to the controller that is separate from the internal one.
+\end{sideblock}
+
+\subsubsection*{Excitation components now stored using ExciterComp}
+
+The excitation components used by the controller were previously
+stored in a subcomponent list called {\tt "exciters"}. This was
+actually incorrect since ArtiSynth components can not belong to more
+than one list at a time.  In the revised implementation, {\tt
+"exciters"} is now a list of {\tt ExcitationComp} objects, each of
+which contains a reference to an excitation component along with an
+associated weight. This means that excitation weights can now be set
+interactively by changing the {\sf weight} property in each {\tt
+ExcitationComp}.
+
+\subsubsection*{Some term properties moved to the controller}
+
+The following properties, which were previously present in some
+individual cost and constraint terms, have now been moved to the
+controller itself and should be set and queried there:
+%
+\begin{verbatim}
+  useTimestepScaling
+  useTrapezoidalSolver
+  normalizeH 
+  useKKTFactorAndSolve
+\end{verbatim}
+%
+
+\subsubsection*{Target and source components now stored 
+within their cost terms}
+
+The previous version of the tracking controller contained the
+following subcomponents, listing various target and source components
+for the MotionTargetTerm and ForceTargetTerm:
+%
+\begin{lstlisting}[]
+  exciters               // excitation components
+  targetPoints           // target (reference) points for the MotionTargetTerm
+  sourcePoints           // source (tracking) points for the MotionTargetTerm
+  targetFrames           // target (reference) frames for the MotionTargetTerm
+  sourceFrames           // source (tracking) frames for the MotionTargetTerm
+  targetForces           // target (reference) forces for the ForceTargetTerm
+\end{lstlisting}
+%
+In the refactored controller, the force and motion target terms have
+been reimplemented as composite components, each maintaining lists of
+their target and source components. Since (as indicated above) all
+cost and constraint terms are now stored as controller subcomponents,
+the resulting component hierarchy now looks like this:
+%
+\begin{lstlisting}[]
+  exciters
+  motionTerm
+    targetPoints         // target (reference) points
+    sourcePoints         // source (tracking) points 
+    targetFrames         // source (tracking) frames 
+    sourceFrames         // target (reference) frames
+  boundsTerm
+  L2RegularizationTerm
+  forceTerm
+    targetForces         // target (reference) forces
+\end{lstlisting}
+%
+
+\subsubsection*{ForceMinimizationTerm renamed to ForceEffectorTerm}
+
+The {\tt ForceMinimizationTerm} class has been renamed to
+\javaclass[artisynth.core.inverse]{ForceEffectorTerm}, since it now
+permits the forces produced by certain force effectors (those which
+implement \javaclass[artisynth.core.mechmodels]{ForceTargetComponent}) to
+be set to a particular target force. Setting that target force to zero
+(which is the default value) will minimize the force. Likewise, the
+{\tt ForceMinimizationTarget} class, which was used to describe each
+force effector controlled by the {\tt ForceEffectorTerm}, has been
+renamed to \javaclass[artisynth.core.inverse]{ForceEffectorTarget}.
+
+\subsubsection*{``Enabled'' property replaced with ``active''}
+
+The property {\sf enabled}, which was used to enable or disable the
+controller, and was controlled using {\tt setEnabled(enable)} and {\tt
+getEnabled()}, has been replaced by the property {\sf active}, which
+is controlled using {\tt setActive(enable)} and {\tt getActive()} (and
+already existed in the controller's base class).
+
+\subsubsection*{Different names for probes created by InverseManager}
+
+The names and file names of the probes created by the {\tt
+InverseManager} have been changed to be more consistent. This affects
+any of the probes created by the following methods:
+%
+\begin{lstlisting}[]
+  // InverseManager methods (static):
+  InverseManager.addProbes (rootModel, controller, duration, interval)
+  InverseManager.resetProbes (rootModel, controller duration, interval)
+
+  // TrackingController methods:
+  createProbes (rootModel)
+  createProbes (rootModel, duration, interval)
+  createProbesAndPanel (rootModel)
+  createProbesAndPanel (rootModel, duration, interval)
+\end{lstlisting}
+%
+Probes created by the {\tt InverseManager} are now identified by an
+enumerated type,
+\javaclass[artisynth.core.inverse]{InverseManager\$ProbeID}, as
+described in the next section. The old and new names associated with
+these probes are:
+%
+\begin{center}
+\begin{tabular}{|lll|}
+\hline
+Probe & old name & new name \\
+\hline
+{\tt TARGET\_POSITIONS} & {\tt "target positions"} & {\it unchanged} \\
+{\tt TARGET\_FORCES} & {\tt "target forces"} & {\it unchanged} \\
+{\tt INPUT\_EXCITATIONS} & {\tt "input excitations"} & {\it unchanged} \\
+{\tt TRACKED\_POSITIONS} & {\tt "target positions"} & {\tt "tracked positions"} \\
+{\tt SOURCE\_POSITIONS} & {\tt "model positions"} & {\tt "source positions"} \\
+{\tt COMPUTED\_EXCITATIONS} & {\tt "input excitations"} & {\it unchanged} \\
+\hline
+\end{tabular}
+\end{center}
+%
+while the old and new file names are:
+%
+\begin{center}
+\begin{tabular}{|lll|}
+\hline
+Probe & old name & new name \\
+\hline
+{\tt TARGET\_POSITIONS} & {\tt "ref\_targetPos\_input.txt"} & {\tt "target\_positions.txt} \\
+{\tt TARGET\_FORCES} & {\tt "ref\_targetForce\_input.txt"} & {\tt "target\_forces.txt"} \\
+{\tt INPUT\_EXCITATIONS} & {\tt "excitations\_input.txt"} & {\tt "input\_excitations.txt"} \\
+{\tt TRACKED\_POSITIONS} & {\tt "ref\_target\_positions.txt"} & {\tt "tracked\_positions.txt"} \\
+{\tt SOURCE\_POSITIONS} & {\tt "model\_target\_positions.txt"} & {\tt "source\_positions.txt"} \\
+{\tt COMPUTED\_EXCITATIONS} & {\tt "excitations.txt"} & {\tt "computed\_excitations.txt"} \\
+\hline
+\end{tabular}
+\end{center}
+%
+
+\begin{sideblock}
+To revert to the previous naming conventions, applications can set the
+static attribute {\tt InverseManager.useLegacyNames} to {\tt true}.
+\end{sideblock}
+
+\subsubsection*{Different default probe update interval}
+
+The {\tt TrackingController} property {\sf probeInterval}, which
+controls the update interval for the output probes created by
+%
+\begin{lstlisting}[]
+  createProbes (rootModel);
+  createProbesAndPanel (rootModel);
+\end{lstlisting}
+%
+now has a default value of {\tt -1}, which causes the output probes to
+be updated at the current simulation rate. The previous default value
+was {\tt 0.01}. To revert to this value, one can set the static
+attribute {\tt TrackingController.DEFAULT\_PROBE\_INTERVAL} to {\tt
+0.01}.
+
+\subsubsection*{Refactoring of the InverseManager}
+
+The InverseManager, which is a utility class for creating probes and a
+control panel for use with the tracking controller, has been
+refactored so that all its methods are now static and take a root
+model as one of their arguments. The primary methods are:
+%
+\begin{lstlisting}[]
+  // create probes and add them to the root model:
+  addProbes (root, controller, duration, interval) 
+
+  // clear all probes, and then call addProbes():
+  resetProbes (root, controller, duration, interval)
+
+  // create a control panel for the tracking controller
+  addInversePanel (root, controller)
+\end{lstlisting}
+%
+As before, the {\tt addProbes()} method creates three input probes and
+three output probes. Each probes starts at time 0 and has a stop time
+indicated by {\tt duration}, while the output probes have an update
+interval given by {\tt interval}. The probes themselves are now
+identified by the enumerated type
+\javaclass[artisynth.core.inverse]{InverseManager\$ProbeID}.
+The input probes are:
+%
+\begin{lstlisting}[]
+ TARGET_POSITIONS     // desired trajectory for all motion targets
+ TARGET_FORCES        // desired trajectory for all constraint force targets
+ INPUT_EXCITATIONS    // input excitations to used for forward simulation
+\end{lstlisting}
+%
+Once created, these can be located and managed within the root model using
+the {\tt InverseManager} methods
+%
+\begin{lstlisting}[]
+  findInputProbe (root, probeId)
+  setInputProbeData (root, probeId, data, timeStep)
+\end{lstlisting}
+%
+The output probes are:
+%
+\begin{lstlisting}[]
+ TARGET_POSITIONS     // updated observed trajectory for all motion targets
+ SOURCE_POSITIONS     // actual trajectory for all motion targets
+ COMPUTED_EXCITATIONS // excitations computed by the inverse solver
+\end{lstlisting}
+%
+and can be located within the root model using the
+method
+%
+\begin{lstlisting}[]
+  findOutputProbe (root, probeId)
+\end{lstlisting}
+%
+
+Also as before, the {\tt createPanel()} method creates a control panel
+for viewing and adjusting controller properties, and adds it to the
+root model. After, the panel can be located within the root model
+using the method {\tt findInversePanel(root)}.
+
+Similar to before, the {\tt TrackingController} suppliesthe
+convenience methods
+%
+\begin{lstlisting}[]
+  createProbes (rootModel)
+  createProbes (rootModel, duration, interval)
+  createProbesAndPanel (rootModel)
+  createProbesAndPanel (rootModel, duration, interval)
+\end{lstlisting}
+%
+which create probes and panels, with {\tt createProbes(rootModel)} and
+{\tt createProbesAndPanel(rootModel)} using the controller's {\sf
+probeDuration} and {\sf probeInterval} properties to supply the {\tt
+duration} and {\tt interval} information.
+
+More details on the \javaclass[artisynth.core.inverse]{InverseManager}
+can be found in its API documentation.
 
 \section*{Jan 22, 2020}
 

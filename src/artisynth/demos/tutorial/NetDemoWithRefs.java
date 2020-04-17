@@ -1,6 +1,7 @@
 package artisynth.demos.tutorial;
 
 import artisynth.core.modelbase.*;
+import artisynth.core.mechmodels.AxialSpring;
 
 public class NetDemoWithRefs extends NetDemo {
 
@@ -10,8 +11,10 @@ public class NetDemoWithRefs extends NetDemo {
 
       // create reference lists for both the green and blue springs
       // in the middle of the net and add these to the model
-      ReferenceList greenMid = new ReferenceList ("middleGreenSprings");
-      ReferenceList blueMid = new ReferenceList ("middleBlueSprings");
+      ReferenceList<AxialSpring> greenMid = 
+         new ReferenceList<> ("middleGreenSprings");
+      ReferenceList<AxialSpring> blueMid = 
+         new ReferenceList<> ("middleBlueSprings");
 
       for (int i=0; i<8; i++) {
          blueMid.addReference (blueSprings.get(32+i));

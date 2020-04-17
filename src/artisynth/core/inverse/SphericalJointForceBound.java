@@ -8,11 +8,13 @@ import maspack.matrix.MatrixNd;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.VectorNd;
 import maspack.properties.PropertyList;
 
-public class SphericalJointForceBound extends LeastSquaresTermBase {
-
-   protected TrackingController myController;
+/**
+ * Applies a bound to the constraint forces of spherical joints.
+ */
+public class SphericalJointForceBound extends QPConstraintTermBase  {
 
    ArrayList<Vector3d> bounds = new ArrayList<Vector3d> ();
 
@@ -47,18 +49,13 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
    public SphericalJointForceBound () {
    }
 
-   public SphericalJointForceBound (double weight, TrackingController con) {
+   public SphericalJointForceBound (double weight) {
       super (weight);
-      myController = con;
-      P.setZero ();
       frame = new Frame(); // no frame specified; use default
    }
    
-   public SphericalJointForceBound (
-      double weight, TrackingController con, Frame f) {
+   public SphericalJointForceBound (double weight, Frame f) {
       super (weight);
-      myController = con;
-      P.setZero ();
       if (f == null) {
          frame = new Frame(); // no frame specified, use default
       } else {
@@ -103,22 +100,32 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
    }
 
    @Override
-   public int getRowSize () {
+   public int numConstraints (int qpsize) {
       return bounds.size ();
    }
 
-   @Override
-   protected void compute (double t0, double t1) {
+   public int getTerm (MatrixNd A, VectorNd b, int rowoff, double t0, double t1) {
       frameToGlobal(); // solve the system in global coordinates
-      
-      //      System.out.println("N="+N.toString ("%3.1f"));
-      //      System.out.println("Hc="+myController.getData ().getHc ().toString ("%3.1f"));
-      
-      H.mul (N, myController.getData ().getHc ()); // assumes Hc targets one spherical joint
-      f.mul (N, myController.getData ().getC0 ());
-      f.negate ();
-      //      System.out.println("H="+H.toString ("%g"));
-      //      System.out.println("f="+f.toString ("%g"));      
+
+      TrackingController tcon = getController();
+      if (tcon == null) {
+         return rowoff;
+      }
+      ForceTargetTerm forceTerm = tcon.getForceTargetTerm();
+      if (forceTerm == null) {
+         throw new IllegalStateException (
+            "SphericalJointForceBound requires that the controller have "+
+            "a force target term set");
+      }
+      MatrixNd Hb = new MatrixNd();
+      VectorNd fb = new VectorNd();
+      Hb.mul (N, forceTerm.getH()); // assumes Hc targets one spherical joint
+      fb.mul (N, forceTerm.getB());
+      fb.negate ();
+
+      A.setSubMatrix(rowoff, 0, Hb);
+      b.setSubVector(rowoff, fb);
+      return rowoff+numConstraints (tcon.numExciters());
    }
 
    /**
@@ -133,8 +140,6 @@ public class SphericalJointForceBound extends LeastSquaresTermBase {
       for (int i = 0; i < bounds.size (); ++i) {
          N.setRow (i, bounds.get (i));
       }
-      
-      H.setSize (bounds.size (), 3);
       globalToFrame(); // represent the vector in frame coordinates
    }
 

@@ -26,6 +26,7 @@ public class FemMuscleStiffener {
    public VectorNd elemAct = new VectorNd ();
    boolean myActStiffnessP = false;
    public static final double stiffnessActFactor = 10.0-1;
+   boolean warnedP = false;
    
    public FemMuscleStiffener(FemMuscleModel fem) {
       myFemMuscle = fem;
@@ -37,7 +38,7 @@ public class FemMuscleStiffener {
          e.setMaterial (null);
       }
    }
-   
+
    public void updateElemStiffnesses () {
       
       // update activation stiffness
@@ -58,6 +59,7 @@ public class FemMuscleStiffener {
       }
 
       // stiffen elements based on activation
+      warnedP = false;
       for (int i = 0; i < elemAct.size(); i++) {
          scaleElemStiffness(myFemMuscle.getElement(i), elemAct.get(i));
       }
@@ -80,10 +82,11 @@ public class FemMuscleStiffener {
       else if (myFemMuscle.getMaterial() instanceof MooneyRivlinMaterial) {
          stiffenMRMat (elem, (MooneyRivlinMaterial)myFemMuscle.getMaterial(), s);
       }
-      else {
+      else if (!warnedP) {
          System.out
             .println ("activation stiffness scaling not implemented for material, "
             + myFemMuscle.getMaterial().getClass ().toString ());
+         warnedP = true;
       }
    }
 

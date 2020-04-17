@@ -47,7 +47,7 @@ import artisynth.core.modelbase.CompositeComponent;
 import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.MutableCompositeComponent;
-import artisynth.core.modelbase.ReferenceComponent;
+import artisynth.core.modelbase.ReferenceComp;
 import artisynth.core.modelbase.ReferenceList;
 import artisynth.core.modelbase.RenderableComponent;
 import artisynth.core.modelbase.RenderableComponentBase;
@@ -75,7 +75,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
    LinkedList<ModelComponent> myPropertyEditSelection;
 
    // Cached list of reference components that are currently selected.
-   LinkedList<ReferenceComponent> myRefComponentSelection;
+   LinkedList<ReferenceComp> myRefComponentSelection;
    
    // last screen bounds are recorded when the popup is set invisible, so that
    // any subsequently generated panels can be located close by
@@ -110,13 +110,46 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
 //      }
 //   }
 
+   /**
+    * Returns true if a composite component is editable, meaning that its
+    * subcomponents can be removed via the GUI.
+    *
+    * @param parent component to check for editability
+    * @param ignoreEditable if {@code true}, parent need only be an instance of
+    * {@link MutableCompositeComponent}, and the result of its {@link
+    * MutableCompositeComponent#isEditable} method is ignored.
+    */
+   private boolean isEditable (
+      CompositeComponent parent, boolean ignoreEditable) {
+      if (parent instanceof MutableCompositeComponent<?>) {
+         if (ignoreEditable) {
+            return true;
+         }
+         else {
+            return ((MutableCompositeComponent<?>)parent).isEditable();
+         }
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+    * Returns true if all components in a selection can be deleted.
+    *
+    * @param comps list of components to check
+    * @param ignoreEditable if {@code true}, each component's parent need only
+    * be an instance of {@link MutableCompositeComponent}, and the result of
+    * its {@link MutableCompositeComponent#isEditable} method is ignored.
+    * @return {@code true} if all components can be deleted
+    */
    private boolean componentsAreDeletable (
-      Collection<? extends ModelComponent> comps) {
+      Collection<? extends ModelComponent> comps, boolean ignoreEditable) {
       for (ModelComponent c : comps) {
          CompositeComponent parent = c.getParent();
          if (parent == null ||
              c.isFixed() ||
-             !(parent instanceof MutableCompositeComponent<?>) ||
+             !isEditable(parent, ignoreEditable) ||
              ComponentUtils.isAncestorSelected(c)) {
             return false;
          }
@@ -256,15 +289,15 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       // deletable. Use unexpanded selection for this
       selection = selManager.getCurrentSelection ();
 
-      myRefComponentSelection = new LinkedList<ReferenceComponent>();
+      myRefComponentSelection = new LinkedList<ReferenceComp>();
       if (selection.size() > 0) {
          allSelectedAreRefLists = true;
          for (ModelComponent c : selection) {
             if (!(c instanceof ReferenceList)) {
                allSelectedAreRefLists = false;
             }
-            if (c instanceof ReferenceComponent) {
-               myRefComponentSelection.add ((ReferenceComponent)c);
+            if (c instanceof ReferenceComp) {
+               myRefComponentSelection.add ((ReferenceComp)c);
             }
          }
          if (allSelectedAreRefLists) {
@@ -317,10 +350,12 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       boolean duplicateOK = false;
 
       if (selection.size() > 0) {
-         deleteOK = componentsAreDeletable (selection);
+         deleteOK = componentsAreDeletable (
+            selection, /*ignoreEditable=*/false);
       }
       if (myRefComponentSelection.size() > 0) {
-         deleteRefsOK = componentsAreDeletable (myRefComponentSelection);
+         deleteRefsOK = componentsAreDeletable (
+            myRefComponentSelection, /*ignoreEditable=*/false);
       }
       
       if (copySelection != null && copySelection.size() > 0) {
@@ -328,7 +363,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
          for (ModelComponent c : copySelection) {
             CompositeComponent parent = c.getParent();
             if (parent == null ||
-                !(parent instanceof MutableCompositeComponent<?>) ||
+                !isEditable(parent, /*ignoreEditable=*/false) ||
                 ComponentUtils.isAncestorSelected(c) || 
                 !(c instanceof CopyableComponent)) {
                System.out.println ("failed here "+c);
@@ -558,7 +593,7 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
              myRefComponentSelection.size() < selection.size()) {
             selection = new LinkedList<ModelComponent>();
             for (ModelComponent c : myPropertyEditSelection) {
-               if (!(c instanceof ReferenceComponent)) {
+               if (!(c instanceof ReferenceComp)) {
                   selection.add (c);
                }
             }
@@ -741,16 +776,14 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
       LinkedList<ModelComponent> update = new LinkedList<ModelComponent>();
       LinkedList<ModelComponent> delete = 
          ComponentUtils.findDependentComponents (update, selection);
-
-      System.out.println ("delete.size=" + delete.size() + " " +
-                          selection.size());
          
       if (delete.size() > selection.size()) {
          // first, see if we can actually delete:
-         if (!componentsAreDeletable (delete)) {
+         if (!componentsAreDeletable (delete, /*ignoreEditable=*/true)) {
             GuiUtils.showNotice (
                myParentGUIComponent,
                "Selection refers to additional components that can't be deleted");
+            return;
          }
          else {
             boolean needConfirmation = false;
@@ -770,11 +803,11 @@ public class SelectionPopup extends JPopupMenu implements ActionListener {
                      JOptionPane.QUESTION_MESSAGE, JOptionPane.YES_NO_OPTION);
                JDialog dialog =
                   confirmDialog.createDialog (
-                     myParentGUIComponent, "confirm deletion");
-               GuiUtils.locateHorizontally (
-                  dialog, myParentGUIComponent, GuiUtils.CENTER);
-               GuiUtils.locateVertically (
-                  dialog, myParentGUIComponent, GuiUtils.BELOW);
+                     myMain.getFrame(), "confirm deletion");
+               // GuiUtils.locateHorizontally (
+               //    dialog, myParentGUIComponent, GuiUtils.CENTER);
+               // GuiUtils.locateVertically (
+               //    dialog, myParentGUIComponent, GuiUtils.BELOW);
                dialog.setVisible (true);
                if ((confirmDialog.getValue() == null) ||
                    (confirmDialog.getValue().equals (JOptionPane.NO_OPTION))) {

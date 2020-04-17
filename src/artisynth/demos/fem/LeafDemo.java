@@ -129,7 +129,7 @@ public class LeafDemo extends RootModel {
          z += 0.5;
       }
 
-      ReferenceList fixedNodes = new ReferenceList("fixedNodes");
+      ReferenceList<FemNode3d> fixedNodes = new ReferenceList<>("fixedNodes");
       
       // for each leaf transform ...
       int nodeBaseIdx = 0;      

@@ -51,7 +51,7 @@ import artisynth.core.util.*;
 
 public class FrameSpring extends Spring
    implements RenderableComponent, ScalableUnits,
-              CopyableComponent, MinimizableForceComponent {
+              CopyableComponent, ForceTargetComponent {
 
    protected Frame myFrameA;
    protected Frame myFrameB;
@@ -955,11 +955,11 @@ public class FrameSpring extends Spring
 
    /* --- Begin MinimizeForceComponent interface (for inverse controller) --- */
 
-   public int getMinForceSize() {
+   public int getForceSize() {
       return 6;
    }
 
-   public void getMinForce (VectorNd minf, boolean staticOnly) {
+   public void getForce (VectorNd minf, boolean staticOnly) {
       minf.setSize (6);
 
       FrameMaterial mat = myMaterial;
@@ -993,7 +993,7 @@ public class FrameSpring extends Spring
       return blk;
    }
 
-   public int addMinForcePosJacobian (
+   public int addForcePosJacobian (
       SparseBlockMatrix J, double h, boolean staticOnly, int bi) {
 
       Matrix6dBlock blk00 = getOrCreateBlock (J, myFrameA, bi);
@@ -1008,7 +1008,7 @@ public class FrameSpring extends Spring
       return bi++;
    }
 
-   public int addMinForceVelJacobian (
+   public int addForceVelJacobian (
       SparseBlockMatrix J, double h, int bi) {
 
       Matrix6dBlock blk00 = getOrCreateBlock (J, myFrameA, bi);

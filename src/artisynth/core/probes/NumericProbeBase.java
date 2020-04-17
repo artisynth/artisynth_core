@@ -933,4 +933,29 @@ public abstract class NumericProbeBase extends Probe implements Displayable {
          throw new IOException ("Unrecognized type for file "+name);
       }
    }
+
+   /**
+    * Ideally, we should implement updateReferences() to handle changes to the
+    * soft references. Best would be to modify myPropList to remove properties
+    * that no longer connect to valid components, but this is
+    * complicated. Instead, at present, the probe will continue to set
+    * properties in deleted components.
+    */
+   // @Override
+   // public void getSoftReferences (List<ModelComponent> refs) {
+   //    HashSet<ModelComponent> myrefs = new HashSet<ModelComponent>();
+   //    if (myPropList != null) {
+   //       for (Property prop : myPropList) {
+   //          ModelComponent comp = null;
+   //          if (prop instanceof GenericPropertyHandle) {
+   //             comp = ComponentUtils.getPropertyComponent (prop);
+   //          }
+   //          if (comp != null) {
+   //             myrefs.add (comp);
+   //          }
+   //       }
+   //       refs.addAll (myrefs);
+   //    }
+   // }
+
 }

@@ -551,6 +551,14 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    }
 
+   /**
+    * Returns a list of the dynamic components in this model. Used for
+    * debugging only. Must not be modified.
+    */
+   public ArrayList<DynamicComponent> getDynamicComponents() {
+      return myDynamicComponents;
+   }
+
    protected void updateDynamicComponentLists() {
 
       if (myDynamicComponents == null) {

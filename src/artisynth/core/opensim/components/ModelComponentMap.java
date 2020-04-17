@@ -114,7 +114,7 @@ public class ModelComponentMap implements Map<OpenSimObject,ModelComponent>{
    
    /**
     * Returns a component by its fully qualified path
-    * @param object from which path is requested (for relative path resolution)
+    * @param obj object from which path is requested (for relative path resolution)
     * @param path absolute or relative path
     * @return component at path if exists
     */

@@ -303,12 +303,12 @@ public class NavigationPanel extends JPanel {
    public boolean pathContainsReference (TreePath path) {
       for (int i=0; i<path.getPathCount(); i++) {
          Object obj = path.getPathComponent(i);
-         if (obj instanceof ReferenceComponent) {
+         if (obj instanceof ReferenceComp) {
             return true;
          }
          else if (obj instanceof NavPanelNode) {
             NavPanelNode node = (NavPanelNode)obj;
-            if (node.myComponent instanceof ReferenceComponent) {
+            if (node.myComponent instanceof ReferenceComp) {
                return true;
             }
          }

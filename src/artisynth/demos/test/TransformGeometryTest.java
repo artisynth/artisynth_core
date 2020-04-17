@@ -947,7 +947,7 @@ public class TransformGeometryTest {
 
       Hex3dBlock demo = new Hex3dBlock();
 
-      demo.build (new String[0]);
+      demo.build (new String[] { "-reduced" });
       demo.setConnected (true);
       
       MechModel mech = (MechModel)demo.findComponent ("models/0");

@@ -23,7 +23,7 @@ import maspack.render.*;
 import java.util.*;
 
 public class AxialSpring extends PointSpringBase
-   implements ScalableUnits, CopyableComponent, MinimizableForceComponent {
+   implements ScalableUnits, CopyableComponent, ForceTargetComponent {
    protected Point myPnt0;
    protected Point myPnt1;
    protected SegmentData mySeg = new SegmentData (null, null);
@@ -280,11 +280,11 @@ public class AxialSpring extends PointSpringBase
 
    /* --- Begin MinimizeForceComponent interface (for inverse controller) --- */
 
-   public int getMinForceSize() {
+   public int getForceSize() {
       return 3;
    }
    
-   public void getMinForce (VectorNd minf, boolean staticOnly) {
+   public void getForce (VectorNd minf, boolean staticOnly) {
       Vector3d tmp = new Vector3d();
       double l = mySeg.updateU();
       if (l > 0) {
@@ -296,7 +296,7 @@ public class AxialSpring extends PointSpringBase
       minf.set (tmp);
    }
 
-   public int addMinForcePosJacobian (
+   public int addForcePosJacobian (
       SparseBlockMatrix J, double h, boolean staticOnly, int bi) {
       double l = getLength();
       double ldot = 0;
@@ -311,7 +311,7 @@ public class AxialSpring extends PointSpringBase
       return bi++;
    }
    
-   public int addMinForceVelJacobian (
+   public int addForceVelJacobian (
       SparseBlockMatrix J, double h, int bi) {
       double l = getLength();
       double ldot = mySeg.getLengthDot();

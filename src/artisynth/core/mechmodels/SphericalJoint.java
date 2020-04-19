@@ -96,6 +96,20 @@ public class SphericalJoint extends SphericalJointBase {
       setBodies (bodyA, TCA, bodyB, XDB);
    }
    
+   public SphericalJoint (RigidBody bodyA, Point3d worldPnt) {
+      this();
+      
+      // world position/orientation of joint
+      RigidTransform3d XWJ =  new RigidTransform3d();
+      XWJ.setTranslation(worldPnt);
+      XWJ.setRotation(new AxisAngle(1,0,0,0));
+      
+      RigidTransform3d TCA = new RigidTransform3d();      
+      TCA.mulInverseLeft(bodyA.getPose(), XWJ);
+      
+      setBodies(bodyA, TCA, null, XWJ);
+   }
+   
    public SphericalJoint (RigidBody bodyA, RigidBody bodyB, Point3d worldPnt ) {
       this();
       

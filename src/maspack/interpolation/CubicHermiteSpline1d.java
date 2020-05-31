@@ -363,7 +363,7 @@ public class CubicHermiteSpline1d
     *
     * @param x value at which the y derivative should be evaluated
     */
-   public double evalDeriv (double x) {
+   public double evalDy (double x) {
       Knot prev = getPreviousKnot (x);
       if (prev == null) {
          return myKnots.get(0).evalDeriv (x);         
@@ -380,7 +380,7 @@ public class CubicHermiteSpline1d
     *
     * @param x value at which y should be evaluated
     */
-   public double eval (double x) {
+   public double evalY (double x) {
       Knot prev = getPreviousKnot (x);
       if (prev == null) {
          return myKnots.get(0).eval (x);         

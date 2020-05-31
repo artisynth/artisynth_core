@@ -163,7 +163,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
                int ns = (int)Math.ceil(nstotal*(dx+dy)/dxtotal);
                for (int i=0; i<=ns; i++) {
                   double x = knot.getX() + i*dx/ns;
-                  double y = mySpline.eval (x);               
+                  double y = mySpline.evalY (x);               
                   renderer.addVertex (new Vector3d (x, y, 0));
                }
             }

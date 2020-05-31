@@ -31,17 +31,17 @@ import maspack.render.RenderListener;
 import maspack.render.RendererEvent;
 import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
+import maspack.render.GL.GLViewerFrame;
 import maspack.render.GL.GL2.GL2Viewer;
 import maspack.render.GL.GL3.GL3Viewer;
 import maspack.widgets.DraggerToolBar.ButtonType;
 
 //import javax.swing.JToolBar;
 
-public class ViewerFrame extends JFrame
+public class ViewerFrame extends GLViewerFrame
    implements ActionListener, RenderListener {
    
    private static final long serialVersionUID = 1L;
-   protected GLViewer viewer;
 
    protected ViewerToolBar myViewerToolBar;
    protected DraggerToolBar myDraggerToolBar;
@@ -52,16 +52,14 @@ public class ViewerFrame extends JFrame
    protected GridDisplay myGridDisplay;
    protected ViewerPopupManager myPopupManager;
 
-   public GLViewer getViewer() {
-      return viewer;
+   public ViewerFrame (String name, int width, int height) {
+      this (name, width, height, defaultVersion);
    }
 
-   public ViewerFrame (String name, int width, int height) {
-      super (name);
-      viewer = new GL2Viewer (width, height);
-      getContentPane().add (viewer.getCanvas().getComponent());
+   public ViewerFrame (
+      String name, int width, int height, GLViewer.GLVersion vers) {
+      super (name, width, height, vers);
       viewer.addRenderListener (this);
-      pack();
    }
 
    public ViewerFrame (GL2Viewer shareWith, String name, int width, int height) {
@@ -70,24 +68,8 @@ public class ViewerFrame extends JFrame
 
    public ViewerFrame (GL2Viewer shareWith, String name, int width,
                        int height, boolean undecorated) {
-      super (name);
-      viewer = new GL2Viewer(shareWith, width, height);
-      setUndecorated (undecorated);
-      getContentPane().add (viewer.getCanvas().getComponent());
+      super (shareWith, name, width, height, undecorated);
       viewer.addRenderListener (this);
-      pack();
-   }
-
-   public void addRenderable (IsRenderable r) {
-      viewer.addRenderable(r);
-   }
-
-   public void removeRenderable (IsRenderable r) {
-      viewer.removeRenderable(r);
-   }
-
-   public void clearRenderables() {
-      viewer.clearRenderables();
    }
 
    protected JMenuItem addMenuItem (JMenu menu, String name) {

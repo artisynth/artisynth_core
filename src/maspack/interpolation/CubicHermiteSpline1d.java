@@ -178,12 +178,13 @@ public class CubicHermiteSpline1d
    }
 
    /**
-    * Creates a spline from a set of x coordinates, y values, and y derivative
-    * values.
+    * Creates a spline from data containing the x, y and y derivative values
+    * for each knot point.
     *
-    * @param x x coordinate. These are assumed to be in ascending order;
-    * if not, they are sorted to be in ascending order and the y and dy
-    * values are reordered (internally).
+    * @param x x values. These should be in ascending order. If they are not,
+    * they will be sorted into ascending order (internally) with the y and
+    * derivative values reordered appropriately. All x values should also be
+    * unique.
     * @param y y values
     * @param dy y derivative values
     */
@@ -197,6 +198,46 @@ public class CubicHermiteSpline1d
          throw new IllegalArgumentException (
             "dy.length "+dy.length+" not equals to x.length " + x.length);
       }
+      set (x, y, dy);
+   }
+
+   /**
+    * Creates a spline from data containing the x, y and y derivative values
+    * for each knot point. This is specified using a single array with {@code 3
+    * n} entries, where {@code n} is the number of knots. The entries
+    * should gave the form
+    * <pre>
+    *  x0 y0 dy0 x1 y1 dy1 x2 y2 dy2 ...
+    * </pre>
+    * where {@code xi}, {@code yi}, and {@code dyi} are the x, y
+    * and derivative values for the i-th knot.
+    *
+    * <p>The x values should be in ascending order. If they are not, they will
+    * be sorted into ascending order (internally) with the y and derivative
+    * values reordered appropriately. All x values should also be unique.
+    * 
+    * @param values x, y, and derivative values for the knots.
+    */
+   public CubicHermiteSpline1d (double[] values) {
+      this();
+      if (values.length < 3) {
+         throw new IllegalArgumentException (
+            "values must contain 3*n entries, where n is the number of knots");
+      }
+      int n = values.length/3;
+      double[] x = new double[n];
+      double[] y = new double[n];
+      double[] dy = new double[n];
+      int k = 0;
+      for (int i=0; i<n; i++) {
+         x[i] = values[k++];
+         y[i] = values[k++];
+         dy[i] = values[k++];
+      }
+      set (x, y, dy);
+   }
+
+   private void set (double[] x, double[] y, double[] dy) {
       for (int i=0; i<x.length-1; i++) {
          if (x[i] > x[i+1]) {
             // need to reorder
@@ -208,6 +249,12 @@ public class CubicHermiteSpline1d
                indices[k] = k;
             }
             ArraySort.quickSort (x, indices);
+            for (int k=0; k<x.length-1; k++) {
+               if (x[i] == x[i+1]) {
+                  throw new IllegalArgumentException (
+                     "x contains non-unique value "+x[i]);
+               }
+            }
             for (int k=0; k<indices.length; k++) {
                yNew[k] = y[indices[k]];
                dyNew[k] = dy[indices[k]];

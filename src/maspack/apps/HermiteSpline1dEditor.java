@@ -113,7 +113,6 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
       public void getSelection (LinkedList<Object> list, int qid) {
          if (qid < mySpline.numKnots()) {
-            System.out.println ("qid=" + qid);
             list.add (mySpline.getKnot(qid));
          }
       }

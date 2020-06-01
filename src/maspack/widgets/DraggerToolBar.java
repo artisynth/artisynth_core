@@ -365,6 +365,7 @@ public class DraggerToolBar extends JToolBar implements ActionListener {
                break;
             }
             case AddPoint: {
+               drawTool = new PointTool();
                break;
             }
             default: {
@@ -373,7 +374,12 @@ public class DraggerToolBar extends JToolBar implements ActionListener {
             }
          }
          if (dragger != null) {
-            System.out.println ("add dragger");
+            if (dragger instanceof Dragger3dBase) {
+               double size =
+                  (myViewer.distancePerPixel(myViewer.getCenter())*
+                   myViewer.getScreenWidth() / 6);
+               ((Dragger3dBase)dragger).setSize (size);
+            }
             addDragger (dragger);
          }
          if (drawTool != null) {

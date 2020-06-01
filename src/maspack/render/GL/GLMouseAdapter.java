@@ -156,7 +156,7 @@ public class GLMouseAdapter implements GLMouseListener {
    }
 
    public void mouseClicked (MouseEvent e) {
-      
+
       Dragger3d drawTool = viewer.myDrawTool;
       int mods = e.getModifiersEx() & ALL_MODIFIERS;
       boolean grabbed = false;
@@ -280,7 +280,8 @@ public class GLMouseAdapter implements GLMouseListener {
          else if (mask == getTranslateButtonMask()) {
             dragAction = TRANSLATE;
          }
-         else if (mask == getRotateButtonMask()) {
+         else if (mask == getRotateButtonMask() &&
+                  viewer.isViewRotationEnabled()) {
             dragAction = ROTATE;
          }
          else if (mask == getZoomButtonMask()) {

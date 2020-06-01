@@ -159,12 +159,11 @@ public class CubicHermiteSpline1d
 
       public Knot next() {
          try {
-            myKnots.get (myIdx++);
+            return myKnots.get (myIdx++);
          }
          catch (Exception e) {
             throw new NoSuchElementException();
          }
-         return null;
       }
    }
 
@@ -291,11 +290,14 @@ public class CubicHermiteSpline1d
          addKnot (0, knot);
       }
       else {
+         System.out.println ("prev=" + prev + " " + prev.getIndex());
          if (prev.x0 == x) {
             // just replace the existing knot
             myKnots.set (prev.getIndex(), knot);
+            knot.setIndex (prev.getIndex());
          }
          else {
+            System.out.println ("add at " + (prev.getIndex()+1));
             addKnot (prev.getIndex()+1, knot);
          }
       }
@@ -309,10 +311,17 @@ public class CubicHermiteSpline1d
          myKnots.get(idx).setIndex(idx);
          idx++;
       }
+      for (int k=0; k<myKnots.size(); k++) {
+         if (myKnots.get(k).getIndex() != k) {
+            throw new InternalErrorException (
+               "bad index at "+k+": "+ myKnots.get(k).getIndex());
+         }
+      }
    }
 
    protected void addKnot (int idx, Knot knot) {
       myKnots.add (idx, knot);
+      System.out.println ("added knot " + knot);
       reindexFrom (idx);
    }
 
@@ -332,6 +341,7 @@ public class CubicHermiteSpline1d
          }
          myKnots.remove (idx);
          reindexFrom (idx);
+         knot.setIndex (-1);
          return true;
       }
       else {
@@ -339,10 +349,21 @@ public class CubicHermiteSpline1d
       }
    }
 
+   public void clearKnots() {
+      for (int k=0; k<myKnots.size(); k++) {
+         myKnots.get(k).setIndex (-1);
+      }
+      myKnots.clear();
+   }
+
    /**
-    * Find the knot nearest to x for which {@code knot.x0 <= x}, if any.
+    * Find the knot immediately preceeding x. Specifically, find the nearest
+    * knot for which {@code knot.x0 <= x}. If no such knot exists, {@code null}
+    * is returned.
+    *
+    * @param x value for which previous knot is sought
     */
-   protected Knot getPreviousKnot (double x) {
+   public Knot getPreviousKnot (double x) {
       if (myKnots.size() == 0) {
          return null;
       }
@@ -354,6 +375,27 @@ public class CubicHermiteSpline1d
          prev = myKnots.get(k);
       }
       return prev;
+   }
+
+   /**
+    * Find the knot immediately following x. Specifically, find the nearest
+    * knot for which {@code knot.x0 > x}. If no such knot exists, {@code null}
+    * is returned.
+    *
+    * @param x value for which next knot is sought
+    */
+   public Knot getNextKnot (double x) {
+      if (myKnots.size() == 0) {
+         return null;
+      }
+      Knot next = null;
+      for (int k=myKnots.size()-1; k >= 0; k--) {
+         if (x >= myKnots.get(k).x0) {
+            break;
+         }
+         next = myKnots.get(k);
+      }
+      return next;
    }
 
    /**
@@ -414,7 +456,7 @@ public class CubicHermiteSpline1d
     * if an I/O or formatting error occured
     */
    public void scan (ReaderTokenizer rtok, Object ref) throws IOException {
-      myKnots.clear();
+      clearKnots();
       rtok.scanToken ('[');
       while (rtok.nextToken() != ']') {
          double x, y, dy;
@@ -489,17 +531,34 @@ public class CubicHermiteSpline1d
    }
 
    public Knot getFirstKnot () {
-      return myKnots.get (0);
+      if (myKnots.size() > 0) {
+         return myKnots.get (0);
+      }
+      else {
+         return null;
+      }
    }
 
    public Knot getLastKnot () {
-      return myKnots.get (numKnots()-1);
+      if (myKnots.size() > 0) {
+         return myKnots.get (numKnots()-1);
+      }
+      else {
+         return null;
+      }
    }
 
    public void updateCoefficients (Knot knot) {
       int idx = knot.getIndex();
+      System.out.println ("idx=" + idx);
       if (idx > 0) {
+         Knot k = myKnots.get(idx-1);
+         System.out.println (
+            "knot "+(idx-1)+" before: "+k.x0+" "+k.y0+" "+k.dy0+" "+k.a2+" "+k.a3);
+
          myKnots.get (idx-1).computeCoefficients (knot);
+         System.out.println (
+            "knot "+(idx-1)+" after:  "+k.x0+" "+k.y0+" "+k.dy0+" "+k.a2+" "+k.a3);
       }
       if (idx >= 0 && idx < numKnots()-1) {
          knot.computeCoefficients (myKnots.get (idx+1));
@@ -508,6 +567,7 @@ public class CubicHermiteSpline1d
 
    public void updateCoefficients () {
       for (int i=0; i<numKnots()-1; i++) {
+         Knot k = myKnots.get(i);
          myKnots.get(i).computeCoefficients (myKnots.get(i+1));
       }
    }
@@ -522,10 +582,36 @@ public class CubicHermiteSpline1d
     * @param spline spline to copy
     */
    public void set (CubicHermiteSpline1d spline) {
-      myKnots.clear();
+      clearKnots();
       for (Knot knot : spline) {
          addKnot (myKnots.size(), knot.copy());
       }
+   }
+
+   /**
+    * Scales the x values of this spline.
+    *
+    * @param s scale factor
+    */
+   public void scaleX (double s) {
+      for (Knot knot : this) {
+         knot.x0 *= s;
+         knot.dy0 /= s;
+      }
+      updateCoefficients();
+   }
+
+   /**
+    * Scales the y values of this spline.
+    *
+    * @param s scale factor
+    */
+   public void scaleY (double s) {
+      for (Knot knot : this) {
+         knot.y0 *= s;
+         knot.dy0 *= s;
+      }
+      updateCoefficients();
    }
 
    /**

@@ -63,7 +63,8 @@ import maspack.interpolation.*;
 import maspack.interpolation.CubicHermiteSpline1d.Knot;
 
 public class HermiteSpline1dEditor extends ViewerFrame 
-   implements ActionListener, RenderListener, Dragger3dListener {
+   implements ActionListener, RenderListener,
+              Dragger3dListener, DrawToolListener {
    
    private static final long serialVersionUID = 1L;
 
@@ -309,7 +310,6 @@ public class HermiteSpline1dEditor extends ViewerFrame
             del.inverseTransform (XV);
             del.scale (viewer.centerDistancePerPixel());
             Vector4d del4d = new Vector4d (del.x, del.y, del.z, 0);
-            System.out.println ("del=" + del.x + " " + del.y);
             translateKnot (del.x, del.y);
             
             lastX = e.getX();
@@ -327,7 +327,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
             new ReaderTokenizer (new BufferedReader (new FileReader (file)));
          mySpline = new CubicHermiteSpline1d();
          mySpline.scan (rtok, null);
-         
+
          if (myRenderer != null) {
             viewer.removeRenderable (myRenderer);
          }
@@ -374,9 +374,12 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
       addMenuBar();
       addTopToolPanel();
+      addGridDisplay();
 
-      viewer.autoFitOrtho ();
-      viewer.setAxialView (AxisAlignedRotation.X_Y);
+      viewer.setOrthogonal (10, .2, 200);
+      viewer.setGridSizeAndPosition (new Point3d(), 10);
+      viewer.setDefaultAxialView (AxisAlignedRotation.X_Y);
+      viewer.setViewRotationEnabled (false);
       //viewer.setSelectOnPress (true);
 
       addPopupManager();
@@ -386,6 +389,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
          ButtonType.TransRotate,
          ButtonType.AddPoint);
       myDraggerToolBar.setDraggerListener (this);
+      myDraggerToolBar.setDrawToolListener (this);
 
       mySplineChooser.setCurrentDirectory (new File("."));
    }
@@ -453,6 +457,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
          for (Knot knot : mySelectedKnots) {
             mySpline.removeKnot (knot);
          }
+         viewer.repaint();
       }
       else {
          super.actionPerformed (e);
@@ -574,6 +579,8 @@ public class HermiteSpline1dEditor extends ViewerFrame
       viewFrame.setVisible (true);
    }
 
+   // DraggerListener interface
+
    public void draggerAdded (Dragger3dEvent e) {
       if (e.getSource() instanceof Dragger3dBase) {
          Dragger3dBase dragger = (Dragger3dBase)e.getSource();
@@ -651,4 +658,65 @@ public class HermiteSpline1dEditor extends ViewerFrame
 
    public void draggerRemoved (Dragger3dEvent e) {
    }
+
+   private void addKnot (Point2d pnt) {
+      if (mySpline == null) {
+         mySpline = new CubicHermiteSpline1d();
+         if (myRenderer != null) {
+            viewer.removeRenderable (myRenderer);
+         }
+         myRenderer = new SplineRenderer (mySpline);
+         viewer.addRenderable (myRenderer);
+         viewer.rerender();
+      }
+      if (mySpline.numKnots() == 0) {
+         mySpline.addKnot (pnt.x, pnt.y, /*dy=*/0);
+      }
+      else if (mySpline.numKnots() == 1) {
+         Knot knot = mySpline.getKnot(0);
+         double dx = pnt.x-knot.getX();
+         double dy = (dx != 0 ? (pnt.y-knot.getY())/dx : 0);
+         System.out.println ("dy=" + dy);
+         // if dx == 0, then the "added" knot will simply replace the old one
+         mySpline.addKnot (pnt.x, pnt.y, dy);
+      }
+      else {
+         double dy = mySpline.evalDy (pnt.x);
+         mySpline.addKnot (pnt.x, pnt.y, dy);
+      }
+      System.out.println ("num knots=" + mySpline.numKnots());
+   }
+
+   // DrawToolListener interface
+
+   public void drawToolAdded (DrawToolEvent e) {
+      if (e.getSource() instanceof PointTool) {
+         PointTool tool = (PointTool)e.getSource();
+         tool.setFrameBinding (PointTool.FrameBinding.INTERNAL_FRAME);
+         tool.setFrame (new RigidTransform3d());
+         //tool.setVisible (false);
+         viewer.getCanvas().setCursor (
+            Cursor.getPredefinedCursor (Cursor.CROSSHAIR_CURSOR));
+      }
+   }
+
+   public void drawToolBegin (DrawToolEvent e) {
+   }
+
+   public void drawToolEnd (DrawToolEvent e) {
+      if (e.getSource() instanceof PointTool) {
+         PointTool tool = (PointTool)e.getSource();
+         System.out.println (tool.getPoint(tool.numPoints()-1));
+         addKnot (tool.getPoint(tool.numPoints()-1));
+         tool.clear();
+         viewer.repaint();
+      }
+   }
+
+   public void drawToolRemoved (DrawToolEvent e) {
+      if (e.getSource() instanceof PointTool) {
+         viewer.getCanvas().setCursor (Cursor.getDefaultCursor());         
+      }
+   }
+
 }

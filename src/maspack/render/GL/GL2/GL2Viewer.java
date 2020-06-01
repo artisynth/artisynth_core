@@ -287,7 +287,6 @@ public class GL2Viewer extends GLViewer implements HasProperties {
       if (canvas != null) {
          // canvas.addMouseListener(new GLMouseListener());
          canvas.addMouseListener (myMouseHandler);
-         canvas.addMouseListener (myMouseHandler);
          canvas.addMouseWheelListener (myMouseHandler);
          canvas.addMouseMotionListener (myMouseHandler);
          for (MouseInputListener l : myMouseInputListeners) {

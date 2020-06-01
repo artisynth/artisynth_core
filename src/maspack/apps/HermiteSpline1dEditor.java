@@ -7,60 +7,60 @@
 package maspack.apps;
 
 import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.*;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.event.MouseInputAdapter;
-import javax.swing.border.BevelBorder;
-import javax.swing.border.Border;
+
+import javax.swing.JFileChooser;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 
 import argparser.ArgParser;
 import argparser.BooleanHolder;
 import argparser.DoubleHolder;
 import argparser.IntHolder;
 import argparser.StringHolder;
-import maspack.geometry.MeshFactory;
-import maspack.geometry.NURBSCurve3d;
-import maspack.geometry.NURBSMesh;
-import maspack.geometry.NURBSObject;
-import maspack.geometry.NURBSSurface;
-import maspack.geometry.PolygonalMesh;
-import maspack.geometry.Vertex3d;
-import maspack.geometry.io.WavefrontReader;
-import maspack.matrix.*;
+import maspack.interpolation.CubicHermiteSpline1d;
+import maspack.interpolation.CubicHermiteSpline1d.Knot;
+import maspack.matrix.AxisAlignedRotation;
+import maspack.matrix.Point2d;
+import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.Vector3d;
-import maspack.matrix.Vector4d;
-import maspack.util.*;
-import maspack.properties.*;
+import maspack.render.Dragger3dBase;
+import maspack.render.Dragger3dEvent;
+import maspack.render.Dragger3dListener;
+import maspack.render.DrawToolEvent;
+import maspack.render.DrawToolListener;
+import maspack.render.PointTool;
+import maspack.render.RenderList;
+import maspack.render.RenderListener;
 import maspack.render.RenderProps;
 import maspack.render.Renderable;
 import maspack.render.Renderer;
-import maspack.render.RenderList;
-import maspack.render.*;
-import maspack.render.Renderer.*;
+import maspack.render.Renderer.DrawMode;
+import maspack.render.Renderer.Shading;
+import maspack.render.RendererEvent;
 import maspack.render.ViewerSelectionEvent;
 import maspack.render.ViewerSelectionListener;
-import maspack.render.GL.GLGridPlane;
 import maspack.render.GL.GLViewer;
 import maspack.render.GL.GLViewer.GLVersion;
-import maspack.render.GL.GLViewerFrame;
-import maspack.widgets.*;
+import maspack.util.IndentingPrintWriter;
+import maspack.util.NumberFormat;
+import maspack.util.ReaderTokenizer;
 import maspack.widgets.DraggerToolBar.ButtonType;
-import maspack.interpolation.*;
-import maspack.interpolation.CubicHermiteSpline1d.Knot;
+import maspack.widgets.GuiUtils;
+import maspack.widgets.ViewerFrame;
 
 public class HermiteSpline1dEditor extends ViewerFrame 
    implements ActionListener, RenderListener,
@@ -69,18 +69,12 @@ public class HermiteSpline1dEditor extends ViewerFrame
    private static final long serialVersionUID = 1L;
 
    CubicHermiteSpline1d mySpline;
+   double myYScale;
    SplineRenderer myRenderer;
    ArrayList<Knot> mySelectedKnots = new ArrayList<>();
    // stores knot data at the start of a drag:
    ArrayList<Vector3d> myKnotStartVals = new ArrayList<>();
-   
-
-   JFileChooser mySplineChooser = new JFileChooser();
-   //JPanel myToolBar;           // tool bar across the top of the frame
-
-   //JLabel mySplineLabel;
-   //String myLastSplineName;
-   //DraggerToolBar myDraggerToolBar;
+   File mySplineFile;
 
    class SplineRenderer implements Renderable {
       CubicHermiteSpline1d mySpline;
@@ -140,7 +134,8 @@ public class HermiteSpline1dEditor extends ViewerFrame
             else {
                renderer.setColor (Color.BLUE); 
             }
-            renderer.drawPoint (new Vector3d (knot.getX(), knot.getY(), 0));
+            renderer.drawPoint (
+               new Vector3d (knot.getX(), knot.getY()/myYScale, 0));
             renderer.endSelectionQuery ();
          }
 
@@ -160,11 +155,11 @@ public class HermiteSpline1dEditor extends ViewerFrame
                Knot knot = mySpline.getKnot (k);
                Knot next = mySpline.getKnot (k+1);
                double dx = next.getX() - knot.getX();
-               double dy = Math.abs(next.getY() - knot.getY());
+               double dy = Math.abs(next.getY() - knot.getY())/myYScale;
                int ns = (int)Math.ceil(nstotal*(dx+dy)/dxtotal);
                for (int i=0; i<=ns; i++) {
                   double x = knot.getX() + i*dx/ns;
-                  double y = mySpline.evalY (x);               
+                  double y = mySpline.evalY(x)/myYScale;
                   renderer.addVertex (new Vector3d (x, y, 0));
                }
             }
@@ -175,7 +170,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       public void updateBounds (Vector3d pmin, Vector3d pmax) {
          for (int i=0; i<mySpline.numKnots(); i++) {
             Knot knot = mySpline.getKnot(i);
-            Point3d pnt = new Point3d (knot.getX(), knot.getY(), 0);
+            Point3d pnt = new Point3d (knot.getX(), knot.getY()/myYScale, 0);
             pnt.updateBounds (pmin, pmax);
          }
       }
@@ -185,14 +180,13 @@ public class HermiteSpline1dEditor extends ViewerFrame
       }
    }
 
-   class SelectionHandler implements ViewerSelectionListener {
+   private class SelectionHandler implements ViewerSelectionListener {
 
       public void itemsSelected (ViewerSelectionEvent e) {
-         boolean holdSelection, selectAll;
+         boolean holdSelection;
 
          long modEx = e.getModifiersEx();
          holdSelection = ((modEx & MouseEvent.SHIFT_DOWN_MASK) != 0);
-         selectAll = ((modEx & MouseEvent.ALT_DOWN_MASK) != 0);
 
          if (!holdSelection) {
             clearSelectedKnots();
@@ -204,21 +198,6 @@ public class HermiteSpline1dEditor extends ViewerFrame
                   Knot knot = (Knot)path.getFirst();
                   //myRenderer.clearSelectedKnots();
                   selectKnot (knot);
-                  // NURBSObject nurbsObj = (NURBSObject)path.getFirst();
-                  // if (path.size() > 1 && path.get (1) instanceof Integer) {
-                  //    int idx = ((Integer)path.get (1)).intValue();
-                  //    if (!nurbsObj.controlPointIsSelected (idx)) {
-                  //       nurbsObj.selectControlPoint (idx, true);
-                  //       selectedPnts.add (nurbsObj.getControlPoints()[idx]);
-                  //    }
-                  //    else {
-                  //       nurbsObj.selectControlPoint (idx, false);
-                  //       selectedPnts.remove (nurbsObj.getControlPoints()[idx]);
-                  //    }
-                  //    if (!selectAll) {
-                  //       break;
-                  //    }
-                  // }
                }
             }
          }
@@ -237,7 +216,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       double cy = 0;
       for (Knot k : mySelectedKnots) {
          cx += k.getX();
-         cy += k.getY();
+         cy += k.getY()/myYScale;
       }
       cx /= mySelectedKnots.size();
       cy /= mySelectedKnots.size();
@@ -265,62 +244,23 @@ public class HermiteSpline1dEditor extends ViewerFrame
       return mySelectedKnots.get(idx);
    }
 
-
-   private void translateKnot (double dx, double dy) {
-      Knot knot = getSelectedKnot (0);
-      knot.setX (knot.getX()+dx);
-      knot.setY (knot.getY()+dy);
-      mySpline.updateCoefficients (knot);
-   }
-         
-
-   class MouseHandler extends MouseInputAdapter {
-      boolean dragging = false;
-      int lastX;
-      int lastY;
-
-      public void mousePressed (MouseEvent e) {
-         int modEx = e.getModifiersEx();
-         if ((modEx & MouseEvent.BUTTON1_DOWN_MASK) != 0) {
-            if (myRenderer != null && numSelectedKnots() > 0) {
-               dragging = true;
-               lastX = e.getX();
-               lastY = e.getY();
-            }
-         }
-      }
-
-      // public void mouseClicked (MouseEvent e) {
-      //    if (e.getClickCount() == 2) {
-      //       myRenderer.clearSelectedKnots();
-      //       viewer.getCanvas().repaint();
-      //    }
-      // }
-
-      public void mouseReleased (MouseEvent e) {
-         dragging = false;
-      }
-
-      public void mouseDragged (MouseEvent e) {
-         if (dragging) {
-            RigidTransform3d XV = new RigidTransform3d();
-            viewer.getViewMatrix (XV);
-            Vector3d del =
-               new Vector3d (e.getX() - lastX, lastY - e.getY(), 0);
-            del.inverseTransform (XV);
-            del.scale (viewer.centerDistancePerPixel());
-            Vector4d del4d = new Vector4d (del.x, del.y, del.z, 0);
-            translateKnot (del.x, del.y);
-            
-            lastX = e.getX();
-            lastY = e.getY();
-            
-            viewer.getCanvas().repaint();
-         }
-      }
+   public double getYScale () {
+      return myYScale;
    }
 
-   public void loadSpline (File file) {
+   public void setYScale (double s) {
+      myYScale = s;
+   }
+
+   public File getSplineFile () {
+      return mySplineFile;
+   }
+
+   public void setSplineFile (File file) {
+      mySplineFile = file;
+   }
+
+   public boolean loadSpline (File file) {
 
       try {
          ReaderTokenizer rtok =
@@ -334,9 +274,11 @@ public class HermiteSpline1dEditor extends ViewerFrame
          myRenderer = new SplineRenderer (mySpline);
          viewer.addRenderable (myRenderer);
          viewer.autoFitOrtho();
+         return true;
       }
       catch (Exception e) {
          GuiUtils.showError (this, "Can't load file: " + e);
+         return false;
       }
       
    }
@@ -347,12 +289,13 @@ public class HermiteSpline1dEditor extends ViewerFrame
             new FileWriter (file));
          mySpline.write (pw, new NumberFormat("%g"), null);
          pw.close();
+         return true;
       }
       catch (Exception ex) {
          ex.printStackTrace(); 
          GuiUtils.showError (this, "Can't write file: " + ex);
+         return false;
       }         
-      return false;
    }
 
 
@@ -367,7 +310,6 @@ public class HermiteSpline1dEditor extends ViewerFrame
    }
 
    private void init() {
-      MouseHandler mouseHandler = new MouseHandler();
       //viewer.getCanvas().addMouseListener (mouseHandler);
       //viewer.getCanvas().addMouseMotionListener (mouseHandler);
       viewer.addSelectionListener (new SelectionHandler());
@@ -391,13 +333,15 @@ public class HermiteSpline1dEditor extends ViewerFrame
       myDraggerToolBar.setDraggerListener (this);
       myDraggerToolBar.setDrawToolListener (this);
 
-      mySplineChooser.setCurrentDirectory (new File("."));
    }
 
    protected void createFileMenu (JMenu menu) {
-      addMenuItem (menu, "Load spline ...");
+      addMenuItem (menu, "Load ...");
       if (mySpline != null) {
-         addMenuItem (menu, "Save spline ...");
+         if (mySplineFile != null) {
+            addMenuItem (menu, "Save");
+         }
+         addMenuItem (menu, "Save as ...");
       }
       super.createFileMenu (menu);
    }
@@ -412,45 +356,44 @@ public class HermiteSpline1dEditor extends ViewerFrame
       super.createPopupMenu (popup);
    }
 
-//   private void createMenuBar () {
-//      JMenuBar menuBar = new JMenuBar();
-//      setJMenuBar (menuBar);
-//
-//      JMenu menu = new JMenu ("File");
-//      menu.addMenuListener(new MenuAdapter() {
-//         public void menuSelected(MenuEvent m_evt) {
-//            createFileMenu((JMenu)m_evt.getSource());
-//         }
-//      });      
-//
-//      menuBar.add (menu);      
-//
-//      // menu = new JMenu ("View");
-//      // menu.addMenuListener(new MenuAdapter() {
-//      //    public void menuSelected(MenuEvent m_evt) {
-//      //       createViewMenu((JMenu)m_evt.getSource());
-//      //    }
-//      // });      
-//
-//      // menuBar.add (menu);   
-//      
-//   }
-
    public void actionPerformed (ActionEvent e) {
       String cmd = e.getActionCommand();
 
-      if (cmd.equals ("Load spline ...")) {
-         int retVal = mySplineChooser.showOpenDialog(this);
+      if (cmd.equals ("Load ...")) {
+         JFileChooser chooser = new JFileChooser();
+         if (getSplineFile() != null) {
+            chooser.setSelectedFile (getSplineFile());
+         }
+         else {
+            chooser.setCurrentDirectory (new File("."));
+         }
+         int retVal = chooser.showDialog (this, "Load");
          if (retVal == JFileChooser.APPROVE_OPTION) {
-            File file = mySplineChooser.getSelectedFile();
-            loadSpline (file);
+            File file = chooser.getSelectedFile();
+            if (loadSpline (file)) {
+               setSplineFile (file);
+            }
          }
       }
-      else if (cmd.equals ("Save spline ...")) {
-         int retVal = mySplineChooser.showOpenDialog(this);
+      else if (cmd.equals ("Save")) {
+         if (!saveSpline (mySplineFile)) {
+            setSplineFile (null);
+         }
+      }
+      else if (cmd.equals ("Save as ...")) {
+         JFileChooser chooser = new JFileChooser();
+         if (getSplineFile() != null) {
+            chooser.setSelectedFile (getSplineFile());
+         }
+         else {
+            chooser.setCurrentDirectory (new File("."));
+         }
+         int retVal = chooser.showDialog (this, "Save as");
          if (retVal == JFileChooser.APPROVE_OPTION) {
-            File file = mySplineChooser.getSelectedFile();
-            saveSpline (file);
+            File file = chooser.getSelectedFile();
+            if (saveSpline (file)) {
+               setSplineFile (file);
+            }
          }
       }
       else if (cmd.equals ("Delete knots")) {
@@ -463,71 +406,6 @@ public class HermiteSpline1dEditor extends ViewerFrame
          super.actionPerformed (e);
       }
    }
-
-   // public void setBackgroundColor() {
-
-   //    myColorChooser.setColor(viewer.getBackgroundColor());
-
-   //    ActionListener setBColor = new ActionListener() {   
-   //       @Override
-   //       public void actionPerformed(ActionEvent e) {
-   //          String cmd = e.getActionCommand();
-   //          if (cmd.equals("OK")) {
-   //             viewer.setBackgroundColor(myColorChooser.getColor());
-   //          } else if (cmd.equals("Cancel")) {
-   //             // do nothing
-   //          }
-   //       }
-   //    };
-   //    JDialog dialog =
-   //    JColorChooser.createDialog(
-   //       this, "color chooser", /* modal= */true, myColorChooser,
-   //       setBColor, setBColor);
-   //    GuiUtils.locateRight(dialog, this);
-   //    dialog.setVisible(true);
-   // }
-
-   // private void createToolBars() {
-   //    myToolBar = new JPanel();
-   //    myToolBar.setLayout(new BoxLayout(myToolBar, BoxLayout.LINE_AXIS));
-   //    myToolBar.setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
-   //    mySplineLabel = new JLabel(" ");
-   //    myToolBar.add (mySplineLabel);
-
-   //    // add glue to separate label from grid display
-   //    myToolBar.add(Box.createHorizontalGlue());
-   //    myGridDisplayIndex = myToolBar.getComponentCount();
-   //    // add a place-holder component for the grid display
-   //    myToolBar.add(GridDisplay.createPlaceHolder());
-
-   //    getContentPane().add(myToolBar, BorderLayout.NORTH);
-   //    JPanel leftPanel = new JPanel(new BorderLayout());
-   // }
-
-   // public void updateWidgets() {
-   //    // return if  not visible, since updating widgets while
-   //    // frame is being set visible can cause some problems
-   //    if (!isVisible()) {
-   //       return;
-   //    }
-   //    boolean gridOn = viewer.getGridVisible();
-   //    GLGridPlane grid = viewer.getGrid();
-   //    if ((myGridDisplay != null) != gridOn) {
-   //       if (gridOn) {
-   //          myGridDisplay =
-   //             GridDisplay.createAndAdd (grid, myToolBar, myGridDisplayIndex);
-   //       }
-   //       else {
-   //          GridDisplay.removeAndDispose (
-   //             myGridDisplay, myToolBar, myGridDisplayIndex);
-   //          myGridDisplay = null;
-   //       }
-   //    }
-   //    if (myGridDisplay != null) {
-   //       myGridDisplay.updateWidgets();
-   //    }
-   // }
-
    /**
     * interface face method for GLViewerListener.
     */
@@ -538,30 +416,39 @@ public class HermiteSpline1dEditor extends ViewerFrame
    static BooleanHolder drawAxes = new BooleanHolder (false);
    static DoubleHolder axisLength = new DoubleHolder (-1);
    static IntHolder glVersion = new IntHolder (3);
+   static DoubleHolder yscale = new DoubleHolder (1);
 
    public static void main (String[] args) {
       StringHolder fileName = new StringHolder();
       IntHolder width = new IntHolder (640);
       IntHolder height = new IntHolder (480);
 
-      ArgParser parser = new ArgParser ("java maspack.apps.HermiteSpline1dEditor");
+      ArgParser parser =
+         new ArgParser ("java maspack.apps.HermiteSpline1dEditor");
+
       parser.addOption ("-width %d #width (pixels)", width);
       parser.addOption ("-height %d #height (pixels)", height);
       parser.addOption ("-drawAxes %v #draw coordinate axes", drawAxes);
       parser.addOption ("-spline %s #file defining the spline", fileName);
       parser.addOption ("-axisLength %f #coordinate axis length", axisLength);
       parser.addOption (
+         "-yscale %f #spline y value is yscale * viewer y value", yscale);
+      parser.addOption (
          "-GLVersion %d{2,3} " + "#version of openGL for graphics", glVersion);
 
       parser.matchAllArgs (args);
 
-      HermiteSpline1dEditor viewFrame = null;
+      HermiteSpline1dEditor editor = null;
       try {
          GLVersion glv = (glVersion.value == 3 ? GLVersion.GL3 : GLVersion.GL2);
-         viewFrame = new HermiteSpline1dEditor (width.value, height.value, glv);
-         GLViewer viewer = viewFrame.getViewer();
+         editor = new HermiteSpline1dEditor (width.value, height.value, glv);
+         GLViewer viewer = editor.getViewer();
+         editor.setYScale (yscale.value);
          if (fileName.value != null) {
-            viewFrame.loadSpline (new File (fileName.value));
+            File file = new File (fileName.value);
+            if (editor.loadSpline (file)) {
+               editor.setSplineFile (file);
+            }
          }
          if (drawAxes.value) {
             if (axisLength.value > 0) {
@@ -576,7 +463,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
          e.printStackTrace();
       }
 
-      viewFrame.setVisible (true);
+      editor.setVisible (true);
    }
 
    // DraggerListener interface
@@ -594,7 +481,8 @@ public class HermiteSpline1dEditor extends ViewerFrame
       myKnotStartVals.clear();
       for (Knot knot : mySelectedKnots) {
          myKnotStartVals.add (
-            new Vector3d (knot.getX(), knot.getY(), knot.getDy()));
+            new Vector3d (
+               knot.getX(), knot.getY()/myYScale, knot.getDy()/myYScale));
       }
    }
 
@@ -640,14 +528,14 @@ public class HermiteSpline1dEditor extends ViewerFrame
             Vector3d val = myKnotStartVals.get(i);
             Knot knot = mySelectedKnots.get(i);
             knot.setX (clipX (knot, val.x + TDW.p.x));
-            knot.setY (val.y + TDW.p.y);
+            knot.setY (myYScale*(val.y + TDW.p.y));
          }
          if (numSelectedKnots() == 1) {
             Knot knot = mySelectedKnots.get(0);
             double ang0 = Math.atan (myKnotStartVals.get(0).z);
             double[] rpy = new double[3];
             TDW.R.getRpy (rpy);
-            knot.setDy (Math.tan (clipAng (rpy[0] + ang0)));
+            knot.setDy (myYScale*(Math.tan (clipAng (rpy[0] + ang0))));
          }
          mySpline.updateCoefficients();
       }
@@ -675,8 +563,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       else if (mySpline.numKnots() == 1) {
          Knot knot = mySpline.getKnot(0);
          double dx = pnt.x-knot.getX();
-         double dy = (dx != 0 ? (pnt.y-knot.getY())/dx : 0);
-         System.out.println ("dy=" + dy);
+         double dy = (dx != 0 ? (pnt.y-knot.getY())/dx : 0); // ZZZ
          // if dx == 0, then the "added" knot will simply replace the old one
          mySpline.addKnot (pnt.x, pnt.y, dy);
       }
@@ -684,7 +571,6 @@ public class HermiteSpline1dEditor extends ViewerFrame
          double dy = mySpline.evalDy (pnt.x);
          mySpline.addKnot (pnt.x, pnt.y, dy);
       }
-      System.out.println ("num knots=" + mySpline.numKnots());
    }
 
    // DrawToolListener interface
@@ -706,7 +592,6 @@ public class HermiteSpline1dEditor extends ViewerFrame
    public void drawToolEnd (DrawToolEvent e) {
       if (e.getSource() instanceof PointTool) {
          PointTool tool = (PointTool)e.getSource();
-         System.out.println (tool.getPoint(tool.numPoints()-1));
          addKnot (tool.getPoint(tool.numPoints()-1));
          tool.clear();
          viewer.repaint();
@@ -720,3 +605,4 @@ public class HermiteSpline1dEditor extends ViewerFrame
    }
 
 }
+

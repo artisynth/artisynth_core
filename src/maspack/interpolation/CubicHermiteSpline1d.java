@@ -290,14 +290,12 @@ public class CubicHermiteSpline1d
          addKnot (0, knot);
       }
       else {
-         System.out.println ("prev=" + prev + " " + prev.getIndex());
          if (prev.x0 == x) {
             // just replace the existing knot
             myKnots.set (prev.getIndex(), knot);
             knot.setIndex (prev.getIndex());
          }
          else {
-            System.out.println ("add at " + (prev.getIndex()+1));
             addKnot (prev.getIndex()+1, knot);
          }
       }
@@ -321,7 +319,6 @@ public class CubicHermiteSpline1d
 
    protected void addKnot (int idx, Knot knot) {
       myKnots.add (idx, knot);
-      System.out.println ("added knot " + knot);
       reindexFrom (idx);
    }
 
@@ -550,15 +547,9 @@ public class CubicHermiteSpline1d
 
    public void updateCoefficients (Knot knot) {
       int idx = knot.getIndex();
-      System.out.println ("idx=" + idx);
       if (idx > 0) {
          Knot k = myKnots.get(idx-1);
-         System.out.println (
-            "knot "+(idx-1)+" before: "+k.x0+" "+k.y0+" "+k.dy0+" "+k.a2+" "+k.a3);
-
          myKnots.get (idx-1).computeCoefficients (knot);
-         System.out.println (
-            "knot "+(idx-1)+" after:  "+k.x0+" "+k.y0+" "+k.dy0+" "+k.a2+" "+k.a3);
       }
       if (idx >= 0 && idx < numKnots()-1) {
          knot.computeCoefficients (myKnots.get (idx+1));

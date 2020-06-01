@@ -59,17 +59,19 @@ import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
 import maspack.widgets.DraggerToolBar.ButtonType;
-import maspack.widgets.GuiUtils;
+import maspack.widgets.*;
+import maspack.widgets.DoubleField;
 import maspack.widgets.ViewerFrame;
 
 public class HermiteSpline1dEditor extends ViewerFrame 
    implements ActionListener, RenderListener,
-              Dragger3dListener, DrawToolListener {
+              Dragger3dListener, DrawToolListener, ValueChangeListener {
    
    private static final long serialVersionUID = 1L;
 
    CubicHermiteSpline1d mySpline;
-   double myYScale;
+   double myYScale = 1.0;
+   DoubleField myYScaleField;
    SplineRenderer myRenderer;
    ArrayList<Knot> mySelectedKnots = new ArrayList<>();
    // stores knot data at the start of a drag:
@@ -249,6 +251,12 @@ public class HermiteSpline1dEditor extends ViewerFrame
    }
 
    public void setYScale (double s) {
+      if (mySpline != null) {
+         mySpline.scaleY (s/myYScale);
+      }
+      if (myYScaleField.getDoubleValue() != s) {
+         myYScaleField.setValue(s);
+      }
       myYScale = s;
    }
 
@@ -312,10 +320,16 @@ public class HermiteSpline1dEditor extends ViewerFrame
    private void init() {
       //viewer.getCanvas().addMouseListener (mouseHandler);
       //viewer.getCanvas().addMouseMotionListener (mouseHandler);
+
+      JPopupMenu.setDefaultLightWeightPopupEnabled (false);
+
       viewer.addSelectionListener (new SelectionHandler());
 
       addMenuBar();
       addTopToolPanel();
+      myYScaleField = new DoubleField ("yscale", getYScale(), "%g");
+      myYScaleField.addValueChangeListener (this);
+      myTopPanel.add (myYScaleField);
       addGridDisplay();
 
       viewer.setOrthogonal (10, .2, 200);
@@ -604,5 +618,12 @@ public class HermiteSpline1dEditor extends ViewerFrame
       }
    }
 
+   // Value change listener
+
+   public void valueChange (ValueChangeEvent e) {
+      if (e.getSource() == myYScaleField) {
+         setYScale (myYScaleField.getDoubleValue());
+      }
+   }
 }
 

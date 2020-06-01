@@ -16,9 +16,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Arrays;
 
 import javax.swing.JFileChooser;
 import javax.swing.JMenu;
@@ -70,6 +72,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
    private static final long serialVersionUID = 1L;
 
    CubicHermiteSpline1d mySpline;
+   Curve myCurve;
    double myYScale = 1.0;
    DoubleField myYScaleField;
    SplineRenderer myRenderer;
@@ -77,6 +80,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
    // stores knot data at the start of a drag:
    ArrayList<Vector3d> myKnotStartVals = new ArrayList<>();
    File mySplineFile;
+   File myCurveFile;
 
    class SplineRenderer implements Renderable {
       CubicHermiteSpline1d mySpline;
@@ -182,6 +186,80 @@ public class HermiteSpline1dEditor extends ViewerFrame
       }
    }
 
+   class Curve implements Renderable {
+      double[] myX;
+      double[] myY;
+      
+      RenderProps myRenderProps;
+
+      public RenderProps createRenderProps() {
+         return new RenderProps();
+      }
+
+      public RenderProps getRenderProps() {
+         return myRenderProps;
+      }
+
+      public void setRenderProps (RenderProps props) {
+         myRenderProps = new RenderProps (props);
+      }
+
+      public Curve (double[] x, double[] y) {
+         myRenderProps = createRenderProps();
+         set (x, y);
+      }
+
+      public void set (double[] x, double[] y) {
+         if (x.length != y.length) {
+            throw new IllegalArgumentException (
+               "x and y lengths differ ("+x.length+" vs. "+y.length+")");
+         }
+         myX = Arrays.copyOf (x, x.length);
+         myY = Arrays.copyOf (y, y.length);
+      }
+
+      public boolean isSelectable() {
+         return true;
+      }
+
+      public int numSelectionQueriesNeeded() {
+         return 0;
+      }
+
+      public void getSelection (LinkedList<Object> list, int qid) {
+         list.add (this);
+      }
+
+      public void prerender (RenderList list) {
+      }
+
+      public void render (Renderer renderer, int flags) {
+         renderer.setShading (Shading.NONE);
+
+         // draw the curve
+
+         renderer.setLineWidth (2); 
+         renderer.setColor (Color.GREEN); 
+
+         renderer.beginDraw (DrawMode.LINE_STRIP);
+         for (int k=0; k<myX.length; k++) {
+            renderer.addVertex (new Vector3d (myX[k], myY[k]/myYScale, 0));
+         }
+         renderer.endDraw();
+      }
+
+      public void updateBounds (Vector3d pmin, Vector3d pmax) {
+         for (int k=0; k<myX.length; k++) {
+            Point3d pnt = new Point3d (myX[k], myY[k]/myYScale, 0);
+            pnt.updateBounds (pmin, pmax);
+         }
+      }
+
+      public int getRenderHints() {
+         return 0;
+      }
+   }
+
    private class SelectionHandler implements ViewerSelectionListener {
 
       public void itemsSelected (ViewerSelectionEvent e) {
@@ -268,8 +346,15 @@ public class HermiteSpline1dEditor extends ViewerFrame
       mySplineFile = file;
    }
 
-   public boolean loadSpline (File file) {
+   public File getCurveFile () {
+      return myCurveFile;
+   }
 
+   public void setCurveFile (File file) {
+      myCurveFile = file;
+   }
+
+   public boolean loadSpline (File file) {
       try {
          ReaderTokenizer rtok =
             new ReaderTokenizer (new BufferedReader (new FileReader (file)));
@@ -288,7 +373,41 @@ public class HermiteSpline1dEditor extends ViewerFrame
          GuiUtils.showError (this, "Can't load file: " + e);
          return false;
       }
-      
+   }
+
+   public boolean loadCurve (File file) {
+      try {
+         ReaderTokenizer rtok =
+            new ReaderTokenizer (new BufferedReader (new FileReader (file)));
+         ArrayList<Double> xyvals = new ArrayList<>();
+         while (rtok.nextToken() != ReaderTokenizer.TT_EOF) {
+            if (!rtok.tokenIsNumber()) {
+               throw new IOException ("numeric x value expected, " + rtok);
+            }
+            xyvals.add (rtok.nval);
+            rtok.nextToken();
+            if (!rtok.tokenIsNumber()) {
+               throw new IOException ("numeric y value expected, " + rtok);
+            }
+            xyvals.add (rtok.nval);
+         }
+         int npairs = xyvals.size()/2;
+         double[] x = new double[npairs];
+         double[] y = new double[npairs];
+         int k = 0;
+         for (int i=0; i<npairs; i++) {
+            x[i] = xyvals.get(k++);
+            y[i] = xyvals.get(k++);
+         }
+         myCurve = new Curve (x, y);
+         viewer.addRenderable (myCurve);
+         viewer.autoFitOrtho();
+         return true;
+      }
+      catch (Exception e) {
+         GuiUtils.showError (this, "Can't load file: " + e);
+         return false;
+      }
    }
 
    private boolean saveSpline (File file) {
@@ -357,6 +476,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
          }
          addMenuItem (menu, "Save as ...");
       }
+      addMenuItem (menu, "Load curve ...");
       super.createFileMenu (menu);
    }
 
@@ -376,7 +496,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       if (cmd.equals ("Load ...")) {
          JFileChooser chooser = new JFileChooser();
          if (getSplineFile() != null) {
-            chooser.setSelectedFile (getSplineFile());
+            chooser.setSelectedFile (getSplineFile().getAbsoluteFile());
          }
          else {
             chooser.setCurrentDirectory (new File("."));
@@ -397,7 +517,7 @@ public class HermiteSpline1dEditor extends ViewerFrame
       else if (cmd.equals ("Save as ...")) {
          JFileChooser chooser = new JFileChooser();
          if (getSplineFile() != null) {
-            chooser.setSelectedFile (getSplineFile());
+            chooser.setSelectedFile (getSplineFile().getAbsoluteFile());
          }
          else {
             chooser.setCurrentDirectory (new File("."));
@@ -407,6 +527,22 @@ public class HermiteSpline1dEditor extends ViewerFrame
             File file = chooser.getSelectedFile();
             if (saveSpline (file)) {
                setSplineFile (file);
+            }
+         }
+      }
+      else if (cmd.equals ("Load curve ...")) {
+         JFileChooser chooser = new JFileChooser();
+         if (getCurveFile() != null) {
+            chooser.setSelectedFile (getCurveFile().getAbsoluteFile());
+         }
+         else {
+            chooser.setCurrentDirectory (new File("."));
+         }
+         int retVal = chooser.showDialog (this, "Load");
+         if (retVal == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if (loadCurve (file)) {
+               setCurveFile (file);
             }
          }
       }
@@ -433,7 +569,8 @@ public class HermiteSpline1dEditor extends ViewerFrame
    static DoubleHolder yscale = new DoubleHolder (1);
 
    public static void main (String[] args) {
-      StringHolder fileName = new StringHolder();
+      StringHolder splineFileName = new StringHolder();
+      StringHolder curveFileName = new StringHolder();
       IntHolder width = new IntHolder (640);
       IntHolder height = new IntHolder (480);
 
@@ -443,7 +580,9 @@ public class HermiteSpline1dEditor extends ViewerFrame
       parser.addOption ("-width %d #width (pixels)", width);
       parser.addOption ("-height %d #height (pixels)", height);
       parser.addOption ("-drawAxes %v #draw coordinate axes", drawAxes);
-      parser.addOption ("-spline %s #file defining the spline", fileName);
+      parser.addOption ("-spline %s #file defining the spline", splineFileName);
+      parser.addOption (
+         "-curve %s #file defining the reference curve", curveFileName);
       parser.addOption ("-axisLength %f #coordinate axis length", axisLength);
       parser.addOption (
          "-yscale %f #spline y value is yscale * viewer y value", yscale);
@@ -458,10 +597,16 @@ public class HermiteSpline1dEditor extends ViewerFrame
          editor = new HermiteSpline1dEditor (width.value, height.value, glv);
          GLViewer viewer = editor.getViewer();
          editor.setYScale (yscale.value);
-         if (fileName.value != null) {
-            File file = new File (fileName.value);
+         if (splineFileName.value != null) {
+            File file = new File (splineFileName.value);
             if (editor.loadSpline (file)) {
                editor.setSplineFile (file);
+            }
+         }
+         if (curveFileName.value != null) {
+            File file = new File (curveFileName.value);
+            if (editor.loadCurve (file)) {
+               editor.setCurveFile (file);
             }
          }
          if (drawAxes.value) {

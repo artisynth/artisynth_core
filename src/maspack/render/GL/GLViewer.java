@@ -479,7 +479,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       new Vector2d(DEFAULT_ELLIPTIC_CURSOR_SIZE);
    public static boolean DEFAULT_ELLIPTIC_CURSOR_ACTIVE = false;
    protected boolean myEllipticCursorActive = DEFAULT_ELLIPTIC_CURSOR_ACTIVE;
-   private static final boolean DEFAULT_VIEW_ROTATION_ENABLED = false;
+   private static final boolean DEFAULT_VIEW_ROTATION_ENABLED = true;
    protected boolean myViewRotationEnabled = DEFAULT_VIEW_ROTATION_ENABLED;
    
    // Selection

@@ -1004,8 +1004,10 @@ public class TrackingController extends ControllerBase
     * index in the <code>ex</code> buffer <code>idx+numExciters()</code>
     */
    public int setExcitations(VectorNd ex, int idx) {
+      if (myExcitations.size() < numExciters())  {
+         myExcitations.setSize (numExciters());
+      }
       double[] buf = ex.getBuffer();
-      
       for (WeightedReferenceComp<ExcitationComponent> ecomp : myExciters) {
          ecomp.getReference().setExcitation(buf[idx++]);
       }

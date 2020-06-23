@@ -22,6 +22,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JMenuItem;
 
 import maspack.matrix.AxisAngle;
+import maspack.matrix.AxisAlignedRotation;
 import maspack.matrix.NumericalException;
 import maspack.matrix.Point3d;
 import maspack.matrix.Vector3d;
@@ -802,7 +803,8 @@ public class RootModel extends RenderableModelBase
 
    /**
     * Obtains the default orientation that should be used for viewing this
-    * model. A value of 0 indicates that no orientation is specified.
+    * model. A value equal to
+    * {@link AxisAngle#ZERO} indicates that no orientation is specified.
     * 
     * @return default rotational transform from eye to world coordinates
     */
@@ -812,7 +814,8 @@ public class RootModel extends RenderableModelBase
 
    /**
     * Sets the default orientation that should be used for viewing
-    * this model to <code>REW</code>. Setting a value of 0 indicates
+    * this model to <code>REW</code>. Setting a value equal to
+    * {@link AxisAngle.ZERO} indicates
     * that no orientation is specified and so the viewer should
     * use its default view. 
     * 
@@ -825,6 +828,27 @@ public class RootModel extends RenderableModelBase
             new PropertyChangeEvent (this, "defaultViewOrientation"));
 
       }
+   }
+
+   /**
+    * Sets the default orientation that should be used for viewing this model
+    * to <code>REW</code>, where {@code REW} is specified as an {@link
+    * AxisAlignedRotation}. Typical values are {@code AxisAlignedRotation.X_Y}
+    * (y axis pointing up), and {@code AxisAlignedRotation.X_Z} (z axis
+    * pointing up). If {@code REW} is passed as {@code null}, then no
+    * orientation is specified and so the viewer will use its default view.
+    * 
+    * @param REW rotational transform from eye to world coordinates
+    */
+   public void setDefaultViewOrientation (AxisAlignedRotation REW) {
+      AxisAngle axisAng = new AxisAngle();
+      if (REW == null) {
+         axisAng.set (0, 0, 0, 0);
+      }
+      else {
+         axisAng.set (REW.getAxisAngle());
+      }
+      setDefaultViewOrientation (axisAng);
    }
 
    public void addMonitor (Monitor monitor, Model model) {

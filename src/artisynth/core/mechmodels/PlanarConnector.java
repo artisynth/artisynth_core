@@ -253,9 +253,12 @@ public class PlanarConnector extends BodyConnector
    }
 
    public void setUnilateral (boolean unilateral) {
-      ((PlanarCoupling)myCoupling).setUnilateral (unilateral);
-      // myUnilateralP[0] = unilateral;
-      notifyParentOfChange (StructureChangeEvent.defaultEvent);
+      if (isUnilateral() != unilateral) {
+         ((PlanarCoupling)myCoupling).setUnilateral (unilateral);
+         // myUnilateralP[0] = unilateral;
+         myStateVersion++;
+         notifyParentOfChange (StructureChangeEvent.defaultEvent);
+      }
    }
 
    @Override

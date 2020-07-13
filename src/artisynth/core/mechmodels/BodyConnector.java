@@ -31,6 +31,7 @@ public abstract class BodyConnector extends RenderableComponentBase
    
    private boolean myEnabledP = true;
    protected RigidBodyCoupling myCoupling;
+   protected int myStateVersion;
    
    // use an old (and presumably inaccurate) method for computing constraint
    // derivatives, simply for compatibility
@@ -435,6 +436,7 @@ public abstract class BodyConnector extends RenderableComponentBase
       if (enabled != myEnabledP) {
          myEnabledP = enabled;
       }
+      myStateVersion++;
       notifyParentOfChange (StructureChangeEvent.defaultEvent);
    }
 
@@ -1953,6 +1955,11 @@ public abstract class BodyConnector extends RenderableComponentBase
          }
          getUnilateralConstraints (myUnilaterals, /*setEngaged=*/false);
       }
+   }
+
+   @Override
+   public int getStateVersion () {
+      return myStateVersion;
    }
    
    /**

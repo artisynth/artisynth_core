@@ -446,8 +446,11 @@ public class SegmentedPlanarConnector extends BodyConnector
    }
 
    public void setUnilateral (boolean unilateral) {
-      mySegPlaneCoupling.setUnilateral (unilateral);
-      notifyParentOfChange (StructureChangeEvent.defaultEvent);
+      if (isUnilateral() != unilateral) {
+         mySegPlaneCoupling.setUnilateral (unilateral);
+         myStateVersion++;
+         notifyParentOfChange (StructureChangeEvent.defaultEvent);
+      }
    }
 
    // public int numBilateralConstraints()

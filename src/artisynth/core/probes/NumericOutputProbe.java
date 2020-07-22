@@ -334,7 +334,25 @@ public class NumericOutputProbe extends NumericProbeBase
       else if (scanAttributeName (rtok, "plotTraceInfo")) {
          tmpTraceInfos = scanPlotTraceInfo (rtok);
          return true;
-      }         
+      } 
+      else if (scanAttributeName (rtok, "data")) {
+         createNumericList (getVsize());
+         rtok.scanToken ('[');
+         while (rtok.nextToken() != ']') {
+            rtok.pushBack();
+            NumericListKnot knot = new NumericListKnot (myVsize);
+            knot.t = rtok.scanNumber();
+            for (int i=0; i<myVsize; i++) {
+               knot.v.set (i, rtok.scanNumber());
+            }
+            myNumericList.add (knot);
+         }
+         return true;
+      }
+      else if (scanAttributeName (rtok, "vsize")) {
+         myVsize = rtok.scanInteger();
+         return true;
+      }
       rtok.pushBack();
       return super.scanItem (rtok, tokens);
    }
@@ -372,7 +390,8 @@ public class NumericOutputProbe extends NumericProbeBase
       else {
          set (
             myPropList.toArray (new Property[0]), tmpDriverExpressions,
-            tmpVariableNames, tmpTraceInfos);
+            tmpVariableNames, tmpTraceInfos, 
+            /*initData=*/myNumericList==null);
       }
 
       tmpVariableNames = null;
@@ -383,6 +402,7 @@ public class NumericOutputProbe extends NumericProbeBase
       PrintWriter pw, NumberFormat fmt, CompositeComponent ancestor)
       throws IOException {
       super.writeItems (pw, fmt, ancestor);
+      pw.println ("vsize=" + getVsize());
       if (myPropList != null && myPropList.size() > 0) {
          pw.println ("props=[");
          IndentingPrintWriter.addIndentation (pw, 2);
@@ -416,17 +436,27 @@ public class NumericOutputProbe extends NumericProbeBase
       else {
          pw.println ("drivers=[ ]");
       }
+      if (myNumericList != null) {
+         pw.println ("data=[");
+         IndentingPrintWriter.addIndentation (pw, 2);      
+         for (NumericListKnot knot : myNumericList) {
+            pw.print (fmt.format(knot.t) + " ");
+            pw.println (knot.v.toString (fmt));
+         }
+         IndentingPrintWriter.addIndentation (pw, -2);      
+         pw.println ("]");
+      }
       maybeWritePlotTraceInfo (pw);
    }
 
    public void set (
       Property[] props, String[] driverExpressions, String[] variableNames) {
-      set (props, driverExpressions, variableNames, null);
+      set (props, driverExpressions, variableNames, null, /*initData=*/true);
    }
 
    public void set (
       Property[] props, String[] driverExpressions,
-      String[] variableNames, PlotTraceInfo[] traceInfos) {
+      String[] variableNames, PlotTraceInfo[] traceInfos, boolean initData) {
       if (variableNames.length != props.length) {
          throw new IllegalArgumentException (
             "Number of variable names does not equal the number of properties");
@@ -460,7 +490,13 @@ public class NumericOutputProbe extends NumericProbeBase
       myVariables = newVariables;
       myConverters = newConverters;
 
-      myNumericList = new NumericList (myVsize);
+      if (initData) {
+         myVsize = 0;
+         for (int i = 0; i < newDrivers.size(); i++) {
+            myVsize += newDrivers.get (i).getOutputSize();
+         }
+         myNumericList = new NumericList (myVsize);
+      }
 
       if (traceInfos != null) {
          myPlotTraceManager.rebuild (getPropsOrDimens(), traceInfos);

@@ -557,6 +557,12 @@ public class NumericInputProbe extends NumericProbeBase
       myNumericList.add (v, t);
       // extendStopTimeIfNecessary();
    }
+   
+   public void addData (double t, maspack.matrix.Matrix M) {
+      double[] vals = new double[M.rowSize()*M.colSize()];
+      M.get (vals);
+      addData (t, vals);
+   }
 
    public void addData (ReaderTokenizer rtok, double timeStep)
       throws IOException {

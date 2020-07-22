@@ -479,7 +479,9 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       new Vector2d(DEFAULT_ELLIPTIC_CURSOR_SIZE);
    public static boolean DEFAULT_ELLIPTIC_CURSOR_ACTIVE = false;
    protected boolean myEllipticCursorActive = DEFAULT_ELLIPTIC_CURSOR_ACTIVE;
-
+   private static final boolean DEFAULT_VIEW_ROTATION_ENABLED = true;
+   protected boolean myViewRotationEnabled = DEFAULT_VIEW_ROTATION_ENABLED;
+   
    // Selection
    protected GLSelector mySelector;
    protected ViewerSelectionFilter mySelectionFilter = null;
@@ -522,6 +524,10 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myProps.add(
          "ellipticCursorSize", "dimension of the elliptic cursor", 
          DEFAULT_ELLIPTIC_CURSOR_SIZE);
+      myProps.add(
+         "viewRotationEnabled isViewRotationEnabled *",
+         "viewpoint can be rotated in the GUI", 
+         DEFAULT_VIEW_ROTATION_ENABLED);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -553,6 +559,14 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
    
    public void resetEllipticCursorSize () {
       myEllipticCursorSize.set (DEFAULT_ELLIPTIC_CURSOR_SIZE);
+   }
+
+   public boolean isViewRotationEnabled() {
+      return myViewRotationEnabled;
+   }
+   
+   public void setViewRotationEnabled (boolean enable) {
+      myViewRotationEnabled = enable;
    }
    
    public boolean getEllipticCursorActive() {
@@ -1131,7 +1145,7 @@ public abstract class GLViewer implements GLEventListener, GLRenderer,
       myDrawTool != null);
    }
 
-   private void setGridSizeAndPosition (Point3d pcenter, double r) {
+   public void setGridSizeAndPosition (Point3d pcenter, double r) {
 
       myGrid.setMinSize (4 * r);
       myGrid.setAutoSized (true);

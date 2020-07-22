@@ -114,6 +114,10 @@ public abstract class FemElement3dBase extends FemElement
    public FemNode3d[] getNodes() {
       return myNodes;
    }
+
+   public void setNodes(FemNode3d[] nodes) {
+      myNodes = nodes;
+   }
    
    public FemNodeNeighbor[][] getNodeNeighbors() {
       return myNbrs;
@@ -240,6 +244,19 @@ public abstract class FemElement3dBase extends FemElement
          sampleElem, sampleElem.getIntegrationCoords());
    }
 
+   
+   protected IntegrationPoint3d[] createIntegrationPoints() {
+      double[] ncoords = getIntegrationCoords();
+      int numi = ncoords.length/4;
+      IntegrationPoint3d[] pnts = new IntegrationPoint3d[numi];
+      for (int k=0; k<numi; k++) {
+         pnts[k] = IntegrationPoint3d.create (
+            this,
+            ncoords[k*4], ncoords[k*4+1], ncoords[k*4+2], ncoords[k*4+3]);
+         pnts[k].setNumber (k);
+      }
+      return pnts;
+   }
    public IntegrationData3d[] getIntegrationData() {
       IntegrationData3d[] idata = doGetIntegrationData();
       if (!myIntegrationDataValid) {

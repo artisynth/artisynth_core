@@ -89,6 +89,60 @@ public class CollisionResponse extends CollisionComponent {
    }
 
    /**
+    * Returns a map specifying the contact pressures acting on all the
+    * deformable bodies associated with either the first or second collidable
+    * (as indicated by <code> cidx</code>).
+    *
+    * <p> The map gives the most recently computed pressures acting on each
+    * vertex of the collision meshes of the deformable bodies (this is the same
+    * mesh returned by {@link CollidableBody#getCollisionMesh}). Vertices for
+    * which no forces were computed do not appear in the map.
+    *
+    * <p> This method works by first calling {@link #getContactForces} to
+    * obtain the vertex forces, and then converting these to pressures by
+    * dividing the force magnitude at each vertex by 1/3 of the area of all the
+    * faces surrounding that vertex.
+    *
+    * @return map giving the contact pressures acting on the deformable bodies
+    * in this response.
+    */
+   public Map<Vertex3d,Double> getContactPressures (int cidx) {
+      Map<Vertex3d,Vector3d> fmap = getContactForces (cidx);
+      
+      // convert forces into pressures:
+      
+      // set of faces for which planar area has been updated:
+      HashSet<Face> faces = new HashSet<>();
+      // pressure map to be completed:
+      LinkedHashMap<Vertex3d,Double> pmap = new LinkedHashMap<>();
+
+      for (Map.Entry<Vertex3d,Vector3d> entry : fmap.entrySet()) {
+         Vertex3d vertex = entry.getKey();
+         double force = entry.getValue().norm();
+         // Pressure at the vertex is related to force at the vertex
+         // by the formula
+         // 
+         //    force = 1/3 * pressure * adjacentFaceArea
+         //
+         double adjacentFaceArea = 0;
+         Iterator<HalfEdge> it = vertex.getIncidentHalfEdges();
+         while (it.hasNext()) {
+            HalfEdge he = it.next();
+            Face face = he.getFace();
+            if (!faces.contains(face)) {
+               // update planar area for the face
+               face.computeNormal();
+               faces.add (face);
+            }
+            adjacentFaceArea += face.getPlanarArea();
+         }
+         double pressure = 3*force/adjacentFaceArea;
+         pmap.put (vertex, pressure);              
+      }
+      return pmap;
+   }
+
+   /**
     * Returns the PenetrationRegions on all bodies associated with either the
     * first or second collidable (as indicated by <code>cidx</code>) resulting
     * from contact with the other collidable. In order for penetration regions
@@ -99,7 +153,7 @@ public class CollisionResponse extends CollisionComponent {
     *
     * @param cidx
     * collidable index - 0 for first, 1 for second
-    * @return penetration regions for the second collidable
+    * @return penetration regions for the indicated collidable
     */
    public ArrayList<PenetrationRegion> getPenetrationRegions (int cidx) {
 

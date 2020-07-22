@@ -3011,6 +3011,7 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    public void setState (DataBuffer data) {
+      updateBehaviorStructures();
       if (!myHandlerTableValid) {
          MechModel topMech = MechModel.topMechModel(this);
          topMech.updateCollidableBodyIndices();

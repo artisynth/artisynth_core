@@ -275,6 +275,18 @@ ExcitationComponent {
       }
       myTargets.get (idx).setExcitationGain (this, gain);
    }
+   
+   /**
+    * Scale the gains for all the targets controller by this excitation
+    * component.
+    * 
+    * @param s gain scale factor
+    */
+   public void scaleGains (double s) {
+      for (ExcitationComponent ex : myTargets) {
+         ex.setExcitationGain (this, s*ex.getExcitationGain(this));
+      }
+   }
 
 //   public double getDefaultActivationWeight() {
 //      double w = 0;

@@ -36,7 +36,9 @@ public class DraggerToolBar extends JToolBar implements ActionListener {
       Draw (
          "ToolPencilLarge.png", "draw a curve freehand", false),
       Spline (
-         "ToolSplineLarge.png", "draw a NURBS curve", false);
+         "ToolSplineLarge.png", "draw a NURBS curve", false),
+      AddPoint (
+         "ToolAddMarkerLarge.png", "add a point", false);
 
       String myFileName;
       String myDescription;
@@ -242,11 +244,11 @@ public class DraggerToolBar extends JToolBar implements ActionListener {
 
    protected void addDragger (Dragger3dBase dragger) {
       myViewer.setSelectionEnabled (true);
+      if (myDraggerListener != null) {
+         dragger.addListener (myDraggerListener);
+      }     
       myViewer.addDragger (dragger);
       myDragger = dragger;
-      if (myDraggerListener != null) {
-         myDragger.addListener (myDraggerListener);
-      }
       myViewer.rerender();
    }
 
@@ -259,6 +261,10 @@ public class DraggerToolBar extends JToolBar implements ActionListener {
          myDragger = null;
          myViewer.rerender();
       }
+   }
+   
+   public Dragger3dBase getDragger() {
+      return myDragger;
    }
 
    protected void addDrawTool (DrawToolBase tool) {
@@ -358,12 +364,22 @@ public class DraggerToolBar extends JToolBar implements ActionListener {
                drawTool = splineTool;               
                break;
             }
+            case AddPoint: {
+               drawTool = new PointTool();
+               break;
+            }
             default: {
                throw new InternalErrorException (
                   "Unimplemented button type: " + buttonDesc.myType);
             }
          }
          if (dragger != null) {
+            if (dragger instanceof Dragger3dBase) {
+               double size =
+                  (myViewer.distancePerPixel(myViewer.getCenter())*
+                   myViewer.getScreenWidth() / 6);
+               ((Dragger3dBase)dragger).setSize (size);
+            }
             addDragger (dragger);
          }
          if (drawTool != null) {

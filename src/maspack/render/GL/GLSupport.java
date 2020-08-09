@@ -409,6 +409,11 @@ public class GLSupport {
       return true;
    }
    
+   public static void printGLError (int err) {
+      String msg = Error.gluErrorString(err);
+      printErr(msg + " (" +err + ")");
+   }
+   
    public static class GLVersionInfo {
       String renderer;
       int majorVersion;
@@ -449,6 +454,12 @@ public class GLSupport {
       @Override
       public void init(GLAutoDrawable drawable) {
          GL gl = drawable.getGL();
+         // XXX JOGL 2.4.0 on MacOS gives an invalid framebuffer operation error 1286
+         // seems to be benign, so just clear it:
+         int err = gl.glGetError();
+         if (err != GL.GL_NO_ERROR && err != 1286) {
+            printGLError (err);
+         }
          
          String renderer = gl.glGetString(GL.GL_RENDERER);
          GLSupport.checkAndPrintGLError (gl);
@@ -513,7 +524,7 @@ public class GLSupport {
       GLCapabilities glc = new GLCapabilities(glp);
       GLAutoDrawable dummy = GLDrawableFactory.getFactory(glp).createDummyAutoDrawable(null, true, glc, null);
       GLVersionListener listener = new GLVersionListener();
-      dummy.addGLEventListener (listener);      
+      dummy.addGLEventListener (listener);
       dummy.display(); // triggers GLContext object creation and native realization.
 
       while (!listener.isValid()) {
@@ -524,5 +535,10 @@ public class GLSupport {
       dummy.destroy(); // XXX should be auto-destroyed.  We have reports that manually calling destroy sometimes crashes the JVM.
 
       return vinfo;
+   }
+   
+   public static void main (String[] args) {
+      GLVersionInfo info = getMaxGLVersionSupported();
+      System.out.println (info.getVersionString());      
    }
 }

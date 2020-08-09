@@ -94,7 +94,7 @@ public class FrameSpring extends Spring
    private Matrix3d myTmpM = new Matrix3d();
    // private RotationMatrix3d myRBA = new RotationMatrix3d();
 
-   public boolean mySymmetricJacobian = true;
+   public static boolean mySymmetricJacobian = true;
 
    protected RigidTransform3d myX21 = new RigidTransform3d();
    protected RigidTransform3d myInitialX21 = new RigidTransform3d();

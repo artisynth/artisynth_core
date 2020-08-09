@@ -120,6 +120,32 @@ public abstract class MechSystemBase extends RenderableModelBase
       new PropertyList (MechModel.class, RenderableModelBase.class);
 
    /**
+    * Class that modifiers a solve or stiffness matrix and associated force vector.
+    * This can be used to convert ArtiSynth stiffness matrices to alternate
+    * forms that may be more suitable for different kinds of analysis.
+    */
+   public interface SolveMatrixModifier {
+
+      /**
+       * Modifies in place a solve or stiffness matrix {@code K}, along with an
+       * (optional) force vector {@code f} and component list {@code comps}.
+       * If provided, {@code comps} lists the components associated with
+       * each block entry in {@code K}, and will be modified if any
+       * rows/columns in {@code K} are permuted or deleted.
+       * If provided, {@code f} and {@code comps} should have
+       * sizes equal to the row (or column) size of {@code K}.
+       *
+       * @param K stiffness matrix to transform
+       * @param f if non-null, force vector to transform
+       * @param comps TODO
+       * @param comps if non-null, components associated with each 
+       * block entry in {@code K}.
+       */
+      public void modify (
+         SparseBlockMatrix K, VectorNd f, ArrayList<DynamicComponent> comps);      
+   }
+
+   /**
     * Special class to save/restore constraint forces as state
     */
    public class ConstraintForceStateSaver implements HasNumericState {
@@ -171,6 +197,7 @@ public abstract class MechSystemBase extends RenderableModelBase
             throw new IllegalArgumentException (
                "number of impulse forces is "+numf+", expecting "+chkf);
          }
+
          // numf == -1 means all forces should be set to 0
          
          // create special vector to access the state ...
@@ -815,6 +842,22 @@ public abstract class MechSystemBase extends RenderableModelBase
       }
    } 
 
+   /**
+    * Returns a list of all the active dynamic components, which
+    * collectively determine the values returned by {@link #getActiveForces},
+    * {@link #getActivePosState}, etc. The returned list is a copy and
+    * may be modified.
+    *  
+    * @return list of all the active dynamic components.
+    */
+   public ArrayList<DynamicComponent> getActiveDynamicComponents() {
+      ArrayList<DynamicComponent> comps = new ArrayList<>();
+      for (int i=0; i<myNumActive; i++) {
+         comps.add (myDynamicComponents.get(i));
+      }  
+      return comps;
+   }
+   
    /** 
     * {@inheritDoc}
     */

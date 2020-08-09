@@ -7,8 +7,11 @@
 package artisynth.core.mechmodels;
 
 import artisynth.core.modelbase.ComponentState;
-import maspack.matrix.*;
-import maspack.util.*;
+import maspack.matrix.MatrixNd;
+import maspack.matrix.SparseBlockMatrix;
+import maspack.matrix.SparseNumberedBlockMatrix;
+import maspack.matrix.VectorNd;
+import maspack.util.NumberFormat;
 
 public class SolveMatrixTest {
 
@@ -17,6 +20,15 @@ public class SolveMatrixTest {
    SparseNumberedBlockMatrix myS;
    MatrixNd myK;
    MatrixNd myKnumeric;
+   boolean myUseYPRStiffness = false;
+
+   public boolean getYPRStiffness() {
+      return myUseYPRStiffness;
+   }
+
+   public void setYPRStiffness (boolean enable) {
+      myUseYPRStiffness = enable;
+   }
 
    public double testStiffness (MechSystemBase sys, double h) {
       return testStiffness (sys, h, null);
@@ -27,10 +39,32 @@ public class SolveMatrixTest {
       return testStiffness (sys, h, printMatrices ? "%8.3f" : null);
    }
 
+   private void convertToYPRForces (VectorNd f, MechModel mech) {
+   }
+
+   private void getActiveForces (VectorNd f, MechSystemBase sys) {
+      sys.getActiveForces (f);
+      if (myUseYPRStiffness && sys instanceof MechModel) {
+         YPRStiffnessUtils.convertActiveForcesToYPR (f, f, (MechModel)sys);
+      }
+   }
+
+   private void applyActiveImpulse (
+      MechSystemBase sys, VectorNd q0, VectorNd uimp, double h) {
+      if (myUseYPRStiffness && sys instanceof MechModel) {
+         sys.setActivePosState (q0);
+         YPRStiffnessUtils.convertActiveVelocitiesFromYPR (
+            uimp, uimp, (MechModel)sys); 
+      }
+      VectorNd q = new VectorNd (q0);
+      sys.addActivePosImpulse (q, h, uimp);
+      sys.setActivePosState (q);
+   }
+
    public double testStiffness (
       MechSystemBase sys, double h, String fmtStr) {
 
-      myS = new SparseNumberedBlockMatrix();
+      SparseBlockMatrix S = new SparseNumberedBlockMatrix();
       myVsize = sys.getActiveVelStateSize();
       myQsize = sys.getActivePosStateSize();
       //int qsize = sys.getActivePosStateSize();
@@ -43,7 +77,6 @@ public class SolveMatrixTest {
       VectorNd uimp = new VectorNd (myVsize);
       VectorNd q = new VectorNd (myQsize);
       VectorNd f = new VectorNd (myVsize);
-      sys.buildSolveMatrix (myS);
 
       ComponentState savestate = sys.createState (null);
       savestate.setAnnotated(true);
@@ -55,7 +88,7 @@ public class SolveMatrixTest {
       // build numeric stiffness matrix
       sys.getActivePosState (q0);
       sys.updateForces (0);
-      sys.getActiveForces (f0);
+      getActiveForces (f0, sys);
       //System.out.println ("f0=  " + f0.toString("%16.6f"));
 
       // the aux state code is necessary to handle situations involving
@@ -66,12 +99,13 @@ public class SolveMatrixTest {
          // increment position by a small amount
          uimp.setZero();
          uimp.set (i, 1);
-         q.set (q0);
-         sys.addActivePosImpulse (q, h, uimp);
-         sys.setActivePosState (q);
+         applyActiveImpulse (sys, q0, uimp, h);
+         // q.set (q0);
+         // sys.addActivePosImpulse (q, h, uimp);
+         // sys.setActivePosState (q);
 
          sys.updateForces (h);
-         sys.getActiveForces (f);
+         getActiveForces (f, sys);
          //System.out.println ("f["+i+"]=" + f.toString("%16.6f"));
          f.sub (f0);
          f.scale (1/h);
@@ -82,19 +116,41 @@ public class SolveMatrixTest {
       sys.updateForces (0);
 
       boolean saveIgnoreCoriolis = PointSpringBase.myIgnoreCoriolisInJacobian;
+      boolean saveSymmetricJacobian = FrameSpring.mySymmetricJacobian;
+      boolean saveAddFrameMarkerStiffness = false;
       PointSpringBase.myIgnoreCoriolisInJacobian = false;
-
-      sys.addPosJacobian (myS, null, 1);
+      FrameSpring.mySymmetricJacobian = false;
+      if (sys instanceof MechModel) {
+         saveAddFrameMarkerStiffness =
+            ((MechModel)sys).getAddFrameMarkerStiffness();
+         ((MechModel)sys).setAddFrameMarkerStiffness(true);
+      }
+      
+      
+      if (myUseYPRStiffness && sys instanceof MechModel) {
+         S = ((MechModel)sys).getYPRStiffnessMatrix(null);
+      }
+      else {
+         S = sys.getActiveStiffnessMatrix ();
+      }
 
       // restore entire system state
       sys.setState (savestate);
 
-      MatrixNd Sdense = new MatrixNd (myS);
+      MatrixNd Sdense = new MatrixNd (S);
       Sdense.getSubMatrix (0, 0, myK);
 
+      double norm = Math.max (myK.infinityNorm(), myKnumeric.infinityNorm());
       if (fmtStr != null) {
          NumberFormat fmt = new NumberFormat (fmtStr);
          System.out.println ("K=\n" + myK.toString (fmt));
+         if (myUseYPRStiffness) {
+            double symerr = symmetryError(myKnumeric);
+            if (symerr >= 1e-6) {
+               System.out.println (
+                  "WARNING: numeric stiffness is not symmetric, error=" + symerr);
+            }
+         }
          System.out.println ("Knumeric=\n" + myKnumeric.toString (fmt));
          MatrixNd E = new MatrixNd (myK);
          E.sub (myKnumeric);
@@ -102,13 +158,30 @@ public class SolveMatrixTest {
          MatrixNd ET = new MatrixNd ();
          ET.transpose (E);
          E.sub (ET);
-         System.out.println ("SymErr=\n" + E.toString (fmt));
+         System.out.println (
+            "SymErr=" + E.infinityNorm()/norm + "\n" + E.toString (fmt));
       }
-
+      
+      if (sys instanceof MechModel) {
+         ((MechModel)sys).setAddFrameMarkerStiffness(saveAddFrameMarkerStiffness);
+      }
       PointSpringBase.myIgnoreCoriolisInJacobian = saveIgnoreCoriolis;
+      FrameSpring.mySymmetricJacobian = saveSymmetricJacobian;
 
-      double norm = Math.max (myK.infinityNorm(), myKnumeric.infinityNorm());
       return getKerror().infinityNorm()/norm;
+   }
+
+   private double symmetryError (MatrixNd M) {
+      double norm = M.infinityNorm();
+      MatrixNd MT = new MatrixNd();
+      MT.transpose (M);
+      MT.sub (M);
+      if (norm != 0) {
+         return MT.infinityNorm()/norm;
+      }
+      else {
+         return MT.infinityNorm();
+      }
    }
 
    public MatrixNd getK() {

@@ -158,6 +158,16 @@ public class RevoluteJoint extends JointBase
       setBodies (bodyA, bodyB, TCW);
    }
 
+   public RevoluteJoint (
+      RigidBody bodyA, ConnectableBody bodyB, Point3d pc, Vector3d axis) {
+      this();
+      RigidTransform3d TCW = new RigidTransform3d();
+      TCW.p.set (pc);
+      TCW.R.setZDirection (axis);
+      setBodies (bodyA, bodyB, TCW);
+   }
+   
+
    public RenderProps createRenderProps() {
       return defaultRenderProps (this);
    }

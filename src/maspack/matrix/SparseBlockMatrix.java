@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.Random;
 
 import maspack.util.Clonable;
@@ -122,6 +123,42 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       myNumBlockRows += num;
    }
 
+   public void removeRow (int bi) {
+      if (bi < 0 || bi >= myNumBlockRows) {
+         throw new IllegalArgumentException (
+            "Block row index "+bi+" not in range [0,"+(myNumBlockRows-1)+"]");
+      }
+      // find and remove all blocks in the row. Could be made more efficient
+      ArrayList<MatrixBlock> removeList = new ArrayList<>();
+      for (MatrixBlock blk=firstBlockInRow(bi); blk!=null; blk=blk.next()) {
+         removeList.add (blk);
+      }
+      for (MatrixBlock blk : removeList) {
+         removeBlock (blk);
+      }
+      // shift info for rows after bi
+      int rsize = getBlockRowSize(bi);
+      for (int k=bi; k<myNumBlockRows-1; k++) {
+         myRows[k] = myRows[k+1];
+         myRowOffsets[k] = myRowOffsets[k+1]-rsize;
+      }
+      // adjust final offset 
+      myRowOffsets[myNumBlockRows-1] = myRowOffsets[myNumBlockRows]-rsize;
+
+      myNumRows -= rsize;
+      myNumBlockRows--;     
+
+      // adjust row offsets for remaining blocks
+      for (int bk=0; bk<myNumBlockRows; bk++) {
+         for (MatrixBlock blk=firstBlockInRow(bk); blk!=null; blk=blk.next()) {
+            int ridx = blk.getBlockRow();
+            if (ridx >= bi) {
+               blk.setBlockRow(ridx-1);
+            }
+         }
+      }
+   }
+
    public void setColCapacity (int newCap) {
       int nbk = myNumBlockCols;
       MatrixBlockColList[] newCols = new MatrixBlockColList[newCap];
@@ -161,6 +198,52 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
       myNumCols += ncols;
       myNumBlockCols += num;
+   }
+
+   public void removeCol (int bj) {
+      if (bj < 0 || bj >= myNumBlockCols) {
+         throw new IllegalArgumentException (
+            "Block column index "+bj+" not in range [0,"+(myNumBlockCols-1)+"]");
+      }
+      // find and remove all blocks in the column. Could be made more efficient
+      ArrayList<MatrixBlock> removeList = new ArrayList<>();
+      if (myVerticallyLinkedP) {
+         for (MatrixBlock blk=firstBlockInCol(bj); blk!=null; blk=blk.down()) {
+            removeList.add (blk);
+         }
+      }
+      else {
+         for (int bi=0; bi<myNumBlockRows; bi++) {
+            MatrixBlock blk = getBlock (bi, bj);
+            if (blk != null) {
+               removeList.add (blk);
+            }
+         }
+      }
+      for (MatrixBlock blk : removeList) {
+         removeBlock (blk);
+      }
+      // shift info for cols after bj
+      int csize = getBlockColSize(bj);
+      for (int k=bj; k<myNumBlockCols-1; k++) {
+         myCols[k] = myCols[k+1];
+         myColOffsets[k] = myColOffsets[k+1]-csize;
+      }
+      // adjust final offset 
+      myColOffsets[myNumBlockCols-1] = myColOffsets[myNumBlockCols]-csize;
+      
+      myNumCols -= csize;
+      myNumBlockCols--;     
+
+      // adjust column offsets for remaining blocks
+      for (int bk=0; bk<myNumBlockRows; bk++) {
+         for (MatrixBlock blk=firstBlockInRow(bk); blk!=null; blk=blk.next()) {
+            int cidx = blk.getBlockCol();
+            if (cidx >= bj) {
+               blk.setBlockCol(cidx-1);
+            }
+         }
+      }
    }
 
    public SparseBlockMatrix() {
@@ -569,6 +652,14 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
    }
 
+   public void negate() {
+      for (int bi = 0; bi < myNumBlockRows; bi++) {
+         for (MatrixBlock blk = myRows[bi].myHead; blk != null; blk =
+            blk.next()) {
+            blk.negate();
+         }
+      }
+   }
 
    // protected void mulVec (double[] res, double[] vec, int nr, int nc) {
    //    for (int i=0; i<nr; i++) {

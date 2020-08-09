@@ -444,6 +444,26 @@ public class Matrix3d extends Matrix3dBase implements VectorObject<Matrix3d> {
    public void setDiagonal(double m00, double m11, double m22) {
       super.setDiagonal(m00, m11, m22);
    }
+
+   /**
+    * Sets the diagonal elements of this matrix to s.
+    *
+    * @param s value for each diagonal element
+    */
+   public void setDiagonal (double s) {
+      super.setDiagonal (s, s, s);
+   }
+   
+   /**
+    * Adds s to the diagonal elements of this matrix.
+    *
+    * @param s value to add to the diagonal
+    */
+   public void addDiagonal (double s) {
+      m00 += s;
+      m11 += s;
+      m22 += s;
+   }
    
   /**
     * Sets this matrix to the symmetric component of matrix M1

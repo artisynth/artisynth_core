@@ -14,6 +14,8 @@ import java.util.*;
 import maspack.geometry.GeometryTransformer;
 import maspack.matrix.AffineTransform3dBase;
 import maspack.matrix.Matrix;
+import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.Point3d;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.SparseNumberedBlockMatrix;
@@ -104,6 +106,11 @@ TransformableGeometry, ScalableUnits {
    // flag only needs to be set during the advance routine --
    // specifically, within the setState methods
    protected boolean myForcesNeedUpdating = false;
+
+   // add the frame marker rotation effects when computing the stiffness
+   // matrix. Note: this will make the stiffness matrix asymmetric, unless YPR
+   // stiffness is used
+   protected boolean myAddFrameMarkerStiffness = false;
 
    protected static Integrator DEFAULT_INTEGRATOR =
       Integrator.ConstrainedBackwardEuler;
@@ -294,6 +301,29 @@ TransformableGeometry, ScalableUnits {
 
    protected void updateHardwiredLists() {
       // TODO
+   }
+
+   /**
+    * Queries whether frame marker rotational effects are added to
+    * the stiffness matrix.
+    *
+    * @return {@code true} if frame marker rotational are added to
+    * the stiffness matrix.
+    */
+   public boolean getAddFrameMarkerStiffness () {
+      return myAddFrameMarkerStiffness;
+   }
+
+   /**
+    * Sets whether frame marker rotational effects are added to the stiffness
+    * matrix. This is {@code false} by default. If enabled, it will cause the
+    * stiffness matrix to be asymmetric.
+    *
+    * @param enable if {@code true}, causes frame marker rotational to
+    * be added to the stiffness matrix.
+    */
+   public void setAddFrameMarkerStiffness (boolean enable) {
+      myAddFrameMarkerStiffness = enable;
    }
 
    /**
@@ -2283,5 +2313,74 @@ TransformableGeometry, ScalableUnits {
 
    RequestEnforceArticulationAction myRequestEnforceArticulationAction =
       new RequestEnforceArticulationAction();
+
+   public SparseBlockMatrix getActiveStiffnessMatrix() {
+      SparseBlockMatrix K = super.getActiveStiffnessMatrix();
+      if (myAddFrameMarkerStiffness) {
+         // add asymmetric component due to frame markers
+         for (FrameMarker mkr : frameMarkers()) {
+            int bi = mkr.getFrame().getSolveIndex();
+            Matrix6dBlock blk = (Matrix6dBlock)K.getBlock (bi, bi);
+            if (blk != null) {
+               Point3d lw = new Point3d(mkr.getLocation());
+               lw.transform (mkr.getFrame().getPose().R);
+               Vector3d f = mkr.getForce();
+               Matrix3d Krot = new Matrix3d();
+               Krot.outerProduct (lw, f);
+               Krot.m00 -= lw.dot(f);
+               Krot.m11 -= lw.dot(f);
+               Krot.m22 -= lw.dot(f);
+               blk.addSubMatrix33 (Krot);
+            }         
+         }
+      }
+      return K;
+   }
+
+   public SparseBlockMatrix getTrueStiffnessMatrix () {
+
+      boolean saveIgnoreCoriolis = PointSpringBase.myIgnoreCoriolisInJacobian;
+      boolean saveSymmetricJacobian = FrameSpring.mySymmetricJacobian;
+      boolean saveAddFrameMarkerStiffness = myAddFrameMarkerStiffness;
+      PointSpringBase.myIgnoreCoriolisInJacobian = false;
+      FrameSpring.mySymmetricJacobian = false;
+      myAddFrameMarkerStiffness = true;
+
+      SparseBlockMatrix K = getActiveStiffnessMatrix();
+
+      myAddFrameMarkerStiffness = saveAddFrameMarkerStiffness;
+      PointSpringBase.myIgnoreCoriolisInJacobian = saveIgnoreCoriolis;
+      FrameSpring.mySymmetricJacobian = saveSymmetricJacobian;
+
+      return K;
+   }
+
+   /**
+    * Returns the true active stiffness matrix with frame orientation
+    * expressed using yaw-pitch-roll coordinates. This increases
+    * the likelyhood that the matrix is symmetric.
+    * @param modifiers TODO
+    * @param modifiers if not {@code null}, specifies a list
+    * of modifiers to apply to the true stiffness matrix before
+    * converting it to yaw-pitch-roll coordinates.
+    * 
+    * @return true active yaw-pitch-roll stiffness matrix
+    */
+   public SparseBlockMatrix getYPRStiffnessMatrix (
+      List<SolveMatrixModifier> modifiers) {
+
+      SparseBlockMatrix K = getTrueStiffnessMatrix();
+      VectorNd f = new VectorNd (getActiveVelStateSize());
+      getActiveForces (f);
+      ArrayList<DynamicComponent> comps = getActiveDynamicComponents();
+      if (modifiers != null) {
+         for (SolveMatrixModifier m : modifiers) {
+            m.modify (K, f, comps);
+         }
+      }
+      // convert to YPR formulation
+      YPRStiffnessUtils.convertStiffnessToYPR (K, f, comps);
+      return K;
+   }
 }
 

@@ -336,6 +336,40 @@ public class Matrix4d extends Matrix4dBase implements VectorObject<Matrix4d> {
       this.m33 = m33;
    }
 
+   /**
+    * Computes the outer product of quaternions q0 and q1 (each treated simply
+    * as a 4 vector), scales it by s, and adds the result to this matrix.
+    * 
+    * @param s scale factor
+    * @param q0 left side quaternion
+    * @param q1 right side quaternion
+    */
+   public void addScaledOuterProduct (
+      double s, Quaternion q0, Quaternion q1) {
+
+      m00 += s*(q0.s*q1.s);
+
+      m01 += s*(q0.s*q1.u.x);
+      m02 += s*(q0.s*q1.u.y);
+      m03 += s*(q0.s*q1.u.z);
+
+      m10 += s*(q1.s*q0.u.x);
+      m20 += s*(q1.s*q0.u.y);
+      m30 += s*(q1.s*q0.u.z);
+
+      m11 += s*(q0.u.x*q1.u.x);
+      m12 += s*(q0.u.x*q1.u.y);
+      m13 += s*(q0.u.x*q1.u.z);
+
+      m21 += s*(q0.u.y*q1.u.x);
+      m22 += s*(q0.u.y*q1.u.y);
+      m23 += s*(q0.u.y*q1.u.z);
+
+      m31 += s*(q0.u.z*q1.u.x);
+      m32 += s*(q0.u.z*q1.u.y);
+      m33 += s*(q0.u.z*q1.u.z);
+   }
+
    public Matrix4d clone() {
       return (Matrix4d)super.clone();
    }

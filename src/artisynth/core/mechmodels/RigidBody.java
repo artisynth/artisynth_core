@@ -417,7 +417,7 @@ public class RigidBody extends Frame
     * body's current pose is given by {@code TBW}, then the new pose {@code
     * TNW} will be given by
     * <pre>
-    *  TNW = TBW TBN
+    *  TNW = TBW TNB
     * </pre>
     * This method also updates the vertex positions of the body's
     * meshes (using the inverse {@code TNB}), as

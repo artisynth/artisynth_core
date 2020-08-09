@@ -1078,6 +1078,19 @@ public class MatrixNd extends DenseMatrixBase
    }
 
    /**
+    * Adds {@code d} to the diagonal of this matrix.
+    * 
+    * @param d value to add to the diagonal
+    */
+   public void addDiagonal (double d) {
+      int idx = base;
+      for (int i = 0; i < nrows; i++) {
+         buf[idx + i] += d;
+         idx += width;
+      }
+   }
+
+   /**
     * {@inheritDoc}
     */
    public void setRandom() {

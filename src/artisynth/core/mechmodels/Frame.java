@@ -15,6 +15,8 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.Matrix;
 import maspack.matrix.Matrix6d;
 import maspack.matrix.Matrix3d;
+import maspack.matrix.Matrix3x6;
+import maspack.matrix.Matrix6x3;
 import maspack.matrix.MatrixNd;
 import maspack.matrix.Matrix6dBlock;
 import maspack.matrix.Matrix6x3Block;
@@ -41,6 +43,7 @@ import maspack.util.DataBuffer;
 
 import artisynth.core.mechmodels.MotionTarget.TargetActivity;
 import artisynth.core.modelbase.CopyableComponent;
+import artisynth.core.mechmodels.DynamicComponent;
 import artisynth.core.modelbase.HasCoordinateFrame;
 import artisynth.core.modelbase.ModelComponent;
 import artisynth.core.modelbase.ModelComponentBase;
@@ -1433,10 +1436,5 @@ public class Frame extends DynamicComponentBase
       force.setRandom();
       setForce (force);
    }
-
-
-//   public boolean requiresContactVertexInfo() {
-//      return false;
-//   }
 
 }

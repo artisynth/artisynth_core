@@ -171,12 +171,15 @@ public class StabilityTerm extends LeastSquaresTermBase {
       double h = TimeBase.round(t1 - t0);
 
       int numex = controller.numExciters();
-      boolean incremental = controller.getComputeIncrementally();
+      boolean incremental = false;
+      //boolean incremental = controller.getComputeIncrementally();
 
       myBs.setSize (1);
       myHs.setSize (1, numex);
-         MechSystemBase mech = controller.getMech();
-      VectorNd curEx = controller.getExcitations();
+      MechSystemBase mech = controller.getMech();
+      VectorNd curEx = new VectorNd (controller.numExciters());
+      controller.getExcitations (curEx, 0);
+      //VectorNd curEx = controller.getExcitations();
       VectorNd ex = new VectorNd (numex);
 
       // position state vectors - allocated if needed

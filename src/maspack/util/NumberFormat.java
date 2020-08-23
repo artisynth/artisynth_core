@@ -643,11 +643,20 @@ public class NumberFormat {
       else if (type == 'e' || type == 'E') {
          expFmt.format (x, sbuf, fpos);
          int i = indexOf ('E', base, sbuf);
-         if (type == 'e') {
+         if (i == -1) {
+            i = indexOf ('e', base, sbuf);
+            if (i == -1) {
+               throw new InternalErrorException (
+                  "E/e not found in exponential format: x=" + x +
+                  " sbuf=" + sbuf);
+            }
+         }
+         else if (type == 'e') {
             sbuf.setCharAt (i, 'e');
          }
-         if (sbuf.charAt (i + 1) != '-') {
-            sbuf.insert (i + 1, '+');
+         char c = sbuf.charAt(i+1);
+         if (c != '-' && c != '+') {
+            sbuf.insert (i+1, '+');
          }
       }
       else if (type == 'a' || type == 'A') {
@@ -678,15 +687,19 @@ public class NumberFormat {
                expFmt.format (x, sbuf, fpos);
                int i = indexOf ('E', base, sbuf);
                if (i == -1) {
-                  throw new InternalErrorException (
-                     "E not found in exponential format: x=" + x +
-                     " sbuf=" + sbuf);
+                  i = indexOf ('e', base, sbuf);
+                  if (i == -1) {
+                     throw new InternalErrorException (
+                        "E/e not found in exponential format: x=" + x +
+                        " sbuf=" + sbuf);
+                  }
                }
-               if (type == 'g') {
+               else if (type == 'g') {
                   sbuf.setCharAt (i, 'e');
                }
-               if (sbuf.charAt (i + 1) != '-') {
-                  sbuf.insert (i + 1, '+');
+               char c = sbuf.charAt(i+1);
+               if (c != '-' && c != '+') {
+                  sbuf.insert (i+1, '+');
                }
             }
             else {

@@ -1,18 +1,26 @@
 package artisynth.demos.inverse;
 
+import java.awt.Color;
 import java.io.IOException;
 
 import artisynth.core.mechmodels.AxialSpring;
 import artisynth.core.mechmodels.Muscle;
 import artisynth.core.mechmodels.Particle;
 import artisynth.core.materials.*;
+import maspack.render.RenderProps;
 
 public class PointModel1d extends PointModel {
 
-   public static boolean omitFromMenu = true;
+   public static boolean omitFromMenu = false;
 
    public void build(String[] args) throws IOException {
       build (DemoType.Point1d);
+      for (AxialSpring s : model.axialSprings()) {
+	 if (s instanceof Muscle) {
+	    Muscle m = (Muscle)s;
+            m.setMaterial (new SimpleAxialMuscle (10, 0, 25));
+	 }
+      }      
    }
 
    public void setProperties() {
@@ -32,13 +40,15 @@ public class PointModel1d extends PointModel {
 	 }
 	 if (s instanceof Muscle) {
 	    Muscle m = (Muscle)s;
-	    if (m.getMaterial() instanceof AxialMuscleMaterial) {
-	       AxialMuscleMaterial mat = 
-	          (AxialMuscleMaterial)m.getMaterial().clone();
-	       mat.setPassiveFraction(passiveFraction);
-	       mat.setDamping(muscleD);
-	       m.setMaterial(mat);
-	    }
+            System.out.println ("here");
+            m.setMaterial (new SimpleAxialMuscle (1000, 0, 100));
+	    // if (m.getMaterial() instanceof AxialMuscleMaterial) {
+	    //    AxialMuscleMaterial mat = 
+	    //       (AxialMuscleMaterial)m.getMaterial().clone();
+	    //    mat.setPassiveFraction(passiveFraction);
+	    //    mat.setDamping(muscleD);
+	    //    m.setMaterial(mat);
+	    // }
 	 }
       }
       
@@ -47,5 +57,17 @@ public class PointModel1d extends PointModel {
       }
    }
    
+   public void addTrackingController() {
+      super.addTrackingController();
+//      addMonitor(new ComplianceReporter(model, center));
+//      addController(new QuasistaticController(model));
 
+      for (AxialSpring s : model.axialSprings ()) {
+         if (s instanceof Muscle) {
+            ((Muscle)s).setExcitationColor (Color.RED);
+            RenderProps.setLineColor (s, new Color(0, 0, 219));
+         }
+      }
+      model.setMaxColoredExcitation(1.0);
+   }
 }

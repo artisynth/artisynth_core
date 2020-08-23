@@ -9,6 +9,7 @@ package maspack.matrix;
 import java.security.InvalidParameterException;
 
 import maspack.util.NumberFormat;
+import maspack.util.RandomGenerator;
 
 /**
  * Dual Quaternions a + A + e*(b + B), where 'e' is the dual parameter Useful
@@ -584,23 +585,30 @@ public class DualQuaternion {
     */
    public static void transform(Vector3d vr, DualQuaternion q, Vector3d v) {
 
+      // Old code, before optimization
+      //
+      // double Ax2 = q.A.x * q.A.x;
+      // double Ay2 = q.A.y * q.A.y;
+      // double Az2 = q.A.z * q.A.z;
+      // double Aa2 = q.a * q.a;
+      //
+      // double x = v.x * (Ax2 - Ay2 - Az2 + Aa2)
+      //    + 2 * v.y * (q.A.y * q.A.x - q.a * q.A.z)
+      //    + 2 * v.z * (q.A.x * q.A.z + q.A.y * q.a);
+      // double y = 2 * v.x * (q.A.x * q.A.y + q.A.z * q.a)
+      //    + v.y * (-Ax2 + Ay2 - Az2 + Aa2)
+      //    + 2 * v.z * (-q.A.x * q.a + q.A.z * q.A.y);
+      // double z = 2 * v.x * (q.A.x * q.A.z - q.A.y * q.a)
+      //    + 2 * v.y * (q.A.x * q.a + q.A.z * q.A.y)
+      //    + v.z * (-Ax2 - Ay2 + Az2 + Aa2);
+      // vr.set(x, y, z);
+
       // basic rotation
-      double Ax2 = q.A.x * q.A.x;
-      double Ay2 = q.A.y * q.A.y;
-      double Az2 = q.A.z * q.A.z;
-      double Aa2 = q.a * q.a;
-
-      double x = v.x * (Ax2 - Ay2 - Az2 + Aa2)
-         + 2 * v.y * (q.A.y * q.A.x - q.a * q.A.z)
-         + 2 * v.z * (q.A.x * q.A.z + q.A.y * q.a);
-      double y = 2 * v.x * (q.A.x * q.A.y + q.A.z * q.a)
-         + v.y * (-Ax2 + Ay2 - Az2 + Aa2)
-         + 2 * v.z * (-q.A.x * q.a + q.A.z * q.A.y);
-      double z = 2 * v.x * (q.A.x * q.A.z - q.A.y * q.a)
-         + 2 * v.y * (q.A.x * q.a + q.A.z * q.A.y)
-         + v.z * (-Ax2 - Ay2 + Az2 + Aa2);
-
-      vr.set(x, y, z);
+      Vector3d tmp = new Vector3d();
+      tmp.cross (q.A, v);
+      tmp.scaledAdd (q.a, v);
+      tmp.cross (q.A, tmp);
+      vr.scaledAdd (2, tmp, v);
    }
 
    /**
@@ -639,28 +647,41 @@ public class DualQuaternion {
     * input
     */
    public static void transform(Point3d pr, DualQuaternion q, Point3d p) {
-      double Ax2 = q.A.x * q.A.x;
-      double Ay2 = q.A.y * q.A.y;
-      double Az2 = q.A.z * q.A.z;
-      double Aa2 = q.a * q.a;
 
-      double x = 2 * (-q.b * q.A.x + q.B.z * q.A.y
-         - q.B.y * q.A.z + q.B.x * q.a)
-         + p.x * (Ax2 - Ay2 - Az2 + Aa2)
-         + 2 * p.y * (q.A.y * q.A.x - q.a * q.A.z)
-         + 2 * p.z * (q.A.x * q.A.z + q.A.y * q.a);
-      double y = 2 * (-q.B.z * q.A.x - q.b * q.A.y
-         + q.B.x * q.A.z + q.B.y * q.a)
-         + 2 * p.x * (q.A.x * q.A.y + q.A.z * q.a)
-         + p.y * (-Ax2 + Ay2 - Az2 + Aa2)
-         + 2 * p.z * (-q.A.x * q.a + q.A.z * q.A.y);
-      double z = 2 * (q.B.y * q.A.x - q.B.x * q.A.y
-         - q.b * q.A.z + q.B.z * q.a)
-         + 2 * p.x * (q.A.x * q.A.z - q.A.y * q.a)
-         + 2 * p.y * (q.A.x * q.a + q.A.z * q.A.y)
-         + p.z * (-Ax2 - Ay2 + Az2 + Aa2);
+      // Old code, before optimization
+      // 
+      // double Ax2 = q.A.x * q.A.x;
+      // double Ay2 = q.A.y * q.A.y;
+      // double Az2 = q.A.z * q.A.z;
+      // double Aa2 = q.a * q.a;
+      //
+      // double x = 2 * (-q.b * q.A.x + q.B.z * q.A.y
+      //    - q.B.y * q.A.z + q.B.x * q.a)
+      //    + p.x * (Ax2 - Ay2 - Az2 + Aa2)
+      //    + 2 * p.y * (q.A.y * q.A.x - q.a * q.A.z)
+      //    + 2 * p.z * (q.A.x * q.A.z + q.A.y * q.a);
+      // double y = 2 * (-q.B.z * q.A.x - q.b * q.A.y
+      //    + q.B.x * q.A.z + q.B.y * q.a)
+      //    + 2 * p.x * (q.A.x * q.A.y + q.A.z * q.a)
+      //    + p.y * (-Ax2 + Ay2 - Az2 + Aa2)
+      //    + 2 * p.z * (-q.A.x * q.a + q.A.z * q.A.y);
+      // double z = 2 * (q.B.y * q.A.x - q.B.x * q.A.y
+      //    - q.b * q.A.z + q.B.z * q.a)
+      //    + 2 * p.x * (q.A.x * q.A.z - q.A.y * q.a)
+      //    + 2 * p.y * (q.A.x * q.a + q.A.z * q.A.y)
+      //    + p.z * (-Ax2 - Ay2 + Az2 + Aa2);
+      //
+      // pr.set(x, y, z);
 
-      pr.set(x, y, z);
+      // rotate first
+      transform ((Vector3d)pr, q, (Vector3d)p);
+
+      // extract and add translation
+      Vector3d tmp = new Vector3d();
+      tmp.cross (q.A, q.B);
+      tmp.scaledAdd (q.a, q.B);
+      tmp.scaledAdd (-q.b, q.A);
+      pr.scaledAdd (2, tmp);
    }
 
    /**
@@ -698,28 +719,40 @@ public class DualQuaternion {
     * input
     */
    public static void inverseTransform(Point3d pr, DualQuaternion q, Point3d p) {
-      double Ax2 = q.A.x * q.A.x;
-      double Ay2 = q.A.y * q.A.y;
-      double Az2 = q.A.z * q.A.z;
-      double Aa2 = q.a * q.a;
+      //
+      // Old code, before optimization
+      // 
+      // double Ax2 = q.A.x * q.A.x;
+      // double Ay2 = q.A.y * q.A.y;
+      // double Az2 = q.A.z * q.A.z;
+      // double Aa2 = q.a * q.a;
 
-      double x = 2 * (q.b * q.A.x + q.B.z * q.A.y
-         - q.B.y * q.A.z - q.B.x * q.a)
-         + p.x * (Ax2 - Ay2 - Az2 + Aa2)
-         + 2 * p.y * (q.A.y * q.A.x + q.a * q.A.z)
-         + 2 * p.z * (q.A.x * q.A.z - q.A.y * q.a);
-      double y = 2 * (-q.B.z * q.A.x + q.b * q.A.y
-         + q.B.x * q.A.z - q.B.y * q.a)
-         + 2 * p.x * (q.A.x * q.A.y - q.A.z * q.a)
-         + p.y * (-Ax2 + Ay2 - Az2 + Aa2)
-         + 2 * p.z * (q.A.x * q.a + q.A.z * q.A.y);
-      double z = 2 * (q.B.y * q.A.x - q.B.x * q.A.y
-         + q.b * q.A.z - q.B.z * q.a)
-         + 2 * p.x * (q.A.x * q.A.z + q.A.y * q.a)
-         + 2 * p.y * (-q.A.x * q.a + q.A.z * q.A.y)
-         + p.z * (-Ax2 - Ay2 + Az2 + Aa2);
+      // double x = 2 * (q.b * q.A.x + q.B.z * q.A.y
+      //    - q.B.y * q.A.z - q.B.x * q.a)
+      //    + p.x * (Ax2 - Ay2 - Az2 + Aa2)
+      //    + 2 * p.y * (q.A.y * q.A.x + q.a * q.A.z)
+      //    + 2 * p.z * (q.A.x * q.A.z - q.A.y * q.a);
+      // double y = 2 * (-q.B.z * q.A.x + q.b * q.A.y
+      //    + q.B.x * q.A.z - q.B.y * q.a)
+      //    + 2 * p.x * (q.A.x * q.A.y - q.A.z * q.a)
+      //    + p.y * (-Ax2 + Ay2 - Az2 + Aa2)
+      //    + 2 * p.z * (q.A.x * q.a + q.A.z * q.A.y);
+      // double z = 2 * (q.B.y * q.A.x - q.B.x * q.A.y
+      //    + q.b * q.A.z - q.B.z * q.a)
+      //    + 2 * p.x * (q.A.x * q.A.z + q.A.y * q.a)
+      //    + 2 * p.y * (-q.A.x * q.a + q.A.z * q.A.y)
+      //    + p.z * (-Ax2 - Ay2 + Az2 + Aa2);
+      // pr.set(x, y, z);
 
-      pr.set(x, y, z);
+      // extract and remove translation
+      Vector3d tmp = new Vector3d();
+      tmp.cross (q.A, q.B);
+      tmp.scaledAdd (q.a, q.B);
+      tmp.scaledAdd (-q.b, q.A);
+      pr.scaledAdd (-2, tmp, p);
+
+      // apply inverse rotation 
+      inverseTransform ((Vector3d)pr, q, (Vector3d)pr);
    }
 
    /**
@@ -760,23 +793,31 @@ public class DualQuaternion {
    public static void
       inverseTransform(Vector3d vr, DualQuaternion q, Vector3d v) {
 
-      // basic rotation
-      double Ax2 = q.A.x * q.A.x;
-      double Ay2 = q.A.y * q.A.y;
-      double Az2 = q.A.z * q.A.z;
-      double Aa2 = q.a * q.a;
+      // Old code, before optimization
+      // 
+      // // basic rotation
+      // double Ax2 = q.A.x * q.A.x;
+      // double Ay2 = q.A.y * q.A.y;
+      // double Az2 = q.A.z * q.A.z;
+      // double Aa2 = q.a * q.a;
+      //
+      // double x = v.x * (Ax2 - Ay2 - Az2 + Aa2)
+      //    + 2 * v.y * (q.A.y * q.A.x + q.a * q.A.z)
+      //    + 2 * v.z * (q.A.x * q.A.z - q.A.y * q.a);
+      // double y = 2 * v.x * (q.A.x * q.A.y - q.A.z * q.a)
+      //    + v.y * (-Ax2 + Ay2 - Az2 + Aa2)
+      //    + 2 * v.z * (q.A.x * q.a + q.A.z * q.A.y);
+      // double z = 2 * v.x * (q.A.x * q.A.z + q.A.y * q.a)
+      //    + 2 * v.y * (-q.A.x * q.a + q.A.z * q.A.y)
+      //    + v.z * (-Ax2 - Ay2 + Az2 + Aa2);
+      //
+      // vr.set(x, y, z);
 
-      double x = v.x * (Ax2 - Ay2 - Az2 + Aa2)
-         + 2 * v.y * (q.A.y * q.A.x + q.a * q.A.z)
-         + 2 * v.z * (q.A.x * q.A.z - q.A.y * q.a);
-      double y = 2 * v.x * (q.A.x * q.A.y - q.A.z * q.a)
-         + v.y * (-Ax2 + Ay2 - Az2 + Aa2)
-         + 2 * v.z * (q.A.x * q.a + q.A.z * q.A.y);
-      double z = 2 * v.x * (q.A.x * q.A.z + q.A.y * q.a)
-         + 2 * v.y * (-q.A.x * q.a + q.A.z * q.A.y)
-         + v.z * (-Ax2 - Ay2 + Az2 + Aa2);
-
-      vr.set(x, y, z);
+      Vector3d tmp = new Vector3d();
+      tmp.cross (v, q.A);
+      tmp.scaledAdd (q.a, v);
+      tmp.cross (q.A, tmp);
+      vr.scaledAdd (-2, tmp, v);
    }
 
    /**
@@ -1174,5 +1215,24 @@ public class DualQuaternion {
    public DualQuaternion clone() {
       return new DualQuaternion(this);
    }
-   
+
+   public static void main (String[] args) {
+      RandomGenerator.setSeed (0x1234);
+      RigidTransform3d T = new RigidTransform3d();
+      T.setRandom();
+      DualQuaternion dq = new DualQuaternion();
+      dq.set (T);
+      System.out.println ("norm=" + dq.norm());
+      System.out.println
+         ("inner=" + (dq.a*dq.b + dq.A.dot(dq.B)));
+      System.out.println
+         ("normSquared=" + dq.normSquared());
+      Quaternion qt = new Quaternion();
+      Quaternion qr = new Quaternion();
+      dq.getReal (qr);
+      dq.getDual (qt);
+      System.out.println ("qr=" + qr);
+      System.out.println ("qt=" + qt);
+      System.out.println ("Me=" + 2*(qr.s*qt.s + qr.u.dot(qt.u)));
+   }
 }

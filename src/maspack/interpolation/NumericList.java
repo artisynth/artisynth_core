@@ -71,6 +71,17 @@ public class NumericList
    }
 
    /**
+    * Sets the interpolation order for this list. The default is
+    * <code>Step</code>.
+    * 
+    * @param order
+    * new interpolation order;
+    */
+   public void setInterpolationOrder (Interpolation.Order order) {
+      myInterpolation.setOrder (order);
+   }
+
+   /**
     * Returns the interpolation method for this list.
     * 
     * @return interpolation method
@@ -915,6 +926,17 @@ public class NumericList
       myTail = myHead = myLast = null;
       myMinMaxValid = false;
    }
+   
+   /**
+    * Uniformly scales all the values in this list
+    * 
+    * @param s scale factor
+    */
+   public void scale (double s) {
+      for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
+         knot.v.scale (s);
+      }      
+   }
 
    /**
     * Returns an iterator over all the knots in this numeric list.
@@ -1054,8 +1076,14 @@ public class NumericList
    /**
     * Returns a deep copy of this numeric list.
     */
-   public Object clone() throws CloneNotSupportedException {
-      NumericList l = (NumericList)super.clone();
+   public Object clone() {
+      NumericList l = null;
+      try {
+         l = (NumericList)super.clone();
+      }
+      catch (CloneNotSupportedException e) {
+         throw new InternalErrorException ("NumericList not clonable");
+      }
       l.myLast = l.myHead = l.myTail = null;
       l.myMinMaxValid = false;
       l.a1 = new VectorNd (0);

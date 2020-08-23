@@ -112,10 +112,10 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
    }
 
    private void createForceJacobian (MechModel mech) {
-      SparseBlockMatrix GT = new SparseBlockMatrix ();
-      VectorNd dg = new VectorNd ();
-      mech.getBilateralConstraints (GT, dg);
       if (debug) {
+         SparseBlockMatrix GT = new SparseBlockMatrix ();
+         VectorNd dg = new VectorNd ();
+         mech.getBilateralConstraints (GT, dg);
          System.out.println ("num con = " + mech.bodyConnectors ().size ());
          System.out.println (GT.colSize ());
          System.out.println (GT.rowSize ());
@@ -147,13 +147,14 @@ public class ForceTargetTerm extends LeastSquaresTermBase {
             }
             
             if (connector.isEnabled () == true) {
-               if (debug) { System.out.println (
-                  connector.numBilateralConstraints ()); }
+               if (debug) {
+                  System.out.println (
+                     connector.numBilateralConstraints ());
+               }
                connectorSizes[connectorIdx] =
                   connector.numBilateralConstraints ();
                connectorIdx++;
             }
-
          }
       }
       

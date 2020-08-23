@@ -24,6 +24,7 @@ public class AxisAngle implements Clonable {
    private static double ANGLE_EPSILON = 10 * DOUBLE_PREC;
 
    public static final AxisAngle IDENTITY = new AxisAngle();
+   public static final AxisAngle ZERO = new AxisAngle(0,0,0,0);
 
    public static final AxisAngle ROT_X_90 = new AxisAngle(1, 0, 0, Math.toRadians(90));
    public static final AxisAngle ROT_Y_90 = new AxisAngle(0, 1, 0, Math.toRadians(90));
@@ -386,4 +387,13 @@ public class AxisAngle implements Clonable {
       
       return aa;
    }
+
+   public static void main (String[] args) {
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.setRpy (Math.toRadians(90), 0, Math.toRadians(180));
+      System.out.println ("a=" + R.getAxisAngle());
+   }
+      
 }
+
+

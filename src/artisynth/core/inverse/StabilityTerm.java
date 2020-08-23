@@ -23,6 +23,7 @@ import maspack.matrix.SparseBlockMatrix;
 import maspack.matrix.Vector3d;
 import maspack.matrix.VectorNd;
 import maspack.util.ArraySort;
+import maspack.util.BooleanHolder;
 import maspack.properties.PropertyList;
 import maspack.render.RenderProps;
 import maspack.render.Renderer.FaceStyle;
@@ -80,6 +81,7 @@ public class StabilityTerm extends LeastSquaresTermBase {
    }
 
    public StabilityTerm () {
+      setType (Type.INEQUALITY);
    }
 
    public double getDet() {
@@ -91,7 +93,7 @@ public class StabilityTerm extends LeastSquaresTermBase {
    }
 
    public void setDetTarget (double target) {
-      myDet = target;
+      myDetTarget = target;
    }
 
    public boolean getIgnorePosition () {
@@ -144,7 +146,8 @@ public class StabilityTerm extends LeastSquaresTermBase {
       return rowoff;
    }      
 
-   private double computeDet (MechSystemBase mech, boolean debug) {
+   private double computeDet (
+      MechSystemBase mech, BooleanHolder posDef, boolean debug) {
       SparseBlockMatrix K;
       if (mech instanceof MechModel) {
          K = ((MechModel)mech).getYPRStiffnessMatrix(myModifiers);
@@ -164,6 +167,16 @@ public class StabilityTerm extends LeastSquaresTermBase {
          VectorNd eigs = ed.getEigReal();
          System.out.println ("eigs: " + eigs.toString("%12.6f"));
       }
+      if (posDef != null) {
+         int nump = 0;
+         VectorNd eigs = ed.getEigReal();
+         for (int i=0; i<eigs.size(); i++) {
+            if (eigs.get(i) > 0) {
+               nump++;
+            }
+         }
+         posDef.value = (nump == eigs.size());
+      }
       return ed.determinant();
    }
 
@@ -171,15 +184,13 @@ public class StabilityTerm extends LeastSquaresTermBase {
       double h = TimeBase.round(t1 - t0);
 
       int numex = controller.numExciters();
-      boolean incremental = false;
-      //boolean incremental = controller.getComputeIncrementally();
+      boolean incremental = controller.getComputeIncrementally();
 
       myBs.setSize (1);
       myHs.setSize (1, numex);
       MechSystemBase mech = controller.getMech();
-      VectorNd curEx = new VectorNd (controller.numExciters());
+      VectorNd curEx = new VectorNd (numex);
       controller.getExcitations (curEx, 0);
-      //VectorNd curEx = controller.getExcitations();
       VectorNd ex = new VectorNd (numex);
 
       // position state vectors - allocated if needed
@@ -217,8 +228,10 @@ public class StabilityTerm extends LeastSquaresTermBase {
          mech.setActivePosState (qa);
       }
 
-      double det0 = computeDet (mech, true);
+      BooleanHolder posDef = new BooleanHolder();
+      double det0 = computeDet (mech, posDef, true);
       System.out.println ("det0=" + det0);
+      System.out.println ("ex=" + curEx.toString ("%12.9f"));
       for (int j = 0; j < numex; j++) {
          double dex = myDeltaEx;
          double ej = curEx.get(j);
@@ -240,38 +253,42 @@ public class StabilityTerm extends LeastSquaresTermBase {
          ex.set (curEx);
          ex.set (j, ej+dex);
          controller.setExcitations (ex, 0);
-         double detn = computeDet (mech, false);
+         double detn = computeDet (mech, null, false);
          myHs.set (0, j, (detn-det0)/dex);
       }
-      
 
-      if (!incremental) {
-         myBs.mul (myHs, curEx);
-         myBs.add (0, myDetTarget - det0);
+      if (myDetTarget > 0 && posDef.value) {
+
+         if (!incremental) {
+            myBs.mul (myHs, curEx);
+            myBs.add (0, myDetTarget - det0);
+         }
+         else {
+            myBs.set (0, myDetTarget - det0);
+         }
+
+         System.out.println ("Hs=\n" + myHs.toString ("%16.8f"));
+         if (myWeight >= 0 && myWeight != 1.0) {
+            myHs.scale(myWeight);
+            myBs.scale(myWeight);
+         }
+         System.out.println ("weight=" + myWeight);
+         System.out.println ("bs=" + myBs);
       }
       else {
-         myBs.set (0, myDetTarget - det0);
+         // make non-active:
+         myHs.setZero();
+         myBs.set (0, -10.0);
+         //myHs.set (0, 0, 1.0);
       }
-      
+      myDet = det0;
+
       if (!myIgnorePosition) {
          // reset positions
          mech.getActivePosState (q0);
       }
-
       // reset excitations
       controller.setExcitations(curEx, 0);
-      
-      System.out.println ("Hs=\n" + myHs.toString ("%16.8f"));
-
-      if (myWeight >= 0 && myWeight != 1.0) {
-          myHs.scale(myWeight);
-          myBs.scale(myWeight);
-      }
-
-      // disable for now:
-      myHs.setZero();
-      myBs.set (0, -10.0);
-      myHs.set (0, 0, 1.0);
    }
    
    public MatrixNd getH() {

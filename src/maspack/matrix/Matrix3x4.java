@@ -468,6 +468,66 @@ public class Matrix3x4 extends DenseMatrixBase
    }
 
    /**
+    * Adds v to the 3x1 sub-matrix starting at (0, 0).
+    *
+    * @param v values to add to the sub-matrix
+    */
+    public void addSubMatrix00 (Vector3d v) {
+      m00 += v.x;
+      m10 += v.y;
+      m20 += v.z;
+   }
+
+   /**
+    * Adds M to the 3x3 sub-matrix starting at (0, 1)
+    *
+    * @param M values to add to the sub-matrix
+    */
+   public void addSubMatrix01 (Matrix3d M) {
+      m01 += M.m00;
+      m02 += M.m01;
+      m03 += M.m02;
+
+      m11 += M.m10;
+      m12 += M.m11;
+      m13 += M.m12;
+
+      m21 += M.m20;
+      m22 += M.m21;
+      m23 += M.m22;
+   }  
+
+   /**
+    * Sets the 3x1 sub-matrix starting at (0, 0) to v
+    *
+    * @param v new sub-matrix values
+    */
+    public void setSubMatrix00 (Vector3d v) {
+      m00 = v.x;
+      m10 = v.y;
+      m20 = v.z;
+   }
+
+   /**
+    * Sets the 3x3 sub-matrix starting at (0, 1) to M
+    *
+    * @param M new sub-matrix values
+    */
+   public void setSubMatrix01 (Matrix3d M) {
+      m01 = M.m00;
+      m02 = M.m01;
+      m03 = M.m02;
+
+      m11 = M.m10;
+      m12 = M.m11;
+      m13 = M.m12;
+
+      m21 = M.m20;
+      m22 = M.m21;
+      m23 = M.m22;
+   }  
+
+   /**
     * Scales the elements of this matrix by <code>s</code>.
     * 
     * @param s

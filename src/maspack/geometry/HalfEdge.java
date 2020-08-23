@@ -20,6 +20,12 @@ public class HalfEdge extends Feature implements Boundable {
 
    // private static final double DOUBLE_PREC = 2.220446049250313e-16;
 
+   /**
+    * Flag indicating that a HalfEdge corresponds to the edge of
+    * an underlying ``element''. Used in FEM applications.
+    */
+   public static final int ELEM_EDGE = 0x400;
+   
    public Vertex3d head;
    public Vertex3d tail;
    public HalfEdge opposite;

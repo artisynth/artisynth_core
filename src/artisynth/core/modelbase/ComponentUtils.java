@@ -727,7 +727,6 @@ public class ComponentUtils {
             System.out.println ("null reference for " +
                                 getDiagnosticName (comp));
          }
-         
          if (!ModelComponentBase.recursivelyContains (ancestor, c)) {
             throw new IllegalStateException (
                getDiagnosticName(c)+" referenced by "+getDiagnosticName(comp)+
@@ -736,11 +735,13 @@ public class ComponentUtils {
       }
       if (comp instanceof CompositeComponent) {
          CompositeComponent ccomp = (CompositeComponent)comp;
-         if (!ccomp.hierarchyContainsReferences()) {
+         // Used to not recurse into models, but we do now since all references
+         // are being checked in one go after the model is being created.
+         //if (!ccomp.hierarchyContainsReferences()) {
             for (int i=0; i<ccomp.numComponents(); i++) {
                recursivelyCheckReferenceContainment (ccomp.get(i), ancestor);
             }
-         }
+         //}
       }
    }
          

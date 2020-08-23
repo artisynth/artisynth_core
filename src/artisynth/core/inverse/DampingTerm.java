@@ -34,12 +34,15 @@ public class DampingTerm extends QPCostTermBase {
       if (controller != null) {
          double h = t1 - t0;
          if (h > 0) {
-            VectorNd prevEx = new VectorNd(controller.numExciters());
-            controller.getExcitations (prevEx, 0);
             double s = myWeight/h;
             for (int i=0; i<Q.rowSize(); i++) {
                Q.add (i, i, s);
-               p.add (i, -s*prevEx.get(i));
+            }
+            if (!controller.getComputeIncrementally()) {
+               VectorNd prevEx = controller.getExcitations();
+               for (int i=0; i<Q.rowSize(); i++) {
+                  p.add (i, -s*prevEx.get(i));
+               }
             }
          }
       }

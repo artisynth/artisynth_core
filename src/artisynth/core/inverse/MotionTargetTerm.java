@@ -60,8 +60,8 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
    public static double DEFAULT_Kp = 100;
    protected double Kp = DEFAULT_Kp;
 
-   public static final boolean DEFAULT_USE_DELTA_ACTIVATIONS = false;
-   protected boolean useDeltaAct = DEFAULT_USE_DELTA_ACTIVATIONS;
+//   public static final boolean DEFAULT_USE_DELTA_ACTIVATIONS = false;
+//   protected boolean useDeltaAct = DEFAULT_USE_DELTA_ACTIVATIONS;
 
    // other attributes
    
@@ -91,9 +91,9 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       myProps.add(
          "usePDControl", "use PD controller for motion term",
          DEFAULT_USE_PD_CONTROL);
-      myProps.add(
-         "useDeltaActivations", "solve for excitations incrementally",
-         DEFAULT_USE_DELTA_ACTIVATIONS);
+//      myProps.add(
+//         "useDeltaActivations", "solve for excitations incrementally",
+//         DEFAULT_USE_DELTA_ACTIVATIONS);
       myProps.add(
          "Kd", "derivative gain", DEFAULT_Kd);
       myProps.add(
@@ -946,14 +946,14 @@ public class MotionTargetTerm extends LeastSquaresTermBase {
       return Kp;
    }
 
-   public boolean getUseDeltaActivations() {
-      return useDeltaAct;
-   }
-
-   public void setUseDeltaActivations (boolean enable) {
-      useDeltaAct = enable;
-   }
-   
+//   public boolean getUseDeltaActivations() {
+//      return useDeltaAct;
+//   }
+//
+//   public void setUseDeltaActivations (boolean enable) {
+//      useDeltaAct = enable;
+//   }
+//   
    @Override
    public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
       TrackingController controller = getController();

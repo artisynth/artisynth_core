@@ -816,8 +816,54 @@ public class PolygonalMesh extends MeshBase {
       return addFace (new Vertex3d[] { v0, v1, v2 });
    }
 
-   public Face addFace(Vertex3d v0, Vertex3d v1, Vertex3d v2, Vertex3d v3) {
+   /**
+    * Adds a triangular face to this mesh.  The face is described by three
+    * vertex indices arranged in counter-clockwise order with respect to the
+    * face's normal.
+    * 
+    * @param idx0 first vertex index
+    * @param idx1 second vertex index
+    * @param idx2 third vertex index
+    * @throws IllegalArgumentException if any vertices are not contained within
+    * this mesh
+    * @return the created Face object
+    */
+   public Face addFace (int idx0, int idx1, int idx2) {
+      return addFace (new int[] { idx0, idx1, idx2 });
+   }
+
+   /**
+    * Adds a quad face to this mesh.  The face is described by four
+    * vertices arranged in counter-clockwise order with respect to the
+    * face's normal.
+    * 
+    * @param v0 first vertex
+    * @param v1 second vertex
+    * @param v2 third vertex
+    * @param v3 fourth vertex
+    * @throws IllegalArgumentException
+    * if any vertices are not contained within this mesh
+    * @return the created Face object
+    */
+   public Face addFace (Vertex3d v0, Vertex3d v1, Vertex3d v2, Vertex3d v3) {
       return addFace(new Vertex3d[] {v0,v1,v2,v3});
+   }
+
+   /**
+    * Adds a quad face to this mesh.  The face is described by four
+    * vertex indices arranged in counter-clockwise order with respect to the
+    * face's normal.
+    * 
+    * @param idx0 first vertex index
+    * @param idx1 second vertex index
+    * @param idx2 third vertex index
+    * @param idx3 fourth vertex index
+    * @throws IllegalArgumentException if any vertices are not contained within
+    * this mesh
+    * @return the created Face object
+    */
+   public Face addFace (int idx0, int idx1, int idx2, int idx3) {
+      return addFace (new int[] { idx0, idx1, idx2, idx3 });
    }
 
    /**

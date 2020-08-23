@@ -26,6 +26,7 @@ public class FrameSpringPendulum extends RootModel {
 
    FrameSpring mySpring;
    MechModel myMech;
+   StabilityTerm myStabilizer;
 
    class StabilityMonitor extends MonitorBase {
 
@@ -58,10 +59,13 @@ public class FrameSpringPendulum extends RootModel {
       for (AxialSpring spr : mech.axialSprings()) {
          tcon.addExciter((Muscle)spr);
       }
-      StabilityTerm stabilizer = new StabilityTerm();
-      stabilizer.addStiffnessModifier (new StiffnessMatrixScaler (0.00001, 1.0));
-      stabilizer.setIgnorePosition (true);
-      tcon.addConstraintTerm (stabilizer);      
+      myStabilizer = new StabilityTerm();
+      myStabilizer.addStiffnessModifier (
+         new StiffnessMatrixScaler (0.00001, 1.0));
+      //myStabilizer.setIgnorePosition (true);
+      myStabilizer.setDetTarget (0.001);
+      tcon.addL2RegularizationTerm (1.0);
+      tcon.addConstraintTerm (myStabilizer);      
       addController (tcon);
    }
 
@@ -203,16 +207,16 @@ public class FrameSpringPendulum extends RootModel {
 
       rod.setPose (new RigidTransform3d (0, 0, -h/2+zeq));
 
-      // create and add a control panel 
-      addControlPanel (myMech);
-
       if (stabilize) {
          addTrackingController (myMech);
       }
       else {
          addMonitor (new StabilityMonitor (myMech));
       }
-      
+
+      // create and add a control panel 
+      addControlPanel (myMech);
+
       // set render properties for the model
       RenderProps.setSphericalPoints (myMech, r/5, Color.WHITE);
       RenderProps.setLineStyle (myMech.axialSprings(), LineStyle.SPINDLE);
@@ -234,6 +238,10 @@ public class FrameSpringPendulum extends RootModel {
       for (AxialSpring spr : mech.axialSprings()) {
          panel.addWidget ("excitation"+k, spr, "excitation");
          k++;
+      }
+      if (myStabilizer != null) {
+         panel.addWidget (myStabilizer, "det");
+         panel.addWidget (myStabilizer, "detTarget");
       }
       addControlPanel (panel);
    }

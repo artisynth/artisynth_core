@@ -23,9 +23,12 @@ public class ProportionalTerm extends QPCostTermBase {
    
    @Override
    public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
-      for (int i=0; i<p.size(); i++) {
-         p.add (i,myWeight);
-      }     
+      TrackingController controller = getController();
+      if (controller != null) {
+         for (int i=0; i<p.size(); i++) {
+            p.add (i,myWeight);
+         }     
+      }
    }
 
 }

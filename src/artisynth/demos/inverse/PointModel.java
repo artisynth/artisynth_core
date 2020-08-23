@@ -88,11 +88,13 @@ public class PointModel extends RootModel
 
 
    protected MechModel model;
-   protected FrameMarker center;
+   protected Point center;
    
 //  String[] labels = new String[]{
 //        "n","e","s","w"
 // };
+
+//   String[] labels = new String[]{"e", "w"};
 
  protected String[] labels = new String[]{
          "n","nne", "ne", "ene",
@@ -163,11 +165,12 @@ public class PointModel extends RootModel
    public void createModel(DemoType demoType) {
       switch (demoType) {
       case Point1d: {
+         //addCenter();
 	 add1dMuscles();
 	 break;
       }
       case Point2d: {
-	 addCenter();
+         addCenter();
 	 add2dLabeledMuscles(labels);
 	 break;
       }
@@ -244,7 +247,7 @@ public class PointModel extends RootModel
       center = new FrameMarker();
       center.setName("center");
       center.setPointDamping(pointDamping);
-      model.addFrameMarker (center, body, Point3d.ZERO);
+      model.addFrameMarker ((FrameMarker)center, body, Point3d.ZERO);
    }
    
    public void add2dLabeledMuscles(String[] labels) {
@@ -268,7 +271,14 @@ public class PointModel extends RootModel
 	 muscleFmult = 10;
       }
       
-      addMuscles(new RigidTransform3d(), labels.length, 0.0);
+      if (labels.length == 2) {
+         RigidTransform3d T = new RigidTransform3d (0, 0, 0, 0, Math.PI/2, 0);
+         addMuscles(T, labels.length, 0.0);
+      }
+      else {
+         addMuscles(new RigidTransform3d(), labels.length, 0.0);
+      }
+
       int i = 0;
       for (AxialSpring s : model.axialSprings()) {
 	 if (s instanceof Muscle) {
@@ -331,7 +341,7 @@ public class PointModel extends RootModel
 	 pts.add(pt);
 	 
 	 if (x[i] == 0) {
-//	    center = pt;
+	    center = pt;
 	 }
       }
       

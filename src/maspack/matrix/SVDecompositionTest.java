@@ -7,10 +7,11 @@
 package maspack.matrix;
 
 import maspack.util.FunctionTimer;
+import maspack.util.UnitTest;
 import maspack.util.RandomGenerator;
 import maspack.util.TestException;
 
-class SVDecompositionTest {
+class SVDecompositionTest extends UnitTest {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
    private static double EPSILON = 100 * DOUBLE_PREC;
 
@@ -70,7 +71,8 @@ class SVDecompositionTest {
       testDecomposition (M1, svals, 0);
    }
    
-   public void testDecomposition (int nrows, int ncols, double[] svals, int flags) {
+   public void testDecomposition (
+      int nrows, int ncols, double[] svals, int flags) {
       MatrixNd M1 = new MatrixNd (nrows, ncols);
       M1.setRandomSvd (svals);
       testDecomposition (M1, svals, flags);
@@ -95,24 +97,22 @@ class SVDecompositionTest {
       MatrixNd A = new MatrixNd();
       A.mul (M1, R);
       A.mul (M1);
-      if (!M1.epsilonEquals (A, EPSILON * svd.norm()*10)) {
-         throw new TestException ("Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
-      }
+      checkNormedEquals ("pseudo inverse, M1*R*M1", M1, A, 1e-12);
       
       A.mul (R, M1);
       A.mul (R);
-      if (!R.epsilonEquals (A, EPSILON * svd.norm()*10)) {
-         throw new TestException ("Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
-      }
+      checkNormedEquals ("pseudo inverse, R*M1*R", R, A, 1e-12);
       
       A.mul (M1, R);
-      if (!A.isSymmetric (EPSILON * svd.norm()*10)) {
-         throw new TestException ("Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
+      if (!A.isSymmetric (EPSILON * svd.norm()*100)) {
+         throw new TestException (
+            "Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
       }
       
       A.mul (R, M1);
-      if (!A.isSymmetric(EPSILON * svd.norm()*10)) {
-         throw new TestException ("Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
+      if (!A.isSymmetric(EPSILON * svd.norm()*100)) {
+         throw new TestException (
+            "Invalid pseudo inverse :\n" + R.toString ("%9.4f"));
       }
       
       // all passed
@@ -181,37 +181,156 @@ class SVDecompositionTest {
          }
       }
 
-      // check vector solver
-      if (nrows == ncols) {
-         VectorNd b = new VectorNd (nrows);
-         for (int i = 0; i < nrows; i++) {
-            b.set (i, RandomGenerator.get().nextDouble() - 0.5);
-         }
-         VectorNd x = new VectorNd (ncols);
-         VectorNd Mx = new VectorNd (nrows);
+      // check vector solve
+      VectorNd b = new VectorNd (nrows);
+      for (int i = 0; i < nrows; i++) {
+         b.set (i, RandomGenerator.get().nextDouble() - 0.5);
+      }
+      VectorNd x = new VectorNd (ncols);
+
+      if (nrows == ncols && svd.rank (EPSILON) == nrows) {
+         // square non-singular system
          svd.solve (x, b);
-         Mx.mul (M1, x);
-         if (!Mx.epsilonEquals (b, EPSILON * cond)) {
-            throw new TestException ("solution failed:\n" + "Mx="
-            + Mx.toString ("%9.4f") + "b=" + b.toString ("%9.4f") + "x="
-            + x.toString ("%9.4f"));
+         VectorNd chk = new VectorNd (nrows);
+         chk.mul (M1, x);
+         if (!chk.epsilonEquals (b, EPSILON * cond)) {
+            throw new TestException (
+               "solution failed:\n" + "chk="
+               + chk.toString ("%9.4f") + " b=" + b.toString ("%9.4f") + " x="
+               + x.toString ("%9.4f"));
+         }
+      }
+      else {
+         // non square and/or rank deficient system
+         svd.solve (x, b, EPSILON);
+
+         VectorNd chk = new VectorNd (ncols);
+         int r = svd.rank(EPSILON);
+         for (int k=0; k<r; k++) {
+            VectorNd ucol = new VectorNd (nrows);
+            VectorNd vcol = new VectorNd (ncols);
+            U.getColumn (k, ucol);
+            V.getColumn (k, vcol);
+            chk.scaledAdd (ucol.dot(b)/sig.get(k), vcol);
+         }
+         if (!chk.epsilonEquals (x, 1e-12)) {
+            throw new TestException (
+               "solution failed:\n" + "chk="
+               + chk.toString ("%12.7f") + " x=" + x.toString ("%12.7f"));
          }
       }
 
       // check matrix solver
-      if (nrows == ncols) {
-         MatrixNd B = new MatrixNd (nrows, 3);
-         B.setRandom();
-         MatrixNd X = new MatrixNd (ncols, 3);
-         MatrixNd MX = new MatrixNd (nrows, 3);
+      MatrixNd B = new MatrixNd (nrows, 3);
+      B.setRandom();
+      MatrixNd X = new MatrixNd (ncols, 3);
 
+      if (nrows == ncols && svd.rank (EPSILON) == nrows) {
+         // square non-singular system
          svd.solve (X, B);
+         MatrixNd MX = new MatrixNd (nrows, 3);
          MX.mul (M1, X);
          if (!MX.epsilonEquals (B, EPSILON * cond)) {
             throw new TestException ("solution failed:\n" + "MX="
             + MX.toString ("%9.4f") + "B=" + B.toString ("%9.4f"));
          }
       }
+      else if (nrows == ncols) {
+         // non square and/or rank deficient system
+         svd.solve (X, B, EPSILON);
+         int r = svd.rank(EPSILON);
+         MatrixNd Xchk = new MatrixNd (ncols, 3);
+         MatrixNd Ur = new MatrixNd (nrows, r);
+         U.getSubMatrix (0, 0, Ur);
+         MatrixNd Vr = new MatrixNd (ncols, r);
+         V.getSubMatrix (0, 0, Vr);
+         MatrixNd Sinv = new MatrixNd (r, r);
+         for (int i=0; i<r; i++) {
+            Sinv.set (i, i, 1/sig.get(i));
+         }
+         Xchk.mulTransposeLeft (Ur, B);
+         Xchk.mul (Sinv, Xchk);
+         Xchk.mul (Vr, Xchk);
+         if (!Xchk.epsilonEquals (X, 1e-12)) {
+            throw new TestException ("solution failed:\n" + "Xchk=\n"
+            + Xchk.toString ("%9.4f") + "X=\n" + X.toString ("%9.4f"));
+         }
+      }
+
+      // // check left vector solve
+      // b = new VectorNd (ncols);
+      // for (int i = 0; i < ncols; i++) {
+      //    b.set (i, RandomGenerator.get().nextDouble() - 0.5);
+      // }
+      // x = new VectorNd (nrows);
+
+      // if (nrows == ncols && svd.rank (EPSILON) == nrows) {
+      //    // square non-singular system
+      //    svd.leftSolve (x, b);
+      //    VectorNd chk = new VectorNd (nrows);
+      //    chk.mulTranspose (M1, x);
+      //    if (!chk.epsilonEquals (b, EPSILON * cond)) {
+      //       throw new TestException (
+      //          "solution failed:\n" + "chk="
+      //          + chk.toString ("%9.4f") + " b=" + b.toString ("%9.4f") + " x="
+      //          + x.toString ("%9.4f"));
+      //    }
+      // }
+      // else {
+      //    // non square and/or rank deficient system
+      //    svd.leftSolve (x, b, EPSILON);
+      //    VectorNd chk = new VectorNd (nrows);
+      //    int r = svd.rank(EPSILON);
+      //    for (int k=0; k<r; k++) {
+      //       VectorNd ucol = new VectorNd (nrows);
+      //       VectorNd vcol = new VectorNd (ncols);
+      //       U.getColumn (k, ucol);
+      //       V.getColumn (k, vcol);
+      //       chk.scaledAdd (vcol.dot(b)/sig.get(k), ucol);
+      //    }
+      //    if (!chk.epsilonEquals (x, 1e-12)) {
+      //       throw new TestException (
+      //          "solution failed:\n" + "chk="
+      //          + chk.toString ("%12.7f") + " x=" + x.toString ("%12.7f"));
+      //    }
+      // }
+
+      // // check left matrix solve
+      // B = new MatrixNd (3, ncols);
+      // B.setRandom();
+      // X = new MatrixNd (3, nrows);
+
+      // if (nrows == ncols && svd.rank (EPSILON) == nrows) {
+      //    // square non-singular system
+      //    svd.leftSolve (X, B);
+      //    MatrixNd XM = new MatrixNd (3, nrows);
+      //    XM.mul (X, M1);
+      //    if (!XM.epsilonEquals (B, EPSILON * cond)) {
+      //       throw new TestException ("solution failed:\n" + "XM="
+      //       + XM.toString ("%9.4f") + "B=" + B.toString ("%9.4f"));
+      //    }
+      // }
+      // else if (nrows == ncols) {
+      //    // non square and/or rank deficient system
+      //    svd.leftSolve (X, B, EPSILON);
+      //    int r = svd.rank(EPSILON);
+      //    MatrixNd Xchk = new MatrixNd (3, nrows);
+      //    MatrixNd Ur = new MatrixNd (nrows, r);
+      //    U.getSubMatrix (0, 0, Ur);
+      //    MatrixNd Vr = new MatrixNd (ncols, r);
+      //    V.getSubMatrix (0, 0, Vr);
+      //    MatrixNd Sinv = new MatrixNd (r, r);
+      //    for (int i=0; i<r; i++) {
+      //       Sinv.set (i, i, 1/sig.get(i));
+      //    }
+      //    Xchk.mul (B, Vr);
+      //    Xchk.mul (Sinv);
+      //    Xchk.mulTransposeRight (Xchk, Ur);
+      //    if (!Xchk.epsilonEquals (X, 1e-12)) {
+      //       throw new TestException ("solution failed:\n" + "Xchk=\n"
+      //       + Xchk.toString ("%9.4f") + "X=\n" + X.toString ("%9.4f"));
+      //    }
+      // }
 
       // check determinant
       if (nrows == ncols && nrows <= 3) {
@@ -260,7 +379,7 @@ class SVDecompositionTest {
       }
    }
 
-   public void execute() {
+   public void test() {
       RandomGenerator.setSeed (0x1234);
 
       testDecomposition (new MatrixNd (2, 2, new double[] { 1, 2, 6, 5 }), null);
@@ -325,10 +444,16 @@ class SVDecompositionTest {
 
       testDecomposition (6, 5, new double[] { 1.1, 2.2, 4.4, 0.0003, 0 });
       testDecomposition (4, 3);
+      testDecomposition (5, 3);
       testDecomposition (3, 4);
+      testDecomposition (3, 5);
       testDecomposition (3, 3, new double[] { 1, 0.0001, 0 });
       testDecomposition (3, 4, new double[] { 1, 2, 0 });
       testDecomposition (4, 5, new double[] { 1, 1, 0, 0 });
+      testDecomposition (4, 6, new double[] { 1.23, 5.3, 0, 0 });
+      testDecomposition (4, 6, new double[] { 1.23, 0, 0, 0 });
+      testDecomposition (6, 4, new double[] { 1.23, 5.3, 0, 0 });
+      testDecomposition (6, 4, new double[] { 1.23, 0, 0, 0 });
       testDecomposition (6, 6);
       testDecomposition (6, 6, new double[] { 1.1, 2.2, 3.3, 0.0001, 0, 0 });
       testDecomposition (6, 6, new double[] { 1.1, 2.2, 3.3, 0.0001, 0, 0 });
@@ -343,13 +468,20 @@ class SVDecompositionTest {
       }
       
       // full matrices
-      testDecomposition (6, 5, new double[] { 1.1, 2.2, 4.4, 0.0003, 0 }, SVDecomposition.FULL_UV);
+      testDecomposition (
+         6, 5, new double[] { 1.1, 2.2, 4.4, 0.0003, 0 },
+         SVDecomposition.FULL_UV);
       testDecomposition (4, 3, SVDecomposition.FULL_UV);
       testDecomposition (3, 4, SVDecomposition.FULL_UV);
-      testDecomposition (3, 4, new double[] { 1, 2, 0 }, SVDecomposition.FULL_UV);
-      testDecomposition (4, 5, new double[] { 1, 1, 0, 0 }, SVDecomposition.FULL_UV);
-      testDecomposition (6, 5, new double[] { 1.1, 2.2, 4.4, 0.0003, 0 }, SVDecomposition.FULL_UV);
-      testDecomposition (5, 6, new double[] { 12, 13, 14, 0.0003, 0 }, SVDecomposition.FULL_UV);
+      testDecomposition (
+         3, 4, new double[] { 1, 2, 0 }, SVDecomposition.FULL_UV);
+      testDecomposition (
+         4, 5, new double[] { 1, 1, 0, 0 }, SVDecomposition.FULL_UV);
+      testDecomposition (
+         6, 5, new double[] { 1.1, 2.2, 4.4, 0.0003, 0 },
+         SVDecomposition.FULL_UV);
+      testDecomposition (
+         5, 6, new double[] { 12, 13, 14, 0.0003, 0 }, SVDecomposition.FULL_UV);
       
       for (int i = 1; i < 10; i++) {
          for (int j=1; j < 10; j++) {
@@ -419,15 +551,6 @@ class SVDecompositionTest {
 
    public static void main (String[] args) {
       SVDecompositionTest tester = new SVDecompositionTest();
-
-      tester.execute();
-      // tester.checkTiming(6, 6);
-      // tester.checkTiming(6, 6);
-      // tester.checkTiming(6, 6);
-      // tester.checkTiming(6, 6);
-      // tester.checkTiming(6, 6);
-      // tester.checkTiming(6, 6);
-
-      System.out.println ("\nPassed\n");
+      tester.runtest();
    }
 }

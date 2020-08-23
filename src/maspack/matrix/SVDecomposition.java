@@ -21,11 +21,10 @@ package maspack.matrix;
  * decompositions repeatedly without having to reallocate temporary storage
  * space.
  * 
- * <p>
- * Note: by default, this performs a "thin" SVD, where U and V are not necessarily
- * square matrices if the input is not square.  To enable a full SVD, such as when
- * necessary for computing null-spaces of non-square matrices, then factor the matrix
- * using the flag {@link #FULL_UV}.
+ * <p> Note: by default, this performs a "thin" SVD, where U and V are not
+ * necessarily square matrices if the input is not square.  To enable a full
+ * SVD, such as when necessary for computing null-spaces of non-square
+ * matrices, then factor the matrix using the flag {@link #FULL_UV}.
  */
 public class SVDecomposition {
    private static double DOUBLE_PREC = 2.220446049250313e-16;
@@ -33,7 +32,7 @@ public class SVDecomposition {
    private int mind; // min (m,n)
    private int maxd; // max (m,n)
 
-   private double tol = 100 * DOUBLE_PREC;
+   private double etol = 100 * DOUBLE_PREC;
 
    private double sigmax;
    private double sigmin;
@@ -317,7 +316,7 @@ public class SVDecomposition {
       while (kd != 0) {
          // zero small super diagonal terms
          for (i = 0; i < kd - 1; i++) {
-            if (ABS (buf[(i) * w + i + 1]) < tol
+            if (ABS (buf[(i) * w + i + 1]) < etol
             * (ABS (buf[(i) * w + i]) + ABS (buf[(i + 1) * w + i + 1]))) {
                buf[(i) * w + i + 1] = 0;
             }
@@ -788,87 +787,6 @@ public class SVDecomposition {
       return svd;
    }
 
-
-//   /**
-//    * Gets the eigen decomposition for the currently factore (symmetric) matrix M:
-//    * <pre>
-//    * M = U E U^T
-//    * </pre>
-//    * where U is orthogonal and E is a diagonal matrix of eigenvalues. It is
-//    * assumed that <code>factor(M)</code> was called previously, and
-//    * that M is symmetric.
-//    * 
-//    * @param U
-//    * left-hand orthogonal matrix (optional, may be null)
-//    * @return eigenvalues for the matrix
-//    * @throws ImproperStateException
-//    * if this SVDecomposition does not contain a factored matrix, or if
-//    * that matrix is not square
-//    * @throws ImproperSizeException
-//    * if U is not of the proper dimension and cannot be resized.
-//    */
-//   public VectorNd getEigenValues (DenseMatrix U) {
-//      if (!initialized) {
-//         throw new ImproperStateException ("SVD not initialized");
-//      }
-//      if (m != n) {
-//         throw new ImproperStateException ("Original M matrix not square");
-//      }
-//      VectorNd evec = new VectorNd (m);
-//      if (U != null && (U.rowSize() != m || U.colSize() != mind)) {
-//         if (!U.isFixedSize()) {
-//            U.setSize (m, mind);
-//         }
-//         else {
-//            throw new ImproperSizeException ("Incompatible dimensions");
-//         }
-//      }
-//      if (U != null) {
-//         U.set (U_);
-//      }
-//      double[] ubuf = U_.getBuffer();
-//      double[] vbuf = V_.getBuffer();
-//      for (int j=0; j<n; j++) {
-//         double dot = 0;
-//         // U(:,j) should equal -V(:,j) or V(:,j). Determine which
-//         // by taking the dot product
-//         for (int i=0; i<n; i++) {
-//            dot += ubuf[i*n+j]*vbuf[i*n+j];
-//         }
-//         evec.set (j, dot >= 0 ? sig.get(j) : -sig.get(j));
-//      }
-//      boolean sort = true;
-//      if (sort) {
-//         double[] etmp = new double[n];
-//         double[] vtmp = new double[n];
-//         int[] perm = new int[n];
-//         int kf = 0;
-//         int ke = n-1;
-//         for (int j=0; j<n; j++) {
-//            if (evec.get(j) < 0) {
-//               perm[ke] = j;
-//               etmp[ke] = evec.get(j);
-//               if (U != null) {
-//                  U_.getColumn (j, vtmp);
-//                  U.setColumn (ke, vtmp);
-//               }
-//               ke--;
-//            }
-//            else {
-//               perm[kf] = j;
-//               etmp[kf] = evec.get(j);
-//               if (U != null) {
-//                  U_.getColumn (j, vtmp);
-//                  U.setColumn (kf, vtmp);
-//               }
-//               kf++;
-//            }
-//         }
-//         evec.set (etmp);
-//      }
-//      return evec;
-//   }
-
    /**
     * Computes the condition number of the original matrix M associated with
     * this SVD. This is simply the absolute value of the ratio of the maximum
@@ -936,22 +854,67 @@ public class SVDecomposition {
     * Solves the linear equation <br>
     * M x = b <br>
     * where M is the original matrix associated with this SVD, and x and b are
-    * vectors.
+    * vectors. If M has size {@code m X n} with {@code m > n}, then the system
+    * is overdetermined and solution with the minimum least square error is
+    * computed. If {@code m < n}, then the system is underdetermined
+    * and the minimum norm solution is computed.
+    *
+    * <p>This method assumes that M has full rank (i.e., that the minimum
+    * singular value is {@code > 0}). If it does not, then the method returns
+    * false and the solution will likely contain infinite values. To handle
+    * situations where M does not have full rank, one should use {@link
+    * #solve(VectorNd,VectorNd,double)} instead.
     * 
     * @param x
     * unknown vector to solve for
     * @param b
     * constant vector
-    * @return false if M is singular (within working precision)
+    * @return false if M does not have full rank
     * @throws ImproperStateException
     * if this decomposition is uninitialized, or if U or V were not computed
     * @throws ImproperSizeException
     * if b does not have a size compatible with M, or if x does not have a size
     * compatible with M and cannot be resized.
     */
-   public boolean solve (VectorNd x, VectorNd b) {
+   public boolean solve (Vector x, Vector b) {
+      return solve (x, b, /*tol=*/-1);
+   }
+
+   /**
+    * Solves the linear equation <br>
+    * M x = b <br>
+    * where M is the original matrix associated with this SVD, and x and b are
+    * vectors. If M has size {@code m X n} with {@code m > n}, then the system
+    * is overdetermined and solution with the minimum least square error is
+    * computed. If {@code m < n}, then the system is underdetermined
+    * and the minimum norm solution is computed.
+    *
+    * <p>To handle situations where {@code M} is rank deficient, the
+    * calculation ignores singular values whose value is less than or equal to
+    * {@code tol*sigmax}, where {@code tol} is a specified tolerance and
+    * {@code*sigmax} is the maximum singular value.  Results that would
+    * otherwise be obtained by dividing by these values are instead set to
+    * zero, resulting in pseudoinverse solutions. Specifying a negative value for
+    * {@code tol} removes this behavior, so that the resulting solution will be
+    * identical to #solve(VectorNd,VectorNd)} and {@code false} will be
+    * returned if M does not have full rank.
+    * 
+    * @param x
+    * unknown vector to solve for
+    * @param b
+    * constant vector
+    * @param tol 
+    * solution tolerance
+    * @return false if {@code tol} is negative and M does not have full rank
+    * @throws ImproperStateException
+    * if this decomposition is uninitialized, or if U or V were not computed
+    * @throws ImproperSizeException
+    * if b does not have a size compatible with M, or if x does not have a size
+    * compatible with M and cannot be resized.
+    */
+   public boolean solve (Vector x, Vector b, double tol) {
       checkForUandV();
-      if (b.size() != n) {
+      if (b.size() != m) {
          throw new ImproperSizeException ("improper size for b");
       }
       if (x.size() != n) {
@@ -962,36 +925,85 @@ public class SVDecomposition {
             x.setSize (n);
          }
       }
-      vtmp.mulTranspose (U_, b);
-      for (int i = 0; i < vtmp.size; i++) {
+      int r = rank(tol);
+      btmp.set (b);
+      U_.mulTranspose (vtmp, btmp, r, m);
+      for (int i = 0; i < r; i++) {
          vtmp.buf[i] /= sig.get(i);
       }
-      x.mul (V_, vtmp);
-      return sigmin != 0;
+      V_.mul (xtmp, vtmp, n, r);
+      x.set (xtmp);
+      return !(tol < 0 && sigmin == 0);
    }
 
    /**
     * Solves the linear equation <br>
     * M X = B <br>
     * where M is the original matrix associated with this SVD, and X and B are
-    * matrices.
+    * matrices. If M has size {@code m X n} with {@code m > n}, then the system
+    * is overdetermined and solution with the minimum least square error is
+    * computed. If {@code m < n}, then the system is underdetermined
+    * and the minimum norm solution (which respect to each column of
+    * X) is computed.
+    * 
+    * <p>This method assumes that M has full rank (i.e., that the minimum
+    * singular value is {@code > 0}). If it does not, then the method returns
+    * false and the solution will likely contain infinite values. To handle
+    * situations where M does not have full rank, one should use {@link
+    * #solve(MatrixNd,MatrixNd,double)} instead.
     * 
     * @param X
     * unknown matrix to solve for
     * @param B
     * constant matrix
-    * @return false if M is singular (within working precision) and true
-    * otherwise.
+    * @return false if M does not have full rank
     * @throws ImproperStateException
     * if this decomposition is uninitialized, or if U or V were not computed
     * @throws ImproperSizeException
-    * if B has a different number of rows than M, or if X has a different number
-    * of rows than M or a different number of columns than B and cannot be
-    * resized.
+    * if B has a different number of rows than M, or if the size of X
+    * is incompatible with B or M and cannot be resized.
     */
-   public boolean solve (MatrixNd X, MatrixNd B) {
+   public boolean solve (DenseMatrix X, DenseMatrix B) {
+      return solve (X, B, /*tol=*/-1);
+   }
+
+   /**
+    * Solves the linear equation <br>
+    * M X = B <br>
+    * where M is the original matrix associated with this SVD, and X and B are
+    * matrices. If M has size {@code m X n} with {@code m > n}, then the system
+    * is overdetermined and solution with the minimum least square error is
+    * computed. If {@code m < n}, then the system is underdetermined
+    * and the minimum norm solution (which respect to each column of
+    * X) is computed.
+    * 
+    * <p>To handle situations where {@code M} is rank deficient, the
+    * calculation ignores singular values whose value is less than or equal to
+    * {@code tol*sigmax}, where {@code tol} is a specified tolerance and
+    * {@code*sigmax} is the maximum singular value.  Results that would
+    * otherwise be obtained by dividing by these values are instead set to
+    * zero, resulting in pseudoinverse solutions. Specifying a negative value for
+    * {@code tol} removes this behavior, so that the resulting solution will be
+    * identical to #solve(VectorNd,VectorNd)} and {@code false} will be
+    * returned if M does not have full rank.
+    * 
+    * @param X
+    * unknown matrix to solve for
+    * @param B
+    * constant matrix
+    * @param tol 
+    * solution tolerance
+    * @return false if {@code tol} is negative and M does not have full rank
+    * of M is zero
+    * @throws ImproperStateException
+    * if this decomposition is uninitialized, or if U or V were not computed
+    * @throws ImproperSizeException
+    * if B has a different number of rows than M, or if the size of X
+    * is incompatible with B or M and cannot be resized.
+    */
+   public boolean solve (DenseMatrix X, DenseMatrix B, double tol) {
       checkForUandV();
-      if (B.rowSize() != n) {
+      if (B.rowSize() != m) {
          throw new ImproperSizeException ("improper size for B");
       }
       if (X.colSize() != B.colSize() || X.rowSize() != n) {
@@ -1002,17 +1014,164 @@ public class SVDecomposition {
             X.setSize (n, B.colSize());
          }
       }
-      for (int j = 0; j < X.ncols; j++) {
+      int r = rank(tol);
+      for (int j = 0; j < X.colSize(); j++) {
          B.getColumn (j, btmp);
-         vtmp.mulTranspose (U_, btmp);
-         for (int i = 0; i < vtmp.size; i++) {
+         U_.mulTranspose (vtmp, btmp, r, m);
+         for (int i = 0; i < r; i++) {
             vtmp.buf[i] /= sig.get(i);
          }
-         xtmp.mul (V_, vtmp);
+         V_.mul (xtmp, vtmp, n, r);
          X.setColumn (j, xtmp);
       }
-      return sigmin != 0;
+      return !(tol < 0 && sigmin == 0);
    }
+
+   // /**
+   //  * Computes a left solution to the linear equation <br>
+   //  * x M = b <br>
+   //  * where M is the original matrix associated with this SVD, and x and b are
+   //  * row vectors.
+   //  * 
+   //  * @param x
+   //  * unknown vector to solve for
+   //  * @param b
+   //  * constant vector
+   //  * @return false if the minimum singular of M value is zero
+   //  * @throws ImproperStateException
+   //  * if this decomposition is uninitialized, or if U or V were not computed
+   //  * @throws ImproperSizeException
+   //  * if b does not have a size compatible with M, or if x does not have a size
+   //  * compatible with M and cannot be resized.
+   //  */
+   // public boolean leftSolve (VectorNd x, VectorNd b) {
+   //    return leftSolve (x, b, /*tol=*/-1);
+   // }
+
+   // /**
+   //  * Computes a left solution to the linear equation <br>
+   //  * x M = b <br>
+   //  * where M is the original matrix associated with this SVD, and x and b are
+   //  * row vectors.
+   //  *
+   //  * <p>The calculation ignores singular values whose value is less than or
+   //  * equal to {@code tol*sigmax}, where {@code tol} is a specified tolerance
+   //  * and {@code*sigmax} is the maximum singular value.  Results that would
+   //  * otherwise be obtained by dividing by these values are instead set to
+   //  * zero. This allows pseudosolutions to be obtained when {@code M} is rank
+   //  * deficient. Specifying a negative value for {@code tol} ensures that all
+   //  * singular values will be used.
+   //  * 
+   //  * @param x
+   //  * unknown vector to solve for
+   //  * @param b
+   //  * constant vector
+   //  * @param tol 
+   //  * solution tolerance
+   //  * @return false if {@code tol} is negative and the minimum singular value
+   //  * of M is zero
+   //  * @throws ImproperStateException
+   //  * if this decomposition is uninitialized, or if U or V were not computed
+   //  * @throws ImproperSizeException
+   //  * if b does not have a size compatible with M, or if x does not have a size
+   //  * compatible with M and cannot be resized.
+   //  */
+   // public boolean leftSolve (VectorNd x, VectorNd b, double tol) {
+   //    checkForUandV();
+   //    if (b.size() != n) {
+   //       throw new ImproperSizeException ("improper size for b");
+   //    }
+   //    if (x.size() != m) {
+   //       if (x.isFixedSize()) {
+   //          throw new ImproperSizeException ("improper size for x");
+   //       }
+   //       else {
+   //          x.setSize (m);
+   //       }
+   //    }
+   //    int r = rank(tol);
+   //    V_.mulTranspose (vtmp, b, r, n);
+   //    for (int i = 0; i < r; i++) {
+   //       vtmp.buf[i] /= sig.get(i);
+   //    }
+   //    U_.mul (x, vtmp, m, r);
+   //    return !(tol < 0 && sigmin == 0);
+   // }
+
+   // /**
+   //  * Computes a left solution to the linear equation <br>
+   //  * X M = B <br>
+   //  * where M is the original matrix associated with this SVD, and X and B are
+   //  * matrices.
+   //  * 
+   //  * @param X
+   //  * unknown matrix to solve for
+   //  * @param B
+   //  * constant matrix
+   //  * @return false if the minimum singular value of M is zero
+   //  * @throws ImproperStateException
+   //  * if this decomposition is uninitialized, or if U or V were not computed
+   //  * @throws ImproperSizeException
+   //  * if B has a different number of columns than M, or if the size of X
+   //  * is incompatible with B or M and cannot be resized.
+   //  */
+   // public boolean leftSolve (MatrixNd X, MatrixNd B) {
+   //    return leftSolve (X, B, /*tol=*/-1);
+   // }
+
+   // /**
+   //  * Computes a left solution to the linear equation <br>
+   //  * M X = B <br>
+   //  * where M is the original matrix associated with this SVD, and X and B are
+   //  * matrices.
+   //  * 
+   //  * <p>The calculation ignores singular values whose value is less than or
+   //  * equal to {@code tol*sigmax}, where {@code tol} is a specified tolerance
+   //  * and {@code*sigmax} is the maximum singular value.  Results that would
+   //  * otherwise be obtained by dividing by these values are instead set to
+   //  * zero. This allows pseudosolutions to be obtained when {@code M} is rank
+   //  * deficient. Specifying a negative value for {@code tol} ensures that all
+   //  * singular values will be used.
+   //  * 
+   //  * @param X
+   //  * unknown matrix to solve for
+   //  * @param B
+   //  * constant matrix
+   //  * @param tol 
+   //  * solution tolerance
+   //  * @return false if {@code tol} is negative and the minimum singular value
+   //  * of M is zero
+   //  * @throws ImproperStateException
+   //  * if this decomposition is uninitialized, or if U or V were not computed
+   //  * @throws ImproperSizeException
+   //  * if B has a different number of columns than M, or if the size of X
+   //  * is incompatible with B or M and cannot be resized.
+   //  */
+   // public boolean leftSolve (MatrixNd X, MatrixNd B, double tol) {
+   //    checkForUandV();
+   //    if (B.colSize() != n) {
+   //       throw new ImproperSizeException ("improper size for B");
+   //    }
+   //    if (X.rowSize() != B.rowSize() || X.colSize() != m) {
+   //       if (X.isFixedSize()) {
+   //          throw new ImproperSizeException ("improper size for X");
+   //       }
+   //       else {
+   //          X.setSize (B.rowSize(), m);
+   //       }
+   //    }
+   //    int r = rank(tol);
+   //    for (int i = 0; i < X.nrows; i++) {
+   //       B.getRow (i, btmp);
+   //       V_.mulTranspose (vtmp, btmp, r, n);
+   //       for (int j = 0; j < r; j++) {
+   //          vtmp.buf[j] /= sig.get(j);
+   //       }
+   //       U_.mul (xtmp, vtmp, m, r);
+   //       X.setRow (i, xtmp);
+   //    }
+   //    return !(tol < 0 && sigmin == 0);
+   // }
 
    /**
     * Computes the inverse of the original matrix M associated this SVD, and
@@ -1178,6 +1337,29 @@ public class SVDecomposition {
             }
          }
       }
+   }
+
+   /**
+    * Estimates the rank of the original matrix used to form this
+    * decomposition, based on a supplied tolerance {@code tol}. The rank is
+    * estimated by counting all singular values whose value is greater than
+    * {@code smax*tol}, where {@code smax} is the maximim singular value.
+    *
+    * @param tolerance for estimating the rank
+    * @return estimated rank of the orginal matrix
+    * @throws ImproperStateException
+    * if this SVDecomposition is uninitialized
+    */
+   public int rank (double tol) {
+      if (!initialized) {
+         throw new ImproperStateException ("SVD not initialized");
+      }
+      // start at the end of sig since that may be faster
+      int k = sig.size()-1;
+      while (k>=0 && sig.get(k) <= tol*sigmax) {
+         k--;
+      }
+      return k+1;
    }
 
 }

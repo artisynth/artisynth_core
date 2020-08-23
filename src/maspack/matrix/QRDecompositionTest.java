@@ -132,9 +132,9 @@ class QRDecompositionTest {
          
       }
 
-      if (nrows < ncols) {
-         return;
-      }
+      // if (nrows < ncols) {
+      //    return;
+      // }
 
       double condEst = qr.conditionEstimate();
 
@@ -157,34 +157,41 @@ class QRDecompositionTest {
       catch (Exception e) {
          eActual = e;
       }
-      if (m < n) {
-         MatrixTest.checkExceptions (eActual, new ImproperSizeException (
-            "M has fewer rows than columns"));
+      // if (m < n) {
+      //    MatrixTest.checkExceptions (eActual, new ImproperSizeException (
+      //       "M has fewer rows than columns"));
+      // }
+      // else {
+      MatrixTest.checkExceptions (eActual, null);
+
+      if (m <= n) {
+         Mx.mul (M1, x);
+         if (!Mx.epsilonEquals (b, EPSILON * condEst)) {
+            throw new TestException (
+               "solution failed:\n" + "Mx="
+               + Mx.toString ("%9.4f") + "b=" + b.toString ("%9.4f"));
+         }
       }
       else {
-         MatrixTest.checkExceptions (eActual, null);
+         VectorNd xcheck = new VectorNd (n);
+         M1.mulTranspose (xcheck, b);
+         MTM.mul (xcheck, xcheck);
 
-         if (m == n) {
-            Mx.mul (M1, x);
-            if (!Mx.epsilonEquals (b, EPSILON * condEst)) {
-               throw new TestException ("solution failed:\n" + "Mx="
-               + Mx.toString ("%9.4f") + "b=" + b.toString ("%9.4f"));
-            }
+         if (!xcheck.epsilonEquals (x, EPSILON * condEst)) {
+            System.out.println ("n=" + n);
+            System.out.println ("condEst=" + condEst);
+            System.out.println ("tol=" + EPSILON * condEst);
+            System.out.println ("M1=\n" + M1.toString ("%10.4f"));
+            throw new TestException (
+               "solution failed:\n" + "x="
+               + x.toString ("%g") + "\nexpected=" + xcheck.toString ("%g"));
          }
-         else {
-            VectorNd xcheck = new VectorNd (n);
-            M1.mulTranspose (xcheck, b);
-            MTM.mul (xcheck, xcheck);
-
-            if (!xcheck.epsilonEquals (x, EPSILON * condEst)) {
-               System.out.println ("n=" + n);
-               System.out.println ("condEst=" + condEst);
-               System.out.println ("tol=" + EPSILON * condEst);
-               System.out.println ("M1=\n" + M1.toString ("%10.4f"));
-               throw new TestException (
-                  "solution failed:\n" + "x="
-                  + x.toString ("%g") + "\nexpected=" + xcheck.toString ("%g"));
-            }
+         xcheck.set (x);
+         qr.solve (x, b); // check repeatability
+         if (!x.equals (xcheck)) {
+            throw new TestException (
+               "non-repeatable solution:\n" + "x="
+               + x.toString ("%g") + "\nexpected=" + xcheck.toString ("%g"));
          }
       }
 
@@ -201,38 +208,49 @@ class QRDecompositionTest {
       catch (Exception e) {
          eActual = e;
       }
-      if (m < n) {
-         MatrixTest.checkExceptions (eActual, new ImproperSizeException (
-            "M has fewer rows than columns"));
+      // if (m < n) {
+      //    MatrixTest.checkExceptions (eActual, new ImproperSizeException (
+      //       "M has fewer rows than columns"));
+      // }
+      // else {
+
+      MatrixTest.checkExceptions (eActual, null);
+      qr.solve (X, B);
+      MX.mul (M1, X);
+      if (m <= n) {
+         if (!MX.epsilonEquals (B, EPSILON * condEst)) {
+            throw new TestException (
+               "solution failed:\n" + "MX="
+               + MX.toString ("%9.4f") + "B=" + B.toString ("%9.4f"));
+         }
       }
       else {
-         MatrixTest.checkExceptions (eActual, null);
-         qr.solve (X, B);
-         MX.mul (M1, X);
-         if (m == n) {
-            if (!MX.epsilonEquals (B, EPSILON * condEst)) {
-               throw new TestException ("solution failed:\n" + "MX="
-               + MX.toString ("%9.4f") + "B=" + B.toString ("%9.4f"));
-            }
-         }
-         else {
-            MatrixNd Xcheck = new MatrixNd (n, 3);
-            Xcheck.mulTransposeLeft (M1, B);
-            Xcheck.mul (MTM, Xcheck);
+         MatrixNd Xcheck = new MatrixNd (n, 3);
+         Xcheck.mulTransposeLeft (M1, B);
+         Xcheck.mul (MTM, Xcheck);
 
-            if (!Xcheck.epsilonEquals (X, EPSILON * condEst)) {
-               throw new TestException ("solution failed:\n" + "X="
+         if (!Xcheck.epsilonEquals (X, EPSILON * condEst)) {
+            throw new TestException (
+               "solution failed:\n" + "X="
                + X.toString ("%9.4f") + "expected=" + Xcheck.toString ("%9.4f"));
-            }
          }
+         Xcheck.set (X);
+         qr.solve (X, B);
+         if (!X.equals (Xcheck)) {
+            throw new TestException (
+               "non-repeatable solution:\n" + "X="
+               +X.toString ("%9.4f") + "expected=" + Xcheck.toString ("%9.4f"));
+         }
+
       }
 
       // check R solve
-      b.setSize (n);
-      B.setSize (n, 3);
+      int nr = Math.min (m, n);
+      b.setSize (nr);
+      B.setSize (nr, 3);
 
-      MatrixNd R = new MatrixNd (n, n);
-      VectorNd Rx = new VectorNd (n);
+      MatrixNd R = new MatrixNd (nr, n);
+      VectorNd Rx = new VectorNd (nr);
       qr.get (null, R);
       qr.solveR (x, b);
       x.permute (cperm);
@@ -243,7 +261,7 @@ class QRDecompositionTest {
       }
 
       // check R matrix solve
-      MatrixNd RX = new MatrixNd (n, 3);
+      MatrixNd RX = new MatrixNd (nr, 3);
       qr.solveR (X, B);
       X.permuteRows (cperm);
       RX.mul (R, X);
@@ -252,8 +270,49 @@ class QRDecompositionTest {
          + RX.toString ("%9.4f") + "B=\n" + B.toString ("%9.4f"));
       }
 
-      // if (!usePivoting)
-      {
+      if (nrows >= ncols) {
+         // check left solve
+
+         VectorNd brow = new VectorNd (ncols);
+         brow.setRandom();
+         VectorNd xrow = new VectorNd ();
+         VectorNd xM = new VectorNd ();
+         qr.leftSolve (xrow, brow);
+         xM.mulTranspose (M1, xrow);
+         if (!xM.epsilonEquals (brow, EPSILON * condEst)) {
+            throw new TestException (
+               "left solution failed:\n" + "xM="
+               + xM.toString ("%9.4f") + "brow=" + brow.toString ("%9.4f"));
+         }
+         // check repeatability
+         VectorNd xcheck = new VectorNd (xrow);
+         qr.leftSolve (xrow, brow);
+         if (!xrow.equals (xcheck)) {
+            throw new TestException (
+               "non-repeatable left solution:\n" + "x="
+               + xrow.toString ("%g") + "\nexpected=" + xcheck.toString ("%g"));
+         }
+
+         MatrixNd Brow = new MatrixNd (3, ncols);
+         Brow.setRandom();
+         MatrixNd Xrow = new MatrixNd ();
+         MatrixNd XM = new MatrixNd ();
+         qr.leftSolve (Xrow, Brow);
+         XM.mul (Xrow, M1);
+         if (!XM.epsilonEquals (Brow, EPSILON * condEst)) {
+            throw new TestException (
+               "left solution failed:\n" + "XM="
+               + XM.toString ("%9.4f") + "Brow=" + Brow.toString ("%9.4f"));
+         }
+         // check repeatability
+         MatrixNd Xcheck = new MatrixNd (Xrow);
+         qr.leftSolve (Xrow, Brow);
+         if (!Xrow.equals (Xcheck)) {
+            throw new TestException (
+               "non-repeatable left solution:\n" + "X="
+               + Xrow.toString ("%g") + "\nexpected=" + Xcheck.toString ("%g"));
+         }
+
          // check left R solve
          VectorNd xR = new VectorNd (n);
          VectorNd bperm = new VectorNd (n);

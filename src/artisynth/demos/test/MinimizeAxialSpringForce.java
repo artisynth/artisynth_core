@@ -16,6 +16,9 @@ import maspack.matrix.*;
 
 public class MinimizeAxialSpringForce extends PointModel {
 
+   // need this because PointModel sets omitFromMenu=true
+   public static boolean omitFromMenu = false;
+
    ForceEffectorTerm myForceTerm = null;
 
    static double DEFAULT_STIFFNESS = 1.0;

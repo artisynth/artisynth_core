@@ -328,6 +328,7 @@ public class MinimizeFrameSpringForce extends RootModel {
       panel.addWidget (this, "rotWeight");
       panel.addWidget (this, "springForce");
       panel.addWidget ("controllerEnabled", myController, "active");
+      panel.addWidget (myController, "computeIncrementally");
       panel.addWidget (this, "stiffness");
       panel.addWidget (this, "rotStiffness");
       panel.addWidget (this, "damping");
@@ -339,6 +340,8 @@ public class MinimizeFrameSpringForce extends RootModel {
       NumericOutputProbe oprobe =
          new NumericOutputProbe (this, "forceTermNorm", 0, 10, -1);
       addOutputProbe (oprobe);
+
+      InverseManager.addProbes (this, myController, 5.0, 0.01);
    }
 
 

@@ -13,7 +13,6 @@ import java.util.Comparator;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 import maspack.matrix.Matrix3d;
@@ -27,6 +26,14 @@ import maspack.util.ArraySupport;
  * Vertex for a 3D dimensional polyhedral object.
  */
 public class Vertex3d extends Feature implements Clonable, Boundable {
+   
+   // John Lloyd, June, 2020.  If groupHalfEdgesByHardEdge == true, then when
+   // sorting the half edges incident on a vertex, isHard() is used to
+   // delineate edge groupings along with open edges. This appears to be
+   // obsolete, and has the side effect that for a closed mesh, the incident
+   // half edges are not necessarily sorted counter-clockwise about the normal.
+   public static boolean groupHalfEdgesByHardEdge = false; 
+   
    /**
     * 3D point associated with this vertex.
     */
@@ -288,45 +295,45 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       return hasNormal;
    }
 
-   /**
-    * Compute the normals for all the half-edges indicent on this vertex.
-    * If none of the half-edges are open or hard, then only one normal
-    * is computed, which will be shared by all the half-edges. 
-    * Otherwise, extra normals will be computed for the 
-    * sub-regions delimited by open or hard edges.
-    *   
-    * @param nrms list of normal vectors where the results should be placed
-    * @param idx starting index into <code>nrms</code> for the result
-    * @return advanced index
-    */
-   public int computeAngleWeightedNormals (List<Vector3d> nrms, int idx) {
-      sortHedgesIfNecessary(); 
-      HalfEdgeNode node = incidentHedges;
-      int nrmSize = nrms.size ();
-      while (node != null) {
-         // XXX chance for index-out-of-bounds here
-         Vector3d nrm = null;
-         if (idx < nrmSize) {
-            nrm = nrms.get(idx++);
-            nrm.setZero();
-         } else {
-            System.err.println ("Vertex3d.computeAngleWeightedNormals(...): hack to prevent out of bounds index");
-            nrm = new Vector3d();
-            nrms.add (nrm);
-            ++nrmSize;
-         }
-         
-         do {
-            HalfEdge he = node.he;
-            nrm.angleWeightedCrossAdd (
-               he.tail.pnt, he.head.pnt, he.next.head.pnt);
-            node = node.next;
-         }
-         while (node != null && !isNormalBoundary(node.he));
-         nrm.normalize();         
-      }
-      return idx;
-   }
+//   /**
+//    * Compute the normals for all the half-edges incident on this vertex.
+//    * If none of the half-edges are open or hard, then only one normal
+//    * is computed, which will be shared by all the half-edges. 
+//    * Otherwise, extra normals will be computed for the 
+//    * sub-regions delimited by open or hard edges.
+//    *   
+//    * @param nrms list of normal vectors where the results should be placed
+//    * @param idx starting index into <code>nrms</code> for the result
+//    * @return advanced index
+//    */
+//   public int computeAngleWeightedNormals (List<Vector3d> nrms, int idx) {
+//      sortHedgesIfNecessary(); 
+//      HalfEdgeNode node = incidentHedges;
+//      int nrmSize = nrms.size ();
+//      while (node != null) {
+//         // XXX chance for index-out-of-bounds here
+//         Vector3d nrm = null;
+//         if (idx < nrmSize) {
+//            nrm = nrms.get(idx++);
+//            nrm.setZero();
+//         } else {
+//            System.err.println ("Vertex3d.computeAngleWeightedNormals(...): hack to prevent out of bounds index");
+//            nrm = new Vector3d();
+//            nrms.add (nrm);
+//            ++nrmSize;
+//         }
+//         
+//         do {
+//            HalfEdge he = node.he;
+//            nrm.angleWeightedCrossAdd (
+//               he.tail.pnt, he.head.pnt, he.next.head.pnt);
+//            node = node.next;
+//         }
+//         while (node != null && !isStartingEdge(node.he));
+//         nrm.normalize();         
+//      }
+//      return idx;
+//   }
 
    public boolean computeRenderNormal (Vector3d nrm) {
       boolean faceNormalsFound = false;
@@ -375,6 +382,10 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       }
    }
 
+   String edgeStr (HalfEdge he) {
+      return he.tail.idx + "->" + he.head.idx;
+   }
+
    /**
     * Returns true if he is a boundary half-edge for purposes of computing
     * normals.
@@ -383,10 +394,29 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
       return he.opposite == null || he.isHard();
    }
 
-   String edgeStr (HalfEdge he) {
-      return he.tail.idx + "->" + he.head.idx;
+   /**
+    * Start of a half edge group.
+    */
+   public boolean isGroupStart (HalfEdge he) {
+      if (groupHalfEdgesByHardEdge) {
+         return he.opposite == null || he.isHard();   
+      }
+      else {
+         return he.opposite == null;
+      }
    }
-      
+   
+   /**
+    * End of a half edge group.
+    */  
+   private boolean isGroupEnd (HalfEdge he) {
+      if (groupHalfEdgesByHardEdge) {
+         return he == null || he.isHard();
+      }
+      else {
+         return he == null;
+      }
+   }
 
    /**
     * Sort the half edges into contiguous groups, with the starting edges of
@@ -413,7 +443,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
          for (HalfEdgeNode node=incidentHedges; node!=null; node=node.next) {
             HalfEdge he = node.he;
             if (!marked.contains(he)) {
-               if (isNormalBoundary (he)) {
+               if (isGroupStart (he)) {
                   startingHedges.add (he);
                   // Traverse through the half-edges contiguous to he, marking
                   // them. They can be discarded since none of them can be a
@@ -422,7 +452,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
                      marked.add (he);
                      he = he.next.opposite;
                   }                     
-                  while (he != null && !he.isHard());
+                  while (!isGroupEnd(he));
                }
                else {
                   // Traverse through the half-edges contiguous to he, marking
@@ -441,7 +471,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
                      marked.add (he);
                      he = he.next.opposite;
                   }                     
-                  while (he != null && he != he0 && !he.isHard());
+                  while (!isGroupEnd(he) && he != he0);
                   if (he == he0) {
                      startingHedges.add (minFaceHe);
                   }
@@ -475,7 +505,7 @@ public class Vertex3d extends Feature implements Clonable, Boundable {
                node.next = null;
                he = he.next.opposite;
             }
-            while (he != null && !he.isHard() && he != start);
+            while (!isGroupEnd(he) && he != start);
          }
          if (numIncidentHalfEdges() != cnt) {
             throw new InternalErrorException (

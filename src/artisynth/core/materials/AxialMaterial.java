@@ -14,7 +14,8 @@ public abstract class AxialMaterial extends MaterialBase {
       SimpleAxialMuscle.class,
       LigamentAxialMaterial.class,
       MasoudMillardLAM.class,
-      UWLigamentMaterial.class
+      UWLigamentMaterial.class,
+      Hill3ElemMuscleRigidTendon.class,
    };
 
    public static Class<?>[] getSubClasses() {

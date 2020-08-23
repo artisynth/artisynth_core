@@ -215,7 +215,6 @@ public abstract class AxialMuscleMaterial extends AxialMaterial {
    }
 
    public AxialMuscleMaterial () {
-
    }
 
    public void setAxialMuscleMaterialProps(double maxF, double optL, 

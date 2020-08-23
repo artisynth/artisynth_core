@@ -46,6 +46,10 @@ public class NonuniformBoundsTerm extends QPConstraintTermBase {
    }
 
    public int getTerm (MatrixNd A, VectorNd b, int rowoff, double t0, double t1) {
+      TrackingController controller = getController();
+      if (controller == null) {
+         return rowoff;
+      }
       int numex = A.colSize();
       // get lower bounds first, then upper bounds, just to ensure numeric
       // repeatability with legacy code
@@ -71,6 +75,13 @@ public class NonuniformBoundsTerm extends QPConstraintTermBase {
                A.set (rowoff, j, 0.0);
             }
             b.set (rowoff++, -myUpperBound.get (i));
+         }
+      }
+      if (controller.getComputeIncrementally()) {
+         for (int i=0; i<numc; i++) {
+            double ex = controller.getExcitation(i);
+            b.add (i, -ex);
+            b.add (i+numex, ex);
          }
       }
       return rowoff;

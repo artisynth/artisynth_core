@@ -104,11 +104,8 @@ class NumericListTest {
 
       NumericList newList = null;
 
-      try {
-         newList = (NumericList)list.clone();
-      }
-      catch (CloneNotSupportedException e) { // wont be thrown
-      }
+      newList = (NumericList)list.clone();
+
       checkContents (newList, new double[] { 0, 0, 0, 2, 4, 0, 4, 0, 0 });
 
       list.clear();

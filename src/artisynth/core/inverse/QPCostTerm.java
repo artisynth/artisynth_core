@@ -7,7 +7,7 @@ import maspack.matrix.VectorNd;
  * QPTerm that adds to the cost components Q and p of a quadratic program
  * that minimizes 
  * <pre>
- *    x^T Q x + p^T x
+ *    1/2 x^T Q x + p^T x
  * </pre>
  * subject to inequality constraints.
  */

@@ -34,12 +34,22 @@ public class L2RegularizationTerm extends QPCostTermBase {
 
    public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
       TrackingController controller = getController();
-      if (controller != null) {  
+      if (controller != null) { 
          int nume = controller.numExciters();
-         for (int i=0; i<nume; i++) {
-            ExciterComp ec = controller.myExciters.get(i);
-            Q.add (i, i, myWeight*ec.getWeight());
-         }      
+         if (!controller.getComputeIncrementally()) {
+            for (int i=0; i<nume; i++) {
+               double w = myWeight*controller.myExciters.get(i).getWeight();
+               Q.add (i, i, w);
+            }
+         }
+         else {
+            VectorNd curex = controller.getExcitations();
+            for (int i=0; i<nume; i++) {
+               double w = myWeight*controller.myExciters.get(i).getWeight();
+               Q.add (i, i, w);
+               p.add (i, w*curex.get(i));
+            }
+         }
       }
    }
    

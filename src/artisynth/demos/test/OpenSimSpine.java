@@ -97,28 +97,50 @@ public class OpenSimSpine extends RootModel {
          ArrayList<JointBase> toRemove = new ArrayList<>();
 
          @SuppressWarnings("unchecked")
-         RenderableComponentList<RenderableComponentList<JointBase>> joints =
-            (RenderableComponentList<RenderableComponentList<JointBase>>)rb.get("joint");
+         // RenderableComponentList<RenderableComponentList<JointBase>> joints =
+         //    (RenderableComponentList<RenderableComponentList<JointBase>>)rb.get("joint");
+         // if (joints != null) {
+         //    for (RenderableComponentList<JointBase> list : joints) {
+         //       for (JointBase bc : list) {
+         //          if (bc instanceof OpenSimCustomJoint) {
+         //             OpenSimCustomJoint j = (OpenSimCustomJoint)bc;
+         //             toRemove.add (j);
+         //             FrameSpring fs = new FrameSpring (j.getName ());
+
+         //             FrameFrameAttachment fa =
+         //                (FrameFrameAttachment)j.getFrameAttachmentA ();
+         //             FrameFrameAttachment fb =
+         //                (FrameFrameAttachment)j.getFrameAttachmentB ();
+
+         //             fs.setFrames (
+         //                fa.getMaster(), fa.getTFM(), fb.getMaster(), fb.getTFM());
+         //             fs.setMaterial (
+         //                new LinearFrameMaterial (100000, 1000, 0, 0));
+         //             fs.setName (j.getName ());
+         //             toAdd.add (fs);
+         //          }
+         //       }
+         //    }
+         RenderableComponentList<JointBase> joints =
+            (RenderableComponentList<JointBase>)rb.get("joint");
          if (joints != null) {
-            for (RenderableComponentList<JointBase> list : joints) {
-               for (JointBase bc : list) {
-                  if (bc instanceof OpenSimCustomJoint) {
-                     OpenSimCustomJoint j = (OpenSimCustomJoint)bc;
-                     toRemove.add (j);
-                     FrameSpring fs = new FrameSpring (j.getName ());
+            for (JointBase bc : joints) {
+               if (bc instanceof OpenSimCustomJoint) {
+                  OpenSimCustomJoint j = (OpenSimCustomJoint)bc;
+                  toRemove.add (j);
+                  FrameSpring fs = new FrameSpring (j.getName ());
 
-                     FrameFrameAttachment fa =
-                        (FrameFrameAttachment)j.getFrameAttachmentA ();
-                     FrameFrameAttachment fb =
-                        (FrameFrameAttachment)j.getFrameAttachmentB ();
+                  FrameFrameAttachment fa =
+                     (FrameFrameAttachment)j.getFrameAttachmentA ();
+                  FrameFrameAttachment fb =
+                     (FrameFrameAttachment)j.getFrameAttachmentB ();
 
-                     fs.setFrames (
-                        fa.getMaster(), fa.getTFM(), fb.getMaster(), fb.getTFM());
-                     fs.setMaterial (
-                        new LinearFrameMaterial (100000, 1000, 0, 0));
-                     fs.setName (j.getName ());
-                     toAdd.add (fs);
-                  }
+                  fs.setFrames (
+                     fa.getMaster(), fa.getTFM(), fb.getMaster(), fb.getTFM());
+                  fs.setMaterial (
+                     new LinearFrameMaterial (100000, 1000, 0, 0));
+                  fs.setName (j.getName ());
+                  toAdd.add (fs);
                }
             }
             for (JointBase joint : toRemove) {

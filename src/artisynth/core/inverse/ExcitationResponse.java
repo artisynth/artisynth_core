@@ -104,31 +104,14 @@ public class ExcitationResponse
       // identical to earlier results when t0, t1 where given as nsec integers
       double h = TimeBase.round(t1 - t0);
 
-      boolean useTrapezoidal = false;
-      switch (myController.getUseTrapezoidalSolver()) {
-         case 0: {
-            useTrapezoidal = false;
-            break;
-         }
-         case 1: {
-            useTrapezoidal = true;
-            break;
-         }
-         default: {
-            if (myMech instanceof MechModel) {
-               useTrapezoidal =
-                  ((MechModel)myMech).getIntegrator ()==Integrator.Trapezoidal;
-            }
-            else {
-               useTrapezoidal = false;
-            }
-            break;
-         }
-      }
+      boolean useTrapezoidal = myController.useTrapezoidalSolver();
 
       int velSize = myMech.getActiveVelStateSize ();
 //      int conSize = myMech
       int exSize = myController.numExciters();
+
+      boolean incremental = myController.getComputeIncrementally();
+      double deltaEx = 0.001; // for incremental computation
       
       fa.setSize(velSize);
 
@@ -158,19 +141,25 @@ public class ExcitationResponse
       curEx.setSize(exSize);
       myController.getExcitations(curEx, 0);
       
-      // bf = M v
+      VectorNd Mv = new VectorNd (velSize);
       myMechSysSolver.updateStateSizes();
       myMechSysSolver.updateMassMatrix(t0);
-      myMechSysSolver.mulActiveInertias(bf, curVel);
+      myMechSysSolver.mulActiveInertias(Mv, curVel);
 
       // fp = passive forces with zero muscle activation
-      ex.setZero();
+      if (incremental) {
+         ex.set (curEx);
+      }
+      else {
+         ex.setZero();
+      }
+
       myController.updateConstraints(t1);
       myController.updateForces(t1, fp, ex);
       myMechSysSolver.addMassForces(fp, t0);
 
       // bf = M v + h fp
-      bf.scaledAdd(h, fp, bf);
+      bf.scaledAdd(h, fp, Mv);
       
       if (useTrapezoidal) {
          // use Trapezoidal integration
@@ -188,39 +177,61 @@ public class ExcitationResponse
       lam0.set (myMechSysSolver.getLambda ());
 
       // where e_j is elementary unit vector
-      for (int j = 0; j < exSize; j++)
-      {
-         if (j > 0) {
-            ex.set(j - 1, 0.0);
+      for (int j = 0; j < exSize; j++) {
+         double dex = deltaEx;
+         if (incremental) {
+            ex.set (curEx);
+            // hack: if current excitation plus dex > 1.0, use -dex instead,
+            // since otherwise excitation clipping may cause derivative to
+            // evaluate to 0
+            double ej = curEx.get(j);
+            if (ej + dex > 1.0) {
+               dex = -dex;
+            }
+            ex.set (j, ej+dex);
          }
-         ex.set(j, 1.0);
-         // XXX scale excitation value by weight??
-         
+         else {
+            ex.setZero();
+            ex.set (j, 1.0);
+         }
          myController.updateForces(t1, fa, ex);
+         
          
          // XXX scale fa by excitation weight??
          
-         fa.sub (fa, fp);
-         fa.scale (h);
+         if (incremental) {
+            myMechSysSolver.addMassForces(fa, t0);
+            bf.scaledAdd(h, fa, Mv);
+         }
+         else {
+            bf.sub (fa, fp);
+            bf.scale (h);
+         }
          
-         if (myController.getUseKKTFactorization()) {        
+         if (myController.getUseKKTFactorization() || incremental) {        
             if (useTrapezoidal) {
                 // use Trapezoidal integration
                 myMechSysSolver.KKTFactorAndSolve (
-                   HuCols[j], null, fa, /*tmp=*/ftmp, curVel, 
+                   HuCols[j], null, bf, /*tmp=*/ftmp, curVel, 
                    h, -h/2, -h*h/4, -h/2, h*h/4);
              }
              else {
                 // use ConstrainedBackwardEuler integration
                 myMechSysSolver.KKTFactorAndSolve(
-                   HuCols[j], null, fa, /*tmp=*/ftmp, curVel, h);
+                   HuCols[j], null, bf, /*tmp=*/ftmp, curVel, h);
              }     
             HlamCols[j].set(myMechSysSolver.getLambda());
+            if (incremental) {
+               HuCols[j].sub (u0);
+               HuCols[j].scale (1/dex);
+               HlamCols[j].sub (lam0);  
+               HlamCols[j].scale (1/dex);  
+            }
          }
          else {
             // use pre-factored KKT system
             // Note neglecting change in jacobians due to excitation
-            myMechSysSolver.KKTSolve(HuCols[j], HlamCols[j], the, fa);
+            myMechSysSolver.KKTSolve(HuCols[j], HlamCols[j], the, bf);
          }
       }
 
@@ -237,7 +248,12 @@ public class ExcitationResponse
          MatrixNd Hu = new MatrixNd (exSize, exSize);
          
          VectorNd vel = new VectorNd (mySys.getActiveVelStateSize());
-         ex.setZero();
+         if (incremental) {
+            ex.set (curEx);
+         }
+         else {
+            ex.setZero();
+         }
 
          mySys.preadvance (t0, t1, 0);
          myController.setExcitations (ex, 0);
@@ -248,10 +264,22 @@ public class ExcitationResponse
          mySys.setState (saveState);
 
          for (int j = 0; j < exSize; j++) {
-            if (j > 0) {
-               ex.set(j - 1, 0.0);
+            double dex = deltaEx;
+            if (incremental) {
+               ex.set (curEx);
+               // hack: if current excitation plus dex > 1.0, use -dex instead,
+               // since otherwise excitation clipping may cause derivative to
+               // evaluate to 0
+               double ej = curEx.get(j);
+               if (ej + dex > 1.0) {
+                  dex = -dex;
+               }
+               ex.set (j, ej+dex);
             }
-            ex.set(j, 1.0);
+            else {
+               ex.setZero();
+               ex.set (j, 1.0);
+            }
 
             mySys.preadvance (t0, t1, 0);
             myController.setExcitations (ex, 0);
@@ -259,8 +287,9 @@ public class ExcitationResponse
 
             mySys.getActiveVelState (Hucol);
             Hucol.sub (u0chk);
-            Huchk.setColumn (j, Hucol);
-
+            if (incremental) {
+               Hucol.scale (1/dex);
+            }
             mySys.setState (saveState);
             Hu.setColumn (j, HuCols[j]);
          }

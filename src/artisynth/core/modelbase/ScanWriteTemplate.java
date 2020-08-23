@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Deque;
 
 import artisynth.core.util.ScanToken;
+import artisynth.core.modelbase.ComponentUtils;
+import artisynth.core.modelbase.CompositeComponent;
 import maspack.matrix.Vector3d;
 import maspack.util.ReaderTokenizer;
 import maspack.util.NumberFormat;
@@ -18,6 +20,7 @@ public class ScanWriteTemplate extends ModelComponentBase {
    ModelComponent myRefComp;
    Vector3d myVec = new Vector3d();
    double myScalar = 0;
+   String myString;
 
    public ScanWriteTemplate () {
    }
@@ -37,6 +40,8 @@ public class ScanWriteTemplate extends ModelComponentBase {
       pw.print ("vec=");
       myVec.write (pw, fmt, /*withBrackets=*/true);
       pw.println ("");
+      pw.print ("scalar=" + myScalar);
+      pw.print ("string=\"" + myString + "\"");
       super.writeItems (pw, fmt, ancestor);
    }
 
@@ -53,6 +58,10 @@ public class ScanWriteTemplate extends ModelComponentBase {
       }
       else if (scanAttributeName (rtok, "scalar")) {
          myScalar = rtok.scanNumber();
+         return true;
+      }
+      else if (scanAttributeName (rtok, "string")) {
+         myString = rtok.scanQuotedString('"');
          return true;
       }
       rtok.pushBack();

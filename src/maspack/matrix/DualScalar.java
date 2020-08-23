@@ -1,10 +1,13 @@
 /**
- * Copyright (c) 2014, by the Authors: Antonio Sanchez (UBC)
+ * copyright (c) 2014, by the Authors: Antonio Sanchez (UBC)
  *
  * This software is freely available under a 2-clause BSD license. Please see
  * the LICENSE file in the ArtiSynth distribution directory for details.
  */
 package maspack.matrix;
+
+import maspack.util.NumberFormat;
+import maspack.util.RandomGenerator;
 
 /**
  * Dual Number with Double values, d = a + e*b, where e*e = 0;
@@ -205,5 +208,12 @@ public class DualScalar {
       return b;
    }
    
-   
+   public String toString () {
+      return ("("+a+" "+b+")");
+   }
+
+   public String toString (String fmtStr) {
+      NumberFormat fmt = new NumberFormat();
+      return ("("+fmt.format(a)+" "+fmt.format(b)+")");
+   }
 }

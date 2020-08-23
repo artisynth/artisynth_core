@@ -136,6 +136,9 @@ public class TrackingController extends ControllerBase
       new DoubleInterval(DEFAULT_EXCITATION_BOUNDS);
    private PropertyMode myExcitationBoundsMode = PropertyMode.Inherited;
 
+   private static boolean DEFAULT_COMPUTE_INCREMENTALLY = false;
+   private boolean myComputeIncrementally = DEFAULT_COMPUTE_INCREMENTALLY;
+
    // ========= other parameter attributes =========
 
    // 1 for true, 0 for false, -1 for automatic
@@ -221,6 +224,10 @@ public class TrackingController extends ControllerBase
       myProps.addInheritable (
          "excitationBounds", "bounds for the computed excitations",
          DEFAULT_EXCITATION_BOUNDS);
+      myProps.add(
+         "computeIncrementally",
+         "compute excitations incrementally at each time step",
+         DEFAULT_COMPUTE_INCREMENTALLY);
    }
 
    /**
@@ -401,6 +408,32 @@ public class TrackingController extends ControllerBase
     */
    public void setUseTimestepScaling (boolean enable) {
       myUseTimestepScaling = enable;
+   }
+
+   /**
+    * Queries whether or not excitations are computed incrementally at each
+    * time step, as described in {@link #setIncrementalExcitations(boolean)}.
+    * 
+    * @return {@code true} if excitations are computed incrementally
+    */
+   public boolean getComputeIncrementally () {
+      return myComputeIncrementally;
+   }
+
+   /**
+    * Enables incremental computation. If enabled, then excitations are
+    * computed incrementatlly (as opposed to holistically) at each time step.
+    * The various QPTerms used by the controller should adjust their
+    * contributions to the quadratic program to reflect an incemental
+    * computation instead of a holistic one.  Incremental computation is
+    * disabled by default.
+    * 
+    * @param enable if {@code true}, enables incremental computation
+    */
+   public void setComputeIncrementally (boolean enable) {
+      if (myComputeIncrementally != enable) {
+         myComputeIncrementally = enable;
+      }
    }
 
    /**
@@ -675,9 +708,7 @@ public class TrackingController extends ControllerBase
       //myMotionForceData = new MotionForceInverseData (this);
       myExcitationResponse = new ExcitationResponse (this);
       
-      if (!myMotionTerm.useDeltaAct) {
-         setExcitationBounds(0d, 1d);
-      }
+      setExcitationBounds(0d, 1d);
       myBoundsTerm = new BoundsTerm ("boundsTerm");
       //myCostFunction.addInequalityConstraint (myBoundsTerm);
       myBoundsTerm.setFixed (true);
@@ -771,19 +802,20 @@ public class TrackingController extends ControllerBase
 //   
    // ========== Begin internal methods ==========
    
-   private void invalidateStressIfFemRecursive(ModelComponent model) {
+   private void recursivelyInvalidateFEMStresses(ModelComponent model) {
       // recursively look for FEM models
       if (model instanceof FemModel) {
          ((FemModel)model).invalidateStressAndStiffness ();
-      } else if (model instanceof ComponentList<?>) {
+      } 
+      else if (model instanceof ComponentList<?>) {
          for (ModelComponent mc : (ComponentList<?>)model) {
-            invalidateStressIfFemRecursive (mc);
+            recursivelyInvalidateFEMStresses (mc);
          }
       }
    }
    
-   private void invalidateStressIfFem(MechSystemModel model) {
-      invalidateStressIfFemRecursive (model);
+   protected void invalidateFEMStresses(MechSystemModel model) {
+      recursivelyInvalidateFEMStresses (model);
    }
 
    protected void updateCostTerms(double t0, double t1) {
@@ -827,7 +859,7 @@ public class TrackingController extends ControllerBase
       // solve for the excitations, given the cost and constraint terms
       VectorNd x = myQPSolver.solve (costs, constraints, numExciters(), t0, t1);
 
-      if (myMotionTerm.useDeltaAct) {
+      if (myComputeIncrementally) {
 
          // VectorNd deltaActivations = myCostFunction.solve (t0, t1);
          // myExcitations.add (deltaActivations);
@@ -872,20 +904,19 @@ public class TrackingController extends ControllerBase
    }
 
    /**
-    * Determines the set of forces given a set of excitations.
-    * Note: this actually sets the excitations in the model
+    * Updates the force values in the model for a given set of
+    * excitation values. 
     * 
-    * @param forces output from the mech system
+    * @param t time at which forces are set
+    * @param forces if non-null, returns the active forces
     * @param excitations input muscle excitations
-    * 
     */
    void updateForces(double t, VectorNd forces, VectorNd excitations) {
       setExcitations(excitations, /* idx= */0);
-      // for FemMuscleMaterial, need to invalidate fem stress before
-      // updateForces()
-      invalidateStressIfFem(myMech);
       myMech.updateForces (t);
-      myMech.getActiveForces(forces);
+      if (forces != null) {
+         myMech.getActiveForces(forces);
+      }
    }
 
    /**
@@ -1011,6 +1042,8 @@ public class TrackingController extends ControllerBase
       for (WeightedReferenceComp<ExcitationComponent> ecomp : myExciters) {
          ecomp.getReference().setExcitation(buf[idx++]);
       }
+      // Stresses in FEM models may depend on excitations
+      invalidateFEMStresses (myMech);
       return idx;
    }
 
@@ -1021,12 +1054,38 @@ public class TrackingController extends ControllerBase
     * @param idx starting index
     * @return next index to use <code>idx+numExciters()</code>
     */
-   public int getExcitations(VectorNd ex, int idx) {
+   public int getExcitations (VectorNd ex, int idx) {
       double[] buf = ex.getBuffer();
       for (int i = 0; i < numExciters(); i++) {
          buf[idx++] = getExciter(i).getNetExcitation ();
       } 
       return idx;
+   }
+
+   /**
+    * Returns a vector containing all the current excitation values.  The
+    * vector has size {@code numExciters()} and must not be modified.
+    *
+    * @return vector of current excitation values
+    */
+   public VectorNd getExcitations () {
+      // resize, just in case
+      if (myExcitations.size() != numExciters()) {
+         myExcitations.setSize (numExciters());
+      }
+      return myExcitations;
+   }
+
+   /**
+    * Queries the current excitation value of the <code>k</code>-th
+    * exciter. {@code k} must be in the range {@code 0} to {@code
+    * numExciters()-1}.
+    *
+    * @param k index of the excitation value to query
+    * @return {@code k}-th excitation value
+    */
+   public double getExcitation (int k) {
+      return getExciter(k).getNetExcitation();
    }
 
    /**
@@ -1765,9 +1824,9 @@ public class TrackingController extends ControllerBase
     */
    private void getExcitationState (NumericState nstate) {
       // Store number of excitation values
-      int nexvals = numExciters();
-      nstate.zput (nexvals);
-      for (int i=0; i<nexvals; i++) {
+      int numex = numExciters();
+      nstate.zput (numex);
+      for (int i=0; i<numex; i++) {
          double exval = 0;
          // In some cases, myExcitations may have a size < numExciters().
          // Just store a 0 in that case.

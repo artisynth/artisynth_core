@@ -95,6 +95,10 @@ public class QPSolver {
       // solve the problem
       try {
          if (Aeq.rowSize() == 0) {
+            // System.out.println ("Q=\n" + Q.toString ("%12.5f"));
+            // System.out.println ("P=\n" + P.toString ("%12.5f"));
+            // System.out.println ("A=\n" + A.toString ("%12.5f"));
+            // System.out.println ("b=\n" + b.toString ("%12.5f"));
             mySolver.solve (x,Q,P,A,b);
          }
          else {

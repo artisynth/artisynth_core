@@ -51,8 +51,7 @@ public class DynamicRegularizationTerm extends QPCostTermBase {
       return myProps;
    }
    
-   public VectorNd computeWeights (double dt) {
-      TrackingController controller = getController();
+   public VectorNd computeWeights (TrackingController controller, double dt) {
 
       MotionTargetTerm mterm = controller.getMotionTargetTerm();
       MatrixNd Hm = new MatrixNd (mterm.getH());
@@ -178,15 +177,24 @@ public class DynamicRegularizationTerm extends QPCostTermBase {
 
    @Override
    public void getQP (MatrixNd Q, VectorNd p, double t0, double t1) {
-      if (isDynamicP && getController() != null) {
-         VectorNd w = computeWeights(t1-t0);
-         for (int i=0; i<Q.rowSize(); i++) {
-            Q.add (i, i, myWeight*w.get(i));
+      TrackingController controller = getController();
+      if (controller != null) {
+         if (isDynamicP) {
+            VectorNd w = computeWeights (controller, t1-t0);
+            for (int i=0; i<Q.rowSize(); i++) {
+               Q.add (i, i, myWeight*w.get(i));
+            }
          }
-      }
-      else {
-         for (int i=0; i<Q.rowSize(); i++) {
-            Q.add (i, i, myWeight);
+         else {
+            for (int i=0; i<Q.rowSize(); i++) {
+               Q.add (i, i, myWeight);
+            }
+         }
+         if (controller.getComputeIncrementally()) {
+            VectorNd curex = controller.getExcitations();
+            for (int i=0; i<Q.rowSize(); i++) {
+               p.add (i, Q.get(i,i)*curex.get(i));
+            }
          }
       }
    }

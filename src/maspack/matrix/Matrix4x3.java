@@ -487,6 +487,66 @@ public class Matrix4x3 extends DenseMatrixBase
    }
 
    /**
+    * Adds v to the 1x3 sub-matrix starting at (0, 0).
+    *
+    * @param v values to add to the sub-matrix
+    */
+    public void addSubMatrix00 (Vector3d v) {
+      m00 += v.x;
+      m01 += v.y;
+      m02 += v.z;
+   }
+
+   /**
+    * Adds M to the 3x3 sub-matrix starting at (1, 0).
+    *
+    * @param M values to add to the sub-matrix
+    */
+   public void addSubMatrix10 (Matrix3d M) {
+      m10 += M.m00;
+      m11 += M.m01;
+      m12 += M.m02;
+
+      m20 += M.m10;
+      m21 += M.m11;
+      m22 += M.m12;
+
+      m30 += M.m20;
+      m31 += M.m21;
+      m32 += M.m22;
+   }  
+
+   /**
+    * Sets the 1x3 sub-matrix starting at (0, 0) to v
+    *
+    * @param v new sub-matrix values
+    */
+    public void setSubMatrix00 (Vector3d v) {
+      m00 = v.x;
+      m01 = v.y;
+      m02 = v.z;
+   }
+
+   /**
+    * Sets the 3x3 sub-matrix starting at (1, 0) to M
+    *
+    * @param M new sub-matrix values
+    */
+   public void setSubMatrix10 (Matrix3d M) {
+      m10 = M.m00;
+      m11 = M.m01;
+      m12 = M.m02;
+
+      m20 = M.m10;
+      m21 = M.m11;
+      m22 = M.m12;
+
+      m30 = M.m20;
+      m31 = M.m21;
+      m32 = M.m22;
+   }  
+
+   /**
     * Scales the elements of this matrix by <code>s</code>.
     * 
     * @param s
@@ -854,6 +914,53 @@ public class Matrix4x3 extends DenseMatrixBase
     */
    public void mulTransposeLeftAdd (Matrix M1, Matrix M2) {
       MatrixMulTransposeLeftAdd.mulTransposeLeftAdd4x3 (this, M1, M2);
+   }
+
+   /**
+    * Multiplies the 4x4 matrix M1 by the 4x3 matrix M2 and adds the result to
+    * this matrix. This special method has been added to support operations
+    * involving quaternions.
+    *
+    * @param M1 left matrix term
+    * @param M2 right matrix term
+    */
+   public void mulAdd (Matrix4d M1, Matrix4x3 M2) {
+      double x00, x01, x02;
+      double x10, x11, x12;
+      double x20, x21, x22;
+      double x30, x31, x32;
+
+      x00 = M1.m00*M2.m00 + M1.m01*M2.m10 + M1.m02*M2.m20 + M1.m03*M2.m30;
+      x01 = M1.m00*M2.m01 + M1.m01*M2.m11 + M1.m02*M2.m21 + M1.m03*M2.m31;
+      x02 = M1.m00*M2.m02 + M1.m01*M2.m12 + M1.m02*M2.m22 + M1.m03*M2.m32;
+
+      x10 = M1.m10*M2.m00 + M1.m11*M2.m10 + M1.m12*M2.m20 + M1.m13*M2.m30;
+      x11 = M1.m10*M2.m01 + M1.m11*M2.m11 + M1.m12*M2.m21 + M1.m13*M2.m31;
+      x12 = M1.m10*M2.m02 + M1.m11*M2.m12 + M1.m12*M2.m22 + M1.m13*M2.m32;
+
+      x20 = M1.m20*M2.m00 + M1.m21*M2.m10 + M1.m22*M2.m20 + M1.m23*M2.m30;
+      x21 = M1.m20*M2.m01 + M1.m21*M2.m11 + M1.m22*M2.m21 + M1.m23*M2.m31;
+      x22 = M1.m20*M2.m02 + M1.m21*M2.m12 + M1.m22*M2.m22 + M1.m23*M2.m32;
+
+      x30 = M1.m30*M2.m00 + M1.m31*M2.m10 + M1.m32*M2.m20 + M1.m33*M2.m30;
+      x31 = M1.m30*M2.m01 + M1.m31*M2.m11 + M1.m32*M2.m21 + M1.m33*M2.m31;
+      x32 = M1.m30*M2.m02 + M1.m31*M2.m12 + M1.m32*M2.m22 + M1.m33*M2.m32;
+
+      m00 += x00;
+      m01 += x01;
+      m02 += x02;
+
+      m10 += x10;
+      m11 += x11;
+      m12 += x12;
+
+      m20 += x20;
+      m21 += x21;
+      m22 += x22;
+
+      m30 += x30;
+      m31 += x31;
+      m32 += x32;
    }
 
    /**

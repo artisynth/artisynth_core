@@ -103,6 +103,14 @@ public class BoundsTerm extends QPConstraintTermBase {
             b.set (rowoff++, -upper);
          }
       }
+
+      if (controller.getComputeIncrementally()) {
+         for (int i=0; i<numex; i++) {
+            double ex = controller.getExcitation(i);
+            b.add (i, -ex);
+            b.add (i+numex, ex);
+         }
+      }
       return rowoff;
 
    }

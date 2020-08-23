@@ -199,4 +199,16 @@ public class FrameSpringDemo extends RootModel {
       X.R.setRpy (0, Math.toRadians(-60), 0);
       myMechMod.transformGeometry (X);
    }
+
+   // public StepAdjustment advance (double t0, double t1, int flags) {
+   //    StepAdjustment adj = super.advance (t0, t1, flags);
+
+   //    SolveMatrixTest tester = new SolveMatrixTest();
+   //    tester.setYPRStiffness (true);
+   //    System.out.println (
+   //       "error=" + tester.testStiffness (myMechMod, 1e-8, "%12.3f"));
+
+   //    return adj;
+   // } 
+   
 }

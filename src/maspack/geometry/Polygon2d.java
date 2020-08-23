@@ -8,6 +8,7 @@ package maspack.geometry;
 
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
@@ -96,6 +97,16 @@ public class Polygon2d implements Renderable {
 
    public ListIterator getVertices() {
       return new VertexIterator();
+   }
+
+   public Point2d[] getPoints() {
+      Point2d[] pnts = new Point2d[numVertices()];
+      Vertex2d vtx = firstVertex;
+      for (int i=0; i<pnts.length; i++) {
+         pnts[i] = new Point2d (vtx.pnt);
+         vtx = vtx.next;
+      }
+      return pnts;
    }
 
    public int numVertices() {
@@ -243,6 +254,12 @@ public class Polygon2d implements Renderable {
 
    public void clear() {
       firstVertex = null;
+   }
+
+   public void shiftFirstVertex () {
+      if (firstVertex != null) {
+         firstVertex = firstVertex.next;
+      }
    }
 
    public void getCentroid (Point2d pnt) {
@@ -537,6 +554,103 @@ public class Polygon2d implements Renderable {
 
    public void getSelection (LinkedList<Object> list, int qid) {
    }
+
+   private double xprod (Point2d p0, Point2d p1, Point2d p2) {
+      double d1x = p1.x - p0.x;
+      double d1y = p1.y - p0.y;
+      double d2x = p2.x - p0.x;
+      double d2y = p2.y - p0.y;
+
+      return (d1x*d2y - d2x*d1y);
+   }
+
+   private boolean leftTurn (Point2d p0, Point2d p1, Point2d p2) {
+      return xprod (p0, p1, p2) > 0;
+   }
    
+   private boolean rightTurn (Point2d p0, Point2d p1, Point2d p2) {
+      return xprod (p0, p1, p2) < 0;
+   }
+   
+   private Polygon2d listToHull (LinkedList<Point2d> list) {
+      int numv = list.size()-1;
+      if (numv < 1) {
+         return new Polygon2d();
+      }
+      Point2d[] pnts = new Point2d[numv];
+      Iterator<Point2d> it = list.iterator();
+      it.next(); // discard first vertex
+      for (int k=0; k<numv; k++) {
+         pnts[k] = it.next();
+      }
+      return new Polygon2d (pnts);
+   }
+
+   /**
+    * Computes the convex hull of this Polygon2d, under the assumption that it
+    * describes a simple polygon. The result is returned as another Polygon2d,
+    * with vertices arranged clockwise.
+    *
+    * <p>The method uses the O(n) time algorithm described by A Melkman, "On-Li
+    * Construction of the Convex Hull of a Simple Polyline", Information
+    * Processing Letters (1987). The implementation does not use robust
+    * predicates and so may produce results that are inaccurate at a
+    * machine-precision level.
+    */
+   public Polygon2d simpleConvexHull() {
+
+      if (numVertices() <= 2) {
+         Polygon2d poly = new Polygon2d();
+         poly.set (this);
+         return poly;
+      }
+      // We use a list to implement the deque of the Melkman algorithm, with
+      // with add/remove/getFirst() used the access the bottom of the deque and
+      // add/remove/getLast() used to access the top.
+      LinkedList<Point2d> list = new LinkedList<>();
+      
+      Point2d[] pnts = getPoints();
+      int pidx = 0;
+      Point2d p0 = pnts[pidx++];
+      Point2d p1 = pnts[pidx++];
+      Point2d p2 = pnts[pidx++];
+
+      if (rightTurn (p0, p1, p2)) {
+         list.addLast (p0);
+         list.addLast (p1);
+      }
+      else {
+         list.addLast (p1);
+         list.addLast (p0);
+      }
+      list.addLast (p2);
+      list.addFirst (p2);
+      int nv = 3;
+      while (pidx < pnts.length) {
+         Point2d p = pnts[pidx++];
+         while (!leftTurn (p, list.get(0), list.get(1)) &&
+                !leftTurn (list.get(nv-1), list.get(nv), p)) {
+            if (pidx < pnts.length) {
+               p = pnts[pidx++];
+            }
+            else {
+               return listToHull (list);
+            }
+         }
+         while (!rightTurn (list.get(nv-1), list.get(nv), p)) {
+            Point2d pr = list.removeLast();
+            nv--;
+         }
+         list.addLast (p);
+         nv++;
+         while (!rightTurn (p, list.get(0), list.get(1))) {
+            Point2d pr = list.removeFirst();
+            nv--;
+         }
+         list.addFirst (p);
+         nv++;
+      }
+      return listToHull (list);
+   }
 
 }

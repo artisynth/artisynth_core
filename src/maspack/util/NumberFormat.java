@@ -677,6 +677,11 @@ public class NumberFormat {
             if (numFracDigits == -1) {
                expFmt.format (x, sbuf, fpos);
                int i = indexOf ('E', base, sbuf);
+               if (i == -1) {
+                  throw new InternalErrorException (
+                     "E not found in exponential format: x=" + x +
+                     " sbuf=" + sbuf);
+               }
                if (type == 'g') {
                   sbuf.setCharAt (i, 'e');
                }

@@ -1,6 +1,7 @@
 package artisynth.demos.test;
 
 import java.awt.Color;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
 import maspack.matrix.*;
@@ -27,6 +28,12 @@ public class FrameSpringPendulum extends RootModel {
    FrameSpring mySpring;
    MechModel myMech;
    StabilityTerm myStabilizer;
+
+   static final double DEFAULT_PASSIVE_STIFFNESS = 1000.0;
+   double myPassiveStiffness = DEFAULT_PASSIVE_STIFFNESS;
+
+   static final double DEFAULT_MAX_COLORED_EXCITATION = 1.0;
+   double myMaxColoredExcitation = DEFAULT_MAX_COLORED_EXCITATION;
 
    class StabilityMonitor extends MonitorBase {
 
@@ -77,6 +84,13 @@ public class FrameSpringPendulum extends RootModel {
          "stiffness", "translational spring stiffness", 1e5);
       myProps.add (
          "rotStiffness", "rotational spring stiffness", 1e5);
+      myProps.add (
+         "passiveStiffness",
+         "passive stiffness in the springs", DEFAULT_PASSIVE_STIFFNESS);
+      myProps.add (
+         "maxColoredExcitation",
+         "saturation value for excitation coloring",
+         DEFAULT_MAX_COLORED_EXCITATION);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -124,6 +138,33 @@ public class FrameSpringPendulum extends RootModel {
          LinearFrameMaterial mat = (LinearFrameMaterial)mySpring.getMaterial();
          mat.setRotaryStiffness(new Vector3d (k, k, k));
       }
+   }
+
+   public double getPassiveStiffness() {
+      return myPassiveStiffness;
+   }
+
+   public void setPassiveStiffness (double k) {
+      for (AxialSpring spr : myMech.axialSprings()) {
+         AxialMaterial mat = spr.getMaterial();
+         if (mat instanceof SimpleAxialMuscle) {
+            ((SimpleAxialMuscle)mat).setStiffness (k);
+         }
+      }
+      myPassiveStiffness = k;
+   }
+
+   public double getMaxColoredExcitation() {
+      return myMaxColoredExcitation;
+   }
+
+   public void setMaxColoredExcitation (double maxe) {
+      for (AxialSpring spr : myMech.axialSprings()) {
+         if (spr instanceof Muscle) {
+            ((Muscle)spr).setMaxColoredExcitation (maxe);
+         }
+      }
+      myMaxColoredExcitation = maxe;
    }
 
    protected void reinitMembers() {
@@ -191,7 +232,7 @@ public class FrameSpringPendulum extends RootModel {
          myMech.addParticle (p);
 
          Muscle mus = new Muscle();
-         mus.setMaterial (new SimpleAxialMuscle (1000, 0, 50000));
+         mus.setMaterial (new SimpleAxialMuscle (myPassiveStiffness, 0, 50000));
          mus.setExcitationColor (Color.RED);
          myMech.attachAxialSpring (mkr, p, mus);
       }
@@ -234,6 +275,10 @@ public class FrameSpringPendulum extends RootModel {
       panel.addWidget (this, "stiffness");
       panel.addWidget (this, "rotStiffness");
 
+      if (mech.axialSprings().size() > 0) {
+         panel.addWidget (this, "passiveStiffness");
+         panel.addWidget (this, "maxColoredExcitation");
+      }
       int k=0;
       for (AxialSpring spr : mech.axialSprings()) {
          panel.addWidget ("excitation"+k, spr, "excitation");
@@ -242,6 +287,7 @@ public class FrameSpringPendulum extends RootModel {
       if (myStabilizer != null) {
          panel.addWidget (myStabilizer, "det");
          panel.addWidget (myStabilizer, "detTarget");
+         panel.addWidget ("stabilize", myStabilizer, "enabled");
       }
       addControlPanel (panel);
    }
@@ -251,6 +297,24 @@ public class FrameSpringPendulum extends RootModel {
       tester.setYPRStiffness (true);
       System.out.println ("error=" + tester.testStiffness (myMech, 1e-8));
       return super.advance (t0, t1, flags);
+   }
+
+   public void render (Renderer r, int flags) {
+      super.render (r, flags);
+      if (myStabilizer != null) {
+         NumberFormat fmt = new NumberFormat ("%7.4f");
+         double emSize =  0.07*r.getScreenHeight();
+         String str = "Det: " + fmt.format (myStabilizer.getDet());
+         double margin = 0.02*r.getScreenWidth();
+         Rectangle2D bounds = r.getTextBounds (r.getDefaultFont(), str, emSize);
+         Vector3d pos =
+            new Vector3d (r.getScreenWidth()-bounds.getWidth()-margin, margin, 0);
+         r.begin2DRendering();
+         r.setColor (Color.WHITE);
+         r.drawText (
+            "Det: " + fmt.format (myStabilizer.getDet()), pos, emSize);
+         r.end2DRendering();
+      }
    }
 
 }

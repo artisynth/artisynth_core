@@ -156,13 +156,16 @@ public class StabilityTerm extends LeastSquaresTermBase {
          K = mech.getActiveStiffnessMatrix();
       }
       K.negate();
+
+      // compute symmetric part Ksym = 1/2 (K + K^T)
+      MatrixNd Ksym = new MatrixNd (K);
+      MatrixNd KT = new MatrixNd();
+      KT.transpose (Ksym);
+      Ksym.add (KT);
+      Ksym.scale (0.5);
+      
       EigenDecomposition ed = new EigenDecomposition();
-      ed.factor (K);
-      int numi = ed.numEigImag();
-      if (numi > 0) {
-         System.out.println (
-            "WARNING: system has "+numi+" imaginary eigenvalues");
-      }
+      ed.factor (Ksym);
       if (debug) {
          VectorNd eigs = ed.getEigReal();
          System.out.println ("eigs: " + eigs.toString("%12.6f"));
@@ -230,8 +233,8 @@ public class StabilityTerm extends LeastSquaresTermBase {
 
       BooleanHolder posDef = new BooleanHolder();
       double det0 = computeDet (mech, posDef, true);
-      System.out.println ("det0=" + det0);
-      System.out.println ("ex=" + curEx.toString ("%12.9f"));
+      //System.out.println ("det0=" + det0);
+      //System.out.println ("ex=" + curEx.toString ("%12.9f"));
       for (int j = 0; j < numex; j++) {
          double dex = myDeltaEx;
          double ej = curEx.get(j);
@@ -267,13 +270,13 @@ public class StabilityTerm extends LeastSquaresTermBase {
             myBs.set (0, myDetTarget - det0);
          }
 
-         System.out.println ("Hs=\n" + myHs.toString ("%16.8f"));
+         //System.out.println ("Hs=\n" + myHs.toString ("%16.8f"));
          if (myWeight >= 0 && myWeight != 1.0) {
             myHs.scale(myWeight);
             myBs.scale(myWeight);
          }
-         System.out.println ("weight=" + myWeight);
-         System.out.println ("bs=" + myBs);
+         //System.out.println ("weight=" + myWeight);
+         //System.out.println ("bs=" + myBs);
       }
       else {
          // make non-active:

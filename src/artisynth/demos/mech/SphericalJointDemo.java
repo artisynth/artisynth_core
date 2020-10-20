@@ -117,6 +117,33 @@ public class SphericalJointDemo extends RootModel {
 
    public void build (String[] args) throws IOException {
 
+      boolean useRpyJoint = true;
+
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-joint")) {
+            i++;
+            if (i == args.length) {
+               System.out.println (
+                  "WARNING: option '-joint' need an additional argument");
+            }
+            else if (args[i].equals ("rpy")) {
+               useRpyJoint = true;
+            }
+            else if (args[i].equals ("regular")) {
+               useRpyJoint = false;
+            }
+            else {
+               System.out.println (
+                  "WARNING: argument for option '-joint' must be " +
+                  "'rpy' or 'regular'");
+            }
+         }
+         else {
+            System.out.println ("WARNING: unknown option "+args[i]);
+         }
+      }
+      
+
       myMechMod = new MechModel ("sphericalJoint");
       myMechMod.setProfiling (false);
       myMechMod.setGravity (0, 0, -9.8);
@@ -139,20 +166,25 @@ public class SphericalJointDemo extends RootModel {
 
       myLowerArm.setDynamic (false);
 
-//       SphericalJoint joint = addSphericalJoint (myHand, myLowerArm, TDW);
-//       joint.setMaxRotation (100);
-//       TDW.p.set (0, 0, -getHeight (myHand));
-//       joint = addSphericalJoint (myHand2, myHand, TDW);
-//       joint.setMaxRotation (45);
-
       RigidTransform3d TDW = new RigidTransform3d();
-      TDW.R.setRpy (0, 0, Math.PI/2);
-      SphericalRpyJoint joint = addSphericalRpyJoint (myLowerArm, myHand, TDW);
-      joint.setRollRange (-90, 90);
-      joint.setPitchRange (-45, 45);
-      joint.setYawRange (-90, 90);
-      joint.setRoll (-30);
-      joint.setYaw (-1);
+
+      SphericalRpyJoint rpyJoint = null;
+      SphericalJoint regJoint = null;
+
+      if (useRpyJoint) {
+         TDW.R.setRpy (0, 0, Math.PI/2);
+         rpyJoint = addSphericalRpyJoint (myLowerArm, myHand, TDW);
+         rpyJoint.setRollRange (-90, 90);
+         rpyJoint.setPitchRange (-45, 45);
+         rpyJoint.setYawRange (-90, 90);
+         rpyJoint.setRoll (-30);
+         rpyJoint.setYaw (-1);
+      }
+      else {
+         regJoint = addSphericalJoint (myHand, myLowerArm, TDW);
+         regJoint.setMaxRotation (100);
+         regJoint.setMaxTilt (120);
+      }
 
       addModel (myMechMod);
 
@@ -160,15 +192,31 @@ public class SphericalJointDemo extends RootModel {
       X.R.setRpy (0, Math.toRadians(-180), 0);
       myMechMod.transformGeometry (X);
 
+      if (!useRpyJoint) {
+         // set hand so that it will fall to the limit
+         double l = getHeight(myHand)/2;
+         double sin45 = Math.sin(Math.PI/4);
+         double cos45 = Math.cos(Math.PI/4);
+         myHand.setPose (
+            new RigidTransform3d (l*cos45,0,l*sin45, -Math.PI/2,0,3*Math.PI/4));
+      }
+
       ControlPanel panel = new ControlPanel();
       panel.addWidget (myMechMod.getProperty("integrator"));
-      panel.addWidget (joint.getProperty("roll"));
-      panel.addWidget (joint.getProperty("pitch"));
-      panel.addWidget (joint.getProperty("yaw"));
-      panel.addWidget (joint.getProperty("rollRange"));
-      panel.addWidget (joint.getProperty("pitchRange"));
-      panel.addWidget (joint.getProperty("yawRange"));
-      panel.pack();
+      if (useRpyJoint) {
+         panel.addWidget (rpyJoint.getProperty("roll"));
+         panel.addWidget (rpyJoint.getProperty("pitch"));
+         panel.addWidget (rpyJoint.getProperty("yaw"));
+         panel.addWidget (rpyJoint.getProperty("rollRange"));
+         panel.addWidget (rpyJoint.getProperty("pitchRange"));
+         panel.addWidget (rpyJoint.getProperty("yawRange"));
+      }
+      else {
+         panel.addWidget (regJoint.getProperty("maxRotation"));
+         panel.addWidget (regJoint.getProperty("rotationLimited"));
+         panel.addWidget (regJoint.getProperty("maxTilt"));
+         panel.addWidget (regJoint.getProperty("tiltLimited"));
+      }
       addControlPanel (panel);
       Main.getMain().arrangeControlPanels (this);
 

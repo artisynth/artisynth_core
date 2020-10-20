@@ -801,6 +801,16 @@ public class RootModel extends RenderableModelBase
       }
    }
 
+   public Vector3d getViewerUp () {
+      GLViewer viewer = getMainViewer();
+      if (viewer != null) {
+         return viewer.getUpVector ();
+      }
+      else {
+         return Vector3d.Z_UNIT;
+      }
+   }
+
    /**
     * Obtains the default orientation that should be used for viewing this
     * model. A value equal to
@@ -815,7 +825,7 @@ public class RootModel extends RenderableModelBase
    /**
     * Sets the default orientation that should be used for viewing
     * this model to <code>REW</code>. Setting a value equal to
-    * {@link AxisAngle.ZERO} indicates
+    * {@link AxisAngle#ZERO} indicates
     * that no orientation is specified and so the viewer should
     * use its default view. 
     * 

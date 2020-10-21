@@ -40,6 +40,9 @@ public class StabilityTerm extends LeastSquaresTermBase {
 
    boolean debug = false;
 
+   public static final boolean DEFAULT_USE_SYMMETRIC_PART = true;
+   boolean myUseSymmetricPart = DEFAULT_USE_SYMMETRIC_PART;
+
    // property attributes
 
    // other attributes
@@ -74,6 +77,10 @@ public class StabilityTerm extends LeastSquaresTermBase {
          "ignorePosition",
          "ignore position variation when computing the determinant derivative",
          DEFAULT_IGNORE_POSITION);
+      myProps.add (
+         "useSymmetricPart",
+         "use only the symmetric part of the stiffness matrix",
+         DEFAULT_USE_SYMMETRIC_PART);
    }
 
    public PropertyList getAllPropertyInfo() {
@@ -123,6 +130,14 @@ public class StabilityTerm extends LeastSquaresTermBase {
    public int numStiffnessModifiers () {
       return myModifiers.size();
    }
+
+   public boolean getUseSymmetricPart() {
+      return myUseSymmetricPart;
+   }
+   
+   public void setUseSymmetricPart (boolean enable) {
+      myUseSymmetricPart = enable;
+   }
    
    /**
     * Fills <code>H</code> and <code>b</code> with this motion term
@@ -157,17 +172,24 @@ public class StabilityTerm extends LeastSquaresTermBase {
       }
       K.negate();
 
-      // compute symmetric part Ksym = 1/2 (K + K^T)
-      MatrixNd Ksym = new MatrixNd (K);
-      MatrixNd KT = new MatrixNd();
-      KT.transpose (Ksym);
-      Ksym.add (KT);
-      Ksym.scale (0.5);
-      
       EigenDecomposition ed = new EigenDecomposition();
-      ed.factor (Ksym);
+
+      if (myUseSymmetricPart) {
+         // compute symmetric part Ksym = 1/2 (K + K^T)
+         MatrixNd Ksym = new MatrixNd (K);
+         MatrixNd KT = new MatrixNd();
+         KT.transpose (Ksym);
+         Ksym.add (KT);
+         Ksym.scale (0.5);
+         ed.factor (Ksym);
+      }
+      else {
+         ed.factor (K);
+      }
+
       if (debug) {
          VectorNd eigs = ed.getEigReal();
+         ArraySort.quickSort (eigs.getBuffer());
          System.out.println ("eigs: " + eigs.toString("%12.6f"));
       }
       if (posDef != null) {

@@ -48,14 +48,14 @@ public class SkewedRollPitchJoint extends RollPitchJoint {
    /**
     * Creates a SkewedRollPitchJoint between {@code bodyA} and {@code bodyB},
     * with the initial joint coordinate frame D given (in world coordinates) by
-    * {@code TDW}.
+    * {@code TDW}. The skew angle is defined such that the angle between
+    * the roll and pitch axes is given by {@code PI/2 - skewAngle}.
     *
     * @param bodyA first body connected to the joint
     * @param bodyB second body connected to the joint (ot {@code null}
     * if the first body is connected to ground
     * @param TDW joint coordinate frame D in world coordinates
-    * @param skewAngle skew angle, such that the between the roll and pitch
-    * joints is given by PI/2 - skewAngle.
+    * @param skewAngle skew angle (must lie in the open interval (-PI/2, PI/2).
     */
    public SkewedRollPitchJoint (
       ConnectableBody bodyA, ConnectableBody bodyB,
@@ -89,14 +89,15 @@ public class SkewedRollPitchJoint extends RollPitchJoint {
 
    /**
     * Creates a SkewedRollPitchJoint between {@code bodyA} and {@code bodyB}.
+    * The skew angle is defined such that the angle between the roll and pitch
+    * axes is given by {@code PI/2 - skewAngle}.
     *
     * @param bodyA first body connected to the joint
     * @param TCA transform from the joint C frame to body A
     * @param bodyB second body connected to the joint (or {@code null}
     * if the first body is connected to ground)
     * @param TDB transform from the joint D frame to body B
-    * @param skewAngle skew angle, such that the between the roll and pitch
-    * joints is given by PI/2 - skewAngle.
+    * @param skewAngle skew angle (must lie in the open interval (-PI/2, PI/2).
     */
    public SkewedRollPitchJoint (
       RigidBody bodyA, RigidTransform3d TCA,

@@ -78,17 +78,31 @@ public class RollPitchJointDemo extends RootModel {
    }
 
    public RollPitchJoint addRollPitchJoint (
-      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW) {
-      RigidTransform3d TCA = new RigidTransform3d();
-      RigidTransform3d XDB = new RigidTransform3d();
-
-      XDB.mulInverseLeft (bodyB.getPose(), TDW);
-      TCA.mulInverseLeft (bodyA.getPose(), TDW);
-      RollPitchJoint joint = new RollPitchJoint (bodyA, TCA, bodyB, XDB);
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d TDW, double skewAngle) {
+      RollPitchJoint joint;
+      if (skewAngle == 0) {
+         RigidTransform3d TCA = new RigidTransform3d();
+         RigidTransform3d XDB = new RigidTransform3d();
+         XDB.mulInverseLeft (bodyB.getPose(), TDW);
+         TCA.mulInverseLeft (bodyA.getPose(), TDW);
+         joint = new RollPitchJoint (bodyA, TCA, bodyB, XDB);
+      }
+      else {
+         Vector3d rollAxis = new Vector3d();
+         Vector3d pitchAxis = new Vector3d();
+         TDW.R.getColumn (2, rollAxis);
+         TDW.R.getColumn (1, pitchAxis);
+         double c = Math.cos(skewAngle);
+         double s = Math.sin(skewAngle);
+         pitchAxis.combine (c, pitchAxis, s, rollAxis);
+         joint =
+            new SkewedRollPitchJoint (bodyA, bodyB, TDW.p, rollAxis, pitchAxis);
+      }
       RenderProps.setPointStyle (joint, Renderer.PointStyle.SPHERE);
       RenderProps.setPointColor (joint, Color.BLUE);
-      RenderProps.setPointRadius (joint, 0.025);
-      joint.setAxisLength (0.05);
+      RenderProps.setPointRadius (joint, 0.015);
+      RenderProps.setCylindricalLines (joint, 0.002, Color.BLUE);
+      joint.setAxisLength (0.08);
       myMechMod.addBodyConnector (joint);
       return joint;
    }
@@ -133,6 +147,29 @@ public class RollPitchJointDemo extends RootModel {
 
    public void build (String[] args) throws IOException {
 
+      double skewAngle = 0;
+      for (int i=0; i<args.length; i++) {
+         if (args[i].equals ("-skew")) {
+            if (++i == args.length) {
+               System.out.println (
+                  "WARNING: option -skew needs another argument");
+            }
+            else {
+               double ang = Double.valueOf (args[i]);
+               if (ang <= -90.0 || ang >= 90.0) {
+                  System.out.println (
+                     "WARNING: skew angle must be between -90 and 90");
+               }
+               else {
+                  skewAngle = Math.toRadians(ang);
+               }
+            }
+         }
+         else {
+            System.out.println ("WARNING: unknown option "+args[i]);
+         }
+      }
+
       myMechMod = new MechModel ("rollPitchJointDemo");
       myMechMod.setProfiling (false);
       myMechMod.setGravity (0, 0, -9.8);
@@ -165,7 +202,8 @@ public class RollPitchJointDemo extends RootModel {
       RigidTransform3d TDW = new RigidTransform3d();
       //TDW.p.set (0, 0, -getHeight (myTip));
       TDW.R.setRpy (0, Math.PI, 0);
-      RollPitchJoint joint = addRollPitchJoint (myBase, myTip, TDW);
+      RollPitchJoint joint = addRollPitchJoint (myBase, myTip, TDW, skewAngle);
+
       // SphericalRpyJoint joint = addSphericalJoint (myBase, myTip, TDW);
       joint.setRollRange (-90, 90);
       joint.setPitchRange (-100, 100);

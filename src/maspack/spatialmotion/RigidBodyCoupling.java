@@ -812,7 +812,6 @@ public abstract class RigidBodyCoupling {
 
    public abstract void initializeConstraintInfo (ConstraintInfo[] info);
 
-
    /**
     * Transforms the geometry of this coupling, in response to an affine
     * transform X applied in world coordinates. In order to facilitate the

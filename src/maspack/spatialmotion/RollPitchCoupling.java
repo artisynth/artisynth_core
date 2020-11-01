@@ -10,13 +10,16 @@ import maspack.matrix.AxisAngle;
 import maspack.matrix.RigidTransform3d;
 import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.util.*;
 
 /**
  * Implements a two DOF roll-pitch coupling. Frames C and D share a common
  * origin, and the transform from C to D is given by a <code>roll</code>
  * rotation about the z axis, followed by a <code>pitch</code> rotation about
- * the subsequent <code>y</code> axis (i.e. D's y-axis).  Range limits can be placed on both the
- * roll and pitch angles.
+ * the subsequent <code>pitch</code> axis. The pitch axis is usually the
+ * post-roll y-axis, but can be adjusted via the skewAngle to lie along some
+ * other direction in the post-roll z/y plane. The angle between the roll and
+ * pitch axes is given by PI/2 - skewAngle.
  */
 public class RollPitchCoupling extends RigidBodyCoupling {
 
@@ -25,6 +28,13 @@ public class RollPitchCoupling extends RigidBodyCoupling {
 
    private double myMinRoll = -Math.PI;
    private double myMinPitch = -Math.PI;  // Math.PI/2
+
+   // skew angle attributes
+   private double mySkewAngle = 0;   
+   private double mySa = 0; // sin of the skew angle
+   private double myCa = 1; // cos of the skew angle
+   // skew angle rotation matrix, or null if the skew angle = 0
+   private RotationMatrix3d myRa = null;
 
    private double clip (double value, double min, double max) {
       if (value < min) {
@@ -109,11 +119,20 @@ public class RollPitchCoupling extends RigidBodyCoupling {
       super();
    }
 
-   //   public RollPitchCoupling (RigidTransform3d TCA, RigidTransform3d XDB) {
-   //      this();
-   //      setXDB (XDB);
-   //      setXFA (TCA);
-   //   }
+   public RollPitchCoupling(double skewAngle) {
+      super();
+      if (skewAngle <= -Math.PI || skewAngle >= Math.PI) {
+         throw new IllegalArgumentException (
+            "Skew angle must lie within the open interval (-PI,PI)");
+      }
+      mySa = Math.sin(skewAngle);
+      myCa = Math.cos(skewAngle);
+      if (skewAngle != 0) {
+         myRa = new RotationMatrix3d();
+         myRa.setRotX (skewAngle);
+      }
+      mySkewAngle = skewAngle;
+   }
 
    @Override
    public int maxUnilaterals() {
@@ -134,84 +153,114 @@ public class RollPitchCoupling extends RigidBodyCoupling {
     * rotation for which angles should be obtained
     * @see #setRollPitch(RotationMatrix3d,double,double)
     */
-   private void getRollPitch (double[] angs, RotationMatrix3d R) {
-      angs[0] = Math.atan2 (-R.m01, R.m11);
-      angs[1] = Math.atan2 (-R.m20, R.m22);
+   void getRollPitch (double[] angs, RotationMatrix3d R) {
+      if (mySkewAngle == 0) {
+         // no skew
+         angs[0] = Math.atan2 (-R.m01, R.m11);
+         angs[1] = Math.atan2 (-R.m20, R.m22);
+      }
+      else {
+         // assumes |myCa| is not too small ...
+         angs[1] = Math.atan2 (-R.m20, (R.m22-mySa*mySa)/myCa);
+         double sp = Math.sin(angs[1]);
+         double cp = Math.cos(angs[1]);
+         double vp = 1-cp;
+         angs[0] = Math.atan2 (
+            -R.m01*(vp*myCa*myCa + cp) - R.m00*mySa*sp - myCa*R.m02*mySa*vp,
+            cp*R.m00 + myCa*R.m02*sp - R.m01*mySa*sp);
+      }
    }
 
-   private void setRollPitch (RotationMatrix3d R, double roll, double pitch) {
-      double sroll, spitch, croll, cpitch;
+   void setRollPitch (RotationMatrix3d R, double roll, double pitch) {
+      double sr, sp, cr, cp;
 
-      sroll = Math.sin (roll);
-      croll = Math.cos (roll);
-      spitch = Math.sin (pitch);
-      cpitch = Math.cos (pitch);
+      sr = Math.sin (roll);
+      cr = Math.cos (roll);
+      sp = Math.sin (pitch);
+      cp = Math.cos (pitch);
 
-      R.m00 = croll*cpitch;
-      R.m10 = sroll*cpitch;
-      R.m20 = -spitch;
+      if (mySkewAngle == 0) { 
+         // no skew
+         R.m00 = cr*cp;
+         R.m10 = sr*cp;
+         R.m20 = -sp;
 
-      R.m01 = -sroll;
-      R.m11 = croll;
-      R.m21 = 0;
+         R.m01 = -sr;
+         R.m11 = cr;
+         R.m21 = 0;
 
-      R.m02 = croll*spitch;
-      R.m12 = sroll*spitch;
-      R.m22 = cpitch;
+         R.m02 = cr*sp;
+         R.m12 = sr*sp;
+         R.m22 = cp;         
+      }
+      else {
+         double vp = 1 - cp;
+
+         R.m00 = cp*cr - mySa*sp*sr;
+         R.m10 = cp*sr + mySa*cr*sp;
+         R.m20 = -myCa*sp;
+
+         double vcp = vp*myCa*myCa + cp;
+
+         R.m01 = -sr*vcp - mySa*cr*sp;
+         R.m11 = cr*vcp - mySa*sp*sr;
+         R.m21 = myCa*mySa*vp;
+
+         R.m02 = myCa*(cr*sp - mySa*sr*vp);
+         R.m12 = myCa*(sr*sp + mySa*cr*vp);
+         R.m22 = vp*mySa*mySa + cp;
+      }      
    }
 
+   // FINISH
    @Override
    public void projectToConstraint (RigidTransform3d TGD, RigidTransform3d TCD) {
-      TGD.R.set (TCD.R);
 
-      // apply a Givens rotation to 0 the m12 entry of TGD.R. This
-      // means that we apply a rotation about the x axis (in R coordinates)
-      // to remove any residual "yaw" angle.
+      // In the non-skew case, projection is done on the matrix
+      //
+      // R = RDC
+      //
+      // while for the skew case, it is done with respect to
+      //
+      // R = RDC * inv(Ra)
+      //
+      // where Ra is a rotation about the x axis by skewAngle.
 
-      double a = TGD.R.m22;  // cpitch*cyaw
-      double b = TGD.R.m12;  // cpitch*syaw
-
-
-      if (b != 0) {
-         
-         // XXX very unstable near singularities p = +/-90,
-         // causes roll to jump around sporadically.  There should be
-         // no singularity here, since constraint can be defined without
-         // resorting to euler angles.
-         //            double s, c;
-         //            if (Math.abs(b) > Math.abs(a)) {
-         //               double tau = -a/b;
-         //               s = 1/Math.sqrt(1+tau*tau);
-         //               c = s*tau;
-         //            }
-         //            else {
-         //               double tau = -b/a;
-         //               c = 1/Math.sqrt(1+tau*tau);
-         //               s = c*tau;
-         //            }
-         //   
-         //            RotationMatrix3d RXT = new RotationMatrix3d (1, 0, 0,  0, c, s,  0, -s, c);
-         //            TGD.R.mul (RXT, TGD.R);
-
-         // Alternate constraint correction:
-         // rotate RCD*z  such that it is perpendicular to y (enforces 
-         //   Universal joint constraint that the two rotation axes remain perpendicular)
-         double cc = TCD.R.m02;
-         // u should be near one, since column has unit magnitude and b should be near 0
-         double u = Math.sqrt (a*a + cc*cc);  // magnitude of rotation axis
-         if (u == 0) {
-            // should never happen in practice, rotate 90 degrees about x
-            TGD.R.mul(RotationMatrix3d.ROT_X_90, TCD.R);
-         } else {
-            // restore angle to 90 degrees
-            double theta = Math.PI/2 - Math.atan2 (u, b);
-            AxisAngle aa = new AxisAngle (a/u, 0, -cc/u, theta);
-            RotationMatrix3d RXT2 = new RotationMatrix3d(aa);
-            TGD.R.mul (RXT2, TCD.R);
-         }
+      RotationMatrix3d R = new RotationMatrix3d();
+      R.transpose (TCD.R); // RDC is the transpose of RCD
+      if (myRa != null) {
+         R.mul (myRa);
       }
-      TGD.p.setZero();
+      
 
+      // Now enusre that the y axis (2nd column) of R forms an angle 'skewAngle' with
+      // respect to the x/y plane. If it does not, apply a rotation to bring it
+      // there.
+
+      double yx = R.m01;
+      double yy = R.m11;
+      double yz = R.m21;
+
+      double r = Math.sqrt (yx*yx + yy*yy); // length of projection into x/y plane
+      RotationMatrix3d RX = new RotationMatrix3d(); // rotation to adjust y
+      if (r == 0) {
+         // unlikely to happen. Just rotate about x by PI/2-skewAngle
+         RX.setRotX (Math.PI/2-mySkewAngle);
+      }
+      else {
+         double ang = Math.atan2 (yz, r);
+         Vector3d axis = new Vector3d (yy, -yx, 0);
+         RX.setAxisAngle (axis, mySkewAngle-ang);
+      }
+      R.mul (RX, R);
+      // now transform back: RGD = (R Ra)^T
+      if (myRa != null) {
+         R.mulInverseRight (R, myRa);
+      }
+      TGD.R.transpose (R);
+
+      // project translation
+      TGD.p.setZero();
    }
 
    private void doGetRollPitch (double[] angs, RotationMatrix3d RDC) {
@@ -267,6 +316,7 @@ public class RollPitchCoupling extends RigidBodyCoupling {
       info[3].wrenchC.set (0, 0, 0, 1, 0, 0);
    }
 
+   // FINISH
    @Override
    public void getConstraintInfo (
       ConstraintInfo[] info, RigidTransform3d TGD, RigidTransform3d TCD,
@@ -278,7 +328,6 @@ public class RollPitchCoupling extends RigidBodyCoupling {
       setDistancesAndZeroDerivatives (info, 4, myErr);
 
       RotationMatrix3d RDC = new RotationMatrix3d();
-      Vector3d wBA = new Vector3d();
       double[] angs = new double[2];
       RDC.transpose (TGD.R);
       doGetRollPitch (angs, RDC);
@@ -291,19 +340,12 @@ public class RollPitchCoupling extends RigidBodyCoupling {
       double cp = Math.cos(pitch);
       double sp = Math.sin(pitch);
 
-      double denom = cp;
-      // keep the derivative from getting too large near
-      // the singularity at cp = 0
-      if (Math.abs(denom) < 0.0001) {
-         denom = (denom >= 0 ? 0.0001 : -0.0001);
-      }
-      double tp = sp/denom;
-
       // Don't need to transform because vel is now in Frame C
       //      // get angular velocity of B with respect to A in frame C
       //      if (!myComputeVelInFrameC) {
       //         wBA.transform (RDC, myVelBA.w);
       //      }
+      Vector3d wBA = new Vector3d();//myVelBA.w;
 
       info[4].distance = 0;
       info[5].distance = 0;
@@ -312,16 +354,9 @@ public class RollPitchCoupling extends RigidBodyCoupling {
       double dotp = -sr*wBA.x + cr*wBA.y;
       double dotr = wBA.z;
 
-      // //set a wrench to constraint rotation about the current x
-      // //axis of RDC
-      // info[3].wrenchC.set (0, 0, 0, RDC.m00, RDC.m10, RDC.m20);
-      // info[3].dotWrenchC.f.setZero();
-      // info[3].dotWrenchC.m.set (0, 0, 0); // XXX finish
-
-      info[3].wrenchC.set (0, 0, 0, cr/denom, sr/denom, 0);
+      info[3].wrenchC.set (0, 0, 0, cr, sr, 0);
       info[3].dotWrenchC.f.setZero();
-      info[3].dotWrenchC.m.set (
-         (-sr*dotr+cr*tp*dotp)/denom, (cr*dotr+sr*tp*dotp)/denom, 0);
+      info[3].dotWrenchC.m.set (-sr*dotr, cr*dotr, 0);
 
       if (hasRestrictedRange()) {
          if (setEngaged) {
@@ -329,26 +364,23 @@ public class RollPitchCoupling extends RigidBodyCoupling {
             maybeSetEngaged (info[5], roll, myMinRoll, myMaxRoll);
          }
          if (info[4].engaged != 0) {
+            // pitch joint constrained
             info[4].distance = getDistance (pitch, myMinPitch, myMaxPitch);
             info[4].wrenchC.set (0, 0, 0, -sr, cr, 0);
+            //info[4].wrenchC.set (0, 0, 0, -myCa*sr, myCa*cr, mySa);
             info[4].dotWrenchC.f.setZero();
-            // XXX finish dot setting
-            info[4].dotWrenchC.m.set (-cr*dotr, -sr*dotr, 0);
-            //checkDeriv ("pitch", info[4], conP);
+            info[4].dotWrenchC.m.set (-myCa*cr*dotr, -myCa*sr*dotr, 0);
             if (info[4].engaged == -1) {
                info[4].wrenchC.negate();
                info[4].dotWrenchC.negate();
             }
          }
          if (info[5].engaged != 0) {
+            // roll joint constrained 
             info[5].distance = getDistance (roll, myMinRoll, myMaxRoll);
-            info[5].wrenchC.set (0, 0, 0, sp*cr/denom, sp*sr/denom, 1);
+            info[5].wrenchC.set (0, 0, 0, mySa*sr, -mySa*cr, myCa);
+            info[5].dotWrenchC.m.set (mySa*cr, mySa*sr, 0);
             info[5].dotWrenchC.f.setZero();
-            // XXX finish dot setting
-            double tt = (1+tp*tp);
-            info[5].dotWrenchC.m.set (
-               -sr*tp*dotr + tt*cr*dotp, cr*tp*dotr + tt*sr*dotp, 0);
-            //checkDeriv ("roll", info[5], conR);
             if (info[5].engaged == -1) {
                info[5].wrenchC.negate();
                info[5].dotWrenchC.negate();
@@ -357,3 +389,4 @@ public class RollPitchCoupling extends RigidBodyCoupling {
       }
    }
 }
+

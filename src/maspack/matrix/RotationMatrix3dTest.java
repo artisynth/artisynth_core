@@ -103,32 +103,175 @@ class RotationMatrix3dTest extends MatrixTest {
       Vector3d ycol = new Vector3d();
       Vector3d zcol = new Vector3d();
 
-      zcol.normalize (zdir);
-
-      double axis_x = -zcol.y;
-      double axis_y = zcol.x;
-      double len = Math.sqrt (axis_x * axis_x + axis_y * axis_y);
-      double ang = Math.atan2 (len, zcol.z);
-      if (len != 0) {
-         RR.setAxisAngle (axis_x / len, axis_y / len, 0, ang);
-         RR.getColumn (0, xcol);
+      if (zdir.norm() == 0) {
+         RR.setIdentity();
       }
       else {
-         xcol.set (1, 0, 0);
+         zcol.normalize (zdir);
+         double axis_x = -zcol.y;
+         double axis_y = zcol.x;
+         double len = Math.sqrt (axis_x * axis_x + axis_y * axis_y);
+         double ang = Math.atan2 (len, zcol.z);
+         if (len != 0) {
+            RR.setAxisAngle (axis_x / len, axis_y / len, 0, ang);
+            RR.getColumn (0, xcol);
+         }
+         else {
+            xcol.set (1, 0, 0);
+         }
+         ycol.cross (zcol, xcol);
+         RR.setColumn (0, xcol);
+         RR.setColumn (1, ycol);
+         RR.setColumn (2, zcol);
       }
+   }
+
+   void testSetZDirection (RotationMatrix3d RR, Vector3d zdir) {
+      saveResult (RR);
+      setZDirectionCheck (RR, zdir);
+      MX.set (RR);
+      RR.setZDirection (zdir);
+      checkAndRestoreResult (RR, EPSILON);
+   }
+
+   void setYDirectionCheck (RotationMatrix3d RR, Vector3d ydir) {
+      Vector3d xcol = new Vector3d();
+      Vector3d ycol = new Vector3d();
+      Vector3d zcol = new Vector3d();
+
+      if (ydir.norm() == 0) {
+         RR.setIdentity();
+      }
+      else {
+         ycol.normalize (ydir);
+         double axis_z = -ycol.x;
+         double axis_x = ycol.z;
+         double len = Math.sqrt (axis_z * axis_z + axis_x * axis_x);
+         double ang = Math.atan2 (len, ycol.y);
+         if (len != 0) {
+            RR.setAxisAngle (axis_x / len, 0, axis_z / len, ang);
+            RR.getColumn (2, zcol);
+         }
+         else {
+            zcol.set (0, 0, 1);
+         }
+         xcol.cross (ycol, zcol);
+         RR.setColumn (0, xcol);
+         RR.setColumn (1, ycol);
+         RR.setColumn (2, zcol);
+      }
+   }
+
+   void testSetYDirection (RotationMatrix3d RR, Vector3d ydir) {
+      saveResult (RR);
+      setYDirectionCheck (RR, ydir);
+      MX.set (RR);
+      RR.setYDirection (ydir);
+      checkAndRestoreResult (RR, EPSILON);
+   }
+
+   void setXDirectionCheck (RotationMatrix3d RR, Vector3d xdir) {
+      Vector3d xcol = new Vector3d();
+      Vector3d ycol = new Vector3d();
+      Vector3d zcol = new Vector3d();
+
+      if (xdir.norm() == 0) {
+         RR.setIdentity();
+      }
+      else {
+         xcol.normalize (xdir);
+         double axis_y = -xcol.z;
+         double axis_z = xcol.y;
+         double len = Math.sqrt (axis_y * axis_y + axis_z * axis_z);
+         double ang = Math.atan2 (len, xcol.x);
+         if (len != 0) {
+            RR.setAxisAngle (0, axis_y / len, axis_z / len, ang);
+            RR.getColumn (1, ycol);
+         }
+         else {
+            ycol.set (0, 1, 0);
+         }
+         zcol.cross (xcol, ycol);
+         RR.setColumn (0, xcol);
+         RR.setColumn (1, ycol);
+         RR.setColumn (2, zcol);
+      }
+   }
+
+   void testSetXDirection (RotationMatrix3d RR, Vector3d xdir) {
+      saveResult (RR);
+      setXDirectionCheck (RR, xdir);
+      MX.set (RR);
+      RR.setXDirection (xdir);
+      checkAndRestoreResult (RR, EPSILON);
+   }
+
+   void setXYDirectionsCheck (RotationMatrix3d RR, Vector3d xdir, Vector3d ydir) {
+      Vector3d xcol = new Vector3d();
+      Vector3d ycol = new Vector3d();
+      Vector3d zcol = new Vector3d();
+
+      xcol.normalize (xdir);
+      zcol.cross (xdir, ydir);
+      zcol.normalize();
       ycol.cross (zcol, xcol);
+
       RR.setColumn (0, xcol);
       RR.setColumn (1, ycol);
       RR.setColumn (2, zcol);
    }
 
-   void testSetZDirection (RotationMatrix3d RR, Vector3d zdir) {
-      Vector3d colz = new Vector3d();
+   void testSetXYDirections (RotationMatrix3d RR, Vector3d xdir, Vector3d ydir) {
       saveResult (RR);
-      setZDirectionCheck (RR, zdir);
+      setXYDirectionsCheck (RR, xdir, ydir);
       MX.set (RR);
-      RR.setZDirection (zdir);
-      RR.getColumn (2, colz);
+      RR.setXYDirections (xdir, ydir);
+      checkAndRestoreResult (RR, EPSILON);
+   }
+
+   void setYZDirectionsCheck (RotationMatrix3d RR, Vector3d ydir, Vector3d zdir) {
+      Vector3d xcol = new Vector3d();
+      Vector3d ycol = new Vector3d();
+      Vector3d zcol = new Vector3d();
+
+      ycol.normalize (ydir);
+      xcol.cross (ydir, zdir);
+      xcol.normalize();
+      zcol.cross (xcol, ycol);
+
+      RR.setColumn (0, xcol);
+      RR.setColumn (1, ycol);
+      RR.setColumn (2, zcol);
+   }
+
+   void testSetYZDirections (RotationMatrix3d RR, Vector3d ydir, Vector3d zdir) {
+      saveResult (RR);
+      setYZDirectionsCheck (RR, ydir, zdir);
+      MX.set (RR);
+      RR.setYZDirections (ydir, zdir);
+      checkAndRestoreResult (RR, EPSILON);
+   }
+
+   void setZXDirectionsCheck (RotationMatrix3d RR, Vector3d zdir, Vector3d xdir) {
+      Vector3d xcol = new Vector3d();
+      Vector3d ycol = new Vector3d();
+      Vector3d zcol = new Vector3d();
+
+      zcol.normalize (zdir);
+      ycol.cross (zdir, xdir);
+      ycol.normalize();
+      xcol.cross (ycol, zcol);
+
+      RR.setColumn (0, xcol);
+      RR.setColumn (1, ycol);
+      RR.setColumn (2, zcol);
+   }
+
+   void testSetZXDirections (RotationMatrix3d RR, Vector3d zdir, Vector3d xdir) {
+      saveResult (RR);
+      setZXDirectionsCheck (RR, zdir, xdir);
+      MX.set (RR);
+      RR.setZXDirections (zdir, xdir);
       checkAndRestoreResult (RR, EPSILON);
    }
 
@@ -199,8 +342,6 @@ class RotationMatrix3dTest extends MatrixTest {
 
       checkAndRestoreResult (RR, EPSILON);
    }
-
-   
 
    void testPreciseAxisAngleSet () {
       AxisAngle axisAng = new AxisAngle();
@@ -339,13 +480,39 @@ class RotationMatrix3dTest extends MatrixTest {
          zdir.setRandom();
          zdir.scale (10);
          testSetZDirection (RR, zdir);
+         testSetYDirection (RR, zdir);
+         testSetXDirection (RR, zdir);
+
+         Vector3d xdir = new Vector3d();
+         xdir.setRandom();
+         zdir.scale (1.4);
+         testSetXYDirections (RR, xdir, zdir);
+         testSetYZDirections (RR, xdir, zdir);
+         testSetZXDirections (RR, xdir, zdir);
+
          double ex = EPSILON * RandomGenerator.get().nextDouble();
          double ey = EPSILON * RandomGenerator.get().nextDouble();
          testSetZDirection (RR, new Vector3d (ex, ey, 1));
          testSetZDirection (RR, new Vector3d (ex, ey, -1));
+
+         testSetYDirection (RR, new Vector3d (ey, 1, ex));
+         testSetYDirection (RR, new Vector3d (ey, -1, ex));
+
+         testSetXDirection (RR, new Vector3d (1, ex, ey));
+         testSetXDirection (RR, new Vector3d (-1, ex, ey));
       }
+      testSetZDirection (RR, new Vector3d (0, 0, 0));
       testSetZDirection (RR, new Vector3d (0, 0, 1));
       testSetZDirection (RR, new Vector3d (0, 0, -1));
+ 
+      testSetYDirection (RR, new Vector3d (0, 0, 0));
+      testSetYDirection (RR, new Vector3d (0, 1, 0));
+      testSetYDirection (RR, new Vector3d (0, -1, 0));
+
+      testSetXDirection (RR, new Vector3d (0, 0, 0));
+      testSetXDirection (RR, new Vector3d (1, 0, 0));
+      testSetXDirection (RR, new Vector3d (-1, 0, 0));
+
       testPreciseAxisAngleSet ();
    }
 

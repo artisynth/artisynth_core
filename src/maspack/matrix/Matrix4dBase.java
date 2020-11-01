@@ -1680,21 +1680,21 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
     * @return false if the matrices are not equal within the specified tolerance
     */
    public boolean epsilonEquals (Matrix4dBase M1, double epsilon) {
-      if (abs (m00 - M1.m00) > epsilon || abs (m01 - M1.m01) > epsilon ||
-          abs (m02 - M1.m02) > epsilon || abs (m03 - M1.m03) > epsilon ||
+      if (abs (m00 - M1.m00) <= epsilon && abs (m01 - M1.m01) <= epsilon &&
+          abs (m02 - M1.m02) <= epsilon && abs (m03 - M1.m03) <= epsilon &&
 
-          abs (m10 - M1.m10) > epsilon || abs (m11 - M1.m11) > epsilon ||
-          abs (m12 - M1.m12) > epsilon || abs (m13 - M1.m13) > epsilon ||
+          abs (m10 - M1.m10) <= epsilon && abs (m11 - M1.m11) <= epsilon &&
+          abs (m12 - M1.m12) <= epsilon && abs (m13 - M1.m13) <= epsilon &&
 
-          abs (m20 - M1.m20) > epsilon || abs (m21 - M1.m21) > epsilon ||
-          abs (m22 - M1.m22) > epsilon || abs (m23 - M1.m23) > epsilon ||
+          abs (m20 - M1.m20) <= epsilon && abs (m21 - M1.m21) <= epsilon &&
+          abs (m22 - M1.m22) <= epsilon && abs (m23 - M1.m23) <= epsilon &&
 
-          abs (m30 - M1.m30) > epsilon || abs (m31 - M1.m31) > epsilon ||
-          abs (m32 - M1.m32) > epsilon || abs (m33 - M1.m33) > epsilon) {
-         return false;
+          abs (m30 - M1.m30) <= epsilon && abs (m31 - M1.m31) <= epsilon &&
+          abs (m32 - M1.m32) <= epsilon && abs (m33 - M1.m33) <= epsilon) {
+         return true;
       }
       else {
-         return true;
+         return false;
       }
    }
 
@@ -1707,16 +1707,16 @@ public abstract class Matrix4dBase extends DenseMatrixBase implements Clonable {
     * @return false if the matrices are not equal
     */
    public boolean equals (Matrix4dBase M1) {
-      if ((m00 != M1.m00) || (m01 != M1.m01) || (m02 != M1.m02) ||
-          (m03 != M1.m03) || (m10 != M1.m10) || (m11 != M1.m11) ||
-          (m12 != M1.m12) || (m13 != M1.m13) || (m20 != M1.m20) ||
-          (m21 != M1.m21) || (m22 != M1.m22) || (m23 != M1.m23) ||
-          (m30 != M1.m30) || (m31 != M1.m31) || (m32 != M1.m32) ||
-          (m33 != M1.m33)) {
-         return false;
+      if ((m00 == M1.m00) && (m01 == M1.m01) && (m02 == M1.m02) &&
+          (m03 == M1.m03) && (m10 == M1.m10) && (m11 == M1.m11) &&
+          (m12 == M1.m12) && (m13 == M1.m13) && (m20 == M1.m20) &&
+          (m21 == M1.m21) && (m22 == M1.m22) && (m23 == M1.m23) &&
+          (m30 == M1.m30) && (m31 == M1.m31) && (m32 == M1.m32) &&
+          (m33 == M1.m33)) {
+         return true;
       }
       else {
-         return true;
+         return false;
       }
    }
 

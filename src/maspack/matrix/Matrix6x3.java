@@ -1232,9 +1232,47 @@ public class Matrix6x3 extends DenseMatrixBase
    }
 
    /**
-    * {@inheritDoc}
-    */
-   public boolean epsilonEquals (Matrix6x3 M1, double tol) {
-      return epsilonEquals (M1, tol);
+     * {@inheritDoc}
+     */
+   public boolean epsilonEquals (Matrix6x3 M1, double epsilon) {
+      if (abs (m00 - M1.m00) <= epsilon && abs (m01 - M1.m01) <= epsilon &&
+          abs (m02 - M1.m02) <= epsilon && 
+
+          abs (m10 - M1.m10) <= epsilon && abs (m11 - M1.m11) <= epsilon &&
+          abs (m12 - M1.m12) <= epsilon &&
+          
+          abs (m20 - M1.m20) <= epsilon && abs (m21 - M1.m21) <= epsilon &&
+          abs (m22 - M1.m22) <= epsilon && 
+          
+          abs (m30 - M1.m30) <= epsilon && abs (m31 - M1.m31) <= epsilon &&
+          abs (m32 - M1.m32) <= epsilon && 
+
+          abs (m40 - M1.m40) <= epsilon && abs (m41 - M1.m41) <= epsilon &&
+          abs (m42 - M1.m42) <= epsilon && 
+          
+          abs (m50 - M1.m50) <= epsilon && abs (m51 - M1.m51) <= epsilon &&
+          abs (m52 - M1.m52) <= epsilon) {
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+     * {@inheritDoc}
+     */
+   public boolean equals (Matrix6x3 M1) {
+      if ((m00 == M1.m00) && (m01 == M1.m01) && (m02 == M1.m02) &&
+          (m10 == M1.m10) && (m11 == M1.m11) && (m12 == M1.m12) &&
+          (m20 == M1.m20) && (m21 == M1.m21) && (m22 == M1.m22) &&
+          (m30 == M1.m30) && (m31 == M1.m31) && (m32 == M1.m32) &&
+          (m40 == M1.m40) && (m41 == M1.m41) && (m42 == M1.m42) &&
+          (m50 == M1.m50) && (m51 == M1.m51) && (m52 == M1.m52)) {
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 }

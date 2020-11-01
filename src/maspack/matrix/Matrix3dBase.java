@@ -1501,19 +1501,19 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
     * @return false if the matrices are not equal within the specified tolerance
     */
    public boolean epsilonEquals (Matrix3dBase M1, double eps) {
-      if (abs (m00 - M1.m00) > eps ||
-          abs (m01 - M1.m01) > eps ||
-          abs (m02 - M1.m02) > eps ||
-          abs (m10 - M1.m10) > eps ||
-          abs (m11 - M1.m11) > eps ||
-          abs (m12 - M1.m12) > eps ||
-          abs (m20 - M1.m20) > eps ||
-          abs (m21 - M1.m21) > eps ||
-          abs (m22 - M1.m22) > eps) {
-         return false;
+      if (abs (m00 - M1.m00) <= eps &&
+          abs (m01 - M1.m01) <= eps &&
+          abs (m02 - M1.m02) <= eps &&
+          abs (m10 - M1.m10) <= eps &&
+          abs (m11 - M1.m11) <= eps &&
+          abs (m12 - M1.m12) <= eps &&
+          abs (m20 - M1.m20) <= eps &&
+          abs (m21 - M1.m21) <= eps &&
+          abs (m22 - M1.m22) <= eps) {
+         return true;
       }
       else {
-         return true;
+         return false;
       }
    }
 
@@ -1526,15 +1526,15 @@ public abstract class Matrix3dBase extends DenseMatrixBase implements
     * @return false if the matrices are not equal
     */
    public boolean equals (Matrix3dBase M1) {
-      if ((m00 != M1.m00) || (m01 != M1.m01) || (m02 != M1.m02) ||
+      if ((m00 == M1.m00) && (m01 == M1.m01) && (m02 == M1.m02) &&
 
-      (m10 != M1.m10) || (m11 != M1.m11) || (m12 != M1.m12) ||
+      (m10 == M1.m10) && (m11 == M1.m11) && (m12 == M1.m12) &&
 
-      (m20 != M1.m20) || (m21 != M1.m21) || (m22 != M1.m22)) {
-         return false;
+      (m20 == M1.m20) && (m21 == M1.m21) && (m22 == M1.m22)) {
+         return true;
       }
       else {
-         return true;
+         return false;
       }
    }
 

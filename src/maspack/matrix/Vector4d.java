@@ -746,8 +746,10 @@ public class Vector4d extends VectorBase
     * @return false if the vectors are not equal within the specified tolerance
     */
    public boolean epsilonEquals (Vector4d v1, double eps) {
-      return (Math.abs (x - v1.x) <= eps && Math.abs (y - v1.y) <= eps &&
-              Math.abs (z - v1.z) <= eps && Math.abs (w - v1.w) <= eps);
+      return (abs (x - v1.x) <= eps &&
+              abs (y - v1.y) <= eps &&
+              abs (z - v1.z) <= eps &&
+              abs (w - v1.w) <= eps);
    }
 
    /**

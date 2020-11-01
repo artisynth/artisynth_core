@@ -1027,7 +1027,37 @@ public class Matrix4x3 extends DenseMatrixBase
    /**
     * {@inheritDoc}
     */
-   public boolean epsilonEquals (Matrix4x3 M1, double tol) {
-      return epsilonEquals (M1, tol);
+   public boolean epsilonEquals (Matrix4x3 M1, double epsilon) {
+      if (abs (m00 - M1.m00) <= epsilon && abs (m01 - M1.m01) <= epsilon &&
+          abs (m02 - M1.m02) <= epsilon && 
+
+          abs (m10 - M1.m10) <= epsilon && abs (m11 - M1.m11) <= epsilon &&
+          abs (m12 - M1.m12) <= epsilon && 
+
+          abs (m20 - M1.m20) <= epsilon && abs (m21 - M1.m21) <= epsilon &&
+          abs (m22 - M1.m22) <= epsilon && 
+
+          abs (m30 - M1.m30) <= epsilon && abs (m31 - M1.m31) <= epsilon &&
+          abs (m32 - M1.m32) <= epsilon) {
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+    * {@inheritDoc}
+    */
+   public boolean equals (Matrix4x3 M1) {
+      if ((m00 == M1.m00) && (m01 == M1.m01) && (m02 == M1.m02) &&
+          (m10 == M1.m10) && (m11 == M1.m11) && (m12 == M1.m12) &&
+          (m20 == M1.m20) && (m21 == M1.m21) && (m22 == M1.m22) &&
+          (m30 == M1.m30) && (m31 == M1.m31) && (m32 == M1.m32)) {
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 }

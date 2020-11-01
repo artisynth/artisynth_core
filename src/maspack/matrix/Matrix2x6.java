@@ -854,10 +854,37 @@ public class Matrix2x6 extends DenseMatrixBase
    }
 
    /**
-    * {@inheritDoc}
-    */
-   public boolean epsilonEquals (Matrix2x6 M1, double tol) {
-      return epsilonEquals (M1, tol);
+     * {@inheritDoc}
+     */
+   public boolean epsilonEquals (Matrix2x6 M1, double epsilon) {
+      if (abs (m00 - M1.m00) <= epsilon && abs (m01 - M1.m01) <= epsilon &&
+          abs (m02 - M1.m02) <= epsilon && abs (m03 - M1.m03) <= epsilon &&
+          abs (m04 - M1.m04) <= epsilon && abs (m05 - M1.m05) <= epsilon &&
+
+          abs (m10 - M1.m10) <= epsilon && abs (m11 - M1.m11) <= epsilon &&
+          abs (m12 - M1.m12) <= epsilon && abs (m13 - M1.m13) <= epsilon &&
+          abs (m14 - M1.m14) <= epsilon && abs (m15 - M1.m15) <= epsilon) {
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
+
+   /**
+     * {@inheritDoc}
+     */
+   public boolean equals (Matrix2x6 M1) {
+      if ((m00 == M1.m00) && (m01 == M1.m01) && (m02 == M1.m02) &&
+          (m03 == M1.m03) && (m04 == M1.m04) && (m05 == M1.m05) &&
+
+          (m10 == M1.m10) && (m11 == M1.m11) && (m12 == M1.m12) &&
+          (m13 == M1.m13) && (m14 == M1.m14) && (m15 == M1.m15)) {
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
 }

@@ -440,11 +440,12 @@ public class RotationMatrix3d extends Matrix3dBase {
    /**
     * Sets this rotation using two vectors to indicate the directions of the x
     * and y axes. The z axis is then formed from their cross product. The x, y,
-    * and z axes correspond to the first, second, and third matrix columns. xdir
-    * and ydir must be non-zero and non-parallel or the results are
-    * unpredictable.
-    * 
+    * and z axes correspond to the first, second, and third matrix columns.
+    * {@code xdir} and {@code ydir} must be non-zero and non-parallel or an
+    * exception will be thrown.
+    *
     * <p>
+    * {@code xdir} and {@code ydir} do not need to be perpendicular.
     * The x axis is formed by normalizing xdir. The z axis is then found by
     * normalizing the cross product of x and ydir. Finally, the y axis is
     * determined from the cross product of the z and x axes.
@@ -452,39 +453,123 @@ public class RotationMatrix3d extends Matrix3dBase {
     * @param xdir
     * direction for the x axis
     * @param ydir
-    * direction for the y axis
+    * indicates direction for the y axis (not necessarily perpendicular to
+    * {@code xdir})
+    * @throws IllegalArgumentException if {@code xdir} or {@code ydir}
+    * are zero, or if they are parallel.
     */
    public void setXYDirections (Vector3d xdir, Vector3d ydir) {
-      double x = xdir.x;
-      double y = xdir.y;
-      double z = xdir.z;
-      double mag = Math.sqrt (x * x + y * y + z * z);
-      if (mag != 0) {
-         m00 = x / mag;
-         m10 = y / mag;
-         m20 = z / mag;
+      Vector3d zdir = new Vector3d();
+      double mag = xdir.norm();
+      if (mag == 0) {
+         throw new IllegalArgumentException ("xdir is zero");
       }
-      else {
-         m00 = 1.0;
-         m10 = 0;
-         m20 = 0;
+      m00 = xdir.x/mag;
+      m10 = xdir.y/mag;
+      m20 = xdir.z/mag;
+      zdir.cross (xdir, ydir);
+      mag = zdir.norm();
+      if (mag == 0) {
+         throw new IllegalArgumentException (
+            "ydir is zero, or xdir and ydir are parallel");
       }
-      x = m10 * ydir.z - m20 * ydir.y;
-      y = m20 * ydir.x - m00 * ydir.z;
-      z = m00 * ydir.y - m10 * ydir.x;
-      mag = Math.sqrt (x * x + y * y + z * z);
-      if (mag != 0) {
-         m02 = x / mag;
-         m12 = y / mag;
-         m22 = z / mag;
-      }
-      else {
-         setXDirection (new Vector3d (m00, m10, m20));
-         return;
-      }
+      m02 = zdir.x/mag;
+      m12 = zdir.y/mag;
+      m22 = zdir.z/mag;
+
       m01 = m12 * m20 - m22 * m10;
       m11 = m22 * m00 - m02 * m20;
       m21 = m02 * m10 - m12 * m00;
+   }
+
+   /**
+    * Sets this rotation using two vectors to indicate the directions of the y
+    * and z axes. The y axis is then formed from their cross product. The x, y,
+    * and z axes correspond to the first, second, and third matrix columns.
+    * {@code ydir} and {@code zdir} must be non-zero and non-parallel or an
+    * exception will be thrown.
+    *
+    * <p>
+    * {@code ydir} and {@code zdir} do not need to be perpendicular.
+    * The y axis is formed by normalizing ydir. The x axis is then found by
+    * normalizing the cross product of y and zdir. Finally, the z axis is
+    * determined from the cross product of the x and y axes.
+    * 
+    * @param ydir
+    * direction for the y axis
+    * @param zdir
+    * indicates direction for the z axis (not necessarily perpendicular to
+    * {@code ydir})
+    * @throws IllegalArgumentException if {@code ydir} or {@code zdir}
+    * are zero, or if they are parallel.
+    */
+   public void setYZDirections (Vector3d ydir, Vector3d zdir) {
+      Vector3d xdir = new Vector3d();
+      double mag = ydir.norm();
+      if (mag == 0) {
+         throw new IllegalArgumentException ("ydir is zero");
+      }
+      m01 = ydir.x/mag;
+      m11 = ydir.y/mag;
+      m21 = ydir.z/mag;
+      xdir.cross (ydir, zdir);
+      mag = xdir.norm();
+      if (mag == 0) {
+         throw new IllegalArgumentException (
+            "zdir is zero, or ydir and zdir are parallel");
+      }
+      m00 = xdir.x/mag;
+      m10 = xdir.y/mag;
+      m20 = xdir.z/mag;
+
+      m02 = m10 * m21 - m20 * m11;
+      m12 = m20 * m01 - m00 * m21;
+      m22 = m00 * m11 - m10 * m01;
+   }
+
+   /**
+    * Sets this rotation using two vectors to indicate the directions of the z
+    * and x axes. The y axis is then formed from their cross product. The x, y,
+    * and z axes correspond to the first, second, and third matrix columns.
+    * {@code zdir} and {@code xdir} must be non-zero and non-parallel or an
+    * exception will be thrown.
+    *
+    * <p>
+    * {@code zdir} and {@code xdir} do not need to be perpendicular.
+    * The z axis is formed by normalizing zdir. The y axis is then found by
+    * normalizing the cross product of z and xdir. Finally, the x axis is
+    * determined from the cross product of the y and z axes.
+    * 
+    * @param zdir
+    * direction for the z axis
+    * @param xdir
+    * indicates direction for the x axis (not necessarily perpendicular to
+    * {@code xdir})
+    * @throws IllegalArgumentException if {@code zdir} or {@code xdir}
+    * are zero, or if they are parallel.
+    */
+   public void setZXDirections (Vector3d zdir, Vector3d xdir) {
+      Vector3d ydir = new Vector3d();
+      double mag = zdir.norm();
+      if (mag == 0) {
+         throw new IllegalArgumentException ("zdir is zero");
+      }
+      m02 = zdir.x/mag;
+      m12 = zdir.y/mag;
+      m22 = zdir.z/mag;
+      ydir.cross (zdir, xdir);
+      mag = ydir.norm();
+      if (mag == 0) {
+         throw new IllegalArgumentException (
+            "xdir is zero, or zdir and xdir are parallel");
+      }
+      m01 = ydir.x/mag;
+      m11 = ydir.y/mag;
+      m21 = ydir.z/mag;
+
+      m00 = m11 * m22 - m21 * m12;
+      m10 = m21 * m02 - m01 * m22;
+      m20 = m01 * m12 - m11 * m02;
    }
 
    /**
@@ -1252,7 +1337,9 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Sets this rotation to one in which the z axis points in a specified
-    * direction. 
+    * direction. The x and y axes are set to corresponding values that are
+    * ``nearest'' to the identity. If {@code dirz} is zero, the rotation is set
+    * the identity.
     * 
     * @param dirz
     * direction for the new z axis. Does not need to be normalized.
@@ -1268,7 +1355,7 @@ public class RotationMatrix3d extends Matrix3dBase {
          double ang = Math.atan2 (len, dirz.z);
          setAxisAngle (axis_x / len, axis_y / len, 0.0, ang);
       }
-      else if (dirz.z > 0) {
+      else if (dirz.z >= 0) {
          setIdentity();
       }
       else {
@@ -1280,10 +1367,12 @@ public class RotationMatrix3d extends Matrix3dBase {
 
    /**
     * Sets this rotation to one in which the x axis points in a specified
-    * direction.
+    * direction. The y and z axes are set to corresponding values that are
+    * ``nearest'' to the identity. If {@code dirx} is zero, the rotation is set
+    * the identity.
     * 
     * @param dirx
-    * direction for the new x axis
+    * direction for the new x axis. Does not need to be normalized.
     */
    public void setXDirection (Vector3d dirx) {
       double axis_y, axis_z;
@@ -1296,7 +1385,37 @@ public class RotationMatrix3d extends Matrix3dBase {
          double ang = Math.atan2 (len, dirx.x);
          setAxisAngle (0.0, axis_y / len, axis_z / len, ang);
       }
-      else if (dirx.x > 0) {
+      else if (dirx.x >= 0) {
+         setIdentity();
+      }
+      else {
+         setIdentity();
+         m00 = -1;
+         m22 = -1;
+      }
+   }
+
+   /**
+    * Sets this rotation to one in which the y axis points in a specified
+    * direction. The z and x axes are set to corresponding values that are
+    * ``nearest'' to the identity. If {@code diry} is zero, the rotation is set
+    * the identity.
+    * 
+    * @param diry
+    * direction for the new y axis. Does not need to be normalized.
+    */
+   public void setYDirection (Vector3d diry) {
+      double axis_z, axis_x;
+
+      axis_z = -diry.x;
+      axis_x = diry.z;
+      double len = Math.sqrt (axis_z * axis_z + axis_x * axis_x);
+
+      if (len != 0) {
+         double ang = Math.atan2 (len, diry.y);
+         setAxisAngle (axis_x / len, 0.0, axis_z / len, ang);
+      }
+      else if (diry.y >= 0) {
          setIdentity();
       }
       else {
@@ -1497,6 +1616,40 @@ public class RotationMatrix3d extends Matrix3dBase {
          (isAAEntry(m00,tol) && isAAEntry(m01,tol) && isAAEntry(m02,tol) &&
           isAAEntry(m10,tol) && isAAEntry(m11,tol) && isAAEntry(m12,tol) &&
           isAAEntry(m20,tol) && isAAEntry(m21,tol) && isAAEntry(m22,tol));
+   }
+
+   public void checkOrthonormality() {
+      Vector3d xdir = new Vector3d();
+      Vector3d ydir = new Vector3d();
+      Vector3d zdir = new Vector3d();
+
+      double EPS = 1e-15;
+
+      getColumn (0, xdir);
+      getColumn (1, ydir);
+      getColumn (2, zdir);
+      if (Math.abs(xdir.norm()-1) > EPS) {
+         throw new IllegalStateException ("x axis does not have unit length");
+      }
+      if (Math.abs(ydir.norm()-1) > EPS) {
+         throw new IllegalStateException ("y axis does not have unit length");
+      }
+      if (Math.abs(zdir.norm()-1) > EPS) {
+         throw new IllegalStateException ("z axis does not have unit length");
+      }
+      Vector3d xprod = new Vector3d();
+      xprod.cross (xdir, ydir);
+      if (!xprod.epsilonEquals (zdir, EPS)) {
+         throw new IllegalStateException ("x X y != z");
+      }
+      xprod.cross (ydir, zdir);
+      if (!xprod.epsilonEquals (xdir, EPS)) {
+         throw new IllegalStateException ("y X z != x");
+      }
+      xprod.cross (zdir, xdir);
+      if (!xprod.epsilonEquals (ydir, EPS)) {
+         throw new IllegalStateException ("z X x != y");
+      }
    }
 
    /**
@@ -1743,7 +1896,6 @@ public class RotationMatrix3d extends Matrix3dBase {
       System.out.println ("180=\n" + X);
       X.mulRotX (Math.PI);
       System.out.println ("360=\n" + X);
-
    }
 
 }

@@ -1016,12 +1016,12 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
     * @return false if the matrices are not equal within the specified tolerance
     */
    public boolean epsilonEquals (Matrix2dBase M1, double epsilon) {
-      if (abs (m00 - M1.m00) > epsilon || abs (m01 - M1.m01) > epsilon ||
-          abs (m10 - M1.m10) > epsilon || abs (m11 - M1.m11) > epsilon) {
-         return false;
+      if (abs (m00 - M1.m00) <= epsilon && abs (m01 - M1.m01) <= epsilon &&
+          abs (m10 - M1.m10) <= epsilon && abs (m11 - M1.m11) <= epsilon) {
+         return true;
       }
       else {
-         return true;
+         return false;
       }
    }
 
@@ -1034,12 +1034,12 @@ public abstract class Matrix2dBase extends DenseMatrixBase implements Clonable {
     * @return false if the matrices are not equal
     */
    public boolean equals (Matrix2dBase M1) {
-      if ((m00 != M1.m00) || (m01 != M1.m01) ||
-          (m10 != M1.m10) || (m11 != M1.m11)) {
-         return false;
+      if ((m00 == M1.m00) && (m01 == M1.m01) &&
+          (m10 == M1.m10) && (m11 == M1.m11)) {
+         return true;
       }
       else {
-         return true;
+         return false;
       }
    }
 

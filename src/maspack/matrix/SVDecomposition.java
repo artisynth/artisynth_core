@@ -863,7 +863,7 @@ public class SVDecomposition {
     * singular value is {@code > 0}). If it does not, then the method returns
     * false and the solution will likely contain infinite values. To handle
     * situations where M does not have full rank, one should use {@link
-    * #solve(VectorNd,VectorNd,double)} instead.
+    * #solve(Vector,Vector,double)} instead.
     * 
     * @param x
     * unknown vector to solve for
@@ -950,7 +950,7 @@ public class SVDecomposition {
     * singular value is {@code > 0}). If it does not, then the method returns
     * false and the solution will likely contain infinite values. To handle
     * situations where M does not have full rank, one should use {@link
-    * #solve(MatrixNd,MatrixNd,double)} instead.
+    * #solve(DenseMatrix,DenseMatrix,double)} instead.
     * 
     * @param X
     * unknown matrix to solve for
@@ -1345,7 +1345,7 @@ public class SVDecomposition {
     * estimated by counting all singular values whose value is greater than
     * {@code smax*tol}, where {@code smax} is the maximim singular value.
     *
-    * @param tolerance for estimating the rank
+    * @param tol tolerance for estimating the rank
     * @return estimated rank of the orginal matrix
     * @throws ImproperStateException
     * if this SVDecomposition is uninitialized

@@ -9,6 +9,15 @@ package maspack.matrix;
 import maspack.util.RandomGenerator;
 
 class Matrix6x3Test extends MatrixTest {
+
+   boolean equals (Matrix MR, Matrix M1) {
+      return ((Matrix6x3)M1).equals ((Matrix6x3)MR);
+   }
+
+   boolean epsilonEquals (Matrix MR, Matrix M1, double tol) {
+      return ((Matrix6x3)M1).epsilonEquals ((Matrix6x3)MR, tol);
+   }
+
    void add (Matrix MR, Matrix M1) {
       ((Matrix6x3)MR).add ((Matrix6x3)M1);
    }
@@ -67,6 +76,8 @@ class Matrix6x3Test extends MatrixTest {
          M1.setRandom();
          M2.setRandom();
          MR.setRandom();
+
+         testEquals (M1, MR);
 
          testAdd (MR, M1, M2);
          testAdd (MR, MR, MR);

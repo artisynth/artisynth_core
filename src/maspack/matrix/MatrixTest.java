@@ -47,6 +47,14 @@ class MatrixTest extends UnitTest {
 
    MatrixNd readOnlyFields = new MatrixNd (1, 1);
 
+   boolean equals (Matrix MR, Matrix M1) {
+      return false;
+   }
+
+   boolean epsilonEquals (Matrix MR, Matrix M1, double tol) {
+      return false;
+   }
+
    void add (Matrix MR, Matrix M1, Matrix M2) {
    }
 
@@ -183,7 +191,7 @@ class MatrixTest extends UnitTest {
    }
 
    void checkResult (String msg, Matrix M, Matrix Mchk, double tol) {
-       if (!M.epsilonEquals (Mchk, tol)) {
+      if (!M.epsilonEquals (Mchk, tol)) {
           MatrixNd ME = new MatrixNd (M);
           MatrixNd MC = new MatrixNd (Mchk);
           ME.sub (MC);
@@ -1076,6 +1084,51 @@ class MatrixTest extends UnitTest {
       }
    }
 
+   void testEquals (DenseMatrixBase M1, DenseMatrixBase M2) {
+      MatrixNd M1save = new MatrixNd (M1);
+      MatrixNd M2save = new MatrixNd (M2);
+
+      M1.setRandom();
+
+      double EPS = 1e-14;
+      if (!equals (M1, M1)) {
+         throw new TestException ("matrix not equal to itself");
+      }
+      if (!epsilonEquals (M1, M1, 0)) {
+         throw new TestException (
+            "matrix not epsilon equal to itself with EPS = 0");
+      }
+      M2.setRandom();
+      for (int i=0; i<M2.rowSize(); i++) {
+         for (int j=0; j<M2.colSize(); j++) {
+            M2.set (i, j, M1.get(i,j)+EPS*M2.get(i,j));
+         }
+      }
+      if (!epsilonEquals (M1, M2, EPS)) {
+         throw new TestException (
+            "matrix not epsilon equal to small perturbation");
+      }
+      if (epsilonEquals (M1, M2, 0.0001*EPS)) {
+         throw new TestException (
+            "matrix epsilon equal to small perturbation with very small EPS");
+      }
+      M2.set (M1);
+      // set random entry to NaN
+      int i = RandomGenerator.nextInt (0, M1.rowSize()-1);
+      int j = RandomGenerator.nextInt (0, M1.colSize()-1);
+      M2.set (i, j, 0.0/0.0);
+      if (equals (M1, M2)) {
+         throw new TestException ("matrix equal to matrix containing NaN");
+      }
+      if (epsilonEquals (M1, M2, EPS)) {
+         throw new TestException (
+            "matrix epsilon equal to matrix containing NaN");
+      }      
+      M1.set (M1save);
+      M2.set (M2save);
+   }
+         
+
    void testGeneric (Matrix MR) {
 
       if (MR instanceof DenseMatrix) {
@@ -1083,6 +1136,30 @@ class MatrixTest extends UnitTest {
       }
 
       saveResult (MR);
+
+      if (MR instanceof MatrixBase) {
+         // test equals and epsilonEquals         
+         double EPS = 1e-15;
+         MatrixBase MB = (MatrixBase)MR;
+         MB.setRandom();
+
+         if (!MB.equals (MB)) {
+            throw new TestException ("Matrix not equal to itself");
+         }
+         if (!MB.epsilonEquals (MB, 0)) {
+            throw new TestException (
+               "Matrix not epsilonEqual to itself with epsilon 0");
+         }
+         // create a similar matrix to check epsilonEquals
+         MatrixNd MX = new MatrixNd (MB);
+         MatrixNd MP = new MatrixNd (MB.rowSize(), MB.colSize());
+         MP.setRandom ();
+         MX.scaledAdd (EPS, MP);
+         if (!MB.epsilonEquals (MX, EPS)) {
+            throw new TestException (
+               "Matrix not epsilonEqual to itself with small perturbation");
+         }
+      }
 
       SparseMatrixCell[] cells;
       int[] indices;
@@ -2159,5 +2236,4 @@ class MatrixTest extends UnitTest {
       }
       return perm;
    }
-
 }

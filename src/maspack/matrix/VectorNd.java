@@ -1138,7 +1138,7 @@ public class VectorNd extends VectorBase
       }
       for (int i = 0; i < size; i++) {
          double dist = Math.abs (buf[i] - v1.buf[i]);
-         if (dist > eps) {
+         if (!(dist <= eps)) {
             return false;
          }
       }

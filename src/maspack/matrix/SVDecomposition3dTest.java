@@ -137,12 +137,14 @@ class SVDecomposition3dTest {
          }
          Vector3d x = new Vector3d();
          Vector3d Mx = new Vector3d();
-         svd.solve (x, b);
-         Mx.mul (M1, x);
-         if (!Mx.epsilonEquals (b, EPSILON * cond)) {
-            throw new TestException ("solution failed:\n" + "Mx="
-            + Mx.toString ("%9.4f") + "b=" + b.toString ("%9.4f") + "x="
-            + x.toString ("%9.4f"));
+         if (svd.solve (x, b)) {
+            Mx.mul (M1, x);
+            if (!Mx.epsilonEquals (b, EPSILON * cond)) {
+               throw new TestException (
+                  "solution failed:\n" + "Mx="
+                  + Mx.toString ("%9.4f") + "b=" + b.toString ("%9.4f") + "x="
+                  + x.toString ("%9.4f"));
+            }
          }
       }
 
@@ -189,14 +191,16 @@ class SVDecomposition3dTest {
       if (nrows == ncols) {
          Matrix3d MI = new Matrix3d();
          Matrix3d IMI = new Matrix3d();
-         svd.inverse (MI);
-         IMI.mul (M1, MI);
-         Matrix3d I = new Matrix3d();
-         I.setIdentity();
-
-         if (!IMI.epsilonEquals (I, EPSILON * cond)) {
-            throw new TestException ("failed inverse:\n"
-            + MI.toString ("%9.4f") + "M1=\n" + M1.toString ("%9.4f"));
+         if (svd.inverse (MI)) {
+            IMI.mul (M1, MI);
+            Matrix3d I = new Matrix3d();
+            I.setIdentity();
+            
+            if (!IMI.epsilonEquals (I, EPSILON * cond)) {
+               throw new TestException (
+                  "failed inverse:\n"
+                  + MI.toString ("%9.4f") + "M1=\n" + M1.toString ("%9.4f"));
+            }
          }
       }
    }

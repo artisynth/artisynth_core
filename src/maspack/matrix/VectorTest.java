@@ -22,6 +22,15 @@ class VectorTest {
    Exception eExpected;
 
    VectorNd vrsave = new VectorNd (1);
+
+   boolean equals (Vector vr, Vector v1) {
+      return false;
+   }
+
+   boolean epsilonEquals (Vector vr, Vector v1, double tol) {
+      return false;
+   }
+
    VectorNd vx = new VectorNd (1);
 
    void add (Vector vr, Vector v1, Vector v2) {
@@ -162,6 +171,47 @@ class VectorTest {
       vr.set (vrsave);
    }
 
+   void testEquals (VectorBase v1, VectorBase v2) {
+      VectorNd v1save = new VectorNd (v1);
+      VectorNd v2save = new VectorNd (v2);
+
+      v1.setRandom();
+
+      double EPS = 1e-14;
+      if (!equals (v1, v1)) {
+         throw new TestException ("matrix not equal to itself");
+      }
+      if (!epsilonEquals (v1, v1, 0)) {
+         throw new TestException (
+            "matrix not epsilon equal to itself with EPS = 0");
+      }
+      v2.setRandom();
+      for (int i=0; i<v2.size(); i++) {
+         v2.set (i, v1.get(i)+EPS*v2.get(i));
+      }
+      if (!epsilonEquals (v1, v2, EPS)) {
+         throw new TestException (
+            "matrix not epsilon equal to small perturbation");
+      }
+      if (epsilonEquals (v1, v2, 0.0001*EPS)) {
+         throw new TestException (
+            "matrix epsilon equal to small perturbation with very small EPS");
+      }
+      v2.set (v1);
+      // set random entry to NaN
+      int i = RandomGenerator.nextInt (0, v1.size()-1);
+      v2.set (i, 0.0/0.0);
+      if (equals (v1, v2)) {
+         throw new TestException ("matrix equal to matrix containing NaN");
+      }
+      if (epsilonEquals (v1, v2, EPS)) {
+         throw new TestException (
+            "matrix epsilon equal to matrix containing NaN");
+      }      
+      v1.set (v1save);
+      v2.set (v2save);
+   }
+         
    void testSetAndGet (Vector vr) {
       Random randGen = RandomGenerator.get();
       int size = vr.size();

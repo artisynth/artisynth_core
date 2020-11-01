@@ -356,8 +356,15 @@ public class Matrix1x1 extends DenseMatrixBase
    /**
     * {@inheritDoc}
     */
+   public boolean equals (Matrix1x1 M1) {
+      return m00 == M1.m00;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public boolean epsilonEquals (Matrix1x1 M1, double tol) {
-      return epsilonEquals (M1, tol);
+      return (abs (m00 - M1.m00) <= tol);
    }
 
 }

@@ -11,6 +11,15 @@ import maspack.util.RandomGenerator;
 import maspack.util.TestException;
 
 class Matrix3dTest extends MatrixTest {
+
+   boolean equals (Matrix MR, Matrix M1) {
+      return ((Matrix3d)M1).equals ((Matrix3d)MR);
+   }
+
+   boolean epsilonEquals (Matrix MR, Matrix M1, double tol) {
+      return ((Matrix3d)M1).epsilonEquals ((Matrix3d)MR, tol);
+   }
+
    void add (Matrix MR, Matrix M1) {
       ((Matrix3d)MR).add ((Matrix3d)M1);
    }
@@ -166,24 +175,27 @@ class Matrix3dTest extends MatrixTest {
       Vector3d x = new Vector3d();
       Vector3d chk = new Vector3d();
 
+      LUDecomposition lud = new LUDecomposition (M1);
+      double cond = lud.conditionEstimate (M1);
+
       b.setRandom();
       M1.solve (x, b);
       Minv.invert (M1);
       Minv.mul (chk, b);
-      if (!chk.epsilonEquals (x, 10*EPSILON*chk.norm())) {
+      if (!chk.epsilonEquals (x, cond*EPSILON*chk.norm())) {
          System.out.println ("solve: x = " + x);
          System.out.println ("expected:  " + chk);
-         System.out.println ("eps=" + 100*EPSILON*chk.norm());
+         System.out.println ("eps=" + cond*EPSILON*chk.norm());
          throw new TestException ("solve failed");
       }
 
       M1.solveTranspose (x, b);
       Minv.transpose ();
       Minv.mul (chk, b);
-      if (!chk.epsilonEquals (x, 10*EPSILON*chk.norm())) {
+      if (!chk.epsilonEquals (x, cond*EPSILON*chk.norm())) {
          System.out.println ("solveTranspose: x = " + x);
          System.out.println ("expected:           " + chk);
-         System.out.println ("eps=" + 100*EPSILON*chk.norm());
+         System.out.println ("eps=" + cond*EPSILON*chk.norm());
          throw new TestException ("solveTranspose failed");
       }
    }
@@ -204,6 +216,8 @@ class Matrix3dTest extends MatrixTest {
          M1.setRandom();
          M2.setRandom();
          MR.setRandom();
+
+         testEquals (M1, MR);
 
          testAdd (MR, M1, M2);
          testAdd (MR, MR, MR);

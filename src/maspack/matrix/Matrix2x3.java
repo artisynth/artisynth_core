@@ -566,8 +566,21 @@ public class Matrix2x3 extends DenseMatrixBase
    /**
     * {@inheritDoc}
     */
+   public boolean equals (Matrix2x3 M1) {
+      return (m00 == M1.m00 && m01 == M1.m01 && m02 == M1.m02 &&
+              m10 == M1.m10 && m11 == M1.m11 && m12 == M1.m12);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public boolean epsilonEquals (Matrix2x3 M1, double tol) {
-      return epsilonEquals (M1, tol);
+      return (abs (m00 - M1.m00) <= tol &&
+              abs (m01 - M1.m01) <= tol &&
+              abs (m02 - M1.m02) <= tol &&
+              abs (m10 - M1.m10) <= tol &&
+              abs (m11 - M1.m11) <= tol &&
+              abs (m12 - M1.m12) <= tol);
    }
 }
 

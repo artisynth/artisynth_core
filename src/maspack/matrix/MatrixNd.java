@@ -2217,7 +2217,8 @@ public class MatrixNd extends DenseMatrixBase
       if (storageFilled & M1.storageFilled) {
          int size = nrows * ncols;
          for (int i = 0; i < size; i++) {
-            if (Math.abs (buf[i] - M1.buf[i]) > epsilon) {
+            // use ! abs(diff) <= epsilon to catch NaN
+            if (!(Math.abs (buf[i] - M1.buf[i]) <= epsilon)) {
                return false;
             }
          }
@@ -2227,7 +2228,8 @@ public class MatrixNd extends DenseMatrixBase
          int idx1 = M1.base;
          for (int i = 0; i < nrows; i++) {
             for (int j = 0; j < ncols; j++) {
-               if (Math.abs (buf[idx0 + j] - M1.buf[idx1 + j]) > epsilon) {
+               // use ! abs(diff) <= epsilon to catch NaN
+               if (!(Math.abs (buf[idx0 + j] - M1.buf[idx1 + j]) <= epsilon)) {
                   return false;
                }
             }

@@ -8,6 +8,8 @@ package maspack.matrix;
 
 import java.util.Random;
 
+import maspack.util.RandomGenerator;
+
 /**
  * Base implementation of {@link maspack.matrix.Matrix Matrix}.
  */
@@ -228,6 +230,12 @@ public abstract class DenseMatrixBase extends MatrixBase implements DenseMatrix 
             set (i, j, generator.nextDouble() * range + lower);
          }
       }
+   }
+
+   void setRandomEntryToNaN () {
+      int i = RandomGenerator.nextInt (0, rowSize()-1);
+      int j = RandomGenerator.nextInt (0, colSize()-1);
+      set (i, j, 0.0/0.0);
    }
 
    /**

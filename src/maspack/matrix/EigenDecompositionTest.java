@@ -319,14 +319,16 @@ class EigenDecompositionTest extends UnitTest {
       }
       VectorNd x = new VectorNd (n);
       VectorNd Mx = new VectorNd (n);
-      evd.solve (x, b);
-      Mx.mul (MS, x);
-      if (!Mx.epsilonEquals (b, EPS * cond)) {
-         throw new TestException (
-            "solution failed:\n" + "Mx="
-            + Mx.toString ("%9.4f") + "b=" + b.toString ("%9.4f") + "x="
-            + x.toString ("%9.4f"));
+      if (evd.solve (x, b)) {
+         Mx.mul (MS, x);
+         if (!Mx.epsilonEquals (b, EPS * cond)) {
+            throw new TestException (
+               "solution failed:\n" + "Mx="
+               + Mx.toString ("%9.4f") + "b=" + b.toString ("%9.4f") + "x="
+               + x.toString ("%9.4f"));
+         }
       }
+      
 
       // check matrix solver
       MatrixNd B = new MatrixNd (n, 3);
@@ -334,13 +336,14 @@ class EigenDecompositionTest extends UnitTest {
       MatrixNd X = new MatrixNd (n, 3);
       MatrixNd MX = new MatrixNd (n, 3);
 
-      evd.solve (X, B);
-      MX.mul (MS, X);
-      if (!MX.epsilonEquals (B, EPS * cond)) {
-         throw new TestException (
-            "solution failed:\n" + "MX="
-            + MX.toString ("%9.4f") + "B=" + B.toString ("%9.4f"));
-      }
+      if (evd.solve (X, B)) {
+         MX.mul (MS, X);
+         if (!MX.epsilonEquals (B, EPS * cond)) {
+            throw new TestException (
+               "solution failed:\n" + "MX="
+               + MX.toString ("%9.4f") + "B=" + B.toString ("%9.4f"));
+         }
+      }      
 
       // check determinant
       double det = getDeterminant (MS);
@@ -356,15 +359,16 @@ class EigenDecompositionTest extends UnitTest {
       // check inverse
       MatrixNd MI = new MatrixNd (n, n);
       MatrixNd IMI = new MatrixNd (n, n);
-      evd.inverse (MI);
-      IMI.mul (MS, MI);
-      MatrixNd I = new MatrixNd (n, n);
-      I.setIdentity();
-
-      if (!IMI.epsilonEquals (I, EPS * cond)) {
-         throw new TestException (
-            "failed inverse:\n"
-            + MI.toString ("%9.4f") + "MS=\n" + MS.toString ("%9.4f"));
+      if (evd.inverse (MI)) {
+         IMI.mul (MS, MI);
+         MatrixNd I = new MatrixNd (n, n);
+         I.setIdentity();
+         
+         if (!IMI.epsilonEquals (I, EPS * cond)) {
+            throw new TestException (
+               "failed inverse:\n"
+               + MI.toString ("%9.4f") + "MS=\n" + MS.toString ("%9.4f"));
+         }
       }
 
       if ((flags & OMIT_V) != 0) {

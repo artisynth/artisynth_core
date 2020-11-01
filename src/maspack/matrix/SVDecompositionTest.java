@@ -367,14 +367,16 @@ class SVDecompositionTest extends UnitTest {
          int n = nrows;
          MatrixNd MI = new MatrixNd (n, n);
          MatrixNd IMI = new MatrixNd (n, n);
-         svd.inverse (MI);
-         IMI.mul (M1, MI);
-         MatrixNd I = new MatrixNd (n, n);
-         I.setIdentity();
-
-         if (!IMI.epsilonEquals (I, EPSILON * cond)) {
-            throw new TestException ("failed inverse:\n"
-            + MI.toString ("%9.4f") + "M1=\n" + M1.toString ("%9.4f"));
+         if (svd.inverse (MI)) {
+            IMI.mul (M1, MI);
+            MatrixNd I = new MatrixNd (n, n);
+            I.setIdentity();
+            
+            if (!IMI.epsilonEquals (I, EPSILON * cond)) {
+               throw new TestException (
+                  "failed inverse:\n"
+                  + MI.toString ("%9.4f") + "M1=\n" + M1.toString ("%9.4f"));
+            }
          }
       }
    }

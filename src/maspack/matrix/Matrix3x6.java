@@ -1143,12 +1143,47 @@ public class Matrix3x6 extends DenseMatrixBase
    public void scaledAddObj (double s, Matrix3x6 M1) {
       scaledAdd (s, M1);
    }
-
+ 
    /**
-    * {@inheritDoc}
-    */
-   public boolean epsilonEquals (Matrix3x6 M1, double tol) {
-      return epsilonEquals (M1, tol);
+     * {@inheritDoc}
+     */
+   public boolean epsilonEquals (Matrix3x6 M1, double epsilon) {
+      if (abs (m00 - M1.m00) <= epsilon && abs (m01 - M1.m01) <= epsilon &&
+          abs (m02 - M1.m02) <= epsilon && abs (m03 - M1.m03) <= epsilon &&
+          abs (m04 - M1.m04) <= epsilon && abs (m05 - M1.m05) <= epsilon &&
+
+          abs (m10 - M1.m10) <= epsilon && abs (m11 - M1.m11) <= epsilon &&
+          abs (m12 - M1.m12) <= epsilon && abs (m13 - M1.m13) <= epsilon &&
+          abs (m14 - M1.m14) <= epsilon && abs (m15 - M1.m15) <= epsilon &&
+
+          
+          abs (m20 - M1.m20) <= epsilon && abs (m21 - M1.m21) <= epsilon &&
+          abs (m22 - M1.m22) <= epsilon && abs (m23 - M1.m23) <= epsilon &&
+          abs (m24 - M1.m24) <= epsilon && abs (m25 - M1.m25) <= epsilon) {
+         return true;
+      }
+      else {
+         return false;
+      }
    }
 
+   /**
+     * {@inheritDoc}
+     */
+   public boolean equals (Matrix3x6 M1) {
+      if ((m00 == M1.m00) && (m01 == M1.m01) && (m02 == M1.m02) &&
+          (m03 == M1.m03) && (m04 == M1.m04) && (m05 == M1.m05) &&
+
+          (m10 == M1.m10) && (m11 == M1.m11) && (m12 == M1.m12) &&
+          (m13 == M1.m13) && (m14 == M1.m14) && (m15 == M1.m15) &&
+
+          (m20 == M1.m20) && (m21 == M1.m21) && (m22 == M1.m22) &&
+          (m23 == M1.m23) && (m24 == M1.m24) && (m25 == M1.m25)) {
+
+         return true;
+      }
+      else {
+         return false;
+      }
+   }
 }

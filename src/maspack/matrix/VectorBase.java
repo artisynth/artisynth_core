@@ -341,8 +341,7 @@ public abstract class VectorBase implements Vector {
          return false;
       }
       for (int i = 0; i < size(); i++) {
-         double dist = Math.abs (get (i) - v1.get (i));
-         if (dist > eps) {
+         if (!(Math.abs (get (i) - v1.get (i)) <= eps)) {
             return false;
          }
       }
@@ -672,6 +671,10 @@ public abstract class VectorBase implements Vector {
          }
       }
       return false;
+   }
+
+   protected double abs (double x) {
+      return x >= 0 ? x : -x;
    }
 
    public VectorBase clone() {

@@ -7,8 +7,18 @@
 package maspack.matrix;
 
 import maspack.util.RandomGenerator;
+import maspack.util.TestException;
 
 class Matrix4dTest extends MatrixTest {
+
+   boolean equals (Matrix MR, Matrix M1) {
+      return ((Matrix4d)M1).equals ((Matrix4d)MR);
+   }
+
+   boolean epsilonEquals (Matrix MR, Matrix M1, double tol) {
+      return ((Matrix4d)M1).epsilonEquals ((Matrix4d)MR, tol);
+   }
+
    void add (Matrix MR, Matrix M1) {
       ((Matrix4d)MR).add ((Matrix4d)M1);
    }
@@ -137,6 +147,8 @@ class Matrix4dTest extends MatrixTest {
          M1.setRandom();
          M2.setRandom();
          MR.setRandom();
+
+         testEquals (M1, MR);
 
          testAdd (MR, M1, M2);
          testAdd (MR, MR, MR);

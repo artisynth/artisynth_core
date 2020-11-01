@@ -12,6 +12,15 @@ import maspack.util.TestException;
 import java.io.IOException;
 
 class MatrixNdTest extends MatrixTest {
+
+    boolean equals (Matrix MR, Matrix M1) {
+      return ((MatrixNd)M1).equals ((MatrixNd)MR);
+   }
+
+   boolean epsilonEquals (Matrix MR, Matrix M1, double tol) {
+      return ((MatrixNd)M1).epsilonEquals ((MatrixNd)MR, tol);
+   }
+
    void add (Matrix MR, Matrix M1) {
       ((MatrixNd)MR).add ((MatrixNd)M1);
    }
@@ -403,6 +412,10 @@ class MatrixNdTest extends MatrixTest {
       testSetSize (MR, 2, 7);
       MR.set (M0);
       testSetSize (MR, 2, 3);
+
+      for (int n = 0; n < 10; n++) {
+         testEquals (M0, MR);
+      }
 
       int n = 0;
       try {

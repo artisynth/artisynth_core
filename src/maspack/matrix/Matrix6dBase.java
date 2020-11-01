@@ -2483,37 +2483,37 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
     * @return false if the matrices are not equal within the specified tolerance
     */
    public boolean epsilonEquals (Matrix6dBase M1, double epsilon) {
-      if (abs (m00 - M1.m00) > epsilon || abs (m01 - M1.m01) > epsilon ||
-          abs (m02 - M1.m02) > epsilon || abs (m03 - M1.m03) > epsilon ||
-          abs (m04 - M1.m04) > epsilon || abs (m05 - M1.m05) > epsilon ||
+      if (abs (m00 - M1.m00) <= epsilon && abs (m01 - M1.m01) <= epsilon &&
+          abs (m02 - M1.m02) <= epsilon && abs (m03 - M1.m03) <= epsilon &&
+          abs (m04 - M1.m04) <= epsilon && abs (m05 - M1.m05) <= epsilon &&
 
-          abs (m10 - M1.m10) > epsilon || abs (m11 - M1.m11) > epsilon ||
-          abs (m12 - M1.m12) > epsilon || abs (m13 - M1.m13) > epsilon ||
-          abs (m14 - M1.m14) > epsilon || abs (m15 - M1.m15) > epsilon ||
-
-          
-          abs (m20 - M1.m20) > epsilon || abs (m21 - M1.m21) > epsilon ||
-          abs (m22 - M1.m22) > epsilon || abs (m23 - M1.m23) > epsilon ||
-          abs (m24 - M1.m24) > epsilon || abs (m25 - M1.m25) > epsilon ||
+          abs (m10 - M1.m10) <= epsilon && abs (m11 - M1.m11) <= epsilon &&
+          abs (m12 - M1.m12) <= epsilon && abs (m13 - M1.m13) <= epsilon &&
+          abs (m14 - M1.m14) <= epsilon && abs (m15 - M1.m15) <= epsilon &&
 
           
-          abs (m30 - M1.m30) > epsilon || abs (m31 - M1.m31) > epsilon ||
-          abs (m32 - M1.m32) > epsilon || abs (m33 - M1.m33) > epsilon ||
-          abs (m34 - M1.m34) > epsilon || abs (m35 - M1.m35) > epsilon ||
+          abs (m20 - M1.m20) <= epsilon && abs (m21 - M1.m21) <= epsilon &&
+          abs (m22 - M1.m22) <= epsilon && abs (m23 - M1.m23) <= epsilon &&
+          abs (m24 - M1.m24) <= epsilon && abs (m25 - M1.m25) <= epsilon &&
 
           
-          abs (m40 - M1.m40) > epsilon || abs (m41 - M1.m41) > epsilon ||
-          abs (m42 - M1.m42) > epsilon || abs (m43 - M1.m43) > epsilon ||
-          abs (m44 - M1.m44) > epsilon || abs (m45 - M1.m45) > epsilon ||
+          abs (m30 - M1.m30) <= epsilon && abs (m31 - M1.m31) <= epsilon &&
+          abs (m32 - M1.m32) <= epsilon && abs (m33 - M1.m33) <= epsilon &&
+          abs (m34 - M1.m34) <= epsilon && abs (m35 - M1.m35) <= epsilon &&
 
           
-          abs (m50 - M1.m50) > epsilon || abs (m51 - M1.m51) > epsilon ||
-          abs (m52 - M1.m52) > epsilon || abs (m53 - M1.m53) > epsilon ||
-          abs (m54 - M1.m54) > epsilon || abs (m55 - M1.m55) > epsilon) {
-         return false;
+          abs (m40 - M1.m40) <= epsilon && abs (m41 - M1.m41) <= epsilon &&
+          abs (m42 - M1.m42) <= epsilon && abs (m43 - M1.m43) <= epsilon &&
+          abs (m44 - M1.m44) <= epsilon && abs (m45 - M1.m45) <= epsilon &&
+
+          
+          abs (m50 - M1.m50) <= epsilon && abs (m51 - M1.m51) <= epsilon &&
+          abs (m52 - M1.m52) <= epsilon && abs (m53 - M1.m53) <= epsilon &&
+          abs (m54 - M1.m54) <= epsilon && abs (m55 - M1.m55) <= epsilon) {
+         return true;
       }
       else {
-         return true;
+         return false;
       }
    }
 
@@ -2526,27 +2526,27 @@ public abstract class Matrix6dBase extends DenseMatrixBase implements Clonable {
     * @return false if the matrices are not equal
     */
    public boolean equals (Matrix6dBase M1) {
-      if ((m00 != M1.m00) || (m01 != M1.m01) || (m02 != M1.m02) ||
-          (m03 != M1.m03) || (m04 != M1.m04) || (m05 != M1.m05) ||
+      if ((m00 == M1.m00) && (m01 == M1.m01) && (m02 == M1.m02) &&
+          (m03 == M1.m03) && (m04 == M1.m04) && (m05 == M1.m05) &&
 
-          (m10 != M1.m10) || (m11 != M1.m11) || (m12 != M1.m12) ||
-          (m13 != M1.m13) || (m14 != M1.m14) || (m15 != M1.m15) ||
+          (m10 == M1.m10) && (m11 == M1.m11) && (m12 == M1.m12) &&
+          (m13 == M1.m13) && (m14 == M1.m14) && (m15 == M1.m15) &&
 
-          (m20 != M1.m20) || (m21 != M1.m21) || (m22 != M1.m22) ||
-          (m23 != M1.m23) || (m24 != M1.m24) || (m25 != M1.m25) ||
+          (m20 == M1.m20) && (m21 == M1.m21) && (m22 == M1.m22) &&
+          (m23 == M1.m23) && (m24 == M1.m24) && (m25 == M1.m25) &&
 
-          (m30 != M1.m30) || (m31 != M1.m31) || (m32 != M1.m32) ||
-          (m33 != M1.m33) || (m34 != M1.m34) || (m35 != M1.m35) ||
+          (m30 == M1.m30) && (m31 == M1.m31) && (m32 == M1.m32) &&
+          (m33 == M1.m33) && (m34 == M1.m34) && (m35 == M1.m35) &&
 
-          (m40 != M1.m40) || (m41 != M1.m41) || (m42 != M1.m42) ||
-          (m43 != M1.m43) || (m44 != M1.m44) || (m45 != M1.m45) ||
+          (m40 == M1.m40) && (m41 == M1.m41) && (m42 == M1.m42) &&
+          (m43 == M1.m43) && (m44 == M1.m44) && (m45 == M1.m45) &&
 
-          (m50 != M1.m50) || (m51 != M1.m51) || (m52 != M1.m52) ||
-          (m53 != M1.m53) || (m54 != M1.m54) || (m55 != M1.m55)) {
-         return false;
+          (m50 == M1.m50) && (m51 == M1.m51) && (m52 == M1.m52) &&
+          (m53 == M1.m53) && (m54 == M1.m54) && (m55 == M1.m55)) {
+         return true;
       }
       else {
-         return true;
+         return false;
       }
    }
 

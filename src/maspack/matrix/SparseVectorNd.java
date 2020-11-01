@@ -1048,19 +1048,19 @@ public class SparseVectorNd extends VectorBase implements java.io.Serializable {
       SparseVectorCell cell2 = v1.elems;
       while (cell1 != null && cell2 != null) {
          if (cell1.i < cell2.i) {
-            if (Math.abs (cell1.value) > eps) {
+            if (!(abs (cell1.value) <= eps)) {
                return false;
             }
             cell1 = cell1.next;
          }
          else if (cell1.i > cell2.i) {
-            if (Math.abs (cell2.value) > eps) {
+            if (!(abs (cell2.value) <= eps)) {
                return false;
             }
             cell2 = cell2.next;
          }
          else {
-            if (Math.abs (cell1.value - cell2.value) > eps) {
+            if (!(abs (cell1.value - cell2.value) <= eps)) {
                return false;
             }
             cell1 = cell1.next;
@@ -1068,13 +1068,13 @@ public class SparseVectorNd extends VectorBase implements java.io.Serializable {
          }
       }
       while (cell1 != null) {
-         if (Math.abs (cell1.value) > eps) {
+         if (!(abs (cell1.value) <= eps)) {
             return false;
          }
          cell1 = cell1.next;
       }
       while (cell2 != null) {
-         if (Math.abs (cell2.value) > eps) {
+         if (!(abs (cell2.value) <= eps)) {
             return false;
          }
          cell2 = cell2.next;

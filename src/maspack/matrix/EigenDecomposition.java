@@ -490,7 +490,7 @@ public class EigenDecomposition {
     */
    public int numEigImag () {
       if (state == State.UNSET) {
-         throw new ImproperStateException ("Decompostion not initialized");
+         throw new ImproperStateException ("Decomposition not initialized");
       }
       int num = 0;
       if (state == State.SET_UNSYMMETRIC) {
@@ -504,6 +504,25 @@ public class EigenDecomposition {
          }
       }
       return num;
+   }
+
+   public VectorNd getComplexPairs() {
+      if (state == State.UNSET) {
+         throw new ImproperStateException ("Decomposition not initialized");
+      }
+      VectorNd ceigs = new VectorNd();
+      if (state == State.SET_UNSYMMETRIC) {
+         int n = mySize;
+         double tol = 100*maxabs*EPS;
+         for (int i=0; i<n; i++) {
+            if (i <n-1 && pairIsConjugate (eigr, eigi, i, tol)) {
+               ceigs.append (eigr.get(i));
+               ceigs.append (eigi.get(i));
+               i++;
+            }
+         }
+      }
+      return ceigs;
    }
 
    /**
@@ -697,7 +716,7 @@ public class EigenDecomposition {
          vtmp.buf[i] /= eig[i];
       }
       x.mul (V_, vtmp);
-      return singular;
+      return !singular;
    }
 
    /**
@@ -756,7 +775,7 @@ public class EigenDecomposition {
          xtmp.mul (V_, vtmp);
          X.setColumn (j, xtmp);
       }
-      return singular;
+      return !singular;
    }
 
    /**
@@ -805,7 +824,7 @@ public class EigenDecomposition {
          xtmp.mul (V_, vtmp);
          MI.setColumn (j, xtmp);
       }
-      return singular;
+      return !singular;
    }
 
 
@@ -1693,4 +1712,10 @@ public class EigenDecomposition {
       return 0;      
    }
 
+   public static void main (String[] args) {
+      MatrixNd M = new MatrixNd (2,2);
+      EigenDecomposition ed = new EigenDecomposition(M);
+      System.out.println ("eigs=" + ed.getEigReal());
+
+   }
 }

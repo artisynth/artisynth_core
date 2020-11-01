@@ -9,6 +9,15 @@ package maspack.matrix;
 import maspack.util.RandomGenerator;
 
 class Vector4dTest extends VectorTest {
+
+   boolean equals (Vector vr, Vector v1) {
+      return ((Vector4d)vr).equals ((Vector4d)v1);
+   }
+
+   boolean epsilonEquals (Vector vr, Vector v1, double tol) {
+      return ((Vector4d)vr).epsilonEquals ((Vector4d)v1, tol);
+   }
+
    void add (Vector vr, Vector v1) {
       ((Vector4d)vr).add ((Vector4d)v1);
    }
@@ -99,6 +108,8 @@ class Vector4dTest extends VectorTest {
          v1.setRandom();
          v2.setRandom();
          vr.setRandom();
+
+         testEquals (vr, v1);
 
          testAdd (vr, v1, v2);
          testAdd (vr, vr, vr);

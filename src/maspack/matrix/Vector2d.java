@@ -660,15 +660,7 @@ public class Vector2d extends VectorBase
     * @return false if the vectors are not equal within the specified tolerance
     */
    public boolean epsilonEquals (Vector2d v1, double eps) {
-      double delx = x - v1.x;
-      if (delx > eps || delx < -eps) {
-         return false;
-      }
-      double dely = y - v1.y;
-      if (dely > eps || dely < -eps) {
-         return false;
-      }
-      return true;
+      return (abs (x - v1.x) <= eps && abs (y - v1.y) <= eps);
    }
 
    /**

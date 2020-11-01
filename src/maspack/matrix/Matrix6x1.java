@@ -687,8 +687,21 @@ public class Matrix6x1 extends DenseMatrixBase
    /**
     * {@inheritDoc}
     */
+   public boolean equals (Matrix6x1 M1) {
+      return (m00 == M1.m00 && m10 == M1.m10 && m20 == M1.m20 &&
+              m30 == M1.m30 && m40 == M1.m40 && m50 == M1.m50);
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    public boolean epsilonEquals (Matrix6x1 M1, double tol) {
-      return epsilonEquals (M1, tol);
+      return (abs (m00 - M1.m00) <= tol &&
+              abs (m10 - M1.m10) <= tol &&
+              abs (m20 - M1.m20) <= tol &&
+              abs (m30 - M1.m30) <= tol &&
+              abs (m40 - M1.m40) <= tol &&
+              abs (m50 - M1.m50) <= tol);
    }
 
 }

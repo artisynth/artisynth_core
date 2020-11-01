@@ -240,7 +240,7 @@ public abstract class MatrixBase implements LinearTransformNd, Matrix {
       }
       for (int i = 0; i < rowSize(); i++) {
          for (int j = 0; j < colSize(); j++) {
-            if (Math.abs (get (i, j) - M1.get (i, j)) > epsilon) {
+            if (!(Math.abs (get (i, j) - M1.get (i, j)) <= epsilon)) {
                return false;
             }
          }

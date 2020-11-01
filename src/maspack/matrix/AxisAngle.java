@@ -334,10 +334,7 @@ public class AxisAngle implements Clonable {
          return false;
       }
       double dist = Math.abs (angle - axisAng.angle);
-      if (dist > eps) {
-         return false;
-      }
-      return true;
+      return (dist <= eps);
    }
 
    /**
@@ -352,10 +349,7 @@ public class AxisAngle implements Clonable {
       if (!axis.equals (axisAng.axis)) {
          return false;
       }
-      if (angle != axisAng.angle) {
-         return false;
-      }
-      return true;
+      return (angle == axisAng.angle);
    }
 
    /**

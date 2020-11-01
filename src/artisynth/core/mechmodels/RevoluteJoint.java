@@ -165,8 +165,7 @@ public class RevoluteJoint extends JointBase
       TCW.p.set (pc);
       TCW.R.setZDirection (axis);
       setBodies (bodyA, bodyB, TCW);
-   }
-   
+   }   
 
    public RenderProps createRenderProps() {
       return defaultRenderProps (this);

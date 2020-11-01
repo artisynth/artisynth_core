@@ -10,7 +10,9 @@ import java.awt.Color;
 import java.util.Map;
 
 import maspack.matrix.RigidTransform3d;
+import maspack.matrix.RotationMatrix3d;
 import maspack.matrix.Vector3d;
+import maspack.matrix.Point3d;
 import maspack.properties.HasProperties;
 import maspack.properties.PropertyList;
 import maspack.render.Renderer;
@@ -23,10 +25,14 @@ import artisynth.core.modelbase.CopyableComponent;
 import artisynth.core.modelbase.ModelComponent;
 
 /**
- * Auxiliary class used to solve constrained rigid body problems.
+ * Implements a 2 DOF roll-pitch joint.
  */
 public class RollPitchJoint extends JointBase implements CopyableComponent {
   
+   // used by SkewedRollPitchJoint to adjust angle between the pitch joint and
+   // the y axis
+   protected double mySkewAngle = 0;
+
    private static DoubleInterval DEFAULT_ANGLE_RANGE =
       new DoubleInterval ("[-inf,inf])");
 
@@ -88,19 +94,22 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       myCoupling.setContactDistance (1e-8);
    }
 
-   public RollPitchJoint (RigidBody bodyA, RigidTransform3d TCA,
-                          RigidTransform3d TDW) {
+   // not used
+   public RollPitchJoint (
+      RigidBody bodyA, RigidTransform3d TCA, RigidTransform3d TDW) {
       this();
       setBodies (bodyA, TCA, null, TDW);
    }
 
-   public RollPitchJoint (RigidBody bodyA, RigidTransform3d TCA,
-                          RigidBody bodyB, RigidTransform3d XDB) {
+   public RollPitchJoint (
+      RigidBody bodyA, RigidTransform3d TCA,
+      RigidBody bodyB, RigidTransform3d XDB) {
       this();
       setBodies (bodyA, TCA, bodyB, XDB);
    }
    
-   public RollPitchJoint (RigidBody bodyA, RigidBody bodyB, RigidTransform3d XJointWorld) {
+   public RollPitchJoint (
+      RigidBody bodyA, RigidBody bodyB, RigidTransform3d XJointWorld) {
       this();
       RigidTransform3d TCA = new RigidTransform3d();
       RigidTransform3d XDB = new RigidTransform3d();
@@ -109,10 +118,10 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       XDB.mulInverseLeft(bodyB.getPose(), XJointWorld);
       
       setBodies(bodyA, TCA, bodyB, XDB);
-      
    }
    
-   public RollPitchJoint (ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
+   public RollPitchJoint (
+      ConnectableBody bodyA, ConnectableBody bodyB, RigidTransform3d TFW) {
       this();
       setBodies(bodyA, bodyB, TFW);
       
@@ -193,12 +202,66 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       setPitchRange (new DoubleInterval (min, max));
    }
 
+   private void computeRollAxisEndPoints (
+      Point3d p0, Point3d p1, RigidTransform3d TCW) {
+      Vector3d uW = new Vector3d(); // joint axis vector in world coords
+
+      // first set p0 to contact center in world coords
+      p0.set (TCW.p);
+      // now get axis unit vector in world coords
+      uW.set (TCW.R.m02, TCW.R.m12, TCW.R.m22);
+      p0.scaledAdd (-0.5 * myAxisLength, uW, p0);
+      p1.scaledAdd (myAxisLength, uW, p0);
+   }
+
+   private void computePitchAxisEndPoints (
+      Point3d p0, Point3d p1, RigidTransform3d TDW) {
+      Vector3d uW = new Vector3d(); // joint axis vector in world coords
+
+      // first set p0 to contact center in world coords
+      p0.set (TDW.p);
+      // now get axis unit vector in world coords
+
+      if (mySkewAngle != 0) {
+         RotationMatrix3d R = TDW.R;
+         double sa = Math.sin(mySkewAngle);
+         double ca = Math.cos(mySkewAngle);
+         // find pitch axis by rotating RDW about its x axis by skewAngke
+         uW.set (
+            ca*R.m01 + sa*R.m02, ca*R.m11 + sa*R.m12, ca*R.m21 + sa*R.m22);
+      }
+      else {
+         uW.set (TDW.R.m01, TDW.R.m11, TDW.R.m21);
+      }
+      p0.scaledAdd (-0.5 * myAxisLength, uW, p0);
+      p1.scaledAdd (myAxisLength, uW, p0);
+   }
+
    public void render (Renderer renderer, int flags) {
       super.render (renderer, flags);
-      float[] coords =
-         new float[] { (float)myRenderFrameD.p.x, (float)myRenderFrameD.p.y,
-                      (float)myRenderFrameD.p.z };
-      renderer.drawPoint (myRenderProps, coords, isSelected());
+      Vector3d center = myRenderFrameD.p;
+      float[] coords0 = 
+         new float[] { (float)center.x, (float)center.y, (float)center.z };
+
+      renderer.drawPoint (myRenderProps, coords0, isSelected());
+      if (myAxisLength > 0) {
+         float[] coords1;
+
+         Point3d p0 = new Point3d();
+         Point3d p1 = new Point3d();
+
+         computeRollAxisEndPoints (p0, p1, myRenderFrameC);
+         coords0 = new float[] { (float)p0.x, (float)p0.y, (float)p0.z };
+         coords1 = new float[] { (float)p1.x, (float)p1.y, (float)p1.z };
+         renderer.drawLine (myRenderProps, coords0, coords1,
+                            /*color=*/null, /*capped=*/true, isSelected());
+
+         computePitchAxisEndPoints (p0, p1, myRenderFrameD);
+         coords0 = new float[] { (float)p0.x, (float)p0.y, (float)p0.z };
+         coords1 = new float[] { (float)p1.x, (float)p1.y, (float)p1.z };
+         renderer.drawLine (myRenderProps, coords0, coords1,
+                            /*color=*/null, /*capped=*/true, isSelected());
+      }
    }
 
    @Override

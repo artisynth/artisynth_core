@@ -34,6 +34,7 @@ public abstract class FemMaterial extends MaterialBase
       ViscoelasticMaterial.class,
       ScaledFemMaterial.class,
       FullBlemkerMuscle.class,
+      TransverseLinearMaterial.class,
       NullMaterial.class,
    });
 

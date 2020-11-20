@@ -37,7 +37,7 @@ public abstract class AxialMuscleMaterialBase extends AxialMaterial {
     * {@code curve} is set to {@code null}. Any specified curve is copied
     * internally.
     *
-    * @return curve new active force length curve
+    * @param curve new active force length curve
     */
    public void setActiveForceLengthCurve (CubicHermiteSpline1d curve) {
       if (curve != null) {
@@ -63,7 +63,7 @@ public abstract class AxialMuscleMaterialBase extends AxialMaterial {
     * {@code curve} is set to {@code null}. Any specified curve is copied
     * internally.
     *
-    * @return curve new passive force length curve
+    * @param curve new passive force length curve
     */
    public void setPassiveForceLengthCurve (CubicHermiteSpline1d curve) {
       if (curve != null) {
@@ -89,7 +89,7 @@ public abstract class AxialMuscleMaterialBase extends AxialMaterial {
     * {@code curve} is set to {@code null}. Any specified curve is copied
     * internally.
     *
-    * @return curve new tendon force length curve
+    * @param curve new tendon force length curve
     */
    public void setTendonForceLengthCurve (CubicHermiteSpline1d curve) {
       if (curve != null) {
@@ -115,7 +115,7 @@ public abstract class AxialMuscleMaterialBase extends AxialMaterial {
     * {@code curve} is set to {@code null}. Any specified curve is copied
     * internally.
     *
-    * @return curve new force velocity curve
+    * @param curve new force velocity curve
     */
    public void setForceVelocityCurve (CubicHermiteSpline1d curve) {
       if (curve != null) {

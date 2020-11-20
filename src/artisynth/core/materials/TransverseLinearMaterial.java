@@ -5,6 +5,8 @@ import maspack.matrix.Matrix6d;
 import maspack.matrix.SVDecomposition;
 import maspack.matrix.SymmetricMatrix3d;
 import maspack.matrix.Vector2d;
+import maspack.matrix.Vector3d;
+import maspack.matrix.RotationMatrix3d;
 
 public class TransverseLinearMaterial extends LinearMaterialBase {
    
@@ -18,7 +20,10 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       new Vector2d(LinearMaterial.DEFAULT_NU, LinearMaterial.DEFAULT_NU);
    private static double DEFAULT_SHEAR_MODULUS =
       LinearMaterial.DEFAULT_E/2/(1+LinearMaterial.DEFAULT_NU);
-   
+
+   private static Vector3d DEFAULT_DIRECTION = new Vector3d(0, 0, 1);
+   private Vector3d myDirection = new Vector3d(DEFAULT_DIRECTION);
+
    private Matrix6d myC;        // anisotropic stiffness matrix
    private Vector2d myE;        // radial, z-axis young's modulus
    private double myG;          // shear modulus
@@ -27,6 +32,7 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
 
    private VectorFieldPointFunction<Vector2d> myEFunction = null;
    private ScalarFieldPointFunction myGFunction = null;
+   private VectorFieldPointFunction<Vector3d> myDirectionFunction = null;
    
    public static FunctionPropertyList myProps =
       new FunctionPropertyList (
@@ -42,6 +48,8 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       myProps.add (
          "poissonsRatio", "radial and z-axis Young's modulus,",
          DEFAULT_POISSONS_RATIO);
+      myProps.addWithFunction (
+         "direction", "anisotropic direction", DEFAULT_DIRECTION);
    }
 
    public FunctionPropertyList getAllPropertyInfo() {
@@ -109,15 +117,18 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    /**
-    * Set Young's modulus, xy-plane (radial) and along z-axis (axial)
-    * @param E young's modulus, E.x radial, E.y axial 
+    * Sets the anisotropic Young's modulus. {@code x} gives the radial
+    * component in the plane perpendicular to the anisotropic direction,
+    * while {@code y} gives the axial component along the direction.
+    * 
+    * @param E anisotropic Young's modulus
     */
    public void setYoungsModulus(Vector2d E) {
       setYoungsModulus(E.x, E.y);
    }
    
    /**
-    * Get Young's modulus
+    * Gets the anisotropic Young's modulus.
     * @return Young's modulus
     */
    public Vector2d getYoungsModulus() {
@@ -125,9 +136,11 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    /**
-    * Sets the Youngs modulus
-    * @param radial along xy-plane
-    * @param axial along z-axis
+    * Sets the anisotropic Young's modulus.
+    * 
+    * @param radial component in the plane perpendicular to the anisotropic
+    * direction
+    * @param axial component along the anisotropic direction
     */
    public void setYoungsModulus(double radial, double axial) {
       myE.set(radial, axial);
@@ -165,7 +178,56 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
 
    /**
-    * Sets the shear modulus between xy and z
+    * Sets the anisotropic direction. Default is the z axis.
+    * 
+    * @param dir new anisotropic direction
+    */
+   public void setDirection (Vector3d dir) {
+      myDirection.set (dir);
+   }
+   
+   /**
+    * Gets the anisotropic direction.
+    * 
+    * @return anisotropic direction (should not be modified)
+    */
+   public Vector3d getDirection() {
+      return myDirection;
+   }
+   
+   public Vector3d getDirection (FieldPoint dp) {
+      if (myDirectionFunction == null) {
+         return getDirection();
+      }
+      else {
+         return myDirectionFunction.eval (dp);
+      }
+   }
+
+   public VectorFieldPointFunction<Vector3d> getDirectionFunction() {
+      return myDirectionFunction;
+   }
+      
+   public void setDirectionFunction (
+      VectorFieldPointFunction<Vector3d> func) {
+      myDirectionFunction = func;
+      notifyHostOfPropertyChange();
+   }
+   
+   public void setDirectionField (
+      VectorField<Vector3d> field, boolean useRestPos) {
+      myDirectionFunction = FieldUtils.setFunctionFromField (field, useRestPos);
+      notifyHostOfPropertyChange();
+   }
+
+   public VectorField<Vector3d> getDirectionField () {
+      return FieldUtils.getFieldFromFunction (myDirectionFunction);
+   }
+
+   /**
+    * Sets the shear modulus between the anisotropic direction and the plane
+    * perpendicular to it.
+    *
     * @param G shear modulus Gxz=Gyz
     */
    public void setShearModulus(double G) {
@@ -175,7 +237,9 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    /**
-    * Gets the shear modulus betwen xy and z
+    * Gets the shear modulus between the anisotropic direction and the plane
+    * perpendicular to it.
+    *
     * @return shear modulus Gxz=Gyz
     */
    public double getShearModulus() {
@@ -211,25 +275,31 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
    }
    
    /**
-    * Sets Poisson's ratio (nu_xy, nu_xz=nu_yz) 
-    * @param nu poisson's ratio
+    * Sets the anisotropic Poisson's ratio. {@code x} gives the radial
+    * component in the plane perpendicular to the anisotropic direction,
+    * while {@code y} gives the axial component along the direction.
+    * 
+    * @param nu anisotropic Poisson's ratio
     */
    public void setPoissonsRatio(Vector2d nu) {
       setPoissonsRatio(nu.x, nu.y);
    }
    
    /**
-    * Returns Poisson's ratio (nu_xy, nu_xz=nu_yz) 
-    * @return poisson's ratio
+    * Returns the anisotropic Poisson's ratio (nu_xy, nu_xz=nu_yz)
+    * 
+    * @return anisotropic Poisson's ratio
     */
    public Vector2d getPoissonsRatio() {
       return myNu;
    }
    
    /**
-    * Sets Poisson's ratio
-    * @param nuxy in-plane ratio
-    * @param nuxz out-of-plane ratio
+    * Sets the anisotropic Poisson's ratio.
+    * 
+    * @param nuxy component in the plane perpendicular to the anisotropic
+    * direction
+    * @param nuxz component along the anisotropic direction
     */
    public void setPoissonsRatio(double nuxy, double nuxz) {
       myNu.set(nuxy, nuxz);
@@ -252,6 +322,12 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
             G = getShearModulus();           
          }
          updateStiffnessTensor (E, G);
+         Vector3d dir = getDirection (defp);
+         if (!dir.equals (DEFAULT_DIRECTION)) {
+            RotationMatrix3d R = new RotationMatrix3d();
+            R.setZDirection (dir);
+            TensorUtils.rotateTangent (myC, myC, R);
+         }
       }
       if (!functionalParams) {
          stiffnessValid = true;
@@ -265,21 +341,28 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       // update stiffness
       maybeUpdateStiffness (defp);
 
-      // perform multiplication
-      double m00 = myC.m00*eps.m00 + myC.m01*eps.m11 + myC.m02*eps.m22 +
-         2*myC.m03*eps.m01 + 2*myC.m04*eps.m12 + 2*myC.m05*eps.m02;
-      double m11 = myC.m10*eps.m00 + myC.m11*eps.m11 + myC.m12*eps.m22 +
-         2*myC.m13*eps.m01 + 2*myC.m14*eps.m12 + 2*myC.m15*eps.m02;
-      double m22 = myC.m20*eps.m00 + myC.m21*eps.m11 + myC.m22*eps.m22 +
-         2*myC.m23*eps.m01 + 2*myC.m24*eps.m12 + 2*myC.m25*eps.m02;
-      double m01 = myC.m30*eps.m00 + myC.m31*eps.m11 + myC.m32*eps.m22 +
-         2*myC.m33*eps.m01 + 2*myC.m34*eps.m12 + 2*myC.m35*eps.m02;
-      double m12 = myC.m40*eps.m00 + myC.m41*eps.m11 + myC.m42*eps.m22 +
-         2*myC.m43*eps.m01 + 2*myC.m44*eps.m12 + 2*myC.m45*eps.m02;
-      double m02 = myC.m50*eps.m00 + myC.m51*eps.m11 + myC.m52*eps.m22 +
-         2*myC.m53*eps.m01 + 2*myC.m54*eps.m12 + 2*myC.m55*eps.m02;
+      double e00 = eps.m00;
+      double e11 = eps.m11;
+      double e22 = eps.m22;
+      double e01 = eps.m01;
+      double e02 = eps.m02;
+      double e12 = eps.m12;
 
-      sigma.set(m00, m11, m22, m01, m02, m12);
+      // perform multiplication
+      double s00 = myC.m00*e00 + myC.m01*e11 + myC.m02*e22 +
+         2*myC.m03*e01 + 2*myC.m04*e12 + 2*myC.m05*e02;
+      double s11 = myC.m10*e00 + myC.m11*e11 + myC.m12*e22 +
+         2*myC.m13*e01 + 2*myC.m14*e12 + 2*myC.m15*e02;
+      double s22 = myC.m20*e00 + myC.m21*e11 + myC.m22*e22 +
+         2*myC.m23*e01 + 2*myC.m24*e12 + 2*myC.m25*e02;
+      double s01 = myC.m30*e00 + myC.m31*e11 + myC.m32*e22 +
+         2*myC.m33*e01 + 2*myC.m34*e12 + 2*myC.m35*e02;
+      double s12 = myC.m40*e00 + myC.m41*e11 + myC.m42*e22 +
+         2*myC.m43*e01 + 2*myC.m44*e12 + 2*myC.m45*e02;
+      double s02 = myC.m50*e00 + myC.m51*e11 + myC.m52*e22 +
+         2*myC.m53*e01 + 2*myC.m54*e12 + 2*myC.m55*e02;
+
+      sigma.set(s00, s11, s22, s01, s02, s12);
    }
    
    @Override
@@ -332,4 +415,5 @@ public class TransverseLinearMaterial extends LinearMaterialBase {
       }
    }
 
+   // XXX scan/write for functions
 }

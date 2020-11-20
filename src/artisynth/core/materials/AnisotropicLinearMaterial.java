@@ -111,15 +111,28 @@ public class AnisotropicLinearMaterial extends LinearMaterialBase {
    @Override
    protected void multiplyC(SymmetricMatrix3d sigma, SymmetricMatrix3d eps, DeformedPoint defp) {
     
+      double e00 = eps.m00;
+      double e11 = eps.m11;
+      double e22 = eps.m22;
+      double e01 = eps.m01;
+      double e02 = eps.m02;
+      double e12 = eps.m12;
+
       // multiply
-      double m00 = myC.m00*eps.m00 + myC.m01*eps.m11 + myC.m02*eps.m22 + 2*myC.m03*eps.m01 + 2*myC.m04*eps.m12 + 2*myC.m05*eps.m02;
-      double m11 = myC.m10*eps.m00 + myC.m11*eps.m11 + myC.m12*eps.m22 + 2*myC.m13*eps.m01 + 2*myC.m14*eps.m12 + 2*myC.m15*eps.m02;
-      double m22 = myC.m20*eps.m00 + myC.m21*eps.m11 + myC.m22*eps.m22 + 2*myC.m23*eps.m01 + 2*myC.m24*eps.m12 + 2*myC.m25*eps.m02;
-      double m01 = myC.m30*eps.m00 + myC.m31*eps.m11 + myC.m32*eps.m22 + 2*myC.m33*eps.m01 + 2*myC.m34*eps.m12 + 2*myC.m35*eps.m02;
-      double m12 = myC.m40*eps.m00 + myC.m41*eps.m11 + myC.m42*eps.m22 + 2*myC.m43*eps.m01 + 2*myC.m44*eps.m12 + 2*myC.m45*eps.m02;
-      double m02 = myC.m50*eps.m00 + myC.m51*eps.m11 + myC.m52*eps.m22 + 2*myC.m53*eps.m01 + 2*myC.m54*eps.m12 + 2*myC.m55*eps.m02;
+      double s00 = myC.m00*e00 + myC.m01*e11 + myC.m02*e22 +
+         2*myC.m03*e01 + 2*myC.m04*e12 + 2*myC.m05*e02;
+      double s11 = myC.m10*e00 + myC.m11*e11 + myC.m12*e22 +
+         2*myC.m13*e01 + 2*myC.m14*e12 + 2*myC.m15*e02;
+      double s22 = myC.m20*e00 + myC.m21*e11 + myC.m22*e22 +
+         2*myC.m23*e01 + 2*myC.m24*e12 + 2*myC.m25*e02;
+      double s01 = myC.m30*e00 + myC.m31*e11 + myC.m32*e22 +
+         2*myC.m33*e01 + 2*myC.m34*e12 + 2*myC.m35*e02;
+      double s12 = myC.m40*e00 + myC.m41*e11 + myC.m42*e22 +
+         2*myC.m43*e01 + 2*myC.m44*e12 + 2*myC.m45*e02;
+      double s02 = myC.m50*e00 + myC.m51*e11 + myC.m52*e22 +
+         2*myC.m53*e01 + 2*myC.m54*e12 + 2*myC.m55*e02;
       
-      sigma.set(m00, m11, m22, m01, m02, m12);      
+      sigma.set(s00, s11, s22, s01, s02, s12);      
    }
 
    @Override

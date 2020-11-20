@@ -816,9 +816,9 @@ public class TensorUtils {
     * @param T output 6x6 matrix
     * @param R 3D rotation matrix
     */
-   public static void createElasticityRotation(Matrix6d T, Matrix3dBase R) {
+   public static void createElasticityRotationOld(Matrix6d T, Matrix3dBase R) {
       
-      // non-standard Vogt notation 11, 22, 33, 12, 23, 13
+      // non-standard Vogt notation 00, 11, 22, 01, 12, 02
       // top left
       T.m00 = R.m00*R.m00;
       T.m01 = R.m01*R.m01;
@@ -864,6 +864,142 @@ public class TensorUtils {
       T.m43 = R.m02*R.m10+R.m00*R.m12;
       T.m44 = R.m00*R.m11+R.m01*R.m10;
    }
+
+   public static void createElasticityRotationBrown(Matrix6d T, Matrix3dBase R) {
+      // top left
+      T.m00 = R.m00*R.m00;
+      T.m01 = R.m01*R.m01;
+      T.m02 = R.m02*R.m02;
+      T.m10 = R.m10*R.m10;
+      T.m11 = R.m11*R.m11;
+      T.m12 = R.m12*R.m12;
+      T.m20 = R.m20*R.m20;
+      T.m21 = R.m21*R.m21;
+      T.m22 = R.m22*R.m22;
+
+      // top right
+      T.m03 = 2*R.m01*R.m02;
+      T.m04 = 2*R.m02*R.m00;
+      T.m05 = 2*R.m00*R.m01;
+      T.m13 = 2*R.m11*R.m12;
+      T.m14 = 2*R.m12*R.m10;
+      T.m15 = 2*R.m10*R.m11;
+      T.m23 = 2*R.m21*R.m22;
+      T.m24 = 2*R.m22*R.m20;
+      T.m25 = 2*R.m20*R.m21;
+
+      // bottom left
+      T.m30 = R.m10*R.m20;
+      T.m31 = R.m11*R.m21;
+      T.m32 = R.m12*R.m22;
+      T.m40 = R.m20*R.m00;
+      T.m41 = R.m21*R.m01;
+      T.m42 = R.m22*R.m02;
+      T.m50 = R.m00*R.m10;
+      T.m51 = R.m01*R.m11;
+      T.m52 = R.m02*R.m12;
+
+      // bottom right
+      T.m33 = R.m11*R.m22 + R.m12*R.m21;
+      T.m34 = R.m12*R.m20 + R.m10*R.m22;
+      T.m35 = R.m10*R.m21 + R.m11*R.m20;
+      T.m43 = R.m21*R.m02 + R.m22*R.m01;
+      T.m44 = R.m22*R.m00 + R.m20*R.m02;
+      T.m45 = R.m20*R.m01 + R.m21*R.m00;
+      T.m53 = R.m01*R.m12 + R.m02*R.m11;
+      T.m54 = R.m02*R.m10 + R.m00*R.m12;
+      T.m55 = R.m00*R.m11 + R.m01*R.m10;
+   }
+
+   public static Matrix6d regularToBrown () {
+      Matrix6d RtoB = new Matrix6d();
+      RtoB.m00 = 1;
+      RtoB.m11 = 1;
+      RtoB.m22 = 1;
+      RtoB.m34 = 1;
+      RtoB.m45 = 1;
+      RtoB.m53 = 1;
+      return RtoB;
+   }
+
+   public static Matrix6d brownToRegular () {
+      Matrix6d BtoR = new Matrix6d();
+      BtoR.m00 = 1;
+      BtoR.m11 = 1;
+      BtoR.m22 = 1;
+      BtoR.m35 = 1;
+      BtoR.m43 = 1;
+      BtoR.m54 = 1;
+      return BtoR;      
+   }
+
+   /**
+    * Creates a 6x6 rotation matrix for transforming the elasticity tensor
+    * From <a href=http://www.brown.edu/Departments/Engineering/Courses/EN224/anis_general/anis_general.htm>Brown University Notes</a>
+    * @param T output 6x6 matrix
+    * @param R 3D rotation matrix
+    */
+   public static void createElasticityRotation(Matrix6d T, Matrix3dBase R) {
+
+      // The Brown reference above uses Vogt notation 00, 11, 22, 12, 02, 01
+      //
+      // This needs to be mapped to our Vogt notation 00, 11, 22, 01, 12, 02
+      //
+      // If TB is the 6x6 matrix described in Brown, then our matrix T
+      // created from T = P TB P^T, where P is the permutation matrix
+      //
+      //     [ 1 0 0 0 0 0 ]
+      //     [ 0 1 0 0 0 0 ]
+      // P = [ 0 0 1 0 0 0 ]
+      //     [ 0 0 0 0 0 1 ]
+      //     [ 0 0 0 1 0 0 ]
+      //     [ 0 0 0 0 1 0 ]
+
+      // top left
+      T.m00 = R.m00*R.m00;
+      T.m01 = R.m01*R.m01;
+      T.m02 = R.m02*R.m02;
+      T.m10 = R.m10*R.m10;
+      T.m11 = R.m11*R.m11;
+      T.m12 = R.m12*R.m12;
+      T.m20 = R.m20*R.m20;
+      T.m21 = R.m21*R.m21;
+      T.m22 = R.m22*R.m22;
+      
+      // top right
+      T.m04 = 2*R.m01*R.m02;
+      T.m05 = 2*R.m02*R.m00;
+      T.m03 = 2*R.m00*R.m01;
+      T.m14 = 2*R.m11*R.m12;
+      T.m15 = 2*R.m12*R.m10;
+      T.m13 = 2*R.m10*R.m11;
+      T.m24 = 2*R.m21*R.m22;
+      T.m25 = 2*R.m22*R.m20;
+      T.m23 = 2*R.m20*R.m21;
+
+      // bottom left
+      T.m40 = R.m10*R.m20;
+      T.m41 = R.m11*R.m21;
+      T.m42 = R.m12*R.m22;
+      T.m50 = R.m20*R.m00;
+      T.m51 = R.m21*R.m01;
+      T.m52 = R.m22*R.m02;
+      T.m30 = R.m00*R.m10;
+      T.m31 = R.m01*R.m11;
+      T.m32 = R.m02*R.m12;
+
+      // bottom right
+      T.m44 = R.m11*R.m22 + R.m12*R.m21;
+      T.m45 = R.m12*R.m20 + R.m10*R.m22;
+      T.m43 = R.m10*R.m21 + R.m11*R.m20;
+      T.m54 = R.m21*R.m02 + R.m22*R.m01;
+      T.m55 = R.m22*R.m00 + R.m20*R.m02;
+      T.m53 = R.m20*R.m01 + R.m21*R.m00;
+      T.m34 = R.m01*R.m12 + R.m02*R.m11;
+      T.m35 = R.m02*R.m10 + R.m00*R.m12;
+      T.m33 = R.m00*R.m11 + R.m01*R.m10;
+
+   }
    
    /**
     * Creates a 6x6 "unrotation" matrix for transforming the elasticity tensor (i.e. uses R')
@@ -873,7 +1009,9 @@ public class TensorUtils {
     */
    public static void createElasticityUnrotation(Matrix6d T, Matrix3dBase R) {
       
-      // non-standard Vogt notation 11, 22, 33, 12, 23, 13
+      // This matrix is the same as that produced by
+      // createElasticityRotation(), only using R^T instead of R
+
       // top left
       T.m00 = R.m00*R.m00;
       T.m01 = R.m10*R.m10;
@@ -886,37 +1024,37 @@ public class TensorUtils {
       T.m22 = R.m22*R.m22;
       
       // top right
-      T.m05 = 2*R.m10*R.m20;
-      T.m03 = 2*R.m20*R.m00;
-      T.m04 = 2*R.m00*R.m10;
-      T.m15 = 2*R.m11*R.m21;
-      T.m13 = 2*R.m21*R.m01;
-      T.m14 = 2*R.m01*R.m11;
-      T.m25 = 2*R.m12*R.m22;
-      T.m23 = 2*R.m22*R.m02;
-      T.m24 = 2*R.m02*R.m12;
-      
+      T.m04 = 2*R.m10*R.m20;
+      T.m05 = 2*R.m20*R.m00;
+      T.m03 = 2*R.m00*R.m10;
+      T.m14 = 2*R.m11*R.m21;
+      T.m15 = 2*R.m21*R.m01;
+      T.m13 = 2*R.m01*R.m11;
+      T.m24 = 2*R.m12*R.m22;
+      T.m25 = 2*R.m22*R.m02;
+      T.m23 = 2*R.m02*R.m12;
+
       // bottom left
-      T.m50 = R.m01*R.m02;
-      T.m51 = R.m11*R.m12;
-      T.m52 = R.m21*R.m22;
-      T.m30 = R.m02*R.m00;
-      T.m31 = R.m12*R.m10;
-      T.m32 = R.m22*R.m20;
-      T.m40 = R.m00*R.m01;
-      T.m41 = R.m10*R.m11;
-      T.m42 = R.m20*R.m21;
-      
+      T.m40 = R.m01*R.m02;
+      T.m41 = R.m11*R.m12;
+      T.m42 = R.m21*R.m22;
+      T.m50 = R.m02*R.m00;
+      T.m51 = R.m12*R.m10;
+      T.m52 = R.m22*R.m20;
+      T.m30 = R.m00*R.m01;
+      T.m31 = R.m10*R.m11;
+      T.m32 = R.m20*R.m21;
+
       // bottom right
-      T.m55 = R.m11*R.m22+R.m21*R.m12;
-      T.m53 = R.m21*R.m02+R.m01*R.m22;
-      T.m54 = R.m01*R.m12+R.m11*R.m02;
-      T.m35 = R.m12*R.m20+R.m22*R.m10;
-      T.m33 = R.m22*R.m00+R.m02*R.m20;
-      T.m34 = R.m02*R.m10+R.m12*R.m00;
-      T.m45 = R.m10*R.m21+R.m20*R.m11;
-      T.m43 = R.m20*R.m01+R.m00*R.m21;
-      T.m44 = R.m00*R.m11+R.m10*R.m01;
+      T.m44 = R.m11*R.m22 + R.m21*R.m12;
+      T.m45 = R.m21*R.m02 + R.m01*R.m22;
+      T.m43 = R.m01*R.m12 + R.m11*R.m02;
+      T.m54 = R.m12*R.m20 + R.m22*R.m10;
+      T.m55 = R.m22*R.m00 + R.m02*R.m20;
+      T.m53 = R.m02*R.m10 + R.m12*R.m00;
+      T.m34 = R.m10*R.m21 + R.m20*R.m11;
+      T.m35 = R.m20*R.m01 + R.m00*R.m21;
+      T.m33 = R.m00*R.m11 + R.m10*R.m01;
    }
    
    /**
@@ -933,6 +1071,19 @@ public class TensorUtils {
       createElasticityRotation(T, R);
       DR.mul(T, D1);
       DR.mulTranspose(T);
+
+      // Matrix6d T = new Matrix6d();
+
+      // Matrix6d B = new Matrix6d();
+      // Matrix6d RtoB = regularToBrown();
+      // Matrix6d BtoR = brownToRegular();
+      // B.mul (D1, BtoR);
+      // B.mul (RtoB, B);
+      // createElasticityRotationBrown(T, R);
+      // B.mul(T, B);
+      // B.mulTranspose(T);
+      // DR.mul (B, RtoB);
+      // DR.mul (BtoR, DR);
    }
    
    /**
@@ -948,6 +1099,34 @@ public class TensorUtils {
       createElasticityUnrotation(T, R);
       DR.mul(T, D1);
       DR.mulTranspose(T);
+   }
+
+   public static void mulTangent (
+      SymmetricMatrix3d sig, Matrix6d D, SymmetricMatrix3d eps) {
+
+      double e00 = eps.m00;
+      double e11 = eps.m11;
+      double e22 = eps.m22;
+      double e01 = eps.m01;
+      double e02 = eps.m02;
+      double e12 = eps.m12;
+
+      // perform multiplication
+      double s00 = D.m00*e00 + D.m01*e11 + D.m02*e22 +
+         2*D.m03*e01 + 2*D.m04*e12 + 2*D.m05*e02;
+      double s11 = D.m10*e00 + D.m11*e11 + D.m12*e22 +
+         2*D.m13*e01 + 2*D.m14*e12 + 2*D.m15*e02;
+      double s22 = D.m20*e00 + D.m21*e11 + D.m22*e22 +
+         2*D.m23*e01 + 2*D.m24*e12 + 2*D.m25*e02;
+      double s01 = D.m30*e00 + D.m31*e11 + D.m32*e22 +
+         2*D.m33*e01 + 2*D.m34*e12 + 2*D.m35*e02;
+      double s12 = D.m40*e00 + D.m41*e11 + D.m42*e22 +
+         2*D.m43*e01 + 2*D.m44*e12 + 2*D.m45*e02;
+      double s02 = D.m50*e00 + D.m51*e11 + D.m52*e22 +
+         2*D.m53*e01 + 2*D.m54*e12 + 2*D.m55*e02;
+
+      sig.set(s00, s11, s22, s01, s02, s12);
+
    }
    
    public static void main(String[] args) {
@@ -996,6 +1175,85 @@ public class TensorUtils {
       } else {
          System.out.println("Rotated tangents are equal");
       }
+
+
+      // System.out.println ("// top left");
+      // for (int i=0; i<3; i++) {
+      //    for (int j=0; j<3; j++) {
+      //       System.out.println (
+      //          "T.m"+i+""+j+ " = R.m"+i+""+j+"*R.m"+i+""+j+ ";");
+      //    }
+      // }
+      // System.out.println ("");
+      // System.out.println ("// top right");
+      // for (int i=0; i<3; i++) {
+      //    for (int j=0; j<3; j++) {
+      //       System.out.println (
+      //          "T.m"+i+""+(j+3)+ " = 2*R.m"+i+""+(j+1)%3+"*R.m"+i+""+(j+2)%3+";");
+      //    }
+      // }
+      // System.out.println ("");
+      // System.out.println ("// bottom left");
+      // for (int i=0; i<3; i++) {
+      //    for (int j=0; j<3; j++) {
+      //       System.out.println (
+      //          "T.m"+(i+3)+""+j+ " = R.m"+(i+1)%3+""+j+"*R.m"+(i+2)%3+""+j+ ";");
+      //    }
+      // }
+      // System.out.println ("");
+      // System.out.println ("// bottom right");
+      // for (int i=0; i<3; i++) {
+      //    for (int j=0; j<3; j++) {
+      //       System.out.println (
+      //          "T.m"+(i+3)+""+(j+3)+ " = " +
+      //          "R.m"+(i+1)%3+""+(j+1)%3+"*R.m"+(i+2)%3+""+(j+2)%3+ " + " +
+      //          "R.m"+(i+1)%3+""+(j+2)%3+"*R.m"+(i+2)%3+""+(j+1)%3+ ";");
+      //    }
+      // }
+
+      // System.out.println ("ALT");
+
+      // System.out.println ("// top left");
+      // for (int i=0; i<3; i++) {
+      //    for (int j=0; j<3; j++) {
+      //       System.out.println (
+      //          "T.m"+i+""+j+ " = R.m"+i+""+j+"*R.m"+i+""+j+ ";");
+      //    }
+      // }
+      // System.out.println ("");
+      // System.out.println ("// top right");
+      // for (int i=0; i<3; i++) {
+      //    for (int j=0; j<3; j++) {
+      //       int jj = (j+1)%3;
+      //       System.out.println (
+      //          "T.m"+i+""+(jj+3)+
+      //          " = 2*R.m"+i+""+(j+1)%3+"*R.m"+i+""+(j+2)%3 + ";");
+      //    }
+      // }
+      // System.out.println ("");
+      // System.out.println ("// bottom left");
+      // for (int i=0; i<3; i++) {
+      //    for (int j=0; j<3; j++) {
+      //       int ii = (i+2)%3;
+      //       int jj = j;
+      //       System.out.println (
+      //          "T.m"+(ii+3)+""+jj+
+      //          " = R.m"+(i+1)%3+""+j+"*R.m"+(i+2)%3+""+j + ";");
+      //    }
+      // }
+      // System.out.println ("");
+      // System.out.println ("// bottom right");
+      // for (int i=0; i<3; i++) {
+      //    for (int j=0; j<3; j++) {
+      //       int ii = (i+2)%3;
+      //       int jj = (j+1)%3;
+      //       System.out.println (
+      //          "T.m"+(ii+3)+""+(jj+3)+ " = " +
+      //          "R.m"+(i+1)%3+""+(j+1)%3+"*R.m"+(i+2)%3+""+(j+2)%3+ " + " +
+      //          "R.m"+(i+1)%3+""+(j+2)%3+"*R.m"+(i+2)%3+""+(j+1)%3+ ";");
+      //    }
+      // }
+      
       
    }
 

@@ -1631,6 +1631,24 @@ TransformableGeometry, ScalableUnits {
       }
    }
 
+   protected void recursivelyGetDynamicComponents (
+      CompositeComponent comp, List<DynamicComponent> comps) { 
+      
+      for (int i=0; i<comp.numComponents(); i++) {
+         ModelComponent c = comp.get (i);
+         if (c instanceof DynamicComponent) {
+            comps.add ((DynamicComponent)c);
+         }
+         else if (c instanceof MechSystemModel) {
+            ((MechSystemModel)c).getDynamicComponents (comps);
+         }
+         else if (c instanceof CompositeComponent) {
+            recursivelyGetDynamicComponents (
+               (CompositeComponent)c, comps);
+         }
+      }
+   }
+
    public void getDynamicComponents (
       List<DynamicComponent> active, 
       List<DynamicComponent> attached,
@@ -1639,6 +1657,10 @@ TransformableGeometry, ScalableUnits {
       recursivelyGetDynamicComponents (this, active, attached, parametric);
    }
 
+   public void getDynamicComponents (List<DynamicComponent> comps) {
+      recursivelyGetDynamicComponents (this, comps);
+   }
+ 
    protected void recursivelyGetConstrainers (
       CompositeComponent comp, List<Constrainer> list, int level) {
       
@@ -2359,7 +2381,6 @@ TransformableGeometry, ScalableUnits {
     * Returns the true active stiffness matrix with frame orientation
     * expressed using yaw-pitch-roll coordinates. This increases
     * the likelyhood that the matrix is symmetric.
-    * @param modifiers TODO
     * @param modifiers if not {@code null}, specifies a list
     * of modifiers to apply to the true stiffness matrix before
     * converting it to yaw-pitch-roll coordinates.
@@ -2382,5 +2403,48 @@ TransformableGeometry, ScalableUnits {
       YPRStiffnessUtils.convertStiffnessToYPR (K, f, comps);
       return K;
    }
+
+   /**
+    * Returns the regular active stiffness matrix used by the
+    * ArtiSynth solver. 
+    * @param modifiers if not {@code null}, specifies a list
+    * of modifiers to apply to the stiffness matrix.
+    * 
+    * @return regular active stiffness matrix
+    */
+   public SparseBlockMatrix getStiffnessMatrix (
+      List<SolveMatrixModifier> modifiers) {
+
+      boolean saveIgnoreCoriolis = PointSpringBase.myIgnoreCoriolisInJacobian;
+      boolean saveSymmetricJacobian = FrameSpring.mySymmetricJacobian;
+      boolean saveAddFrameMarkerStiffness = myAddFrameMarkerStiffness;
+      PointSpringBase.myIgnoreCoriolisInJacobian = true;
+      FrameSpring.mySymmetricJacobian = true;
+      myAddFrameMarkerStiffness = false;
+
+      SparseBlockMatrix K = getActiveStiffnessMatrix();
+
+      myAddFrameMarkerStiffness = saveAddFrameMarkerStiffness;
+      PointSpringBase.myIgnoreCoriolisInJacobian = saveIgnoreCoriolis;
+      FrameSpring.mySymmetricJacobian = saveSymmetricJacobian;
+
+      //System.out.println ("regular K, symmetric=" + K.isSymmetric(1e-4));
+
+      VectorNd f = new VectorNd (getActiveVelStateSize());
+      getActiveForces (f);
+      ArrayList<DynamicComponent> comps = getActiveDynamicComponents();
+      if (modifiers != null) {
+         for (SolveMatrixModifier m : modifiers) {
+            m.modify (K, f, comps);
+         }
+      }
+      //System.out.println ("after mods, symmetric=" + K.isSymmetric(1e-4));
+      // convert to YPR formulation
+      YPRStiffnessUtils.convertStiffnessToYPR (K, f, comps);
+      //System.out.println ("after YPR, symmetric=" + K.isSymmetric(1e-4));
+      return K;
+   }
+
+
 }
 

@@ -23,6 +23,8 @@ public interface MechSystemModel extends Model, MechSystem {
       List<DynamicComponent> active,
       List<DynamicComponent> attached,
       List<DynamicComponent> parametric);
+   
+   public void getDynamicComponents (List<DynamicComponent> comps);
 
    public void getCollidables (List<Collidable> list, int level);
 

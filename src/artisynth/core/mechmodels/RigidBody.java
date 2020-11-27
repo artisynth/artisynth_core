@@ -1031,6 +1031,11 @@ public class RigidBody extends Frame
    @Override
    protected void updatePosState() {
       updateAttachmentPosStates();
+      updateSlavePosStates();
+   }
+
+   @Override
+   protected void updateSlavePosStates() {
       PolygonalMesh mesh = getSurfaceMesh();
       if (mesh != null) {
          mesh.setMeshToWorld (myState.XFrameToWorld);
@@ -1043,9 +1048,17 @@ public class RigidBody extends Frame
       if (myCompoundCollisionMesh != null) {
          myCompoundCollisionMesh.setMeshToWorld (myState.XFrameToWorld);
       }
-   }
+   } 
 
-   protected void updateVelState() {
+   /**
+    * Replace updatePosState() with updateSlavePosStates() so we don't update
+    * attachments when doing general state uodates. (Attachment updates should
+    * be done by the general state update itself).
+    */
+   public int setPosState (double[] buf, int idx) {
+      idx = myState.setPos (buf, idx);
+      updateSlavePosStates(); // replaces updatePosState()
+      return idx;
    }
 
    public void setPose (double x, double y, double z,
@@ -1519,14 +1532,6 @@ public class RigidBody extends Frame
    
    public boolean isFreeBody() {
       return !isParametric();
-   }
-
-   public void updateAttachmentPosStates() {
-      if (myMasterAttachments != null) {
-         for (DynamicAttachment a : myMasterAttachments) {
-            a.updatePosStates();
-         }
-      }
    }
 
    /** 

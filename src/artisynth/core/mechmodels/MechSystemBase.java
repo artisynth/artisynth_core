@@ -50,6 +50,8 @@ public abstract class MechSystemBase extends RenderableModelBase
    // advance will be saved
    protected boolean myStateWillBeSaved = false;
 
+   public static boolean useAllDynamicComps = true;
+   protected ArrayList<DynamicComponent> myAllDynamicComponents;
    protected ArrayList<DynamicComponent> myDynamicComponents;
    protected ArrayList<MotionTargetComponent> myParametricComponents;
    protected ArrayList<DynamicAttachment> myAttachments;
@@ -570,7 +572,17 @@ public abstract class MechSystemBase extends RenderableModelBase
             new ArrayList<DynamicComponent>();
          ArrayList<DynamicComponent> parametric =
             new ArrayList<DynamicComponent>();
-         getDynamicComponents (active, attached, parametric);
+         if (useAllDynamicComps) {
+            myAllDynamicComponents = new ArrayList<DynamicComponent>();
+            getDynamicComponents (myAllDynamicComponents);
+            for (DynamicComponent c : myAllDynamicComponents) {
+               placeDynamicComponent (active, attached, parametric, c);
+            }
+         }
+         else {
+            getDynamicComponents (active, attached, parametric);
+         }
+
          myNumActive = active.size();
          myNumAttached = attached.size();
 
@@ -1186,23 +1198,43 @@ public abstract class MechSystemBase extends RenderableModelBase
       int numDynComps = state.zget();
       int numAuxStateComps = state.zget();
 
-      if (numDynComps != myNumActive+myNumParametric) {
-         throw new IllegalArgumentException (
-            "state contains "+numDynComps+" active & parametric components, "+
-            "expecting "+(myNumActive+myNumParametric));
+      if (useAllDynamicComps) {
+         if (numDynComps != myAllDynamicComponents.size()) {
+            throw new IllegalArgumentException (
+               "state contains "+numDynComps+" dynamic components, "+
+               "expecting "+myAllDynamicComponents.size());
+         }
+         if (numAuxStateComps != myAuxStateComponents.size()) {
+            throw new IllegalArgumentException (
+               "number of AuxState components is "+numAuxStateComps+
+               ", expecting "+myAuxStateComponents.size());
+         }
+         for (DynamicComponent c : myAllDynamicComponents) {
+            c.setState (state);
+         }
+         updateSlavePos();
+         updateSlaveVel();
       }
-      if (numAuxStateComps != myAuxStateComponents.size()) {
-         throw new IllegalArgumentException (
-            "number of AuxState components is "+numAuxStateComps+
-            ", expecting "+myAuxStateComponents.size());
-      }
+      else {
+         if (numDynComps != myNumActive+myNumParametric) {
+            throw new IllegalArgumentException (
+               "state contains "+numDynComps+" active & parametric components, "+
+               "expecting "+(myNumActive+myNumParametric));
+         }
+         if (numAuxStateComps != myAuxStateComponents.size()) {
+            throw new IllegalArgumentException (
+               "number of AuxState components is "+numAuxStateComps+
+               ", expecting "+myAuxStateComponents.size());
+         }
 
-      for (int i=0; i<myNumActive+myNumParametric; i++) {
-         DynamicComponent c = myDynamicComponents.get(i);
-         c.setState (state);
+         for (int i=0; i<myNumActive+myNumParametric; i++) {
+            DynamicComponent c = myDynamicComponents.get(i);
+            c.setState (state);
+         }
+         updatePosState(); // do we need?
+         updateVelState(); // do we need?
       }
-      updatePosState(); // do we need?
-      updateVelState(); // do we need?
+      
 //      state.dskip (di);
 
       // setting aux state must be done here because it may change the number
@@ -1230,16 +1262,29 @@ public abstract class MechSystemBase extends RenderableModelBase
       int numu = getNumUnilateralForces();
 
       state.zput (0x1234);
-      state.zput (myNumActive+myNumParametric);
-      state.zput (myAuxStateComponents.size());
-      if (state.hasDataFrames()) {
-         state.addDataFrame (null);
+      if (useAllDynamicComps) {
+         state.zput (myAllDynamicComponents.size());
+         state.zput (myAuxStateComponents.size());
+         if (state.hasDataFrames()) {
+            state.addDataFrame (null);
+         }
+         for (DynamicComponent c : myAllDynamicComponents) {
+            state.getState (c);
+         }
       }
+      else {
+         state.zput (myNumActive+myNumParametric);
+         state.zput (myAuxStateComponents.size());
+         if (state.hasDataFrames()) {
+            state.addDataFrame (null);
+         }
 
-      for (int i=0; i<myNumActive+myNumParametric; i++) {
-         DynamicComponent c = myDynamicComponents.get(i);
-         state.getState (c);
+         for (int i=0; i<myNumActive+myNumParametric; i++) {
+            DynamicComponent c = myDynamicComponents.get(i);
+            state.getState (c);
+         }
       }
+      
       updateAuxStateComponentList();
       for (int i=0; i<myAuxStateComponents.size(); i++) {
          state.getState (myAuxStateComponents.get(i));
@@ -1285,23 +1330,45 @@ public abstract class MechSystemBase extends RenderableModelBase
          }
       }
       
-      nstate.zput (0x1234);
-      nstate.zput (myNumActive+myNumParametric);
-      nstate.zput (myAuxStateComponents.size());
-      // specify -1 constrainers, to cause forces to be zeroed
 
-      nstate.addDataFrame (null);
+      if (useAllDynamicComps) {
+         nstate.zput (0x1234);
+         nstate.zput (myAllDynamicComponents.size());
+         nstate.zput (myAuxStateComponents.size());
+         // specify -1 constrainers, to cause forces to be zeroed
 
-      for (int i=0; i<myNumActive+myNumParametric; i++) {
-         HasNumericState c = myDynamicComponents.get(i);
-         NumericState.DataFrame frame = compMap.get(c);
-         if (frame != null && frame.getVersion() == c.getStateVersion()) {
-            nstate.getState (frame, ostate);
-         }
-         else {
-            nstate.getState (c);
+         nstate.addDataFrame (null);
+
+         for (DynamicComponent c : myAllDynamicComponents) {
+            NumericState.DataFrame frame = compMap.get(c);
+            if (frame != null && frame.getVersion() == c.getStateVersion()) {
+               nstate.getState (frame, ostate);
+            }
+            else {
+               nstate.getState (c);
+            }
          }
       }
+      else {
+         nstate.zput (0x1234);
+         nstate.zput (myNumActive+myNumParametric);
+         nstate.zput (myAuxStateComponents.size());
+         // specify -1 constrainers, to cause forces to be zeroed
+
+         nstate.addDataFrame (null);
+
+         for (int i=0; i<myNumActive+myNumParametric; i++) {
+            HasNumericState c = myDynamicComponents.get(i);
+            NumericState.DataFrame frame = compMap.get(c);
+            if (frame != null && frame.getVersion() == c.getStateVersion()) {
+               nstate.getState (frame, ostate);
+            }
+            else {
+               nstate.getState (c);
+            }
+         }
+      }
+      
       for (HasNumericState c : myAuxStateComponents) {
          NumericState.DataFrame frame = compMap.get(c);
          if (frame != null && frame.getVersion() == c.getStateVersion()) {

@@ -69,6 +69,15 @@ public abstract class PointAttachment extends DynamicAttachmentBase
 
    protected void collectMasters (List<DynamicComponent> masters) {
    }
+
+   protected MatrixBlock[] allocateMasterBlocks() {
+      DynamicComponent[] masters = getMasters();
+      MatrixBlock[] blks = new MatrixBlock[masters.length];
+      for (int i=0; i<blks.length; i++) {
+         blks[i] = MatrixBlockBase.alloc (masters[i].getVelStateSize(), 3);
+      }
+      return blks;
+   }
    
    /**
     * Indicates that this attachment is <i>flexible</i>. That means that

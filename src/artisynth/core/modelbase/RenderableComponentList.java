@@ -36,10 +36,12 @@ ComponentList<C> implements RenderableComponentListView<C>, RenderableComponent 
 
    public RenderableComponentList (Class<C> type, String name) {
       super (type, name);
+      setRenderProps (createRenderProps());
    }
 
    public RenderableComponentList (Class<C> type, String name, String shortName) {
       super (type, name, shortName);
+      setRenderProps (createRenderProps());
    }
 
    // public RenderableComponentList (

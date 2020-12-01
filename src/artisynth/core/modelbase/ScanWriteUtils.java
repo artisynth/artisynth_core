@@ -804,6 +804,7 @@ public class ScanWriteUtils {
     * 
     * @param rtok input token stream
     * @param host host containing the property
+    * @param tokens token deque for postscanning
     * @return <code>true</code> if a property was matched and scanned
     * @throws IOException if an I/O or syntax error occurred
     */

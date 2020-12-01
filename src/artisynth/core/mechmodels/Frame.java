@@ -1355,17 +1355,33 @@ public class Frame extends DynamicComponentBase
     * on the position state.
     */
    protected void updatePosState() {
-      // for (MeshComponent mc : myMeshList) {
-      //    mc.setMeshToWorld (myState.XFrameToWorld);
-      // }
    }
-   
+
    /**
     * Called whenever the velocity state is changed. Subclasses
     * can use this as a hook to update anything that depends
     * on the velocity state.
     */
    protected void updateVelState() {
+   }
+
+   /**
+    * Update the state of any dynamic components which are attached to
+    * this frame.
+    */
+   public void updateAttachmentPosStates() {
+      if (myMasterAttachments != null) {
+         for (DynamicAttachment a : myMasterAttachments) {
+            a.updatePosStates();
+         }
+      }
+   }  
+
+   /**
+    * Update the state of any non-dynamic components which are attached to this
+    * frame.
+    */
+   protected void updateSlavePosStates() {
    }
 
    public void getState (DataBuffer data) {

@@ -1353,7 +1353,17 @@ public class RootModel extends RenderableModelBase
       // no need to notify parent since there is none
       if (e.getCode() == ComponentChangeEvent.Code.STRUCTURE_CHANGED) {
          synchronized (this) {
-            myModelInfoValid = false;
+            // invalidate modelInfo if component is unknown, or the RootModel
+            // or one of it's children.
+            int level = -1;
+            ModelComponent c = e.getComponent();
+            while (c != null && level < 2) {
+               c = c.getParent();
+               level++;
+            }
+            if (level < 2) {
+               myModelInfoValid = false;
+            }
          }
       }
       // if called in constructor, myControlPanels might still be null ...

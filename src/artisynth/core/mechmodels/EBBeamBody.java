@@ -827,8 +827,8 @@ public class EBBeamBody extends DeformableBody {
       System.out.println ("scale=" + myXScale);
    }
    
-   @Override protected void updatePosState() {
-      super.updatePosState();
+   @Override protected void updateSlavePosStates() {
+      super.updateSlavePosStates();
 
       if (applyXCorrection) {
          updateXCorrectionTerms();

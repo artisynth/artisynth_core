@@ -59,17 +59,6 @@ public class PointFrameAttachment extends PointAttachment {
       return myLoc;
    }
 
-   protected void allocateMasterBlocks() {
-      if (myMasters == null) {
-         initializeMasters();
-      }
-      myMasterBlocks = new MatrixBlock[myMasters.length];
-      for (int i=0; i<myMasterBlocks.length; i++) {
-         myMasterBlocks[i] =
-            MatrixBlockBase.alloc (myMasters[i].getVelStateSize(), 3);
-      }
-   }
-
    protected void setFrame (Frame body, Point3d loc) {
       removeBackRefsIfConnected();
       myFrame = body;
@@ -82,7 +71,13 @@ public class PointFrameAttachment extends PointAttachment {
       //updateJacobian();
       invalidateMasters();
       addBackRefsIfConnected();
-      notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      if (MechSystemBase.useAllDynamicComps) {
+         notifyParentOfChange (
+            new DynamicActivityChangeEvent (this, /*stateChanged=*/false));
+      }
+      else {
+         notifyParentOfChange (DynamicActivityChangeEvent.defaultEvent);
+      }
    }
    
    void setFrame (Frame body) {
@@ -122,7 +117,7 @@ public class PointFrameAttachment extends PointAttachment {
          return;
       }
       if (myMasterBlocks == null) {
-         allocateMasterBlocks();
+         myMasterBlocks = allocateMasterBlocks();
       } 
       Point3d posw = new Point3d();
       Vector3d velw = new Vector3d();
@@ -156,6 +151,7 @@ public class PointFrameAttachment extends PointAttachment {
          D.mulAdd (M, G);
       }         
    }
+
    public MatrixBlock getGT (int idx) {
       if (myMasterBlocks != null) {
          MatrixBlock blk = myMasterBlocks[idx].clone();

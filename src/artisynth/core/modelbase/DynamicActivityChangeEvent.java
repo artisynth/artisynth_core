@@ -22,6 +22,11 @@ public class DynamicActivityChangeEvent extends ComponentChangeEvent {
       super (Code.DYNAMIC_ACTIVITY_CHANGED, comp, /*stateChanged=*/true);
    }
 
+   public DynamicActivityChangeEvent (
+      ModelComponent comp, boolean stateChanged) {
+      super (Code.DYNAMIC_ACTIVITY_CHANGED, comp, stateChanged);
+   }
+
    public DynamicActivityChangeEvent() {
       super (Code.DYNAMIC_ACTIVITY_CHANGED, null, /*stateChanged=*/true);
    }

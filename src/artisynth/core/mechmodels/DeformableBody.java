@@ -547,8 +547,9 @@ public abstract class DeformableBody extends RigidBody
        }
    }
 
-   @Override protected void updatePosState() {
-      super.updatePosState();
+   @Override
+   protected void updateSlavePosStates() {   
+      super.updateSlavePosStates();
       PolygonalMesh mesh = getMesh();
       if (mesh != null) {
          // adjust mesh vertex positions

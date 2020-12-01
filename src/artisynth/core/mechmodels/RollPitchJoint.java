@@ -65,6 +65,7 @@ public class RollPitchJoint extends JointBase implements CopyableComponent {
       RigidTransform3d TGD = null;
       if (attachmentsInitialized()) {
          // initialize TGD to TCD; it will get projected to TGD within
+         // the call to getRollPitch
          TGD = new RigidTransform3d();
          getCurrentTCD (TGD);
       }            

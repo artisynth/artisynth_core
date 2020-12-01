@@ -55,7 +55,7 @@ public class SkewedRollPitchJoint extends RollPitchJoint {
     * @param bodyB second body connected to the joint (ot {@code null}
     * if the first body is connected to ground
     * @param TDW joint coordinate frame D in world coordinates
-    * @param skewAngle skew angle (must lie in the open interval (-PI/2, PI/2).
+    * @param skewAng skew angle (must lie in the open interval (-PI/2, PI/2).
     */
    public SkewedRollPitchJoint (
       ConnectableBody bodyA, ConnectableBody bodyB,

@@ -37,8 +37,8 @@ public abstract class RigidBodyCoupling {
    protected double myBreakAccel = Double.NEGATIVE_INFINITY;
 
    // internal temp variables
-   protected RigidTransform3d myTCD = new RigidTransform3d();
-   protected RigidTransform3d myTGD = new RigidTransform3d();
+   //protected RigidTransform3d myTCD = new RigidTransform3d();
+   //protected RigidTransform3d myTGD = new RigidTransform3d();
    protected RigidTransform3d myTCG = new RigidTransform3d();
    protected Twist myErr = new Twist();
    // protected RigidTransform3d myTBA = new RigidTransform3d();
@@ -520,7 +520,7 @@ public abstract class RigidBodyCoupling {
       myVelocitiesZeroP = false;
 
       checkConstraintStorage();
-      myTCD.set (TCD);
+//      myTCD.set (TCD);
       
       getConstraintInfo (myConstraintInfo, TGD, TCD, TERR, setEngaged);
 

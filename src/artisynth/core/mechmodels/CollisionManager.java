@@ -678,7 +678,8 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Gets the rigid region tolerance associated with this behavior.
+    * Gets the default rigid region tolerance associated with all collision
+    * behaviors.
     * 
     * @return rigid region tolerance
     */
@@ -687,7 +688,8 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Sets the rigid region tolerance associated with this behavior.
+    * Sets the default rigid region tolerance associated with all collision
+    * behaviors.
     * 
     * @param tol new rigid region tolerance
     */
@@ -716,8 +718,9 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Gets the rigid point tolerance associated with this behavior.  This is
-    * the point clustering distance used when computing contact planes.
+    * Gets the default rigid point tolerance associated with all collision
+    * behaviors.  This is the point clustering distance used when computing
+    * contact planes.
     * 
     * @return rigid point tolerance
     */
@@ -726,7 +729,8 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Sets the rigid point tolerance associated with this behavior.
+    * Sets the default rigid point tolerance associated with all collision
+    * behaviors.
     * 
     * @param tol new rigid point tolerance
     */
@@ -823,7 +827,8 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Gets the contact compliance associated with this behavior.
+    * Gets the default contact compliance associated will all collision
+    * behaviors.
     * 
     * @return contact compliance
     */
@@ -832,7 +837,8 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Sets the contact compliance associated with this behavior.
+    * Sets the default contact compliance associated with all collision
+    * behaviors.
     * 
     * @param c new contact compliance
     */
@@ -854,7 +860,8 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Gets the contact damping associated with this behavior.
+    * Gets the default contact damping associated with all collision
+    * behaviors.
     * 
     * @return contact damping
     */
@@ -863,7 +870,7 @@ public class CollisionManager extends RenderableCompositeBase
    }
 
    /** 
-    * Sets the contact damping associated with this behavior.
+    * Sets the default contact damping associated with all collision behaviors.
     * 
     * @param d new contact damping
     */
@@ -1475,7 +1482,7 @@ public class CollisionManager extends RenderableCompositeBase
     */
    CollidablePair validateBehaviorResponsePair (
       Collidable c0, Collidable c1, boolean requiresLowestCommonModel) {
-
+      
       if (c0 instanceof Group) {
          throw new IllegalArgumentException (
             "First collidable cannot be a group: " +

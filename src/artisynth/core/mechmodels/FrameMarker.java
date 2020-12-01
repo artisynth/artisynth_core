@@ -23,7 +23,7 @@ public class FrameMarker extends Marker {
    private PointFrameAttachment myFrameAttachment = null;
 
    public static PropertyList myProps =
-      new PropertyList (FrameMarker.class, Point.class);
+      new PropertyList (FrameMarker.class, Marker.class);
 
    static {
       // XXX can be replaced with functional probes

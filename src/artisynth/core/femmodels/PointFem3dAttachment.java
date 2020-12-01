@@ -51,7 +51,8 @@ public class PointFem3dAttachment extends PointAttachment {
    protected FemElement myElement;
    protected FemNode[] myNodes;
    protected VectorNd myCoords;
-   // store natural coordinates also since they are needed b the
+
+   // may need to also store natural coordinates since they are needed by the
    // ShellNodeFem3dAttachment subclass
    protected Vector3d myNatCoords;
 

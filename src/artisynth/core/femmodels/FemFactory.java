@@ -89,9 +89,11 @@ public class FemFactory {
 
       if (model != null) {
          model.clear();
-      } else {
+      }
+      else {
          model = new FemModel3d();
       }
+
       createGridNodes(model, widthX, widthY, widthZ, numX, numY, numZ);
       // create all the elements
       ComponentListView<FemNode3d> nodes = model.getNodes();
@@ -137,7 +139,8 @@ public class FemFactory {
 
       if (model == null) {
          model = new FemModel3d();
-      } else {
+      }
+      else {
          model.clear();
       }
       
@@ -194,9 +197,11 @@ public class FemFactory {
 
       if (model != null) {
          model.clear();
-      } else {
+      }
+      else {
          model = new FemModel3d();
       }
+
       createGridNodes(model, widthX, widthY, widthZ, numX, numY, numZ);
       // System.out.println("num nodes: "+myNodes.size());
       // create all the elements
@@ -253,7 +258,8 @@ public class FemFactory {
 
       if (model == null) {
          model = new FemModel3d();
-      } else {
+      }
+      else {
          model.clear();
       }
 
@@ -3694,8 +3700,14 @@ public class FemFactory {
    public static FemModel3d createHexTube(
       FemModel3d model, double l, double rin, double rout,
       int nt, int nl, int nr) {
-      FemNode3d nodes[][][] = new FemNode3d[nt][nl+1][nr+1];
 
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
+
+      FemNode3d nodes[][][] = new FemNode3d[nt][nl+1][nr+1];
       double dl = l / nl;
       double dt = 2 * Math.PI / nt;
       double dr = (rout - rin) / nr;
@@ -3760,6 +3772,12 @@ public class FemFactory {
    public static FemModel3d createTetTube(
       FemModel3d model, 
       double l, double rin, double rout, int nt, int nl, int nr) {
+
+      if (model == null) {
+         model = new FemModel3d();
+      } else {
+         model.clear();
+      }
 
       // round nt up to even to allow proper tesselation
       if ((nt % 2) == 1) {

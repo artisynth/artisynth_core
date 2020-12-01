@@ -23,7 +23,6 @@ public interface SolveMatrixModifier {
     *
     * @param K stiffness matrix to transform
     * @param f if non-null, force vector to transform
-    * @param comps TODO
     * @param comps if non-null, components associated with each 
     * block entry in {@code K}.
     */

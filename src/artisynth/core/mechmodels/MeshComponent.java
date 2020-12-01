@@ -159,7 +159,12 @@ public class MeshComponent extends RenderableComponentBase
    }
 
    public int numVertices() {
-      return myMeshInfo.numVertices();
+      if (myMeshInfo != null) {
+         return myMeshInfo.numVertices();
+      }
+      else {
+         return 0;
+      }
    }
 
    public MeshBase getMesh() {
@@ -255,14 +260,15 @@ public class MeshComponent extends RenderableComponentBase
    }
 
    public RenderProps createRenderProps() {
-      MeshBase mesh = getMesh();
-      if (mesh != null) {
-         RenderProps props = mesh.createRenderProps(this);
-         return props;
-      }
-      else {
-         return RenderProps.createRenderProps(this);
-      }
+      return RenderProps.createRenderProps(this);
+      // MeshBase mesh = getMesh();
+      // if (mesh != null) {
+      //    RenderProps props = mesh.createRenderProps(this);
+      //    return props;
+      // }
+      // else {
+      //    return RenderProps.createRenderProps(this);
+      // }
    }
 
    private static RenderProps createDefaultRenderProps() {

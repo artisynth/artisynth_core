@@ -680,10 +680,6 @@ public abstract class FemModel extends MechSystemBase
       return status;
    }
 
-//   public void addMarker (FemMarker mkr) {
-//      myMarkers.add (mkr);
-//   }
-
    public boolean removeMarker (FemMarker mkr) {
       if (myMarkers.remove (mkr)) {
          return true;
@@ -1002,6 +998,11 @@ public abstract class FemModel extends MechSystemBase
          attached.add (myMarkers.get(i));
       }
    }   
+   
+   public void getDynamicComponents (List<DynamicComponent> comps) {
+      comps.addAll (getNodes());
+      comps.addAll (myMarkers);
+   }
 
    public void getConstrainers (List<Constrainer> constrainers, int level) {
       constrainers.add (this);

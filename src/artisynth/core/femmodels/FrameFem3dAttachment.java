@@ -501,6 +501,8 @@ public class FrameFem3dAttachment extends FrameAttachment {
          for (int i=0; i<myNodes.length; i++) {
             Vector3d udef = new Vector3d();
             Vector3d gNX = myGNX[i];
+            // XXX we should be able to use node positions directly without
+            // subtracting pos
             udef.sub (myNodes[i].getPosition(), pos);
             F.addOuterProduct (
                udef.x, udef.y, udef.z, gNX.x, gNX.y, gNX.z);

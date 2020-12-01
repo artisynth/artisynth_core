@@ -255,6 +255,7 @@ public class Muscle extends AxialSpring
       valid_a = (valid_a > maxActivation) ? maxActivation : valid_a;
       valid_a = (valid_a < minActivation) ? minActivation : valid_a;
       myExcitation = valid_a;
+      //myExcitation = a;
    }
 
    /**

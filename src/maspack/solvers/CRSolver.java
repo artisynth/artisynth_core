@@ -120,7 +120,7 @@ public class CRSolver implements IterativeSolver {
 
       phi = phik;
 
-      return true;
+      return k == maxIter;
    }
 
    public boolean solve (

@@ -153,8 +153,9 @@ public class CRSolverTest {
          LU.solve (xcheck, b);
 
          if (!xcheck.epsilonEquals (x, x.norm() * eps)) {
-            throw new TestException ("Solver gave wrong answer. Expected\n"
-            + xcheck.toString ("%8.3f") + "\nGot\n" + x.toString ("%8.3f"));
+            throw new TestException (
+               "Solver gave wrong answer. Expected\n"
+               + xcheck.toString ("%8.3f") + "\nGot\n" + x); //.toString ("%8.3f"));
          }
          //System.out.println ("condEst=" + LU.conditionEstimate (M));
 

@@ -7,6 +7,7 @@
 package artisynth.core.util;
 
 import java.io.File;
+import java.util.Arrays;
 import javax.swing.filechooser.FileFilter;
 
 public class ExtensionFileFilter extends FileFilter {
@@ -17,10 +18,15 @@ public class ExtensionFileFilter extends FileFilter {
       this(description, new String[] { extension });
    }
 
-   public ExtensionFileFilter(String description, String extensions[]) {
+   public ExtensionFileFilter(String description, String... extensions) {
+      if (extensions.length == 0) {
+         throw new IllegalArgumentException (
+            "Must specify at least one file name extension");
+      }
       if (description == null) {
          this.description = extensions[0] + "{ " + extensions.length + "} ";
-      } else {
+      } 
+      else {
          this.description = description;
       }
       this.extensions = (String[]) extensions.clone();
@@ -34,37 +40,47 @@ public class ExtensionFileFilter extends FileFilter {
    }
 
    public String[] getExtensions() {
-      String[] exts = new String[extensions.length];
-      for (int i=0; i<exts.length; i++) {
-         exts[i] = extensions[i];
-      }
-      return exts;
+      return Arrays.copyOf (extensions, extensions.length);
    }
 
    public String getDescription() {
       return description;
    }
 
-   public String getExtension (File file) {
-      if (file.isDirectory()) {
+   private String getFileExtension (File file) {
+      if (file == null) {
          return null;
       }
-      String path = file.getAbsolutePath().toLowerCase();
-      for (int i = 0, n = extensions.length; i < n; i++) {
-         String extension = extensions[i];
-         if ((path.endsWith(extension) &&
-              (path.charAt(path.length() - extension.length() - 1)) == '.')) {
-            return extension;
+      String fileName = file.getName();
+      int dotIdx = fileName.lastIndexOf ('.');
+      if (dotIdx != -1) {
+         return fileName.substring (dotIdx+1);
+      }
+      else {
+         return null;
+      }
+   }
+   
+   public boolean containsExtension (String fileExt) {
+      fileExt = fileExt.toLowerCase();
+      for (String ext : extensions) {
+         if (fileExt.equals (ext)) {
+            return true;
          }
       }
-      return null;
+      return false;
    }
-
+   
    public boolean accept(File file) {
       if (file.isDirectory()) {
          return true;
-      } else {
-         return getExtension(file) != null;
+      } 
+      else {
+         String fileExt = getFileExtension (file);
+         if (fileExt != null && containsExtension (fileExt)) {
+            return true;
+         }
+         return false;
       }
    }
 }

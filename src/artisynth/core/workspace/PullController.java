@@ -217,7 +217,7 @@ implements SelectionListener, MouseInputListener {
       }
    }
 
-   Point3d getPointPosition() {
+   public Point3d getPointPosition() {
       if (myPoint != null) {
          if (myAttachment != null) {
             myAttachment.updatePosStates();

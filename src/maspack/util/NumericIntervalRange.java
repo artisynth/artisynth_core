@@ -15,18 +15,24 @@ import java.io.PrintWriter;
 public class NumericIntervalRange extends RangeBase {
 
    NumericInterval myMaxRange;
+   boolean myAllowEmpty = true;
 
    public NumericIntervalRange () {
-      this (null);
+      this (null, /*allowEmpty=*/true);
    }
 
    public NumericIntervalRange (NumericInterval maxRange) {
+      this (maxRange, /*allowEmpty=*/true);
+   }
+
+   public NumericIntervalRange (NumericInterval maxRange, boolean allowEmpty) {
       if (maxRange != null) {
          myMaxRange = maxRange.clone();
       }
       else {
          myMaxRange = null;
       }
+      myAllowEmpty = allowEmpty;
    }
 
    /** 
@@ -35,9 +41,17 @@ public class NumericIntervalRange extends RangeBase {
    public boolean isValid (Object obj, StringHolder errMsg) {
       if (obj instanceof NumericInterval) {
          NumericInterval rng = (NumericInterval)obj;
-         if (rng.myUpper < rng.myLower) {
-            setError (errMsg, "lower bound must not exceed upper bound");
-            return false;
+         if (myAllowEmpty) {
+            if (rng.myUpper < rng.myLower) {
+               setError (errMsg, "lower bound must not exceed upper bound");
+               return false;
+            }
+         }
+         else {
+            if (rng.myUpper <= rng.myLower) {
+               setError (errMsg, "lower bound must be less then upper bound");
+               return false;
+            }
          }
          if (myMaxRange != null) {
             if (!myMaxRange.contains (rng)) {
@@ -98,6 +112,10 @@ public class NumericIntervalRange extends RangeBase {
             rtok.scanToken ('=');
             myMaxRange = (NumericInterval)Scan.scanClassAndObject (rtok, ref);
          }
+         else if (rtok.sval.equals ("allowEmpty")) {
+            rtok.scanToken ('=');
+            myAllowEmpty = rtok.scanBoolean();
+         }
          else {
             throw new IOException ("Unrecognized keyword: "+rtok);
          }
@@ -121,6 +139,9 @@ public class NumericIntervalRange extends RangeBase {
          pw.println ("[");
          System.out.print ("maxRange="+myMaxRange.getClass().getName()+" ");
          myMaxRange.write (pw, fmt, ref);
+         if (!myAllowEmpty) {
+            System.out.println ("allowEmpty=false");
+         }
          pw.println ("]");
          IndentingPrintWriter.addIndentation (pw, -2);
       }

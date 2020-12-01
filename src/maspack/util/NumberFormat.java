@@ -745,6 +745,159 @@ public class NumberFormat {
       return sbuf;
    }
 
+   /**
+    * Formats a float into a string.
+    * 
+    * @param x
+    * value to be formatted
+    * @return formatted string
+    */
+   public String format (float x) {
+      fbuf.setLength (0);
+      format (x, fbuf);
+      return fbuf.toString();
+   }
+
+   /**
+    * Formats a float and appends it to the end of a <code>StringBuffer</code>.
+    *
+    * @param x value to be formatted
+    * @param sbuf buffer to place the result in
+    * @return pointer to the result buffer
+    */
+   public StringBuffer format (float x, StringBuffer sbuf) {
+
+      // XXX This method shares almost identical code with
+      // format(double,StringBuffer), with the only difference being 'float'
+      // vs. 'double'. There should be a less repetitive way to write this.
+      int base = sbuf.length();
+      char p = '\0';
+
+      if (Float.isNaN (x)) {
+         sbuf.append ("NaN");
+      }
+      else if (x == Float.POSITIVE_INFINITY) {
+         sbuf.append ("Inf");
+      }
+      else if (x == Float.NEGATIVE_INFINITY) {
+         sbuf.append ("-Inf");
+      }
+      else if (type == 'f') {
+         if (decFmt == null) {
+            createDecFormat();
+         }
+         decFmt.setMinimumFractionDigits (precision);
+         decFmt.setMaximumFractionDigits (precision);
+         decFmt.format (x, sbuf, fpos);
+         if (alternate && indexOf ('.', base, sbuf) == -1) {
+            sbuf.append ('.');
+         }
+      }
+      else if (type == 'e' || type == 'E') {
+         expFmt.format (x, sbuf, fpos);
+         int i = indexOf ('E', base, sbuf);
+         if (i == -1) {
+            i = indexOf ('e', base, sbuf);
+            if (i == -1) {
+               throw new InternalErrorException (
+                  "E/e not found in exponential format: x=" + x +
+                  " sbuf=" + sbuf);
+            }
+         }
+         else if (type == 'e') {
+            sbuf.setCharAt (i, 'e');
+         }
+         char c = sbuf.charAt(i+1);
+         if (c != '-' && c != '+') {
+            sbuf.insert (i+1, '+');
+         }
+      }
+      else if (type == 'a' || type == 'A') {
+         expHexFormat (sbuf, x, precision);
+      }
+      else if (type == 'g' || type == 'G') {
+         if (precision == -1) {
+            sbuf.append (Float.toString (x));
+         }
+         else if (x == 0) {
+            sbuf.append ("0");
+         }
+         else {
+            int numFracDigits = -1;
+            float absx = Math.abs (x);
+            if (absx >= 1e-4) {
+               numFracDigits = 3 + precision;
+               float limit = 1e-3f;
+               while (numFracDigits >= 0) {
+                  if (absx < limit) {
+                     break;
+                  }
+                  numFracDigits--;
+                  limit *= 10;
+               }
+            }
+            if (numFracDigits == -1) {
+               expFmt.format (x, sbuf, fpos);
+               int i = indexOf ('E', base, sbuf);
+               if (i == -1) {
+                  i = indexOf ('e', base, sbuf);
+                  if (i == -1) {
+                     throw new InternalErrorException (
+                        "E/e not found in exponential format: x=" + x +
+                        " sbuf=" + sbuf);
+                  }
+               }
+               else if (type == 'g') {
+                  sbuf.setCharAt (i, 'e');
+               }
+               char c = sbuf.charAt(i+1);
+               if (c != '-' && c != '+') {
+                  sbuf.insert (i+1, '+');
+               }
+            }
+            else {
+               if (decFmt == null) {
+                  createDecFormat();
+               }
+               decFmt.setMinimumFractionDigits (numFracDigits);
+               decFmt.setMaximumFractionDigits (numFracDigits);
+               decFmt.format (x, sbuf, fpos);
+               if (width == -1) {
+                  trimTrailingZeros (sbuf);
+               }
+               if (alternate && indexOf ('.', base, sbuf) == -1) {
+                  sbuf.append ('.');
+               }
+            }
+         }
+      }
+      else {
+         return format ((long)x, sbuf);
+      }
+      if (x > 0) {
+         if (addSign) {
+            p = '+';
+         }
+         else if (addBlank) {
+            p = ' ';
+         }
+      }
+      if (zeropad) {
+         int nz = width - sbuf.length() + base;
+         if (p != '\0') {
+            nz--;
+         }
+         for (int i = 0; i < nz; i++) {
+            sbuf.insert (base, '0');
+         }
+      }
+      if (p != '\0') {
+         sbuf.insert (base, p);
+      }
+      pad (sbuf, sbuf.substring (base));
+      return sbuf;
+   }
+
    private void trimTrailingZeros (StringBuffer sbuf) {
       if (sbuf.indexOf (".") != -1) {
          int cut = sbuf.length() - 1;

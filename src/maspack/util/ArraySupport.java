@@ -283,6 +283,15 @@ public class ArraySupport {
       return array;
    }
 
+   public static float[] toFloatArray (Collection<? extends Number> col) {
+      float[] array = new float[col.size()];
+      int i = 0;
+      for (Number n : col) {
+         array[i++] = n.floatValue();
+      }
+      return array;
+   }
+
    public static int[] toIntArray (Collection<? extends Number> col) {
       int[] array = new int[col.size()];
       int i = 0;

@@ -241,6 +241,32 @@ public class ReaderTokenizerTest {
       // }
       // }
 
+      // test output = input for %g
+      int ntrys = 100000;
+      NumberFormat fmt = new NumberFormat ("%g");
+      for (int i=0; i<ntrys; i++) {
+         double a = RandomGenerator.nextDouble ();
+         int exp = RandomGenerator.nextInt (-20, 20);
+         if (exp != 0) {
+            a *= Math.pow (10, exp);
+         }
+         String str = fmt.format (a);
+         rtok.setReader (new StringReader (str));
+         double b = rtok.scanNumber();
+         if (a != b) {
+            throw new TestException ("Scanned "+b+", expected "+a);
+         }
+
+         float fa = (float)a;
+         str = fmt.format ((float)a);
+         rtok.setReader (new StringReader (str));
+         float fb = (float)rtok.scanNumber();
+         if (fa != fb) {
+            throw new TestException ("Scanned "+fb+", expected "+fa);
+         }       
+      }
+      
+
    }
 
    public void timing() {
@@ -293,6 +319,7 @@ public class ReaderTokenizerTest {
    public static void main (String[] args) {
       boolean doTiming = false;
 
+      RandomGenerator.setSeed (0x1234);
       for (int i = 0; i < args.length; i++) {
          if (args[i].equals ("-timing")) {
             doTiming = true;

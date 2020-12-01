@@ -222,9 +222,8 @@ public class RollPitchJointDemo extends RootModel {
       panel.addWidget (joint.getProperty("pitch"));
       panel.addWidget (joint.getProperty("rollRange"));
       panel.addWidget (joint.getProperty("pitchRange"));
-      panel.pack();
       addControlPanel (panel);
-      Main.getMain().arrangeControlPanels (this);
 
+      RenderProps.setFaceColor (myTip, new Color (0.5f, 1f, 1f));
    }
 }

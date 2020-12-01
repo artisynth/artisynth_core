@@ -218,7 +218,7 @@ public class SphericalJointDemo extends RootModel {
          panel.addWidget (regJoint.getProperty("tiltLimited"));
       }
       addControlPanel (panel);
-      Main.getMain().arrangeControlPanels (this);
 
+      RenderProps.setFaceColor (myHand, new Color (0.5f, 1f, 1f));
    }
 }

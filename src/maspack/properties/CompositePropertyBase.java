@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import maspack.util.IndentingPrintWriter;
 import maspack.util.NumberFormat;
 import maspack.util.ReaderTokenizer;
+import maspack.util.Scannable;
 
 /**
  * Implements a basic CompositeProperty, supporting writing of all
@@ -13,10 +14,10 @@ import maspack.util.ReaderTokenizer;
  * @author Antonio
  *
  */
-public class CompositePropertyBase implements CompositeProperty {
+public class CompositePropertyBase implements CompositeProperty, Scannable {
 
-   PropertyInfo myPropInfo;
-   HasProperties myPropHost;
+   protected PropertyInfo myPropInfo;
+   protected HasProperties myPropHost;
 
    public PropertyInfo getPropertyInfo() {
       return myPropInfo;
@@ -53,14 +54,26 @@ public class CompositePropertyBase implements CompositeProperty {
       return true;
    }
 
+   public void writeItems (
+      PrintWriter pw, NumberFormat fmt, Object ref)
+      throws IOException {
+      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ref);
+   }
+
    public void write (PrintWriter pw, NumberFormat fmt, Object ref) 
       throws IOException {
 
       pw.println ("[ ");
       IndentingPrintWriter.addIndentation (pw, 2);
-      getAllPropertyInfo().writeNonDefaultProps (this, pw, fmt, ref);
+      writeItems (pw, fmt, ref);
       IndentingPrintWriter.addIndentation (pw, -2);
       pw.println ("]");
+   }
+
+   protected boolean scanItem (ReaderTokenizer rtok, Object ref)
+      throws IOException {
+      // if keyword is a property name, try scanning that
+      return getAllPropertyInfo().scanProp (this, rtok);
    }
 
    public void scan (ReaderTokenizer rtok, Object ref) 
@@ -71,7 +84,7 @@ public class CompositePropertyBase implements CompositeProperty {
       rtok.scanToken ('[');
       while (rtok.nextToken() != ']') {
          rtok.pushBack();
-         if (!getAllPropertyInfo().scanProp (this, rtok)) {
+         if (!scanItem (rtok, ref)) {
             throw new IOException ("unexpected input: " + rtok);
          }
       }

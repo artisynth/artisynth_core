@@ -239,35 +239,6 @@ public class PropertyDialog extends JDialog implements ActionListener,
          tree, hostList, /* isLive= */true)));
    }
 
-   // public void setParentFrame (PropertyWindowBase parent)
-   // {
-   // myParent = parent;
-   // }
-
-   // public void addChildWindow (PropertyWindowBase child)
-   // {
-   // myChildren.add (child);
-   // Collection<ValueChangeListener> listeners =
-   // myPanel.getGlobalValueChangeListeners();
-   // if (listeners.size() > 0)
-   // { for (ValueChangeListener l : listeners)
-   // { child.addGlobalValueChangeListener (l);
-   // }
-   // }
-   // child.setParentFrame (this);
-   // }
-
-   // public void removeChildWindow (PropertyWindowBase child)
-   // {
-   // child.setParentFrame (null);
-   // myChildren.remove (child);
-   // }
-
-   // public boolean hasChildWindows()
-   // {
-   // return !myChildren.isEmpty();
-   // }
-
    public void actionPerformed (ActionEvent e) {
       String actionCmd = e.getActionCommand();
       if (actionCmd.equals ("OK") || actionCmd.equals ("Done")) {

@@ -363,8 +363,12 @@ public abstract class GeometryTransformerTest extends UnitTest {
    }
 
    void testMeshes() {
+      // need to be careful with the meshes because the some of the test
+      // deformation fields have singularities at locations like (-2,0,0) or
+      // (0,-1,0)
+
       PolygonalMesh mesh =
-         MeshFactory.createIcosahedralSphere (2.0, 1);
+         MeshFactory.createIcosahedralSphere (1.9, 1);
       // mesh has auto normal creation
       testMesh (mesh);
 
@@ -388,12 +392,12 @@ public abstract class GeometryTransformerTest extends UnitTest {
 
       // face normals, quads
       mesh = MeshFactory.createBox (
-         3, 2, 1, Point3d.ZERO, 2, 1, 1, true, FaceType.QUAD);
+         3.3, 2.2, 1, Point3d.ZERO, 2, 1, 1, true, FaceType.QUAD);
       testMesh (mesh);
 
       // face normals, triangles
       mesh = MeshFactory.createBox (
-         3, 2, 1, Point3d.ZERO, 2, 1, 1, true, FaceType.TRI);
+         3.3, 2.2, 1, Point3d.ZERO, 2, 1, 1, true, FaceType.TRI);
       testMesh (mesh);
    }
 

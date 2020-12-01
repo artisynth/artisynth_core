@@ -10,6 +10,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Window;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -513,6 +514,23 @@ public class LabeledComponentPanel extends JPanel
       }
    }
 
+   public JComponent findWidgetAtCursor (MouseEvent e) {
+      int x = e.getX();
+      int y = e.getY();
+      if (e.getSource() != this && e.getSource() instanceof Component) {
+         Rectangle bounds = ((Component)e.getSource()).getBounds();
+         x += bounds.x;
+         y += bounds.y;
+      }
+      Component comp = getComponentAt (x, y);
+      if (comp instanceof JComponent && myWidgets.contains (comp)) {
+         return (JComponent)comp;
+      }
+      else {
+         return null;
+      }
+   }
+
    public int numWidgets() {
       return myWidgets.size();
    }
@@ -584,7 +602,7 @@ public class LabeledComponentPanel extends JPanel
          return;
       }
       if (e.getButton() == MouseEvent.BUTTON1) {
-         JComponent comp = findWidget (e);
+         JComponent comp = findWidgetAtCursor (e);
          if (myDragDestination != null) {
             moveWidgets (myDragDestination);
             myDragDestination.setBorder (mySavedBorder);
@@ -645,7 +663,7 @@ public class LabeledComponentPanel extends JPanel
 
    public void mouseDragged (MouseEvent e) {
       if (myDraggingP && myTargetComponent != null) {
-         JComponent comp = findWidget (e);
+         JComponent comp = findWidgetAtCursor (e);
          if (comp != null && comp != myDragDestination) {
             if (myDragDestination != null) {
                myDragDestination.setBorder (mySavedBorder);

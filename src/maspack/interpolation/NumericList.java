@@ -351,7 +351,7 @@ public class NumericList
             last = (t <= tmid ? myHead : myTail);
          }
       }
-      if (last.t > t) { // last is abive t; try to move closer
+      if (last.t > t) { // last is above t; try to move closer
          while (last.t > t && last.prev != null) {
             last = last.prev;
          }
@@ -936,6 +936,7 @@ public class NumericList
       for (NumericListKnot knot = myHead; knot != null; knot = knot.next) {
          knot.v.scale (s);
       }      
+      myMinMaxValid = false;
    }
 
    /**

@@ -1198,12 +1198,12 @@ public interface Matrix extends LinearTransformNd {
       throws ImproperSizeException;
 
    /**
-    * Returns true if this matrix is symmetric within a given tolerance.
-    * Specifically, each off-diagonal element must equal it's transposed
-    * counterpart within the given tolerance.
+    * Returns true if this matrix is symmetric within a given absolute 
+    * tolerance. Specifically, each off-diagonal element must equal it's 
+    * transposed counterpart within the given tolerance.
     * 
     * @param tol
-    * tolerance for checking equality of off-diagonal elements
+    * absolute tolerance for checking equality of off-diagonal elements
     */
    public boolean isSymmetric (double tol);
 

@@ -2729,5 +2729,37 @@ public class SparseBlockMatrix extends SparseMatrixBase implements Clonable {
       }
       return m;
    }
+
+   @Override
+   public boolean isSymmetric (double tol) {
+      for (int bi=0; bi<myNumBlockRows; bi++) {
+         for (MatrixBlock blk=myRows[bi].myHead; blk!=null; blk=blk.next()) {
+            int bj = blk.getBlockCol();
+            if (bi == bj) {
+               if (!blk.isSymmetric (tol)) {
+                  return false;
+               }
+            }
+            else {
+               MatrixBlock blkT = getBlock (bj, bi);
+               MatrixNd T;
+               if (blkT == null) {
+                  // Matrix is structurally assymetric but might still be
+                  // numerically symmetric. Create a zero block to compare to
+                  T = new MatrixNd (blk.rowSize(), blk.colSize());
+               }
+               else {
+                  T = new MatrixNd(blkT);
+                  T.transpose();
+               }
+               if (!T.epsilonEquals (blk, tol)) {
+                  return false;
+               }
+            }
+         }
+      }
+      return true;
+   }
+
    
 }

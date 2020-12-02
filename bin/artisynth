@@ -80,64 +80,49 @@ elif [ -z "$ARTISYNTH_HOME" ] ; then
     export ARTISYNTH_HOME="`cd \"$D\" 2>/dev/null && pwd || echo \"$D\"`"
     export ARTISYNTH_PATH=".":$HOME:$ARTISYNTH_HOME
 fi
-ART=$ARTISYNTH_HOME
+AT=$ARTISYNTH_HOME
+OSNAME=`uname -s`
 # Classpath needs to be set to main classes directory and jar files
 # in $ARTISYNTH_HOME/lib
-if [ -z $CLASSPATH ]; then
-   CLASSPATH=$ART/classes:$ART/lib/*
-else 
-   contains $CLASSPATH "$ART/classes"
-   if [ $? -ne 0 ]; then
-      CLASSPATH=$ART/classes:$CLASSPATH
+if [[ "$OSNAME" == *"CYGWIN"* || "$OSNAME" == *"MINGW"* ]]; then
+   # Windows based system
+   ATW=`cygpath -w $AT`
+   export ARTISYNTH_HOME=$ATW
+   export ARTISYNTH_PATH=".;`cygpath -w $HOME`;$ATW"
+   if [ -z $CLASSPATH ]; then
+      CLASSPATH="$ATW\classes;$ATW\lib\*"
+   else 
+      if ! contains $CLASSPATH "$ATW\lib\*" ; then
+         CLASSPATH="$ATW\lib\*:$CLASSPATH"
+      fi
+      if ! contains $CLASSPATH "$ATW\classes" ; then
+         CLASSPATH="$ATW\classes;$CLASSPATH"
+      fi
    fi
-   contains $CLASSPATH "$ART/lib/*"
-   if [ $? -ne 0 ]; then
-      CLASSPATH=$ART/lib/*:$CLASSPATH
+elif [[ "$OSNAME" == *"Linux"* || "$OSNAME" == *"Darwin"* ]] ; then
+   # Linux or Mac system
+   if [ -z $CLASSPATH ]; then
+      CLASSPATH=$AT/classes:$AT/lib/*
+   else 
+      if ! contains $CLASSPATH "$AT/lib/*" ; then
+         CLASSPATH=$AT/lib/*:$CLASSPATH
+      fi
+      if ! contains $CLASSPATH "$AT/classes" ; then
+         CLASSPATH=$AT/classes:$CLASSPATH
+      fi
    fi
-fi
-export CLASSPATH
-OSNAME=`uname -s`
-if [ "$OSNAME" = "Linux" ] ; then
-    if uname -m | grep -q 64 ; then
-       OS=$OSNAME"64"
-    else
-       OS=$OSNAME
-       MEM_LIMIT="-Xmx2G"
-    fi
-#    contains $LD_LIBRARY_PATH $ARTISYNTH_HOME/lib/$OS
-#    if [ $? -ne 0 ] || [ -z $LD_LIBRARY_PATH ] ; then
-#        export LD_LIBRARY_PATH=$ARTISYNTH_HOME/lib/$OS:$LD_LIBRARY_PATH
-#    fi
-elif [ "$OSNAME" = "Darwin" ] ; then
-    if uname -a | fgrep -q "_64" ; then
-        ARCH="x86_64"
-    else
-        ARCH="i386"
-    fi
-    export DYLD_LIBRARY_PATH=$ART/lib/MacOS64
-#    contains $DYLD_LIBRARY_PATH $ART/lib/$OSNAME-$ARCH
-#    if [ $? -ne 0 ] || [ -z $DYLD_LIBRARY_PATH ]; then
-#        export DYLD_LIBRARY_PATH=$ART/lib/$OSNAME-$ARCH:$DYLD_LIBRARY_PATH
-#    fi
-elif echo "$OSNAME" | grep CYGWIN 1>/dev/null 2>&1 ; then
-    export ARTISYNTH_HOME=`cygpath -w $ARTISYNTH_HOME`
-    export ARTISYNTH_PATH=".;`cygpath -w $HOME`;$ARTISYNTH_HOME"
-#    if uname -m | grep -q 64 ; then
-#       echo Cygwin on Windows64
-#       export PATH=`cygpath "$ARTISYNTH_HOME\lib\Windows64"`:$PATH
-#    else
-#       echo Cygwin on Windows32
-#       export PATH=`cygpath "$ARTISYNTH_HOME\lib\Windows"`:$PATH
-#       MEM_LIMIT="-Xmx1G"
-#    fi
-    CLASSPATH="$ARTISYNTH_HOME\classes;$ARTISYNTH_HOME\lib\*"
-elif echo "$OSNAME" | grep MINGW 1>/dev/null 2>&1 ; then
-    export ARTISYNTH_HOME="$ARTISYNTH_HOME"
-    export ARTISYNTH_PATH="$HOME;$ARTISYNTH_HOME"
-    CLASSPATH="$ARTISYNTH_HOME/classes:$ARTISYNTH_HOME/lib/*"
+   if [[ "$OSNAME" == *"Linux"* ]] ; then
+      if ! uname -m | grep -q 64 ; then
+         MEM_LIMIT="-Xmx2G"
+      fi
+   else 
+      # Mac system
+      export DYLD_LIBRARY_PATH=$AT/lib/MacOS64
+   fi
 else     
     echo Unknown operating system: $OSNAME
 fi
+export CLASSPATH
 
 if [ $HELP = yes ] ; then
    help ; exit 0

@@ -412,7 +412,7 @@ public class TrackingController extends ControllerBase
 
    /**
     * Queries whether or not excitations are computed incrementally at each
-    * time step, as described in {@link #setIncrementalExcitations(boolean)}.
+    * time step, as described in {@link #setComputeIncrementally(boolean)}.
     * 
     * @return {@code true} if excitations are computed incrementally
     */

@@ -404,6 +404,7 @@ public class PardisoSolver implements DirectSolver {
          // PardisoJNI.1.0 is an MKL 10 library that is sometimes more reliable
          //String pardisoLibrary = "PardisoJNI.1.0";
          String pardisoLibrary = "PardisoJNI.11.1.2.1"; // uses MKL 11.1.2
+         //String pardisoLibrary = "PardisoJNI.2020.4"; // uses MKL 2020.4
          switch (NativeLibraryManager.getSystemType()) {
             case Linux32:
             case Linux64: {

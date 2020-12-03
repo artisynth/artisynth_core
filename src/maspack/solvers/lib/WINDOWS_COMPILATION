@@ -1,0 +1,43 @@
+Dec 2, 2020
+-----------
+
+Most recent compilation of Pardiso was done for MKL 2020.4, and it
+seems to work as well as previous versions, albeit with a much larger
+file size (100+ Mbytes). 2020.4 also has a bug in which it uses the
+deprecated methods omp_set/get_nested(), and a warning is printed.
+This warning can be suppressed by calling kmp_set_warnings_off().
+
+It now seems that the problems with hybrid solves not working for MKL
+11 1.3 and higher are no longer present. Moreover, when calling
+Pardiso with iparams[3] != 0 (which enables the iterative/direct
+solve), it seems to make no difference if the argument is positive or
+negative - i.e., Pardiso seems to be using abs(iparams[3]). This means
+there is no longer any need to use Olaf's trick of negating the
+argument in iparams[3] to prevent the solver from refactoring (and it
+seems likely that setting phase = 33 already does this).
+
+MKL 2020.4 was downloaded from Intel, and the current license was
+checked to make sure it still allows for free redistribtion (it does).
+The files were installed in 'Program Files (x86)\IntelSWTools'
+
+Compilation was done using Visual Studio Community, which was
+installed with the workload "Desktop development with C++" to get the
+command line utilities such as cl and nmake. The NMakefile was
+rewritten to use the VS c/c++ compiler 'cl', while the old NMakefile,
+written for the Intel compiler, was renamed to NMakefile.Intel.
+
+Some small mods were made to the source code, and INTEL_COMPILER was
+replaced with WINDOWS_COMPILER.
+
+To run cl and nmake, it is easiest to open a developer command
+terminal - specifically, the "x64 Native Tools Command Prompt".  It
+can be helpful to set the prompt to something like "$p$_$g " (no
+quotes), either by setting the PROMPT environment variable, or using
+the 'prompt' command.
+
+One can then navigate to solvers/lib and run
+
+> nmake /F NMakefile
+
+To determine which libraries to use, we used the
+mkl_link_line_advisor.

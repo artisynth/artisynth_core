@@ -19,6 +19,10 @@
 
 #define ffactor 40  /* Represents the expected sparsity of the matrix*/
 
+extern "C" {
+  void kmp_set_warnings_off (void);
+}
+
 Pardiso4::Pardiso4 ()
 {
 //#ifdef DARWIN
@@ -112,6 +116,10 @@ Pardiso4::Pardiso4 ()
 
    myX = (double*)0;
    myB = (double*)0;
+
+   // suppress warning messages, because of use of deprecated methods
+   // omp_set/get_nested() by MKL 2020.
+   kmp_set_warnings_off();
 }
 
 Pardiso4::~Pardiso4()
@@ -682,14 +690,18 @@ int Pardiso4::iterativeSolve (
        }
     }
 
-   // we negate myIParams[3] in order to force the solve to NOT
-   // do any refactoring on its own
+   // We used to negate myIParams[3] in order to force the solve to
+   // NOT do any refactoring on its own. This was a nonstandard
+   // feature described to us by Olaf Schenk. In current versions of
+   // MKL pardiso, it seems that this has been supplanted by phase =
+   // 33, and also that MKL uses abs(myIParams[3]), so that negating
+   // has no effect.
    if (myMatrixType == REAL_SYMMETRIC_POSDEF ||
        myMatrixType == REAL_SYMMETRIC)
-    { myIParams[3] = -(10*tolExp + 2);
+    { myIParams[3] = (10*tolExp + 2);
     }
    else
-    { myIParams[3] = -(10*tolExp + 1);
+    { myIParams[3] = (10*tolExp + 1);
     }
 
    PARDISO (myInternalStore, &myMaxFact, &myFactorization, &myMatrixType,

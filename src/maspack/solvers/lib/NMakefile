@@ -1,40 +1,51 @@
+# This NMakefile should be run in the "x64 Native Tools Command
+# Prompt", using the command
+#
+# > nmake /F NMakefile
+#
 ROOT_DIR = ..\..\..\..
 LIB_TARGET_DIR = $(ROOT_DIR)\lib\Windows64
-# Pardiso compiled with MKL 11.1.2 and with thread count control
-PARDISO_MKL_TARGET = PardisoJNI.11.1.2.1.dll
-CC_COMP = icl
-CC_FLAGS = /O2 /Qopenmp /DINTEL_COMPILER
-JAVA_HOME = "C:\Program Files\Java\jdk1.7.0_67"
-CC_INCS = /I. /I$(JAVA_HOME)\include /I$(JAVA_HOME)\include\win32
-MKL_HOME = "C:\Program Files (x86)\Intel\Composer XE 2013 SP1"
-MKL_64 = $(MKL_HOME)"\mkl\lib\intel64"
-MKL_32 = $(MKL_HOME)"\mkl\lib\ia32"
-PARDISO_LIBS_64 = mkl_intel_lp64.lib mkl_core.lib mkl_intel_thread.lib
-PARDISO_LIBS_32 = mkl_intel_c.lib mkl_core.lib mkl_intel_thread.lib
+# Pardiso compiled with MKL 2020.4
+PARDISO_MKL_TARGET = PardisoJNI.2020.4.dll
+CC_COMP = cl # Visual Studio C/C++ compiler
+CC_FLAGS = /O2 /WINDOWS_COMPILER 
+# location of current Java JDK:
+JAVA_HOME = "C:\Program Files\Java\jdk1.8.0_241"
+# location of Intel libraries:
+INTEL_HOME = "C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows"
+MKL_HOME = $(INTEL_HOME)\mkl
+# include directories:
+CC_INCS = /I. /I$(JAVA_HOME)\include /I$(JAVA_HOME)\include\win32 /I$(MKL_HOME)\include
+MKL_64 = $(MKL_HOME)"\lib\intel64"
+#MKL_32 = $(MKL_HOME)"\lib\ia32"  # 32 bit no longer supported
+# pardiso static libraries
+PARDISO_LIBS_64 = /link /LIBPATH:$(MKL_64) mkl_intel_lp64.lib mkl_core.lib mkl_intel_thread.lib
+#PARDISO_LIBS_32 = mkl_intel_c.lib mkl_core.lib mkl_intel_thread.lib
+# multithreading library. Good news - works with older version as well
+LIBMP = /LIBPATH:$(INTEL_HOME)\compiler\lib\intel64 libiomp5md.lib
 
 default: libs
 
 libs: $(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET)
 
+# main pardiso interfac code
 pardisoMkl.obj: pardisoMkl.cc pardisoMkl.h
-	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c /o pardisoMkl.obj pardisoMkl.cc  
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c pardisoMkl.cc  
 
+# JNI interface
 PardisoMklJNI.obj: maspack_solvers_PardisoSolver.h PardisoMklJNI.cc pardisoMkl.h
-	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c /o PardisoMklJNI.obj PardisoMklJNI.cc  
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c PardisoMklJNI.cc  
+
+# build command for the DLL
+$(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET): PardisoMklJNI.obj pardisoMkl.obj
+	$(CC_COMP) $(CC_FLAGS) PardisoMklJNI.obj pardisoMkl.obj \
+	$(PARDISO_LIBS_64) $(LIBMP) /DLL /out:$@
+
+# standalone test program:
 
 pardisoMklTest.obj: pardisoMklTest.cc 
-	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c /o pardisoMklTest.obj pardisoMklTest.cc
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c pardisoMklTest.cc
 
 pardisoMklTest.exe: pardisoMkl.obj pardisoMklTest.obj pardisoMkl.h
-	$(CC_COMP) $(CC_FLAGS) /o pardisoMklTest.exe pardisoMklTest.obj \
-		pardisoMkl.obj /Qmkl $(PARDISO_LIBS_64)
-
-$(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET): PardisoMklJNI.obj pardisoMkl.obj
-	$(CC_COMP) $(CC_FLAGS) -o $@ PardisoMklJNI.obj pardisoMkl.obj \
-	$(PARDISO_LIBS_64) /LD /MT /link
-
-hello.obj: hello.cc
-	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c /o hello.obj hello.cc
-
-hello.exe: hello.obj
-	$(CC_COMP) $(CC_FLAGS) /Qmkl:parallel /o hello.exe hello.obj mkl_intel_lp64.lib mkl_core.lib mkl_intel_thread.lib
+	$(CC_COMP) $(CC_FLAGS) pardisoMklTest.obj \
+		pardisoMkl.obj $(PARDISO_LIBS_64) $(LIBMP)

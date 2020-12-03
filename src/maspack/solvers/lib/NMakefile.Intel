@@ -1,0 +1,40 @@
+ROOT_DIR = ..\..\..\..
+LIB_TARGET_DIR = $(ROOT_DIR)\lib\Windows64
+# Pardiso compiled with MKL 11.1.2 and with thread count control
+PARDISO_MKL_TARGET = PardisoJNI.11.1.2.1.dll
+CC_COMP = icl
+CC_FLAGS = /O2 /Qopenmp /DINTEL_COMPILER
+JAVA_HOME = "C:\Program Files\Java\jdk1.7.0_67"
+CC_INCS = /I. /I$(JAVA_HOME)\include /I$(JAVA_HOME)\include\win32
+MKL_HOME = "C:\Program Files (x86)\Intel\Composer XE 2013 SP1"
+MKL_64 = $(MKL_HOME)"\mkl\lib\intel64"
+MKL_32 = $(MKL_HOME)"\mkl\lib\ia32"
+PARDISO_LIBS_64 = mkl_intel_lp64.lib mkl_core.lib mkl_intel_thread.lib
+PARDISO_LIBS_32 = mkl_intel_c.lib mkl_core.lib mkl_intel_thread.lib
+
+default: libs
+
+libs: $(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET)
+
+pardisoMkl.obj: pardisoMkl.cc pardisoMkl.h
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c /o pardisoMkl.obj pardisoMkl.cc  
+
+PardisoMklJNI.obj: maspack_solvers_PardisoSolver.h PardisoMklJNI.cc pardisoMkl.h
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c /o PardisoMklJNI.obj PardisoMklJNI.cc  
+
+pardisoMklTest.obj: pardisoMklTest.cc 
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c /o pardisoMklTest.obj pardisoMklTest.cc
+
+pardisoMklTest.exe: pardisoMkl.obj pardisoMklTest.obj pardisoMkl.h
+	$(CC_COMP) $(CC_FLAGS) /o pardisoMklTest.exe pardisoMklTest.obj \
+		pardisoMkl.obj /Qmkl $(PARDISO_LIBS_64)
+
+$(LIB_TARGET_DIR)\$(PARDISO_MKL_TARGET): PardisoMklJNI.obj pardisoMkl.obj
+	$(CC_COMP) $(CC_FLAGS) -o $@ PardisoMklJNI.obj pardisoMkl.obj \
+	$(PARDISO_LIBS_64) /LD /MT /link
+
+hello.obj: hello.cc
+	$(CC_COMP) $(CC_FLAGS) $(CC_INCS) /c /o hello.obj hello.cc
+
+hello.exe: hello.obj
+	$(CC_COMP) $(CC_FLAGS) /Qmkl:parallel /o hello.exe hello.obj mkl_intel_lp64.lib mkl_core.lib mkl_intel_thread.lib

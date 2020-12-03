@@ -3,17 +3,17 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#ifndef INTEL_COMPILER
+#ifndef WINDOWS_COMPILER
 #include <sys/time.h>
 #endif
 #include "pardisoMkl.h"
-#if !defined(CYGWIN) && !defined(INTEL_COMPILER)
+#if !defined(CYGWIN) && !defined(WINDOWS_COMPILER)
 #include <pthread.h>
 #endif
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
-#if defined(CYGWIN) || defined(INTEL_COMPILER)
+#if defined(CYGWIN) || defined(WINDOWS_COMPILER)
 #define random rand
 #endif
 
@@ -79,7 +79,7 @@ int readVectorFromFile (char *filename, double* vals)
    return vi;
 }
 
-#ifndef INTEL_COMPILER
+#ifndef WINDOWS_COMPILER
 unsigned long currentTimeUsec()
 {
    struct timeval tv;
@@ -435,7 +435,7 @@ int main (int argc, char** argv) {
    printf ("status=%d\n", status);
    double maxResidual = 0;
 
-#ifndef INTEL_COMPILER
+#ifndef WINDOWS_COMPILER
    if (timingCnt > 0) {
      printf ("Testing factor+solve time for matrix of size %d:\n", matSize);
      long totalTime = 0;
@@ -469,7 +469,7 @@ int main (int argc, char** argv) {
 
    Pardiso4* pardiso2 = new Pardiso4();
 
-#if !defined(CYGWIN) && !defined(INTEL_COMPILER)
+#if !defined(CYGWIN) && !defined(WINDOWS_COMPILER)
    if (threadTestCnt > 0) {
      for (int i=0; i<threadTestCnt; i++) {
        MatrixInfo info;

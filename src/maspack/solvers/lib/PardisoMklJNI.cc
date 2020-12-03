@@ -254,7 +254,7 @@ static int doSetMatrix (
 	// if jint and int are not same size, we have problems
 	if (sizeof(int) != sizeof(jint))
 	 { printf(
-	      "PardisoJNI.cc: sizeof(jint)=%ld, sizeof(int)=%ld, aborting...\n", 
+	      "PardisoJNI.cc: sizeof(jint)=%zd, sizeof(int)=%zd, aborting...\n", 
 	      sizeof(jint), sizeof(int));
 	   return -1;
 	 }

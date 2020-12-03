@@ -7,7 +7,7 @@
 
 /* PARDISO prototype. */
 
-#if defined(INTEL_COMPILER)
+#if defined(WINDOWS_COMPILER)
 
 #include "mkl.h"
 #define DLLEXPORT 
